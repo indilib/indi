@@ -41,7 +41,7 @@ CCDChip::CCDChip()
     strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
 
     FrameType  = LIGHT_FRAME;
-    lastRapidX = lastRapidY = -1;
+    //lastRapidX = lastRapidY = -1;
 }
 
 CCDChip::~CCDChip()
@@ -116,8 +116,8 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
         nvp = &ImageBinNP;
     else if (!strcmp(property, ImagePixelSizeNP.name))
         nvp = &ImagePixelSizeNP;
-    else if (!strcmp(property, RapidGuideDataNP.name))
-        nvp = &RapidGuideDataNP;
+    //    else if (!strcmp(property, RapidGuideDataNP.name))
+    //        nvp = &RapidGuideDataNP;
     else
         return;
 

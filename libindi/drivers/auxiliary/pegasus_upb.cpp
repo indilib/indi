@@ -158,10 +158,10 @@ bool PegasusUPB::initProperties()
 
 
     // Current Draw
-    IUFillNumber(&PowerCurrentN[0], "POWER_CURRENT_1", "#1 (mA)", "%4.2f", 0, 1000, 0, 0);
-    IUFillNumber(&PowerCurrentN[1], "POWER_CURRENT_2", "#2 (mA)", "%4.2f", 0, 1000, 0, 0);
-    IUFillNumber(&PowerCurrentN[2], "POWER_CURRENT_3", "#3 (mA)", "%4.2f", 0, 1000, 0, 0);
-    IUFillNumber(&PowerCurrentN[3], "POWER_CURRENT_4", "#4 (mA)", "%4.2f", 0, 1000, 0, 0);
+    IUFillNumber(&PowerCurrentN[0], "POWER_CURRENT_1", "#1 (A)", "%4.2f", 0, 1000, 0, 0);
+    IUFillNumber(&PowerCurrentN[1], "POWER_CURRENT_2", "#2 (A)", "%4.2f", 0, 1000, 0, 0);
+    IUFillNumber(&PowerCurrentN[2], "POWER_CURRENT_3", "#3 (A)", "%4.2f", 0, 1000, 0, 0);
+    IUFillNumber(&PowerCurrentN[3], "POWER_CURRENT_4", "#4 (A)", "%4.2f", 0, 1000, 0, 0);
     IUFillNumberVector(&PowerCurrentNP, PowerCurrentN, 4, getDeviceName(), "POWER_CURRENT", "Current Draw", POWER_TAB, IP_RO, 60, IPS_IDLE);
 
     // Power on Boot
@@ -198,8 +198,8 @@ bool PegasusUPB::initProperties()
     IUFillNumberVector(&DewPWMNP, DewPWMN, 2, getDeviceName(), "DEW_PWM", "Dew PWM", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     // Dew current draw
-    IUFillNumber(&DewCurrentDrawN[DEW_PWM_A], "DEW_CURRENT_A", "Dew A (mA)", "%4.2f", 0, 1000, 10, 0);
-    IUFillNumber(&DewCurrentDrawN[DEW_PWM_B], "DEW_CURRENT_B", "Dew B (mA)", "%4.2f", 0, 1000, 10, 0);
+    IUFillNumber(&DewCurrentDrawN[DEW_PWM_A], "DEW_CURRENT_A", "Dew A (A)", "%4.2f", 0, 1000, 10, 0);
+    IUFillNumber(&DewCurrentDrawN[DEW_PWM_B], "DEW_CURRENT_B", "Dew B (A)", "%4.2f", 0, 1000, 10, 0);
     IUFillNumberVector(&DewCurrentDrawNP, DewCurrentDrawN, 2, getDeviceName(), "DEW_CURRENT", "Dew Current", DEW_TAB, IP_RO, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -660,12 +660,11 @@ bool PegasusUPB::sendCommand(const char * cmd, char * res)
 
 IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expected[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "SM:%d", targetTicks);
-    snprintf(expected, PEGASUS_LEN, "M:%d", targetTicks);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, expected) ? IPS_BUSY : IPS_ALERT);
+        return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
     }
 
     return IPS_ALERT;

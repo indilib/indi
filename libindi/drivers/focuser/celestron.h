@@ -118,6 +118,7 @@ class CelestronSCT : public INDI::Focuser
 
         bool calibrateInProgress;
         int calibrateState;
+        bool focuserIsCalibrated;
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values

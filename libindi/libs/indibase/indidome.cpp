@@ -807,16 +807,23 @@ bool Dome::ISSnoopDevice(XMLEle * root)
 
         if (weatherState == IPS_ALERT)
         {
-            if (CanPark() && AutoParkS[0].s == ISS_ON)
+            if (CanPark())
             {
                 if (!isParked())
                 {
-                    LOG_WARN( "Weather conditions in the danger zone! Parking dome...");
-                    Dome::Park();
+                    if (AutoParkS[0].s == ISS_ON)
+                    {
+                        LOG_WARN("Weather conditions in the danger zone! Parking dome...");
+                        Dome::Park();
+                    }
+                    else
+                    {
+                        LOG_WARN("Weather conditions in the danger zone! AutoPark is disabled. Please park the dome!");
+                    }
                 }
             }
             else
-                LOG_WARN( "Weather conditions in the danger zone! Close the dome immediately!");
+                LOG_WARN("Weather conditions in the danger zone! Close the dome immediately!");
 
             return true;
         }

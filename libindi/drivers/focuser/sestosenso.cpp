@@ -71,9 +71,9 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso::SestoSenso()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
 bool SestoSenso::initProperties()
@@ -88,10 +88,10 @@ bool SestoSenso::initProperties()
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    // Limits
-    IUFillNumber(&LimitsN[SS_MIN_LIMIT], "FOCUS_MIN_STEP", "Min", "%.f", 0, 10000., 0., 0.);
-    IUFillNumber(&LimitsN[SS_MAX_LIMIT], "FOCUS_MAX_STEP", "Max", "%.f", 10000,  2097152., 0., 200000.);
-    IUFillNumberVector(&LimitsNP, LimitsN, 2, getDeviceName(), "FOCUS_LIMITS", "Limits", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+//    // Limits
+//    IUFillNumber(&LimitsN[SS_MIN_LIMIT], "FOCUS_MIN_STEP", "Min", "%.f", 0, 10000., 0., 0.);
+//    IUFillNumber(&LimitsN[SS_MAX_LIMIT], "FOCUS_MAX_STEP", "Max", "%.f", 10000,  2097152., 0., 200000.);
+//    IUFillNumberVector(&LimitsNP, LimitsN, 2, getDeviceName(), "FOCUS_LIMITS", "Limits", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
@@ -231,6 +231,19 @@ bool SestoSenso::updateMaxLimit()
         if (FocusMaxPosN[0].value > maxLimit)
             FocusMaxPosN[0].value = maxLimit;
 
+        FocusAbsPosN[0].min   = 0;
+        FocusAbsPosN[0].max   = maxLimit;
+        FocusAbsPosN[0].value = 0;
+        FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+
+        FocusRelPosN[0].min   = 0.;
+        FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
+        FocusRelPosN[0].value = 0;
+        FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+
+        IUUpdateMinMax(&FocusAbsPosNP);
+        IUUpdateMinMax(&FocusMaxPosNP);
+
         FocusMaxPosNP.s = IPS_OK;
         IUUpdateMinMax(&FocusAbsPosNP);
         return true;
@@ -338,6 +351,8 @@ bool SestoSenso::SetFocuserMaxPosition(uint32_t ticks)
 
 bool SestoSenso::setMaxLimit(uint32_t limit)
 {
+    return true;
+
     char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
     snprintf(cmd, SESTO_LEN, "#SM;%07d!", limit);
 
@@ -359,6 +374,8 @@ bool SestoSenso::setMaxLimit(uint32_t limit)
 
 bool SestoSenso::setMinLimit(uint32_t limit)
 {
+    return true;
+
     char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
     snprintf(cmd, SESTO_LEN, "#Sm;%07d!", limit);
 
@@ -378,6 +395,7 @@ bool SestoSenso::setMinLimit(uint32_t limit)
     return false;
 }
 
+#if 0
 bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -430,6 +448,7 @@ bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[],
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
+#endif
 
 IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
 {

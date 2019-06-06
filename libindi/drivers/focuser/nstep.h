@@ -101,6 +101,9 @@ class NStep : public INDI::Focuser
         INumber SteppingPhaseN[1];
         INumberVectorProperty SteppingPhaseNP;
 
+        INumber MaxSpeedN[1];
+        INumberVectorProperty MaxSpeedNP;
+
         ///////////////////////////////////////////////////////////////////////////////
         /// Read Data From Controller
         ///////////////////////////////////////////////////////////////////////////////
@@ -118,6 +121,7 @@ class NStep : public INDI::Focuser
         bool setCompensationSettings(double change, double move, double backlash, double timer);
         bool setSteppingPhase(uint8_t phase);
         bool setCoilStatus(uint8_t status);
+        bool setMaxSpeed(uint8_t maxSpeed);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions

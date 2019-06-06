@@ -1,3 +1,34 @@
+libqhy (5.0.8) bionic; urgency=medium
+
+  * Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 05 Jun 2019 11:00:00 +0300
+
+libqhy (5.0.7) bionic; urgency=medium
+
+  * Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 28 May 2019 09:00:00 +0300
+
+libqhy (5.0.5) bionic; urgency=medium
+
+  * Upstream release.
+  * x86-32 bit library removed.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 8 May 2019 17:00:00 +0300
+
+libqhy (5.0.3) bionic; urgency=medium
+
+  * Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 14 Apr 2019 12:00:00 +0300
+
+libqhy (5.0.1) bionic; urgency=medium
+
+  * Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 29 Mar 2019 12:00:00 +0300
+
 libqhy (4.0.16) bionic; urgency=medium
 
   * Upstream release.

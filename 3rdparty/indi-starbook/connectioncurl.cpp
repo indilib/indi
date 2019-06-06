@@ -50,12 +50,12 @@ namespace Connection {
 
         LOGF_INFO("Creating HTTP handle for %s@%s", hostname, port);
         if (handle != nullptr) {
-            LOG_WARN("Found old handle, reusing");
+            LOG_DEBUG("Found old handle, reusing");
         } else {
             handle = curl_easy_init();
         }
         if (handle == nullptr) {
-            LOG_ERROR("Can't create HTTP handle");
+            LOG_ERROR("Cannot create HTTP handle");
             return false;
         }
 

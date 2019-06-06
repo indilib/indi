@@ -45,7 +45,7 @@ class LX200Basic : public INDI::Telescope
 
     void getBasicData();
 
-  private:
+  protected:
     bool isSlewComplete();
     void slewError(int slewCode);
     void mountSim();

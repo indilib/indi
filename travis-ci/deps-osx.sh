@@ -21,10 +21,8 @@ brew install \
 	libcfitsio \
 	libnova  \
 	librtlsdr  \
-	libfftw3 \
 	ffmpeg
 
-			
 brew cask install \
 	sbig-universal-driver
 

@@ -87,6 +87,7 @@ option(WITH_GIGE "Install GiGE machine vision Driver" Off)
 option(WITH_DSI "Install Meade DSI Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 option(WITH_MGEN "Install MGen Autoguider" On)
+option(WITH_ASTROMECHFOC "Install Astromechanics Focuser" On)
 option(WITH_LIMESDR "Install LIME-SDR Receiver" On)
 option(WITH_RTLSDR "Install RTL-SDR Receiver" On)
 option(WITH_RADIOSIM "Install RadioSim Receiver" On)
@@ -97,6 +98,7 @@ option(WITH_NIGHTSCAPE "Install Nightscape 8300 Driver" On)
 option(WITH_ATIK "Install Atik Driver" On)
 option(WITH_TOUPCAM "Install Toupcam Driver" On)
 option(WITH_ALTAIRCAM "Install Altair Driver" On)
+option(WITH_DREAMFOCUSER "Install DreamFocuser Driver" On)
 option(WITH_AVALON "Install Avalon StarGO Driver" On)
 option(WITH_BEEFOCUS "Install Bee Focuser Driver" On)
 
@@ -392,10 +394,10 @@ if (WITH_MGEN)
 add_subdirectory(indi-mgen)
 endif (WITH_MGEN)
 
-# RadioSim
-if (WITH_RADIOSIM)
-add_subdirectory(indi-radiosim)
-endif (WITH_RADIOSIM)
+# Astromechanics Focuser
+if (WITH_ASTROMECHFOC)
+add_subdirectory(indi-astromechfoc)
+endif(WITH_ASTROMECHFOC)
 
 ## RTL-SDR
 if (WITH_RTLSDR)
@@ -432,6 +434,10 @@ endif()
 if (WITH_NIGHTSCAPE)
 add_subdirectory(indi-nightscape)
 endif(WITH_NIGHTSCAPE)
+
+if (WITH_DREAMFOCUSER)
+add_subdirectory(indi-dreamfocuser)
+endif()
 
 # Avalon StarGO
 if (WITH_AVALON)

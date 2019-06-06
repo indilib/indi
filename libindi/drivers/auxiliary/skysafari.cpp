@@ -33,7 +33,6 @@
 
 #include <cerrno>
 #include <cstring>
-#include <memory>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -41,7 +40,8 @@
 #include <sys/socket.h>
 
 // We declare unique pointer to my lovely German Shephard Tommy (http://indilib.org/images/juli_tommy.jpg)
-std::unique_ptr<SkySafari> tommyGoodBoy(new SkySafari());
+// Rest in Peace Tommy 2013-2018
+static std::unique_ptr<SkySafari> tommyGoodBoy(new SkySafari());
 
 void ISGetProperties(const char *dev)
 {
@@ -82,20 +82,15 @@ void ISSnoopDevice(XMLEle *root)
 
 SkySafari::SkySafari()
 {
-    setVersion(0, 1);
+    setVersion(0, 2);
     setDriverInterface(AUX_INTERFACE);
 
-    skySafariClient = new SkySafariClient();
-}
-
-SkySafari::~SkySafari()
-{
-    delete (skySafariClient);
+    skySafariClient.reset(new SkySafariClient());
 }
 
 const char *SkySafari::getDefaultName()
 {
-    return (const char *)"SkySafari";
+    return "SkySafari";
 }
 
 bool SkySafari::Connect()
@@ -123,12 +118,12 @@ bool SkySafari::initProperties()
     IUFillText(&SettingsT[INDISERVER_HOST], "INDISERVER_HOST", "indiserver host", "localhost");
     IUFillText(&SettingsT[INDISERVER_PORT], "INDISERVER_PORT", "indiserver port", "7624");
     IUFillText(&SettingsT[SKYSAFARI_PORT], "SKYSAFARI_PORT", "SkySafari port", "9624");
-    IUFillTextVector(&SettingsTP, SettingsT, 3, getDeviceName(), "WATCHDOG_SETTINGS", "Settings", MAIN_CONTROL_TAB,
+    IUFillTextVector(&SettingsTP, SettingsT, 3, getDeviceName(), "SKYSAFARI_SETTINGS", "Settings", MAIN_CONTROL_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    IUFillSwitch(&ServerControlS[SERVER_ENABLE], "Enable", "", ISS_OFF);
-    IUFillSwitch(&ServerControlS[SERVER_DISABLE], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&ServerControlSP, ServerControlS, 2, getDeviceName(), "Server", "", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitch(&ServerControlS[SERVER_ENABLE], "SERVER_ENABLE", "Enabled", ISS_OFF);
+    IUFillSwitch(&ServerControlS[SERVER_DISABLE], "SERVER_DISABLE", "Disabled", ISS_ON);
+    IUFillSwitchVector(&ServerControlSP, ServerControlS, 2, getDeviceName(), "SKYSAFARI_SERVER", "Server", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
@@ -149,12 +144,8 @@ void SkySafari::ISGetProperties(const char *dev)
 
     defineText(&SettingsTP);
     defineText(&ActiveDeviceTP);
-    //defineSwitch(&ServerControlSP);
 
     loadConfig(true);
-
-    //watchdogClient->setTelescope(ActiveDeviceT[0].text);
-    //watchdogClient->setDome(ActiveDeviceT[1].text);
 }
 
 bool SkySafari::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -179,11 +170,6 @@ bool SkySafari::ISNewText(const char *dev, const char *name, char *texts[], char
     }
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
-}
-
-bool SkySafari::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
 bool SkySafari::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -371,7 +357,7 @@ bool SkySafari::startServer()
 
     lsocket = sfd;
     LOG_INFO(
-          "SkySafari Server is running. Connect the App now to this machine using SkySafari LX200 driver.");
+        "SkySafari Server is running. Connect the App now to this machine using SkySafari LX200 driver.");
     return true;
 }
 
@@ -779,8 +765,8 @@ void SkySafari::sendUTCtimedate()
 
         ln_zonedate_to_date(&zonedate, &utcdate);
 
-        char bufDT[32]={0};
-        char bufOff[8]={0};
+        char bufDT[32] = {0};
+        char bufOff[8] = {0};
 
         snprintf(bufDT, 32, "%04d-%02d-%02dT%02d:%02d:%02d", utcdate.years, utcdate.months, utcdate.days, utcdate.hours,
                  utcdate.minutes, (int)(utcdate.seconds));
@@ -799,10 +785,12 @@ void SkySafari::sendUTCtimedate()
 }
 
 // Had to get this from stackoverflow, why C++ STL lacks such basic functionality?!!!
-std::vector<std::string> SkySafari::split(const std::string &text, char sep) {
+std::vector<std::string> SkySafari::split(const std::string &text, char sep)
+{
     std::vector<std::string> tokens;
     std::size_t start = 0, end = 0;
-    while ((end = text.find(sep, start)) != std::string::npos) {
+    while ((end = text.find(sep, start)) != std::string::npos)
+    {
         tokens.push_back(text.substr(start, end - start));
         start = end + 1;
     }

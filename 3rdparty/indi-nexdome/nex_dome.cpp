@@ -136,9 +136,16 @@ bool NexDome::initProperties()
     ///////////////////////////////////////////////////////////////////////////////
     /// Dome Reversal
     ///////////////////////////////////////////////////////////////////////////////
-    IUFillSwitch(&ReversedS[0], "Disable", "", ISS_OFF);
-    IUFillSwitch(&ReversedS[1], "Enable", "", ISS_OFF);
-    IUFillSwitchVector(&ReversedSP, ReversedS, 2, getDeviceName(), "DOME_REVERSED", "Reversed", SITE_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitch(&ReversedS[DISABLED], "Disable", "", ISS_ON);
+    IUFillSwitch(&ReversedS[ENABLED], "Enable", "", ISS_OFF);
+    IUFillSwitchVector(&ReversedSP, ReversedS, 2, getDeviceName(), "DOME_REVERSED", "Reversed", SITE_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    ///////////////////////////////////////////////////////////////////////////////
+    /// Close Shutter on Park?
+    ///////////////////////////////////////////////////////////////////////////////
+    IUFillSwitch(&CloseShutterOnParkS[DISABLED], "Disable", "", ISS_ON);
+    IUFillSwitch(&CloseShutterOnParkS[ENABLED], "Enable", "", ISS_OFF);
+    IUFillSwitchVector(&CloseShutterOnParkSP, CloseShutterOnParkS, 2, getDeviceName(), "DOME_CLOSE_SHUTTER_ON_PARK", "Close Shutter on Park", SITE_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     return true;
 }
@@ -175,6 +182,8 @@ bool NexDome::updateProperties()
         defineNumber(&BatteryLevelNP);
         defineText(&FirmwareVersionTP);
         defineSwitch(&ReversedSP);
+        if (HasShutter())
+            defineSwitch(&CloseShutterOnParkSP);
     }
     else
     {
@@ -185,6 +194,8 @@ bool NexDome::updateProperties()
         deleteProperty(BatteryLevelNP.name);
         deleteProperty(FirmwareVersionTP.name);
         deleteProperty(ReversedSP.name);
+        if (HasShutter())
+            deleteProperty(CloseShutterOnParkSP.name);
     }
 
     return true;
@@ -270,6 +281,17 @@ bool NexDome::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             }
 
             IDSetSwitch(&ReversedSP, nullptr);
+        }
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Close Shutter on Park
+        ///////////////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, CloseShutterOnParkSP.name))
+        {
+            IUUpdateSwitch(&CloseShutterOnParkSP, states, names, n);
+            CloseShutterOnParkSP.s = IPS_OK;
+            IDSetSwitch(&CloseShutterOnParkSP, nullptr);
+            return true;
         }
     }
     return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
@@ -802,7 +824,12 @@ IPState NexDome::Park()
         IDSetNumber(&BatteryLevelNP, nullptr);
         return IPS_ALERT;
     }
+
     MoveAbs(GetAxis1Park());
+
+    if (HasShutter() && IUFindOnSwitchIndex(&CloseShutterOnParkSP) == ENABLED)
+        ControlShutter(ShutterOperation::SHUTTER_CLOSE);
+
     return IPS_BUSY;
 }
 
@@ -964,6 +991,7 @@ bool NexDome::saveConfigItems(FILE * fp)
     INDI::Dome::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &ReversedSP);
+    IUSaveConfigSwitch(fp, &CloseShutterOnParkSP);
 
     return true;
 }
