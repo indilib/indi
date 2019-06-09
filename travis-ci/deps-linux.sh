@@ -23,6 +23,7 @@ sudo apt-get -q -y install \
  libraw-dev \
  libusb-1.0-0-dev \
  librtlsdr-dev \
+ liblimesuite-dev \
  wget
 
  #To get the up to date FFMpeg Libraries
@@ -53,43 +54,6 @@ dpkg-buildpackage -rfakeroot -nc -b -j6 -d -uc -us
 cd ..
 sudo dpkg -i libftdi1-2_1.2-5build1_amd64.deb
 sudo dpkg -i libftdi1-dev_1.2-5build1_amd64.deb
-cd $CURDIR
-
-# Install soapysdr for liblimesuite
-CURDIR="$(pwd)"
-sudo apt-get -q -y install cli-common-dev
-cd ~
-mkdir soapysdr_src
-cd soapysdr_src
-wget http://archive.ubuntu.com/ubuntu/pool/universe/s/soapysdr/soapysdr_0.6.1-3.dsc
-wget http://archive.ubuntu.com/ubuntu/pool/universe/s/soapysdr/soapysdr_0.6.1.orig.tar.gz
-wget http://archive.ubuntu.com/ubuntu/pool/universe/s/soapysdr/soapysdr_0.6.1-3.debian.tar.xz
-dpkg-source -x soapysdr_0.6.1-2.dsc
-cd soapysdr-0.6.1
-dpkg-buildpackage -rfakeroot -nc -b -j6 -d -uc -us
-cd ..
-sudo dpkg -i libsoapysdr0.6_0.6.1-2_amd64.deb
-sudo dpkg -i libsoapysdr-dev_0.6.1-2_amd64.deb
-cd $CURDIR
-
-# Install liblimesuite for limeSDR driver
-CURDIR="$(pwd)"
-sudo apt-get -q -y install libwxgtk3.0-dev libi2c-dev freeglut3-dev libglew-dev libsqlite3-dev
-cd ~
-mkdir limesuite_src
-cd limesuite_src
-wget http://archive.ubuntu.com/ubuntu/pool/universe/l/limesuite/limesuite_17.12.0+dfsg-1.dsc
-wget http://archive.ubuntu.com/ubuntu/pool/universe/l/limesuite/limesuite_17.12
-wget http://archive.ubuntu.com/ubuntu/pool/universe/l/limesuite/limesuite_17.12.0+dfsg-1.debian.tar.xz
-dpkg-source -x limesuite_17.06.0+dfsg-1.dsc
-cd limesuite-17.12.0+dfsg
-dpkg-buildpackage -rfakeroot -nc -b -j6 -d -uc -us
-cd ..
-sudo dpkg -i liblimesuite17.12-1_17.06.0+dfsg-1_amd64.deb
-sudo dpkg -i liblimesuite-dev_17.12.0+dfsg-1_amd64.deb
-sudo dpkg -i soapysdr0.6-module-lms7_17.12.0+dfsg-1_amd64.deb
-sudo dpkg -i soapysdr-module-lms7_17.12.0+dfsg-1_amd64.deb
-sudo dpkg -i limesuite-udev_17.12.0+dfsg-1_all.deb
 cd $CURDIR
 
 if [ ! -z $BUILD_INSTALL_GTEST ]; then
