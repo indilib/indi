@@ -232,6 +232,10 @@ bool CCDSim::initProperties()
 
     setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
 
+    // Make Guide Scope ON by default
+    TelescopeTypeS[TELESCOPE_PRIMARY].s = ISS_OFF;
+    TelescopeTypeS[TELESCOPE_GUIDE].s = ISS_ON;
+
     return true;
 }
 
