@@ -23,7 +23,6 @@ sudo apt-get -q -y install \
  libraw-dev \
  libusb-1.0-0-dev \
  librtlsdr-dev \
- liblimesuite-dev \
  wget
 
  #To get the up to date FFMpeg Libraries
@@ -35,6 +34,12 @@ sudo apt-get -q -y install \
  libavformat-dev \
  libswscale-dev \
  libavutil-dev \
+
+# Install limesuite
+ sudo add-apt-repository -y ppa:myriadrf/drivers
+ sudo apt-get -qq update
+ sudo apt-get -q -y install \
+  limesuite || true
 
 # Install libftdi for MGen driver
 CURDIR="$(pwd)"
