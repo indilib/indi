@@ -1211,6 +1211,11 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_executable(indi_v4l2_ccd ${v4l2driverccd_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC})
     target_link_libraries(indi_v4l2_ccd ${JPEG_LIBRARY} indidriver)
     install(TARGETS indi_v4l2_ccd RUNTIME DESTINATION bin )
+
+    # For DBK21 camera
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/80-dbk21-camera.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+
+
 ENDIF ()
 
 #################################################################################
