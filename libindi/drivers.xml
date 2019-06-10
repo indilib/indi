@@ -69,6 +69,10 @@
                 <driver name="Celestron GPS">indi_celestron_gps</driver>
                 <version>3.2</version>
         </device>
+        <device label="Celestron CGEM" manufacturer="Celestron">
+                <driver name="Celestron GPS">indi_celestron_gps</driver>
+                <version>3.2</version>
+        </device>
         <device label="Celestron CGX" manufacturer="Celestron">
                 <driver name="Celestron GPS">indi_celestron_gps</driver>
                 <version>3.2</version>
