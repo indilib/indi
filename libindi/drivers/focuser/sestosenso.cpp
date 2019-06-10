@@ -137,7 +137,7 @@ bool SestoSenso::initProperties()
     IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillSwitch(&CalibrationS[0],"CALIBRATION_START","Start", ISS_ON);
-    IUFillSwitch(&CalibrationS[1],"CALIBRATION_NEXT","Next", ISS_OFF);
+    IUFillSwitch(&CalibrationS[1],"CALIBRATION_NEXT","Next", ISS_ON);
     IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&FastMoveS[0],"FASTMOVE_IN","Move In", ISS_ON);
