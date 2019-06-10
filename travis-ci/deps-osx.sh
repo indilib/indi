@@ -23,8 +23,9 @@ brew install \
 	librtlsdr  \
 	ffmpeg
 
-brew cask install \
-	sbig-universal-driver
+# JM 2019-06-10: Disabling this since it always fails.
+# brew cask install \
+# 	sbig-universal-driver
 
 if [ ! -z $BUILD_INSTALL_GTEST ]; then
   DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
