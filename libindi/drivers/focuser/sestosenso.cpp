@@ -136,13 +136,13 @@ bool SestoSenso::initProperties()
     IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "");
     IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillSwitch(&CalibrationS[0],"CALIBRATION_START","Start", ISS_ON);
-    IUFillSwitch(&CalibrationS[1],"CALIBRATION_NEXT","Next", ISS_ON);
+    IUFillSwitch(&CalibrationS[0],"CALIBRATION_START","Start", ISS_OFF);
+    IUFillSwitch(&CalibrationS[1],"CALIBRATION_NEXT","Next", ISS_OFF);
     IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&FastMoveS[0],"FASTMOVE_IN","Move In", ISS_ON);
-    IUFillSwitch(&FastMoveS[1],"FASTMOVE_OUT","Move out", ISS_ON);
-    IUFillSwitch(&FastMoveS[2],"FASTMOVE_STOP","Stop", ISS_ON);
+    IUFillSwitch(&FastMoveS[0],"FASTMOVE_IN","Move In", ISS_OFF);
+    IUFillSwitch(&FastMoveS[1],"FASTMOVE_OUT","Move out", ISS_OFF);
+    IUFillSwitch(&FastMoveS[2],"FASTMOVE_STOP","Stop", ISS_OFF);
     IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     //
@@ -404,8 +404,9 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&CalibrationSP, states, names, n);
 
             current_switch = IUFindOnSwitchIndex(&CalibrationSP);
+            CalibrationS[current_switch].s = ISS_ON;
+            IDSetSwitch(&CalibrationSP, nullptr);
 
-            //if (CalibrationS[0].s == ISS_ON)
             if (current_switch == CALIBRATION_START)
             {
                 if (cStage == Idle || cStage == Complete )
@@ -434,7 +435,6 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     IDSetText(&CalibrationMessageTP, nullptr);
                 }
             }
-            // else if (CalibrationS[0].s == ISS_OFF)
             else if (current_switch == CALIBRATION_NEXT)
             {
                 if (cStage == GoToMiddle)
@@ -498,7 +498,8 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     LOG_INFO("Calibration completed");
                     CalibrationSP.s = IPS_OK;
                     IDSetSwitch(&CalibrationSP, nullptr);
-
+                    CalibrationS[current_switch].s = ISS_OFF;
+                    IDSetSwitch(&CalibrationSP, nullptr);
                 }
                 else
                 {
