@@ -136,13 +136,13 @@ bool SestoSenso::initProperties()
     IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "");
     IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillSwitch(&CalibrationS[0],"CALIBRATION_START","Start", ISS_OFF);
-    IUFillSwitch(&CalibrationS[1],"CALIBRATION_NEXT","Next", ISS_OFF);
+    IUFillSwitch(&CalibrationS[CALIBRATION_START], "CALIBRATION_START", "Start", ISS_OFF);
+    IUFillSwitch(&CalibrationS[CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
     IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&FastMoveS[0],"FASTMOVE_IN","Move In", ISS_OFF);
-    IUFillSwitch(&FastMoveS[1],"FASTMOVE_OUT","Move out", ISS_OFF);
-    IUFillSwitch(&FastMoveS[2],"FASTMOVE_STOP","Stop", ISS_OFF);
+    IUFillSwitch(&FastMoveS[FASTMOVE_IN], "FASTMOVE_IN", "Move In", ISS_OFF);
+    IUFillSwitch(&FastMoveS[FASTMOVE_OUT], "FASTMOVE_OUT", "Move out", ISS_OFF);
+    IUFillSwitch(&FastMoveS[FASTMOVE_STOP], "FASTMOVE_STOP", "Stop", ISS_OFF);
     IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     //
@@ -359,11 +359,11 @@ bool SestoSenso::isMotionComplete()
     }
     else
     {
-        int rc = TTY_OK, nbytes_read = 0;
+        int nbytes_read = 0;
 
         //while (rc != TTY_TIME_OUT)
         //{
-        rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, 1, &nbytes_read);
+        int rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, 1, &nbytes_read);
         if (rc == TTY_OK)
         {
             res[nbytes_read - 1] = 0;
@@ -390,17 +390,17 @@ bool SestoSenso::isMotionComplete()
 
 bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    char res[SESTO_LEN] = {0};
-    int current_switch = 0;
-
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
         // Calibrate focuser
         if (!strcmp(name, CalibrationSP.name))
         {
+            char res[SESTO_LEN] = {0};
+            int current_switch = 0;
+
             CalibrationSP.s = IPS_BUSY;
-            IDSetSwitch(&CalibrationSP, nullptr);
+            //IDSetSwitch(&CalibrationSP, nullptr);
             IUUpdateSwitch(&CalibrationSP, states, names, n);
 
             current_switch = IUFindOnSwitchIndex(&CalibrationSP);
@@ -422,7 +422,7 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     if (sendCommand("#MF!") == false)
                         return false;
 
-                    IUSaveText(&CalibrationMessageT[0], "Move focuser manually to the middle then NEXT");
+                    IUSaveText(&CalibrationMessageT[0], "Move focuser manually to the middle then press NEXT");
                     IDSetText(&CalibrationMessageTP, nullptr);
 
                     // Set next step
@@ -430,8 +430,8 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 }
                 else
                 {
-                    LOG_INFO("Already started calibration. Proceed to next step");
-                    IUSaveText(&CalibrationMessageT[0], "Already started. Proceed to NEXT");
+                    LOG_INFO("Already started calibration. Proceed to next step.");
+                    IUSaveText(&CalibrationMessageT[0], "Already started. Proceed to NEXT.");
                     IDSetText(&CalibrationMessageTP, nullptr);
                 }
             }
@@ -440,7 +440,7 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 if (cStage == GoToMiddle)
                 {
                     defineSwitch(&FastMoveSP);
-                    IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MIN position then NEXT");
+                    IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MIN position then press NEXT");
                     IDSetText(&CalibrationMessageTP, nullptr);
                     cStage = GoMinimum;
                 }
@@ -450,7 +450,7 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     if (sendCommand("#Sm;0!") == false)
                         return false;
 
-                    IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MAX position then NEXT");
+                    IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MAX position then press NEXT");
                     IDSetText(&CalibrationMessageTP, nullptr);
                     cStage = GoMaximum;
                 }
@@ -459,7 +459,7 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     // Maximum position needs setting and save
                     // Do not split these commands.
 
-                    if (sendCommand("#SM!",res) == false)
+                    if (sendCommand("#SM!", res) == false)
                         return false;
                     if (sendCommand("#PS!") == false)
                         return false;
@@ -469,7 +469,7 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     //
                     int maxLimit = 0;
                     sscanf(res, "SM;%d!", &maxLimit);
-                    LOGF_INFO("MAX setting is %d",maxLimit);
+                    LOGF_INFO("MAX setting is %d", maxLimit);
 
                     FocusMaxPosN[0].max = maxLimit;
                     FocusMaxPosN[0].value = maxLimit;
@@ -513,8 +513,8 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
         else if (!strcmp(name, FastMoveSP.name))
         {
             IUUpdateSwitch(&FastMoveSP, states, names, n);
+            int current_switch = IUFindOnSwitchIndex(&FastMoveSP);
 
-            current_switch = IUFindOnSwitchIndex(&FastMoveSP);
             switch (current_switch)
             {
                 case FASTMOVE_IN:
@@ -538,6 +538,9 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 default:
                     break;
             }
+
+            FastMoveSP.s = IPS_BUSY;
+            IDSetSwitch(&FastMoveSP, nullptr);
             return true;
         }
 
@@ -545,28 +548,12 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool SestoSenso::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (!strcmp(CalibrationMessageTP.name, name))
-        {
-            IUUpdateText(&CalibrationMessageTP,texts,names,n);
-            IDSetText(&CalibrationMessageTP, nullptr);
-            return true;
-        }
-
-    }
-
-    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
-}
-
 IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
     char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, 16, "#GT%d!", targetTicks);
+    snprintf(cmd, 16, "#GT%u!", targetTicks);
     if (isSimulation() == false)
     {
         if (sendCommand(cmd) == false)
@@ -755,5 +742,5 @@ void SestoSenso::hexDump(char * buf, const char * data, int size)
 bool SestoSenso::ReverseFocuser(bool enable)
 {
     INDI_UNUSED(enable);
-    return true;
+    return false;
 }

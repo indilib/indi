@@ -32,7 +32,6 @@ class SestoSenso : public INDI::Focuser
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
         static void checkMotionProgressHelper(void *context);
 
@@ -79,17 +78,17 @@ class SestoSenso : public INDI::Focuser
         ISwitchVectorProperty CalibrationSP;
         enum
         {
-        CALIBRATION_START,
-        CALIBRATION_NEXT
+            CALIBRATION_START,
+            CALIBRATION_NEXT
         };
 
         ISwitch FastMoveS[3];
         ISwitchVectorProperty FastMoveSP;
         enum
         {
-        FASTMOVE_IN,
-        FASTMOVE_OUT,
-        FASTMOVE_STOP
+            FASTMOVE_IN,
+            FASTMOVE_OUT,
+            FASTMOVE_STOP
         };
 
         IText CalibrationMessageT[1] {};
