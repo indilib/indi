@@ -750,7 +750,7 @@ add_executable(indi_script_telescope ${telescopescript_SRC})
 target_link_libraries(indi_script_telescope indidriver)
 install(TARGETS indi_script_telescope RUNTIME DESTINATION bin)
 
-################ Focuser Simulator ################
+################ Detector Simulator ################
 
 SET(detectorsimulator_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/detector/detector_simulator.cpp)
@@ -799,6 +799,15 @@ add_executable(indi_robo_focus ${robofocus_SRC})
 target_link_libraries(indi_robo_focus indidriver)
 install(TARGETS indi_robo_focus RUNTIME DESTINATION bin)
 
+
+################ Robo Focuser ################
+
+SET(fcusb_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/fcusb.cpp)
+
+add_executable(indi_fcusb_focus ${fcusb_SRC})
+target_link_libraries(indi_fcusb_focus indidriver)
+install(TARGETS indi_fcusb_focus RUNTIME DESTINATION bin)
 
 ################ Rigelsys NFocus Focuser ################
 

@@ -215,6 +215,10 @@
                 <driver name="RoboFocus">indi_robo_focus</driver>
                 <version>1.0</version>
         </device>
+        <device label="FCUSB">
+                <driver name="FCUSB">indi_fcusb_focus</driver>
+                <version>0.1</version>
+        </device>
         <device label="Celestron SCT">
           <driver name="Celestron SCT">indi_celestron_sct_focus</driver>
           <version>1.0</version>
