@@ -573,7 +573,13 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
         }
         if (response[0] == 'E')
         {
-            LOG_ERROR("TLE number not in mount");
+            LOG_ERROR("Invalid formatting of TLE, trying to split:");
+            char *pch = strtok ((char*) tle,"\n");
+            while (pch != NULL)
+            {    
+                LOGF_INFO("%s\n",pch);
+                pch = strtok (NULL, "\n");
+            }
             return 1;
         }
         LOG_INFO(response);
@@ -694,6 +700,7 @@ bool LX200_10MICRON::TrackSat()
             return 4;
         }
         LOG_INFO(response);
+        LOG_INFO("I am here");
     }
   return 0;
 }
@@ -879,6 +886,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
         }
         if (strcmp(name, "TLE_NUMBER") == 0)
         {
+            LOG_INFO("I am trying to set from Database");
             IUUpdateNumber(&TLEfromDatabaseNP, values, names, n);
             if ( 0 != SetTLEfromDatabase(TLEfromDatabaseN[0].value) )
             {
