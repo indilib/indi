@@ -559,8 +559,21 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
     {
         LOG_WARN("TLE is too long");
     }
-    char command[230];
-    snprintf(command, sizeof(command), ":TLEL0%s#", tle);
+
+    std::string tle_str;
+    std::string sep = "$0a";
+    std::string search = "\n";
+    tle_str = (std::string) tle;
+    for( size_t pos = 0; ; pos += sep.length() ) {
+        // Locate the substring to replace
+        pos = tle_str.find( search, pos );
+        if( pos == std::string::npos ) break;
+        // Replace by erasing and inserting
+        tle_str.erase( pos, search.length() );
+        tle_str.insert( pos, sep );
+    }
+    char command[250];
+    snprintf(command, sizeof(command), ":TLEL0%s#", tle_str.c_str());
 
     if ( !isSimulation() )
     {
@@ -663,7 +676,7 @@ bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour,
 bool LX200_10MICRON::TrackSat()
 {
     LOG_INFO("Tracking satellite");
-    char command[6];
+    char command[7];
     snprintf(command, sizeof(command), ":TLES#");
     if ( !isSimulation() )
     {
