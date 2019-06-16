@@ -515,7 +515,7 @@ bool ATIKCCD::Disconnect()
 
 bool ATIKCCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
         if (strcmp(name, FilterNameTP->name) == 0)
         {
@@ -1267,13 +1267,14 @@ bool ATIKCCD::saveConfigItems(FILE *fp)
 
 bool ATIKCCD::SelectFilter(int targetFilter)
 {
+    LOGF_DEBUG("Selecting filter %d", targetFilter);
     int rc = ArtemisFilterWheelMove(hCam, targetFilter - 1);
     return (rc == ARTEMIS_OK);
 }
 
 int ATIKCCD::QueryFilter()
 {
-    int numFilters, moving, currentPos, targetPos;
+    int numFilters = 0, moving = 0, currentPos = 0, targetPos = 0;
     int rc = ArtemisFilterWheelInfo(hCam, &numFilters, &moving, &currentPos, &targetPos);
 
     if (rc != ARTEMIS_OK)
@@ -1281,6 +1282,8 @@ int ATIKCCD::QueryFilter()
         LOGF_ERROR("Querying internal filter wheel failed (%d).", rc);
         return -1;
     }
+    else
+        LOGF_DEBUG("CFW Filters: %d moving: %d current: %d target: %d", numFilters, moving, currentPos, targetPos);
 
     return currentPos + 1;
 }
