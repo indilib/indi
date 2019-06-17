@@ -158,8 +158,8 @@ bool SQM::updateProperties()
 
 bool SQM::getReadings()
 {
-    const char *cmd = "rx";
-    char buffer[57] = {0};
+    const char *cmd = "Rx";
+    char buffer[66] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -175,9 +175,9 @@ bool SQM::getReadings()
 
     ssize_t received = 0;
 
-    while (received < 57)
+    while (received < 66)
     {
-        ssize_t response = read(PortFD, buffer + received, 57 - received);
+        ssize_t response = read(PortFD, buffer + received, 66 - received);
         if (response < 0)
         {
             LOGF_ERROR("Error getting device readings: %s", strerror(errno));
@@ -187,7 +187,7 @@ bool SQM::getReadings()
         received += response;
     }
 
-    if (received < 57)
+    if (received < 66)
     {
         LOG_ERROR("Error getting device readings");
         return false;
@@ -200,7 +200,7 @@ bool SQM::getReadings()
     float mpsas, period_seconds, temperature;
     int frequency, period_counts;
     int rc =
-        sscanf(buffer, "r,%fm,%dHz,%dc,%fs,%fC", &mpsas, &frequency, &period_counts, &period_seconds, &temperature);
+        sscanf(buffer, "r,%fm,%dHz,%dc,%fs,%fC,%*d", &mpsas, &frequency, &period_counts, &period_seconds, &temperature);
 
     if (rc < 5)
     {
