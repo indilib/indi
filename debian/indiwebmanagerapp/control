@@ -3,9 +3,7 @@ Section: misc
 Priority: optional
 Maintainer: Robert Lancaster <rlancaste@gmail.com>
 Build-Depends: cmake,
-               debhelper (>= 9.0.0),
                pkg-config,
-               pkg-kde-tools (>= 0.15.15ubuntu1~),
                extra-cmake-modules (>= 1.7.0),
                qtbase5-dev,
                kdoctools-dev,
@@ -13,6 +11,7 @@ Build-Depends: cmake,
                libkf5i18n-dev,
                libindi-dev (>= 1.6.1),
                indi-bin (>= 1.6.1),
+               python3-pip
 
 Standards-Version: 3.9.3
 Homepage: http://edu.kde.org/
