@@ -237,7 +237,7 @@ bool ATIKCCD::initProperties()
     IUFillNumber(&ControlN[CONTROL_GAIN], "CONTROL_GAIN", "Gain", "%.f", 0, 60, 5, 30);
     IUFillNumber(&ControlN[CONTROL_OFFSET], "CONTROL_OFFSET", "Offset", "%.f", 0, 511, 10, 0);
     IUFillNumberVector(&ControlNP, ControlN, 2, getDeviceName(), "CCD_CONTROLS", "GO Controls", CONTROLS_TAB,
-                       IP_RO, 60, IPS_IDLE);
+                       IP_RW, 60, IPS_IDLE);
 
     IUSaveText(&BayerT[2], "RGGB");
 
