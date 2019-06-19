@@ -271,6 +271,9 @@ bool FCUSB::SetFocuserSpeed(int speed)
 
 IPState FCUSB::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
+    INDI_UNUSED(dir);
+    INDI_UNUSED(speed);
+    INDI_UNUSED(duration);
     // TODO
     return IPS_ALERT;
 }
