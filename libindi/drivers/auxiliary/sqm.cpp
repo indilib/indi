@@ -31,6 +31,7 @@
 #include <memory>
 #include <cstring>
 #include <unistd.h>
+#include <termios.h>
 
 // We declare an auto pointer to SQM.
 static std::unique_ptr<SQM> sqm(new SQM());
@@ -76,7 +77,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SQM::SQM()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 }
 
 bool SQM::initProperties()
@@ -128,6 +129,9 @@ bool SQM::initProperties()
     addDebugControl();
     addPollPeriodControl();
 
+    // Check every 10s
+    setDefaultPollingPeriod(10000);
+
     return true;
 }
 
@@ -156,6 +160,8 @@ bool SQM::getReadings()
 {
     const char *cmd = "rx";
     char buffer[57] = {0};
+
+    tcflush(PortFD, TCIOFLUSH);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -188,6 +194,8 @@ bool SQM::getReadings()
     }
 
     LOGF_DEBUG("RES <%s>", buffer);
+
+    tcflush(PortFD, TCIOFLUSH);
 
     float mpsas, period_seconds, temperature;
     int frequency, period_counts;
