@@ -306,7 +306,9 @@ IPState FCUSB::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     targetSpeed = speed;
 
-    if (duration < POLLMS)
+    setStatus();
+
+    if (duration > 0 && duration < POLLMS)
     {
         IEAddTimer(duration, &FCUSB::timedMoveHelper, this);
     }
