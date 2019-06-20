@@ -52,6 +52,8 @@ class FCUSB : public INDI::Focuser
         virtual bool updateProperties() override;
         virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n) override;
 
+        static void timedMoveHelper(void * context);
+
     protected:
         virtual bool Connect() override;
         virtual bool Disconnect() override;
@@ -61,6 +63,7 @@ class FCUSB : public INDI::Focuser
         virtual bool SetFocuserSpeed(int speed) override;
         virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
         virtual bool AbortFocuser() override;
+        virtual bool ReverseFocuser(bool enabled) override;
 
         virtual bool saveConfigItems(FILE * fp) override;
 
@@ -70,6 +73,8 @@ class FCUSB : public INDI::Focuser
 
         // Sets the Motor, PWM, and LED states
         bool setStatus();
+
+        void timedMoveCallback();
 
         hid_device *handle { nullptr };
 

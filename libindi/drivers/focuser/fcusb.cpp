@@ -70,7 +70,7 @@ FCUSB::FCUSB()
 {
     setVersion(0, 2);
 
-    FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
+    FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
     setSupportedConnections(CONNECTION_NONE);
 }
 
@@ -123,7 +123,7 @@ bool FCUSB::initProperties()
     // PWM Scaler
     IUFillSwitch(&PWMScalerS[0], "PWM_1_1", "1:1", ISS_ON);
     IUFillSwitch(&PWMScalerS[1], "PWM_1_4", "1:4", ISS_OFF);
-    IUFillSwitch(&PWMScalerS[2], "PWM_1_16", "1:6", ISS_OFF);
+    IUFillSwitch(&PWMScalerS[2], "PWM_1_16", "1:16", ISS_OFF);
     IUFillSwitchVector(&PWMScalerSP, PWMScalerS, 3, getDeviceName(), "PWM_SCALER", "PWM Scale", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     addSimulationControl();
@@ -152,6 +152,19 @@ void FCUSB::TimerHit()
     if (!isConnected())
         return;
 
+    if (FocusTimerNP.s == IPS_BUSY)
+    {
+        int duration = FocusTimerN[0].value - POLLMS;
+        if (duration < 0)
+            duration = 0;
+
+        FocusTimerN[0].value = duration;
+
+        if (static_cast<uint32_t>(duration) < POLLMS)
+        {
+            IEAddTimer(duration, &FCUSB::timedMoveHelper, this);
+        }
+    }
 
     SetTimer(POLLMS);
 }
@@ -260,7 +273,20 @@ bool FCUSB::getStatus()
 bool FCUSB::AbortFocuser()
 {
     motorStatus = 0;
-    return setStatus();
+    bool rc = setStatus();
+
+    if (rc)
+    {
+        FocusTimerNP.s = IPS_IDLE;
+        FocusTimerN[0].value = 0;
+        IDSetNumber(&FocusTimerNP, nullptr);
+
+        IUResetSwitch(&FocusMotionSP);
+        FocusMotionSP.s = IPS_IDLE;
+        IDSetSwitch(&FocusMotionSP, nullptr);
+    }
+
+    return rc;
 }
 
 bool FCUSB::SetFocuserSpeed(int speed)
@@ -271,11 +297,21 @@ bool FCUSB::SetFocuserSpeed(int speed)
 
 IPState FCUSB::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    INDI_UNUSED(dir);
-    INDI_UNUSED(speed);
-    INDI_UNUSED(duration);
-    // TODO
-    return IPS_ALERT;
+    FocusDirection targetDirection = dir;
+
+    if (FocusReverseS[REVERSED_ENABLED].s == ISS_ON)
+        targetDirection = (dir == FOCUS_INWARD) ? FOCUS_OUTWARD : FOCUS_INWARD;
+
+    motorStatus = (targetDirection == FOCUS_INWARD) ? MOTOR_REV : MOTOR_FWD;
+
+    targetSpeed = speed;
+
+    if (duration < POLLMS)
+    {
+        IEAddTimer(duration, &FCUSB::timedMoveHelper, this);
+    }
+
+    return IPS_BUSY;
 }
 
 bool FCUSB::setStatus()
@@ -307,4 +343,20 @@ bool FCUSB::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &PWMScalerSP);
 
     return true;
+}
+
+bool FCUSB::ReverseFocuser(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    return true;
+}
+
+void FCUSB::timedMoveHelper(void * context)
+{
+    static_cast<FCUSB *>(context)->timedMoveCallback();
+}
+
+void FCUSB::timedMoveCallback()
+{
+    AbortFocuser();
 }
