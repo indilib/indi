@@ -12,9 +12,8 @@ Build-Depends: cmake,
                libindi-dev (>= 1.6.1),
                indi-bin (>= 1.6.1),
                python3-pip
-
 Standards-Version: 3.9.3
-Homepage: http://edu.kde.org/
+Homepage: https://github.com/rlancaste/INDIWebManagerApp
 
 Package: indiwebmanagerapp
 Architecture: any
