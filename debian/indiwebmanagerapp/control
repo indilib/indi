@@ -5,6 +5,8 @@ Maintainer: Robert Lancaster <rlancaste@gmail.com>
 Build-Depends: cmake,
                debhelper (>= 9.0.0),
                pkg-config,
+               cdbs,
+               pkg-config,
                extra-cmake-modules (>= 1.7.0),
                qtbase5-dev,
                kdoctools-dev,
