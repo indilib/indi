@@ -1,5 +1,5 @@
 Source: indiwebmanagerapp
-Section: misc
+Section: science
 Priority: optional
 Maintainer: Robert Lancaster <rlancaste@gmail.com>
 Build-Depends: cmake,
@@ -20,7 +20,7 @@ Package: indiwebmanagerapp
 Architecture: any
 Section: science
 recommends: breeze-icon-theme
-Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1, indi-bin, python3, python-indiweb
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1, indi-bin, python3
 Description: A Graphical program to Manage, Configure, Launch, and Monitor an INDI WebManager on OS X and Linux
  INDIWebManagerApp is a program designed to support users of INDI, KStars, and other INDI Clients 
  by providing a GUI based interface to easily configure, launch, manage, and monitor an INDI Web Manager
