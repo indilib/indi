@@ -159,8 +159,11 @@ void FCUSB::TimerHit()
             duration = 0;
 
         FocusTimerN[0].value = duration;
+        IDSetNumber(&FocusTimerNP, nullptr);
 
-        if (static_cast<uint32_t>(duration) < POLLMS)
+        if (duration == 0)
+            AbortFocuser();
+        else if (static_cast<uint32_t>(duration) < POLLMS)
         {
             IEAddTimer(duration, &FCUSB::timedMoveHelper, this);
         }
@@ -273,6 +276,9 @@ bool FCUSB::getStatus()
 bool FCUSB::AbortFocuser()
 {
     motorStatus = 0;
+
+    LOG_DEBUG("Stopping focuser...");
+
     bool rc = setStatus();
 
     if (rc)
@@ -306,7 +312,10 @@ IPState FCUSB::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     targetSpeed = speed;
 
-    setStatus();
+    bool rc = setStatus();
+
+    if (!rc)
+        return IPS_ALERT;
 
     if (duration > 0 && duration < POLLMS)
     {
@@ -323,6 +332,8 @@ bool FCUSB::setStatus()
     command[0] |= motorStatus;
     // Forward (Green) - Reverse (Red)
     command[0] |= (motorStatus == MOTOR_REV) ? FC_LED_RED : 0;
+    // On / Off LED
+    command[0] |= (motorStatus == MOTOR_OFF) ? 0 : FC_LED_ON;
     // PWM
     command[0] |= (pwmStatus << 6);
 
