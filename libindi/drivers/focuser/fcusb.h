@@ -81,6 +81,7 @@ class FCUSB : public INDI::Focuser
         uint8_t motorStatus { MOTOR_OFF };
         uint8_t pwmStatus { PWM_1_1 };
         int targetSpeed { 1 };
+        struct timeval timedMoveEnd;
 
         // PWM Scaler
         ISwitchVectorProperty PWMScalerSP;

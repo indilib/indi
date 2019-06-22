@@ -154,18 +154,22 @@ void FCUSB::TimerHit()
 
     if (FocusTimerNP.s == IPS_BUSY)
     {
-        int duration = FocusTimerN[0].value - POLLMS;
-        if (duration < 0)
-            duration = 0;
+        struct timeval curtime, diff;
+        gettimeofday(&curtime, nullptr);
+        timersub(&timedMoveEnd, &curtime, &diff);
+        int timeleft = diff.tv_sec * 1000 + diff.tv_usec / 1000;
 
-        FocusTimerN[0].value = duration;
+        if (timeleft < 0)
+            timeleft = 0;
+
+        FocusTimerN[0].value = timeleft;
         IDSetNumber(&FocusTimerNP, nullptr);
 
-        if (duration == 0)
+        if (timeleft == 0)
             AbortFocuser();
-        else if (static_cast<uint32_t>(duration) < POLLMS)
+        else if (static_cast<uint32_t>(timeleft) < POLLMS)
         {
-            IEAddTimer(duration, &FCUSB::timedMoveHelper, this);
+            IEAddTimer(timeleft, &FCUSB::timedMoveHelper, this);
         }
     }
 
@@ -317,9 +321,18 @@ IPState FCUSB::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     if (!rc)
         return IPS_ALERT;
 
-    if (duration > 0 && duration < POLLMS)
+    if (duration > 0)
     {
-        IEAddTimer(duration, &FCUSB::timedMoveHelper, this);
+        struct timeval duration_secs, current_time;
+        gettimeofday(&current_time, nullptr);
+        duration_secs.tv_sec = duration / 1000;
+        duration_secs.tv_usec = duration % 1000;
+        timeradd(&current_time, &duration_secs, &timedMoveEnd);
+
+        if (duration < POLLMS)
+        {
+            IEAddTimer(duration, &FCUSB::timedMoveHelper, this);
+        }
     }
 
     return IPS_BUSY;
@@ -331,13 +344,13 @@ bool FCUSB::setStatus()
 
     command[0] |= motorStatus;
     // Forward (Green) - Reverse (Red)
-    command[0] |= (motorStatus == MOTOR_REV) ? FC_LED_RED : 0;
+    command[0] |= (motorStatus == MOTOR_FWD) ? 0 : FC_LED_RED;
     // On / Off LED
     command[0] |= (motorStatus == MOTOR_OFF) ? 0 : FC_LED_ON;
     // PWM
     command[0] |= (pwmStatus << 6);
 
-    command[1] = static_cast<uint8_t>(targetSpeed);
+    command[1] = (motorStatus == MOTOR_OFF) ? 0 : static_cast<uint8_t>(targetSpeed);
 
     LOGF_DEBUG("CMD <%#X %#X>", command[0], command[1]);
 
