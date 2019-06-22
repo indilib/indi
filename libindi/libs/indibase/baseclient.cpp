@@ -1027,7 +1027,7 @@ bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, u
 {
     for (INDI::BaseDevice *device : cDevices)
     {
-        if (device->getDriverInterface() | driverInterface)
+        if (device->getDriverInterface() & driverInterface)
             deviceList.push_back(device);
     }
 
