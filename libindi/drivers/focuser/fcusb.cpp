@@ -287,13 +287,19 @@ bool FCUSB::AbortFocuser()
 
     if (rc)
     {
-        FocusTimerNP.s = IPS_IDLE;
-        FocusTimerN[0].value = 0;
-        IDSetNumber(&FocusTimerNP, nullptr);
+        if (FocusTimerNP.s != IPS_IDLE)
+        {
+            FocusTimerNP.s = IPS_IDLE;
+            FocusTimerN[0].value = 0;
+            IDSetNumber(&FocusTimerNP, nullptr);
+        }
 
-        IUResetSwitch(&FocusMotionSP);
-        FocusMotionSP.s = IPS_IDLE;
-        IDSetSwitch(&FocusMotionSP, nullptr);
+        if (FocusMotionSP.s != IPS_IDLE)
+        {
+            IUResetSwitch(&FocusMotionSP);
+            FocusMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&FocusMotionSP, nullptr);
+        }
     }
 
     return rc;
