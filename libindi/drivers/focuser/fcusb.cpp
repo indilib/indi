@@ -275,7 +275,7 @@ bool FCUSB::getStatus()
 
 bool FCUSB::AbortFocuser()
 {
-    motorStatus = 0;
+    motorStatus = MOTOR_OFF;
 
     LOG_DEBUG("Stopping focuser...");
 
@@ -338,6 +338,8 @@ bool FCUSB::setStatus()
     command[0] |= (pwmStatus << 6);
 
     command[1] = static_cast<uint8_t>(targetSpeed);
+
+    LOGF_DEBUG("CMD <%#X %#X>", command[0], command[1]);
 
     int rc = hid_write(handle, command, 2);
     if (rc < 0)
