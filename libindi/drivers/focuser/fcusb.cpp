@@ -302,7 +302,12 @@ bool FCUSB::AbortFocuser()
 bool FCUSB::SetFocuserSpeed(int speed)
 {
     targetSpeed = speed;
-    return setStatus();
+
+    // Only call send status when the motor is running
+    if (motorStatus != MOTOR_OFF)
+        return setStatus();
+    else
+        return true;
 }
 
 IPState FCUSB::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
