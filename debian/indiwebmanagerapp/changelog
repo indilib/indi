@@ -1,3 +1,9 @@
+indiwebmanagerapp (6:0.6) bionic; urgency=medium
+
+  * 0.6 Upstream release.
+
+ -- Robert Lancaster <rlancaste@gmail.com>  Sat, 22 Jun 2019 21:00:00 -0500
+
 indiwebmanagerapp (6:0.5) bionic; urgency=medium
 
   * 0.5 Upstream release.
