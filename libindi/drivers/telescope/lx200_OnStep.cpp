@@ -1513,7 +1513,7 @@ bool LX200_OnStep::ReadScopeStatus()
     //split_errors=all_errors.split(', ')
     //for specific in split_errors:
     //     print('case ' +specific+':')                          
-    //     print('\tIUSaveText(&OnstepStat[7],"'+specific+'"); }')
+    //     print('\tIUSaveText(&OnstepStat[7],"'+specific+'");')
     //     print('\tbreak;')  
     
     
