@@ -70,17 +70,12 @@ void ISSnoopDevice(XMLEle *root)
 
 JoyStick::JoyStick()
 {
-    driver = new JoyStickDriver();
-}
-
-JoyStick::~JoyStick()
-{
-    delete (driver);
+    driver.reset(new JoyStickDriver());
 }
 
 const char *JoyStick::getDefaultName()
 {
-    return (const char *)"Joystick";
+    return "Joystick";
 }
 
 bool JoyStick::Connect()
@@ -108,7 +103,7 @@ bool JoyStick::Disconnect()
 
 void JoyStick::setupParams()
 {
-    char propName[16]={0}, propLabel[16]={0};
+    char propName[16] = {0}, propLabel[16] = {0};
 
     if (driver == nullptr)
         return;
@@ -121,6 +116,7 @@ void JoyStick::setupParams()
     JoyStickN  = new INumber[nJoysticks * 2];
 
     AxisN = new INumber[nAxis];
+    DeadZoneN = new INumber[nAxis];
 
     ButtonS = new ISwitch[nButtons];
 
@@ -140,10 +136,13 @@ void JoyStick::setupParams()
         snprintf(propName, 16, "AXIS_%d", i + 1);
         snprintf(propLabel, 16, "Axis %d", i + 1);
 
-        IUFillNumber(&AxisN[i], propName, propLabel, "%g", -32767.0, 32767.0, 0, 0);
+        IUFillNumber(&AxisN[i], propName, propLabel, "%.f", -32767.0, 32767.0, 0, 0);
+        IUFillNumber(&DeadZoneN[i], propName, propLabel, "%.f", 0, 5000, 500, 5);
     }
 
     IUFillNumberVector(&AxisNP, AxisN, nAxis, getDeviceName(), "JOYSTICK_AXES", "Axes", "Monitor", IP_RO, 0, IPS_IDLE);
+
+    IUFillNumberVector(&DeadZoneNP, DeadZoneN, nAxis, getDeviceName(), "JOYSTICK_DEAD_ZONE", "Axes", "Dead Zones", IP_RW, 0, IPS_IDLE);
 
     for (int i = 0; i < nButtons; i++)
     {
@@ -207,6 +206,9 @@ bool JoyStick::updateProperties()
         defineNumber(&AxisNP);
         defineSwitch(&ButtonSP);
 
+        // Dead zones
+        defineNumber(&DeadZoneNP);
+
         // N.B. Only set callbacks AFTER we define our properties above
         // because these calls backs otherwise can be called asynchronously
         // and they mess up INDI XML output
@@ -222,11 +224,13 @@ bool JoyStick::updateProperties()
             deleteProperty(JoyStickNP[i].name);
 
         deleteProperty(AxisNP.name);
+        deleteProperty(DeadZoneNP.name);
         deleteProperty(ButtonSP.name);
 
         delete[] JoyStickNP;
         delete[] JoyStickN;
         delete[] AxisN;
+        delete[] DeadZoneN;
         delete[] ButtonS;
     }
 
@@ -277,6 +281,22 @@ bool JoyStick::ISNewText(const char *dev, const char *name, char *texts[], char 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
+bool JoyStick::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(name, DeadZoneNP.name))
+        {
+            IUUpdateNumber(&DeadZoneNP, values, names, n);
+            DeadZoneNP.s = IPS_OK;
+            IDSetNumber(&DeadZoneNP, nullptr);
+            return true;
+        }
+    }
+
+    return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
+}
+
 void JoyStick::joystickHelper(int joystick_n, double mag, double angle)
 {
     joystick->joystickEvent(joystick_n, mag, angle);
@@ -317,6 +337,10 @@ void JoyStick::axisEvent(int axis_n, int value)
 
     LOGF_DEBUG("axisEvent[%d]: %d", axis_n, value);
 
+    // All values within deadzone is reset to zero.
+    if (std::abs(value) <= DeadZoneN[axis_n].value)
+        value = 0;
+
     if (value == 0)
         AxisNP.s = IPS_IDLE;
     else
@@ -345,6 +369,7 @@ bool JoyStick::saveConfigItems(FILE *fp)
     INDI::DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &PortTP);
+    IUSaveConfigNumber(fp, &DeadZoneNP);
 
     return true;
 }

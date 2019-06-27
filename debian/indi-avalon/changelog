@@ -1,3 +1,24 @@
+indi-avalon (1.5) stretch; urgency=medium
+
+  * Implemented switch for enabling / disabling the keypad
+  * System slewing speed settings added
+
+ -- Wolfgang Reissenberger <sterne-jaeger@t-online.de>  Mon, 06 May 2019 15:06:52 +0200
+
+indi-avalon (1.4.1) stretch; urgency=medium
+
+  * bugfix declaring Connect and Disconnect as override
+
+ -- Wolfgang Reissenberger <sterne-jaeger@t-online.de>  Sun, 14 Apr 2019 23:20:40 +0200
+
+indi-avalon (1.4) stretch; urgency=medium
+
+  * Control to reverse focuser direction added
+  * Saving focuser configuration settings added
+  * Connection handling of focuser follows the base device
+
+ -- Wolfgang Reissenberger <sterne-jaeger@t-online.de>  Sun, 14 Apr 2019 19:32:34 +0200
+
 indi-avalon (1.3) stretch; urgency=medium
 
   * Enabling/disabling focuser.

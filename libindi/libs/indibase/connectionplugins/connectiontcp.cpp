@@ -32,9 +32,16 @@ extern const char *CONNECTION_TAB;
 
 TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_TCP)
 {
+    char defaultHostname[MAXINDINAME] = {0};
+    char defaultPort[MAXINDINAME] = {0};
+
+    // Try to load the port from the config file. If that fails, use default port.
+    IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_ADDRESS, "ADDRESS", defaultHostname, MAXINDINAME);
+    IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_ADDRESS, "PORT", defaultPort, MAXINDINAME);
+
     // Address/Port
-    IUFillText(&AddressT[0], "ADDRESS", "Address", "");
-    IUFillText(&AddressT[1], "PORT", "Port", "");
+    IUFillText(&AddressT[0], "ADDRESS", "Address", defaultHostname);
+    IUFillText(&AddressT[1], "PORT", "Port", defaultPort);
     IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_ADDRESS", "Server", CONNECTION_TAB,
                      IP_RW, 60, IPS_IDLE);
 
@@ -83,7 +90,7 @@ bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 bool TCP::Connect()
 {
     if (AddressT[0].text == nullptr || AddressT[0].text[0] == '\0' || AddressT[1].text == nullptr ||
-        AddressT[1].text[0] == '\0')
+            AddressT[1].text[0] == '\0')
     {
         LOG_ERROR("Error! Server address is missing or invalid.");
         return false;

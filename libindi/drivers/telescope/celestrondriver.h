@@ -38,13 +38,43 @@
 #define CELESTRON_DEV_RA  0x10
 #define CELESTRON_DEV_DEC 0x11
 #define CELESTRON_DEV_GPS 0xb0
+// focuser device
+#define CELESTRON_DEV_FOC 0x12
+
+// motor commands
+#define MC_GET_POSITION 0x01            // return 24 bit position
+#define MC_GOTO_FAST    0x02            // send 24 bit target
+#define MC_SET_POS_GUIDERATE    0x06    // use the 2 byte CelestronTrackRates to set the rate
+#define MC_SET_NEG_GUIDERATE    0x07    // for Southern hemisphere, track mode EQ_S
+#define MC_LEVEL_START  0x0b            // move to switch position
+#define MC_LEVEL_DONE   0x12            // return 0xFF when move finished
+#define MC_SLEW_DONE    0x13            // return 0xFF when move finished
+#define MC_MOVE_POS     0x24            // send move rate 0-9
+
+// focuser passthrough commands
+#define FOC_CALIB_ENABLE  42            // send 0 to start or 1 to stop
+#define FOC_CALIB_DONE    43            // returns 2 bytes [0] done, [1] state 0-12
+#define FOC_GET_HS_POSITIONS 44         // returns 2 ints, low and high limits
+
+// generic device commands
+#define GET_VER         0xfe            // return 2 or 4 bytes major.minor.build
+
 
 typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
 typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9 } CELESTRON_SLEW_RATE;
-typedef enum { TRACKING_OFF, TRACK_ALTAZ, TRACK_EQN, TRACK_EQS } CELESTRON_TRACK_MODE;
+typedef enum { CTM_OFF, CTM_ALTAZ, CTM_EQN, CTM_EQS } CELESTRON_TRACK_MODE;
 typedef enum { RA_AXIS, DEC_AXIS } CELESTRON_AXIS;
 typedef enum { CELESTRON_N, CELESTRON_S, CELESTRON_W, CELESTRON_E } CELESTRON_DIRECTION;
 typedef enum { FW_MODEL, FW_VERSION, FW_GPS, FW_RA, FW_DEC } CELESTRON_FIRMWARE;
+
+// These values are sent to the hour angle axis motor using the MC_SET_POS|NEG_GUIDERATE
+// commands to set the tracking rate.
+typedef enum
+{
+    CTR_SIDEREAL = 0xFFFF,
+    CTR_SOLAR    = 0xFFFE,
+    CTR_LUNAR    = 0xFFFD
+} CELESTRON_TRACK_RATE;
 
 typedef struct
 {
@@ -56,6 +86,8 @@ typedef struct
     float controllerVersion;
     char controllerVariant;
     bool isGem;
+    bool hasFocuser;
+    CELESTRON_TRACK_MODE celestronTrackMode;
 } FirmwareInfo;
 
 
@@ -118,7 +150,7 @@ class CelestronDriver
         bool get_dev_firmware(int dev, char *version, int size);
         bool get_radec(double *ra, double *dec, bool precise);
         bool get_azalt(double *az, double *alt, bool precise);
-        bool get_utc_date_time(double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
+        bool get_utc_date_time(double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss, bool precise = false);
 
         // Motion
         bool start_motion(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate);
@@ -127,20 +159,25 @@ class CelestronDriver
         bool slew_radec(double ra, double dec, bool precise);
         bool slew_azalt(double az, double alt, bool precise);
         bool sync(double ra, double dec, bool precise);
+        bool unsync();
 
         // Time & Location
         bool set_location(double longitude, double latitude);
-        bool set_datetime(struct ln_date *utc, double utc_offset);
+        bool get_location(double* longitude, double *latitude);
+        bool set_datetime(struct ln_date *utc, double utc_offset, bool precise= false);
 
-        // Track Mode
+        // Track Mode, this is not the Indi track mode
         bool get_track_mode(CELESTRON_TRACK_MODE *mode);
         bool set_track_mode(CELESTRON_TRACK_MODE mode);
 
-        bool is_slewing();
+        bool is_slewing(bool *slewing);
 
-        // Hibernate/Wakup
+        // Hibernate/Wakeup/ align
         bool hibernate();
         bool wakeup();
+        bool lastalign();
+        bool startmovetoindex();
+        bool indexreached(bool *atIndex);
 
         // Pulse Guide (experimental)
         int send_pulse(CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
@@ -150,7 +187,18 @@ class CelestronDriver
         bool get_pier_side(char * sop);
 
         // check if the mount is aligned using the mount J command
-        bool check_aligned();
+        bool check_aligned(bool *isAligned);
+
+        // set the tracking rate, sidereal, solar or lunar
+        bool set_track_rate(CELESTRON_TRACK_RATE rate, CELESTRON_TRACK_MODE mode);
+
+        // focuser commands
+        bool foc_exists();      // read version
+        int foc_position();     // read position, return -1 if failed
+        bool foc_move(int steps);   // start move
+        bool foc_moving();      // return true if moving
+        bool foc_limits(int * low, int * high);     // read limits
+        bool foc_abort();       // stop move
 
     protected:
         void set_sim_response(const char *fmt, ...);
@@ -161,7 +209,7 @@ class CelestronDriver
         int send_command(const char *cmd, int cmd_len, char *resp, int resp_len,
                 bool ascii_cmd, bool ascii_resp);
         int send_passthrough(int dest, int cmd_id, const char *payload,
-                int payload_len, char *response, int response_len);
+                int payload_len, char *resp, int response_len);
 
         char response[MAX_RESP_SIZE];
         bool simulation = false;

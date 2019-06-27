@@ -22,6 +22,7 @@
 
 */
 
+
 #include "lx200_OnStep.h"
 
 #define LIBRARY_TAB  "Library"
@@ -129,8 +130,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&PreferredPierSideS[2], "3", "Best", ISS_OFF);
     IUFillSwitchVector(&PreferredPierSideSP, PreferredPierSideS, 3, getDeviceName(), "Preferred Pier Side", "Preferred Pier Side", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
-    IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", 0, 180, 1, 15);
-    IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", 0, 180, 1, 15);
+    IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", 0, 180, 1, 30);
+    IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", 0, 180, 1, 30);
     IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian", "Minutes Past Meridian", MOTION_TAB, IP_RW, 0,IPS_IDLE);
     
 
@@ -243,7 +244,17 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSOutput2S[1], "1", "ON", ISS_OFF);
     IUFillSwitchVector(&OSOutput2SP, OSOutput2S, 2, getDeviceName(), "Output 2", "Output 2", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
 #endif
-    
+
+    for(int i=0; i<PORTS_COUNT; i++)
+    {
+        char port_name[30];
+        sprintf(port_name, "Output %d", i);
+        IUFillNumber(&OutputPorts[i], port_name,port_name, "%g", 0, 255, 1, 0);
+    }
+
+    IUFillNumberVector(&OutputPorts_NP, OutputPorts, PORTS_COUNT, getDeviceName(), "Outputs", "Outputs",  OUTPUT_TAB, IP_WO, 60, IPS_OK);
+
+
     // ============== STATUS_TAB
     IUFillText(&OnstepStat[0], ":GU# return", "", "");
     IUFillText(&OnstepStat[1], "Tracking", "", "");
@@ -337,6 +348,9 @@ bool LX200_OnStep::updateProperties()
         defineSwitch(&OSOutput1SP);
         defineSwitch(&OSOutput2SP);
     #endif
+
+        defineNumber(&OutputPorts_NP);
+
         // OnStep Status
         defineText(&OnstepStatTP);
 
@@ -420,6 +434,8 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSOutput1SP.name);
         deleteProperty(OSOutput2SP.name);
     #endif
+
+        deleteProperty(OutputPorts_NP.name);
 
         // OnStep Status
         deleteProperty(OnstepStatTP.name);
@@ -658,6 +674,37 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         {
             OSFocus2TargNP.s = IPS_ALERT;
             IDSetNumber(&OSFocus2TargNP, "Setting Max Slew Rate Failed");
+        }
+        return true;
+    }
+
+    if (!strcmp(name, OutputPorts_NP.name))
+    {
+        //go through all output values and see if any value needs to be changed
+        for(int i = 0; i < n; i++)
+        {
+            int value = (int)values[i];
+            if(OutputPorts_NP.np[i].value != value)
+            {
+                int ret;
+                char cmd[20];
+                int port = STARTING_PORT + i;
+
+                snprintf(cmd, sizeof(cmd), ":SXG%d,%d#", port, value);
+                ret = sendOnStepCommandBlind(cmd);
+
+                if (ret == -1)
+                {
+                    LOGF_ERROR("Set port %d to value =%d failed", port, value);
+                    OutputPorts_NP.s = IPS_ALERT;
+                    return false;
+                }
+
+                OutputPorts_NP.s           = IPS_OK;
+
+                OutputPorts_NP.np[i].value = value;
+                IDSetNumber(&OutputPorts_NP, "Set port %d to value =%d", port, value);
+            }
         }
         return true;
     }
@@ -1688,17 +1735,11 @@ IPState LX200_OnStep::MoveFocuser(FocusDirection dir, int speed, uint16_t durati
 IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
 	//  :FSsnnn#  Set focuser target position (in microns)
 	//            Returns: Nothing
-	if (FocusAbsPosN[0].max >= targetTicks && FocusAbsPosN[0].min <= targetTicks) {
 		char read_buffer[32];
 		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", targetTicks);
 		sendOnStepCommandBlind(read_buffer);
-		return IPS_BUSY; // Normal case, should be set to normal by update. 
-	} else {
-		//Out of bounds as reported by OnStep
-		LOG_ERROR("Focuser value outside of limit");
-		LOGF_ERROR("Requested: %d min: %d max: %d", targetTicks, FocusAbsPosN[0].min, FocusAbsPosN[0].max);
-		return IPS_ALERT; 
-	}
+		return IPS_BUSY; // Normal case, should be set to normal by update.
+		//Remove checks here as 
 }
 IPState LX200_OnStep::MoveRelFocuser (FocusDirection dir, uint32_t ticks) {
 	//  :FRsnnn#  Set focuser target position relative (in microns)
@@ -1724,6 +1765,7 @@ void LX200_OnStep::OSUpdateFocuser()
 {
     char value[RB_MAX_LEN];
     double current = 0;
+    double temp=-1;
 	if (OSFocuser1) {
 	// Alternate option:
 	//if (!sendOnStepCommand(":FA#")) {
@@ -1755,8 +1797,6 @@ void LX200_OnStep::OSUpdateFocuser()
 		//         Returns: n#
 		getCommandString(PortFD, value, ":FM#");
 		FocusAbsPosN[0].max   = atoi(value);
-		IUUpdateMinMax(&FocusAbsPosNP);
-		IDSetNumber(&FocusAbsPosNP, nullptr);
 		//  :FI#  Get full in position (in microns)
 		//         Returns: n#
 		getCommandString(PortFD, value, ":FI#");
@@ -1764,6 +1804,7 @@ void LX200_OnStep::OSUpdateFocuser()
 		IUUpdateMinMax(&FocusAbsPosNP);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
 		FI::updateProperties();
+		LOGF_DEBUG("After update proerties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
 	} 
 	
 
