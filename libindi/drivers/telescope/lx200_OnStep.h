@@ -68,6 +68,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <termios.h>
+#include <stdlib.h>
 
 #define RB_MAX_LEN 64
 
