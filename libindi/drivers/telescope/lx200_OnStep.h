@@ -230,6 +230,9 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty TrackCompSP;
     ISwitch TrackCompS[3];
     
+    ISwitchVectorProperty TrackAxisSP;
+    ISwitch TrackAxisS[3];
+    
     ISwitchVectorProperty FrequencyAdjustSP;
     ISwitch FrequencyAdjustS[3];
 

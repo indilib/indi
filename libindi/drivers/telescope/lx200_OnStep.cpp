@@ -107,6 +107,10 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&TrackCompS[2], "3", "Off", ISS_OFF);
     IUFillSwitchVector(&TrackCompSP, TrackCompS, 3, getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&TrackAxisS[0], "1", "Single Axis", ISS_OFF);
+    IUFillSwitch(&TrackAxisS[1], "2", "Dual Axis", ISS_OFF);
+    IUFillSwitchVector(&TrackAxisSP, TrackAxisS, 2, getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
     IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
     IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
     IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
@@ -264,7 +268,8 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[5], "TimeSync", "", "");
     IUFillText(&OnstepStat[6], "Mount Type", "", "");
     IUFillText(&OnstepStat[7], "Error", "", "");
-    IUFillTextVector(&OnstepStatTP, OnstepStat, 8, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
+    IUFillText(&OnstepStat[8], "Multi-Axis Tracking", "", "");
+    IUFillTextVector(&OnstepStatTP, OnstepStat, 9, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
     setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
 
@@ -297,6 +302,7 @@ bool LX200_OnStep::updateProperties()
         // Motion Control
         defineNumber(&MaxSlewRateNP);
         defineSwitch(&TrackCompSP);
+	defineSwitch(&TrackAxisSP);
         defineNumber(&BacklashNP);
         defineSwitch(&AutoFlipSP);
         defineSwitch(&HomePauseSP);
@@ -392,6 +398,7 @@ bool LX200_OnStep::updateProperties()
         // Motion Control
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(TrackCompSP.name);
+	deleteProperty(TrackAxisSP.name);
         deleteProperty(BacklashNP.name);
         deleteProperty(AutoFlipSP.name);
         deleteProperty(HomePauseSP.name);
@@ -811,6 +818,39 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&TrackCompSP, nullptr);
             return true;
         }
+        if (!strcmp(name, TrackAxisSP.name))
+	{
+		IUUpdateSwitch(&TrackAxisSP, states, names, n);
+		TrackAxisSP.s = IPS_BUSY;
+	
+		if (TrackAxisS[0].s == ISS_ON)
+		{
+			if (!sendOnStepCommand(":T1#"))
+			{
+				IDSetSwitch(&TrackAxisSP, "Single Tracking On");
+				TrackAxisSP.s = IPS_OK;
+				IDSetSwitch(&TrackAxisSP, nullptr);
+				return true;
+			}
+		}
+		if (TrackAxisS[1].s == ISS_ON)
+		{
+			if (!sendOnStepCommand(":T2#"))
+			{
+				IDSetSwitch(&TrackAxisSP, "Dual Axis Tracking On");
+				TrackAxisSP.s = IPS_OK;
+				IDSetSwitch(&TrackAxisSP, nullptr);
+				return true;
+			}
+		}
+		IUResetSwitch(&TrackAxisSP);
+		TrackAxisSP.s = IPS_IDLE;
+		IDSetSwitch(&TrackAxisSP, nullptr);
+		return true;
+	}
+        
+        
+        
         if (!strcmp(name, AutoFlipSP.name))
 	{
 		IUUpdateSwitch(&AutoFlipSP, states, names, n);
@@ -1337,10 +1377,21 @@ bool LX200_OnStep::ReadScopeStatus()
     }
 
     // ============= Refractoring
-    if (strstr(OSStat,"r")) {IUSaveText(&OnstepStat[2],"Refractoring On"); }
-    if (strstr(OSStat,"s")) {IUSaveText(&OnstepStat[2],"Refractoring Off"); }
-    if (strstr(OSStat,"r") && strstr(OSStat,"t")) {IUSaveText(&OnstepStat[2],"Full Comp"); }
-    if (strstr(OSStat,"r") && !strstr(OSStat,"t")) { IUSaveText(&OnstepStat[2],"Refractory Comp"); }
+
+    if ((strstr(OSStat,"r") || strstr(OSStat,"t"))) //On, either refractory only (r) or full (t)
+	{
+		if (strstr(OSStat,"t")) {IUSaveText(&OnstepStat[2],"Full Comp"); }
+		if (strstr(OSStat,"r")) { IUSaveText(&OnstepStat[2],"Refractory Comp"); }
+		if (strstr(OSStat,"s")) {
+				IUSaveText(&OnstepStat[8],"Single Axis"); 
+		} else { 
+				IUSaveText(&OnstepStat[8],"2-Axis"); 
+		}
+	} else {
+		IUSaveText(&OnstepStat[2],"Refractoring Off");
+		IUSaveText(&OnstepStat[8],"N/A");
+	}
+
 
     // ============= Parkstatus
     if(FirstRead)   // it is the first time I read the status so I need to update
