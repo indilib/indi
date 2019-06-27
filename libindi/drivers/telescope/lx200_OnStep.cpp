@@ -1183,6 +1183,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
 		OSNAlignWriteSP.s = IPS_BUSY;
 		if (index == 0)
+		{
 			OSNAlignWriteS[0].s = ISS_OFF;
 			OSNAlignWriteSP.s = AlignWrite();
 		}
@@ -2256,13 +2257,13 @@ bool LX200_OnStep::UpdateAlignErr()
 IPState LX200_OnStep::AlignDone(){
 	//See here https://groups.io/g/onstep/message/3624
 // 	char cmd[8];
-	LOG_INFO("Alignment Done") 
+	LOG_INFO("Alignment Done");
 // 	LOG_INFO("Sending Command to Finish Alignment and write");
 // 	strcpy(cmd, ":AW#");
     IUSaveText(&OSNAlignT[0],"Align FINISHED");
     IUSaveText(&OSNAlignT[1],"------");
     IUSaveText(&OSNAlignT[2],"Optionally press:");
-    IUSaveText(&OSNAlignT[3],"Write to EEPROM");
+    IUSaveText(&OSNAlignT[3],"Write Align to NVRAM/Flash ");
     IDSetText(&OSNAlignTP, nullptr);
 // 	if (sendOnStepCommandBlind(cmd)){
 // 		return IPS_OK;

@@ -153,6 +153,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     IPState AlignStartGeometric(int stars);
     IPState AlignAddStar();
     IPState AlignDone();
+    IPState AlignWrite();
     virtual bool UpdateAlignStatus();
     virtual bool UpdateAlignErr();
     //End NewGeometricAlignment 
