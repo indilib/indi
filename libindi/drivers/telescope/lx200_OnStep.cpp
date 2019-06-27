@@ -209,8 +209,10 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSNAlignStarsS[3], "4", "4 Stars", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[4], "5", "5 Stars", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[5], "6", "6 Stars", ISS_OFF);
-    IUFillSwitch(&OSNAlignStarsS[6], "9", "9 Stars", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 7, getDeviceName(), "AlignStars", "Align using some stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitch(&OSNAlignStarsS[6], "7", "7 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[7], "8", "8 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[8], "9", "9 Stars", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 9, getDeviceName(), "AlignStars", "Align using some stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
     IUFillSwitch(&OSNAlignS[0], "0", "Start Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[1], "1", "Issue Align", ISS_OFF);
@@ -1146,20 +1148,11 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		if (index == 0)
 		{    
 			
-			/* From above. Could be added to have 7,8 star
-			IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
-			IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);*
-			IUFillSwitch(&OSNAlignStarsS[2], "3", "3 Stars", ISS_ON);
-			IUFillSwitch(&OSNAlignStarsS[3], "4", "4 Stars", ISS_OFF);
-			IUFillSwitch(&OSNAlignStarsS[4], "5", "5 Stars", ISS_OFF);
-			IUFillSwitch(&OSNAlignStarsS[5], "6", "6 Stars", ISS_OFF);
-			IUFillSwitch(&OSNAlignStarsS[6], "9", "9 Stars", ISS_OFF);*/
+			/* Index is 0-8 and represents index+1*/
 			
 			int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
-			if ((index_stars <= 6) && (index_stars >= 0)) {
+			if ((index_stars <= 8) && (index_stars >= 0)) {
 				int stars = index_stars+1;
-				if (stars == 6) stars = 9;
-				//if (stars == 5) stars = 6;
 				OSNAlignS[0].s = ISS_OFF;
 				LOGF_INFO("Align index: %d, stars: %d", index_stars, stars); 
 				AlignStartGeometric(stars);
