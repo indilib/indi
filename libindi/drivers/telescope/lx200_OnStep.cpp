@@ -1518,79 +1518,78 @@ bool LX200_OnStep::ReadScopeStatus()
     
     
     Lasterror=(Errors)(OSStat[strlen(OSStat)-1]-'0');
-    switch (LastError) {
-
+    switch (Lasterror) {
 	case ERR_NONE:
-		IUSaveText(&OnstepStat[7],"None"); }
+		IUSaveText(&OnstepStat[7],"None"); 
 		break;
 	case ERR_MOTOR_FAULT:
-		IUSaveText(&OnstepStat[7],"Motor/Driver Fault"); }
+		IUSaveText(&OnstepStat[7],"Motor/Driver Fault"); 
 		break;
 	case ERR_ALT_MIN:
-		IUSaveText(&OnstepStat[7],"Below Horizon Limit"); }
+		IUSaveText(&OnstepStat[7],"Below Horizon Limit"); 
 		break;
 	case ERR_LIMIT_SENSE:
-		IUSaveText(&OnstepStat[7],"Limit Sense"); }
+		IUSaveText(&OnstepStat[7],"Limit Sense"); 
 		break;
 	case ERR_DEC:
-		IUSaveText(&OnstepStat[7],"Dec Limit Exceeded"); }
+		IUSaveText(&OnstepStat[7],"Dec Limit Exceeded"); 
 		break;
 	case ERR_AZM:
-		IUSaveText(&OnstepStat[7],"Azm Limit Exceeded"); }
+		IUSaveText(&OnstepStat[7],"Azm Limit Exceeded"); 
 		break;
 	case ERR_UNDER_POLE:
-		IUSaveText(&OnstepStat[7],"Under Pole Limit Exceeded"); }
+		IUSaveText(&OnstepStat[7],"Under Pole Limit Exceeded"); 
 		break;
 	case ERR_MERIDIAN:
-		IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded"); }
+		IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded"); 
 		break;
 	case ERR_SYNC:
-		IUSaveText(&OnstepStat[7],"Sync Safety Limit Exceeded"); }
+		IUSaveText(&OnstepStat[7],"Sync Safety Limit Exceeded"); 
 		break;
 	case ERR_PARK:
-		IUSaveText(&OnstepStat[7],"Park Failed"); }
+		IUSaveText(&OnstepStat[7],"Park Failed"); 
 		break;
 	case ERR_GOTO_SYNC:
-		IUSaveText(&OnstepStat[7],"Goto Sync Failed"); }
+		IUSaveText(&OnstepStat[7],"Goto Sync Failed"); 
 		break;
 	case ERR_UNSPECIFIED:
-		IUSaveText(&OnstepStat[7],"Unspecified Error"); }
+		IUSaveText(&OnstepStat[7],"Unspecified Error"); 
 		break;
 	case ERR_ALT_MAX:
-		IUSaveText(&OnstepStat[7],"Above Overhead Limit"); }
+		IUSaveText(&OnstepStat[7],"Above Overhead Limit"); 
 		break;
 	case ERR_GOTO_ERR_NONE:
-		IUSaveText(&OnstepStat[7],"Goto No Error"); }
+		IUSaveText(&OnstepStat[7],"Goto No Error"); 
 		break;
 	case ERR_GOTO_ERR_BELOW_HORIZON:
-		IUSaveText(&OnstepStat[7],"Goto Below Horizon"); }
+		IUSaveText(&OnstepStat[7],"Goto Below Horizon"); 
 		break;
 	case ERR_GOTO_ERR_ABOVE_OVERHEAD:
-		IUSaveText(&OnstepStat[7],"Goto Abv Overhead"); }
+		IUSaveText(&OnstepStat[7],"Goto Abv Overhead"); 
 		break;
 	case ERR_GOTO_ERR_STANDBY:
-		IUSaveText(&OnstepStat[7],"Goto Err Standby"); }
+		IUSaveText(&OnstepStat[7],"Goto Err Standby"); 
 		break;
 	case ERR_GOTO_ERR_PARK:
-		IUSaveText(&OnstepStat[7],"Goto Err Park"); }
+		IUSaveText(&OnstepStat[7],"Goto Err Park"); 
 		break;
 	case ERR_GOTO_ERR_GOTO:
-		IUSaveText(&OnstepStat[7],"Goto Err Goto"); }
+		IUSaveText(&OnstepStat[7],"Goto Err Goto"); 
 		break;
 	case ERR_GOTO_ERR_OUTSIDE_LIMITS:
-		IUSaveText(&OnstepStat[7],"Goto Outside Limits"); }
+		IUSaveText(&OnstepStat[7],"Goto Outside Limits"); 
 		break;
 	case ERR_GOTO_ERR_HARDWARE_FAULT:
-		IUSaveText(&OnstepStat[7],"Goto H/W Fault"); }
+		IUSaveText(&OnstepStat[7],"Goto H/W Fault"); 
 		break;
 	case ERR_GOTO_ERR_IN_MOTION:
-		IUSaveText(&OnstepStat[7],"Goto Err Motion"); }
+		IUSaveText(&OnstepStat[7],"Goto Err Motion"); 
 		break;
 	case ERR_GOTO_ERR_UNSPECIFIED:
-		IUSaveText(&OnstepStat[7],"Goto Unspecified Error"); }
+		IUSaveText(&OnstepStat[7],"Goto Unspecified Error"); 
 		break;
 	default:
-		IUSaveText(&OnstepStat[7],"Unknown Error"); }
+		IUSaveText(&OnstepStat[7],"Unknown Error"); 
 		break;
     }
 
@@ -1683,6 +1682,7 @@ bool LX200_OnStep::ReadScopeStatus()
     PECStatus(0);
     NewRaDec(currentRA, currentDEC);
     return true;
+    }
 }
 
 
