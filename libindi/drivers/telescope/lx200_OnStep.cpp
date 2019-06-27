@@ -99,7 +99,7 @@ bool LX200_OnStep::initProperties()
 
     // ============== MOTION_CONTROL_TAB
 
-    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 1.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
+    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
     IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
 
     IUFillSwitch(&TrackCompS[0], "1", "Full Compensation", ISS_OFF);
@@ -107,6 +107,10 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&TrackCompS[2], "3", "Off", ISS_OFF);
     IUFillSwitchVector(&TrackCompSP, TrackCompS, 3, getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&TrackAxisS[0], "1", "Single Axis", ISS_OFF);
+    IUFillSwitch(&TrackAxisS[1], "2", "Dual Axis", ISS_OFF);
+    IUFillSwitchVector(&TrackAxisSP, TrackAxisS, 2, getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
     IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
     IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
     IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
@@ -205,13 +209,19 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSNAlignStarsS[3], "4", "4 Stars", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[4], "5", "5 Stars", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[5], "6", "6 Stars", ISS_OFF);
-    IUFillSwitch(&OSNAlignStarsS[6], "9", "9 Stars", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 7, getDeviceName(), "AlignStars", "Align using some stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitch(&OSNAlignStarsS[6], "7", "7 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[7], "8", "8 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[8], "9", "9 Stars", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 9, getDeviceName(), "AlignStars", "Align using some stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
     IUFillSwitch(&OSNAlignS[0], "0", "Start Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[1], "1", "Issue Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[2], "3", "Write Align", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 3, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 2, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    IUFillSwitch(&OSNAlignWriteS[0], "0", "Write Align to NVRAM/Flash", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignWriteSP, OSNAlignWriteS, 1, getDeviceName(), "NewAlignStar2", "NVRAM", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
     
     IUFillText(&OSNAlignT[0], "0", "Align Process Status", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
@@ -264,7 +274,8 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[5], "TimeSync", "", "");
     IUFillText(&OnstepStat[6], "Mount Type", "", "");
     IUFillText(&OnstepStat[7], "Error", "", "");
-    IUFillTextVector(&OnstepStatTP, OnstepStat, 8, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
+    IUFillText(&OnstepStat[8], "Multi-Axis Tracking", "", "");
+    IUFillTextVector(&OnstepStatTP, OnstepStat, 9, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
     setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
 
@@ -297,6 +308,7 @@ bool LX200_OnStep::updateProperties()
         // Motion Control
         defineNumber(&MaxSlewRateNP);
         defineSwitch(&TrackCompSP);
+	defineSwitch(&TrackAxisSP);
         defineNumber(&BacklashNP);
         defineSwitch(&AutoFlipSP);
         defineSwitch(&HomePauseSP);
@@ -341,6 +353,7 @@ bool LX200_OnStep::updateProperties()
         //New Align
         defineSwitch(&OSNAlignStarsSP);
         defineSwitch(&OSNAlignSP);
+	defineSwitch(&OSNAlignWriteSP);
         defineText(&OSNAlignTP);
         defineText(&OSNAlignErrTP);
     #ifdef ONSTEP_NOTDONE
@@ -392,6 +405,7 @@ bool LX200_OnStep::updateProperties()
         // Motion Control
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(TrackCompSP.name);
+	deleteProperty(TrackAxisSP.name);
         deleteProperty(BacklashNP.name);
         deleteProperty(AutoFlipSP.name);
         deleteProperty(HomePauseSP.name);
@@ -427,6 +441,7 @@ bool LX200_OnStep::updateProperties()
         //New Align
         deleteProperty(OSNAlignStarsSP.name);
         deleteProperty(OSNAlignSP.name);
+	deleteProperty(OSNAlignWriteSP.name);
         deleteProperty(OSNAlignTP.name);
         deleteProperty(OSNAlignErrTP.name);
     #ifdef ONSTEP_NOTDONE
@@ -811,6 +826,39 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&TrackCompSP, nullptr);
             return true;
         }
+        if (!strcmp(name, TrackAxisSP.name))
+	{
+		IUUpdateSwitch(&TrackAxisSP, states, names, n);
+		TrackAxisSP.s = IPS_BUSY;
+	
+		if (TrackAxisS[0].s == ISS_ON)
+		{
+			if (!sendOnStepCommand(":T1#"))
+			{
+				IDSetSwitch(&TrackAxisSP, "Single Tracking On");
+				TrackAxisSP.s = IPS_OK;
+				IDSetSwitch(&TrackAxisSP, nullptr);
+				return true;
+			}
+		}
+		if (TrackAxisS[1].s == ISS_ON)
+		{
+			if (!sendOnStepCommand(":T2#"))
+			{
+				IDSetSwitch(&TrackAxisSP, "Dual Axis Tracking On");
+				TrackAxisSP.s = IPS_OK;
+				IDSetSwitch(&TrackAxisSP, nullptr);
+				return true;
+			}
+		}
+		IUResetSwitch(&TrackAxisSP);
+		TrackAxisSP.s = IPS_IDLE;
+		IDSetSwitch(&TrackAxisSP, nullptr);
+		return true;
+	}
+        
+        
+        
         if (!strcmp(name, AutoFlipSP.name))
 	{
 		IUUpdateSwitch(&AutoFlipSP, states, names, n);
@@ -1106,20 +1154,11 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		if (index == 0)
 		{    
 			
-			/* From above. Could be added to have 7,8 star
-			IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
-			IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);*
-			IUFillSwitch(&OSNAlignStarsS[2], "3", "3 Stars", ISS_ON);
-			IUFillSwitch(&OSNAlignStarsS[3], "4", "4 Stars", ISS_OFF);
-			IUFillSwitch(&OSNAlignStarsS[4], "5", "5 Stars", ISS_OFF);
-			IUFillSwitch(&OSNAlignStarsS[5], "6", "6 Stars", ISS_OFF);
-			IUFillSwitch(&OSNAlignStarsS[6], "9", "9 Stars", ISS_OFF);*/
+			/* Index is 0-8 and represents index+1*/
 			
 			int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
-			if ((index_stars <= 6) && (index_stars >= 0)) {
+			if ((index_stars <= 8) && (index_stars >= 0)) {
 				int stars = index_stars+1;
-				if (stars == 6) stars = 9;
-				//if (stars == 5) stars = 6;
 				OSNAlignS[0].s = ISS_OFF;
 				LOGF_INFO("Align index: %d, stars: %d", index_stars, stars); 
 				AlignStartGeometric(stars);
@@ -1130,12 +1169,25 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 			OSNAlignS[1].s = ISS_OFF;
 			OSNAlignSP.s = AlignAddStar();
 		}
-		if (index == 2)
-		{
-			OSNAlignS[2].s = ISS_OFF;
-			OSNAlignSP.s = AlignDone();
-		}
+		//Write to EEPROM moved to new line/variable 
 		IDSetSwitch(&OSNAlignSP, nullptr);
+		UpdateAlignStatus();
+	}
+	
+	if (!strcmp(name, OSNAlignWriteSP.name))
+	{
+		if (IUUpdateSwitch(&OSNAlignWriteSP, states, names, n) < 0)
+			return false;
+		
+		index = IUFindOnSwitchIndex(&OSNAlignWriteSP);
+
+		OSNAlignWriteSP.s = IPS_BUSY;
+		if (index == 0)
+		{
+			OSNAlignWriteS[0].s = ISS_OFF;
+			OSNAlignWriteSP.s = AlignWrite();
+		}
+		IDSetSwitch(&OSNAlignWriteSP, nullptr);
 		UpdateAlignStatus();
 	}
 
@@ -1337,10 +1389,21 @@ bool LX200_OnStep::ReadScopeStatus()
     }
 
     // ============= Refractoring
-    if (strstr(OSStat,"r")) {IUSaveText(&OnstepStat[2],"Refractoring On"); }
-    if (strstr(OSStat,"s")) {IUSaveText(&OnstepStat[2],"Refractoring Off"); }
-    if (strstr(OSStat,"r") && strstr(OSStat,"t")) {IUSaveText(&OnstepStat[2],"Full Comp"); }
-    if (strstr(OSStat,"r") && !strstr(OSStat,"t")) { IUSaveText(&OnstepStat[2],"Refractory Comp"); }
+
+    if ((strstr(OSStat,"r") || strstr(OSStat,"t"))) //On, either refractory only (r) or full (t)
+	{
+		if (strstr(OSStat,"t")) {IUSaveText(&OnstepStat[2],"Full Comp"); }
+		if (strstr(OSStat,"r")) { IUSaveText(&OnstepStat[2],"Refractory Comp"); }
+		if (strstr(OSStat,"s")) {
+				IUSaveText(&OnstepStat[8],"Single Axis"); 
+		} else { 
+				IUSaveText(&OnstepStat[8],"2-Axis"); 
+		}
+	} else {
+		IUSaveText(&OnstepStat[2],"Refractoring Off");
+		IUSaveText(&OnstepStat[8],"N/A");
+	}
+
 
     // ============= Parkstatus
     if(FirstRead)   // it is the first time I read the status so I need to update
@@ -1449,24 +1512,97 @@ bool LX200_OnStep::ReadScopeStatus()
     if (strstr(OSStat,"S")) { IUSaveText(&OnstepStat[5],"PPS / GPS Sync Ok"); }
 
     // ============= Mount Types
-    if (strstr(OSStat,"E")) { IUSaveText(&OnstepStat[6],"German Mount"); }
-    if (strstr(OSStat,"K")) { IUSaveText(&OnstepStat[6],"Fork Mount"); }
-    if (strstr(OSStat,"k")) { IUSaveText(&OnstepStat[6],"Fork Alt Mount"); }
-    if (strstr(OSStat,"A")) { IUSaveText(&OnstepStat[6],"AltAZ Mount"); }
+    if (strstr(OSStat,"E")) { IUSaveText(&OnstepStat[6],"German Mount"); OSMountType = 0;}
+    if (strstr(OSStat,"K")) { IUSaveText(&OnstepStat[6],"Fork Mount"); OSMountType = 1;}
+    if (strstr(OSStat,"k")) { IUSaveText(&OnstepStat[6],"Fork Alt Mount"); OSMountType = 2;}
+    if (strstr(OSStat,"A")) { IUSaveText(&OnstepStat[6],"AltAZ Mount"); OSMountType = 3; }
 
-    // ============= Error Code ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC
+    // ============= Error Code 
+    //From OnStep: ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED
+    
+    //For redoing this, quick python, if needed (will only give the error name):
+    //all_errors=' (Insert)
+    //split_errors=all_errors.split(', ')
+    //for specific in split_errors:
+    //     print('case ' +specific+':')                          
+    //     print('\tIUSaveText(&OnstepStat[7],"'+specific+'");')
+    //     print('\tbreak;')  
+    
+    
     Lasterror=(Errors)(OSStat[strlen(OSStat)-1]-'0');
-    if (Lasterror==ERR_NONE) { IUSaveText(&OnstepStat[7],"None"); }
-    if (Lasterror==ERR_MOTOR_FAULT) { IUSaveText(&OnstepStat[7],"Motor Fault"); }
-    if (Lasterror==ERR_ALT) { IUSaveText(&OnstepStat[7],"Altitude Min/Max"); }
-    if (Lasterror==ERR_LIMIT_SENSE) { IUSaveText(&OnstepStat[7],"Limit Sense"); }
-    if (Lasterror==ERR_DEC) { IUSaveText(&OnstepStat[7],"Dec Limit Exceeded"); }
-    if (Lasterror==ERR_AZM) { IUSaveText(&OnstepStat[7],"Azm Limit Exceeded"); }
-    if (Lasterror==ERR_UNDER_POLE) { IUSaveText(&OnstepStat[7],"Under Pole Limit Exceeded"); }
-    if (Lasterror==ERR_MERIDIAN) { IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded"); }
-    if (Lasterror==ERR_SYNC) { IUSaveText(&OnstepStat[7],"Sync. ignored > 30 deg"); }
-    if (Lasterror==ERR_PARK) { IUSaveText(&OnstepStat[7],"Park Error"); }
-    if (Lasterror==ERR_GOTO_SYNC) { IUSaveText(&OnstepStat[7],"Goto Sync Error"); }
+    switch (Lasterror) {
+	case ERR_NONE:
+		IUSaveText(&OnstepStat[7],"None"); 
+		break;
+	case ERR_MOTOR_FAULT:
+		IUSaveText(&OnstepStat[7],"Motor/Driver Fault"); 
+		break;
+	case ERR_ALT_MIN:
+		IUSaveText(&OnstepStat[7],"Below Horizon Limit"); 
+		break;
+	case ERR_LIMIT_SENSE:
+		IUSaveText(&OnstepStat[7],"Limit Sense"); 
+		break;
+	case ERR_DEC:
+		IUSaveText(&OnstepStat[7],"Dec Limit Exceeded"); 
+		break;
+	case ERR_AZM:
+		IUSaveText(&OnstepStat[7],"Azm Limit Exceeded"); 
+		break;
+	case ERR_UNDER_POLE:
+		IUSaveText(&OnstepStat[7],"Under Pole Limit Exceeded"); 
+		break;
+	case ERR_MERIDIAN:
+		IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded"); 
+		break;
+	case ERR_SYNC:
+		IUSaveText(&OnstepStat[7],"Sync Safety Limit Exceeded"); 
+		break;
+	case ERR_PARK:
+		IUSaveText(&OnstepStat[7],"Park Failed"); 
+		break;
+	case ERR_GOTO_SYNC:
+		IUSaveText(&OnstepStat[7],"Goto Sync Failed"); 
+		break;
+	case ERR_UNSPECIFIED:
+		IUSaveText(&OnstepStat[7],"Unspecified Error"); 
+		break;
+	case ERR_ALT_MAX:
+		IUSaveText(&OnstepStat[7],"Above Overhead Limit"); 
+		break;
+	case ERR_GOTO_ERR_NONE:
+		IUSaveText(&OnstepStat[7],"Goto No Error"); 
+		break;
+	case ERR_GOTO_ERR_BELOW_HORIZON:
+		IUSaveText(&OnstepStat[7],"Goto Below Horizon"); 
+		break;
+	case ERR_GOTO_ERR_ABOVE_OVERHEAD:
+		IUSaveText(&OnstepStat[7],"Goto Abv Overhead"); 
+		break;
+	case ERR_GOTO_ERR_STANDBY:
+		IUSaveText(&OnstepStat[7],"Goto Err Standby"); 
+		break;
+	case ERR_GOTO_ERR_PARK:
+		IUSaveText(&OnstepStat[7],"Goto Err Park"); 
+		break;
+	case ERR_GOTO_ERR_GOTO:
+		IUSaveText(&OnstepStat[7],"Goto Err Goto"); 
+		break;
+	case ERR_GOTO_ERR_OUTSIDE_LIMITS:
+		IUSaveText(&OnstepStat[7],"Goto Outside Limits"); 
+		break;
+	case ERR_GOTO_ERR_HARDWARE_FAULT:
+		IUSaveText(&OnstepStat[7],"Goto H/W Fault"); 
+		break;
+	case ERR_GOTO_ERR_IN_MOTION:
+		IUSaveText(&OnstepStat[7],"Goto Err Motion"); 
+		break;
+	case ERR_GOTO_ERR_UNSPECIFIED:
+		IUSaveText(&OnstepStat[7],"Goto Unspecified Error"); 
+		break;
+	default:
+		IUSaveText(&OnstepStat[7],"Unknown Error"); 
+		break;
     }
 
     // Get actual Pier Side
@@ -1558,6 +1694,7 @@ bool LX200_OnStep::ReadScopeStatus()
     PECStatus(0);
     NewRaDec(currentRA, currentDEC);
     return true;
+    }
 }
 
 
@@ -1735,11 +1872,12 @@ IPState LX200_OnStep::MoveFocuser(FocusDirection dir, int speed, uint16_t durati
 IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
 	//  :FSsnnn#  Set focuser target position (in microns)
 	//            Returns: Nothing
+	if (FocusAbsPosN[0].max >= int(targetTicks) && FocusAbsPosN[0].min <= int(targetTicks)) {
 		char read_buffer[32];
 		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", targetTicks);
 		sendOnStepCommandBlind(read_buffer);
 		return IPS_BUSY; // Normal case, should be set to normal by update.
-		//Remove checks here as 
+  }
 }
 IPState LX200_OnStep::MoveRelFocuser (FocusDirection dir, uint32_t ticks) {
 	//  :FRsnnn#  Set focuser target position relative (in microns)
@@ -2008,10 +2146,6 @@ bool LX200_OnStep::UpdateAlignStatus ()
 	char read_buffer[RB_MAX_LEN];
 	char msg[40];
 	char stars[5];
-// 	IUFillText(&OSNAlignT[4], "4", "Current Status", "Not Updated");
-// 	IUFillText(&OSNAlignT[5], "5", "Max Stars", "Not Updated");
-// 	IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
-// 	IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
 	
 	int max_stars, current_star, align_stars;
 //	LOG_INFO("Gettng Align Status");
@@ -2045,6 +2179,7 @@ bool LX200_OnStep::UpdateAlignStatus ()
 	if (current_star > align_stars)
 	{
 		snprintf(msg, sizeof(msg), "Manual Align: Completed");
+		AlignDone();
 		IUSaveText(&OSNAlignT[4],msg);
 		UpdateAlignErr();
 	}
@@ -2116,22 +2251,44 @@ bool LX200_OnStep::UpdateAlignErr()
 
 IPState LX200_OnStep::AlignDone(){
 	//See here https://groups.io/g/onstep/message/3624
+// 	char cmd[8];
+	LOG_INFO("Alignment Done");
+// 	LOG_INFO("Sending Command to Finish Alignment and write");
+// 	strcpy(cmd, ":AW#");
+    IUSaveText(&OSNAlignT[0],"Align FINISHED");
+    IUSaveText(&OSNAlignT[1],"------");
+    IUSaveText(&OSNAlignT[2],"Optionally press:");
+    IUSaveText(&OSNAlignT[3],"Write Align to NVRAM/Flash ");
+    IDSetText(&OSNAlignTP, nullptr);
+// 	if (sendOnStepCommandBlind(cmd)){
+// 		return IPS_OK;
+// 	}
+// 	IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
+    IDSetText(&OSNAlignTP, nullptr);
+	return IPS_OK;
+	
+}
+
+IPState LX200_OnStep::AlignWrite(){
+	//See here https://groups.io/g/onstep/message/3624
 	char cmd[8];
 	LOG_INFO("Sending Command to Finish Alignment and write");
 	strcpy(cmd, ":AW#");
-    IUSaveText(&OSNAlignT[0],"Align FINISHED Written to EEprom");
-    IUSaveText(&OSNAlignT[1],"------");
-    IUSaveText(&OSNAlignT[2],"------");
-    IUSaveText(&OSNAlignT[3],"------");
-    IDSetText(&OSNAlignTP, nullptr);
+	IUSaveText(&OSNAlignT[0],"Align FINISHED");
+	IUSaveText(&OSNAlignT[1],"------");
+	IUSaveText(&OSNAlignT[2],"And Written to EEPROM");
+	IUSaveText(&OSNAlignT[3],"------");
+	IDSetText(&OSNAlignTP, nullptr);
 	if (sendOnStepCommandBlind(cmd)){
 		return IPS_OK;
 	}
 	IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
-    IDSetText(&OSNAlignTP, nullptr);
+	IDSetText(&OSNAlignTP, nullptr);
 	return IPS_ALERT;
 	
 }
+
+
 #ifdef ONSTEP_NOTDONE
 IPState LX200_OnStep::OSEnableOutput(int output) {
 	//  :SXnn,VVVVVV...#   Set OnStep value
