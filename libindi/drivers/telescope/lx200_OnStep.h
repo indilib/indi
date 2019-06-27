@@ -112,6 +112,15 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual bool SetTrackRate(double raRate, double deRate) override;
     
     
+    //Mount information 
+    int OSMountType = 0;
+    /*  0 = EQ mount  (Presumed default for most things.) 
+     *  1 = Fork 
+     *  2 = Fork Alt 
+     *  3 = Alt Azm
+     */
+   
+    
     //FocuserInterface
     
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
