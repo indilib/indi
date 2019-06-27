@@ -26,6 +26,7 @@
     - James Lan fixed Meredian Flip and Home Pause buttons
     - Cleaned Comments from previon versions
     - Updated lastError Codes
+    - azwing typo minutes ' > second ''for Alignment Error
 
     Version 1.5: Cleaning and Align Code Tuning
     - James Lan Align Code

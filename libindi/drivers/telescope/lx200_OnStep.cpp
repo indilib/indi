@@ -2103,12 +2103,12 @@ bool LX200_OnStep::UpdateAlignErr()
 	
     long azmCor = strtold(read_buffer, nullptr);
     fs_sexa(sexabuf, (double)azmCor/3600, 4, 3600);
-    snprintf(polar_error, sizeof(polar_error), "%ld' /%s", azmCor, sexabuf);
+    snprintf(polar_error, sizeof(polar_error), "%ld'' /%s", azmCor, sexabuf);   //azwing typo minutes ' > second ''
     IUSaveText(&OSNAlignErrT[1],polar_error);
     fs_sexa(sexabuf, (double)altCor/3600, 4, 3600);
-    snprintf(polar_error, sizeof(polar_error), "%ld' /%s", altCor, sexabuf);    //azwing display raw + sexa value
-    IUSaveText(&OSNAlignErrT[0],polar_error);   //azwing switched Alt / Azm cor
-    IDSetText(&OSNAlignErrTP, nullptr);   //azwing Align Error Updated > nullptr
+    snprintf(polar_error, sizeof(polar_error), "%ld'' /%s", altCor, sexabuf);   //azwing typo minutes ' > second ''
+    IUSaveText(&OSNAlignErrT[0],polar_error);
+    IDSetText(&OSNAlignErrTP, nullptr);
 	
 	
 	return true;
