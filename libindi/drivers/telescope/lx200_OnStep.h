@@ -23,9 +23,10 @@
 
     ===========================================
     Version 1.6: Additional Functions
-    - 
-    -
-    -
+    - James Lan fixed Meredian Flip and Home Pause buttons
+    - Cleaned Comments from previon versions
+    - Updated lastError Codes
+    - azwing typo minutes ' > second ''for Alignment Error
 
     Version 1.5: Cleaning and Align Code Tuning
     - James Lan Align Code
@@ -80,8 +81,12 @@
 #define OnStep
 #define RB_MAX_LEN 64
 
-enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
+#define PORTS_COUNT 10
+#define STARTING_PORT 0
 
+
+
+enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC};
 
 class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
 {
@@ -107,8 +112,6 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
     virtual bool ReadScopeStatus() override;
     virtual int setSiteLongitude(int fd, double Long);
-//azwing align    virtual bool GetAlignStatus();
-//azwing align    virtual bool kdedialog(const char * commande);
     virtual bool SetTrackRate(double raRate, double deRate) override;
     
     
@@ -223,11 +226,6 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitch ReticS[2];
 
     // Align Buttons
-//azwing align    ISwitchVectorProperty OSAlignSP;
-//azwing align    ISwitch OSAlignS[4];
-//azwing align    IText OSAlignT[1] {};
-//azwing align    ITextVectorProperty OSAlignTP;
-
     ISwitchVectorProperty TrackCompSP;
     ISwitch TrackCompS[3];
     
@@ -243,6 +241,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty SetHomeSP;
     ISwitch SetHomeS[2];
 
+    ISwitchVectorProperty PreferredPierSideSP;
+    ISwitch PreferredPierSideS[3];    
+    
+    INumberVectorProperty minutesPastMeridianNP;    
+    INumber minutesPastMeridianN[2];    
     
     ISwitchVectorProperty OSPECStatusSP;
     ISwitch OSPECStatusS[5];
@@ -268,14 +271,14 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty OSOutput2SP;
     ISwitch OSOutput2S[2];
     
+
+    INumber OutputPorts[PORTS_COUNT];
+    INumberVectorProperty OutputPorts_NP;
+
+
     char OSStat[RB_MAX_LEN];
     char OldOSStat[RB_MAX_LEN];
 
-//azwing align    char OSAlignStat[RB_MAX_LEN];
-//azwing align    char oldOSAlignStat[RB_MAX_LEN];
-//azwing align    bool OSAlignProcess=false;
-//azwing align    bool OSAlignFlag=false;
-//azwing align    bool OSAlignOn=false;
 
     char OSPier[RB_MAX_LEN];
     char OldOSPier[RB_MAX_LEN];

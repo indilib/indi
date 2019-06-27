@@ -77,6 +77,7 @@
 #define MAXSBUF       512
 #define MAXRBUF       49152 /* max read buffering here */
 #define MAXWSIZ       49152 /* max bytes/write */
+#define SHORTMSGSIZ   2048  /* buf size for most messages */
 #define DEFMAXQSIZ    128   /* default max q behind, MB */
 #define DEFMAXSSIZ    5     /* default max stream behind, MB */
 #define DEFMAXRESTART 10    /* default max restarts */
@@ -92,7 +93,7 @@ typedef struct
     int count;         /* number of consumers left */
     unsigned long cl;  /* content length */
     char *cp;          /* content: buf or malloced */
-    char buf[MAXWSIZ]; /* local buf for most messages */
+    char buf[SHORTMSGSIZ];    /* local buf for most messages */
 } Msg;
 
 /* device + property name */
@@ -883,23 +884,26 @@ static void indiRun(void)
     for (i = 0; s > 0 && i < ndvrinfo; i++)
     {
         DvrInfo *dp = &dvrinfo[i];
-        if (dp->pid != REMOTEDVR && FD_ISSET(dp->efd, &rs))
+        if (dp->active)
         {
-            if (stderrFromDriver(dp) < 0)
-                return; /* fds effected */
-            s--;
-        }
-        if (s > 0 && FD_ISSET(dp->rfd, &rs))
-        {
-            if (readFromDriver(dp) < 0)
-                return; /* fds effected */
-            s--;
-        }
-        if (s > 0 && FD_ISSET(dp->wfd, &ws) && nFQ(dp->msgq) > 0)
-        {
-            if (sendDriverMsg(dp) < 0)
-                return; /* fds effected */
-            s--;
+            if (dp->pid != REMOTEDVR && FD_ISSET(dp->efd, &rs))
+            {
+                if (stderrFromDriver(dp) < 0)
+                    return; /* fds effected */
+                s--;
+            }
+            if (s > 0 && FD_ISSET(dp->rfd, &rs))
+            {
+                if (readFromDriver(dp) < 0)
+                    return; /* fds effected */
+                s--;
+            }
+            if (s > 0 && FD_ISSET(dp->wfd, &ws) && nFQ(dp->msgq) > 0)
+            {
+                if (sendDriverMsg(dp) < 0)
+                    return; /* fds effected */
+                s--;
+            }
         }
     }
 }
@@ -1585,6 +1589,9 @@ static void q2SDrivers(DvrInfo *me, int isblob, const char *dev, const char *nam
 
     for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++)
     {
+        if (dp->active == 0)
+            continue;
+
         Property *sp = findSDevice(dp, dev, name);
 
         /* nothing for dp if not snooping for dev/name or wrong BLOB mode */
@@ -1821,7 +1828,9 @@ static int msgQSize(FQ *q)
     for (i = 0; i < nFQ(q); i++)
     {
         Msg *mp = (Msg *)peekiFQ(q, i);
-        l += mp->cl;
+        l += sizeof(Msg);
+        if (mp->cp != mp->buf)
+            l += mp->cl;
     }
 
     return (l);

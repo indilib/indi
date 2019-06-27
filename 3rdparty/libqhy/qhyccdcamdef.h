@@ -1,36 +1,9 @@
-/*
- QHYCCD SDK
- 
- Copyright (c) 2014 QHYCCD.
- All Rights Reserved.
- 
- This program is free software; you can redistribute it and/or modify it
- under the terms of the GNU General Public License as published by the Free
- Software Foundation; either version 2 of the License, or (at your option)
- any later version.
- 
- This program is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- more details.
- 
- You should have received a copy of the GNU General Public License along with
- this program; if not, write to the Free Software Foundation, Inc., 59
- Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- 
- The full GNU General Public License is included in this distribution in the
- file called LICENSE.
- */
 
-/*!
-   @file qhyccdcamdef.h
-   @brief QHYCCD SDK error define
-  */
 
 #ifndef __QHYCCDCAMDEF_H__
 #define __QHYCCDCAMDEF_H__
 
-#include "config.h"
+
 
 /* IMG series */
 
@@ -358,7 +331,9 @@
 #define DEVICETYPE_QHY2020      4055
 #define DEVICETYPE_QHY4040      4056
 #define DEVICETYPE_QHY550        4057
-
+#define DEVICETYPE_QHY42PRO   4058
+#define DEVICETYPE_QHY6060      4059
+#define DEVICETYPE_QHY411        4060        
 
 
 /**
@@ -522,6 +497,53 @@
  * Type define for UNKNOW */
 #define DEVICETYPE_UNKNOW       -1
 
-#define MAX_EXPOSURE_TIMES	(1800) //s
+#define MAX_EXPOSURE_TIMES	(3600) //s
+
+#define MREMAINING_MAX_EXPOSURETIMES	(3000)//ms
+
+#define	MAX_CAMERA_NUMBER	200
+#define	CAMERA_ID_LENGTH		64
+#define   MAXDEVICES 			18
+
+
+#define	SEND_CAMERA_NO_MESSAGE						0
+
+
+#define	SEND_CAMERA_ID								9501
+#define	SEND_CAMERA_STATUS							9502
+#define	SEND_CAMERA_LIVE							9503
+#define	SEND_CAMERA_SINGLE							9504
+#define	SEND_CAMERA_CAPABLE							9505
+#define	SEND_CAMERA_MAXMINSTEP						9506
+#define	SEND_CAMERA_EXPOSING						9507
+
+
+
+#define	CAMERA_LOSE									10001
+#define	CAMERA_INSERT								10002
+
+#define	CAMERA_LIVE_ERROR							10003
+#define	CAMERA_LIVE_DATA_AVAILABLE					10004
+#define	CAMERA_LIVE_STOP							10005
+#define	CAMERA_LIVE_TIMEOUT							10006
+
+#define	CAMERA_SINGLE_ERROR							10011
+#define	CAMERA_SINGLE_DATA_AVAILABLE				10012
+#define	CAMERA_SINGLE_STOP							10013
+#define	CAMERA_SINGLE_TIMEOUT						10014
+
+
+
+#define   SINGLE_MODE 								0
+#define   LIVE_MODE 								1
+
+#define   GET_IMAGE_TIMEOUT							30000
+
+#define	COMMAND_QUEUE_PUSH		1
+#define	COMMAND_QUEUE_POP		2
+
+#define	DEMO_MAXDEVICES			6
+#define	MESSAGE_SIZS				1000
+
 
 #endif

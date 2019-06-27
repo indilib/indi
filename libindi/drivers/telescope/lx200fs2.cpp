@@ -28,7 +28,7 @@
 
 LX200FS2::LX200FS2() : LX200Generic()
 {
-    setVersion(2, 1);
+    setVersion(2, 2);
 
     SetTelescopeCapability(
         TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_ABORT, 4);
@@ -50,7 +50,7 @@ bool LX200FS2::initProperties()
 
 bool LX200FS2::updateProperties()
 {
-    INDI::Telescope::updateProperties();
+    LX200Generic::updateProperties();
 
     if (isConnected())
     {
@@ -105,7 +105,7 @@ bool LX200FS2::ISNewNumber(const char *dev, const char *name, double values[], c
 
 const char *LX200FS2::getDefaultName()
 {
-    return (const char *)"Astro-Electronic FS-2";
+    return "Astro-Electronic FS-2";
 }
 
 bool LX200FS2::isSlewComplete()
@@ -243,7 +243,7 @@ bool LX200FS2::SetCurrentPark()
     fs_sexa(AltStr, parkAlt, 2, 3600);
 
     LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
-           AltStr);
+               AltStr);
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);

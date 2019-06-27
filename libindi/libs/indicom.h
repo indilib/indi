@@ -2,8 +2,8 @@
     INDI LIB
     Common routines used by all drivers
     Copyright (C) 2003 by Jason Harris (jharris@30doradus.org)
-    			  Elwood C. Downey
-			  Jasem Mutlaq
+                  Elwood C. Downey
+              Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -49,6 +49,20 @@
 #define SOLAR_DAY          86400
 #define TRACKRATE_SOLAR    ((360.0 * 3600.0) / SOLAR_DAY)
 #define TRACKRATE_LUNAR    14.511415
+#define EARTHRADIUSEQUATORIAL 6378137.0
+#define EARTHRADIUSPOLAR 6356752.0
+#define EARTHRADIUSMEAN 6372797.0
+#define EULER 2.71828182845904523536028747135266249775724709369995
+#define ROOT2 1.41421356237309504880168872420969807856967187537694
+#define AIRY 1.21966
+#define CIRCLE_DEG 360
+#define CIRCLE_AM (CIRCLE_DEG * 60)
+#define CIRCLE_AS (CIRCLE_AM * 60)
+#define RAD_AS (CIRCLE_AS/(M_PI*2))
+#define ASTRONOMICALUNIT 1.495978707E+11
+#define PARSEC (ASTRONOMICALUNIT*2.06264806247096E+5)
+#define LIGHTSPEED 299792458.0
+#define LY (LIGHTSPEED * SOLAR_DAY * 365)
 
 extern const char *Direction[];
 extern const char *SolarSystem[];
@@ -66,7 +80,8 @@ enum TTY_ERROR
     TTY_PORT_FAILURE = -5,
     TTY_PARAM_ERROR  = -6,
     TTY_ERRNO        = -7,
-    TTY_OVERFLOW     = -8
+    TTY_OVERFLOW     = -8,
+    TTY_PORT_BUSY    = -9,
 };
 
 #ifdef __cplusplus
@@ -181,10 +196,10 @@ int tty_timeout(int fd, int timeout);
   \param w the number of spaces in the whole part.
   \param fracbase is the number of pieces a whole is to broken into; valid options:\n
           \li 360000:	\<w\>:mm:ss.ss
-	  \li 36000:	\<w\>:mm:ss.s
- 	  \li 3600:	\<w\>:mm:ss
- 	  \li 600:	\<w\>:mm.m
- 	  \li 60:	\<w\>:mm
+      \li 36000:	\<w\>:mm:ss.s
+      \li 3600:	\<w\>:mm:ss
+      \li 600:	\<w\>:mm.m
+      \li 60:	\<w\>:mm
 
   \return number of characters written to out, not counting final null terminator.
  */
@@ -269,6 +284,74 @@ double get_local_sidereal_time(double longitude);
  * @return Hour angle in hours (-12 to 12)
  */
 double get_local_hour_angle(double local_sideral_time, double ra);
+
+/**
+ * @brief get_alt_az_coordinates Returns alt-azimuth coordinates of an object
+ * @param hour_angle Hour angle in hours (-12 to 12)
+ * @param dec DEC of object
+ * @param latitude latitude in INDI format (-90 to +90)
+ * @param alt ALT of object will be returned here
+ * @param az AZ of object will be returned here
+ */
+void get_alt_az_coordinates(double hour_angle, double dec, double latitude, double* alt, double *az);
+
+/**
+ * @brief estimate_geocentric_elevation Returns an estimation of the actual geocentric elevation
+ * @param latitude latitude in INDI format (-90 to +90)
+ * @param sea_level_elevation sea level elevation
+ * @return Aproximated geocentric elevation
+ */
+double estimate_geocentric_elevation(double latitude, double sea_level_elevation);
+
+/**
+ * @brief estimate_field_rotation_rate Returns an estimation of the field rotation rate of the object
+ * @param Alt altitude coordinate of the object
+ * @param Az azimuth coordinate of the object
+ * @param latitude latitude in INDI format (-90 to +90)
+ * @return Aproximation of the field rotation rate
+ */
+double estimate_field_rotation_rate(double Alt, double Az, double latitude);
+
+/**
+ * @brief estimate_field_rotation Returns an estimation of the field rotation rate of the object
+ * @param hour_angle Hour angle in hours (-12 to 12)
+ * @param field_rotation_rate the field rotation rate
+ * @return Aproximation of the absolute field rotation
+ */
+double estimate_field_rotation(double hour_angle, double field_rotation_rate);
+
+/**
+ * @brief parsec2m Convert parallax arcseconds into meters
+ * @param parsec the parallax arcseconds to convert
+ * @return Estimation of the distance in meters
+ */
+double parsec2m(double parsec);
+
+/**
+ * @brief m2au Convert meters into astronomical units
+ * @param m the distance in meters to convert
+ * @return Estimation of the distance in astronomical units
+ */
+double m2au(double m);
+
+/**
+ * @brief calc_delta_magnitude Returns the difference of magnitudes given two spectra
+ * @param mag0 Reference magnitude
+ * @param mag Relative magnitude to normalize
+ * @param spectrum The spectrum of the star
+ * @param spectrum_size The size of the spectrum
+ * @param lambda the index of the position into the spectrum that parameter mag refers to
+ * @return the magnitude difference
+ */
+double calc_delta_magnitude(double mag0, double mag, double *spectrum, int spectrum_size, int lambda);
+
+/**
+ * @brief estimate_field_rotation Returns an estimation of the field rotation rate of the object
+ * @param dist The distance in parallax radiuses
+ * @param delta_mag The difference of magnitudes
+ * @return Aproximation of the absolute magnitude in Δmag
+ */
+double estimate_absolute_magnitude(double dist, double delta_mag);
 
 /*@}*/
 

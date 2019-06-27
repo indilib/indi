@@ -1,21 +1,25 @@
 #if 0
-    Apogee CCD
-    INDI Driver for Apogee CCDs and Filter Wheels
-    Copyright (C) 2014 Jasem Mutlaq <mutlaqja AT ikarustech DOT com>
+Apogee CCD
+INDI Driver for Apogee CCDs and Filter Wheels
+Copyright (C) 2014 Jasem Mutlaq <mutlaqja AT ikarustech DOT com>
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    This library is free software;
+you can redistribute it and / or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation;
+either
+version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY;
+without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU Lesser General Public
+License along with this library;
+if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
@@ -41,12 +45,12 @@
 #include <memory>
 
 #ifdef OSX_EMBEDED_MODE
- #include "Alta.h"
- #include "AltaF.h"
- #include "Ascent.h"
- #include "Aspen.h"
- #include "Quad.h"
- #include "ApgLogger.h"
+#include "Alta.h"
+#include "AltaF.h"
+#include "Ascent.h"
+#include "Aspen.h"
+#include "Quad.h"
+#include "ApgLogger.h"
 #else
 #include <libapogee/Alta.h>
 #include <libapogee/AltaF.h>
@@ -64,12 +68,6 @@
 #include "apogee_ccd.h"
 #include "config.h"
 
-void ISInit(void);
-void ISPoll(void *);
-
-double min(void);
-double max(void);
-
 #define MAX_CCD_TEMP            45   /* Max CCD temperature */
 #define MIN_CCD_TEMP            -55  /* Min CCD temperature */
 #define MAX_X_BIN               16   /* Max Horizontal binning */
@@ -80,7 +78,7 @@ double max(void);
 #define TEMP_UPDATE_THRESHOLD   0.05
 #define COOLER_UPDATE_THRESHOLD 0.05
 
-std::unique_ptr<ApogeeCCD> apogeeCCD(new ApogeeCCD());
+static std::unique_ptr<ApogeeCCD> apogeeCCD(new ApogeeCCD());
 
 void ISGetProperties(const char *dev)
 {
@@ -120,21 +118,14 @@ void ISSnoopDevice(XMLEle *root)
     apogeeCCD->ISSnoopDevice(root);
 }
 
-ApogeeCCD::ApogeeCCD()
+ApogeeCCD::ApogeeCCD() : FilterInterface(this)
 {
-    ApgCam = nullptr;
-
     setVersion(APOGEE_VERSION_MAJOR, APOGEE_VERSION_MINOR);
-}
-
-ApogeeCCD::~ApogeeCCD()
-{
-    delete (ApgCam);
 }
 
 const char *ApogeeCCD::getDefaultName()
 {
-    return (char *)"Apogee CCD";
+    return "Apogee CCD";
 }
 
 bool ApogeeCCD::initProperties()
@@ -178,6 +169,19 @@ bool ApogeeCCD::initProperties()
     IUFillSwitchVector(&FanStatusSP, FanStatusS, 4, getDeviceName(), "Fan Status", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
+    // Filter Type
+    IUFillSwitch(&FilterTypeS[TYPE_UNKNOWN], "TYPE_UNKNOWN", "No CFW", ISS_ON);
+    IUFillSwitch(&FilterTypeS[TYPE_FW50_9R], "TYPE_FW50_9R", "FW50 9R", ISS_OFF);
+    IUFillSwitch(&FilterTypeS[TYPE_FW50_7S], "TYPE_FW50_7S", "FW50 7S", ISS_OFF);
+    IUFillSwitch(&FilterTypeS[TYPE_AFW50_10S], "TYPE_AFW50_10S", "AFW50 10S", ISS_OFF);
+    IUFillSwitch(&FilterTypeS[TYPE_AFW31_17R], "TYPE_AFW31_17R", "AFW31 17R", ISS_OFF);
+    IUFillSwitchVector(&FilterTypeSP, FilterTypeS, 5, getDeviceName(), "FILTER_TYPE", "Type", FILTER_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
+
+    INDI::FilterInterface::initProperties(FILTER_TAB);
+
+    setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
+
     addDebugControl();
     addSimulationControl();
 
@@ -190,9 +194,11 @@ void ApogeeCCD::ISGetProperties(const char *dev)
 
     defineSwitch(&PortTypeSP);
     defineText(&NetworkInfoTP);
+    defineSwitch(&FilterTypeSP);
 
-    loadConfig(true, "PORT_TYPE");
-    loadConfig(true, "NETWORK_INFO");
+    loadConfig(true, PortTypeSP.name);
+    loadConfig(true, NetworkInfoTP.name);
+    loadConfig(true, FilterTypeSP.name);
 }
 
 bool ApogeeCCD::updateProperties()
@@ -205,10 +211,14 @@ bool ApogeeCCD::updateProperties()
         defineSwitch(&CoolerSP);
         defineNumber(&CoolerNP);
         defineSwitch(&ReadOutSP);
-
         defineSwitch(&FanStatusSP);
-
         getCameraParams();
+
+        if (cfwFound)
+        {
+            INDI::FilterInterface::updateProperties();
+            defineText(&FilterInfoTP);
+        }
 
         timerID = SetTimer(POLLMS);
     }
@@ -219,6 +229,12 @@ bool ApogeeCCD::updateProperties()
         deleteProperty(ReadOutSP.name);
         deleteProperty(CamInfoTP.name);
         deleteProperty(FanStatusSP.name);
+
+        if (cfwFound)
+        {
+            INDI::FilterInterface::updateProperties();
+            deleteProperty(FilterInfoTP.name);
+        }
 
         rmTimer(timerID);
     }
@@ -254,9 +270,7 @@ bool ApogeeCCD::getCameraParams()
         imageWidth  = PrimaryCCD.getSubW();
         imageHeight = PrimaryCCD.getSubH();
 
-        int nbuf;
-        nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8; //  this is pixel count
-        nbuf += 512; //  leave a little extra at the end
+        int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
         PrimaryCCD.setFrameBufferSize(nbuf);
 
         return true;
@@ -287,7 +301,7 @@ bool ApogeeCCD::getCameraParams()
 
         IDSetSwitch(&CoolerSP, nullptr);
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("getCameraParams failed. %s.", err.what());
         return false;
@@ -303,7 +317,7 @@ bool ApogeeCCD::getCameraParams()
     {
         fStatus = ApgCam->GetFanMode();
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("GetFanMode failed. %s.", err.what());
         return false;
@@ -312,7 +326,7 @@ bool ApogeeCCD::getCameraParams()
     if (fStatus != Apg::FanMode_Unknown)
     {
         IUResetSwitch(&FanStatusSP);
-        FanStatusS[(int)fStatus].s = ISS_ON;
+        FanStatusS[fStatus].s = ISS_ON;
         IDSetSwitch(&FanStatusSP, nullptr);
     }
 
@@ -321,32 +335,17 @@ bool ApogeeCCD::getCameraParams()
     imageWidth  = PrimaryCCD.getSubW();
     imageHeight = PrimaryCCD.getSubH();
 
-    /*int filter_count;
-    try
-    {
-            QSICam.get_FilterCount(filter_count);
-    } catch (std::runtime_error& err)
-    {
-            LOGF_INFO("get_FilterCount() failed. %s.", err.what());
-            return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_SESSION,"The filter count is %d", filter_count);
-    */
-
     try
     {
         minDuration = ApgCam->GetMinExposureTime();
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("get_MinExposureTime() failed. %s.", err.what());
         return false;
     }
 
-    int nbuf;
-    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8; //  this is pixel count
-    nbuf += 512;                                                                  //  leave a little extra at the end
+    int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
@@ -365,7 +364,7 @@ int ApogeeCCD::SetTemperature(double temperature)
         if (isSimulation() == false)
             ApgCam->SetCoolerSetPoint(temperature);
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("SetCoolerSetPoint failed. %s.", err.what());
         return -1;
@@ -379,6 +378,16 @@ bool ApogeeCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (strcmp(dev, getDeviceName()) == 0)
     {
+        // Filter Type
+        if (!strcmp(name, FilterTypeSP.name))
+        {
+            IUUpdateSwitch(&FilterTypeSP, states, names, n);
+            FilterTypeSP.s = IPS_OK;
+            IDSetSwitch(&FilterTypeSP, nullptr);
+            return true;
+        }
+
+
         /* Port Type */
         if (!strcmp(name, PortTypeSP.name))
         {
@@ -404,7 +413,7 @@ bool ApogeeCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     if (isSimulation() == false)
                         ApgCam->SetCcdAdcSpeed(Apg::AdcSpeed_Normal);
                 }
-                catch (std::runtime_error& err)
+                catch (std::runtime_error &err)
                 {
                     IUResetSwitch(&ReadOutSP);
                     ReadOutSP.s = IPS_ALERT;
@@ -420,7 +429,7 @@ bool ApogeeCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     if (isSimulation() == false)
                         ApgCam->SetCcdAdcSpeed(Apg::AdcSpeed_Fast);
                 }
-                catch (std::runtime_error& err)
+                catch (std::runtime_error &err)
                 {
                     IUResetSwitch(&ReadOutSP);
                     ReadOutSP.s = IPS_ALERT;
@@ -461,6 +470,12 @@ bool ApogeeCCD::ISNewText(const char *dev, const char *name, char *texts[], char
 {
     if (strcmp(dev, getDeviceName()) == 0)
     {
+        if (!strcmp(name, FilterNameTP->name))
+        {
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
+            return true;
+        }
+
         if (!strcmp(NetworkInfoTP.name, name))
         {
             IUUpdateText(&NetworkInfoTP, texts, names, n);
@@ -495,34 +510,28 @@ bool ApogeeCCD::ISNewText(const char *dev, const char *name, char *texts[], char
 
 bool ApogeeCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    /*if(strcmp(dev,getDeviceName())==0)
+    if(!strcmp(dev, getDeviceName()))
     {
+        if (!strcmp(name, FilterSlotNP.name))
+        {
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
+            return true;
+        }
+    }
 
-    }*/
-
-    //  if we didn't process it, continue up the chain, let somebody else
-    //  give it a shot
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
 bool ApogeeCCD::StartExposure(float duration)
 {
-    if (duration < minDuration)
-    {
-        ExposureRequest = minDuration;
-        DEBUGF(INDI::Logger::DBG_WARNING,
-               "Exposure shorter than minimum ExposureRequest %g s requested. \n Setting exposure time to %g s.",
-               minDuration, minDuration);
-    }
-    else
-        ExposureRequest = duration;
+    ExposureRequest = duration;
 
     imageFrameType = PrimaryCCD.getFrameType();
 
     if (imageFrameType == INDI::CCDChip::BIAS_FRAME)
     {
         ExposureRequest = minDuration;
-        LOGF_INFO("Bias Frame (s) : %g", ExposureRequest);
+        LOGF_INFO("Bias Frame (s) : %.3f", ExposureRequest);
     }
 
     if (isSimulation() == false)
@@ -539,7 +548,7 @@ bool ApogeeCCD::StartExposure(float duration)
                 PrimaryCCD.setExposureDuration(ExposureRequest);
             }
         }
-        catch (std::runtime_error& err)
+        catch (std::runtime_error &err)
         {
             LOGF_ERROR("StartExposure() failed. %s.", err.what());
             return false;
@@ -555,7 +564,7 @@ bool ApogeeCCD::StartExposure(float duration)
                 PrimaryCCD.setExposureDuration(ExposureRequest);
             }
         }
-        catch (std::runtime_error& err)
+        catch (std::runtime_error &err)
         {
             LOGF_ERROR("StartExposure() failed. %s.", err.what());
             return false;
@@ -576,7 +585,7 @@ bool ApogeeCCD::AbortExposure()
         if (isSimulation() == false)
             ApgCam->StopExposure(false);
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("AbortExposure() failed. %s.", err.what());
         return false;
@@ -641,7 +650,7 @@ bool ApogeeCCD::UpdateCCDFrame(int x, int y, int w, int h)
             ApgCam->SetRoiNumRows(imageHeight);
         }
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("Setting image area failed. %s.", err.what());
         return false;
@@ -649,9 +658,7 @@ bool ApogeeCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
-    int nbuf;
-    nbuf = (imageWidth * imageHeight * PrimaryCCD.getBPP() / 8); //  this is pixel count
-    nbuf += 512;                                                 //  leave a little extra at the end
+    int nbuf = (imageWidth * imageHeight * PrimaryCCD.getBPP() / 8);
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
@@ -670,7 +677,7 @@ bool ApogeeCCD::UpdateCCDBin(int binx, int biny)
         if (isSimulation() == false)
             ApgCam->SetRoiBinCol(binx);
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("SetRoiBinCol failed. %s.", err.what());
         return false;
@@ -681,7 +688,7 @@ bool ApogeeCCD::UpdateCCDBin(int binx, int biny)
         if (isSimulation() == false)
             ApgCam->SetRoiBinRow(biny);
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("SetRoiBinRow failed. %s.", err.what());
         return false;
@@ -692,15 +699,14 @@ bool ApogeeCCD::UpdateCCDBin(int binx, int biny)
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
-/* Downloads the image from the CCD.
- N.B. No processing is done on the image */
 int ApogeeCCD::grabImage()
 {
     std::vector<uint16_t> pImageData;
-    unsigned short *image = (unsigned short *)PrimaryCCD.getFrameBuffer();
+    uint16_t *image = reinterpret_cast<uint16_t*>(PrimaryCCD.getFrameBuffer());
 
     try
     {
+        std::unique_lock<std::mutex> guard(ccdBufferLock);
         if (isSimulation())
         {
             for (int i = 0; i < imageHeight; i++)
@@ -714,8 +720,9 @@ int ApogeeCCD::grabImage()
             imageHeight = ApgCam->GetRoiNumRows();
             copy(pImageData.begin(), pImageData.end(), image);
         }
+        guard.unlock();
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("GetImage failed. %s.", err.what());
         return -1;
@@ -821,12 +828,12 @@ uint16_t ApogeeCCD::GetFrmwrRev(const std::string &msg)
 }
 
 ////////////////////////////
-//	        IS      DEVICE      FILTER      WHEEL
-bool ApogeeCCD::IsDeviceFilterWheel(const std::string &msg)
+// Do we have a camera?
+bool ApogeeCCD::IsDeviceCamera(const std::string &msg)
 {
     std::string str = GetItemFromFindStr(msg, "deviceType=");
 
-    return (0 == str.compare("filterWheel") ? true : false);
+    return (0 == str.compare("camera") ? true : false);
 }
 
 ////////////////////////////
@@ -860,7 +867,6 @@ void ApogeeCCD::checkStatus(const Apg::Status status)
             std::runtime_error except(errMsg);
             throw except;
         }
-        break;
 
         case Apg::Status_DataError:
         {
@@ -868,7 +874,6 @@ void ApogeeCCD::checkStatus(const Apg::Status status)
             std::runtime_error except(errMsg);
             throw except;
         }
-        break;
 
         case Apg::Status_PatternError:
         {
@@ -876,7 +881,6 @@ void ApogeeCCD::checkStatus(const Apg::Status status)
             std::runtime_error except(errMsg);
             throw except;
         }
-        break;
 
         case Apg::Status_Idle:
         {
@@ -884,7 +888,6 @@ void ApogeeCCD::checkStatus(const Apg::Status status)
             std::runtime_error except(errMsg);
             throw except;
         }
-        break;
 
         default:
             //no op on purpose
@@ -899,12 +902,35 @@ CamModel::PlatformType ApogeeCCD::GetModel(const std::string &msg)
     return CamModel::GetPlatformType(modelStr);
 }
 
+//bool ApogeeCCD::Connect()
+//{
+//    cameraFound = cfwFound = false;
+
+//    bool rcCamera = connectCamera();
+
+//    bool rcCFW = true;
+
+//    if (IUFindOnSwitchIndex(&FilterTypeSP) != TYPE_UNKNOWN)
+//        rcCFW = connectCFW();
+
+//    return rcCamera && rcCFW;
+//}
+
 bool ApogeeCCD::Connect()
 {
-    std::string msg;
-    std::string addr;
+    cameraFound = cfwFound = false;
 
-    LOG_INFO("Attempting to find Apogee CCD...");
+    std::string msg, addr, token, token_ip;
+    std::string cameraInfo, cfwInfo;
+    std::string delimiter = "</d>";
+    size_t pos = 0;
+
+    bool findCFW = IUFindOnSwitchIndex(&FilterTypeSP) != TYPE_UNKNOWN;
+
+    if (!findCFW)
+        LOG_INFO("Searching for Apogee CCD...");
+    else
+        LOG_INFO("Searching for Apogee CCD & CFW...");
 
     // USB
     if (PortTypeS[0].s == ISS_ON)
@@ -913,8 +939,8 @@ bool ApogeeCCD::Connect()
         if (isSimulation())
         {
             msg  = std::string("<d>address=0,interface=usb,deviceType=camera,id=0x49,firmwareRev=0x21,model=AltaU-"
-                              "4020ML,interfaceStatus=NA</d><d>address=1,interface=usb,model=Filter "
-                              "Wheel,deviceType=filterWheel,id=0xFFFF,firmwareRev=0xFFEE</d>");
+                               "4020ML,interfaceStatus=NA</d><d>address=1,interface=usb,model=Filter "
+                               "Wheel,deviceType=filterWheel,id=0xFFFF,firmwareRev=0xFFEE</d>");
             addr = GetUsbAddress(msg);
         }
         else
@@ -924,13 +950,39 @@ bool ApogeeCCD::Connect()
             try
             {
                 msg  = lookUsb.Find();
-                addr = GetUsbAddress(msg);
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
-                LOGF_ERROR("Error getting USB address: %s", err.what());
+                LOGF_ERROR("Error finding USB device: %s", err.what());
                 return false;
             }
+        }
+
+        while ((pos = msg.find(delimiter)) != std::string::npos)
+        {
+            token    = msg.substr(0, pos);
+            LOGF_DEBUG("Checking device: %s", token.c_str());
+
+            if (cameraFound == false)
+            {
+                cameraFound = IsDeviceCamera(token);
+                if (cameraFound)
+                    cameraInfo = token;
+            }
+
+            if (findCFW && cfwFound == false)
+            {
+                cfwFound = IsDeviceFilterWheel(token);
+                if (cfwFound)
+                    cfwInfo = token;
+            }
+
+            // Exit if camera and optionally cfw are found
+            // if no cfw is required, then just camera suffice
+            if (cameraFound && (findCFW == false || (findCFW && cfwFound)))
+                break;
+
+            msg.erase(0, pos + delimiter.length());
         }
     }
     // Ethernet
@@ -956,9 +1008,10 @@ bool ApogeeCCD::Connect()
             try
             {
                 msg = look4cam.Find(subnet);
-                LOGF_DEBUG("Network search result: %s", msg.c_str());
+                // This can cause a crash
+                //LOGF_DEBUG("Network search result: %s", msg.c_str());
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 LOGF_ERROR("Error getting network address: %s", err.what());
                 return false;
@@ -972,79 +1025,114 @@ bool ApogeeCCD::Connect()
             rc = sscanf(NetworkInfoT[NETWORK_ADDRESS].text, "%[^:]:%d", ip, &port);
 
         // If we have IP:Port, then let's skip all entries that does not have our desired IP address.
-        if (rc == 2)
+        // If we have IP:Port, then let's skip all entries that does not have our desired IP address.
+        addr = NetworkInfoT[NETWORK_ADDRESS].text;
+        while ((pos = msg.find(delimiter)) != std::string::npos)
         {
-            addr                  = NetworkInfoT[NETWORK_ADDRESS].text;
-            std::string delimiter = "</d>";
+            token    = msg.substr(0, pos);
 
-            size_t pos = 0;
-            std::string token, token_ip;
-            while ((pos = msg.find(delimiter)) != std::string::npos)
+            if (cameraFound == false && IsDeviceCamera(token))
             {
-                token    = msg.substr(0, pos);
-                token_ip = GetIPAddress(token);
-                LOGF_DEBUG("Checking %s (%s) for IP %s", token.c_str(), token_ip.c_str(), ip);
-                if (token_ip == ip)
+                if (rc == 2)
                 {
-                    msg = token;
-                    LOGF_DEBUG("IP matched (%s).", msg.c_str());
-                    break;
+                    addr = GetEthernetAddress(token);
+                    IUSaveText(&NetworkInfoT[NETWORK_ADDRESS], addr.c_str());
+                    LOGF_INFO("Detected camera at %s", addr.c_str());
+                    IDSetText(&NetworkInfoTP, nullptr);
+                    cameraFound = true;
+                    cameraInfo = token;
                 }
-                msg.erase(0, pos + delimiter.length());
+                else
+                {
+                    token_ip = GetIPAddress(token);
+                    addr = GetEthernetAddress(token);
+                    LOGF_DEBUG("Checking %s (%s) for IP %s", token.c_str(), token_ip.c_str(), ip);
+                    if (token_ip == ip)
+                    {
+                        LOGF_DEBUG("IP matched (%s).", msg.c_str());
+                        cameraFound = true;
+                        cameraInfo = token;
+                    }
+                }
             }
-        }
-        else
-        {
-            addr = GetEthernetAddress(msg);
-            IUSaveText(&NetworkInfoT[NETWORK_ADDRESS], addr.c_str());
-            LOGF_INFO("Detected camera at %s", addr.c_str());
-            IDSetText(&NetworkInfoTP, nullptr);
+            else if (findCFW && cfwFound == false && IsDeviceFilterWheel(token))
+            {
+                if (rc == 2)
+                {
+                    addr = GetEthernetAddress(token);
+                    LOGF_INFO("Detected filter wheel at %s", addr.c_str());
+                    cfwFound = true;
+                    cfwInfo = token;
+                }
+                else
+                {
+                    token_ip = GetIPAddress(token);
+                    addr = GetEthernetAddress(token);
+                    LOGF_DEBUG("Checking %s (%s) for IP %s", token.c_str(), token_ip.c_str(), ip);
+                    if (token_ip == ip)
+                    {
+                        LOGF_DEBUG("IP matched (%s).", msg.c_str());
+                        cfwFound = true;
+                        cfwInfo = token;
+                    }
+                }
+            }
+
+            // Exit if camera and optionally cfw are found
+            // if no cfw is required, then just camera suffice
+            if (cameraFound && (findCFW == false || (findCFW && cfwFound)))
+                break;
+
+            msg.erase(0, pos + delimiter.length());
         }
     }
 
-    if (msg.compare("<d></d>") == 0)
+    if (cameraFound == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR,
-              "Unable to find Apogee CCDs or Filter Wheels attached. Please check connection and power and try again.");
+        LOG_ERROR("Unable to find Apogee camera attached. Please check connection and power and try again.");
         return false;
     }
 
-    uint16_t id       = GetID(msg);
-    uint16_t frmwrRev = GetFrmwrRev(msg);
+    uint16_t id       = GetID(cameraInfo);
+    uint16_t frmwrRev = GetFrmwrRev(cameraInfo);
 
     char firmwareStr[16];
     snprintf(firmwareStr, 16, "0x%X", frmwrRev);
     firmwareRev = std::string(firmwareStr);
-    model       = GetModel(msg);
+
+    model = GetModel(cameraInfo);
+    addr = GetUsbAddress(cameraInfo);
+
+    LOGF_INFO("Model: %s ID: %d Address: %s Firmware: %s",
+              GetItemFromFindStr(cameraInfo, "model=").c_str(), id, addr.c_str(), firmwareRev.c_str());
 
     switch (model)
     {
         case CamModel::ALTAU:
         case CamModel::ALTAE:
-            ApgCam = new Alta();
+            ApgCam.reset(new Alta());
             break;
 
         case CamModel::ASPEN:
-            ApgCam = new Aspen();
+            ApgCam.reset(new Aspen());
             break;
 
         case CamModel::ALTAF:
-            ApgCam = new AltaF();
+            ApgCam.reset(new AltaF());
             break;
 
         case CamModel::ASCENT:
-            ApgCam = new Ascent();
+            ApgCam.reset(new Ascent());
             break;
 
         case CamModel::QUAD:
-            ApgCam = new Quad();
+            ApgCam.reset(new Quad());
             break;
 
         default:
             LOGF_ERROR("Model %s is not supported by the INDI Apogee driver.",
-                   GetItemFromFindStr(msg, "model=").c_str());
+                       GetItemFromFindStr(cameraInfo, "model=").c_str());
             return false;
-            break;
     }
 
     try
@@ -1055,7 +1143,7 @@ bool ApogeeCCD::Connect()
             ApgCam->Init();
         }
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("Error opening camera: %s", err.what());
         return false;
@@ -1064,8 +1152,70 @@ bool ApogeeCCD::Connect()
     uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER;
     SetCCDCapability(cap);
 
-    /* Success! */
-    LOG_INFO("CCD is online. Retrieving basic data.");
+    // If we do not need to find CFW, we're done.
+    if (findCFW == false)
+    {
+        LOG_INFO("Camera is online. Retrieving basic data.");
+        return true;
+    }
+
+    LOG_INFO("Camera is online.");
+
+    if (cfwFound == false)
+    {
+        LOG_ERROR("Unable to find Apogee Filter Wheels attached. Please check connection and power and try again.");
+        return false;
+    }
+
+    ApgCFW.reset(new ApogeeFilterWheel());
+    addr = GetUsbAddress(cfwInfo);
+
+    try
+    {
+        if (isSimulation() == false)
+        {
+            ApogeeFilterWheel::Type type = static_cast<ApogeeFilterWheel::Type>(IUFindOnSwitchIndex(&FilterTypeSP));
+            LOGF_DEBUG("Opening connection to CFW type: %d @ address: %s", type, addr.c_str());
+            ApgCFW->Init(type, addr);
+        }
+    }
+    catch (std::runtime_error &err)
+    {
+        LOGF_ERROR("Error opening CFW: %s", err.what());
+        return false;
+    }
+
+    if (isSimulation())
+        FilterSlotN[0].max = 5;
+    else
+    {
+        try
+        {
+            FilterSlotN[0].max = ApgCFW->GetMaxPositions();
+        }
+        catch(std::runtime_error &err)
+        {
+            LOGF_ERROR("Failed to retrieve maximum filter position: %s", err.what());
+            ApgCFW->Close();
+            return false;
+        }
+    }
+
+    if (isSimulation())
+    {
+        IUSaveText(&FilterInfoT[INFO_NAME], "Simulated Filter");
+        IUSaveText(&FilterInfoT[INFO_FIRMWARE], "123456");
+    }
+    else
+    {
+        IUSaveText(&FilterInfoT[INFO_NAME], ApgCFW->GetName().c_str());
+        IUSaveText(&FilterInfoT[INFO_FIRMWARE], ApgCFW->GetUsbFirmwareRev().c_str());
+    }
+
+    FilterInfoTP.s = IPS_OK;
+
+    LOG_INFO("CFW is online.");
+
     return true;
 }
 
@@ -1074,15 +1224,19 @@ bool ApogeeCCD::Disconnect()
     try
     {
         if (isSimulation() == false)
+        {
             ApgCam->CloseConnection();
+            if (cfwFound)
+                ApgCFW->Close();
+        }
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
-        LOGF_ERROR("Error: CloseConnection failed. %s.", err.what());
+        LOGF_ERROR("Error: Close camera failed. %s.", err.what());
         return false;
     }
 
-    LOG_INFO("CCD is offline.");
+    LOG_INFO("Camera is offline.");
     return true;
 }
 
@@ -1103,7 +1257,7 @@ void ApogeeCCD::activateCooler(bool enable)
             coolerSet = true;
         }
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         CoolerSP.s   = IPS_ALERT;
         CoolerS[0].s = ISS_OFF;
@@ -1129,7 +1283,7 @@ void ApogeeCCD::TimerHit()
     double coolerPower;
 
     if (isConnected() == false)
-        return; //  No need to reset timer if we are not connected anymore
+        return;
 
     if (InExposure)
     {
@@ -1174,7 +1328,7 @@ void ApogeeCCD::TimerHit()
                 else
                     ccdTemp = ApgCam->GetTempCcd();
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 TemperatureNP.s = IPS_IDLE;
                 LOGF_ERROR("GetTempCcd failed. %s.", err.what());
@@ -1198,7 +1352,7 @@ void ApogeeCCD::TimerHit()
                 else
                     ccdTemp = ApgCam->GetTempCcd();
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 TemperatureNP.s = IPS_ALERT;
                 LOGF_ERROR("GetTempCcd failed. %s.", err.what());
@@ -1229,7 +1383,7 @@ void ApogeeCCD::TimerHit()
                 else
                     coolerPower = ApgCam->GetCoolerDrive();
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 CoolerNP.s = IPS_IDLE;
                 LOGF_ERROR("GetCoolerDrive failed. %s.", err.what());
@@ -1257,7 +1411,7 @@ void ApogeeCCD::TimerHit()
                 else
                     coolerPower = ApgCam->GetCoolerDrive();
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 CoolerNP.s = IPS_ALERT;
                 LOGF_ERROR("GetCoolerDrive failed. %s.", err.what());
@@ -1280,6 +1434,25 @@ void ApogeeCCD::TimerHit()
             break;
     }
 
+    if (FilterSlotNP.s == IPS_BUSY)
+    {
+        try
+        {
+            ApogeeFilterWheel::Status status = ApgCFW->GetStatus();
+            if (status == ApogeeFilterWheel::READY)
+            {
+                CurrentFilter = TargetFilter;
+                SelectFilterDone(CurrentFilter);
+            }
+        }
+        catch (std::runtime_error &err)
+        {
+            LOGF_ERROR("Failed to get CFW status: %s", err.what());
+            FilterSlotNP.s = IPS_ALERT;
+            IDSetNumber(&FilterSlotNP, nullptr);
+        }
+    }
+
     SetTimer(POLLMS);
     return;
 }
@@ -1296,5 +1469,245 @@ bool ApogeeCCD::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &PortTypeSP);
     IUSaveConfigText(fp, &NetworkInfoTP);
 
+    if (cfwFound)
+    {
+        INDI::FilterInterface::saveConfigItems(fp);
+        IUSaveConfigSwitch(fp, &FilterTypeSP);
+    }
+
+
     return true;
 }
+
+int ApogeeCCD::QueryFilter()
+{
+    try
+    {
+        CurrentFilter = ApgCFW->GetPosition();
+    }
+    catch (std::runtime_error &err)
+    {
+        LOGF_ERROR("Failed to query filter: %s", err.what());
+        FilterSlotNP.s = IPS_ALERT;
+        IDSetNumber(&FilterSlotNP, nullptr);
+        return -1;
+    }
+
+    return CurrentFilter;
+}
+
+bool ApogeeCCD::SelectFilter(int position)
+{
+    try
+    {
+        ApgCFW->SetPosition(position);
+    }
+    catch (std::runtime_error &err)
+    {
+        LOGF_ERROR("Failed to set filter: %s", err.what());
+        FilterSlotNP.s = IPS_ALERT;
+        IDSetNumber(&FilterSlotNP, nullptr);
+        return false;
+    }
+
+    TargetFilter = position;
+    return true;
+}
+
+////////////////////////////
+// Is CFW
+bool ApogeeCCD::IsDeviceFilterWheel(const std::string &msg)
+{
+    std::string str = GetItemFromFindStr(msg, "deviceType=");
+
+    return (0 == str.compare("filterWheel") ? true : false);
+}
+
+#if 0
+bool ApogeeCCD::connectCFW()
+{
+    std::string msg;
+    std::string addr;
+
+    LOG_INFO("Attempting to find Apogee CFW...");
+
+    // USB
+    if (PortTypeS[PORT_USB].s == ISS_ON)
+    {
+        // Simulation
+        if (isSimulation())
+        {
+            msg  = std::string("<d>address=1,interface=usb,model=Filter "
+                               "Wheel,deviceType=filterWheel,id=0xFFFF,firmwareRev=0xFFEE</d>");
+            addr = GetUsbAddress(msg);
+        }
+        else
+        {
+            ioInterface = std::string("usb");
+            FindDeviceUsb lookUsb;
+            try
+            {
+                msg  = lookUsb.Find();
+            }
+            catch (std::runtime_error &err)
+            {
+                LOGF_ERROR("Error finding USB device: %s", err.what());
+                return false;
+            }
+        }
+
+        std::string delimiter = "</d>";
+        size_t pos = 0;
+        std::string token, token_ip;
+        while ((pos = msg.find(delimiter)) != std::string::npos)
+        {
+            token    = msg.substr(0, pos);
+            LOGF_DEBUG("Checking device: %s", token.c_str());
+
+            cfwFound = IsDeviceFilterWheel(token);
+            if (cfwFound)
+            {
+                msg = token;
+                break;
+            }
+
+            msg.erase(0, pos + delimiter.length());
+        }
+    }
+    // Ethernet
+    else
+    {
+        ioInterface = std::string("ethernet");
+        FindDeviceEthernet look4Filter;
+        char ip[32];
+        int port;
+
+        // Simulation
+        if (isSimulation())
+        {
+            msg  = std::string("<d>address=1,interface=usb,model=Filter "
+                               "Wheel,deviceType=filterWheel,id=0xFFFF,firmwareRev=0xFFEE</d>");
+        }
+        else
+        {
+            try
+            {
+                msg = look4Filter.Find(subnet);
+                // FIXME this can cause a crash
+                //LOGF_DEBUG("Network search result: %s", msg.c_str());
+            }
+            catch (std::runtime_error &err)
+            {
+                LOGF_ERROR("Error getting network address: %s", err.what());
+                return false;
+            }
+        }
+
+        int rc = 0;
+
+        // Check if we have IP:Port format
+        if (NetworkInfoT[NETWORK_ADDRESS].text != nullptr && strlen(NetworkInfoT[NETWORK_ADDRESS].text) > 0)
+            rc = sscanf(NetworkInfoT[NETWORK_ADDRESS].text, "%[^:]:%d", ip, &port);
+
+        // If we have IP:Port, then let's skip all entries that does not have our desired IP address.
+        addr = NetworkInfoT[NETWORK_ADDRESS].text;
+
+        std::string delimiter = "</d>";
+        size_t pos = 0;
+        std::string token, token_ip;
+        while ((pos = msg.find(delimiter)) != std::string::npos)
+        {
+            token    = msg.substr(0, pos);
+
+            if (IsDeviceFilterWheel(token))
+            {
+                if (rc == 2)
+                {
+                    addr = GetEthernetAddress(token);
+                    IUSaveText(&NetworkInfoT[NETWORK_ADDRESS], addr.c_str());
+                    LOGF_INFO("Detected filter at %s", addr.c_str());
+                    IDSetText(&NetworkInfoTP, nullptr);
+                    cfwFound = true;
+                    msg = token;
+                    break;
+                }
+                else
+                {
+                    token_ip = GetIPAddress(token);
+                    LOGF_DEBUG("Checking %s (%s) for IP %s", token.c_str(), token_ip.c_str(), ip);
+                    if (token_ip == ip)
+                    {
+                        msg = token;
+                        LOGF_DEBUG("IP matched (%s).", msg.c_str());
+                        addr = GetEthernetAddress(token);
+                        cfwFound = true;
+                        break;
+                    }
+                }
+            }
+
+            msg.erase(0, pos + delimiter.length());
+        }
+    }
+
+    if (cfwFound == false)
+    {
+        LOG_ERROR("Unable to find Apogee Filter Wheels attached. Please check connection and power and try again.");
+        return false;
+    }
+
+    //    //uint16_t id       = GetID(msg);
+    //    uint16_t frmwrRev = GetFrmwrRev(msg);
+    //    char firmwareStr[16]={0};
+    //    snprintf(firmwareStr, 16, "0x%X", frmwrRev);
+    //    firmwareRev = std::string(firmwareStr);
+    //model = GetModel(msg);
+
+    try
+    {
+        if (isSimulation() == false)
+        {
+            ApogeeFilterWheel::Type type = static_cast<ApogeeFilterWheel::Type>(IUFindOnSwitchIndex(&FilterTypeSP));
+            LOGF_DEBUG("Opening connection to CFW type: %d @ address: %s", type, addr.c_str());
+            ApgCFW->Init(type, addr);
+        }
+    }
+    catch (std::runtime_error &err)
+    {
+        LOGF_ERROR("Error opening CFW: %s", err.what());
+        return false;
+    }
+
+    if (isSimulation())
+        FilterSlotN[0].max = 5;
+    else
+    {
+        try
+        {
+            FilterSlotN[0].max = ApgCFW->GetMaxPositions();
+        }
+        catch(std::runtime_error &err)
+        {
+            LOGF_ERROR("Failed to retrieve maximum filter position: %s", err.what());
+            ApgCFW->Close();
+            return false;
+        }
+    }
+
+    if (isSimulation())
+    {
+        IUSaveText(&FilterInfoT[INFO_NAME], "Simulated Filter");
+        IUSaveText(&FilterInfoT[INFO_FIRMWARE], "123456");
+    }
+    else
+    {
+        IUSaveText(&FilterInfoT[INFO_NAME], ApgCFW->GetName().c_str());
+        IUSaveText(&FilterInfoT[INFO_FIRMWARE], ApgCFW->GetUsbFirmwareRev().c_str());
+    }
+
+    FilterInfoTP.s = IPS_OK;
+
+    LOG_INFO("CFW is online.");
+    return true;
+}
+#endif

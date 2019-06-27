@@ -23,7 +23,7 @@
 #include "indicom.h"
 
 #include <libnova/sidereal_time.h>
-
+#include <libnova/transform.h>
 #include <memory>
 
 #include <cmath>
@@ -77,6 +77,8 @@ void ISSnoopDevice(XMLEle *root)
 /* Constructor */
 IEQPro::IEQPro()
 {
+    setVersion(1, 6);
+
     scopeInfo.gpsStatus    = GPS_OFF;
     scopeInfo.systemStatus = ST_STOPPED;
     scopeInfo.trackRate    = TR_SIDEREAL;
@@ -175,13 +177,13 @@ bool IEQPro::initProperties()
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
-    SetParkDataType(PARK_RA_DEC);
+    SetParkDataType(PARK_AZ_ALT);
 
     addAuxControls();
 
     set_ieqpro_device(getDeviceName());
 
-    double longitude=0, latitude=90;
+    double longitude = 0, latitude = 90;
     // Get value from config file if it exists.
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
     currentRA  = get_local_sidereal_time(longitude);
@@ -243,20 +245,20 @@ void IEQPro::getStartupData()
     }
 
     LOG_DEBUG("Getting guiding rate...");
-    double raGuideRate = 0, deGuideRate= 0;
+    double raGuideRate = 0, deGuideRate = 0;
     if (get_ieqpro_guide_rate(PortFD, &raGuideRate, &deGuideRate))
     {
         GuideRateN[RA_AXIS].value = raGuideRate;
         GuideRateN[DEC_AXIS].value = deGuideRate;
         IDSetNumber(&GuideRateNP, nullptr);
-    }    
+    }
 
     double utc_offset;
     int yy, dd, mm, hh, minute, ss;
     if (get_ieqpro_utc_date_time(PortFD, &utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
     {
-        char isoDateTime[32]={0};
-        char utcOffset[8]={0};
+        char isoDateTime[32] = {0};
+        char utcOffset[8] = {0};
 
         snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", yy, mm, dd, hh, minute, ss);
         snprintf(utcOffset, 8, "%4.2f", utc_offset);
@@ -288,22 +290,29 @@ void IEQPro::getStartupData()
 
         saveConfig(true, "GEOGRAPHIC_COORD");
     }
+    else if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude) == 0 &&
+             IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude) == 0)
+    {
+        LocationN[LOCATION_LATITUDE].value  = latitude;
+        LocationN[LOCATION_LONGITUDE].value = longitude;
+        LocationNP.s                        = IPS_OK;
 
-    double DEC = (latitude > 0) ? 90 : -90;
+        IDSetNumber(&LocationNP, nullptr);
+    }
 
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(currentRA);
-        SetAxis2ParkDefault(DEC);
+        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(currentRA);
-        SetAxis2Park(DEC);
-        SetAxis1ParkDefault(currentRA);
-        SetAxis2ParkDefault(DEC);
+        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
     }
 
     if (isSimulation())
@@ -358,52 +367,52 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             switch (operation)
             {
-            case IEQ_FIND_HOME:
-                if (firmwareInfo.Model.find("CEM") == std::string::npos)
-                {
-                    HomeSP.s = IPS_IDLE;
+                case IEQ_FIND_HOME:
+                    if (firmwareInfo.Model.find("CEM") == std::string::npos)
+                    {
+                        HomeSP.s = IPS_IDLE;
+                        IDSetSwitch(&HomeSP, nullptr);
+                        LOG_WARN("Home search is not supported in this model.");
+                        return true;
+                    }
+
+                    if (find_ieqpro_home(PortFD) == false)
+                    {
+                        HomeSP.s = IPS_ALERT;
+                        IDSetSwitch(&HomeSP, nullptr);
+                        return false;
+                    }
+
+                    HomeSP.s = IPS_OK;
                     IDSetSwitch(&HomeSP, nullptr);
-                    LOG_WARN("Home search is not supported in this model.");
+                    LOG_INFO("Searching for home position...");
                     return true;
-                }
 
-                if (find_ieqpro_home(PortFD) == false)
-                {
-                    HomeSP.s = IPS_ALERT;
+                case IEQ_SET_HOME:
+                    if (set_ieqpro_current_home(PortFD) == false)
+                    {
+                        HomeSP.s = IPS_ALERT;
+                        IDSetSwitch(&HomeSP, nullptr);
+                        return false;
+                    }
+
+                    HomeSP.s = IPS_OK;
                     IDSetSwitch(&HomeSP, nullptr);
-                    return false;
-                }
+                    LOG_INFO("Home position set to current coordinates.");
+                    return true;
 
-                HomeSP.s = IPS_OK;
-                IDSetSwitch(&HomeSP, nullptr);
-                LOG_INFO("Searching for home position...");
-                return true;
+                case IEQ_GOTO_HOME:
+                    if (goto_ieqpro_home(PortFD) == false)
+                    {
+                        HomeSP.s = IPS_ALERT;
+                        IDSetSwitch(&HomeSP, nullptr);
+                        return false;
+                    }
 
-            case IEQ_SET_HOME:
-                if (set_ieqpro_current_home(PortFD) == false)
-                {
-                    HomeSP.s = IPS_ALERT;
+                    HomeSP.s = IPS_OK;
                     IDSetSwitch(&HomeSP, nullptr);
-                    return false;
-                }
-
-                HomeSP.s = IPS_OK;
-                IDSetSwitch(&HomeSP, nullptr);
-                LOG_INFO("Home position set to current coordinates.");
-                return true;
-
-            case IEQ_GOTO_HOME:
-                if (goto_ieqpro_home(PortFD) == false)
-                {
-                    HomeSP.s = IPS_ALERT;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    return false;
-                }
-
-                HomeSP.s = IPS_OK;
-                IDSetSwitch(&HomeSP, nullptr);
-                LOG_INFO("Slewing to home position...");
-                return true;
+                    LOG_INFO("Slewing to home position...");
+                    return true;
             }
 
             return true;
@@ -462,41 +471,41 @@ bool IEQPro::ReadScopeStatus()
 
         switch (newInfo.systemStatus)
         {
-        case ST_STOPPED:
-            TrackModeSP.s = IPS_IDLE;
-            TrackState    = SCOPE_IDLE;
-            break;
-        case ST_PARKED:
-            TrackModeSP.s = IPS_IDLE;
-            TrackState    = SCOPE_PARKED;
-            if (!isParked())
-                SetParked(true);
-            break;
-        case ST_HOME:
-            TrackModeSP.s = IPS_IDLE;
-            TrackState    = SCOPE_IDLE;
-            break;
-        case ST_SLEWING:
-        case ST_MERIDIAN_FLIPPING:
-            if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
-                TrackState = SCOPE_SLEWING;
-            break;
-        case ST_TRACKING_PEC_OFF:
-        case ST_TRACKING_PEC_ON:
-        case ST_GUIDING:
-            // If slew to parking position is complete, issue park command now.
-            if (TrackState == SCOPE_PARKING)
-                park_ieqpro(PortFD);
-            else
-            {
-                TrackModeSP.s = IPS_BUSY;
-                TrackState    = SCOPE_TRACKING;
-                if (scopeInfo.systemStatus == ST_SLEWING)
-                    LOG_INFO("Slew complete, tracking...");
-                else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
-                    LOG_INFO("Meridian flip complete, tracking...");
-            }
-            break;
+            case ST_STOPPED:
+                TrackModeSP.s = IPS_IDLE;
+                TrackState    = SCOPE_IDLE;
+                break;
+            case ST_PARKED:
+                TrackModeSP.s = IPS_IDLE;
+                TrackState    = SCOPE_PARKED;
+                if (!isParked())
+                    SetParked(true);
+                break;
+            case ST_HOME:
+                TrackModeSP.s = IPS_IDLE;
+                TrackState    = SCOPE_IDLE;
+                break;
+            case ST_SLEWING:
+            case ST_MERIDIAN_FLIPPING:
+                if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
+                    TrackState = SCOPE_SLEWING;
+                break;
+            case ST_TRACKING_PEC_OFF:
+            case ST_TRACKING_PEC_ON:
+            case ST_GUIDING:
+                // If slew to parking position is complete, issue park command now.
+                if (TrackState == SCOPE_PARKING)
+                    park_ieqpro(PortFD);
+                else
+                {
+                    TrackModeSP.s = IPS_BUSY;
+                    TrackState    = SCOPE_TRACKING;
+                    if (scopeInfo.systemStatus == ST_SLEWING)
+                        LOG_INFO("Slew complete, tracking...");
+                    else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
+                        LOG_INFO("Meridian flip complete, tracking...");
+                }
+                break;
         }
 
         IUResetSwitch(&TrackModeSP);
@@ -518,7 +527,7 @@ bool IEQPro::Goto(double r, double d)
 {
     targetRA  = r;
     targetDEC = d;
-    char RAStr[64]={0}, DecStr[64]={0};
+    char RAStr[64] = {0}, DecStr[64] = {0};
 
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
@@ -571,6 +580,7 @@ bool IEQPro::Abort()
 
 bool IEQPro::Park()
 {
+#if 0
     targetRA  = GetAxis1Park();
     targetDEC = GetAxis2Park();
 
@@ -586,7 +596,7 @@ bool IEQPro::Park()
         return false;
     }
 
-    char RAStr[64]={0}, DecStr[64]={0};
+    char RAStr[64] = {0}, DecStr[64] = {0};
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
@@ -594,6 +604,43 @@ bool IEQPro::Park()
     LOGF_INFO("Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
 
     return true;
+#endif
+
+    double parkAz  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAz, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+
+    horizontalPos.az = parkAz + 180;
+    if (horizontalPos.az > 360)
+        horizontalPos.az -= 360;
+    horizontalPos.alt = parkAlt;
+
+    ln_equ_posn equatorialPos;
+
+    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+    if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
+    {
+        TrackState = SCOPE_PARKING;
+        LOG_INFO("Parking is in progress...");
+
+        return true;
+    }
+    else
+        return false;
 }
 
 bool IEQPro::UnPark()
@@ -680,7 +727,7 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
         return false;
     }
 
-    char l[32]={0}, L[32]={0};
+    char l[32] = {0}, L[32] = {0};
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
@@ -709,25 +756,25 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
     switch (command)
     {
-    case MOTION_START:
-        if (start_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
-        {
-            LOG_ERROR("Error setting N/S motion direction.");
-            return false;
-        }
-        else
-            LOGF_INFO("Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
-        break;
+        case MOTION_START:
+            if (start_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
+            {
+                LOG_ERROR("Error setting N/S motion direction.");
+                return false;
+            }
+            else
+                LOGF_INFO("Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
+            break;
 
-    case MOTION_STOP:
-        if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
-        {
-            LOG_ERROR("Error stopping N/S motion.");
-            return false;
-        }
-        else
-            LOGF_INFO("%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
-        break;
+        case MOTION_STOP:
+            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
+            {
+                LOG_ERROR("Error stopping N/S motion.");
+                return false;
+            }
+            else
+                LOGF_INFO("%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
+            break;
     }
 
     return true;
@@ -743,25 +790,25 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
     switch (command)
     {
-    case MOTION_START:
-        if (start_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
-        {
-            LOG_ERROR("Error setting N/S motion direction.");
-            return false;
-        }
-        else
-            LOGF_INFO("Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
-        break;
+        case MOTION_START:
+            if (start_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
+            {
+                LOG_ERROR("Error setting N/S motion direction.");
+                return false;
+            }
+            else
+                LOGF_INFO("Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
+            break;
 
-    case MOTION_STOP:
-        if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
-        {
-            LOG_ERROR("Error stopping W/E motion.");
-            return false;
-        }
-        else
-            LOGF_INFO("%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
-        break;
+        case MOTION_STOP:
+            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
+            {
+                LOG_ERROR("Error stopping W/E motion.");
+                return false;
+            }
+            else
+                LOGF_INFO("%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
+            break;
     }
 
     return true;
@@ -824,68 +871,68 @@ void IEQPro::mountSim()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-    case SCOPE_IDLE:
-        currentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
-        currentRA = range24(currentRA);
-        break;
+        case SCOPE_IDLE:
+            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+            currentRA = range24(currentRA);
+            break;
 
-    case SCOPE_TRACKING:
-        if (TrackModeS[1].s == ISS_ON)
-        {
-            currentRA  += ( ((TRACKRATE_SIDEREAL/3600.0) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
-            currentDEC += ( (TrackRateN[AXIS_DE].value/3600.0) * dt);
-        }
-        break;
+        case SCOPE_TRACKING:
+            if (TrackModeS[1].s == ISS_ON)
+            {
+                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * dt) / 15.0;
+                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * dt);
+            }
+            break;
 
-    case SCOPE_SLEWING:
-    case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ SLEWRATE */
-        nlocked = 0;
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
+            /* slewing - nail it when both within one pulse @ SLEWRATE */
+            nlocked = 0;
 
-        dx = targetRA - currentRA;
+            dx = targetRA - currentRA;
 
-        // Take shortest path
-        if (fabs(dx) > 12)
-            dx *= -1;
+            // Take shortest path
+            if (fabs(dx) > 12)
+                dx *= -1;
 
-        if (fabs(dx) <= da)
-        {
-            currentRA = targetRA;
-            nlocked++;
-        }
-        else if (dx > 0)
-            currentRA += da / 15.;
-        else
-            currentRA -= da / 15.;
-
-        if (currentRA < 0)
-            currentRA += 24;
-        else if (currentRA > 24)
-            currentRA -= 24;
-
-        dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da)
-        {
-            currentDEC = targetDEC;
-            nlocked++;
-        }
-        else if (dx > 0)
-            currentDEC += da;
-        else
-            currentDEC -= da;
-
-        if (nlocked == 2)
-        {
-            if (TrackState == SCOPE_SLEWING)
-                set_sim_system_status(ST_TRACKING_PEC_OFF);
+            if (fabs(dx) <= da)
+            {
+                currentRA = targetRA;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentRA += da / 15.;
             else
-                set_sim_system_status(ST_PARKED);
-        }
+                currentRA -= da / 15.;
 
-        break;
+            if (currentRA < 0)
+                currentRA += 24;
+            else if (currentRA > 24)
+                currentRA -= 24;
 
-    default:
-        break;
+            dx = targetDEC - currentDEC;
+            if (fabs(dx) <= da)
+            {
+                currentDEC = targetDEC;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentDEC += da;
+            else
+                currentDEC -= da;
+
+            if (nlocked == 2)
+            {
+                if (TrackState == SCOPE_SLEWING)
+                    set_sim_system_status(ST_TRACKING_PEC_OFF);
+                else
+                    set_sim_system_status(ST_PARKED);
+            }
+
+            break;
+
+        default:
+            break;
     }
 
     set_sim_ra(currentRA);
@@ -894,19 +941,45 @@ void IEQPro::mountSim()
 
 bool IEQPro::SetCurrentPark()
 {
-    SetAxis1Park(currentRA);
-    SetAxis2Park(currentDEC);
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_equ_posn equatorialPos;
+    equatorialPos.ra  = currentRA * 15;
+    equatorialPos.dec = currentDEC;
+    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+
+    double parkAZ = horizontalPos.az - 180;
+    if (parkAZ < 0)
+        parkAZ += 360;
+    double parkAlt = horizontalPos.alt;
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+
+    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
+               AltStr);
+
+    SetAxis1Park(parkAZ);
+    SetAxis2Park(parkAlt);
 
     return true;
 }
 
 bool IEQPro::SetDefaultPark()
 {
-    // By default set RA to LST
-    SetAxis1Park(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value));
+    // By defualt azimuth 0
+    SetAxis1Park(0);
 
-    // Set DEC to 90 or -90 depending on the hemisphere
-    SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
+    // Altitude = latitude of observer
+    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
 
     return true;
 }
@@ -946,9 +1019,9 @@ bool IEQPro::SetTrackEnabled(bool enabled)
     {
         // If we are engaging tracking, let us first set tracking mode, and if we have custom mode, then tracking rate.
         // NOTE: Is this the correct order? or should tracking be switched on first before making these changes? Need to test.
-       SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
-       if (TrackModeS[TR_CUSTOM].s == ISS_ON)
-           SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+        SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+        if (TrackModeS[TR_CUSTOM].s == ISS_ON)
+            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
     }
 
     return set_ieqpro_track_enabled(PortFD, enabled);

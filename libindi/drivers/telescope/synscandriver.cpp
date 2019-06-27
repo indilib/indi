@@ -212,7 +212,7 @@ bool SynscanDriver::Handshake()
 
     if (m_isAltAz)
     {
-        SetTelescopeCapability(GetTelescopeCapability() & ~TELESCOPE_HAS_PIER_SIDE);
+        SetTelescopeCapability(GetTelescopeCapability() & ~TELESCOPE_HAS_PIER_SIDE, 10);
     }
 
     return true;
@@ -1331,7 +1331,10 @@ bool SynscanDriver::slewFixedRate(SynscanDirection direction, uint8_t rate)
     // Axis 17 for DE/AL, 16 for RA/AZ
     cmd[2] = (direction == SYN_N || direction == SYN_S) ? 17 : 16;
     // Command 36 positive direction, 37 negative direction
-    cmd[3] = (direction == SYN_N || direction == SYN_W) ? 36 : 37;
+    if (!m_isAltAz)
+        cmd[3] = (direction == SYN_N || direction == SYN_W) ? 36 : 37;
+    else
+        cmd[3] = (direction == SYN_N || direction == SYN_W) ? 37 : 36;
     // Fixed rate (0 to 9) where 0 is stop
     cmd[4] = rate;
 

@@ -105,6 +105,7 @@ bool SQM::initProperties()
     {
         serialConnection = new Connection::Serial(this);
         serialConnection->registerHandshake([&]() { return getDeviceInfo(); });
+        serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
         registerConnection(serialConnection);
     }
 

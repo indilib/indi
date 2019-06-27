@@ -25,33 +25,54 @@
 #include "starbook_types.h"
 #include "connectioncurl.h"
 
-namespace starbook {
+namespace starbook
+{
 
-    typedef struct {
-        ln_equ_posn equ;
-        StarbookState state;
-        bool executing_goto;
-    } StatusResponse;
+typedef struct
+{
+    ln_equ_posn equ;
+    StarbookState state;
+    bool executing_goto;
+} StatusResponse;
 
-    typedef struct {
-        std::string full_str;
-        float major_minor;
-    } VersionResponse;
+typedef struct
+{
+    std::string full_str;
+    float major_minor;
+} VersionResponse;
 
-    class CommandInterface {
+typedef struct
+{
+    LnLat posn;
+    int tz;
+} PlaceResponse;
+
+typedef struct
+{
+    double x;
+    double y;
+} XYResponse;
+
+constexpr int MIN_SPEED = 0;
+constexpr int MAX_SPEED = 7;
+
+class CommandInterface
+{
     public:
 
         explicit CommandInterface(Connection::Curl *connection);
 
-        std::string last_cmd_url;
+        const std::string &getLastCmdUrl() const;
 
-        std::string last_response;
+        const std::string &getLastResponse() const;
 
-        ResponseCode Start() {
+        ResponseCode Start()
+        {
             return SendOkCommand("START");
         }
 
-        ResponseCode Reset() {
+        ResponseCode Reset()
+        {
             return SendOkCommand("RESET");
         }
 
@@ -63,48 +84,72 @@ namespace starbook {
 
         ResponseCode Move(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command);
 
-        ResponseCode Home() {
-            return SendOkCommand("HOME");
+        ResponseCode Home()
+        {
+            return SendOkCommand("GOHOME?HOME=0"); // as seen in https://github.com/farhi/matlab-starbook
         }
 
-        ResponseCode Stop() {
+        ResponseCode Stop()
+        {
             return SendOkCommand("STOP");
         }
 
         ResponseCode GetStatus(StatusResponse &res);
 
-        ResponseCode GetPlace();
+        ResponseCode GetPlace(PlaceResponse &res);
 
-        ResponseCode GetTime();
+        ResponseCode GetTime(ln_date &res);
 
-        ResponseCode GetRound();
+        ResponseCode GetRound(long int &res);
 
-        ResponseCode GetXY();
+        ResponseCode GetXY(XYResponse &res);
 
         ResponseCode Version(VersionResponse &res);
 
         ResponseCode SetSpeed(int speed);
 
-        ResponseCode SetPlace();
+        ResponseCode SetPlace(LnLat posn, short tz);
 
-        ResponseCode SetTime(ln_date &utc);
+        ResponseCode SetTime(ln_date &local_time);
 
-        ResponseCode SaveSetting() {
+        void setDevice(std::string deviceName)
+        {
+            m_Device = deviceName;
+        }
+
+        ResponseCode SaveSetting()
+        {
             return SendOkCommand("SAVESETTING");
         }
 
     private:
 
-        std::string SendCommand(std::string command);
+        Connection::Curl *connection = nullptr;
+
+        std::string last_cmd_url;
+
+        std::string last_response;
+
+        std::string m_Device {"Starbook"};
+
+        CommandResponse SendCommand(std::string command);
 
         ResponseCode SendOkCommand(const std::string &cmd);
 
-        ResponseCode ParseCommandResponse(const std::string &response);
-
         StarbookState ParseState(const std::string &value);
 
-        Connection::Curl *connection = nullptr;
+        VersionResponse ParseVersionResponse(const CommandResponse &response);
 
-    };
+        StatusResponse ParseStatusResponse(const CommandResponse &response);
+
+        PlaceResponse ParsePlaceResponse(const CommandResponse &response);
+
+        ln_date ParseTimeResponse(const CommandResponse &response);
+
+        XYResponse ParseXYResponse(const CommandResponse &response);
+
+        long int ParseRoundResponse(const CommandResponse &response);
+
+};
 
 }

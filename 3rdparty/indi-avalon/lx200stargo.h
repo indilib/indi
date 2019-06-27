@@ -112,6 +112,10 @@ protected:
     ITextVectorProperty MountFirmwareInfoTP;
     IText MountFirmwareInfoT[1] = {};
 
+    // AUX focusers control
+    ISwitchVectorProperty Aux1FocuserSP;
+    ISwitch Aux1FocuserS[2];
+
     // goto home
     ISwitchVectorProperty MountGotoHomeSP;
     ISwitch MountGotoHomeS[1];
@@ -119,8 +123,6 @@ protected:
     // parking position
     ISwitchVectorProperty MountSetParkSP;
     ISwitch MountSetParkS[1];
-    ILightVectorProperty MountParkingStatusLP;
-    ILight MountParkingStatusL[2];
 
     // guiding
     INumberVectorProperty GuidingSpeedNP;
@@ -128,6 +130,15 @@ protected:
 
     ISwitchVectorProperty ST4StatusSP;
     ISwitch ST4StatusS[2];
+
+    // Keypad
+    ISwitchVectorProperty KeypadStatusSP;
+    ISwitch KeypadStatusS[2];
+
+    // Speed definitions
+    ISwitch SystemSpeedSlewS[4];
+    ISwitchVectorProperty SystemSpeedSlewSP;
+
 
     // meridian flip
     ISwitchVectorProperty MeridianFlipModeSP;
@@ -148,11 +159,17 @@ protected:
     virtual bool UnPark() override;
     virtual bool saveConfigItems(FILE *fp) override;
     virtual bool Goto(double ra, double dec) override;
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
 
     // StarGo stuff
     virtual bool syncHomePosition();
     bool slewToHome(ISState *states, char *names[], int n);
     bool setParkPosition(ISState *states, char *names[], int n);
+    bool getKeypadStatus (bool *isEnabled);
+    bool setKeyPadEnabled(bool enabled);
+    bool getSystemSlewSpeedMode (int *index);
+    bool setSystemSlewSpeedMode(int index);
 
     // autoguiding
     virtual bool setGuidingSpeeds(int raSpeed, int decSpeed);

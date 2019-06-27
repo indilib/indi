@@ -38,7 +38,7 @@ extern "C" {
 /* insure RO properties are never modified. RO Sanity Check */
 typedef struct
 {
-    char propName[MAXINDINAME];
+char propName[MAXINDINAME];
     char devName[MAXINDIDEVICE];
     IPerm perm;
     const void *ptr;
@@ -91,6 +91,15 @@ be used as the configuration filename</li>
     \return pointer to FILE if configuration file is opened successful, otherwise NULL and errmsg is set.
 */
 extern FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, char errmsg[]);
+
+/**
+    \param filename full path of the configuration file. If set, it will be deleted from disk.
+           If set to NULL, it will attempt to generate the filename as described in the <b>Detailed Description</b> introduction and then delete it.
+    \param dev device name. This is used if the filename parameter is NULL, and INDICONFIG environment variable is not set as described in the <b>Detailed Description</b> introduction.
+    \param errmsg In case of errors, store the error message in this buffer. The size of the buffer must be at least MAXRBUF.
+    \return 0 on success, -1 on failure.
+*/
+extern int IUPurgeConfig(const char *filename, const char *dev, char errmsg[]);
 
 /** \brief Loads and processes a configuration file.
 

@@ -46,6 +46,10 @@ public:
 
     bool isConnected();
 
+    bool activate(bool enabled);
+
+    bool saveConfigItems(FILE *fp);
+
 protected:
 
     // Avalon specifics
@@ -56,6 +60,7 @@ protected:
     bool changeFocusRelPos(double values[], char* names[], int n);
     bool changeFocusAbort(ISState* states, char* names[], int n);
     bool changeFocusSyncPos(double values[], char* names[], int n);
+    bool setFocuserDirection(ISState *states, char *names[], int n);
 
     bool SetFocuserSpeed(int speed) override;
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
@@ -74,6 +79,8 @@ protected:
     bool startMovingFocuserInward;
     bool startMovingFocuserOutward;
     uint32_t moveFocuserDurationRemaining;
+    bool focuserActivated;
+    int focuserReversed = REVERSED_DISABLED;
 
 
     // LX200 commands

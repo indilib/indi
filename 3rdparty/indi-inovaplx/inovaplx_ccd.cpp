@@ -44,7 +44,7 @@ static void timerNorthSouth(void * arg)
 }
 
 void ISGetProperties(const char *dev)
-{    
+{
     inova->ISGetProperties(dev);
 }
 
@@ -110,7 +110,8 @@ bool INovaCCD::Connect()
             // Set camera capabilities
             uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | (iNovaSDK_HasST4() ? CCD_HAS_ST4_PORT : 0);
             SetCCDCapability(cap);
-            if(iNovaSDK_HasColorSensor()) {
+            if(iNovaSDK_HasColorSensor())
+            {
                 IUSaveText(&BayerT[2], "RGGB");
                 IDSetText(&BayerTP, nullptr);
                 SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
@@ -232,8 +233,8 @@ void INovaCCD::setupParams()
 
     // Let's calculate how much memory we need for the primary CCD buffer
     int nbuf;
-    nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;
-    nbuf+=512;    //  leave a little extra at the end
+    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
+    nbuf += 512;  //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 }
 
@@ -247,9 +248,9 @@ bool INovaCCD::StartExposure(float duration)
 
     ExposureRequest = duration;
     PrimaryCCD.setExposureDuration(ExposureRequest);
-    gettimeofday(&ExpStart,nullptr);
+    gettimeofday(&ExpStart, nullptr);
 
-    InExposure=true;
+    InExposure = true;
 
     // We're done
     return true;
@@ -273,12 +274,12 @@ float INovaCCD::CalcTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now,nullptr);
+    gettimeofday(&now, nullptr);
 
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec/1000);
-    timesince=timesince/1000;
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
+    timesince = timesince / 1000;
 
-    timeleft=ExposureRequest-timesince;
+    timeleft = ExposureRequest - timesince;
     return timeleft;
 }
 
@@ -302,7 +303,7 @@ bool INovaCCD::ISNewNumber(const char *dev, const char *name, double values[], c
         return true;
     }
 
-    return INDI::CCD::ISNewNumber(dev,name,values,names,n);
+    return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
 /**************************************************************************************
@@ -314,9 +315,9 @@ void INovaCCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
     // Add temperature to FITS header
-    int status=0;
+    int status = 0;
     double gain =  CameraPropertiesN[CCD_GAIN_N].value;
-    double blkLvl= CameraPropertiesN[CCD_BLACKLEVEL_N].value;
+    double blkLvl = CameraPropertiesN[CCD_BLACKLEVEL_N].value;
     fits_update_key_s(fptr, TDOUBLE, "GAIN", &gain, "CCD Gain", &status);
     fits_update_key_s(fptr, TDOUBLE, "BLACKLEVEL", &blkLvl, "CCD Black Level", &status);
     fits_write_date(fptr, &status);
@@ -335,7 +336,7 @@ void INovaCCD::TimerHit()
 
     if (InExposure)
     {
-        timeleft=CalcTimeLeft();
+        timeleft = CalcTimeLeft();
 
         // Less than a 0.1 second away from exposure completion
         // This is an over simplified timing method, check CCDSimulator and inova for better timing checks
@@ -401,6 +402,7 @@ IPState INovaCCD::GuideSouth(uint32_t ms)
 
 void INovaCCD::grabImage()
 {
+    std::unique_lock<std::mutex> guard(ccdBufferLock);
     // Let's get a pointer to the frame buffer
     unsigned char * image = PrimaryCCD.getFrameBuffer();
     if(image != nullptr)
@@ -419,38 +421,39 @@ void INovaCCD::grabImage()
         endX = (endX > maxW ? maxW : endX);
         endY = (endY > maxH ? maxH : endY);
 
-        for(int y=startY; y<endY; y+=binY)
+        for(int y = startY; y < endY; y += binY)
         {
-            if(endY-y<binY)
+            if(endY - y < binY)
                 break;
-            for(int x=startX*Bpp; x<endX*Bpp; x+=Bpp*binX)
+            for(int x = startX * Bpp; x < endX * Bpp; x += Bpp * binX)
             {
-                if(endX*Bpp-x<binX*Bpp)
+                if(endX * Bpp - x < binX * Bpp)
                     break;
                 int t = 0;
-                for(int yy = y; yy < y+binY; yy++)
+                for(int yy = y; yy < y + binY; yy++)
                 {
-                    for(int xx = x; xx < x+Bpp*binX; xx+=Bpp)
+                    for(int xx = x; xx < x + Bpp * binX; xx += Bpp)
                     {
-                        if(Bpp>1)
+                        if(Bpp > 1)
                         {
-                            t += RawData[1+xx+yy*maxW*Bpp] + (RawData[xx+yy*maxW*Bpp] << 8);
+                            t += RawData[1 + xx + yy * maxW * Bpp] + (RawData[xx + yy * maxW * Bpp] << 8);
                             t = (t < 0xffff ? t : 0xffff);
                         }
                         else
                         {
-                            t += RawData[xx+yy*maxW*Bpp];
+                            t += RawData[xx + yy * maxW * Bpp];
                             t = (t < 0xff ? t : 0xff);
                         }
                     }
                 }
                 image[p++] = (unsigned char)(t & 0xff);
-                if(Bpp>1)
+                if(Bpp > 1)
                 {
                     image[p++] = (unsigned char)((t >> 8) & 0xff);
                 }
             }
         }
+        guard.unlock();
         // Let INDI::CCD know we're done filling the image buffer
         LOG_INFO("Download complete.");
         ExposureComplete(&PrimaryCCD);

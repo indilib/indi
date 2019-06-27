@@ -86,9 +86,9 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
         }
         else
             LOGF_WARN(
-                   "Failed to load user configuration. %s. To save user configuration, click Save under the "
-                   "Configuration property in the Options tab. ",
-                   errmsg);
+                "Failed to load user configuration. %s. To save user configuration, click Save under the "
+                "Configuration property in the Options tab. ",
+                errmsg);
     }
 
     IUSaveDefaultConfig(nullptr, nullptr, deviceID);
@@ -156,6 +156,19 @@ bool DefaultDevice::saveAllConfigItems(FILE *fp)
     return true;
 }
 
+bool DefaultDevice::purgeConfig()
+{
+    char errmsg[MAXRBUF];
+    if (IUPurgeConfig(nullptr, deviceID, errmsg) == -1)
+    {
+        LOGF_WARN("%s", errmsg);
+        return false;
+    }
+
+    LOG_INFO("Configuration file successfully purged.");
+    return true;
+}
+
 bool DefaultDevice::saveConfig(bool silent, const char *property)
 {
     //std::vector<orderPtr>::iterator orderi;
@@ -193,7 +206,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         if (fp == nullptr)
         {
             //if (!silent)
-             //   LOGF_ERROR("Error saving configuration. %s", errmsg);
+            //   LOGF_ERROR("Error saving configuration. %s", errmsg);
             //return false;
             // If we don't have an existing file pointer, save all properties.
             return saveConfig(silent);
@@ -307,7 +320,8 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         else
         {
             delXMLEle(root);
-            return false;
+            // If property does not exist, save the whole thing
+            return saveConfig(silent);
         }
     }
 
@@ -492,6 +506,8 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
             pResult = saveConfig();
         else if (!strcmp(sp->name, "CONFIG_DEFAULT"))
             pResult = loadDefaultConfig();
+        else if (!strcmp(sp->name, "CONFIG_PURGE"))
+            pResult = purgeConfig();
 
         if (pResult)
             svp->s = IPS_OK;
@@ -555,7 +571,7 @@ bool DefaultDevice::ISNewText(const char *dev, const char *name, char *texts[], 
 }
 
 bool DefaultDevice::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                                    char *formats[], char *names[], int n)
+                              char *formats[], char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -861,9 +877,9 @@ void DefaultDevice::setConnected(bool status, IPState state, const char *msg)
     svp->s = state;
 
     if (msg == nullptr)
-      IDSetSwitch(svp, nullptr);
+        IDSetSwitch(svp, nullptr);
     else
-      IDSetSwitch(svp, "%s", msg);
+        IDSetSwitch(svp, "%s", msg);
 }
 
 //  This is a helper function
@@ -942,6 +958,7 @@ bool DefaultDevice::initProperties()
     IUFillSwitch(&ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
     IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
     IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
+    IUFillSwitch(&ConfigProcessS[3], "CONFIG_PURGE", "Purge", ISS_OFF);
     IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS",
                        "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
@@ -1095,4 +1112,5 @@ void DefaultDevice::setDefaultPollingPeriod(uint32_t period)
     PollPeriodN[0].value = period;
     POLLMS = period;
 }
+
 }

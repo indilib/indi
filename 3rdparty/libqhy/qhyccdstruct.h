@@ -1,39 +1,10 @@
-/*
- QHYCCD SDK
- 
- Copyright (c) 2014 QHYCCD.
- All Rights Reserved.
- 
- This program is free software; you can redistribute it and/or modify it
- under the terms of the GNU General Public License as published by the Free
- Software Foundation; either version 2 of the License, or (at your option)
- any later version.
- 
- This program is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- more details.
- 
- You should have received a copy of the GNU General Public License along with
- this program; if not, write to the Free Software Foundation, Inc., 59
- Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- 
- The full GNU General Public License is included in this distribution in the
- file called LICENSE.
- */
 
-/*!
- * @file qhyccdstruct.h
- * @brief QHYCCD SDK struct define
- */
 #include "config.h"
 
 
 
 
-#if defined (_WIN32)
-#include <windows.h>
-#endif
+
 
 #ifndef __QHYCCDSTRUCTDEF_H__
 #define __QHYCCDSTRUCTDEF_H__
@@ -55,6 +26,26 @@
 #endif
 
 #include "stdint.h"
+
+
+#if defined (_WIN32)
+
+#ifdef _M_IX86
+typedef uint32_t QHYDWORD; 
+#else
+typedef uint64_t QHYDWORD;
+#endif
+
+#else
+
+#ifdef __i386__
+typedef uint32_t QHYDWORD;  
+#else
+typedef uint64_t QHYDWORD;
+#endif
+
+#endif
+
 
 /**
  * usb vendor request command
@@ -225,7 +216,11 @@ enum CONTROL_ID
   DefaultGain,
   DefaultOffset,
   OutputDataActualBits,
-  OutputDataAlignment
+  OutputDataAlignment,
+
+  CAM_SINGLEFRAMEMODE,
+  CAM_LIVEVIDEOMODE,
+  CONTROL_MAX_ID
 };
 
 /**
@@ -243,5 +238,32 @@ enum CodecID
   NONE_CODEC,
   H261_CODEC
 };
+
+typedef struct _QHYCamMinMaxStepValue
+{
+  const char *name;
+  double min;
+  double max;
+  double step;
+}QHYCamMinMaxStepValue;
+
+typedef struct _QHYGetImageParam
+{
+  void *handle;
+  uint8_t *imgdata;
+  uint32_t w;
+  uint32_t h;
+  uint32_t bpp;
+  uint32_t channels;
+}QHYGetImageParam;
+
+
+#if CALLBACK_MODE_SUPPORT
+typedef uint32_t  (*QHYCCDProcCallBack) (void *handle,
+	QHYDWORD message, 
+	QHYDWORD wParam, 
+	QHYDWORD lParam);
+#endif
+
 
 #endif

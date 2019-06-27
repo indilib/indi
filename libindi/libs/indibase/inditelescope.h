@@ -342,6 +342,7 @@ class Telescope : public DefaultDevice
 
     // Joystick helpers
     static void joystickHelper(const char *joystick_n, double mag, double angle, void *context);
+    static void axisHelper(const char *axis_n, double value, void *context);
     static void buttonHelper(const char *button_n, ISState state, void *context);
 
     /**
@@ -551,6 +552,7 @@ class Telescope : public DefaultDevice
     // Joystick
     void processNSWE(double mag, double angle);
     void processJoystick(const char *joystick_n, double mag, double angle);
+    void processAxis(const char *axis_n, double value);
     void processSlewPresets(double mag, double angle);
     void processButton(const char *button_n, ISState state);
 
@@ -673,6 +675,14 @@ class Telescope : public DefaultDevice
     ISwitchVectorProperty DomeClosedLockTP;
     ISwitch DomeClosedLockT[4];
 
+    // Switch for choosing between motion control by 4-way joystick or two seperate axes
+    ISwitchVectorProperty MotionControlModeTP;
+    ISwitch MotionControlModeT[2];
+    enum {
+        MOTION_CONTROL_JOYSTICK,
+        MOTION_CONTROL_AXES
+    };
+
     // Lock Joystick Axis to one direciton only
     ISwitch LockAxisS[2];
     ISwitchVectorProperty LockAxisSP;
@@ -780,7 +790,10 @@ private:
     IPState lastEqState;
 
     uint8_t telescopeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+
     Controller *controller;
+    float motionDirNSValue;
+    float motionDirWEValue;
 };
 
 }

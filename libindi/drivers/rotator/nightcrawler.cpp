@@ -296,7 +296,7 @@ bool NightCrawler::getFirmware()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    resp[nbytes_read-1] = '\0';
+    resp[nbytes_read - 1] = '\0';
 
     LOGF_INFO("Firmware %s", resp);
 
@@ -327,7 +327,7 @@ bool NightCrawler::getFocuserType()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    resp[nbytes_read-1] = '\0';
+    resp[nbytes_read - 1] = '\0';
 
     LOGF_INFO("Focuser Type %s", resp);
 
@@ -360,7 +360,7 @@ bool NightCrawler::gotoMotor(MotorType type, int32_t position)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "%dSN %d#", type+1, position);
+    snprintf(cmd, 16, "%dSN %d#", type + 1, position);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -394,7 +394,7 @@ bool NightCrawler::getPosition(MotorType type)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "%dGP#", type+1);
+    snprintf(cmd, 16, "%dGP#", type + 1);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -402,8 +402,10 @@ bool NightCrawler::getPosition(MotorType type)
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
+        //        tty_error_msg(rc, errstr, MAXRBUF);
+        //        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
+        //        return false;
+        abnormalDisconnect();
         return false;
     }
 
@@ -436,6 +438,30 @@ bool NightCrawler::getPosition(MotorType type)
     return false;
 }
 
+void NightCrawler::abnormalDisconnectCallback(void *userpointer)
+{
+    NightCrawler *p = static_cast<NightCrawler *>(userpointer);
+    if (p->Connect())
+    {
+        p->setConnected(true, IPS_OK);
+        p->updateProperties();
+    }
+}
+
+void NightCrawler::abnormalDisconnect()
+{
+    // Ignore disconnect errors
+    Disconnect();
+
+    // Set Disconnected
+    setConnected(false, IPS_IDLE);
+    // Update properties
+    updateProperties();
+
+    // Reconnect in 2 seconds
+    IEAddTimer(2000, (IE_TCF *)abnormalDisconnectCallback, this);
+}
+
 bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if(strcmp(dev, getDeviceName()) == 0)
@@ -444,7 +470,7 @@ bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * s
         {
             bool atLeastOne = false;
 
-            for (int i=0; i < n; i++)
+            for (int i = 0; i < n; i++)
             {
                 if (states[i] == ISS_ON)
                 {
@@ -599,11 +625,11 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
         }
         else if (strcmp(name, GotoAuxNP.name) == 0)
         {
-           bool rc = gotoMotor(MOTOR_AUX, static_cast<int32_t>(values[0]));
-           GotoAuxNP.s = rc ? IPS_BUSY : IPS_OK;
-           IDSetNumber(&GotoAuxNP, nullptr);
-           LOGF_INFO("Aux moving to %.f...", values[0]);
-           return true;
+            bool rc = gotoMotor(MOTOR_AUX, static_cast<int32_t>(values[0]));
+            GotoAuxNP.s = rc ? IPS_BUSY : IPS_OK;
+            IDSetNumber(&GotoAuxNP, nullptr);
+            LOGF_INFO("Aux moving to %.f...", values[0]);
+            return true;
         }
         else if (strcmp(name, RotatorAbsPosNP.name) == 0)
         {
@@ -669,7 +695,7 @@ void NightCrawler::TimerHit()
     }
 
     bool rc = false;
-    bool sensorsUpdated=false;
+    bool sensorsUpdated = false;
 
     // #1 If we're homing, we check if homing is complete as we cannot check for anything else
     if (FindHomeSP.s == IPS_BUSY || HomeRotatorSP.s == IPS_BUSY)
@@ -812,7 +838,7 @@ bool NightCrawler::syncMotor(MotorType type, uint32_t position)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "%dSP %d#", type+1, position);
+    snprintf(cmd, 16, "%dSP %d#", type + 1, position);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -847,7 +873,7 @@ bool NightCrawler::startMotor(MotorType type)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "%dSM#", type+1);
+    snprintf(cmd, 16, "%dSM#", type + 1);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -882,7 +908,7 @@ bool NightCrawler::stopMotor(MotorType type)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "%dSQ#", type+1);
+    snprintf(cmd, 16, "%dSQ#", type + 1);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -917,7 +943,7 @@ bool NightCrawler::isMotorMoving(MotorType type)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "%dGM#", type+1);
+    snprintf(cmd, 16, "%dGM#", type + 1);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -937,7 +963,7 @@ bool NightCrawler::isMotorMoving(MotorType type)
         return false;
     }
 
-    res[nbytes_read-1] = '\0';
+    res[nbytes_read - 1] = '\0';
 
     LOGF_DEBUG("RES <%s>", res);
 
@@ -970,7 +996,7 @@ bool NightCrawler::getTemperature()
         return false;
     }
 
-    res[nbytes_read-1] = '\0';
+    res[nbytes_read - 1] = '\0';
 
     LOGF_DEBUG("RES <%s>", res);
 
@@ -1005,7 +1031,7 @@ bool NightCrawler::getVoltage()
         return false;
     }
 
-    res[nbytes_read-1] = '\0';
+    res[nbytes_read - 1] = '\0';
 
     LOGF_DEBUG("RES <%s>", res);
 
@@ -1021,7 +1047,7 @@ bool NightCrawler::setTemperatureOffset(double offset)
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "Pt %03d#", static_cast<int>(offset*10));
+    snprintf(cmd, 16, "Pt %03d#", static_cast<int>(offset * 10));
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -1045,7 +1071,7 @@ bool NightCrawler::getStepDelay(MotorType type)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "%dSR#", type+1);
+    snprintf(cmd, 16, "%dSR#", type + 1);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -1065,7 +1091,7 @@ bool NightCrawler::getStepDelay(MotorType type)
         return false;
     }
 
-    res[nbytes_read-1] = '\0';
+    res[nbytes_read - 1] = '\0';
 
     LOGF_DEBUG("RES <%s>", res);
 
@@ -1087,7 +1113,7 @@ bool NightCrawler::setStepDelay(MotorType type, uint32_t delay)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "%dSR %03d#", type+1, delay);
+    snprintf(cmd, 16, "%dSR %03d#", type + 1, delay);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -1140,7 +1166,7 @@ bool NightCrawler::getLimitSwitchStatus()
         return false;
     }
 
-    res[nbytes_read-1] = '\0';
+    res[nbytes_read - 1] = '\0';
 
     LOGF_DEBUG("RES <%s>", res);
 
@@ -1200,7 +1226,7 @@ bool NightCrawler::isHomingComplete()
         return false;
     }
 
-    res[nbytes_read-1] = '\0';
+    res[nbytes_read - 1] = '\0';
 
     LOGF_DEBUG("RES <%s>", res);
 
@@ -1349,15 +1375,15 @@ IPState NightCrawler::HomeRotator()
 IPState NightCrawler::MoveRotator(double angle)
 {
     // Find shortest distance given target degree
-    double a=angle;
-    double b=GotoRotatorN[0].value;
-    double d=fabs(a-b);
-    double r=(d > 180) ? 360 - d : d;
-    int sign = (a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1;
+    double a = angle;
+    double b = GotoRotatorN[0].value;
+    double d = fabs(a - b);
+    double r = (d > 180) ? 360 - d : d;
+    int sign = (a - b >= 0 && a - b <= 180) || (a - b <= -180 && a - b >= -360) ? 1 : -1;
 
     r *= sign;
 
-    double newTarget = (r+b) * ticksPerDegree;
+    double newTarget = (r + b) * ticksPerDegree;
 
     if (newTarget < RotatorAbsPosN[0].min)
         newTarget -= RotatorAbsPosN[0].min;
@@ -1379,15 +1405,15 @@ IPState NightCrawler::MoveRotator(double angle)
 bool NightCrawler::SyncRotator(double angle)
 {
     // Find shortest distance given target degree
-    double a=angle;
-    double b=GotoRotatorN[0].value;
-    double d=fabs(a-b);
-    double r=(d > 180) ? 360 - d : d;
-    int sign = (a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1;
+    double a = angle;
+    double b = GotoRotatorN[0].value;
+    double d = fabs(a - b);
+    double r = (d > 180) ? 360 - d : d;
+    int sign = (a - b >= 0 && a - b <= 180) || (a - b <= -180 && a - b >= -360) ? 1 : -1;
 
     r *= sign;
 
-    double newTarget = (r+b) * ticksPerDegree;
+    double newTarget = (r + b) * ticksPerDegree;
 
     if (newTarget < RotatorAbsPosN[0].min)
         newTarget -= RotatorAbsPosN[0].min;

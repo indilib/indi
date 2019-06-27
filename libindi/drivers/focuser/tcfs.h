@@ -44,14 +44,14 @@ class TCFS : public INDI::Focuser
         FTMPRO, // Focuser Temperature Read Out
         FSLEEP, // Focuser Sleep
         FWAKUP, // Focuser Wake Up
-        FHOME,  // Focuser Home Command
-        
+        FHOME,  // Focuser Home Command        
         FRSLOP, // Focuser Read Slope Command
         FLSLOP, // Focuser Load Slope Command
         FQUIET, // Focuser Quiet Command
         FDELAY, // Focuser Load Delay Command
         FRSIGN, // Focuser Read Slope Sign Command
         FLSIGN, // Focuser Load Slope Sign Command
+        FFWVER, // Focuser Firmware Version
     };
 
     enum TCFSMode
@@ -80,6 +80,7 @@ class TCFS : public INDI::Focuser
     virtual bool updateProperties();
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool saveConfigItems(FILE *fp);
 
   protected:
     virtual IPState MoveAbsFocuser(uint32_t targetTicks);
@@ -92,9 +93,9 @@ class TCFS : public INDI::Focuser
     bool read_tcfs(char *response, bool silent = false);
     bool dispatch_command(TCFSCommand command_type, int val=0, TCFSMode m=MANUAL);
 
-    INumber FocusModeAN[2];
+    INumber FocusModeAN[3];
     INumberVectorProperty FocusModeANP;
-    INumber FocusModeBN[2];
+    INumber FocusModeBN[3];
     INumberVectorProperty FocusModeBNP;
     ISwitch FocusTelemetryS[2];
     ISwitchVectorProperty FocusTelemetrySP;
@@ -106,11 +107,8 @@ class TCFS : public INDI::Focuser
     ISwitchVectorProperty FocusGotoSP;
     INumber FocusTemperatureN[1];
     INumberVectorProperty FocusTemperatureNP;
-
-//    ISwitchVectorProperty *FocusPowerSP { nullptr };
-//    ISwitchVectorProperty *FocusModeSP { nullptr };
-//    ISwitchVectorProperty *FocusGotoSP { nullptr };
-//    INumberVectorProperty *FocusTemperatureNP { nullptr };
+    ISwitch FocusStartModeS[3];
+    ISwitchVectorProperty FocusStartModeSP;
 
     unsigned int simulated_position { 3000 };
     float simulated_temperature { 25.4 };

@@ -1,0 +1,21 @@
+Astromechanics INDI Driver
+========================
+
+This is the INDI driver for Astromechanics Lens Controller https://astromechanics.org
+
+
+How to Use
+==========
+
+See the INSTALL file for installation instructions.
+If you start INDI manually, include the driver into indiserver command:
+$ indiserver indi_astromechfoc
+
+Alternatively when using other software like KStars to start INDI server, just select the driver when starting.
+
+Then connect to INDI server with any software acting as indi client.
+Find the Astromechanics tab and switch to Options tab. Check the port setting, by default it is /dev/ttyUSB0 but it may be different if other similar devices connected to the system.
+If the port is correct, click connect in the "Main control" tab. After successful connection more properties should be visible and focuser status should be updated instantly.
+
+Set Apperture of your lens in Astromechanics/MainControl. Only the index could be set and not the right apperture. 0 indicates apperture completly opened (for example f/2.8), 22 indicates apperture closed (for example f/32).
+

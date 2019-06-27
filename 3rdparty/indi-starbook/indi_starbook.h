@@ -28,12 +28,12 @@
 #include "connectioncurl.h"
 #include "command_interface.h"
 
-class Starbook : public INDI::Telescope
+class StarbookDriver : public INDI::Telescope
 {
 public:
-    Starbook();
+    StarbookDriver();
 
-    ~Starbook() override;
+    ~StarbookDriver() override;
 
     bool initProperties() override;
 
@@ -41,19 +41,34 @@ public:
 
     bool ReadScopeStatus() override;
 
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char **names, int n) override;
+
 private:
     std::unique_ptr<starbook::CommandInterface> cmd_interface;
 
-    starbook::StarbookState state;
-
     Connection::Curl *curlConnection = nullptr;
 
+    starbook::StarbookState last_known_state;
+
+    int failed_res;
+
     void LogResponse(const std::string &cmd, const starbook::ResponseCode &rc);
+
+public:
+    void TimerHit() override;
 
 protected:
     IText VersionT[1]{};
 
-    ITextVectorProperty VersionInfo;
+    ITextVectorProperty VersionTP;
+
+    IText StateT[1]{};
+
+    ITextVectorProperty StateTP;
+
+    ISwitch StartS[1];
+
+    ISwitchVectorProperty StartSP;
 
     bool Connect() override;
 
@@ -77,7 +92,17 @@ protected:
 
     bool UnPark() override;
 
+    bool SetSlewRate(int index) override;
+
     bool updateTime(ln_date *utc, double utc_offset) override;
 
+    bool updateLocation(double latitude, double longitude, double elevation) override;
+
     bool getFirmwareVersion();
+
+    bool performStart();
+
+    void setTrackState(const starbook::StatusResponse &res);
+
+    void setStarbookState(const starbook::StarbookState &state);
 };

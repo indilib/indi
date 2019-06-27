@@ -54,6 +54,98 @@ void set_lx200ap_exp_name(const char *deviceName, unsigned int debug_level)
     AP_EXP_DBG_SCOPE = debug_level;
 }
 
+// make this a function with logging instead of a #define like in legacy driver
+int APParkMount(int fd)
+{
+    int error_type;
+    int nbytes_write = 0;
+
+    DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "APParkMount: Sending park command.");
+    DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "CMD <%s>", "#:KA");
+
+    if ((error_type = tty_write_string(fd, "#:KA", &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    return 0;
+}
+
+// make this a function with logging instead of a #define like in legacy driver
+int APUnParkMount(int fd)
+{
+    int error_type;
+    int nbytes_write = 0;
+
+    DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "APUnParkMount: Sending unpark command.");
+    DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "CMD <%s>", "#:PO");
+
+    if ((error_type = tty_write_string(fd, "#:PO", &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    return 0;
+}
+
+// This is a modified version of selectAPMoveRate() from lx200apdriver.cpp
+// This version allows changing the rate to GUIDE as well as 12x/64x/600x/1200x
+// and is required some the experimental AP driver properly handles
+// pulse guide requests over 999ms by simulated it by setting the move rate
+// to GUIDE and then starting and halting a move of the correct duration.
+int selectAPCenterRate(int fd, int centerRate)
+{
+    int error_type;
+    int nbytes_write = 0;
+
+    switch (centerRate)
+    {
+    /* Guide */
+    case 0:
+        DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to GUIDE");
+        DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "CMD <%s>", "#:RG#");
+
+        if ((error_type = tty_write_string(fd, "#:RG#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
+
+    /* 12x */
+    case 1:
+        DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 12x");
+        DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "CMD <%s>", "#:RC0#");
+
+        if ((error_type = tty_write_string(fd, "#:RC0#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
+
+    /* 64x */
+    case 2:
+        DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 64x");
+        DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "CMD <%s>", "#:RC1#");
+
+        if ((error_type = tty_write_string(fd, "#:RC1#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
+
+    /* 600x */
+    case 3:
+        DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 600x");
+        DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "CMD <%s>", "#:RC2#");
+        if ((error_type = tty_write_string(fd, "#:RC2#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
+
+    /* 1200x */
+    case 4:
+        DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 1200x");
+        DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "CMD <%s>", "#:RC3#");
+
+        if ((error_type = tty_write_string(fd, "#:RC3#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
+
+    default:
+        return -1;
+        break;
+    }
+    return 0;
+}
 
 // experimental functions!!!
 
@@ -131,9 +223,6 @@ int getAPMeridianDelay(int fd, double *mdelay)
     return 0;
 }
 
-
-
-
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
 {
     char temp_string[64];
@@ -172,7 +261,6 @@ int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
 
         return 0;
     }
-
 
     DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_ERROR, "check_lx200ap_status: wrote, but nothing received.");
 
