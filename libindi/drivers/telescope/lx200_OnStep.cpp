@@ -217,7 +217,11 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSNAlignS[0], "0", "Start Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[1], "1", "Issue Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[2], "3", "Write Align", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 3, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 2, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    IUFillSwitch(&OSNAlignWriteS[0], "0", "Write Align to NVRAM/Flash", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignWriteSP, OSNAlignWriteS, 1, getDeviceName(), "NewAlignStar2", "NVRAM", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
     
     IUFillText(&OSNAlignT[0], "0", "Align Process Status", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
@@ -349,6 +353,7 @@ bool LX200_OnStep::updateProperties()
         //New Align
         defineSwitch(&OSNAlignStarsSP);
         defineSwitch(&OSNAlignSP);
+	defineSwitch(&OSNAlignWriteSP);
         defineText(&OSNAlignTP);
         defineText(&OSNAlignErrTP);
     #ifdef ONSTEP_NOTDONE
@@ -436,6 +441,7 @@ bool LX200_OnStep::updateProperties()
         //New Align
         deleteProperty(OSNAlignStarsSP.name);
         deleteProperty(OSNAlignSP.name);
+	deleteProperty(OSNAlignWriteSP.name);
         deleteProperty(OSNAlignTP.name);
         deleteProperty(OSNAlignErrTP.name);
     #ifdef ONSTEP_NOTDONE
@@ -1163,12 +1169,24 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 			OSNAlignS[1].s = ISS_OFF;
 			OSNAlignSP.s = AlignAddStar();
 		}
-		if (index == 2)
-		{
-			OSNAlignS[2].s = ISS_OFF;
-			OSNAlignSP.s = AlignDone();
-		}
+		//Write to EEPROM moved to new line/variable 
 		IDSetSwitch(&OSNAlignSP, nullptr);
+		UpdateAlignStatus();
+	}
+	
+	if (!strcmp(name, OSNAlignWriteSP.name))
+	{
+		if (IUUpdateSwitch(&OSNAlignWriteSP, states, names, n) < 0)
+			return false;
+		
+		index = IUFindOnSwitchIndex(&OSNAlignWriteSP);
+
+		OSNAlignWriteSP.s = IPS_BUSY;
+		if (index == 0)
+			OSNAlignWriteS[0].s = ISS_OFF;
+			OSNAlignWriteSP.s = AlignWrite();
+		}
+		IDSetSwitch(&OSNAlignWriteSP, nullptr);
 		UpdateAlignStatus();
 	}
 
@@ -2132,10 +2150,6 @@ bool LX200_OnStep::UpdateAlignStatus ()
 	char read_buffer[RB_MAX_LEN];
 	char msg[40];
 	char stars[5];
-// 	IUFillText(&OSNAlignT[4], "4", "Current Status", "Not Updated");
-// 	IUFillText(&OSNAlignT[5], "5", "Max Stars", "Not Updated");
-// 	IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
-// 	IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
 	
 	int max_stars, current_star, align_stars;
 //	LOG_INFO("Gettng Align Status");
@@ -2169,6 +2183,7 @@ bool LX200_OnStep::UpdateAlignStatus ()
 	if (current_star > align_stars)
 	{
 		snprintf(msg, sizeof(msg), "Manual Align: Completed");
+		AlignDone();
 		IUSaveText(&OSNAlignT[4],msg);
 		UpdateAlignErr();
 	}
@@ -2240,22 +2255,44 @@ bool LX200_OnStep::UpdateAlignErr()
 
 IPState LX200_OnStep::AlignDone(){
 	//See here https://groups.io/g/onstep/message/3624
+// 	char cmd[8];
+	LOG_INFO("Alignment Done") 
+// 	LOG_INFO("Sending Command to Finish Alignment and write");
+// 	strcpy(cmd, ":AW#");
+    IUSaveText(&OSNAlignT[0],"Align FINISHED");
+    IUSaveText(&OSNAlignT[1],"------");
+    IUSaveText(&OSNAlignT[2],"Optionally press:");
+    IUSaveText(&OSNAlignT[3],"Write to EEPROM");
+    IDSetText(&OSNAlignTP, nullptr);
+// 	if (sendOnStepCommandBlind(cmd)){
+// 		return IPS_OK;
+// 	}
+// 	IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
+    IDSetText(&OSNAlignTP, nullptr);
+	return IPS_OK;
+	
+}
+
+IPState LX200_OnStep::AlignWrite(){
+	//See here https://groups.io/g/onstep/message/3624
 	char cmd[8];
 	LOG_INFO("Sending Command to Finish Alignment and write");
 	strcpy(cmd, ":AW#");
-    IUSaveText(&OSNAlignT[0],"Align FINISHED Written to EEprom");
-    IUSaveText(&OSNAlignT[1],"------");
-    IUSaveText(&OSNAlignT[2],"------");
-    IUSaveText(&OSNAlignT[3],"------");
-    IDSetText(&OSNAlignTP, nullptr);
+	IUSaveText(&OSNAlignT[0],"Align FINISHED");
+	IUSaveText(&OSNAlignT[1],"------");
+	IUSaveText(&OSNAlignT[2],"And Written to EEPROM");
+	IUSaveText(&OSNAlignT[3],"------");
+	IDSetText(&OSNAlignTP, nullptr);
 	if (sendOnStepCommandBlind(cmd)){
 		return IPS_OK;
 	}
 	IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
-    IDSetText(&OSNAlignTP, nullptr);
+	IDSetText(&OSNAlignTP, nullptr);
 	return IPS_ALERT;
 	
 }
+
+
 #ifdef ONSTEP_NOTDONE
 IPState LX200_OnStep::OSEnableOutput(int output) {
 	//  :SXnn,VVVVVV...#   Set OnStep value
