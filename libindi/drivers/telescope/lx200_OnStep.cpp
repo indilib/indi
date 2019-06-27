@@ -1454,19 +1454,93 @@ bool LX200_OnStep::ReadScopeStatus()
     if (strstr(OSStat,"k")) { IUSaveText(&OnstepStat[6],"Fork Alt Mount"); OSMountType = 2;}
     if (strstr(OSStat,"A")) { IUSaveText(&OnstepStat[6],"AltAZ Mount"); OSMountType = 3; }
 
-    // ============= Error Code ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC
+    // ============= Error Code 
+    //From OnStep: ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED
+    
+    //For redoing this, quick python, if needed (will only give the error name):
+    //all_errors=' (Insert)
+    //split_errors=all_errors.split(', ')
+    //for specific in split_errors:
+    //     print('case ' +specific+':')                          
+    //     print('\tIUSaveText(&OnstepStat[7],"'+specific+'"); }')
+    //     print('\tbreak;')  
+    
+    
     Lasterror=(Errors)(OSStat[strlen(OSStat)-1]-'0');
-    if (Lasterror==ERR_NONE) { IUSaveText(&OnstepStat[7],"None"); }
-    if (Lasterror==ERR_MOTOR_FAULT) { IUSaveText(&OnstepStat[7],"Motor Fault"); }
-    if (Lasterror==ERR_ALT) { IUSaveText(&OnstepStat[7],"Altitude Min/Max"); }
-    if (Lasterror==ERR_LIMIT_SENSE) { IUSaveText(&OnstepStat[7],"Limit Sense"); }
-    if (Lasterror==ERR_DEC) { IUSaveText(&OnstepStat[7],"Dec Limit Exceeded"); }
-    if (Lasterror==ERR_AZM) { IUSaveText(&OnstepStat[7],"Azm Limit Exceeded"); }
-    if (Lasterror==ERR_UNDER_POLE) { IUSaveText(&OnstepStat[7],"Under Pole Limit Exceeded"); }
-    if (Lasterror==ERR_MERIDIAN) { IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded"); }
-    if (Lasterror==ERR_SYNC) { IUSaveText(&OnstepStat[7],"Sync. ignored > 30 deg"); }
-    if (Lasterror==ERR_PARK) { IUSaveText(&OnstepStat[7],"Park Error"); }
-    if (Lasterror==ERR_GOTO_SYNC) { IUSaveText(&OnstepStat[7],"Goto Sync Error"); }
+    switch (LastError) {
+
+	case ERR_NONE:
+		IUSaveText(&OnstepStat[7],"None"); }
+		break;
+	case ERR_MOTOR_FAULT:
+		IUSaveText(&OnstepStat[7],"Motor/Driver Fault"); }
+		break;
+	case ERR_ALT_MIN:
+		IUSaveText(&OnstepStat[7],"Below Horizon Limit"); }
+		break;
+	case ERR_LIMIT_SENSE:
+		IUSaveText(&OnstepStat[7],"Limit Sense"); }
+		break;
+	case ERR_DEC:
+		IUSaveText(&OnstepStat[7],"Dec Limit Exceeded"); }
+		break;
+	case ERR_AZM:
+		IUSaveText(&OnstepStat[7],"Azm Limit Exceeded"); }
+		break;
+	case ERR_UNDER_POLE:
+		IUSaveText(&OnstepStat[7],"Under Pole Limit Exceeded"); }
+		break;
+	case ERR_MERIDIAN:
+		IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded"); }
+		break;
+	case ERR_SYNC:
+		IUSaveText(&OnstepStat[7],"Sync Safety Limit Exceeded"); }
+		break;
+	case ERR_PARK:
+		IUSaveText(&OnstepStat[7],"Park Failed"); }
+		break;
+	case ERR_GOTO_SYNC:
+		IUSaveText(&OnstepStat[7],"Goto Sync Failed"); }
+		break;
+	case ERR_UNSPECIFIED:
+		IUSaveText(&OnstepStat[7],"Unspecified Error"); }
+		break;
+	case ERR_ALT_MAX:
+		IUSaveText(&OnstepStat[7],"Above Overhead Limit"); }
+		break;
+	case ERR_GOTO_ERR_NONE:
+		IUSaveText(&OnstepStat[7],"Goto No Error"); }
+		break;
+	case ERR_GOTO_ERR_BELOW_HORIZON:
+		IUSaveText(&OnstepStat[7],"Goto Below Horizon"); }
+		break;
+	case ERR_GOTO_ERR_ABOVE_OVERHEAD:
+		IUSaveText(&OnstepStat[7],"Goto Abv Overhead"); }
+		break;
+	case ERR_GOTO_ERR_STANDBY:
+		IUSaveText(&OnstepStat[7],"Goto Err Standby"); }
+		break;
+	case ERR_GOTO_ERR_PARK:
+		IUSaveText(&OnstepStat[7],"Goto Err Park"); }
+		break;
+	case ERR_GOTO_ERR_GOTO:
+		IUSaveText(&OnstepStat[7],"Goto Err Goto"); }
+		break;
+	case ERR_GOTO_ERR_OUTSIDE_LIMITS:
+		IUSaveText(&OnstepStat[7],"Goto Outside Limits"); }
+		break;
+	case ERR_GOTO_ERR_HARDWARE_FAULT:
+		IUSaveText(&OnstepStat[7],"Goto H/W Fault"); }
+		break;
+	case ERR_GOTO_ERR_IN_MOTION:
+		IUSaveText(&OnstepStat[7],"Goto Err Motion"); }
+		break;
+	case ERR_GOTO_ERR_UNSPECIFIED:
+		IUSaveText(&OnstepStat[7],"Goto Unspecified Error"); }
+		break;
+	default:
+		IUSaveText(&OnstepStat[7],"Unknown Error"); }
+		break;
     }
 
     // Get actual Pier Side
