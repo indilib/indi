@@ -358,7 +358,7 @@ bool ATIKCCD::setupParams()
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, binY, 1, false);
 
     char firmware[8] = {0};
-    snprintf(firmware, sizeof(firmware), "%d.%d", prop.Protocol >> 8, prop.Protocol & 0xff);
+    snprintf(firmware, sizeof(firmware), "%d.%d", pProp.Protocol >> 8, pProp.Protocol & 0xff);
     IUSaveText(&VersionInfoS[VERSION_FIRMWARE], firmware);
     LOGF_INFO("Detected camera %s %s with firmware %s", pProp.Manufacturer, pProp.Description, firmware);
 
