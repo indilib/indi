@@ -357,8 +357,10 @@ bool ATIKCCD::setupParams()
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, binX, 1, false);
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, binY, 1, false);
 
-    IUSaveText(&VersionInfoS[VERSION_FIRMWARE], std::to_string(pProp.Protocol).c_str());
-    LOGF_INFO("Detected camera %s %s with firmware %s", pProp.Manufacturer, pProp.Description, std::to_string(pProp.Protocol).c_str());
+    char firmware[8] = {0};
+    snprintf(firmware, sizeof(firmware), "%d.%d", prop.Protocol >> 8, prop.Protocol & 0xff);
+    IUSaveText(&VersionInfoS[VERSION_FIRMWARE], firmware);
+    LOGF_INFO("Detected camera %s %s with firmware %s", pProp.Manufacturer, pProp.Description, firmware);
 
     uint32_t cap = 0;
 
