@@ -34,7 +34,8 @@ Build-Depends: cmake,
                libraw-dev,
                libgsl-dev,
                phonon4qt5-backend-vlc,
-               qt5keychain-dev
+               qt5keychain-dev,
+               libsecret-1-dev
 Standards-Version: 3.9.3
 Homepage: http://edu.kde.org/
 
