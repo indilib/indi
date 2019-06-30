@@ -733,6 +733,18 @@ EXPORTC uint32_t STDCALL GetQHYCCDBeforeOpenParam(
   QHYCamMinMaxStepValue *p,
   CONTROL_ID controlId);
 
+EXPORTC uint32_t STDCALL  SetQHYCCDBurstModeStartEnd(
+  qhyccd_handle *h,unsigned short start,
+  unsigned short end);
+EXPORTC uint32_t STDCALL EnableQHYCCDBurstCountFun(
+  qhyccd_handle *h,bool i);
+EXPORTC uint32_t STDCALL EnableQHYCCDBurstMode(
+  qhyccd_handle *h,bool i);
+EXPORTC uint32_t STDCALL ResetQHYCCDFrameCounter(qhyccd_handle *h);
+EXPORTC uint32_t STDCALL SetQHYCCDBurstIDLE(qhyccd_handle *h);
+EXPORTC uint32_t STDCALL ReleaseQHYCCDBurstIDLE(qhyccd_handle *h);
+
+
 #if CALLBACK_MODE_SUPPORT
 EXPORTC uint32_t STDCALL SetQHYCCDCallBack(QHYCCDProcCallBack ProcCallBack);
 #endif
