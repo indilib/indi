@@ -55,10 +55,8 @@
 
 #define MAXINDIBUF 49152
 
-INDI::BaseClient::BaseClient()
+INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 {
-    cServer    = "localhost";
-    cPort      = 7624;
     sConnected = false;
     verbose    = false;
 
@@ -74,10 +72,16 @@ INDI::BaseClient::~BaseClient()
 void INDI::BaseClient::clear()
 {
     while (!cDevices.empty())
-        delete cDevices.back(), cDevices.pop_back();
+    {
+        delete cDevices.back();
+        cDevices.pop_back();
+    }
     cDevices.clear();
     while (!blobModes.empty())
-        delete blobModes.back(), blobModes.pop_back();
+    {
+        delete blobModes.back();
+        blobModes.pop_back();
+    }
     blobModes.clear();
 }
 
@@ -363,7 +367,7 @@ void INDI::BaseClient::listenINDI()
 {
     char buffer[MAXINDIBUF];
     char msg[MAXRBUF];
-    int n = 0, err_code = 0;
+    int err_code = 0;
 #ifdef _WINDOWS
     SOCKET maxfd = 0;
 #else
@@ -412,7 +416,7 @@ void INDI::BaseClient::listenINDI()
     /* read from server, exit if find all requested properties */
     while (sConnected)
     {
-        n = select(maxfd + 1, &rs, nullptr, nullptr, nullptr);
+        int n = select(maxfd + 1, &rs, nullptr, nullptr, nullptr);
 
         if (n < 0)
         {
@@ -604,7 +608,7 @@ INDI::BaseDevice *INDI::BaseClient::findDev(const char *devName, char *errmsg)
 {
     std::vector<INDI::BaseDevice *>::const_iterator devicei;
 
-    for (devicei = cDevices.begin(); devicei != cDevices.end(); devicei++)
+    for (devicei = cDevices.begin(); devicei != cDevices.end(); ++devicei)
     {
         if (!strcmp(devName, (*devicei)->getDeviceName()))
             return (*devicei);
@@ -619,14 +623,14 @@ INDI::BaseDevice *INDI::BaseClient::addDevice(XMLEle *dep, char *errmsg)
 {
     //devicePtr dp(new INDI::BaseDriver());
     INDI::BaseDevice *dp = new INDI::BaseDevice();
-    XMLAtt *ap;
     char *device_name;
 
     /* allocate new INDI::BaseDriver */
-    ap = findXMLAtt(dep, "device");
+    XMLAtt *ap = findXMLAtt(dep, "device");
     if (!ap)
     {
         strncpy(errmsg, "Unable to find device attribute in XML element. Cannot add device.", MAXRBUF);
+        delete (dp);
         return nullptr;
     }
 
@@ -879,34 +883,42 @@ void INDI::BaseClient::startBlob(const char *devName, const char *propName, cons
 
 void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
-    unsigned char *encblob;
     char nl = '\n';
-    int l;
-    int ret = 0;
-
-    encblob = (unsigned char *)malloc(4 * bp->size / 3 + 4);
-    l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size);
+    uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * bp->size / 3 + 4));
+    uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size);
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", bp->name);
     sendString("    size='%ud'\n", bp->size);
-    sendString("    enclen='%d'\n", l);
+    sendString("    enclen='%d'\n", base64Len);
     sendString("    format='%s'>\n", bp->format);
 
-    size_t written = 0;
-    size_t towrite = 0;
-    while ((int)written < l)
+    uint32_t written = 0;
+    while (written < base64Len)
     {
-        towrite   = ((l - written) > 72) ? 72 : l - written;
-        size_t wr = net_write(sockfd, encblob + written, towrite);
+        // Write 72 chars followed by new line
+        uint8_t towrite = ((base64Len - written) > 72) ? 72 : base64Len - written;
+        ssize_t wr = net_write(sockfd, encblob + written, towrite);
         if (wr > 0)
             written += wr;
+        else if (wr < 0)
+        {
+            // If temporary error, continue
+            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+                continue;
+            else
+            {
+                // Otherwise exist
+                fprintf(stderr, "sendOneBlob: %s\n", strerror(errno));
+                return;
+            }
+        }
         if ((written % 72) == 0)
-            ret = net_write(sockfd, &nl, 1);
+            net_write(sockfd, &nl, 1);
     }
 
     if ((written % 72) != 0)
-        ret = net_write(sockfd, &nl, 1);
+        net_write(sockfd, &nl, 1);
 
     free(encblob);
 
@@ -916,34 +928,42 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
                                    void *blobBuffer)
 {
-    unsigned char *encblob;
     char nl = '\n';
-    int l;
-    int ret = 0;
-
-    encblob = (unsigned char *)malloc(4 * blobSize / 3 + 4);
-    l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(blobBuffer), blobSize);
+    uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * blobSize / 3 + 4));
+    uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(blobBuffer), blobSize);
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", blobName);
     sendString("    size='%ud'\n", blobSize);
-    sendString("    enclen='%d'\n", l);
+    sendString("    enclen='%d'\n", base64Len);
     sendString("    format='%s'>\n", blobFormat);
 
-    size_t written = 0;
-    size_t towrite = 0;
-    while ((int)written < l)
+    uint32_t written = 0;
+    while (written < base64Len)
     {
-        towrite   = ((l - written) > 72) ? 72 : l - written;
-        size_t wr = net_write(sockfd, encblob + written, towrite);
+        // Write 72 chars followed by new line
+        uint8_t towrite = ((base64Len - written) > 72) ? 72 : base64Len - written;
+        ssize_t wr = net_write(sockfd, encblob + written, towrite);
         if (wr > 0)
             written += wr;
+        else if (wr < 0)
+        {
+            // If temporary error, continue
+            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+                continue;
+            else
+            {
+                // Otherwise exist
+                fprintf(stderr, "sendOneBlob: %s\n", strerror(errno));
+                return;
+            }
+        }
         if ((written % 72) == 0)
-            ret = net_write(sockfd, &nl, 1);
+            net_write(sockfd, &nl, 1);
     }
 
     if ((written % 72) != 0)
-        ret = net_write(sockfd, &nl, 1);
+        net_write(sockfd, &nl, 1);
 
     free(encblob);
 

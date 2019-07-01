@@ -143,7 +143,7 @@ class INDI::BaseClient : public INDI::BaseMediator
           \param dev name of device, required.
           \param prop name of property, optional.
         */
-        void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = NULL);
+        void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = nullptr);
 
         /**
          * @brief getBLOBMode Get Binary Large Object policy mode IF set previously by setBLOBMode
@@ -151,7 +151,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          * @param prop property name, can be NULL to return overall device policy if it exists.
          * @return BLOB Policy, if not found, it always returns B_ALSO
          */
-        BLOBHandling getBLOBMode(const char *dev, const char *prop = NULL);
+        BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
 
         // Update
         static void *listenHelper(void *context);
@@ -271,9 +271,9 @@ class INDI::BaseClient : public INDI::BaseMediator
 #ifdef _WINDOWS
         SOCKET sockfd;
 #else
-        int sockfd;
-        int m_receiveFd;
-        int m_sendFd;
+        int sockfd {-1};
+        int m_receiveFd {-1};
+        int m_sendFd {-1};
 #endif
 
         // Listen to INDI server and process incoming messages
@@ -292,6 +292,7 @@ class INDI::BaseClient : public INDI::BaseMediator
 
         // Parse & FILE buffers for IO
 
-        LilXML *lillp; /* XML parser context */
+        /* XML parser context */
+        LilXML *lillp {nullptr};
         uint32_t timeout_sec, timeout_us;
 };
