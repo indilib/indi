@@ -34,6 +34,7 @@ class SQM : public INDI::DefaultDevice
 
         virtual bool initProperties();
         virtual bool updateProperties();
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
         /**
          * @struct SqmConnection
