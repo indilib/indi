@@ -884,6 +884,7 @@ void INDI::BaseClient::startBlob(const char *devName, const char *propName, cons
 void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
     char nl = '\n';
+    int rc = 0;
     uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * bp->size / 3 + 4));
     uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size);
 
@@ -910,15 +911,16 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
             {
                 // Otherwise exist
                 fprintf(stderr, "sendOneBlob: %s\n", strerror(errno));
+                free(encblob);
                 return;
             }
         }
         if ((written % 72) == 0)
-            net_write(sockfd, &nl, 1);
+            rc = net_write(sockfd, &nl, 1);
     }
 
     if ((written % 72) != 0)
-        net_write(sockfd, &nl, 1);
+        rc = net_write(sockfd, &nl, 1);
 
     free(encblob);
 
@@ -929,6 +931,7 @@ void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, 
                                    void *blobBuffer)
 {
     char nl = '\n';
+    int rc = 0;
     uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * blobSize / 3 + 4));
     uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(blobBuffer), blobSize);
 
@@ -955,15 +958,16 @@ void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, 
             {
                 // Otherwise exist
                 fprintf(stderr, "sendOneBlob: %s\n", strerror(errno));
+                free(encblob);
                 return;
             }
         }
         if ((written % 72) == 0)
-            net_write(sockfd, &nl, 1);
+            rc = net_write(sockfd, &nl, 1);
     }
 
     if ((written % 72) != 0)
-        net_write(sockfd, &nl, 1);
+        rc = net_write(sockfd, &nl, 1);
 
     free(encblob);
 
