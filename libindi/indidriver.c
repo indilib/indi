@@ -1310,10 +1310,9 @@ void IUSaveDefaultConfig(const char *source_config, const char *dest_config, con
                 int ch = 0;
                 while ((ch = getc(fpin)) != EOF)
                     putc(ch, fpout);
-
-                fclose(fpin);
+		fclose(fpout);
             }
-            fclose(fpout);
+	    fclose(fpin);
         }
     }
 }

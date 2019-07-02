@@ -361,7 +361,7 @@ void MathPluginManagement::EnumeratePlugins()
     #endif
 
     dp    = opendir(MATH_PLUGINS_DIRECTORY);
-    snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, "%s%s", INDI_MATH_PLUGINS_DIRECTORY, "/");
+    strncat(MATH_PLUGINS_DIRECTORY, "/", 1);
     if (dp)
     {
         while (true)

@@ -40,16 +40,6 @@ Telescope::Telescope()
     : DefaultDevice(), ScopeConfigFileName(GetHomeDirectory() + "/.indi/ScopeConfig.xml"),
       ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
 {
-    capability     = 0;
-    last_we_motion = last_ns_motion = -1;
-    parkDataType                    = PARK_NONE;
-    ParkdataXmlRoot                 = nullptr;
-    IsParked                        = false;
-    IsLocked                        = true;
-
-    nSlewRate = 0;
-    SlewRateS = nullptr;
-
     controller = new Controller(this);
     controller->setJoystickCallback(joystickHelper);
     controller->setAxisCallback(axisHelper);
@@ -60,9 +50,6 @@ Telescope::Telescope()
 
     currentPECState = PEC_OFF;
     lastPECState    = PEC_UNKNOWN;
-
-    motionDirWEValue = 0;
-    motionDirNSValue = 0;
 }
 
 Telescope::~Telescope()
@@ -560,7 +547,7 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
                     {
                         const char * elemName = findXMLAttValu(ep, "name");
                         if (( (!strcmp(elemName, "SHUTTER_CLOSE") || !strcmp(elemName, "PARK"))
-                              && !strcmp(pcdataXMLEle(ep), "On")))
+                                && !strcmp(pcdataXMLEle(ep), "On")))
                         {
                             RememberTrackState = TrackState;
                             Park();
@@ -1426,16 +1413,16 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     LOG_INFO("Dome parking policy set to: Ignore dome");
                 else if (!strcmp(names[0], DomeClosedLockT[1].name))
                     LOG_INFO("Warning: Dome parking policy set to: Dome locks. This disallows "
-                          "the scope from unparking when dome is parked");
+                             "the scope from unparking when dome is parked");
                 else if (!strcmp(names[0], DomeClosedLockT[2].name))
                     LOG_INFO("Warning: Dome parking policy set to: Dome parks. This tells "
-                          "scope to park if dome is parking. This will disable the locking "
-                          "for dome parking, EVEN IF MOUNT PARKING FAILS");
+                             "scope to park if dome is parking. This will disable the locking "
+                             "for dome parking, EVEN IF MOUNT PARKING FAILS");
                 else if (!strcmp(names[0], DomeClosedLockT[3].name))
                     LOG_INFO("Warning: Dome parking policy set to: Both. This disallows the "
-                          "scope from unparking when dome is parked, and tells scope to "
-                          "park if dome is parking. This will disable the locking for dome "
-                          "parking, EVEN IF MOUNT PARKING FAILS.");
+                             "scope from unparking when dome is parked, and tells scope to "
+                             "park if dome is parking. This will disable the locking for dome "
+                             "parking, EVEN IF MOUNT PARKING FAILS.");
             }
             IUUpdateSwitch(&DomeClosedLockTP, states, names, n);
             DomeClosedLockTP.s = IPS_OK;
@@ -2268,7 +2255,8 @@ void Telescope::processJoystick(const char *joystick_n, double mag, double angle
 
 void Telescope::processAxis(const char *axis_n, double value)
 {
-    if (MotionControlModeTP.sp[MOTION_CONTROL_AXES].s == ISS_ON) {
+    if (MotionControlModeTP.sp[MOTION_CONTROL_AXES].s == ISS_ON)
+    {
         if (!strcmp(axis_n, "MOTIONDIRNS") || !strcmp(axis_n, "MOTIONDIRWE"))
         {
             if ((TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
@@ -2280,21 +2268,25 @@ void Telescope::processAxis(const char *axis_n, double value)
             if (!strcmp(axis_n, "MOTIONDIRNS"))
             {
                 // South
-                if (value > 0) {
+                if (value > 0)
+                {
                     motionDirNSValue = -1;
                 }
                 // North
-                else if (value < 0) {
+                else if (value < 0)
+                {
                     motionDirNSValue = 1;
                 }
-                else {
+                else
+                {
                     motionDirNSValue = 0;
                 }
             }
             else if (!strcmp(axis_n, "MOTIONDIRWE"))
             {
                 // East
-                if (value > 0) {
+                if (value > 0)
+                {
                     motionDirWEValue = 1;
                 }
                 // West
@@ -2302,7 +2294,8 @@ void Telescope::processAxis(const char *axis_n, double value)
                 {
                     motionDirWEValue = -1;
                 }
-                else {
+                else
+                {
                     motionDirWEValue = 0;
                 }
             }
@@ -2311,10 +2304,12 @@ void Telescope::processAxis(const char *axis_n, double value)
             float y = motionDirNSValue * sqrt(1 - pow(motionDirWEValue, 2) / 2.0f);
             float angle = atan2(y, x) * (180.0 / 3.141592653589);
             float mag = sqrt(pow(y, 2) + pow(x, 2));
-            while (angle < 0) {
+            while (angle < 0)
+            {
                 angle += 360;
             }
-            if (mag == 0) {
+            if (mag == 0)
+            {
                 angle = 0;
             }
 

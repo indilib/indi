@@ -532,7 +532,7 @@ int StreamManager::mkpath(std::string s, mode_t mode)
     return mdret;
 }
 
-std::string StreamManager::expand(std::string fname, const std::map<std::string, std::string> &patterns)
+std::string StreamManager::expand(const std::string &fname, const std::map<std::string, std::string> &patterns)
 {
     std::string res = fname;
     std::size_t pos;

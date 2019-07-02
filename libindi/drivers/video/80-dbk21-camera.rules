@@ -1,0 +1,4 @@
+ATTRS{idVendor}=="199e", ATTRS{idProduct}=="8101",  RUN+="/sbin/modprobe -b uvcvideo"
+
+ACTION=="add", SUBSYSTEM=="drivers", ENV{DEVPATH}=="/bus/usb/drivers/uvcvideo", \
+  RUN+="/bin/sh -c 'echo 199e 8101 > /sys/bus/usb/drivers/uvcvideo/new_id'"
