@@ -26,6 +26,7 @@
     - James Lan fixed Meredian Flip and Home Pause buttons
     - Cleaned Comments from previon versions
     - Updated lastError Codes
+    - azwing typo minutes ' > second ''for Alignment Error
 
     Version 1.5: Cleaning and Align Code Tuning
     - James Lan Align Code
@@ -67,6 +68,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <termios.h>
+#include <stdlib.h>
 
 #define RB_MAX_LEN 64
 
@@ -85,7 +87,8 @@
 
 
 
-enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC};
+enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED};
+
 
 class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
 {
@@ -113,6 +116,15 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual int setSiteLongitude(int fd, double Long);
     virtual bool SetTrackRate(double raRate, double deRate) override;
     
+    
+    //Mount information 
+    int OSMountType = 0;
+    /*  0 = EQ mount  (Presumed default for most things.) 
+     *  1 = Fork 
+     *  2 = Fork Alt 
+     *  3 = Alt Azm
+     */
+   
     
     //FocuserInterface
     
@@ -142,6 +154,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     IPState AlignStartGeometric(int stars);
     IPState AlignAddStar();
     IPState AlignDone();
+    IPState AlignWrite();
     virtual bool UpdateAlignStatus();
     virtual bool UpdateAlignErr();
     //End NewGeometricAlignment 
@@ -219,6 +232,9 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty TrackCompSP;
     ISwitch TrackCompS[3];
     
+    ISwitchVectorProperty TrackAxisSP;
+    ISwitch TrackAxisS[3];
+    
     ISwitchVectorProperty FrequencyAdjustSP;
     ISwitch FrequencyAdjustS[3];
 
@@ -247,9 +263,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitch OSPECReadS[2];
     
     ISwitchVectorProperty OSNAlignStarsSP;
-    ISwitch OSNAlignStarsS[7];
+    ISwitch OSNAlignStarsS[9];
     ISwitchVectorProperty OSNAlignSP;
     ISwitch OSNAlignS[4];
+    ISwitchVectorProperty OSNAlignWriteSP;
+    ISwitch OSNAlignWriteS[1];
     IText OSNAlignT[8] {};
     ITextVectorProperty OSNAlignTP;
     IText OSNAlignErrT[4] {};
