@@ -1767,7 +1767,7 @@ bool LX200_OnStep::ReadScopeStatus()
 		IUSaveText(&OnstepStat[7],"Unknown Error"); 
 		break;
     }
-
+    }
     // Get actual Pier Side
     getCommandString(PortFD,OSPier,":Gm#");
     if (strcmp(OSPier, OldOSPier) !=0)  // any change ?
@@ -1858,9 +1858,10 @@ bool LX200_OnStep::ReadScopeStatus()
     PECStatus(0);
     //#Gu# has this built in
 #endif
+    
+    
     NewRaDec(currentRA, currentDEC);
     return true;
-    }
 }
 
 
