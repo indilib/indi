@@ -33,6 +33,8 @@
 #define OUTPUT_TAB "Outputs"
 
 #define ONSTEP_TIMEOUT  3
+#define RA_AXIS     0
+#define DEC_AXIS    1
 
 LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 {
@@ -131,6 +133,10 @@ bool LX200_OnStep::initProperties()
     IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
     IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
     IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
+    
+    IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.25, 0.5);
+    IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.25, 0.5);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RO, 0, IPS_IDLE);
     
     IUFillSwitch(&AutoFlipS[0], "1", "AutoFlip: OFF", ISS_OFF);
     IUFillSwitch(&AutoFlipS[1], "2", "AutoFlip: ON", ISS_OFF);
@@ -294,6 +300,8 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[8], "Multi-Axis Tracking", "", "");
     IUFillTextVector(&OnstepStatTP, OnstepStat, 9, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
+
+    
     setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
 
     return true;
@@ -327,6 +335,7 @@ bool LX200_OnStep::updateProperties()
         defineSwitch(&TrackCompSP);
 	defineSwitch(&TrackAxisSP);
         defineNumber(&BacklashNP);
+	defineNumber(&GuideRateNP);
         defineSwitch(&AutoFlipSP);
         defineSwitch(&HomePauseSP);
         defineSwitch(&FrequencyAdjustSP);
@@ -424,6 +433,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(TrackCompSP.name);
 	deleteProperty(TrackAxisSP.name);
         deleteProperty(BacklashNP.name);
+	deleteProperty(GuideRateNP.name);
         deleteProperty(AutoFlipSP.name);
         deleteProperty(HomePauseSP.name);
         deleteProperty(FrequencyAdjustSP.name);
@@ -1398,6 +1408,7 @@ bool LX200_OnStep::ReadScopeStatus()
 {
     char OSbacklashDEC[RB_MAX_LEN];
     char OSbacklashRA[RB_MAX_LEN];
+    char GuideValue[RB_MAX_LEN];
     char TempValue[RB_MAX_LEN];
     char TempValue2[RB_MAX_LEN];
     Errors Lasterror = ERR_NONE;
@@ -1590,7 +1601,7 @@ bool LX200_OnStep::ReadScopeStatus()
     
 #ifdef OnStep_Alpha // For the moment, for :Gu
     } else {
-	getCommandString(PortFD,OSStat,":GU#"); // :GU# returns a string containg controller status
+	getCommandString(PortFD,OSStat,":Gu#"); // :Gu# returns a string containg controller status that's bitpacked
 	if (strcmp(OSStat,OldOSStat) != 0)  //if status changed
 	{ 
 		//Ignored for now.     
@@ -1604,6 +1615,9 @@ bool LX200_OnStep::ReadScopeStatus()
 	}
 	if (OSStat[0] & 0b10000100 == 0b10000100) {
 		// PPS sync
+		IUSaveText(&OnstepStat[5],"PPS / GPS Sync Ok");
+	} else {
+		IUSaveText(&OnstepStat[5],"N/A");
 	}
 	if (OSStat[0] & 0b10001000 == 0b10001000) {
 		// Guide active
@@ -1642,40 +1656,75 @@ bool LX200_OnStep::ReadScopeStatus()
 	}
 	if (OSStat[2] & 0b10000010 == 0b10000010) {
 		// Waiting at home
+		IUSaveText(&OnstepStat[3],"Waiting at Home");
 	}
 	if (OSStat[2] & 0b10000100 == 0b10000100) {
 		// Pause at home enabled?
+		//AutoPauseAtHome
+		HomePauseS[1].s = ISS_ON;
+		HomePauseSP.s = IPS_OK;
+		IDSetSwitch(&HomePauseSP, "Pause at Home Enabled");
+	} else {
+		HomePauseS[0].s=ISS_ON;
+		HomePauseSP.s = IPS_OK;
+		IDSetSwitch(&HomePauseSP, nullptr);
 	}
 	if (OSStat[2] & 0b10001000 == 0b10001000) {
 		// Buzzer enabled?
 	}
 	if (OSStat[2] & 0b10010000 == 0b10010000) {
 		// Auto meridian flip
+		AutoFlipS[1].s = ISS_ON;
+		AutoFlipSP.s = IPS_OK;
+		IDSetSwitch(&AutoFlipSP, nullptr);
+	} else {
+		AutoFlipS[0].s=ISS_ON;
+		AutoFlipSP.s = IPS_OK;
+		IDSetSwitch(&AutoFlipSP, nullptr);
 	}
 	if (OSStat[2] & 0b10100000 == 0b10100000) {
 		// PEC data has been recorded
 	}
+
+	
+	
+	
 	//Byte 3: Mount type and info
 	if (OSStat[3] & 0b10000001 == 0b10000001) {
 		// GEM
+		IUSaveText(&OnstepStat[6],"German Mount"); 
+		OSMountType = 0;
 	}
 	if (OSStat[3] & 0b10000010 == 0b10000010) {
 		// FORK
+		IUSaveText(&OnstepStat[6],"Fork Mount"); 
+		OSMountType = 1;
 	}
 	if (OSStat[3] & 0b10000100 == 0b10000100) {
 		// Fork Alt
+		IUSaveText(&OnstepStat[6],"Fork Alt Mount"); 
+		OSMountType = 2;
 	}
 	if (OSStat[3] & 0b10001000 == 0b10001000) {
 		// ALTAZM
+		IUSaveText(&OnstepStat[6],"AltAZ Mount"); 
+		OSMountType = 3;
 	}
+	
+	
+	setPierSide(PIER_UNKNOWN);
 	if (OSStat[3] & 0b10010000 == 0b10010000) {
 		// Pier side none
+		setPierSide(PIER_UNKNOWN);
+		// INDI doesn't account for 'None'
 	}
 	if (OSStat[3] & 0b10100000 == 0b10100000) {
 		// Pier side east
+		setPierSide(PIER_EAST);
 	}
 	if (OSStat[3] & 0b11000000 == 0b11000000) {
 		// Pier side west
+		setPierSide(PIER_WEST);
 	}
 	//     Byte 4: PEC
 	PECStatusGU = OSStat[4] & 0b01111111;
@@ -1684,6 +1733,8 @@ bool LX200_OnStep::ReadScopeStatus()
 		PECStatusGU=0;
 	} else {
 		//    PEC status: 0 ignore, 1 get ready to play, 2 playing, 3 get ready to record, 4 recording
+		
+		
 	}
 	ParkStatusGU = OSStat[5] & 0b01111111;
 	PulseGuideGU = OSStat[6] & 0b01111111;
@@ -1768,6 +1819,8 @@ bool LX200_OnStep::ReadScopeStatus()
 		break;
     }
     }
+
+#ifndef OnStep_Alpha
     // Get actual Pier Side
     getCommandString(PortFD,OSPier,":Gm#");
     if (strcmp(OSPier, OldOSPier) !=0)  // any change ?
@@ -1792,6 +1845,7 @@ bool LX200_OnStep::ReadScopeStatus()
         break;
         }
     }
+#endif
 
     //========== Get actual Backlash values
     getCommandString(PortFD,OSbacklashDEC, ":%BD#");
@@ -1800,12 +1854,18 @@ bool LX200_OnStep::ReadScopeStatus()
     BacklashNP.np[1].value = atof(OSbacklashRA);
     IDSetNumber(&BacklashNP, nullptr);
     
-    getCommandString(PortFD,OSbacklashDEC, ":%BD#");
-    getCommandString(PortFD,OSbacklashRA, ":%BR#");
-    BacklashNP.np[0].value = atof(OSbacklashDEC);
-    BacklashNP.np[1].value = atof(OSbacklashRA);
-    IDSetNumber(&BacklashNP, nullptr);
+    double pulseguiderate;
+    getCommandString(PortFD, GuideValue, ":GX90#");
+//     LOGF_DEBUG("Guide Rate String: %s", GuideValue);
+    pulseguiderate=atof(GuideValue);
+    LOGF_DEBUG("Guide Rate: %f", pulseguiderate);
+    GuideRateNP.np[0].value = pulseguiderate;
+    GuideRateNP.np[1].value = pulseguiderate;
+    IDSetNumber(&GuideRateNP, nullptr);
     
+    
+
+#ifndef OnStep_Alpha
     //AutoFlip
     getCommandString(PortFD,TempValue,":GX95#");
     if (atoi(TempValue)) {
@@ -1817,6 +1877,7 @@ bool LX200_OnStep::ReadScopeStatus()
 	AutoFlipSP.s = IPS_OK;
 	IDSetSwitch(&AutoFlipSP, nullptr);
     }
+#endif
     
     //PreferredPierSide
     getCommandString(PortFD,TempValue,":GX96#");

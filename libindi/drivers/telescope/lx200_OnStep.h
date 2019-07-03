@@ -285,6 +285,8 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     INumber OutputPorts[PORTS_COUNT];
     INumberVectorProperty OutputPorts_NP;
 
+    INumber GuideRateN[2];
+    INumberVectorProperty GuideRateNP;
 
     char OSStat[RB_MAX_LEN];
     char OldOSStat[RB_MAX_LEN];
@@ -297,6 +299,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     bool OSSupports_bitfield_Gu = false;
     uint8_t PECStatusGU = 0;
     uint8_t ParkStatusGU = 0;
+    
     
   private:
     int currentCatalog;
