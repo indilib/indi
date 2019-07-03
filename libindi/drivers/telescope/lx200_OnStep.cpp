@@ -99,7 +99,7 @@ bool LX200_OnStep::initProperties()
 
     // ============== MOTION_CONTROL_TAB
 
-    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
+    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
     IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
 
     IUFillSwitch(&TrackCompS[0], "1", "Full Compensation", ISS_OFF);
