@@ -2285,8 +2285,10 @@ IPState LX200_OnStep::AlignStartGeometric (int stars){
 	}
 	snprintf(cmd, sizeof(cmd), ":A%.1d#", stars);
 	LOGF_INFO("Started Align with %s, max possible: %d", cmd, max_stars);
-	sendOnStepCommandBlind(cmd);
-	return IPS_BUSY;
+	if(sendOnStepCommand(cmd)){
+		return IPS_BUSY;
+	}
+	return IPS_ALERT;
 }
 
 
@@ -2330,7 +2332,7 @@ bool LX200_OnStep::UpdateAlignStatus ()
 	IUSaveText(&OSNAlignT[6],stars);
 	snprintf(stars, sizeof(stars), "%d", align_stars);
 	IUSaveText(&OSNAlignT[7],stars);
-	
+	LOGF_DEBUG("Align: max_stars: %i current star: %u, align_stars %u", max_stars, current_star, align_stars);
 	
 /*	if (align_stars > max_stars) {
 		LOGF_ERROR("Failed Sanity check, can't have more stars than max: :A?# gives: %s", read_buffer);
@@ -2342,8 +2344,9 @@ bool LX200_OnStep::UpdateAlignStatus ()
 		snprintf(msg, sizeof(msg), "%s Manual Align: Star %d/%d", read_buffer, current_star, align_stars );
 		IUSaveText(&OSNAlignT[4],msg);
 	}
-	if (current_star > align_stars)
+	if (current_star > align_stars && current_star > 1)
 	{
+		LOGF_DEBUG("Align: current star: %u, align_stars %u", int(current_star), int(align_stars));
 		snprintf(msg, sizeof(msg), "Manual Align: Completed");
 		AlignDone();
 		IUSaveText(&OSNAlignT[4],msg);
