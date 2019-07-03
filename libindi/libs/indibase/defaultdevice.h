@@ -110,7 +110,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
 {
     public:
         DefaultDevice();
-        virtual ~DefaultDevice();
+        virtual ~DefaultDevice() override;
 
         /** \brief Add Debug, Simulation, and Configuration options to the driver */
         void addAuxControls();
@@ -293,7 +293,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         /**
          * @return getInterface Return the interface declared by the driver.
          */
-        virtual uint16_t getDriverInterface();
+        virtual uint16_t getDriverInterface() override;
 
         /**
          * @brief setInterface Set driver interface. By default the driver interface is set to GENERAL_DEVICE.

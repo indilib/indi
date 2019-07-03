@@ -86,22 +86,21 @@ class Weather : public DefaultDevice, public WeatherInterface
         } WeatherConnection;
 
         Weather();
-        virtual ~Weather();
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-        virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
     protected:
         /**
          * @brief TimerHit Keep calling updateWeather() until it is successful, if it fails upon first
          * connection.
          */
-        virtual void TimerHit();
+        virtual void TimerHit() override;
 
         /** \brief Update weather station location
          *  \param latitude Site latitude in degrees.
@@ -124,7 +123,7 @@ class Weather : public DefaultDevice, public WeatherInterface
          */
         uint8_t getWeatherConnection() const;
 
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();

@@ -16,6 +16,50 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+    Commands and responses:
+
+    Only use the SM/Sm commands during calibration. Will cause direction reversal!
+    #Sm;xxxxxxx! Set xxxxxxx as min value
+    #SM!	Set current position as max
+    #SM;xxxxxxx!	Set xxxxxxx as max value (xxxxxxx between 0 to 2097152)
+
+    #SPxxxx! Set_current_position as xxxx
+    #SC;HOLD;RUN;ACC;DEC! Shell_set_current_supply in HOLD, RUN, ACC, DEC situations (Value must be from 0 to 24, maximum hold value 10)
+    #QM! Query max value
+    #Qm! Query min value
+    #QT! Qeury temperature
+    #QF! Query firmware version
+    #QN! Read the device name	-> reply	QN;SESTOSENSO!
+    #QP! Query_position
+    #FI! Fast_inward
+    #FO! Fast_outward
+    #SI! Slow_inward
+    #SO! Slow_outward
+    #GTxxxx! Go_to absolute position xxxx
+    #MA! Motion_abort and hold position
+    #MF!	Motor free
+    #PS! param_save save current position for next power ON and currents supply
+    #PD! param_to_default , and position to zero
+
+    Response examples:
+
+    #QF! 14.06\r
+    #QT! -10.34\r
+    #FI! FIok!\r
+    #FO! FOok!\r
+    #SI! SIok!\r
+    #SO! SOok!\r
+    #GTxxxx! 100\r 200\r 300\r xxxx\r GTok!\r
+    #MA! MAok!\r
+    #MF!	MFok!\r
+    #QP! 1530\r
+    #SPxxxx! SPok!\r
+    #SC;HOLD;RUN;ACC;DEC! SCok!\r
+    #PS! PSok!\r
+    #PD! PDok!\r
+
+    Before to disconnect the COM port, send the #PS! command in order to save the position on internal memory
+
 */
 
 #include "sestosenso.h"
@@ -71,9 +115,9 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso::SestoSenso()
 {
-    setVersion(1, 2);
+    setVersion(1, 4);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
 bool SestoSenso::initProperties()
@@ -88,10 +132,22 @@ bool SestoSenso::initProperties()
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-//    // Limits
-//    IUFillNumber(&LimitsN[SS_MIN_LIMIT], "FOCUS_MIN_STEP", "Min", "%.f", 0, 10000., 0., 0.);
-//    IUFillNumber(&LimitsN[SS_MAX_LIMIT], "FOCUS_MAX_STEP", "Max", "%.f", 10000,  2097152., 0., 200000.);
-//    IUFillNumberVector(&LimitsNP, LimitsN, 2, getDeviceName(), "FOCUS_LIMITS", "Limits", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    // Focuser calibration
+    IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "");
+    IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+    IUFillSwitch(&CalibrationS[CALIBRATION_START], "CALIBRATION_START", "Start", ISS_OFF);
+    IUFillSwitch(&CalibrationS[CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
+    IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&FastMoveS[FASTMOVE_IN], "FASTMOVE_IN", "Move In", ISS_OFF);
+    IUFillSwitch(&FastMoveS[FASTMOVE_OUT], "FASTMOVE_OUT", "Move out", ISS_OFF);
+    IUFillSwitch(&FastMoveS[FASTMOVE_STOP], "FASTMOVE_STOP", "Stop", ISS_OFF);
+    IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    //
+    // Override the default Max. Position to make it Read-Only
+    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
@@ -123,7 +179,9 @@ bool SestoSenso::updateProperties()
         if (updateTemperature())
             defineNumber(&TemperatureNP);
         defineText(&FirmwareTP);
-        //defineNumber(&LimitsNP);
+        IUSaveText(&CalibrationMessageT[0], "Press START to begin the Calibration");
+        defineText(&CalibrationMessageTP);
+        defineSwitch(&CalibrationSP);
 
         if (getStartupValues())
             LOG_INFO("SestoSenso paramaters updated, focuser ready for use.");
@@ -135,7 +193,8 @@ bool SestoSenso::updateProperties()
         if (TemperatureNP.s == IPS_OK)
             deleteProperty(TemperatureNP.name);
         deleteProperty(FirmwareTP.name);
-        //deleteProperty(LimitsNP.name);
+        deleteProperty(CalibrationMessageTP.name);
+        deleteProperty(CalibrationSP.name);
     }
 
     return true;
@@ -242,10 +301,10 @@ bool SestoSenso::updateMaxLimit()
         FocusRelPosN[0].step  = FocusAbsPosN[0].step;
 
         IUUpdateMinMax(&FocusAbsPosNP);
-        IUUpdateMinMax(&FocusMaxPosNP);
+        IUUpdateMinMax(&FocusRelPosNP);
 
         FocusMaxPosNP.s = IPS_OK;
-        IUUpdateMinMax(&FocusAbsPosNP);
+        IUUpdateMinMax(&FocusMaxPosNP);
         return true;
     }
 
@@ -300,14 +359,15 @@ bool SestoSenso::isMotionComplete()
     }
     else
     {
-        int rc = TTY_OK, nbytes_read = 0;
+        int nbytes_read = 0;
 
         //while (rc != TTY_TIME_OUT)
         //{
-        rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, 1, &nbytes_read);
+        int rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, 1, &nbytes_read);
         if (rc == TTY_OK)
         {
             res[nbytes_read - 1] = 0;
+
 
             if (!strcmp(res, "GTok!"))
                 return true;
@@ -316,9 +376,6 @@ bool SestoSenso::isMotionComplete()
             {
                 uint32_t newPos = std::stoi(res);
                 FocusAbsPosN[0].value = newPos;
-                //IDSetNumber(&FocusAbsPosNP, nullptr);
-                //if (newPos == targetPos)
-                //    return true;
             }
             catch (...)
             {
@@ -331,127 +388,172 @@ bool SestoSenso::isMotionComplete()
     return false;
 }
 
-bool SestoSenso::SyncFocuser(uint32_t ticks)
-{
-    char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
-    snprintf(cmd, SESTO_LEN, "#SP%d!", ticks);
-
-    if (isSimulation())
-        FocusAbsPosN[0].value = ticks;
-    else if (sendCommand(cmd, res) == false)
-        return false;
-
-    return !strcmp(res, "SPok!");
-}
-
-bool SestoSenso::SetFocuserMaxPosition(uint32_t ticks)
-{
-    return setMaxLimit(ticks);
-}
-
-bool SestoSenso::setMaxLimit(uint32_t limit)
-{
-    char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
-    snprintf(cmd, SESTO_LEN, "#SM;%07d!", limit);
-
-    if (!isSimulation())
-    {
-        if (sendCommand(cmd, res) == false)
-            return false;
-    }
-
-    if (strstr(res, "SM;"))
-    {
-        FocusAbsPosN[0].max = limit;
-        FocusMaxPosN[0].max = limit;
-        return true;
-    }
-
-    return false;
-}
-
-bool SestoSenso::setMinLimit(uint32_t limit)
-{
-    char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
-    snprintf(cmd, SESTO_LEN, "#Sm;%07d!", limit);
-
-    if (!isSimulation())
-    {
-        if (sendCommand(cmd, res) == false)
-            return false;
-    }
-
-    if (strstr(res, "Sm;"))
-    {
-        FocusAbsPosN[0].min = limit;
-        FocusMaxPosN[0].min = limit;
-        return true;
-    }
-
-    return false;
-}
-
-#if 0
-bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
-        // Set Focus Limits
-        if (!strcmp(name, LimitsNP.name))
+        // Calibrate focuser
+        if (!strcmp(name, CalibrationSP.name))
         {
-            // If connected, we ignore
-            if (isConnected())
+            char res[SESTO_LEN] = {0};
+            int current_switch = 0;
+
+            CalibrationSP.s = IPS_BUSY;
+            //IDSetSwitch(&CalibrationSP, nullptr);
+            IUUpdateSwitch(&CalibrationSP, states, names, n);
+
+            current_switch = IUFindOnSwitchIndex(&CalibrationSP);
+            CalibrationS[current_switch].s = ISS_ON;
+            IDSetSwitch(&CalibrationSP, nullptr);
+
+            if (current_switch == CALIBRATION_START)
             {
-                LimitsNP.s = IPS_OK;
-                IDSetNumber(&LimitsNP, nullptr);
-                return true;
+                if (cStage == Idle || cStage == Complete )
+                {
+                    // Start the calibration process
+                    LOG_INFO("Start Calibration");
+                    CalibrationSP.s = IPS_BUSY;
+                    IDSetSwitch(&CalibrationSP, nullptr);
+
+                    //
+                    // Unlock the motor to allow manual movement of the focuser
+                    //
+                    if (sendCommand("#MF!") == false)
+                        return false;
+
+                    IUSaveText(&CalibrationMessageT[0], "Move focuser manually to the middle then press NEXT");
+                    IDSetText(&CalibrationMessageTP, nullptr);
+
+                    // Set next step
+                    cStage = GoToMiddle;
+                }
+                else
+                {
+                    LOG_INFO("Already started calibration. Proceed to next step.");
+                    IUSaveText(&CalibrationMessageT[0], "Already started. Proceed to NEXT.");
+                    IDSetText(&CalibrationMessageTP, nullptr);
+                }
             }
-
-            IUUpdateNumber(&LimitsNP, values, names, n);
-
-            if (setMinLimit(static_cast<uint32_t>(LimitsN[SS_MIN_LIMIT].value)) &&
-                    setMaxLimit(static_cast<uint32_t>(LimitsN[SS_MAX_LIMIT].value)))
-                LimitsNP.s = IPS_OK;
-            else
+            else if (current_switch == CALIBRATION_NEXT)
             {
-                LimitsNP.s = IPS_ALERT;
-                IDSetNumber(&LimitsNP, nullptr);
-                LOG_ERROR("Error setting focuser limits.");
-                return true;
+                if (cStage == GoToMiddle)
+                {
+                    defineSwitch(&FastMoveSP);
+                    IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MIN position then press NEXT");
+                    IDSetText(&CalibrationMessageTP, nullptr);
+                    cStage = GoMinimum;
+                }
+                else if (cStage == GoMinimum)
+                {
+                    // Minimum position needs setting
+                    if (sendCommand("#Sm;0!") == false)
+                        return false;
+
+                    IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MAX position then press NEXT");
+                    IDSetText(&CalibrationMessageTP, nullptr);
+                    cStage = GoMaximum;
+                }
+                else if (cStage == GoMaximum)
+                {
+                    // Maximum position needs setting and save
+                    // Do not split these commands.
+
+                    if (sendCommand("#SM!", res) == false)
+                        return false;
+                    if (sendCommand("#PS!") == false)
+                        return false;
+                    //
+                    // MAX value is in maxLimit
+                    // MIN value is 0
+                    //
+                    int maxLimit = 0;
+                    sscanf(res, "SM;%d!", &maxLimit);
+                    LOGF_INFO("MAX setting is %d", maxLimit);
+
+                    FocusMaxPosN[0].max = maxLimit;
+                    FocusMaxPosN[0].value = maxLimit;
+
+                    FocusAbsPosN[0].min   = 0;
+                    FocusAbsPosN[0].max   = maxLimit;
+                    FocusAbsPosN[0].value = maxLimit;
+                    FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+
+                    FocusRelPosN[0].min   = 0.;
+                    FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
+                    FocusRelPosN[0].value = 0;
+                    FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+
+                    IUUpdateMinMax(&FocusAbsPosNP);
+                    IUUpdateMinMax(&FocusRelPosNP);
+                    FocusMaxPosNP.s = IPS_OK;
+                    IUUpdateMinMax(&FocusMaxPosNP);
+
+                    IUSaveText(&CalibrationMessageT[0], "Calibration Completed.");
+                    IDSetText(&CalibrationMessageTP, nullptr);
+
+                    deleteProperty(FastMoveSP.name);
+                    cStage = Complete;
+
+                    LOG_INFO("Calibration completed");
+                    CalibrationSP.s = IPS_OK;
+                    IDSetSwitch(&CalibrationSP, nullptr);
+                    CalibrationS[current_switch].s = ISS_OFF;
+                    IDSetSwitch(&CalibrationSP, nullptr);
+                }
+                else
+                {
+                    IUSaveText(&CalibrationMessageT[0], "Calibration not in process");
+                    IDSetText(&CalibrationMessageTP, nullptr);
+                }
+
             }
-
-            FocusAbsPosN[0].min   = LimitsN[SS_MIN_LIMIT].value;
-            FocusAbsPosN[0].max   = LimitsN[SS_MAX_LIMIT].value;
-            FocusAbsPosN[0].value = 0;
-            FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
-
-            FocusRelPosN[0].min   = 0.;
-            FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
-            FocusRelPosN[0].value = 0;
-            FocusRelPosN[0].step  = FocusAbsPosN[0].step;
-
-            IUUpdateMinMax(&FocusAbsPosNP);
-            IUUpdateMinMax(&FocusMaxPosNP);
-
-            saveConfig(true, LimitsNP.name);
-
-            LOG_INFO("Focuser limits are updated.");
-
             return true;
         }
-    }
+        else if (!strcmp(name, FastMoveSP.name))
+        {
+            IUUpdateSwitch(&FastMoveSP, states, names, n);
+            int current_switch = IUFindOnSwitchIndex(&FastMoveSP);
 
-    return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+            switch (current_switch)
+            {
+                case FASTMOVE_IN:
+                    if (sendCommand("#FI!") == false)
+                    {
+                        return false;
+                    }
+                    break;
+                case FASTMOVE_OUT:
+                    if (sendCommand("#FO!") == false)
+                    {
+                        return false;
+                    }
+                    break;
+                case FASTMOVE_STOP:
+                    if (sendCommand("#MA!") == false)
+                    {
+                        return false;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            FastMoveSP.s = IPS_BUSY;
+            IDSetSwitch(&FastMoveSP, nullptr);
+            return true;
+        }
+
+    }
+    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
-#endif
 
 IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
     char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, 16, "#GT%d!", targetTicks);
+    snprintf(cmd, 16, "#GT%u!", targetTicks);
     if (isSimulation() == false)
     {
         if (sendCommand(cmd) == false)
@@ -493,7 +595,11 @@ void SestoSenso::checkMotionProgressHelper(void *context)
 {
     static_cast<SestoSenso*>(context)->checkMotionProgressCallback();
 }
-
+//
+// This timer function is initiated when a GT command has been issued
+// A timer will call this function on a regular interval during the motion
+// Modified the code to exit when motion is complete
+//
 void SestoSenso::checkMotionProgressCallback()
 {
     if (isMotionComplete())
@@ -502,7 +608,9 @@ void SestoSenso::checkMotionProgressCallback()
         FocusRelPosNP.s = IPS_OK;
         IDSetNumber(&FocusRelPosNP, nullptr);
         IDSetNumber(&FocusAbsPosNP, nullptr);
+        lastPos = FocusAbsPosN[0].value;
         LOG_INFO("Focuser reached requested position.");
+        return;
     }
     else
         IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -515,7 +623,7 @@ void SestoSenso::checkMotionProgressCallback()
 
 void SestoSenso::TimerHit()
 {
-    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY || CalibrationSP.s == IPS_BUSY)
     {
         SetTimer(POLLMS);
         return;
@@ -542,6 +650,7 @@ void SestoSenso::TimerHit()
                 lastTemperature = TemperatureN[0].value;
             }
         }
+        m_TemperatureCounter = 0;   // Reset the counter
     }
 
     SetTimer(POLLMS);
@@ -554,7 +663,7 @@ bool SestoSenso::getStartupValues()
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
     if (updateMaxLimit() == false)
-        LOG_WARN("SestoSenso firmware is old, please update it to benefit from all features.");
+        LOG_WARN("Check you have the latest SestoSenso firmware. Focuser requires calibration.");
 
     return (rc1);
 }
@@ -633,5 +742,5 @@ void SestoSenso::hexDump(char * buf, const char * data, int size)
 bool SestoSenso::ReverseFocuser(bool enable)
 {
     INDI_UNUSED(enable);
-    return true;
+    return false;
 }

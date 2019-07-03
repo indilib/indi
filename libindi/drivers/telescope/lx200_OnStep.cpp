@@ -117,8 +117,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
     IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
     IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    
-    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
+
+    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
     IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
 
     IUFillSwitch(&TrackCompS[0], "1", "Full Compensation", ISS_OFF);

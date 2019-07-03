@@ -1,0 +1,94 @@
+qtkeychain (0.9.0-1) unstable; urgency=medium
+
+  * new upstream release (Closes: #866308) (Closes: #900556).
+  * Updated copyright information.
+  * Add new build dependencies (pkg-config and libsecret-1).
+  * Switch to Qt5 as default build.
+  * Bump compat level:
+    - remove parallel from rules
+  * Bump Standrds-Version (no changes needed)
+  * Fix "Future Qt4 removal from Buster" (Closes: #875152)
+    - remove libqtkeychain1 and qtkeychain from package build.
+    - do not build Qt4 interface anymore.
+  * Use secure url link in copyright.
+  * Bump compat level to 11 (no changes needed).
+  * Use Priority optional instead of extra.
+  * Update Vsc links to salsa.
+  * Update Standards-Version to 4.1.5 (no changes needed)
+
+ -- Sandro Knauß <hefee@debian.org>  Wed, 18 Jul 2018 17:35:08 +0200
+
+qtkeychain (0.7.0-3) unstable; urgency=medium
+
+  * Added Breaks and Replaces for Qt4 and Qt5 version.
+    Thanks to Alf Gaida (Closes: #842416)
+
+ -- Sandro Knauß <hefee@debian.org>  Sat, 29 Oct 2016 00:37:41 +0200
+
+qtkeychain (0.7.0-2) unstable; urgency=medium
+
+  * Upload to unstable to start transition.
+  * Update my mail address to debian.org address
+
+ -- Sandro Knauß <hefee@debian.org>  Fri, 28 Oct 2016 13:29:23 +0200
+
+qtkeychain (0.7.0-1) experimental; urgency=medium
+
+  * New upstream release
+  * Bump Standards-Version (no changes needed)
+  * Bump SONAME and packagename, because of ABI breakage.
+  * Securify uris to debian git.
+
+ -- Sandro Knauß <hefee@debian.org>  Sat, 22 Oct 2016 01:03:37 +0200
+
+qtkeychain (0.5.0-1) unstable; urgency=medium
+
+  * New upstream release
+  * Updated d/watch file
+  * Updated d/copyright with current year
+  * Make buildable with GCC-5 (Closes: #778089)
+  * Bumped Standards-Version: No changes needed
+
+ -- Sandro Knauß <hefee@debian.org>  Mon, 01 Jun 2015 22:41:45 +0200
+
+qtkeychain (0.4.0-1) unstable; urgency=medium
+
+  * New upstream release:
+    - Improved desktop environment detection at runtime (Closes: #755349)
+  * Replaced hardening-wrapper with dpkg-buildflags
+  * Bumped compat to 9 to have dpkg-buildflags available
+  * Removed private symbols from libs
+
+ -- Sandro Knauß <hefee@debian.org>  Thu, 04 Sep 2014 17:30:43 +0200
+
+qtkeychain (0.3.0-2) unstable; urgency=medium
+
+  * Building lib for qt4 and qt5.
+  * Added packages libqt5keychain0 and qt5keychain-dev
+  * Added symbols for libqt5keychain0
+
+ -- Sandro Knauß <hefee@debian.org>  Tue, 01 Apr 2014 12:54:47 +0200
+
+qtkeychain (0.3.0-1) unstable; urgency=medium
+
+  * New upstream release. (Closes: #735043)
+  * Added gnome-keyring|kwalletmanager as recommends
+  * Updated debian/libqtkeychain0.symbols
+  * Updated debian/copyright
+  * Bumped Standards-Version
+
+ -- Sandro Knauß <hefee@debian.org>  Thu, 20 Mar 2014 13:09:16 +0100
+
+qtkeychain (0.1.0-2) unstable; urgency=low
+
+  * FTBFS on !linux: libraries left in /usr/lib (Closes: #710340)
+  * Added patch use_system_GNUInstallDirs.cmake
+  * use githubredir.debian.net for watch file
+
+ -- Sandro Knauß <hefee@debian.org>  Fri, 27 Sep 2013 14:19:13 +0200
+
+qtkeychain (0.1.0-1) unstable; urgency=low
+
+  * Initial release (Closes: #699687)
+
+ -- Sandro Knauß <hefee@debian.org>  Mon, 13 May 2013 01:39:05 +0200

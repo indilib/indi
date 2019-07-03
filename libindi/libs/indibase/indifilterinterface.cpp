@@ -124,7 +124,7 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
 
             if (FilterNameT != nullptr)
             {
-                for (int i=0; i < FilterNameTP->ntp; i++)
+                for (int i = 0; i < FilterNameTP->ntp; i++)
                     free(FilterNameT[i].text);
                 delete [] FilterNameT;
             }
@@ -194,7 +194,7 @@ void FilterInterface::generateSampleFilters()
 
     if (FilterNameT != nullptr)
     {
-        for (int i=0; i < FilterNameTP->ntp; i++)
+        for (int i = 0; i < FilterNameTP->ntp; i++)
             free(FilterNameT[i].text);
         delete [] FilterNameT;
     }
@@ -219,14 +219,14 @@ bool FilterInterface::GetFilterNames()
     {
         generateSampleFilters();
 
-//        // JM 2018-07-09: Set loadingFromConfig to true here before calling loadConfig
-//        // since if loadConfig is successful, ISNewText could be executed _before_ we have a chance
-//        // to set loadFromConfig below
-//        loadingFromConfig = true;
+        //        // JM 2018-07-09: Set loadingFromConfig to true here before calling loadConfig
+        //        // since if loadConfig is successful, ISNewText could be executed _before_ we have a chance
+        //        // to set loadFromConfig below
+        //        loadingFromConfig = true;
 
-//        // If property is found, let's define it once loaded to the client and delete
-//        // the generate sample filters above
-//        loadingFromConfig = m_defaultDevice->loadConfig(true, "FILTER_NAME");
+        //        // If property is found, let's define it once loaded to the client and delete
+        //        // the generate sample filters above
+        //        loadingFromConfig = m_defaultDevice->loadConfig(true, "FILTER_NAME");
     }
 
     return true;
@@ -247,7 +247,7 @@ bool FilterInterface::loadFilterNames()
     char filterName[MAXINDINAME] = {0};
     char errmsg[MAXRBUF];
     LilXML *lp = newLilXML();
-    int nelem=0;
+    int nelem = 0;
 
     FILE *fp = IUGetConfigFP(nullptr, m_defaultDevice->getDefaultName(), "r", errmsg);
 
@@ -288,7 +288,7 @@ bool FilterInterface::loadFilterNames()
             memset(FilterNameT, 0, sizeof(IText) * nelem);
 
             XMLEle *oneText = nullptr;
-            uint8_t counter=0;
+            uint8_t counter = 0;
 
             for (oneText = nextXMLEle(root, 1); oneText != nullptr; oneText = nextXMLEle(root, 0))
             {

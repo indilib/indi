@@ -491,10 +491,8 @@ bool EQ500X::ReadScopeStatus()
         else
         {
             LOG_INFO("Slew is complete. Tracking...");
-            sendCmd(":Q#:RG#");
-            IUResetSwitch(&SlewRateSP);
-            SlewRateS[adjustments[0].switch_index].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, nullptr);
+            sendCmd(":Q#");
+            updateSlewRate(savedSlewRateIndex);
             adjustment = nullptr;
             POLLMS = 1000;
             TrackState = SCOPE_TRACKING;
@@ -520,11 +518,9 @@ bool EQ500X::ReadScopeStatus()
 
 slew_failure:
     // If we failed at some point, attempt to stop moving and update properties with error
-    sendCmd(":Q#:RG#");
+    sendCmd(":Q#");
+    updateSlewRate(savedSlewRateIndex);
     adjustment = nullptr;
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[adjustments[0].switch_index].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
     POLLMS = 1000;
     TrackState = SCOPE_TRACKING;
     currentRA = currentMechPosition.RAsky();
@@ -550,7 +546,7 @@ bool EQ500X::Goto(double ra, double dec)
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
     {
-        if (!isSimulation() && abortSlew(PortFD) < 0)
+        if (!Abort())
         {
             AbortSP.s = IPS_ALERT;
             IDSetSwitch(&AbortSP, "Abort slew failed.");
@@ -606,6 +602,9 @@ bool EQ500X::Goto(double ra, double dec)
 
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
+
+    // Remember current slew rate
+    savedSlewRateIndex = static_cast <enum TelescopeSlewRate> (IUFindOnSwitchIndex(&SlewRateSP));
 
     // Format RA/DEC for logs
     char RAStr[16]={0}, DecStr[16]={0};
@@ -664,7 +663,7 @@ bool EQ500X::Abort()
 {
     POLLMS = 1000;
     TrackState = SCOPE_TRACKING;
-    return LX200Telescope::Abort();
+    return LX200Telescope::Abort() && updateSlewRate(savedSlewRateIndex);
 }
 
 void EQ500X::setPierSide(TelescopePierSide side)
