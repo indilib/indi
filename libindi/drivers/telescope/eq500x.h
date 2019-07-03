@@ -104,6 +104,7 @@ private:
     // Current adjustment rate
     struct _adjustment const * adjustment {nullptr};
     bool _gotoEngaged {false};
+    enum TelescopeSlewRate savedSlewRateIndex {SLEW_MAX};
 };
 
 #endif // EQ500X_H

@@ -797,7 +797,7 @@ bool INDI::BaseClientQt::getDevices(std::vector<INDI::BaseDevice *> &deviceList,
 {
     for (INDI::BaseDevice *device : cDevices)
     {
-        if (device->getDriverInterface() | driverInterface)
+        if (device->getDriverInterface() & driverInterface)
             deviceList.push_back(device);
     }
 

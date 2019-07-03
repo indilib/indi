@@ -31,9 +31,10 @@
 #include <memory>
 #include <cstring>
 #include <unistd.h>
+#include <termios.h>
 
 // We declare an auto pointer to SQM.
-std::unique_ptr<SQM> sqm(new SQM());
+static std::unique_ptr<SQM> sqm(new SQM());
 
 #define UNIT_TAB    "Unit"
 
@@ -76,7 +77,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SQM::SQM()
 {
-    setVersion(1, 0);
+    setVersion(1, 2);
 }
 
 bool SQM::initProperties()
@@ -104,7 +105,10 @@ bool SQM::initProperties()
     if (sqmConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return getDeviceInfo(); });
+        serialConnection->registerHandshake([&]()
+        {
+            return getDeviceInfo();
+        });
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
         registerConnection(serialConnection);
     }
@@ -114,12 +118,19 @@ bool SQM::initProperties()
         tcpConnection = new Connection::TCP(this);
         tcpConnection->setDefaultHost("192.168.1.1");
         tcpConnection->setDefaultPort(10001);
-        tcpConnection->registerHandshake([&]() { return getDeviceInfo(); });
+        tcpConnection->registerHandshake([&]()
+        {
+            return getDeviceInfo();
+        });
 
         registerConnection(tcpConnection);
     }
 
     addDebugControl();
+    addPollPeriodControl();
+
+    // Check every 10s
+    setDefaultPollingPeriod(10000);
 
     return true;
 }
@@ -148,9 +159,11 @@ bool SQM::updateProperties()
 bool SQM::getReadings()
 {
     const char *cmd = "rx";
-    char buffer[57]={0};
+    char buffer[57] = {0};
 
-    LOGF_DEBUG("CMD: %s", cmd);
+    tcflush(PortFD, TCIOFLUSH);
+
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     ssize_t written = write(PortFD, cmd, 2);
 
@@ -180,7 +193,9 @@ bool SQM::getReadings()
         return false;
     }
 
-    LOGF_DEBUG("RES: %s", buffer);
+    LOGF_DEBUG("RES <%s>", buffer);
+
+    tcflush(PortFD, TCIOFLUSH);
 
     float mpsas, period_seconds, temperature;
     int frequency, period_counts;
@@ -204,20 +219,24 @@ bool SQM::getReadings()
 
 const char *SQM::getDefaultName()
 {
-    return (const char *)"SQM";
+    return "SQM";
 }
 
 bool SQM::getDeviceInfo()
 {
     const char *cmd = "ix";
-    char buffer[39]={0};
+    char buffer[39] = {0};
 
-    if (getActiveConnection() == serialConnection) {
+    if (getActiveConnection() == serialConnection)
+    {
         PortFD = serialConnection->getPortFD();
-    } else if (getActiveConnection() == tcpConnection) {
+    }
+    else if (getActiveConnection() == tcpConnection)
+    {
         PortFD = tcpConnection->getPortFD();
     }
-    LOGF_DEBUG("CMD: %s", cmd);
+
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     ssize_t written = write(PortFD, cmd, 2);
 
@@ -247,7 +266,7 @@ bool SQM::getDeviceInfo()
         return false;
     }
 
-    LOGF_DEBUG("RES: %s", buffer);
+    LOGF_DEBUG("RES <%s>", buffer);
 
     int protocol, model, feature, serial;
     int rc = sscanf(buffer, "i,%d,%d,%d,%d", &protocol, &model, &feature, &serial);

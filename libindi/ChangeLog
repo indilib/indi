@@ -1,3 +1,16 @@
+From 1.7.8 to 1.7.9
+
+      + New Astromechanic Light Pollution Meter driver.
+      + New FCUSB driver.
+      + SestoSenso driver motion issues resolved.
+      + LX200 drivers can operate over TCP.
+      + Fix TCFS issue when temperature sensor is not connected.
+      + Experimental support for KMTronic USB Relay Serial for Nikon cameras.
+      + Fix RA drift with HEQ5 firmware 106.
+      + Added dead-zones to joystick driver.
+      + Update ASI EAF SDK to version 0.1.0524.
+      + QHY SDK updated to 5.0.9.
+
 From 1.7.7 to 1.7.8
 
       + New Omegon EQ500X mount driver.
