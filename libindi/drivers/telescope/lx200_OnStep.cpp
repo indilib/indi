@@ -43,7 +43,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
     
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 10 );
     
     //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODE Already inherited from lx200generic,
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
@@ -98,7 +98,24 @@ bool LX200_OnStep::initProperties()
     // ============== OPTION_TAB
 
     // ============== MOTION_CONTROL_TAB
-
+    //Override the standard slew rate command. Also add appropriate description. This also makes it work in Ekos Mount Control correctly
+    //Note that SlewRateSP and MaxSlewRateNP BOTH track the rate. I have left them in there because MaxRateNP reports OnStep Values
+    uint8_t nSlewRate = 10;
+    free(SlewRateS);
+    SlewRateS = (ISwitch *)malloc(sizeof(ISwitch) * nSlewRate);
+    // 0=.25X 1=.5x 2=1x 3=2x 4=4x 5=8x 6=24x 7=48x 8=half-MaxRate 9=MaxRate
+    IUFillSwitch(&SlewRateS[0], "0", "0.25x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[1], "1", "0.5x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[2], "2", "1x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[3], "3", "2x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[4], "4", "4x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[5], "5", "8x", ISS_ON);
+    IUFillSwitch(&SlewRateS[6], "6", "24x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
+    IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
     IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
     IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
 
@@ -512,6 +529,10 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             MaxSlewRateNP.s           = IPS_OK;
             MaxSlewRateNP.np[0].value = values[0];
             IDSetNumber(&MaxSlewRateNP, "Slewrate set to %04.1f", values[0]);
+	    IUResetSwitch(&SlewRateSP);
+	    SlewRateS[int(values[0])].s = ISS_ON;
+	    SlewRateSP.s = IPS_OK;
+	    IDSetSwitch(&SlewRateSP, nullptr);
             return true;
         }
 
@@ -758,7 +779,36 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&ReticSP, nullptr);
             return true;
         }
-
+        //Move to more standard controls
+        if (!strcmp(name, SlewRateSP.name))
+	{
+		IUUpdateSwitch(&SlewRateSP, states, names, n);
+		int ret;
+		char cmd[4];
+		int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
+		snprintf(cmd, 4, ":R%d#", index);
+		ret = sendOnStepCommandBlind(cmd);
+		
+		//if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
+		if (ret == -1)
+		{
+			LOGF_DEBUG("Pas OK Return value =%d", ret);
+			LOGF_DEBUG("Setting Max Slew Rate to %u\n", index);
+			SlewRateSP.s = IPS_ALERT;
+			IDSetSwitch(&SlewRateSP, "Setting Max Slew Rate Failed");
+			return false;
+		}
+		LOGF_INFO("Setting Max Slew Rate to %u\n", index);
+		LOGF_DEBUG("OK Return value =%d", ret);
+		MaxSlewRateNP.s           = IPS_OK;
+		MaxSlewRateNP.np[0].value = index;
+		IDSetNumber(&MaxSlewRateNP, "Slewrate set to %d", index);
+		IUResetSwitch(&SlewRateSP);
+		SlewRateS[index].s = ISS_ON;
+		SlewRateSP.s = IPS_OK;
+		IDSetSwitch(&SlewRateSP, nullptr);
+		return true;
+	}
         // Homing, Cold and Warm Init
         if (!strcmp(name, SetHomeSP.name))
         {
@@ -1365,6 +1415,12 @@ bool LX200_OnStep::ReadScopeStatus()
         return false;
     }
 
+#ifdef OnStep_Alpha    
+    OSSupports_bitfield_Gu = try_bitfield_Gu();
+    
+    if (!OSSupports_bitfield_Gu) {
+	    //Fall back to :GU parsing
+#endif    
     getCommandString(PortFD,OSStat,":GU#"); // :GU# returns a string containg controller status
     if (strcmp(OSStat,OldOSStat) != 0)  //if status changed
     {
@@ -1530,6 +1586,113 @@ bool LX200_OnStep::ReadScopeStatus()
     
     
     Lasterror=(Errors)(OSStat[strlen(OSStat)-1]-'0');
+    
+    
+#ifdef OnStep_Alpha // For the moment, for :Gu
+    } else {
+	getCommandString(PortFD,OSStat,":GU#"); // :GU# returns a string containg controller status
+	if (strcmp(OSStat,OldOSStat) != 0)  //if status changed
+	{ 
+		//Ignored for now.     
+	}
+	//Byte 0: Current Status
+	if (OSStat[0] & 0b10000001 == 0b10000001) {
+		//Not tracking
+	}
+	if (OSStat[0] & 0b10000010 == 0b10000010) {
+		//No goto
+	}
+	if (OSStat[0] & 0b10000100 == 0b10000100) {
+		// PPS sync
+	}
+	if (OSStat[0] & 0b10001000 == 0b10001000) {
+		// Guide active
+	}
+	//Refraction and Number of axis handled differently for now, might combine to one variable. 
+	// reply[0]|=0b11010000;                       // Refr enabled Single axis
+	// reply[0]|=0b10010000;                       // Refr enabled
+	// reply[0]|=0b11100000;                       // OnTrack enabled Single axis
+	// reply[0]|=0b10100000;                       // OnTrack enabled
+	if ((OSStat[0] & 0b10010000 == 0b10010000 || OSStat[0] & 0b10100000 == 0b10100000)) //On, either refractory only (r) or full (t)
+	{
+		if (OSStat[0] & 0b10100000 == 0b10100000) { IUSaveText(&OnstepStat[2],"Full Comp"); }
+		if (OSStat[0] & 0b10010000 == 0b10010000) { IUSaveText(&OnstepStat[2],"Refractory Comp"); }
+		if (OSStat[0] & 0b11000000 == 0b11000000) {
+			IUSaveText(&OnstepStat[8],"Single Axis"); 
+		} else { 
+			IUSaveText(&OnstepStat[8],"2-Axis"); 
+		}
+	} else {
+		IUSaveText(&OnstepStat[2],"Refractoring Off");
+		IUSaveText(&OnstepStat[8],"N/A");
+	}
+	//Byte 1: Standard tracking rates
+	if (OSStat[1] & 0b10000001 == 0b10000001) {
+		// Lunar rate selected
+	}
+	if (OSStat[1] & 0b10000010 == 0b10000010) {
+		// Solar rate selected
+	}
+	if (OSStat[1] & 0b10000011 == 0b10000011) {
+		// King rate selected
+	}
+	//Byte 2: Flags
+	if (OSStat[2] & 0b10000001 == 0b10000001) {
+		// At home
+	}
+	if (OSStat[2] & 0b10000010 == 0b10000010) {
+		// Waiting at home
+	}
+	if (OSStat[2] & 0b10000100 == 0b10000100) {
+		// Pause at home enabled?
+	}
+	if (OSStat[2] & 0b10001000 == 0b10001000) {
+		// Buzzer enabled?
+	}
+	if (OSStat[2] & 0b10010000 == 0b10010000) {
+		// Auto meridian flip
+	}
+	if (OSStat[2] & 0b10100000 == 0b10100000) {
+		// PEC data has been recorded
+	}
+	//Byte 3: Mount type and info
+	if (OSStat[3] & 0b10000001 == 0b10000001) {
+		// GEM
+	}
+	if (OSStat[3] & 0b10000010 == 0b10000010) {
+		// FORK
+	}
+	if (OSStat[3] & 0b10000100 == 0b10000100) {
+		// Fork Alt
+	}
+	if (OSStat[3] & 0b10001000 == 0b10001000) {
+		// ALTAZM
+	}
+	if (OSStat[3] & 0b10010000 == 0b10010000) {
+		// Pier side none
+	}
+	if (OSStat[3] & 0b10100000 == 0b10100000) {
+		// Pier side east
+	}
+	if (OSStat[3] & 0b11000000 == 0b11000000) {
+		// Pier side west
+	}
+	//     Byte 4: PEC
+	PECStatusGU = OSStat[4] & 0b01111111;
+	if (OSStat[4] == 0) {
+		// AltAZM, no PEC possible 
+		PECStatusGU=0;
+	} else {
+		//    PEC status: 0 ignore, 1 get ready to play, 2 playing, 3 get ready to record, 4 recording
+	}
+	ParkStatusGU = OSStat[5] & 0b01111111;
+	PulseGuideGU = OSStat[6] & 0b01111111;
+	GuideRateGU = OSStat[7] & 0b01111111;
+	LastError = OSStat[8] & 0b01111111;
+    }
+#endif
+    
+    
     switch (Lasterror) {
 	case ERR_NONE:
 		IUSaveText(&OnstepStat[7],"None"); 
@@ -1691,7 +1854,10 @@ bool LX200_OnStep::ReadScopeStatus()
     
     
     OSUpdateFocuser();  // Update Focuser Position
+#ifndef OnStep_Alpha
     PECStatus(0);
+    //#Gu# has this built in
+#endif
     NewRaDec(currentRA, currentDEC);
     return true;
     }
@@ -1874,7 +2040,7 @@ IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
 	//            Returns: Nothing
 	if (FocusAbsPosN[0].max >= int(targetTicks) && FocusAbsPosN[0].min <= int(targetTicks)) {
 		char read_buffer[32];
-		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", targetTicks);
+		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", int(targetTicks));
 		sendOnStepCommandBlind(read_buffer);
 		return IPS_BUSY; // Normal case, should be set to normal by update. 
 	} else {

@@ -87,6 +87,8 @@
 
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED};
+enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BOTH}; //To allow for using one variable instead of two in the future
+
 
 
 class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
@@ -289,7 +291,12 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
 
     char OSPier[RB_MAX_LEN];
     char OldOSPier[RB_MAX_LEN];
-
+    
+    bool OSSeparate_Pulse_Guide_Rate = false; 
+    bool OSSupports_bitfield_Gu = false;
+    uint8_t PECStatusGU = 0;
+    uint8_t ParkStatusGU = 0;
+    
   private:
     int currentCatalog;
     int currentSubCatalog;
