@@ -33,6 +33,8 @@
 #define OUTPUT_TAB "Outputs"
 
 #define ONSTEP_TIMEOUT  3
+#define RA_AXIS     0
+#define DEC_AXIS    1
 
 LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 {
@@ -43,7 +45,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
     
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 10 );
     
     //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODE Already inherited from lx200generic,
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
@@ -98,8 +100,25 @@ bool LX200_OnStep::initProperties()
     // ============== OPTION_TAB
 
     // ============== MOTION_CONTROL_TAB
+    //Override the standard slew rate command. Also add appropriate description. This also makes it work in Ekos Mount Control correctly
+    //Note that SlewRateSP and MaxSlewRateNP BOTH track the rate. I have left them in there because MaxRateNP reports OnStep Values
+    uint8_t nSlewRate = 10;
+    free(SlewRateS);
+    SlewRateS = (ISwitch *)malloc(sizeof(ISwitch) * nSlewRate);
+    // 0=.25X 1=.5x 2=1x 3=2x 4=4x 5=8x 6=24x 7=48x 8=half-MaxRate 9=MaxRate
+    IUFillSwitch(&SlewRateS[0], "0", "0.25x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[1], "1", "0.5x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[2], "2", "1x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[3], "3", "2x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[4], "4", "4x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[5], "5", "8x", ISS_ON);
+    IUFillSwitch(&SlewRateS[6], "6", "24x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
+    IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
+    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
     IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
 
     IUFillSwitch(&TrackCompS[0], "1", "Full Compensation", ISS_OFF);
@@ -114,6 +133,10 @@ bool LX200_OnStep::initProperties()
     IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
     IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
     IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
+    
+    IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.25, 0.5);
+    IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.25, 0.5);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RO, 0, IPS_IDLE);
     
     IUFillSwitch(&AutoFlipS[0], "1", "AutoFlip: OFF", ISS_OFF);
     IUFillSwitch(&AutoFlipS[1], "2", "AutoFlip: ON", ISS_OFF);
@@ -221,7 +244,9 @@ bool LX200_OnStep::initProperties()
     
     IUFillSwitch(&OSNAlignWriteS[0], "0", "Write Align to NVRAM/Flash", ISS_OFF);
     IUFillSwitchVector(&OSNAlignWriteSP, OSNAlignWriteS, 1, getDeviceName(), "NewAlignStar2", "NVRAM", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    
+    IUFillSwitch(&OSNAlignPolarRealignS[0], "0", "Instructions", ISS_OFF);
+    IUFillSwitch(&OSNAlignPolarRealignS[1], "1", "Refine Polar Align (manually)", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignPolarRealignSP, OSNAlignPolarRealignS, 2, getDeviceName(), "AlignMP", "Polar Correction, See info box", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
     IUFillText(&OSNAlignT[0], "0", "Align Process Status", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
@@ -277,6 +302,8 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[8], "Multi-Axis Tracking", "", "");
     IUFillTextVector(&OnstepStatTP, OnstepStat, 9, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
+
+    
     setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
 
     return true;
@@ -310,6 +337,7 @@ bool LX200_OnStep::updateProperties()
         defineSwitch(&TrackCompSP);
 	defineSwitch(&TrackAxisSP);
         defineNumber(&BacklashNP);
+	defineNumber(&GuideRateNP);
         defineSwitch(&AutoFlipSP);
         defineSwitch(&HomePauseSP);
         defineSwitch(&FrequencyAdjustSP);
@@ -356,6 +384,7 @@ bool LX200_OnStep::updateProperties()
 	defineSwitch(&OSNAlignWriteSP);
         defineText(&OSNAlignTP);
         defineText(&OSNAlignErrTP);
+	defineSwitch(&OSNAlignPolarRealignSP);
     #ifdef ONSTEP_NOTDONE
         //Outputs
         defineSwitch(&OSOutput1SP);
@@ -407,6 +436,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(TrackCompSP.name);
 	deleteProperty(TrackAxisSP.name);
         deleteProperty(BacklashNP.name);
+	deleteProperty(GuideRateNP.name);
         deleteProperty(AutoFlipSP.name);
         deleteProperty(HomePauseSP.name);
         deleteProperty(FrequencyAdjustSP.name);
@@ -444,6 +474,7 @@ bool LX200_OnStep::updateProperties()
 	deleteProperty(OSNAlignWriteSP.name);
         deleteProperty(OSNAlignTP.name);
         deleteProperty(OSNAlignErrTP.name);
+	deleteProperty(OSNAlignPolarRealignSP.name);
     #ifdef ONSTEP_NOTDONE
         //Outputs
         deleteProperty(OSOutput1SP.name);
@@ -512,6 +543,10 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             MaxSlewRateNP.s           = IPS_OK;
             MaxSlewRateNP.np[0].value = values[0];
             IDSetNumber(&MaxSlewRateNP, "Slewrate set to %04.1f", values[0]);
+	    IUResetSwitch(&SlewRateSP);
+	    SlewRateS[int(values[0])].s = ISS_ON;
+	    SlewRateSP.s = IPS_OK;
+	    IDSetSwitch(&SlewRateSP, nullptr);
             return true;
         }
 
@@ -758,7 +793,36 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&ReticSP, nullptr);
             return true;
         }
-
+        //Move to more standard controls
+        if (!strcmp(name, SlewRateSP.name))
+	{
+		IUUpdateSwitch(&SlewRateSP, states, names, n);
+		int ret;
+		char cmd[4];
+		int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
+		snprintf(cmd, 4, ":R%d#", index);
+		ret = sendOnStepCommandBlind(cmd);
+		
+		//if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
+		if (ret == -1)
+		{
+			LOGF_DEBUG("Pas OK Return value =%d", ret);
+			LOGF_DEBUG("Setting Max Slew Rate to %u\n", index);
+			SlewRateSP.s = IPS_ALERT;
+			IDSetSwitch(&SlewRateSP, "Setting Max Slew Rate Failed");
+			return false;
+		}
+		LOGF_INFO("Setting Max Slew Rate to %u\n", index);
+		LOGF_DEBUG("OK Return value =%d", ret);
+		MaxSlewRateNP.s           = IPS_OK;
+		MaxSlewRateNP.np[0].value = index;
+		IDSetNumber(&MaxSlewRateNP, "Slewrate set to %d", index);
+		IUResetSwitch(&SlewRateSP);
+		SlewRateS[index].s = ISS_ON;
+		SlewRateSP.s = IPS_OK;
+		IDSetSwitch(&SlewRateSP, nullptr);
+		return true;
+	}
         // Homing, Cold and Warm Init
         if (!strcmp(name, SetHomeSP.name))
         {
@@ -1190,6 +1254,49 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		IDSetSwitch(&OSNAlignWriteSP, nullptr);
 		UpdateAlignStatus();
 	}
+	
+	if (!strcmp(name, OSNAlignPolarRealignSP.name))
+	{
+		char cmd[10];
+		if (IUUpdateSwitch(&OSNAlignPolarRealignSP, states, names, n) < 0)
+			return false;
+		
+// 		index = IUFindOnSwitchIndex(&OSNAlignPolarRealignS);
+		
+		OSNAlignPolarRealignSP.s = IPS_BUSY;
+// 		if (index == 0)
+		if (OSNAlignPolarRealignS[0].s == ISS_ON) //INFO
+		{
+			OSNAlignPolarRealignS[0].s = ISS_OFF;
+			LOG_INFO("Step 1: Goto a bright star between 50 and 80 degrees N/S from the pole. Preferably on the Meridian.");
+			LOG_INFO("Step 2: Make sure it is centered.");
+			LOG_INFO("Step 3: Press Refine Polar Alignment.");
+			LOG_INFO("Step 4: Using the mount's Alt and Az screws manually recenter the star. (Video mode if your camera supports it will be helpful.)");
+			LOG_INFO("Optional: Start a new alignment.");
+			IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
+			UpdateAlignStatus();
+			return true;
+		}
+		if (OSNAlignPolarRealignS[1].s == ISS_ON) //Command
+		{
+			OSNAlignPolarRealignS[1].s = ISS_OFF;
+// 			int returncode=sendOnStepCommand("
+			snprintf(cmd, 5, ":MP#");
+			sendOnStepCommandBlind(cmd);
+			if (!sendOnStepCommandBlind(":MP#"))
+			{
+				IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment successful");
+				UpdateAlignStatus();
+				OSNAlignPolarRealignSP.s = IPS_OK;
+				return true;
+			} else {
+				IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment FAILED");
+				UpdateAlignStatus();
+				OSNAlignPolarRealignSP.s = IPS_ALERT;
+				return false;
+			}
+		}
+	}
 
 #ifdef ONSTEP_NOTDONE	
 	if (!strcmp(name, OSOutput1SP.name))      // 
@@ -1348,6 +1455,7 @@ bool LX200_OnStep::ReadScopeStatus()
 {
     char OSbacklashDEC[RB_MAX_LEN];
     char OSbacklashRA[RB_MAX_LEN];
+    char GuideValue[RB_MAX_LEN];
     char TempValue[RB_MAX_LEN];
     char TempValue2[RB_MAX_LEN];
     Errors Lasterror = ERR_NONE;
@@ -1365,6 +1473,12 @@ bool LX200_OnStep::ReadScopeStatus()
         return false;
     }
 
+#ifdef OnStep_Alpha    
+    OSSupports_bitfield_Gu = try_bitfield_Gu();
+    
+    if (!OSSupports_bitfield_Gu) {
+	    //Fall back to :GU parsing
+#endif    
     getCommandString(PortFD,OSStat,":GU#"); // :GU# returns a string containg controller status
     if (strcmp(OSStat,OldOSStat) != 0)  //if status changed
     {
@@ -1530,6 +1644,153 @@ bool LX200_OnStep::ReadScopeStatus()
     
     
     Lasterror=(Errors)(OSStat[strlen(OSStat)-1]-'0');
+    
+    
+#ifdef OnStep_Alpha // For the moment, for :Gu
+    } else {
+	getCommandString(PortFD,OSStat,":Gu#"); // :Gu# returns a string containg controller status that's bitpacked
+	if (strcmp(OSStat,OldOSStat) != 0)  //if status changed
+	{ 
+		//Ignored for now.     
+	}
+	//Byte 0: Current Status
+	if (OSStat[0] & 0b10000001 == 0b10000001) {
+		//Not tracking
+	}
+	if (OSStat[0] & 0b10000010 == 0b10000010) {
+		//No goto
+	}
+	if (OSStat[0] & 0b10000100 == 0b10000100) {
+		// PPS sync
+		IUSaveText(&OnstepStat[5],"PPS / GPS Sync Ok");
+	} else {
+		IUSaveText(&OnstepStat[5],"N/A");
+	}
+	if (OSStat[0] & 0b10001000 == 0b10001000) {
+		// Guide active
+	}
+	//Refraction and Number of axis handled differently for now, might combine to one variable. 
+	// reply[0]|=0b11010000;                       // Refr enabled Single axis
+	// reply[0]|=0b10010000;                       // Refr enabled
+	// reply[0]|=0b11100000;                       // OnTrack enabled Single axis
+	// reply[0]|=0b10100000;                       // OnTrack enabled
+	if ((OSStat[0] & 0b10010000 == 0b10010000 || OSStat[0] & 0b10100000 == 0b10100000)) //On, either refractory only (r) or full (t)
+	{
+		if (OSStat[0] & 0b10100000 == 0b10100000) { IUSaveText(&OnstepStat[2],"Full Comp"); }
+		if (OSStat[0] & 0b10010000 == 0b10010000) { IUSaveText(&OnstepStat[2],"Refractory Comp"); }
+		if (OSStat[0] & 0b11000000 == 0b11000000) {
+			IUSaveText(&OnstepStat[8],"Single Axis"); 
+		} else { 
+			IUSaveText(&OnstepStat[8],"2-Axis"); 
+		}
+	} else {
+		IUSaveText(&OnstepStat[2],"Refractoring Off");
+		IUSaveText(&OnstepStat[8],"N/A");
+	}
+	//Byte 1: Standard tracking rates
+	if (OSStat[1] & 0b10000001 == 0b10000001) {
+		// Lunar rate selected
+	}
+	if (OSStat[1] & 0b10000010 == 0b10000010) {
+		// Solar rate selected
+	}
+	if (OSStat[1] & 0b10000011 == 0b10000011) {
+		// King rate selected
+	}
+	//Byte 2: Flags
+	if (OSStat[2] & 0b10000001 == 0b10000001) {
+		// At home
+	}
+	if (OSStat[2] & 0b10000010 == 0b10000010) {
+		// Waiting at home
+		IUSaveText(&OnstepStat[3],"Waiting at Home");
+	}
+	if (OSStat[2] & 0b10000100 == 0b10000100) {
+		// Pause at home enabled?
+		//AutoPauseAtHome
+		HomePauseS[1].s = ISS_ON;
+		HomePauseSP.s = IPS_OK;
+		IDSetSwitch(&HomePauseSP, "Pause at Home Enabled");
+	} else {
+		HomePauseS[0].s=ISS_ON;
+		HomePauseSP.s = IPS_OK;
+		IDSetSwitch(&HomePauseSP, nullptr);
+	}
+	if (OSStat[2] & 0b10001000 == 0b10001000) {
+		// Buzzer enabled?
+	}
+	if (OSStat[2] & 0b10010000 == 0b10010000) {
+		// Auto meridian flip
+		AutoFlipS[1].s = ISS_ON;
+		AutoFlipSP.s = IPS_OK;
+		IDSetSwitch(&AutoFlipSP, nullptr);
+	} else {
+		AutoFlipS[0].s=ISS_ON;
+		AutoFlipSP.s = IPS_OK;
+		IDSetSwitch(&AutoFlipSP, nullptr);
+	}
+	if (OSStat[2] & 0b10100000 == 0b10100000) {
+		// PEC data has been recorded
+	}
+
+	
+	
+	
+	//Byte 3: Mount type and info
+	if (OSStat[3] & 0b10000001 == 0b10000001) {
+		// GEM
+		IUSaveText(&OnstepStat[6],"German Mount"); 
+		OSMountType = 0;
+	}
+	if (OSStat[3] & 0b10000010 == 0b10000010) {
+		// FORK
+		IUSaveText(&OnstepStat[6],"Fork Mount"); 
+		OSMountType = 1;
+	}
+	if (OSStat[3] & 0b10000100 == 0b10000100) {
+		// Fork Alt
+		IUSaveText(&OnstepStat[6],"Fork Alt Mount"); 
+		OSMountType = 2;
+	}
+	if (OSStat[3] & 0b10001000 == 0b10001000) {
+		// ALTAZM
+		IUSaveText(&OnstepStat[6],"AltAZ Mount"); 
+		OSMountType = 3;
+	}
+	
+	
+	setPierSide(PIER_UNKNOWN);
+	if (OSStat[3] & 0b10010000 == 0b10010000) {
+		// Pier side none
+		setPierSide(PIER_UNKNOWN);
+		// INDI doesn't account for 'None'
+	}
+	if (OSStat[3] & 0b10100000 == 0b10100000) {
+		// Pier side east
+		setPierSide(PIER_EAST);
+	}
+	if (OSStat[3] & 0b11000000 == 0b11000000) {
+		// Pier side west
+		setPierSide(PIER_WEST);
+	}
+	//     Byte 4: PEC
+	PECStatusGU = OSStat[4] & 0b01111111;
+	if (OSStat[4] == 0) {
+		// AltAZM, no PEC possible 
+		PECStatusGU=0;
+	} else {
+		//    PEC status: 0 ignore, 1 get ready to play, 2 playing, 3 get ready to record, 4 recording
+		
+		
+	}
+	ParkStatusGU = OSStat[5] & 0b01111111;
+	PulseGuideGU = OSStat[6] & 0b01111111;
+	GuideRateGU = OSStat[7] & 0b01111111;
+	LastError = OSStat[8] & 0b01111111;
+    }
+#endif
+    
+    
     switch (Lasterror) {
 	case ERR_NONE:
 		IUSaveText(&OnstepStat[7],"None"); 
@@ -1604,7 +1865,9 @@ bool LX200_OnStep::ReadScopeStatus()
 		IUSaveText(&OnstepStat[7],"Unknown Error"); 
 		break;
     }
+    }
 
+#ifndef OnStep_Alpha
     // Get actual Pier Side
     getCommandString(PortFD,OSPier,":Gm#");
     if (strcmp(OSPier, OldOSPier) !=0)  // any change ?
@@ -1629,6 +1892,7 @@ bool LX200_OnStep::ReadScopeStatus()
         break;
         }
     }
+#endif
 
     //========== Get actual Backlash values
     getCommandString(PortFD,OSbacklashDEC, ":%BD#");
@@ -1637,12 +1901,18 @@ bool LX200_OnStep::ReadScopeStatus()
     BacklashNP.np[1].value = atof(OSbacklashRA);
     IDSetNumber(&BacklashNP, nullptr);
     
-    getCommandString(PortFD,OSbacklashDEC, ":%BD#");
-    getCommandString(PortFD,OSbacklashRA, ":%BR#");
-    BacklashNP.np[0].value = atof(OSbacklashDEC);
-    BacklashNP.np[1].value = atof(OSbacklashRA);
-    IDSetNumber(&BacklashNP, nullptr);
+    double pulseguiderate;
+    getCommandString(PortFD, GuideValue, ":GX90#");
+//     LOGF_DEBUG("Guide Rate String: %s", GuideValue);
+    pulseguiderate=atof(GuideValue);
+    LOGF_DEBUG("Guide Rate: %f", pulseguiderate);
+    GuideRateNP.np[0].value = pulseguiderate;
+    GuideRateNP.np[1].value = pulseguiderate;
+    IDSetNumber(&GuideRateNP, nullptr);
     
+    
+
+#ifndef OnStep_Alpha
     //AutoFlip
     getCommandString(PortFD,TempValue,":GX95#");
     if (atoi(TempValue)) {
@@ -1654,6 +1924,7 @@ bool LX200_OnStep::ReadScopeStatus()
 	AutoFlipSP.s = IPS_OK;
 	IDSetSwitch(&AutoFlipSP, nullptr);
     }
+#endif
     
     //PreferredPierSide
     getCommandString(PortFD,TempValue,":GX96#");
@@ -1691,10 +1962,14 @@ bool LX200_OnStep::ReadScopeStatus()
     
     
     OSUpdateFocuser();  // Update Focuser Position
+#ifndef OnStep_Alpha
     PECStatus(0);
+    //#Gu# has this built in
+#endif
+    
+    
     NewRaDec(currentRA, currentDEC);
     return true;
-    }
 }
 
 
@@ -1874,7 +2149,7 @@ IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
 	//            Returns: Nothing
 	if (FocusAbsPosN[0].max >= int(targetTicks) && FocusAbsPosN[0].min <= int(targetTicks)) {
 		char read_buffer[32];
-		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", targetTicks);
+		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", int(targetTicks));
 		sendOnStepCommandBlind(read_buffer);
 		return IPS_BUSY; // Normal case, should be set to normal by update.
   }
@@ -2119,8 +2394,11 @@ IPState LX200_OnStep::AlignStartGeometric (int stars){
 	}
 	snprintf(cmd, sizeof(cmd), ":A%.1d#", stars);
 	LOGF_INFO("Started Align with %s, max possible: %d", cmd, max_stars);
-	sendOnStepCommandBlind(cmd);
-	return IPS_BUSY;
+	if(sendOnStepCommand(cmd)){
+		LOG_INFO("Starting Align failed");
+		return IPS_BUSY;
+	}
+	return IPS_ALERT;
 }
 
 
@@ -2129,7 +2407,8 @@ IPState LX200_OnStep::AlignAddStar (){
 	char cmd[8];
 	LOG_INFO("Sending Command to Record Star");
 	strcpy(cmd, ":A+#");
-	if(sendOnStepCommandBlind(cmd)) {
+	if(sendOnStepCommand(cmd)) {
+		LOG_INFO("Adding Align failed");
 		return IPS_BUSY;
 	}
 	return IPS_ALERT;
@@ -2154,7 +2433,7 @@ bool LX200_OnStep::UpdateAlignStatus ()
 		LOGF_INFO("Align Status response Error, response = %s>", read_buffer);
 		return false;
 	}
-// 	LOGF_INFO("Gettng Align Status: %s", read_buffer);
+// 	LOGF_INFO("Getting Align Status: %s", read_buffer);
 	max_stars = read_buffer[0] - '0';
 	current_star = read_buffer[1] - '0';
 	align_stars = read_buffer[2] - '0';
@@ -2164,8 +2443,8 @@ bool LX200_OnStep::UpdateAlignStatus ()
 	IUSaveText(&OSNAlignT[6],stars);
 	snprintf(stars, sizeof(stars), "%d", align_stars);
 	IUSaveText(&OSNAlignT[7],stars);
-	
-	
+	LOGF_DEBUG("Align: max_stars: %i current star: %u, align_stars %u", max_stars, current_star, align_stars);
+
 /*	if (align_stars > max_stars) {
 		LOGF_ERROR("Failed Sanity check, can't have more stars than max: :A?# gives: %s", read_buffer);
 		return false;
@@ -2176,8 +2455,9 @@ bool LX200_OnStep::UpdateAlignStatus ()
 		snprintf(msg, sizeof(msg), "%s Manual Align: Star %d/%d", read_buffer, current_star, align_stars );
 		IUSaveText(&OSNAlignT[4],msg);
 	}
-	if (current_star > align_stars)
+	if (current_star > align_stars && max_stars > 1)
 	{
+		LOGF_DEBUG("Align: current star: %u, align_stars %u", int(current_star), int(align_stars));
 		snprintf(msg, sizeof(msg), "Manual Align: Completed");
 		AlignDone();
 		IUSaveText(&OSNAlignT[4],msg);
