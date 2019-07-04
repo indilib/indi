@@ -267,14 +267,10 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
 void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams)
 {
-    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
-    {
-        std::unique_lock<std::mutex> guard(dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock);
-    }
-    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
-    {
-        std::unique_lock<std::mutex> guard(dynamic_cast<INDI::Detector*>(currentDevice)->detectorBufferLock);
-    }
+    std::unique_lock<std::mutex> guard((currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) ?
+                                       dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock :
+                                       dynamic_cast<INDI::Detector*>(currentDevice)->detectorBufferLock);
+
     // For streaming, downscale 16 to 8
     if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
     {

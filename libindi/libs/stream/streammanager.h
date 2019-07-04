@@ -157,10 +157,13 @@ class StreamManager
         {
             return (isStreaming() || isRecording());
         }
-        //uint8_t getTargetFPS() { return static_cast<uint8_t>(StreamOptionsN[OPTION_TARGET_FPS].value); }
         double getTargetFPS()
         {
             return 1.0 / StreamExposureN[0].value;
+        }
+        double getTargetExposure()
+        {
+            return StreamExposureN[0].value;
         }
 
         uint8_t *getDownscaleBuffer()
