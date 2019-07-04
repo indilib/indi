@@ -270,6 +270,8 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitch OSNAlignS[4];
     ISwitchVectorProperty OSNAlignWriteSP;
     ISwitch OSNAlignWriteS[1];
+    ISwitchVectorProperty OSNAlignPolarRealignSP;   
+    ISwitch OSNAlignPolarRealignS[2];
     IText OSNAlignT[8] {};
     ITextVectorProperty OSNAlignTP;
     IText OSNAlignErrT[4] {};
