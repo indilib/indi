@@ -244,7 +244,9 @@ bool LX200_OnStep::initProperties()
     
     IUFillSwitch(&OSNAlignWriteS[0], "0", "Write Align to NVRAM/Flash", ISS_OFF);
     IUFillSwitchVector(&OSNAlignWriteSP, OSNAlignWriteS, 1, getDeviceName(), "NewAlignStar2", "NVRAM", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    
+    IUFillSwitch(&OSNAlignPolarRealignS[0], "0", "Instructions", ISS_OFF);
+    IUFillSwitch(&OSNAlignPolarRealignS[1], "1", "Refine Polar Align (manually)", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignPolarRealignSP, OSNAlignPolarRealignS, 2, getDeviceName(), "AlignMP", "Polar Correction, See info box", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
     IUFillText(&OSNAlignT[0], "0", "Align Process Status", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
@@ -382,6 +384,7 @@ bool LX200_OnStep::updateProperties()
 	defineSwitch(&OSNAlignWriteSP);
         defineText(&OSNAlignTP);
         defineText(&OSNAlignErrTP);
+	defineSwitch(&OSNAlignPolarRealignSP);
     #ifdef ONSTEP_NOTDONE
         //Outputs
         defineSwitch(&OSOutput1SP);
@@ -471,6 +474,7 @@ bool LX200_OnStep::updateProperties()
 	deleteProperty(OSNAlignWriteSP.name);
         deleteProperty(OSNAlignTP.name);
         deleteProperty(OSNAlignErrTP.name);
+	deleteProperty(OSNAlignPolarRealignSP.name);
     #ifdef ONSTEP_NOTDONE
         //Outputs
         deleteProperty(OSOutput1SP.name);
@@ -1249,6 +1253,49 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		}
 		IDSetSwitch(&OSNAlignWriteSP, nullptr);
 		UpdateAlignStatus();
+	}
+	
+	if (!strcmp(name, OSNAlignPolarRealignSP.name))
+	{
+		char cmd[10];
+		if (IUUpdateSwitch(&OSNAlignPolarRealignSP, states, names, n) < 0)
+			return false;
+		
+// 		index = IUFindOnSwitchIndex(&OSNAlignPolarRealignS);
+		
+		OSNAlignPolarRealignSP.s = IPS_BUSY;
+// 		if (index == 0)
+		if (OSNAlignPolarRealignS[0].s == ISS_ON) //INFO
+		{
+			OSNAlignPolarRealignS[0].s = ISS_OFF;
+			LOG_INFO("Step 1: Goto a bright star between 50 and 80 degrees N/S from the pole. Preferably on the Meridian.");
+			LOG_INFO("Step 2: Make sure it is centered.");
+			LOG_INFO("Step 3: Press Refine Polar Alignment.");
+			LOG_INFO("Step 4: Using the mount's Alt and Az screws manually recenter the star. (Video mode if your camera supports it will be helpful.)");
+			LOG_INFO("Optional: Start a new alignment.");
+			IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
+			UpdateAlignStatus();
+			return true;
+		}
+		if (OSNAlignPolarRealignS[1].s == ISS_ON) //Command
+		{
+			OSNAlignPolarRealignS[1].s = ISS_OFF;
+// 			int returncode=sendOnStepCommand("
+			snprintf(cmd, 5, ":MP#");
+			sendOnStepCommandBlind(cmd);
+			if (!sendOnStepCommandBlind(":MP#"))
+			{
+				IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment successful");
+				UpdateAlignStatus();
+				OSNAlignPolarRealignSP.s = IPS_OK;
+				return true;
+			} else {
+				IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment FAILED");
+				UpdateAlignStatus();
+				OSNAlignPolarRealignSP.s = IPS_ALERT;
+				return false;
+			}
+		}
 	}
 
 #ifdef ONSTEP_NOTDONE	
