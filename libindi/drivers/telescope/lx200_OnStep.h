@@ -117,7 +117,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual bool ReadScopeStatus() override;
     virtual int setSiteLongitude(int fd, double Long);
     virtual bool SetTrackRate(double raRate, double deRate) override;
-    
+    virtual void slewError(int slewCode) override; 
     
     //Mount information 
     int OSMountType = 0;
