@@ -117,8 +117,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
     IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
     IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    
-    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
+
+    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
     IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
 
     IUFillSwitch(&TrackCompS[0], "1", "Full Compensation", ISS_OFF);
@@ -248,7 +248,9 @@ bool LX200_OnStep::initProperties()
     
     IUFillSwitch(&OSNAlignWriteS[0], "0", "Write Align to NVRAM/Flash", ISS_OFF);
     IUFillSwitchVector(&OSNAlignWriteSP, OSNAlignWriteS, 1, getDeviceName(), "NewAlignStar2", "NVRAM", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    
+    IUFillSwitch(&OSNAlignPolarRealignS[0], "0", "Instructions", ISS_OFF);
+    IUFillSwitch(&OSNAlignPolarRealignS[1], "1", "Refine Polar Align (manually)", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignPolarRealignSP, OSNAlignPolarRealignS, 2, getDeviceName(), "AlignMP", "Polar Correction, See info box", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
     IUFillText(&OSNAlignT[0], "0", "Align Process Status", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
@@ -386,6 +388,7 @@ bool LX200_OnStep::updateProperties()
 	defineSwitch(&OSNAlignWriteSP);
         defineText(&OSNAlignTP);
         defineText(&OSNAlignErrTP);
+	defineSwitch(&OSNAlignPolarRealignSP);
     #ifdef ONSTEP_NOTDONE
         //Outputs
         defineSwitch(&OSOutput1SP);
@@ -475,6 +478,7 @@ bool LX200_OnStep::updateProperties()
 	deleteProperty(OSNAlignWriteSP.name);
         deleteProperty(OSNAlignTP.name);
         deleteProperty(OSNAlignErrTP.name);
+	deleteProperty(OSNAlignPolarRealignSP.name);
     #ifdef ONSTEP_NOTDONE
         //Outputs
         deleteProperty(OSOutput1SP.name);
@@ -1251,6 +1255,49 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		}
 		IDSetSwitch(&OSNAlignWriteSP, nullptr);
 		UpdateAlignStatus();
+	}
+	
+	if (!strcmp(name, OSNAlignPolarRealignSP.name))
+	{
+		char cmd[10];
+		if (IUUpdateSwitch(&OSNAlignPolarRealignSP, states, names, n) < 0)
+			return false;
+		
+// 		index = IUFindOnSwitchIndex(&OSNAlignPolarRealignS);
+		
+		OSNAlignPolarRealignSP.s = IPS_BUSY;
+// 		if (index == 0)
+		if (OSNAlignPolarRealignS[0].s == ISS_ON) //INFO
+		{
+			OSNAlignPolarRealignS[0].s = ISS_OFF;
+			LOG_INFO("Step 1: Goto a bright star between 50 and 80 degrees N/S from the pole. Preferably on the Meridian.");
+			LOG_INFO("Step 2: Make sure it is centered.");
+			LOG_INFO("Step 3: Press Refine Polar Alignment.");
+			LOG_INFO("Step 4: Using the mount's Alt and Az screws manually recenter the star. (Video mode if your camera supports it will be helpful.)");
+			LOG_INFO("Optional: Start a new alignment.");
+			IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
+			UpdateAlignStatus();
+			return true;
+		}
+		if (OSNAlignPolarRealignS[1].s == ISS_ON) //Command
+		{
+			OSNAlignPolarRealignS[1].s = ISS_OFF;
+// 			int returncode=sendOnStepCommand("
+			snprintf(cmd, 5, ":MP#");
+			sendOnStepCommandBlind(cmd);
+			if (!sendOnStepCommandBlind(":MP#"))
+			{
+				IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment successful");
+				UpdateAlignStatus();
+				OSNAlignPolarRealignSP.s = IPS_OK;
+				return true;
+			} else {
+				IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment FAILED");
+				UpdateAlignStatus();
+				OSNAlignPolarRealignSP.s = IPS_ALERT;
+				return false;
+			}
+		}
 	}
 
 #ifdef ONSTEP_NOTDONE	
@@ -2643,4 +2690,55 @@ bool LX200_OnStep::SetTrackRate(double raRate, double deRate) {
 	}
 	LOG_INFO("RA and DE Rates succesfully set");
 	return true;
+}
+
+void LX200_OnStep::slewError(int slewCode)
+{
+	//         0=Goto is possible
+	//         1=below the horizon limit
+	//         2=above overhead limit
+	//         3=controller in standby
+	//         4=mount is parked
+	//         5=Goto in progress
+	//         6=outside limits (MaxDec, MinDec, UnderPoleLimit, MeridianLimit)
+	//         7=hardware fault
+	//         8=already in motion
+	//         9=unspecified error
+	switch(slewCode)
+	{
+		case 0:
+			LOG_ERROR("OnStep slewError called with value 0-goto possible, this is normal operation");
+			return;
+		case 1:
+			LOG_ERROR("OnStep slewError: Below the horizon limit");
+			break;
+		case 2:
+			LOG_ERROR("OnStep slewError: Above Overhead limit");
+			break;
+		case 3:
+			LOG_ERROR("OnStep slewError: Controller in standby");
+			break;
+		case 4:
+			LOG_ERROR("OnStep slewError: Mount is Parked");
+			break;
+		case 5:
+			LOG_ERROR("OnStep slewError: Goto in progress");
+			break;
+		case 6:
+			LOG_ERROR("OnStep slewError: Outside limits: Max/Min Dec, Under Pole Limit, Meridian Limit");
+			break;
+		case 7:
+			LOG_ERROR("OnStep slewError: Hardware Fault");
+			break;
+		case 8:
+			LOG_ERROR("OnStep slewError: Already in motion");
+			break;
+		case 9:
+			LOG_ERROR("OnStep slewError: Unspecified Error");
+			break;
+		default:
+			LOG_ERROR("OnStep slewError: Not in range of values that should be returned! INVALID");	
+	}
+	EqNP.s = IPS_ALERT;
+	IDSetNumber(&EqNP, nullptr);
 }
