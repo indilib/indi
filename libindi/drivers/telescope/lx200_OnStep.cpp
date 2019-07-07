@@ -1909,6 +1909,7 @@ bool LX200_OnStep::ReadScopeStatus()
     GuideRateNP.np[0].value = pulseguiderate;
     GuideRateNP.np[1].value = pulseguiderate;
     IDSetNumber(&GuideRateNP, nullptr);
+
     
     
 
