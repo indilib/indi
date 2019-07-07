@@ -1686,15 +1686,17 @@ void GPhotoCCD::AddWidget(gphoto_widget * widget)
             defineNumber(&opt->prop.num);
             break;
         case GP_WIDGET_DATE:
+        {
             //tm = gmtime((time_t *)&widget->value.date);
             //IUFillText(&opt->item.text, widget->name, widget->name, asctime(tm));
-            free(opt->item.text.text);
-            opt->item.text.text = static_cast<char *>(malloc(MAXINDILABEL));
-            strftime(opt->item.text.text, MAXINDILABEL, "%FT%TZ", gmtime(reinterpret_cast<time_t *>(&opt->widget->value.date)));
+            char ts[MAXINDITSTAMP] = {0};
+            strftime(ts, MAXINDILABEL, "%FT%TZ", gmtime(reinterpret_cast<time_t *>(&opt->widget->value.date)));
+            IUFillText(&opt->item.text, widget->name, widget->name, ts);
             IUFillTextVector(&opt->prop.text, &opt->item.text, 1, getDeviceName(), widget->name, widget->name,
                              widget->parent, perm, 60, IPS_IDLE);
             defineText(&opt->prop.text);
-            break;
+        }
+        break;
         default:
             delete opt;
             return;
