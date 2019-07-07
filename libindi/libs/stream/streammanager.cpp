@@ -610,7 +610,7 @@ bool StreamManager::startRecording()
         expfiledir += '/';
     recordfilename.assign(RecordFileTP.tp[1].text);
     expfilename = expand(recordfilename, patterns);
-    if (expfilename.substr(expfilename.size() - 4, 4) != recorder->getExtension())
+    if (expfilename.size() < 4 || expfilename.substr(expfilename.size() - 4, 4) != recorder->getExtension())
         expfilename += recorder->getExtension();
 
     filename = expfiledir + expfilename;
