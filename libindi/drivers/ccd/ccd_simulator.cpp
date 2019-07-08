@@ -598,7 +598,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         if (!usePE)
         {
 #endif
-
             currentRA  = RA;
             currentDE = Dec;
 
@@ -679,14 +678,15 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             FILE * pp;
             int drawn = 0;
 
-            //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPE);
             sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",
                     range360(rad + PEOffset),
                     rangeDec(cameradec),
                     radius,
                     lookuplimit);
 
-            LOGF_DEBUG("%s", gsccmd);
+            if (!Streamer->isStreaming())
+                LOGF_DEBUG("GSC Command: %s", gsccmd);
+
             pp = popen(gsccmd, "r");
             if (pp != nullptr)
             {
@@ -696,8 +696,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
                 while (fgets(line, 256, pp) != nullptr)
                 {
-                    //fprintf(stderr,"%s",line);
-
                     //  ok, lets parse this line for specifcs we want
                     char id[20];
                     char plate[6];
@@ -888,7 +886,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             ptr++;
         }
     }
-
     return 0;
 }
 
@@ -1248,7 +1245,7 @@ int CCDSim::QueryFilter()
 
 bool CCDSim::StartStreaming()
 {
-    ExposureRequest = 1.0 / Streamer->getTargetFPS();
+    ExposureRequest = 1.0 / Streamer->getTargetExposure();
     pthread_mutex_lock(&condMutex);
     streamPredicate = 1;
     pthread_mutex_unlock(&condMutex);
@@ -1306,7 +1303,8 @@ void * CCDSim::streamVideoHelper(void * context)
 
 void * CCDSim::streamVideo()
 {
-    struct itimerval tframe1, tframe2;
+    auto start = std::chrono::high_resolution_clock::now();
+    auto finish = std::chrono::high_resolution_clock::now();
 
     while (true)
     {
@@ -1315,7 +1313,7 @@ void * CCDSim::streamVideo()
         while (streamPredicate == 0)
         {
             pthread_cond_wait(&cv, &condMutex);
-            ExposureRequest = 1.0 / Streamer->getTargetFPS();
+            ExposureRequest = Streamer->getTargetExposure();
         }
 
         if (terminateThread)
@@ -1324,27 +1322,22 @@ void * CCDSim::streamVideo()
         // release condMutex
         pthread_mutex_unlock(&condMutex);
 
-        // Simulate exposure time
-        //usleep(ExposureRequest*1e5);
 
         // 16 bit
         DrawCcdFrame(&PrimaryCCD);
 
         PrimaryCCD.binFrame();
 
-        getitimer(ITIMER_REAL, &tframe1);
+        finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finish - start;
 
-        double s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
-        double s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
-        double deltas = fabs(s2 - s1);
-
-        if (deltas < ExposureRequest)
-            usleep(fabs(ExposureRequest - deltas) * 1e6);
+        if (elapsed.count() < ExposureRequest)
+            usleep(fabs(ExposureRequest - elapsed.count()) * 1e6);
 
         uint32_t size = PrimaryCCD.getFrameBufferSize() / (PrimaryCCD.getBinX() * PrimaryCCD.getBinY());
         Streamer->newFrame(PrimaryCCD.getFrameBuffer(), size);
 
-        getitimer(ITIMER_REAL, &tframe2);
+        start = std::chrono::high_resolution_clock::now();
     }
 
     pthread_mutex_unlock(&condMutex);
