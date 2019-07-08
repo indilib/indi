@@ -1909,6 +1909,7 @@ bool LX200_OnStep::ReadScopeStatus()
     GuideRateNP.np[0].value = pulseguiderate;
     GuideRateNP.np[1].value = pulseguiderate;
     IDSetNumber(&GuideRateNP, nullptr);
+
     
     
 
@@ -2685,4 +2686,55 @@ bool LX200_OnStep::SetTrackRate(double raRate, double deRate) {
 	}
 	LOG_INFO("RA and DE Rates succesfully set");
 	return true;
+}
+
+void LX200_OnStep::slewError(int slewCode)
+{
+	//         0=Goto is possible
+	//         1=below the horizon limit
+	//         2=above overhead limit
+	//         3=controller in standby
+	//         4=mount is parked
+	//         5=Goto in progress
+	//         6=outside limits (MaxDec, MinDec, UnderPoleLimit, MeridianLimit)
+	//         7=hardware fault
+	//         8=already in motion
+	//         9=unspecified error
+	switch(slewCode)
+	{
+		case 0:
+			LOG_ERROR("OnStep slewError called with value 0-goto possible, this is normal operation");
+			return;
+		case 1:
+			LOG_ERROR("OnStep slewError: Below the horizon limit");
+			break;
+		case 2:
+			LOG_ERROR("OnStep slewError: Above Overhead limit");
+			break;
+		case 3:
+			LOG_ERROR("OnStep slewError: Controller in standby");
+			break;
+		case 4:
+			LOG_ERROR("OnStep slewError: Mount is Parked");
+			break;
+		case 5:
+			LOG_ERROR("OnStep slewError: Goto in progress");
+			break;
+		case 6:
+			LOG_ERROR("OnStep slewError: Outside limits: Max/Min Dec, Under Pole Limit, Meridian Limit");
+			break;
+		case 7:
+			LOG_ERROR("OnStep slewError: Hardware Fault");
+			break;
+		case 8:
+			LOG_ERROR("OnStep slewError: Already in motion");
+			break;
+		case 9:
+			LOG_ERROR("OnStep slewError: Unspecified Error");
+			break;
+		default:
+			LOG_ERROR("OnStep slewError: Not in range of values that should be returned! INVALID");	
+	}
+	EqNP.s = IPS_ALERT;
+	IDSetNumber(&EqNP, nullptr);
 }
