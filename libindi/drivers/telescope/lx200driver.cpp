@@ -1293,12 +1293,12 @@ int Slew(int fd)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", slewNum[0]);
 
-    if (slewNum[0] == '0')
-        return 0;
-    else if (slewNum[0] == '1')
-        return 1;
-    else
-        return 2;
+    error_type = slewNum[0] - '0'; 
+    if ((error_type >= 0) && (error_type <= 9)) {
+        return error_type;
+    } else {
+        return -1;
+    }
 }
 
 int MoveTo(int fd, int direction)
