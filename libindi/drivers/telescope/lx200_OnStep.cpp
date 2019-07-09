@@ -1910,6 +1910,7 @@ bool LX200_OnStep::ReadScopeStatus()
     GuideRateNP.np[1].value = pulseguiderate;
     IDSetNumber(&GuideRateNP, nullptr);
 
+
 #ifndef OnStep_Alpha
     //AutoFlip
     getCommandString(PortFD,TempValue,":GX95#");
@@ -2150,7 +2151,11 @@ IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
 		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", int(targetTicks));
 		sendOnStepCommandBlind(read_buffer);
 		return IPS_BUSY; // Normal case, should be set to normal by update.
-  }
+	} else {
+		LOG_INFO("Unable to move focuser, out of range");
+		return IPS_ALERT;
+	}
+	
 }
 IPState LX200_OnStep::MoveRelFocuser (FocusDirection dir, uint32_t ticks) {
 	//  :FRsnnn#  Set focuser target position relative (in microns)
@@ -2176,7 +2181,6 @@ void LX200_OnStep::OSUpdateFocuser()
 {
     char value[RB_MAX_LEN];
     double current = 0;
-    double temp=-1;
 	if (OSFocuser1) {
 	// Alternate option:
 	//if (!sendOnStepCommand(":FA#")) {
@@ -2649,7 +2653,7 @@ bool LX200_OnStep::OSGetOutputState(int output) {
 	//         Returns: value
 	// nn= G0-GF (HEX!) - Output status
 	//
-	char value[64] ="  ";
+	char value[RB_MAX_LEN] ="  ";
 	char command[64]=":$GXGm#";
 	LOGF_INFO("Output: %s", char(output));
 	LOGF_INFO("Command: %s", command);
@@ -2668,7 +2672,7 @@ bool LX200_OnStep::OSGetOutputState(int output) {
 }
 
 bool LX200_OnStep::SetTrackRate(double raRate, double deRate) {
-	char read_buffer[32];
+	char read_buffer[RB_MAX_LEN];
 	snprintf(read_buffer, sizeof(read_buffer), ":RA%04f#", raRate);
 	LOGF_INFO("Setting: RA Rate to %04f", raRate);
 	if (!sendOnStepCommand(read_buffer))
@@ -2700,6 +2704,7 @@ void LX200_OnStep::slewError(int slewCode)
 	switch(slewCode)
 	{
 		case 0:
+<<<<<<< HEAD
 			LOG_ERROR("OnStep slewError called with value 0-goto possible, this is normal operation");
 			return;
 		case 1:
@@ -2731,7 +2736,84 @@ void LX200_OnStep::slewError(int slewCode)
 			break;
 		default:
 			LOG_ERROR("OnStep slewError: Not in range of values that should be returned! INVALID");	
+=======
+			LOG_ERROR("OnStep slewError/slew called with value 0-goto possible, this is normal operation");
+			return;
+		case 1:
+			LOG_ERROR("OnStep slewError/slew: Below the horizon limit");
+			break;
+		case 2:
+			LOG_ERROR("OnStep slewError/slew: Above Overhead limit");
+			break;
+		case 3:
+			LOG_ERROR("OnStep slewError/slew: Controller in standby");
+			break;
+		case 4:
+			LOG_ERROR("OnStep slewError/slew: Mount is Parked");
+			break;
+		case 5:
+			LOG_ERROR("OnStep slewError/slew: Goto in progress");
+			break;
+		case 6:
+			LOG_ERROR("OnStep slewError/slew: Outside limits: Max/Min Dec, Under Pole Limit, Meridian Limit, Sync attempted to wrong pier side");
+			break;
+		case 7:
+			LOG_ERROR("OnStep slewError/slew: Hardware Fault");
+			break;
+		case 8:
+			LOG_ERROR("OnStep slewError/slew: Already in motion");
+			break;
+		case 9:
+			LOG_ERROR("OnStep slewError/slew: Unspecified Error");
+			break;
+		default:
+			LOG_ERROR("OnStep slewError/slew: Not in range of values that should be returned! INVALID, Something went wrong!");	
+>>>>>>> Onstep
 	}
 	EqNP.s = IPS_ALERT;
 	IDSetNumber(&EqNP, nullptr);
 }
+<<<<<<< HEAD
+=======
+
+
+//Override LX200 sync function, to allow for error returns
+bool LX200_OnStep::Sync(double ra, double dec)
+{
+	
+	char read_buffer[RB_MAX_LEN]={0};
+	int error_code;
+	
+	if (!isSimulation()) {
+		if (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0)
+		{
+			EqNP.s = IPS_ALERT;
+			IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+			return false;
+		}
+		LOG_DEBUG("CMD <:CM#>");
+		getCommandString(PortFD, read_buffer, ":CM#");
+		LOGF_DEBUG("RES <%s>", read_buffer);
+		if (strcmp(read_buffer,"N/A"))
+		{
+			error_code = read_buffer[1] - '0';
+			LOGF_DEBUG("Sync failed with response: %s, Error code: %i", read_buffer, error_code);
+			slewError(error_code);
+			EqNP.s = IPS_ALERT;
+			IDSetNumber(&EqNP, "Synchronization failed.");
+			return false;
+		}
+	}
+	
+	currentRA  = ra;
+	currentDEC = dec;
+	
+	LOG_INFO("OnStep: Synchronization successful.");
+	
+	EqNP.s     = IPS_OK;
+	
+	NewRaDec(currentRA, currentDEC);
+	
+	return true;
+}
+>>>>>>> Onstep
