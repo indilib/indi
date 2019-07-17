@@ -161,7 +161,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual bool UpdateAlignStatus();
     virtual bool UpdateAlignErr();
     //End NewGeometricAlignment 
-    
+    bool OSAlignCompleted=false;
     
     //Outputs
     IPState OSEnableOutput(int output);

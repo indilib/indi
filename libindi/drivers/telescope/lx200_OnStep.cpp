@@ -2540,7 +2540,10 @@ bool LX200_OnStep::UpdateAlignErr()
 IPState LX200_OnStep::AlignDone(){
 	//See here https://groups.io/g/onstep/message/3624
 // 	char cmd[8];
-	LOG_INFO("Alignment Done");
+	if (OSAlignCompleted == false) {
+		OSAlignCompleted =true;
+		LOG_INFO("Alignment Done");
+	
 // 	LOG_INFO("Sending Command to Finish Alignment and write");
 // 	strcpy(cmd, ":AW#");
     IUSaveText(&OSNAlignT[0],"Align FINISHED");
@@ -2554,6 +2557,8 @@ IPState LX200_OnStep::AlignDone(){
 // 	IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
     IDSetText(&OSNAlignTP, nullptr);
 	return IPS_OK;
+	}
+	return IPS_BUSY;
 	
 }
 
