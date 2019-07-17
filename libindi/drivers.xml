@@ -123,23 +123,27 @@
         </device>
         <device label="iOptron iEQ30 Pro" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.6</version>
+            <version>1.7</version>
+        </device>
+        <device label="iOptron CEM40" manufacturer="iOptron">
+            <driver name="iEQ">indi_ieq_telescope</driver>
+            <version>1.7</version>
         </device>
         <device label="iOptron iEQ45 Pro" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.6</version>
+            <version>1.7</version>
         </device>
         <device label="iOptron CEM60" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.6</version>
+            <version>1.7</version>
         </device>
         <device label="iOptron CEM25" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.6</version>
+            <version>1.7</version>
         </device>
         <device label="iOptron SmartEQ" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.6</version>
+            <version>1.7</version>
         </device>
         <device label="iOptron ZEQ25" manufacturer="iOptron">
             <driver name="ZEQ25">indi_lx200zeq25</driver>
@@ -364,6 +368,10 @@
         <device label="TruTech Wheel">
             <driver name="TruTech Wheel">indi_trutech_wheel</driver>
             <version>0.1</version>
+        </device>
+        <device label="QHYCFW1">
+            <driver name="QHYCFW1">indi_qhycfw1_wheel</driver>
+            <version>1.2</version>
         </device>
         <device label="QHYCFW2">
             <driver name="QHYCFW2">indi_qhycfw2_wheel</driver>
