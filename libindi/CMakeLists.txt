@@ -1131,6 +1131,14 @@ add_executable(indi_trutech_wheel ${trutechwheel_SRC})
 target_link_libraries(indi_trutech_wheel indidriver)
 install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin)
 
+########## QHYCFW Wheel 1 ############
+SET(qhycfw1_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/qhycfw1.cpp)
+
+add_executable(indi_qhycfw1_wheel ${qhycfw1_SRC})
+target_link_libraries(indi_qhycfw1_wheel indidriver)
+install(TARGETS indi_qhycfw1_wheel RUNTIME DESTINATION bin)
+
 ########## QHYCFW Wheel 2 ############
 SET(qhycfw2_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/qhycfw2.cpp)
