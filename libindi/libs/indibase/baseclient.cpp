@@ -570,17 +570,12 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
     {
         const char *device = findXMLAttValu(root, "device");
         const char *name = findXMLAttValu(root, "name");
-        bool found = false;
-
-        for (auto oneProp : cWatchProperties[device])
-            if (!strcmp(oneProp.c_str(), name))
-            {
-                found = true;
-                break;
-            }
-
-        if (!found)
-            return 0;
+        if (device && name)
+        {
+            if (cWatchProperties.find(device) == cWatchProperties.end() ||
+                    cWatchProperties[device].find(name) == cWatchProperties[device].end())
+                return 0;
+        }
     }
 
     if ((!strcmp(tagXMLEle(root), "defTextVector")) || (!strcmp(tagXMLEle(root), "defNumberVector")) ||
