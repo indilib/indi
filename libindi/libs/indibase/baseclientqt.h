@@ -28,6 +28,8 @@
 
 #include <vector>
 #include <string>
+#include <map>
+#include <set>
 
 #define MAXRBUF 2048
 
@@ -69,6 +71,16 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
             will be created and handled.
         */
         void watchDevice(const char *deviceName);
+
+        /**
+         * @brief watchProperties Add a property to the watch list. When communicating with INDI server.
+         * Thi
+         * The client calls <getProperties device=deviceName property=propertyName/> so that only a particular
+         * property (or list of properties if more than one) are defined back to the client. This function
+         * will call watchDevice(deviceName) as well to limit the traffic to this device.
+         * @param propertyName Property to watch for.
+         */
+        void watchProperty(const char *deviceName, const char *propertyName);
 
         /** \brief Connect to INDI server.
 
@@ -141,7 +153,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
           \param dev name of device, required.
           \param prop name of property, optional.
         */
-        void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = NULL);
+        void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = nullptr);
 
         /**
          * @brief getBLOBMode Get Binary Large Object policy mode IF set previously by setBLOBMode
@@ -149,7 +161,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
          * @param prop property name, can be NULL to return overall device policy if it exists.
          * @return BLOB Policy, if not found, it always returns B_ALSO
          */
-        BLOBHandling getBLOBMode(const char *dev, const char *prop = NULL);
+        BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
 
         // Update
         static void *listenHelper(void *context);
@@ -262,9 +274,10 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
         std::vector<INDI::BaseDevice *> cDevices;
         std::vector<std::string> cDeviceNames;
         std::vector<BLOBMode *> blobModes;
+        std::map<std::string, std::set<std::string>> cWatchProperties;
 
         std::string cServer;
-        unsigned int cPort;
+        uint32_t cPort;
         bool sConnected;
         bool verbose;
 
