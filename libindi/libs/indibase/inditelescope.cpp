@@ -1878,12 +1878,12 @@ bool Telescope::InitPark()
 const char *Telescope::LoadParkXML()
 {
     wordexp_t wexp;
-    FILE *fp;
-    LilXML *lp;
+    FILE *fp = nullptr;
+    LilXML *lp = nullptr;
     static char errmsg[512];
 
-    XMLEle *parkxml;
-    XMLAtt *ap;
+    XMLEle *parkxml = nullptr;
+    XMLAtt *ap = nullptr;
     bool devicefound = false;
 
     ParkDeviceName       = getDeviceName();
@@ -1917,10 +1917,10 @@ const char *Telescope::LoadParkXML()
     if (!ParkdataXmlRoot)
         return errmsg;
 
-    if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
-        return "Not a park data file";
-
     parkxml = nextXMLEle(ParkdataXmlRoot, 1);
+
+    if (!parkxml || !strcmp(tagXMLEle(parkxml), "parkdata"))
+        return "Not a park data file";
 
     while (parkxml)
     {
