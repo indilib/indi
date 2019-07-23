@@ -29,6 +29,8 @@
 #include <iostream>
 #include <thread>
 
+#include <sys/stat.h>
+
 // We declare an auto pointer to SkywatcherAltAzSimple.
 std::unique_ptr<SkywatcherAltAzSimple> SkywatcherAltAzSimplePtr(new SkywatcherAltAzSimple());
 
@@ -42,9 +44,9 @@ namespace
 {
 bool FileExists(const std::string &name)
 {
-    std::ifstream File(name.c_str());
+    struct stat buffer;
 
-    return File.good();
+    return (stat (name.c_str(), &buffer) == 0);
 }
 
 std::string GetLogTimestamp()

@@ -22,6 +22,8 @@
 #include <chrono>
 #include <thread>
 
+#include <sys/stat.h>
+
 using namespace INDI::AlignmentSubsystem;
 
 // We declare an auto pointer to SkywatcherAPIMount.
@@ -37,13 +39,9 @@ namespace
 {
 bool FileExists(const std::string &name)
 {
-    INDI_UNUSED(name);
-    return true;
-#if 0
-    std::ifstream File(name.c_str());
+    struct stat buffer;
 
-    return File.good();
-#endif
+    return (stat (name.c_str(), &buffer) == 0);
 }
 } // namespace
 
