@@ -693,9 +693,24 @@ target_link_libraries(indi_dsc_telescope indidriver AlignmentDriver)
 
 install(TARGETS indi_dsc_telescope RUNTIME DESTINATION bin)
 
-########### IEQ Pro / CEM60 #############
+########### IEQ Pro Legacy #############
+SET(ieqlegacy_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqprolegacydriver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqprolegacy.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(ieqlegacy ieqlegacy_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_ieqlegacy_telescope ${ieqlegacy_SRC})
+
+target_link_libraries(indi_ieqlegacy_telescope indidriver)
+
+install(TARGETS indi_ieqlegacy_telescope RUNTIME DESTINATION bin)
+
+########### IEQ Pro #############
 SET(ieq_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqprodriver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqdriverbase.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqpro.cpp)
 
 IF (UNITY_BUILD)

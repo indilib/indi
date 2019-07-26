@@ -20,16 +20,15 @@
 
 #pragma once
 
-#include <memory>
-
-#include "ieqdriverbase.h"
+#include "ieqprolegacydriver.h"
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 
-class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
+class IEQProLegacy : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
-        IEQPro();
+
+        IEQProLegacy();
 
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -79,7 +78,7 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool SetSlewRate(int index) override;
 
         // Sim
-        //void mountSim();
+        void mountSim();
 
         // Guide
         virtual IPState GuideNorth(uint32_t ms) override;
@@ -129,12 +128,6 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
         double currentRA = 0, currentDEC = 0;
         double targetRA = 0, targetDEC = 0;
 
-        bool canParkNatively { false };
-        bool canFindHome { false };
-        bool canGuideRate { false };
-        bool slewDirty { false };
-
-        iEQ::Base::Info scopeInfo;
-        iEQ::Base::FirmwareInfo firmwareInfo;
-        std::unique_ptr<iEQ::Base> driver;
+        IEQInfo scopeInfo;
+        FirmwareInfo firmwareInfo;
 };
