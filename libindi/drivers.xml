@@ -3,19 +3,19 @@
     <devGroup group="Telescopes">
         <device label="LX200 Basic" manufacturer="Meade">
             <driver name="LX200 Basic">indi_lx200basic</driver>
-            <version>2.0</version>
+            <version>2.1</version>
         </device>
         <device label="LX200 GPS" manufacturer="Meade">
             <driver name="LX200 GPS">indi_lx200gps</driver>
-            <version>2.0</version>
+            <version>2.1</version>
         </device>
         <device label="LX200 Autostar" manufacturer="Meade">
             <driver name="LX200 Autostar">indi_lx200autostar</driver>
-            <version>2.0</version>
+            <version>2.1</version>
         </device>
         <device label="LX200 Classic" manufacturer="Meade">
             <driver name="LX200 Classic">indi_lx200classic</driver>
-            <version>2.0</version>
+            <version>2.1</version>
         </device>
         <device label="LX200 OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
@@ -23,23 +23,23 @@
         </device>
         <device label="LX200 16" manufacturer="Meade">
             <driver name="LX200 16">indi_lx200_16</driver>
-            <version>2.0</version>
+            <version>2.1</version>
         </device>
         <device label="LX90" manufacturer="Meade">
             <driver name="LX200 GPS">indi_lx200gps</driver>
-            <version>2.0</version>
+            <version>2.1</version>
         </device>
         <device label="ETX125" manufacturer="Meade">
             <driver name="LX200 GPS">indi_lx200gps</driver>
-            <version>2.0</version>
+            <version>2.1</version>
         </device>
         <device label="ETX105" manufacturer="Meade">
             <driver name="LX200 GPS">indi_lx200gps</driver>
-            <version>2.0</version>
+            <version>2.1</version>
         </device>
         <device label="ETX90" manufacturer="Meade">
             <driver name="LX200 GPS">indi_lx200gps</driver>
-            <version>2.0</version>
+            <version>2.1</version>
         </device>
         <device label="EQ500X" manufacturer="Omegon">
             <driver name="EQ500X">indi_eq500x_telescope</driver>
