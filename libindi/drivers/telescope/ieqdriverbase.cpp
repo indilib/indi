@@ -345,7 +345,7 @@ bool Base::unpark()
         return false;
 
     char res[DRIVER_LEN] = {0};
-    return sendCommand(":MP0", res, -1, 1);
+    return sendCommand(":MP0#", res, -1, 1);
 }
 
 bool Base::abort()
@@ -509,7 +509,7 @@ bool Base::setLocalTime(int hh, int mm, int ss)
 bool Base::setDST(bool enabled)
 {
     char res[DRIVER_LEN] = {0};
-    return sendCommand(enabled ? ":SDS1#" : ":SDS2#", res, -1, 1);
+    return sendCommand(enabled ? ":SDS1#" : ":SDS0#", res, -1, 1);
 }
 
 bool Base::setUTCOffset(double offset_hours)
@@ -552,7 +552,7 @@ bool Base::getUTCDateTime(double *utc_hours, int *yy, int *mm, int *dd, int *hh,
 {
     char res[DRIVER_LEN] = {0};
 
-    if (sendCommand(":GEC#", res))
+    if (sendCommand(":GLT#", res))
     {
         char utc_str[8] = {0}, yy_str[8] = {0}, mm_str[8] = {0}, dd_str[8] = {0}, hh_str[8] = {0}, minute_str[8] = {0}, ss_str[8] = {0}, dst_str[8] = {0};
 
