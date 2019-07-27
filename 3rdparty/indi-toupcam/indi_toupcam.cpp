@@ -65,6 +65,7 @@ static TOUPCAM *cameras[TOUPCAM_MAX];
 /*    | S_OK           |   Operation successful                | 0x00000000 |   */
 /*    | S_FALSE        |   Operation successful                | 0x00000001 |   */
 /*    | E_FAIL         |   Unspecified failure                 | 0x80004005 |   */
+/*    | E_ACCESSDENIED |   General access denied error         | 0x80070005 |   */
 /*    | E_INVALIDARG   |   One or more arguments are not valid | 0x80070057 |   */
 /*    | E_NOTIMPL      |   Not supported or not implemented    | 0x80004001 |   */
 /*    | E_NOINTERFACE  |   Interface not supported             | 0x80004002 |   */
@@ -72,6 +73,7 @@ static TOUPCAM *cameras[TOUPCAM_MAX];
 /*    | E_UNEXPECTED   |   Unexpected failure                  | 0x8000FFFF |   */
 /*    | E_OUTOFMEMORY  |   Out of memory                       | 0x8007000E |   */
 /*    | E_WRONG_THREAD |   call function in the wrong thread   | 0x8001010E |   */
+/*    | E_GEN_FAILURE  |   device not functioning              | 0x8007001F |   */
 /*    |----------------|---------------------------------------|------------|   */
 /********************************************************************************/
 std::map<int, std::string> TOUPCAM::errorCodes =
@@ -79,13 +81,15 @@ std::map<int, std::string> TOUPCAM::errorCodes =
     {0x00000000, "Operation successful"},
     {0x00000001, "Operation failed"},
     {0x80004005, "Unspecified failure"},
+    {0x80070005, "General access denied error"},
     {0x80070057, "One or more arguments are not valid"},
     {0x80004001, "Not supported or not implemented"},
     {0x80004002, "Interface not supported"},
     {0x80004003, "Pointer that is not valid"},
     {0x8000FFFF, "Unexpected failure"},
     {0x8007000E, "Out of memory"},
-    {0x8001010E, "call function in the wrong thread"}
+    {0x8001010E, "call function in the wrong thread"},
+    {0x8007001F, "device not functioning"}
 };
 
 static void cleanup()
@@ -444,7 +448,7 @@ bool TOUPCAM::updateProperties()
 
 bool TOUPCAM::Connect()
 {
-    LOGF_DEBUG("Attempting to open %s with ID %s", name, m_Instance->id);
+    LOGF_DEBUG("Attempting to open %s with ID %s using SDK version: %s", name, m_Instance->id, Toupcam_Version());
 
     if (isSimulation() == false)
     {
@@ -827,7 +831,7 @@ void TOUPCAM::setupParams()
 
     SetTimer(POLLMS);
 
-    // Start callback
+    //Start pull callback
     if ( (rc = Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this)) != 0)
     {
         LOGF_ERROR("Failed to start camera pull mode. %s", errorCodes[rc].c_str());
@@ -837,6 +841,17 @@ void TOUPCAM::setupParams()
     }
 
     LOG_DEBUG("Starting event callback in pull mode.");
+
+    // Start push callback
+    //    if ( (rc = Toupcam_StartPushModeV3(m_CameraHandle, &TOUPCAM::pushCB, this, &TOUPCAM::eventCB, this)) != 0)
+    //    {
+    //        LOGF_ERROR("Failed to start camera push mode. %s", errorCodes[rc].c_str());
+    //        Disconnect();
+    //        updateProperties();
+    //        return;
+    //    }
+
+    //    LOG_DEBUG("Starting event callback in push mode.");
 }
 
 void TOUPCAM::allocateFrameBuffer()
@@ -1981,6 +1996,86 @@ void TOUPCAM::AutoExposureCB(void* pCtx)
 void TOUPCAM::AutoExposureChanged()
 {
     // TODO
+}
+
+void TOUPCAM::pushCB(const void* pData, const ToupcamFrameInfoV2* pInfo, int bSnap, void* pCallbackCtx)
+{
+    static_cast<TOUPCAM*>(pCallbackCtx)->pushCallback(pData, pInfo, bSnap);
+}
+
+void TOUPCAM::pushCallback(const void* pData, const ToupcamFrameInfoV2* pInfo, int bSnap)
+{
+    //int captureBits = m_BitsPerPixel == 8 ? 8 : m_MaxBitDepth;
+
+    INDI_UNUSED(bSnap);
+
+    if (Streamer->isStreaming())
+    {
+        //std::unique_lock<std::mutex> guard(ccdBufferLock);
+        //HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), captureBits * m_Channels, &info);
+        //guard.unlock();
+        //if (rc >= 0)
+        Streamer->newFrame(reinterpret_cast<const uint8_t*>(pData), PrimaryCCD.getFrameBufferSize());
+    }
+    else if (InExposure)
+    {
+        InExposure  = false;
+        PrimaryCCD.setExposureLeft(0);
+        uint8_t *buffer = PrimaryCCD.getFrameBuffer();
+        uint32_t size = PrimaryCCD.getFrameBufferSize();
+
+        if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
+        {
+            size = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3;
+            buffer = static_cast<uint8_t*>(malloc(size));
+        }
+
+        //        std::unique_lock<std::mutex> guard(ccdBufferLock);
+        //        HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, buffer, captureBits * m_Channels, &info);
+        //        guard.unlock();
+        if (pData == nullptr)
+        {
+            LOG_ERROR("Failed to push image.");
+            PrimaryCCD.setExposureFailed();
+            if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
+                free(buffer);
+        }
+        else
+        {
+            memcpy(buffer, pData, size);
+
+            if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
+            {
+                std::unique_lock<std::mutex> guard(ccdBufferLock);
+                uint8_t *image  = PrimaryCCD.getFrameBuffer();
+                uint32_t width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
+                uint32_t height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
+
+                uint8_t *subR = image;
+                uint8_t *subG = image + width * height;
+                uint8_t *subB = image + width * height * 2;
+                int size      = width * height * 3 - 3;
+
+                // RGB to three sepearate R-frame, G-frame, and B-frame for color FITS
+                for (int i = 0; i <= size; i += 3)
+                {
+                    *subR++ = buffer[i];
+                    *subG++ = buffer[i + 1];
+                    *subB++ = buffer[i + 2];
+                }
+
+                guard.unlock();
+                free(buffer);
+            }
+
+            LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld"
+                       , pInfo->width,
+                       pInfo->height,
+                       pInfo->flag,
+                       pInfo->timestamp);
+            ExposureComplete(&PrimaryCCD);
+        }
+    }
 }
 
 void TOUPCAM::eventCB(unsigned event, void* pCtx)
