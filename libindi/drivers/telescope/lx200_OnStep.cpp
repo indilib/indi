@@ -1549,8 +1549,19 @@ bool LX200_OnStep::ReadScopeStatus()
     IUSaveText(&OnstepStat[0],OSStat);
     if (strstr(OSStat,"n") && strstr(OSStat,"N"))
     {
-        // ============= Telescope Status
-        strcpy(OldOSStat, OSStat);
+        IUSaveText(&OnstepStat[1],"Idle");
+        TrackState=SCOPE_IDLE;
+    }
+    if (strstr(OSStat,"n") && !strstr(OSStat,"N"))
+    {
+        IUSaveText(&OnstepStat[1],"Slewing");
+        TrackState=SCOPE_SLEWING;
+    }
+    if (strstr(OSStat,"N") && !strstr(OSStat,"n"))
+    {
+        IUSaveText(&OnstepStat[1],"Tracking");
+        TrackState=SCOPE_TRACKING;
+    }
 
     // ============= Refractoring
 
@@ -1568,97 +1579,80 @@ bool LX200_OnStep::ReadScopeStatus()
 		IUSaveText(&OnstepStat[8],"N/A");
 	}
 
-        // ============= Refractoring
-        if (strstr(OSStat, "r"))
-        {
-            IUSaveText(&OnstepStat[2], "Refractoring On");
-        }
-        if (strstr(OSStat, "s"))
-        {
-            IUSaveText(&OnstepStat[2], "Refractoring Off");
-        }
-        if (strstr(OSStat, "r") && strstr(OSStat, "t"))
-        {
-            IUSaveText(&OnstepStat[2], "Full Comp");
-        }
-        if (strstr(OSStat, "r") && !strstr(OSStat, "t"))
-        {
-            IUSaveText(&OnstepStat[2], "Refractory Comp");
-        }
 
-        // ============= Parkstatus
-        if(FirstRead)   // it is the first time I read the status so I need to update
+    // ============= Parkstatus
+    if(FirstRead)   // it is the first time I read the status so I need to update
+    {
+        if (strstr(OSStat,"P"))
         {
-            if (strstr(OSStat, "P"))
+            SetParked(true); //defaults to TrackState=SCOPE_PARKED
+            IUSaveText(&OnstepStat[3],"Parked");
+         }
+        if (strstr(OSStat,"F"))
+        {
+            SetParked(false); // defaults to TrackState=SCOPE_IDLE
+            IUSaveText(&OnstepStat[3],"Parking Failed");
+        }
+        if (strstr(OSStat,"I"))
+        {
+            SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
+            TrackState=SCOPE_PARKING;
+            IUSaveText(&OnstepStat[3],"Park in Progress");
+        }
+        if (strstr(OSStat,"p"))
+        {
+            SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
+            if (strstr(OSStat,"nN"))    // azwing need to detect if unparked idle or tracking
             {
-                SetParked(true); //defaults to TrackState=SCOPE_PARKED
-                IUSaveText(&OnstepStat[3], "Parked");
+                IUSaveText(&OnstepStat[1],"Idle");
+                TrackState=SCOPE_IDLE;
             }
-            if (strstr(OSStat, "F"))
+            else TrackState=SCOPE_TRACKING;
+            IUSaveText(&OnstepStat[3],"UnParked");
+        }
+    FirstRead=false;
+    }
+    else
+    {
+        if (!isParked())
+        {
+            if(strstr(OSStat,"P"))
             {
-                SetParked(false); // defaults to TrackState=SCOPE_IDLE
-                IUSaveText(&OnstepStat[3], "Parking Failed");
+                SetParked(true);
+                IUSaveText(&OnstepStat[3],"Parked");
+                //LOG_INFO("OnStep Parking Succeded");
             }
-            if (strstr(OSStat, "I"))
+            if (strstr(OSStat,"I"))
             {
                 SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                TrackState = SCOPE_PARKING;
-                IUSaveText(&OnstepStat[3], "Park in Progress");
+                TrackState=SCOPE_PARKING;
+                IUSaveText(&OnstepStat[3],"Park in Progress");
+                LOG_INFO("OnStep Parking in Progress...");
             }
-            if (strstr(OSStat, "p"))
+        }
+        if (isParked())
+        {
+            if (strstr(OSStat,"F"))
+            {
+                // keep Status even if error  TrackState=SCOPE_IDLE;
+                SetParked(false); //defaults to TrackState=SCOPE_IDLE
+                IUSaveText(&OnstepStat[3],"Parking Failed");
+                LOG_ERROR("OnStep Parking failed, need to re Init OnStep at home");
+            }
+            if (strstr(OSStat,"p"))
             {
                 SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                if (strstr(OSStat, "nN"))   // azwing need to detect if unparked idle or tracking
+                if (strstr(OSStat,"nN"))    // azwing need to detect if unparked idle or tracking
                 {
-                    IUSaveText(&OnstepStat[1], "Idle");
-                    TrackState = SCOPE_IDLE;
+                    IUSaveText(&OnstepStat[1],"Idle");
+                    TrackState=SCOPE_IDLE;
                 }
-                else TrackState = SCOPE_TRACKING;
-                IUSaveText(&OnstepStat[3], "UnParked");
-            }
-            FirstRead = false;
-        }
-        else
-        {
-            if (!isParked())
-            {
-                if(strstr(OSStat, "P"))
-                {
-                    SetParked(true);
-                    IUSaveText(&OnstepStat[3], "Parked");
-                    //LOG_INFO("OnStep Parking Succeded");
-                }
-                if (strstr(OSStat, "I"))
-                {
-                    SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                    TrackState = SCOPE_PARKING;
-                    IUSaveText(&OnstepStat[3], "Park in Progress");
-                    LOG_INFO("OnStep Parking in Progress...");
-                }
-            }
-            if (isParked())
-            {
-                if (strstr(OSStat, "F"))
-                {
-                    // keep Status even if error  TrackState=SCOPE_IDLE;
-                    SetParked(false); //defaults to TrackState=SCOPE_IDLE
-                    IUSaveText(&OnstepStat[3], "Parking Failed");
-                    LOG_ERROR("OnStep Parking failed, need to re Init OnStep at home");
-                }
-                if (strstr(OSStat, "p"))
-                {
-                    SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                    if (strstr(OSStat, "nN"))   // azwing need to detect if unparked idle or tracking
-                    {
-                        IUSaveText(&OnstepStat[1], "Idle");
-                        TrackState = SCOPE_IDLE;
-                    }
-                    else TrackState = SCOPE_TRACKING;
-                    IUSaveText(&OnstepStat[3], "UnParked");
-                    //LOG_INFO("OnStep Unparked...");
-                }
+                else TrackState=SCOPE_TRACKING;
+                IUSaveText(&OnstepStat[3],"UnParked");
+                //LOG_INFO("OnStep Unparked...");
             }
         }
+    }
 
       
     //if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
@@ -1936,34 +1930,34 @@ bool LX200_OnStep::ReadScopeStatus()
 
 #ifndef OnStep_Alpha
     // Get actual Pier Side
-    getCommandString(PortFD, OSPier, ":Gm#");
-    if (strcmp(OSPier, OldOSPier) != 0) // any change ?
+    getCommandString(PortFD,OSPier,":Gm#");
+    if (strcmp(OSPier, OldOSPier) !=0)  // any change ?
     {
         strcpy(OldOSPier, OSPier);
         switch(OSPier[0])
         {
-            case 'E':
-                setPierSide(PIER_EAST);
-                break;
+        case 'E':
+            setPierSide(PIER_EAST);
+        break;
 
-            case 'W':
-                setPierSide(PIER_WEST);
-                break;
+        case 'W':
+            setPierSide(PIER_WEST);
+        break;
 
-            case 'N':
-                setPierSide(PIER_UNKNOWN);
-                break;
+        case 'N':
+            setPierSide(PIER_UNKNOWN);
+        break;
 
-            case '?':
-                setPierSide(PIER_UNKNOWN);
-                break;
+        case '?':
+            setPierSide(PIER_UNKNOWN);
+        break;
         }
     }
 #endif
 
     //========== Get actual Backlash values
-    getCommandString(PortFD, OSbacklashDEC, ":%BD#");
-    getCommandString(PortFD, OSbacklashRA, ":%BR#");
+    getCommandString(PortFD,OSbacklashDEC, ":%BD#");
+    getCommandString(PortFD,OSbacklashRA, ":%BR#");
     BacklashNP.np[0].value = atof(OSbacklashDEC);
     BacklashNP.np[1].value = atof(OSbacklashRA);
     IDSetNumber(&BacklashNP, nullptr);
@@ -1982,51 +1976,41 @@ bool LX200_OnStep::ReadScopeStatus()
 
 #ifndef OnStep_Alpha
     //AutoFlip
-    getCommandString(PortFD, TempValue, ":GX95#");
-    if (atoi(TempValue))
-    {
-        AutoFlipS[1].s = ISS_ON;
-        AutoFlipSP.s = IPS_OK;
-        IDSetSwitch(&AutoFlipSP, nullptr);
-    }
-    else
-    {
-        AutoFlipS[0].s = ISS_ON;
-        AutoFlipSP.s = IPS_OK;
-        IDSetSwitch(&AutoFlipSP, nullptr);
+    getCommandString(PortFD,TempValue,":GX95#");
+    if (atoi(TempValue)) {
+	AutoFlipS[1].s = ISS_ON;
+	AutoFlipSP.s = IPS_OK;
+	IDSetSwitch(&AutoFlipSP, nullptr);
+    } else {
+	AutoFlipS[0].s=ISS_ON;
+	AutoFlipSP.s = IPS_OK;
+	IDSetSwitch(&AutoFlipSP, nullptr);
     }
 #endif
     
     //PreferredPierSide
-    getCommandString(PortFD, TempValue, ":GX96#");
-    if (strstr(TempValue, "W"))
-    {
-        PreferredPierSideS[0].s = ISS_ON;
-        PreferredPierSideSP.s = IPS_OK;
-        IDSetSwitch(&PreferredPierSideSP, nullptr);
-    }
-    else if (strstr(TempValue, "E"))
-    {
-        PreferredPierSideS[1].s = ISS_ON;
-        PreferredPierSideSP.s = IPS_OK;
-        IDSetSwitch(&PreferredPierSideSP, nullptr);
-    }
-    else if (strstr(TempValue, "B"))
-    {
-        PreferredPierSideS[2].s = ISS_ON;
-        PreferredPierSideSP.s = IPS_OK;
-        IDSetSwitch(&PreferredPierSideSP, nullptr);
-    }
-    else
-    {
-        IUResetSwitch(&PreferredPierSideSP);
-        PreferredPierSideSP.s = IPS_BUSY;
-        IDSetSwitch(&PreferredPierSideSP, nullptr);
+    getCommandString(PortFD,TempValue,":GX96#");
+    if (strstr(TempValue,"W")) {
+	PreferredPierSideS[0].s = ISS_ON;
+	PreferredPierSideSP.s = IPS_OK;
+	IDSetSwitch(&PreferredPierSideSP, nullptr);
+    } else if (strstr(TempValue,"E")) {
+	PreferredPierSideS[1].s=ISS_ON;
+	PreferredPierSideSP.s = IPS_OK;
+	IDSetSwitch(&PreferredPierSideSP, nullptr);
+    } else if (strstr(TempValue,"B")) {
+	PreferredPierSideS[2].s=ISS_ON;
+	PreferredPierSideSP.s = IPS_OK;
+	IDSetSwitch(&PreferredPierSideSP, nullptr);
+    } else {
+	IUResetSwitch(&PreferredPierSideSP);
+	PreferredPierSideSP.s = IPS_BUSY;
+	IDSetSwitch(&PreferredPierSideSP, nullptr);
     }
 
-
-    getCommandString(PortFD, TempValue, ":GXE9#"); // E
-    getCommandString(PortFD, TempValue2, ":GXEA#"); // W
+    
+    getCommandString(PortFD,TempValue, ":GXE9#"); // E
+    getCommandString(PortFD,TempValue2, ":GXEA#"); // W 
     minutesPastMeridianNP.np[0].value = atof(TempValue); // E
     minutesPastMeridianNP.np[1].value = atof(TempValue2); //W
     IDSetNumber(&minutesPastMeridianNP, nullptr);
@@ -2034,11 +2018,11 @@ bool LX200_OnStep::ReadScopeStatus()
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, nullptr);
     //Align tab, so it doesn't conflict
-    //May want to reduce frequency of updates
+    //May want to reduce frequency of updates 
     if (!UpdateAlignStatus()) LOG_WARN("Fail Align Command");
     UpdateAlignErr();
-
-
+    
+    
     OSUpdateFocuser();  // Update Focuser Position
 #ifndef OnStep_Alpha
     PECStatus(0);
