@@ -1910,6 +1910,8 @@ bool LX200_OnStep::ReadScopeStatus()
     GuideRateNP.np[1].value = pulseguiderate;
     IDSetNumber(&GuideRateNP, nullptr);
 
+    
+    
 
 #ifndef OnStep_Alpha
     //AutoFlip
@@ -2704,39 +2706,6 @@ void LX200_OnStep::slewError(int slewCode)
 	switch(slewCode)
 	{
 		case 0:
-<<<<<<< HEAD
-			LOG_ERROR("OnStep slewError called with value 0-goto possible, this is normal operation");
-			return;
-		case 1:
-			LOG_ERROR("OnStep slewError: Below the horizon limit");
-			break;
-		case 2:
-			LOG_ERROR("OnStep slewError: Above Overhead limit");
-			break;
-		case 3:
-			LOG_ERROR("OnStep slewError: Controller in standby");
-			break;
-		case 4:
-			LOG_ERROR("OnStep slewError: Mount is Parked");
-			break;
-		case 5:
-			LOG_ERROR("OnStep slewError: Goto in progress");
-			break;
-		case 6:
-			LOG_ERROR("OnStep slewError: Outside limits: Max/Min Dec, Under Pole Limit, Meridian Limit");
-			break;
-		case 7:
-			LOG_ERROR("OnStep slewError: Hardware Fault");
-			break;
-		case 8:
-			LOG_ERROR("OnStep slewError: Already in motion");
-			break;
-		case 9:
-			LOG_ERROR("OnStep slewError: Unspecified Error");
-			break;
-		default:
-			LOG_ERROR("OnStep slewError: Not in range of values that should be returned! INVALID");	
-=======
 			LOG_ERROR("OnStep slewError/slew called with value 0-goto possible, this is normal operation");
 			return;
 		case 1:
@@ -2768,13 +2737,10 @@ void LX200_OnStep::slewError(int slewCode)
 			break;
 		default:
 			LOG_ERROR("OnStep slewError/slew: Not in range of values that should be returned! INVALID, Something went wrong!");	
->>>>>>> Onstep
 	}
 	EqNP.s = IPS_ALERT;
 	IDSetNumber(&EqNP, nullptr);
 }
-<<<<<<< HEAD
-=======
 
 
 //Override LX200 sync function, to allow for error returns
@@ -2816,4 +2782,3 @@ bool LX200_OnStep::Sync(double ra, double dec)
 	
 	return true;
 }
->>>>>>> Onstep
