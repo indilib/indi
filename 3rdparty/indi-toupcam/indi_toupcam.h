@@ -367,6 +367,9 @@ class TOUPCAM : public INDI::CCD
         //#############################################################################
         // Callbacks
         //#############################################################################
+        static void pushCB(const void* pData, const ToupcamFrameInfoV2* pInfo, int bSnap, void* pCallbackCtx);
+        void pushCallback(const void* pData, const ToupcamFrameInfoV2* pInfo, int bSnap);
+
         static void eventCB(unsigned event, void* pCtx);
         void eventPullCallBack(unsigned event);
 

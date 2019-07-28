@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <stdarg.h>
 #include <cstring>
+#include <algorithm>
 
 #ifdef _WINDOWS
 #include <WinSock2.h>
@@ -93,7 +94,18 @@ void INDI::BaseClient::setServer(const char *hostname, unsigned int port)
 
 void INDI::BaseClient::watchDevice(const char *deviceName)
 {
-    cDeviceNames.emplace_back(std::string(deviceName));
+    // Watch for duplicates. Should have used std::set from the beginning but let's
+    // avoid changing API now.
+    if (std::find(cDeviceNames.begin(), cDeviceNames.end(), deviceName) != cDeviceNames.end())
+        return;
+
+    cDeviceNames.emplace_back(deviceName);
+}
+
+void INDI::BaseClient::watchProperty(const char *deviceName, const char *propertyName)
+{
+    watchDevice(deviceName);
+    cWatchProperties[deviceName].insert(propertyName);
 }
 
 bool INDI::BaseClient::connectServer()
@@ -382,17 +394,37 @@ void INDI::BaseClient::listenINDI()
 
     if (cDeviceNames.empty())
     {
-        sendString("<getProperties version='%g'/>\n", INDIV);
+        char cmd[MAXRBUF] = {0};
+        snprintf(cmd, MAXRBUF, "<getProperties version='%g'/>\n", INDIV);
+        sendString(cmd);
         if (verbose)
-            fprintf(stderr, "<getProperties version='%g'/>\n", INDIV);
+            IDLog("%s\n", cmd);
     }
     else
     {
-        for (auto &str : cDeviceNames)
+        for (auto oneDevice : cDeviceNames)
         {
-            sendString("<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
-            if (verbose)
-                IDLog("<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
+            // If there are no specific properties to watch, we watch the complete device
+            if (cWatchProperties.find(oneDevice) == cWatchProperties.end())
+            {
+                char cmd[MAXRBUF] = {0};
+                snprintf(cmd, MAXRBUF, "<getProperties version='%g' device='%s'/>\n", INDIV, oneDevice.c_str());
+                sendString(cmd);
+                if (verbose)
+                    IDLog("%s\n", cmd);
+            }
+            else
+            {
+                for (auto oneProperty : cWatchProperties[oneDevice])
+                {
+                    char cmd[MAXRBUF] = {0};
+                    snprintf(cmd, MAXRBUF, "<getProperties version='%g' device='%s' name='%s'/>\n",
+                             INDIV, oneDevice.c_str(), oneProperty.c_str());
+                    sendString(cmd);
+                    if (verbose)
+                        IDLog("%s\n", cmd);
+                }
+            }
         }
     }
 
@@ -531,6 +563,19 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
 
         // Ignore everything else
         return 0;
+    }
+
+    // If we are asked to watch for specific properties only, we ignore everything else
+    if (cWatchProperties.size() > 0)
+    {
+        const char *device = findXMLAttValu(root, "device");
+        const char *name = findXMLAttValu(root, "name");
+        if (device && name)
+        {
+            if (cWatchProperties.find(device) == cWatchProperties.end() ||
+                    cWatchProperties[device].find(name) == cWatchProperties[device].end())
+                return 0;
+        }
     }
 
     if ((!strcmp(tagXMLEle(root), "defTextVector")) || (!strcmp(tagXMLEle(root), "defNumberVector")) ||

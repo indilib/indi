@@ -217,6 +217,8 @@ class StreamManager
              */
         bool recordStream(const uint8_t *buffer, uint32_t nbytes, double deltams);
 
+        void prepareGammaLUT(double gamma = 2.4, double a = 12.92, double b = 0.055, double Ii = 0.00304);
+
         /* Stream switch */
         ISwitch StreamS[2];
         ISwitchVectorProperty StreamSP;
@@ -293,5 +295,7 @@ class StreamManager
         // Downscale buffer for streaming
         uint8_t *downscaleBuffer = nullptr;
         uint32_t downscaleBufferSize = 0;
+
+        uint8_t *gammaLUT_16_8 = nullptr;
 };
 }

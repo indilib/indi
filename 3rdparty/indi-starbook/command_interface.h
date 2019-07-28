@@ -86,7 +86,8 @@ class CommandInterface
 
         ResponseCode Home()
         {
-            return SendOkCommand("GOHOME?HOME=0"); // as seen in https://github.com/farhi/matlab-starbook
+            // as seen in https://github.com/farhi/matlab-starbook
+            return SendOkCommand("GOHOME?HOME=0");
         }
 
         ResponseCode Stop()
@@ -132,7 +133,7 @@ class CommandInterface
 
         std::string m_Device {"Starbook"};
 
-        CommandResponse SendCommand(std::string command);
+        CommandResponse SendCommand(const std::string &command);
 
         ResponseCode SendOkCommand(const std::string &cmd);
 

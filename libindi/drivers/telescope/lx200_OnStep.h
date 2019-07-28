@@ -92,7 +92,7 @@ enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BO
 
 
 
-class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
+class LX200_OnStep : public LX200Generic
 {
   public:
     LX200_OnStep();
