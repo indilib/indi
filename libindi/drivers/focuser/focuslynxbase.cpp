@@ -2996,11 +2996,23 @@ bool FocusLynxBase::isResponseOK()
         response[nbytes_read - 1] = '\0';
         LOGF_DEBUG("RES (%s)", response);
 
-        if (response[0] == '!')
+        if (!strcmp(response, "!"))
             return true;
         else
         {
-            LOGF_ERROR("Controller error: %s", response);
+            memset(response, 0, sizeof(response));
+            while (strstr(response, "END") == nullptr)
+            {
+                if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+                {
+                    tty_error_msg(errcode, errmsg, MAXRBUF);
+                    LOGF_ERROR("TTY error: %s", errmsg);
+                    return false;
+                }
+                response[nbytes_read - 1] = '\0';
+                LOGF_ERROR("Controller error: %s", response);
+            }
+
             return false;
         }
     }
