@@ -35,7 +35,7 @@
 #include <cstring>
 
 #define LYNXFOCUS_MAX_RETRIES          1
-#define LYNXFOCUS_TIMEOUT              2
+#define LYNXFOCUS_TIMEOUT              3
 #define LYNXFOCUS_MAXBUF               16
 #define LYNXFOCUS_TEMPERATURE_FREQ     20      /* Update every 20 POLLMS cycles. For POLLMS 500ms = 10 seconds freq */
 #define LYNXFOCUS_POSITION_THRESHOLD    5      /* Only send position updates to client if the diff exceeds 5 steps */
@@ -45,7 +45,7 @@
 #define HUB_SETTINGS_TAB "Device"
 
 #define VERSION                 1
-#define SUBVERSION              42
+#define SUBVERSION              43
 
 class FocusLynxBase : public INDI::Focuser
 {

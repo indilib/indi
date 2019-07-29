@@ -1536,7 +1536,15 @@ bool FocusLynxBase::getFocusTemp()
         char compensateMode;
         rc = sscanf(response, "%16[^=]= %c", key, &compensateMode);
         if (rc != 2)
-            return false;
+        {
+            if (rc == 1 && key[0] == 'T'){
+                //If the controller does not support this it could be null. Assume A mode in this case.
+                compensateMode = 'A';
+            }
+            else{
+                return false;
+            }
+        }
 
         IUResetSwitch(&TemperatureCompensateModeSP);
         int index = compensateMode - 'A';
