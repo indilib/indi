@@ -43,6 +43,7 @@ FocusLynxBase::FocusLynxBase()
     //  lynxModels["Optec Gemini (reserved for future use)"] = "OG";
     lynxModels["Optec Leo"] = "OI";
     lynxModels["Optec Leo High-Torque"] = "OJ";
+    lynxModels["Optec Sagitta"] = "OK";
     lynxModels["FocusLynx QuickSync FT Hi-Torque"] = "FA";
     lynxModels["FocusLynx QuickSync FT Hi-Speed"] = "FB";
     //  lynxModels["FocusLynx QuickSync SV (reserved for future use)"] = "FC";
