@@ -1614,6 +1614,8 @@ IPState LX200Telescope::MoveFocuser(FocusDirection dir, int speed, uint16_t dura
 
     SetFocuserSpeed(speed);
 
+    setFocuserMotion(PortFD, finalDirection);
+
     IEAddTimer(duration, &LX200Telescope::updateFocusHelper, this);
 
     return IPS_BUSY;
