@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include <string.h>
 #include <libgpsmm.h>
 
 #include <libnova/julian_day.h>
@@ -35,7 +36,7 @@
 #include <memory>
 
 // We declare an auto pointer to GPSD.
-std::unique_ptr<GPSD> gpsd(new GPSD());
+static std::unique_ptr<GPSD> gpsd(new GPSD());
 
 void ISGetProperties(const char *dev)
 {
@@ -82,7 +83,7 @@ GPSD::GPSD()
 
 const char *GPSD::getDefaultName()
 {
-    return (char *)"GPSD";
+    return "GPSD";
 }
 
 bool GPSD::Connect()
@@ -120,6 +121,12 @@ bool GPSD::initProperties()
     IUFillNumberVector(&PolarisNP, PolarisN, 1, getDeviceName(), "POLARIS", "Polaris", MAIN_CONTROL_TAB, IP_RO, 60,
                        IPS_IDLE);
 
+    // Whether to use the system time or gps actual time
+    IUFillSwitch(&TimeSourceS[TS_GPS], "TS_GPS", "GPS", ISS_ON);
+    IUFillSwitch(&TimeSourceS[TS_SYSTEM], "TS_SYSTEM", "System", ISS_OFF);
+    IUFillSwitchVector(&TimeSourceSP, TimeSourceS, 2, getDeviceName(), "GPS_TIME_SOURCE", "Time Source",
+                       OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     setDriverInterface(GPS_INTERFACE | AUX_INTERFACE);
 
     return true;
@@ -134,12 +141,14 @@ bool GPSD::updateProperties()
     {
         defineText(&GPSstatusTP);
         defineNumber(&PolarisNP);
+        defineSwitch(&TimeSourceSP);
     }
     else
     {
         // We're disconnected
         deleteProperty(GPSstatusTP.name);
         deleteProperty(PolarisNP.name);
+        deleteProperty(TimeSourceSP.name);
     }
     return true;
 }
@@ -178,32 +187,31 @@ IPState GPSD::updateGPS()
     }
 
     struct gps_data_t *gpsData;
-
-    TimeTP.s = IPS_OK;
-
-    // Update time regardless having gps fix.
-    // We are using system time assuming the system is synced with the gps
-    // by gpsd using chronyd or ntpd.
-    static char ts[32];
-    struct tm *utc, *local;
-
-    // To get time from gps fix we can use
-    // raw_time = gpsData->fix.time;
-    // but this will remove all sophistication of ntp etc.
-    // Better just use the best estimation the system can provide.
-
     time_t raw_time;
-    time(&raw_time);
 
-    utc = gmtime(&raw_time);
-    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
-    IUSaveText(&TimeT[0], ts);
+    if (IUFindOnSwitchIndex(&TimeSourceSP) == TS_SYSTEM)
+    {
+        // Update time regardless having gps fix.
+        // We are using system time assuming the system is synced with the gps
+        // by gpsd using chronyd or ntpd.
+        char ts[32] = {0};
+        // To get time from gps fix we can use
+        // raw_time = gpsData->fix.time;
+        // but this will remove all sophistication of ntp etc.
+        // Better just use the best estimation the system can provide.
 
-    local = localtime(&raw_time);
-    snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff / 3600.0));
-    IUSaveText(&TimeT[1], ts);
+        time(&raw_time);
 
-    TimeTP.s = IPS_OK;
+        struct tm *utc = gmtime(&raw_time);
+        strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
+        IUSaveText(&TimeT[0], ts);
+
+        struct tm *local = localtime(&raw_time);
+        snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff / 3600.0));
+        IUSaveText(&TimeT[1], ts);
+
+        TimeTP.s = IPS_OK;
+    }
 
     if (!gps->waiting(100000))
     {
@@ -299,6 +307,22 @@ IPState GPSD::updateGPS()
     }
     LocationNP.s = IPS_OK;
 
+    // Get Time from raw GPS source
+    if (IUFindOnSwitchIndex(&TimeSourceSP) == TS_GPS)
+    {
+        char ts[32] = {0};
+        raw_time = gpsData->fix.time;
+
+        unix_to_iso8601(gpsData->fix.time, ts, 32);
+        IUSaveText(&TimeT[0], ts);
+
+        struct tm *local = localtime(&raw_time);
+        snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff / 3600.0));
+        IUSaveText(&TimeT[1], ts);
+
+        TimeTP.s = IPS_OK;
+    }
+
     // calculate Polaris HA
     double jd, lst, polarislsrt;
 
@@ -318,4 +342,29 @@ IPState GPSD::updateGPS()
     IDSetSwitch(&RefreshSP, nullptr);
 
     return IPS_OK;
+}
+
+bool GPSD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev != nullptr && !strcmp(dev, getDeviceName()))
+    {
+        if (!strcmp(name, TimeSourceSP.name))
+        {
+            IUUpdateSwitch(&TimeSourceSP, states, names, n);
+            TimeSourceSP.s = IPS_OK;
+            IDSetSwitch(&TimeSourceSP, nullptr);
+            return true;
+        }
+    }
+
+    return INDI::GPS::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool GPSD::saveConfigItems(FILE *fp)
+{
+    INDI::GPS::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &TimeSourceSP);
+
+    return true;
 }

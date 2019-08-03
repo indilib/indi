@@ -32,14 +32,17 @@
 namespace IOPv3
 {
 
-const std::map<std::string,std::string> Driver::models =
+const std::map<std::string, std::string> Driver::models =
 {
     {"0010", "Cube II EQ"},
     {"0011", "SmartEQ Pro+"},
     {"0025", "CEM25"},
     {"0026", "CEM25-EC"},
     {"0030", "iEQ30 Pro"},
+    {"0040", "CEM40"},
+    {"0041", "CEM40-EC"},
     {"0045", "iEQ45 Pro EQ"},
+    {"0046", "iEQ45 Pro AA"},
     {"0060", "CEM60"},
     {"0061", "CEM60-EC"},
     {"0120", "CEM120"},
@@ -93,7 +96,7 @@ bool Driver::sendCommand(const char *command, int count, char *response, uint8_t
 
     // Remove the extra #
     if (count == -1)
-        res[nbytes_read-1] = 0;
+        res[nbytes_read - 1] = 0;
 
     DEBUGFDEVICE(m_DeviceName, debugLog, "RES <%s>", res);
 
@@ -111,7 +114,7 @@ bool Driver::sendCommand(const char *command, int count, char *response, uint8_t
 
 bool Driver::checkConnection(int fd)
 {
-    char res[IOP_BUFFER]={0};
+    char res[IOP_BUFFER] = {0};
 
     DEBUGDEVICE(m_DeviceName, INDI::Logger::DBG_DEBUG, "Initializing IOptron using :MountInfo# CMD...");
 
@@ -220,18 +223,18 @@ bool Driver::getStatus(IOPInfo *info)
     if (m_Simulation)
     {
         int iopLongitude = simData.simInfo.longitude * 360000;
-        int iopLatitude  = (simData.simInfo.latitude+90) * 360000;
+        int iopLatitude  = (simData.simInfo.latitude + 90) * 360000;
         snprintf(res, IOP_BUFFER, "%c%08d%08d%d%d%d%d%d%d", simData.simInfo.longitude > 0 ? '+' : '-',
                  iopLongitude, iopLatitude, simData.simInfo.gpsStatus, simData.simInfo.systemStatus, simData.simInfo.trackRate,
                  simData.simInfo.slewRate, simData.simInfo.timeSource, simData.simInfo.hemisphere);
-    }        
+    }
     else if (sendCommand(":GLS#", -1, res) == false)
         return false;
 
 
-    char longPart[16]={0}, latPart[16]={0};
+    char longPart[16] = {0}, latPart[16] = {0};
     strncpy(longPart, res, 9);
-    strncpy(latPart, res+9, 8);
+    strncpy(latPart, res + 9, 8);
 
     int arcsecLongitude = atoi(longPart);
     int arcsecLatitude  = atoi(latPart);
@@ -249,7 +252,7 @@ bool Driver::getStatus(IOPInfo *info)
 }
 
 bool Driver::getFirmwareInfo(FirmwareInfo *info)
-{    
+{
     bool rc1 = getModel(info->Model);
 
     bool rc2 = getMainFirmware(info->MainBoardFirmware, info->ControllerFirmware);
@@ -285,9 +288,9 @@ bool Driver::getMainFirmware(std::string &mainFirmware, std::string &controllerF
     else if (sendCommand(":FW1#", -1, res) == false)
         return false;
 
-    char mStr[16]={0}, cStr[16]={0};
+    char mStr[16] = {0}, cStr[16] = {0};
     strncpy(mStr, res, 6);
-    strncpy(cStr, res+6, 6);
+    strncpy(cStr, res + 6, 6);
 
     mainFirmware = mStr;
     controllerFirmware = cStr;
@@ -304,9 +307,9 @@ bool Driver::getRADEFirmware(std::string &RAFirmware, std::string &DEFirmware)
     else if (sendCommand(":FW2#", -1, res) == false)
         return false;
 
-    char mStr[16]={0}, cStr[16]={0};
+    char mStr[16] = {0}, cStr[16] = {0};
     strncpy(mStr, res, 6);
-    strncpy(cStr, res+6, 6);
+    strncpy(cStr, res + 6, 6);
 
     RAFirmware = mStr;
     DEFirmware = cStr;
@@ -410,7 +413,7 @@ bool Driver::setCustomRATrackRate(double rate)
         return false;
 
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":RR%05d#", static_cast<uint32_t>(rate*10000));
+    snprintf(cmd, IOP_BUFFER, ":RR%05d#", static_cast<uint32_t>(rate * 10000));
 
     return sendCommand(cmd);
 }
@@ -421,7 +424,7 @@ bool Driver::setGuideRate(double RARate, double DERate)
         return false;
 
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":RG%02d%02d#", static_cast<uint32_t>(RARate*100), static_cast<uint32_t>(DERate*100));
+    snprintf(cmd, IOP_BUFFER, ":RG%02d%02d#", static_cast<uint32_t>(RARate * 100), static_cast<uint32_t>(DERate * 100));
 
     return sendCommand(cmd);
 }
@@ -431,13 +434,13 @@ bool Driver::getGuideRate(double *RARate, double *DERate)
     char res[IOP_BUFFER] = {0};
 
     if (m_Simulation)
-        snprintf(res, IOP_BUFFER, "%02d%02d", static_cast<uint32_t>(simData.ra_guide_rate*100), static_cast<uint32_t>(simData.de_guide_rate*100));
+        snprintf(res, IOP_BUFFER, "%02d%02d", static_cast<uint32_t>(simData.ra_guide_rate * 100), static_cast<uint32_t>(simData.de_guide_rate * 100));
     else if (sendCommand(":AG#", -1, res) == false)
         return false;
 
-    char raStr[8]={0}, deStr[8]={0};
+    char raStr[8] = {0}, deStr[8] = {0};
     strncpy(raStr, res, 2);
-    strncpy(deStr, res+2, 2);
+    strncpy(deStr, res + 2, 2);
 
     *RARate = atoi(raStr) / 100.0;
     *DERate = atoi(deStr) / 100.0;
@@ -614,19 +617,19 @@ bool Driver::getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW
     char res[IOP_BUFFER] = {0};
     if (m_Simulation)
     {
-        snprintf(res, IOP_BUFFER, "%c%08d%09d%d%d", (simData.de >= 0 ? '+' : '-'), static_cast<uint32_t>(fabs(simData.de)*60*60*100),
-                 static_cast<uint32_t>(simData.ra*15*60*60*100), simData.pier_state, simData.cw_state);
+        snprintf(res, IOP_BUFFER, "%c%08d%09d%d%d", (simData.de >= 0 ? '+' : '-'), static_cast<uint32_t>(fabs(simData.de) * 60 * 60 * 100),
+                 static_cast<uint32_t>(simData.ra * 15 * 60 * 60 * 100), simData.pier_state, simData.cw_state);
     }
     else if (sendCommand(":GEP#", -1, res, IOP_TIMEOUT, INDI::Logger::DBG_EXTRA_1) == false)
         return false;
 
-    char deStr[16]={0}, raStr[16]={0};
+    char deStr[16] = {0}, raStr[16] = {0};
 
     strncpy(deStr, res, 9);
-    strncpy(raStr, res+9, 9);
+    strncpy(raStr, res + 9, 9);
 
-    *de = atoi(deStr) / (60.0*60.0*100.0);
-    *ra = atoi(raStr) / (15.0*60.0*60.0*100.0);
+    *de = atoi(deStr) / (60.0 * 60.0 * 100.0);
+    *ra = atoi(raStr) / (15.0 * 60.0 * 60.0 * 100.0);
 
     *pierState = static_cast<IOP_PIER_STATE>(res[18] - '0');
     *cwState   = static_cast<IOP_CW_STATE>(res[19] - '0');
@@ -640,15 +643,15 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
     if (m_Simulation)
     {
         snprintf(res, IOP_BUFFER, "%c%03d%c%013" PRIu64, (simData.utc_offset_minutes >= 0 ? '+' : '-'), abs(simData.utc_offset_minutes),
-                 (simData.day_light_saving ? '1' : '0'), static_cast<uint64_t>((simData.JD-J2000)*8.64e+7));
+                 (simData.day_light_saving ? '1' : '0'), static_cast<uint64_t>((simData.JD - J2000) * 8.64e+7));
     }
     else if (sendCommand(":GUT#", -1, res) == false)
         return false;
 
-    char offsetStr[16]={0}, JDStr[16]={0};
+    char offsetStr[16] = {0}, JDStr[16] = {0};
 
     strncpy(offsetStr, res, 4);
-    strncpy(JDStr, res+5, 13);
+    strncpy(JDStr, res + 5, 13);
 
     *utcOffsetMinutes = atoi(offsetStr);
     *dayLightSaving   = (res[4] == '1');

@@ -936,20 +936,25 @@ int dispatch(XMLEle *root, char msg[])
             ROSC *prop = propCache + index;
             switch (prop->type)
             {
+                /* JM 2019-07-18: Why are we using setXXX here? should be defXXX */
                 case INDI_NUMBER:
-                    IDSetNumber((INumberVectorProperty *)(prop->ptr), NULL);
+                    //IDSetNumber((INumberVectorProperty *)(prop->ptr), NULL);
+                    IDDefNumber((INumberVectorProperty *)(prop->ptr), NULL);
                     return 0;
 
                 case INDI_SWITCH:
-                    IDSetSwitch((ISwitchVectorProperty *)(prop->ptr), NULL);
+                    //IDSetSwitch((ISwitchVectorProperty *)(prop->ptr), NULL);
+                    IDDefSwitch((ISwitchVectorProperty *)(prop->ptr), NULL);
                     return 0;
 
                 case INDI_TEXT:
-                    IDSetText((ITextVectorProperty *)(prop->ptr), NULL);
+                    //IDSetText((ITextVectorProperty *)(prop->ptr), NULL);
+                    IDDefText((ITextVectorProperty *)(prop->ptr), NULL);
                     return 0;
 
                 case INDI_BLOB:
-                    IDSetBLOB((IBLOBVectorProperty *)(prop->ptr), NULL);
+                    //IDSetBLOB((IBLOBVectorProperty *)(prop->ptr), NULL);
+                    IDDefBLOB((IBLOBVectorProperty *)(prop->ptr), NULL);
                     return 0;
                 default:
                     return 0;
@@ -1310,10 +1315,9 @@ void IUSaveDefaultConfig(const char *source_config, const char *dest_config, con
                 int ch = 0;
                 while ((ch = getc(fpin)) != EOF)
                     putc(ch, fpout);
-
-                fclose(fpin);
+        fclose(fpout);
             }
-            fclose(fpout);
+        fclose(fpin);
         }
     }
 }

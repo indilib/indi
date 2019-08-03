@@ -560,6 +560,15 @@ void Skywatcher::InquireRAEncoderInfo(INumberVectorProperty *encoderNP)
                0x205318, RAStepsWorm);
         RAStepsWorm = 0x205318; // for 114GT mount
     }
+    // Correct drift of 4.1 arcsec per minute with HEQ5 firmware 106
+    // drift correction = 1.00455,  64935/1.00455 = 64640 = 0xFC80
+    if (MCVersion == 0x10601)
+    {
+        LOGF_WARN("%s: forcing RAStepsWorm for HEQ5 with firmware 106 (%x in place of %x)", __FUNCTION__,
+               0xFC80, RAStepsWorm);
+        RAStepsWorm = 0xFC80;
+    }
+
     steppersvalues[1] = (double)RAStepsWorm;
 
     // Highspeed Ratio
@@ -604,6 +613,14 @@ void Skywatcher::InquireDEEncoderInfo(INumberVectorProperty *encoderNP)
         LOGF_WARN("%s: forcing DEStepsWorm for 114GT Mount (%x in place of %x)", __FUNCTION__,
                0x205318, DEStepsWorm);
         DEStepsWorm = 0x205318; // for 114GT mount
+    }
+    // HEQ5 with firmware 106, use same rate as RA
+    // drift correction = 1.00455,  64935/1.00455 = 64640 = 0xFC80
+    if (MCVersion == 0x10601)
+    {
+        LOGF_WARN("%s: forcing DEStepsWorm for HEQ5 with firmware 106 (%x in place of %x)", __FUNCTION__,
+               0xFC80, DEStepsWorm);
+        DEStepsWorm = 0xFC80;
     }
 
     steppersvalues[1] = (double)DEStepsWorm;

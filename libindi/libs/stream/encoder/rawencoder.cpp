@@ -31,7 +31,7 @@ namespace INDI
 RawEncoder::RawEncoder()
 {
     name = "RAW";
-    compressedFrame = (uint8_t *)malloc(1);
+    compressedFrame = static_cast<uint8_t *>(malloc(1));
 }
 
 RawEncoder::~RawEncoder()
@@ -49,14 +49,22 @@ bool RawEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool 
     // Do we want to compress ?
     if (isCompressed)
     {
-        /* Compress frame */
-        compressedFrame = (uint8_t *)realloc(compressedFrame, sizeof(uint8_t) * nbytes + nbytes / 64 + 16 + 3);
+        // Compress frame
+        uint8_t *buf = static_cast<uint8_t *>(realloc(compressedFrame, sizeof(uint8_t) * nbytes + nbytes / 64 + 16 + 3));
+        if (buf == nullptr)
+        {
+            free(compressedFrame);
+            return false;
+        }
+        else
+            compressedFrame = buf;
+
         uLongf compressedBytes = sizeof(uint8_t) * nbytes + nbytes / 64 + 16 + 3;
 
         int ret = compress2(compressedFrame, &compressedBytes, buffer, nbytes, 4);
         if (ret != Z_OK)
         {
-            /* this should NEVER happen */
+            // this should NEVER happen
             LOGF_ERROR("internal error - compression failed: %d", ret);
             return false;
         }

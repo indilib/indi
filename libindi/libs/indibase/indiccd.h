@@ -49,7 +49,7 @@
 extern const char * IMAGE_SETTINGS_TAB;
 extern const char * IMAGE_INFO_TAB;
 extern const char * GUIDE_HEAD_TAB;
-extern const char * RAPIDGUIDE_TAB;
+//extern const char * RAPIDGUIDE_TAB;
 
 namespace INDI
 {
@@ -485,8 +485,8 @@ class CCD : public DefaultDevice, GuiderInterface
         double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
         bool InExposure;
         bool InGuideExposure;
-        bool RapidGuideEnabled;
-        bool GuiderRapidGuideEnabled;
+        //bool RapidGuideEnabled;
+        //bool GuiderRapidGuideEnabled;
 
         bool AutoLoop;
         bool GuiderAutoLoop;

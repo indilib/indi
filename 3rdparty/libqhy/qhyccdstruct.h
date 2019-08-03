@@ -5,9 +5,6 @@
 
 
 
-#if defined (_WIN32)
-#include <windows.h>
-#endif
 
 #ifndef __QHYCCDSTRUCTDEF_H__
 #define __QHYCCDSTRUCTDEF_H__
@@ -34,7 +31,7 @@
 #if defined (_WIN32)
 
 #ifdef _M_IX86
-typedef uint32_t QHYDWORD; 
+typedef uint32_t QHYDWORD;
 #else
 typedef uint64_t QHYDWORD;
 #endif
@@ -42,7 +39,7 @@ typedef uint64_t QHYDWORD;
 #else
 
 #ifdef __i386__
-typedef uint32_t QHYDWORD;  
+typedef uint32_t QHYDWORD;
 #else
 typedef uint64_t QHYDWORD;
 #endif
@@ -223,6 +220,8 @@ enum CONTROL_ID
 
   CAM_SINGLEFRAMEMODE,
   CAM_LIVEVIDEOMODE,
+  CAM_IS_COLOR,
+  hasHardwareFrameCounter,
   CONTROL_MAX_ID
 };
 
@@ -242,21 +241,32 @@ enum CodecID
   H261_CODEC
 };
 
-typedef struct _QHYCameraParam
+typedef struct _QHYCamMinMaxStepValue
 {
   const char *name;
   double min;
   double max;
   double step;
-}QHYCameraParam;
+}
+QHYCamMinMaxStepValue;
 
+typedef struct _QHYGetImageParam
+{
+  void *handle;
+  uint8_t *imgdata;
+  uint32_t w;
+  uint32_t h;
+  uint32_t bpp;
+  uint32_t channels;
+}
+QHYGetImageParam;
 
 
 #if CALLBACK_MODE_SUPPORT
 typedef uint32_t  (*QHYCCDProcCallBack) (void *handle,
-	QHYDWORD message, 
-	QHYDWORD wParam, 
-	QHYDWORD lParam);
+    QHYDWORD message,
+    QHYDWORD wParam,
+    QHYDWORD lParam);
 #endif
 
 

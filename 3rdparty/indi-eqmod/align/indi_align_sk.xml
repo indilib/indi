@@ -1,6 +1,6 @@
 <INDIDriver>
 <defTextVector device="EQMod Mount" name="ALIGNDATAFILE" label="Data File" group="Align" state="Idle" perm="rw">
-<defText name="ALIGNDATAFILENAME" label="Name">~/.indi/AlignData.xml</defText> 
+<defText name="ALIGNDATAFILENAME" label="Name">~/.indi/AlignData.xml</defText>
 </defTextVector>
 <defNumberVector device="EQMod Mount" name="ALIGNTELESCOPECOORDS" label="Telescope Coords" group="Align" state="Idle" perm="ro">
 <defNumber name="ALIGNTELESCOPE_RA" label="Telescope RA (hh:mm:ss)" format="%010.6m" min="0.0" max="24.0" step="0.0">
@@ -19,10 +19,10 @@
 Off
 </defSwitch>
 <defSwitch name="ALIGNNEAREST" label="Nearest Point">
-Off
+On
 </defSwitch>
 <defSwitch name="ALIGNNSTAR" label="N-Star">
-On
+Off
 </defSwitch>
 </defSwitchVector>
 <defNumberVector device="EQMod Mount" name="ALIGNCOUNT" label="Number of" group="Align" state="Idle" perm="ro">

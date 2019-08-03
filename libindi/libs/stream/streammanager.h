@@ -157,10 +157,13 @@ class StreamManager
         {
             return (isStreaming() || isRecording());
         }
-        //uint8_t getTargetFPS() { return static_cast<uint8_t>(StreamOptionsN[OPTION_TARGET_FPS].value); }
         double getTargetFPS()
         {
             return 1.0 / StreamExposureN[0].value;
+        }
+        double getTargetExposure()
+        {
+            return StreamExposureN[0].value;
         }
 
         uint8_t *getDownscaleBuffer()
@@ -194,7 +197,7 @@ class StreamManager
     private:
         /* Utility for record file */
         int mkpath(std::string s, mode_t mode);
-        std::string expand(std::string fname, const std::map<std::string, std::string> &patterns);
+        std::string expand(const std::string &fname, const std::map<std::string, std::string> &patterns);
 
         bool startRecording();
         // Stop recording. Force stop even in abnormal state if needed.
@@ -213,6 +216,8 @@ class StreamManager
              * @param deltams time in milliseconds since last frame
              */
         bool recordStream(const uint8_t *buffer, uint32_t nbytes, double deltams);
+
+        void prepareGammaLUT(double gamma = 2.4, double a = 12.92, double b = 0.055, double Ii = 0.00304);
 
         /* Stream switch */
         ISwitch StreamS[2];
@@ -248,8 +253,8 @@ class StreamManager
         INumber StreamFrameN[4];
 
         /* BLOBs */
-        IBLOBVectorProperty *imageBP;
-        IBLOB *imageB;
+        IBLOBVectorProperty *imageBP = nullptr;
+        IBLOB *imageB = nullptr;
 
         // Encoder Selector. It's static now but should this implemented as plugin interface?
         ISwitch EncoderS[2];
@@ -271,7 +276,7 @@ class StreamManager
         // Recorder
         RecorderManager *recorderManager = nullptr;
         RecorderInterface *recorder = nullptr;
-        bool direct_record;
+        bool direct_record = false;
         std::string recordfiledir, recordfilename; /* in case we should move it */
 
         // Encoders
@@ -280,7 +285,7 @@ class StreamManager
 
         // Measure FPS
         struct itimerval tframe1, tframe2;
-        uint32_t mssum, m_FrameCounterPerSecond;
+        uint32_t mssum = 0, m_FrameCounterPerSecond = 0;
 
         INDI_PIXEL_FORMAT m_PixelFormat = INDI_MONO;
         uint8_t m_PixelDepth = 8;
@@ -290,5 +295,7 @@ class StreamManager
         // Downscale buffer for streaming
         uint8_t *downscaleBuffer = nullptr;
         uint32_t downscaleBufferSize = 0;
+
+        uint8_t *gammaLUT_16_8 = nullptr;
 };
 }

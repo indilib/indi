@@ -44,6 +44,8 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
     m_isStreaming = false;
     m_isRecording = false;
 
+    prepareGammaLUT();
+
     // Timer
     // now use BSD setimer to avoi librt dependency
     //sevp.sigev_notify=SIGEV_NONE;
@@ -79,6 +81,7 @@ StreamManager::~StreamManager()
     delete (recorderManager);
     delete (encoderManager);
     delete [] downscaleBuffer;
+    delete [] gammaLUT_16_8;
 }
 
 const char * StreamManager::getDeviceName()
@@ -97,7 +100,7 @@ bool StreamManager::initProperties()
     else
         IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
+    IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.6f", 0.000001, 10, 0.1, 0.1);
     IUFillNumber(&StreamExposureN[STREAM_DIVISOR], "STREAMING_DIVISOR_VALUE", "Divisor", "%.f", 1, 15, 1, 1);
     IUFillNumberVector(&StreamExposureNP, StreamExposureN, NARRAY(StreamExposureN), getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -267,14 +270,10 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
 void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams)
 {
-    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
-    {
-        std::unique_lock<std::mutex> guard(dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock);
-    }
-    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
-    {
-        std::unique_lock<std::mutex> guard(dynamic_cast<INDI::Detector*>(currentDevice)->detectorBufferLock);
-    }
+    std::unique_lock<std::mutex> guard((currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) ?
+                                       dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock :
+                                       dynamic_cast<INDI::Detector*>(currentDevice)->detectorBufferLock);
+
     // For streaming, downscale 16 to 8
     if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
     {
@@ -325,10 +324,9 @@ void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double d
             streamBuffer[i] = srcBuffer[i] * bscale + bzero;
         */
 
-        // Fast method: Cut off anything higher than 255. Image will be saturated.
-        // Dividing by 255 works, but for astronomical images it's too dark.
+        // Apply gamma
         for (uint32_t i = 0; i < npixels; i++)
-            downscaleBuffer[i] = std::max(0, std::min(255, static_cast<int>(srcBuffer[i])));
+            downscaleBuffer[i] = gammaLUT_16_8[srcBuffer[i]];
 
         nbytes /= 2;
 
@@ -532,7 +530,7 @@ int StreamManager::mkpath(std::string s, mode_t mode)
     return mdret;
 }
 
-std::string StreamManager::expand(std::string fname, const std::map<std::string, std::string> &patterns)
+std::string StreamManager::expand(const std::string &fname, const std::map<std::string, std::string> &patterns)
 {
     std::string res = fname;
     std::size_t pos;
@@ -614,7 +612,7 @@ bool StreamManager::startRecording()
         expfiledir += '/';
     recordfilename.assign(RecordFileTP.tp[1].text);
     expfilename = expand(recordfilename, patterns);
-    if (expfilename.substr(expfilename.size() - 4, 4) != recorder->getExtension())
+    if (expfilename.size() < 4 || expfilename.substr(expfilename.size() - 4, 4) != recorder->getExtension())
         expfilename += recorder->getExtension();
 
     filename = expfiledir + expfilename;
@@ -957,7 +955,7 @@ bool StreamManager::setStream(bool enable)
             else
                 LOGF_INFO("Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
 #endif
-            LOGF_INFO("Starting the video stream with target exposure %.4f s (FPS %.f)", StreamExposureN[0].value, 1 / StreamExposureN[0].value);
+            LOGF_INFO("Starting the video stream with target exposure %.6f s (Max theoritical FPS %.f)", StreamExposureN[0].value, 1 / StreamExposureN[0].value);
 
             getitimer(ITIMER_REAL, &tframe1);
             mssum         = 0;
@@ -1296,6 +1294,21 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     }
 
     return false;
+}
+
+void StreamManager::prepareGammaLUT(double gamma, double a, double b, double Ii)
+{
+    if (!gammaLUT_16_8) gammaLUT_16_8 = new uint8_t[65536];
+
+    for (int i = 0; i < 65536; i++) {
+        double I = static_cast<double>(i) / 65535.0;
+        double p;
+        if (I <= Ii)
+            p = a * I;
+        else
+            p = (1+b) * powf(I, 1.0/gamma) - b;
+        gammaLUT_16_8[i] = round(255.0 * p);
+    }
 }
 
 }

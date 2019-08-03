@@ -177,8 +177,7 @@ enum
 };
 
 static char device[64];
-
-int RTS_flag = TIOCM_RTS;
+static int RTS_flag = TIOCM_RTS;
 
 void gphoto_set_debug(const char *name)
 {
@@ -628,6 +627,15 @@ static void *stop_bulb(void *arg)
                 if (gphoto->bulb_port[0] && (gphoto->bulb_fd >= 0))
                 {
                     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing remote serial shutter.");
+
+                    // Close Nikon Shutter
+                    if (!strstr(device, "Nikon"))
+                    {
+                        uint8_t close_shutter[3] = {0xFF, 0x01, 0x00};
+                        if (write(gphoto->bulb_fd, close_shutter, 3) != 3)
+                            DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Closing Nikon remote serial shutter failed.");
+                    }
+
                     ioctl(gphoto->bulb_fd, TIOCMBIC, &RTS_flag);
                     close(gphoto->bulb_fd);
                 }
@@ -1143,6 +1151,15 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
                 pthread_mutex_unlock(&gphoto->mutex);
                 return -1;
             }
+
+            // Open Nikon Shutter
+            if (!strstr(device, "Nikon"))
+            {
+                uint8_t open_shutter[3] = {0xFF, 0x01, 0x01};
+                if (write(gphoto->bulb_fd, open_shutter, 3) != 3)
+                    DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Opening Nikon remote serial shutter failed.");
+            }
+
             ioctl(gphoto->bulb_fd, TIOCMBIS, &RTS_flag);
         }
         // Otherwise, let's fallback to the internal bulb widget
@@ -2083,9 +2100,7 @@ out:
 
 int gphoto_capture_preview(gphoto_driver *gphoto, CameraFile *previewFile, char *errMsg)
 {
-    int rc = GP_OK;
-
-    rc = gp_camera_capture_preview(gphoto->camera, previewFile, gphoto->context);
+    int rc = gp_camera_capture_preview(gphoto->camera, previewFile, gphoto->context);
     if (rc != GP_OK)
         snprintf(errMsg, MAXRBUF, "Error capturing preview: %s", gp_result_as_string(rc));
 
@@ -2094,6 +2109,10 @@ int gphoto_capture_preview(gphoto_driver *gphoto, CameraFile *previewFile, char 
 
 int gphoto_start_preview(gphoto_driver *gphoto)
 {
+    // Olympus cameras support streaming but without viewfinder_widget
+    if (strcasestr(gphoto->manufacturer, "OLYMPUS"))
+        return GP_OK;
+
     // If viewfinder not found, nothing to do
     if (gphoto->viewfinder_widget == nullptr)
     {
@@ -2106,6 +2125,10 @@ int gphoto_start_preview(gphoto_driver *gphoto)
 
 int gphoto_stop_preview(gphoto_driver *gphoto)
 {
+    // Olympus cameras support streaming but without viewfinder_widget
+    if (strcasestr(gphoto->manufacturer, "OLYMPUS"))
+        return GP_OK;
+
     // If viewfinder not found, nothing to do
     if (gphoto->viewfinder_widget == nullptr)
     {
@@ -2168,8 +2191,8 @@ int gphoto_manual_focus(gphoto_driver *gphoto, int speed, char *errMsg)
             }
 
             // Set to None First before setting the actual value
-            rc = gp_widget_set_value(gphoto->focus_widget->widget, gphoto->focus_widget->choices[3]);
-            rc = gphoto_set_config(gphoto->camera, gphoto->config, gphoto->context);
+            gp_widget_set_value(gphoto->focus_widget->widget, gphoto->focus_widget->choices[3]);
+            gphoto_set_config(gphoto->camera, gphoto->config, gphoto->context);
 
             usleep(100000);
 

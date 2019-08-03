@@ -38,11 +38,6 @@ Weather::Weather() : WI(this)
 {
 }
 
-Weather::~Weather()
-{
-
-}
-
 bool Weather::initProperties()
 {
     DefaultDevice::initProperties();

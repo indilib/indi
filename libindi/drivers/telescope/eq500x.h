@@ -92,6 +92,7 @@ protected:
     virtual bool Sync(double, double) override;
     virtual bool Abort() override;
     virtual void setPierSide(TelescopePierSide);
+    virtual bool MoveNS(INDI_DIR_NS, TelescopeMotionCommand) override;
 private:
     MechanicalPoint currentMechPosition, targetMechPosition;
     double previousRA = {0}, previousDEC = {0};
@@ -103,6 +104,7 @@ private:
     // Current adjustment rate
     struct _adjustment const * adjustment {nullptr};
     bool _gotoEngaged {false};
+    enum TelescopeSlewRate savedSlewRateIndex {SLEW_MAX};
 };
 
 #endif // EQ500X_H

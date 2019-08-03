@@ -39,6 +39,9 @@
 #define LX200_GENERIC_SLEWRATE 5        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
+LX200Telescope::LX200Telescope() : FI(this)
+{
+}
 
 void LX200Telescope::debugTriggered(bool enable)
 {
@@ -92,12 +95,12 @@ bool LX200Telescope::initProperties()
 
     if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
     {
-	    IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 55, 65, 0.00001, 60.16427);
+        IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 55, 65, 0.00001, 60.16427);
     }
     else
     {
         IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
-    }    
+    }
     IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
@@ -115,20 +118,22 @@ bool LX200Telescope::initProperties()
     IUFillText(&SiteNameT[0], "Name", "", "");
     IUFillTextVector(&SiteNameTP, SiteNameT, 1, getDeviceName(), "Site Name", "", SITE_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitch(&FocusMotionS[0], "IN", "Focus in", ISS_OFF);
-    IUFillSwitch(&FocusMotionS[1], "OUT", "Focus out", ISS_OFF);
-    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, getDeviceName(), "FOCUS_MOTION", "Motion", FOCUS_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
+    if (genericCapability & LX200_HAS_FOCUS)
+    {
+        FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED);
+        FI::initProperties(FOCUS_TAB);
 
-    IUFillNumber(&FocusTimerN[0], "TIMER", "Timer (ms)", "%g", 0, 10000., 1000., 0);
-    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, getDeviceName(), "FOCUS_TIMER", "Focus Timer", FOCUS_TAB, IP_RW,
-                       0, IPS_IDLE);
+        //        IUFillSwitch(&FocusModeS[0], "FOCUS_HALT", "Halt", ISS_ON);
+        //        IUFillSwitch(&FocusModeS[1], "FOCUS_SLOW", "Slow", ISS_OFF);
+        //        IUFillSwitch(&FocusModeS[2], "FOCUS_FAST", "Fast", ISS_OFF);
+        //        IUFillSwitchVector(&FocusModeSP, FocusModeS, 3, getDeviceName(), "FOCUS_MODE", "Mode", FOCUS_TAB, IP_RW,
+        //                           ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&FocusModeS[0], "FOCUS_HALT", "Halt", ISS_ON);
-    IUFillSwitch(&FocusModeS[1], "FOCUS_SLOW", "Slow", ISS_OFF);
-    IUFillSwitch(&FocusModeS[2], "FOCUS_FAST", "Fast", ISS_OFF);
-    IUFillSwitchVector(&FocusModeSP, FocusModeS, 3, getDeviceName(), "FOCUS_MODE", "Mode", FOCUS_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+        // Classical speeds slow or fast
+        FocusSpeedN[0].min = 1;
+        FocusSpeedN[0].max = 2;
+        FocusSpeedN[0].value = 1;
+    }
 
     TrackState = SCOPE_IDLE;
 
@@ -139,7 +144,7 @@ bool LX200Telescope::initProperties()
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
-    double longitude=0, latitude=90;
+    double longitude = 0, latitude = 90;
     // Get value from config file if it exists.
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
     currentRA  = get_local_sidereal_time(longitude);
@@ -213,9 +218,8 @@ bool LX200Telescope::updateProperties()
 
         if (genericCapability & LX200_HAS_FOCUS)
         {
-            defineSwitch(&FocusMotionSP);
-            defineNumber(&FocusTimerNP);
-            defineSwitch(&FocusModeSP);
+            FI::updateProperties();
+            //defineSwitch(&FocusModeSP);
         }
 
         getBasicData();
@@ -242,9 +246,8 @@ bool LX200Telescope::updateProperties()
 
         if (genericCapability & LX200_HAS_FOCUS)
         {
-            deleteProperty(FocusMotionSP.name);
-            deleteProperty(FocusTimerNP.name);
-            deleteProperty(FocusModeSP.name);
+            FI::updateProperties();
+            //deleteProperty(FocusModeSP.name);
         }
     }
 
@@ -323,19 +326,19 @@ bool LX200Telescope::Goto(double ra, double dec)
 
     targetRA  = ra;
     targetDEC = dec;
-    char RAStr[64]={0}, DecStr[64]={0};
+    char RAStr[64] = {0}, DecStr[64] = {0};
     int fracbase = 0;
 
     switch (getLX200Format())
     {
-    case LX200_LONGER_FORMAT:
-        fracbase = 360000;
-        break;
-    case LX200_LONG_FORMAT:
-    case LX200_SHORT_FORMAT:
-    default:
-        fracbase = 3600;
-        break;
+        case LX200_LONGER_FORMAT:
+            fracbase = 360000;
+            break;
+        case LX200_LONG_FORMAT:
+        case LX200_SHORT_FORMAT:
+        default:
+            fracbase = 3600;
+            break;
     }
 
     fs_sexa(RAStr, targetRA, 2, fracbase);
@@ -400,7 +403,7 @@ bool LX200Telescope::Goto(double ra, double dec)
 
 bool LX200Telescope::Sync(double ra, double dec)
 {
-    char syncString[256]={0};
+    char syncString[256] = {0};
 
     if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
@@ -483,27 +486,27 @@ bool LX200Telescope::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
     switch (command)
     {
-    case MOTION_START:
-        if (!isSimulation() && MoveTo(PortFD, current_move) < 0)
-        {
-            LOG_ERROR("Error setting N/S motion direction.");
-            return false;
-        }
-        else
-            LOGF_DEBUG("Moving toward %s.",
-                      (current_move == LX200_NORTH) ? "North" : "South");
-        break;
+        case MOTION_START:
+            if (!isSimulation() && MoveTo(PortFD, current_move) < 0)
+            {
+                LOG_ERROR("Error setting N/S motion direction.");
+                return false;
+            }
+            else
+                LOGF_DEBUG("Moving toward %s.",
+                           (current_move == LX200_NORTH) ? "North" : "South");
+            break;
 
-    case MOTION_STOP:
-        if (!isSimulation() && HaltMovement(PortFD, current_move) < 0)
-        {
-            LOG_ERROR("Error stopping N/S motion.");
-            return false;
-        }
-        else
-            LOGF_DEBUG("Movement toward %s halted.",
-                      (current_move == LX200_NORTH) ? "North" : "South");
-        break;
+        case MOTION_STOP:
+            if (!isSimulation() && HaltMovement(PortFD, current_move) < 0)
+            {
+                LOG_ERROR("Error stopping N/S motion.");
+                return false;
+            }
+            else
+                LOGF_DEBUG("Movement toward %s halted.",
+                           (current_move == LX200_NORTH) ? "North" : "South");
+            break;
     }
 
     return true;
@@ -515,26 +518,26 @@ bool LX200Telescope::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
     switch (command)
     {
-    case MOTION_START:
-        if (!isSimulation() && MoveTo(PortFD, current_move) < 0)
-        {
-            LOG_ERROR("Error setting W/E motion direction.");
-            return false;
-        }
-        else
-            LOGF_DEBUG("Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
-        break;
+        case MOTION_START:
+            if (!isSimulation() && MoveTo(PortFD, current_move) < 0)
+            {
+                LOG_ERROR("Error setting W/E motion direction.");
+                return false;
+            }
+            else
+                LOGF_DEBUG("Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
+            break;
 
-    case MOTION_STOP:
-        if (!isSimulation() && HaltMovement(PortFD, current_move) < 0)
-        {
-            LOG_ERROR("Error stopping W/E motion.");
-            return false;
-        }
-        else
-            LOGF_DEBUG("Movement toward %s halted.",
-                      (current_move == LX200_WEST) ? "West" : "East");
-        break;
+        case MOTION_STOP:
+            if (!isSimulation() && HaltMovement(PortFD, current_move) < 0)
+            {
+                LOG_ERROR("Error stopping W/E motion.");
+                return false;
+            }
+            else
+                LOGF_DEBUG("Movement toward %s halted.",
+                           (current_move == LX200_WEST) ? "West" : "East");
+            break;
     }
 
     return true;
@@ -648,7 +651,7 @@ bool LX200Telescope::updateLocation(double latitude, double longitude, double el
         return false;
     }
 
-    char l[MAXINDINAME]={0}, L[MAXINDINAME]={0};
+    char l[MAXINDINAME] = {0}, L[MAXINDINAME] = {0};
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
@@ -685,6 +688,11 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (strstr(name, "FOCUS_"))
+        {
+            return FI::processNumber(dev, name, values, names, n);
+        }
+
         // Update Frequency
         if (!strcmp(name, TrackingFreqNP.name))
         {
@@ -741,22 +749,22 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
             return true;
         }
 
-        if (!strcmp(name, FocusTimerNP.name))
-        {
-            // Don't update if busy
-            if (FocusTimerNP.s == IPS_BUSY)
-                return true;
+        //        if (!strcmp(name, FocusTimerNP.name))
+        //        {
+        //            // Don't update if busy
+        //            if (FocusTimerNP.s == IPS_BUSY)
+        //                return true;
 
-            IUUpdateNumber(&FocusTimerNP, values, names, n);
+        //            IUUpdateNumber(&FocusTimerNP, values, names, n);
 
-            FocusTimerNP.s = IPS_OK;
+        //            FocusTimerNP.s = IPS_OK;
 
-            IDSetNumber(&FocusTimerNP, nullptr);
+        //            IDSetNumber(&FocusTimerNP, nullptr);
 
-            LOGF_DEBUG("Setting focus timer to %.2f", FocusTimerN[0].value);
+        //            LOGF_DEBUG("Setting focus timer to %.2f", FocusTimerN[0].value);
 
-            return true;
-        }
+        //            return true;
+        //        }
 
         processGuiderProperties(name, values, names, n);
     }
@@ -768,17 +776,21 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
 
 bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    int index = 0;
-
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Focuser
+        if (strstr(name, "FOCUS"))
+        {
+            return FI::processSwitch(dev, name, states, names, n);
+        }
+
         // Alignment
         if (!strcmp(name, AlignmentSP.name))
         {
             if (IUUpdateSwitch(&AlignmentSP, states, names, n) < 0)
                 return false;
 
-            index = IUFindOnSwitchIndex(&AlignmentSP);
+            int index = IUFindOnSwitchIndex(&AlignmentSP);
 
             if (!isSimulation() && setAlignmentMode(PortFD, index) < 0)
             {
@@ -823,78 +835,78 @@ bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *sta
             return false;
         }
 
-        // Focus Motion
-        if (!strcmp(name, FocusMotionSP.name))
-        {
-            // If mode is "halt"
-            if (FocusModeS[0].s == ISS_ON)
-            {
-                FocusMotionSP.s = IPS_IDLE;
-                IDSetSwitch(&FocusMotionSP, "Focus mode is halt. Select slow or fast mode");
-                return true;
-            }
+        //        // Focus Motion
+        //        if (!strcmp(name, FocusMotionSP.name))
+        //        {
+        //            // If mode is "halt"
+        //            if (FocusModeS[0].s == ISS_ON)
+        //            {
+        //                FocusMotionSP.s = IPS_IDLE;
+        //                IDSetSwitch(&FocusMotionSP, "Focus mode is halt. Select slow or fast mode");
+        //                return true;
+        //            }
 
-            int last_motion = IUFindOnSwitchIndex(&FocusMotionSP);
+        //            int last_motion = IUFindOnSwitchIndex(&FocusMotionSP);
 
-            if (IUUpdateSwitch(&FocusMotionSP, states, names, n) < 0)
-                return false;
+        //            if (IUUpdateSwitch(&FocusMotionSP, states, names, n) < 0)
+        //                return false;
 
-            index = IUFindOnSwitchIndex(&FocusMotionSP);
+        //            index = IUFindOnSwitchIndex(&FocusMotionSP);
 
-            // If same direction and we're busy, stop
-            if (last_motion == index && FocusMotionSP.s == IPS_BUSY)
-            {
-                IUResetSwitch(&FocusMotionSP);
-                FocusMotionSP.s = IPS_IDLE;
-                setFocuserSpeedMode(PortFD, 0);
-                IDSetSwitch(&FocusMotionSP, nullptr);
-                return true;
-            }
+        //            // If same direction and we're busy, stop
+        //            if (last_motion == index && FocusMotionSP.s == IPS_BUSY)
+        //            {
+        //                IUResetSwitch(&FocusMotionSP);
+        //                FocusMotionSP.s = IPS_IDLE;
+        //                setFocuserSpeedMode(PortFD, 0);
+        //                IDSetSwitch(&FocusMotionSP, nullptr);
+        //                return true;
+        //            }
 
-            if (!isSimulation() && setFocuserMotion(PortFD, index) < 0)
-            {
-                FocusMotionSP.s = IPS_ALERT;
-                IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
-                return false;
-            }
+        //            if (!isSimulation() && setFocuserMotion(PortFD, index) < 0)
+        //            {
+        //                FocusMotionSP.s = IPS_ALERT;
+        //                IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
+        //                return false;
+        //            }
 
-            // with a timer
-            if (FocusTimerN[0].value > 0)
-            {
-                FocusTimerNP.s  = IPS_BUSY;
-                FocusMotionSP.s = IPS_BUSY;
-                IEAddTimer(50, LX200Telescope::updateFocusHelper, this);
-            }
+        //            // with a timer
+        //            if (FocusTimerN[0].value > 0)
+        //            {
+        //                FocusTimerNP.s  = IPS_BUSY;
+        //                FocusMotionSP.s = IPS_BUSY;
+        //                IEAddTimer(50, LX200Telescope::updateFocusHelper, this);
+        //            }
 
-            FocusMotionSP.s = IPS_OK;
-            IDSetSwitch(&FocusMotionSP, nullptr);
-            return true;
-        }
+        //            FocusMotionSP.s = IPS_OK;
+        //            IDSetSwitch(&FocusMotionSP, nullptr);
+        //            return true;
+        //        }
 
-        // Focus speed
-        if (!strcmp(name, FocusModeSP.name))
-        {
-            IUResetSwitch(&FocusModeSP);
-            IUUpdateSwitch(&FocusModeSP, states, names, n);
+        //        // Focus speed
+        //        if (!strcmp(name, FocusModeSP.name))
+        //        {
+        //            IUResetSwitch(&FocusModeSP);
+        //            IUUpdateSwitch(&FocusModeSP, states, names, n);
 
-            index = IUFindOnSwitchIndex(&FocusModeSP);
+        //            index = IUFindOnSwitchIndex(&FocusModeSP);
 
-            /* disable timer and motion */
-            if (index == 0)
-            {
-                IUResetSwitch(&FocusMotionSP);
-                FocusMotionSP.s = IPS_IDLE;
-                FocusTimerNP.s  = IPS_IDLE;
-                IDSetSwitch(&FocusMotionSP, nullptr);
-                IDSetNumber(&FocusTimerNP, nullptr);
-            }
+        //            /* disable timer and motion */
+        //            if (index == 0)
+        //            {
+        //                IUResetSwitch(&FocusMotionSP);
+        //                FocusMotionSP.s = IPS_IDLE;
+        //                FocusTimerNP.s  = IPS_IDLE;
+        //                IDSetSwitch(&FocusMotionSP, nullptr);
+        //                IDSetNumber(&FocusTimerNP, nullptr);
+        //            }
 
-            if (!isSimulation())
-                setFocuserSpeedMode(PortFD, index);
-            FocusModeSP.s = IPS_OK;
-            IDSetSwitch(&FocusModeSP, nullptr);
-            return true;
-        }
+        //            if (!isSimulation())
+        //                setFocuserSpeedMode(PortFD, index);
+        //            FocusModeSP.s = IPS_OK;
+        //            IDSetSwitch(&FocusModeSP, nullptr);
+        //            return true;
+        //        }
 
         // Pulse-Guide command support
         if (!strcmp(name, UsePulseCmdSP.name))
@@ -966,70 +978,75 @@ bool LX200Telescope::updateSlewRate(int index)
 
 void LX200Telescope::updateFocusHelper(void *p)
 {
-    ((LX200Telescope *)p)->updateFocusTimer();
+    static_cast<LX200Telescope *>(p)->updateFocusTimer();
 }
 
 void LX200Telescope::updateFocusTimer()
 {
-    switch (FocusTimerNP.s)
-    {
-    case IPS_IDLE:
-        break;
+    //    switch (FocusTimerNP.s)
+    //    {
+    //        case IPS_IDLE:
+    //            break;
 
-    case IPS_BUSY:
-        //if (isDebug())
-        //IDLog("Focus Timer Value is %g\n", FocusTimerN[0].value);
+    //        case IPS_BUSY:
+    //            //if (isDebug())
+    //            //IDLog("Focus Timer Value is %g\n", FocusTimerN[0].value);
 
-        FocusTimerN[0].value -= 50;
+    //            FocusTimerN[0].value -= 50;
 
-        if (FocusTimerN[0].value <= 0)
-        {
-            //if (isDebug())
-            //IDLog("Focus Timer Expired\n");
+    //            if (FocusTimerN[0].value <= 0)
+    //            {
+    //                //if (isDebug())
+    //                //IDLog("Focus Timer Expired\n");
 
-            if (!isSimulation() && setFocuserSpeedMode(PortFD, 0) < 0)
-            {
-                FocusModeSP.s = IPS_ALERT;
-                IDSetSwitch(&FocusModeSP, "Error setting focuser mode.");
+    //                if (!isSimulation() && setFocuserSpeedMode(PortFD, 0) < 0)
+    //                {
+    //                    FocusModeSP.s = IPS_ALERT;
+    //                    IDSetSwitch(&FocusModeSP, "Error setting focuser mode.");
 
-                //if (isDebug())
-                //IDLog("Error setting focuser mode\n");
+    //                    //if (isDebug())
+    //                    //IDLog("Error setting focuser mode\n");
 
-                return;
-            }
+    //                    return;
+    //                }
 
-            FocusMotionSP.s = IPS_IDLE;
-            FocusTimerNP.s  = IPS_OK;
-            FocusModeSP.s   = IPS_OK;
+    //                FocusMotionSP.s = IPS_IDLE;
+    //                FocusTimerNP.s  = IPS_OK;
+    //                FocusModeSP.s   = IPS_OK;
 
-            IUResetSwitch(&FocusMotionSP);
-            IUResetSwitch(&FocusModeSP);
-            FocusModeS[0].s = ISS_ON;
+    //                IUResetSwitch(&FocusMotionSP);
+    //                IUResetSwitch(&FocusModeSP);
+    //                FocusModeS[0].s = ISS_ON;
 
-            IDSetSwitch(&FocusModeSP, nullptr);
-            IDSetSwitch(&FocusMotionSP, nullptr);
-        }
+    //                IDSetSwitch(&FocusModeSP, nullptr);
+    //                IDSetSwitch(&FocusMotionSP, nullptr);
+    //            }
 
-        IDSetNumber(&FocusTimerNP, nullptr);
+    //            IDSetNumber(&FocusTimerNP, nullptr);
 
-        if (FocusTimerN[0].value > 0)
-            IEAddTimer(50, LX200Telescope::updateFocusHelper, this);
-        break;
+    //            if (FocusTimerN[0].value > 0)
+    //                IEAddTimer(50, LX200Telescope::updateFocusHelper, this);
+    //            break;
 
-    case IPS_OK:
-        break;
+    //        case IPS_OK:
+    //            break;
 
-    case IPS_ALERT:
-        break;
-    }
+    //        case IPS_ALERT:
+    //            break;
+    //    }
+
+    AbortFocuser();
+    FocusTimerNP.s = IPS_IDLE;
+    FocusTimerN[0].value = 0;
+    IDSetNumber(&FocusTimerNP, nullptr);
 }
 
 void LX200Telescope::mountSim()
 {
     static struct timeval ltv;
     struct timeval tv;
-    double dt=0, da=0, dx=0;
-    int nlocked=0;
+    double dt = 0, da = 0, dx = 0;
+    int nlocked = 0;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
     gettimeofday(&tv, nullptr);
@@ -1045,79 +1062,79 @@ void LX200Telescope::mountSim()
     switch (TrackState)
     {
 
-    case SCOPE_IDLE:
-        currentRA  += (TRACKRATE_SIDEREAL/3600.0 * dt / 15.);
-        break;
-
-    case SCOPE_TRACKING:
-        switch (IUFindOnSwitchIndex(&TrackModeSP))
-        {
-        case TRACK_SIDEREAL:
-            da = 0;
-            dx = 0;
+        case SCOPE_IDLE:
+            currentRA  += (TRACKRATE_SIDEREAL / 3600.0 * dt / 15.);
             break;
 
-        case TRACK_LUNAR:
-            da = ((TRACKRATE_LUNAR-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
-            dx = 0;
+        case SCOPE_TRACKING:
+            switch (IUFindOnSwitchIndex(&TrackModeSP))
+            {
+                case TRACK_SIDEREAL:
+                    da = 0;
+                    dx = 0;
+                    break;
+
+                case TRACK_LUNAR:
+                    da = ((TRACKRATE_LUNAR - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
+                    dx = 0;
+                    break;
+
+                case TRACK_SOLAR:
+                    da = ((TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
+                    dx = 0;
+                    break;
+
+                case TRACK_CUSTOM:
+                    da = ((TrackRateN[AXIS_RA].value - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
+                    dx = (TrackRateN[AXIS_DE].value / 3600.0 * dt);
+                    break;
+
+            }
+
+            currentRA  += da;
+            currentDEC += dx;
             break;
 
-        case TRACK_SOLAR:
-            da = ((TRACKRATE_SOLAR-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
-            dx = 0;
-            break;
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
+            /* slewing - nail it when both within one pulse @ LX200_GENERIC_SLEWRATE */
+            nlocked = 0;
 
-        case TRACK_CUSTOM:
-            da = ((TrackRateN[AXIS_RA].value-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
-            dx = (TrackRateN[AXIS_DE].value/3600.0 * dt);
-            break;
+            dx = targetRA - currentRA;
 
-        }
-
-        currentRA  += da;
-        currentDEC += dx;
-        break;
-
-    case SCOPE_SLEWING:
-    case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ LX200_GENERIC_SLEWRATE */
-        nlocked = 0;
-
-        dx = targetRA - currentRA;
-
-        if (fabs(dx) <= da)
-        {
-            currentRA = targetRA;
-            nlocked++;
-        }
-        else if (dx > 0)
-            currentRA += da / 15.;
-        else
-            currentRA -= da / 15.;
-
-        dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da)
-        {
-            currentDEC = targetDEC;
-            nlocked++;
-        }
-        else if (dx > 0)
-            currentDEC += da;
-        else
-            currentDEC -= da;
-
-        if (nlocked == 2)
-        {
-            if (TrackState == SCOPE_SLEWING)
-                TrackState = SCOPE_TRACKING;
+            if (fabs(dx) <= da)
+            {
+                currentRA = targetRA;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentRA += da / 15.;
             else
-                SetParked(true);
-        }
+                currentRA -= da / 15.;
 
-        break;
+            dx = targetDEC - currentDEC;
+            if (fabs(dx) <= da)
+            {
+                currentDEC = targetDEC;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentDEC += da;
+            else
+                currentDEC -= da;
 
-    default:
-        break;
+            if (nlocked == 2)
+            {
+                if (TrackState == SCOPE_SLEWING)
+                    TrackState = SCOPE_TRACKING;
+                else
+                    SetParked(true);
+            }
+
+            break;
+
+        default:
+            break;
     }
 
     NewRaDec(currentRA, currentDEC);
@@ -1203,15 +1220,15 @@ void LX200Telescope::getAlignment()
 
     switch (align)
     {
-    case 'P':
-        AlignmentS[0].s = ISS_ON;
-        break;
-    case 'A':
-        AlignmentS[1].s = ISS_ON;
-        break;
-    case 'L':
-        AlignmentS[2].s = ISS_ON;
-        break;
+        case 'P':
+            AlignmentS[0].s = ISS_ON;
+            break;
+        case 'A':
+            AlignmentS[1].s = ISS_ON;
+            break;
+        case 'L':
+            AlignmentS[2].s = ISS_ON;
+            break;
     }
 
     AlignmentSP.s = IPS_OK;
@@ -1227,7 +1244,7 @@ bool LX200Telescope::getLocalTime(char *timeString)
     }
     else
     {
-        double ctime=0;
+        double ctime = 0;
         int h, m, s;
         getLocalTime24(PortFD, &ctime);
         getSexComponents(ctime, &h, &m, &s);
@@ -1269,16 +1286,16 @@ bool LX200Telescope::getUTFOffset(double *offset)
 
 bool LX200Telescope::sendScopeTime()
 {
-    char cdate[MAXINDINAME]={0};
-    char ctime[MAXINDINAME]={0};
+    char cdate[MAXINDINAME] = {0};
+    char ctime[MAXINDINAME] = {0};
     struct tm ltm;
     struct tm utm;
     time_t time_epoch;
 
-    double offset=0;
+    double offset = 0;
     if (getUTFOffset(&offset))
     {
-        char utcStr[8]={0};
+        char utcStr[8] = {0};
         snprintf(utcStr, 8, "%.2f", offset);
         IUSaveText(&TimeT[1], utcStr);
     }
@@ -1301,7 +1318,7 @@ bool LX200Telescope::sendScopeTime()
     }
 
     // To ISO 8601 format in LOCAL TIME!
-    char datetime[MAXINDINAME]={0};
+    char datetime[MAXINDINAME] = {0};
     snprintf(datetime, MAXINDINAME, "%sT%s", cdate, ctime);
 
     // Now that date+time are combined, let's get tm representation of it.
@@ -1571,5 +1588,40 @@ bool LX200Telescope::saveConfigItems(FILE *fp)
     if (genericCapability & LX200_HAS_PULSE_GUIDING)
         IUSaveConfigSwitch(fp, &UsePulseCmdSP);
 
+    if (genericCapability & LX200_HAS_FOCUS)
+        FI::saveConfigItems(fp);
+
     return true;
+}
+
+bool LX200Telescope::ReverseFocuser(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    return true;
+}
+
+bool LX200Telescope::AbortFocuser()
+{
+    return SetFocuserSpeed(0);
+}
+
+IPState LX200Telescope::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
+{
+    FocusDirection finalDirection = dir;
+    // Reverse final direction if necessary
+    if (FocusReverseS[REVERSED_ENABLED].s == ISS_ON)
+        finalDirection = (dir == FOCUS_INWARD) ? FOCUS_OUTWARD : FOCUS_INWARD;
+
+    SetFocuserSpeed(speed);
+
+    setFocuserMotion(PortFD, finalDirection);
+
+    IEAddTimer(duration, &LX200Telescope::updateFocusHelper, this);
+
+    return IPS_BUSY;
+}
+
+bool LX200Telescope::SetFocuserSpeed(int speed)
+{
+    return (setFocuserSpeedMode(PortFD, speed) == 0);
 }

@@ -38,7 +38,7 @@ HorizonLimits::HorizonLimits(INDI::Telescope *t)
     horizonindex = -1;
     strcpy(errorline, "Bad number format line     ");
     sline = errorline + 23;
-    HorizonInitialized=false;
+    HorizonInitialized = false;
 }
 
 HorizonLimits::~HorizonLimits()
@@ -62,16 +62,16 @@ void HorizonLimits::Init()
     if (!HorizonInitialized)
     {
         char *res = LoadDataFile(IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
-	if (res)
-	{
-	    LOGF_WARN("Can not load HorizonLimits Data File %s: %s",
-		     IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text, res);
-	}
-	else
-	{
-	    LOGF_INFO("HorizonLimits: Data loaded from file %s",
-		     IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
-	}
+        if (res)
+        {
+            LOGF_WARN("Can not load HorizonLimits Data File %s: %s",
+                      IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text, res);
+        }
+        else
+        {
+            LOGF_INFO("HorizonLimits: Data loaded from file %s",
+                      IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
+        }
     }
     HorizonInitialized = true;
 }
@@ -205,13 +205,12 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
             {
                 if (horizonindex > 0)
                     horizonindex = horizonindex - 1;
-		else
-		    if (horizonindex == -1)
-		        horizonindex = horizon->size() - 1;
+                else if (horizonindex == -1)
+                    horizonindex = horizon->size() - 1;
             }
             if (!strcmp(sw->name, "HORIZONLIMITSLISTNEXT"))
             {
-	      if (horizonindex < (int)(horizon->size() - 1))
+                if (horizonindex < (int)(horizon->size() - 1))
                     horizonindex = horizonindex + 1;
             }
             if (!strcmp(sw->name, "HORIZONLIMITSLISTLAST"))
@@ -283,7 +282,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
             }
             else if (!strcmp(sw->name, "HORIZONLIMITSLISTDELETE"))
             {
-	      if (!horizon || (horizonindex >= (int)horizon->size()))
+                if (!horizon || (horizonindex >= (int)horizon->size()))
                 {
                     LOG_WARN("Horizon Limits: Can not delete point");
                     HorizonLimitsManageSP->s = IPS_ALERT;
@@ -291,7 +290,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                     return true;
                 }
                 LOGF_INFO("Horizon Limits: Deleted point Az = %f, Alt  = %f, Rank=%d",
-                       horizon->at(horizonindex).az, horizon->at(horizonindex).alt, horizonindex);
+                          horizon->at(horizonindex).az, horizon->at(horizonindex).alt, horizonindex);
                 horizon->erase(horizon->begin() + horizonindex);
                 if (horizonindex >= (int)horizon->size())
                     horizonindex = horizon->size() - 1;
@@ -330,13 +329,13 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 if (res)
                 {
                     LOGF_WARN("Can not save HorizonLimits Data to file %s: %s",
-                           IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text, res);
+                              IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text, res);
                     HorizonLimitsFileOperationSP->s = IPS_ALERT;
                 }
                 else
                 {
                     LOGF_INFO("HorizonLimits: Data saved in file %s",
-                           IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
+                              IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
                     HorizonLimitsFileOperationSP->s = IPS_OK;
                 }
             }
@@ -348,13 +347,13 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 if (res)
                 {
                     LOGF_WARN("Can not load HorizonLimits Data File %s: %s",
-                           IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text, res);
+                              IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text, res);
                     HorizonLimitsFileOperationSP->s = IPS_ALERT;
                 }
                 else
                 {
                     LOGF_INFO("HorizonLimits: Data loaded from file %s",
-                           IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
+                              IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
                     HorizonLimitsFileOperationSP->s = IPS_OK;
                 }
             }
@@ -559,30 +558,35 @@ bool HorizonLimits::inGotoLimits(double az, double alt)
 
 bool HorizonLimits::checkLimits(double az, double alt, INDI::Telescope::TelescopeStatus status, bool ingoto)
 {
+    static bool warningMessageDispatched = false;
     bool abortscope = false;
-    const char *abortmsg;
     ISwitch *swaborttrack = IUFindSwitch(HorizonLimitsOnLimitSP, "HORIZONLIMITSONLIMITTRACK");
     ISwitch *swabortslew  = IUFindSwitch(HorizonLimitsOnLimitSP, "HORIZONLIMITSONLIMITSLEW");
     ISwitch *swabortgoto  = IUFindSwitch(HorizonLimitsOnLimitSP, "HORIZONLIMITSONLIMITGOTO");
     if (!(inLimits(az, alt)))
     {
-        abortmsg = "Nothing to abort.";
         if ((status == INDI::Telescope::SCOPE_TRACKING) && (swaborttrack->s == ISS_ON))
         {
-            abortmsg   = "Abort Tracking.";
             abortscope = true;
+            LOG_WARN("Horizon Limits: Scope outside limits. Abort Tracking.");
         }
         if ((status == INDI::Telescope::SCOPE_SLEWING) && (swabortslew->s == ISS_ON) && !ingoto)
         {
-            abortmsg   = "Abort Slewing.";
             abortscope = true;
+            LOG_WARN("Horizon Limits: Scope outside limits. Abort Slewing.");
         }
         if ((status == INDI::Telescope::SCOPE_SLEWING) && (swabortgoto->s == ISS_ON) && ingoto)
         {
-            abortmsg   = "Abort Goto.";
             abortscope = true;
+            LOG_WARN("Horizon Limits: Scope outside limits. Abort Goto.");
         }
-        LOGF_WARN("Horizon Limits: Scope outside limits. %s", abortmsg);
+        else if (!warningMessageDispatched)
+        {
+            warningMessageDispatched = true;
+            LOG_WARN("Horizon Limits: Scope outside limits. Nothing to abort.");
+        }
     }
+    else
+        warningMessageDispatched = false;
     return (abortscope);
 }

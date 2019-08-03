@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <stdarg.h>
 #include <cstring>
+#include <algorithm>
 
 #ifdef _WINDOWS
 #include <WinSock2.h>
@@ -55,10 +56,8 @@
 
 #define MAXINDIBUF 49152
 
-INDI::BaseClient::BaseClient()
+INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 {
-    cServer    = "localhost";
-    cPort      = 7624;
     sConnected = false;
     verbose    = false;
 
@@ -74,10 +73,16 @@ INDI::BaseClient::~BaseClient()
 void INDI::BaseClient::clear()
 {
     while (!cDevices.empty())
-        delete cDevices.back(), cDevices.pop_back();
+    {
+        delete cDevices.back();
+        cDevices.pop_back();
+    }
     cDevices.clear();
     while (!blobModes.empty())
-        delete blobModes.back(), blobModes.pop_back();
+    {
+        delete blobModes.back();
+        blobModes.pop_back();
+    }
     blobModes.clear();
 }
 
@@ -89,7 +94,18 @@ void INDI::BaseClient::setServer(const char *hostname, unsigned int port)
 
 void INDI::BaseClient::watchDevice(const char *deviceName)
 {
-    cDeviceNames.emplace_back(std::string(deviceName));
+    // Watch for duplicates. Should have used std::set from the beginning but let's
+    // avoid changing API now.
+    if (std::find(cDeviceNames.begin(), cDeviceNames.end(), deviceName) != cDeviceNames.end())
+        return;
+
+    cDeviceNames.emplace_back(deviceName);
+}
+
+void INDI::BaseClient::watchProperty(const char *deviceName, const char *propertyName)
+{
+    watchDevice(deviceName);
+    cWatchProperties[deviceName].insert(propertyName);
 }
 
 bool INDI::BaseClient::connectServer()
@@ -363,7 +379,7 @@ void INDI::BaseClient::listenINDI()
 {
     char buffer[MAXINDIBUF];
     char msg[MAXRBUF];
-    int n = 0, err_code = 0;
+    int err_code = 0;
 #ifdef _WINDOWS
     SOCKET maxfd = 0;
 #else
@@ -378,17 +394,37 @@ void INDI::BaseClient::listenINDI()
 
     if (cDeviceNames.empty())
     {
-        sendString("<getProperties version='%g'/>\n", INDIV);
+        char cmd[MAXRBUF] = {0};
+        snprintf(cmd, MAXRBUF, "<getProperties version='%g'/>\n", INDIV);
+        sendString(cmd);
         if (verbose)
-            fprintf(stderr, "<getProperties version='%g'/>\n", INDIV);
+            IDLog("%s\n", cmd);
     }
     else
     {
-        for (auto &str : cDeviceNames)
+        for (auto oneDevice : cDeviceNames)
         {
-            sendString("<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
-            if (verbose)
-                IDLog("<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
+            // If there are no specific properties to watch, we watch the complete device
+            if (cWatchProperties.find(oneDevice) == cWatchProperties.end())
+            {
+                char cmd[MAXRBUF] = {0};
+                snprintf(cmd, MAXRBUF, "<getProperties version='%g' device='%s'/>\n", INDIV, oneDevice.c_str());
+                sendString(cmd);
+                if (verbose)
+                    IDLog("%s\n", cmd);
+            }
+            else
+            {
+                for (auto oneProperty : cWatchProperties[oneDevice])
+                {
+                    char cmd[MAXRBUF] = {0};
+                    snprintf(cmd, MAXRBUF, "<getProperties version='%g' device='%s' name='%s'/>\n",
+                             INDIV, oneDevice.c_str(), oneProperty.c_str());
+                    sendString(cmd);
+                    if (verbose)
+                        IDLog("%s\n", cmd);
+                }
+            }
         }
     }
 
@@ -412,7 +448,7 @@ void INDI::BaseClient::listenINDI()
     /* read from server, exit if find all requested properties */
     while (sConnected)
     {
-        n = select(maxfd + 1, &rs, nullptr, nullptr, nullptr);
+        int n = select(maxfd + 1, &rs, nullptr, nullptr, nullptr);
 
         if (n < 0)
         {
@@ -529,6 +565,19 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
         return 0;
     }
 
+    // If we are asked to watch for specific properties only, we ignore everything else
+    if (cWatchProperties.size() > 0)
+    {
+        const char *device = findXMLAttValu(root, "device");
+        const char *name = findXMLAttValu(root, "name");
+        if (device && name)
+        {
+            if (cWatchProperties.find(device) == cWatchProperties.end() ||
+                    cWatchProperties[device].find(name) == cWatchProperties[device].end())
+                return 0;
+        }
+    }
+
     if ((!strcmp(tagXMLEle(root), "defTextVector")) || (!strcmp(tagXMLEle(root), "defNumberVector")) ||
             (!strcmp(tagXMLEle(root), "defSwitchVector")) || (!strcmp(tagXMLEle(root), "defLightVector")) ||
             (!strcmp(tagXMLEle(root), "defBLOBVector")))
@@ -604,7 +653,7 @@ INDI::BaseDevice *INDI::BaseClient::findDev(const char *devName, char *errmsg)
 {
     std::vector<INDI::BaseDevice *>::const_iterator devicei;
 
-    for (devicei = cDevices.begin(); devicei != cDevices.end(); devicei++)
+    for (devicei = cDevices.begin(); devicei != cDevices.end(); ++devicei)
     {
         if (!strcmp(devName, (*devicei)->getDeviceName()))
             return (*devicei);
@@ -619,14 +668,14 @@ INDI::BaseDevice *INDI::BaseClient::addDevice(XMLEle *dep, char *errmsg)
 {
     //devicePtr dp(new INDI::BaseDriver());
     INDI::BaseDevice *dp = new INDI::BaseDevice();
-    XMLAtt *ap;
     char *device_name;
 
     /* allocate new INDI::BaseDriver */
-    ap = findXMLAtt(dep, "device");
+    XMLAtt *ap = findXMLAtt(dep, "device");
     if (!ap)
     {
         strncpy(errmsg, "Unable to find device attribute in XML element. Cannot add device.", MAXRBUF);
+        delete (dp);
         return nullptr;
     }
 
@@ -879,34 +928,44 @@ void INDI::BaseClient::startBlob(const char *devName, const char *propName, cons
 
 void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
-    unsigned char *encblob;
     char nl = '\n';
-    int l;
-    int ret = 0;
-
-    encblob = (unsigned char *)malloc(4 * bp->size / 3 + 4);
-    l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size);
+    int rc = 0;
+    uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * bp->size / 3 + 4));
+    uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size);
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", bp->name);
     sendString("    size='%ud'\n", bp->size);
-    sendString("    enclen='%d'\n", l);
+    sendString("    enclen='%d'\n", base64Len);
     sendString("    format='%s'>\n", bp->format);
 
-    size_t written = 0;
-    size_t towrite = 0;
-    while ((int)written < l)
+    uint32_t written = 0;
+    while (written < base64Len)
     {
-        towrite   = ((l - written) > 72) ? 72 : l - written;
-        size_t wr = net_write(sockfd, encblob + written, towrite);
+        // Write 72 chars followed by new line
+        uint8_t towrite = ((base64Len - written) > 72) ? 72 : base64Len - written;
+        ssize_t wr = net_write(sockfd, encblob + written, towrite);
         if (wr > 0)
             written += wr;
+        else if (wr < 0)
+        {
+            // If temporary error, continue
+            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+                continue;
+            else
+            {
+                // Otherwise exist
+                fprintf(stderr, "sendOneBlob: %s\n", strerror(errno));
+                free(encblob);
+                return;
+            }
+        }
         if ((written % 72) == 0)
-            ret = net_write(sockfd, &nl, 1);
+            rc = net_write(sockfd, &nl, 1);
     }
 
     if ((written % 72) != 0)
-        ret = net_write(sockfd, &nl, 1);
+        rc = net_write(sockfd, &nl, 1);
 
     free(encblob);
 
@@ -916,34 +975,44 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
                                    void *blobBuffer)
 {
-    unsigned char *encblob;
     char nl = '\n';
-    int l;
-    int ret = 0;
-
-    encblob = (unsigned char *)malloc(4 * blobSize / 3 + 4);
-    l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(blobBuffer), blobSize);
+    int rc = 0;
+    uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * blobSize / 3 + 4));
+    uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(blobBuffer), blobSize);
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", blobName);
     sendString("    size='%ud'\n", blobSize);
-    sendString("    enclen='%d'\n", l);
+    sendString("    enclen='%d'\n", base64Len);
     sendString("    format='%s'>\n", blobFormat);
 
-    size_t written = 0;
-    size_t towrite = 0;
-    while ((int)written < l)
+    uint32_t written = 0;
+    while (written < base64Len)
     {
-        towrite   = ((l - written) > 72) ? 72 : l - written;
-        size_t wr = net_write(sockfd, encblob + written, towrite);
+        // Write 72 chars followed by new line
+        uint8_t towrite = ((base64Len - written) > 72) ? 72 : base64Len - written;
+        ssize_t wr = net_write(sockfd, encblob + written, towrite);
         if (wr > 0)
             written += wr;
+        else if (wr < 0)
+        {
+            // If temporary error, continue
+            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+                continue;
+            else
+            {
+                // Otherwise exist
+                fprintf(stderr, "sendOneBlob: %s\n", strerror(errno));
+                free(encblob);
+                return;
+            }
+        }
         if ((written % 72) == 0)
-            ret = net_write(sockfd, &nl, 1);
+            rc = net_write(sockfd, &nl, 1);
     }
 
     if ((written % 72) != 0)
-        ret = net_write(sockfd, &nl, 1);
+        rc = net_write(sockfd, &nl, 1);
 
     free(encblob);
 
@@ -1027,7 +1096,7 @@ bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, u
 {
     for (INDI::BaseDevice *device : cDevices)
     {
-        if (device->getDriverInterface() | driverInterface)
+        if (device->getDriverInterface() & driverInterface)
             deviceList.push_back(device);
     }
 

@@ -46,6 +46,7 @@ public:
     bool getCurrentMechanicalPosition(MechanicalPoint &p) { return EQ500X::getCurrentMechanicalPosition(p); }
     TelescopeStatus getTrackState() const { return TrackState; }
     long getReadScopeStatusInterval() const { return POLLMS; }
+    int getSlewRateIndex() const { return IUFindOnSwitchIndex(&SlewRateSP); }
 public:
     void setLongitude(double lng) {
         /* Say it's 0h on Greenwich meridian (GHA=0) - express LST as hours */
@@ -743,6 +744,82 @@ TEST(EQ500XDriverTest, test_Goto_WestMovement)
     }
     ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
     ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
+}
+
+TEST(EQ500XDriverTest, test_RestoreSlewRateOnAbort)
+{
+    MockEQ500XDriver d;
+
+    ASSERT_TRUE(d.isConnected());
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
+    ASSERT_TRUE(d.executeGotoOffset(1,-1));
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    long seconds = d.getReadScopeStatusInterval()/1000;
+    struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+    nanosleep(&timeout, nullptr);
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
+    ASSERT_TRUE(d.executeAbort());
+    ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
+    ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
+}
+
+TEST(EQ500XDriverTest, test_RestoreSlewRateAfterGoto)
+{
+    MockEQ500XDriver d;
+
+    ASSERT_TRUE(d.isConnected());
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
+    ASSERT_TRUE(d.executeGotoOffset(1,-1));
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    for(int i = 0; i < 150; i++)
+    {
+        long seconds = d.getReadScopeStatusInterval()/1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        nanosleep(&timeout, nullptr);
+        ASSERT_TRUE(d.executeReadScopeStatus());
+        if (EQ500X::SCOPE_TRACKING == d.getTrackState())
+        {
+            ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
+            return;
+        }
+    }
+    ASSERT_FALSE(true);
+}
+
+TEST(EQ500XDriverTest, test_RestoreSlewRateAfterInterruptingGoto)
+{
+    MockEQ500XDriver d;
+
+    ASSERT_TRUE(d.isConnected());
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
+    ASSERT_TRUE(d.executeGotoOffset(1,-1));
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    for(int i = 0; i < 30; i++)
+    {
+        long seconds = d.getReadScopeStatusInterval()/1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        nanosleep(&timeout, nullptr);
+        ASSERT_TRUE(d.executeReadScopeStatus());
+    }
+    ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
+    ASSERT_TRUE(d.executeGotoOffset(1,-1));
+    for(int i = 0; i < 150; i++)
+    {
+        long seconds = d.getReadScopeStatusInterval()/1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        nanosleep(&timeout, nullptr);
+        ASSERT_TRUE(d.executeReadScopeStatus());
+        if (EQ500X::SCOPE_TRACKING == d.getTrackState())
+        {
+            ASSERT_EQ(EQ500X::SLEW_FIND,d.getSlewRateIndex());
+            return;
+        }
+    }
+    ASSERT_FALSE(true);
 }
 
 int main(int argc, char **argv)

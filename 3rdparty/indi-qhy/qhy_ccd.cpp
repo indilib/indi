@@ -301,6 +301,12 @@ bool QHYCCD::initProperties()
     IUFillNumber(&SpeedN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
     IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
+    
+    // Read Modes (initial support for QHY42Pro)
+    IUFillNumber(&ReadModeN[0], "Read Mode", "Read Mode", "%3.0f", 0, 1, 1, 0);
+    IUFillNumberVector(&ReadModeNP, ReadModeN, 1, getDeviceName(), "READ_MODE", "Read Mode", MAIN_CONTROL_TAB, IP_RW, 60,
+                       IPS_IDLE);
+    
 
     // USB Traffic
     IUFillNumber(&USBTrafficN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
@@ -340,6 +346,9 @@ void QHYCCD::ISGetProperties(const char *dev)
 
         if (HasUSBSpeed)
             defineNumber(&SpeedNP);
+        
+        if (HasReadMode)
+            defineNumber(&ReadModeNP);
 
         if (HasGain)
             defineNumber(&GainNP);
@@ -409,6 +418,56 @@ bool QHYCCD::updateProperties()
 
             defineNumber(&SpeedNP);
         }
+        
+        // Read mode support
+         if (HasReadMode)
+         {
+            if (isSimulation())
+            {
+                ReadModeN[0].min   = 0;
+                ReadModeN[0].max   = 2;
+                ReadModeN[0].step  = 1;
+                ReadModeN[0].value = 1;
+            }
+            else
+            {
+               
+                ReadModeN[0].min  = 0;
+                
+                ////////////////////////////////////////////////////////////////////
+                /// Read Modes
+                ////////////////////////////////////////////////////////////////////
+                int ret;
+                uint32_t maxNumOfReadModes = 0;
+                ret = GetQHYCCDNumberOfReadModes(m_CameraHandle, &maxNumOfReadModes);
+                if (ret == QHYCCD_SUCCESS && maxNumOfReadModes > 0)
+                {
+                    ReadModeN[0].max  = maxNumOfReadModes - 1;
+                }
+                else
+                {
+                    ReadModeN[0].max = 0; 
+                }
+                
+                ReadModeN[0].step = 1;
+                
+                uint32_t currentReadMode = 0;
+                
+                ret = GetQHYCCDReadMode(m_CameraHandle, &currentReadMode);
+                if (ret == QHYCCD_SUCCESS)
+                {
+                    ReadModeN[0].value = currentReadMode;
+                    LOGF_INFO("Current read mode: %zu", currentReadMode);
+                }
+                else
+                {
+                    LOGF_INFO("Using default read mode (error reading it): %zu", currentReadMode);
+                }
+
+                
+            }
+         }
+        // ---
 
         if (HasGain)
         {
@@ -517,6 +576,11 @@ bool QHYCCD::updateProperties()
         {
             deleteProperty(SpeedNP.name);
         }
+        
+        if (HasReadMode)
+        {
+            deleteProperty(ReadModeNP.name);
+        }
 
         if (HasGain)
         {
@@ -544,6 +608,8 @@ bool QHYCCD::Connect()
 {
     unsigned int ret = 0;
     uint32_t cap;
+    uint32_t readModes = 0;
+    
 
     if (isSimulation())
     {
@@ -555,6 +621,7 @@ bool QHYCCD::Connect()
         HasGain       = true;
         HasOffset     = true;
         HasFilters    = true;
+        HasReadMode   = true;
 
         return true;
     }
@@ -593,6 +660,18 @@ bool QHYCCD::Connect()
             return false;
         }
 
+        ////////////////////////////////////////////////////////////////////
+        /// Read Modes
+        ////////////////////////////////////////////////////////////////////
+        ret = GetQHYCCDNumberOfReadModes(m_CameraHandle, &readModes);
+        if (ret == QHYCCD_SUCCESS)
+        {
+            HasReadMode = true;
+            LOGF_INFO("Number of read modes: %zu", readModes);
+        }
+       
+       
+        
         ////////////////////////////////////////////////////////////////////
         /// Shutter Support
         ////////////////////////////////////////////////////////////////////
@@ -1509,6 +1588,71 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             IDSetNumber(&USBTrafficNP, nullptr);
             return true;
         }
+        
+        
+        //////////////////////////////////////////////////////////////////////
+        /// Read Modes Control
+        //////////////////////////////////////////////////////////////////////
+         if (!strcmp(name, ReadModeNP.name))
+        {
+            uint32_t imageRMw, imageRMh, ret;
+            double newReadMode = ReadModeN[0].value;
+            uint32_t nbuf, imagew, imageh, bpp;
+            double chipw, chiph, pixelw, pixelh;
+            IUUpdateNumber(&ReadModeNP, values, names, n);
+            int rc = SetQHYCCDReadMode(m_CameraHandle,ReadModeN[0].value);
+            if (rc == QHYCCD_SUCCESS)
+            {
+                LOGF_INFO("Read mode updated to %.f", ReadModeN[0].value);
+                // Get resolution
+                ret = GetQHYCCDReadModeResolution(m_CameraHandle, ReadModeN[0].value, &imageRMw, &imageRMh);
+                LOGF_INFO("GetQHYCCDReadModeResolution in this ReadMode: imageW: %d imageH: %d \n", imageRMw, imageRMh);
+                
+                ReadModeNP.s = IPS_OK;
+                saveConfig(true, ReadModeNP.name);
+                    if (isSimulation())
+                    {
+                        chipw = imagew = 1280;
+                        chiph = imageh = 1024;
+                        pixelh = pixelw = 5.4;
+                        bpp             = 8;
+                    }
+                    else
+                    {
+                        ret = GetQHYCCDChipInfo(m_CameraHandle, &chipw, &chiph, &imagew, &imageh, &pixelw, &pixelh, &bpp);
+                        
+                        /* JM: We need GetQHYCCDErrorString(ret) to get the string description of the error, please implement this in the SDK */
+                        if (ret != QHYCCD_SUCCESS)
+                        {
+                            LOGF_ERROR("Error: GetQHYCCDChipInfo() (%d)", ret);
+                            return false;
+                        }
+                        
+                    }
+
+                    SetCCDParams(imageRMw, imageRMh, bpp, pixelw, pixelh);
+                    nbuf = imageRMw * imageRMh * PrimaryCCD.getBPP() / 8;
+                    PrimaryCCD.setFrameBufferSize(nbuf);
+
+                    if (HasStreaming())
+                    {
+                        Streamer->setPixelFormat(INDI_MONO);
+                        Streamer->setSize(imageRMw, imageRMh);
+                    }
+                
+                
+            }
+            else
+            {
+                ReadModeNP.s = IPS_ALERT;
+                ReadModeN[0].value = newReadMode;
+                LOGF_ERROR("Failed to update read mode: %d", rc);
+            }
+
+            IDSetNumber(&ReadModeNP, nullptr);
+            return true;
+        }
+        
 
         //////////////////////////////////////////////////////////////////////
         /// Cooler PWM Control
@@ -1654,6 +1798,9 @@ bool QHYCCD::saveConfigItems(FILE *fp)
 
     if (HasUSBSpeed)
         IUSaveConfigNumber(fp, &SpeedNP);
+    
+    if (HasReadMode)
+        IUSaveConfigNumber(fp, &ReadModeNP);
 
     if (HasUSBTraffic)
         IUSaveConfigNumber(fp, &USBTrafficNP);

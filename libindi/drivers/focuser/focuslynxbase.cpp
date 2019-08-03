@@ -43,6 +43,7 @@ FocusLynxBase::FocusLynxBase()
     //  lynxModels["Optec Gemini (reserved for future use)"] = "OG";
     lynxModels["Optec Leo"] = "OI";
     lynxModels["Optec Leo High-Torque"] = "OJ";
+    lynxModels["Optec Sagitta"] = "OK";
     lynxModels["FocusLynx QuickSync FT Hi-Torque"] = "FA";
     lynxModels["FocusLynx QuickSync FT Hi-Speed"] = "FB";
     //  lynxModels["FocusLynx QuickSync SV (reserved for future use)"] = "FC";
@@ -1536,7 +1537,15 @@ bool FocusLynxBase::getFocusTemp()
         char compensateMode;
         rc = sscanf(response, "%16[^=]= %c", key, &compensateMode);
         if (rc != 2)
-            return false;
+        {
+            if (rc == 1 && key[0] == 'T'){
+                //If the controller does not support this it could be null. Assume A mode in this case.
+                compensateMode = 'A';
+            }
+            else{
+                return false;
+            }
+        }
 
         IUResetSwitch(&TemperatureCompensateModeSP);
         int index = compensateMode - 'A';
@@ -2988,11 +2997,23 @@ bool FocusLynxBase::isResponseOK()
         response[nbytes_read - 1] = '\0';
         LOGF_DEBUG("RES (%s)", response);
 
-        if (response[0] == '!')
+        if (!strcmp(response, "!"))
             return true;
         else
         {
-            LOGF_ERROR("Controller error: %s", response);
+            memset(response, 0, sizeof(response));
+            while (strstr(response, "END") == nullptr)
+            {
+                if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+                {
+                    tty_error_msg(errcode, errmsg, MAXRBUF);
+                    LOGF_ERROR("TTY error: %s", errmsg);
+                    return false;
+                }
+                response[nbytes_read - 1] = '\0';
+                LOGF_ERROR("Controller error: %s", response);
+            }
+
             return false;
         }
     }

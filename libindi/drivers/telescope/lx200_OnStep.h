@@ -87,194 +87,194 @@
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC};
 
-class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
+class LX200_OnStep : public LX200Generic
 {
-  public:
-    LX200_OnStep();
-    ~LX200_OnStep() {}
+    public:
+        LX200_OnStep();
+        ~LX200_OnStep() {}
 
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    virtual void getBasicData() override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
-    virtual bool SetTrackEnabled(bool enabled) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
-    virtual bool ReadScopeStatus() override;
-    virtual int setSiteLongitude(int fd, double Long);
-    virtual bool SetTrackRate(double raRate, double deRate) override;
-    
-    
-    //FocuserInterface
-    
-    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
-    IPState MoveAbsFocuser (uint32_t targetTicks) override;
-    IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
-    bool AbortFocuser () override;
-
-    
-    //End FocuserInterface
-    
-    //PECInterface 
-    //axis 0=RA, 1=DEC, others? 
-    IPState StopPECPlayback (int axis);
-    IPState StartPECPlayback (int axis);
-    IPState ClearPECBuffer (int axis);
-    IPState StartPECRecord (int axis);
-    IPState SavePECBuffer (int axis);
-    IPState PECStatus (int axis);
-    IPState ReadPECBuffer (int axis);
-    IPState WritePECBuffer (int axis);
-    bool ISPECRecorded (int axis);
-    //End PECInterface
-    
-    
-    //NewGeometricAlignment    
-    IPState AlignStartGeometric(int stars);
-    IPState AlignAddStar();
-    IPState AlignDone();
-    virtual bool UpdateAlignStatus();
-    virtual bool UpdateAlignErr();
-    //End NewGeometricAlignment 
-    
-    
-    //Outputs
-    IPState OSEnableOutput(int output);
-    IPState OSDisableOutput(int output);
-    bool OSGetOutputState(int output);
-    
-
-    bool sendOnStepCommand(const char *cmd);
-    bool sendOnStepCommandBlind(const char *cmd);
-    int  setMaxElevationLimit(int fd, int max);
-    void OSUpdateFocuser();
-
-    ITextVectorProperty ObjectInfoTP;
-    IText ObjectInfoT[1] {};
-
-    ISwitchVectorProperty StarCatalogSP;
-    ISwitch StarCatalogS[3];
-
-    ISwitchVectorProperty DeepSkyCatalogSP;
-    ISwitch DeepSkyCatalogS[7];
-
-    ISwitchVectorProperty SolarSP;
-    ISwitch SolarS[10];
-
-    INumberVectorProperty ObjectNoNP;
-    INumber ObjectNoN[1];
-
-    INumberVectorProperty MaxSlewRateNP;
-    INumber MaxSlewRateN[2];
-
-    INumberVectorProperty BacklashNP;    //test
-    INumber BacklashN[2];    //Test
-
-    INumberVectorProperty ElevationLimitNP;
-    INumber ElevationLimitN[2];
-
-    ITextVectorProperty VersionTP;
-    IText VersionT[5] {};
-
-    // OnStep Status controls
-    ITextVectorProperty OnstepStatTP;
-    IText OnstepStat[10] {};
-
-    // Focuser controls
-    // Focuser 1
-    bool OSFocuser1=false;
-    ISwitchVectorProperty OSFocus1InitializeSP;
-    ISwitch OSFocus1InitializeS[4];
-
-    // Focuser 2
-    //ISwitchVectorProperty OSFocus2SelSP;
-    //ISwitch OSFocus2SelS[2];
-    bool OSFocuser2=false;
-    ISwitchVectorProperty OSFocus2RateSP;
-    ISwitch OSFocus2RateS[4];
-
-    ISwitchVectorProperty OSFocus2MotionSP;
-    ISwitch OSFocus2MotionS[3];
-
-    INumberVectorProperty OSFocus2TargNP;
-    INumber OSFocus2TargN[1];
+    protected:
+        virtual void getBasicData() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
+        virtual bool ReadScopeStatus() override;
+        virtual int setSiteLongitude(int fd, double Long);
+        virtual bool SetTrackRate(double raRate, double deRate) override;
 
 
-    int IsTracking = 0;
+        //FocuserInterface
 
-    // Reticle +/- Buttons
-    ISwitchVectorProperty ReticSP;
-    ISwitch ReticS[2];
-
-    // Align Buttons
-    ISwitchVectorProperty TrackCompSP;
-    ISwitch TrackCompS[3];
-    
-    ISwitchVectorProperty FrequencyAdjustSP;
-    ISwitch FrequencyAdjustS[3];
-
-    ISwitchVectorProperty AutoFlipSP;
-    ISwitch AutoFlipS[2];
-    
-    ISwitchVectorProperty HomePauseSP;
-    ISwitch HomePauseS[3];    
-    
-    ISwitchVectorProperty SetHomeSP;
-    ISwitch SetHomeS[2];
-
-    ISwitchVectorProperty PreferredPierSideSP;
-    ISwitch PreferredPierSideS[3];    
-    
-    INumberVectorProperty minutesPastMeridianNP;    
-    INumber minutesPastMeridianN[2];    
-    
-    ISwitchVectorProperty OSPECStatusSP;
-    ISwitch OSPECStatusS[5];
-    ISwitchVectorProperty OSPECIndexSP;
-    ISwitch OSPECIndexS[2];
-    ISwitchVectorProperty OSPECRecordSP;
-    ISwitch OSPECRecordS[3];
-    ISwitchVectorProperty OSPECReadSP;
-    ISwitch OSPECReadS[2];
-    
-    ISwitchVectorProperty OSNAlignStarsSP;
-    ISwitch OSNAlignStarsS[7];
-    ISwitchVectorProperty OSNAlignSP;
-    ISwitch OSNAlignS[4];
-    IText OSNAlignT[8] {};
-    ITextVectorProperty OSNAlignTP;
-    IText OSNAlignErrT[4] {};
-    ITextVectorProperty OSNAlignErrTP;    
-    char OSNAlignStat[RB_MAX_LEN]; 
-    
-    ISwitchVectorProperty OSOutput1SP;
-    ISwitch OSOutput1S[2];
-    ISwitchVectorProperty OSOutput2SP;
-    ISwitch OSOutput2S[2];
-    
-
-    INumber OutputPorts[PORTS_COUNT];
-    INumberVectorProperty OutputPorts_NP;
+        IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+        IPState MoveAbsFocuser (uint32_t targetTicks) override;
+        IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
+        bool AbortFocuser () override;
 
 
-    char OSStat[RB_MAX_LEN];
-    char OldOSStat[RB_MAX_LEN];
+        //End FocuserInterface
+
+        //PECInterface
+        //axis 0=RA, 1=DEC, others?
+        IPState StopPECPlayback (int axis);
+        IPState StartPECPlayback (int axis);
+        IPState ClearPECBuffer (int axis);
+        IPState StartPECRecord (int axis);
+        IPState SavePECBuffer (int axis);
+        IPState PECStatus (int axis);
+        IPState ReadPECBuffer (int axis);
+        IPState WritePECBuffer (int axis);
+        bool ISPECRecorded (int axis);
+        //End PECInterface
 
 
-    char OSPier[RB_MAX_LEN];
-    char OldOSPier[RB_MAX_LEN];
+        //NewGeometricAlignment
+        IPState AlignStartGeometric(int stars);
+        IPState AlignAddStar();
+        IPState AlignDone();
+        virtual bool UpdateAlignStatus();
+        virtual bool UpdateAlignErr();
+        //End NewGeometricAlignment
 
-  private:
-    int currentCatalog;
-    int currentSubCatalog;
-    bool FirstRead=true;
+
+        //Outputs
+        IPState OSEnableOutput(int output);
+        IPState OSDisableOutput(int output);
+        bool OSGetOutputState(int output);
+
+
+        bool sendOnStepCommand(const char *cmd);
+        bool sendOnStepCommandBlind(const char *cmd);
+        int  setMaxElevationLimit(int fd, int max);
+        void OSUpdateFocuser();
+
+        ITextVectorProperty ObjectInfoTP;
+        IText ObjectInfoT[1] {};
+
+        ISwitchVectorProperty StarCatalogSP;
+        ISwitch StarCatalogS[3];
+
+        ISwitchVectorProperty DeepSkyCatalogSP;
+        ISwitch DeepSkyCatalogS[7];
+
+        ISwitchVectorProperty SolarSP;
+        ISwitch SolarS[10];
+
+        INumberVectorProperty ObjectNoNP;
+        INumber ObjectNoN[1];
+
+        INumberVectorProperty MaxSlewRateNP;
+        INumber MaxSlewRateN[2];
+
+        INumberVectorProperty BacklashNP;    //test
+        INumber BacklashN[2];    //Test
+
+        INumberVectorProperty ElevationLimitNP;
+        INumber ElevationLimitN[2];
+
+        ITextVectorProperty VersionTP;
+        IText VersionT[5] {};
+
+        // OnStep Status controls
+        ITextVectorProperty OnstepStatTP;
+        IText OnstepStat[10] {};
+
+        // Focuser controls
+        // Focuser 1
+        bool OSFocuser1 = false;
+        ISwitchVectorProperty OSFocus1InitializeSP;
+        ISwitch OSFocus1InitializeS[4];
+
+        // Focuser 2
+        //ISwitchVectorProperty OSFocus2SelSP;
+        //ISwitch OSFocus2SelS[2];
+        bool OSFocuser2 = false;
+        ISwitchVectorProperty OSFocus2RateSP;
+        ISwitch OSFocus2RateS[4];
+
+        ISwitchVectorProperty OSFocus2MotionSP;
+        ISwitch OSFocus2MotionS[3];
+
+        INumberVectorProperty OSFocus2TargNP;
+        INumber OSFocus2TargN[1];
+
+
+        int IsTracking = 0;
+
+        // Reticle +/- Buttons
+        ISwitchVectorProperty ReticSP;
+        ISwitch ReticS[2];
+
+        // Align Buttons
+        ISwitchVectorProperty TrackCompSP;
+        ISwitch TrackCompS[3];
+
+        ISwitchVectorProperty FrequencyAdjustSP;
+        ISwitch FrequencyAdjustS[3];
+
+        ISwitchVectorProperty AutoFlipSP;
+        ISwitch AutoFlipS[2];
+
+        ISwitchVectorProperty HomePauseSP;
+        ISwitch HomePauseS[3];
+
+        ISwitchVectorProperty SetHomeSP;
+        ISwitch SetHomeS[2];
+
+        ISwitchVectorProperty PreferredPierSideSP;
+        ISwitch PreferredPierSideS[3];
+
+        INumberVectorProperty minutesPastMeridianNP;
+        INumber minutesPastMeridianN[2];
+
+        ISwitchVectorProperty OSPECStatusSP;
+        ISwitch OSPECStatusS[5];
+        ISwitchVectorProperty OSPECIndexSP;
+        ISwitch OSPECIndexS[2];
+        ISwitchVectorProperty OSPECRecordSP;
+        ISwitch OSPECRecordS[3];
+        ISwitchVectorProperty OSPECReadSP;
+        ISwitch OSPECReadS[2];
+
+        ISwitchVectorProperty OSNAlignStarsSP;
+        ISwitch OSNAlignStarsS[7];
+        ISwitchVectorProperty OSNAlignSP;
+        ISwitch OSNAlignS[4];
+        IText OSNAlignT[8] {};
+        ITextVectorProperty OSNAlignTP;
+        IText OSNAlignErrT[4] {};
+        ITextVectorProperty OSNAlignErrTP;
+        char OSNAlignStat[RB_MAX_LEN];
+
+        ISwitchVectorProperty OSOutput1SP;
+        ISwitch OSOutput1S[2];
+        ISwitchVectorProperty OSOutput2SP;
+        ISwitch OSOutput2S[2];
+
+
+        INumber OutputPorts[PORTS_COUNT];
+        INumberVectorProperty OutputPorts_NP;
+
+
+        char OSStat[RB_MAX_LEN];
+        char OldOSStat[RB_MAX_LEN];
+
+
+        char OSPier[RB_MAX_LEN];
+        char OldOSPier[RB_MAX_LEN];
+
+    private:
+        int currentCatalog;
+        int currentSubCatalog;
+        bool FirstRead = true;
 };
