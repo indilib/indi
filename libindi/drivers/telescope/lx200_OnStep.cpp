@@ -1147,16 +1147,19 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		
 		if (OSPECRecordS[0].s == ISS_ON)
 		{
+			OSPECEnabled = true;
 			ClearPECBuffer(0);
 			OSPECRecordS[0].s = ISS_OFF;
 		}
 		if (OSPECRecordS[1].s == ISS_ON)
 		{
+			OSPECEnabled = true;
 			StartPECRecord(0);
 			OSPECRecordS[1].s = ISS_OFF;
 		}
 		if (OSPECRecordS[2].s == ISS_ON)
 		{
+			OSPECEnabled = true;
 			SavePECBuffer(0);
 			OSPECRecordS[2].s = ISS_OFF;
 		}
@@ -1166,11 +1169,13 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 	{
 		if (OSPECReadS[0].s == ISS_ON)
 		{
+			OSPECEnabled = true;
 			ReadPECBuffer(0);
 			OSPECReadS[0].s = ISS_OFF;
 		}
 		if (OSPECReadS[1].s == ISS_ON)
 		{
+			OSPECEnabled = true;
 			WritePECBuffer(0);
 			OSPECReadS[1].s = ISS_OFF;
 		}
@@ -1181,12 +1186,14 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		index = IUFindOnSwitchIndex(&PECStateSP);
 		if (index == 0)
 		{
-			StopPECPlayback(0);
+			OSPECEnabled = true;
+			StopPECPlayback(0); //Status will set OSPECEnabled to false if that's set by the controller
 			PECStateS[0].s = ISS_ON;
 			PECStateS[1].s = ISS_OFF;
 			IDSetSwitch(&PECStateSP, nullptr);
 		} else if (index == 1)
 		{
+			OSPECEnabled = true;
 			StartPECPlayback(0);
 			PECStateS[0].s = ISS_OFF;
 			PECStateS[1].s = ISS_ON;
@@ -2241,44 +2248,64 @@ IPState LX200_OnStep::StartPECPlayback (int axis) {
 	//  :$QZ+  Enable RA PEC compensation 
 	//         Returns: nothing
 	INDI_UNUSED(axis); //We only have RA on OnStep
-	char cmd[8];
-	LOG_INFO("Sending Command to Start PEC Playback");
-	strcpy(cmd, ":$QZ+#");
-	sendOnStepCommandBlind(cmd);
-	return IPS_BUSY;
+	if (OSPECEnabled == true) {
+		char cmd[8];
+		LOG_INFO("Sending Command to Start PEC Playback");
+		strcpy(cmd, ":$QZ+#");
+		sendOnStepCommandBlind(cmd);
+		return IPS_BUSY;
+	} else {
+		LOG_DEBUG("Command to Playback PEC called when Controller does not support PEC");
+	}
+	return IPS_ALERT;
 }
 
 IPState LX200_OnStep::StopPECPlayback (int axis) {
 	//  :$QZ-  Disable RA PEC Compensation
 	//         Returns: nothing
 	INDI_UNUSED(axis); //We only have RA on OnStep
-	char cmd[8];
-	LOG_INFO("Sending Command to Stop PEC Playback");
-	strcpy(cmd, ":$QZ-#");
-	sendOnStepCommandBlind(cmd);
-	return IPS_BUSY;
+	if (OSPECEnabled == true) {
+		char cmd[8];
+		LOG_INFO("Sending Command to Stop PEC Playback");
+		strcpy(cmd, ":$QZ-#");
+		sendOnStepCommandBlind(cmd);
+		return IPS_BUSY;
+	} else {
+		LOG_DEBUG("Command to Stop Playing PEC called when Controller does not support PEC");
+	}
+	return IPS_ALERT;
 }
 
 IPState LX200_OnStep::StartPECRecord (int axis) {
 	//  :$QZ/  Ready Record PEC
 	//         Returns: nothing
 	INDI_UNUSED(axis); //We only have RA on OnStep
-	char cmd[8];
-	LOG_INFO("Sending Command to Start PEC record");
-	strcpy(cmd, ":$QZ/#");
-	sendOnStepCommandBlind(cmd);
-	return IPS_BUSY;
+	if (OSPECEnabled == true) {
+		char cmd[8];
+		LOG_INFO("Sending Command to Start PEC record");
+		strcpy(cmd, ":$QZ/#");
+		sendOnStepCommandBlind(cmd);
+		return IPS_BUSY;
+	} else {
+		LOG_DEBUG("Command to Record PEC called when Controller does not support PEC");
+	}
+	return IPS_ALERT;
 }
 
 IPState LX200_OnStep::ClearPECBuffer (int axis) {
 	//  :$QZZ  Clear the PEC data buffer
 	//         Return: Nothing
 	INDI_UNUSED(axis); //We only have RA on OnStep
-	char cmd[8];
-	LOG_INFO("Sending Command to Clear PEC record");
-	strcpy(cmd, ":$QZZ#");
-	sendOnStepCommandBlind(cmd);
-	return IPS_BUSY;
+	if (OSPECEnabled == true) {
+		char cmd[8];
+		LOG_INFO("Sending Command to Clear PEC record");
+		strcpy(cmd, ":$QZZ#");
+		sendOnStepCommandBlind(cmd);
+		return IPS_BUSY;
+	} else {
+		LOG_DEBUG("Command to clear PEC called when Controller does not support PEC");
+	}
+	return IPS_ALERT;
 	
 }
 
@@ -2286,17 +2313,22 @@ IPState LX200_OnStep::SavePECBuffer (int axis) {
 	//  :$QZ!  Write PEC data to EEPROM
 	//         Returns: nothing
 	INDI_UNUSED(axis); //We only have RA on OnStep
-	char cmd[8];
-	LOG_INFO("Sending Command to Save PEC to EEPROM");
-	strcpy(cmd, ":$QZ!#");
-	sendOnStepCommandBlind(cmd);
-	return IPS_BUSY;
-	
+	if (OSPECEnabled == true) {
+		char cmd[8];
+		LOG_INFO("Sending Command to Save PEC to EEPROM");
+		strcpy(cmd, ":$QZ!#");
+		sendOnStepCommandBlind(cmd);
+		return IPS_BUSY;
+	} else {
+		LOG_DEBUG("Command to save PEC called when Controller does not support PEC");
+	}
+	return IPS_ALERT;
 }
 
 
 IPState LX200_OnStep::PECStatus (int axis) {
 	INDI_UNUSED(axis); //We only have RA on OnStep
+	if (OSPECEnabled == true) {
 //	LOG_INFO("Getting PEC Status");
 	//  :$QZ?  Get PEC status
 	//         Returns: S#
@@ -2322,6 +2354,9 @@ IPState LX200_OnStep::PECStatus (int axis) {
 		OSPECStatusSP.s = IPS_OK;
 		OSPECStatusS[0].s = ISS_ON ;
 		OSPECRecordSP.s = IPS_IDLE;
+		OSPECEnabled = false;
+		LOG_INFO("Controller reports PEC Ignored and not supported");
+		LOG_INFO("No Further PEC Commands will be processed, unless status changed");
 	} else if (value[0] == 'R') { //Active Recording
 		OSPECStatusSP.s = IPS_OK;
 		OSPECStatusS[2].s = ISS_ON ;
@@ -2354,20 +2389,34 @@ IPState LX200_OnStep::PECStatus (int axis) {
 	IDSetSwitch(&OSPECRecordSP, nullptr);
 	IDSetSwitch(&OSPECIndexSP, nullptr);
 	return IPS_OK;
+	} else {
+// 		LOG_DEBUG("PEC status called when Controller does not support PEC");
+	}
+	return IPS_ALERT;
 }
 
 
 IPState LX200_OnStep::ReadPECBuffer (int axis) {
 	INDI_UNUSED(axis); //We only have RA on OnStep
-	LOG_ERROR("PEC Reading NOT Implemented");
-	return IPS_OK;
+	if (OSPECEnabled == true) {
+		LOG_ERROR("PEC Reading NOT Implemented");
+		return IPS_OK;
+	} else {
+		LOG_DEBUG("Command to Read PEC called when Controller does not support PEC");
+	}
+	return IPS_ALERT;
 }
 
 
 IPState LX200_OnStep::WritePECBuffer (int axis) {
 	INDI_UNUSED(axis); //We only have RA on OnStep
-	LOG_ERROR("PEC Writing NOT Implemented");
-	return IPS_OK;
+	if (OSPECEnabled == true) {
+		LOG_ERROR("PEC Writing NOT Implemented");
+		return IPS_OK;
+	} else {
+		LOG_DEBUG("Command to Read PEC called when Controller does not support PEC");
+	}
+	return IPS_ALERT;
 }
 
 // New, Multistar alignment goes here: 

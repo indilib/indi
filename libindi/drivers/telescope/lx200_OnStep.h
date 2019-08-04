@@ -150,6 +150,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     IPState ReadPECBuffer (int axis);
     IPState WritePECBuffer (int axis);
     bool ISPECRecorded (int axis);
+    bool OSPECIgnored = false;
     //End PECInterface
     
     
