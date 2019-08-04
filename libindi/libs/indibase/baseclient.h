@@ -23,6 +23,8 @@
 
 #include <string>
 #include <vector>
+#include <map>
+#include <set>
 
 #include <thread>
 
@@ -71,6 +73,17 @@ class INDI::BaseClient : public INDI::BaseMediator
             will be created and handled.
         */
         void watchDevice(const char *deviceName);
+
+
+        /**
+         * @brief watchProperties Add a property to the watch list. When communicating with INDI server.
+         * Thi
+         * The client calls <getProperties device=deviceName property=propertyName/> so that only a particular
+         * property (or list of properties if more than one) are defined back to the client. This function
+         * will call watchDevice(deviceName) as well to limit the traffic to this device.
+         * @param propertyName Property to watch for.
+         */
+        void watchProperty(const char *deviceName, const char *propertyName);
 
         /** \brief Connect to INDI server.
 
@@ -284,9 +297,10 @@ class INDI::BaseClient : public INDI::BaseMediator
         std::vector<INDI::BaseDevice *> cDevices;
         std::vector<std::string> cDeviceNames;
         std::vector<BLOBMode *> blobModes;
+        std::map<std::string, std::set<std::string>> cWatchProperties;
 
         std::string cServer;
-        unsigned int cPort;
+        uint32_t cPort;
         bool sConnected;
         bool verbose;
 

@@ -92,7 +92,7 @@ enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BO
 
 
 
-class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
+class LX200_OnStep : public LX200Generic
 {
   public:
     LX200_OnStep();
@@ -162,7 +162,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual bool UpdateAlignStatus();
     virtual bool UpdateAlignErr();
     //End NewGeometricAlignment 
-    
+    bool OSAlignCompleted=false;
     
     //Outputs
     IPState OSEnableOutput(int output);
@@ -208,14 +208,14 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
 
     // Focuser controls
     // Focuser 1
-    bool OSFocuser1=false;
+    bool OSFocuser1 = false;
     ISwitchVectorProperty OSFocus1InitializeSP;
     ISwitch OSFocus1InitializeS[4];
 
     // Focuser 2
     //ISwitchVectorProperty OSFocus2SelSP;
     //ISwitch OSFocus2SelS[2];
-    bool OSFocuser2=false;
+    bool OSFocuser2 = false;
     ISwitchVectorProperty OSFocus2RateSP;
     ISwitch OSFocus2RateS[4];
 
@@ -309,4 +309,5 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     int currentCatalog;
     int currentSubCatalog;
     bool FirstRead=true;
+
 };

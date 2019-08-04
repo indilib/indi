@@ -572,14 +572,16 @@ long libusb_list(char *pattern, flidomain_t domain, char ***names)
 
     if (FLIOpen(&dev, fli_device_name, domain) == 0) /* Opened and should have model */
     {
-      strncpy(fli_model_name, DEVICE->devinfo.model, sizeof(fli_model_name) - 1);
+		if(DEVICE->devinfo.model == NULL)
+			DEVICE->devinfo.model = strdup("DEVICE->devinfo.model is NULL");
+	  strncpy(fli_model_name, DEVICE->devinfo.model, sizeof(fli_model_name) - 1);
       FLIClose(dev);
     }
     else
     {
       libusb_device_handle *usb_han;
 
-      if(libusb_open(usb_dev, &usb_han) == 0)
+      if( (libusb_open(usb_dev, &usb_han) == 0) && (usb_desc.iProduct > 0) )
       {
         libusb_get_string_descriptor_ascii(usb_han, usb_desc.iProduct,
           (unsigned char *) fli_model_name, sizeof(fli_model_name) - 1);

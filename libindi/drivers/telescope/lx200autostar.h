@@ -24,23 +24,24 @@
 
 class LX200Autostar : public LX200Generic
 {
-  public:
-    LX200Autostar();
-    ~LX200Autostar() {}
+    public:
+        LX200Autostar();
 
-    const char *getDefaultName();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual void getBasicData();
+        const char *getDefaultName() override;
+        //virtual void ISGetProperties(const char *dev) override;
+        //virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        //virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual void getBasicData() override;
 
-  protected:
-    virtual bool initProperties();
-    virtual bool updateProperties();
+    protected:
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-    ITextVectorProperty VersionTP;
-    IText VersionT[5] {};
+        virtual bool SetFocuserSpeed(int speed) override;
 
-    INumberVectorProperty FocusSpeedNP;
-    INumber FocusSpeedN[1];
+        ITextVectorProperty VersionTP;
+        IText VersionT[5] {};
+
+        //        INumberVectorProperty FocusSpeedNP;
+        //        INumber FocusSpeedN[1];
 };

@@ -18,7 +18,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "ieqprodriver.h"
+#include "ieqprolegacydriver.h"
 
 #include "indicom.h"
 #include "indilogger.h"
@@ -294,7 +294,10 @@ bool get_ieqpro_model(int fd, FirmwareInfo *info)
                 {"0025", "CEM25"},
                 {"0026", "CEM25-EC"},
                 {"0030", "iEQ30Pro"},
+                {"0040", "CEM40"},
+                {"0041", "CEM40-EC"},
                 {"0045", "iEQ45 Pro EQ"},
+                {"0046", "iEQ45 Pro AA"},
                 {"0060", "CEM60"},
                 {"0061", "CEM60-EC"},
                 {"0120", "CEM120"},
@@ -449,12 +452,12 @@ bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 
     switch (dir)
     {
-    case IEQ_N:
-        strcpy(cmd, ":mn#");
-        break;
-    case IEQ_S:
-        strcpy(cmd, ":ms#");
-        break;
+        case IEQ_N:
+            strcpy(cmd, ":mn#");
+            break;
+        case IEQ_S:
+            strcpy(cmd, ":ms#");
+            break;
         //        case IEQ_W:
         //            strcpy(cmd, ":mw#");
         //            break;
@@ -462,12 +465,12 @@ bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
         //            strcpy(cmd, ":me#");
         //            break;
         // JM 2019-01-17: Appears iOptron implementation is reversed?
-    case IEQ_W:
-        strcpy(cmd, ":me#");
-        break;
-    case IEQ_E:
-        strcpy(cmd, ":mw#");
-        break;
+        case IEQ_W:
+            strcpy(cmd, ":me#");
+            break;
+        case IEQ_E:
+            strcpy(cmd, ":mw#");
+            break;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
@@ -926,14 +929,14 @@ bool set_ieqpro_custom_de_track_rate(int fd, double rate)
 
 bool set_ieqpro_guide_rate(int fd, double raRate, double deRate)
 {
-    char cmd[16]={0};
+    char cmd[16] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    snprintf(cmd, 16, ":RG%02d%02d#", static_cast<int>(raRate*100.0), static_cast<int>(deRate*100.0));
+    snprintf(cmd, 16, ":RG%02d%02d#", static_cast<int>(raRate * 100.0), static_cast<int>(deRate * 100.0));
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
@@ -981,7 +984,7 @@ bool get_ieqpro_guide_rate(int fd, double *raRate, double *deRate)
     char cmd[]  = ":AG#";
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[8]={0};
+    char response[8] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -1013,12 +1016,12 @@ bool get_ieqpro_guide_rate(int fd, double *raRate, double *deRate)
 
     if (nbytes_read > 0)
     {
-        response[nbytes_read-1] = '\0';
+        response[nbytes_read - 1] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
-        char raRateStr[8]={0}, deRateStr[8]={0};
+        char raRateStr[8] = {0}, deRateStr[8] = {0};
         strncpy(response, raRateStr, 2);
-        strncpy(response+2, deRateStr, 2);
+        strncpy(response + 2, deRateStr, 2);
         *raRate = atoi(raRateStr) / 100.0;
         *deRate = atoi(deRateStr) / 100.0;
         tcflush(fd, TCIFLUSH);
@@ -1660,7 +1663,7 @@ bool get_ieqpro_longitude(int fd, double *longitude)
 
     if (nbytes_read > 0)
     {
-        response[nbytes_read-1] = '\0';
+        response[nbytes_read - 1] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         tcflush(fd, TCIFLUSH);
@@ -1719,7 +1722,7 @@ bool get_ieqpro_latitude(int fd, double *latitude)
 
     if (nbytes_read > 0)
     {
-        response[nbytes_read-1] = '\0';
+        response[nbytes_read - 1] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         tcflush(fd, TCIFLUSH);
@@ -2007,7 +2010,7 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
         response[nbytes_read] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_EXTRA_1, "RES <%s>", response);
 
-        char ra_str[16]= {0}, dec_str[16] = {0};
+        char ra_str[16] = {0}, dec_str[16] = {0};
 
         strncpy(dec_str, response, 9);
         strncpy(ra_str, response + 9, 8);
@@ -2070,7 +2073,7 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
         response[nbytes_read] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
-        char utc_str[8]={0}, yy_str[8]={0}, mm_str[8]={0}, dd_str[8]={0}, hh_str[8]={0}, minute_str[8]={0}, ss_str[8]={0}, dst_str[8]={0};
+        char utc_str[8] = {0}, yy_str[8] = {0}, mm_str[8] = {0}, dd_str[8] = {0}, hh_str[8] = {0}, minute_str[8] = {0}, ss_str[8] = {0}, dst_str[8] = {0};
 
         // UTC Offset
         strncpy(utc_str, response, 4);
