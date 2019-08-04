@@ -301,6 +301,12 @@ bool QHYCCD::initProperties()
     IUFillNumber(&SpeedN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
     IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
+    
+    // Read Modes (initial support for QHY42Pro)
+    IUFillNumber(&ReadModeN[0], "Read Mode", "Read Mode", "%3.0f", 0, 1, 1, 0);
+    IUFillNumberVector(&ReadModeNP, ReadModeN, 1, getDeviceName(), "READ_MODE", "Read Mode", MAIN_CONTROL_TAB, IP_RW, 60,
+                       IPS_IDLE);
+    
 
     // USB Traffic
     IUFillNumber(&USBTrafficN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
@@ -340,6 +346,9 @@ void QHYCCD::ISGetProperties(const char *dev)
 
         if (HasUSBSpeed)
             defineNumber(&SpeedNP);
+        
+        if (HasReadMode)
+            defineNumber(&ReadModeNP);
 
         if (HasGain)
             defineNumber(&GainNP);
@@ -409,6 +418,56 @@ bool QHYCCD::updateProperties()
 
             defineNumber(&SpeedNP);
         }
+        
+        // Read mode support
+         if (HasReadMode)
+         {
+            if (isSimulation())
+            {
+                ReadModeN[0].min   = 0;
+                ReadModeN[0].max   = 2;
+                ReadModeN[0].step  = 1;
+                ReadModeN[0].value = 1;
+            }
+            else
+            {
+               
+                ReadModeN[0].min  = 0;
+                
+                ////////////////////////////////////////////////////////////////////
+                /// Read Modes
+                ////////////////////////////////////////////////////////////////////
+                int ret;
+                uint32_t maxNumOfReadModes = 0;
+                ret = GetQHYCCDNumberOfReadModes(m_CameraHandle, &maxNumOfReadModes);
+                if (ret == QHYCCD_SUCCESS && maxNumOfReadModes > 0)
+                {
+                    ReadModeN[0].max  = maxNumOfReadModes - 1;
+                }
+                else
+                {
+                    ReadModeN[0].max = 0; 
+                }
+                
+                ReadModeN[0].step = 1;
+                
+                uint32_t currentReadMode = 0;
+                
+                ret = GetQHYCCDReadMode(m_CameraHandle, &currentReadMode);
+                if (ret == QHYCCD_SUCCESS)
+                {
+                    ReadModeN[0].value = currentReadMode;
+                    LOGF_INFO("Current read mode: %zu", currentReadMode);
+                }
+                else
+                {
+                    LOGF_INFO("Using default read mode (error reading it): %zu", currentReadMode);
+                }
+
+                
+            }
+         }
+        // ---
 
         if (HasGain)
         {
@@ -517,6 +576,11 @@ bool QHYCCD::updateProperties()
         {
             deleteProperty(SpeedNP.name);
         }
+        
+        if (HasReadMode)
+        {
+            deleteProperty(ReadModeNP.name);
+        }
 
         if (HasGain)
         {
@@ -544,6 +608,8 @@ bool QHYCCD::Connect()
 {
     unsigned int ret = 0;
     uint32_t cap;
+    uint32_t readModes = 0;
+    
 
     if (isSimulation())
     {
@@ -555,6 +621,7 @@ bool QHYCCD::Connect()
         HasGain       = true;
         HasOffset     = true;
         HasFilters    = true;
+        HasReadMode   = true;
 
         return true;
     }
@@ -593,6 +660,18 @@ bool QHYCCD::Connect()
             return false;
         }
 
+        ////////////////////////////////////////////////////////////////////
+        /// Read Modes
+        ////////////////////////////////////////////////////////////////////
+        ret = GetQHYCCDNumberOfReadModes(m_CameraHandle, &readModes);
+        if (ret == QHYCCD_SUCCESS)
+        {
+            HasReadMode = true;
+            LOGF_INFO("Number of read modes: %zu", readModes);
+        }
+       
+       
+        
         ////////////////////////////////////////////////////////////////////
         /// Shutter Support
         ////////////////////////////////////////////////////////////////////
@@ -694,6 +773,27 @@ bool QHYCCD::Connect()
         if (ret == QHYCCD_SUCCESS)
         {
             HasFilters = true;
+
+            m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+            LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+            // If we get invalid value, check again in 0.5 sec
+            if (m_MaxFilterCount > 16)
+            {
+                usleep(500000);
+                m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+                LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+            }
+
+            if (m_MaxFilterCount > 16)
+            {
+                LOG_DEBUG("Camera can support CFW but no filters are present.");
+                m_MaxFilterCount = -1;
+            }
+
+            if (m_MaxFilterCount > 0)
+                updateFilterProperties();
+            else
+                HasFilters = false;
         }
 
         LOGF_DEBUG("Has Filters: %s", HasFilters ? "True" : "False");
@@ -787,6 +887,8 @@ bool QHYCCD::Connect()
             pthread_cond_wait(&cv, &condMutex);
         }
         pthread_mutex_unlock(&condMutex);
+
+        SetTimer(POLLMS);
 
         return true;
     }
@@ -946,15 +1048,15 @@ bool QHYCCD::StartExposure(float duration)
         ret = QHYCCD_SUCCESS;
     else
         ret = SetQHYCCDResolution(m_CameraHandle,
-                                  PrimaryCCD.getSubX(),
-                                  PrimaryCCD.getSubY(),
+                                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
     if (ret != QHYCCD_SUCCESS)
     {
         LOGF_INFO("Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)",
-                  PrimaryCCD.getSubX(),
-                  PrimaryCCD.getSubY(),
+                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY(),
                   ret);
@@ -962,8 +1064,8 @@ bool QHYCCD::StartExposure(float duration)
     }
 
     LOGF_DEBUG("SetQHYCCDResolution x: %d y: %d w: %d h: %d",
-               PrimaryCCD.getSubX(),
-               PrimaryCCD.getSubY(),
+               PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+               PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
 
@@ -1161,53 +1263,57 @@ int QHYCCD::grabImage()
     return 0;
 }
 
-//void QHYCCD::TimerHit()
-//{
-//    if (isConnected() == false)
-//        return;
+void QHYCCD::TimerHit()
+{
+    if (isConnected() == false)
+        return;
 
-//    if (InExposure)
-//    {
-//        long timeleft = calcTimeLeft();
+    //    if (HasFilters && m_MaxFilterCount == -1)
+    //    {
+    //        m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+    //        LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+    //        if (m_MaxFilterCount > 16)
+    //            m_MaxFilterCount = -1;
+    //        if (m_MaxFilterCount > 0)
+    //        {
+    //            if (updateFilterProperties())
+    //            {
+    //                deleteProperty("FILTER_NAME");
+    //                IUUpdateMinMax(&FilterSlotNP);
+    //                defineText(FilterNameTP);
+    //            }
+    //        }
+    //    }
 
-//        if (timeleft < 1.0)
-//        {
-//            if (timeleft > 0.25)
-//            {
-//                //  a quarter of a second or more
-//                //  just set a tighter timer
-//                SetTimer(250);
-//            }
-//            else
-//            {
-//                if (timeleft > 0.07)
-//                {
-//                    //  use an even tighter timer
-//                    SetTimer(50);
-//                }
-//                else
-//                {
-//                    /* We're done exposing */
-//                    LOG_DEBUG("Exposure done, downloading image...");
-//                    // Don't spam the session log unless it is a long exposure > 5 seconds
-//                    if (ExposureRequest > POLLMS * 5)
-//                        LOG_INFO("Exposure done, downloading image...");
+    if (FilterSlotNP.s == IPS_BUSY)
+    {
+        char currentPos[MAXINDINAME] = {0};
+        int rc = GetQHYCCDCFWStatus(m_CameraHandle, currentPos);
+        if (rc == QHYCCD_SUCCESS)
+        {
+            // QHY filter wheel positions are from '0' to 'F'
+            // 0 to 15
+            // INDI Filter Wheel 1 to 16
+            CurrentFilter = strtol(currentPos, nullptr, 16) + 1;
+            LOGF_DEBUG("Filter current position: %d", CurrentFilter);
 
-//                    PrimaryCCD.setExposureLeft(0);
-//                    InExposure = false;
+            if (TargetFilter == CurrentFilter)
+            {
+                m_FilterCheckCounter = 0;
+                SelectFilterDone(TargetFilter);
+                LOGF_DEBUG("%s: Filter changed to %d", camid, TargetFilter);
+            }
+        }
+        else if (++m_FilterCheckCounter > 30)
+        {
+            FilterSlotNP.s = IPS_ALERT;
+            LOG_ERROR("Filter change timed out.");
+            IDSetNumber(&FilterSlotNP, nullptr);
+        }
+    }
 
-//                    // grab and save image
-//                    grabImage();
-//                }
-//            }
-//        }
-//        else
-//        {
-//            PrimaryCCD.setExposureLeft(timeleft);
-//            SetTimer(POLLMS);
-//        }
-//    }
-//}
+    SetTimer(POLLMS);
+}
 
 IPState QHYCCD::GuideNorth(uint32_t ms)
 {
@@ -1235,45 +1341,15 @@ IPState QHYCCD::GuideWest(uint32_t ms)
 
 bool QHYCCD::SelectFilter(int position)
 {
-    char targetpos = 0;
-    char currentpos[64] = {0};
-    int checktimes = 0;
-    int ret = 0;
-
     if (isSimulation())
-        ret = QHYCCD_SUCCESS;
-    else
-    {
-        // JM: THIS WILL CRASH! I am using another method with same result!
-        //sprintf(&targetpos,"%d",position - 1);
-        targetpos = '0' + (position - 1);
-        ret       = SendOrder2QHYCCDCFW(m_CameraHandle, &targetpos, 1);
-    }
-
-    if (ret == QHYCCD_SUCCESS)
-    {
-        while (checktimes < 90)
-        {
-            ret = GetQHYCCDCFWStatus(m_CameraHandle, currentpos);
-            if (ret == QHYCCD_SUCCESS)
-            {
-                if ((targetpos + 1) == currentpos[0])
-                {
-                    break;
-                }
-            }
-            checktimes++;
-        }
-
-        CurrentFilter = position;
-        SelectFilterDone(position);
-        LOGF_DEBUG("%s: Filter changed to %d", camid, position);
         return true;
-    }
-    else
-        LOGF_ERROR("Changing filter failed (%d)", ret);
 
-    return false;
+    // QHY Filter position is '0' to 'F'
+    // 0 to 15
+    // INDI Filters 1 to 16
+    char targetPos[8] = {0};
+    snprintf(targetPos, 8, "%X", position - 1);
+    return (SendOrder2QHYCCDCFW(m_CameraHandle, targetPos, 1) == QHYCCD_SUCCESS);
 }
 
 int QHYCCD::QueryFilter()
@@ -1512,6 +1588,71 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             IDSetNumber(&USBTrafficNP, nullptr);
             return true;
         }
+        
+        
+        //////////////////////////////////////////////////////////////////////
+        /// Read Modes Control
+        //////////////////////////////////////////////////////////////////////
+         if (!strcmp(name, ReadModeNP.name))
+        {
+            uint32_t imageRMw, imageRMh, ret;
+            double newReadMode = ReadModeN[0].value;
+            uint32_t nbuf, imagew, imageh, bpp;
+            double chipw, chiph, pixelw, pixelh;
+            IUUpdateNumber(&ReadModeNP, values, names, n);
+            int rc = SetQHYCCDReadMode(m_CameraHandle,ReadModeN[0].value);
+            if (rc == QHYCCD_SUCCESS)
+            {
+                LOGF_INFO("Read mode updated to %.f", ReadModeN[0].value);
+                // Get resolution
+                ret = GetQHYCCDReadModeResolution(m_CameraHandle, ReadModeN[0].value, &imageRMw, &imageRMh);
+                LOGF_INFO("GetQHYCCDReadModeResolution in this ReadMode: imageW: %d imageH: %d \n", imageRMw, imageRMh);
+                
+                ReadModeNP.s = IPS_OK;
+                saveConfig(true, ReadModeNP.name);
+                    if (isSimulation())
+                    {
+                        chipw = imagew = 1280;
+                        chiph = imageh = 1024;
+                        pixelh = pixelw = 5.4;
+                        bpp             = 8;
+                    }
+                    else
+                    {
+                        ret = GetQHYCCDChipInfo(m_CameraHandle, &chipw, &chiph, &imagew, &imageh, &pixelw, &pixelh, &bpp);
+                        
+                        /* JM: We need GetQHYCCDErrorString(ret) to get the string description of the error, please implement this in the SDK */
+                        if (ret != QHYCCD_SUCCESS)
+                        {
+                            LOGF_ERROR("Error: GetQHYCCDChipInfo() (%d)", ret);
+                            return false;
+                        }
+                        
+                    }
+
+                    SetCCDParams(imageRMw, imageRMh, bpp, pixelw, pixelh);
+                    nbuf = imageRMw * imageRMh * PrimaryCCD.getBPP() / 8;
+                    PrimaryCCD.setFrameBufferSize(nbuf);
+
+                    if (HasStreaming())
+                    {
+                        Streamer->setPixelFormat(INDI_MONO);
+                        Streamer->setSize(imageRMw, imageRMh);
+                    }
+                
+                
+            }
+            else
+            {
+                ReadModeNP.s = IPS_ALERT;
+                ReadModeN[0].value = newReadMode;
+                LOGF_ERROR("Failed to update read mode: %d", rc);
+            }
+
+            IDSetNumber(&ReadModeNP, nullptr);
+            return true;
+        }
+        
 
         //////////////////////////////////////////////////////////////////////
         /// Cooler PWM Control
@@ -1657,6 +1798,9 @@ bool QHYCCD::saveConfigItems(FILE *fp)
 
     if (HasUSBSpeed)
         IUSaveConfigNumber(fp, &SpeedNP);
+    
+    if (HasReadMode)
+        IUSaveConfigNumber(fp, &ReadModeNP);
 
     if (HasUSBTraffic)
         IUSaveConfigNumber(fp, &USBTrafficNP);
@@ -1694,15 +1838,15 @@ bool QHYCCD::StartStreaming()
         ret = QHYCCD_SUCCESS;
     else
         ret = SetQHYCCDResolution(m_CameraHandle,
-                                  PrimaryCCD.getSubX(),
-                                  PrimaryCCD.getSubY(),
+                                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
     if (ret != QHYCCD_SUCCESS)
     {
         LOGF_INFO("Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)",
-                  PrimaryCCD.getSubX(),
-                  PrimaryCCD.getSubY(),
+                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY(),
                   ret);
@@ -1710,8 +1854,8 @@ bool QHYCCD::StartStreaming()
     }
 
     LOGF_DEBUG("SetQHYCCDResolution x: %d y: %d w: %d h: %d",
-               PrimaryCCD.getSubX(),
-               PrimaryCCD.getSubY(),
+               PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+               PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
 
@@ -1948,4 +2092,35 @@ void QHYCCD::debugTriggered(bool enable)
         SetQHYCCDLogLevel(5);
     else
         SetQHYCCDLogLevel(2);
+}
+
+bool QHYCCD::updateFilterProperties()
+{
+    if (FilterNameTP->ntp != m_MaxFilterCount)
+    {
+        LOGF_DEBUG("Max filter count is: %d", m_MaxFilterCount);
+        FilterSlotN[0].max = m_MaxFilterCount;
+        char filterName[MAXINDINAME];
+        char filterLabel[MAXINDILABEL];
+        if (FilterNameT != nullptr)
+        {
+            for (int i = 0; i < FilterNameTP->ntp; i++)
+                free(FilterNameT[i].text);
+            delete [] FilterNameT;
+        }
+
+        FilterNameT = new IText[m_MaxFilterCount];
+        memset(FilterNameT, 0, sizeof(IText) * m_MaxFilterCount);
+        for (int i = 0; i < m_MaxFilterCount; i++)
+        {
+            snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+            snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
+            IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
+        }
+        IUFillTextVector(FilterNameTP, FilterNameT, m_MaxFilterCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+
+        return true;
+    }
+
+    return false;
 }

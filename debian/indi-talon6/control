@@ -3,7 +3,7 @@ Section: science
 Priority: extra
 Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
 XSBC-Original-Maintainer: Ferrante Enriques <ferrante.enriques@gmail.com>
-Build-Depends: debhelper (>= 6), cmake, cdbs, libindi-dev
+Build-Depends: debhelper (>= 6), cmake, cdbs, libindi-dev, libnova-dev, zlib1g-dev
 Standards-Version: 3.8.0
 
 Package: indi-talon6

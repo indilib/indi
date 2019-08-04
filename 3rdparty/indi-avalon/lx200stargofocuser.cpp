@@ -67,6 +67,10 @@ void LX200StarGoFocuser::initProperties(const char *groupName)
     IUFillNumber(&FocusSyncPosN[0], "FOCUS_SYNC_POSITION_VALUE", "Ticks", "%4.0f", 0.0, 100000.0, 1000.0, 0);
     IUFillNumberVector(&FocusSyncPosNP, FocusSyncPosN, 1, getDeviceName(), "FOCUS_SYNC_POSITION", "Sync", deviceName, IP_WO, 0, IPS_OK);
 
+    IUFillSwitch(&FocusReverseS[0], "FOCUS_REVERSE_NO", "Normal", ISS_ON);
+    IUFillSwitch(&FocusReverseS[1], "FOCUS_REVERSE_YES", "Reversed", ISS_OFF);
+    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, getDeviceName(), "FOCUS_REVERSE", "Direction", deviceName, IP_RW, ISR_1OFMANY, 60, IPS_OK);
+
 }
 
 /**
@@ -88,6 +92,7 @@ bool LX200StarGoFocuser::updateProperties()
             baseDevice->defineNumber(&FocusRelPosNP);
             baseDevice->defineSwitch(&FocusAbortSP);
             baseDevice->defineNumber(&FocusSyncPosNP);
+            baseDevice->defineSwitch(&FocusReverseSP);
         }
         else {
             baseDevice->deleteProperty(FocusSpeedNP.name);
@@ -97,6 +102,7 @@ bool LX200StarGoFocuser::updateProperties()
             baseDevice->deleteProperty(FocusRelPosNP.name);
             baseDevice->deleteProperty(FocusAbortSP.name);
             baseDevice->deleteProperty(FocusSyncPosNP.name);
+            baseDevice->deleteProperty(FocusReverseSP.name);
         }
         return true;
 
@@ -121,9 +127,14 @@ bool LX200StarGoFocuser::ISNewSwitch(const char *dev, const char *name, ISState 
         if (!strcmp(name, FocusMotionSP.name))
         {
             return changeFocusMotion(states, names, n);
-        } else if (!strcmp(name, FocusAbortSP.name))
+        }
+        else if (!strcmp(name, FocusAbortSP.name))
         {
             return changeFocusAbort(states, names, n);
+        }
+        else if (!strcmp(name, FocusReverseSP.name))
+        {
+            return setFocuserDirection(states, names, n);
         }
     }
 
@@ -220,6 +231,19 @@ bool LX200StarGoFocuser::changeFocusSpeed(double values[], char* names[], int n)
     return true;
 }
 
+bool LX200StarGoFocuser::setFocuserDirection(ISState* states, char* names[], int n) {
+
+    if (IUUpdateSwitch(&FocusReverseSP, states, names, n) < 0)
+        return false;
+
+    focuserReversed = (IUFindOnSwitchIndex(&FocusReverseSP) > 0 ? REVERSED_ENABLED : REVERSED_DISABLED);
+
+    FocusReverseSP.s = IPS_OK;
+    IDSetSwitch(&FocusReverseSP, nullptr);
+
+    return true;
+}
+
 
 bool LX200StarGoFocuser::changeFocusAbort(ISState* states, char* names[], int n) {
     INDI_UNUSED(states);
@@ -313,7 +337,7 @@ bool LX200StarGoFocuser::ReadFocuserStatus() {
 
     int absolutePosition = 0;
     if (sendQueryFocuserPosition(&absolutePosition)) {
-        FocusAbsPosN[0].value = absolutePosition;
+        FocusAbsPosN[0].value = (focuserReversed == REVERSED_DISABLED) ? absolutePosition : -absolutePosition;
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
     else
@@ -389,7 +413,7 @@ IPState LX200StarGoFocuser::syncFocuser(int absolutePosition) {
 
 bool LX200StarGoFocuser::isConnected() {
     if (baseDevice == nullptr) return false;
-    return (focuserActivated && baseDevice->isConnected());
+    return focuserActivated;
 }
 
 const char *LX200StarGoFocuser::getDeviceName() {
@@ -402,14 +426,19 @@ const char *LX200StarGoFocuser::getDefaultName()
     return deviceName;
 }
 
-void LX200StarGoFocuser::activate(bool enabled)
+bool LX200StarGoFocuser::activate(bool enabled)
 {
-    if (focuserActivated != enabled)
-    {
-        focuserActivated = enabled;
-        updateProperties();
-    }
+    focuserActivated = enabled;
+    return updateProperties();
 }
+
+bool LX200StarGoFocuser::saveConfigItems(FILE *fp)
+{
+    IUSaveConfigSwitch(fp, &FocusReverseSP);
+
+    return true;
+}
+
 
 /***************************************************************************
  * LX200 queries, sent to baseDevice
@@ -446,7 +475,7 @@ bool LX200StarGoFocuser::sendSyncFocuserToPosition(int position) {
     // Command  - :X0Cpppppp#
     // Response - Nothing
     char command[AVALON_COMMAND_BUFFER_LENGTH] = {0};
-    sprintf(command, ":X0C%06d#", AVALON_FOCUSER_POSITION_OFFSET + position);
+    sprintf(command, ":X0C%06d#", AVALON_FOCUSER_POSITION_OFFSET + ((focuserReversed == REVERSED_DISABLED) ? position : -position));
     if (!baseDevice->transmit(command)) {
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send AUX1 sync command.", getDeviceName());
         return false;
@@ -481,7 +510,7 @@ bool LX200StarGoFocuser::sendQueryFocuserPosition(int* position) {
 bool LX200StarGoFocuser::sendMoveFocuserToPosition(int position) {
     // Command  - :X16pppppp#
     // Response - Nothing
-    targetFocuserPosition = position;
+    targetFocuserPosition = (focuserReversed == REVERSED_DISABLED) ? position : -position;
     char command[AVALON_COMMAND_BUFFER_LENGTH] = {0};
     sprintf(command, ":X16%06d#", AVALON_FOCUSER_POSITION_OFFSET + targetFocuserPosition);
     if (!baseDevice->transmit(command)) {
@@ -511,7 +540,7 @@ bool LX200StarGoFocuser::isFocuserMoving() {
 }
 
 bool LX200StarGoFocuser::atFocuserTargetPosition() {
-    return FocusAbsPosN[0].value == targetFocuserPosition;
+    return FocusAbsPosN[0].value == (focuserReversed == REVERSED_DISABLED) ? targetFocuserPosition : -targetFocuserPosition;
 }
 
 

@@ -67,94 +67,97 @@ namespace INDI
 {
 class Weather : public DefaultDevice, public WeatherInterface
 {
-  public:
-    enum WeatherLocation
-    {
-        LOCATION_LATITUDE,
-        LOCATION_LONGITUDE,
-        LOCATION_ELEVATION
-    };
+    public:
+        enum WeatherLocation
+        {
+            LOCATION_LATITUDE,
+            LOCATION_LONGITUDE,
+            LOCATION_ELEVATION
+        };
 
-    /** \struct WeatherConnection
-     * \brief Holds the connection mode of the Weather.
-     */
-    enum
-    {
-        CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
-        CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
-        CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
-    } WeatherConnection;
+        /** \struct WeatherConnection
+         * \brief Holds the connection mode of the Weather.
+         */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
+            CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
+            CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
+        } WeatherConnection;
 
-    Weather();
-    virtual ~Weather();
+        Weather();
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
-  protected:
-    /**
-     * @brief TimerHit Keep calling updateWeather() until it is successful, if it fails upon first
-     * connection.
-     */
-    virtual void TimerHit();
+    protected:
+        /**
+         * @brief TimerHit Keep calling updateWeather() until it is successful, if it fails upon first
+         * connection.
+         */
+        virtual void TimerHit() override;
 
-    /** \brief Update weather station location
-     *  \param latitude Site latitude in degrees.
-     *  \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
-     *  \param elevation Site elevation in meters.
-     *  \return True if successful, false otherwise
-     *  \note This function performs no action unless subclassed by the child class if required.
-     */
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
+        /** \brief Update weather station location
+         *  \param latitude Site latitude in degrees.
+         *  \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
+         *  \param elevation Site elevation in meters.
+         *  \return True if successful, false otherwise
+         *  \note This function performs no action unless subclassed by the child class if required.
+         */
+        virtual bool updateLocation(double latitude, double longitude, double elevation);
 
-    /**
-     * @brief setWeatherConnection Set Weather connection mode. Child class should call this
-     * in the constructor before Weather registers any connection interfaces
-     * @param value ORed combination of WeatherConnection values.
-     */
-    void setWeatherConnection(const uint8_t &value);
+        /**
+         * @brief setWeatherConnection Set Weather connection mode. Child class should call this
+         * in the constructor before Weather registers any connection interfaces
+         * @param value ORed combination of WeatherConnection values.
+         */
+        void setWeatherConnection(const uint8_t &value);
 
-    /**
-     * @return Get current Weather connection mode
-     */
-    uint8_t getWeatherConnection() const;
+        /**
+         * @return Get current Weather connection mode
+         */
+        uint8_t getWeatherConnection() const;
 
-    virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    /** \brief perform handshake with device to check communication */
-    virtual bool Handshake();
+        /** \brief perform handshake with device to check communication */
+        virtual bool Handshake();
 
-    // A number vector that stores lattitude and longitude
-    INumberVectorProperty LocationNP;
-    INumber LocationN[3];
+        // A number vector that stores lattitude and longitude
+        INumberVectorProperty LocationNP;
+        INumber LocationN[3];
 
-    // Active devices to snoop
-    ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1] {};
+        // Active devices to snoop
+        ITextVectorProperty ActiveDeviceTP;
+        IText ActiveDeviceT[1] {};
 
-    // Update Period
-    INumber UpdatePeriodN[1];
-    INumberVectorProperty UpdatePeriodNP;
+        // Update Period
+        INumber UpdatePeriodN[1];
+        INumberVectorProperty UpdatePeriodNP;
 
-    // Refresh data
-    ISwitch RefreshS[1];
-    ISwitchVectorProperty RefreshSP;
+        // Refresh data
+        ISwitch RefreshS[1];
+        ISwitchVectorProperty RefreshSP;
 
-    Connection::Serial *serialConnection {nullptr};
-    Connection::TCP *tcpConnection       {nullptr};
+        // Override
+        ISwitch OverrideS[1];
+        ISwitchVectorProperty OverrideSP;
 
-    int PortFD = -1;
-    int updateTimerID { -1 };
+        Connection::Serial *serialConnection {nullptr};
+        Connection::TCP *tcpConnection       {nullptr};
 
-  private:
-    bool processLocationInfo(double latitude, double longitude, double elevation);
+        int PortFD = -1;
+        int updateTimerID { -1 };
 
-    bool callHandshake();
-    uint8_t weatherConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+    private:
+        bool processLocationInfo(double latitude, double longitude, double elevation);
+
+        bool callHandshake();
+        uint8_t weatherConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 };
 }

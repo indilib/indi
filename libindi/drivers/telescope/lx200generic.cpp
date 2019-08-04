@@ -10,7 +10,7 @@ either
 version 2.1 of the License, or (at your option) any later version.
 
 This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY;
+     but WITHOUT ANY WARRANTY;
 without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Lesser General Public License for more details.
@@ -21,11 +21,11 @@ if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 2013 - 10 - 27:
-    Updated driver to use INDI::Telescope (JM)
-  2015 - 11 - 25:
-  Use variable POLLMS instead of static POLLMS
+Updated driver to use INDI::Telescope (JM)
+2015 - 11 - 25:
+    Use variable POLLMS instead of static POLLMS
 
-  #endif
+#endif
 
 #include "lx200generic.h"
 
@@ -47,9 +47,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <memory>
 #include <cstring>
 #include <unistd.h>
+#include "eq500x.h"
 
-// We declare an auto pointer to LX200Generic.
-static std::unique_ptr<LX200Generic> telescope;
+    // We declare an auto pointer to LX200Generic.
+    static std::unique_ptr<LX200Generic> telescope;
 
 /* There is _one_ binary for all LX200 drivers, but each binary is renamed
 ** to its device name (i.e. lx200gps, lx200_16..etc). The main function will
@@ -184,6 +185,13 @@ void ISInit()
         if (telescope.get() == nullptr)
             telescope.reset(new LX200_10MICRON());
     }
+    else if (strstr(me, "indi_eq500x"))
+    {
+        IDLog("initializing for EQ500X mount...\n");
+
+        if (telescope.get() == nullptr)
+            telescope.reset(new EQ500X());
+    }
     // be nice and give them a generic device
     else if (telescope.get() == nullptr)
         telescope.reset(new LX200Generic());
@@ -237,7 +245,7 @@ void ISSnoopDevice(XMLEle *root)
 
 LX200Generic::LX200Generic()
 {
-    setVersion(2, 0);
+    setVersion(2, 1);
 
     currentSiteNum = 1;
     trackingMode   = LX200_TRACK_SIDEREAL;
@@ -247,7 +255,7 @@ LX200Generic::LX200Generic()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES |
-    LX200_HAS_PULSE_GUIDING);
+                       LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,

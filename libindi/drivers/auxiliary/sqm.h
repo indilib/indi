@@ -28,43 +28,44 @@
 
 class SQM : public INDI::DefaultDevice
 {
-  public:
-    SQM();
-    virtual ~SQM() = default;
+    public:
+        SQM();
+        virtual ~SQM() = default;
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-    /**
-     * @struct SqmConnection
-     * @brief Holds the connection mode of the device.
-     */
-    enum
-    {
-        CONNECTION_NONE   = 1 << 0,
-        CONNECTION_SERIAL = 1 << 1,
-        CONNECTION_TCP    = 1 << 2
-    } SqmConnection;
+        /**
+         * @struct SqmConnection
+         * @brief Holds the connection mode of the device.
+         */
+        typedef enum
+        {
+            CONNECTION_NONE   = 1 << 0,
+            CONNECTION_SERIAL = 1 << 1,
+            CONNECTION_TCP    = 1 << 2
+        } SqmConnection;
 
-  protected:
-    const char *getDefaultName();
-    void TimerHit();
+    protected:
+        const char *getDefaultName();
+        void TimerHit();
 
-  private:
-    bool getReadings();
-    bool getDeviceInfo();
+    private:
+        bool getReadings();
+        bool getDeviceInfo();
 
-    // Readings
-    INumberVectorProperty AverageReadingNP;
-    INumber AverageReadingN[5];
+        // Readings
+        INumberVectorProperty AverageReadingNP;
+        INumber AverageReadingN[5];
 
-    // Device Information
-    INumberVectorProperty UnitInfoNP;
-    INumber UnitInfoN[4];
+        // Device Information
+        INumberVectorProperty UnitInfoNP;
+        INumber UnitInfoN[4];
 
-    Connection::Serial *serialConnection { nullptr };
-    Connection::TCP *tcpConnection { nullptr };
+        Connection::Serial *serialConnection { nullptr };
+        Connection::TCP *tcpConnection { nullptr };
 
-    int PortFD { -1 };
-    uint8_t sqmConnection { CONNECTION_SERIAL | CONNECTION_TCP };
+        int PortFD { -1 };
+        uint8_t sqmConnection { CONNECTION_SERIAL | CONNECTION_TCP };
 };

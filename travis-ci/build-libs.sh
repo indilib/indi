@@ -6,9 +6,9 @@
 SRC=../../3rdparty/
 
 if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
-    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau"
+    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk"
 else
-    LIBS="libapogee libqsi libdspau"
+    LIBS="libapogee libqsi"
 fi
 
 if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then
