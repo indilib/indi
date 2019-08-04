@@ -41,7 +41,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 6);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 7);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
@@ -2812,37 +2812,37 @@ void LX200_OnStep::slewError(int slewCode)
     switch(slewCode)
     {
         case 0:
-            LOG_ERROR("OnStep slewError/slew called with value 0-goto possible, this is normal operation");
+            LOG_ERROR("OnStep slew/syncError called with value 0-goto possible, this is normal operation");
             return;
         case 1:
-            LOG_ERROR("OnStep slewError/slew: Below the horizon limit");
+            LOG_ERROR("OnStep slew/syncError: Below the horizon limit");
             break;
         case 2:
-            LOG_ERROR("OnStep slewError/slew: Above Overhead limit");
+            LOG_ERROR("OnStep slew/syncError: Above Overhead limit");
             break;
         case 3:
-            LOG_ERROR("OnStep slewError/slew: Controller in standby");
+            LOG_ERROR("OnStep slew/syncError: Controller in standby");
             break;
         case 4:
-            LOG_ERROR("OnStep slewError/slew: Mount is Parked");
+            LOG_ERROR("OnStep slew/syncError: Mount is Parked");
             break;
         case 5:
-            LOG_ERROR("OnStep slewError/slew: Goto in progress");
+            LOG_ERROR("OnStep slew/syncError: Goto in progress");
             break;
         case 6:
-            LOG_ERROR("OnStep slewError/slew: Outside limits: Max/Min Dec, Under Pole Limit, Meridian Limit, Sync attempted to wrong pier side");
+            LOG_ERROR("OnStep slew/syncError: Outside limits: Max/Min Dec, Under Pole Limit, Meridian Limit, Sync attempted to wrong pier side");
             break;
         case 7:
-            LOG_ERROR("OnStep slewError/slew: Hardware Fault");
+            LOG_ERROR("OnStep slew/syncError: Hardware Fault");
             break;
         case 8:
-            LOG_ERROR("OnStep slewError/slew: Already in motion");
+            LOG_ERROR("OnStep slew/syncError: Already in motion");
             break;
         case 9:
-            LOG_ERROR("OnStep slewError/slew: Unspecified Error");
+            LOG_ERROR("OnStep slew/syncError: Unspecified Error");
             break;
         default:
-            LOG_ERROR("OnStep slewError/slew: Not in range of values that should be returned! INVALID, Something went wrong!");
+            LOG_ERROR("OnStep slew/syncError: Not in range of values that should be returned! INVALID, Something went wrong!");
     }
     EqNP.s = IPS_ALERT;
     IDSetNumber(&EqNP, nullptr);

@@ -2,7 +2,7 @@
     LX200 OnStep
     based on LX200 Classic azwing (alain@zwingelstein.org)
     Contributors:
-    James Lan https://github.com/james-lan
+    James Lancaster https://github.com/james-lan
     Ray Wells https://github.com/blueshawk
 
     Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
@@ -22,6 +22,16 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     ===========================================
+    Version 1.7:
+    - Added support for Reporting Guide rate (to PHD2 among others)
+    - Updated Error codes to match up with Android/SHC (Unknown reserved for unknown, so Unspecified = Unknown on other platforms)
+    - Added descriptions to SlewRate to match, slider kept which matches OnStep values
+    - Support for up to 9 stars for alignment
+    - Changed align so the last step isn't the (Optional) Write to EEPROM
+    - Added support for polar adjustments, without having to redo the entire model. (:MP# command)
+    - Support for Full Compensation/Refraction only, and 1/2 Axis tracking
+    - Cleanups
+    
     Version 1.6: Additional Functions
     - James Lan fixed Meredian Flip and Home Pause buttons
     - Cleaned Comments from previon versions
