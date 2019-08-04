@@ -19,8 +19,8 @@
 */
 
 #include "ieqpro.h"
-
 #include "indicom.h"
+#include "connectionplugins/connectionserial.h"
 
 #include <libnova/sidereal_time.h>
 #include <libnova/transform.h>
@@ -33,6 +33,8 @@
 #define SLEWRATE 1          /* slew rate, degrees/s */
 
 #define MOUNTINFO_TAB "Mount Info"
+
+using namespace iEQ;
 
 // We declare an auto pointer to IEQPro.
 static std::unique_ptr<IEQPro> scope(new IEQPro());
@@ -74,10 +76,11 @@ void ISSnoopDevice(XMLEle *root)
     scope->ISSnoopDevice(root);
 }
 
-/* Constructor */
 IEQPro::IEQPro()
 {
-    setVersion(1, 6);
+    setVersion(1, 8);
+
+    driver.reset(new Base());
 
     scopeInfo.gpsStatus    = GPS_OFF;
     scopeInfo.systemStatus = ST_STOPPED;
@@ -159,16 +162,15 @@ bool IEQPro::initProperties()
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Home */
-    IUFillSwitch(&HomeS[IEQ_FIND_HOME], "FindHome", "Find Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IEQ_SET_HOME], "SetCurrentAsHome", "Set current as Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IEQ_GOTO_HOME], "GoToHome", "Go to Home", ISS_OFF);
+    IUFillSwitch(&HomeS[IEQ_SET_HOME], "IEQ_SET_HOME", "Set current as Home", ISS_OFF);
+    IUFillSwitch(&HomeS[IEQ_GOTO_HOME], "IEQ_GOTO_HOME", "Go to Home", ISS_OFF);
+    IUFillSwitch(&HomeS[IEQ_FIND_HOME], "IEQ_FIND_HOME", "Find Home", ISS_OFF);
     IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "RA_GUIDE_RATE", "x Sidereal", "%.2f", 0.01, 0.9, 0.1, 0.5);
-    IUFillNumber(&GuideRateN[DEC_AXIS], "DE_GUIDE_RATE", "x Sidereal", "%.2f", 0.1, 0.99, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
@@ -181,7 +183,11 @@ bool IEQPro::initProperties()
 
     addAuxControls();
 
-    set_ieqpro_device(getDeviceName());
+    driver->setDeviceName(getDeviceName());
+
+    // Only CEM40 has 115200 baud, rest are 9600
+    if (strstr(getDeviceName(), "CEM40"))
+        serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     double longitude = 0, latitude = 90;
     // Get value from config file if it exists.
@@ -199,11 +205,17 @@ bool IEQPro::updateProperties()
 
     if (isConnected())
     {
+        // Remove find home if we do not support it.
+        if (!canFindHome)
+            HomeSP.nsp = 2;
+
         defineSwitch(&HomeSP);
 
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+
+        if (canGuideRate)
+            defineNumber(&GuideRateNP);
 
         defineText(&FirmwareTP);
         defineSwitch(&GPSStatusSP);
@@ -214,11 +226,14 @@ bool IEQPro::updateProperties()
     }
     else
     {
+        HomeSP.nsp = 3;
         deleteProperty(HomeSP.name);
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP.name);
+
+        if (canGuideRate)
+            deleteProperty(GuideRateNP.name);
 
         deleteProperty(FirmwareTP.name);
         deleteProperty(GPSStatusSP.name);
@@ -232,21 +247,22 @@ bool IEQPro::updateProperties()
 void IEQPro::getStartupData()
 {
     LOG_DEBUG("Getting firmware data...");
-    if (get_ieqpro_firmware(PortFD, &firmwareInfo))
-    {
-        IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
-        IUSaveText(&FirmwareT[1], firmwareInfo.MainBoardFirmware.c_str());
-        IUSaveText(&FirmwareT[2], firmwareInfo.ControllerFirmware.c_str());
-        IUSaveText(&FirmwareT[3], firmwareInfo.RAFirmware.c_str());
-        IUSaveText(&FirmwareT[4], firmwareInfo.DEFirmware.c_str());
 
-        FirmwareTP.s = IPS_OK;
-        IDSetText(&FirmwareTP, nullptr);
-    }
+    firmwareInfo = driver->getFirmwareInfo();
+
+    IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
+    IUSaveText(&FirmwareT[1], firmwareInfo.MainBoardFirmware.c_str());
+    IUSaveText(&FirmwareT[2], firmwareInfo.ControllerFirmware.c_str());
+    IUSaveText(&FirmwareT[3], firmwareInfo.RAFirmware.c_str());
+    IUSaveText(&FirmwareT[4], firmwareInfo.DEFirmware.c_str());
+
+    FirmwareTP.s = IPS_OK;
+    IDSetText(&FirmwareTP, nullptr);
+
 
     LOG_DEBUG("Getting guiding rate...");
     double raGuideRate = 0, deGuideRate = 0;
-    if (get_ieqpro_guide_rate(PortFD, &raGuideRate, &deGuideRate))
+    if (driver->getGuideRate(&raGuideRate, &deGuideRate))
     {
         GuideRateN[RA_AXIS].value = raGuideRate;
         GuideRateN[DEC_AXIS].value = deGuideRate;
@@ -255,7 +271,7 @@ void IEQPro::getStartupData()
 
     double utc_offset;
     int yy, dd, mm, hh, minute, ss;
-    if (get_ieqpro_utc_date_time(PortFD, &utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
+    if (driver->getUTCDateTime(&utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
     {
         char isoDateTime[32] = {0};
         char utcOffset[8] = {0};
@@ -274,8 +290,11 @@ void IEQPro::getStartupData()
 
     // Get Longitude and Latitude from mount
     double longitude = 0, latitude = 0;
-    if (get_ieqpro_latitude(PortFD, &latitude) && get_ieqpro_longitude(PortFD, &longitude))
+    if (driver->getStatus(&scopeInfo))
     {
+        longitude = scopeInfo.longitude;
+        latitude = scopeInfo.latitude;
+
         // Convert to INDI standard longitude (0 to 360 Eastward)
         if (longitude < 0)
             longitude += 360;
@@ -315,13 +334,13 @@ void IEQPro::getStartupData()
         SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
     }
 
-    if (isSimulation())
-    {
-        if (isParked())
-            set_sim_system_status(ST_PARKED);
-        else
-            set_sim_system_status(ST_STOPPED);
-    }
+    //    if (isSimulation())
+    //    {
+    //        if (isParked())
+    //            set_sim_system_status(ST_PARKED);
+    //        else
+    //            set_sim_system_status(ST_STOPPED);
+    //    }
 }
 
 bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -333,7 +352,7 @@ bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
 
-            if (set_ieqpro_guide_rate(PortFD, GuideRateN[RA_AXIS].value, GuideRateN[DEC_AXIS].value))
+            if (driver->setGuideRate(GuideRateN[RA_AXIS].value, GuideRateN[DEC_AXIS].value))
                 GuideRateNP.s = IPS_OK;
             else
                 GuideRateNP.s = IPS_ALERT;
@@ -361,35 +380,14 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         {
             IUUpdateSwitch(&HomeSP, states, names, n);
 
-            IEQ_HOME_OPERATION operation = static_cast<IEQ_HOME_OPERATION>(IUFindOnSwitchIndex(&HomeSP));
+            HomeOperation operation = static_cast<HomeOperation>(IUFindOnSwitchIndex(&HomeSP));
 
             IUResetSwitch(&HomeSP);
 
             switch (operation)
             {
-                case IEQ_FIND_HOME:
-                    if (firmwareInfo.Model.find("CEM") == std::string::npos)
-                    {
-                        HomeSP.s = IPS_IDLE;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        LOG_WARN("Home search is not supported in this model.");
-                        return true;
-                    }
-
-                    if (find_ieqpro_home(PortFD) == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    LOG_INFO("Searching for home position...");
-                    return true;
-
                 case IEQ_SET_HOME:
-                    if (set_ieqpro_current_home(PortFD) == false)
+                    if (driver->setCurrentHome() == false)
                     {
                         HomeSP.s = IPS_ALERT;
                         IDSetSwitch(&HomeSP, nullptr);
@@ -402,7 +400,7 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     return true;
 
                 case IEQ_GOTO_HOME:
-                    if (goto_ieqpro_home(PortFD) == false)
+                    if (driver->gotoHome() == false)
                     {
                         HomeSP.s = IPS_ALERT;
                         IDSetSwitch(&HomeSP, nullptr);
@@ -412,6 +410,19 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     HomeSP.s = IPS_OK;
                     IDSetSwitch(&HomeSP, nullptr);
                     LOG_INFO("Slewing to home position...");
+                    return true;
+
+                case IEQ_FIND_HOME:
+                    if (driver->findHome() == false)
+                    {
+                        HomeSP.s = IPS_ALERT;
+                        IDSetSwitch(&HomeSP, nullptr);
+                        return false;
+                    }
+
+                    HomeSP.s = IPS_OK;
+                    IDSetSwitch(&HomeSP, nullptr);
+                    LOG_INFO("Searching for home position...");
                     return true;
             }
 
@@ -424,14 +435,12 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
 bool IEQPro::ReadScopeStatus()
 {
-    bool rc = false;
+    iEQ::Base::Info newInfo;
 
-    IEQInfo newInfo;
+    //    if (isSimulation())
+    //        mountSim();
 
-    if (isSimulation())
-        mountSim();
-
-    rc = get_ieqpro_status(PortFD, &newInfo);
+    bool rc = driver->getStatus(&newInfo);
 
     if (rc)
     {
@@ -473,7 +482,12 @@ bool IEQPro::ReadScopeStatus()
         {
             case ST_STOPPED:
                 TrackModeSP.s = IPS_IDLE;
-                TrackState    = SCOPE_IDLE;
+                // If we cannot park natively and we already parked
+                // scope, we do not want its state to change to IDLE
+                // For scopes that can park natively, ST_PARKED would be
+                // set already.
+                if (canParkNatively || TrackState != SCOPE_PARKED)
+                    TrackState    = SCOPE_IDLE;
                 break;
             case ST_PARKED:
                 TrackModeSP.s = IPS_IDLE;
@@ -487,15 +501,25 @@ bool IEQPro::ReadScopeStatus()
                 break;
             case ST_SLEWING:
             case ST_MERIDIAN_FLIPPING:
+                slewDirty = true;
                 if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
                     TrackState = SCOPE_SLEWING;
                 break;
             case ST_TRACKING_PEC_OFF:
             case ST_TRACKING_PEC_ON:
             case ST_GUIDING:
-                // If slew to parking position is complete, issue park command now.
-                if (TrackState == SCOPE_PARKING)
-                    park_ieqpro(PortFD);
+                if (TrackState == SCOPE_PARKING && canParkNatively == false)
+                {
+                    if (slewDirty)
+                    {
+                        LOG_INFO("Manual parking complete. Shut the mount down.");
+                        TrackModeSP.s = IPS_IDLE;
+                        TrackState    = SCOPE_PARKED;
+                        SetTrackEnabled(false);
+                        SetParked(true);
+                        slewDirty = false;
+                    }
+                }
                 else
                 {
                     TrackModeSP.s = IPS_BUSY;
@@ -515,7 +539,7 @@ bool IEQPro::ReadScopeStatus()
         scopeInfo = newInfo;
     }
 
-    rc = get_ieqpro_coords(PortFD, &currentRA, &currentDEC);
+    rc = driver->getCoords(&currentRA, &currentDEC);
 
     if (rc)
         NewRaDec(currentRA, currentDEC);
@@ -532,13 +556,13 @@ bool IEQPro::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    if (set_ieqpro_ra(PortFD, r) == false || set_ieqpro_dec(PortFD, d) == false)
+    if (driver->setRA(r) == false || driver->setDE(d) == false)
     {
         LOG_ERROR("Error setting RA/DEC.");
         return false;
     }
 
-    if (slew_ieqpro(PortFD) == false)
+    if (driver->slew() == false)
     {
         LOG_ERROR("Failed to slew.");
         return false;
@@ -552,13 +576,13 @@ bool IEQPro::Goto(double r, double d)
 
 bool IEQPro::Sync(double ra, double dec)
 {
-    if (set_ieqpro_ra(PortFD, ra) == false || set_ieqpro_dec(PortFD, dec) == false)
+    if (driver->setRA(ra) == false || driver->setDE(dec) == false)
     {
         LOG_ERROR("Error setting RA/DEC.");
         return false;
     }
 
-    if (sync_ieqpro(PortFD) == false)
+    if (driver->sync() == false)
     {
         LOG_ERROR("Failed to sync.");
     }
@@ -575,7 +599,7 @@ bool IEQPro::Sync(double ra, double dec)
 
 bool IEQPro::Abort()
 {
-    return abort_ieqpro(PortFD);
+    return driver->abort();
 }
 
 bool IEQPro::Park()
@@ -614,6 +638,25 @@ bool IEQPro::Park()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
+    // Check if mount supports native Alt/Az parking
+    if (canParkNatively)
+    {
+        if (driver->setParkAz(parkAz) && driver->setParkAlt(parkAlt))
+        {
+            if (driver->park())
+            {
+                TrackState = SCOPE_PARKING;
+                LOG_INFO("Parking is in progress...");
+                return true;
+            }
+            else
+                return false;
+        }
+        else
+            return false;
+    }
+
+    // Otherwise fallback to Alt/Az --> RA/DE parking
     ln_lnlat_posn observer;
     observer.lat = LocationN[LOCATION_LATITUDE].value;
     observer.lng = LocationN[LOCATION_LONGITUDE].value;
@@ -637,6 +680,7 @@ bool IEQPro::Park()
         TrackState = SCOPE_PARKING;
         LOG_INFO("Parking is in progress...");
 
+        slewDirty = false;
         return true;
     }
     else
@@ -645,30 +689,35 @@ bool IEQPro::Park()
 
 bool IEQPro::UnPark()
 {
-    if (unpark_ieqpro(PortFD))
-    {
-        SetParked(false);
-        TrackState = SCOPE_IDLE;
-        return true;
-    }
-    else
+    // If we can park natively, let's try to unpark the mount first.
+    // If that fails, we return. Otherwise, we proceed even when
+    // we are manually unparking.
+    if (canParkNatively && driver->unpark() == false)
         return false;
+
+    SetParked(false);
+    TrackState = SCOPE_IDLE;
+    return true;
 }
 
 bool IEQPro::Handshake()
 {
-    if (isSimulation())
-    {
-        set_sim_gps_status(GPS_DATA_OK);
-        set_sim_system_status(ST_STOPPED);
-        set_sim_track_rate(TR_SIDEREAL);
-        set_sim_slew_rate(SR_3);
-        set_sim_time_source(TS_GPS);
-        set_sim_hemisphere(HEMI_NORTH);
-    }
+    //    if (isSimulation())
+    //    {
+    //        set_sim_gps_status(GPS_DATA_OK);
+    //        set_sim_system_status(ST_STOPPED);
+    //        set_sim_track_rate(TR_SIDEREAL);
+    //        set_sim_slew_rate(SR_3);
+    //        set_sim_time_source(TS_GPS);
+    //        set_sim_hemisphere(HEMI_NORTH);
+    //    }
 
-    if (check_ieqpro_connection(PortFD) == false)
+    if (driver->initCommunication(PortFD) == false)
         return false;
+
+    canParkNatively = driver->isCommandSupported("MP1", true);
+    canFindHome = driver->isCommandSupported("MSH", true);
+    canGuideRate = driver->isCommandSupported("RG", true);
 
     return true;
 }
@@ -680,7 +729,7 @@ bool IEQPro::updateTime(ln_date *utc, double utc_offset)
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
 
     // Set Local Time
-    if (set_ieqpro_local_time(PortFD, ltm.hours, ltm.minutes, ltm.seconds) == false)
+    if (driver->setLocalTime(ltm.hours, ltm.minutes, ltm.seconds) == false)
     {
         LOG_ERROR("Error setting local time.");
         return false;
@@ -690,14 +739,14 @@ bool IEQPro::updateTime(ln_date *utc, double utc_offset)
     ltm.years -= 2000;
 
     // Set Local date
-    if (set_ieqpro_local_date(PortFD, ltm.years, ltm.months, ltm.days) == false)
+    if (driver->setLocalDate(ltm.years, ltm.months, ltm.days) == false)
     {
         LOG_ERROR("Error setting local date.");
         return false;
     }
 
     // UTC Offset
-    if (set_ieqpro_utc_offset(PortFD, utc_offset) == false)
+    if (driver->setUTCOffset(utc_offset) == false)
     {
         LOG_ERROR("Error setting UTC Offset.");
         return false;
@@ -715,13 +764,13 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
     if (longitude > 180)
         longitude -= 360;
 
-    if (set_ieqpro_longitude(PortFD, longitude) == false)
+    if (driver->setLongitude(longitude) == false)
     {
         LOG_ERROR("Failed to set longitude.");
         return false;
     }
 
-    if (set_ieqpro_latitude(PortFD, latitude) == false)
+    if (driver->setLatitude(latitude) == false)
     {
         LOG_ERROR("Failed to set latitude.");
         return false;
@@ -738,12 +787,13 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
 
 void IEQPro::debugTriggered(bool enable)
 {
-    set_ieqpro_debug(enable);
+    driver->setDebugEnabled(enable);
 }
 
 void IEQPro::simulationTriggered(bool enable)
 {
-    set_ieqpro_simulation(enable);
+    INDI_UNUSED(enable);
+    //driver->setSi(enable);
 }
 
 bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
@@ -757,7 +807,7 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-            if (start_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
+            if (driver->startMotion((dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
             {
                 LOG_ERROR("Error setting N/S motion direction.");
                 return false;
@@ -767,7 +817,7 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
+            if (driver->stopMotion((dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
             {
                 LOG_ERROR("Error stopping N/S motion.");
                 return false;
@@ -791,7 +841,7 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-            if (start_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
+            if (driver->startMotion((dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
             {
                 LOG_ERROR("Error setting N/S motion direction.");
                 return false;
@@ -801,7 +851,7 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
+            if (driver->stopMotion((dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
             {
                 LOG_ERROR("Error stopping W/E motion.");
                 return false;
@@ -816,32 +866,32 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 IPState IEQPro::GuideNorth(uint32_t ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_N, ms);
+    bool rc = driver->startGuide(IEQ_N, ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 IPState IEQPro::GuideSouth(uint32_t ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_S, ms);
+    bool rc = driver->startGuide(IEQ_S, ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 IPState IEQPro::GuideEast(uint32_t ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_E, ms);
+    bool rc = driver->startGuide(IEQ_E, ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 IPState IEQPro::GuideWest(uint32_t ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_W, ms);
+    bool rc = driver->startGuide(IEQ_W, ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 bool IEQPro::SetSlewRate(int index)
 {
-    IEQ_SLEW_RATE rate = static_cast<IEQ_SLEW_RATE>(index);
-    return set_ieqpro_slew_rate(PortFD, rate);
+    SlewRate rate = static_cast<SlewRate>(index);
+    return driver->setSlewRate(rate);
 }
 
 bool IEQPro::saveConfigItems(FILE *fp)
@@ -851,93 +901,93 @@ bool IEQPro::saveConfigItems(FILE *fp)
     return true;
 }
 
-void IEQPro::mountSim()
-{
-    static struct timeval ltv;
-    struct timeval tv;
-    double dt, da, dx;
-    int nlocked;
+//void IEQPro::mountSim()
+//{
+//    static struct timeval ltv;
+//    struct timeval tv;
+//    double dt, da, dx;
+//    int nlocked;
 
-    /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday(&tv, nullptr);
+//    /* update elapsed time since last poll, don't presume exactly POLLMS */
+//    gettimeofday(&tv, nullptr);
 
-    if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
-        ltv = tv;
+//    if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
+//        ltv = tv;
 
-    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
-    ltv = tv;
-    da  = SLEWRATE * dt;
+//    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
+//    ltv = tv;
+//    da  = SLEWRATE * dt;
 
-    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
-    switch (TrackState)
-    {
-        case SCOPE_IDLE:
-            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
-            currentRA = range24(currentRA);
-            break;
+//    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+//    switch (TrackState)
+//    {
+//        case SCOPE_IDLE:
+//            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+//            currentRA = range24(currentRA);
+//            break;
 
-        case SCOPE_TRACKING:
-            if (TrackModeS[1].s == ISS_ON)
-            {
-                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * dt) / 15.0;
-                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * dt);
-            }
-            break;
+//        case SCOPE_TRACKING:
+//            if (TrackModeS[1].s == ISS_ON)
+//            {
+//                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * dt) / 15.0;
+//                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * dt);
+//            }
+//            break;
 
-        case SCOPE_SLEWING:
-        case SCOPE_PARKING:
-            /* slewing - nail it when both within one pulse @ SLEWRATE */
-            nlocked = 0;
+//        case SCOPE_SLEWING:
+//        case SCOPE_PARKING:
+//            /* slewing - nail it when both within one pulse @ SLEWRATE */
+//            nlocked = 0;
 
-            dx = targetRA - currentRA;
+//            dx = targetRA - currentRA;
 
-            // Take shortest path
-            if (fabs(dx) > 12)
-                dx *= -1;
+//            // Take shortest path
+//            if (fabs(dx) > 12)
+//                dx *= -1;
 
-            if (fabs(dx) <= da)
-            {
-                currentRA = targetRA;
-                nlocked++;
-            }
-            else if (dx > 0)
-                currentRA += da / 15.;
-            else
-                currentRA -= da / 15.;
+//            if (fabs(dx) <= da)
+//            {
+//                currentRA = targetRA;
+//                nlocked++;
+//            }
+//            else if (dx > 0)
+//                currentRA += da / 15.;
+//            else
+//                currentRA -= da / 15.;
 
-            if (currentRA < 0)
-                currentRA += 24;
-            else if (currentRA > 24)
-                currentRA -= 24;
+//            if (currentRA < 0)
+//                currentRA += 24;
+//            else if (currentRA > 24)
+//                currentRA -= 24;
 
-            dx = targetDEC - currentDEC;
-            if (fabs(dx) <= da)
-            {
-                currentDEC = targetDEC;
-                nlocked++;
-            }
-            else if (dx > 0)
-                currentDEC += da;
-            else
-                currentDEC -= da;
+//            dx = targetDEC - currentDEC;
+//            if (fabs(dx) <= da)
+//            {
+//                currentDEC = targetDEC;
+//                nlocked++;
+//            }
+//            else if (dx > 0)
+//                currentDEC += da;
+//            else
+//                currentDEC -= da;
 
-            if (nlocked == 2)
-            {
-                if (TrackState == SCOPE_SLEWING)
-                    set_sim_system_status(ST_TRACKING_PEC_OFF);
-                else
-                    set_sim_system_status(ST_PARKED);
-            }
+//            if (nlocked == 2)
+//            {
+//                if (TrackState == SCOPE_SLEWING)
+//                    set_sim_system_status(ST_TRACKING_PEC_OFF);
+//                else
+//                    set_sim_system_status(ST_PARKED);
+//            }
 
-            break;
+//            break;
 
-        default:
-            break;
-    }
+//        default:
+//            break;
+//    }
 
-    set_sim_ra(currentRA);
-    set_sim_dec(currentDEC);
-}
+//    set_sim_ra(currentRA);
+//    set_sim_dec(currentDEC);
+//}
 
 bool IEQPro::SetCurrentPark()
 {
@@ -986,9 +1036,9 @@ bool IEQPro::SetDefaultPark()
 
 bool IEQPro::SetTrackMode(uint8_t mode)
 {
-    IEQ_TRACK_RATE rate = static_cast<IEQ_TRACK_RATE>(mode);
+    TrackRate rate = static_cast<TrackRate>(mode);
 
-    if (set_ieqpro_track_mode(PortFD, rate))
+    if (driver->setTrackMode(rate))
         return true;
 
     return false;
@@ -1007,7 +1057,7 @@ bool IEQPro::SetTrackRate(double raRate, double deRate)
         LOG_WARN("Custom Declination tracking rate is not implemented yet.");
     }
 
-    if (set_ieqpro_custom_ra_track_rate(PortFD, ieqRARate))
+    if (driver->setCustomRATrackRate(ieqRARate))
         return true;
 
     return false;
@@ -1024,5 +1074,5 @@ bool IEQPro::SetTrackEnabled(bool enabled)
             SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
     }
 
-    return set_ieqpro_track_enabled(PortFD, enabled);
+    return driver->setTrackEnabled(enabled);
 }

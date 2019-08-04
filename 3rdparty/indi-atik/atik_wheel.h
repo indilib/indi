@@ -27,37 +27,38 @@
 
 class ATIKWHEEL : public INDI::FilterWheel
 {
-  public:
-    explicit ATIKWHEEL(std::string filterName, int id);
-    ~ATIKWHEEL() override = default;
+    public:
+        explicit ATIKWHEEL(std::string filterName, int id);
+        ~ATIKWHEEL() override = default;
 
-    virtual const char *getDefaultName() override;
+        virtual const char *getDefaultName() override;
 
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
 
-  protected:
-    virtual void TimerHit() override;
+    protected:
+        virtual bool initProperties() override;
+        virtual void TimerHit() override;
 
-    // Filter wheel
-    virtual bool SelectFilter(int) override;
-    virtual int QueryFilter() override;
+        // Filter wheel
+        virtual bool SelectFilter(int) override;
+        virtual int QueryFilter() override;
 
-  private:
-    // Setup initial params
-    bool setupParams();
+    private:
+        // Setup initial params
+        bool setupParams();
 
-    // Device name
-    char name[MAXINDIDEVICE];
+        // Device name
+        char name[MAXINDIDEVICE];
 
-    // FW info
-    ArtemisHandle hWheel { nullptr };
-    int m_iDevice {-1};
+        // FW info
+        ArtemisHandle hWheel { nullptr };
+        int m_iDevice {-1};
 
-    friend void ::ISGetProperties(const char *dev);
-    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                            char *formats[], char *names[], int n);
+        friend void ::ISGetProperties(const char *dev);
+        friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+        friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+        friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+        friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                                char *formats[], char *names[], int n);
 };

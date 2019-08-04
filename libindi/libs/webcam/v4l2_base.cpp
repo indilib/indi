@@ -1687,58 +1687,92 @@ void V4L2_Base::getframerates(ISwitchVectorProperty * frameratessp, INumberVecto
 
 int V4L2_Base::setcroprect(int x, int y, int w, int h, char * errmsg)
 {
-    bool softcrop = false;
-
-    crop.type     = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    crop.c.left   = x;
-    crop.c.top    = y;
-    crop.c.width  = w;
-    crop.c.height = h;
-    if ((int)(crop.c.left + crop.c.width) > (int)fmt.fmt.pix.width)
-    {
-        strncpy(errmsg, "crop width exceeds image width", ERRMSGSIZ);
-        return -1;
-    }
-    if ((int)(crop.c.top + crop.c.height) > (int)fmt.fmt.pix.height)
-    {
-        strncpy(errmsg, "crop height exceeds image height", ERRMSGSIZ);
-        return -1;
-    }
-    // we only support pair sizes
-    if ((crop.c.width % 2 != 0) || (crop.c.height % 2 != 0))
-    {
-        strncpy(errmsg, "crop width/height must be pair", ERRMSGSIZ);
-        return -1;
-    }
-    if ((crop.c.left == 0) && (crop.c.top == 0) && ((int)crop.c.width == (int)fmt.fmt.pix.width) &&
-            ((int)crop.c.height == (int)fmt.fmt.pix.height))
+    // Do we set a full-frame crop?
+    if (x == 0 && y == 0 && w == (int)fmt.fmt.pix.width && h == (int)fmt.fmt.pix.height)
     {
         cropset = false;
         decoder->resetcrop();
+        return 0;
     }
-    else
+
+    int const pix_width = static_cast <int> (fmt.fmt.pix.width);
+    int const pix_height = static_cast <int> (fmt.fmt.pix.height);
+
+    // Clamp against frame dimensions
+    crop.c.left = 0 <= x ? x < pix_width ? x : pix_width - 1 : 0;
+    crop.c.top = 0 <= y ? y < pix_height ? y : pix_height - 1 : 0;
+    crop.c.width = 0 <= w ? w < pix_width ? w : pix_width : 0;
+    crop.c.height = 0 <= h ? h < pix_height ? h : pix_height : 0;
+
+    // Sanitize arguments against frame dimensions
+    if (x + w < 0 || y + h < 0 || pix_width <= x || pix_height <= y)
     {
-        if (cancrop)
+        strncpy(errmsg, "requested crop rectangle is outside of frame", ERRMSGSIZ);
+        return -1;
+    }
+
+    // Clip arguments against left and top of frame
+    if (x < 0) { w = x + w; x = 0; }
+    if (y < 0) { h = y + h; y = 0; }
+
+    // Clip arguments against right and bottom of frame
+    if (0 + pix_width < x + w) { w = pix_width - x; }
+    if (0 + pix_height < y + h) { h = pix_height - y; }
+
+    // We have our required crop
+    struct v4l2_crop software_crop;
+    software_crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    software_crop.c.left = x;
+    software_crop.c.top = y;
+    software_crop.c.width = w;
+    software_crop.c.height = h;
+
+    // If the hardware is able to crop, request the kernel driver
+    if (cancrop)
+    {
+        // We need to adjust our hardware crop to driver-level V4L2 capabilities
+        struct v4l2_crop hardware_crop = software_crop;
+
+        // Make sure vertical coordinate is on an even line
+        if (y % 2) { hardware_crop.c.top--; hardware_crop.c.height++; }
+
+        // Make sure we crop an even number of horizontal lines
+        if (h % 2) { hardware_crop.c.height++; }
+
+        // Ask the hardware to crop - don't fail, fallback to software cropping if not possible
+        if (-1 == XIOCTL(fd, VIDIOC_S_CROP, &hardware_crop))
         {
-            if (-1 == XIOCTL(fd, VIDIOC_S_CROP, &crop))
-            {
-                return errno_exit("VIDIOC_S_CROP", errmsg);
-            }
-            if (-1 == XIOCTL(fd, VIDIOC_G_CROP, &crop))
-            {
-                return errno_exit("VIDIOC_G_CROP", errmsg);
-            }
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_WARNING, "Failed V4L2 hardware crop request 0x%08X (%dx%d at (%d, %d)), falling back to software crop",
+                         (unsigned int)VIDIOC_S_CROP, hardware_crop.c.width, hardware_crop.c.height,
+                         hardware_crop.c.left, hardware_crop.c.top);
+            //return errno_exit("VIDIOC_S_CROP", errmsg);
         }
-        softcrop = decoder->setcrop(crop);
-        cropset  = true;
-        if ((!cancrop) && (!softcrop))
+        else if (-1 == XIOCTL(fd, VIDIOC_G_CROP, &hardware_crop))
         {
-            cropset = false;
-            strncpy(errmsg, "No hardware and software cropping for this format.", ERRMSGSIZ);
-            return -1;
+            //return errno_exit("VIDIOC_G_CROP", errmsg);
+        }
+        else
+        {
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_SESSION, "V4L2 hardware crop request 0x%08X accepted as %dx%d at (%d, %d)",
+                         (unsigned int)VIDIOC_S_CROP, hardware_crop.c.width, hardware_crop.c.height,
+                         hardware_crop.c.left, hardware_crop.c.top);
         }
     }
-    //decode allocBuffers();
+
+    // In any case, request the decoder to crop
+    bool const softcrop = decoder->setcrop(software_crop);
+
+    if (!softcrop && !cancrop)
+    {
+        cropset = false;
+        strncpy(errmsg, "No hardware and software cropping for this format", ERRMSGSIZ);
+        return -1;
+    }
+
+    // Crop request is set, store state
+    cropset = true;
+    crop = software_crop;
+
     DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "V4L2 base setcroprect %dx%d at (%d, %d)", crop.c.width,
                  crop.c.height, crop.c.left, crop.c.top);
     return 0;

@@ -682,7 +682,7 @@ bool GPhotoCCD::ISNewSwitch(const char * dev, const char * name, ISState * state
                 int num, denom;
                 if (sscanf(currentSwitch->label, "%d/%d", &num, &denom) == 2)
                 {
-                    duration = ((double)num) / ((double)denom);
+                    duration = (static_cast<double>(num)) / (static_cast<double>(denom));
                     StartExposure(duration);
                 }
                 else if (sscanf(currentSwitch->label, "%g", &duration) == 1)
@@ -972,10 +972,9 @@ bool GPhotoCCD::Connect()
         mFormatS = nullptr;
     }
 
-    const char * fmts[] = { "Custom" };
-
     if (isSimulation())
     {
+        const char * fmts[] = { "Custom" };
         setidx             = 0;
         max_opts           = 1;
         options            = const_cast<char **>(fmts);
@@ -1001,7 +1000,9 @@ bool GPhotoCCD::Connect()
             // Prefer RAW format in case selected format is not supported.
             for (i = 0; i < mFormatSP.nsp; i++)
             {
-                if (!strcmp("RAW", mFormatSP.sp[i].label))
+                // Make sure the new selection does not include the problematic label with the +
+                // also also contains the string RAW in it.
+                if (strcmp(sp->label, mFormatSP.sp[i].label) && strcasestr("RAW", mFormatSP.sp[i].label))
                 {
                     mFormatS[i].s = ISS_ON;
                     break;
@@ -1021,9 +1022,9 @@ bool GPhotoCCD::Connect()
     if (mIsoS)
         free(mIsoS);
 
-    const char * isos[] = { "100", "200", "400", "800" };
     if (isSimulation())
     {
+        const char * isos[] = { "100", "200", "400", "800" };
         setidx   = 0;
         max_opts = 4;
         options  = const_cast<char **>(isos);
@@ -1044,9 +1045,9 @@ bool GPhotoCCD::Connect()
         mExposurePresetS = nullptr;
     }
 
-    const char * exposureList[] = { "1/8", "1/4", "1/2", "bulb" };
     if (isSimulation())
     {
+        const char * exposureList[] = { "1/8", "1/4", "1/2", "bulb" };
         setidx   = 0;
         max_opts = 4;
         options  = const_cast<char **>(exposureList);
@@ -1107,7 +1108,7 @@ bool GPhotoCCD::Disconnect()
 
 bool GPhotoCCD::StartExposure(float duration)
 {
-    if (PrimaryCCD.getPixelSizeX() == 0)
+    if (PrimaryCCD.getPixelSizeX() == 0.0)
     {
         LOG_INFO("Please update the CCD Information in the Image Info section before "
                  "proceeding. The camera resolution shall be updated after the first exposure "
@@ -1191,8 +1192,6 @@ double GPhotoCCD::CalcTimeLeft()
 
 void GPhotoCCD::TimerHit()
 {
-    int timerID   = -1;
-
     if (isConnected() == false)
         return;
 
@@ -1255,6 +1254,7 @@ void GPhotoCCD::TimerHit()
 
     if (InExposure)
     {
+        int timerID   = -1;
         double timeleft = CalcTimeLeft();
 
         if (timeleft < 0)
@@ -1280,7 +1280,7 @@ void GPhotoCCD::TimerHit()
                 if (isTemperatureSupported)
                 {
                     double cameraTemperature = static_cast<double>(gphoto_get_last_sensor_temperature(gphotodrv));
-                    if (cameraTemperature != TemperatureN[0].value)
+                    if (fabs(cameraTemperature - TemperatureN[0].value) > 0.01)
                     {
                         // Check if we are getting bogus temperature values and set property to alert
                         // unless it is already set
@@ -1313,7 +1313,7 @@ void GPhotoCCD::TimerHit()
 
 void GPhotoCCD::UpdateExtendedOptions(void * p)
 {
-    GPhotoCCD * cam = (GPhotoCCD *)p;
+    GPhotoCCD * cam = static_cast<GPhotoCCD *>(p);
     cam->UpdateExtendedOptions();
 }
 
@@ -1340,7 +1340,7 @@ bool GPhotoCCD::grabImage()
 {
     uint8_t * memptr = PrimaryCCD.getFrameBuffer();
     size_t memsize = 0;
-    int fd = 0, naxis = 2, w = 0, h = 0, bpp = 8;
+    int naxis = 2, w = 0, h = 0, bpp = 8;
 
     if (isSimulation())
     {
@@ -1391,7 +1391,7 @@ bool GPhotoCCD::grabImage()
         char tmpfile[] = "/tmp/indi_XXXXXX";
 
         //dcraw can't read from stdin, so we need to write to disk then read it back
-        fd = mkstemp(tmpfile);
+        int fd = mkstemp(tmpfile);
 
         int ret = gphoto_read_exposure_fd(gphotodrv, fd);
 
@@ -1547,7 +1547,7 @@ bool GPhotoCCD::grabImage()
         if (rc != 0)
         {
             LOG_ERROR("Failed to expose.");
-            if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon") && mMirrorLockN[0].value == 0)
+            if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon") && mMirrorLockN[0].value == 0.0)
                 DEBUG(INDI::Logger::DBG_WARNING,
                       "If your camera mirror lock is enabled, you must set a value for the mirror locking duration.");
             return false;
@@ -1557,7 +1557,7 @@ bool GPhotoCCD::grabImage()
         if (ExposureRequest > 3)
             LOG_DEBUG("Exposure done, downloading image...");
         uint8_t * newMemptr = nullptr;
-        gphoto_get_buffer(gphotodrv, (const char **)&newMemptr, &memsize);
+        gphoto_get_buffer(gphotodrv, const_cast<const char **>(reinterpret_cast<char **>(&newMemptr)), &memsize);
         // We copy the obtained memory pointer to avoid freeing some gphoto memory
         memptr = static_cast<uint8_t *>(realloc(memptr, memsize));
         memcpy(memptr, newMemptr, memsize);
@@ -1583,7 +1583,7 @@ bool GPhotoCCD::grabImage()
 ISwitch * GPhotoCCD::create_switch(const char * basestr, char ** options, int max_opts, int setidx)
 {
     int i;
-    ISwitch * sw     = (ISwitch *)calloc(sizeof(ISwitch), max_opts);
+    ISwitch * sw     = static_cast<ISwitch *>(calloc(sizeof(ISwitch), max_opts));
     ISwitch * one_sw = sw;
 
     char sw_name[MAXINDINAME];
@@ -1603,8 +1603,6 @@ ISwitch * GPhotoCCD::create_switch(const char * basestr, char ** options, int ma
 
 void GPhotoCCD::UpdateWidget(cam_opt * opt)
 {
-    struct tm * tm;
-
     switch (opt->widget->type)
     {
         case GP_WIDGET_RADIO:
@@ -1622,12 +1620,12 @@ void GPhotoCCD::UpdateWidget(cam_opt * opt)
             if (opt->widget->value.toggle)
             {
                 opt->item.sw[0].s = ISS_ON;
-                opt->item.sw[0].s = ISS_OFF;
+                opt->item.sw[1].s = ISS_OFF;
             }
             else
             {
                 opt->item.sw[0].s = ISS_OFF;
-                opt->item.sw[0].s = ISS_ON;
+                opt->item.sw[1].s = ISS_ON;
             }
             IDSetSwitch(&opt->prop.sw, nullptr);
             break;
@@ -1637,8 +1635,8 @@ void GPhotoCCD::UpdateWidget(cam_opt * opt)
             break;
         case GP_WIDGET_DATE:
             free(opt->item.text.text);
-            tm                  = gmtime((time_t *)&opt->widget->value.date);
-            opt->item.text.text = strdup(asctime(tm));
+            opt->item.text.text = static_cast<char *>(malloc(MAXINDILABEL));
+            strftime(opt->item.text.text, MAXINDILABEL, "%FT%TZ", gmtime(reinterpret_cast<time_t *>(&opt->widget->value.date)));
             IDSetText(&opt->prop.text, nullptr);
             break;
         default:
@@ -1650,7 +1648,6 @@ void GPhotoCCD::UpdateWidget(cam_opt * opt)
 void GPhotoCCD::AddWidget(gphoto_widget * widget)
 {
     IPerm perm;
-    struct tm * tm;
 
     if (!widget)
         return;
@@ -1676,7 +1673,7 @@ void GPhotoCCD::AddWidget(gphoto_widget * widget)
             defineText(&opt->prop.text);
             break;
         case GP_WIDGET_TOGGLE:
-            opt->item.sw = create_switch(widget->name, (char **)on_off, 2, widget->value.toggle ? 0 : 1);
+            opt->item.sw = create_switch(widget->name, static_cast<char **>(on_off), 2, widget->value.toggle ? 0 : 1);
             IUFillSwitchVector(&opt->prop.sw, opt->item.sw, 2, getDeviceName(), widget->name, widget->name,
                                widget->parent, perm, ISR_1OFMANY, 60, IPS_IDLE);
             defineSwitch(&opt->prop.sw);
@@ -1689,12 +1686,17 @@ void GPhotoCCD::AddWidget(gphoto_widget * widget)
             defineNumber(&opt->prop.num);
             break;
         case GP_WIDGET_DATE:
-            tm = gmtime((time_t *)&widget->value.date);
-            IUFillText(&opt->item.text, widget->name, widget->name, asctime(tm));
+        {
+            //tm = gmtime((time_t *)&widget->value.date);
+            //IUFillText(&opt->item.text, widget->name, widget->name, asctime(tm));
+            char ts[MAXINDITSTAMP] = {0};
+            strftime(ts, MAXINDILABEL, "%FT%TZ", gmtime(reinterpret_cast<time_t *>(&opt->widget->value.date)));
+            IUFillText(&opt->item.text, widget->name, widget->name, ts);
             IUFillTextVector(&opt->prop.text, &opt->item.text, 1, getDeviceName(), widget->name, widget->name,
                              widget->parent, perm, 60, IPS_IDLE);
             defineText(&opt->prop.text);
-            break;
+        }
+        break;
         default:
             delete opt;
             return;
@@ -1912,20 +1914,19 @@ bool GPhotoCCD::StopStreaming()
 
 void GPhotoCCD::streamLiveView()
 {
-    int rc = GP_OK;
-    char errMsg[MAXRBUF];
-
+    //char errMsg[MAXRBUF];
     const char * previewData = nullptr;
     unsigned long int previewSize = 0;
     CameraFile * previewFile = nullptr;
 
-    rc = gp_file_new(&previewFile);
+    int rc = gp_file_new(&previewFile);
     if (rc != GP_OK)
     {
         LOGF_ERROR("Error creating gphoto file: %s", gp_result_as_string(rc));
         return;
     }
 
+    char errMsg[MAXRBUF] = {0};
     while (true)
     {
         std::unique_lock<std::mutex> guard(liveStreamMutex);
@@ -1952,7 +1953,7 @@ void GPhotoCCD::streamLiveView()
             }
         }
 
-        unsigned char * inBuffer = (unsigned char *)(const_cast<char *>(previewData));
+        uint8_t * inBuffer = reinterpret_cast<uint8_t *>(const_cast<char *>(previewData));
 
         //        if (streamSubframeS[1].s == ISS_ON)
         //        {
@@ -2143,8 +2144,7 @@ void GPhotoCCD::addFITSKeywords(fitsfile * fptr, INDI::CCDChip * targetChip)
         ISwitch * onISO = IUFindOnSwitch(&mIsoSP);
         if (onISO)
         {
-            int isoSpeed = -1;
-            isoSpeed     = atoi(onISO->label);
+            int isoSpeed = atoi(onISO->label);
             if (isoSpeed > 0)
                 fits_update_key_s(fptr, TUINT, "ISOSPEED", &isoSpeed, "ISO Speed", &status);
         }

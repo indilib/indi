@@ -1,3 +1,9 @@
+indi-gpsd (0.5) bionic; urgency=medium
+
+  * Use switch to select between GPS raw time and system time.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 02 Jul 2019 20:40:00 +0300
+
 indi-gpsd (0.4) bionic; urgency=medium
 
   * Upstream update

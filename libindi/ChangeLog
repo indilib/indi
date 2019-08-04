@@ -1,3 +1,20 @@
+From 1.7.9 to 1.8.0
+
+      + iOptron CEM40 driver.
+      + QHYCCD CFW1 driver.
+      + Decode ATIK firmware version correctly.
+      + Apply gamma when downscaling 16bit to 8bit stream.
+      + Improve reliability of sendBlob.
+      + GPSD driver should use raw GPS time by default.
+      + add watchProperty to make client only request and only process properties of interest.
+      + Prevents indi_fli_wheel crash for FLI-CFW-1-8 model.
+      + Fix communication issues in Vixen Starbook driver.
+      + Fix Dew control and Current sensing on PPB.
+      + Fix out-of-bounds access in 420p conversion in V4L2 driver.
+      + Fix Atik guide ST4 pulses.
+      + ASI Camera SDK 1.14.0715 update.
+      + QHY SDK updated to 5.1.0.
+
 From 1.7.8 to 1.7.9
 
       + New Astromechanic Light Pollution Meter driver.

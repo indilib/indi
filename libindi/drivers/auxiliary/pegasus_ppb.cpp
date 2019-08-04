@@ -347,9 +347,9 @@ bool PegasusPPB::ISNewNumber(const char * dev, const char * name, double values[
             for (int i = 0; i < n; i++)
             {
                 if (!strcmp(names[i], DewPWMN[DEW_PWM_A].name))
-                    rc1 = setDewPWM(5, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
+                    rc1 = setDewPWM(3, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
                 else if (!strcmp(names[i], DewPWMN[DEW_PWM_B].name))
-                    rc2 = setDewPWM(6, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
+                    rc2 = setDewPWM(4, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
             }
 
             DewPWMNP.s = (rc1 && rc2) ? IPS_OK : IPS_ALERT;
@@ -493,7 +493,7 @@ bool PegasusPPB::getSensorData()
 
         // Power Sensors
         PowerSensorsN[SENSOR_VOLTAGE].value = std::stod(result[PA_VOLTAGE]);
-        PowerSensorsN[SENSOR_CURRENT].value = std::stod(result[PA_CURRENT]) / 600.0;
+        PowerSensorsN[SENSOR_CURRENT].value = std::stod(result[PA_CURRENT]) / 65.0;
         PowerSensorsNP.s = IPS_OK;
         if (lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT])
             IDSetNumber(&PowerSensorsNP, nullptr);
