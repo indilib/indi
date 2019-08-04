@@ -160,7 +160,7 @@ class LX200_OnStep : public LX200Generic
     IPState ReadPECBuffer (int axis);
     IPState WritePECBuffer (int axis);
     bool ISPECRecorded (int axis);
-    bool OSPECIgnored = false;
+    bool OSPECEnabled = false;
     //End PECInterface
     
     
