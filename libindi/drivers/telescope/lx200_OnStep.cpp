@@ -1147,128 +1147,128 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&OSFocus2MotionSP, nullptr);
         }
 
-        // PEC
+    // PEC
     if (!strcmp(name, OSPECRecordSP.name))
     {
-            IUUpdateSwitch(&OSPECRecordSP, states, names, n);
-            OSPECRecordSP.s = IPS_OK;
-            
-            if (OSPECRecordS[0].s == ISS_ON)
-            {
-                    OSPECEnabled = true;
-                    ClearPECBuffer(0);
-                    OSPECRecordS[0].s = ISS_OFF;
-            }
-            if (OSPECRecordS[1].s == ISS_ON)
-            {
-                    OSPECEnabled = true;
-                    StartPECRecord(0);
-                    OSPECRecordS[1].s = ISS_OFF;
-            }
-            if (OSPECRecordS[2].s == ISS_ON)
-            {
-                    OSPECEnabled = true;
-                    SavePECBuffer(0);
-                    OSPECRecordS[2].s = ISS_OFF;
-            }
-            IDSetSwitch(&OSPECRecordSP, nullptr);
+        IUUpdateSwitch(&OSPECRecordSP, states, names, n);
+        OSPECRecordSP.s = IPS_OK;
+        
+        if (OSPECRecordS[0].s == ISS_ON)
+        {
+                OSPECEnabled = true;
+                ClearPECBuffer(0);
+                OSPECRecordS[0].s = ISS_OFF;
+        }
+        if (OSPECRecordS[1].s == ISS_ON)
+        {
+                OSPECEnabled = true;
+                StartPECRecord(0);
+                OSPECRecordS[1].s = ISS_OFF;
+        }
+        if (OSPECRecordS[2].s == ISS_ON)
+        {
+                OSPECEnabled = true;
+                SavePECBuffer(0);
+                OSPECRecordS[2].s = ISS_OFF;
+        }
+        IDSetSwitch(&OSPECRecordSP, nullptr);
     }
     if (!strcmp(name, OSPECReadSP.name))
     {
-            if (OSPECReadS[0].s == ISS_ON)
-            {
-                    OSPECEnabled = true;
-                    ReadPECBuffer(0);
-                    OSPECReadS[0].s = ISS_OFF;
-            }
-            if (OSPECReadS[1].s == ISS_ON)
-            {
-                    OSPECEnabled = true;
-                    WritePECBuffer(0);
-                    OSPECReadS[1].s = ISS_OFF;
-            }
-            IDSetSwitch(&OSPECReadSP, nullptr);
+        if (OSPECReadS[0].s == ISS_ON)
+        {
+                OSPECEnabled = true;
+                ReadPECBuffer(0);
+                OSPECReadS[0].s = ISS_OFF;
+        }
+        if (OSPECReadS[1].s == ISS_ON)
+        {
+                OSPECEnabled = true;
+                WritePECBuffer(0);
+                OSPECReadS[1].s = ISS_OFF;
+        }
+        IDSetSwitch(&OSPECReadSP, nullptr);
     } 
     if (!strcmp(name, PECStateSP.name))
     {
-            index = IUFindOnSwitchIndex(&PECStateSP);
-            if (index == 0)
-            {
-                    OSPECEnabled = true;
-                    StopPECPlayback(0); //Status will set OSPECEnabled to false if that's set by the controller
-                    PECStateS[0].s = ISS_ON;
-                    PECStateS[1].s = ISS_OFF;
-                    IDSetSwitch(&PECStateSP, nullptr);
-            }
-            else if (index == 1)
-            {
-                    OSPECEnabled = true;
-                    StartPECPlayback(0);
-                    PECStateS[0].s = ISS_OFF;
-                    PECStateS[1].s = ISS_ON;
-                    IDSetSwitch(&PECStateSP, nullptr);
-            }
-            
+        index = IUFindOnSwitchIndex(&PECStateSP);
+        if (index == 0)
+        {
+            OSPECEnabled = true;
+            StopPECPlayback(0); //Status will set OSPECEnabled to false if that's set by the controller
+            PECStateS[0].s = ISS_ON;
+            PECStateS[1].s = ISS_OFF;
+            IDSetSwitch(&PECStateSP, nullptr);
+        }
+        else if (index == 1)
+        {
+            OSPECEnabled = true;
+            StartPECPlayback(0);
+            PECStateS[0].s = ISS_OFF;
+            PECStateS[1].s = ISS_ON;
+            IDSetSwitch(&PECStateSP, nullptr);
+        }
+        
     }
-
+    
     // Align Buttons
     if (!strcmp(name, OSNAlignStarsSP.name))
     {
-            IUResetSwitch(&OSNAlignStarsSP);
-            IUUpdateSwitch(&OSNAlignStarsSP, states, names, n);
-            index = IUFindOnSwitchIndex(&OSNAlignStarsSP);
-            
-            return true;
+        IUResetSwitch(&OSNAlignStarsSP);
+        IUUpdateSwitch(&OSNAlignStarsSP, states, names, n);
+        index = IUFindOnSwitchIndex(&OSNAlignStarsSP);
+        
+        return true;
     }
-
+    
     // Alignment
     if (!strcmp(name, OSNAlignSP.name))
     {
-            if (IUUpdateSwitch(&OSNAlignSP, states, names, n) < 0)
-                    return false;
+        if (IUUpdateSwitch(&OSNAlignSP, states, names, n) < 0)
+            return false;
+        
+        index = IUFindOnSwitchIndex(&OSNAlignSP);
+        //NewGeometricAlignment    
+        //End NewGeometricAlignment 
+        OSNAlignSP.s = IPS_BUSY;
+        if (index == 0)
+        {    
             
-            index = IUFindOnSwitchIndex(&OSNAlignSP);
-            //NewGeometricAlignment    
-            //End NewGeometricAlignment 
-            OSNAlignSP.s = IPS_BUSY;
-            if (index == 0)
-            {    
-                    
-                    /* Index is 0-8 and represents index+1*/
-                    
-                    int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
-                    if ((index_stars <= 8) && (index_stars >= 0)) {
-                            int stars = index_stars+1;
-                            OSNAlignS[0].s = ISS_OFF;
-                            LOGF_INFO("Align index: %d, stars: %d", index_stars, stars); 
-                            AlignStartGeometric(stars);
-                    }
+            /* Index is 0-8 and represents index+1*/
+            
+            int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
+            if ((index_stars <= 8) && (index_stars >= 0)) {
+                int stars = index_stars+1;
+                OSNAlignS[0].s = ISS_OFF;
+                LOGF_INFO("Align index: %d, stars: %d", index_stars, stars); 
+                AlignStartGeometric(stars);
             }
-            if (index == 1)
-            {
-                    OSNAlignS[1].s = ISS_OFF;
-                    OSNAlignSP.s = AlignAddStar();
-            }
-            //Write to EEPROM moved to new line/variable 
-            IDSetSwitch(&OSNAlignSP, nullptr);
-            UpdateAlignStatus();
+        }
+        if (index == 1)
+        {
+            OSNAlignS[1].s = ISS_OFF;
+            OSNAlignSP.s = AlignAddStar();
+        }
+        //Write to EEPROM moved to new line/variable 
+        IDSetSwitch(&OSNAlignSP, nullptr);
+        UpdateAlignStatus();
     }
     
     if (!strcmp(name, OSNAlignWriteSP.name))
     {
-            if (IUUpdateSwitch(&OSNAlignWriteSP, states, names, n) < 0)
-                    return false;
-            
-            index = IUFindOnSwitchIndex(&OSNAlignWriteSP);
-
-            OSNAlignWriteSP.s = IPS_BUSY;
-            if (index == 0)
-            {
-                    OSNAlignWriteS[0].s = ISS_OFF;
-                    OSNAlignWriteSP.s = AlignWrite();
-            }
-            IDSetSwitch(&OSNAlignWriteSP, nullptr);
-            UpdateAlignStatus();
+        if (IUUpdateSwitch(&OSNAlignWriteSP, states, names, n) < 0)
+            return false;
+        
+        index = IUFindOnSwitchIndex(&OSNAlignWriteSP);
+        
+        OSNAlignWriteSP.s = IPS_BUSY;
+        if (index == 0)
+        {
+            OSNAlignWriteS[0].s = ISS_OFF;
+            OSNAlignWriteSP.s = AlignWrite();
+        }
+        IDSetSwitch(&OSNAlignWriteSP, nullptr);
+        UpdateAlignStatus();
     }
     
     if (!strcmp(name, OSNAlignPolarRealignSP.name))
