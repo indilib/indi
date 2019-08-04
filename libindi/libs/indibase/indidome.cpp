@@ -1944,7 +1944,7 @@ IPState Dome::Park()
         SetParked(true);
     else if (ParkSP.s == IPS_BUSY)
     {
-        domeState = DOME_PARKING;
+        setDomeState(DOME_PARKING);
 
         if (CanAbsMove())
             DomeAbsPosNP.s = IPS_BUSY;
