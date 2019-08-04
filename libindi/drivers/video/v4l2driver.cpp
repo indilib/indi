@@ -302,7 +302,6 @@ bool V4L2_Driver::updateProperties()
                       v4l_base->getDeviceName());
         }
         SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, pixX, pixY);
-
         PrimaryCCD.setImageExtension("fits");
 
         if (v4l_base->isLXmodCapable())
