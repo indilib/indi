@@ -134,7 +134,7 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
         virtual bool getUTFOffset(double * offset);
 
         // Send slew error message to client
-        void slewError(int slewCode);
+        virtual void slewError(int slewCode);
 
         // Get mount alignment type (AltAz..etc)
         void getAlignment();
@@ -155,7 +155,6 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
         virtual bool ReverseFocuser(bool enabled) override;
         virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
         virtual bool SetFocuserSpeed(int speed) override;
-
 
         static void guideTimeoutHelperNS(void *p);
         static void guideTimeoutHelperWE(void *p);
