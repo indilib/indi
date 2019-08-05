@@ -456,8 +456,6 @@ bool CelestronGPS::updateProperties()
         if (fwInfo.hasFocuser)
         {
             LOG_INFO("update focuser properties");
-            FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-            FI::updateProperties();
             defineNumber(&FocusBacklashNP);
             defineNumber(&FocusMinPosNP);
             if (focusReadLimits())
@@ -466,7 +464,14 @@ bool CelestronGPS::updateProperties()
 
                 IDSetNumber(&FocusMaxPosNP, nullptr);
                 IDSetNumber(&FocusMinPosNP, nullptr);
+                // focuser move capability is only set if the focus limits are valid
+                FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
             }
+            if (!focuserIsCalibrated)
+            {
+                LOG_WARN("Focuser not calibrated, moves will not be allowed");
+            }
+            FI::updateProperties();
         }
     }
     else
@@ -712,10 +717,18 @@ bool CelestronGPS::ReadScopeStatus()
             LastAlignSP.s = IPS_IDLE;
             IDSetSwitch(&LastAlignSP, "Align finished");
 
-            if (driver.check_aligned())
-                LOG_INFO("Mount is aligned");
+            bool isAligned;
+            if (!driver.check_aligned(&isAligned))
+            {
+                LOG_WARN("get Alignment Failed!");
+            }
             else
-                LOG_WARN("Alignment Failed!");
+            {
+                if (isAligned)
+                    LOG_INFO("Mount is aligned");
+                else
+                    LOG_WARN("Alignment Failed!");
+            }
 
             return true;
         }
@@ -723,86 +736,47 @@ bool CelestronGPS::ReadScopeStatus()
 
     switch (TrackState)
     {
-        case SCOPE_SLEWING:
-            // are we done?
-            if (driver.is_slewing() == false)
+    case SCOPE_SLEWING:
+        // are we done?
+        bool slewing;
+        if (driver.is_slewing(&slewing) && !slewing)
+        {
+            LOG_INFO("Slew complete, tracking...");
+            TrackState = SCOPE_TRACKING;
+            //HorizontalCoordsNP.s = IPS_OK;
+        }
+        break;
+
+    case SCOPE_PARKING:
+        // are we done?
+        if (driver.is_slewing(&slewing) && !slewing)
+        {
+            if (driver.set_track_mode(CTM_OFF))
+                LOG_DEBUG("Mount tracking is off.");
+
+            SetParked(true);
+            //HorizontalCoordsNP.s = IPS_OK;
+
+            saveConfig(true);
+
+            // Check if we need to hibernate
+            if (UseHibernateS[0].s == ISS_ON)
             {
-                LOG_INFO("Slew complete, tracking...");
-                TrackState = SCOPE_TRACKING;
-                //HorizontalCoordsNP.s = IPS_OK;
+                LOG_INFO("Hibernating mount...");
+                if (driver.hibernate())
+                    LOG_INFO("Mount hibernated. Please disconnect now and turn off your mount.");
+                else
+                    LOG_ERROR("Hibernating mount failed!");
             }
-            break;
+        }
+        break;
 
-        case SCOPE_PARKING:
-            // are we done?
-            if (driver.is_slewing() == false)
-            {
-                if (driver.set_track_mode(CTM_OFF))
-                    LOG_DEBUG("Mount tracking is off.");
-
-                SetParked(true);
-                //HorizontalCoordsNP.s = IPS_OK;
-
-                saveConfig(true);
-
-                // Check if we need to hibernate
-                if (UseHibernateS[0].s == ISS_ON)
-                {
-                    LOG_INFO("Hibernating mount...");
-                    if (driver.hibernate())
-                        LOG_INFO("Mount hibernated. Please disconnect now and turn off your mount.");
-                    else
-                        LOG_ERROR("Hibernating mount failed!");
-                }
-            }
-            break;
-
-        default:
-            break;
+    default:
+        break;
     }
 
     //IDSetNumber(&HorizontalCoordsNP, nullptr);
     NewRaDec(currentRA, currentDEC);
-
-    if (!HasPierSide())
-        return true;
-
-    char sop;
-    INDI::Telescope::TelescopePierSide pierSide = PIER_UNKNOWN;
-    char psc = 'U';
-    if (driver.get_pier_side(&sop))
-    {
-        // manage version and hemisphere nonsense
-        // HC versions less than 5.24 reverse the side of pier if the mount
-        // is in the Southern hemisphere.  StarSense doesn't
-        if (LocationN[LOCATION_LATITUDE].value < 0)
-        {
-            if (fwInfo.controllerVersion <= 5.24 && fwInfo.controllerVariant != ISSTARSENSE)
-            {
-                // swap the char reported
-                if (sop == 'E')
-                    sop = 'W';
-                else if (sop == 'W')
-                    sop = 'E';
-            }
-        }
-        // The Celestron and INDI pointing states are opposite
-        if (sop == 'W')
-        {
-            pierSide = PIER_EAST;
-            psc = 'E';
-        }
-        else if (sop == 'E')
-        {
-            pierSide = PIER_WEST;
-            psc = 'W';
-        }
-    }
-
-    LOGF_DEBUG("latitude %g, sop %c, PierSide %c",
-               LocationN[LOCATION_LATITUDE].value,
-               sop, psc);
-    setPierSide(pierSide);
 
     // focuser
     if (fwInfo.hasFocuser)
@@ -846,6 +820,46 @@ bool CelestronGPS::ReadScopeStatus()
             }
         }
     }
+
+    if (!HasPierSide())
+        return true;
+
+    char sop;
+    INDI::Telescope::TelescopePierSide pierSide = PIER_UNKNOWN;
+    char psc = 'U';
+    if (driver.get_pier_side(&sop))
+    {
+        // manage version and hemisphere nonsense
+        // HC versions less than 5.24 reverse the side of pier if the mount
+        // is in the Southern hemisphere.  StarSense doesn't
+        if (LocationN[LOCATION_LATITUDE].value < 0)
+        {
+            if (fwInfo.controllerVersion <= 5.24 && fwInfo.controllerVariant != ISSTARSENSE)
+            {
+                // swap the char reported
+                if (sop == 'E')
+                    sop = 'W';
+                else if (sop == 'W')
+                    sop = 'E';
+            }
+        }
+        // The Celestron and INDI pointing states are opposite
+        if (sop == 'W')
+        {
+            pierSide = PIER_EAST;
+            psc = 'E';
+        }
+        else if (sop == 'E')
+        {
+            pierSide = PIER_WEST;
+            psc = 'W';
+        }
+    }
+
+    LOGF_DEBUG("latitude %g, sop %c, PierSide %c",
+               LocationN[LOCATION_LATITUDE].value,
+               sop, psc);
+    setPierSide(pierSide);
 
     return true;
 }
@@ -1272,7 +1286,8 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
     if (!checkMinVersion(2.3, "updating location"))
         return false;
 
-    if (driver.check_aligned())
+    bool isAligned;
+    if (!driver.check_aligned(&isAligned) || isAligned)
         return false;
 
     LOGF_DEBUG("Update location %8.3f, %8.3f, %4.0f", latitude, longitude, elevation);
@@ -1286,7 +1301,8 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
         return false;
 
     // setting time on StarSense seems to make it not aligned
-    if (driver.check_aligned())
+    bool isAligned;
+    if (!driver.check_aligned(&isAligned) || isAligned)
         return false;
 
     // starsense HC doesn't seem to support the precise time setting
@@ -1842,7 +1858,8 @@ void CelestronGPS::checkAlignment()
     ReadScopeStatus();
 
     //if (currentRA == 12.0 && currentDEC == 0.0)
-    if (!driver.check_aligned())
+    bool isAligned;
+    if (!driver.check_aligned(&isAligned) || !isAligned)
         LOG_WARN("Mount is NOT aligned. You must align the mount first before you can use it. Disconnect, align the mount, and reconnect again.");
 }
 
@@ -1851,6 +1868,12 @@ IPState CelestronGPS::MoveAbsFocuser(uint32_t targetTicks)
 {
 
     uint32_t position = targetTicks;
+
+    if (!focuserIsCalibrated)
+    {
+        LOG_ERROR("Move is not allowed because the focuser is not calibrated");
+        return IPS_ALERT;
+    }
 
     // implement backlash
     int delta = targetTicks - FocusAbsPosN[0].value;
@@ -1894,21 +1917,25 @@ bool CelestronGPS::AbortFocuser()
 bool CelestronGPS::focusReadLimits()
 {
     int low, high;
-    if (!driver.foc_limits(&low, &high))
-        return false;
+    bool valid = driver.foc_limits(&low, &high);
 
     FocusAbsPosN[0].max = high;
     FocusAbsPosN[0].min = low;
     FocusAbsPosNP.s = IPS_OK;
+    IUUpdateMinMax(&FocusAbsPosNP);
 
     FocusMaxPosN[0].value = high;
     FocusMaxPosNP.s = IPS_OK;
+    IDSetNumber(&FocusMaxPosNP, nullptr);
 
     FocusMinPosN[0].value = low;
     FocusMinPosNP.s = IPS_OK;
+    IDSetNumber(&FocusMinPosNP, nullptr);
+
+    focuserIsCalibrated = valid;
 
     LOGF_INFO("Focus Limits: Maximum (%i) Minimum (%i) steps.", high, low);
-    return true;
+    return valid;
 }
 
 

@@ -21,6 +21,7 @@
 #include "stream/streammanager.h"
 
 #include "locale_compat.h"
+#include "indicom.h"
 
 #include <libnova/julian_day.h>
 #include <libnova/precession.h>
@@ -28,13 +29,11 @@
 #include <cmath>
 #include <unistd.h>
 
-pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
 // We declare an auto pointer to GuideSim.
-std::unique_ptr<GuideSim> guideSim(new GuideSim());
-
-void ISPoll(void *p);
+static std::unique_ptr<GuideSim> guideSim(new GuideSim());
 
 void ISGetProperties(const char *dev)
 {
@@ -137,7 +136,7 @@ bool GuideSim::Disconnect()
 
 const char *GuideSim::getDefaultName()
 {
-    return (const char *)"Guide Simulator";
+    return "Guide Simulator";
 }
 
 bool GuideSim::initProperties()
@@ -317,7 +316,6 @@ void GuideSim::TimerHit()
 int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 {
     //  CCD frame is 16 bit data
-    uint16_t val;
     float ExposureTime;
     float targetFocalLength;
 
@@ -335,11 +333,6 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 
     if (ShowStarField)
     {
-        char gsccmd[250];
-        FILE *pp;
-        int stars = 0;
-        int lines = 0;
-        int drawn = 0;
         int x, y;
         float PEOffset;
         float PESpot;
@@ -502,15 +495,24 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         if (ftype == INDI::CCDChip::LIGHT_FRAME)
         {
             AutoCNumeric locale;
+            char gsccmd[250];
+            FILE *pp;
+            int drawn = 0;
 
             //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPE);
-            sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000", rad + PEOffset, cameradec, radius,
+            sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",
+                    range360(rad + PEOffset),
+                    rangeDec(cameradec),
+                    radius,
                     lookuplimit);
+
             LOGF_DEBUG("%s", gsccmd);
             pp = popen(gsccmd, "r");
             if (pp != nullptr)
             {
                 char line[256];
+                int stars = 0;
+                int lines = 0;
                 while (fgets(line, 256, pp) != nullptr)
                 {
                     //fprintf(stderr,"%s",line);
@@ -618,9 +620,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
             skyflux = skyflux * ExposureTime;
             //IDLog("SkyFlux = %g ExposureRequest %g\n",skyflux,ExposureTime);
 
-            unsigned short *pt;
-
-            pt = (uint16_t *)targetChip->getFrameBuffer();
+            uint16_t *pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
             nheight = targetChip->getSubH();
             nwidth  = targetChip->getSubW();
@@ -698,7 +698,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         testvalue++;
         if (testvalue > 255)
             testvalue = 0;
-        val = testvalue;
+        uint16_t val = testvalue;
 
         int nbuf = targetChip->getSubW() * targetChip->getSubH();
 
@@ -718,7 +718,7 @@ int GuideSim::DrawImageStar(INDI::CCDChip *targetChip, float mag, float x, float
     //float r;
     int sx, sy;
     int drew     = 0;
-    int boxsizex = 5;
+    //int boxsizex = 5;
     int boxsizey = 5;
     float flux;
 
@@ -744,8 +744,8 @@ int GuideSim::DrawImageStar(INDI::CCDChip *targetChip, float mag, float x, float
     //  we need a box size that gives a radius at least 3 times fwhm
     qx       = seeing / ImageScalex;
     qx       = qx * 3;
-    boxsizex = (int)qx;
-    boxsizex++;
+    //boxsizex = (int)qx;
+    //boxsizex++;
     qx       = seeing / ImageScaley;
     qx       = qx * 3;
     boxsizey = (int)qx;
@@ -802,8 +802,7 @@ int GuideSim::AddToPixel(INDI::CCDChip *targetChip, int x, int y, int val)
                     int newval;
                     drew++;
 
-                    pt = (uint16_t *)targetChip->getFrameBuffer();
-
+                    pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
                     pt += (y * nwidth);
                     pt += x;
                     newval = pt[0];

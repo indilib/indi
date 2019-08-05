@@ -1069,22 +1069,22 @@ static void newFIFO(void)
                     if (verbose)
                         fprintf(stderr, "FIFO: Shutting down driver: %s\n", tDriver);
 
-                    for (i = 0; i < dp->ndev; i++)
-                    {
-                        /* Inform clients that this driver is dead */
-                        XMLEle *root = addXMLEle(NULL, "delProperty");
-                        addXMLAtt(root, "device", dp->dev[i]);
+//                    for (i = 0; i < dp->ndev; i++)
+//                    {
+//                        /* Inform clients that this driver is dead */
+//                        XMLEle *root = addXMLEle(NULL, "delProperty");
+//                        addXMLAtt(root, "device", dp->dev[i]);
 
-                        prXMLEle(stderr, root, 0);
-                        Msg *mp = newMsg();
+//                        prXMLEle(stderr, root, 0);
+//                        Msg *mp = newMsg();
 
-                        q2Clients(NULL, 0, dp->dev[i], NULL, mp, root);
-                        if (mp->count > 0)
-                            setMsgXMLEle(mp, root);
-                        else
-                            freeMsg(mp);
-                        delXMLEle(root);
-                    }
+//                        q2Clients(NULL, 0, dp->dev[i], NULL, mp, root);
+//                        if (mp->count > 0)
+//                            setMsgXMLEle(mp, root);
+//                        else
+//                            freeMsg(mp);
+//                        delXMLEle(root);
+//                    }
 
                     shutdownDvr(dp, 0);
                     break;
@@ -1470,6 +1470,25 @@ static void shutdownClient(ClInfo *cp)
 static void shutdownDvr(DvrInfo *dp, int restart)
 {
     Msg *mp;
+    int i=0;
+
+    // Tell client driver is dead.
+    for (i = 0; i < dp->ndev; i++)
+    {
+        /* Inform clients that this driver is dead */
+        XMLEle *root = addXMLEle(NULL, "delProperty");
+        addXMLAtt(root, "device", dp->dev[i]);
+
+        prXMLEle(stderr, root, 0);
+        Msg *mp = newMsg();
+
+        q2Clients(NULL, 0, dp->dev[i], NULL, mp, root);
+        if (mp->count > 0)
+            setMsgXMLEle(mp, root);
+        else
+            freeMsg(mp);
+        delXMLEle(root);
+    }
 
     /* make sure it's dead, reclaim resources */
     if (dp->pid == REMOTEDVR)

@@ -40,16 +40,6 @@ Telescope::Telescope()
     : DefaultDevice(), ScopeConfigFileName(GetHomeDirectory() + "/.indi/ScopeConfig.xml"),
       ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
 {
-    capability     = 0;
-    last_we_motion = last_ns_motion = -1;
-    parkDataType                    = PARK_NONE;
-    ParkdataXmlRoot                 = nullptr;
-    IsParked                        = false;
-    IsLocked                        = true;
-
-    nSlewRate = 0;
-    SlewRateS = nullptr;
-
     controller = new Controller(this);
     controller->setJoystickCallback(joystickHelper);
     controller->setAxisCallback(axisHelper);
@@ -60,9 +50,6 @@ Telescope::Telescope()
 
     currentPECState = PEC_OFF;
     lastPECState    = PEC_UNKNOWN;
-
-    motionDirWEValue = 0;
-    motionDirNSValue = 0;
 }
 
 Telescope::~Telescope()
@@ -556,9 +543,17 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
                 // Dome options is dome parks or both and dome is parking.
                 if ((DomeClosedLockT[2].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON) && !IsLocked && !IsParked)
                 {
-                    RememberTrackState = TrackState;
-                    Park();
-                    DEBUG(Logger::DBG_SESSION, "Dome is closing, parking mount...");
+                    for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+                    {
+                        const char * elemName = findXMLAttValu(ep, "name");
+                        if (( (!strcmp(elemName, "SHUTTER_CLOSE") || !strcmp(elemName, "PARK"))
+                                && !strcmp(pcdataXMLEle(ep), "On")))
+                        {
+                            RememberTrackState = TrackState;
+                            Park();
+                            LOG_INFO("Dome is closing, parking mount...");
+                        }
+                    }
                 }
             } // Dome is changing state and Dome options is lock or both. d
             else if (!strcmp(findXMLAttValu(root, "state"), "Ok"))
@@ -964,7 +959,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
             // effect.
             if (TrackState == SCOPE_TRACKING && strcmp(IUFindOnSwitch(&TrackModeSP)->name, "TRACK_CUSTOM"))
             {
-                DEBUG(Logger::DBG_SESSION, "Custom tracking rates set. Tracking mode must be set to Custom for these rates to take effect.");
+                LOG_INFO("Custom tracking rates set. Tracking mode must be set to Custom for these rates to take effect.");
             }
 
             // If mount is NOT tracking, we simply accept whatever valid values for use when mount tracking is engaged.
@@ -1025,7 +1020,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 IUResetSwitch(&ParkSP);
                 ParkSP.s = IPS_ALERT;
                 Abort();
-                DEBUG(Logger::DBG_SESSION, "Parking/Unparking aborted.");
+                LOG_INFO("Parking/Unparking aborted.");
                 IDSetSwitch(&ParkSP, nullptr);
                 return true;
             }
@@ -1062,7 +1057,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 IUResetSwitch(&ParkSP);
                 ParkS[0].s = ISS_ON;
                 ParkSP.s   = IPS_IDLE;
-                DEBUG(Logger::DBG_SESSION, "Telescope already parked.");
+                LOG_INFO("Telescope already parked.");
                 IDSetSwitch(&ParkSP, nullptr);
                 return true;
             }
@@ -1235,13 +1230,13 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     ParkSP.s = IPS_ALERT;
                     IDSetSwitch(&ParkSP, nullptr);
 
-                    DEBUG(Logger::DBG_SESSION, "Parking aborted.");
+                    LOG_INFO("Parking aborted.");
                 }
                 if (EqNP.s == IPS_BUSY)
                 {
                     EqNP.s = lastEqState = IPS_IDLE;
                     IDSetNumber(&EqNP, nullptr);
-                    DEBUG(Logger::DBG_SESSION, "Slew/Track aborted.");
+                    LOG_INFO("Slew/Track aborted.");
                 }
                 if (MovementWESP.s == IPS_BUSY)
                 {
@@ -1371,7 +1366,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             if ((TrackState != SCOPE_IDLE && TrackState != SCOPE_TRACKING) || MovementNSSP.s == IPS_BUSY ||
                     MovementWESP.s == IPS_BUSY)
             {
-                DEBUG(Logger::DBG_SESSION, "Can not change park position while slewing or already parked...");
+                LOG_INFO("Can not change park position while slewing or already parked...");
                 ParkOptionSP.s = IPS_ALERT;
                 IDSetSwitch(&ParkOptionSP, nullptr);
                 return false;
@@ -1388,14 +1383,14 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 case PARK_WRITE_DATA:
                     rc = WriteParkData();
                     if (rc)
-                        DEBUG(Logger::DBG_SESSION, "Saved Park Status/Position.");
+                        LOG_INFO("Saved Park Status/Position.");
                     else
                         DEBUG(Logger::DBG_WARNING, "Can not save Park Status/Position.");
                     break;
                 case PARK_PURGE_DATA:
                     rc = PurgeParkData();
                     if (rc)
-                        DEBUG(Logger::DBG_SESSION, "Park data purged.");
+                        LOG_INFO("Park data purged.");
                     else
                         DEBUG(Logger::DBG_WARNING, "Can not purge Park Status/Position.");
                     break;
@@ -1415,19 +1410,19 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             if (n == 1)
             {
                 if (!strcmp(names[0], DomeClosedLockT[0].name))
-                    DEBUG(Logger::DBG_SESSION, "Dome parking policy set to: Ignore dome");
+                    LOG_INFO("Dome parking policy set to: Ignore dome");
                 else if (!strcmp(names[0], DomeClosedLockT[1].name))
-                    DEBUG(Logger::DBG_SESSION, "Warning: Dome parking policy set to: Dome locks. This disallows "
-                          "the scope from unparking when dome is parked");
+                    LOG_INFO("Warning: Dome parking policy set to: Dome locks. This disallows "
+                             "the scope from unparking when dome is parked");
                 else if (!strcmp(names[0], DomeClosedLockT[2].name))
-                    DEBUG(Logger::DBG_SESSION, "Warning: Dome parking policy set to: Dome parks. This tells "
-                          "scope to park if dome is parking. This will disable the locking "
-                          "for dome parking, EVEN IF MOUNT PARKING FAILS");
+                    LOG_INFO("Warning: Dome parking policy set to: Dome parks. This tells "
+                             "scope to park if dome is parking. This will disable the locking "
+                             "for dome parking, EVEN IF MOUNT PARKING FAILS");
                 else if (!strcmp(names[0], DomeClosedLockT[3].name))
-                    DEBUG(Logger::DBG_SESSION, "Warning: Dome parking policy set to: Both. This disallows the "
-                          "scope from unparking when dome is parked, and tells scope to "
-                          "park if dome is parking. This will disable the locking for dome "
-                          "parking, EVEN IF MOUNT PARKING FAILS.");
+                    LOG_INFO("Warning: Dome parking policy set to: Both. This disallows the "
+                             "scope from unparking when dome is parked, and tells scope to "
+                             "park if dome is parking. This will disable the locking for dome "
+                             "parking, EVEN IF MOUNT PARKING FAILS.");
             }
             IUUpdateSwitch(&DomeClosedLockTP, states, names, n);
             DomeClosedLockTP.s = IPS_OK;
@@ -1446,9 +1441,9 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             MotionControlModeTP.s = IPS_OK;
             IDSetSwitch(&MotionControlModeTP, nullptr);
             if (MotionControlModeT[MOTION_CONTROL_JOYSTICK].s == ISS_ON)
-                DEBUG(Logger::DBG_SESSION, "Motion control is set to 4-way joystick.");
+                LOG_INFO("Motion control is set to 4-way joystick.");
             else if (MotionControlModeT[MOTION_CONTROL_AXES].s == ISS_ON)
-                DEBUG(Logger::DBG_SESSION, "Motion control is set to 2 separate axes.");
+                LOG_INFO("Motion control is set to 2 separate axes.");
             else
                 DEBUGF(Logger::DBG_WARNING, "Motion control is set to unknown value %d!", n);
             return true;
@@ -1463,11 +1458,11 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             LockAxisSP.s = IPS_OK;
             IDSetSwitch(&LockAxisSP, nullptr);
             if (LockAxisS[AXIS_RA].s == ISS_ON)
-                DEBUG(Logger::DBG_SESSION, "Joystick motion is locked to West/East axis only.");
+                LOG_INFO("Joystick motion is locked to West/East axis only.");
             else if (LockAxisS[AXIS_DE].s == ISS_ON)
-                DEBUG(Logger::DBG_SESSION, "Joystick motion is locked to North/South axis only.");
+                LOG_INFO("Joystick motion is locked to North/South axis only.");
             else
-                DEBUG(Logger::DBG_SESSION, "Joystick motion is unlocked.");
+                LOG_INFO("Joystick motion is unlocked.");
             return true;
         }
 
@@ -1834,14 +1829,14 @@ void Telescope::SyncParkStatus(bool isparked)
         ParkS[0].s = ISS_ON;
         TrackState = SCOPE_PARKED;
         ParkSP.s = IPS_OK;
-        DEBUG(Logger::DBG_SESSION, "Mount is parked.");
+        LOG_INFO("Mount is parked.");
     }
     else
     {
         ParkS[1].s = ISS_ON;
         TrackState = SCOPE_IDLE;
         ParkSP.s = IPS_IDLE;
-        DEBUG(Logger::DBG_SESSION, "Mount is unparked.");
+        LOG_INFO("Mount is unparked.");
     }
 
     IDSetSwitch(&ParkSP, nullptr);
@@ -1883,12 +1878,12 @@ bool Telescope::InitPark()
 const char *Telescope::LoadParkXML()
 {
     wordexp_t wexp;
-    FILE *fp;
-    LilXML *lp;
+    FILE *fp = nullptr;
+    LilXML *lp = nullptr;
     static char errmsg[512];
 
-    XMLEle *parkxml;
-    XMLAtt *ap;
+    XMLEle *parkxml = nullptr;
+    XMLAtt *ap = nullptr;
     bool devicefound = false;
 
     ParkDeviceName       = getDeviceName();
@@ -1922,10 +1917,16 @@ const char *Telescope::LoadParkXML()
     if (!ParkdataXmlRoot)
         return errmsg;
 
-    if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
-        return "Not a park data file";
-
     parkxml = nextXMLEle(ParkdataXmlRoot, 1);
+
+    if (!parkxml)
+        return "Empty park file.";
+
+    if (!strcmp(tagXMLEle(parkxml), "parkdata"))
+    {
+        delXMLEle(parkxml);
+        return "Not a park data file";
+    }
 
     while (parkxml)
     {
@@ -1944,7 +1945,10 @@ const char *Telescope::LoadParkXML()
     }
 
     if (!devicefound)
+    {
+        delXMLEle(parkxml);
         return "No park data found for this device";
+    }
 
     ParkdeviceXml        = parkxml;
     ParkstatusXml        = findXMLEle(parkxml, "parkstatus");
@@ -2004,15 +2008,15 @@ bool Telescope::PurgeParkData()
         LOG_DEBUG("Failed to refresh parking data.");
 
     wordexp_t wexp;
-    FILE *fp;
-    LilXML *lp;
+    FILE *fp = nullptr;
+    LilXML *lp = nullptr;
     static char errmsg[512];
 
-    XMLEle *parkxml;
-    XMLAtt *ap;
+    XMLEle *parkxml = nullptr;
+    XMLAtt *ap = nullptr;
     bool devicefound = false;
 
-    ParkDeviceName       = getDeviceName();
+    ParkDeviceName = getDeviceName();
 
     if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
@@ -2039,10 +2043,16 @@ bool Telescope::PurgeParkData()
     if (!ParkdataXmlRoot)
         return false;
 
-    if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
+    parkxml = nextXMLEle(ParkdataXmlRoot, 1);
+
+    if (!parkxml)
         return false;
 
-    parkxml = nextXMLEle(ParkdataXmlRoot, 1);
+    if (!strcmp(tagXMLEle(parkxml), "parkdata"))
+    {
+        delXMLEle(parkxml);
+        return false;
+    }
 
     while (parkxml)
     {
@@ -2260,7 +2270,8 @@ void Telescope::processJoystick(const char *joystick_n, double mag, double angle
 
 void Telescope::processAxis(const char *axis_n, double value)
 {
-    if (MotionControlModeTP.sp[MOTION_CONTROL_AXES].s == ISS_ON) {
+    if (MotionControlModeTP.sp[MOTION_CONTROL_AXES].s == ISS_ON)
+    {
         if (!strcmp(axis_n, "MOTIONDIRNS") || !strcmp(axis_n, "MOTIONDIRWE"))
         {
             if ((TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
@@ -2272,21 +2283,25 @@ void Telescope::processAxis(const char *axis_n, double value)
             if (!strcmp(axis_n, "MOTIONDIRNS"))
             {
                 // South
-                if (value > 0) {
+                if (value > 0)
+                {
                     motionDirNSValue = -1;
                 }
                 // North
-                else if (value < 0) {
+                else if (value < 0)
+                {
                     motionDirNSValue = 1;
                 }
-                else {
+                else
+                {
                     motionDirNSValue = 0;
                 }
             }
             else if (!strcmp(axis_n, "MOTIONDIRWE"))
             {
                 // East
-                if (value > 0) {
+                if (value > 0)
+                {
                     motionDirWEValue = 1;
                 }
                 // West
@@ -2294,7 +2309,8 @@ void Telescope::processAxis(const char *axis_n, double value)
                 {
                     motionDirWEValue = -1;
                 }
-                else {
+                else
+                {
                     motionDirWEValue = 0;
                 }
             }
@@ -2303,10 +2319,12 @@ void Telescope::processAxis(const char *axis_n, double value)
             float y = motionDirNSValue * sqrt(1 - pow(motionDirWEValue, 2) / 2.0f);
             float angle = atan2(y, x) * (180.0 / 3.141592653589);
             float mag = sqrt(pow(y, 2) + pow(x, 2));
-            while (angle < 0) {
+            while (angle < 0)
+            {
                 angle += 360;
             }
-            if (mag == 0) {
+            if (mag == 0)
+            {
                 angle = 0;
             }
 

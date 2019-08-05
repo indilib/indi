@@ -222,6 +222,10 @@ void ccvt_yuyv_420p(int width, int height, const void *src, void *dsty, void *ds
     const unsigned char *s1, *s2;
     unsigned char *dy, *du, *dv;
 
+    /* Disregard last column/line if width/height is odd */
+    width -= width % 2;
+    height -= height %2;
+
     dy = (unsigned char *)dsty;
     du = (unsigned char *)dstu;
     dv = (unsigned char *)dstv;

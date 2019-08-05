@@ -68,7 +68,7 @@ void ATIK_WHEEL_ISInit()
                 continue;
             }
 
-            const char *fwName = (type == ARTEMIS_EFW1) ? "EFW1": "EFW2";
+            const char *fwName = (type == ARTEMIS_EFW1) ? "EFW1" : "EFW2";
 
             std::string filterWheelName;
 
@@ -76,7 +76,7 @@ void ATIK_WHEEL_ISInit()
                 filterWheelName = "Atik " + std::string(fwName);
             else
                 filterWheelName = "Atik " + std::string(fwName) + " " +
-                        std::to_string(static_cast<int>(std::count(filterWheelNames.begin(), filterWheelNames.end(), fwName))+1);
+                                  std::to_string(static_cast<int>(std::count(filterWheelNames.begin(), filterWheelNames.end(), fwName)) + 1);
 
             filterWheels[i] = new ATIKWHEEL(filterWheelName, i);
             filterWheelNames.push_back(fwName);
@@ -198,6 +198,15 @@ const char *ATIKWHEEL::getDefaultName()
     return "Atik";
 }
 
+bool ATIKWHEEL::initProperties()
+{
+    INDI::FilterWheel::initProperties();
+
+    addDebugControl();
+
+    return true;
+}
+
 bool ATIKWHEEL::Connect()
 {
     LOGF_DEBUG("Attempting to open %s...", name);
@@ -218,7 +227,7 @@ bool ATIKWHEEL::Connect()
 bool ATIKWHEEL::setupParams()
 {
     ARTEMISEFWTYPE type;
-    char *serialNumber= new char[MAXINDIDEVICE];
+    char *serialNumber = new char[MAXINDIDEVICE];
 
     int rc = ArtemisEFWGetDetails(hWheel, &type, serialNumber);
     if (rc != ARTEMIS_OK)
@@ -230,7 +239,7 @@ bool ATIKWHEEL::setupParams()
     LOGF_INFO("Detected %s Serial Number %s", type == ARTEMIS_EFW1 ? "EFW1" : "EFW2", serialNumber);
     delete[] serialNumber;
 
-    int numOfFilter=0;
+    int numOfFilter = 0;
     rc = ArtemisEFWNmrPosition(hWheel, &numOfFilter);
     if (rc != ARTEMIS_OK)
     {
@@ -269,14 +278,14 @@ void ATIKWHEEL::TimerHit()
 bool ATIKWHEEL::SelectFilter(int targetFilter)
 {
     TargetFilter = targetFilter;
-    int rc = ArtemisEFWSetPosition(hWheel, targetFilter -1 );
+    int rc = ArtemisEFWSetPosition(hWheel, targetFilter - 1 );
     return (rc == ARTEMIS_OK);
 }
 
 int ATIKWHEEL::QueryFilter()
 {
-    int iPosition;
-    bool isMoving;
+    int iPosition = 0;
+    bool isMoving = false;
     int rc = ArtemisEFWGetPosition(hWheel, &iPosition, &isMoving);
 
     if (rc != ARTEMIS_OK)
@@ -285,6 +294,8 @@ int ATIKWHEEL::QueryFilter()
         return -1;
     }
 
-    return iPosition+1;
+    LOGF_DEBUG("iPosition: %d isMoving: %d", iPosition, isMoving);
+
+    return iPosition + 1;
 }
 

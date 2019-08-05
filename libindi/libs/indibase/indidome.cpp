@@ -1412,10 +1412,10 @@ bool Dome::InitPark()
         return false;
     }
 
+    SyncParkStatus(isParked());
+
     if (parkDataType != PARK_NONE)
     {
-        SyncParkStatus(isParked());
-
         LOGF_DEBUG("InitPark Axis1 %.2f", Axis1ParkPosition);
         ParkPositionN[AXIS_AZ].value = Axis1ParkPosition;
         IDSetNumber(&ParkPositionNP, nullptr);
@@ -1944,7 +1944,7 @@ IPState Dome::Park()
         SetParked(true);
     else if (ParkSP.s == IPS_BUSY)
     {
-        domeState = DOME_PARKING;
+        setDomeState(DOME_PARKING);
 
         if (CanAbsMove())
             DomeAbsPosNP.s = IPS_BUSY;

@@ -33,7 +33,7 @@
 #define SUBFRAME_SIZE (16384)
 #define MIN_FRAME_SIZE (512)
 #define MAX_FRAME_SIZE (SUBFRAME_SIZE * 16)
-#define SPECTRUM_SIZE (65535)
+#define SPECTRUM_SIZE (256)
 
 static int iNumofConnectedDetectors;
 static RTLSDR *receivers[MAX_DEVICES];
@@ -54,7 +54,9 @@ static void *startcap(void *ctx)
     unsigned char *buf = (unsigned char *)malloc(len);
     while(receiver->InCapture) {
         rtlsdr_read_sync(receiver->rtl_dev, buf, len, &olen);
-        receiver->grabData(buf, len);
+        receiver->buffer = buf;
+        receiver->n_read = olen;
+        receiver->grabData();
     }
     return NULL;
 }
@@ -237,7 +239,7 @@ const char *RTLSDR::getDefaultName()
 bool RTLSDR::initProperties()
 {
     // We set the Detector capabilities
-    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
+    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM | DETECTOR_HAS_STREAMING;
     SetDetectorCapability(cap);
 
 	// Must init parent properties first!
@@ -405,13 +407,13 @@ void RTLSDR::TimerHit()
 /**************************************************************************************
 ** Create the spectrum
 ***************************************************************************************/
-void RTLSDR::grabData(unsigned char *buf, int n_read)
+void RTLSDR::grabData()
 {
     if(InCapture) {
         n_read = min(to_read, n_read);
         continuum = PrimaryDetector.getContinuumBuffer();
         if(n_read > 0) {
-            memcpy(continuum + b_read, buf, n_read);
+            memcpy(continuum + b_read, buffer, n_read);
             b_read += n_read;
             to_read -= n_read;
         }
@@ -421,8 +423,10 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
             InCapture = false;
 
             //Create the spectrum
-            spectrum = PrimaryDetector.getSpectrumBuffer();
-            Spectrum(continuum, spectrum, b_read, SPECTRUM_SIZE, PrimaryDetector.getBPS());
+            if(HasSpectrum()) {
+                spectrum = PrimaryDetector.getSpectrumBuffer();
+                Spectrum(continuum, spectrum, b_read * 8 / abs(PrimaryDetector.getBPS()), SPECTRUM_SIZE, PrimaryDetector.getBPS());
+            }
 
             LOG_INFO("Download complete.");
             CaptureComplete(&PrimaryDetector);

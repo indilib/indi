@@ -660,12 +660,11 @@ bool PegasusUPB::sendCommand(const char * cmd, char * res)
 
 IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expected[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "SM:%d", targetTicks);
-    snprintf(expected, PEGASUS_LEN, "M:%d", targetTicks);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, expected) ? IPS_BUSY : IPS_ALERT);
+        return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
     }
 
     return IPS_ALERT;

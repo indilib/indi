@@ -61,7 +61,6 @@ extern const char *GUIDE_HEAD_TAB;
 
 namespace INDI
 {
-
 class StreamManager;
 
 /**
@@ -484,7 +483,7 @@ class Detector : public DefaultDevice
         }
 
         /**
-         * @return  True if the Detector supports live streaming. False otherwise.
+         * @return  True if the Detector supports continuum blobs. False otherwise.
          */
         bool HasContinuum()
         {
@@ -492,7 +491,7 @@ class Detector : public DefaultDevice
         }
 
         /**
-         * @return  True if the Detector supports live streaming. False otherwise.
+         * @return  True if the Detector supports spectrum blobs. False otherwise.
          */
         bool HasSpectrum()
         {
@@ -500,7 +499,7 @@ class Detector : public DefaultDevice
         }
 
         /**
-         * @return  True if the Detector supports live streaming. False otherwise.
+         * @return  True if the Detector supports time deviation correction blobs. False otherwise.
          */
         bool HasTimeDeviation()
         {
@@ -621,6 +620,15 @@ class Detector : public DefaultDevice
         void Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample);
 
         /**
+         * @brief White noise generator
+         * @param buf the buffer to fill
+         * @param size the size of the input buffer
+         * @param bits_per_sample can be one of 8,16,32,64 for unsigned types, -32,-64 for floating single and double types
+         */
+        void WhiteNoise(void *out, int size, int bits_per_sample);
+
+
+        /**
          * @brief StartStreaming Start live video streaming
          * @return True if successful, false otherwise.
          */
@@ -631,7 +639,6 @@ class Detector : public DefaultDevice
          * @return True if successful, false otherwise.
          */
         virtual bool StopStreaming();
-
         /**
          * \brief Add FITS keywords to a fits file
          * \param fptr pointer to a valid FITS file.
@@ -682,9 +689,12 @@ class Detector : public DefaultDevice
         // Sky Quality
         double MPSAS;
 
-        DetectorDevice PrimaryDetector;
+        // Threading
+        std::mutex detectorBufferLock;
+
 
         std::unique_ptr<StreamManager> Streamer;
+        DetectorDevice PrimaryDetector;
 
         //  We are going to snoop these from a telescope
         INumberVectorProperty EqNP;
@@ -742,5 +752,5 @@ class Detector : public DefaultDevice
         /// Misc.
         /////////////////////////////////////////////////////////////////////////////
         friend class StreamManager;
-};
+        };
 }

@@ -25,33 +25,39 @@
 #include "starbook_types.h"
 #include "connectioncurl.h"
 
-namespace starbook {
+namespace starbook
+{
 
-    typedef struct {
-        ln_equ_posn equ;
-        StarbookState state;
-        bool executing_goto;
-    } StatusResponse;
+typedef struct
+{
+    ln_equ_posn equ;
+    StarbookState state;
+    bool executing_goto;
+} StatusResponse;
 
-    typedef struct {
-        std::string full_str;
-        float major_minor;
-    } VersionResponse;
+typedef struct
+{
+    std::string full_str;
+    float major_minor;
+} VersionResponse;
 
-    typedef struct {
-        LnLat posn;
-        int tz;
-    } PlaceResponse;
+typedef struct
+{
+    LnLat posn;
+    int tz;
+} PlaceResponse;
 
-    typedef struct {
-        double x;
-        double y;
-    } XYResponse;
+typedef struct
+{
+    double x;
+    double y;
+} XYResponse;
 
-    constexpr int MIN_SPEED = 0;
-    constexpr int MAX_SPEED = 7;
+constexpr int MIN_SPEED = 0;
+constexpr int MAX_SPEED = 7;
 
-    class CommandInterface {
+class CommandInterface
+{
     public:
 
         explicit CommandInterface(Connection::Curl *connection);
@@ -60,11 +66,13 @@ namespace starbook {
 
         const std::string &getLastResponse() const;
 
-        ResponseCode Start() {
+        ResponseCode Start()
+        {
             return SendOkCommand("START");
         }
 
-        ResponseCode Reset() {
+        ResponseCode Reset()
+        {
             return SendOkCommand("RESET");
         }
 
@@ -76,11 +84,14 @@ namespace starbook {
 
         ResponseCode Move(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command);
 
-        ResponseCode Home() {
-            return SendOkCommand("GOHOME?HOME=0"); // as seen in https://github.com/farhi/matlab-starbook
+        ResponseCode Home()
+        {
+            // as seen in https://github.com/farhi/matlab-starbook
+            return SendOkCommand("GOHOME?HOME=0");
         }
 
-        ResponseCode Stop() {
+        ResponseCode Stop()
+        {
             return SendOkCommand("STOP");
         }
 
@@ -102,7 +113,13 @@ namespace starbook {
 
         ResponseCode SetTime(ln_date &local_time);
 
-        ResponseCode SaveSetting() {
+        void setDevice(std::string deviceName)
+        {
+            m_Device = deviceName;
+        }
+
+        ResponseCode SaveSetting()
+        {
             return SendOkCommand("SAVESETTING");
         }
 
@@ -114,7 +131,9 @@ namespace starbook {
 
         std::string last_response;
 
-        CommandResponse SendCommand(std::string command);
+        std::string m_Device {"Starbook"};
+
+        CommandResponse SendCommand(const std::string &command);
 
         ResponseCode SendOkCommand(const std::string &cmd);
 
@@ -132,6 +151,6 @@ namespace starbook {
 
         long int ParseRoundResponse(const CommandResponse &response);
 
-    };
+};
 
 }

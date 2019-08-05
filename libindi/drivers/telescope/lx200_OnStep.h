@@ -2,7 +2,7 @@
     LX200 OnStep
     based on LX200 Classic azwing (alain@zwingelstein.org)
     Contributors:
-    James Lan https://github.com/james-lan
+    James Lancaster https://github.com/james-lan
     Ray Wells https://github.com/blueshawk
 
     Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
@@ -22,10 +22,21 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     ===========================================
+    Version 1.7:
+    - Added support for Reporting Guide rate (to PHD2 among others)
+    - Updated Error codes to match up with Android/SHC (Unknown reserved for unknown, so Unspecified = Unknown on other platforms)
+    - Added descriptions to SlewRate to match, slider kept which matches OnStep values
+    - Support for up to 9 stars for alignment
+    - Changed align so the last step isn't the (Optional) Write to EEPROM
+    - Added support for polar adjustments, without having to redo the entire model. (:MP# command)
+    - Support for Full Compensation/Refraction only, and 1/2 Axis tracking
+    - Cleanups
+    
     Version 1.6: Additional Functions
     - James Lan fixed Meredian Flip and Home Pause buttons
     - Cleaned Comments from previon versions
     - Updated lastError Codes
+    - azwing typo minutes ' > second ''for Alignment Error
 
     Version 1.5: Cleaning and Align Code Tuning
     - James Lan Align Code
@@ -67,6 +78,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <termios.h>
+#include <stdlib.h>
 
 #define RB_MAX_LEN 64
 
@@ -80,9 +92,17 @@
 #define OnStep
 #define RB_MAX_LEN 64
 
-enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC};
+#define PORTS_COUNT 10
+#define STARTING_PORT 0
 
-class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
+
+
+enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED};
+enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BOTH}; //To allow for using one variable instead of two in the future
+
+
+
+class LX200_OnStep : public LX200Generic
 {
   public:
     LX200_OnStep();
@@ -107,7 +127,17 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual bool ReadScopeStatus() override;
     virtual int setSiteLongitude(int fd, double Long);
     virtual bool SetTrackRate(double raRate, double deRate) override;
+    virtual void slewError(int slewCode) override; 
+    virtual bool Sync(double ra, double dec) override;
     
+    //Mount information 
+    int OSMountType = 0;
+    /*  0 = EQ mount  (Presumed default for most things.) 
+     *  1 = Fork 
+     *  2 = Fork Alt 
+     *  3 = Alt Azm
+     */
+   
     
     //FocuserInterface
     
@@ -130,6 +160,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     IPState ReadPECBuffer (int axis);
     IPState WritePECBuffer (int axis);
     bool ISPECRecorded (int axis);
+    bool OSPECEnabled = false;
     //End PECInterface
     
     
@@ -137,10 +168,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     IPState AlignStartGeometric(int stars);
     IPState AlignAddStar();
     IPState AlignDone();
+    IPState AlignWrite();
     virtual bool UpdateAlignStatus();
     virtual bool UpdateAlignErr();
     //End NewGeometricAlignment 
-    
+    bool OSAlignCompleted=false;
     
     //Outputs
     IPState OSEnableOutput(int output);
@@ -186,14 +218,14 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
 
     // Focuser controls
     // Focuser 1
-    bool OSFocuser1=false;
+    bool OSFocuser1 = false;
     ISwitchVectorProperty OSFocus1InitializeSP;
     ISwitch OSFocus1InitializeS[4];
 
     // Focuser 2
     //ISwitchVectorProperty OSFocus2SelSP;
     //ISwitch OSFocus2SelS[2];
-    bool OSFocuser2=false;
+    bool OSFocuser2 = false;
     ISwitchVectorProperty OSFocus2RateSP;
     ISwitch OSFocus2RateS[4];
 
@@ -213,6 +245,9 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     // Align Buttons
     ISwitchVectorProperty TrackCompSP;
     ISwitch TrackCompS[3];
+    
+    ISwitchVectorProperty TrackAxisSP;
+    ISwitch TrackAxisS[3];
     
     ISwitchVectorProperty FrequencyAdjustSP;
     ISwitch FrequencyAdjustS[3];
@@ -242,9 +277,13 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitch OSPECReadS[2];
     
     ISwitchVectorProperty OSNAlignStarsSP;
-    ISwitch OSNAlignStarsS[7];
+    ISwitch OSNAlignStarsS[9];
     ISwitchVectorProperty OSNAlignSP;
     ISwitch OSNAlignS[4];
+    ISwitchVectorProperty OSNAlignWriteSP;
+    ISwitch OSNAlignWriteS[1];
+    ISwitchVectorProperty OSNAlignPolarRealignSP;   
+    ISwitch OSNAlignPolarRealignS[2];
     IText OSNAlignT[8] {};
     ITextVectorProperty OSNAlignTP;
     IText OSNAlignErrT[4] {};
@@ -256,15 +295,29 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty OSOutput2SP;
     ISwitch OSOutput2S[2];
     
+
+    INumber OutputPorts[PORTS_COUNT];
+    INumberVectorProperty OutputPorts_NP;
+
+    INumber GuideRateN[2];
+    INumberVectorProperty GuideRateNP;
+
     char OSStat[RB_MAX_LEN];
     char OldOSStat[RB_MAX_LEN];
 
 
     char OSPier[RB_MAX_LEN];
     char OldOSPier[RB_MAX_LEN];
-
+    
+    bool OSSeparate_Pulse_Guide_Rate = false; 
+    bool OSSupports_bitfield_Gu = false;
+    uint8_t PECStatusGU = 0;
+    uint8_t ParkStatusGU = 0;
+    
+    
   private:
     int currentCatalog;
     int currentSubCatalog;
     bool FirstRead=true;
+
 };

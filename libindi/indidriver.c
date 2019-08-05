@@ -936,20 +936,25 @@ int dispatch(XMLEle *root, char msg[])
             ROSC *prop = propCache + index;
             switch (prop->type)
             {
+                /* JM 2019-07-18: Why are we using setXXX here? should be defXXX */
                 case INDI_NUMBER:
-                    IDSetNumber((INumberVectorProperty *)(prop->ptr), NULL);
+                    //IDSetNumber((INumberVectorProperty *)(prop->ptr), NULL);
+                    IDDefNumber((INumberVectorProperty *)(prop->ptr), NULL);
                     return 0;
 
                 case INDI_SWITCH:
-                    IDSetSwitch((ISwitchVectorProperty *)(prop->ptr), NULL);
+                    //IDSetSwitch((ISwitchVectorProperty *)(prop->ptr), NULL);
+                    IDDefSwitch((ISwitchVectorProperty *)(prop->ptr), NULL);
                     return 0;
 
                 case INDI_TEXT:
-                    IDSetText((ITextVectorProperty *)(prop->ptr), NULL);
+                    //IDSetText((ITextVectorProperty *)(prop->ptr), NULL);
+                    IDDefText((ITextVectorProperty *)(prop->ptr), NULL);
                     return 0;
 
                 case INDI_BLOB:
-                    IDSetBLOB((IBLOBVectorProperty *)(prop->ptr), NULL);
+                    //IDSetBLOB((IBLOBVectorProperty *)(prop->ptr), NULL);
+                    IDDefBLOB((IBLOBVectorProperty *)(prop->ptr), NULL);
                     return 0;
                 default:
                     return 0;
@@ -1310,10 +1315,9 @@ void IUSaveDefaultConfig(const char *source_config, const char *dest_config, con
                 int ch = 0;
                 while ((ch = getc(fpin)) != EOF)
                     putc(ch, fpout);
-
-                fclose(fpin);
+        fclose(fpout);
             }
-            fclose(fpout);
+        fclose(fpin);
         }
     }
 }
@@ -1460,6 +1464,32 @@ void IDMessage(const char *dev, const char *fmt, ...)
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
+}
+
+int IUPurgeConfig(const char *filename, const char *dev, char errmsg[])
+{
+    char configFileName[MAXRBUF];
+    char configDir[MAXRBUF];
+
+    snprintf(configDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
+
+    if (filename)
+        strncpy(configFileName, filename, MAXRBUF);
+    else
+    {
+        if (getenv("INDICONFIG"))
+            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
+        else
+            snprintf(configFileName, MAXRBUF, "%s%s_config.xml", configDir, dev);
+    }
+
+    if (remove(configFileName) != 0)
+    {
+        snprintf(errmsg, MAXRBUF, "Unable to purge configuration file %s. Error %s", configFileName, strerror(errno));
+        return -1;
+    }
+
+    return 0;
 }
 
 FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, char errmsg[])

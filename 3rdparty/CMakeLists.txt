@@ -87,6 +87,7 @@ option(WITH_GIGE "Install GiGE machine vision Driver" Off)
 option(WITH_DSI "Install Meade DSI Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 option(WITH_MGEN "Install MGen Autoguider" On)
+option(WITH_ASTROMECHFOC "Install Astromechanics Focuser" On)
 option(WITH_LIMESDR "Install LIME-SDR Receiver" On)
 option(WITH_RTLSDR "Install RTL-SDR Receiver" On)
 option(WITH_RADIOSIM "Install RadioSim Receiver" On)
@@ -392,6 +393,11 @@ endif (WITH_GIGE)
 if (WITH_MGEN)
 add_subdirectory(indi-mgen)
 endif (WITH_MGEN)
+
+# Astromechanics Focuser
+if (WITH_ASTROMECHFOC)
+add_subdirectory(indi-astromechfoc)
+endif(WITH_ASTROMECHFOC)
 
 ## RTL-SDR
 if (WITH_RTLSDR)
