@@ -37,9 +37,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
     The client will connect to the CCD driver and attempts to change the CCD temperature.
 */
 
-#include "tutorial_client.h"
+#include "generic_client.h"
 
-#include "indibase/basedevice.h"
+#include <basedevice.h>
 
 #include <cstring>
 #include <fstream>
@@ -48,7 +48,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #define MYCCD "Simple CCD"
 
-static std::unique_ptr<MyClient> camera_client(new MyClient());
+std::unique_ptr<MyClient> camera_client(new MyClient());
 
 int main(int /*argc*/, char **/*argv*/)
 {
