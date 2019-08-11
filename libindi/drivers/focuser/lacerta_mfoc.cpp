@@ -126,9 +126,11 @@ bool lacerta_mfoc::initProperties()
     FocusMaxPosN[0].min = MFOC_POSMIN_HARDWARE;
     FocusMaxPosN[0].max = MFOC_POSMAX_HARDWARE;
     FocusMaxPosN[0].step = (FocusMaxPosN[0].max - FocusMaxPosN[0].min) / 20.0;
-    FocusMaxPosN[0].value = 8000;
+    FocusMaxPosN[0].value = 110000;
 
+    FocusAbsPosN[0].min = 0;
     FocusAbsPosN[0].max = FocusAbsPosN[0].value;
+    FocusAbsPosN[0].step = FocusAbsPosN[0].max / 50.0;
 
     IUFillSwitch(&TempTrackDirS[MODE_TDIR_BOTH], "Both", "Both", ISS_ON);
     IUFillSwitch(&TempTrackDirS[MODE_TDIR_IN],   "In",   "In",   ISS_ON);
