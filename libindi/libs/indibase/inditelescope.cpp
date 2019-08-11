@@ -1912,6 +1912,7 @@ const char *Telescope::LoadParkXML()
         delXMLEle(ParkdataXmlRoot);
 
     ParkdataXmlRoot = readXMLFile(fp, lp, errmsg);
+    fclose(fp);
 
     delLilXML(lp);
     if (!ParkdataXmlRoot)
@@ -2038,6 +2039,7 @@ bool Telescope::PurgeParkData()
         delXMLEle(ParkdataXmlRoot);
 
     ParkdataXmlRoot = readXMLFile(fp, lp, errmsg);
+    fclose(fp);
 
     delLilXML(lp);
     if (!ParkdataXmlRoot)
@@ -2555,6 +2557,7 @@ bool Telescope::LoadScopeConfig()
     char ErrMsg[512];
 
     RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
+    fclose(FilePtr);    
     delLilXML(XmlHandle);
     XmlHandle = nullptr;
     if (!RootXmlNode)
@@ -2694,6 +2697,7 @@ bool Telescope::HasDefaultScopeConfig()
     char ErrMsg[512];
 
     RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
+    fclose(FilePtr);
     delLilXML(XmlHandle);
     XmlHandle = nullptr;
     if (!RootXmlNode)
