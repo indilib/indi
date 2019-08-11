@@ -56,7 +56,7 @@ static void cleanup()
 
     if (pASICameraInfo != nullptr)
     {
-        free(pASICameraInfo);
+        delete [] pASICameraInfo;
         pASICameraInfo = nullptr;
     }
 }
@@ -68,7 +68,6 @@ void ASI_CCD_ISInit()
     {
         pASICameraInfo       = nullptr;
         iAvailableCamerasCount = 0;
-        std::vector<std::string> cameraNames;
 
 #ifdef USE_SIMULATION
         iConnectedCamerasCount = 2;
@@ -87,15 +86,16 @@ void ASI_CCD_ISInit()
         else
         {
             size_t size = sizeof(ASI_CAMERA_INFO) * iAvailableCamerasCount;
-            pASICameraInfo = (ASI_CAMERA_INFO *)malloc(size);
+            pASICameraInfo = new ASI_CAMERA_INFO[size];
             if (pASICameraInfo == nullptr)
             {
                 iAvailableCamerasCount = 0;
-                IDLog("malloc failed (init)");
+                IDLog("Failed to allocate memory.");
                 return;
             }
-            (void)memset(pASICameraInfo, 0, size);
+            //memset(pASICameraInfo, 0, size);
             ASI_CAMERA_INFO *cameraP = pASICameraInfo;
+            std::vector<std::string> cameraNames;
             for (int i = 0; i < iAvailableCamerasCount; i++)
             {
                 ASIGetCameraProperty(cameraP, i);

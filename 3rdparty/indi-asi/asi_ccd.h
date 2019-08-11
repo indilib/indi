@@ -24,6 +24,8 @@
 
 #include "ASICamera2.h"
 
+#include <condition_variable>
+#include <mutex>
 #include <indiccd.h>
 
 class ASICCD : public INDI::CCD
