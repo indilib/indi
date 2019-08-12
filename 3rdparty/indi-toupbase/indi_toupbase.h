@@ -22,18 +22,33 @@
 #pragma once
 
 #include <map>
-
-#include <altaircam.h>
-
 #include <indiccd.h>
+
+#ifdef BUILD_TOUPCAM
+#include <toupcam.h>
+#define FP(x) Toupcam_##x
+#define CP(x) TOUPCAM_##x
+#define XP(x) Toupcam##x
+#define THAND HToupCam
+#define DNAME "Toupcam"
+#elif BUILD_ALTAIRCAM
+#include <altaircam.h>
+#define FP(x) Altaircam_##x
+#define CP(x) ALTAIRCAM_##x
+#define XP(x) Altaircam##x
+#define THAND HAltairCam
+#define DNAME "Altair"
+#endif
+
+#define RAW_SUPPORTED   (CP(FLAG_RAW10) | CP(FLAG_RAW12) | CP(FLAG_RAW14) | CP(FLAG_RAW16))
 
 typedef unsigned long   ulong;            /* Short for unsigned long */
 
-class ALTAIRCAM : public INDI::CCD
+class ToupBase : public INDI::CCD
 {
     public:
-        explicit ALTAIRCAM(const AltaircamInstV2 *instance);
-        ~ALTAIRCAM() override = default;
+        explicit ToupBase(const XP(InstV2) *instance);
+        ~ToupBase() override = default;
 
         virtual const char *getDefaultName() override;
 
@@ -145,8 +160,8 @@ class ALTAIRCAM : public INDI::CCD
             EVENT_EXPOSURE             = 0x0001, /* exposure time changed */
             EVENT_TEMPTINT             = 0x0002, /* white balance changed, Temp/Tint mode */
             EVENT_CHROME               = 0x0003, /* reversed, do not use it */
-            EVENT_IMAGE                = 0x0004, /* live image arrived, use Altaircam_PullImage to get this image */
-            EVENT_STILLIMAGE           = 0x0005, /* snap (still) frame arrived, use Altaircam_PullStillImage to get this frame */
+            EVENT_IMAGE                = 0x0004, /* live image arrived, use Toupcam_PullImage to get this image */
+            EVENT_STILLIMAGE           = 0x0005, /* snap (still) frame arrived, use Toupcam_PullStillImage to get this frame */
             EVENT_WBGAIN               = 0x0006, /* white balance changed, RGB Gain mode */
             EVENT_TRIGGERFAIL          = 0x0007, /* trigger failed */
             EVENT_BLACK                = 0x0008, /* black balance changed */
@@ -170,7 +185,7 @@ class ALTAIRCAM : public INDI::CCD
             OPTION_THREAD_PRIORITY = 0x02,    /* set the priority of the internal thread which grab data from the usb device. iValue: 0 = THREAD_PRIORITY_NORMAL; 1 = THREAD_PRIORITY_ABOVE_NORMAL; 2 = THREAD_PRIORITY_HIGHEST; default: 0; see: msdn SetThreadPriority */
             OPTION_PROCESSMODE     = 0x03,    /* 0 = better image quality, more cpu usage. this is the default value
                                                      1 = lower image quality, less cpu usage */
-            OPTION_RAW             = 0x04,    /* raw data mode, read the sensor "raw" data. This can be set only BEFORE Altaircam_StartXXX(). 0 = rgb, 1 = raw, default value: 0 */
+            OPTION_RAW             = 0x04,    /* raw data mode, read the sensor "raw" data. This can be set only BEFORE Toupcam_StartXXX(). 0 = rgb, 1 = raw, default value: 0 */
             OPTION_HISTOGRAM       = 0x05,    /* 0 = only one, 1 = continue mode */
             OPTION_BITDEPTH        = 0x06,    /* 0 = 8 bits mode, 1 = 16 bits mode */
             OPTION_FAN             = 0x07,    /* 0 = turn off the cooling fan, [1, max] = fan speed */
@@ -235,11 +250,11 @@ class ALTAIRCAM : public INDI::CCD
 
         enum eGUIDEDIRECTION
         {
-            ALTAIRCAM_NORTH,
-            ALTAIRCAM_SOUTH,
-            ALTAIRCAM_EAST,
-            ALTAIRCAM_WEST,
-            ALTAIRCAM_STOP,
+            TOUPBASE_NORTH,
+            TOUPBASE_SOUTH,
+            TOUPBASE_EAST,
+            TOUPBASE_WEST,
+            TOUPBASE_STOP,
         };
 
         enum ePIXELFORMAT
@@ -282,7 +297,7 @@ class ALTAIRCAM : public INDI::CCD
             uint ioctrol;
             float xpixsz;
             float ypixsz;
-            AltaircamResolution res[ALTAIRCAM_MAX];
+            XP(Resolution) res[CP(MAX)];
         };
 
         struct InstanceV2
@@ -355,7 +370,7 @@ class ALTAIRCAM : public INDI::CCD
         //#############################################################################
         // Resolution
         //#############################################################################
-        ISwitch ResolutionS[ALTAIRCAM_MAX];
+        ISwitch ResolutionS[CP(MAX)];
         ISwitchVectorProperty ResolutionSP;
 
         //#############################################################################
@@ -367,6 +382,9 @@ class ALTAIRCAM : public INDI::CCD
         //#############################################################################
         // Callbacks
         //#############################################################################
+        static void pushCB(const void* pData, const XP(FrameInfoV2)* pInfo, int bSnap, void* pCallbackCtx);
+        void pushCallback(const void* pData, const XP(FrameInfoV2)* pInfo, int bSnap);
+
         static void eventCB(unsigned event, void* pCtx);
         void eventPullCallBack(unsigned event);
 
@@ -385,8 +403,8 @@ class ALTAIRCAM : public INDI::CCD
         //#############################################################################
         // Camera Handle & Instance
         //#############################################################################
-        HAltairCam m_CameraHandle { nullptr };
-        const AltaircamInstV2 *m_Instance;
+        THAND m_CameraHandle { nullptr };
+        const XP(InstV2) *m_Instance;
         // Camera Display Name
         char name[MAXINDIDEVICE];
 
@@ -414,14 +432,21 @@ class ALTAIRCAM : public INDI::CCD
             TC_SPEED,
         };
 
-        ISwitch AutoControlS[4];
+        ISwitch AutoControlS[3];
         ISwitchVectorProperty AutoControlSP;
         enum
         {
-            TC_AUTO_EXPOSURE,
             TC_AUTO_TINT,
             TC_AUTO_WB,
             TC_AUTO_BB,
+        };
+
+        ISwitch AutoExposureS[2];
+        ISwitchVectorProperty AutoExposureSP;
+        enum
+        {
+            TC_AUTO_EXPOSURE_ON,
+            TC_AUTO_EXPOSURE_OFF,
         };
 
         INumber BlackBalanceN[3];
