@@ -485,6 +485,7 @@ bool BaseDevice::buildSkeleton(const char *filename)
     }
 
     fproot = readXMLFile(fp, lp, errmsg);
+    fclose(fp);
 
     if (fproot == nullptr)
     {
