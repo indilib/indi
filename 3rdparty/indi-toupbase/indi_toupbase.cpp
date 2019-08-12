@@ -1488,12 +1488,16 @@ bool ToupBase::StartStreaming()
     //        return false;
     //    }
 
+    // Always disable Auto-Exposure on streaming
+    FP(put_AutoExpoEnable(m_CameraHandle, 0));
+
     if (ExposureRequest != (1.0 / Streamer->getTargetFPS()))
     {
         ExposureRequest = 1.0 / Streamer->getTargetFPS();
 
         uint32_t uSecs = static_cast<uint32_t>(ExposureRequest * 1000000.0f);
-        if ( (rc = FP(put_ExpoTime(m_CameraHandle, uSecs)) != 0))
+        rc = FP(put_ExpoTime(m_CameraHandle, uSecs));
+        if (rc != 0)
         {
             LOGF_ERROR("Failed to set video exposure time. Error: %s", errorCodes[rc].c_str());
             return false;
@@ -1528,6 +1532,9 @@ bool ToupBase::StopStreaming()
         return false;
     }
     m_CurrentTriggerMode = TRIGGER_SOFTWARE;
+
+    // Return auto exposure to what it was
+    FP(put_AutoExpoEnable(m_CameraHandle, AutoExposureS[TC_AUTO_EXPOSURE_ON].s == ISS_ON ? 1 : 0));
 
     return true;
 }
