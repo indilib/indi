@@ -40,16 +40,17 @@ class lacerta_mfoc : public INDI::Focuser
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:
-        virtual bool SetBacklash(double values[], char *names[], int n);
+        //virtual bool SetBacklash(double values[], char *names[], int n);
         virtual bool SetTempComp(double values[], char *names[], int n);
         virtual uint32_t GetAbsFocuserPosition();
 
         // Backlash
-        INumberVectorProperty BacklashNP;
-        INumber BacklashN[1];
+        //        INumberVectorProperty BacklashNP;
+        //        INumber BacklashN[1];
 
         // Temperature Compensation
         INumberVectorProperty TempCompNP;

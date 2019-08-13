@@ -75,7 +75,7 @@ CelestronSCT::CelestronSCT()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     // CR variable speed and sync removed
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT );
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_BACKLASH);
 
     communicator.source = Aux::Target::APP;
 }
@@ -87,9 +87,14 @@ bool CelestronSCT::initProperties()
     // Focuser backlash
     // CR this is a value, positive or negative to define the direction.  It will need to be implemented
     // in the driver.
-    IUFillNumber(&BacklashN[0], "STEPS", "Steps", "%.f", -500., 500., 1., 0.);
-    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "FOCUS_BACKLASH", "Backlash",
-                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    FocusBacklashN[0].min = -500;
+    FocusBacklashN[0].max = 500;
+    FocusBacklashN[0].step = 1;
+    FocusBacklashN[0].value = 0;
+
+    //    IUFillNumber(&FocusBacklashN[0], "STEPS", "Steps", "%.f", -500., 500., 1., 0.);
+    //    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, getDeviceName(), "FOCUS_BACKLASH", "Backlash",
+    //                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focuser min limit
     IUFillNumber(&FocusMinPosN[0], "FOCUS_MIN_VALUE", "Steps", "%.f", 0, 40000., 1., 0.);
@@ -99,10 +104,10 @@ bool CelestronSCT::initProperties()
     // focuser calibration
     IUFillSwitch(&CalibrateS[0], "START", "Start Calibration", ISS_OFF);
     IUFillSwitch(&CalibrateS[1], "STOP", "Stop Calibration", ISS_OFF);
-    IUFillSwitchVector(&CalibrateSP,CalibrateS, 2, getDeviceName(), "CALIBRATE", "Calibrate control",
+    IUFillSwitchVector(&CalibrateSP, CalibrateS, 2, getDeviceName(), "CALIBRATE", "Calibrate control",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillText(&CalibrateStateT[0],"CALIBRATE_STATE", "Calibrate state", "");
+    IUFillText(&CalibrateStateT[0], "CALIBRATE_STATE", "Calibrate state", "");
     IUFillTextVector(&CalibrateStateTP, CalibrateStateT, 1, getDeviceName(), "CALIBRATE_STATE", "Calibrate State",
                      MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -157,7 +162,7 @@ bool CelestronSCT::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&BacklashNP);
+        //defineNumber(&FocusBacklashNP);
 
         defineNumber(&FocusMinPosNP);
 
@@ -172,7 +177,7 @@ bool CelestronSCT::updateProperties()
     }
     else
     {
-        deleteProperty(BacklashNP.name);
+        //deleteProperty(FocusBacklashNP.name);
         deleteProperty(FocusMinPosNP.name);
         deleteProperty(CalibrateSP.name);
         deleteProperty(CalibrateStateTP.name);
@@ -233,7 +238,7 @@ bool CelestronSCT::isMoving()
     Aux::buffer reply(1);
     if (!communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_SLEW_DONE, reply))
         return false;
-    return reply[0] != (uint8_t)0xFF;
+    return reply[0] != static_cast<uint8_t>(0xFF);
 }
 
 // read the focuser limits from the hardware
@@ -275,22 +280,22 @@ bool CelestronSCT::readLimits()
     return true;
 }
 
-bool CelestronSCT::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // Backlash
-        if (!strcmp(name, BacklashNP.name))
-        {
-            // just update the number
-            IUUpdateNumber(&BacklashNP, values, names, n);
-            BacklashNP.s = IPS_OK;
-            IDSetNumber(&BacklashNP, nullptr);
-            return true;
-        }
-    }
-    return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
-}
+//bool CelestronSCT::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
+//{
+//    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+//    {
+//        // Backlash
+//        if (!strcmp(name, FocusBacklashNP.name))
+//        {
+//            // just update the number
+//            IUUpdateNumber(&FocusBacklashNP, values, names, n);
+//            FocusBacklashNP.s = IPS_OK;
+//            IDSetNumber(&FocusBacklashNP, nullptr);
+//            return true;
+//        }
+//    }
+//    return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+//}
 
 bool CelestronSCT::ISNewSwitch(const char * dev, const char * name, ISState *states, char * names[], int n)
 {
@@ -303,19 +308,19 @@ bool CelestronSCT::ISNewSwitch(const char * dev, const char * name, ISState *sta
             Aux::buffer data = {1};
             switch(index)
             {
-            case 0:
-                // start calibrate
-                LOG_INFO("Focuser Calibrate start");
-                calibrateInProgress = true;
-                calibrateState = -1;
-                break;
-            case 1:
-                // abort calibrate
-                LOG_INFO("Focuser Calibrate abort");
-                data[0] = 0;
-                break;
-            default:
-                return false;
+                case 0:
+                    // start calibrate
+                    LOG_INFO("Focuser Calibrate start");
+                    calibrateInProgress = true;
+                    calibrateState = -1;
+                    break;
+                case 1:
+                    // abort calibrate
+                    LOG_INFO("Focuser Calibrate abort");
+                    data[0] = 0;
+                    break;
+                default:
+                    return false;
             }
             communicator.commandBlind(PortFD, Aux::Target::FOCUSER, Aux::Command::FOC_CALIB_ENABLE, data);
             usleep(500000);
@@ -372,12 +377,12 @@ IPState CelestronSCT::MoveAbsFocuser(uint32_t targetTicks)
 
     // implement backlash
     int delta = targetTicks - FocusAbsPosN[0].value;
-    if ((BacklashN[0].value < 0 && delta > 0) ||
-        (BacklashN[0].value > 0 && delta < 0))
+    if ((FocusBacklashN[0].value < 0 && delta > 0) ||
+            (FocusBacklashN[0].value > 0 && delta < 0))
     {
         backlashMove = true;
         finalPosition = position;
-        position-= BacklashN[0].value;
+        position -= FocusBacklashN[0].value;
     }
 
     if (!startMove(position))
@@ -481,7 +486,8 @@ void CelestronSCT::TimerHit()
             calibrateInProgress = false;
             CalibrateS[1].s = ISS_OFF;
             CalibrateSP.s = IPS_OK;
-            CalibrateStateT[0].text = (char *)msg;
+            //CalibrateStateT[0].text = (char *)msg;
+            IUSaveText(&CalibrateStateT[0], msg);
             IDSetSwitch(&CalibrateSP, nullptr);
             IDSetText(&CalibrateStateTP, nullptr);
             // read the new limits
@@ -520,11 +526,9 @@ bool CelestronSCT::AbortFocuser()
     return communicator.commandBlind(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_MOVE_POS, data);
 }
 
-bool CelestronSCT::saveConfigItems(FILE * fp)
+bool CelestronSCT::SetFocuserBacklash(int32_t steps)
 {
-    Focuser::saveConfigItems(fp);
-
-    IUSaveConfigNumber(fp, &BacklashNP);
-
+    INDI_UNUSED(steps);
     return true;
 }
+

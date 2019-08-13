@@ -80,7 +80,7 @@ void ISSnoopDevice(XMLEle *root)
 ************************************************************************************/
 lacerta_mfoc::lacerta_mfoc()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_BACKLASH);
 }
 
 /************************************************************************************
@@ -115,9 +115,14 @@ bool lacerta_mfoc::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IUFillNumber(&BacklashN[0], "BACKLASH", "step", "%4.2f", 0, 255, 1, 12);
-    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH_SETTINGS", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60,
-                       IPS_IDLE);
+    FocusBacklashN[0].min = 0;
+    FocusBacklashN[0].max = 255;
+    FocusBacklashN[0].step = 1;
+    FocusBacklashN[0].value = 12;
+
+    //    IUFillNumber(&BacklashN[0], "BACKLASH", "step", "%4.2f", 0, 255, 1, 12);
+    //    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH_SETTINGS", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60,
+    //                       IPS_IDLE);
 
     IUFillNumber(&TempCompN[0], "TEMPCOMP", "step/10 degC", "%4.2f", -5000, 5000, 1, 65);
     IUFillNumberVector(&TempCompNP, TempCompN, 1, getDeviceName(), "TEMPCOMP_SETTINGS", "T Comp.", MAIN_CONTROL_TAB, IP_RW, 60,
@@ -158,7 +163,7 @@ bool lacerta_mfoc::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&BacklashNP);
+        //defineNumber(&BacklashNP);
         defineNumber(&TempCompNP);
         defineSwitch(&TempTrackDirSP);
         defineSwitch(&StartSavedPositionSP);
@@ -166,7 +171,7 @@ bool lacerta_mfoc::updateProperties()
     }
     else
     {
-        deleteProperty(BacklashNP.name);
+        //deleteProperty(BacklashNP.name);
         deleteProperty(TempCompNP.name);
         deleteProperty(TempTrackDirSP.name);
         deleteProperty(StartSavedPositionSP.name);
@@ -330,10 +335,10 @@ bool lacerta_mfoc::ISNewNumber(const char *dev, const char *name, double values[
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, "BACKLASH_SETTINGS") == 0)
-        {
-            return SetBacklash(values, names, n);
-        }
+        //        if (strcmp(name, "BACKLASH_SETTINGS") == 0)
+        //        {
+        //            return SetBacklash(values, names, n);
+        //        }
 
 
         if (strcmp(name, "TEMPCOMP_SETTINGS") == 0)
@@ -349,7 +354,8 @@ bool lacerta_mfoc::ISNewNumber(const char *dev, const char *name, double values[
 /************************************************************************************
  *
 ************************************************************************************/
-bool lacerta_mfoc::SetBacklash(double values[], char *names[], int n)
+//bool lacerta_mfoc::SetBacklash(double values[], char *names[], int n)
+bool lacerta_mfoc::SetFocuserBacklash(int32_t steps)
 {
     LOGF_DEBUG("-> BACKLASH_SETTINGS", 0);
     char MFOC_cmd[32]  = ": B ";
@@ -357,13 +363,13 @@ bool lacerta_mfoc::SetBacklash(double values[], char *names[], int n)
     int nbytes_read    =  0;
     int nbytes_written =  0;
     int MFOC_tdir_measd = 0;
-    int bl_int = 0;
+    //int bl_int = 0;
     char bl_char[32]  = {0};
     char MFOC_res_type[32]  = "0";
-    BacklashNP.s = IPS_OK;
-    IUUpdateNumber(&BacklashNP, values, names, n);
-    bl_int = BacklashN[0].value;
-    sprintf(bl_char, "%d", bl_int);
+    //    BacklashNP.s = IPS_OK;
+    //    IUUpdateNumber(&BacklashNP, values, names, n);
+    //    bl_int = BacklashN[0].value;
+    sprintf(bl_char, "%d", steps);
     strcat(bl_char, " #");
     strcat(MFOC_cmd, bl_char);
 
@@ -377,7 +383,7 @@ bool lacerta_mfoc::SetBacklash(double values[], char *names[], int n)
 
     LOGF_DEBUG("RES <%s>", MFOC_res);
 
-    IDSetNumber(&BacklashNP, nullptr);
+    //IDSetNumber(&BacklashNP, nullptr);
 
     return true;
 }
@@ -491,7 +497,7 @@ bool lacerta_mfoc::saveConfigItems(FILE *fp)
     INDI::Focuser::saveConfigItems(fp);
 
     // Save additional MFPC Config
-    IUSaveConfigNumber(fp, &BacklashNP);
+    //IUSaveConfigNumber(fp, &BacklashNP);
     IUSaveConfigNumber(fp, &TempCompNP);
 
     return true;

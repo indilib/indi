@@ -76,6 +76,17 @@ void FocuserInterface::initProperties(const char * groupName)
     IUFillSwitch(&FocusReverseS[REVERSED_DISABLED], "DISABLED", "Disabled", ISS_ON);
     IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION", "Reverse Motion", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Backlash Compensation
+    IUFillSwitch(&FocusBacklashS[REVERSED_ENABLED], "ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&FocusBacklashS[REVERSED_DISABLED], "DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_TOGGLE", "Backlash", groupName, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Backlash Compensation Value
+    IUFillNumber(&FocusBacklashN[0], "FOCUS_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
+    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_STEPS", "Backlash",
+                       groupName, IP_RW, 60, IPS_OK);
 }
 
 bool FocuserInterface::updateProperties()
@@ -106,6 +117,11 @@ bool FocuserInterface::updateProperties()
             m_defaultDevice->defineNumber(&FocusSyncNP);
         if (CanReverse())
             m_defaultDevice->defineSwitch(&FocusReverseSP);
+        if (HasBacklash())
+        {
+            m_defaultDevice->defineSwitch(&FocusBacklashSP);
+            m_defaultDevice->defineNumber(&FocusBacklashNP);
+        }
     }
     else
     {
@@ -130,6 +146,11 @@ bool FocuserInterface::updateProperties()
             m_defaultDevice->deleteProperty(FocusSyncNP.name);
         if (CanReverse())
             m_defaultDevice->deleteProperty(FocusReverseSP.name);
+        if (HasBacklash())
+        {
+            m_defaultDevice->deleteProperty(FocusBacklashSP.name);
+            m_defaultDevice->deleteProperty(FocusBacklashNP.name);
+        }
     }
 
     return true;
@@ -225,6 +246,29 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
             FocusSyncNP.s = IPS_ALERT;
             IDSetNumber(&FocusSyncNP, nullptr);
         }
+        return true;
+    }
+
+    // Set backlash value
+    if (!strcmp(name, FocusBacklashNP.name))
+    {
+        if (FocusBacklashS[BACKLASH_ENABLED].s != ISS_ON)
+        {
+            FocusBacklashNP.s = IPS_IDLE;
+            DEBUGDEVICE(dev, Logger::DBG_WARNING, "Focuser backlash must be enabled first.");
+        }
+        else
+        {
+            uint32_t steps = static_cast<uint32_t>(values[0]);
+            if (SetFocuserBacklash(steps))
+            {
+                FocusBacklashN[0].value = values[0];
+                FocusBacklashNP.s = IPS_OK;
+            }
+            else
+                FocusBacklashNP.s = IPS_ALERT;
+        }
+        IDSetNumber(&FocusBacklashNP, nullptr);
         return true;
     }
 
@@ -376,6 +420,23 @@ bool FocuserInterface::processSwitch(const char * dev, const char * name, ISStat
         return true;
     }
 
+    // Backlash compensation
+    if (!strcmp(name, FocusBacklashSP.name))
+    {
+        bool enable = !strcmp(FocusBacklashS[BACKLASH_ENABLED].name, IUFindOnSwitchName(states, names, n));
+
+        if (SetFocuserBacklashEnabled(enable))
+        {
+            IUUpdateSwitch(&FocusBacklashSP, states, names, n);
+            FocusBacklashSP.s = IPS_OK;
+        }
+        else
+            FocusBacklashSP.s = IPS_ALERT;
+
+        IDSetSwitch(&FocusBacklashSP, nullptr);
+        return true;
+    }
+
     // Abort Focuser
     if (!strcmp(name, FocusAbortSP.name))
     {
@@ -473,9 +534,6 @@ bool FocuserInterface::SyncFocuser(uint32_t ticks)
 bool FocuserInterface::SetFocuserSpeed(int speed)
 {
     INDI_UNUSED(speed);
-
-    //  This should be a virtual function, because the low level hardware class
-    //  must override this
     DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Focuser does not support variable speed.");
     return false;
 }
@@ -486,12 +544,33 @@ bool FocuserInterface::SetFocuserMaxPosition(uint32_t ticks)
     return true;
 }
 
+bool FocuserInterface::SetFocuserBacklash(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Focuser does not support backlash compensation.");
+    return false;
+}
+
+bool FocuserInterface::SetFocuserBacklashEnabled(bool enabled)
+{
+    // If disabled, set the focuser backlash to zero.
+    if (enabled)
+        return SetFocuserBacklash(static_cast<int32_t>(FocusBacklashN[0].value));
+    else
+        return SetFocuserBacklash(0);
+}
+
 bool FocuserInterface::saveConfigItems(FILE * fp)
 {
     if (CanAbsMove())
         IUSaveConfigNumber(fp, &FocusMaxPosNP);
     if (CanReverse())
         IUSaveConfigSwitch(fp, &FocusReverseSP);
+    if (HasBacklash())
+    {
+        IUSaveConfigSwitch(fp, &FocusBacklashSP);
+        IUSaveConfigNumber(fp, &FocusBacklashNP);
+    }
 
     return true;
 }

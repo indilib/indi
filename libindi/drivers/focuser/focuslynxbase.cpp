@@ -62,7 +62,12 @@ FocusLynxBase::FocusLynxBase()
     simPosition      = 0;
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
+    FI::SetCapability(FOCUSER_CAN_ABORT    |
+                      FOCUSER_CAN_ABS_MOVE |
+                      FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_CAN_SYNC     |
+                      FOCUSER_CAN_REVERSE  |
+                      FOCUSER_HAS_BACKLASH);
 
     isAbsolute = false;
     isSynced   = false;
@@ -117,15 +122,15 @@ bool FocusLynxBase::initProperties()
                        FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Enable/Disable backlash
-    IUFillSwitch(&BacklashCompensationS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&BacklashCompensationS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&BacklashCompensationSP, BacklashCompensationS, 2, getDeviceName(), "BACKLASH COMPENSATION", "Backlash Compensation",
-                       FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    //    IUFillSwitch(&FocusBacklashS[BACKLASH_ENABLED], "Enable", "", ISS_OFF);
+    //    IUFillSwitch(&FocusBacklashS[1], "Disable", "", ISS_ON);
+    //    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, getDeviceName(), "BACKLASH COMPENSATION", "Backlash Compensation",
+    //                       FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Backlash Value
-    IUFillNumber(&BacklashN[0], "Steps", "", "%.f", 0, 99, 5., 0.);
-    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", FOCUS_SETTINGS_TAB, IP_RW, 0,
-                       IPS_IDLE);
+    //    // Backlash Value
+    //    IUFillNumber(&FocusBacklashN[0], "Steps", "", "%.f", 0, 99, 5., 0.);
+    //    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", FOCUS_SETTINGS_TAB, IP_RW, 0,
+    //                       IPS_IDLE);
 
     // Enable/Disable Sync Mandatory for relative focuser
     IUFillSwitch(&SyncMandatoryS[0], "Enable", "", isSynced == false ? ISS_ON : ISS_OFF);
@@ -243,8 +248,8 @@ bool FocusLynxBase::updateProperties()
         defineSwitch(&TemperatureCompensateSP);
         defineSwitch(&TemperatureCompensateOnStartSP);
 
-        defineSwitch(&BacklashCompensationSP);
-        defineNumber(&BacklashNP);
+        //        defineSwitch(&FocusBacklashSP);
+        //        defineNumber(&FocusBacklashNP);
 
         //defineNumber(&MaxTravelNP);
 
@@ -270,8 +275,8 @@ bool FocusLynxBase::updateProperties()
         deleteProperty(TemperatureParamNP.name);
         deleteProperty(TemperatureCompensateOnStartSP.name);
 
-        deleteProperty(BacklashCompensationSP.name);
-        deleteProperty(BacklashNP.name);
+        //        deleteProperty(FocusBacklashSP.name);
+        //        deleteProperty(FocusBacklashNP.name);
 
         //deleteProperty(MaxTravelNP.name);
         deleteProperty(StepSizeNP.name);
@@ -403,24 +408,24 @@ bool FocusLynxBase::ISNewSwitch(const char *dev, const char *name, ISState *stat
         }
 
         // Backlash enable/disable
-        if (!strcmp(BacklashCompensationSP.name, name))
-        {
-            int prevIndex = IUFindOnSwitchIndex(&BacklashCompensationSP);
-            IUUpdateSwitch(&BacklashCompensationSP, states, names, n);
-            if (setBacklashCompensation(BacklashCompensationS[0].s == ISS_ON))
-            {
-                BacklashCompensationSP.s = IPS_OK;
-            }
-            else
-            {
-                IUResetSwitch(&BacklashCompensationSP);
-                BacklashCompensationSP.s           = IPS_ALERT;
-                BacklashCompensationS[prevIndex].s = ISS_ON;
-            }
+        //        if (!strcmp(FocusBacklashSP.name, name))
+        //        {
+        //            int prevIndex = IUFindOnSwitchIndex(&FocusBacklashSP);
+        //            IUUpdateSwitch(&FocusBacklashSP, states, names, n);
+        //            if (setBacklashCompensation(FocusBacklashS[BACKLASH_ENABLED].s == ISS_ON))
+        //            {
+        //                FocusBacklashSP.s = IPS_OK;
+        //            }
+        //            else
+        //            {
+        //                IUResetSwitch(&FocusBacklashSP);
+        //                FocusBacklashSP.s           = IPS_ALERT;
+        //                FocusBacklashS[prevIndex].s = ISS_ON;
+        //            }
 
-            IDSetSwitch(&BacklashCompensationSP, nullptr);
-            return true;
-        }
+        //            IDSetSwitch(&FocusBacklashSP, nullptr);
+        //            return true;
+        //        }
 
         // Reset to Factory setting
         if (strcmp(ResetSP.name, name) == 0)
@@ -541,21 +546,21 @@ bool FocusLynxBase::ISNewNumber(const char *dev, const char *name, double values
         }
 
         // Backlash Value
-        if (!strcmp(BacklashNP.name, name))
-        {
-            IUUpdateNumber(&BacklashNP, values, names, n);
-            if (setBacklashCompensationSteps(BacklashN[0].value) == false)
-            {
-                LOG_ERROR("Failed to set temperature coefficients.");
-                BacklashNP.s = IPS_ALERT;
-                IDSetNumber(&BacklashNP, nullptr);
-                return false;
-            }
+        //        if (!strcmp(FocusBacklashNP.name, name))
+        //        {
+        //            IUUpdateNumber(&FocusBacklashNP, values, names, n);
+        //            if (setFocusBacklashSteps(FocusBacklashN[0].value) == false)
+        //            {
+        //                LOG_ERROR("Failed to set temperature coefficients.");
+        //                FocusBacklashNP.s = IPS_ALERT;
+        //                IDSetNumber(&FocusBacklashNP, nullptr);
+        //                return false;
+        //            }
 
-            BacklashNP.s = IPS_OK;
-            IDSetNumber(&BacklashNP, nullptr);
-            return true;
-        }
+        //            FocusBacklashNP.s = IPS_OK;
+        //            IDSetNumber(&FocusBacklashNP, nullptr);
+        //            return true;
+        //        }
 
         // Sync
         //        if (strcmp(SyncNP.name, name) == 0)
@@ -940,7 +945,7 @@ bool FocusLynxBase::getFocusConfig()
     // Backlash Compensation
     if (isSimulation())
     {
-        snprintf(response, 32, "BLC En = %d\n", BacklashCompensationS[0].s == ISS_ON ? 1 : 0);
+        snprintf(response, 32, "BLC En = %d\n", FocusBacklashS[BACKLASH_ENABLED].s == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -957,11 +962,11 @@ bool FocusLynxBase::getFocusConfig()
     if (rc != 2)
         return false;
 
-    IUResetSwitch(&BacklashCompensationSP);
-    BacklashCompensationS[0].s = BLCCompensate ? ISS_ON : ISS_OFF;
-    BacklashCompensationS[1].s = BLCCompensate ? ISS_OFF : ISS_ON;
-    BacklashCompensationSP.s   = IPS_OK;
-    IDSetSwitch(&BacklashCompensationSP, nullptr);
+    IUResetSwitch(&FocusBacklashSP);
+    FocusBacklashS[BACKLASH_ENABLED].s  = BLCCompensate ? ISS_ON : ISS_OFF;
+    FocusBacklashS[BACKLASH_DISABLED].s = BLCCompensate ? ISS_OFF : ISS_ON;
+    FocusBacklashSP.s   = IPS_OK;
+    IDSetSwitch(&FocusBacklashSP, nullptr);
 
     // Backlash Value
     memset(response, 0, sizeof(response));
@@ -984,9 +989,9 @@ bool FocusLynxBase::getFocusConfig()
     if (rc != 2)
         return false;
 
-    BacklashN[0].value = BLCValue;
-    BacklashNP.s       = IPS_OK;
-    IDSetNumber(&BacklashNP, nullptr);
+    FocusBacklashN[0].value = BLCValue;
+    FocusBacklashNP.s       = IPS_OK;
+    IDSetNumber(&FocusBacklashNP, nullptr);
 
     // Led brightnesss
     memset(response, 0, sizeof(response));
@@ -1538,11 +1543,13 @@ bool FocusLynxBase::getFocusTemp()
         rc = sscanf(response, "%16[^=]= %c", key, &compensateMode);
         if (rc != 2)
         {
-            if (rc == 1 && key[0] == 'T'){
+            if (rc == 1 && key[0] == 'T')
+            {
                 //If the controller does not support this it could be null. Assume A mode in this case.
                 compensateMode = 'A';
             }
-            else{
+            else
+            {
                 return false;
             }
         }
@@ -2541,7 +2548,8 @@ bool FocusLynxBase::setTemperatureCompensationOnStart(bool enable)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool FocusLynxBase::setBacklashCompensation(bool enable)
+//bool FocusLynxBase::setBacklashCompensation(bool enable)
+bool FocusLynxBase::SetFocuserBacklashEnabled(bool enabled)
 {
     char cmd[16];
     int errcode = 0;
@@ -2552,7 +2560,7 @@ bool FocusLynxBase::setBacklashCompensation(bool enable)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<%sSCBE%d>", getFocusTarget(), enable ? 1 : 0);
+    snprintf(cmd, 16, "<%sSCBE%d>", getFocusTarget(), enabled ? 1 : 0);
 
     LOGF_DEBUG("CMD (%s)", cmd);
 
@@ -2599,7 +2607,8 @@ bool FocusLynxBase::setBacklashCompensation(bool enable)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool FocusLynxBase::setBacklashCompensationSteps(uint16_t steps)
+//bool FocusLynxBase::setFocusBacklashSteps(uint16_t steps)
+bool FocusLynxBase::SetFocuserBacklash(int32_t steps)
 {
     char cmd[16];
     int errcode = 0;
@@ -3397,8 +3406,8 @@ bool FocusLynxBase::saveConfigItems(FILE *fp)
     //IUSaveConfigSwitch(fp, &ReverseSP);
     IUSaveConfigNumber(fp, &TemperatureNP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateModeSP);
-    IUSaveConfigSwitch(fp, &BacklashCompensationSP);
-    IUSaveConfigNumber(fp, &BacklashNP);
+    //IUSaveConfigSwitch(fp, &FocusBacklashSP);
+    //IUSaveConfigNumber(fp, &FocusBacklashNP);
     IUSaveConfigNumber(fp, &StepSizeNP);
     if (isAbsolute == false)
     {
@@ -3429,8 +3438,8 @@ bool FocusLynxBase::loadConfig(bool silent, const char *property)
             result = (INDI::DefaultDevice::loadConfig(silent, "REVERSE") && result);
             result = (INDI::DefaultDevice::loadConfig(silent, "T. COEFF") && result);
             result = (INDI::DefaultDevice::loadConfig(silent, "COMPENSATE MODE") && result);
-            result = (INDI::DefaultDevice::loadConfig(silent, "BACKLASH COMPENSATION") && result);
-            result = (INDI::DefaultDevice::loadConfig(silent, "BACKLASH") && result);
+            //            result = (INDI::DefaultDevice::loadConfig(silent, "BACKLASH COMPENSATION") && result);
+            //            result = (INDI::DefaultDevice::loadConfig(silent, "BACKLASH") && result);
             result = (INDI::DefaultDevice::loadConfig(silent, "MAX TRAVEL") && result);
             result = (INDI::DefaultDevice::loadConfig(silent, "STEP SIZE") && result);
             result = (INDI::DefaultDevice::loadConfig(silent, "T. PARAMETERS") && result);

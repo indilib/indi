@@ -24,82 +24,68 @@
 
 class DMFC : public INDI::Focuser
 {
-  public:
-    DMFC();
-    virtual ~DMFC() = default;
+    public:
+        DMFC();
+        virtual ~DMFC() override = default;
 
-    virtual bool Handshake();
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool Handshake() override;
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-protected:
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
-    virtual bool saveConfigItems(FILE *fp);
+    protected:
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
 
-  private:
-    bool updateFocusParams();
-    bool sync(uint32_t newPosition);
-    bool move(uint32_t newPosition);
-    bool setMaxSpeed(uint16_t speed);
-    bool setReverseEnabled(bool enable);
-    bool setLedEnabled(bool enable);
-    bool setEncodersEnabled(bool enable);
-    bool setBacklash(uint16_t value);
-    bool setMotorType(uint8_t type);
-    bool ack();
+        virtual bool SyncFocuser(uint32_t ticks) override;
+        virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    uint32_t currentPosition { 0 };
-    uint32_t targetPosition { 0 };
-    bool isMoving = false;
+    private:
+        bool updateFocusParams();
+        //bool sync(uint32_t newPosition);
+        bool move(uint32_t newPosition);
+        bool setMaxSpeed(uint16_t speed);
+        //bool setReverseEnabled(bool enable);
+        bool setLedEnabled(bool enable);
+        bool setEncodersEnabled(bool enable);
+        //bool setBacklash(uint16_t value);
+        bool setMotorType(uint8_t type);
+        bool ack();
 
-    // Temperature probe
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        uint32_t currentPosition { 0 };
+        uint32_t targetPosition { 0 };
+        bool isMoving = false;
 
-    // Sync Position
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
+        // Temperature probe
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    // Motor Mode
-    ISwitch MotorTypeS[2];
-    ISwitchVectorProperty MotorTypeSP;
-    enum { MOTOR_DC, MOTOR_STEPPER };
+        // Motor Mode
+        ISwitch MotorTypeS[2];
+        ISwitchVectorProperty MotorTypeSP;
+        enum { MOTOR_DC, MOTOR_STEPPER };
 
-    // Rotator Encoders
-    ISwitch EncoderS[2];
-    ISwitchVectorProperty EncoderSP;
-    enum { ENCODERS_ON, ENCODERS_OFF };
+        // Rotator Encoders
+        ISwitch EncoderS[2];
+        ISwitchVectorProperty EncoderSP;
+        enum { ENCODERS_ON, ENCODERS_OFF };
 
-    // Enable/Disable backlash
-    ISwitch BacklashCompensationS[2];
-    ISwitchVectorProperty BacklashCompensationSP;
-    enum { BACKLASH_ENABLED, BACKLASH_DISABLED };
+        // LED
+        ISwitch LEDS[2];
+        ISwitchVectorProperty LEDSP;
+        enum { LED_OFF, LED_ON };
 
-    // Backlash Value
-    INumber BacklashN[1];
-    INumberVectorProperty BacklashNP;
+        // Maximum Speed
+        INumber MaxSpeedN[1];
+        INumberVectorProperty MaxSpeedNP;
 
-    // Reverse Direction
-    ISwitch ReverseS[2];
-    ISwitchVectorProperty ReverseSP;
-    enum { DIRECTION_NORMAL, DIRECTION_REVERSED };
-
-    // LED
-    ISwitch LEDS[2];
-    ISwitchVectorProperty LEDSP;
-    enum { LED_OFF, LED_ON };
-
-    // Maximum Speed
-    INumber MaxSpeedN[1];
-    INumberVectorProperty MaxSpeedNP;
-
-    // Firmware Version
-    IText FirmwareVersionT[1];
-    ITextVectorProperty FirmwareVersionTP;
+        // Firmware Version
+        IText FirmwareVersionT[1];
+        ITextVectorProperty FirmwareVersionTP;
 };
