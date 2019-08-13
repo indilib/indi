@@ -38,6 +38,13 @@
 #define XP(x) Altaircam##x
 #define THAND HAltairCam
 #define DNAME "Altair"
+#elif BUILD_STARSHOOTG
+#include <starshootg.h>
+#define FP(x) Starshootg_##x
+#define CP(x) STARSHOOTG_##x
+#define XP(x) Starshootg##x
+#define THAND HStarshootG
+#define DNAME "StarshootG"
 #endif
 
 #define RAW_SUPPORTED   (CP(FLAG_RAW10) | CP(FLAG_RAW12) | CP(FLAG_RAW14) | CP(FLAG_RAW16))

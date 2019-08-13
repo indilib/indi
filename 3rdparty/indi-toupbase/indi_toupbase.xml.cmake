@@ -9,5 +9,9 @@
                 <driver name="Altair">indi_altair_ccd</driver>
                 <version>@TOUPBASE_VERSION_MAJOR@.@TOUPBASE_VERSION_MINOR@</version>
         </device>
+        <device label="StartshootG" mdpd="true">
+                <driver name="StartshootG">indi_starshootg_ccd</driver>
+                <version>@TOUPBASE_VERSION_MAJOR@.@TOUPBASE_VERSION_MINOR@</version>
+        </device>
 </devGroup>
 </driversList>

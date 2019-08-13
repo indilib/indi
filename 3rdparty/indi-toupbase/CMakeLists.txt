@@ -14,8 +14,8 @@ find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(TOUPCAM REQUIRED)
 find_package(ALTAIRCAM REQUIRED)
+find_package(STARSHOOTG REQUIRED)
 
-# Using ToupCamera SDK Version: 30.12802.2018.0829
 set(TOUPBASE_VERSION_MAJOR 0)
 set(TOUPBASE_VERSION_MINOR 2)
 
@@ -28,6 +28,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${TOUPCAM_INCLUDE_DIR})
 include_directories( ${ALTAIRCAM_INCLUDE_DIR})
+include_directories( ${STARSHOOTG_INCLUDE_DIR})
 
 include(CMakeCommon)
 
@@ -43,16 +44,23 @@ add_executable(indi_altair_ccd ${indi_toupbase_SRCS})
 target_compile_definitions(indi_altair_ccd PRIVATE "-DBUILD_ALTAIRCAM")
 target_link_libraries(indi_altair_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${ALTAIRCAM_LIBRARIES} ${USB1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
+########### indi_starshootg_ccd ###########
+add_executable(indi_starshootg_ccd ${indi_toupbase_SRCS})
+target_compile_definitions(indi_starshootg_ccd PRIVATE "-DBUILD_STARSHOOTG")
+target_link_libraries(indi_starshootg_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${STARSHOOTG_LIBRARIES} ${USB1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+
 #####################################
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 target_link_libraries(indi_toupcam_ccd rt)
 target_link_libraries(indi_altair_ccd rt)
+target_link_libraries(indi_starshootg_ccd rt)
 endif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 
 install(TARGETS
     indi_toupcam_ccd
     indi_altair_ccd
+    indi_starshootg_ccd
     RUNTIME DESTINATION bin)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_toupbase.xml DESTINATION ${INDI_DATA_DIR})
