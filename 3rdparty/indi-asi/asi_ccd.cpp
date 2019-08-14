@@ -774,8 +774,7 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
                     if (swType == nType)
                     {
-                        LOGF_DEBUG("ISNewSwitch->SetControlValue %d %.2f", nType,
-                                   ControlN[j].value);
+                        LOGF_DEBUG("Setting %s --> %.2f", ControlN[j].label, ControlN[j].value);
                         if ((errCode = ASISetControlValue(m_camInfo->CameraID, nType, ControlN[j].value, swAuto)) !=
                                 ASI_SUCCESS)
                         {
