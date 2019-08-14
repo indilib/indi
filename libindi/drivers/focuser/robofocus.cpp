@@ -179,7 +179,7 @@ bool RoboFocus::updateProperties()
         defineNumber(&MinMaxPositionNP);
         defineNumber(&MaxTravelNP);
         //        defineNumber(&SetRegisterPositionNP);
-        defineNumber(&FocusBacklashNP);
+        //defineNumber(&FocusBacklashNP);
         //        defineNumber(&FocusRelPosNP);
         //        defineNumber(&FocusAbsPosNP);
 
@@ -195,7 +195,7 @@ bool RoboFocus::updateProperties()
         deleteProperty(MinMaxPositionNP.name);
         deleteProperty(MaxTravelNP.name);
         //        deleteProperty(SetRegisterPositionNP.name);
-        deleteProperty(FocusBacklashNP.name);
+        //deleteProperty(FocusBacklashNP.name);
         //        deleteProperty(FocusRelPosNP.name);
         //        deleteProperty(FocusAbsPosNP.name);
     }
@@ -454,7 +454,10 @@ int RoboFocus::updateRFBacklash(double *value)
     int sign = 0;
 
     if (isSimulation())
+    {
+        *value = FocusBacklashN[0].value;
         return 0;
+    }
 
     if (*value == BACKLASH_READOUT)
     {
