@@ -166,7 +166,7 @@ void FCUSB::TimerHit()
         IDSetNumber(&FocusTimerNP, nullptr);
 
         if (timeleft == 0)
-            AbortFocuser();
+            stop();
         else if (static_cast<uint32_t>(timeleft) < POLLMS)
         {
             IEAddTimer(timeleft, &FCUSB::timedMoveHelper, this);
@@ -281,7 +281,7 @@ bool FCUSB::AbortFocuser()
 {
     motorStatus = MOTOR_OFF;
 
-    LOG_DEBUG("Stopping focuser...");
+    LOG_DEBUG("Aborting focuser...");
 
     bool rc = setStatus();
 
@@ -298,6 +298,34 @@ bool FCUSB::AbortFocuser()
         {
             IUResetSwitch(&FocusMotionSP);
             FocusMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&FocusMotionSP, nullptr);
+        }
+    }
+
+    return rc;
+}
+
+bool FCUSB::stop()
+{
+    motorStatus = MOTOR_OFF;
+
+    LOG_DEBUG("Stopping focuser...");
+
+    bool rc = setStatus();
+
+    if (rc)
+    {
+        if (FocusTimerNP.s != IPS_OK)
+        {
+            FocusTimerNP.s = IPS_OK;
+            FocusTimerN[0].value = 0;
+            IDSetNumber(&FocusTimerNP, nullptr);
+        }
+
+        if (FocusMotionSP.s != IPS_OK)
+        {
+            IUResetSwitch(&FocusMotionSP);
+            FocusMotionSP.s = IPS_OK;
             IDSetSwitch(&FocusMotionSP, nullptr);
         }
     }
@@ -397,5 +425,5 @@ void FCUSB::timedMoveHelper(void * context)
 
 void FCUSB::timedMoveCallback()
 {
-    AbortFocuser();
+    stop();
 }
