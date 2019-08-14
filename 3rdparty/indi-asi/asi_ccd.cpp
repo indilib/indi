@@ -462,15 +462,12 @@ bool ASICCD::Disconnect()
     //    pthread_join(imagingThread, nullptr);
 
     imagingThread.join();
-    //    tState = StateNone;
-    //    if (isSimulation() == false)
-    //    {
-    //        if (tState == StateStream)
-    //            ASIStopVideoCapture(m_camInfo->CameraID);
-    //        else if (tState == StateExposure)
-    //            ASIStopExposure(m_camInfo->CameraID);
-    //        ASICloseCamera(m_camInfo->CameraID);
-    //    }
+    if (isSimulation() == false)
+    {
+        ASIStopVideoCapture(m_camInfo->CameraID);
+        ASIStopExposure(m_camInfo->CameraID);
+        ASICloseCamera(m_camInfo->CameraID);
+    }
 
     LOG_INFO("Camera is offline.");
 
@@ -1075,7 +1072,7 @@ bool ASICCD::AbortExposure()
     //    pthread_mutex_unlock(&condMutex);
 
     setThreadRequest(StateAbort);
-    waitUntil(StateAbort);
+    waitUntil(StateIdle);
 
     ASIStopExposure(m_camInfo->CameraID);
     InExposure = false;
