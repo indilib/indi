@@ -96,8 +96,7 @@ option(WITH_ARMADILLO "Install Armadillo & Platypus Driver" On)
 option(WITH_FXLOAD "Install FX3 compatible fxload tool" Off)
 option(WITH_NIGHTSCAPE "Install Nightscape 8300 Driver" On)
 option(WITH_ATIK "Install Atik Driver" On)
-option(WITH_TOUPCAM "Install Toupcam Driver" On)
-option(WITH_ALTAIRCAM "Install Altair Driver" On)
+option(WITH_TOUPBASE "Install Toupbase Driver" On)
 option(WITH_DREAMFOCUSER "Install DreamFocuser Driver" On)
 option(WITH_AVALON "Install Avalon StarGO Driver" On)
 option(WITH_BEEFOCUS "Install Bee Focuser Driver" On)
@@ -128,11 +127,6 @@ ENDIF ()
 # If the Build Libs option is selected, it will just build the required libraries.
 # This should be run before the main 3rd Party Drivers build, so the drivers can find the libraries.
 IF (BUILD_LIBS)
-
-#libaltaircam
-if (WITH_ALTAIRCAM)
-add_subdirectory(libaltaircam)
-endif (WITH_ALTAIRCAM)
 
 #libapogee
 if (WITH_APOGEE)
@@ -174,9 +168,12 @@ if (WITH_SBIG)
 add_subdirectory(libsbig)
 endif (WITH_SBIG)
 
-#libtoupcam
+#libtoupbase
 if (WITH_TOUPCAM)
 add_subdirectory(libtoupcam)
+add_subdirectory(libaltaircam)
+add_subdirectory(libstarshootg)
+add_subdirectory(libnncam)
 endif (WITH_TOUPCAM)
 
 # This is the main 3rd Party build.  It runs if the Build Libs option is not selected.
@@ -260,27 +257,19 @@ SET(LIBRARIES_FOUND FALSE)
 endif (ATIK_FOUND)
 endif (WITH_ATIK)
 
-## TOUPCAM
+## TOUPBASE
 if (WITH_TOUPCAM)
 find_package(TOUPCAM)
-if (TOUPCAM_FOUND)
-add_subdirectory(indi-toupcam)
-else (TOUPCAM_FOUND)
+if (TOUPBASE_FOUND)
+add_subdirectory(indi-toupbase)
+else (TOUPBASE_FOUND)
 add_subdirectory(libtoupcam)
-SET(LIBRARIES_FOUND FALSE)
-endif (TOUPCAM_FOUND)
-endif (WITH_TOUPCAM)
-
-## ALTAIR
-if (WITH_ALTAIRCAM)
-find_package(ALTAIRCAM)
-if (ALTAIRCAM_FOUND)
-add_subdirectory(indi-altaircam)
-else (ALTAIRCAM_FOUND)
 add_subdirectory(libaltaircam)
+add_subdirectory(libstarshootg)
+add_subdirectory(libnncam)
 SET(LIBRARIES_FOUND FALSE)
-endif (ALTAIRCAM_FOUND)
-endif (WITH_ALTAIRCAM)
+endif (TOUPBASE_FOUND)
+endif (WITH_TOUPCAM)
 
 ## Bee Focuser
 if (WITH_BEEFOCUS)
@@ -470,13 +459,9 @@ if (WITH_ATIK AND NOT ATIK_FOUND)
 message(STATUS "libatik was not found and will now be built. Please install libatik first before running cmake again to install indi-atik.")
 endif (WITH_ATIK AND NOT ATIK_FOUND)
 
-if (WITH_TOUPCAM AND NOT TOUPCAM_FOUND)
+if (WITH_TOUPCAM AND NOT TOUPBASE_FOUND)
 message(STATUS "libtoupcam was not found and will now be built. Please install libtoupcam first before running cmake again to install indi-toupcam.")
-endif (WITH_TOUPCAM AND NOT TOUPCAM_FOUND)
-
-if (WITH_ALTAIRCAM AND NOT ALTAIRCAM_FOUND)
-message(STATUS "libaltair was not found and will now be built. Please install libaltair first before running cmake again to install indi-altair.")
-endif (WITH_ALTAIRCAM AND NOT ALTAIRCAM_FOUND)
+endif (WITH_TOUPCAM AND NOT TOUPBASE_FOUND)
 
 if (WITH_INOVAPLX AND NOT INOVASDK_FOUND)
 message(STATUS "libinovasdk was not found and will now be built. Please install libinovasdk first before running cmake again to install indi-inovaplx.")

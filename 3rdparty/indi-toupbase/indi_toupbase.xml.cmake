@@ -13,5 +13,9 @@
                 <driver name="StartshootG">indi_starshootg_ccd</driver>
                 <version>@TOUPBASE_VERSION_MAJOR@.@TOUPBASE_VERSION_MINOR@</version>
         </device>
+        <device label="Levenhuk" mdpd="true">
+                <driver name="Levenhuk">indi_nncam_ccd</driver>
+                <version>@TOUPBASE_VERSION_MAJOR@.@TOUPBASE_VERSION_MINOR@</version>
+        </device>
 </devGroup>
 </driversList>
