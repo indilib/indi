@@ -1458,13 +1458,17 @@ bool GPhotoCCD::grabImage()
 
         PrimaryCCD.setImageExtension("fits");
 
+        uint16_t subW = PrimaryCCD.getSubW();
+        uint16_t subH = PrimaryCCD.getSubH();
+
         // If subframing is requested
-        if (PrimaryCCD.getSubW() < w || PrimaryCCD.getSubH() < h)
+        // If either axis is less than the image resolution
+        // then we subframe, given the OTHER axis is within range as well.
+        if ( (subW < w && subH <= h) ||
+                (subH < h && subW <= w))
         {
             uint16_t subX = PrimaryCCD.getSubX();
             uint16_t subY = PrimaryCCD.getSubY();
-            uint16_t subW = PrimaryCCD.getSubW();
-            uint16_t subH = PrimaryCCD.getSubH();
 
             // Align all boundaries to be even
             // This should fix issues with subframed bayered images.
@@ -1527,7 +1531,7 @@ bool GPhotoCCD::grabImage()
         else
         {
             if (PrimaryCCD.getSubW() != 0 && (w > PrimaryCCD.getSubW() || h > PrimaryCCD.getSubH()))
-                LOGF_WARN("Camera image size (%dx%d) is less than requested size (%d,%d). Update frame size to match camera size.", w, h, PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+                LOGF_WARN("Camera image size (%dx%d) is less than requested size (%d,%d). Purge configuration and update frame size to match camera size.", w, h, PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 
             PrimaryCCD.setFrame(0, 0, w, h);
             PrimaryCCD.setFrameBuffer(memptr);
