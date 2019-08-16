@@ -124,6 +124,12 @@ IF (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
     SET(WITH_MI Off)
 ENDIF ()
 
+# Disables SBIG on a system with the ARM 64 bit architecture where it fails to build since there is no 64 bit ARM SBIG driver library
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|AARCH64")
+	SET(WITH_SBIG Off)
+	message(STATUS "This is a 64 bit ARM computer, SBIG Cannot be built.")
+ENDIF ()
+
 # If the Build Libs option is selected, it will just build the required libraries.
 # This should be run before the main 3rd Party Drivers build, so the drivers can find the libraries.
 IF (BUILD_LIBS)
