@@ -211,7 +211,15 @@
         </device>
         <device label="Explore Scientific PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.1</version>
+            <version>0.2</version>
+        </device>
+        <device label="Explore Scientific EXOS2" manufacturer="Explore Scientific">
+            <driver name="PMC8">indi_pmc8_telescope</driver>
+            <version>0.2</version>
+        </device>
+        <device label="Explore Scientific iEXOS100" manufacturer="Explore Scientific">
+            <driver name="PMC8">indi_pmc8_telescope</driver>
+            <version>0.2</version>
         </device>
     </devGroup>
     <devGroup group="Focusers">
