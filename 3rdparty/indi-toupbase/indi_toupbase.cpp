@@ -251,7 +251,8 @@ bool ToupBase::initProperties()
     IUFillNumber(&ControlN[TC_BRIGHTNESS], "Brightness", "Brightness", "%.f", -64, 64, 8, 0);
     IUFillNumber(&ControlN[TC_GAMMA], "Gamma", "Gamma", "%.f", 20, 180, 10, 100);
     IUFillNumber(&ControlN[TC_SPEED], "Speed", "Speed", "%.f", 0, 10, 1, 0);
-    IUFillNumberVector(&ControlNP, ControlN, 7, getDeviceName(), "CCD_CONTROLS", "Controls", CONTROL_TAB, IP_RW, 60,
+    IUFillNumber(&ControlN[TC_FRAMERATE_LIMIT], "FPS Limit", "FPS Limit", "%.f", 0, 63, 1, 0);
+    IUFillNumberVector(&ControlNP, ControlN, 8, getDeviceName(), "CCD_CONTROLS", "Controls", CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
 
 
@@ -799,6 +800,12 @@ void ToupBase::setupParams()
 #endif
     ControlN[TC_SPEED].max = m_Instance->model->maxspeed;
 
+    // Frame Rate
+    int frameRateLimit = 0;
+    rc = FP(get_Option(m_CameraHandle, CP(OPTION_FRAMERATE), &frameRateLimit));
+    LOGF_DEBUG("Frame Rate Limit %d rc: %d", frameRateLimit, rc);
+    ControlN[TC_FRAMERATE_LIMIT].value = frameRateLimit;
+
     // Set Bin more for better quality over skip
     if (m_Instance->model->flag & CP(FLAG_BINSKIP_SUPPORTED))
     {
@@ -974,6 +981,9 @@ bool ToupBase::ISNewNumber(const char *dev, const char *name, double values[], c
 
                     case TC_SPEED:
                         FP(put_Speed(m_CameraHandle, value));
+                        break;
+                    case TC_FRAMERATE_LIMIT:
+                        FP(put_Option(m_CameraHandle, CP(OPTION_FRAMERATE), value));
                         break;
                     default:
                         break;

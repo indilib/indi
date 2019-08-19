@@ -433,7 +433,7 @@ class ToupBase : public INDI::CCD
             TC_COOLER_OFF,
         };
 
-        INumber ControlN[7];
+        INumber ControlN[8];
         INumberVectorProperty ControlNP;
         enum
         {
@@ -444,6 +444,7 @@ class ToupBase : public INDI::CCD
             TC_BRIGHTNESS,
             TC_GAMMA,
             TC_SPEED,
+            TC_FRAMERATE_LIMIT
         };
 
         ISwitch AutoControlS[3];
