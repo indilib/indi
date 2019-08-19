@@ -804,6 +804,13 @@ void ToupBase::setupParams()
     int frameRateLimit = 0;
     rc = FP(get_Option(m_CameraHandle, CP(OPTION_FRAMERATE), &frameRateLimit));
     LOGF_DEBUG("Frame Rate Limit %d rc: %d", frameRateLimit, rc);
+
+    // JM 2019-08-19: On ARM, set frame limit to max (63) instead of 0 (unlimited)
+    // since that results in failure to capture from large sensors
+#ifdef __arm__
+    frameRateLimit = ControlN[TC_FRAMERATE_LIMIT].max;
+    FP(put_Option(m_CameraHandle, CP(OPTION_FRAMERATE), frameRateLimit));
+#endif
     ControlN[TC_FRAMERATE_LIMIT].value = frameRateLimit;
 
     // Set Bin more for better quality over skip
@@ -856,7 +863,8 @@ void ToupBase::setupParams()
     SetTimer(POLLMS);
 
     //Start pull callback
-    if ( (rc = FP(StartPullModeWithCallback(m_CameraHandle, &ToupBase::eventCB, this)) != 0))
+    rc = FP(StartPullModeWithCallback(m_CameraHandle, &ToupBase::eventCB, this));
+    if (rc != 0)
     {
         LOGF_ERROR("Failed to start camera pull mode. %s", errorCodes[rc].c_str());
         Disconnect();
@@ -982,9 +990,15 @@ bool ToupBase::ISNewNumber(const char *dev, const char *name, double values[], c
                     case TC_SPEED:
                         FP(put_Speed(m_CameraHandle, value));
                         break;
+
                     case TC_FRAMERATE_LIMIT:
                         FP(put_Option(m_CameraHandle, CP(OPTION_FRAMERATE), value));
+                        if (value == 0)
+                            LOG_INFO("FPS rate limit is set to unlimited.");
+                        else
+                            LOGF_INFO("Limiting frame rate to %d FPS", value);
                         break;
+
                     default:
                         break;
                 }
