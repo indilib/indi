@@ -97,8 +97,15 @@ class ApogeeCCD : public INDI::CCD, public INDI::FilterInterface
         IText CamInfoT[2] {};
         ITextVectorProperty CamInfoTP;
 
-        ISwitch FanStatusS[4];
         ISwitchVectorProperty FanStatusSP;
+        ISwitch FanStatusS[4];
+        enum
+        {
+            FAN_OFF,
+            FAN_SLOW,
+            FAN_MED,
+            FAN_FAST
+        };
 
         // Filter Type
         ISwitchVectorProperty FilterTypeSP;
