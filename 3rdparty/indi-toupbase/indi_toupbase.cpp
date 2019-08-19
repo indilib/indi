@@ -936,7 +936,7 @@ bool ToupBase::ISNewNumber(const char *dev, const char *name, double values[], c
         //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, ControlNP.name))
         {
-            double oldValues[7] = {0};
+            double oldValues[8] = {0};
             for (int i = 0; i < ControlNP.nnp; i++)
                 oldValues[i] = ControlN[i].value;
 
@@ -1017,9 +1017,8 @@ bool ToupBase::ISNewNumber(const char *dev, const char *name, double values[], c
                 static_cast<uint16_t>(LevelRangeN[TC_HI_Y].value),
             };
 
-            HRESULT rc = 0;
-
-            if ( (rc = FP(put_LevelRange(m_CameraHandle, lo, hi)) < 0))
+            HRESULT rc = FP(put_LevelRange(m_CameraHandle, lo, hi));
+            if (rc < 0)
             {
                 LevelRangeNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set level range. %s", errorCodes[rc].c_str());
@@ -1046,9 +1045,8 @@ bool ToupBase::ISNewNumber(const char *dev, const char *name, double values[], c
                 static_cast<uint16_t>(BlackBalanceN[TC_BLACK_B].value),
             };
 
-            HRESULT rc = 0;
-
-            if ( (rc = FP(put_BlackBalance(m_CameraHandle, aSub)) < 0))
+            HRESULT rc = FP(put_BlackBalance(m_CameraHandle, aSub));
+            if (rc < 0)
             {
                 BlackBalanceNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set Black Balance. %s", errorCodes[rc].c_str());
@@ -1090,7 +1088,7 @@ bool ToupBase::ISNewNumber(const char *dev, const char *name, double values[], c
         if (!strcmp(name, WBRGBNP.name))
         {
             IUUpdateNumber(&WBRGBNP, values, names, n);
-            HRESULT rc = 0;
+
 
             int aSub[3] =
             {
@@ -1099,7 +1097,8 @@ bool ToupBase::ISNewNumber(const char *dev, const char *name, double values[], c
                 static_cast<int>(WBRGBN[TC_WB_B].value),
             };
 
-            if ( (rc = FP(put_WhiteBalanceGain(m_CameraHandle, aSub)) < 0))
+            HRESULT rc = FP(put_WhiteBalanceGain(m_CameraHandle, aSub));
+            if (rc < 0)
             {
                 WBRGBNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set White Balance gain. %s", errorCodes[rc].c_str());
