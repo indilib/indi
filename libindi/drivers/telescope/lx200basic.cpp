@@ -39,7 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
 /* Our telescope auto pointer */
-std::unique_ptr<LX200Basic> telescope(new LX200Basic());
+static std::unique_ptr<LX200Basic> telescope(new LX200Basic());
 
 /**************************************************************************************
 ** Send client definitions of all properties.
@@ -105,11 +105,11 @@ void ISSnoopDevice(XMLEle *root)
 ***************************************************************************************/
 LX200Basic::LX200Basic()
 {
-    setVersion(2, 0);
+    setVersion(2, 1);
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    double longitude=0, latitude=90;
+    double longitude = 0, latitude = 90;
     // Get value from config file if it exists.
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
     currentRA  = get_local_sidereal_time(longitude);
@@ -135,7 +135,7 @@ void LX200Basic::debugTriggered(bool enable)
 ***************************************************************************************/
 const char *LX200Basic::getDefaultName()
 {
-    return (const char *)"LX200 Basic";
+    return "LX200 Basic";
 }
 
 /**************************************************************************************
@@ -155,20 +155,6 @@ bool LX200Basic::initProperties()
     addAuxControls();
 
     return true;
-}
-
-/**************************************************************************************
-** Define LX200 Basic properties to clients.
-***************************************************************************************/
-void LX200Basic::ISGetProperties(const char *dev)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
-        return;
-
-    INDI::Telescope::ISGetProperties(dev);
-
-    //if (isConnected())
-    //    defineNumber(&SlewAccuracyNP);
 }
 
 /**************************************************************************************
@@ -263,7 +249,7 @@ bool LX200Basic::Goto(double r, double d)
 {
     targetRA  = r;
     targetDEC = d;
-    char RAStr[64]={0}, DecStr[64]={0};
+    char RAStr[64] = {0}, DecStr[64] = {0};
 
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
@@ -320,7 +306,7 @@ bool LX200Basic::Goto(double r, double d)
 ***************************************************************************************/
 bool LX200Basic::Sync(double ra, double dec)
 {
-    char syncString[256]={0};
+    char syncString[256] = {0};
 
     if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
