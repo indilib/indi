@@ -74,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 ************************************************************************************/
 FocusSim::FocusSim()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED | FOCUSER_HAS_BACKLASH);
 }
 
 /************************************************************************************
@@ -357,5 +357,23 @@ IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 bool FocusSim::SetFocuserSpeed(int speed)
 {
     INDI_UNUSED(speed);
+    return true;
+}
+
+/************************************************************************************
+ *
+************************************************************************************/
+bool FocusSim::SetFocuserBacklash(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    return true;
+}
+
+/************************************************************************************
+ *
+************************************************************************************/
+bool FocusSim::SetFocuserBacklashEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
     return true;
 }
