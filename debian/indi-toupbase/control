@@ -13,7 +13,7 @@ Build-Depends: debhelper (>= 5),
                libnova-dev,
                libtoupcam,
                libaltaircam,
-               libstarshootg
+               libstarshootg,
                libnncam
 Standards-Version: 3.9.1
 
