@@ -8,8 +8,8 @@ include(GNUInstallDirs)
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
-# Using Version: 34.14088.2019.0307
-set(LIBNNCAM_VERSION "1.34.1")
+# Using Version: 38.14088.2019.0307
+set(LIBNNCAM_VERSION "1.38.1")
 set(LIBNNCAM_SOVERSION "1")
 
 IF(APPLE)
