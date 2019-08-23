@@ -295,7 +295,7 @@ bool LX200Basic::Goto(double r, double d)
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
+    //EqNP.s     = IPS_BUSY;
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;

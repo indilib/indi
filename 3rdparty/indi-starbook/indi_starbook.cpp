@@ -291,6 +291,8 @@ bool StarbookDriver::Goto(double ra, double dec)
 
     starbook::ResponseCode rc = cmd_interface->GotoRaDec(ra, dec);
     LogResponse("GOTO", rc);
+    if (rc)
+        TrackState = SCOPE_SLEWING;
     return rc == starbook::OK;
 }
 

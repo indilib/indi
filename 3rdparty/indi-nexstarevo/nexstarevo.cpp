@@ -339,7 +339,7 @@ bool NexStarEvo::Goto(double ra, double dec)
                        ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s);
     }
 
-    EqNP.s = IPS_BUSY;
+    //EqNP.s = IPS_BUSY;
 
     return true;
 }
@@ -752,8 +752,8 @@ void NexStarEvo::TimerHit()
             AAzero = AltAzFromRaDec(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec, 0);
             if (TraceThisTick)
                 DEBUGF(DBG_NSEVO, "Tracking - Calculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
-            /* 
-            TODO 
+            /*
+            TODO
             The tracking should take into account movement of the scope
             by the hand controller (we can hear the commands)
             and the movements made by the joystick.

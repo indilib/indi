@@ -169,7 +169,7 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 
     // MSF 2018/04/10 - disable this behavior for now - we want to have
     //                  UnparkFromSP to always start out as "Last Parked" for safety
-    
+
     // load config to get unpark from position user wants BEFORE we connect to mount
     //    if (!isConnected())
     //    {
@@ -214,7 +214,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         LOGF_DEBUG("park position = %d", parkPos);
 
         // setup location
-        double longitude=-1000, latitude=-1000;
+        double longitude = -1000, latitude = -1000;
         // Get value from config file if it exists.
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
@@ -320,7 +320,7 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
     if (success)
     {
         LOGF_INFO("Servo Box Controller: GTOCP%d.", servoType);
-        LOGF_INFO("Firmware Version: '%s' - %s", rev, versionString+5);
+        LOGF_INFO("Firmware Version: '%s' - %s", rev, versionString + 5);
     }
 
     return success;
@@ -329,7 +329,7 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
 bool LX200AstroPhysicsExperimental::initMount()
 {
     // Make sure that the mount is setup according to the properties
-    int err=0;
+    int err = 0;
 
     if (!IsMountInitialized(&mountInitialized))
     {
@@ -628,7 +628,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         char parkStatus;
         char slewStatus;
         bool slewcomplete;
-        double PARKTHRES=0.1; // max difference from parked position to consider mount PARKED
+        double PARKTHRES = 0.1; // max difference from parked position to consider mount PARKED
 
         slewcomplete = false;
 
@@ -713,7 +713,7 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 
     raZE = (fabs(ra) < epscheck);
     deZE = (fabs(dec) < epscheck);
-    de90 = (fabs(dec-90) < epscheck);
+    de90 = (fabs(dec - 90) < epscheck);
 
     LOGF_DEBUG("IsMountInitialized: raZE: %d - deZE: %d - de90: %d", raZE, deZE, de90);
 
@@ -758,9 +758,9 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isParked)
         return false;
 
     // if within an arcsec then assume RA is constant
-    if (fabs(ra1-ra2) < (1.0/(15.0*3600.0)))
+    if (fabs(ra1 - ra2) < (1.0 / (15.0 * 3600.0)))
     {
-        *isParked=false;
+        *isParked = false;
         return true;
     }
 
@@ -861,7 +861,7 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
+    //EqNP.s     = IPS_BUSY;
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -870,11 +870,11 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 
 bool LX200AstroPhysicsExperimental::updateAPSlewRate(int index)
 {
-//    if (IUFindOnSwitchIndex(&SlewRateSP) == index)
-//    {
-//        LOGF_DEBUG("updateAPSlewRate: slew rate %d already choosen so ignoring.", index);
-//        return true;
-//    }
+    //    if (IUFindOnSwitchIndex(&SlewRateSP) == index)
+    //    {
+    //        LOGF_DEBUG("updateAPSlewRate: slew rate %d already choosen so ignoring.", index);
+    //        return true;
+    //    }
 
     if (!isSimulation() && selectAPCenterRate(PortFD, index) < 0)
     {
@@ -1132,7 +1132,7 @@ bool LX200AstroPhysicsExperimental::Handshake()
         return true;
     }
 
-    int err=0;
+    int err = 0;
 
     if ((err = setAPClearBuffer(PortFD)) < 0)
     {
@@ -1151,7 +1151,7 @@ bool LX200AstroPhysicsExperimental::Handshake()
     }
 
     // get firmware version
-    bool rc=false;
+    bool rc = false;
 
     rc = getFirmwareVersion();
 
@@ -1200,18 +1200,18 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 
         switch (syncType)
         {
-        case USE_REGULAR_SYNC:
-            if (::Sync(PortFD, syncString) < 0)
-                syncOK = false;
-            break;
+            case USE_REGULAR_SYNC:
+                if (::Sync(PortFD, syncString) < 0)
+                    syncOK = false;
+                break;
 
-        case USE_CMR_SYNC:
-            if (APSyncCMR(PortFD, syncString) < 0)
-                syncOK = false;
-            break;
+            case USE_CMR_SYNC:
+                if (APSyncCMR(PortFD, syncString) < 0)
+                    syncOK = false;
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
 
         if (syncOK == false)
@@ -1254,7 +1254,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     }
 
     LOGF_DEBUG("Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
-           (int)ltm.seconds);
+               (int)ltm.seconds);
 
     if (isSimulation() == false && setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
@@ -1328,7 +1328,7 @@ void LX200AstroPhysicsExperimental::debugTriggered(bool enable)
 bool LX200AstroPhysicsExperimental::SetSlewRate(int index)
 {
     if (!isSimulation() && selectAPCenterRate(PortFD, index) < 0)
-    {        
+    {
         LOG_ERROR("Error setting slew mode.");
         return false;
     }
@@ -1606,7 +1606,7 @@ bool LX200AstroPhysicsExperimental::saveConfigItems(FILE *fp)
 
 bool LX200AstroPhysicsExperimental::SetTrackMode(uint8_t mode)
 {
-    int err=0;
+    int err = 0;
 
     LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackMode(%d)", mode);
 
@@ -1632,15 +1632,15 @@ bool LX200AstroPhysicsExperimental::SetTrackMode(uint8_t mode)
 
 bool LX200AstroPhysicsExperimental::SetTrackEnabled(bool enabled)
 {
-   bool rc;
+    bool rc;
 
-   LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackEnabled(%d)", enabled);
+    LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackEnabled(%d)", enabled);
 
-   rc = SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
+    rc = SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
 
-   LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackMode() returned %d", rc);
+    LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackMode() returned %d", rc);
 
-   return rc;
+    return rc;
 }
 
 bool LX200AstroPhysicsExperimental::SetTrackRate(double raRate, double deRate)
@@ -1683,7 +1683,8 @@ bool LX200AstroPhysicsExperimental::MoveNS(INDI_DIR_NS dir, TelescopeMotionComma
         ISState states[] = { ISS_OFF, ISS_OFF, ISS_OFF, ISS_OFF };
         states[rememberSlewRate] = ISS_ON;
         const char *names[] = { SlewRateS[0].name, SlewRateS[1].name,
-                                SlewRateS[2].name, SlewRateS[3].name };
+                                SlewRateS[2].name, SlewRateS[3].name
+                              };
         ISNewSwitch(SlewRateSP.device, SlewRateSP.name, states, const_cast<char **>(names), 4);
         rememberSlewRate = -1;
     }
@@ -1691,7 +1692,7 @@ bool LX200AstroPhysicsExperimental::MoveNS(INDI_DIR_NS dir, TelescopeMotionComma
     bool rc = LX200Generic::MoveNS(dir, command);
 
     if (command == MOTION_START)
-           motionCommanded = true;
+        motionCommanded = true;
 
     return rc;
 }
@@ -1704,7 +1705,8 @@ bool LX200AstroPhysicsExperimental::MoveWE(INDI_DIR_WE dir, TelescopeMotionComma
         ISState states[] = { ISS_OFF, ISS_OFF, ISS_OFF, ISS_OFF };
         states[rememberSlewRate] = ISS_ON;
         const char *names[] = { SlewRateS[0].name, SlewRateS[1].name,
-                                SlewRateS[2].name, SlewRateS[3].name };
+                                SlewRateS[2].name, SlewRateS[3].name
+                              };
         ISNewSwitch(SlewRateSP.device, SlewRateSP.name, states, const_cast<char **>(names), 4);
         rememberSlewRate = -1;
     }
@@ -1725,7 +1727,7 @@ bool LX200AstroPhysicsExperimental::GuideNS(INDI_DIR_NS dir, TelescopeMotionComm
     bool rc = LX200Generic::MoveNS(dir, command);
 
     if (command == MOTION_START)
-           motionCommanded = true;
+        motionCommanded = true;
 
     return rc;
 }
