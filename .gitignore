@@ -2,7 +2,7 @@ CMakeLists.txt.user*
 
 # Projectile tags
 TAGS
-.vscode
+.vscode/
 
 # Ignore build directory
 build/
