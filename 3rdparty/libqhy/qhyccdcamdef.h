@@ -333,7 +333,7 @@
 #define DEVICETYPE_QHY550        4057
 #define DEVICETYPE_QHY42PRO   4058
 #define DEVICETYPE_QHY6060      4059
-#define DEVICETYPE_QHY411        4060        
+#define DEVICETYPE_QHY411        4060
 
 
 /**
@@ -509,7 +509,7 @@
 
 /**
  * Type define for IMG0X */
- 
+
 #define IMG0X_MAX_WIDTH        		-1
 #define IMG0X_MAX_HEIGHT        	-1
 
@@ -1220,5 +1220,11 @@
 #define	DEMO_MAXDEVICES			6
 #define	MESSAGE_SIZS				1000
 
+
+#define CFWSLOTS_NUM9		9
+#define CFWSLOTS_NUM7		7
+#define CFWSLOTS_NUM6		6
+
+#define CFWSLOTS_DELAY		4000
 
 #endif

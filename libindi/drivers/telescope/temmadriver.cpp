@@ -125,7 +125,7 @@ bool TemmaMount::initProperties()
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
 #endif
 
-    double longitude=0, latitude=90;
+    double longitude = 0, latitude = 90;
     // Get value from config file if it exists.
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
     currentRA  = get_local_sidereal_time(longitude);
@@ -257,14 +257,14 @@ bool TemmaMount::SendCommand(const char *cmd, char *response)
     char cmd_temma[TEMMA_BUFFER] = {0};
     strncpy(cmd_temma, cmd, TEMMA_BUFFER);
     int cmd_size = strlen(cmd_temma);
-    if (cmd_size-2 >= TEMMA_BUFFER)
+    if (cmd_size - 2 >= TEMMA_BUFFER)
     {
         LOG_ERROR("Command is too long!");
         return false;
     }
 
     cmd_temma[cmd_size] = 0xD;
-    cmd_temma[cmd_size+1] = 0xA;
+    cmd_temma[cmd_size + 1] = 0xA;
 
     // Special case for M since it has slewbits
     if (cmd[0] == 'M')
@@ -282,60 +282,60 @@ bool TemmaMount::SendCommand(const char *cmd, char *response)
 
         switch (cmd[0])
         {
-        // Version
-        case 'v':
-            strncpy(response, "vSimulation v1.0", TEMMA_BUFFER);
-            break;
+            // Version
+            case 'v':
+                strncpy(response, "vSimulation v1.0", TEMMA_BUFFER);
+                break;
 
             // Get LST
-        case 'g':
-            if (TemmaInitialized == false || std::isnan(Longitude))
-                return false;
-            else
+            case 'g':
+                if (TemmaInitialized == false || std::isnan(Longitude))
+                    return false;
+                else
+                {
+                    double lst = get_local_sidereal_time(Longitude);
+                    snprintf(response, TEMMA_BUFFER, "%02d%02d%02d", (int)lst, ((int)(lst * 60)) % 60, ((int)(lst * 3600)) % 60);
+                }
+                break;
+
+            // Get coords
+            case 'E':
             {
-                double lst = get_local_sidereal_time(Longitude);
-                snprintf(response, TEMMA_BUFFER, "%02d%02d%02d", (int)lst, ((int)(lst * 60)) % 60, ((int)(lst * 3600)) % 60);
+                char sign;
+                double dec = currentDEC;
+                if (dec < 0)
+                    sign = '-';
+                else
+                    sign = '+';
+
+                dec = fabs(dec);
+
+                // Computing meridian side is quite involved.. so for simulation now just set it to east always if slewing or parking
+                char state = 'E';
+                if (TrackState == SCOPE_PARKED || TrackState == SCOPE_IDLE || TrackState == SCOPE_TRACKING)
+                    state = 'F';
+                snprintf(response, TEMMA_BUFFER, "E%.2d%.2d%.2d%c%.2d%.2d%.1d%c", (int)currentRA, (int)(currentRA * (double)60) % 60,
+                         ((int)(currentRA * (double)6000)) % 100, sign, (int)dec, (int)(dec * (double)60) % 60,
+                         ((int)(dec * (double)600)) % 10, state);
             }
             break;
 
-            // Get coords
-        case 'E':
-        {
-            char sign;
-            double dec = currentDEC;
-            if (dec < 0)
-                sign = '-';
-            else
-                sign = '+';
-
-            dec = fabs(dec);
-
-            // Computing meridian side is quite involved.. so for simulation now just set it to east always if slewing or parking
-            char state = 'E';
-            if (TrackState == SCOPE_PARKED || TrackState == SCOPE_IDLE || TrackState == SCOPE_TRACKING)
-                state = 'F';
-            snprintf(response, TEMMA_BUFFER, "E%.2d%.2d%.2d%c%.2d%.2d%.1d%c", (int)currentRA, (int)(currentRA * (double)60) % 60,
-                     ((int)(currentRA * (double)6000)) % 100, sign, (int)dec, (int)(dec * (double)60) % 60,
-                     ((int)(dec * (double)600)) % 10, state);
-        }
-            break;
-
             // Sync
-        case 'D':
-            currentRA = targetRA;
-            currentDEC = targetDEC;
-            strncpy(response, "R0", TEMMA_BUFFER);
-            break;
+            case 'D':
+                currentRA = targetRA;
+                currentDEC = targetDEC;
+                strncpy(response, "R0", TEMMA_BUFFER);
+                break;
 
             // Goto
-        case 'P':
-            TrackState = SCOPE_SLEWING;
-            strncpy(response, "R0", TEMMA_BUFFER);
-            break;
+            case 'P':
+                TrackState = SCOPE_SLEWING;
+                strncpy(response, "R0", TEMMA_BUFFER);
+                break;
 
-        default:
-            LOGF_ERROR("Command %s is unhandled in Simulation.", cmd);
-            return false;
+            default:
+                LOGF_ERROR("Command %s is unhandled in Simulation.", cmd);
+                return false;
         }
 
         return true;
@@ -366,7 +366,7 @@ bool TemmaMount::SendCommand(const char *cmd, char *response)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    response[bytesRead-2] = 0;
+    response[bytesRead - 2] = 0;
 
     LOGF_DEBUG("RES <%s>", response);
 
@@ -385,50 +385,50 @@ bool TemmaMount::GetCoords()
         return false;
 
     int d, m, s;
-    sscanf(response+1, "%02d%02d%02d", &d, &m, &s);
+    sscanf(response + 1, "%02d%02d%02d", &d, &m, &s);
     //LOG_DEBUG"%d  %d  %d\n",d,m,s);
     currentRA = d * 3600 + m * 60 + s * .6;
     currentRA /= 3600;
 
-    sscanf(response+8, "%02d%02d%01d", &d, &m, &s);
+    sscanf(response + 8, "%02d%02d%01d", &d, &m, &s);
     //LOG_DEBUG"%d  %d  %d\n",d,m,s);
     currentDEC = d * 3600 + m * 60 + s * 6;
     currentDEC /= 3600;
-    if(response[7]=='-')
-        currentDEC*=-1;
+    if(response[7] == '-')
+        currentDEC *= -1;
 
-    char side=response[13];
+    char side = response[13];
     switch(side)
     {
-    case 'E':
-        setPierSide(PIER_EAST);
-        break;
+        case 'E':
+            setPierSide(PIER_EAST);
+            break;
 
-    case 'W':
-        setPierSide(PIER_WEST);
-        break;
+        case 'W':
+            setPierSide(PIER_WEST);
+            break;
 
-    case 'F':
-        //  lets see if our goto has finished
-        if (strstr(response, "F") != nullptr)
-        {
-            if (TrackState == SCOPE_SLEWING)
+        case 'F':
+            //  lets see if our goto has finished
+            if (strstr(response, "F") != nullptr)
             {
-                TrackState = SCOPE_TRACKING;
+                if (TrackState == SCOPE_SLEWING)
+                {
+                    TrackState = SCOPE_TRACKING;
+                }
+                if (TrackState == SCOPE_PARKING)
+                {
+                    SetParked(true);
+                    //  turn off the motor
+                    LOG_DEBUG("Parked");
+                    SetMotorStatus(false);
+                }
             }
-            if (TrackState == SCOPE_PARKING)
+            else
             {
-                SetParked(true);
-                //  turn off the motor
-                LOG_DEBUG("Parked");
-                SetMotorStatus(false);
+                LOG_DEBUG("Goto in Progress");
             }
-        }
-        else
-        {
-            LOG_DEBUG("Goto in Progress");
-        }
-        break;
+            break;
 
     }
 
@@ -465,7 +465,7 @@ bool TemmaMount::ReadScopeStatus()
         struct ln_equ_posn RaDec;
         bool aligned;
         juliandate = ln_get_julian_from_sys();
-        lst = ln_get_apparent_sidereal_time(juliandate) + (LocationN[1].value * 24.0 /360.0);
+        lst = ln_get_apparent_sidereal_time(juliandate) + (LocationN[1].value * 24.0 / 360.0);
         // Use HA/Dec as  telescope coordinate system
         RaDec.ra = ((lst - currentRA) * 360.0) / 24.0;
         //RaDec.ra = (ra * 360.0) / 24.0;
@@ -475,7 +475,7 @@ bool TemmaMount::ReadScopeStatus()
         DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Status: Mnt. Algnt. %s LST %lf RA %lf DEC %lf HA %lf TDV(x %lf y %lf z %lf)",
                maligns[GetApproximateMountAlignment()], lst, currentRA, currentDEC, RaDec.ra, TDV.x, TDV.y, TDV.z);
 
-        aligned=true;
+        aligned = true;
 
         if (!TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC))
         {
@@ -618,6 +618,7 @@ bool TemmaMount::Goto(double ra, double dec)
         return false;
     }
 
+    TrackState = SCOPE_SLEWING;
     return true;
 }
 
@@ -632,7 +633,7 @@ bool TemmaMount::Park()
     RightAscension = lst - (lha); //  Get the park position
     RightAscension = range24(RightAscension);
     LOGF_DEBUG("head to Park position %4.2f %4.2f  %4.2f %4.2f", GetAxis1Park(), lha,
-           RightAscension, GetAxis2Park());
+               RightAscension, GetAxis2Park());
 
     Goto(RightAscension, GetAxis2Park());
 
@@ -953,7 +954,7 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
         RightAscension = lst - (rangeHA(GetAxis1Park()));
         RightAscension = range24(RightAscension);
         LOGF_DEBUG("Sync to Park position %4.2f %4.2f  %4.2f", GetAxis1Park(), RightAscension,
-               GetAxis2Park());
+                   GetAxis2Park());
         //TemmaSync(RightAscension, GetAxis2Park());
         Sync(RightAscension, GetAxis2Park());
         LOG_DEBUG("Turn motors off");
@@ -1118,7 +1119,7 @@ bool TemmaMount::GetVersion()
         return false;
     }
 
-    LOGF_INFO("Detected version: %s", res+1);
+    LOGF_INFO("Detected version: %s", res + 1);
 
     return true;
 }
@@ -1166,10 +1167,10 @@ bool TemmaMount::GetLST(double &lst)
     if (SendCommand("g", res) == false)
         return false;
 
-    int hh=0,mm=0,ss=0;
-    if (sscanf(res+1, "%02d%02d%02d", &hh, &mm, &ss) == 3)
+    int hh = 0, mm = 0, ss = 0;
+    if (sscanf(res + 1, "%02d%02d%02d", &hh, &mm, &ss) == 3)
     {
-        lst = hh + mm/60.0 + ss/3600.0;
+        lst = hh + mm / 60.0 + ss / 3600.0;
         return true;
     }
 
@@ -1192,8 +1193,8 @@ bool TemmaMount::GetLattitude(double &lat)
     if (SendCommand("i", res) == false)
         return false;
 
-    int dd=0,mm=0,parial_m=0;
-    if (sscanf(res+1, "%02d%02d%01d", &dd, &mm, &parial_m) == 3)
+    int dd = 0, mm = 0, parial_m = 0;
+    if (sscanf(res + 1, "%02d%02d%01d", &dd, &mm, &parial_m) == 3)
     {
         lat = dd + mm / 60.0 + parial_m / 600.0;
         return true;
@@ -1237,13 +1238,13 @@ bool TemmaMount::Handshake()
         On first open we often dont get an immediate read from the temma
         but it seems to read much more reliably if we enforce a short wait
         between opening the port and doing the first query for version
-        
+
     */
     usleep(100);
     if (GetVersion() == false)
         return false;
 
-    double lst=0;
+    double lst = 0;
     if (GetLST(lst))
     {
         LOG_DEBUG("Temma is intialized.");
@@ -1293,13 +1294,13 @@ int TemmaMount::TemmaRead(char *buf, int size)
         }
         else
         {
-            fprintf(stderr,"timed out reading %d\n",count);
+            fprintf(stderr, "timed out reading %d\n", count);
             LOGF_DEBUG("We timed out reading bytes %d", count);
             return 0;
         }
     }
     //  if we get here, we got more than size bytes, and still dont have a cr/lf
-    fprintf(stderr,"Read error after %d bytes\n",bytesRead);
+    fprintf(stderr, "Read error after %d bytes\n", bytesRead);
     LOGF_DEBUG("Read return error after %d bytes", bytesRead);
     return -1;
 }
@@ -1309,8 +1310,8 @@ void TemmaMount::mountSim()
 {
     static struct timeval ltv;
     struct timeval tv;
-    double dt=0, da=0, dx=0;
-    int nlocked=0;
+    double dt = 0, da = 0, dx = 0;
+    int nlocked = 0;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
     gettimeofday(&tv, nullptr);
@@ -1326,79 +1327,79 @@ void TemmaMount::mountSim()
     switch (TrackState)
     {
 
-    case SCOPE_IDLE:
-        currentRA  += (TRACKRATE_SIDEREAL/3600.0 * dt / 15.);
-        break;
-
-    case SCOPE_TRACKING:
-        switch (IUFindOnSwitchIndex(&TrackModeSP))
-        {
-        case TRACK_SIDEREAL:
-            da = 0;
-            dx = 0;
+        case SCOPE_IDLE:
+            currentRA  += (TRACKRATE_SIDEREAL / 3600.0 * dt / 15.);
             break;
 
-        case TRACK_LUNAR:
-            da = ((TRACKRATE_LUNAR-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
-            dx = 0;
+        case SCOPE_TRACKING:
+            switch (IUFindOnSwitchIndex(&TrackModeSP))
+            {
+                case TRACK_SIDEREAL:
+                    da = 0;
+                    dx = 0;
+                    break;
+
+                case TRACK_LUNAR:
+                    da = ((TRACKRATE_LUNAR - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
+                    dx = 0;
+                    break;
+
+                case TRACK_SOLAR:
+                    da = ((TRACKRATE_SOLAR - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
+                    dx = 0;
+                    break;
+
+                case TRACK_CUSTOM:
+                    da = ((TrackRateN[AXIS_RA].value - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
+                    dx = (TrackRateN[AXIS_DE].value / 3600.0 * dt);
+                    break;
+
+            }
+
+            currentRA  += da;
+            currentDEC += dx;
             break;
 
-        case TRACK_SOLAR:
-            da = ((TRACKRATE_SOLAR-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
-            dx = 0;
-            break;
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
+            /* slewing - nail it when both within one pulse @ LX200_GENERIC_SLEWRATE */
+            nlocked = 0;
 
-        case TRACK_CUSTOM:
-            da = ((TrackRateN[AXIS_RA].value-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
-            dx = (TrackRateN[AXIS_DE].value/3600.0 * dt);
-            break;
+            dx = targetRA - currentRA;
 
-        }
-
-        currentRA  += da;
-        currentDEC += dx;
-        break;
-
-    case SCOPE_SLEWING:
-    case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ LX200_GENERIC_SLEWRATE */
-        nlocked = 0;
-
-        dx = targetRA - currentRA;
-
-        if (fabs(dx) <= da)
-        {
-            currentRA = targetRA;
-            nlocked++;
-        }
-        else if (dx > 0)
-            currentRA += da / 15.;
-        else
-            currentRA -= da / 15.;
-
-        dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da)
-        {
-            currentDEC = targetDEC;
-            nlocked++;
-        }
-        else if (dx > 0)
-            currentDEC += da;
-        else
-            currentDEC -= da;
-
-        if (nlocked == 2)
-        {
-            if (TrackState == SCOPE_SLEWING)
-                TrackState = SCOPE_TRACKING;
+            if (fabs(dx) <= da)
+            {
+                currentRA = targetRA;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentRA += da / 15.;
             else
-                SetParked(true);
-        }
+                currentRA -= da / 15.;
 
-        break;
+            dx = targetDEC - currentDEC;
+            if (fabs(dx) <= da)
+            {
+                currentDEC = targetDEC;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentDEC += da;
+            else
+                currentDEC -= da;
 
-    default:
-        break;
+            if (nlocked == 2)
+            {
+                if (TrackState == SCOPE_SLEWING)
+                    TrackState = SCOPE_TRACKING;
+                else
+                    SetParked(true);
+            }
+
+            break;
+
+        default:
+            break;
     }
 
     NewRaDec(currentRA, currentDEC);

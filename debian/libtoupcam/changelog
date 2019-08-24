@@ -1,3 +1,9 @@
+libtoupcam (1.39.0) bionic; urgency=medium
+
+  * Upstream release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Thu, 1 Aug 2019 15:00:00 +0300
+
 libtoupcam (1.0.0) bionic; urgency=medium
 
   * Initial release

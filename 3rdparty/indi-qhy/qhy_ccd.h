@@ -78,6 +78,8 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         virtual bool StartStreaming() override;
         virtual bool StopStreaming() override;
 
+        void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;
+
         ISwitch CoolerS[2];
         ISwitchVectorProperty CoolerSP;
         enum
@@ -97,7 +99,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 
         INumber SpeedN[1];
         INumberVectorProperty SpeedNP;
-        
+
         INumber ReadModeN[1];
         INumberVectorProperty ReadModeNP;
 

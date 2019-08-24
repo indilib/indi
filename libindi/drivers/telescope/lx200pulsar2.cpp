@@ -70,27 +70,27 @@ void resynchronize(const int fd)
 {
     class ACKChecker
     {
-      public:
-        ACKChecker() : previous(Null) {}
-        bool operator()(const int c)
-        {
-            // We need two successful acknowledges
-            bool result = false;
-            if (previous == Null)
+        public:
+            ACKChecker() : previous(Null) {}
+            bool operator()(const int c)
             {
-                if (c == 'P' || c == 'A' || c == 'L')
-                    previous = c; // Remember first acknowledge response
+                // We need two successful acknowledges
+                bool result = false;
+                if (previous == Null)
+                {
+                    if (c == 'P' || c == 'A' || c == 'L')
+                        previous = c; // Remember first acknowledge response
+                }
+                else
+                {
+                    result   = (c == previous); // Second acknowledge response must equal to previous one
+                    previous = Null;            // Both on success or failure, reset the previous character
+                }
+                return result;
             }
-            else
-            {
-                result   = (c == previous); // Second acknowledge response must equal to previous one
-                previous = Null;            // Both on success or failure, reset the previous character
-            }
-            return result;
-        }
 
-      private:
-        int previous;
+        private:
+            int previous;
     };
     DEBUGDEVICE(lx200Name, DBG_SCOPE, "RESYNC");
     ACKChecker valid;
@@ -117,7 +117,8 @@ bool send(const int fd, const char *cmd)
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error: %s (%s)", errmsg, strerror(errno));
             return false;
         }
-    } while (nbytes_written < nbytes); // Ensure that all characters have been sent
+    }
+    while (nbytes_written < nbytes);   // Ensure that all characters have been sent
     return true;
 }
 
@@ -375,7 +376,7 @@ enum SlewMode
 
 bool setSlewMode(const int fd, const SlewMode slewMode)
 {
-    static const char *commands[NumSlewRates]{ "#:RS#", "#:RM#", "#:RC#", "#:RG#" };
+    static const char *commands[NumSlewRates] { "#:RS#", "#:RM#", "#:RC#", "#:RG#" };
     return send(fd, commands[slewMode]);
 }
 
@@ -728,7 +729,7 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
                 // Define which side of the pier the telescope is.
                 // Required for the sync command. This is *not* related to a meridian flip.
                 const bool success = Pulsar2Commands::setSideOfPier(
-                    PortFD, (PierSideS[1].s == ISS_ON ? Pulsar2Commands::WestOfPier : Pulsar2Commands::EastOfPier));
+                                         PortFD, (PierSideS[1].s == ISS_ON ? Pulsar2Commands::WestOfPier : Pulsar2Commands::EastOfPier));
                 if (success)
                 {
                     PierSideSP.s = IPS_OK;
@@ -752,10 +753,10 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 // Only control PEC in RA. PEC in decl. doesn't seem usefull.
                 const bool success = Pulsar2Commands::setPECorrection(PortFD,
-                                                                      (PeriodicErrorCorrectionS[1].s == ISS_ON ?
-                                                                           Pulsar2Commands::PECorrectionOn :
-                                                                           Pulsar2Commands::PECorrectionOff),
-                                                                      Pulsar2Commands::PECorrectionOff);
+                                     (PeriodicErrorCorrectionS[1].s == ISS_ON ?
+                                      Pulsar2Commands::PECorrectionOn :
+                                      Pulsar2Commands::PECorrectionOff),
+                                     Pulsar2Commands::PECorrectionOff);
                 if (success)
                 {
                     PeriodicErrorCorrectionSP.s = IPS_OK;
@@ -778,8 +779,8 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
             if (!isSimulation())
             {
                 const bool success = Pulsar2Commands::setPoleCrossing(PortFD, (PoleCrossingS[1].s == ISS_ON ?
-                                                                                   Pulsar2Commands::PoleCrossingOn :
-                                                                                   Pulsar2Commands::PoleCrossingOff));
+                                     Pulsar2Commands::PoleCrossingOn :
+                                     Pulsar2Commands::PoleCrossingOff));
                 if (success)
                 {
                     PoleCrossingSP.s = IPS_OK;
@@ -804,7 +805,7 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
                 // Control refraction correction in both RA and decl.
                 const Pulsar2Commands::RCorrection rc =
                     (RefractionCorrectionS[1].s == ISS_ON ? Pulsar2Commands::RCorrectionOn :
-                                                            Pulsar2Commands::RCorrectionOff);
+                     Pulsar2Commands::RCorrectionOff);
                 const bool success = Pulsar2Commands::setRCorrection(PortFD, rc, rc);
                 if (success)
                 {
@@ -870,7 +871,7 @@ bool LX200Pulsar2::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             success = (isSimulation() || Pulsar2Commands::haltMovement(PortFD, current_move));
             if (success)
                 LOGF_INFO("Movement toward %s halted.",
-                       Pulsar2Commands::DirectionName[current_move]);
+                          Pulsar2Commands::DirectionName[current_move]);
             else
                 LOG_ERROR("Error stopping N/S motion.");
             break;
@@ -896,7 +897,7 @@ bool LX200Pulsar2::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             success = (isSimulation() || Pulsar2Commands::haltMovement(PortFD, current_move));
             if (success)
                 LOGF_INFO("Movement toward %s halted.",
-                       Pulsar2Commands::DirectionName[current_move]);
+                          Pulsar2Commands::DirectionName[current_move]);
             else
                 LOG_ERROR("Error stopping W/E motion.");
             break;
@@ -1193,7 +1194,7 @@ bool LX200Pulsar2::Goto(double r, double d)
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
+    //EqNP.s     = IPS_BUSY;
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
@@ -1369,7 +1370,7 @@ bool LX200Pulsar2::checkConnection()
                 int year, month, day;
                 (void)sscanf(response, "PULSAR V%8s ,%4d.%2d.%2d. ", version, &year, &month, &day);
                 LOGF_INFO("%s version %s dated %04d.%02d.%02d",
-                       (version[0] > '2' ? "Pulsar2" : "Pulsar"), version, year, month, day);
+                          (version[0] > '2' ? "Pulsar2" : "Pulsar"), version, year, month, day);
                 return true;
             }
             nanosleep(&timeout, nullptr);
@@ -1493,7 +1494,7 @@ void LX200Pulsar2::sendScopeTime()
     else
     {
         if (!Pulsar2Commands::getUTCTime(PortFD, &ltm.tm_hour, &ltm.tm_min, &ltm.tm_sec) ||
-            !Pulsar2Commands::getUTCDate(PortFD, &ltm.tm_mon, &ltm.tm_mday, &ltm.tm_year))
+                !Pulsar2Commands::getUTCDate(PortFD, &ltm.tm_mon, &ltm.tm_mday, &ltm.tm_year))
             return;
         ltm.tm_mon -= 1;
         ltm.tm_year -= 1900;
@@ -1526,7 +1527,8 @@ bool LX200Pulsar2::isSlewing()
     // A problem with the Pulsar controller is that the :YGi# command starts
     // returning the value 1 only a few seconds after a slew has been started.
     // This also means that a (short) slew can end before this happens.
-    auto mount_is_off_target = [this](void) {
+    auto mount_is_off_target = [this](void)
+    {
         return (fabs(currentRA - targetRA) > 1.0 / 3600.0 || fabs(currentDEC - targetDEC) > 5.0 / 3600.0);
     };
     // Detect the end of a short slew
@@ -1537,7 +1539,7 @@ bool LX200Pulsar2::isSlewing()
         if (Pulsar2Commands::getInt(PortFD, "#:YGi#", &is_slewing))
         {
             if (is_slewing ==
-                1) // When the Pulsar controller indicates that it is slewing, we can rely on it from now on
+                    1) // When the Pulsar controller indicates that it is slewing, we can rely on it from now on
                 result = true, just_started_slewing = false;
             else // ... otherwise we have to rely on the value of the attribute just_started_slewing
                 result = just_started_slewing;

@@ -1,0 +1,33 @@
+Source: indiwebmanagerapp
+Section: science
+Priority: optional
+Maintainer: Robert Lancaster <rlancaste@gmail.com>
+Build-Depends: cmake,
+               debhelper (>= 9.0.0),
+               pkg-config,
+               cdbs,
+               pkg-config,
+               extra-cmake-modules (>= 1.7.0),
+               kio-dev,
+               qtbase5-dev,
+               kdoctools-dev,
+               libkf5config-dev,
+               libkf5i18n-dev,
+               libindi-dev (>= 1.6.1),
+               indi-bin (>= 1.6.1),
+               python3-pip
+Standards-Version: 3.9.3
+Homepage: https://github.com/rlancaste/INDIWebManagerApp
+
+Package: indiwebmanagerapp
+Architecture: any
+Section: science
+recommends: breeze-icon-theme
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1, indi-bin, python3
+Description: A Graphical program to Manage, Configure, Launch, and Monitor an INDI WebManager on OS X and Linux
+ INDIWebManagerApp is a program designed to support users of INDI, KStars, and other INDI Clients 
+ by providing a GUI based interface to easily configure, launch, manage, and monitor an INDI Web Manager
+ on either OS X or Linux.  This program will allow the usage of astronomical devices connected to this computer 
+ by INDI Clients on this computer or any other computer on the local network through the launching and management
+ of an INDI Web Manager.
+ .

@@ -24,36 +24,35 @@
 
 class LX200Basic : public INDI::Telescope
 {
-  public:
-    LX200Basic();
-    ~LX200Basic() = default;
+    public:
+        LX200Basic();
+        ~LX200Basic() override = default;
 
-    virtual const char *getDefaultName() override;
-    virtual bool Handshake() override;
-    virtual bool ReadScopeStatus() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual const char *getDefaultName() override;
+        virtual bool Handshake() override;
+        virtual bool ReadScopeStatus() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-  protected:
-    virtual bool Abort() override;
-    virtual bool Goto(double, double) override;
-    virtual bool Sync(double ra, double dec) override;
+    protected:
+        virtual bool Abort() override;
+        virtual bool Goto(double, double) override;
+        virtual bool Sync(double ra, double dec) override;
 
-    virtual void debugTriggered(bool enable) override;
+        virtual void debugTriggered(bool enable) override;
 
-    void getBasicData();
+        void getBasicData();
 
-  protected:
-    bool isSlewComplete();
-    void slewError(int slewCode);
-    void mountSim();
+    protected:
+        bool isSlewComplete();
+        void slewError(int slewCode);
+        void mountSim();
 
-    INumber SlewAccuracyN[2];
-    INumberVectorProperty SlewAccuracyNP;
+        INumber SlewAccuracyN[2];
+        INumberVectorProperty SlewAccuracyNP;
 
-    double targetRA, targetDEC;
-    double currentRA, currentDEC;
-    unsigned int DBG_SCOPE;
+        double targetRA = 0, targetDEC = 0;
+        double currentRA = 0, currentDEC = 0;
+        uint32_t DBG_SCOPE = 0;
 };

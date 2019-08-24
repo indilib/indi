@@ -1,3 +1,9 @@
+indi-apogee (1.9) bionic; urgency=low
+
+  * Fixed fan control.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 19 Aug 2019 20:45:00 +0300
+
 indi-apogee (1.8) bionic; urgency=low
 
   * Added support to Apogee Filter Wheel within the CCD driver.

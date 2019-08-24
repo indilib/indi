@@ -76,7 +76,8 @@ class FocuserInterface
             FOCUSER_CAN_ABORT          = 1 << 2, /*!< Is it possible to abort focuser motion? */
             FOCUSER_CAN_REVERSE        = 1 << 3, /*!< Is it possible to reverse focuser motion? */
             FOCUSER_CAN_SYNC           = 1 << 4, /*!< Can the focuser sync to a custom position */
-            FOCUSER_HAS_VARIABLE_SPEED = 1 << 5  /*!< Can the focuser move in different configurable speeds? */
+            FOCUSER_HAS_VARIABLE_SPEED = 1 << 5, /*!< Can the focuser move in different configurable speeds? */
+            FOCUSER_HAS_BACKLASH       = 1 << 6  /*!< Can the focuser compensate for backlash? */
         } FocuserCapability;
 
         /**
@@ -142,6 +143,14 @@ class FocuserInterface
         bool HasVariableSpeed()
         {
             return capability & FOCUSER_HAS_VARIABLE_SPEED;
+        }
+
+        /**
+         * @return True if the focuser has multiple speeds.
+         */
+        bool HasBacklash()
+        {
+            return capability & FOCUSER_HAS_BACKLASH;
         }
 
     protected:
@@ -229,6 +238,20 @@ class FocuserInterface
         virtual bool SetFocuserMaxPosition(uint32_t ticks);
 
         /**
+         * @brief SetFocuserBacklash Set the focuser backlash compensation value
+         * @param steps value in absolute steps to compensate
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SetFocuserBacklash(int32_t steps);
+
+        /**
+         * @brief SetFocuserBacklashEnabled Enables or disables the focuser backlash compensation
+         * @param enable flag to enable or disable backlash compensation
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SetFocuserBacklashEnabled(bool enabled);
+
+        /**
          * @brief AbortFocuser all focus motion
          * @return True if abort is successful, false otherwise.
          */
@@ -283,6 +306,19 @@ class FocuserInterface
             REVERSED_ENABLED,
             REVERSED_DISABLED,
         };
+
+        // Backlash toogle
+        ISwitchVectorProperty FocusBacklashSP;
+        ISwitch FocusBacklashS[2];
+        enum
+        {
+            BACKLASH_ENABLED,
+            BACKLASH_DISABLED,
+        };
+
+        // Backlash steps
+        INumberVectorProperty FocusBacklashNP;
+        INumber FocusBacklashN[1];
 
         uint32_t capability;
 

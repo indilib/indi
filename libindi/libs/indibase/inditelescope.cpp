@@ -1878,12 +1878,12 @@ bool Telescope::InitPark()
 const char *Telescope::LoadParkXML()
 {
     wordexp_t wexp;
-    FILE *fp;
-    LilXML *lp;
+    FILE *fp = nullptr;
+    LilXML *lp = nullptr;
     static char errmsg[512];
 
-    XMLEle *parkxml;
-    XMLAtt *ap;
+    XMLEle *parkxml = nullptr;
+    XMLAtt *ap = nullptr;
     bool devicefound = false;
 
     ParkDeviceName       = getDeviceName();
@@ -1912,15 +1912,22 @@ const char *Telescope::LoadParkXML()
         delXMLEle(ParkdataXmlRoot);
 
     ParkdataXmlRoot = readXMLFile(fp, lp, errmsg);
+    fclose(fp);
 
     delLilXML(lp);
     if (!ParkdataXmlRoot)
         return errmsg;
 
-    if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
-        return "Not a park data file";
-
     parkxml = nextXMLEle(ParkdataXmlRoot, 1);
+
+    if (!parkxml)
+        return "Empty park file.";
+
+    if (!strcmp(tagXMLEle(parkxml), "parkdata"))
+    {
+        delXMLEle(parkxml);
+        return "Not a park data file";
+    }
 
     while (parkxml)
     {
@@ -1939,7 +1946,10 @@ const char *Telescope::LoadParkXML()
     }
 
     if (!devicefound)
+    {
+        delXMLEle(parkxml);
         return "No park data found for this device";
+    }
 
     ParkdeviceXml        = parkxml;
     ParkstatusXml        = findXMLEle(parkxml, "parkstatus");
@@ -1999,15 +2009,15 @@ bool Telescope::PurgeParkData()
         LOG_DEBUG("Failed to refresh parking data.");
 
     wordexp_t wexp;
-    FILE *fp;
-    LilXML *lp;
+    FILE *fp = nullptr;
+    LilXML *lp = nullptr;
     static char errmsg[512];
 
-    XMLEle *parkxml;
-    XMLAtt *ap;
+    XMLEle *parkxml = nullptr;
+    XMLAtt *ap = nullptr;
     bool devicefound = false;
 
-    ParkDeviceName       = getDeviceName();
+    ParkDeviceName = getDeviceName();
 
     if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
@@ -2029,15 +2039,22 @@ bool Telescope::PurgeParkData()
         delXMLEle(ParkdataXmlRoot);
 
     ParkdataXmlRoot = readXMLFile(fp, lp, errmsg);
+    fclose(fp);
 
     delLilXML(lp);
     if (!ParkdataXmlRoot)
         return false;
 
-    if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
+    parkxml = nextXMLEle(ParkdataXmlRoot, 1);
+
+    if (!parkxml)
         return false;
 
-    parkxml = nextXMLEle(ParkdataXmlRoot, 1);
+    if (!strcmp(tagXMLEle(parkxml), "parkdata"))
+    {
+        delXMLEle(parkxml);
+        return false;
+    }
 
     while (parkxml)
     {
@@ -2540,6 +2557,7 @@ bool Telescope::LoadScopeConfig()
     char ErrMsg[512];
 
     RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
+    fclose(FilePtr);    
     delLilXML(XmlHandle);
     XmlHandle = nullptr;
     if (!RootXmlNode)
@@ -2679,6 +2697,7 @@ bool Telescope::HasDefaultScopeConfig()
     char ErrMsg[512];
 
     RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
+    fclose(FilePtr);
     delLilXML(XmlHandle);
     XmlHandle = nullptr;
     if (!RootXmlNode)

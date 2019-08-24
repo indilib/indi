@@ -26,11 +26,13 @@
 
 #include "connectionplugins/connectiontcp.h"
 #include "connectionplugins/connectionserial.h"
+#include "indicom.h"
 
 #include <cerrno>
 #include <memory>
 #include <cstring>
 #include <unistd.h>
+#include <termios.h>
 
 // We declare an auto pointer to SQM.
 static std::unique_ptr<SQM> sqm(new SQM());
@@ -76,7 +78,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SQM::SQM()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 }
 
 bool SQM::initProperties()
@@ -137,11 +139,11 @@ bool SQM::updateProperties()
 
     if (isConnected())
     {
-        // Already called by handshake
-        //getDeviceInfo();
-
         defineNumber(&AverageReadingNP);
         defineNumber(&UnitInfoNP);
+
+        getReadings();
+
     }
     else
     {
@@ -152,10 +154,30 @@ bool SQM::updateProperties()
     return true;
 }
 
+bool SQM::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        // For polling periods > 2 seconds, the user must configure SQM via the web tool
+        if (!strcmp(name, "POLLING_PERIOD"))
+        {
+            uint32_t seconds = values[0] / 1000;
+            if (seconds > 2)
+                LOGF_WARN("Make sure SQM web timeout is configured for %ld seconds or more. Otherwise SQM will disconnect prematurely.", seconds);
+        }
+    }
+
+    return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
+}
+
+
+#if 0
 bool SQM::getReadings()
 {
     const char *cmd = "rx";
     char buffer[57] = {0};
+
+    tcflush(PortFD, TCIOFLUSH);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -189,6 +211,8 @@ bool SQM::getReadings()
 
     LOGF_DEBUG("RES <%s>", buffer);
 
+    tcflush(PortFD, TCIOFLUSH);
+
     float mpsas, period_seconds, temperature;
     int frequency, period_counts;
     int rc =
@@ -198,6 +222,66 @@ bool SQM::getReadings()
     {
         LOGF_ERROR("Failed to parse input %s", buffer);
         return false;
+    }
+
+    AverageReadingN[0].value = mpsas;
+    AverageReadingN[1].value = frequency;
+    AverageReadingN[2].value = period_counts;
+    AverageReadingN[3].value = period_seconds;
+    AverageReadingN[4].value = temperature;
+
+    return true;
+}
+#endif
+
+bool SQM::getReadings()
+{
+    const char *cmd = "rx";
+    char res[128] = {0};
+    int nbytes_read = 0, nbytes_written = 0, rc = 0;
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    LOGF_DEBUG("CMD <%s>", cmd);
+
+    if ( (rc = tty_write(PortFD, cmd, 2, &nbytes_written)) != TTY_OK)
+    {
+        char errorMessage[MAXRBUF] = {0};
+        tty_error_msg(rc, errorMessage, MAXRBUF);
+        LOGF_ERROR("Error getting device readings: %s", errorMessage);
+        return false;
+    }
+
+    if ( (rc = tty_nread_section(PortFD, res, 128, 0xA, 3, &nbytes_read)) != TTY_OK)
+    {
+        if (rc == TTY_OVERFLOW)
+        {
+            return true;
+        }
+
+        char errorMessage[MAXRBUF] = {0};
+        tty_error_msg(rc, errorMessage, MAXRBUF);
+        LOGF_ERROR("Error getting device readings: %s", errorMessage);
+        return false;
+    }
+
+    res[nbytes_read - 2] = 0;
+    LOGF_DEBUG("RES <%s>", res);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    float mpsas, period_seconds, temperature;
+    int frequency, period_counts;
+    rc = sscanf(res, "r,%fm,%dHz,%dc,%fs,%fC", &mpsas, &frequency, &period_counts, &period_seconds, &temperature);
+
+    if (rc < 5)
+    {
+        rc = sscanf(res, "r,%fm,%dHz,%dc,%fs,%fC,%*d", &mpsas, &frequency, &period_counts, &period_seconds, &temperature);
+        if (rc < 5)
+        {
+            LOGF_ERROR("Failed to parse input %s", res);
+            return false;
+        }
     }
 
     AverageReadingN[0].value = mpsas;

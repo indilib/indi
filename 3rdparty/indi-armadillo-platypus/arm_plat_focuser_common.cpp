@@ -89,7 +89,11 @@ void ISSnoopDevice(XMLEle *root)
 ArmPlat::ArmPlat()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
+                      FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_CAN_ABORT    |
+                      FOCUSER_CAN_SYNC     |
+                      FOCUSER_HAS_BACKLASH);
 }
 
 bool ArmPlat::initProperties()
@@ -137,13 +141,17 @@ bool ArmPlat::initProperties()
     IUFillNumberVector(&MaxSpeedNP, MaxSpeedN, 1, getDeviceName(), "MaxSpeed", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_OK);
 
     // Enable/Disable backlash
-    IUFillSwitch(&BacklashCompensationS[BACKLASH_ENABLED], "Enable", "", ISS_OFF);
-    IUFillSwitch(&BacklashCompensationS[BACKLASH_DISABLED], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&BacklashCompensationSP, BacklashCompensationS, 2, getDeviceName(), "Backlash Compensation", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+//    IUFillSwitch(&BacklashCompensationS[BACKLASH_ENABLED], "Enable", "", ISS_OFF);
+//    IUFillSwitch(&BacklashCompensationS[BACKLASH_DISABLED], "Disable", "", ISS_ON);
+//    IUFillSwitchVector(&FocuserBacklashSP, BacklashCompensationS, 2, getDeviceName(), "Backlash Compensation", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Backlash Value
-    IUFillNumber(&BacklashN[0], "Value", "", "%.f", 0, 200, 1., 0.);
-    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "Backlash", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+//    // Backlash Value
+//    IUFillNumber(&BacklashN[0], "Value", "", "%.f", 0, 200, 1., 0.);
+//    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "Backlash", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    FocusBacklashN[0].min = 0;
+    FocusBacklashN[0].max = 200;
+    FocusBacklashN[0].step = 10;
+    FocusBacklashN[0].value = 0;
 
     // Motor Types
     IUFillSwitch(&MotorTypeS[MOTOR_UNIPOLAR], "Unipolar", "", ISS_ON);
@@ -190,8 +198,8 @@ bool ArmPlat::updateProperties()
         defineNumber(&MaxSpeedNP);
         defineNumber(&TemperatureNP);
         defineSwitch(&IntExtTempSensorSP);
-        defineSwitch(&BacklashCompensationSP);
-        defineNumber(&BacklashNP);
+//        defineSwitch(&FocuserBacklashSP);
+//        defineNumber(&BacklashNP);
         defineSwitch(&HalfStepSP);
         defineSwitch(&MotorTypeSP);
         defineSwitch(&WiringSP);
@@ -209,8 +217,8 @@ bool ArmPlat::updateProperties()
         deleteProperty(HalfStepSP.name);
         deleteProperty(TemperatureNP.name);
         deleteProperty(IntExtTempSensorSP.name);
-        deleteProperty(BacklashCompensationSP.name);
-        deleteProperty(BacklashNP.name);
+//        deleteProperty(FocuserBacklashSP.name);
+//        deleteProperty(BacklashNP.name);
         deleteProperty(MotorTypeSP.name);
         deleteProperty(MaxSpeedNP.name);
         deleteProperty(FirmwareVersionTP.name);
@@ -220,12 +228,12 @@ bool ArmPlat::updateProperties()
     return true;
 }
 
-bool ArmPlat::Connect()
-{
-        INDI::Focuser::Connect();
+//bool ArmPlat::Connect()
+//{
+//        INDI::Focuser::Connect();
 
-        return true;
-}
+//        return true;
+//}
 
 
 bool ArmPlat::Handshake()
@@ -292,23 +300,23 @@ bool ArmPlat::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         /////////////////////////////////////////////
         // Backlash
         /////////////////////////////////////////////
-        if (!strcmp(name, BacklashCompensationSP.name))
-        {
-            IUUpdateSwitch(&BacklashCompensationSP, states, names, n);
-            bool rc = false;
-            if (IUFindOnSwitchIndex(&BacklashCompensationSP) == BACKLASH_ENABLED)
-                rc = setBacklash(BacklashN[0].value);
-            else
-                rc = setBacklash(0);
+//        if (!strcmp(name, FocuserBacklashSP.name))
+//        {
+//            IUUpdateSwitch(&FocuserBacklashSP, states, names, n);
+//            bool rc = false;
+//            if (IUFindOnSwitchIndex(&FocuserBacklashSP) == BACKLASH_ENABLED)
+//                rc = setBacklash(BacklashN[0].value);
+//            else
+//                rc = setBacklash(0);
 
-            BacklashCompensationSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&BacklashCompensationSP, nullptr);
-            return true;
-        }
+//            FocuserBacklashSP.s = rc ? IPS_OK : IPS_ALERT;
+//            IDSetSwitch(&FocuserBacklashSP, nullptr);
+//            return true;
+//        }
         /////////////////////////////////////////////
         // Temp sensor in use
         /////////////////////////////////////////////
-        else if (!strcmp(name, IntExtTempSensorSP.name))
+        if (!strcmp(name, IntExtTempSensorSP.name))
         {
             IUUpdateSwitch(&IntExtTempSensorSP, states, names, n);
             tempSensInUse = IUFindOnSwitchIndex(&IntExtTempSensorSP);
@@ -374,23 +382,23 @@ bool ArmPlat::ISNewNumber(const char *dev, const char *name, double values[], ch
         /////////////////////////////////////////////
         // Backlash
         /////////////////////////////////////////////
-        if (strcmp(name, BacklashNP.name) == 0)
-        {
-            IUUpdateNumber(&BacklashNP, values, names, n);
-            // Only update backlash value if compensation is enabled
-            if (BacklashCompensationS[BACKLASH_ENABLED].s == ISS_ON)
-            {
-                bool rc = setBacklash(BacklashN[0].value);
-                BacklashNP.s = rc ? IPS_OK : IPS_ALERT;
-            }
-            else
-            {
-                backlash = 0;
-                BacklashNP.s = IPS_OK;
-            }
-            IDSetNumber(&BacklashNP, nullptr);
-            return true;
-        }
+//        if (strcmp(name, BacklashNP.name) == 0)
+//        {
+//            IUUpdateNumber(&BacklashNP, values, names, n);
+//            // Only update backlash value if compensation is enabled
+//            if (BacklashCompensationS[BACKLASH_ENABLED].s == ISS_ON)
+//            {
+//                bool rc = setBacklash(BacklashN[0].value);
+//                BacklashNP.s = rc ? IPS_OK : IPS_ALERT;
+//            }
+//            else
+//            {
+//                backlash = 0;
+//                BacklashNP.s = IPS_OK;
+//            }
+//            IDSetNumber(&BacklashNP, nullptr);
+//            return true;
+//        }
 
 //        if (strcmp(name, SyncNP.name) == 0)
 //        {
@@ -405,7 +413,7 @@ bool ArmPlat::ISNewNumber(const char *dev, const char *name, double values[], ch
         /////////////////////////////////////////////
         // Relative goto
         /////////////////////////////////////////////
-        else if (strcmp(name, FocusRelPosNP.name) == 0)
+        if (strcmp(name, FocusRelPosNP.name) == 0)
         {
             IUUpdateNumber(&FocusRelPosNP, values, names, n);
             IDSetNumber(&FocusRelPosNP, nullptr);
@@ -618,13 +626,14 @@ bool ArmPlat::setPort( uint16_t newport )
     return true;
 }
 
-bool ArmPlat::setBacklash(uint16_t value)
+//bool ArmPlat::setBacklash(uint16_t value)
+bool ArmPlat::SetFocuserBacklash(int32_t steps)
 {
     if ( port == -1 )
         return false;
 
-    LOGF_DEBUG("Backlash %d", value );
-    backlash = value;
+    LOGF_DEBUG("Backlash %d", steps );
+    backlash = steps;
 
     return true;
 }
@@ -784,8 +793,8 @@ bool ArmPlat::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &PerPortSP);
     IUSaveConfigSwitch(fp, &HalfStepSP);
     IUSaveConfigSwitch(fp, &WiringSP);
-    IUSaveConfigNumber(fp, &BacklashNP);
-    IUSaveConfigSwitch(fp, &BacklashCompensationSP);
+//    IUSaveConfigNumber(fp, &BacklashNP);
+//    IUSaveConfigSwitch(fp, &FocuserBacklashSP);
     IUSaveConfigSwitch(fp, &MotorTypeSP);
     IUSaveConfigNumber(fp, &MaxSpeedNP);
 

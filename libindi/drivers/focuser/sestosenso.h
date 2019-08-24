@@ -31,7 +31,7 @@ class SestoSenso : public INDI::Focuser
         const char *getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
-        //virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
         static void checkMotionProgressHelper(void *context);
 
@@ -40,9 +40,6 @@ class SestoSenso : public INDI::Focuser
         virtual bool Disconnect() override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
-
-        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
-        virtual bool SyncFocuser(uint32_t ticks) override;
         virtual bool ReverseFocuser(bool enabled) override;
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
@@ -77,13 +74,28 @@ class SestoSenso : public INDI::Focuser
         IText FirmwareT[1] {};
         ITextVectorProperty FirmwareTP;
 
-//        INumber LimitsN[2];
-//        INumberVectorProperty LimitsNP;
-//        enum
-//        {
-//            SS_MIN_LIMIT,
-//            SS_MAX_LIMIT
-//        };
+        ISwitch CalibrationS[2];
+        ISwitchVectorProperty CalibrationSP;
+        enum
+        {
+            CALIBRATION_START,
+            CALIBRATION_NEXT
+        };
+
+        ISwitch FastMoveS[3];
+        ISwitchVectorProperty FastMoveSP;
+        enum
+        {
+            FASTMOVE_IN,
+            FASTMOVE_OUT,
+            FASTMOVE_STOP
+        };
+
+        IText CalibrationMessageT[1] {};
+        ITextVectorProperty CalibrationMessageTP;
+
+        typedef enum { Idle, GoToMiddle, GoMinimum, GoMaximum, Complete } CalibrationStage;
+        CalibrationStage cStage { Idle };
 
         int m_MotionProgressTimerID = -1;
         /////////////////////////////////////////////////////////////////////////////

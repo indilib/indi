@@ -192,6 +192,10 @@ bool CCDSim::initProperties()
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
+    // CCD Gain
+    IUFillNumber(&GainN[0], "GAIN", "Gain", "%.f", 0, 100, 10, 50);
+    IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
     IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
     IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config", IP_RW, 60,
@@ -232,14 +236,15 @@ bool CCDSim::initProperties()
 
     setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
 
+    // Make Guide Scope ON by default
+    TelescopeTypeS[TELESCOPE_PRIMARY].s = ISS_OFF;
+    TelescopeTypeS[TELESCOPE_GUIDE].s = ISS_ON;
+
     return true;
 }
 
 void CCDSim::ISGetProperties(const char * dev)
 {
-    //  First we let our parent populate
-
-    //IDLog("CCDSim IsGetProperties with %s\n",dev);
     INDI::CCD::ISGetProperties(dev);
 
     defineNumber(SimulatorSettingsNV);
@@ -256,6 +261,8 @@ bool CCDSim::updateProperties()
         if (HasCooler())
             defineSwitch(&CoolerSP);
 
+        defineNumber(&GainNP);
+
         SetupParms();
 
         if (HasGuideHead())
@@ -271,6 +278,8 @@ bool CCDSim::updateProperties()
     {
         if (HasCooler())
             deleteProperty(CoolerSP.name);
+
+        deleteProperty(GainNP.name);
 
         INDI::FilterInterface::updateProperties();
     }
@@ -490,7 +499,6 @@ void CCDSim::TimerHit()
 int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 {
     //  CCD frame is 16 bit data
-    uint16_t val;
     float ExposureTime;
     float targetFocalLength;
 
@@ -503,6 +511,11 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     else
         ExposureTime = ExposureRequest;
 
+    if (GainN[0].value > 50)
+        ExposureTime *= sqrt(GainN[0].value - 50);
+    else if (GainN[0].value < 50)
+        ExposureTime /= sqrt(50 - GainN[0].value);
+
     if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
         targetFocalLength = primaryFocalLength;
     else
@@ -510,12 +523,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
     if (ShowStarField)
     {
-        char gsccmd[250];
-        FILE * pp;
-        int stars = 0;
-        int lines = 0;
-        int drawn = 0;
-        int x, y;
         float PEOffset;
         float PESpot;
         float decDrift;
@@ -601,7 +608,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         if (!usePE)
         {
 #endif
-
             currentRA  = RA;
             currentDE = Dec;
 
@@ -678,19 +684,28 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         if (ftype == INDI::CCDChip::LIGHT_FRAME)
         {
             AutoCNumeric locale;
+            char gsccmd[250];
+            FILE * pp;
+            int drawn = 0;
 
-            //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPE);
-            sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000", rad + PEOffset, cameradec, radius,
+            sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000",
+                    range360(rad + PEOffset),
+                    rangeDec(cameradec),
+                    radius,
                     lookuplimit);
-            LOGF_DEBUG("%s", gsccmd);
+
+            if (!Streamer->isStreaming())
+                LOGF_DEBUG("GSC Command: %s", gsccmd);
+
             pp = popen(gsccmd, "r");
             if (pp != nullptr)
             {
                 char line[256];
+                int stars = 0;
+                int lines = 0;
+
                 while (fgets(line, 256, pp) != nullptr)
                 {
-                    //fprintf(stderr,"%s",line);
-
                     //  ok, lets parse this line for specifcs we want
                     char id[20];
                     char plate[6];
@@ -704,10 +719,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                     float dist;
                     int dir;
                     int c;
-                    int rc;
 
-                    rc = sscanf(line, "%10s %f %f %f %f %f %d %d %4s %2s %f %d", id, &ra, &dec, &pose, &mag, &mage,
-                                &band, &c, plate, ob, &dist, &dir);
+                    int rc = sscanf(line, "%10s %f %f %f %f %f %d %d %4s %2s %f %d", id, &ra, &dec, &pose, &mag, &mage,
+                                    &band, &c, plate, ob, &dist, &dir);
                     //fprintf(stderr,"Parsed %d items\n",rc);
                     if (rc == 12)
                     {
@@ -852,9 +866,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
         if (maxnoise > 0)
         {
-            for (x = subX; x < subW; x++)
+            for (int x = subX; x < subW; x++)
             {
-                for (y = subY; y < subH; y++)
+                for (int y = subY; y < subH; y++)
                 {
                     int noise;
 
@@ -872,7 +886,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         testvalue++;
         if (testvalue > 255)
             testvalue = 0;
-        val = testvalue;
+        uint16_t val = testvalue;
 
         int nbuf = targetChip->getSubW() * targetChip->getSubH();
 
@@ -882,7 +896,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             ptr++;
         }
     }
-
     return 0;
 }
 
@@ -892,7 +905,7 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
     //float r;
     int sx, sy;
     int drew     = 0;
-    int boxsizex = 5;
+    //int boxsizex = 5;
     int boxsizey = 5;
     float flux;
 
@@ -918,11 +931,11 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
     //  we need a box size that gives a radius at least 3 times fwhm
     qx       = seeing / ImageScalex;
     qx       = qx * 3;
-    boxsizex = (int)qx;
-    boxsizex++;
+    //boxsizex = (int)qx;
+    //boxsizex++;
     qx       = seeing / ImageScaley;
     qx       = qx * 3;
-    boxsizey = (int)qx;
+    boxsizey = static_cast<int>(qx);
     boxsizey++;
 
     //IDLog("BoxSize %d %d\n",boxsizex,boxsizey);
@@ -1050,6 +1063,14 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+
+        if (!strcmp(name, GainNP.name))
+        {
+            IUUpdateNumber(&GainNP, values, names, n);
+            GainNP.s = IPS_OK;
+            IDSetNumber(&GainNP, nullptr);
+            return true;
+        }
 
         if (strcmp(name, "SIMULATOR_SETTINGS") == 0)
         {
@@ -1225,6 +1246,9 @@ bool CCDSim::saveConfigItems(FILE * fp)
     IUSaveConfigNumber(fp, SimulatorSettingsNV);
     IUSaveConfigSwitch(fp, TimeFactorSV);
 
+    // Gain
+    IUSaveConfigNumber(fp, &GainNP);
+
     return true;
 }
 
@@ -1242,7 +1266,7 @@ int CCDSim::QueryFilter()
 
 bool CCDSim::StartStreaming()
 {
-    ExposureRequest = 1.0 / Streamer->getTargetFPS();
+    ExposureRequest = 1.0 / Streamer->getTargetExposure();
     pthread_mutex_lock(&condMutex);
     streamPredicate = 1;
     pthread_mutex_unlock(&condMutex);
@@ -1295,13 +1319,13 @@ bool CCDSim::UpdateCCDBin(int hor, int ver)
 
 void * CCDSim::streamVideoHelper(void * context)
 {
-    return ((CCDSim *)context)->streamVideo();
+    return static_cast<CCDSim *>(context)->streamVideo();
 }
 
 void * CCDSim::streamVideo()
 {
-    struct itimerval tframe1, tframe2;
-    double s1, s2, deltas;
+    auto start = std::chrono::high_resolution_clock::now();
+    auto finish = std::chrono::high_resolution_clock::now();
 
     while (true)
     {
@@ -1310,7 +1334,7 @@ void * CCDSim::streamVideo()
         while (streamPredicate == 0)
         {
             pthread_cond_wait(&cv, &condMutex);
-            ExposureRequest = 1.0 / Streamer->getTargetFPS();
+            ExposureRequest = Streamer->getTargetExposure();
         }
 
         if (terminateThread)
@@ -1319,29 +1343,32 @@ void * CCDSim::streamVideo()
         // release condMutex
         pthread_mutex_unlock(&condMutex);
 
-        // Simulate exposure time
-        //usleep(ExposureRequest*1e5);
 
         // 16 bit
         DrawCcdFrame(&PrimaryCCD);
 
         PrimaryCCD.binFrame();
 
-        getitimer(ITIMER_REAL, &tframe1);
+        finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finish - start;
 
-        s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
-        s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
-        deltas = fabs(s2 - s1);
-
-        if (deltas < ExposureRequest)
-            usleep(fabs(ExposureRequest - deltas) * 1e6);
+        if (elapsed.count() < ExposureRequest)
+            usleep(fabs(ExposureRequest - elapsed.count()) * 1e6);
 
         uint32_t size = PrimaryCCD.getFrameBufferSize() / (PrimaryCCD.getBinX() * PrimaryCCD.getBinY());
         Streamer->newFrame(PrimaryCCD.getFrameBuffer(), size);
 
-        getitimer(ITIMER_REAL, &tframe2);
+        start = std::chrono::high_resolution_clock::now();
     }
 
     pthread_mutex_unlock(&condMutex);
     return nullptr;
+}
+
+void CCDSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
+{
+    INDI::CCD::addFITSKeywords(fptr, targetChip);
+
+    int status = 0;
+    fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
 }

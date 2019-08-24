@@ -41,7 +41,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return real_size;
 }
 
-CommandResponse CommandInterface::SendCommand(std::string cmd)
+CommandResponse CommandInterface::SendCommand(const std::string &cmd)
 {
     CURLcode rc;
     CURL *handle = connection->getHandle();

@@ -34,7 +34,7 @@
 
 /***************************** Class USBFocusV3 *******************************/
 
-std::unique_ptr<USBFocusV3> usbFocusV3(new USBFocusV3());
+static std::unique_ptr<USBFocusV3> usbFocusV3(new USBFocusV3());
 
 void ISGetProperties(const char *dev)
 {
@@ -77,7 +77,11 @@ void ISSnoopDevice(XMLEle *root)
 USBFocusV3::USBFocusV3()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
+                      FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_CAN_ABORT    |
+                      FOCUSER_HAS_BACKLASH |
+                      FOCUSER_HAS_VARIABLE_SPEED);
 }
 
 bool USBFocusV3::initProperties()
@@ -141,15 +145,20 @@ bool USBFocusV3::initProperties()
                        "Temp. Comp.", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Compensate for temperature
-    IUFillSwitch(&BacklashDirectionS[BACKLASH_IN], "IN", "In", ISS_OFF);
-    IUFillSwitch(&BacklashDirectionS[BACKLASH_OUT], "OUT", "Out", ISS_ON);
-    IUFillSwitchVector(&BacklashDirectionSP, BacklashDirectionS, 2, getDeviceName(), "BACKLASH_DIRECTION",
-                       "Backlash direction", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    //    IUFillSwitch(&BacklashDirectionS[BACKLASH_IN], "IN", "In", ISS_OFF);
+    //    IUFillSwitch(&BacklashDirectionS[BACKLASH_OUT], "OUT", "Out", ISS_ON);
+    //    IUFillSwitchVector(&BacklashDirectionSP, BacklashDirectionS, 2, getDeviceName(), "BACKLASH_DIRECTION",
+    //                       "Backlash direction", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Backlash compensation steps
-    IUFillNumber(&BacklashSettingN[0], "STEPS", "Steps", "%5.0f", 0., 65535., 1., 0.);
-    IUFillNumberVector(&BacklashSettingNP, BacklashSettingN, 1, getDeviceName(), "BACKLASH_STEPS", "Backlash steps",
-                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    //    // Backlash compensation steps
+    //    IUFillNumber(&BacklashSettingN[0], "FOCUS_BACKLASH_VALUE", "Steps", "%5.0f", 0., 65535., 1., 0.);
+    //    IUFillNumberVector(&BacklashSettingNP, BacklashSettingN, 1, getDeviceName(), "FOCUS_BACKLASH_STEPS", "Backlash steps",
+    //                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    FocusBacklashN[0].min = -65535.;
+    FocusBacklashN[0].max = 65535.;
+    FocusBacklashN[0].step = 1000.;
+    FocusBacklashN[0].value = 0.;
 
     // Reset
     IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
@@ -193,8 +202,8 @@ bool USBFocusV3::updateProperties()
         defineNumber(&TemperatureSettingNP);
         defineSwitch(&TempCompSignSP);
         defineSwitch(&TemperatureCompensateSP);
-        defineSwitch(&BacklashDirectionSP);
-        defineNumber(&BacklashSettingNP);
+        //        defineSwitch(&BacklashDirectionSP);
+        //        defineNumber(&BacklashSettingNP);
         defineSwitch(&ResetSP);
         defineNumber(&FWversionNP);
 
@@ -213,8 +222,8 @@ bool USBFocusV3::updateProperties()
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TempCompSignSP.name);
         deleteProperty(TemperatureCompensateSP.name);
-        deleteProperty(BacklashDirectionSP.name);
-        deleteProperty(BacklashSettingNP.name);
+        //        deleteProperty(BacklashDirectionSP.name);
+        //        deleteProperty(BacklashSettingNP.name);
         deleteProperty(ResetSP.name);
         deleteProperty(FWversionNP.name);
     }
@@ -234,7 +243,8 @@ bool USBFocusV3::Handshake()
             return true;
         }
         LOG_INFO("Error retreiving data from USBFocusV3, trying resync...");
-    } while (--tries > 0 && Resync());
+    }
+    while (--tries > 0 && Resync());
 
     LOG_INFO("Error retreiving data from USBFocusV3, please ensure controller "
              "is powered and the port is correct.");
@@ -443,27 +453,27 @@ bool USBFocusV3::updateTemperature()
     // retry up to 5 time to fix data desyncronization.
     // see: https://bitbucket.org/usb-focus/ascom-driver/src/f0ec7d0faee605f9a3d9e2c4d599f9d537211201/USB_Focus/Driver.cs?at=master&fileviewer=file-view-default#Driver.cs-898
 
-    while (j<=5)
+    while (j <= 5)
     {
-       if (sendCommand(UFOCREADTEMP, resp))
-       {
+        if (sendCommand(UFOCREADTEMP, resp))
+        {
 
-          float temp;
-          int rc = sscanf(resp, "T=%f", &temp);
+            float temp;
+            int rc = sscanf(resp, "T=%f", &temp);
 
-          if (rc > 0)
-          {
-             TemperatureN[0].value = temp;
-             break;
-          }
-          else
-          {
-             LOGF_DEBUG("Unknown error: focuser temperature value (%s)", resp);
-          }
-      }
-      j++;
+            if (rc > 0)
+            {
+                TemperatureN[0].value = temp;
+                break;
+            }
+            else
+            {
+                LOGF_DEBUG("Unknown error: focuser temperature value (%s)", resp);
+            }
+        }
+        j++;
     }
-    if (j>5)
+    if (j > 5)
     {
         LOGF_ERROR("Unknown error: focuser temperature value (%s)", resp);
         return false;
@@ -486,27 +496,27 @@ bool USBFocusV3::updatePosition()
     // retry up to 5 time to fix data desyncronization.
     // see: https://bitbucket.org/usb-focus/ascom-driver/src/f0ec7d0faee605f9a3d9e2c4d599f9d537211201/USB_Focus/Driver.cs?at=master&fileviewer=file-view-default#Driver.cs-746
 
-    while (j<=5)
+    while (j <= 5)
     {
-       if (sendCommand(UFOCREADPOS, resp))
-       {
+        if (sendCommand(UFOCREADPOS, resp))
+        {
 
-          int pos = -1;
-          int rc  = sscanf(resp, "P=%u", &pos);
+            int pos = -1;
+            int rc  = sscanf(resp, "P=%u", &pos);
 
-          if (rc > 0)
-          {
-              FocusAbsPosN[0].value = pos;
-              break;
-          }
-          else
-          {
-              LOGF_DEBUG("Unknown error: focuser position value (%s)", resp);
-          }
-       }
-       j++;
+            if (rc > 0)
+            {
+                FocusAbsPosN[0].value = pos;
+                break;
+            }
+            else
+            {
+                LOGF_DEBUG("Unknown error: focuser position value (%s)", resp);
+            }
+        }
+        j++;
     }
-    if (j>5)
+    if (j > 5)
     {
         LOGF_ERROR("Unknown error: focuser position value (%s)", resp);
         return false;
@@ -954,15 +964,15 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             return true;
         }
 
-        if (strcmp(BacklashDirectionSP.name, name) == 0)
-        {
-            IUUpdateSwitch(&BacklashDirectionSP, states, names, n);
-            int target_direction  = IUFindOnSwitchIndex(&BacklashDirectionSP);
-            backlashIn            = (target_direction == BACKLASH_IN);
-            BacklashDirectionSP.s = IPS_OK;
-            IDSetSwitch(&BacklashDirectionSP, nullptr);
-            return true;
-        }
+        //        if (strcmp(BacklashDirectionSP.name, name) == 0)
+        //        {
+        //            IUUpdateSwitch(&BacklashDirectionSP, states, names, n);
+        //            int target_direction  = IUFindOnSwitchIndex(&BacklashDirectionSP);
+        //            backlashIn            = (target_direction == BACKLASH_IN);
+        //            BacklashDirectionSP.s = IPS_OK;
+        //            IDSetSwitch(&BacklashDirectionSP, nullptr);
+        //            return true;
+        //        }
 
         if (strcmp(ResetSP.name, name) == 0)
         {
@@ -1003,7 +1013,7 @@ bool USBFocusV3::ISNewNumber(const char *dev, const char *name, double values[],
         {
             IUUpdateNumber(&TemperatureSettingNP, values, names, n);
             if (!setAutoTempCompThreshold(TemperatureSettingN[1].value) ||
-                !setTemperatureCoefficient(TemperatureSettingN[UFOPNSIGN].value))
+                    !setTemperatureCoefficient(TemperatureSettingN[UFOPNSIGN].value))
             {
                 TemperatureSettingNP.s = IPS_ALERT;
                 IDSetNumber(&TemperatureSettingNP, nullptr);
@@ -1015,14 +1025,14 @@ bool USBFocusV3::ISNewNumber(const char *dev, const char *name, double values[],
             return true;
         }
 
-        if (strcmp(name, BacklashSettingNP.name) == 0)
-        {
-            IUUpdateNumber(&BacklashSettingNP, values, names, n);
-            backlashSteps       = std::round(BacklashSettingN[0].value);
-            BacklashSettingNP.s = IPS_OK;
-            IDSetNumber(&BacklashSettingNP, nullptr);
-            return true;
-        }
+        //        if (strcmp(name, BacklashSettingNP.name) == 0)
+        //        {
+        //            IUUpdateNumber(&BacklashSettingNP, values, names, n);
+        //            backlashSteps       = std::round(BacklashSettingN[0].value);
+        //            BacklashSettingNP.s = IPS_OK;
+        //            IDSetNumber(&BacklashSettingNP, nullptr);
+        //            return true;
+        //        }
 
         if (strcmp(name, FWversionNP.name) == 0)
         {
@@ -1244,11 +1254,19 @@ float USBFocusV3::CalcTimeLeft(timeval start, float req)
     return timeleft;
 }
 
-bool USBFocusV3::saveConfigItems(FILE *fp)
+bool USBFocusV3::SetFocuserBacklash(int32_t steps)
 {
-    INDI::Focuser::saveConfigItems(fp);
+    backlashIn = steps < 0;
+    backlashSteps = std::abs(steps);
 
-    IUSaveConfigNumber(fp, &BacklashSettingNP);
-    IUSaveConfigSwitch(fp, &BacklashDirectionSP);
     return true;
 }
+
+//bool USBFocusV3::saveConfigItems(FILE *fp)
+//{
+//    INDI::Focuser::saveConfigItems(fp);
+
+//    IUSaveConfigNumber(fp, &BacklashSettingNP);
+//    IUSaveConfigSwitch(fp, &BacklashDirectionSP);
+//    return true;
+//}

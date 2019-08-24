@@ -40,136 +40,146 @@
  */
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
-  public:
+    public:
 
-    CCDSim();
-    virtual ~CCDSim() = default;
+        CCDSim();
+        virtual ~CCDSim() override = default;
 
-    const char *getDefaultName() override;
+        const char *getDefaultName() override;
 
-    bool initProperties() override;
-    bool updateProperties() override;
+        bool initProperties() override;
+        bool updateProperties() override;
 
-    void ISGetProperties(const char *dev) override;
+        void ISGetProperties(const char *dev) override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-    virtual bool ISSnoopDevice(XMLEle *root) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
-    static void *streamVideoHelper(void *context);
-    void *streamVideo();
+        static void *streamVideoHelper(void *context);
+        void *streamVideo();
 
-protected:
+    protected:
 
-    bool Connect() override;
-    bool Disconnect() override;
+        bool Connect() override;
+        bool Disconnect() override;
 
-    bool StartExposure(float duration) override;
-    bool StartGuideExposure(float) override;
+        bool StartExposure(float duration) override;
+        bool StartGuideExposure(float) override;
 
-    bool AbortExposure() override;
-    bool AbortGuideExposure() override;
+        bool AbortExposure() override;
+        bool AbortGuideExposure() override;
 
-    void TimerHit() override;
+        void TimerHit() override;
 
-    int DrawCcdFrame(INDI::CCDChip *targetChip);
+        int DrawCcdFrame(INDI::CCDChip *targetChip);
 
-    int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
-    int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
+        int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
+        int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
 
-    virtual IPState GuideNorth(uint32_t) override;
-    virtual IPState GuideSouth(uint32_t) override;
-    virtual IPState GuideEast(uint32_t) override;
-    virtual IPState GuideWest(uint32_t) override;
+        virtual IPState GuideNorth(uint32_t) override;
+        virtual IPState GuideSouth(uint32_t) override;
+        virtual IPState GuideEast(uint32_t) override;
+        virtual IPState GuideWest(uint32_t) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
-    virtual void activeDevicesUpdated() override;
-    virtual int SetTemperature(double temperature) override;
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
-    virtual bool UpdateCCDBin(int hor, int ver) override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;
+        virtual void activeDevicesUpdated() override;
+        virtual int SetTemperature(double temperature) override;
+        virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+        virtual bool UpdateCCDBin(int hor, int ver) override;
 
-    virtual bool StartStreaming() override;
-    virtual bool StopStreaming() override;
+        virtual bool StartStreaming() override;
+        virtual bool StopStreaming() override;
 
-    // Filter
-    bool SelectFilter(int) override;
-    int QueryFilter() override;
+        // Filter
+        bool SelectFilter(int) override;
+        int QueryFilter() override;
 
-  private:
+    private:
 
-    float CalcTimeLeft(timeval, float);
-    bool SetupParms();    
+        float CalcTimeLeft(timeval, float);
+        bool SetupParms();
 
-    float TemperatureRequest { 0 };
+        float TemperatureRequest { 0 };
 
-    float ExposureRequest { 0 };
-    struct timeval ExpStart { 0, 0 };
+        float ExposureRequest { 0 };
+        struct timeval ExpStart
+        {
+            0, 0
+        };
 
-    float GuideExposureRequest { 0 };
-    struct timeval GuideExpStart { 0, 0 };
+        float GuideExposureRequest { 0 };
+        struct timeval GuideExpStart
+        {
+            0, 0
+        };
 
-    int testvalue { 0 };
-    bool ShowStarField { true };
-    int bias { 1500 };
-    int maxnoise { 20 };
-    int maxval { 65000 };
-    int maxpix { 0 };
-    int minpix { 65000 };
-    float skyglow { 40 };
-    float limitingmag { 11.5 };
-    float saturationmag { 2 };
-    float seeing { 3.5 };
-    float ImageScalex { 1.0 };
-    float ImageScaley { 1.0 };
-    //  An oag is offset this much from center of scope position (arcminutes)
-    float OAGoffset { 0 };
-    float rotationCW { 0 };
-    float TimeFactor { 1 };
-    //  our zero point calcs used for drawing stars
-    float k { 0 };
-    float z { 0 };
+        int testvalue { 0 };
+        bool ShowStarField { true };
+        int bias { 1500 };
+        int maxnoise { 20 };
+        int maxval { 65000 };
+        int maxpix { 0 };
+        int minpix { 65000 };
+        float skyglow { 40 };
+        float limitingmag { 11.5 };
+        float saturationmag { 2 };
+        float seeing { 3.5 };
+        float ImageScalex { 1.0 };
+        float ImageScaley { 1.0 };
+        //  An oag is offset this much from center of scope position (arcminutes)
+        float OAGoffset { 0 };
+        float rotationCW { 0 };
+        float TimeFactor { 1 };
+        //  our zero point calcs used for drawing stars
+        float k { 0 };
+        float z { 0 };
 
-    bool AbortGuideFrame { false };
-    bool AbortPrimaryFrame { false };
+        bool AbortGuideFrame { false };
+        bool AbortPrimaryFrame { false };
 
-    /// Guide rate is 7 arcseconds per second
-    float GuideRate { 7 };
+        /// Guide rate is 7 arcseconds per second
+        float GuideRate { 7 };
 
-    /// Our PEPeriod is 8 minutes and we have a 22 arcsecond swing
-    float PEPeriod { 8*60 };
-    float PEMax { 11 };
+        /// Our PEPeriod is 8 minutes and we have a 22 arcsecond swing
+        float PEPeriod { 8 * 60 };
+        float PEMax { 11 };
 
-    double currentRA { 0 };
-    double currentDE { 0 };
-    bool usePE { false };
-    time_t RunStart;
+        double currentRA { 0 };
+        double currentDE { 0 };
+        bool usePE { false };
+        time_t RunStart;
 
-    float guideNSOffset {0};
-    float guideWEOffset {0};
+        float guideNSOffset {0};
+        float guideWEOffset {0};
 
-    float polarError { 0 };
-    float polarDrift { 0 };
+        float polarError { 0 };
+        float polarDrift { 0 };
 
-    int streamPredicate;
-    pthread_t primary_thread;
-    bool terminateThread;
+        int streamPredicate;
+        pthread_t primary_thread;
+        bool terminateThread;
 
-    //  And this lives in our simulator settings page
+        //  And this lives in our simulator settings page
 
-    INumberVectorProperty *SimulatorSettingsNV;
-    INumber SimulatorSettingsN[14];
+        INumberVectorProperty *SimulatorSettingsNV;
+        INumber SimulatorSettingsN[14];
 
-    ISwitch TimeFactorS[3];
-    ISwitchVectorProperty *TimeFactorSV;
+        ISwitch TimeFactorS[3];
+        ISwitchVectorProperty *TimeFactorSV;
 
-    //  We are going to snoop these from focuser
-    INumberVectorProperty FWHMNP;
-    INumber FWHMN[1];
+        //  We are going to snoop these from focuser
+        INumberVectorProperty FWHMNP;
+        INumber FWHMN[1];
 
-    INumberVectorProperty EqPENP;
-    INumber EqPEN[2];
+        INumberVectorProperty EqPENP;
+        INumber EqPEN[2];
 
-    ISwitch CoolerS[2];
-    ISwitchVectorProperty CoolerSP;
+        ISwitch CoolerS[2];
+        ISwitchVectorProperty CoolerSP;
+
+        INumber GainN[1];
+        INumberVectorProperty GainNP;
 };

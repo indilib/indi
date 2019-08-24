@@ -44,8 +44,8 @@ ENDIF ()
 
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
-set(CMAKE_INDI_VERSION_MINOR 7)
-set(CMAKE_INDI_VERSION_RELEASE 8)
+set(CMAKE_INDI_VERSION_MINOR 8)
+set(CMAKE_INDI_VERSION_RELEASE 0)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -693,9 +693,24 @@ target_link_libraries(indi_dsc_telescope indidriver AlignmentDriver)
 
 install(TARGETS indi_dsc_telescope RUNTIME DESTINATION bin)
 
-########### IEQ Pro / CEM60 #############
+########### IEQ Pro Legacy #############
+SET(ieqlegacy_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqprolegacydriver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqprolegacy.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(ieqlegacy ieqlegacy_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_ieqlegacy_telescope ${ieqlegacy_SRC})
+
+target_link_libraries(indi_ieqlegacy_telescope indidriver)
+
+install(TARGETS indi_ieqlegacy_telescope RUNTIME DESTINATION bin)
+
+########### IEQ Pro #############
 SET(ieq_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqprodriver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqdriverbase.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqpro.cpp)
 
 IF (UNITY_BUILD)
@@ -750,7 +765,7 @@ add_executable(indi_script_telescope ${telescopescript_SRC})
 target_link_libraries(indi_script_telescope indidriver)
 install(TARGETS indi_script_telescope RUNTIME DESTINATION bin)
 
-################ Focuser Simulator ################
+################ Detector Simulator ################
 
 SET(detectorsimulator_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/detector/detector_simulator.cpp)
@@ -799,6 +814,15 @@ add_executable(indi_robo_focus ${robofocus_SRC})
 target_link_libraries(indi_robo_focus indidriver)
 install(TARGETS indi_robo_focus RUNTIME DESTINATION bin)
 
+
+################ Robo Focuser ################
+
+SET(fcusb_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/fcusb.cpp)
+
+add_executable(indi_fcusb_focus ${fcusb_SRC})
+target_link_libraries(indi_fcusb_focus indidriver)
+install(TARGETS indi_fcusb_focus RUNTIME DESTINATION bin)
 
 ################ Rigelsys NFocus Focuser ################
 
@@ -1122,6 +1146,14 @@ add_executable(indi_trutech_wheel ${trutechwheel_SRC})
 target_link_libraries(indi_trutech_wheel indidriver)
 install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin)
 
+########## QHYCFW Wheel 1 ############
+SET(qhycfw1_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/qhycfw1.cpp)
+
+add_executable(indi_qhycfw1_wheel ${qhycfw1_SRC})
+target_link_libraries(indi_qhycfw1_wheel indidriver)
+install(TARGETS indi_qhycfw1_wheel RUNTIME DESTINATION bin)
+
 ########## QHYCFW Wheel 2 ############
 SET(qhycfw2_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/qhycfw2.cpp)
@@ -1211,6 +1243,11 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_executable(indi_v4l2_ccd ${v4l2driverccd_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC})
     target_link_libraries(indi_v4l2_ccd ${JPEG_LIBRARY} indidriver)
     install(TARGETS indi_v4l2_ccd RUNTIME DESTINATION bin )
+
+    # For DBK21 camera
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/80-dbk21-camera.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+
+
 ENDIF ()
 
 #################################################################################
