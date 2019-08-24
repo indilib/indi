@@ -31,23 +31,38 @@ class gpsmm;
 
 class GPSD : public INDI::GPS
 {
-  public:
-    GPSD();
-    virtual ~GPSD() = default;
+    public:
+        GPSD();
 
-    IText GPSstatusT[1] {};
-    ITextVectorProperty GPSstatusTP;
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-    INumber PolarisN[1];
-    INumberVectorProperty PolarisNP;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    gpsmm *gps = nullptr;
-    //  Generic indi device entries
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual IPState updateGPS() override;
+    protected:
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
+
+        virtual bool saveConfigItems(FILE *fp) override;
+
+        virtual IPState updateGPS() override;
+
+    private:
+        gpsmm *gps = nullptr;
+
+        ITextVectorProperty GPSstatusTP;
+        IText GPSstatusT[1] {};
+
+        INumberVectorProperty PolarisNP;
+        INumber PolarisN[1];
+
+        ISwitchVectorProperty TimeSourceSP;
+        ISwitch TimeSourceS[2];
+        enum
+        {
+            TS_GPS,
+            TS_SYSTEM
+        };
+
 };

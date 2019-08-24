@@ -44,6 +44,8 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
     m_isStreaming = false;
     m_isRecording = false;
 
+    prepareGammaLUT();
+
     // Timer
     // now use BSD setimer to avoi librt dependency
     //sevp.sigev_notify=SIGEV_NONE;
@@ -79,6 +81,7 @@ StreamManager::~StreamManager()
     delete (recorderManager);
     delete (encoderManager);
     delete [] downscaleBuffer;
+    delete [] gammaLUT_16_8;
 }
 
 const char * StreamManager::getDeviceName()
@@ -267,90 +270,89 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
 void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams)
 {
-    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
-    {
-        std::unique_lock<std::mutex> guard(dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock);
-    }
-    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
-    {
-        std::unique_lock<std::mutex> guard(dynamic_cast<INDI::Detector*>(currentDevice)->detectorBufferLock);
-    }
+    std::unique_lock<std::mutex> guard((currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) ?
+                                       dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock :
+                                       dynamic_cast<INDI::Detector*>(currentDevice)->detectorBufferLock);
+
     // For streaming, downscale 16 to 8
     if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
     {
+        if (isStreaming() || strcmp(recorder->getName(), "SER"))
+        {
+            uint32_t npixels = 0;
+            if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
+            {
+                npixels = (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX()) * (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+                //uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+            }
+            else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+            {
+                npixels = nbytes * 8 / dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getBPS();
+            }
+            // Allocale new buffer if size changes
+            if (downscaleBufferSize != npixels)
+            {
+                downscaleBufferSize = npixels;
+                delete [] downscaleBuffer;
+                downscaleBuffer = new uint8_t[npixels];
+            }
+
+            const uint16_t * srcBuffer = reinterpret_cast<const uint16_t *>(buffer);
+            //buffer = downscaleBuffer;
+
+            // Slow method: proper downscale
+            /*
+
+            uint16_t max = 32768;
+            uint16_t min = 0;
+
+            for (uint32_t i=0; i < npixels; i++)
+            {
+                if (srcBuffer[i] > max)
+                    max = srcBuffer[i];
+                else if (srcBuffer[i] < min)
+                    min = srcBuffer[i];
+            }
+
+            double bscale = 255. / (max - min);
+            double bzero  = (-min) * (255. / (max - min));
+
+            for (uint32_t i=0; i < npixels; i++)
+                streamBuffer[i] = srcBuffer[i] * bscale + bzero;
+            */
+
+            // Apply gamma
+            for (uint32_t i = 0; i < npixels; i++)
+                downscaleBuffer[i] = gammaLUT_16_8[srcBuffer[i]];
+
+            nbytes /= 2;
+
+#if 0
+            if (StreamSP.s == IPS_BUSY)
+            {
+                streamframeCount++;
+                if (streamframeCount >= StreamOptionsN[OPTION_RATE_DIVISOR].value)
+                {
+                    uploadStream(downscaleBuffer, nbytes);
+                    streamframeCount = 0;
+                }
+            }
+#endif
+
+            if (StreamSP.s == IPS_BUSY)
+                uploadStream(downscaleBuffer, nbytes);
+
+            // If anything but SER, let's call recorder. Otherwise, it's been called up before.
+            if (isRecording() && strcmp(recorder->getName(), "SER"))
+            {
+                recordStream(downscaleBuffer, nbytes, deltams);
+            }
+        }
+
         // Do not downscale for SER recorder.
         if (isRecording() && !strcmp(recorder->getName(), "SER"))
         {
             recordStream(buffer, nbytes, deltams);
-        }
-        uint32_t npixels = 0;
-        if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
-        {
-            npixels = (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX()) * (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
-            //uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
-        }
-        else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
-        {
-            npixels = nbytes * 8 / dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getBPS();
-        }
-        // Allocale new buffer if size changes
-        if (downscaleBufferSize != npixels)
-        {
-            downscaleBufferSize = npixels;
-            delete [] downscaleBuffer;
-            downscaleBuffer = new uint8_t[npixels];
-        }
-
-        const uint16_t * srcBuffer = reinterpret_cast<const uint16_t *>(buffer);
-        //buffer = downscaleBuffer;
-
-        // Slow method: proper downscale
-        /*
-
-        uint16_t max = 32768;
-        uint16_t min = 0;
-
-        for (uint32_t i=0; i < npixels; i++)
-        {
-            if (srcBuffer[i] > max)
-                max = srcBuffer[i];
-            else if (srcBuffer[i] < min)
-                min = srcBuffer[i];
-        }
-
-        double bscale = 255. / (max - min);
-        double bzero  = (-min) * (255. / (max - min));
-
-        for (uint32_t i=0; i < npixels; i++)
-            streamBuffer[i] = srcBuffer[i] * bscale + bzero;
-        */
-
-        // Fast method: Cut off anything higher than 255. Image will be saturated.
-        // Dividing by 255 works, but for astronomical images it's too dark.
-        for (uint32_t i = 0; i < npixels; i++)
-            downscaleBuffer[i] = std::max(0, std::min(255, static_cast<int>(srcBuffer[i])));
-
-        nbytes /= 2;
-
-#if 0
-        if (StreamSP.s == IPS_BUSY)
-        {
-            streamframeCount++;
-            if (streamframeCount >= StreamOptionsN[OPTION_RATE_DIVISOR].value)
-            {
-                uploadStream(downscaleBuffer, nbytes);
-                streamframeCount = 0;
-            }
-        }
-#endif
-
-        if (StreamSP.s == IPS_BUSY)
-            uploadStream(downscaleBuffer, nbytes);
-
-        // If anything but SER, let's call recorder. Otherwise, it's been called up before.
-        if (isRecording() && strcmp(recorder->getName(), "SER"))
-        {
-            recordStream(downscaleBuffer, nbytes, deltams);
         }
     }
     else
@@ -614,7 +616,7 @@ bool StreamManager::startRecording()
         expfiledir += '/';
     recordfilename.assign(RecordFileTP.tp[1].text);
     expfilename = expand(recordfilename, patterns);
-    if (expfilename.substr(expfilename.size() - 4, 4) != recorder->getExtension())
+    if (expfilename.size() < 4 || expfilename.substr(expfilename.size() - 4, 4) != recorder->getExtension())
         expfilename += recorder->getExtension();
 
     filename = expfiledir + expfilename;
@@ -1296,6 +1298,22 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     }
 
     return false;
+}
+
+void StreamManager::prepareGammaLUT(double gamma, double a, double b, double Ii)
+{
+    if (!gammaLUT_16_8) gammaLUT_16_8 = new uint8_t[65536];
+
+    for (int i = 0; i < 65536; i++)
+    {
+        double I = static_cast<double>(i) / 65535.0;
+        double p;
+        if (I <= Ii)
+            p = a * I;
+        else
+            p = (1 + b) * powf(I, 1.0 / gamma) - b;
+        gammaLUT_16_8[i] = round(255.0 * p);
+    }
 }
 
 }

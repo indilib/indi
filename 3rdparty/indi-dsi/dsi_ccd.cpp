@@ -183,11 +183,11 @@ bool DSICCD::initProperties()
 
     /* Add Gain number property (gs) */
     IUFillNumber(GainN, "GAIN", "Gain", "%g", 0, 100, 1, 100);
-    IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Add Offset number property (gs) */
     IUFillNumber(OffsetN, "OFFSET", "Offset", "%g", -50, 50, 1, 0);
-    IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "OFFSET", "Offset", IMAGE_SETTINGS_TAB, IP_RW, 0,
+    IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "CCD_OFFSET", "Offset", IMAGE_SETTINGS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     /* Vdd on during exposure property (gs)

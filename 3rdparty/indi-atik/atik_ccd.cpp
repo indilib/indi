@@ -237,7 +237,7 @@ bool ATIKCCD::initProperties()
     IUFillNumber(&ControlN[CONTROL_GAIN], "CONTROL_GAIN", "Gain", "%.f", 0, 60, 5, 30);
     IUFillNumber(&ControlN[CONTROL_OFFSET], "CONTROL_OFFSET", "Offset", "%.f", 0, 511, 10, 0);
     IUFillNumberVector(&ControlNP, ControlN, 2, getDeviceName(), "CCD_CONTROLS", "GO Controls", CONTROLS_TAB,
-                       IP_RO, 60, IPS_IDLE);
+                       IP_RW, 60, IPS_IDLE);
 
     IUSaveText(&BayerT[2], "RGGB");
 
@@ -357,8 +357,10 @@ bool ATIKCCD::setupParams()
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, binX, 1, false);
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, binY, 1, false);
 
-    IUSaveText(&VersionInfoS[VERSION_FIRMWARE], std::to_string(pProp.Protocol).c_str());
-    LOGF_INFO("Detected camera %s %s with firmware %s", pProp.Manufacturer, pProp.Description, std::to_string(pProp.Protocol).c_str());
+    char firmware[8] = {0};
+    snprintf(firmware, sizeof(firmware), "%d.%d", pProp.Protocol >> 8, pProp.Protocol & 0xff);
+    IUSaveText(&VersionInfoS[VERSION_FIRMWARE], firmware);
+    LOGF_INFO("Detected camera %s %s with firmware %s", pProp.Manufacturer, pProp.Description, firmware);
 
     uint32_t cap = 0;
 

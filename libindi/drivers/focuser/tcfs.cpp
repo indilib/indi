@@ -81,7 +81,7 @@ TCFS::TCFS()
     currentMode = MANUAL;
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 
-    setVersion(0, 3);
+    setVersion(0, 4);
 }
 
 /****************************************************************
@@ -845,7 +845,6 @@ IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 bool TCFS::dispatch_command(TCFSCommand command_type, int val, TCFSMode m)
 {
     int err_code = 0, nbytes_written = 0;
-    char tcfs_error[TCFS_ERROR_BUFFER];
     char command[TCFS_MAX_CMD] = {0};
 
     switch (command_type)
@@ -878,14 +877,14 @@ bool TCFS::dispatch_command(TCFSCommand command_type, int val, TCFSMode m)
         case FIN:
             simulated_position = currentPosition;
 
-            snprintf(command, TCFS_MAX_CMD, "FI%04d", targetTicks);
+            snprintf(command, TCFS_MAX_CMD, "FI%04u", targetTicks);
             break;
 
         // Focuser Out “nnnn”
         case FOUT:
             simulated_position = currentPosition;
 
-            snprintf(command, TCFS_MAX_CMD, "FO%04d", targetTicks);
+            snprintf(command, TCFS_MAX_CMD, "FO%04u", targetTicks);
             break;
 
         // Focuser Position Read Out
@@ -893,7 +892,7 @@ bool TCFS::dispatch_command(TCFSCommand command_type, int val, TCFSMode m)
             strncpy(command, "FPOSRO", TCFS_MAX_CMD);
             break;
 
-        // Focuser Position Read Out
+        // Focuser Temperature
         case FTMPRO:
             strncpy(command, "FTMPRO", TCFS_MAX_CMD);
             break;
@@ -946,8 +945,9 @@ bool TCFS::dispatch_command(TCFSCommand command_type, int val, TCFSMode m)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if ((err_code = tty_write(PortFD, command, strlen(command), &nbytes_written) != TTY_OK))
+    if ( (err_code = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
+        char tcfs_error[TCFS_ERROR_BUFFER];
         tty_error_msg(err_code, tcfs_error, TCFS_ERROR_BUFFER);
         LOGF_ERROR("TTY error detected: %s", tcfs_error);
         return false;
@@ -1160,6 +1160,10 @@ void TCFS::TimerHit()
 
         if (read_tcfs(response) == false)
         {
+            FocusTemperatureNP.s = IPS_ALERT;
+            IDSetNumber(&FocusTemperatureNP, nullptr);
+            LOG_ERROR("Failed to read temperature. Is sensor connected?");
+
             SetTimer(POLLMS);
             return;
         }
@@ -1193,7 +1197,6 @@ void TCFS::TimerHit()
 bool TCFS::read_tcfs(char *response, bool silent)
 {
     int err_code = 0, nbytes_read = 0;
-    char err_msg[TCFS_ERROR_BUFFER];
 
     if (isSimulation())
     {
@@ -1206,6 +1209,7 @@ bool TCFS::read_tcfs(char *response, bool silent)
     {
         if (!silent)
         {
+            char err_msg[TCFS_ERROR_BUFFER];
             tty_error_msg(err_code, err_msg, 32);
             LOGF_ERROR("TTY error detected: %s", err_msg);
         }
@@ -1218,8 +1222,15 @@ bool TCFS::read_tcfs(char *response, bool silent)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    LOGF_DEBUG("RES <%s>", response);
+    if (strstr(response, "ER="))
+    {
+        int errorCode = 0;
+        sscanf(response, "ER=%d", &errorCode);
+        LOGF_ERROR("Error Code <%d>", errorCode);
+        return false;
+    }
 
+    LOGF_DEBUG("RES <%s>", response);
     return true;
 }
 

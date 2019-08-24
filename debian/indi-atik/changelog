@@ -1,3 +1,15 @@
+indi-atik (2.4) bionic; urgency=low
+
+  * Fixed ST4 guide pulses.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 26 Jul 2019 01:00:00 +0300
+
+indi-atik (2.3) bionic; urgency=low
+
+  * Fixed read-only gain and offset.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 18 Jun 2019 23:00:00 +0300
+
 indi-atik (2.2) bionic; urgency=low
 
   * Fixed filter wheel index issue.

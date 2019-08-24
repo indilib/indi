@@ -715,7 +715,7 @@ EXPORTC uint32_t STDCALL GetQHYCCDSDKVersion(uint32_t *year,uint32_t *month,uint
 
 
 //APIs for the Readout Mode. One camera may have more than one readout mode. The different readout mode has different base-resolution. For example
-//The QHY42PRO support HDR and STD mode. HDR mode base-resolution is 4096*2048. While the STD mode is 2048*2048. In this case we need to use the 
+//The QHY42PRO support HDR and STD mode. HDR mode base-resolution is 4096*2048. While the STD mode is 2048*2048. In this case we need to use the
 //readout mode to set it. The host application need to get the readout mode and select one to set it. The sequece that call this fucntion need to be(......)
 
 
@@ -730,8 +730,20 @@ EXPORTC uint32_t STDCALL SetQHYCCDReadMode(qhyccd_handle *h,uint32_t modeNumber)
 EXPORTC uint32_t STDCALL GetQHYCCDReadMode(qhyccd_handle *h,uint32_t* modeNumber);
 
 EXPORTC uint32_t STDCALL GetQHYCCDBeforeOpenParam(
-	QHYCamMinMaxStepValue *p, 
-	CONTROL_ID controlId);
+  QHYCamMinMaxStepValue *p,
+  CONTROL_ID controlId);
+
+EXPORTC uint32_t STDCALL  SetQHYCCDBurstModeStartEnd(
+  qhyccd_handle *h,unsigned short start,
+  unsigned short end);
+EXPORTC uint32_t STDCALL EnableQHYCCDBurstCountFun(
+  qhyccd_handle *h,bool i);
+EXPORTC uint32_t STDCALL EnableQHYCCDBurstMode(
+  qhyccd_handle *h,bool i);
+EXPORTC uint32_t STDCALL ResetQHYCCDFrameCounter(qhyccd_handle *h);
+EXPORTC uint32_t STDCALL SetQHYCCDBurstIDLE(qhyccd_handle *h);
+EXPORTC uint32_t STDCALL ReleaseQHYCCDBurstIDLE(qhyccd_handle *h);
+
 
 #if CALLBACK_MODE_SUPPORT
 EXPORTC uint32_t STDCALL SetQHYCCDCallBack(QHYCCDProcCallBack ProcCallBack);

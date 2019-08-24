@@ -28,115 +28,115 @@
 
 class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
 {
-  public:
+    public:
 
-    PMC8();
-    ~PMC8();
+        PMC8();
+        ~PMC8() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    
-    virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
+        virtual void ISGetProperties(const char *dev) override;
 
-    virtual const char *getDefaultName() override;
+    protected:
 
-    virtual bool Handshake() override;
+        virtual const char *getDefaultName() override;
 
-    virtual bool initProperties() override;
-    
-    virtual bool updateProperties() override;
+        virtual bool Handshake() override;
 
-    virtual bool ReadScopeStatus() override;
+        virtual bool initProperties() override;
 
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+        virtual bool updateProperties() override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool ReadScopeStatus() override;
 
-    virtual bool Park() override;
-    virtual bool UnPark() override;
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
-    virtual bool Sync(double ra, double dec) override;
-    virtual bool Goto(double, double) override;
-    virtual bool Abort() override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
 
-    virtual void debugTriggered(bool enable) override;
-    virtual void simulationTriggered(bool enable) override;
+        virtual bool Sync(double ra, double dec) override;
+        virtual bool Goto(double, double) override;
+        virtual bool Abort() override;
 
-    // Parking
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-    // Track Mode
-    virtual bool SetTrackMode(uint8_t mode) override;
+        virtual void debugTriggered(bool enable) override;
+        virtual void simulationTriggered(bool enable) override;
 
-    // Track Rate
-    virtual bool SetTrackRate(double raRate, double deRate) override;
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
-    // Track On/Off
-    virtual bool SetTrackEnabled(bool enabled) override;
+        // Track Mode
+        virtual bool SetTrackMode(uint8_t mode) override;
 
-    // Slew Rate
-    virtual bool SetSlewRate(int index) override;
+        // Track Rate
+        virtual bool SetTrackRate(double raRate, double deRate) override;
 
-    // Sim
-    void mountSim();
+        // Track On/Off
+        virtual bool SetTrackEnabled(bool enabled) override;
 
-    // Guide
-    virtual IPState GuideNorth(uint32_t ms) override;
-    virtual IPState GuideSouth(uint32_t ms) override;
-    virtual IPState GuideEast(uint32_t ms) override;
-    virtual IPState GuideWest(uint32_t ms) override;
+        // Slew Rate
+        virtual bool SetSlewRate(int index) override;
 
-    // Pulse Guide
-    static void guideTimeoutHelperN(void *p);
-    static void guideTimeoutHelperS(void *p);
-    static void guideTimeoutHelperE(void *p);
-    static void guideTimeoutHelperW(void *p);
-    void guideTimeout(PMC8_DIRECTION calldir);
+        // Sim
+        void mountSim();
 
-    //GUIDE variables.
-    int GuideNSTID;
-    int GuideWETID;
+        // Guide
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
-  private:
-    /**
-        * @brief getStartupData Get initial mount info on startup.
-        */
-    void getStartupData();
+        // Pulse Guide
+        static void guideTimeoutHelperN(void *p);
+        static void guideTimeoutHelperS(void *p);
+        static void guideTimeoutHelperE(void *p);
+        static void guideTimeoutHelperW(void *p);
+        void guideTimeout(PMC8_DIRECTION calldir);
 
-    /* Firmware */
-    IText FirmwareT[1] {};
-    ITextVectorProperty FirmwareTP;
+        //GUIDE variables.
+        int GuideNSTID;
+        int GuideWETID;
 
-    /* Mount Types */
-    ISwitch MountTypeS[3];
-    ISwitchVectorProperty MountTypeSP;
-    enum { MOUNT_G11, MOUNT_EXOS2, MOUNT_iEXOS100 };
+    private:
+        /**
+            * @brief getStartupData Get initial mount info on startup.
+            */
+        void getStartupData();
 
-    /* Tracking Mode */
-    //ISwitchVectorProperty TrackModeSP;
-    //ISwitch TrackModeS[4];
+        /* Firmware */
+        IText FirmwareT[1] {};
+        ITextVectorProperty FirmwareTP;
 
-    /* Custom Tracking Rate */
-    //INumber CustomTrackRateN[1];
-    //INumberVectorProperty CustomTrackRateNP;
+        /* Mount Types */
+        ISwitch MountTypeS[3];
+        ISwitchVectorProperty MountTypeSP;
+        enum { MOUNT_G11, MOUNT_EXOS2, MOUNT_iEXOS100 };
 
-    /* Guide Rate */
-    INumber GuideRateN[1];
-    INumberVectorProperty GuideRateNP;
+        /* Tracking Mode */
+        //ISwitchVectorProperty TrackModeSP;
+        //ISwitch TrackModeS[4];
 
-    unsigned int DBG_SCOPE;
-    double currentRA, currentDEC;
-    double targetRA, targetDEC;
+        /* Custom Tracking Rate */
+        //INumber CustomTrackRateN[1];
+        //INumberVectorProperty CustomTrackRateNP;
 
-    //PMC8Info scopeInfo;
-    FirmwareInfo firmwareInfo;
+        /* Guide Rate */
+        INumber GuideRateN[1];
+        INumberVectorProperty GuideRateNP;
+
+        unsigned int DBG_SCOPE;
+        double currentRA, currentDEC;
+        double targetRA, targetDEC;
+
+        //PMC8Info scopeInfo;
+        FirmwareInfo firmwareInfo;
 };
 
 

@@ -110,7 +110,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
 {
     public:
         DefaultDevice();
-        virtual ~DefaultDevice();
+        virtual ~DefaultDevice() override;
 
         /** \brief Add Debug, Simulation, and Configuration options to the driver */
         void addAuxControls();

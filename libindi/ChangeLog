@@ -1,3 +1,33 @@
+From 1.7.9 to 1.8.0
+
+      + iOptron CEM40 driver.
+      + QHYCCD CFW1 driver.
+      + Decode ATIK firmware version correctly.
+      + Apply gamma when downscaling 16bit to 8bit stream.
+      + Improve reliability of sendBlob.
+      + GPSD driver should use raw GPS time by default.
+      + add watchProperty to make client only request and only process properties of interest.
+      + Prevents indi_fli_wheel crash for FLI-CFW-1-8 model.
+      + Fix communication issues in Vixen Starbook driver.
+      + Fix Dew control and Current sensing on PPB.
+      + Fix out-of-bounds access in 420p conversion in V4L2 driver.
+      + Fix Atik guide ST4 pulses.
+      + ASI Camera SDK 1.14.0715 update.
+      + QHY SDK updated to 5.1.0.
+
+From 1.7.8 to 1.7.9
+
+      + New Astromechanic Light Pollution Meter driver.
+      + New FCUSB driver.
+      + SestoSenso driver motion issues resolved.
+      + LX200 drivers can operate over TCP.
+      + Fix TCFS issue when temperature sensor is not connected.
+      + Experimental support for KMTronic USB Relay Serial for Nikon cameras.
+      + Fix RA drift with HEQ5 firmware 106.
+      + Added dead-zones to joystick driver.
+      + Update ASI EAF SDK to version 0.1.0524.
+      + QHY SDK updated to 5.0.9.
+
 From 1.7.7 to 1.7.8
 
       + New Omegon EQ500X mount driver.

@@ -1,3 +1,21 @@
+libindi (1.8.1) bionic; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 13 Aug 2019 19:00:00 +0300
+
+libindi (1.8.0) bionic; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 27 Jul 2019 19:00:00 +0300
+
+libindi (1.7.9) bionic; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 22 Jun 2019 19:00:00 +0300
+
 libindi (1.7.8) bionic; urgency=medium
 
   * Minor release.

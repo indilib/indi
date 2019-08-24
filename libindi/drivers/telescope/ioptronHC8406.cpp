@@ -113,8 +113,8 @@ ioptronHC8406::ioptronHC8406()
     setVersion(1, 2);
     setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_PULSE_GUIDING);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                      TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION |
-                      TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK);
+                           TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION |
+                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK);
 
 }
 
@@ -125,20 +125,20 @@ bool ioptronHC8406::initProperties()
     // Sync Type
     IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], "USE_REGULAR_SYNC", ":CM#", ISS_ON);
     IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], "USE_CMR_SYNC", ":CMR#", ISS_OFF);
-    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNC_MODE", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
+    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNC_MODE", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Cursor move Guiding/Center
-    IUFillSwitch(&CursorMoveSpeedS[USE_GUIDE_SPEED],"USE_GUIDE_SPEED", "Guide Speed", ISS_ON);
-    IUFillSwitch(&CursorMoveSpeedS[USE_CENTERING_SPEED],"USE_CENTERING_SPEED", "Centering Speed", ISS_OFF);
+    IUFillSwitch(&CursorMoveSpeedS[USE_GUIDE_SPEED], "USE_GUIDE_SPEED", "Guide Speed", ISS_ON);
+    IUFillSwitch(&CursorMoveSpeedS[USE_CENTERING_SPEED], "USE_CENTERING_SPEED", "Centering Speed", ISS_OFF);
     IUFillSwitchVector(&CursorMoveSpeedSP, CursorMoveSpeedS, 2, getDeviceName(),
-     "CURSOR_MOVE_MODE", "Cursor Move Speed", MOTION_TAB, IP_RO, ISR_1OFMANY, 0,IPS_IDLE);
+                       "CURSOR_MOVE_MODE", "Cursor Move Speed", MOTION_TAB, IP_RO, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Guide Rate
     IUFillSwitch(&GuideRateS[0], "0.25x", "", ISS_OFF);
     IUFillSwitch(&GuideRateS[1], "0.50x", "", ISS_ON);
     IUFillSwitch(&GuideRateS[2], "1.0x", "", ISS_OFF);
     IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(),
-          "GUIDE_RATE", "Guide Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
+                       "GUIDE_RATE", "Guide Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Center Rate
     IUFillSwitch(&CenterRateS[0], "12x", "", ISS_OFF);
@@ -146,7 +146,7 @@ bool ioptronHC8406::initProperties()
     IUFillSwitch(&CenterRateS[2], "600x", "", ISS_OFF);
     IUFillSwitch(&CenterRateS[3], "1200x", "", ISS_OFF);
     IUFillSwitchVector(&CenterRateSP, CenterRateS, 4, getDeviceName(),
-          "CENTER_RATE", "Center Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
+                       "CENTER_RATE", "Center Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     TrackModeSP.nsp = 3;
 
@@ -250,7 +250,7 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
         if (!strcmp(name, CursorMoveSpeedSP.name))
         {
             int currentSwitch = IUFindOnSwitchIndex(&CursorMoveSpeedSP);
-        IUUpdateSwitch(&CursorMoveSpeedSP, states, names, n);
+            IUUpdateSwitch(&CursorMoveSpeedSP, states, names, n);
             if (setioptronHC8406CursorMoveSpeed(IUFindOnSwitchIndex(&CursorMoveSpeedSP)) == TTY_OK)
                 CursorMoveSpeedSP.s = IPS_OK;
             else
@@ -270,12 +270,14 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
             if (setioptronHC8406GuideRate(IUFindOnSwitchIndex(&GuideRateSP)) == TTY_OK)
             {
                 GuideRateSP.s = IPS_OK;
-        //Shows guide speed selected
-        CursorMoveSpeedS[USE_GUIDE_SPEED].s = ISS_ON;
-        CursorMoveSpeedS[USE_CENTERING_SPEED].s = ISS_OFF;
-            CursorMoveSpeedSP.s = IPS_OK;
-            IDSetSwitch(&CursorMoveSpeedSP, nullptr);
-            } else {
+                //Shows guide speed selected
+                CursorMoveSpeedS[USE_GUIDE_SPEED].s = ISS_ON;
+                CursorMoveSpeedS[USE_CENTERING_SPEED].s = ISS_OFF;
+                CursorMoveSpeedSP.s = IPS_OK;
+                IDSetSwitch(&CursorMoveSpeedSP, nullptr);
+            }
+            else
+            {
                 IUResetSwitch(&GuideRateSP);
                 GuideRateS[currentSwitch].s = ISS_ON;
                 GuideRateSP.s = IPS_ALERT;
@@ -291,14 +293,16 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
             int currentSwitch = IUFindOnSwitchIndex(&CenterRateSP);
             IUUpdateSwitch(&CenterRateSP, states, names, n);
             if (setioptronHC8406CenterRate(IUFindOnSwitchIndex(&CenterRateSP)) == TTY_OK)
-        {
+            {
                 CenterRateSP.s = IPS_OK;
-        //Shows centering speed selected
-        CursorMoveSpeedS[USE_GUIDE_SPEED].s = ISS_OFF;
-        CursorMoveSpeedS[USE_CENTERING_SPEED].s = ISS_ON;
-            CursorMoveSpeedSP.s = IPS_OK;
-            IDSetSwitch(&CursorMoveSpeedSP, nullptr);
-            } else {
+                //Shows centering speed selected
+                CursorMoveSpeedS[USE_GUIDE_SPEED].s = ISS_OFF;
+                CursorMoveSpeedS[USE_CENTERING_SPEED].s = ISS_ON;
+                CursorMoveSpeedSP.s = IPS_OK;
+                IDSetSwitch(&CursorMoveSpeedSP, nullptr);
+            }
+            else
+            {
                 IUResetSwitch(&CenterRateSP);
                 CenterRateS[currentSwitch].s = ISS_ON;
                 CenterRateSP.s = IPS_ALERT;
@@ -308,23 +312,23 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
             return true;
         }
 
-//        // Slew Rate
-//        if (!strcmp(SlewRateSP.name, name))
-//        {
-//            int currentSwitch = IUFindOnSwitchIndex(&SlewRateSP);
-//            IUUpdateSwitch(&SlewRateSP, states, names, n);
-//            if (setioptronHC8406SlewRate(IUFindOnSwitchIndex(&SlewRateSP)) == TTY_OK)
-//                SlewRateSP.s = IPS_OK;
-//            else
-//            {
-//                IUResetSwitch(&SlewRateSP);
-//                SlewRateS[currentSwitch].s = ISS_ON;
-//                SlewRateSP.s = IPS_ALERT;
-//            }
+        //        // Slew Rate
+        //        if (!strcmp(SlewRateSP.name, name))
+        //        {
+        //            int currentSwitch = IUFindOnSwitchIndex(&SlewRateSP);
+        //            IUUpdateSwitch(&SlewRateSP, states, names, n);
+        //            if (setioptronHC8406SlewRate(IUFindOnSwitchIndex(&SlewRateSP)) == TTY_OK)
+        //                SlewRateSP.s = IPS_OK;
+        //            else
+        //            {
+        //                IUResetSwitch(&SlewRateSP);
+        //                SlewRateS[currentSwitch].s = ISS_ON;
+        //                SlewRateSP.s = IPS_ALERT;
+        //            }
 
-//            IDSetSwitch(&SlewRateSP, nullptr);
-//            return true;
-//        }
+        //            IDSetSwitch(&SlewRateSP, nullptr);
+        //            return true;
+        //        }
 
     }
 
@@ -336,10 +340,10 @@ bool ioptronHC8406::isSlewComplete()
     /* HC8406 doesn't have :SE# or :SE? command, thus we check if the slew is
        completed comparing targetRA/DEC with actual RA/DEC */
 
-    float tolerance=1/3600.;  // 5 arcsec
+    float tolerance = 1 / 3600.; // 5 arcsec
 
-    if (fabs(currentRA-targetRA) <= tolerance && fabs(currentDEC-targetDEC) <= tolerance)
-    return true;
+    if (fabs(currentRA - targetRA) <= tolerance && fabs(currentDEC - targetDEC) <= tolerance)
+        return true;
 
     return false;
 }
@@ -372,7 +376,7 @@ bool ioptronHC8406::Goto(double r, double d)
 
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
-    LOGF_DEBUG("<GOTO RA/DEC> %s/%s",RAStr,DecStr);
+    LOGF_DEBUG("<GOTO RA/DEC> %s/%s", RAStr, DecStr);
 
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
@@ -429,8 +433,8 @@ bool ioptronHC8406::Goto(double r, double d)
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
-    LOGF_DEBUG("Slewing to RA: %s - DEC: %s",RAStr,DecStr);
+    //EqNP.s     = IPS_BUSY;
+    LOGF_DEBUG("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -453,18 +457,18 @@ bool ioptronHC8406::Sync(double ra, double dec)
 
         switch (syncType)
         {
-        case USE_REGULAR_SYNC:
-            if (::Sync(PortFD, syncString) < 0)
-                syncOK = false;
-            break;
+            case USE_REGULAR_SYNC:
+                if (::Sync(PortFD, syncString) < 0)
+                    syncOK = false;
+                break;
 
-        case USE_CMR_SYNC:
-            if (ioptronHC8406SyncCMR(syncString) < 0)
-                syncOK = false;
-            break;
+            case USE_CMR_SYNC:
+                if (ioptronHC8406SyncCMR(syncString) < 0)
+                    syncOK = false;
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
 
         if (syncOK == false)
@@ -615,7 +619,8 @@ int ioptronHC8406::setCalenderDate(int fd, int dd, int mm, int yy)
 
     DEBUGF(DBG_SCOPE, "RES <%s>", response);
 
-    if (strncmp(response, good_result, strlen(good_result)) == 0) {
+    if (strncmp(response, good_result, strlen(good_result)) == 0)
+    {
         return 0;
     }
 
@@ -673,7 +678,7 @@ int ioptronHC8406::setioptronHC8406Longitude(double Long)
     else
         sign = '-';
 
-    Long=360-Long;
+    Long = 360 - Long;
 
     getSexComponents(Long, &d, &m, &s);
 
@@ -722,7 +727,7 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 {
     const timespec timeout = {0, 10000000L};
     char bool_return[2];
-    int error_type=0;
+    int error_type = 0;
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGF(DBG_SCOPE, "CMD <%s>", data);
@@ -758,12 +763,15 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 
 bool ioptronHC8406::SetTrackEnabled(bool enabled)
 {
-    if (enabled) {
-     LOG_WARN("<SetTrackEnabled> START TRACKING AT SIDERAL SPEED (:RT2#)");
-     return setioptronHC8406TrackMode(0);
-    } else {
-     LOG_WARN("<SetTrackEnabled> STOP TRACKING (:RT9#)");
-     return setioptronHC8406TrackMode(3);
+    if (enabled)
+    {
+        LOG_WARN("<SetTrackEnabled> START TRACKING AT SIDERAL SPEED (:RT2#)");
+        return setioptronHC8406TrackMode(0);
+    }
+    else
+    {
+        LOG_WARN("<SetTrackEnabled> STOP TRACKING (:RT9#)");
+        return setioptronHC8406TrackMode(3);
     }
 }
 
@@ -776,20 +784,27 @@ int ioptronHC8406::setioptronHC8406TrackMode(int mode)
 {
 
     char cmd[8];
-    int mmode=0;
-    int error_type=0;
+    int mmode = 0;
+    int error_type = 0;
     int nbytes_write = 0 ;
 
     DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
 
-    if (mode == 0 ) {
-    mmode=2;
-    } else if (mode ==1) {
-    mmode=1;
-    } else if (mode ==2) {
-    mmode=0;
-    } else if (mode ==3) {
-    mmode=9;
+    if (mode == 0 )
+    {
+        mmode = 2;
+    }
+    else if (mode == 1)
+    {
+        mmode = 1;
+    }
+    else if (mode == 2)
+    {
+        mmode = 0;
+    }
+    else if (mode == 3)
+    {
+        mmode = 9;
     }
     snprintf(cmd, 8, ":RT%d#", mmode);
 
@@ -841,25 +856,26 @@ bool ioptronHC8406::ReadScopeStatus()
         return true;
     }
 
-    switch (TrackState) {
-    case SCOPE_IDLE:
-        LOG_WARN("<ReadScopeStatus> IDLE");
-        break;
-    case SCOPE_SLEWING:
-        LOG_WARN("<ReadScopeStatus> SLEWING");
-        break;
-    case SCOPE_TRACKING:
-        LOG_WARN("<ReadScopeStatus> TRACKING");
-        break;
-    case SCOPE_PARKING:
-        LOG_WARN("<ReadScopeStatus> PARKING");
-        break;
-    case SCOPE_PARKED:
-        LOG_WARN("<ReadScopeStatus> PARKED");
-        break;
-    default:
-        LOG_WARN("<ReadScopeStatus> UNDEFINED");
-        break;
+    switch (TrackState)
+    {
+        case SCOPE_IDLE:
+            LOG_WARN("<ReadScopeStatus> IDLE");
+            break;
+        case SCOPE_SLEWING:
+            LOG_WARN("<ReadScopeStatus> SLEWING");
+            break;
+        case SCOPE_TRACKING:
+            LOG_WARN("<ReadScopeStatus> TRACKING");
+            break;
+        case SCOPE_PARKING:
+            LOG_WARN("<ReadScopeStatus> PARKING");
+            break;
+        case SCOPE_PARKED:
+            LOG_WARN("<ReadScopeStatus> PARKED");
+            break;
+        default:
+            LOG_WARN("<ReadScopeStatus> UNDEFINED");
+            break;
     }
 
     if (TrackState == SCOPE_SLEWING )
@@ -868,15 +884,18 @@ bool ioptronHC8406::ReadScopeStatus()
         if (isSlewComplete())
         {
             nanosleep(&timeout, nullptr); //Wait until :MS# finish
-            if (IUFindSwitch(&CoordSP, "SYNC")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)  {
+            if (IUFindSwitch(&CoordSP, "SYNC")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)
+            {
                 TrackState = SCOPE_IDLE;
                 LOG_WARN("Slew is complete. IDLE");
-            SetTrackEnabled(false);
-        } else {
+                SetTrackEnabled(false);
+            }
+            else
+            {
                 TrackState = SCOPE_TRACKING;
                 LOG_WARN("Slew is complete. TRACKING");
-            SetTrackEnabled(true);
-        }
+                SetTrackEnabled(true);
+            }
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -885,7 +904,7 @@ bool ioptronHC8406::ReadScopeStatus()
         if (true || isSlewComplete())
         {
             SetParked(true);
-        TrackState = SCOPE_PARKED;
+            TrackState = SCOPE_PARKED;
         }
     }
 
@@ -924,51 +943,51 @@ void ioptronHC8406::mountSim()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-    case SCOPE_TRACKING:
-        /* RA moves at sidereal, Dec stands still */
-        currentRA += (SIDRATE * dt / 15.);
-        break;
+        case SCOPE_TRACKING:
+            /* RA moves at sidereal, Dec stands still */
+            currentRA += (SIDRATE * dt / 15.);
+            break;
 
-    case SCOPE_SLEWING:
-    case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ SLEWRATE */
-        nlocked = 0;
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
+            /* slewing - nail it when both within one pulse @ SLEWRATE */
+            nlocked = 0;
 
-        dx = targetRA - currentRA;
+            dx = targetRA - currentRA;
 
-        if (fabs(dx) <= da)
-        {
-            currentRA = targetRA;
-            nlocked++;
-        }
-        else if (dx > 0)
-            currentRA += da / 15.;
-        else
-            currentRA -= da / 15.;
-
-        dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da)
-        {
-            currentDEC = targetDEC;
-            nlocked++;
-        }
-        else if (dx > 0)
-            currentDEC += da;
-        else
-            currentDEC -= da;
-
-        if (nlocked == 2)
-        {
-            if (TrackState == SCOPE_SLEWING)
-                TrackState = SCOPE_TRACKING;
+            if (fabs(dx) <= da)
+            {
+                currentRA = targetRA;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentRA += da / 15.;
             else
-                SetParked(true);
-        }
+                currentRA -= da / 15.;
 
-        break;
+            dx = targetDEC - currentDEC;
+            if (fabs(dx) <= da)
+            {
+                currentDEC = targetDEC;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentDEC += da;
+            else
+                currentDEC -= da;
 
-    default:
-        break;
+            if (nlocked == 2)
+            {
+                if (TrackState == SCOPE_SLEWING)
+                    TrackState = SCOPE_TRACKING;
+                else
+                    SetParked(true);
+            }
+
+            break;
+
+        default:
+            break;
     }
 
     NewRaDec(currentRA, currentDEC);
@@ -978,25 +997,25 @@ void ioptronHC8406::mountSim()
 
 int ioptronHC8406::setioptronHC8406GuideRate(int rate)
 {
-    return setMoveRate(rate,USE_GUIDE_SPEED);
+    return setMoveRate(rate, USE_GUIDE_SPEED);
 }
 
 int ioptronHC8406::setioptronHC8406CenterRate(int rate)
 {
-    return setMoveRate(rate,USE_CENTERING_SPEED);
+    return setMoveRate(rate, USE_CENTERING_SPEED);
 }
 
 int ioptronHC8406::setioptronHC8406SlewRate(int rate)
 {
-    return setMoveRate(rate,USE_SLEW_SPEED);
+    return setMoveRate(rate, USE_SLEW_SPEED);
 }
 
 int ioptronHC8406::setioptronHC8406CursorMoveSpeed(int type)
 {
-    return setMoveRate(-1,type);
+    return setMoveRate(-1, type);
 }
 
-int ioptronHC8406::setMoveRate(int rate,int move_type)
+int ioptronHC8406::setMoveRate(int rate, int move_type)
 {
     char cmd[16];
     int errcode = 0;
@@ -1008,37 +1027,39 @@ int ioptronHC8406::setMoveRate(int rate,int move_type)
         return 0;
     }
 
-    if (rate>=0)
+    if (rate >= 0)
     {
         switch (move_type)
         {
-        case USE_GUIDE_SPEED:
-        snprintf(cmd, 16, ":RG%0d#", rate);
-            break;
-        case USE_CENTERING_SPEED:
-        snprintf(cmd, 16, ":RC%0d#", rate);
-            break;
-        case USE_SLEW_SPEED:
-        snprintf(cmd, 16, ":RS%0d#", rate);  //NOT WORK!!
-            break;
+            case USE_GUIDE_SPEED:
+                snprintf(cmd, 16, ":RG%0d#", rate);
+                break;
+            case USE_CENTERING_SPEED:
+                snprintf(cmd, 16, ":RC%0d#", rate);
+                break;
+            case USE_SLEW_SPEED:
+                snprintf(cmd, 16, ":RS%0d#", rate);  //NOT WORK!!
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
-    } else {
+    }
+    else
+    {
         switch (move_type)
         {
-        case USE_GUIDE_SPEED:
-        snprintf(cmd, 16, ":RG#");
-            break;
-        case USE_CENTERING_SPEED:
-        snprintf(cmd, 16, ":RC#"); //NOT WORK!!
-            break;
-        case USE_SLEW_SPEED:
-        snprintf(cmd, 16, ":RS#"); //NOT WORK!!
-            break;
-        default:
-            break;
+            case USE_GUIDE_SPEED:
+                snprintf(cmd, 16, ":RG#");
+                break;
+            case USE_CENTERING_SPEED:
+                snprintf(cmd, 16, ":RC#"); //NOT WORK!!
+                break;
+            case USE_SLEW_SPEED:
+                snprintf(cmd, 16, ":RS#"); //NOT WORK!!
+                break;
+            default:
+                break;
         }
     }
 
@@ -1136,12 +1157,12 @@ int ioptronHC8406::getCommandString(int fd, char *data, const char *cmd)
 
 void ioptronHC8406::sendScopeTime()
 {
-    char cdate[32]={0};
+    char cdate[32] = {0};
     double ctime;
     int h, m, s;
     int utc_h, utc_m, utc_s;
     double lx200_utc_offset = 0;
-    char utc_offset_res[32]={0};
+    char utc_offset_res[32] = {0};
     int day, month, year, result;
     struct tm ltm;
     struct tm utm;
@@ -1162,16 +1183,16 @@ void ioptronHC8406::sendScopeTime()
     //tcflush(PortFD, TCIOFLUSH);
     getCommandString(PortFD, utc_offset_res, ":GG#");
 
-    f_scansexa(utc_offset_res,&lx200_utc_offset);
+    f_scansexa(utc_offset_res, &lx200_utc_offset);
     result = sscanf(utc_offset_res, "%d%*c%d%*c%d", &utc_h, &utc_m, &utc_s);
     if (result != 3)
     {
         LOG_ERROR("Error reading UTC offset from Telescope.");
         return;
     }
-    LOGF_DEBUG("<VAL> UTC offset: %d:%d:%d --->%g",utc_h,utc_m, utc_s, lx200_utc_offset);
+    LOGF_DEBUG("<VAL> UTC offset: %d:%d:%d --->%g", utc_h, utc_m, utc_s, lx200_utc_offset);
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
-    LOGF_DEBUG("<VAL> UTC offset str: %s",utc_offset_res);
+    LOGF_DEBUG("<VAL> UTC offset str: %s", utc_offset_res);
     IUSaveText(&TimeT[1], utc_offset_res);
     //IUSaveText(&TimeT[1], lx200_utc_offset);
 
@@ -1221,16 +1242,16 @@ int ioptronHC8406::SendPulseCmd(int8_t direction, uint32_t duration_msec)
     const timespec timeout = {1, 0L};
     int rc = 0,  nbytes_written = 0;
     char cmd[20];
-    uint32_t duration_left=0, duration_now=duration_msec;
+    uint32_t duration_left = 0, duration_now = duration_msec;
     if (duration_msec > 999)
     {
-        duration_now=999;              //limited to 999
-        duration_left=duration_msec-duration_now; //pending ms
+        duration_now = 999;            //limited to 999
+        duration_left = duration_msec - duration_now; //pending ms
     }
     else
     {
-        duration_left=0;
-        LOGF_DEBUG("Pulse %d <999 Sent only one",duration_msec);
+        duration_left = 0;
+        LOGF_DEBUG("Pulse %d <999 Sent only one", duration_msec);
     }
 
     switch (direction)
@@ -1261,11 +1282,11 @@ int ioptronHC8406::SendPulseCmd(int8_t direction, uint32_t duration_msec)
     }
     tcflush(PortFD, TCIFLUSH);
 
-    if (duration_left!=0)
+    if (duration_left != 0)
     {
-        LOGF_DEBUG("pulse guide. Pulse >999. ms left:%d",duration_left);
+        LOGF_DEBUG("pulse guide. Pulse >999. ms left:%d", duration_left);
         nanosleep(&timeout, nullptr);   //wait until the previous one has fineshed
-        return SendPulseCmd(direction,duration_left);
+        return SendPulseCmd(direction, duration_left);
     }
     return 0;
 }

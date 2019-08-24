@@ -34,12 +34,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <termios.h>
 #endif
 
+/* Add mutex */
+
+#include <mutex>
+
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 #define RB_MAX_LEN    64
 
+
 int controller_format;
 char lx200Name[MAXINDIDEVICE];
-unsigned int DBG_SCOPE;
+/* ESN DEBUG */
+unsigned int DBG_SCOPE = 8;
+
+
+/* Add mutex to communications */
+std::mutex lx200CommsLock;
 
 void setLX200Debug(const char *deviceName, unsigned int debug_level)
 {
@@ -167,6 +177,9 @@ int check_lx200_connection(int in_fd)
 
     DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing telescope connection using ACK...");
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     if (in_fd <= 0)
         return -1;
 
@@ -199,6 +212,9 @@ char ACK(int fd)
     char MountAlign[2];
     int nbytes_write = 0, nbytes_read = 0, error_type;
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%#02X>", ack[0]);
 
     nbytes_write = write(fd, ack, 1);
@@ -221,6 +237,9 @@ int getCommandSexa(int fd, double *value, const char *cmd)
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     tcflush(fd, TCIFLUSH);
 
@@ -256,6 +275,9 @@ int getCommandInt(int fd, int *value, const char *cmd)
     float temp_number;
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     tcflush(fd, TCIFLUSH);
 
@@ -298,6 +320,9 @@ int getCommandString(int fd, char *data, const char *cmd)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
@@ -319,28 +344,49 @@ int getCommandString(int fd, char *data, const char *cmd)
 int isSlewComplete(int fd)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char data[8] = { 0 };
+/* update for classic lx200, total string returned is 33 bytes */
+    char data[33] = { 0 };
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     const char *cmd = ":D#";
 
+/* update for slew complete lx200 classic 3.2. roms */
+    int i;
+
+
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_nread_section(fd, data, 8, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, data, 33, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIOFLUSH);
 
     if (error_type != TTY_OK)
         return error_type;
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", data);
-
+/* update for slewComplete 
+   
+   The below should handle classic lx200, autostar and autostar 2
+   classic returns string of 33 bytes, and non space (0x20) before terminator is not done yet
+   autostar and autostar 2 return a few bytes, with '#' terminator
+      first char 
+*/
+    for(i=0;i<33;i++) {
+	if(data[i] == '#') return 1;
+	if(data[i] != 0x20) return 0;
+    }
+    return 1;
+/* out for slewComplete update 
     if (data[0] == '#')
         return 1;
     else
         return 0;
+END out for slewComplete update */
 }
 
 int getCalendarDate(int fd, char *date)
@@ -351,6 +397,9 @@ int getCalendarDate(int fd, char *date)
     int nbytes_read = 0;
     char mell_prefix[3]={0};
     int len = 0;
+
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
 
     if ((error_type = getCommandString(fd, date, ":GC#")))
         return error_type;
@@ -390,6 +439,9 @@ int getTimeFormat(int fd, int *format)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Gc#");
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     if ((error_type = tty_write_string(fd, ":Gc#", &nbytes_write)) != TTY_OK)
         return error_type;
 
@@ -425,6 +477,9 @@ int getSiteName(int fd, char *siteName, int siteNum)
     char *term;
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     switch (siteNum)
     {
@@ -484,6 +539,9 @@ int getSiteLatitude(int fd, int *dd, int *mm)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Gt#");
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     tcflush(fd, TCIFLUSH);
 
     if ((error_type = tty_write_string(fd, ":Gt#", &nbytes_write)) != TTY_OK)
@@ -520,6 +578,9 @@ int getSiteLongitude(int fd, int *ddd, int *mm)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Gg#");
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     if ((error_type = tty_write_string(fd, ":Gg#", &nbytes_write)) != TTY_OK)
         return error_type;
 
@@ -554,6 +615,9 @@ int getTrackFreq(int fd, double *value)
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GT#");
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     if ((error_type = tty_write_string(fd, ":GT#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -590,6 +654,9 @@ int getHomeSearchStatus(int fd, int *status)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":h?#");
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     if ((error_type = tty_write_string(fd, ":h?#", &nbytes_write)) != TTY_OK)
         return error_type;
 
@@ -624,6 +691,9 @@ int getOTATemp(int fd, double *value)
     float temp;
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":fT#");
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     if ((error_type = tty_write_string(fd, ":fT#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -662,6 +732,9 @@ int setStandardProcedure(int fd, const char *data)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", data);
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     tcflush(fd, TCIFLUSH);
 
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
@@ -690,6 +763,9 @@ int setCommandInt(int fd, int data, const char *cmd)
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
     int nbytes_write = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     snprintf(read_buffer, sizeof(read_buffer), "%s%d#", cmd, data);
 
@@ -724,6 +800,9 @@ int setMaxElevationLimit(int fd, int max)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
+
     char read_buffer[RB_MAX_LEN]={0};
 
     snprintf(read_buffer, sizeof(read_buffer), ":So%02d*#", max);
@@ -734,6 +813,9 @@ int setMaxElevationLimit(int fd, int max)
 int setMaxSlewRate(int fd, int slewRate)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
 
     char read_buffer[RB_MAX_LEN]={0};
 
@@ -751,6 +833,9 @@ int setObjectRA(int fd, double ra)
 
     int h, m, s;
     char read_buffer[22];
+
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock);  */
 
     switch (controller_format)
     {
@@ -780,6 +865,9 @@ int setObjectRA(int fd, double ra)
 int setObjectDEC(int fd, double dec)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
 
     int d, m, s;
     char read_buffer[22];
@@ -825,6 +913,9 @@ int setCommandXYZ(int fd, int x, int y, int z, const char *cmd)
 
     snprintf(read_buffer, sizeof(read_buffer), "%s %02d:%02d:%02d#", cmd, x, y, z);
 
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
+
     return (setStandardProcedure(fd, read_buffer));
 }
 
@@ -832,6 +923,9 @@ int setAlignmentMode(int fd, unsigned int alignMode)
 {
     int error_type;
     int nbytes_write = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     switch (alignMode)
     {
@@ -865,6 +959,9 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     yy = yy % 100;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     snprintf(read_buffer, sizeof(read_buffer), ":SC %02d/%02d/%02d#", mm, dd, yy);
 
@@ -907,6 +1004,9 @@ int setUTCOffset(int fd, double hours)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
 
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
+
     snprintf(read_buffer, sizeof(read_buffer), ":SG %+03d#", static_cast<int>(hours));
 
     return (setStandardProcedure(fd, read_buffer));
@@ -918,6 +1018,9 @@ int setSiteLongitude(int fd, double Long)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
     char read_buffer[RB_MAX_LEN]={0};
+
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
 
     getSexComponents(Long, &d, &m, &s);
 
@@ -932,6 +1035,9 @@ int setSiteLatitude(int fd, double Lat)
     int d, m, s;
     char read_buffer[RB_MAX_LEN]={0};
 
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
+
     getSexComponents(Lat, &d, &m, &s);
 
     snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d:%02d#", d, m, s);
@@ -944,6 +1050,9 @@ int setObjAz(int fd, double az)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
     char read_buffer[RB_MAX_LEN]={0};
+
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
 
     getSexComponents(az, &d, &m, &s);
 
@@ -958,6 +1067,9 @@ int setObjAlt(int fd, double alt)
     int d, m, s;
     char read_buffer[RB_MAX_LEN]={0};
 
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
+
     getSexComponents(alt, &d, &m, &s);
 
     snprintf(read_buffer, sizeof(read_buffer), ":Sa%+02d*%02d#", d, m);
@@ -969,6 +1081,9 @@ int setSiteName(int fd, char *siteName, int siteNum)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
+
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
 
     switch (siteNum)
     {
@@ -996,6 +1111,9 @@ int setSlewMode(int fd, int slewMode)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     switch (slewMode)
     {
@@ -1033,6 +1151,9 @@ int setFocuserMotion(int fd, int motionType)
     int error_type;
     int nbytes_write = 0;
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     switch (motionType)
     {
         case LX200_FOCUSIN:
@@ -1056,6 +1177,9 @@ int setFocuserSpeedMode(int fd, int speedMode)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     switch (speedMode)
     {
@@ -1087,6 +1211,9 @@ int setGPSFocuserSpeed(int fd, int speed)
     int error_type;
     int nbytes_write = 0;
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     if (speed == 0)
     {
         DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":FQ#");
@@ -1113,6 +1240,9 @@ int setTrackFreq(int fd, double trackF)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
 
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
+
     snprintf(read_buffer, sizeof(read_buffer), ":ST %04.1f#", trackF);
 
     return (setStandardProcedure(fd, read_buffer));
@@ -1124,6 +1254,9 @@ int setPreciseTrackFreq(int fd, double trackF)
 	char read_buffer[RB_MAX_LEN]={0};
 	
 	snprintf(read_buffer, sizeof(read_buffer), ":ST %08.5f#", trackF);
+
+/* Add mutex */
+/*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
 	
 	return (setStandardProcedure(fd, read_buffer));
 }
@@ -1141,6 +1274,9 @@ int Slew(int fd)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":MS#");
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     if ((error_type = tty_write_string(fd, ":MS#", &nbytes_write)) != TTY_OK)
         return error_type;
 
@@ -1157,18 +1293,21 @@ int Slew(int fd)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", slewNum[0]);
 
-    if (slewNum[0] == '0')
-        return 0;
-    else if (slewNum[0] == '1')
-        return 1;
-    else
-        return 2;
+    error_type = slewNum[0] - '0'; 
+    if ((error_type >= 0) && (error_type <= 9)) {
+        return error_type;
+    } else {
+        return -1;
+    }
 }
 
 int MoveTo(int fd, int direction)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int nbytes_write = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     switch (direction)
     {
@@ -1221,6 +1360,9 @@ int SendPulseCmd(int fd, int direction, int duration_msec)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
     tty_write_string(fd, cmd, &nbytes_write);
 
     tcflush(fd, TCIFLUSH);
@@ -1232,6 +1374,9 @@ int HaltMovement(int fd, int direction)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     switch (direction)
     {
@@ -1274,6 +1419,10 @@ int abortSlew(int fd)
     int error_type;
     int nbytes_write = 0;
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
+
     if ((error_type = tty_write_string(fd, ":Q#", &nbytes_write)) != TTY_OK)
         return error_type;
 
@@ -1289,6 +1438,9 @@ int Sync(int fd, char *matchedObject)
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":CM#");
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
 
     if ((error_type = tty_write_string(fd, ":CM#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -1314,6 +1466,10 @@ int selectSite(int fd, int siteNum)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
 
     switch (siteNum)
     {
@@ -1369,6 +1525,10 @@ int selectCatalogObject(int fd, int catalog, int NNNN)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", read_buffer);
 
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+
+
     if ((error_type = tty_write_string(fd, read_buffer, &nbytes_write)) != TTY_OK)
         return error_type;
 
@@ -1410,6 +1570,9 @@ int checkLX200Format(int fd)
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GR#");
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     tcflush(fd, TCIFLUSH);
 
@@ -1488,6 +1651,9 @@ int selectTrackingMode(int fd, int trackMode)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
+
+/* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
 
     switch (trackMode)
     {

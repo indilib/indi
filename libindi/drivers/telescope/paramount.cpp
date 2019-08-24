@@ -105,7 +105,7 @@ Paramount::Paramount()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_CONTROL_TRACK,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_CONTROL_TRACK,
                            9);
     setTelescopeConnection(CONNECTION_TCP);
 }
@@ -120,7 +120,7 @@ bool Paramount::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
-    for (int i = 0; i < SlewRateSP.nsp-1; i++)
+    for (int i = 0; i < SlewRateSP.nsp - 1; i++)
     {
         sprintf(SlewRateSP.sp[i].label, "%.fx", slewspeeds[i]);
         SlewRateSP.sp[i].aux = (void *)&slewspeeds[i];
@@ -180,7 +180,7 @@ bool Paramount::initProperties()
 
     addAuxControls();
 
-    double longitude=0, latitude=90;
+    double longitude = 0, latitude = 90;
     // Get value from config file if it exists.
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
     currentRA  = get_local_sidereal_time(longitude);
@@ -256,7 +256,7 @@ bool Paramount::Handshake()
         return true;
 
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
-    char pCMD[MAXRBUF]={0}, pRES[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
 
     strncpy(pCMD,
             "/* Java Script */"
@@ -292,7 +292,7 @@ bool Paramount::Handshake()
     if (isTelescopeConnected <= 0)
     {
         LOGF_ERROR("Error connecting to telescope: %s (%d).", match.str(1).c_str(),
-               atoi(match.str(2).c_str()));
+                   atoi(match.str(2).c_str()));
         return false;
     }
 
@@ -302,7 +302,7 @@ bool Paramount::Handshake()
 bool Paramount::getMountRADE()
 {
     int rc = 0, nbytes_written = 0, nbytes_read = 0, errorCode = 0;
-    char pCMD[MAXRBUF]={0}, pRES[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
 
     //"if (sky6RASCOMTele.IsConnected==0) sky6RASCOMTele.Connect();"
     strncpy(pCMD,
@@ -412,10 +412,10 @@ bool Paramount::Goto(double r, double d)
 
     ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
     /* libnova measures azimuth from south towards west */
-//    double current_az = range360(lnaltaz.az + 180);
+    //    double current_az = range360(lnaltaz.az + 180);
     //double current_alt =lnaltaz.alt;
 
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
     snprintf(pCMD, MAXRBUF,
              "sky6RASCOMTele.Asynchronous = true;"
              "sky6RASCOMTele.SlewToRaDec(%g, %g,'');",
@@ -426,7 +426,7 @@ bool Paramount::Goto(double r, double d)
 
     TrackState = SCOPE_SLEWING;
 
-    EqNP.s = IPS_BUSY;
+    //EqNP.s = IPS_BUSY;
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -435,7 +435,7 @@ bool Paramount::Goto(double r, double d)
 bool Paramount::isSlewComplete()
 {
     int rc = 0, nbytes_written = 0, nbytes_read = 0, errorCode = 0;
-    char pCMD[MAXRBUF]={0}, pRES[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
 
     strncpy(pCMD,
             "/* Java Script */"
@@ -481,7 +481,7 @@ bool Paramount::isSlewComplete()
 bool Paramount::isTheSkyParked()
 {
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
-    char pCMD[MAXRBUF]={0}, pRES[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
 
     strncpy(pCMD,
             "/* Java Script */"
@@ -522,7 +522,7 @@ bool Paramount::isTheSkyParked()
 bool Paramount::isTheSkyTracking()
 {
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
-    char pCMD[MAXRBUF]={0}, pRES[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
 
     strncpy(pCMD,
             "/* Java Script */"
@@ -562,7 +562,7 @@ bool Paramount::isTheSkyTracking()
 
 bool Paramount::Sync(double ra, double dec)
 {
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
 
     snprintf(pCMD, MAXRBUF, "sky6RASCOMTele.Sync(%g, %g,'');", targetRA, targetDEC);
     if (!sendTheSkyOKCommand(pCMD, "Syncing to target"))
@@ -585,7 +585,7 @@ bool Paramount::Park()
     targetRA  = GetAxis1Park();
     targetDEC = GetAxis2Park();
 
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
     strncpy(pCMD, "sky6RASCOMTele.ParkAndDoNotDisconnect();", MAXRBUF);
     if (!sendTheSkyOKCommand(pCMD, "Parking mount"))
         return false;
@@ -597,7 +597,7 @@ bool Paramount::Park()
 
 bool Paramount::UnPark()
 {
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
     strncpy(pCMD, "sky6RASCOMTele.Unpark();", MAXRBUF);
     if (!sendTheSkyOKCommand(pCMD, "Unparking mount"))
         return false;
@@ -628,7 +628,7 @@ bool Paramount::ISNewNumber(const char *dev, const char *name, double values[], 
             GuideRateNP.s = IPS_OK;
             IDSetNumber(&GuideRateNP, nullptr);
             return true;
-        }        
+        }
 
         if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
         {
@@ -655,7 +655,7 @@ bool Paramount::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
 bool Paramount::Abort()
 {
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
 
     strncpy(pCMD, "sky6RASCOMTele.Abort();", MAXRBUF);
     return sendTheSkyOKCommand(pCMD, "Abort mount slew");
@@ -693,7 +693,7 @@ bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             }
             else
                 LOGF_INFO("Moving toward %s halted.",
-                       (motion == PARAMOUNT_NORTH) ? "North" : "South");
+                          (motion == PARAMOUNT_NORTH) ? "North" : "South");
             break;
     }
 
@@ -731,7 +731,7 @@ bool Paramount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             }
             else
                 LOGF_INFO("Movement toward %s halted.",
-                       (motion == PARAMOUNT_WEST) ? "West" : "East");
+                          (motion == PARAMOUNT_WEST) ? "West" : "East");
             break;
     }
 
@@ -740,7 +740,7 @@ bool Paramount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 bool Paramount::startOpenLoopMotion(uint8_t motion, uint16_t rate)
 {
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
 
     snprintf(pCMD, MAXRBUF, "sky6RASCOMTele.DoCommand(9,'%d|%d');", motion, rate);
     return sendTheSkyOKCommand(pCMD, "Starting open loop motion");
@@ -748,7 +748,7 @@ bool Paramount::startOpenLoopMotion(uint8_t motion, uint16_t rate)
 
 bool Paramount::stopOpenLoopMotion()
 {
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
 
     strncpy(pCMD, "sky6RASCOMTele.DoCommand(10,'');", MAXRBUF);
     return sendTheSkyOKCommand(pCMD, "Stopping open loop motion");
@@ -777,7 +777,7 @@ bool Paramount::updateTime(ln_date *utc, double utc_offset)
 
 bool Paramount::SetCurrentPark()
 {
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
 
     strncpy(pCMD, "sky6RASCOMTele.SetParkPosition();", MAXRBUF);
     if (!sendTheSkyOKCommand(pCMD, "Setting Park Position"))
@@ -805,14 +805,20 @@ bool Paramount::SetParkPosition(double Axis1Value, double Axis2Value)
     INDI_UNUSED(Axis1Value);
     INDI_UNUSED(Axis2Value);
     LOG_ERROR("Setting custom parking position directly is not supported. Slew to the desired "
-                                   "parking position and click Current.");
+              "parking position and click Current.");
     return false;
 }
 
 void Paramount::mountSim()
 {
-    static struct timeval ltv { 0, 0 };
-    struct timeval tv { 0, 0 };
+    static struct timeval ltv
+    {
+        0, 0
+    };
+    struct timeval tv
+    {
+        0, 0
+    };
     double dt, dx, da_ra = 0, da_dec = 0;
     int nlocked;
 
@@ -886,7 +892,7 @@ void Paramount::mountSim()
     {
         case SCOPE_IDLE:
             /* RA moves at sidereal, Dec stands still */
-            currentRA += (TRACKRATE_SIDEREAL/3600.0 * dt / 15.);
+            currentRA += (TRACKRATE_SIDEREAL / 3600.0 * dt / 15.);
             break;
 
         case SCOPE_SLEWING:
@@ -945,7 +951,7 @@ void Paramount::mountSim()
 bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessage)
 {
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
-    char pCMD[MAXRBUF]={0}, pRES[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
 
     snprintf(pCMD, MAXRBUF,
              "/* Java Script */"
@@ -998,7 +1004,7 @@ IPState Paramount::GuideNorth(uint32_t ms)
     // Movement in arcseconds
     double dDec = GuideRateN[DEC_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
 
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
     snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
 
     if (!sendTheSkyOKCommand(pCMD, "Guiding north"))
@@ -1011,7 +1017,7 @@ IPState Paramount::GuideSouth(uint32_t ms)
 {
     // Movement in arcseconds
     double dDec = GuideRateN[DEC_AXIS].value * TRACKRATE_SIDEREAL * ms / -1000.0;
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
 
     snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
     if (!sendTheSkyOKCommand(pCMD, "Guiding south"))
@@ -1024,7 +1030,7 @@ IPState Paramount::GuideEast(uint32_t ms)
 {
     // Movement in arcseconds
     double dRA = GuideRateN[RA_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
 
     snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);
     if (!sendTheSkyOKCommand(pCMD, "Guiding east"))
@@ -1037,7 +1043,7 @@ IPState Paramount::GuideWest(uint32_t ms)
 {
     // Movement in arcseconds
     double dRA = GuideRateN[RA_AXIS].value * TRACKRATE_SIDEREAL * ms / -1000.0;
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
 
     snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);
     if (!sendTheSkyOKCommand(pCMD, "Guiding west"))
@@ -1050,7 +1056,7 @@ bool Paramount::setTheSkyTracking(bool enable, bool isSidereal, double raRate, d
 {
     int on     = enable ? 1 : 0;
     int ignore = isSidereal ? 1 : 0;
-    char pCMD[MAXRBUF]={0};
+    char pCMD[MAXRBUF] = {0};
 
     snprintf(pCMD, MAXRBUF, "sky6RASCOMTele.SetTracking(%d, %d, %g, %g);", on, ignore, raRate, deRate);
     return sendTheSkyOKCommand(pCMD, "Setting tracking rate");
@@ -1058,7 +1064,7 @@ bool Paramount::setTheSkyTracking(bool enable, bool isSidereal, double raRate, d
 
 bool Paramount::SetTrackRate(double raRate, double deRate)
 {
-   return setTheSkyTracking(true, false, raRate, deRate);
+    return setTheSkyTracking(true, false, raRate, deRate);
 }
 
 bool Paramount::SetTrackMode(uint8_t mode)
@@ -1084,6 +1090,6 @@ bool Paramount::SetTrackEnabled(bool enabled)
     if (enabled)
         return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
     else
-    // Otherwise, simply switch everything off
+        // Otherwise, simply switch everything off
         return setTheSkyTracking(false, false, 0, 0);
 }
