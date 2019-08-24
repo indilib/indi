@@ -159,7 +159,7 @@ bool LX200_10MICRON::initProperties()
     IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
                        "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-
+    LOG_INFO("I LOADED ALL PROPERTIES");
 
     return result;
 }
@@ -270,7 +270,7 @@ bool LX200_10MICRON::ReadScopeStatus()
     }
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s> RES <%s>", cmd, data);
 
-    //TODO: check if this needs changing when satellite tracking
+    // TODO: check if this needs changing when satellite tracking
     // Now parse the data. This format may consist of more parts some day
     nbytes_read = sscanf(data, "%g,%g,%c,%g,%g,%g,%d,%d#", &Ginfo.RA_JNOW, &Ginfo.DEC_JNOW, &Ginfo.SideOfPier,
         &Ginfo.AZ, &Ginfo.ALT, &Ginfo.Jdate, &Ginfo.Gstat, &Ginfo.SlewStatus);
