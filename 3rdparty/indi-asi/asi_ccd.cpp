@@ -860,7 +860,6 @@ bool ASICCD::setVideoFormat(uint8_t index)
     {
         case ASI_IMG_RAW16:
             PrimaryCCD.setBPP(16);
-            LOG_WARN("Warning: 16bit RAW is not supported on all hardware platforms.");
             break;
 
         default:
