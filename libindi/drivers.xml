@@ -19,7 +19,7 @@
         </device>
         <device label="LX200 OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.7</version>
+            <version>1.8</version>
         </device>
         <device label="LX200 16" manufacturer="Meade">
             <driver name="LX200 16">indi_lx200_16</driver>
