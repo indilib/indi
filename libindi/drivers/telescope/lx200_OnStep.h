@@ -22,6 +22,10 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     ===========================================
+    
+    Version 1.8: 
+    - Bugfixes for FORK mounted scopes
+    
     Version 1.7:
     - Added support for Reporting Guide rate (to PHD2 among others)
     - Updated Error codes to match up with Android/SHC (Unknown reserved for unknown, so Unspecified = Unknown on other platforms)
@@ -100,7 +104,7 @@
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT_MIN, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC, ERR_UNSPECIFIED, ERR_ALT_MAX, ERR_GOTO_ERR_NONE, ERR_GOTO_ERR_BELOW_HORIZON, ERR_GOTO_ERR_ABOVE_OVERHEAD, ERR_GOTO_ERR_STANDBY, ERR_GOTO_ERR_PARK, ERR_GOTO_ERR_GOTO, ERR_GOTO_ERR_OUTSIDE_LIMITS, ERR_GOTO_ERR_HARDWARE_FAULT, ERR_GOTO_ERR_IN_MOTION, ERR_GOTO_ERR_UNSPECIFIED};
 enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BOTH}; //To allow for using one variable instead of two in the future
 
-
+enum MountType {MOUNTTYPE_GEM, MOUNTTYPE_FORK, MOUNTTYPE_FORK_ALT, MOUNTTYPE_ALTAZ};
 
 class LX200_OnStep : public LX200Generic
 {
@@ -275,6 +279,12 @@ class LX200_OnStep : public LX200Generic
     ISwitch OSPECRecordS[3];
     ISwitchVectorProperty OSPECReadSP;
     ISwitch OSPECReadS[2];
+    INumberVectorProperty OSPECCurrentIndexNP;
+    INumber OSPECCurrentIndexN[2];
+    INumberVectorProperty OSPECUserIndexNP;
+    INumber OSPECUserIndexN[2];
+    INumberVectorProperty OSPECRWValuesNP;
+    INumber OSPECRWValuesN[2]; //Current Index  and User Index
     
     ISwitchVectorProperty OSNAlignStarsSP;
     ISwitch OSNAlignStarsS[9];
