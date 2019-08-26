@@ -219,8 +219,8 @@ bool FishCampCCD::initProperties()
     // Init parent properties first
     INDI::CCD::initProperties();
 
-    IUFillNumber(&GainN[0], "Range", "", "%g", 1, 15, 1., 4.);
-    IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "Gain", "", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumber(&GainN[0], "Gain", "", "%g", 1, 15, 1., 4.);
+    IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&CoolerN[0], "Power %", "", "%g", 1, 100, 0, 0.0);
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "Cooler", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);

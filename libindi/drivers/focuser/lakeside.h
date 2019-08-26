@@ -29,127 +29,128 @@
 
 class Lakeside : public INDI::Focuser
 {
-public:
-    Lakeside();
-    ~Lakeside() override = default;
+    public:
+        Lakeside();
+        ~Lakeside() override = default;
 
-    const char * getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        const char * getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-protected:
+    protected:
 
-    virtual bool Handshake() override;
-    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    virtual bool AbortFocuser() override;
-    virtual void TimerHit() override;
-    virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool Handshake() override;
+        virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
+        virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
 
-private:
-    double lastTemperature { 1e6 };
-    uint32_t currentSpeed, targetPos;
+    private:
+        double lastTemperature { 1e6 };
+        uint32_t currentSpeed, targetPos;
 
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
+        struct timeval focusMoveStart;
+        float focusMoveRequest;
 
-    void GetFocusParams();
-    bool updateMoveDirection();
-    bool updateMaxTravel();
-    bool updateStepSize();
-    bool updateBacklash();
-    bool updateTemperature();
-    bool updateTemperatureK();
-    bool updatePosition();
-    bool LakesideOnline();
+        void GetFocusParams();
+        bool updateMoveDirection();
+        bool updateMaxTravel();
+        bool updateStepSize();
+        bool updateBacklash();
+        bool updateTemperature();
+        bool updateTemperatureK();
+        bool updatePosition();
+        bool LakesideOnline();
 
-    bool updateActiveTemperatureSlope();
-    bool updateSlope1Inc();
-    bool updateSlope1Dir();
-    bool updateSlope1Deadband();
-    bool updateSlope1Period();
-    bool updateSlope2Inc();
-    bool updateSlope2Dir();
-    bool updateSlope2Deadband();
-    bool updateSlope2Period();
+        bool updateActiveTemperatureSlope();
+        bool updateSlope1Inc();
+        bool updateSlope1Dir();
+        bool updateSlope1Deadband();
+        bool updateSlope1Period();
+        bool updateSlope2Inc();
+        bool updateSlope2Dir();
+        bool updateSlope2Deadband();
+        bool updateSlope2Period();
 
-    bool GetLakesideStatus();
+        bool GetLakesideStatus();
 
-    char DecodeBuffer(char* in_response);
-    bool SendCmd(const char *in_cmd);
-    bool ReadBuffer(char* response);
+        char DecodeBuffer(char* in_response);
+        bool SendCmd(const char *in_cmd);
+        bool ReadBuffer(char* response);
 
-    bool gotoPosition(uint32_t position);
+        bool gotoPosition(uint32_t position);
 
-    bool setCalibration();
+        bool setCalibration();
 
-    bool setTemperatureTracking(bool enable);
-    bool setBacklash(int backlash );
-    bool setStepSize(int stepsize );
-    bool setMaxTravel(int);
-    //bool setMoveDirection(int direction);
+        bool setTemperatureTracking(bool enable);
+        bool setBacklash(int backlash );
+        bool setStepSize(int stepsize );
+        bool setMaxTravel(int);
+        //bool setMoveDirection(int direction);
 
-    bool setActiveTemperatureSlope(uint32_t active_slope);
-    bool setSlope1Inc(uint32_t slope1_inc);
-    bool setSlope1Dir(uint32_t slope1_direction);
-    bool setSlope1Deadband(uint32_t slope1_deadband);
-    bool setSlope1Period(uint32_t slope1_period);
-    bool setSlope2Inc(uint32_t slope2_inc);
-    bool setSlope2Dir(uint32_t slope2_direction);
-    bool setSlope2Deadband(uint32_t slope2_deadband);
-    bool setSlope2Period(uint32_t slope2_period);
+        bool setActiveTemperatureSlope(uint32_t active_slope);
+        bool setSlope1Inc(uint32_t slope1_inc);
+        bool setSlope1Dir(uint32_t slope1_direction);
+        bool setSlope1Deadband(uint32_t slope1_deadband);
+        bool setSlope1Period(uint32_t slope1_period);
+        bool setSlope2Inc(uint32_t slope2_inc);
+        bool setSlope2Dir(uint32_t slope2_direction);
+        bool setSlope2Deadband(uint32_t slope2_deadband);
+        bool setSlope2Period(uint32_t slope2_period);
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    INumber TemperatureKN[1];
-    INumberVectorProperty TemperatureKNP;
+        INumber TemperatureKN[1];
+        INumberVectorProperty TemperatureKNP;
 
-//    ISwitch MoveDirectionS[2];
-//    ISwitchVectorProperty MoveDirectionSP;
+        //    ISwitch MoveDirectionS[2];
+        //    ISwitchVectorProperty MoveDirectionSP;
 
-    INumber StepSizeN[1];
-    INumberVectorProperty StepSizeNP;
+        INumber StepSizeN[1];
+        INumberVectorProperty StepSizeNP;
 
-    INumber BacklashN[1];
-    INumberVectorProperty BacklashNP;
+        //    INumber BacklashN[1];
+        //    INumberVectorProperty BacklashNP;
 
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+        INumber MaxTravelN[1];
+        INumberVectorProperty MaxTravelNP;
 
-    ISwitch TemperatureTrackingS[2];
-    ISwitchVectorProperty TemperatureTrackingSP;
+        ISwitch TemperatureTrackingS[2];
+        ISwitchVectorProperty TemperatureTrackingSP;
 
-    ISwitch ActiveTemperatureSlopeS[2];
-    ISwitchVectorProperty ActiveTemperatureSlopeSP;
+        ISwitch ActiveTemperatureSlopeS[2];
+        ISwitchVectorProperty ActiveTemperatureSlopeSP;
 
-    INumber Slope1IncN[1];
-    INumberVectorProperty Slope1IncNP;
+        INumber Slope1IncN[1];
+        INumberVectorProperty Slope1IncNP;
 
-    ISwitch Slope1DirS[2];
-    ISwitchVectorProperty Slope1DirSP;
+        ISwitch Slope1DirS[2];
+        ISwitchVectorProperty Slope1DirSP;
 
-    INumber Slope1DeadbandN[1];
-    INumberVectorProperty Slope1DeadbandNP;
+        INumber Slope1DeadbandN[1];
+        INumberVectorProperty Slope1DeadbandNP;
 
-    INumber Slope1PeriodN[1];
-    INumberVectorProperty Slope1PeriodNP;
+        INumber Slope1PeriodN[1];
+        INumberVectorProperty Slope1PeriodNP;
 
-    INumber Slope2IncN[1];
-    INumberVectorProperty Slope2IncNP;
+        INumber Slope2IncN[1];
+        INumberVectorProperty Slope2IncNP;
 
-    ISwitch Slope2DirS[2];
-    ISwitchVectorProperty Slope2DirSP;
+        ISwitch Slope2DirS[2];
+        ISwitchVectorProperty Slope2DirSP;
 
-    INumber Slope2DeadbandN[1];
-    INumberVectorProperty Slope2DeadbandNP;
+        INumber Slope2DeadbandN[1];
+        INumberVectorProperty Slope2DeadbandNP;
 
-    INumber Slope2PeriodN[1];
-    INumberVectorProperty Slope2PeriodNP;
+        INumber Slope2PeriodN[1];
+        INumberVectorProperty Slope2PeriodNP;
 
-    static constexpr const char *SETTINGS_TAB { "Settings" };
-    static constexpr const double TEMPERATURE_THRESHOLD { 0.05 };
+        static constexpr const char *SETTINGS_TAB { "Settings" };
+        static constexpr const double TEMPERATURE_THRESHOLD { 0.05 };
 
 };

@@ -9,7 +9,7 @@ Homepage: http://www.indilib.org/
 Package: indi-full
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1 (>= 1.7), libindi-data (>= 1.7), indi-bin (>= 1.7), indi-eqmod, indi-sx, indi-sbig [!arm64], indi-apogee, indi-gphoto, indi-qsi, indi-fishcamp, indi-maxdomeii, indi-asi, indi-aagcloudwatcher, indi-ffmv, indi-dsi, indi-qhy, indi-gpsd, indi-mi, indi-duino, indi-fli, indi-nexstarevo, indi-nexdome, indi-gpsnmea, indi-armadillo-platypus, indi-mgen, indi-shelyak, indi-nightscape, indi-altaircam, indi-toupcam, indi-atik, indi-avalon, indi-starbook, indi-astromechfoc, indi-dreamfocuser
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1 (>= 1.7), libindi-data (>= 1.7), indi-bin (>= 1.7), indi-eqmod, indi-sx, indi-sbig [!arm64], indi-apogee, indi-gphoto, indi-qsi, indi-fishcamp, indi-maxdomeii, indi-asi, indi-aagcloudwatcher, indi-ffmv, indi-dsi, indi-qhy, indi-gpsd, indi-mi, indi-duino, indi-fli, indi-nexstarevo, indi-nexdome, indi-gpsnmea, indi-armadillo-platypus, indi-mgen, indi-shelyak, indi-nightscape, indi-toupbase, indi-atik, indi-avalon, indi-starbook, indi-astromechfoc, indi-dreamfocuser
 Description: Instrument-Neutral Device Interface library - Full INDI
  INDI (Instrument-Neutral Device Interface) is a distributed XML-based
  control protocol designed to operate astronomical instrumentation.

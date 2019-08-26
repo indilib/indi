@@ -134,7 +134,7 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
         virtual bool getUTFOffset(double * offset);
 
         // Send slew error message to client
-        void slewError(int slewCode);
+        virtual void slewError(int slewCode);
 
         // Get mount alignment type (AltAz..etc)
         void getAlignment();

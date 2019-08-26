@@ -192,6 +192,10 @@ bool CCDSim::initProperties()
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
+    // CCD Gain
+    IUFillNumber(&GainN[0], "GAIN", "Gain", "%.f", 0, 100, 10, 50);
+    IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
     IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
     IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config", IP_RW, 60,
@@ -241,9 +245,6 @@ bool CCDSim::initProperties()
 
 void CCDSim::ISGetProperties(const char * dev)
 {
-    //  First we let our parent populate
-
-    //IDLog("CCDSim IsGetProperties with %s\n",dev);
     INDI::CCD::ISGetProperties(dev);
 
     defineNumber(SimulatorSettingsNV);
@@ -260,6 +261,8 @@ bool CCDSim::updateProperties()
         if (HasCooler())
             defineSwitch(&CoolerSP);
 
+        defineNumber(&GainNP);
+
         SetupParms();
 
         if (HasGuideHead())
@@ -275,6 +278,8 @@ bool CCDSim::updateProperties()
     {
         if (HasCooler())
             deleteProperty(CoolerSP.name);
+
+        deleteProperty(GainNP.name);
 
         INDI::FilterInterface::updateProperties();
     }
@@ -505,6 +510,11 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         ExposureTime = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
     else
         ExposureTime = ExposureRequest;
+
+    if (GainN[0].value > 50)
+        ExposureTime *= sqrt(GainN[0].value - 50);
+    else if (GainN[0].value < 50)
+        ExposureTime /= sqrt(50 - GainN[0].value);
 
     if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
         targetFocalLength = primaryFocalLength;
@@ -1054,6 +1064,14 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
+        if (!strcmp(name, GainNP.name))
+        {
+            IUUpdateNumber(&GainNP, values, names, n);
+            GainNP.s = IPS_OK;
+            IDSetNumber(&GainNP, nullptr);
+            return true;
+        }
+
         if (strcmp(name, "SIMULATOR_SETTINGS") == 0)
         {
             IUUpdateNumber(SimulatorSettingsNV, values, names, n);
@@ -1228,6 +1246,9 @@ bool CCDSim::saveConfigItems(FILE * fp)
     IUSaveConfigNumber(fp, SimulatorSettingsNV);
     IUSaveConfigSwitch(fp, TimeFactorSV);
 
+    // Gain
+    IUSaveConfigNumber(fp, &GainNP);
+
     return true;
 }
 
@@ -1342,4 +1363,12 @@ void * CCDSim::streamVideo()
 
     pthread_mutex_unlock(&condMutex);
     return nullptr;
+}
+
+void CCDSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
+{
+    INDI::CCD::addFITSKeywords(fptr, targetChip);
+
+    int status = 0;
+    fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
 }

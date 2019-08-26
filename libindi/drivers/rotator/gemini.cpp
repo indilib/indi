@@ -39,7 +39,7 @@
 #define ROTATOR_TAB "Rotator"
 #define HUB_TAB "Hub"
 
-std::unique_ptr<Gemini> geminiFR(new Gemini());
+static std::unique_ptr<Gemini> geminiFR(new Gemini());
 
 void ISGetProperties(const char *dev)
 {
@@ -88,7 +88,7 @@ Gemini::Gemini() : RotatorInterface(this)
     focuserSimPosition      = 0;
 
     // Can move in Absolute & Relative motions and can AbortFocuser motion.
-    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_BACKLASH);
 
     // Rotator capabilities
     RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
@@ -166,16 +166,16 @@ bool Gemini::initProperties()
     IUFillSwitchVector(&TemperatureCompensateModeSP, TemperatureCompensateModeS, 5, getDeviceName(), "Compensate Mode",
                        "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    // Enable/Disable backlash
-    IUFillSwitch(&FocuserBacklashCompensationS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&FocuserBacklashCompensationS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&FocuserBacklashCompensationSP, FocuserBacklashCompensationS, 2, getDeviceName(), "FOCUSER_BACKLASH_COMPENSATION", "Backlash Compensation",
-                       FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    //    // Enable/Disable backlash
+    //    IUFillSwitch(&FocusBacklashS[0], "Enable", "", ISS_OFF);
+    //    IUFillSwitch(&FocusBacklashS[1], "Disable", "", ISS_ON);
+    //    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, getDeviceName(), "FOCUSER_BACKLASH_COMPENSATION", "Backlash Compensation",
+    //                       FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Backlash Value
-    IUFillNumber(&FocuserBacklashN[0], "Value", "", "%.f", 0, 99, 5., 0.);
-    IUFillNumberVector(&FocuserBacklashNP, FocuserBacklashN, 1, getDeviceName(), "FOCUSER_BACKLASH", "Backlash", FOCUS_SETTINGS_TAB, IP_RW, 0,
-                       IPS_IDLE);
+    //    // Backlash Value
+    //    IUFillNumber(&FocusBacklashN[0], "Value", "", "%.f", 0, 99, 5., 0.);
+    //    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, getDeviceName(), "FOCUSER_BACKLASH", "Backlash", FOCUS_SETTINGS_TAB, IP_RW, 0,
+    //                       IPS_IDLE);
 
     // Go to home/center
     IUFillSwitch(&FocuserGotoS[GOTO_CENTER], "Center", "", ISS_OFF);
@@ -241,7 +241,7 @@ bool Gemini::initProperties()
     // Enable/Disable backlash
     IUFillSwitch(&RotatorBacklashCompensationS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&RotatorBacklashCompensationS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&RotatorBacklashCompensationSP, RotatorBacklashCompensationS, 2, getDeviceName(), "ROTATOR_BACKLASH_COMPENSATION", "Backlash Compensation",
+    IUFillSwitchVector(&RotatorFocuserBacklashSP, RotatorBacklashCompensationS, 2, getDeviceName(), "ROTATOR_BACKLASH_COMPENSATION", "Backlash Compensation",
                        ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Backlash Value
@@ -290,8 +290,8 @@ bool Gemini::updateProperties()
         defineSwitch(&TemperatureCompensateModeSP);
         defineSwitch(&TemperatureCompensateSP);
         defineSwitch(&TemperatureCompensateOnStartSP);
-        defineSwitch(&FocuserBacklashCompensationSP);
-        defineNumber(&FocuserBacklashNP);
+        //        defineSwitch(&FocusBacklashSP);
+        //        defineNumber(&FocusBacklashNP);
         defineSwitch(&FocuserHomeOnStartSP);
         defineSwitch(&FocuserGotoSP);
         defineLight(&FocuserStatusLP);
@@ -306,9 +306,9 @@ bool Gemini::updateProperties()
         defineSwitch(&ReverseRotatorSP);
         */
         defineNumber(&RotatorAbsPosNP);
-        defineSwitch(&RotatorBacklashCompensationSP);
+        defineSwitch(&RotatorFocuserBacklashSP);
         defineNumber(&RotatorBacklashNP);
-        defineSwitch(&RotatorHomeOnStartSP);        
+        defineSwitch(&RotatorHomeOnStartSP);
         defineLight(&RotatorStatusLP);
 
         // Hub Properties
@@ -332,8 +332,8 @@ bool Gemini::updateProperties()
         deleteProperty(TemperatureCompensateModeSP.name);
         deleteProperty(TemperatureCompensateSP.name);
         deleteProperty(TemperatureCompensateOnStartSP.name);
-        deleteProperty(FocuserBacklashCompensationSP.name);
-        deleteProperty(FocuserBacklashNP.name);
+        //        deleteProperty(FocusBacklashSP.name);
+        //        deleteProperty(FocusBacklashNP.name);
         deleteProperty(FocuserGotoSP.name);
         deleteProperty(FocuserHomeOnStartSP.name);
         deleteProperty(FocuserStatusLP.name);
@@ -348,7 +348,7 @@ bool Gemini::updateProperties()
         */
 
         deleteProperty(RotatorAbsPosNP.name);
-        deleteProperty(RotatorBacklashCompensationSP.name);
+        deleteProperty(RotatorFocuserBacklashSP.name);
         deleteProperty(RotatorBacklashNP.name);
         deleteProperty(RotatorHomeOnStartSP.name);
 
@@ -375,7 +375,7 @@ bool Gemini::Handshake()
     }
 
     LOG_INFO("Error retreiving data from Gemini, please ensure Gemini controller is "
-                                     "powered and the port is correct.");
+             "powered and the port is correct.");
     return false;
 }
 
@@ -392,7 +392,7 @@ const char *Gemini::getDefaultName()
  *
 * ***********************************************************************************/
 bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{    
+{
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Compensation
@@ -497,42 +497,42 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         }
 
         // Focuser Backlash enable/disable
-        if (!strcmp(FocuserBacklashCompensationSP.name, name))
-        {
-            int prevIndex = IUFindOnSwitchIndex(&FocuserBacklashCompensationSP);
-            IUUpdateSwitch(&FocuserBacklashCompensationSP, states, names, n);
-            if (setBacklashCompensation(DEVICE_FOCUSER, FocuserBacklashCompensationS[0].s == ISS_ON))
-            {
-                FocuserBacklashCompensationSP.s = IPS_OK;
-            }
-            else
-            {
-                IUResetSwitch(&FocuserBacklashCompensationSP);
-                FocuserBacklashCompensationSP.s           = IPS_ALERT;
-                FocuserBacklashCompensationS[prevIndex].s = ISS_ON;
-            }
+        //        if (!strcmp(FocusBacklashSP.name, name))
+        //        {
+        //            int prevIndex = IUFindOnSwitchIndex(&FocusBacklashSP);
+        //            IUUpdateSwitch(&FocusBacklashSP, states, names, n);
+        //            if (setBacklashCompensation(DEVICE_FOCUSER, FocusBacklashS[0].s == ISS_ON))
+        //            {
+        //                FocusBacklashSP.s = IPS_OK;
+        //            }
+        //            else
+        //            {
+        //                IUResetSwitch(&FocusBacklashSP);
+        //                FocusBacklashSP.s           = IPS_ALERT;
+        //                FocusBacklashS[prevIndex].s = ISS_ON;
+        //            }
 
-            IDSetSwitch(&FocuserBacklashCompensationSP, nullptr);
-            return true;
-        }
+        //            IDSetSwitch(&FocusBacklashSP, nullptr);
+        //            return true;
+        //        }
 
         // Rotator Backlash enable/disable
-        if (!strcmp(RotatorBacklashCompensationSP.name, name))
+        if (!strcmp(RotatorFocuserBacklashSP.name, name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&RotatorBacklashCompensationSP);
-            IUUpdateSwitch(&RotatorBacklashCompensationSP, states, names, n);
+            int prevIndex = IUFindOnSwitchIndex(&RotatorFocuserBacklashSP);
+            IUUpdateSwitch(&RotatorFocuserBacklashSP, states, names, n);
             if (setBacklashCompensation(DEVICE_ROTATOR, RotatorBacklashCompensationS[0].s == ISS_ON))
             {
-                RotatorBacklashCompensationSP.s = IPS_OK;
+                RotatorFocuserBacklashSP.s = IPS_OK;
             }
             else
             {
-                IUResetSwitch(&RotatorBacklashCompensationSP);
-                RotatorBacklashCompensationSP.s           = IPS_ALERT;
+                IUResetSwitch(&RotatorFocuserBacklashSP);
+                RotatorFocuserBacklashSP.s           = IPS_ALERT;
                 RotatorBacklashCompensationS[prevIndex].s = ISS_ON;
             }
 
-            IDSetSwitch(&RotatorBacklashCompensationSP, nullptr);
+            IDSetSwitch(&RotatorFocuserBacklashSP, nullptr);
             return true;
         }
 
@@ -716,21 +716,21 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
         }
 
         // Focuser Backlash Value
-        if (!strcmp(FocuserBacklashNP.name, name))
-        {
-            IUUpdateNumber(&FocuserBacklashNP, values, names, n);
-            if (setBacklashCompensationSteps(DEVICE_FOCUSER, FocuserBacklashN[0].value) == false)
-            {
-                LOG_ERROR("Failed to set focuser backlash value.");
-                FocuserBacklashNP.s = IPS_ALERT;
-                IDSetNumber(&FocuserBacklashNP, nullptr);
-                return false;
-            }
+        //        if (!strcmp(FocusBacklashNP.name, name))
+        //        {
+        //            IUUpdateNumber(&FocusBacklashNP, values, names, n);
+        //            if (setBacklashCompensationSteps(DEVICE_FOCUSER, FocusBacklashN[0].value) == false)
+        //            {
+        //                LOG_ERROR("Failed to set focuser backlash value.");
+        //                FocusBacklashNP.s = IPS_ALERT;
+        //                IDSetNumber(&FocusBacklashNP, nullptr);
+        //                return false;
+        //            }
 
-            FocuserBacklashNP.s = IPS_OK;
-            IDSetNumber(&FocuserBacklashNP, nullptr);
-            return true;
-        }
+        //            FocusBacklashNP.s = IPS_OK;
+        //            IDSetNumber(&FocusBacklashNP, nullptr);
+        //            return true;
+        //        }
 
         // Rotator Backlash Value
         if (!strcmp(RotatorBacklashNP.name, name))
@@ -1190,7 +1190,7 @@ bool Gemini::getFocusConfig()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, sizeof(response), "BLC En = %d\n", FocuserBacklashCompensationS[0].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "BLC En = %d\n", FocusBacklashS[BACKLASH_ENABLED].s == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1207,11 +1207,11 @@ bool Gemini::getFocusConfig()
     if (rc != 2)
         return false;
 
-    IUResetSwitch(&FocuserBacklashCompensationSP);
-    FocuserBacklashCompensationS[0].s = BLCCompensate ? ISS_ON : ISS_OFF;
-    FocuserBacklashCompensationS[1].s = BLCCompensate ? ISS_OFF : ISS_ON;
-    FocuserBacklashCompensationSP.s   = IPS_OK;
-    IDSetSwitch(&FocuserBacklashCompensationSP, nullptr);
+    IUResetSwitch(&FocusBacklashSP);
+    FocusBacklashS[BACKLASH_ENABLED].s = BLCCompensate ? ISS_ON : ISS_OFF;
+    FocusBacklashS[BACKLASH_DISABLED].s = BLCCompensate ? ISS_OFF : ISS_ON;
+    FocusBacklashSP.s   = IPS_OK;
+    IDSetSwitch(&FocusBacklashSP, nullptr);
 
     // Backlash Value
     memset(response, 0, sizeof(response));
@@ -1234,9 +1234,9 @@ bool Gemini::getFocusConfig()
     if (rc != 2)
         return false;
 
-    FocuserBacklashN[0].value = BLCValue;
-    FocuserBacklashNP.s       = IPS_OK;
-    IDSetNumber(&FocuserBacklashNP, nullptr);
+    FocusBacklashN[0].value = BLCValue;
+    FocusBacklashNP.s       = IPS_OK;
+    IDSetNumber(&FocusBacklashNP, nullptr);
 
     // Temperature Compensation on Start
     memset(response, 0, sizeof(response));
@@ -1697,7 +1697,7 @@ bool Gemini::getRotatorConfig()
     {
         RotatorAbsPosN[0].min = 0;
         RotatorAbsPosN[0].max = maxPos;
-        RotatorAbsPosN[0].step = maxPos/50.0;
+        RotatorAbsPosN[0].step = maxPos / 50.0;
         IUUpdateMinMax(&RotatorAbsPosNP);
     }
     else
@@ -1748,11 +1748,11 @@ bool Gemini::getRotatorConfig()
     if (rc != 2)
         return false;
 
-    IUResetSwitch(&RotatorBacklashCompensationSP);
+    IUResetSwitch(&RotatorFocuserBacklashSP);
     RotatorBacklashCompensationS[0].s = BLCCompensate ? ISS_ON : ISS_OFF;
     RotatorBacklashCompensationS[1].s = BLCCompensate ? ISS_OFF : ISS_ON;
-    RotatorBacklashCompensationSP.s   = IPS_OK;
-    IDSetSwitch(&RotatorBacklashCompensationSP, nullptr);
+    RotatorFocuserBacklashSP.s   = IPS_OK;
+    IDSetSwitch(&RotatorFocuserBacklashSP, nullptr);
 
     ////////////////////////////////////////////////////////////
     // Backlash Value
@@ -2302,7 +2302,7 @@ bool Gemini::setNickname(DeviceType type, const char *nickname)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2329,8 +2329,8 @@ bool Gemini::setNickname(DeviceType type, const char *nickname)
         tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
-   tcflush(PortFD, TCIFLUSH);
-   return true;
+    tcflush(PortFD, TCIFLUSH);
+    return true;
 }
 
 /************************************************************************************
@@ -2338,11 +2338,11 @@ bool Gemini::setNickname(DeviceType type, const char *nickname)
 * ***********************************************************************************/
 bool Gemini::halt(DeviceType type)
 {
-    char cmd[32];;
+    char cmd[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2390,11 +2390,11 @@ bool Gemini::halt(DeviceType type)
 * ***********************************************************************************/
 bool Gemini::home(DeviceType type)
 {
-    char cmd[32];;
+    char cmd[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2443,11 +2443,11 @@ bool Gemini::home(DeviceType type)
 * ***********************************************************************************/
 bool Gemini::homeOnStart(DeviceType type, bool enable)
 {
-    char cmd[32];;
+    char cmd[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2484,13 +2484,13 @@ bool Gemini::homeOnStart(DeviceType type, bool enable)
 bool Gemini::center(DeviceType type)
 {
     if (type == DEVICE_ROTATOR)
-        return MoveAbsRotatorTicks(RotatorAbsPosN[0].max/2);
+        return MoveAbsRotatorTicks(RotatorAbsPosN[0].max / 2);
 
     const char * cmd = "<F100CENTER>";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2543,7 +2543,7 @@ bool Gemini::setTemperatureCompensation(bool enable)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2582,7 +2582,7 @@ bool Gemini::setTemperatureCompensationMode(char mode)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2621,7 +2621,7 @@ bool Gemini::setTemperatureCompensationCoeff(char mode, int16_t coeff)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2660,7 +2660,7 @@ bool Gemini::setTemperatureCompensationOnStart(bool enable)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2699,7 +2699,7 @@ bool Gemini::setBacklashCompensation(DeviceType type, bool enable)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2736,7 +2736,7 @@ bool Gemini::setBacklashCompensationSteps(DeviceType type, uint16_t steps)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
+    int nbytes_read = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2852,7 +2852,7 @@ bool Gemini::resetFactory()
 
         if (!strcmp(response, "SET"))
         {
-            return true;
+            //return true;
             getFocusConfig();
             getRotatorConfig();
         }
@@ -3249,11 +3249,14 @@ float Gemini::calcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
     gettimeofday(&now, nullptr);
 
     timesince =
-            (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
+        (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
     timesince = timesince / 1000;
     timeleft  = req - timesince;
     return timeleft;
@@ -3306,8 +3309,6 @@ IPState Gemini::MoveAbsRotatorTicks(uint32_t targetTicks)
 IPState Gemini::MoveAbsRotatorAngle(double angle)
 {
     char cmd[32];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
     char response[16];
     int nbytes_written = 0;
 
@@ -3315,12 +3316,14 @@ IPState Gemini::MoveAbsRotatorAngle(double angle)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<R100MOVEPA%06d>", targetRotatorAngle);
+    snprintf(cmd, 32, "<R100MOVEPA%06ud>", targetRotatorAngle);
 
     LOGF_DEBUG("CMD (%s)", cmd);
 
     if (!isSimulation())
     {
+        int errcode = 0;
+        char errmsg[MAXRBUF];
         tcflush(PortFD, TCIFLUSH);
 
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
@@ -3352,13 +3355,13 @@ bool Gemini::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &TemperatureCompensateOnStartSP);
     IUSaveConfigNumber(fp, &TemperatureCoeffNP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateModeSP);
-    IUSaveConfigSwitch(fp, &FocuserBacklashCompensationSP);
+    //IUSaveConfigSwitch(fp, &FocusBacklashSP);
     IUSaveConfigSwitch(fp, &FocuserHomeOnStartSP);
-    IUSaveConfigNumber(fp, &FocuserBacklashNP);
+    //IUSaveConfigNumber(fp, &FocusBacklashNP);
 
     IUSaveConfigSwitch(fp, &ReverseRotatorSP);
-    IUSaveConfigSwitch(fp, &RotatorBacklashCompensationSP);
-    IUSaveConfigNumber(fp, &RotatorBacklashNP);    
+    IUSaveConfigSwitch(fp, &RotatorFocuserBacklashSP);
+    IUSaveConfigNumber(fp, &RotatorBacklashNP);
     IUSaveConfigSwitch(fp, &RotatorHomeOnStartSP);
 
     return true;
@@ -3389,6 +3392,21 @@ IPState Gemini::HomeRotator()
 * ***********************************************************************************/
 bool Gemini::ReverseRotator(bool enabled)
 {
-   return reverseRotator(enabled);
+    return reverseRotator(enabled);
 }
 
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool Gemini::SetFocuserBacklash(int32_t steps)
+{
+    return setBacklashCompensationSteps(DEVICE_FOCUSER, steps);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool Gemini::SetFocuserBacklashEnabled(bool enabled)
+{
+    return setBacklashCompensation(DEVICE_FOCUSER, enabled);
+}

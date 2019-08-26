@@ -27,258 +27,261 @@
 
 class Gemini : public INDI::Focuser, public INDI::RotatorInterface
 {
-  public:
-    Gemini();    
-    ~Gemini();
+    public:
+        Gemini();
+        ~Gemini();
 
-    enum
-    {
-        FOCUS_A_COEFF,
-        FOCUS_B_COEFF,
-        FOCUS_C_COEFF,
-        FOCUS_D_COEFF,
-        FOCUS_E_COEFF,
-        FOCUS_F_COEFF
-    };
-    enum
-    {
-        STATUS_MOVING,
-        STATUS_HOMING,
-        STATUS_HOMED,
-        STATUS_FFDETECT,
-        STATUS_TMPPROBE,
-        STATUS_REMOTEIO,
-        STATUS_HNDCTRL,
-        STATUS_REVERSE,
-        STATUS_UNKNOWN
-    };
-    enum
-    {
-        GOTO_CENTER,
-        GOTO_HOME
-    };    
-    typedef enum
-    {
-        DEVICE_FOCUSER,
-        DEVICE_ROTATOR
-    } DeviceType;
+        enum
+        {
+            FOCUS_A_COEFF,
+            FOCUS_B_COEFF,
+            FOCUS_C_COEFF,
+            FOCUS_D_COEFF,
+            FOCUS_E_COEFF,
+            FOCUS_F_COEFF
+        };
+        enum
+        {
+            STATUS_MOVING,
+            STATUS_HOMING,
+            STATUS_HOMED,
+            STATUS_FFDETECT,
+            STATUS_TMPPROBE,
+            STATUS_REMOTEIO,
+            STATUS_HNDCTRL,
+            STATUS_REVERSE,
+            STATUS_UNKNOWN
+        };
+        enum
+        {
+            GOTO_CENTER,
+            GOTO_HOME
+        };
+        typedef enum
+        {
+            DEVICE_FOCUSER,
+            DEVICE_ROTATOR
+        } DeviceType;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-protected:
+    protected:
 
-    virtual bool Handshake() override;
-    virtual const char *getDefaultName() override;
+        virtual bool Handshake() override;
+        virtual const char *getDefaultName() override;
 
-    virtual bool initProperties() override;    
-    virtual bool updateProperties() override;
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    // Focuser Functions
-    virtual IPState MoveAbsFocuser(uint32_t targetPosition) override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
-    virtual bool AbortFocuser() override;
+        // Focuser Functions
+        virtual IPState MoveAbsFocuser(uint32_t targetPosition) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+        virtual bool AbortFocuser() override;
 
-    virtual void TimerHit() override;    
+        virtual bool SetFocuserBacklash(int32_t steps) override;
+        virtual bool SetFocuserBacklashEnabled(bool enabled) override;
 
-    // Misc functions
-    bool ack();
-    bool isResponseOK();
+        virtual void TimerHit() override;
 
-  protected:
-    // Move from private to public to validate
-    bool focuserConfigurationComplete = false;
-    bool rotatorConfigurationComplete = false;
+        // Misc functions
+        bool ack();
+        bool isResponseOK();
 
-    // Rotator Overrides
-    virtual IPState HomeRotator() override;
-    virtual IPState MoveRotator(double angle) override;
-    virtual bool ReverseRotator(bool enabled) override;
+    protected:
+        // Move from private to public to validate
+        bool focuserConfigurationComplete = false;
+        bool rotatorConfigurationComplete = false;
 
-  private:
-    uint32_t focuserSimPosition=0;
-    uint32_t rotatorSimPosition=0;
-    uint32_t rotatorSimPA=0;
-    uint32_t targetFocuserPosition=0;
-    uint32_t targetRotatorPosition=0;
-    uint32_t targetRotatorAngle=0;
-    uint32_t maxControllerTicks=0;
+        // Rotator Overrides
+        virtual IPState HomeRotator() override;
+        virtual IPState MoveRotator(double angle) override;
+        virtual bool ReverseRotator(bool enabled) override;
 
-    ISState focuserSimStatus[8];
-    ISState rotatorSimStatus[8];
+    private:
+        uint32_t focuserSimPosition = 0;
+        uint32_t rotatorSimPosition = 0;
+        uint32_t rotatorSimPA = 0;
+        uint32_t targetFocuserPosition = 0;
+        uint32_t targetRotatorPosition = 0;
+        uint32_t targetRotatorAngle = 0;
+        uint32_t maxControllerTicks = 0;
 
-    bool simCompensationOn;
-    char focusTarget[8];
+        ISState focuserSimStatus[8];
+        ISState rotatorSimStatus[8];
 
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
+        bool simCompensationOn;
+        char focusTarget[8];
 
-    ////////////////////////////////////////////////////////////
-    // Focuser Functions
-    ///////////////////////////////////////////////////////////
+        struct timeval focusMoveStart;
+        float focusMoveRequest;
 
-    // Get functions
-    bool getFocusConfig();
-    bool getFocusStatus();
+        ////////////////////////////////////////////////////////////
+        // Focuser Functions
+        ///////////////////////////////////////////////////////////
 
-    // Set functions
+        // Get functions
+        bool getFocusConfig();
+        bool getFocusStatus();
 
-    // Position
-    bool setFocusPosition(u_int16_t position);
+        // Set functions
 
-    // Temperature
-    bool setTemperatureCompensation(bool enable);
-    bool setTemperatureCompensationMode(char mode);
-    bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
-    bool setTemperatureCompensationOnStart(bool enable);
+        // Position
+        bool setFocusPosition(u_int16_t position);
 
-    // Backlash
-    bool setBacklashCompensation(DeviceType type, bool enable);
-    bool setBacklashCompensationSteps(DeviceType type, uint16_t steps);
+        // Temperature
+        bool setTemperatureCompensation(bool enable);
+        bool setTemperatureCompensationMode(char mode);
+        bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
+        bool setTemperatureCompensationOnStart(bool enable);
 
-    // Motion functions
-    bool home(DeviceType type);
-    bool halt(DeviceType type);
-    bool center(DeviceType type);
-    bool homeOnStart(DeviceType type, bool enable);
+        // Backlash
+        bool setBacklashCompensation(DeviceType type, bool enable);
+        bool setBacklashCompensationSteps(DeviceType type, uint16_t steps);
 
-    ////////////////////////////////////////////////////////////
-    // Focuser Properties
-    ///////////////////////////////////////////////////////////
+        // Motion functions
+        bool home(DeviceType type);
+        bool halt(DeviceType type);
+        bool center(DeviceType type);
+        bool homeOnStart(DeviceType type, bool enable);
 
-    // Set/Get Temperature
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        ////////////////////////////////////////////////////////////
+        // Focuser Properties
+        ///////////////////////////////////////////////////////////
 
-    // Enable/Disable temperature compnesation
-    ISwitch TemperatureCompensateS[2];
-    ISwitchVectorProperty TemperatureCompensateSP;
+        // Set/Get Temperature
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    // Enable/Disable temperature compnesation on start
-    ISwitch TemperatureCompensateOnStartS[2];
-    ISwitchVectorProperty TemperatureCompensateOnStartSP;
+        // Enable/Disable temperature compnesation
+        ISwitch TemperatureCompensateS[2];
+        ISwitchVectorProperty TemperatureCompensateSP;
 
-    // Temperature Coefficient
-    INumber TemperatureCoeffN[5];
-    INumberVectorProperty TemperatureCoeffNP;
+        // Enable/Disable temperature compnesation on start
+        ISwitch TemperatureCompensateOnStartS[2];
+        ISwitchVectorProperty TemperatureCompensateOnStartSP;
 
-    // Temperature Coefficient Mode
-    ISwitch TemperatureCompensateModeS[5];
-    ISwitchVectorProperty TemperatureCompensateModeSP;
+        // Temperature Coefficient
+        INumber TemperatureCoeffN[5];
+        INumberVectorProperty TemperatureCoeffNP;
 
-    // Enable/Disable backlash
-    ISwitch FocuserBacklashCompensationS[2];
-    ISwitchVectorProperty FocuserBacklashCompensationSP;
+        // Temperature Coefficient Mode
+        ISwitch TemperatureCompensateModeS[5];
+        ISwitchVectorProperty TemperatureCompensateModeSP;
 
-    // Backlash Value
-    INumber FocuserBacklashN[1];
-    INumberVectorProperty FocuserBacklashNP;
+        // Enable/Disable backlash
+        //    ISwitch FocuserBacklashCompensationS[2];
+        //    ISwitchVectorProperty FocuserFocuserBacklashSP;
 
-    // Home On Start
-    ISwitch FocuserHomeOnStartS[2];
-    ISwitchVectorProperty FocuserHomeOnStartSP;
+        // Backlash Value
+        //    INumber FocuserBacklashN[1];
+        //    INumberVectorProperty FocuserBacklashNP;
 
-    // Go to home/center
-    ISwitch FocuserGotoS[2];
-    ISwitchVectorProperty FocuserGotoSP;
+        // Home On Start
+        ISwitch FocuserHomeOnStartS[2];
+        ISwitchVectorProperty FocuserHomeOnStartSP;
 
-    // Status indicators
-    ILight FocuserStatusL[8];
-    ILightVectorProperty FocuserStatusLP;
+        // Go to home/center
+        ISwitch FocuserGotoS[2];
+        ISwitchVectorProperty FocuserGotoSP;
 
-    bool isFocuserAbsolute;
-    bool isFocuserHoming;
+        // Status indicators
+        ILight FocuserStatusL[8];
+        ILightVectorProperty FocuserStatusLP;
 
-    ////////////////////////////////////////////////////////////
-    // Rotator Functions
-    ///////////////////////////////////////////////////////////
+        bool isFocuserAbsolute;
+        bool isFocuserHoming;
 
-    // Get functions
-    bool getRotatorConfig();
-    bool getRotatorStatus();
+        ////////////////////////////////////////////////////////////
+        // Rotator Functions
+        ///////////////////////////////////////////////////////////
 
-    IPState MoveAbsRotatorTicks(uint32_t targetTicks);
-    IPState MoveAbsRotatorAngle(double angle);
-    bool reverseRotator(bool enable);
+        // Get functions
+        bool getRotatorConfig();
+        bool getRotatorStatus();
 
-    ////////////////////////////////////////////////////////////
-    // Rotator Properties
-    ///////////////////////////////////////////////////////////
+        IPState MoveAbsRotatorTicks(uint32_t targetTicks);
+        IPState MoveAbsRotatorAngle(double angle);
+        bool reverseRotator(bool enable);
 
-    // Status
-    ILight RotatorStatusL[8];
-    ILightVectorProperty RotatorStatusLP;
+        ////////////////////////////////////////////////////////////
+        // Rotator Properties
+        ///////////////////////////////////////////////////////////
 
-    // Rotator Steps
-    INumber RotatorAbsPosN[1];
-    INumberVectorProperty RotatorAbsPosNP;
+        // Status
+        ILight RotatorStatusL[8];
+        ILightVectorProperty RotatorStatusLP;
+
+        // Rotator Steps
+        INumber RotatorAbsPosN[1];
+        INumberVectorProperty RotatorAbsPosNP;
 
 #if 0
-    // Reverse Direction
-    ISwitch RotatorReverseS[2];
-    ISwitchVectorProperty RotatorReverseSP;
+        // Reverse Direction
+        ISwitch RotatorReverseS[2];
+        ISwitchVectorProperty RotatorReverseSP;
 
 
 
-    // Rotator Degrees or PA (Position Angle)
-    INumber RotatorAbsAngleN[1];
-    INumberVectorProperty RotatorAbsAngleNP;
+        // Rotator Degrees or PA (Position Angle)
+        INumber RotatorAbsAngleN[1];
+        INumberVectorProperty RotatorAbsAngleNP;
 
-    // Abort
-    ISwitch AbortRotatorS[1];
-    ISwitchVectorProperty AbortRotatorSP;
+        // Abort
+        ISwitch AbortRotatorS[1];
+        ISwitchVectorProperty AbortRotatorSP;
 
-    // Go to home/center
-    ISwitch RotatorGotoS[2];
-    ISwitchVectorProperty RotatorGotoSP;
+        // Go to home/center
+        ISwitch RotatorGotoS[2];
+        ISwitchVectorProperty RotatorGotoSP;
 #endif
 
-    // Enable/Disable backlash
-    ISwitch RotatorBacklashCompensationS[2];
-    ISwitchVectorProperty RotatorBacklashCompensationSP;
+        // Enable/Disable backlash
+        ISwitch RotatorBacklashCompensationS[2];
+        ISwitchVectorProperty RotatorFocuserBacklashSP;
 
-    // Backlash Value
-    INumber RotatorBacklashN[1];
-    INumberVectorProperty RotatorBacklashNP;
+        // Backlash Value
+        INumber RotatorBacklashN[1];
+        INumberVectorProperty RotatorBacklashNP;
 
-    // Home On Start
-    ISwitch RotatorHomeOnStartS[2];
-    ISwitchVectorProperty RotatorHomeOnStartSP;
+        // Home On Start
+        ISwitch RotatorHomeOnStartS[2];
+        ISwitchVectorProperty RotatorHomeOnStartSP;
 
-    bool isRotatorHoming;
+        bool isRotatorHoming;
 
-    ////////////////////////////////////////////////////////////
-    // Hub Functions
-    ///////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////
+        // Hub Functions
+        ///////////////////////////////////////////////////////////
 
-    // Led level
-    bool setLedLevel(int level);
+        // Led level
+        bool setLedLevel(int level);
 
-    // Device Nickname
-    bool setNickname(DeviceType type, const char *nickname);
+        // Device Nickname
+        bool setNickname(DeviceType type, const char *nickname);
 
-    // Misc functions
-    bool resetFactory();
-    float calcTimeLeft(timeval, float);
+        // Misc functions
+        bool resetFactory();
+        float calcTimeLeft(timeval, float);
 
-    ////////////////////////////////////////////////////////////
-    // Hub Properties
-    ///////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////
+        // Hub Properties
+        ///////////////////////////////////////////////////////////
 
-    // Reset to Factory setting
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+        // Reset to Factory setting
+        ISwitch ResetS[1];
+        ISwitchVectorProperty ResetSP;
 
-    // Focus and rotator name configure in the HUB
-    IText HFocusNameT[2] {};
-    ITextVectorProperty HFocusNameTP;
+        // Focus and rotator name configure in the HUB
+        IText HFocusNameT[2] {};
+        ITextVectorProperty HFocusNameTP;
 
-    // Led Intensity Value
-    INumber LedN[1];
-    INumberVectorProperty LedNP;
+        // Led Intensity Value
+        INumber LedN[1];
+        INumberVectorProperty LedNP;
 
-    uint32_t DBG_FOCUS;
+        uint32_t DBG_FOCUS;
 };

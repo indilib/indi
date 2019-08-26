@@ -1,0 +1,39 @@
+Moravian Instruments CCD Driver
+===============================
+
+This package provides Moravian Instruments CCD INDI driver for MI CCD cameras.
+
+Requirements
+============
+
++ INDI >= v1.2.0 (http://www.indilib.org/)
+
+	You need to install both indi and indi-devel to build this package.
+
++ libusb-1
+
+	libusb-1 is required.
+
+Installation
+============
+
+	See INSTALL
+
+How to Use
+==========
+
+	You can use the MI INDI Driver in any INDI-compatible client such as KStars or Xephem.
+
+	To run the driver from the command line:
+
+	USB variant:
+
+	$ indiserver indi_mi_ccd_usb
+
+	ETH variant:
+
+	$ indiserver indi_mi_ccd_eth
+
+	You can then connect to the driver from any client, the default port is 7624.
+	If you're using KStars, the driver will be automatically listed in KStars' Device Manager,
+	no further configuration is necessary.

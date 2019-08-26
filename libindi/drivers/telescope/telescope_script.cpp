@@ -178,13 +178,14 @@ bool ScopeScript::RunScript(int script, ...)
     char path[1024];
     snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
 
-    if (access(path, F_OK|X_OK) != 0)
+    if (access(path, F_OK | X_OK) != 0)
     {
         LOGF_ERROR("Cannot use script [%s], %s", path, strerror(errno));
         return false;
     }
     if (isDebug())
-    { char dbg[8 * 1024];
+    {
+        char dbg[8 * 1024];
         snprintf(dbg, sizeof(dbg), "execvp('%s'", path);
         for (int i = 0; args[i]; i++)
         {
@@ -313,6 +314,7 @@ bool ScopeScript::Goto(double ra, double dec)
     if (status)
     {
         LOG_INFO("Goto succesfully executed");
+        TrackState = SCOPE_SLEWING;
     }
     else
     {
@@ -362,8 +364,8 @@ bool ScopeScript::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     char _rate[] = { (char)('0' + IUFindOnSwitchIndex(&SlewRateSP)), 0 };
     bool status  = RunScript(command == MOTION_STOP ? SCRIPT_ABORT :
-                                                     dir == DIRECTION_NORTH ? SCRIPT_MOVE_NORTH : SCRIPT_MOVE_SOUTH,
-                            _rate, nullptr, nullptr);
+                             dir == DIRECTION_NORTH ? SCRIPT_MOVE_NORTH : SCRIPT_MOVE_SOUTH,
+                             _rate, nullptr, nullptr);
     return status;
 }
 

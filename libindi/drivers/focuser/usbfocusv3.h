@@ -75,123 +75,125 @@
 
 class USBFocusV3 : public INDI::Focuser
 {
-  public:
-    USBFocusV3();
-    virtual ~USBFocusV3() = default;
+    public:
+        USBFocusV3();
+        virtual ~USBFocusV3() = default;
 
-    typedef enum
-    {
-        FOCUS_HALF_STEP,
-        FOCUS_FULL_STEP
-    } FocusStepMode;
+        typedef enum
+        {
+            FOCUS_HALF_STEP,
+            FOCUS_FULL_STEP
+        } FocusStepMode;
 
-    virtual bool Handshake() override;
-    bool getControllerStatus();
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    virtual bool SetFocuserSpeed(int speed) override;
-    virtual bool AbortFocuser() override;
-    virtual void TimerHit() override;
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool Handshake() override;
+        bool getControllerStatus();
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool SetFocuserSpeed(int speed) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
+        //virtual bool saveConfigItems(FILE *fp) override;
 
-  private:
-    bool sendCommand(const char *cmd, char *response);
-    bool sendCommandSpecial(const char *cmd, char *response);
+        virtual bool SetFocuserBacklash(int32_t steps) override;
 
-    pthread_mutex_t cmdlock;
+    private:
+        bool sendCommand(const char *cmd, char *response);
+        bool sendCommandSpecial(const char *cmd, char *response);
 
-    void GetFocusParams();
-    bool reset();
-    bool updateStepMode();
-    bool updateRotDir();
-    bool updateTemperature();
-    bool updatePosition();
-    bool updateMaxPos();
-    bool updateTempCompSettings();
-    bool updateTempCompSign();
-    bool updateSpeed();
-    bool updateFWversion();
+        pthread_mutex_t cmdlock;
 
-    bool Ack();
-    bool Resync();
+        void GetFocusParams();
+        bool reset();
+        bool updateStepMode();
+        bool updateRotDir();
+        bool updateTemperature();
+        bool updatePosition();
+        bool updateMaxPos();
+        bool updateTempCompSettings();
+        bool updateTempCompSign();
+        bool updateSpeed();
+        bool updateFWversion();
 
-    bool MoveFocuserUF(FocusDirection dir, unsigned int rticks);
-    bool setStepMode(FocusStepMode mode);
-    bool setRotDir(unsigned int dir);
-    bool setMaxPos(unsigned int maxp);
-    bool setSpeed(unsigned short drvspeed);
-    bool setAutoTempCompThreshold(unsigned int thr);
-    bool setTemperatureCoefficient(unsigned int coefficient);
-    bool setTempCompSign(unsigned int sign);
-    bool setTemperatureCompensation(bool enable);
-    float CalcTimeLeft(timeval, float);
+        bool Ack();
+        bool Resync();
 
-    unsigned int direction{ 0 }; // 0 standard, 1 reverse
-    unsigned int stepmode{ 0 };  // 0 full steps, 1 half steps
-    unsigned int speed{ 0 };     // 2 average, 3 slow, 4 ultra slow
-    unsigned int stepsdeg{ 0 };  // steps per degree for temperature compensation
-    unsigned int tcomp_thr{ 0 }; // temperature compensation threshold
-    unsigned int firmware{ 0 };  // firmware version
-    unsigned int maxpos{ 0 };    // maximum step position (0..65535)
+        bool MoveFocuserUF(FocusDirection dir, unsigned int rticks);
+        bool setStepMode(FocusStepMode mode);
+        bool setRotDir(unsigned int dir);
+        bool setMaxPos(unsigned int maxp);
+        bool setSpeed(unsigned short drvspeed);
+        bool setAutoTempCompThreshold(unsigned int thr);
+        bool setTemperatureCoefficient(unsigned int coefficient);
+        bool setTempCompSign(unsigned int sign);
+        bool setTemperatureCompensation(bool enable);
+        float CalcTimeLeft(timeval, float);
 
-    double targetPos{ 0 };
-    double backlashTargetPos{ 0 };
-    double lastPos{ 0 };
-    int backlashSteps{ 0 };
-    bool backlashIn{ false };
-    bool backlashMove{ false };
-    bool moving{ false };
+        unsigned int direction{ 0 }; // 0 standard, 1 reverse
+        unsigned int stepmode{ 0 };  // 0 full steps, 1 half steps
+        unsigned int speed{ 0 };     // 2 average, 3 slow, 4 ultra slow
+        unsigned int stepsdeg{ 0 };  // steps per degree for temperature compensation
+        unsigned int tcomp_thr{ 0 }; // temperature compensation threshold
+        unsigned int firmware{ 0 };  // firmware version
+        unsigned int maxpos{ 0 };    // maximum step position (0..65535)
 
-    double lastTemperature{ 0 };
-    unsigned int currentSpeed{ 0 };
+        double targetPos{ 0 };
+        double backlashTargetPos{ 0 };
+        double lastPos{ 0 };
+        int backlashSteps{ 0 };
+        bool backlashIn{ false };
+        bool backlashMove{ false };
+        bool moving{ false };
 
-    struct timeval focusMoveStart
-    {
-        0, 0
-    };
-    float focusMoveRequest{ 0 };
+        double lastTemperature{ 0 };
+        unsigned int currentSpeed{ 0 };
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        struct timeval focusMoveStart
+        {
+            0, 0
+        };
+        float focusMoveRequest{ 0 };
 
-    ISwitch StepModeS[2];
-    ISwitchVectorProperty StepModeSP;
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    ISwitch RotDirS[2];
-    ISwitchVectorProperty RotDirSP;
+        ISwitch StepModeS[2];
+        ISwitchVectorProperty StepModeSP;
 
-    INumber MaxPositionN[1];
-    INumberVectorProperty MaxPositionNP;
+        ISwitch RotDirS[2];
+        ISwitchVectorProperty RotDirSP;
 
-    INumber TemperatureSettingN[2];
-    INumberVectorProperty TemperatureSettingNP;
+        INumber MaxPositionN[1];
+        INumberVectorProperty MaxPositionNP;
 
-    ISwitch TempCompSignS[2];
-    ISwitchVectorProperty TempCompSignSP;
+        INumber TemperatureSettingN[2];
+        INumberVectorProperty TemperatureSettingNP;
 
-    ISwitch TemperatureCompensateS[2];
-    ISwitchVectorProperty TemperatureCompensateSP;
+        ISwitch TempCompSignS[2];
+        ISwitchVectorProperty TempCompSignSP;
 
-    INumber BacklashSettingN[1];
-    INumberVectorProperty BacklashSettingNP;
+        ISwitch TemperatureCompensateS[2];
+        ISwitchVectorProperty TemperatureCompensateSP;
 
-    typedef enum
-    {
-        BACKLASH_IN  = 0,
-        BACKLASH_OUT = 1
-    } BacklashDirection;
+        //    INumber BacklashSettingN[1];
+        //    INumberVectorProperty BacklashSettingNP;
 
-    ISwitch BacklashDirectionS[2];
-    ISwitchVectorProperty BacklashDirectionSP;
+        typedef enum
+        {
+            BACKLASH_IN  = 0,
+            BACKLASH_OUT = 1
+        } BacklashDirection;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+        //    ISwitch BacklashDirectionS[2];
+        //    ISwitchVectorProperty BacklashDirectionSP;
 
-    INumber FWversionN[1];
-    INumberVectorProperty FWversionNP;
+        ISwitch ResetS[1];
+        ISwitchVectorProperty ResetSP;
+
+        INumber FWversionN[1];
+        INumberVectorProperty FWversionNP;
 };

@@ -25,75 +25,76 @@
 
 class RoboFocus : public INDI::Focuser
 {
-  public:
-    RoboFocus();
-    virtual ~RoboFocus() override = default;
+    public:
+        RoboFocus();
+        virtual ~RoboFocus() override = default;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    virtual bool Handshake() override;
-    const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    virtual bool AbortFocuser() override;
-    virtual void TimerHit() override;
-    virtual bool saveConfigItems(FILE *fp) override;
-    virtual bool SyncFocuser(uint32_t ticks) override;
+    protected:
+        virtual bool Handshake() override;
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
 
-  private:
-    unsigned char CheckSum(char *rf_cmd);
-    unsigned char CalculateSum(const char *rf_cmd);
-    int SendCommand(char *rf_cmd);
-    int ReadResponse(char *buf);
-    void GetFocusParams();
+    private:
+        unsigned char CheckSum(char *rf_cmd);
+        unsigned char CalculateSum(const char *rf_cmd);
+        int SendCommand(char *rf_cmd);
+        int ReadResponse(char *buf);
+        void GetFocusParams();
 
-    int updateRFPosition(double *value);
-    int updateRFTemperature(double *value);
-    int updateRFBacklash(double *value);
-    int updateRFFirmware(char *rf_cmd);
-    int updateRFMotorSettings(double *duty, double *delay, double *ticks);
-    int updateRFPositionRelativeInward(double value);
-    int updateRFPositionRelativeOutward(double value);
-    int updateRFPositionAbsolute(double value);
-    int updateRFPowerSwitches(int s, int new_sn, int *cur_s1LL, int *cur_s2LR, int *cur_s3RL, int *cur_s4RR);
-    int updateRFMaxPosition(double *value);
-    int updateRFSetPosition(const double *value);
+        int updateRFPosition(double *value);
+        int updateRFTemperature(double *value);
+        int updateRFBacklash(double *value);
+        int updateRFFirmware(char *rf_cmd);
+        int updateRFMotorSettings(double *duty, double *delay, double *ticks);
+        int updateRFPositionRelativeInward(double value);
+        int updateRFPositionRelativeOutward(double value);
+        int updateRFPositionAbsolute(double value);
+        int updateRFPowerSwitches(int s, int new_sn, int *cur_s1LL, int *cur_s2LR, int *cur_s3RL, int *cur_s4RR);
+        int updateRFMaxPosition(double *value);
+        int updateRFSetPosition(const double *value);
 
-    int ReadUntilComplete(char *buf, int timeout);
+        int ReadUntilComplete(char *buf, int timeout);
 
-    int timerID { -1 };
-    double targetPos { 0 };
-    double simulatedTemperature { 0 };
-    double simulatedPosition { 0 };
+        int timerID { -1 };
+        double targetPos { 0 };
+        double simulatedTemperature { 0 };
+        double simulatedPosition { 0 };
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    INumber SettingsN[3];
-    INumberVectorProperty SettingsNP;
+        INumber SettingsN[3];
+        INumberVectorProperty SettingsNP;
 
-    ISwitch PowerSwitchesS[4];
-    ISwitchVectorProperty PowerSwitchesSP;
+        ISwitch PowerSwitchesS[4];
+        ISwitchVectorProperty PowerSwitchesSP;
 
-    INumber MinMaxPositionN[2];
-    INumberVectorProperty MinMaxPositionNP;
+        INumber MinMaxPositionN[2];
+        INumberVectorProperty MinMaxPositionNP;
 
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+        INumber MaxTravelN[1];
+        INumberVectorProperty MaxTravelNP;
 
-    INumber SetRegisterPositionN[1];
-    INumberVectorProperty SetRegisterPositionNP;
+        INumber SetRegisterPositionN[1];
+        INumberVectorProperty SetRegisterPositionNP;
 
-    INumber RelMovementN[1];
-    INumberVectorProperty RelMovementNP;
+        INumber RelMovementN[1];
+        INumberVectorProperty RelMovementNP;
 
-    INumber AbsMovementN[1];
-    INumberVectorProperty AbsMovementNP;
+        INumber AbsMovementN[1];
+        INumberVectorProperty AbsMovementNP;
 
-    INumber SetBacklashN[1];
-    INumberVectorProperty SetBacklashNP;
+        //    INumber SetBacklashN[1];
+        //    INumberVectorProperty SetBacklashNP;
 };
