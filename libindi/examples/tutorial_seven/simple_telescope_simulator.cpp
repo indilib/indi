@@ -146,7 +146,7 @@ bool ScopeSim::Goto(double ra, double dec)
         ln_lnlat_posn Position { 0, 0 };
 
         if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-            (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
+                (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
             Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -231,18 +231,18 @@ bool ScopeSim::Goto(double ra, double dec)
     {
         if (GotoTargetMicrostepsRA > CurrentEncoderMicrostepsRA)
             AxisDirectionRA = (GotoTargetMicrostepsRA - CurrentEncoderMicrostepsRA) < MICROSTEPS_PER_REVOLUTION / 2.0 ?
-                                  FORWARD :
-                                  REVERSE;
+                              FORWARD :
+                              REVERSE;
         else
             AxisDirectionRA = (CurrentEncoderMicrostepsRA - GotoTargetMicrostepsRA) < MICROSTEPS_PER_REVOLUTION / 2.0 ?
-                                  REVERSE :
-                                  FORWARD;
+                              REVERSE :
+                              FORWARD;
         AxisStatusRA = SLEWING_TO;
     }
 
     TrackState = SCOPE_SLEWING;
 
-    EqNP.s = IPS_BUSY;
+    //EqNP.s = IPS_BUSY;
 
     return true;
 }
@@ -362,7 +362,7 @@ bool ScopeSim::ReadScopeStatus()
         ln_lnlat_posn Position { 0, 0 };
 
         if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-            (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
+                (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
             Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -465,8 +465,14 @@ void ScopeSim::TimerHit()
     }
     // Simulate mount movement
 
-    static struct timeval ltv { 0, 0 }; // previous system time
-    struct timeval tv { 0, 0 };         // new system time
+    static struct timeval ltv
+    {
+        0, 0
+    }; // previous system time
+    struct timeval tv
+    {
+        0, 0
+    };         // new system time
     double dt;                 // Elapsed time in seconds since last tick
 
     gettimeofday(&tv, nullptr);
@@ -541,7 +547,7 @@ void ScopeSim::TimerHit()
                     {
                         // Two ranges to search
                         if ((GotoTargetMicrostepsRA >= OldEncoder) &&
-                            (GotoTargetMicrostepsRA <= MICROSTEPS_PER_REVOLUTION))
+                                (GotoTargetMicrostepsRA <= MICROSTEPS_PER_REVOLUTION))
                             FoundTarget = true;
                         else if ((GotoTargetMicrostepsRA >= 0) &&
                                  (GotoTargetMicrostepsRA <= CurrentEncoderMicrostepsRA))
@@ -708,7 +714,7 @@ void ScopeSim::TimerHit()
                 ln_lnlat_posn Position { 0, 0 };
 
                 if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-                    (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
+                        (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
                 {
                     // I assume that being on the equator and exactly on the prime meridian is unlikely
                     Position.lat = IUFindNumber(&LocationNP, "LAT")->value;

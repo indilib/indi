@@ -162,11 +162,11 @@ bool ApogeeCCD::initProperties()
     IUFillTextVector(&CamInfoTP, CamInfoT, 2, getDeviceName(), "CAM_INFO", "Info", MAIN_CONTROL_TAB, IP_RO, 0,
                      IPS_IDLE);
 
-    IUFillSwitch(&FanStatusS[0], "FAN_OFF", "Off", ISS_ON);
-    IUFillSwitch(&FanStatusS[1], "FAN_SLOW", "Slow", ISS_OFF);
-    IUFillSwitch(&FanStatusS[2], "FAN_MED", "Medium", ISS_OFF);
-    IUFillSwitch(&FanStatusS[3], "FAN_FAST", "Fast", ISS_OFF);
-    IUFillSwitchVector(&FanStatusSP, FanStatusS, 4, getDeviceName(), "Fan Status", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+    IUFillSwitch(&FanStatusS[FAN_OFF], "FAN_OFF", "Off", ISS_ON);
+    IUFillSwitch(&FanStatusS[FAN_SLOW], "FAN_SLOW", "Slow", ISS_OFF);
+    IUFillSwitch(&FanStatusS[FAN_MED], "FAN_MED", "Medium", ISS_OFF);
+    IUFillSwitch(&FanStatusS[FAN_FAST], "FAN_FAST", "Fast", ISS_OFF);
+    IUFillSwitchVector(&FanStatusSP, FanStatusS, 4, getDeviceName(), "CCD_FAN", "Fan", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     // Filter Type
@@ -316,6 +316,7 @@ bool ApogeeCCD::getCameraParams()
     try
     {
         fStatus = ApgCam->GetFanMode();
+        LOGF_DEBUG("Fan status: %d", fStatus);
     }
     catch (std::runtime_error &err)
     {
@@ -328,6 +329,11 @@ bool ApogeeCCD::getCameraParams()
         IUResetSwitch(&FanStatusSP);
         FanStatusS[fStatus].s = ISS_ON;
         IDSetSwitch(&FanStatusSP, nullptr);
+    }
+    else
+    {
+        FanStatusSP.s = IPS_ALERT;
+        LOG_WARN("Fan status is not known.");
     }
 
     SetCCDParams(sub_frame_x, sub_frame_y, 16, pixel_size_x, pixel_size_y);
@@ -444,6 +450,18 @@ bool ApogeeCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             ReadOutSP.s = IPS_OK;
             IDSetSwitch(&ReadOutSP, nullptr);
+            return true;
+        }
+
+        // Fan Speed
+        if (!strcmp(name, FanStatusSP.name))
+        {
+            if (IUUpdateSwitch(&FanStatusSP, states, names, n) < 0)
+                return false;
+
+            ApgCam->SetFanMode(static_cast<Apg::FanMode>(IUFindOnSwitchIndex(&FanStatusSP)));
+            FanStatusSP.s = IPS_OK;
+            IDSetSwitch(&FanStatusSP, nullptr);
             return true;
         }
 
@@ -1468,6 +1486,8 @@ bool ApogeeCCD::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &PortTypeSP);
     IUSaveConfigText(fp, &NetworkInfoTP);
+    if (FanStatusSP.s != IPS_ALERT)
+        IUSaveConfigSwitch(fp, &FanStatusSP);
 
     if (cfwFound)
     {

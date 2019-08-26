@@ -49,207 +49,211 @@
 
 class FocusLynxBase : public INDI::Focuser
 {
-  public:
-    FocusLynxBase();
-    FocusLynxBase(const char *target);
+    public:
+        FocusLynxBase();
+        FocusLynxBase(const char *target);
 
-    enum
-    {
-        FOCUS_A_COEFF,
-        FOCUS_B_COEFF,
-        FOCUS_C_COEFF,
-        FOCUS_D_COEFF,
-        FOCUS_E_COEFF,
-        FOCUS_F_COEFF
-    };
-    typedef enum {
-        STATUS_MOVING,
-        STATUS_HOMING,
-        STATUS_HOMED,
-        STATUS_FFDETECT,
-        STATUS_TMPPROBE,
-        STATUS_REMOTEIO,
-        STATUS_HNDCTRL,
-        STATUS_REVERSE,
-        STATUS_UNKNOWN
-    } LYNX_STATUS;
-    enum
-    {
-        GOTO_CENTER,
-        GOTO_HOME
-    };
+        enum
+        {
+            FOCUS_A_COEFF,
+            FOCUS_B_COEFF,
+            FOCUS_C_COEFF,
+            FOCUS_D_COEFF,
+            FOCUS_E_COEFF,
+            FOCUS_F_COEFF
+        };
+        typedef enum
+        {
+            STATUS_MOVING,
+            STATUS_HOMING,
+            STATUS_HOMED,
+            STATUS_FFDETECT,
+            STATUS_TMPPROBE,
+            STATUS_REMOTEIO,
+            STATUS_HNDCTRL,
+            STATUS_REVERSE,
+            STATUS_UNKNOWN
+        } LYNX_STATUS;
+        enum
+        {
+            GOTO_CENTER,
+            GOTO_HOME
+        };
 
-    virtual bool Handshake() override;
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool updateProperties() override;
-    virtual bool saveConfigItems(FILE *fp) override;
-    virtual bool loadConfig(bool silent, const char *property) override;
+        virtual bool Handshake() override;
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool loadConfig(bool silent, const char *property) override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    virtual IPState MoveAbsFocuser(uint32_t targetPosition) override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
-    virtual bool AbortFocuser() override;
-    virtual void TimerHit() override;
-    virtual int getVersion(int *major, int *minor, int *sub);
+        virtual IPState MoveAbsFocuser(uint32_t targetPosition) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
+        virtual int getVersion(int *major, int *minor, int *sub);
 
-    void setFocusTarget(const char *target);
-    const char *getFocusTarget();
-    bool checkIfAbsoluteFocuser();
-    bool SyncMandatory(bool enable);
-    virtual void debugTriggered(bool enable) override;
+        void setFocusTarget(const char *target);
+        const char *getFocusTarget();
+        bool checkIfAbsoluteFocuser();
+        bool SyncMandatory(bool enable);
+        virtual void debugTriggered(bool enable) override;
 
-    // Device
-    bool setDeviceType(int index);
-    uint32_t DBG_FOCUS;
+        // Device
+        bool setDeviceType(int index);
+        uint32_t DBG_FOCUS;
 
-    // Misc functions
-    bool ack();
-    bool isResponseOK();
+        // Misc functions
+        bool ack();
+        bool isResponseOK();
 
-  protected:
-    virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
-    virtual bool ReverseFocuser(bool enabled) override;
-    virtual bool SyncFocuser(uint32_t ticks) override;
+    protected:
+        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+        virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
 
-    // Move from private to public to validate
-    bool configurationComplete;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
+        virtual bool SetFocuserBacklashEnabled(bool enabled) override;
 
-    // List all supported models
-    ISwitch *ModelS;
-    ISwitchVectorProperty ModelSP;
+        // Move from private to public to validate
+        bool configurationComplete;
 
-    // Led Intensity Value
-    INumber LedN[1];
-    INumberVectorProperty LedNP;
+        // List all supported models
+        ISwitch *ModelS;
+        ISwitchVectorProperty ModelSP;
 
-    // Store version of the firmware from the HUB
-    char version[16];
+        // Led Intensity Value
+        INumber LedN[1];
+        INumberVectorProperty LedNP;
 
-  private:
-    uint32_t simPosition;
-    uint32_t targetPosition;
+        // Store version of the firmware from the HUB
+        char version[16];
 
-    ISState simStatus[8];
-    bool simCompensationOn;
-    char focusTarget[8];
+    private:
+        uint32_t simPosition;
+        uint32_t targetPosition;
 
-    std::map<std::string, std::string> lynxModels;
+        ISState simStatus[8];
+        bool simCompensationOn;
+        char focusTarget[8];
 
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
+        std::map<std::string, std::string> lynxModels;
 
-    // Get functions
-    bool getFocusConfig();
-    bool getFocusStatus();
-    bool getFocusTemp();
+        struct timeval focusMoveStart;
+        float focusMoveRequest;
 
-    // Set functions
+        // Get functions
+        bool getFocusConfig();
+        bool getFocusStatus();
+        bool getFocusTemp();
 
-    // Position
-    //bool setMaxTravel(u_int16_t travel);
-    bool setStepSize(u_int16_t stepsize);
+        // Set functions
 
-    // Temperature
-    bool setTemperatureCompensation(bool enable);
-    bool setTemperatureCompensationMode(char mode);
-    bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
-    bool setTemperatureInceptions(char mode, int32_t inter);
-    bool setTemperatureCompensationOnStart(bool enable);
+        // Position
+        //bool setMaxTravel(u_int16_t travel);
+        bool setStepSize(u_int16_t stepsize);
 
-    // Backlash
-    bool setBacklashCompensation(bool enable);
-    bool setBacklashCompensationSteps(uint16_t steps);
+        // Temperature
+        bool setTemperatureCompensation(bool enable);
+        bool setTemperatureCompensationMode(char mode);
+        bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
+        bool setTemperatureInceptions(char mode, int32_t inter);
+        bool setTemperatureCompensationOnStart(bool enable);
 
-    // Motion functions
-    bool stop();
-    bool home();
-    bool center();
+        // Backlash
+        //    bool setBacklashCompensation(bool enable);
+        //    bool setBacklashCompensationSteps(uint16_t steps);
 
-    // Led level
-    bool setLedLevel(int level);
+        // Motion functions
+        bool stop();
+        bool home();
+        bool center();
 
-    // Device Nickname
-    bool setDeviceNickname(const char *nickname);
+        // Led level
+        bool setLedLevel(int level);
 
-    // Misc functions
-    bool resetFactory();
-    float calcTimeLeft(timeval, float);
+        // Device Nickname
+        bool setDeviceNickname(const char *nickname);
 
-    // Properties
+        // Misc functions
+        bool resetFactory();
+        float calcTimeLeft(timeval, float);
 
-    // Set/Get Temperature
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        // Properties
 
-    // Enable/Disable temperature compensation
-    ISwitch TemperatureCompensateS[2];
-    ISwitchVectorProperty TemperatureCompensateSP;
+        // Set/Get Temperature
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    // Enable/Disable temperature compensation on start
-    ISwitch TemperatureCompensateOnStartS[2];
-    ISwitchVectorProperty TemperatureCompensateOnStartSP;
+        // Enable/Disable temperature compensation
+        ISwitch TemperatureCompensateS[2];
+        ISwitchVectorProperty TemperatureCompensateSP;
 
-    // Temperature Coefficient Mode
-    ISwitch TemperatureCompensateModeS[5];
-    ISwitchVectorProperty TemperatureCompensateModeSP;
+        // Enable/Disable temperature compensation on start
+        ISwitch TemperatureCompensateOnStartS[2];
+        ISwitchVectorProperty TemperatureCompensateOnStartSP;
 
-    // Temperature coefficient and Intercept for selected mode
-    INumber TemperatureParamN[2];
-    INumberVectorProperty TemperatureParamNP;
+        // Temperature Coefficient Mode
+        ISwitch TemperatureCompensateModeS[5];
+        ISwitchVectorProperty TemperatureCompensateModeSP;
 
-    // Enable/Disable backlash
-    ISwitch BacklashCompensationS[2];
-    ISwitchVectorProperty BacklashCompensationSP;
+        // Temperature coefficient and Intercept for selected mode
+        INumber TemperatureParamN[2];
+        INumberVectorProperty TemperatureParamNP;
 
-    // Backlash Value
-    INumber BacklashN[1];
-    INumberVectorProperty BacklashNP;
+        // Enable/Disable backlash
+        //    ISwitch BacklashCompensationS[2];
+        //    ISwitchVectorProperty FocuserBacklashSP;
 
-    // Reset to Factory setting
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+        //    // Backlash Value
+        //    INumber BacklashN[1];
+        //    INumberVectorProperty BacklashNP;
 
-    // Reverse Direction
-//    ISwitch ReverseS[2];
-//    ISwitchVectorProperty ReverseSP;
+        // Reset to Factory setting
+        ISwitch ResetS[1];
+        ISwitchVectorProperty ResetSP;
 
-    // Go to home/center
-    ISwitch GotoS[2];
-    ISwitchVectorProperty GotoSP;
+        // Reverse Direction
+        //    ISwitch ReverseS[2];
+        //    ISwitchVectorProperty ReverseSP;
 
-    // Status indicators
-    ILight StatusL[8];
-    ILightVectorProperty StatusLP;
+        // Go to home/center
+        ISwitch GotoS[2];
+        ISwitchVectorProperty GotoSP;
 
-    // Sync to a particular position
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
+        // Status indicators
+        ILight StatusL[8];
+        ILightVectorProperty StatusLP;
 
-    // Max Travel for relative focusers
-//    INumber MaxTravelN[1];
-//    INumberVectorProperty MaxTravelNP;
+        // Sync to a particular position
+        INumber SyncN[1];
+        INumberVectorProperty SyncNP;
 
-    // Focuser Step Size
-    INumber StepSizeN[1];
-    INumberVectorProperty StepSizeNP;
+        // Max Travel for relative focusers
+        //    INumber MaxTravelN[1];
+        //    INumberVectorProperty MaxTravelNP;
 
-    // Focus name configure in the HUB
-    IText HFocusNameT[1] {};
-    ITextVectorProperty HFocusNameTP;
+        // Focuser Step Size
+        INumber StepSizeN[1];
+        INumberVectorProperty StepSizeNP;
 
-    // Request mandatory action of sync from user
-    ISwitch SyncMandatoryS[2];
-    ISwitchVectorProperty SyncMandatorySP;
+        // Focus name configure in the HUB
+        IText HFocusNameT[1] {};
+        ITextVectorProperty HFocusNameTP;
 
-    bool isAbsolute;
-    bool isSynced;
-    bool isHoming;
+        // Request mandatory action of sync from user
+        ISwitch SyncMandatoryS[2];
+        ISwitchVectorProperty SyncMandatorySP;
 
-    static const uint8_t LYNX_MAX { 64 };
+        bool isAbsolute;
+        bool isSynced;
+        bool isHoming;
+
+        static const uint8_t LYNX_MAX { 64 };
 };

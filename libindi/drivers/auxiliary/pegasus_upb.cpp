@@ -92,7 +92,8 @@ bool PegasusUPB::initProperties()
                       FOCUSER_CAN_REL_MOVE |
                       FOCUSER_CAN_REVERSE  |
                       FOCUSER_CAN_SYNC     |
-                      FOCUSER_CAN_ABORT);
+                      FOCUSER_CAN_ABORT    |
+                      FOCUSER_HAS_BACKLASH);
 
     FI::initProperties(FOCUS_TAB);
     WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
@@ -135,11 +136,10 @@ bool PegasusUPB::initProperties()
     IUFillTextVector(&PowerControlsLabelsTP, PowerControlsLabelsT, 4, getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels", POWER_TAB, IP_WO, 60, IPS_IDLE);
 
     char portLabel[MAXINDILABEL];
-    int portRC = -1;
 
     // Turn on/off power and power boot up
     memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[0].name, portLabel, MAXINDILABEL);
+    int portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[0].name, portLabel, MAXINDILABEL);
     IUFillSwitch(&PowerControlS[0], "POWER_CONTROL_1", portRC == -1 ? "Port 1" : portLabel, ISS_OFF);
 
     memset(portLabel, 0, MAXINDILABEL);
@@ -225,14 +225,14 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Settings
-    IUFillNumber(&FocuserSettingsN[SETTING_BACKLASH], "SETTING_BACKLASH", "Backlash (steps)", "%.f", 0, 999, 100, 0);
+    //    IUFillNumber(&FocusBacklashN[0], "SETTING_BACKLASH", "Backlash (steps)", "%.f", 0, 999, 100, 0);
     IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.2f", 0, 100, 10, 0);
-    IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 2, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 1, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Backlash
-    IUFillSwitch(&FocuserBacklashS[BACKLASH_ENABLED], "BACKLASH_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&FocuserBacklashS[BACKLASH_DISABLED], "BACKLASH_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&FocuserBacklashSP, FocuserBacklashS, 2, getDeviceName(), "FOCUSER_BACKLASH", "Backlash", FOCUS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    //    IUFillSwitch(&FocusBacklashS[BACKLASH_ENABLED], "BACKLASH_ENABLED", "Enabled", ISS_OFF);
+    //    IUFillSwitch(&FocusBacklashS[BACKLASH_DISABLED], "BACKLASH_DISABLED", "Disabled", ISS_ON);
+    //    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, getDeviceName(), "FOCUSER_BACKLASH", "Backlash", FOCUS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Temperature
     IUFillNumber(&FocuserTemperatureN[0], "FOCUS_TEMPERATURE_VALUE", "Value (C)", "%4.2f", -50, 85, 1, 0);
@@ -294,7 +294,7 @@ bool PegasusUPB::updateProperties()
         // Focuser
         FI::updateProperties();
         defineNumber(&FocuserSettingsNP);
-        defineSwitch(&FocuserBacklashSP);
+        //defineSwitch(&FocusBacklashSP);
         defineNumber(&FocuserTemperatureNP);
 
         WI::updateProperties();
@@ -329,7 +329,7 @@ bool PegasusUPB::updateProperties()
         // Focuser
         FI::updateProperties();
         deleteProperty(FocuserSettingsNP.name);
-        deleteProperty(FocuserBacklashSP.name);
+        //deleteProperty(FocusBacklashSP.name);
         deleteProperty(FocuserTemperatureNP.name);
 
         WI::updateProperties();
@@ -504,24 +504,24 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         }
 
         // Focuser backlash
-        if (!strcmp(name, FocuserBacklashSP.name))
-        {
-            int prevIndex = IUFindOnSwitchIndex(&FocuserBacklashSP);
-            IUUpdateSwitch(&FocuserBacklashSP, states, names, n);
-            if (setFocuserBacklashEnabled(FocuserBacklashS[0].s == ISS_ON))
-            {
-                FocuserBacklashSP.s = IPS_OK;
-            }
-            else
-            {
-                IUResetSwitch(&FocuserBacklashSP);
-                FocuserBacklashS[prevIndex].s = ISS_ON;
-                FocuserBacklashSP.s = IPS_ALERT;
-            }
+        //        if (!strcmp(name, FocusBacklashSP.name))
+        //        {
+        //            int prevIndex = IUFindOnSwitchIndex(&FocusBacklashSP);
+        //            IUUpdateSwitch(&FocusBacklashSP, states, names, n);
+        //            if (setFocuserBacklashEnabled(FocusBacklashS[0].s == ISS_ON))
+        //            {
+        //                FocusBacklashSP.s = IPS_OK;
+        //            }
+        //            else
+        //            {
+        //                IUResetSwitch(&FocusBacklashSP);
+        //                FocusBacklashS[prevIndex].s = ISS_ON;
+        //                FocusBacklashSP.s = IPS_ALERT;
+        //            }
 
-            IDSetSwitch(&FocuserBacklashSP, nullptr);
-            return true;
-        }
+        //            IDSetSwitch(&FocusBacklashSP, nullptr);
+        //            return true;
+        //        }
 
         // Power LED
         if (!strcmp(name, PowerLEDSP.name))
@@ -576,16 +576,17 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
         // Focuser Settings
         if (!strcmp(name, FocuserSettingsNP.name))
         {
-            bool rc1 = true, rc2 = true;
+            //bool rc1 = true, rc2 = true;
+            bool rc = true;
             for (int i = 0; i < n; i++)
             {
-                if (!strcmp(names[i], FocuserSettingsN[SETTING_BACKLASH].name) && values[i] != FocuserSettingsN[SETTING_BACKLASH].value)
-                    rc1 = setFocuserBacklash(values[i]);
-                else if (!strcmp(names[i], FocuserSettingsN[SETTING_MAX_SPEED].name) && values[i] != FocuserSettingsN[SETTING_MAX_SPEED].value)
-                    rc2 = setFocuserMaxSpeed(values[i] / 100.0 * 999.0);
+                //                if (!strcmp(names[i], FocusBacklashN[0].name) && values[i] != FocusBacklashN[0].value)
+                //                    rc1 = setFocuserBacklash(values[i]);
+                if (!strcmp(names[i], FocuserSettingsN[SETTING_MAX_SPEED].name) && values[i] != FocuserSettingsN[SETTING_MAX_SPEED].value)
+                    rc = setFocuserMaxSpeed(values[i] / 100.0 * 999.0);
             }
 
-            FocuserSettingsNP.s = (rc1 && rc2) ? IPS_OK : IPS_ALERT;
+            FocuserSettingsNP.s = (rc) ? IPS_OK : IPS_ALERT;
             if (FocuserSettingsNP.s == IPS_OK)
                 IUUpdateNumber(&FocuserSettingsNP, values, names, n);
             IDSetNumber(&FocuserSettingsNP, nullptr);
@@ -705,10 +706,11 @@ bool PegasusUPB::SyncFocuser(uint32_t ticks)
     return sendCommand(cmd, nullptr);
 }
 
-bool PegasusUPB::setFocuserBacklash(uint16_t value)
+//bool PegasusUPB::setFocuserBacklash(uint16_t value)
+bool PegasusUPB::SetFocuserBacklash(int32_t steps)
 {
     char cmd[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "SB:%d", value);
+    snprintf(cmd, PEGASUS_LEN, "SB:%d", steps);
     return sendCommand(cmd, nullptr);
 }
 
@@ -719,7 +721,8 @@ bool PegasusUPB::setFocuserMaxSpeed(uint16_t maxSpeed)
     return sendCommand(cmd, nullptr);
 }
 
-bool PegasusUPB::setFocuserBacklashEnabled(bool enabled)
+//bool PegasusUPB::setFocuserBacklashEnabled(bool enabled)
+bool PegasusUPB::SetFocuserBacklashEnabled(bool enabled)
 {
     char cmd[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "SB:%d", enabled ? 1 : 0);
@@ -812,7 +815,7 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &PowerLEDSP);
     IUSaveConfigSwitch(fp, &AutoDewSP);
     IUSaveConfigNumber(fp, &FocuserSettingsNP);
-    IUSaveConfigSwitch(fp, &FocuserBacklashSP);
+    //IUSaveConfigSwitch(fp, &FocusBacklashSP);
     IUSaveConfigText(fp, &PowerControlsLabelsTP);
 
     return true;
@@ -1013,23 +1016,23 @@ bool PegasusUPB::getStepperData()
         uint16_t backlash = std::stoi(result[3]);
         if (backlash == 0)
         {
-            FocuserSettingsN[SETTING_BACKLASH].value = backlash;
-            FocuserBacklashS[BACKLASH_ENABLED].s = ISS_OFF;
-            FocuserBacklashS[BACKLASH_DISABLED].s = ISS_ON;
+            FocusBacklashN[0].value = backlash;
+            FocusBacklashS[BACKLASH_ENABLED].s = ISS_OFF;
+            FocusBacklashS[BACKLASH_DISABLED].s = ISS_ON;
             if (result[3] != lastStepperData[3])
             {
-                IDSetSwitch(&FocuserBacklashSP, nullptr);
+                IDSetSwitch(&FocusBacklashSP, nullptr);
                 IDSetNumber(&FocuserSettingsNP, nullptr);
             }
         }
         else
         {
-            FocuserBacklashS[BACKLASH_ENABLED].s = ISS_ON;
-            FocuserBacklashS[BACKLASH_DISABLED].s = ISS_OFF;
-            FocuserSettingsN[SETTING_BACKLASH].value = backlash;
+            FocusBacklashS[BACKLASH_ENABLED].s = ISS_ON;
+            FocusBacklashS[BACKLASH_DISABLED].s = ISS_OFF;
+            FocusBacklashN[0].value = backlash;
             if (result[3] != lastStepperData[3])
             {
-                IDSetSwitch(&FocuserBacklashSP, nullptr);
+                IDSetSwitch(&FocusBacklashSP, nullptr);
                 IDSetNumber(&FocuserSettingsNP, nullptr);
             }
         }

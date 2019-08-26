@@ -157,7 +157,7 @@ bool LX200AstroPhysicsGTOCP2::updateProperties()
             SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
 
-        double longitude=-1000, latitude=-1000;
+        double longitude = -1000, latitude = -1000;
         // Get value from config file if it exists.
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
@@ -179,9 +179,9 @@ bool LX200AstroPhysicsGTOCP2::updateProperties()
 bool LX200AstroPhysicsGTOCP2::initMount()
 {
     // Make sure that the mount is setup according to the properties
-    int err=0;
+    int err = 0;
 
-    bool raOK=false, deOK=false;
+    bool raOK = false, deOK = false;
     if (isSimulation())
     {
         raOK = deOK = true;
@@ -529,7 +529,7 @@ bool LX200AstroPhysicsGTOCP2::Goto(double r, double d)
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
+    //EqNP.s     = IPS_BUSY;
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -552,7 +552,7 @@ bool LX200AstroPhysicsGTOCP2::Handshake()
         return true;
     }
 
-    int err=0;
+    int err = 0;
 
     if ((err = setAPClearBuffer(PortFD)) < 0)
     {
@@ -602,18 +602,18 @@ bool LX200AstroPhysicsGTOCP2::Sync(double ra, double dec)
 
         switch (syncType)
         {
-        case USE_REGULAR_SYNC:
-            if (::Sync(PortFD, syncString) < 0)
-                syncOK = false;
-            break;
+            case USE_REGULAR_SYNC:
+                if (::Sync(PortFD, syncString) < 0)
+                    syncOK = false;
+                break;
 
-        case USE_CMR_SYNC:
-            if (APSyncCMR(PortFD, syncString) < 0)
-                syncOK = false;
-            break;
+            case USE_CMR_SYNC:
+                if (APSyncCMR(PortFD, syncString) < 0)
+                    syncOK = false;
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
 
         if (syncOK == false)
@@ -656,7 +656,7 @@ bool LX200AstroPhysicsGTOCP2::updateTime(ln_date *utc, double utc_offset)
     }
 
     LOGF_DEBUG("Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
-           (int)ltm.seconds);
+               (int)ltm.seconds);
 
     if (isSimulation() == false && setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
@@ -911,7 +911,7 @@ bool LX200AstroPhysicsGTOCP2::saveConfigItems(FILE *fp)
 
 bool LX200AstroPhysicsGTOCP2::SetTrackMode(uint8_t mode)
 {
-    int err=0;
+    int err = 0;
 
     if (mode == TRACK_CUSTOM)
     {
@@ -935,7 +935,7 @@ bool LX200AstroPhysicsGTOCP2::SetTrackMode(uint8_t mode)
 
 bool LX200AstroPhysicsGTOCP2::SetTrackEnabled(bool enabled)
 {
-   return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
+    return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
 }
 
 bool LX200AstroPhysicsGTOCP2::SetTrackRate(double raRate, double deRate)
@@ -975,7 +975,7 @@ bool LX200AstroPhysicsGTOCP2::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand com
     bool rc = LX200Generic::MoveNS(dir, command);
 
     if (command == MOTION_START)
-           motionCommanded = true;
+        motionCommanded = true;
 
     return rc;
 }
@@ -992,7 +992,7 @@ bool LX200AstroPhysicsGTOCP2::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand com
 
 void LX200AstroPhysicsGTOCP2::handleGTOCP2MotionBug()
 {
-    LOGF_DEBUG("%s: Motion commanded? %s", __FUNCTION__, motionCommanded ? "True":"False");
+    LOGF_DEBUG("%s: Motion commanded? %s", __FUNCTION__, motionCommanded ? "True" : "False");
 
     // GTOCP2 (Version 'E' and earilar) has a bug that would reset the guide rate to whatever last motion took place
     // So it must be reset to the user setting in order for guiding to work properly.

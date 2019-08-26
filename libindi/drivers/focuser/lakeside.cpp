@@ -99,7 +99,11 @@ Lakeside::Lakeside()
 {
     setVersion(LAKESIDE_VERSION_MAJOR, LAKESIDE_VERSION_MINOR);
 
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_REVERSE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
+                      FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_CAN_ABORT    |
+                      FOCUSER_CAN_REVERSE  |
+                      FOCUSER_HAS_BACKLASH);
 }
 
 // Initialise
@@ -126,8 +130,12 @@ bool Lakeside::initProperties()
     IUFillSwitchVector(&TemperatureTrackingSP, TemperatureTrackingS, 2, getDeviceName(), "Temperature Track", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Backlash 0-255
-    IUFillNumber(&BacklashN[0], "BACKLASH", "(0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    //    IUFillNumber(&FocusBacklashN[0], "BACKLASH", "(0-255)", "%.f", 0, 255, 0, 0);
+    //    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    FocusBacklashN[0].min = 0;
+    FocusBacklashN[0].max = 255;
+    FocusBacklashN[0].step = 10;
+    FocusBacklashN[0].value = 0;
 
     // Maximum Travel - read only
     //    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "No. Steps", "%.f", 1, 65536, 0, 10000);
@@ -196,7 +204,7 @@ bool Lakeside::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&BacklashNP);
+        //defineNumber(&FocusBacklashNP);
         //defineNumber(&MaxTravelNP);
         defineNumber(&StepSizeNP);
         defineNumber(&TemperatureNP);
@@ -219,7 +227,7 @@ bool Lakeside::updateProperties()
     }
     else
     {
-        deleteProperty(BacklashNP.name);
+        //deleteProperty(FocusBacklashNP.name);
         //deleteProperty(MaxTravelNP.name);
         deleteProperty(StepSizeNP.name);
         //deleteProperty(MoveDirectionSP.name);
@@ -645,7 +653,7 @@ bool Lakeside::updateBacklash()
 
     if ( temp >= 0)
     {
-        BacklashN[0].value = temp;
+        FocusBacklashN[0].value = temp;
         LOGF_DEBUG("updateBacklash: Backlash is (%d)", temp);
     }
     else
@@ -1080,6 +1088,11 @@ bool Lakeside::gotoPosition(uint32_t position)
     // At this point, the move command has been sent, so set BUSY & return true
     FocusAbsPosNP.s = IPS_BUSY;
     return true;
+}
+
+bool Lakeside::SetFocuserBacklash(int32_t steps)
+{
+    return setBacklash(steps);
 }
 
 //
@@ -1767,58 +1780,58 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
         //        }
 
         // Backlash compensation
-        if (!strcmp (name, BacklashNP.name))
-        {
-            int new_back = 0 ;
-            int nset = 0;
+        //        if (!strcmp (name, FocusBacklashNP.name))
+        //        {
+        //            int new_back = 0 ;
+        //            int nset = 0;
 
-            for (nset = i = 0; i < n; i++)
-            {
-                //Find numbers with the passed names in SetBacklashNP property
-                INumber * eqp = IUFindNumber (&BacklashNP, names[i]);
+        //            for (nset = i = 0; i < n; i++)
+        //            {
+        //                //Find numbers with the passed names in SetFocusBacklashNP property
+        //                INumber * eqp = IUFindNumber (&FocusBacklashNP, names[i]);
 
-                //If the number found is Backlash (BacklashN[0]) then process it
-                if (eqp == &BacklashN[0])
-                {
+        //                //If the number found is Backlash (FocusBacklashN[0]) then process it
+        //                if (eqp == &FocusBacklashN[0])
+        //                {
 
-                    new_back = (values[i]);
+        //                    new_back = (values[i]);
 
-                    // limits
-                    nset += new_back >= -0xff && new_back <= 0xff;
-                }
-                if (nset == 1)
-                {
+        //                    // limits
+        //                    nset += new_back >= -0xff && new_back <= 0xff;
+        //                }
+        //                if (nset == 1)
+        //                {
 
-                    // Set the Lakeside state to BUSY
-                    BacklashNP.s = IPS_BUSY;
-                    IDSetNumber(&BacklashNP, nullptr);
+        //                    // Set the Lakeside state to BUSY
+        //                    FocusBacklashNP.s = IPS_BUSY;
+        //                    IDSetNumber(&FocusBacklashNP, nullptr);
 
-                    if( !setBacklash(new_back))
-                    {
+        //                    if( !setBacklash(new_back))
+        //                    {
 
-                        BacklashNP.s = IPS_IDLE;
-                        IDSetNumber(&BacklashNP, "Setting new backlash failed.");
+        //                        FocusBacklashNP.s = IPS_IDLE;
+        //                        IDSetNumber(&FocusBacklashNP, "Setting new backlash failed.");
 
-                        return false ;
-                    }
+        //                        return false ;
+        //                    }
 
-                    BacklashNP.s = IPS_OK;
-                    BacklashN[0].value = new_back;
-                    IDSetNumber(&BacklashNP, nullptr);
+        //                    FocusBacklashNP.s = IPS_OK;
+        //                    FocusBacklashN[0].value = new_back;
+        //                    IDSetNumber(&FocusBacklashNP, nullptr);
 
-                    return true;
-                }
-                else
-                {
+        //                    return true;
+        //                }
+        //                else
+        //                {
 
-                    BacklashNP.s = IPS_IDLE;
-                    IDSetNumber(&BacklashNP, "Need exactly one parameter.");
+        //                    FocusBacklashNP.s = IPS_IDLE;
+        //                    IDSetNumber(&FocusBacklashNP, "Need exactly one parameter.");
 
-                    return false ;
-                }
+        //                    return false ;
+        //                }
 
-            }
-        }
+        //            }
+        //        }
 
         // Step size - read only
         if (!strcmp (name, StepSizeNP.name))
@@ -2173,7 +2186,7 @@ void Lakeside::GetFocusParams ()
         IDSetNumber(&TemperatureKNP, nullptr);
 
     if (updateBacklash())
-        IDSetNumber(&BacklashNP, nullptr);
+        IDSetNumber(&FocusBacklashNP, nullptr);
 
     if (updateMaxTravel())
         IDSetNumber(&FocusMaxPosNP, nullptr);

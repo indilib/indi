@@ -2124,3 +2124,16 @@ bool QHYCCD::updateFilterProperties()
 
     return false;
 }
+
+void QHYCCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
+{
+    INDI::CCD::addFITSKeywords(fptr, targetChip);
+
+    if (HasGain)
+    {
+        int status = 0;
+        fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
+    }
+
+}
+

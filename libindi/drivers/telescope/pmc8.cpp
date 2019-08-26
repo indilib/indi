@@ -25,7 +25,8 @@
 
 #include "pmc8.h"
 
-#include "indicom.h"
+#include <indicom.h>
+#include <connectionplugins/connectionserial.h>
 
 #include <libnova/sidereal_time.h>
 
@@ -39,7 +40,7 @@
 
 #define MOUNTINFO_TAB "Mount Info"
 
-std::unique_ptr<PMC8> scope(new PMC8());
+static std::unique_ptr<PMC8> scope(new PMC8());
 
 void ISGetProperties(const char *dev)
 {
@@ -48,7 +49,7 @@ void ISGetProperties(const char *dev)
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-	scope->ISNewSwitch(dev, name, states, names, num);
+    scope->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
@@ -92,7 +93,7 @@ PMC8::PMC8()
                            TELESCOPE_HAS_LOCATION,
                            4);
 
-    setVersion(0, 1);
+    setVersion(0, 2);
 }
 
 PMC8::~PMC8()
@@ -101,7 +102,7 @@ PMC8::~PMC8()
 
 const char *PMC8::getDefaultName()
 {
-    return (const char *)"PMC8";
+    return "PMC8";
 }
 
 bool PMC8::initProperties()
@@ -110,10 +111,19 @@ bool PMC8::initProperties()
 
     // Mount Type
     IUFillSwitch(&MountTypeS[MOUNT_G11], "MOUNT_G11", "G11", ISS_OFF);
-    IUFillSwitch(&MountTypeS[MOUNT_EXOS2], "MOUNT_EXOS2", "EXOS2", ISS_ON);
+    IUFillSwitch(&MountTypeS[MOUNT_EXOS2], "MOUNT_EXOS2", "EXOS2", ISS_OFF);
     IUFillSwitch(&MountTypeS[MOUNT_iEXOS100], "MOUNT_iEXOS100", "iEXOS100", ISS_OFF);
     IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
-		 IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Guess type from device name
+    if (strstr(getDeviceName(), "EXOS2"))
+        MountTypeS[MOUNT_EXOS2].s = ISS_ON;
+    else if (strstr(getDeviceName(), "iEXOS100"))
+        MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
+    else
+        MountTypeS[MOUNT_G11].s = ISS_ON;
+
 
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
@@ -122,10 +132,10 @@ bool PMC8::initProperties()
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
-//    TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
-//    TrackRateN[AXIS_RA].max = TRACKRATE_SIDEREAL + 0.01;
-//    TrackRateN[AXIS_DE].min = -0.01;
-//    TrackRateN[AXIS_DE].max = 0.01;
+    //    TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
+    //    TrackRateN[AXIS_RA].max = TRACKRATE_SIDEREAL + 0.01;
+    //    TrackRateN[AXIS_DE].min = -0.01;
+    //    TrackRateN[AXIS_DE].max = 0.01;
 
     // relabel move speeds
     strcpy(SlewRateSP.sp[0].label, "4x");
@@ -142,7 +152,8 @@ bool PMC8::initProperties()
 
     TrackState = SCOPE_IDLE;
 
-    SetParkDataType(PARK_RA_DEC);
+    // Driver does not support custom parking yet.
+    SetParkDataType(PARK_NONE);
 
     addAuxControls();
 
@@ -151,7 +162,6 @@ bool PMC8::initProperties()
     IUFillText(&FirmwareT[0], "Version", "Version", "");
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    // needed so PHD2 will recognize mount
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     return true;
@@ -167,7 +177,6 @@ bool PMC8::updateProperties()
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
 
-	
         defineText(&FirmwareTP);
 
         // do not support park position
@@ -178,11 +187,11 @@ bool PMC8::updateProperties()
     }
     else
     {
-       deleteProperty(GuideNSNP.name);
-       deleteProperty(GuideWENP.name);
-       deleteProperty(GuideRateNP.name);
+        deleteProperty(GuideNSNP.name);
+        deleteProperty(GuideWENP.name);
+        deleteProperty(GuideRateNP.name);
 
-       deleteProperty(FirmwareTP.name);
+        deleteProperty(FirmwareTP.name);
     }
 
     return true;
@@ -205,19 +214,13 @@ void PMC8::getStartupData()
 
     // PMC8 doesn't store location permanently so read from config and set
     // Convert to INDI standard longitude (0 to 360 Eastward)
-
-    double longitude;
-    double latitude;
-
-    longitude = LocationN[LOCATION_LONGITUDE].value;
-    latitude = LocationN[LOCATION_LATITUDE].value;
+    double longitude = LocationN[LOCATION_LONGITUDE].value;
+    double latitude = LocationN[LOCATION_LATITUDE].value;
 
     // must also keep "low level" aware of position to convert motor counts to RA/DEC
     set_pmc8_location(latitude, longitude);
 
-
     // seems like best place to put a warning that will be seen in log window of EKOS/etc
-    LOG_INFO("NOTICE!!!");
     LOG_INFO("The PMC-Eight driver is in BETA development currently.");
     LOG_INFO("Be prepared to intervene if something unexpected occurs.");
 
@@ -287,8 +290,8 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 
 void PMC8::ISGetProperties(const char *dev)
 {
-	defineSwitch(&MountTypeSP);
-   	INDI::Telescope::ISGetProperties(dev);
+    INDI::Telescope::ISGetProperties(dev);
+    defineSwitch(&MountTypeSP);
 }
 
 bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -298,19 +301,23 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         if (strcmp(name, MountTypeSP.name) == 0)
         {
             IUUpdateSwitch(&MountTypeSP, states, names, n);
-	int currentMountIndex = IUFindOnSwitchIndex(&MountTypeSP);
-	LOGF_INFO("Selected mount is %s", MountTypeS[currentMountIndex].label);
+            int currentMountIndex = IUFindOnSwitchIndex(&MountTypeSP);
+            LOGF_INFO("Selected mount is %s", MountTypeS[currentMountIndex].label);
 
-		set_pmc8_myMount(currentMountIndex);
-		MountTypeSP.s = IPS_OK;
-                IDSetSwitch(&MountTypeSP, nullptr);
-//		defineSwitch(&MountTypeSP);
+            // Set iEXOS100 baud rate to 115200
+            if (!isConnected() && currentMountIndex == MOUNT_iEXOS100)
+                serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+
+            set_pmc8_myMount(currentMountIndex);
+            MountTypeSP.s = IPS_OK;
+            IDSetSwitch(&MountTypeSP, nullptr);
+            //		defineSwitch(&MountTypeSP);
             return true;
         }
 
 
     }
-    
+
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -321,9 +328,9 @@ bool PMC8::ReadScopeStatus()
     if (isSimulation())
         mountSim();
 
-   bool slewing=false;
+    bool slewing = false;
 
-   switch (TrackState)
+    switch (TrackState)
     {
         case SCOPE_SLEWING:
             // are we done?
@@ -357,28 +364,28 @@ bool PMC8::ReadScopeStatus()
             break;
 
         case SCOPE_PARKING:
-           // are we done?
-           // are we done?
+            // are we done?
+            // are we done?
 
-           // check slew state
-           rc = get_pmc8_is_scope_slewing(PortFD, slewing);
-           if (!rc)
-           {
-               LOG_ERROR("PMC8::ReadScopeStatus() - unable to check slew state");
-           }
-           else
-           {
-               if (slewing == false)
-               {
-                   if (stop_pmc8_tracking_motion(PortFD))
-                       LOG_DEBUG("Mount tracking is off.");
-
-                   SetParked(true);
-
-                   saveConfig(true);
-               }
+            // check slew state
+            rc = get_pmc8_is_scope_slewing(PortFD, slewing);
+            if (!rc)
+            {
+                LOG_ERROR("PMC8::ReadScopeStatus() - unable to check slew state");
             }
-       break;
+            else
+            {
+                if (slewing == false)
+                {
+                    if (stop_pmc8_tracking_motion(PortFD))
+                        LOG_DEBUG("Mount tracking is off.");
+
+                    SetParked(true);
+
+                    saveConfig(true);
+                }
+            }
+            break;
 
         default:
             break;
@@ -394,7 +401,7 @@ bool PMC8::ReadScopeStatus()
 
 bool PMC8::Goto(double r, double d)
 {
-    char RAStr[64]={0}, DecStr[64]={0};
+    char RAStr[64] = {0}, DecStr[64] = {0};
 
     targetRA  = r;
     targetDEC = d;
@@ -402,7 +409,7 @@ bool PMC8::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION,"Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
 
 
     if (slew_pmc8(PortFD, r, d) == false)
@@ -421,12 +428,12 @@ bool PMC8::Sync(double ra, double dec)
 
     targetRA  = ra;
     targetDEC = dec;
-    char RAStr[64]={0}, DecStr[64]={0};
+    char RAStr[64] = {0}, DecStr[64] = {0};
 
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION,"Syncing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Syncing to RA: %s - DEC: %s", RAStr, DecStr);
 
     if (sync_pmc8(PortFD, ra, dec) == false)
     {
@@ -521,7 +528,7 @@ bool PMC8::Handshake()
         set_pmc8_sim_system_status(ST_STOPPED);
         set_pmc8_sim_track_rate(PMC8_TRACK_SIDEREAL);
         set_pmc8_sim_move_rate(PMC8_MOVE_64X);
-//        set_pmc8_sim_hemisphere(HEMI_NORTH);
+        //        set_pmc8_sim_hemisphere(HEMI_NORTH);
     }
 
     if (check_pmc8_connection(PortFD) == false)
@@ -558,7 +565,7 @@ bool PMC8::updateLocation(double latitude, double longitude, double elevation)
     // must also keep "low level" aware of position to convert motor counts to RA/DEC
     set_pmc8_location(latitude, longitude);
 
-    char l[32]={0}, L[32]={0};
+    char l[32] = {0}, L[32] = {0};
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
@@ -684,7 +691,6 @@ bool PMC8::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 IPState PMC8::GuideNorth(uint32_t ms)
 {
-    bool rc;
     long timetaken_us;
     int timeremain_ms;
 
@@ -701,9 +707,9 @@ IPState PMC8::GuideNorth(uint32_t ms)
         GuideNSTID = 0;
     }
 
-    rc = start_pmc8_guide(PortFD, PMC8_N, (int)ms, timetaken_us);
+    start_pmc8_guide(PortFD, PMC8_N, (int)ms, timetaken_us);
 
-    timeremain_ms = (int)(ms - ((float)timetaken_us)/1000.0);
+    timeremain_ms = (int)(ms - ((float)timetaken_us) / 1000.0);
 
     if (timeremain_ms < 0)
         timeremain_ms = 0;
@@ -715,26 +721,25 @@ IPState PMC8::GuideNorth(uint32_t ms)
 
 IPState PMC8::GuideSouth(uint32_t ms)
 {
-    bool rc;
     long timetaken_us;
     int timeremain_ms;
 
     // If already moving, then stop movement
     if (MovementNSSP.s == IPS_BUSY)
     {
-         int dir = IUFindOnSwitchIndex(&MovementNSSP);
-         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+        int dir = IUFindOnSwitchIndex(&MovementNSSP);
+        MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
 
     if (GuideNSTID)
     {
-         IERmTimer(GuideNSTID);
-         GuideNSTID = 0;
+        IERmTimer(GuideNSTID);
+        GuideNSTID = 0;
     }
 
-    rc = start_pmc8_guide(PortFD, PMC8_S, (int)ms, timetaken_us);
+    start_pmc8_guide(PortFD, PMC8_S, (int)ms, timetaken_us);
 
-    timeremain_ms = (int)(ms - ((float)timetaken_us)/1000.0);
+    timeremain_ms = (int)(ms - ((float)timetaken_us) / 1000.0);
 
     if (timeremain_ms < 0)
         timeremain_ms = 0;
@@ -746,7 +751,6 @@ IPState PMC8::GuideSouth(uint32_t ms)
 
 IPState PMC8::GuideEast(uint32_t ms)
 {
-    bool rc;
     long timetaken_us;
     int timeremain_ms;
 
@@ -763,9 +767,9 @@ IPState PMC8::GuideEast(uint32_t ms)
         GuideWETID = 0;
     }
 
-    rc = start_pmc8_guide(PortFD, PMC8_E, (int)ms, timetaken_us);
+    start_pmc8_guide(PortFD, PMC8_E, (int)ms, timetaken_us);
 
-    timeremain_ms = (int)(ms - ((float)timetaken_us)/1000.0);
+    timeremain_ms = (int)(ms - ((float)timetaken_us) / 1000.0);
 
     if (timeremain_ms < 0)
         timeremain_ms = 0;
@@ -776,7 +780,6 @@ IPState PMC8::GuideEast(uint32_t ms)
 
 IPState PMC8::GuideWest(uint32_t ms)
 {
-    bool rc;
     long timetaken_us;
     int timeremain_ms;
 
@@ -792,9 +795,10 @@ IPState PMC8::GuideWest(uint32_t ms)
         IERmTimer(GuideWETID);
         GuideWETID = 0;
     }
-    rc = start_pmc8_guide(PortFD, PMC8_W, (int)ms, timetaken_us);
 
-    timeremain_ms = (int)(ms - ((float)timetaken_us)/1000.0);
+    start_pmc8_guide(PortFD, PMC8_W, (int)ms, timetaken_us);
+
+    timeremain_ms = (int)(ms - ((float)timetaken_us) / 1000.0);
 
     if (timeremain_ms < 0)
         timeremain_ms = 0;
@@ -831,19 +835,19 @@ void PMC8::guideTimeout(PMC8_DIRECTION calldir)
 //GUIDE The timer helper functions.
 void PMC8::guideTimeoutHelperN(void *p)
 {
-    ((PMC8 *)p)->guideTimeout(PMC8_N);
+    static_cast<PMC8*>(p)->guideTimeout(PMC8_N);
 }
 void PMC8::guideTimeoutHelperS(void *p)
 {
-    ((PMC8 *)p)->guideTimeout(PMC8_S);
+    static_cast<PMC8*>(p)->guideTimeout(PMC8_S);
 }
 void PMC8::guideTimeoutHelperW(void *p)
 {
-    ((PMC8 *)p)->guideTimeout(PMC8_W);
+    static_cast<PMC8*>(p)->guideTimeout(PMC8_W);
 }
 void PMC8::guideTimeoutHelperE(void *p)
 {
-    ((PMC8 *)p)->guideTimeout(PMC8_E);
+    static_cast<PMC8*>(p)->guideTimeout(PMC8_E);
 }
 
 bool PMC8::SetSlewRate(int index)
@@ -886,17 +890,17 @@ void PMC8::mountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            currentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
+            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
             currentRA = range24(currentRA);
             break;
 
         case SCOPE_TRACKING:
-        if (TrackModeS[1].s == ISS_ON)
-        {
-            currentRA  += ( ((TRACKRATE_SIDEREAL/3600.0) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
-            currentDEC += ( (TrackRateN[AXIS_DE].value/3600.0) * dt);
-        }
-        break;
+            if (TrackModeS[1].s == ISS_ON)
+            {
+                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * dt) / 15.0;
+                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * dt);
+            }
+            break;
 
         case SCOPE_SLEWING:
         case SCOPE_PARKING:
@@ -977,7 +981,7 @@ bool PMC8::SetDefaultPark()
     SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
 
     // Set DEC to 90 or -90 depending on the hemisphere
-//    SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
+    //    SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
     SetAxis2Park(90);
 
     return true;
@@ -1083,7 +1087,7 @@ bool PMC8::SetTrackEnabled(bool enabled)
     {
         bool rc;
 
-        rc=set_pmc8_custom_ra_track_rate(PortFD, 0);
+        rc = set_pmc8_custom_ra_track_rate(PortFD, 0);
         if (!rc)
         {
             LOG_ERROR("PMC8::SetTrackREnabled - unable to set RA track rate to 0");
@@ -1091,12 +1095,12 @@ bool PMC8::SetTrackEnabled(bool enabled)
         }
 
         // currently only support tracking rate in RA
-//        rc=set_pmc8_custom_dec_track_rate(PortFD, 0);
-//        if (!rc)
-//        {
-//            LOG_ERROR("PMC8::SetTrackREnabled - unable to set DEC track rate to 0");
-//            return false;
-//        }
+        //        rc=set_pmc8_custom_dec_track_rate(PortFD, 0);
+        //        if (!rc)
+        //        {
+        //            LOG_ERROR("PMC8::SetTrackREnabled - unable to set DEC track rate to 0");
+        //            return false;
+        //        }
     }
 
     return true;

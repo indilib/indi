@@ -394,7 +394,7 @@ bool LX200Telescope::Goto(double ra, double dec)
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
+    //EqNP.s     = IPS_BUSY;
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
 

@@ -953,11 +953,14 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     char msg[128]={0};
     int bps;
     struct termios tty_setting;
+    // Check for bluetooth
+    int bt = strstr(device, "rfcomm") || strstr(device, "Bluetooth");
 
     // Open as Read/Write, no fnctl, and close on exclusive
     for (i = 0 ; i < 3 ; i++)
     {
-        t_fd = open(device, O_RDWR | O_NOCTTY | O_CLOEXEC);
+        // Do not use O_CLOEXEC on bluetooth
+        t_fd = open(device, O_RDWR | O_NOCTTY | (bt ? 0 : O_CLOEXEC));
         if (t_fd > 0)
             break;
         else
@@ -977,7 +980,8 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
         return TTY_PORT_BUSY;
 
     // Set port in exclusive mode to prevent other non-root processes from opening it.
-    if (ioctl(t_fd, TIOCEXCL) == -1)
+    // JM 2019-08-12: Do not set it for bluetooth
+    if (bt == 0 && ioctl(t_fd, TIOCEXCL) == -1)
     {
         perror("tty_connect: Error setting TIOCEXC.");
         close(t_fd);
