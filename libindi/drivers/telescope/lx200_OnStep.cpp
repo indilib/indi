@@ -2810,18 +2810,18 @@ bool LX200_OnStep::SetTrackRate(double raRate, double deRate)
 {
     char read_buffer[RB_MAX_LEN];
     snprintf(read_buffer, sizeof(read_buffer), ":RA%04f#", raRate);
-    LOGF_INFO("Setting: RA Rate to %04f", raRate);
+    LOGF_INFO("Setting: Custom RA Rate to %04f", raRate);
     if (!sendOnStepCommand(read_buffer))
     {
         return false;
     }
     snprintf(read_buffer, sizeof(read_buffer), ":RE%04f#", deRate);
-    LOGF_INFO("Setting: DE Rate to %04f", deRate);
+    LOGF_INFO("Setting: Custom DE Rate to %04f", deRate);
     if (!sendOnStepCommand(read_buffer))
     {
         return false;
     }
-    LOG_INFO("RA and DE Rates succesfully set");
+    LOG_INFO("Custom RA and DE Rates succesfully set");
     return true;
 }
 
@@ -2910,7 +2910,7 @@ bool LX200_OnStep::Sync(double ra, double dec)
     
     LOG_INFO("OnStep: Synchronization successful.");
     
-//KSTARS_BUG_TEST     EqNP.s     = IPS_OK;
+    EqNP.s     = IPS_OK;
     
     NewRaDec(currentRA, currentDEC);
     
