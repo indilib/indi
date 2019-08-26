@@ -30,6 +30,7 @@
 #include <unistd.h>
 
 #define MAX_DEVICES 4
+#define FOCUS_SETTINGS_TAB "Settings"
 
 static int iAvailableFocusersCount;
 static ASIEAF * focusers[MAX_DEVICES];
@@ -174,8 +175,12 @@ void ISSnoopDevice(XMLEle * root)
 ASIEAF::ASIEAF(int id, const char * name, const int maxSteps) : m_ID(id), m_MaxSteps(maxSteps)
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and can reverse.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_REVERSE |
-                      FOCUSER_CAN_SYNC);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
+                      FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_CAN_ABORT    |
+                      FOCUSER_CAN_REVERSE  |
+                      FOCUSER_CAN_SYNC     |
+                      FOCUSER_HAS_BACKLASH);
 
     // Just USB
     setSupportedConnections(CONNECTION_NONE);
@@ -201,6 +206,20 @@ bool ASIEAF::initProperties()
     IUFillSwitch(&BeepS[BEEP_ON], "ON", "On", ISS_ON);
     IUFillSwitch(&BeepS[BEEL_OFF], "OFF", "Off", ISS_OFF);
     IUFillSwitchVector(&BeepSP, BeepS, 2, getDeviceName(), "FOCUS_BEEP", "Beep", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Enable/Disable backlash
+    //    IUFillSwitch(&BacklashCompensationS[BACKLASH_ENABLED], "Enable", "", ISS_OFF);
+    //    IUFillSwitch(&BacklashCompensationS[BACKLASH_DISABLED], "Disable", "", ISS_ON);
+    //    IUFillSwitchVector(&FocuserBacklashSP, BacklashCompensationS, 2, getDeviceName(), "Backlash Compensation", "",
+    //                       FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    //    // Backlash Value
+    //    IUFillNumber(&BacklashN[0], "Value", "", "%.f", 0, 9999, 100., 0.);
+    //    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "Backlash", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    FocusBacklashN[0].min = 0;
+    FocusBacklashN[0].max = 9999;
+    FocusBacklashN[0].step = 100;
+    FocusBacklashN[0].value = 0;
 
     FocusRelPosN[0].min   = 0.;
     FocusRelPosN[0].max   = m_MaxSteps / 2.0;
@@ -236,10 +255,12 @@ bool ASIEAF::updateProperties()
         }
 
         defineSwitch(&BeepSP);
+        //        defineSwitch(&FocuserBacklashSP);
+        //        defineNumber(&BacklashNP);
 
         GetFocusParams();
 
-        LOG_INFO("ASI EAF paramaters updated, focuser ready for use.");
+        LOG_INFO("ASI EAF parameters updated, focuser ready for use.");
 
         SetTimer(POLLMS);
     }
@@ -248,6 +269,8 @@ bool ASIEAF::updateProperties()
         if (TemperatureNP.s != IPS_IDLE)
             deleteProperty(TemperatureNP.name);
         deleteProperty(BeepSP.name);
+        //        deleteProperty(FocuserBacklashSP.name);
+        //        deleteProperty(BacklashNP.name);
     }
 
     return true;
@@ -267,7 +290,7 @@ bool ASIEAF::Connect()
         LOGF_ERROR("Failed to connect to ASI EAF focuser ID: %d (%d)", m_ID, rc);
         return false;
     }
-
+    AbortFocuser();
     return readMaxPosition();
 }
 
@@ -340,6 +363,32 @@ bool ASIEAF::readReverse()
     FocusReverseS[REVERSED_ENABLED].s  = reversed ? ISS_ON : ISS_OFF;
     FocusReverseS[REVERSED_DISABLED].s = reversed ? ISS_OFF : ISS_ON;
     FocusReverseSP.s = IPS_OK;
+    return true;
+}
+
+bool ASIEAF::readBacklash()
+{
+    int backv = 0;
+    EAF_ERROR_CODE rc = EAFGetBacklash(m_ID, &backv);
+    if (rc != EAF_SUCCESS)
+    {
+        LOGF_ERROR("Failed to read backlash. Error: %d", rc);
+        return false;
+    }
+    FocusBacklashN[0].value = backv;
+    FocusBacklashNP.s = IPS_OK;
+    return true;
+}
+
+//bool ASIEAF::setBacklash(uint32_t ticks)
+bool ASIEAF::SetFocuserBacklash(int32_t steps)
+{
+    EAF_ERROR_CODE rc = EAFSetBacklash(m_ID, steps);
+    if (rc != EAF_SUCCESS)
+    {
+        LOGF_ERROR("Failed to set backlash compensation. Error: %d", rc);
+        return false;
+    }
     return true;
 }
 
@@ -434,8 +483,22 @@ bool ASIEAF::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             IDSetSwitch(&BeepSP, nullptr);
             return true;
         }
-    }
+        // Backlash
+        //        else if (!strcmp(name, FocuserBacklashSP.name))
+        //        {
+        //            IUUpdateSwitch(&FocuserBacklashSP, states, names, n);
+        //            bool rc = false;
+        //            if (IUFindOnSwitchIndex(&FocuserBacklashSP) == BACKLASH_ENABLED)
+        //                rc = setBacklash(BacklashN[0].value);
+        //            else
+        //                rc = setBacklash(0);
 
+        //            FocuserBacklashSP.s = rc ? IPS_OK : IPS_ALERT;
+        //            IDSetSwitch(&FocuserBacklashSP, nullptr);
+        //            return true;
+        //        }
+
+    }
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -443,6 +506,15 @@ bool ASIEAF::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 //{
 //    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
 //    {
+//        if (strcmp(name, BacklashNP.name) == 0)
+//        {
+//            IUUpdateNumber(&BacklashNP, values, names, n);
+//            bool rc = setBacklash(BacklashN[0].value);
+//            BacklashNP.s = rc ? IPS_OK : IPS_ALERT;
+
+//            IDSetNumber(&BacklashNP, nullptr);
+//            return true;
+//        }
 //    }
 
 //    return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -458,6 +530,9 @@ void ASIEAF::GetFocusParams()
 
     if (readBeep())
         IDSetSwitch(&BeepSP, nullptr);
+
+    if (readBacklash())
+        IDSetNumber(&FocusBacklashNP, nullptr);
 }
 
 IPState ASIEAF::MoveAbsFocuser(uint32_t targetTicks)
@@ -544,10 +619,3 @@ bool ASIEAF::AbortFocuser()
     }
     return true;
 }
-
-//bool ASIEAF::saveConfigItems(FILE * fp)
-//{
-//    Focuser::saveConfigItems(fp);
-
-//    return true;
-//}

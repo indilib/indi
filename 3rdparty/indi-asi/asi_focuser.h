@@ -66,9 +66,9 @@ class ASIEAF : public INDI::Focuser
 
         virtual bool ReverseFocuser(bool enabled) override;
         virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
-        //virtual bool saveConfigItems(FILE * fp) override;
 
     private:
         /**
@@ -94,8 +94,12 @@ class ASIEAF : public INDI::Focuser
         bool readBeep();
         // Are we moving?
         bool isMoving();
+        // Read backlash
+        bool readBacklash();
 
         bool gotoAbsolute(uint32_t position);
+        //bool setBacklash(uint32_t ticks);
+
         double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
 
         // Read Only Temperature Reporting
@@ -110,6 +114,15 @@ class ASIEAF : public INDI::Focuser
             BEEP_ON,
             BEEL_OFF
         };
+
+        // Enable/Disable backlash
+        //        ISwitch BacklashCompensationS[2];
+        //        ISwitchVectorProperty FocuserBacklashSP;
+        //        enum { BACKLASH_ENABLED, BACKLASH_DISABLED };
+
+        //        // Backlash Value
+        //        INumber BacklashN[1];
+        //        INumberVectorProperty BacklashNP;
 
         const uint8_t m_ID;
         const int m_MaxSteps;

@@ -24,6 +24,8 @@
 
 #include "ASICamera2.h"
 
+#include <condition_variable>
+#include <mutex>
 #include <indiccd.h>
 
 class ASICCD : public INDI::CCD
@@ -87,6 +89,20 @@ class ASICCD : public INDI::CCD
         void streamVideo();
         void getExposure();
         void exposureSetRequest(ImageState request);
+
+        /**
+         * @brief setThreadRequest Set the thread request
+         * @param request Desired thread state
+         * @warning condMutex must be UNLOCKED before calling this or the function will deadlock.
+         */
+        void setThreadRequest(ImageState request);
+
+        /**
+         * @brief waitUntil Block thread until CURRENT image state matches requested state
+         * @param request state to match
+         */
+        void waitUntil(ImageState request);
+
         /* Timer functions for NS guiding */
         static void TimerHelperNS(void *context);
         void TimerNS();
@@ -156,9 +172,14 @@ class ASICCD : public INDI::CCD
         // Imaging thread
         ImageState threadRequest;
         ImageState threadState;
-        pthread_t imagingThread;
-        pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-        pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+
+        //        pthread_t imagingThread;
+        //        pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+        //        pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+
+        std::thread imagingThread;
+        std::mutex condMutex;
+        std::condition_variable cv;
 
         // ST4
         float WEPulseRequest;

@@ -35,7 +35,7 @@ class CelestronSCT : public INDI::Focuser
         const char * getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
-        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
+        //virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
@@ -71,8 +71,7 @@ class CelestronSCT : public INDI::Focuser
          * on the focuser status like read position, temperature.. and check if the focuser reached the required position.
          */
         virtual void TimerHit() override;
-
-        virtual bool saveConfigItems(FILE * fp) override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
 
     private:
         Aux::Communicator communicator;
@@ -101,8 +100,8 @@ class CelestronSCT : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////
-        INumber BacklashN[1];
-        INumberVectorProperty BacklashNP;
+        //        INumber BacklashN[1];
+        //        INumberVectorProperty BacklashNP;
 
         INumber FocusMinPosN[1];
         INumberVectorProperty FocusMinPosNP;

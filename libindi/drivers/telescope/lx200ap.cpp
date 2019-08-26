@@ -491,7 +491,7 @@ bool LX200AstroPhysics::ReadScopeStatus()
         double dy = GetAxis2Park() - currentAlt;
 
         LOGF_DEBUG("Parking... targetAz: %g currentAz: %g dx: %g targetAlt: %g currentAlt: %g dy: %g", GetAxis1Park(),
-               currentAz, dx, GetAxis2Park(), currentAlt, dy);
+                   currentAz, dx, GetAxis2Park(), currentAlt, dy);
 
         if (fabs(dx) <= (SlewAccuracyN[0].value / (60.0)) && fabs(dy) <= (SlewAccuracyN[1].value / 60.0))
         {
@@ -652,7 +652,7 @@ bool LX200AstroPhysics::Goto(double r, double d)
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
+    //EqNP.s     = IPS_BUSY;
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -697,18 +697,18 @@ bool LX200AstroPhysics::Sync(double ra, double dec)
 
         switch (syncType)
         {
-        case USE_REGULAR_SYNC:
-            if (::Sync(PortFD, syncString) < 0)
-                syncOK = false;
-            break;
+            case USE_REGULAR_SYNC:
+                if (::Sync(PortFD, syncString) < 0)
+                    syncOK = false;
+                break;
 
-        case USE_CMR_SYNC:
-            if (APSyncCMR(PortFD, syncString) < 0)
-                syncOK = false;
-            break;
+            case USE_CMR_SYNC:
+                if (APSyncCMR(PortFD, syncString) < 0)
+                    syncOK = false;
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
 
         if (syncOK == false)
@@ -757,7 +757,7 @@ bool LX200AstroPhysics::updateTime(ln_date *utc, double utc_offset)
     }
 
     LOGF_DEBUG("Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
-           (int)ltm.seconds);
+               (int)ltm.seconds);
 
     if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
@@ -946,7 +946,7 @@ bool LX200AstroPhysics::UnPark()
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
         currentRA = equatorialPos.ra / 15.0;
-        currentDEC= equatorialPos.dec;
+        currentDEC = equatorialPos.dec;
     }
     else
     {
@@ -994,7 +994,7 @@ bool LX200AstroPhysics::SetCurrentPark()
     fs_sexa(AltStr, parkAlt, 2, 3600);
 
     LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
-           AltStr);
+               AltStr);
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
@@ -1069,7 +1069,7 @@ bool LX200AstroPhysics::saveConfigItems(FILE *fp)
 
 bool LX200AstroPhysics::SetTrackMode(uint8_t mode)
 {
-    int err=0;
+    int err = 0;
 
     if (mode == TRACK_CUSTOM)
     {
@@ -1093,7 +1093,7 @@ bool LX200AstroPhysics::SetTrackMode(uint8_t mode)
 
 bool LX200AstroPhysics::SetTrackEnabled(bool enabled)
 {
-   return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
+    return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
 }
 
 bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)

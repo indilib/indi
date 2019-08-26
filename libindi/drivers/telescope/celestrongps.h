@@ -72,6 +72,9 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         static void guideTimeoutHelperW(void *p);
         static void guideTimeoutHelperE(void *p);
 
+        // Focus Backlash
+        virtual bool SetFocuserBacklash(int32_t steps) override;
+
         // Tracking
         virtual bool SetTrackMode(uint8_t mode) override;
         virtual bool SetTrackEnabled(bool enabled) override;
@@ -144,8 +147,8 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         bool slewToIndex;
 
         // focuser
-        INumber FocusBacklashN[1];
-        INumberVectorProperty FocusBacklashNP;
+        //        INumber FocusBacklashN[1];
+        //        INumberVectorProperty FocusBacklashNP;
 
         INumber FocusMinPosN[1];
         INumberVectorProperty FocusMinPosNP;

@@ -305,7 +305,7 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
 
     TrackState = SCOPE_SLEWING;
 
-    EqNP.s = IPS_BUSY;
+    //EqNP.s = IPS_BUSY;
 
     return true;
 }

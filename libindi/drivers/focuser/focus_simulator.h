@@ -33,48 +33,53 @@
  */
 class FocusSim : public INDI::Focuser
 {
-  public:
-    FocusSim();
-    virtual ~FocusSim() = default;
+    public:
+        FocusSim();
+        virtual ~FocusSim() override = default;
 
-    const char *getDefaultName();
+        const char *getDefaultName() override;
 
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
+        void ISGetProperties(const char *dev) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    bool Connect();
-    bool Disconnect();
+    protected:
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        bool initProperties() override;
+        bool updateProperties() override;
 
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool SetFocuserSpeed(int speed);
+        bool Connect() override;
+        bool Disconnect() override;
 
-  private:
-    double internalTicks { 0 };
-    double initTicks { 0 };
+        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool SetFocuserSpeed(int speed) override;
 
-    // Seeing in arcseconds
-    INumberVectorProperty SeeingNP;
-    INumber SeeingN[1];
+        virtual bool SetFocuserBacklash(int32_t steps) override;
+        virtual bool SetFocuserBacklashEnabled(bool enabled) override;
 
-    // FWHM to be used by CCD driver to draw 'fuzzy' stars
-    INumberVectorProperty FWHMNP;
-    INumber FWHMN[1];
+    private:
+        double internalTicks { 0 };
+        double initTicks { 0 };
 
-    // Current mode of Focus simulator for testing purposes
-    enum
-    {
-        MODE_ALL,
-        MODE_ABSOLUTE,
-        MODE_RELATIVE,
-        MODE_TIMER,
-        MODE_COUNT
-    };
-    ISwitchVectorProperty ModeSP;
-    ISwitch ModeS[MODE_COUNT];
+        // Seeing in arcseconds
+        INumberVectorProperty SeeingNP;
+        INumber SeeingN[1];
+
+        // FWHM to be used by CCD driver to draw 'fuzzy' stars
+        INumberVectorProperty FWHMNP;
+        INumber FWHMN[1];
+
+        // Current mode of Focus simulator for testing purposes
+        enum
+        {
+            MODE_ALL,
+            MODE_ABSOLUTE,
+            MODE_RELATIVE,
+            MODE_TIMER,
+            MODE_COUNT
+        };
+        ISwitchVectorProperty ModeSP;
+        ISwitch ModeS[MODE_COUNT];
 };

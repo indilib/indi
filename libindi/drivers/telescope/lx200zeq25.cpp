@@ -41,7 +41,7 @@ LX200ZEQ25::LX200ZEQ25()
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
                            9);
 }
 
@@ -479,7 +479,7 @@ bool LX200ZEQ25::Goto(double r, double d)
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
+    //EqNP.s     = IPS_BUSY;
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -731,7 +731,7 @@ int LX200ZEQ25::setZEQ25UTCOffset(double hours)
 
 int LX200ZEQ25::setZEQ25Date(int days, int months, int years)
 {
-    char command[16]={0};
+    char command[16] = {0};
     snprintf(command, sizeof(command), ":SC %02d/%02d/%02d#", months, days, years % 100);
     return (setZEQ25StandardProcedure(PortFD, command));
 }
@@ -785,7 +785,7 @@ bool LX200ZEQ25::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             }
             else
                 LOGF_INFO("Moving toward %s.",
-                       (current_move == LX200_NORTH) ? "North" : "South");
+                          (current_move == LX200_NORTH) ? "North" : "South");
             break;
 
         case MOTION_STOP:
@@ -796,7 +796,7 @@ bool LX200ZEQ25::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             }
             else
                 LOGF_INFO("Movement toward %s halted.",
-                       (current_move == LX200_NORTH) ? "North" : "South");
+                          (current_move == LX200_NORTH) ? "North" : "South");
             break;
     }
 
@@ -827,7 +827,7 @@ bool LX200ZEQ25::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             }
             else
                 LOGF_INFO("Movement toward %s halted.",
-                       (current_move == LX200_WEST) ? "West" : "East");
+                          (current_move == LX200_WEST) ? "West" : "East");
             break;
     }
 
@@ -995,7 +995,7 @@ bool LX200ZEQ25::SetCurrentPark()
     fs_sexa(AltStr, parkAlt, 2, 3600);
 
     LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
-           AltStr);
+               AltStr);
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);

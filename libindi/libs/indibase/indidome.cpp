@@ -1467,6 +1467,7 @@ const char * Dome::LoadParkXML()
         delXMLEle(ParkdataXmlRoot);
 
     ParkdataXmlRoot = readXMLFile(fp, lp, errmsg);
+    fclose(fp);
 
     delLilXML(lp);
     if (!ParkdataXmlRoot)

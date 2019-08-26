@@ -83,7 +83,7 @@
         </device>
         <device label="Avalon Legacy" manufacturer="Avalon">
             <driver name="LX200 Basic">indi_lx200basic</driver>
-            <version>2.0</version>
+            <version>2.1</version>
         </device>
         <device label="Paramount" manufacturer="Software Bisque">
             <driver name="Paramount">indi_paramount_telescope</driver>
@@ -99,7 +99,7 @@
         </device>
         <device label="Mel Bartels">
             <driver name="LX200 Basic">indi_lx200basic</driver>
-            <version>1.0</version>
+            <version>2.1</version>
         </device>
         <device label="Temma Takahashi" manufacturer="Takahashi">
             <driver name="Temma">indi_temma_telescope</driver>
@@ -107,7 +107,7 @@
         </device>
         <device label="Argo Navis">
             <driver name="LX200 Basic">indi_lx200basic</driver>
-            <version>1.0</version>
+            <version>2.1</version>
         </device>
         <device label="SynScan" manufacturer="SkyWatcher">
             <driver name="SynScan">indi_synscan_telescope</driver>
@@ -211,7 +211,15 @@
         </device>
         <device label="Explore Scientific PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.1</version>
+            <version>0.2</version>
+        </device>
+        <device label="Explore Scientific EXOS2" manufacturer="Explore Scientific">
+            <driver name="PMC8">indi_pmc8_telescope</driver>
+            <version>0.2</version>
+        </device>
+        <device label="Explore Scientific iEXOS100" manufacturer="Explore Scientific">
+            <driver name="PMC8">indi_pmc8_telescope</driver>
+            <version>0.2</version>
         </device>
     </devGroup>
     <devGroup group="Focusers">

@@ -74,6 +74,9 @@ class FCUSB : public INDI::Focuser
         // Sets the Motor, PWM, and LED states
         bool setStatus();
 
+        // Stop motor and set status as OK to signal motion is complete
+        bool stop();
+
         void timedMoveCallback();
 
         hid_device *handle { nullptr };

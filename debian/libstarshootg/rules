@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/cmake.mk
+
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+DEB_PACKAGE_VERSION := $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ' | cut -f 1 -d '~')
+DEB_SRCDIR=libstarshootg
+DEB_DH_SHLIBDEPS_ARGS=-u--ignore-missing-info
+DEB_DH_LINK_ARGS := usr/lib/${DEB_HOST_MULTIARCH}/libstarshootg.so.${DEB_PACKAGE_VERSION} usr/lib/${DEB_HOST_MULTIARCH}/libstarshootg.so.1 \
+                    usr/lib/${DEB_HOST_MULTIARCH}/libstarshootg.so.1 usr/lib/${DEB_HOST_MULTIARCH}/libstarshootg.so
