@@ -41,7 +41,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 7);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 8);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
@@ -382,6 +382,8 @@ bool LX200_OnStep::updateProperties()
         defineSwitch(&OSPECIndexSP);
         defineSwitch(&OSPECRecordSP);
         defineSwitch(&OSPECReadSP);
+        defineNumber(&OSPECCurrentIndexNP);
+        defineNumber(&OSPECRWValuesNP);
 
         //New Align
         defineSwitch(&OSNAlignStarsSP);
@@ -473,6 +475,8 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSPECIndexSP.name);
         deleteProperty(OSPECRecordSP.name);
         deleteProperty(OSPECReadSP.name);
+        deleteProperty(OSPECCurrentIndexNP.name);
+        deleteProperty(OSPECRWValuesNP.name);
 
         //New Align
         deleteProperty(OSNAlignStarsSP.name);
@@ -1754,22 +1758,22 @@ bool LX200_OnStep::ReadScopeStatus()
         if (OSStat[3] & 0b10000001 == 0b10000001) {
             // GEM
             IUSaveText(&OnstepStat[6],"German Mount"); 
-            OSMountType = 0;
-        }
+            OSMountType = MOUNTTYPE_GEM;
+        } 
         if (OSStat[3] & 0b10000010 == 0b10000010) {
             // FORK
             IUSaveText(&OnstepStat[6],"Fork Mount"); 
-            OSMountType = 1;
+            OSMountType = MOUNTTYPE_FORK;
         }
-        if (OSStat[3] & 0b10000100 == 0b10000100) {
+        if (OSStat[3] & 0b10000100 == 0b10000100) { //Seems depreciated/subsumed into  FORK 
             // Fork Alt
             IUSaveText(&OnstepStat[6],"Fork Alt Mount"); 
-            OSMountType = 2;
+            OSMountType = MOUNTTYPE_FORK_ALT;
         }
         if (OSStat[3] & 0b10001000 == 0b10001000) {
             // ALTAZM
             IUSaveText(&OnstepStat[6],"AltAZ Mount"); 
-            OSMountType = 3;
+            OSMountType = MOUNTTYPE_ALTAZ;
         }
         
         
@@ -1925,45 +1929,53 @@ bool LX200_OnStep::ReadScopeStatus()
     
     
     #ifndef OnStep_Alpha
-    //AutoFlip
-    getCommandString(PortFD,TempValue,":GX95#");
-    if (atoi(TempValue)) {
-        AutoFlipS[1].s = ISS_ON;
-        AutoFlipSP.s = IPS_OK;
-        IDSetSwitch(&AutoFlipSP, nullptr);
-    } else {
-        AutoFlipS[0].s=ISS_ON;
-        AutoFlipSP.s = IPS_OK;
-        IDSetSwitch(&AutoFlipSP, nullptr);
+    if (OSMountType == MOUNTTYPE_GEM) 
+    {
+        //AutoFlip
+        getCommandString(PortFD,TempValue,":GX95#");
+        if (atoi(TempValue)) {
+            AutoFlipS[1].s = ISS_ON;
+            AutoFlipSP.s = IPS_OK;
+            IDSetSwitch(&AutoFlipSP, nullptr);
+        } else {
+            AutoFlipS[0].s=ISS_ON;
+            AutoFlipSP.s = IPS_OK;
+            IDSetSwitch(&AutoFlipSP, nullptr);
+        }
     }
     #endif
     
-    //PreferredPierSide
-    getCommandString(PortFD,TempValue,":GX96#");
-    if (strstr(TempValue,"W")) {
-        PreferredPierSideS[0].s = ISS_ON;
-        PreferredPierSideSP.s = IPS_OK;
-        IDSetSwitch(&PreferredPierSideSP, nullptr);
-    } else if (strstr(TempValue,"E")) {
-        PreferredPierSideS[1].s=ISS_ON;
-        PreferredPierSideSP.s = IPS_OK;
-        IDSetSwitch(&PreferredPierSideSP, nullptr);
-    } else if (strstr(TempValue,"B")) {
-        PreferredPierSideS[2].s=ISS_ON;
-        PreferredPierSideSP.s = IPS_OK;
-        IDSetSwitch(&PreferredPierSideSP, nullptr);
-    } else {
-        IUResetSwitch(&PreferredPierSideSP);
-        PreferredPierSideSP.s = IPS_BUSY;
-        IDSetSwitch(&PreferredPierSideSP, nullptr);
+    if (OSMountType == MOUNTTYPE_GEM) { //Doesn't apply to non-GEMs
+        //PreferredPierSide
+        getCommandString(PortFD,TempValue,":GX96#");
+        if (strstr(TempValue,"W")) {
+            PreferredPierSideS[0].s = ISS_ON;
+            PreferredPierSideSP.s = IPS_OK;
+            IDSetSwitch(&PreferredPierSideSP, nullptr);
+        } else if (strstr(TempValue,"E")) {
+            PreferredPierSideS[1].s=ISS_ON;
+            PreferredPierSideSP.s = IPS_OK;
+            IDSetSwitch(&PreferredPierSideSP, nullptr);
+        } else if (strstr(TempValue,"B")) {
+            PreferredPierSideS[2].s=ISS_ON;
+            PreferredPierSideSP.s = IPS_OK;
+            IDSetSwitch(&PreferredPierSideSP, nullptr);
+        } else {
+            IUResetSwitch(&PreferredPierSideSP);
+            PreferredPierSideSP.s = IPS_BUSY;
+            IDSetSwitch(&PreferredPierSideSP, nullptr);
+        }
+
+        getCommandString(PortFD,TempValue, ":GXE9#"); // E
+        getCommandString(PortFD,TempValue2, ":GXEA#"); // W 
+        minutesPastMeridianNP.np[0].value = atof(TempValue); // E
+        minutesPastMeridianNP.np[1].value = atof(TempValue2); //W
+        IDSetNumber(&minutesPastMeridianNP, nullptr);
+        
     }
     
+    //TODO: Rotator support
     
-    getCommandString(PortFD,TempValue, ":GXE9#"); // E
-    getCommandString(PortFD,TempValue2, ":GXEA#"); // W 
-    minutesPastMeridianNP.np[0].value = atof(TempValue); // E
-    minutesPastMeridianNP.np[1].value = atof(TempValue2); //W
-    IDSetNumber(&minutesPastMeridianNP, nullptr);
     
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, nullptr);
@@ -2262,19 +2274,29 @@ IPState LX200_OnStep::StartPECPlayback (int axis)
     //  :$QZ+  Enable RA PEC compensation 
     //         Returns: nothing
     INDI_UNUSED(axis); //We only have RA on OnStep
-    if (OSPECEnabled == true) 
-    { 
-        char cmd[8];
-        LOG_INFO("Sending Command to Start PEC Playback");
-        strcpy(cmd, ":$QZ+#");
-        sendOnStepCommandBlind(cmd);
-        return IPS_BUSY;
-    }
-    else
+    if (OSMountType != MOUNTTYPE_ALTAZ ) 
     {
-        LOG_DEBUG("Command to Playback PEC called when Controller does not support PEC");
+        if (OSPECEnabled == true) 
+        { 
+            char cmd[8];
+            LOG_INFO("Sending Command to Start PEC Playback");
+            strcpy(cmd, ":$QZ+#");
+            sendOnStepCommandBlind(cmd);
+            return IPS_BUSY;
+        }
+        else
+        {
+            LOG_DEBUG("Command to Playback PEC called when Controller does not support PEC");
+        }
+        return IPS_ALERT;
+    } 
+    else 
+    {
+        OSPECEnabled = false;
+        LOG_INFO("Command to Start Playback PEC called when Controller does not support PEC due to being Alt-Az, PEC Ignored going forward");
+        return IPS_ALERT;
     }
-    return IPS_ALERT;
+    
 }
 
 IPState LX200_OnStep::StopPECPlayback (int axis)
@@ -2362,6 +2384,12 @@ IPState LX200_OnStep::PECStatus (int axis)
 {
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true) {
+        if (OSMountType == MOUNTTYPE_ALTAZ) 
+        {
+            OSPECEnabled = false;
+            LOG_INFO("Command to give PEC called when Controller does not support PEC due to being Alt-Az Disabled");
+            return IPS_ALERT;
+        }
         //LOG_INFO("Getting PEC Status");
         //  :$QZ?  Get PEC status
         //         Returns: S#
@@ -2782,18 +2810,18 @@ bool LX200_OnStep::SetTrackRate(double raRate, double deRate)
 {
     char read_buffer[RB_MAX_LEN];
     snprintf(read_buffer, sizeof(read_buffer), ":RA%04f#", raRate);
-    LOGF_INFO("Setting: RA Rate to %04f", raRate);
+    LOGF_INFO("Setting: Custom RA Rate to %04f", raRate);
     if (!sendOnStepCommand(read_buffer))
     {
         return false;
     }
     snprintf(read_buffer, sizeof(read_buffer), ":RE%04f#", deRate);
-    LOGF_INFO("Setting: DE Rate to %04f", deRate);
+    LOGF_INFO("Setting: Custom DE Rate to %04f", deRate);
     if (!sendOnStepCommand(read_buffer))
     {
         return false;
     }
-    LOG_INFO("RA and DE Rates succesfully set");
+    LOG_INFO("Custom RA and DE Rates succesfully set");
     return true;
 }
 
