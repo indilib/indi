@@ -43,7 +43,7 @@
 #define MAX_TIMEOUT_COUNT   5               // Maximum timeout before auto-connect
 
 // We declare an auto pointer to GPSD.
-std::unique_ptr<GPSNMEA> gpsnema(new GPSNMEA());
+static std::unique_ptr<GPSNMEA> gpsnema(new GPSNMEA());
 
 void ISGetProperties(const char *dev)
 {
@@ -90,7 +90,7 @@ GPSNMEA::GPSNMEA()
 
 const char *GPSNMEA::getDefaultName()
 {
-    return (char *)"GPS NMEA";
+    return "GPS NMEA";
 }
 
 bool GPSNMEA::initProperties()
@@ -159,7 +159,7 @@ bool GPSNMEA::isNMEA()
 {
     char line[MINMEA_MAX_LENGTH];
 
-    int bytes_read=0;
+    int bytes_read = 0;
     int tty_rc = tty_nread_section(PortFD, line, MINMEA_MAX_LENGTH, 0xA, 3, &bytes_read);
     if (tty_rc < 0)
     {
@@ -179,13 +179,13 @@ void* GPSNMEA::parseNMEAHelper(void *obj)
 
 void GPSNMEA::parseNEMA()
 {
-    static char ts[32]={0};
+    static char ts[32] = {0};
 
     char line[MINMEA_MAX_LENGTH];
 
     while (isConnected())
     {
-        int bytes_read=0;
+        int bytes_read = 0;
         int tty_rc = tty_nread_section(PortFD, line, MINMEA_MAX_LENGTH, 0xA, 3, &bytes_read);
         if (tty_rc < 0)
         {
@@ -206,7 +206,7 @@ void GPSNMEA::parseNEMA()
                     {
                         // sleep for 10 seconds
                         tcpConnection->Disconnect();
-                        usleep(10*1e6);
+                        usleep(10 * 1e6);
                         tcpConnection->Connect();
                         PortFD = tcpConnection->getPortFD();
                     }
@@ -216,10 +216,10 @@ void GPSNMEA::parseNEMA()
 
                         tcpConnection->Disconnect();
                         // sleep for 5 seconds
-                        usleep(5*1e6);
+                        usleep(5 * 1e6);
                         tcpConnection->Connect();
                         PortFD = tcpConnection->getPortFD();
-                        timeoutCounter=0;
+                        timeoutCounter = 0;
                     }
                 }
                 continue;
@@ -230,187 +230,190 @@ void GPSNMEA::parseNEMA()
         LOGF_DEBUG("%s", line);
         switch (minmea_sentence_id(line, false))
         {
-        case MINMEA_SENTENCE_RMC:
-        {
-            struct minmea_sentence_rmc frame;
-            if (minmea_parse_rmc(&frame, line))
+            case MINMEA_SENTENCE_RMC:
             {
-                if (frame.valid)
+                struct minmea_sentence_rmc frame;
+                if (minmea_parse_rmc(&frame, line))
                 {
-                    LocationN[LOCATION_LATITUDE].value  = minmea_tocoord(&frame.latitude);
-                    LocationN[LOCATION_LONGITUDE].value = minmea_tocoord(&frame.longitude);
-                    if (LocationN[LOCATION_LONGITUDE].value < 0)
-                        LocationN[LOCATION_LONGITUDE].value += 360;
+                    if (frame.valid)
+                    {
+                        LocationN[LOCATION_LATITUDE].value  = minmea_tocoord(&frame.latitude);
+                        LocationN[LOCATION_LONGITUDE].value = minmea_tocoord(&frame.longitude);
+                        if (LocationN[LOCATION_LONGITUDE].value < 0)
+                            LocationN[LOCATION_LONGITUDE].value += 360;
 
-                    struct timespec timesp;
-                    time_t raw_time;
-                    struct tm *utc, *local;
+                        struct timespec timesp;
+                        time_t raw_time;
+                        struct tm *utc, *local;
 
-                    if (minmea_gettime(&timesp, &frame.date, &frame.time) == -1)
-                        break;
+                        if (minmea_gettime(&timesp, &frame.date, &frame.time) == -1)
+                            break;
 
-                    raw_time = timesp.tv_sec;
-                    utc = gmtime(&raw_time);
-                    strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
-                    IUSaveText(&TimeT[0], ts);
+                        raw_time = timesp.tv_sec;
+                        utc = gmtime(&raw_time);
+                        strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
+                        IUSaveText(&TimeT[0], ts);
 
-                    #ifdef __linux__
-                    stime(&raw_time);
-                    #endif
+#ifdef __linux__
+                        stime(&raw_time);
+#endif
 
-                    local = localtime(&raw_time);
-                    snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
-                    IUSaveText(&TimeT[1], ts);
+                        local = localtime(&raw_time);
+                        snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
+                        IUSaveText(&TimeT[1], ts);
 
-                    pthread_mutex_lock(&lock);
-                    locationPending = false;
-                    timePending = false;
-                    LOG_DEBUG("Threaded Location and Time updates complete.");
-                    pthread_mutex_unlock(&lock);
+                        pthread_mutex_lock(&lock);
+                        locationPending = false;
+                        timePending = false;
+                        LOG_DEBUG("Threaded Location and Time updates complete.");
+                        pthread_mutex_unlock(&lock);
+                    }
+                }
+                else
+                {
+                    LOG_DEBUG("$xxRMC sentence is not parsed");
                 }
             }
-            else
-            {
-                LOG_DEBUG("$xxRMC sentence is not parsed");
-            }
-        }
-        break;
-
-        case MINMEA_SENTENCE_GGA:
-        {
-            struct minmea_sentence_gga frame;
-            if (minmea_parse_gga(&frame, line))
-            {
-                if (frame.fix_quality == 1)
-                {
-                    LocationN[LOCATION_LATITUDE].value  = minmea_tocoord(&frame.latitude);
-                    LocationN[LOCATION_LONGITUDE].value = minmea_tocoord(&frame.longitude);
-                    if (LocationN[LOCATION_LONGITUDE].value < 0)
-                        LocationN[LOCATION_LONGITUDE].value += 360;
-
-                    LocationN[LOCATION_ELEVATION].value = minmea_tofloat(&frame.altitude);
-
-                    struct timespec timesp;
-                    time_t raw_time;
-                    struct tm *utc, *local;
-                    minmea_date gmt_date;
-
-                    time(&raw_time);
-                    utc = gmtime(&raw_time);
-                    gmt_date.day = utc->tm_mday;
-                    gmt_date.month = utc->tm_mon+1;
-                    gmt_date.year = utc->tm_year;
-
-                    minmea_gettime(&timesp, &gmt_date, &frame.time);
-
-                    raw_time = timesp.tv_sec;
-                    utc = gmtime(&raw_time);
-                    strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
-                    IUSaveText(&TimeT[0], ts);
-
-                    #ifdef __linux__
-                    stime(&raw_time);
-                    #endif
-
-                    local = localtime(&raw_time);
-                    snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
-                    IUSaveText(&TimeT[1], ts);
-
-                    pthread_mutex_lock(&lock);
-                    timePending = false;
-                    locationPending = false;
-                    LOG_DEBUG("Threaded Location and Time updates complete.");
-                    pthread_mutex_unlock(&lock);
-                }
-            }
-            else
-            {
-                LOG_DEBUG("$xxGGA sentence is not parsed");
-            }
-        } break;
-
-        case MINMEA_SENTENCE_GSA:
-        {
-            struct minmea_sentence_gsa frame;
-            if (minmea_parse_gsa(&frame, line))
-            {
-                if (frame.fix_type == 1)
-                {
-                    GPSstatusTP.s = IPS_BUSY;
-                    IUSaveText(&GPSstatusT[0], "NO FIX");
-                }
-                else if (frame.fix_type == 2)
-                {
-                    GPSstatusTP.s = IPS_OK;
-                    IUSaveText(&GPSstatusT[0], "2D FIX");
-                }
-                else if (frame.fix_type == 3)
-                {
-                    GPSstatusTP.s = IPS_OK;
-                    IUSaveText(&GPSstatusT[0], "3D FIX");
-                }
-                IDSetText(&GPSstatusTP, nullptr);
-
-            }
-            else
-            {
-              LOG_DEBUG("$xxGSA sentence is not parsed.");
-            }
-        }
             break;
-        case MINMEA_SENTENCE_ZDA:
-        {
-            struct minmea_sentence_zda frame;
-            if (minmea_parse_zda(&frame, line))
+
+            case MINMEA_SENTENCE_GGA:
             {
-                LOGF_DEBUG("$xxZDA: %d:%d:%d %02d.%02d.%d UTC%+03d:%02d",
-                       frame.time.hours,
-                       frame.time.minutes,
-                       frame.time.seconds,
-                       frame.date.day,
-                       frame.date.month,
-                       frame.date.year,
-                       frame.hour_offset,
-                       frame.minute_offset);
+                struct minmea_sentence_gga frame;
+                if (minmea_parse_gga(&frame, line))
+                {
+                    if (frame.fix_quality == 1)
+                    {
+                        LocationN[LOCATION_LATITUDE].value  = minmea_tocoord(&frame.latitude);
+                        LocationN[LOCATION_LONGITUDE].value = minmea_tocoord(&frame.longitude);
+                        if (LocationN[LOCATION_LONGITUDE].value < 0)
+                            LocationN[LOCATION_LONGITUDE].value += 360;
 
-                struct timespec timesp;
-                time_t raw_time;
-                struct tm *utc, *local;
+                        LocationN[LOCATION_ELEVATION].value = minmea_tofloat(&frame.altitude);
 
-                minmea_gettime(&timesp, &frame.date, &frame.time);
+                        struct timespec timesp;
+                        time_t raw_time;
+                        struct tm *utc, *local;
+                        minmea_date gmt_date;
 
-                raw_time = timesp.tv_sec;
-                utc = gmtime(&raw_time);
-                strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
-                IUSaveText(&TimeT[0], ts);
+                        time(&raw_time);
+                        utc = gmtime(&raw_time);
+                        gmt_date.day = utc->tm_mday;
+                        gmt_date.month = utc->tm_mon + 1;
+                        gmt_date.year = utc->tm_year;
 
-                #ifdef __linux__
-                stime(&raw_time);
-                #endif
+                        minmea_gettime(&timesp, &gmt_date, &frame.time);
 
-                local = localtime(&raw_time);
-                snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
-                IUSaveText(&TimeT[1], ts);
+                        raw_time = timesp.tv_sec;
+                        utc = gmtime(&raw_time);
+                        strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
+                        IUSaveText(&TimeT[0], ts);
 
-                pthread_mutex_lock(&lock);
-                timePending = false;
-                LOG_DEBUG("Threaded Time update complete.");
-                pthread_mutex_unlock(&lock);
+#ifdef __linux__
+                        stime(&raw_time);
+#endif
+
+                        local = localtime(&raw_time);
+                        snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
+                        IUSaveText(&TimeT[1], ts);
+
+                        pthread_mutex_lock(&lock);
+                        timePending = false;
+                        locationPending = false;
+                        LOG_DEBUG("Threaded Location and Time updates complete.");
+                        pthread_mutex_unlock(&lock);
+                    }
+                }
+                else
+                {
+                    LOG_DEBUG("$xxGGA sentence is not parsed");
+                }
             }
-            else {
-                LOG_DEBUG("$xxZDA sentence is not parsed");
+            break;
+
+            case MINMEA_SENTENCE_GSA:
+            {
+                struct minmea_sentence_gsa frame;
+                if (minmea_parse_gsa(&frame, line))
+                {
+                    if (frame.fix_type == 1)
+                    {
+                        GPSstatusTP.s = IPS_BUSY;
+                        IUSaveText(&GPSstatusT[0], "NO FIX");
+                    }
+                    else if (frame.fix_type == 2)
+                    {
+                        GPSstatusTP.s = IPS_OK;
+                        IUSaveText(&GPSstatusT[0], "2D FIX");
+                    }
+                    else if (frame.fix_type == 3)
+                    {
+                        GPSstatusTP.s = IPS_OK;
+                        IUSaveText(&GPSstatusT[0], "3D FIX");
+                    }
+                    IDSetText(&GPSstatusTP, nullptr);
+
+                }
+                else
+                {
+                    LOG_DEBUG("$xxGSA sentence is not parsed.");
+                }
             }
-        } break;
+            break;
+            case MINMEA_SENTENCE_ZDA:
+            {
+                struct minmea_sentence_zda frame;
+                if (minmea_parse_zda(&frame, line))
+                {
+                    LOGF_DEBUG("$xxZDA: %d:%d:%d %02d.%02d.%d UTC%+03d:%02d",
+                               frame.time.hours,
+                               frame.time.minutes,
+                               frame.time.seconds,
+                               frame.date.day,
+                               frame.date.month,
+                               frame.date.year,
+                               frame.hour_offset,
+                               frame.minute_offset);
 
-        case MINMEA_INVALID:
-        {
-            //LOG_WARN("$xxxxx sentence is not valid");
-        } break;
+                    struct timespec timesp;
+                    time_t raw_time;
+                    struct tm *utc, *local;
 
-        default:
-        {
-            LOG_DEBUG("$xxxxx sentence is not parsed");
-        }
+                    minmea_gettime(&timesp, &frame.date, &frame.time);
+
+                    raw_time = timesp.tv_sec;
+                    utc = gmtime(&raw_time);
+                    strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
+                    IUSaveText(&TimeT[0], ts);
+
+#ifdef __linux__
+                    stime(&raw_time);
+#endif
+
+                    local = localtime(&raw_time);
+                    snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
+                    IUSaveText(&TimeT[1], ts);
+
+                    pthread_mutex_lock(&lock);
+                    timePending = false;
+                    LOG_DEBUG("Threaded Time update complete.");
+                    pthread_mutex_unlock(&lock);
+                }
+                else
+                {
+                    LOG_DEBUG("$xxZDA sentence is not parsed");
+                }
+            }
+            break;
+
+            case MINMEA_INVALID:
+            {
+                //LOG_WARN("$xxxxx sentence is not valid");
+            } break;
+
+            default:
+            {
+                LOG_DEBUG("$xxxxx sentence is not parsed");
+            }
             break;
         }
     }

@@ -202,6 +202,10 @@ IPState GPSD::updateGPS()
 
         time(&raw_time);
 
+#ifdef __linux__
+        stime(&raw_time);
+#endif
+
         struct tm *utc = gmtime(&raw_time);
         strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
         IUSaveText(&TimeT[0], ts);
@@ -312,6 +316,10 @@ IPState GPSD::updateGPS()
     {
         char ts[32] = {0};
         raw_time = gpsData->fix.time;
+
+#ifdef __linux__
+        stime(&raw_time);
+#endif
 
         unix_to_iso8601(gpsData->fix.time, ts, 32);
         IUSaveText(&TimeT[0], ts);
