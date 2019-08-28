@@ -335,7 +335,10 @@
 #define DEVICETYPE_QHY6060      4059
 #define DEVICETYPE_QHY411        4060
 
-
+#define DEVICETYPE_QHY600        4061
+#define DEVICETYPE_QHY600C      4062
+#define DEVICETYPE_QHY600M     4063
+#define DEVICETYPE_QHY0204     4064
 /**
  * Type define for QHY5IIIEND*/
 #define DEVICETYPE_QHY5IIIEND   4999
@@ -970,6 +973,9 @@
 #define QHY411_MAX_WIDTH        	14304
 #define QHY411_MAX_HEIGHT        	10748
 
+#define QHY600_MAX_WIDTH        	9600
+#define QHY600_MAX_HEIGHT        	6422
+
 
 
 
@@ -1176,9 +1182,9 @@
 
 #define REMAINING_MIN_EXPOSURETIMES	(3000)//ms
 
-#define	MAX_CAMERA_NUMBER	200
-#define	CAMERA_ID_LENGTH		64
-#define   MAXDEVICES 			18
+#define		MAX_CAMERA_NUMBER		200
+#define		CAMERA_ID_LENGTH		64
+#define   	MAXDEVICES 				8
 
 
 #define	SEND_CAMERA_NO_MESSAGE						0
@@ -1191,6 +1197,11 @@
 #define	SEND_CAMERA_CAPABLE							9505
 #define	SEND_CAMERA_MAXMINSTEP						9506
 #define	SEND_CAMERA_EXPOSING						9507
+
+#define	CAMERA_HANDLE_INVALID						9508
+#define	HANDLE_IS_NULL								9509
+#define	USB_PORT_ERROR								9510
+
 
 
 
@@ -1207,6 +1218,10 @@
 #define	CAMERA_SINGLE_STOP							10013
 #define	CAMERA_SINGLE_TIMEOUT						10014
 
+#define	SEND_MSG_NONE				0
+#define	SEND_MSG_WHOLE				1
+#define	SEND_MSG_PART				2
+
 
 
 #define   SINGLE_MODE 								0
@@ -1214,10 +1229,25 @@
 
 #define   GET_IMAGE_TIMEOUT							30000
 
+#define   IS_OPERATOR_NONE						0
+#define   IS_CAMARA_INIT				1
+#define   IS_CAMARA_OPEN				2
+#define   IS_CAMARA_CLOSE				3
+#define   IS_CAMARA_STOP_LIVE			4
+#define   IS_CAMARA_CAN_EXP				5
+#define   IS_CAMARA_ERROR				6
+#define   IS_GET_SINGLEPICTURE			7
+#define   IS_GET_LIVEPICTURE			8
+
+
+
 #define	COMMAND_QUEUE_PUSH		1
 #define	COMMAND_QUEUE_POP		2
 
-#define	DEMO_MAXDEVICES			6
+
+
+
+#define	DEMO_MAXDEVICES				6
 #define	MESSAGE_SIZS				1000
 
 
@@ -1226,5 +1256,9 @@
 #define CFWSLOTS_NUM6		6
 
 #define CFWSLOTS_DELAY		4000
+
+#define RESET_USB_PIPE		1
+#define ABORT_USB_PIPE		2
+
 
 #endif

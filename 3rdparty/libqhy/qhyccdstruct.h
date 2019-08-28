@@ -61,6 +61,10 @@ typedef uint64_t QHYDWORD;
 #define MACHANICALSHUTTER_CLOSE 1
 #define MACHANICALSHUTTER_FREE  2
 
+
+
+
+
 /**
  * @brief CCDREG struct define
  *
@@ -258,6 +262,7 @@ typedef struct _QHYGetImageParam
   uint32_t h;
   uint32_t bpp;
   uint32_t channels;
+  bool HaveImgData;
 }
 QHYGetImageParam;
 
