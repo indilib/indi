@@ -52,7 +52,7 @@ void dsp_signals_sawtoothwave(dsp_stream_p stream, double samplefreq, double fre
         x = rad;
         while (x > 1.0)
             x -= 1.0;
-        stream->buf[k] = (dsp_t)(32768+32767*x);
+        stream->buf[k] = (double)(32768+32767*x);
     }
 
 }
@@ -69,7 +69,7 @@ void dsp_signals_triwave(dsp_stream_p stream, double samplefreq, double freq)
             x -= 2.0;
         while (x > 1.0)
             x = 2.0 - x;
-        stream->buf[k] = (dsp_t)(32768+32767*x);
+        stream->buf[k] = (double)(32768+32767*x);
     }
 
 }
@@ -78,14 +78,14 @@ void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq, double fre
 {
     dsp_stream_p carrier = dsp_stream_new();
     dsp_signals_sinewave(carrier, samplefreq, freq);
-    dsp_t mn = dsp_stats_min(stream->buf, stream->len);
-    dsp_t mx = dsp_stats_max(stream->buf, stream->len);
+    double mn = dsp_stats_min(stream->buf, stream->len);
+    double mx = dsp_stats_max(stream->buf, stream->len);
     double lo = mn * bandwidth * 1.5 / samplefreq;
     double hi = mx * bandwidth * 0.5 / samplefreq;
     double *deviation = (double*)malloc(sizeof(double) * stream->len);
     dsp_buffer_copy(stream->buf, deviation, stream->len);
     dsp_buffer_deviate(carrier, deviation, hi, lo);
-    memcpy(stream->buf, carrier->buf, stream->len * sizeof(dsp_t));
+    memcpy(stream->buf, carrier->buf, stream->len * sizeof(double));
     dsp_stream_free(carrier);
 
 }

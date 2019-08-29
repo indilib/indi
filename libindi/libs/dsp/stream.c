@@ -21,21 +21,21 @@
 void dsp_stream_alloc_buffer(dsp_stream_p stream, int len)
 {
     if(stream->buf!=NULL) {
-        stream->buf = (dsp_t*)realloc(stream->buf, sizeof(dsp_t) * len);
+        stream->buf = (double*)realloc(stream->buf, sizeof(double) * len);
     } else {
-        stream->buf = (dsp_t*)malloc(sizeof(dsp_t) * len);
+        stream->buf = (double*)malloc(sizeof(double) * len);
     }
 
 }
 
 void dsp_stream_set_buffer(dsp_stream_p stream, void *buffer, int len)
 {
-    stream->buf = (dsp_t*)buffer;
+    stream->buf = (double*)buffer;
     stream->len = len;
 
 }
 
-dsp_t* dsp_stream_get_buffer(dsp_stream_p stream)
+double* dsp_stream_get_buffer(dsp_stream_p stream)
 {
     return stream->buf;
 }
@@ -51,7 +51,7 @@ void dsp_stream_free_buffer(dsp_stream_p stream)
 dsp_stream_p dsp_stream_new()
 {
     dsp_stream_p stream = (dsp_stream_p)malloc(sizeof(dsp_stream) * 1);
-    stream->buf = (dsp_t*)malloc(sizeof(dsp_t) * 1);
+    stream->buf = (double*)malloc(sizeof(double) * 1);
     stream->sizes = (int*)malloc(sizeof(int) * 1);
     stream->children = malloc(sizeof(dsp_stream_p) * 1);
     stream->ROI = (dsp_region*)malloc(sizeof(dsp_region) * 1);
@@ -84,7 +84,7 @@ dsp_stream_p dsp_stream_copy(dsp_stream_p stream)
     dsp_stream_alloc_buffer(dest, dest->len);
     dest->lambda = stream->lambda;
     dest->samplerate = stream->samplerate;
-    memcpy(dest->buf, stream->buf, sizeof(dsp_t) * stream->len);
+    memcpy(dest->buf, stream->buf, sizeof(double) * stream->len);
     return dest;
 }
 

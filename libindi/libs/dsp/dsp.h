@@ -54,10 +54,6 @@ extern "C" {
 */
 /*@{*/
 
-#ifndef dsp_t
-#define dsp_t double
-#endif
-
 ///if min() is not present you can use this one
 #ifndef Min
 #define Min(a,b) \
@@ -151,7 +147,7 @@ typedef struct dsp_stream_t
 /// Sizes of each dimension
     int* sizes;
 /// buffer
-    dsp_t* buf;
+    double* buf;
 /// Optional argument for the func() callback
     void *arg;
 /// The stream this one is child of
@@ -436,7 +432,7 @@ DLL_EXPORT void dsp_convolution_convolution(dsp_stream_p stream1, dsp_stream_p s
 * \return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 */
-DLL_EXPORT dsp_t* dsp_stats_histogram(dsp_stream_p stream, int size);
+DLL_EXPORT double* dsp_stats_histogram(dsp_stream_p stream, int size);
 
 /*@}*/
 /**
@@ -500,7 +496,7 @@ DLL_EXPORT void dsp_buffer_removemean(dsp_stream_p stream);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-DLL_EXPORT void dsp_buffer_sub(dsp_stream_p stream, dsp_t* in, int len);
+DLL_EXPORT void dsp_buffer_sub(dsp_stream_p stream, double* in, int len);
 
 /**
 * \brief Sum elements of one stream to another's
@@ -508,7 +504,7 @@ DLL_EXPORT void dsp_buffer_sub(dsp_stream_p stream, dsp_t* in, int len);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-DLL_EXPORT void dsp_buffer_sum(dsp_stream_p stream, dsp_t* in, int len);
+DLL_EXPORT void dsp_buffer_sum(dsp_stream_p stream, double* in, int len);
 
 /**
 * \brief Divide elements of one stream to another's
@@ -547,21 +543,21 @@ DLL_EXPORT void dsp_buffer_log(dsp_stream_p stream, double* in, int len);
 * \param stream the stream on which execute
 * \param val the value to be subtracted.
 */
-DLL_EXPORT void dsp_buffer_sub1(dsp_stream_p stream, dsp_t val);
+DLL_EXPORT void dsp_buffer_sub1(dsp_stream_p stream, double val);
 
 /**
 * \brief Subtract each element of the input stream a value
 * \param stream the stream on which execute
 * \param val the value to be subtracted.
 */
-DLL_EXPORT void dsp_buffer_1sub(dsp_stream_p stream, dsp_t val);
+DLL_EXPORT void dsp_buffer_1sub(dsp_stream_p stream, double val);
 
 /**
 * \brief Sum elements of the input stream to a value
 * \param stream the stream on which execute
 * \param val the value used for this operation.
 */
-DLL_EXPORT void dsp_buffer_sum1(dsp_stream_p stream, dsp_t val);
+DLL_EXPORT void dsp_buffer_sum1(dsp_stream_p stream, double val);
 
 /**
 * \brief Divide elements of the input stream to a value
@@ -687,7 +683,7 @@ DLL_EXPORT void dsp_stream_set_buffer(dsp_stream_p stream, void *buffer, int len
 * \param stream the target DSP stream.
 * \return the buffer
 */
-DLL_EXPORT dsp_t* dsp_stream_get_buffer(dsp_stream_p stream);
+DLL_EXPORT double* dsp_stream_get_buffer(dsp_stream_p stream);
 
 /**
 * \brief Free the buffer of the DSP Stream passed as argument

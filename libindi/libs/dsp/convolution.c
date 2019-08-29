@@ -19,8 +19,8 @@
 #include "dsp.h"
 
 void dsp_convolution_convolution(dsp_stream_p stream, dsp_stream_p matrix) {
-    dsp_t mn = dsp_stats_min(stream->buf, stream->len);
-    dsp_t mx = dsp_stats_min(stream->buf, stream->len);
+    double mn = dsp_stats_min(stream->buf, stream->len);
+    double mx = dsp_stats_min(stream->buf, stream->len);
     (void)mn;
     (void)mx;
     double *tmp = malloc(sizeof(double) * stream->len);
