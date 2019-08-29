@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2018 Jasem Mutlaq. All rights reserved.
 
-  Pegasus Ultimate Power Box
+  Pegasus Ultimate Power Box (v1 and v2)
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -38,6 +38,12 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
 {
     public:
         PegasusUPB();
+
+        enum
+        {
+            UPB_V1,
+            UPB_V2
+        };
 
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
@@ -88,13 +94,16 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         bool setPowerEnabled(uint8_t port, bool enabled);
         bool setPowerLEDEnabled(bool enabled);
         bool setPowerOnBoot();
+        bool setAdjustableOutput(uint8_t voltage);
 
         // Dew
         bool setAutoDewEnabled(bool enabled);
+        bool toggleAutoDewV2();
         bool setDewPWM(uint8_t id, uint8_t value);
 
         // USB
         bool setUSBHubEnabled(bool enabled);
+        bool setUSBPortEnabled(uint8_t port, bool enabled);
 
         // Focuser
         bool setFocuserMaxSpeed(uint16_t maxSpeed);
@@ -171,7 +180,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         ISwitchVectorProperty PowerOnBootSP;
 
         // Overcurrent status
-        ILight OverCurrentL[4];
+        ILight OverCurrentL[7];
         ILightVectorProperty OverCurrentLP;
 
         // Power LED
@@ -183,11 +192,15 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             POWER_LED_OFF,
         };
 
+        // Adjustable Output
+        INumber AdjustableOutputN[1];
+        INumberVectorProperty AdjustableOutputNP;
+
         ////////////////////////////////////////////////////////////////////////////////////
         /// Dew Group
         ////////////////////////////////////////////////////////////////////////////////////
 
-        // Auto Dew
+        // Auto Dew v1
         ISwitch AutoDewS[2];
         ISwitchVectorProperty AutoDewSP;
         enum
@@ -196,26 +209,36 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             AUTO_DEW_DISABLED,
         };
 
-        // Dew PWM
-        INumber DewPWMN[2];
-        INumberVectorProperty DewPWMNP;
         enum
         {
             DEW_PWM_A,
             DEW_PWM_B,
+            DEW_PWM_C,
         };
 
+        // Auto Dew v2
+        ISwitch AutoDewV2S[3];
+        ISwitchVectorProperty AutoDewV2SP;
+
+        // Dew PWM
+        INumber DewPWMN[3];
+        INumberVectorProperty DewPWMNP;
+
         // Current Draw
-        INumber DewCurrentDrawN[2];
+        INumber DewCurrentDrawN[3];
         INumberVectorProperty DewCurrentDrawNP;
 
         ////////////////////////////////////////////////////////////////////////////////////
         /// USB
         ////////////////////////////////////////////////////////////////////////////////////
 
-        // Turn on/off usb ports 1-5
+        // Turn on/off usb ports 1-5 (v1)
         ISwitch USBControlS[2];
         ISwitchVectorProperty USBControlSP;
+
+        // Turn on/off usb ports 1-6 (v2)
+        ISwitch USBControlV2S[6];
+        ISwitchVectorProperty USBControlV2SP;
 
         // USB Port Status (1-6)
         ILight USBStatusL[6];
@@ -250,6 +273,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         std::vector<std::string> lastSensorData, lastPowerData, lastStepperData;
         bool focusMotorRunning { false };
         char stopChar { 0xD };
+        uint8_t version { UPB_V1 };
 
         static constexpr const uint8_t PEGASUS_TIMEOUT {3};
         static constexpr const uint8_t PEGASUS_LEN {128};
