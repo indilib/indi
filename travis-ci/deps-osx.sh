@@ -21,6 +21,7 @@ brew install \
 	libcfitsio \
 	libnova  \
 	librtlsdr  \
+	libfftw3  \
 	ffmpeg
 
 # JM 2019-06-10: Disabling this since it always fails.

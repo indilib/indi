@@ -23,6 +23,7 @@ sudo apt-get -q -y install \
  libraw-dev \
  libusb-1.0-0-dev \
  librtlsdr-dev \
+ libfftw3-dev \
  wget
 
  #To get the up to date FFMpeg Libraries
