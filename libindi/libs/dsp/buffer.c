@@ -23,13 +23,18 @@ void dsp_buffer_shift(dsp_stream_p stream)
     if(stream->dims == 0)
         return;
     double* out = (double*)malloc(sizeof(double) * stream->len);
-    for(int len = 1, dim = 0; dim < stream->dims; dim++, len *= stream->sizes[dim]) {
+    double* tmp = (double*)malloc(sizeof(double) * stream->len);
+    memcpy(out, stream->buf, stream->len * sizeof(double));
+    for(int len = stream->sizes[0], dim = 0; dim < stream->dims; dim++) {
         for(int y = 0; y < stream->len; y += len) {
             int offset = len / 2;
-            memcpy(&out[y], &stream->buf[y + offset], sizeof(double) * offset);
-            memcpy(&out[y + offset], &stream->buf[y], sizeof(double) * offset);
+            memcpy(&tmp[y], &out[y + offset], sizeof(double) * offset);
+            memcpy(&out[y + offset], &out[y], sizeof(double) * offset);
+            memcpy(&out[y], &tmp[y], sizeof(double) * offset);
         }
+        len *= stream->sizes[dim];
     }
+    free(tmp);
     memcpy(stream->buf, out, stream->len * sizeof(double));
     free(out);
 }

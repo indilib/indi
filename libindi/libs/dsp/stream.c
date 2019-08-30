@@ -84,6 +84,9 @@ dsp_stream_p dsp_stream_copy(dsp_stream_p stream)
     dsp_stream_alloc_buffer(dest, dest->len);
     dest->lambda = stream->lambda;
     dest->samplerate = stream->samplerate;
+    memcpy(&dest->starttimeutc, &stream->starttimeutc, sizeof(struct timespec));
+    memcpy(dest->target, stream->target, sizeof(double) * 3);
+    memcpy(dest->location, stream->location, sizeof(double) * 3);
     memcpy(dest->buf, stream->buf, sizeof(double) * stream->len);
     return dest;
 }
@@ -193,6 +196,49 @@ dsp_stream_p dsp_stream_crop(dsp_stream_p in)
             }
         }
         free(pos);
+    }
+    return ret;
+}
+
+dsp_stream_p dsp_stream_scale(dsp_stream_p in, double ratio)
+{
+    int dims = in->dims;
+    if(dims == 0)
+        return NULL;
+    dsp_stream_p ret = dsp_stream_new();
+    for(int dim = 0; dim < in->dims; dim++) {
+        dsp_stream_add_dim(ret, in->sizes[dim] * ratio);
+    }
+    dsp_stream_alloc_buffer(ret, ret->len);
+    if(ratio>1.0) {
+        for (int index = 0; index<ret->len; index++)
+        {
+            ret->buf[index] = in->buf[(int)(index/ratio)];
+        }
+    } else {
+        for (int index = 0; index<in->len; index++)
+        {
+            ret->buf[(int)(index*ratio)] = in->buf[index];
+        }
+    }
+    return ret;
+}
+
+dsp_stream_p dsp_stream_rotate(dsp_stream_p in, double* radians, double* pivot)
+{
+    int dims = in->dims;
+    if(dims < 2)
+        return NULL;
+    dsp_stream_p ret = dsp_stream_copy(in);
+    double tilt = 1;
+    double center = 1;
+    for (int dim = 0; dim < in->dims; dim++) {
+        tilt *= cos(radians[dim]);
+        center *= pivot[dim];
+    }
+    for (int index = 0; index < ret->len; index++)
+    {
+        ret->buf[index] = in->buf[(int)((center-index)*tilt+center)];
     }
     return ret;
 }
