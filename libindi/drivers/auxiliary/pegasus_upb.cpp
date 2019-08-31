@@ -126,9 +126,6 @@ bool PegasusUPB::initProperties()
     IUFillNumber(&PowerConsumptionN[CONSUMPTION_WATT_HOURS], "CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
     IUFillNumberVector(&PowerConsumptionNP, PowerConsumptionN, 3, getDeviceName(), "POWER_CONSUMPTION", "Consumption", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillNumber(&AdjustableOutputN[0], "ADJUSTABLE_VOLTAGE_VALUE", "Voltage (V)", "%.f", 3, 12, 1, 12);
-    IUFillNumberVector(&AdjustableOutputNP, AdjustableOutputN, 1, getDeviceName(), "ADJUSTABLE_VOLTAGE", "Adj. Output", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
-
     ////////////////////////////////////////////////////////////////////////////
     /// Power Group
     ////////////////////////////////////////////////////////////////////////////
@@ -161,7 +158,6 @@ bool PegasusUPB::initProperties()
 
     IUFillSwitchVector(&PowerControlSP, PowerControlS, 4, getDeviceName(), "POWER_CONTROL", "Power Control", POWER_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
-
     // Current Draw
     IUFillNumber(&PowerCurrentN[0], "POWER_CURRENT_1", "#1 (A)", "%4.2f", 0, 1000, 0, 0);
     IUFillNumber(&PowerCurrentN[1], "POWER_CURRENT_2", "#2 (A)", "%4.2f", 0, 1000, 0, 0);
@@ -190,6 +186,10 @@ bool PegasusUPB::initProperties()
     IUFillSwitch(&PowerLEDS[POWER_LED_ON], "POWER_LED_ON", "On", ISS_ON);
     IUFillSwitch(&PowerLEDS[POWER_LED_OFF], "POWER_LED_OFF", "Off", ISS_OFF);
     IUFillSwitchVector(&PowerLEDSP, PowerLEDS, 2, getDeviceName(), "POWER_LED", "LED", POWER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    IUFillNumber(&AdjustableOutputN[0], "ADJUSTABLE_VOLTAGE_VALUE", "Voltage (V)", "%.f", 3, 12, 1, 12);
+    IUFillNumberVector(&AdjustableOutputNP, AdjustableOutputN, 1, getDeviceName(), "ADJUSTABLE_VOLTAGE", "Adj. Output", POWER_TAB, IP_RW, 60, IPS_IDLE);
+
 
     ////////////////////////////////////////////////////////////////////////////
     /// Dew Group
@@ -590,7 +590,7 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             return true;
         }
 
-        // USB Hub Control v1
+        // USB Hub Control v2
         if (!strcmp(name, USBControlV2SP.name))
         {
             bool rc[6] = {true};
