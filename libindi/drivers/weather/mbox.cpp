@@ -519,7 +519,7 @@ bool MBox::resetCalibration()
 bool MBox::verifyCRC(const char *response)
 {
     // Start with $ and ends with * followed by checksum value of the response
-    uint8_t calculated_checksum = 0;
+    uint8_t calculated_checksum = 0, response_checksum = 0;
     // Skip starting $. Copy string
     char checksum_string[MBOX_BUF] = {0};
     strncpy(checksum_string, response + 1, MBOX_BUF);
@@ -527,13 +527,21 @@ bool MBox::verifyCRC(const char *response)
     std::vector<std::string> result = split(checksum_string, R"(\*)");
 
     // Hex value
-    uint8_t response_checksum_val = std::stoi(result[1], nullptr, 16);
+    try
+    {
+        response_checksum = std::stoi(result[1], nullptr, 16);
+    }
+    catch (...)
+    {
+        return false;
+    }
+
 
     // Calculate checksum of message XOR
     for (auto oneByte : result[0])
         calculated_checksum ^= oneByte;
 
-    return (calculated_checksum == response_checksum_val);
+    return (calculated_checksum == response_checksum);
 }
 
 //////////////////////////////////////////////////////////////////////
