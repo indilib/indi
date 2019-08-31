@@ -31,6 +31,8 @@
 #include <termios.h>
 #include <cstring>
 #include <sys/ioctl.h>
+#include <chrono>
+#include <iomanip>
 
 // We declare an auto pointer to PegasusUPB.
 static std::unique_ptr<PegasusUPB> upb(new PegasusUPB());
@@ -78,7 +80,7 @@ PegasusUPB::PegasusUPB() : FI(this), WI(this)
     setVersion(1, 1);
 
     lastSensorData.reserve(21);
-    lastPowerData.reserve(3);
+    lastPowerData.reserve(4);
     lastStepperData.reserve(4);
 }
 
@@ -262,6 +264,12 @@ bool PegasusUPB::initProperties()
     IUFillNumberVector(&FocuserTemperatureNP, FocuserTemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", FOCUS_TAB, IP_RO, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
+    /// Firmware Group
+    ////////////////////////////////////////////////////////////////////////////
+    IUFillText(&FirmwareT[FIRMWARE_VERSION], "VERSION", "Version", "NA");
+    IUFillText(&FirmwareT[FIRMWARE_UPTIME], "UPTIME", "Uptime (h)", "NA");
+    IUFillTextVector(&FirmwateTP, FirmwareT, 2, getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60, IPS_IDLE);
+    ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
     ////////////////////////////////////////////////////////////////////////////
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15);
@@ -334,6 +342,9 @@ bool PegasusUPB::updateProperties()
 
         WI::updateProperties();
 
+        // Firmware
+        defineText(&FirmwateTP);
+
         setupComplete = true;
     }
     else
@@ -375,6 +386,8 @@ bool PegasusUPB::updateProperties()
         deleteProperty(FocuserTemperatureNP.name);
 
         WI::updateProperties();
+
+        deleteProperty(FirmwateTP.name);
 
         setupComplete = false;
     }
@@ -963,6 +976,35 @@ bool PegasusUPB::setPowerOnBoot()
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
+bool PegasusUPB::getPowerOnBoot()
+{
+    char res[PEGASUS_LEN] = {0};
+    if (sendCommand("PS", res))
+    {
+        std::vector<std::string> result = split(res, ":");
+        if (result.size() != 3)
+        {
+            LOG_WARN("Received wrong number of power on boot data. Retrying...");
+            return false;
+        }
+
+        const char *status = result[1].c_str();
+        PowerOnBootS[0].s = (status[0] == '1') ? ISS_ON : ISS_OFF;
+        PowerOnBootS[1].s = (status[1] == '1') ? ISS_ON : ISS_OFF;
+        PowerOnBootS[2].s = (status[2] == '1') ? ISS_ON : ISS_OFF;
+        PowerOnBootS[3].s = (status[3] == '1') ? ISS_ON : ISS_OFF;
+
+        AdjustableOutputN[0].value = std::stod(result[2]);
+
+        return true;
+    }
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool PegasusUPB::setDewPWM(uint8_t id, uint8_t value)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expected[PEGASUS_LEN] = {0};
@@ -1057,7 +1099,6 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &AutoDewSP);
     IUSaveConfigNumber(fp, &FocuserSettingsNP);
     IUSaveConfigText(fp, &PowerControlsLabelsTP);
-
     return true;
 }
 
@@ -1090,8 +1131,22 @@ bool PegasusUPB::sendFirmware()
     if (sendCommand("PV", res))
     {
         LOGF_INFO("Detected firmware %s", res);
+        IUSaveText(&FirmwareT[FIRMWARE_VERSION], res);
+        IDSetText(&FirmwateTP, nullptr);
         return true;
     }
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusUPB::sensorUpdated(const std::vector<std::string> &result, uint8_t start, uint8_t end)
+{
+    for (uint8_t index = start; index <= end; index++)
+        if (result[index] != lastSensorData[index])
+            return true;
 
     return false;
 }
@@ -1120,14 +1175,16 @@ bool PegasusUPB::getSensorData()
         PowerSensorsN[SENSOR_CURRENT].value = std::stod(result[2]);
         PowerSensorsN[SENSOR_POWER].value = std::stod(result[3]);
         PowerSensorsNP.s = IPS_OK;
-        if (lastSensorData[0] != result[0] || lastSensorData[1] != result[1] || lastSensorData[2] != result[2])
+        //if (lastSensorData[0] != result[0] || lastSensorData[1] != result[1] || lastSensorData[2] != result[2])
+        if (sensorUpdated(result, 0, 2))
             IDSetNumber(&PowerSensorsNP, nullptr);
 
         // Environment Sensors
         setParameterValue("WEATHER_TEMPERATURE", std::stod(result[4]));
         setParameterValue("WEATHER_HUMIDITY", std::stod(result[5]));
         setParameterValue("WEATHER_DEWPOINT", std::stod(result[6]));
-        if (lastSensorData[4] != result[4] || lastSensorData[5] != result[5] || lastSensorData[6] != result[6])
+        //if (lastSensorData[4] != result[4] || lastSensorData[5] != result[5] || lastSensorData[6] != result[6])
+        if (sensorUpdated(result, 4, 6))
         {
             WI::syncCriticalParameters();
             ParametersNP.s = IPS_OK;
@@ -1140,7 +1197,8 @@ bool PegasusUPB::getSensorData()
         PowerControlS[1].s = (portStatus[1] == '1') ? ISS_ON : ISS_OFF;
         PowerControlS[2].s = (portStatus[2] == '1') ? ISS_ON : ISS_OFF;
         PowerControlS[3].s = (portStatus[3] == '1') ? ISS_ON : ISS_OFF;
-        if (lastSensorData[7] != result[7])
+        //if (lastSensorData[7] != result[7])
+        if (sensorUpdated(result, 7, 7))
             IDSetSwitch(&PowerControlSP, nullptr);
 
         // Hub Status
@@ -1154,7 +1212,8 @@ bool PegasusUPB::getSensorData()
             USBStatusL[2].s = (USBControlS[0].s == ISS_ON) ? IPS_OK : IPS_IDLE;
             USBStatusL[3].s = (USBControlS[0].s == ISS_ON) ? IPS_OK : IPS_IDLE;
             USBStatusL[4].s = (USBControlS[0].s == ISS_ON) ? IPS_OK : IPS_IDLE;
-            if (lastSensorData[8] != result[8])
+            //if (lastSensorData[8] != result[8])
+            if (sensorUpdated(result, 8, 8))
             {
                 USBControlSP.s = (IUFindOnSwitchIndex(&USBControlSP) == 0) ? IPS_OK : IPS_IDLE;
                 IDSetSwitch(&USBControlSP, nullptr);
@@ -1170,7 +1229,8 @@ bool PegasusUPB::getSensorData()
             USBControlV2S[4].s = (usb_status[4] == '1') ? ISS_ON : ISS_OFF;
             USBControlV2S[5].s = (usb_status[5] == '1') ? ISS_ON : ISS_OFF;
             USBControlV2SP.s = IPS_OK;
-            if (lastSensorData[8] != result[8])
+            //if (lastSensorData[8] != result[8])
+            if (sensorUpdated(result, 8, 8))
             {
                 IDSetSwitch(&USBControlV2SP, nullptr);
             }
@@ -1179,41 +1239,49 @@ bool PegasusUPB::getSensorData()
         // From here, we get differences between v1 and v2 readings
         int index = 9;
         // Dew PWM
-        DewPWMN[0].value = std::stod(result[index]) / 255.0 * 100.0;
-        DewPWMN[1].value = std::stod(result[index + 1]) / 255.0 * 100.0;
-        if (lastSensorData[index] != result[index] ||
-                lastSensorData[index + 1] != result[index + 1] ||
-                (version == UPB_V2 && lastSensorData[11] != result[11]))
+        DewPWMN[DEW_PWM_A].value = std::stod(result[index]) / 255.0 * 100.0;
+        DewPWMN[DEW_PWM_B].value = std::stod(result[index + 1]) / 255.0 * 100.0;
+        if (version == UPB_V2)
+            DewPWMN[DEW_PWM_C].value = std::stod(result[index + 2]) / 255.0 * 100.0;
+        //        if (lastSensorData[index] != result[index] ||
+        //                lastSensorData[index + 1] != result[index + 1] ||
+        //                (version == UPB_V2 && lastSensorData[index +2] != result[index + 2]))
+        if (sensorUpdated(result, index, version == UPB_V1 ? index + 1 : index + 2))
             IDSetNumber(&DewPWMNP, nullptr);
 
         index = (version == UPB_V1) ? 11 : 12;
 
+        const double ampDivision = (version == UPB_V1) ? 400.0 : 300.0;
+
         // Current draw
-        PowerCurrentN[0].value = std::stod(result[index]) / 400.0;
-        PowerCurrentN[1].value = std::stod(result[index + 1]) / 400.0;
-        PowerCurrentN[2].value = std::stod(result[index + 2]) / 400.0;
-        PowerCurrentN[3].value = std::stod(result[index + 3]) / 400.0;
-        if (lastSensorData[index] != result[index] ||
-                lastSensorData[index + 1] != result[index + 1] ||
-                lastSensorData[index + 2] != result[index + 2] ||
-                lastSensorData[index + 3] != result[index + 3])
+        PowerCurrentN[0].value = std::stod(result[index]) / ampDivision;
+        PowerCurrentN[1].value = std::stod(result[index + 1]) / ampDivision;
+        PowerCurrentN[2].value = std::stod(result[index + 2]) / ampDivision;
+        PowerCurrentN[3].value = std::stod(result[index + 3]) / ampDivision;
+        //        if (lastSensorData[index] != result[index] ||
+        //                lastSensorData[index + 1] != result[index + 1] ||
+        //                lastSensorData[index + 2] != result[index + 2] ||
+        //                lastSensorData[index + 3] != result[index + 3])
+        if (sensorUpdated(result, index, index + 3))
             IDSetNumber(&PowerCurrentNP, nullptr);
 
         index = (version == UPB_V1) ? 15 : 16;
 
-        DewCurrentDrawN[0].value = std::stod(result[index]) / 400.0;
-        DewCurrentDrawN[1].value = std::stod(result[index + 1]) / 400.0;
+        DewCurrentDrawN[0].value = std::stod(result[index]) / ampDivision;
+        DewCurrentDrawN[1].value = std::stod(result[index + 1]) / ampDivision;
         if (version == UPB_V2)
-            DewCurrentDrawN[2].value = std::stod(result[index + 2]) / 400.0;
-        if (lastSensorData[index] != result[index] ||
-                lastSensorData[index + 1] != result[index + 1] ||
-                (version == UPB_V2 && lastSensorData[index + 2] != result[index + 2]))
+            DewCurrentDrawN[2].value = std::stod(result[index + 2]) / (ampDivision * 2);
+        //        if (lastSensorData[index] != result[index] ||
+        //                lastSensorData[index + 1] != result[index + 1] ||
+        //                (version == UPB_V2 && lastSensorData[index + 2] != result[index + 2]))
+        if (sensorUpdated(result, index, version == UPB_V1 ? 1 : 2))
             IDSetNumber(&DewCurrentDrawNP, nullptr);
 
         index = (version == UPB_V1) ? 17 : 19;
 
         // Over Current
-        if (lastSensorData[index] != result[index])
+        //if (lastSensorData[index] != result[index])
+        if (sensorUpdated(result, index, index))
         {
             const char * over_curent = result[index].c_str();
             OverCurrentL[0].s = (over_curent[0] == '0') ? IPS_OK : IPS_ALERT;
@@ -1235,7 +1303,8 @@ bool PegasusUPB::getSensorData()
         // Auto Dew
         if (version == UPB_V1)
         {
-            if (lastSensorData[index] != result[index])
+            //if (lastSensorData[index] != result[index])
+            if (sensorUpdated(result, index, index))
             {
                 AutoDewS[AUTO_DEW_ENABLED].s  = (std::stoi(result[index]) == 1) ? ISS_ON : ISS_OFF;
                 AutoDewS[AUTO_DEW_DISABLED].s = (std::stoi(result[index]) == 1) ? ISS_OFF : ISS_ON;
@@ -1244,7 +1313,8 @@ bool PegasusUPB::getSensorData()
         }
         else
         {
-            if (lastSensorData[index] != result[index])
+            //if (lastSensorData[index] != result[index])
+            if (sensorUpdated(result, index, index))
             {
                 int value = std::stoi(result[index]);
                 IUResetSwitch(&AutoDewV2SP);
@@ -1305,7 +1375,8 @@ bool PegasusUPB::getPowerData()
     if (sendCommand("PC", res))
     {
         std::vector<std::string> result = split(res, ":");
-        if (result.size() != 3)
+        if ( (version == UPB_V1 && result.size() != 3) ||
+                (version == UPB_V2 && result.size() != 4))
         {
             LOG_WARN("Received wrong number of power sensor data. Retrying...");
             return false;
@@ -1319,6 +1390,16 @@ bool PegasusUPB::getPowerData()
         PowerConsumptionN[CONSUMPTION_WATT_HOURS].value = std::stod(result[2]);
         PowerConsumptionNP.s = IPS_OK;
         IDSetNumber(&PowerConsumptionNP, nullptr);
+
+        if (version == UPB_V2)
+        {
+            std::chrono::milliseconds uptime(std::stol(result[3]));
+            using dhours = std::chrono::duration<double, std::ratio<3600 * 1000>>;
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(2) << dhours(uptime).count();
+            IUSaveText(&FirmwareT[FIRMWARE_UPTIME], ss.str().c_str());
+            IDSetText(&FirmwateTP, nullptr);
+        }
 
         lastPowerData = result;
         return true;
@@ -1420,6 +1501,9 @@ std::vector<std::string> PegasusUPB::split(const std::string &input, const std::
 //////////////////////////////////////////////////////////////////////
 bool PegasusUPB::setupParams()
 {
+    if (version == UPB_V2)
+        getPowerOnBoot();
+
     // Get Max Focuser Speed
     char res[PEGASUS_LEN] = {0};
     if (sendCommand("SS\n", res))

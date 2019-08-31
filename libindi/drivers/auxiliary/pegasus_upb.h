@@ -94,6 +94,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         bool setPowerEnabled(uint8_t port, bool enabled);
         bool setPowerLEDEnabled(bool enabled);
         bool setPowerOnBoot();
+        bool getPowerOnBoot();
         bool setAdjustableOutput(uint8_t voltage);
 
         // Dew
@@ -117,6 +118,11 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
          * @return
          */
         bool sendCommand(const char *cmd, char *res);
+
+        /**
+         * @return Return true if sensor data different from last data
+         */
+        bool sensorUpdated(const std::vector<std::string> &result, uint8_t start, uint8_t end);
 
         int PortFD { -1 };
         bool setupComplete { false };
@@ -257,6 +263,17 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             SETTING_MAX_SPEED,
         };
 
+        ////////////////////////////////////////////////////////////////////////////////////
+        /// USB
+        ////////////////////////////////////////////////////////////////////////////////////
+        ITextVectorProperty FirmwateTP;
+        IText FirmwareT[2];
+        enum
+        {
+            FIRMWARE_VERSION,
+            FIRMWARE_UPTIME
+        };
+
         // Focuser backlash enable/disable
         //    ISwitch FocuserBacklashS[2];
         //    ISwitchVectorProperty FocuserBacklashSP;
@@ -281,4 +298,5 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         static constexpr const char *USB_TAB {"USB"};
         static constexpr const char *ENVIRONMENT_TAB {"Environment"};
         static constexpr const char *POWER_TAB {"Power"};
+        static constexpr const char *FIRMWARE_TAB {"Firmware"};
 };
