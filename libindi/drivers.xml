@@ -509,7 +509,7 @@
         </device>
         <device label="MBox">
             <driver name="MBox">indi_mbox_weather</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Vantage">
             <driver name="Vantage">indi_vantage_weather</driver>

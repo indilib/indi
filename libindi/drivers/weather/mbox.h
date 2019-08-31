@@ -28,42 +28,50 @@
 
 class MBox : public INDI::Weather
 {
-  public:
-    MBox();
-    virtual ~MBox() = default;
+    public:
+        MBox();
 
-    //  Generic indi device entries
-    virtual bool Handshake() override;
-    virtual const char *getDefaultName() override;
+        //  Generic indi device entries
+        virtual bool Handshake() override;
+        virtual const char *getDefaultName() override;
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    virtual IPState updateWeather() override;    
+    protected:
+        virtual IPState updateWeather() override;
 
-  private:
-    typedef enum { ACK_OK_STARTUP, ACK_OK_INIT, ACK_ERROR } AckResponse;
-    typedef enum { CAL_PRESSURE, CAL_TEMPERATURE, CAL_HUMIDITY } CalibrationType;
+    private:
+        typedef enum { ACK_OK_STARTUP, ACK_OK_INIT, ACK_ERROR } AckResponse;
+        typedef enum { CAL_PRESSURE, CAL_TEMPERATURE, CAL_HUMIDITY } CalibrationType;
+        enum
+        {
+            SENSOR_PRESSURE = 2,
+            SENSOR_TEMPERATURE = 6,
+            SENSOR_HUMIDITY = 10,
+            SENSOR_DEW = 14,
+            FIRMWARE = 17,
+        };
 
-    AckResponse ack();
+        AckResponse ack();
 
-    bool verifyCRC(const char *response);
-    bool getCalibration(bool sendCommand=true);
-    bool setCalibration(CalibrationType type);
-    bool resetCalibration();
+        bool verifyCRC(const char *response);
+        bool getCalibration(bool sendCommand = true);
+        bool setCalibration(CalibrationType type);
+        bool resetCalibration();
 
-    INumber CalibrationN[3];
-    INumberVectorProperty CalibrationNP;
+        std::vector<std::string> split(const std::string &input, const std::string &regex);
 
+        INumber CalibrationN[3];
+        INumberVectorProperty CalibrationNP;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+        ISwitch ResetS[1];
+        ISwitchVectorProperty ResetSP;
 
-    IText FirmwareT[1] {};
-    ITextVectorProperty FirmwareTP;
+        IText FirmwareT[1] {};
+        ITextVectorProperty FirmwareTP;
 
 
 

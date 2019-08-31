@@ -28,6 +28,7 @@
 #include "connectionplugins/connectionserial.h"
 
 #include <memory>
+#include <regex>
 #include <cstring>
 #include <termios.h>
 #include <unistd.h>
@@ -36,7 +37,7 @@
 #define MBOX_BUF     64
 
 // We declare an auto pointer to MBox.
-std::unique_ptr<MBox> mbox(new MBox());
+static std::unique_ptr<MBox> mbox(new MBox());
 
 void ISGetProperties(const char *dev)
 {
@@ -77,12 +78,12 @@ void ISSnoopDevice(XMLEle *root)
 
 MBox::MBox()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 const char *MBox::getDefaultName()
 {
-    return (const char *)"MBox";
+    return "MBox";
 }
 
 bool MBox::initProperties()
@@ -139,9 +140,16 @@ bool MBox::updateProperties()
 
 bool MBox::Handshake()
 {
-    tty_set_debug(1);
+    //tty_set_debug(1);
 
-    AckResponse rc = ack();
+    AckResponse rc = ACK_ERROR;
+
+    for (int i = 0; i < 3; i++)
+    {
+        rc = ack();
+        if (rc != ACK_ERROR)
+            break;
+    }
 
     if (rc == ACK_OK_STARTUP)
     {
@@ -160,8 +168,6 @@ bool MBox::Handshake()
 
 IPState MBox::updateWeather()
 {
-    int nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];    
     char response[MBOX_BUF];
 
     if (CalibrationNP.s == IPS_BUSY)
@@ -173,6 +179,8 @@ IPState MBox::updateWeather()
         }
     }
 
+    int nbytes_read = 0;
+
     if (isSimulation())
     {
         strncpy(response, "$PXDR,P,96276.0,P,0,C,31.8,C,1,H,40.8,P,2,C,16.8,C,3,1.1*31\r\n", MBOX_BUF);
@@ -180,8 +188,10 @@ IPState MBox::updateWeather()
     }
     else
     {
+        int rc = -1;
         if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
+            char errstr[MAXRBUF];
             tty_error_msg(rc, errstr, MAXRBUF);
             LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             return IPS_ALERT;
@@ -206,79 +216,15 @@ IPState MBox::updateWeather()
     *end = '\0';
 
     // PXDR
-    char *token = std::strtok(response, ",");
-
-    // Sensor Type: Pressure
-    token = std::strtok(nullptr, ",");
-
-    // P Sensor Value
-    token = std::strtok(nullptr, ",");
-    if (token == nullptr)
-    {
-        LOG_ERROR("Invalid response.");
-        return IPS_ALERT;
-    }
+    std::vector<std::string> result = split(response, ",");
     // Convert Pascal to mbar
-    setParameterValue("WEATHER_BAROMETER", atof(token)/100.0);
-
-    // Sensor Units (Pascal)
-    token = std::strtok(nullptr, ",");
-    // Sensor ID
-    token = std::strtok(nullptr, ",");
-
-    // Sensor Type: Temperature
-    token = std::strtok(nullptr, ",");
-    // T Sensor value Temperature
-    token = std::strtok(nullptr, ",");
-    if (token == nullptr)
+    setParameterValue("WEATHER_BAROMETER", std::stod(result[SENSOR_PRESSURE]) / 100.0);
+    setParameterValue("WEATHER_TEMPERATURE", std::stod(result[SENSOR_TEMPERATURE]));
+    setParameterValue("WEATHER_HUMIDITY", std::stod(result[SENSOR_HUMIDITY]));
+    setParameterValue("WEATHER_DEWPOINT", std::stod(result[SENSOR_DEW]));
+    if (strcmp(result[FIRMWARE].c_str(), FirmwareT[0].text))
     {
-        LOG_ERROR("Invalid response.");
-        return IPS_ALERT;
-    }
-    setParameterValue("WEATHER_TEMPERATURE", atof(token));
-
-    // Sensor Units (C)
-    token = std::strtok(nullptr, ",");
-    // Sensor ID
-    token = std::strtok(nullptr, ",");
-
-    // Sensor Type: Humidity
-    token = std::strtok(nullptr, ",");
-    // Humidity
-    token = std::strtok(nullptr, ",");
-    if (token == nullptr)
-    {
-        LOG_ERROR("Invalid response.");
-        return IPS_ALERT;
-    }
-    setParameterValue("WEATHER_HUMIDITY", atof(token));
-
-    // Sensor Units (Percentage)
-    token = std::strtok(nullptr, ",");
-    // Sensor ID
-    token = std::strtok(nullptr, ",");
-
-    // Sensor Type: Dew Point
-    token = std::strtok(nullptr, ",");
-    // Dew Point
-    token = std::strtok(nullptr, ",");
-    if (token == nullptr)
-    {
-        LOG_ERROR("Invalid response.");
-        return IPS_ALERT;
-    }
-    setParameterValue("WEATHER_DEWPOINT", atof(token));
-
-    // Sensor Units (C)
-    token = std::strtok(nullptr, ",");
-    // Sensor ID
-    token = std::strtok(nullptr, ",");
-
-    // Firmware
-    token = std::strtok(nullptr, ",");
-    if (strcmp(token, FirmwareT[0].text))
-    {
-        IUSaveText(&FirmwareT[0], token);
+        IUSaveText(&FirmwareT[0], result[FIRMWARE].c_str());
         FirmwareTP.s = IPS_OK;
         IDSetText(&FirmwareTP, nullptr);
     }
@@ -288,17 +234,19 @@ IPState MBox::updateWeather()
 
 MBox::AckResponse MBox::ack()
 {
-    int nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char response[MBOX_BUF];    
+    char response[MBOX_BUF] = {0};
+    int nbytes_read = 0;
 
     if (isSimulation())
     {
-        strncpy(response, "MBox by Astromi.ch\r\n", 64);        
+        strncpy(response, "MBox by Astromi.ch\r\n", 64);
         nbytes_read = strlen(response);
     }
     else
     {
+        char errstr[MAXRBUF] = {0};
+        int rc = -1;
+
         if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
@@ -405,8 +353,8 @@ bool MBox::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 
 bool MBox::getCalibration(bool sendCommand)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
+    int nbytes_written = 0, nbytes_read = 0;
+
     const char *command = ":calget*";
     char response[MBOX_BUF];
 
@@ -420,6 +368,9 @@ bool MBox::getCalibration(bool sendCommand)
     }
     else
     {
+        int rc = -1;
+        char errstr[MAXRBUF] = {0};
+
         if (sendCommand)
         {
             tcflush(PortFD, TCIOFLUSH);
@@ -467,42 +418,10 @@ bool MBox::getCalibration(bool sendCommand)
     *end = '\0';
 
     // PCAL
-    char *token = std::strtok(response, ",");
-
-    // P
-    token = std::strtok(nullptr, ",");
-
-    // Pressure
-    token = std::strtok(nullptr, ",");
-    if (token == nullptr)
-    {
-        LOG_ERROR("Invalid response.");
-        return false;
-    }
-    CalibrationN[CAL_PRESSURE].value = atof(token)/10.0;
-
-    // T
-    token = std::strtok(nullptr, ",");
-    // Temperature
-    token = std::strtok(nullptr, ",");
-    if (token == nullptr)
-    {
-        LOG_ERROR("Invalid response.");
-        return false;
-    }
-    CalibrationN[CAL_TEMPERATURE].value = atof(token)/10.0;
-
-    // H
-    token = std::strtok(nullptr, ",");
-    // Humidity
-    token = std::strtok(nullptr, ",");
-    if (token == nullptr)
-    {
-        LOG_ERROR("Invalid response.");
-        return false;
-    }
-    CalibrationN[CAL_HUMIDITY].value = atof(token)/10.0;
-
+    std::vector<std::string> result = split(response, ",");
+    CalibrationN[CAL_PRESSURE].value = std::stod(result[SENSOR_PRESSURE]) / 10.0;
+    CalibrationN[CAL_TEMPERATURE].value = std::stod(result[SENSOR_PRESSURE + 2]) / 10.0;
+    CalibrationN[CAL_HUMIDITY].value = std::stod(result[SENSOR_PRESSURE + 4]) / 10.0;
     return true;
 }
 
@@ -515,7 +434,7 @@ bool MBox::setCalibration(CalibrationType type)
     if (type == CAL_PRESSURE)
     {
         // Pressure.
-        snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationN[CAL_PRESSURE].value*10.0));
+        snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationN[CAL_PRESSURE].value * 10.0));
 
         LOGF_DEBUG("CMD <%s>", command);
 
@@ -535,7 +454,7 @@ bool MBox::setCalibration(CalibrationType type)
     else if (type == CAL_TEMPERATURE)
     {
         // Temperature
-        snprintf(command, 16, ":calt,%d*", static_cast<int32_t>(CalibrationN[CAL_TEMPERATURE].value*10.0));
+        snprintf(command, 16, ":calt,%d*", static_cast<int32_t>(CalibrationN[CAL_TEMPERATURE].value * 10.0));
 
         LOGF_DEBUG("CMD <%s>", command);
 
@@ -554,7 +473,7 @@ bool MBox::setCalibration(CalibrationType type)
     else
     {
         // Humidity
-        snprintf(command, 16, ":calh,%d*", static_cast<int32_t>(CalibrationN[CAL_HUMIDITY].value*10.0));
+        snprintf(command, 16, ":calh,%d*", static_cast<int32_t>(CalibrationN[CAL_HUMIDITY].value * 10.0));
 
         LOGF_DEBUG("CMD <%s>", command);
 
@@ -577,19 +496,17 @@ bool MBox::setCalibration(CalibrationType type)
 
 bool MBox::resetCalibration()
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-
     const char *command = ":calreset*";
-
     LOGF_DEBUG("CMD <%s>", command);
 
     if (isSimulation() == false)
     {
+        int nbytes_written = 0, rc = -1;
         tcflush(PortFD, TCIOFLUSH);
 
         if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
         {
+            char errstr[MAXRBUF];
             tty_error_msg(rc, errstr, MAXRBUF);
             LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             return false;
@@ -604,23 +521,30 @@ bool MBox::verifyCRC(const char *response)
     // Start with $ and ends with * followed by checksum value of the response
     uint8_t calculated_checksum = 0;
     // Skip starting $. Copy string
-    char checksum_string[MBOX_BUF];
-    strncpy(checksum_string, response, MBOX_BUF);
+    char checksum_string[MBOX_BUF] = {0};
+    strncpy(checksum_string, response + 1, MBOX_BUF);
 
-    char *token = std::strtok(checksum_string, "*");
+    std::vector<std::string> result = split(checksum_string, R"(\*)");
 
-    // Checksum string
-    token = std::strtok(nullptr, "*");
     // Hex value
-    uint8_t response_checksum_val = std::stoi(token, 0, 16);
-    // Terminate it
-    *token = '\0';
-
-    char *str = checksum_string+1;
+    uint8_t response_checksum_val = std::stoi(result[1], nullptr, 16);
 
     // Calculate checksum of message XOR
-    while (*str)
-        calculated_checksum ^= *str++;
+    for (auto oneByte : result[0])
+        calculated_checksum ^= oneByte;
 
     return (calculated_checksum == response_checksum_val);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+std::vector<std::string> MBox::split(const std::string &input, const std::string &regex)
+{
+    // passing -1 as the submatch index parameter performs splitting
+    std::regex re(regex);
+    std::sregex_token_iterator
+    first{input.begin(), input.end(), re, -1},
+          last;
+    return {first, last};
 }
