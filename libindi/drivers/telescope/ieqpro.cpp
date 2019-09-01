@@ -169,8 +169,9 @@ bool IEQPro::initProperties()
                        IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[RA_AXIS], "RA_GUIDE_RATE", "x Sidereal", "%.2f", 0.01, 0.9, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+    IUFillNumber(&GuideRateN[RA_AXIS], "RA_GUIDE_RATE", "RA", "%.2f", 0.01, 0.9, 0.1, 0.5);
+    IUFillNumber(&GuideRateN[DEC_AXIS], "DE_GUIDE_RATE", "DE", "%.2f", 0.1, 0.99, 0.1, 0.5);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
