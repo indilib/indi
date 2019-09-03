@@ -71,13 +71,13 @@ class BeeSimFirmware
   private:
 
   /// @brief Current simulated time in ms.
-  unsigned int time; 
+  unsigned long long time; 
 
   /// @brief The Simulated Focuser firmware class
   std::unique_ptr<FS::Focuser> simulatedFocuser;
 
   /// @brief When's the next time when we can call the loop function on the
   ///        simulatedFocuser class (in microseconds).
-  unsigned long simulatedFocuserNextUpdate; 
+  unsigned long long simulatedFocuserNextUpdate; 
 };
  
