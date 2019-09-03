@@ -1,3 +1,9 @@
+indi-qhy (2.5) bionic; urgency=medium
+
+  * Threading update.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 03 Sep 2019 09:00:00 +0300
+
 indi-qhy (2.4) bionic; urgency=medium
 
   * Update temperature controls.

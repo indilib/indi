@@ -266,7 +266,7 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
 
 const char *QHYCCD::getDefaultName()
 {
-    return static_cast<const char *>("QHY CCD");
+    return "QHY CCD";
 }
 
 bool QHYCCD::initProperties()
@@ -289,27 +289,27 @@ bool QHYCCD::initProperties()
                        IP_RO, 60, IPS_IDLE);
 
     // CCD Gain
-    IUFillNumber(&GainN[0], "GAIN", "Gain", "%3.0f", 0, 100, 1, 11);
+    IUFillNumber(&GainN[0], "GAIN", "Gain", "%.f", 0, 100, 1, 11);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // CCD Offset
-    IUFillNumber(&OffsetN[0], "Offset", "Offset", "%3.0f", 0, 0, 1, 0);
+    IUFillNumber(&OffsetN[0], "Offset", "Offset", "%.f", 0, 0, 1, 0);
     IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "CCD_OFFSET", "Offset", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
 
     // USB Speed
-    IUFillNumber(&SpeedN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
+    IUFillNumber(&SpeedN[0], "Speed", "Speed", "%.f", 0, 0, 1, 0);
     IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
-    
+
     // Read Modes (initial support for QHY42Pro)
-    IUFillNumber(&ReadModeN[0], "Read Mode", "Read Mode", "%3.0f", 0, 1, 1, 0);
+    IUFillNumber(&ReadModeN[0], "Read Mode", "Read Mode", "%.f", 0, 1, 1, 0);
     IUFillNumberVector(&ReadModeNP, ReadModeN, 1, getDeviceName(), "READ_MODE", "Read Mode", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
-    
+
 
     // USB Traffic
-    IUFillNumber(&USBTrafficN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
+    IUFillNumber(&USBTrafficN[0], "Speed", "Speed", "%.f", 0, 0, 1, 0);
     IUFillNumberVector(&USBTrafficNP, USBTrafficN, 1, getDeviceName(), "USB_TRAFFIC", "USB Traffic", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
 
@@ -346,7 +346,7 @@ void QHYCCD::ISGetProperties(const char *dev)
 
         if (HasUSBSpeed)
             defineNumber(&SpeedNP);
-        
+
         if (HasReadMode)
             defineNumber(&ReadModeNP);
 
@@ -412,16 +412,16 @@ bool QHYCCD::updateProperties()
 
                 SpeedN[0].value = GetQHYCCDParam(m_CameraHandle, CONTROL_SPEED);
 
-                LOGF_INFO("USB Speed Settings: Value: %.f Min: %.f Max: .fg Step %.f", SpeedN[0].value,
+                LOGF_INFO("USB Speed Settings: Value: %.f Min: %.f Max: %.f Step %.f", SpeedN[0].value,
                           SpeedN[0].min, SpeedN[0].max, SpeedN[0].step);
             }
 
             defineNumber(&SpeedNP);
         }
-        
+
         // Read mode support
-         if (HasReadMode)
-         {
+        if (HasReadMode)
+        {
             if (isSimulation())
             {
                 ReadModeN[0].min   = 0;
@@ -431,9 +431,9 @@ bool QHYCCD::updateProperties()
             }
             else
             {
-               
+
                 ReadModeN[0].min  = 0;
-                
+
                 ////////////////////////////////////////////////////////////////////
                 /// Read Modes
                 ////////////////////////////////////////////////////////////////////
@@ -446,13 +446,13 @@ bool QHYCCD::updateProperties()
                 }
                 else
                 {
-                    ReadModeN[0].max = 0; 
+                    ReadModeN[0].max = 0;
                 }
-                
+
                 ReadModeN[0].step = 1;
-                
+
                 uint32_t currentReadMode = 0;
-                
+
                 ret = GetQHYCCDReadMode(m_CameraHandle, &currentReadMode);
                 if (ret == QHYCCD_SUCCESS)
                 {
@@ -464,9 +464,9 @@ bool QHYCCD::updateProperties()
                     LOGF_INFO("Using default read mode (error reading it): %zu", currentReadMode);
                 }
 
-                
+
             }
-         }
+        }
         // ---
 
         if (HasGain)
@@ -489,7 +489,7 @@ bool QHYCCD::updateProperties()
                 }
                 GainN[0].value = GetQHYCCDParam(m_CameraHandle, CONTROL_GAIN);
 
-                LOGF_INFO("Gain Settings: Value: %.3f Min: %.3f Max: %.3f Step %.3f", GainN[0].value, GainN[0].min,
+                LOGF_INFO("Gain Settings: Value: %.f Min: %.f Max: %.f Step %.f", GainN[0].value, GainN[0].min,
                           GainN[0].max, GainN[0].step);
             }
 
@@ -516,7 +516,7 @@ bool QHYCCD::updateProperties()
                 }
                 OffsetN[0].value = GetQHYCCDParam(m_CameraHandle, CONTROL_OFFSET);
 
-                LOGF_INFO("Offset Settings: Value: %.3f Min: %.3f Max: %.3f Step %.3f", OffsetN[0].value,
+                LOGF_INFO("Offset Settings: Value: %.f Min: %.f Max: %.f Step %.f", OffsetN[0].value,
                           OffsetN[0].min, OffsetN[0].max, OffsetN[0].step);
             }
 
@@ -549,7 +549,7 @@ bool QHYCCD::updateProperties()
                 }
                 USBTrafficN[0].value = GetQHYCCDParam(m_CameraHandle, CONTROL_USBTRAFFIC);
 
-                LOGF_INFO("USB Traffic Settings: Value: %.3f Min: %.3f Max: %.3f Step %.3f", USBTrafficN[0].value,
+                LOGF_INFO("USB Traffic Settings: Value: %.f Min: %.f Max: %.f Step %.f", USBTrafficN[0].value,
                           USBTrafficN[0].min, USBTrafficN[0].max, USBTrafficN[0].step);
             }
             defineNumber(&USBTrafficNP);
@@ -576,7 +576,7 @@ bool QHYCCD::updateProperties()
         {
             deleteProperty(SpeedNP.name);
         }
-        
+
         if (HasReadMode)
         {
             deleteProperty(ReadModeNP.name);
@@ -606,10 +606,9 @@ bool QHYCCD::updateProperties()
 
 bool QHYCCD::Connect()
 {
-    unsigned int ret = 0;
     uint32_t cap;
     uint32_t readModes = 0;
-    
+
 
     if (isSimulation())
     {
@@ -648,7 +647,7 @@ bool QHYCCD::Connect()
         cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME;
 
         // Disable the stream mode before connecting
-        ret = SetQHYCCDStreamMode(m_CameraHandle, 0);
+        uint32_t ret = SetQHYCCDStreamMode(m_CameraHandle, 0);
         if (ret != QHYCCD_SUCCESS)
         {
             LOGF_ERROR("Can not disable stream mode (%d)", ret);
@@ -669,9 +668,9 @@ bool QHYCCD::Connect()
             HasReadMode = true;
             LOGF_INFO("Number of read modes: %zu", readModes);
         }
-       
-       
-        
+
+
+
         ////////////////////////////////////////////////////////////////////
         /// Shutter Support
         ////////////////////////////////////////////////////////////////////
@@ -681,7 +680,7 @@ bool QHYCCD::Connect()
             cap |= CCD_HAS_SHUTTER;
         }
 
-        LOGF_DEBUG("Shutter Control: %s", cap & CCD_HAS_SHUTTER ? "True" : "False");
+        LOGF_DEBUG("Shutter Control: %s", (cap & CCD_HAS_SHUTTER) ? "True" : "False");
 
         ////////////////////////////////////////////////////////////////////
         /// Streaming Support
@@ -692,7 +691,7 @@ bool QHYCCD::Connect()
             cap |= CCD_HAS_STREAMING;
         }
 
-        LOGF_DEBUG("Has Streaming: %s", cap & CCD_HAS_STREAMING ? "True" : "False");
+        LOGF_DEBUG("Has Streaming: %s", (cap & CCD_HAS_STREAMING) ? "True" : "False");
 
         ////////////////////////////////////////////////////////////////////
         /// AutoMode Cooler Support
@@ -703,7 +702,7 @@ bool QHYCCD::Connect()
             HasCoolerAutoMode = true;
             cap |= CCD_HAS_COOLER;
         }
-        LOGF_DEBUG("Automatic Cooler Control: %s", cap & CCD_HAS_COOLER ? "True" : "False");
+        LOGF_DEBUG("Automatic Cooler Control: %s", (cap & CCD_HAS_COOLER) ? "True" : "False");
 
         ////////////////////////////////////////////////////////////////////
         /// Manual PWM Support
@@ -724,7 +723,7 @@ bool QHYCCD::Connect()
             cap |= CCD_HAS_ST4_PORT;
         }
 
-        LOGF_DEBUG("Guider Port Control: %s", cap & CCD_HAS_ST4_PORT ? "True" : "False");
+        LOGF_DEBUG("Guider Port Control: %s", (cap & CCD_HAS_ST4_PORT) ? "True" : "False");
 
         ////////////////////////////////////////////////////////////////////
         /// Camera Speed Support
@@ -818,7 +817,7 @@ bool QHYCCD::Connect()
         // Only use software binning if NOT supported by hardware
         //useSoftBin = !(ret == QHYCCD_SUCCESS);
 
-        LOGF_DEBUG("Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");
+        LOGF_DEBUG("Binning Control: %s", (cap & CCD_CAN_BIN) ? "True" : "False");
 
         ////////////////////////////////////////////////////////////////////
         /// USB Traffic Control Support
@@ -858,13 +857,13 @@ bool QHYCCD::Connect()
 
         double min = 0, max = 0, step = 0;
         // Exposure limits in microseconds
-        int ret = GetQHYCCDParamMinMaxStep(m_CameraHandle, CONTROL_EXPOSURE, &min, &max, &step);
+        ret = GetQHYCCDParamMinMaxStep(m_CameraHandle, CONTROL_EXPOSURE, &min, &max, &step);
         if (ret == QHYCCD_SUCCESS)
             PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min / 1e6, max / 1e6, step / 1e6, false);
         else
             PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
 
-        LOGF_INFO("Camera exposure limits: Min: %.6fs Max: %.3fs Step %.fs", min / 1e6, max / 1e6, step / 1e6);
+        LOGF_INFO("Camera exposure limits: Min: %.6fs Max: %.fs Step %.fs", min / 1e6, max / 1e6, step / 1e6);
 
 
         SetCCDCapability(cap);
@@ -877,8 +876,7 @@ bool QHYCCD::Connect()
         int stat = pthread_create(&imagingThread, nullptr, &imagingHelper, this);
         if (stat != 0)
         {
-            LOGF_ERROR("Error creating imaging thread (%d)",
-                       stat);
+            LOGF_ERROR("Error creating imaging thread (%d)", stat);
             return false;
         }
         pthread_mutex_lock(&condMutex);
@@ -974,7 +972,7 @@ int QHYCCD::SetTemperature(double temperature)
     if (fabs(temperature - TemperatureN[0].value) < TEMP_THRESHOLD)
         return 1;
 
-    LOGF_DEBUG("Requested temperature is %.3f, current temperature is %.3f", temperature, TemperatureN[0].value);
+    LOGF_DEBUG("Requested temperature is %.f, current temperature is %.f", temperature, TemperatureN[0].value);
 
     m_TemperatureRequest = temperature;
     m_PWMRequest = -1;
@@ -1588,59 +1586,59 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             IDSetNumber(&USBTrafficNP, nullptr);
             return true;
         }
-        
-        
+
+
         //////////////////////////////////////////////////////////////////////
         /// Read Modes Control
         //////////////////////////////////////////////////////////////////////
-         if (!strcmp(name, ReadModeNP.name))
+        if (!strcmp(name, ReadModeNP.name))
         {
             uint32_t imageRMw, imageRMh, ret;
             double newReadMode = ReadModeN[0].value;
             uint32_t nbuf, imagew, imageh, bpp;
             double chipw, chiph, pixelw, pixelh;
             IUUpdateNumber(&ReadModeNP, values, names, n);
-            int rc = SetQHYCCDReadMode(m_CameraHandle,ReadModeN[0].value);
+            int rc = SetQHYCCDReadMode(m_CameraHandle, ReadModeN[0].value);
             if (rc == QHYCCD_SUCCESS)
             {
                 LOGF_INFO("Read mode updated to %.f", ReadModeN[0].value);
                 // Get resolution
                 ret = GetQHYCCDReadModeResolution(m_CameraHandle, ReadModeN[0].value, &imageRMw, &imageRMh);
                 LOGF_INFO("GetQHYCCDReadModeResolution in this ReadMode: imageW: %d imageH: %d \n", imageRMw, imageRMh);
-                
+
                 ReadModeNP.s = IPS_OK;
                 saveConfig(true, ReadModeNP.name);
-                    if (isSimulation())
+                if (isSimulation())
+                {
+                    chipw = imagew = 1280;
+                    chiph = imageh = 1024;
+                    pixelh = pixelw = 5.4;
+                    bpp             = 8;
+                }
+                else
+                {
+                    ret = GetQHYCCDChipInfo(m_CameraHandle, &chipw, &chiph, &imagew, &imageh, &pixelw, &pixelh, &bpp);
+
+                    /* JM: We need GetQHYCCDErrorString(ret) to get the string description of the error, please implement this in the SDK */
+                    if (ret != QHYCCD_SUCCESS)
                     {
-                        chipw = imagew = 1280;
-                        chiph = imageh = 1024;
-                        pixelh = pixelw = 5.4;
-                        bpp             = 8;
-                    }
-                    else
-                    {
-                        ret = GetQHYCCDChipInfo(m_CameraHandle, &chipw, &chiph, &imagew, &imageh, &pixelw, &pixelh, &bpp);
-                        
-                        /* JM: We need GetQHYCCDErrorString(ret) to get the string description of the error, please implement this in the SDK */
-                        if (ret != QHYCCD_SUCCESS)
-                        {
-                            LOGF_ERROR("Error: GetQHYCCDChipInfo() (%d)", ret);
-                            return false;
-                        }
-                        
+                        LOGF_ERROR("Error: GetQHYCCDChipInfo() (%d)", ret);
+                        return false;
                     }
 
-                    SetCCDParams(imageRMw, imageRMh, bpp, pixelw, pixelh);
-                    nbuf = imageRMw * imageRMh * PrimaryCCD.getBPP() / 8;
-                    PrimaryCCD.setFrameBufferSize(nbuf);
+                }
 
-                    if (HasStreaming())
-                    {
-                        Streamer->setPixelFormat(INDI_MONO);
-                        Streamer->setSize(imageRMw, imageRMh);
-                    }
-                
-                
+                SetCCDParams(imageRMw, imageRMh, bpp, pixelw, pixelh);
+                nbuf = imageRMw * imageRMh * PrimaryCCD.getBPP() / 8;
+                PrimaryCCD.setFrameBufferSize(nbuf);
+
+                if (HasStreaming())
+                {
+                    Streamer->setPixelFormat(INDI_MONO);
+                    Streamer->setSize(imageRMw, imageRMh);
+                }
+
+
             }
             else
             {
@@ -1652,7 +1650,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             IDSetNumber(&ReadModeNP, nullptr);
             return true;
         }
-        
+
 
         //////////////////////////////////////////////////////////////////////
         /// Cooler PWM Control
@@ -1754,7 +1752,7 @@ void QHYCCD::updateTemperature()
     // No need to spam to log
     if (fabs(ccdtemp - TemperatureN[0].value) > 0.001 || fabs(CoolerN[0].value - (coolpower / 255.0 * 100)) > 0.001)
     {
-        LOGF_DEBUG("CCD T.: %.3f (C) Power: %.3f (%%.2f)", ccdtemp, coolpower, coolpower / 255.0 * 100);
+        LOGF_DEBUG("CCD T.: %.f (C) Power: %.f (%%.2f)", ccdtemp, coolpower, coolpower / 255.0 * 100);
     }
 
     TemperatureN[0].value = ccdtemp;
@@ -1798,7 +1796,7 @@ bool QHYCCD::saveConfigItems(FILE *fp)
 
     if (HasUSBSpeed)
         IUSaveConfigNumber(fp, &SpeedNP);
-    
+
     if (HasReadMode)
         IUSaveConfigNumber(fp, &ReadModeNP);
 
@@ -1865,7 +1863,7 @@ bool QHYCCD::StartStreaming()
 
     double uSecs = static_cast<long>(m_ExposureRequest * 950000.0);
 
-    LOGF_INFO("Starting video streaming with exposure %.3f seconds (%.f FPS)", m_ExposureRequest, Streamer->getTargetFPS());
+    LOGF_INFO("Starting video streaming with exposure %.f seconds (%.f FPS)", m_ExposureRequest, Streamer->getTargetFPS());
 
     SetQHYCCDParam(m_CameraHandle, CONTROL_EXPOSURE, uSecs);
 
