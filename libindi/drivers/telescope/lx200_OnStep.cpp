@@ -24,8 +24,6 @@
 
 
 #include "lx200_OnStep.h"
-#include "connectionplugins/connectioninterface.h"
-#include "connectionplugins/connectiontcp.h"
 
 #define LIBRARY_TAB  "Library"
 #define FIRMWARE_TAB "Firmware data"
@@ -37,9 +35,6 @@
 #define ONSTEP_TIMEOUT  3
 #define RA_AXIS     0
 #define DEC_AXIS    1
-
-
-
 
 LX200_OnStep::LX200_OnStep() : LX200Generic()
 {
@@ -1489,43 +1484,11 @@ bool LX200_OnStep::ReadScopeStatus()
         return true;
     }
     
-//     if (!isConnected()) {
-//         LOG_INFO("Telescope not connected, ReadScopeStatus called, attempting to disconnect/reconnect");
-//         Connect();
-//     }
-    
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
     {
-
-        Connection::Interface *activeConnection = getActiveConnection();
-        if (!activeConnection->name().compare("CONNECTION_TCP"))
-        {
-            LOG_INFO("Telescope not connected, ReadScopeStatus called, attempting to disconnect/reconnect");
-            activeConnection->Disconnect();
-            //Momentarily override the callback function
-            tcpConnection->registerHandshake([&]()
-            {
-                return true;
-            });
-            if(!activeConnection->Connect()){
-                tcpConnection->registerHandshake([&]()
-                {
-                    return callHandshake();
-                });
-                EqNP.s = IPS_ALERT;
-                IDSetNumber(&EqNP, "Error reading RA/DEC.");
-                return false;
-            }
-            LOG_INFO("Reconnected");
-            tcpConnection->registerHandshake([&]()
-            {
-                return callHandshake();
-            });
-        } else {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error reading RA/DEC.");
-            return false;
-        }
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        return false;
     }
     
     #ifdef OnStep_Alpha    
@@ -2077,15 +2040,8 @@ bool LX200_OnStep::sendOnStepCommandBlind(const char *cmd)
 
     tcflush(PortFD, TCIFLUSH);
 
-    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK) {
-        //Retry to allow for TCP reconnection 
-        //HACK
-        
-        
-        
-        
+    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
-    }
 
     return 1;
 }
