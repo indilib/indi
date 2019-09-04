@@ -25,6 +25,8 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${QHY_INCLUDE_DIR})
 include_directories( ${USB1_INCLUDE_DIRS})
 
+add_definitions(-DCALLBACK_MODE_SUPPORT)
+
 include(CMakeCommon)
 
 ########### QHY CCD ###########
