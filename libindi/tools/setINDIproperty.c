@@ -289,7 +289,8 @@ static int crackSpec(int *acp, char **avp[])
     }
 
     /* then scan arg for property spec */
-    if (sscanf(spec, "%[^.].%[^.].%s", d, p, ev) != 3)
+    //if (sscanf(spec, "%[^.].%[^.].%s", d, p, ev) != 3)
+    if (sscanf(spec, "%[^.].%[^.].%[^\n]", d, p, ev) != 3)
     {
         fprintf(stderr, "Malformed property spec: %s\n", spec);
         usage();
