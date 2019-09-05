@@ -18,10 +18,10 @@
 
 #include "dsp.h"
 
-dsp_stream_p dsp_find_object(dsp_stream_p stream, dsp_stream_p object, int steps) {
-    dsp_stream_p tmp = dsp_stream_copy(object);
+dsp_stream_p dsp_align_find_object(dsp_stream_p stream, dsp_stream_p object, int steps) {
+    dsp_stream_p tmp = dsp_stream_copy(stream);
     dsp_stream_p rotated = dsp_stream_copy(object);
-    dsp_buffer_reverse(tmp->buf, tmp->len);
+    dsp_buffer_reverse(rotated->buf, rotated->len);
     double *center = (double*)malloc(sizeof(double)*object->dims);
     double *rotation = (double*)malloc(sizeof(double)*object->dims);
     for(int dim = 0; dim < object->dims; dim++) {
