@@ -469,6 +469,10 @@
             <driver name="Baader Dome">indi_baader_dome</driver>
             <version>1.0</version>
         </device>
+        <device label="Pulsar Dome">
+            <driver name="Rigel Dome">indi_rigel_dome</driver>
+            <version>1.0</version>
+        </device>
         <device label="Dome Simulator">
             <driver name="Dome Simulator">indi_simulator_dome</driver>
             <version>1.0</version>

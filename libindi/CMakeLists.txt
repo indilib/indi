@@ -1203,6 +1203,15 @@ add_executable(indi_baader_dome ${baaderdome_SRC})
 target_link_libraries(indi_baader_dome indidriver)
 install(TARGETS indi_baader_dome RUNTIME DESTINATION bin)
 
+################ Rigel Dome ################
+
+SET(rigeldome_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/rigel_dome.cpp)
+
+add_executable(indi_rigel_dome ${rigeldome_SRC})
+target_link_libraries(indi_rigel_dome indidriver)
+install(TARGETS indi_rigel_dome RUNTIME DESTINATION bin)
+
 ################ ScopeDome Dome ################
 
 set(scopedome_SRCS
