@@ -105,8 +105,8 @@ bool Dome::initProperties()
     IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&AutoParkS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&AutoParkS[1], "Disable", "", ISS_ON);
+    IUFillSwitch(&AutoParkS[0], "ENABLED", "Enable", ISS_OFF);
+    IUFillSwitch(&AutoParkS[1], "DISABLED", "Disable", ISS_ON);
     IUFillSwitchVector(&AutoParkSP, AutoParkS, 2, getDeviceName(), "DOME_AUTOPARK", "Auto Park", OPTIONS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -148,6 +148,10 @@ bool Dome::initProperties()
 
     IUFillNumber(&DomeSpeedN[0], "DOME_SPEED_VALUE", "RPM", "%6.2f", 0.0, 10, 0.1, 1.0);
     IUFillNumberVector(&DomeSpeedNP, DomeSpeedN, 1, getDeviceName(), "DOME_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, 60,
+                       IPS_OK);
+
+    IUFillNumber(&DomeSyncN[0], "DOME_SYNC_VALUE", "Az", "%.2f", 0.0, 360, 10, 0.0);
+    IUFillNumberVector(&DomeSyncNP, DomeSyncN, 1, getDeviceName(), "DOME_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_OK);
 
     IUFillSwitch(&DomeMotionS[0], "DOME_CW", "Dome CW", ISS_OFF);
@@ -273,6 +277,8 @@ bool Dome::updateProperties()
             defineNumber(&DomeParamNP);
             defineNumber(&DomeMeasurementsNP);
         }
+        if (CanSync())
+            defineNumber(&DomeSyncNP);
 
         if (CanPark())
         {
@@ -315,6 +321,9 @@ bool Dome::updateProperties()
             deleteProperty(DomeMeasurementsNP.name);
         }
 
+        if (CanSync())
+            deleteProperty(DomeSyncNP.name);
+
         if (CanPark())
         {
             deleteProperty(ParkSP.name);
@@ -342,6 +351,25 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
             PresetNP.s = IPS_OK;
             IDSetNumber(&PresetNP, nullptr);
 
+            return true;
+        }
+
+        // Dome Sync
+        if (!strcmp(name, DomeSyncNP.name))
+        {
+            if (Sync(values[0]))
+            {
+                IUUpdateNumber(&DomeSyncNP, values, names, n);
+                DomeSyncNP.s = IPS_OK;
+                DomeAbsPosN[0].value = values[0];
+                IDSetNumber(&DomeAbsPosNP, nullptr);
+            }
+            else
+            {
+                DomeSyncNP.s = IPS_ALERT;
+            }
+
+            IDSetNumber(&DomeSyncNP, nullptr);
             return true;
         }
 
@@ -935,6 +963,42 @@ Dome::DomeState Dome::Dome::getDomeState() const
     return domeState;
 }
 
+void Dome::setShutterState(const Dome::ShutterState &value)
+{
+    switch (value)
+    {
+        case SHUTTER_OPENED:
+            IUResetSwitch(&DomeShutterSP);
+            DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
+            DomeShutterSP.s = IPS_OK;
+            break;
+
+        case SHUTTER_CLOSED:
+            IUResetSwitch(&DomeShutterSP);
+            DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
+            DomeShutterSP.s = IPS_OK;
+            break;
+
+
+        case SHUTTER_MOVING:
+            DomeShutterSP.s = IPS_BUSY;
+            break;
+
+        case SHUTTER_ERROR:
+            DomeShutterSP.s = IPS_ALERT;
+            LOG_WARN("Shutter failure.");
+            break;
+
+        case SHUTTER_UNKNOWN:
+            IUResetSwitch(&DomeShutterSP);
+            DomeShutterSP.s = IPS_IDLE;
+            LOG_WARN("Unknown shutter status.");
+            break;
+    }
+
+    IDSetSwitch(&DomeShutterSP, nullptr);
+    shutterState = value;
+}
 void Dome::setDomeState(const Dome::DomeState &value)
 {
     switch (value)
@@ -1005,6 +1069,18 @@ void Dome::setDomeState(const Dome::DomeState &value)
             ParkS[1].s = ISS_ON;
             IDSetSwitch(&ParkSP, nullptr);
             IsParked = false;
+            break;
+
+        case DOME_UNKNOWN:
+            IUResetSwitch(&ParkSP);
+            ParkSP.s = IPS_IDLE;
+            IsParked = false;
+            IDSetSwitch(&ParkSP, nullptr);
+            break;
+
+        case DOME_ERROR:
+            ParkSP.s = IPS_ALERT;
+            IDSetSwitch(&ParkSP, nullptr);
             break;
 
         case DOME_MOVING:
@@ -1329,7 +1405,7 @@ void Dome::SetDomeCapability(uint32_t cap)
         controller->mapController("Dome Abort", "Dome Abort", Controller::CONTROLLER_BUTTON, "BUTTON_3");
 }
 
-const char * Dome::GetShutterStatusString(ShutterStatus status)
+const char * Dome::GetShutterStatusString(ShutterState status)
 {
     switch (status)
     {
@@ -1338,7 +1414,9 @@ const char * Dome::GetShutterStatusString(ShutterStatus status)
         case SHUTTER_CLOSED:
             return "Shutter is closed.";
         case SHUTTER_MOVING:
-            return "Shutter is in motion.";
+            return "Shutter is moving.";
+        case SHUTTER_ERROR:
+            return "Shutter has errors.";
         case SHUTTER_UNKNOWN:
         default:
             return "Shutter status is unknown.";
@@ -1801,6 +1879,13 @@ IPState Dome::MoveAbs(double az)
     DomeAbsPosNP.s = IPS_ALERT;
     IDSetNumber(&DomeAbsPosNP, "Dome failed to move to new requested position.");
     return IPS_ALERT;
+}
+
+bool Dome::Sync(double az)
+{
+    INDI_UNUSED(az);
+    LOG_WARN("Syncing is not supported.");
+    return false;
 }
 
 bool Dome::Abort()

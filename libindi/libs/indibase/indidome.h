@@ -128,6 +128,8 @@ class Dome : public DefaultDevice
             DOME_UNPARKING, /*!< Dome is unparking */
             DOME_PARKED,    /*!< Dome is parked */
             DOME_UNPARKED,  /*!< Dome is unparked */
+            DOME_UNKNOWN,   /*!< Dome state is known */
+            DOME_ERROR,     /*!< Dome has errors */
         } DomeState;
 
         /** \typedef ShutterStatus
@@ -135,22 +137,22 @@ class Dome : public DefaultDevice
             */
         typedef enum
         {
-            SHUTTER_OPENED, /*!< Shutter is open */
-            SHUTTER_CLOSED, /*!< Shutter is closed */
-            SHUTTER_MOVING, /*!< Shutter is in motion */
-            SHUTTER_UNKNOWN /*!< Shutter status is unknown */
-        } ShutterStatus;
+            SHUTTER_OPENED,     /*!< Shutter is open */
+            SHUTTER_CLOSED,     /*!< Shutter is closed */
+            SHUTTER_MOVING,     /*!< Shutter in motion (opening or closing) */
+            SHUTTER_UNKNOWN,    /*!< Shutter status is unknown */
+            SHUTTER_ERROR       /*!< Shutter status is unknown */
+        } ShutterState;
 
         enum
         {
             DOME_CAN_ABORT    = 1 << 0, /*!< Can the dome motion be aborted? */
             DOME_CAN_ABS_MOVE = 1 << 1, /*!< Can the dome move to an absolute azimuth position? */
-            DOME_CAN_REL_MOVE =
-                1
-                << 2, /*!< Can the dome move to a relative position a number of degrees away from current position? Positive degress is Clockwise direction. Negative Degrees is counter clock wise direction */
-            DOME_CAN_PARK    = 1 << 3, /*!< Can the dome park and unpark itself? */
-            DOME_HAS_SHUTTER = 1 << 4, /*!< Does the dome has a shutter than can be opened and closed electronically? */
-            DOME_HAS_VARIABLE_SPEED = 1 << 5 /*!< Can the dome move in different configurable speeds? */
+            DOME_CAN_REL_MOVE = 1 << 2, /*!< Can the dome move to a relative position a number of degrees away from current position? Positive degress is Clockwise direction. Negative Degrees is counter clock wise direction */
+            DOME_CAN_PARK     = 1 << 3, /*!< Can the dome park and unpark itself? */
+            DOME_CAN_SYNC     = 1 << 4, /*!< Can the dome sync to arbitrary postion? */
+            DOME_HAS_SHUTTER  = 1 << 5, /*!< Does the dome has a shutter than can be opened and closed electronically? */
+            DOME_HAS_VARIABLE_SPEED = 1 << 6 /*!< Can the dome move in different configurable speeds? */
         };
 
         /** \struct DomeConnection
@@ -235,6 +237,14 @@ class Dome : public DefaultDevice
         }
 
         /**
+             * @return True if dome can sync.
+             */
+        bool CanSync()
+        {
+            return capability & DOME_CAN_SYNC;
+        }
+
+        /**
              * @return True if dome has controllable shutter door
              */
         bool HasShutter()
@@ -258,6 +268,9 @@ class Dome : public DefaultDevice
 
         DomeState getDomeState() const;
         void setDomeState(const DomeState &value);
+
+        ShutterState getShutterState() const;
+        void setShutterState(const ShutterState &value);
 
         IPState getWeatherState() const;
         IPState getMountState() const;
@@ -289,6 +302,12 @@ class Dome : public DefaultDevice
                         Return IPS_ALERT if there is an error.
             */
         virtual IPState MoveRel(double azDiff);
+
+        /**
+             * \brief Sync sets the dome current azimuth as the supplied azimuth position
+             * \return True if sync is successful, false otherwise.
+             */
+        virtual bool Sync(double az);
 
         /**
              * \brief Abort all dome motion
@@ -324,7 +343,7 @@ class Dome : public DefaultDevice
              * @param status Status of shutter
              * @return Returns string representation of the shutter status
              */
-        const char * GetShutterStatusString(ShutterStatus status);
+        const char * GetShutterStatusString(ShutterState status);
 
         /**
              * \brief setParkDataType Sets the type of parking data stored in the park data file and presented to the user.
@@ -488,6 +507,9 @@ class Dome : public DefaultDevice
         INumberVectorProperty DomeParamNP;
         INumber DomeParamN[1];
 
+        INumberVectorProperty DomeSyncNP;
+        INumber DomeSyncN[1];
+
         ISwitchVectorProperty DomeShutterSP;
         ISwitch DomeShutterS[2];
 
@@ -504,7 +526,6 @@ class Dome : public DefaultDevice
         ISwitchVectorProperty AutoParkSP;
 
         uint32_t capability;
-        ShutterStatus shutterState;
         DomeParkData parkDataType;
 
         ITextVectorProperty ActiveDeviceTP;
@@ -535,6 +556,7 @@ class Dome : public DefaultDevice
 
         // States
         DomeState domeState;
+        ShutterState shutterState;
         IPState mountState;
         IPState weatherState;
 
@@ -542,7 +564,6 @@ class Dome : public DefaultDevice
         struct ln_lnlat_posn observer;
         // Do we have valid geographic coords from mount driver?
         bool HaveLatLong = false;
-
 
         // Mount horizontal and equatorial coords. Snoops from mount driver.
         struct ln_hrz_posn mountHoriztonalCoords;

@@ -94,6 +94,6 @@ class BaaderDome : public INDI::Dome
     bool sim { false };
     double simShutterTimer { 0 };
     double simFlapTimer { 0 };
-    ShutterStatus simShutterStatus { SHUTTER_OPENED };
+    ShutterState simShutterStatus { SHUTTER_OPENED };
     FlapStatus simFlapStatus { FLAP_OPENED };
 };

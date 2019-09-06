@@ -454,7 +454,7 @@ class ScopeDome : public INDI::Dome
     ShutterOperation targetShutter{ SHUTTER_OPEN };
     bool sim{ false };
     double simShutterTimer{ 0 };
-    ShutterStatus simShutterStatus{ SHUTTER_OPENED };
+    ShutterState simShutterStatus{ SHUTTER_OPENED };
 
     INumberVectorProperty DomeHomePositionNP;
     INumber DomeHomePositionN[1];
