@@ -90,8 +90,7 @@ RigelDome::RigelDome()
                       DOME_CAN_ABS_MOVE |
                       DOME_CAN_REL_MOVE |
                       DOME_CAN_PARK |
-                      DOME_CAN_SYNC |
-                      DOME_HAS_SHUTTER);
+                      DOME_CAN_SYNC);
 }
 
 bool RigelDome::initProperties()
@@ -100,7 +99,7 @@ bool RigelDome::initProperties()
 
     IUFillSwitch(&OperationS[OPERATION_FIND_HOME], "OPERATION_FIND_HOME", "Find Home", ISS_OFF);
     IUFillSwitch(&OperationS[OPERATION_CALIBRATE], "OPERATION_CALIBRATE", "Calibrate", ISS_OFF);
-    IUFillSwitchVector(&OperationSP, OperationS, 1, getDeviceName(), "OPERATION", "Operation", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&OperationSP, OperationS, 2, getDeviceName(), "OPERATION", "Operation", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillText(&InfoT[INFO_FIRMWARE], "FIRMWARE", "Version", "NA");
@@ -125,7 +124,9 @@ bool RigelDome::getStartupValues()
 {
     targetAz = 0;
 
-    InfoTP.s = (readModel() && readStepsPerRevolution() && readBatteryLevels()) ? IPS_OK : IPS_ALERT;
+    InfoTP.s = (readFirmware() && readModel() && readStepsPerRevolution()) ? IPS_OK : IPS_ALERT;
+    if (HasShutter())
+        readBatteryLevels();
     IDSetText(&InfoTP, nullptr);
 
     if (readPosition())
@@ -154,7 +155,14 @@ bool RigelDome::getStartupValues()
 * ***********************************************************************************/
 bool RigelDome::Handshake()
 {
-    return readFirmware();
+    bool rc = readShutterStatus();
+    if (rc)
+    {
+        if (m_rawShutterState != S_NotFitted)
+            SetDomeCapability(GetDomeCapability() | DOME_HAS_SHUTTER);
+    }
+
+    return rc;
 }
 
 /************************************************************************************
@@ -289,10 +297,16 @@ void RigelDome::TimerHit()
         IDSetNumber(&DomeAbsPosNP, nullptr);
     }
 
-    ShutterState newShutterState = parseShutterState(m_rawShutterState);
-    if (newShutterState != getShutterState())
+    if (HasShutter())
     {
-        setShutterState(newShutterState);
+        ShutterState newShutterState = parseShutterState(m_rawShutterState);
+        if (newShutterState != getShutterState())
+        {
+            setShutterState(newShutterState);
+        }
+
+        if (readBatteryLevels())
+            IDSetText(&InfoTP, nullptr);
     }
 
     SetTimer(POLLMS);

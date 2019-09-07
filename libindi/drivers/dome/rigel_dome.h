@@ -123,7 +123,7 @@ class RigelDome : public INDI::Dome
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
-        static constexpr const char * INFO_TAB = "INFO";
+        static constexpr const char * INFO_TAB = "Info";
         // 0xD is the stop char
         static const char DRIVER_STOP_CHAR { 0x0D };
         // Wait up to a maximum of 3 seconds for serial input
