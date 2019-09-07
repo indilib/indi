@@ -227,6 +227,12 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo, std::string cameraName)
     setDeviceName(this->name);
 }
 
+ASICCD::~ASICCD()
+{
+    if (isConnected())
+        Disconnect();
+}
+
 const char *ASICCD::getDefaultName()
 {
     return "ZWO CCD";
