@@ -958,11 +958,6 @@ IPState Dome::getWeatherState() const
     return weatherState;
 }
 
-Dome::DomeState Dome::Dome::getDomeState() const
-{
-    return domeState;
-}
-
 void Dome::setShutterState(const Dome::ShutterState &value)
 {
     switch (value)

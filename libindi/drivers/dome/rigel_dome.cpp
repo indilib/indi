@@ -289,9 +289,10 @@ void RigelDome::TimerHit()
         IDSetNumber(&DomeAbsPosNP, nullptr);
     }
 
-    if (DomeShutterSP.s == IPS_BUSY)
+    ShutterState newShutterState = parseShutterState(m_rawShutterState);
+    if (newShutterState != getShutterState())
     {
-        setShutterState(parseShutterState(m_rawShutterState));
+        setShutterState(newShutterState);
     }
 
     SetTimer(POLLMS);
@@ -412,9 +413,30 @@ IPState RigelDome::ControlShutter(ShutterOperation operation)
 /////////////////////////////////////////////////////////////////////////////
 bool RigelDome::Abort()
 {
-    LOGF_INFO("Attempting to abort dome motion by stopping at %g", DomeAbsPosN[0].value);
-    MoveAbs(DomeAbsPosN[0].value);
-    return true;
+    if (sendCommand("STOP"))
+    {
+        if (OperationSP.s == IPS_BUSY)
+        {
+            LOGF_INFO("%s is aborted.", OperationS[OPERATION_CALIBRATE].s == ISS_ON ? "Calibration" : "Finding home");
+            IUResetSwitch(&OperationSP);
+            OperationSP.s = IPS_ALERT;
+            IDSetSwitch(&OperationSP, nullptr);
+        }
+        else if (getShutterState() == SHUTTER_MOVING)
+        {
+            DomeShutterSP.s = IPS_ALERT;
+            IDSetSwitch(&DomeShutterSP, nullptr);
+            LOG_WARN("Shutter motion aborted!");
+        }
+        else
+        {
+            LOG_WARN("Dome motion aborted.");
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -266,10 +266,16 @@ class Dome : public DefaultDevice
              */
         bool isLocked();
 
-        DomeState getDomeState() const;
+        DomeState getDomeState() const
+        {
+            return domeState;
+        }
         void setDomeState(const DomeState &value);
 
-        ShutterState getShutterState() const;
+        ShutterState getShutterState() const
+        {
+            return shutterState;
+        }
         void setShutterState(const ShutterState &value);
 
         IPState getWeatherState() const;
