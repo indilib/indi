@@ -362,11 +362,15 @@ bool RigelDome::Sync(double az)
 IPState RigelDome::Park()
 {
     targetAz = GetAxis1Park();
-    char res[DRIVER_LEN] = {0};
-    if (sendCommand("GO P", res) == false)
-        return IPS_ALERT;
+    if (setParkAz(targetAz))
+    {
+        char res[DRIVER_LEN] = {0};
+        if (sendCommand("GO P", res) == false)
+            return IPS_ALERT;
+        return (res[0] == 'A' ? IPS_BUSY : IPS_ALERT);
+    }
 
-    return (res[0] == 'A' ? IPS_BUSY : IPS_ALERT);
+    return IPS_ALERT;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -458,13 +462,8 @@ bool RigelDome::Abort()
 /////////////////////////////////////////////////////////////////////////////
 bool RigelDome::SetCurrentPark()
 {
-    if (setParkAz(DomeAbsPosN[0].value))
-    {
-        SetAxis1Park(DomeAbsPosN[0].value);
-        return true;
-    }
-
-    return false;
+    SetAxis1Park(DomeAbsPosN[0].value);
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -473,13 +472,8 @@ bool RigelDome::SetCurrentPark()
 bool RigelDome::SetDefaultPark()
 {
     // By default set position to 90
-    if (setParkAz(90))
-    {
-        SetAxis1Park(90);
-        return true;
-    }
-
-    return false;
+    SetAxis1Park(90);
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
