@@ -739,3 +739,38 @@ std::vector<std::string> RigelDome::split(const std::string &input, const std::s
           last;
     return {first, last};
 }
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+IPState RigelDome::Move(DomeDirection dir, DomeMotionCommand operation)
+{
+    double target;
+
+    if (operation == MOTION_START)
+    {
+        target = DomeAbsPosN[0].value;
+        if(dir == DOME_CW)
+        {
+            target += 5;
+        }
+        else
+        {
+            target -= 5;
+        }
+
+        if(target < 0)
+            target += 360;
+        if(target >= 360)
+            target -= 360;
+    }
+    else
+    {
+        target = DomeAbsPosN[0].value;
+    }
+
+    MoveAbs(target);
+
+    return ((operation == MOTION_START) ? IPS_BUSY : IPS_OK);
+
+}

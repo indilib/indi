@@ -45,6 +45,7 @@ class RigelDome : public INDI::Dome
 
         virtual IPState MoveRel(double azDiff) override;
         virtual IPState MoveAbs(double az) override;
+        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
         virtual IPState ControlShutter(ShutterOperation operation) override;
         virtual bool Abort() override;
         virtual bool Sync(double az) override;
