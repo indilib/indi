@@ -107,9 +107,6 @@ class RigelDome : public INDI::Dome
             OPERATION_CALIBRATE,
         };
 
-        ISwitchVectorProperty DomeFlapSP;
-        ISwitch DomeFlapS[2];
-
         // Info
         ITextVectorProperty InfoTP;
         IText InfoT[4];
