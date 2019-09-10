@@ -120,6 +120,7 @@ class MyFocuserPro2 : public INDI::Focuser
         // Read and Update T.Compensate
         bool readTempCompensateEnable();
 
+        //Read and Update teh Temperature Coefficient
         bool readTempeartureCoefficient();
 
         // Read and update Position

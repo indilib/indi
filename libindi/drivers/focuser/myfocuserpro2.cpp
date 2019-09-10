@@ -558,13 +558,6 @@ bool MyFocuserPro2::isMoving()
     return false;
 }
 
-bool MyFocuserPro2::setTemperatureCalibration(double calibration)
-{
-    char cmd[ML_RES]= {0};
-    int cal = calibration * 2;
-    snprintf(cmd, ML_RES, ":PO%02X#", cal);
-    return sendCommand(cmd);
-}
 
 bool MyFocuserPro2::setTemperatureCelsius()
 {
@@ -800,8 +793,7 @@ bool MyFocuserPro2::ISNewNumber(const char * dev, const char * name, double valu
         if (strcmp(name, TemperatureSettingNP.name) == 0)
         {
             IUUpdateNumber(&TemperatureSettingNP, values, names, n);
-            if (!setTemperatureCalibration(TemperatureSettingN[0].value) ||
-                    !setTemperatureCoefficient(TemperatureSettingN[1].value))
+            if (!setTemperatureCoefficient(TemperatureSettingN[1].value))
             {
                 TemperatureSettingNP.s = IPS_ALERT;
                 IDSetNumber(&TemperatureSettingNP, nullptr);
