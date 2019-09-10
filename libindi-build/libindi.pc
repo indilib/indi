@@ -1,0 +1,13 @@
+prefix=/usr/local
+exec_prefix=/usr/local
+libdir=/usr/local/lib
+includedir=/usr/local/include/
+
+Name: libindi
+Description: Instrument Neutral Distributed Interface
+URL: http://www.indilib.org/
+Version: 1.8.1
+Libs: -L${libdir}  -lindidriver -lindiAlignmentDriver
+Libs.private: -lz -lcfitsio -lnova
+Cflags: -I${includedir} -I${includedir}/libindi
+
