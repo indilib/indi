@@ -1970,7 +1970,6 @@ void ASICCD::streamVideo()
 
 void ASICCD::getExposure()
 {
-    int expRetry = 0;
     int statRetry = 0;
     int uSecs = 1000000;
     ASI_EXPOSURE_STATUS status = ASI_EXP_IDLE;
@@ -1993,6 +1992,7 @@ void ASICCD::getExposure()
             if (status == ASI_EXP_SUCCESS)
             {
                 InExposure = false;
+                m_ExposureRetry = 0;
                 PrimaryCCD.setExposureLeft(0.0);
                 if (PrimaryCCD.getExposureDuration() > 3)
                     LOG_INFO("Exposure done, downloading image...");
@@ -2008,7 +2008,7 @@ void ASICCD::getExposure()
             }
             else if (status == ASI_EXP_FAILED)
             {
-                if (++expRetry < MAX_EXP_RETRIES)
+                if (++m_ExposureRetry < MAX_EXP_RETRIES)
                 {
                     if (threadRequest == StateExposure)
                     {
@@ -2027,8 +2027,9 @@ void ASICCD::getExposure()
                     if (threadRequest == StateExposure)
                     {
                         LOGF_ERROR(
-                            "Exposure failed after %d attempts.", expRetry);
+                            "Exposure failed after %d attempts.", m_ExposureRetry);
                     }
+                    m_ExposureRetry = 0;
                     ASIStopExposure(m_camInfo->CameraID);
                     PrimaryCCD.setExposureFailed();
                     usleep(100000);

@@ -163,6 +163,7 @@ class ASICCD : public INDI::CCD
         struct timeval ExpStart;
         double ExposureRequest;
         double TemperatureRequest;
+        uint8_t m_ExposureRetry {0};
 
         ASI_CAMERA_INFO *m_camInfo;
         ASI_CONTROL_CAPS *pControlCaps;
