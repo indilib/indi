@@ -23,7 +23,6 @@ dsp_stream_p dsp_convolution_convolution(dsp_stream_p stream, dsp_stream_p matri
     dsp_buffer_clear(tmp);
     for(int y = 0; y < matrix->len; y++)
     {
-        double value = 0;
         int* pos = dsp_stream_get_position(matrix, y);
         int z = dsp_stream_set_position(stream, pos);
         for(int x = -matrix->len + 1; x < stream->len; x++)
