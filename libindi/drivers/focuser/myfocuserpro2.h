@@ -164,6 +164,8 @@ class MyFocuserPro2 : public INDI::Focuser
 
         int32_t minimumFirwareVersion=280;
 
+        int32_t fixedPollRate=1000;
+
         // Read Only Temperature Reporting
         INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;

@@ -78,6 +78,7 @@ MyFocuserPro2::MyFocuserPro2()
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
     setSupportedConnections(CONNECTION_SERIAL);
+    setVersion(0,1);
 
 
 }
@@ -150,8 +151,7 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitch(&ReverseDirectionS[REVERSE_DIRECTION_OFF], "REVERSE_DIRECTION_OFF","Off", ISS_OFF);
     IUFillSwitchVector(&ReverseDirectionSP, ReverseDirectionS, 2, getDeviceName(), "Reverse Direction", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,0, IPS_IDLE);
 
-    setDefaultPollingPeriod(500);
-    addDebugControl();
+    setDefaultPollingPeriod(fixedPollRate);
 
     return true;
 }
@@ -848,6 +848,7 @@ bool MyFocuserPro2::SetFocuserSpeed(int speed)
     return setSpeed(speed);
 }
 
+
 bool MyFocuserPro2::SetFocuserMaxPosition(uint32_t maxPos)
 {
     char cmd[ML_RES]= {0};
@@ -929,6 +930,8 @@ IPState MyFocuserPro2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 void MyFocuserPro2::TimerHit()
 {
+    POLLMS = fixedPollRate;
+
     if (!isConnected())
     {
         SetTimer(POLLMS);
