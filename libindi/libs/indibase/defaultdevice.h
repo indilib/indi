@@ -463,6 +463,8 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         }
 
         void setDefaultPollingPeriod(uint32_t period);
+        void setMinimumPollingPeriod(uint32_t period);
+        void setMaximumPollingPeriod(uint32_t period);
         uint32_t getPollingPeriod()
         {
             return static_cast<uint32_t>(PollPeriodN[0].value);

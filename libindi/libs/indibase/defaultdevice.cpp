@@ -1098,4 +1098,15 @@ void DefaultDevice::setDefaultPollingPeriod(uint32_t period)
     POLLMS = period;
 }
 
+void DefaultDevice::setMinimumPollingPeriod(uint32_t period)
+{
+    PollPeriodN[0].min = period;
+    IUUpdateMinMax(&PollPeriodNP);
+}
+
+void DefaultDevice::setMaximumPollingPeriod(uint32_t period)
+{
+    PollPeriodN[0].max = period;
+    IUUpdateMinMax(&PollPeriodNP);
+}
 }
