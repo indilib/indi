@@ -944,6 +944,15 @@ add_executable(indi_microtouch_focus ${microtouch_SRC})
 target_link_libraries(indi_microtouch_focus indidriver)
 install(TARGETS indi_microtouch_focus RUNTIME DESTINATION bin)
 
+################ Baader SteelDrive II Focuser ################
+
+SET(steeldrive2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/steeldrive2.cpp)
+
+add_executable(indi_steeldrive2_focus ${steeldrive2_SRC})
+target_link_libraries(indi_steeldrive2_focus indidriver)
+install(TARGETS indi_steeldrive2_focus RUNTIME DESTINATION bin)
+
 ################ Baader SteelDrive Focuser ################
 
 SET(steeldrive_SRC
