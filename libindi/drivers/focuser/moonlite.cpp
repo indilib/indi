@@ -171,7 +171,7 @@ bool MoonLite::Ack()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[5]= {0};
+    char resp[5] = {0};
     short pos = -1;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -220,7 +220,7 @@ bool MoonLite::Ack()
 
 bool MoonLite::readStepMode()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":GH#", res) == false)
         return false;
@@ -240,7 +240,7 @@ bool MoonLite::readStepMode()
 
 bool MoonLite::readTemperature()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     sendCommand(":C#");
 
@@ -263,7 +263,7 @@ bool MoonLite::readTemperature()
 
 bool MoonLite::readPosition()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":GP#", res) == false)
         return false;
@@ -284,7 +284,7 @@ bool MoonLite::readPosition()
 
 bool MoonLite::readSpeed()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":GD#", res) == false)
         return false;
@@ -313,7 +313,7 @@ bool MoonLite::readSpeed()
 
 bool MoonLite::isMoving()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":GI#", res) == false)
         return false;
@@ -329,30 +329,32 @@ bool MoonLite::isMoving()
 
 bool MoonLite::setTemperatureCalibration(double calibration)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     int cal = calibration * 2;
-    snprintf(cmd, ML_RES, ":PO%02X#", cal);
+    uint8_t hex = static_cast<uint8_t>(cal);
+    snprintf(cmd, ML_RES, ":PO%02X#", hex);
     return sendCommand(cmd);
 }
 
 bool MoonLite::setTemperatureCoefficient(double coefficient)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     int coeff = coefficient * 2;
-    snprintf(cmd, ML_RES, ":SC%02X#", coeff);
+    uint8_t hex = static_cast<uint8_t>(coeff);
+    snprintf(cmd, ML_RES, ":SC%02X#", hex);
     return sendCommand(cmd);
 }
 
 bool MoonLite::SyncFocuser(uint32_t ticks)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":SP%04X#", ticks);
     return sendCommand(cmd);
 }
 
 bool MoonLite::MoveFocuser(uint32_t position)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":SN%04X#", position);
     // Set Position First
     if (sendCommand(cmd) == false)
@@ -366,14 +368,14 @@ bool MoonLite::MoveFocuser(uint32_t position)
 
 bool MoonLite::setStepMode(FocusStepMode mode)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":S%c#", (mode == FOCUS_HALF_STEP) ? 'H' : 'F');
     return sendCommand(cmd);
 }
 
 bool MoonLite::setSpeed(uint16_t speed)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     int hex_value = 1;
     hex_value <<= speed;
     snprintf(cmd, ML_RES, ":SD%02X#", hex_value);
@@ -382,7 +384,7 @@ bool MoonLite::setSpeed(uint16_t speed)
 
 bool MoonLite::setTemperatureCompensation(bool enable)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":%c#", enable ? '+' : '-');
     return sendCommand(cmd);
 }
@@ -626,7 +628,7 @@ bool MoonLite::sendCommand(const char * cmd, char * res)
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
-        char errstr[MAXRBUF]= {0};
+        char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Serial write error: %s.", errstr);
         return false;
@@ -637,7 +639,7 @@ bool MoonLite::sendCommand(const char * cmd, char * res)
 
     if ((rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, ML_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        char errstr[MAXRBUF]= {0};
+        char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Serial read error: %s.", errstr);
         return false;

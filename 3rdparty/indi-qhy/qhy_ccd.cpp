@@ -663,13 +663,11 @@ bool QHYCCD::Connect()
         /// Read Modes
         ////////////////////////////////////////////////////////////////////
         ret = GetQHYCCDNumberOfReadModes(m_CameraHandle, &readModes);
-        if (ret == QHYCCD_SUCCESS)
+        if (ret == QHYCCD_SUCCESS && readModes > 0)
         {
             HasReadMode = true;
             LOGF_INFO("Number of read modes: %zu", readModes);
         }
-
-
 
         ////////////////////////////////////////////////////////////////////
         /// Shutter Support

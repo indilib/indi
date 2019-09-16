@@ -295,6 +295,10 @@
             <driver name="Baader SteelDrive">indi_steeldrive_focus</driver>
             <version>1.0</version>
         </device>
+        <device label="Baader SteelDriveII">
+            <driver name="Baader SteelDriveII">indi_steeldrive2_focus</driver>
+            <version>1.0</version>
+        </device>
         <device label="HitecAstro DC">
             <driver name="HitecAstro DC">indi_hitecastrodc_focus</driver>
             <version>0.2</version>

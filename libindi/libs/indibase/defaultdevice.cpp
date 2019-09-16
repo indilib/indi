@@ -83,10 +83,7 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
             LOG_DEBUG("Configuration successfully loaded.");
         }
         else
-            LOGF_WARN(
-                "Failed to load user configuration. %s. To save user configuration, click Save under the "
-                "Configuration property in the Options tab. ",
-                errmsg);
+            LOG_INFO("No previous configuration found. To save driver configuration, click Save Configuration in Options tab");
     }
 
     IUSaveDefaultConfig(nullptr, nullptr, deviceID);
@@ -1099,6 +1096,13 @@ void DefaultDevice::setDefaultPollingPeriod(uint32_t period)
 {
     PollPeriodN[0].value = period;
     POLLMS = period;
+}
+
+void DefaultDevice::setPollingPeriodRange(uint32_t minimum, uint32_t maximum)
+{
+    PollPeriodN[0].min = minimum;
+    PollPeriodN[0].max = maximum;
+    IUUpdateMinMax(&PollPeriodNP);
 }
 
 }
