@@ -883,6 +883,15 @@ add_executable(indi_moonlitedro_focus ${moonlitedro_SRC})
 target_link_libraries(indi_moonlitedro_focus indidriver)
 install(TARGETS indi_moonlitedro_focus RUNTIME DESTINATION bin)
 
+################ MyFocuserPro2 Focuser ################
+
+SET(myfocuserpro2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/myfocuserpro2.cpp)
+
+add_executable(indi_myfocuserpro2_focus ${myfocuserpro2_SRC})
+target_link_libraries(indi_myfocuserpro2_focus indidriver)
+install(TARGETS indi_myfocuserpro2_focus RUNTIME DESTINATION bin)
+
 ################ OnFocus Focuser ################
 
 SET(onfocus_SRC
