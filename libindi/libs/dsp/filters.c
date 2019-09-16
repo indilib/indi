@@ -20,8 +20,8 @@
 
 void dsp_filter_squarelaw(dsp_stream_p stream)
 {
-    dsp_t* in = stream->buf;
-    dsp_t *out = (dsp_t*)malloc(sizeof(dsp_t) * stream->len);
+    double* in = stream->buf;
+    double *out = (double*)malloc(sizeof(double) * stream->len);
     int len = stream->len;
     double mean = dsp_stats_mean(stream->buf, stream->len);
     int val = 0;
@@ -30,7 +30,7 @@ void dsp_filter_squarelaw(dsp_stream_p stream)
         val = in [i] - mean;
         out [i] = (abs (val) + mean);
     }
-    memcpy(stream->buf, out, stream->len * sizeof(dsp_t));
+    memcpy(stream->buf, out, stream->len * sizeof(double));
     free(out);
 }
 
@@ -44,7 +44,7 @@ void dsp_filter_calc_coefficients(double SamplingFrequency, double LowFrequency,
 
 void dsp_filter_lowpass(dsp_stream_p stream, double SamplingFrequency, double Frequency)
 {
-    dsp_t *out = (dsp_t*)malloc(sizeof(dsp_t) * stream->len);
+    double *out = (double*)malloc(sizeof(double) * stream->len);
     double CF = cos(Frequency / 2.0 * M_PI / SamplingFrequency);
     int dim = -1;
     out[0] = stream->buf[0];
@@ -54,13 +54,13 @@ void dsp_filter_lowpass(dsp_stream_p stream, double SamplingFrequency, double Fr
             out[i] += stream->buf[i] + (out[i - size] - stream->buf[i]) * CF;
         }
     }
-    memcpy(stream->buf, out, stream->len * sizeof(dsp_t));
+    memcpy(stream->buf, out, stream->len * sizeof(double));
     free(out);
 }
 
 void dsp_filter_highpass(dsp_stream_p stream, double SamplingFrequency, double Frequency)
 {
-    dsp_t *out = (dsp_t*)malloc(sizeof(dsp_t) * stream->len);
+    double *out = (double*)malloc(sizeof(double) * stream->len);
     double CF = cos(Frequency / 2.0 * M_PI / SamplingFrequency);
     int dim = -1;
     out[0] = stream->buf[0];
@@ -75,7 +75,7 @@ void dsp_filter_highpass(dsp_stream_p stream, double SamplingFrequency, double F
 }
 
 void dsp_filter_bandreject(dsp_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
-    dsp_t *out = (dsp_t*)malloc(sizeof(dsp_t) * stream->len);
+    double *out = (double*)malloc(sizeof(double) * stream->len);
     double R, K, CF;
     dsp_filter_calc_coefficients(SamplingFrequency, LowFrequency, HighFrequency, &CF, &R, &K);
     double R2 = R*R;
@@ -90,7 +90,7 @@ void dsp_filter_bandreject(dsp_stream_p stream, double SamplingFrequency, double
             out[i] = 0;
             if(i < stream->len - 2 * size) {
                 for(int x = 0; x < 3; x++) {
-                    out[i] += (dsp_t)stream->buf[i + x * size] * a[2 - x];
+                    out[i] += (double)stream->buf[i + x * size] * a[2 - x];
                 }
             }
             if(i > size) {
@@ -100,12 +100,12 @@ void dsp_filter_bandreject(dsp_stream_p stream, double SamplingFrequency, double
             }
         }
     }
-    memcpy(stream->buf, out, stream->len * sizeof(dsp_t));
+    memcpy(stream->buf, out, stream->len * sizeof(double));
     free(out);
 }
 
 void dsp_filter_bandpass(dsp_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
-    dsp_t *out = (dsp_t*)malloc(sizeof(dsp_t) * stream->len);
+    double *out = (double*)malloc(sizeof(double) * stream->len);
     double R, K, CF;
     dsp_filter_calc_coefficients(SamplingFrequency, LowFrequency, HighFrequency, &CF, &R, &K);
     double R2 = R*R;
@@ -120,7 +120,7 @@ void dsp_filter_bandpass(dsp_stream_p stream, double SamplingFrequency, double L
             out[i] = 0;
             if(i < stream->len - 2 * size) {
                 for(int x = 0; x < 3; x++) {
-                    out[i] += (dsp_t)stream->buf[i + x * size] * a[2 - x];
+                    out[i] += (double)stream->buf[i + x * size] * a[2 - x];
                 }
             }
             if(i > size) {
@@ -130,6 +130,6 @@ void dsp_filter_bandpass(dsp_stream_p stream, double SamplingFrequency, double L
             }
         }
     }
-    memcpy(stream->buf, out, stream->len * sizeof(dsp_t));
+    memcpy(stream->buf, out, stream->len * sizeof(double));
     free(out);
 }

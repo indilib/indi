@@ -22,15 +22,20 @@ void dsp_buffer_shift(dsp_stream_p stream)
 {
     if(stream->dims == 0)
         return;
-    dsp_t* out = (dsp_t*)malloc(sizeof(dsp_t) * stream->len);
-    for(int len = 1, dim = 0; dim < stream->dims; dim++, len *= stream->sizes[dim]) {
+    double* out = (double*)malloc(sizeof(double) * stream->len);
+    double* tmp = (double*)malloc(sizeof(double) * stream->len);
+    memcpy(out, stream->buf, stream->len * sizeof(double));
+    for(int len = stream->sizes[0], dim = 0; dim < stream->dims; dim++) {
         for(int y = 0; y < stream->len; y += len) {
             int offset = len / 2;
-            memcpy(&out[y], &stream->buf[y + offset], sizeof(dsp_t) * offset);
-            memcpy(&out[y + offset], &stream->buf[y], sizeof(dsp_t) * offset);
+            memcpy(&tmp[y], &out[y + offset], sizeof(double) * offset);
+            memcpy(&out[y + offset], &out[y], sizeof(double) * offset);
+            memcpy(&out[y], &tmp[y], sizeof(double) * offset);
         }
+        len *= stream->sizes[dim];
     }
-    memcpy(stream->buf, out, stream->len * sizeof(dsp_t));
+    free(tmp);
+    memcpy(stream->buf, out, stream->len * sizeof(double));
     free(out);
 }
 
@@ -46,13 +51,13 @@ void dsp_buffer_removemean(dsp_stream_p stream)
 {
     int k;
 
-    dsp_t mean = dsp_stats_mean(stream->buf, stream->len);
+    double mean = dsp_stats_mean(stream->buf, stream->len);
     for(k = 0; k < stream->len; k++)
         stream->buf[k] = stream->buf[k] - mean;
 
 }
 
-void dsp_buffer_sub(dsp_stream_p stream, dsp_t* in, int inlen)
+void dsp_buffer_sub(dsp_stream_p stream, double* in, int inlen)
 {
     int len = Min(stream->len, inlen);
 
@@ -63,7 +68,7 @@ void dsp_buffer_sub(dsp_stream_p stream, dsp_t* in, int inlen)
 
 }
 
-void dsp_buffer_sum(dsp_stream_p stream, dsp_t* in, int inlen)
+void dsp_buffer_sum(dsp_stream_p stream, double* in, int inlen)
 {
     int len = Min(stream->len, inlen);
 
@@ -118,7 +123,7 @@ void dsp_buffer_log(dsp_stream_p stream, double* in, int inlen)
 
 }
 
-void dsp_buffer_1sub(dsp_stream_p stream, dsp_t val)
+void dsp_buffer_1sub(dsp_stream_p stream, double val)
 {
     int k;
 
@@ -128,7 +133,7 @@ void dsp_buffer_1sub(dsp_stream_p stream, dsp_t val)
 
 }
 
-void dsp_buffer_sub1(dsp_stream_p stream, dsp_t val)
+void dsp_buffer_sub1(dsp_stream_p stream, double val)
 {
     int k;
 
@@ -138,7 +143,7 @@ void dsp_buffer_sub1(dsp_stream_p stream, dsp_t val)
 
 }
 
-void dsp_buffer_sum1(dsp_stream_p stream, dsp_t val)
+void dsp_buffer_sum1(dsp_stream_p stream, double val)
 {
 	int k;
 
@@ -200,8 +205,8 @@ void dsp_buffer_log1(dsp_stream_p stream, double val)
 
 static int compare( const void* a, const void* b)
 {
-     dsp_t int_a = * ( (dsp_t*) a );
-     dsp_t int_b = * ( (dsp_t*) b );
+     double int_a = * ( (double*) a );
+     double int_b = * ( (double*) b );
 
      if ( int_a == int_b ) return 0;
      else if ( int_a < int_b ) return -1;
@@ -213,10 +218,10 @@ void dsp_buffer_median(dsp_stream_p stream, int size, int median)
 
 	int k;
     int mid = (size / 2) + (size % 2);
-    dsp_t* sorted = (dsp_t*)malloc(size * sizeof(dsp_t));
+    double* sorted = (double*)malloc(size * sizeof(double));
     for(k = mid; k < stream->len; k++) {
-        memcpy (sorted, stream->buf + (k - mid), size * sizeof(dsp_t));
-        qsort(sorted, size, sizeof(dsp_t), compare);
+        memcpy (sorted, stream->buf + (k - mid), size * sizeof(double));
+        qsort(sorted, size, sizeof(double), compare);
         stream->buf[k] = sorted[median];
 	}
 
