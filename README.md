@@ -1,4 +1,4 @@
-# libindi
+# INDI Core Library
 [![Build Status](https://travis-ci.org/indilib/indi.svg?branch=master)](https://travis-ci.org/indilib/indi)
 [![CircleCI](https://circleci.com/gh/indilib/indi.svg?style=svg)](https://circleci.com/gh/indilib/indi)
 
@@ -23,7 +23,7 @@ INDI core library is composed of the following components:
 
 INDI core device drivers are shipped with INDI library by default. 
 
-INDI 3rd party drivers are available in a [https://github.com/indilib/indi-3rdparty](dedicated 3rdparty repository) and maintained by their respective owners.
+INDI 3rd party drivers are available in a [dedicated 3rdparty repository](https://github.com/indilib/indi-3rdparty) and maintained by their respective owners.
 
 Learn more about INDI:
 + [Features](http://indilib.org/about/features.html)
