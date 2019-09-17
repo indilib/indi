@@ -1,5 +1,4 @@
 # INDI Core Library
-[![Build Status](https://travis-ci.org/indilib/indi.svg?branch=master)](https://travis-ci.org/indilib/indi)
 [![CircleCI](https://circleci.com/gh/indilib/indi.svg?style=svg)](https://circleci.com/gh/indilib/indi)
 
 INDI is a standard for astronomical instrumentation control. INDI Library is an Open Source POSIX implementation of the
