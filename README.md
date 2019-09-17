@@ -5,10 +5,10 @@
 INDI is a standard for astronomical instrumentation control. INDI Library is an Open Source POSIX implementation of the
 [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf).
 
-The library is composed of the following components:
+INDI core library is composed of the following components:
 
 1. INDI Server.
-2. INDI Drivers: Hardware drivers that communicate with the equipment. Many devices are supported including:
+2. INDI Core Drivers: Hardware drivers that communicate with the equipment. Many devices are supported including:
 + Mounts
 + CCDs, CMOS, Webcams, DSLRs (Canon, Nikon, Sony, Pentax..etc).
 + Focusers.
@@ -21,7 +21,9 @@ The library is composed of the following components:
 + Auxiliary Devices (switches, watchdog, relays, light sources, measurement devices..etc).
 3. Client Library: Cross-platform POSIX and Qt5-based client libraries. The client libraries can be embedded in 3rd party applications to communicate with INDI server and devices.
 
-Core device drivers are shipped with INDI library by default. 3rd party drivers are also available in the repository and maintained by their respective owners.
+INDI core device drivers are shipped with INDI library by default. 
+
+INDI 3rd party drivers are available in a [https://github.com/indilib/indi-3rdparty](dedicated 3rdparty repository) and maintained by their respective owners.
 
 Learn more about INDI:
 + [Features](http://indilib.org/about/features.html)
@@ -39,49 +41,22 @@ On Debian/Ubuntu:
 sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtiff-dev libfftw3-dev
 ```
 ## Get the code
+If you plan on contributing to INDI development, then it is recommended to perform a full clone:
 ```
 git clone https://github.com/indilib/indi.git
-cd indi
-```
-## Build libindi
-
-```
-mkdir -p build/libindi
-cd build/libindi
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../libindi
-make
-sudo make install
 ```
 
-## Build 3rd party drivers
-
-You can build the all the 3rd party drivers at once (not recommended) or build the required 3rd party driver as required (recommended). Each 3rd party driver may have its own pre-requisites and requirements. For example, to build INDI EQMod driver:
-
+If on the other hand, you are only interested to build INDI library, then it is best to clone a shallow copy as this will be **much** faster and saves lots of space:
 ```
-cd build
-mkdir indi-eqmod
-cd indi-eqmod
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../3rdparty/indi-eqmod
-make
-sudo make install
+git clone --depth=1 https://github.com/indilib/indi.github
 ```
 
-The complete list of system dependancies for all drivers on Debian / Ubuntu
+## Build indi-core
 
 ```
-sudo apt-get install libftdi-dev libgps-dev libraw-dev libdc1394-22-dev libgphoto2-dev libboost-dev libboost-regex-dev librtlsdr-dev liblimesuite-dev libftdi1-dev
-```
-
-To build **all** 3rd party drivers, you need to run cmake and make install **twice**. First time is to install any dependencies of the 3rd party drivers (for example indi-qsi depends on libqsi), and second time to install the actual drivers themselves.
-
-```
-cd build
-mkdir 3rdparty
-cd 3rdparty
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../3rdparty
-make
-sudo make install
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../3rdparty
+mkdir -p build/indi-core
+cd build/indi-core
+cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../indi
 make
 sudo make install
 ```
@@ -167,9 +142,9 @@ In order to run the unit test suite you must first install the [Google Test Fram
 Once you have the Google Test Framework installed follow this alternative build sequence:-
 
 ```
-mkdir -p build/libindi
-cd build/libindi
-cmake -DINDI_BUILD_UNITTESTS=ON -DCMAKE_BUILD_TYPE=Debug ../../libindi
+mkdir -p build/indi
+cd build/indi
+cmake -DINDI_BUILD_UNITTESTS=ON -DCMAKE_BUILD_TYPE=Debug ../../indi
 make
 cd test
 ctest -V

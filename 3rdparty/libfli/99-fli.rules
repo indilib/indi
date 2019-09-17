@@ -1,2 +1,0 @@
-# All FLI Cameras and filter wheels
-SUBSYSTEMS=="usb", ATTR{idVendor}=="0f18", MODE="0666" 
