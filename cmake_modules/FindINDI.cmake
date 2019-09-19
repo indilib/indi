@@ -15,6 +15,7 @@
 #
 # The following variables will be defined for your use:
 #   - INDI_FOUND             : were all of your specified components found (include dependencies)?
+#   - INDI_WEBSOCKET         : was INDI compiled with websocket support?
 #   - INDI_INCLUDE_DIR       : INDI include directory
 #   - INDI_DATA_DIR          : INDI include directory
 #   - INDI_LIBRARIES         : INDI libraries
@@ -55,11 +56,11 @@
 # Using Components:
 #
 # You can search for specific components. Currently, the following components are available
-# * driver
-# * align
-# * client
-# * clientqt5
-# * lx200
+# * driver: to build INDI hardware drivers.
+# * align: to build drivers that use INDI Alignment Subsystem.
+# * client: to build pure C++ INDI clients.
+# * clientqt5: to build Qt5-based INDI clients.
+# * lx200: To build LX200-based 3rd party drivers (you must link with driver above as well).
 #
 # By default, if you do not specify any components, driver and align components are searched.
 #
@@ -67,17 +68,28 @@
 #
 # To use INDI Qt5 Client library only in your application:
 #
-# find_package(INDI CLIENTQT5 REQUIRED)
+# find_package(INDI COMPONENTS clientqt5 REQUIRED)
 #
 #   if(INDI_FOUND)
 #      include_directories(${INDI_INCLUDE_DIR})
 #      add_executable(myapp myapp.cpp)
-#      target_link_libraries(myapp ${INDI_CLIENTQT5_LIBRARIES})
+#      target_link_libraries(myapp ${INDI_LIBRARIES})
 #   endif(INDI_FOUND)
 #
-#=============================================================================
+# To use INDI driver + lx200 component in your application:
+#
+# find_package(INDI COMPONENTS driver lx200 REQUIRED)
+#
+#   if(INDI_FOUND)
+#      include_directories(${INDI_INCLUDE_DIR})
+#      add_executable(myapp myapp.cpp)
+#      target_link_libraries(myapp ${INDI_LIBRARIES})
+#   endif(INDI_FOUND)
+#
+# Notice we still use ${INDI_LIBRARIES} which now should contain both driver & lx200 libraries.
+#==============================================================================================
 # Copyright (c) 2011-2013, julp
-# Copyright (c) 2017 Jasem Mutlaq
+# Copyright (c) 2017-2019 Jasem Mutlaq
 #
 # Distributed under the OSI-approved BSD License
 #
@@ -172,6 +184,21 @@ find_path(
     DOC "Include directory for INDI"
 )
 
+find_path(
+    WEBSOCKET_HEADER
+    indiwsserver.h
+    PATH_SUFFIXES libindi
+    ${PC_INDI_INCLUDE_DIR}
+    ${_obIncDir}
+    ${GNUWIN32_DIR}/include
+)
+
+if (WEBSOCKET_HEADER)
+    SET(INDI_WEBSOCKET TRUE)
+else()
+    SET(INDI_WEBSOCKET FALSE)
+endif()
+
 find_path(${INDI_PUBLIC_VAR_NS}_DATA_DIR
     drivers.xml
     PATH_SUFFIXES share/indi
@@ -262,6 +289,7 @@ endif(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR)
 mark_as_advanced(
     ${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR
     ${INDI_PUBLIC_VAR_NS}_LIBRARIES
+    INDI_WEBSOCKET
 )
 
 # IN (args)
