@@ -26,6 +26,8 @@
 
 #define MAX_JOYSTICKS 3
 
+bool PS3 = 0;
+
 JoyStickDriver::JoyStickDriver()
 {
     active      = false;
@@ -79,6 +81,23 @@ bool JoyStickDriver::Connect()
         ioctl(joystick_fd, JSIOCGAXES, &axes);
         ioctl(joystick_fd, JSIOCGBUTTONS, &buttons);
 
+        /*
+         * Joystick Type:
+         * The default driver doesn't calculate Game Controller Joysticks well.
+         * Try to identify 3-Axis game controllers
+         * PS4 name is "Sony Interactive Entertainment Wireless Controller"
+         * X-Box One is "Microsoft X-Box One S pad"
+         * For now I inialize a boolean PS3 to False presumably 2-axis.
+         * And set PS3 to True if name appears to be a PS or Xbox controller.
+        */
+        if(strstr(name,"Controller") != NULL)
+                PS3=1;
+
+        else if(strstr(name,"X-Box") != NULL)
+                PS3=1;
+        else
+                PS3=0;
+
         joystick_st->axis.reserve(axes);
         joystick_st->button.reserve(buttons);
         active = true;
@@ -112,6 +131,7 @@ void *JoyStickDriver::loop(void *obj)
 
 void JoyStickDriver::readEv()
 {
+joystick_position pos;
     int bytes = read(joystick_fd, joystick_ev, sizeof(*joystick_ev));
     if (bytes > 0)
     {
@@ -124,28 +144,56 @@ void JoyStickDriver::readEv()
         if (joystick_ev->type & JS_EVENT_AXIS)
         {
             joystick_st->axis[joystick_ev->number] = joystick_ev->value;
-            int joystick_n                         = joystick_ev->number;
-            if (joystick_n % 2 != 0)
-                joystick_n--;
-            if (joystick_n / 2.0 < MAX_JOYSTICKS)
-            {
-                joystick_position pos = joystickPosition(joystick_n);
+	    
+	    if(!PS3){
+            	int joystick_n                         = joystick_ev->number;
+            	if (joystick_n % 2 != 0)
+                	joystick_n--;
+            	if (joystick_n / 2.0 < MAX_JOYSTICKS)
+            	{
+                	pos = joystickPosition(joystick_n);
 
-                // Reject noise
-                if (pos.r < 0.001)
-                {
-                    pos.r = 0;
-                    pos.theta = 0;
-                }
+                	// Reject noise
+                	if (pos.r < 0.001)
+                	{
+                    	pos.r = 0;
+                    	pos.theta = 0;
+                	}
 
-                joystickCallbackFunc(joystick_n / 2, pos.r, pos.theta);
-            }
+                	joystickCallbackFunc(joystick_n / 2, pos.r, pos.theta);
+            	}
 
-            axisCallbackFunc(joystick_ev->number, joystick_ev->value);
+	    }else{
+        	// Game Controllers like PS3 maybe XBOX
+
+        	switch(joystick_ev->number) {
+                	case 0:
+                	case 1:
+                        	pos = joystickPosition(0);
+                        	joystickCallbackFunc(0, pos.r, pos.theta);
+                        	break;
+                	case 3:
+                	case 4:
+                        	pos = joystickPosition(3);
+                        	joystickCallbackFunc(1, pos.r, pos.theta);
+                        	break;
+                	case 6:
+                	case 7:
+                        	pos = joystickPosition(6);
+                        	joystickCallbackFunc(2, pos.r, pos.theta);
+                        	break;
+                	default:
+                        	break;
+            	} //switch
+	    }
+            
+	    axisCallbackFunc(joystick_ev->number, joystick_ev->value);
+
         }
     }
     else
         usleep(pollMS * 1000);
+
 }
 
 joystick_position JoyStickDriver::joystickPosition(int n)
@@ -244,13 +292,21 @@ __u32 JoyStickDriver::getVersion()
 
 __u8 JoyStickDriver::getNumOfJoysticks()
 {
-    int n_joysticks = axes / 2;
+int n_joysticks;
+
+if(PS3){
+        n_joysticks = MAX_JOYSTICKS;
+}else{
+
+    n_joysticks = axes / 2;
 
     if (axes % 2 != 0)
         n_joysticks++;
 
     if (n_joysticks > MAX_JOYSTICKS)
         n_joysticks = MAX_JOYSTICKS;
+
+}
 
     return n_joysticks;
 }
