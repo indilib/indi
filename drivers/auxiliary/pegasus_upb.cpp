@@ -174,9 +174,9 @@ bool PegasusUPB::initProperties()
 
     // Over Current
     IUFillLight(&OverCurrentL[0], "POWER_PORT_1", PowerControlS[0].label, IPS_OK);
-    IUFillLight(&OverCurrentL[1], "POWER_PORT_1", PowerControlS[1].label, IPS_OK);
-    IUFillLight(&OverCurrentL[2], "POWER_PORT_1", PowerControlS[2].label, IPS_OK);
-    IUFillLight(&OverCurrentL[3], "POWER_PORT_1", PowerControlS[3].label, IPS_OK);
+    IUFillLight(&OverCurrentL[1], "POWER_PORT_2", PowerControlS[1].label, IPS_OK);
+    IUFillLight(&OverCurrentL[2], "POWER_PORT_3", PowerControlS[2].label, IPS_OK);
+    IUFillLight(&OverCurrentL[3], "POWER_PORT_4", PowerControlS[3].label, IPS_OK);
     IUFillLight(&OverCurrentL[4], "DEW_A", "Dew A", IPS_OK);
     IUFillLight(&OverCurrentL[5], "DEW_B", "Dew B", IPS_OK);
     IUFillLight(&OverCurrentL[6], "DEW_C", "Dew C", IPS_OK);
