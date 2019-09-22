@@ -89,10 +89,19 @@ bool SteelDriveII::initProperties()
 {
     INDI::Focuser::initProperties();
 
+    // Focuser Information
+    IUFillText(&InfoT[INFO_NAME], "INFO_NAME", "Name", "NA");
+    IUFillText(&InfoT[INFO_VERSION], "INFO_VERSION", "Version", "NA");
+    IUFillTextVector(&InfoTP, InfoT, 2, getDeviceName(), "INFO", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+
+    // Focuser Device Operation
+    IUFillSwitch(&OperationS[OPERATION_REBOOT], "OPERATION_REBOOT", "Reboot", ISS_OFF);
+    IUFillSwitch(&OperationS[OPERATION_RESET], "OPERATION_RESET", "Factory Reset", ISS_OFF);
+    IUFillSwitch(&OperationS[OPERATION_ZEROING], "OPERATION_ZEROING", "Zero Home", ISS_OFF);
+    IUFillSwitchVector(&OperationSP, OperationS, 3, getDeviceName(), "OPERATION", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     addAuxControls();
-
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
-
     setDefaultPollingPeriod(500);
 
     return true;
@@ -108,10 +117,15 @@ bool SteelDriveII::updateProperties()
     if (isConnected())
     {
         getStartupValues();
+
+        defineText(&InfoTP);
+        defineSwitch(&OperationSP);
+
     }
     else
     {
-
+        deleteProperty(InfoTP.name);
+        deleteProperty(OperationSP.name);
     }
 
     return true;
@@ -122,7 +136,14 @@ bool SteelDriveII::updateProperties()
 /////////////////////////////////////////////////////////////////////////////
 bool SteelDriveII::Handshake()
 {
-    return false;
+    std::string version;
+
+    if (!getParameter("VERSION", version))
+        return false;
+
+    LOGF_INFO("Detected version %s", version.c_str());
+
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -140,6 +161,72 @@ bool SteelDriveII::ISNewSwitch(const char *dev, const char *name, ISState *state
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (!strcmp(OperationSP.name, name))
+        {
+            IUUpdateSwitch(&OperationSP, states, names, n);
+            if (OperationS[OPERATION_RESET].s == ISS_ON)
+            {
+                IUResetSwitch(&OperationSP);
+                if (m_ConfirmFactoryReset == false)
+                {
+                    LOG_WARN("Click button again to confirm factory reset.");
+                    OperationSP.s = IPS_IDLE;
+                    IDSetSwitch(&OperationSP, nullptr);
+                    return true;
+                }
+                else
+                {
+                    m_ConfirmFactoryReset = false;
+                    if (!sendCommandOK("RESET"))
+                    {
+                        OperationSP.s = IPS_ALERT;
+                        LOG_ERROR("Failed to reset to factory settings.");
+                        IDSetSwitch(&OperationSP, nullptr);
+                        return true;
+                    }
+                }
+            }
+
+            if (OperationS[OPERATION_REBOOT].s == ISS_ON)
+            {
+                IUResetSwitch(&OperationSP);
+                if (!sendCommand("REBOOT"))
+                {
+                    OperationSP.s = IPS_ALERT;
+                    LOG_ERROR("Failed to reboot device.");
+                    IDSetSwitch(&OperationSP, nullptr);
+                    return true;
+                }
+
+                LOG_INFO("Device is rebooting...");
+                OperationSP.s = IPS_OK;
+                IDSetSwitch(&OperationSP, nullptr);
+                return true;
+            }
+
+            if (OperationS[OPERATION_ZEROING].s == ISS_ON)
+            {
+                if (!sendCommandOK("SET USE_ENDSTOP:1"))
+                {
+                    LOG_WARN("Failed to enable homing sensor magnet!");
+                }
+
+                if (!sendCommandOK("ZEROING"))
+                {
+                    IUResetSwitch(&OperationSP);
+                    LOG_ERROR("Failed to zero to home position.");
+                    OperationSP.s = IPS_ALERT;
+                }
+                else
+                {
+                    OperationSP.s = IPS_BUSY;
+                    LOG_INFO("Zeroing to home position in progress...");
+                }
+
+                IDSetSwitch(&OperationSP, nullptr);
+                return true;
+            }
+        }
 
     }
 
@@ -160,30 +247,13 @@ bool SteelDriveII::ISNewNumber(const char *dev, const char *name, double values[
 }
 
 /////////////////////////////////////////////////////////////////////////////
-///
+/// Sync focuser
 /////////////////////////////////////////////////////////////////////////////
-void SteelDriveII::getStartupValues()
+bool SteelDriveII::SyncFocuser(uint32_t ticks)
 {
-}
-
-/////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////
-bool SteelDriveII::SetFocuserSpeed(int speed)
-{
-    INDI_UNUSED(speed);
-    return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////
-IPState SteelDriveII::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
-{
-    INDI_UNUSED(dir);
-    INDI_UNUSED(speed);
-    INDI_UNUSED(duration);
-    return IPS_BUSY;
+    char cmd[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "SET POS:%u", ticks);
+    return sendCommandOK(cmd);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -191,8 +261,17 @@ IPState SteelDriveII::MoveFocuser(FocusDirection dir, int speed, uint16_t durati
 /////////////////////////////////////////////////////////////////////////////
 IPState SteelDriveII::MoveAbsFocuser(uint32_t targetTicks)
 {
-    INDI_UNUSED(targetTicks);
-    return IPS_BUSY;
+    if (targetTicks < std::stoul(m_Summary[LIMIT]))
+    {
+        char cmd[DRIVER_LEN] = {0};
+        snprintf(cmd, DRIVER_LEN, "GO %u", targetTicks);
+        if (!sendCommandOK(cmd))
+            return IPS_ALERT;
+
+        return IPS_BUSY;
+    }
+
+    return IPS_ALERT;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -200,9 +279,16 @@ IPState SteelDriveII::MoveAbsFocuser(uint32_t targetTicks)
 /////////////////////////////////////////////////////////////////////////////
 IPState SteelDriveII::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    INDI_UNUSED(dir);
-    INDI_UNUSED(ticks);
-    return IPS_BUSY;
+    uint32_t limit = std::stoul(m_Summary[LIMIT]);
+
+    int reversed = FocusReverseS[REVERSED_ENABLED].s == ISS_ON ? -1 : 1;
+
+    int targetAbsPosition = (dir == FOCUS_INWARD) ? FocusAbsPosN[0].value - (ticks * reversed)
+                            : FocusAbsPosN[0].value + (ticks * reversed);
+
+    targetAbsPosition = std::min(limit, static_cast<uint32_t>(std::max(static_cast<int>(FocusAbsPosN[0].min), targetAbsPosition)));
+
+    return MoveAbsFocuser(targetAbsPosition);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -213,6 +299,55 @@ void SteelDriveII::TimerHit()
     if (!isConnected())
         return;
 
+    getSummary();
+
+    uint32_t summaryPosition = std::stoul(m_Summary[POSITION]);
+
+    // Check if we're idle but the focuser is in motion
+    if (FocusAbsPosNP.s != IPS_BUSY && (m_State == GOING_UP || m_State == GOING_DOWN))
+    {
+        IUResetSwitch(&FocusMotionSP);
+        FocusMotionS[FOCUS_INWARD].s = (m_State == GOING_DOWN) ? ISS_ON : ISS_OFF;
+        FocusMotionS[FOCUS_OUTWARD].s = (m_State == GOING_DOWN) ? ISS_OFF : ISS_ON;
+        FocusMotionSP.s = IPS_BUSY;
+        FocusAbsPosNP.s = FocusRelPosNP.s = IPS_BUSY;
+        FocusAbsPosN[0].value = summaryPosition;
+
+        IDSetSwitch(&FocusMotionSP, nullptr);
+        IDSetNumber(&FocusRelPosNP, nullptr);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+    }
+    else if (FocusAbsPosNP.s == IPS_BUSY && (m_State == STOPPED || m_State == ZEROED))
+    {
+        if (OperationSP.s == IPS_BUSY)
+        {
+            IUResetSwitch(&OperationSP);
+            LOG_INFO("Homing is complete");
+            OperationSP.s = IPS_OK;
+            IDSetSwitch(&OperationSP, nullptr);
+        }
+
+        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosN[0].value = summaryPosition;
+        if (FocusRelPosNP.s == IPS_BUSY)
+        {
+            FocusRelPosNP.s = IPS_OK;
+            IDSetNumber(&FocusRelPosNP, nullptr);
+        }
+        if (FocusMotionSP.s == IPS_BUSY)
+        {
+            FocusMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&FocusMotionSP, nullptr);
+        }
+
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+    }
+    else if (std::fabs(FocusAbsPosN[0].value - summaryPosition) > 0)
+    {
+        FocusAbsPosN[0].value = summaryPosition;
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+    }
+
     SetTimer(POLLMS);
 }
 
@@ -221,6 +356,25 @@ void SteelDriveII::TimerHit()
 /////////////////////////////////////////////////////////////////////////////
 bool SteelDriveII::AbortFocuser()
 {
+    return sendCommandOK("STOP");
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Reverse Focuser Motion
+/////////////////////////////////////////////////////////////////////////////
+bool SteelDriveII::SetFocuserMaxPosition(uint32_t ticks)
+{
+    char cmd[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "SET LIMIT:%u", ticks);
+    return sendCommandOK(cmd);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Reverse Focuser Motion
+/////////////////////////////////////////////////////////////////////////////
+bool SteelDriveII::ReverseFocuser(bool enabled)
+{
+    INDI_UNUSED(enabled);
     return true;
 }
 
@@ -231,6 +385,89 @@ bool SteelDriveII::saveConfigItems(FILE *fp)
 {
     INDI::Focuser::saveConfigItems(fp);
     return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Get Startup values
+/////////////////////////////////////////////////////////////////////////////
+void SteelDriveII::getStartupValues()
+{
+    std::string value;
+
+    if (getParameter("NAME", value))
+        IUSaveText(&InfoT[INFO_VERSION], value.c_str());
+
+    if (getParameter("VERSION", value))
+        IUSaveText(&InfoT[INFO_VERSION], value.c_str());
+
+    getSummary();
+
+    FocusMaxPosN[0].value = std::stoul(m_Summary[LIMIT]);
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Get Focuser State
+/////////////////////////////////////////////////////////////////////////////
+bool SteelDriveII::getSummary()
+{
+    char res[DRIVER_LEN] = {0};
+
+    if (!sendCommand("SUMMARY", res))
+        return false;
+
+    std::vector<std::string> params = split(res, ";");
+    if (params.size() != 8)
+        return false;
+
+    for (int i = 0; i < 10; i++)
+    {
+        std::vector<std::string> value = split(params[i], ":");
+        m_Summary[static_cast<Summary>(i)] = value[1];
+    }
+
+    if (m_Summary[STATE] == "GOING_UP")
+        m_State = GOING_UP;
+    else if (m_Summary[STATE] == "GOING_DOWN")
+        m_State = GOING_DOWN;
+    else if (m_Summary[STATE] == "STOPPED")
+        m_State = STOPPED;
+    else if (m_Summary[STATE] == "ZEROED")
+        m_State = ZEROED;
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Get Single Parameter
+/////////////////////////////////////////////////////////////////////////////
+bool SteelDriveII::getParameter(const std::string &parameter, std::string &value)
+{
+    char res[DRIVER_LEN] = {0};
+
+    if (sendCommand(parameter.c_str(), res) == false)
+        return false;
+
+    std::vector<std::string> values = split(res, ":");
+    if (values.size() != 2)
+        return false;
+
+    value = values[1];
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Send Command
+/////////////////////////////////////////////////////////////////////////////
+bool SteelDriveII::sendCommandOK(const char * cmd)
+{
+    char res[DRIVER_LEN] = {0};
+
+    if (!sendCommand(cmd, res))
+        return false;
+
+    return strstr(res, "OK");
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -254,7 +491,7 @@ bool SteelDriveII::sendCommand(const char * cmd, char * res, int cmd_len, int re
         LOGF_DEBUG("CMD <%s>", cmd);
 
         char formatted_command[DRIVER_LEN] = {0};
-        snprintf(formatted_command, DRIVER_LEN, "%s\r", cmd);
+        snprintf(formatted_command, DRIVER_LEN, "$BS %s\r\n", cmd);
         rc = tty_write_string(PortFD, formatted_command, &nbytes_written);
     }
 
@@ -290,8 +527,10 @@ bool SteelDriveII::sendCommand(const char * cmd, char * res, int cmd_len, int re
     }
     else
     {
-        // Remove extra \r
-        res[nbytes_read - 1] = 0;
+        // Remove extra \r\n
+        res[nbytes_read - 2] = 0;
+        // Remove the $BS
+        strncpy(res, res + 4, DRIVER_LEN);
         LOGF_DEBUG("RES <%s>", res);
     }
 
