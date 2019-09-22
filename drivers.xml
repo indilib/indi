@@ -259,6 +259,10 @@
             <driver name="MoonLite DRO">indi_moonlitedro_focus</driver>
             <version>1.0</version>
         </device>
+        <device label="MyFocuserPro2">
+            <driver name="MyFocuserPro2">indi_myfocuserpro2_focus</driver>
+            <version>0.1</version>
+        </device>
         <device label="DeepSkyDad AF1">
             <driver name="DeepSkyDad AF1">indi_deepskydad_af1_focus</driver>
             <version>1.0</version>
