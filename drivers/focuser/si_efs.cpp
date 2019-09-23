@@ -230,9 +230,16 @@ IPState SIEFS::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState SIEFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    uint32_t finalTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+    int direction = (dir == FOCUS_INWARD) ? -1 : 1;
+    int reversed = (FocusReverseS[REVERSED_ENABLED].s == ISS_ON) ? -1 : 1;
+    int relative = static_cast<int>(ticks);
 
-    return MoveAbsFocuser(finalTicks);
+    int targetAbsPosition = FocusAbsPosN[0].value + (relative * direction * reversed);
+
+    targetAbsPosition = std::min(static_cast<uint32_t>(FocusMaxPosN[0].value)
+                                 , static_cast<uint32_t>(std::max(static_cast<int>(FocusAbsPosN[0].min), targetAbsPosition)));
+
+    return MoveAbsFocuser(targetAbsPosition);
 }
 
 bool SIEFS::setPosition(uint32_t ticks, uint8_t cmdCode)
@@ -247,7 +254,7 @@ bool SIEFS::setPosition(uint32_t ticks, uint8_t cmdCode)
     command[0] = cmdCode + 8;
     command[1] = (ticks & 0x40000) >> 16;
 
-    LOGF_DEBUG("Set %s Position (%ld)", ticks, cmdCode == 0x20 ? "Absolute" : "Maximum");
+    LOGF_DEBUG("Set %s Position (%ld)", cmdCode == 0x20 ? "Absolute" : "Maximum", ticks);
     LOGF_DEBUG("CMD <%02X %02X>", command[0], command[1]);
 
     if (isSimulation())
