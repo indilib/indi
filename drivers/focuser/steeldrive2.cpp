@@ -506,10 +506,12 @@ bool SteelDriveII::sendCommand(const char * cmd, char * res, int cmd_len, int re
     if (res == nullptr)
         return true;
 
+    char rawResponse[DRIVER_LEN * 2] = {0};
+
     if (res_len > 0)
         rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
     else
-        rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
+        rc = tty_nread_section(PortFD, rawResponse, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
 
     if (rc != TTY_OK)
     {
@@ -528,9 +530,9 @@ bool SteelDriveII::sendCommand(const char * cmd, char * res, int cmd_len, int re
     else
     {
         // Remove extra \r\n
-        res[nbytes_read - 2] = 0;
+        rawResponse[nbytes_read - 2] = 0;
         // Remove the $BS
-        strncpy(res, res + 4, DRIVER_LEN - 4);
+        strncpy(res, rawResponse + 4, DRIVER_LEN);
         LOGF_DEBUG("RES <%s>", res);
     }
 
