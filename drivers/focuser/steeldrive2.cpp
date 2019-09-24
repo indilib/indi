@@ -281,7 +281,7 @@ IPState SteelDriveII::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     uint32_t limit = std::stoul(m_Summary[LIMIT]);
 
-    int reversed = FocusReverseS[REVERSED_ENABLED].s == ISS_ON ? -1 : 1;
+    int reversed = (FocusReverseS[REVERSED_ENABLED].s == ISS_ON) ? -1 : 1;
 
     int targetAbsPosition = (dir == FOCUS_INWARD) ? FocusAbsPosN[0].value - (ticks * reversed)
                             : FocusAbsPosN[0].value + (ticks * reversed);
