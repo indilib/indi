@@ -348,10 +348,10 @@ void SteelDriveII::TimerHit()
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
-    if (std::fabs(FocusAbsPosN[0].value - std::stoul(m_Summary[LIMIT])) > 0)
+    if (std::fabs(FocusMaxPosN[0].value - std::stoul(m_Summary[LIMIT])) > 0)
     {
-        FocusAbsPosN[0].value = std::stoul(m_Summary[LIMIT]);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusMaxPosN[0].value = std::stoul(m_Summary[LIMIT]);
+        IDSetNumber(&FocusMaxPosNP, nullptr);
     }
     SetTimer(POLLMS);
 }
