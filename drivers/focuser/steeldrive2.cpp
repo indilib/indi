@@ -348,6 +348,11 @@ void SteelDriveII::TimerHit()
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
+    if (std::fabs(FocusAbsPosN[0].value - std::stoul(m_Summary[LIMIT])) > 0)
+    {
+        FocusAbsPosN[0].value = std::stoul(m_Summary[LIMIT]);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+    }
     SetTimer(POLLMS);
 }
 
@@ -395,7 +400,7 @@ void SteelDriveII::getStartupValues()
     std::string value;
 
     if (getParameter("NAME", value))
-        IUSaveText(&InfoT[INFO_VERSION], value.c_str());
+        IUSaveText(&InfoT[INFO_NAME], value.c_str());
 
     if (getParameter("VERSION", value))
         IUSaveText(&InfoT[INFO_VERSION], value.c_str());
@@ -403,6 +408,7 @@ void SteelDriveII::getStartupValues()
     getSummary();
 
     FocusMaxPosN[0].value = std::stoul(m_Summary[LIMIT]);
+    IDSetNumber(&FocusMaxPosNP, nullptr);
 
 }
 
