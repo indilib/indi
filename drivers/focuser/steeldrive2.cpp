@@ -445,7 +445,8 @@ bool SteelDriveII::getParameter(const std::string &parameter, std::string &value
 {
     char res[DRIVER_LEN] = {0};
 
-    if (sendCommand(parameter.c_str(), res) == false)
+    std::string cmd = "GET " + parameter;
+    if (sendCommand(cmd.c_str(), res) == false)
         return false;
 
     std::vector<std::string> values = split(res, ":");
