@@ -417,7 +417,7 @@ bool SteelDriveII::getSummary()
         return false;
 
     std::vector<std::string> params = split(res, ";");
-    if (params.size() != 8)
+    if (params.size() != 10)
         return false;
 
     for (int i = 0; i < 10; i++)
