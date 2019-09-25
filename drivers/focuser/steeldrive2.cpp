@@ -301,7 +301,7 @@ void SteelDriveII::TimerHit()
 
     getSummary();
 
-    uint32_t summaryPosition = std::stoul(m_Summary[POSITION]);
+    uint32_t summaryPosition = std::max(0, std::stoi(m_Summary[POSITION]));
 
     // Check if we're idle but the focuser is in motion
     if (FocusAbsPosNP.s != IPS_BUSY && (m_State == GOING_UP || m_State == GOING_DOWN))
