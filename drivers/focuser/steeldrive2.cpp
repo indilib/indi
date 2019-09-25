@@ -512,7 +512,12 @@ bool SteelDriveII::sendCommand(const char * cmd, char * res, int cmd_len, int re
     if (res_len > 0)
         rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
     else
+    {
+        // Read echo
+        tty_nread_section(PortFD, rawResponse, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
+        // Read actual respose
         rc = tty_nread_section(PortFD, rawResponse, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
+    }
 
     if (rc != TTY_OK)
     {
