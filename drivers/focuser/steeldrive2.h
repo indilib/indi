@@ -31,7 +31,7 @@ class SteelDriveII : public INDI::Focuser
         SteelDriveII();
 
         typedef enum { GOING_UP, GOING_DOWN, STOPPED, ZEROED } State;
-        typedef enum { NAME, POSITION, STATE, LIMIT, FOCUS, TEMP0, TEMP1, TEMP_AVG, TCOMP, PWM } Summary;
+        typedef enum { NAME, POSITION, STATE, LIMIT, FOCUS, TEMP0, TEMP1, TEMPAVG, TCOMP, PWM } Summary;
 
         virtual bool Handshake();
         const char *getDefaultName();
@@ -104,6 +104,44 @@ class SteelDriveII : public INDI::Focuser
             OPERATION_ZEROING,
         };
 
+        // Temperature Compensation
+        ISwitchVectorProperty TemperatureCompensationSP;
+        ISwitch TemperatureCompensationS[2];
+        enum
+        {
+            TC_ENABLED,
+            TC_DISABLED
+        };
+
+        // TC State
+        ISwitchVectorProperty TemperatureStateSP;
+        ISwitch TemperatureStateS[2];
+        enum
+        {
+            TC_ACTIVE,
+            TC_PAUSED
+        };
+
+        // Temperature Compensation Settings
+        INumberVectorProperty TemperatureSettingsNP;
+        INumber TemperatureSettingsN[3];
+        enum
+        {
+            TC_FACTOR,
+            TC_PERIOD,
+            TC_DELTA
+        };
+
+        // Temperature Sensors
+        INumberVectorProperty TemperatureSensorNP;
+        INumber TemperatureSensorN[3];
+        enum
+        {
+            TEMP_0,
+            TEMP_1,
+            TEMP_AVG
+        };
+
         /////////////////////////////////////////////////////////////////////////////
         /// Private variables
         /////////////////////////////////////////////////////////////////////////////
@@ -115,6 +153,7 @@ class SteelDriveII : public INDI::Focuser
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
         static constexpr const char * SETTINGS_TAB = "Settings";
+        static constexpr const char * COMPENSATION_TAB = "Compensation";
         // 0xA is the stop char
         static const char DRIVER_STOP_CHAR { 0x0A };
         // Wait up to a maximum of 3 seconds for serial input

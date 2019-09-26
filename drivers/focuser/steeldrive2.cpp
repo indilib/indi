@@ -100,6 +100,29 @@ bool SteelDriveII::initProperties()
     IUFillSwitch(&OperationS[OPERATION_ZEROING], "OPERATION_ZEROING", "Zero Home", ISS_OFF);
     IUFillSwitchVector(&OperationSP, OperationS, 3, getDeviceName(), "OPERATION", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // Temperature Compensation
+    IUFillSwitch(&TemperatureCompensationS[TC_ENABLED], "TC_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensationS[TC_DISABLED], "TC_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&TemperatureCompensationSP, TemperatureCompensationS, 2, getDeviceName(), "TC_COMPENSATE", "Compensation", COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // TC State
+    IUFillSwitch(&TemperatureStateS[TC_ENABLED], "TC_ACTIVE", "Active", ISS_OFF);
+    IUFillSwitch(&TemperatureStateS[TC_DISABLED], "TC_PAUSED", "Paused", ISS_ON);
+    IUFillSwitchVector(&TemperatureStateSP, TemperatureStateS, 2, getDeviceName(), "TC_State", "State", COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Temperature Compensation Settings
+    IUFillNumber(&TemperatureSettingsN[TC_FACTOR], "TC_FACTOR", "Factor", "%.2f", 0, 1, 0.1, 0);
+    IUFillNumber(&TemperatureSettingsN[TC_PERIOD], "TC_PERIOD", "Period (ms)", "%.f", 10, 600000, 1000, 0);
+    IUFillNumber(&TemperatureSettingsN[TC_DELTA], "TC_DELTA", "Delta (C)", "%.2f", 0, 10, 0.1, 0);
+    IUFillNumberVector(&TemperatureSettingsNP, TemperatureSettingsN, 3, getDeviceName(), "TC_SETTINGS", "Settings", COMPENSATION_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Temperature Sensors
+    IUFillNumber(&TemperatureSensorN[TEMP_0], "TEMP_0", "Motor (C)", "%.2f", -60, 60, 0, 0);
+    IUFillNumber(&TemperatureSensorN[TEMP_1], "TEMP_1", "Controller (C)", "%.f", -60, 60, 0, 0);
+    IUFillNumber(&TemperatureSensorN[TEMP_AVG], "TEMP_AVG", "Average (C)", "%.2f", -60, 60, 0, 0);
+    IUFillNumberVector(&TemperatureSensorNP, TemperatureSensorN, 3, getDeviceName(), "TC_SENSOR", "Sensor", COMPENSATION_TAB, IP_RO, 60, IPS_IDLE);
+
+
     addAuxControls();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     setDefaultPollingPeriod(500);
@@ -121,11 +144,20 @@ bool SteelDriveII::updateProperties()
         defineText(&InfoTP);
         defineSwitch(&OperationSP);
 
+        defineSwitch(&TemperatureCompensationSP);
+        defineSwitch(&TemperatureStateSP);
+        defineNumber(&TemperatureSettingsNP);
+        defineNumber(&TemperatureSensorNP);
     }
     else
     {
         deleteProperty(InfoTP.name);
         deleteProperty(OperationSP.name);
+
+        deleteProperty(TemperatureCompensationSP.name);
+        deleteProperty(TemperatureStateSP.name);
+        deleteProperty(TemperatureSettingsNP.name);
+        deleteProperty(TemperatureSensorNP.name);
     }
 
     return true;
