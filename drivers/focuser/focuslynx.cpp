@@ -187,9 +187,8 @@ bool FocusLynxF1::Connect()
         PortFD = -1;
         SetTimer(POLLMS);
     }
-    else
-        if (!INDI::Focuser::Connect())
-            return false;
+    else if (!INDI::Focuser::Connect())
+        return false;
     return Handshake();
 }
 
@@ -204,9 +203,8 @@ bool FocusLynxF1::Disconnect()
     // Get value of PortFD, should be -1
     if (getActiveConnection() == serialConnection)
         PortFD = serialConnection->getPortFD();
-    else
-        if (getActiveConnection() == tcpConnection)
-            PortFD = tcpConnection->getPortFD();
+    else if (getActiveConnection() == tcpConnection)
+        PortFD = tcpConnection->getPortFD();
     // Then we have to disconnect the second focuser F2
     lynxDriveF2->RemoteDisconnect();
 
@@ -264,14 +262,14 @@ bool FocusLynxF1::updateProperties()
 * ***********************************************************************************/
 bool FocusLynxF1::getHubConfig()
 {
-    char cmd[32]={0};
+    char cmd[32] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[32]={0};
+    char response[32] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
-    char key[16]={0};
-    char text[32]={0};
+    char key[16] = {0};
+    char text[32] = {0};
 
     /* Answer from the HUB
      <FHGETHUBINFO>!
@@ -296,7 +294,7 @@ bool FocusLynxF1::getHubConfig()
     memset(response, 0, sizeof(response));
 
     strncpy(cmd, "<FHGETHUBINFO>", 16);
-    LOGF_DEBUG("CMD (%s)", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if (isSimulation())
     {
@@ -326,7 +324,7 @@ bool FocusLynxF1::getHubConfig()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        LOGF_DEBUG("RES (%s)", response);
+        LOGF_DEBUG("RES <%s>", response);
 
         if (strcmp(response, "HUB INFO"))
             return false;
@@ -347,7 +345,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     int rc = sscanf(response, "%16[^=]=%16[^\n]s", key, text);
     if (rc == 2)
@@ -380,7 +378,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]=%s", key, text);
     if (rc == 2)
@@ -410,7 +408,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]=%s", key, text);
     if (rc == 2)
@@ -440,7 +438,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]=%16[^\n]s", key, text);
     if (rc == 2)
@@ -470,7 +468,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]=%s", key, text);
     if (rc == 2)
@@ -499,7 +497,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]=%s", key, text);
     if (rc == 2)
@@ -528,7 +526,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]=%s", key, text);
     if (rc == 2)
@@ -557,7 +555,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]=%s", key, text);
     if (rc == 2)
@@ -586,7 +584,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%32[^=]=%s", key, text);
     if (rc == 2)
@@ -615,7 +613,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]=%s", key, text);
     if (rc == 2)
@@ -644,7 +642,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]= %s", key, text);
     if (rc == 2)
@@ -673,7 +671,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]=%s", key, text);
     if (rc == 2)
@@ -702,7 +700,7 @@ bool FocusLynxF1::getHubConfig()
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     rc = sscanf(response, "%16[^=]=%s", key, text);
     if (rc == 2)
@@ -744,7 +742,7 @@ bool FocusLynxF1::getHubConfig()
         response[nbytes_read - 1] = '\0';
 
         // Display the response to be sure to have read the complet TTY Buffer.
-        LOGF_DEBUG("RES (%s)", response);
+        LOGF_DEBUG("RES <%s>", response);
 
         if (strcmp(response, "END"))
             return false;
@@ -790,7 +788,7 @@ void FocusLynxF1::debugTriggered(bool enable)
 void FocusLynxF1::setDebug(bool enable)
 {
     // Call by F2 to set the Debug option
-//    INDI::DefaultDevice::setDebug(enable);
+    //    INDI::DefaultDevice::setDebug(enable);
     INDI_UNUSED(enable);
 }
 
@@ -891,17 +889,17 @@ bool FocusLynxF2::Disconnect()
 * ***********************************************************************************/
 bool FocusLynxF2::RemoteDisconnect()
 {
-  if (isConnected())
-  {
-    setConnected(false, IPS_IDLE);
-    updateProperties();
-  }
+    if (isConnected())
+    {
+        setConnected(false, IPS_IDLE);
+        updateProperties();
+    }
 
-  // When called by F1, the PortFD should be -1; For debbug purpose
-  PortFD = lynxDriveF1->getPortFD();
-  LOGF_INFO("Remote disconnection: %s is offline.", getDeviceName());
-  LOGF_INFO("Value of F2 PortFD = %d", PortFD);
-  return true;
+    // When called by F1, the PortFD should be -1; For debbug purpose
+    PortFD = lynxDriveF1->getPortFD();
+    LOGF_INFO("Remote disconnection: %s is offline.", getDeviceName());
+    LOGF_INFO("Value of F2 PortFD = %d", PortFD);
+    return true;
 }
 
 /************************************************************************************

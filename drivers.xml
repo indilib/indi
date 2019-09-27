@@ -329,7 +329,7 @@
         </device>
         <device label="FocusLynx">
             <driver name="FocusLynx">indi_lynx_focus</driver>
-            <version>0.1</version>
+            <version>1.44</version>
         </device>
         <device label="PerfectStar">
             <driver name="PerfectStar">indi_perfectstar_focus</driver>

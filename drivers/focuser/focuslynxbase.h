@@ -45,7 +45,7 @@
 #define HUB_SETTINGS_TAB "Device"
 
 #define VERSION                 1
-#define SUBVERSION              43
+#define SUBVERSION              44
 
 class FocusLynxBase : public INDI::Focuser
 {
@@ -230,10 +230,6 @@ class FocusLynxBase : public INDI::Focuser
         // Status indicators
         ILight StatusL[8];
         ILightVectorProperty StatusLP;
-
-        // Sync to a particular position
-        INumber SyncN[1];
-        INumberVectorProperty SyncNP;
 
         // Max Travel for relative focusers
         //    INumber MaxTravelN[1];
