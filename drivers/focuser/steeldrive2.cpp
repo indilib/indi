@@ -193,6 +193,49 @@ bool SteelDriveII::ISNewSwitch(const char *dev, const char *name, ISState *state
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Temperature Compensation
+        if (!strcmp(TemperatureCompensationSP.name, name))
+        {
+            bool enabled = !strcmp(IUFindOnSwitchName(states, names, n), TemperatureCompensationS[TC_ENABLED].name);
+            bool rc = setParameter("TCOMP", enabled ? "1" : "0");
+
+            if (rc)
+            {
+                IUUpdateSwitch(&TemperatureCompensationSP, states, names, n);
+                TemperatureCompensationSP.s = IPS_OK;
+                LOGF_INFO("Temperature compensation is %s.", enabled ? "enabled" : "disabled");
+            }
+            else
+            {
+                TemperatureCompensationSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&TemperatureCompensationSP, nullptr);
+            return true;
+        }
+
+        // Temperature State (Paused or Active)
+        if (!strcmp(TemperatureStateSP.name, name))
+        {
+            bool active = !strcmp(IUFindOnSwitchName(states, names, n), TemperatureStateS[TC_ACTIVE].name);
+            bool rc = setParameter("TCOMP_PAUSE", active ? "0" : "1");
+
+            if (rc)
+            {
+                IUUpdateSwitch(&TemperatureStateSP, states, names, n);
+                TemperatureStateSP.s = IPS_OK;
+                LOGF_INFO("Temperature compensation is %s.", active ? "active" : "paused");
+            }
+            else
+            {
+                TemperatureStateSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&TemperatureStateSP, nullptr);
+            return true;
+        }
+
+        // Operations
         if (!strcmp(OperationSP.name, name))
         {
             IUUpdateSwitch(&OperationSP, states, names, n);
@@ -272,7 +315,25 @@ bool SteelDriveII::ISNewNumber(const char *dev, const char *name, double values[
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (!strcmp(TemperatureSettingsNP.name, name))
+        {
+            double factor = TemperatureSettingsN[TC_FACTOR].value;
+            double period = TemperatureSettingsN[TC_PERIOD].value;
+            double delta  = TemperatureSettingsN[TC_DELTA].value;
+            bool rc1 = true, rc2 = true, rc3 = true;
+            IUUpdateNumber(&TemperatureSettingsNP, values, names, n);
 
+            if (factor != TemperatureSettingsN[TC_FACTOR].value)
+                rc1 = setParameter("TCOMP_FACTOR", to_string(factor));
+            if (period != TemperatureSettingsN[TC_PERIOD].value)
+                rc2 = setParameter("TCOMP_PERIOD", to_string(period));
+            if (delta != TemperatureSettingsN[TC_DELTA].value)
+                rc3 = setParameter("TCOMP_DELTA", to_string(delta));
+
+            TemperatureSettingsNP.s = (rc1 && rc2 && rc3) ? IPS_OK : IPS_ALERT;
+            IDSetNumber(&TemperatureSettingsNP, nullptr);
+            return true;
+        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -385,6 +446,22 @@ void SteelDriveII::TimerHit()
         FocusMaxPosN[0].value = std::stoul(m_Summary[LIMIT]);
         IDSetNumber(&FocusMaxPosNP, nullptr);
     }
+
+    double temp0 = std::stod(m_Summary[TEMP0]);
+    double temp1 = std::stod(m_Summary[TEMP1]);
+    double tempa = std::stod(m_Summary[TEMPAVG]);
+
+    if (temp0 != TemperatureSensorN[TEMP_0].value ||
+            temp1 != TemperatureSensorN[TEMP_1].value ||
+            tempa != TemperatureSensorN[TEMP_AVG].value)
+    {
+        TemperatureSensorN[TEMP_0].value = temp0;
+        TemperatureSensorN[TEMP_1].value = temp1;
+        TemperatureSensorN[TEMP_AVG].value = tempa;
+        TemperatureSensorNP.s = IPS_OK;
+        IDSetNumber(&TemperatureSensorNP, nullptr);
+    }
+
     SetTimer(POLLMS);
 }
 
@@ -437,10 +514,41 @@ void SteelDriveII::getStartupValues()
     if (getParameter("VERSION", value))
         IUSaveText(&InfoT[INFO_VERSION], value.c_str());
 
+    if (getParameter("TCOMP", value))
+    {
+        TemperatureCompensationS[TC_ENABLED].s = (value == "1") ? ISS_ON : ISS_OFF;
+        TemperatureCompensationS[TC_DISABLED].s = (value == "1") ? ISS_OFF : ISS_ON;
+    }
+
+    if (getParameter("TCOMP_FACTOR", value))
+    {
+        TemperatureSettingsN[TC_FACTOR].value = std::stod(value);
+    }
+
+    if (getParameter("TCOMP_PERIOD", value))
+    {
+        TemperatureSettingsN[TC_PERIOD].value = std::stod(value);
+    }
+
+    if (getParameter("TCOMP_DELTA", value))
+    {
+        TemperatureSettingsN[TC_DELTA].value = std::stod(value);
+    }
+
+    if (getParameter("TCOMP_PAUSE", value))
+    {
+        TemperatureStateS[TC_ACTIVE].s = (value == "0") ? ISS_ON : ISS_OFF;
+        TemperatureStateS[TC_PAUSED].s = (value == "0") ? ISS_OFF : ISS_ON;
+    }
+
     getSummary();
 
     FocusMaxPosN[0].value = std::stoul(m_Summary[LIMIT]);
     IDSetNumber(&FocusMaxPosNP, nullptr);
+
+    TemperatureSensorN[TEMP_0].value = std::stod(m_Summary[TEMP0]);
+    TemperatureSensorN[TEMP_1].value = std::stod(m_Summary[TEMP1]);
+    TemperatureSensorN[TEMP_AVG].value = std::stod(m_Summary[TEMPAVG]);
 
 }
 
@@ -494,6 +602,15 @@ bool SteelDriveII::getParameter(const std::string &parameter, std::string &value
     value = values[1];
 
     return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Set Single Parameter
+/////////////////////////////////////////////////////////////////////////////
+bool SteelDriveII::setParameter(const std::string &parameter, const std::string &value)
+{
+    std::string cmd = "SET " + parameter + ":" + value;
+    return sendCommandOK(cmd.c_str());
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -608,4 +725,16 @@ std::vector<std::string> SteelDriveII::split(const std::string &input, const std
     first{input.begin(), input.end(), re, -1},
           last;
     return {first, last};
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// From stack overflow #16605967
+/////////////////////////////////////////////////////////////////////////////
+template <typename T>
+std::string SteelDriveII::to_string(const T a_value, const int n)
+{
+    std::ostringstream out;
+    out.precision(n);
+    out << std::fixed << a_value;
+    return out.str();
 }
