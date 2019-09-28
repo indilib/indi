@@ -1150,10 +1150,11 @@ bool FocusLynxBase::getFocusStatus()
         }
         else
         {
-            char np[8];
+            char np[8] = {0};
             int rc = sscanf(response, "%16[^=]= %s", key, np);
 
-            if (rc != 2 || strcmp(np, "NP"))
+            // JM 2019-09-28: With a sample HSM20 with FocusLynx controller, we get -@1.6 which is invalid.
+            if (rc != 2 || (strcmp(np, "NP") && strstr(np, "@") == nullptr))
             {
                 if (TemperatureNP.s != IPS_ALERT)
                 {
