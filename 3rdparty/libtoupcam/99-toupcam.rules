@@ -1,3 +1,0 @@
-ACTION=="add", ATTR{idVendor}=="0547", RUN+="/bin/sh -c '/bin/echo 256 >/sys/module/usbcore/parameters/usbfs_memory_mb'"
-# All ToupCam devices
-SUBSYSTEMS=="usb", ATTR{idVendor}=="0547", MODE="0666"
