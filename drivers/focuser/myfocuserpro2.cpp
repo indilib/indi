@@ -78,7 +78,7 @@ MyFocuserPro2::MyFocuserPro2()
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
     setSupportedConnections(CONNECTION_SERIAL);
-    setVersion(0,1);
+    setVersion(0,2);
 
 
 }
@@ -523,7 +523,7 @@ bool MyFocuserPro2::readDisplayVisible()
     int rc = sscanf(res, "D%d#", &temp);
 
     if (rc > 0)
-
+    {
         if(temp==0)
             DisplayS[DISPLAY_OFF].s = ISS_ON;
         else if (temp==1)
@@ -533,6 +533,7 @@ bool MyFocuserPro2::readDisplayVisible()
             LOGF_ERROR("Invalid Response: focuser Display value (%s)", res);
             return false;
         }
+    }
     else
     {
         LOGF_ERROR("Unknown error: focuser Display value (%s)", res);
@@ -549,13 +550,27 @@ bool MyFocuserPro2::isMoving()
     if (sendCommand(":01#", res) == false)
         return false;
 
-    if (strcmp(res, "I01#") == 0)
-        return true;
-    else if (strcmp(res, "I00#") == 0)
-        return false;
+    uint32_t temp = 0;
 
-    LOGF_ERROR("Unknown error: isMoving value (%s)", res);
-    return false;
+    int rc = sscanf(res, "I%d#", &temp);
+
+    if (rc > 0)
+    {
+        if(temp==0)
+            return false;
+        else if (temp==1)
+            return true;
+        else
+        {
+            LOGF_ERROR("Invalid Response: focuser isMoving value (%s)", res);
+            return false;
+        }
+    }
+    else
+    {
+        LOGF_ERROR("Unknown error: focuser isMoving value (%s)", res);
+        return false;
+    }
 }
 
 
