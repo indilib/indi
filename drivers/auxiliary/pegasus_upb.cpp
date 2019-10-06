@@ -1557,7 +1557,17 @@ bool PegasusUPB::setupParams()
     char res[PEGASUS_LEN] = {0};
     if (sendCommand("SS", res))
     {
-        FocuserSettingsN[SETTING_MAX_SPEED].value = std::stod(res) / 999.0 * 100;
+        uint32_t value = std::stol(res);
+        if (value == UINT16_MAX)
+        {
+            LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropiate for your motor focus type (50-999)", value);
+            FocuserSettingsNP.s = IPS_ALERT;
+        }
+        else
+        {
+            FocuserSettingsN[SETTING_MAX_SPEED].value = value / 999.0 * 100;
+            FocuserSettingsNP.s = IPS_OK;
+        }
     }
 
     return false;
