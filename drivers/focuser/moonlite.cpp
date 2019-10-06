@@ -563,10 +563,7 @@ IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 void MoonLite::TimerHit()
 {
     if (!isConnected())
-    {
-        SetTimer(POLLMS);
         return;
-    }
 
     bool rc = readPosition();
     if (rc)
