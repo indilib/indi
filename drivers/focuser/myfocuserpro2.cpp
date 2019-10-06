@@ -455,7 +455,7 @@ bool MyFocuserPro2::readTempeartureCoefficient()
     int rc = sscanf(res, "B%d#", &val);
 
     if (rc > 0)
-        TemperatureSettingN[1].value = val;
+        TemperatureSettingN[0].value = val;
     else
     {
         LOGF_ERROR("Unknown error: Temperature Coefficient value (%s)", res);
@@ -808,7 +808,7 @@ bool MyFocuserPro2::ISNewNumber(const char * dev, const char * name, double valu
         if (strcmp(name, TemperatureSettingNP.name) == 0)
         {
             IUUpdateNumber(&TemperatureSettingNP, values, names, n);
-            if (!setTemperatureCoefficient(TemperatureSettingN[1].value))
+            if (!setTemperatureCoefficient(TemperatureSettingN[0].value))
             {
                 TemperatureSettingNP.s = IPS_ALERT;
                 IDSetNumber(&TemperatureSettingNP, nullptr);
