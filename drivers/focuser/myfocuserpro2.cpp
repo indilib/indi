@@ -78,9 +78,7 @@ MyFocuserPro2::MyFocuserPro2()
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
     setSupportedConnections(CONNECTION_SERIAL);
-    setVersion(0,2);
-
-
+    setVersion(0,3);
 }
 
 bool MyFocuserPro2::initProperties()
@@ -139,17 +137,17 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitchVector(&StepModeSP, StepModeS, 6, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 
-    IUFillSwitch(&CoilPowerS[COIL_POWER_ON], "COIL_POWER_ON","On", ISS_OFF);
-    IUFillSwitch(&CoilPowerS[COIL_POWER_OFF], "COIL_POWER_OFF","Off", ISS_OFF);
-    IUFillSwitchVector(&CoilPowerSP, CoilPowerS, 2, getDeviceName(), "Coil Power", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,0, IPS_IDLE);
+    IUFillSwitch(&CoilPowerS[COIL_POWER_ON], "COIL_POWER_ON", "On", ISS_OFF);
+    IUFillSwitch(&CoilPowerS[COIL_POWER_OFF], "COIL_POWER_OFF", "Off", ISS_OFF);
+    IUFillSwitchVector(&CoilPowerSP, CoilPowerS, 2, getDeviceName(), "Coil Power", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&DisplayS[DISPLAY_OFF], "DISPLAY_OFF","Off", ISS_OFF);
-    IUFillSwitch(&DisplayS[DISPLAY_ON], "DISPLAY_ON","On", ISS_OFF);
-    IUFillSwitchVector(&DisplaySP, DisplayS, 2, getDeviceName(), "Display", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,0, IPS_IDLE);
+    IUFillSwitch(&DisplayS[DISPLAY_OFF], "DISPLAY_OFF", "Off", ISS_OFF);
+    IUFillSwitch(&DisplayS[DISPLAY_ON], "DISPLAY_ON", "On", ISS_OFF);
+    IUFillSwitchVector(&DisplaySP, DisplayS, 2, getDeviceName(), "Display", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&ReverseDirectionS[REVERSE_DIRECTION_ON], "REVERSE_DIRECTION_ON","On", ISS_OFF);
-    IUFillSwitch(&ReverseDirectionS[REVERSE_DIRECTION_OFF], "REVERSE_DIRECTION_OFF","Off", ISS_OFF);
-    IUFillSwitchVector(&ReverseDirectionSP, ReverseDirectionS, 2, getDeviceName(), "Reverse Direction", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY,0, IPS_IDLE);
+    IUFillSwitch(&ReverseDirectionS[REVERSE_DIRECTION_ON], "REVERSE_DIRECTION_ON", "On", ISS_OFF);
+    IUFillSwitch(&ReverseDirectionS[REVERSE_DIRECTION_OFF], "REVERSE_DIRECTION_OFF", "Off", ISS_OFF);
+    IUFillSwitchVector(&ReverseDirectionSP, ReverseDirectionS, 2, getDeviceName(), "Reverse Direction", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     setDefaultPollingPeriod(fixedPollRate);
 
@@ -211,7 +209,7 @@ bool MyFocuserPro2::Ack()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[5]= {0};
+    char resp[5] = {0};
     int firmWareVersion = 0;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -256,7 +254,7 @@ bool MyFocuserPro2::Ack()
 
     rc = sscanf(resp, "F%d#", &firmWareVersion);
 
-    if (rc >0)
+    if (rc > 0)
     {
         if(firmWareVersion >= minimumFirwareVersion)
         {
@@ -281,7 +279,7 @@ bool MyFocuserPro2::Ack()
 
 bool MyFocuserPro2::readCoilPowerState()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":11#", res) == false)
         return false;
@@ -292,9 +290,9 @@ bool MyFocuserPro2::readCoilPowerState()
 
     if (rc > 0)
 
-        if(temp==0)
+        if(temp == 0)
             CoilPowerS[COIL_POWER_OFF].s = ISS_ON;
-        else if (temp==1)
+        else if (temp == 1)
             CoilPowerS[COIL_POWER_ON].s = ISS_ON;
         else
         {
@@ -313,20 +311,20 @@ bool MyFocuserPro2::readCoilPowerState()
 
 bool MyFocuserPro2::readReverseDirection()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":13#", res) == false)
         return false;
 
     uint32_t temp = 0;
 
-    int rc = sscanf(res, "R%d#", &temp);
+    int rc = sscanf(res, "R%u#", &temp);
 
     if (rc > 0)
 
-        if(temp==0)
+        if(temp == 0)
             ReverseDirectionS[REVERSE_DIRECTION_OFF].s = ISS_ON;
-        else if (temp==1)
+        else if (temp == 1)
             ReverseDirectionS[REVERSE_DIRECTION_ON].s = ISS_ON;
         else
         {
@@ -344,7 +342,7 @@ bool MyFocuserPro2::readReverseDirection()
 
 bool MyFocuserPro2::readStepMode()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":29#", res) == false)
         return false;
@@ -372,7 +370,7 @@ bool MyFocuserPro2::readStepMode()
 
 bool MyFocuserPro2::readTemperature()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":06#", res) == false)
         return false;
@@ -393,20 +391,20 @@ bool MyFocuserPro2::readTemperature()
 
 bool MyFocuserPro2::readTempCompensateEnable()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":24#", res) == false)
         return false;
 
     uint32_t temp = 0;
 
-    int rc = sscanf(res, "1%d#", &temp);
+    int rc = sscanf(res, "1%u#", &temp);
 
     if (rc > 0)
 
-        if(temp==0)
+        if(temp == 0)
             TemperatureCompensateS[TEMP_COMPENSATE_DISABLE].s = ISS_ON;
-        else if (temp==1)
+        else if (temp == 1)
             TemperatureCompensateS[TEMP_COMPENSATE_ENABLE].s = ISS_ON;
         else
         {
@@ -425,7 +423,7 @@ bool MyFocuserPro2::readTempCompensateEnable()
 
 bool MyFocuserPro2::readPosition()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":00#", res) == false)
         return false;
@@ -446,7 +444,7 @@ bool MyFocuserPro2::readPosition()
 
 bool MyFocuserPro2::readTempeartureCoefficient()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":26#", res) == false)
         return false;
@@ -455,7 +453,7 @@ bool MyFocuserPro2::readTempeartureCoefficient()
     int rc = sscanf(res, "B%d#", &val);
 
     if (rc > 0)
-        TemperatureSettingN[1].value = val;
+        TemperatureSettingN[0].value = val;
     else
     {
         LOGF_ERROR("Unknown error: Temperature Coefficient value (%s)", res);
@@ -467,7 +465,7 @@ bool MyFocuserPro2::readTempeartureCoefficient()
 
 bool MyFocuserPro2::readSpeed()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":43#", res) == false)
         return false;
@@ -490,13 +488,13 @@ bool MyFocuserPro2::readSpeed()
 
 bool MyFocuserPro2::readMaxPos()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
-    if (sendCommand(":08#", res) == false)
+    if (sendCommand(":8#", res) == false)
         return false;
 
     uint32_t maxPos = 0;
-    int rc = sscanf(res, "M%d#", &maxPos);
+    int rc = sscanf(res, "M%u#", &maxPos);
 
     if (rc > 0)
     {
@@ -513,20 +511,20 @@ bool MyFocuserPro2::readMaxPos()
 
 bool MyFocuserPro2::readDisplayVisible()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":37#", res) == false)
         return false;
 
     uint32_t temp = 0;
 
-    int rc = sscanf(res, "D%d#", &temp);
+    int rc = sscanf(res, "D%u#", &temp);
 
     if (rc > 0)
     {
-        if(temp==0)
+        if(temp == 0)
             DisplayS[DISPLAY_OFF].s = ISS_ON;
-        else if (temp==1)
+        else if (temp == 1)
             DisplayS[DISPLAY_ON].s = ISS_ON;
         else
         {
@@ -545,20 +543,20 @@ bool MyFocuserPro2::readDisplayVisible()
 
 bool MyFocuserPro2::isMoving()
 {
-    char res[ML_RES]= {0};
+    char res[ML_RES] = {0};
 
     if (sendCommand(":01#", res) == false)
         return false;
 
     uint32_t temp = 0;
 
-    int rc = sscanf(res, "I%d#", &temp);
+    int rc = sscanf(res, "I%u#", &temp);
 
     if (rc > 0)
     {
-        if(temp==0)
+        if(temp == 0)
             return false;
-        else if (temp==1)
+        else if (temp == 1)
             return true;
         else
         {
@@ -576,14 +574,14 @@ bool MyFocuserPro2::isMoving()
 
 bool MyFocuserPro2::setTemperatureCelsius()
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":161#");
     return sendCommand(cmd);
 }
 
 bool MyFocuserPro2::setTemperatureCoefficient(double coefficient)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     int coeff = coefficient;
     snprintf(cmd, ML_RES, ":22%d#", coeff);
     return sendCommand(cmd);
@@ -591,14 +589,14 @@ bool MyFocuserPro2::setTemperatureCoefficient(double coefficient)
 
 bool MyFocuserPro2::SyncFocuser(uint32_t ticks)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":31%d#", ticks);
     return sendCommand(cmd);
 }
 
 bool MyFocuserPro2::MoveFocuser(uint32_t position)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":05%d#", position);
     // Set Position First
     if (sendCommand(cmd) == false)
@@ -609,43 +607,43 @@ bool MyFocuserPro2::MoveFocuser(uint32_t position)
 
 bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":12%02d#", (int)enable);
     return sendCommand(cmd);
 }
 
 bool MyFocuserPro2::setReverseDirection(ReverseDirection enable)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":14%02d#", (int)enable);
     return sendCommand(cmd);
 }
 
 bool MyFocuserPro2::setDisplayVisible(DisplayMode enable)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":36%d#", enable);
     return sendCommand(cmd);
 }
 
 bool MyFocuserPro2::setStepMode(FocusStepMode mode)
 {
-    char cmd[ML_RES]= {0};
-    int setMode=1 << (int)mode;
+    char cmd[ML_RES] = {0};
+    int setMode = 1 << (int)mode;
     snprintf(cmd, ML_RES, ":30%02d#", setMode);
     return sendCommand(cmd);
 }
 
 bool MyFocuserPro2::setSpeed(uint16_t speed)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":150%d#", speed);
     return sendCommand(cmd);
 }
 
 bool MyFocuserPro2::setTemperatureCompensation(bool enable)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":23%c#", enable ? '1' : '0');
     return sendCommand(cmd);
 }
@@ -808,7 +806,7 @@ bool MyFocuserPro2::ISNewNumber(const char * dev, const char * name, double valu
         if (strcmp(name, TemperatureSettingNP.name) == 0)
         {
             IUUpdateNumber(&TemperatureSettingNP, values, names, n);
-            if (!setTemperatureCoefficient(TemperatureSettingN[1].value))
+            if (!setTemperatureCoefficient(TemperatureSettingN[0].value))
             {
                 TemperatureSettingNP.s = IPS_ALERT;
                 IDSetNumber(&TemperatureSettingNP, nullptr);
@@ -866,9 +864,9 @@ bool MyFocuserPro2::SetFocuserSpeed(int speed)
 
 bool MyFocuserPro2::SetFocuserMaxPosition(uint32_t maxPos)
 {
-    char cmd[ML_RES]= {0};
+    char cmd[ML_RES] = {0};
 
-    snprintf(cmd, ML_RES, ":07%06d#",maxPos);
+    snprintf(cmd, ML_RES, ":07%06d#", maxPos);
 
     if(sendCommand(cmd))
     {
@@ -1013,7 +1011,7 @@ bool MyFocuserPro2::sendCommand(const char * cmd, char * res)
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
-        char errstr[MAXRBUF]= {0};
+        char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Serial write error: %s.", errstr);
         return false;
@@ -1024,7 +1022,7 @@ bool MyFocuserPro2::sendCommand(const char * cmd, char * res)
 
     if ((rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, ML_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        char errstr[MAXRBUF]= {0};
+        char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Serial read error: %s.", errstr);
         return false;

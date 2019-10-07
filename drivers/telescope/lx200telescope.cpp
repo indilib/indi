@@ -91,9 +91,7 @@ bool LX200Telescope::initProperties()
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
     AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_LUNAR", "Lunar");
-
-    if (GetTelescopeCapability() & TELESCOPE_HAS_TRACK_RATE)
-        AddTrackMode("TRACK_CUSTOM", "Custom");
+    AddTrackMode("TRACK_CUSTOM", "Custom");
 
     if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
     {
