@@ -78,9 +78,7 @@ MyFocuserPro2::MyFocuserPro2()
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
     setSupportedConnections(CONNECTION_SERIAL);
-    setVersion(0, 2);
-
-
+    setVersion(0,3);
 }
 
 bool MyFocuserPro2::initProperties()
