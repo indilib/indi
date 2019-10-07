@@ -39,13 +39,8 @@ class MyFocuserPro2 : public INDI::Focuser
 
         typedef enum {DISPLAY_OFF, DISPLAY_ON } DisplayMode;
 
-        typedef enum {REVERSE_DIRECTION_OFF, REVERSE_DIRECTION_ON } ReverseDirection;
-
         typedef enum {TEMP_COMPENSATE_ENABLE, TEMP_COMPENSATE_DISABLE } TemperatureCompensate;
 
-/*
-        typedef enum {FOCUS_SPEED_SLOW, FOCUS_SPEED_MEDIUM, FOCUS_SPEED_FAST} FocusSpeedMode;
-*/
         const char * getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
@@ -93,6 +88,7 @@ class MyFocuserPro2 : public INDI::Focuser
         virtual bool SyncFocuser(uint32_t ticks) override;
         virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
         virtual bool SetFocuserSpeed(int speed) override;
+        virtual bool ReverseFocuser(bool enabled) override;
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE * fp) override;
@@ -151,8 +147,6 @@ class MyFocuserPro2 : public INDI::Focuser
 
         bool setCoilPowerState(CoilPower enable);
 
-        bool setReverseDirection(ReverseDirection enable);
-        
         bool setTemperatureCelsius();        
         bool setTemperatureCalibration(double calibration);
         bool setTemperatureCoefficient(double coefficient);
@@ -162,7 +156,7 @@ class MyFocuserPro2 : public INDI::Focuser
 
         double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
 
-        int32_t minimumFirwareVersion=280;
+        int32_t minimumFirwareVersion=291;
 
         int32_t fixedPollRate=1000;
 
