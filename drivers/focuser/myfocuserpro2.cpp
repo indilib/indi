@@ -708,37 +708,7 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
             return true;
         }
 
-        // Reverse Direction
-        /*
-        if (strcmp(ReverseDirectionSP.name, name) == 0)
-        {
-            int current_mode = IUFindOnSwitchIndex(&ReverseDirectionSP);
 
-            IUUpdateSwitch(&ReverseDirectionSP, states, names, n);
-
-            int target_mode = IUFindOnSwitchIndex(&ReverseDirectionSP);
-
-            if (current_mode == target_mode)
-            {
-                ReverseDirectionSP.s = IPS_OK;
-                IDSetSwitch(&ReverseDirectionSP, nullptr);
-            }
-
-            bool rc = setReverseDirection((ReverseDirection)target_mode);
-            if (!rc)
-            {
-                IUResetSwitch(&ReverseDirectionSP);
-                ReverseDirectionS[current_mode].s = ISS_ON;
-                ReverseDirectionSP.s              = IPS_ALERT;
-                IDSetSwitch(&ReverseDirectionSP, nullptr);
-                return false;
-            }
-
-            ReverseDirectionSP.s = IPS_OK;
-            IDSetSwitch(&ReverseDirectionSP, nullptr);
-            return true;
-        }
-*/
         // Display Control
         if (strcmp(DisplaySP.name, name) == 0)
         {
