@@ -492,7 +492,7 @@ bool MyFocuserPro2::readMaxPos()
 {
     char res[ML_RES] = {0};
 
-    if (sendCommand(":08#", res) == false)
+    if (sendCommand(":8#", res) == false)
         return false;
 
     uint32_t maxPos = 0;
