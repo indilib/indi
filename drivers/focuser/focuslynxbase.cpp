@@ -3532,14 +3532,23 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
         SyncMandatoryS[0].s = ISS_OFF;
         SyncMandatoryS[1].s = ISS_ON;
         defineSwitch(&SyncMandatorySP);
-        INDI::DefaultDevice::loadConfig(true, "SYNC MANDATORY");
+
+        ISState syncEnabled = ISS_OFF;
+        if (IUGetConfigSwitch(getDeviceName(), "SYNC MANDATORY", "Enable", &syncEnabled) == 0)
+        {
+            SyncMandatoryS[0].s = syncEnabled;
+            SyncMandatoryS[1].s = syncEnabled == ISS_ON ? ISS_OFF : ISS_ON;
+        }
+
         if (SyncMandatoryS[0].s == ISS_ON)
             isSynced = false;
-        else isSynced = true;
+        else
+            isSynced = true;
+
         isAbsolute = false;
     }
-    defineSwitch(&GotoSP);
 
+    defineSwitch(&GotoSP);
     return isAbsolute;
 }
 
