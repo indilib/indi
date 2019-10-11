@@ -749,8 +749,14 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             ra *= 15.0;
 
             // Do not spam log
-            if (std::fabs(mountEquatorialCoords.ra - ra) > 0.01 || std::fabs(mountEquatorialCoords.dec - de) > 0.001)
-                LOGF_DEBUG("Snooped RA-DEC: %s", pcdataXMLEle(ep));
+            if (std::fabs(mountEquatorialCoords.ra - ra) > 0.01 || std::fabs(mountEquatorialCoords.dec - de) > 0.01)
+            {
+                char RAStr[64] = {0}, DEStr[64] = {0};
+                fs_sexa(RAStr, ra / 15.0, 2, 3600);
+                fs_sexa(DEStr, de, 2, 3600);
+
+                LOGF_DEBUG("Snooped RA %s DEC %s", RAStr, DEStr);
+            }
 
             mountEquatorialCoords.ra  = ra;
             mountEquatorialCoords.dec = de;
