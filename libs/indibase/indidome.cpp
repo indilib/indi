@@ -738,7 +738,6 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         {
             const char * elemName = findXMLAttValu(ep, "name");
 
-            LOGF_DEBUG("Snooped RA-DEC: %s", pcdataXMLEle(ep));
             if (!strcmp(elemName, "RA"))
                 rc_ra = f_scansexa(pcdataXMLEle(ep), &ra);
             else if (!strcmp(elemName, "DEC"))
@@ -747,7 +746,13 @@ bool Dome::ISSnoopDevice(XMLEle * root)
 
         if (rc_ra == 0 && rc_de == 0)
         {
-            mountEquatorialCoords.ra  = ra * 15.0;
+            ra *= 15.0;
+
+            // Do not spam log
+            if (std::fabs(mountEquatorialCoords.ra - ra) > 0.01 || std::fabs(mountEquatorialCoords.dec - de) > 0.001)
+                LOGF_DEBUG("Snooped RA-DEC: %s", pcdataXMLEle(ep));
+
+            mountEquatorialCoords.ra  = ra;
             mountEquatorialCoords.dec = de;
         }
 
@@ -760,8 +765,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         {
             prev_ra  = mountEquatorialCoords.ra;
             prev_dec = mountEquatorialCoords.dec;
-            LOGF_DEBUG("Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra,
-                       mountEquatorialCoords.dec);
+            //LOGF_DEBUG("Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra, mountEquatorialCoords.dec);
             //  a mount still intializing will emit 0 and 0 on the first go
             //  we dont want to process 0/0
             if ((mountEquatorialCoords.ra != 0) || (mountEquatorialCoords.dec != 0))
