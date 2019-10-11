@@ -2011,9 +2011,8 @@ IPState Dome::ControlShutter(ShutterOperation operation)
 
     if (DomeShutterSP.s == IPS_OK)
     {
-        IUResetSwitch(&DomeShutterSP);
-        DomeShutterS[operation].s = ISS_ON;
         IDSetSwitch(&DomeShutterSP, "Shutter is %s.", (operation == SHUTTER_OPEN ? "open" : "closed"));
+        setShutterState(operation == SHUTTER_OPEN ? SHUTTER_OPENED : SHUTTER_CLOSED);
         return DomeShutterSP.s;
     }
     else if (DomeShutterSP.s == IPS_BUSY)
@@ -2021,6 +2020,7 @@ IPState Dome::ControlShutter(ShutterOperation operation)
         IUResetSwitch(&DomeShutterSP);
         DomeShutterS[operation].s = ISS_ON;
         IDSetSwitch(&DomeShutterSP, "Shutter is %s...", (operation == 0 ? "opening" : "closing"));
+        setShutterState(SHUTTER_MOVING);
         return DomeShutterSP.s;
     }
 
