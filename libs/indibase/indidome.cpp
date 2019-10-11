@@ -1047,6 +1047,22 @@ void Dome::setDomeState(const Dome::DomeState &value)
             break;
 
         case DOME_PARKED:
+            if (DomeMotionSP.s == IPS_BUSY)
+            {
+                IUResetSwitch(&DomeMotionSP);
+                DomeMotionSP.s = IPS_IDLE;
+                IDSetSwitch(&DomeMotionSP, nullptr);
+            }
+            if (DomeAbsPosNP.s == IPS_BUSY)
+            {
+                DomeAbsPosNP.s = IPS_IDLE;
+                IDSetNumber(&DomeAbsPosNP, nullptr);
+            }
+            if (DomeRelPosNP.s == IPS_BUSY)
+            {
+                DomeRelPosNP.s = IPS_IDLE;
+                IDSetNumber(&DomeRelPosNP, nullptr);
+            }
             IUResetSwitch(&ParkSP);
             ParkSP.s   = IPS_OK;
             ParkS[0].s = ISS_ON;
