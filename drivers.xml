@@ -271,6 +271,10 @@
             <driver name="DeepSkyDad AF2">indi_deepskydad_af2_focus</driver>
             <version>1.0</version>
         </device>
+		<device label="DeepSkyDad AF3">
+            <driver name="DeepSkyDad AF3">indi_deepskydad_af3_focus</driver>
+            <version>1.0</version>
+        </device>
         <device label="OnFocus">
             <driver name="OnFocus">indi_onfocus_focus</driver>
             <version>1.0</version>
