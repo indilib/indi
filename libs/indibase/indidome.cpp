@@ -254,8 +254,7 @@ bool Dome::updateProperties()
             defineSwitch(&DomeShutterSP);
 
         //  Now we add our Dome specific stuff
-        if (HasVariableSpeed() || CanRelMove())
-            defineSwitch(&DomeMotionSP);
+        defineSwitch(&DomeMotionSP);
 
         if (HasVariableSpeed())
         {
@@ -298,8 +297,7 @@ bool Dome::updateProperties()
         if (HasShutter())
             deleteProperty(DomeShutterSP.name);
 
-        if (HasVariableSpeed() || CanRelMove())
-            deleteProperty(DomeMotionSP.name);
+        deleteProperty(DomeMotionSP.name);
 
         if (HasVariableSpeed())
         {
