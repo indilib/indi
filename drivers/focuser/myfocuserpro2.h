@@ -147,18 +147,17 @@ class MyFocuserPro2 : public INDI::Focuser
 
         bool setCoilPowerState(CoilPower enable);
 
-        bool setTemperatureCelsius();        
+        bool setTemperatureCelsius();
+
         bool setTemperatureCalibration(double calibration);
+
         bool setTemperatureCoefficient(double coefficient);
+
         bool setTemperatureCompensation(bool enable);
 
         void timedMoveCallback();
 
         double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
-
-        int32_t minimumFirwareVersion=291;
-
-        int32_t fixedPollRate=1000;
 
         // Read Only Temperature Reporting
         INumber TemperatureN[1];
@@ -184,10 +183,6 @@ class MyFocuserPro2 : public INDI::Focuser
         ISwitch CoilPowerS[2];
         ISwitchVectorProperty CoilPowerSP;
 
-        //CoilPower On Off
-        ISwitch ReverseDirectionS[2];
-        ISwitchVectorProperty ReverseDirectionSP;
-
         //Focus Speed
         ISwitch FocusSpeedS[3];
         ISwitchVectorProperty FocusSpeedSP;
@@ -198,6 +193,12 @@ class MyFocuserPro2 : public INDI::Focuser
         // MyFocuserPro2 Delimeter
         static const char ML_DEL { '#' };
 
-        // MyFocuserPro2 Tiemout
+        // MyFocuserPro2 Timeout
         static const uint8_t ML_TIMEOUT { 3 };
+
+        // MyFocuserPro2 minimum supported firmware
+        static const int32_t MINIMUM_FIRMWARE_VERSION { 291 };
+
+        // MyFocuserPro2 fided serial port polling rate (not less than 1000)
+        static const int32_t fixedPollRate { 1000 };
 };

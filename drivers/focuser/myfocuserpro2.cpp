@@ -78,7 +78,7 @@ MyFocuserPro2::MyFocuserPro2()
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
     setSupportedConnections(CONNECTION_SERIAL);
-    setVersion(0, 3);
+    setVersion(0, 4);
 
 
 }
@@ -246,7 +246,7 @@ bool MyFocuserPro2::Ack()
 
     if (rc > 0)
     {
-        if(firmWareVersion >= minimumFirwareVersion)
+        if(firmWareVersion >= MINIMUM_FIRMWARE_VERSION)
         {
             LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
             return true;
@@ -254,7 +254,7 @@ bool MyFocuserPro2::Ack()
         }
         else
         {
-            LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion, minimumFirwareVersion );
+            LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion, MINIMUM_FIRMWARE_VERSION );
         }
 
     }
@@ -819,7 +819,7 @@ void MyFocuserPro2::GetFocusParams()
         IDSetSwitch(&DisplaySP, nullptr);
 
     if (readReverseDirection())
-        IDSetSwitch(&ReverseDirectionSP, nullptr);
+        IDSetSwitch(&FocusReverseSP, nullptr);
 
 }
 
