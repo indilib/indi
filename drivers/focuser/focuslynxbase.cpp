@@ -67,10 +67,11 @@ FocusLynxBase::FocusLynxBase()
     focusMoveRequest = 0;
     simPosition      = 0;
 
-    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
+    // Can move in Absolute & Relative motions, can AbortFocuser motion, can sync, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABORT    |
                       FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_CAN_SYNC     |
                       FOCUSER_CAN_REVERSE  |
                       FOCUSER_HAS_BACKLASH);
 
@@ -3522,27 +3523,32 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
         LOG_DEBUG("Absolute focuser detected.");
         GotoSP.nsp = 2;
         isAbsolute = true;
-
-        FI::SetCapability(FI::GetCapability() | FOCUSER_CAN_SYNC);
     }
     else
     {
         LOG_DEBUG("Relative focuser detected.");
         GotoSP.nsp = 1;
 
-        FI::SetCapability(FI::GetCapability() & ~FOCUSER_CAN_SYNC);
-
         SyncMandatoryS[0].s = ISS_OFF;
         SyncMandatoryS[1].s = ISS_ON;
         defineSwitch(&SyncMandatorySP);
-        INDI::DefaultDevice::loadConfig(true, "SYNC MANDATORY");
+
+        ISState syncEnabled = ISS_OFF;
+        if (IUGetConfigSwitch(getDeviceName(), "SYNC MANDATORY", "Enable", &syncEnabled) == 0)
+        {
+            SyncMandatoryS[0].s = syncEnabled;
+            SyncMandatoryS[1].s = syncEnabled == ISS_ON ? ISS_OFF : ISS_ON;
+        }
+
         if (SyncMandatoryS[0].s == ISS_ON)
             isSynced = false;
-        else isSynced = true;
+        else
+            isSynced = true;
+
         isAbsolute = false;
     }
-    defineSwitch(&GotoSP);
 
+    defineSwitch(&GotoSP);
     return isAbsolute;
 }
 

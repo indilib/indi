@@ -738,7 +738,6 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         {
             const char * elemName = findXMLAttValu(ep, "name");
 
-            LOGF_DEBUG("Snooped RA-DEC: %s", pcdataXMLEle(ep));
             if (!strcmp(elemName, "RA"))
                 rc_ra = f_scansexa(pcdataXMLEle(ep), &ra);
             else if (!strcmp(elemName, "DEC"))
@@ -747,7 +746,19 @@ bool Dome::ISSnoopDevice(XMLEle * root)
 
         if (rc_ra == 0 && rc_de == 0)
         {
-            mountEquatorialCoords.ra  = ra * 15.0;
+            ra *= 15.0;
+
+            // Do not spam log
+            if (std::fabs(mountEquatorialCoords.ra - ra) > 0.01 || std::fabs(mountEquatorialCoords.dec - de) > 0.01)
+            {
+                char RAStr[64] = {0}, DEStr[64] = {0};
+                fs_sexa(RAStr, ra / 15.0, 2, 3600);
+                fs_sexa(DEStr, de, 2, 3600);
+
+                LOGF_DEBUG("Snooped RA %s DEC %s", RAStr, DEStr);
+            }
+
+            mountEquatorialCoords.ra  = ra;
             mountEquatorialCoords.dec = de;
         }
 
@@ -760,8 +771,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         {
             prev_ra  = mountEquatorialCoords.ra;
             prev_dec = mountEquatorialCoords.dec;
-            LOGF_DEBUG("Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra,
-                       mountEquatorialCoords.dec);
+            //LOGF_DEBUG("Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra, mountEquatorialCoords.dec);
             //  a mount still intializing will emit 0 and 0 on the first go
             //  we dont want to process 0/0
             if ((mountEquatorialCoords.ra != 0) || (mountEquatorialCoords.dec != 0))
@@ -1037,6 +1047,22 @@ void Dome::setDomeState(const Dome::DomeState &value)
             break;
 
         case DOME_PARKED:
+            if (DomeMotionSP.s == IPS_BUSY)
+            {
+                IUResetSwitch(&DomeMotionSP);
+                DomeMotionSP.s = IPS_IDLE;
+                IDSetSwitch(&DomeMotionSP, nullptr);
+            }
+            if (DomeAbsPosNP.s == IPS_BUSY)
+            {
+                DomeAbsPosNP.s = IPS_IDLE;
+                IDSetNumber(&DomeAbsPosNP, nullptr);
+            }
+            if (DomeRelPosNP.s == IPS_BUSY)
+            {
+                DomeRelPosNP.s = IPS_IDLE;
+                IDSetNumber(&DomeRelPosNP, nullptr);
+            }
             IUResetSwitch(&ParkSP);
             ParkSP.s   = IPS_OK;
             ParkS[0].s = ISS_ON;
@@ -1985,9 +2011,8 @@ IPState Dome::ControlShutter(ShutterOperation operation)
 
     if (DomeShutterSP.s == IPS_OK)
     {
-        IUResetSwitch(&DomeShutterSP);
-        DomeShutterS[operation].s = ISS_ON;
         IDSetSwitch(&DomeShutterSP, "Shutter is %s.", (operation == SHUTTER_OPEN ? "open" : "closed"));
+        setShutterState(operation == SHUTTER_OPEN ? SHUTTER_OPENED : SHUTTER_CLOSED);
         return DomeShutterSP.s;
     }
     else if (DomeShutterSP.s == IPS_BUSY)
@@ -1995,6 +2020,7 @@ IPState Dome::ControlShutter(ShutterOperation operation)
         IUResetSwitch(&DomeShutterSP);
         DomeShutterS[operation].s = ISS_ON;
         IDSetSwitch(&DomeShutterSP, "Shutter is %s...", (operation == 0 ? "opening" : "closing"));
+        setShutterState(SHUTTER_MOVING);
         return DomeShutterSP.s;
     }
 
