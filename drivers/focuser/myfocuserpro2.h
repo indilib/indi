@@ -39,13 +39,8 @@ class MyFocuserPro2 : public INDI::Focuser
 
         typedef enum {DISPLAY_OFF, DISPLAY_ON } DisplayMode;
 
-        typedef enum {REVERSE_DIRECTION_OFF, REVERSE_DIRECTION_ON } ReverseDirection;
-
         typedef enum {TEMP_COMPENSATE_ENABLE, TEMP_COMPENSATE_DISABLE } TemperatureCompensate;
 
-/*
-        typedef enum {FOCUS_SPEED_SLOW, FOCUS_SPEED_MEDIUM, FOCUS_SPEED_FAST} FocusSpeedMode;
-*/
         const char * getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
@@ -93,6 +88,7 @@ class MyFocuserPro2 : public INDI::Focuser
         virtual bool SyncFocuser(uint32_t ticks) override;
         virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
         virtual bool SetFocuserSpeed(int speed) override;
+        virtual bool ReverseFocuser(bool enabled) override;
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE * fp) override;
@@ -151,20 +147,17 @@ class MyFocuserPro2 : public INDI::Focuser
 
         bool setCoilPowerState(CoilPower enable);
 
-        bool setReverseDirection(ReverseDirection enable);
-        
-        bool setTemperatureCelsius();        
+        bool setTemperatureCelsius();
+
         bool setTemperatureCalibration(double calibration);
+
         bool setTemperatureCoefficient(double coefficient);
+
         bool setTemperatureCompensation(bool enable);
 
         void timedMoveCallback();
 
         double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
-
-        int32_t minimumFirwareVersion=280;
-
-        int32_t fixedPollRate=1000;
 
         // Read Only Temperature Reporting
         INumber TemperatureN[1];
@@ -190,10 +183,6 @@ class MyFocuserPro2 : public INDI::Focuser
         ISwitch CoilPowerS[2];
         ISwitchVectorProperty CoilPowerSP;
 
-        //CoilPower On Off
-        ISwitch ReverseDirectionS[2];
-        ISwitchVectorProperty ReverseDirectionSP;
-
         //Focus Speed
         ISwitch FocusSpeedS[3];
         ISwitchVectorProperty FocusSpeedSP;
@@ -204,6 +193,12 @@ class MyFocuserPro2 : public INDI::Focuser
         // MyFocuserPro2 Delimeter
         static const char ML_DEL { '#' };
 
-        // MyFocuserPro2 Tiemout
+        // MyFocuserPro2 Timeout
         static const uint8_t ML_TIMEOUT { 3 };
+
+        // MyFocuserPro2 minimum supported firmware
+        static const int32_t MINIMUM_FIRMWARE_VERSION { 291 };
+
+        // MyFocuserPro2 fided serial port polling rate (not less than 1000)
+        static const int32_t fixedPollRate { 1000 };
 };

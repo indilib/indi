@@ -75,10 +75,11 @@ void ISSnoopDevice(XMLEle * root)
 MyFocuserPro2::MyFocuserPro2()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED |
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
     setSupportedConnections(CONNECTION_SERIAL);
-    setVersion(0,3);
+
+    setVersion(0, 4);
 }
 
 bool MyFocuserPro2::initProperties()
@@ -104,14 +105,6 @@ bool MyFocuserPro2::initProperties()
     FocusMaxPosN[0].max   = 200000.;
     FocusMaxPosN[0].value = 0.;
     FocusMaxPosN[0].step  = 1000;
-
-    /*
-    //Focus Speed
-    IUFillSwitch(&FocusSpeedS[FOCUS_SPEED_SLOW], "FOCUS_SPEED_SLOW", "Slow", ISS_OFF);
-    IUFillSwitch(&FocusSpeedS[FOCUS_SPEED_MEDIUM], "FOCUS_SPEED_MEDIUM", "Slow", ISS_OFF);
-    IUFillSwitch(&FocusSpeedS[FOCUS_SPEED_FAST], "FOCUS_SPEED_FAST", "Slow", ISS_OFF);
-    IUFillSwitchVector(&FocusSpeedSP, FocusSpeedS, 3, getDeviceName(), "Focus Speed", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    */
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -40, 80., 0., 0.);
@@ -145,10 +138,6 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitch(&DisplayS[DISPLAY_ON], "DISPLAY_ON", "On", ISS_OFF);
     IUFillSwitchVector(&DisplaySP, DisplayS, 2, getDeviceName(), "Display", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&ReverseDirectionS[REVERSE_DIRECTION_ON], "REVERSE_DIRECTION_ON", "On", ISS_OFF);
-    IUFillSwitch(&ReverseDirectionS[REVERSE_DIRECTION_OFF], "REVERSE_DIRECTION_OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&ReverseDirectionSP, ReverseDirectionS, 2, getDeviceName(), "Reverse Direction", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
     setDefaultPollingPeriod(fixedPollRate);
 
     return true;
@@ -166,7 +155,7 @@ bool MyFocuserPro2::updateProperties()
         defineSwitch(&StepModeSP);
         defineSwitch(&DisplaySP);
         defineSwitch(&CoilPowerSP);
-        defineSwitch(&ReverseDirectionSP);
+        //defineSwitch(&ReverseDirectionSP);
 
         setTemperatureCelsius();
         GetFocusParams();
@@ -181,7 +170,7 @@ bool MyFocuserPro2::updateProperties()
         deleteProperty(StepModeSP.name);
         deleteProperty(DisplaySP.name);
         deleteProperty(CoilPowerSP.name);
-        deleteProperty(ReverseDirectionSP.name);
+        //deleteProperty(ReverseDirectionSP.name);
     }
 
     return true;
@@ -256,7 +245,7 @@ bool MyFocuserPro2::Ack()
 
     if (rc > 0)
     {
-        if(firmWareVersion >= minimumFirwareVersion)
+        if(firmWareVersion >= MINIMUM_FIRMWARE_VERSION)
         {
             LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
             return true;
@@ -264,7 +253,7 @@ bool MyFocuserPro2::Ack()
         }
         else
         {
-            LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion, minimumFirwareVersion );
+            LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion, MINIMUM_FIRMWARE_VERSION );
         }
 
     }
@@ -322,10 +311,12 @@ bool MyFocuserPro2::readReverseDirection()
 
     if (rc > 0)
 
-        if(temp == 0)
-            ReverseDirectionS[REVERSE_DIRECTION_OFF].s = ISS_ON;
-        else if (temp == 1)
-            ReverseDirectionS[REVERSE_DIRECTION_ON].s = ISS_ON;
+        if(temp == 0){
+            FocusReverseS[REVERSED_DISABLED].s = ISS_ON;
+        }
+        else if (temp == 1){
+                FocusReverseS[REVERSED_ENABLED].s = ISS_ON;
+        }
         else
         {
             LOGF_ERROR("Invalid Response: focuser Reverse direction value (%s)", res);
@@ -490,7 +481,7 @@ bool MyFocuserPro2::readMaxPos()
 {
     char res[ML_RES] = {0};
 
-    if (sendCommand(":8#", res) == false)
+    if (sendCommand(":08#", res) == false)
         return false;
 
     uint32_t maxPos = 0;
@@ -499,6 +490,7 @@ bool MyFocuserPro2::readMaxPos()
     if (rc > 0)
     {
         FocusMaxPosN[0].value = maxPos;
+        Focuser::SyncPresets(maxPos);
     }
     else
     {
@@ -612,12 +604,15 @@ bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
     return sendCommand(cmd);
 }
 
-bool MyFocuserPro2::setReverseDirection(ReverseDirection enable)
+//bool MyFocuserPro2::setReverseDirection(ReverseDirection enable)
+
+bool MyFocuserPro2::ReverseFocuser(bool enable)
 {
     char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":14%02d#", (int)enable);
     return sendCommand(cmd);
 }
+
 
 bool MyFocuserPro2::setDisplayVisible(DisplayMode enable)
 {
@@ -712,35 +707,6 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
             return true;
         }
 
-        // Reverse Direction
-        if (strcmp(ReverseDirectionSP.name, name) == 0)
-        {
-            int current_mode = IUFindOnSwitchIndex(&ReverseDirectionSP);
-
-            IUUpdateSwitch(&ReverseDirectionSP, states, names, n);
-
-            int target_mode = IUFindOnSwitchIndex(&ReverseDirectionSP);
-
-            if (current_mode == target_mode)
-            {
-                ReverseDirectionSP.s = IPS_OK;
-                IDSetSwitch(&ReverseDirectionSP, nullptr);
-            }
-
-            bool rc = setReverseDirection((ReverseDirection)target_mode);
-            if (!rc)
-            {
-                IUResetSwitch(&ReverseDirectionSP);
-                ReverseDirectionS[current_mode].s = ISS_ON;
-                ReverseDirectionSP.s              = IPS_ALERT;
-                IDSetSwitch(&ReverseDirectionSP, nullptr);
-                return false;
-            }
-
-            ReverseDirectionSP.s = IPS_OK;
-            IDSetSwitch(&ReverseDirectionSP, nullptr);
-            return true;
-        }
 
         // Display Control
         if (strcmp(DisplaySP.name, name) == 0)
@@ -852,7 +818,7 @@ void MyFocuserPro2::GetFocusParams()
         IDSetSwitch(&DisplaySP, nullptr);
 
     if (readReverseDirection())
-        IDSetSwitch(&ReverseDirectionSP, nullptr);
+        IDSetSwitch(&FocusReverseSP, nullptr);
 
 }
 
@@ -870,6 +836,8 @@ bool MyFocuserPro2::SetFocuserMaxPosition(uint32_t maxPos)
 
     if(sendCommand(cmd))
     {
+        Focuser::SyncPresets(maxPos);
+
         return true;
     }
     return false;
