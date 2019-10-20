@@ -185,7 +185,7 @@ bool RoboFocus::updateProperties()
 
         GetFocusParams();
 
-        LOG_DEBUG("RoboFocus paramaters readout complete, focuser ready for use.");
+        LOG_DEBUG("RoboFocus parameters readout complete, focuser ready for use.");
     }
     else
     {
@@ -1008,7 +1008,7 @@ bool RoboFocus::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 if ((ret = updateRFPowerSwitches(new_s, new_sn, &cur_s1LL, &cur_s2LR, &cur_s3RL, &cur_s4RR)) < 0)
                 {
                     PowerSwitchesSP.s = IPS_ALERT;
-                    IDSetSwitch(&PowerSwitchesSP, "Unknown error while reading  Robofocus power swicht settings");
+                    IDSetSwitch(&PowerSwitchesSP, "Unknown error while reading  Robofocus power switch settings");
                     return true;
                 }
             }

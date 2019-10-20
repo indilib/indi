@@ -170,7 +170,7 @@ bool DeepSkyDadAF3::updateProperties()
 
         GetFocusParams();
 
-        LOG_INFO("deepSkyDadAf3 paramaters updated, focuser ready for use.");
+        LOG_INFO("deepSkyDadAf3 parameters updated, focuser ready for use.");
     }
     else
     {
@@ -195,7 +195,7 @@ bool DeepSkyDadAF3::Handshake()
     }
 
     LOG_INFO(
-        "Error retreiving data from deepSkyDadAf3, please ensure deepSkyDadAf3 controller is powered and the port is correct.");
+        "Error retrieving data from deepSkyDadAf3, please ensure deepSkyDadAf3 controller is powered and the port is correct.");
     return false;
 }
 

@@ -184,7 +184,7 @@ bool SestoSenso::updateProperties()
         defineSwitch(&CalibrationSP);
 
         if (getStartupValues())
-            LOG_INFO("SestoSenso paramaters updated, focuser ready for use.");
+            LOG_INFO("SestoSenso parameters updated, focuser ready for use.");
         else
             LOG_WARN("Failed to inquire parameters. Check logs.");
     }
@@ -209,7 +209,7 @@ bool SestoSenso::Handshake()
     }
 
     LOG_INFO(
-        "Error retreiving data from SestoSenso, please ensure SestoSenso controller is powered and the port is correct.");
+        "Error retrieving data from SestoSenso, please ensure SestoSenso controller is powered and the port is correct.");
     return false;
 }
 

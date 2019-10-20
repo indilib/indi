@@ -120,7 +120,7 @@ bool OnFocus::updateProperties()
         GetFocusParams();
         loadConfig(true);
 
-        DEBUG(INDI::Logger::DBG_SESSION, "OnFocus paramaters updated, focuser ready for use.");
+        DEBUG(INDI::Logger::DBG_SESSION, "OnFocus parameters updated, focuser ready for use.");
     }
     else
     {

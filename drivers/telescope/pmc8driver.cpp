@@ -1793,14 +1793,14 @@ bool slew_pmc8(int fd, double ra, double dec)
     rc = convert_ra_to_motor(ra, sop, &racounts);
     if (!rc)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "slew_pmc8: error convering RA to motor counts");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "slew_pmc8: error converting RA to motor counts");
         return false;
     }
 
     rc = convert_dec_to_motor(dec, sop, &deccounts);
     if (!rc)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "slew_pmc8: error convering DEC to motor counts");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "slew_pmc8: error converting DEC to motor counts");
         return false;
     }
 
@@ -1856,14 +1856,14 @@ bool sync_pmc8(int fd, double ra, double dec)
     rc = convert_ra_to_motor(ra, sop, &racounts);
     if (!rc)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sync_pmc8: error convering RA to motor counts");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sync_pmc8: error converting RA to motor counts");
         return false;
     }
 
     rc = convert_dec_to_motor(dec, sop, &deccounts);
     if (!rc)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sync_pmc8: error convering DEC to motor counts");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sync_pmc8: error converting DEC to motor counts");
         return false;
     }
 
@@ -1901,14 +1901,14 @@ bool set_pmc8_radec(int fd, double ra, double dec)
     rc = convert_ra_to_motor(ra, sop, &racounts);
     if (!rc)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_radec: error convering RA to motor counts");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_radec: error converting RA to motor counts");
         return false;
     }
 
     rc = convert_dec_to_motor(ra, sop, &deccounts);
     if (!rc)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_radec: error convering DEC to motor counts");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_radec: error converting DEC to motor counts");
         return false;
     }
 
@@ -1928,7 +1928,7 @@ bool set_pmc8_radec(int fd, double ra, double dec)
 
     if (!rc)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting target positoin");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting target position");
         return false;
     }
 

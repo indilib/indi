@@ -223,7 +223,7 @@ bool Lakeside::updateProperties()
 
         GetFocusParams();
 
-        LOG_INFO("Lakeside paramaters updated, focuser ready for use.");
+        LOG_INFO("Lakeside parameters updated, focuser ready for use.");
     }
     else
     {

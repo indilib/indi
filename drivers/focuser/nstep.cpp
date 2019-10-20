@@ -405,7 +405,7 @@ bool NStep::ISNewSwitch(const char * dev, const char * name, ISState * states, c
                 IUResetSwitch(&CompensationModeSP);
                 CompensationModeS[prevIndex].s = ISS_ON;
                 CompensationModeSP.s = IPS_ALERT;
-                LOG_ERROR("Failed to change temperature compnensation mode.");
+                LOG_ERROR("Failed to change temperature compensation mode.");
             }
 
             IDSetSwitch(&CompensationModeSP, nullptr);

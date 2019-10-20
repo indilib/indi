@@ -173,7 +173,7 @@ bool MoonLiteDRO::updateProperties()
 
         GetFocusParams();
 
-        LOGF_INFO("%s paramaters updated, focuser ready for use.", getDeviceName());
+        LOGF_INFO("%s parameters updated, focuser ready for use.", getDeviceName());
     }
     else
     {

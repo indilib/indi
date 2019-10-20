@@ -136,7 +136,7 @@ bool MoonLite::updateProperties()
 
         GetFocusParams();
 
-        LOG_INFO("MoonLite paramaters updated, focuser ready for use.");
+        LOG_INFO("MoonLite parameters updated, focuser ready for use.");
     }
     else
     {
@@ -158,7 +158,7 @@ bool MoonLite::Handshake()
     }
 
     LOG_INFO(
-        "Error retreiving data from MoonLite, please ensure MoonLite controller is powered and the port is correct.");
+        "Error retrieving data from MoonLite, please ensure MoonLite controller is powered and the port is correct.");
     return false;
 }
 
