@@ -772,7 +772,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             prev_ra  = mountEquatorialCoords.ra;
             prev_dec = mountEquatorialCoords.dec;
             //LOGF_DEBUG("Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra, mountEquatorialCoords.dec);
-            //  a mount still intializing will emit 0 and 0 on the first go
+            //  a mount still initializing will emit 0 and 0 on the first go
             //  we dont want to process 0/0
             if ((mountEquatorialCoords.ra != 0) || (mountEquatorialCoords.dec != 0))
                 HaveRaDec = true;

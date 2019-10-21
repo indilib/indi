@@ -119,7 +119,7 @@ bool WeatherSafetyProxy::initProperties()
     IUFillSwitchVector(&ScriptOrCurlSP, ScriptOrCurlS, WSP_USE_COUNT, getDeviceName(), "SCRIPT_OR_CURL", "Script or url", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_MAX], "SOFT_ERROR_MAX", "Max soft errors", "%g", 0.0, 1000.0, 1.0, 30.0);
-    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY], "SOFT_ERROR_RECOVERY", "Minumum soft error for recovery", "%g", 0.0, 1000.0, 1.0, 7.0);
+    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY], "SOFT_ERROR_RECOVERY", "Minimum soft error for recovery", "%g", 0.0, 1000.0, 1.0, 7.0);
     IUFillNumberVector(&softErrorHysteresisNP, softErrorHysteresisN, 2, getDeviceName(), "SOFT_ERROR_HYSTERESIS", "Soft error hysterese", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     addParameter("WEATHER_SAFETY", "Weather Safety", 0.9, 1.1, 0); // 0 is unsafe, 1 is safe
@@ -260,7 +260,7 @@ IPState WeatherSafetyProxy::updateWeather()
         if (Safety == WSP_SAFE)
         {
             SofterrorCount++;
-            LOGF_WARN("Soft error %d occured during SAFE conditions, counting", SofterrorCount);
+            LOGF_WARN("Soft error %d occurred during SAFE conditions, counting", SofterrorCount);
             if (SofterrorCount > softErrorHysteresisN[WSP_SOFT_ERROR_MAX].value)
             {
                 char Warning[] = "Max softerrors reached while Weather was SAFE";
@@ -276,7 +276,7 @@ IPState WeatherSafetyProxy::updateWeather()
         }
         else
         {
-            LOG_WARN("Soft error occured during UNSAFE conditions, ignore");
+            LOG_WARN("Soft error occurred during UNSAFE conditions, ignore");
             SofterrorCount = 0;
             SofterrorRecoveryCount = 0;
         }

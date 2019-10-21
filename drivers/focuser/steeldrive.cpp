@@ -466,7 +466,7 @@ bool SteelDrive::updatePosition()
         if (!sim && (rc = tty_write(PortFD, ":F8ASKS0#", STEELDRIVE_CMD, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR(":F8ASKS0# updatePostion write error: %s.", errstr);
+            LOGF_ERROR(":F8ASKS0# updatePosition write error: %s.", errstr);
             return false;
         }
 
