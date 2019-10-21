@@ -269,7 +269,7 @@ bool FocusLynxBase::updateProperties()
         defineLight(&StatusLP);
 
         if (getFocusConfig() && getFocusTemp())
-            LOG_INFO("FocusLynx paramaters updated, focuser ready for use.");
+            LOG_INFO("FocusLynx parameters updated, focuser ready for use.");
         else
         {
             LOG_ERROR("Failed to retrieve focuser configuration settings...");
@@ -312,7 +312,7 @@ bool FocusLynxBase::Handshake()
         return true;
     }
 
-    LOG_INFO("Error retreiving data from FocusLynx, please ensure FocusLynxBase controller is "
+    LOG_INFO("Error retrieving data from FocusLynx, please ensure FocusLynxBase controller is "
              "powered and the port is correct.");
     return false;
 }

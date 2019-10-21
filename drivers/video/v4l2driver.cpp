@@ -1704,7 +1704,7 @@ void V4L2_Driver::allocateBuffers()
 
     if (V4LFrame == nullptr)
     {
-        LOG_ERROR("Critial Error: Unable to initialize driver. Low memory.");
+        LOG_ERROR("Critical Error: Unable to initialize driver. Low memory.");
         exit(-1);
     }
 

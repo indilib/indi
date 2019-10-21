@@ -285,7 +285,7 @@ bool ScopeScript::ReadScopeStatus()
             if (!isParked())
             {
                 SetParked(true);
-                LOG_INFO("Park succesfully executed");
+                LOG_INFO("Park successfully executed");
             }
         }
         else
@@ -293,7 +293,7 @@ bool ScopeScript::ReadScopeStatus()
             if (isParked())
             {
                 SetParked(false);
-                LOG_INFO("Unpark succesfully executed");
+                LOG_INFO("Unpark successfully executed");
             }
         }
         NewRaDec(ra, dec);
@@ -313,7 +313,7 @@ bool ScopeScript::Goto(double ra, double dec)
     bool status = RunScript(SCRIPT_GOTO, _ra, _dec, nullptr);
     if (status)
     {
-        LOG_INFO("Goto succesfully executed");
+        LOG_INFO("Goto successfully executed");
         TrackState = SCOPE_SLEWING;
     }
     else
@@ -331,7 +331,7 @@ bool ScopeScript::Sync(double ra, double dec)
     bool status = RunScript(SCRIPT_SYNC, _ra, _dec, nullptr);
     if (status)
     {
-        LOG_INFO("Sync succesfully executed");
+        LOG_INFO("Sync successfully executed");
     }
     else
     {

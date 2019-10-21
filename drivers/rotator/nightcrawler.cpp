@@ -255,7 +255,7 @@ bool NightCrawler::Handshake()
     if (Ack())
         return true;
 
-    LOG_INFO("Error retreiving data from NightCrawler, please ensure NightCrawler controller is powered and the port is correct.");
+    LOG_INFO("Error retrieving data from NightCrawler, please ensure NightCrawler controller is powered and the port is correct.");
     return false;
 }
 

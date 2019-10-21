@@ -943,7 +943,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 if (sendOnStepCommand(":SX95,0#"))
                 {
                     AutoFlipSP.s = IPS_OK;
-                    IDSetSwitch(&AutoFlipSP, "Auto Meridan Flip OFF");
+                    IDSetSwitch(&AutoFlipSP, "Auto Meridian Flip OFF");
                     return true;
                 } 
             }
@@ -952,7 +952,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 if (sendOnStepCommand(":SX95,1#"))
                 {
                     AutoFlipSP.s = IPS_OK;
-                    IDSetSwitch(&AutoFlipSP, "Auto Meridan Flip ON");
+                    IDSetSwitch(&AutoFlipSP, "Auto Meridian Flip ON");
                     return true;
                 }
             }
@@ -2637,7 +2637,7 @@ bool LX200_OnStep::UpdateAlignErr()
     //  IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
     //  IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
 
-    // LOG_INFO("Gettng Align Error Status");
+    // LOG_INFO("Getting Align Error Status");
     if(getCommandString(PortFD, read_buffer, ":GX02#"))
     {
         LOGF_INFO("Polar Align Error Status response Error, response = %s>", read_buffer);
@@ -2821,7 +2821,7 @@ bool LX200_OnStep::SetTrackRate(double raRate, double deRate)
     {
         return false;
     }
-    LOG_INFO("Custom RA and DE Rates succesfully set");
+    LOG_INFO("Custom RA and DE Rates successfully set");
     return true;
 }
 

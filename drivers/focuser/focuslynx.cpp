@@ -240,7 +240,7 @@ bool FocusLynxF1::updateProperties()
         defineNumber(&LedNP);
 
         if (getHubConfig())
-            LOG_INFO("HUB paramaters updated.");
+            LOG_INFO("HUB parameters updated.");
         else
         {
             LOG_ERROR("Failed to retrieve HUB configuration settings...");
@@ -868,7 +868,7 @@ bool FocusLynxF2::Connect()
         return true;
     }
 
-    LOG_INFO("Error retreiving data from FocusLynx, please ensure FocusLynx controller is powered and the port is correct.");
+    LOG_INFO("Error retrieving data from FocusLynx, please ensure FocusLynx controller is powered and the port is correct.");
     return false;
 }
 

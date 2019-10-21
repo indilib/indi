@@ -233,7 +233,7 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
             if (MoveAbs(calibrationTarget1) == IPS_IDLE)
             {
                 CalibrateSP.s = IPS_ALERT;
-                LOG_ERROR("Calibration failue due to dome motion failure.");
+                LOG_ERROR("Calibration failure due to dome motion failure.");
                 status = DOME_UNKNOWN;
                 IDSetSwitch(&CalibrateSP, nullptr);
                 return false;

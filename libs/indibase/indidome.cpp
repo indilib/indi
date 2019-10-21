@@ -621,7 +621,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (AutoParkS[0].s == ISS_ON)
                 LOG_WARN( "Warning: Auto park is enabled. If weather conditions are in the "
                           "danger zone, the dome will be automatically parked. Only enable this "
-                          "option is parking the dome at any time will not cause damange to any "
+                          "option is parking the dome at any time will not cause damage to any "
                           "equipment.");
             else
                 DEBUG(Logger::DBG_SESSION, "Auto park is disabled.");
@@ -712,7 +712,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             if (rc_ra == 0 && rc_de == 0)
             {
                 //  everything parsed ok, so lets start the dome to moving
-                //  If this slew involves a meridan flip, then the slaving calcs will end up using
+                //  If this slew involves a meridian flip, then the slaving calcs will end up using
                 //  the wrong OTA side.  Lets set things up so our slaving code will calculate the side
                 //  for the target slew instead of using mount pier side info
                 OTASideSP.s = IPS_IDLE;

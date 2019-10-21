@@ -134,7 +134,7 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                          "communicate with all available system ports until a connection is "
                          "established.");
             else if (wasEnabled && AutoSearchS[1].s == ISS_ON)
-                LOG_INFO("Auo search is disabled.");
+                LOG_INFO("Auto search is disabled.");
             IDSetSwitch(&AutoSearchSP, nullptr);
 
             return true;

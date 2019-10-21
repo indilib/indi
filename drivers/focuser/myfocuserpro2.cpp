@@ -158,7 +158,7 @@ bool MyFocuserPro2::updateProperties()
 
         setTemperatureCelsius();
 
-        LOG_INFO("MyFocuserPro2 paramaters updated, focuser ready for use.");
+        LOG_INFO("MyFocuserPro2 parameters updated, focuser ready for use.");
     }
     else
     {
@@ -185,7 +185,7 @@ bool MyFocuserPro2::Handshake()
     }
 
     LOG_INFO(
-        "Error retreiving data from MyFocuserPro2, please ensure MyFocuserPro2 controller is powered and the port is correct.");
+        "Error retrieving data from MyFocuserPro2, please ensure MyFocuserPro2 controller is powered and the port is correct.");
     return false;
 }
 

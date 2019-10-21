@@ -184,7 +184,7 @@ bool SteelDrive::updateProperties()
 
         //loadConfig(true);
 
-        LOG_INFO("SteelDrive paramaters updated, focuser ready for use.");
+        LOG_INFO("SteelDrive parameters updated, focuser ready for use.");
     }
     else
     {
@@ -215,7 +215,7 @@ bool SteelDrive::Handshake()
         return true;
     }
 
-    LOG_INFO("Error retreiving data from SteelDrive, please ensure SteelDrive controller is "
+    LOG_INFO("Error retrieving data from SteelDrive, please ensure SteelDrive controller is "
                                      "powered and the port is correct.");
     return false;
 }

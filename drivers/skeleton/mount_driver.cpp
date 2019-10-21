@@ -150,7 +150,7 @@ bool MountDriver::updateProperties()
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            // By default in this example, we consider parking positoin Az=0 and Alt=0
+            // By default in this example, we consider parking position Az=0 and Alt=0
             SetAxis1ParkDefault(0);
             SetAxis2ParkDefault(0);
         }

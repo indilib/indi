@@ -317,7 +317,7 @@ bool Gemini::updateProperties()
         defineNumber(&LedNP);
 
         if (getFocusConfig() && getRotatorConfig())
-            LOG_INFO("Gemini paramaters updated, rotating focuser ready for use.");
+            LOG_INFO("Gemini parameters updated, rotating focuser ready for use.");
         else
         {
             LOG_ERROR("Failed to retrieve rotating focuser configuration settings...");
@@ -374,7 +374,7 @@ bool Gemini::Handshake()
         return true;
     }
 
-    LOG_INFO("Error retreiving data from Gemini, please ensure Gemini controller is "
+    LOG_INFO("Error retrieving data from Gemini, please ensure Gemini controller is "
              "powered and the port is correct.");
     return false;
 }
@@ -703,7 +703,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
             {
                 if (setTemperatureCompensationCoeff('A' + i, TemperatureCoeffN[i].value) == false)
                 {
-                    LOG_ERROR("Failed to set temperature coefficeints.");
+                    LOG_ERROR("Failed to set temperature coefficients.");
                     TemperatureCoeffNP.s = IPS_ALERT;
                     IDSetNumber(&TemperatureCoeffNP, nullptr);
                     return false;
