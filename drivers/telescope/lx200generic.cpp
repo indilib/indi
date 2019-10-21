@@ -110,7 +110,7 @@ void ISInit()
     }
     else if (strstr(me, "indi_lx200ap_experimental"))
     {
-        IDLog("initializing from Astrophysics Experiemtal device...\n");
+        IDLog("initializing from Astrophysics Experimental device...\n");
 
         if (telescope.get() == nullptr)
             telescope.reset(new LX200AstroPhysicsExperimental());

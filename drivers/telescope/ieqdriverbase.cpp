@@ -713,7 +713,7 @@ bool Base::isCommandSupported(const std::string &command, bool silent)
                 m_FirmwareInfo.Model.find("CEM40") == std::string::npos)
         {
             if (!silent)
-                LOG_ERROR("Fidning home is only supported on CEM40 and CEM60 mounts.");
+                LOG_ERROR("Finding home is only supported on CEM40 and CEM60 mounts.");
             return false;
 
         }

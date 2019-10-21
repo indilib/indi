@@ -1400,7 +1400,7 @@ bool LX200_OnStep::SetCurrentPark()
     }
     SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
-    LOG_WARN("Park Value set to current postion");
+    LOG_WARN("Park Value set to current position");
     return true;
 }
 
@@ -1577,7 +1577,7 @@ bool LX200_OnStep::ReadScopeStatus()
                     {
                         SetParked(true);
                         IUSaveText(&OnstepStat[3],"Parked");
-                        //LOG_INFO("OnStep Parking Succeded");
+                        //LOG_INFO("OnStep Parking Succeeded");
                     }
                     if (strstr(OSStat,"I"))
                     {
@@ -2254,7 +2254,7 @@ void LX200_OnStep::OSUpdateFocuser()
         IUUpdateMinMax(&FocusAbsPosNP);
         IDSetNumber(&FocusAbsPosNP, nullptr);
         FI::updateProperties();
-        LOGF_DEBUG("After update proerties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+        LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
     } 
     
     
