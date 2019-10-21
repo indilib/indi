@@ -79,7 +79,7 @@ MyFocuserPro2::MyFocuserPro2()
                       FOCUSER_CAN_SYNC);
     setSupportedConnections(CONNECTION_SERIAL);
 
-    setVersion(0, 4);
+    setVersion(0, 5);
 }
 
 bool MyFocuserPro2::initProperties()
@@ -155,10 +155,8 @@ bool MyFocuserPro2::updateProperties()
         defineSwitch(&StepModeSP);
         defineSwitch(&DisplaySP);
         defineSwitch(&CoilPowerSP);
-        //defineSwitch(&ReverseDirectionSP);
 
         setTemperatureCelsius();
-        GetFocusParams();
 
         LOG_INFO("MyFocuserPro2 paramaters updated, focuser ready for use.");
     }
@@ -170,7 +168,6 @@ bool MyFocuserPro2::updateProperties()
         deleteProperty(StepModeSP.name);
         deleteProperty(DisplaySP.name);
         deleteProperty(CoilPowerSP.name);
-        //deleteProperty(ReverseDirectionSP.name);
     }
 
     return true;
@@ -181,6 +178,9 @@ bool MyFocuserPro2::Handshake()
     if (Ack())
     {
         LOG_INFO("MyFocuserPro2 is online. Getting focus parameters...");
+
+        getStartupValues();
+
         return true;
     }
 
@@ -275,7 +275,7 @@ bool MyFocuserPro2::readCoilPowerState()
 
     uint32_t temp = 0;
 
-    int rc = sscanf(res, "O%d#", &temp);
+    int rc = sscanf(res, "O%u#", &temp);
 
     if (rc > 0)
 
@@ -311,11 +311,13 @@ bool MyFocuserPro2::readReverseDirection()
 
     if (rc > 0)
 
-        if(temp == 0){
+        if(temp == 0)
+        {
             FocusReverseS[REVERSED_DISABLED].s = ISS_ON;
         }
-        else if (temp == 1){
-                FocusReverseS[REVERSED_ENABLED].s = ISS_ON;
+        else if (temp == 1)
+        {
+            FocusReverseS[REVERSED_ENABLED].s = ISS_ON;
         }
         else
         {
@@ -582,14 +584,14 @@ bool MyFocuserPro2::setTemperatureCoefficient(double coefficient)
 bool MyFocuserPro2::SyncFocuser(uint32_t ticks)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":31%d#", ticks);
+    snprintf(cmd, ML_RES, ":31%u#", ticks);
     return sendCommand(cmd);
 }
 
 bool MyFocuserPro2::MoveFocuser(uint32_t position)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":05%d#", position);
+    snprintf(cmd, ML_RES, ":05%u#", position);
     // Set Position First
     if (sendCommand(cmd) == false)
         return false;
@@ -600,7 +602,7 @@ bool MyFocuserPro2::MoveFocuser(uint32_t position)
 bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":12%02d#", (int)enable);
+    snprintf(cmd, ML_RES, ":12%02d#", static_cast<int>(enable));
     return sendCommand(cmd);
 }
 
@@ -609,7 +611,7 @@ bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
 bool MyFocuserPro2::ReverseFocuser(bool enable)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":14%02d#", (int)enable);
+    snprintf(cmd, ML_RES, ":14%02d#", static_cast<int>(enable));
     return sendCommand(cmd);
 }
 
@@ -624,7 +626,7 @@ bool MyFocuserPro2::setDisplayVisible(DisplayMode enable)
 bool MyFocuserPro2::setStepMode(FocusStepMode mode)
 {
     char cmd[ML_RES] = {0};
-    int setMode = 1 << (int)mode;
+    int setMode = 1 << static_cast<int>(mode);
     snprintf(cmd, ML_RES, ":30%02d#", setMode);
     return sendCommand(cmd);
 }
@@ -662,7 +664,7 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
                 IDSetSwitch(&StepModeSP, nullptr);
             }
 
-            bool rc = setStepMode((FocusStepMode)target_mode);
+            bool rc = setStepMode(static_cast<FocusStepMode>(target_mode));
             if (!rc)
             {
                 IUResetSwitch(&StepModeSP);
@@ -692,7 +694,7 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
                 IDSetSwitch(&CoilPowerSP, nullptr);
             }
 
-            bool rc = setCoilPowerState((CoilPower)target_mode);
+            bool rc = setCoilPowerState(static_cast<CoilPower>(target_mode));
             if (!rc)
             {
                 IUResetSwitch(&CoilPowerSP);
@@ -723,7 +725,7 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
                 IDSetSwitch(&DisplaySP, nullptr);
             }
 
-            bool rc = setDisplayVisible((DisplayMode)target_mode);
+            bool rc = setDisplayVisible(static_cast<DisplayMode>(target_mode));
             if (!rc)
             {
                 IUResetSwitch(&DisplaySP);
@@ -788,38 +790,18 @@ bool MyFocuserPro2::ISNewNumber(const char * dev, const char * name, double valu
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
-void MyFocuserPro2::GetFocusParams()
+void MyFocuserPro2::getStartupValues()
 {
-    if (readMaxPos())
-        IDSetNumber(&FocusMaxPosNP, nullptr);
-
-    if (readPosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-
-    if (readTemperature())
-        IDSetNumber(&TemperatureNP, nullptr);
-
-    if (readTempeartureCoefficient())
-        IDSetNumber(&TemperatureSettingNP, nullptr);
-
-    if (readSpeed())
-        IDSetNumber(&FocusSpeedNP, nullptr);
-
-    if (readTempCompensateEnable())
-        IDSetSwitch(&TemperatureCompensateSP, nullptr);
-
-    if (readStepMode())
-        IDSetSwitch(&StepModeSP, nullptr);
-
-    if (readCoilPowerState())
-        IDSetSwitch(&CoilPowerSP, nullptr);
-
-    if (readDisplayVisible())
-        IDSetSwitch(&DisplaySP, nullptr);
-
-    if (readReverseDirection())
-        IDSetSwitch(&FocusReverseSP, nullptr);
-
+    readMaxPos();
+    readPosition();
+    readTemperature();
+    readTempeartureCoefficient();
+    readSpeed();
+    readTempCompensateEnable();
+    readStepMode();
+    readCoilPowerState();
+    readDisplayVisible();
+    readReverseDirection();
 }
 
 bool MyFocuserPro2::SetFocuserSpeed(int speed)

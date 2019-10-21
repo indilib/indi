@@ -105,7 +105,7 @@ class MyFocuserPro2 : public INDI::Focuser
         bool sendCommand(const char * cmd, char * res = nullptr);
 
         // Get initial focuser parameter when we first connect
-        void GetFocusParams();
+        void getStartupValues();
 
         // Read and update Step Mode
         bool readStepMode();
