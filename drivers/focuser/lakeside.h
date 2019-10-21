@@ -102,6 +102,8 @@ class Lakeside : public INDI::Focuser
         bool setSlope2Deadband(uint32_t slope2_deadband);
         bool setSlope2Period(uint32_t slope2_period);
 
+        void hexDump(char * buf, const char * data, int size);
+
         INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
 
