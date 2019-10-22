@@ -138,7 +138,9 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitch(&DisplayS[DISPLAY_ON], "DISPLAY_ON", "On", ISS_OFF);
     IUFillSwitchVector(&DisplaySP, DisplayS, 2, getDeviceName(), "Display", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    setDefaultPollingPeriod(fixedPollRate);
+    setPollingPeriodRange(1000,30000);
+
+    setDefaultPollingPeriod(1000);
 
     return true;
 }
@@ -893,8 +895,6 @@ IPState MyFocuserPro2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 void MyFocuserPro2::TimerHit()
 {
-    POLLMS = fixedPollRate;
-
     if (!isConnected())
     {
         SetTimer(POLLMS);
