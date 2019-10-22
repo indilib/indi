@@ -198,7 +198,4 @@ class MyFocuserPro2 : public INDI::Focuser
 
         // MyFocuserPro2 minimum supported firmware
         static const int32_t MINIMUM_FIRMWARE_VERSION { 291 };
-
-        // MyFocuserPro2 fided serial port polling rate (not less than 1000)
-        static const int32_t fixedPollRate { 1000 };
 };
