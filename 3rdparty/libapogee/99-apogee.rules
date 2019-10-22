@@ -1,4 +1,0 @@
-ACTION=="add", ATTR{idVendor}=="125c", RUN+="/bin/sh -c '/bin/echo 256 >/sys/module/usbcore/parameters/usbfs_memory_mb'"
-
-# Apogee
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="125c", MODE="0666"
