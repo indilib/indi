@@ -145,6 +145,8 @@ class MyFocuserPro2 : public INDI::Focuser
 
         bool setDisplayVisible(DisplayMode enable);
 
+        bool setGotoHome();
+
         bool setCoilPowerState(CoilPower enable);
 
         bool setTemperatureCelsius();
@@ -178,6 +180,10 @@ class MyFocuserPro2 : public INDI::Focuser
         //Display On Off
         ISwitch DisplayS[2];
         ISwitchVectorProperty DisplaySP;
+
+        //Goto Home Position
+        ISwitch GotoHomeS[1];
+        ISwitchVectorProperty GotoHomeSP;
 
         //CoilPower On Off
         ISwitch CoilPowerS[2];

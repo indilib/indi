@@ -79,7 +79,7 @@ MyFocuserPro2::MyFocuserPro2()
                       FOCUSER_CAN_SYNC);
     setSupportedConnections(CONNECTION_SERIAL);
 
-    setVersion(0, 5);
+    setVersion(0, 6);
 }
 
 bool MyFocuserPro2::initProperties()
@@ -117,7 +117,7 @@ bool MyFocuserPro2::initProperties()
     // Compensate for temperature
     IUFillSwitch(&TemperatureCompensateS[TEMP_COMPENSATE_ENABLE], "TEMP_COMPENSATE_ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateS[TEMP_COMPENSATE_DISABLE], "TEMP_COMPENSATE_DISABLE", "Disable", ISS_OFF);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 
     // Step Mode
@@ -138,6 +138,9 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitch(&DisplayS[DISPLAY_ON], "DISPLAY_ON", "On", ISS_OFF);
     IUFillSwitchVector(&DisplaySP, DisplayS, 2, getDeviceName(), "Display", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&GotoHomeS[0], "GOTO_HOME", "Go", ISS_OFF);
+    IUFillSwitchVector(&GotoHomeSP, GotoHomeS, 1, getDeviceName(), "Goto Home Position", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
     setPollingPeriodRange(1000,30000);
 
     setDefaultPollingPeriod(1000);
@@ -151,6 +154,7 @@ bool MyFocuserPro2::updateProperties()
 
     if (isConnected())
     {
+        defineSwitch(&GotoHomeSP);
         defineNumber(&TemperatureNP);
         defineNumber(&TemperatureSettingNP);
         defineSwitch(&TemperatureCompensateSP);
@@ -164,6 +168,7 @@ bool MyFocuserPro2::updateProperties()
     }
     else
     {
+        deleteProperty(GotoHomeSP.name);
         deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
@@ -593,6 +598,10 @@ bool MyFocuserPro2::SyncFocuser(uint32_t ticks)
 bool MyFocuserPro2::MoveFocuser(uint32_t position)
 {
     char cmd[ML_RES] = {0};
+    if(isMoving())
+    {
+        AbortFocuser();
+    }
     snprintf(cmd, ML_RES, ":05%u#", position);
     // Set Position First
     if (sendCommand(cmd) == false)
@@ -622,6 +631,17 @@ bool MyFocuserPro2::setDisplayVisible(DisplayMode enable)
 {
     char cmd[ML_RES] = {0};
     snprintf(cmd, ML_RES, ":36%d#", enable);
+    return sendCommand(cmd);
+}
+
+bool MyFocuserPro2::setGotoHome()
+{
+    char cmd[ML_RES] = {0};
+    if(isMoving())
+    {
+        AbortFocuser();
+    }
+    snprintf(cmd, ML_RES, ":28#");
     return sendCommand(cmd);
 }
 
@@ -678,6 +698,23 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
 
             StepModeSP.s = IPS_OK;
             IDSetSwitch(&StepModeSP, nullptr);
+            return true;
+        }
+
+        // Goto Home Position
+        if (strcmp(GotoHomeSP.name, name) == 0)
+        {
+            bool rc = setGotoHome();
+            if (!rc)
+            {
+                IUResetSwitch(&GotoHomeSP);
+                CoilPowerSP.s              = IPS_ALERT;
+                IDSetSwitch(&GotoHomeSP, nullptr);
+                return false;
+            }
+
+            GotoHomeSP.s = IPS_OK;
+            IDSetSwitch(&GotoHomeSP, nullptr);
             return true;
         }
 
