@@ -30,7 +30,6 @@
 #include "indidevapi.h"
 #include "locale_compat.h"
 
-#include "dsp/dsp.h"
 #include "config.h"
 
 #if defined(HAVE_LIBNOVA)
