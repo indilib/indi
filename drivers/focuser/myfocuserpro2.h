@@ -137,6 +137,18 @@ class MyFocuserPro2 : public INDI::Focuser
 
         bool readReverseDirection();
 
+        bool readBacklashInEnabled();
+        bool readBacklashOutEnabled();
+
+        bool readBacklashInSteps();
+        bool readBacklashOutSteps();
+
+        bool setBacklashInSteps(int16_t steps);
+        bool setBacklashOutSteps(int16_t steps);
+
+        bool setBacklashInEnabled(bool enabled);
+        bool setBacklashOutEnabled(bool enabled);
+
         bool MoveFocuser(uint32_t position);
 
         bool setStepMode(FocusStepMode mode);
@@ -165,9 +177,17 @@ class MyFocuserPro2 : public INDI::Focuser
         INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
 
-        // Full/Half Step modes
+        // Full/Half...32th Step modes
         ISwitch StepModeS[6];
         ISwitchVectorProperty StepModeSP;
+
+        // Backlash In settings
+        INumber BacklashInStepsN[1];
+        INumberVectorProperty BacklashInStepsNP;
+
+        // Backlash Out Setting
+        INumber BacklashOutStepsN[1];
+        INumberVectorProperty BacklashOutStepsNP;
 
         // Temperature Settings
         INumber TemperatureSettingN[1];
@@ -188,6 +208,14 @@ class MyFocuserPro2 : public INDI::Focuser
         //CoilPower On Off
         ISwitch CoilPowerS[2];
         ISwitchVectorProperty CoilPowerSP;
+
+        //Backlash In Enable
+        ISwitch BacklashInS[2];
+        ISwitchVectorProperty BacklashInSP;
+
+        //Backlash Out Enable
+        ISwitch BacklashOutS[2];
+        ISwitchVectorProperty BacklashOutSP;
 
         //Focus Speed
         ISwitch FocusSpeedS[3];

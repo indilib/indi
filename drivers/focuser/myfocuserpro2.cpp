@@ -77,6 +77,7 @@ MyFocuserPro2::MyFocuserPro2()
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
+
     setSupportedConnections(CONNECTION_SERIAL);
 
     setVersion(0, 6);
@@ -106,6 +107,34 @@ bool MyFocuserPro2::initProperties()
     FocusMaxPosN[0].value = 0.;
     FocusMaxPosN[0].step  = 1000;
 
+    //Backlash
+    BacklashInStepsN[0].min   = 0;
+    BacklashInStepsN[0].max   = 512;
+    BacklashInStepsN[0].value = 0;
+    BacklashInStepsN[0].step  = 2;
+
+    BacklashOutStepsN[0].min   = 0;
+    BacklashOutStepsN[0].max   = 512;
+    BacklashOutStepsN[0].value = 0;
+    BacklashOutStepsN[0].step  = 2;
+
+
+    // Backlash In
+    IUFillSwitch(&BacklashInS[BACKLASH_DISABLED], "BACKLASH_DISABLED", "Off", ISS_OFF);
+    IUFillSwitch(&BacklashInS[BACKLASH_ENABLED], "BACKLASH_ENABLED", "On", ISS_OFF);
+    IUFillSwitchVector(&BacklashInSP, BacklashInS, 2, getDeviceName(), "Backlash In", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&BacklashInStepsN[0], "Steps", "", "%3.0f", 0, 512, 2, 0);
+    IUFillNumberVector(&BacklashInStepsNP, BacklashInStepsN, 1, getDeviceName(), "Backlash-In", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    // Backlash Out
+    IUFillSwitch(&BacklashOutS[BACKLASH_DISABLED], "BACKLASH_DISABLED", "Off", ISS_OFF);
+    IUFillSwitch(&BacklashOutS[BACKLASH_ENABLED], "BACKLASH_ENABLED", "On", ISS_OFF);
+    IUFillSwitchVector(&BacklashOutSP, BacklashOutS, 2, getDeviceName(), "Backlash Out", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&BacklashOutStepsN[0], "Steps", "", "%3.0f", 0, 512, 2, 0);
+    IUFillNumberVector(&BacklashOutStepsNP, BacklashOutStepsN, 1, getDeviceName(), "Backlash-Out", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -40, 80., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
@@ -118,7 +147,6 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitch(&TemperatureCompensateS[TEMP_COMPENSATE_ENABLE], "TEMP_COMPENSATE_ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateS[TEMP_COMPENSATE_DISABLE], "TEMP_COMPENSATE_DISABLE", "Disable", ISS_OFF);
     IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
 
     // Step Mode
     IUFillSwitch(&StepModeS[FOCUS_THIRTYSECOND_STEP], "FOCUS_THIRTYSECOND_STEP", "1/32 Step", ISS_OFF);
@@ -158,6 +186,10 @@ bool MyFocuserPro2::updateProperties()
         defineNumber(&TemperatureNP);
         defineNumber(&TemperatureSettingNP);
         defineSwitch(&TemperatureCompensateSP);
+        defineSwitch(&BacklashInSP);
+        defineNumber(&BacklashInStepsNP);
+        defineSwitch(&BacklashOutSP);
+        defineNumber(&BacklashOutStepsNP);
         defineSwitch(&StepModeSP);
         defineSwitch(&DisplaySP);
         defineSwitch(&CoilPowerSP);
@@ -172,6 +204,10 @@ bool MyFocuserPro2::updateProperties()
         deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
+        deleteProperty(BacklashInSP.name);
+        deleteProperty(BacklashInStepsNP.name);
+        deleteProperty(BacklashOutSP.name);
+        deleteProperty(BacklashOutStepsNP.name);
         deleteProperty(StepModeSP.name);
         deleteProperty(DisplaySP.name);
         deleteProperty(CoilPowerSP.name);
@@ -510,6 +546,108 @@ bool MyFocuserPro2::readMaxPos()
     return true;
 }
 
+bool MyFocuserPro2::readBacklashInSteps()
+{
+    char res[ML_RES] = {0};
+
+    if (sendCommand(":78#", res) == false)
+        return false;
+
+    uint32_t backlash = 0;
+    int rc = sscanf(res, "6%u#", &backlash);
+
+    if (rc > 0)
+    {
+        BacklashInStepsN[0].value = backlash;
+    }
+    else
+    {
+        BacklashInStepsN[0].value = 0;
+        LOGF_ERROR("Unknown error: focuser Backlash IN value (%s)", res);
+        return false;
+    }
+
+    return true;
+}
+
+bool MyFocuserPro2::readBacklashInEnabled()
+{
+    char res[ML_RES] = {0};
+
+    if (sendCommand(":74#", res) == false)
+        return false;
+
+    uint32_t temp = 0;
+    int rc = sscanf(res, "4%u#", &temp);
+
+    if (rc > 0)
+    {
+        if(temp == 0)
+            BacklashInS[BACKLASH_DISABLED].s = ISS_ON;
+        else if (temp == 1)
+            BacklashInS[BACKLASH_ENABLED].s = ISS_ON;
+        else
+            LOGF_ERROR("Unknown Repsonse: focuser Backlash IN enabled (%s)", res);
+            return false;
+    }
+    else
+    {
+        LOGF_ERROR("Unknown error: focuser Backlash IN enabled (%s)", res);
+        return false;
+    }
+}
+
+bool MyFocuserPro2::readBacklashOutSteps()
+{
+    char res[ML_RES] = {0};
+
+    if (sendCommand(":80#", res) == false)
+        return false;
+
+    uint32_t backlash = 0;
+    int rc = sscanf(res, "7%u#", &backlash);
+
+    if (rc > 0)
+    {
+        BacklashOutStepsN[0].value = backlash;
+    }
+    else
+    {
+        LOGF_ERROR("Unknown error: focuser Backlash OUT value (%s)", res);
+        return false;
+    }
+
+    return true;
+}
+
+bool MyFocuserPro2::readBacklashOutEnabled()
+{
+    char res[ML_RES] = {0};
+
+    if (sendCommand(":76#", res) == false)
+        return false;
+
+    uint32_t temp = 0;
+    int rc = sscanf(res, "5%u#", &temp);
+
+    if (rc > 0)
+    {
+        if(temp == 0)
+            BacklashOutS[BACKLASH_DISABLED].s = ISS_ON;
+        else if (temp == 1)
+            BacklashOutS[BACKLASH_ENABLED].s = ISS_ON;
+        else
+            LOGF_ERROR("Unknown response: focuser Backlash OUT enabled (%s)", res);
+            return false;
+    }
+    else
+    {
+        LOGF_ERROR("Unknown error: focuser Backlash OUT enabled (%s)", res);
+        return false;
+    }
+
+}
+
 bool MyFocuserPro2::readDisplayVisible()
 {
     char res[ML_RES] = {0};
@@ -598,16 +736,39 @@ bool MyFocuserPro2::SyncFocuser(uint32_t ticks)
 bool MyFocuserPro2::MoveFocuser(uint32_t position)
 {
     char cmd[ML_RES] = {0};
-    if(isMoving())
-    {
+    if(isMoving()){
         AbortFocuser();
     }
     snprintf(cmd, ML_RES, ":05%u#", position);
-    // Set Position First
-    if (sendCommand(cmd) == false)
-        return false;
+    return sendCommand(cmd);
+}
 
-    return true;
+bool MyFocuserPro2::setBacklashInSteps(int16_t steps)
+{
+    char cmd[ML_RES] = {0};
+    snprintf(cmd, ML_RES, ":77%d#", steps);
+    return sendCommand(cmd);
+}
+
+bool MyFocuserPro2::setBacklashInEnabled(bool disabled)
+{
+    char cmd[ML_RES] = {0};
+    snprintf(cmd, ML_RES, ":73%c#", disabled ? '0' : '1');
+    return sendCommand(cmd);
+}
+
+bool MyFocuserPro2::setBacklashOutSteps(int16_t steps)
+{
+    char cmd[ML_RES] = {0};
+    snprintf(cmd, ML_RES, ":79%d#", steps);
+    return sendCommand(cmd);
+}
+
+bool MyFocuserPro2::setBacklashOutEnabled(bool disabled)
+{
+    char cmd[ML_RES] = {0};
+    snprintf(cmd, ML_RES, ":75%c#", disabled ? '0' : '1');
+    return sendCommand(cmd);
 }
 
 bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
@@ -617,7 +778,6 @@ bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
     return sendCommand(cmd);
 }
 
-//bool MyFocuserPro2::setReverseDirection(ReverseDirection enable)
 
 bool MyFocuserPro2::ReverseFocuser(bool enable)
 {
@@ -779,6 +939,66 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
             return true;
         }
 
+        // Backlash In Enable
+        if (strcmp(BacklashInSP.name, name) == 0)
+        {
+            int current_mode = IUFindOnSwitchIndex(&BacklashInSP);
+
+            IUUpdateSwitch(&BacklashInSP, states, names, n);
+
+            int target_mode = IUFindOnSwitchIndex(&BacklashInSP);
+
+            if (current_mode == target_mode)
+            {
+                BacklashInSP.s = IPS_OK;
+                IDSetSwitch(&BacklashInSP, nullptr);
+            }
+
+            bool rc = setBacklashInEnabled(static_cast<DisplayMode>(target_mode));
+            if (!rc)
+            {
+                IUResetSwitch(&BacklashInSP);
+                BacklashInS[current_mode].s = ISS_ON;
+                BacklashInSP.s              = IPS_ALERT;
+                IDSetSwitch(&BacklashInSP, nullptr);
+                return false;
+            }
+
+            BacklashInSP.s = IPS_OK;
+            IDSetSwitch(&BacklashInSP, nullptr);
+            return true;
+        }
+
+        // Backlash Out Enable
+        if (strcmp(BacklashOutSP.name, name) == 0)
+        {
+            int current_mode = IUFindOnSwitchIndex(&BacklashOutSP);
+
+            IUUpdateSwitch(&BacklashOutSP, states, names, n);
+
+            int target_mode = IUFindOnSwitchIndex(&BacklashOutSP);
+
+            if (current_mode == target_mode)
+            {
+                BacklashOutSP.s = IPS_OK;
+                IDSetSwitch(&BacklashOutSP, nullptr);
+            }
+
+            bool rc = setBacklashOutEnabled(static_cast<DisplayMode>(target_mode));
+            if (!rc)
+            {
+                IUResetSwitch(&BacklashOutSP);
+                BacklashOutS[current_mode].s = ISS_ON;
+                BacklashOutSP.s              = IPS_ALERT;
+                IDSetSwitch(&BacklashOutSP, nullptr);
+                return false;
+            }
+
+            BacklashOutSP.s = IPS_OK;
+            IDSetSwitch(&BacklashOutSP, nullptr);
+            return true;
+        }
+
         // Temperature Compensation Mode
         if (strcmp(TemperatureCompensateSP.name, name) == 0)
         {
@@ -824,6 +1044,39 @@ bool MyFocuserPro2::ISNewNumber(const char * dev, const char * name, double valu
             IDSetNumber(&TemperatureSettingNP, nullptr);
             return true;
         }
+
+        // Backlash In
+        if (strcmp(name, BacklashInStepsNP.name) == 0)
+        {
+            IUUpdateNumber(&BacklashInStepsNP, values, names, n);
+            if (!setBacklashInSteps(BacklashInStepsN[0].value))
+            {
+                BacklashInStepsNP.s = IPS_ALERT;
+                IDSetNumber(&BacklashInStepsNP, nullptr);
+                return false;
+            }
+
+            BacklashInStepsNP.s = IPS_OK;
+            IDSetNumber(&BacklashInStepsNP, nullptr);
+            return true;
+        }
+
+        // Backlash Out
+        if (strcmp(name, BacklashOutStepsNP.name) == 0)
+        {
+            IUUpdateNumber(&BacklashOutStepsNP, values, names, n);
+            if (!setBacklashOutSteps(BacklashOutStepsN[0].value))
+            {
+                BacklashOutStepsNP.s = IPS_ALERT;
+                IDSetNumber(&BacklashOutStepsNP, nullptr);
+                return false;
+            }
+
+            BacklashOutStepsNP.s = IPS_OK;
+            IDSetNumber(&BacklashOutStepsNP, nullptr);
+            return true;
+        }
+
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -841,6 +1094,10 @@ void MyFocuserPro2::getStartupValues()
     readCoilPowerState();
     readDisplayVisible();
     readReverseDirection();
+    readBacklashInEnabled();
+    readBacklashOutEnabled();
+    readBacklashInSteps();
+    readBacklashOutSteps();
 }
 
 bool MyFocuserPro2::SetFocuserSpeed(int speed)
