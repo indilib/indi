@@ -117,7 +117,9 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         /* Mount Types */
         ISwitch MountTypeS[3];
         ISwitchVectorProperty MountTypeSP;
-        enum { MOUNT_G11, MOUNT_EXOS2, MOUNT_iEXOS100 };
+
+        //Moved to driver
+        //enum { MOUNT_G11, MOUNT_EXOS2, MOUNT_iEXOS100 };
 
         /* Tracking Mode */
         //ISwitchVectorProperty TrackModeSP;

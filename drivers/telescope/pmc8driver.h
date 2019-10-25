@@ -50,6 +50,8 @@ typedef enum { PMC8_MOVE_4X, PMC8_MOVE_16X, PMC8_MOVE_64X, PMC8_MOVE_256X } PMC8
 typedef enum { PMC8_AXIS_RA=0, PMC8_AXIS_DEC=1 } PMC8_AXIS;
 typedef enum { PMC8_N, PMC8_S, PMC8_W, PMC8_E } PMC8_DIRECTION;
 
+typedef enum { MOUNT_G11 = 0, MOUNT_EXOS2 = 1, MOUNT_iEXOS100 = 2 } PMC8_MOUNT_TYPES;
+
 typedef struct
 {
     PMC8_SYSTEM_STATUS systemStatus;
@@ -61,6 +63,7 @@ typedef struct
 {
     std::string Model;
     std::string MainBoardFirmware;
+    PMC8_MOUNT_TYPES MountType;
 } FirmwareInfo;
 
 /**************************************************************************
@@ -70,7 +73,8 @@ typedef struct
 void set_pmc8_debug(bool enable);
 void set_pmc8_simulation(bool enable);
 void set_pmc8_device(const char *name);
-void set_pmc8_myMount(int index);
+void set_pmc8_mountParameters(int index);
+bool get_pmc8_response(int fd, char* buf, int* nbytes_read, const char* expected);
 
 /**************************************************************************
  Simulation
@@ -153,4 +157,6 @@ void set_pmc8_location(double latitude, double longitude);
 //bool set_ieqpro_local_time(int fd, int hh, int mm, int ss);
 //bool set_ieqpro_utc_offset(int fd, double offset_hours);
 //bool set_ieqpro_daylight_saving(int fd, bool enabled);
+
+
 
