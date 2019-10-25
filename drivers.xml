@@ -209,17 +209,17 @@
             <driver name="Digital Setting Circle">indi_dsc_telescope</driver>
             <version>1.0</version>
         </device>
-        <device label="Explore Scientific PMC-Eight" manufacturer="Explore Scientific">
+        <device label="ES G-11 PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.2</version>
+            <version>0.3</version>
         </device>
-        <device label="Explore Scientific EXOS2" manufacturer="Explore Scientific">
+        <device label="ES EXOS2-GT PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.2</version>
+            <version>0.3</version>
         </device>
-        <device label="Explore Scientific iEXOS100" manufacturer="Explore Scientific">
+        <device label="ES iEXOS100 PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.2</version>
+            <version>0.3</version>
         </device>
     </devGroup>
     <devGroup group="Focusers">
