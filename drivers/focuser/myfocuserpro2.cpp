@@ -166,9 +166,9 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitch(&DisplayS[DISPLAY_ON], "DISPLAY_ON", "On", ISS_OFF);
     IUFillSwitchVector(&DisplaySP, DisplayS, 2, getDeviceName(), "Display", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+
     IUFillSwitch(&GotoHomeS[0], "GOTO_HOME", "Go", ISS_OFF);
     IUFillSwitchVector(&GotoHomeSP, GotoHomeS, 1, getDeviceName(), "Goto Home Position", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
     setPollingPeriodRange(1000,30000);
 
     setDefaultPollingPeriod(1000);
