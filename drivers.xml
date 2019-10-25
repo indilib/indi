@@ -259,12 +259,20 @@
             <driver name="MoonLite DRO">indi_moonlitedro_focus</driver>
             <version>1.0</version>
         </device>
+        <device label="MyFocuserPro2">
+            <driver name="MyFocuserPro2">indi_myfocuserpro2_focus</driver>
+            <version>0.6</version>
+        </device>
         <device label="DeepSkyDad AF1">
             <driver name="DeepSkyDad AF1">indi_deepskydad_af1_focus</driver>
             <version>1.0</version>
         </device>
         <device label="DeepSkyDad AF2">
             <driver name="DeepSkyDad AF2">indi_deepskydad_af2_focus</driver>
+            <version>1.0</version>
+        </device>
+                <device label="DeepSkyDad AF3">
+            <driver name="DeepSkyDad AF3">indi_deepskydad_af3_focus</driver>
             <version>1.0</version>
         </device>
         <device label="OnFocus">
@@ -325,7 +333,7 @@
         </device>
         <device label="FocusLynx">
             <driver name="FocusLynx">indi_lynx_focus</driver>
-            <version>0.1</version>
+            <version>1.44</version>
         </device>
         <device label="PerfectStar">
             <driver name="PerfectStar">indi_perfectstar_focus</driver>
@@ -417,7 +425,7 @@
         </device>
         <device label="Pegasus UPB">
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="WatchDog">
             <driver name="WatchDog">indi_watchdog</driver>

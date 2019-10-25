@@ -46,10 +46,16 @@ FocusLynxBase::FocusLynxBase()
     lynxModels["Optec Sagitta"] = "OK";
     lynxModels["FocusLynx QuickSync FT Hi-Torque"] = "FA";
     lynxModels["FocusLynx QuickSync FT Hi-Speed"] = "FB";
+
     //  lynxModels["FocusLynx QuickSync SV (reserved for future use)"] = "FC";
     lynxModels["DirectSync TEC with bipolar motor - higher speed"] = "FD";
     lynxModels["FocusLynx QuickSync  Long Travel Hi-Torque"] = "FE";
     lynxModels["FocusLynx QuickSync Long Travel Hi-Speed"] = "FF";
+
+    // JM 2019-09-27: This was added after the discussion here
+    // https://www.indilib.org/forum/focusers-filter-wheels/5739-starlight-instruments-focuser-boss-ii-hsm20.html
+    lynxModels["FeatureTouch HSM Hi-Torque"] = "FA";
+    lynxModels["FeatureTouch HSM Hi-Speed"] = "FB";
     lynxModels["FeatherTouch Motor PDMS"] = "FE";
     lynxModels["FeatherTouch Motor Hi-Speed"] = "SO";
     lynxModels["FeatherTouch Motor Hi-Torque"] = "SP";
@@ -61,7 +67,7 @@ FocusLynxBase::FocusLynxBase()
     focusMoveRequest = 0;
     simPosition      = 0;
 
-    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
+    // Can move in Absolute & Relative motions, can AbortFocuser motion, can sync, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABORT    |
                       FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
@@ -96,23 +102,23 @@ bool FocusLynxBase::initProperties()
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Enable/Disable temperature compensation
-    IUFillSwitch(&TemperatureCompensateS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
+    IUFillSwitch(&TemperatureCompensateS[0], "Enable", "Enable", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateS[1], "Disable", "Disable", ISS_ON);
     IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. COMPENSATION", "T. Compensation",
                        FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Enable/Disable temperature compensation on start
-    IUFillSwitch(&TemperatureCompensateOnStartS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateOnStartS[1], "Disable", "", ISS_ON);
+    IUFillSwitch(&TemperatureCompensateOnStartS[0], "Enable", "Enable", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateOnStartS[1], "Disable", "Disable", ISS_ON);
     IUFillSwitchVector(&TemperatureCompensateOnStartSP, TemperatureCompensateOnStartS, 2, getDeviceName(),
                        "T. COMPENSATION @START", "T. Compensation @Start", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Enable/Disable temperature Mode
-    IUFillSwitch(&TemperatureCompensateModeS[0], "A", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateModeS[1], "B", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateModeS[2], "C", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateModeS[3], "D", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateModeS[4], "E", "", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateModeS[0], "A", "A", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateModeS[1], "B", "B", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateModeS[2], "C", "C", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateModeS[3], "D", "D", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateModeS[4], "E", "E", ISS_OFF);
     IUFillSwitchVector(&TemperatureCompensateModeSP, TemperatureCompensateModeS, 5, getDeviceName(), "COMPENSATE MODE",
                        "Compensate Mode", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -133,8 +139,8 @@ bool FocusLynxBase::initProperties()
     //                       IPS_IDLE);
 
     // Enable/Disable Sync Mandatory for relative focuser
-    IUFillSwitch(&SyncMandatoryS[0], "Enable", "", isSynced == false ? ISS_ON : ISS_OFF);
-    IUFillSwitch(&SyncMandatoryS[1], "Disable", "", isSynced == true ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&SyncMandatoryS[0], "Enable", "Enable", isSynced == false ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&SyncMandatoryS[1], "Disable", "Disable", isSynced == true ? ISS_ON : ISS_OFF);
     IUFillSwitchVector(&SyncMandatorySP, SyncMandatoryS, 2, getDeviceName(), "SYNC MANDATORY", "Sync Mandatory",
                        FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -148,13 +154,13 @@ bool FocusLynxBase::initProperties()
     IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEP SIZE", "Step Size", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Reset to Factory setting
-    IUFillSwitch(&ResetS[0], "Factory", "", ISS_OFF);
+    IUFillSwitch(&ResetS[0], "Factory", "Factory", ISS_OFF);
     IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "RESET", "Reset", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     // Go to home/center
-    IUFillSwitch(&GotoS[GOTO_CENTER], "Center", "", ISS_OFF);
-    IUFillSwitch(&GotoS[GOTO_HOME], "Home", "", ISS_OFF);
+    IUFillSwitch(&GotoS[GOTO_CENTER], "Center", "Center", ISS_OFF);
+    IUFillSwitch(&GotoS[GOTO_HOME], "Home", "Home", ISS_OFF);
     IUFillSwitchVector(&GotoSP, GotoS, 2, getDeviceName(), "GOTO", "Goto", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
@@ -172,17 +178,20 @@ bool FocusLynxBase::initProperties()
     IUFillSwitch(ModelS, "No Focuser", "No Focuser", ISS_ON);
     for (iter = lynxModels.begin(); iter != lynxModels.end(); ++iter)
     {
-        ModelS = static_cast<ISwitch *>(realloc(ModelS, (nModels + 1) * sizeof(ISwitch)));
+        ISwitch * buffer = static_cast<ISwitch *>(realloc(ModelS, (nModels + 1) * sizeof(ISwitch)));
+        if (!buffer)
+        {
+            free(ModelS);
+            return false;
+        }
+        else
+            ModelS = buffer;
         IUFillSwitch(ModelS + nModels, (iter->first).c_str(), (iter->first).c_str(), ISS_OFF);
 
         nModels++;
     }
     IUFillSwitchVector(&ModelSP, ModelS, nModels, getDeviceName(), "MODEL", "Model", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
-
-    // Sync to a particular position
-    IUFillNumber(&SyncN[0], "Ticks", "", "%.f", 0, 200000, 100., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Status indicators
     IUFillLight(&StatusL[STATUS_MOVING], "Is Moving", "", IPS_IDLE);
@@ -260,7 +269,7 @@ bool FocusLynxBase::updateProperties()
         defineLight(&StatusLP);
 
         if (getFocusConfig() && getFocusTemp())
-            LOG_INFO("FocusLynx paramaters updated, focuser ready for use.");
+            LOG_INFO("FocusLynx parameters updated, focuser ready for use.");
         else
         {
             LOG_ERROR("Failed to retrieve focuser configuration settings...");
@@ -303,7 +312,7 @@ bool FocusLynxBase::Handshake()
         return true;
     }
 
-    LOG_INFO("Error retreiving data from FocusLynx, please ensure FocusLynxBase controller is "
+    LOG_INFO("Error retrieving data from FocusLynx, please ensure FocusLynxBase controller is "
              "powered and the port is correct.");
     return false;
 }
@@ -804,9 +813,9 @@ bool FocusLynxBase::getFocusConfig()
     rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
-        FocusAbsPosN[0].max = SyncN[0].max = maxPos;
-        FocusAbsPosN[0].step = SyncN[0].step = maxPos / 50.0;
-        FocusAbsPosN[0].min = SyncN[0].min = 0;
+        FocusAbsPosN[0].max = FocusSyncN[0].max = maxPos;
+        FocusAbsPosN[0].step = FocusSyncN[0].step = maxPos / 50.0;
+        FocusAbsPosN[0].min = FocusSyncN[0].min = 0;
 
         FocusRelPosN[0].max  = maxPos / 2;
         FocusRelPosN[0].step = maxPos / 100.0;
@@ -814,7 +823,7 @@ bool FocusLynxBase::getFocusConfig()
 
         IUUpdateMinMax(&FocusAbsPosNP);
         IUUpdateMinMax(&FocusRelPosNP);
-        IUUpdateMinMax(&SyncNP);
+        IUUpdateMinMax(&FocusSyncNP);
 
         FocusMaxPosNP.s = IPS_OK;
         FocusMaxPosN[0].value = maxPos;
@@ -1142,17 +1151,10 @@ bool FocusLynxBase::getFocusStatus()
         }
         else
         {
-            char np[8];
-            int rc = sscanf(response, "%16[^=]= %s", key, np);
-
-            if (rc != 2 || strcmp(np, "NP"))
+            if (TemperatureNP.s != IPS_ALERT)
             {
-                if (TemperatureNP.s != IPS_ALERT)
-                {
-                    TemperatureNP.s = IPS_ALERT;
-                    IDSetNumber(&TemperatureNP, nullptr);
-                }
-                return false;
+                TemperatureNP.s = IPS_ALERT;
+                IDSetNumber(&TemperatureNP, nullptr);
             }
         }
 
@@ -3513,30 +3515,40 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
     deleteProperty(SyncMandatorySP.name);
 
     // Check if we have absolute or relative focusers
-    if (strstr(focusName, "TCF") || strstr(focusName, "Leo") ||
-            !strcmp(focusName, "FastFocus") || !strcmp(focusName, "FeatherTouch Motor Hi-Speed"))
+    if (strstr(focusName, "TCF") ||
+            strstr(focusName, "Leo") ||
+            !strcmp(focusName, "FastFocus") ||
+            !strcmp(focusName, "FeatherTouch Motor Hi-Speed"))
     {
         LOG_DEBUG("Absolute focuser detected.");
         GotoSP.nsp = 2;
         isAbsolute = true;
-        deleteProperty(SyncNP.name);
     }
     else
     {
         LOG_DEBUG("Relative focuser detected.");
         GotoSP.nsp = 1;
-        defineNumber(&SyncNP);
+
         SyncMandatoryS[0].s = ISS_OFF;
         SyncMandatoryS[1].s = ISS_ON;
         defineSwitch(&SyncMandatorySP);
-        INDI::DefaultDevice::loadConfig(true, "SYNC MANDATORY");
+
+        ISState syncEnabled = ISS_OFF;
+        if (IUGetConfigSwitch(getDeviceName(), "SYNC MANDATORY", "Enable", &syncEnabled) == 0)
+        {
+            SyncMandatoryS[0].s = syncEnabled;
+            SyncMandatoryS[1].s = syncEnabled == ISS_ON ? ISS_OFF : ISS_ON;
+        }
+
         if (SyncMandatoryS[0].s == ISS_ON)
             isSynced = false;
-        else isSynced = true;
+        else
+            isSynced = true;
+
         isAbsolute = false;
     }
-    defineSwitch(&GotoSP);
 
+    defineSwitch(&GotoSP);
     return isAbsolute;
 }
 

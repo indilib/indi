@@ -173,7 +173,7 @@ bool MoonLiteDRO::updateProperties()
 
         GetFocusParams();
 
-        LOGF_INFO("%s paramaters updated, focuser ready for use.", getDeviceName());
+        LOGF_INFO("%s parameters updated, focuser ready for use.", getDeviceName());
     }
     else
     {
@@ -504,14 +504,14 @@ bool MoonLiteDRO::updatePosition()
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updatePostion error: %s.", errstr);
+        LOGF_ERROR("updatePosition error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '#', MOONLITEDRO_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updatePostion error: %s.", errstr);
+        LOGF_ERROR("updatePosition error: %s.", errstr);
         return false;
     }
 

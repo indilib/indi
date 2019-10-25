@@ -23,10 +23,15 @@
 
 #include "indifocuser.h"
 
+#include <map>
+
 class SteelDriveII : public INDI::Focuser
 {
     public:
         SteelDriveII();
+
+        typedef enum { GOING_UP, GOING_DOWN, STOPPED, ZEROED } State;
+        typedef enum { NAME, POSITION, STATE, LIMIT, FOCUS, TEMP0, TEMP1, TEMPAVG, TCOMP, PWM } Summary;
 
         virtual bool Handshake();
         const char *getDefaultName();
@@ -37,10 +42,11 @@ class SteelDriveII : public INDI::Focuser
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     protected:
-        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
         virtual IPState MoveAbsFocuser(uint32_t targetTicks);
         virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-        virtual bool SetFocuserSpeed(int speed);
+        virtual bool SyncFocuser(uint32_t ticks);
+        virtual bool ReverseFocuser(bool enabled);
+        virtual bool SetFocuserMaxPosition(uint32_t ticks);
         virtual bool AbortFocuser();
         virtual void TimerHit();
 
@@ -50,18 +56,18 @@ class SteelDriveII : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
         /// Query functions
         ///////////////////////////////////////////////////////////////////////////////////
+        bool getParameter(const std::string &parameter, std::string &value);
 
         ///////////////////////////////////////////////////////////////////////////////////
         /// Set functions
         ///////////////////////////////////////////////////////////////////////////////////
-
-        ///////////////////////////////////////////////////////////////////////////////////
-        /// Motion Functions
-        ///////////////////////////////////////////////////////////////////////////////////
+        bool setParameter(const std::string &parameter, const std::string &value);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
         ///////////////////////////////////////////////////////////////////////////////
+        bool getSummary();
+        bool sendCommandOK(const char * cmd);
         bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
         void hexDump(char * buf, const char * data, int size);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
@@ -70,19 +76,85 @@ class SteelDriveII : public INDI::Focuser
         /// Misc
         ///////////////////////////////////////////////////////////////////////////////////
         void getStartupValues();
+        template <typename T> std::string to_string(const T a_value, const int n = 2);
 
         ///////////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
 
+        // Focuser Informatin
+        ITextVectorProperty InfoTP;
+        IText InfoT[2];
+        enum
+        {
+            INFO_NAME,
+            INFO_VERSION
+        };
+
+        // Focuser Operations
+        ISwitchVectorProperty OperationSP;
+        ISwitch OperationS[3];
+        enum
+        {
+            OPERATION_REBOOT,
+            OPERATION_RESET,
+            OPERATION_ZEROING,
+        };
+
+        // Temperature Compensation
+        ISwitchVectorProperty TemperatureCompensationSP;
+        ISwitch TemperatureCompensationS[2];
+        enum
+        {
+            TC_ENABLED,
+            TC_DISABLED
+        };
+
+        // TC State
+        ISwitchVectorProperty TemperatureStateSP;
+        ISwitch TemperatureStateS[2];
+        enum
+        {
+            TC_ACTIVE,
+            TC_PAUSED
+        };
+
+        // Temperature Compensation Settings
+        INumberVectorProperty TemperatureSettingsNP;
+        INumber TemperatureSettingsN[3];
+        enum
+        {
+            TC_FACTOR,
+            TC_PERIOD,
+            TC_DELTA
+        };
+
+        // Temperature Sensors
+        INumberVectorProperty TemperatureSensorNP;
+        INumber TemperatureSensorN[3];
+        enum
+        {
+            TEMP_0,
+            TEMP_1,
+            TEMP_AVG
+        };
+
+        /////////////////////////////////////////////////////////////////////////////
+        /// Private variables
+        /////////////////////////////////////////////////////////////////////////////
+        State m_State { STOPPED };
+        std::map<Summary, std::string> m_Summary;
+        bool m_ConfirmFactoryReset { false };
+
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
         static constexpr const char * SETTINGS_TAB = "Settings";
+        static constexpr const char * COMPENSATION_TAB = "Compensation";
         // 0xA is the stop char
         static const char DRIVER_STOP_CHAR { 0x0A };
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
         // Maximum buffer for sending/receving.
-        static constexpr const uint8_t DRIVER_LEN {64};
+        static constexpr const uint8_t DRIVER_LEN {192};
 };

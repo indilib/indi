@@ -271,7 +271,7 @@ void DomeScript::TimerHit()
             {
                 SetParked(true);
                 TargetAz = az;
-                LOG_INFO("Park succesfully executed");
+                LOG_INFO("Park successfully executed");
             }
         }
         else
@@ -280,7 +280,7 @@ void DomeScript::TimerHit()
             {
                 SetParked(false);
                 TargetAz = az;
-                LOG_INFO("Unpark succesfully executed");
+                LOG_INFO("Unpark successfully executed");
             }
         }
         if (std::round(az * 10) != std::round(TargetAz * 10))
@@ -301,7 +301,7 @@ void DomeScript::TimerHit()
                 shutterState    = SHUTTER_CLOSED;
                 DomeShutterSP.s = IPS_OK;
                 IDSetSwitch(&DomeShutterSP, nullptr);
-                LOG_INFO("Shutter was succesfully closed");
+                LOG_INFO("Shutter was successfully closed");
             }
         }
         else
@@ -311,7 +311,7 @@ void DomeScript::TimerHit()
                 shutterState    = SHUTTER_OPENED;
                 DomeShutterSP.s = IPS_OK;
                 IDSetSwitch(&DomeShutterSP, nullptr);
-                LOG_INFO("Shutter was succesfully opened");
+                LOG_INFO("Shutter was successfully opened");
             }
         }
     }

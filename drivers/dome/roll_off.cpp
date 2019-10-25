@@ -225,7 +225,7 @@ IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
         else if (dir == DOME_CCW && INDI::Dome::isLocked())
         {
             DEBUG(INDI::Logger::DBG_WARNING,
-                  "Cannot close dome when mount is locking. See: Telescope parkng policy, in options tab");
+                  "Cannot close dome when mount is locking. See: Telescope parking policy, in options tab");
             return IPS_ALERT;
         }
 

@@ -164,7 +164,7 @@ bool DeepSkyDadAF2::updateProperties()
 
         GetFocusParams();
 
-        LOG_INFO("deepSkyDadAf2 paramaters updated, focuser ready for use.");
+        LOG_INFO("deepSkyDadAf2 parameters updated, focuser ready for use.");
     }
     else
     {
@@ -190,7 +190,7 @@ bool DeepSkyDadAF2::Handshake()
     }
 
     LOG_INFO(
-        "Error retreiving data from deepSkyDadAf2, please ensure deepSkyDadAf2 controller is powered and the port is correct.");
+        "Error retrieving data from deepSkyDadAf2, please ensure deepSkyDadAf2 controller is powered and the port is correct.");
     return false;
 }
 

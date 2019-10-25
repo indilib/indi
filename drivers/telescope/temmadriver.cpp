@@ -930,7 +930,7 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
 
         TemmaInitialized = true;
 
-        //  We were NOT intialized, so, in case there is not park position set
+        //  We were NOT initialized, so, in case there is not park position set
         //  Sync to the position of bar vertical, telescope pointed at pole
         double RightAscension;
 
@@ -1247,7 +1247,7 @@ bool TemmaMount::Handshake()
     double lst = 0;
     if (GetLST(lst))
     {
-        LOG_DEBUG("Temma is intialized.");
+        LOG_DEBUG("Temma is initialized.");
         TemmaInitialized = true;
     }
     else

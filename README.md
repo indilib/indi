@@ -37,26 +37,33 @@ Learn more about INDI:
 On Debian/Ubuntu:
 
 ```
-sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtiff-dev libfftw3-dev
-```
-## Get the code
-If you plan on contributing to INDI development, then it is recommended to perform a full clone:
-```
-git clone https://github.com/indilib/indi.git
+sudo apt-get install -y libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtiff-dev libfftw3-dev
 ```
 
-If on the other hand, you are only interested to build INDI library, then it is best to clone a shallow copy as this will be **much** faster and saves lots of space:
+## Create Project Directory
 ```
-git clone --depth=1 https://github.com/indilib/indi.github
+mkdir -p ~/Projects
+cd ~/Projects
+```
+
+## Get the code
+To build INDI in order to run drivers, then it is recommended to perform a quick shallow clone that will save lots of bandwidth and space:
+```
+git clone --depth 1 https://github.com/indilib/indi.git
+```
+
+On the other hand, if you plan to submit a PR or engage in INDI driver development, then getting a full clone is recommended:
+```
+git clone https://github.com/indilib/indi.github
 ```
 
 ## Build indi-core
 
 ```
-mkdir -p build/indi-core
-cd build/indi-core
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../indi
-make
+mkdir -p ~/Projects/build/indi-core
+cd ~/Projects/build/indi-core
+cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ~/Projects/indi
+make -j4
 sudo make install
 ```
 

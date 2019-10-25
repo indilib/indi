@@ -286,7 +286,7 @@ class FocuserInterface
         INumberVectorProperty FocusRelPosNP;
         INumber FocusRelPosN[1];
 
-        // Absolute Focuser positoin is 0 to this maximum limit. By Default, it is set to 200,000.
+        // Absolute Focuser position is 0 to this maximum limit. By Default, it is set to 200,000.
         INumberVectorProperty FocusMaxPosNP;
         INumber FocusMaxPosN[1];
 

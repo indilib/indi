@@ -30,6 +30,10 @@
 
 #ifdef _WINDOWS
 #include <WinSock2.h>
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
 #endif
 
 #define MAXRBUF 2048

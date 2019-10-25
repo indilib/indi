@@ -872,7 +872,7 @@ bool LX200AstroPhysicsExperimental::updateAPSlewRate(int index)
 {
     //    if (IUFindOnSwitchIndex(&SlewRateSP) == index)
     //    {
-    //        LOGF_DEBUG("updateAPSlewRate: slew rate %d already choosen so ignoring.", index);
+    //        LOGF_DEBUG("updateAPSlewRate: slew rate %d already chosen so ignoring.", index);
     //        return true;
     //    }
 

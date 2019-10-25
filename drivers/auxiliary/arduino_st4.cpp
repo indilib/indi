@@ -273,7 +273,7 @@ void ArduinoST4::guideTimeout(ARDUINO_DIRECTION direction)
         if (sendCommand("RA0#"))
         {
             GuideWENP.s = IPS_IDLE;
-            LOG_DEBUG("Guiding: RA axis stoppped.");
+            LOG_DEBUG("Guiding: RA axis stopped.");
         }
         else
         {

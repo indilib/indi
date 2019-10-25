@@ -132,7 +132,7 @@ bool AAF2::Handshake()
         return true;
     }
 
-    LOG_INFO("Error retreiving data from AAF2, please ensure AAF2 controller is powered and the port is correct.");
+    LOG_INFO("Error retrieving data from AAF2, please ensure AAF2 controller is powered and the port is correct.");
     return false;
 }
 

@@ -1603,11 +1603,11 @@ void V4L2_Driver::getBasicData()
     formatindex = IUFindOnSwitchIndex(&CaptureFormatsSP);
     frate       = (v4l_base->*(v4l_base->getframerate))();
     if (inputindex >= 0 && formatindex >= 0)
-        LOGF_INFO("Found intial Input \"%s\", Format \"%s\", Size %dx%d, Frame interval %d/%ds",
+        LOGF_INFO("Found initial Input \"%s\", Format \"%s\", Size %dx%d, Frame interval %d/%ds",
                   InputsSP.sp[inputindex].name, CaptureFormatsSP.sp[formatindex].name, w, h, frate.numerator,
                   frate.denominator);
     else
-        LOGF_INFO("Found intial size %dx%d, frame interval %d/%ds", w, h, frate.numerator,
+        LOGF_INFO("Found initial size %dx%d, frame interval %d/%ds", w, h, frate.numerator,
                   frate.denominator);
 
     IUSaveText(&camNameT[0], v4l_base->getDeviceName());
@@ -1704,7 +1704,7 @@ void V4L2_Driver::allocateBuffers()
 
     if (V4LFrame == nullptr)
     {
-        LOG_ERROR("Critial Error: Unable to initialize driver. Low memory.");
+        LOG_ERROR("Critical Error: Unable to initialize driver. Low memory.");
         exit(-1);
     }
 

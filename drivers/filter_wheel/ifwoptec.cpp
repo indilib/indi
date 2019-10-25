@@ -439,7 +439,7 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         {
             IUUpdateSwitch(&FilterNbrSP, states, names, n);
 
-            // Is simulation active, User can change from 5 postions wheel to 6, 8 or 9 ones
+            // Is simulation active, User can change from 5 positions wheel to 6, 8 or 9 ones
             // Check if selection is different from active one
 
             if ((FilterNbrS[0].s == ISS_ON) & (FilterSlotN[0].max != 5))
@@ -627,7 +627,7 @@ bool FilterIFW::GetFilterNames()
 
     if (result)
     {
-        // Check the size of response to know if this is a 5 or 8 postion wheel as from R2.x IFW support both
+        // Check the size of response to know if this is a 5 or 8 position wheel as from R2.x IFW support both
         lenResponse = strlen(response);
 
         switch (lenResponse)

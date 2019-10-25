@@ -45,7 +45,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 8)
-set(CMAKE_INDI_VERSION_RELEASE 1)
+set(CMAKE_INDI_VERSION_RELEASE 2)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -1014,21 +1014,30 @@ install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin)
 
 ################ DeepSky Dad AF1 ################
 
-SET(deepskydad_SRC
+SET(deepskydad_af1_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/deepskydad_af1.cpp)
 
-add_executable(indi_deepskydad_af1_focus ${deepskydad_SRC})
+add_executable(indi_deepskydad_af1_focus ${deepskydad_af1_SRC})
 target_link_libraries(indi_deepskydad_af1_focus indidriver)
 install(TARGETS indi_deepskydad_af1_focus RUNTIME DESTINATION bin)
 
 ################ DeepSky Dad AF2 ################
 
-SET(deepskydad_SRC
+SET(deepskydad_af2_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/deepskydad_af2.cpp)
 
-add_executable(indi_deepskydad_af2_focus ${deepskydad_SRC})
+add_executable(indi_deepskydad_af2_focus ${deepskydad_af2_SRC})
 target_link_libraries(indi_deepskydad_af2_focus indidriver)
 install(TARGETS indi_deepskydad_af2_focus RUNTIME DESTINATION bin)
+
+################ DeepSky Dad AF3 ################
+
+SET(deepskydad_af3_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/deepskydad_af3.cpp)
+
+add_executable(indi_deepskydad_af3_focus ${deepskydad_af3_SRC})
+target_link_libraries(indi_deepskydad_af3_focus indidriver)
+install(TARGETS indi_deepskydad_af3_focus RUNTIME DESTINATION bin)
 
 ################ JMI Smart Focus Focuser ################
 
