@@ -3,6 +3,10 @@
 
     Copyright (C) 2017 Michael Fulbright
 
+    Additional contributors: 
+        Thomas Olson, Copyright (C) 2019
+        Karl Rees, Copyright (C) 2019
+
     Based on IEQPro driver.
 
     This library is free software; you can redistribute it and/or
