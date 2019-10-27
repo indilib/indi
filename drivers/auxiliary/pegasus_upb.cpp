@@ -1231,7 +1231,8 @@ bool PegasusUPB::getSensorData()
         //if (lastSensorData[4] != result[4] || lastSensorData[5] != result[5] || lastSensorData[6] != result[6])
         if (sensorUpdated(result, 4, 6))
         {
-            WI::syncCriticalParameters();
+            if (WI::syncCriticalParameters())
+                IDSetLight(&critialParametersLP, nullptr);
             ParametersNP.s = IPS_OK;
             IDSetNumber(&ParametersNP, nullptr);
         }

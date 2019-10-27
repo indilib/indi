@@ -62,33 +62,33 @@ bool WeatherInterface::updateProperties()
 {
     if (m_defaultDevice->isConnected())
     {
-            if (critialParametersL)
-                m_defaultDevice->defineLight(&critialParametersLP);
+        if (critialParametersL)
+            m_defaultDevice->defineLight(&critialParametersLP);
 
-            if (ParametersN)
-                m_defaultDevice->defineNumber(&ParametersNP);
+        if (ParametersN)
+            m_defaultDevice->defineNumber(&ParametersNP);
 
-            if (ParametersRangeNP)
-            {
-                for (int i = 0; i < nRanges; i++)
-                    m_defaultDevice->defineNumber(&ParametersRangeNP[i]);
-            }
-            }
-        else
+        if (ParametersRangeNP)
         {
-            if (critialParametersL)
-                m_defaultDevice->deleteProperty(critialParametersLP.name);
-
-            if (ParametersN)
-                m_defaultDevice->deleteProperty(ParametersNP.name);
-
-            if (ParametersRangeNP)
-            {
-                for (int i = 0; i < nRanges; i++)
-                    m_defaultDevice->deleteProperty(ParametersRangeNP[i].name);
-            }
-
+            for (int i = 0; i < nRanges; i++)
+                m_defaultDevice->defineNumber(&ParametersRangeNP[i]);
         }
+    }
+    else
+    {
+        if (critialParametersL)
+            m_defaultDevice->deleteProperty(critialParametersLP.name);
+
+        if (ParametersN)
+            m_defaultDevice->deleteProperty(ParametersNP.name);
+
+        if (ParametersRangeNP)
+        {
+            for (int i = 0; i < nRanges; i++)
+                m_defaultDevice->deleteProperty(ParametersRangeNP[i].name);
+        }
+
+    }
 
     return true;
 }
@@ -122,18 +122,18 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
 
 IPState WeatherInterface::updateWeather()
 {
-    DEBUGDEVICE(m_defaultDevice->getDeviceName(),Logger::DBG_ERROR,
-          "updateWeather() must be implemented in Weather device child class to update GEOGRAPHIC_COORD properties.");
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR,
+                "updateWeather() must be implemented in Weather device child class to update GEOGRAPHIC_COORD properties.");
     return IPS_ALERT;
 }
 
 void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
 {
-    DEBUGFDEVICE(m_defaultDevice->getDeviceName(),Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g,%g) ", name.c_str(), numMinOk,
-           numMaxOk, percWarning);
+    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g,%g) ", name.c_str(), numMinOk,
+                 numMaxOk, percWarning);
 
     ParametersN = (ParametersN == nullptr) ? static_cast<INumber *>(malloc(sizeof(INumber))) :
-                                             static_cast<INumber *>(realloc(ParametersN, (ParametersNP.nnp + 1) * sizeof(INumber)));
+                  static_cast<INumber *>(realloc(ParametersN, (ParametersNP.nnp + 1) * sizeof(INumber)));
 
     double *warn = static_cast<double *>(malloc(sizeof(double)));
 
@@ -169,8 +169,8 @@ bool WeatherInterface::setCriticalParameter(std::string param)
         {
             critialParametersL =
                 (critialParametersL == nullptr) ?
-                    static_cast<ILight *>(malloc(sizeof(ILight))) :
-                    static_cast<ILight *>(realloc(critialParametersL, (critialParametersLP.nlp + 1) * sizeof(ILight)));
+                static_cast<ILight *>(malloc(sizeof(ILight))) :
+                static_cast<ILight *>(realloc(critialParametersL, (critialParametersLP.nlp + 1) * sizeof(ILight)));
 
             IUFillLight(&critialParametersL[critialParametersLP.nlp], param.c_str(), ParametersN[i].label, IPS_IDLE);
 
@@ -182,14 +182,18 @@ bool WeatherInterface::setCriticalParameter(std::string param)
         }
     }
 
-    DEBUGFDEVICE(m_defaultDevice->getDeviceName(),Logger::DBG_WARNING, "Unable to find parameter %s in list of existing parameters!", param.c_str());
+    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING, "Unable to find parameter %s in list of existing parameters!", param.c_str());
     return false;
 }
 
-void WeatherInterface::syncCriticalParameters()
+bool WeatherInterface::syncCriticalParameters()
 {
     if (critialParametersL == nullptr)
-        return;
+        return false;
+
+    std::vector<IPState> preStates(critialParametersLP.nlp);
+    for (int i = 0; i < critialParametersLP.nlp; i++)
+        preStates[i] = critialParametersL[i].s;
 
     critialParametersLP.s = IPS_IDLE;
 
@@ -201,22 +205,22 @@ void WeatherInterface::syncCriticalParameters()
             {
                 double warn = *(static_cast<double *>(ParametersN[j].aux0));
 
-                double rangeWarn = (ParametersN[j].max - ParametersN[j].min) * (warn /100);
+                double rangeWarn = (ParametersN[j].max - ParametersN[j].min) * (warn / 100);
 
                 if ((ParametersN[j].value < ParametersN[j].min) || (ParametersN[j].value > ParametersN[j].max))
                 {
                     critialParametersL[i].s = IPS_ALERT;
-                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(),Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!",
-                           ParametersN[j].label, ParametersN[j].value);
+                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!",
+                                 ParametersN[j].label, ParametersN[j].value);
                 }
                 //else if (ParametersN[j].value < (ParametersN[j].min + rangeWarn) || ParametersN[j].value > (ParametersN[j].max - rangeWarn))
                 // FIXME This is a hack to prevent warnings parameters which minimum values are zero (e.g. Wind)
                 else if (   ((ParametersN[j].value < (ParametersN[j].min + rangeWarn)) && ParametersN[j].min != 0)
-                         || ((ParametersN[j].value > (ParametersN[j].max - rangeWarn)) && ParametersN[j].max != 0))
+                            || ((ParametersN[j].value > (ParametersN[j].max - rangeWarn)) && ParametersN[j].max != 0))
                 {
                     critialParametersL[i].s = IPS_BUSY;
-                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(),Logger::DBG_WARNING, "Warning: Parameter %s value (%g) is in the warning zone!",
-                           ParametersN[j].label, ParametersN[j].value);
+                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING, "Warning: Parameter %s value (%g) is in the warning zone!",
+                                 ParametersN[j].label, ParametersN[j].value);
                 }
                 else
                 {
@@ -231,15 +235,22 @@ void WeatherInterface::syncCriticalParameters()
             critialParametersLP.s = critialParametersL[i].s;
     }
 
-    IDSetLight(&critialParametersLP, nullptr);
+    // if Any state changed, return true.
+    for (int i = 0; i < critialParametersLP.nlp; i++)
+    {
+        if (preStates[i] != critialParametersL[i].s)
+            return true;
+    }
+
+    return false;
 }
 
 void WeatherInterface::createParameterRange(std::string name, std::string label)
 {
     ParametersRangeNP =
         (ParametersRangeNP == nullptr) ?
-            static_cast<INumberVectorProperty *>(malloc(sizeof(INumberVectorProperty))) :
-            static_cast<INumberVectorProperty *>(realloc(ParametersRangeNP, (nRanges + 1) * sizeof(INumberVectorProperty)));
+        static_cast<INumberVectorProperty *>(malloc(sizeof(INumberVectorProperty))) :
+        static_cast<INumberVectorProperty *>(realloc(ParametersRangeNP, (nRanges + 1) * sizeof(INumberVectorProperty)));
 
     INumber *rangesN = static_cast<INumber *>(malloc(sizeof(INumber) * 3));
 
