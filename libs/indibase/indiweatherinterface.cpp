@@ -108,7 +108,8 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
             ParametersN[i].max               = ParametersRangeNP[i].np[1].value;
             *(static_cast<double *>(ParametersN[i].aux0)) = ParametersRangeNP[i].np[2].value;
 
-            syncCriticalParameters();
+            if (syncCriticalParameters())
+                IDSetLight(&critialParametersLP, nullptr);
 
             ParametersRangeNP[i].s = IPS_OK;
             IDSetNumber(&ParametersRangeNP[i], nullptr);

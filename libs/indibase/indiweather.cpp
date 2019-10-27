@@ -161,8 +161,8 @@ bool Weather::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 LOG_INFO("Weather override is disabled");
                 OverrideSP.s = IPS_IDLE;
 
-                if (syncCriticalParameters())
-                    IDSetLight(&critialParametersLP, nullptr);
+                syncCriticalParameters();
+                IDSetLight(&critialParametersLP, nullptr);
             }
 
             IDSetSwitch(&OverrideSP, nullptr);
