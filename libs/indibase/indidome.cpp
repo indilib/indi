@@ -464,11 +464,18 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (DomeAutoSyncS[0].s == ISS_ON)
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome will now be synced to mount azimuth position.");
-                UpdateAutoSync();
+                //UpdateAutoSync();
+                m_HorizontalUpdateTimerID = IEAddTimer(10, &Dome::updateMountCoordsHelper, this);
             }
             else
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome is no longer synced to mount azimuth position.");
+                if (m_HorizontalUpdateTimerID > 0)
+                {
+                    IERmTimer(m_HorizontalUpdateTimerID);
+                    m_HorizontalUpdateTimerID = -1;
+                }
+
                 if (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY /* || DomeTimerNP.s == IPS_BUSY*/)
                     Dome::Abort();
             }
@@ -1341,6 +1348,12 @@ bool Dome::CheckHorizon(double HA, double dec, double lat)
 
 void Dome::UpdateMountCoords()
 {
+    if (m_HorizontalUpdateTimerID > 0)
+    {
+        IERmTimer(m_HorizontalUpdateTimerID);
+        m_HorizontalUpdateTimerID = IEAddTimer(HORZ_UPDATE_TIMER, &Dome::updateMountCoordsHelper, this);
+    }
+
     // If not initialized yet, return.
     if (mountEquatorialCoords.ra == -1)
         return;
@@ -2148,6 +2161,11 @@ void Dome::setDomeConnection(const uint8_t &value)
     }
 
     domeConnection = value;
+}
+
+void Dome::updateMountCoordsHelper(void *context)
+{
+    static_cast<Dome*>(context)->UpdateMountCoords();
 }
 
 }
