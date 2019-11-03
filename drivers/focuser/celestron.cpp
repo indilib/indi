@@ -170,7 +170,7 @@ bool CelestronSCT::updateProperties()
         defineText(&CalibrateStateTP);
 
         if (getStartupParameters())
-            LOG_INFO("Celestron SCT focuser paramaters updated, focuser ready for use.");
+            LOG_INFO("Celestron SCT focuser parameters updated, focuser ready for use.");
         else
             LOG_WARN("Failed to retrieve some focuser parameters. Check logs.");
 
@@ -194,7 +194,7 @@ bool CelestronSCT::Handshake()
         return true;
     }
 
-    LOG_INFO("Error retreiving data from Celestron SCT, please ensure Celestron SCT controller is powered and the port is correct.");
+    LOG_INFO("Error retrieving data from Celestron SCT, please ensure Celestron SCT controller is powered and the port is correct.");
     return false;
 }
 
@@ -361,7 +361,7 @@ IPState CelestronSCT::MoveAbsFocuser(uint32_t targetTicks)
     }
     if (calibrateInProgress)
     {
-        LOG_WARN("Move not allowed because a calinration is in progress");
+        LOG_WARN("Move not allowed because a calibration is in progress");
         return IPS_ALERT;
     }
 

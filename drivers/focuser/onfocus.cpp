@@ -120,7 +120,7 @@ bool OnFocus::updateProperties()
         GetFocusParams();
         loadConfig(true);
 
-        DEBUG(INDI::Logger::DBG_SESSION, "OnFocus paramaters updated, focuser ready for use.");
+        DEBUG(INDI::Logger::DBG_SESSION, "OnFocus parameters updated, focuser ready for use.");
     }
     else
     {
@@ -193,14 +193,14 @@ bool OnFocus::updatePosition()
     if ( (rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "updatePosition error: %s.", errstr);
         return false;
     }
 
     if ( (rc = tty_read_section(PortFD, resp, '#', ONFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "updatePosition error: %s.", errstr);
         return false;
     }
 

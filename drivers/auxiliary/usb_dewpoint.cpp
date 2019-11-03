@@ -179,7 +179,7 @@ bool USBDewpoint::updateProperties()
 
         loadConfig(true);
         readSettings();
-        LOG_INFO("USB_Dewpoint paramaters updated, device ready for use.");
+        LOG_INFO("USB_Dewpoint parameters updated, device ready for use.");
         SetTimer(POLLMS);
     }
     else
@@ -286,10 +286,10 @@ bool USBDewpoint::Handshake()
             LOG_INFO("USB_Dewpoint is online. Getting device parameters...");
             return true;
         }
-        LOG_INFO("Error retreiving data from USB_Dewpoint, trying resync...");
+        LOG_INFO("Error retrieving data from USB_Dewpoint, trying resync...");
     } while (--tries > 0 && Resync());
 
-    LOG_INFO("Error retreiving data from USB_Dewpoint, please ensure controller "
+    LOG_INFO("Error retrieving data from USB_Dewpoint, please ensure controller "
              "is powered and the port is correct.");
     return false;
 }

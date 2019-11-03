@@ -200,7 +200,7 @@ bool SmartFocus::AbortFocuser()
     {
         LOG_DEBUG("AbortFocuser: stopping motion");
         result = send(&stop_focuser, sizeof(stop_focuser), "AbortFocuser");
-        // N.B.: The respons to this stop command will be captured in the TimerHit method!
+        // N.B.: The response to this stop command will be captured in the TimerHit method!
     }
     return result;
 }

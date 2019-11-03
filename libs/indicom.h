@@ -41,6 +41,10 @@
 
 #pragma once
 
+#if defined(_MSC_VER)
+#define _USE_MATH_DEFINES
+#endif
+
 #define J2000       2451545.0
 #define ERRMSG_SIZE 1024
 

@@ -107,7 +107,7 @@ extern int IUPurgeConfig(const char *filename, const char *dev, char errmsg[]);
   each command to the driver. Subsequently, the driver receives the updated property value in the driver's ISNewXXX functions.
   The driver may call this function at any time. However, it is usually called either on driver startup or on device power up.
   By default, all the properties are read from the configuration file. To load a specific property, pass the property name, otherwise
-  pass NULL to retrive all properties.
+  pass NULL to retrieve all properties.
 
     \param filename full path of the configuration file. If set, the function will attempt to load the file.
            If set to NULL, it will attempt to generate the filename as described in the <b>Detailed Description</b> introduction and then load it.
@@ -169,7 +169,7 @@ extern void IUSaveConfigSwitch(FILE *fp, const ISwitchVectorProperty *svp);
 extern void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp);
 
 /**
- * @brief IUGetConfigNumber Opens configuration file and reads number property.
+ * @brief IUGetConfigNumber Opens configuration file and reads single number property.
  * @param dev name of device
  * @param property name of vector property
  * @param member name of member property
@@ -179,7 +179,17 @@ extern void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp);
 extern int IUGetConfigNumber(const char *dev, const char *property, const char *member, double *value);
 
 /**
- * @brief IUGetConfigText Opens configuration file and reads text property.
+ * @brief IUGetConfigSwitch Opens configuration file and reads single switch property.
+ * @param dev name of device
+ * @param property name of vector property
+ * @param member name of member property
+ * @param value pointer to save value of property if found.
+ * @return 0 on success, -1 if not found.
+ */
+extern int IUGetConfigSwitch(const char *dev, const char *property, const char *member, ISState *value);
+
+/**
+ * @brief IUGetConfigText Opens configuration file and reads single text property.
  * @param dev name of device
  * @param property name of vector property
  * @param member name of member property

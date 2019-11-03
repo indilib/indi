@@ -282,7 +282,7 @@ bool CelestronGPS::updateProperties()
         else
         {
             fwInfo.Version = "Invalid";
-            LOG_WARN("Failed to retrive firmware information.");
+            LOG_WARN("Failed to retrieve firmware information.");
         }
 
         // Since issues have been observed with Starsense, enabe parking only with Nexstar controller

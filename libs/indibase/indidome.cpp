@@ -464,11 +464,18 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (DomeAutoSyncS[0].s == ISS_ON)
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome will now be synced to mount azimuth position.");
-                UpdateAutoSync();
+                //UpdateAutoSync();
+                m_HorizontalUpdateTimerID = IEAddTimer(10, &Dome::updateMountCoordsHelper, this);
             }
             else
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome is no longer synced to mount azimuth position.");
+                if (m_HorizontalUpdateTimerID > 0)
+                {
+                    IERmTimer(m_HorizontalUpdateTimerID);
+                    m_HorizontalUpdateTimerID = -1;
+                }
+
                 if (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY /* || DomeTimerNP.s == IPS_BUSY*/)
                     Dome::Abort();
             }
@@ -621,7 +628,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (AutoParkS[0].s == ISS_ON)
                 LOG_WARN( "Warning: Auto park is enabled. If weather conditions are in the "
                           "danger zone, the dome will be automatically parked. Only enable this "
-                          "option is parking the dome at any time will not cause damange to any "
+                          "option is parking the dome at any time will not cause damage to any "
                           "equipment.");
             else
                 DEBUG(Logger::DBG_SESSION, "Auto park is disabled.");
@@ -712,7 +719,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             if (rc_ra == 0 && rc_de == 0)
             {
                 //  everything parsed ok, so lets start the dome to moving
-                //  If this slew involves a meridan flip, then the slaving calcs will end up using
+                //  If this slew involves a meridian flip, then the slaving calcs will end up using
                 //  the wrong OTA side.  Lets set things up so our slaving code will calculate the side
                 //  for the target slew instead of using mount pier side info
                 OTASideSP.s = IPS_IDLE;
@@ -738,7 +745,6 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         {
             const char * elemName = findXMLAttValu(ep, "name");
 
-            LOGF_DEBUG("Snooped RA-DEC: %s", pcdataXMLEle(ep));
             if (!strcmp(elemName, "RA"))
                 rc_ra = f_scansexa(pcdataXMLEle(ep), &ra);
             else if (!strcmp(elemName, "DEC"))
@@ -747,7 +753,19 @@ bool Dome::ISSnoopDevice(XMLEle * root)
 
         if (rc_ra == 0 && rc_de == 0)
         {
-            mountEquatorialCoords.ra  = ra * 15.0;
+            ra *= 15.0;
+
+            // Do not spam log
+            if (std::fabs(mountEquatorialCoords.ra - ra) > 0.01 || std::fabs(mountEquatorialCoords.dec - de) > 0.01)
+            {
+                char RAStr[64] = {0}, DEStr[64] = {0};
+                fs_sexa(RAStr, ra / 15.0, 2, 3600);
+                fs_sexa(DEStr, de, 2, 3600);
+
+                LOGF_DEBUG("Snooped RA %s DEC %s", RAStr, DEStr);
+            }
+
+            mountEquatorialCoords.ra  = ra;
             mountEquatorialCoords.dec = de;
         }
 
@@ -760,9 +778,8 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         {
             prev_ra  = mountEquatorialCoords.ra;
             prev_dec = mountEquatorialCoords.dec;
-            LOGF_DEBUG("Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra,
-                       mountEquatorialCoords.dec);
-            //  a mount still intializing will emit 0 and 0 on the first go
+            //LOGF_DEBUG("Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra, mountEquatorialCoords.dec);
+            //  a mount still initializing will emit 0 and 0 on the first go
             //  we dont want to process 0/0
             if ((mountEquatorialCoords.ra != 0) || (mountEquatorialCoords.dec != 0))
                 HaveRaDec = true;
@@ -1037,6 +1054,22 @@ void Dome::setDomeState(const Dome::DomeState &value)
             break;
 
         case DOME_PARKED:
+            if (DomeMotionSP.s == IPS_BUSY)
+            {
+                IUResetSwitch(&DomeMotionSP);
+                DomeMotionSP.s = IPS_IDLE;
+                IDSetSwitch(&DomeMotionSP, nullptr);
+            }
+            if (DomeAbsPosNP.s == IPS_BUSY)
+            {
+                DomeAbsPosNP.s = IPS_IDLE;
+                IDSetNumber(&DomeAbsPosNP, nullptr);
+            }
+            if (DomeRelPosNP.s == IPS_BUSY)
+            {
+                DomeRelPosNP.s = IPS_IDLE;
+                IDSetNumber(&DomeRelPosNP, nullptr);
+            }
             IUResetSwitch(&ParkSP);
             ParkSP.s   = IPS_OK;
             ParkS[0].s = ISS_ON;
@@ -1315,6 +1348,12 @@ bool Dome::CheckHorizon(double HA, double dec, double lat)
 
 void Dome::UpdateMountCoords()
 {
+    if (m_HorizontalUpdateTimerID > 0)
+    {
+        IERmTimer(m_HorizontalUpdateTimerID);
+        m_HorizontalUpdateTimerID = IEAddTimer(HORZ_UPDATE_TIMER, &Dome::updateMountCoordsHelper, this);
+    }
+
     // If not initialized yet, return.
     if (mountEquatorialCoords.ra == -1)
         return;
@@ -1985,9 +2024,8 @@ IPState Dome::ControlShutter(ShutterOperation operation)
 
     if (DomeShutterSP.s == IPS_OK)
     {
-        IUResetSwitch(&DomeShutterSP);
-        DomeShutterS[operation].s = ISS_ON;
         IDSetSwitch(&DomeShutterSP, "Shutter is %s.", (operation == SHUTTER_OPEN ? "open" : "closed"));
+        setShutterState(operation == SHUTTER_OPEN ? SHUTTER_OPENED : SHUTTER_CLOSED);
         return DomeShutterSP.s;
     }
     else if (DomeShutterSP.s == IPS_BUSY)
@@ -1995,6 +2033,7 @@ IPState Dome::ControlShutter(ShutterOperation operation)
         IUResetSwitch(&DomeShutterSP);
         DomeShutterS[operation].s = ISS_ON;
         IDSetSwitch(&DomeShutterSP, "Shutter is %s...", (operation == 0 ? "opening" : "closing"));
+        setShutterState(SHUTTER_MOVING);
         return DomeShutterSP.s;
     }
 
@@ -2122,6 +2161,11 @@ void Dome::setDomeConnection(const uint8_t &value)
     }
 
     domeConnection = value;
+}
+
+void Dome::updateMountCoordsHelper(void *context)
+{
+    static_cast<Dome*>(context)->UpdateMountCoords();
 }
 
 }

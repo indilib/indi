@@ -209,17 +209,17 @@
             <driver name="Digital Setting Circle">indi_dsc_telescope</driver>
             <version>1.0</version>
         </device>
-        <device label="Explore Scientific PMC-Eight" manufacturer="Explore Scientific">
+        <device label="ES G-11 PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.2</version>
+            <version>0.3</version>
         </device>
-        <device label="Explore Scientific EXOS2" manufacturer="Explore Scientific">
+        <device label="ES EXOS2-GT PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.2</version>
+            <version>0.3</version>
         </device>
-        <device label="Explore Scientific iEXOS100" manufacturer="Explore Scientific">
+        <device label="ES iEXOS100 PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.2</version>
+            <version>0.3</version>
         </device>
     </devGroup>
     <devGroup group="Focusers">
@@ -261,7 +261,7 @@
         </device>
         <device label="MyFocuserPro2">
             <driver name="MyFocuserPro2">indi_myfocuserpro2_focus</driver>
-            <version>0.1</version>
+            <version>0.6</version>
         </device>
         <device label="DeepSkyDad AF1">
             <driver name="DeepSkyDad AF1">indi_deepskydad_af1_focus</driver>
@@ -269,6 +269,10 @@
         </device>
         <device label="DeepSkyDad AF2">
             <driver name="DeepSkyDad AF2">indi_deepskydad_af2_focus</driver>
+            <version>1.0</version>
+        </device>
+                <device label="DeepSkyDad AF3">
+            <driver name="DeepSkyDad AF3">indi_deepskydad_af3_focus</driver>
             <version>1.0</version>
         </device>
         <device label="OnFocus">
@@ -421,7 +425,7 @@
         </device>
         <device label="Pegasus UPB">
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="WatchDog">
             <driver name="WatchDog">indi_watchdog</driver>

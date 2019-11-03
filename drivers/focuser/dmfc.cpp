@@ -204,7 +204,7 @@ bool DMFC::Handshake()
     }
 
     LOG_INFO(
-        "Error retreiving data from DMFC, please ensure DMFC controller is powered and the port is correct.");
+        "Error retrieving data from DMFC, please ensure DMFC controller is powered and the port is correct.");
     return false;
 }
 
@@ -543,7 +543,7 @@ bool DMFC::updateFocusParams()
 
     if (token == nullptr)
     {
-        LOG_ERROR("Invalid moving satus response.");
+        LOG_ERROR("Invalid moving status response.");
         return false;
     }
 

@@ -506,7 +506,8 @@ bool PegasusPPB::getSensorData()
                 lastSensorData[PA_HUMIDITY] != result[PA_HUMIDITY] ||
                 lastSensorData[PA_DEW_POINT] != result[PA_DEW_POINT])
         {
-            WI::syncCriticalParameters();
+            if (WI::syncCriticalParameters())
+                IDSetLight(&critialParametersLP, nullptr);
             ParametersNP.s = IPS_OK;
             IDSetNumber(&ParametersNP, nullptr);
         }

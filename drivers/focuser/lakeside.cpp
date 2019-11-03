@@ -223,7 +223,7 @@ bool Lakeside::updateProperties()
 
         GetFocusParams();
 
-        LOG_INFO("Lakeside paramaters updated, focuser ready for use.");
+        LOG_INFO("Lakeside parameters updated, focuser ready for use.");
     }
     else
     {
@@ -341,19 +341,24 @@ bool Lakeside::SendCmd(const char * in_cmd)
 bool Lakeside::ReadBuffer(char * response)
 {
     int nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
     char resp[LAKESIDE_LEN] = {0};
 
     //strcpy(resp,"       ");
     // read until 0x23 (#) received
     if ( (rc = tty_read_section(PortFD, resp, 0x23, LAKESIDE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("ReadBuffer: Read failed - %s", errstr);
         strncpy(response, "ERROR", LAKESIDE_LEN);
         return false;
     }
 
+    //    char hex_cmd[LAKESIDE_LEN * 3] = {0};
+    //    hexDump(hex_cmd, resp, LAKESIDE_LEN * 3);
+    //    LOGF_DEBUG("RES <%s>", hex_cmd);
+
+    resp[nbytes_read] = 0;
     LOGF_DEBUG("RES <%s>", resp);
 
     strncpy(response, resp, LAKESIDE_LEN);
@@ -476,14 +481,22 @@ char Lakeside::DecodeBuffer(char * in_response)
     }
 
     // Temperature update is Tnnnnnn# where nnnnn is left space padded
-    rc = sscanf(in_response, "T%5d#", &temp);
-    if (rc > 0)
+    if (!strcmp("TN/A#", in_response))
     {
-        // need to divide result by 2
-        TemperatureN[0].value = ((int) temp) / 2.0;
-        LOGF_DEBUG("DecodeBuffer: Result (%3.1f)", TemperatureN[0].value);
-
+        TemperatureNP.s = IPS_IDLE;
         return 'T';
+    }
+    else
+    {
+        rc = sscanf(in_response, "T%5d#", &temp);
+        if (rc > 0)
+        {
+            // need to divide result by 2
+            TemperatureN[0].value = ((int) temp) / 2.0;
+            LOGF_DEBUG("DecodeBuffer: Result (%3.1f)", TemperatureN[0].value);
+
+            return 'T';
+        }
     }
 
     // Temperature update is Knnnnnn# where nnnnn is left space padded
@@ -2442,5 +2455,18 @@ bool Lakeside::AbortFocuser()
         return false;
     }
 }
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+void Lakeside::hexDump(char * buf, const char * data, int size)
+{
+    for (int i = 0; i < size; i++)
+        sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
+
+    if (size > 0)
+        buf[3 * size - 1] = '\0';
+}
+
 
 // End Lakeside Focuser

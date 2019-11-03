@@ -157,7 +157,7 @@ bool Microtouch::updateProperties()
 
         GetFocusParams();
 
-        LOG_INFO("Microtouch paramaters updated, focuser ready for use.");
+        LOG_INFO("Microtouch parameters updated, focuser ready for use.");
     }
     else
     {
@@ -183,7 +183,7 @@ bool Microtouch::Handshake()
         return true;
     }
 
-    LOG_INFO("Error retreiving data from Microtouch, please ensure Microtouch controller is "
+    LOG_INFO("Error retrieving data from Microtouch, please ensure Microtouch controller is "
                                      "powered and the port is correct.");
     return false;
 }

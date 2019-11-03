@@ -1,7 +1,7 @@
 /*******************************************************************************
  Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
 
- It just gets the encoder positoin and outputs current coordinates.
+ It just gets the encoder position and outputs current coordinates.
  Calibratoin and syncing not supported yet.
 
  This library is free software; you can redistribute it and/or

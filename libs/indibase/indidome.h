@@ -177,6 +177,7 @@ class Dome : public DefaultDevice
         virtual bool ISSnoopDevice(XMLEle * root);
 
         static void buttonHelper(const char * button_n, ISState state, void * context);
+        static void updateMountCoordsHelper(void *context);
 
         /**
              * @brief setDomeConnection Set Dome connection mode. Child class should call this in the constructor before Dome registers
@@ -607,6 +608,7 @@ class Dome : public DefaultDevice
 
         const char * ParkDeviceName;
         const std::string ParkDataFileName;
+        int m_HorizontalUpdateTimerID { -1 };
         XMLEle * ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;
 
         double Axis1ParkPosition;
@@ -614,6 +616,9 @@ class Dome : public DefaultDevice
 
         bool callHandshake();
         uint8_t domeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+
+        // How often we update horizontal coordinates (10 seconds).
+        static constexpr uint32_t HORZ_UPDATE_TIMER { 10000 };
 };
 
 }

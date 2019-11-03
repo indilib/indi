@@ -32,6 +32,7 @@
 #include <cstring>
 #include <sys/ioctl.h>
 #include <chrono>
+#include <math.h>
 #include <iomanip>
 
 // We declare an auto pointer to PegasusUPB.
@@ -77,7 +78,7 @@ void ISSnoopDevice(XMLEle * root)
 
 PegasusUPB::PegasusUPB() : FI(this), WI(this)
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     lastSensorData.reserve(21);
     lastPowerData.reserve(4);
@@ -251,7 +252,7 @@ bool PegasusUPB::initProperties()
 
     // Settings
     //    IUFillNumber(&FocusBacklashN[0], "SETTING_BACKLASH", "Backlash (steps)", "%.f", 0, 999, 100, 0);
-    IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.2f", 0, 100, 10, 0);
+    IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
     IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 1, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Backlash
@@ -726,19 +727,16 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
         // Focuser Settings
         if (!strcmp(name, FocuserSettingsNP.name))
         {
-            //bool rc1 = true, rc2 = true;
-            bool rc = true;
-            for (int i = 0; i < n; i++)
+            if (setFocuserMaxSpeed(values[0]))
             {
-                //                if (!strcmp(names[i], FocusBacklashN[0].name) && values[i] != FocusBacklashN[0].value)
-                //                    rc1 = setFocuserBacklash(values[i]);
-                if (!strcmp(names[i], FocuserSettingsN[SETTING_MAX_SPEED].name) && values[i] != FocuserSettingsN[SETTING_MAX_SPEED].value)
-                    rc = setFocuserMaxSpeed(values[i] / 100.0 * 999.0);
+                FocuserSettingsN[0].value = values[0];
+                FocuserSettingsNP.s = IPS_OK;
+            }
+            else
+            {
+                FocuserSettingsNP.s = IPS_ALERT;
             }
 
-            FocuserSettingsNP.s = (rc) ? IPS_OK : IPS_ALERT;
-            if (FocuserSettingsNP.s == IPS_OK)
-                IUUpdateNumber(&FocuserSettingsNP, values, names, n);
             IDSetNumber(&FocuserSettingsNP, nullptr);
             return true;
         }
@@ -1233,7 +1231,8 @@ bool PegasusUPB::getSensorData()
         //if (lastSensorData[4] != result[4] || lastSensorData[5] != result[5] || lastSensorData[6] != result[6])
         if (sensorUpdated(result, 4, 6))
         {
-            WI::syncCriticalParameters();
+            if (WI::syncCriticalParameters())
+                IDSetLight(&critialParametersLP, nullptr);
             ParametersNP.s = IPS_OK;
             IDSetNumber(&ParametersNP, nullptr);
         }
@@ -1557,7 +1556,17 @@ bool PegasusUPB::setupParams()
     char res[PEGASUS_LEN] = {0};
     if (sendCommand("SS", res))
     {
-        FocuserSettingsN[SETTING_MAX_SPEED].value = std::stod(res) / 999.0 * 100;
+        uint32_t value = std::stol(res);
+        if (value == UINT16_MAX)
+        {
+            LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropiate for your motor focus type (0-900)", value);
+            FocuserSettingsNP.s = IPS_ALERT;
+        }
+        else
+        {
+            FocuserSettingsN[SETTING_MAX_SPEED].value = value;
+            FocuserSettingsNP.s = IPS_OK;
+        }
     }
 
     return false;

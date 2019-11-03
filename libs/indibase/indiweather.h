@@ -51,7 +51,7 @@ class TCP;
  * whether to take any safety measures to protect the observatory from severe weather conditions.
  *
  * The child class should start by first adding all the weather parameters via the addParameter()
- * function, then set all the critial parameters via the setCriticalParameter() function, and finally call
+ * function, then set all the critical parameters via the setCriticalParameter() function, and finally call
  * generateParameterRanges() function to generate all the parameter ranges properties.
  *
  * Weather update period is controlled by the WEATHER_UPDATE property which stores the update period

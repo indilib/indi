@@ -129,7 +129,7 @@ bool Pyxis::Handshake()
     if (Ack())
         return true;
 
-    LOG_INFO("Error retreiving data from Pyxis, please ensure Pyxis controller is powered and the port is correct.");
+    LOG_INFO("Error retrieving data from Pyxis, please ensure Pyxis controller is powered and the port is correct.");
     return false;
 }
 

@@ -187,7 +187,7 @@ bool XAGYLWheel::Handshake()
             LOGF_ERROR("Unable to parse (%s)", resp);
     }
 
-    LOG_INFO("Error retreiving data from XAGYL Filter Wheel, please ensure filter wheel is "
+    LOG_INFO("Error retrieving data from XAGYL Filter Wheel, please ensure filter wheel is "
                                      "powered and the port is correct.");
     return false;
 }

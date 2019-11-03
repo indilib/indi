@@ -242,11 +242,11 @@ bool USBFocusV3::Handshake()
             LOG_INFO("USBFocusV3 is online. Getting focus parameters...");
             return true;
         }
-        LOG_INFO("Error retreiving data from USBFocusV3, trying resync...");
+        LOG_INFO("Error retrieving data from USBFocusV3, trying resync...");
     }
     while (--tries > 0 && Resync());
 
-    LOG_INFO("Error retreiving data from USBFocusV3, please ensure controller "
+    LOG_INFO("Error retrieving data from USBFocusV3, please ensure controller "
              "is powered and the port is correct.");
     return false;
 }
