@@ -2,7 +2,10 @@
     INDI Explore Scientific PMC8 driver
 
     Copyright (C) 2017 Michael Fulbright
-
+    Additional contributors: 
+        Thomas Olson, Copyright (C) 2019
+        Karl Rees, Copyright (C) 2019
+        
     Based on IEQPro driver.
 
     This library is free software; you can redistribute it and/or
@@ -117,7 +120,9 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         /* Mount Types */
         ISwitch MountTypeS[3];
         ISwitchVectorProperty MountTypeSP;
-        enum { MOUNT_G11, MOUNT_EXOS2, MOUNT_iEXOS100 };
+
+        //Moved to driver
+        //enum { MOUNT_G11, MOUNT_EXOS2, MOUNT_iEXOS100 };
 
         /* Tracking Mode */
         //ISwitchVectorProperty TrackModeSP;

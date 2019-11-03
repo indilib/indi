@@ -3,6 +3,10 @@
 
     Copyright (C) 2017 Michael Fulbright
 
+    Additional contributors: 
+        Thomas Olson, Copyright (C) 2019
+        Karl Rees, Copyright (C) 2019
+
     Based on IEQPro driver.
 
     This library is free software; you can redistribute it and/or
@@ -27,6 +31,7 @@
 
 #include <indicom.h>
 #include <connectionplugins/connectionserial.h>
+#include <connectionplugins/connectiontcp.h>
 
 #include <libnova/sidereal_time.h>
 
@@ -39,6 +44,9 @@
 #define SLEWRATE 3          /* slew rate, degrees/s */
 
 #define MOUNTINFO_TAB "Mount Info"
+
+#define PMC8_DEFAULT_PORT 54372
+#define PMC8_DEFAULT_IP_ADDRESS "192.168.47.1"
 
 static std::unique_ptr<PMC8> scope(new PMC8());
 
@@ -93,7 +101,7 @@ PMC8::PMC8()
                            TELESCOPE_HAS_LOCATION,
                            4);
 
-    setVersion(0, 2);
+    setVersion(0, 3);
 }
 
 PMC8::~PMC8()
@@ -109,6 +117,14 @@ bool PMC8::initProperties()
 {
     INDI::Telescope::initProperties();
 
+    // My understanding is that all mounts communicate at 115200, so set this early and make it easier for newbies?
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+
+
+    //TO DO: Figure out how to set default Ethernet address and port (without overriding user config)
+    tcpConnection->setDefaultHost(PMC8_DEFAULT_IP_ADDRESS);
+    tcpConnection->setDefaultPort(PMC8_DEFAULT_PORT);
+
     // Mount Type
     IUFillSwitch(&MountTypeS[MOUNT_G11], "MOUNT_G11", "G11", ISS_OFF);
     IUFillSwitch(&MountTypeS[MOUNT_EXOS2], "MOUNT_EXOS2", "EXOS2", ISS_OFF);
@@ -116,13 +132,13 @@ bool PMC8::initProperties()
     IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Guess type from device name
-    if (strstr(getDeviceName(), "EXOS2"))
+    // No need to guess mount type from device name here, can wait until after we get firmware
+    /*if (strstr(getDeviceName(), "EXOS2"))
         MountTypeS[MOUNT_EXOS2].s = ISS_ON;
     else if (strstr(getDeviceName(), "iEXOS100"))
         MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
     else
-        MountTypeS[MOUNT_G11].s = ISS_ON;
+        MountTypeS[MOUNT_G11].s = ISS_ON;*/
 
 
     /* Tracking Mode */
@@ -208,6 +224,39 @@ void PMC8::getStartupData()
         FirmwareTP.s = IPS_OK;
         c = firmwareInfo.MainBoardFirmware.c_str();
         LOGF_INFO("firmware = %s.", c);
+
+        // not sure if there's really a point to the mount switch anymore if we know the mount from the firmware - perhaps remove as newer firmware becomes standard?
+        // populate mount type switch in interface from firmware if possible
+        if (firmwareInfo.MountType == MOUNT_EXOS2) {
+            MountTypeS[MOUNT_EXOS2].s = ISS_ON;
+            LOG_INFO("Detected mount type as Exos2.");
+        }
+        else if (firmwareInfo.MountType == MOUNT_G11) {
+            MountTypeS[MOUNT_G11].s = ISS_ON;
+            LOG_INFO("Detected mount type as G11.");
+        }
+        else if (firmwareInfo.MountType == MOUNT_iEXOS100) {
+            MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
+            LOG_INFO("Detected mount type as iExos100.");
+        }
+        else {
+            LOG_INFO("Cannot detect mount type--perhaps this is older firmware?");
+            if (strstr(getDeviceName(), "EXOS2")) {
+                MountTypeS[MOUNT_EXOS2].s = ISS_ON;
+                LOG_INFO("Guessing mount is EXOS2 from device name.");
+            }
+            else if (strstr(getDeviceName(), "iEXOS100")) {
+                MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
+                LOG_INFO("Guessing mount is iEXOS100 from device name.");
+            }
+            else {
+                MountTypeS[MOUNT_G11].s = ISS_ON;
+                LOG_INFO("Guessing mount is G11.");
+            }
+        }
+        MountTypeSP.s = IPS_OK;
+        IDSetSwitch(&MountTypeSP,nullptr);
+
         IUSaveText(&FirmwareT[0], c);
         IDSetText(&FirmwareTP, nullptr);
     }
@@ -305,10 +354,13 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             LOGF_INFO("Selected mount is %s", MountTypeS[currentMountIndex].label);
 
             // Set iEXOS100 baud rate to 115200
-            if (!isConnected() && currentMountIndex == MOUNT_iEXOS100)
-                serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+            // Not sure why we were only doing this for iEXOS100?  It's the same for everybody, right?
+            // So I moved this to initProperties()
+            //if (!isConnected()) && currentMountIndex == MOUNT_iEXOS100)
+            //    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
-            set_pmc8_myMount(currentMountIndex);
+            //right now, this lets the user override the parameters for the detected mount.  Perhaps we should prevent the user from doing so?
+            set_pmc8_mountParameters(currentMountIndex);
             MountTypeSP.s = IPS_OK;
             IDSetSwitch(&MountTypeSP, nullptr);
             //		defineSwitch(&MountTypeSP);
