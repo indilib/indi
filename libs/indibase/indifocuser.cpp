@@ -285,13 +285,7 @@ void Focuser::processButton(const char *button_n, ISState state)
             IDSetSwitch(&FocusMotionSP, nullptr);
         }
 
-        if (HasVariableSpeed())
-        {
-            rc             = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-            FocusTimerNP.s = rc;
-            IDSetNumber(&FocusTimerNP, nullptr);
-        }
-        else if (CanRelMove())
+        if (CanRelMove())
         {
             rc = MoveRelFocuser(FOCUS_INWARD, FocusRelPosN[0].value);
             if (rc == IPS_OK)
@@ -306,6 +300,13 @@ void Focuser::processButton(const char *button_n, ISState state)
                 IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps inward...", (int)FocusRelPosN[0].value);
             }
         }
+        else if (HasVariableSpeed())
+        {
+            rc             = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+            FocusTimerNP.s = rc;
+            IDSetNumber(&FocusTimerNP, nullptr);
+        }
+
     }
     else if (!strcmp(button_n, "Focus Out"))
     {
@@ -316,13 +317,7 @@ void Focuser::processButton(const char *button_n, ISState state)
             IDSetSwitch(&FocusMotionSP, nullptr);
         }
 
-        if (HasVariableSpeed())
-        {
-            rc             = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-            FocusTimerNP.s = rc;
-            IDSetNumber(&FocusTimerNP, nullptr);
-        }
-        else if (CanRelMove())
+        if (CanRelMove())
         {
             rc = MoveRelFocuser(FOCUS_OUTWARD, FocusRelPosN[0].value);
             if (rc == IPS_OK)
@@ -336,6 +331,12 @@ void Focuser::processButton(const char *button_n, ISState state)
                 FocusRelPosNP.s = IPS_BUSY;
                 IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps outward...", (int)FocusRelPosN[0].value);
             }
+        }
+        else if (HasVariableSpeed())
+        {
+            rc             = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+            FocusTimerNP.s = rc;
+            IDSetNumber(&FocusTimerNP, nullptr);
         }
     }
 }
