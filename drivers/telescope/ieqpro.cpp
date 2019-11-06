@@ -25,6 +25,8 @@
 #include <libnova/sidereal_time.h>
 #include <libnova/transform.h>
 #include <memory>
+#include <thread>
+#include <chrono>
 
 #include <cmath>
 #include <cstring>
@@ -569,10 +571,29 @@ bool IEQPro::Goto(double r, double d)
         return false;
     }
 
-    TrackState = SCOPE_SLEWING;
+    iEQ::Base::Info newInfo;
 
-    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
-    return true;
+    // Wait until the mount system status changes to SLEWING
+    // up to 500ms
+    for (int i = 0; i < 5; i++)
+    {
+        bool rc = driver->getStatus(&newInfo);
+        if (rc && newInfo.systemStatus == ST_SLEWING)
+            break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    if (newInfo.systemStatus == ST_SLEWING)
+    {
+        TrackState = SCOPE_SLEWING;
+        LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+        return true;
+    }
+    else
+    {
+        LOG_ERROR("Mount status failed to update to slewing.");
+        return false;
+    }
 }
 
 bool IEQPro::Sync(double ra, double dec)
