@@ -84,7 +84,7 @@ void ISSnoopDevice(XMLEle *root)
 
 CelestronGPS::CelestronGPS() : FI(this)
 {
-    setVersion(3, 2); // update libindi/drivers.xml as well
+    setVersion(3, 3); // update libindi/drivers.xml as well
 
 
     fwInfo.Version           = "Invalid";
@@ -110,7 +110,7 @@ CelestronGPS::CelestronGPS() : FI(this)
     SetTelescopeCapability(TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT, 9);
 }
 
-bool CelestronGPS::checkMinVersion(float minVersion, const char *feature, bool debug)
+bool CelestronGPS::checkMinVersion(double minVersion, const char *feature, bool debug)
 {
     if (((fwInfo.controllerVariant == ISSTARSENSE) &&
             (fwInfo.controllerVersion < MINSTSENSVER)) ||
@@ -141,11 +141,13 @@ bool CelestronGPS::initProperties()
 
     // Firmware
     IUFillText(&FirmwareT[FW_MODEL], "Model", "", nullptr);
-    IUFillText(&FirmwareT[FW_VERSION], "Version", "", nullptr);
-    IUFillText(&FirmwareT[FW_GPS], "GPS", "", nullptr);
-    IUFillText(&FirmwareT[FW_RA], "RA", "", nullptr);
-    IUFillText(&FirmwareT[FW_DEC], "DEC", "", nullptr);
-    IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
+    IUFillText(&FirmwareT[FW_VERSION], "HC Version", "", nullptr);
+    IUFillText(&FirmwareT[FW_RA], "Ra Version", "", nullptr);
+    IUFillText(&FirmwareT[FW_DEC], "Dec Version", "", nullptr);
+    IUFillText(&FirmwareT[FW_ISGEM], "Mount Type", "", nullptr);
+    IUFillText(&FirmwareT[FW_CAN_AUX], "Guide Method", "", nullptr);
+    IUFillText(&FirmwareT[FW_HAS_FOC], "Has Focuser", "", nullptr);
+    IUFillTextVector(&FirmwareTP, FirmwareT, 7, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
     // Celestron Track Modes are Off, AltAz, EQ N and EQ S
@@ -168,10 +170,10 @@ bool CelestronGPS::initProperties()
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     //GUIDE Define "Use Pulse Cmd" property (Switch).
-    IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_OFF);
-    IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_ON);
-    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+//    IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_OFF);
+//    IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_ON);
+//    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
+//                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // experimental last align control
     IUFillSwitchVector(&LastAlignSP, LastAlignS, 1, getDeviceName(), "Align", "Align", MAIN_CONTROL_TAB,
@@ -271,9 +273,12 @@ bool CelestronGPS::updateProperties()
         {
             IUSaveText(&FirmwareT[FW_MODEL], fwInfo.Model.c_str());
             IUSaveText(&FirmwareT[FW_VERSION], fwInfo.Version.c_str());
-            IUSaveText(&FirmwareT[FW_GPS], fwInfo.GPSFirmware.c_str());
             IUSaveText(&FirmwareT[FW_RA], fwInfo.RAFirmware.c_str());
             IUSaveText(&FirmwareT[FW_DEC], fwInfo.DEFirmware.c_str());
+            IUSaveText(&FirmwareT[FW_ISGEM], fwInfo.isGem ? "GEM" : "Fork");
+            canAuxGuide = (atof(fwInfo.RAFirmware.c_str()) >= 6.12 && atof(fwInfo.DEFirmware.c_str()) >= 6.12);
+            IUSaveText(&FirmwareT[FW_CAN_AUX], canAuxGuide ? "Mount" : "Time Guide");
+            IUSaveText(&FirmwareT[FW_HAS_FOC], fwInfo.hasFocuser ? "True" : "False");
 
             usePreciseCoords = (checkMinVersion(2.2, "usePreciseCoords"));
             // set the default switch index, will be updated from the mount if possible
@@ -350,7 +355,7 @@ bool CelestronGPS::updateProperties()
                         SetParked(false);
 
                     TrackState = SCOPE_TRACKING;
-                    saveConfig("CELESTRON_TRACK_MODE");
+                    saveConfig(true, "CELESTRON_TRACK_MODE");
                     LOGF_DEBUG("Celestron mount tracking, mode %s", CelestronTrackModeS[ctm - 1].label);
                 }
                 else
@@ -376,7 +381,6 @@ bool CelestronGPS::updateProperties()
             LOG_WARN("Mount firmware does not support track mode.");
         }
 
-
         SetTelescopeCapability(cap, 9);
 
         INDI::Telescope::updateProperties();
@@ -400,7 +404,9 @@ bool CelestronGPS::updateProperties()
         }
 
         //GUIDE Update properties.
-        defineSwitch(&UsePulseCmdSP);
+        // check if the mount type and version supports pulse guiding
+//        if (canAuxGuide)
+//            defineSwitch(&UsePulseCmdSP);
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
@@ -488,7 +494,7 @@ bool CelestronGPS::updateProperties()
         deleteProperty(FocusMinPosNP.name);
 
         //GUIDE Delete properties.
-        deleteProperty(UsePulseCmdSP.name);
+//        deleteProperty(UsePulseCmdSP.name);
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
 
@@ -951,17 +957,17 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
         }
 
         //GUIDE Pulse-Guide command support
-        if (!strcmp(name, UsePulseCmdSP.name))
-        {
-            IUResetSwitch(&UsePulseCmdSP);
-            IUUpdateSwitch(&UsePulseCmdSP, states, names, n);
+//        if (!strcmp(name, UsePulseCmdSP.name))
+//        {
+//            IUResetSwitch(&UsePulseCmdSP);
+//            IUUpdateSwitch(&UsePulseCmdSP, states, names, n);
 
-            UsePulseCmdSP.s = IPS_OK;
-            IDSetSwitch(&UsePulseCmdSP, nullptr);
-            usePulseCommand = (UsePulseCmdS[1].s == ISS_ON);
-            LOGF_INFO("Pulse guiding is %s.", usePulseCommand ? "enabled" : "disabled");
-            return true;
-        }
+//            UsePulseCmdSP.s = IPS_OK;
+//            IDSetSwitch(&UsePulseCmdSP, nullptr);
+//            usePulseCommand = (UsePulseCmdS[1].s == ISS_ON);
+//            LOGF_INFO("Pulse guiding is %s.", usePulseCommand ? "enabled" : "disabled");
+//            return true;
+//        }
 
         // start a last align
         // the process is:
@@ -1528,7 +1534,7 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &UseHibernateSP);
     IUSaveConfigSwitch(fp, &CelestronTrackModeSP);
-    IUSaveConfigSwitch(fp, &UsePulseCmdSP);
+//    IUSaveConfigSwitch(fp, &UsePulseCmdSP);
 
     //IUSaveConfigNumber(fp, &FocusBacklashNP);
     IUSaveConfigNumber(fp, &FocusMinPosNP);
@@ -1549,167 +1555,169 @@ bool CelestronGPS::setCelestronTrackMode(CELESTRON_TRACK_MODE mode)
 }
 
 //GUIDE Guiding functions.
+
 IPState CelestronGPS::GuideNorth(uint32_t ms)
 {
-    LOGF_DEBUG("GUIDE CMD: N %.0f ms", ms);
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
-    {
-        LOG_ERROR("Cannot guide while moving.");
-        return IPS_ALERT;
-    }
+    return Guide(CELESTRON_DIRECTION::CELESTRON_N, ms);
 
-    // If already moving (no pulse command), then stop movement
-    if (MovementNSSP.s == IPS_BUSY)
-    {
-        int dir = IUFindOnSwitchIndex(&MovementNSSP);
-        MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
-    }
+//    LOGF_DEBUG("GUIDE CMD: N %.0f ms", ms);
 
-    if (GuideNSTID)
-    {
-        IERmTimer(GuideNSTID);
-        GuideNSTID = 0;
-    }
+//    // Set slew to guiding
+//    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+//    {
+//        LOG_ERROR("Cannot guide while moving.");
+//        return IPS_ALERT;
+//    }
 
-    if (usePulseCommand)
-    {
-        driver.send_pulse(CELESTRON_N, 50, ms / 10.0);
-    }
-    else
-    {
-        MovementNSS[0].s = ISS_ON;
-        MoveNS(DIRECTION_NORTH, MOTION_START);
-    }
+//    // If already moving (no pulse command), then stop movement
+//    if (MovementNSSP.s == IPS_BUSY)
+//    {
+//        int dir = IUFindOnSwitchIndex(&MovementNSSP);
+//        MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+//    }
 
-    // Set slew to guiding
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = CELESTRON_N;
-    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperN, this);
-    return IPS_BUSY;
+//    if (GuideNSTID)
+//    {
+//        IERmTimer(GuideNSTID);
+//        GuideNSTID = 0;
+//    }
+
+//    if (usePulseCommand)
+//    {
+//        if((ticksNS = ms / 10) <= 0)
+//            return IPS_IDLE;
+//        driver.send_pulse(CELESTRON_N, 50, static_cast<uint8_t>(std::min(255, ticksNS)));
+//        ticksNS -= 255;
+//    }
+//    else
+//    {
+//        ticksNS = 0;
+//        MovementNSS[0].s = ISS_ON;
+//        MoveNS(DIRECTION_NORTH, MOTION_START);
+//    }
+
+//    IUResetSwitch(&SlewRateSP);
+//    SlewRateS[SLEW_GUIDE].s = ISS_ON;
+//    IDSetSwitch(&SlewRateSP, nullptr);
+//    guide_direction = CELESTRON_N;
+//    GuideNSTID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperN, this);
+//    return IPS_BUSY;
 }
 
 IPState CelestronGPS::GuideSouth(uint32_t ms)
-{
-    LOGF_DEBUG("GUIDE CMD: S %.0f ms", ms);
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
-    {
-        LOG_ERROR("Cannot guide while moving.");
-        return IPS_ALERT;
-    }
+{    
+    return Guide(CELESTRON_DIRECTION::CELESTRON_S, ms);
 
-    // If already moving (no pulse command), then stop movement
-    if (MovementNSSP.s == IPS_BUSY)
-    {
-        int dir = IUFindOnSwitchIndex(&MovementNSSP);
-        MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
-    }
-
-    if (GuideNSTID)
-    {
-        IERmTimer(GuideNSTID);
-        GuideNSTID = 0;
-    }
-
-    if (usePulseCommand)
-    {
-        driver.send_pulse(CELESTRON_S, 50, ms / 10.0);
-    }
-    else
-    {
-        MovementNSS[1].s = ISS_ON;
-        MoveNS(DIRECTION_SOUTH, MOTION_START);
-    }
-
-    // Set slew to guiding
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = CELESTRON_S;
-    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperS, this);
-    return IPS_BUSY;
 }
 
 IPState CelestronGPS::GuideEast(uint32_t ms)
 {
-    LOGF_DEBUG("GUIDE CMD: E %.0f ms", ms);
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
-    {
-        LOG_ERROR("Cannot guide while moving.");
-        return IPS_ALERT;
-    }
+    return Guide(CELESTRON_DIRECTION::CELESTRON_E, ms);
 
-    // If already moving (no pulse command), then stop movement
-    if (MovementWESP.s == IPS_BUSY)
-    {
-        int dir = IUFindOnSwitchIndex(&MovementWESP);
-        MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
-    }
-
-    if (GuideWETID)
-    {
-        IERmTimer(GuideWETID);
-        GuideWETID = 0;
-    }
-
-    if (usePulseCommand)
-    {
-        driver.send_pulse(CELESTRON_E, 50, ms / 10.0);
-    }
-    else
-    {
-        MovementWES[1].s = ISS_ON;
-        MoveWE(DIRECTION_EAST, MOTION_START);
-    }
-
-    // Set slew to guiding
-    IUResetSwitch(&SlewRateSP);
-    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = CELESTRON_E;
-    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperE, this);
-    return IPS_BUSY;
 }
 
 IPState CelestronGPS::GuideWest(uint32_t ms)
 {
-    LOGF_DEBUG("GUIDE CMD: W %.0f ms", ms);
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    return Guide(CELESTRON_DIRECTION::CELESTRON_W, ms);
+}
+
+
+IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
+{
+    // set up direction properties
+    char dc = 'x';
+    ISwitchVectorProperty *moveSP;
+    ISwitch moveS = MovementNSS[0];
+    int* guideTID = &GuideNSTID;
+    int* ticks = &ticksNS;
+
+    // set up pointers to the various things needed
+    switch (dirn)
+    {
+    case CELESTRON_N:
+        dc = 'N';
+        moveSP = &MovementNSSP;
+        moveS = MovementNSS[0];
+        guideTID = &GuideNSTID;
+        ticks = &ticksNS;
+        break;
+    case CELESTRON_S:
+        dc = 'S';
+        moveSP = &MovementNSSP;
+        moveS = MovementNSS[1];
+        guideTID = &GuideNSTID;
+        ticks = &ticksNS;
+         break;
+    case CELESTRON_E:
+        dc = 'E';
+        moveSP = &MovementWESP;
+        moveS = MovementWES[1];
+        guideTID = &GuideWETID;
+        ticks = &ticksWE;
+        break;
+     case CELESTRON_W:
+        dc = 'W';
+        moveSP = &MovementWESP;
+        moveS = MovementWES[0];
+        guideTID = &GuideWETID;
+        ticks = &ticksWE;
+        break;
+    }
+
+    LOGF_DEBUG("GUIDE CMD: %c %u ms, %s guide", dc, ms, canAuxGuide ? "Aux" : "Time");
+
+    if (!canAuxGuide && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
     // If already moving (no pulse command), then stop movement
-    if (MovementWESP.s == IPS_BUSY)
+    if (moveSP->s == IPS_BUSY)
     {
-        int dir = IUFindOnSwitchIndex(&MovementWESP);
-        MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+        LOG_DEBUG("Already moving - stop");
+        driver.stop_motion(dirn);
+        //int dir = IUFindOnSwitchIndex(moveSP);
+        //MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
 
-    if (GuideWETID)
+    if (*guideTID)
     {
-        IERmTimer(GuideWETID);
-        GuideWETID = 0;
+        LOGF_DEBUG("Stop timer %c", dc);
+        IERmTimer(*guideTID);
+        *guideTID = 0;
     }
 
-    if (usePulseCommand)
+    if (canAuxGuide)
     {
-        driver.send_pulse(CELESTRON_W, 50, ms / 10.0);
+        *ticks = ms / 10;
+
+        if (driver.send_pulse(dirn, 50, static_cast<char>(std::min(255, *ticks))) == 0)
+        {
+            LOGF_ERROR("send_pulse %c error", dc);
+            return IPS_ALERT;
+        }
+        *ticks -= 255;
+        ms = ms > 2550 ? 2550 : ms;
     }
     else
     {
-        MovementWES[0].s = ISS_ON;
-        MoveWE(DIRECTION_WEST, MOTION_START);
+        moveS.s = ISS_ON;
+        //CELESTRON_SLEW_RATE rate = static_cast<CELESTRON_SLEW_RATE>(IUFindOnSwitchIndex(&SlewRateSP));
+        if (!driver.start_motion(dirn, CELESTRON_SLEW_RATE::SR_1))
+        {
+            LOGF_ERROR("StartMotion %c failed", dc);
+            return IPS_ALERT;
+        }
+        *ticks = 0;
     }
 
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = CELESTRON_W;
-    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperW, this);
+    //guide_direction = dirn;
+    AddGuideTimer(dirn, static_cast<int>(ms));
     return IPS_BUSY;
 }
 
@@ -1718,14 +1726,17 @@ void CelestronGPS::guideTimeoutHelperN(void *p)
 {
     static_cast<CelestronGPS *>(p)->guideTimeout(CELESTRON_N);
 }
+
 void CelestronGPS::guideTimeoutHelperS(void *p)
 {
     static_cast<CelestronGPS *>(p)->guideTimeout(CELESTRON_S);
 }
+
 void CelestronGPS::guideTimeoutHelperW(void *p)
 {
     static_cast<CelestronGPS *>(p)->guideTimeout(CELESTRON_W);
 }
+
 void CelestronGPS::guideTimeoutHelperE(void *p)
 {
     static_cast<CelestronGPS *>(p)->guideTimeout(CELESTRON_E);
@@ -1740,7 +1751,7 @@ void CelestronGPS::guideTimeoutHelperE(void *p)
  * the calling pulse command is terminated.
  */
 
-void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
+void CelestronGPS::guideTimeout(CELESTRON_DIRECTION dirn)
 {
     //LOG_DEBUG(" END-OF-TIMER");
     //LOGF_DEBUG("   usePulseCommand = %i", usePulseCommand);
@@ -1762,67 +1773,108 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
     //        IDSetSwitch(&MovementWESP, nullptr);
     //        IERmTimer(GuideNSTID);
     //        IERmTimer(GuideWETID);
-    //    } else
-    if (!usePulseCommand)
+    //    } else#
+
+    int* ticks = &ticksNS;
+
+    switch(dirn)
     {
-        if (calldir == CELESTRON_N || calldir == CELESTRON_S)
+    case CELESTRON_N:
+    case CELESTRON_S:
+        ticks = &ticksNS;
+        break;
+    case CELESTRON_E:
+    case CELESTRON_W:
+        ticks = &ticksWE;
+        break;
+    }
+    LOGF_DEBUG("guideTimeout dir %c, ticks %i", "NSWE"[dirn], *ticks);
+
+    if (canAuxGuide)
+    {
+        if (driver.get_pulse_status(dirn))
         {
-            MoveNS(calldir == CELESTRON_N ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
-
-            if (calldir == CELESTRON_N)
-                GuideNSNP.np[0].value = 0;
-            else
-                GuideNSNP.np[1].value = 0;
-
-            GuideNSNP.s = IPS_IDLE;
-            IDSetNumber(&GuideNSNP, nullptr);
-            MovementNSSP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IDSetSwitch(&MovementNSSP, nullptr);
+            // curent move not finished, add some more time
+            AddGuideTimer(dirn, 100);
+            return;
         }
-        if (calldir == CELESTRON_W || calldir == CELESTRON_E)
+        if (*ticks > 0)
         {
-            MoveWE(calldir == CELESTRON_W ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
-            if (calldir == CELESTRON_W)
-                GuideWENP.np[0].value = 0;
-            else
-                GuideWENP.np[1].value = 0;
-
-            GuideWENP.s = IPS_IDLE;
-            IDSetNumber(&GuideWENP, nullptr);
-            MovementWESP.s = IPS_IDLE;
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementWESP, nullptr);
+            // do some more guiding
+            char dt = static_cast<char>(std::min(255, *ticks));
+            driver.send_pulse(dirn, 50, dt);
+            AddGuideTimer(dirn, dt * 10);
+            *ticks -= 255;
+            return;
         }
+        // we get here if the axis reports guiding finished and all the ticks have been done
+    }
+    else
+    {
+        if (!driver.stop_motion(dirn))
+            LOGF_ERROR("StopMotion failed dir %c", "NSWE"[dirn]);
+
+//        switch(calldir)
+//        {
+//        case CELESTRON_N:
+//        case CELESTRON_S:
+//            MoveNS(calldir == CELESTRON_N ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+
+//            IUResetSwitch(&MovementNSSP);
+//            IDSetSwitch(&MovementNSSP, nullptr);
+//            break;
+//        case CELESTRON_E:
+//        case CELESTRON_W:
+//            MoveWE(calldir == CELESTRON_W ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+//            IUResetSwitch(&MovementWESP);
+//            IDSetSwitch(&MovementWESP, nullptr);
+//            break;
+//        }
     }
 
-    //LOG_DEBUG(" CALL SendPulseStatusCmd");
-
-    bool pulseguide_state;
-
-    if (!driver.get_pulse_status(calldir, pulseguide_state))
-        LOG_ERROR("PULSE STATUS UNDETERMINED");
-    else if (pulseguide_state)
-        LOG_WARN("PULSE STILL IN PROGRESS, POSSIBLE MOUNT JAM.");
-
-    if (calldir == CELESTRON_N || calldir == CELESTRON_S)
+    switch(dirn)
     {
+    case CELESTRON_N:
+    case CELESTRON_S:
+        IUResetSwitch(&MovementNSSP);
+        IDSetSwitch(&MovementNSSP, nullptr);
         GuideNSNP.np[0].value = 0;
         GuideNSNP.np[1].value = 0;
         GuideNSNP.s           = IPS_IDLE;
         GuideNSTID            = 0;
         IDSetNumber(&GuideNSNP, nullptr);
-    }
-    if (calldir == CELESTRON_W || calldir == CELESTRON_E)
-    {
+        break;
+    case CELESTRON_E:
+    case CELESTRON_W:
+        IUResetSwitch(&MovementWESP);
+        IDSetSwitch(&MovementWESP, nullptr);
         GuideWENP.np[0].value = 0;
         GuideWENP.np[1].value = 0;
         GuideWENP.s           = IPS_IDLE;
         GuideWETID            = 0;
         IDSetNumber(&GuideWENP, nullptr);
+        break;
     }
+    LOGF_DEBUG("Guide %c finished", "NSWE"[dirn]);
+}
 
-    //LOG_WARN("GUIDE CMD COMPLETED");
+void CelestronGPS::AddGuideTimer(CELESTRON_DIRECTION dirn, int ms)
+{
+    switch(dirn)
+    {
+    case CELESTRON_N:
+        GuideNSTID = IEAddTimer(ms, guideTimeoutHelperN, this);
+        break;
+    case CELESTRON_S:
+        GuideNSTID = IEAddTimer(ms, guideTimeoutHelperS, this);
+        break;
+    case CELESTRON_E:
+        GuideWETID = IEAddTimer(ms, guideTimeoutHelperE, this);
+        break;
+    case CELESTRON_W:
+        GuideWETID = IEAddTimer(ms, guideTimeoutHelperW, this);
+        break;
+    }
 }
 
 // the INDI overload, expected to set the track rate
@@ -1835,7 +1887,6 @@ bool CelestronGPS::SetTrackMode(uint8_t mode)
     {
         case CTM_OFF:
         case CTM_ALTAZ:
-        default:
             return false;
         case CTM_EQN:
         case CTM_EQS:
@@ -1888,7 +1939,7 @@ IPState CelestronGPS::MoveAbsFocuser(uint32_t targetTicks)
     }
 
     // implement backlash
-    int delta = targetTicks - FocusAbsPosN[0].value;
+    int delta = static_cast<int>(targetTicks - FocusAbsPosN[0].value);
 
     if ((FocusBacklashN[0].value < 0 && delta > 0) ||
             (FocusBacklashN[0].value > 0 && delta < 0))
@@ -1908,15 +1959,15 @@ IPState CelestronGPS::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState CelestronGPS::MoveRelFocuser(INDI::FocuserInterface::FocusDirection dir, uint32_t ticks)
 {
-    int32_t newPosition = 0;
+    uint32_t newPosition = 0;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = static_cast<uint32_t>(FocusAbsPosN[0].value) - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = static_cast<uint32_t>(FocusAbsPosN[0].value) + ticks;
 
     // Clamp
-    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
+    newPosition = std::min(static_cast<uint32_t>(FocusAbsPosN[0].max), newPosition);
     return MoveAbsFocuser(newPosition);
 }
 
