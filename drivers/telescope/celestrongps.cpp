@@ -1200,6 +1200,7 @@ void CelestronGPS::mountSim()
         set_sim_alt(horizontalPos.alt);*/
 
         NewRaDec(currentRA, currentDEC);
+
         return;
     }
 
@@ -1556,64 +1557,30 @@ bool CelestronGPS::setCelestronTrackMode(CELESTRON_TRACK_MODE mode)
 
 //GUIDE Guiding functions.
 
+// There have been substantial changes at version 3.3, Nov 2019
+//
+// The mount controlled Aux Guide is used if it is available, this is
+// if the mount firmware version for both axes is 6.12 or better.  Other
+// mounts use a timed guide method.
+// The mount Aux Guide command has a maximum vulue of 2.55 seconds but if
+// a longer guide is needed then multiple Aux Guide commands are sent.
+//
+// The start guide and stop guide functions use helper functions to avoid
+// code duplication.
+
 IPState CelestronGPS::GuideNorth(uint32_t ms)
 {
     return Guide(CELESTRON_DIRECTION::CELESTRON_N, ms);
-
-//    LOGF_DEBUG("GUIDE CMD: N %.0f ms", ms);
-
-//    // Set slew to guiding
-//    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
-//    {
-//        LOG_ERROR("Cannot guide while moving.");
-//        return IPS_ALERT;
-//    }
-
-//    // If already moving (no pulse command), then stop movement
-//    if (MovementNSSP.s == IPS_BUSY)
-//    {
-//        int dir = IUFindOnSwitchIndex(&MovementNSSP);
-//        MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
-//    }
-
-//    if (GuideNSTID)
-//    {
-//        IERmTimer(GuideNSTID);
-//        GuideNSTID = 0;
-//    }
-
-//    if (usePulseCommand)
-//    {
-//        if((ticksNS = ms / 10) <= 0)
-//            return IPS_IDLE;
-//        driver.send_pulse(CELESTRON_N, 50, static_cast<uint8_t>(std::min(255, ticksNS)));
-//        ticksNS -= 255;
-//    }
-//    else
-//    {
-//        ticksNS = 0;
-//        MovementNSS[0].s = ISS_ON;
-//        MoveNS(DIRECTION_NORTH, MOTION_START);
-//    }
-
-//    IUResetSwitch(&SlewRateSP);
-//    SlewRateS[SLEW_GUIDE].s = ISS_ON;
-//    IDSetSwitch(&SlewRateSP, nullptr);
-//    guide_direction = CELESTRON_N;
-//    GuideNSTID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperN, this);
-//    return IPS_BUSY;
 }
 
 IPState CelestronGPS::GuideSouth(uint32_t ms)
 {    
     return Guide(CELESTRON_DIRECTION::CELESTRON_S, ms);
-
 }
 
 IPState CelestronGPS::GuideEast(uint32_t ms)
 {
     return Guide(CELESTRON_DIRECTION::CELESTRON_E, ms);
-
 }
 
 IPState CelestronGPS::GuideWest(uint32_t ms)
@@ -1621,7 +1588,7 @@ IPState CelestronGPS::GuideWest(uint32_t ms)
     return Guide(CELESTRON_DIRECTION::CELESTRON_W, ms);
 }
 
-
+// common function to start guiding for all axes.
 IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
 {
     // set up direction properties
@@ -1677,8 +1644,6 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
     {
         LOG_DEBUG("Already moving - stop");
         driver.stop_motion(dirn);
-        //int dir = IUFindOnSwitchIndex(moveSP);
-        //MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
 
     if (*guideTID)
@@ -1690,20 +1655,23 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
 
     if (canAuxGuide)
     {
+        // get the number of 10ms hardware ticks
         *ticks = ms / 10;
 
+        // send the first Aux Guide command, rate is forced to 50%
         if (driver.send_pulse(dirn, 50, static_cast<char>(std::min(255, *ticks))) == 0)
         {
             LOGF_ERROR("send_pulse %c error", dc);
             return IPS_ALERT;
         }
+        // decrease ticks and ms values
         *ticks -= 255;
         ms = ms > 2550 ? 2550 : ms;
     }
     else
     {
         moveS.s = ISS_ON;
-        //CELESTRON_SLEW_RATE rate = static_cast<CELESTRON_SLEW_RATE>(IUFindOnSwitchIndex(&SlewRateSP));
+        // start movement at HC button rate 1
         if (!driver.start_motion(dirn, CELESTRON_SLEW_RATE::SR_1))
         {
             LOGF_ERROR("StartMotion %c failed", dc);
@@ -1716,7 +1684,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
-    //guide_direction = dirn;
+    // start the guide timeout timer
     AddGuideTimer(dirn, static_cast<int>(ms));
     return IPS_BUSY;
 }
@@ -1800,7 +1768,7 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION dirn)
         }
         if (*ticks > 0)
         {
-            // do some more guiding
+            // do some more guiding and set the timeout
             char dt = static_cast<char>(std::min(255, *ticks));
             driver.send_pulse(dirn, 50, dt);
             AddGuideTimer(dirn, dt * 10);
@@ -1813,23 +1781,6 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION dirn)
     {
         if (!driver.stop_motion(dirn))
             LOGF_ERROR("StopMotion failed dir %c", "NSWE"[dirn]);
-
-//        switch(calldir)
-//        {
-//        case CELESTRON_N:
-//        case CELESTRON_S:
-//            MoveNS(calldir == CELESTRON_N ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
-
-//            IUResetSwitch(&MovementNSSP);
-//            IDSetSwitch(&MovementNSSP, nullptr);
-//            break;
-//        case CELESTRON_E:
-//        case CELESTRON_W:
-//            MoveWE(calldir == CELESTRON_W ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
-//            IUResetSwitch(&MovementWESP);
-//            IDSetSwitch(&MovementWESP, nullptr);
-//            break;
-//        }
     }
 
     switch(dirn)
@@ -1876,6 +1827,8 @@ void CelestronGPS::AddGuideTimer(CELESTRON_DIRECTION dirn, int ms)
         break;
     }
 }
+
+// end of guiding code
 
 // the INDI overload, expected to set the track rate
 // sidereal, solar or lunar and only if the mount is equatorial
@@ -1929,7 +1882,6 @@ void CelestronGPS::checkAlignment()
 // focus control
 IPState CelestronGPS::MoveAbsFocuser(uint32_t targetTicks)
 {
-
     uint32_t position = targetTicks;
 
     if (!focuserIsCalibrated)

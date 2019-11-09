@@ -107,6 +107,7 @@ typedef struct
     CELESTRON_GPS_STATUS gpsStatus;
     bool isSlewing;
     uint foc_position = 20000;
+    uint foc_target = 20000;
 } SimData;
 
 /**************************************************************************
@@ -142,6 +143,8 @@ class CelestronDriver
         void set_sim_alt(double alt) { sim_data.alt = alt; }
         double get_sim_ra() { return sim_data.ra; }
         double get_sim_dec() { return sim_data.dec; }
+        int get_sim_foc_offset() { return sim_data.foc_target - sim_data.foc_position; }
+        void move_sim_foc(int offset) { sim_data.foc_position += offset; }
 
         bool echo();
         bool check_connection();
