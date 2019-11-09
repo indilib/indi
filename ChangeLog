@@ -1,3 +1,17 @@
+From 1.8.1 to 1.8.2
+
+      + First release of INDI separate from INDI 3rd party repository.
+      + New Pular Domes driver.
+      + New MyFocuserPro2 driver.
+      + New SteelDriverII focuser driver.
+      + New Deep Sky Dad AF3 driver.
+      + Fixed INDI Client build on Windows.
+      + Fixed weather override functionality in INDI::Weather.
+      + Fixed INDI Dome tracking.
+      + Updated PCM8 driver to automatically detect mount types.
+      + Serial communication polling period is configurable 1-30 secs.
+      + Added ISGetConfigSwitch to read switch information directly from config.
+
 From 1.8.0 to 1.8.1
 
       + Unified Toupbase driver for Touptek-based cameras.
