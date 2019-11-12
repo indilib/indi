@@ -127,27 +127,31 @@
         </device>
         <device label="iOptron iEQ30 Pro" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.8</version>
+            <version>1.9</version>
         </device>
         <device label="iOptron CEM40" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.8</version>
+            <version>1.9</version>
+        </device>
+        <device label="iOptron GEM45" manufacturer="iOptron">
+            <driver name="iEQ">indi_ieq_telescope</driver>
+            <version>1.9</version>
         </device>
         <device label="iOptron iEQ45 Pro" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.8</version>
+            <version>1.9</version>
         </device>
         <device label="iOptron CEM60" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.8</version>
+            <version>1.9</version>
         </device>
         <device label="iOptron CEM25" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.8</version>
+            <version>1.9</version>
         </device>
         <device label="iOptron SmartEQ" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.8</version>
+            <version>1.9</version>
         </device>
         <device label="iOptron ZEQ25" manufacturer="iOptron">
             <driver name="ZEQ25">indi_lx200zeq25</driver>

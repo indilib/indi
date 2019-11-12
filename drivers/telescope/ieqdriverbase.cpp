@@ -710,10 +710,11 @@ bool Base::isCommandSupported(const std::string &command, bool silent)
     if (command == "MSH")
     {
         if (m_FirmwareInfo.Model.find("CEM60") == std::string::npos &&
-                m_FirmwareInfo.Model.find("CEM40") == std::string::npos)
+                m_FirmwareInfo.Model.find("CEM40") == std::string::npos &&
+                m_FirmwareInfo.Model.find("GEM45") == std::string::npos)
         {
             if (!silent)
-                LOG_ERROR("Finding home is only supported on CEM40 and CEM60 mounts.");
+                LOG_ERROR("Finding home is only supported on CEM40, GEM45 and CEM60 mounts.");
             return false;
 
         }
@@ -740,10 +741,11 @@ bool Base::isCommandSupported(const std::string &command, bool silent)
     {
         if (m_FirmwareInfo.Model.find("CEM60") == std::string::npos &&
                 m_FirmwareInfo.Model.find("CEM40") == std::string::npos &&
+                m_FirmwareInfo.Model.find("GEM45") == std::string::npos &&
                 m_FirmwareInfo.Model.find("iEQ") == std::string::npos)
         {
             if (!silent)
-                LOG_ERROR("Parking only supported on CEM40, CEM60, iEQPro 30 and iEQ Pro 45.");
+                LOG_ERROR("Parking only supported on CEM40, GEM45, CEM60, iEQPro 30 and iEQ Pro 45.");
             return false;
         }
     }
