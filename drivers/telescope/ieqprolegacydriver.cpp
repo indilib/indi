@@ -296,6 +296,7 @@ bool get_ieqpro_model(int fd, FirmwareInfo *info)
                 {"0030", "iEQ30Pro"},
                 {"0040", "CEM40"},
                 {"0041", "CEM40-EC"},
+                {"0043", "GEM45"},
                 {"0045", "iEQ45 Pro EQ"},
                 {"0046", "iEQ45 Pro AA"},
                 {"0060", "CEM60"},

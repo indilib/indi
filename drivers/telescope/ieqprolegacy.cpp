@@ -183,8 +183,8 @@ bool IEQProLegacy::initProperties()
 
     set_ieqpro_device(getDeviceName());
 
-    // Only CEM40 has 115200 baud, rest are 9600
-    if (strstr(getDeviceName(), "CEM40"))
+    // Only CEM40 and GEM45 have 115200 baud, rest are 9600
+    if (strstr(getDeviceName(), "CEM40") || strstr(getDeviceName(), "GEM45"))
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     double longitude = 0, latitude = 90;
