@@ -386,8 +386,10 @@ bool ScopeSim::ReadScopeStatus()
                 dx = fabs(dx);
                 if (dx == 0)
                 {
-                    dx    = 1;
-                    da_ra = GOTO_LIMIT;
+                    // first step eastward if we start the meridian flip
+                    // ensure that the first step is bigger than the standard step to ensure flipping
+                    dx    = dt;
+                    da_ra = GOTO_RATE*(dt+0.5);
                 }
             }
 
