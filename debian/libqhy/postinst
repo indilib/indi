@@ -1,5 +1,0 @@
-#!/bin/sh
-# postinst script for libqhy
-
-# remove older 85-qhy.rules in favor of the new 85-qhyccd.rules
-rm /lib/udev/rules.d/85-qhy.rules || true
