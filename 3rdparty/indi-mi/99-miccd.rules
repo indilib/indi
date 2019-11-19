@@ -1,3 +1,0 @@
-ACTION=="add", ATTR{idVendor}=="1347", RUN+="/bin/sh -c '/bin/echo 256 >/sys/module/usbcore/parameters/usbfs_memory_mb'"
-# All MI cameras
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="1347", MODE="0666"
