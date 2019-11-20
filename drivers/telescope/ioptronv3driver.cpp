@@ -41,6 +41,7 @@ const std::map<std::string, std::string> Driver::models =
     {"0030", "iEQ30 Pro"},
     {"0040", "CEM40"},
     {"0041", "CEM40-EC"},
+    {"0043", "GEM45"},
     {"0045", "iEQ45 Pro EQ"},
     {"0046", "iEQ45 Pro AA"},
     {"0060", "CEM60"},

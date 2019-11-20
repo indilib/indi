@@ -482,7 +482,7 @@ bool PegasusPPB::getSensorData()
     if (sendCommand("PA", res))
     {
         std::vector<std::string> result = split(res, ":");
-        if (result.size() != PA_N)
+        if (result.size() < PA_N)
         {
             LOG_WARN("Received wrong number of detailed sensor data. Retrying...");
             return false;

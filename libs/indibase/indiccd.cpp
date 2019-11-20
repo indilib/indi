@@ -1608,7 +1608,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     int status = 0;
     char dev_name[32];
     char exp_start[32];
-    double pixSize1, pixSize2;
+    int effectiveFocalLength = -1;
 
     AutoCNumeric locale;
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
@@ -1619,14 +1619,25 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         fits_update_key_str(fptr, "TELESCOP", ActiveDeviceT[0].text, "Telescope name", &status);
     }
 
+    // Which scope is in effect
+    // TODO: Support N-telescopes
+    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON && primaryFocalLength != -1)
+        effectiveFocalLength = primaryFocalLength;
+    else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON && guiderFocalLength != -1)
+        effectiveFocalLength = guiderFocalLength;
+
     // Observer
     fits_update_key_str(fptr, "OBSERVER", FITSHeaderT[FITS_OBSERVER].text, "Observer name", &status);
 
     // Object
     fits_update_key_str(fptr, "OBJECT", FITSHeaderT[FITS_OBJECT].text, "Object name", &status);
 
-    pixSize1 = static_cast<double>(targetChip->getPixelSizeX());
-    pixSize2 = static_cast<double>(targetChip->getPixelSizeY());
+    double subPixSize1 = static_cast<double>(targetChip->getPixelSizeX());
+    double subPixSize2 = static_cast<double>(targetChip->getPixelSizeY());
+    uint32_t subW = targetChip->getSubW();
+    uint32_t subH = targetChip->getSubH();
+    uint32_t subBinX = targetChip->getBinX();
+    uint32_t subBinY = targetChip->getBinY();
 
     strncpy(dev_name, getDeviceName(), 32);
     strncpy(exp_start, targetChip->getExposureStartTime(), 32);
@@ -1640,13 +1651,13 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     if (HasCooler() || TemperatureNP.p == IP_RO)
         fits_update_key_dbl(fptr, "CCD-TEMP", TemperatureN[0].value, 2, "CCD Temperature (Celsius)", &status);
 
-    fits_update_key_dbl(fptr, "PIXSIZE1", targetChip->getPixelSizeX(), 6, "Pixel Size 1 (microns)", &status);
-    fits_update_key_dbl(fptr, "PIXSIZE2", targetChip->getPixelSizeY(), 6, "Pixel Size 2 (microns)", &status);
+    fits_update_key_dbl(fptr, "PIXSIZE1", subPixSize1, 6, "Pixel Size 1 (microns)", &status);
+    fits_update_key_dbl(fptr, "PIXSIZE2", subPixSize2, 6, "Pixel Size 2 (microns)", &status);
     fits_update_key_lng(fptr, "XBINNING", targetChip->getBinX(), "Binning factor in width", &status);
     fits_update_key_lng(fptr, "YBINNING", targetChip->getBinY(), "Binning factor in height", &status);
     // XPIXSZ and YPIXSZ are logical sizes including the binning factor
-    double xpixsz = pixSize1 * targetChip->getBinX();
-    double ypixsz = pixSize2 * targetChip->getBinY();
+    double xpixsz = subPixSize1 * subBinX;
+    double ypixsz = subPixSize2 * subBinY;
     fits_update_key_dbl(fptr, "XPIXSZ", xpixsz, 6, "X binned pixel size in microns", &status);
     fits_update_key_dbl(fptr, "YPIXSZ", ypixsz, 6, "Y binned pixel size in microns", &status);
 
@@ -1689,10 +1700,8 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         fits_update_key_str(fptr, "BAYERPAT", BayerT[2].text, "Bayer color pattern", &status);
     }
 
-    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON && primaryFocalLength != -1)
-        fits_update_key_dbl(fptr, "FOCALLEN", primaryFocalLength, 2, "Focal Length (mm)", &status);
-    else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON && guiderFocalLength != -1)
-        fits_update_key_dbl(fptr, "FOCALLEN", guiderFocalLength, 2, "Focal Length (mm)", &status);
+    if (effectiveFocalLength != -1)
+        fits_update_key_dbl(fptr, "FOCALLEN", effectiveFocalLength, 2, "Focal Length (mm)", &status);
 
     if (!std::isnan(MPSAS))
     {
@@ -1705,8 +1714,12 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
     // SCALE assuming square-pixels
-    double pixScale = pixSize1 / primaryFocalLength * 206.3 * targetChip->getBinX();
-    fits_update_key_dbl(fptr, "SCALE", pixScale, 6, "arcsecs per pixel", &status);
+    if (effectiveFocalLength != -1)
+    {
+        double pixScale = subPixSize1 / effectiveFocalLength * 206.3 * subBinX;
+        fits_update_key_dbl(fptr, "SCALE", pixScale, 6, "arcsecs per pixel", &status);
+    }
+
 
     if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(J2000RA) && !std::isnan(J2000DE))
     {
@@ -1762,26 +1775,26 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
             fits_update_key_str(fptr, "CTYPE1", ctype1, "CTYPE1", &status);
             fits_update_key_str(fptr, "CTYPE2", ctype2, "CTYPE2", &status);
 
-            double crpix1 = targetChip->getSubW() / targetChip->getBinX() / 2.0;
-            double crpix2 = targetChip->getSubH() / targetChip->getBinY() / 2.0;
+            double crpix1 = subW / subBinX / 2.0;
+            double crpix2 = subH / subBinY / 2.0;
 
             fits_update_key_dbl(fptr, "CRPIX1", crpix1, 10, "CRPIX1", &status);
             fits_update_key_dbl(fptr, "CRPIX2", crpix2, 10, "CRPIX2", &status);
 
-            double secpix1 = pixSize1 / primaryFocalLength * 206.3 * targetChip->getBinX();
-            double secpix2 = pixSize2 / primaryFocalLength * 206.3 * targetChip->getBinY();
+            if (effectiveFocalLength != -1)
+            {
+                double secpix1 = subPixSize1 / effectiveFocalLength * 206.3 * subBinX;
+                double secpix2 = subPixSize2 / effectiveFocalLength * 206.3 * subBinY;
 
-            //double secpix1 = pixSize1 / FocalLength * 206.3;
-            //double secpix2 = pixSize2 / FocalLength * 206.3;
+                fits_update_key_dbl(fptr, "SECPIX1", secpix1, 10, "SECPIX1", &status);
+                fits_update_key_dbl(fptr, "SECPIX2", secpix2, 10, "SECPIX2", &status);
 
-            fits_update_key_dbl(fptr, "SECPIX1", secpix1, 10, "SECPIX1", &status);
-            fits_update_key_dbl(fptr, "SECPIX2", secpix2, 10, "SECPIX2", &status);
+                double degpix1 = secpix1 / 3600.0;
+                double degpix2 = secpix2 / 3600.0;
 
-            double degpix1 = secpix1 / 3600.0;
-            double degpix2 = secpix2 / 3600.0;
-
-            fits_update_key_dbl(fptr, "CDELT1", degpix1, 10, "CDELT1", &status);
-            fits_update_key_dbl(fptr, "CDELT2", degpix2, 10, "CDELT2", &status);
+                fits_update_key_dbl(fptr, "CDELT1", degpix1, 10, "CDELT1", &status);
+                fits_update_key_dbl(fptr, "CDELT2", degpix2, 10, "CDELT2", &status);
+            }
 
             // Rotation is CW, we need to convert it to CCW per CROTA1 definition
             double rotation = 360 - CCDRotationN[0].value;
