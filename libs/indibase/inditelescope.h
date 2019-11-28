@@ -599,6 +599,17 @@ class Telescope : public DefaultDevice
         void processButton(const char *button_n, ISState state);
 
         /**
+         * @brief Calculate the expected pier side for scopes that do not report
+         * this property themselves.
+         */
+        TelescopePierSide expectedPierSide(double ra, double dec);
+
+        // helper functions
+        double getAzimuth(double r, double d);
+
+        ln_lnlat_posn lnobserver { 0, 0 };
+
+        /**
          * @brief Load scope settings from XML files.
          * @return True if all config values were loaded otherwise false.
          */

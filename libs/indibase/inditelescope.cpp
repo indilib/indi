@@ -23,6 +23,9 @@
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 
+#include <libnova/sidereal_time.h>
+#include <libnova/transform.h>
+
 #include <cmath>
 #include <cerrno>
 #include <pwd.h>
@@ -1709,9 +1712,16 @@ bool Telescope::updateTime(ln_date *utc, double utc_offset)
 
 bool Telescope::updateLocation(double latitude, double longitude, double elevation)
 {
-    INDI_UNUSED(latitude);
-    INDI_UNUSED(longitude);
+    // FIXME (sterne-jaeger): needs to be called from all classes deriving from inditelescope.
     INDI_UNUSED(elevation);
+    // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
+    lnobserver.lng = longitude;
+
+    if (lnobserver.lng > 180)
+        lnobserver.lng -= 360;
+    lnobserver.lat = latitude;
+
+    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
     return true;
 }
 
@@ -2525,6 +2535,20 @@ void Telescope::setPierSide(TelescopePierSide side)
     }
 }
 
+Telescope::TelescopePierSide Telescope::expectedPierSide(double ra, double dec)
+{
+    // calculate the hour angle of the given position and derive the pier side
+    double az = getAzimuth(ra, dec);
+    bool north = lnobserver.lat >= 0.;
+
+    if ((0 <= az && az < 90) || (180 <= az && az < 270))
+        return (north ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
+    else
+        return (north ? INDI::Telescope::PIER_WEST : INDI::Telescope::PIER_EAST);
+
+    return PIER_UNKNOWN;
+}
+
 void Telescope::setPECState(TelescopePECState state)
 {
     currentPECState = state;
@@ -2943,5 +2967,20 @@ void Telescope::sendTimeFromSystem()
 
     IDSetText(&TimeTP, nullptr);
 }
+
+double Telescope::getAzimuth(double r, double d)
+{
+    ln_equ_posn lnradec { 0, 0 };
+    ln_hrz_posn altaz { 0, 0 };
+
+    lnradec.ra  = (r * 360) / 24.0;
+    lnradec.dec = d;
+
+    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &altaz);
+
+    /* libnova measures azimuth from south towards west */
+    return (range360(altaz.az + 180));
+}
+
 
 }
