@@ -1,3 +1,0 @@
-ACTION=="add", ATTR{idVendor}=="19b4", RUN+="/bin/sh -c '/bin/echo 256 >/sys/module/usbcore/parameters/usbfs_memory_mb'"
-# All Celestron Nightscape Cameras
-SUBSYSTEMS=="usb", ATTR{idVendor}=="19b4", MODE="0666"
