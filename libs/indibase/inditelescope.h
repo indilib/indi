@@ -149,17 +149,18 @@ class Telescope : public DefaultDevice
          */
         enum
         {
-            TELESCOPE_CAN_GOTO          = 1 << 0, /** Can the telescope go to to specific coordinates? */
-            TELESCOPE_CAN_SYNC          = 1 << 1, /** Can the telescope sync to specific coordinates? */
-            TELESCOPE_CAN_PARK          = 1 << 2, /** Can the telescope park? */
-            TELESCOPE_CAN_ABORT         = 1 << 3, /** Can the telescope abort motion? */
-            TELESCOPE_HAS_TIME          = 1 << 4, /** Does the telescope have configurable date and time settings? */
-            TELESCOPE_HAS_LOCATION      = 1 << 5, /** Does the telescope have configuration location settings? */
-            TELESCOPE_HAS_PIER_SIDE     = 1 << 6, /** Does the telescope have pier side property? */
-            TELESCOPE_HAS_PEC           = 1 << 7,  /** Does the telescope have PEC playback? */
-            TELESCOPE_HAS_TRACK_MODE    = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
-            TELESCOPE_CAN_CONTROL_TRACK = 1 << 9,  /** Can the telescope engage and disengage tracking? */
-            TELESCOPE_HAS_TRACK_RATE    = 1 << 10,  /** Does the telescope have custom track rates? */
+            TELESCOPE_CAN_GOTO                    = 1 << 0,  /** Can the telescope go to to specific coordinates? */
+            TELESCOPE_CAN_SYNC                    = 1 << 1,  /** Can the telescope sync to specific coordinates? */
+            TELESCOPE_CAN_PARK                    = 1 << 2,  /** Can the telescope park? */
+            TELESCOPE_CAN_ABORT                   = 1 << 3,  /** Can the telescope abort motion? */
+            TELESCOPE_HAS_TIME                    = 1 << 4,  /** Does the telescope have configurable date and time settings? */
+            TELESCOPE_HAS_LOCATION                = 1 << 5,  /** Does the telescope have configuration location settings? */
+            TELESCOPE_HAS_PIER_SIDE               = 1 << 6,  /** Does the telescope have pier side property? */
+            TELESCOPE_HAS_PEC                     = 1 << 7,  /** Does the telescope have PEC playback? */
+            TELESCOPE_HAS_TRACK_MODE              = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
+            TELESCOPE_CAN_CONTROL_TRACK           = 1 << 9,  /** Can the telescope engage and disengage tracking? */
+            TELESCOPE_HAS_TRACK_RATE              = 1 << 10, /** Does the telescope have custom track rates? */
+            TELESCOPE_HAS_PIER_SIDE_SIMULATION     = 1 << 11, /** Does the telescope simulate the pier side property? */
         } TelescopeCapability;
 
         Telescope();
@@ -253,6 +254,13 @@ class Telescope : public DefaultDevice
             return capability & TELESCOPE_HAS_PIER_SIDE;
         }
 
+        /**
+         * @return True if telescope simulates pier side property
+         */
+        bool HasPierSideSimulation()
+        {
+            return capability & TELESCOPE_HAS_PIER_SIDE_SIMULATION;
+        }
         /**
          * @return True if telescope supports PEC playback property
          */

@@ -406,7 +406,8 @@ bool Telescope::updateProperties()
 
         if (HasPierSide())
             defineSwitch(&PierSideSP);
-        else
+
+        if (HasPierSideSimulation())
         {
             defineSwitch(&SimulatePierSideSP);
             // ensure that all properties are set
@@ -459,7 +460,8 @@ bool Telescope::updateProperties()
 
         if (HasPierSide())
             deleteProperty(PierSideSP.name);
-        else
+
+        if (HasPierSideSimulation())
         {
             deleteProperty(SimulatePierSideSP.name);
             if (getSimulatePierSide() == true)
