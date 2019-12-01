@@ -114,6 +114,12 @@ bool Telescope::initProperties()
     IUFillSwitch(&PierSideS[PIER_EAST], "PIER_EAST", "East (pointing west)", ISS_OFF);
     IUFillSwitchVector(&PierSideSP, PierSideS, 2, getDeviceName(), "TELESCOPE_PIER_SIDE", "Pier Side", MAIN_CONTROL_TAB,
                        IP_RO, ISR_ATMOST1, 60, IPS_IDLE);
+    // Pier Side Simulation
+    IUFillSwitch(&SimulatePierSideS[0], "SIMULATE_YES", "Yes", ISS_OFF);
+    IUFillSwitch(&SimulatePierSideS[1], "SIMULATE_NO", "No", ISS_ON);
+    IUFillSwitchVector(&SimulatePierSideSP, SimulatePierSideS, 2, getDeviceName(), "SIMULATE_PIER_SIDE", "Simulate Pier Side", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     // PEC State
     IUFillSwitch(&PECStateS[PEC_OFF], "PEC OFF", "PEC OFF", ISS_OFF);
     IUFillSwitch(&PECStateS[PEC_ON], "PEC ON", "PEC ON", ISS_ON);
@@ -400,6 +406,12 @@ bool Telescope::updateProperties()
 
         if (HasPierSide())
             defineSwitch(&PierSideSP);
+        else
+        {
+            defineSwitch(&SimulatePierSideSP);
+            // ensure that all properties are set
+            setSimulatePierSide(m_simulatePierSide);
+        }
 
         if (HasPECState())
             defineSwitch(&PECStateSP);
@@ -447,6 +459,12 @@ bool Telescope::updateProperties()
 
         if (HasPierSide())
             deleteProperty(PierSideSP.name);
+        else
+        {
+            deleteProperty(SimulatePierSideSP.name);
+            if (getSimulatePierSide() == true)
+                deleteProperty(PierSideSP.name);
+        }
 
         if (HasPECState())
             deleteProperty(PECStateSP.name);
@@ -635,6 +653,7 @@ bool Telescope::saveConfigItems(FILE *fp)
     controller->saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &MotionControlModeTP);
     IUSaveConfigSwitch(fp, &LockAxisSP);
+    IUSaveConfigSwitch(fp, &SimulatePierSideSP);
 
     return true;
 }
@@ -1432,6 +1451,22 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IDSetSwitch(&DomeClosedLockTP, nullptr);
 
             triggerSnoop(ActiveDeviceT[1].text, "DOME_PARK");
+            return true;
+        }
+
+        ///////////////////////////////////
+        // Simulate Pier Side
+        ///////////////////////////////////
+        if (!strcmp(name, SimulatePierSideSP.name))
+        {
+            IUUpdateSwitch(&SimulatePierSideSP, states, names, n);
+            int index = IUFindOnSwitchIndex(&SimulatePierSideSP);
+            if (index == -1)
+                return false;
+
+            LOGF_INFO("Simulating Pier Side %s.", (index==0 ? "enabled" : "disabled"));
+
+            setSimulatePierSide(index == 0);
             return true;
         }
 
@@ -2522,6 +2557,10 @@ void Telescope::buttonHelper(const char *button_n, ISState state, void *context)
 
 void Telescope::setPierSide(TelescopePierSide side)
 {
+    // ensure that the scope knows it's pier side or the pier side is simulated
+    if (HasPierSide() == false && getSimulatePierSide() == false)
+        return;
+
     currentPierSide = side;
 
     if (currentPierSide != lastPierSide)
@@ -2966,6 +3005,27 @@ void Telescope::sendTimeFromSystem()
     TimeTP.s = IPS_OK;
 
     IDSetText(&TimeTP, nullptr);
+}
+
+bool Telescope::getSimulatePierSide() const
+{
+    return m_simulatePierSide;
+}
+
+void Telescope::setSimulatePierSide(bool simulate)
+{
+    IUResetSwitch(&SimulatePierSideSP);
+    SimulatePierSideS[0].s = simulate ? ISS_ON : ISS_OFF;
+    SimulatePierSideS[1].s = simulate ? ISS_OFF : ISS_ON;
+    SimulatePierSideSP.s = IPS_OK;
+    IDSetSwitch(&SimulatePierSideSP, nullptr);
+
+    if (simulate)
+        defineSwitch(&PierSideSP);
+    else
+        deleteProperty(PierSideSP.name);
+
+    m_simulatePierSide = simulate;
 }
 
 double Telescope::getAzimuth(double r, double d)

@@ -405,7 +405,7 @@ class Telescope : public DefaultDevice
             return currentPECState;
         }
 
-    protected:
+protected:
         virtual bool saveConfigItems(FILE *fp);
 
         /** \brief The child class calls this function when it has updates */
@@ -744,6 +744,13 @@ class Telescope : public DefaultDevice
         // Pier Side
         ISwitch PierSideS[2];
         ISwitchVectorProperty PierSideSP;
+
+        // Pier Side Simulation
+        ISwitchVectorProperty SimulatePierSideSP;
+        ISwitch SimulatePierSideS[2];
+        bool m_simulatePierSide;
+        bool getSimulatePierSide() const;
+        void setSimulatePierSide(bool value);
 
         // Pier Side
         TelescopePierSide lastPierSide, currentPierSide;
