@@ -1733,6 +1733,8 @@ bool Telescope::processLocationInfo(double latitude, double longitude, double el
         // Always save geographic coord config immediately.
         saveConfig(true, "GEOGRAPHIC_COORD");
 
+        updateObserverLocation(latitude, longitude, elevation);
+
         return true;
     }
     else
@@ -1754,7 +1756,14 @@ bool Telescope::updateTime(ln_date *utc, double utc_offset)
 
 bool Telescope::updateLocation(double latitude, double longitude, double elevation)
 {
-    // FIXME (sterne-jaeger): needs to be called from all classes deriving from inditelescope.
+    INDI_UNUSED(latitude);
+    INDI_UNUSED(longitude);
+    INDI_UNUSED(elevation);
+    return true;
+}
+
+void Telescope::updateObserverLocation(double latitude, double longitude, double elevation)
+{
     INDI_UNUSED(elevation);
     // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
     lnobserver.lng = longitude;
@@ -1763,8 +1772,7 @@ bool Telescope::updateLocation(double latitude, double longitude, double elevati
         lnobserver.lng -= 360;
     lnobserver.lat = latitude;
 
-    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
-    return true;
+    LOGF_INFO("Observer location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
 }
 
 bool Telescope::SetParkPosition(double Axis1Value, double Axis2Value)

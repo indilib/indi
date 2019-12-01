@@ -555,6 +555,17 @@ protected:
         virtual bool updateLocation(double latitude, double longitude, double elevation);
 
         /**
+         * \brief Update location settings of the observer
+         * \param latitude Site latitude in degrees.
+         * \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
+         * \param elevation Site elevation in meters.
+         * \return True if successful, false otherwise
+         * \note If not implemented by the child class, this function by default returns false with a
+         * warning message.
+         */
+        void updateObserverLocation(double latitude, double longitude, double elevation);
+
+        /**
          * \brief SetParkPosition Set desired parking position to the supplied value. This ONLY sets the
          * desired park position value and does not perform parking.
          * \param Axis1Value First axis value
@@ -824,7 +835,7 @@ protected:
         /// The telescope/guide scope configuration file name
         const std::string ScopeConfigFileName;
 
-    private:
+private:
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
         void triggerSnoop(const char *driverName, const char *propertyName);
