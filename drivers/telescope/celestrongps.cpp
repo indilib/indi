@@ -1593,7 +1593,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
 {
     // set up direction properties
     char dc = 'x';
-    ISwitchVectorProperty *moveSP;
+    ISwitchVectorProperty *moveSP = &MovementNSSP;
     ISwitch moveS = MovementNSS[0];
     int* guideTID = &GuideNSTID;
     int* ticks = &ticksNS;
