@@ -39,7 +39,7 @@
 
 using namespace Celestron;
 
-char device_str[MAXINDIDEVICE] = "Celestron GPS";
+static char device_str[MAXINDIDEVICE] = "Celestron GPS";
 
 
 // Account for the quadrant in declination
@@ -64,7 +64,7 @@ uint16_t Celestron::dd2nex(double angle)
     if (angle < 0)
         angle += 360.0;
 
-    return (uint16_t)(angle * 0x10000 / 360.0);
+    return static_cast<uint16_t>(angle * 0x10000 / 360.0);
 }
 
 // Convert decimal degrees to NexStar angle (precise)
@@ -74,25 +74,25 @@ uint32_t Celestron::dd2pnex(double angle)
     if (angle < 0)
         angle += 360.0;
 
-    return (uint32_t)(angle * 0x100000000 / 360.0);
+    return static_cast<uint32_t>(angle * 0x100000000 / 360.0);
 }
 
 // Convert NexStar angle to decimal degrees
-double Celestron::nex2dd(uint16_t value)
+double Celestron::nex2dd(uint32_t value)
 {
-    return 360.0 * ((double)value / 0x10000);
+    return 360.0 * (static_cast<double>(value) / 0x10000);
 }
 
 // Convert NexStar angle to decimal degrees (precise)
 double Celestron::pnex2dd(uint32_t value)
 {
-    return 360.0 * ((double)value / 0x100000000);
+    return 360.0 * (static_cast<double>(value) / 0x100000000);
 }
 
-void hex_dump(char *buf, const char *data, int size)
+void hex_dump(char *buf, const char *data, size_t size)
 {
-    for (int i = 0; i < size; i++)
-        sprintf(buf + 3 * i, "%02X ", (unsigned char)data[i]);
+    for (size_t i = 0; i < size; i++)
+        sprintf(buf + 3 * i, "%02X ", data[i]);
 
     if (size > 0)
         buf[3 * size - 1] = '\0';
@@ -129,6 +129,7 @@ int CelestronDriver::serial_read_section(char stop_char, int *nbytes_read)
 }
 
 // Set the expected response for a command in simulation mode
+__attribute__((__format__ (__printf__, 2, 0)))
 void CelestronDriver::set_sim_response(const char *fmt, ...)
 {
     if (simulation) {
@@ -139,15 +140,15 @@ void CelestronDriver::set_sim_response(const char *fmt, ...)
     }
 }
 
-//static pthread_mutex_t tty_lock = PTHREAD_MUTEX_INITIALIZER;
+//static std::mutex tty_lock;
 
 // Send a command to the mount. Return the number of bytes received or 0 if
 // case of error
-int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
-        int resp_len, bool ascii_cmd, bool ascii_resp)
+size_t CelestronDriver::send_command(const char *cmd, size_t cmd_len, char *resp,
+        size_t resp_len, bool ascii_cmd, bool ascii_resp)
 {
     int err;
-    int nbytes = resp_len;
+    size_t nbytes = resp_len;
     char errmsg[MAXRBUF];
     char hexbuf[3 * MAX_RESP_SIZE];
 
@@ -162,22 +163,22 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
 
     if (!simulation && fd)
     {
-        //pthread_mutex_lock(&tty_lock);
-        if ((err = serial_write(cmd, cmd_len, &nbytes)) != TTY_OK)
+        // lock the serial command, unlocks when this goes out of scope
+        //std::lock_guard<std::mutex> lockGuard(tty_lock);
+        if ((err = serial_write(cmd, static_cast<int>(cmd_len), reinterpret_cast<int *>(&nbytes))) != TTY_OK)
         {
             tty_error_msg(err, errmsg, MAXRBUF);
             LOGF_ERROR("Serial write error: %s", errmsg);
-            //pthread_mutex_unlock(&tty_lock);
             return 0;
         }
 
         if (resp_len > 0)
         {
             if (ascii_resp)
-                err = serial_read_section('#', &nbytes);
+                err = serial_read_section('#', reinterpret_cast<int *>(&nbytes));
             else
             {
-                err = serial_read(resp_len, &nbytes);
+                err = serial_read(static_cast<int>(resp_len), reinterpret_cast<int *>(&nbytes));
                 // passthrough commands that fail will return an extra 0 then the terminator
                 while (err == TTY_OK && resp[nbytes-1] != '#')
                 {
@@ -195,16 +196,14 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
             {
                 tty_error_msg(err, errmsg, MAXRBUF);
                 LOGF_ERROR("Serial read error: %s", errmsg);
-                //pthread_mutex_unlock(&tty_lock);
                 return 0;
             }
         }
-        //pthread_mutex_unlock(&tty_lock);
     }
 
     if (nbytes != resp_len)
     {
-        int max = nbytes > resp_len ? nbytes : resp_len;
+        size_t max = nbytes > resp_len ? nbytes : resp_len;
         hex_dump(hexbuf, resp, max);
         LOGF_DEBUG("Received %d bytes, expected %d <%s>", nbytes, resp_len, hexbuf);
         return max;
@@ -232,16 +231,16 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
 
 // Send a 'passthrough command' to the mount. Return the number of bytes
 // received or 0 in case of error
-int CelestronDriver::send_passthrough(int dest, int cmd_id, const char *payload,
-        int payload_len, char *resp, int response_len)
+size_t CelestronDriver::send_passthrough(int dest, int cmd_id, const char *payload,
+        size_t payload_len, char *resp, size_t response_len)
 {
     char cmd[8] = {0};
 
     cmd[0] = 0x50;
-    cmd[1] = (char)(payload_len + 1);
-    cmd[2] = (char)dest;
-    cmd[3] = (char)cmd_id;
-    cmd[7] = (char)response_len;
+    cmd[1] = static_cast<char>(payload_len + 1);
+    cmd[2] = static_cast<char>(dest);
+    cmd[3] = static_cast<char>(cmd_id);
+    cmd[7] = static_cast<char>(response_len);
 
     // payload_len must be <= 3 !
     memcpy(cmd + 4, payload, payload_len);
@@ -306,7 +305,7 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
     //if (!get_dev_firmware(CELESTRON_DEV_GPS, GPSVersion, 8))
     //return false;
     //info->GPSFirmware = GPSVersion;
-    info->GPSFirmware = "0.0";
+    //info->GPSFirmware = "0.0";
 
     LOG_DEBUG("Getting RA firmware version...");
     if (!get_dev_firmware(CELESTRON_DEV_RA, RAVersion, 8))
@@ -341,7 +340,7 @@ bool CelestronDriver::echo()
     return !strcmp(response, "x#");
 }
 
-bool CelestronDriver::get_version(char *version, int size)
+bool CelestronDriver::get_version(char *version, size_t size)
 {
     set_sim_response("\x04\x29#");
 
@@ -366,7 +365,7 @@ bool CelestronDriver::get_variant(char *variant)
     return true;
 }
 
-bool CelestronDriver::get_model(char *model, int size, bool *isGem)
+bool CelestronDriver::get_model(char *model, size_t size, bool *isGem)
 {
     // extended list of mounts
     std::map<int, std::string> models =
@@ -397,7 +396,7 @@ bool CelestronDriver::get_model(char *model, int size, bool *isGem)
         {26, "SkyWatcher"},
     };
 
-    set_sim_response("\x06#");  // Simulated response
+    set_sim_response("\x14#");  // Simulated response, AVX
 
     if (!send_command("m", 1, response, 2, true, false))
         return false;
@@ -435,11 +434,11 @@ bool CelestronDriver::get_model(char *model, int size, bool *isGem)
     return true;
 }
 
-bool CelestronDriver::get_dev_firmware(int dev, char *version, int size)
+bool CelestronDriver::get_dev_firmware(int dev, char *version, size_t size)
 {
-    set_sim_response("\x01\x09#");
+    set_sim_response("\x06\x10#");
 
-    int rlen = send_passthrough(dev, 0xfe, nullptr, 0, response, 2);
+    size_t rlen = send_passthrough(dev, GET_VER, nullptr, 0, response, 2);
 
     switch (rlen) {
     case 2:
@@ -456,18 +455,18 @@ bool CelestronDriver::get_dev_firmware(int dev, char *version, int size)
 }
 
 /*****************************************************************
-    PulseGuide commands, experimental
+    PulseGuide commands
 ******************************************************************/
 
 /*****************************************************************
     Send a guiding pulse to the  mount in direction "dir".
-    "rate" should be a signed 8-bit integer in the range (-100,100) that
+    "rate" should be an unsigned 8-bit integer in the range (0,100) that
     represents the pulse velocity in % of sidereal.
     "duration_csec" is an unsigned  8-bit integer (0,255) with  the pulse
     duration in centiseconds (i.e. 1/100 s  =  10ms).
     The max pulse duration is 2550 ms.
-******************************************************************/
-int CelestronDriver::send_pulse(CELESTRON_DIRECTION dir, signed char rate, unsigned char duration_csec)
+*******************************************)()***********************/
+size_t CelestronDriver::send_pulse(CELESTRON_DIRECTION dir, unsigned char rate, unsigned char duration_csec)
 {
     int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
     char payload[2];
@@ -475,32 +474,31 @@ int CelestronDriver::send_pulse(CELESTRON_DIRECTION dir, signed char rate, unsig
     payload[1] = duration_csec;
 
     set_sim_response("#");
-    return send_passthrough(dev, 0x26, payload, 2, response, 0);
+    return send_passthrough(dev, MTR_AUX_GUIDE, payload, 2, response, 0);
 }
 
 /*****************************************************************
     Send the guiding pulse status check command to the mount for the motor
-    responsible for "dir". If  a pulse is being executed, "pulse_state" is set
-    to 1, whereas if the pulse motion has been  completed it is set to 0.
-    Return "false" if the status command fails, otherwise return "true".
+    responsible for "dir". If  a pulse is being executed, returns true,
+    otherwise false.
+    If the getting the status fails returns false.
 ******************************************************************/
-int CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir, bool &pulse_state)
+bool CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir)
 {
     int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
     char payload[2] = {0, 0};
+    set_sim_response("%c#", 0);
 
-    set_sim_response("\x00#");
-    if (!send_passthrough(dev, 0x27, payload, 2, response, 1))
+    if (!send_passthrough(dev, MTR_IS_AUX_GUIDE_ACTIVE, payload, 2, response, 1))
         return false;
 
-    pulse_state = (bool)response[0];
-    return true;
+    return static_cast<bool>(response[0]);
 }
 
 bool CelestronDriver::start_motion(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate)
 {
     int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
-    int cmd_id = (dir == CELESTRON_N || dir == CELESTRON_W) ? 0x24 : 0x25;
+    int cmd_id = (dir == CELESTRON_N || dir == CELESTRON_W) ? MC_MOVE_POS : MC_MOVE_NEG;
     char payload[1];
     payload[0] = rate + 1;
 
@@ -514,7 +512,7 @@ bool CelestronDriver::stop_motion(CELESTRON_DIRECTION dir)
     char payload[] = { 0 };
 
     set_sim_response("#");
-    return send_passthrough(dev, 0x24, payload, 1, response, 0);
+    return send_passthrough(dev, MC_MOVE_POS, payload, 1, response, 0);
 }
 
 bool CelestronDriver::abort()
@@ -680,13 +678,13 @@ bool CelestronDriver::set_location(double longitude, double latitude)
 
     char cmd[9];
     cmd[0] = 'W';
-    cmd[1] = abs(lat_d);
-    cmd[2] = lat_m;
-    cmd[3] = lat_s;
+    cmd[1] = static_cast<char>(abs(lat_d));
+    cmd[2] = static_cast<char>(lat_m);
+    cmd[3] = static_cast<char>(lat_s);
     cmd[4] = lat_d > 0 ? 0 : 1;
-    cmd[5] = abs(long_d);       // not sure how the conversion from int to char will work for longtitudes > 127
-    cmd[6] = long_m;
-    cmd[7] = long_s;
+    cmd[5] = static_cast<char>(abs(long_d));       // not sure how the conversion from int to char will work for longtitudes > 127
+    cmd[6] = static_cast<char>(long_m);
+    cmd[7] = static_cast<char>(long_s);
     cmd[8] = long_d > 0 ? 0 : 1;
 
     set_sim_response("#");
@@ -725,26 +723,26 @@ bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset, bool 
 {
     struct ln_zonedate local_date;
 
-    // Celestron takes local time
-    ln_date_to_zonedate(utc, &local_date, utc_offset * 3600);
+    // Celestron takes local time and DST but ln_zonedate doesn't have DST
+    ln_date_to_zonedate(utc, &local_date, static_cast<int>(utc_offset * 3600));
 
     char cmd[9];
     cmd[0] = 'H';
-    cmd[1] = local_date.hours;
-    cmd[2] = local_date.minutes;
-    cmd[3] = local_date.seconds;
-    cmd[4] = local_date.months;
-    cmd[5] = local_date.days;
-    cmd[6] = local_date.years - 2000;
+    cmd[1] = static_cast<char>(local_date.hours);
+    cmd[2] = static_cast<char>(local_date.minutes);
+    cmd[3] = static_cast<char>(local_date.seconds);
+    cmd[4] = static_cast<char>(local_date.months);
+    cmd[5] = static_cast<char>(local_date.days);
+    cmd[6] = static_cast<char>(local_date.years - 2000);
 
     // changes for HC versions that support the high precision time zone
     if(precise)
     {
         cmd[0] = 'I';
-        cmd[7] = static_cast<int8_t>(utc_offset * 4);
+        cmd[7] = static_cast<char>(utc_offset * 4);
     }
     else
-        cmd[7] = static_cast<int8_t>(utc_offset);
+        cmd[7] = static_cast<char>(utc_offset);
 
     // just in case the time zone isn't signed
     if (cmd[7] > 50)
@@ -767,7 +765,14 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
 {
     // Simulated response (HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT)
     // 2015-04-01T17:30:10  tz +3 dst 0
-    set_sim_response("%c%c%c%c%c%c%c%c#", 17, 30, 10, 4, 1, 15, 3, 0);
+    //set_sim_response("%c%c%c%c%c%c%c%c#", 17, 30, 10, 4, 1, 15, 3, 0);
+    // use current system time for simulator
+    time_t now = time(nullptr);
+    tm *ltm = localtime(&now);
+    set_sim_response("%c%c%c%c%c%c%c%c#",
+                     ltm->tm_hour, ltm->tm_min, ltm->tm_sec,
+                     ltm->tm_mon, ltm->tm_mday, ltm->tm_year - 100,
+                     precise ? ltm->tm_gmtoff / 900 : ltm->tm_gmtoff / 3600, ltm->tm_isdst);
 
     // the precise time reader reports the time zone in 15 minute steps
 
@@ -784,6 +789,9 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     *yy        = response[5] + 2000;    // should be good as a signed char until 2127
     *utc_hours = response[6];
 
+    // manage dst setting
+    int dst = response[7];
+
     // the expected value is in the range -12 to +12 or -48 to +48 for precise.
     // if it's greater than this it looks as if the char value was transferred unsigned so -ve
     // values will be in the range 0xff for -1 to 0xf4 for -12 or 0xD0 for -48.
@@ -794,6 +802,10 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     if (precise)
         *utc_hours /= 4.0;
 
+    // handle dst setting
+    if (dst > 0)
+        *utc_hours += 1.0;       // add an hour to the UTC offset
+
     ln_zonedate localTime;
     ln_date utcTime;
 
@@ -803,7 +815,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     localTime.hours   = *hh;
     localTime.minutes = *minute;
     localTime.seconds = *ss;
-    localTime.gmtoff  = *utc_hours * 3600.0;
+    localTime.gmtoff  = static_cast<long>(*utc_hours * 3600.0);
 
     ln_zonedate_to_date(&localTime, &utcTime);
 
@@ -812,7 +824,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     *dd     = utcTime.days;
     *hh     = utcTime.hours;
     *minute = utcTime.minutes;
-    *ss     = utcTime.seconds;
+    *ss     = static_cast<int>(utcTime.seconds);
 
     return true;
 }
@@ -835,7 +847,7 @@ bool CelestronDriver::get_track_mode(CELESTRON_TRACK_MODE *mode)
     if (!send_command("t", 1, response, 2, true, false))
         return false;
 
-    *mode = ((CELESTRON_TRACK_MODE)response[0]);
+    *mode = static_cast<CELESTRON_TRACK_MODE>(response[0]);
     return true;
 }
 
@@ -891,6 +903,7 @@ bool CelestronDriver::indexreached(bool *atIndex)
 bool CelestronDriver:: get_pier_side(char *side_of_pier)
 {
     set_sim_response("W#");
+
     if (!send_command("p", 1, response, 2, true, true))
         return false;
     *side_of_pier = response[0];
@@ -925,7 +938,7 @@ bool CelestronDriver::set_track_rate(CELESTRON_TRACK_RATE rate, CELESTRON_TRACK_
     default:
         return false;
     }
-    char payload[] = {(char)(rate >> 8 & 0xff), (char)(rate & 0xff)};
+    char payload[] = {static_cast<char>(rate >> 8 & 0xff), static_cast<char>(rate & 0xff)};
     return send_passthrough(CELESTRON_DEV_RA, cmd, payload, 2, response, 0);
 }
 
@@ -936,7 +949,7 @@ bool CelestronDriver::foc_exists()
     char focVersion[16];
     int vernum = 0;     // version as a number: 0xMMmmbbbb
     LOG_DEBUG("Does focuser exist...");
-    int rlen = send_passthrough(CELESTRON_DEV_FOC, GET_VER, nullptr, 0, response, 4);
+    size_t rlen = send_passthrough(CELESTRON_DEV_FOC, GET_VER, nullptr, 0, response, 4);
     switch (rlen)
     {
     case 2:
@@ -947,8 +960,8 @@ bool CelestronDriver::foc_exists()
     case 4:
     case 5:
         snprintf(focVersion, 15, "%d.%02d.%d",
-                 static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]),
-                (int)((static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3])));
+                static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]),
+                static_cast<int>((static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3])));
         vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
         break;
     default:
@@ -962,7 +975,19 @@ bool CelestronDriver::foc_exists()
 
 int CelestronDriver::foc_position()
 {
-    int rlen = send_passthrough(CELESTRON_DEV_FOC, MC_GET_POSITION, nullptr, 0, response, 3);
+    if (simulation)
+    {
+        int offset = get_sim_foc_offset();
+        if (offset > 250)
+            move_sim_foc(250);
+        else if (offset < -250)
+            move_sim_foc(-250);
+        else
+            move_sim_foc(offset);
+    }
+    set_sim_response("%c%c%c#", sim_data.foc_position >> 16 & 0xff, sim_data.foc_position >> 8 & 0XFF, sim_data.foc_position & 0XFF);
+
+    size_t rlen = send_passthrough(CELESTRON_DEV_FOC, MC_GET_POSITION, nullptr, 0, response, 3);
     if (rlen >= 3)
     {
         int pos = (static_cast<uint8_t>(response[0]) << 16) + (static_cast<uint8_t>(response[1]) << 8) + static_cast<uint8_t>(response[2]);
@@ -973,18 +998,20 @@ int CelestronDriver::foc_position()
     return -1;
 }
 
-bool CelestronDriver::foc_move(int steps)
+bool CelestronDriver::foc_move(uint steps)
 {
+    sim_data.foc_target = steps;
     LOGF_DEBUG("Focus move %d", steps);
-    char payload[] = {(char)(steps >> 16 & 0xff), (char)(steps >> 8 & 0xff), (char)(steps & 0xff)};
-
-    int rlen = send_passthrough(CELESTRON_DEV_FOC, MC_GOTO_FAST, payload, 3, response, 0);
-    return rlen >=0;
+    char payload[] = {static_cast<char>(steps >> 16 & 0xff), static_cast<char>(steps >> 8 & 0xff), static_cast<char>(steps & 0xff)};
+    set_sim_response("#");
+    size_t rlen = send_passthrough(CELESTRON_DEV_FOC, MC_GOTO_FAST, payload, 3, response, 0);
+    return rlen > 0;
 }
 
 bool CelestronDriver::foc_moving()
 {
-    int rlen = send_passthrough(CELESTRON_DEV_FOC, MC_SLEW_DONE, nullptr, 0, response, 1);
+    set_sim_response("%c#", sim_data.foc_target == sim_data.foc_position ? 0xff : 0x00);
+    size_t rlen = send_passthrough(CELESTRON_DEV_FOC, MC_SLEW_DONE, nullptr, 0, response, 1);
     if (rlen < 1 )
         return false;
     return response[0] != '\xff';   // use char comparison because some compilers object
@@ -992,13 +1019,14 @@ bool CelestronDriver::foc_moving()
 
 bool CelestronDriver::foc_limits(int * low, int * high)
 {
-    int rlen = send_passthrough(CELESTRON_DEV_FOC, FOC_GET_HS_POSITIONS, nullptr, 0, response, 8);
+    set_sim_response("%c%c%c%c%c%c%c%c#", 0, 0,0x07,0xd0,0,0,0x9C,0x40);   // 2000, 40000
+
+    size_t rlen = send_passthrough(CELESTRON_DEV_FOC, FOC_GET_HS_POSITIONS, nullptr, 0, response, 8);
     if (rlen < 8)
         return false;
 
     *low = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
     *high = (static_cast<uint8_t>(response[4]) << 24) + (static_cast<uint8_t>(response[5]) << 16) + (static_cast<uint8_t>(response[6]) << 8) + static_cast<uint8_t>(response[7]);
-
 
     // check on integrity of values, they must be sensible and the range must be more than 2 turns
     if (*high - *low < 2000 || *high < 0 || *high > 60000 || *low < 0 || *low > 50000)
@@ -1013,9 +1041,15 @@ bool CelestronDriver::foc_limits(int * low, int * high)
 
 bool CelestronDriver::foc_abort()
 {
+    if(simulation)
+    {
+        sim_data.foc_target = sim_data.foc_position;
+    }
+    set_sim_response("#");
+
     char payload[] = {0};
-    int rlen = send_passthrough(CELESTRON_DEV_FOC, MC_MOVE_POS, payload, 1, response, 0);
-    return rlen >=0;
+    size_t rlen = send_passthrough(CELESTRON_DEV_FOC, MC_MOVE_POS, payload, 1, response, 0);
+    return rlen > 0;
 }
 
 

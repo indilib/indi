@@ -27,11 +27,14 @@
 
 #include <string>
 #include "indicom.h"
+//#include <thread>
+//#include <condition_variable>
+//#include <atomic>
 
 /* Starsense specific constants */
 #define ISNEXSTAR       0x11
 #define ISSTARSENSE     0x13
-#define MINSTSENSVER    float(1.18)
+#define MINSTSENSVER    1.18
 #define MAX_RESP_SIZE   20
 
 // device IDs
@@ -42,22 +45,25 @@
 #define CELESTRON_DEV_FOC 0x12
 
 // motor commands
-#define MC_GET_POSITION 0x01            // return 24 bit position
-#define MC_GOTO_FAST    0x02            // send 24 bit target
+#define MC_GET_POSITION         0x01    // return 24 bit position
+#define MC_GOTO_FAST            0x02    // send 24 bit target
 #define MC_SET_POS_GUIDERATE    0x06    // use the 2 byte CelestronTrackRates to set the rate
 #define MC_SET_NEG_GUIDERATE    0x07    // for Southern hemisphere, track mode EQ_S
-#define MC_LEVEL_START  0x0b            // move to switch position
-#define MC_LEVEL_DONE   0x12            // return 0xFF when move finished
-#define MC_SLEW_DONE    0x13            // return 0xFF when move finished
-#define MC_MOVE_POS     0x24            // send move rate 0-9
+#define MC_LEVEL_START          0x0b    // move to switch position
+#define MC_LEVEL_DONE           0x12    // return 0xFF when move finished
+#define MC_SLEW_DONE            0x13    // return 0xFF when move finished
+#define MC_MOVE_POS             0x24    // start move positive direction, rate 0-9, 0 is stop
+#define MC_MOVE_NEG             0x25    // start move negative direction, rate 0-9, 0 is stop
+#define MTR_AUX_GUIDE           0x26    // aux guide command, rate -100 to 100, duration centiseconds
+#define MTR_IS_AUX_GUIDE_ACTIVE 0x27    // return 0x00 when aux guide is not in progress
 
 // focuser passthrough commands
-#define FOC_CALIB_ENABLE  42            // send 0 to start or 1 to stop
-#define FOC_CALIB_DONE    43            // returns 2 bytes [0] done, [1] state 0-12
-#define FOC_GET_HS_POSITIONS 44         // returns 2 ints, low and high limits
+#define FOC_CALIB_ENABLE        42      // send 0 to start or 1 to stop
+#define FOC_CALIB_DONE          43      // returns 2 bytes [0] done, [1] state 0-12
+#define FOC_GET_HS_POSITIONS    44      // returns 2 ints, low and high limits
 
 // generic device commands
-#define GET_VER         0xfe            // return 2 or 4 bytes major.minor.build
+#define GET_VER                 0xfe    // return 2 or 4 bytes major.minor.build
 
 
 typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
@@ -65,7 +71,7 @@ typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9 } CELESTRON_
 typedef enum { CTM_OFF, CTM_ALTAZ, CTM_EQN, CTM_EQS } CELESTRON_TRACK_MODE;
 typedef enum { RA_AXIS, DEC_AXIS } CELESTRON_AXIS;
 typedef enum { CELESTRON_N, CELESTRON_S, CELESTRON_W, CELESTRON_E } CELESTRON_DIRECTION;
-typedef enum { FW_MODEL, FW_VERSION, FW_GPS, FW_RA, FW_DEC } CELESTRON_FIRMWARE;
+typedef enum { FW_MODEL, FW_VERSION, FW_RA, FW_DEC, FW_ISGEM, FW_CAN_AUX, FW_HAS_FOC } CELESTRON_FIRMWARE;
 
 // These values are sent to the hour angle axis motor using the MC_SET_POS|NEG_GUIDERATE
 // commands to set the tracking rate.
@@ -80,16 +86,15 @@ typedef struct
 {
     std::string Model;
     std::string Version;
-    std::string GPSFirmware;
+    //std::string GPSFirmware;
     std::string RAFirmware;
     std::string DEFirmware;
-    float controllerVersion;
+    double controllerVersion;
     char controllerVariant;
     bool isGem;
     bool hasFocuser;
     CELESTRON_TRACK_MODE celestronTrackMode;
 } FirmwareInfo;
-
 
 typedef struct
 {
@@ -101,8 +106,9 @@ typedef struct
     CELESTRON_TRACK_MODE trackMode;
     CELESTRON_GPS_STATUS gpsStatus;
     bool isSlewing;
+    uint foc_position = 20000;
+    uint foc_target = 20000;
 } SimData;
-
 
 /**************************************************************************
  Utility functions
@@ -111,10 +117,9 @@ namespace Celestron {
     double trimDecAngle(double angle);
     uint16_t dd2nex(double angle);
     uint32_t dd2pnex(double angle);
-    double nex2dd(uint16_t value);
+    double nex2dd(uint32_t value);
     double pnex2dd(uint32_t value);
 }
-
 
 class CelestronDriver
 {
@@ -138,16 +143,18 @@ class CelestronDriver
         void set_sim_alt(double alt) { sim_data.alt = alt; }
         double get_sim_ra() { return sim_data.ra; }
         double get_sim_dec() { return sim_data.dec; }
+        int get_sim_foc_offset() { return sim_data.foc_target - sim_data.foc_position; }
+        void move_sim_foc(int offset) { sim_data.foc_position += offset; }
 
         bool echo();
         bool check_connection();
 
         // Get info
         bool get_firmware(FirmwareInfo *info);
-        bool get_version(char *version, int size);
+        bool get_version(char *version, size_t size);
         bool get_variant(char *variant);
-        bool get_model(char *model, int size, bool *isGem);
-        bool get_dev_firmware(int dev, char *version, int size);
+        bool get_model(char *model, size_t size, bool *isGem);
+        bool get_dev_firmware(int dev, char *version, size_t size);
         bool get_radec(double *ra, double *dec, bool precise);
         bool get_azalt(double *az, double *alt, bool precise);
         bool get_utc_date_time(double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss, bool precise = false);
@@ -180,8 +187,8 @@ class CelestronDriver
         bool indexreached(bool *atIndex);
 
         // Pulse Guide (experimental)
-        int send_pulse(CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
-        int get_pulse_status(CELESTRON_DIRECTION direction, bool &pulse_state);
+        size_t send_pulse(CELESTRON_DIRECTION direction, unsigned char rate, unsigned char duration_msec);
+        bool get_pulse_status(CELESTRON_DIRECTION direction);
 
         // Pointing state, pier side, returns 'E' or 'W'
         bool get_pier_side(char * sop);
@@ -195,7 +202,7 @@ class CelestronDriver
         // focuser commands
         bool foc_exists();      // read version
         int foc_position();     // read position, return -1 if failed
-        bool foc_move(int steps);   // start move
+        bool foc_move(uint steps);   // start move
         bool foc_moving();      // return true if moving
         bool foc_limits(int * low, int * high);     // read limits
         bool foc_abort();       // stop move
@@ -206,13 +213,40 @@ class CelestronDriver
         virtual int serial_read(int nbytes, int *nbytes_read);
         virtual int serial_read_section(char stop_char, int *nbytes_read);
 
-        int send_command(const char *cmd, int cmd_len, char *resp, int resp_len,
+        size_t send_command(const char *cmd, size_t cmd_len, char *resp, size_t resp_len,
                 bool ascii_cmd, bool ascii_resp);
-        int send_passthrough(int dest, int cmd_id, const char *payload,
-                int payload_len, char *resp, int response_len);
+        size_t send_passthrough(int dest, int cmd_id, const char *payload,
+                size_t payload_len, char *resp, size_t response_len);
 
         char response[MAX_RESP_SIZE];
         bool simulation = false;
         SimData sim_data;
         int fd = 0;
 };
+
+//class CelestronGuide
+//{
+//    public:
+//        const char *getDeviceName();        // needed for logging
+
+//        void Guide(CELESTRON_DIRECTION direction, uint32_t duration);
+//        bool IsGuiding();
+//        bool canAuxGuide;
+
+//    private:
+//        void AuxGuide(CELESTRON_DIRECTION direction, uint32_t duration);
+//        void auxGuideTask(CELESTRON_DIRECTION direction, uint8_t rate, int ticks, std::condition_variable *cv);
+
+//        void TimeGuide(CELESTRON_DIRECTION direction, uint32_t duration);
+//        void timeGuideTask(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate, int duration, std::condition_variable *cv);
+
+//        void Halt();
+
+//        std::atomic<bool> isHaGuiding;
+//        std::atomic<bool> isDecGuiding;
+
+//        std::condition_variable cancelHaTask;
+//        std::condition_variable cancelDecTask;
+
+//        CelestronDriver driver;
+//};
