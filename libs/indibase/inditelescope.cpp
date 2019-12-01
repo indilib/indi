@@ -1464,7 +1464,12 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IUUpdateSwitch(&SimulatePierSideSP, states, names, n);
             int index = IUFindOnSwitchIndex(&SimulatePierSideSP);
             if (index == -1)
+            {
+                SimulatePierSideSP.s = IPS_ALERT;
+                LOG_INFO("Cannot determine whether pier side simulation should be switched on or off.");
+                IDSetSwitch(&SimulatePierSideSP, nullptr);
                 return false;
+            }
 
             LOGF_INFO("Simulating Pier Side %s.", (index==0 ? "enabled" : "disabled"));
 
