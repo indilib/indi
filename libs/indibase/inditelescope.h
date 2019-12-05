@@ -149,17 +149,18 @@ class Telescope : public DefaultDevice
          */
         enum
         {
-            TELESCOPE_CAN_GOTO          = 1 << 0, /** Can the telescope go to to specific coordinates? */
-            TELESCOPE_CAN_SYNC          = 1 << 1, /** Can the telescope sync to specific coordinates? */
-            TELESCOPE_CAN_PARK          = 1 << 2, /** Can the telescope park? */
-            TELESCOPE_CAN_ABORT         = 1 << 3, /** Can the telescope abort motion? */
-            TELESCOPE_HAS_TIME          = 1 << 4, /** Does the telescope have configurable date and time settings? */
-            TELESCOPE_HAS_LOCATION      = 1 << 5, /** Does the telescope have configuration location settings? */
-            TELESCOPE_HAS_PIER_SIDE     = 1 << 6, /** Does the telescope have pier side property? */
-            TELESCOPE_HAS_PEC           = 1 << 7,  /** Does the telescope have PEC playback? */
-            TELESCOPE_HAS_TRACK_MODE    = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
-            TELESCOPE_CAN_CONTROL_TRACK = 1 << 9,  /** Can the telescope engage and disengage tracking? */
-            TELESCOPE_HAS_TRACK_RATE    = 1 << 10,  /** Does the telescope have custom track rates? */
+            TELESCOPE_CAN_GOTO                    = 1 << 0,  /** Can the telescope go to to specific coordinates? */
+            TELESCOPE_CAN_SYNC                    = 1 << 1,  /** Can the telescope sync to specific coordinates? */
+            TELESCOPE_CAN_PARK                    = 1 << 2,  /** Can the telescope park? */
+            TELESCOPE_CAN_ABORT                   = 1 << 3,  /** Can the telescope abort motion? */
+            TELESCOPE_HAS_TIME                    = 1 << 4,  /** Does the telescope have configurable date and time settings? */
+            TELESCOPE_HAS_LOCATION                = 1 << 5,  /** Does the telescope have configuration location settings? */
+            TELESCOPE_HAS_PIER_SIDE               = 1 << 6,  /** Does the telescope have pier side property? */
+            TELESCOPE_HAS_PEC                     = 1 << 7,  /** Does the telescope have PEC playback? */
+            TELESCOPE_HAS_TRACK_MODE              = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
+            TELESCOPE_CAN_CONTROL_TRACK           = 1 << 9,  /** Can the telescope engage and disengage tracking? */
+            TELESCOPE_HAS_TRACK_RATE              = 1 << 10, /** Does the telescope have custom track rates? */
+            TELESCOPE_HAS_PIER_SIDE_SIMULATION     = 1 << 11, /** Does the telescope simulate the pier side property? */
         } TelescopeCapability;
 
         Telescope();
@@ -253,6 +254,13 @@ class Telescope : public DefaultDevice
             return capability & TELESCOPE_HAS_PIER_SIDE;
         }
 
+        /**
+         * @return True if telescope simulates pier side property
+         */
+        bool HasPierSideSimulation()
+        {
+            return capability & TELESCOPE_HAS_PIER_SIDE_SIMULATION;
+        }
         /**
          * @return True if telescope supports PEC playback property
          */
@@ -405,7 +413,7 @@ class Telescope : public DefaultDevice
             return currentPECState;
         }
 
-    protected:
+protected:
         virtual bool saveConfigItems(FILE *fp);
 
         /** \brief The child class calls this function when it has updates */
@@ -547,6 +555,17 @@ class Telescope : public DefaultDevice
         virtual bool updateLocation(double latitude, double longitude, double elevation);
 
         /**
+         * \brief Update location settings of the observer
+         * \param latitude Site latitude in degrees.
+         * \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
+         * \param elevation Site elevation in meters.
+         * \return True if successful, false otherwise
+         * \note If not implemented by the child class, this function by default returns false with a
+         * warning message.
+         */
+        void updateObserverLocation(double latitude, double longitude, double elevation);
+
+        /**
          * \brief SetParkPosition Set desired parking position to the supplied value. This ONLY sets the
          * desired park position value and does not perform parking.
          * \param Axis1Value First axis value
@@ -597,6 +616,17 @@ class Telescope : public DefaultDevice
         void processAxis(const char *axis_n, double value);
         void processSlewPresets(double mag, double angle);
         void processButton(const char *button_n, ISState state);
+
+        /**
+         * @brief Calculate the expected pier side for scopes that do not report
+         * this property themselves.
+         */
+        TelescopePierSide expectedPierSide(double ra, double dec);
+
+        // helper functions
+        double getAzimuth(double r, double d);
+
+        ln_lnlat_posn lnobserver { 0, 0 };
 
         /**
          * @brief Load scope settings from XML files.
@@ -734,6 +764,13 @@ class Telescope : public DefaultDevice
         ISwitch PierSideS[2];
         ISwitchVectorProperty PierSideSP;
 
+        // Pier Side Simulation
+        ISwitchVectorProperty SimulatePierSideSP;
+        ISwitch SimulatePierSideS[2];
+        bool m_simulatePierSide;
+        bool getSimulatePierSide() const;
+        void setSimulatePierSide(bool value);
+
         // Pier Side
         TelescopePierSide lastPierSide, currentPierSide;
 
@@ -798,7 +835,7 @@ class Telescope : public DefaultDevice
         /// The telescope/guide scope configuration file name
         const std::string ScopeConfigFileName;
 
-    private:
+private:
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
         void triggerSnoop(const char *driverName, const char *propertyName);

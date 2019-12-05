@@ -20,9 +20,6 @@
 
 #include "indicom.h"
 
-#include <libnova/sidereal_time.h>
-#include <libnova/transform.h>
-
 #include <cmath>
 #include <cstring>
 #include <memory>
@@ -90,7 +87,7 @@ ScopeSim::ScopeSim()
 {
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_PIER_SIDE |
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_PIER_SIDE_SIMULATION |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
                            4);
 
@@ -591,15 +588,7 @@ bool ScopeSim::ReadScopeStatus()
 
     // pier side might only change with a slew or parking
     if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
-    {
-        double az = getAzimuth(currentRA, currentDEC);
-        bool north = lnobserver.lat >= 0.;
-
-        if ((0 <= az && az < 90) || (180 <= az && az < 270))
-            setPierSide(north ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
-        else
-            setPierSide(north ? INDI::Telescope::PIER_WEST : INDI::Telescope::PIER_EAST);
-    }
+        setPierSide(expectedPierSide(currentRA, currentDEC));
 
     return true;
 }
@@ -831,20 +820,6 @@ IPState ScopeSim::GuideWest(uint32_t ms)
     return IPS_BUSY;
 }
 
-bool ScopeSim::updateLocation(double latitude, double longitude, double elevation)
-{
-    INDI_UNUSED(elevation);
-    // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
-    lnobserver.lng = longitude;
-
-    if (lnobserver.lng > 180)
-        lnobserver.lng -= 360;
-    lnobserver.lat = latitude;
-
-    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
-    return true;
-}
-
 bool ScopeSim::SetCurrentPark()
 {
     SetAxis1Park(currentRA);
@@ -881,18 +856,4 @@ bool ScopeSim::SetTrackRate(double raRate, double deRate)
     INDI_UNUSED(raRate);
     INDI_UNUSED(deRate);
     return true;
-}
-
-double ScopeSim::getAzimuth(double r, double d)
-{
-    ln_equ_posn lnradec { 0, 0 };
-    ln_hrz_posn altaz { 0, 0 };
-
-    lnradec.ra  = (r * 360) / 24.0;
-    lnradec.dec = d;
-
-    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &altaz);
-
-    /* libnova measures azimuth from south towards west */
-    return (range360(altaz.az + 180));
 }
