@@ -116,6 +116,9 @@ CCD::CCD()
     J2000DE         = std::numeric_limits<double>::quiet_NaN();
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
     RotatorAngle    = std::numeric_limits<double>::quiet_NaN();
+    // JJ ed 2019-12-10
+    FocusPos        = std::numeric_limits<long>::quiet_NaN();
+
     Airmass         = std::numeric_limits<double>::quiet_NaN();
     Latitude        = std::numeric_limits<double>::quiet_NaN();
     Longitude       = std::numeric_limits<double>::quiet_NaN();
@@ -408,12 +411,16 @@ bool CCD::initProperties()
 
     // Snooped Devices
     IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    IUFillText(&ActiveDeviceT[1], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
-    IUFillText(&ActiveDeviceT[2], "ACTIVE_FILTER", "Filter", "CCD Simulator");
-    IUFillText(&ActiveDeviceT[3], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 4, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
-                     IP_RW, 60, IPS_IDLE);
 
+    // JJ ed 2019-12-10
+    IUFillText(&ActiveDeviceT[1], "ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
+    IUFillText(&ActiveDeviceT[2], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
+    IUFillText(&ActiveDeviceT[3], "ACTIVE_FILTER", "Filter", "CCD Simulator");
+    IUFillText(&ActiveDeviceT[4], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
+    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
+                     IP_RW, 60, IPS_IDLE);
+    //
+    
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
@@ -430,6 +437,11 @@ bool CCD::initProperties()
     // Snoop Rotator
     IDSnoopDevice(ActiveDeviceT[SNOOP_ROTATOR].text, "ABS_ROTATOR_ANGLE");
 
+    // JJ ed 2019-12-10
+    // Snoop Rotator
+    IDSnoopDevice(ActiveDeviceT[SNOOP_FOCUSER].text, "ABS_FOCUS_POSITION");
+    //
+    
     // Snoop Filter Wheel
     IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_SLOT");
     IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_NAME");
@@ -725,6 +737,23 @@ bool CCD::ISSnoopDevice(XMLEle * root)
             }
         }
     }
+
+    // JJ ed 2019-12-10
+    else if (!strcmp(propName, "ABS_FOCUS_POSITION"))
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, "FOCUS_ABSOLUTE_POSITION"))
+            {
+                FocusPos = atol(pcdataXMLEle(ep));
+                break;
+            }
+        }
+    }
+    //
+    
     else if (!strcmp(propName, "GEOGRAPHIC_COORD"))
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
@@ -784,6 +813,14 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             else
                 MPSAS = std::numeric_limits<double>::quiet_NaN();
 
+	    // JJ ed 2019-12-10
+            if (strlen(ActiveDeviceT[SNOOP_FOCUSER].text) > 0)
+                IDSnoopDevice(ActiveDeviceT[SNOOP_FOCUSER].text, "FOCUS_ABSOLUTE_POSITION");
+            else
+                FocusPos = std::numeric_limits<long>::quiet_NaN();
+	    //
+
+	    
             if (strlen(ActiveDeviceT[SNOOP_FILTER_WHEEL].text) > 0)
             {
                 IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_SLOT");
