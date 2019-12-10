@@ -504,6 +504,9 @@ class CCD : public DefaultDevice, GuiderInterface
         // Rotator Angle
         double RotatorAngle;
 
+        // JJ ed 2019-12-10
+        long FocusPos;
+  
         // Airmas
         double Airmass;
         double Latitude;
@@ -542,11 +545,14 @@ class CCD : public DefaultDevice, GuiderInterface
          * + **SQM**: Listens for sky quality meter magnitude.
          */
         ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[4] {};
+
+        // JJ ed 2019-12-10
+        IText ActiveDeviceT[5] {};
         enum
         {
             SNOOP_MOUNT,
             SNOOP_ROTATOR,
+	    SNOOP_FOCUSER, // JJ
             SNOOP_FILTER_WHEEL,
             SNOOP_SQM
         };
