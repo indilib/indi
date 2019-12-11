@@ -405,7 +405,8 @@ bool DMFC::updateFocusParams()
     if (motorType >= 0 && motorType <= 1)
     {
         IUResetSwitch(&MotorTypeSP);
-        MotorTypeS[motorType].s = ISS_ON;
+        MotorTypeS[MOTOR_DC].s = (motorType == 0) ? ISS_ON : ISS_OFF;
+        MotorTypeS[MOTOR_STEPPER].s = (motorType == 1) ? ISS_ON : ISS_OFF;
         MotorTypeSP.s = IPS_OK;
         IDSetSwitch(&MotorTypeSP, nullptr);
     }
@@ -493,7 +494,8 @@ bool DMFC::updateFocusParams()
     if (reverseStatus >= 0 && reverseStatus <= 1)
     {
         IUResetSwitch(&FocusReverseSP);
-        FocusReverseS[reverseStatus].s = ISS_ON;
+        FocusReverseS[REVERSED_ENABLED].s = (reverseStatus == 1) ? ISS_ON : ISS_OFF;
+        FocusReverseS[REVERSED_DISABLED].s = (reverseStatus == 0) ? ISS_ON : ISS_OFF;
         FocusReverseSP.s = IPS_OK;
         IDSetSwitch(&FocusReverseSP, nullptr);
     }
@@ -675,13 +677,18 @@ bool DMFC::SetFocuserBacklash(int32_t steps)
     return true;
 }
 
+bool DMFC::SetFocuserBacklashEnabled(bool enabled)
+{
+    return SetFocuserBacklash(enabled ? 1 : 0);
+}
+
 bool DMFC::setMotorType(uint8_t type)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[16] = {0};
 
-    snprintf(cmd, 16, "E:%d", (type == MOTOR_STEPPER) ? 1 : 0);
+    snprintf(cmd, 16, "R:%d", (type == MOTOR_STEPPER) ? 1 : 0);
     cmd[strlen(cmd)] = 0xA;
 
     LOGF_DEBUG("CMD <%s>", cmd);
