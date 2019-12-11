@@ -22,6 +22,7 @@ add_executable(test_lx200drivers
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200fs2.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200ss2000pc.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200_OnStep.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200_rainbow.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/lx200_10micron.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/ioptronHC8406.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../drivers/telescope/eq500x.cpp"
