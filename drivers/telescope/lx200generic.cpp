@@ -42,6 +42,7 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200ss2000pc.h"
 #include "lx200zeq25.h"
 #include "lx200gotonova.h"
+#include "lx200_rainbow.h"
 #include "ioptronHC8406.h"
 #include <cmath>
 #include <memory>
@@ -184,6 +185,13 @@ void ISInit()
 
         if (telescope.get() == nullptr)
             telescope.reset(new LX200_10MICRON());
+    }
+    else if (strstr(me, "indi_lx200_rainbow"))
+    {
+        IDLog("initializing for Rainbow mount...\n");
+
+        if (telescope.get() == nullptr)
+            telescope.reset(new LX200Rainbow());
     }
     else if (strstr(me, "indi_eq500x"))
     {
