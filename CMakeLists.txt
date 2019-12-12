@@ -1236,6 +1236,15 @@ add_executable(indi_baader_dome ${baaderdome_SRC})
 target_link_libraries(indi_baader_dome indidriver)
 install(TARGETS indi_baader_dome RUNTIME DESTINATION bin)
 
+################ Dome Pro 2 ##$##############
+
+SET(domepro2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/domepro2.cpp)
+
+add_executable(indi_domepro2_dome ${domepro2_SRC})
+target_link_libraries(indi_domepro2_dome indidriver)
+install(TARGETS indi_domepro2_dome RUNTIME DESTINATION bin)
+
 ################ Rigel Dome ################
 
 SET(rigeldome_SRC
