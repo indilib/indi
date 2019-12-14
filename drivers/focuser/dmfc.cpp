@@ -117,7 +117,6 @@ bool DMFC::initProperties()
     IUFillText(&FirmwareVersionT[0], "Version", "Version", "");
     IUFillTextVector(&FirmwareVersionTP, FirmwareVersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
     FocusRelPosN[0].max   = 50000.;
@@ -128,6 +127,12 @@ bool DMFC::initProperties()
     FocusAbsPosN[0].max   = 100000.;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
+
+    // Backlash compensation
+    FocusBacklashN[0].min   = 1; // 0 is off.
+    FocusBacklashN[0].max   = 1000;
+    FocusBacklashN[0].value = 1;
+    FocusBacklashN[0].step  = 1;
 
     addDebugControl();
 
@@ -223,7 +228,6 @@ bool DMFC::ack()
     return (strstr(res, "OK_") != nullptr);
 }
 
-//bool DMFC::sync(uint32_t newPosition)
 bool DMFC::SyncFocuser(uint32_t ticks)
 {
     int nbytes_written = 0, rc = -1;
@@ -301,7 +305,7 @@ bool DMFC::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         if (!strcmp(name, MotorTypeSP.name))
         {
             IUUpdateSwitch(&MotorTypeSP, states, names, n);
-            bool rc = setMotorType(IUFindOnSwitchIndex(&MotorTypeSP));
+            bool rc = setMotorType(MotorTypeS[MOTOR_DC].s == ISS_ON ? 0 : 1);
             MotorTypeSP.s = rc ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&MotorTypeSP, nullptr);
             return true;
@@ -679,7 +683,10 @@ bool DMFC::SetFocuserBacklash(int32_t steps)
 
 bool DMFC::SetFocuserBacklashEnabled(bool enabled)
 {
-    return SetFocuserBacklash(enabled ? 1 : 0);
+    if (!enabled)
+        return SetFocuserBacklash(0);
+
+    return SetFocuserBacklash(FocusBacklashN[0].value > 0 ? FocusBacklashN[0].value : 1);
 }
 
 bool DMFC::setMotorType(uint8_t type)
@@ -796,6 +803,7 @@ bool DMFC::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &MotorTypeSP);
     IUSaveConfigNumber(fp, &MaxSpeedNP);
     IUSaveConfigSwitch(fp, &LEDSP);
+    IUSaveConfigNumber(fp, &FocusBacklashNP);
 
     return true;
 }
