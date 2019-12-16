@@ -36,7 +36,7 @@
 
 LX200ZEQ25::LX200ZEQ25()
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -49,7 +49,8 @@ bool LX200ZEQ25::initProperties()
 {
     LX200Generic::initProperties();
 
-    SetParkDataType(PARK_AZ_ALT);
+    //SetParkDataType(PARK_AZ_ALT);
+    SetParkDataType(PARK_NONE);
 
     // Slew Rates
     strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
@@ -1016,6 +1017,24 @@ bool LX200ZEQ25::SetDefaultPark()
 
 bool LX200ZEQ25::Park()
 {
+    // JM 2012-12-16: Using Homing instead of custom parking
+    // to fix reported issues with parking
+    if (gotoZEQ25Home() < 0)
+    {
+        LOG_ERROR("Error parking...");
+        return false;
+    }
+    else
+    {
+        HomeSP.s = IPS_BUSY;
+        IDSetSwitch(&HomeSP, nullptr);
+    }
+
+    TrackState = SCOPE_PARKING;
+    LOG_INFO("Parking is in progress...");
+    return true;
+
+#if 0
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
@@ -1062,6 +1081,7 @@ bool LX200ZEQ25::Park()
     LOG_INFO("Parking is in progress...");
 
     return true;
+#endif
 }
 
 bool LX200ZEQ25::UnPark()
@@ -1157,9 +1177,15 @@ bool LX200ZEQ25::ReadScopeStatus()
     }
     else if (TrackState == SCOPE_PARKING)
     {
-        if (isSlewComplete())
+        // JM 2019-12-16: Parking is not working correctly, so we just use home
+        //        if (isSlewComplete())
+        //        {
+        //            setZEQ25Park();
+        //            SetParked(true);
+        //        }
+
+        if (HomeSP.s  == IPS_OK && HomeS[0].s == ISS_ON)
         {
-            setZEQ25Park();
             SetParked(true);
         }
     }
