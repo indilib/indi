@@ -30,19 +30,64 @@ class LX200Rainbow : public LX200Generic
         const char *getDefaultName() override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-        virtual void getBasicData() override;
 
     protected:
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
-        virtual bool checkConnection() override;
 
-   private:
+        // Is slew over?
+        virtual bool isSlewComplete() override;
+        // Check if mount is responsive
+        virtual bool checkConnection() override;
+        // Read mount state
+        virtual bool ReadScopeStatus() override;
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Tracking Functions
+        ///////////////////////////////////////////////////////////////////////////////
+        // Toggle Tracking
+        virtual bool SetTrackEnabled(bool enabled) override;
+        bool getTrackingState();
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Query Functions
+        ///////////////////////////////////////////////////////////////////////////////
+        virtual void getBasicData() override;
+        bool getFirmwareVersion();
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Parking, Homing, and Calibration
+        ///////////////////////////////////////////////////////////////////////////////
+        virtual bool Park() override;
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Communication Functions
+        ///////////////////////////////////////////////////////////////////////////////
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        void hexDump(char * buf, const char * data, int size);
+        std::vector<std::string> split(const std::string &input, const std::string &regex);
+
+    private:
 
         /// Function
         bool findHome();
 
+        ///////////////////////////////////////////////////////////////////////////////////
         /// Properties
+        ///////////////////////////////////////////////////////////////////////////////////
         ISwitchVectorProperty HomeSP;
         ISwitch HomeS[1];
+
+        std::string version;
+
+        /////////////////////////////////////////////////////////////////////////////
+        /// Static Helper Values
+        /////////////////////////////////////////////////////////////////////////////
+        static constexpr const char * INFO_TAB = "Info";
+        // '#' is the stop char
+        static const char DRIVER_STOP_CHAR { 0x23 };
+        // Wait up to a maximum of 3 seconds for serial input
+        static constexpr const uint8_t DRIVER_TIMEOUT {3};
+        // Maximum buffer for sending/receving.
+        static constexpr const uint8_t DRIVER_LEN {64};
 };
