@@ -97,7 +97,7 @@ ScopeSim::ScopeSim()
 
 const char *ScopeSim::getDefaultName()
 {
-    return (const char *)"Telescope Simulator";
+    return "Telescope Simulator";
 }
 
 bool ScopeSim::initProperties()
@@ -259,15 +259,15 @@ bool ScopeSim::Disconnect()
 
 bool ScopeSim::ReadScopeStatus()
 {
-    static struct timeval ltv
+    static struct timeval lastTime
     {
         0, 0
     };
-    struct timeval tv
+    struct timeval currentTime
     {
         0, 0
     };
-    double dt = 0, da_ra = 0, da_dec = 0, dx = 0, dy = 0, ra_guide_dt = 0, dec_guide_dt = 0;
+    double deltaTimeSecs = 0, da_ra = 0, da_dec = 0, deltaRa = 0, deltaDec = 0, ra_guide_dt = 0, dec_guide_dt = 0;
     int nlocked, ns_guide_dir = -1, we_guide_dir = -1;
 
 #ifdef USE_EQUATORIAL_PE
@@ -276,28 +276,28 @@ bool ScopeSim::ReadScopeStatus()
 #endif
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday(&tv, nullptr);
+    gettimeofday(&currentTime, nullptr);
 
-    if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
-        ltv = tv;
+    if (lastTime.tv_sec == 0 && lastTime.tv_usec == 0)
+        lastTime = currentTime;
 
-    // Time diff is seconds
-    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
-    ltv = tv;
+    // Time diff in seconds
+    deltaTimeSecs  = currentTime.tv_sec - lastTime.tv_sec + (currentTime.tv_usec - lastTime.tv_usec) / 1e6;
+    lastTime = currentTime;
 
     if (fabs(targetRA - currentRA) * 15. >= GOTO_LIMIT)
-        da_ra = GOTO_RATE * dt;
+        da_ra = GOTO_RATE * deltaTimeSecs;
     else if (fabs(targetRA - currentRA) * 15. >= SLEW_LIMIT)
-        da_ra = SLEW_RATE * dt;
+        da_ra = SLEW_RATE * deltaTimeSecs;
     else
-        da_ra = FINE_SLEW_RATE * dt;
+        da_ra = FINE_SLEW_RATE * deltaTimeSecs;
 
     if (fabs(targetDEC - currentDEC) >= GOTO_LIMIT)
-        da_dec = GOTO_RATE * dt;
+        da_dec = GOTO_RATE * deltaTimeSecs;
     else if (fabs(targetDEC - currentDEC) >= SLEW_LIMIT)
-        da_dec = SLEW_RATE * dt;
+        da_dec = SLEW_RATE * deltaTimeSecs;
     else
-        da_dec = FINE_SLEW_RATE * dt;
+        da_dec = FINE_SLEW_RATE * deltaTimeSecs;
 
     if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
     {
@@ -306,23 +306,23 @@ bool ScopeSim::ReadScopeStatus()
         switch (rate)
         {
             case SLEW_GUIDE:
-                da_ra  = TrackRateN[AXIS_RA].value / (3600.0 * 15) * GuideRateN[RA_AXIS].value * dt;
-                da_dec = TrackRateN[AXIS_RA].value / 3600.0 * GuideRateN[DEC_AXIS].value * dt;;
+                da_ra  = TrackRateN[AXIS_RA].value / (3600.0 * 15) * GuideRateN[RA_AXIS].value * deltaTimeSecs;
+                da_dec = TrackRateN[AXIS_RA].value / 3600.0 * GuideRateN[DEC_AXIS].value * deltaTimeSecs;;
                 break;
 
             case SLEW_CENTERING:
-                da_ra  = FINE_SLEW_RATE * dt * .1;
-                da_dec = FINE_SLEW_RATE * dt * .1;
+                da_ra  = FINE_SLEW_RATE * deltaTimeSecs * .1;
+                da_dec = FINE_SLEW_RATE * deltaTimeSecs * .1;
                 break;
 
             case SLEW_FIND:
-                da_ra  = SLEW_RATE * dt;
-                da_dec = SLEW_RATE * dt;
+                da_ra  = SLEW_RATE * deltaTimeSecs;
+                da_dec = SLEW_RATE * deltaTimeSecs;
                 break;
 
             default:
-                da_ra  = GOTO_RATE * dt;
-                da_dec = GOTO_RATE * dt;
+                da_ra  = GOTO_RATE * deltaTimeSecs;
+                da_dec = GOTO_RATE * deltaTimeSecs;
                 break;
         }
 
@@ -366,49 +366,65 @@ bool ScopeSim::ReadScopeStatus()
         case SCOPE_SLEWING:
         case SCOPE_PARKING:
             /* slewing - nail it when both within one pulse @ SLEWRATE */
-            nlocked = 0;
+            nlocked = 0;        // seems to be some sort of state variable
 
-            dx = targetRA - currentRA;
+            deltaRa = targetRA - currentRA;
 
             // Always take the shortcut, don't go all around the globe
             // If the difference between target and current is more than 12 hours, then we need to take the shortest path
-            if (dx > 12)
-                dx -= 24;
-            else if (dx < -12)
-                dx += 24;
+            if (deltaRa > 12)
+                deltaRa -= 24;
+            else if (deltaRa < -12)
+                deltaRa += 24;
 
-            // In meridian flip, alway force eastward motion (increasing RA) until target is reached.
+            // In meridian flip, move to the position by doing a full rotation
             if (forceMeridianFlip)
             {
-                dx = fabs(dx);
-                if (dx == 0)
+                // set deltaRa according to the target pier side so that the
+                // slew is away from the meridian until the direction to go is towards
+                // the target.
+                switch (currentPierSide)
                 {
-                    // first step eastward if we start the meridian flip
-                    // ensure that the first step is bigger than the standard step to ensure flipping
-                    dx    = dt+0.5;
-                    da_ra = GOTO_RATE*(dt+0.5);
+                case PIER_EAST:
+                    // force Ra move direction to be positive, i.e. to the West,
+                    // until it is large and positive
+                    if (deltaRa < 9)
+                        deltaRa = 1;
+                    else
+                        forceMeridianFlip = false;
+                    break;
+                case PIER_WEST:
+                    // force Ra move direction to be negative, i.e. East,
+                    // until it is large and negative
+                    if (deltaRa > -9)
+                        deltaRa = -1;
+                    else
+                        forceMeridianFlip = false;
+                    break;
+                case PIER_UNKNOWN:
+                    break;
                 }
             }
 
-            if (fabs(dx) * 15. <= da_ra)
+            if (fabs(deltaRa) * 15. <= da_ra)
             {
                 currentRA = targetRA;
                 nlocked++;
             }
-            else if (dx > 0)
+            else if (deltaRa > 0)
                 currentRA += da_ra / 15.;
             else
                 currentRA -= da_ra / 15.;
 
             currentRA = range24(currentRA);
 
-            dy = targetDEC - currentDEC;
-            if (fabs(dy) <= da_dec)
+            deltaDec = targetDEC - currentDEC;
+            if (fabs(deltaDec) <= da_dec)
             {
                 currentDEC = targetDEC;
                 nlocked++;
             }
-            else if (dy > 0)
+            else if (deltaDec > 0)
                 currentDEC += da_dec;
             else
                 currentDEC -= da_dec;
@@ -452,7 +468,7 @@ bool ScopeSim::ReadScopeStatus()
 
         case SCOPE_IDLE:
             //currentRA += (TRACKRATE_SIDEREAL/3600.0 * dt) / 15.0;
-            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * deltaTimeSecs) / 15.0;
             currentRA = range24(currentRA);
             break;
 
@@ -460,11 +476,11 @@ bool ScopeSim::ReadScopeStatus()
             // In case of custom tracking rate
             if (TrackModeS[1].s == ISS_ON)
             {
-                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * dt) / 15.0;
-                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * dt);
+                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * deltaTimeSecs) / 15.0;
+                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * deltaTimeSecs);
             }
 
-            dt *= 1000;
+            deltaTimeSecs *= 1000;
 
             if (guiderNSTarget[GUIDE_NORTH] > 0)
             {
@@ -586,47 +602,12 @@ bool ScopeSim::ReadScopeStatus()
 
     NewRaDec(currentRA, currentDEC);
 
-    // pier side might only change with a slew or parking
-    if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
-        setPierSide(expectedPierSide(currentRA, currentDEC));
-
     return true;
 }
 
 bool ScopeSim::Goto(double r, double d)
 {
-    targetRA  = r;
-    targetDEC = d;
-    char RAStr[64], DecStr[64];
-
-    fs_sexa(RAStr, targetRA, 2, 3600);
-    fs_sexa(DecStr, targetDEC, 2, 3600);
-
-    double current_az = getAzimuth(currentRA, currentDEC);
-
-    if (current_az > MIN_AZ_FLIP && current_az < MAX_AZ_FLIP)
-    {
-        double target_az = getAzimuth(r, d);
-
-        //if (targetAz > currentAz && target_az > MIN_AZ_FLIP && target_az < MAX_AZ_FLIP)
-        if (target_az >= current_az && target_az > MIN_AZ_FLIP)
-        {
-            forceMeridianFlip = true;
-        }
-    }
-
-    if (IUFindOnSwitchIndex(&TrackModeSP) != SLEW_MAX)
-    {
-        IUResetSwitch(&TrackModeSP);
-        TrackModeS[SLEW_MAX].s = ISS_ON;
-        IDSetSwitch(&TrackModeSP, nullptr);
-    }
-
-    TrackState = SCOPE_SLEWING;
-
-    //EqNP.s = IPS_BUSY;
-
-    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    StartSlew(r, d, SCOPE_SLEWING);
     return true;
 }
 
@@ -652,11 +633,54 @@ bool ScopeSim::Sync(double ra, double dec)
 
 bool ScopeSim::Park()
 {
-    targetRA   = GetAxis1Park();
-    targetDEC  = GetAxis2Park();
-    TrackState = SCOPE_PARKING;
-    LOG_INFO("Parking telescope in progress...");
+    StartSlew(GetAxis1Park(), GetAxis2Park(), SCOPE_PARKING);
     return true;
+}
+
+// common code for GoTo and park
+void ScopeSim::StartSlew(double ra, double dec, TelescopeStatus status)
+{
+    targetRA  = ra;
+    targetDEC = dec;
+    char RAStr[64], DecStr[64];
+
+    fs_sexa(RAStr, targetRA, 2, 3600);
+    fs_sexa(DecStr, targetDEC, 2, 3600);
+
+    // check if a meridian flip is needed
+    if (m_simulatePierSide)
+    {
+        TelescopePierSide newPierSide = expectedPierSide(targetRA);
+        if (newPierSide != currentPierSide)
+        {
+            forceMeridianFlip = true;
+            setPierSide(newPierSide);
+        }
+        currentPierSide = newPierSide;
+    }
+
+    if (IUFindOnSwitchIndex(&TrackModeSP) != SLEW_MAX)
+    {
+        IUResetSwitch(&TrackModeSP);
+        TrackModeS[SLEW_MAX].s = ISS_ON;
+        IDSetSwitch(&TrackModeSP, nullptr);
+    }
+
+    const char * statusStr;
+    switch (status)
+    {
+    case SCOPE_PARKING:
+        statusStr = "Parking";
+        break;
+    case SCOPE_SLEWING:
+        statusStr = "Slewing";
+        break;
+    default:
+        statusStr = "unknown";
+    }
+    TrackState = status;
+
+    LOGF_INFO("%s to RA: %s - DEC: %s, pier side %s, %s", statusStr, RAStr, DecStr, getPierSideStr(currentPierSide), forceMeridianFlip ? "with flip" : "direct");
 }
 
 bool ScopeSim::UnPark()

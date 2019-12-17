@@ -621,7 +621,7 @@ protected:
          * @brief Calculate the expected pier side for scopes that do not report
          * this property themselves.
          */
-        TelescopePierSide expectedPierSide(double ra, double dec);
+        TelescopePierSide expectedPierSide(double ra);
 
         // helper functions
         double getAzimuth(double r, double d);
@@ -773,6 +773,8 @@ protected:
 
         // Pier Side
         TelescopePierSide lastPierSide, currentPierSide;
+
+        const char * getPierSideStr(TelescopePierSide ps);
 
         // PEC State
         ISwitch PECStateS[2];
