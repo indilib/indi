@@ -411,8 +411,9 @@ bool Telescope::updateProperties()
         {
             defineSwitch(&SimulatePierSideSP);
             loadConfig(true, "SIMULATE_PIER_SIDE");
-            int index = IUFindOnSwitchIndex(&SimulatePierSideSP);
-            setSimulatePierSide(index == 0);      // Use the simulate switch state to set this.
+            ISState value;
+            if (IUGetConfigSwitch(getDefaultName(), "SIMULATE_PIER_SIDE", "SIMULATE_YES", &value) )
+                setSimulatePierSide(value = ISS_ON);
         }
 
         if (HasPECState())
@@ -3050,10 +3051,9 @@ const char * Telescope::getPierSideStr(TelescopePierSide ps)
         return "PIER_WEST";
     case PIER_EAST:
         return "PIER_EAST";
-    case PIER_UNKNOWN:
+    default:
         return "PIER_UNKNOWN";
     }
-    return "this is needed to satisfy the CI";
 }
 
 void Telescope::setSimulatePierSide(bool simulate)
