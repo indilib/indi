@@ -413,7 +413,7 @@ bool Telescope::updateProperties()
             loadConfig(true, "SIMULATE_PIER_SIDE");
             ISState value;
             if (IUGetConfigSwitch(getDefaultName(), "SIMULATE_PIER_SIDE", "SIMULATE_YES", &value) )
-                setSimulatePierSide(value = ISS_ON);
+                setSimulatePierSide(value == ISS_ON);
         }
 
         if (HasPECState())
