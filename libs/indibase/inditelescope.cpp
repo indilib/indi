@@ -3053,6 +3053,7 @@ const char * Telescope::getPierSideStr(TelescopePierSide ps)
     case PIER_UNKNOWN:
         return "PIER_UNKNOWN";
     }
+    return "this is needed to satisfy the CI";
 }
 
 void Telescope::setSimulatePierSide(bool simulate)
