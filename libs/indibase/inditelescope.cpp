@@ -410,8 +410,9 @@ bool Telescope::updateProperties()
         if (HasPierSideSimulation())
         {
             defineSwitch(&SimulatePierSideSP);
-            // ensure that all properties are set
-            setSimulatePierSide(true);      // CR this has to be set somewhere
+            loadConfig(true, "SIMULATE_PIER_SIDE");
+            int index = IUFindOnSwitchIndex(&SimulatePierSideSP);
+            setSimulatePierSide(index == 0);      // Use the simulate switch state to set this.
         }
 
         if (HasPECState())
@@ -1458,6 +1459,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
         ///////////////////////////////////
         // Simulate Pier Side
+        // This ia a major change to the design of the simulated scope, it might not handle changes on the fly
         ///////////////////////////////////
         if (!strcmp(name, SimulatePierSideSP.name))
         {
@@ -1471,9 +1473,17 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 return false;
             }
 
-            LOGF_INFO("Simulating Pier Side %s.", (index==0 ? "enabled" : "disabled"));
+            bool pierSideEnabled = index == 0;
 
-            setSimulatePierSide(index == 0);
+            LOGF_INFO("Simulating Pier Side %s.", (pierSideEnabled ? "enabled" : "disabled"));
+
+            setSimulatePierSide(pierSideEnabled);
+            if (pierSideEnabled)
+            {
+                // set the pier side from the current Ra
+                // assumes we haven't tracked across the meridian
+                setPierSide(expectedPierSide(EqN[AXIS_RA].value));
+            }
             return true;
         }
 
