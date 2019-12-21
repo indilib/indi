@@ -410,7 +410,6 @@ bool Telescope::updateProperties()
         if (HasPierSideSimulation())
         {
             defineSwitch(&SimulatePierSideSP);
-            loadConfig(true, "SIMULATE_PIER_SIDE");
             ISState value;
             if (IUGetConfigSwitch(getDefaultName(), "SIMULATE_PIER_SIDE", "SIMULATE_YES", &value) )
                 setSimulatePierSide(value == ISS_ON);
@@ -3065,9 +3064,15 @@ void Telescope::setSimulatePierSide(bool simulate)
     IDSetSwitch(&SimulatePierSideSP, nullptr);
 
     if (simulate)
+    {
+        capability |= TELESCOPE_HAS_PIER_SIDE;
         defineSwitch(&PierSideSP);
+    }
     else
+    {
+        capability &= static_cast<uint>(~TELESCOPE_HAS_PIER_SIDE);
         deleteProperty(PierSideSP.name);
+    }
 
     m_simulatePierSide = simulate;
 }

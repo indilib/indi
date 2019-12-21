@@ -767,7 +767,6 @@ protected:
         // Pier Side Simulation
         ISwitchVectorProperty SimulatePierSideSP;
         ISwitch SimulatePierSideS[2];
-        bool m_simulatePierSide;
         bool getSimulatePierSide() const;
         void setSimulatePierSide(bool value);
 
@@ -875,6 +874,8 @@ private:
 
         float motionDirNSValue {0};
         float motionDirWEValue {0};
+
+        bool m_simulatePierSide;    // use setSimulatePierSide and getSimulatePierSide for public access
 };
 
 }

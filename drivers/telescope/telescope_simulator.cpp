@@ -92,7 +92,10 @@ ScopeSim::ScopeSim()
                            4);
 
     /* initialize random seed: */
-    srand(time(nullptr));
+    srand(static_cast<uint>(time(nullptr)));
+
+    // assume no pier side property
+    currentPierSide = lastPierSide = PIER_UNKNOWN;
 }
 
 const char *ScopeSim::getDefaultName()
@@ -191,6 +194,19 @@ void ScopeSim::ISGetProperties(const char *dev)
 
 bool ScopeSim::updateProperties()
 {
+    // update the pier side capability depending on the pier side simulation state
+    uint32_t cap = GetTelescopeCapability();
+    if (IUFindOnSwitchIndex(&SimulatePierSideSP) == 0)
+    {
+        cap |= TELESCOPE_HAS_PIER_SIDE;
+    }
+    else
+    {
+        cap &= ~static_cast<uint32_t>(TELESCOPE_HAS_PIER_SIDE);
+    }
+
+    SetTelescopeCapability(cap, 4);
+
     INDI::Telescope::updateProperties();
 
     if (isConnected())
@@ -225,8 +241,12 @@ bool ScopeSim::updateProperties()
             SetAxis1ParkDefault(currentRA);
             SetAxis2ParkDefault(currentDEC);
         }
-
+        
         sendTimeFromSystem();
+
+        // initialise the pier side if it's available
+        if (HasPierSide())
+            currentPierSide = Telescope::expectedPierSide(currentRA);
     }
     else
     {
@@ -647,10 +667,12 @@ void ScopeSim::StartSlew(double ra, double dec, TelescopeStatus status)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    // check if a meridian flip is needed
-    if (m_simulatePierSide)
+    if (getSimulatePierSide())
     {
+        // set the pier side
         TelescopePierSide newPierSide = expectedPierSide(targetRA);
+
+        // check if a meridian flip is needed
         if (newPierSide != currentPierSide)
         {
             forceMeridianFlip = true;
