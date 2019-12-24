@@ -1159,7 +1159,11 @@ void LX200Telescope::getBasicData()
                 timeFormat = (timeFormat == 24) ? LX200_24 : LX200_AM;
                 // We always do 24 hours
                 if (timeFormat != LX200_24)
-                    toggleTimeFormat(PortFD);
+                {
+                    // Toggle format and suppress gcc warning
+                    int rc = toggleTimeFormat(PortFD);
+                    INDI_UNUSED(rc);
+                }
             }
         }
 
