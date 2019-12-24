@@ -1,5 +1,5 @@
 /*
-    LX200 Rainbow Driver
+    Rainbow Mount Driver
     Copyright (C) 2020 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -20,45 +20,71 @@
 
 #pragma once
 
-#include "lx200generic.h"
+#include "inditelescope.h"
 
-class LX200Rainbow : public LX200Generic
+class Rainbow : public INDI::Telescope
 {
     public:
-        LX200Rainbow();
+        Rainbow();
 
         const char *getDefaultName() override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
+        typedef enum { GOTO_EQUATORIAL, GOTO_HORIZONTAL } GotoType;        
+
     protected:
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Motion Functions
+        ///////////////////////////////////////////////////////////////////////////////
         // Is slew over?
-        virtual bool isSlewComplete() override;
-        // Check if mount is responsive
-        virtual bool checkConnection() override;
+        virtual bool isSlewComplete();
+        // Goto
+        virtual bool Goto(double ra, double dec) override;
         // Read mount state
         virtual bool ReadScopeStatus() override;
+        // Abort
+        virtual bool Abort() override;
+
+        // RA/DE
+        bool getRA();
+        bool getDE();
+        bool setRA(double ra);
+        bool setDE(double de);
+        // Slew to RA/DE
+        bool slewToEquatorialCoords(double ra, double de);
+
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Tracking Functions
         ///////////////////////////////////////////////////////////////////////////////
         // Toggle Tracking
         virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool SetTrackMode(uint8_t mode) override;
         bool getTrackingState();
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Query Functions
         ///////////////////////////////////////////////////////////////////////////////
-        virtual void getBasicData() override;
+        virtual void getBasicData();
         bool getFirmwareVersion();
+        // Check if mount is responsive
+        virtual bool checkConnection();
 
         ///////////////////////////////////////////////////////////////////////////////
-        /// Parking, Homing, and Calibration
+        /// Parking, Homing, and Syncing
         ///////////////////////////////////////////////////////////////////////////////
+        // Parking
         virtual bool Park() override;
+        virtual bool UnPark() override;
+        // Homing
+        bool findHome();
+        bool checkHoming();
+        // Syncing
+        virtual bool Sync(double ra, double dec) override;
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
@@ -69,8 +95,12 @@ class LX200Rainbow : public LX200Generic
 
     private:
 
-        /// Function
-        bool findHome();
+        // Horizontal Coordinates functions.
+        bool getAZ();
+        bool getAL();
+        bool setAZ(double azimuth);
+        bool setAL(double altitude);
+        bool slewToHorizontalCoords(double azimuth, double altitude);
 
         ///////////////////////////////////////////////////////////////////////////////////
         /// Properties
@@ -78,7 +108,16 @@ class LX200Rainbow : public LX200Generic
         ISwitchVectorProperty HomeSP;
         ISwitch HomeS[1];
 
-        std::string version;
+        INumberVectorProperty HorizontalCoordsNP;
+        INumber HorizontalCoordsN[2];
+
+        const std::string getSlewErrorString(uint8_t code);
+        uint8_t m_SlewErrorCode {0};
+
+        GotoType m_GotoType { GOTO_EQUATORIAL };
+        double m_CurrentAZ {0}, m_CurrentAL {0};
+        double m_CurrentRA {0}, m_CurrentDE {0};
+        std::string m_Version;
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
