@@ -506,7 +506,7 @@ class CCD : public DefaultDevice, GuiderInterface
 
         // JJ ed 2019-12-10
         long FocusPos;
-  
+
         // Airmas
         double Airmass;
         double Latitude;
@@ -552,9 +552,9 @@ class CCD : public DefaultDevice, GuiderInterface
         {
             SNOOP_MOUNT,
             SNOOP_ROTATOR,
-	    SNOOP_FOCUSER, // JJ
-            SNOOP_FILTER_WHEEL,
-            SNOOP_SQM
+            SNOOP_FOCUSER,
+            SNOOP_FILTER,
+            SNOOP_SKYQUALITY
         };
 
         /**

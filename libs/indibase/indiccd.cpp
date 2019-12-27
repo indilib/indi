@@ -54,7 +54,7 @@
 const char * IMAGE_SETTINGS_TAB = "Image Settings";
 const char * IMAGE_INFO_TAB     = "Image Info";
 const char * GUIDE_HEAD_TAB     = "Guider Head";
-const char * RAPIDGUIDE_TAB     = "Rapid Guide";
+//const char * RAPIDGUIDE_TAB     = "Rapid Guide";
 
 #ifdef HAVE_WEBSOCKET
 uint16_t INDIWSServer::m_global_port = 11623;
@@ -410,21 +410,21 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Snooped Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    IUFillText(&ActiveDeviceT[SNOOP_MOUNT], "SNOOP_MOUNT", "Telescope", "Telescope Simulator");
 
     // JJ ed 2019-12-10
-    IUFillText(&ActiveDeviceT[1], "ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
-    IUFillText(&ActiveDeviceT[2], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
-    IUFillText(&ActiveDeviceT[3], "ACTIVE_FILTER", "Filter", "CCD Simulator");
-    IUFillText(&ActiveDeviceT[4], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
+    IUFillText(&ActiveDeviceT[SNOOP_ROTATOR], "SNOOP_ROTATOR", "Rotator", "Rotator Simulator");
+    IUFillText(&ActiveDeviceT[SNOOP_FOCUSER], "SNOOP_FOCUSER", "Focuser", "Focuser Simulator");
+    IUFillText(&ActiveDeviceT[SNOOP_FILTER], "SNOOP_FILTER", "Filter", "CCD Simulator");
+    IUFillText(&ActiveDeviceT[SNOOP_SKYQUALITY], "SNOOP_SKYQUALITY", "Sky Quality", "SQM");
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
     //
-    
+
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW,
+    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[SNOOP_MOUNT].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW,
                        60, IPS_IDLE);
 
     // Snoop properties of interest
@@ -441,13 +441,13 @@ bool CCD::initProperties()
     // Snoop Rotator
     IDSnoopDevice(ActiveDeviceT[SNOOP_FOCUSER].text, "ABS_FOCUS_POSITION");
     //
-    
+
     // Snoop Filter Wheel
-    IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_SLOT");
-    IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_NAME");
+    IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER].text, "FILTER_SLOT");
+    IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER].text, "FILTER_NAME");
 
     // Snoop Sky Quality Meter
-    IDSnoopDevice(ActiveDeviceT[SNOOP_SQM].text, "SKY_QUALITY");
+    IDSnoopDevice(ActiveDeviceT[SNOOP_SKYQUALITY].text, "SKY_QUALITY");
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
@@ -753,7 +753,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
         }
     }
     //
-    
+
     else if (!strcmp(propName, "GEOGRAPHIC_COORD"))
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
@@ -813,25 +813,25 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             else
                 MPSAS = std::numeric_limits<double>::quiet_NaN();
 
-	    // JJ ed 2019-12-10
+            // JJ ed 2019-12-10
             if (strlen(ActiveDeviceT[SNOOP_FOCUSER].text) > 0)
                 IDSnoopDevice(ActiveDeviceT[SNOOP_FOCUSER].text, "FOCUS_ABSOLUTE_POSITION");
             else
                 FocusPos = std::numeric_limits<long>::quiet_NaN();
-	    //
+            //
 
-	    
-            if (strlen(ActiveDeviceT[SNOOP_FILTER_WHEEL].text) > 0)
+
+            if (strlen(ActiveDeviceT[SNOOP_FILTER].text) > 0)
             {
-                IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_SLOT");
-                IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_NAME");
+                IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER].text, "FILTER_SLOT");
+                IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER].text, "FILTER_NAME");
             }
             else
             {
                 CurrentFilterSlot = -1;
             }
 
-            IDSnoopDevice(ActiveDeviceT[SNOOP_SQM].text, "SKY_QUALITY");
+            IDSnoopDevice(ActiveDeviceT[SNOOP_SKYQUALITY].text, "SKY_QUALITY");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -1651,7 +1651,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
 
     // Telescope
-    if (strlen(ActiveDeviceT[0].text) > 0)
+    if (strlen(ActiveDeviceT[SNOOP_MOUNT].text) > 0)
     {
         fits_update_key_str(fptr, "TELESCOP", ActiveDeviceT[0].text, "Telescope name", &status);
     }
@@ -2669,7 +2669,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             std::vector<std::string> arguments = {"fpack", filename};
             std::vector<char *> arglist;
             for (const auto &arg : arguments)
-                arglist.push_back((char *)arg.data());
+                arglist.push_back(const_cast<char *>(arg.data()));
             arglist.push_back(nullptr);
 
             int argc = arglist.size() - 1;

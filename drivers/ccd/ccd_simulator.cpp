@@ -185,7 +185,7 @@ bool CCDSim::initProperties()
                        "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
-    IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[1].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[SNOOP_FOCUSER].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
@@ -204,11 +204,11 @@ bool CCDSim::initProperties()
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
 #else
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "EQUATORIAL_EOD_COORD");
 #endif
 
 
-    IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
+    IDSnoopDevice(ActiveDeviceT[SNOOP_FOCUSER].text, "FWHM");
 
     uint32_t cap = 0;
 
@@ -1176,11 +1176,11 @@ void CCDSim::activeDevicesUpdated()
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
 #else
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "EQUATORIAL_EOD_COORD");
 #endif
-    IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
+    IDSnoopDevice(ActiveDeviceT[SNOOP_FOCUSER].text, "FWHM");
 
-    strncpy(FWHMNP.device, ActiveDeviceT[1].text, MAXINDIDEVICE);
+    strncpy(FWHMNP.device, ActiveDeviceT[SNOOP_FOCUSER].text, MAXINDIDEVICE);
 }
 
 bool CCDSim::ISSnoopDevice(XMLEle * root)
