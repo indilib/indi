@@ -21,8 +21,9 @@
 #pragma once
 
 #include "inditelescope.h"
+#include "indiguiderinterface.h"
 
-class Rainbow : public INDI::Telescope
+class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
         Rainbow();
@@ -31,7 +32,8 @@ class Rainbow : public INDI::Telescope
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-        typedef enum { GOTO_EQUATORIAL, GOTO_HORIZONTAL } GotoType;
+        typedef enum { Equatorial, Horizontal } GotoType;
+        typedef enum { North, South, West, East } Direction;
 
     protected:
         virtual bool initProperties() override;
@@ -49,6 +51,14 @@ class Rainbow : public INDI::Telescope
         virtual bool ReadScopeStatus() override;
         // Abort
         virtual bool Abort() override;
+        // N/S manual motion
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+        // W/E manual motion
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+        // Slew Rate
+        virtual bool SetSlewRate(int index) override;
+        // Syncing
+        virtual bool Sync(double ra, double dec) override;
 
         // RA/DE
         bool getRA();
@@ -80,16 +90,35 @@ class Rainbow : public INDI::Telescope
         //virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
         ///////////////////////////////////////////////////////////////////////////////
-        /// Parking, Homing, and Syncing
+        /// Guiding
+        ///////////////////////////////////////////////////////////////////////////////
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
+
+        static void guideTimeoutHelperN(void *p);
+        static void guideTimeoutHelperS(void *p);
+        static void guideTimeoutHelperW(void *p);
+        static void guideTimeoutHelperE(void *p);
+
+        IPState guide(Direction direction, uint32_t ms);
+        void guideTimeout(Direction direction);
+        void addGuideTimer(Direction direction, uint32_t ms);
+        bool setGuideRate(double rate);
+        bool getGuideRate();
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Parking & Homing
         ///////////////////////////////////////////////////////////////////////////////
         // Parking
         virtual bool Park() override;
         virtual bool UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
         // Homing
         bool findHome();
         bool checkHoming();
-        // Syncing
-        virtual bool Sync(double ra, double dec) override;
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
@@ -116,13 +145,18 @@ class Rainbow : public INDI::Telescope
         INumberVectorProperty HorizontalCoordsNP;
         INumber HorizontalCoordsN[2];
 
+        INumber GuideRateN[1];
+        INumberVectorProperty GuideRateNP;
+
         const std::string getSlewErrorString(uint8_t code);
         uint8_t m_SlewErrorCode {0};
 
-        GotoType m_GotoType { GOTO_EQUATORIAL };
+        GotoType m_GotoType { Equatorial };
         double m_CurrentAZ {0}, m_CurrentAL {0};
         double m_CurrentRA {0}, m_CurrentDE {0};
         std::string m_Version;
+        int m_GuideNSTID;
+        int m_GuideWETID;
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values

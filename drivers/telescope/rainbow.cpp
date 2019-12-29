@@ -114,6 +114,15 @@ bool Rainbow::initProperties()
     AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_CUSTOM", "Guide");
+
+    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.5);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+                       IPS_IDLE);
+
+    initGuiderProperties(getDeviceName(), MOTION_TAB);
+
+    addDebugControl();
+
     return true;
 }
 
@@ -131,11 +140,19 @@ bool Rainbow::updateProperties()
         defineNumber(&HorizontalCoordsNP);
         defineSwitch(&HomeSP);
 
+        defineNumber(&GuideNSNP);
+        defineNumber(&GuideWENP);
+        defineNumber(&GuideRateNP);
+
     }
     else
     {
         deleteProperty(HorizontalCoordsNP.name);
         deleteProperty(HomeSP.name);
+
+        deleteProperty(GuideNSNP.name);
+        deleteProperty(GuideWENP.name);
+        deleteProperty(GuideRateNP.name);
     }
 
     return true;
@@ -148,6 +165,7 @@ bool Rainbow::ISNewNumber(const char *dev, const char *name, double values[], ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Horizontal Coordinates
         if (!strcmp(name, HorizontalCoordsNP.name))
         {
             int i = 0, nset = 0;
@@ -192,6 +210,22 @@ bool Rainbow::ISNewNumber(const char *dev, const char *name, double values[], ch
                 return true;
             }
         }
+        // Guide Rate
+        else if (!strcmp(name, GuideRateNP.name))
+        {
+            if (setGuideRate(values[0]))
+            {
+                IUUpdateNumber(&GuideRateNP, values, names, n);
+                GuideRateNP.s = IPS_OK;
+            }
+            else
+                GuideRateNP.s = IPS_ALERT;
+
+            IDSetNumber(&GuideRateNP, nullptr);
+            return true;
+        }
+        else
+            processGuiderProperties(name, values, names, n);
     }
 
 
@@ -241,6 +275,28 @@ void Rainbow::getStartupStatus()
 
     if (getTrackingState())
         IDSetSwitch(&TrackStateSP, nullptr);
+    if (getGuideRate())
+        IDSetNumber(&GuideRateNP, nullptr);
+
+    double longitude = 0, latitude = 90;
+    // Get value from config file if it exists.
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+
+    if (InitPark())
+    {
+        // If loading parking data is successful, we just set the default parking values.
+        SetAxis1ParkDefault(latitude >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(latitude);
+    }
+    else
+    {
+        // Otherwise, we set all parking data to default in case no parking data is found.
+        SetAxis1Park(latitude >= 0 ? 0 : 180);
+        SetAxis2Park(latitude);
+        SetAxis1ParkDefault(latitude >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(latitude);
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -259,7 +315,7 @@ bool Rainbow::updateLocation(double latitude, double longitude, double elevation
 
     getSexComponents(longitude, &degrees, &minutes, &seconds);
 
-    snprintf(cmd, DRIVER_LEN, ":Sg%c%03d*%02d'%02d#", longitude >= 0 ? '+' : '-', degrees, minutes, seconds);
+    snprintf(cmd, DRIVER_LEN, ":Sg%c%03d*%02d'%02d#", longitude >= 0 ? '+' : '-', std::abs(degrees), minutes, seconds);
 
     if (!sendCommand(cmd))
         return false;
@@ -324,7 +380,7 @@ bool Rainbow::getTrackingState()
 
     TrackStateS[TRACK_ON].s = (res[3] == '1') ? ISS_ON : ISS_OFF;
     TrackStateS[TRACK_OFF].s = (res[3] == '0') ? ISS_ON : ISS_OFF;
-    TrackStateSP.s = TrackStateS[TRACK_ON].s == ISS_ON ? IPS_BUSY : IPS_OK;
+    TrackStateSP.s = (TrackStateS[TRACK_ON].s == ISS_ON) ? IPS_BUSY : IPS_IDLE;
 
     return true;
 }
@@ -335,6 +391,54 @@ bool Rainbow::getTrackingState()
 bool Rainbow::findHome()
 {
     return sendCommand(":Ch#");
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////
+bool Rainbow::setGuideRate(double rate)
+{
+    char cmd[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, ":Cu0=%3.1f#", rate);
+    return sendCommand(cmd);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////
+bool Rainbow::getGuideRate()
+{
+    char res[DRIVER_LEN] = {0};
+    char rate[4] = {0};
+
+    if (!sendCommand(":CU0#", res))
+        return false;
+
+    memcpy(rate, res + 5, 3);
+
+    GuideRateN[0].value = std::stod(rate);
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////
+bool Rainbow::SetCurrentPark()
+{
+    SetAxis1Park(m_CurrentAZ);
+    SetAxis2Park(m_CurrentAL);
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////
+bool Rainbow::SetDefaultPark()
+{
+    SetAxis1Park(0);
+    SetAxis2Park(0);
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -441,7 +545,7 @@ bool Rainbow::ReadScopeStatus()
             {
                 TrackState = SCOPE_TRACKING;
                 // For Horizontal Goto, we must explicitly set tracking ON again.
-                if (m_GotoType == GOTO_HORIZONTAL)
+                if (m_GotoType == Horizontal)
                     SetTrackEnabled(true);
                 LOG_INFO("Slew is complete. Tracking...");
             }
@@ -464,7 +568,7 @@ bool Rainbow::ReadScopeStatus()
             else
             {
                 // JM TODO CHECK: Does the mount RESUME tracking after slew failure or it completely stops idle?
-                TrackState = m_GotoType == GOTO_HORIZONTAL ? SCOPE_IDLE : SCOPE_TRACKING;
+                TrackState = m_GotoType == Horizontal ? SCOPE_IDLE : SCOPE_TRACKING;
                 LOGF_ERROR("Slewing error: %s", getSlewErrorString(m_SlewErrorCode).c_str());
             }
         }
@@ -482,7 +586,7 @@ bool Rainbow::ReadScopeStatus()
             HorizontalCoordsNP.s = IPS_ALERT;
             EqNP.s = IPS_ALERT;
             // JM TODO CHECK: Does the mount RESUME tracking after slew failure or it completely stops idle?
-            TrackState = m_GotoType == GOTO_HORIZONTAL ? SCOPE_IDLE : SCOPE_TRACKING;
+            TrackState = m_GotoType == Horizontal ? SCOPE_IDLE : SCOPE_TRACKING;
             LOGF_ERROR("Parking error: %s", getSlewErrorString(m_SlewErrorCode).c_str());
             IDSetNumber(&HorizontalCoordsNP, nullptr);
         }
@@ -649,7 +753,7 @@ bool Rainbow::slewToEquatorialCoords(double ra, double de)
         fs_sexa(RAStr, ra, 2, 36000);
         fs_sexa(DEStr, de, 2, 36000);
         LOGF_DEBUG("Slewing to RA (%s) DE (%s)...", RAStr, DEStr);
-        m_GotoType = GOTO_EQUATORIAL;
+        m_GotoType = Equatorial;
         return true;
     }
 
@@ -736,7 +840,7 @@ bool Rainbow::slewToHorizontalCoords(double azimuth, double altitude)
         fs_sexa(AzStr, azimuth, 2, 36000);
         fs_sexa(AltStr, altitude, 2, 36000);
         LOGF_DEBUG("Slewing to Az (%s) Alt (%s)...", AzStr, AltStr);
-        m_GotoType = GOTO_HORIZONTAL;
+        m_GotoType = Horizontal;
         return true;
     }
 
@@ -746,8 +850,95 @@ bool Rainbow::slewToHorizontalCoords(double azimuth, double altitude)
 /////////////////////////////////////////////////////////////////////////////
 /// Abort
 /////////////////////////////////////////////////////////////////////////////
+bool Rainbow::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
+{
+    switch (command)
+    {
+        case MOTION_START:
+            if (!sendCommand(dir == DIRECTION_NORTH ? ":Mn#" : ":Ms#"))
+            {
+                LOG_ERROR("Error setting N/S motion direction.");
+                return false;
+            }
+            else
+                LOGF_DEBUG("Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
+            break;
+
+        case MOTION_STOP:
+            if (!sendCommand(":Q#"))
+            {
+                LOG_ERROR("Error stopping N/S motion.");
+                return false;
+            }
+            else
+                LOGF_DEBUG("Movement toward %s halted.", (dir == DIRECTION_NORTH) ? "North" : "South");
+            break;
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// W/E Motion
+/////////////////////////////////////////////////////////////////////////////
+bool Rainbow::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
+{
+    switch (command)
+    {
+        case MOTION_START:
+            if (!sendCommand(dir == DIRECTION_WEST ? ":Mw#" : ":Me#"))
+            {
+                LOG_ERROR("Error setting W/E motion direction.");
+                return false;
+            }
+            else
+                LOGF_DEBUG("Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
+            break;
+
+        case MOTION_STOP:
+            if (!sendCommand(":Q#"))
+            {
+                LOG_ERROR("Error stopping W/E motion.");
+                return false;
+            }
+            else
+                LOGF_DEBUG("Movement toward %s halted.", (dir == DIRECTION_WEST) ? "West" : "East");
+            break;
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Abort
+/////////////////////////////////////////////////////////////////////////////
 bool Rainbow::Abort()
 {
+    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+    {
+        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
+        GuideNSN[0].value = GuideNSN[1].value = 0.0;
+        GuideWEN[0].value = GuideWEN[1].value = 0.0;
+
+        if (m_GuideNSTID)
+        {
+            IERmTimer(m_GuideNSTID);
+            m_GuideNSTID = 0;
+        }
+
+        if (m_GuideWETID)
+        {
+            IERmTimer(m_GuideWETID);
+            m_GuideWETID = 0;
+        }
+
+        LOG_INFO("Guide aborted.");
+        IDSetNumber(&GuideNSNP, nullptr);
+        IDSetNumber(&GuideWENP, nullptr);
+
+        return true;
+    }
+
     return sendCommand(":Q#");
 }
 
@@ -794,6 +985,25 @@ bool Rainbow::SetTrackMode(uint8_t mode)
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// Set Slew Rate
+/////////////////////////////////////////////////////////////////////////////
+bool Rainbow::SetSlewRate(int index)
+{
+    switch(index)
+    {
+        case SLEW_MAX:
+            return sendCommand(":RS#");
+        case SLEW_FIND:
+            return sendCommand(":RM#");
+        case SLEW_CENTERING:
+            return sendCommand(":RC#");
+        case SLEW_GUIDE:
+            return sendCommand(":RG#");
+    }
+
+    return false;
+}
+/////////////////////////////////////////////////////////////////////////////
 /// Error String Code
 /////////////////////////////////////////////////////////////////////////////
 const std::string Rainbow::getSlewErrorString(uint8_t code)
@@ -814,6 +1024,211 @@ const std::string Rainbow::getSlewErrorString(uint8_t code)
 
     return "Unknown error";
 }
+
+/////////////////////////////////////////////////////////////////////////////
+/// Guide North
+/////////////////////////////////////////////////////////////////////////////
+IPState Rainbow::GuideNorth(uint32_t ms)
+{
+    return guide(Direction::North, ms);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Guide South
+/////////////////////////////////////////////////////////////////////////////
+IPState Rainbow::GuideSouth(uint32_t ms)
+{
+    return guide(Direction::South, ms);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Guide East
+/////////////////////////////////////////////////////////////////////////////
+IPState Rainbow::GuideEast(uint32_t ms)
+{
+    return guide(Direction::East, ms);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Guide West
+/////////////////////////////////////////////////////////////////////////////
+IPState Rainbow::GuideWest(uint32_t ms)
+{
+    return guide(Direction::West, ms);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Guide universal function
+/////////////////////////////////////////////////////////////////////////////
+IPState Rainbow::guide(Direction direction, uint32_t ms)
+{
+    // set up direction properties
+    char dc = 'x';
+    char cmd[DRIVER_LEN] = {0};
+    ISwitchVectorProperty *moveSP = &MovementNSSP;
+    ISwitch moveS = MovementNSS[0];
+    int* guideTID = &m_GuideNSTID;
+
+    // set up pointers to the various things needed
+    switch (direction)
+    {
+        case North:
+            dc = 'N';
+            moveSP = &MovementNSSP;
+            moveS = MovementNSS[0];
+            guideTID = &m_GuideNSTID;
+            break;
+        case South:
+            dc = 'S';
+            moveSP = &MovementNSSP;
+            moveS = MovementNSS[1];
+            guideTID = &m_GuideNSTID;
+            break;
+        case East:
+            dc = 'E';
+            moveSP = &MovementWESP;
+            moveS = MovementWES[1];
+            guideTID = &m_GuideWETID;
+            break;
+        case West:
+            dc = 'W';
+            moveSP = &MovementWESP;
+            moveS = MovementWES[0];
+            guideTID = &m_GuideWETID;
+            break;
+    }
+
+    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    {
+        LOG_ERROR("Cannot guide while moving.");
+        return IPS_ALERT;
+    }
+
+    // If already moving (no pulse command), then stop movement
+    if (moveSP->s == IPS_BUSY)
+    {
+        LOG_DEBUG("Already moving - stop");
+        sendCommand(":Q#");
+    }
+
+    if (*guideTID)
+    {
+        LOGF_DEBUG("Stop timer %c", dc);
+        IERmTimer(*guideTID);
+        *guideTID = 0;
+    }
+
+
+    moveS.s = ISS_ON;
+    snprintf(cmd, DRIVER_LEN, ":M%c#", std::tolower(dc));
+
+    // start movement at HC button rate 1
+    if (!sendCommand(cmd))
+    {
+        LOGF_ERROR("Start motion %c failed", dc);
+        return IPS_ALERT;
+    }
+
+
+    if (IUFindOnSwitchIndex(&SlewRateSP) != SLEW_GUIDE)
+    {
+        // Set slew to guiding
+        SetSlewRate(SLEW_GUIDE);
+        IUResetSwitch(&SlewRateSP);
+        SlewRateS[SLEW_GUIDE].s = ISS_ON;
+        IDSetSwitch(&SlewRateSP, nullptr);
+    }
+
+    // start the guide timeout timer
+    addGuideTimer(direction, ms);
+    return IPS_BUSY;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Guide Timeout North
+/////////////////////////////////////////////////////////////////////////////
+void Rainbow::guideTimeoutHelperN(void *p)
+{
+    static_cast<Rainbow *>(p)->guideTimeout(North);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Guide Timeout South
+/////////////////////////////////////////////////////////////////////////////
+void Rainbow::guideTimeoutHelperS(void *p)
+{
+    static_cast<Rainbow *>(p)->guideTimeout(South);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Guide Timeout West
+/////////////////////////////////////////////////////////////////////////////
+void Rainbow::guideTimeoutHelperW(void *p)
+{
+    static_cast<Rainbow *>(p)->guideTimeout(West);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Guide Timeout East
+/////////////////////////////////////////////////////////////////////////////
+void Rainbow::guideTimeoutHelperE(void *p)
+{
+    static_cast<Rainbow *>(p)->guideTimeout(East);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Guide Timeout
+/////////////////////////////////////////////////////////////////////////////
+void Rainbow::guideTimeout(Direction direction)
+{
+    switch(direction)
+    {
+        case North:
+        case South:
+            IUResetSwitch(&MovementNSSP);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            GuideNSNP.np[0].value = 0;
+            GuideNSNP.np[1].value = 0;
+            GuideNSNP.s           = IPS_IDLE;
+            m_GuideNSTID            = 0;
+            IDSetNumber(&GuideNSNP, nullptr);
+            break;
+        case East:
+        case West:
+            IUResetSwitch(&MovementWESP);
+            IDSetSwitch(&MovementWESP, nullptr);
+            GuideWENP.np[0].value = 0;
+            GuideWENP.np[1].value = 0;
+            GuideWENP.s           = IPS_IDLE;
+            m_GuideWETID            = 0;
+            IDSetNumber(&GuideWENP, nullptr);
+            break;
+    }
+    LOGF_DEBUG("Guide %c finished", "NSWE"[direction]);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Add guide timer
+/////////////////////////////////////////////////////////////////////////////
+void Rainbow::addGuideTimer(Direction direction, uint32_t ms)
+{
+    switch(direction)
+    {
+        case North:
+            m_GuideNSTID = IEAddTimer(ms, guideTimeoutHelperN, this);
+            break;
+        case South:
+            m_GuideNSTID = IEAddTimer(ms, guideTimeoutHelperS, this);
+            break;
+        case East:
+            m_GuideWETID = IEAddTimer(ms, guideTimeoutHelperE, this);
+            break;
+        case West:
+            m_GuideWETID = IEAddTimer(ms, guideTimeoutHelperW, this);
+            break;
+    }
+}
+
 
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
