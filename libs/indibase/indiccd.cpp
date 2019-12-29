@@ -410,13 +410,13 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Snooped Devices
-    IUFillText(&ActiveDeviceT[SNOOP_MOUNT], "SNOOP_MOUNT", "Telescope", "Telescope Simulator");
+    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
 
     // JJ ed 2019-12-10
-    IUFillText(&ActiveDeviceT[SNOOP_ROTATOR], "SNOOP_ROTATOR", "Rotator", "Rotator Simulator");
-    IUFillText(&ActiveDeviceT[SNOOP_FOCUSER], "SNOOP_FOCUSER", "Focuser", "Focuser Simulator");
-    IUFillText(&ActiveDeviceT[SNOOP_FILTER], "SNOOP_FILTER", "Filter", "CCD Simulator");
-    IUFillText(&ActiveDeviceT[SNOOP_SKYQUALITY], "SNOOP_SKYQUALITY", "Sky Quality", "SQM");
+    IUFillText(&ActiveDeviceT[ACTIVE_ROTATOR], "ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
+    IUFillText(&ActiveDeviceT[ACTIVE_FOCUSER], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
+    IUFillText(&ActiveDeviceT[ACTIVE_FILTER], "ACTIVE_FILTER", "Filter", "CCD Simulator");
+    IUFillText(&ActiveDeviceT[ACTIVE_SKYQUALITY], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
     //
@@ -424,30 +424,30 @@ bool CCD::initProperties()
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[SNOOP_MOUNT].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW,
+    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW,
                        60, IPS_IDLE);
 
     // Snoop properties of interest
 
     // Snoop mount
-    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "TELESCOPE_INFO");
-    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "GEOGRAPHIC_COORD");
 
     // Snoop Rotator
-    IDSnoopDevice(ActiveDeviceT[SNOOP_ROTATOR].text, "ABS_ROTATOR_ANGLE");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
 
     // JJ ed 2019-12-10
     // Snoop Rotator
-    IDSnoopDevice(ActiveDeviceT[SNOOP_FOCUSER].text, "ABS_FOCUS_POSITION");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
     //
 
     // Snoop Filter Wheel
-    IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER].text, "FILTER_SLOT");
-    IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER].text, "FILTER_NAME");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_SLOT");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_NAME");
 
     // Snoop Sky Quality Meter
-    IDSnoopDevice(ActiveDeviceT[SNOOP_SKYQUALITY].text, "SKY_QUALITY");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_SKYQUALITY].text, "SKY_QUALITY");
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
@@ -790,12 +790,12 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             IDSetText(&ActiveDeviceTP, nullptr);
 
             // Update the property name!
-            strncpy(EqNP.device, ActiveDeviceT[SNOOP_MOUNT].text, MAXINDIDEVICE);
-            if (strlen(ActiveDeviceT[SNOOP_MOUNT].text) > 0)
+            strncpy(EqNP.device, ActiveDeviceT[ACTIVE_TELESCOPE].text, MAXINDIDEVICE);
+            if (strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
             {
-                IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "EQUATORIAL_EOD_COORD");
-                IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "TELESCOPE_INFO");
-                IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "GEOGRAPHIC_COORD");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "GEOGRAPHIC_COORD");
             }
             else
             {
@@ -808,30 +808,30 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                 Airmass = std::numeric_limits<double>::quiet_NaN();
             }
 
-            if (strlen(ActiveDeviceT[SNOOP_ROTATOR].text) > 0)
-                IDSnoopDevice(ActiveDeviceT[SNOOP_ROTATOR].text, "ABS_ROTATOR_ANGLE");
+            if (strlen(ActiveDeviceT[ACTIVE_ROTATOR].text) > 0)
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
             else
                 MPSAS = std::numeric_limits<double>::quiet_NaN();
 
             // JJ ed 2019-12-10
-            if (strlen(ActiveDeviceT[SNOOP_FOCUSER].text) > 0)
-                IDSnoopDevice(ActiveDeviceT[SNOOP_FOCUSER].text, "FOCUS_ABSOLUTE_POSITION");
+            if (strlen(ActiveDeviceT[ACTIVE_FOCUSER].text) > 0)
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_ABSOLUTE_POSITION");
             else
                 FocusPos = std::numeric_limits<long>::quiet_NaN();
             //
 
 
-            if (strlen(ActiveDeviceT[SNOOP_FILTER].text) > 0)
+            if (strlen(ActiveDeviceT[ACTIVE_FILTER].text) > 0)
             {
-                IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER].text, "FILTER_SLOT");
-                IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER].text, "FILTER_NAME");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_SLOT");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_NAME");
             }
             else
             {
                 CurrentFilterSlot = -1;
             }
 
-            IDSnoopDevice(ActiveDeviceT[SNOOP_SKYQUALITY].text, "SKY_QUALITY");
+            IDSnoopDevice(ActiveDeviceT[ACTIVE_SKYQUALITY].text, "SKY_QUALITY");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -1651,7 +1651,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
 
     // Telescope
-    if (strlen(ActiveDeviceT[SNOOP_MOUNT].text) > 0)
+    if (strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
     {
         fits_update_key_str(fptr, "TELESCOP", ActiveDeviceT[0].text, "Telescope name", &status);
     }

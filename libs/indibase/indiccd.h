@@ -550,11 +550,11 @@ class CCD : public DefaultDevice, GuiderInterface
         IText ActiveDeviceT[5] {};
         enum
         {
-            SNOOP_MOUNT,
-            SNOOP_ROTATOR,
-            SNOOP_FOCUSER,
-            SNOOP_FILTER,
-            SNOOP_SKYQUALITY
+            ACTIVE_TELESCOPE,
+            ACTIVE_ROTATOR,
+            ACTIVE_FOCUSER,
+            ACTIVE_FILTER,
+            ACTIVE_SKYQUALITY
         };
 
         /**
