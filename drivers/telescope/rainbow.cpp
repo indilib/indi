@@ -75,7 +75,7 @@ Rainbow::Rainbow() : INDI::Telescope ()
                            TELESCOPE_CAN_PARK |
                            TELESCOPE_CAN_ABORT |
                            TELESCOPE_CAN_CONTROL_TRACK |
-                           TELESCOPE_HAS_TIME |
+                           /*TELESCOPE_HAS_TIME |*/
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_TRACK_MODE |
                            TELESCOPE_HAS_PIER_SIDE_SIMULATION, 4);
@@ -126,6 +126,8 @@ bool Rainbow::updateProperties()
 
     if (isConnected())
     {
+        getStartupStatus();
+
         defineNumber(&HorizontalCoordsNP);
         defineSwitch(&HomeSP);
 
@@ -233,14 +235,49 @@ bool Rainbow::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 /////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////
-void Rainbow::getBasicData()
+void Rainbow::getStartupStatus()
 {
-    if (getFirmwareVersion())
-        LOGF_INFO("Detected firmware %s", m_Version.c_str());
+    LOGF_INFO("Detected firmware %s", m_Version.c_str());
+
     if (getTrackingState())
         IDSetSwitch(&TrackStateSP, nullptr);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////
+bool Rainbow::updateLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(elevation);
+
+    char cmd[DRIVER_LEN] = {0};
+    int degrees, minutes, seconds;
+
+    // Convert from INDI standard to regular east/west -180 to 180
+    if (longitude > 180)
+        longitude -= 360;
+
+    getSexComponents(longitude, &degrees, &minutes, &seconds);
+
+    snprintf(cmd, DRIVER_LEN, ":Sg%c%03d*%02d'%02d#", longitude >= 0 ? '+' : '-', degrees, minutes, seconds);
+
+    if (!sendCommand(cmd))
+        return false;
+
+    getSexComponents(latitude, &degrees, &minutes, &seconds);
+
+    snprintf(cmd, DRIVER_LEN, ":St%02d:%02d:%02d#", degrees, minutes, seconds);
+
+    return sendCommand(cmd);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////
+//bool Rainbow::updateTime(ln_date *utc, double utc_offset)
+//{
+
+//}
 
 /////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -721,7 +758,7 @@ bool Rainbow::Sync(double ra, double dec)
 {
     char cmd[DRIVER_LEN] = {0};
 
-    snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra, dec >= 0 ? '+' : '-', dec);
+    snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', dec);
 
     if (sendCommand(cmd))
     {
