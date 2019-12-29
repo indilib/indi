@@ -79,8 +79,6 @@ Rainbow::Rainbow() : INDI::Telescope ()
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_TRACK_MODE |
                            TELESCOPE_HAS_PIER_SIDE_SIMULATION, 4);
-
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -97,6 +95,8 @@ const char *Rainbow::getDefaultName()
 bool Rainbow::initProperties()
 {
     INDI::Telescope::initProperties();
+
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     SetParkDataType(PARK_AZ_ALT);
 
@@ -245,7 +245,7 @@ void Rainbow::getBasicData()
 /////////////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////////////
-bool Rainbow::checkConnection()
+bool Rainbow::Handshake()
 {
     return getFirmwareVersion();
 }

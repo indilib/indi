@@ -31,11 +31,12 @@ class Rainbow : public INDI::Telescope
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-        typedef enum { GOTO_EQUATORIAL, GOTO_HORIZONTAL } GotoType;        
+        typedef enum { GOTO_EQUATORIAL, GOTO_HORIZONTAL } GotoType;
 
     protected:
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
+        virtual bool Handshake() override;
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Motion Functions
@@ -71,8 +72,6 @@ class Rainbow : public INDI::Telescope
         ///////////////////////////////////////////////////////////////////////////////
         virtual void getBasicData();
         bool getFirmwareVersion();
-        // Check if mount is responsive
-        virtual bool checkConnection();
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Parking, Homing, and Syncing
