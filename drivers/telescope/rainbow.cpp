@@ -552,7 +552,7 @@ bool Rainbow::Goto(double ra, double dec)
         nanosleep(&timeout, nullptr);
     }
 
-    if (slewToEquatorialCoords(ra, dec))
+    if (slewToEquatorialCoords(ra, dec) == false)
     {
         LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
         return false;
