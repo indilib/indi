@@ -122,7 +122,10 @@ CCD::CCD()
     Airmass         = std::numeric_limits<double>::quiet_NaN();
     Latitude        = std::numeric_limits<double>::quiet_NaN();
     Longitude       = std::numeric_limits<double>::quiet_NaN();
-    primaryAperture = primaryFocalLength = guiderAperture = guiderFocalLength - 1;
+    primaryAperture = std::numeric_limits<double>::quiet_NaN();
+    primaryFocalLength = std::numeric_limits<double>::quiet_NaN();
+    guiderAperture = std::numeric_limits<double>::quiet_NaN();
+    guiderFocalLength = std::numeric_limits<double>::quiet_NaN();
 }
 
 CCD::~CCD()
@@ -1643,9 +1646,10 @@ bool CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
 void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 {
     int status = 0;
-    char dev_name[32];
-    char exp_start[32];
-    int effectiveFocalLength = -1;
+    char dev_name[MAXINDINAME] = {0};
+    char exp_start[MAXINDINAME] = {0};
+    double effectiveFocalLength = std::numeric_limits<double>::quiet_NaN();
+    double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
 
     AutoCNumeric locale;
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
@@ -1658,10 +1662,25 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 
     // Which scope is in effect
     // TODO: Support N-telescopes
-    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON && primaryFocalLength != -1)
-        effectiveFocalLength = primaryFocalLength;
-    else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON && guiderFocalLength != -1)
-        effectiveFocalLength = guiderFocalLength;
+    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
+    {
+        if (primaryFocalLength > 0)
+            effectiveFocalLength = primaryFocalLength;
+        if (primaryAperture > 0)
+            effectiveAperture = primaryAperture;
+    }
+    else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON)
+    {
+        if (guiderFocalLength > 0)
+            effectiveFocalLength = guiderFocalLength;
+        if (guiderAperture > 0)
+            effectiveAperture = guiderAperture;
+    }
+
+    if (std::isnan(effectiveFocalLength))
+        LOG_WARN("Telescope focal length is missing.");
+    if (std::isnan(effectiveAperture))
+        LOG_WARN("Telescope aperture is missing.");
 
     // Observer
     fits_update_key_str(fptr, "OBSERVER", FITSHeaderT[FITS_OBSERVER].text, "Observer name", &status);
@@ -1676,8 +1695,8 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     uint32_t subBinX = targetChip->getBinX();
     uint32_t subBinY = targetChip->getBinY();
 
-    strncpy(dev_name, getDeviceName(), 32);
-    strncpy(exp_start, targetChip->getExposureStartTime(), 32);
+    strncpy(dev_name, getDeviceName(), MAXINDINAME);
+    strncpy(exp_start, targetChip->getExposureStartTime(), MAXINDINAME);
 
     fits_update_key_dbl(fptr, "EXPTIME", targetChip->getExposureDuration(), 6, "Total Exposure Time (s)", &status);
 
@@ -1737,8 +1756,11 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         fits_update_key_str(fptr, "BAYERPAT", BayerT[2].text, "Bayer color pattern", &status);
     }
 
-    if (effectiveFocalLength != -1)
+    if (!std::isnan(effectiveFocalLength))
         fits_update_key_dbl(fptr, "FOCALLEN", effectiveFocalLength, 2, "Focal Length (mm)", &status);
+
+    if (!std::isnan(effectiveAperture))
+        fits_update_key_dbl(fptr, "APTDIA", effectiveAperture, 2, "Telescope diameter (mm)", &status);
 
     if (!std::isnan(MPSAS))
     {
@@ -1751,7 +1773,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
     // SCALE assuming square-pixels
-    if (effectiveFocalLength != -1)
+    if (!std::isnan(effectiveFocalLength))
     {
         double pixScale = subPixSize1 / effectiveFocalLength * 206.3 * subBinX;
         fits_update_key_dbl(fptr, "SCALE", pixScale, 6, "arcsecs per pixel", &status);
@@ -1798,7 +1820,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         fits_update_key_lng(fptr, "EQUINOX", 2000, "Equinox", &status);
 
         // Add WCS Info
-        if (WorldCoordS[0].s == ISS_ON && m_ValidCCDRotation && primaryFocalLength != -1)
+        if (WorldCoordS[0].s == ISS_ON && m_ValidCCDRotation && !std::isnan(effectiveFocalLength))
         {
             double J2000RAHours = J2000RA * 15;
             fits_update_key_dbl(fptr, "CRVAL1", J2000RAHours, 10, "CRVAL1", &status);
@@ -1818,20 +1840,17 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
             fits_update_key_dbl(fptr, "CRPIX1", crpix1, 10, "CRPIX1", &status);
             fits_update_key_dbl(fptr, "CRPIX2", crpix2, 10, "CRPIX2", &status);
 
-            if (effectiveFocalLength != -1)
-            {
-                double secpix1 = subPixSize1 / effectiveFocalLength * 206.3 * subBinX;
-                double secpix2 = subPixSize2 / effectiveFocalLength * 206.3 * subBinY;
+            double secpix1 = subPixSize1 / effectiveFocalLength * 206.3 * subBinX;
+            double secpix2 = subPixSize2 / effectiveFocalLength * 206.3 * subBinY;
 
-                fits_update_key_dbl(fptr, "SECPIX1", secpix1, 10, "SECPIX1", &status);
-                fits_update_key_dbl(fptr, "SECPIX2", secpix2, 10, "SECPIX2", &status);
+            fits_update_key_dbl(fptr, "SECPIX1", secpix1, 10, "SECPIX1", &status);
+            fits_update_key_dbl(fptr, "SECPIX2", secpix2, 10, "SECPIX2", &status);
 
-                double degpix1 = secpix1 / 3600.0;
-                double degpix2 = secpix2 / 3600.0;
+            double degpix1 = secpix1 / 3600.0;
+            double degpix2 = secpix2 / 3600.0;
 
-                fits_update_key_dbl(fptr, "CDELT1", degpix1, 10, "CDELT1", &status);
-                fits_update_key_dbl(fptr, "CDELT2", degpix2, 10, "CDELT2", &status);
-            }
+            fits_update_key_dbl(fptr, "CDELT1", degpix1, 10, "CDELT1", &status);
+            fits_update_key_dbl(fptr, "CDELT2", degpix2, 10, "CDELT2", &status);
 
             // Rotation is CW, we need to convert it to CCW per CROTA1 definition
             double rotation = 360 - CCDRotationN[0].value;
