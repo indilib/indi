@@ -219,6 +219,7 @@ bool Rainbow::ISNewNumber(const char *dev, const char *name, double values[], ch
             {
                 IUUpdateNumber(&GuideRateNP, values, names, n);
                 GuideRateNP.s = IPS_OK;
+                LOGF_INFO("Guide rate updated to %.2fX sidereal rate.", values[0]);
             }
             else
                 GuideRateNP.s = IPS_ALERT;
@@ -476,6 +477,11 @@ bool Rainbow::UnPark()
 {
     if (SetTrackEnabled(true))
     {
+        TrackStateS[TRACK_ON].s = ISS_ON;
+        TrackStateS[TRACK_OFF].s = ISS_OFF;
+        TrackStateSP.s = IPS_BUSY;
+        IDSetSwitch(&TrackStateSP, nullptr);
+
         SetParked(false);
         return true;
     }
@@ -1128,7 +1134,17 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
         return IPS_ALERT;
     }
 
+    // Make sure TRACKING is set to Guide
+    if (IUFindOnSwitchIndex(&TrackModeSP) != TRACK_CUSTOM)
+    {
+        SetTrackMode(TRACK_CUSTOM);
+        IUResetSwitch(&TrackModeSP);
+        TrackModeS[TRACK_CUSTOM].s = ISS_ON;
+        IDSetSwitch(&TrackModeSP, nullptr);
+        LOG_INFO("Tracking mode switched to guide.");
+    }
 
+    // Make sure SLEWING SPEED is set to Guide
     if (IUFindOnSwitchIndex(&SlewRateSP) != SLEW_GUIDE)
     {
         // Set slew to guiding
