@@ -119,6 +119,8 @@ bool Rainbow::initProperties()
     IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
+    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
+
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
     addDebugControl();
