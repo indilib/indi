@@ -253,6 +253,7 @@ bool Rainbow::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             HomeSP.s = findHome() ? IPS_BUSY : IPS_ALERT;
             if (HomeSP.s == IPS_BUSY)
             {
+                TrackState = SCOPE_SLEWING;
                 HomeS[0].s = ISS_ON;
                 LOG_INFO("Mount is moving to home position...");
             }
@@ -315,6 +316,10 @@ bool Rainbow::updateLocation(double latitude, double longitude, double elevation
     if (longitude > 180)
         longitude -= 360;
 
+    // Rainbow defines EAST as - and WEST as +
+    // which is opposite of the standard
+    longitude *= -1;
+
     getSexComponents(longitude, &degrees, &minutes, &seconds);
 
     snprintf(cmd, DRIVER_LEN, ":Sg%c%03d*%02d'%02d#", longitude >= 0 ? '+' : '-', std::abs(degrees), minutes, seconds);
@@ -324,7 +329,7 @@ bool Rainbow::updateLocation(double latitude, double longitude, double elevation
 
     getSexComponents(latitude, &degrees, &minutes, &seconds);
 
-    snprintf(cmd, DRIVER_LEN, ":St%02d:%02d:%02d#", degrees, minutes, seconds);
+    snprintf(cmd, DRIVER_LEN, ":St%c%02d*%02d'%02d#", latitude >= 0 ? '+' : '-', std::abs(degrees), minutes, seconds);
 
     return sendCommand(cmd);
 }
