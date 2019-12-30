@@ -799,18 +799,14 @@ bool Rainbow::getAL()
 bool Rainbow::setAZ(double azimuth)
 {
     char cmd[DRIVER_LEN] = {0};
-    char res[DRIVER_LEN] = {0};
     int degrees, minutes;
     double seconds;
 
     getSexComponentsIID(azimuth, &degrees, &minutes, &seconds);
 
-    snprintf(cmd, DRIVER_LEN, ":Sa%03d*%02d:%04.1f#", degrees, minutes, seconds);
+    snprintf(cmd, DRIVER_LEN, ":Sz%03d*%02d:%04.1f#", degrees, minutes, seconds);
 
-    if (!sendCommand(cmd, res, -1, 1))
-        return false;
-
-    return res[0] == '1';
+    return sendCommand(cmd);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -819,7 +815,6 @@ bool Rainbow::setAZ(double azimuth)
 bool Rainbow::setAL(double altitude)
 {
     char cmd[DRIVER_LEN] = {0};
-    char res[DRIVER_LEN] = {0};
     int degrees, minutes;
     double seconds;
 
@@ -827,10 +822,7 @@ bool Rainbow::setAL(double altitude)
 
     snprintf(cmd, DRIVER_LEN, ":Sa%02d*%02d:%04.1f#", degrees, minutes, seconds);
 
-    if (!sendCommand(cmd, res, -1, 1))
-        return false;
-
-    return res[0] == '1';
+    return sendCommand(cmd);
 }
 
 /////////////////////////////////////////////////////////////////////////////
