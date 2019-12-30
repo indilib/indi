@@ -92,7 +92,7 @@ ScopeSim::ScopeSim()
                            4);
 
     /* initialize random seed: */
-    srand(static_cast<uint>(time(nullptr)));
+    srand(static_cast<uint32_t>(time(nullptr)));
 
     // assume no pier side property
     currentPierSide = lastPierSide = PIER_UNKNOWN;

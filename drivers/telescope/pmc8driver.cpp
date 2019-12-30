@@ -864,7 +864,7 @@ bool set_pmc8_track_enabled(int fd, bool enabled)
 }
 #endif
 
-bool set_pmc8_track_mode(int fd, uint rate)
+bool set_pmc8_track_mode(int fd, uint32_t rate)
 {
     float ratereal=0;
 

@@ -3067,7 +3067,7 @@ void Telescope::setSimulatePierSide(bool simulate)
     }
     else
     {
-        capability &= static_cast<uint>(~TELESCOPE_HAS_PIER_SIDE);
+        capability &= static_cast<uint32_t>(~TELESCOPE_HAS_PIER_SIDE);
         deleteProperty(PierSideSP.name);
     }
 

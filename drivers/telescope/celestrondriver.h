@@ -246,7 +246,7 @@ class CelestronDriver
         // focuser commands
         bool foc_exists();      // read version
         int foc_position();     // read position, return -1 if failed
-        bool foc_move(uint steps);   // start move
+        bool foc_move(uint32_t steps);   // start move
         bool foc_moving();      // return true if moving
         bool foc_limits(int * low, int * high);     // read limits
         bool foc_abort();       // stop move
