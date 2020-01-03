@@ -744,7 +744,7 @@ bool Rainbow::setDE(double de)
 
     getSexComponentsIID(de, &degrees, &minutes, &seconds);
 
-    snprintf(cmd, DRIVER_LEN, ":Sd%c%02d*%02d:%04.1f#", de >= 0 ? '+' : '-', degrees, minutes, seconds);
+    snprintf(cmd, DRIVER_LEN, ":Sd%c%02d*%02d:%04.1f#", de >= 0 ? '+' : '-', std::abs(degrees), minutes, seconds);
 
     if (!sendCommand(cmd, res, -1, 1))
         return false;
