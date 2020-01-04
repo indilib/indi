@@ -45,7 +45,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 8)
-set(CMAKE_INDI_VERSION_RELEASE 2)
+set(CMAKE_INDI_VERSION_RELEASE 3)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -634,6 +634,15 @@ install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin)
 
 #################################################################################
 
+########### Rainbow Mount driver ##########
+SET(rainbow_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/rainbow.cpp )
+
+add_executable(indi_rainbow_telescope ${rainbow_SRC})
+
+target_link_libraries(indi_rainbow_telescope indidriver)
+
+install(TARGETS indi_rainbow_telescope RUNTIME DESTINATION bin)
 
 ########### Takahashi Temma ##########
 SET(temma_SRC
@@ -1233,6 +1242,15 @@ SET(baaderdome_SRC
 add_executable(indi_baader_dome ${baaderdome_SRC})
 target_link_libraries(indi_baader_dome indidriver)
 install(TARGETS indi_baader_dome RUNTIME DESTINATION bin)
+
+################ Dome Pro 2 ##$##############
+
+SET(domepro2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/domepro2.cpp)
+
+add_executable(indi_domepro2_dome ${domepro2_SRC})
+target_link_libraries(indi_domepro2_dome indidriver)
+install(TARGETS indi_domepro2_dome RUNTIME DESTINATION bin)
 
 ################ Rigel Dome ################
 

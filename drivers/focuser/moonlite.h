@@ -90,9 +90,10 @@ class MoonLite : public INDI::Focuser
          * @param cmd Command to be sent, must already have the necessary delimeter ('#')
          * @param res If not nullptr, the function will read until it detects the default delimeter ('#') up to ML_RES length.
          *        if nullptr, no read back is done and the function returns true.
+         * @param silent if true, do not print any error messages.
          * @return True if successful, false otherwise.
          */
-        bool sendCommand(const char * cmd, char * res = nullptr);
+        bool sendCommand(const char * cmd, char * res = nullptr, bool silent = false);
 
         // Get initial focuser parameter when we first connect
         void GetFocusParams();
@@ -104,6 +105,8 @@ class MoonLite : public INDI::Focuser
         bool readPosition();
         // Read and update speed
         bool readSpeed();
+        // Read version
+        bool readVersion();
         // Are we moving?
         bool isMoving();
 

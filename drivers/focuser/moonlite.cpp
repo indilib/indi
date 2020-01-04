@@ -71,6 +71,8 @@ void ISSnoopDevice(XMLEle * root)
 
 MoonLite::MoonLite()
 {
+    setVersion(1, 1);
+
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
@@ -169,53 +171,20 @@ const char * MoonLite::getDefaultName()
 
 bool MoonLite::Ack()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[5] = {0};
-    short pos = -1;
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    //Try to request the position of the focuser
-    //Test for success on transmission and response
-    //If either one fails, try again, up to 3 times, waiting 1 sec each time
-    //If that fails, then return false.
-
-    int numChecks = 0;
     bool success = false;
-    while(numChecks < 3 && !success)
-    {
-        numChecks++;
-        sleep(1); //wait 1 second between each test.
 
-        bool transmissionSuccess = (rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) == TTY_OK;
-        if(!transmissionSuccess)
+    for (int i = 0; i < 3; i++)
+    {
+        if (readVersion())
         {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("Handshake Attempt %i, tty transmission error: %s.", numChecks, errstr);
+            success = true;
+            break;
         }
 
-        bool responseSuccess = (rc = tty_read(PortFD, resp, 5, ML_TIMEOUT, &nbytes_read)) == TTY_OK;
-        if(!responseSuccess)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("Handshake Attempt %i, updatePosition response error: %s.", numChecks, errstr);
-        }
-
-        success = transmissionSuccess && responseSuccess;
+        sleep(1);
     }
 
-    if(!success)
-    {
-        LOG_INFO("Handshake failed after 3 attempts");
-        return false;
-    }
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    rc = sscanf(resp, "%hX#", &pos);
-
-    return rc > 0;
+    return success;
 }
 
 bool MoonLite::readStepMode()
@@ -234,6 +203,18 @@ bool MoonLite::readStepMode()
         LOGF_ERROR("Unknown error: focuser step value (%s)", res);
         return false;
     }
+
+    return true;
+}
+
+bool MoonLite::readVersion()
+{
+    char res[ML_RES] = {0};
+
+    if (sendCommand(":GV#", res, true) == false)
+        return false;
+
+    LOGF_INFO("Detected firmware version %c.%c", res[0], res[1]);
 
     return true;
 }
@@ -615,7 +596,7 @@ bool MoonLite::saveConfigItems(FILE * fp)
     return true;
 }
 
-bool MoonLite::sendCommand(const char * cmd, char * res)
+bool MoonLite::sendCommand(const char * cmd, char * res, bool silent)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
@@ -627,7 +608,8 @@ bool MoonLite::sendCommand(const char * cmd, char * res)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
+        if (!silent)
+            LOGF_ERROR("Serial write error: %s.", errstr);
         return false;
     }
 
@@ -638,7 +620,8 @@ bool MoonLite::sendCommand(const char * cmd, char * res)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s.", errstr);
+        if (!silent)
+            LOGF_ERROR("Serial read error: %s.", errstr);
         return false;
     }
 
