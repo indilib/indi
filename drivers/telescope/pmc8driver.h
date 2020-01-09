@@ -115,7 +115,7 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate);
 bool set_pmc8_custom_dec_track_rate(int fd, double rate);
 bool set_pmc8_custom_ra_move_rate(int fd, double rate);
 bool set_pmc8_custom_dec_move_rate(int fd, double rate);
-bool set_pmc8_track_mode(int fd, uint rate);
+bool set_pmc8_track_mode(int fd, uint32_t rate);
 //bool set_pmc8_track_enabled(int fd, bool enabled);
 bool get_pmc8_is_scope_slewing(int fd, bool &isslew);
 bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir);

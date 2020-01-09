@@ -1156,12 +1156,14 @@ void LX200Telescope::getBasicData()
                 LOG_ERROR("Failed to retrieve time format from device.");
             else
             {
-                int ret = 0;
-
                 timeFormat = (timeFormat == 24) ? LX200_24 : LX200_AM;
                 // We always do 24 hours
                 if (timeFormat != LX200_24)
-                    ret = toggleTimeFormat(PortFD);
+                {
+                    // Toggle format and suppress gcc warning
+                    int rc = toggleTimeFormat(PortFD);
+                    INDI_UNUSED(rc);
+                }
             }
         }
 
