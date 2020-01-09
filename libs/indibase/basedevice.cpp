@@ -59,17 +59,6 @@ BaseDevice::BaseDevice()
 
 BaseDevice::~BaseDevice()
 {
-    // Clear all allocated blobs
-    for (auto &property : pAll)
-    {
-        if (property->getType() == INDI_BLOB)
-        {
-            IBLOBVectorProperty *bvp = static_cast<IBLOBVectorProperty *>(property->getProperty());
-            for (int i = 0; i < bvp->nbp; i++)
-                free(bvp->bp[i].blob);
-        }
-    }
-
     delLilXML(lp);
     while (!pAll.empty())
     {
@@ -863,7 +852,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                     // Initialize everything to zero
 
                     // Seed for realloc
-                    bp[n].blob    = malloc(1);
+                    bp[n].blob    = nullptr;
                     bp[n].size    = 0;
                     bp[n].bloblen = 0;
                     bp[n].aux0    = nullptr;
