@@ -211,7 +211,7 @@ bool MoonLite::readVersion()
 {
     char res[ML_RES] = {0};
 
-    if (sendCommand(":GV#", res, true) == false)
+    if (sendCommand(":GV#", res, true, 2) == false)
         return false;
 
     LOGF_INFO("Detected firmware version %c.%c", res[0], res[1]);
@@ -311,8 +311,7 @@ bool MoonLite::isMoving()
 bool MoonLite::setTemperatureCalibration(double calibration)
 {
     char cmd[ML_RES] = {0};
-    int cal = calibration * 2;
-    uint8_t hex = static_cast<uint8_t>(cal);
+    uint8_t hex = static_cast<uint8_t>(calibration * 2);
     snprintf(cmd, ML_RES, ":PO%02X#", hex);
     return sendCommand(cmd);
 }
@@ -320,8 +319,7 @@ bool MoonLite::setTemperatureCalibration(double calibration)
 bool MoonLite::setTemperatureCoefficient(double coefficient)
 {
     char cmd[ML_RES] = {0};
-    int coeff = coefficient * 2;
-    uint8_t hex = static_cast<uint8_t>(coeff);
+    uint8_t hex = static_cast<uint8_t>(coefficient * 2);
     snprintf(cmd, ML_RES, ":SC%02X#", hex);
     return sendCommand(cmd);
 }
@@ -354,7 +352,7 @@ bool MoonLite::setStepMode(FocusStepMode mode)
     return sendCommand(cmd);
 }
 
-bool MoonLite::setSpeed(uint16_t speed)
+bool MoonLite::setSpeed(int speed)
 {
     char cmd[ML_RES] = {0};
     int hex_value = 1;
@@ -488,7 +486,7 @@ IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
     else
-        MoveFocuser(FocusMaxPosN[0].value);
+        MoveFocuser(static_cast<uint32_t>(FocusMaxPosN[0].value));
 
     IEAddTimer(duration, &MoonLite::timedMoveHelper, this);
     return IPS_BUSY;
@@ -523,15 +521,15 @@ IPState MoonLite::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int32_t newPosition = 0;
+    uint32_t newPosition = 0;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = static_cast<uint32_t>(FocusAbsPosN[0].value) - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = static_cast<uint32_t>(FocusAbsPosN[0].value) + ticks;
 
     // Clamp
-    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
+    newPosition = std::min(static_cast<uint32_t>(FocusAbsPosN[0].max), newPosition);
     if (!MoveFocuser(newPosition))
         return IPS_ALERT;
 
@@ -552,7 +550,7 @@ void MoonLite::TimerHit()
         if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
         {
             IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            lastPos = static_cast<uint32_t>(FocusAbsPosN[0].value);
         }
     }
 
@@ -562,7 +560,7 @@ void MoonLite::TimerHit()
         if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
         {
             IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            lastTemperature = static_cast<uint32_t>(TemperatureN[0].value);
         }
     }
 
@@ -574,7 +572,7 @@ void MoonLite::TimerHit()
             FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            lastPos = static_cast<uint32_t>(FocusAbsPosN[0].value);
             LOG_INFO("Focuser reached requested position.");
         }
     }
@@ -596,7 +594,7 @@ bool MoonLite::saveConfigItems(FILE * fp)
     return true;
 }
 
-bool MoonLite::sendCommand(const char * cmd, char * res, bool silent)
+bool MoonLite::sendCommand(const char * cmd, char * res, bool silent, int nret)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
@@ -616,7 +614,16 @@ bool MoonLite::sendCommand(const char * cmd, char * res, bool silent)
     if (res == nullptr)
         return true;
 
-    if ((rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, ML_TIMEOUT, &nbytes_read)) != TTY_OK)
+    // this is to handle the GV command which doesn't return the terminator, use the number of chars expected
+    if (nret == 0)
+    {
+        rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, ML_TIMEOUT, &nbytes_read);
+    }
+    else
+    {
+        rc = tty_read(PortFD, res, nret, ML_TIMEOUT, &nbytes_read);
+    }
+    if (rc != TTY_OK)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
