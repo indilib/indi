@@ -564,23 +564,6 @@ install(TARGETS indi_lx200basic RUNTIME DESTINATION bin)
 
 #################################################################################
 
-########### LX200 TeenAstro #############
-SET(lx200_TeenAstro_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_TeenAstro.cpp)
-
-IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(lx200_TeenAstro lx200_TeenAstro_SRC 10 cpp)
-ENDIF ()
-
-add_executable(indi_lx200_TeenAstro ${lx200_TeenAstro_SRC})
-
-target_link_libraries(indi_lx200_TeenAstro indidriver)
-
-install(TARGETS indi_lx200_TeenAstro RUNTIME DESTINATION bin)
-
-#################################################################################
-
 ########### LX200 Generic ###########
 SET(lx200generic_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
@@ -853,16 +836,6 @@ SET(fcusb_SRC
 add_executable(indi_fcusb_focus ${fcusb_SRC})
 target_link_libraries(indi_fcusb_focus indidriver)
 install(TARGETS indi_fcusb_focus RUNTIME DESTINATION bin)
-
-
-################ JMI DC Focuser ################
-
-SET(jmi_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/jmi.cpp)
-
-add_executable(indi_jmi_focus ${jmi_SRC})
-target_link_libraries(indi_jmi_focus indidriver)
-install(TARGETS indi_jmi_focus RUNTIME DESTINATION bin)
 
 ################ Rigelsys NFocus Focuser ################
 
