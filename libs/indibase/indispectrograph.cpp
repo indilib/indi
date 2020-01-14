@@ -191,4 +191,254 @@ void Spectrograph::SetSpectrographCapability(uint32_t cap)
     }
 }
 
+//DSP API helpers
+
+void Spectrograph::Spectrum(void *buf, void *out, int n_elements, int size, int bits_per_sample)
+{
+    void* fourier = malloc(n_elements * bits_per_sample / 8);
+    FourierTransform(buf, fourier, 1, &n_elements, bits_per_sample);
+    Histogram(fourier, out, n_elements, size, bits_per_sample);
+    free(fourier);
+}
+
+void Spectrograph::Histogram(void *buf, void *out, int n_elements, int histogram_size, int bits_per_sample)
+{
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    dsp_stream_add_dim(stream, n_elements);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    //Create the spectrum
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+            break;
+        default:
+            DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+            dsp_stream_free_buffer(stream);
+            //Destroy the dsp stream
+            dsp_stream_free(stream);
+            return;
+    }
+    double *histo = dsp_stats_histogram(stream, histogram_size);
+    dsp_stream_free_buffer(stream);
+    //Destroy the dsp stream
+    dsp_stream_free(stream);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy(histo, (static_cast<uint8_t *>(out)), histogram_size);
+            break;
+        case 16:
+            dsp_buffer_copy(histo, (static_cast<uint16_t *>(out)), histogram_size);
+            break;
+        case 32:
+            dsp_buffer_copy(histo, (static_cast<uint32_t *>(out)), histogram_size);
+            break;
+        case 64:
+            dsp_buffer_copy(histo, (static_cast<unsigned long *>(out)), histogram_size);
+            break;
+        case -32:
+            dsp_buffer_copy(histo, (static_cast<float *>(out)), histogram_size);
+            break;
+        case -64:
+            dsp_buffer_copy(histo, (static_cast<double *>(out)), histogram_size);
+            break;
+        default:
+            break;
+    }
+    free(histo);
+}
+
+void Spectrograph::FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample)
+{
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    for(int dim = 0; dim < dims; dim++)
+        dsp_stream_add_dim(stream, sizes[dim]);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+            break;
+        default:
+            DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+            dsp_stream_free_buffer(stream);
+            //Destroy the dsp stream
+            dsp_stream_free(stream);
+            return;
+    }
+    dsp_fourier_dft_magnitude(stream);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(out)), stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(out)), stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(out)), stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
+            break;
+        default:
+            break;
+    }
+    //Destroy the dsp stream
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+}
+
+void Spectrograph::Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample)
+{
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    for(int dim = 0; dim < dims; dim++)
+        dsp_stream_add_dim(stream, sizes[dim]);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    dsp_stream_p matrix_stream = dsp_stream_new();
+    for(int dim = 0; dim < matrix_dims; dim++)
+        dsp_stream_add_dim(matrix_stream, matrix_sizes[dim]);
+    dsp_stream_alloc_buffer(matrix_stream, matrix_stream->len);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<uint8_t *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<uint16_t *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<uint32_t *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<unsigned long *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<float *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<double *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        default:
+            DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+            //Destroy the dsp streams
+            dsp_stream_free_buffer(stream);
+            dsp_stream_free_buffer(matrix_stream);
+            dsp_stream_free(stream);
+            dsp_stream_free(matrix_stream);
+            return;
+    }
+    dsp_convolution_convolution(stream, matrix_stream);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(out)), stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(out)), stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(out)), stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
+            break;
+        default:
+            break;
+    }
+    //Destroy the dsp streams
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+    dsp_stream_free_buffer(matrix_stream);
+    dsp_stream_free(matrix_stream);
+}
+
+void Spectrograph::WhiteNoise(void *buf, int n_elements, int bits_per_sample)
+{
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    dsp_stream_add_dim(stream, n_elements);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    dsp_signals_whitenoise (stream);
+    dsp_buffer_stretch(stream->buf, stream->len, 0, (1 << abs(bits_per_sample)));
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(buf)), stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(buf)), stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(buf)), stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(buf)), stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy(stream->buf, (static_cast<float *>(buf)), stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy(stream->buf, (static_cast<double *>(buf)), stream->len);
+            break;
+        default:
+            break;
+    }
+    //Destroy the dsp streams
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+}
+
 }

@@ -201,6 +201,12 @@ class Spectrograph : public SensorInterface
             SPECTROGRAPH_ANTENNA,
             SPECTROGRAPH_FWHM,
         } SPECTROGRAPH_INFO_INDEX;
+
+        void Spectrum(void *buf, void *out, int n_elements, int size, int bits_per_sample);
+        void Histogram(void *buf, void *out, int n_elements, int histogram_size, int bits_per_sample);
+        void FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample);
+        void Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample);
+        void WhiteNoise(void *buf, int n_elements, int bits_per_sample);
 private:
         double Samplerate;
         double Frequency;
