@@ -364,7 +364,6 @@ double m2au(double m);
  */
 double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spectrum, int spectrum_size);
 
-
 /**
  * @brief calc_photon_flux Returns the photon flux of the object with the given magnitude observed at a determined wavelenght using a passband filter over an incident surface
  * @param rel_magnitude Relative magnitude of the object observed
@@ -374,6 +373,16 @@ double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spec
  * @return the photon flux in Lumen
  */
 double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double incident_surface);
+
+/**
+ * @brief calc_rel_magnitude Returns the relative magnitude of the object with the given photon flux measured at a determined wavelenght using a passband filter over an incident surface
+ * @param photon_flux The photon flux in Lumen
+ * @param filter_bandwidth Filter bandwidth in meters
+ * @param wavelength Wavelength in meters
+ * @param incident_surface The incident surface in square meters
+ * @return the relative magnitude of the object observed
+ */
+double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double incident_surface);
 
 /**
  * @brief estimate_absolute_magnitude Returns an estimation of the absolute magnitude of an object given its distance and the difference of its magnitude with a reference object
