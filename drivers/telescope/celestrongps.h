@@ -44,6 +44,8 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
+        virtual bool ISNewText(const char *dev, const char *name, char **texts, char **names, int n) override;
+
     protected:
         // Goto, Sync, and Motion
         virtual bool Goto(double ra, double dec) override;
@@ -65,14 +67,20 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         // these all call this function
         IPState Guide(CELESTRON_DIRECTION dirn, uint32_t ms);
 
+        // Guide Rate
+        INumber GuideRateN[2];
+        INumberVectorProperty GuideRateNP;
 
-        //GUIDE guideTimeoutHelper() function
-        static void guideTimeoutHelperN(void *p);
-        static void guideTimeoutHelperS(void *p);
-        static void guideTimeoutHelperW(void *p);
-        static void guideTimeoutHelperE(void *p);
+        uint8_t guideRateRa;    // 0 to 255 corresponding to 0 to 100% sidereal
+        uint8_t guideRateDec;
+
+        //GUIDE guideTimerHelper() function
+        static void guideTimerHelperN(void *p);
+        static void guideTimerHelperS(void *p);
+        static void guideTimerHelperW(void *p);
+        static void guideTimerHelperE(void *p);
         // these all call this function
-        void guideTimeout(CELESTRON_DIRECTION dirn);
+        void guideTimer(CELESTRON_DIRECTION dirn);
 
         void AddGuideTimer(CELESTRON_DIRECTION dirn, int ms);
 
@@ -123,6 +131,18 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         ISwitchVectorProperty UseHibernateSP;
         ISwitch UseHibernateS[2];
 
+        // PEC - implemented without using the base definition because this doesn't match what is required
+        IText PecInfoT[2];        // shows status and index
+        ITextVectorProperty PecInfoTP;
+
+        ISwitch PecControlS[4];     // Find Index, Stop, Playback, Record
+        ISwitchVectorProperty PecControlSP;
+        enum { PEC_Seek, PEC_Stop, PEC_Playback, PEC_Record } PecControl;
+
+        // move PEC data from file to mount
+        IText PecFileNameT[1];
+        ITextVectorProperty PecFileNameTP;
+
         // FocuserInterface
 
         IPState MoveAbsFocuser (uint32_t targetTicks) override;
@@ -153,6 +173,10 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         ISwitchVectorProperty LastAlignSP;
 
         bool slewToIndex;
+
+        size_t numPecBins = 0;
+
+        bool savePecData();
 
         // focuser
         //        INumber FocusBacklashN[1];

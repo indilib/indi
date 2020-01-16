@@ -27,6 +27,7 @@
 
 #include <string>
 #include "indicom.h"
+
 //#include <thread>
 //#include <condition_variable>
 //#include <atomic>
@@ -50,12 +51,35 @@
 #define MC_SET_POS_GUIDERATE    0x06    // use the 2 byte CelestronTrackRates to set the rate
 #define MC_SET_NEG_GUIDERATE    0x07    // for Southern hemisphere, track mode EQ_S
 #define MC_LEVEL_START          0x0b    // move to switch position
+#define MC_PEC_RECORD_START     0x0C    // n/a          Ack     Start recording PEC position
+#define MC_PEC_PLAYBACK         0x0D    // 8 bits       Ack     Start(01)/stop(00) PEC playback
+
+#define MTR_PECBIN              0x0E    // current PEC index - 1 byte 0 - 255(88)
+
 #define MC_LEVEL_DONE           0x12    // return 0xFF when move finished
 #define MC_SLEW_DONE            0x13    // return 0xFF when move finished
+#define MC_PEC_RECORD_DONE      0x15    // n/a          8 bits  != 0 is PEC record completed
+#define MC_PEC_RECORD_STOP      0x16    // n/a          n/a     Stop PEC recording
+
+#define MC_GOTO_SLOW            0x17    //  16/24 bits  Ack     Goto position with slow, variable rate. Either 16 or 24 bit accuracy.
+                                        //                      Position is a signed fraction of a full rotation
+#define MC_AT_INDEX             0x18    // n/a          8 bits  FFH at index, 00H not
+#define MC_SEEK_INDEX           0x19    // n/a          n/a     Seek PEC Index
 #define MC_MOVE_POS             0x24    // start move positive direction, rate 0-9, 0 is stop
 #define MC_MOVE_NEG             0x25    // start move negative direction, rate 0-9, 0 is stop
+
 #define MTR_AUX_GUIDE           0x26    // aux guide command, rate -100 to 100, duration centiseconds
 #define MTR_IS_AUX_GUIDE_ACTIVE 0x27    // return 0x00 when aux guide is not in progress
+
+// command 0x30 and 0x31 are read/ write memory commands
+#define MC_PEC_READ_DATA        0x30    // 8            PEC data value  return 1 byte of data:
+                                        // 0x3f         number of PEC bins (88)
+                                        // 0x40+i       PEC data for bin i
+#define MC_PEC_WRITE_DATA       0x31    // 16  PEC data address, PEC data value
+                                        // 0x40+i, value bin i
+
+#define MC_SET_AUTOGUIDE_RATE   0x46    // 0 to 99 as % sidereal
+#define MC_GET_AUTOGUIDE_RATE   0x47    // 0 to 99 as % sidereal
 
 // focuser passthrough commands
 #define FOC_CALIB_ENABLE        42      // send 0 to start or 1 to stop
@@ -65,13 +89,55 @@
 // generic device commands
 #define GET_VER                 0xfe    // return 2 or 4 bytes major.minor.build
 
-
 typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
 typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9 } CELESTRON_SLEW_RATE;
 typedef enum { CTM_OFF, CTM_ALTAZ, CTM_EQN, CTM_EQS } CELESTRON_TRACK_MODE;
 typedef enum { RA_AXIS, DEC_AXIS } CELESTRON_AXIS;
 typedef enum { CELESTRON_N, CELESTRON_S, CELESTRON_W, CELESTRON_E } CELESTRON_DIRECTION;
 typedef enum { FW_MODEL, FW_VERSION, FW_RA, FW_DEC, FW_ISGEM, FW_CAN_AUX, FW_HAS_FOC } CELESTRON_FIRMWARE;
+
+
+// PEC state machine
+// the order matters because it's used to check what states are available.
+// they do not match the the base TelescopePECState
+typedef enum
+{
+    NotKnown,       // PEC has not been checked.
+
+    /// <summary>
+    /// PEC is not available, hardware has been checked, no other state is possible
+    /// </summary>
+    PEC_NOT_AVAILABLE,
+
+    /// <summary>
+    /// PEC is available but inactive, can seek index
+    /// Seek index is only available command
+    /// </summary>
+    PEC_AVAILABLE,
+
+    /// <summary>
+    /// The PEC index is being searched for, goes to PEC_INDEXED when found
+    /// </summary>
+    PEC_SEEKING,
+
+    /// <summary>
+    /// the PEC index has been found, can go to Playback or Recording
+    /// this is equivalent to TelescopePECState PEC_OFF
+    /// </summary>
+    PEC_INDEXED,
+
+    /// <summary>
+    /// PEC is being played back, stays in this state until stopped
+    /// equivalent to TelescopePECState PEC_ON
+    /// </summary>
+    PEC_PLAYBACK,
+
+    /// <summary>
+    /// PEC is being recorded, goes to PEC_INDEXED when completed
+    /// </summary>
+    PEC_RECORDING
+
+} PEC_STATE;
 
 // These values are sent to the hour angle axis motor using the MC_SET_POS|NEG_GUIDERATE
 // commands to set the tracking rate.
@@ -92,6 +158,7 @@ typedef struct
     double controllerVersion;
     char controllerVariant;
     bool isGem;
+    bool canPec;
     bool hasFocuser;
     CELESTRON_TRACK_MODE celestronTrackMode;
 } FirmwareInfo;
@@ -109,6 +176,7 @@ typedef struct
     uint32_t foc_position = 20000;
     uint32_t foc_target = 20000;
 } SimData;
+
 
 /**************************************************************************
  Utility functions
@@ -197,7 +265,8 @@ class CelestronDriver
         bool get_firmware(FirmwareInfo *info);
         bool get_version(char *version, size_t size);
         bool get_variant(char *variant);
-        bool get_model(char *model, size_t size, bool *isGem);
+        int model();        // returns model number, -1 if failed
+        bool get_model(char *model, size_t size, bool *isGem, bool *canPec);
         bool get_dev_firmware(int dev, char *version, size_t size);
         bool get_radec(double *ra, double *dec, bool precise);
         bool get_azalt(double *az, double *alt, bool precise);
@@ -230,9 +299,13 @@ class CelestronDriver
         bool startmovetoindex();
         bool indexreached(bool *atIndex);
 
-        // Pulse Guide (experimental)
+        // Pulse Guide
         size_t send_pulse(CELESTRON_DIRECTION direction, unsigned char rate, unsigned char duration_msec);
         bool get_pulse_status(CELESTRON_DIRECTION direction);
+
+        // get and set guide rate as % sidereal
+        bool get_guide_rate(CELESTRON_AXIS axis, u_int8_t  * rate);
+        bool set_guide_rate(CELESTRON_AXIS axis, u_int8_t  rate);
 
         // Pointing state, pier side, returns 'E' or 'W'
         bool get_pier_side(char * sop);
@@ -251,7 +324,35 @@ class CelestronDriver
         bool foc_limits(int * low, int * high);     // read limits
         bool foc_abort();       // stop move
 
-    protected:
+        // PEC management
+
+        PEC_STATE pecState { PEC_STATE::NotKnown };
+
+        PEC_STATE updatePecState();
+
+        bool PecSeekIndex();
+        bool isPecAtIndex(bool force = false);            // returns true if the PEC index has been found
+
+        size_t pecIndex();              // reads the current PEC index
+        int getPecValue(size_t index);     // reads the current PEC value
+        bool setPecValue(size_t index, int data);
+
+        bool PecPlayback(bool start);
+
+        bool PecRecord(bool start);
+        bool isPecRecordDone();
+
+        size_t getPecNumBins();
+
+        const char *PecStateStr(PEC_STATE);
+        const char *PecStateStr();
+
+        // PEC simulation properties
+        int simIndex;
+        int simRecordStart;
+        bool simSeekIndex = false;
+
+protected:
         void set_sim_response(const char *fmt, ...);
         virtual int serial_write(const char *cmd, int nbytes, int *nbytes_written);
         virtual int serial_read(int nbytes, int *nbytes_read);
@@ -266,31 +367,43 @@ class CelestronDriver
         bool simulation = false;
         SimData sim_data;
         int fd = 0;
+
+        char sim_ra_guide_rate = 50;
+        char sim_dec_guide_rate = 50;
 };
 
-//class CelestronGuide
-//{
-//    public:
-//        const char *getDeviceName();        // needed for logging
+class PecData
+{
+public:
+    PecData();
 
-//        void Guide(CELESTRON_DIRECTION direction, uint32_t duration);
-//        bool IsGuiding();
-//        bool canAuxGuide;
+    // save PEC data to a file
+    bool Save(const char * filename);
 
-//    private:
-//        void AuxGuide(CELESTRON_DIRECTION direction, uint32_t duration);
-//        void auxGuideTask(CELESTRON_DIRECTION direction, uint8_t rate, int ticks, std::condition_variable *cv);
+    // saves PEC data to mount
+    bool Save(CelestronDriver * driver);
 
-//        void TimeGuide(CELESTRON_DIRECTION direction, uint32_t duration);
-//        void timeGuideTask(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate, int duration, std::condition_variable *cv);
+    // Loads PEC data from mount
+    bool Load(CelestronDriver * driver);
 
-//        void Halt();
+    // Loads PEC data from file
+    bool Load(const char * fileName);
 
-//        std::atomic<bool> isHaGuiding;
-//        std::atomic<bool> isDecGuiding;
+    int NumBins() { return numBins; };
+    void RemoveDrift();
 
-//        std::condition_variable cancelHaTask;
-//        std::condition_variable cancelDecTask;
+    const char *getDeviceName();
+//    void set_device(const char *name);
 
-//        CelestronDriver driver;
-//};
+private:
+    double wormArcSeconds = 7200;
+    double rateScale = 1024;
+    size_t numBins = 88;
+    const double SIDEREAL_ARCSEC_PER_SEC = 360.0 * 60.0 * 60.0 / (23.0 * 3600.0 + 56 * 60 + 4.09);
+
+    double data[255];   // numbins + 1 values, accumulated PEC offset in arc secs. First one zero
+
+    void Kalman(PecData newData, int num);
+};
+
+
