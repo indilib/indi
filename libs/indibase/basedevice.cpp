@@ -851,9 +851,13 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
                     // Initialize everything to zero
 
+                    // Seed for realloc
                     bp[n].blob    = nullptr;
                     bp[n].size    = 0;
                     bp[n].bloblen = 0;
+                    bp[n].aux0    = nullptr;
+                    bp[n].aux1    = nullptr;
+                    bp[n].aux2    = nullptr;
                 }
             }
         }
@@ -1091,20 +1095,14 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
 */
 int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
 {
-    IBLOB *blobEL;
-    unsigned char *dataBuffer = nullptr;
-    XMLEle *ep;
-    int r           = 0;
-    uLongf dataSize = 0;
-
     /* pull out each name/BLOB pair, decode */
-    for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
+    for (XMLEle *ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
     {
         if (strcmp(tagXMLEle(ep), "oneBLOB") == 0)
         {
             XMLAtt *na = findXMLAtt(ep, "name");
 
-            blobEL = IUFindBLOB(bvp, findXMLAttValu(ep, "name"));
+            IBLOB *blobEL = IUFindBLOB(bvp, findXMLAttValu(ep, "name"));
 
             XMLAtt *fa = findXMLAtt(ep, "format");
             XMLAtt *sa = findXMLAtt(ep, "size");
@@ -1122,7 +1120,9 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
 
                 blobEL->size    = blobSize;
                 int bloblen     = pcdatalenXMLEle(ep);
-                blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, 3 * bloblen / 4));
+                int blobBufferSize = 3 * bloblen / 4;
+                if (blobBufferSize != blobEL->bloblen)
+                    blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, blobBufferSize));
                 blobEL->bloblen = from64tobits_fast(static_cast<char *>(blobEL->blob), pcdataXMLEle(ep), bloblen);
 
                 strncpy(blobEL->format, valuXMLAtt(fa), MAXINDIFORMAT);
@@ -1130,8 +1130,8 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                 if (strstr(blobEL->format, ".z"))
                 {
                     blobEL->format[strlen(blobEL->format) - 2] = '\0';
-                    dataSize                                   = blobEL->size * sizeof(unsigned char);
-                    dataBuffer                                 = static_cast<unsigned char *>(malloc(dataSize));
+                    uLongf dataSize = blobEL->size * sizeof(uint8_t);
+                    uint8_t *dataBuffer = static_cast<uint8_t *>(malloc(dataSize));
 
                     if (dataBuffer == nullptr)
                     {
@@ -1139,8 +1139,8 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                         return (-1);
                     }
 
-                    r = uncompress(dataBuffer, &dataSize, static_cast<unsigned char *>(blobEL->blob),
-                                   static_cast<uLong>(blobEL->bloblen));
+                    int r = uncompress(dataBuffer, &dataSize, static_cast<unsigned char *>(blobEL->blob),
+                                       static_cast<uLong>(blobEL->bloblen));
                     if (r != Z_OK)
                     {
                         snprintf(errmsg, MAXRBUF, "INDI: %s.%s.%s compression error: %d", blobEL->bvp->device,

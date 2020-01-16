@@ -45,7 +45,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 8)
-set(CMAKE_INDI_VERSION_RELEASE 2)
+set(CMAKE_INDI_VERSION_RELEASE 3)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -400,7 +400,9 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp
@@ -586,7 +588,6 @@ SET(lx200generic_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ss2000pc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_OnStep.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_10micron.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_rainbow.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronHC8406.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/eq500x.cpp)
 
@@ -618,7 +619,6 @@ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_10micron)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_ioptronHC8406)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_eq500x_telescope)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_rainbow)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
@@ -636,6 +636,15 @@ install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin)
 
 #################################################################################
 
+########### Rainbow Mount driver ##########
+SET(rainbow_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/rainbow.cpp )
+
+add_executable(indi_rainbow_telescope ${rainbow_SRC})
+
+target_link_libraries(indi_rainbow_telescope indidriver)
+
+install(TARGETS indi_rainbow_telescope RUNTIME DESTINATION bin)
 
 ########### Takahashi Temma ##########
 SET(temma_SRC
@@ -773,12 +782,12 @@ install(TARGETS indi_script_telescope RUNTIME DESTINATION bin)
 
 ################ Detector Simulator ################
 
-SET(detectorsimulator_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/detector/detector_simulator.cpp)
+SET(spectrographsimulator_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/spectrograph/spectrograph_simulator.cpp)
 
-add_executable(indi_simulator_detector ${detectorsimulator_SRC})
-target_link_libraries(indi_simulator_detector indidriver)
-install(TARGETS indi_simulator_detector RUNTIME DESTINATION bin)
+add_executable(indi_simulator_spectrograph ${spectrographsimulator_SRC})
+target_link_libraries(indi_simulator_spectrograph indidriver)
+install(TARGETS indi_simulator_spectrograph RUNTIME DESTINATION bin)
 
 ########### CCD Simulator ##############
 SET(ccdsimulator_SRC
@@ -1760,7 +1769,9 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indireceiver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweatherinterface.h
