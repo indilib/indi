@@ -1680,7 +1680,7 @@ double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wa
 
 double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double incident_surface)
 {
-    return (1.51E+7*(filter_bandwidth/wavelength)*incident_surface*log(10, LUMEN(wavelength)/photon_flux))/-0.4;
+    return (1.51E+7*(filter_bandwidth/wavelength)*incident_surface*log10(LUMEN(wavelength)/photon_flux))/-0.4;
 }
 
 double estimate_absolute_magnitude(double delta_dist, double delta_mag)
