@@ -3,7 +3,7 @@
 
     Copyright (C) 2019 Pavle Gartner
 
-    Based on Moonline driver.
+    Based on Moonlite driver.
     Copyright (C) 2013-2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -75,7 +75,7 @@ void ISSnoopDevice(XMLEle * root)
  
 DeepSkyDadAF3::DeepSkyDadAF3()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE | FOCUSER_CAN_ABORT | FOCUSER_HAS_BACKLASH);
 }
 
 bool DeepSkyDadAF3::initProperties()
@@ -122,6 +122,11 @@ bool DeepSkyDadAF3::initProperties()
     FocusSyncN[0].max = 1000000.;
     FocusSyncN[0].value = 50000.;
     FocusSyncN[0].step = 5000.;
+
+    FocusBacklashN[0].min = -1000;
+    FocusBacklashN[0].max = 1000;
+    FocusBacklashN[0].step = 1;
+    FocusBacklashN[0].value = 0;
 
     // Max. movement
     IUFillNumber(&FocusMaxMoveN[0], "MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
@@ -772,6 +777,14 @@ IPState DeepSkyDadAF3::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
+    double bcValue = FocusBacklashN[0].value;
+    int diff = targetTicks - FocusAbsPosN[0].value;
+    if ((diff > 0 && bcValue < 0) || (diff < 0 && bcValue > 0))
+    {
+        backlashComp = bcValue;
+        targetPos -= bcValue;
+    }
+
     if (!MoveFocuser(targetPos))
         return IPS_ALERT;
 
@@ -826,7 +839,19 @@ void DeepSkyDadAF3::TimerHit()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
-            LOG_INFO("Focuser reached requested position.");
+
+            if(moveAborted) {
+                LOG_INFO("Move aborted.");
+            } else if(backlashComp != 0) {
+                LOGF_INFO("Performing backlash compensation of %i.", backlashComp);
+                targetPos += backlashComp;
+                MoveFocuser(targetPos);
+            } else {
+                LOG_INFO("Focuser reached requested position.");
+            }
+
+            moveAborted = false;
+            backlashComp = 0;
         }
     }
     
@@ -845,6 +870,7 @@ void DeepSkyDadAF3::TimerHit()
 
 bool DeepSkyDadAF3::AbortFocuser()
 {
+    moveAborted = true;
     return sendCommand("[STOP]");
 }
 
