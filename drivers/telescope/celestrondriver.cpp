@@ -1320,7 +1320,6 @@ PEC_STATE CelestronDriver::updatePecState()
 {
     switch (pecState)
     {
-    case PEC_STATE::PEC_AVAILABLE:
     case PEC_STATE::PEC_SEEKING:
         isPecAtIndex();
         break;

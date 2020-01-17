@@ -887,7 +887,6 @@ bool CelestronGPS::ReadScopeStatus()
             }
             lastPecState = driver.pecState;
         }
-        return true;
     }
 
     // focuser
@@ -1090,18 +1089,13 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
         // handle the PEC commands
         if (name && std::string(name) == PecControlSP.name)
         {
-            for (int i = 0; i < n; i++)
-            {
-                LOGF_DEBUG("%s, PECS[%d], name %s, state %d", name, i, names[i], states[i]);
-            }
-
             IUUpdateSwitch(&PecControlSP, states, names, n);
             int idx = IUFindOnSwitchIndex(&PecControlSP);
 
             switch(idx)
             {
             case PEC_Stop:
-                // stop record or playback
+                LOG_DEBUG(" stop PEC record or playback");
                 bool playback;
                 if ((playback = driver.pecState == PEC_PLAYBACK) || driver.pecState == PEC_RECORDING)
                 {
@@ -1122,7 +1116,7 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
                 IUResetSwitch(&PecControlSP);
                 break;
             case PEC_Playback:
-                // start Playback
+                LOG_DEBUG("start PEC Playback");
                 if (driver.pecState == PEC_STATE::PEC_INDEXED)
                 {
                     // start playback
@@ -1143,7 +1137,7 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
                 }
                 break;
             case PEC_Record:
-                // start record
+                LOG_DEBUG("start PEC record");
                 if (TrackState != TelescopeStatus::SCOPE_TRACKING)
                 {
                     LOG_WARN("Mount must be Tracking to record PEC");
@@ -1168,6 +1162,7 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
                 }
                 break;
             case PEC_Seek:
+                LOG_DEBUG("Seek PEC Index");
                 if (driver.isPecAtIndex(true))
                 {
                     LOG_INFO("PEC index already found");
