@@ -80,6 +80,7 @@ class DeepSkyDadAF3 : public INDI::Focuser
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE * fp) override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
 
     private:
         bool Ack();

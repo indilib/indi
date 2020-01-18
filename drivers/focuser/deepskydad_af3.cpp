@@ -471,14 +471,16 @@ bool DeepSkyDadAF3::SyncFocuser(uint32_t ticks)
 {
     char cmd[DSD_RES] = {0};
     snprintf(cmd, DSD_RES, "[SPOS%07d]", ticks);
-    return sendCommand(cmd);
+    char res[DSD_RES] = {0};
+    return sendCommand(cmd, res);
 }
 
 bool DeepSkyDadAF3::ReverseFocuser(bool enabled)
 {
     char cmd[DSD_RES] = {0};
     snprintf(cmd, DSD_RES, "[SREV%01d]", enabled ? 1 : 0);
-    return sendCommand(cmd);
+    char res[DSD_RES] = {0};
+    return sendCommand(cmd, res);
 }
 
 bool DeepSkyDadAF3::MoveFocuser(uint32_t position)
@@ -497,7 +499,7 @@ bool DeepSkyDadAF3::MoveFocuser(uint32_t position)
     }
 
     // Now start motion toward position
-    if (sendCommand("[SMOV]") == false)
+    if (sendCommand("[SMOV]", res) == false)
         return false;
 
     return true;
@@ -802,7 +804,7 @@ IPState DeepSkyDadAF3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     // Clamp
     newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
-    if (!MoveFocuser(newPosition))
+    if (!MoveAbsFocuser(newPosition))
         return IPS_ALERT;
 
     // JM 2019-02-10: This is already set by the framework
@@ -843,7 +845,7 @@ void DeepSkyDadAF3::TimerHit()
             if(moveAborted) {
                 LOG_INFO("Move aborted.");
             } else if(backlashComp != 0) {
-                LOGF_INFO("Performing backlash compensation of %i.", backlashComp);
+                LOGF_INFO("Performing backlash compensation of %i.", (int)backlashComp);
                 targetPos += backlashComp;
                 MoveFocuser(targetPos);
             } else {
@@ -931,3 +933,10 @@ bool DeepSkyDadAF3::sendCommandSet(const char * cmd)
 
     return strcmp(res, "(OK)") == 0;
 }
+
+bool DeepSkyDadAF3::SetFocuserBacklash(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    return true;
+}
+
