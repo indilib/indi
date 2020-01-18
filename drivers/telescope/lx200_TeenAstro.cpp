@@ -1473,8 +1473,6 @@ void LX200_TeenAstro::slewError(int slewCode)
     else
         IDSetNumber(&EqNP, "Slew failed.");
 }
-
-
 /*
  *  Enable or disable sidereal tracking (events handled by inditelescope) 
  */
@@ -1514,7 +1512,8 @@ void LX200_TeenAstro::sendCommand(const char *cmd)
 {
     std::unique_lock<std::mutex> guard(lx200CommsLock);
     LOGF_INFO("sendCommand %s", cmd);
-    write(PortFD, cmd, strlen(cmd));
+    int rc = write(PortFD, cmd, strlen(cmd));
+    INDI_UNUSED(rc);
 }
 
 
