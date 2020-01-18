@@ -389,7 +389,8 @@ public:
     // Loads PEC data from file
     bool Load(const char * fileName);
 
-    int NumBins() { return numBins; };
+    size_t NumBins() { return numBins; }
+
     void RemoveDrift();
 
     const char *getDeviceName();

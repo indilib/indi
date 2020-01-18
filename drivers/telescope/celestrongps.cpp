@@ -419,11 +419,12 @@ bool CelestronGPS::updateProperties()
             uint8_t rate;
             if (driver.get_guide_rate(CELESTRON_AXIS::RA_AXIS, &rate))
             {
-                GuideRateN[AXIS_RA].value = rate;
+                GuideRateN[AXIS_RA].value = rate * 100.0 / 255;
                 if (driver.get_guide_rate(CELESTRON_AXIS::DEC_AXIS, &rate))
                 {
-                    GuideRateN[AXIS_DE].value = rate;
+                    GuideRateN[AXIS_DE].value = rate * 100.0 / 255;
                     IDSetNumber(&GuideRateNP, nullptr);
+                    LOGF_DEBUG("Get Guide Rates: Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
                 }
             }
             defineNumber(&GuideNSNP);
@@ -1208,8 +1209,11 @@ bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
             IDSetNumber(&GuideRateNP, nullptr);
-            driver.set_guide_rate(CELESTRON_AXIS::RA_AXIS, static_cast<uint8_t>(GuideRateN[AXIS_RA].value));
-            driver.set_guide_rate(CELESTRON_AXIS::DEC_AXIS, static_cast<uint8_t>(GuideRateN[AXIS_DE].value));
+            uint8_t grRa  = static_cast<uint8_t>(std::min(GuideRateN[AXIS_RA].value * 256 / 100, 255.0));
+            uint8_t grDec = static_cast<uint8_t>(std::min(GuideRateN[AXIS_DE].value * 256 / 100, 255.0));
+            LOGF_DEBUG("Set Guide Rates: Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
+            driver.set_guide_rate(CELESTRON_AXIS::RA_AXIS, grRa);
+            driver.set_guide_rate(CELESTRON_AXIS::DEC_AXIS, grDec);
             return true;
         }
 

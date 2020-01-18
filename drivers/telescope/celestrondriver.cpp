@@ -504,9 +504,27 @@ bool CelestronDriver::get_dev_firmware(int dev, char *version, size_t size)
 *******************************************)()***********************/
 size_t CelestronDriver::send_pulse(CELESTRON_DIRECTION dir, unsigned char rate, unsigned char duration_csec)
 {
-    int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
     char payload[2];
-    payload[0] = (dir == CELESTRON_N || dir == CELESTRON_W) ? rate : -rate;
+    int dev = CELESTRON_DEV_RA;
+    switch (dir)
+    {
+    case CELESTRON_N:
+        dev = CELESTRON_DEV_DEC;
+        payload[0] = rate;
+        break;
+    case CELESTRON_S:
+        dev = CELESTRON_DEV_DEC;
+        payload[0] = -rate;
+        break;
+    case CELESTRON_W:
+        dev = CELESTRON_DEV_RA;
+        payload[0] = rate;
+        break;
+    case CELESTRON_E:
+        dev = CELESTRON_DEV_RA;
+        payload[0] = -rate;
+        break;
+    }
     payload[1] = duration_csec;
 
     set_sim_response("#");
@@ -521,11 +539,22 @@ size_t CelestronDriver::send_pulse(CELESTRON_DIRECTION dir, unsigned char rate, 
 ******************************************************************/
 bool CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir)
 {
-    int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
-    char payload[2] = {0, 0};
+    int dev = CELESTRON_DEV_RA;
+    //char payload[2] = {0, 0};
+    switch (dir)
+    {
+    case CELESTRON_N:
+    case CELESTRON_S:
+        dev = CELESTRON_DEV_DEC;
+        break;
+    case CELESTRON_W:
+    case CELESTRON_E:
+        dev = CELESTRON_DEV_RA;
+        break;
+    }
     set_sim_response("%c#", 0);
 
-    if (!send_passthrough(dev, MTR_IS_AUX_GUIDE_ACTIVE, payload, 2, response, 1))
+    if (!send_passthrough(dev, MTR_IS_AUX_GUIDE_ACTIVE, nullptr, 0, response, 1))
         return false;
 
     return static_cast<bool>(response[0]);
@@ -533,16 +562,16 @@ bool CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir)
 
 /*****************************************************************
     Get the guide rate from the mount for the axis.
-    rate is 0 to 100% sidereal
+    rate is 0 to 255 representing 0 to 100% sidereal
     If getting the rate fails returns false.
 ******************************************************************/
 bool CelestronDriver::get_guide_rate(CELESTRON_AXIS axis, uint8_t * rate)
 {
     int dev = (axis == CELESTRON_AXIS::DEC_AXIS) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
-    char payload[2] = {0, 0};
+    //char payload[2] = {0, 0};
     set_sim_response("%c#", (axis == CELESTRON_AXIS::DEC_AXIS) ? sim_dec_guide_rate : sim_ra_guide_rate);
 
-    if (!send_passthrough(dev, MC_GET_AUTOGUIDE_RATE, payload, 2, response, 1))
+    if (!send_passthrough(dev, MC_GET_AUTOGUIDE_RATE, nullptr, 0, response, 1))
         return false;
 
     *rate = response[0];
@@ -551,7 +580,7 @@ bool CelestronDriver::get_guide_rate(CELESTRON_AXIS axis, uint8_t * rate)
 
 /*****************************************************************
     Set the guide rate for the axis.
-    rate is 0 to 100% sidereal
+    rate is 0 to 255 representing 0 to 100% sidereal
     If setting the rate fails returns false.
 ******************************************************************/
 bool CelestronDriver::set_guide_rate(CELESTRON_AXIS axis, uint8_t rate)
