@@ -124,7 +124,7 @@ int CelestronDriver::serial_read(int nbytes, int *nbytes_read)
 // Virtual method for testing
 int CelestronDriver::serial_read_section(char stop_char, int *nbytes_read)
 {
-    return tty_read_section(fd, response, stop_char, CELESTRON_TIMEOUT, nbytes_read);
+    return tty_nread_section(fd, response, MAX_RESP_SIZE, stop_char, CELESTRON_TIMEOUT, nbytes_read);
 }
 
 // Set the expected response for a command in simulation mode
