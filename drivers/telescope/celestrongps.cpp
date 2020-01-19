@@ -348,10 +348,6 @@ bool CelestronGPS::updateProperties()
                     CelestronTrackModeS[ctm - 1].s = ISS_ON;
                     CelestronTrackModeSP.s      = IPS_OK;
 
-                    // If tracking is ON then mount is NOT parked
-                    if (isParked())
-                        SetParked(false);
-
                     saveConfig(true, "CELESTRON_TRACK_MODE");
                     LOGF_DEBUG("Celestron mount tracking, mode %s", CelestronTrackModeS[ctm - 1].label);
                 }
@@ -402,8 +398,11 @@ bool CelestronGPS::updateProperties()
 
         // InitPark sets TrackState to IDLE or PARKED so this is the earliest we can
         // update TrackState using the current mount properties
+        // Something seems to set IsParked to true, force the correct state if the
+        // mount is tracking
         if (ctm != CTM_OFF)
         {
+            SetParked(false);
             TrackState = SCOPE_TRACKING;
         }
 
