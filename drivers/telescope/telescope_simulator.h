@@ -82,6 +82,9 @@ private:
     double targetRA { 0 };
     double targetDEC { 0 };
 
+    /// used by GoTo and Park
+    void StartSlew(double ra, double dec, TelescopeStatus status);
+
     bool forceMeridianFlip { false };
     unsigned int DBG_SCOPE { 0 };
 

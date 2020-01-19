@@ -45,7 +45,7 @@ static char device_str[MAXINDIDEVICE] = "Celestron GPS";
 // Account for the quadrant in declination
 double Celestron::trimDecAngle(double angle)
 {
-    angle = angle - 360*floor(angle/360);
+    angle = angle - 360 * floor(angle / 360);
     if (angle < 0)
         angle += 360.0;
 
@@ -60,7 +60,7 @@ double Celestron::trimDecAngle(double angle)
 // Convert decimal degrees to NexStar angle
 uint16_t Celestron::dd2nex(double angle)
 {
-    angle = angle - 360*floor(angle/360);
+    angle = angle - 360 * floor(angle / 360);
     if (angle < 0)
         angle += 360.0;
 
@@ -70,7 +70,7 @@ uint16_t Celestron::dd2nex(double angle)
 // Convert decimal degrees to NexStar angle (precise)
 uint32_t Celestron::dd2pnex(double angle)
 {
-    angle = angle - 360*floor(angle/360);
+    angle = angle - 360 * floor(angle / 360);
     if (angle < 0)
         angle += 360.0;
 
@@ -132,7 +132,8 @@ int CelestronDriver::serial_read_section(char stop_char, int *nbytes_read)
 __attribute__((__format__ (__printf__, 2, 0)))
 void CelestronDriver::set_sim_response(const char *fmt, ...)
 {
-    if (simulation) {
+    if (simulation)
+    {
         va_list args;
         va_start(args, fmt);
         vsprintf(response, fmt, args);
@@ -145,7 +146,7 @@ void CelestronDriver::set_sim_response(const char *fmt, ...)
 // Send a command to the mount. Return the number of bytes received or 0 if
 // case of error
 size_t CelestronDriver::send_command(const char *cmd, size_t cmd_len, char *resp,
-        size_t resp_len, bool ascii_cmd, bool ascii_resp)
+                                     size_t resp_len, bool ascii_cmd, bool ascii_resp)
 {
     int err;
     size_t nbytes = resp_len;
@@ -180,7 +181,7 @@ size_t CelestronDriver::send_command(const char *cmd, size_t cmd_len, char *resp
             {
                 err = serial_read(static_cast<int>(resp_len), reinterpret_cast<int *>(&nbytes));
                 // passthrough commands that fail will return an extra 0 then the terminator
-                while (err == TTY_OK && resp[nbytes-1] != '#')
+                while (err == TTY_OK && resp[nbytes - 1] != '#')
                 {
                     char m[1];
                     int n;
@@ -418,17 +419,17 @@ bool CelestronDriver::get_model(char *model, size_t size, bool *isGem)
     // Only Gem mounts can report the pier side pointing state
     switch(m)
     {
-    case 5:     // CGE
-    case 6:     // AS-GT
-    case 13:    // CGE 2
-    case 14:    // EQ6
-    case 20:    // AVX
-    case 0x17:  // CGX
-    case 0x18:  // CGXL
-        *isGem = true;
-        break;
-    default:
-        *isGem = false;
+        case 5:     // CGE
+        case 6:     // AS-GT
+        case 13:    // CGE 2
+        case 14:    // EQ6
+        case 20:    // AVX
+        case 0x17:  // CGX
+        case 0x18:  // CGXL
+            *isGem = true;
+            break;
+        default:
+            *isGem = false;
     }
 
     return true;
@@ -440,15 +441,16 @@ bool CelestronDriver::get_dev_firmware(int dev, char *version, size_t size)
 
     size_t rlen = send_passthrough(dev, GET_VER, nullptr, 0, response, 2);
 
-    switch (rlen) {
-    case 2:
-        snprintf(version, size, "%01d.0", static_cast<uint8_t>(response[0]));
-        break;
-    case 3:
-        snprintf(version, size, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
-        break;
-    default:
-        return false;
+    switch (rlen)
+    {
+        case 2:
+            snprintf(version, size, "%01d.0", static_cast<uint8_t>(response[0]));
+            break;
+        case 3:
+            snprintf(version, size, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
+            break;
+        default:
+            return false;
     }
 
     return true;
@@ -533,9 +535,9 @@ bool CelestronDriver::slew_radec(double ra, double dec, bool precise)
 
     char cmd[20];
     if (precise)
-        sprintf(cmd, "r%08X,%08X", dd2pnex(ra*15), dd2pnex(dec));
+        sprintf(cmd, "r%08X,%08X", dd2pnex(ra * 15), dd2pnex(dec));
     else
-        sprintf(cmd, "R%04X,%04X", dd2nex(ra*15), dd2nex(dec));
+        sprintf(cmd, "R%04X,%04X", dd2nex(ra * 15), dd2nex(dec));
 
     set_sim_response("#");
     return send_command(cmd, strlen(cmd), response, 1, true, true);
@@ -574,9 +576,9 @@ bool CelestronDriver::sync(double ra, double dec, bool precise)
 
     char cmd[20];
     if (precise)
-        sprintf(cmd, "s%08X,%08X", dd2pnex(ra*15), dd2pnex(dec));
+        sprintf(cmd, "s%08X,%08X", dd2pnex(ra * 15), dd2pnex(dec));
     else
-        sprintf(cmd, "S%04X,%04X", dd2nex(ra*15), dd2nex(dec));
+        sprintf(cmd, "S%04X,%04X", dd2nex(ra * 15), dd2nex(dec));
 
     set_sim_response("#");
     return send_command(cmd, strlen(cmd), response, 1, true, true);
@@ -612,14 +614,14 @@ bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
 {
     if (precise)
     {
-        set_sim_response("%08X,%08X#", dd2pnex(sim_data.ra*15), dd2pnex(sim_data.dec));
+        set_sim_response("%08X,%08X#", dd2pnex(sim_data.ra * 15), dd2pnex(sim_data.dec));
 
         if (!send_command("e", 1, response, 18, true, true))
             return false;
     }
     else
     {
-        set_sim_response("%04X,%04X#", dd2nex(sim_data.ra*15), dd2nex(sim_data.dec));
+        set_sim_response("%04X,%04X#", dd2nex(sim_data.ra * 15), dd2nex(sim_data.dec));
 
         if (!send_command("E", 1, response, 10, true, true))
             return false;
@@ -748,10 +750,10 @@ bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset, bool 
     if (cmd[7] > 50)
         cmd[7] -= 256;
 
-//    if (utc_offset < 0)
-//        cmd[7] = 256 - ((uint16_t)fabs(utc_offset));
-//    else
-//        cmd[7] = ((uint16_t)fabs(utc_offset));
+    //    if (utc_offset < 0)
+    //        cmd[7] = 256 - ((uint16_t)fabs(utc_offset));
+    //    else
+    //        cmd[7] = ((uint16_t)fabs(utc_offset));
 
     // Always assume standard time, no dst
     cmd[8] = 0;
@@ -929,14 +931,14 @@ bool CelestronDriver::set_track_rate(CELESTRON_TRACK_RATE rate, CELESTRON_TRACK_
     char cmd;
     switch (mode)
     {
-    case CTM_EQN:
-        cmd = MC_SET_POS_GUIDERATE;
-        break;
-    case CTM_EQS:
-        cmd = MC_SET_NEG_GUIDERATE;
-        break;
-    default:
-        return false;
+        case CTM_EQN:
+            cmd = MC_SET_POS_GUIDERATE;
+            break;
+        case CTM_EQS:
+            cmd = MC_SET_NEG_GUIDERATE;
+            break;
+        default:
+            return false;
     }
     char payload[] = {static_cast<char>(rate >> 8 & 0xff), static_cast<char>(rate & 0xff)};
     return send_passthrough(CELESTRON_DEV_RA, cmd, payload, 2, response, 0);
@@ -952,21 +954,21 @@ bool CelestronDriver::foc_exists()
     size_t rlen = send_passthrough(CELESTRON_DEV_FOC, GET_VER, nullptr, 0, response, 4);
     switch (rlen)
     {
-    case 2:
-    case 3:
-        snprintf(focVersion, 15, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
-        vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16);
-        break;
-    case 4:
-    case 5:
-        snprintf(focVersion, 15, "%d.%02d.%d",
-                static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]),
-                static_cast<int>((static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3])));
-        vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
-        break;
-    default:
-        LOGF_DEBUG("No focuser found, %i", echo());
-        return false;
+        case 2:
+        case 3:
+            snprintf(focVersion, 15, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
+            vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16);
+            break;
+        case 4:
+        case 5:
+            snprintf(focVersion, 15, "%d.%02d.%d",
+                     static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]),
+                     static_cast<int>((static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3])));
+            vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
+            break;
+        default:
+            LOGF_DEBUG("No focuser found, %i", echo());
+            return false;
     }
 
     LOGF_DEBUG("Focuser Version %s, exists %s", focVersion, vernum != 0 ? "true" : "false");
@@ -998,7 +1000,7 @@ int CelestronDriver::foc_position()
     return -1;
 }
 
-bool CelestronDriver::foc_move(uint steps)
+bool CelestronDriver::foc_move(uint32_t steps)
 {
     sim_data.foc_target = steps;
     LOGF_DEBUG("Focus move %d", steps);
@@ -1019,7 +1021,7 @@ bool CelestronDriver::foc_moving()
 
 bool CelestronDriver::foc_limits(int * low, int * high)
 {
-    set_sim_response("%c%c%c%c%c%c%c%c#", 0, 0,0x07,0xd0,0,0,0x9C,0x40);   // 2000, 40000
+    set_sim_response("%c%c%c%c%c%c%c%c#", 0, 0, 0x07, 0xd0, 0, 0, 0x9C, 0x40); // 2000, 40000
 
     size_t rlen = send_passthrough(CELESTRON_DEV_FOC, FOC_GET_HS_POSITIONS, nullptr, 0, response, 8);
     if (rlen < 8)

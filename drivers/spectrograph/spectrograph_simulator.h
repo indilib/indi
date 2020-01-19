@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "indidetector.h"
+#include "indispectrograph.h"
 #include "stream/streammanager.h"
 
 enum Settings
@@ -29,7 +29,7 @@ enum Settings
     BANDWIDTH_N,
     NUM_SETTINGS
 };
-class RadioSim : public INDI::Detector
+class RadioSim : public INDI::Spectrograph
 {
     public:
         RadioSim();
@@ -44,9 +44,9 @@ class RadioSim : public INDI::Detector
         bool updateProperties() override;
 
         // Detector specific functions
-        bool StartCapture(float duration) override;
-        bool CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain) override;
-        bool AbortCapture() override;
+        bool StartIntegration(float duration);
+        bool paramsUpdated(float sr, float freq, float bps, float bw, float gain);
+        bool AbortIntegration() override;
         void TimerHit() override;
 
         bool StartStreaming() override;
@@ -60,7 +60,7 @@ class RadioSim : public INDI::Detector
         float CalcTimeLeft();
         void setupParams();
         struct timeval CapStart;
-        float CaptureRequest;
+        float IntegrationRequest;
 
         int streamPredicate;
         pthread_t primary_thread;
