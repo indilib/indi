@@ -38,11 +38,6 @@
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
 
-extern const char *CAPTURE_SETTINGS_TAB;
-extern const char *CAPTURE_INFO_TAB;
-extern const char *GUIDE_HEAD_TAB;
-
-
 /**
  * \class INDI::Sensor
  * \brief Class to provide general functionality of Monodimensional Sensor.
@@ -88,7 +83,8 @@ class SensorInterface : public DefaultDevice
         void processProperties(const char *dev);
         bool processText(const char *dev, const char *name, char *texts[], char *names[], int n);
         bool processSwitch(const char *dev, const char *name, ISState states[], char *names[], int n);
-        bool processBlob(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+        bool processBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                         char *formats[], char *names[], int n);
         bool processSnoopDevice(XMLEle *root);
 
         /**
@@ -284,6 +280,10 @@ class SensorInterface : public DefaultDevice
 
 protected:
 
+        const char *INTEGRATION_SETTINGS_TAB;
+        const char *INTEGRATION_INFO_TAB;
+        const char *GUIDE_HEAD_TAB;
+
         /**
          * @return True if Sensor has mechanical or electronic shutter. False otherwise.
          */
@@ -345,7 +345,7 @@ protected:
         ISwitchVectorProperty AbortIntegrationSP;
         ISwitch AbortIntegrationS[1];
 
-        IBLOB FitsB[3];
+        IBLOB FitsB;
         IBLOBVectorProperty FitsBP;
 
         //  We are going to snoop these from a telescope
@@ -438,7 +438,7 @@ protected:
         timespec startIntegrationTime;
         char integrationExtention[MAXINDIBLOBFMT];
 
-        bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration, int blobindex);
+        bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration);
         void getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
         /**
@@ -461,7 +461,8 @@ protected:
          */
         virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
 
-        void* sendFITS(int bIndex,  uint8_t* buf, int len);
+        bool IntegrationCompletePrivate();
+        void* sendFITS(uint8_t* buf, int len);
         /** A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
 };

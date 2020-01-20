@@ -1568,6 +1568,12 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
+bool CCD::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+           char *formats[], char *names[], int n)
+{
+    return DefaultDevice::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+}
+
 int CCD::SetTemperature(double temperature)
 {
     INDI_UNUSED(temperature);

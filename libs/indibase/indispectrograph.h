@@ -38,10 +38,6 @@
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
 
-extern const char *CAPTURE_SETTINGS_TAB;
-extern const char *CAPTURE_INFO_TAB;
-extern const char *GUIDE_HEAD_TAB;
-
 
 /**
  * \class INDI::Spectrograph
@@ -80,6 +76,7 @@ class Spectrograph : public SensorInterface
         bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
         bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
         bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
         bool ISSnoopDevice(XMLEle *root);
 
         /**
@@ -173,8 +170,6 @@ class Spectrograph : public SensorInterface
          * \param gain Vector gain.
          */
          virtual void setParams(double samplerate, double freq, double bps, double bw, double gain);
-
-        virtual bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
         /**
          * @brief GetSensorCapability returns the Sensor capabilities.
