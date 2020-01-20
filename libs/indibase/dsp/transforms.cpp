@@ -44,6 +44,7 @@ Transforms::~Transforms()
 uint8_t* Transforms::Callback(uint8_t *buf, int dims, int *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
+    free(buf);
     Spectrum(4096);
     return getStream();
 }

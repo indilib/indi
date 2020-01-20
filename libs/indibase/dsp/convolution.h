@@ -36,10 +36,16 @@ protected:
     Convolution(INDI::DefaultDevice *dev);
     virtual ~Convolution();
 
+    virtual void Activated();
+    virtual void Deactivated();
+
 private:
     dsp_stream_p stream;
     dsp_stream_p matrix;
     uint8_t *Callback(uint8_t *out, int dims, int *sizes, int bits_per_sample);
+
+    IBLOBVectorProperty DownloadBP;
+    IBLOB DownloadB;
 
     void Convolute();
     void setStream(void *buf, int dims, int *sizes, int bits_per_sample);
