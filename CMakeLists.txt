@@ -45,7 +45,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 8)
-set(CMAKE_INDI_VERSION_RELEASE 3)
+set(CMAKE_INDI_VERSION_RELEASE 4)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -566,6 +566,23 @@ add_executable(indi_lx200basic ${lx200basic_SRC})
 target_link_libraries(indi_lx200basic indidriver)
 
 install(TARGETS indi_lx200basic RUNTIME DESTINATION bin)
+
+#################################################################################
+
+########### LX200 TeenAstro #############
+SET(lx200_TeenAstro_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_TeenAstro.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(lx200_TeenAstro lx200_TeenAstro_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_lx200_TeenAstro ${lx200_TeenAstro_SRC})
+
+target_link_libraries(indi_lx200_TeenAstro indidriver)
+
+install(TARGETS indi_lx200_TeenAstro RUNTIME DESTINATION bin)
 
 #################################################################################
 
