@@ -131,6 +131,7 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
         virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
         virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
         virtual bool ISSnoopDevice(XMLEle * root);
 
         static void wsThreadHelper(void * context);

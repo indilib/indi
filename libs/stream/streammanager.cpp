@@ -24,7 +24,7 @@
 
 #include "streammanager.h"
 #include "indiccd.h"
-#include "indispectrograph.h"
+#include "indisensorinterface.h"
 #include "indilogger.h"
 
 #include <cerrno>
@@ -272,7 +272,7 @@ void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double d
 {
     std::unique_lock<std::mutex> guard((currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) ?
                                        dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock :
-                                       dynamic_cast<INDI::Spectrograph*>(currentDevice)->detectorBufferLock);
+                                       dynamic_cast<INDI::SensorInterface*>(currentDevice)->detectorBufferLock);
 
     // For streaming, downscale 16 to 8
     if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
@@ -287,7 +287,7 @@ void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double d
             }
             else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
             {
-                npixels = nbytes * 8 / dynamic_cast<INDI::Spectrograph*>(currentDevice)->getBPS();
+                npixels = nbytes * 8 / dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBPS();
             }
             // Allocale new buffer if size changes
             if (downscaleBufferSize != npixels)
@@ -675,7 +675,7 @@ bool StreamManager::startRecording()
     }
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
     {
-        if (m_isStreaming == false && dynamic_cast<INDI::Spectrograph*>(currentDevice)->StartStreaming() == false)
+        if (m_isStreaming == false && dynamic_cast<INDI::SensorInterface*>(currentDevice)->StartStreaming() == false)
         {
             LOG_ERROR("Failed to start recording.");
             RecordStreamSP.s = IPS_ALERT;
@@ -700,7 +700,7 @@ bool StreamManager::stopRecording(bool force)
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
     {
         if (!m_isStreaming)
-            dynamic_cast<INDI::Spectrograph*>(currentDevice)->StopStreaming();
+            dynamic_cast<INDI::SensorInterface*>(currentDevice)->StopStreaming();
 
     }
 
@@ -914,7 +914,7 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
         }
         else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
         {
-            subW = dynamic_cast<INDI::Spectrograph*>(currentDevice)->getBufferSize() * 8 / dynamic_cast<INDI::Spectrograph*>(currentDevice)->getBPS();
+            subW = dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBufferSize() * 8 / dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBPS();
             subH = 1;
         }
 
@@ -978,7 +978,7 @@ bool StreamManager::setStream(bool enable)
             }
             else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
             {
-                if (dynamic_cast<INDI::Spectrograph*>(currentDevice)->StartStreaming() == false)
+                if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->StartStreaming() == false)
                 {
                     IUResetSwitch(&StreamSP);
                     StreamS[1].s = ISS_ON;
@@ -1020,7 +1020,7 @@ bool StreamManager::setStream(bool enable)
                 }
                 else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
                 {
-                    if (dynamic_cast<INDI::Spectrograph*>(currentDevice)->StopStreaming() == false)
+                    if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->StopStreaming() == false)
                     {
                         StreamSP.s = IPS_ALERT;
                         LOG_ERROR("Failed to stop streaming.");
@@ -1115,7 +1115,7 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     {
         subX = 0;
         subY = 0;
-        subW = dynamic_cast<INDI::Spectrograph*>(currentDevice)->getBufferSize() * 8 / dynamic_cast<INDI::Spectrograph*>(currentDevice)->getBPS();
+        subW = dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBufferSize() * 8 / dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBPS();
         subH = 1;
     }
 
@@ -1187,18 +1187,18 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         }
         else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
         {
-            if (encoder->upload(imageB, downscaleBuffer, nbytes, false))//dynamic_cast<INDI::Spectrograph*>(currentDevice)->isCompressed())
+            if (encoder->upload(imageB, downscaleBuffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed())
             {
                 /*
-                            if (dynamic_cast<INDI::Spectrograph*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::Spectrograph*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
+                            if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::SensorInterface*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
                             {
                                 if (m_Format != ".stream")
                                 {
                                     m_Format = ".stream";
-                                    dynamic_cast<INDI::Spectrograph*>(currentDevice)->wsServer.send_text(m_Format);
+                                    dynamic_cast<INDI::SensorInterface*>(currentDevice)->wsServer.send_text(m_Format);
                                 }
 
-                                dynamic_cast<INDI::Spectrograph*>(currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
+                                dynamic_cast<INDI::SensorInterface*>(currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
                                 return true;
                             }
                 */
@@ -1275,18 +1275,18 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     }
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
     {
-        if (encoder->upload(imageB, buffer, nbytes, false))//dynamic_cast<INDI::Spectrograph*>(currentDevice)->isCompressed()))
+        if (encoder->upload(imageB, buffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed()))
         {
             /*
-                        if (dynamic_cast<INDI::Spectrograph*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::Spectrograph*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
+                        if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::SensorInterface*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
                         {
                             if (m_Format != ".stream")
                             {
                                 m_Format = ".stream";
-                                dynamic_cast<INDI::Spectrograph*>(currentDevice)->wsServer.send_text(m_Format);
+                                dynamic_cast<INDI::SensorInterface*>(currentDevice)->wsServer.send_text(m_Format);
                             }
 
-                            dynamic_cast<INDI::Spectrograph*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
+                            dynamic_cast<INDI::SensorInterface*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
                             return true;
                         }
             */
