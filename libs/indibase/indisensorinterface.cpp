@@ -433,7 +433,11 @@ bool SensorInterface::initProperties()
     }
 
     IUFillBLOB(&FitsB, "DATA", "Sensor Data Blob", "");
-    IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), "SENSOR", "Integration Data", MAIN_CONTROL_TAB,
+    ctr ++;
+
+    if(ctr > 0)
+    {
+        IUFillBLOBVector(&FitsBP, &FitsB, ctr, getDeviceName(), "SENSOR", "Integration Data", INTEGRATION_INFO_TAB,
                          IP_RO, 60, IPS_IDLE);
 
     /**********************************************/
@@ -641,7 +645,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(integrationTime), "Total Integration Time (s)", &status);
 
     if (HasCooler())
-        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureN[0].value), "Sensor Temperature (Celsius)", &status);
+        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureN[0].value), "PrimarySensorInterface Temperature (Celsius)", &status);
 
 #ifdef WITH_MINMAX
     if (getNAxis() == 2)

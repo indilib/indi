@@ -280,6 +280,10 @@ class SensorInterface : public DefaultDevice
 
 protected:
 
+        const char *INTEGRATION_SETTINGS_TAB;
+        const char *INTEGRATION_INFO_TAB;
+        const char *GUIDE_HEAD_TAB;
+
         /**
          * @return True if Sensor has mechanical or electronic shutter. False otherwise.
          */

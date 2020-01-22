@@ -108,6 +108,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float CalcTimeLeft(timeval, float);
         bool SetupParms();
 
+        // Turns on/off Bayer RGB simulation.
+        void setRGB(bool onOff);
+
         float TemperatureRequest { 0 };
 
         float ExposureRequest { 0 };
@@ -139,6 +142,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float OAGoffset { 0 };
         float rotationCW { 0 };
         float TimeFactor { 1 };
+
+        bool simulateRGB { false };
+
         //  our zero point calcs used for drawing stars
         float k { 0 };
         float z { 0 };
@@ -172,6 +178,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         INumberVectorProperty *SimulatorSettingsNV;
         INumber SimulatorSettingsN[14];
+
+        ISwitchVectorProperty SimulateRgbSP;
+        ISwitch SimulateRgbS[2];
 
         ISwitch TimeFactorS[3];
         ISwitchVectorProperty *TimeFactorSV;

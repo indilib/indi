@@ -180,6 +180,12 @@ bool CCDSim::initProperties()
     IUFillNumberVector(SimulatorSettingsNV, SimulatorSettingsN, 14, getDeviceName(), "SIMULATOR_SETTINGS",
                        "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
 
+    // RGB Simulation
+    IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
+    IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
+    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
+                       "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     IUFillSwitch(&TimeFactorS[0], "1X", "Actual Time", ISS_ON);
     IUFillSwitch(&TimeFactorS[1], "10X", "10x", ISS_OFF);
     IUFillSwitch(&TimeFactorS[2], "100X", "100x", ISS_OFF);
@@ -229,6 +235,10 @@ bool CCDSim::initProperties()
 
     SetCCDCapability(cap);
 
+    // This should be called after the initial SetCCDCapability (above)
+    // as it modifies the capabilities.
+    setRGB(simulateRGB);
+
     INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
@@ -245,6 +255,21 @@ bool CCDSim::initProperties()
     return true;
 }
 
+void CCDSim::setRGB(bool onOff)
+{
+    if (onOff)
+    {
+        SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
+        IUSaveText(&BayerT[0], "0");
+        IUSaveText(&BayerT[1], "0");
+        IUSaveText(&BayerT[2], "RGGB");
+    }
+    else
+    {
+        SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+    }
+}
+
 void CCDSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
@@ -252,6 +277,7 @@ void CCDSim::ISGetProperties(const char * dev)
     defineNumber(SimulatorSettingsNV);
     defineSwitch(TimeFactorSV);
     defineNumber(&EqPENP);
+    defineSwitch(&SimulateRgbSP);
 }
 
 bool CCDSim::updateProperties()
@@ -1163,6 +1189,29 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
         }
     }
 
+    if (!strcmp(name, SimulateRgbSP.name))
+    {
+        IUUpdateSwitch(&SimulateRgbSP, states, names, n);
+        int index = IUFindOnSwitchIndex(&SimulateRgbSP);
+        if (index == -1)
+        {
+            SimulateRgbSP.s = IPS_ALERT;
+            LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
+            IDSetSwitch(&SimulateRgbSP, nullptr);
+            return false;
+        }
+
+        simulateRGB = index == 0;
+        setRGB(simulateRGB);
+
+        SimulateRgbS[0].s = simulateRGB ? ISS_ON : ISS_OFF;
+        SimulateRgbS[1].s = simulateRGB ? ISS_OFF : ISS_ON;
+        SimulateRgbSP.s   = IPS_OK;
+        IDSetSwitch(&SimulateRgbSP, nullptr);
+
+        return true;
+    }
+
     if (strcmp(name, CoolerSP.name) == 0)
     {
         IUUpdateSwitch(&CoolerSP, states, names, n);
@@ -1262,6 +1311,9 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Gain
     IUSaveConfigNumber(fp, &GainNP);
+
+    // RGB
+    IUSaveConfigSwitch(fp, &SimulateRgbSP);
 
     return true;
 }

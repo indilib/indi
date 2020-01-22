@@ -1190,7 +1190,7 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
             if (encoder->upload(imageB, downscaleBuffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed())
             {
                 /*
-                            if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::SensorInterface*>(currentDevice)->WebSocketS[SensorInterface::WEBSOCKET_ENABLED].s == ISS_ON)
+                            if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::SensorInterface*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
                             {
                                 if (m_Format != ".stream")
                                 {
@@ -1278,7 +1278,7 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         if (encoder->upload(imageB, buffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed()))
         {
             /*
-                        if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::SensorInterface*>(currentDevice)->WebSocketS[SensorInterface::WEBSOCKET_ENABLED].s == ISS_ON)
+                        if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::SensorInterface*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
                         {
                             if (m_Format != ".stream")
                             {
