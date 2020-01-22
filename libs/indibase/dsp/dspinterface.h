@@ -76,7 +76,7 @@ class Interface
         INumber EqN[2];
 
         ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[5] {};
+        IText ActiveDeviceT[4] {};
 
         Interface(INDI::DefaultDevice *dev, Type type = DSP_NONE, const char *name = "DSP_PLUGIN", const char *label = "DSP Plugin");
         virtual ~Interface();

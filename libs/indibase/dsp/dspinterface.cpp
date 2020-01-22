@@ -78,7 +78,7 @@ const char *DSP_TAB = "Signal Processing";
 
 Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, const char *label) : m_Device(dev), m_Name(name), m_Label(label), m_Type(type)
 {
-    strcpy (processedFileExtension, "fits");
+    strncpy (processedFileExtension, "fits", MAXINDIFORMAT);
     IUFillSwitch(&ActivateS[0], "DSP_ACTIVATE_ON", "Activate", ISState::ISS_OFF);
     IUFillSwitch(&ActivateS[1], "DSP_ACTIVATE_OFF", "Deactivate", ISState::ISS_ON);
     IUFillSwitchVector(&ActivateSP, ActivateS, 2, dev->getDeviceName(), "DSP_ACTIVATE", "Activate", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
@@ -90,8 +90,8 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[1].text, "TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
-    IDSnoopDevice(ActiveDeviceT[3].text, "FILTER_NAME");
-    IDSnoopDevice(ActiveDeviceT[4].text, "SKY_QUALITY");
+    IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
+    IDSnoopDevice(ActiveDeviceT[3].text, "SKY_QUALITY");
 }
 
 Interface::~Interface()
@@ -105,6 +105,7 @@ const char *Interface::getDeviceName()
 
 void Interface::ISGetProperties(const char *dev)
 {
+    INDI_UNUSED(dev);
     m_Device->defineSwitch(&ActivateSP);
     m_Device->defineBLOB(&FitsBP);
 }

@@ -92,9 +92,13 @@ bool RadioSim::Connect()
     // Let's set a timer that checks teleSpectrographs status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
     //SetTimer(POLLMS);
-    streamPredicate = 0;
-    terminateThread = false;
-    pthread_create(&primary_thread, nullptr, &streamCaptureHelper, this);
+
+    if(HasStreaming()) {
+        streamPredicate = 0;
+        terminateThread = false;
+        // Run threads
+        std::thread(&RadioSim::streamCaptureHelper, this).detach();
+    }
     SetTimer(POLLMS);
 
     return true;
@@ -107,11 +111,13 @@ bool RadioSim::Disconnect()
 {
     InIntegration = false;
     setBufferSize(1);
-    pthread_mutex_lock(&condMutex);
-    streamPredicate = 1;
-    terminateThread = true;
-    pthread_cond_signal(&cv);
-    pthread_mutex_unlock(&condMutex);
+    if(HasStreaming()) {
+        pthread_mutex_lock(&condMutex);
+        streamPredicate = 1;
+        terminateThread = true;
+        pthread_cond_signal(&cv);
+        pthread_mutex_unlock(&condMutex);
+    }
     LOG_INFO("Simulator Spectrograph disconnected successfully!");
     return true;
 }
@@ -130,18 +136,18 @@ const char *RadioSim::getDefaultName()
 bool RadioSim::initProperties()
 {
     // We set the Spectrograph capabilities
-    uint32_t cap = SENSOR_CAN_ABORT;
+    uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_STREAMING;
     SetCapability(cap);
 
     // Must init parent properties first!
     INDI::Spectrograph::initProperties();
 
     setMinMaxStep("SENSOR_INTEGRATION", "SENSOR_INTEGRATION_VALUE", 0.001, 86164.092, 0.001, false);
-    setMinMaxStep("SENSOR_SETTINGS", "SENSOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
-    setMinMaxStep("SENSOR_SETTINGS", "SENSOR_SAMPLERATE", 1.0e+6, 2.0e+6, 1, false);
-    setMinMaxStep("SENSOR_SETTINGS", "SENSOR_GAIN", 0.0, 25.0, 0.1, false);
-    setMinMaxStep("SENSOR_SETTINGS", "SENSOR_BANDWIDTH", 0, 0, 0, false);
-    setMinMaxStep("SENSOR_SETTINGS", "SENSOR_BITSPERSAMPLE", 16, 16, 0, false);
+    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
+    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_SAMPLERATE", 1.0e+6, 2.0e+6, 1, false);
+    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_GAIN", 0.0, 25.0, 0.1, false);
+    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_BANDWIDTH", 0, 0, 0, false);
+    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_BITSPERSAMPLE", 16, 16, 0, false);
     setIntegrationFileExtension("fits");
 
     // Add Debug, Simulator, and Configuration controls
@@ -175,7 +181,11 @@ bool RadioSim::updateProperties()
 void RadioSim::setupParams()
 {
     // Our Spectrograph is an 8 bit Spectrograph, 100MHz frequency 1MHz bandwidth.
-    setParams(1000000.0, 100000000.0, 16, 0.0, 25.0);
+    setFrequency(1420000000.0);
+    setSampleRate(1000000.0);
+    setBPS(16);
+    setBandwidth(0.0);
+    setGain(25.0);
 }
 
 /**************************************************************************************
@@ -200,22 +210,6 @@ bool RadioSim::StartIntegration(float duration)
     }
 
     // We're done
-    return true;
-}
-
-/**************************************************************************************
-** Client is updating capture settings
-***************************************************************************************/
-bool RadioSim::paramsUpdated(float sr, float freq, float bps, float bw, float gain)
-{
-    INDI_UNUSED(gain);
-    INDI_UNUSED(freq);
-    INDI_UNUSED(bps);
-    INDI_UNUSED(bw);
-    setBPS(16);
-    setBandwidth(100000);
-    setSampleRate(sr);
-
     return true;
 }
 
@@ -322,12 +316,7 @@ bool RadioSim::StopStreaming()
     return true;
 }
 
-void * RadioSim::streamCaptureHelper(void * context)
-{
-    return ((RadioSim *)context)->streamCapture();
-}
-
-void * RadioSim::streamCapture()
+void RadioSim::streamCaptureHelper()
 {
     struct itimerval tframe1, tframe2;
     double s1, s2, deltas;
@@ -339,8 +328,8 @@ void * RadioSim::streamCapture()
         while (streamPredicate == 0)
         {
             pthread_cond_wait(&cv, &condMutex);
-            StartIntegration(1.0 / Streamer->getTargetFPS());
         }
+        StartIntegration(1.0 / Streamer->getTargetFPS());
 
         if (terminateThread)
             break;
@@ -367,5 +356,4 @@ void * RadioSim::streamCapture()
     }
 
     pthread_mutex_unlock(&condMutex);
-    return nullptr;
 }

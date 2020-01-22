@@ -432,17 +432,15 @@ bool SensorInterface::initProperties()
                            "Integration Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     }
 
-    IUFillBLOB(&FitsB, "DATA", "Sensor Data Blob", "");
-    ctr ++;
-
-    if(ctr > 0)
-    {
-        IUFillBLOBVector(&FitsBP, &FitsB, ctr, getDeviceName(), "SENSOR", "Integration Data", INTEGRATION_INFO_TAB,
-                         IP_RO, 60, IPS_IDLE);
 
     /**********************************************/
     /************** Upload Settings ***************/
     /**********************************************/
+    // Upload Data
+    IUFillBLOB(&FitsB, "DATA", "Sensor Data Blob", "");
+
+    IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), "SENSOR", "Integration Data", MAIN_CONTROL_TAB,
+                     IP_RO, 60, IPS_IDLE);
 
     // Upload Mode
     IUFillSwitch(&UploadS[0], "UPLOAD_CLIENT", "Client", ISS_ON);
@@ -517,18 +515,19 @@ void SensorInterface::setMinMaxStep(const char *property, const char *element, d
 {
     INumberVectorProperty *vp = nullptr;
 
-    if (!strcmp(property, FramedIntegrationNP.name))
+    if (!strcmp(property, FramedIntegrationNP.name)) {
         vp = &FramedIntegrationNP;
 
-    INumber *np = IUFindNumber(vp, element);
-    if (np)
-    {
-        np->min  = min;
-        np->max  = max;
-        np->step = step;
+        INumber *np = IUFindNumber(vp, element);
+        if (np)
+        {
+            np->min  = min;
+            np->max  = max;
+            np->step = step;
 
-        if (sendToClient)
-            IUUpdateMinMax(vp);
+            if (sendToClient)
+                IUUpdateMinMax(vp);
+        }
     }
 }
 

@@ -45,13 +45,12 @@ class RadioSim : public INDI::Spectrograph
 
         // Detector specific functions
         bool StartIntegration(float duration);
-        bool paramsUpdated(float sr, float freq, float bps, float bw, float gain);
         bool AbortIntegration() override;
         void TimerHit() override;
 
         bool StartStreaming() override;
         bool StopStreaming() override;
-        static void * streamCaptureHelper(void * context);
+        void streamCaptureHelper();
         void * streamCapture();
         void grabData();
 

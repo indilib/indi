@@ -157,7 +157,11 @@ bool SimpleSpectrograph::paramsUpdated(float sr, float freq, float bps, float bw
 void SimpleSpectrograph::setupParams()
 {
     // Our Spectrograph is an 8 bit Spectrograph, 100MHz frequency 1MHz samplerate.
-    setParams(1000000.0, 100000000.0, 8, 10000.0, 1.0);
+    setFrequency(1000000.0);
+    setSampleRate(100000000.0);
+    setBPS(16);
+    setBandwidth(0.0);
+    setGain(25.0);
 }
 
 /**************************************************************************************

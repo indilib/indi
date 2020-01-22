@@ -280,10 +280,6 @@ class SensorInterface : public DefaultDevice
 
 protected:
 
-        const char *INTEGRATION_SETTINGS_TAB;
-        const char *INTEGRATION_INFO_TAB;
-        const char *GUIDE_HEAD_TAB;
-
         /**
          * @return True if Sensor has mechanical or electronic shutter. False otherwise.
          */
@@ -317,7 +313,7 @@ protected:
         }
 
         /**
-         * @brief GetSensorCapability returns the Sensor capabilities.
+         * @brief GetCapability returns the Sensor capabilities.
          */
         uint32_t GetCapability() const
         {
@@ -325,7 +321,7 @@ protected:
         }
 
         /**
-         * @brief SetSensorCapability Set the Sensor capabilities. Al fields must be initilized.
+         * @brief SetCapability Set the Sensor capabilities. Al fields must be initilized.
          * @param cap pointer to SensorCapability struct.
          */
         void SetCapability(uint32_t cap);
