@@ -107,7 +107,7 @@ bool SimpleSpectrograph::initProperties()
 
     // We set the Spectrograph capabilities
     uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_COOLER | SENSOR_HAS_SHUTTER;
-    SetSpectrographCapability(cap);
+    SetCapability(cap);
 
     // Add Debug, Simulator, and Configuration controls
     addAuxControls();

@@ -37,12 +37,11 @@ extern const char *CONNECTION_TAB;
 Convolution::Convolution(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "DSP_CONVOLUTION_PLUGIN", "Buffer Transformations Plugin")
 {
     IUFillBLOB(&DownloadB, "CONVOLUTION_DOWNLOAD", "Convolution Matrix", "");
-    IUFillBLOBVector(&DownloadBP, &FitsB, 1, m_Device->getDeviceName(), "CONVOLUTION", "Convolution Matrix Data", m_Label, IP_WO, 60, IPS_IDLE);
+    IUFillBLOBVector(&DownloadBP, &FitsB, 1, m_Device->getDeviceName(), "CONVOLUTION", "Convolution Matrix Data", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 }
 
 Convolution::~Convolution()
 {
-    m_Device->deleteProperty(DownloadBP.name);
 }
 
 void Convolution::Activated()

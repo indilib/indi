@@ -130,18 +130,18 @@ const char *RadioSim::getDefaultName()
 bool RadioSim::initProperties()
 {
     // We set the Spectrograph capabilities
-    uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_STREAMING;
-    SetSpectrographCapability(cap);
+    uint32_t cap = SENSOR_CAN_ABORT;
+    SetCapability(cap);
 
     // Must init parent properties first!
     INDI::Spectrograph::initProperties();
 
-    setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.001, 86164.092, 0.001, false);
-    setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
-    setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1.0e+6, 2.0e+6, 1, false);
-    setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_GAIN", 0.0, 25.0, 0.1, false);
-    setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BANDWIDTH", 0, 0, 0, false);
-    setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 16, 16, 0, false);
+    setMinMaxStep("SENSOR_INTEGRATION", "SENSOR_INTEGRATION_VALUE", 0.001, 86164.092, 0.001, false);
+    setMinMaxStep("SENSOR_SETTINGS", "SENSOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
+    setMinMaxStep("SENSOR_SETTINGS", "SENSOR_SAMPLERATE", 1.0e+6, 2.0e+6, 1, false);
+    setMinMaxStep("SENSOR_SETTINGS", "SENSOR_GAIN", 0.0, 25.0, 0.1, false);
+    setMinMaxStep("SENSOR_SETTINGS", "SENSOR_BANDWIDTH", 0, 0, 0, false);
+    setMinMaxStep("SENSOR_SETTINGS", "SENSOR_BITSPERSAMPLE", 16, 16, 0, false);
     setIntegrationFileExtension("fits");
 
     // Add Debug, Simulator, and Configuration controls
@@ -288,11 +288,12 @@ void RadioSim::grabData()
         InIntegration = false;
 
         uint8_t* continuum;
-        int size = getBufferSize() * 8 / abs(getBPS());
+        int size = getBufferSize();
 
         //Fill the continuum
         continuum = getBuffer();
-        WhiteNoise(continuum, size, getBPS());
+        for(int i = 0; i < size; i++)
+            continuum[i] = rand() % 255;
 
         LOG_INFO("Download complete.");
         IntegrationComplete();

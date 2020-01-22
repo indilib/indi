@@ -29,13 +29,15 @@ namespace DSP
 {
 class Transforms : public Interface
 {
-protected:
+public:
     Transforms(INDI::DefaultDevice *dev);
     virtual ~Transforms();
 
+protected:
+    uint8_t *Callback(uint8_t *out, int dims, int *sizes, int bits_per_sample);
+
 private:
     dsp_stream_p stream;
-    uint8_t *Callback(uint8_t *out, int dims, int *sizes, int bits_per_sample);
 
     void Spectrum(int n_elements);
     void Histogram(int histogram_size);

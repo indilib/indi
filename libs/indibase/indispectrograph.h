@@ -171,30 +171,15 @@ class Spectrograph : public SensorInterface
          */
          virtual void setParams(double samplerate, double freq, double bps, double bw, double gain);
 
-        /**
-         * @brief GetSensorCapability returns the Sensor capabilities.
-         */
-        uint32_t GetSpectrographCapability() const
-        {
-            return capability;
-        }
-
-        /**
-         * @brief SetSensorCapability Set the Sensor capabilities. Al fields must be initilized.
-         * @param cap pointer to SensorCapability struct.
-         */
-        void SetSpectrographCapability(uint32_t cap);
-
         typedef enum
         {
-            SPECTROGRAPH_GAIN,
+            SPECTROGRAPH_GAIN = 0,
             SPECTROGRAPH_FREQUENCY,
             SPECTROGRAPH_BANDWIDTH,
             SPECTROGRAPH_BITSPERSAMPLE,
             SPECTROGRAPH_SAMPLERATE,
             SPECTROGRAPH_CHANNEL,
             SPECTROGRAPH_ANTENNA,
-            SPECTROGRAPH_FWHM,
         } SPECTROGRAPH_INFO_INDEX;
 
         void Spectrum(void *buf, void *out, int n_elements, int size, int bits_per_sample);
@@ -208,7 +193,7 @@ private:
         double Bandwidth;
         double Gain;
         INumberVectorProperty SpectrographSettingsNP;
-        INumber SpectrographSettingsN[5];
+        INumber SpectrographSettingsN[7];
 
 };
 }

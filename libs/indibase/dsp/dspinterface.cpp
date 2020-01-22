@@ -81,30 +81,44 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
     strcpy (processedFileExtension, "fits");
     IUFillSwitch(&ActivateS[0], "DSP_ACTIVATE_ON", "Activate", ISState::ISS_OFF);
     IUFillSwitch(&ActivateS[1], "DSP_ACTIVATE_OFF", "Deactivate", ISState::ISS_ON);
-    IUFillSwitchVector(&ActivateSP, ActivateS, 2, dev->getDeviceName(), "DSP_ACTIVATE", "Activate", m_Label, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    m_Device->defineSwitch(&ActivateSP);
+    IUFillSwitchVector(&ActivateSP, ActivateS, 2, dev->getDeviceName(), "DSP_ACTIVATE", "Activate", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillBLOB(&FitsB, "DATA", "DSP Data Blob", "");
-    IUFillBLOBVector(&FitsBP, &FitsB, 1, m_Device->getDeviceName(), "DSP", "Processed Data", m_Label, IP_RO, 60, IPS_IDLE);
+    IUFillBLOBVector(&FitsBP, &FitsB, 1, m_Device->getDeviceName(), "DSP", "Processed Data", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Snoop properties of interest
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
+    IDSnoopDevice(ActiveDeviceT[1].text, "TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
-    IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
-    IDSnoopDevice(ActiveDeviceT[3].text, "SKY_QUALITY");
-    // Default callback
-    registerCallback([](uint8_t*, int, int*, int) { return nullptr; });
+    IDSnoopDevice(ActiveDeviceT[3].text, "FILTER_NAME");
+    IDSnoopDevice(ActiveDeviceT[4].text, "SKY_QUALITY");
 }
 
 Interface::~Interface()
 {
-    m_Device->deleteProperty(FitsBP.name);
 }
 
 const char *Interface::getDeviceName()
 {
     return m_Device->getDeviceName();
+}
+
+void Interface::ISGetProperties(const char *dev)
+{
+    m_Device->defineSwitch(&ActivateSP);
+    m_Device->defineBLOB(&FitsBP);
+}
+
+bool Interface::updateProperties()
+{
+    if (m_Device->isConnected()) {
+        m_Device->defineSwitch(&ActivateSP);
+        m_Device->defineBLOB(&FitsBP);
+    } else {
+        m_Device->deleteProperty(ActivateSP.name);
+        m_Device->deleteProperty(FitsBP.name);
+    }
+    return true;
 }
 
 bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -210,6 +224,15 @@ bool Interface::ISSnoopDevice(XMLEle *root)
     }
 
     return true;
+}
+
+uint8_t* Interface::Callback(unsigned char* buf, int ndims, int* dims, int bits_per_sample)
+{
+    INDI_UNUSED(buf);
+    INDI_UNUSED(ndims);
+    INDI_UNUSED(dims);
+    INDI_UNUSED(bits_per_sample);
+    return nullptr;
 }
 
 bool Interface::processBLOB(unsigned char* buf, int ndims, int* dims, int bits_per_sample)
@@ -560,11 +583,6 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
     DEBUG(INDI::Logger::DBG_DEBUG, "Upload complete");
 
     return true;
-}
-
-void Interface::registerCallback(std::function<uint8_t*(uint8_t*, int, int*, int)> callback)
-{
-    Callback = callback;
 }
 
 void Interface::getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp)

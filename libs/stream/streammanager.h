@@ -91,7 +91,7 @@ namespace INDI
 {
 
 class CCD;
-class Detector;
+class SensorInterface;
 
 class StreamManager
 {

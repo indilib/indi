@@ -29,20 +29,20 @@ namespace DSP
 {
 class Convolution : public Interface
 {
-  public:
-    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+public:
+    Convolution(INDI::DefaultDevice *dev);
+    ~Convolution();
+    bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
 
 protected:
-    Convolution(INDI::DefaultDevice *dev);
-    virtual ~Convolution();
+    void Activated();
+    void Deactivated();
 
-    virtual void Activated();
-    virtual void Deactivated();
+    uint8_t *Callback(uint8_t *out, int dims, int *sizes, int bits_per_sample);
 
 private:
     dsp_stream_p stream;
     dsp_stream_p matrix;
-    uint8_t *Callback(uint8_t *out, int dims, int *sizes, int bits_per_sample);
 
     IBLOBVectorProperty DownloadBP;
     IBLOB DownloadB;

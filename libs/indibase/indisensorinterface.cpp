@@ -107,7 +107,7 @@ SensorInterface::~SensorInterface()
 
 bool SensorInterface::updateProperties()
 {
-    //IDLog("PrimarySensorInterface UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
+    //IDLog("Sensor UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
         defineNumber(&FramedIntegrationNP);
@@ -163,6 +163,7 @@ void SensorInterface::processProperties(const char *dev)
 
     if (HasStreaming())
         Streamer->ISGetProperties(dev);
+
 }
 
 bool SensorInterface::processSnoopDevice(XMLEle *root)
@@ -299,7 +300,7 @@ bool SensorInterface::processNumber(const char *dev, const char *name, double va
             return true;
         }
 
-        // PrimarySensorInterface TEMPERATURE:
+        // Sensor TEMPERATURE:
         if (!strcmp(name, TemperatureNP.name))
         {
             if (values[0] < TemperatureN[0].min || values[0] > TemperatureN[0].max)
@@ -409,7 +410,7 @@ bool SensorInterface::initProperties()
 {
     INDI::DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
-    // PrimarySensorInterface Temperature
+    // Sensor Temperature
     IUFillNumber(&TemperatureN[0], "SENSOR_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "SENSOR_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
@@ -418,12 +419,12 @@ bool SensorInterface::initProperties()
     /**************** Primary Device ****************/
     /**********************************************/
 
-    // PrimarySensorInterface Integration
+    // Sensor Integration
     IUFillNumber(&FramedIntegrationN[0], "SENSOR_INTEGRATION_VALUE", "Time (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
     IUFillNumberVector(&FramedIntegrationNP, FramedIntegrationN, 1, getDeviceName(), "SENSOR_INTEGRATION",
                        "Integration", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    // PrimarySensorInterface Abort
+    // Sensor Abort
     if(CanAbort())
     {
         IUFillSwitch(&AbortIntegrationS[0], "ABORT", "Abort", ISS_OFF);
@@ -431,17 +432,9 @@ bool SensorInterface::initProperties()
                            "Integration Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     }
 
-    // PrimarySensorInterface Device Continuum Blob
-    int ctr = 0;
-
     IUFillBLOB(&FitsB, "DATA", "Sensor Data Blob", "");
-    ctr ++;
-
-    if(ctr > 0)
-    {
-        IUFillBLOBVector(&FitsBP, &FitsB, ctr, getDeviceName(), "SENSOR", "Integration Data", INTEGRATION_INFO_TAB,
+    IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), "SENSOR", "Integration Data", MAIN_CONTROL_TAB,
                          IP_RO, 60, IPS_IDLE);
-    }
 
     /**********************************************/
     /************** Upload Settings ***************/
@@ -481,7 +474,7 @@ bool SensorInterface::initProperties()
     // Snooped Devices
     IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
     IUFillText(&ActiveDeviceT[1], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
-    IUFillText(&ActiveDeviceT[2], "ACTIVE_FILTER", "Filter", "PrimarySensorInterface Simulator");
+    IUFillText(&ActiveDeviceT[2], "ACTIVE_FILTER", "Filter", "Filter Simulator");
     IUFillText(&ActiveDeviceT[3], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 4, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
@@ -502,7 +495,7 @@ bool SensorInterface::initProperties()
     return true;
 }
 
-void SensorInterface::SetSensorCapability(uint32_t cap)
+void SensorInterface::SetCapability(uint32_t cap)
 {
     capability = cap;
 
@@ -626,7 +619,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 
     // SENSOR
     strncpy(fitsString, getDeviceName(), MAXINDIDEVICE);
-    fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "PrimarySensorInterface Name", &status);
+    fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "Sensor Name", &status);
 
     // Telescope
     strncpy(fitsString, ActiveDeviceT[0].text, MAXINDIDEVICE);
@@ -648,7 +641,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(integrationTime), "Total Integration Time (s)", &status);
 
     if (HasCooler())
-        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureN[0].value), "PrimarySensorInterface Temperature (Celsius)", &status);
+        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureN[0].value), "Sensor Temperature (Celsius)", &status);
 
 #ifdef WITH_MINMAX
     if (getNAxis() == 2)
@@ -918,7 +911,7 @@ bool SensorInterface::IntegrationCompletePrivate()
             FramedIntegrationNP.s = IPS_BUSY;
         else
         {
-            DEBUG(Logger::DBG_DEBUG, "Autoloop: PrimarySensorInterface Integration Error!");
+            DEBUG(Logger::DBG_DEBUG, "Autoloop: Sensor Integration Error!");
             FramedIntegrationNP.s = IPS_ALERT;
         }
 

@@ -42,12 +42,14 @@ enum Type {
 class Interface
 {
     public:
+        virtual void ISGetProperties(const char *dev);
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
         virtual bool ISSnoopDevice(XMLEle *root);
         virtual bool saveConfigItems(FILE *fp);
+        virtual bool updateProperties();
 
         bool processBLOB(uint8_t* buf, int ndims, int* dims, int bits_per_sample);
 
@@ -61,6 +63,8 @@ class Interface
         virtual void Activated();
         virtual void Deactivated();
 
+        virtual uint8_t* Callback(uint8_t* buf, int ndims, int* dims, int bits_per_sample);
+
         IBLOBVectorProperty FitsBP;
         IBLOB FitsB;
 
@@ -72,20 +76,19 @@ class Interface
         INumber EqN[2];
 
         ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[4] {};
+        IText ActiveDeviceT[5] {};
 
         Interface(INDI::DefaultDevice *dev, Type type = DSP_NONE, const char *name = "DSP_PLUGIN", const char *label = "DSP Plugin");
         virtual ~Interface();
 
         const char *getDeviceName();
-        std::function<uint8_t*(uint8_t*, int ndims, int*, int)> Callback;
         INDI::DefaultDevice *m_Device {  nullptr };
         const char *m_Name {  nullptr };
         const char *m_Label {  nullptr };
         DSP::Type m_Type {  DSP_NONE };
 
     private:
-                double primaryFocalLength, primaryAperture;
+        double primaryFocalLength, primaryAperture;
         double RA, Dec;
         double Lat, Lon, El;
         double MPSAS;
@@ -99,7 +102,6 @@ class Interface
         void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
         void *sendFITS(uint8_t *buf, int len, int bits_per_sample);
         bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration, const char* format);
-        void registerCallback(std::function<uint8_t*(uint8_t*, int ndims, int*, int)> callback);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
         void getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp);
 };
