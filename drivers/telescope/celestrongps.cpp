@@ -53,6 +53,9 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 static std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
+// this is to help find out if we are getting commands before we are connected
+static bool connected = false;
+
 void ISGetProperties(const char *dev)
 {
     telescope->ISGetProperties(dev);
@@ -1015,6 +1018,7 @@ bool CelestronGPS::Handshake()
 {
     driver.set_device(getDeviceName());
     driver.set_port_fd(PortFD);
+    connected = false;
 
     if (isSimulation())
     {
@@ -1030,6 +1034,7 @@ bool CelestronGPS::Handshake()
         return false;
     }
 
+    connected = true;
     return true;
 }
 
@@ -1431,12 +1436,27 @@ void CelestronGPS::simulationTriggered(bool enable)
 
 bool CelestronGPS::updateLocation(double latitude, double longitude, double elevation)
 {
+    if (!connected)
+    {
+        LOG_DEBUG("updateLocation called before we are connected");
+        return false;
+    }
+
     if (!checkMinVersion(2.3, "updating location"))
         return false;
 
     bool isAligned;
-    if (!driver.check_aligned(&isAligned) || isAligned)
+    if (!driver.check_aligned(&isAligned))
+    {
+        LOG_INFO("Update location - check_aligned failed");
         return false;
+    }
+
+    if (isAligned)
+    {
+        LOG_INFO("UpdateLocation not allowed when mount is aligned");
+        return false;
+    }
 
     LOGF_DEBUG("Update location %8.3f, %8.3f, %4.0f", latitude, longitude, elevation);
 
@@ -1445,13 +1465,27 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 
 bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 {
+    if (!connected)
+    {
+        LOG_DEBUG("updateTime called before we are connected");
+        return false;
+    }
+
     if (!checkMinVersion(2.3, "updating time"))
         return false;
 
     // setting time on StarSense seems to make it not aligned
     bool isAligned;
-    if (!driver.check_aligned(&isAligned) || isAligned)
+    if (!driver.check_aligned(&isAligned))
+    {
+        LOG_INFO("UpdateTime - check_aligned failed");
         return false;
+    }
+    if (isAligned)
+    {
+        LOG_INFO("Update time not allowed when mount is aligned");
+        return false;
+    }
 
     // starsense HC doesn't seem to support the precise time setting
     bool precise = fwInfo.controllerVersion >= 5.28;
