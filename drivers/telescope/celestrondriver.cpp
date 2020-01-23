@@ -597,7 +597,8 @@ bool CelestronDriver::set_guide_rate(CELESTRON_AXIS axis, uint8_t rate)
         sim_dec_guide_rate = rate;
         break;
     }
-    char payload[] = { rate };
+    char payload[1];
+    payload[0] = rate;
     set_sim_response("#");
     return send_passthrough(dev, MC_SET_AUTOGUIDE_RATE, payload, 1, response, 0);
 }
@@ -1203,7 +1204,7 @@ bool CelestronDriver::isPecAtIndex(bool force)
     if (rlen < 1)
         return false;
 
-    bool indexed = (response[0] == 0xFF);
+    bool indexed = (response[0] == '\xFF');
     // update the local PEC state
     if (indexed && pecState <= PEC_STATE::PEC_INDEXED)
     {
@@ -1333,7 +1334,7 @@ int CelestronDriver::getPecValue(size_t index)
         return 0;
 
     // make result signed
-    return response[0] <= 127 ? response[0] : -256 + response[0];
+    return response[0] <= '\127' ? response[0] : -256 + response[0];
 }
 
 bool CelestronDriver::setPecValue(size_t index, int data)
