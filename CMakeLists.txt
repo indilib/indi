@@ -425,6 +425,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp
     #${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/ttybase.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/manager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/dspinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/transforms.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/convolution.cpp
@@ -1825,6 +1826,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/connectionplugins COMPONENT Devel)
 
     install( FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/manager.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/dspinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/transforms.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/convolution.h

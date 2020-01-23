@@ -200,7 +200,7 @@ bool RadioSim::ISNewNumber(const char *dev, const char *name, double values[], c
 /**************************************************************************************
 ** Client is asking us to start an exposure
 ***************************************************************************************/
-bool RadioSim::StartIntegration(float duration)
+bool RadioSim::StartIntegration(double duration)
 {
     IntegrationRequest = duration;
     AbortIntegration();
@@ -351,7 +351,6 @@ void RadioSim::streamCaptureHelper()
         grabData();
         getitimer(ITIMER_REAL, &tframe1);
 
-        s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
         s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
         deltas = fabs(s2 - s1);
 
@@ -360,6 +359,8 @@ void RadioSim::streamCaptureHelper()
 
         uint32_t size = getBufferSize();
         Streamer->newFrame(getBuffer(), size);
+
+        s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
 
         getitimer(ITIMER_REAL, &tframe2);
     }

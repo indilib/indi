@@ -31,7 +31,6 @@
 
 namespace DSP
 {
-extern const char *CONNECTION_TAB;
 
 Transforms::Transforms(INDI::DefaultDevice *dev) : Interface(dev, DSP_TRANSFORMATIONS, "DSP_TRANSFORMATIONS_PLUGIN", "Buffer Transformations Plugin")
 {

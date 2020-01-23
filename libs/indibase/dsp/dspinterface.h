@@ -38,7 +38,7 @@ enum Type {
     DSP_TRANSFORMATIONS,
     DSP_CONVOLUTION,
 };
-
+extern const char *DSP_TAB;
 class Interface
 {
     public:
@@ -88,15 +88,14 @@ class Interface
         DSP::Type m_Type {  DSP_NONE };
 
     private:
-        double primaryFocalLength, primaryAperture;
-        double RA, Dec;
-        double Lat, Lon, El;
-        double MPSAS;
-        char processedFileName[MAXINDINAME];
-        char processedFileExtension[MAXINDIFORMAT];
         int BufferSizesQty;
         int *BufferSizes;
         int BPS;
+
+        double primaryFocalLength, primaryAperture;
+        double MPSAS;
+        char processedFileName[MAXINDINAME];
+        char processedFileExtension[MAXINDIFORMAT];
         bool processBLOBPrivate(uint8_t* buf, int ndims, int* dims, int bits_per_sample);
         void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
         void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);

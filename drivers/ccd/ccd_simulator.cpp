@@ -1,7 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
-
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
@@ -60,9 +59,15 @@ void ISNewNumber(const char * dev, const char * name, double values[], char * na
 void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
                char * names[], int n)
 {
-    ccdsim->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
-
 void ISSnoopDevice(XMLEle * root)
 {
     ccdsim->ISSnoopDevice(root);
@@ -70,9 +75,6 @@ void ISSnoopDevice(XMLEle * root)
 
 CCDSim::CCDSim() : INDI::FilterInterface(this)
 {
-    Convolution = new DSP::Convolution(this);
-    Transforms = new DSP::Transforms(this);
-
     currentRA  = RA;
     currentDE = Dec;
 
@@ -123,11 +125,6 @@ bool CCDSim::SetupParms()
     Streamer->setPixelFormat(INDI_MONO, 16);
     Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
-    Convolution->setBPS(PrimaryCCD.getBPP());
-    Convolution->setBufferSizes(2, new int[2]{PrimaryCCD.getXRes(), PrimaryCCD.getYRes()});
-
-    Transforms->setBPS(PrimaryCCD.getBPP());
-    Transforms->setBufferSizes(2, new int[2]{PrimaryCCD.getXRes(), PrimaryCCD.getYRes()});
     return true;
 }
 
@@ -301,9 +298,6 @@ bool CCDSim::updateProperties()
 
         // Define the Filter Slot and name properties
         INDI::FilterInterface::updateProperties();
-
-        Convolution->updateProperties();
-        Transforms->updateProperties();
     }
     else
     {
@@ -313,10 +307,8 @@ bool CCDSim::updateProperties()
         deleteProperty(GainNP.name);
 
         INDI::FilterInterface::updateProperties();
-
-        Convolution->updateProperties();
-        Transforms->updateProperties();
     }
+
     return true;
 }
 
@@ -440,8 +432,6 @@ void CCDSim::TimerHit()
                 {
                     InExposure = false;
                     PrimaryCCD.binFrame();
-                    Convolution->processBLOB(PrimaryCCD.getFrameBuffer(), 2, new int[2]{PrimaryCCD.getXRes(), PrimaryCCD.getYRes()}, PrimaryCCD.getBPP());
-                    Transforms->processBLOB(PrimaryCCD.getFrameBuffer(), 2, new int[2]{PrimaryCCD.getXRes(), PrimaryCCD.getYRes()}, PrimaryCCD.getBPP());
                     ExposureComplete(&PrimaryCCD);
                 }
                 else
@@ -1078,11 +1068,6 @@ IPState CCDSim::GuideWest(uint32_t v)
     return IPS_OK;
 }
 
-bool CCDSim::ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-                       char * names[], int n) {
-    return Convolution->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n) | Transforms->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
 bool CCDSim::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -1096,7 +1081,7 @@ bool CCDSim::ISNewText(const char * dev, const char * name, char * texts[], char
         }
     }
 
-    return INDI::CCD::ISNewText(dev, name, texts, names, n) | Convolution->ISNewText(dev, name, texts, names, n) | Transforms->ISNewText(dev, name, texts, names, n);
+    return INDI::CCD::ISNewText(dev, name, texts, names, n);
 }
 
 bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
@@ -1154,7 +1139,7 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
         }
     }
 
-    return INDI::CCD::ISNewNumber(dev, name, values, names, n) | Convolution->ISNewNumber(dev, name, values, names, n) | Transforms->ISNewNumber(dev, name, values, names, n);
+    return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
 bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
@@ -1231,7 +1216,7 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
     }
 
     //  Nobody has claimed this, so, ignore it
-    return INDI::CCD::ISNewSwitch(dev, name, states, names, n) | Convolution->ISNewSwitch(dev, name, states, names, n) | Transforms->ISNewSwitch(dev, name, states, names, n);
+    return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
 void CCDSim::activeDevicesUpdated()
@@ -1294,7 +1279,7 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
     }
 #endif
 
-    return INDI::CCD::ISSnoopDevice(root) | Convolution->ISSnoopDevice(root) | Transforms->ISSnoopDevice(root);
+    return INDI::CCD::ISSnoopDevice(root);
 }
 
 bool CCDSim::saveConfigItems(FILE * fp)

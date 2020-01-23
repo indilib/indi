@@ -81,10 +81,10 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
     strncpy (processedFileExtension, "fits", MAXINDIFORMAT);
     IUFillSwitch(&ActivateS[0], "DSP_ACTIVATE_ON", "Activate", ISState::ISS_OFF);
     IUFillSwitch(&ActivateS[1], "DSP_ACTIVATE_OFF", "Deactivate", ISState::ISS_ON);
-    IUFillSwitchVector(&ActivateSP, ActivateS, 2, dev->getDeviceName(), "DSP_ACTIVATE", "Activate", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ActivateSP, ActivateS, 2, dev->getDeviceName(), "DSP_ACTIVATE", "Activate", DSP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillBLOB(&FitsB, "DATA", "DSP Data Blob", "");
-    IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), "DSP", "Processed Data", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), "DSP", "Processed Data", DSP_TAB, IP_RO, 60, IPS_IDLE);
 
     // Snoop properties of interest
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
@@ -100,7 +100,7 @@ Interface::~Interface()
 
 const char *Interface::getDeviceName()
 {
-    return getDeviceName();
+    return m_Device->getDeviceName();
 }
 
 void Interface::ISGetProperties(const char *dev)

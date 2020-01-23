@@ -1,7 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
-
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
@@ -21,8 +20,6 @@
 
 #include "indiccd.h"
 #include "indifilterinterface.h"
-#include "dsp/convolution.h"
-#include "dsp/transforms.h"
 
 /**
  * @brief The CCDSim class provides an advanced simulator for a CCD that includes a dedicated on-board guide chip.
@@ -30,7 +27,7 @@
  * The CCD driver can generate star fields given that General-Star-Catalog (gsc) tool is installed on the same machine the driver is running.
  *
  * Many simulator parameters can be configured to generate the final star field image. In addition to support guider chip and guiding pulses (ST4),
- * a Convolution wheel support is provided for 8 Convolution wheels. Cooler and temperature control is also supported.
+ * a filter wheel support is provided for 8 filter wheels. Cooler and temperature control is also supported.
  *
  * The driver can snoop the mount equatorial coords to draw the star field. It listens to EQUATORIAL_PE property and also defines it so that the user
  * can set it manually.
@@ -57,7 +54,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-        virtual bool ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n) override;
         virtual bool ISSnoopDevice(XMLEle *root) override;
 
         static void *streamVideoHelper(void *context);
@@ -101,9 +97,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         int QueryFilter() override;
 
     private:
-
-        DSP::Convolution *Convolution;
-        DSP::Transforms *Transforms;
 
         float CalcTimeLeft(timeval, float);
         bool SetupParms();

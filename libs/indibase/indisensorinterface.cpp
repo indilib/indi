@@ -18,7 +18,7 @@
 *******************************************************************************/
 
 #include "defaultdevice.h"
-#include "indidetector.h"
+#include "indisensorinterface.h"
 
 #include "indicom.h"
 #include "stream/streammanager.h"
@@ -151,6 +151,8 @@ bool SensorInterface::updateProperties()
     if (HasStreaming())
         Streamer->updateProperties();
 
+    if (HasDSP())
+        DSP->updateProperties();
     return true;
 }
 
@@ -164,6 +166,8 @@ void SensorInterface::processProperties(const char *dev)
     if (HasStreaming())
         Streamer->ISGetProperties(dev);
 
+    if (HasDSP())
+        DSP->ISGetProperties(dev);
 }
 
 bool SensorInterface::processSnoopDevice(XMLEle *root)
@@ -264,6 +268,9 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
     if (HasStreaming())
         Streamer->ISNewText(dev, name, texts, names, n);
 
+    if (HasDSP())
+        DSP->ISNewText(dev, name, texts, names, n);
+
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
@@ -328,6 +335,9 @@ bool SensorInterface::processNumber(const char *dev, const char *name, double va
 
     if (HasStreaming())
         Streamer->ISNewNumber(dev, name, values, names, n);
+
+    if (HasDSP())
+        DSP->ISNewNumber(dev, name, values, names, n);
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -397,12 +407,18 @@ bool SensorInterface::processSwitch(const char *dev, const char *name, ISState *
     if (HasStreaming())
         Streamer->ISNewSwitch(dev, name, states, names, n);
 
+    if (HasDSP())
+        DSP->ISNewSwitch(dev, name, states, names, n);
+
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool SensorInterface::processBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                                     char *formats[], char *names[], int n)
 {
+    if (HasDSP())
+        DSP->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+
     return INDI::DefaultDevice::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
@@ -508,6 +524,11 @@ void SensorInterface::SetCapability(uint32_t cap)
         Streamer.reset(new StreamManager(this));
         Streamer->initProperties();
     }
+
+    if (HasDSP() && DSP.get() == nullptr)
+    {
+        DSP.reset(new DSP::Manager(this));
+    }
 }
 
 void SensorInterface::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
@@ -537,6 +558,14 @@ void SensorInterface::setBufferSize(int nbuf, bool allocMem)
         return;
 
     BufferSize = nbuf;
+
+    // Reset size
+    if (HasStreaming())
+        Streamer->setSize(BufferSize * 8 / getBPS());
+
+    // DSP
+    if (HasDSP())
+        DSP->setSizes(1, new int[1]{ BufferSize * 8 / getBPS() });
 
     if (allocMem == false)
         return;
@@ -871,7 +900,9 @@ bool SensorInterface::IntegrationComplete()
 
     // Run async
     std::thread(&SensorInterface::IntegrationCompletePrivate, this).detach();
-
+    if(HasDSP()) {
+        DSP->processBLOB(getBuffer(), 1, new int[1]{getBufferSize()*8/getBPS()}, getBPS());
+    }
     return true;
 }
 
@@ -1030,6 +1061,9 @@ bool SensorInterface::saveConfigItems(FILE *fp)
 
     if (HasStreaming())
         Streamer->saveConfigItems(fp);
+
+    if (HasDSP())
+        DSP->saveConfigItems(fp);
 
     return true;
 }
@@ -1214,6 +1248,14 @@ int SensorInterface::getFileIndex(const char *dir, const char *prefix, const cha
 void SensorInterface::setBPS(int bps)
 {
     BPS = bps;
+
+    // Reset size
+    if (HasStreaming())
+        Streamer->setSize(getBufferSize() * 8 / BPS);
+
+    // DSP
+    if (HasDSP())
+        DSP->setSizes(1, new int[1]{ getBufferSize() * 8 / BPS });
 }
 
 }
