@@ -53,9 +53,6 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 static std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
-// this is to help find out if we are getting commands before we are connected
-static bool connected = false;
-
 void ISGetProperties(const char *dev)
 {
     telescope->ISGetProperties(dev);
@@ -1018,7 +1015,6 @@ bool CelestronGPS::Handshake()
 {
     driver.set_device(getDeviceName());
     driver.set_port_fd(PortFD);
-    connected = false;
 
     if (isSimulation())
     {
@@ -1034,7 +1030,6 @@ bool CelestronGPS::Handshake()
         return false;
     }
 
-    connected = true;
     return true;
 }
 
@@ -1436,7 +1431,7 @@ void CelestronGPS::simulationTriggered(bool enable)
 
 bool CelestronGPS::updateLocation(double latitude, double longitude, double elevation)
 {
-    if (!connected)
+    if (!isConnected())
     {
         LOG_DEBUG("updateLocation called before we are connected");
         return false;
@@ -1465,7 +1460,7 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 
 bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 {
-    if (!connected)
+    if (!isConnected())
     {
         LOG_DEBUG("updateTime called before we are connected");
         return false;
