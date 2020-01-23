@@ -328,7 +328,9 @@ bool RadioSim::StopStreaming()
 void RadioSim::streamCaptureHelper()
 {
     struct itimerval tframe1, tframe2;
-    double s1, s2, deltas;
+    double deltas;
+    auto s1 = std::chrono::high_resolution_clock::now();
+    auto s2 = std::chrono::high_resolution_clock::now();
 
     while (true)
     {
@@ -357,7 +359,7 @@ void RadioSim::streamCaptureHelper()
         if (deltas < IntegrationTime)
             usleep(fabs(IntegrationTime - deltas) * 1e6);
 
-        uint32_t size = getBufferSize();
+        int32_t size = getBufferSize();
         Streamer->newFrame(getBuffer(), size);
 
         s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);

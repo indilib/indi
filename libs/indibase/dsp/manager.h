@@ -62,8 +62,8 @@ class Manager
         inline int getBPS() { return BPS; }
 
     protected:
-        Convolution *Convolution;
-        Transforms *Transforms;
+        DSP::Convolution *Convolution;
+        DSP::Transforms *Transforms;
 
     private:
         int BufferSizesQty;

@@ -64,7 +64,7 @@ class Spectrograph : public SensorInterface
     public:
         enum
         {
-            SPECTROGRAPH_MAX_CAPABILITY                  = 1<<SENSOR_MAX_CAPABILITY,  /*!< Can the Sensor Integration be aborted?  */
+            SPECTROGRAPH_MAX_CAPABILITY                  = SENSOR_MAX_CAPABILITY<<0,  /*!< Can the Sensor Integration be aborted?  */
         } SpectrographCapability;
 
         Spectrograph();
