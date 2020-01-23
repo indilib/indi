@@ -39,10 +39,6 @@
 #include <zlib.h>
 #include <sys/stat.h>
 
-
-const char *CAPTURE_SETTINGS_TAB = "Integration Settings";
-const char *CAPTURE_INFO_TAB     = "Integration Info";
-
 // Create dir recursively
 static int _det_mkdir(const char *dir, mode_t mode)
 {
@@ -276,7 +272,7 @@ bool SensorInterface::processNumber(const char *dev, const char *name, double va
     //IDLog("SensorInterface::processNumber %s\n",name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, "VECTOR_CAPTURE"))
+        if (!strcmp(name, "SENSOR_INTEGRATION"))
         {
             if ((values[0] < FramedIntegrationN[0].min || values[0] > FramedIntegrationN[0].max))
             {
@@ -403,13 +399,19 @@ bool SensorInterface::processSwitch(const char *dev, const char *name, ISState *
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
+bool SensorInterface::processBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                                    char *formats[], char *names[], int n)
+{
+    return INDI::DefaultDevice::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+}
+
 bool SensorInterface::initProperties()
 {
     INDI::DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
     // PrimarySensorInterface Temperature
-    IUFillNumber(&TemperatureN[0], "VECTOR_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "VECTOR_TEMPERATURE", "Temperature",
+    IUFillNumber(&TemperatureN[0], "SENSOR_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "SENSOR_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     /**********************************************/
@@ -417,27 +419,27 @@ bool SensorInterface::initProperties()
     /**********************************************/
 
     // PrimarySensorInterface Integration
-    IUFillNumber(&FramedIntegrationN[0], "VECTOR_CAPTURE_VALUE", "Time (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
-    IUFillNumberVector(&FramedIntegrationNP, FramedIntegrationN, 1, getDeviceName(), "VECTOR_CAPTURE",
+    IUFillNumber(&FramedIntegrationN[0], "SENSOR_INTEGRATION_VALUE", "Time (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
+    IUFillNumberVector(&FramedIntegrationNP, FramedIntegrationN, 1, getDeviceName(), "SENSOR_INTEGRATION",
                        "Integration", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // PrimarySensorInterface Abort
     if(CanAbort())
     {
         IUFillSwitch(&AbortIntegrationS[0], "ABORT", "Abort", ISS_OFF);
-        IUFillSwitchVector(&AbortIntegrationSP, AbortIntegrationS, 1, getDeviceName(), "VECTOR_ABORT_CAPTURE",
+        IUFillSwitchVector(&AbortIntegrationSP, AbortIntegrationS, 1, getDeviceName(), "SENSOR_ABORT_INTEGRATION",
                            "Integration Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     }
 
     // PrimarySensorInterface Device Continuum Blob
     int ctr = 0;
 
-    IUFillBLOB(&FitsB[0], "DATA", "Vector Data Blob", "");
+    IUFillBLOB(&FitsB, "DATA", "Sensor Data Blob", "");
     ctr ++;
 
     if(ctr > 0)
     {
-        IUFillBLOBVector(&FitsBP, FitsB, ctr, getDeviceName(), "DETECTOR", "Integration Data", CAPTURE_INFO_TAB,
+        IUFillBLOBVector(&FitsBP, &FitsB, ctr, getDeviceName(), "SENSOR", "Integration Data", INTEGRATION_INFO_TAB,
                          IP_RO, 60, IPS_IDLE);
     }
 
@@ -454,13 +456,13 @@ bool SensorInterface::initProperties()
 
     // Upload Settings
     IUFillText(&UploadSettingsT[UPLOAD_DIR], "UPLOAD_DIR", "Dir", "");
-    IUFillText(&UploadSettingsT[UPLOAD_PREFIX], "UPLOAD_PREFIX", "Prefix", "CAPTURE_XXX");
+    IUFillText(&UploadSettingsT[UPLOAD_PREFIX], "UPLOAD_PREFIX", "Prefix", "INTEGRATION_XXX");
     IUFillTextVector(&UploadSettingsTP, UploadSettingsT, 2, getDeviceName(), "UPLOAD_SETTINGS", "Upload Settings",
                      OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Upload File Path
     IUFillText(&FileNameT[0], "FILE_PATH", "Path", "");
-    IUFillTextVector(&FileNameTP, FileNameT, 1, getDeviceName(), "VECTOR_FILE_PATH", "Filename", OPTIONS_TAB, IP_RO, 60,
+    IUFillTextVector(&FileNameTP, FileNameT, 1, getDeviceName(), "SENSOR_FILE_PATH", "Filename", OPTIONS_TAB, IP_RO, 60,
                      IPS_IDLE);
 
     /**********************************************/
@@ -622,7 +624,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 
     char fitsString[MAXINDIDEVICE];
 
-    // DETECTOR
+    // SENSOR
     strncpy(fitsString, getDeviceName(), MAXINDIDEVICE);
     fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "PrimarySensorInterface Name", &status);
 
@@ -646,7 +648,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(integrationTime), "Total Integration Time (s)", &status);
 
     if (HasCooler())
-        fits_update_key_s(fptr, TDOUBLE, "DETECTOR-TEMP", &(TemperatureN[0].value), "PrimarySensorInterface Temperature (Celsius)", &status);
+        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureN[0].value), "PrimarySensorInterface Temperature (Celsius)", &status);
 
 #ifdef WITH_MINMAX
     if (getNAxis() == 2)
@@ -748,7 +750,7 @@ void SensorInterface::fits_update_key_s(fitsfile *fptr, int type, std::string na
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
 }
 
-void* SensorInterface::sendFITS(int type, uint8_t *buf, int len)
+void* SensorInterface::sendFITS(uint8_t *buf, int len)
 {
     bool sendIntegration = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveIntegration = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
@@ -861,12 +863,23 @@ void* SensorInterface::sendFITS(int type, uint8_t *buf, int len)
 
     fits_close_file(fptr, &status);
 
-    uploadFile(memptr, memsize, sendIntegration, saveIntegration, type);
+    uploadFile(memptr, memsize, sendIntegration, saveIntegration);
 
     return memptr;
 }
 
 bool SensorInterface::IntegrationComplete()
+{
+    // Reset POLLMS to default value
+    POLLMS = getPollingPeriod();
+
+    // Run async
+    std::thread(&SensorInterface::IntegrationCompletePrivate, this).detach();
+
+    return true;
+}
+
+bool SensorInterface::IntegrationCompletePrivate()
 {
     bool sendIntegration = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveIntegration = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
@@ -875,17 +888,15 @@ bool SensorInterface::IntegrationComplete()
     if (sendIntegration || saveIntegration)
     {
         void* blob = nullptr;
-        int idx = 0;
         if (!strcmp(getIntegrationFileExtension(), "fits"))
         {
-            blob = sendFITS(idx, getBuffer(), getBufferSize() * 8 / abs(getBPS()));
+            blob = sendFITS(getBuffer(), getBufferSize() * 8 / abs(getBPS()));
         }
         else
         {
             uploadFile(getBuffer(), getBufferSize(), sendIntegration,
-                       saveIntegration, idx);
+                       saveIntegration);
         }
-        idx++;
 
         if (sendIntegration)
             IDSetBLOB(&FitsBP, nullptr);
@@ -918,15 +929,15 @@ bool SensorInterface::IntegrationComplete()
 }
 
 bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration,
-                          bool saveIntegration, int blobIndex)
+                          bool saveIntegration)
 {
 
     DEBUGF(Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendIntegration? %s, saveIntegration? %s",
            getIntegrationFileExtension(), totalBytes, sendIntegration ? "Yes" : "No", saveIntegration ? "Yes" : "No");
 
-    FitsB[blobIndex].blob    = const_cast<void *>(fitsData);
-    FitsB[blobIndex].bloblen = totalBytes;
-    snprintf(FitsB[blobIndex].format, MAXINDIBLOBFMT, ".%s", getIntegrationFileExtension());
+    FitsB.blob    = const_cast<void *>(fitsData);
+    FitsB.bloblen = totalBytes;
+    snprintf(FitsB.format, MAXINDIBLOBFMT, ".%s", getIntegrationFileExtension());
     if (saveIntegration)
     {
 
@@ -935,7 +946,7 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
 
         std::string prefix = UploadSettingsT[UPLOAD_PREFIX].text;
         int maxIndex       = getFileIndex(UploadSettingsT[UPLOAD_DIR].text, UploadSettingsT[UPLOAD_PREFIX].text,
-                                          FitsB[blobIndex].format);
+                                          FitsB.format);
 
         if (maxIndex < 0)
         {
@@ -962,7 +973,7 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        snprintf(integrationFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), FitsB[blobIndex].format);
+        snprintf(integrationFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), FitsB.format);
 
         fp = fopen(integrationFileName, "w");
         if (fp == nullptr)
@@ -972,8 +983,8 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
         }
 
         int n = 0;
-        for (int nr = 0; nr < static_cast<int>(FitsB[blobIndex].bloblen); nr += n)
-            n = fwrite((static_cast<char *>(FitsB[blobIndex].blob) + nr), 1, FitsB[blobIndex].bloblen - nr, fp);
+        for (int nr = 0; nr < static_cast<int>(FitsB.bloblen); nr += n)
+            n = fwrite((static_cast<char *>(FitsB.blob) + nr), 1, FitsB.bloblen - nr, fp);
 
         fclose(fp);
 
@@ -985,7 +996,7 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
         IDSetText(&FileNameTP, nullptr);
     }
 
-    FitsB[blobIndex].size = totalBytes;
+    FitsB.size = totalBytes;
     FitsBP.s   = IPS_OK;
 
     DEBUG(Logger::DBG_DEBUG, "Upload complete");

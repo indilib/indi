@@ -81,7 +81,12 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         bool getLocalDate(char *dateString);
         bool setLocalDate(uint8_t days, uint8_t months, uint16_t years);
 
+        bool getSiteIndex(int *ndxP);
+        bool getSlewRate(int *srP);
+        bool setSite(int ndx);       // used instead of selectSite from lx200 driver
         bool getSiteElevation(int *elevationP);
+        bool setSiteElevation(double elevation);
+        bool getLocation(void);     // read sites from TeenAstro
 
         // Get Local time in 24 hour format from mount. Expected format is HH:MM:SS
         bool getLocalTime(char *timeString);
@@ -91,8 +96,9 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         bool setUTCOffset(double offset);
         bool getUTFOffset(double * offset);
         
+        void handleStatusChange(void);
         void SendPulseCmd(int8_t direction, uint32_t duration_msec);
-        bool sendCommand(const char *cmd);
+        void sendCommand(const char *cmd);
    
         // Send Mount time and location settings to client
         bool sendScopeTime();
@@ -145,7 +151,7 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         // Site Management 
         ISwitchVectorProperty SiteSP;
         ISwitch SiteS[4];
-        int currentSiteNum {0};
+        int currentSiteNum {0}; // on TeenAstro, sites are numbered 0 to 3, not 1 to 4 like on the Meade standard
 
         // Site Name
         ITextVectorProperty SiteNameTP;

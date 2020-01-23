@@ -44,6 +44,9 @@ namespace INDI
 
 Detector::Detector()
 {
+    INTEGRATION_SETTINGS_TAB = "Capture Settings";
+    INTEGRATION_INFO_TAB = "Detector Information";
+    GUIDE_HEAD_TAB = "Guide";
 }
 
 Detector::~Detector()
@@ -85,4 +88,10 @@ bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *values, c
     return SensorInterface::processSwitch(dev, name, values, names, n);
 }
 
+bool Detector::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+           char *formats[], char *names[], int n)
+{
+    return SensorInterface::processBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
+}
+

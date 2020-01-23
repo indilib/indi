@@ -86,8 +86,13 @@ bool FCUSB::Connect()
 
     if (handle == nullptr)
     {
-        LOG_ERROR("No FCUSB focuser found.");
-        return false;
+        handle = hid_open(0x134A, 0x9024, nullptr);
+
+        if (handle == nullptr)
+        {
+            LOG_ERROR("No FCUSB focuser found.");
+            return false;
+        }
     }
     else
     {

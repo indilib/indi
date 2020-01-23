@@ -215,7 +215,6 @@ static int compare( const void* a, const void* b)
 
 void dsp_buffer_median(dsp_stream_p stream, int size, int median)
 {
-
 	int k;
     int mid = (size / 2) + (size % 2);
     double* sorted = (double*)malloc(size * sizeof(double));

@@ -44,6 +44,9 @@ namespace INDI
 
 Spectrograph::Spectrograph()
 {
+    INTEGRATION_SETTINGS_TAB = "Integration Settings";
+    INTEGRATION_INFO_TAB = "Spectrograph Information";
+    GUIDE_HEAD_TAB = "Guide";
 }
 
 Spectrograph::~Spectrograph()
@@ -58,7 +61,7 @@ bool Spectrograph::initProperties()
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BITSPERSAMPLE], "SPECTROGRAPH_BITSPERSAMPLE", "Bits per sample", "%3.0f", 1, 64, 1, 8);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BANDWIDTH], "SPECTROGRAPH_BANDWIDTH", "Bandwidth (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_GAIN], "SPECTROGRAPH_GAIN", "Gain", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
-    IUFillNumberVector(&SpectrographSettingsNP, SpectrographSettingsN, 5, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph Settings", CAPTURE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&SpectrographSettingsNP, SpectrographSettingsN, 5, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph Settings", INTEGRATION_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     setDriverInterface(SPECTROGRAPH_INTERFACE);
 
@@ -67,7 +70,7 @@ bool Spectrograph::initProperties()
 
 void Spectrograph::ISGetProperties(const char *dev)
 {
-    return Spectrograph::processProperties(dev);
+    return processProperties(dev);
 }
 
 bool Spectrograph::updateProperties()
@@ -91,22 +94,35 @@ bool Spectrograph::updateProperties()
 
 bool Spectrograph::ISSnoopDevice(XMLEle *root)
 {
-    return Spectrograph::processSnoopDevice(root);
+    return processSnoopDevice(root);
 }
 
 bool Spectrograph::ISNewText(const char *dev, const char *name, char *values[], char *names[], int n)
 {
-    return Spectrograph::processText(dev, name, values, names, n);
+    return processText(dev, name, values, names, n);
 }
 
 bool Spectrograph::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    return Spectrograph::processNumber(dev, name, values, names, n);
+    // PrimarySensorInterface Info
+    if (!strcmp(name, SpectrographSettingsNP.name))
+    {
+        SpectrographSettingsNP.s = IPS_OK;
+        setParams(values[SPECTROGRAPH_SAMPLERATE], values[SPECTROGRAPH_FREQUENCY], values[SPECTROGRAPH_BITSPERSAMPLE], values[SPECTROGRAPH_BANDWIDTH], values[SPECTROGRAPH_GAIN]);
+        return true;
+    }
+    return processNumber(dev, name, values, names, n);
 }
 
 bool Spectrograph::ISNewSwitch(const char *dev, const char *name, ISState *values, char *names[], int n)
 {
-    return Spectrograph::processSwitch(dev, name, values, names, n);
+    return processSwitch(dev, name, values, names, n);
+}
+
+bool Spectrograph::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+           char *formats[], char *names[], int n)
+{
+    return processBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
 void Spectrograph::setSampleRate(double sr)
@@ -166,18 +182,6 @@ void Spectrograph::setParams(double samplerate, double freq, double bps, double 
     paramsUpdated(samplerate, freq, bps, bw, gain);
 }
 
-bool Spectrograph::processNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    // PrimarySensorInterface Info
-    if (!strcmp(name, SpectrographSettingsNP.name))
-    {
-        SpectrographSettingsNP.s = IPS_OK;
-        setParams(values[SPECTROGRAPH_SAMPLERATE], values[SPECTROGRAPH_FREQUENCY], values[SPECTROGRAPH_BITSPERSAMPLE], values[SPECTROGRAPH_BANDWIDTH], values[SPECTROGRAPH_GAIN]);
-        return true;
-    }
-    return SensorInterface::processNumber(dev, name, values, names, n);
-}
-
 void Spectrograph::SetSpectrographCapability(uint32_t cap)
 {
     capability = cap;
@@ -189,143 +193,6 @@ void Spectrograph::SetSpectrographCapability(uint32_t cap)
         Streamer.reset(new StreamManager(this));
         Streamer->initProperties();
     }
-}
-
-//DSP API helpers
-
-void Spectrograph::Spectrum(void *buf, void *out, int n_elements, int size, int bits_per_sample)
-{
-    void* fourier = malloc(n_elements * bits_per_sample / 8);
-    FourierTransform(buf, fourier, 1, &n_elements, bits_per_sample);
-    Histogram(fourier, out, n_elements, size, bits_per_sample);
-    free(fourier);
-}
-
-void Spectrograph::Histogram(void *buf, void *out, int n_elements, int histogram_size, int bits_per_sample)
-{
-    //Create the dsp stream
-    dsp_stream_p stream = dsp_stream_new();
-    dsp_stream_add_dim(stream, n_elements);
-    dsp_stream_alloc_buffer(stream, stream->len);
-    //Create the spectrum
-    switch (bits_per_sample)
-    {
-        case 8:
-            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 16:
-            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 32:
-            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 64:
-            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
-            break;
-        case -32:
-            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
-            break;
-        case -64:
-            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
-            break;
-        default:
-            DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
-            dsp_stream_free_buffer(stream);
-            //Destroy the dsp stream
-            dsp_stream_free(stream);
-            return;
-    }
-    double *histo = dsp_stats_histogram(stream, histogram_size);
-    dsp_stream_free_buffer(stream);
-    //Destroy the dsp stream
-    dsp_stream_free(stream);
-    switch (bits_per_sample)
-    {
-        case 8:
-            dsp_buffer_copy(histo, (static_cast<uint8_t *>(out)), histogram_size);
-            break;
-        case 16:
-            dsp_buffer_copy(histo, (static_cast<uint16_t *>(out)), histogram_size);
-            break;
-        case 32:
-            dsp_buffer_copy(histo, (static_cast<uint32_t *>(out)), histogram_size);
-            break;
-        case 64:
-            dsp_buffer_copy(histo, (static_cast<unsigned long *>(out)), histogram_size);
-            break;
-        case -32:
-            dsp_buffer_copy(histo, (static_cast<float *>(out)), histogram_size);
-            break;
-        case -64:
-            dsp_buffer_copy(histo, (static_cast<double *>(out)), histogram_size);
-            break;
-        default:
-            break;
-    }
-    free(histo);
-}
-
-void Spectrograph::FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample)
-{
-    //Create the dsp stream
-    dsp_stream_p stream = dsp_stream_new();
-    for(int dim = 0; dim < dims; dim++)
-        dsp_stream_add_dim(stream, sizes[dim]);
-    dsp_stream_alloc_buffer(stream, stream->len);
-    switch (bits_per_sample)
-    {
-        case 8:
-            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 16:
-            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 32:
-            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 64:
-            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
-            break;
-        case -32:
-            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
-            break;
-        case -64:
-            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
-            break;
-        default:
-            DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
-            dsp_stream_free_buffer(stream);
-            //Destroy the dsp stream
-            dsp_stream_free(stream);
-            return;
-    }
-    dsp_fourier_dft_magnitude(stream);
-    switch (bits_per_sample)
-    {
-        case 8:
-            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(out)), stream->len);
-            break;
-        case 16:
-            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(out)), stream->len);
-            break;
-        case 32:
-            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(out)), stream->len);
-            break;
-        case 64:
-            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
-            break;
-        case -32:
-            dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
-            break;
-        case -64:
-            dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
-            break;
-        default:
-            break;
-    }
-    //Destroy the dsp stream
-    dsp_stream_free_buffer(stream);
-    dsp_stream_free(stream);
 }
 
 void Spectrograph::Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample)
