@@ -329,8 +329,9 @@ void RadioSim::streamCaptureHelper()
 {
     struct itimerval tframe1, tframe2;
     double deltas;
-    auto s1 = std::chrono::high_resolution_clock::now();
-    auto s2 = std::chrono::high_resolution_clock::now();
+    getitimer(ITIMER_REAL, &tframe1);
+    auto s1 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
+    auto s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
 
     while (true)
     {
