@@ -55,16 +55,9 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
+               char *names[], int num)
 {
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
+    receiver->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
 }
 
 void ISSnoopDevice(XMLEle *root)
@@ -93,12 +86,10 @@ bool RadioSim::Connect()
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
     //SetTimer(POLLMS);
 
-    if(HasStreaming()) {
-        streamPredicate = 0;
-        terminateThread = false;
-        // Run threads
-        std::thread(&RadioSim::streamCaptureHelper, this).detach();
-    }
+    streamPredicate = 0;
+    terminateThread = false;
+    // Run threads
+    std::thread(&RadioSim::streamCaptureHelper, this).detach();
     SetTimer(POLLMS);
 
     return true;
@@ -111,13 +102,11 @@ bool RadioSim::Disconnect()
 {
     InIntegration = false;
     setBufferSize(1);
-    if(HasStreaming()) {
-        pthread_mutex_lock(&condMutex);
-        streamPredicate = 1;
-        terminateThread = true;
-        pthread_cond_signal(&cv);
-        pthread_mutex_unlock(&condMutex);
-    }
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 1;
+    terminateThread = true;
+    pthread_cond_signal(&cv);
+    pthread_mutex_unlock(&condMutex);
     LOG_INFO("Simulator Spectrograph disconnected successfully!");
     return true;
 }
@@ -165,8 +154,8 @@ bool RadioSim::updateProperties()
 {
     if (isConnected())
     {
-        // Let's get parameters now from Spectrograph
-        setupParams();
+        // Inital values
+        setupParams(1000000, 1420000000, 10000, 10);
 
         // Start the timer
         SetTimer(POLLMS);
@@ -178,14 +167,34 @@ bool RadioSim::updateProperties()
 /**************************************************************************************
 ** Setting up Spectrograph parameters
 ***************************************************************************************/
-void RadioSim::setupParams()
+void RadioSim::setupParams(float sr, float freq, float bw, float gain)
 {
     // Our Spectrograph is an 8 bit Spectrograph, 100MHz frequency 1MHz bandwidth.
-    setFrequency(1420000000.0);
-    setSampleRate(1000000.0);
+    setFrequency(freq);
+    setSampleRate(sr);
     setBPS(16);
-    setBandwidth(0.0);
-    setGain(25.0);
+    setBandwidth(bw);
+    setGain(gain);
+}
+
+bool RadioSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    bool r = false;
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, SpectrographSettingsNP.name)) {
+        for(int i = 0; i < n; i++) {
+            if (!strcmp(names[i], "SPECTROGRAPH_GAIN")) {
+                setupParams(getSampleRate(), getFrequency(), getBandwidth(), values[i]);
+            } else if (!strcmp(names[i], "SPECTROGRAPH_BANDWIDTH")) {
+                setupParams(getSampleRate(), getFrequency(), values[i], getGain());
+            } else if (!strcmp(names[i], "SPECTROGRAPH_FREQUENCY")) {
+                setupParams(getSampleRate(), values[i], getBandwidth(), getGain());
+            } else if (!strcmp(names[i], "SPECTROGRAPH_SAMPLERATE")) {
+                setupParams(values[i], getFrequency(), getBandwidth(), getGain());
+            }
+        }
+        IDSetNumber(&SpectrographSettingsNP, nullptr);
+    }
+    return processNumber(dev, name, values, names, n) & !r;
 }
 
 /**************************************************************************************

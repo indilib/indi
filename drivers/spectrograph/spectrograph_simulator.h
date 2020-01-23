@@ -35,6 +35,8 @@ class RadioSim : public INDI::Spectrograph
         RadioSim();
         ~RadioSim();
 
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
     protected:
         // General device functions
         bool Connect() override;
@@ -55,9 +57,10 @@ class RadioSim : public INDI::Spectrograph
         void grabData();
 
     private:
+
         // Utility functions
         float CalcTimeLeft();
-        void setupParams();
+        void setupParams(float sr, float freq, float bw, float gain);
         struct timeval CapStart;
         float IntegrationRequest;
 

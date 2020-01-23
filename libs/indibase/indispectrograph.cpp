@@ -103,6 +103,9 @@ bool Spectrograph::ISNewText(const char *dev, const char *name, char *values[], 
 
 bool Spectrograph::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, SpectrographSettingsNP.name)) {
+        IDSetNumber(&SpectrographSettingsNP, nullptr);
+    }
     return processNumber(dev, name, values, names, n);
 }
 

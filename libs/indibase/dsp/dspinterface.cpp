@@ -84,7 +84,7 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
     IUFillSwitchVector(&ActivateSP, ActivateS, 2, dev->getDeviceName(), "DSP_ACTIVATE", "Activate", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillBLOB(&FitsB, "DATA", "DSP Data Blob", "");
-    IUFillBLOBVector(&FitsBP, &FitsB, 1, m_Device->getDeviceName(), "DSP", "Processed Data", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), "DSP", "Processed Data", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Snoop properties of interest
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
@@ -100,14 +100,15 @@ Interface::~Interface()
 
 const char *Interface::getDeviceName()
 {
-    return m_Device->getDeviceName();
+    return getDeviceName();
 }
 
 void Interface::ISGetProperties(const char *dev)
 {
-    INDI_UNUSED(dev);
-    m_Device->defineSwitch(&ActivateSP);
-    m_Device->defineBLOB(&FitsBP);
+    if(!strcmp(dev, getDeviceName())) {
+        m_Device->defineSwitch(&ActivateSP);
+        m_Device->defineBLOB(&FitsBP);
+    }
 }
 
 bool Interface::updateProperties()
