@@ -98,7 +98,6 @@ class Interface
 
         bool PluginActive;
         char processedFileName[MAXINDINAME];
-        char processedFileExtension[MAXINDIFORMAT];
         void processBLOBPrivate(uint8_t* buf, long ndims, long* dims, int bits_per_sample);
         void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
         void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);

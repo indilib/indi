@@ -78,7 +78,6 @@ const char *DSP_TAB = "Signal Processing";
 
 Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, const char *label) : m_Device(dev), m_Name(name), m_Label(label), m_Type(type)
 {
-    strncpy (processedFileExtension, "fits", MAXINDIFORMAT);
     IUFillSwitch(&ActivateS[0], "DSP_ACTIVATE_ON", "Activate", ISState::ISS_OFF);
     IUFillSwitch(&ActivateS[1], "DSP_ACTIVATE_OFF", "Deactivate", ISState::ISS_ON);
     IUFillSwitchVector(&ActivateSP, ActivateS, 2, getDeviceName(), "DSP_ACTIVATE", "Activate", DSP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
@@ -87,6 +86,7 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
     IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), m_Name, m_Label, DSP_TAB, IP_RO, 60, IPS_IDLE);
     BufferSizes = nullptr;
     BufferSizesQty = 0;
+    strncpy (FitsB.format, "fits", MAXINDIFORMAT);
 }
 
 Interface::~Interface()
@@ -216,7 +216,7 @@ void Interface::processBLOBPrivate(unsigned char* buf, long ndims, long* dims, i
                 int i;
                 for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
                 len *= getBPS() / 8;
-                uploadFile(buffer, len, sendCapture, saveCapture, processedFileExtension);
+                uploadFile(buffer, len, sendCapture, saveCapture, FitsB.format);
             }
 
             if (sendCapture)
@@ -448,7 +448,7 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
 
     fits_close_file(fptr, &status);
 
-    uploadFile(memptr, memsize, sendCapture, saveCapture, processedFileExtension);
+    uploadFile(memptr, memsize, sendCapture, saveCapture, "fits");
     free(memptr);
     return true;
 }
@@ -461,7 +461,6 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
 
     FitsB.blob    = const_cast<void *>(fitsData);
     FitsB.bloblen = static_cast<int>(totalBytes);
-    snprintf(FitsB.format, MAXINDIBLOBFMT, ".%s", format);
     if (saveCapture)
     {
 
