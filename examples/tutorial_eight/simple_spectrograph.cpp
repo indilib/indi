@@ -167,7 +167,7 @@ void SimpleSpectrograph::setupParams()
 /**************************************************************************************
 ** Client is asking us to start an exposure
 ***************************************************************************************/
-bool SimpleSpectrograph::StartIntegration(float duration)
+bool SimpleSpectrograph::StartIntegration(double duration)
 {
     IntegrationRequest = duration;
 

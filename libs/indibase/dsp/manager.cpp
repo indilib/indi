@@ -33,55 +33,55 @@ namespace DSP
 {
 Manager::Manager(INDI::DefaultDevice *dev)
 {
-    Convolution = new DSP::Convolution(dev);
-    Transforms = new DSP::Transforms(dev);
+    convolution = new Convolution(dev);
+    transforms = new Transforms(dev);
 }
 
 Manager::~Manager()
 {
-    Convolution->~Convolution();
-    delete Convolution;
-    Convolution = nullptr;
-    Transforms->~Transforms();
-    delete Transforms;
-    Transforms = nullptr;
+    convolution->~Convolution();
+    delete convolution;
+    convolution = nullptr;
+    transforms->~Transforms();
+    delete transforms;
+    transforms = nullptr;
 }
 
 void Manager::ISGetProperties(const char *dev)
 {
-    Convolution->ISGetProperties(dev);
-    Transforms->ISGetProperties(dev);
+    convolution->ISGetProperties(dev);
+    transforms->ISGetProperties(dev);
 }
 
 bool Manager::updateProperties()
 {
     bool r = true;
-    r &= Convolution->updateProperties();
-    r &= Transforms->updateProperties();
+    r &= convolution->updateProperties();
+    r &= transforms->updateProperties();
     return r;
 }
 
 bool Manager::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     bool r = true;
-    r &= Convolution->ISNewSwitch(dev, name, states, names, num);
-    r &= Transforms->ISNewSwitch(dev, name, states, names, num);
+    r &= convolution->ISNewSwitch(dev, name, states, names, num);
+    r &= transforms->ISNewSwitch(dev, name, states, names, num);
     return r;
 }
 
 bool Manager::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     bool r = true;
-    r &= Convolution->ISNewText(dev, name, texts, names, num);
-    r &= Transforms->ISNewText(dev, name, texts, names, num);
+    r &= convolution->ISNewText(dev, name, texts, names, num);
+    r &= transforms->ISNewText(dev, name, texts, names, num);
     return r;
 }
 
 bool Manager::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     bool r = true;
-    r &= Convolution->ISNewNumber(dev, name, values, names, num);
-    r &= Transforms->ISNewNumber(dev, name, values, names, num);
+    r &= convolution->ISNewNumber(dev, name, values, names, num);
+    r &= transforms->ISNewNumber(dev, name, values, names, num);
     return r;
 }
 
@@ -89,32 +89,24 @@ bool Manager::ISNewBLOB(const char *dev, const char *name, int sizes[], int blob
                char *names[], int num)
 {
     bool r = true;
-    r &= Convolution->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
-    r &= Transforms->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
-    return r;
-}
-
-bool Manager::ISSnoopDevice(XMLEle *root)
-{
-    bool r = true;
-    r &= Convolution->ISSnoopDevice(root);
-    r &= Transforms->ISSnoopDevice(root);
+    r &= convolution->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
+    r &= transforms->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
     return r;
 }
 
 bool Manager::saveConfigItems(FILE *fp)
 {
     bool r = true;
-    r &= Convolution->saveConfigItems(fp);
-    r &= Transforms->saveConfigItems(fp);
+    r &= convolution->saveConfigItems(fp);
+    r &= transforms->saveConfigItems(fp);
     return r;
 }
 
 bool Manager::processBLOB(uint8_t* buf, int ndims, int* dims, int bits_per_sample)
 {
     bool r = true;
-    r &= Convolution->processBLOB(buf, ndims, dims, bits_per_sample);
-    r &= Transforms->processBLOB(buf, ndims, dims, bits_per_sample);
+    r &= convolution->processBLOB(buf, ndims, dims, bits_per_sample);
+    r &= transforms->processBLOB(buf, ndims, dims, bits_per_sample);
     return r;
 }
 

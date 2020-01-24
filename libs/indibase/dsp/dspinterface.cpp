@@ -81,17 +81,10 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
     strncpy (processedFileExtension, "fits", MAXINDIFORMAT);
     IUFillSwitch(&ActivateS[0], "DSP_ACTIVATE_ON", "Activate", ISState::ISS_OFF);
     IUFillSwitch(&ActivateS[1], "DSP_ACTIVATE_OFF", "Deactivate", ISState::ISS_ON);
-    IUFillSwitchVector(&ActivateSP, ActivateS, 2, dev->getDeviceName(), "DSP_ACTIVATE", "Activate", DSP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ActivateSP, ActivateS, 2, getDeviceName(), "DSP_ACTIVATE", "Activate", DSP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillBLOB(&FitsB, "DATA", "DSP Data Blob", "");
-    IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), "DSP", "Processed Data", DSP_TAB, IP_RO, 60, IPS_IDLE);
-
-    // Snoop properties of interest
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[1].text, "TELESCOPE_INFO");
-    IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
-    IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
-    IDSnoopDevice(ActiveDeviceT[3].text, "SKY_QUALITY");
+    IUFillBLOB(&FitsB, m_Name, m_Label, "");
+    IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), m_Name, m_Label, DSP_TAB, IP_RO, 60, IPS_IDLE);
 }
 
 Interface::~Interface()
@@ -105,7 +98,7 @@ const char *Interface::getDeviceName()
 
 void Interface::ISGetProperties(const char *dev)
 {
-    if(!strcmp(dev, getDeviceName())) {
+    if (m_Device->isConnected()) {
         m_Device->defineSwitch(&ActivateSP);
         m_Device->defineBLOB(&FitsBP);
     }
@@ -125,19 +118,17 @@ bool Interface::updateProperties()
 
 bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName())) {
+    if(!strcmp(dev, getDeviceName())&&!strcmp(name, ActivateSP.name)) {
         for (int i = 0; i < n; i++) {
-            if(!strcmp(name, ActivateSP.name)) {
-                const char *name = names[i];
+            char *name = names[i];
 
-                if (!strcmp(name, "DSP_ACTIVATE_ON") && states[i] == ISS_ON) {
-                        m_Device->defineBLOB(&FitsBP);
-                        Activated();
-                }
-                if (!strcmp(name, "DSP_ACTIVATE_OFF") && states[i] == ISS_ON) {
-                    m_Device->deleteProperty(FitsBP.name);
-                    Deactivated();
-                }
+            if (!strcmp(name, "DSP_ACTIVATE_ON") && states[i] == ISS_ON) {
+                m_Device->defineBLOB(&FitsBP);
+                Activated();
+            }
+            if (!strcmp(name, "DSP_ACTIVATE_OFF") && states[i] == ISS_ON) {
+                m_Device->deleteProperty(FitsBP.name);
+                Deactivated();
             }
         }
     }
@@ -177,57 +168,6 @@ bool Interface::ISNewBLOB(const char *dev, const char *name, int sizes[], int bl
     return false;
 }
 
-bool Interface::ISSnoopDevice(XMLEle *root)
-{
-    XMLEle *ep           = nullptr;
-    const char *propName = findXMLAttValu(root, "name");
-
-    if (!strcmp(propName, "EQUATORIAL_EOD_COORD"))
-    {
-        const char *name = findXMLAttValu(ep, "name");
-
-        if (!strcmp(name, "RA"))
-        {
-            primaryAperture = atof(pcdataXMLEle(ep));
-        }
-        else if (!strcmp(name, "DEC"))
-        {
-            primaryAperture = atof(pcdataXMLEle(ep));
-        }
-    }
-    else if (!strcmp(propName, "TELESCOPE_INFO"))
-    {
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            const char *name = findXMLAttValu(ep, "name");
-
-            if (!strcmp(name, "TELESCOPE_APERTURE"))
-            {
-                primaryAperture = atof(pcdataXMLEle(ep));
-            }
-            else if (!strcmp(name, "TELESCOPE_FOCAL_LENGTH"))
-            {
-                primaryFocalLength = atof(pcdataXMLEle(ep));
-            }
-        }
-    }
-    else if (!strcmp(propName, "SKY_QUALITY"))
-    {
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            const char *name = findXMLAttValu(ep, "name");
-
-            if (!strcmp(name, "SKY_BRIGHTNESS"))
-            {
-                MPSAS = atof(pcdataXMLEle(ep));
-                break;
-            }
-        }
-    }
-
-    return true;
-}
-
 uint8_t* Interface::Callback(unsigned char* buf, int ndims, int* dims, int bits_per_sample)
 {
     INDI_UNUSED(buf);
@@ -252,7 +192,7 @@ bool Interface::processBLOBPrivate(unsigned char* buf, int ndims, int* dims, int
     bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
     bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
 
-    if (sendCapture || saveCapture)
+    if ((sendCapture || saveCapture) && buffer != nullptr)
     {
         void* blob = nullptr;
         int len = 1;
@@ -323,9 +263,6 @@ void Interface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
         fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
     }
 #endif
-
-    fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &primaryFocalLength, "Focal Length (mm)", &status);
-    fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
 
     INumberVectorProperty *nv = m_Device->getNumber("GEOGRAPHIC_COORDS");
     if(nv != nullptr)
@@ -412,8 +349,8 @@ void* Interface::sendFITS(uint8_t *buf, int len, int bitspersample)
     int img_type  = 0;
     int byte_type = 0;
     int status    = 0;
-    long naxis    = 2;
-    long naxes[2] = {0};
+    long naxis    = BufferSizesQty;
+    long *naxes = BufferSizes;
     int nelements = 0;
     std::string bit_depth;
     char error_status[MAXINDINAME];
@@ -459,13 +396,8 @@ void* Interface::sendFITS(uint8_t *buf, int len, int bitspersample)
             DEBUGF(INDI::Logger::DBG_ERROR, "Unsupported bits per sample value %d", bitspersample);
             return nullptr;
     }
-    naxes[0] = len;
-    naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
-    naxes[1] = 1;
-    nelements = static_cast<int>(naxes[0]);
-
-    /*DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure complete. Image Depth: %s. Width: %d Height: %d nelements: %d", bit_depth.c_str(), naxes[0],
-            naxes[1], nelements);*/
+    for (long len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
+    nelements = static_cast<int>(len);
 
     //  Now we have to send fits format data to the client
     memsize = 5760;

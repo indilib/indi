@@ -64,7 +64,7 @@ class RadioSim : public INDI::Spectrograph
         float CalcTimeLeft();
         void setupParams(float sr, float freq, float bw, float gain);
         struct timeval CapStart;
-        float IntegrationRequest;
+        double IntegrationRequest;
 
         int streamPredicate;
         pthread_t primary_thread;

@@ -47,14 +47,13 @@ class Interface
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        virtual bool ISSnoopDevice(XMLEle *root);
         virtual bool saveConfigItems(FILE *fp);
         virtual bool updateProperties();
 
         bool processBLOB(uint8_t* buf, int ndims, int* dims, int bits_per_sample);
 
-        void setBufferSizes(int num, int* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
-        void getBufferSizes(int *num, int** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
+        void setBufferSizes(long num, long* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
+        void getBufferSizes(long *num, long** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
 
         void setBPS(int bps) { BPS = bps; }
         int getBPS() { return BPS; }
@@ -88,12 +87,10 @@ class Interface
         DSP::Type m_Type {  DSP_NONE };
 
     private:
-        int BufferSizesQty;
-        int *BufferSizes;
+        long BufferSizesQty;
+        long *BufferSizes;
         int BPS;
 
-        double primaryFocalLength, primaryAperture;
-        double MPSAS;
         char processedFileName[MAXINDINAME];
         char processedFileExtension[MAXINDIFORMAT];
         bool processBLOBPrivate(uint8_t* buf, int ndims, int* dims, int bits_per_sample);

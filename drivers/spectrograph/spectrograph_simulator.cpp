@@ -125,7 +125,7 @@ const char *RadioSim::getDefaultName()
 bool RadioSim::initProperties()
 {
     // We set the Spectrograph capabilities
-    uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_STREAMING;
+    uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_STREAMING | SENSOR_HAS_DSP;
     SetCapability(cap);
 
     // Must init parent properties first!

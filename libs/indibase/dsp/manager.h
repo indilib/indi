@@ -35,9 +35,6 @@ class DefaultDevice;
 
 namespace DSP
 {
-class Convolution;
-class Transforms;
-
 class Manager
 {
     public:
@@ -49,7 +46,6 @@ class Manager
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        virtual bool ISSnoopDevice(XMLEle *root);
         virtual bool saveConfigItems(FILE *fp);
         virtual bool updateProperties();
 
@@ -62,8 +58,8 @@ class Manager
         inline int getBPS() { return BPS; }
 
     protected:
-        DSP::Convolution *Convolution;
-        DSP::Transforms *Transforms;
+        Convolution *convolution;
+        Transforms *transforms;
 
     private:
         int BufferSizesQty;

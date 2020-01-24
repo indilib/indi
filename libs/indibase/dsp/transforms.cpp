@@ -32,7 +32,7 @@
 namespace DSP
 {
 
-Transforms::Transforms(INDI::DefaultDevice *dev) : Interface(dev, DSP_TRANSFORMATIONS, "DSP_TRANSFORMATIONS_PLUGIN", "Buffer Transformations Plugin")
+Transforms::Transforms(INDI::DefaultDevice *dev) : Interface(dev, DSP_TRANSFORMATIONS, "DSP_TRANSFORMATIONS_PLUGIN", "Spectrum")
 {
 }
 
@@ -64,6 +64,7 @@ void Transforms::Histogram(int histogram_size)
     double *histo = dsp_stats_histogram(stream, histogram_size);
     dsp_stream_free_buffer(stream);
     dsp_stream_set_buffer(stream, histo, histogram_size);
+    setBufferSizes(1, new long{histogram_size});
 }
 
 void Transforms::setStream(void *buf, int dims, int *sizes, int bits_per_sample)

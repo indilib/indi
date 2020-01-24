@@ -526,9 +526,7 @@ void SensorInterface::SetCapability(uint32_t cap)
     }
 
     if (HasDSP() && DSP.get() == nullptr)
-    {
         DSP.reset(new DSP::Manager(this));
-    }
 }
 
 void SensorInterface::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
@@ -900,9 +898,9 @@ bool SensorInterface::IntegrationComplete()
 
     // Run async
     std::thread(&SensorInterface::IntegrationCompletePrivate, this).detach();
-    if(HasDSP()) {
+    if(HasDSP())
         DSP->processBLOB(getBuffer(), 1, new int[1]{getBufferSize()*8/getBPS()}, getBPS());
-    }
+
     return true;
 }
 
