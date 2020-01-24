@@ -25,7 +25,7 @@ double* dsp_stats_histogram(dsp_stream_p stream, int size)
     double mx = dsp_stats_max(stream->buf, stream->len);
     double mn = dsp_stats_min(stream->buf, stream->len);
     for(k = 1; k < size; k++) {
-        //out[k] = dsp_stats_range_count(stream->buf, stream->len, mn + (k -1) * (mx - mn / size), mn + k * (mx - mn / size));
+        out[k] = dsp_stats_range_count(stream->buf, stream->len, mn + (k - 1) * (mx - mn / size), mn + k * (mx - mn / size));
     }
     return out;
 }
