@@ -43,13 +43,12 @@ Transforms::~Transforms()
 uint8_t* Transforms::Callback(uint8_t *buf, long dims, long *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
-    FourierTransform();
+    dsp_fourier_dft_magnitude(stream);
     return getStream();
 }
 
 void Transforms::FourierTransform()
 {
-    dsp_fourier_dft_magnitude(stream);
 }
 
 Spectrum::Spectrum(INDI::DefaultDevice *dev) : Interface(dev, DSP_SPECTRUM, "SPECTRUM", "Spectrum")
@@ -63,21 +62,30 @@ Spectrum::~Spectrum()
 uint8_t* Spectrum::Callback(uint8_t *buf, long dims, long *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
-    FourierTransform();
-    Histogram(4096);
+    dsp_fourier_dft_magnitude(stream);
+    double *histo = dsp_stats_histogram(stream, 4096);
+    dsp_stream_free_buffer(stream);
+    dsp_stream_set_buffer(stream, histo, 4096);
+    setBufferSizes(1, new long{4096});
     return getStream();
 }
 
-void Spectrum::FourierTransform()
+
+Histogram::Histogram(INDI::DefaultDevice *dev) : Interface(dev, DSP_SPECTRUM, "HISTOGRAM", "Histogram")
 {
-    dsp_fourier_dft_magnitude(stream);
 }
 
-void Spectrum::Histogram(int histogram_size)
+Histogram::~Histogram()
 {
-    double *histo = dsp_stats_histogram(stream, histogram_size);
+}
+
+uint8_t* Histogram::Callback(uint8_t *buf, long dims, long *sizes, int bits_per_sample)
+{
+    setStream(buf, dims, sizes, bits_per_sample);
+    double *histo = dsp_stats_histogram(stream, 4096);
     dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, histo, histogram_size);
-    setBufferSizes(1, new long{histogram_size});
+    dsp_stream_set_buffer(stream, histo, 4096);
+    setBufferSizes(1, new long{4096});
+    return getStream();
 }
 }

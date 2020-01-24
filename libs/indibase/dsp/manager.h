@@ -61,6 +61,7 @@ class Manager
         Convolution *convolution;
         Transforms *transforms;
         Spectrum *spectrum;
+        Histogram *histogram;
         int BufferSizesQty;
         int *BufferSizes;
         int BPS;

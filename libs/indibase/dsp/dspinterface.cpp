@@ -510,10 +510,37 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
             n = fwrite((static_cast<char *>(FitsB.blob) + nr), 1, static_cast<size_t>(FitsB.bloblen - nr), fp);
 
         fclose(fp);
+        LOGF_INFO("File saved in %s.", processedFileName);
     }
 
-    FitsB.size = static_cast<int>(totalBytes);
+    FitsB.size = totalBytes;
     FitsBP.s   = IPS_OK;
+
+    if (sendCapture)
+    {
+#ifdef HAVE_WEBSOCKET
+        if (HasWebSocket() && WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+
+            // Send format/size/..etc first later
+            wsServer.send_text(std::string(FitsB.format));
+            wsServer.send_binary(FitsB.blob, FitsB.bloblen);
+
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> diff = end - start;
+            LOGF_DEBUG("Websocket transfer took %g seconds", diff.count());
+        }
+        else
+#endif
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+            IDSetBLOB(&FitsBP, nullptr);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> diff = end - start;
+            LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
+        }
+    }
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Upload complete");
 

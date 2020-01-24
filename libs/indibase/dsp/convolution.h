@@ -22,6 +22,7 @@
 
 #include "dspinterface.h"
 #include "dsp.h"
+#include <fitsio.h>
 
 #include <string>
 

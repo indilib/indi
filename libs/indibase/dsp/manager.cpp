@@ -36,6 +36,7 @@ Manager::Manager(INDI::DefaultDevice *dev)
     convolution = new Convolution(dev);
     transforms = new Transforms(dev);
     spectrum = new Spectrum(dev);
+    histogram = new Histogram(dev);
 }
 
 Manager::~Manager()
@@ -49,6 +50,9 @@ Manager::~Manager()
     spectrum->~Spectrum();
     delete spectrum;
     spectrum = nullptr;
+    histogram->~Histogram();
+    delete histogram;
+    histogram = nullptr;
 }
 
 void Manager::ISGetProperties(const char *dev)
@@ -56,6 +60,7 @@ void Manager::ISGetProperties(const char *dev)
     convolution->ISGetProperties(dev);
     transforms->ISGetProperties(dev);
     spectrum->ISGetProperties(dev);
+    histogram->ISGetProperties(dev);
 }
 
 bool Manager::updateProperties()
@@ -64,6 +69,7 @@ bool Manager::updateProperties()
     r &= convolution->updateProperties();
     r &= transforms->updateProperties();
     r &= spectrum->updateProperties();
+    r &= histogram->updateProperties();
     return r;
 }
 
@@ -73,6 +79,7 @@ bool Manager::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     r &= convolution->ISNewSwitch(dev, name, states, names, num);
     r &= transforms->ISNewSwitch(dev, name, states, names, num);
     r &= spectrum->ISNewSwitch(dev, name, states, names, num);
+    r &= histogram->ISNewSwitch(dev, name, states, names, num);
     return r;
 }
 
@@ -82,6 +89,7 @@ bool Manager::ISNewText(const char *dev, const char *name, char *texts[], char *
     r &= convolution->ISNewText(dev, name, texts, names, num);
     r &= transforms->ISNewText(dev, name, texts, names, num);
     r &= spectrum->ISNewText(dev, name, texts, names, num);
+    r &= histogram->ISNewText(dev, name, texts, names, num);
     return r;
 }
 
@@ -91,6 +99,7 @@ bool Manager::ISNewNumber(const char *dev, const char *name, double values[], ch
     r &= convolution->ISNewNumber(dev, name, values, names, num);
     r &= transforms->ISNewNumber(dev, name, values, names, num);
     r &= spectrum->ISNewNumber(dev, name, values, names, num);
+    r &= histogram->ISNewNumber(dev, name, values, names, num);
     return r;
 }
 
@@ -101,6 +110,7 @@ bool Manager::ISNewBLOB(const char *dev, const char *name, int sizes[], int blob
     r &= convolution->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
     r &= transforms->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
     r &= spectrum->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
+    r &= histogram->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
     return r;
 }
 
@@ -110,6 +120,7 @@ bool Manager::saveConfigItems(FILE *fp)
     r &= convolution->saveConfigItems(fp);
     r &= transforms->saveConfigItems(fp);
     r &= spectrum->saveConfigItems(fp);
+    r &= histogram->saveConfigItems(fp);
     return r;
 }
 
@@ -119,6 +130,7 @@ bool Manager::processBLOB(uint8_t* buf, long ndims, long* dims, int bits_per_sam
     r &= convolution->processBLOB(buf, ndims, dims, bits_per_sample);
     r &= transforms->processBLOB(buf, ndims, dims, bits_per_sample);
     r &= spectrum->processBLOB(buf, ndims, dims, bits_per_sample);
+    r &= histogram->processBLOB(buf, ndims, dims, bits_per_sample);
     return r;
 }
 

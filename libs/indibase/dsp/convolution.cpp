@@ -56,50 +56,71 @@ void Convolution::Deactivated()
 bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
     INDI_UNUSED(blobsizes);
-    INDI_UNUSED(formats);
     if(!strcmp(dev, getDeviceName())) {
-        for (int i = 0; i < n; i++) {
-            if(!strcmp(name, DownloadBP.name)) {
-                const char *name = names[i];
-
-                if (!strcmp(name, DownloadB.name)) {
+        if(!strcmp(name, DownloadBP.name)) {
+            for (int i = 0; i < n; i++) {
+                if (!strcmp(names[i], DownloadB.name)) {
+                    LOGF_INFO("Received new BLOB for %s.", dev);
                     if(matrix) {
                         dsp_stream_free_buffer(matrix);
                         dsp_stream_free(matrix);
                     }
-                    void* buf = blobs[i];
-
-                    ///TODO: here file parsing
-
                     matrix = dsp_stream_new();
-                    int len = sizes[i] * 8 / getBPS();
-                    dsp_stream_add_dim(stream, sqrt(len));
-                    dsp_stream_add_dim(stream, sqrt(len));
-                    switch (getBPS())
+                    void* buf = blobs[i];
+                    long ndims;
+                    int bits_per_sample = 8;
+                    int offset = 0;
+                    if(!strcmp(formats[i], "fits")) {
+                        fitsfile *fptr;
+                        int status;
+                        unsigned long size = sizes[i];
+                        ffimem(&fptr, &buf, &size, sizes[i], realloc, &status);
+                        char value[MAXINDINAME];
+                        char comment[MAXINDINAME];
+                        char query[MAXINDINAME];
+                        ffgkys(fptr, "BITPIX", value, comment, &status);
+                        bits_per_sample = (int)atol(value);
+                        ffgkys(fptr, "NAXES", value, comment, &status);
+                        ndims = (long)atol(value);
+                        for (int d = 1; d <= ndims; d++) {
+                            sprintf(query, "NAXIS%d", d);
+                            ffgkys(fptr, query, value, comment, &status);
+                            dsp_stream_add_dim(matrix, (long)atol(value));
+                        }
+                        offset = 2880;
+                        fffree(fptr, &status);
+                        buf = static_cast<void*>(static_cast<uint8_t *>(buf)+offset);
+                    } else {
+                        LOG_ERROR("Only fits decoding at the moment.");
+                        continue;
+                    }
+                    switch (bits_per_sample)
                     {
                         case 8:
-                            dsp_buffer_copy((static_cast<uint8_t *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<uint8_t *>(buf)), matrix->buf, matrix->len);
                             break;
                         case 16:
-                            dsp_buffer_copy((static_cast<uint16_t *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<uint16_t *>(buf)), matrix->buf, matrix->len);
                             break;
                         case 32:
-                            dsp_buffer_copy((static_cast<uint32_t *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<uint32_t *>(buf)), matrix->buf, matrix->len);
                             break;
                         case 64:
-                            dsp_buffer_copy((static_cast<unsigned long *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<unsigned long *>(buf)), matrix->buf, matrix->len);
                             break;
                         case -32:
-                            dsp_buffer_copy((static_cast<float *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<float *>(buf)), matrix->buf, matrix->len);
                             break;
                         case -64:
-                            dsp_buffer_copy((static_cast<double *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<double *>(buf)), matrix->buf, matrix->len);
                             break;
                         default:
-                            dsp_stream_free_buffer(stream);
+                            dsp_stream_free_buffer(matrix);
                             //Destroy the dsp stream
-                            dsp_stream_free(stream);
+                            dsp_stream_free(matrix);
+                        break;
                     }
+                    LOG_INFO("DSP::Convolution: convolution matrix loaded");
                     matrix_loaded = true;
                 }
             }
