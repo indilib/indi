@@ -205,7 +205,7 @@ void Interface::processBLOBPrivate(unsigned char* buf, long ndims, long* dims, i
         uint8_t* buffer = Callback(buf, ndims, dims, bits_per_sample);
         if (buffer)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Interface::processBLOBPrivate - Should forward");
+            LOGF_INFO("%s processing done. Creating file..", m_Label);
             if (!strcmp(FitsB.format, "fits"))
             {
                 sendFITS(buffer, sendCapture, saveCapture);

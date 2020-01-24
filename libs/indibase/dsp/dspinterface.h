@@ -38,6 +38,7 @@ enum Type {
     DSP_NONE = 0,
     DSP_TRANSFORMATIONS,
     DSP_CONVOLUTION,
+    DSP_SPECTRUM,
 };
 extern const char *DSP_TAB;
 class Interface

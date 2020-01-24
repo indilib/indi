@@ -35,6 +35,7 @@ Manager::Manager(INDI::DefaultDevice *dev)
 {
     convolution = new Convolution(dev);
     transforms = new Transforms(dev);
+    spectrum = new Spectrum(dev);
 }
 
 Manager::~Manager()
@@ -45,12 +46,16 @@ Manager::~Manager()
     transforms->~Transforms();
     delete transforms;
     transforms = nullptr;
+    spectrum->~Spectrum();
+    delete spectrum;
+    spectrum = nullptr;
 }
 
 void Manager::ISGetProperties(const char *dev)
 {
     convolution->ISGetProperties(dev);
     transforms->ISGetProperties(dev);
+    spectrum->ISGetProperties(dev);
 }
 
 bool Manager::updateProperties()
@@ -58,6 +63,7 @@ bool Manager::updateProperties()
     bool r = true;
     r &= convolution->updateProperties();
     r &= transforms->updateProperties();
+    r &= spectrum->updateProperties();
     return r;
 }
 
@@ -66,6 +72,7 @@ bool Manager::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     bool r = true;
     r &= convolution->ISNewSwitch(dev, name, states, names, num);
     r &= transforms->ISNewSwitch(dev, name, states, names, num);
+    r &= spectrum->ISNewSwitch(dev, name, states, names, num);
     return r;
 }
 
@@ -74,6 +81,7 @@ bool Manager::ISNewText(const char *dev, const char *name, char *texts[], char *
     bool r = true;
     r &= convolution->ISNewText(dev, name, texts, names, num);
     r &= transforms->ISNewText(dev, name, texts, names, num);
+    r &= spectrum->ISNewText(dev, name, texts, names, num);
     return r;
 }
 
@@ -82,6 +90,7 @@ bool Manager::ISNewNumber(const char *dev, const char *name, double values[], ch
     bool r = true;
     r &= convolution->ISNewNumber(dev, name, values, names, num);
     r &= transforms->ISNewNumber(dev, name, values, names, num);
+    r &= spectrum->ISNewNumber(dev, name, values, names, num);
     return r;
 }
 
@@ -91,6 +100,7 @@ bool Manager::ISNewBLOB(const char *dev, const char *name, int sizes[], int blob
     bool r = true;
     r &= convolution->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
     r &= transforms->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
+    r &= spectrum->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
     return r;
 }
 
@@ -99,6 +109,7 @@ bool Manager::saveConfigItems(FILE *fp)
     bool r = true;
     r &= convolution->saveConfigItems(fp);
     r &= transforms->saveConfigItems(fp);
+    r &= spectrum->saveConfigItems(fp);
     return r;
 }
 
@@ -107,6 +118,7 @@ bool Manager::processBLOB(uint8_t* buf, long ndims, long* dims, int bits_per_sam
     bool r = true;
     r &= convolution->processBLOB(buf, ndims, dims, bits_per_sample);
     r &= transforms->processBLOB(buf, ndims, dims, bits_per_sample);
+    r &= spectrum->processBLOB(buf, ndims, dims, bits_per_sample);
     return r;
 }
 

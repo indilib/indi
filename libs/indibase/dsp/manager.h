@@ -57,11 +57,10 @@ class Manager
         inline void setBPS(int bps) { BPS = bps; }
         inline int getBPS() { return BPS; }
 
-    protected:
+    private:
         Convolution *convolution;
         Transforms *transforms;
-
-    private:
+        Spectrum *spectrum;
         int BufferSizesQty;
         int *BufferSizes;
         int BPS;

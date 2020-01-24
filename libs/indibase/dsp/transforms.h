@@ -37,6 +37,18 @@ protected:
     uint8_t *Callback(uint8_t *out, long dims, long *sizes, int bits_per_sample);
 
 private:
+    void FourierTransform();
+};
+class Spectrum : public Interface
+{
+public:
+    Spectrum(INDI::DefaultDevice *dev);
+    virtual ~Spectrum();
+
+protected:
+    uint8_t *Callback(uint8_t *out, long dims, long *sizes, int bits_per_sample);
+
+private:
     void Histogram(int histogram_size);
     void FourierTransform();
 };
