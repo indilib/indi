@@ -899,7 +899,7 @@ bool SensorInterface::IntegrationComplete()
     // Run async
     std::thread(&SensorInterface::IntegrationCompletePrivate, this).detach();
     if(HasDSP())
-        DSP->processBLOB(getBuffer(), 1, new int[1]{getBufferSize()*8/getBPS()}, getBPS());
+        DSP->processBLOB(getBuffer(), 1, new long[1]{getBufferSize()*8/getBPS()}, getBPS());
 
     return true;
 }

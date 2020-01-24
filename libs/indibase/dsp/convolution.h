@@ -38,17 +38,15 @@ protected:
     void Activated();
     void Deactivated();
 
-    uint8_t *Callback(uint8_t *out, int dims, int *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, long dims, long *sizes, int bits_per_sample);
 
 private:
-    dsp_stream_p stream;
     dsp_stream_p matrix;
 
     IBLOBVectorProperty DownloadBP;
     IBLOB DownloadB;
 
+    bool matrix_loaded { false };
     void Convolute();
-    void setStream(void *buf, int dims, int *sizes, int bits_per_sample);
-    uint8_t *getStream();
 };
 }

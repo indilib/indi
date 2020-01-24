@@ -225,6 +225,7 @@ bool CCDSim::initProperties()
     cap |= CCD_HAS_SHUTTER;
     cap |= CCD_HAS_ST4_PORT;
     cap |= CCD_HAS_STREAMING;
+    cap |= CCD_HAS_DSP;
 
 #ifdef HAVE_WEBSOCKET
     cap |= CCD_HAS_WEB_SOCKET;

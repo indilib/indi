@@ -100,6 +100,7 @@ bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int 
                             //Destroy the dsp stream
                             dsp_stream_free(stream);
                     }
+                    matrix_loaded = true;
                 }
             }
         }
@@ -107,84 +108,16 @@ bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int 
     return true;
 }
 
-uint8_t* Convolution::Callback(uint8_t *buf, int dims, int *sizes, int bits_per_sample)
+uint8_t* Convolution::Callback(uint8_t *buf, long dims, long *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
-    free(buf);
     Convolute();
     return getStream();
 }
 
 void Convolution::Convolute()
 {
-    if(matrix)
+    if(matrix_loaded)
         dsp_convolution_convolution(stream, matrix);
-}
-
-void Convolution::setStream(void *buf, int dims, int *sizes, int bits_per_sample)
-{
-    //Create the dsp stream
-    stream = dsp_stream_new();
-    for(int dim = 0; dim < dims; dim++)
-        dsp_stream_add_dim(stream, sizes[dim]);
-    dsp_stream_alloc_buffer(stream, stream->len);
-    switch (bits_per_sample)
-    {
-        case 8:
-            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 16:
-            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 32:
-            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 64:
-            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
-            break;
-        case -32:
-            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
-            break;
-        case -64:
-            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
-            break;
-        default:
-            dsp_stream_free_buffer(stream);
-            //Destroy the dsp stream
-            dsp_stream_free(stream);
-    }
-}
-
-uint8_t* Convolution::getStream()
-{
-    void *buffer = malloc(stream->len*getBPS()/8);
-    switch (getBPS())
-    {
-        case 8:
-            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(buffer)), stream->len);
-            break;
-        case 16:
-            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(buffer)), stream->len);
-            break;
-        case 32:
-            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(buffer)), stream->len);
-            break;
-        case 64:
-            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(buffer)), stream->len);
-            break;
-        case -32:
-            dsp_buffer_copy(stream->buf, (static_cast<float *>(buffer)), stream->len);
-            break;
-        case -64:
-            dsp_buffer_copy(stream->buf, (static_cast<double *>(buffer)), stream->len);
-            break;
-        default:
-            return NULL;
-            break;
-    }
-    //Destroy the dsp stream
-    dsp_stream_free_buffer(stream);
-    dsp_stream_free(stream);
-    return static_cast<uint8_t *>(buffer);
 }
 }

@@ -85,6 +85,8 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
 
     IUFillBLOB(&FitsB, m_Name, m_Label, "");
     IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), m_Name, m_Label, DSP_TAB, IP_RO, 60, IPS_IDLE);
+    BufferSizes = nullptr;
+    BufferSizesQty = 0;
 }
 
 Interface::~Interface()
@@ -98,9 +100,12 @@ const char *Interface::getDeviceName()
 
 void Interface::ISGetProperties(const char *dev)
 {
+    INDI_UNUSED(dev);
     if (m_Device->isConnected()) {
         m_Device->defineSwitch(&ActivateSP);
-        m_Device->defineBLOB(&FitsBP);
+    } else {
+        m_Device->deleteProperty(ActivateSP.name);
+        Deactivated();
     }
 }
 
@@ -108,10 +113,9 @@ bool Interface::updateProperties()
 {
     if (m_Device->isConnected()) {
         m_Device->defineSwitch(&ActivateSP);
-        m_Device->defineBLOB(&FitsBP);
     } else {
         m_Device->deleteProperty(ActivateSP.name);
-        m_Device->deleteProperty(FitsBP.name);
+        Deactivated();
     }
     return true;
 }
@@ -123,12 +127,11 @@ bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             char *name = names[i];
 
             if (!strcmp(name, "DSP_ACTIVATE_ON") && states[i] == ISS_ON) {
-                m_Device->defineBLOB(&FitsBP);
                 Activated();
-            }
-            if (!strcmp(name, "DSP_ACTIVATE_OFF") && states[i] == ISS_ON) {
-                m_Device->deleteProperty(FitsBP.name);
+                PluginActive = true;
+            } else {
                 Deactivated();
+                PluginActive = false;
             }
         }
     }
@@ -168,60 +171,69 @@ bool Interface::ISNewBLOB(const char *dev, const char *name, int sizes[], int bl
     return false;
 }
 
-uint8_t* Interface::Callback(unsigned char* buf, int ndims, int* dims, int bits_per_sample)
+uint8_t* Interface::Callback(unsigned char* buf, long ndims, long* dims, int bits_per_sample)
 {
     INDI_UNUSED(buf);
     INDI_UNUSED(ndims);
     INDI_UNUSED(dims);
     INDI_UNUSED(bits_per_sample);
+    DEBUG(INDI::Logger::DBG_WARNING, "Interface::Callback -  Should never get here");
     return nullptr;
 }
 
-bool Interface::processBLOB(unsigned char* buf, int ndims, int* dims, int bits_per_sample)
+bool Interface::processBLOB(unsigned char* buf, long ndims, long* dims, int bits_per_sample)
 {
-    if(ActivateSP.sp[0].s == ISState::ISS_ON) {
+    if(PluginActive) {
         // Run async
         std::thread(&Interface::processBLOBPrivate, this, buf, ndims, dims, bits_per_sample).detach();
     }
     return true;
 }
 
-bool Interface::processBLOBPrivate(unsigned char* buf, int ndims, int* dims, int bits_per_sample)
+void Interface::processBLOBPrivate(unsigned char* buf, long ndims, long* dims, int bits_per_sample)
 {
-    uint8_t* buffer = Callback(buf, ndims, dims, bits_per_sample);
     bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
     bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
 
-    if ((sendCapture || saveCapture) && buffer != nullptr)
+    if (sendCapture || saveCapture)
     {
-        void* blob = nullptr;
-        int len = 1;
-        for (int d = 0; d < BufferSizesQty; d++)
-            len *= BufferSizes[d];
-        if (!strcmp(FitsB.format, "fits"))
+        uint8_t* buffer = Callback(buf, ndims, dims, bits_per_sample);
+        if (buffer != nullptr)
         {
-            blob = sendFITS(buffer, len * 8 / abs(BPS), BPS);
-        }
-        else
-        {
-            uploadFile(buffer, static_cast<size_t>(len), sendCapture, saveCapture, processedFileExtension);
-        }
+            if(BufferSizes == nullptr || BufferSizesQty == 0) {
+                BufferSizes = dims;
+                BufferSizesQty = ndims;
+                BPS = bits_per_sample;
+            }
 
-        if (sendCapture)
-            IDSetBLOB(&FitsBP, nullptr);
-        if(blob != nullptr)
-            free(blob);
+            int len = 1;
+            for (int d = 0; d < BufferSizesQty; d++)
+                len *= BufferSizes[d] * BPS / 8;
+
+            if (!strcmp(FitsB.format, "fits"))
+            {
+                sendFITS(buffer, sendCapture, saveCapture);
+            }
+            else
+            {
+                uploadFile(buffer, len, sendCapture, saveCapture, processedFileExtension);
+            }
+
+            if (sendCapture)
+                IDSetBLOB(&FitsBP, nullptr);
+        }
+        free(buffer);
     }
-
-    return true;
 }
 
 void Interface::Activated()
 {
+    m_Device->defineBLOB(&FitsBP);
 }
 
 void Interface::Deactivated()
 {
+    m_Device->deleteProperty(FitsBP.name);
 }
 
 bool Interface::saveConfigItems(FILE *fp)
@@ -252,17 +264,6 @@ void Interface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     // Object
     strncpy(fitsString, m_Device->getText("FITS_HEADER")->tp[1].text, MAXINDIDEVICE);
     fits_update_key_s(fptr, TSTRING, "OBJECT", fitsString, "Object name", &status);
-
-#ifdef WITH_MINMAX
-    if (getNAxis() == 2)
-    {
-        double min_val, max_val;
-        getMinMax(&min_val, &max_val, buf, len, getBPS());
-
-        fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
-        fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
-    }
-#endif
 
     INumberVectorProperty *nv = m_Device->getNumber("GEOGRAPHIC_COORDS");
     if(nv != nullptr)
@@ -339,10 +340,8 @@ void Interface::fits_update_key_s(fitsfile *fptr, int type, std::string name, vo
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
 }
 
-void* Interface::sendFITS(uint8_t *buf, int len, int bitspersample)
+bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
 {
-    bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
-    bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
     fitsfile *fptr = nullptr;
     void *memptr;
     size_t memsize;
@@ -354,7 +353,7 @@ void* Interface::sendFITS(uint8_t *buf, int len, int bitspersample)
     int nelements = 0;
     std::string bit_depth;
     char error_status[MAXINDINAME];
-    switch (bitspersample)
+    switch (getBPS())
     {
         case 8:
             byte_type = TBYTE;
@@ -393,10 +392,12 @@ void* Interface::sendFITS(uint8_t *buf, int len, int bitspersample)
             break;
 
         default:
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unsupported bits per sample value %d", bitspersample);
-            return nullptr;
+            DEBUGF(INDI::Logger::DBG_ERROR, "Unsupported bits per sample value %d", getBPS());
+            return false;
     }
-    for (long len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
+    long len = 1;
+    int i;
+    for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
     nelements = static_cast<int>(len);
 
     //  Now we have to send fits format data to the client
@@ -416,7 +417,7 @@ void* Interface::sendFITS(uint8_t *buf, int len, int bitspersample)
         DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
         if(memptr != nullptr)
             free(memptr);
-        return nullptr;
+        return false;
     }
 
     fits_create_img(fptr, img_type, naxis, naxes, &status);
@@ -428,7 +429,7 @@ void* Interface::sendFITS(uint8_t *buf, int len, int bitspersample)
         DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
         if(memptr != nullptr)
             free(memptr);
-        return nullptr;
+        return false;
     }
 
     addFITSKeywords(fptr, buf, len);
@@ -442,14 +443,14 @@ void* Interface::sendFITS(uint8_t *buf, int len, int bitspersample)
         DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
         if(memptr != nullptr)
             free(memptr);
-        return nullptr;
+        return false;
     }
 
     fits_close_file(fptr, &status);
 
     uploadFile(memptr, memsize, sendCapture, saveCapture, processedFileExtension);
-
-    return memptr;
+    free(memptr);
+    return true;
 }
 
 bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCapture, bool saveCapture, const char* format)
@@ -466,8 +467,9 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
 
         FILE *fp = nullptr;
 
-        std::string prefix = m_Device->getText("UPLOAD_SETTINGS")->tp[1].text;
-        int maxIndex       = getFileIndex(m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, m_Device->getText("UPLOAD_SETTINGS")->tp[1].text,
+        std::string prefix = m_Device->getText("UPLOAD_SETTINGS")->tp[0].text;
+
+        int maxIndex       = getFileIndex(m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(),
                                           format);
 
         if (maxIndex < 0)
@@ -517,121 +519,6 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
     DEBUG(INDI::Logger::DBG_DEBUG, "Upload complete");
 
     return true;
-}
-
-void Interface::getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp)
-{
-    int ind         = 0, i, j;
-    int integrationHeight = 1;
-    int integrationWidth  = len;
-    double lmin = 0, lmax = 0;
-
-    switch (bpp)
-    {
-        case 8:
-        {
-            uint8_t *integrationBuffer = static_cast<uint8_t *>(buf);
-            lmin = lmax = integrationBuffer[0];
-
-            for (i = 0; i < integrationHeight; i++)
-                for (j = 0; j < integrationWidth; j++)
-                {
-                    ind = (i * integrationWidth) + j;
-                    if (integrationBuffer[ind] < lmin)
-                        lmin = integrationBuffer[ind];
-                    else if (integrationBuffer[ind] > lmax)
-                        lmax = integrationBuffer[ind];
-                }
-        }
-        break;
-
-        case 16:
-        {
-            uint16_t *integrationBuffer = reinterpret_cast<uint16_t *>(buf);
-            lmin = lmax = integrationBuffer[0];
-
-            for (i = 0; i < integrationHeight; i++)
-                for (j = 0; j < integrationWidth; j++)
-                {
-                    ind = (i * integrationWidth) + j;
-                    if (integrationBuffer[ind] < lmin)
-                        lmin = integrationBuffer[ind];
-                    else if (integrationBuffer[ind] > lmax)
-                        lmax = integrationBuffer[ind];
-                }
-        }
-        break;
-
-        case 32:
-        {
-            uint32_t *integrationBuffer = reinterpret_cast<uint32_t *>(buf);
-            lmin = lmax = integrationBuffer[0];
-
-            for (i = 0; i < integrationHeight; i++)
-                for (j = 0; j < integrationWidth; j++)
-                {
-                    ind = (i * integrationWidth) + j;
-                    if (integrationBuffer[ind] < lmin)
-                        lmin = integrationBuffer[ind];
-                    else if (integrationBuffer[ind] > lmax)
-                        lmax = integrationBuffer[ind];
-                }
-        }
-        break;
-
-        case 64:
-        {
-            unsigned long *integrationBuffer = reinterpret_cast<unsigned long *>(buf);
-            lmin = lmax = integrationBuffer[0];
-
-            for (i = 0; i < integrationHeight; i++)
-                for (j = 0; j < integrationWidth; j++)
-                {
-                    ind = (i * integrationWidth) + j;
-                    if (integrationBuffer[ind] < lmin)
-                        lmin = integrationBuffer[ind];
-                    else if (integrationBuffer[ind] > lmax)
-                        lmax = integrationBuffer[ind];
-                }
-        }
-        break;
-
-        case -32:
-        {
-            double *integrationBuffer = reinterpret_cast<double *>(buf);
-            lmin = lmax = integrationBuffer[0];
-
-            for (i = 0; i < integrationHeight; i++)
-                for (j = 0; j < integrationWidth; j++)
-                {
-                    ind = (i * integrationWidth) + j;
-                    if (integrationBuffer[ind] < lmin)
-                        lmin = integrationBuffer[ind];
-                    else if (integrationBuffer[ind] > lmax)
-                        lmax = integrationBuffer[ind];
-                }
-        }
-        break;
-
-        case -64:
-        {
-            double *integrationBuffer = reinterpret_cast<double *>(buf);
-            lmin = lmax = integrationBuffer[0];
-
-            for (i = 0; i < integrationHeight; i++)
-                for (j = 0; j < integrationWidth; j++)
-                {
-                    ind = (i * integrationWidth) + j;
-                    if (integrationBuffer[ind] < lmin)
-                        lmin = integrationBuffer[ind];
-                    else if (integrationBuffer[ind] > lmax)
-                        lmax = integrationBuffer[ind];
-                }
-        }
-        break;
-    }
-    *min = lmin;
-    *max = lmax;
 }
 
 int Interface::getFileIndex(const char *dir, const char *prefix, const char *ext)
@@ -687,5 +574,72 @@ int Interface::getFileIndex(const char *dir, const char *prefix, const char *ext
     }
 
     return (maxIndex + 1);
+}
+
+void Interface::setStream(void *buf, long dims, long *sizes, int bits_per_sample)
+{
+    //Create the dsp stream
+    stream = dsp_stream_new();
+    for(int dim = 0; dim < dims; dim++)
+        dsp_stream_add_dim(stream, sizes[dim]);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+            break;
+        default:
+            dsp_stream_free_buffer(stream);
+            //Destroy the dsp stream
+            dsp_stream_free(stream);
+    }
+}
+
+uint8_t* Interface::getStream()
+{
+    void *buffer = malloc(stream->len*getBPS()/8);
+    switch (getBPS())
+    {
+        case 8:
+            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(buffer)), stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(buffer)), stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(buffer)), stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(buffer)), stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy(stream->buf, (static_cast<float *>(buffer)), stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy(stream->buf, (static_cast<double *>(buffer)), stream->len);
+            break;
+        default:
+            return NULL;
+            break;
+    }
+    //Destroy the dsp stream
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+    return static_cast<uint8_t *>(buffer);
 }
 }

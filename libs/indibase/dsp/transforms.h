@@ -34,15 +34,10 @@ public:
     virtual ~Transforms();
 
 protected:
-    uint8_t *Callback(uint8_t *out, int dims, int *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, long dims, long *sizes, int bits_per_sample);
 
 private:
-    dsp_stream_p stream;
-
-    void Spectrum(int n_elements);
     void Histogram(int histogram_size);
     void FourierTransform();
-    void setStream(void *buf, int dims, int *sizes, int bits_per_sample);
-    uint8_t *getStream();
 };
 }

@@ -49,7 +49,7 @@ class Manager
         virtual bool saveConfigItems(FILE *fp);
         virtual bool updateProperties();
 
-        bool processBLOB(uint8_t* buf, int ndims, int* dims, int bits_per_sample);
+        bool processBLOB(uint8_t* buf, long ndims, long* dims, int bits_per_sample);
 
         inline void setSizes(int num, int* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
         inline void getSizes(int *num, int** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }

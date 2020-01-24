@@ -1930,6 +1930,8 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
 
     // Run async
     std::thread(&CCD::ExposureCompletePrivate, this, targetChip).detach();
+    if(HasDSP())
+        DSP->processBLOB(PrimaryCCD.getFrameBuffer(), 2, new long[2]{PrimaryCCD.getXRes(), PrimaryCCD.getYRes()}, PrimaryCCD.getBPP());
 
     return true;
 }

@@ -21,6 +21,7 @@
 #pragma once
 
 #include "indidevapi.h"
+#include "dsp.h"
 
 #include <fitsio.h>
 #include <functional>
@@ -50,7 +51,7 @@ class Interface
         virtual bool saveConfigItems(FILE *fp);
         virtual bool updateProperties();
 
-        bool processBLOB(uint8_t* buf, int ndims, int* dims, int bits_per_sample);
+        bool processBLOB(uint8_t* buf, long ndims, long* dims, int bits_per_sample);
 
         void setBufferSizes(long num, long* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
         void getBufferSizes(long *num, long** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
@@ -58,11 +59,12 @@ class Interface
         void setBPS(int bps) { BPS = bps; }
         int getBPS() { return BPS; }
 
-    protected:
         virtual void Activated();
         virtual void Deactivated();
 
-        virtual uint8_t* Callback(uint8_t* buf, int ndims, int* dims, int bits_per_sample);
+        virtual uint8_t* Callback(uint8_t* buf, long ndims, long* dims, int bits_per_sample);
+
+    protected:
 
         IBLOBVectorProperty FitsBP;
         IBLOB FitsB;
@@ -85,20 +87,23 @@ class Interface
         const char *m_Name {  nullptr };
         const char *m_Label {  nullptr };
         DSP::Type m_Type {  DSP_NONE };
+        void setStream(void *buf, long dims, long *sizes, int bits_per_sample);
+        uint8_t *getStream();
+        dsp_stream_p stream;
 
     private:
         long BufferSizesQty;
         long *BufferSizes;
         int BPS;
 
+        bool PluginActive;
         char processedFileName[MAXINDINAME];
         char processedFileExtension[MAXINDIFORMAT];
-        bool processBLOBPrivate(uint8_t* buf, int ndims, int* dims, int bits_per_sample);
+        void processBLOBPrivate(uint8_t* buf, long ndims, long* dims, int bits_per_sample);
         void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
         void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
-        void *sendFITS(uint8_t *buf, int len, int bits_per_sample);
+        bool sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture);
         bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration, const char* format);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
-        void getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp);
 };
 }
