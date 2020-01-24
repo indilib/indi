@@ -50,7 +50,6 @@ uint8_t* Transforms::Callback(uint8_t *buf, long dims, long *sizes, int bits_per
 
 void Transforms::FourierTransform()
 {
-    DEBUGF(INDI::Logger::DBG_ERROR, "Error: 0x%08x", stream);
     dsp_fourier_dft_magnitude(stream);
 }
 
