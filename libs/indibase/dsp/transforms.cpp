@@ -32,7 +32,7 @@
 namespace DSP
 {
 
-Transforms::Transforms(INDI::DefaultDevice *dev) : Interface(dev, DSP_TRANSFORMATIONS, "DSP_TRANSFORMATIONS_PLUGIN", "DFT")
+Transforms::Transforms(INDI::DefaultDevice *dev) : Interface(dev, DSP_TRANSFORMATIONS, "DFT", "DFT")
 {
 }
 

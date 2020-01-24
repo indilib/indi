@@ -197,25 +197,25 @@ void Interface::processBLOBPrivate(unsigned char* buf, long ndims, long* dims, i
 
     if (sendCapture || saveCapture)
     {
+        if(!BufferSizes || BufferSizesQty == 0) {
+            BufferSizes = dims;
+            BufferSizesQty = ndims;
+            BPS = bits_per_sample;
+        }
         uint8_t* buffer = Callback(buf, ndims, dims, bits_per_sample);
-        if (buffer != nullptr)
+        if (buffer)
         {
-            if(BufferSizes == nullptr || BufferSizesQty == 0) {
-                BufferSizes = dims;
-                BufferSizesQty = ndims;
-                BPS = bits_per_sample;
-            }
-
-            int len = 1;
-            for (int d = 0; d < BufferSizesQty; d++)
-                len *= BufferSizes[d] * BPS / 8;
-
+            DEBUG(INDI::Logger::DBG_WARNING, "Interface::processBLOBPrivate - Should forward");
             if (!strcmp(FitsB.format, "fits"))
             {
                 sendFITS(buffer, sendCapture, saveCapture);
             }
             else
             {
+                long len = 1;
+                int i;
+                for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
+                len *= getBPS() / 8;
                 uploadFile(buffer, len, sendCapture, saveCapture, processedFileExtension);
             }
 
@@ -467,7 +467,7 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
 
         FILE *fp = nullptr;
 
-        std::string prefix = m_Device->getText("UPLOAD_SETTINGS")->tp[0].text;
+        std::string prefix = m_Device->getText("UPLOAD_SETTINGS")->tp[1].text;
 
         int maxIndex       = getFileIndex(m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(),
                                           format);
@@ -497,7 +497,7 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        snprintf(processedFileName, MAXINDINAME, "%s/%s_%s%s", m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(), m_Name, format);
+        snprintf(processedFileName, MAXINDINAME, "%s/%s_%s.%s", m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(), m_Name, format);
 
         fp = fopen(processedFileName, "w");
         if (fp == nullptr)
@@ -634,7 +634,7 @@ uint8_t* Interface::getStream()
             dsp_buffer_copy(stream->buf, (static_cast<double *>(buffer)), stream->len);
             break;
         default:
-            return NULL;
+            free (buffer);
             break;
     }
     //Destroy the dsp stream
