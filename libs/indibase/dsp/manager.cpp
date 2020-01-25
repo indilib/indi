@@ -37,6 +37,7 @@ Manager::Manager(INDI::DefaultDevice *dev)
     transforms = new Transforms(dev);
     spectrum = new Spectrum(dev);
     histogram = new Histogram(dev);
+    wavelets = new Wavelets(dev);
 }
 
 Manager::~Manager()
@@ -53,6 +54,9 @@ Manager::~Manager()
     histogram->~Histogram();
     delete histogram;
     histogram = nullptr;
+    wavelets->~Wavelets();
+    delete wavelets;
+    wavelets = nullptr;
 }
 
 void Manager::ISGetProperties(const char *dev)
@@ -61,76 +65,84 @@ void Manager::ISGetProperties(const char *dev)
     transforms->ISGetProperties(dev);
     spectrum->ISGetProperties(dev);
     histogram->ISGetProperties(dev);
+    wavelets->ISGetProperties(dev);
 }
 
 bool Manager::updateProperties()
 {
-    bool r = true;
-    r &= convolution->updateProperties();
-    r &= transforms->updateProperties();
-    r &= spectrum->updateProperties();
-    r &= histogram->updateProperties();
+    bool r = false;
+    r |= convolution->updateProperties();
+    r |= transforms->updateProperties();
+    r |= spectrum->updateProperties();
+    r |= histogram->updateProperties();
+    r |= wavelets->updateProperties();
     return r;
 }
 
 bool Manager::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-    bool r = true;
-    r &= convolution->ISNewSwitch(dev, name, states, names, num);
-    r &= transforms->ISNewSwitch(dev, name, states, names, num);
-    r &= spectrum->ISNewSwitch(dev, name, states, names, num);
-    r &= histogram->ISNewSwitch(dev, name, states, names, num);
+    bool r = false;
+    r |= convolution->ISNewSwitch(dev, name, states, names, num);
+    r |= transforms->ISNewSwitch(dev, name, states, names, num);
+    r |= spectrum->ISNewSwitch(dev, name, states, names, num);
+    r |= histogram->ISNewSwitch(dev, name, states, names, num);
+    r |= wavelets->ISNewSwitch(dev, name, states, names, num);
     return r;
 }
 
 bool Manager::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-    bool r = true;
-    r &= convolution->ISNewText(dev, name, texts, names, num);
-    r &= transforms->ISNewText(dev, name, texts, names, num);
-    r &= spectrum->ISNewText(dev, name, texts, names, num);
-    r &= histogram->ISNewText(dev, name, texts, names, num);
+    bool r = false;
+    r |= convolution->ISNewText(dev, name, texts, names, num);
+    r |= transforms->ISNewText(dev, name, texts, names, num);
+    r |= spectrum->ISNewText(dev, name, texts, names, num);
+    r |= histogram->ISNewText(dev, name, texts, names, num);
+    r |= wavelets->ISNewText(dev, name, texts, names, num);
     return r;
 }
 
 bool Manager::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-    bool r = true;
-    r &= convolution->ISNewNumber(dev, name, values, names, num);
-    r &= transforms->ISNewNumber(dev, name, values, names, num);
-    r &= spectrum->ISNewNumber(dev, name, values, names, num);
-    r &= histogram->ISNewNumber(dev, name, values, names, num);
+    bool r = false;
+    r |= convolution->ISNewNumber(dev, name, values, names, num);
+    r |= transforms->ISNewNumber(dev, name, values, names, num);
+    r |= spectrum->ISNewNumber(dev, name, values, names, num);
+    r |= histogram->ISNewNumber(dev, name, values, names, num);
+    r |= wavelets->ISNewNumber(dev, name, values, names, num);
     return r;
 }
 
 bool Manager::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
                char *names[], int num)
 {
-    bool r = true;
-    r &= convolution->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
-    r &= transforms->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
-    r &= spectrum->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
-    r &= histogram->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
+    bool r = false;
+    r |= convolution->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
+    r |= transforms->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
+    r |= spectrum->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
+    r |= histogram->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
+    r |= wavelets->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
     return r;
 }
 
 bool Manager::saveConfigItems(FILE *fp)
 {
-    bool r = true;
-    r &= convolution->saveConfigItems(fp);
-    r &= transforms->saveConfigItems(fp);
-    r &= spectrum->saveConfigItems(fp);
-    r &= histogram->saveConfigItems(fp);
+    bool r = false;
+    r |= convolution->saveConfigItems(fp);
+    r |= transforms->saveConfigItems(fp);
+    r |= spectrum->saveConfigItems(fp);
+    r |= histogram->saveConfigItems(fp);
+    r |= wavelets->saveConfigItems(fp);
     return r;
 }
 
 bool Manager::processBLOB(uint8_t* buf, long ndims, long* dims, int bits_per_sample)
 {
-    bool r = true;
-    r &= convolution->processBLOB(buf, ndims, dims, bits_per_sample);
-    r &= transforms->processBLOB(buf, ndims, dims, bits_per_sample);
-    r &= spectrum->processBLOB(buf, ndims, dims, bits_per_sample);
-    r &= histogram->processBLOB(buf, ndims, dims, bits_per_sample);
+    bool r = false;
+    r |= convolution->processBLOB(buf, ndims, dims, bits_per_sample);
+    r |= transforms->processBLOB(buf, ndims, dims, bits_per_sample);
+    r |= spectrum->processBLOB(buf, ndims, dims, bits_per_sample);
+    r |= histogram->processBLOB(buf, ndims, dims, bits_per_sample);
+    r |= wavelets->processBLOB(buf, ndims, dims, bits_per_sample);
     return r;
 }
 

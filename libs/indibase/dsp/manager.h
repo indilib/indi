@@ -62,6 +62,7 @@ class Manager
         Transforms *transforms;
         Spectrum *spectrum;
         Histogram *histogram;
+        Wavelets *wavelets;
         int BufferSizesQty;
         int *BufferSizes;
         int BPS;

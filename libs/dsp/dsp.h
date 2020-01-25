@@ -488,7 +488,7 @@ DLL_EXPORT void dsp_buffer_removemean(dsp_stream_p stream);
     if(iratio == 0.0) iratio = 1;\
     for(k = 0; k < len; k++) {\
         buf[k] -= __mn;\
-        buf[k] = (__typeof__(buf[0]))((double)buf[k] * oratio / iratio);\
+        buf[k] = (__typeof__(buf[0]))((double)buf[k] * (oratio / iratio));\
         buf[k] += (__typeof__(buf[0]))_mn;\
     }\
 })

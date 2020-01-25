@@ -23,7 +23,7 @@
 #include "dspinterface.h"
 #include "dsp.h"
 #include <fitsio.h>
-
+#define N_WAVELETS 7
 #include <string>
 
 namespace DSP
@@ -46,6 +46,28 @@ private:
 
     IBLOBVectorProperty DownloadBP;
     IBLOB DownloadB;
+
+    bool matrix_loaded { false };
+    void Convolute();
+};
+class Wavelets : public Interface
+{
+public:
+    Wavelets(INDI::DefaultDevice *dev);
+    ~Wavelets();
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
+protected:
+    void Activated();
+    void Deactivated();
+
+    uint8_t *Callback(uint8_t *out, long dims, long *sizes, int bits_per_sample);
+
+private:
+    dsp_stream_p matrix;
+
+    INumberVectorProperty WaveletsNP;
+    INumber *WaveletsN;
 
     bool matrix_loaded { false };
     void Convolute();

@@ -78,9 +78,13 @@ const char *DSP_TAB = "Signal Processing";
 
 Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, const char *label) : m_Device(dev), m_Name(name), m_Label(label), m_Type(type)
 {
+    char activatestrname[MAXINDINAME];
+    char activatestrlabel[MAXINDINAME];
+    sprintf(activatestrname, "DSP_ACTIVATE_%s", m_Name);
+    sprintf(activatestrlabel, "Activate %s", m_Label);
     IUFillSwitch(&ActivateS[0], "DSP_ACTIVATE_ON", "Activate", ISState::ISS_OFF);
     IUFillSwitch(&ActivateS[1], "DSP_ACTIVATE_OFF", "Deactivate", ISState::ISS_ON);
-    IUFillSwitchVector(&ActivateSP, ActivateS, 2, getDeviceName(), "DSP_ACTIVATE", "Activate", DSP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ActivateSP, ActivateS, 2, getDeviceName(), activatestrname, activatestrlabel, DSP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillBLOB(&FitsB, m_Name, m_Label, "");
     IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), m_Name, m_Label, DSP_TAB, IP_RO, 60, IPS_IDLE);
@@ -124,14 +128,10 @@ bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if(!strcmp(dev, getDeviceName())&&!strcmp(name, ActivateSP.name)) {
         for (int i = 0; i < n; i++) {
-            char *name = names[i];
-
-            if (!strcmp(name, "DSP_ACTIVATE_ON") && states[i] == ISS_ON) {
+            if (!strcmp(names[i], "DSP_ACTIVATE_ON") && states[i] == ISS_ON) {
                 Activated();
-                PluginActive = true;
             } else {
                 Deactivated();
-                PluginActive = false;
             }
         }
     }
@@ -183,47 +183,41 @@ uint8_t* Interface::Callback(unsigned char* buf, long ndims, long* dims, int bit
 
 bool Interface::processBLOB(unsigned char* buf, long ndims, long* dims, int bits_per_sample)
 {
-    if(PluginActive) {
-        // Run async
-        std::thread(&Interface::processBLOBPrivate, this, buf, ndims, dims, bits_per_sample).detach();
+    if(PluginActive()) {
+        bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
+        bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
+
+        if (sendCapture || saveCapture)
+        {
+            if(!BufferSizes || BufferSizesQty == 0) {
+                BufferSizes = dims;
+                BufferSizesQty = ndims;
+                BPS = bits_per_sample;
+            }
+            uint8_t* buffer = Callback(buf, ndims, dims, bits_per_sample);
+            if (buffer)
+            {
+                LOGF_INFO("%s processing done. Creating file..", m_Label);
+                if (!strcmp(FitsB.format, "fits"))
+                {
+                    sendFITS(buffer, sendCapture, saveCapture);
+                }
+                else
+                {
+                    long len = 1;
+                    int i;
+                    for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
+                    len *= getBPS() / 8;
+                    uploadFile(buffer, len, sendCapture, saveCapture, FitsB.format);
+                }
+
+                if (sendCapture)
+                    IDSetBLOB(&FitsBP, nullptr);
+            }
+            free(buffer);
+        }
     }
     return true;
-}
-
-void Interface::processBLOBPrivate(unsigned char* buf, long ndims, long* dims, int bits_per_sample)
-{
-    bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
-    bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
-
-    if (sendCapture || saveCapture)
-    {
-        if(!BufferSizes || BufferSizesQty == 0) {
-            BufferSizes = dims;
-            BufferSizesQty = ndims;
-            BPS = bits_per_sample;
-        }
-        uint8_t* buffer = Callback(buf, ndims, dims, bits_per_sample);
-        if (buffer)
-        {
-            LOGF_INFO("%s processing done. Creating file..", m_Label);
-            if (!strcmp(FitsB.format, "fits"))
-            {
-                sendFITS(buffer, sendCapture, saveCapture);
-            }
-            else
-            {
-                long len = 1;
-                int i;
-                for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
-                len *= getBPS() / 8;
-                uploadFile(buffer, len, sendCapture, saveCapture, FitsB.format);
-            }
-
-            if (sendCapture)
-                IDSetBLOB(&FitsBP, nullptr);
-        }
-        free(buffer);
-    }
 }
 
 void Interface::Activated()

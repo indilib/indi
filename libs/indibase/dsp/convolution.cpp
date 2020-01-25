@@ -23,6 +23,8 @@
 #include "dsp.h"
 #include "base64.h"
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <dirent.h>
 #include <cerrno>
 #include <cstring>
@@ -36,7 +38,7 @@ namespace DSP
 Convolution::Convolution(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "CONVOLUTION", "Convolution")
 {
     IUFillBLOB(&DownloadB, "CONVOLUTION_DOWNLOAD", "Convolution Matrix", "");
-    IUFillBLOBVector(&DownloadBP, &FitsB, 1, m_Device->getDeviceName(), "CONVOLUTION", "Matrix Data", DSP_TAB, IP_WO, 60, IPS_IDLE);
+    IUFillBLOBVector(&DownloadBP, &FitsB, 1, m_Device->getDeviceName(), "CONVOLUTION", "Matrix Data", DSP_TAB, IP_RW, 60, IPS_IDLE);
 }
 
 Convolution::~Convolution()
@@ -140,5 +142,77 @@ void Convolution::Convolute()
 {
     if(matrix_loaded)
         dsp_convolution_convolution(stream, matrix);
+}
+
+Wavelets::Wavelets(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "WAVELETS", "Wavelets")
+{
+    WaveletsN = (INumber*)malloc(sizeof(INumber)*N_WAVELETS);
+    for(int i = 0; i < N_WAVELETS; i++) {
+        char strname[MAXINDINAME];
+        char strlabel[MAXINDINAME];
+        sprintf(strname, "WAVELET%0d", i);
+        sprintf(strlabel, "%d pixels Gaussian Wavelet", i*3);
+        IUFillNumber(&WaveletsN[i], strname, strlabel, "%3.3f", -15.0, 255.0, 1.0, 0.0);
+    }
+    IUFillNumberVector(&WaveletsNP, WaveletsN, N_WAVELETS, m_Device->getDeviceName(), "WAVELET", "Wavelets", DSP_TAB, IP_RW, 60, IPS_IDLE);
+}
+
+Wavelets::~Wavelets()
+{
+}
+
+void Wavelets::Activated()
+{
+    m_Device->defineNumber(&WaveletsNP);
+}
+
+void Wavelets::Deactivated()
+{
+    m_Device->deleteProperty(WaveletsNP.name);
+}
+
+bool Wavelets::ISNewNumber(const char *dev, const char *name, double *values, char *names[], int n)
+{
+    INDI_UNUSED(values);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+    if (!strcmp(dev, getDeviceName()) && !strcmp(name, WaveletsNP.name)) {
+        IDSetNumber(&WaveletsNP, nullptr);
+    }
+    return true;
+}
+
+uint8_t* Wavelets::Callback(uint8_t *buf, long dims, long *sizes, int bits_per_sample)
+{
+    setStream(buf, dims, sizes, bits_per_sample);
+    double min = dsp_stats_min(stream->buf, stream->len);
+    double max = dsp_stats_max(stream->buf, stream->len);
+    dsp_stream_p out = dsp_stream_copy(stream);
+    for (int i = 0; i < WaveletsNP.nnp; i++) {
+        int size = (i+1)*3;
+        dsp_stream_p tmp = dsp_stream_copy(stream);
+        dsp_stream_p matrix = dsp_stream_new();
+        dsp_stream_add_dim(matrix, size);
+        dsp_stream_add_dim(matrix, size);
+        dsp_stream_alloc_buffer(matrix, matrix->len);
+        for(int y = 0; y < size; y++) {
+            for(int x = 0; x < size; x++) {
+                matrix->buf[x + y * size] = sin((double)x*M_PI/(double)size)*sin((double)y*M_PI/(double)size);
+            }
+        }
+        dsp_convolution_convolution(tmp, matrix);
+        dsp_buffer_sub(tmp, matrix->buf, matrix->len);
+        dsp_buffer_mul1(tmp, WaveletsNP.np[i].value/8.0);
+        dsp_buffer_sum(out, tmp->buf, tmp->len);
+        dsp_buffer_normalize(tmp->buf, min, max, tmp->len);
+        dsp_stream_free_buffer(matrix);
+        dsp_stream_free(matrix);
+        dsp_stream_free_buffer(tmp);
+        dsp_stream_free(tmp);
+    }
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+    stream = dsp_stream_copy(out);
+    return getStream();
 }
 }

@@ -1928,10 +1928,14 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
     // Reset POLLMS to default value
     POLLMS = getPollingPeriod();
 
+    if(HasDSP()) {
+        uint8_t* buf = (uint8_t*)malloc(PrimaryCCD.getFrameBufferSize());
+        memcpy(buf, PrimaryCCD.getFrameBuffer(), PrimaryCCD.getFrameBufferSize());
+        DSP->processBLOB(buf, 2, new long[2]{PrimaryCCD.getXRes(), PrimaryCCD.getYRes()}, PrimaryCCD.getBPP());
+        free(buf);
+    }
     // Run async
     std::thread(&CCD::ExposureCompletePrivate, this, targetChip).detach();
-    if(HasDSP())
-        DSP->processBLOB(PrimaryCCD.getFrameBuffer(), 2, new long[2]{PrimaryCCD.getXRes(), PrimaryCCD.getYRes()}, PrimaryCCD.getBPP());
 
     return true;
 }
@@ -2632,7 +2636,6 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
         }
     }
 #endif
-
     return true;
 }
 

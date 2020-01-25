@@ -896,10 +896,14 @@ bool SensorInterface::IntegrationComplete()
     // Reset POLLMS to default value
     POLLMS = getPollingPeriod();
 
+    if(HasDSP()) {
+        uint8_t* buf = (uint8_t*)malloc(getBufferSize());
+        memcpy(buf, getBuffer(), getBufferSize());
+        DSP->processBLOB(buf, 1, new long[1]{getBufferSize()*8/getBPS()}, getBPS());
+        free(buf);
+    }
     // Run async
     std::thread(&SensorInterface::IntegrationCompletePrivate, this).detach();
-    if(HasDSP())
-        DSP->processBLOB(getBuffer(), 1, new long[1]{getBufferSize()*8/getBPS()}, getBPS());
 
     return true;
 }
