@@ -344,7 +344,7 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
     int status    = 0;
     long naxis    = BufferSizesQty;
     long *naxes = static_cast<long*>(malloc(sizeof(long)*BufferSizesQty));
-    for (int d = 0; d < BufferSizesQty; d++)
+    for(uint32_t d = 0; d < BufferSizesQty; d++)
         naxes[d] = BufferSizes[d];
     int nelements = 0;
     std::string bit_depth;
@@ -602,7 +602,7 @@ void Interface::setStream(void *buf, uint32_t dims, size_t *sizes, int bits_per_
 {
     //Create the dsp stream
     stream = dsp_stream_new();
-    for(int dim = 0; dim < dims; dim++)
+    for(uint32_t dim = 0; dim < dims; dim++)
         dsp_stream_add_dim(stream, sizes[dim]);
     dsp_stream_alloc_buffer(stream, stream->len);
     switch (bits_per_sample)
