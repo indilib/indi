@@ -66,7 +66,7 @@ class Interface
         virtual uint8_t* Callback(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample);
 
     protected:
-        inline bool PluginActive() { return (ActivateS->s == ISS_ON); }
+        bool PluginActive;
 
         IBLOBVectorProperty FitsBP;
         IBLOB FitsB;

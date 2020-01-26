@@ -109,6 +109,7 @@ void Interface::ISGetProperties(const char *dev)
         m_Device->defineSwitch(&ActivateSP);
     } else {
         m_Device->deleteProperty(ActivateSP.name);
+        PluginActive = false;
         Deactivated();
     }
 }
@@ -119,6 +120,7 @@ bool Interface::updateProperties()
         m_Device->defineSwitch(&ActivateSP);
     } else {
         m_Device->deleteProperty(ActivateSP.name);
+        PluginActive = false;
         Deactivated();
     }
     return true;
@@ -129,8 +131,10 @@ bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     if(!strcmp(dev, getDeviceName())&&!strcmp(name, ActivateSP.name)) {
         for (int i = 0; i < n; i++) {
             if (!strcmp(names[i], "DSP_ACTIVATE_ON") && states[i] == ISS_ON) {
+                PluginActive = true;
                 Activated();
             } else {
+                PluginActive = false;
                 Deactivated();
             }
         }
@@ -183,7 +187,7 @@ uint8_t* Interface::Callback(uint8_t* buf, uint32_t ndims, size_t* dims, int bit
 
 bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample)
 {
-    if(PluginActive()) {
+    if(PluginActive) {
         bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
         bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
 
