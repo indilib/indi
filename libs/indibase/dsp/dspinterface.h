@@ -1,7 +1,7 @@
 ﻿/*******************************************************************************
-  Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2017 Ilia Platone, Jasem Mutlaq. All rights reserved.
 
- Connection Plugin Interface
+ DSP plugin Interface
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -52,10 +52,10 @@ class Interface
         virtual bool saveConfigItems(FILE *fp);
         virtual bool updateProperties();
 
-        bool processBLOB(uint8_t* buf, long ndims, long* dims, int bits_per_sample);
+        bool processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample);
 
-        void setBufferSizes(long num, long* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
-        void getBufferSizes(long *num, long** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
+        void setBufferSizes(uint32_t num, size_t* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
+        void getBufferSizes(uint32_t *num, size_t** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
 
         void setBPS(int bps) { BPS = bps; }
         int getBPS() { return BPS; }
@@ -63,7 +63,7 @@ class Interface
         virtual void Activated();
         virtual void Deactivated();
 
-        virtual uint8_t* Callback(uint8_t* buf, long ndims, long* dims, int bits_per_sample);
+        virtual uint8_t* Callback(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample);
 
     protected:
         inline bool PluginActive() { return (ActivateS->s == ISS_ON); }
@@ -89,13 +89,13 @@ class Interface
         const char *m_Name {  nullptr };
         const char *m_Label {  nullptr };
         DSP::Type m_Type {  DSP_NONE };
-        void setStream(void *buf, long dims, long *sizes, int bits_per_sample);
+        void setStream(void *buf, uint32_t dims, size_t *sizes, int bits_per_sample);
         uint8_t *getStream();
         dsp_stream_p stream;
 
     private:
-        long BufferSizesQty;
-        long *BufferSizes;
+        uint32_t BufferSizesQty;
+        size_t *BufferSizes;
         int BPS;
 
         char processedFileName[MAXINDINAME];

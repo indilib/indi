@@ -131,7 +131,7 @@ bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int 
     return true;
 }
 
-uint8_t* Convolution::Callback(uint8_t *buf, long dims, long *sizes, int bits_per_sample)
+uint8_t* Convolution::Callback(uint8_t *buf, uint32_t dims, size_t *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
     Convolute();
@@ -151,7 +151,7 @@ Wavelets::Wavelets(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "
         char strname[MAXINDINAME];
         char strlabel[MAXINDINAME];
         sprintf(strname, "WAVELET%0d", i);
-        sprintf(strlabel, "%d pixels Gaussian Wavelet", i*3);
+        sprintf(strlabel, "%d pixels Gaussian Wavelet", (i+1)*3);
         IUFillNumber(&WaveletsN[i], strname, strlabel, "%3.3f", -15.0, 255.0, 1.0, 0.0);
     }
     IUFillNumberVector(&WaveletsNP, WaveletsN, N_WAVELETS, m_Device->getDeviceName(), "WAVELET", "Wavelets", DSP_TAB, IP_RW, 60, IPS_IDLE);
@@ -182,7 +182,7 @@ bool Wavelets::ISNewNumber(const char *dev, const char *name, double *values, ch
     return true;
 }
 
-uint8_t* Wavelets::Callback(uint8_t *buf, long dims, long *sizes, int bits_per_sample)
+uint8_t* Wavelets::Callback(uint8_t *buf, uint32_t dims, size_t *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
     double min = dsp_stats_min(stream->buf, stream->len);

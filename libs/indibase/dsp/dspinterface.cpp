@@ -171,7 +171,7 @@ bool Interface::ISNewBLOB(const char *dev, const char *name, int sizes[], int bl
     return false;
 }
 
-uint8_t* Interface::Callback(unsigned char* buf, long ndims, long* dims, int bits_per_sample)
+uint8_t* Interface::Callback(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample)
 {
     INDI_UNUSED(buf);
     INDI_UNUSED(ndims);
@@ -181,7 +181,7 @@ uint8_t* Interface::Callback(unsigned char* buf, long ndims, long* dims, int bit
     return nullptr;
 }
 
-bool Interface::processBLOB(unsigned char* buf, long ndims, long* dims, int bits_per_sample)
+bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample)
 {
     if(PluginActive()) {
         bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
@@ -343,7 +343,9 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
     int byte_type = 0;
     int status    = 0;
     long naxis    = BufferSizesQty;
-    long *naxes = BufferSizes;
+    long *naxes = static_cast<long*>(malloc(sizeof(long)*BufferSizesQty));
+    for (int d = 0; d < BufferSizesQty; d++)
+        naxes[d] = BufferSizes[d];
     int nelements = 0;
     std::string bit_depth;
     char error_status[MAXINDINAME];
@@ -596,7 +598,7 @@ int Interface::getFileIndex(const char *dir, const char *prefix, const char *ext
     return (maxIndex + 1);
 }
 
-void Interface::setStream(void *buf, long dims, long *sizes, int bits_per_sample)
+void Interface::setStream(void *buf, uint32_t dims, size_t *sizes, int bits_per_sample)
 {
     //Create the dsp stream
     stream = dsp_stream_new();

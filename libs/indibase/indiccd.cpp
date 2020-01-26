@@ -1656,7 +1656,7 @@ bool CCD::UpdateCCDBin(int hor, int ver)
 
     // DSP
     if (HasDSP())
-        DSP->setSizes(2, new int[2]{ PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver });
+        DSP->setSizes(2, new size_t[2]{ static_cast<size_t>(PrimaryCCD.getSubW()) / hor, static_cast<size_t>(PrimaryCCD.getSubH()) / ver });
 
     return true;
 }
@@ -1929,9 +1929,9 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
     POLLMS = getPollingPeriod();
 
     if(HasDSP()) {
-        uint8_t* buf = (uint8_t*)malloc(PrimaryCCD.getFrameBufferSize());
+        uint8_t* buf = static_cast<uint8_t*>(malloc(PrimaryCCD.getFrameBufferSize()));
         memcpy(buf, PrimaryCCD.getFrameBuffer(), PrimaryCCD.getFrameBufferSize());
-        DSP->processBLOB(buf, 2, new long[2]{PrimaryCCD.getXRes(), PrimaryCCD.getYRes()}, PrimaryCCD.getBPP());
+        DSP->processBLOB(buf, 2, new size_t[2]{ static_cast<size_t>(PrimaryCCD.getSubW() / PrimaryCCD.getBinX()), static_cast<size_t>(PrimaryCCD.getSubH() / PrimaryCCD.getBinY()) }, PrimaryCCD.getBPP());
         free(buf);
     }
     // Run async

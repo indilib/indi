@@ -1,7 +1,7 @@
 ﻿/*******************************************************************************
-  Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2017 Ilia Platone, Jasem Mutlaq. All rights reserved.
 
- Connection Plugin Interface
+ DSP plugin manager
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -49,10 +49,10 @@ class Manager
         virtual bool saveConfigItems(FILE *fp);
         virtual bool updateProperties();
 
-        bool processBLOB(uint8_t* buf, long ndims, long* dims, int bits_per_sample);
+        bool processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample);
 
-        inline void setSizes(int num, int* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
-        inline void getSizes(int *num, int** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
+        inline void setSizes(uint32_t num, size_t* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
+        inline void getSizes(uint32_t *num, size_t** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
 
         inline void setBPS(int bps) { BPS = bps; }
         inline int getBPS() { return BPS; }
@@ -63,8 +63,8 @@ class Manager
         Spectrum *spectrum;
         Histogram *histogram;
         Wavelets *wavelets;
-        int BufferSizesQty;
-        int *BufferSizes;
+        uint32_t BufferSizesQty;
+        size_t *BufferSizes;
         int BPS;
 };
 }

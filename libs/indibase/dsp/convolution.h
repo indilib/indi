@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
 
- Connection Plugin Interface
+ DSP Convolution plugin
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -39,7 +39,7 @@ protected:
     void Activated();
     void Deactivated();
 
-    uint8_t *Callback(uint8_t *out, long dims, long *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, uint32_t dims, size_t *sizes, int bits_per_sample);
 
 private:
     dsp_stream_p matrix;
@@ -61,7 +61,7 @@ protected:
     void Activated();
     void Deactivated();
 
-    uint8_t *Callback(uint8_t *out, long dims, long *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, uint32_t dims, size_t *sizes, int bits_per_sample);
 
 private:
     dsp_stream_p matrix;

@@ -42,21 +42,6 @@ Manager::Manager(INDI::DefaultDevice *dev)
 
 Manager::~Manager()
 {
-    convolution->~Convolution();
-    delete convolution;
-    convolution = nullptr;
-    transforms->~Transforms();
-    delete transforms;
-    transforms = nullptr;
-    spectrum->~Spectrum();
-    delete spectrum;
-    spectrum = nullptr;
-    histogram->~Histogram();
-    delete histogram;
-    histogram = nullptr;
-    wavelets->~Wavelets();
-    delete wavelets;
-    wavelets = nullptr;
 }
 
 void Manager::ISGetProperties(const char *dev)
@@ -135,7 +120,7 @@ bool Manager::saveConfigItems(FILE *fp)
     return r;
 }
 
-bool Manager::processBLOB(uint8_t* buf, long ndims, long* dims, int bits_per_sample)
+bool Manager::processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample)
 {
     bool r = false;
     r |= convolution->processBLOB(buf, ndims, dims, bits_per_sample);
