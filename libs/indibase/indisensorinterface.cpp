@@ -563,7 +563,7 @@ void SensorInterface::setBufferSize(int nbuf, bool allocMem)
 
     // DSP
     if (HasDSP())
-        DSP->setSizes(1, new size_t[1]{ static_cast<size_t>(BufferSize * 8 / getBPS()) });
+        DSP->setSizes(1, new int[1]{ BufferSize * 8 / getBPS() });
 
     if (allocMem == false)
         return;
@@ -899,7 +899,7 @@ bool SensorInterface::IntegrationComplete()
     if(HasDSP()) {
         uint8_t* buf = (uint8_t*)malloc(getBufferSize());
         memcpy(buf, getBuffer(), getBufferSize());
-        DSP->processBLOB(buf, 1, new size_t[1]{ static_cast<size_t>(getBufferSize()*8/getBPS()) }, getBPS());
+        DSP->processBLOB(buf, 1, new int[1]{ getBufferSize()*8/getBPS() }, getBPS());
         free(buf);
     }
     // Run async
@@ -1257,7 +1257,7 @@ void SensorInterface::setBPS(int bps)
 
     // DSP
     if (HasDSP())
-        DSP->setSizes(1, new size_t[1]{ static_cast<size_t>(getBufferSize() * 8 / BPS) });
+        DSP->setSizes(1, new int[1]{ getBufferSize() * 8 / BPS });
 }
 
 }

@@ -52,10 +52,10 @@ class Interface
         virtual bool saveConfigItems(FILE *fp);
         virtual bool updateProperties();
 
-        bool processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample);
+        bool processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample);
 
-        void setBufferSizes(uint32_t num, size_t* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
-        void getBufferSizes(uint32_t *num, size_t** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
+        void setSizes(uint32_t num, int* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
+        void getSizes(uint32_t *num, int** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
 
         void setBPS(int bps) { BPS = bps; }
         int getBPS() { return BPS; }
@@ -63,7 +63,7 @@ class Interface
         virtual void Activated();
         virtual void Deactivated();
 
-        virtual uint8_t* Callback(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample);
+        virtual uint8_t* Callback(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample);
 
     protected:
         bool PluginActive;
@@ -89,13 +89,13 @@ class Interface
         const char *m_Name {  nullptr };
         const char *m_Label {  nullptr };
         DSP::Type m_Type {  DSP_NONE };
-        void setStream(void *buf, uint32_t dims, size_t *sizes, int bits_per_sample);
+        void setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sample);
         uint8_t *getStream();
         dsp_stream_p stream;
 
     private:
         uint32_t BufferSizesQty;
-        size_t *BufferSizes;
+        int *BufferSizes;
         int BPS;
 
         char processedFileName[MAXINDINAME];

@@ -34,7 +34,7 @@ public:
     virtual ~Transforms();
 
 protected:
-    uint8_t *Callback(uint8_t *out, uint32_t dims, size_t *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 
 private:
     void FourierTransform();
@@ -47,7 +47,7 @@ public:
     virtual ~Spectrum();
 
 protected:
-    uint8_t *Callback(uint8_t *out, uint32_t dims, size_t *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 };
 
 class Histogram : public Interface
@@ -57,6 +57,6 @@ public:
     virtual ~Histogram();
 
 protected:
-    uint8_t *Callback(uint8_t *out, uint32_t dims, size_t *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 };
 }

@@ -131,7 +131,7 @@ bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int 
     return true;
 }
 
-uint8_t* Convolution::Callback(uint8_t *buf, uint32_t dims, size_t *sizes, int bits_per_sample)
+uint8_t* Convolution::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
     Convolute();
@@ -182,7 +182,7 @@ bool Wavelets::ISNewNumber(const char *dev, const char *name, double *values, ch
     return true;
 }
 
-uint8_t* Wavelets::Callback(uint8_t *buf, uint32_t dims, size_t *sizes, int bits_per_sample)
+uint8_t* Wavelets::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
     double min = dsp_stats_min(stream->buf, stream->len);

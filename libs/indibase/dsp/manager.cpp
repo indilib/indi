@@ -120,7 +120,7 @@ bool Manager::saveConfigItems(FILE *fp)
     return r;
 }
 
-bool Manager::processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample)
+bool Manager::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample)
 {
     bool r = false;
     r |= convolution->processBLOB(buf, ndims, dims, bits_per_sample);

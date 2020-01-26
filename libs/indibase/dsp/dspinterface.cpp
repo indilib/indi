@@ -175,7 +175,7 @@ bool Interface::ISNewBLOB(const char *dev, const char *name, int sizes[], int bl
     return false;
 }
 
-uint8_t* Interface::Callback(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample)
+uint8_t* Interface::Callback(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample)
 {
     INDI_UNUSED(buf);
     INDI_UNUSED(ndims);
@@ -185,7 +185,7 @@ uint8_t* Interface::Callback(uint8_t* buf, uint32_t ndims, size_t* dims, int bit
     return nullptr;
 }
 
-bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample)
+bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample)
 {
     if(PluginActive) {
         bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
@@ -193,11 +193,8 @@ bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits
 
         if (sendCapture || saveCapture)
         {
-            if(!BufferSizes || BufferSizesQty == 0) {
-                BufferSizes = dims;
-                BufferSizesQty = ndims;
-                BPS = bits_per_sample;
-            }
+            setSizes(ndims, dims);
+            setBPS(bits_per_sample);
             uint8_t* buffer = Callback(buf, ndims, dims, bits_per_sample);
             if (buffer)
             {
@@ -602,7 +599,7 @@ int Interface::getFileIndex(const char *dir, const char *prefix, const char *ext
     return (maxIndex + 1);
 }
 
-void Interface::setStream(void *buf, uint32_t dims, size_t *sizes, int bits_per_sample)
+void Interface::setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
     //Create the dsp stream
     stream = dsp_stream_new();

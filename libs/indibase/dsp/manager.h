@@ -49,10 +49,10 @@ class Manager
         virtual bool saveConfigItems(FILE *fp);
         virtual bool updateProperties();
 
-        bool processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits_per_sample);
+        bool processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample);
 
-        inline void setSizes(uint32_t num, size_t* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
-        inline void getSizes(uint32_t *num, size_t** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
+        inline void setSizes(uint32_t num, int* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
+        inline void getSizes(uint32_t *num, int** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
 
         inline void setBPS(int bps) { BPS = bps; }
         inline int getBPS() { return BPS; }
@@ -64,7 +64,7 @@ class Manager
         Histogram *histogram;
         Wavelets *wavelets;
         uint32_t BufferSizesQty;
-        size_t *BufferSizes;
+        int *BufferSizes;
         int BPS;
 };
 }

@@ -1,4 +1,4 @@
-/*
+﻿/*
  *   libDSPAU - a digital signal processing library for astronomy usage
  *   Copyright (C) 2017  Ilia Platone <info@iliaplatone.com>
  *
@@ -61,7 +61,7 @@ dsp_complex* dsp_fourier_dft(dsp_stream_p stream)
         dft[x].real = stream->buf[x];
         dft[x].imaginary = 0;
     }
-    fftw_plan plan = fftw_plan_dft(stream->dims, stream->sizes, (fftw_complex*)dft, (fftw_complex*)out, -1, FFTW_ESTIMATE);
+    fftw_plan plan = fftw_plan_dft(stream->dims, stream->sizes, (fftw_complex*)dft, (fftw_complex*)out, FFTW_FORWARD, FFTW_MEASURE);
     fftw_execute(plan);
     fftw_free(plan);
     free(dft);
@@ -74,6 +74,7 @@ void dsp_fourier_dft_magnitude(dsp_stream_p stream)
     double* mag = dsp_fourier_complex_array_get_magnitude(dft, stream->len);
     free(dft);
     dsp_buffer_copy(mag, stream->buf, stream->len);
+    dsp_buffer_shift(stream);
     free(mag);
 }
 
@@ -83,5 +84,6 @@ void dsp_fourier_dft_phase(dsp_stream_p stream)
     double* phi = dsp_fourier_complex_array_get_phase(dft, stream->len);
     free(dft);
     dsp_buffer_copy(phi, stream->buf, stream->len);
+    dsp_buffer_shift(stream);
     free(phi);
 }

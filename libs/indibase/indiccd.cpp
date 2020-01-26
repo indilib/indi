@@ -1656,7 +1656,7 @@ bool CCD::UpdateCCDBin(int hor, int ver)
 
     // DSP
     if (HasDSP())
-        DSP->setSizes(2, new size_t[2]{ static_cast<size_t>(PrimaryCCD.getSubW()) / hor, static_cast<size_t>(PrimaryCCD.getSubH()) / ver });
+        DSP->setSizes(2, new int[2]{ PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver });
 
     return true;
 }
@@ -1928,12 +1928,6 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
     // Reset POLLMS to default value
     POLLMS = getPollingPeriod();
 
-    if(HasDSP()) {
-        uint8_t* buf = static_cast<uint8_t*>(malloc(PrimaryCCD.getFrameBufferSize()));
-        memcpy(buf, PrimaryCCD.getFrameBuffer(), PrimaryCCD.getFrameBufferSize());
-        DSP->processBLOB(buf, 2, new size_t[2]{ static_cast<size_t>(PrimaryCCD.getSubW() / PrimaryCCD.getBinX()), static_cast<size_t>(PrimaryCCD.getSubH() / PrimaryCCD.getBinY()) }, PrimaryCCD.getBPP());
-        free(buf);
-    }
     // Run async
     std::thread(&CCD::ExposureCompletePrivate, this, targetChip).detach();
 
@@ -1942,6 +1936,12 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
 
 bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 {
+    if(HasDSP()) {
+        uint8_t* buf = static_cast<uint8_t*>(malloc(targetChip->getFrameBufferSize()));
+        memcpy(buf, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
+        DSP->processBLOB(buf, 2, new int[2]{ targetChip->getSubW() / targetChip->getBinX(), targetChip->getSubH() / targetChip->getBinY() }, targetChip->getBPP());
+        free(buf);
+    }
 #ifdef WITH_EXPOSURE_LOOPING
     // If looping is on, let's immediately take another capture
     if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)

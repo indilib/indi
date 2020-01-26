@@ -40,7 +40,7 @@ Transforms::~Transforms()
 {
 }
 
-uint8_t* Transforms::Callback(uint8_t *buf, uint32_t dims, size_t *sizes, int bits_per_sample)
+uint8_t* Transforms::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
     dsp_fourier_dft_magnitude(stream);
@@ -59,14 +59,14 @@ Spectrum::~Spectrum()
 {
 }
 
-uint8_t* Spectrum::Callback(uint8_t *buf, uint32_t dims, size_t *sizes, int bits_per_sample)
+uint8_t* Spectrum::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
     dsp_fourier_dft_magnitude(stream);
     double *histo = dsp_stats_histogram(stream, 4096);
     dsp_stream_free_buffer(stream);
     dsp_stream_set_buffer(stream, histo, 4096);
-    setBufferSizes(1, new size_t{4096});
+    setSizes(1, new int{4096});
     return getStream();
 }
 
@@ -79,13 +79,13 @@ Histogram::~Histogram()
 {
 }
 
-uint8_t* Histogram::Callback(uint8_t *buf, uint32_t dims, size_t *sizes, int bits_per_sample)
+uint8_t* Histogram::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
     double *histo = dsp_stats_histogram(stream, 4096);
     dsp_stream_free_buffer(stream);
     dsp_stream_set_buffer(stream, histo, 4096);
-    setBufferSizes(1, new size_t{4096});
+    setSizes(1, new int{4096});
     return getStream();
 }
 }

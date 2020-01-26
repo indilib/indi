@@ -39,7 +39,7 @@ protected:
     void Activated();
     void Deactivated();
 
-    uint8_t *Callback(uint8_t *out, uint32_t dims, size_t *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 
 private:
     dsp_stream_p matrix;
@@ -61,7 +61,7 @@ protected:
     void Activated();
     void Deactivated();
 
-    uint8_t *Callback(uint8_t *out, uint32_t dims, size_t *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 
 private:
     dsp_stream_p matrix;
