@@ -392,7 +392,7 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
             return false;
     }
     long len = 1;
-    int i;
+    uint32_t i;
     for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
     nelements = static_cast<int>(len);
 
