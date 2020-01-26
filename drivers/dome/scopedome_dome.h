@@ -1,7 +1,7 @@
 /*******************************************************************************
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2019 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2021 Jarno Paananen. All rights reserved.
 
  based on:
 
@@ -31,511 +31,260 @@
 #pragma once
 
 #include "indidome.h"
-#include <memory>
+#include "indipropertyswitch.h"
+#include "indipropertynumber.h"
+#include "indipropertytext.h"
+
+#include <string>
+#include <vector>
 
 /**
  * Interface to either a real ScopeDome card or simulator
  */
 
-typedef enum
-{
-    ACK_c = 1,
-    FunctionNotSupported,
-    MotionConflict,
-    ParamError,
-    FuncBufferError,
-    ConnectionTest = 15,
-    SetAllDigital,
-    ClearDigitalChannel,
-    ClearAllDigital,
-    SetDigitalChannel,
-    GetDigitalChannel,
-    GetAllDigital,
-
-    GetCounter,
-    ResetCounter,
-    SetCounterDebounceTime,
-    SetCounterMax,
-    GetCounterMax,
-    SetCounterMin,
-    GetCounterMin,
-    CCWRotation,
-    CWRotation,
-
-    GetAnalogChannel,
-    OutputAnalogChannel1,
-    OutputAnalogChannel2,
-    OutputAllAnalog,
-    ClearAnalogChannel,
-    SetAllAnalog,
-    ClearAllAnalog,
-    SetAnalogChannel,
-    GetVersionFirmware,
-
-    SetAllRelays,
-    ClearRelay,
-    SetRelay,
-
-    GetStatus,
-    GetTemp1,
-    GetTemp2,
-    GetTemp3,
-    GetTemp4,
-    GetTemp5,
-    GetDscnt,
-    GetHum,
-    GetTempHum,
-    GetAnalog1,
-    GetAnalog2,
-    Get230,
-    EnableAutoClose,
-    DisableAutoClose,
-    GetAutoClose,
-
-    EnablePosSave,
-    DisablePosSave,
-    GetPosSave,
-
-    GetCounterExt,
-    ResetCounterExt,
-    SetCounterDebounceTimeExt,
-    SetCounterMaxExt,
-    GetCounterMaxExt,
-
-    SetCounterMinExt,
-    GetCounterMinExt,
-
-    GetAllDigitalExt,
-    StandbyOff,
-    StandbyOn,
-    GetPowerState,
-    SetImpPerTurn,
-
-    UpdateFirmware,
-    UpdateRotaryFirmwareSerial,
-    UpdateRotaryFirmwareRf,
-
-    GoHome,
-
-    GetMainAnalog1,
-    GetMainAnalog2,
-
-    GetPressure,
-    GetTempIn,
-    GetTempOut,
-
-    GetRotaryCounter1,
-    GetRotaryCounter2,
-    ResetRotaryCounter1,
-    ResetRotaryCounter2,
-
-    RotaryAutoOpen1,
-    RotaryAutoOpen2,
-
-    RotaryAutoClose1,
-    RotaryAutoClose2,
-
-    GetLinkStrength,
-
-    GetLowVoltageMain,
-    SetLowVoltageMain,
-    GetLowVoltageRotary,
-    SetLowVoltageRotary,
-
-    GetHomeSensorPosition,
-    SetHomeSensorPosition,
-
-    GetImpPerTurn,
-    Stop,
-
-    GetStartCnt,
-    Ready,
-
-    SetStopTime,
-    GetStopTime,
-
-    GetCounterDebounceTimeExt,
-
-    SetDebounceTimeInputs,
-    GetDebounceTimeInputs,
-
-    FindHome,
-    NegHomeSensorActiveState,
-
-    // PowerOnlyAtHome,
-
-    SetAutoCloseEvents,
-    GetAutoCloseEvents,
-    SetAutoCloseTime,
-    GetAutoCloseTime,
-
-    SetShutterConfig,
-    GetShutterConfig,
-
-    GetVersionFirmwareRotary,
-    GetCommunicationMode,
-    SetCommunicationMode,
-
-    SetTherm1Mode,
-    SetTherm1Out1,
-    SetTherm1Out2,
-    SetTherm1Hist,
-    SetTherm1VAL,
-
-    GetTherm1Mode,
-    GetTherm1Out1,
-    GetTherm1Out2,
-    GetTherm1Hist,
-    GetTherm1VAL,
-
-    SetTherm2Mode,
-    SetTherm2Out1,
-    SetTherm2Out2,
-    SetTherm2Hist,
-    SetTherm2VAL,
-
-    GetTherm2Mode,
-    GetTherm2Out1,
-    GetTherm2Out2,
-    GetTherm2Hist,
-    GetTherm2VAL,
-
-    SetTherm3Mode,
-    SetTherm3Out1,
-    SetTherm3Out2,
-    SetTherm3Hist,
-    SetTherm3VAL,
-
-    GetTherm3Mode,
-    GetTherm3Out1,
-    GetTherm3Out2,
-    GetTherm3Hist,
-    GetTherm3VAL,
-    StartSafeCommunication,
-    StopSafeCommunication,
-    SetAutoCloseOrder,
-    GetAutoCloseOrder,
-
-    FullSystemCal,
-    IsFullSystemCalReq
-} ScopeDomeCommand;
-
-typedef enum
-{
-    NO_ERROR                       = 0,
-    FT_INVALID_HANDLE              = 1,
-    FT_DEVICE_NOT_FOUND            = 2,
-    FT_DEVICE_NOT_OPENED           = 3,
-    FT_IO_ERROR                    = 4,
-    FT_INSUFFICIENT_RESOURCES      = 5,
-    FT_INVALID_PARAMETER           = 6,
-    FT_INVALID_BAUD_RATE           = 7,
-    FT_DEVICE_NOT_OPENED_FOR_ERASE = 8,
-    FT_DEVICE_NOT_OPENED_FOR_WRITE = 9,
-    FT_FAILED_TO_WRITE_DEVICE      = 10,
-    FT_EEPROM_READ_FAILED          = 11,
-    FT_EEPROM_WRITE_FAILED         = 12,
-    FT_EEPROM_ERASE_FAILED         = 13,
-    FT_EEPROM_NOT_PRESENT          = 14,
-    FT_EEPROM_NOT_PROGRAMMED       = 15,
-    FT_INVALID_ARGS                = 16,
-    FT_NOT_SUPPORTED               = 17,
-    FT_OTHER_ERROR                 = 18,
-    NO_CONNECTION                  = 100,
-    READ_TIMEOUT_ERROR,
-    WRITE_TIMEOUT_ERROR,
-    CHECKSUM_ERROR,
-    PACKET_LENGTH_ERROR,
-    FUNCTION_NOT_SUPPORTED_BY_FIRMWARE,
-    PARAM_ERROR,
-    BUSY_ERROR,
-    AUTHORISATION_ERROR,
-    MOTION_CONFLICT,
-    FUNCTION_NOT_SUPPORTED,
-    COMMAND_SYNC_ERROR,
-    CARD_REOPEN,
-} ScopeDomeError;
-
-typedef enum
-{
-    OUT_CCW            = 0,
-    OUT_CW             = 1,
-    OUT_OPEN1          = 2,
-    OUT_CLOSE1         = 3,
-    OUT_FAN            = 4,
-    OUT_LIGHT          = 5,
-    OUT_CCD            = 6,
-    OUT_SCOPE          = 7,
-    IN_REMOTE1         = 8,
-    IN_REMOTE2         = 9,
-    IN_REMOTE3         = 10,
-    IN_REMOTE4         = 11,
-    IN_ENCODER         = 12,
-    IN_HOME            = 13,
-    IN_OPEN1           = 14,
-    IN_CLOSED1         = 15,
-    IN_FREE            = 16,
-    IN_S_HOME          = 17,
-    IN_SAFE            = 18,
-    IN_CLOUD           = 19,
-    OUT_RELAY1         = 20,
-    OUT_RELAY2         = 21,
-    OUT_RELAY3         = 22,
-    OUT_RELAY4         = 23,
-    OUT_OPEN2          = 24,
-    OUT_CLOSE2         = 25,
-    IN_OPEN2           = 26,
-    IN_CLOSED2         = 27,
-    IN_SHIFT           = 28,
-    IN_SCOPE_SYNC      = 29,
-    IN_WIND_SYNC       = 30,
-    IN_WEATHER_PROTECT = 31,
-    IN_CLOUDS          = 32,
-    IN_ENCODER_ROT     = 33,
-    IN_HOME_ROT        = 34,
-    IN_ROT_LINK        = 35
-} ScopeDomeDigitalIO;
-
-typedef enum
-{
-    STATUS_RESET            = 1,
-    STATUS_MOVING           = 2,
-    STATUS_HOMING           = 4,
-    STATUS_OPEN1            = 8,
-    STATUS_OPEN2            = 0x10,
-    STATUS_AUTO_CLOSE1      = 0x20,
-    STATUS_AUTO_CLOSE2      = 0x40,
-    STATUS_CALIBRATING      = 0x80,
-    STATUS_FINDING_POWER    = 0x100,
-    STATUS_CALIBRATION_STOP = 0x200
-} ScopeDomeStatusBits;
-
 class ScopeDomeCard
 {
-  public:
-    /** Destructor. */
-    virtual ~ScopeDomeCard() = default;
+    public:
 
-    virtual bool detect()                                                      = 0;
-    virtual int writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t *buff) = 0;
-    virtual int write(ScopeDomeCommand cmd)                                    = 0;
-    virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)     = 0;
-    virtual int read(ScopeDomeCommand &cmd)                                    = 0;
-    const char *getDeviceName() { return (const char *)"ScopeDome Dome"; };
-    virtual void setPortFD(int fd) = 0;
+        enum ScopeDomeStatusBits
+        {
+            STATUS_RESET            = 1,
+            STATUS_MOVING           = 2,
+            STATUS_HOMING           = 4,
+            STATUS_OPEN1            = 8,
+            STATUS_OPEN2            = 0x10,
+            STATUS_AUTO_CLOSE1      = 0x20,
+            STATUS_AUTO_CLOSE2      = 0x40,
+            STATUS_CALIBRATING      = 0x80,
+            STATUS_FINDING_POWER    = 0x100,
+            STATUS_CALIBRATION_STOP = 0x200
+        };
 
-  protected:
-    /** Default constructor. */
-    ScopeDomeCard() = default;
+        enum AbstractInput
+        {
+            HOME,
+            OPEN1,
+            CLOSED1,
+            OPEN2,
+            CLOSED2,
+            ROTARY_LINK
+        };
 
-  private:
-    /** Prevent copy construction. */
-    ScopeDomeCard(const ScopeDomeCard &rOriginalP);
-    /** Prevent assignment. */
-    ScopeDomeCard &operator=(const ScopeDomeCard &rRhsP);
-};
+        enum AbstractOutput
+        {
+            RESET,
+            CCW,
+            CW,
+        };
 
-/**
- * ScopeDome USB Card 2.1
- */
-class ScopeDomeUSB21 : public ScopeDomeCard
-{
-  public:
-    /** Default constructor. */
-    ScopeDomeUSB21(int fd) { PortFD = fd; };
-    /** Destructor. */
-    virtual ~ScopeDomeUSB21() = default;
+        enum ShutterOperation
+        {
+            OPEN_SHUTTER = 0,
+            CLOSE_SHUTTER = 1,
+            STOP_SHUTTER = 2
+        };
 
-    virtual bool detect() override;
-    virtual int writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t *buff) override;
-    virtual int write(ScopeDomeCommand cmd) override;
-    virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff) override;
-    virtual int read(ScopeDomeCommand &cmd) override;
-    virtual void setPortFD(int fd) override { PortFD = fd; };
+        struct SensorInfo
+        {
+            std::string propName;
+            std::string label;
+            std::string format;
+            float minValue;
+            float maxValue;
+        };
 
-  private:
-    uint8_t CRC(uint8_t crc, uint8_t data);
+        struct RelayInfo
+        {
+            std::string propName;
+            std::string label;
+        };
 
-    /** Prevent copy construction. */
-    ScopeDomeUSB21(const ScopeDomeUSB21 &rOriginalP);
-    /** Prevent assignment. */
-    ScopeDomeUSB21 &operator=(const ScopeDomeUSB21 &rRhsP);
+        struct InputInfo
+        {
+            std::string propName;
+            std::string label;
+        };
 
-    int PortFD;
+        enum HomeSensorPolarity
+        {
+            ACTIVE_HIGH = 0,
+            ACTIVE_LOW = 1
+        };
 
-    ScopeDomeCommand prevcmd;
-};
+        /** Destructor. */
+        virtual ~ScopeDomeCard() = default;
 
-/**
- * ScopeDome simulator
- */
-class ScopeDomeSim : public ScopeDomeCard
-{
-  public:
-    /** Default constructor. */
-    ScopeDomeSim(){};
-    /** Destructor. */
-    virtual ~ScopeDomeSim() = default;
+        virtual bool detect() = 0;
+        const char *getDeviceName()
+        {
+            return (const char *)"ScopeDome Dome";
+        };
+        virtual void setPortFD(int fd) = 0;
 
-    virtual bool detect() override;
-    virtual int writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t *buff) override;
-    virtual int write(ScopeDomeCommand cmd) override;
-    virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff) override;
-    virtual int read(ScopeDomeCommand &cmd) override;
-    virtual void setPortFD(int fd) override { (void)fd; };
+        // State polling
+        virtual int updateState()                                             = 0;
+        virtual uint32_t getStatus()                                          = 0;
+        virtual int getRotationCounter()                                      = 0;
+        virtual int getRotationCounterExt()                                   = 0;
 
-  private:
-    ScopeDomeCommand lastCmd;
+        // Information
+        virtual void getFirmwareVersions(double &main, double &rotary)        = 0;
+        virtual uint32_t getStepsPerRevolution()                              = 0;
+        virtual bool isCalibrationNeeded()                                    = 0;
 
-    int stepsPerRevolution;
-    int currentStep;
+        // Commands
+        virtual void abort()                                                  = 0;
+        virtual void calibrate()                                              = 0;
+        virtual void findHome()                                               = 0;
+        virtual void controlShutter(ShutterOperation operation)   = 0;
 
-    int shutterStatus;
+        virtual void resetCounter()                                           = 0;
 
-    /** Prevent copy construction. */
-    ScopeDomeSim(const ScopeDomeSim &rOriginalP);
-    /** Prevent assignment. */
-    ScopeDomeSim &operator=(const ScopeDomeSim &rRhsP);
+        // negative means CCW, positive CW steps
+        virtual void move(int steps)                                          = 0;
+
+        // Input/Output management
+        virtual size_t getNumberOfSensors()                                   = 0;
+        virtual SensorInfo getSensorInfo(size_t index)                        = 0;
+        virtual double getSensorValue(size_t index)                           = 0;
+
+        virtual size_t getNumberOfRelays()                                    = 0;
+        virtual RelayInfo getRelayInfo(size_t index)                          = 0;
+        virtual ISState getRelayState(size_t index)                           = 0;
+        virtual void setRelayState(size_t index, ISState state)               = 0;
+
+        virtual size_t getNumberOfInputs()                                    = 0;
+        virtual InputInfo getInputInfo(size_t index)                          = 0;
+        virtual ISState getInputValue(size_t index)                           = 0;
+
+        virtual ISState getInputState(AbstractInput input)                    = 0;
+        virtual int setOutputState(AbstractOutput output, ISState state)      = 0;
+
+        virtual void setHomeSensorPolarity(HomeSensorPolarity polarity)       = 0;
+
+    protected:
+        /** Default constructor. */
+        ScopeDomeCard() = default;
+
+    private:
+        /** Prevent copy construction.virtual  */
+        ScopeDomeCard(const ScopeDomeCard &rhs) = delete;
+        /** Prevent assignment. */
+        ScopeDomeCard &operator=(const ScopeDomeCard &rhs) = delete;
 };
 
 class ScopeDome : public INDI::Dome
 {
-  public:
-    typedef enum
-    {
-        DOME_UNKNOWN,
-        DOME_CALIBRATING,
-        DOME_READY,
-        DOME_HOMING,
-        DOME_DEROTATING
-    } DomeStatus;
+    public:
+        typedef enum
+        {
+            DOME_UNKNOWN,
+            DOME_CALIBRATING,
+            DOME_READY,
+            DOME_HOMING,
+            DOME_DEROTATING
+        } DomeStatus;
 
-    ScopeDome();
-    virtual ~ScopeDome() = default;
+        ScopeDome();
+        virtual ~ScopeDome() = default;
 
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool Handshake() override;
+        virtual bool Handshake() override;
 
-    virtual void TimerHit() override;
+        virtual void TimerHit() override;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
-    virtual IPState MoveRel(double azDiff) override;
-    virtual IPState MoveAbs(double az) override;
-    virtual IPState ControlShutter(ShutterOperation operation) override;
-    virtual bool Abort() override;
+        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
+        virtual IPState MoveRel(double azDiff) override;
+        virtual IPState MoveAbs(double az) override;
+        virtual IPState ControlShutter(ShutterOperation operation) override;
+        virtual bool Abort() override;
 
-    // Parking
-    virtual IPState Park() override;
-    virtual IPState UnPark() override;
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
+        // Parking
+        virtual IPState Park() override;
+        virtual IPState UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
-  protected:
-    // Commands
-    bool Ack();
-    bool UpdatePosition();
-    bool UpdateShutterStatus();
-    bool UpdateSensorStatus();
-    bool UpdateRelayStatus();
+    protected:
+        // Commands
+        bool UpdatePosition();
+        bool UpdateShutterStatus();
+        bool UpdateSensorStatus();
+        bool UpdateRelayStatus();
 
-    // Misc
-    bool SetupParms();
+        // Misc
+        bool SetupParms();
 
-    DomeStatus status{ DOME_UNKNOWN };
-    double targetAz{ 0 };
-    bool refineMove{ false };
-    ShutterOperation targetShutter{ SHUTTER_OPEN };
-    bool sim{ false };
-    double simShutterTimer{ 0 };
-    ShutterState simShutterStatus{ SHUTTER_OPENED };
+        DomeStatus status{ DOME_UNKNOWN };
+        double targetAz{ 0 };
+        bool refineMove{ false };
+        ShutterOperation targetShutter{ SHUTTER_OPEN };
+        bool sim{ false };
+        double simShutterTimer{ 0 };
+        ShutterState simShutterStatus{ SHUTTER_OPENED };
 
-    INumberVectorProperty DomeHomePositionNP;
-    INumber DomeHomePositionN[1];
+        INDI::PropertySwitch CardTypeSP{2};
 
-    ISwitch FindHomeS[1];
-    ISwitchVectorProperty FindHomeSP;
+        INDI::PropertyNumber DomeHomePositionNP{1};
 
-    ISwitch DerotateS[1];
-    ISwitchVectorProperty DerotateSP;
+        INDI::PropertySwitch HomeSensorPolaritySP{2};
 
-    ISwitch PowerRelaysS[4];
-    ISwitchVectorProperty PowerRelaysSP;
+        INDI::PropertySwitch FindHomeSP{1};
 
-    ISwitch RelaysS[4];
-    ISwitchVectorProperty RelaysSP;
+        INDI::PropertySwitch DerotateSP{1};
 
-    ISwitch ParkShutterS[2];
-    ISwitchVectorProperty ParkShutterSP;
+        INDI::PropertyNumber StepsPerRevolutionNP{1};
 
-    ISwitch AutoCloseS[8];
-    ISwitchVectorProperty AutoCloseSP;
+        INDI::PropertySwitch CalibrationNeededSP{1};
 
-    INumber EnvironmentSensorsN[11];
-    INumberVectorProperty EnvironmentSensorsNP;
+        INDI::PropertySwitch StartCalibrationSP{1};
 
-    ISwitch SensorsS[13];
-    ISwitchVectorProperty SensorsSP;
+        INDI::PropertyNumber FirmwareVersionsNP{2};
 
-    INumber StepsPerRevolutionN[1];
-    INumberVectorProperty StepsPerRevolutionNP;
+        INDI::PropertyText CredentialsTP{2};
 
-    ISwitch CalibrationNeededS[1];
-    ISwitchVectorProperty CalibrationNeededSP;
+        // Dynamic properies initialized based on card type
+        INDI::PropertySwitch RelaysSP{0};
+        INDI::PropertyNumber SensorsNP{0};
+        INDI::PropertySwitch InputsSP{0};
 
-    ISwitch StartCalibrationS[1];
-    ISwitchVectorProperty StartCalibrationSP;
+    private:
+        uint16_t currentStatus;
+        int32_t currentRotation;
+        int32_t rotationCounter;
 
-    INumber FirmwareVersionsN[2];
-    INumberVectorProperty FirmwareVersionsNP;
+        uint32_t stepsPerRevolution;
 
-  private:
-    uint8_t digitalSensorState[5];
-    uint16_t currentStatus;
-    int32_t currentRotation;
-    int16_t rotationCounter;
+        std::unique_ptr<ScopeDomeCard> interface;
 
-    uint8_t linkStrength;
-    float sensors[9];
-    uint32_t stepsPerTurn;
-    int homePosition;
+        IPState sendMove(double azDiff);
 
-    std::unique_ptr<ScopeDomeCard> interface;
+        // Dome inertia compensation
+        std::vector<uint16_t> inertiaTable;
+        int compensateInertia(int steps);
 
-    void reconnect();
+        // Needed to access reconnect function
+        friend class ScopeDomeUSB21;
+        friend class ScopeDomeArduino;
 
-    IPState sendMove(double azDiff);
+        void reconnect();
+        bool reconnecting{false};
 
-    // I/O helper functions
-    bool readFloat(ScopeDomeCommand cmd, float &dst);
-    bool readU8(ScopeDomeCommand cmd, uint8_t &dst);
-    bool readS8(ScopeDomeCommand cmd, int8_t &dst);
-    bool readU16(ScopeDomeCommand cmd, uint16_t &dst);
-    bool readS16(ScopeDomeCommand cmd, int16_t &dst);
-    bool readU32(ScopeDomeCommand cmd, uint32_t &dst);
-    bool readS32(ScopeDomeCommand cmd, int32_t &dst);
-    int readBuffer(ScopeDomeCommand cmd, int len, uint8_t *cbuf);
+        const INDI::PropertyText &getCredentials() const
+        {
+            return CredentialsTP;
+        };
 
-    int writeCmd(ScopeDomeCommand cmd);
-    int writeU8(ScopeDomeCommand cmd, uint8_t value);
-    int writeU16(ScopeDomeCommand cmd, uint16_t value);
-    int writeU32(ScopeDomeCommand cmd, uint32_t value);
-    int writeBuffer(ScopeDomeCommand cmd, int len, uint8_t *cbuf);
+        // Dew point calculation
+        float getDewPoint(float RH, float T);
 
-    // Dew point calculation
-    float getDewPoint(float RH, float T);
-
-    // Input/Output management
-    ISState getInputState(ScopeDomeDigitalIO channel);
-    int setOutputState(ScopeDomeDigitalIO channel, ISState state);
-
-    // Dome inertia compensation
-    std::vector<uint8_t> inertiaTable;
-    uint16_t compensateInertia(uint16_t steps);
+        ISState rotaryLinkEstablished {ISS_OFF};
 };

@@ -1444,11 +1444,12 @@ install(TARGETS indi_rigel_dome RUNTIME DESTINATION bin)
 set(scopedome_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_dome.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_usb21.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_arduino.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_sim.cpp
    )
 
 add_executable(indi_scopedome_dome ${scopedome_SRCS})
-target_link_libraries(indi_scopedome_dome indidriver)
+target_link_libraries(indi_scopedome_dome indidriver ${CURL_LIBRARIES})
 install(TARGETS indi_scopedome_dome RUNTIME DESTINATION bin )
 
 ################ Technical Innovations DDW Dome ################
