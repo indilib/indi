@@ -205,7 +205,7 @@ bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, size_t* dims, int bits
                 else
                 {
                     long len = 1;
-                    int i;
+                    uint32_t i;
                     for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
                     len *= getBPS() / 8;
                     uploadFile(buffer, len, sendCapture, saveCapture, FitsB.format);
