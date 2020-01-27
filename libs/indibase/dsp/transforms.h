@@ -1,7 +1,7 @@
 /*******************************************************************************
-  Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2017 Ilia Platone, Jasem Mutlaq. All rights reserved.
 
- Connection Plugin Interface
+ DSP Transforms plugin
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -29,18 +29,34 @@ namespace DSP
 {
 class Transforms : public Interface
 {
-protected:
+public:
     Transforms(INDI::DefaultDevice *dev);
     virtual ~Transforms();
 
-private:
-    dsp_stream_p stream;
-    uint8_t *Callback(uint8_t *out, int dims, int *sizes, int bits_per_sample);
+protected:
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 
-    void Spectrum(int n_elements);
-    void Histogram(int histogram_size);
+private:
     void FourierTransform();
-    void setStream(void *buf, int dims, int *sizes, int bits_per_sample);
-    uint8_t *getStream();
+};
+
+class Spectrum : public Interface
+{
+public:
+    Spectrum(INDI::DefaultDevice *dev);
+    virtual ~Spectrum();
+
+protected:
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
+};
+
+class Histogram : public Interface
+{
+public:
+    Histogram(INDI::DefaultDevice *dev);
+    virtual ~Histogram();
+
+protected:
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 };
 }

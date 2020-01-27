@@ -20,6 +20,7 @@
 
 #include "defaultdevice.h"
 #include "dsp.h"
+#include "dsp/manager.h"
 #include <fitsio.h>
 
 #ifdef HAVE_WEBSOCKET
@@ -53,7 +54,10 @@
  * \author Jasem Mutlaq, Ilia Platone
  *
  */
-
+namespace DSP
+{
+class Manager;
+}
 namespace INDI
 {
 class StreamManager;
@@ -71,7 +75,8 @@ class SensorInterface : public DefaultDevice
             SENSOR_HAS_STREAMING              = 1<<1,  /*!< Does the Sensor supports streaming?  */
             SENSOR_HAS_SHUTTER                = 1<<2,  /*!< Does the Sensor have a mechanical shutter?  */
             SENSOR_HAS_COOLER                 = 1<<3,  /*!< Does the Sensor have a cooler and temperature control?  */
-            SENSOR_MAX_CAPABILITY             = 1<<4,  /*!< Does the Sensor have a cooler and temperature control?  */
+            SENSOR_HAS_DSP                    = 1<<4,
+            SENSOR_MAX_CAPABILITY             = 1<<5,  /*!< Does the Sensor have a cooler and temperature control?  */
         } SensorCapability;
 
         SensorInterface();
@@ -280,10 +285,6 @@ class SensorInterface : public DefaultDevice
 
 protected:
 
-        const char *INTEGRATION_SETTINGS_TAB;
-        const char *INTEGRATION_INFO_TAB;
-        const char *GUIDE_HEAD_TAB;
-
         /**
          * @return True if Sensor has mechanical or electronic shutter. False otherwise.
          */
@@ -311,24 +312,32 @@ protected:
         /**
          * @return  True if the Sensor supports live video streaming. False otherwise.
          */
+        bool HasDSP()
+        {
+            return capability & SENSOR_HAS_DSP;
+        }
+
+        /**
+         * @return  True if the Sensor supports live video streaming. False otherwise.
+         */
         bool HasStreaming()
         {
             return capability & SENSOR_HAS_STREAMING;
         }
 
         /**
-         * @brief GetSensorCapability returns the Sensor capabilities.
+         * @brief GetCapability returns the Sensor capabilities.
          */
-        uint32_t GetSensorCapability() const
+        uint32_t GetCapability() const
         {
             return capability;
         }
 
         /**
-         * @brief SetSensorCapability Set the Sensor capabilities. Al fields must be initilized.
+         * @brief SetCapability Set the Sensor capabilities. Al fields must be initilized.
          * @param cap pointer to SensorCapability struct.
          */
-        void SetSensorCapability(uint32_t cap);
+        void SetCapability(uint32_t cap);
 
         /**
          * \brief Abort ongoing Integration
@@ -425,6 +434,7 @@ protected:
         std::mutex detectorBufferLock;
 
         std::unique_ptr<StreamManager> Streamer;
+        std::unique_ptr<DSP::Manager> DSP;
 
     private:
 

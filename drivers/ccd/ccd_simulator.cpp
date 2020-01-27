@@ -1,7 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
-
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
@@ -60,15 +59,9 @@ void ISNewNumber(const char * dev, const char * name, double values[], char * na
 void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
                char * names[], int n)
 {
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
+    ccdsim->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
+
 void ISSnoopDevice(XMLEle * root)
 {
     ccdsim->ISSnoopDevice(root);
@@ -226,6 +219,7 @@ bool CCDSim::initProperties()
     cap |= CCD_HAS_SHUTTER;
     cap |= CCD_HAS_ST4_PORT;
     cap |= CCD_HAS_STREAMING;
+    cap |= CCD_HAS_DSP;
 
 #ifdef HAVE_WEBSOCKET
     cap |= CCD_HAS_WEB_SOCKET;

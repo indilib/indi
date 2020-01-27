@@ -64,20 +64,22 @@ class Spectrograph : public SensorInterface
     public:
         enum
         {
-            SPECTROGRAPH_MAX_CAPABILITY                  = 1<<SENSOR_MAX_CAPABILITY,  /*!< Can the Sensor Integration be aborted?  */
+            SPECTROGRAPH_MAX_CAPABILITY                  = SENSOR_MAX_CAPABILITY<<0,  /*!< Can the Sensor Integration be aborted?  */
         } SpectrographCapability;
 
         Spectrograph();
         virtual ~Spectrograph();
 
-        bool initProperties();
-        bool updateProperties();
-        void ISGetProperties(const char *dev);
-        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        bool ISSnoopDevice(XMLEle *root);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual void ISGetProperties(const char *dev);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+        virtual bool ISSnoopDevice(XMLEle *root);
+
+        virtual bool StartIntegration(double duration);
 
         /**
          * @brief setSampleRate Set depth of Spectrograph device.
@@ -148,31 +150,7 @@ class Spectrograph : public SensorInterface
         }
 
         /**
-         * \brief Set common integration params
-         * \param sr Spectrograph samplerate (in Hz)
-         * \param cfreq Integration frequency of the detector (Hz, observed frequency).
-         * \param sfreq Sampling frequency of the detector (Hz, electronic speed of the detector).
-         * \param bps Bit resolution of a single sample.
-         * \param bw Bandwidth (Hz).
-         * \param gain Gain of the detector.
-         * \return true if OK and Integration will take some time to complete, false on error.
-         * \note This function is not implemented in Spectrograph, it must be implemented in the child class
-         */
-        virtual bool paramsUpdated(double sr, double freq, double bps, double bw, double gain);
-
-        /**
-         * \brief Setup parameters for the Spectrograph. Child classes call this function to update
-         * Vector parameters
-         * \param samplerate Vector samplerate (in Hz)
-         * \param freq Center frequency of the detector (Hz, observed frequency).
-         * \param bps Bit resolution of a single sample.
-         * \param bw Vector bandwidth (in Hz).
-         * \param gain Vector gain.
-         */
-         virtual void setParams(double samplerate, double freq, double bps, double bw, double gain);
-
-        /**
-         * @brief GetSensorCapability returns the Sensor capabilities.
+         * @brief GetSpectrographCapability returns the Sensor capabilities.
          */
         uint32_t GetSpectrographCapability() const
         {
@@ -180,35 +158,42 @@ class Spectrograph : public SensorInterface
         }
 
         /**
-         * @brief SetSensorCapability Set the Sensor capabilities. Al fields must be initilized.
-         * @param cap pointer to SensorCapability struct.
+         * @brief SetSpectrographCapability Set the Spectrograph capabilities. Al fields must be initilized.
+         * @param cap pointer to SpectrographCapability struct.
          */
         void SetSpectrographCapability(uint32_t cap);
 
+        /**
+         * @brief setMinMaxStep for a number property element
+         * @param property Property name
+         * @param element Element name
+         * @param min Minimum element value
+         * @param max Maximum element value
+         * @param step Element step value
+         * @param sendToClient If true (default), the element limits are updated and is sent to the
+         * client. If false, the element limits are updated without getting sent to the client.
+         */
+        void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
+                           bool sendToClient = true);
+
         typedef enum
         {
-            SPECTROGRAPH_GAIN,
+            SPECTROGRAPH_GAIN = 0,
             SPECTROGRAPH_FREQUENCY,
             SPECTROGRAPH_BANDWIDTH,
             SPECTROGRAPH_BITSPERSAMPLE,
             SPECTROGRAPH_SAMPLERATE,
             SPECTROGRAPH_CHANNEL,
             SPECTROGRAPH_ANTENNA,
-            SPECTROGRAPH_FWHM,
         } SPECTROGRAPH_INFO_INDEX;
+        INumberVectorProperty SpectrographSettingsNP;
 
-        void Spectrum(void *buf, void *out, int n_elements, int size, int bits_per_sample);
-        void Histogram(void *buf, void *out, int n_elements, int histogram_size, int bits_per_sample);
-        void FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample);
-        void Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample);
-        void WhiteNoise(void *buf, int n_elements, int bits_per_sample);
 private:
         double Samplerate;
         double Frequency;
         double Bandwidth;
         double Gain;
-        INumberVectorProperty SpectrographSettingsNP;
-        INumber SpectrographSettingsN[5];
+        INumber SpectrographSettingsN[7];
 
 };
 }

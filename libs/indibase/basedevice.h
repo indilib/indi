@@ -79,6 +79,8 @@ class BaseDevice
             AUX_INTERFACE           = (1 << 15), /**< Auxiliary interface */
         };
 
+        static const unsigned int SENSOR_INTERFACE { SPECTROGRAPH_INTERFACE | DETECTOR_INTERFACE };
+
         /** \return Return vector number property given its name */
         INumberVectorProperty *getNumber(const char *name);
         /** \return Return vector text property given its name */

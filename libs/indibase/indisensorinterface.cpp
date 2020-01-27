@@ -18,7 +18,7 @@
 *******************************************************************************/
 
 #include "defaultdevice.h"
-#include "indidetector.h"
+#include "indisensorinterface.h"
 
 #include "indicom.h"
 #include "stream/streammanager.h"
@@ -107,7 +107,7 @@ SensorInterface::~SensorInterface()
 
 bool SensorInterface::updateProperties()
 {
-    //IDLog("PrimarySensorInterface UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
+    //IDLog("Sensor UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
         defineNumber(&FramedIntegrationNP);
@@ -151,6 +151,8 @@ bool SensorInterface::updateProperties()
     if (HasStreaming())
         Streamer->updateProperties();
 
+    if (HasDSP())
+        DSP->updateProperties();
     return true;
 }
 
@@ -163,6 +165,9 @@ void SensorInterface::processProperties(const char *dev)
 
     if (HasStreaming())
         Streamer->ISGetProperties(dev);
+
+    if (HasDSP())
+        DSP->ISGetProperties(dev);
 }
 
 bool SensorInterface::processSnoopDevice(XMLEle *root)
@@ -263,6 +268,9 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
     if (HasStreaming())
         Streamer->ISNewText(dev, name, texts, names, n);
 
+    if (HasDSP())
+        DSP->ISNewText(dev, name, texts, names, n);
+
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
@@ -299,7 +307,7 @@ bool SensorInterface::processNumber(const char *dev, const char *name, double va
             return true;
         }
 
-        // PrimarySensorInterface TEMPERATURE:
+        // Sensor TEMPERATURE:
         if (!strcmp(name, TemperatureNP.name))
         {
             if (values[0] < TemperatureN[0].min || values[0] > TemperatureN[0].max)
@@ -327,6 +335,9 @@ bool SensorInterface::processNumber(const char *dev, const char *name, double va
 
     if (HasStreaming())
         Streamer->ISNewNumber(dev, name, values, names, n);
+
+    if (HasDSP())
+        DSP->ISNewNumber(dev, name, values, names, n);
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -396,12 +407,18 @@ bool SensorInterface::processSwitch(const char *dev, const char *name, ISState *
     if (HasStreaming())
         Streamer->ISNewSwitch(dev, name, states, names, n);
 
+    if (HasDSP())
+        DSP->ISNewSwitch(dev, name, states, names, n);
+
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool SensorInterface::processBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                                     char *formats[], char *names[], int n)
 {
+    if (HasDSP())
+        DSP->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+
     return INDI::DefaultDevice::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
@@ -409,7 +426,7 @@ bool SensorInterface::initProperties()
 {
     INDI::DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
-    // PrimarySensorInterface Temperature
+    // Sensor Temperature
     IUFillNumber(&TemperatureN[0], "SENSOR_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "SENSOR_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
@@ -418,12 +435,12 @@ bool SensorInterface::initProperties()
     /**************** Primary Device ****************/
     /**********************************************/
 
-    // PrimarySensorInterface Integration
+    // Sensor Integration
     IUFillNumber(&FramedIntegrationN[0], "SENSOR_INTEGRATION_VALUE", "Time (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
     IUFillNumberVector(&FramedIntegrationNP, FramedIntegrationN, 1, getDeviceName(), "SENSOR_INTEGRATION",
                        "Integration", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    // PrimarySensorInterface Abort
+    // Sensor Abort
     if(CanAbort())
     {
         IUFillSwitch(&AbortIntegrationS[0], "ABORT", "Abort", ISS_OFF);
@@ -431,21 +448,15 @@ bool SensorInterface::initProperties()
                            "Integration Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     }
 
-    // PrimarySensorInterface Device Continuum Blob
-    int ctr = 0;
-
-    IUFillBLOB(&FitsB, "DATA", "Sensor Data Blob", "");
-    ctr ++;
-
-    if(ctr > 0)
-    {
-        IUFillBLOBVector(&FitsBP, &FitsB, ctr, getDeviceName(), "SENSOR", "Integration Data", INTEGRATION_INFO_TAB,
-                         IP_RO, 60, IPS_IDLE);
-    }
 
     /**********************************************/
     /************** Upload Settings ***************/
     /**********************************************/
+    // Upload Data
+    IUFillBLOB(&FitsB, "DATA", "Sensor Data Blob", "");
+
+    IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), "SENSOR", "Integration Data", MAIN_CONTROL_TAB,
+                     IP_RO, 60, IPS_IDLE);
 
     // Upload Mode
     IUFillSwitch(&UploadS[0], "UPLOAD_CLIENT", "Client", ISS_ON);
@@ -481,7 +492,7 @@ bool SensorInterface::initProperties()
     // Snooped Devices
     IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
     IUFillText(&ActiveDeviceT[1], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
-    IUFillText(&ActiveDeviceT[2], "ACTIVE_FILTER", "Filter", "PrimarySensorInterface Simulator");
+    IUFillText(&ActiveDeviceT[2], "ACTIVE_FILTER", "Filter", "Filter Simulator");
     IUFillText(&ActiveDeviceT[3], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 4, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
@@ -502,7 +513,7 @@ bool SensorInterface::initProperties()
     return true;
 }
 
-void SensorInterface::SetSensorCapability(uint32_t cap)
+void SensorInterface::SetCapability(uint32_t cap)
 {
     capability = cap;
 
@@ -513,6 +524,9 @@ void SensorInterface::SetSensorCapability(uint32_t cap)
         Streamer.reset(new StreamManager(this));
         Streamer->initProperties();
     }
+
+    if (HasDSP() && DSP.get() == nullptr)
+        DSP.reset(new DSP::Manager(this));
 }
 
 void SensorInterface::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
@@ -520,18 +534,19 @@ void SensorInterface::setMinMaxStep(const char *property, const char *element, d
 {
     INumberVectorProperty *vp = nullptr;
 
-    if (!strcmp(property, FramedIntegrationNP.name))
+    if (!strcmp(property, FramedIntegrationNP.name)) {
         vp = &FramedIntegrationNP;
 
-    INumber *np = IUFindNumber(vp, element);
-    if (np)
-    {
-        np->min  = min;
-        np->max  = max;
-        np->step = step;
+        INumber *np = IUFindNumber(vp, element);
+        if (np)
+        {
+            np->min  = min;
+            np->max  = max;
+            np->step = step;
 
-        if (sendToClient)
-            IUUpdateMinMax(vp);
+            if (sendToClient)
+                IUUpdateMinMax(vp);
+        }
     }
 }
 
@@ -541,6 +556,14 @@ void SensorInterface::setBufferSize(int nbuf, bool allocMem)
         return;
 
     BufferSize = nbuf;
+
+    // Reset size
+    if (HasStreaming())
+        Streamer->setSize(BufferSize * 8 / getBPS());
+
+    // DSP
+    if (HasDSP())
+        DSP->setSizes(1, new int[1]{ BufferSize * 8 / getBPS() });
 
     if (allocMem == false)
         return;
@@ -626,7 +649,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 
     // SENSOR
     strncpy(fitsString, getDeviceName(), MAXINDIDEVICE);
-    fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "PrimarySensorInterface Name", &status);
+    fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "Sensor Name", &status);
 
     // Telescope
     strncpy(fitsString, ActiveDeviceT[0].text, MAXINDIDEVICE);
@@ -873,6 +896,12 @@ bool SensorInterface::IntegrationComplete()
     // Reset POLLMS to default value
     POLLMS = getPollingPeriod();
 
+    if(HasDSP()) {
+        uint8_t* buf = (uint8_t*)malloc(getBufferSize());
+        memcpy(buf, getBuffer(), getBufferSize());
+        DSP->processBLOB(buf, 1, new int[1]{ getBufferSize()*8/getBPS() }, getBPS());
+        free(buf);
+    }
     // Run async
     std::thread(&SensorInterface::IntegrationCompletePrivate, this).detach();
 
@@ -918,7 +947,7 @@ bool SensorInterface::IntegrationCompletePrivate()
             FramedIntegrationNP.s = IPS_BUSY;
         else
         {
-            DEBUG(Logger::DBG_DEBUG, "Autoloop: PrimarySensorInterface Integration Error!");
+            DEBUG(Logger::DBG_DEBUG, "Autoloop: Sensor Integration Error!");
             FramedIntegrationNP.s = IPS_ALERT;
         }
 
@@ -1034,6 +1063,9 @@ bool SensorInterface::saveConfigItems(FILE *fp)
 
     if (HasStreaming())
         Streamer->saveConfigItems(fp);
+
+    if (HasDSP())
+        DSP->saveConfigItems(fp);
 
     return true;
 }
@@ -1218,6 +1250,14 @@ int SensorInterface::getFileIndex(const char *dir, const char *prefix, const cha
 void SensorInterface::setBPS(int bps)
 {
     BPS = bps;
+
+    // Reset size
+    if (HasStreaming())
+        Streamer->setSize(getBufferSize() * 8 / BPS);
+
+    // DSP
+    if (HasDSP())
+        DSP->setSizes(1, new int[1]{ getBufferSize() * 8 / BPS });
 }
 
 }

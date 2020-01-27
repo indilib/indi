@@ -31,9 +31,8 @@
 
 namespace DSP
 {
-extern const char *CONNECTION_TAB;
 
-Transforms::Transforms(INDI::DefaultDevice *dev) : Interface(dev, DSP_TRANSFORMATIONS, "DSP_TRANSFORMATIONS_PLUGIN", "Buffer Transformations Plugin")
+Transforms::Transforms(INDI::DefaultDevice *dev) : Interface(dev, DSP_TRANSFORMATIONS, "DFT", "DFT")
 {
 }
 
@@ -41,96 +40,52 @@ Transforms::~Transforms()
 {
 }
 
-uint8_t* Transforms::Callback(uint8_t *buf, int dims, int *sizes, int bits_per_sample)
+uint8_t* Transforms::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
-    free(buf);
-    Spectrum(4096);
+    dsp_fourier_dft_magnitude(stream);
     return getStream();
-}
-
-void Transforms::Spectrum(int n_elements)
-{
-    FourierTransform();
-    Histogram(n_elements);
 }
 
 void Transforms::FourierTransform()
 {
-    dsp_fourier_dft(stream);
 }
 
-void Transforms::Histogram(int histogram_size)
+Spectrum::Spectrum(INDI::DefaultDevice *dev) : Interface(dev, DSP_SPECTRUM, "SPECTRUM", "Spectrum")
 {
-    double *histo = dsp_stats_histogram(stream, histogram_size);
+}
+
+Spectrum::~Spectrum()
+{
+}
+
+uint8_t* Spectrum::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+{
+    setStream(buf, dims, sizes, bits_per_sample);
+    dsp_fourier_dft_magnitude(stream);
+    double *histo = dsp_stats_histogram(stream, 4096);
     dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, histo, histogram_size);
+    dsp_stream_set_buffer(stream, histo, 4096);
+    setSizes(1, new int{4096});
+    return getStream();
 }
 
-void Transforms::setStream(void *buf, int dims, int *sizes, int bits_per_sample)
+
+Histogram::Histogram(INDI::DefaultDevice *dev) : Interface(dev, DSP_SPECTRUM, "HISTOGRAM", "Histogram")
 {
-    //Create the dsp stream
-    stream = dsp_stream_new();
-    for(int dim = 0; dim < dims; dim++)
-        dsp_stream_add_dim(stream, sizes[dim]);
-    dsp_stream_alloc_buffer(stream, stream->len);
-    switch (bits_per_sample)
-    {
-        case 8:
-            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 16:
-            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 32:
-            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 64:
-            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
-            break;
-        case -32:
-            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
-            break;
-        case -64:
-            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
-            break;
-        default:
-            dsp_stream_free_buffer(stream);
-            //Destroy the dsp stream
-            dsp_stream_free(stream);
-    }
 }
 
-uint8_t* Transforms::getStream()
+Histogram::~Histogram()
 {
-    void *buffer = malloc(stream->len*getBPS()/8);
-    switch (getBPS())
-    {
-        case 8:
-            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(buffer)), stream->len);
-            break;
-        case 16:
-            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(buffer)), stream->len);
-            break;
-        case 32:
-            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(buffer)), stream->len);
-            break;
-        case 64:
-            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(buffer)), stream->len);
-            break;
-        case -32:
-            dsp_buffer_copy(stream->buf, (static_cast<float *>(buffer)), stream->len);
-            break;
-        case -64:
-            dsp_buffer_copy(stream->buf, (static_cast<double *>(buffer)), stream->len);
-            break;
-        default:
-            return NULL;
-            break;
-    }
-    //Destroy the dsp stream
+}
+
+uint8_t* Histogram::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+{
+    setStream(buf, dims, sizes, bits_per_sample);
+    double *histo = dsp_stats_histogram(stream, 4096);
     dsp_stream_free_buffer(stream);
-    dsp_stream_free(stream);
-    return static_cast<uint8_t *>(buffer);
+    dsp_stream_set_buffer(stream, histo, 4096);
+    setSizes(1, new int{4096});
+    return getStream();
 }
 }

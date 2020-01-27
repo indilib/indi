@@ -146,6 +146,11 @@ void CCD::SetCCDCapability(uint32_t cap)
         Streamer.reset(new StreamManager(this));
         Streamer->initProperties();
     }
+
+    if (HasDSP() && DSP.get() == nullptr)
+    {
+        DSP.reset(new DSP::Manager(this));
+    }
 }
 
 bool CCD::initProperties()
@@ -471,6 +476,9 @@ void CCD::ISGetProperties(const char * dev)
 
     if (HasStreaming())
         Streamer->ISGetProperties(dev);
+
+    if (HasDSP())
+        DSP->ISGetProperties(dev);
 }
 
 bool CCD::updateProperties()
@@ -656,6 +664,10 @@ bool CCD::updateProperties()
     // Streamer
     if (HasStreaming())
         Streamer->updateProperties();
+
+    // DSP
+    if (HasDSP())
+        DSP->updateProperties();
 
     return true;
 }
@@ -871,6 +883,10 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
     // Streamer
     if (HasStreaming())
         Streamer->ISNewText(dev, name, texts, names, n);
+
+    // DSP
+    if (HasDSP())
+        DSP->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
@@ -1202,6 +1218,10 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
     // Streamer
     if (HasStreaming())
         Streamer->ISNewNumber(dev, name, values, names, n);
+
+    // DSP
+    if (HasDSP())
+        DSP->ISNewNumber(dev, name, values, names, n);
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -1565,12 +1585,20 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
     if (HasStreaming())
         Streamer->ISNewSwitch(dev, name, states, names, n);
 
+    // DSP
+    if (HasDSP())
+        DSP->ISNewSwitch(dev, name, states, names, n);
+
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool CCD::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
            char *formats[], char *names[], int n)
 {
+    // DSP
+    if (HasDSP())
+        DSP->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+
     return DefaultDevice::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
@@ -1625,6 +1653,11 @@ bool CCD::UpdateCCDBin(int hor, int ver)
     // Reset size
     if (HasStreaming())
         Streamer->setSize(PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver);
+
+    // DSP
+    if (HasDSP())
+        DSP->setSizes(2, new int[2]{ PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver });
+
     return true;
 }
 
@@ -1903,6 +1936,12 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
 
 bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 {
+    if(HasDSP()) {
+        uint8_t* buf = static_cast<uint8_t*>(malloc(targetChip->getFrameBufferSize()));
+        memcpy(buf, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
+        DSP->processBLOB(buf, 2, new int[2]{ targetChip->getSubW() / targetChip->getBinX(), targetChip->getSubH() / targetChip->getBinY() }, targetChip->getBPP());
+        free(buf);
+    }
 #ifdef WITH_EXPOSURE_LOOPING
     // If looping is on, let's immediately take another capture
     if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
@@ -2597,7 +2636,6 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
         }
     }
 #endif
-
     return true;
 }
 
@@ -2867,6 +2905,9 @@ bool CCD::saveConfigItems(FILE * fp)
 
     if (HasStreaming())
         Streamer->saveConfigItems(fp);
+
+    if (HasDSP())
+        DSP->saveConfigItems(fp);
 
     return true;
 }

@@ -382,9 +382,9 @@
             <version>1.0</version>
         </device>
     </devGroup>
-    <devGroup group="Detectors">
-        <device label="Detector Simulator" mdpd="true">
-            <driver name="Detector Simulator">indi_simulator_detector</driver>
+    <devGroup group="Spectrographs">
+        <device label="Spectrograph Simulator" mdpd="true">
+            <driver name="Spectrograph Simulator">indi_simulator_spectrograph</driver>
             <version>1.0</version>
         </device>
     </devGroup>

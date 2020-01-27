@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
 
- Connection Plugin Interface
+ DSP Convolution plugin
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -22,33 +22,54 @@
 
 #include "dspinterface.h"
 #include "dsp.h"
-
+#include <fitsio.h>
+#define N_WAVELETS 7
 #include <string>
 
 namespace DSP
 {
 class Convolution : public Interface
 {
-  public:
-    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+public:
+    Convolution(INDI::DefaultDevice *dev);
+    ~Convolution();
+    bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
 
 protected:
-    Convolution(INDI::DefaultDevice *dev);
-    virtual ~Convolution();
+    void Activated();
+    void Deactivated();
 
-    virtual void Activated();
-    virtual void Deactivated();
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 
 private:
-    dsp_stream_p stream;
     dsp_stream_p matrix;
-    uint8_t *Callback(uint8_t *out, int dims, int *sizes, int bits_per_sample);
 
     IBLOBVectorProperty DownloadBP;
     IBLOB DownloadB;
 
+    bool matrix_loaded { false };
     void Convolute();
-    void setStream(void *buf, int dims, int *sizes, int bits_per_sample);
-    uint8_t *getStream();
+};
+class Wavelets : public Interface
+{
+public:
+    Wavelets(INDI::DefaultDevice *dev);
+    ~Wavelets();
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
+protected:
+    void Activated();
+    void Deactivated();
+
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
+
+private:
+    dsp_stream_p matrix;
+
+    INumberVectorProperty WaveletsNP;
+    INumber *WaveletsN;
+
+    bool matrix_loaded { false };
+    void Convolute();
 };
 }

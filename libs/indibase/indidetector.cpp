@@ -44,9 +44,6 @@ namespace INDI
 
 Detector::Detector()
 {
-    INTEGRATION_SETTINGS_TAB = "Capture Settings";
-    INTEGRATION_INFO_TAB = "Detector Information";
-    GUIDE_HEAD_TAB = "Guide";
 }
 
 Detector::~Detector()

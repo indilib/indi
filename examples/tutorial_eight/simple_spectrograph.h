@@ -38,7 +38,7 @@ class SimpleSpectrograph : public INDI::Spectrograph
     bool updateProperties();
 
     // Spectrograph specific functions
-    bool StartIntegration(float duration);
+    bool StartIntegration(double duration);
     bool paramsUpdated(float sr, float freq, float bps, float bw, float gain);
     bool AbortIntegration();
     int SetTemperature(double temperature);
@@ -55,6 +55,6 @@ class SimpleSpectrograph : public INDI::Spectrograph
     // Struct to keep timing
     struct timeval CapStart { 0, 0 };
 
-    float IntegrationRequest { 0 };
-    float TemperatureRequest { 0 };
+    double IntegrationRequest { 0 };
+    double TemperatureRequest { 0 };
 };

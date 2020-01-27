@@ -58,14 +58,14 @@ extern "C" {
 #ifndef Min
 #define Min(a,b) \
    ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
+       __typeof__ (a) _b = (b); \
      _a < _b ? _a : _b; })
 #endif
 ///if max() is not present you can use this one
 #ifndef Max
 #define Max(a,b) \
    ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
+       __typeof__ (a) _b = (b); \
      _a > _b ? _a : _b; })
 #endif
 ///Logarithm of a with arbitrary base b
@@ -410,6 +410,24 @@ DLL_EXPORT dsp_stream_p dsp_convolution_convolution(dsp_stream_p stream1, dsp_st
     })
 
 /**
+* \brief Counts value occurrences into stream
+* \param buf the input buffer
+* \param len the length in elements of the buffer.
+* \param val the value to count.
+* \return the count of the value of the stream.
+*/
+#define dsp_stats_range_count(buf, len, lo, hi) \
+({\
+    int x;\
+    int count = 0;\
+    for(x = 0; x < len; x++) {\
+        if(buf[x] < hi && buf[x] >= lo)\
+            count ++;\
+    }\
+    count;\
+    })
+
+/**
 * \brief Compare two streams
 * \param in1 the first input buffer
 * \param in2 the second input buffer
@@ -463,14 +481,14 @@ DLL_EXPORT void dsp_buffer_removemean(dsp_stream_p stream);
 #define dsp_buffer_stretch(buf, len, _mn, _mx)\
 ({\
     int k;\
-    __typeof__(buf[0]) mn = dsp_stats_min(buf, len);\
-    __typeof__(buf[0]) mx = dsp_stats_max(buf, len);\
+    __typeof__(buf[0]) __mn = dsp_stats_min(buf, len);\
+    __typeof__(buf[0]) __mx = dsp_stats_max(buf, len);\
     double oratio = (_mx - _mn);\
-    double iratio = (mx - mn);\
+    double iratio = (__mx - __mn);\
     if(iratio == 0.0) iratio = 1;\
     for(k = 0; k < len; k++) {\
-        buf[k] -= mn;\
-        buf[k] = (__typeof__(buf[0]))((double)buf[k] * oratio / iratio);\
+        buf[k] -= __mn;\
+        buf[k] = (__typeof__(buf[0]))((double)buf[k] * (oratio / iratio));\
         buf[k] += (__typeof__(buf[0]))_mn;\
     }\
 })
@@ -484,7 +502,7 @@ DLL_EXPORT void dsp_buffer_removemean(dsp_stream_p stream);
 */
 #define dsp_buffer_normalize(buf, len, min, max)\
 ({\
-        int k;\
+    int k;\
     for(k = 0; k < len; k++) {\
         buf[k] = (buf[k] < min ? min : (buf[k] > max ? max : buf[k]));\
         }\

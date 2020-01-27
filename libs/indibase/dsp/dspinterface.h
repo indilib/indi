@@ -1,7 +1,7 @@
 ﻿/*******************************************************************************
-  Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2017 Ilia Platone, Jasem Mutlaq. All rights reserved.
 
- Connection Plugin Interface
+ DSP plugin Interface
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -21,6 +21,7 @@
 #pragma once
 
 #include "indidevapi.h"
+#include "dsp.h"
 
 #include <fitsio.h>
 #include <functional>
@@ -37,29 +38,35 @@ enum Type {
     DSP_NONE = 0,
     DSP_TRANSFORMATIONS,
     DSP_CONVOLUTION,
+    DSP_SPECTRUM,
 };
-
+extern const char *DSP_TAB;
 class Interface
 {
     public:
+        virtual void ISGetProperties(const char *dev);
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        virtual bool ISSnoopDevice(XMLEle *root);
         virtual bool saveConfigItems(FILE *fp);
+        virtual bool updateProperties();
 
-        bool processBLOB(uint8_t* buf, int ndims, int* dims, int bits_per_sample);
+        bool processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample);
 
-        void setBufferSizes(int num, int* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
-        void getBufferSizes(int *num, int** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
+        void setSizes(uint32_t num, int* sizes) { BufferSizes = sizes; BufferSizesQty = num; }
+        void getSizes(uint32_t *num, int** sizes) { *sizes = BufferSizes; *num = BufferSizesQty; }
 
         void setBPS(int bps) { BPS = bps; }
         int getBPS() { return BPS; }
 
-    protected:
         virtual void Activated();
         virtual void Deactivated();
+
+        virtual uint8_t* Callback(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample);
+
+    protected:
+        bool PluginActive;
 
         IBLOBVectorProperty FitsBP;
         IBLOB FitsB;
@@ -78,29 +85,24 @@ class Interface
         virtual ~Interface();
 
         const char *getDeviceName();
-        std::function<uint8_t*(uint8_t*, int ndims, int*, int)> Callback;
         INDI::DefaultDevice *m_Device {  nullptr };
         const char *m_Name {  nullptr };
         const char *m_Label {  nullptr };
         DSP::Type m_Type {  DSP_NONE };
+        void setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sample);
+        uint8_t *getStream();
+        dsp_stream_p stream;
 
     private:
-                double primaryFocalLength, primaryAperture;
-        double RA, Dec;
-        double Lat, Lon, El;
-        double MPSAS;
-        char processedFileName[MAXINDINAME];
-        char processedFileExtension[MAXINDIFORMAT];
-        int BufferSizesQty;
+        uint32_t BufferSizesQty;
         int *BufferSizes;
         int BPS;
-        bool processBLOBPrivate(uint8_t* buf, int ndims, int* dims, int bits_per_sample);
+
+        char processedFileName[MAXINDINAME];
         void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
         void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
-        void *sendFITS(uint8_t *buf, int len, int bits_per_sample);
+        bool sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture);
         bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration, const char* format);
-        void registerCallback(std::function<uint8_t*(uint8_t*, int ndims, int*, int)> callback);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
-        void getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp);
 };
 }

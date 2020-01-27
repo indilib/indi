@@ -23,6 +23,8 @@
 #include "dsp.h"
 #include "base64.h"
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <dirent.h>
 #include <cerrno>
 #include <cstring>
@@ -32,17 +34,15 @@
 
 namespace DSP
 {
-extern const char *CONNECTION_TAB;
 
-Convolution::Convolution(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "DSP_CONVOLUTION_PLUGIN", "Buffer Transformations Plugin")
+Convolution::Convolution(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "CONVOLUTION", "Convolution")
 {
     IUFillBLOB(&DownloadB, "CONVOLUTION_DOWNLOAD", "Convolution Matrix", "");
-    IUFillBLOBVector(&DownloadBP, &FitsB, 1, m_Device->getDeviceName(), "CONVOLUTION", "Convolution Matrix Data", m_Label, IP_WO, 60, IPS_IDLE);
+    IUFillBLOBVector(&DownloadBP, &FitsB, 1, m_Device->getDeviceName(), "CONVOLUTION", "Matrix Data", DSP_TAB, IP_RW, 60, IPS_IDLE);
 }
 
 Convolution::~Convolution()
 {
-    m_Device->deleteProperty(DownloadBP.name);
 }
 
 void Convolution::Activated()
@@ -58,50 +58,72 @@ void Convolution::Deactivated()
 bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
     INDI_UNUSED(blobsizes);
-    INDI_UNUSED(formats);
     if(!strcmp(dev, getDeviceName())) {
-        for (int i = 0; i < n; i++) {
-            if(!strcmp(name, DownloadBP.name)) {
-                const char *name = names[i];
-
-                if (!strcmp(name, DownloadB.name)) {
+        if(!strcmp(name, DownloadBP.name)) {
+            for (int i = 0; i < n; i++) {
+                if (!strcmp(names[i], DownloadB.name)) {
+                    LOGF_INFO("Received new BLOB for %s.", dev);
                     if(matrix) {
                         dsp_stream_free_buffer(matrix);
                         dsp_stream_free(matrix);
                     }
-                    void* buf = blobs[i];
-
-                    ///TODO: here file parsing
-
                     matrix = dsp_stream_new();
-                    int len = sizes[i] * 8 / getBPS();
-                    dsp_stream_add_dim(stream, sqrt(len));
-                    dsp_stream_add_dim(stream, sqrt(len));
-                    switch (getBPS())
+                    void* buf = blobs[i];
+                    long ndims;
+                    int bits_per_sample = 8;
+                    int offset = 0;
+                    if(!strcmp(formats[i], "fits")) {
+                        fitsfile *fptr;
+                        int status;
+                        unsigned long size = sizes[i];
+                        ffimem(&fptr, &buf, &size, sizes[i], realloc, &status);
+                        char value[MAXINDINAME];
+                        char comment[MAXINDINAME];
+                        char query[MAXINDINAME];
+                        ffgkys(fptr, "BITPIX", value, comment, &status);
+                        bits_per_sample = (int)atol(value);
+                        ffgkys(fptr, "NAXES", value, comment, &status);
+                        ndims = (long)atol(value);
+                        for (int d = 1; d <= ndims; d++) {
+                            sprintf(query, "NAXIS%d", d);
+                            ffgkys(fptr, query, value, comment, &status);
+                            dsp_stream_add_dim(matrix, (long)atol(value));
+                        }
+                        offset = 2880;
+                        fffree(fptr, &status);
+                        buf = static_cast<void*>(static_cast<uint8_t *>(buf)+offset);
+                    } else {
+                        LOG_ERROR("Only fits decoding at the moment.");
+                        continue;
+                    }
+                    switch (bits_per_sample)
                     {
                         case 8:
-                            dsp_buffer_copy((static_cast<uint8_t *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<uint8_t *>(buf)), matrix->buf, matrix->len);
                             break;
                         case 16:
-                            dsp_buffer_copy((static_cast<uint16_t *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<uint16_t *>(buf)), matrix->buf, matrix->len);
                             break;
                         case 32:
-                            dsp_buffer_copy((static_cast<uint32_t *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<uint32_t *>(buf)), matrix->buf, matrix->len);
                             break;
                         case 64:
-                            dsp_buffer_copy((static_cast<unsigned long *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<unsigned long *>(buf)), matrix->buf, matrix->len);
                             break;
                         case -32:
-                            dsp_buffer_copy((static_cast<float *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<float *>(buf)), matrix->buf, matrix->len);
                             break;
                         case -64:
-                            dsp_buffer_copy((static_cast<double *>(buf)), matrix->buf, len);
+                            dsp_buffer_copy((static_cast<double *>(buf)), matrix->buf, matrix->len);
                             break;
                         default:
-                            dsp_stream_free_buffer(stream);
+                            dsp_stream_free_buffer(matrix);
                             //Destroy the dsp stream
-                            dsp_stream_free(stream);
+                            dsp_stream_free(matrix);
+                        break;
                     }
+                    LOG_INFO("DSP::Convolution: convolution matrix loaded");
+                    matrix_loaded = true;
                 }
             }
         }
@@ -109,84 +131,88 @@ bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int 
     return true;
 }
 
-uint8_t* Convolution::Callback(uint8_t *buf, int dims, int *sizes, int bits_per_sample)
+uint8_t* Convolution::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
-    free(buf);
     Convolute();
     return getStream();
 }
 
 void Convolution::Convolute()
 {
-    if(matrix)
+    if(matrix_loaded)
         dsp_convolution_convolution(stream, matrix);
 }
 
-void Convolution::setStream(void *buf, int dims, int *sizes, int bits_per_sample)
+Wavelets::Wavelets(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "WAVELETS", "Wavelets")
 {
-    //Create the dsp stream
-    stream = dsp_stream_new();
-    for(int dim = 0; dim < dims; dim++)
-        dsp_stream_add_dim(stream, sizes[dim]);
-    dsp_stream_alloc_buffer(stream, stream->len);
-    switch (bits_per_sample)
-    {
-        case 8:
-            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 16:
-            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 32:
-            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
-            break;
-        case 64:
-            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
-            break;
-        case -32:
-            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
-            break;
-        case -64:
-            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
-            break;
-        default:
-            dsp_stream_free_buffer(stream);
-            //Destroy the dsp stream
-            dsp_stream_free(stream);
+    WaveletsN = (INumber*)malloc(sizeof(INumber)*N_WAVELETS);
+    for(int i = 0; i < N_WAVELETS; i++) {
+        char strname[MAXINDINAME];
+        char strlabel[MAXINDINAME];
+        sprintf(strname, "WAVELET%0d", i);
+        sprintf(strlabel, "%d pixels Gaussian Wavelet", (i+1)*3);
+        IUFillNumber(&WaveletsN[i], strname, strlabel, "%3.3f", -15.0, 255.0, 1.0, 0.0);
     }
+    IUFillNumberVector(&WaveletsNP, WaveletsN, N_WAVELETS, m_Device->getDeviceName(), "WAVELET", "Wavelets", DSP_TAB, IP_RW, 60, IPS_IDLE);
 }
 
-uint8_t* Convolution::getStream()
+Wavelets::~Wavelets()
 {
-    void *buffer = malloc(stream->len*getBPS()/8);
-    switch (getBPS())
-    {
-        case 8:
-            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(buffer)), stream->len);
-            break;
-        case 16:
-            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(buffer)), stream->len);
-            break;
-        case 32:
-            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(buffer)), stream->len);
-            break;
-        case 64:
-            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(buffer)), stream->len);
-            break;
-        case -32:
-            dsp_buffer_copy(stream->buf, (static_cast<float *>(buffer)), stream->len);
-            break;
-        case -64:
-            dsp_buffer_copy(stream->buf, (static_cast<double *>(buffer)), stream->len);
-            break;
-        default:
-            return NULL;
-            break;
+}
+
+void Wavelets::Activated()
+{
+    m_Device->defineNumber(&WaveletsNP);
+}
+
+void Wavelets::Deactivated()
+{
+    m_Device->deleteProperty(WaveletsNP.name);
+}
+
+bool Wavelets::ISNewNumber(const char *dev, const char *name, double *values, char *names[], int n)
+{
+    INDI_UNUSED(values);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+    if (!strcmp(dev, getDeviceName()) && !strcmp(name, WaveletsNP.name)) {
+        IDSetNumber(&WaveletsNP, nullptr);
     }
-    //Destroy the dsp stream
+    return true;
+}
+
+uint8_t* Wavelets::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+{
+    setStream(buf, dims, sizes, bits_per_sample);
+    double min = dsp_stats_min(stream->buf, stream->len);
+    double max = dsp_stats_max(stream->buf, stream->len);
+    dsp_stream_p out = dsp_stream_copy(stream);
+    for (int i = 0; i < WaveletsNP.nnp; i++) {
+        int size = (i+1)*3;
+        dsp_stream_p tmp = dsp_stream_copy(stream);
+        dsp_stream_p matrix = dsp_stream_new();
+        dsp_stream_add_dim(matrix, size);
+        dsp_stream_add_dim(matrix, size);
+        dsp_stream_alloc_buffer(matrix, matrix->len);
+        for(int y = 0; y < size; y++) {
+            for(int x = 0; x < size; x++) {
+                matrix->buf[x + y * size] = sin((double)x*M_PI/(double)size)*sin((double)y*M_PI/(double)size);
+            }
+        }
+        dsp_convolution_convolution(tmp, matrix);
+        dsp_buffer_sub(tmp, matrix->buf, matrix->len);
+        dsp_buffer_mul1(tmp, WaveletsNP.np[i].value/8.0);
+        dsp_buffer_sum(out, tmp->buf, tmp->len);
+        dsp_buffer_normalize(tmp->buf, min, max, tmp->len);
+        dsp_stream_free_buffer(matrix);
+        dsp_stream_free(matrix);
+        dsp_stream_free_buffer(tmp);
+        dsp_stream_free(tmp);
+    }
     dsp_stream_free_buffer(stream);
     dsp_stream_free(stream);
-    return static_cast<uint8_t *>(buffer);
+    stream = dsp_stream_copy(out);
+    return getStream();
 }
 }
