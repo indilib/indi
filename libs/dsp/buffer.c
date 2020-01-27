@@ -34,7 +34,6 @@ void dsp_buffer_shift(dsp_stream_p stream)
         }
         tmp[x] = stream->buf[dsp_stream_set_position(stream, pos)];
         tmp[dsp_stream_set_position(stream, pos)] = stream->buf[x];
-next_value:
         free(pos);
     }
     memcpy(stream->buf, tmp, stream->len * sizeof(double));
