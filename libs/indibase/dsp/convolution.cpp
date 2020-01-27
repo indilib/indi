@@ -75,7 +75,7 @@ bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int 
                     if(!strcmp(formats[i], "fits")) {
                         fitsfile *fptr;
                         int status;
-                        unsigned long size = sizes[i];
+                        size_t size = sizes[i];
                         ffimem(&fptr, &buf, &size, sizes[i], realloc, &status);
                         char value[MAXINDINAME];
                         char comment[MAXINDINAME];
