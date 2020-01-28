@@ -106,8 +106,8 @@ class Spectrograph : public SensorInterface
         void setFrequency(double freq);
 
         /**
-         * @brief getBandwidth Get requested integration bandwidth for the Vector device in Hz.
-         * @return requested integration bandwidth for the Vector device in Hz.
+         * @brief getBandwidth Get requested integration bandwidth for the sensor in Hz.
+         * @return requested integration bandwidth for the sensor in Hz.
          */
         inline double getBandwidth()
         {
@@ -115,8 +115,8 @@ class Spectrograph : public SensorInterface
         }
 
         /**
-         * @brief getGain Get requested integration gain for the Vector device.
-         * @return requested integration gain for the Vector device.
+         * @brief getGain Get requested integration gain for the sensor.
+         * @return requested integration gain for the sensor.
          */
         inline double getGain()
         {
@@ -124,8 +124,8 @@ class Spectrograph : public SensorInterface
         }
 
         /**
-         * @brief getFrequency Get requested integration frequency for the Vector device in Hz.
-         * @return requested Integration frequency for the Vector device in Hz.
+         * @brief getFrequency Get requested integration frequency for the sensor in Hz.
+         * @return requested Integration frequency for the sensor in Hz.
          */
         inline double getFrequency()
         {
@@ -133,8 +133,8 @@ class Spectrograph : public SensorInterface
         }
 
         /**
-         * @brief getSampleRate Get requested sample rate for the Vector device in Hz.
-         * @return requested sample rate for the Vector device in Hz.
+         * @brief getSampleRate Get requested sample rate for the sensor in Hz.
+         * @return requested sample rate for the sensor in Hz.
          */
         inline double getSampleRate()
         {

@@ -59,7 +59,9 @@ bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int 
 {
     INDI_UNUSED(blobsizes);
     if(!strcmp(dev, getDeviceName())) {
+        LOGF_INFO("Received new BLOB for %s.", dev);
         if(!strcmp(name, DownloadBP.name)) {
+            LOGF_INFO("Received new BLOB for %s.", dev);
             for (int i = 0; i < n; i++) {
                 if (!strcmp(names[i], DownloadB.name)) {
                     LOGF_INFO("Received new BLOB for %s.", dev);
@@ -197,7 +199,7 @@ uint8_t* Wavelets::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_pe
         dsp_stream_alloc_buffer(matrix, matrix->len);
         for(int y = 0; y < size; y++) {
             for(int x = 0; x < size; x++) {
-                matrix->buf[x + y * size] = sin((double)x*M_PI/(double)size)*sin((double)y*M_PI/(double)size);
+                matrix->buf[x + y * size] = sin(static_cast<double>(x)*M_PI/static_cast<double>(size))*sin(static_cast<double>(y)*M_PI/static_cast<double>(size));
             }
         }
         dsp_convolution_convolution(tmp, matrix);
