@@ -497,6 +497,13 @@ install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 set(PKG_CONFIG_LIBS "${PKG_CONFIG_LIBS} -lindidriver -lindiAlignmentDriver")
 endif(CYGWIN)
 
+IF (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    # FreeBSD needs to find the correct GNU iconv library.
+    find_package(Iconv REQUIRED)
+    # The indidriver library is defined earlier in the file before the
+    # find has been run. Add an explicit link to avoid runtime errors.
+    target_link_libraries(indidriver ${ICONV_LIBRARIES})
+ENDIF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 
 ##################################################
 ########### INDI Alignment Subsystem #############
@@ -617,7 +624,11 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 add_executable(indi_lx200generic ${lx200generic_SRCS})
-target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
+if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=700)
+ELSE()
+    target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
+ENDIF()
 target_link_libraries(indi_lx200generic indidriver)
 
 install(TARGETS indi_lx200generic RUNTIME DESTINATION bin )
