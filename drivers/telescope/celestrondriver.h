@@ -28,6 +28,11 @@
 #include <string>
 #include "indicom.h"
 
+#ifdef __FreeBSD__
+#include <stdint.h>
+typedef uint8_t u_int8_t;
+#endif
+
 //#include <thread>
 //#include <condition_variable>
 //#include <atomic>
