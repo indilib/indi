@@ -575,6 +575,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                     else
                     {
                         strncpy(np[n].name, valuXMLAtt(na), MAXINDINAME);
+                        np[n].aux0 = nullptr;
+                        np[n].aux1 = nullptr;
 
                         na = findXMLAtt(ep, "label");
                         if (na)
@@ -655,6 +657,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                 {
                     crackISState(pcdataXMLEle(ep), &(sp[n].s));
                     strncpy(sp[n].name, valuXMLAtt(na), MAXINDINAME);
+                    sp[n].aux = nullptr;
 
                     na = findXMLAtt(ep, "label");
                     if (na)
@@ -718,6 +721,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                     tp[n].text = static_cast<char *>(malloc((pcdatalenXMLEle(ep) * sizeof(char)) + 1));
                     strncpy(tp[n].text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
                     tp[n].text[pcdatalenXMLEle(ep)] = '\0';
+                    tp[n].aux0 = nullptr;
+                    tp[n].aux1 = nullptr;
                     strncpy(tp[n].name, valuXMLAtt(na), MAXINDINAME);
 
                     na = findXMLAtt(ep, "label");
@@ -779,6 +784,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                 {
                     crackIPState(pcdataXMLEle(ep), &(lp[n].s));
                     strncpy(lp[n].name, valuXMLAtt(na), MAXINDINAME);
+                    lp[n].aux = nullptr;
 
                     na = findXMLAtt(ep, "label");
                     if (na)
