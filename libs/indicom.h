@@ -392,6 +392,15 @@ double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wa
  */
 double estimate_absolute_magnitude(double dist, double delta_mag);
 
+/**
+ * @brief interferometry_uv_coords Returns the coordinates in the UV plane of the projection of a single baseline targeting the object in vector
+ * @param baseline_m the length of the baseline in meters. This is supposed to be placed into the X 3d plane
+ * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
+ * @param target_vector The target direction vector. This is relative to the baseline in XYZ order where X is parallel to the baseline.
+ * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
+ */
+double* interferometry_uv_coords(double baseline_m, double wavelength, double *target_vector);
+
 /*@}*/
 
 #ifdef __cplusplus

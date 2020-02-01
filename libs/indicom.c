@@ -1688,6 +1688,21 @@ double estimate_absolute_magnitude(double delta_dist, double delta_mag)
     return sqrt(delta_dist) * delta_mag;
 }
 
+double* interferometry_uv_coords(double baseline_m, double wavelength, double *target_vector)
+{
+    double* uv = (double*)calloc(sizeof(double), 2);
+    double* vector = (double*)calloc(sizeof(double), 3);
+    double hypo = sqrt(pow(target_vector[0], 2) * pow(target_vector[1], 2) * pow(target_vector[2], 2));
+    vector[0] = target_vector[0] / hypo;
+    vector[1] = target_vector[1] / hypo;
+    vector[2] = target_vector[2] / hypo;
+    uv[0] = baseline_m * target_vector[0] * target_vector[2];
+    uv[1] = baseline_m * target_vector[1] * target_vector[2];
+    uv[0] *= AIRY / wavelength;
+    uv[1] *= AIRY / wavelength;
+    return uv;
+}
+
 #if defined(_MSC_VER)
 #undef snprintf
 #pragma warning(pop)
