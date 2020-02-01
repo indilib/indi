@@ -1688,7 +1688,7 @@ double estimate_absolute_magnitude(double delta_dist, double delta_mag)
     return sqrt(delta_dist) * delta_mag;
 }
 
-double* interferometry_uv_coords(double baseline_m, double wavelength, double *target_vector)
+double* interferometry_uv_coords_vector(double baseline_m, double wavelength, double *target_vector)
 {
     double* uv = (double*)calloc(sizeof(double), 2);
     double* vector = (double*)calloc(sizeof(double), 3);
@@ -1698,6 +1698,19 @@ double* interferometry_uv_coords(double baseline_m, double wavelength, double *t
     vector[2] = target_vector[2] / hypo;
     uv[0] = baseline_m * target_vector[0] * target_vector[2];
     uv[1] = baseline_m * target_vector[1] * target_vector[2];
+    uv[0] *= AIRY / wavelength;
+    uv[1] *= AIRY / wavelength;
+    return uv;
+}
+
+double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, double wavelength)
+{
+    double* uv = (double*)calloc(sizeof(double), 2);
+    ha *= M_PI / 12.0;
+    dec += 90.0;
+    dec *= M_PI / 180.0;
+    uv[0] = (baseline[0] * sin(ha) + baseline[1] * cos(ha));
+    uv[1] = (-baseline[0] * sin(dec) * cos(ha) + baseline[1] * sin(dec) * sin(ha) + baseline[2] * cos(dec));
     uv[0] *= AIRY / wavelength;
     uv[1] *= AIRY / wavelength;
     return uv;
