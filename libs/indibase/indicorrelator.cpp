@@ -135,33 +135,31 @@ bool Correlator::ISNewBLOB(const char *dev, const char *name, int sizes[], int b
     return processBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
-void Correlator::setBaseline(double baseline[3])
+void Correlator::setBaseline(Baseline bl)
 {
-    Baseline[0] = baseline[0];
-    Baseline[1] = baseline[1];
-    Baseline[2] = baseline[2];
+    baseline = bl;
 
-    CorrelatorSettingsN[Correlator::CORRELATOR_BASELINE_X].value = baseline[0];
-    CorrelatorSettingsN[Correlator::CORRELATOR_BASELINE_Y].value = baseline[1];
-    CorrelatorSettingsN[Correlator::CORRELATOR_BASELINE_Z].value = baseline[2];
+    CorrelatorSettingsN[Correlator::CORRELATOR_BASELINE_X].value = baseline.x;
+    CorrelatorSettingsN[Correlator::CORRELATOR_BASELINE_Y].value = baseline.y;
+    CorrelatorSettingsN[Correlator::CORRELATOR_BASELINE_Z].value = baseline.z;
 
     IDSetNumber(&CorrelatorSettingsNP, nullptr);
 }
 
-void Correlator::setWavelength(double wavelength)
+void Correlator::setWavelength(double wl)
 {
-    Wavelength = wavelength;
+    wavelength = wl;
 
-    CorrelatorSettingsN[Correlator::CORRELATOR_WAVELENGTH].value = wavelength;
+    CorrelatorSettingsN[Correlator::CORRELATOR_WAVELENGTH].value = wl;
 
     IDSetNumber(&CorrelatorSettingsNP, nullptr);
 }
 
-void Correlator::setBandwidth(double bandwidth)
+void Correlator::setBandwidth(double bw)
 {
-    Bandwidth = bandwidth;
+    bandwidth = bw;
 
-    CorrelatorSettingsN[Correlator::CORRELATOR_BANDWIDTH].value = bandwidth;
+    CorrelatorSettingsN[Correlator::CORRELATOR_BANDWIDTH].value = bw;
 
     IDSetNumber(&CorrelatorSettingsNP, nullptr);
 }
@@ -173,11 +171,21 @@ void Correlator::SetCorrelatorCapability(uint32_t cap)
     setDriverInterface(getDriverInterface());
 }
 
-double* Correlator::getUVCoordinates()
+Correlator::UVCoordinate Correlator::getUVCoordinates()
 {
+    UVCoordinate ret;
+    double *bl = static_cast<double*>(malloc(sizeof(double)*3));
     double lst = get_local_sidereal_time(Lon);
     double ha = get_local_hour_angle(lst, RA);
-    return interferometry_uv_coords_hadec(ha, Dec, Baseline, Wavelength);
+    bl[0] = baseline.x;
+    bl[1] = baseline.y;
+    bl[2] = baseline.z;
+    double *uvcoord = interferometry_uv_coords_hadec(ha, Dec, bl, wavelength);
+    ret.u = uvcoord[0];
+    ret.v = uvcoord[1];
+    free(bl);
+    free(uvcoord);
+    return ret;
 }
 
 bool Correlator::StartIntegration(double duration)

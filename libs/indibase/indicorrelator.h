@@ -63,7 +63,36 @@ class Correlator : public SensorInterface
 {
     public:
         /**
-         * \struct CorrelatorConnection
+         * \struct Baseline
+         * \brief the baseline (position of the telescopes) of this correlator.
+         */
+        typedef struct {
+            double x;
+            double y;
+            double z;
+        } Baseline;
+
+        /**
+         * \enum UVCoordinate
+         * \brief The coordinates of the current projection into the UV plane.
+         */
+        typedef struct {
+            double u;
+            double v;
+        } UVCoordinate;
+
+        /**
+         * \enum Correlation
+         * \brief Struct containing the correlation, coordinate and baseline informations.
+         */
+        typedef struct {
+            Baseline baseline;
+            UVCoordinate coordinate;
+            double coefficient;
+        } Correlation;
+
+        /**
+         * \enum CorrelatorConnection
          * \brief Holds the connection mode of the Correlator.
          */
         enum
@@ -98,6 +127,12 @@ class Correlator : public SensorInterface
          */
         virtual inline double getCorrelationDegree() { return 0.0; }
 
+        /**
+         * @brief getCorrelation Get current correlation degree plus UV and baseline information.
+         * @return the correlation and UV coordinates.
+         */
+        inline Correlation getCorrelation() { Correlation ret; ret.coordinate = getUVCoordinates(); ret.baseline = baseline; ret.coefficient = getCorrelationDegree(); return ret; }
+
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();
 
@@ -117,51 +152,51 @@ class Correlator : public SensorInterface
          * @brief setBaseline Set the baseline size in meters.
          * @param baseline the baseline size.
          */
-        void setBaseline(double baseline[]);
+        void setBaseline(Baseline bl);
 
         /**
          * @brief setWavelength Set the observed wavelength.
          * @param wavelength the wavelength in meters.
          */
-        void setWavelength(double wavelength);
+        void setWavelength(double wl);
 
         /**
          * @brief setBandwidth Set the bandwidth of the correlator.
          * @param bandwidth the instrumentation bandwidth in Hz.
          */
-        void setBandwidth(double bandwidth);
+        void setBandwidth(double bw);
 
         /**
          * @brief setBaseline Get the baseline size in meters.
          * @return the baseline size.
          */
-        inline double* getBaseline()
+        inline Baseline getBaseline()
         {
-            return Baseline;
+            return baseline;
         }
 
         /**
-         * @brief setBaseline Get the observed wavelength.
+         * @brief setWavelength Get the observed wavelength.
          * @return the wavelength in meters.
          */
         inline double getWavelength()
         {
-            return Wavelength;
+            return wavelength;
         }
 
         /**
          * @brief getUVCoordinates Get current UV projected coordinates.
          * @return the UV coordinates.
          */
-        double* getUVCoordinates();
+        UVCoordinate getUVCoordinates();
 
         /**
-         * @brief setBaseline Get the bandwidth of the correlator.
+         * @brief setBandwidth Get the bandwidth of the correlator.
          * @return the instrumentation bandwidth in Hz.
          */
         inline double setBandwidth()
         {
-            return Bandwidth;
+            return bandwidth;
         }
 
         /**
@@ -218,9 +253,9 @@ class Correlator : public SensorInterface
       private:
         bool callHandshake();
         uint8_t correlatorConnection = CONNECTION_NONE;
-        double Baseline[5];
-        double Wavelength;
-        double Bandwidth;
-        INumber CorrelatorSettingsN[3];
+        Baseline baseline;
+        double wavelength;
+        double bandwidth;
+        INumber CorrelatorSettingsN[5];
 };
 }
