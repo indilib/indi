@@ -401,6 +401,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
@@ -1802,6 +1803,8 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indireceiver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
