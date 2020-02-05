@@ -54,7 +54,7 @@
 const char * IMAGE_SETTINGS_TAB = "Image Settings";
 const char * IMAGE_INFO_TAB     = "Image Info";
 const char * GUIDE_HEAD_TAB     = "Guider Head";
-const char * RAPIDGUIDE_TAB     = "Rapid Guide";
+//const char * RAPIDGUIDE_TAB     = "Rapid Guide";
 
 #ifdef HAVE_WEBSOCKET
 uint16_t INDIWSServer::m_global_port = 11623;
@@ -122,7 +122,10 @@ CCD::CCD()
     Airmass         = std::numeric_limits<double>::quiet_NaN();
     Latitude        = std::numeric_limits<double>::quiet_NaN();
     Longitude       = std::numeric_limits<double>::quiet_NaN();
-    primaryAperture = primaryFocalLength = guiderAperture = guiderFocalLength - 1;
+    primaryAperture = std::numeric_limits<double>::quiet_NaN();
+    primaryFocalLength = std::numeric_limits<double>::quiet_NaN();
+    guiderAperture = std::numeric_limits<double>::quiet_NaN();
+    guiderFocalLength = std::numeric_limits<double>::quiet_NaN();
 }
 
 CCD::~CCD()
@@ -142,6 +145,11 @@ void CCD::SetCCDCapability(uint32_t cap)
     {
         Streamer.reset(new StreamManager(this));
         Streamer->initProperties();
+    }
+
+    if (HasDSP() && DSP.get() == nullptr)
+    {
+        DSP.reset(new DSP::Manager(this));
     }
 }
 
@@ -410,44 +418,44 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Snooped Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
 
     // JJ ed 2019-12-10
-    IUFillText(&ActiveDeviceT[1], "ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
-    IUFillText(&ActiveDeviceT[2], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
-    IUFillText(&ActiveDeviceT[3], "ACTIVE_FILTER", "Filter", "CCD Simulator");
-    IUFillText(&ActiveDeviceT[4], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
+    IUFillText(&ActiveDeviceT[ACTIVE_ROTATOR], "ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
+    IUFillText(&ActiveDeviceT[ACTIVE_FOCUSER], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
+    IUFillText(&ActiveDeviceT[ACTIVE_FILTER], "ACTIVE_FILTER", "Filter", "CCD Simulator");
+    IUFillText(&ActiveDeviceT[ACTIVE_SKYQUALITY], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
     //
-    
+
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW,
+    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW,
                        60, IPS_IDLE);
 
     // Snoop properties of interest
 
     // Snoop mount
-    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "TELESCOPE_INFO");
-    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "GEOGRAPHIC_COORD");
 
     // Snoop Rotator
-    IDSnoopDevice(ActiveDeviceT[SNOOP_ROTATOR].text, "ABS_ROTATOR_ANGLE");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
 
     // JJ ed 2019-12-10
     // Snoop Rotator
-    IDSnoopDevice(ActiveDeviceT[SNOOP_FOCUSER].text, "ABS_FOCUS_POSITION");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
     //
-    
+
     // Snoop Filter Wheel
-    IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_SLOT");
-    IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_NAME");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_SLOT");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_NAME");
 
     // Snoop Sky Quality Meter
-    IDSnoopDevice(ActiveDeviceT[SNOOP_SQM].text, "SKY_QUALITY");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_SKYQUALITY].text, "SKY_QUALITY");
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
@@ -468,6 +476,9 @@ void CCD::ISGetProperties(const char * dev)
 
     if (HasStreaming())
         Streamer->ISGetProperties(dev);
+
+    if (HasDSP())
+        DSP->ISGetProperties(dev);
 }
 
 bool CCD::updateProperties()
@@ -654,6 +665,10 @@ bool CCD::updateProperties()
     if (HasStreaming())
         Streamer->updateProperties();
 
+    // DSP
+    if (HasDSP())
+        DSP->updateProperties();
+
     return true;
 }
 
@@ -753,7 +768,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
         }
     }
     //
-    
+
     else if (!strcmp(propName, "GEOGRAPHIC_COORD"))
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
@@ -790,12 +805,12 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
             IDSetText(&ActiveDeviceTP, nullptr);
 
             // Update the property name!
-            strncpy(EqNP.device, ActiveDeviceT[SNOOP_MOUNT].text, MAXINDIDEVICE);
-            if (strlen(ActiveDeviceT[SNOOP_MOUNT].text) > 0)
+            strncpy(EqNP.device, ActiveDeviceT[ACTIVE_TELESCOPE].text, MAXINDIDEVICE);
+            if (strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
             {
-                IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "EQUATORIAL_EOD_COORD");
-                IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "TELESCOPE_INFO");
-                IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "GEOGRAPHIC_COORD");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "GEOGRAPHIC_COORD");
             }
             else
             {
@@ -808,30 +823,30 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                 Airmass = std::numeric_limits<double>::quiet_NaN();
             }
 
-            if (strlen(ActiveDeviceT[SNOOP_ROTATOR].text) > 0)
-                IDSnoopDevice(ActiveDeviceT[SNOOP_ROTATOR].text, "ABS_ROTATOR_ANGLE");
+            if (strlen(ActiveDeviceT[ACTIVE_ROTATOR].text) > 0)
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
             else
                 MPSAS = std::numeric_limits<double>::quiet_NaN();
 
-	    // JJ ed 2019-12-10
-            if (strlen(ActiveDeviceT[SNOOP_FOCUSER].text) > 0)
-                IDSnoopDevice(ActiveDeviceT[SNOOP_FOCUSER].text, "FOCUS_ABSOLUTE_POSITION");
+            // JJ ed 2019-12-10
+            if (strlen(ActiveDeviceT[ACTIVE_FOCUSER].text) > 0)
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_ABSOLUTE_POSITION");
             else
                 FocusPos = std::numeric_limits<long>::quiet_NaN();
-	    //
+            //
 
-	    
-            if (strlen(ActiveDeviceT[SNOOP_FILTER_WHEEL].text) > 0)
+
+            if (strlen(ActiveDeviceT[ACTIVE_FILTER].text) > 0)
             {
-                IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_SLOT");
-                IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_NAME");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_SLOT");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FILTER].text, "FILTER_NAME");
             }
             else
             {
                 CurrentFilterSlot = -1;
             }
 
-            IDSnoopDevice(ActiveDeviceT[SNOOP_SQM].text, "SKY_QUALITY");
+            IDSnoopDevice(ActiveDeviceT[ACTIVE_SKYQUALITY].text, "SKY_QUALITY");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -868,6 +883,10 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
     // Streamer
     if (HasStreaming())
         Streamer->ISNewText(dev, name, texts, names, n);
+
+    // DSP
+    if (HasDSP())
+        DSP->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
@@ -1199,6 +1218,10 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
     // Streamer
     if (HasStreaming())
         Streamer->ISNewNumber(dev, name, values, names, n);
+
+    // DSP
+    if (HasDSP())
+        DSP->ISNewNumber(dev, name, values, names, n);
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -1562,7 +1585,21 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
     if (HasStreaming())
         Streamer->ISNewSwitch(dev, name, states, names, n);
 
+    // DSP
+    if (HasDSP())
+        DSP->ISNewSwitch(dev, name, states, names, n);
+
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool CCD::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+           char *formats[], char *names[], int n)
+{
+    // DSP
+    if (HasDSP())
+        DSP->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+
+    return DefaultDevice::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
 int CCD::SetTemperature(double temperature)
@@ -1616,6 +1653,11 @@ bool CCD::UpdateCCDBin(int hor, int ver)
     // Reset size
     if (HasStreaming())
         Streamer->setSize(PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver);
+
+    // DSP
+    if (HasDSP())
+        DSP->setSizes(2, new int[2]{ PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver });
+
     return true;
 }
 
@@ -1643,25 +1685,41 @@ bool CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
 void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 {
     int status = 0;
-    char dev_name[32];
-    char exp_start[32];
-    int effectiveFocalLength = -1;
+    char dev_name[MAXINDINAME] = {0};
+    char exp_start[MAXINDINAME] = {0};
+    double effectiveFocalLength = std::numeric_limits<double>::quiet_NaN();
+    double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
 
     AutoCNumeric locale;
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
 
     // Telescope
-    if (strlen(ActiveDeviceT[0].text) > 0)
+    if (strlen(ActiveDeviceT[ACTIVE_TELESCOPE].text) > 0)
     {
         fits_update_key_str(fptr, "TELESCOP", ActiveDeviceT[0].text, "Telescope name", &status);
     }
 
     // Which scope is in effect
     // TODO: Support N-telescopes
-    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON && primaryFocalLength != -1)
-        effectiveFocalLength = primaryFocalLength;
-    else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON && guiderFocalLength != -1)
-        effectiveFocalLength = guiderFocalLength;
+    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
+    {
+        if (primaryFocalLength > 0)
+            effectiveFocalLength = primaryFocalLength;
+        if (primaryAperture > 0)
+            effectiveAperture = primaryAperture;
+    }
+    else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON)
+    {
+        if (guiderFocalLength > 0)
+            effectiveFocalLength = guiderFocalLength;
+        if (guiderAperture > 0)
+            effectiveAperture = guiderAperture;
+    }
+
+    if (std::isnan(effectiveFocalLength))
+        LOG_WARN("Telescope focal length is missing.");
+    if (std::isnan(effectiveAperture))
+        LOG_WARN("Telescope aperture is missing.");
 
     // Observer
     fits_update_key_str(fptr, "OBSERVER", FITSHeaderT[FITS_OBSERVER].text, "Observer name", &status);
@@ -1676,8 +1734,8 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     uint32_t subBinX = targetChip->getBinX();
     uint32_t subBinY = targetChip->getBinY();
 
-    strncpy(dev_name, getDeviceName(), 32);
-    strncpy(exp_start, targetChip->getExposureStartTime(), 32);
+    strncpy(dev_name, getDeviceName(), MAXINDINAME);
+    strncpy(exp_start, targetChip->getExposureStartTime(), MAXINDINAME);
 
     fits_update_key_dbl(fptr, "EXPTIME", targetChip->getExposureDuration(), 6, "Total Exposure Time (s)", &status);
 
@@ -1737,8 +1795,11 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         fits_update_key_str(fptr, "BAYERPAT", BayerT[2].text, "Bayer color pattern", &status);
     }
 
-    if (effectiveFocalLength != -1)
+    if (!std::isnan(effectiveFocalLength))
         fits_update_key_dbl(fptr, "FOCALLEN", effectiveFocalLength, 2, "Focal Length (mm)", &status);
+
+    if (!std::isnan(effectiveAperture))
+        fits_update_key_dbl(fptr, "APTDIA", effectiveAperture, 2, "Telescope diameter (mm)", &status);
 
     if (!std::isnan(MPSAS))
     {
@@ -1751,7 +1812,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
     // SCALE assuming square-pixels
-    if (effectiveFocalLength != -1)
+    if (!std::isnan(effectiveFocalLength))
     {
         double pixScale = subPixSize1 / effectiveFocalLength * 206.3 * subBinX;
         fits_update_key_dbl(fptr, "SCALE", pixScale, 6, "arcsecs per pixel", &status);
@@ -1798,7 +1859,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         fits_update_key_lng(fptr, "EQUINOX", 2000, "Equinox", &status);
 
         // Add WCS Info
-        if (WorldCoordS[0].s == ISS_ON && m_ValidCCDRotation && primaryFocalLength != -1)
+        if (WorldCoordS[0].s == ISS_ON && m_ValidCCDRotation && !std::isnan(effectiveFocalLength))
         {
             double J2000RAHours = J2000RA * 15;
             fits_update_key_dbl(fptr, "CRVAL1", J2000RAHours, 10, "CRVAL1", &status);
@@ -1818,20 +1879,17 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
             fits_update_key_dbl(fptr, "CRPIX1", crpix1, 10, "CRPIX1", &status);
             fits_update_key_dbl(fptr, "CRPIX2", crpix2, 10, "CRPIX2", &status);
 
-            if (effectiveFocalLength != -1)
-            {
-                double secpix1 = subPixSize1 / effectiveFocalLength * 206.3 * subBinX;
-                double secpix2 = subPixSize2 / effectiveFocalLength * 206.3 * subBinY;
+            double secpix1 = subPixSize1 / effectiveFocalLength * 206.3 * subBinX;
+            double secpix2 = subPixSize2 / effectiveFocalLength * 206.3 * subBinY;
 
-                fits_update_key_dbl(fptr, "SECPIX1", secpix1, 10, "SECPIX1", &status);
-                fits_update_key_dbl(fptr, "SECPIX2", secpix2, 10, "SECPIX2", &status);
+            fits_update_key_dbl(fptr, "SECPIX1", secpix1, 10, "SECPIX1", &status);
+            fits_update_key_dbl(fptr, "SECPIX2", secpix2, 10, "SECPIX2", &status);
 
-                double degpix1 = secpix1 / 3600.0;
-                double degpix2 = secpix2 / 3600.0;
+            double degpix1 = secpix1 / 3600.0;
+            double degpix2 = secpix2 / 3600.0;
 
-                fits_update_key_dbl(fptr, "CDELT1", degpix1, 10, "CDELT1", &status);
-                fits_update_key_dbl(fptr, "CDELT2", degpix2, 10, "CDELT2", &status);
-            }
+            fits_update_key_dbl(fptr, "CDELT1", degpix1, 10, "CDELT1", &status);
+            fits_update_key_dbl(fptr, "CDELT2", degpix2, 10, "CDELT2", &status);
 
             // Rotation is CW, we need to convert it to CCW per CROTA1 definition
             double rotation = 360 - CCDRotationN[0].value;
@@ -1878,6 +1936,12 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
 
 bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 {
+    if(HasDSP()) {
+        uint8_t* buf = static_cast<uint8_t*>(malloc(targetChip->getFrameBufferSize()));
+        memcpy(buf, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
+        DSP->processBLOB(buf, 2, new int[2]{ targetChip->getSubW() / targetChip->getBinX(), targetChip->getSubH() / targetChip->getBinY() }, targetChip->getBPP());
+        free(buf);
+    }
 #ifdef WITH_EXPOSURE_LOOPING
     // If looping is on, let's immediately take another capture
     if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
@@ -2572,7 +2636,6 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
         }
     }
 #endif
-
     return true;
 }
 
@@ -2669,7 +2732,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             std::vector<std::string> arguments = {"fpack", filename};
             std::vector<char *> arglist;
             for (const auto &arg : arguments)
-                arglist.push_back((char *)arg.data());
+                arglist.push_back(const_cast<char *>(arg.data()));
             arglist.push_back(nullptr);
 
             int argc = arglist.size() - 1;
@@ -2842,6 +2905,9 @@ bool CCD::saveConfigItems(FILE * fp)
 
     if (HasStreaming())
         Streamer->saveConfigItems(fp);
+
+    if (HasDSP())
+        DSP->saveConfigItems(fp);
 
     return true;
 }

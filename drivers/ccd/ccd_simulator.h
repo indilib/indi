@@ -1,7 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
-
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
@@ -102,6 +101,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float CalcTimeLeft(timeval, float);
         bool SetupParms();
 
+        // Turns on/off Bayer RGB simulation.
+        void setRGB(bool onOff);
+
         float TemperatureRequest { 0 };
 
         float ExposureRequest { 0 };
@@ -133,6 +135,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float OAGoffset { 0 };
         float rotationCW { 0 };
         float TimeFactor { 1 };
+
+        bool simulateRGB { false };
+
         //  our zero point calcs used for drawing stars
         float k { 0 };
         float z { 0 };
@@ -166,6 +171,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         INumberVectorProperty *SimulatorSettingsNV;
         INumber SimulatorSettingsN[14];
+
+        ISwitchVectorProperty SimulateRgbSP;
+        ISwitch SimulateRgbS[2];
 
         ISwitch TimeFactorS[3];
         ISwitchVectorProperty *TimeFactorSV;

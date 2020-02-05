@@ -167,8 +167,8 @@ bool Telescope::initProperties()
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&ParkS[0], "PARK", "Park", ISS_OFF);
-    IUFillSwitch(&ParkS[1], "UNPARK", "UnPark", ISS_OFF);
+    IUFillSwitch(&ParkS[0], "PARK", "Park(ed)", ISS_OFF);
+    IUFillSwitch(&ParkS[1], "UNPARK", "UnPark(ed)", ISS_OFF);
     IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "TELESCOPE_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -677,9 +677,6 @@ void Telescope::NewRaDec(double ra, double dec)
 
         case SCOPE_TRACKING:
             EqNP.s = IPS_OK;
-            break;
-
-        default:
             break;
     }
 
@@ -1644,8 +1641,8 @@ bool Telescope::SetTrackEnabled(bool enabled)
 
 int Telescope::AddTrackMode(const char *name, const char *label, bool isDefault)
 {
-    TrackModeS = (TrackModeS == nullptr) ? (ISwitch *)malloc(sizeof(ISwitch)) :
-                 (ISwitch *)realloc(TrackModeS, (TrackModeSP.nsp + 1) * sizeof(ISwitch));
+    TrackModeS = (TrackModeS == nullptr) ? static_cast<ISwitch *>(malloc(sizeof(ISwitch))) :
+                 static_cast<ISwitch *>(realloc(TrackModeS, (TrackModeSP.nsp + 1) * sizeof(ISwitch)));
 
     IUFillSwitch(&TrackModeS[TrackModeSP.nsp], name, label, isDefault ? ISS_ON : ISS_OFF);
 
@@ -1816,7 +1813,7 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
     if (nSlewRate >= 4)
     {
         free(SlewRateS);
-        SlewRateS = (ISwitch *)malloc(sizeof(ISwitch) * nSlewRate);
+        SlewRateS = static_cast<ISwitch *>(malloc(sizeof(ISwitch) * nSlewRate));
         //int step  = nSlewRate / 4;
         for (int i = 0; i < nSlewRate; i++)
         {
@@ -2650,7 +2647,7 @@ bool Telescope::LoadScopeConfig()
     char ErrMsg[512];
 
     RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
-    fclose(FilePtr);    
+    fclose(FilePtr);
     delLilXML(XmlHandle);
     XmlHandle = nullptr;
     if (!RootXmlNode)
@@ -3046,12 +3043,12 @@ const char * Telescope::getPierSideStr(TelescopePierSide ps)
 {
     switch (ps)
     {
-    case PIER_WEST:
-        return "PIER_WEST";
-    case PIER_EAST:
-        return "PIER_EAST";
-    default:
-        return "PIER_UNKNOWN";
+        case PIER_WEST:
+            return "PIER_WEST";
+        case PIER_EAST:
+            return "PIER_EAST";
+        default:
+            return "PIER_UNKNOWN";
     }
 }
 
@@ -3070,7 +3067,7 @@ void Telescope::setSimulatePierSide(bool simulate)
     }
     else
     {
-        capability &= static_cast<uint>(~TELESCOPE_HAS_PIER_SIDE);
+        capability &= static_cast<uint32_t>(~TELESCOPE_HAS_PIER_SIDE);
         deleteProperty(PierSideSP.name);
     }
 

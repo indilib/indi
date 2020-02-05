@@ -615,6 +615,10 @@ int INDI::BaseClient::delPropertyCmd(XMLEle *root, char *errmsg)
         INDI::Property *rProp = dp->getProperty(valuXMLAtt(ap));
         if (rProp == nullptr)
         {
+            // Silently ignore B_ONLY clients.
+            if (blobModes[0]->blobMode == B_ONLY)
+                return 0;
+
             snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", valuXMLAtt(ap));
             return -1;
         }

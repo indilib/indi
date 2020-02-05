@@ -56,6 +56,7 @@
 #define EARTHRADIUSEQUATORIAL 6378137.0
 #define EARTHRADIUSPOLAR 6356752.0
 #define EARTHRADIUSMEAN 6372797.0
+#define h_20190520 6.62607015E-34
 #define EULER 2.71828182845904523536028747135266249775724709369995
 #define ROOT2 1.41421356237309504880168872420969807856967187537694
 #define AIRY 1.21966
@@ -67,6 +68,7 @@
 #define PARSEC (ASTRONOMICALUNIT*2.06264806247096E+5)
 #define LIGHTSPEED 299792458.0
 #define LY (LIGHTSPEED * SOLAR_DAY * 365)
+#define LUMEN(wavelength) ((1.464129E-3*wavelength)/(h_20190520*LIGHTSPEED))
 
 extern const char *Direction[];
 extern const char *SolarSystem[];
@@ -325,11 +327,25 @@ double estimate_field_rotation_rate(double Alt, double Az, double latitude);
 double estimate_field_rotation(double hour_angle, double field_rotation_rate);
 
 /**
- * @brief parsec2m Convert parallax arcseconds into meters
- * @param parsec the parallax arcseconds to convert
- * @return Estimation of the distance in meters
+ * @brief as2rad Convert arcseconds into radians
+ * @param as the arcseconds to convert
+ * @return radians corresponding as angle value
  */
-double parsec2m(double parsec);
+double as2rad(double as);
+
+/**
+ * @brief rad2as Convert radians into arcseconds
+ * @param as the radians to convert
+ * @return arcseconds corresponding as angle value
+ */
+double rad2as(double rad);
+
+/**
+ * @brief estimate_distance Convert parallax arcseconds into meters
+ * @param parsec the parallax arcseconds to convert
+ * @return Estimation of the distance in measure units used in parallax_radius
+ */
+double estimate_distance(double parsecs, double parallax_radius);
 
 /**
  * @brief m2au Convert meters into astronomical units
@@ -340,22 +356,60 @@ double m2au(double m);
 
 /**
  * @brief calc_delta_magnitude Returns the difference of magnitudes given two spectra
- * @param mag0 Reference magnitude
- * @param mag Relative magnitude to normalize
- * @param spectrum The spectrum of the star
- * @param spectrum_size The size of the spectrum
- * @param lambda the index of the position into the spectrum that parameter mag refers to
+ * @param mag_ratio Reference magnitude
+ * @param spectrum The spectrum of the star under exam
+ * @param ref_spectrum The spectrum of the reference star
+ * @param spectrum_size The size of the spectrum array in elements
  * @return the magnitude difference
  */
-double calc_delta_magnitude(double mag0, double mag, double *spectrum, int spectrum_size, int lambda);
+double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spectrum, int spectrum_size);
 
 /**
- * @brief estimate_field_rotation Returns an estimation of the field rotation rate of the object
+ * @brief calc_photon_flux Returns the photon flux of the object with the given magnitude observed at a determined wavelenght using a passband filter over an incident surface
+ * @param rel_magnitude Relative magnitude of the object observed
+ * @param filter_bandwidth Filter bandwidth in meters
+ * @param wavelength Wavelength in meters
+ * @param incident_surface The incident surface in square meters
+ * @return the photon flux in Lumen
+ */
+double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double incident_surface);
+
+/**
+ * @brief calc_rel_magnitude Returns the relative magnitude of the object with the given photon flux measured at a determined wavelenght using a passband filter over an incident surface
+ * @param photon_flux The photon flux in Lumen
+ * @param filter_bandwidth Filter bandwidth in meters
+ * @param wavelength Wavelength in meters
+ * @param incident_surface The incident surface in square meters
+ * @return the relative magnitude of the object observed
+ */
+double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double incident_surface);
+
+/**
+ * @brief estimate_absolute_magnitude Returns an estimation of the absolute magnitude of an object given its distance and the difference of its magnitude with a reference object
  * @param dist The distance in parallax radiuses
  * @param delta_mag The difference of magnitudes
  * @return Aproximation of the absolute magnitude in Δmag
  */
 double estimate_absolute_magnitude(double dist, double delta_mag);
+
+/**
+ * @brief interferometry_uv_coords_vector Returns the coordinates in the UV plane of the projection of a single baseline targeting the object in vector
+ * @param baseline_m the length of the baseline in meters. This is supposed to be placed into the X 3d plane.
+ * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
+ * @param target_vector The target direction vector. This is relative to the baseline in XYZ order where X is parallel to the baseline.
+ * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
+ */
+double* interferometry_uv_coords_vector(double baseline_m, double wavelength, double *target_vector);
+
+/**
+ * @brief interferometry_uv_coords_hadec Returns the coordinates in the UV plane of the projection of a single baseline targeting the object by coordinates
+ * @param ha current hour angle of the target.
+ * @param dec declination of the target.
+ * @param baseline the baseline in meters. Three-dimensional xyz north is z axis y is UTC0 x is UTC0+90°.
+ * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
+ * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
+ */
+double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, double wavelength);
 
 /*@}*/
 
