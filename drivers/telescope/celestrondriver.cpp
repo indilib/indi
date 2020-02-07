@@ -843,23 +843,16 @@ bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset, bool 
     cmd[5] = static_cast<char>(local_date.days);
     cmd[6] = static_cast<char>(local_date.years - 2000);
 
+    int utc_int = static_cast<int>(utc_offset);
+
     // changes for HC versions that support the high precision time zone
     if(precise)
     {
         cmd[0] = 'I';
-        cmd[7] = static_cast<char>(utc_offset * 4);
+        utc_int *= 4;
     }
-    else
-        cmd[7] = static_cast<char>(utc_offset);
 
-    // just in case the time zone isn't signed
-    if (cmd[7] > 50)
-        cmd[7] -= 256;
-
-    //    if (utc_offset < 0)
-    //        cmd[7] = 256 - ((uint16_t)fabs(utc_offset));
-    //    else
-    //        cmd[7] = ((uint16_t)fabs(utc_offset));
+    cmd[7] = static_cast<char>(utc_int & 0xFF);
 
     // Always assume standard time, no dst
     cmd[8] = 0;
