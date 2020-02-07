@@ -1,3 +1,19 @@
+From 1.8.3 to 1.8.4
+
+      + New TeenAstro Mount driver.
+      + New DSP plugin for Signal Processing.
+      + New INDI interface for correlators.
+      + Draft for Pulse Detectors (revealers, dosimeters, cosmic ray).
+      + Created SensorInterface and Spectrograph, Detector subclasses.
+      + Celestron PEC control is added that provides seek index, stop, playback and record commands.
+      + Celestron negative UTC fix.
+      + Fixed iOptron mount firmware parsing.
+      + Fixed version read in MoonLite focuser.
+      + DeepSkyDad3 backlash compensation.
+      + CCD Simulator bayer support.
+      + FCUSB2 support.
+      + Fixed complation on FreeBSD.
+    
 From 1.8.2 to 1.8.3
 
       + New RainbowAstro Mount driver.
