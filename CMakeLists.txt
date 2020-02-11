@@ -1338,9 +1338,9 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
     install(TARGETS indi_v4l2_ccd RUNTIME DESTINATION bin )
 
     # For DBK21 camera
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/80-dbk21-camera.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-
-
+    IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/80-dbk21-camera.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+    ENDIF ()
 ENDIF ()
 
 #################################################################################
