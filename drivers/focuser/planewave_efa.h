@@ -40,6 +40,37 @@ class EFA : public INDI::Focuser
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
+        enum
+        {
+            MTR_GET_POS = 0x01,
+            MTR_GOTO_POS2 = 0x17,
+            MTR_OFFSET_CNT = 0x04,
+            MTR_GOTO_OVER = 0x13,
+            MTR_SLEWLIMITMAX = 0x1B,
+            MTR_SLEWLIMITGETMAX = 0x1D,
+            MTR_PMSLEW_RATE = 0x24,
+            MTR_NMSLEW_RATE = 0x25,
+            TEMP_GET = 0x26,
+            FANS_SET = 0x27,
+            FANS_GET = 0x28,
+            MTR_GET_CALIBRATION_STATE = 0x30,
+            MTR_SET_CALIBRATION_STATE = 0x31,
+            MTR_GET_STOP_DETECT = 0xEE,
+            MTR_STOP_DETECT = 0xEF,
+            MTR_GET_APPROACH_DIRECTION = 0xFC,
+            MTR_APPROACH_DIRECTION = 0xFD,
+            GET_VERSION = 0xFE
+        };
+
+        enum
+        {
+            DEVICE_PC = 0x20,
+            DEVICE_HC = 0x0D,
+            DEVICE_FOC = 0x12,
+            DEVICE_FAN = 0x13,
+            DEVICE_TEMP = 0x12
+        };
+
     protected:
         virtual IPState MoveAbsFocuser(uint32_t targetTicks);
         virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
@@ -73,7 +104,7 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
         /// Misc
         ///////////////////////////////////////////////////////////////////////////////////
-        void getStartupValues();        
+        void getStartupValues();
         uint8_t calculateCheckSum(const char *cmd);
         template <typename T> std::string to_string(const T a_value, const int n = 2);
 
@@ -144,15 +175,9 @@ class EFA : public INDI::Focuser
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
-        /////////////////////////////////////////////////////////////////////////////        
+        /////////////////////////////////////////////////////////////////////////////
         // Start of Message
         static const char DRIVER_SOM { 0x3B };
-
-        static const char DEVICE_PC { 0x20 };
-        static const char DEVICE_HC { 0x0D };
-        static const char DEVICE_FOC { 0x12 };
-        static const char DEVICE_FAN { 0x13 };
-        static const char DEVICE_TEMP { 0x12 };
 
         static constexpr const uint8_t DRIVER_LEN {9};
         // Wait up to a maximum of 3 seconds for serial input

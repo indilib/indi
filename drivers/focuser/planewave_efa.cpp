@@ -131,8 +131,19 @@ bool EFA::Handshake()
 {
     std::string version;
 
-    if (!getParameter("VERSION", version))
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = GET_VERSION;
+    cmd[5] = calculateCheckSum(cmd);
+
+    if (!sendCommand(cmd, res, 5, 8))
         return false;
+
+    version = std::to_string(res[5]) + "." + std::to_string(res[6]);
 
     LOGF_INFO("Detected version %s", version.c_str());
 
@@ -303,6 +314,14 @@ bool EFA::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Serial read error: %s.", errstr);
+        return false;
+    }
+
+    uint8_t chk = calculateCheckSum(res);
+
+    if (chk != res[res_len])
+    {
+        LOG_ERROR("Invalid checksum!");
         return false;
     }
 
