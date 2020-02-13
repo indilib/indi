@@ -175,10 +175,10 @@ bool CelestronGPS::initProperties()
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     //GUIDE Define "Use Pulse Cmd" property (Switch).
-//    IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_OFF);
-//    IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_ON);
-//    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
-//                       ISR_1OFMANY, 0, IPS_IDLE);
+    //    IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_OFF);
+    //    IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_ON);
+    //    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
+    //                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // experimental last align control
     IUFillSwitchVector(&LastAlignSP, LastAlignS, 1, getDeviceName(), "Align", "Align", MAIN_CONTROL_TAB,
@@ -373,7 +373,7 @@ bool CelestronGPS::updateProperties()
             TrackModeS[TRACK_SIDEREAL].s = ISS_ON;
             LOG_WARN("Mount firmware does not support track mode.");
         }
-        
+
         SetTelescopeCapability(cap, 9);
 
         INDI::Telescope::updateProperties();
@@ -803,7 +803,7 @@ bool CelestronGPS::ReadScopeStatus()
             }
             break;
 
-    default:
+        default:
             break;
     }
 
@@ -835,7 +835,7 @@ bool CelestronGPS::ReadScopeStatus()
                 // count the PEC records
                 if (driver.pecState == PEC_STATE::PEC_RECORDING)
                     numRecordPoints++;
-               else
+                else
                     numRecordPoints = 0;
             }
         }
@@ -853,37 +853,37 @@ bool CelestronGPS::ReadScopeStatus()
             // no need to check both current and last because they must be different
             switch (lastPecState)
             {
-            case PEC_STATE::PEC_SEEKING:
-                // finished seeking
-                PecControlS[PEC_Seek].s = ISS_OFF;
-                PecControlSP.s = IPS_IDLE;
-                IDSetSwitch(&PecControlSP, nullptr);
-                LOG_INFO("PEC index Seek completed.");
-                break;
-            case PEC_STATE::PEC_PLAYBACK:
-                // finished playback
-                PecControlS[PEC_Playback].s = ISS_OFF;
-                PecControlSP.s = IPS_IDLE;
-                IDSetSwitch(&PecControlSP, nullptr);
-                LOG_INFO("PEC playback finished");
-                break;
-            case PEC_STATE::PEC_RECORDING:
-                // finished recording
-                LOGF_DEBUG("PEC record stopped, %d records", numRecordPoints);
+                case PEC_STATE::PEC_SEEKING:
+                    // finished seeking
+                    PecControlS[PEC_Seek].s = ISS_OFF;
+                    PecControlSP.s = IPS_IDLE;
+                    IDSetSwitch(&PecControlSP, nullptr);
+                    LOG_INFO("PEC index Seek completed.");
+                    break;
+                case PEC_STATE::PEC_PLAYBACK:
+                    // finished playback
+                    PecControlS[PEC_Playback].s = ISS_OFF;
+                    PecControlSP.s = IPS_IDLE;
+                    IDSetSwitch(&PecControlSP, nullptr);
+                    LOG_INFO("PEC playback finished");
+                    break;
+                case PEC_STATE::PEC_RECORDING:
+                    // finished recording
+                    LOGF_DEBUG("PEC record stopped, %d records", numRecordPoints);
 
-                if (numRecordPoints >= numPecBins)
-                {
-                    savePecData();
-                }
+                    if (numRecordPoints >= numPecBins)
+                    {
+                        savePecData();
+                    }
 
-                PecControlS[PEC_Record].s = ISS_OFF;
-                PecControlSP.s = IPS_IDLE;
-                LOG_INFO("PEC record finished");
-                IDSetSwitch(&PecControlSP, nullptr);
+                    PecControlS[PEC_Record].s = ISS_OFF;
+                    PecControlSP.s = IPS_IDLE;
+                    LOG_INFO("PEC record finished");
+                    IDSetSwitch(&PecControlSP, nullptr);
 
-                break;
-            default:
-                break;
+                    break;
+                default:
+                    break;
             }
             lastPecState = driver.pecState;
         }
@@ -1094,95 +1094,95 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             switch(idx)
             {
-            case PEC_Stop:
-                LOG_DEBUG(" stop PEC record or playback");
-                bool playback;
-                if ((playback = driver.pecState == PEC_PLAYBACK) || driver.pecState == PEC_RECORDING)
-                {
-                    if (playback ? driver.PecPlayback(false) : driver.PecRecord(false))
+                case PEC_Stop:
+                    LOG_DEBUG(" stop PEC record or playback");
+                    bool playback;
+                    if ((playback = driver.pecState == PEC_PLAYBACK) || driver.pecState == PEC_RECORDING)
                     {
-                        PecControlSP.s = IPS_IDLE;
+                        if (playback ? driver.PecPlayback(false) : driver.PecRecord(false))
+                        {
+                            PecControlSP.s = IPS_IDLE;
+                        }
+                        else
+                        {
+                            PecControlSP.s = IPS_ALERT;
+                        }
                     }
                     else
                     {
+                        LOG_WARN("Incorrect state to stop PEC Playback or Record");
                         PecControlSP.s = IPS_ALERT;
                     }
-                }
-                else
-                {
-                    LOG_WARN("Incorrect state to stop PEC Playback or Record");
-                    PecControlSP.s = IPS_ALERT;
-                }
-                IUResetSwitch(&PecControlSP);
-                break;
-            case PEC_Playback:
-                LOG_DEBUG("start PEC Playback");
-                if (driver.pecState == PEC_STATE::PEC_INDEXED)
-                {
-                    // start playback
-                    if (driver.PecPlayback(true))
-                    {
-                        PecControlSP.s = IPS_BUSY;
-                        LOG_INFO("PEC Playback started");
-                    }
-                    else
-                    {
-                        PecControlSP.s = IPS_ALERT;
-                        return false;
-                    }
-                }
-                else
-                {
-                    LOG_WARN("Incorrect state to start PEC Playback");
-                }
-                break;
-            case PEC_Record:
-                LOG_DEBUG("start PEC record");
-                if (TrackState != TelescopeStatus::SCOPE_TRACKING)
-                {
-                    LOG_WARN("Mount must be Tracking to record PEC");
+                    IUResetSwitch(&PecControlSP);
                     break;
-                }
-                if (driver.pecState == PEC_STATE::PEC_INDEXED)
-                {
-                    if (driver.PecRecord(true))
+                case PEC_Playback:
+                    LOG_DEBUG("start PEC Playback");
+                    if (driver.pecState == PEC_STATE::PEC_INDEXED)
                     {
-                        PecControlSP.s = IPS_BUSY;
-                        LOG_INFO("PEC Record started");
+                        // start playback
+                        if (driver.PecPlayback(true))
+                        {
+                            PecControlSP.s = IPS_BUSY;
+                            LOG_INFO("PEC Playback started");
+                        }
+                        else
+                        {
+                            PecControlSP.s = IPS_ALERT;
+                            return false;
+                        }
                     }
                     else
                     {
-                        PecControlSP.s = IPS_ALERT;
-                        return false;
+                        LOG_WARN("Incorrect state to start PEC Playback");
                     }
-                }
-                else
-                {
-                    LOG_WARN("Incorrect state to start PEC Recording");
-                }
-                break;
-            case PEC_Seek:
-                LOG_DEBUG("Seek PEC Index");
-                if (driver.isPecAtIndex(true))
-                {
-                    LOG_INFO("PEC index already found");
-                    PecControlS[PEC_Seek].s = ISS_OFF;
-                }
-                else if (driver.pecState == PEC_STATE::PEC_AVAILABLE)
-                {
-                    // start seek, moves up to 2 degrees in Ra
-                    if (driver.PecSeekIndex())
+                    break;
+                case PEC_Record:
+                    LOG_DEBUG("start PEC record");
+                    if (TrackState != TelescopeStatus::SCOPE_TRACKING)
                     {
-                        PecControlSP.s = IPS_BUSY;
-                        LOG_INFO("Seek PEC index started");
+                        LOG_WARN("Mount must be Tracking to record PEC");
+                        break;
+                    }
+                    if (driver.pecState == PEC_STATE::PEC_INDEXED)
+                    {
+                        if (driver.PecRecord(true))
+                        {
+                            PecControlSP.s = IPS_BUSY;
+                            LOG_INFO("PEC Record started");
+                        }
+                        else
+                        {
+                            PecControlSP.s = IPS_ALERT;
+                            return false;
+                        }
                     }
                     else
                     {
-                        PecControlSP.s = IPS_ALERT;
-                        return false;
+                        LOG_WARN("Incorrect state to start PEC Recording");
                     }
-                }
-                break;
+                    break;
+                case PEC_Seek:
+                    LOG_DEBUG("Seek PEC Index");
+                    if (driver.isPecAtIndex(true))
+                    {
+                        LOG_INFO("PEC index already found");
+                        PecControlS[PEC_Seek].s = ISS_OFF;
+                    }
+                    else if (driver.pecState == PEC_STATE::PEC_AVAILABLE)
+                    {
+                        // start seek, moves up to 2 degrees in Ra
+                        if (driver.PecSeekIndex())
+                        {
+                            PecControlSP.s = IPS_BUSY;
+                            LOG_INFO("Seek PEC index started");
+                        }
+                        else
+                        {
+                            PecControlSP.s = IPS_ALERT;
+                            return false;
+                        }
+                    }
+                    break;
             }
             IDSetSwitch(&PecControlSP, nullptr);
             return true;
@@ -1449,7 +1449,7 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 
     if (isAligned)
     {
-        LOG_INFO("UpdateLocation not allowed when mount is aligned");
+        LOG_INFO("Updating location is not necessary since mount is already aligned.");
         return false;
     }
 
@@ -1478,7 +1478,7 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
     }
     if (isAligned)
     {
-        LOG_INFO("Update time not allowed when mount is aligned");
+        LOG_INFO("Updating time is not necessary since mount is already aligned.");
         return false;
     }
 
@@ -1638,7 +1638,7 @@ IPState CelestronGPS::GuideNorth(uint32_t ms)
 }
 
 IPState CelestronGPS::GuideSouth(uint32_t ms)
-{    
+{
     return Guide(CELESTRON_DIRECTION::CELESTRON_S, ms);
 }
 
@@ -1666,38 +1666,38 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
     // set up pointers to the various things needed
     switch (dirn)
     {
-    case CELESTRON_N:
-        dc = 'N';
-        moveSP = &MovementNSSP;
-        moveS = MovementNSS[0];
-        guideTID = &GuideNSTID;
-        ticks = &ticksNS;
-        rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value);
-        break;
-    case CELESTRON_S:
-        dc = 'S';
-        moveSP = &MovementNSSP;
-        moveS = MovementNSS[1];
-        guideTID = &GuideNSTID;
-        ticks = &ticksNS;
-        rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value);
-        break;
-    case CELESTRON_E:
-        dc = 'E';
-        moveSP = &MovementWESP;
-        moveS = MovementWES[1];
-        guideTID = &GuideWETID;
-        ticks = &ticksWE;
-        rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value);
-        break;
-     case CELESTRON_W:
-        dc = 'W';
-        moveSP = &MovementWESP;
-        moveS = MovementWES[0];
-        guideTID = &GuideWETID;
-        ticks = &ticksWE;
-        rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value);
-        break;
+        case CELESTRON_N:
+            dc = 'N';
+            moveSP = &MovementNSSP;
+            moveS = MovementNSS[0];
+            guideTID = &GuideNSTID;
+            ticks = &ticksNS;
+            rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value);
+            break;
+        case CELESTRON_S:
+            dc = 'S';
+            moveSP = &MovementNSSP;
+            moveS = MovementNSS[1];
+            guideTID = &GuideNSTID;
+            ticks = &ticksNS;
+            rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value);
+            break;
+        case CELESTRON_E:
+            dc = 'E';
+            moveSP = &MovementWESP;
+            moveS = MovementWES[1];
+            guideTID = &GuideWETID;
+            ticks = &ticksWE;
+            rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value);
+            break;
+        case CELESTRON_W:
+            dc = 'W';
+            moveSP = &MovementWESP;
+            moveS = MovementWES[0];
+            guideTID = &GuideWETID;
+            ticks = &ticksWE;
+            rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value);
+            break;
     }
 
     LOGF_DEBUG("GUIDE CMD: %c %u ms, %s guide", dc, ms, canAuxGuide ? "Aux" : "Time");
@@ -1795,16 +1795,16 @@ void CelestronGPS::guideTimer(CELESTRON_DIRECTION dirn)
 
     switch(dirn)
     {
-    case CELESTRON_N:
-    case CELESTRON_S:
-        ticks = &ticksNS;
-        rate = guideRateDec;
-        break;
-    case CELESTRON_E:
-    case CELESTRON_W:
-        ticks = &ticksWE;
-        rate = guideRateRa;
-        break;
+        case CELESTRON_N:
+        case CELESTRON_S:
+            ticks = &ticksNS;
+            rate = guideRateDec;
+            break;
+        case CELESTRON_E:
+        case CELESTRON_W:
+            ticks = &ticksWE;
+            rate = guideRateRa;
+            break;
     }
     LOGF_DEBUG("guideTimer dir %c, ticks %i, rate %i", "NSWE"[dirn], *ticks, rate);
 
@@ -1835,26 +1835,26 @@ void CelestronGPS::guideTimer(CELESTRON_DIRECTION dirn)
 
     switch(dirn)
     {
-    case CELESTRON_N:
-    case CELESTRON_S:
-        IUResetSwitch(&MovementNSSP);
-        IDSetSwitch(&MovementNSSP, nullptr);
-        GuideNSNP.np[0].value = 0;
-        GuideNSNP.np[1].value = 0;
-        GuideNSNP.s           = IPS_IDLE;
-        GuideNSTID            = 0;
-        IDSetNumber(&GuideNSNP, nullptr);
-        break;
-    case CELESTRON_E:
-    case CELESTRON_W:
-        IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementWESP, nullptr);
-        GuideWENP.np[0].value = 0;
-        GuideWENP.np[1].value = 0;
-        GuideWENP.s           = IPS_IDLE;
-        GuideWETID            = 0;
-        IDSetNumber(&GuideWENP, nullptr);
-        break;
+        case CELESTRON_N:
+        case CELESTRON_S:
+            IUResetSwitch(&MovementNSSP);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            GuideNSNP.np[0].value = 0;
+            GuideNSNP.np[1].value = 0;
+            GuideNSNP.s           = IPS_IDLE;
+            GuideNSTID            = 0;
+            IDSetNumber(&GuideNSNP, nullptr);
+            break;
+        case CELESTRON_E:
+        case CELESTRON_W:
+            IUResetSwitch(&MovementWESP);
+            IDSetSwitch(&MovementWESP, nullptr);
+            GuideWENP.np[0].value = 0;
+            GuideWENP.np[1].value = 0;
+            GuideWENP.s           = IPS_IDLE;
+            GuideWETID            = 0;
+            IDSetNumber(&GuideWENP, nullptr);
+            break;
     }
     LOGF_DEBUG("Guide %c finished", "NSWE"[dirn]);
 }
@@ -1863,18 +1863,18 @@ void CelestronGPS::AddGuideTimer(CELESTRON_DIRECTION dirn, int ms)
 {
     switch(dirn)
     {
-    case CELESTRON_N:
-        GuideNSTID = IEAddTimer(ms, guideTimerHelperN, this);
-        break;
-    case CELESTRON_S:
-        GuideNSTID = IEAddTimer(ms, guideTimerHelperS, this);
-        break;
-    case CELESTRON_E:
-        GuideWETID = IEAddTimer(ms, guideTimerHelperE, this);
-        break;
-    case CELESTRON_W:
-        GuideWETID = IEAddTimer(ms, guideTimerHelperW, this);
-        break;
+        case CELESTRON_N:
+            GuideNSTID = IEAddTimer(ms, guideTimerHelperN, this);
+            break;
+        case CELESTRON_S:
+            GuideNSTID = IEAddTimer(ms, guideTimerHelperS, this);
+            break;
+        case CELESTRON_E:
+            GuideWETID = IEAddTimer(ms, guideTimerHelperE, this);
+            break;
+        case CELESTRON_W:
+            GuideWETID = IEAddTimer(ms, guideTimerHelperW, this);
+            break;
     }
 }
 
