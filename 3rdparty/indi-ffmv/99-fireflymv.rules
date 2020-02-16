@@ -1,3 +1,0 @@
-ACTION=="add", ATTR{idVendor}=="1e10", RUN+="/bin/sh -c '/bin/echo 256 >/sys/module/usbcore/parameters/usbfs_memory_mb'"
-
-SUBSYSTEM=="usb", ATTRS{idVendor}=="1e10", ATTRS{idProduct}=="2001", GROUP="users", MODE="0666"
