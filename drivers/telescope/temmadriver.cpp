@@ -111,16 +111,11 @@ bool TemmaMount::initProperties()
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
-    /*IUFillSwitch(&SlewRateS[0], "SLEW_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitch(&SlewRateS[1], "SLEW_MAX", "Max", ISS_ON);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 2, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);*/
-
     //  Temma runs at 19200 8 e 1
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     serialConnection->setParity(1);
 
-    addSimulationControl();
+    addAuxControls();
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
@@ -163,20 +158,12 @@ bool TemmaMount::ISNewNumber(const char *dev, const char *name, double values[],
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // It is for us
-        //  call upstream for guider properties
-        /*if (!strcmp(name, "GUIDE_RATE"))
-        {
-            IUUpdateNumber(&GuideRateNP, values, names, n);
-            GuideRateNP.s = IPS_OK;
-            IDSetNumber(&GuideRateNP, nullptr);
-            return true;
-        }*/
         if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
         {
             processGuiderProperties(name, values, names, n);
             return true;
         }
+
         // Check alignment properties
         //ProcessAlignmentNumberProperties(this, name, values, names, n);
     }
@@ -223,17 +210,14 @@ bool TemmaMount::updateProperties()
 
     if (isConnected())
     {
-        //LOG_DEBUG("Temma updating park stuff");
         if (InitPark())
         {
-            //LOG_DEBUG("Success loading park data");
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(0);
             SetAxis2ParkDefault(90);
         }
         else
         {
-            //LOG_DEBUG("Setting park data to default");
             // Otherwise, we set all parking data to default in case no parking data is found.
             SetAxis1Park(0);
             SetAxis2Park(90);
@@ -247,8 +231,6 @@ bool TemmaMount::updateProperties()
         // Load location so that it could trigger mount initiailization
         loadConfig(true, "GEOGRAPHIC_COORD");
 
-        // JM 2016-11-10: This is not used anywhere in the code now. Enable it again when you use it
-        //defineNumber(&GuideRateNP);
     }
     else
     {
@@ -365,7 +347,7 @@ bool TemmaMount::SendCommand(const char *cmd, char *response)
     if (response == nullptr)
         return true;
 
-    memset(response, 0, 64);
+    memset(response, 0, TEMMA_BUFFER);
 
     if ( (rc = tty_nread_section(PortFD, response, TEMMA_BUFFER, 0xA, TEMMA_TIMEOUT, &bytesRead)) != TTY_OK)
     {
@@ -431,7 +413,7 @@ bool TemmaMount::GetCoords()
                     SetParked(true);
                     //  turn off the motor
                     LOG_DEBUG("Parked");
-                    SetMotorStatus(false);
+                    setMotorsEnabled(false);
                 }
             }
             else
@@ -596,7 +578,7 @@ bool TemmaMount::Goto(double ra, double dec)
     if (MotorStatus == false)
     {
         LOG_DEBUG("Goto turns on motors");
-        SetMotorStatus(true);
+        setMotorsEnabled(true);
     }
 
     SetLST();
@@ -640,7 +622,8 @@ bool TemmaMount::Park()
 
     lha            = rangeHA(GetAxis1Park());
     lst            = get_local_sidereal_time(Longitude);
-    RightAscension = lst - (lha); //  Get the park position
+    //  Get the park position
+    RightAscension = lst - (lha);
     RightAscension = range24(RightAscension);
     LOGF_DEBUG("head to Park position %4.2f %4.2f  %4.2f %4.2f", GetAxis1Park(), lha,
                RightAscension, GetAxis2Park());
@@ -717,7 +700,7 @@ bool TemmaMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
     LOGF_DEBUG("Temma::MoveNS %d dir %d", command, dir);
     if (!MotorStatus)
-        SetMotorStatus(true);
+        setMotorsEnabled(true);
     if (!MotorStatus)
         return false;
 
@@ -762,7 +745,7 @@ bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     char cmd[TEMMA_BUFFER] = {0};
 
     if (!MotorStatus)
-        SetMotorStatus(true);
+        setMotorsEnabled(true);
     if (!MotorStatus)
         return false;
 
@@ -964,7 +947,7 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
         //TemmaSync(RightAscension, GetAxis2Park());
         Sync(RightAscension, GetAxis2Park());
         LOG_DEBUG("Turn motors off");
-        SetMotorStatus(false);
+        setMotorsEnabled(false);
     }
     else
     {
@@ -1113,17 +1096,19 @@ ln_equ_posn TemmaMount::SkyToTelescope(double ra, double dec)
 bool TemmaMount::GetVersion()
 {
     char res[TEMMA_BUFFER] = {0};
-
-    if (SendCommand("v", res) == false)
-        return false;
+    for (int i = 0; i < 3; i++)
+    {
+        if (SendCommand("v", res) && res[0] == 'v')
+            break;
+        usleep(100000);
+    }
 
     if (res[0] != 'v')
     {
-        //  Sometimes there is garbage in the buffers and we dont get what we expect
-        //  Lets read a big chunk and assume it will time out
-        LOG_ERROR("Read Version failed.");
+        LOG_ERROR("Read version failed.");
         return false;
     }
+
 
     LOGF_INFO("Detected version: %s", res + 1);
 
@@ -1147,7 +1132,7 @@ bool TemmaMount::GetMotorStatus()
     return MotorStatus;
 }
 
-bool TemmaMount::SetMotorStatus(bool enable)
+bool TemmaMount::setMotorsEnabled(bool enable)
 {
     char res[TEMMA_BUFFER] = {0};
     bool rc = false;
@@ -1312,6 +1297,30 @@ int TemmaMount::TemmaRead(char *buf, int size)
 }
 #endif
 
+bool TemmaMount::SetTrackMode(uint8_t mode)
+{
+    if (mode == TRACK_SIDEREAL)
+        return SendCommand("LL");
+    else if (mode == TRACK_SOLAR)
+        return SendCommand("LK");
+
+    return false;
+}
+
+bool TemmaMount::SetTrackEnabled(bool enabled)
+{
+    if (enabled)
+    {
+        setMotorsEnabled(true);
+        return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+    }
+    else
+    {
+        setMotorsEnabled(false);
+        return SendCommand("PS");
+    }
+}
+
 void TemmaMount::mountSim()
 {
     static struct timeval ltv;
@@ -1409,22 +1418,4 @@ void TemmaMount::mountSim()
     }
 
     NewRaDec(currentRA, currentDEC);
-}
-
-bool TemmaMount::SetTrackMode(uint8_t mode)
-{
-    if (mode == TRACK_SIDEREAL)
-        return SendCommand("LL");
-    else if (mode == TRACK_SOLAR)
-        return SendCommand("LK");
-
-    return false;
-}
-
-bool TemmaMount::SetTrackEnabled(bool enabled)
-{
-    if (enabled)
-        return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
-    else
-        return SendCommand("PS");
 }
