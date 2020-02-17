@@ -74,22 +74,22 @@ class TemmaMount : public INDI::Telescope, public INDI::GuiderInterface
     private:
         void mountSim();
 
-        bool GetVersion();
-        bool GetCoords();
+        bool getVersion();
+        bool getCoords();
 
         // Send command to mount, and optionally read a response. CR LF is appended to the command.
         // Pass nullptr to response to skip reading the respone.
         // Response size must be 64 bytes (TEMMA_BUFFER). CR LF is removed from response.
-        bool SendCommand(const char *cmd, char *response = nullptr);
+        bool sendCommand(const char *cmd, char *response = nullptr);
 
-        bool GetMotorStatus();
-        bool SetMotorStatus(bool enable);
+        bool motorsEnabled();
+        bool setMotorsEnabled(bool enable);
 
         // LST & Latitude functions
-        bool SetLST();
-        bool GetLST(double &lst);
-        bool SetLattitude(double lat);
-        bool GetLattitude(double &lat);
+        bool setLST();
+        bool getLST(double &lst);
+        bool setLatitude(double lat);
+        bool getLatitude(double &lat);
 
         //ln_equ_posn TelescopeToSky(double ra, double dec);
         //ln_equ_posn SkyToTelescope(double ra, double dec);

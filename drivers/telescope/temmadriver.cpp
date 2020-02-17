@@ -241,7 +241,7 @@ bool TemmaMount::updateProperties()
     return true;
 }
 
-bool TemmaMount::SendCommand(const char *cmd, char *response)
+bool TemmaMount::sendCommand(const char *cmd, char *response)
 {
     int bytesWritten = 0, bytesRead = 0, rc = 0;
     char errmsg[MAXRBUF];
@@ -365,11 +365,11 @@ bool TemmaMount::SendCommand(const char *cmd, char *response)
     return true;
 }
 
-bool TemmaMount::GetCoords()
+bool TemmaMount::getCoords()
 {
     char response[TEMMA_BUFFER];
 
-    bool rc = SendCommand("E", response);
+    bool rc = sendCommand("E", response);
     if (rc == false)
         return false;
 
@@ -439,7 +439,7 @@ bool TemmaMount::ReadScopeStatus()
         return true;
     }
 
-    bool rc = GetCoords();
+    bool rc = getCoords();
 
     if (rc == false)
         return false;
@@ -507,7 +507,7 @@ bool TemmaMount::ReadScopeStatus()
         cmd[0] = 'M';
         cmd[1] = Slewbits;
 
-        SendCommand(cmd, nullptr);
+        sendCommand(cmd, nullptr);
     }
 
     return true;
@@ -528,9 +528,9 @@ bool TemmaMount::Sync(double ra, double dec)
     and finally we send the co-ordinates we are syncing on
     */
     LOG_DEBUG("Sending LST --> Z --> LST before Sync.");
-    SetLST();
-    SendCommand("Z");
-    SetLST();
+    setLST();
+    sendCommand("Z");
+    setLST();
 
     //  now lets format up our sync command
     if (dec < 0)
@@ -544,7 +544,7 @@ bool TemmaMount::Sync(double ra, double dec)
              ((int)(ra * (double)6000)) % 100, sign, (int)dec, (int)(dec * (double)60) % 60,
              ((int)(dec * (double)600)) % 10);
 
-    if (SendCommand(cmd, res) == false)
+    if (sendCommand(cmd, res) == false)
         return false;
 
     //  if the first character is an R, it's a correct response
@@ -581,7 +581,7 @@ bool TemmaMount::Goto(double ra, double dec)
         setMotorsEnabled(true);
     }
 
-    SetLST();
+    setLST();
 
     //  now lets format up our goto command
     if (dec < 0)
@@ -595,7 +595,7 @@ bool TemmaMount::Goto(double ra, double dec)
              ((int)(ra * (double)6000)) % 100, sign, (int)dec, (int)(dec * (double)60) % 60,
              ((int)(dec * (double)600)) % 10);
 
-    if (SendCommand(cmd, res) == false)
+    if (sendCommand(cmd, res) == false)
         return false;
 
     //  if the first character is an R, it's a correct response
@@ -646,7 +646,7 @@ bool TemmaMount::UnPark()
 {
     SetParked(false);
     //SetTemmaMotorStatus(true);
-    GetMotorStatus();
+    motorsEnabled();
     return true;
 }
 
@@ -685,10 +685,10 @@ bool TemmaMount::Abort()
 {
     char res[TEMMA_BUFFER] = {0};
 
-    if (SendCommand("PS") == false)
+    if (sendCommand("PS") == false)
         return false;
 
-    if (SendCommand("s", res) == false)
+    if (sendCommand("s", res) == false)
         return false;
 
     return true;
@@ -737,7 +737,7 @@ bool TemmaMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     cmd[0] = 'M';
     cmd[1] = Slewbits;
 
-    return SendCommand(cmd);
+    return sendCommand(cmd);
 }
 
 bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
@@ -779,7 +779,7 @@ bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     cmd[0] = 'M';
     cmd[1] = Slewbits;
 
-    return SendCommand(cmd);
+    return sendCommand(cmd);
 }
 
 #if 0
@@ -809,11 +809,11 @@ IPState TemmaMount::GuideNorth(uint32_t ms)
     bits |= 8;  //  going north
     cmd[0] = 'M';
     cmd[1] = bits;
-    SendCommand(cmd);
+    sendCommand(cmd);
     usleep(ms * 1000);
     bits   = 64;
     cmd[1] = bits;
-    SendCommand(cmd);
+    sendCommand(cmd);
 
     return IPS_OK;
 }
@@ -835,11 +835,11 @@ IPState TemmaMount::GuideSouth(uint32_t ms)
     bits |= 16; //  going south
     cmd[0] = 'M';
     cmd[1] = bits;
-    SendCommand(cmd);
+    sendCommand(cmd);
     usleep(ms * 1000);
     bits   = 64;
     cmd[1] = bits;
-    SendCommand(cmd);
+    sendCommand(cmd);
 
     return IPS_OK;
 }
@@ -859,11 +859,11 @@ IPState TemmaMount::GuideEast(uint32_t ms)
     bits |= 2;  //  going east
     cmd[0] = 'M';
     cmd[1] = bits;
-    SendCommand(cmd);
+    sendCommand(cmd);
     usleep(ms * 1000);
     bits   = 64;
     cmd[1] = bits;
-    SendCommand(cmd);
+    sendCommand(cmd);
     return IPS_OK;
 }
 
@@ -882,11 +882,11 @@ IPState TemmaMount::GuideWest(uint32_t ms)
     bits |= 4;  //  going west
     cmd[0] = 'M';
     cmd[1] = bits;
-    SendCommand(cmd);
+    sendCommand(cmd);
     usleep(ms * 1000);
     bits   = 64;
     cmd[1] = bits;
-    SendCommand(cmd);
+    sendCommand(cmd);
 
     return IPS_OK;
 }
@@ -914,8 +914,8 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
     //  Prior to these being set, reads will return garbage
     if (TemmaInitialized == false)
     {
-        SetLattitude(latitude);
-        SetLST();
+        setLatitude(latitude);
+        setLST();
 
         TemmaInitialized = true;
 
@@ -1093,12 +1093,12 @@ ln_equ_posn TemmaMount::SkyToTelescope(double ra, double dec)
 }
 #endif
 
-bool TemmaMount::GetVersion()
+bool TemmaMount::getVersion()
 {
     char res[TEMMA_BUFFER] = {0};
     for (int i = 0; i < 3; i++)
     {
-        if (SendCommand("v", res) && res[0] == 'v')
+        if (sendCommand("v", res) && res[0] == 'v')
             break;
         usleep(100000);
     }
@@ -1115,11 +1115,11 @@ bool TemmaMount::GetVersion()
     return true;
 }
 
-bool TemmaMount::GetMotorStatus()
+bool TemmaMount::motorsEnabled()
 {
     char res[TEMMA_BUFFER] = {0};
 
-    if (SendCommand("STN-COD", res) == false)
+    if (sendCommand("STN-COD", res) == false)
         return false;
 
     if (strstr(res, "off") != nullptr)
@@ -1138,24 +1138,24 @@ bool TemmaMount::setMotorsEnabled(bool enable)
     bool rc = false;
 
     if (enable)
-        rc = SendCommand("STN-ON", res);
+        rc = sendCommand("STN-ON", res);
     else
-        rc = SendCommand("STN-OFF", res);
+        rc = sendCommand("STN-OFF", res);
 
     if (rc == false)
         return false;
 
-    GetMotorStatus();
+    motorsEnabled();
 
     return true;
 }
 
 /*  bit of a hack, returns true if lst is a sane value, false if it is not sane */
-bool TemmaMount::GetLST(double &lst)
+bool TemmaMount::getLST(double &lst)
 {
     char res[TEMMA_BUFFER] = {0};
 
-    if (SendCommand("g", res) == false)
+    if (sendCommand("g", res) == false)
         return false;
 
     int hh = 0, mm = 0, ss = 0;
@@ -1168,20 +1168,20 @@ bool TemmaMount::GetLST(double &lst)
     return false;
 }
 
-bool TemmaMount::SetLST()
+bool TemmaMount::setLST()
 {
     char cmd[TEMMA_BUFFER] = {0};
     double lst = get_local_sidereal_time(Longitude);
     snprintf(cmd, TEMMA_BUFFER, "T%.2d%.2d%.2d", (int)lst, ((int)(lst * 60)) % 60, ((int)(lst * 3600)) % 60);
 
-    return SendCommand(cmd);
+    return sendCommand(cmd);
 }
 
-bool TemmaMount::GetLattitude(double &lat)
+bool TemmaMount::getLatitude(double &lat)
 {
     char res[TEMMA_BUFFER] = {0};
 
-    if (SendCommand("i", res) == false)
+    if (sendCommand("i", res) == false)
         return false;
 
     int dd = 0, mm = 0, parial_m = 0;
@@ -1194,7 +1194,7 @@ bool TemmaMount::GetLattitude(double &lat)
     return false;
 }
 
-bool TemmaMount::SetLattitude(double lat)
+bool TemmaMount::setLatitude(double lat)
 {
     char cmd[TEMMA_BUFFER];
     char sign;
@@ -1218,7 +1218,7 @@ bool TemmaMount::SetLattitude(double lat)
 
     snprintf(cmd, TEMMA_BUFFER, "I%c%.2d%.2d%.1d", sign, d, m, s);
 
-    return SendCommand(cmd);
+    return sendCommand(cmd);
 }
 
 bool TemmaMount::Handshake()
@@ -1232,11 +1232,11 @@ bool TemmaMount::Handshake()
 
     */
     usleep(100);
-    if (GetVersion() == false)
+    if (getVersion() == false)
         return false;
 
     double lst = 0;
-    if (GetLST(lst))
+    if (getLST(lst))
     {
         LOG_DEBUG("Temma is initialized.");
         TemmaInitialized = true;
@@ -1247,7 +1247,7 @@ bool TemmaMount::Handshake()
         TemmaInitialized = false;
     }
 
-    GetMotorStatus();
+    motorsEnabled();
 
     return true;
 }
@@ -1300,9 +1300,9 @@ int TemmaMount::TemmaRead(char *buf, int size)
 bool TemmaMount::SetTrackMode(uint8_t mode)
 {
     if (mode == TRACK_SIDEREAL)
-        return SendCommand("LL");
+        return sendCommand("LL");
     else if (mode == TRACK_SOLAR)
-        return SendCommand("LK");
+        return sendCommand("LK");
 
     return false;
 }
@@ -1317,7 +1317,7 @@ bool TemmaMount::SetTrackEnabled(bool enabled)
     else
     {
         setMotorsEnabled(false);
-        return SendCommand("PS");
+        return sendCommand("PS");
     }
 }
 
