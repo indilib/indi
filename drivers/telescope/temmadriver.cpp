@@ -80,8 +80,15 @@ void ISSnoopDevice(XMLEle *root)
 
 TemmaMount::TemmaMount()
 {
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE, TEMMA_SLEW_RATES);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK |
+                           TELESCOPE_CAN_ABORT |
+                           TELESCOPE_CAN_SYNC |
+                           TELESCOPE_CAN_GOTO |
+                           TELESCOPE_CAN_CONTROL_TRACK |
+                           TELESCOPE_HAS_TRACK_MODE |
+                           TELESCOPE_HAS_TIME |
+                           TELESCOPE_HAS_LOCATION |
+                           TELESCOPE_HAS_PIER_SIDE, TEMMA_SLEW_RATES);
 
     // JM 2017-12-10: Use HA/DE instead of RA/DE for parking type?
     SetParkDataType(PARK_HA_DEC);
@@ -116,6 +123,9 @@ bool TemmaMount::initProperties()
     addSimulationControl();
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
+
+    AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
+    AddTrackMode("TRACK_SOLAR", "Solar");
 
     // TODO enable later
 #if 0
@@ -774,16 +784,12 @@ bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             LOG_DEBUG("Start Slew West");
             Slewbits |= 4;
         }
-        //sprintf(buf,"M \r\n");
-        //buf[1]=Slewbits;
-        //tty_write(PortFD,buf,4,&bytesWritten);
         SlewActive = true;
     }
     else
     {
         //  No direction bytes to turn it off
         LOG_DEBUG("Abort slew e/w");
-        //Abort();
         SlewActive = false;
     }
 
@@ -1403,4 +1409,22 @@ void TemmaMount::mountSim()
     }
 
     NewRaDec(currentRA, currentDEC);
+}
+
+bool TemmaMount::SetTrackMode(uint8_t mode)
+{
+    if (mode == TRACK_SIDEREAL)
+        return SendCommand("LL");
+    else if (mode == TRACK_SOLAR)
+        return SendCommand("LK");
+
+    return false;
+}
+
+bool TemmaMount::SetTrackEnabled(bool enabled)
+{
+    if (enabled)
+        return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+    else
+        return SendCommand("PS");
 }
