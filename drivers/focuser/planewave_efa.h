@@ -86,7 +86,7 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
         /// Query functions
         ///////////////////////////////////////////////////////////////////////////////////
-
+        bool isGOTOComplete();
 
         ///////////////////////////////////////////////////////////////////////////////////
         /// Set functions
@@ -114,10 +114,9 @@ class EFA : public INDI::Focuser
 
         // Focuser Informatin
         ITextVectorProperty InfoTP;
-        IText InfoT[2];
+        IText InfoT[1];
         enum
         {
-            INFO_NAME,
             INFO_VERSION
         };
 

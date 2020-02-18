@@ -92,9 +92,8 @@ bool EFA::initProperties()
     INDI::Focuser::initProperties();
 
     // Focuser Information
-    IUFillText(&InfoT[INFO_NAME], "INFO_NAME", "Name", "NA");
     IUFillText(&InfoT[INFO_VERSION], "INFO_VERSION", "Version", "NA");
-    IUFillTextVector(&InfoTP, InfoT, 2, getDeviceName(), "INFO", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillTextVector(&InfoTP, InfoT, 1, getDeviceName(), "INFO", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     addAuxControls();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -195,12 +194,12 @@ bool EFA::SyncFocuser(uint32_t ticks)
     cmd[1] = 0x06;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
-    cmd[4] = 0x04;
+    cmd[4] = MTR_OFFSET_CNT;
     cmd[5] = (ticks >> 16) & 0xFF;
     cmd[6] = (ticks >>  8) & 0xFF;
     cmd[7] = (ticks >>  0) & 0xFF;
     cmd[8] = calculateCheckSum(cmd);
-    return sendCommandOK(cmd, 9);
+    return sendCommandOk(cmd, 9);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -208,8 +207,19 @@ bool EFA::SyncFocuser(uint32_t ticks)
 /////////////////////////////////////////////////////////////////////////////
 IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
 {
-    INDI_UNUSED(targetTicks);
-    return IPS_ALERT;
+    char cmd[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x06;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_GOTO_POS2;
+    cmd[5] = (targetTicks >> 16) & 0xFF;
+    cmd[6] = (targetTicks >>  8) & 0xFF;
+    cmd[7] = (targetTicks >>  0) & 0xFF;
+    cmd[8] = calculateCheckSum(cmd);
+
+    return sendCommandOk(cmd, 9) ? IPS_BUSY : IPS_ALERT;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -248,13 +258,22 @@ bool EFA::AbortFocuser()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Reverse Focuser Motion
+/// Set Maximum Position
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SetFocuserMaxPosition(uint32_t ticks)
 {
-    INDI_UNUSED(ticks);
-    //char cmd[DRIVER_LEN] = {0};
-    return false;
+    char cmd[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x06;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_SLEWLIMITMAX;
+    cmd[5] = (ticks >> 16) & 0xFF;
+    cmd[6] = (ticks >>  8) & 0xFF;
+    cmd[7] = (ticks >>  0) & 0xFF;
+    cmd[8] = calculateCheckSum(cmd);
+    return sendCommandOk(cmd, 9);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -344,6 +363,25 @@ bool EFA::sendCommandOk(const char * cmd, int cmd_len)
         return false;
 
     return res[0] == 1;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Is Slew over?
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::isGOTOComplete()
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x06;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_GOTO_OVER;
+    cmd[5] = calculateCheckSum(cmd);
+    if (!sendCommand(cmd, res, 6, 1))
+        return false;
+
+    return (res[0] != 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////
