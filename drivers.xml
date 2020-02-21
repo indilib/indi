@@ -133,6 +133,10 @@
             <driver name="iEQ">indi_ieqlegacy_telescope</driver>
             <version>1.7</version>
         </device>
+        <device label="iOptron SkyGuider Pro" manufacturer="iOptron">
+            <driver name="Telescope Simulator">indi_simulator_telescope</driver>
+            <version>1.0</version>
+        </device>
         <device label="iOptron iEQ30 Pro" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
             <version>1.9</version>
