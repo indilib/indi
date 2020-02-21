@@ -97,7 +97,7 @@ TemmaMount::TemmaMount()
     Longitude = std::numeric_limits<double>::quiet_NaN();
     Latitude  = std::numeric_limits<double>::quiet_NaN();
 
-    setVersion(0, 3);
+    setVersion(0, 4);
 }
 
 const char *TemmaMount::getDefaultName()
@@ -223,6 +223,8 @@ bool TemmaMount::updateProperties()
             SetAxis1ParkDefault(0);
             SetAxis2ParkDefault(Latitude >= 0 ? 90 : -90);
         }
+
+        TrackState = motorsEnabled() ? SCOPE_TRACKING : SCOPE_IDLE;
 
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
