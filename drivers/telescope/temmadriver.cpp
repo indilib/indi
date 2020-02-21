@@ -130,12 +130,11 @@ bool TemmaMount::initProperties()
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
 #endif
 
-    double longitude = 0, latitude = 90;
     // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sidereal_time(longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-    currentDEC = latitude > 0 ? 90 : -90;
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &Longitude);
+    currentRA  = get_local_sidereal_time(Longitude);
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &Latitude);
+    currentDEC = Latitude > 0 ? 90 : -90;
 
     return true;
 }
@@ -214,7 +213,7 @@ bool TemmaMount::updateProperties()
         {
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(90);
+            SetAxis2ParkDefault(Latitude >= 0 ? 90 : -90);
         }
         else
         {
@@ -222,7 +221,7 @@ bool TemmaMount::updateProperties()
             SetAxis1Park(0);
             SetAxis2Park(90);
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(90);
+            SetAxis2ParkDefault(Latitude >= 0 ? 90 : -90);
         }
 
         defineNumber(&GuideNSNP);
@@ -673,10 +672,8 @@ bool TemmaMount::SetCurrentPark()
 
 bool TemmaMount::SetDefaultPark()
 {
-    // By default az to north, and alt to pole
-    //IDMessage(getDeviceName(), "Setting Park Data to Default.");
     SetAxis1Park(0);
-    SetAxis2Park(90);
+    SetAxis2Park(Latitude >= 0 ? 90 : -90);
 
     return true;
 }
