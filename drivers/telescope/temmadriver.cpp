@@ -1137,10 +1137,12 @@ bool TemmaMount::setMotorsEnabled(bool enable)
     char res[TEMMA_BUFFER] = {0};
     bool rc = false;
 
+    // STN-ON  --> Standby mode ON  --> Motor OFF
+    // STN-OFF --> Standby mode OFF --> Motor ON
     if (enable)
-        rc = sendCommand("STN-ON", res);
-    else
         rc = sendCommand("STN-OFF", res);
+    else
+        rc = sendCommand("STN-ON", res);
 
     if (rc == false)
         return false;
