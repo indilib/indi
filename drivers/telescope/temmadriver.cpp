@@ -406,20 +406,17 @@ bool TemmaMount::getCoords()
             if (strstr(response, "F") != nullptr)
             {
                 if (TrackState == SCOPE_SLEWING)
-                {
                     TrackState = SCOPE_TRACKING;
-                }
-                if (TrackState == SCOPE_PARKING)
+                else if (TrackState == SCOPE_PARKING)
                 {
                     SetParked(true);
                     //  turn off the motor
-                    LOG_DEBUG("Parked");
                     setMotorsEnabled(false);
                 }
             }
             else
             {
-                LOG_DEBUG("Goto in Progress");
+                LOG_DEBUG("Goto in Progress...");
             }
             break;
 
@@ -617,29 +614,22 @@ bool TemmaMount::Goto(double ra, double dec)
 
 bool TemmaMount::Park()
 {
-    double lst;
-    double lha;
-    double RightAscension;
-
-    lha            = rangeHA(GetAxis1Park());
-    lst            = get_local_sidereal_time(Longitude);
+#if 0
+    double lha = rangeHA(GetAxis1Park());
+    double lst = get_local_sidereal_time(Longitude);
     //  Get the park position
-    RightAscension = lst - (lha);
+    double RightAscension = lst - (lha);
     RightAscension = range24(RightAscension);
-    LOGF_DEBUG("head to Park position %4.2f %4.2f  %4.2f %4.2f", GetAxis1Park(), lha,
-               RightAscension, GetAxis2Park());
+#endif
 
-    Goto(RightAscension, GetAxis2Park());
+    // JM 2020-02-21: Appears going to RA = 0 puts the counter-weight in the correct
+    // position.
+    LOGF_DEBUG("head to Park position 0 %4.2f", GetAxis2Park());
+    Goto(0, GetAxis2Park());
 
-    //  if motors are in standby, turn em on
-    //if(!MotorState) SetTemmaMotorStatus(true);
-    //Goto(RightAscension,90);
-    //ParkInProgress = true;
+    TrackState = SCOPE_PARKING;
+    LOG_INFO("Parking is in progress...");
 
-    //LOG_DEBUG"Temma::Park()\n");
-    //SetTemmaMotorStatus(false);
-    //GetTemmaMotorStatus();
-    //SetParked(true);
     return true;
 }
 
