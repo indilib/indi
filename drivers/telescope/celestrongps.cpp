@@ -1537,10 +1537,15 @@ bool CelestronGPS::UnPark()
 
     // Set tracking mode to whatever it was stored before
     SetParked(false);
-    loadConfig(true, "TELESCOPE_TRACK_MODE");
+
+    //loadConfig(true, "TELESCOPE_TRACK_MODE");
+    // Read Saved Track State from config file
+    for (int i = 0; i < TrackStateSP.nsp; i++)
+        IUGetConfigSwitch(getDeviceName(), TrackStateSP.name, TrackStateS[i].name, &(TrackStateS[i].s));
+
     // set the mount tracking state
-    LOGF_DEBUG("track state %s", IUFindOnSwitch(&TrackModeSP)->label);
-    SetTrackEnabled(IUFindOnSwitchIndex(&TrackModeSP) == TRACK_ON);
+    LOGF_DEBUG("track state %s", IUFindOnSwitch(&TrackStateSP)->label);
+    SetTrackEnabled(IUFindOnSwitchIndex(&TrackStateSP) == TRACK_ON);
 
     // reinit PEC
     if (driver.pecState >= PEC_STATE::PEC_AVAILABLE)
