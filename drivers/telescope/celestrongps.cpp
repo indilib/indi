@@ -428,7 +428,12 @@ bool CelestronGPS::updateProperties()
             }
             defineNumber(&GuideNSNP);
             defineNumber(&GuideWENP);
+
+            LOG_INFO("Mount supports guiding.");
         }
+        else
+            LOG_INFO("Mount does not support guiding. Tracking mode must be set in handset to either EQ-North or EQ-South.");
+
 
         defineSwitch(&CelestronTrackModeSP);
 
