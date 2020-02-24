@@ -95,6 +95,23 @@ bool EFA::initProperties()
     IUFillText(&InfoT[INFO_VERSION], "INFO_VERSION", "Version", "NA");
     IUFillTextVector(&InfoTP, InfoT, 1, getDeviceName(), "INFO", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    // Focuser temperature
+    IUFillNumber(&TemperatureN[TEMPERATURE_PRIMARY], "TEMPERATURE_PRIMARY", "Primary (c)", "%.2f", -50, 70., 0., 0.);
+    IUFillNumber(&TemperatureN[TEMPERATURE_AMBIENT], "TEMPERATURE_AMBIENT", "Ambient (c)", "%.2f", -50, 70., 0., 0.);
+    IUFillNumber(&TemperatureN[TEMPERATURE_SECONDARY], "TEMPERATURE_SECONDARY", "Secondary (c)", "%.2f", -50, 70., 0., 0.);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 3, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+    // Fan Control
+    IUFillSwitch(&FanStateS[FAN_ON], "FAN_ON", "On", ISS_OFF);
+    IUFillSwitch(&FanStateS[FAN_OFF], "FAN_OFF", "Off", ISS_ON);
+    IUFillSwitchVector(&FanStateSP, FanStateS, 2, getDeviceName(), "FOCUS_FAN", "Fans", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Calibration Control
+    IUFillSwitch(&CalibrationStateS[CALIBRATION_ON], "CALIBRATION_ON", "Calibrated", ISS_OFF);
+    IUFillSwitch(&CalibrationStateS[CALIBRATION_OFF], "CALIBRATION_OFF", "Not Calibrated", ISS_ON);
+    IUFillSwitchVector(&CalibrationStateSP, CalibrationStateS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     addAuxControls();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     setDefaultPollingPeriod(500);
@@ -114,10 +131,16 @@ bool EFA::updateProperties()
         getStartupValues();
 
         defineText(&InfoTP);
+        defineSwitch(&CalibrationStateSP);
+        defineSwitch(&FanStateSP);
+        defineNumber(&TemperatureNP);
     }
     else
     {
         deleteProperty(InfoTP.name);
+        deleteProperty(CalibrationStateSP.name);
+        deleteProperty(FanStateSP.name);
+        deleteProperty(TemperatureNP.name);
     }
 
     return true;
@@ -164,6 +187,40 @@ bool EFA::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Calibration State
+        if (!strcmp(CalibrationStateSP.name, name))
+        {
+            bool enabled = strcmp(CalibrationStateS[CALIBRATION_ON].name, IUFindOnSwitchName(states, names, n)) == 0;
+            if (setCalibrationEnabled(enabled))
+            {
+                IUUpdateSwitch(&CalibrationStateSP, states, names, n);
+                CalibrationStateSP.s = IPS_OK;
+            }
+            else
+            {
+                CalibrationStateSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&CalibrationStateSP, nullptr);
+            return true;
+        }
+        // Fan State
+        else if (!strcmp(FanStateSP.name, name))
+        {
+            bool enabled = strcmp(FanStateS[FAN_ON].name, IUFindOnSwitchName(states, names, n)) == 0;
+            if (setFanEnabled(enabled))
+            {
+                IUUpdateSwitch(&FanStateSP, states, names, n);
+                FanStateSP.s = IPS_OK;
+            }
+            else
+            {
+                FanStateSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&FanStateSP, nullptr);
+            return true;
+        }
 
     }
 
@@ -203,7 +260,7 @@ bool EFA::SyncFocuser(uint32_t ticks)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-///
+/// Move Absolute Focuser
 /////////////////////////////////////////////////////////////////////////////
 IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
 {
@@ -223,7 +280,7 @@ IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-///
+/// Move Focuser relatively
 /////////////////////////////////////////////////////////////////////////////
 IPState EFA::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
@@ -245,6 +302,35 @@ void EFA::TimerHit()
 {
     if (!isConnected())
         return;
+
+
+    readPosition();
+
+    if (readTemperature())
+    {
+        if (std::fabs(TemperatureN[0].value - m_LastTemperature) > TEMPERATURE_THRESHOLD)
+        {
+            m_LastTemperature = TemperatureN[0].value;
+            IDSetNumber(&TemperatureNP, nullptr);
+        }
+    }
+
+    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    {
+        if (isGOTOComplete())
+        {
+            FocusAbsPosNP.s = IPS_OK;
+            FocusRelPosNP.s = IPS_OK;
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            IDSetNumber(&FocusRelPosNP, nullptr);
+            LOG_INFO("Focuser reached requested position.");
+        }
+    }
+    else if (std::fabs(FocusAbsPosN[0].value - m_LastPosition) > 0)
+    {
+        m_LastPosition = FocusAbsPosN[0].value;
+        IDSetNumber(&TemperatureNP, nullptr);
+    }
 
     SetTimer(POLLMS);
 }
@@ -299,9 +385,10 @@ bool EFA::saveConfigItems(FILE *fp)
 /////////////////////////////////////////////////////////////////////////////
 void EFA::getStartupValues()
 {
-
-
-
+    readPosition();
+    readCalibrationState();
+    readFanState();
+    readTemperature();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -366,6 +453,27 @@ bool EFA::sendCommandOk(const char * cmd, int cmd_len)
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// Read Position
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::readPosition()
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FAN;
+    cmd[4] = MTR_GET_POS;
+    cmd[5] = calculateCheckSum(cmd);
+
+    if (!sendCommand(cmd, res, 6, 9))
+        return false;
+
+    FocusAbsPosN[0].value = res[5] << 16 | res[6] << 8 | res[7];
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
 /// Is Slew over?
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::isGOTOComplete()
@@ -382,6 +490,141 @@ bool EFA::isGOTOComplete()
         return false;
 
     return (res[0] != 0);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Set Fan Enabled/Disabled
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::setFanEnabled(bool enabled)
+{
+    char cmd[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x04;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FAN;
+    cmd[4] = FANS_SET;
+    cmd[5] = enabled ? 1 : 0;
+    cmd[6] = calculateCheckSum(cmd);
+
+    return sendCommandOk(cmd, 7);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Get Fan State
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::readFanState()
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FAN;
+    cmd[4] = FANS_GET;
+    cmd[5] = calculateCheckSum(cmd);
+
+    if (!sendCommand(cmd, res, 6, 7))
+        return false;
+
+    bool enabled = (res[6] == 1);
+
+    FanStateS[FAN_ON].s  = enabled ? ISS_ON : ISS_OFF;
+    FanStateS[FAN_OFF].s = enabled ? ISS_OFF : ISS_ON;
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Set Calibration Enabled/Disabled
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::setCalibrationEnabled(bool enabled)
+{
+    char cmd[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x05;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_SET_CALIBRATION_STATE;
+    cmd[5] = 0x40;
+    cmd[6] = enabled ? 1 : 0;
+    cmd[7] = calculateCheckSum(cmd);
+
+    return sendCommandOk(cmd, 8);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Get Calibration State
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::readCalibrationState()
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_GET_CALIBRATION_STATE;
+    cmd[5] = calculateCheckSum(cmd);
+
+    if (!sendCommand(cmd, res, 6, 7))
+        return false;
+
+    bool enabled = (res[6] == 1);
+
+    CalibrationStateS[CALIBRATION_ON].s  = enabled ? ISS_ON : ISS_OFF;
+    CalibrationStateS[CALIBRATION_OFF].s = enabled ? ISS_OFF : ISS_ON;
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Get Temperature
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::readTemperature()
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    for (int i=0; i < 3; i++)
+    {
+        cmd[0] = DRIVER_SOM;
+        cmd[1] = 0x04;
+        cmd[2] = DEVICE_PC;
+        cmd[3] = DEVICE_TEMP;
+        cmd[4] = TEMP_GET;
+        cmd[5] = i;
+        cmd[6] = calculateCheckSum(cmd);
+
+        if (!sendCommand(cmd, res, 7, 8))
+            return false;
+
+        TemperatureN[i].value = calculateTemperature(res[6], res[7]);
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Calculate temperature from bytes
+/////////////////////////////////////////////////////////////////////////////
+double EFA::calculateTemperature(uint8_t byte2, uint8_t byte3)
+{
+    bool is_neg = false;
+    int raw_temperature = byte2 * 256 + byte3;
+    if (raw_temperature > 32768)
+    {
+        is_neg = true;
+        raw_temperature = 65536 - raw_temperature;
+    }
+
+    int integer_part = raw_temperature / 16;
+    int fraction_part = (raw_temperature - integer_part) * 625 / 1000;
+    double celcius = integer_part + fraction_part / 10.0;
+    if (is_neg)
+        celcius = -celcius;
+
+    return celcius;
 }
 
 /////////////////////////////////////////////////////////////////////////////
