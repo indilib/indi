@@ -954,7 +954,7 @@ bool Rainbow::Sync(double ra, double dec)
 {
     char cmd[DRIVER_LEN] = {0};
 
-    snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', dec);
+    snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::abs(dec));
 
     if (sendCommand(cmd))
     {
