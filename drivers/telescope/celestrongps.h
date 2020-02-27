@@ -120,9 +120,9 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         //ISwitch TrackS[4];
         //ISwitchVectorProperty TrackSP;
 
-        // Celestron Track Mode (AltAz, EQ N, EQ S)
+        // Celestron Track Mode (AltAz, EQ N, EQ S, Ra and Dec)
         ISwitchVectorProperty CelestronTrackModeSP;
-        ISwitch CelestronTrackModeS[3];
+        ISwitch CelestronTrackModeS[4];
 
         //GUIDE Pulse guide switch
 //        ISwitchVectorProperty UsePulseCmdSP;

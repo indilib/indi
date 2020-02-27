@@ -155,14 +155,15 @@ bool CelestronGPS::initProperties()
     IUFillTextVector(&FirmwareTP, FirmwareT, 7, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
-    // Celestron Track Modes are Off, AltAz, EQ N and EQ S
+    // Celestron Track Modes are Off, AltAz, EQ N, EQ S and Ra and Dec (StarSense only)
     // off is not provided as these are used to set the track mode when tracking is enabled
     // may be required for set up, value will be read from the mount if possible
-    IUFillSwitchVector(&CelestronTrackModeSP, CelestronTrackModeS, 3, getDeviceName(), "CELESTRON_TRACK_MODE", "Track Mode",
+    IUFillSwitchVector(&CelestronTrackModeSP, CelestronTrackModeS, 4, getDeviceName(), "CELESTRON_TRACK_MODE", "Track Mode",
                        MOUNTINFO_TAB, IP_RO, ISR_1OFMANY, 0, IPS_IDLE);
     IUFillSwitch(&CelestronTrackModeS[0], "MODE_ALTAZ", "Alt Az", ISS_OFF);
     IUFillSwitch(&CelestronTrackModeS[1], "MODE_EQ_N", "EQ N", ISS_ON);
     IUFillSwitch(&CelestronTrackModeS[2], "MODE_EQ_S", "EQ S", ISS_OFF);
+    IUFillSwitch(&CelestronTrackModeS[3], "MODE_RA_DEC", "Ra and Dec", ISS_OFF);
 
     // INDI track modes are sidereal, solar and lunar
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
@@ -421,7 +422,8 @@ bool CelestronGPS::updateProperties()
         // support guiding.  That's GEMs and fork mounts in equatorial modes.
         // well, anything in an equatorial mode
         if (fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_EQN ||
-                fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_EQS)
+                fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_EQS ||
+                fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_RADEC)
         {
             defineNumber(&GuideRateNP);
             uint8_t rate;
@@ -1919,6 +1921,7 @@ bool CelestronGPS::SetTrackMode(uint8_t mode)
     {
         case CTM_OFF:
         case CTM_ALTAZ:
+        case CTM_RADEC:
             return false;
         case CTM_EQN:
         case CTM_EQS:
