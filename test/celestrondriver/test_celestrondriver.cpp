@@ -170,7 +170,7 @@ TEST(CelestronDriverTest, setDateTime) {
     driver.set_response("#");
     uint8_t cmd1[] = {'H', 8, 35, 43, 12, 18, 17, 254, 0};
     EXPECT_CALL(driver, serial_write(MemEq(cmd1, 9), 9, _));
-    EXPECT_TRUE(driver.set_datetime(&utc, -2.0));
+    EXPECT_TRUE(driver.set_datetime(&utc, -2.0, false, false));
 }
 
 TEST(CelestronDriverTest, setLocation) {
