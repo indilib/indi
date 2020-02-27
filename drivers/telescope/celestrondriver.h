@@ -289,7 +289,7 @@ class CelestronDriver
         // Time & Location
         bool set_location(double longitude, double latitude);
         bool get_location(double* longitude, double *latitude);
-        bool set_datetime(struct ln_date *utc, double utc_offset, bool dst, bool precise);
+        bool set_datetime(struct ln_date *utc, double utc_offset, bool dst = false, bool precise = false);
 
         // Track Mode, this is not the Indi track mode
         bool get_track_mode(CELESTRON_TRACK_MODE *mode);
