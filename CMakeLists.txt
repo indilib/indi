@@ -890,6 +890,15 @@ add_executable(indi_nstep_focus ${nstep_SRC})
 target_link_libraries(indi_nstep_focus indidriver)
 install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin)
 
+################ PlaneWave EFA ################
+
+SET(efa_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/planewave_efa.cpp)
+
+add_executable(indi_efa_focus ${nstep_SRC})
+target_link_libraries(indi_efa_focus indidriver)
+install(TARGETS indi_efa_focus RUNTIME DESTINATION bin)
+
 ################ Celestron SCT Focuser ################
 
 SET(celestronsct_SRC
@@ -1338,9 +1347,9 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
     install(TARGETS indi_v4l2_ccd RUNTIME DESTINATION bin )
 
     # For DBK21 camera
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/80-dbk21-camera.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-
-
+    IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/80-dbk21-camera.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+    ENDIF ()
 ENDIF ()
 
 #################################################################################

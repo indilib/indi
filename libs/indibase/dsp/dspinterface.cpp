@@ -105,9 +105,12 @@ const char *Interface::getDeviceName()
 void Interface::ISGetProperties(const char *dev)
 {
     INDI_UNUSED(dev);
-    if (m_Device->isConnected()) {
+    if (m_Device->isConnected())
+    {
         m_Device->defineSwitch(&ActivateSP);
-    } else {
+    }
+    else
+    {
         m_Device->deleteProperty(ActivateSP.name);
         PluginActive = false;
         Deactivated();
@@ -116,9 +119,12 @@ void Interface::ISGetProperties(const char *dev)
 
 bool Interface::updateProperties()
 {
-    if (m_Device->isConnected()) {
+    if (m_Device->isConnected())
+    {
         m_Device->defineSwitch(&ActivateSP);
-    } else {
+    }
+    else
+    {
         m_Device->deleteProperty(ActivateSP.name);
         PluginActive = false;
         Deactivated();
@@ -128,12 +134,17 @@ bool Interface::updateProperties()
 
 bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName())&&!strcmp(name, ActivateSP.name)) {
-        for (int i = 0; i < n; i++) {
-            if (!strcmp(names[i], "DSP_ACTIVATE_ON") && states[i] == ISS_ON) {
+    if(!strcmp(dev, getDeviceName()) && !strcmp(name, ActivateSP.name))
+    {
+        for (int i = 0; i < n; i++)
+        {
+            if (!strcmp(names[i], "DSP_ACTIVATE_ON") && states[i] == ISS_ON)
+            {
                 PluginActive = true;
                 Activated();
-            } else {
+            }
+            else
+            {
                 PluginActive = false;
                 Deactivated();
             }
@@ -187,7 +198,8 @@ uint8_t* Interface::Callback(uint8_t* buf, uint32_t ndims, int* dims, int bits_p
 
 bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample)
 {
-    if(PluginActive) {
+    if(PluginActive)
+    {
         bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
         bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
 
@@ -207,7 +219,7 @@ bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_pe
                 {
                     long len = 1;
                     uint32_t i;
-                    for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
+                    for (len = 1, i = 0; i < BufferSizesQty; len *= BufferSizes[i++]);
                     len *= getBPS() / 8;
                     uploadFile(buffer, len, sendCapture, saveCapture, FitsB.format);
                 }
@@ -329,7 +341,7 @@ void Interface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 }
 
 void Interface::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation,
-                                 int *status)
+                                  int *status)
 {
     // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
@@ -344,7 +356,7 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
     int byte_type = 0;
     int status    = 0;
     long naxis    = BufferSizesQty;
-    long *naxes = static_cast<long*>(malloc(sizeof(long)*BufferSizesQty));
+    long *naxes = static_cast<long*>(malloc(sizeof(long) * BufferSizesQty));
     for(uint32_t d = 0; d < BufferSizesQty; d++)
         naxes[d] = BufferSizes[d];
     int nelements = 0;
@@ -394,7 +406,7 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
     }
     long len = 1;
     uint32_t i;
-    for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
+    for (len = 1, i = 0; i < BufferSizesQty; len *= BufferSizes[i++]);
     nelements = static_cast<int>(len);
 
     //  Now we have to send fits format data to the client
@@ -515,29 +527,14 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
 
     if (sendCapture)
     {
-#ifdef HAVE_WEBSOCKET
-        if (HasWebSocket() && WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
-        {
-            auto start = std::chrono::high_resolution_clock::now();
 
-            // Send format/size/..etc first later
-            wsServer.send_text(std::string(FitsB.format));
-            wsServer.send_binary(FitsB.blob, FitsB.bloblen);
-
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> diff = end - start;
-            LOGF_DEBUG("Websocket transfer took %g seconds", diff.count());
-        }
-        else
-#endif
-        {
-            auto start = std::chrono::high_resolution_clock::now();
-            IDSetBLOB(&FitsBP, nullptr);
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> diff = end - start;
-            LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
-        }
+        auto start = std::chrono::high_resolution_clock::now();
+        IDSetBLOB(&FitsBP, nullptr);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> diff = end - start;
+        LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
     }
+
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Upload complete");
 
@@ -635,7 +632,7 @@ void Interface::setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sam
 
 uint8_t* Interface::getStream()
 {
-    void *buffer = malloc(stream->len*getBPS()/8);
+    void *buffer = malloc(stream->len * getBPS() / 8);
     switch (getBPS())
     {
         case 8:
