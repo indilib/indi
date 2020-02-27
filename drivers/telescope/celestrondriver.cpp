@@ -827,7 +827,7 @@ bool CelestronDriver::get_location(double *longitude, double *latitude)
 }
 
 // there are newer time commands that have the utc offset in 15 minute increments
-bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset, bool precise)
+bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset, bool dst, bool precise)
 {
     struct ln_zonedate local_date;
 
@@ -854,15 +854,15 @@ bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset, bool 
 
     cmd[7] = static_cast<char>(utc_int & 0xFF);
 
-    // Always assume standard time, no dst
-    cmd[8] = 0;
+    // set dst
+    cmd[8] = dst ? 1 : 0;
 
     set_sim_response("#");
     return send_command(cmd, 9, response, 1, false, true);
 }
 
 bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
-                                        int *dd, int *hh, int *minute, int *ss, bool precise)
+                                        int *dd, int *hh, int *minute, int *ss, bool* dst, bool precise)
 {
     // Simulated response (HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT)
     // 2015-04-01T17:30:10  tz +3 dst 0
@@ -870,6 +870,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     // use current system time for simulator
     time_t now = time(nullptr);
     tm *ltm = localtime(&now);
+
     set_sim_response("%c%c%c%c%c%c%c%c#",
                      ltm->tm_hour, ltm->tm_min, ltm->tm_sec,
                      ltm->tm_mon, ltm->tm_mday, ltm->tm_year - 100,
@@ -881,43 +882,47 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     if (!send_command(precise ? "i" : "h", 1, response, 9, true, false))
         return false;
 
-    // HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT
-    *hh        = response[0];
-    *minute    = response[1];
-    *ss        = response[2];
-    *mm        = response[3];
-    *dd        = response[4];
-    *yy        = response[5] + 2000;    // should be good as a signed char until 2127
-    *utc_hours = response[6];
-
-    // manage dst setting
-    int dst = response[7];
-
-    // the expected value is in the range -12 to +12 or -48 to +48 for precise.
-    // if it's greater than this it looks as if the char value was transferred unsigned so -ve
-    // values will be in the range 0xff for -1 to 0xf4 for -12 or 0xD0 for -48.
-    // subtracting 256 should give the correct signed value.
-    if (*utc_hours > 50)
-        *utc_hours -= 256;
-
-    if (precise)
-        *utc_hours /= 4.0;
-
-    // handle dst setting
-    if (dst > 0)
-        *utc_hours += 1.0;       // add an hour to the UTC offset
-
+    // Celestron returns local time, offset and DST
     ln_zonedate localTime;
     ln_date utcTime;
 
-    localTime.years   = *yy;
-    localTime.months  = *mm;
-    localTime.days    = *dd;
-    localTime.hours   = *hh;
-    localTime.minutes = *minute;
-    localTime.seconds = *ss;
-    localTime.gmtoff  = static_cast<long>(*utc_hours * 3600.0);
+    // HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT
+    localTime.hours   = response[0];
+    localTime.minutes = response[1];
+    localTime.seconds = response[2];
+    localTime.months  = response[3];
+    localTime.days    = response[4];
+    localTime.years   = 2000 + response[5];
+    int gmtoff = response[6];
+    *dst = response[7] != 0;
 
+    // make gmtoff signed
+    if (gmtoff > 50)
+        gmtoff -= 256;
+
+    // precise returns offset in 15 minute steps
+    if (precise)
+    {
+        *utc_hours = gmtoff / 4;
+        localTime.gmtoff = gmtoff * 900;
+    }
+    else
+    {
+        *utc_hours = gmtoff;
+        localTime.gmtoff = gmtoff * 3600;
+    }
+
+    if (*dst)
+    {
+        *utc_hours += 1;
+        localTime.gmtoff += 3600;
+    }
+
+//    LOGF_DEBUG("LT %d-%d-%dT%d:%d:%f, gmtoff %d, dst %s",
+//               localTime.years, localTime.months, localTime.days, localTime.hours, localTime.minutes, localTime.seconds,
+//               localTime.gmtoff, *dst ? "On" : "Off");
+
+    // convert to UTC
     ln_zonedate_to_date(&localTime, &utcTime);
 
     *yy     = utcTime.years;
@@ -926,6 +931,8 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     *hh     = utcTime.hours;
     *minute = utcTime.minutes;
     *ss     = static_cast<int>(utcTime.seconds);
+
+//    LOGF_DEBUG("UTC %d-%d-%dT%d:%d:%d utc_hours %f", *yy, *mm, *dd, *hh, *minute, *ss, *utc_hours);
 
     return true;
 }

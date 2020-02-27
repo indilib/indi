@@ -168,9 +168,13 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
 
         //CelestronGuide guider;
 
-        // experimental last align property
+        // Last align property
         ISwitch LastAlignS[1];
         ISwitchVectorProperty LastAlignSP;
+
+        // DST setting
+        ISwitch DSTSettingS[1];
+        ISwitchVectorProperty DSTSettingSP;
 
         bool slewToIndex;
 
