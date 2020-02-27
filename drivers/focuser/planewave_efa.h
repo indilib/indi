@@ -86,12 +86,17 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
         /// Query functions
         ///////////////////////////////////////////////////////////////////////////////////
-
+        bool isGOTOComplete();
+        bool readPosition();
+        bool readTemperature();
+        bool readFanState();
+        bool readCalibrationState();
 
         ///////////////////////////////////////////////////////////////////////////////////
         /// Set functions
         ///////////////////////////////////////////////////////////////////////////////////
-
+        bool setFanEnabled(bool enabled);
+        bool setCalibrationEnabled(bool enabled);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
@@ -105,6 +110,7 @@ class EFA : public INDI::Focuser
         /// Misc
         ///////////////////////////////////////////////////////////////////////////////////
         void getStartupValues();
+        double calculateTemperature(uint8_t byte2, uint8_t byte3);
         uint8_t calculateCheckSum(const char *cmd);
         template <typename T> std::string to_string(const T a_value, const int n = 2);
 
@@ -114,70 +120,54 @@ class EFA : public INDI::Focuser
 
         // Focuser Informatin
         ITextVectorProperty InfoTP;
-        IText InfoT[2];
+        IText InfoT[1];
         enum
         {
-            INFO_NAME,
             INFO_VERSION
         };
 
-        // Focuser Operations
-        ISwitchVectorProperty OperationSP;
-        ISwitch OperationS[3];
+
+        // FAN State
+        ISwitchVectorProperty FanStateSP;
+        ISwitch FanStateS[2];
         enum
         {
-            OPERATION_REBOOT,
-            OPERATION_RESET,
-            OPERATION_ZEROING,
+            FAN_ON,
+            FAN_OFF
         };
 
-        // Temperature Compensation
-        ISwitchVectorProperty TemperatureCompensationSP;
-        ISwitch TemperatureCompensationS[2];
+        // Calibration State
+        ISwitchVectorProperty CalibrationStateSP;
+        ISwitch CalibrationStateS[2];
         enum
         {
-            TC_ENABLED,
-            TC_DISABLED
+            CALIBRATION_ON,
+            CALIBRATION_OFF
         };
 
-        // TC State
-        ISwitchVectorProperty TemperatureStateSP;
-        ISwitch TemperatureStateS[2];
+        // Read Only Temperature Reporting
+        INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[3];
         enum
         {
-            TC_ACTIVE,
-            TC_PAUSED
-        };
-
-        // Temperature Compensation Settings
-        INumberVectorProperty TemperatureSettingsNP;
-        INumber TemperatureSettingsN[3];
-        enum
-        {
-            TC_FACTOR,
-            TC_PERIOD,
-            TC_DELTA
-        };
-
-        // Temperature Sensors
-        INumberVectorProperty TemperatureSensorNP;
-        INumber TemperatureSensorN[3];
-        enum
-        {
-            TEMP_0,
-            TEMP_1,
-            TEMP_AVG
+            TEMPERATURE_PRIMARY,
+            TEMPERATURE_AMBIENT,
+            TEMPERATURE_SECONDARY
         };
 
         /////////////////////////////////////////////////////////////////////////////
         /// Private variables
         /////////////////////////////////////////////////////////////////////////////
+        double m_LastTemperature {0};
+        double m_LastPosition {0};
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
         // Start of Message
         static const char DRIVER_SOM { 0x3B };
+        // Temperature Reporting threshold
+        static constexpr double TEMPERATURE_THRESHOLD { 0.05 };
 
         static constexpr const uint8_t DRIVER_LEN {9};
         // Wait up to a maximum of 3 seconds for serial input
