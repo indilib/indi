@@ -162,7 +162,7 @@ bool EFA::Handshake()
     cmd[4] = GET_VERSION;
     cmd[5] = calculateCheckSum(cmd);
 
-    if (!sendCommand(cmd, res, 5, 8))
+    if (!sendCommand(cmd, res, 6, 8))
         return false;
 
     version = std::to_string(res[5]) + "." + std::to_string(res[6]);
@@ -396,14 +396,14 @@ void EFA::getStartupValues()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    int nbytes_written = 0, nbytes_read = 0;
 
     tcflush(PortFD, TCIOFLUSH);
 
     char hex_cmd[DRIVER_LEN * 3] = {0};
     hexDump(hex_cmd, cmd, cmd_len);
     LOGF_DEBUG("CMD <%s>", hex_cmd);
-    rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
+    int rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
 
     if (rc != TTY_OK)
     {
@@ -586,7 +586,7 @@ bool EFA::readTemperature()
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
-    for (int i=0; i < 3; i++)
+    for (uint8_t i = 0; i < 3; i++)
     {
         cmd[0] = DRIVER_SOM;
         cmd[1] = 0x04;
