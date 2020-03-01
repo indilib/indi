@@ -895,7 +895,7 @@ install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin)
 SET(efa_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/planewave_efa.cpp)
 
-add_executable(indi_efa_focus ${nstep_SRC})
+add_executable(indi_efa_focus ${efa_SRC})
 target_link_libraries(indi_efa_focus indidriver)
 install(TARGETS indi_efa_focus RUNTIME DESTINATION bin)
 
