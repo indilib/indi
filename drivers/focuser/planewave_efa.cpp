@@ -406,14 +406,16 @@ void EFA::getStartupValues()
     {
         FocusAbsPosN[0].max = FocusMaxPosN[0].max;
         FocusAbsPosN[0].step = FocusAbsPosN[0].max / 50;
+
         FocusRelPosN[0].value = FocusAbsPosN[0].max / 50;
         FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
         FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
 
+        FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
+
         IUUpdateMinMax(&FocusRelPosNP);
         IUUpdateMinMax(&FocusAbsPosNP);
-
-        IDSetNumber(&FocusMaxPosNP, nullptr);
+        IUUpdateMinMax(&FocusMaxPosNP);
     }
 }
 
@@ -530,7 +532,7 @@ bool EFA::readMaxSlewLimit()
     if (!sendCommand(cmd, res, 6, 9))
         return false;
 
-    FocusMaxPosN[0].value = res[5] << 16 | res[6] << 8 | res[7];
+    FocusMaxPosN[0].max = res[5] << 16 | res[6] << 8 | res[7];
     return true;
 }
 
