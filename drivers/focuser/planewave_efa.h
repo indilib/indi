@@ -91,6 +91,7 @@ class EFA : public INDI::Focuser
         bool readTemperature();
         bool readFanState();
         bool readCalibrationState();
+        bool readMaxSlewLimit();
 
         ///////////////////////////////////////////////////////////////////////////////////
         /// Set functions

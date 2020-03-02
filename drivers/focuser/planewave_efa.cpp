@@ -401,6 +401,20 @@ void EFA::getStartupValues()
     readCalibrationState();
     readFanState();
     readTemperature();
+
+    if (readMaxSlewLimit())
+    {
+        FocusAbsPosN[0].max = FocusMaxPosN[0].max;
+        FocusAbsPosN[0].step = FocusAbsPosN[0].max / 50;
+        FocusRelPosN[0].value = FocusAbsPosN[0].max / 50;
+        FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
+        FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
+
+        IUUpdateMinMax(&FocusRelPosNP);
+        IUUpdateMinMax(&FocusAbsPosNP);
+
+        IDSetNumber(&FocusMaxPosNP, nullptr);
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -496,6 +510,27 @@ bool EFA::readPosition()
         return false;
 
     FocusAbsPosN[0].value = res[5] << 16 | res[6] << 8 | res[7];
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Read Max Slew Limit
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::readMaxSlewLimit()
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_SLEWLIMITGETMAX;
+    cmd[5] = calculateCheckSum(cmd, 6);
+
+    if (!sendCommand(cmd, res, 6, 9))
+        return false;
+
+    FocusMaxPosN[0].value = res[5] << 16 | res[6] << 8 | res[7];
     return true;
 }
 
