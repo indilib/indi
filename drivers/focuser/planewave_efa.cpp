@@ -643,21 +643,14 @@ bool EFA::readTemperature()
 /////////////////////////////////////////////////////////////////////////////
 double EFA::calculateTemperature(uint8_t byte2, uint8_t byte3)
 {
-    bool is_neg = false;
-    int raw_temperature = byte2 * 256 + byte3;
-    if (raw_temperature > 32768)
-    {
-        is_neg = true;
-        raw_temperature = 65536 - raw_temperature;
-    }
+    if (byte2 == 0x7F && byte3 == 0x7F)
+        return -100;
 
-    int integer_part = raw_temperature / 16;
-    int fraction_part = (raw_temperature - integer_part) * 625 / 1000;
-    double celcius = integer_part + fraction_part / 10.0;
-    if (is_neg)
-        celcius = -celcius;
+    int raw_temperature = byte3 << 8 | byte2;
+    if (raw_temperature & 0x8000)
+        raw_temperature = raw_temperature - 0x10000;
 
-    return celcius;
+    return raw_temperature / 16.0;
 }
 
 /////////////////////////////////////////////////////////////////////////////
