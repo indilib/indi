@@ -103,7 +103,7 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////
         bool sendCommandOk(const char * cmd, uint32_t cmd_len);
         bool sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t res_len);
-        void hexDump(char * buf, const char * data, int size);
+        void hexDump(char * buf, const char * data, uint32_t size);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
         ///////////////////////////////////////////////////////////////////////////////////
