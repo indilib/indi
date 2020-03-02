@@ -113,6 +113,16 @@ bool EFA::initProperties()
     IUFillSwitch(&CalibrationStateS[CALIBRATION_OFF], "CALIBRATION_OFF", "Not Calibrated", ISS_ON);
     IUFillSwitchVector(&CalibrationStateSP, CalibrationStateS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // Setup limits
+    FocusMaxPosN[0].max = 3799422;
+    FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
+
+    FocusAbsPosN[0].max = FocusMaxPosN[0].max;
+    FocusAbsPosN[0].step = FocusAbsPosN[0].max / 50;
+
+    FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
+    FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
+
     addAuxControls();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     setDefaultPollingPeriod(500);
@@ -532,8 +542,15 @@ bool EFA::readMaxSlewLimit()
     if (!sendCommand(cmd, res, 6, 9))
         return false;
 
-    FocusMaxPosN[0].max = res[5] << 16 | res[6] << 8 | res[7];
-    return true;
+    uint32_t limit = res[5] << 16 | res[6] << 8 | res[7];
+    if (limit > 0)
+    {
+        FocusMaxPosN[0].max = limit;
+        return true;
+    }
+
+    return false;
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
