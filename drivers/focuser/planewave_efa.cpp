@@ -117,8 +117,8 @@ bool EFA::initProperties()
     FocusMaxPosN[0].max = 3799422;
     FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
 
-    FocusAbsPosN[0].max = FocusMaxPosN[0].max;
-    FocusAbsPosN[0].step = FocusAbsPosN[0].max / 50;
+    FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].max;
+    FocusAbsPosN[0].step = FocusSyncN[0].step = FocusAbsPosN[0].max / 50;
 
     FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
     FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
