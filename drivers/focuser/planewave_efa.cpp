@@ -321,7 +321,6 @@ void EFA::TimerHit()
     if (!isConnected())
         return;
 
-
     readPosition();
 
     if (readTemperature())
@@ -343,11 +342,13 @@ void EFA::TimerHit()
             IDSetNumber(&FocusRelPosNP, nullptr);
             LOG_INFO("Focuser reached requested position.");
         }
+        else
+            IDSetNumber(&FocusAbsPosNP, nullptr);
     }
     else if (std::fabs(FocusAbsPosN[0].value - m_LastPosition) > 0)
     {
         m_LastPosition = FocusAbsPosN[0].value;
-        IDSetNumber(&TemperatureNP, nullptr);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
     SetTimer(POLLMS);
