@@ -246,7 +246,7 @@ bool EFA::ISNewNumber(const char *dev, const char *name, double values[], char *
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SyncFocuser(uint32_t ticks)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -257,7 +257,11 @@ bool EFA::SyncFocuser(uint32_t ticks)
     cmd[6] = (ticks >>  8) & 0xFF;
     cmd[7] = (ticks >>  0) & 0xFF;
     cmd[8] = calculateCheckSum(cmd, 9);
-    return sendCommandOk(cmd, 9);
+
+    if (!sendCommand(cmd, res, 9, 7))
+        return false;
+
+    return (res[5] == 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -265,7 +269,7 @@ bool EFA::SyncFocuser(uint32_t ticks)
 /////////////////////////////////////////////////////////////////////////////
 IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -277,7 +281,10 @@ IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
     cmd[7] = (targetTicks >>  0) & 0xFF;
     cmd[8] = calculateCheckSum(cmd, 9);
 
-    return sendCommandOk(cmd, 9) ? IPS_BUSY : IPS_ALERT;
+    if (!sendCommand(cmd, res, 9, 7))
+        return IPS_ALERT;
+
+    return (res[5] == 1) ? IPS_BUSY : IPS_ALERT;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -349,7 +356,7 @@ bool EFA::AbortFocuser()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SetFocuserMaxPosition(uint32_t ticks)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -360,7 +367,11 @@ bool EFA::SetFocuserMaxPosition(uint32_t ticks)
     cmd[6] = (ticks >>  8) & 0xFF;
     cmd[7] = (ticks >>  0) & 0xFF;
     cmd[8] = calculateCheckSum(cmd, 9);
-    return sendCommandOk(cmd, 9);
+
+    if (!sendCommand(cmd, res, 9, 7))
+        return false;
+
+    return (res[5] == 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -468,18 +479,6 @@ bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t r
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Command
-/////////////////////////////////////////////////////////////////////////////
-bool EFA::sendCommandOk(const char * cmd, uint32_t cmd_len)
-{
-    char res[DRIVER_LEN] = {0};
-    if (!sendCommand(cmd, res, cmd_len, 1))
-        return false;
-
-    return res[0] == 1;
-}
-
-/////////////////////////////////////////////////////////////////////////////
 /// Read Position
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readPosition()
@@ -508,15 +507,16 @@ bool EFA::isGOTOComplete()
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
-    cmd[1] = 0x06;
+    cmd[1] = 0x03;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GOTO_OVER;
     cmd[5] = calculateCheckSum(cmd, 6);
-    if (!sendCommand(cmd, res, 6, 1))
+
+    if (!sendCommand(cmd, res, 6, 7))
         return false;
 
-    return (res[0] != 0);
+    return (res[5] != 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -524,7 +524,7 @@ bool EFA::isGOTOComplete()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::setFanEnabled(bool enabled)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x04;
@@ -534,7 +534,10 @@ bool EFA::setFanEnabled(bool enabled)
     cmd[5] = enabled ? 1 : 0;
     cmd[6] = calculateCheckSum(cmd, 7);
 
-    return sendCommandOk(cmd, 7);
+    if (!sendCommand(cmd, res, 7, 7))
+        return false;
+
+    return (res[5] == 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -554,7 +557,7 @@ bool EFA::readFanState()
     if (!sendCommand(cmd, res, 6, 7))
         return false;
 
-    bool enabled = (res[6] == 1);
+    bool enabled = (res[5] == 0);
 
     FanStateS[FAN_ON].s  = enabled ? ISS_ON : ISS_OFF;
     FanStateS[FAN_OFF].s = enabled ? ISS_OFF : ISS_ON;
@@ -567,7 +570,7 @@ bool EFA::readFanState()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::setCalibrationEnabled(bool enabled)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x05;
@@ -578,7 +581,10 @@ bool EFA::setCalibrationEnabled(bool enabled)
     cmd[6] = enabled ? 1 : 0;
     cmd[7] = calculateCheckSum(cmd, 8);
 
-    return sendCommandOk(cmd, 8);
+    if (!sendCommand(cmd, res, 8, 7))
+        return false;
+
+    return (res[5] == 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -589,7 +595,7 @@ bool EFA::readCalibrationState()
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
-    cmd[1] = 0x03;
+    cmd[1] = 0x04;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GET_CALIBRATION_STATE;
@@ -598,7 +604,7 @@ bool EFA::readCalibrationState()
     if (!sendCommand(cmd, res, 6, 7))
         return false;
 
-    bool enabled = (res[6] == 1);
+    bool enabled = (res[5] == 1);
 
     CalibrationStateS[CALIBRATION_ON].s  = enabled ? ISS_ON : ISS_OFF;
     CalibrationStateS[CALIBRATION_OFF].s = enabled ? ISS_OFF : ISS_ON;
@@ -626,7 +632,7 @@ bool EFA::readTemperature()
         if (!sendCommand(cmd, res, 7, 8))
             return false;
 
-        TemperatureN[i].value = calculateTemperature(res[6], res[7]);
+        TemperatureN[i].value = calculateTemperature(res[5], res[6]);
     }
 
     return true;
