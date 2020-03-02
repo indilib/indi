@@ -657,9 +657,9 @@ double EFA::calculateTemperature(uint8_t byte2, uint8_t byte3)
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-void EFA::hexDump(char * buf, const char * data, int size)
+void EFA::hexDump(char * buf, const char * data, uint32_t size)
 {
-    for (int i = 0; i < size; i++)
+    for (uint32_t i = 0; i < size; i++)
         sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
 
     if (size > 0)
