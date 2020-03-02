@@ -161,7 +161,7 @@ bool EFA::Handshake()
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = GET_VERSION;
-    cmd[5] = calculateCheckSum(cmd);
+    cmd[5] = calculateCheckSum(cmd, 6);
 
     if (!sendCommand(cmd, res, 6, 8))
         return false;
@@ -256,7 +256,7 @@ bool EFA::SyncFocuser(uint32_t ticks)
     cmd[5] = (ticks >> 16) & 0xFF;
     cmd[6] = (ticks >>  8) & 0xFF;
     cmd[7] = (ticks >>  0) & 0xFF;
-    cmd[8] = calculateCheckSum(cmd);
+    cmd[8] = calculateCheckSum(cmd, 9);
     return sendCommandOk(cmd, 9);
 }
 
@@ -275,7 +275,7 @@ IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
     cmd[5] = (targetTicks >> 16) & 0xFF;
     cmd[6] = (targetTicks >>  8) & 0xFF;
     cmd[7] = (targetTicks >>  0) & 0xFF;
-    cmd[8] = calculateCheckSum(cmd);
+    cmd[8] = calculateCheckSum(cmd, 9);
 
     return sendCommandOk(cmd, 9) ? IPS_BUSY : IPS_ALERT;
 }
@@ -359,7 +359,7 @@ bool EFA::SetFocuserMaxPosition(uint32_t ticks)
     cmd[5] = (ticks >> 16) & 0xFF;
     cmd[6] = (ticks >>  8) & 0xFF;
     cmd[7] = (ticks >>  0) & 0xFF;
-    cmd[8] = calculateCheckSum(cmd);
+    cmd[8] = calculateCheckSum(cmd, 9);
     return sendCommandOk(cmd, 9);
 }
 
@@ -450,7 +450,7 @@ bool EFA::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
         return false;
     }
 
-    uint8_t chk = calculateCheckSum(res);
+    uint8_t chk = calculateCheckSum(res, res_len);
 
     if (chk != res[res_len])
     {
@@ -491,7 +491,7 @@ bool EFA::readPosition()
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FAN;
     cmd[4] = MTR_GET_POS;
-    cmd[5] = calculateCheckSum(cmd);
+    cmd[5] = calculateCheckSum(cmd, 6);
 
     if (!sendCommand(cmd, res, 6, 9))
         return false;
@@ -512,7 +512,7 @@ bool EFA::isGOTOComplete()
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GOTO_OVER;
-    cmd[5] = calculateCheckSum(cmd);
+    cmd[5] = calculateCheckSum(cmd, 6);
     if (!sendCommand(cmd, res, 6, 1))
         return false;
 
@@ -532,7 +532,7 @@ bool EFA::setFanEnabled(bool enabled)
     cmd[3] = DEVICE_FAN;
     cmd[4] = FANS_SET;
     cmd[5] = enabled ? 1 : 0;
-    cmd[6] = calculateCheckSum(cmd);
+    cmd[6] = calculateCheckSum(cmd, 7);
 
     return sendCommandOk(cmd, 7);
 }
@@ -549,7 +549,7 @@ bool EFA::readFanState()
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FAN;
     cmd[4] = FANS_GET;
-    cmd[5] = calculateCheckSum(cmd);
+    cmd[5] = calculateCheckSum(cmd, 6);
 
     if (!sendCommand(cmd, res, 6, 7))
         return false;
@@ -576,7 +576,7 @@ bool EFA::setCalibrationEnabled(bool enabled)
     cmd[4] = MTR_SET_CALIBRATION_STATE;
     cmd[5] = 0x40;
     cmd[6] = enabled ? 1 : 0;
-    cmd[7] = calculateCheckSum(cmd);
+    cmd[7] = calculateCheckSum(cmd, 8);
 
     return sendCommandOk(cmd, 8);
 }
@@ -593,7 +593,7 @@ bool EFA::readCalibrationState()
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GET_CALIBRATION_STATE;
-    cmd[5] = calculateCheckSum(cmd);
+    cmd[5] = calculateCheckSum(cmd, 6);
 
     if (!sendCommand(cmd, res, 6, 7))
         return false;
@@ -621,7 +621,7 @@ bool EFA::readTemperature()
         cmd[3] = DEVICE_TEMP;
         cmd[4] = TEMP_GET;
         cmd[5] = i;
-        cmd[6] = calculateCheckSum(cmd);
+        cmd[6] = calculateCheckSum(cmd, 7);
 
         if (!sendCommand(cmd, res, 7, 8))
             return false;
@@ -694,10 +694,10 @@ std::string EFA::to_string(const T a_value, const int n)
 /////////////////////////////////////////////////////////////////////////////
 /// Calculate Checksum
 /////////////////////////////////////////////////////////////////////////////
-uint8_t EFA::calculateCheckSum(const char *cmd)
+uint8_t EFA::calculateCheckSum(const char *cmd, uint32_t len)
 {
     uint32_t sum = 0;
-    for (int i = 1; i < 8; i++)
+    for (uint32_t i = 1; i < len; i++)
         sum += cmd[i];
     return (-sum & 0xFF);
 }

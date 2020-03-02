@@ -111,7 +111,7 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
         void getStartupValues();
         double calculateTemperature(uint8_t byte2, uint8_t byte3);
-        uint8_t calculateCheckSum(const char *cmd);
+        uint8_t calculateCheckSum(const char *cmd, uint32_t len);
         template <typename T> std::string to_string(const T a_value, const int n = 2);
 
         ///////////////////////////////////////////////////////////////////////////////////
