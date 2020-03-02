@@ -489,7 +489,7 @@ bool EFA::readPosition()
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
     cmd[2] = DEVICE_PC;
-    cmd[3] = DEVICE_FAN;
+    cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GET_POS;
     cmd[5] = calculateCheckSum(cmd, 6);
 
@@ -696,8 +696,8 @@ std::string EFA::to_string(const T a_value, const int n)
 /////////////////////////////////////////////////////////////////////////////
 uint8_t EFA::calculateCheckSum(const char *cmd, uint32_t len)
 {
-    uint32_t sum = 0;
-    for (uint32_t i = 1; i < len; i++)
+    int32_t sum = 0;
+    for (uint32_t i = 1; i < len - 1; i++)
         sum += cmd[i];
     return (-sum & 0xFF);
 }
