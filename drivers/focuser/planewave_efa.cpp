@@ -395,7 +395,7 @@ void EFA::getStartupValues()
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
-bool EFA::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
+bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t res_len)
 {
     int nbytes_written = 0, nbytes_read = 0, bits = 0, rc = 0;
     char echo[DRIVER_LEN] = {0};
@@ -452,7 +452,7 @@ bool EFA::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
 
     uint8_t chk = calculateCheckSum(res, res_len);
 
-    if (chk != res[res_len])
+    if (chk != res[res_len - 1])
     {
         LOG_ERROR("Invalid checksum!");
         return false;
@@ -470,7 +470,7 @@ bool EFA::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
-bool EFA::sendCommandOk(const char * cmd, int cmd_len)
+bool EFA::sendCommandOk(const char * cmd, uint32_t cmd_len)
 {
     char res[DRIVER_LEN] = {0};
     if (!sendCommand(cmd, res, cmd_len, 1))
