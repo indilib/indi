@@ -438,47 +438,53 @@ bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t r
     int nbytes_written = 0, nbytes_read = 0, bits = 0, rc = 0;
     char echo[DRIVER_LEN] = {0};
 
-    //tcflush(PortFD, TCIOFLUSH);
-
-    // Wait until CTS is cleared.
-    for (int i = 0; i < 10; i++)
+    for (int j = 0; j < 3; j++)
     {
-        if ( (rc = ioctl(PortFD, TIOCMGET, &bits)) == 0 && (bits & TIOCM_CTS) == 0)
+        // Wait until CTS is cleared.
+        for (int i = 0; i < 10; i++)
+        {
+            if ( (rc = ioctl(PortFD, TIOCMGET, &bits)) == 0 && (bits & TIOCM_CTS) == 0)
+                break;
+            usleep(100000);
+        }
+
+        if (rc < 0)
+        {
+            LOGF_ERROR("CTS timed out: %s", strerror(errno));
+            return false;
+        }
+
+        // Now raise RTS
+        bits = TIOCM_RTS;
+        ioctl(PortFD, TIOCMSET, &bits);
+
+        char hex_cmd[DRIVER_LEN * 3] = {0};
+        hexDump(hex_cmd, cmd, cmd_len);
+        LOGF_DEBUG("CMD <%s>", hex_cmd);
+        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
+
+        if (rc != TTY_OK)
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("Serial write error: %s.", errstr);
+            return false;
+        }
+
+        // Read back the echo
+        tty_read(PortFD, echo, cmd_len, DRIVER_TIMEOUT, &nbytes_read);
+
+        // Now lower RTS
+        ioctl(PortFD, TIOCMBIC, &bits);
+
+        // Next read the actual response from EFA
+        rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+
+        if (rc == TTY_OK)
             break;
+
         usleep(100000);
     }
-
-    if (rc < 0)
-    {
-        LOGF_ERROR("CTS timed out: %s", strerror(errno));
-        return false;
-    }
-
-    // Now raise RTS
-    bits = TIOCM_RTS;
-    ioctl(PortFD, TIOCMSET, &bits);
-
-    char hex_cmd[DRIVER_LEN * 3] = {0};
-    hexDump(hex_cmd, cmd, cmd_len);
-    LOGF_DEBUG("CMD <%s>", hex_cmd);
-    rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
-
-    if (rc != TTY_OK)
-    {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
-        return false;
-    }
-
-    // Read back the echo
-    tty_read(PortFD, echo, cmd_len, DRIVER_TIMEOUT, &nbytes_read);
-
-    // Now lower RTS
-    ioctl(PortFD, TIOCMBIC, &bits);
-
-    // Next read the actual response from EFA
-    rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
 
     if (rc != TTY_OK)
     {
@@ -499,8 +505,6 @@ bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t r
     char hex_res[DRIVER_LEN * 3] = {0};
     hexDump(hex_res, res, res_len);
     LOGF_DEBUG("RES <%s>", hex_res);
-
-    //tcflush(PortFD, TCIOFLUSH);
 
     return true;
 }
