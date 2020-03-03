@@ -114,7 +114,7 @@ bool EFA::initProperties()
     IUFillSwitchVector(&CalibrationStateSP, CalibrationStateS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Setup limits
-    FocusMaxPosN[0].max = 3799422;
+    FocusMaxPosN[0].max = FocusMaxPosN[0].value = 3799422;
     FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
 
     FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].max;
