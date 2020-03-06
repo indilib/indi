@@ -1489,6 +1489,19 @@ add_executable(indi_arduinost4 ${arduinost4_SRC})
 target_link_libraries(indi_arduinost4 indidriver)
 install(TARGETS indi_arduinost4 RUNTIME DESTINATION bin)
 
+########### PlaneWave Delta-T Driver ###############
+
+SET(planewave_deltat_SRC ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/planewave_delta.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indi_planewave_deltat planewave_deltat_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_planewave_deltat ${planewave_deltat_SRC})
+target_link_libraries(indi_planewave_deltat indidriver)
+install(TARGETS indi_planewave_deltat RUNTIME DESTINATION bin)
+
+
 ########### GPUSB Driver ###############
 
 SET(gpusb_SRC
