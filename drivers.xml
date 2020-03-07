@@ -381,6 +381,10 @@
             <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
             <version>1.0</version>
         </device>
+        <device label="SVBONY">
+            <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
+            <version>1.0</version>
+        </device>
         <device label="iOptron iPolar">
             <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
             <version>1.0</version>
