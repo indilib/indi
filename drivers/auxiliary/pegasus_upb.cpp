@@ -1401,12 +1401,10 @@ bool PegasusUPB::getSensorData()
                 }
                 IDSetSwitch(&AutoDewV2SP, nullptr);
             }
-
-
-            lastSensorData = result;
-
-            return true;
         }
+
+        lastSensorData = result;
+        return true;
     }
 
     return false;

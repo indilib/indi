@@ -52,7 +52,9 @@ bool Base::initCommunication(int fd)
             {
                 if (oneMount.model == m_FirmwareInfo.Model)
                 {
-                    if (oneMount.firmware >= m_FirmwareInfo.MainBoardFirmware)
+                    // Make sure current mount firmware is larger
+                    // than the minimum firmware required by this mount model.
+                    if (m_FirmwareInfo.MainBoardFirmware >= oneMount.firmware)
                         return true;
                     else
                         LOGF_ERROR("Main board firmware is %s while minimum required firmware is %s. Please upgrade the mount firmware.",

@@ -1,7 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
-
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
@@ -60,15 +59,9 @@ void ISNewNumber(const char * dev, const char * name, double values[], char * na
 void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
                char * names[], int n)
 {
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
+    ccdsim->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
+
 void ISSnoopDevice(XMLEle * root)
 {
     ccdsim->ISSnoopDevice(root);
@@ -178,6 +171,12 @@ bool CCDSim::initProperties()
     IUFillNumberVector(SimulatorSettingsNV, SimulatorSettingsN, 14, getDeviceName(), "SIMULATOR_SETTINGS",
                        "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
 
+    // RGB Simulation
+    IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
+    IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
+    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
+                       "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     IUFillSwitch(&TimeFactorS[0], "1X", "Actual Time", ISS_ON);
     IUFillSwitch(&TimeFactorS[1], "10X", "10x", ISS_OFF);
     IUFillSwitch(&TimeFactorS[2], "100X", "100x", ISS_OFF);
@@ -185,7 +184,7 @@ bool CCDSim::initProperties()
                        "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
-    IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[1].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
@@ -204,11 +203,11 @@ bool CCDSim::initProperties()
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
 #else
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
 #endif
 
 
-    IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM");
 
     uint32_t cap = 0;
 
@@ -220,12 +219,17 @@ bool CCDSim::initProperties()
     cap |= CCD_HAS_SHUTTER;
     cap |= CCD_HAS_ST4_PORT;
     cap |= CCD_HAS_STREAMING;
+    cap |= CCD_HAS_DSP;
 
 #ifdef HAVE_WEBSOCKET
     cap |= CCD_HAS_WEB_SOCKET;
 #endif
 
     SetCCDCapability(cap);
+
+    // This should be called after the initial SetCCDCapability (above)
+    // as it modifies the capabilities.
+    setRGB(simulateRGB);
 
     INDI::FilterInterface::initProperties(FILTER_TAB);
 
@@ -243,6 +247,21 @@ bool CCDSim::initProperties()
     return true;
 }
 
+void CCDSim::setRGB(bool onOff)
+{
+    if (onOff)
+    {
+        SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
+        IUSaveText(&BayerT[0], "0");
+        IUSaveText(&BayerT[1], "0");
+        IUSaveText(&BayerT[2], "RGGB");
+    }
+    else
+    {
+        SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+    }
+}
+
 void CCDSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
@@ -250,6 +269,7 @@ void CCDSim::ISGetProperties(const char * dev)
     defineNumber(SimulatorSettingsNV);
     defineSwitch(TimeFactorSV);
     defineNumber(&EqPENP);
+    defineSwitch(&SimulateRgbSP);
 }
 
 bool CCDSim::updateProperties()
@@ -1149,6 +1169,29 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
         }
     }
 
+    if (!strcmp(name, SimulateRgbSP.name))
+    {
+        IUUpdateSwitch(&SimulateRgbSP, states, names, n);
+        int index = IUFindOnSwitchIndex(&SimulateRgbSP);
+        if (index == -1)
+        {
+            SimulateRgbSP.s = IPS_ALERT;
+            LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
+            IDSetSwitch(&SimulateRgbSP, nullptr);
+            return false;
+        }
+
+        simulateRGB = index == 0;
+        setRGB(simulateRGB);
+
+        SimulateRgbS[0].s = simulateRGB ? ISS_ON : ISS_OFF;
+        SimulateRgbS[1].s = simulateRGB ? ISS_OFF : ISS_ON;
+        SimulateRgbSP.s   = IPS_OK;
+        IDSetSwitch(&SimulateRgbSP, nullptr);
+
+        return true;
+    }
+
     if (strcmp(name, CoolerSP.name) == 0)
     {
         IUUpdateSwitch(&CoolerSP, states, names, n);
@@ -1176,11 +1219,11 @@ void CCDSim::activeDevicesUpdated()
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
 #else
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
 #endif
-    IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM");
 
-    strncpy(FWHMNP.device, ActiveDeviceT[1].text, MAXINDIDEVICE);
+    strncpy(FWHMNP.device, ActiveDeviceT[ACTIVE_FOCUSER].text, MAXINDIDEVICE);
 }
 
 bool CCDSim::ISSnoopDevice(XMLEle * root)
@@ -1248,6 +1291,9 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Gain
     IUSaveConfigNumber(fp, &GainNP);
+
+    // RGB
+    IUSaveConfigSwitch(fp, &SimulateRgbSP);
 
     return true;
 }

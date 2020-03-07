@@ -45,7 +45,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 8)
-set(CMAKE_INDI_VERSION_RELEASE 2)
+set(CMAKE_INDI_VERSION_RELEASE 5)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -309,9 +309,9 @@ include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${USB1_INCLUDE_DIRS})
 include_directories( ${GSL_INCLUDE_DIRS})
 include_directories( ${JPEG_INCLUDE_DIR} )
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
     include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam)
-ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
 
@@ -354,7 +354,7 @@ ENDIF(OGGTHEORA_FOUND)
         ENABLE_UNITY_BUILD(libstream libstream_CXX_SRC 10 cpp)
     ENDIF ()
 
-    IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
         SET(libwebcam_C_SRC
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c)
         SET(libwebcam_CXX_SRC
@@ -366,7 +366,7 @@ ENDIF(OGGTHEORA_FOUND)
             ENABLE_UNITY_BUILD(libwebcam libwebcam_C_SRC 10 c)
             ENABLE_UNITY_BUILD(libwebcam libwebcam_CXX_SRC 10 cpp)
         ENDIF (UNITY_BUILD)
-     ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 ENDIF(UNIX)
 
 SET(libdsp_C_SRC
@@ -400,7 +400,10 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp
@@ -423,6 +426,10 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp
     #${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/ttybase.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/manager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/dspinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/transforms.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/convolution.cpp
     )
 
 IF (UNITY_BUILD)
@@ -491,6 +498,13 @@ install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 set(PKG_CONFIG_LIBS "${PKG_CONFIG_LIBS} -lindidriver -lindiAlignmentDriver")
 endif(CYGWIN)
 
+IF (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    # FreeBSD needs to find the correct GNU iconv library.
+    find_package(Iconv REQUIRED)
+    # The indidriver library is defined earlier in the file before the
+    # find has been run. Add an explicit link to avoid runtime errors.
+    target_link_libraries(indidriver ${ICONV_LIBRARIES})
+ENDIF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 
 ##################################################
 ########### INDI Alignment Subsystem #############
@@ -564,6 +578,23 @@ install(TARGETS indi_lx200basic RUNTIME DESTINATION bin)
 
 #################################################################################
 
+########### LX200 TeenAstro #############
+SET(lx200_TeenAstro_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_TeenAstro.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(lx200_TeenAstro lx200_TeenAstro_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_lx200_TeenAstro ${lx200_TeenAstro_SRC})
+
+target_link_libraries(indi_lx200_TeenAstro indidriver)
+
+install(TARGETS indi_lx200_TeenAstro RUNTIME DESTINATION bin)
+
+#################################################################################
+
 ########### LX200 Generic ###########
 SET(lx200generic_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
@@ -594,7 +625,11 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 add_executable(indi_lx200generic ${lx200generic_SRCS})
-target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
+if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=700)
+ELSE()
+    target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
+ENDIF()
 target_link_libraries(indi_lx200generic indidriver)
 
 install(TARGETS indi_lx200generic RUNTIME DESTINATION bin )
@@ -634,6 +669,15 @@ install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin)
 
 #################################################################################
 
+########### Rainbow Mount driver ##########
+SET(rainbow_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/rainbow.cpp )
+
+add_executable(indi_rainbow_telescope ${rainbow_SRC})
+
+target_link_libraries(indi_rainbow_telescope indidriver)
+
+install(TARGETS indi_rainbow_telescope RUNTIME DESTINATION bin)
 
 ########### Takahashi Temma ##########
 SET(temma_SRC
@@ -771,12 +815,12 @@ install(TARGETS indi_script_telescope RUNTIME DESTINATION bin)
 
 ################ Detector Simulator ################
 
-SET(detectorsimulator_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/detector/detector_simulator.cpp)
+SET(spectrographsimulator_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/spectrograph/spectrograph_simulator.cpp)
 
-add_executable(indi_simulator_detector ${detectorsimulator_SRC})
-target_link_libraries(indi_simulator_detector indidriver)
-install(TARGETS indi_simulator_detector RUNTIME DESTINATION bin)
+add_executable(indi_simulator_spectrograph ${spectrographsimulator_SRC})
+target_link_libraries(indi_simulator_spectrograph indidriver)
+install(TARGETS indi_simulator_spectrograph RUNTIME DESTINATION bin)
 
 ########### CCD Simulator ##############
 SET(ccdsimulator_SRC
@@ -845,6 +889,15 @@ SET(nstep_SRC
 add_executable(indi_nstep_focus ${nstep_SRC})
 target_link_libraries(indi_nstep_focus indidriver)
 install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin)
+
+################ PlaneWave EFA ################
+
+SET(efa_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/planewave_efa.cpp)
+
+add_executable(indi_efa_focus ${efa_SRC})
+target_link_libraries(indi_efa_focus indidriver)
+install(TARGETS indi_efa_focus RUNTIME DESTINATION bin)
 
 ################ Celestron SCT Focuser ################
 
@@ -1234,6 +1287,15 @@ add_executable(indi_baader_dome ${baaderdome_SRC})
 target_link_libraries(indi_baader_dome indidriver)
 install(TARGETS indi_baader_dome RUNTIME DESTINATION bin)
 
+################ Dome Pro 2 ##$##############
+
+SET(domepro2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/domepro2.cpp)
+
+add_executable(indi_domepro2_dome ${domepro2_SRC})
+target_link_libraries(indi_domepro2_dome indidriver)
+install(TARGETS indi_domepro2_dome RUNTIME DESTINATION bin)
+
 ################ Rigel Dome ################
 
 SET(rigeldome_SRC
@@ -1270,7 +1332,7 @@ install(TARGETS indi_script_dome RUNTIME DESTINATION bin)
 #########################################
 
 ########### INDI::CCD V4L Driver ###############
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
     SET(v4l2driverccd_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/lx/Lx.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/v4l2driver.cpp
@@ -1285,9 +1347,9 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     install(TARGETS indi_v4l2_ccd RUNTIME DESTINATION bin )
 
     # For DBK21 camera
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/80-dbk21-camera.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-
-
+    IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/80-dbk21-camera.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+    ENDIF ()
 ENDIF ()
 
 #################################################################################
@@ -1426,6 +1488,19 @@ ENDIF ()
 add_executable(indi_arduinost4 ${arduinost4_SRC})
 target_link_libraries(indi_arduinost4 indidriver)
 install(TARGETS indi_arduinost4 RUNTIME DESTINATION bin)
+
+########### PlaneWave Delta-T Driver ###############
+
+SET(planewave_deltat_SRC ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/planewave_delta.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indi_planewave_deltat planewave_deltat_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_planewave_deltat ${planewave_deltat_SRC})
+target_link_libraries(indi_planewave_deltat indidriver)
+install(TARGETS indi_planewave_deltat RUNTIME DESTINATION bin)
+
 
 ########### GPUSB Driver ###############
 
@@ -1691,7 +1766,7 @@ if (UNIX)
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/recorder COMPONENT Devel)
-    if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    if (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
@@ -1749,7 +1824,11 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indireceiver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweatherinterface.h
@@ -1776,12 +1855,19 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         install( FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiwsserver.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     endif()
-install( FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.h
-    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/connectionplugins COMPONENT Devel)
-endif (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
+    install( FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/connectionplugins COMPONENT Devel)
+
+    install( FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/manager.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/dspinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/transforms.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/convolution.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/dsp COMPONENT Devel)
+    endif (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
 

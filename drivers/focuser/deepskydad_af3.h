@@ -80,6 +80,7 @@ class DeepSkyDadAF3 : public INDI::Focuser
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE * fp) override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
 
     private:
         bool Ack();
@@ -110,7 +111,9 @@ class DeepSkyDadAF3 : public INDI::Focuser
 
         bool MoveFocuser(uint32_t position);
 
-        double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
+        double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 }, backlashComp {0};
+
+        bool moveAborted = false;
 
         // Step mode
         ISwitch StepModeS[9];

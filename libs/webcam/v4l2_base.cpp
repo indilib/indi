@@ -42,13 +42,18 @@
 #include <cerrno>
 #include <sys/mman.h>
 #include <cstring>
-#include <asm/types.h> /* for videodev2.h */
 #include <ctime>
 #include <cmath>
 #include <sys/time.h>
 
+#ifdef __linux__
+#include <asm/types.h> /* for videodev2.h */
 /* Kernel headers version */
 #include <linux/version.h>
+#elif __FreeBSD__
+#define LINUX_VERSION_CODE 1
+#define KERNEL_VERSION(...) 1
+#endif
 
 #define ERRMSGSIZ 1024
 

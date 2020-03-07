@@ -91,7 +91,7 @@ namespace INDI
 {
 
 class CCD;
-class Detector;
+class SensorInterface;
 
 class StreamManager
 {
@@ -177,7 +177,7 @@ class StreamManager
 
         const char *getDeviceName();
 
-        void setSize(uint16_t width, uint16_t height);
+        void setSize(uint16_t width, uint16_t height=1);
         bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth = 8);
         void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
 

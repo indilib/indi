@@ -1641,9 +1641,21 @@ double estimate_field_rotation(double HA, double rate)
     return HA;
 }
 
-double parsec2m(double parsec)
+double as2rad(double as)
 {
-    return parsec * PARSEC;
+    return as * M_PI / (60.0*60.0*12.0);
+}
+
+double rad2as(double rad)
+{
+    return rad * (60.0*60.0*12.0) / M_PI;
+}
+
+double estimate_distance(double parsecs, double parallax_radius)
+{
+    double cat1 = parallax_radius * cos(as2rad(parsecs));
+    double cat2 = parallax_radius * sin(as2rad(parsecs));
+    return sqrt(pow(cat1, 2)+pow(cat2, 2));
 }
 
 double m2au(double m)
@@ -1651,19 +1663,57 @@ double m2au(double m)
     return m / ASTRONOMICALUNIT;
 }
 
-double calc_delta_magnitude(double mag0, double mag, double *spectrum, int spectrum_size, int lambda)
+double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spectrum, int spectrum_size)
 {
     double delta_mag = 0;
     for(int l = 0; l < spectrum_size; l++) {
-        delta_mag += spectrum[l] * (mag - mag0) / spectrum[lambda];
+        delta_mag += spectrum[l] * mag_ratio * ref_spectrum[l] / spectrum[l];
     }
     delta_mag /= spectrum_size;
     return delta_mag;
 }
 
+double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double incident_surface)
+{
+    return LUMEN(wavelength)/(1.51E+7*(filter_bandwidth/wavelength)*incident_surface*pow(10, -0.4*rel_magnitude));
+}
+
+double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double incident_surface)
+{
+    return (1.51E+7*(filter_bandwidth/wavelength)*incident_surface*log10(LUMEN(wavelength)/photon_flux))/-0.4;
+}
+
 double estimate_absolute_magnitude(double delta_dist, double delta_mag)
 {
     return sqrt(delta_dist) * delta_mag;
+}
+
+double* interferometry_uv_coords_vector(double baseline_m, double wavelength, double *target_vector)
+{
+    double* uv = (double*)malloc(sizeof(double) * 2);
+    double* vector = (double*)malloc(sizeof(double) * 3);
+    double hypo = sqrt(pow(target_vector[0], 2) * pow(target_vector[1], 2) * pow(target_vector[2], 2));
+    vector[0] = target_vector[0] / hypo;
+    vector[1] = target_vector[1] / hypo;
+    vector[2] = target_vector[2] / hypo;
+    uv[0] = baseline_m * target_vector[0] * target_vector[2];
+    uv[1] = baseline_m * target_vector[1] * target_vector[2];
+    uv[0] *= AIRY / wavelength;
+    uv[1] *= AIRY / wavelength;
+    return uv;
+}
+
+double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, double wavelength)
+{
+    double* uv = (double*)malloc(sizeof(double) * 2);
+    ha *= M_PI / 12.0;
+    dec += 90.0;
+    dec *= M_PI / 180.0;
+    uv[0] = (baseline[0] * sin(ha) + baseline[1] * cos(ha));
+    uv[1] = (-baseline[0] * sin(dec) * cos(ha) + baseline[1] * sin(dec) * sin(ha) + baseline[2] * cos(dec));
+    uv[0] *= AIRY / wavelength;
+    uv[1] *= AIRY / wavelength;
+    return uv;
 }
 
 #if defined(_MSC_VER)

@@ -267,24 +267,6 @@ static int get_usage(uint8_t *report_descriptor, size_t size, unsigned short *us
 }
 #endif // INVASIVE_GET_USAGE
 
-#ifdef __FreeBSD__
-/* The FreeBSD version of libusb doesn't have this funciton. In mainline
-   libusb, it's inlined in libusb.h. This function will bear a striking
-   resemblence to that one, because there's about one way to code it.
-
-   Note that the data parameter is Unicode in UTF-16LE encoding.
-   Return value is the number of bytes in data, or LIBUSB_ERROR_*.
- */
-static inline int libusb_get_string_descriptor(libusb_device_handle *dev, uint8_t descriptor_index, uint16_t lang_id,
-                                               unsigned char *data, int length)
-{
-    return libusb_control_transfer(dev, LIBUSB_ENDPOINT_IN | 0x0, /* Endpoint 0 IN */
-                                   LIBUSB_REQUEST_GET_DESCRIPTOR, (LIBUSB_DT_STRING << 8) | descriptor_index, lang_id,
-                                   data, (uint16_t)length, 1000);
-}
-
-#endif
-
 /* Get the first language the device says it reports. This comes from
    USB string #0. */
 static uint16_t get_first_language(libusb_device_handle *dev)
@@ -341,11 +323,7 @@ static wchar_t *get_usb_string(libusb_device_handle *dev, uint8_t idx)
     size_t inbytes;
     size_t outbytes;
     size_t res;
-#ifdef __FreeBSD__
-    const char *inptr;
-#else
     char *inptr;
-#endif
     char *outptr;
 
     /* Determine which language to use. */
