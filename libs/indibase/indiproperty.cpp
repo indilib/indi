@@ -277,6 +277,14 @@ ITextVectorProperty *INDI::Property::getText() const
     return nullptr;
 }
 
+ILightVectorProperty *INDI::Property::getLight() const
+{
+    if (pType == INDI_LIGHT)
+        return static_cast <ILightVectorProperty * > (pPtr);
+
+    return nullptr;
+}
+
 ISwitchVectorProperty *INDI::Property::getSwitch() const
 {
     if (pType == INDI_SWITCH)
