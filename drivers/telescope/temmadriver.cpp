@@ -97,7 +97,7 @@ TemmaMount::TemmaMount()
     Longitude = std::numeric_limits<double>::quiet_NaN();
     Latitude  = std::numeric_limits<double>::quiet_NaN();
 
-    setVersion(0, 4);
+    setVersion(0, 5);
 }
 
 const char *TemmaMount::getDefaultName()
@@ -131,10 +131,10 @@ bool TemmaMount::initProperties()
 #endif
 
     // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &Longitude);
-    currentRA  = get_local_sidereal_time(Longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &Latitude);
-    currentDEC = Latitude > 0 ? 90 : -90;
+    //    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &Longitude);
+    //    currentRA  = get_local_sidereal_time(Longitude);
+    //    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &Latitude);
+    //    currentDEC = Latitude > 0 ? 90 : -90;
 
     return true;
 }
@@ -918,7 +918,7 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
         LOGF_DEBUG("Temma is initilized. Latitude: %.2f LST: %.2f", latitude, lst);
 
         //TemmaSync(RightAscension, 90);
-        Sync(RightAscension, 90);
+        Sync(RightAscension, Latitude >= 0 ? 90 : -90);
 
         LOGF_DEBUG("Initial sync on %4.2f", RightAscension);
     }

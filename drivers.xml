@@ -111,7 +111,7 @@
         </device>
         <device label="Temma Takahashi" manufacturer="Takahashi">
             <driver name="Temma">indi_temma_telescope</driver>
-            <version>0.4</version>
+            <version>0.5</version>
         </device>
         <device label="Argo Navis">
             <driver name="LX200 Basic">indi_lx200basic</driver>
