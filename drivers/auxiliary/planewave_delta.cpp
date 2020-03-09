@@ -111,12 +111,26 @@ bool DeltaT::updateProperties()
 
     if (isConnected())
     {
+        initializeHeaters();
+
         defineText(&InfoTP);
+
+        for (auto &oneSP : HeaterControlSP)
+            defineSwitch(oneSP.get());
+
+        for (auto &oneNP : HeaterParamNP)
+            defineNumber(oneNP.get());
 
     }
     else
     {
         deleteProperty(InfoTP.name);
+
+        for (auto &oneSP : HeaterControlSP)
+            deleteProperty(oneSP->name);
+
+        for (auto &oneNP : HeaterParamNP)
+            deleteProperty(oneNP->name);
     }
 
     return true;
@@ -291,7 +305,63 @@ bool DeltaT::readReport()
 /////////////////////////////////////////////////////////////////////////////
 bool DeltaT::initializeHeaters()
 {
-    return false;
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_DELTA;
+    cmd[4] = COH_NUMHEATERS;
+    cmd[5] = calculateCheckSum(cmd, 6);
+
+    if (!sendCommand(cmd, res, 6, 6))
+        return false;
+
+    uint8_t nHeaters = res[4];
+
+    LOGF_INFO("Detected %d heaters", nHeaters);
+
+    // Create heater controls
+    for (uint8_t i = 0; i < nHeaters; i++)
+    {
+        std::unique_ptr<ISwitchVectorProperty> ControlSP;
+        ControlSP.reset(new ISwitchVectorProperty);
+        std::unique_ptr<ISwitch[]> ControlS;
+        ControlS.reset(new ISwitch[2]);
+
+        char switchName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
+        snprintf(switchName, MAXINDINAME, "DEW_%ud", i);
+        snprintf(groupLabel, MAXINDINAME, "Dew #%ud", i);
+        IUFillSwitch(&ControlS[HEATER_ON], "HEATER_ON", "On", ISS_OFF);
+        IUFillSwitch(&ControlS[HEATER_OFF], "HEATER_OFF", "OFF", ISS_ON);
+        IUFillSwitchVector(ControlSP.get(), ControlS.get(), 2, getDeviceName(), switchName, "Dew",
+                           groupLabel, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+        HeaterControlSP.push_back(std::move(ControlSP));
+        HeaterControlS.push_back(std::move(ControlS));
+    }
+
+    // Create heater parameters
+    for (uint8_t i = 0; i < nHeaters; i++)
+    {
+        std::unique_ptr<INumberVectorProperty> ControlNP;
+        ControlNP.reset(new INumberVectorProperty);
+        std::unique_ptr<INumber[]> ControlN;
+        ControlN.reset(new INumber[2]);
+
+        char numberName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
+        snprintf(numberName, MAXINDINAME, "PARAM_%ud", i);
+        snprintf(groupLabel, MAXINDINAME, "Dew #%ud", i);
+        IUFillNumber(&ControlN[PARAM_PERIOD], "PARAM_PERIOD", "Period", "%.1f", 0.1, 60, 1, 1);
+        IUFillNumber(&ControlN[PARAM_DUTY], "PARAM_DUTY", "Duty", "%.f", 1, 100, 5, 1);
+        IUFillNumberVector(ControlNP.get(), ControlN.get(), 2, getDeviceName(), numberName, "Params",
+                           groupLabel, IP_RW, 60, IPS_IDLE);
+
+        HeaterParamNP.push_back(std::move(ControlNP));
+        HeaterParamN.push_back(std::move(ControlN));
+    }
+
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////

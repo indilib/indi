@@ -127,7 +127,7 @@ class DeltaT : public INDI::DefaultDevice
 
         // Heater Control
         std::vector<std::unique_ptr<ISwitchVectorProperty>> HeaterControlSP;
-        std::vector<std::unique_ptr<ISwitch[2]>> HeaterControlS;
+        std::vector<std::unique_ptr<ISwitch[]>> HeaterControlS;
         enum
         {
             HEATER_ON,
@@ -136,7 +136,7 @@ class DeltaT : public INDI::DefaultDevice
 
         // PWM Control
         std::vector<std::unique_ptr<INumberVectorProperty>> HeaterParamNP;
-        std::vector<std::unique_ptr<INumber[2]>> HeaterParamN;
+        std::vector<std::unique_ptr<INumber[]>> HeaterParamN;
         enum
         {
             PARAM_PERIOD,
