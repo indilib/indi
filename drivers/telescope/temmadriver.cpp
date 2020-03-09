@@ -642,7 +642,8 @@ bool TemmaMount::UnPark()
 
     SetParked(false);
 
-    if (motorsEnabled())
+    setMotorsEnabled(true);
+    if (MotorStatus)
         TrackState = SCOPE_TRACKING;
     else
         TrackState = SCOPE_IDLE;
