@@ -101,7 +101,7 @@ TemmaMount::TemmaMount()
 
 const char *TemmaMount::getDefaultName()
 {
-    return "Temma";
+    return "Temma Takahashi";
 }
 
 bool TemmaMount::initProperties()
@@ -208,6 +208,8 @@ bool TemmaMount::updateProperties()
 
     if (isConnected())
     {
+        TrackState = motorsEnabled() ? SCOPE_TRACKING : SCOPE_IDLE;
+
         double lst = get_local_sidereal_time(Longitude);
 
         if (InitPark())
@@ -224,8 +226,6 @@ bool TemmaMount::updateProperties()
             SetAxis1ParkDefault(range24(lst + 3 / 60.0));
             SetAxis2ParkDefault(Latitude >= 0 ? 90 : -90);
         }
-
-        TrackState = motorsEnabled() ? SCOPE_TRACKING : SCOPE_IDLE;
 
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
@@ -633,15 +633,19 @@ bool TemmaMount::Park()
 
 bool TemmaMount::UnPark()
 {
-    SetParked(false);
-    motorsEnabled();
-
     // Get LST and set it as Axis1 Park position
     double lst = get_local_sidereal_time(Longitude);
     SetAxis1Park(lst);
 
     LOGF_INFO("Syncing to Park position %4.2f %4.2f", GetAxis1Park(), GetAxis2Park());
     Sync(GetAxis1Park(), GetAxis2Park());
+
+    SetParked(false);
+
+    if (motorsEnabled())
+        TrackState = SCOPE_TRACKING;
+    else
+        TrackState = SCOPE_IDLE;
 
     return true;
 }
