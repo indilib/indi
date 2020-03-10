@@ -318,11 +318,22 @@ bool DeltaT::readReport(uint8_t index)
     cmd[5] = index;
     cmd[6] = calculateCheckSum(cmd, 7);
 
-    if (!sendCommand(cmd, res, 7, 18))
+    if (!sendCommand(cmd, res, 7, 19))
+        return false;
+
+    if (static_cast<uint8_t>(res[5]) != 0x80)
         return false;
 
     HeaterReport report;
-    memcpy(&report, res + 5, 12);
+
+    report.StateUB      = res[6];
+    report.ModeUB       = res[7];
+    report.SetPointUW   = res[9] << 8 | res[8];
+    report.TempHtrIdUB  = res[10];
+    report.TempHtrUW    = res[12] << 8 | res[11];
+    report.TempAmbUW    = res[14] << 8 | res[13];
+    report.PeriodUW     = res[16] << 8 | res[15];
+    report.DutyCycleUB  = res[17];
 
     bool stateChanged = false, paramChanged = false;
 
