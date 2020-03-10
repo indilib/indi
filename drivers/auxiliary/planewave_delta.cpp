@@ -379,8 +379,8 @@ bool DeltaT::initializeHeaters()
         ControlS.reset(new ISwitch[2]);
 
         char switchName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
-        snprintf(switchName, MAXINDINAME, "DEW_%ud", i);
-        snprintf(groupLabel, MAXINDINAME, "Dew #%ud", i);
+        snprintf(switchName, MAXINDINAME, "DEW_%d", i + 1);
+        snprintf(groupLabel, MAXINDINAME, "Dew #%d", i + 1);
         IUFillSwitch(&ControlS[HEATER_ON], "HEATER_ON", "On", ISS_OFF);
         IUFillSwitch(&ControlS[HEATER_OFF], "HEATER_OFF", "OFF", ISS_ON);
         IUFillSwitchVector(ControlSP.get(), ControlS.get(), 2, getDeviceName(), switchName, "Dew",
@@ -399,8 +399,8 @@ bool DeltaT::initializeHeaters()
         ControlN.reset(new INumber[2]);
 
         char numberName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
-        snprintf(numberName, MAXINDINAME, "PARAM_%ud", i);
-        snprintf(groupLabel, MAXINDINAME, "Dew #%ud", i);
+        snprintf(numberName, MAXINDINAME, "PARAM_%d", i + 1);
+        snprintf(groupLabel, MAXINDINAME, "Dew #%d", i + 1);
         IUFillNumber(&ControlN[PARAM_PERIOD], "PARAM_PERIOD", "Period", "%.1f", 0.1, 60, 1, 1);
         IUFillNumber(&ControlN[PARAM_DUTY], "PARAM_DUTY", "Duty", "%.f", 1, 100, 5, 1);
         IUFillNumberVector(ControlNP.get(), ControlN.get(), 2, getDeviceName(), numberName, "Params",
@@ -475,7 +475,14 @@ bool DeltaT::setHeaterParam(uint8_t index, double period, double duty)
 /////////////////////////////////////////////////////////////////////////////
 bool DeltaT::forceBoot()
 {
-    return false;
+    char cmd[DRIVER_LEN] = {0};
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_DELTA;
+    cmd[4] = CMD_FORCE_BOOT;
+    cmd[5] = calculateCheckSum(cmd, 6);
+    return sendCommand(cmd, nullptr, 6, 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -483,7 +490,14 @@ bool DeltaT::forceBoot()
 /////////////////////////////////////////////////////////////////////////////
 bool DeltaT::forceReset()
 {
-    return false;
+    char cmd[DRIVER_LEN] = {0};
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_DELTA;
+    cmd[4] = CMD_FORCE_RESET;
+    cmd[5] = calculateCheckSum(cmd, 6);
+    return sendCommand(cmd, nullptr, 6, 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -508,6 +522,9 @@ bool DeltaT::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_
             return false;
         }
 
+        if (res == nullptr || res_len == 0)
+            return true;
+
         // Next read the response from DeltaT
         rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
 
@@ -527,7 +544,7 @@ bool DeltaT::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_
 
     uint8_t chk = calculateCheckSum(res, res_len);
 
-    if (chk != res[res_len - 1])
+    if (res_len > 0 && chk != res[res_len - 1])
     {
         LOG_ERROR("Invalid checksum!");
         return false;
