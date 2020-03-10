@@ -157,11 +157,11 @@ bool DeltaT::Handshake()
     if (!sendCommand(cmd, res, 6, 10))
         return false;
 
+    uint16_t bld = res[7] << 8 | res[8];
+
     version = std::to_string(res[5]) + "." +
               std::to_string(res[6]) +
-              " (" +
-              std::to_string(static_cast<uint8_t>(res[7])) +
-              std::to_string(static_cast<uint8_t>(res[8])) + ")";
+              " (" + std::to_string(bld) + ")";
 
     IUSaveText(&InfoT[0], version.c_str());
 
