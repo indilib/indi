@@ -434,13 +434,14 @@ bool DeltaT::setHeaterEnabled(uint8_t index, bool enabled)
         char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
         cmd[0] = DRIVER_SOM;
-        cmd[1] = 0x03;
+        cmd[1] = 0x04;
         cmd[2] = DEVICE_PC;
         cmd[3] = DEVICE_DELTA;
         cmd[4] = COH_OFF;
-        cmd[5] = calculateCheckSum(cmd, 6);
+        cmd[5] = index;
+        cmd[6] = calculateCheckSum(cmd, 7);
 
-        if (!sendCommand(cmd, res, 6, 7))
+        if (!sendCommand(cmd, res, 7, 7))
             return false;
 
         // 0x80 is OK
