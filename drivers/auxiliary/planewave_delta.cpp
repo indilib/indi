@@ -99,6 +99,7 @@ bool DeltaT::initProperties()
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     registerConnection(serialConnection);
 
+    setDriverInterface(AUX_INTERFACE);
 
     setDefaultPollingPeriod(1000);
     addAuxControls();
@@ -393,7 +394,7 @@ bool DeltaT::initializeHeaters()
         snprintf(switchName, MAXINDINAME, "DEW_%d", i + 1);
         snprintf(groupLabel, MAXINDINAME, "Dew #%d", i + 1);
         IUFillSwitch(&ControlS[HEATER_ON], "HEATER_ON", "On", ISS_OFF);
-        IUFillSwitch(&ControlS[HEATER_OFF], "HEATER_OFF", "OFF", ISS_ON);
+        IUFillSwitch(&ControlS[HEATER_OFF], "HEATER_OFF", "Off", ISS_ON);
         IUFillSwitchVector(ControlSP.get(), ControlS.get(), 2, getDeviceName(), switchName, "Dew",
                            groupLabel, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
