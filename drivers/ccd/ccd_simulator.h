@@ -96,7 +96,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         bool SelectFilter(int) override;
         int QueryFilter() override;
 
-    private:
+    protected:
 
         float CalcTimeLeft(timeval, float);
         bool SetupParms();
