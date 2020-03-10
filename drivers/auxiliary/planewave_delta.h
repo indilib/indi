@@ -154,7 +154,7 @@ class DeltaT : public INDI::DefaultDevice
         /////////////////////////////////////////////////////////////////////////////
         // Start of Message
         static const char DRIVER_SOM { 0x3B };
-        static constexpr const uint8_t DRIVER_LEN {9};
+        static constexpr const uint8_t DRIVER_LEN {16};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
 };

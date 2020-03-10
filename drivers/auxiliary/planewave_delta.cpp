@@ -143,6 +143,8 @@ bool DeltaT::Handshake()
 {
     std::string version;
 
+    PortFD = serialConnection->getPortFD();
+
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
@@ -155,7 +157,11 @@ bool DeltaT::Handshake()
     if (!sendCommand(cmd, res, 6, 10))
         return false;
 
-    version = std::to_string(res[5]) + "." + std::to_string(res[6]) + "(" + std::to_string(res[7]) + std::to_string(res[8]) + ")";
+    version = std::to_string(res[5]) + "." +
+              std::to_string(res[6]) +
+              " (" +
+              std::to_string(static_cast<uint8_t>(res[7])) +
+              std::to_string(static_cast<uint8_t>(res[8])) + ")";
 
     IUSaveText(&InfoT[0], version.c_str());
 
