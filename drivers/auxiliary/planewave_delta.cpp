@@ -87,6 +87,10 @@ bool DeltaT::initProperties()
     IUFillText(&InfoT[INFO_VERSION], "INFO_VERSION", "Version", "NA");
     IUFillTextVector(&InfoTP, InfoT, 1, getDeviceName(), "INFO", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    IUFillSwitch(&ForceS[FORCE_RESET], "FORCE_RESET", "Reset", ISS_OFF);
+    IUFillSwitch(&ForceS[FORCE_BOOT], "FORCE_BOOT", "Boot", ISS_OFF);
+    IUFillSwitchVector(&ForceSP, ForceS, 2, getDeviceName(), "FORCE_CONTROL", "Force", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     serialConnection = new Connection::Serial(this);
     serialConnection->registerHandshake([&]()
     {
@@ -114,6 +118,7 @@ bool DeltaT::updateProperties()
         initializeHeaters();
 
         defineText(&InfoTP);
+        defineSwitch(&ForceSP);
 
         for (auto &oneSP : HeaterControlSP)
             defineSwitch(oneSP.get());
@@ -125,6 +130,7 @@ bool DeltaT::updateProperties()
     else
     {
         deleteProperty(InfoTP.name);
+        deleteProperty(ForceSP.name);
 
         for (auto &oneSP : HeaterControlSP)
             deleteProperty(oneSP->name);
@@ -185,15 +191,46 @@ bool DeltaT::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Reset/Force
+        // Reset/Boot
         if (!strcmp(ForceSP.name, name))
         {
+            IUUpdateSwitch(&ForceSP, states, names, n);
+            bool rc = false;
+            if (!strcmp(IUFindOnSwitchName(states, names, n), ForceS[FORCE_RESET].name))
+                rc = forceReset();
+            else if (!strcmp(IUFindOnSwitchName(states, names, n), ForceS[FORCE_BOOT].name))
+                rc = forceBoot();
 
+            IUResetSwitch(&ForceSP);
+            ForceSP.s = rc ? IPS_OK : IPS_ALERT;
+            IDSetSwitch(&ForceSP, nullptr);
+            return true;
         }
         // Heater Control
         else
         {
+            for (uint8_t i = 0; i < HeaterControlSP.size(); i++)
+            {
+                if (!strcmp(HeaterControlSP[i]->name, name))
+                {
+                    bool wasOn = IUFindOnSwitchIndex(HeaterControlSP[i].get()) == HEATER_ON;
+                    IUUpdateSwitch(HeaterControlSP[i].get(), states, names, n);
+                    if (setHeaterEnabled(i, IUFindOnSwitchIndex(HeaterControlSP[i].get()) == HEATER_ON))
+                    {
+                        HeaterControlSP[i]->s = IPS_OK;
+                    }
+                    else
+                    {
+                        IUResetSwitch(HeaterControlSP[i].get());
+                        HeaterControlSP[i]->sp[HEATER_ON].s = wasOn ? ISS_ON : ISS_OFF;
+                        HeaterControlSP[i]->sp[HEATER_OFF].s = wasOn ? ISS_OFF : ISS_ON;
+                        HeaterControlSP[i]->s = IPS_ALERT;
+                    }
 
+                    IDSetSwitch(HeaterControlSP[i].get(), nullptr);
+                    return true;
+                }
+            }
         }
 
     }
@@ -208,7 +245,29 @@ bool DeltaT::ISNewNumber(const char *dev, const char *name, double values[], cha
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        for (uint8_t i = 0; i < HeaterParamNP.size(); i++)
+        {
+            if (!strcmp(HeaterParamNP[i]->name, name))
+            {
+                double prevPeriod = HeaterParamNP[i]->np[PARAM_PERIOD].value;
+                double prevDuty   = HeaterParamNP[i]->np[PARAM_DUTY].value;
 
+                IUUpdateNumber(HeaterParamNP[i].get(), values, names, n);
+                if (setHeaterParam(i, HeaterParamNP[i]->np[PARAM_PERIOD].value, HeaterParamNP[i]->np[PARAM_DUTY].value))
+                {
+                    HeaterParamNP[i]->s = IPS_OK;
+                }
+                else
+                {
+                    HeaterParamNP[i]->s = IPS_ALERT;
+                    HeaterParamNP[i]->np[PARAM_PERIOD].value = prevPeriod;
+                    HeaterParamNP[i]->np[PARAM_DUTY].value = prevDuty;
+                }
+
+                IDSetNumber(HeaterParamNP[i].get(), nullptr);
+                return true;
+            }
+        }
     }
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -223,6 +282,14 @@ void DeltaT::TimerHit()
     if (!isConnected())
         return;
 
+    for (uint8_t i = 0 ; i < HeaterControlSP.size(); i++)
+    {
+        if (readReport(i))
+        {
+            IDSetSwitch(HeaterControlSP[i].get(), nullptr);
+            IDSetNumber(HeaterParamNP[i].get(), nullptr);
+        }
+    }
 
     SetTimer(POLLMS);
 }
@@ -234,6 +301,189 @@ bool DeltaT::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
     return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Read Report
+/////////////////////////////////////////////////////////////////////////////
+bool DeltaT::readReport(uint8_t index)
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x04;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_DELTA;
+    cmd[4] = COH_REPORT;
+    cmd[5] = index;
+    cmd[6] = calculateCheckSum(cmd, 7);
+
+    if (!sendCommand(cmd, res, 7, 18))
+        return false;
+
+    HeaterReport report;
+    memcpy(&report, res + 5, 12);
+
+    bool stateChanged = false, paramChanged = false;
+
+    bool wasOn = IUFindOnSwitchIndex(HeaterControlSP[index].get()) == HEATER_ON;
+
+    IUResetSwitch(HeaterControlSP[index].get());
+    HeaterControlSP[index]->sp[HEATER_ON].s = report.StateUB == 1 ? ISS_ON : ISS_OFF;
+    HeaterControlSP[index]->sp[HEATER_OFF].s = report.StateUB == 1 ? ISS_OFF : ISS_ON;
+
+    bool isOn = IUFindOnSwitchIndex(HeaterControlSP[index].get()) == HEATER_ON;
+
+    stateChanged = wasOn != isOn;
+
+    double currentPeriod = HeaterParamNP[index]->np[PARAM_PERIOD].value;
+    double currentDuty = HeaterParamNP[index]->np[PARAM_DUTY].value;
+
+    HeaterParamNP[index]->np[PARAM_PERIOD].value = report.PeriodUW / 10.0;
+    HeaterParamNP[index]->np[PARAM_DUTY].value = report.DutyCycleUB;
+
+    paramChanged = std::fabs(currentPeriod - HeaterParamNP[index]->np[PARAM_PERIOD].value) > 0.1 ||
+                   std::fabs(currentDuty - HeaterParamNP[index]->np[PARAM_DUTY].value) > 0;
+
+    // Return true if only something changed.
+    return (stateChanged || paramChanged);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Initialize Heaters
+/////////////////////////////////////////////////////////////////////////////
+bool DeltaT::initializeHeaters()
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_DELTA;
+    cmd[4] = COH_NUMHEATERS;
+    cmd[5] = calculateCheckSum(cmd, 6);
+
+    if (!sendCommand(cmd, res, 6, 7))
+        return false;
+
+    uint8_t nHeaters = res[5];
+
+    LOGF_INFO("Detected %d heaters", nHeaters);
+
+    // Create heater controls
+    for (uint8_t i = 0; i < nHeaters; i++)
+    {
+        std::unique_ptr<ISwitchVectorProperty> ControlSP;
+        ControlSP.reset(new ISwitchVectorProperty);
+        std::unique_ptr<ISwitch[]> ControlS;
+        ControlS.reset(new ISwitch[2]);
+
+        char switchName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
+        snprintf(switchName, MAXINDINAME, "DEW_%ud", i);
+        snprintf(groupLabel, MAXINDINAME, "Dew #%ud", i);
+        IUFillSwitch(&ControlS[HEATER_ON], "HEATER_ON", "On", ISS_OFF);
+        IUFillSwitch(&ControlS[HEATER_OFF], "HEATER_OFF", "OFF", ISS_ON);
+        IUFillSwitchVector(ControlSP.get(), ControlS.get(), 2, getDeviceName(), switchName, "Dew",
+                           groupLabel, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+        HeaterControlSP.push_back(std::move(ControlSP));
+        HeaterControlS.push_back(std::move(ControlS));
+    }
+
+    // Create heater parameters
+    for (uint8_t i = 0; i < nHeaters; i++)
+    {
+        std::unique_ptr<INumberVectorProperty> ControlNP;
+        ControlNP.reset(new INumberVectorProperty);
+        std::unique_ptr<INumber[]> ControlN;
+        ControlN.reset(new INumber[2]);
+
+        char numberName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
+        snprintf(numberName, MAXINDINAME, "PARAM_%ud", i);
+        snprintf(groupLabel, MAXINDINAME, "Dew #%ud", i);
+        IUFillNumber(&ControlN[PARAM_PERIOD], "PARAM_PERIOD", "Period", "%.1f", 0.1, 60, 1, 1);
+        IUFillNumber(&ControlN[PARAM_DUTY], "PARAM_DUTY", "Duty", "%.f", 1, 100, 5, 1);
+        IUFillNumberVector(ControlNP.get(), ControlN.get(), 2, getDeviceName(), numberName, "Params",
+                           groupLabel, IP_RW, 60, IPS_IDLE);
+
+        HeaterParamNP.push_back(std::move(ControlNP));
+        HeaterParamN.push_back(std::move(ControlN));
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Enable/Disable heater
+/////////////////////////////////////////////////////////////////////////////
+bool DeltaT::setHeaterEnabled(uint8_t index, bool enabled)
+{
+    if (!enabled)
+    {
+        char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+        cmd[0] = DRIVER_SOM;
+        cmd[1] = 0x03;
+        cmd[2] = DEVICE_PC;
+        cmd[3] = DEVICE_DELTA;
+        cmd[4] = COH_OFF;
+        cmd[5] = calculateCheckSum(cmd, 6);
+
+        if (!sendCommand(cmd, res, 6, 7))
+            return false;
+
+        // 0x80 is OK
+        return (static_cast<uint8_t>(res[5]) == 0x80);
+    }
+    else
+    {
+        return setHeaterParam(index, HeaterParamNP[index]->np[PARAM_PERIOD].value, HeaterParamNP[index]->np[PARAM_DUTY].value);
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Set Heater Param
+/////////////////////////////////////////////////////////////////////////////
+bool DeltaT::setHeaterParam(uint8_t index, double period, double duty)
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    uint16_t seconds = period * 10;
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x07;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_DELTA;
+    cmd[4] = COH_ON_MANUAL;
+    cmd[5] = index;
+    // LSB
+    cmd[6] = seconds & 0xFF;
+    // MSB
+    cmd[7] = (seconds >> 8) & 0xFF;
+    cmd[8] = static_cast<uint8_t>(duty);
+    cmd[9] = calculateCheckSum(cmd, 10);
+
+    if (!sendCommand(cmd, res, 10, 7))
+        return false;
+
+    // 0x80 is OK
+    return (static_cast<uint8_t>(res[5]) == 0x80);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Force Boot
+/////////////////////////////////////////////////////////////////////////////
+bool DeltaT::forceBoot()
+{
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// force Reset
+/////////////////////////////////////////////////////////////////////////////
+bool DeltaT::forceReset()
+{
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -290,112 +540,6 @@ bool DeltaT::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_
     return true;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-/// Read Version
-/////////////////////////////////////////////////////////////////////////////
-bool DeltaT::readVersion()
-{
-    return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/// Read Report
-/////////////////////////////////////////////////////////////////////////////
-bool DeltaT::readReport()
-{
-    return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/// Initialize Heaters
-/////////////////////////////////////////////////////////////////////////////
-bool DeltaT::initializeHeaters()
-{
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
-
-    cmd[0] = DRIVER_SOM;
-    cmd[1] = 0x03;
-    cmd[2] = DEVICE_PC;
-    cmd[3] = DEVICE_DELTA;
-    cmd[4] = COH_NUMHEATERS;
-    cmd[5] = calculateCheckSum(cmd, 6);
-
-    if (!sendCommand(cmd, res, 6, 6))
-        return false;
-
-    uint8_t nHeaters = res[4];
-
-    LOGF_INFO("Detected %d heaters", nHeaters);
-
-    // Create heater controls
-    for (uint8_t i = 0; i < nHeaters; i++)
-    {
-        std::unique_ptr<ISwitchVectorProperty> ControlSP;
-        ControlSP.reset(new ISwitchVectorProperty);
-        std::unique_ptr<ISwitch[]> ControlS;
-        ControlS.reset(new ISwitch[2]);
-
-        char switchName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
-        snprintf(switchName, MAXINDINAME, "DEW_%ud", i);
-        snprintf(groupLabel, MAXINDINAME, "Dew #%ud", i);
-        IUFillSwitch(&ControlS[HEATER_ON], "HEATER_ON", "On", ISS_OFF);
-        IUFillSwitch(&ControlS[HEATER_OFF], "HEATER_OFF", "OFF", ISS_ON);
-        IUFillSwitchVector(ControlSP.get(), ControlS.get(), 2, getDeviceName(), switchName, "Dew",
-                           groupLabel, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-        HeaterControlSP.push_back(std::move(ControlSP));
-        HeaterControlS.push_back(std::move(ControlS));
-    }
-
-    // Create heater parameters
-    for (uint8_t i = 0; i < nHeaters; i++)
-    {
-        std::unique_ptr<INumberVectorProperty> ControlNP;
-        ControlNP.reset(new INumberVectorProperty);
-        std::unique_ptr<INumber[]> ControlN;
-        ControlN.reset(new INumber[2]);
-
-        char numberName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
-        snprintf(numberName, MAXINDINAME, "PARAM_%ud", i);
-        snprintf(groupLabel, MAXINDINAME, "Dew #%ud", i);
-        IUFillNumber(&ControlN[PARAM_PERIOD], "PARAM_PERIOD", "Period", "%.1f", 0.1, 60, 1, 1);
-        IUFillNumber(&ControlN[PARAM_DUTY], "PARAM_DUTY", "Duty", "%.f", 1, 100, 5, 1);
-        IUFillNumberVector(ControlNP.get(), ControlN.get(), 2, getDeviceName(), numberName, "Params",
-                           groupLabel, IP_RW, 60, IPS_IDLE);
-
-        HeaterParamNP.push_back(std::move(ControlNP));
-        HeaterParamN.push_back(std::move(ControlN));
-    }
-
-    return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/// Set PWM
-/////////////////////////////////////////////////////////////////////////////
-bool DeltaT::setPWMEnabled(bool enabled, double period, double duty)
-{
-    INDI_UNUSED(enabled);
-    INDI_UNUSED(period);
-    INDI_UNUSED(duty);
-    return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/// Force Reboot
-/////////////////////////////////////////////////////////////////////////////
-bool DeltaT::forceReboot()
-{
-    return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/// force Reset
-/////////////////////////////////////////////////////////////////////////////
-bool DeltaT::forceReset()
-{
-    return false;
-}
 
 /////////////////////////////////////////////////////////////////////////////
 ///

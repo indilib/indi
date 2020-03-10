@@ -58,7 +58,7 @@ class DeltaT : public INDI::DefaultDevice
             DEVICE_DELTA = 0x32
         };
 
-        typedef struct HtrReportTg
+        typedef struct
         {
             uint8_t  StateUB;
             uint8_t  ModeUB;
@@ -68,7 +68,7 @@ class DeltaT : public INDI::DefaultDevice
             uint16_t TempAmbUW;
             uint16_t PeriodUW;
             uint8_t  DutyCycleUB;
-        } HtrReportTy;
+        } HeaterReport;
 
 
     protected:
@@ -79,15 +79,15 @@ class DeltaT : public INDI::DefaultDevice
         ///////////////////////////////////////////////////////////////////////////////////
         /// Query functions
         ///////////////////////////////////////////////////////////////////////////////////
-        bool readVersion();
-        bool readReport();
+        bool readReport(uint8_t index);
         bool initializeHeaters();
 
         ///////////////////////////////////////////////////////////////////////////////////
         /// Set functions
         ///////////////////////////////////////////////////////////////////////////////////
-        bool setPWMEnabled(bool enabled, double period = 0, double duty = 0);
-        bool forceReboot();
+        bool setHeaterEnabled(uint8_t index, bool enabled);
+        bool setHeaterParam(uint8_t index, double period, double duty);
+        bool forceBoot();
         bool forceReset();
 
         ///////////////////////////////////////////////////////////////////////////////
@@ -154,7 +154,7 @@ class DeltaT : public INDI::DefaultDevice
         /////////////////////////////////////////////////////////////////////////////
         // Start of Message
         static const char DRIVER_SOM { 0x3B };
-        static constexpr const uint8_t DRIVER_LEN {16};
+        static constexpr const uint8_t DRIVER_LEN {32};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
 };
