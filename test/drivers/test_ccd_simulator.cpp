@@ -20,6 +20,26 @@ public:
         ISGetProperties(me);
     }
 
+    void testProperties()
+    {
+        INumberVectorProperty * const p = getNumber("SIMULATOR_SETTINGS");
+        ASSERT_NE(p, nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_XRES"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_YRES"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_XSIZE"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_YSIZE"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_MAXVAL"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_BIAS"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_SATURATION"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_LIMITINGMAG"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_NOISE"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_SKYGLOW"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_OAGOFFSET"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_POLAR"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_POLARDRIFT"), nullptr);
+        ASSERT_NE(IUFindNumber(p, "SIM_ROTATION"), nullptr);
+    }
+
     void testGuideAPI()
     {
         // At init, current RA and DEC are undefined - message will not appear because the test passes
@@ -66,23 +86,7 @@ public:
 
 TEST(CCDSimulatorDriverTest, test_properties)
 {
-    MockCCDSimDriver ccd;
-    INumberVectorProperty * const p = ccd.getNumber("SIMULATOR_SETTINGS");
-    ASSERT_NE(p, nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_XRES"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_YRES"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_XSIZE"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_YSIZE"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_MAXVAL"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_BIAS"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_SATURATION"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_LIMITINGMAG"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_NOISE"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_SKYGLOW"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_OAGOFFSET"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_POLAR"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_POLARDRIFT"), nullptr);
-    ASSERT_NE(IUFindNumber(p, "SIM_ROTATION"), nullptr);
+    MockCCDSimDriver().testProperties();
 }
 
 TEST(CCDSimulatorDriverTest, test_guide_api)
