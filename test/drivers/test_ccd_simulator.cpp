@@ -82,6 +82,87 @@ public:
         // TODO: verify DEC-biased RA guiding rate
         // TODO: verify property-based guiding API
     }
+
+    void testDrawStar()
+    {
+        int const xres = 65;
+        int const yres = 65;
+        int const maxval = pow(2,8);
+
+        // Setup a 65x65, 16-bit depth, 4.6u square pixel sensor
+        INumberVectorProperty * const p = getNumber("SIMULATOR_SETTINGS");
+        ASSERT_NE(p, nullptr);
+        IUFindNumber(p, "SIM_XRES")->value = (double) xres;
+        IUFindNumber(p, "SIM_YRES")->value = (double) yres;
+        // There is no way to set depth, it is hardcoded at 16-bit - so set maximum value instead
+        IUFindNumber(p, "SIM_MAXVAL")->value = (double) maxval;
+        IUFindNumber(p, "SIM_XSIZE")->value = 4.6;
+        IUFindNumber(p, "SIM_YSIZE")->value = 4.6;
+
+        // Setup some parameters to simplify verifications
+        IUFindNumber(p, "SIM_SKYGLOW")->value = 0.0;
+        IUFindNumber(p, "SIM_NOISE")->value = 0.0;
+        this->seeing = 1.0f; // No way to control seeing from properties
+
+        // Setup
+        ASSERT_TRUE(SetupParms());
+
+        // Assert our parameters
+        ASSERT_EQ(PrimaryCCD.getBPP(), 16) << "Simulator CCD depth is hardcoded at 16 bits";
+        ASSERT_EQ(PrimaryCCD.getXRes(), xres);
+        ASSERT_EQ(PrimaryCCD.getYRes(), yres);
+        ASSERT_EQ(PrimaryCCD.getPixelSizeX(), 4.6f);
+        ASSERT_EQ(PrimaryCCD.getPixelSizeY(), 4.6f);
+        ASSERT_NE(PrimaryCCD.getFrameBuffer(), nullptr) << "SetupParms creates the frame buffer";
+
+        // Assert our simplifications
+        EXPECT_EQ(this->seeing, 1.0f);
+        EXPECT_EQ(this->ImageScalex, 1.0f);
+        EXPECT_EQ(this->ImageScaley, 1.0f);
+        EXPECT_EQ(this->skyglow, 0.0f);
+        EXPECT_EQ(this->maxnoise, 0.0f);
+
+        // Draw a star at the center row/column of the sensor
+        // If we expose a magnitude of 1 for 1 second, we get 1 ADU at center, and zero elsewhere
+        // Thus in order to verify the star profile provided by the simulator up to the third decimal, we expose 1000 seconds
+        DrawImageStar(&PrimaryCCD, 0.0f, xres/2+1, xres/2+1, 1000.0f);
+
+        // Get a pointer to the 16-bit frame buffer
+        uint16_t const * const fb = reinterpret_cast<uint16_t*>(PrimaryCCD.getFrameBuffer());
+
+        // Look at center, and up to 3 pixels away, and find activated photosites there - there is no skyglow nor noise in our parameters
+        int const center = xres/2+1 + (yres/2+1)*xres;
+
+        // Center photosite
+        EXPECT_EQ(fb[center], std::min(maxval, 1000)) << "Recorded flux of magnitude 0.0 for 1000 seconds at center is 1000 ADU";
+
+        // Up, left, right and bottom photosites at one pixel
+        uint16_t const ADU_at_1pix = static_cast<uint16_t>(std::min((double)maxval, 1000.0 * exp(-1.4)));
+        EXPECT_EQ(fb[center-xres], ADU_at_1pix);
+        EXPECT_EQ(fb[center-1], ADU_at_1pix);
+        EXPECT_EQ(fb[center+1], ADU_at_1pix);
+        EXPECT_EQ(fb[center+xres], ADU_at_1pix);
+
+        // Up, left, right and bottom photosites at two pixels
+        double const ADU_at_2pix = static_cast<uint16_t>(std::min((double)maxval, 1000.0 * exp(-1.4*2*2)));
+        EXPECT_EQ(fb[center-xres*2], ADU_at_2pix);
+        EXPECT_EQ(fb[center-1*2], ADU_at_2pix);
+        EXPECT_EQ(fb[center+1*2], ADU_at_2pix);
+        EXPECT_EQ(fb[center+xres*2], ADU_at_2pix);
+
+        // Up, left, right and bottom photosite neighbors at three pixels
+        double const ADU_at_3pix = static_cast<uint16_t>(std::min((double)maxval, 1000.0 * exp(-1.4*3*3)));
+        EXPECT_EQ(fb[center-xres*3], ADU_at_3pix);
+        EXPECT_EQ(fb[center-1*3], ADU_at_3pix);
+        EXPECT_EQ(fb[center+1*3], ADU_at_3pix);
+        EXPECT_EQ(fb[center+xres*3], ADU_at_3pix);
+
+        // Up, left, right and bottom photosite neighbors at four pixels
+        EXPECT_EQ(fb[center-xres*4], 0.0);
+        EXPECT_EQ(fb[center-1*4], 0.0);
+        EXPECT_EQ(fb[center+1*4], 0.0);
+        EXPECT_EQ(fb[center+xres*4], 0.0);
+    }
 };
 
 TEST(CCDSimulatorDriverTest, test_properties)
@@ -92,6 +173,11 @@ TEST(CCDSimulatorDriverTest, test_properties)
 TEST(CCDSimulatorDriverTest, test_guide_api)
 {
     MockCCDSimDriver().testGuideAPI();
+}
+
+TEST(CCDSimulatorDriverTest, test_draw_star)
+{
+    MockCCDSimDriver().testDrawStar();
 }
 
 int main(int argc, char **argv)
