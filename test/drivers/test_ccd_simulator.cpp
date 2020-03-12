@@ -122,6 +122,9 @@ public:
         EXPECT_EQ(this->skyglow, 0.0f);
         EXPECT_EQ(this->maxnoise, 0.0f);
 
+        // The CCD frame is NOT initialized after this call, so manually clear the buffer
+        memset(this->PrimaryCCD.getFrameBuffer(), 0, this->PrimaryCCD.getFrameBufferSize());
+
         // Draw a star at the center row/column of the sensor
         // If we expose a magnitude of 1 for 1 second, we get 1 ADU at center, and zero elsewhere
         // Thus in order to verify the star profile provided by the simulator up to the third decimal, we expose 1000 seconds
