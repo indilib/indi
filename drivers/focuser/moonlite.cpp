@@ -522,7 +522,7 @@ IPState MoonLite::MoveAbsFocuser(uint32_t targetTicks)
 IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Clamp
-    int32_t newPosition = FocusAbsPosN[0].value + ((dir == FOCUS_INWARD) ? -1 : 1) * ticks;
+    int32_t newPosition = static_cast<int32_t>(FocusAbsPosN[0].value) + ((dir == FOCUS_INWARD) ? -1 : 1) * static_cast<int32_t>(ticks);
     newPosition = std::max(static_cast<int32_t>(FocusAbsPosN[0].min), std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
 
     if (!MoveFocuser(newPosition))
