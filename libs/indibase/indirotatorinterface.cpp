@@ -33,7 +33,7 @@ RotatorInterface::RotatorInterface(DefaultDevice *defaultDevice) : m_defaultDevi
 }
 
 void RotatorInterface::initProperties(const char *groupName)
-{    
+{
     // Rotator Angle
     IUFillNumber(&GotoRotatorN[0], "ANGLE", "Angle", "%.2f", 0, 360., 10., 0.);
     IUFillNumberVector(&GotoRotatorNP, GotoRotatorN, 1, m_defaultDevice->getDeviceName(), "ABS_ROTATOR_ANGLE", "Goto", groupName, IP_RW, 0, IPS_IDLE );
@@ -51,10 +51,22 @@ void RotatorInterface::initProperties(const char *groupName)
     IUFillSwitchVector(&HomeRotatorSP, HomeRotatorS, 1, m_defaultDevice->getDeviceName(), "ROTATOR_HOME", "Homing", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Reverse Direction
-    IUFillSwitch(&ReverseRotatorS[REVERSE_ENABLED], "ENABLED", "Enable", ISS_OFF);
-    IUFillSwitch(&ReverseRotatorS[REVERSE_DISABLED], "DISABLED", "Disable", ISS_ON);
+    IUFillSwitch(&ReverseRotatorS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&ReverseRotatorS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
     IUFillSwitchVector(&ReverseRotatorSP, ReverseRotatorS, 2, m_defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse", groupName, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
+
+    // Backlash Compensation
+    IUFillSwitch(&RotatorBacklashS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&RotatorBacklashS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&RotatorBacklashSP, RotatorBacklashS, 2, m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_TOGGLE", "Backlash", groupName, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
+
+
+    // Backlash Compensation Value
+    IUFillNumber(&RotatorBacklashN[0], "ROTATOR_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
+    IUFillNumberVector(&RotatorBacklashNP, RotatorBacklashN, 1, m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_STEPS", "Backlash",
+                       groupName, IP_RW, 60, IPS_OK);
 }
 
 bool RotatorInterface::processNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -100,6 +112,30 @@ bool RotatorInterface::processNumber(const char *dev, const char *name, double v
                 SyncRotatorN[0].value = values[0];
 
             IDSetNumber(&SyncRotatorNP, nullptr);
+            return true;
+        }
+        ////////////////////////////////////////////
+        // Backlash value
+        ////////////////////////////////////////////
+        else if (!strcmp(name, RotatorBacklashNP.name))
+        {
+            if (RotatorBacklashS[DefaultDevice::INDI_ENABLED].s != ISS_ON)
+            {
+                RotatorBacklashNP.s = IPS_IDLE;
+                DEBUGDEVICE(dev, Logger::DBG_WARNING, "Rotatorer backlash must be enabled first.");
+            }
+            else
+            {
+                uint32_t steps = static_cast<uint32_t>(values[0]);
+                if (SetRotatorBacklash(steps))
+                {
+                    RotatorBacklashN[0].value = values[0];
+                    RotatorBacklashNP.s = IPS_OK;
+                }
+                else
+                    RotatorBacklashNP.s = IPS_ALERT;
+            }
+            IDSetNumber(&RotatorBacklashNP, nullptr);
             return true;
         }
     }
@@ -149,9 +185,8 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
         ////////////////////////////////////////////
         else if (strcmp(name, ReverseRotatorSP.name) == 0)
         {
-            bool rc = false;
             bool enabled = (!strcmp(IUFindOnSwitchName(states, names, n), "ENABLED"));
-            rc = ReverseRotator(enabled);
+            bool rc = ReverseRotator(enabled);
 
             if (rc)
             {
@@ -187,9 +222,14 @@ bool RotatorInterface::updateProperties()
             m_defaultDevice->defineSwitch(&HomeRotatorSP);
         if (CanReverse())
             m_defaultDevice->defineSwitch(&ReverseRotatorSP);
+        if (HasBacklash())
+        {
+            m_defaultDevice->defineSwitch(&RotatorBacklashSP);
+            m_defaultDevice->defineNumber(&RotatorBacklashNP);
+        }
     }
     else
-    {        
+    {
         m_defaultDevice->deleteProperty(GotoRotatorNP.name);
 
         if (CanAbort())
@@ -200,6 +240,11 @@ bool RotatorInterface::updateProperties()
             m_defaultDevice->deleteProperty(HomeRotatorSP.name);
         if (CanReverse())
             m_defaultDevice->deleteProperty(ReverseRotatorSP.name);
+        if (HasBacklash())
+        {
+            m_defaultDevice->deleteProperty(RotatorBacklashSP.name);
+            m_defaultDevice->deleteProperty(RotatorBacklashNP.name);
+        }
     }
 
     return true;
@@ -230,4 +275,36 @@ bool RotatorInterface::ReverseRotator(bool enabled)
     DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Rotator does not support reverse.");
     return false;
 }
+
+bool RotatorInterface::SetRotatorBacklash(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Rotator does not support backlash compensation.");
+    return false;
+}
+
+bool RotatorInterface::SetRotatorBacklashEnabled(bool enabled)
+{
+    // If disabled, set the Rotatorer backlash to zero.
+    if (enabled)
+        return SetRotatorBacklash(static_cast<int32_t>(RotatorBacklashN[0].value));
+    else
+        return SetRotatorBacklash(0);
+}
+
+bool RotatorInterface::saveConfigItems(FILE *fp)
+{
+    if (CanReverse())
+    {
+        IUSaveConfigSwitch(fp, &ReverseRotatorSP);
+    }
+    if (HasBacklash())
+    {
+        IUSaveConfigSwitch(fp, &RotatorBacklashSP);
+        IUSaveConfigNumber(fp, &RotatorBacklashNP);
+    }
+
+    return true;
+}
+
 }
