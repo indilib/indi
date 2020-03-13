@@ -165,6 +165,21 @@ public:
         EXPECT_EQ(fb[center-1*4], 0.0);
         EXPECT_EQ(fb[center+1*4], 0.0);
         EXPECT_EQ(fb[center+xres*4], 0.0);
+
+        // Conclude with a random benchmark
+        auto const before = std::chrono::steady_clock::now();
+        int const loops = 200000;
+        for (int i = 0; i < loops; i++)
+        {
+            float const m = (15.0f*rand())/RAND_MAX;
+            float const x = static_cast<float>(xres*rand())/RAND_MAX;
+            float const y = static_cast<float>(yres*rand())/RAND_MAX;
+            float const e = (100.0f*rand())/RAND_MAX;
+            DrawImageStar(&PrimaryCCD, m, x, y, e);
+        }
+        auto const after = std::chrono::steady_clock::now();
+        auto const duration = std::chrono::duration_cast <std::chrono::nanoseconds> (after - before).count() / loops;
+        std::cout << "[          ] DrawStarImage - randomized no-noise no-skyglow benchmark: " << duration << "ns per call" << std::endl;
     }
 };
 
