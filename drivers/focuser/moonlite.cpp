@@ -299,9 +299,10 @@ bool MoonLite::isMoving()
     if (sendCommand(":GI#", res) == false)
         return false;
 
-    if (strcmp(res, "01#") == 0)
+    // JM 2020-03-13: 01# and 1# should be both accepted
+    if (strstr(res, "1#"))
         return true;
-    else if (strcmp(res, "00#") == 0)
+    else if (strstr(res, "0#"))
         return false;
 
     LOGF_ERROR("Unknown error: isMoving value (%s)", res);
