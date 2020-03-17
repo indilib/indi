@@ -203,6 +203,29 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
             IDSetSwitch(&ReverseRotatorSP, nullptr);
             return true;
         }
+        ////////////////////////////////////////////
+        // Backlash enable/disable
+        ////////////////////////////////////////////
+        else if (strcmp(name, RotatorBacklashSP.name) == 0)
+        {
+            bool enabled = (!strcmp(IUFindOnSwitchName(states, names, n), RotatorBacklashS[DefaultDevice::INDI_ENABLED].name));
+            bool rc = SetRotatorBacklashEnabled(enabled);
+
+            if (rc)
+            {
+                IUUpdateSwitch(&RotatorBacklashSP, states, names, n);
+                RotatorBacklashSP.s = IPS_OK;
+                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator backlash is %s.", (enabled ? "enabled" : "disabled"));
+            }
+            else
+            {
+                RotatorBacklashSP.s = IPS_ALERT;
+                DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Failed to set trigger rotator backlash.");
+            }
+
+            IDSetSwitch(&RotatorBacklashSP, nullptr);
+            return true;
+        }
     }
 
     return false;
