@@ -708,69 +708,76 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             // https://ui.adsabs.harvard.edu/link_gateway/1902AnHar..41..153K/ADS_PDF
 	    // Currently it is not possible to enable the logging in simulator devices (tested with ccd and telescope)
 	    // Replace LOGF_DEBUG by IDLog
-            LOGF_DEBUG("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", king_gamma); // without variable, macro expansion fails
-            char TRAStr[64] = {0};
-            fs_sexa(TRAStr, RA, 2, 360000);
-            char TStr[64] = {0};
-            fs_sexa(TStr, Dec, 2, 360000);
-            LOGF_DEBUG("King gamma     : %8.3f, King theta  : %8.3f\n", king_gamma / 0.0174532925, king_theta / 0.0174532925);
-            LOGF_DEBUG("tel RA         : %11s,       dec: %11s\n", TRAStr, TStr );
-            LOGF_DEBUG("tel RA         : %8.3f, Dec         : %8.3f\n", RA * 15., Dec);
-            LOGF_DEBUG("tel J2000Pos.ra: %8.3f, J2000Pos.dec: %8.3f\n", J2000Pos.ra, J2000Pos.dec);
+            //IDLog("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", king_gamma); // without variable, macro expansion fails
+            IDLog("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"); 
+            char JnRAStr[64] = {0};
+            fs_sexa(JnRAStr, RA, 2, 360000);
+            char JnDecStr[64] = {0};
+            fs_sexa(JnDecStr, Dec, 2, 360000);
+            IDLog("Longitude      : %8.3f, Latitude    : %8.3f\n", this->Longitude, this->Latitude);
+            IDLog("King gamma     : %8.3f, King theta  : %8.3f\n", king_gamma / 0.0174532925, king_theta / 0.0174532925);
+            IDLog("Jnow RA        : %11s,       dec: %11s\n", JnRAStr, JnDecStr );
+            IDLog("Jnow RA        : %8.3f, Dec         : %8.3f\n", RA * 15., Dec);
+            IDLog("J2000    Pos.ra: %8.3f,      Pos.dec: %8.3f\n", J2000Pos.ra, J2000Pos.dec);
             // Since the catalog is J2000, we  are going back in time
-            double tra = J2000Pos.ra;  // J2000Pos: 0,360, RA: 0,24
-            double tdec = J2000Pos.dec;
+	    // tra, tdec are at the center of the projection center for the simulated
+	    // images
+            //double J2ra = J2000Pos.ra;  // J2000Pos: 0,360, RA: 0,24
+            double J2dec = J2000Pos.dec;
             
-            double trar = tra * 0.0174532925;
-            double tdecr = tdec * 0.0174532925;
+            //double J2rar = J2ra * 0.0174532925;
+            double J2decr = J2dec * 0.0174532925;
             double sid  = get_local_sidereal_time(this->Longitude);
-            // apparent or J2000? see below
-            double JtraHAr  = get_local_hour_angle(sid, tra/15.) * 15. * 0.0174532925;
-            double TtraHAr  = get_local_hour_angle(sid, RA) * 15. * 0.0174532925;
+	    // HA is what is observed, that is Jnow
+	    // ToDo check if mean or apparent
+            double JnHAr  = get_local_hour_angle(sid, RA) * 15. * 0.0174532925;
             
             char sidStr[64] = {0};
             fs_sexa(sidStr, sid, 2, 3600);
-            char traRAStr[64] = {0};
-            fs_sexa(traRAStr, tra, 2, 360000);
-            char JtraHAStr[64] = {0};
-            fs_sexa(JtraHAStr, JtraHAr / 0.0174532925, 2, 360000);
-            char TtraHAStr[64] = {0};
-            fs_sexa(TtraHAStr, TtraHAr / 0.0174532925, 2, 360000);
+            char JnHAStr[64] = {0};
+            fs_sexa(JnHAStr, JnHAr /15. / 0.0174532925, 2, 360000);
             
-            LOGF_DEBUG("sid            : %s\n", sidStr);
-            LOGF_DEBUG("traRA          : %8.3f,       JtraHA: %8.3f\n", RA, JtraHAr / 0.0174532925);
-            LOGF_DEBUG("tel                              TtraHA: %8.3f\n", TtraHAr / 0.0174532925);
-            LOGF_DEBUG("J2000                         JtraHAStr: %11s\n", JtraHAStr);
-            LOGF_DEBUG("tel                           TtraHAStr: %11s\n", TtraHAStr);
+            IDLog("sid            : %s\n", sidStr);
+            IDLog("Jnow                               JnHA: %8.3f degree\n", JnHAr / 0.0174532925);
+            IDLog("                                JnHAStr: %11s hms\n", JnHAStr);
             // king_theta is the HA of the great circle where the HA axis is in. 
             // RA is a right and HA a left handed coordinate system.
-            // apparent or J2000?
-            // double traHAr = JtraHAr;
-            // apparent, since we live now :-)
-            double traHAr = TtraHAr;
+            // apparent or J2000? apparent, since we live now :-)
+
             // Transform to the mount coordinate system
-	    double td_rar = king_gamma * sin(tdecr) * sin(traHAr - king_theta) / cos(tdecr); 
-            trar -= td_rar ;
+	    // remember it is the center of the simulated image
+	    double J2_mnt_d_rar = king_gamma * sin(J2decr) * sin(JnHAr - king_theta) / cos(J2decr); 
+            double J2_mnt_rar = rar - J2_mnt_d_rar ; // rad = currentRA * 15.0; rar = rad * 0.0174532925; currentRA  = J2000Pos.ra / 15.0;
+	    
             // Imagine the HA axis points to HA=0, dec=89deg, then in the mount's coordinate
             // system a star at true dec = 88 is seen at 89 deg in the mount's system
             // Or in other words: if one uses the setting circle, that is the mount system,
             // and set it to 87 deg then the real location is at 88 deg.
-	    double td_decr = king_gamma * cos(traHAr - king_theta);
-            tdecr += td_decr ;
-
-            LOGF_DEBUG("mod sin        : %8.3f,          cos: %8.3f\n", sin(traHAr - king_theta), cos(traHAr - king_theta));
-            LOGF_DEBUG("mod dra        : %8.3f,         ddec: %8.3f (degree)\n", td_rar/0.0174532925, td_decr /0.0174532925 );
-            LOGF_DEBUG("mod ra         : %8.3f,          dec: %8.3f (degree)\n", trar/0.0174532925 , tdecr/0.0174532925 );
-            char KtraRAStr[64] = {0};
-            fs_sexa(KtraRAStr, trar / 15. / 0.0174532925, 2, 360000);
-            char KDecStr[64] = {0};
-            fs_sexa(KDecStr, tdecr / 0.0174532925, 2, 360000);
-            LOGF_DEBUG("mod ra         : %s,       dec: %s\n", KtraRAStr, KDecStr );
-            
-            // again attention: periodic error (PE) is disabled
-            rad += td_rar / 0.0174532925;
-            rar += td_rar ;
-            cameradec += td_decr / 0.0174532925;
+	    double J2_mnt_d_decr = king_gamma * cos(JnHAr - king_theta);
+            double J2_mnt_decr = decr + J2_mnt_d_decr ; // decr      = cameradec * 0.0174532925; cameradec = currentDE + OAGoffset / 60; currentDE = J2000Pos.dec;
+            IDLog("raw mod ra     : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar/0.0174532925, J2_mnt_decr /0.0174532925 );
+	    if (J2_mnt_decr > M_PI/2.) {
+	      J2_mnt_decr = M_PI/2. -(J2_mnt_decr - M_PI/2.);
+	      J2_mnt_rar -= M_PI;
+	    }
+	    J2_mnt_rar = fmod(J2_mnt_rar, 2. * M_PI) ;
+            IDLog("mod sin        : %8.3f,          cos: %8.3f\n", sin(JnHAr - king_theta), cos(JnHAr - king_theta));
+            IDLog("mod dra        : %8.3f,         ddec: %8.3f (degree)\n", J2_mnt_d_rar/0.0174532925, J2_mnt_d_decr /0.0174532925 );
+            IDLog("mod ra         : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar/0.0174532925 , J2_mnt_decr/0.0174532925 );
+            //IDLog("mod ra         : %11s,       dec: %11s\n",  );
+            char J2RAStr[64] = {0};
+            fs_sexa(J2RAStr, J2_mnt_rar / 15. / 0.0174532925, 2, 360000);
+            char J2DecStr[64] = {0};
+            fs_sexa(J2DecStr, J2_mnt_decr / 0.0174532925, 2, 360000);
+            IDLog("mod ra         : %s,       dec: %s\n", J2RAStr, J2DecStr );
+            IDLog("PEOffset       : %10.5f setting it to ZERO\n", PEOffset);
+            PEOffset = 0.;
+            // feed the result to the original variables
+            rar = J2_mnt_rar ;
+            rad = rar / 0.0174532925;
+	    decr = J2_mnt_decr;
+	    cameradec = decr / 0.0174532925;
+            IDLog("mod ra      rad: %8.3f (degree)\n", rad);
 	}
         //  if this is a light frame, we need a star field drawn
         INDI::CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
@@ -796,6 +803,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             if (!Streamer->isStreaming() || (king_gamma > 0.))
                 LOGF_DEBUG("GSC Command: %s", gsccmd);
 
+	    IDLog("-->GSC Command: %s\n", gsccmd);
             pp = popen(gsccmd, "r");
             if (pp != nullptr)
             {
