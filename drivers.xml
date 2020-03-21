@@ -65,21 +65,25 @@
             <driver name="Celestron GPS">indi_celestron_gps</driver>
             <version>3.3</version>
         </device>
+        <device label="Celestron CPC" manufacturer="Celestron">
+            <driver name="Celestron GPS">indi_celestron_gps</driver>
+            <version>3.3</version>
+        </device>
         <device label="Celestron NexStar" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.2</version>
+            <version>3.3</version>
         </device>
         <device label="Celestron AVX" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.2</version>
+            <version>3.3</version>
         </device>
         <device label="Celestron CGEM" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.2</version>
+            <version>3.3</version>
         </device>
         <device label="Celestron CGX" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.2</version>
+            <version>3.3</version>
         </device>
         <device label="Astro-Electronic FS-2">
             <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
@@ -111,7 +115,7 @@
         </device>
         <device label="Temma Takahashi" manufacturer="Takahashi">
             <driver name="Temma">indi_temma_telescope</driver>
-            <version>0.4</version>
+            <version>0.5</version>
         </device>
         <device label="Argo Navis">
             <driver name="LX200 Basic">indi_lx200basic</driver>
@@ -378,6 +382,10 @@
             <version>1.0</version>
         </device>
         <device label="DMK CCD">
+            <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
+            <version>1.0</version>
+        </device>
+        <device label="SVBONY">
             <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
             <version>1.0</version>
         </device>

@@ -90,19 +90,18 @@ TemmaMount::TemmaMount()
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_PIER_SIDE, TEMMA_SLEW_RATES);
 
-    // JM 2017-12-10: Use HA/DE instead of RA/DE for parking type?
-    SetParkDataType(PARK_HA_DEC);
+    SetParkDataType(PARK_RA_DEC);
 
     // Should be set to invalid first
     Longitude = std::numeric_limits<double>::quiet_NaN();
     Latitude  = std::numeric_limits<double>::quiet_NaN();
 
-    setVersion(0, 4);
+    setVersion(0, 5);
 }
 
 const char *TemmaMount::getDefaultName()
 {
-    return "Temma";
+    return "Temma Takahashi";
 }
 
 bool TemmaMount::initProperties()
@@ -131,10 +130,10 @@ bool TemmaMount::initProperties()
 #endif
 
     // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &Longitude);
-    currentRA  = get_local_sidereal_time(Longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &Latitude);
-    currentDEC = Latitude > 0 ? 90 : -90;
+    //    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &Longitude);
+    //    currentRA  = get_local_sidereal_time(Longitude);
+    //    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &Latitude);
+    //    currentDEC = Latitude > 0 ? 90 : -90;
 
     return true;
 }
@@ -209,22 +208,24 @@ bool TemmaMount::updateProperties()
 
     if (isConnected())
     {
+        TrackState = motorsEnabled() ? SCOPE_TRACKING : SCOPE_IDLE;
+
+        double lst = get_local_sidereal_time(Longitude);
+
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(0);
+            SetAxis1ParkDefault(range24(lst + 3 / 60.0));
             SetAxis2ParkDefault(Latitude >= 0 ? 90 : -90);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(0);
+            SetAxis1Park(range24(lst + 3 / 60.0));
             SetAxis2Park(Latitude >= 0 ? 90 : -90);
-            SetAxis1ParkDefault(0);
+            SetAxis1ParkDefault(range24(lst + 3 / 60.0));
             SetAxis2ParkDefault(Latitude >= 0 ? 90 : -90);
         }
-
-        TrackState = motorsEnabled() ? SCOPE_TRACKING : SCOPE_IDLE;
 
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
@@ -614,18 +615,15 @@ bool TemmaMount::Goto(double ra, double dec)
 
 bool TemmaMount::Park()
 {
-#if 0
-    double lha = rangeHA(GetAxis1Park());
     double lst = get_local_sidereal_time(Longitude);
-    //  Get the park position
-    double RightAscension = lst - (lha);
-    RightAscension = range24(RightAscension);
-#endif
 
-    // JM 2020-02-21: Appears going to RA = 0 puts the counter-weight in the correct
-    // position.
-    LOGF_DEBUG("head to Park position 0 %4.2f", GetAxis2Park());
-    Goto(0, GetAxis2Park());
+    // Set Axis 1 parking to LST + 3 minutes as a safe offset
+    // so that a GOTO to it would work
+    // this would end up with mount looking at pole with counter-weight down
+    SetAxis1Park(range24(lst + 3 / 60.0));
+    LOGF_DEBUG("heading to Park position %4.2f %4.2f", GetAxis1Park(), GetAxis2Park());
+
+    Goto(GetAxis1Park(), GetAxis2Park());
 
     TrackState = SCOPE_PARKING;
     LOG_INFO("Parking is in progress...");
@@ -635,36 +633,35 @@ bool TemmaMount::Park()
 
 bool TemmaMount::UnPark()
 {
+    // Get LST and set it as Axis1 Park position
+    double lst = get_local_sidereal_time(Longitude);
+    SetAxis1Park(lst);
+
+    LOGF_INFO("Syncing to Park position %4.2f %4.2f", GetAxis1Park(), GetAxis2Park());
+    Sync(GetAxis1Park(), GetAxis2Park());
+
     SetParked(false);
-    //SetTemmaMotorStatus(true);
-    motorsEnabled();
+
+    setMotorsEnabled(true);
+    if (MotorStatus)
+        TrackState = SCOPE_TRACKING;
+    else
+        TrackState = SCOPE_IDLE;
+
     return true;
 }
 
 bool TemmaMount::SetCurrentPark()
 {
-    double lha;
-    double lst;
-    //IDMessage(getDeviceName(),"Setting Default Park Position");
-    //IDMessage(getDeviceName(),"Arbitrary park positions not yet supported.");
-    //SetAxis1Park(0);
-    //SetAxis2Park(90);
-
-    lst = get_local_sidereal_time(Longitude);
-    //lha = lst - alignedRA;
-    lha = lst - currentRA;
-    lha = rangeHA(lha);
-    //  base class wont store a negative number here
-    //lha = range24(lha);
-    SetAxis1Park(lha);
+    SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
-
     return true;
 }
 
 bool TemmaMount::SetDefaultPark()
 {
-    SetAxis1Park(0);
+    double lst = get_local_sidereal_time(Longitude);
+    SetAxis1Park(range24(lst + 3 / 60.0));
     SetAxis2Park(Latitude >= 0 ? 90 : -90);
 
     return true;
@@ -910,32 +907,29 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
 
         //  We were NOT initialized, so, in case there is not park position set
         //  Sync to the position of bar vertical, telescope pointed at pole
-        double RightAscension;
-
-        RightAscension = lst - (-6); //  Hour angle is negative 6 in this case
-        RightAscension = range24(RightAscension);
-
         LOGF_DEBUG("Temma is initilized. Latitude: %.2f LST: %.2f", latitude, lst);
+        SetAxis1Park(lst);
 
-        //TemmaSync(RightAscension, 90);
-        Sync(RightAscension, 90);
-
-        LOGF_DEBUG("Initial sync on %4.2f", RightAscension);
+        LOGF_INFO("Syncing to default home position %4.2f %4.2f", GetAxis1Park(), GetAxis2Park());
+        Sync(GetAxis1Park(), GetAxis2Park());
     }
 
+#if 0
     //  if the mount is parked, then we should sync it on our park position
-    if (isParked())
+    else if (isParked())
     {
-        //  Here we have to sync on our park position
-        double RightAscension;
-        //  Get the park position
-        RightAscension = lst - (rangeHA(GetAxis1Park()));
-        RightAscension = range24(RightAscension);
-        LOGF_DEBUG("Sync to Park position %4.2f %4.2f  %4.2f", GetAxis1Park(), RightAscension,
-                   GetAxis2Park());
-        //TemmaSync(RightAscension, GetAxis2Park());
-        Sync(RightAscension, GetAxis2Park());
-        LOG_DEBUG("Turn motors off");
+        //        //  Here we have to sync on our park position
+        //        double RightAscension;
+        //        //  Get the park position
+        //        RightAscension = lst - (rangeHA(GetAxis1Park()));
+        //        RightAscension = range24(RightAscension);
+
+        double lst = get_local_sidereal_time(Longitude);
+        SetAxis1Park(lst);
+
+        LOGF_INFO("Syncing to Park position %4.2f %4.2f", GetAxis1Park(), GetAxis2Park());
+        Sync(GetAxis1Park(), GetAxis2Park());
+        LOG_DEBUG("Turning motors off.");
         setMotorsEnabled(false);
     }
     else
@@ -944,6 +938,7 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
         LOG_DEBUG("Mount is not parked");
         //SetTemmaMotorStatus(true);
     }
+#endif
 
     return true;
 }

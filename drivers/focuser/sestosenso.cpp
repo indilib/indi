@@ -568,7 +568,7 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == REVERSED_ENABLED) ? -1 : 1;
+    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
     double newPosition = FocusAbsPosN[0].value + relativeTicks;
 

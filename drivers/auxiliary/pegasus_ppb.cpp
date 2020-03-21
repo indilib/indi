@@ -127,8 +127,8 @@ bool PegasusPPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Automatic Dew
-    IUFillSwitch(&AutoDewS[AUTO_DEW_ENABLED], "AUTO_DEW_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&AutoDewS[AUTO_DEW_DISABLED], "AUTO_DEW_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitch(&AutoDewS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&AutoDewS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
     IUFillSwitchVector(&AutoDewSP, AutoDewS, 2, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Dew PWM
@@ -317,7 +317,7 @@ bool PegasusPPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         {
             int prevIndex = IUFindOnSwitchIndex(&AutoDewSP);
             IUUpdateSwitch(&AutoDewSP, states, names, n);
-            if (setAutoDewEnabled(AutoDewS[AUTO_DEW_ENABLED].s == ISS_ON))
+            if (setAutoDewEnabled(AutoDewS[INDI_ENABLED].s == ISS_ON))
             {
                 AutoDewSP.s = IPS_OK;
             }
@@ -533,8 +533,8 @@ bool PegasusPPB::getSensorData()
             IDSetNumber(&DewPWMNP, nullptr);
 
         // Auto Dew
-        AutoDewS[AUTO_DEW_ENABLED].s  = (std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF;
-        AutoDewS[AUTO_DEW_DISABLED].s = (std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_OFF : ISS_ON;
+        AutoDewS[INDI_ENABLED].s  = (std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF;
+        AutoDewS[INDI_DISABLED].s = (std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_OFF : ISS_ON;
         if (lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
             IDSetSwitch(&AutoDewSP, nullptr);
 
