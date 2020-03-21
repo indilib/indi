@@ -60,6 +60,8 @@ V4L2_Driver::V4L2_Driver()
     //sigevent sevp;
     //struct itimerspec fpssettings;
 
+    setVersion(1, 0);
+
     allocateBuffers();
 
     divider = 128.;
@@ -185,7 +187,6 @@ bool V4L2_Driver::initProperties()
 #endif
 
     v4l_base->setDeviceName(getDeviceName());
-
     return true;
 }
 

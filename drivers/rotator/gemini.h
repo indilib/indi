@@ -100,6 +100,8 @@ class Gemini : public INDI::Focuser, public INDI::RotatorInterface
         virtual IPState HomeRotator() override;
         virtual IPState MoveRotator(double angle) override;
         virtual bool ReverseRotator(bool enabled) override;
+        virtual bool SetRotatorBacklash(int32_t steps) override;
+        virtual bool SetRotatorBacklashEnabled(bool enabled) override;
 
     private:
         uint32_t focuserSimPosition = 0;
@@ -174,11 +176,11 @@ class Gemini : public INDI::Focuser, public INDI::RotatorInterface
 
         // Enable/Disable backlash
         //    ISwitch FocuserBacklashCompensationS[2];
-        //    ISwitchVectorProperty FocuserFocuserBacklashSP;
+        //    ISwitchVectorProperty FocuserFocusBacklashSP;
 
         // Backlash Value
-        //    INumber FocuserBacklashN[1];
-        //    INumberVectorProperty FocuserBacklashNP;
+        //    INumber FocusBacklashN[1];
+        //    INumberVectorProperty FocusBacklashNP;
 
         // Home On Start
         ISwitch FocuserHomeOnStartS[2];
@@ -238,14 +240,6 @@ class Gemini : public INDI::Focuser, public INDI::RotatorInterface
         ISwitch RotatorGotoS[2];
         ISwitchVectorProperty RotatorGotoSP;
 #endif
-
-        // Enable/Disable backlash
-        ISwitch RotatorBacklashCompensationS[2];
-        ISwitchVectorProperty RotatorFocuserBacklashSP;
-
-        // Backlash Value
-        INumber RotatorBacklashN[1];
-        INumberVectorProperty RotatorBacklashNP;
 
         // Home On Start
         ISwitch RotatorHomeOnStartS[2];

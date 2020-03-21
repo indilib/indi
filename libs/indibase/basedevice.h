@@ -56,6 +56,13 @@ class BaseDevice
             INDI_DISPATCH_ERROR      = -4  /*!< Dispatching command to driver failed. */
         };
 
+        /*! Used for switch Enabled/Disabled or On/Off type properties */
+        enum
+        {
+            INDI_ENABLED,
+            INDI_DISABLED
+        };
+
         /**
          * @brief The DRIVER_INTERFACE enum defines the class of devices the driver implements. A driver may implement one or more interfaces.
          */

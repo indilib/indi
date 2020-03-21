@@ -72,14 +72,14 @@ void FocuserInterface::initProperties(const char * groupName)
                        ISR_ATMOST1, 60, IPS_IDLE);
 
     // Revese
-    IUFillSwitch(&FocusReverseS[REVERSED_ENABLED], "ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&FocusReverseS[REVERSED_DISABLED], "DISABLED", "Disabled", ISS_ON);
+    IUFillSwitch(&FocusReverseS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&FocusReverseS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
     IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION", "Reverse Motion", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Backlash Compensation
-    IUFillSwitch(&FocusBacklashS[REVERSED_ENABLED], "ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&FocusBacklashS[REVERSED_DISABLED], "DISABLED", "Disabled", ISS_ON);
+    IUFillSwitch(&FocusBacklashS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&FocusBacklashS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
     IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_TOGGLE", "Backlash", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -252,7 +252,7 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
     // Set backlash value
     if (!strcmp(name, FocusBacklashNP.name))
     {
-        if (FocusBacklashS[BACKLASH_ENABLED].s != ISS_ON)
+        if (FocusBacklashS[DefaultDevice::INDI_ENABLED].s != ISS_ON)
         {
             FocusBacklashNP.s = IPS_IDLE;
             DEBUGDEVICE(dev, Logger::DBG_WARNING, "Focuser backlash must be enabled first.");
@@ -423,7 +423,7 @@ bool FocuserInterface::processSwitch(const char * dev, const char * name, ISStat
     // Backlash compensation
     if (!strcmp(name, FocusBacklashSP.name))
     {
-        bool enable = !strcmp(FocusBacklashS[BACKLASH_ENABLED].name, IUFindOnSwitchName(states, names, n));
+        bool enable = !strcmp(FocusBacklashS[DefaultDevice::INDI_ENABLED].name, IUFindOnSwitchName(states, names, n));
 
         if (SetFocuserBacklashEnabled(enable))
         {

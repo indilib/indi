@@ -54,7 +54,7 @@ git clone --depth 1 https://github.com/indilib/indi.git
 
 On the other hand, if you plan to submit a PR or engage in INDI driver development, then getting a full clone is recommended:
 ```
-git clone https://github.com/indilib/indi.github
+git clone https://github.com/indilib/indi.git
 ```
 
 ## Build indi-core
