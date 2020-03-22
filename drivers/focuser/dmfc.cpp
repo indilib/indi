@@ -117,7 +117,6 @@ bool DMFC::initProperties()
     IUFillText(&FirmwareVersionT[0], "Version", "Version", "");
     IUFillTextVector(&FirmwareVersionTP, FirmwareVersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
     FocusRelPosN[0].max   = 50000.;
@@ -128,6 +127,12 @@ bool DMFC::initProperties()
     FocusAbsPosN[0].max   = 100000.;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
+
+    // Backlash compensation
+    FocusBacklashN[0].min   = 1; // 0 is off.
+    FocusBacklashN[0].max   = 1000;
+    FocusBacklashN[0].value = 1;
+    FocusBacklashN[0].step  = 1;
 
     addDebugControl();
 
@@ -223,14 +228,12 @@ bool DMFC::ack()
     return (strstr(res, "OK_") != nullptr);
 }
 
-//bool DMFC::sync(uint32_t newPosition)
 bool DMFC::SyncFocuser(uint32_t ticks)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
     char cmd[16] = {0};
 
-    snprintf(cmd, 16, "W:%d", ticks);
+    snprintf(cmd, 16, "W:%ud", ticks);
     cmd[strlen(cmd)] = 0xA;
 
     LOGF_DEBUG("CMD <%s>", cmd);
@@ -238,6 +241,7 @@ bool DMFC::SyncFocuser(uint32_t ticks)
     // Set Position
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("sync error: %s.", errstr);
         return false;
@@ -249,10 +253,9 @@ bool DMFC::SyncFocuser(uint32_t ticks)
 bool DMFC::move(uint32_t newPosition)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
     char cmd[16] = {0};
 
-    snprintf(cmd, 16, "M:%d", newPosition);
+    snprintf(cmd, 16, "M:%ud", newPosition);
     cmd[strlen(cmd)] = 0xA;
 
     LOGF_DEBUG("CMD <%s>", cmd);
@@ -260,6 +263,7 @@ bool DMFC::move(uint32_t newPosition)
     // Set Position
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("move error: %s.", errstr);
         return false;
@@ -301,7 +305,7 @@ bool DMFC::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         if (!strcmp(name, MotorTypeSP.name))
         {
             IUUpdateSwitch(&MotorTypeSP, states, names, n);
-            bool rc = setMotorType(IUFindOnSwitchIndex(&MotorTypeSP));
+            bool rc = setMotorType(MotorTypeS[MOTOR_DC].s == ISS_ON ? 0 : 1);
             MotorTypeSP.s = rc ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&MotorTypeSP, nullptr);
             return true;
@@ -405,7 +409,8 @@ bool DMFC::updateFocusParams()
     if (motorType >= 0 && motorType <= 1)
     {
         IUResetSwitch(&MotorTypeSP);
-        MotorTypeS[motorType].s = ISS_ON;
+        MotorTypeS[MOTOR_DC].s = (motorType == 0) ? ISS_ON : ISS_OFF;
+        MotorTypeS[MOTOR_STEPPER].s = (motorType == 1) ? ISS_ON : ISS_OFF;
         MotorTypeSP.s = IPS_OK;
         IDSetSwitch(&MotorTypeSP, nullptr);
     }
@@ -493,7 +498,8 @@ bool DMFC::updateFocusParams()
     if (reverseStatus >= 0 && reverseStatus <= 1)
     {
         IUResetSwitch(&FocusReverseSP);
-        FocusReverseS[reverseStatus].s = ISS_ON;
+        FocusReverseS[INDI_ENABLED].s = (reverseStatus == 1) ? ISS_ON : ISS_OFF;
+        FocusReverseS[INDI_DISABLED].s = (reverseStatus == 0) ? ISS_ON : ISS_OFF;
         FocusReverseSP.s = IPS_OK;
         IDSetSwitch(&FocusReverseSP, nullptr);
     }
@@ -527,14 +533,16 @@ bool DMFC::updateFocusParams()
 
     int backlash = atoi(token);
     // If backlash is zero then compensation is disabled
-    if (backlash == 0 && FocusBacklashS[BACKLASH_ENABLED].s == ISS_ON)
+    if (backlash == 0 && FocusBacklashS[INDI_ENABLED].s == ISS_ON)
     {
-        FocusBacklashS[BACKLASH_ENABLED].s = ISS_OFF;
-        FocusBacklashS[BACKLASH_DISABLED].s = ISS_ON;
+        LOG_WARN("Backlash value is zero, disabling backlash switch...");
+
+        FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
+        FocusBacklashS[INDI_DISABLED].s = ISS_ON;
         FocusBacklashSP.s = IPS_IDLE;
         IDSetSwitch(&FocusBacklashSP, nullptr);
     }
-    else if (backlash > 0 && (FocusBacklashS[BACKLASH_DISABLED].s == ISS_ON || backlash != FocusBacklashN[0].value))
+    else if (backlash > 0 && (FocusBacklashS[INDI_DISABLED].s == ISS_ON || backlash != FocusBacklashN[0].value))
     {
         if (backlash != FocusBacklashN[0].value)
         {
@@ -543,10 +551,10 @@ bool DMFC::updateFocusParams()
             IDSetNumber(&FocusBacklashNP, nullptr);
         }
 
-        if (FocusBacklashS[BACKLASH_DISABLED].s == ISS_ON)
+        if (FocusBacklashS[INDI_DISABLED].s == ISS_ON)
         {
-            FocusBacklashS[BACKLASH_ENABLED].s = ISS_OFF;
-            FocusBacklashS[BACKLASH_DISABLED].s = ISS_ON;
+            FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
+            FocusBacklashS[INDI_DISABLED].s = ISS_ON;
             FocusBacklashSP.s = IPS_IDLE;
             IDSetSwitch(&FocusBacklashSP, nullptr);
         }
@@ -558,7 +566,6 @@ bool DMFC::updateFocusParams()
 bool DMFC::setMaxSpeed(uint16_t speed)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
     char cmd[16] = {0};
 
     snprintf(cmd, 16, "S:%d", speed);
@@ -571,6 +578,7 @@ bool DMFC::setMaxSpeed(uint16_t speed)
     // Set Speed
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("setMaxSpeed error: %s.", errstr);
         return false;
@@ -582,7 +590,6 @@ bool DMFC::setMaxSpeed(uint16_t speed)
 bool DMFC::ReverseFocuser(bool enabled)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
     char cmd[16] = {0};
 
     snprintf(cmd, 16, "N:%d", enabled ? 1 : 0);
@@ -595,6 +602,7 @@ bool DMFC::ReverseFocuser(bool enabled)
     // Reverse
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Reverse error: %s.", errstr);
         return false;
@@ -606,7 +614,6 @@ bool DMFC::ReverseFocuser(bool enabled)
 bool DMFC::setLedEnabled(bool enable)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
     char cmd[16] = {0};
 
     snprintf(cmd, 16, "L:%d", enable ? 2 : 1);
@@ -619,6 +626,7 @@ bool DMFC::setLedEnabled(bool enable)
     // Led
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Led error: %s.", errstr);
         return false;
@@ -630,7 +638,6 @@ bool DMFC::setLedEnabled(bool enable)
 bool DMFC::setEncodersEnabled(bool enable)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
     char cmd[16] = {0};
 
     snprintf(cmd, 16, "E:%d", enable ? 0 : 1);
@@ -643,6 +650,7 @@ bool DMFC::setEncodersEnabled(bool enable)
     // Encoders
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Encoder error: %s.", errstr);
         return false;
@@ -654,7 +662,6 @@ bool DMFC::setEncodersEnabled(bool enable)
 bool DMFC::SetFocuserBacklash(int32_t steps)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
     char cmd[16] = {0};
 
     snprintf(cmd, 16, "C:%d", steps);
@@ -667,6 +674,7 @@ bool DMFC::SetFocuserBacklash(int32_t steps)
     // Backlash
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Backlash error: %s.", errstr);
         return false;
@@ -675,13 +683,20 @@ bool DMFC::SetFocuserBacklash(int32_t steps)
     return true;
 }
 
+bool DMFC::SetFocuserBacklashEnabled(bool enabled)
+{
+    if (!enabled)
+        return SetFocuserBacklash(0);
+
+    return SetFocuserBacklash(FocusBacklashN[0].value > 0 ? FocusBacklashN[0].value : 1);
+}
+
 bool DMFC::setMotorType(uint8_t type)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
     char cmd[16] = {0};
 
-    snprintf(cmd, 16, "E:%d", (type == MOTOR_STEPPER) ? 1 : 0);
+    snprintf(cmd, 16, "R:%d", (type == MOTOR_STEPPER) ? 1 : 0);
     cmd[strlen(cmd)] = 0xA;
 
     LOGF_DEBUG("CMD <%s>", cmd);
@@ -691,6 +706,7 @@ bool DMFC::setMotorType(uint8_t type)
     // Motor Type
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Motor type error: %s.", errstr);
         return false;
@@ -703,9 +719,7 @@ IPState DMFC::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPosition = targetTicks;
 
-    bool rc = false;
-
-    rc = move(targetPosition);
+    bool rc = move(targetPosition);
 
     if (!rc)
         return IPS_ALERT;

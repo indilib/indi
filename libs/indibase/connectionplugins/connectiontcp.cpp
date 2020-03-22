@@ -26,6 +26,12 @@
 #include <cstring>
 #include <unistd.h>
 
+#ifdef __FreeBSD__
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
+
 namespace Connection
 {
 extern const char *CONNECTION_TAB;

@@ -120,16 +120,16 @@ bool MyFocuserPro2::initProperties()
 
 
     // Backlash In
-    IUFillSwitch(&BacklashInS[BACKLASH_DISABLED], "BACKLASH_DISABLED", "Off", ISS_OFF);
-    IUFillSwitch(&BacklashInS[BACKLASH_ENABLED], "BACKLASH_ENABLED", "On", ISS_OFF);
+    IUFillSwitch(&BacklashInS[INDI_ENABLED], "INDI_ENABLED", "On", ISS_OFF);
+    IUFillSwitch(&BacklashInS[INDI_DISABLED], "INDI_DISABLED", "Off", ISS_OFF);
     IUFillSwitchVector(&BacklashInSP, BacklashInS, 2, getDeviceName(), "Backlash In", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&BacklashInStepsN[0], "Steps", "", "%3.0f", 0, 512, 2, 0);
     IUFillNumberVector(&BacklashInStepsNP, BacklashInStepsN, 1, getDeviceName(), "Backlash-In", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Backlash Out
-    IUFillSwitch(&BacklashOutS[BACKLASH_DISABLED], "BACKLASH_DISABLED", "Off", ISS_OFF);
-    IUFillSwitch(&BacklashOutS[BACKLASH_ENABLED], "BACKLASH_ENABLED", "On", ISS_OFF);
+    IUFillSwitch(&BacklashOutS[INDI_ENABLED], "INDI_ENABLED", "On", ISS_OFF);
+    IUFillSwitch(&BacklashOutS[INDI_DISABLED], "INDI_DISABLED", "Off", ISS_OFF);
     IUFillSwitchVector(&BacklashOutSP, BacklashOutS, 2, getDeviceName(), "Backlash Out", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&BacklashOutStepsN[0], "Steps", "", "%3.0f", 0, 512, 2, 0);
@@ -169,7 +169,7 @@ bool MyFocuserPro2::initProperties()
 
     IUFillSwitch(&GotoHomeS[0], "GOTO_HOME", "Go", ISS_OFF);
     IUFillSwitchVector(&GotoHomeSP, GotoHomeS, 1, getDeviceName(), "Goto Home Position", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    setPollingPeriodRange(1000,30000);
+    setPollingPeriodRange(1000, 30000);
 
     setDefaultPollingPeriod(1000);
 
@@ -356,11 +356,11 @@ bool MyFocuserPro2::readReverseDirection()
 
         if(temp == 0)
         {
-            FocusReverseS[REVERSED_DISABLED].s = ISS_ON;
+            FocusReverseS[INDI_DISABLED].s = ISS_ON;
         }
         else if (temp == 1)
         {
-            FocusReverseS[REVERSED_ENABLED].s = ISS_ON;
+            FocusReverseS[INDI_ENABLED].s = ISS_ON;
         }
         else
         {
@@ -583,12 +583,12 @@ bool MyFocuserPro2::readBacklashInEnabled()
     if (rc > 0)
     {
         if(temp == 0)
-            BacklashInS[BACKLASH_DISABLED].s = ISS_ON;
+            BacklashInS[INDI_DISABLED].s = ISS_ON;
         else if (temp == 1)
-            BacklashInS[BACKLASH_ENABLED].s = ISS_ON;
+            BacklashInS[INDI_ENABLED].s = ISS_ON;
         else
             LOGF_ERROR("Unknown Repsonse: focuser Backlash IN enabled (%s)", res);
-            return false;
+        return false;
     }
     else
     {
@@ -633,12 +633,12 @@ bool MyFocuserPro2::readBacklashOutEnabled()
     if (rc > 0)
     {
         if(temp == 0)
-            BacklashOutS[BACKLASH_DISABLED].s = ISS_ON;
+            BacklashOutS[INDI_DISABLED].s = ISS_ON;
         else if (temp == 1)
-            BacklashOutS[BACKLASH_ENABLED].s = ISS_ON;
+            BacklashOutS[INDI_ENABLED].s = ISS_ON;
         else
             LOGF_ERROR("Unknown response: focuser Backlash OUT enabled (%s)", res);
-            return false;
+        return false;
     }
     else
     {
@@ -736,7 +736,8 @@ bool MyFocuserPro2::SyncFocuser(uint32_t ticks)
 bool MyFocuserPro2::MoveFocuser(uint32_t position)
 {
     char cmd[ML_RES] = {0};
-    if(isMoving()){
+    if(isMoving())
+    {
         AbortFocuser();
     }
     snprintf(cmd, ML_RES, ":05%u#", position);
@@ -750,10 +751,10 @@ bool MyFocuserPro2::setBacklashInSteps(int16_t steps)
     return sendCommand(cmd);
 }
 
-bool MyFocuserPro2::setBacklashInEnabled(bool disabled)
+bool MyFocuserPro2::setBacklashInEnabled(bool enabled)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":73%c#", disabled ? '0' : '1');
+    snprintf(cmd, ML_RES, ":73%c#", enabled ? '1' : '0');
     return sendCommand(cmd);
 }
 
@@ -764,10 +765,10 @@ bool MyFocuserPro2::setBacklashOutSteps(int16_t steps)
     return sendCommand(cmd);
 }
 
-bool MyFocuserPro2::setBacklashOutEnabled(bool disabled)
+bool MyFocuserPro2::setBacklashOutEnabled(bool enabled)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":75%c#", disabled ? '0' : '1');
+    snprintf(cmd, ML_RES, ":75%c#", enabled ? '1' : '0');
     return sendCommand(cmd);
 }
 
@@ -954,7 +955,7 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
                 IDSetSwitch(&BacklashInSP, nullptr);
             }
 
-            bool rc = setBacklashInEnabled(static_cast<DisplayMode>(target_mode));
+            bool rc = setBacklashInEnabled(target_mode == INDI_ENABLED);
             if (!rc)
             {
                 IUResetSwitch(&BacklashInSP);
@@ -984,7 +985,7 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
                 IDSetSwitch(&BacklashOutSP, nullptr);
             }
 
-            bool rc = setBacklashOutEnabled(static_cast<DisplayMode>(target_mode));
+            bool rc = setBacklashOutEnabled(target_mode == INDI_ENABLED);
             if (!rc)
             {
                 IUResetSwitch(&BacklashOutSP);

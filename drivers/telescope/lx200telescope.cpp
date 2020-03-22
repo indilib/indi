@@ -1156,12 +1156,14 @@ void LX200Telescope::getBasicData()
                 LOG_ERROR("Failed to retrieve time format from device.");
             else
             {
-                int ret = 0;
-
                 timeFormat = (timeFormat == 24) ? LX200_24 : LX200_AM;
                 // We always do 24 hours
                 if (timeFormat != LX200_24)
-                    ret = toggleTimeFormat(PortFD);
+                {
+                    // Toggle format and suppress gcc warning
+                    int rc = toggleTimeFormat(PortFD);
+                    INDI_UNUSED(rc);
+                }
             }
         }
 
@@ -1609,7 +1611,7 @@ IPState LX200Telescope::MoveFocuser(FocusDirection dir, int speed, uint16_t dura
 {
     FocusDirection finalDirection = dir;
     // Reverse final direction if necessary
-    if (FocusReverseS[REVERSED_ENABLED].s == ISS_ON)
+    if (FocusReverseS[INDI_ENABLED].s == ISS_ON)
         finalDirection = (dir == FOCUS_INWARD) ? FOCUS_OUTWARD : FOCUS_INWARD;
 
     SetFocuserSpeed(speed);

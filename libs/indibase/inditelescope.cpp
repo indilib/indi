@@ -167,8 +167,8 @@ bool Telescope::initProperties()
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&ParkS[0], "PARK", "Park", ISS_OFF);
-    IUFillSwitch(&ParkS[1], "UNPARK", "UnPark", ISS_OFF);
+    IUFillSwitch(&ParkS[0], "PARK", "Park(ed)", ISS_OFF);
+    IUFillSwitch(&ParkS[1], "UNPARK", "UnPark(ed)", ISS_OFF);
     IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "TELESCOPE_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -410,8 +410,9 @@ bool Telescope::updateProperties()
         if (HasPierSideSimulation())
         {
             defineSwitch(&SimulatePierSideSP);
-            // ensure that all properties are set
-            setSimulatePierSide(m_simulatePierSide);
+            ISState value;
+            if (IUGetConfigSwitch(getDefaultName(), "SIMULATE_PIER_SIDE", "SIMULATE_YES", &value) )
+                setSimulatePierSide(value == ISS_ON);
         }
 
         if (HasPECState())
@@ -676,9 +677,6 @@ void Telescope::NewRaDec(double ra, double dec)
 
         case SCOPE_TRACKING:
             EqNP.s = IPS_OK;
-            break;
-
-        default:
             break;
     }
 
@@ -1458,6 +1456,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
         ///////////////////////////////////
         // Simulate Pier Side
+        // This ia a major change to the design of the simulated scope, it might not handle changes on the fly
         ///////////////////////////////////
         if (!strcmp(name, SimulatePierSideSP.name))
         {
@@ -1471,9 +1470,17 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 return false;
             }
 
-            LOGF_INFO("Simulating Pier Side %s.", (index==0 ? "enabled" : "disabled"));
+            bool pierSideEnabled = index == 0;
 
-            setSimulatePierSide(index == 0);
+            LOGF_INFO("Simulating Pier Side %s.", (pierSideEnabled ? "enabled" : "disabled"));
+
+            setSimulatePierSide(pierSideEnabled);
+            if (pierSideEnabled)
+            {
+                // set the pier side from the current Ra
+                // assumes we haven't tracked across the meridian
+                setPierSide(expectedPierSide(EqN[AXIS_RA].value));
+            }
             return true;
         }
 
@@ -1634,8 +1641,8 @@ bool Telescope::SetTrackEnabled(bool enabled)
 
 int Telescope::AddTrackMode(const char *name, const char *label, bool isDefault)
 {
-    TrackModeS = (TrackModeS == nullptr) ? (ISwitch *)malloc(sizeof(ISwitch)) :
-                 (ISwitch *)realloc(TrackModeS, (TrackModeSP.nsp + 1) * sizeof(ISwitch));
+    TrackModeS = (TrackModeS == nullptr) ? static_cast<ISwitch *>(malloc(sizeof(ISwitch))) :
+                 static_cast<ISwitch *>(realloc(TrackModeS, (TrackModeSP.nsp + 1) * sizeof(ISwitch)));
 
     IUFillSwitch(&TrackModeS[TrackModeSP.nsp], name, label, isDefault ? ISS_ON : ISS_OFF);
 
@@ -1677,23 +1684,6 @@ bool Telescope::processTimeInfo(const char *utc, const char *offset)
         IUSaveText(&TimeT[1], offset);
         TimeTP.s = IPS_OK;
         IDSetText(&TimeTP, nullptr);
-
-        // 2018-04-20 JM: Update system time on ARM architecture.
-#ifdef __arm__
-#ifdef __linux__
-        struct tm utm;
-        if (strptime(utc, "%Y-%m-%dT%H:%M:%S", &utm))
-        {
-            time_t raw_time = mktime(&utm);
-            time_t now_time;
-            time(&now_time);
-            // Only sync if difference > 30 seconds
-            if (labs(now_time - raw_time) > 30)
-                stime(&raw_time);
-        }
-#endif
-#endif
-
         return true;
     }
     else
@@ -1806,7 +1796,7 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
     if (nSlewRate >= 4)
     {
         free(SlewRateS);
-        SlewRateS = (ISwitch *)malloc(sizeof(ISwitch) * nSlewRate);
+        SlewRateS = static_cast<ISwitch *>(malloc(sizeof(ISwitch) * nSlewRate));
         //int step  = nSlewRate / 4;
         for (int i = 0; i < nSlewRate; i++)
         {
@@ -2589,18 +2579,23 @@ void Telescope::setPierSide(TelescopePierSide side)
     }
 }
 
-Telescope::TelescopePierSide Telescope::expectedPierSide(double ra, double dec)
+/// Simulates pier side using the hour angle.
+/// A correct implementation uses the declination axis value, this is only for where this isn't available,
+/// such as in the telescope simulator or a GEM which does not provide any pier side or axis information.
+/// This last is deeply unsatisfactory, it will not be able to reflect the true pointing state
+/// reliably for positions close to the meridian.
+Telescope::TelescopePierSide Telescope::expectedPierSide(double ra)
 {
-    // calculate the hour angle of the given position and derive the pier side
-    double az = getAzimuth(ra, dec);
-    bool north = lnobserver.lat >= 0.;
+    // return unknown if the mount does not have pier side, this will be the case for a fork mount
+    // where a pier flip is not required.
+    if (!HasPierSide() && !HasPierSideSimulation())
+        return INDI::Telescope::PIER_UNKNOWN;
 
-    if ((0 <= az && az < 90) || (180 <= az && az < 270))
-        return (north ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
-    else
-        return (north ? INDI::Telescope::PIER_WEST : INDI::Telescope::PIER_EAST);
+    // calculate the hour angle and derive the pier side
+    double lst = get_local_sidereal_time(lnobserver.lng);
+    double hourAngle = get_local_hour_angle(lst, ra);
 
-    return PIER_UNKNOWN;
+    return hourAngle <= 0 ? INDI::Telescope::PIER_WEST : INDI::Telescope::PIER_EAST;
 }
 
 void Telescope::setPECState(TelescopePECState state)
@@ -2635,7 +2630,7 @@ bool Telescope::LoadScopeConfig()
     char ErrMsg[512];
 
     RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
-    fclose(FilePtr);    
+    fclose(FilePtr);
     delLilXML(XmlHandle);
     XmlHandle = nullptr;
     if (!RootXmlNode)
@@ -3027,6 +3022,19 @@ bool Telescope::getSimulatePierSide() const
     return m_simulatePierSide;
 }
 
+const char * Telescope::getPierSideStr(TelescopePierSide ps)
+{
+    switch (ps)
+    {
+        case PIER_WEST:
+            return "PIER_WEST";
+        case PIER_EAST:
+            return "PIER_EAST";
+        default:
+            return "PIER_UNKNOWN";
+    }
+}
+
 void Telescope::setSimulatePierSide(bool simulate)
 {
     IUResetSwitch(&SimulatePierSideSP);
@@ -3036,9 +3044,15 @@ void Telescope::setSimulatePierSide(bool simulate)
     IDSetSwitch(&SimulatePierSideSP, nullptr);
 
     if (simulate)
+    {
+        capability |= TELESCOPE_HAS_PIER_SIDE;
         defineSwitch(&PierSideSP);
+    }
     else
+    {
+        capability &= static_cast<uint32_t>(~TELESCOPE_HAS_PIER_SIDE);
         deleteProperty(PierSideSP.name);
+    }
 
     m_simulatePierSide = simulate;
 }

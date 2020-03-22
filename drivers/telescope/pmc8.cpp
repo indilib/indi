@@ -1054,7 +1054,7 @@ bool PMC8::SetDefaultPark()
 
 bool PMC8::SetTrackMode(uint8_t mode)
 {
-    uint pmc8_mode;
+    uint32_t pmc8_mode;
 
     LOGF_DEBUG("PMC8::SetTrackMode called mode=%d", mode);
 
