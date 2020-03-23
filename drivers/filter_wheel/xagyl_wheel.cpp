@@ -25,7 +25,7 @@
 
 #include <termios.h>
 
-#define XAGYL_MAXBUF 32
+#define XAGYL_MAXBUF 256
 #define SETTINGS_TAB "Settings"
 
 // We declare an auto pointer to XAGYLWheel.
