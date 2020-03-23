@@ -81,7 +81,6 @@ CCDSim::CCDSim() : INDI::FilterInterface(this)
     time(&RunStart);
 
     SimulatorSettingsNV = new INumberVectorProperty;
-    TimeFactorSV        = new ISwitchVectorProperty;
 
     // Filter stuff
     FilterSlotN[0].min = 1;
@@ -114,6 +113,7 @@ bool CCDSim::SetupParms()
     //  Kwiq++
     king_gamma = SimulatorSettingsN[14].value * 0.0174532925;
     king_theta = SimulatorSettingsN[15].value * 0.0174532925;
+    TimeFactor = SimulatorSettingsN[16].value;
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     //nbuf += 512;
@@ -147,7 +147,7 @@ bool CCDSim::Disconnect()
 
 const char * CCDSim::getDefaultName()
 {
-    return static_cast<const char *>("CCD Simulator");
+    return "CCD Simulator";
 }
 
 bool CCDSim::initProperties()
@@ -171,22 +171,17 @@ bool CCDSim::initProperties()
                  0); /* PAE = Polar Alignment Error */
     IUFillNumber(&SimulatorSettingsN[12], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 6000, 0, 0);
     IUFillNumber(&SimulatorSettingsN[13], "SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[14], "SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0); 
+    IUFillNumber(&SimulatorSettingsN[14], "SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
     IUFillNumber(&SimulatorSettingsN[15], "SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
+    IUFillNumber(&SimulatorSettingsN[16], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
 
-    IUFillNumberVector(SimulatorSettingsNV, SimulatorSettingsN, 16, getDeviceName(), "SIMULATOR_SETTINGS",
+    IUFillNumberVector(SimulatorSettingsNV, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
                        "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
     IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
     IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
     IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
-                       "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-    IUFillSwitch(&TimeFactorS[0], "1X", "Actual Time", ISS_ON);
-    IUFillSwitch(&TimeFactorS[1], "10X", "10x", ISS_OFF);
-    IUFillSwitch(&TimeFactorS[2], "100X", "100x", ISS_OFF);
-    IUFillSwitchVector(TimeFactorSV, TimeFactorS, 3, getDeviceName(), "ON_TIME_FACTOR", "Time Factor",
                        "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
@@ -273,7 +268,6 @@ void CCDSim::ISGetProperties(const char * dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineNumber(SimulatorSettingsNV);
-    defineSwitch(TimeFactorSV);
     defineNumber(&EqPENP);
     defineSwitch(&SimulateRgbSP);
 }
@@ -525,22 +519,22 @@ void CCDSim::TimerHit()
 int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 {
     //  CCD frame is 16 bit data
-    float ExposureTime;
+    float exposure_time;
     float targetFocalLength;
 
     uint16_t * ptr = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
     if (targetChip->getXRes() == 500)
-        ExposureTime = GuideExposureRequest * 4;
+        exposure_time = GuideExposureRequest * 4;
     else if (Streamer->isStreaming())
-        ExposureTime = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
+        exposure_time = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
     else
-        ExposureTime = ExposureRequest;
+        exposure_time = ExposureRequest;
 
     if (GainN[0].value > 50)
-        ExposureTime *= sqrt(GainN[0].value - 50);
+        exposure_time *= sqrt(GainN[0].value - 50);
     else if (GainN[0].value < 50)
-        ExposureTime /= sqrt(50 - GainN[0].value);
+        exposure_time /= sqrt(50 - GainN[0].value);
 
     if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
         targetFocalLength = primaryFocalLength;
@@ -697,19 +691,20 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
         if (radius > 60)
             lookuplimit = 11;
-	
-	if (king_gamma > 0.) {
-	    // wildi, make sure there are always stars, e.g. in case where king_gamma is set to 1 degree.
-	    // Otherwise the solver will fail.
-	    radius = 60.;
-	
+
+        if (king_gamma > 0.)
+        {
+            // wildi, make sure there are always stars, e.g. in case where king_gamma is set to 1 degree.
+            // Otherwise the solver will fail.
+            radius = 60.;
+
             // wildi, transform to telescope coordinate system, differential form
             // see E.S. King based on Chauvenet:
             // https://ui.adsabs.harvard.edu/link_gateway/1902AnHar..41..153K/ADS_PDF
-	    // Currently it is not possible to enable the logging in simulator devices (tested with ccd and telescope)
-	    // Replace LOGF_DEBUG by IDLog
+            // Currently it is not possible to enable the logging in simulator devices (tested with ccd and telescope)
+            // Replace LOGF_DEBUG by IDLog
             //IDLog("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++", king_gamma); // without variable, macro expansion fails
-            IDLog("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"); 
+            IDLog("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
             char JnRAStr[64] = {0};
             fs_sexa(JnRAStr, RA, 2, 360000);
             char JnDecStr[64] = {0};
@@ -720,50 +715,51 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             IDLog("Jnow RA        : %8.3f, Dec         : %8.3f\n", RA * 15., Dec);
             IDLog("J2000    Pos.ra: %8.3f,      Pos.dec: %8.3f\n", J2000Pos.ra, J2000Pos.dec);
             // Since the catalog is J2000, we  are going back in time
-	    // tra, tdec are at the center of the projection center for the simulated
-	    // images
+            // tra, tdec are at the center of the projection center for the simulated
+            // images
             //double J2ra = J2000Pos.ra;  // J2000Pos: 0,360, RA: 0,24
             double J2dec = J2000Pos.dec;
-            
+
             //double J2rar = J2ra * 0.0174532925;
             double J2decr = J2dec * 0.0174532925;
             double sid  = get_local_sidereal_time(this->Longitude);
-	    // HA is what is observed, that is Jnow
-	    // ToDo check if mean or apparent
+            // HA is what is observed, that is Jnow
+            // ToDo check if mean or apparent
             double JnHAr  = get_local_hour_angle(sid, RA) * 15. * 0.0174532925;
-            
+
             char sidStr[64] = {0};
             fs_sexa(sidStr, sid, 2, 3600);
             char JnHAStr[64] = {0};
-            fs_sexa(JnHAStr, JnHAr /15. / 0.0174532925, 2, 360000);
-            
+            fs_sexa(JnHAStr, JnHAr / 15. / 0.0174532925, 2, 360000);
+
             IDLog("sid            : %s\n", sidStr);
             IDLog("Jnow                               JnHA: %8.3f degree\n", JnHAr / 0.0174532925);
             IDLog("                                JnHAStr: %11s hms\n", JnHAStr);
-            // king_theta is the HA of the great circle where the HA axis is in. 
+            // king_theta is the HA of the great circle where the HA axis is in.
             // RA is a right and HA a left handed coordinate system.
             // apparent or J2000? apparent, since we live now :-)
 
             // Transform to the mount coordinate system
-	    // remember it is the center of the simulated image
-	    double J2_mnt_d_rar = king_gamma * sin(J2decr) * sin(JnHAr - king_theta) / cos(J2decr); 
+            // remember it is the center of the simulated image
+            double J2_mnt_d_rar = king_gamma * sin(J2decr) * sin(JnHAr - king_theta) / cos(J2decr);
             double J2_mnt_rar = rar - J2_mnt_d_rar ; // rad = currentRA * 15.0; rar = rad * 0.0174532925; currentRA  = J2000Pos.ra / 15.0;
-	    
+
             // Imagine the HA axis points to HA=0, dec=89deg, then in the mount's coordinate
             // system a star at true dec = 88 is seen at 89 deg in the mount's system
             // Or in other words: if one uses the setting circle, that is the mount system,
             // and set it to 87 deg then the real location is at 88 deg.
-	    double J2_mnt_d_decr = king_gamma * cos(JnHAr - king_theta);
+            double J2_mnt_d_decr = king_gamma * cos(JnHAr - king_theta);
             double J2_mnt_decr = decr + J2_mnt_d_decr ; // decr      = cameradec * 0.0174532925; cameradec = currentDE + OAGoffset / 60; currentDE = J2000Pos.dec;
-            IDLog("raw mod ra     : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar/0.0174532925, J2_mnt_decr /0.0174532925 );
-	    if (J2_mnt_decr > M_PI/2.) {
-	      J2_mnt_decr = M_PI/2. -(J2_mnt_decr - M_PI/2.);
-	      J2_mnt_rar -= M_PI;
-	    }
-	    J2_mnt_rar = fmod(J2_mnt_rar, 2. * M_PI) ;
+            IDLog("raw mod ra     : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar / 0.0174532925, J2_mnt_decr / 0.0174532925 );
+            if (J2_mnt_decr > M_PI / 2.)
+            {
+                J2_mnt_decr = M_PI / 2. - (J2_mnt_decr - M_PI / 2.);
+                J2_mnt_rar -= M_PI;
+            }
+            J2_mnt_rar = fmod(J2_mnt_rar, 2. * M_PI) ;
             IDLog("mod sin        : %8.3f,          cos: %8.3f\n", sin(JnHAr - king_theta), cos(JnHAr - king_theta));
-            IDLog("mod dra        : %8.3f,         ddec: %8.3f (degree)\n", J2_mnt_d_rar/0.0174532925, J2_mnt_d_decr /0.0174532925 );
-            IDLog("mod ra         : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar/0.0174532925 , J2_mnt_decr/0.0174532925 );
+            IDLog("mod dra        : %8.3f,         ddec: %8.3f (degree)\n", J2_mnt_d_rar / 0.0174532925, J2_mnt_d_decr / 0.0174532925 );
+            IDLog("mod ra         : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar / 0.0174532925, J2_mnt_decr / 0.0174532925 );
             //IDLog("mod ra         : %11s,       dec: %11s\n",  );
             char J2RAStr[64] = {0};
             fs_sexa(J2RAStr, J2_mnt_rar / 15. / 0.0174532925, 2, 360000);
@@ -775,10 +771,10 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             // feed the result to the original variables
             rar = J2_mnt_rar ;
             rad = rar / 0.0174532925;
-	    decr = J2_mnt_decr;
-	    cameradec = decr / 0.0174532925;
+            decr = J2_mnt_decr;
+            cameradec = decr / 0.0174532925;
             IDLog("mod ra      rad: %8.3f (degree)\n", rad);
-	}
+        }
         //  if this is a light frame, we need a star field drawn
         INDI::CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
 
@@ -803,7 +799,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             if (!Streamer->isStreaming() || (king_gamma > 0.))
                 LOGF_DEBUG("GSC Command: %s", gsccmd);
 
-	    IDLog("-->GSC Command: %s\n", gsccmd);
+            IDLog("-->GSC Command: %s\n", gsccmd);
             pp = popen(gsccmd, "r");
             if (pp != nullptr)
             {
@@ -847,7 +843,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
                         //fprintf(stderr,"line %s",line);
                         //fprintf(stderr,"parsed %6.5f %6.5f\n",ra,dec);
-			
+
                         srar  = ra * 0.0174532925;
                         sdecr = dec * 0.0174532925;
                         //  Handbook of astronomical image processing
@@ -867,7 +863,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                         // Invert horizontally
                         ccdx = ccdW - ccdx;
 
-                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy, ExposureTime);
+                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy, exposure_time);
                         drawn += rc;
                         if (rc == 1)
                         {
@@ -912,8 +908,8 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             skyflux = pow(10, ((glow - z) * k / -2.5));
             //  ok, flux represents one second now
             //  scale up linearly for exposure time
-            skyflux = skyflux * ExposureTime;
-            //IDLog("SkyFlux = %g ExposureRequest %g\n",skyflux,ExposureTime);
+            skyflux = skyflux * exposure_time;
+            //IDLog("SkyFlux = %g ExposureRequest %g\n",skyflux,exposure_time);
 
             uint16_t * pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
@@ -1006,7 +1002,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     return 0;
 }
 
-int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float y, float ExposureTime)
+int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float y, float exposure_time)
 {
     //float d;
     //float r;
@@ -1032,7 +1028,7 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
 
     //  ok, flux represents one second now
     //  scale up linearly for exposure time
-    flux = flux * ExposureTime;
+    flux = flux * exposure_time;
 
     float qx;
     //  we need a box size that gives a radius at least 3 times fwhm
@@ -1188,6 +1184,21 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             SetupParms();
             IDSetNumber(SimulatorSettingsNV, nullptr);
 
+            maxnoise      = SimulatorSettingsN[8].value;
+            skyglow       = SimulatorSettingsN[9].value;
+            maxval        = SimulatorSettingsN[4].value;
+            bias          = SimulatorSettingsN[5].value;
+            limitingmag   = SimulatorSettingsN[7].value;
+            saturationmag = SimulatorSettingsN[6].value;
+            OAGoffset = SimulatorSettingsN[10].value;
+            polarError = SimulatorSettingsN[11].value;
+            polarDrift = SimulatorSettingsN[12].value;
+            rotationCW = SimulatorSettingsN[13].value;
+            //  Kwiq++
+            king_gamma = SimulatorSettingsN[14].value * 0.0174532925;
+            king_theta = SimulatorSettingsN[15].value * 0.0174532925;
+            TimeFactor = SimulatorSettingsN[16].value;
+
             return true;
         }
 
@@ -1228,73 +1239,47 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, "ON_TIME_FACTOR") == 0)
-        {
-            //  client is telling us what to do with co-ordinate requests
-            TimeFactorSV->s = IPS_OK;
-            IUUpdateSwitch(TimeFactorSV, states, names, n);
-            //  Update client display
-            IDSetSwitch(TimeFactorSV, nullptr);
 
-            if (TimeFactorS[0].s == ISS_ON)
+        if (!strcmp(name, SimulateRgbSP.name))
+        {
+            IUUpdateSwitch(&SimulateRgbSP, states, names, n);
+            int index = IUFindOnSwitchIndex(&SimulateRgbSP);
+            if (index == -1)
             {
-                //IDLog("CCDSim:: Time Factor 1\n");
-                TimeFactor = 1;
+                SimulateRgbSP.s = IPS_ALERT;
+                LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
+                IDSetSwitch(&SimulateRgbSP, nullptr);
+                return false;
             }
-            if (TimeFactorS[1].s == ISS_ON)
-            {
-                //IDLog("CCDSim:: Time Factor 0.1\n");
-                TimeFactor = 0.1;
-            }
-            if (TimeFactorS[2].s == ISS_ON)
-            {
-                //IDLog("CCDSim:: Time Factor 0.01\n");
-                TimeFactor = 0.01;
-            }
+
+            simulateRGB = index == 0;
+            setRGB(simulateRGB);
+
+            SimulateRgbS[0].s = simulateRGB ? ISS_ON : ISS_OFF;
+            SimulateRgbS[1].s = simulateRGB ? ISS_OFF : ISS_ON;
+            SimulateRgbSP.s   = IPS_OK;
+            IDSetSwitch(&SimulateRgbSP, nullptr);
 
             return true;
         }
-    }
 
-    if (!strcmp(name, SimulateRgbSP.name))
-    {
-        IUUpdateSwitch(&SimulateRgbSP, states, names, n);
-        int index = IUFindOnSwitchIndex(&SimulateRgbSP);
-        if (index == -1)
+        if (strcmp(name, CoolerSP.name) == 0)
         {
-            SimulateRgbSP.s = IPS_ALERT;
-            LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
-            IDSetSwitch(&SimulateRgbSP, nullptr);
-            return false;
+            IUUpdateSwitch(&CoolerSP, states, names, n);
+
+            if (CoolerS[0].s == ISS_ON)
+                CoolerSP.s = IPS_BUSY;
+            else
+            {
+                CoolerSP.s         = IPS_IDLE;
+                TemperatureRequest = 20;
+                TemperatureNP.s    = IPS_BUSY;
+            }
+
+            IDSetSwitch(&CoolerSP, nullptr);
+
+            return true;
         }
-
-        simulateRGB = index == 0;
-        setRGB(simulateRGB);
-
-        SimulateRgbS[0].s = simulateRGB ? ISS_ON : ISS_OFF;
-        SimulateRgbS[1].s = simulateRGB ? ISS_OFF : ISS_ON;
-        SimulateRgbSP.s   = IPS_OK;
-        IDSetSwitch(&SimulateRgbSP, nullptr);
-
-        return true;
-    }
-
-    if (strcmp(name, CoolerSP.name) == 0)
-    {
-        IUUpdateSwitch(&CoolerSP, states, names, n);
-
-        if (CoolerS[0].s == ISS_ON)
-            CoolerSP.s = IPS_BUSY;
-        else
-        {
-            CoolerSP.s         = IPS_IDLE;
-            TemperatureRequest = 20;
-            TemperatureNP.s    = IPS_BUSY;
-        }
-
-        IDSetSwitch(&CoolerSP, nullptr);
-
-        return true;
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -1374,7 +1359,6 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Save CCD Simulator Config
     IUSaveConfigNumber(fp, SimulatorSettingsNV);
-    IUSaveConfigSwitch(fp, TimeFactorSV);
 
     // Gain
     IUSaveConfigNumber(fp, &GainNP);
