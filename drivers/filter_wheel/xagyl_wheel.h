@@ -134,8 +134,8 @@ class XAGYLWheel : public INDI::FilterWheel
         static constexpr const char * SETTINGS_TAB = "Settings";
         // 0xA is the stop char
         static const char DRIVER_STOP_CHAR { 0xA };
-        // Wait up to a maximum of 3 seconds for serial input
-        static constexpr const uint8_t DRIVER_TIMEOUT {3};
+        // Wait up to a maximum of 15 seconds for serial input
+        static constexpr const uint8_t DRIVER_TIMEOUT {15};
         // Maximum buffer for sending/receving.
         static constexpr const uint8_t DRIVER_LEN {64};
 };
