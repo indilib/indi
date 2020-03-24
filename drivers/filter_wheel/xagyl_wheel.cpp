@@ -669,7 +669,7 @@ bool XAGYLWheel::setOffset(int value)
 bool XAGYLWheel::getOffset(int filter)
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "0%d", filter + 1);
+    snprintf(cmd, DRIVER_LEN, "O%d", filter + 1);
     if (!sendCommand(cmd, res))
         return false;
 
