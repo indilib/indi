@@ -711,10 +711,7 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res, int cmd_len, int res_
     else
     {
         LOGF_DEBUG("CMD <%s>", cmd);
-
-        char formatted_command[DRIVER_LEN] = {0};
-        snprintf(formatted_command, DRIVER_LEN, "%s\r", cmd);
-        rc = tty_write_string(PortFD, formatted_command, &nbytes_written);
+        rc = tty_write_string(PortFD, cmd, &nbytes_written);
     }
 
     if (rc != TTY_OK)
