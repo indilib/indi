@@ -752,9 +752,9 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res, int cmd_len, int res_
     else
     {
         // Remove extra \r
-        assert(nbytes_read > 0);
+        assert(nbytes_read > 1);
 
-        res[nbytes_read - 1] = 0;
+        res[nbytes_read - 2] = 0;
         LOGF_DEBUG("RES <%s>", res);
     }
 
@@ -786,10 +786,10 @@ bool XAGYLWheel::optionalResponse(char *res)
     }
 
     // Remove extra \r
-    assert(nbytes_read > 0);
+    assert(nbytes_read > 1);
 
-    res[nbytes_read - 1] = 0;
-    LOGF_DEBUG("RES <%s>", res);
+    res[nbytes_read - 2] = 0;
+    LOGF_DEBUG("RES (optional) <%s>", res);
 
     return true;
 }
