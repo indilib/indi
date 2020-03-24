@@ -486,6 +486,8 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
     }
 
     // Commands that have no reply
+    /*
+      Huh? Goto responds with a position or error on 1.99.
     switch (cmd)
     {
         case SET_POSITION:
@@ -495,6 +497,7 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
         default:
             break;
     }
+    */
 
     char response[XAGYL_MAXBUF]={0};
 
@@ -502,6 +505,11 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
     {
         switch (cmd)
         {
+            case SET_POSITION:
+                simData.position = value;
+                snprintf(response, XAGYL_MAXBUF, "P%d", simData.position);
+                break;
+
             case SET_SPEED:
                 simData.speed = value / 10;
                 snprintf(response, XAGYL_MAXBUF, "Speed=%3d%%", simData.speed * 10);
