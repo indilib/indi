@@ -79,7 +79,7 @@ class XAGYLWheel : public INDI::FilterWheel
 
         // Calibration offset
         bool getOffset(int filter);
-        bool setOffset(int value);
+        bool setOffset(int filter, int shift);
 
         // Reset
         bool reset(int value);

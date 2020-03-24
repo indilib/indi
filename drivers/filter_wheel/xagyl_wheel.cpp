@@ -283,24 +283,29 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
     // Handle Offsets
     if (strcmp(OffsetNP.name, name) == 0)
     {
+        // Setting offsets changes the current filter.
+        int origFiler = CurrentFilter;
         bool rc_offset = true;
 
         for (int i = 0; i < n; i++)
         {
-            if (!strcmp(names[i], OffsetN[i].name))
-            {
-                if (std::abs(values[i] - OffsetN[i].value) > 0)
-                {
-                    if (values[i] > OffsetN[i].value)
-                        rc_offset &= setOffset(1);
-                    else
-                        rc_offset &= setOffset(-1);
-                }
-            }
+            if (0 != strcmp(names[i], OffsetN[i].name))
+                continue;
+
+            int newOffset = values[i];
+            int curOffset = OffsetN[i].value;
+
+            if (newOffset != curOffset)
+                rc_offset &= setOffset(i + 1, newOffset - curOffset);
         }
 
         OffsetNP.s = rc_offset ? IPS_OK : IPS_ALERT;
         IDSetNumber(&OffsetNP, nullptr);
+
+        // Return filter to original position.
+        if (!SelectFilter(origFiler))
+            return false;
+
         return true;
     }
 
@@ -383,8 +388,7 @@ void XAGYLWheel::initOffset()
     {
         snprintf(offsetName, MAXINDINAME, "OFFSET_%d", i + 1);
         snprintf(offsetLabel, MAXINDINAME, "#%d Offset", i + 1);
-        IUFillNumber(OffsetN + i, offsetName, offsetLabel, "%.f",
-                     -99, 99, 10, 0);
+        IUFillNumber(OffsetN + i, offsetName, offsetLabel, "%.f", -9, 9, 1, 0);
     }
 
     IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotN[0].max, getDeviceName(),
@@ -675,15 +679,30 @@ bool XAGYLWheel::reset(int value)
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// Offset values are relative encoded to the current filter selected.
 ///
+/// Unfortunately, this means that to set them we have to move the wheel.
+///
+/// The valid range is -10 to 10, but the device prints -: for -10. Because of
+/// this, we only support -9 to 9 for simplicity.
 /////////////////////////////////////////////////////////////////////////////
-bool XAGYLWheel::setOffset(int value)
+bool XAGYLWheel::setOffset(int filter, int shift)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
-    snprintf(cmd, DRIVER_LEN, "%s", value > 0 ? "(" : ")");
-    if (!sendCommand(cmd, res))
+    if (!SelectFilter(filter))
         return false;
 
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "%s0", shift > 0 ? "(" : ")");
+
+    // Set filter offset.
+    for (int i = 0; i < std::abs(shift); ++i)
+    {
+        res[0] = 0;
+        if (!sendCommand(cmd, res))
+            return false;
+    }
+
+    // Update filter offset based on result.
     int filter_num = 0, offset = 0;
     int rc = sscanf(res, "P%d Offset %d", &filter_num, &offset);
 
