@@ -51,7 +51,6 @@ class XAGYLWheel : public INDI::FilterWheel
         const char *getDefaultName() override;
 
         bool Handshake() override;
-        void TimerHit() override;
 
         bool SelectFilter(int) override;
         bool saveConfigItems(FILE *fp) override;
@@ -83,6 +82,7 @@ class XAGYLWheel : public INDI::FilterWheel
         /// Communication Functions
         ///////////////////////////////////////////////////////////////////////////////
         bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        bool optionalResponse(char * res);
         void hexDump(char * buf, const char * data, int size);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
@@ -132,10 +132,16 @@ class XAGYLWheel : public INDI::FilterWheel
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
         static constexpr const char * SETTINGS_TAB = "Settings";
+
         // 0xA is the stop char
         static const char DRIVER_STOP_CHAR { 0xA };
-        // Wait up to a maximum of 15 seconds for serial input
-        static constexpr const uint8_t DRIVER_TIMEOUT {15};
+
+        // Wait up to a maximum of 15 seconds for normal serial input
+        static constexpr const int DRIVER_TIMEOUT {15};
+
+        // Some commands optionally return an extra string.
+        static constexpr const int FLUSH_TIMEOUT {1};
+
         // Maximum buffer for sending/receving.
-        static constexpr const uint8_t DRIVER_LEN {64};
+        static constexpr const int DRIVER_LEN {64};
 };

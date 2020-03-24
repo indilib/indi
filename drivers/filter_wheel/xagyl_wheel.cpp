@@ -20,6 +20,7 @@
 #include "indicom.h"
 
 #include <cstring>
+#include <cassert>
 #include <memory>
 #include <regex>
 #include <termios.h>
@@ -159,6 +160,8 @@ bool XAGYLWheel::Handshake()
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
+    tcflush(PortFD, TCIOFLUSH);
+
     snprintf(cmd, DRIVER_LEN, "I%d", INFO_FIRMWARE_VERSION);
     if (!sendCommand(cmd, res))
         return false;
@@ -169,26 +172,35 @@ bool XAGYLWheel::Handshake()
     if (fw_rc != 1)
         fw_rc = sscanf(res, "FW %d", &firmware_version);
 
-    if (fw_rc > 0)
+    if (fw_rc <= 0)
     {
-        m_FirmwareVersion = firmware_version;
-
-        // We don't have pulse width for version < 3
-        if (m_FirmwareVersion < 3)
-            SettingsNP.nnp--;
-
-        if (getMaxFilterSlots())
-        {
-            initOffset();
-
-            LOG_INFO("XAGYL is online. Getting filter parameters...");
-            return true;
-        }
+        LOGF_ERROR("Unable to parse response <%s>", res);
+        return false;
     }
 
-    LOGF_ERROR("Unable to parse response <%s>", res);
+    m_FirmwareVersion = firmware_version;
 
-    return false;
+    // We don't have pulse width for version < 3
+    if (m_FirmwareVersion < 3)
+        SettingsNP.nnp--;
+
+    bool rc = getMaxFilterSlots();
+    if (!rc) {
+        LOG_ERROR("Unable to parse max filter slots.");
+        return false;
+    }
+
+    initOffset();
+
+    rc = getFilterPosition();
+    if (!rc) {
+        LOG_ERROR("Unable to initialize filter position.");
+        return false;
+    }
+
+    LOG_INFO("XAGYL is online. Getting filter parameters...");
+
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -405,34 +417,29 @@ bool XAGYLWheel::setCommand(SET_COMMAND command, int value)
 /////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::SelectFilter(int f)
 {
+    // The wheel does not return a response when setting the value to the
+    // current number.
+    if (CurrentFilter == f) {
+        SelectFilterDone(CurrentFilter);
+        return true;
+    }
+
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "G%X", f);
     if (!sendCommand(cmd, res))
         return false;
 
-    TargetFilter = f;
-    SetTimer(POLLMS);
+    char opt[DRIVER_LEN] = {0};
+    if (!optionalResponse(opt))
+        return false;
+
+    if (getFilterPosition())
+        return false;
+
+    SelectFilterDone(CurrentFilter);
+
     return true;
 
-}
-
-/////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////
-void XAGYLWheel::TimerHit()
-{
-    bool rc = getFilterPosition();
-
-    if (rc == false)
-    {
-        SetTimer(POLLMS);
-        return;
-    }
-
-    if (CurrentFilter == TargetFilter)
-        SelectFilterDone(CurrentFilter);
-    else
-        SetTimer(POLLMS);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -699,8 +706,6 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res, int cmd_len, int res_
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
-    tcflush(PortFD, TCIOFLUSH);
-
     if (cmd_len > 0)
     {
         char hex_cmd[DRIVER_LEN * 3] = {0};
@@ -747,11 +752,44 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res, int cmd_len, int res_
     else
     {
         // Remove extra \r
+        assert(nbytes_read > 0);
+
         res[nbytes_read - 1] = 0;
         LOGF_DEBUG("RES <%s>", res);
     }
 
-    tcflush(PortFD, TCIOFLUSH);
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Read optional response in receive buffer to flush input
+/////////////////////////////////////////////////////////////////////////////
+
+bool XAGYLWheel::optionalResponse(char *res)
+{
+    int nbytes_read = 0, rc = -1;
+
+    rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, FLUSH_TIMEOUT,
+                           &nbytes_read);
+    if (rc == TTY_TIME_OUT)
+    {
+        res[0] = '\0';
+        LOG_DEBUG("RES (optional): not found.");
+        return true;
+    }
+    else if (rc != TTY_OK)
+    {
+        char errstr[MAXRBUF] = {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial read error: %s.", errstr);
+        return false;
+    }
+
+    // Remove extra \r
+    assert(nbytes_read > 0);
+
+    res[nbytes_read - 1] = 0;
+    LOGF_DEBUG("RES <%s>", res);
 
     return true;
 }
