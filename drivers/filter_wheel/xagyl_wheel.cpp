@@ -196,8 +196,9 @@ bool XAGYLWheel::Handshake()
     m_FirmwareVersion = firmware_version;
 
     // We don't have pulse width for version < 3
+    SettingsNP.nnp = 4;
     if (m_FirmwareVersion < 3)
-        SettingsNP.nnp--;
+        SettingsNP.nnp = 3;
 
     bool rc = getMaxFilterSlots();
     if (!rc)
