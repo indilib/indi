@@ -232,35 +232,33 @@ bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states,
         if (strcmp(ResetSP.name, name) == 0)
         {
             IUUpdateSwitch(&ResetSP, states, names, n);
-            int value = IUFindOnSwitchIndex(&ResetSP);
+            int command = IUFindOnSwitchIndex(&ResetSP);
             IUResetSwitch(&ResetSP);
 
-            if (value == COMMAND_PERFORM_CALIBRAITON)
-                value = 6;
-
-            bool rc = reset(value);
-
-            if (rc)
+            switch (command)
             {
-                switch (value)
-                {
-                    case COMMAND_REBOOT:
-                        LOG_INFO("Executing hard reboot...");
-                        break;
+                case COMMAND_REBOOT:
+                    LOG_INFO("Executing hard reboot...");
+                    break;
 
-                    case COMMAND_INIT:
-                        LOG_INFO("Restarting and moving to filter position #1...");
-                        break;
+                case COMMAND_INIT:
+                    LOG_INFO("Restarting and moving to filter position #1...");
+                    break;
 
-                    case COMMAND_CLEAR_CALIBRATION:
-                        LOG_INFO("Calibration removed.");
-                        break;
+                case COMMAND_CLEAR_CALIBRATION:
+                    LOG_INFO("Calibration removed.");
+                    break;
 
-                    case 6:
-                        LOG_INFO("Calibrating...");
-                        break;
-                }
+                case COMMAND_PERFORM_CALIBRAITON:
+                    LOG_INFO("Calibrating...");
+                    break;
             }
+
+            bool rc = reset(command);
+            if (rc)
+                LOG_INFO("Done.");
+            else
+                LOG_ERROR("Error. Please reset device.");
 
             ResetSP.s = rc ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&ResetSP, nullptr);
@@ -468,7 +466,7 @@ bool XAGYLWheel::SelectFilter(int f)
 
     // On success, the wheel may also return an ERROR on a second line.
     char opt[DRIVER_LEN] = {0};
-    if (!optionalResponse(opt))
+    if (!receiveResponse(opt, true))
         return false;
 
     if (!getFilterPosition())
@@ -665,16 +663,51 @@ bool XAGYLWheel::getMaxFilterSlots()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// Reset commands perform various actions:
 ///
+/// 0 & 1: Hard/soft reboot. Prints a message like:
+///  Restart�
+///  Xagyl FW5125V1
+///  FW 1.9.9
+///  Initializing
+///  P1
+///
+/// (1 does not print "Restart")
+///
+/// 2 prints "Calibration Removed"
+/// 6 prints nothing.
+///
+/// For safety, 0 & 1 need to wait until a line with "P1" appears.
 /////////////////////////////////////////////////////////////////////////////
-bool XAGYLWheel::reset(int value)
+bool XAGYLWheel::reset(int command)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, resbuf[DRIVER_LEN] = {0};
+    char *res = resbuf;
+
+    int value = command;
+    if (command == COMMAND_PERFORM_CALIBRAITON)
+    {
+        value = 6;
+        res = nullptr;
+    }
+
     snprintf(cmd, DRIVER_LEN, "R%d", value);
     if (!sendCommand(cmd, res))
         return false;
 
+    // Wait for P1 on relevant commands.
+    if (command == COMMAND_REBOOT || command == COMMAND_INIT)
+    {
+        do
+        {
+            if (!receiveResponse(res))
+                return false;
+        }
+        while (0 != strcmp(res, "P1"));
+    }
+
     getFilterPosition();
+    getStartupData();
 
     return true;
 }
@@ -753,31 +786,22 @@ bool XAGYLWheel::saveConfigItems(FILE *fp)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Command
+/// Read a line from the device and handle it
 /////////////////////////////////////////////////////////////////////////////
-bool XAGYLWheel::sendCommand(const char * cmd, char * res)
+bool XAGYLWheel::receiveResponse(char * res, bool optional)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    int nbytes_read = 0, rc = -1;
 
-    assert(res);
-
-    // Send
-    LOGF_DEBUG("CMD <%s>", cmd);
-    rc = tty_write_string(PortFD, cmd, &nbytes_written);
-
-    if (rc != TTY_OK)
-    {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
-        return false;
-    }
-
-    // Receive
+    int timeout = optional ? OPTIONAL_TIMEOUT : DRIVER_TIMEOUT;
     rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR,
-                           DRIVER_TIMEOUT, &nbytes_read);
-
-    if (rc != TTY_OK)
+                           timeout, &nbytes_read);
+    if (optional && rc == TTY_TIME_OUT)
+    {
+        res[0] = '\0';
+        LOG_DEBUG("RES (optional): not found.");
+        return true;
+    }
+    else if (rc != TTY_OK)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
@@ -802,40 +826,29 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Read optional response in receive buffer to flush input
+/// Send Command
 /////////////////////////////////////////////////////////////////////////////
-
-bool XAGYLWheel::optionalResponse(char *res)
+bool XAGYLWheel::sendCommand(const char * cmd, char * res)
 {
-    int nbytes_read = 0, rc = -1;
+    int nbytes_written = 0, rc = -1;
 
-    rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR,
-                           OPTIONAL_TIMEOUT, &nbytes_read);
-    if (rc == TTY_TIME_OUT)
-    {
-        res[0] = '\0';
-        LOG_DEBUG("RES (optional): not found.");
-        return true;
-    }
-    else if (rc != TTY_OK)
+    // Send
+    LOGF_DEBUG("CMD <%s>", cmd);
+    rc = tty_write_string(PortFD, cmd, &nbytes_written);
+
+    if (rc != TTY_OK)
     {
         char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s.", errstr);
+        LOGF_ERROR("Serial write error: %s.", errstr);
         return false;
     }
 
-    // Remove extra \r
-    assert(nbytes_read > 1);
-    res[nbytes_read - 2] = 0;
+    // Receive
+    if (!res)
+        return true;
 
-    // If the response starts with "ERROR" just warn.
-    if (0 == strncmp(res, "ERROR", 5))
-        LOGF_WARN("Device warning: %s", res);
-    else
-        LOGF_DEBUG("RES (optional) <%s>", res);
-
-    return true;
+    return receiveResponse(res);
 }
 
 /////////////////////////////////////////////////////////////////////////////

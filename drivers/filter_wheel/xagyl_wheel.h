@@ -87,8 +87,8 @@ class XAGYLWheel : public INDI::FilterWheel
         //////////////////////////////////////////////////////////////////////
         /// Communication Functions
         //////////////////////////////////////////////////////////////////////
+        bool receiveResponse(char * res, bool optional = false);
         bool sendCommand(const char * cmd, char * res);
-        bool optionalResponse(char * res);
         void hexDump(char * buf, const char * data, int size);
 
         //////////////////////////////////////////////////////////////////////
