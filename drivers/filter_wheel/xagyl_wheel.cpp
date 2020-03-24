@@ -116,9 +116,9 @@ bool XAGYLWheel::initProperties()
     IUFillNumber(&SettingsN[SETTING_SPEED], "SETTING_SPEED", "Speed", "%.f",
                  0, 100, 10., 0.);
     IUFillNumber(&SettingsN[SETTING_JITTER], "SETTING_JITTER", "Jitter", "%.f",
-                 0, 10, 1., 0.);
+                 1, 10, 1., 0.);
     IUFillNumber(&SettingsN[SETTING_THRESHOLD], "SETTING_THRESHOLD",
-                 "Threshold", "%.f", 0, 100, 10., 0.);
+                 "Threshold", "%.f", 10, 30, 1., 0.);
     IUFillNumber(&SettingsN[SETTING_PW], "SETTING_PW", "Pulse", "%.f",
                  100, 10000, 100., 0.);
     IUFillNumberVector(&SettingsNP, SettingsN, 4, getDeviceName(), "Settings",
@@ -277,111 +277,95 @@ bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states,
 bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
                              char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    if (!(dev != nullptr && strcmp(dev, getDeviceName()) == 0))
+        return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
+
+    // Handle Offsets
+    if (strcmp(OffsetNP.name, name) == 0)
     {
-        if (strcmp(OffsetNP.name, name) == 0)
-        {
-            bool rc_offset = true;
+        bool rc_offset = true;
 
-            for (int i = 0; i < n; i++)
+        for (int i = 0; i < n; i++)
+        {
+            if (!strcmp(names[i], OffsetN[i].name))
             {
-                if (!strcmp(names[i], OffsetN[i].name))
+                if (std::abs(values[i] - OffsetN[i].value) > 0)
                 {
-                    if (std::abs(values[i] - OffsetN[i].value) > 0)
-                    {
-                        if (values[i] > OffsetN[i].value)
-                            rc_offset &= setOffset(1);
-                        else
-                            rc_offset &= setOffset(-1);
-                    }
+                    if (values[i] > OffsetN[i].value)
+                        rc_offset &= setOffset(1);
+                    else
+                        rc_offset &= setOffset(-1);
                 }
             }
-
-            OffsetNP.s = rc_offset ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&OffsetNP, nullptr);
-            return true;
         }
 
-        if (strcmp(SettingsNP.name, name) == 0)
+        OffsetNP.s = rc_offset ? IPS_OK : IPS_ALERT;
+        IDSetNumber(&OffsetNP, nullptr);
+        return true;
+    }
+
+    // Handle Speed, Jitter, Threshold, Pulse width
+    if (strcmp(SettingsNP.name, name) == 0)
+    {
+        int newSpeed = -1, newJitter = -1, newThreshold = -1,
+            newPulseWidth = -1;
+
+        for (int i = 0; i < n; i++)
         {
-            double newSpeed = 0, newJitter = 0, newThreshold = 0,
-                   newPulseWidth = 0;
-            for (int i = 0; i < n; i++)
-            {
-                if (!strcmp(names[i], SettingsN[SET_SPEED].name))
-                    newSpeed = values[i];
-                else if (!strcmp(names[i], SettingsN[SET_JITTER].name))
-                    newJitter = values[i];
-                if (!strcmp(names[i], SettingsN[SET_THRESHOLD].name))
-                    newThreshold = values[i];
-                if (!strcmp(names[i], SettingsN[SET_PULSE_WITDH].name))
-                    newPulseWidth = values[i];
-            }
-
-            bool rc_speed = true, rc_jitter = true, rc_threshold = true,
-                 rc_pulsewidth = true;
-
-            if (std::abs(newSpeed - SettingsN[SET_SPEED].value) > 0)
-            {
-                rc_speed = setMaximumSpeed(newSpeed);
-                getMaximumSpeed();
-            }
-
-            // Jitter
-            if (std::abs(newJitter - SettingsN[SET_JITTER].value))
-            {
-                if (newJitter > SettingsN[SET_JITTER].value)
-                {
-                    rc_jitter &= setRelativeCommand(SET_JITTER, 1);
-                    getJitter();
-                }
-                else
-                {
-                    rc_jitter &= setRelativeCommand(SET_JITTER, -1);
-                    getJitter();
-                }
-            }
-
-            // Threshold
-            if (std::abs(newThreshold - SettingsN[SET_THRESHOLD].value) > 0)
-            {
-                if (newThreshold > SettingsN[SET_THRESHOLD].value)
-                {
-                    rc_threshold &= setRelativeCommand(SET_THRESHOLD, 1);
-                    getThreshold();
-                }
-                else
-                {
-                    rc_threshold &= setRelativeCommand(SET_THRESHOLD, -1);
-                    getThreshold();
-                }
-            }
-
-            // Pulse width
-            if (m_FirmwareVersion >= 3 && std::abs(
-                        newPulseWidth - SettingsN[SET_PULSE_WITDH].value))
-            {
-                if (newPulseWidth > SettingsN[SET_PULSE_WITDH].value)
-                {
-                    rc_pulsewidth &= setRelativeCommand(SET_PULSE_WITDH, 1);
-                    getPulseWidth();
-                }
-                else
-                {
-                    rc_pulsewidth &= setRelativeCommand(SET_PULSE_WITDH, -1);
-                    getPulseWidth();
-                }
-            }
-
-            if (rc_speed && rc_jitter && rc_threshold && rc_pulsewidth)
-                SettingsNP.s = IPS_OK;
-            else
-                SettingsNP.s = IPS_ALERT;
-
-            IDSetNumber(&SettingsNP, nullptr);
-
-            return true;
+            if (!strcmp(names[i], SettingsN[SET_SPEED].name))
+                newSpeed = values[i];
+            if (!strcmp(names[i], SettingsN[SET_JITTER].name))
+                newJitter = values[i];
+            if (!strcmp(names[i], SettingsN[SET_THRESHOLD].name))
+                newThreshold = values[i];
+            if (!strcmp(names[i], SettingsN[SET_PULSE_WITDH].name))
+                newPulseWidth = values[i];
         }
+
+        bool rc_speed = true, rc_jitter = true, rc_threshold = true,
+             rc_pulsewidth = true;
+
+        // Speed
+        if (newSpeed >= 0)
+        {
+            rc_speed = setMaximumSpeed(newSpeed);
+            getMaximumSpeed();
+        }
+
+        // Jitter
+        if (newJitter >= 0)
+        {
+            int curJitter = SettingsN[SET_JITTER].value;
+            rc_jitter &= setRelativeCommand(SET_JITTER, newJitter - curJitter);
+            getJitter();
+        }
+
+        // Threshold
+        if (newThreshold >= 0)
+        {
+            int curThreshold = SettingsN[SET_THRESHOLD].value;
+            rc_threshold &= setRelativeCommand(SET_THRESHOLD,
+                                               newThreshold - curThreshold);
+            getThreshold();
+        }
+
+        // Pulse width
+        if (m_FirmwareVersion >= 3 && newPulseWidth >= 0)
+        {
+            int curPulseWidth = SettingsN[SET_PULSE_WITDH].value;
+            rc_pulsewidth &= setRelativeCommand(SET_PULSE_WITDH,
+                                                newPulseWidth - curPulseWidth);
+            getPulseWidth();
+        }
+
+        if (rc_speed && rc_jitter && rc_threshold && rc_pulsewidth)
+            SettingsNP.s = IPS_OK;
+        else
+            SettingsNP.s = IPS_ALERT;
+
+        IDSetNumber(&SettingsNP, nullptr);
+
+        return true;
     }
 
     return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
@@ -408,7 +392,8 @@ void XAGYLWheel::initOffset()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-///
+/// Speed is encoded as S# where number is a hex value from 0 to 10, as a
+/// percentage in 10% increments.
 /////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::setMaximumSpeed(int value)
 {
@@ -418,30 +403,42 @@ bool XAGYLWheel::setMaximumSpeed(int value)
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// These commands are implemented by sending the relevant set command multiple
+/// times.  Each command shifts the value by 1 in the given direction.
 ///
+/// TODO: Verify this is true for pulse_width on v3+ HW (and the range).
 /////////////////////////////////////////////////////////////////////////////
-bool XAGYLWheel::setRelativeCommand(SET_COMMAND command, int value)
+bool XAGYLWheel::setRelativeCommand(SET_COMMAND command, int shift)
 {
+    if (shift == 0)
+        return true;
+
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
     switch (command)
     {
         case SET_JITTER:
-            snprintf(cmd, DRIVER_LEN, "%s0", value > 0 ? "]" : "[");
+            snprintf(cmd, DRIVER_LEN, "%s0", shift > 0 ? "]" : "[");
             break;
 
         case SET_THRESHOLD:
-            snprintf(cmd, DRIVER_LEN, "%s0", value > 0 ? "}" : "{");
+            snprintf(cmd, DRIVER_LEN, "%s0", shift > 0 ? "}" : "{");
             break;
 
         case SET_PULSE_WITDH:
-            snprintf(cmd, DRIVER_LEN, "%s0", value > 0 ? "M" : "N");
+            snprintf(cmd, DRIVER_LEN, "%s0", shift > 0 ? "M" : "N");
             break;
 
         default:
             assert(false);
     }
 
-    return sendCommand(cmd, res);
+    for (int i = 0; i < std::abs(shift); ++i)
+    {
+        if (!sendCommand(cmd, res))
+            return false;
+    }
+
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
