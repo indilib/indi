@@ -185,7 +185,8 @@ bool XAGYLWheel::Handshake()
         SettingsNP.nnp--;
 
     bool rc = getMaxFilterSlots();
-    if (!rc) {
+    if (!rc)
+    {
         LOG_ERROR("Unable to parse max filter slots.");
         return false;
     }
@@ -193,7 +194,8 @@ bool XAGYLWheel::Handshake()
     initOffset();
 
     rc = getFilterPosition();
-    if (!rc) {
+    if (!rc)
+    {
         LOG_ERROR("Unable to initialize filter position.");
         return false;
     }
@@ -419,7 +421,8 @@ bool XAGYLWheel::SelectFilter(int f)
 {
     // The wheel does not return a response when setting the value to the
     // current number.
-    if (CurrentFilter == f) {
+    if (CurrentFilter == f)
+    {
         SelectFilterDone(CurrentFilter);
         return true;
     }
