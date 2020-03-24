@@ -407,7 +407,7 @@
     <devGroup group="Filter Wheels">
         <device label="XAGYL Wheel">
             <driver name="XAGYL Wheel">indi_xagyl_wheel</driver>
-            <version>0.2</version>
+            <version>0.3</version>
         </device>
         <device label="Filter Simulator">
             <driver name="Filter Simulator">indi_simulator_wheel</driver>

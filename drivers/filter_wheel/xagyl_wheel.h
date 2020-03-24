@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2015 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2020 Jasem Mutlaq. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -20,94 +20,122 @@
 
 #include "indibase/indifilterwheel.h"
 
-typedef struct
-{
-    int speed;
-    int position;
-    int pulseWidth;
-    int jitter;
-    int threshold;
-    int offset[5];
-    char product[16];
-    char version[16];
-    char serial[16];
-} SimData;
-
 class XAGYLWheel : public INDI::FilterWheel
 {
-  public:
-    typedef enum {
-        INFO_PRODUCT_NAME,
-        INFO_FIRMWARE_VERSION,
-        INFO_FILTER_POSITION,
-        INFO_SERIAL_NUMBER,
-        INFO_MAX_SPEED,
-        INFO_JITTER,
-        INFO_OFFSET,
-        INFO_THRESHOLD,
-        INFO_MAX_SLOTS,
-        INFO_PULSE_WIDTH
-    } GET_COMMAND;
-    typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION } SET_COMMAND;
+    public:
+        typedef enum
+        {
+            INFO_PRODUCT_NAME,
+            INFO_FIRMWARE_VERSION,
+            INFO_FILTER_POSITION,
+            INFO_SERIAL_NUMBER,
+            INFO_MAX_SPEED,
+            INFO_JITTER,
+            INFO_OFFSET,
+            INFO_THRESHOLD,
+            INFO_MAX_SLOTS,
+            INFO_PULSE_WIDTH
+        } GET_COMMAND;
+        typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH } SET_COMMAND;
 
-    XAGYLWheel();
-    virtual ~XAGYLWheel();
+        XAGYLWheel();
+        virtual ~XAGYLWheel() override;
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-  protected:
-    const char *getDefaultName() override;
+    protected:
+        const char *getDefaultName() override;
 
-    bool Handshake() override;
-    void TimerHit() override;
+        bool Handshake() override;
+        void TimerHit() override;
 
-    bool SelectFilter(int) override;
-    bool saveConfigItems(FILE *fp) override;
+        bool SelectFilter(int) override;
+        bool saveConfigItems(FILE *fp) override;
 
-  private:
-    bool getCommand(GET_COMMAND cmd, char *result);
-    bool setCommand(SET_COMMAND cmd, int value);
+    private:
+        bool setCommand(SET_COMMAND command, int value);
 
-    void initOffset();
+        void initOffset();
 
-    bool getStartupData();
-    bool getFirmwareInfo();
-    bool getSettingInfo();
+        bool getStartupData();
+        bool getFirmwareInfo();
+        bool getSettingInfo();
 
-    bool getFilterPosition();
-    bool getMaximumSpeed();
-    bool getJitter();
-    bool getThreshold();
-    bool getMaxFilterSlots();
-    bool getPulseWidth();
+        bool getFilterPosition();
+        bool getMaximumSpeed();
+        bool getJitter();
+        bool getThreshold();
+        bool getMaxFilterSlots();
+        bool getPulseWidth();
 
-    // Calibration offset
-    bool getOffset(int filter);
-    bool setOffset(int filter, int value);
+        // Calibration offset
+        bool getOffset(int filter);
+        bool setOffset(int value);
 
-    // Reset
-    bool reset(int value);
+        // Reset
+        bool reset(int value);
 
-    // Firmware info
-    ITextVectorProperty FirmwareInfoTP;
-    IText FirmwareInfoT[3];
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Communication Functions
+        ///////////////////////////////////////////////////////////////////////////////
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        void hexDump(char * buf, const char * data, int size);
+        std::vector<std::string> split(const std::string &input, const std::string &regex);
 
-    // Settings
-    INumberVectorProperty SettingsNP;
-    INumber SettingsN[4];
+        ///////////////////////////////////////////////////////////////////////////////////
+        /// Properties
+        ///////////////////////////////////////////////////////////////////////////////////
 
-    // Filter Offset
-    INumberVectorProperty OffsetNP;
-    INumber *OffsetN { nullptr };
+        // Firmware info
+        ITextVectorProperty FirmwareInfoTP;
+        IText FirmwareInfoT[3];
+        enum
+        {
+            FIRMWARE_PRODUCT,
+            FIRMWARE_VERSION,
+            FIRMWARE_SERIAL,
+        };
 
-    // Reset
-    ISwitchVectorProperty ResetSP;
-    ISwitch ResetS[4];
+        // Settings
+        INumberVectorProperty SettingsNP;
+        INumber SettingsN[4];
+        enum
+        {
+            SETTING_SPEED,
+            SETTING_JITTER,
+            SETTING_THRESHOLD,
+            SETTING_PW,
+        };
 
-    SimData simData;
-    uint8_t firmwareVersion { 0 };
+        // Filter Offset
+        INumberVectorProperty OffsetNP;
+        INumber *OffsetN { nullptr };
+
+        // Reset
+        ISwitchVectorProperty ResetSP;
+        ISwitch ResetS[4];
+        enum
+        {
+            COMMAND_REBOOT,
+            COMMAND_INIT,
+            COMMAND_CLEAR_CALIBRATION,
+            COMMAND_PERFORM_CALIBRAITON,
+        };
+
+        uint8_t m_FirmwareVersion { 0 };
+
+        /////////////////////////////////////////////////////////////////////////////
+        /// Static Helper Values
+        /////////////////////////////////////////////////////////////////////////////
+        static constexpr const char * SETTINGS_TAB = "Settings";
+        // 0xA is the stop char
+        static const char DRIVER_STOP_CHAR { 0xA };
+        // Wait up to a maximum of 3 seconds for serial input
+        static constexpr const uint8_t DRIVER_TIMEOUT {3};
+        // Maximum buffer for sending/receving.
+        static constexpr const uint8_t DRIVER_LEN {64};
 };
