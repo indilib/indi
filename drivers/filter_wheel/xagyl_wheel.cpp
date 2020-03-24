@@ -466,7 +466,7 @@ bool XAGYLWheel::SelectFilter(int f)
     if (!optionalResponse(opt))
         return false;
 
-    if (getFilterPosition())
+    if (!getFilterPosition())
         return false;
 
     SelectFilterDone(CurrentFilter);
@@ -772,7 +772,7 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res)
     // If the response starts with "ERROR" the command failed.
     if (0 == strncmp(res, "ERROR", 5))
     {
-        LOGF_WARN("Device error: <%s>", res);
+        LOGF_WARN("Device error: %s", res);
         return false;
     }
     else
@@ -811,7 +811,7 @@ bool XAGYLWheel::optionalResponse(char *res)
 
     // If the response starts with "ERROR" just warn.
     if (0 == strncmp(res, "ERROR", 5))
-        LOGF_WARN("Device warning: <%s>", res);
+        LOGF_WARN("Device warning: %s", res);
     else
         LOGF_DEBUG("RES (optional) <%s>", res);
 
