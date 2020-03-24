@@ -36,7 +36,10 @@ class XAGYLWheel : public INDI::FilterWheel
             INFO_MAX_SLOTS,
             INFO_PULSE_WIDTH
         } GET_COMMAND;
-        typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH } SET_COMMAND;
+        typedef enum
+        {
+            SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH
+        } SET_COMMAND;
 
         XAGYLWheel();
         virtual ~XAGYLWheel() override;
@@ -44,8 +47,10 @@ class XAGYLWheel : public INDI::FilterWheel
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name,
+                                 ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name,
+                                 double values[], char *names[], int n) override;
 
     protected:
         const char *getDefaultName() override;
@@ -78,17 +83,16 @@ class XAGYLWheel : public INDI::FilterWheel
         // Reset
         bool reset(int value);
 
-        ///////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
         /// Communication Functions
-        ///////////////////////////////////////////////////////////////////////////////
-        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        //////////////////////////////////////////////////////////////////////
+        bool sendCommand(const char * cmd, char * res);
         bool optionalResponse(char * res);
         void hexDump(char * buf, const char * data, int size);
-        std::vector<std::string> split(const std::string &input, const std::string &regex);
 
-        ///////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
         /// Properties
-        ///////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
 
         // Firmware info
         ITextVectorProperty FirmwareInfoTP;
@@ -128,9 +132,9 @@ class XAGYLWheel : public INDI::FilterWheel
 
         uint8_t m_FirmwareVersion { 0 };
 
-        /////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
         /// Static Helper Values
-        /////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
         static constexpr const char * SETTINGS_TAB = "Settings";
 
         // 0xA is the stop char

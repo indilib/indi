@@ -32,23 +32,26 @@ void ISGetProperties(const char *dev)
     xagylWheel->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+void ISNewSwitch(const char *dev, const char *name, ISState *states,
+                 char *names[], int n)
 {
     xagylWheel->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[],
+               int n)
 {
     xagylWheel->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+void ISNewNumber(const char *dev, const char *name, double values[],
+                 char *names[], int n)
 {
     xagylWheel->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[],
+               char *blobs[], char *formats[], char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -100,26 +103,38 @@ bool XAGYLWheel::initProperties()
     INDI::FilterWheel::initProperties();
 
     // Firmware info
-    IUFillText(&FirmwareInfoT[FIRMWARE_PRODUCT], "FIRMWARE_PRODUCT", "Product", nullptr);
-    IUFillText(&FirmwareInfoT[FIRMWARE_VERSION], "FIRMWARE_VERSION", "Version", nullptr);
-    IUFillText(&FirmwareInfoT[FIRMWARE_SERIAL], "FIRMWARE_SERIAL", "Serial #", nullptr);
-    IUFillTextVector(&FirmwareInfoTP, FirmwareInfoT, 3, getDeviceName(), "Info", "Info", MAIN_CONTROL_TAB, IP_RO, 60,
-                     IPS_IDLE);
+    IUFillText(&FirmwareInfoT[FIRMWARE_PRODUCT], "FIRMWARE_PRODUCT", "Product",
+               nullptr);
+    IUFillText(&FirmwareInfoT[FIRMWARE_VERSION], "FIRMWARE_VERSION", "Version",
+               nullptr);
+    IUFillText(&FirmwareInfoT[FIRMWARE_SERIAL], "FIRMWARE_SERIAL", "Serial #",
+               nullptr);
+    IUFillTextVector(&FirmwareInfoTP, FirmwareInfoT, 3, getDeviceName(),
+                     "Info", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Settings
-    IUFillNumber(&SettingsN[SETTING_SPEED], "SETTING_SPEED", "Speed", "%.f", 0, 100, 10., 0.);
-    IUFillNumber(&SettingsN[SETTING_JITTER], "SETTING_JITTER", "Jitter", "%.f", 0, 10, 1., 0.);
-    IUFillNumber(&SettingsN[SETTING_THRESHOLD], "SETTING_THRESHOLD", "Threshold", "%.f", 0, 100, 10., 0.);
-    IUFillNumber(&SettingsN[SETTING_PW], "SETTING_PW", "Pulse", "%.f", 100, 10000, 100., 0.);
-    IUFillNumberVector(&SettingsNP, SettingsN, 4, getDeviceName(), "Settings", "Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&SettingsN[SETTING_SPEED], "SETTING_SPEED", "Speed", "%.f",
+                 0, 100, 10., 0.);
+    IUFillNumber(&SettingsN[SETTING_JITTER], "SETTING_JITTER", "Jitter", "%.f",
+                 0, 10, 1., 0.);
+    IUFillNumber(&SettingsN[SETTING_THRESHOLD], "SETTING_THRESHOLD",
+                 "Threshold", "%.f", 0, 100, 10., 0.);
+    IUFillNumber(&SettingsN[SETTING_PW], "SETTING_PW", "Pulse", "%.f",
+                 100, 10000, 100., 0.);
+    IUFillNumberVector(&SettingsNP, SettingsN, 4, getDeviceName(), "Settings",
+                       "Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Reset
     IUFillSwitch(&ResetS[COMMAND_REBOOT], "COMMAND_REBOOT", "Reboot", ISS_OFF);
     IUFillSwitch(&ResetS[COMMAND_INIT], "COMMAND_INIT", "Initialize", ISS_OFF);
-    IUFillSwitch(&ResetS[COMMAND_CLEAR_CALIBRATION], "COMMAND_CLEAR_CALIBRATION Calibration", "Clear Calibration", ISS_OFF);
-    IUFillSwitch(&ResetS[COMMAND_PERFORM_CALIBRAITON], "COMMAND_PERFORM_CALIBRAITON", "Perform Calibration", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 4, getDeviceName(), "Commands", "Commands", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
-                       IPS_IDLE);
+    IUFillSwitch(&ResetS[COMMAND_CLEAR_CALIBRATION],
+                 "COMMAND_CLEAR_CALIBRATION Calibration", "Clear Calibration",
+                 ISS_OFF);
+    IUFillSwitch(&ResetS[COMMAND_PERFORM_CALIBRAITON],
+                 "COMMAND_PERFORM_CALIBRAITON", "Perform Calibration", ISS_OFF);
+    IUFillSwitchVector(&ResetSP, ResetS, 4, getDeviceName(),
+                       "Commands", "Commands", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     addAuxControls();
 
@@ -208,7 +223,8 @@ bool XAGYLWheel::Handshake()
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states,
+                             char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -258,7 +274,8 @@ bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states,
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
+                             char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -287,7 +304,8 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
 
         if (strcmp(SettingsNP.name, name) == 0)
         {
-            double newSpeed = 0, newJitter = 0, newThreshold = 0, newPulseWidth = 0;
+            double newSpeed = 0, newJitter = 0, newThreshold = 0,
+                   newPulseWidth = 0;
             for (int i = 0; i < n; i++)
             {
                 if (!strcmp(names[i], SettingsN[SET_SPEED].name))
@@ -300,7 +318,8 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
                     newPulseWidth = values[i];
             }
 
-            bool rc_speed = true, rc_jitter = true, rc_threshold = true, rc_pulsewidth = true;
+            bool rc_speed = true, rc_jitter = true, rc_threshold = true,
+                 rc_pulsewidth = true;
 
             if (std::abs(newSpeed - SettingsN[SET_SPEED].value) > 0)
             {
@@ -339,7 +358,8 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
             }
 
             // Pulse width
-            if (m_FirmwareVersion >= 3 && std::abs(newPulseWidth - SettingsN[SET_PULSE_WITDH].value))
+            if (m_FirmwareVersion >= 3 && std::abs(
+                        newPulseWidth - SettingsN[SET_PULSE_WITDH].value))
             {
                 if (newPulseWidth > SettingsN[SET_PULSE_WITDH].value)
                 {
@@ -379,11 +399,12 @@ void XAGYLWheel::initOffset()
     {
         snprintf(offsetName, MAXINDINAME, "OFFSET_%d", i + 1);
         snprintf(offsetLabel, MAXINDINAME, "#%d Offset", i + 1);
-        IUFillNumber(OffsetN + i, offsetName, offsetLabel, "%.f", -99, 99, 10, 0);
+        IUFillNumber(OffsetN + i, offsetName, offsetLabel, "%.f",
+                     -99, 99, 10, 0);
     }
 
-    IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotN[0].max, getDeviceName(), "Offsets", "", FILTER_TAB, IP_RW, 0,
-                       IPS_IDLE);
+    IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotN[0].max, getDeviceName(),
+                       "Offsets", "", FILTER_TAB, IP_RW, 0, IPS_IDLE);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -427,11 +448,14 @@ bool XAGYLWheel::SelectFilter(int f)
         return true;
     }
 
+    // The wheel moves to a new position, and responds with one line or two.
+    // On success, the first line will be P#.  On failure, it is an ERROR.
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
     snprintf(cmd, DRIVER_LEN, "G%X", f);
     if (!sendCommand(cmd, res))
         return false;
 
+    // On success, the wheel may also return an ERROR on a second line.
     char opt[DRIVER_LEN] = {0};
     if (!optionalResponse(opt))
         return false;
@@ -705,22 +729,14 @@ bool XAGYLWheel::saveConfigItems(FILE *fp)
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
-bool XAGYLWheel::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
+bool XAGYLWheel::sendCommand(const char * cmd, char * res)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
-    if (cmd_len > 0)
-    {
-        char hex_cmd[DRIVER_LEN * 3] = {0};
-        hexDump(hex_cmd, cmd, cmd_len);
-        LOGF_DEBUG("CMD <%s>", hex_cmd);
-        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
-    }
-    else
-    {
-        LOGF_DEBUG("CMD <%s>", cmd);
-        rc = tty_write_string(PortFD, cmd, &nbytes_written);
-    }
+    assert(res);
+
+    LOGF_DEBUG("CMD <%s>", cmd);
+    rc = tty_write_string(PortFD, cmd, &nbytes_written);
 
     if (rc != TTY_OK)
     {
@@ -730,13 +746,8 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res, int cmd_len, int res_
         return false;
     }
 
-    if (res == nullptr)
-        return true;
-
-    if (res_len > 0)
-        rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
-    else
-        rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
+    rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR,
+                           DRIVER_TIMEOUT, &nbytes_read);
 
     if (rc != TTY_OK)
     {
@@ -746,20 +757,11 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res, int cmd_len, int res_
         return false;
     }
 
-    if (res_len > 0)
-    {
-        char hex_res[DRIVER_LEN * 3] = {0};
-        hexDump(hex_res, res, res_len);
-        LOGF_DEBUG("RES <%s>", hex_res);
-    }
-    else
-    {
-        // Remove extra \r
-        assert(nbytes_read > 1);
+    // Remove extra \r
+    assert(nbytes_read > 1);
 
-        res[nbytes_read - 2] = 0;
-        LOGF_DEBUG("RES <%s>", res);
-    }
+    res[nbytes_read - 2] = 0;
+    LOGF_DEBUG("RES <%s>", res);
 
     return true;
 }
@@ -772,8 +774,8 @@ bool XAGYLWheel::optionalResponse(char *res)
 {
     int nbytes_read = 0, rc = -1;
 
-    rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, FLUSH_TIMEOUT,
-                           &nbytes_read);
+    rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR,
+                           FLUSH_TIMEOUT, &nbytes_read);
     if (rc == TTY_TIME_OUT)
     {
         res[0] = '\0';
@@ -807,17 +809,4 @@ void XAGYLWheel::hexDump(char * buf, const char * data, int size)
 
     if (size > 0)
         buf[3 * size - 1] = '\0';
-}
-
-/////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////
-std::vector<std::string> XAGYLWheel::split(const std::string &input, const std::string &regex)
-{
-    // passing -1 as the submatch index parameter performs splitting
-    std::regex re(regex);
-    std::sregex_token_iterator
-    first{input.begin(), input.end(), re, -1},
-          last;
-    return {first, last};
 }
