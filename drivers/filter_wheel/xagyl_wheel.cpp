@@ -323,7 +323,7 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
 
             if (std::abs(newSpeed - SettingsN[SET_SPEED].value) > 0)
             {
-                rc_speed = setCommand(SET_SPEED, newSpeed);
+                rc_speed = setMaximumSpeed(newSpeed);
                 getMaximumSpeed();
             }
 
@@ -332,12 +332,12 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
             {
                 if (newJitter > SettingsN[SET_JITTER].value)
                 {
-                    rc_jitter &= setCommand(SET_JITTER, 1);
+                    rc_jitter &= setRelativeCommand(SET_JITTER, 1);
                     getJitter();
                 }
                 else
                 {
-                    rc_jitter &= setCommand(SET_JITTER, -1);
+                    rc_jitter &= setRelativeCommand(SET_JITTER, -1);
                     getJitter();
                 }
             }
@@ -347,12 +347,12 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
             {
                 if (newThreshold > SettingsN[SET_THRESHOLD].value)
                 {
-                    rc_threshold &= setCommand(SET_THRESHOLD, 1);
+                    rc_threshold &= setRelativeCommand(SET_THRESHOLD, 1);
                     getThreshold();
                 }
                 else
                 {
-                    rc_threshold &= setCommand(SET_THRESHOLD, -1);
+                    rc_threshold &= setRelativeCommand(SET_THRESHOLD, -1);
                     getThreshold();
                 }
             }
@@ -363,12 +363,12 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
             {
                 if (newPulseWidth > SettingsN[SET_PULSE_WITDH].value)
                 {
-                    rc_pulsewidth &= setCommand(SET_PULSE_WITDH, 1);
+                    rc_pulsewidth &= setRelativeCommand(SET_PULSE_WITDH, 1);
                     getPulseWidth();
                 }
                 else
                 {
-                    rc_pulsewidth &= setCommand(SET_PULSE_WITDH, -1);
+                    rc_pulsewidth &= setRelativeCommand(SET_PULSE_WITDH, -1);
                     getPulseWidth();
                 }
             }
@@ -410,15 +410,21 @@ void XAGYLWheel::initOffset()
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-bool XAGYLWheel::setCommand(SET_COMMAND command, int value)
+bool XAGYLWheel::setMaximumSpeed(int value)
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "S%X", value / 10);
+    return sendCommand(cmd, res);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool XAGYLWheel::setRelativeCommand(SET_COMMAND command, int value)
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
     switch (command)
     {
-        case SET_SPEED:
-            snprintf(cmd, DRIVER_LEN, "S%X", value / 10);
-            break;
-
         case SET_JITTER:
             snprintf(cmd, DRIVER_LEN, "%s0", value > 0 ? "]" : "[");
             break;
@@ -430,6 +436,9 @@ bool XAGYLWheel::setCommand(SET_COMMAND command, int value)
         case SET_PULSE_WITDH:
             snprintf(cmd, DRIVER_LEN, "%s0", value > 0 ? "M" : "N");
             break;
+
+        default:
+            assert(false);
     }
 
     return sendCommand(cmd, res);
@@ -735,6 +744,7 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res)
 
     assert(res);
 
+    // Send
     LOGF_DEBUG("CMD <%s>", cmd);
     rc = tty_write_string(PortFD, cmd, &nbytes_written);
 
@@ -746,6 +756,7 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res)
         return false;
     }
 
+    // Receive
     rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR,
                            DRIVER_TIMEOUT, &nbytes_read);
 
@@ -759,9 +770,16 @@ bool XAGYLWheel::sendCommand(const char * cmd, char * res)
 
     // Remove extra \r
     assert(nbytes_read > 1);
-
     res[nbytes_read - 2] = 0;
-    LOGF_DEBUG("RES <%s>", res);
+
+    // If the response starts with "ERROR" the command failed.
+    if (0 == strncmp(res, "ERROR", 5))
+    {
+        LOGF_WARN("Device error: <%s>", res);
+        return false;
+    }
+    else
+        LOGF_DEBUG("RES <%s>", res);
 
     return true;
 }
@@ -775,7 +793,7 @@ bool XAGYLWheel::optionalResponse(char *res)
     int nbytes_read = 0, rc = -1;
 
     rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR,
-                           FLUSH_TIMEOUT, &nbytes_read);
+                           OPTIONAL_TIMEOUT, &nbytes_read);
     if (rc == TTY_TIME_OUT)
     {
         res[0] = '\0';
@@ -792,9 +810,13 @@ bool XAGYLWheel::optionalResponse(char *res)
 
     // Remove extra \r
     assert(nbytes_read > 1);
-
     res[nbytes_read - 2] = 0;
-    LOGF_DEBUG("RES (optional) <%s>", res);
+
+    // If the response starts with "ERROR" just warn.
+    if (0 == strncmp(res, "ERROR", 5))
+        LOGF_WARN("Device warning: <%s>", res);
+    else
+        LOGF_DEBUG("RES (optional) <%s>", res);
 
     return true;
 }

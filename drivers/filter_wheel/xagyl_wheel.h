@@ -61,7 +61,8 @@ class XAGYLWheel : public INDI::FilterWheel
         bool saveConfigItems(FILE *fp) override;
 
     private:
-        bool setCommand(SET_COMMAND command, int value);
+        bool setMaximumSpeed(int value);
+        bool setRelativeCommand(SET_COMMAND command, int value);
 
         void initOffset();
 
@@ -144,7 +145,7 @@ class XAGYLWheel : public INDI::FilterWheel
         static constexpr const int DRIVER_TIMEOUT {15};
 
         // Some commands optionally return an extra string.
-        static constexpr const int FLUSH_TIMEOUT {1};
+        static constexpr const int OPTIONAL_TIMEOUT {1};
 
         // Maximum buffer for sending/receving.
         static constexpr const int DRIVER_LEN {64};
