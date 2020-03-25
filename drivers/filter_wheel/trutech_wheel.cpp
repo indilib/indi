@@ -25,7 +25,7 @@
 #include <cstring>
 #include <memory>
 
-#define CMD_SIZE 5
+#define CMD_SIZE 4
 
 const uint8_t COMM_INIT = 0xA5;
 const uint8_t COMM_FILL = 0x20;
@@ -153,7 +153,7 @@ bool TruTech::home()
 
     char filter_response[CMD_SIZE] = {0};
 
-    if ( (rc = tty_read(PortFD, filter_response, CMD_SIZE - 1, 3, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_read(PortFD, filter_response, CMD_SIZE, 3, &nbytes_read)) != TTY_OK)
     {
         char error_message[ERRMSG_SIZE];
         tty_error_msg(rc, error_message, ERRMSG_SIZE);
@@ -193,8 +193,54 @@ bool TruTech::SelectFilter(int f)
         return false;
     }
 
-    // How do we check on TruTech if filter arrived? Check later
-    CurrentFilter = f;
-    SelectFilterDone(CurrentFilter);
     return true;
+}
+
+int TruTech::QueryFilter()
+{
+    return CurrentFilter;
+}
+
+void TruTech::TimerHit()
+{
+    if (FilterSlotNP.s == IPS_BUSY)
+    {
+        int rc = 0, nbytes_written = 0, nbytes_read = 0;
+        uint8_t type   = 0x02;
+        uint8_t chksum = COMM_INIT + type + COMM_FILL;
+        char filter_command[CMD_SIZE] = {0};
+        snprintf(filter_command, CMD_SIZE, "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
+
+        LOGF_DEBUG("CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, COMM_FILL, chksum);
+
+        if ( (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
+        {
+            char error_message[ERRMSG_SIZE];
+            tty_error_msg(rc, error_message, ERRMSG_SIZE);
+            LOGF_WARN("Sending filter query failed: %s", error_message);
+        }
+        else
+        {
+            char filter_response[CMD_SIZE] = {0};
+
+            if ( (rc = tty_read(PortFD, filter_response, CMD_SIZE, 3, &nbytes_read)) != TTY_OK)
+            {
+                char error_message[ERRMSG_SIZE];
+                tty_error_msg(rc, error_message, ERRMSG_SIZE);
+                LOGF_ERROR("Error receiving response from filter: %s", error_message);
+            }
+
+            if (static_cast<uint8_t>(filter_response[0]) == COMM_INIT)
+            {
+                // If filter finished moving
+                if (filter_response[2] > 0x30)
+                {
+                    CurrentFilter = filter_response[2] - 0x30;
+                    SelectFilterDone(CurrentFilter);
+                }
+            }
+        }
+    }
+
+    SetTimer(POLLMS);
 }

@@ -34,7 +34,10 @@ class TruTech : public INDI::FilterWheel
         bool updateProperties() override;
 
         bool Handshake() override;
+
+        int QueryFilter() override;
         bool SelectFilter(int) override;
+        void TimerHit() override;
 
     private:
 
