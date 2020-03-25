@@ -1,5 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2020 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2020 Justin Husted.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -36,7 +37,10 @@ class XAGYLWheel : public INDI::FilterWheel
             INFO_MAX_SLOTS,
             INFO_PULSE_WIDTH
         } GET_COMMAND;
-        typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH } SET_COMMAND;
+        typedef enum
+        {
+            SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH
+        } SET_COMMAND;
 
         XAGYLWheel();
         virtual ~XAGYLWheel() override;
@@ -44,20 +48,22 @@ class XAGYLWheel : public INDI::FilterWheel
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name,
+                                 ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name,
+                                 double values[], char *names[], int n) override;
 
     protected:
         const char *getDefaultName() override;
 
         bool Handshake() override;
-        void TimerHit() override;
 
         bool SelectFilter(int) override;
         bool saveConfigItems(FILE *fp) override;
 
     private:
-        bool setCommand(SET_COMMAND command, int value);
+        bool setMaximumSpeed(int value);
+        bool setRelativeCommand(SET_COMMAND command, int value);
 
         void initOffset();
 
@@ -74,21 +80,21 @@ class XAGYLWheel : public INDI::FilterWheel
 
         // Calibration offset
         bool getOffset(int filter);
-        bool setOffset(int value);
+        bool setOffset(int filter, int shift);
 
         // Reset
         bool reset(int value);
 
-        ///////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
         /// Communication Functions
-        ///////////////////////////////////////////////////////////////////////////////
-        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        //////////////////////////////////////////////////////////////////////
+        bool receiveResponse(char * res, bool optional = false);
+        bool sendCommand(const char * cmd, char * res);
         void hexDump(char * buf, const char * data, int size);
-        std::vector<std::string> split(const std::string &input, const std::string &regex);
 
-        ///////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
         /// Properties
-        ///////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
 
         // Firmware info
         ITextVectorProperty FirmwareInfoTP;
@@ -128,14 +134,20 @@ class XAGYLWheel : public INDI::FilterWheel
 
         uint8_t m_FirmwareVersion { 0 };
 
-        /////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
         /// Static Helper Values
-        /////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
         static constexpr const char * SETTINGS_TAB = "Settings";
+
         // 0xA is the stop char
         static const char DRIVER_STOP_CHAR { 0xA };
-        // Wait up to a maximum of 3 seconds for serial input
-        static constexpr const uint8_t DRIVER_TIMEOUT {3};
+
+        // Wait up to a maximum of 15 seconds for normal serial input
+        static constexpr const int DRIVER_TIMEOUT {15};
+
+        // Some commands optionally return an extra string.
+        static constexpr const int OPTIONAL_TIMEOUT {1};
+
         // Maximum buffer for sending/receving.
-        static constexpr const uint8_t DRIVER_LEN {64};
+        static constexpr const int DRIVER_LEN {64};
 };
