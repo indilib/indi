@@ -388,13 +388,14 @@ int V4L2_Base::connectCam(const char * devpath, char * errmsg, int pixelFormat, 
 
 void V4L2_Base::disconnectCam(bool stopcapture)
 {
-    char errmsg[ERRMSGSIZ];
-
     if (selectCallBackID != -1)
         rmCallback(selectCallBackID);
 
     if (stopcapture)
+    {
+        char errmsg[ERRMSGSIZ] = {0};
         stop_capturing(errmsg);
+    }
 
     //uninit_device (errmsg);
 
@@ -1717,12 +1718,26 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char * errmsg)
     }
 
     // Clip arguments against left and top of frame
-    if (x < 0) { w = x + w; x = 0; }
-    if (y < 0) { h = y + h; y = 0; }
+    if (x < 0)
+    {
+        w = x + w;
+        x = 0;
+    }
+    if (y < 0)
+    {
+        h = y + h;
+        y = 0;
+    }
 
     // Clip arguments against right and bottom of frame
-    if (0 + pix_width < x + w) { w = pix_width - x; }
-    if (0 + pix_height < y + h) { h = pix_height - y; }
+    if (0 + pix_width < x + w)
+    {
+        w = pix_width - x;
+    }
+    if (0 + pix_height < y + h)
+    {
+        h = pix_height - y;
+    }
 
     // We have our required crop
     struct v4l2_crop software_crop;
@@ -1739,10 +1754,17 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char * errmsg)
         struct v4l2_crop hardware_crop = software_crop;
 
         // Make sure vertical coordinate is on an even line
-        if (y % 2) { hardware_crop.c.top--; hardware_crop.c.height++; }
+        if (y % 2)
+        {
+            hardware_crop.c.top--;
+            hardware_crop.c.height++;
+        }
 
         // Make sure we crop an even number of horizontal lines
-        if (h % 2) { hardware_crop.c.height++; }
+        if (h % 2)
+        {
+            hardware_crop.c.height++;
+        }
 
         // Ask the hardware to crop - don't fail, fallback to software cropping if not possible
         if (-1 == XIOCTL(fd, VIDIOC_S_CROP, &hardware_crop))

@@ -24,6 +24,7 @@
 #include <indicom.h>
 
 #include <cstring>
+#include <cmath>
 #include <termios.h>
 #include <regex>
 
@@ -954,7 +955,7 @@ bool Rainbow::Sync(double ra, double dec)
 {
     char cmd[DRIVER_LEN] = {0};
 
-    snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::abs(dec));
+    snprintf(cmd, DRIVER_LEN, ":Ck%07.3f%c%06.3f#", ra * 15.0, dec >= 0 ? '+' : '-', std::fabs(dec));
 
     if (sendCommand(cmd))
     {

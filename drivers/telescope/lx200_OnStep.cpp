@@ -173,7 +173,7 @@ bool LX200_OnStep::initProperties()
 
     // ============== GUIDE_TAB
 
-    // ============== FOCUSER_TAB
+    // ============== FOCUS_TAB
     // Focuser 1
 
     IUFillSwitch(&OSFocus1InitializeS[0], "Focus1_0", "Zero", ISS_OFF);

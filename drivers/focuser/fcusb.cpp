@@ -353,7 +353,7 @@ IPState FCUSB::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     FocusDirection targetDirection = dir;
 
-    if (FocusReverseS[REVERSED_ENABLED].s == ISS_ON)
+    if (FocusReverseS[INDI_ENABLED].s == ISS_ON)
         targetDirection = (dir == FOCUS_INWARD) ? FOCUS_OUTWARD : FOCUS_INWARD;
 
     motorStatus = (targetDirection == FOCUS_INWARD) ? MOTOR_REV : MOTOR_FWD;

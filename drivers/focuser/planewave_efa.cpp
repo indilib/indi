@@ -31,6 +31,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <regex>
+#include <sys/ioctl.h>
 
 static std::unique_ptr<EFA> steelDrive(new EFA());
 
@@ -112,6 +113,16 @@ bool EFA::initProperties()
     IUFillSwitch(&CalibrationStateS[CALIBRATION_OFF], "CALIBRATION_OFF", "Not Calibrated", ISS_ON);
     IUFillSwitchVector(&CalibrationStateSP, CalibrationStateS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // Setup limits
+    FocusMaxPosN[0].max = FocusMaxPosN[0].value = 3799422;
+    FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
+
+    FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].max;
+    FocusAbsPosN[0].step = FocusSyncN[0].step = FocusAbsPosN[0].max / 50;
+
+    FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
+    FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
+
     addAuxControls();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     setDefaultPollingPeriod(500);
@@ -160,9 +171,9 @@ bool EFA::Handshake()
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = GET_VERSION;
-    cmd[5] = calculateCheckSum(cmd);
+    cmd[5] = calculateCheckSum(cmd, 6);
 
-    if (!sendCommand(cmd, res, 5, 8))
+    if (!sendCommand(cmd, res, 6, 8))
         return false;
 
     version = std::to_string(res[5]) + "." + std::to_string(res[6]);
@@ -245,7 +256,7 @@ bool EFA::ISNewNumber(const char *dev, const char *name, double values[], char *
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SyncFocuser(uint32_t ticks)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -255,8 +266,12 @@ bool EFA::SyncFocuser(uint32_t ticks)
     cmd[5] = (ticks >> 16) & 0xFF;
     cmd[6] = (ticks >>  8) & 0xFF;
     cmd[7] = (ticks >>  0) & 0xFF;
-    cmd[8] = calculateCheckSum(cmd);
-    return sendCommandOk(cmd, 9);
+    cmd[8] = calculateCheckSum(cmd, 9);
+
+    if (!sendCommand(cmd, res, 9, 7))
+        return false;
+
+    return (res[5] == 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -264,7 +279,7 @@ bool EFA::SyncFocuser(uint32_t ticks)
 /////////////////////////////////////////////////////////////////////////////
 IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -274,9 +289,12 @@ IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
     cmd[5] = (targetTicks >> 16) & 0xFF;
     cmd[6] = (targetTicks >>  8) & 0xFF;
     cmd[7] = (targetTicks >>  0) & 0xFF;
-    cmd[8] = calculateCheckSum(cmd);
+    cmd[8] = calculateCheckSum(cmd, 9);
 
-    return sendCommandOk(cmd, 9) ? IPS_BUSY : IPS_ALERT;
+    if (!sendCommand(cmd, res, 9, 7))
+        return IPS_ALERT;
+
+    return (res[5] == 1) ? IPS_BUSY : IPS_ALERT;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -285,7 +303,7 @@ IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
 IPState EFA::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int direction = (dir == FOCUS_INWARD) ? -1 : 1;
-    int reversed = (FocusReverseS[REVERSED_ENABLED].s == ISS_ON) ? -1 : 1;
+    int reversed = (FocusReverseS[INDI_ENABLED].s == ISS_ON) ? -1 : 1;
     int relative = static_cast<int>(ticks);
     int targetAbsPosition = FocusAbsPosN[0].value + (relative * direction * reversed);
 
@@ -302,7 +320,6 @@ void EFA::TimerHit()
 {
     if (!isConnected())
         return;
-
 
     readPosition();
 
@@ -325,11 +342,13 @@ void EFA::TimerHit()
             IDSetNumber(&FocusRelPosNP, nullptr);
             LOG_INFO("Focuser reached requested position.");
         }
+        else
+            IDSetNumber(&FocusAbsPosNP, nullptr);
     }
     else if (std::fabs(FocusAbsPosN[0].value - m_LastPosition) > 0)
     {
         m_LastPosition = FocusAbsPosN[0].value;
-        IDSetNumber(&TemperatureNP, nullptr);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
     SetTimer(POLLMS);
@@ -348,7 +367,7 @@ bool EFA::AbortFocuser()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SetFocuserMaxPosition(uint32_t ticks)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -358,8 +377,12 @@ bool EFA::SetFocuserMaxPosition(uint32_t ticks)
     cmd[5] = (ticks >> 16) & 0xFF;
     cmd[6] = (ticks >>  8) & 0xFF;
     cmd[7] = (ticks >>  0) & 0xFF;
-    cmd[8] = calculateCheckSum(cmd);
-    return sendCommandOk(cmd, 9);
+    cmd[8] = calculateCheckSum(cmd, 9);
+
+    if (!sendCommand(cmd, res, 9, 7))
+        return false;
+
+    return (res[5] == 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -389,31 +412,79 @@ void EFA::getStartupValues()
     readCalibrationState();
     readFanState();
     readTemperature();
+
+    if (readMaxSlewLimit())
+    {
+        FocusAbsPosN[0].max = FocusMaxPosN[0].max;
+        FocusAbsPosN[0].step = FocusAbsPosN[0].max / 50;
+
+        FocusRelPosN[0].value = FocusAbsPosN[0].max / 50;
+        FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
+        FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
+
+        FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
+
+        IUUpdateMinMax(&FocusRelPosNP);
+        IUUpdateMinMax(&FocusAbsPosNP);
+        IUUpdateMinMax(&FocusMaxPosNP);
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
-bool EFA::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
+bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t res_len)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    int nbytes_written = 0, nbytes_read = 0, bits = 0, rc = 0;
+    char echo[DRIVER_LEN] = {0};
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    char hex_cmd[DRIVER_LEN * 3] = {0};
-    hexDump(hex_cmd, cmd, cmd_len);
-    LOGF_DEBUG("CMD <%s>", hex_cmd);
-    rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
-
-    if (rc != TTY_OK)
+    for (int j = 0; j < 3; j++)
     {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
-        return false;
-    }
+        // Wait until CTS is cleared.
+        for (int i = 0; i < 10; i++)
+        {
+            if ( (rc = ioctl(PortFD, TIOCMGET, &bits)) == 0 && (bits & TIOCM_CTS) == 0)
+                break;
+            usleep(100000);
+        }
 
-    rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+        if (rc < 0)
+        {
+            LOGF_ERROR("CTS timed out: %s", strerror(errno));
+            return false;
+        }
+
+        // Now raise RTS
+        bits = TIOCM_RTS;
+        ioctl(PortFD, TIOCMSET, &bits);
+
+        char hex_cmd[DRIVER_LEN * 3] = {0};
+        hexDump(hex_cmd, cmd, cmd_len);
+        LOGF_DEBUG("CMD <%s>", hex_cmd);
+        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
+
+        if (rc != TTY_OK)
+        {
+            char errstr[MAXRBUF] = {0};
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("Serial write error: %s.", errstr);
+            return false;
+        }
+
+        // Read back the echo
+        tty_read(PortFD, echo, cmd_len, DRIVER_TIMEOUT, &nbytes_read);
+
+        // Now lower RTS
+        ioctl(PortFD, TIOCMBIC, &bits);
+
+        // Next read the actual response from EFA
+        rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+
+        if (rc == TTY_OK)
+            break;
+
+        usleep(100000);
+    }
 
     if (rc != TTY_OK)
     {
@@ -423,9 +494,9 @@ bool EFA::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
         return false;
     }
 
-    uint8_t chk = calculateCheckSum(res);
+    uint8_t chk = calculateCheckSum(res, res_len);
 
-    if (chk != res[res_len])
+    if (chk != res[res_len - 1])
     {
         LOG_ERROR("Invalid checksum!");
         return false;
@@ -435,21 +506,7 @@ bool EFA::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
     hexDump(hex_res, res, res_len);
     LOGF_DEBUG("RES <%s>", hex_res);
 
-    tcflush(PortFD, TCIOFLUSH);
-
     return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-/// Send Command
-/////////////////////////////////////////////////////////////////////////////
-bool EFA::sendCommandOk(const char * cmd, int cmd_len)
-{
-    char res[DRIVER_LEN] = {0};
-    if (!sendCommand(cmd, res, cmd_len, 1))
-        return false;
-
-    return res[0] == 1;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -462,15 +519,43 @@ bool EFA::readPosition()
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
     cmd[2] = DEVICE_PC;
-    cmd[3] = DEVICE_FAN;
+    cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GET_POS;
-    cmd[5] = calculateCheckSum(cmd);
+    cmd[5] = calculateCheckSum(cmd, 6);
 
     if (!sendCommand(cmd, res, 6, 9))
         return false;
 
     FocusAbsPosN[0].value = res[5] << 16 | res[6] << 8 | res[7];
     return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Read Max Slew Limit
+/////////////////////////////////////////////////////////////////////////////
+bool EFA::readMaxSlewLimit()
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    cmd[0] = DRIVER_SOM;
+    cmd[1] = 0x03;
+    cmd[2] = DEVICE_PC;
+    cmd[3] = DEVICE_FOC;
+    cmd[4] = MTR_SLEWLIMITGETMAX;
+    cmd[5] = calculateCheckSum(cmd, 6);
+
+    if (!sendCommand(cmd, res, 6, 9))
+        return false;
+
+    uint32_t limit = res[5] << 16 | res[6] << 8 | res[7];
+    if (limit > 0)
+    {
+        FocusMaxPosN[0].max = limit;
+        return true;
+    }
+
+    return false;
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -481,15 +566,16 @@ bool EFA::isGOTOComplete()
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
-    cmd[1] = 0x06;
+    cmd[1] = 0x03;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GOTO_OVER;
-    cmd[5] = calculateCheckSum(cmd);
-    if (!sendCommand(cmd, res, 6, 1))
+    cmd[5] = calculateCheckSum(cmd, 6);
+
+    if (!sendCommand(cmd, res, 6, 7))
         return false;
 
-    return (res[0] != 0);
+    return (res[5] != 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -497,7 +583,7 @@ bool EFA::isGOTOComplete()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::setFanEnabled(bool enabled)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x04;
@@ -505,9 +591,12 @@ bool EFA::setFanEnabled(bool enabled)
     cmd[3] = DEVICE_FAN;
     cmd[4] = FANS_SET;
     cmd[5] = enabled ? 1 : 0;
-    cmd[6] = calculateCheckSum(cmd);
+    cmd[6] = calculateCheckSum(cmd, 7);
 
-    return sendCommandOk(cmd, 7);
+    if (!sendCommand(cmd, res, 7, 7))
+        return false;
+
+    return (res[5] == 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -522,12 +611,12 @@ bool EFA::readFanState()
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FAN;
     cmd[4] = FANS_GET;
-    cmd[5] = calculateCheckSum(cmd);
+    cmd[5] = calculateCheckSum(cmd, 6);
 
     if (!sendCommand(cmd, res, 6, 7))
         return false;
 
-    bool enabled = (res[6] == 1);
+    bool enabled = (res[5] == 0);
 
     FanStateS[FAN_ON].s  = enabled ? ISS_ON : ISS_OFF;
     FanStateS[FAN_OFF].s = enabled ? ISS_OFF : ISS_ON;
@@ -540,7 +629,7 @@ bool EFA::readFanState()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::setCalibrationEnabled(bool enabled)
 {
-    char cmd[DRIVER_LEN] = {0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x05;
@@ -549,9 +638,12 @@ bool EFA::setCalibrationEnabled(bool enabled)
     cmd[4] = MTR_SET_CALIBRATION_STATE;
     cmd[5] = 0x40;
     cmd[6] = enabled ? 1 : 0;
-    cmd[7] = calculateCheckSum(cmd);
+    cmd[7] = calculateCheckSum(cmd, 8);
 
-    return sendCommandOk(cmd, 8);
+    if (!sendCommand(cmd, res, 8, 7))
+        return false;
+
+    return (res[5] == 1);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -562,16 +654,16 @@ bool EFA::readCalibrationState()
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
-    cmd[1] = 0x03;
+    cmd[1] = 0x04;
     cmd[2] = DEVICE_PC;
     cmd[3] = DEVICE_FOC;
     cmd[4] = MTR_GET_CALIBRATION_STATE;
-    cmd[5] = calculateCheckSum(cmd);
+    cmd[5] = calculateCheckSum(cmd, 6);
 
     if (!sendCommand(cmd, res, 6, 7))
         return false;
 
-    bool enabled = (res[6] == 1);
+    bool enabled = (res[5] == 1);
 
     CalibrationStateS[CALIBRATION_ON].s  = enabled ? ISS_ON : ISS_OFF;
     CalibrationStateS[CALIBRATION_OFF].s = enabled ? ISS_OFF : ISS_ON;
@@ -586,7 +678,7 @@ bool EFA::readTemperature()
 {
     char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
-    for (int i=0; i < 3; i++)
+    for (uint8_t i = 0; i < 3; i++)
     {
         cmd[0] = DRIVER_SOM;
         cmd[1] = 0x04;
@@ -594,12 +686,12 @@ bool EFA::readTemperature()
         cmd[3] = DEVICE_TEMP;
         cmd[4] = TEMP_GET;
         cmd[5] = i;
-        cmd[6] = calculateCheckSum(cmd);
+        cmd[6] = calculateCheckSum(cmd, 7);
 
         if (!sendCommand(cmd, res, 7, 8))
             return false;
 
-        TemperatureN[i].value = calculateTemperature(res[6], res[7]);
+        TemperatureN[i].value = calculateTemperature(res[5], res[6]);
     }
 
     return true;
@@ -610,29 +702,22 @@ bool EFA::readTemperature()
 /////////////////////////////////////////////////////////////////////////////
 double EFA::calculateTemperature(uint8_t byte2, uint8_t byte3)
 {
-    bool is_neg = false;
-    int raw_temperature = byte2 * 256 + byte3;
-    if (raw_temperature > 32768)
-    {
-        is_neg = true;
-        raw_temperature = 65536 - raw_temperature;
-    }
+    if (byte2 == 0x7F && byte3 == 0x7F)
+        return -100;
 
-    int integer_part = raw_temperature / 16;
-    int fraction_part = (raw_temperature - integer_part) * 625 / 1000;
-    double celcius = integer_part + fraction_part / 10.0;
-    if (is_neg)
-        celcius = -celcius;
+    int raw_temperature = byte3 << 8 | byte2;
+    if (raw_temperature & 0x8000)
+        raw_temperature = raw_temperature - 0x10000;
 
-    return celcius;
+    return raw_temperature / 16.0;
 }
 
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-void EFA::hexDump(char * buf, const char * data, int size)
+void EFA::hexDump(char * buf, const char * data, uint32_t size)
 {
-    for (int i = 0; i < size; i++)
+    for (uint32_t i = 0; i < size; i++)
         sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
 
     if (size > 0)
@@ -667,10 +752,10 @@ std::string EFA::to_string(const T a_value, const int n)
 /////////////////////////////////////////////////////////////////////////////
 /// Calculate Checksum
 /////////////////////////////////////////////////////////////////////////////
-uint8_t EFA::calculateCheckSum(const char *cmd)
+uint8_t EFA::calculateCheckSum(const char *cmd, uint32_t len)
 {
-    uint32_t sum = 0;
-    for (int i = 1; i < 8; i++)
+    int32_t sum = 0;
+    for (uint32_t i = 1; i < len - 1; i++)
         sum += cmd[i];
     return (-sum & 0xFF);
 }

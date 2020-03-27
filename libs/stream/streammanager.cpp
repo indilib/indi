@@ -124,10 +124,10 @@ bool StreamManager::initProperties()
                        "Record Options", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Record Switch */
-    IUFillSwitch(&RecordStreamS[0], "RECORD_ON", "Record On", ISS_OFF);
-    IUFillSwitch(&RecordStreamS[1], "RECORD_DURATION_ON", "Record (Duration)", ISS_OFF);
-    IUFillSwitch(&RecordStreamS[2], "RECORD_FRAME_ON", "Record (Frames)", ISS_OFF);
-    IUFillSwitch(&RecordStreamS[3], "RECORD_OFF", "Record Off", ISS_ON);
+    IUFillSwitch(&RecordStreamS[RECORD_ON], "RECORD_ON", "Record On", ISS_OFF);
+    IUFillSwitch(&RecordStreamS[RECORD_TIME], "RECORD_DURATION_ON", "Record (Duration)", ISS_OFF);
+    IUFillSwitch(&RecordStreamS[RECORD_FRAME], "RECORD_FRAME_ON", "Record (Frames)", ISS_OFF);
+    IUFillSwitch(&RecordStreamS[RECORD_OFF], "RECORD_OFF", "Record Off", ISS_ON);
     IUFillSwitchVector(&RecordStreamSP, RecordStreamS, NARRAY(RecordStreamS), getDeviceName(), "RECORD_STREAM",
                        "Video Record", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -265,14 +265,20 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         FpsN[0].value = newFPS;
         IDSetNumber(&FpsNP, nullptr);
     }
-    std::thread(&StreamManager::asyncStream, this, buffer, nbytes, deltams).detach();
+
+    if (m_isStreaming)
+        std::thread(&StreamManager::asyncStream, this, buffer, nbytes, deltams).detach();
+    // JM 2020-03-07: Temporarily disable threading for recording until
+    // callback file descriptor looping issue is figured out.
+    else if (m_isRecording)
+        asyncStream(buffer, nbytes, deltams);
 }
 
 void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams)
 {
-    std::unique_lock<std::mutex> guard((currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) ?
-                                       dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock :
-                                       dynamic_cast<INDI::SensorInterface*>(currentDevice)->detectorBufferLock);
+    std::lock_guard<std::mutex> guard((currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) ?
+                                      dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock :
+                                      dynamic_cast<INDI::SensorInterface*>(currentDevice)->detectorBufferLock);
 
     // For streaming, downscale 16 to 8
     if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
@@ -298,28 +304,6 @@ void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double d
             }
 
             const uint16_t * srcBuffer = reinterpret_cast<const uint16_t *>(buffer);
-            //buffer = downscaleBuffer;
-
-            // Slow method: proper downscale
-            /*
-
-            uint16_t max = 32768;
-            uint16_t min = 0;
-
-            for (uint32_t i=0; i < npixels; i++)
-            {
-                if (srcBuffer[i] > max)
-                    max = srcBuffer[i];
-                else if (srcBuffer[i] < min)
-                    min = srcBuffer[i];
-            }
-
-            double bscale = 255. / (max - min);
-            double bzero  = (-min) * (255. / (max - min));
-
-            for (uint32_t i=0; i < npixels; i++)
-                streamBuffer[i] = srcBuffer[i] * bscale + bzero;
-            */
 
             // Apply gamma
             for (uint32_t i = 0; i < npixels; i++)
@@ -475,24 +459,26 @@ bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double
     m_RecordingFrameDuration += deltams;
     m_RecordingFrameTotal += 1;
 
-    if ((RecordStreamSP.sp[1].s == ISS_ON) && (m_RecordingFrameDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
+    if ((RecordStreamSP.sp[RECORD_TIME].s == ISS_ON) && (m_RecordingFrameDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
     {
         LOGF_INFO("Ending record after %g millisecs", m_RecordingFrameDuration);
         stopRecording();
-        RecordStreamSP.sp[1].s = ISS_OFF;
-        RecordStreamSP.sp[3].s = ISS_ON;
-        RecordStreamSP.s       = IPS_IDLE;
+        IUResetSwitch(&RecordStreamSP);
+        RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
+        RecordStreamSP.s = IPS_IDLE;
         IDSetSwitch(&RecordStreamSP, nullptr);
+        return true;
     }
 
-    if ((RecordStreamSP.sp[2].s == ISS_ON) && (m_RecordingFrameTotal >= (RecordOptionsNP.np[1].value)))
+    if ((RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON) && (m_RecordingFrameTotal >= (RecordOptionsNP.np[1].value)))
     {
         LOGF_INFO("Ending record after %d frames", m_RecordingFrameTotal);
         stopRecording();
-        RecordStreamSP.sp[2].s = ISS_OFF;
-        RecordStreamSP.sp[3].s = ISS_ON;
-        RecordStreamSP.s       = IPS_IDLE;
+        RecordStreamSP.sp[RECORD_FRAME].s = ISS_OFF;
+        RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
+        RecordStreamSP.s = IPS_IDLE;
         IDSetSwitch(&RecordStreamSP, nullptr);
+        return true;
     }
 
     return true;
@@ -712,13 +698,14 @@ bool StreamManager::stopRecording(bool force)
 
     LOGF_INFO("Record Duration(millisec): %g -- Frame count: %d", m_RecordingFrameDuration,
               m_RecordingFrameTotal);
+
     return true;
 }
 
 bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if (dev != nullptr && strcmp(getDeviceName(), dev))
-        return true;
+        return false;
 
     /* Video Stream */
     if (!strcmp(name, StreamSP.name))
@@ -745,35 +732,34 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
         int prevSwitch = IUFindOnSwitchIndex(&RecordStreamSP);
         IUUpdateSwitch(&RecordStreamSP, states, names, n);
 
-        if (m_isRecording && RecordStreamSP.sp[3].s != ISS_ON)
+        if (m_isRecording && RecordStreamSP.sp[RECORD_OFF].s != ISS_ON)
         {
             IUResetSwitch(&RecordStreamSP);
             RecordStreamS[prevSwitch].s = ISS_ON;
             IDSetSwitch(&RecordStreamSP, nullptr);
             LOG_WARN("Recording device is busy.");
-            return false;
+            return true;
         }
 
-        if ((RecordStreamSP.sp[0].s == ISS_ON) || (RecordStreamSP.sp[1].s == ISS_ON) ||
-                (RecordStreamSP.sp[2].s == ISS_ON))
+        if ((RecordStreamSP.sp[RECORD_ON].s == ISS_ON) ||
+                (RecordStreamSP.sp[RECORD_TIME].s == ISS_ON) ||
+                (RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON))
         {
             if (!m_isRecording)
             {
                 RecordStreamSP.s = IPS_BUSY;
-                if (RecordStreamSP.sp[1].s == ISS_ON)
+                if (RecordStreamSP.sp[RECORD_TIME].s == ISS_ON)
                     LOGF_INFO("Starting video record (Duration): %g secs.", RecordOptionsNP.np[0].value);
-                else if (RecordStreamSP.sp[2].s == ISS_ON)
+                else if (RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON)
                     LOGF_INFO("Starting video record (Frame count): %d.", static_cast<int>(RecordOptionsNP.np[1].value));
                 else
                     LOG_INFO("Starting video record.");
 
                 if (!startRecording())
                 {
-                    RecordStreamSP.sp[0].s = ISS_OFF;
-                    RecordStreamSP.sp[1].s = ISS_OFF;
-                    RecordStreamSP.sp[2].s = ISS_OFF;
-                    RecordStreamSP.sp[3].s = ISS_ON;
-                    RecordStreamSP.s       = IPS_ALERT;
+                    IUResetSwitch(&RecordStreamSP);
+                    RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
+                    RecordStreamSP.s = IPS_ALERT;
                 }
             }
         }
@@ -815,6 +801,7 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
             }
         }
         IDSetSwitch(&EncoderSP, nullptr);
+        return true;
     }
 
     // Recorder Selection
@@ -839,16 +826,18 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
             }
         }
         IDSetSwitch(&RecorderSP, nullptr);
+        return true;
     }
 
-    return true;
+    // No properties were processed
+    return false;
 }
 
 bool StreamManager::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     /* ignore if not ours */
     if (dev != nullptr && strcmp(getDeviceName(), dev))
-        return true;
+        return false;
 
     if (!strcmp(name, RecordFileTP.name))
     {
@@ -856,21 +845,23 @@ bool StreamManager::ISNewText(const char * dev, const char * name, char * texts[
         if (strchr(tp->text, '/'))
         {
             LOG_WARN("Dir. separator (/) not allowed in filename.");
-            return false;
+            return true;
         }
 
         IUUpdateText(&RecordFileTP, texts, names, n);
         IDSetText(&RecordFileTP, nullptr);
         return true;
     }
-    return true;
+
+    // No Properties were processed.
+    return false;
 }
 
 bool StreamManager::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     /* ignore if not ours */
     if (dev != nullptr && strcmp(getDeviceName(), dev))
-        return true;
+        return false;
 
     if (!strcmp(StreamExposureNP.name, name))
     {
@@ -886,7 +877,7 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
         if (m_isRecording)
         {
             LOG_WARN("Recording device is busy");
-            return false;
+            return true;
         }
 
         IUUpdateNumber(&RecordOptionsNP, values, names, n);
@@ -901,7 +892,7 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
         if (m_isRecording)
         {
             LOG_WARN("Recording device is busy");
-            return false;
+            return true;
         }
 
         int subW = 0;
@@ -932,16 +923,8 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
         return true;
     }
 
-    /* Frames to drop */
-    /*if (!strcmp (FramestoDropNP.name, name))
-      {
-        IUUpdateNumber(&FramestoDropNP, values, names, n);
-        //v4l_base->setDropFrameCount(values[0]);
-        FramestoDropNP.s = IPS_OK;
-        IDSetNumber(&FramestoDropNP, nullptr);
-        return true;
-      }*/
-    return true;
+    // No properties were processed
+    return false;
 }
 
 bool StreamManager::setStream(bool enable)
@@ -993,7 +976,6 @@ bool StreamManager::setStream(bool enable)
             FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
             IUResetSwitch(&StreamSP);
             StreamS[0].s = ISS_ON;
-
             recorder->setStreamEnabled(true);
         }
     }

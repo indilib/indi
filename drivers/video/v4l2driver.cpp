@@ -43,6 +43,7 @@ static const PixelSizeInfo pixelSizeInfo[] =
     { "NexImage 5", nullptr, 2.2f, -1, true },
     { "UVC Camera (046d:0809)", "Logitech Webcam Pro 9000", 3.3f, -1, true },
     { "SVBONY SV105: SVBONY SV105", "SVBONY SV105", 3.0f, -1, true },
+    { "SVBONY SV205: SVBONY SV205", "SVBONY SV205", 4.0f, -1, true },
     { "NexImage 10", nullptr, 1.67f, -1, false },
     { "NexImage Burst Color", nullptr, 3.75f, -1, false },
     { "NexImage Burst Mono", nullptr, 3.75f, -1, false },
@@ -58,6 +59,8 @@ V4L2_Driver::V4L2_Driver()
 {
     //sigevent sevp;
     //struct itimerspec fpssettings;
+
+    setVersion(1, 0);
 
     allocateBuffers();
 
@@ -184,7 +187,6 @@ bool V4L2_Driver::initProperties()
 #endif
 
     v4l_base->setDeviceName(getDeviceName());
-
     return true;
 }
 
