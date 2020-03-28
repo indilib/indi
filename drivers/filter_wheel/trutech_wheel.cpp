@@ -24,7 +24,9 @@
 
 #include <cstring>
 #include <memory>
+#include <termios.h>
 
+#define BUF_SIZE 5
 #define CMD_SIZE 4
 
 const uint8_t COMM_INIT = 0xA5;
@@ -111,7 +113,6 @@ bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     {
         if (!strcmp(HomeSP.name, name))
         {
-
             if (home())
             {
                 LOG_INFO("Filter set to home position.");
@@ -139,10 +140,12 @@ bool TruTech::home()
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
     uint8_t type   = 0x03;
     uint8_t chksum = COMM_INIT + type + COMM_FILL;
-    char filter_command[CMD_SIZE] = {0};
-    snprintf(filter_command, CMD_SIZE, "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
+    char filter_command[BUF_SIZE] = {0};
+    snprintf(filter_command, BUF_SIZE, "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
 
     LOGF_DEBUG("CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, COMM_FILL, chksum);
+
+    tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
     {
@@ -151,7 +154,7 @@ bool TruTech::home()
         LOGF_ERROR("Sending command Home to filter failed: %s", error_message);
     }
 
-    char filter_response[CMD_SIZE] = {0};
+    char filter_response[BUF_SIZE] = {0};
 
     if ( (rc = tty_read(PortFD, filter_response, CMD_SIZE, 3, &nbytes_read)) != TTY_OK)
     {
@@ -169,7 +172,6 @@ bool TruTech::home()
     }
 
     return true;
-
 }
 
 bool TruTech::SelectFilter(int f)
@@ -177,12 +179,14 @@ bool TruTech::SelectFilter(int f)
     TargetFilter = f;
 
     int rc = 0, nbytes_written = 0;
-    char filter_command[CMD_SIZE];
+    char filter_command[BUF_SIZE] = {0};
     uint8_t type   = 0x01;
     uint8_t chksum = COMM_INIT + type + static_cast<uint8_t>(f);
-    snprintf(filter_command, CMD_SIZE, "%c%c%c%c", COMM_INIT, type, f, chksum);
+    snprintf(filter_command, BUF_SIZE, "%c%c%c%c", COMM_INIT, type, f, chksum);
 
     LOGF_DEBUG("CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, f, chksum);
+
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
     {
@@ -208,10 +212,12 @@ void TruTech::TimerHit()
         int rc = 0, nbytes_written = 0, nbytes_read = 0;
         uint8_t type   = 0x02;
         uint8_t chksum = COMM_INIT + type + COMM_FILL;
-        char filter_command[CMD_SIZE] = {0};
-        snprintf(filter_command, CMD_SIZE, "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
+        char filter_command[BUF_SIZE] = {0};
+        snprintf(filter_command, BUF_SIZE, "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
 
         LOGF_DEBUG("CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, COMM_FILL, chksum);
+
+        tcflush(PortFD, TCIOFLUSH);
 
         if ( (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
         {
@@ -221,7 +227,7 @@ void TruTech::TimerHit()
         }
         else
         {
-            char filter_response[CMD_SIZE] = {0};
+            char filter_response[BUF_SIZE] = {0};
 
             if ( (rc = tty_read(PortFD, filter_response, CMD_SIZE, 3, &nbytes_read)) != TTY_OK)
             {
