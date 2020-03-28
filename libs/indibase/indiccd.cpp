@@ -1809,6 +1809,12 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         fits_update_key_dbl(fptr, "ROTATANG", RotatorAngle, 3, "Rotator angle in degrees", &status);
     }
 
+    // JJ ed 2020-03-28
+    if (!std::isnan(FocusPos))
+    {
+        fits_update_key_lng(fptr, "FOCUSPOS", FocusPos, "Focus position in steps", &status);
+    }
+
     // SCALE assuming square-pixels
     if (!std::isnan(effectiveFocalLength))
     {
