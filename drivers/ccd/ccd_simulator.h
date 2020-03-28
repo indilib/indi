@@ -172,13 +172,10 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         //  And this lives in our simulator settings page
 
         INumberVectorProperty *SimulatorSettingsNV;
-        INumber SimulatorSettingsN[16];
+        INumber SimulatorSettingsN[17];
 
         ISwitchVectorProperty SimulateRgbSP;
         ISwitch SimulateRgbS[2];
-
-        ISwitch TimeFactorS[3];
-        ISwitchVectorProperty *TimeFactorSV;
 
         //  We are going to snoop these from focuser
         INumberVectorProperty FWHMNP;
