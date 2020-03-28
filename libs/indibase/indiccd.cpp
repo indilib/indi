@@ -1810,6 +1810,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
     // JJ ed 2020-03-28
+    // If the focus position is set, add the information to the FITS header
     if (!std::isnan(FocusPos))
     {
         fits_update_key_lng(fptr, "FOCUSPOS", FocusPos, "Focus position in steps", &status);
