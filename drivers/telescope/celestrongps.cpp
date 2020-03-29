@@ -585,11 +585,10 @@ bool CelestronGPS::Goto(double ra, double dec)
 
     TrackState = SCOPE_SLEWING;
 
-    char RAStr[32], DecStr[32], SoStr[32];
+    char RAStr[32], DecStr[32];
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
-    fs_sexa(SoStr, SlewOffsetRa, 2, 3600);
-    LOGF_INFO("Slewing to JNOW RA %s - DEC %s SlewOffsetRa %s", RAStr, DecStr, SoStr);
+    LOGF_INFO("Slewing to JNOW RA %s - DEC %s SlewOffsetRa %4.1f arcsec", RAStr, DecStr, SlewOffsetRa * 3600 * 15);
 
     return true;
 }
@@ -808,11 +807,7 @@ bool CelestronGPS::ReadScopeStatus()
                     // average last two values
                     SlewOffsetRa = SlewOffsetRa > 0 ? (SlewOffsetRa + raoffset) / 2 : raoffset;
                     
-                    char TRaStr[32], RaStr[32], SoStr[32];
-                    fs_sexa(TRaStr, targetRA, 2, 3600);
-                    fs_sexa(RaStr, currentRA, 2, 3600);
-                    fs_sexa(SoStr, SlewOffsetRa, 2, 3600);
-                    LOGF_DEBUG("TargetRA %s, currentRA %s, SlewOffsetRa %s", TRaStr, RaStr, SoStr);
+                    LOGF_DEBUG("raoffset %4.1f, SlewOffsetRa %4.1f arcsec", raoffset * 3600 * 15, SlewOffsetRa * 3600 * 15);
                 }
             }
             break;
