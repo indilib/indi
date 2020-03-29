@@ -418,17 +418,15 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Snooped Devices
-    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
 
-    // JJ ed 2019-12-10
+    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_ROTATOR], "ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_FOCUSER], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_FILTER], "ACTIVE_FILTER", "Filter", "CCD Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_SKYQUALITY], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
-    //
-
+    
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
@@ -1809,6 +1807,13 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     if (!std::isnan(RotatorAngle))
     {
         fits_update_key_dbl(fptr, "ROTATANG", RotatorAngle, 3, "Rotator angle in degrees", &status);
+    }
+
+    // JJ ed 2020-03-28
+    // If the focus position is set, add the information to the FITS header
+    if (!std::isnan(FocusPos))
+    {
+        fits_update_key_lng(fptr, "FOCUSPOS", FocusPos, "Focus position in steps", &status);
     }
 
     // SCALE assuming square-pixels
