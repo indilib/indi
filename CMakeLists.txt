@@ -963,6 +963,14 @@ add_executable(indi_sestosenso_focus ${sesto_SRC})
 target_link_libraries(indi_sestosenso_focus indidriver)
 install(TARGETS indi_sestosenso_focus RUNTIME DESTINATION bin)
 
+################ Sesto Senso 2 Focuser ################
+SET(sesto2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/sestosenso2.cpp)
+
+add_executable(indi_sestosenso2_focus ${sesto2_SRC})
+target_link_libraries(indi_sestosenso2_focus indidriver)
+install(TARGETS indi_sestosenso2_focus RUNTIME DESTINATION bin)
+
 ################ Televue FocusMaster ################
 #SET(focusmaster_SRC
 #    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/focusmaster.cpp)
