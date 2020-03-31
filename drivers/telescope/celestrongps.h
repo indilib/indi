@@ -83,7 +83,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         void guideTimer(CELESTRON_DIRECTION dirn);
 
         void AddGuideTimer(CELESTRON_DIRECTION dirn, int ms);
-
+        
         // Focus Backlash
         virtual bool SetFocuserBacklash(int32_t steps) override;
 
@@ -181,6 +181,9 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         size_t numPecBins = 0;
 
         bool savePecData();
+
+        // Slew Offsets
+        double SlewOffsetRa = 0.0;
 
         // focuser
         //        INumber FocusBacklashN[1];

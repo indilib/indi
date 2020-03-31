@@ -84,10 +84,10 @@
 #define MAXRBUF 2048
 
 int tty_debug = 0;
-int ttyGeminiUdpFormat = 0;
-int ttySkyWatcherUdpFormat = 0;
-int sequenceNumber = 1;
-int ttyClrTrailingLF = 0;
+int tty_gemini_udp_format = 0;
+int tty_generic_udp_format = 0;
+int tty_sequence_number = 1;
+int tty_clear_trailing_lf = 0;
 
 #if defined(HAVE_LIBNOVA)
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
@@ -335,17 +335,17 @@ void tty_set_debug(int debug)
 
 void tty_set_gemini_udp_format(int enabled)
 {
-    ttyGeminiUdpFormat = enabled;
+    tty_gemini_udp_format = enabled;
 }
 
-void tty_set_skywatcher_udp_format(int enabled)
+void tty_set_generic_udp_format(int enabled)
 {
-    ttySkyWatcherUdpFormat = enabled;
+    tty_generic_udp_format = enabled;
 }
 
 void tty_clr_trailing_read_lf(int enabled)
 {
-    ttyClrTrailingLF = enabled;
+    tty_clear_trailing_lf = enabled;
 }
 
 int tty_timeout(int fd, int timeout)
@@ -394,10 +394,10 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
     int geminiBuffer[66]={0};
     char *buffer = (char *)buf;
 
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format)
     {
         buffer = (char*)geminiBuffer;
-        geminiBuffer[0] = ++sequenceNumber;
+        geminiBuffer[0] = ++tty_sequence_number;
         geminiBuffer[1] = 0;
         memcpy((char *)&geminiBuffer[2], buf, nbytes);
         // Add on the 8 bytes for the header and 1 byte for the null terminator
@@ -428,7 +428,7 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
         nbytes -= bytes_w;
     }
 
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format)
         *nbytes_written -= 9;
 
     return TTY_OK;
@@ -467,7 +467,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
     char geminiBuffer[257]={0};
     char* buffer = buf;
 
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format)
     {
         numBytesToRead = nbytes + 8;
         buffer = geminiBuffer;
@@ -491,7 +491,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
                 IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
         }
 
-        if (*nbytes_read == 0 && ttyClrTrailingLF && *buffer == 0x0A)
+        if (*nbytes_read == 0 && tty_clear_trailing_lf && *buffer == 0x0A)
         {
             if (tty_debug)
                 IDLog("%s: Cleared LF char left in buf\n", __FUNCTION__);
@@ -505,10 +505,10 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
     }
 
 
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format)
     {
         int *intSizedBuffer = (int *)geminiBuffer;
-        if (intSizedBuffer[0] != sequenceNumber)
+        if (intSizedBuffer[0] != tty_sequence_number)
         {
             // Not the right reply just do the read again.
             return tty_read(fd, buf, nbytes, timeout, nbytes_read);
@@ -543,7 +543,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     if (tty_debug)
         IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
 
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format)
     {
         bytesRead = read(fd, readBuffer, 255);
 
@@ -551,7 +551,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
             return TTY_READ_ERROR;
 
         int *intSizedBuffer = (int *)readBuffer;
-        if (intSizedBuffer[0] != sequenceNumber)
+        if (intSizedBuffer[0] != tty_sequence_number)
         {
             // Not the right reply just do the read again.
             return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
@@ -568,7 +568,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
             }
         }
     }
-    else if (ttySkyWatcherUdpFormat)
+    else if (tty_generic_udp_format)
     {
         bytesRead = read(fd, readBuffer, 255);
         if (bytesRead < 0)
@@ -600,7 +600,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
             if (tty_debug)
                 IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
-            if (!(ttyClrTrailingLF && *read_char == 0X0A && *nbytes_read == 0))
+            if (!(tty_clear_trailing_lf && *read_char == 0X0A && *nbytes_read == 0))
                 (*nbytes_read)++;
             else {
                 if (tty_debug)
@@ -628,7 +628,7 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
         return TTY_ERRNO;
 
     // For Gemini
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format || tty_generic_udp_format)
         return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
 
     int bytesRead = 0;
@@ -654,7 +654,7 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
         if (tty_debug)
             IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
-        if (!(ttyClrTrailingLF && *read_char == 0X0A && *nbytes_read == 0))
+        if (!(tty_clear_trailing_lf && *read_char == 0X0A && *nbytes_read == 0))
             (*nbytes_read)++;
         else {
             if (tty_debug)
@@ -666,8 +666,6 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
         else if (*nbytes_read >= nsize)
             return TTY_OVERFLOW;
     }
-
-    return TTY_TIME_OUT;
 
 #endif
 }

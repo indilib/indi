@@ -24,17 +24,15 @@
 
 #include <cstring>
 #include <memory>
+#include <termios.h>
 
-#define CMD_SIZE 5
+#define BUF_SIZE 5
+#define CMD_SIZE 4
 
-//const uint8_t COMM_PRE  = 0x01;
 const uint8_t COMM_INIT = 0xA5;
 const uint8_t COMM_FILL = 0x20;
 
-// We declare an auto pointer to TruTech.
 static std::unique_ptr<TruTech> tru_wheel(new TruTech());
-
-void ISPoll(void *p);
 
 void ISGetProperties(const char *dev)
 {
@@ -75,12 +73,13 @@ void ISSnoopDevice(XMLEle *root)
 
 TruTech::TruTech()
 {
+    setVersion(1, 0);
     setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 }
 
 const char *TruTech::getDefaultName()
 {
-    return static_cast<const char *>("TruTech Wheel");
+    return "TruTech Wheel";
 }
 
 bool TruTech::initProperties()
@@ -91,24 +90,9 @@ bool TruTech::initProperties()
     IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
 
-    IUFillNumber(&MaxFilterN[0], "Count", "Count", "%.f", 1, 16, 1, 5);
-    IUFillNumberVector(&MaxFilterNP, MaxFilterN, 1, getDeviceName(), "MAX_FILTER", "Filters", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-
-    CurrentFilter      = 1;
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = MaxFilterN[0].value;
-
     addAuxControls();
 
     return true;
-}
-
-void TruTech::ISGetProperties(const char *dev)
-{
-    INDI::FilterWheel::ISGetProperties(dev);
-
-    defineNumber(&MaxFilterNP);
-    loadConfig(true, "MAX_FILTER");
 }
 
 bool TruTech::updateProperties()
@@ -123,63 +107,21 @@ bool TruTech::updateProperties()
     return true;
 }
 
-bool TruTech::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (!strcmp(name, MaxFilterNP.name))
-        {
-            IUUpdateNumber(&MaxFilterNP, values, names, n);
-            MaxFilterNP.s = IPS_OK;
-            saveConfig(true, "MAX_FILTER");
-            IDSetNumber(&MaxFilterNP, nullptr);
-            FilterSlotN[0].max = MaxFilterN[0].value;
-            if (isConnected())
-                LOG_INFO("Max number of filters updated. You must reconnect for this change to take effect.");
-            else
-                LOGF_INFO("Max number of filters updated to %.f", MaxFilterN[0].value);
-
-            return true;
-        }
-
-    }
-
-    return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
-}
-
 bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(HomeSP.name, name) == 0)
+        if (!strcmp(HomeSP.name, name))
         {
-            int rc = 0, nbytes_written = 0;
-            uint8_t type   = 0x03;
-            uint8_t chksum = COMM_INIT + type + COMM_FILL;
-            char filter_command[CMD_SIZE];
-            snprintf(filter_command, CMD_SIZE, "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
-
-            LOGF_DEBUG("CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, COMM_FILL, chksum);
-
-            if (!isSimulation() &&
-                (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
+            if (home())
             {
-                char error_message[ERRMSG_SIZE];
-                tty_error_msg(rc, error_message, ERRMSG_SIZE);
-
-                HomeSP.s = IPS_ALERT;
-                LOGF_ERROR("Sending command Home to filter failed: %s", error_message);
-            }
-            else
-            {
-                CurrentFilter        = 1;
-                FilterSlotN[0].value = 1;
-                FilterSlotNP.s       = IPS_OK;
-                HomeSP.s             = IPS_OK;
-                LOG_INFO("Filter set to Home.");
+                LOG_INFO("Filter set to home position.");
+                HomeSP.s = IPS_OK;
+                FilterSlotNP.s = IPS_OK;
                 IDSetNumber(&FilterSlotNP, nullptr);
             }
-
+            else
+                HomeSP.s = IPS_ALERT;
             IDSetSwitch(&HomeSP, nullptr);
             return true;
         }
@@ -190,7 +132,45 @@ bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
 bool TruTech::Handshake()
 {
-    // How do we do handshake with TruTech? We return true for now
+    return home();
+}
+
+bool TruTech::home()
+{
+    int rc = 0, nbytes_written = 0, nbytes_read = 0;
+    uint8_t type   = 0x03;
+    uint8_t chksum = COMM_INIT + type + COMM_FILL;
+    char filter_command[BUF_SIZE] = {0};
+    snprintf(filter_command, BUF_SIZE, "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
+
+    LOGF_DEBUG("CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, COMM_FILL, chksum);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
+    {
+        char error_message[ERRMSG_SIZE];
+        tty_error_msg(rc, error_message, ERRMSG_SIZE);
+        LOGF_ERROR("Sending command Home to filter failed: %s", error_message);
+    }
+
+    char filter_response[BUF_SIZE] = {0};
+
+    if ( (rc = tty_read(PortFD, filter_response, CMD_SIZE, 3, &nbytes_read)) != TTY_OK)
+    {
+        char error_message[ERRMSG_SIZE];
+        tty_error_msg(rc, error_message, ERRMSG_SIZE);
+        LOGF_ERROR("Error receiving response from filter: %s", error_message);
+    }
+
+    if (static_cast<uint8_t>(filter_response[0]) == COMM_INIT)
+    {
+        CurrentFilter = 1;
+        FilterSlotN[0].value = 1;
+        FilterSlotN[0].min = 1;
+        FilterSlotN[0].max = filter_response[2] - 0x30;
+    }
+
     return true;
 }
 
@@ -199,14 +179,16 @@ bool TruTech::SelectFilter(int f)
     TargetFilter = f;
 
     int rc = 0, nbytes_written = 0;
-    char filter_command[CMD_SIZE];
+    char filter_command[BUF_SIZE] = {0};
     uint8_t type   = 0x01;
     uint8_t chksum = COMM_INIT + type + static_cast<uint8_t>(f);
-    snprintf(filter_command, CMD_SIZE, "%c%c%c%c", COMM_INIT, type, f, chksum);
+    snprintf(filter_command, BUF_SIZE, "%c%c%c%c", COMM_INIT, type, f, chksum);
 
     LOGF_DEBUG("CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, f, chksum);
 
-    if (!isSimulation() && (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ((rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
     {
         char error_message[ERRMSG_SIZE];
         tty_error_msg(rc, error_message, ERRMSG_SIZE);
@@ -215,13 +197,56 @@ bool TruTech::SelectFilter(int f)
         return false;
     }
 
-    // How do we check on TruTech if filter arrived? Check later
-    CurrentFilter = f;
-    SelectFilterDone(CurrentFilter);
     return true;
+}
+
+int TruTech::QueryFilter()
+{
+    return CurrentFilter;
 }
 
 void TruTech::TimerHit()
 {
-    // Maybe needed later?
+    if (FilterSlotNP.s == IPS_BUSY)
+    {
+        int rc = 0, nbytes_written = 0, nbytes_read = 0;
+        uint8_t type   = 0x02;
+        uint8_t chksum = COMM_INIT + type + COMM_FILL;
+        char filter_command[BUF_SIZE] = {0};
+        snprintf(filter_command, BUF_SIZE, "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
+
+        LOGF_DEBUG("CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, COMM_FILL, chksum);
+
+        tcflush(PortFD, TCIOFLUSH);
+
+        if ( (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
+        {
+            char error_message[ERRMSG_SIZE];
+            tty_error_msg(rc, error_message, ERRMSG_SIZE);
+            LOGF_WARN("Sending filter query failed: %s", error_message);
+        }
+        else
+        {
+            char filter_response[BUF_SIZE] = {0};
+
+            if ( (rc = tty_read(PortFD, filter_response, CMD_SIZE, 3, &nbytes_read)) != TTY_OK)
+            {
+                char error_message[ERRMSG_SIZE];
+                tty_error_msg(rc, error_message, ERRMSG_SIZE);
+                LOGF_ERROR("Error receiving response from filter: %s", error_message);
+            }
+
+            if (static_cast<uint8_t>(filter_response[0]) == COMM_INIT)
+            {
+                // If filter finished moving
+                if (filter_response[2] > 0x30)
+                {
+                    CurrentFilter = filter_response[2] - 0x30;
+                    SelectFilterDone(CurrentFilter);
+                }
+            }
+        }
+    }
+
+    SetTimer(POLLMS);
 }

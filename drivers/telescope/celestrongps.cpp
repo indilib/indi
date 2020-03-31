@@ -223,7 +223,7 @@ bool CelestronGPS::initProperties()
 
     IUFillSwitch(&DSTSettingS[0], "DST_ENABLED", "Enabled", ISS_OFF);
     IUFillSwitchVector(&DSTSettingSP, DSTSettingS, 1, getDeviceName(), "DST_STATE", "DST", SITE_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
-
+    
     addAuxControls();
 
     //GUIDE Set guider interface.
@@ -577,7 +577,7 @@ bool CelestronGPS::Goto(double ra, double dec)
         usleep(500000);
     }
 
-    if (driver.slew_radec(targetRA, targetDEC, usePreciseCoords) == false)
+    if (driver.slew_radec(targetRA + SlewOffsetRa, targetDEC, usePreciseCoords) == false)
     {
         LOG_ERROR("Failed to slew telescope in RA/DEC.");
         return false;
@@ -588,7 +588,7 @@ bool CelestronGPS::Goto(double ra, double dec)
     char RAStr[32], DecStr[32];
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
-    LOGF_INFO("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to JNOW RA %s - DEC %s SlewOffsetRa %4.1f arcsec", RAStr, DecStr, SlewOffsetRa * 3600 * 15);
 
     return true;
 }
@@ -800,6 +800,15 @@ bool CelestronGPS::ReadScopeStatus()
             {
                 LOG_INFO("Slew complete, tracking...");
                 TrackState = SCOPE_TRACKING;
+                // update ra offset
+                double raoffset = targetRA - currentRA + SlewOffsetRa;
+                if (raoffset > 0.0 || raoffset < 10.0 / 3600.0)
+                {
+                    // average last two values
+                    SlewOffsetRa = SlewOffsetRa > 0 ? (SlewOffsetRa + raoffset) / 2 : raoffset;
+                    
+                    LOGF_DEBUG("raoffset %4.1f, SlewOffsetRa %4.1f arcsec", raoffset * 3600 * 15, SlewOffsetRa * 3600 * 15);
+                }
             }
             break;
 

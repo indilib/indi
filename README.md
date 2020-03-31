@@ -120,6 +120,7 @@ INDI uses [Artistic Style](http://astyle.sourceforge.net) to format all the C++ 
 --pad-oper
 --indent-col1-comments
 --lineend=linux
+--max-code-length=124
 ```
 
 Some IDEs (e.g. QtCreator) support automatic formatting for the code everytime you save the file to disk.
