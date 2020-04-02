@@ -811,12 +811,12 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 int ret;
                 char cmd[5];
                 int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
-                snprintf(cmd, 4, ":R%d#", index);
+                snprintf(cmd, 5, ":R%d#", index);
                 ret = sendOnStepCommandBlind(cmd);
                 
                 //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
                 if (ret == -1)
-                {
+                {S
                         LOGF_DEBUG("Pas OK Return value =%d", ret);
                         LOGF_DEBUG("Setting Max Slew Rate to %u\n", index);
                         SlewRateSP.s = IPS_ALERT;
