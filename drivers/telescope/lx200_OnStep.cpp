@@ -537,7 +537,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         if (!strcmp(name, MaxSlewRateNP.name))
         {
             int ret;
-            char cmd[4];
+            char cmd[5];
             snprintf(cmd, 4, ":R%d#", (int)values[0]);
             ret = sendOnStepCommandBlind(cmd);
 
@@ -809,7 +809,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         {
                 IUUpdateSwitch(&SlewRateSP, states, names, n);
                 int ret;
-                char cmd[4];
+                char cmd[5];
                 int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
                 snprintf(cmd, 4, ":R%d#", index);
                 ret = sendOnStepCommandBlind(cmd);
