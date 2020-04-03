@@ -818,7 +818,8 @@ bool XAGYLWheel::receiveResponse(char * res, bool optional)
     if (0 == strncmp(res, "ERROR", 5))
     {
         LOGF_WARN("Device error: %s", res);
-        return false;
+        if (!optional)
+            return false;
     }
     else
         LOGF_DEBUG("RES <%s>", res);
