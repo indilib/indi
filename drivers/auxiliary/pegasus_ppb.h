@@ -156,11 +156,6 @@ class PegasusPPB : public INDI::DefaultDevice, public INDI::WeatherInterface
         // Auto Dew
         ISwitch AutoDewS[2];
         ISwitchVectorProperty AutoDewSP;
-        enum
-        {
-            AUTO_DEW_ENABLED,
-            AUTO_DEW_DISABLED,
-        };
 
         // Dew PWM
         INumber DewPWMN[2];

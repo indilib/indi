@@ -20,6 +20,7 @@
 
 #include "defaultdevice.h"
 #include "dsp.h"
+#include "dsp/manager.h"
 #include <fitsio.h>
 
 #ifdef HAVE_WEBSOCKET
@@ -38,11 +39,6 @@
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
 
-extern const char *CAPTURE_SETTINGS_TAB;
-extern const char *CAPTURE_INFO_TAB;
-extern const char *GUIDE_HEAD_TAB;
-
-
 /**
  * \class INDI::Sensor
  * \brief Class to provide general functionality of Monodimensional Sensor.
@@ -58,7 +54,10 @@ extern const char *GUIDE_HEAD_TAB;
  * \author Jasem Mutlaq, Ilia Platone
  *
  */
-
+namespace DSP
+{
+class Manager;
+}
 namespace INDI
 {
 class StreamManager;
@@ -76,7 +75,8 @@ class SensorInterface : public DefaultDevice
             SENSOR_HAS_STREAMING              = 1<<1,  /*!< Does the Sensor supports streaming?  */
             SENSOR_HAS_SHUTTER                = 1<<2,  /*!< Does the Sensor have a mechanical shutter?  */
             SENSOR_HAS_COOLER                 = 1<<3,  /*!< Does the Sensor have a cooler and temperature control?  */
-            SENSOR_MAX_CAPABILITY             = 1<<4,  /*!< Does the Sensor have a cooler and temperature control?  */
+            SENSOR_HAS_DSP                    = 1<<4,
+            SENSOR_MAX_CAPABILITY             = 1<<5,  /*!< Does the Sensor have a cooler and temperature control?  */
         } SensorCapability;
 
         SensorInterface();
@@ -88,7 +88,8 @@ class SensorInterface : public DefaultDevice
         void processProperties(const char *dev);
         bool processText(const char *dev, const char *name, char *texts[], char *names[], int n);
         bool processSwitch(const char *dev, const char *name, ISState states[], char *names[], int n);
-        bool processBlob(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+        bool processBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                         char *formats[], char *names[], int n);
         bool processSnoopDevice(XMLEle *root);
 
         /**
@@ -311,24 +312,32 @@ protected:
         /**
          * @return  True if the Sensor supports live video streaming. False otherwise.
          */
+        bool HasDSP()
+        {
+            return capability & SENSOR_HAS_DSP;
+        }
+
+        /**
+         * @return  True if the Sensor supports live video streaming. False otherwise.
+         */
         bool HasStreaming()
         {
             return capability & SENSOR_HAS_STREAMING;
         }
 
         /**
-         * @brief GetSensorCapability returns the Sensor capabilities.
+         * @brief GetCapability returns the Sensor capabilities.
          */
-        uint32_t GetSensorCapability() const
+        uint32_t GetCapability() const
         {
             return capability;
         }
 
         /**
-         * @brief SetSensorCapability Set the Sensor capabilities. Al fields must be initilized.
+         * @brief SetCapability Set the Sensor capabilities. Al fields must be initilized.
          * @param cap pointer to SensorCapability struct.
          */
-        void SetSensorCapability(uint32_t cap);
+        void SetCapability(uint32_t cap);
 
         /**
          * \brief Abort ongoing Integration
@@ -345,7 +354,7 @@ protected:
         ISwitchVectorProperty AbortIntegrationSP;
         ISwitch AbortIntegrationS[1];
 
-        IBLOB FitsB[3];
+        IBLOB FitsB;
         IBLOBVectorProperty FitsBP;
 
         //  We are going to snoop these from a telescope
@@ -425,6 +434,7 @@ protected:
         std::mutex detectorBufferLock;
 
         std::unique_ptr<StreamManager> Streamer;
+        std::unique_ptr<DSP::Manager> DSP;
 
     private:
 
@@ -438,7 +448,7 @@ protected:
         timespec startIntegrationTime;
         char integrationExtention[MAXINDIBLOBFMT];
 
-        bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration, int blobindex);
+        bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration);
         void getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
         /**
@@ -461,7 +471,8 @@ protected:
          */
         virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
 
-        void* sendFITS(int bIndex,  uint8_t* buf, int len);
+        bool IntegrationCompletePrivate();
+        void* sendFITS(uint8_t* buf, int len);
         /** A function to just remove GCC warnings about deprecated conversion */
         void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
 };

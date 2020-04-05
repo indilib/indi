@@ -54,7 +54,7 @@ git clone --depth 1 https://github.com/indilib/indi.git
 
 On the other hand, if you plan to submit a PR or engage in INDI driver development, then getting a full clone is recommended:
 ```
-git clone https://github.com/indilib/indi.github
+git clone https://github.com/indilib/indi.git
 ```
 
 ## Build indi-core
@@ -107,6 +107,23 @@ INDI server only provides convenient port, fork and data steering services. If d
 + [Developers Forum](http://indilib.org/forum/development.html)
 + [Developers Chat](https://riot.im/app/#/room/#kstars:matrix.org)
 + Sample drivers are available under examples and drivers/skeleton directories. They can be used as a starting point for your driver development.
+
+### Code Style
+
+INDI uses [Artistic Style](http://astyle.sourceforge.net) to format all the C++ source files. Please make sure to apply the following astyle rules to any code that is submitted to INDI. On Linux, you can create ***~/.astylerc*** file containing the following rules:
+```
+--style=allman
+--align-reference=name
+--indent-switches
+--indent-modifiers
+--indent-classes
+--pad-oper
+--indent-col1-comments
+--lineend=linux
+--max-code-length=124
+```
+
+Some IDEs (e.g. QtCreator) support automatic formatting for the code everytime you save the file to disk.
 
 ### How to create Github pull request (PR)
 

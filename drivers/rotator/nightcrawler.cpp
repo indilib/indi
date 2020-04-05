@@ -459,7 +459,7 @@ void NightCrawler::abnormalDisconnect()
     updateProperties();
 
     // Reconnect in 2 seconds
-    IEAddTimer(2000, (IE_TCF *)abnormalDisconnectCallback, this);
+    IEAddTimer(2000, abnormalDisconnectCallback, this);
 }
 
 bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
@@ -1368,8 +1368,6 @@ IPState NightCrawler::HomeRotator()
         LOG_ERROR("Failed to start homing process.");
         return IPS_ALERT;
     }
-
-    return IPS_ALERT;
 }
 
 IPState NightCrawler::MoveRotator(double angle)

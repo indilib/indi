@@ -21,8 +21,9 @@
 #include "indidetector.h"
 
 #include "indicom.h"
-#include "stream/streammanager.h"
 #include "locale_compat.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <fitsio.h>
 
@@ -44,6 +45,8 @@ namespace INDI
 
 Detector::Detector()
 {
+    setBPS(sizeof(pulse_t) * sizeof(uint8_t));
+    setIntegrationFileExtension("raw");
 }
 
 Detector::~Detector()
@@ -52,37 +55,158 @@ Detector::~Detector()
 
 bool Detector::initProperties()
 {
+    // PrimaryDetector Info
+    IUFillNumber(&DetectorSettingsN[DETECTOR_RESOLUTION], "DETECTOR_RESOLUTION", "Resolution (ns)", "%16.3f", 0.01, 1.0e+8, 0.01, 1.0e+6);
+    IUFillNumber(&DetectorSettingsN[DETECTOR_TRIGGER], "DETECTOR_TRIGGER", "Trigger pulse (%)", "%3.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
+    IUFillNumberVector(&DetectorSettingsNP, DetectorSettingsN, 2, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    setDriverInterface(DETECTOR_INTERFACE);
+
+    if (detectorConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        registerConnection(serialConnection);
+    }
+
+    if (detectorConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+
+        registerConnection(tcpConnection);
+    }
+
     return SensorInterface::initProperties();
 }
 
 void Detector::ISGetProperties(const char *dev)
 {
-    return SensorInterface::processProperties(dev);
+    return processProperties(dev);
 }
 
 bool Detector::updateProperties()
 {
+    if (isConnected())
+    {
+        defineNumber(&DetectorSettingsNP);
+
+        if (HasCooler())
+            defineNumber(&TemperatureNP);
+    }
+    else
+    {
+        deleteProperty(DetectorSettingsNP.name);
+
+        if (HasCooler())
+            deleteProperty(TemperatureNP.name);
+    }
     return SensorInterface::updateProperties();
 }
 
 bool Detector::ISSnoopDevice(XMLEle *root)
 {
-    return SensorInterface::processSnoopDevice(root);
+    return processSnoopDevice(root);
 }
 
 bool Detector::ISNewText(const char *dev, const char *name, char *values[], char *names[], int n)
 {
-    return SensorInterface::processText(dev, name, values, names, n);
+    return processText(dev, name, values, names, n);
 }
 
 bool Detector::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    return SensorInterface::processNumber(dev, name, values, names, n);
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, DetectorSettingsNP.name)) {
+        IDSetNumber(&DetectorSettingsNP, nullptr);
+    }
+    return processNumber(dev, name, values, names, n);
 }
 
 bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *values, char *names[], int n)
 {
-    return SensorInterface::processSwitch(dev, name, values, names, n);
+    return processSwitch(dev, name, values, names, n);
 }
 
+bool Detector::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+           char *formats[], char *names[], int n)
+{
+    return processBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
+
+void Detector::setTriggerLevel(double level)
+{
+    TriggerLevel = level;
+
+    DetectorSettingsN[Detector::DETECTOR_TRIGGER].value = level;
+
+    IDSetNumber(&DetectorSettingsNP, nullptr);
+}
+
+void Detector::SetDetectorCapability(uint32_t cap)
+{
+    capability = cap;
+
+    setDriverInterface(getDriverInterface());
+}
+
+bool Detector::StartIntegration(double duration)
+{
+    INDI_UNUSED(duration);
+    DEBUGF(Logger::DBG_WARNING, "Detector::StartIntegration %4.2f -  Should never get here", duration);
+    return false;
+}
+
+void Detector::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
+                                   bool sendToClient)
+{
+    INumberVectorProperty *vp = nullptr;
+
+    if (!strcmp(property, DetectorSettingsNP.name)) {
+        vp = &FramedIntegrationNP;
+
+        INumber *np = IUFindNumber(vp, element);
+        if (np)
+        {
+            np->min  = min;
+            np->max  = max;
+            np->step = step;
+
+            if (sendToClient)
+                IUUpdateMinMax(vp);
+        }
+    }
+    INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
+}
+
+bool Detector::Handshake()
+{
+    return false;
+}
+
+bool Detector::callHandshake()
+{
+    if (detectorConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
+
+    return Handshake();
+}
+
+void Detector::setDetectorConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
+
+    if (value == 0 || (mask & value) == 0)
+    {
+        DEBUGF(Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
+    detectorConnection = value;
+}
+}
+

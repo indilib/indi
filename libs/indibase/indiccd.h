@@ -29,6 +29,7 @@
 #include "indiccdchip.h"
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
+#include "dsp/manager.h"
 
 #ifdef HAVE_WEBSOCKET
 #include "indiwsserver.h"
@@ -51,6 +52,10 @@ extern const char * IMAGE_INFO_TAB;
 extern const char * GUIDE_HEAD_TAB;
 //extern const char * RAPIDGUIDE_TAB;
 
+namespace DSP
+{
+class Manager;
+}
 namespace INDI
 {
 
@@ -120,7 +125,8 @@ class CCD : public DefaultDevice, GuiderInterface
             CCD_HAS_COOLER     = 1 << 6, /*!< Does the CCD have a cooler and temperature control?  */
             CCD_HAS_BAYER      = 1 << 7, /*!< Does the CCD send color data in bayer format?  */
             CCD_HAS_STREAMING  = 1 << 8, /*!< Does the CCD support live video streaming?  */
-            CCD_HAS_WEB_SOCKET = 1 << 9  /*!< Does the CCD support web socket transfers?  */
+            CCD_HAS_WEB_SOCKET = 1 << 9, /*!< Does the CCD support web socket transfers?  */
+            CCD_HAS_DSP        = 1 << 10 /*!< Does the CCD support image processing?  */
         } CCDCapability;
 
         typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
@@ -131,6 +137,7 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
         virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
         virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
         virtual bool ISSnoopDevice(XMLEle * root);
 
         static void wsThreadHelper(void * context);
@@ -235,6 +242,14 @@ class CCD : public DefaultDevice, GuiderInterface
         bool HasWebSocket()
         {
             return capability & CCD_HAS_WEB_SOCKET;
+        }
+
+        /**
+         * @return  True if the CCD supports live video streaming. False otherwise.
+         */
+        bool HasDSP()
+        {
+            return capability & CCD_HAS_DSP;
         }
 
         /**
@@ -519,6 +534,8 @@ class CCD : public DefaultDevice, GuiderInterface
         int CurrentFilterSlot;
 
         std::unique_ptr<StreamManager> Streamer;
+
+        std::unique_ptr<DSP::Manager> DSP;
 
         CCDChip PrimaryCCD;
         CCDChip GuideCCD;

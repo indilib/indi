@@ -405,7 +405,7 @@ void LX200_TeenAstro::updateMountStatus(char status)
 {
     static const char *errCodes[9] = {"ERR_NONE",  "ERR_MOTOR_FAULT", "ERR_ALT", "ERR_LIMIT_SENSE", 
                                 "ERR_AXIS2", "ERR_AZM", "ERR_UNDER_POLE", "ERR_MERIDIAN", "ERR_SYNC"};
-
+    
     if (status < '0' || status > '9')
     {
         return;

@@ -21,6 +21,8 @@
 
 #include "indispectrograph.h"
 #include "stream/streammanager.h"
+#include "dsp/convolution.h"
+#include "dsp/transforms.h"
 
 enum Settings
 {
@@ -35,6 +37,8 @@ class RadioSim : public INDI::Spectrograph
         RadioSim();
         ~RadioSim();
 
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+
     protected:
         // General device functions
         bool Connect() override;
@@ -44,23 +48,23 @@ class RadioSim : public INDI::Spectrograph
         bool updateProperties() override;
 
         // Detector specific functions
-        bool StartIntegration(float duration);
-        bool paramsUpdated(float sr, float freq, float bps, float bw, float gain);
+        bool StartIntegration(double duration) override;
         bool AbortIntegration() override;
         void TimerHit() override;
 
         bool StartStreaming() override;
         bool StopStreaming() override;
-        static void * streamCaptureHelper(void * context);
+        void streamCaptureHelper();
         void * streamCapture();
         void grabData();
 
     private:
+
         // Utility functions
         float CalcTimeLeft();
-        void setupParams();
+        void setupParams(float sr, float freq, float bw, float gain);
         struct timeval CapStart;
-        float IntegrationRequest;
+        double IntegrationRequest;
 
         int streamPredicate;
         pthread_t primary_thread;

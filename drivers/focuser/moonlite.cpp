@@ -299,9 +299,10 @@ bool MoonLite::isMoving()
     if (sendCommand(":GI#", res) == false)
         return false;
 
-    if (strcmp(res, "01#") == 0)
+    // JM 2020-03-13: 01# and 1# should be both accepted
+    if (strstr(res, "1#"))
         return true;
-    else if (strcmp(res, "00#") == 0)
+    else if (strstr(res, "0#"))
         return false;
 
     LOGF_ERROR("Unknown error: isMoving value (%s)", res);
@@ -522,7 +523,8 @@ IPState MoonLite::MoveAbsFocuser(uint32_t targetTicks)
 IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Clamp
-    int32_t newPosition = FocusAbsPosN[0].value + ((dir == FOCUS_INWARD) ? -1 : 1) * ticks;
+    int32_t offset = ((dir == FOCUS_INWARD) ? -1 : 1) * static_cast<int32_t>(ticks);
+    int32_t newPosition = FocusAbsPosN[0].value + offset;
     newPosition = std::max(static_cast<int32_t>(FocusAbsPosN[0].min), std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
 
     if (!MoveFocuser(newPosition))

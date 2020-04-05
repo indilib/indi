@@ -107,7 +107,7 @@ bool SimpleSpectrograph::initProperties()
 
     // We set the Spectrograph capabilities
     uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_COOLER | SENSOR_HAS_SHUTTER;
-    SetSpectrographCapability(cap);
+    SetCapability(cap);
 
     // Add Debug, Simulator, and Configuration controls
     addAuxControls();
@@ -157,13 +157,17 @@ bool SimpleSpectrograph::paramsUpdated(float sr, float freq, float bps, float bw
 void SimpleSpectrograph::setupParams()
 {
     // Our Spectrograph is an 8 bit Spectrograph, 100MHz frequency 1MHz samplerate.
-    setParams(1000000.0, 100000000.0, 8, 10000.0, 1.0);
+    setFrequency(1000000.0);
+    setSampleRate(100000000.0);
+    setBPS(16);
+    setBandwidth(0.0);
+    setGain(25.0);
 }
 
 /**************************************************************************************
 ** Client is asking us to start an exposure
 ***************************************************************************************/
-bool SimpleSpectrograph::StartIntegration(float duration)
+bool SimpleSpectrograph::StartIntegration(double duration)
 {
     IntegrationRequest = duration;
 

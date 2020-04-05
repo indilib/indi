@@ -56,6 +56,13 @@ class BaseDevice
             INDI_DISPATCH_ERROR      = -4  /*!< Dispatching command to driver failed. */
         };
 
+        /*! Used for switch Enabled/Disabled or On/Off type properties */
+        enum
+        {
+            INDI_ENABLED,
+            INDI_DISABLED
+        };
+
         /**
          * @brief The DRIVER_INTERFACE enum defines the class of devices the driver implements. A driver may implement one or more interfaces.
          */
@@ -76,8 +83,11 @@ class BaseDevice
             DETECTOR_INTERFACE      = (1 << 11), /**< Detector interface, must subclass INDI::Detector */
             ROTATOR_INTERFACE       = (1 << 12), /**< Rotator interface, must subclass INDI::RotatorInterface */
             SPECTROGRAPH_INTERFACE  = (1 << 13), /**< Spectrograph interface */
+            CORRELATOR_INTERFACE    = (1 << 14), /**< Correlators (interferometers) interface */
             AUX_INTERFACE           = (1 << 15), /**< Auxiliary interface */
         };
+
+        static const unsigned int SENSOR_INTERFACE { SPECTROGRAPH_INTERFACE | DETECTOR_INTERFACE | CORRELATOR_INTERFACE };
 
         /** \return Return vector number property given its name */
         INumberVectorProperty *getNumber(const char *name);

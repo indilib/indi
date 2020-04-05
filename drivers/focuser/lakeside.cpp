@@ -430,12 +430,12 @@ bool Lakeside::updateMoveDirection()
 
     if ( temp == 0)
     {
-        FocusReverseS[REVERSED_DISABLED].s = ISS_ON;
+        FocusReverseS[INDI_DISABLED].s = ISS_ON;
         LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
     }
     else if ( temp == 1)
     {
-        FocusReverseS[REVERSED_ENABLED].s = ISS_ON;
+        FocusReverseS[INDI_ENABLED].s = ISS_ON;
         LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
     }
     else
