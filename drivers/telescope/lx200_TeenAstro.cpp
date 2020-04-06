@@ -92,7 +92,7 @@ void ISSnoopDevice(XMLEle *root)
  */
 LX200_TeenAstro::LX200_TeenAstro()
 {
-    setVersion(0, 9);
+    setVersion(1, 0);
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -130,7 +130,7 @@ bool LX200_TeenAstro::initProperties()
     // ============== MAIN_CONTROL_TAB
     IUFillSwitch(&UsePulseCmdS[0], "On", "", ISS_ON);
     IUFillSwitch(&UsePulseCmdS[1], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Pulse Guiding", "", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&RefractionS[0], "On", "", ISS_OFF);
@@ -142,6 +142,11 @@ bool LX200_TeenAstro::initProperties()
      AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
      AddTrackMode("TRACK_SOLAR", "Solar");
      AddTrackMode("TRACK_LUNAR", "Lunar");
+
+    // Error Status
+    IUFillText(&ErrorStatusT[0], "Error code", "", "");
+    IUFillTextVector(&ErrorStatusTP, ErrorStatusT, 1, getDeviceName(), "Mount Status", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
 
     // ============== MOTION_TAB
     // Motion speed of axis when pressing NSWE buttons
@@ -158,16 +163,6 @@ bool LX200_TeenAstro::initProperties()
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 10, getDeviceName(), "TELESCOPE_SLEW_RATE", "Centering Rate", 
                         MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-#if 0
-    // Not implemented in TeenAstro
-    IUFillSwitch(&FrequencyAdjustS[0], "-", "-", ISS_OFF);
-    IUFillSwitch(&FrequencyAdjustS[1], "+", "+", ISS_OFF);
-    IUFillSwitchVector(&FrequencyAdjustSP, FrequencyAdjustS, 2, getDeviceName(), "FrequencyAdjust", "Frequency Adjust", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 55, 65, 0.02, 60.00);
-    IUFillNumberVector(&TrackFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RO, 0,
-                       IPS_IDLE);
-#endif
     IUFillNumber(&BacklashRAN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
     IUFillNumberVector(&BacklashRANP, BacklashRAN, 1, getDeviceName(), "Backlash RA", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
     IUFillNumber(&BacklashDecN[0], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
@@ -242,6 +237,7 @@ bool LX200_TeenAstro::updateProperties()
         deleteProperty("TELESCOPE_HAS_TRACK_RATE");
         // Main Control
         defineNumber(&SlewAccuracyNP);
+        defineText(&ErrorStatusTP);
         // Connection
         // Options
         // Motion Control
@@ -273,14 +269,13 @@ bool LX200_TeenAstro::updateProperties()
     {
         // Main Control
         deleteProperty(SlewAccuracyNP.name);
+        deleteProperty(ErrorStatusTP.name);
       // Connection
         // Options
         // Motion Control
         deleteProperty(SlewRateSP.name);
         deleteProperty(GuideRateSP.name);
         deleteProperty(RefractionSP.name);
-//        deleteProperty(FrequencyAdjustSP.name);
-//        deleteProperty(TrackFreqNP.name);
         deleteProperty(BacklashRANP.name);
         deleteProperty(BacklashDecNP.name);
         deleteProperty(UsePulseCmdSP.name);
@@ -353,6 +348,10 @@ bool LX200_TeenAstro::ReadScopeStatus()
 
     // update mount status
     getCommandString(PortFD, OSStat, ":GU#");       // :GU# returns a string containg controller status
+    if (OSStat[15] != '0')
+    {
+        updateMountStatus(OSStat[15]);              // error
+    }
     if (strcmp(OSStat, OldOSStat) != 0)             // if status changed
     {
         handleStatusChange();
@@ -360,7 +359,6 @@ bool LX200_TeenAstro::ReadScopeStatus()
     }
 
     NewRaDec(currentRA, currentDEC);
-    syncSideOfPier();
 
     return true;
 }
@@ -373,6 +371,7 @@ void LX200_TeenAstro::handleStatusChange(void)
 {
     LOGF_DEBUG ("Status Change: %s", OSStat);        
 
+    // Byte 2 is park status
     if (OSStat[2] != OldOSStat[2])
     {
         if (OSStat[2] == 'P')
@@ -385,8 +384,44 @@ void LX200_TeenAstro::handleStatusChange(void)
             SetTrackEnabled(false);     //disable since TeenAstro enables it by default            
         }
     }
+    // Byte 13 is pier side
+    if (OSStat[13] != OldOSStat[13])
+    {
+        setPierSide(OSStat[13] == 'W' ? INDI::Telescope::PIER_WEST : INDI::Telescope::PIER_EAST);
+    }
+    // Byte 15 is the error status
+    if (OSStat[15] != OldOSStat[15])
+    {
+        updateMountStatus(OSStat[15]);
+    }
 }
 
+/*
+ * Mount Error status
+ * 0:ERR_NONE,  1: ERR_MOTOR_FAULT, 2: ERR_ALT, 3: ERR_LIMIT_SENSE 
+ * 4: ERR_AXIS2,5: ERR_AZM, 6: ERR_UNDER_POLE, 7: ERR_MERIDIAN, 8: ERR_SYNC
+ */
+void LX200_TeenAstro::updateMountStatus(char status)
+{
+    static const char *errCodes[9] = {"ERR_NONE",  "ERR_MOTOR_FAULT", "ERR_ALT", "ERR_LIMIT_SENSE", 
+                                "ERR_AXIS2", "ERR_AZM", "ERR_UNDER_POLE", "ERR_MERIDIAN", "ERR_SYNC"};
+    
+    if (status < '0' || status > '9')
+    {
+        return;
+    }
+    if (status == '0')
+    {
+        ErrorStatusTP.s = IPS_OK;
+    }
+    else
+    {
+        ErrorStatusTP.s = IPS_ALERT;
+        TrackState = SCOPE_IDLE;     // Tell Ekos mount is not tracking anymore            
+    }
+    IUSaveText(&ErrorStatusT[0], errCodes[status-'0']);
+    IDSetText(&ErrorStatusTP, nullptr);        
+}
 
 /*
  *  Goto target 
@@ -501,24 +536,7 @@ bool LX200_TeenAstro::Sync(double ra, double dec)
     return true;
 }
 
-void LX200_TeenAstro::syncSideOfPier()
-{
-    char response[RB_MAX_LEN];
 
-    if (isSimulation())
-    {
-        setPierSide(INDI::Telescope::PIER_EAST);
-        return;
-    }
-
-    if (getCommandString(PortFD, response, ":Gm#") < 0)
-    {
-        LOGF_WARN("Error getting side of pier : %s", response);
-        return;
-    }
-    setPierSide(response[0] == 'E' ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
-    return;
-}
 
 //======================== Parking =======================
 bool LX200_TeenAstro::SetCurrentPark()
@@ -698,10 +716,11 @@ void LX200_TeenAstro::getBasicData()
         }
 
         // Get initial state and set switches
-        getCommandString(PortFD, OSStat, ":GU#");       // :GU# returns a string containg controller status
-        LOGF_INFO("Initial Status: %s", OSStat);
         for (unsigned i=0;i<sizeof(OldOSStat);i++)
             OldOSStat[i] = 'x';                         // reset old OS stat to force re-evaluation
+        getCommandString(PortFD, OSStat, ":GU#");       // :GU# returns a string containg controller status
+        handleStatusChange();
+        LOGF_INFO("Initial Status: %s", OSStat);
        // get current slew rate
         if (getSlewRate(&slewRateIndex))
         {
@@ -725,14 +744,22 @@ void LX200_TeenAstro::getBasicData()
         IDSetNumber(&BacklashDecNP, nullptr);
         IDSetNumber(&BacklashRANP, nullptr);
 
-        // Turn off tracking.
+        // Turn off tracking. (too much interaction with telescope.cpp if we try to keep the mount's current track state)
         SetTrackEnabled(false);
 
-        // Show pulse guiding as enabled (it is on by default in TeenAstro)
-        UsePulseCmdSP.s = IPS_OK;
+        // Following parameters are read from config file and restored
+        loadConfig(true, RefractionSP.name);
+        bool refrac = IUFindOnSwitchIndex(&RefractionSP);
+        enableRefractionTracking(refrac);
+        IDSetSwitch(&RefractionSP, nullptr);
+
+        // Set pulse guiding 
+        loadConfig(true, UsePulseCmdSP.name);
+        usePulseCommand = IUFindOnSwitchIndex(&UsePulseCmdSP);
         IDSetSwitch(&UsePulseCmdSP, nullptr);
 
-        // set default guide rate
+        // set guide rate 
+        loadConfig(true, GuideRateSP.name);
         int index = IUFindOnSwitchIndex(&GuideRateSP);
         SetGuideRate(index);
         GuideRateSP.s = IPS_OK;
@@ -820,8 +847,6 @@ bool LX200_TeenAstro::ISNewNumber(const char *dev, const char *name, double valu
  */
 bool LX200_TeenAstro::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-//    char response[RB_MAX_LEN];
-//    int res;
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -841,40 +866,7 @@ bool LX200_TeenAstro::ISNewSwitch(const char *dev, const char *name, ISState *st
             IDSetSwitch(&SlewRateSP, nullptr);
             return true;
         }
-#if 0
-        // not supported by TeenAstro
-        if (!strcmp(name, FrequencyAdjustSP.name))
-        {
-            IUUpdateSwitch(&FrequencyAdjustSP, states, names, n);
-            FrequencyAdjustSP.s = IPS_OK;
 
-            if (FrequencyAdjustS[0].s == ISS_ON)
-            {
-                if (isSimulation())
-                   TrackFreqN[0].value -= 0.02;
-                else
-                {
-                    if (getCommandString(PortFD, response, ":T-#") < 0)
-                    {
-                        res = ::getTrackFreq(PortFD, &TrackFreqN[0].value);  // use function from lx200driver
-                    }
-                }
-            }
-            if (FrequencyAdjustS[1].s == ISS_ON)
-            {
-                if (isSimulation())
-                   TrackFreqN[0].value += 0.02;
-                else
-                {
-                    if (getCommandString(PortFD, response, ":T+#") < 0)
-                    {
-                        res = ::getTrackFreq(PortFD, &TrackFreqN[0].value);  // use function from lx200driver
-                    }
-                }
-            }
-            IDSetNumber(&TrackFreqNP, nullptr);
-        }
-#endif
         if (!strcmp(name, GuideRateSP.name))
         {
             IUUpdateSwitch(&GuideRateSP, states, names, n);
@@ -888,7 +880,6 @@ bool LX200_TeenAstro::ISNewSwitch(const char *dev, const char *name, ISState *st
             IUResetSwitch(&UsePulseCmdSP);
             IUUpdateSwitch(&UsePulseCmdSP, states, names, n);
 
-            IDSetSwitch(&UsePulseCmdSP, nullptr);
             usePulseCommand = (UsePulseCmdS[0].s == ISS_ON);
             UsePulseCmdSP.s = usePulseCommand ? IPS_OK : IPS_IDLE;
             IDSetSwitch(&UsePulseCmdSP, nullptr);
@@ -904,19 +895,8 @@ bool LX200_TeenAstro::ISNewSwitch(const char *dev, const char *name, ISState *st
             bool refraction = (RefractionS[0].s == ISS_ON);
             RefractionSP.s = refraction ? IPS_OK : IPS_IDLE;
             IDSetSwitch(&RefractionSP, nullptr);
-            if (refraction)
-            {
-                sendCommand(":Tr#");
-                LOG_INFO("Refraction tracking enabled");
-                return true;
-            }
-            else
-            {
-                sendCommand(":Tn#");
-                LOG_INFO("Refraction tracking disabled");
-                return true;
-            }
-            return false;
+            enableRefractionTracking(refraction);
+            return (refraction);
         }
          // Sites
         if (!strcmp(name, SiteSP.name))
@@ -1195,6 +1175,7 @@ bool LX200_TeenAstro::getSiteIndex(int *ndxP)
 /*
  * getSlewRate - not in Meade standard
  * uses character 4 in string returned by :GU#
+ * returns the index in table SlewRateS[]
  */
 bool LX200_TeenAstro::getSlewRate(int *ndxP)
 {
@@ -1237,7 +1218,6 @@ bool LX200_TeenAstro::setSiteElevation(double elevation)
  * getLocation
  * retrieve from scope, set into user interface
  */
-
 bool LX200_TeenAstro::getLocation()
 {
     int dd = 0, mm = 0, elev = 0;
@@ -1394,6 +1374,22 @@ bool LX200_TeenAstro::Move(TDirection dir, TelescopeMotionCommand cmd)
 }
 
 /*
+ * Override default config saving
+ */
+bool LX200_TeenAstro::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &UsePulseCmdSP);
+    IUSaveConfigSwitch(fp, &SlewRateSP);
+    IUSaveConfigSwitch(fp, &GuideRateSP);
+    IUSaveConfigSwitch(fp, &RefractionSP);
+
+    return true;
+}
+
+
+/*
  * Mount simulation
  */
 void LX200_TeenAstro::mountSim()
@@ -1497,12 +1493,28 @@ bool LX200_TeenAstro::SetTrackEnabled(bool enabled)
 bool LX200_TeenAstro::selectSlewRate(int index)
 {
     char cmd[20];
+
     snprintf(cmd, sizeof(cmd), ":R%d#", index);
     sendCommand(cmd);
     return true;
 }
 
-
+/*
+ * enable Refraction tracking
+ */
+void LX200_TeenAstro::enableRefractionTracking(bool enable)
+{
+    if (enable)
+    {
+        sendCommand(":Tr#");
+        LOG_INFO("Refraction tracking enabled");
+    }
+    else
+    {
+        sendCommand(":Tn#");
+        LOG_INFO("Refraction tracking disabled");
+    }
+}
 
 /*
  * Used instead of getCommandString when response is not terminated with '#'
