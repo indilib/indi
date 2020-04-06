@@ -39,6 +39,10 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+#ifdef __FreeBSD__
+#include <netinet/in.h>
+#endif
+
 // We declare unique pointer to my lovely German Shephard Tommy (http://indilib.org/images/juli_tommy.jpg)
 // Rest in Peace Tommy 2013-2018
 static std::unique_ptr<SkySafari> tommyGoodBoy(new SkySafari());

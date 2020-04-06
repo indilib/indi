@@ -260,7 +260,7 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     //    }
 
     //if (ReverseDirectionS[0].s == ISS_ON)
-    if (FocusReverseS[REVERSED_ENABLED].s == ISS_ON)
+    if (FocusReverseS[INDI_ENABLED].s == ISS_ON)
     {
         dir = dir == FOCUS_INWARD ? FOCUS_OUTWARD : FOCUS_INWARD;
     }
@@ -325,7 +325,7 @@ IPState HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t
     FocusSpeedNP.s = IPS_BUSY;
     IDSetNumber(&FocusSpeedNP, nullptr);
 
-    if (FocusReverseS[REVERSED_ENABLED].s == ISS_ON)
+    if (FocusReverseS[INDI_ENABLED].s == ISS_ON)
     {
         dir = (dir == FOCUS_INWARD) ? FOCUS_OUTWARD : FOCUS_INWARD;
     }

@@ -146,6 +146,11 @@ void CCD::SetCCDCapability(uint32_t cap)
         Streamer.reset(new StreamManager(this));
         Streamer->initProperties();
     }
+
+    if (HasDSP() && DSP.get() == nullptr)
+    {
+        DSP.reset(new DSP::Manager(this));
+    }
 }
 
 bool CCD::initProperties()
@@ -393,7 +398,8 @@ bool CCD::initProperties()
 
     // CCD Should loop until the number of frames specified in this property is completed
     IUFillNumber(&ExposureLoopCountN[0], "FRAMES", "Frames", "%.f", 0, 100000, 1, 1);
-    IUFillNumberVector(&ExposureLoopCountNP, ExposureLoopCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Rapid Count", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&ExposureLoopCountNP, ExposureLoopCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Rapid Count",
+                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 #endif
 
     /**********************************************/
@@ -405,7 +411,8 @@ bool CCD::initProperties()
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&WebSocketSettingsN[WS_SETTINGS_PORT], "WS_SETTINGS_PORT", "Port", "%.f", 0, 50000, 0, 0);
-    IUFillNumberVector(&WebSocketSettingsNP, WebSocketSettingsN, 1, getDeviceName(), "CCD_WEBSOCKET_SETTINGS", "WS Settings", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&WebSocketSettingsNP, WebSocketSettingsN, 1, getDeviceName(), "CCD_WEBSOCKET_SETTINGS", "WS Settings",
+                       OPTIONS_TAB, IP_RW,
                        60, IPS_IDLE);
 
     /**********************************************/
@@ -413,21 +420,20 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Snooped Devices
-    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
 
-    // JJ ed 2019-12-10
+    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_ROTATOR], "ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_FOCUSER], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_FILTER], "ACTIVE_FILTER", "Filter", "CCD Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_SKYQUALITY], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
-    //
 
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW,
+    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control",
+                       IP_RW,
                        60, IPS_IDLE);
 
     // Snoop properties of interest
@@ -471,6 +477,9 @@ void CCD::ISGetProperties(const char * dev)
 
     if (HasStreaming())
         Streamer->ISGetProperties(dev);
+
+    if (HasDSP())
+        DSP->ISGetProperties(dev);
 }
 
 bool CCD::updateProperties()
@@ -656,6 +665,10 @@ bool CCD::updateProperties()
     // Streamer
     if (HasStreaming())
         Streamer->updateProperties();
+
+    // DSP
+    if (HasDSP())
+        DSP->updateProperties();
 
     return true;
 }
@@ -871,6 +884,10 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
     // Streamer
     if (HasStreaming())
         Streamer->ISNewText(dev, name, texts, names, n);
+
+    // DSP
+    if (HasDSP())
+        DSP->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
@@ -1202,6 +1219,10 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
     // Streamer
     if (HasStreaming())
         Streamer->ISNewNumber(dev, name, values, names, n);
+
+    // DSP
+    if (HasDSP())
+        DSP->ISNewNumber(dev, name, values, names, n);
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -1565,7 +1586,21 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
     if (HasStreaming())
         Streamer->ISNewSwitch(dev, name, states, names, n);
 
+    // DSP
+    if (HasDSP())
+        DSP->ISNewSwitch(dev, name, states, names, n);
+
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool CCD::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                    char *formats[], char *names[], int n)
+{
+    // DSP
+    if (HasDSP())
+        DSP->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+
+    return DefaultDevice::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
 int CCD::SetTemperature(double temperature)
@@ -1619,6 +1654,11 @@ bool CCD::UpdateCCDBin(int hor, int ver)
     // Reset size
     if (HasStreaming())
         Streamer->setSize(PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver);
+
+    // DSP
+    if (HasDSP())
+        DSP->setSizes(2, new int[2] { PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver });
+
     return true;
 }
 
@@ -1721,15 +1761,19 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     {
         case CCDChip::LIGHT_FRAME:
             fits_update_key_str(fptr, "FRAME", "Light", "Frame Type", &status);
+            fits_update_key_str(fptr, "IMAGETYP", "Light Frame", "Frame Type", &status);
             break;
         case CCDChip::BIAS_FRAME:
             fits_update_key_str(fptr, "FRAME", "Bias", "Frame Type", &status);
+            fits_update_key_str(fptr, "IMAGETYP", "Bias Frame", "Frame Type", &status);
             break;
         case CCDChip::FLAT_FRAME:
             fits_update_key_str(fptr, "FRAME", "Flat", "Frame Type", &status);
+            fits_update_key_str(fptr, "IMAGETYP", "Flat Frame", "Frame Type", &status);
             break;
         case CCDChip::DARK_FRAME:
             fits_update_key_str(fptr, "FRAME", "Dark", "Frame Type", &status);
+            fits_update_key_str(fptr, "IMAGETYP", "Dark Frame", "Frame Type", &status);
             break;
     }
 
@@ -1770,6 +1814,13 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     if (!std::isnan(RotatorAngle))
     {
         fits_update_key_dbl(fptr, "ROTATANG", RotatorAngle, 3, "Rotator angle in degrees", &status);
+    }
+
+    // JJ ed 2020-03-28
+    // If the focus position is set, add the information to the FITS header
+    if (!std::isnan(FocusPos))
+    {
+        fits_update_key_lng(fptr, "FOCUSPOS", FocusPos, "Focus position in steps", &status);
     }
 
     // SCALE assuming square-pixels
@@ -1897,6 +1948,14 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
 
 bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 {
+    if(HasDSP())
+    {
+        uint8_t* buf = static_cast<uint8_t*>(malloc(targetChip->getFrameBufferSize()));
+        memcpy(buf, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
+        DSP->processBLOB(buf, 2, new int[2] { targetChip->getSubW() / targetChip->getBinX(), targetChip->getSubH() / targetChip->getBinY() },
+                         targetChip->getBPP());
+        free(buf);
+    }
 #ifdef WITH_EXPOSURE_LOOPING
     // If looping is on, let's immediately take another capture
     if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
@@ -1933,7 +1992,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             }
             else
             {
-                LOGF_ERROR("Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
+                LOGF_ERROR("Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime,
+                           duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
                 ExposureLoopCountN[0].value = 1;
@@ -2591,7 +2651,6 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
         }
     }
 #endif
-
     return true;
 }
 
@@ -2861,6 +2920,9 @@ bool CCD::saveConfigItems(FILE * fp)
 
     if (HasStreaming())
         Streamer->saveConfigItems(fp);
+
+    if (HasDSP())
+        DSP->saveConfigItems(fp);
 
     return true;
 }

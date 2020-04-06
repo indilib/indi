@@ -24,7 +24,7 @@
 
 #include "streammanager.h"
 #include "indiccd.h"
-#include "indispectrograph.h"
+#include "indisensorinterface.h"
 #include "indilogger.h"
 
 #include <cerrno>
@@ -94,8 +94,8 @@ bool StreamManager::initProperties()
     /* Video Stream */
     IUFillSwitch(&StreamS[0], "STREAM_ON", "Stream On", ISS_OFF);
     IUFillSwitch(&StreamS[1], "STREAM_OFF", "Stream Off", ISS_ON);
-    if(currentDevice->getDriverInterface() == INDI::DefaultDevice::DETECTOR_INTERFACE)
-        IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "DETECTOR_DATA_STREAM", "Video Stream",
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
+        IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "SENSOR_DATA_STREAM", "Video Stream",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
         IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
@@ -124,10 +124,10 @@ bool StreamManager::initProperties()
                        "Record Options", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Record Switch */
-    IUFillSwitch(&RecordStreamS[0], "RECORD_ON", "Record On", ISS_OFF);
-    IUFillSwitch(&RecordStreamS[1], "RECORD_DURATION_ON", "Record (Duration)", ISS_OFF);
-    IUFillSwitch(&RecordStreamS[2], "RECORD_FRAME_ON", "Record (Frames)", ISS_OFF);
-    IUFillSwitch(&RecordStreamS[3], "RECORD_OFF", "Record Off", ISS_ON);
+    IUFillSwitch(&RecordStreamS[RECORD_ON], "RECORD_ON", "Record On", ISS_OFF);
+    IUFillSwitch(&RecordStreamS[RECORD_TIME], "RECORD_DURATION_ON", "Record (Duration)", ISS_OFF);
+    IUFillSwitch(&RecordStreamS[RECORD_FRAME], "RECORD_FRAME_ON", "Record (Frames)", ISS_OFF);
+    IUFillSwitch(&RecordStreamS[RECORD_OFF], "RECORD_OFF", "Record Off", ISS_ON);
     IUFillSwitchVector(&RecordStreamSP, RecordStreamS, NARRAY(RecordStreamS), getDeviceName(), "RECORD_STREAM",
                        "Video Record", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -145,16 +145,16 @@ bool StreamManager::initProperties()
     // Encoder Selection
     IUFillSwitch(&EncoderS[ENCODER_RAW], "RAW", "RAW", ISS_ON);
     IUFillSwitch(&EncoderS[ENCODER_MJPEG], "MJPEG", "MJPEG", ISS_OFF);
-    if(currentDevice->getDriverInterface() == INDI::DefaultDevice::DETECTOR_INTERFACE)
-        IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "DETECTOR_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
+        IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "SENSOR_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
         IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Recorder Selector
     IUFillSwitch(&RecorderS[RECORDER_RAW], "SER", "SER", ISS_ON);
     IUFillSwitch(&RecorderS[RECORDER_OGV], "OGV", "OGV", ISS_OFF);
-    if(currentDevice->getDriverInterface() == INDI::DefaultDevice::DETECTOR_INTERFACE)
-        IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "DETECTOR_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
+        IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "SENSOR_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
         IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     // If we do not have theora installed, let's just define SER default recorder
@@ -193,9 +193,9 @@ bool StreamManager::updateProperties()
         {
             imageBP = currentDevice->getBLOB("CCD1");
         }
-        if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+        if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
         {
-            imageBP = currentDevice->getBLOB("DETECTOR");
+            imageBP = currentDevice->getBLOB("SENSOR");
         }
         imageB  = imageBP->bp;
 
@@ -265,14 +265,20 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         FpsN[0].value = newFPS;
         IDSetNumber(&FpsNP, nullptr);
     }
-    std::thread(&StreamManager::asyncStream, this, buffer, nbytes, deltams).detach();
+
+    if (m_isStreaming)
+        std::thread(&StreamManager::asyncStream, this, buffer, nbytes, deltams).detach();
+    // JM 2020-03-07: Temporarily disable threading for recording until
+    // callback file descriptor looping issue is figured out.
+    else if (m_isRecording)
+        asyncStream(buffer, nbytes, deltams);
 }
 
 void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams)
 {
-    std::unique_lock<std::mutex> guard((currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) ?
-                                       dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock :
-                                       dynamic_cast<INDI::Spectrograph*>(currentDevice)->detectorBufferLock);
+    std::lock_guard<std::mutex> guard((currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) ?
+                                      dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock :
+                                      dynamic_cast<INDI::SensorInterface*>(currentDevice)->detectorBufferLock);
 
     // For streaming, downscale 16 to 8
     if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
@@ -285,9 +291,9 @@ void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double d
                 npixels = (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX()) * (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
                 //uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
             }
-            else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+            else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
             {
-                npixels = nbytes * 8 / dynamic_cast<INDI::Spectrograph*>(currentDevice)->getBPS();
+                npixels = nbytes * 8 / dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBPS();
             }
             // Allocale new buffer if size changes
             if (downscaleBufferSize != npixels)
@@ -298,28 +304,6 @@ void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double d
             }
 
             const uint16_t * srcBuffer = reinterpret_cast<const uint16_t *>(buffer);
-            //buffer = downscaleBuffer;
-
-            // Slow method: proper downscale
-            /*
-
-            uint16_t max = 32768;
-            uint16_t min = 0;
-
-            for (uint32_t i=0; i < npixels; i++)
-            {
-                if (srcBuffer[i] > max)
-                    max = srcBuffer[i];
-                else if (srcBuffer[i] < min)
-                    min = srcBuffer[i];
-            }
-
-            double bscale = 255. / (max - min);
-            double bzero  = (-min) * (255. / (max - min));
-
-            for (uint32_t i=0; i < npixels; i++)
-                streamBuffer[i] = srcBuffer[i] * bscale + bzero;
-            */
 
             // Apply gamma
             for (uint32_t i = 0; i < npixels; i++)
@@ -475,24 +459,26 @@ bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double
     m_RecordingFrameDuration += deltams;
     m_RecordingFrameTotal += 1;
 
-    if ((RecordStreamSP.sp[1].s == ISS_ON) && (m_RecordingFrameDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
+    if ((RecordStreamSP.sp[RECORD_TIME].s == ISS_ON) && (m_RecordingFrameDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
     {
         LOGF_INFO("Ending record after %g millisecs", m_RecordingFrameDuration);
         stopRecording();
-        RecordStreamSP.sp[1].s = ISS_OFF;
-        RecordStreamSP.sp[3].s = ISS_ON;
-        RecordStreamSP.s       = IPS_IDLE;
+        IUResetSwitch(&RecordStreamSP);
+        RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
+        RecordStreamSP.s = IPS_IDLE;
         IDSetSwitch(&RecordStreamSP, nullptr);
+        return true;
     }
 
-    if ((RecordStreamSP.sp[2].s == ISS_ON) && (m_RecordingFrameTotal >= (RecordOptionsNP.np[1].value)))
+    if ((RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON) && (m_RecordingFrameTotal >= (RecordOptionsNP.np[1].value)))
     {
         LOGF_INFO("Ending record after %d frames", m_RecordingFrameTotal);
         stopRecording();
-        RecordStreamSP.sp[2].s = ISS_OFF;
-        RecordStreamSP.sp[3].s = ISS_ON;
-        RecordStreamSP.s       = IPS_IDLE;
+        RecordStreamSP.sp[RECORD_FRAME].s = ISS_OFF;
+        RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
+        RecordStreamSP.s = IPS_IDLE;
         IDSetSwitch(&RecordStreamSP, nullptr);
+        return true;
     }
 
     return true;
@@ -673,9 +659,9 @@ bool StreamManager::startRecording()
             IDSetSwitch(&RecordStreamSP, nullptr);
         }
     }
-    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
-        if (m_isStreaming == false && dynamic_cast<INDI::Spectrograph*>(currentDevice)->StartStreaming() == false)
+        if (m_isStreaming == false && dynamic_cast<INDI::SensorInterface*>(currentDevice)->StartStreaming() == false)
         {
             LOG_ERROR("Failed to start recording.");
             RecordStreamSP.s = IPS_ALERT;
@@ -697,10 +683,10 @@ bool StreamManager::stopRecording(bool force)
         if (!m_isStreaming)
             dynamic_cast<INDI::CCD*>(currentDevice)->StopStreaming();
     }
-    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
         if (!m_isStreaming)
-            dynamic_cast<INDI::Spectrograph*>(currentDevice)->StopStreaming();
+            dynamic_cast<INDI::SensorInterface*>(currentDevice)->StopStreaming();
 
     }
 
@@ -712,13 +698,14 @@ bool StreamManager::stopRecording(bool force)
 
     LOGF_INFO("Record Duration(millisec): %g -- Frame count: %d", m_RecordingFrameDuration,
               m_RecordingFrameTotal);
+
     return true;
 }
 
 bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if (dev != nullptr && strcmp(getDeviceName(), dev))
-        return true;
+        return false;
 
     /* Video Stream */
     if (!strcmp(name, StreamSP.name))
@@ -745,35 +732,34 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
         int prevSwitch = IUFindOnSwitchIndex(&RecordStreamSP);
         IUUpdateSwitch(&RecordStreamSP, states, names, n);
 
-        if (m_isRecording && RecordStreamSP.sp[3].s != ISS_ON)
+        if (m_isRecording && RecordStreamSP.sp[RECORD_OFF].s != ISS_ON)
         {
             IUResetSwitch(&RecordStreamSP);
             RecordStreamS[prevSwitch].s = ISS_ON;
             IDSetSwitch(&RecordStreamSP, nullptr);
             LOG_WARN("Recording device is busy.");
-            return false;
+            return true;
         }
 
-        if ((RecordStreamSP.sp[0].s == ISS_ON) || (RecordStreamSP.sp[1].s == ISS_ON) ||
-                (RecordStreamSP.sp[2].s == ISS_ON))
+        if ((RecordStreamSP.sp[RECORD_ON].s == ISS_ON) ||
+                (RecordStreamSP.sp[RECORD_TIME].s == ISS_ON) ||
+                (RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON))
         {
             if (!m_isRecording)
             {
                 RecordStreamSP.s = IPS_BUSY;
-                if (RecordStreamSP.sp[1].s == ISS_ON)
+                if (RecordStreamSP.sp[RECORD_TIME].s == ISS_ON)
                     LOGF_INFO("Starting video record (Duration): %g secs.", RecordOptionsNP.np[0].value);
-                else if (RecordStreamSP.sp[2].s == ISS_ON)
+                else if (RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON)
                     LOGF_INFO("Starting video record (Frame count): %d.", static_cast<int>(RecordOptionsNP.np[1].value));
                 else
                     LOG_INFO("Starting video record.");
 
                 if (!startRecording())
                 {
-                    RecordStreamSP.sp[0].s = ISS_OFF;
-                    RecordStreamSP.sp[1].s = ISS_OFF;
-                    RecordStreamSP.sp[2].s = ISS_OFF;
-                    RecordStreamSP.sp[3].s = ISS_ON;
-                    RecordStreamSP.s       = IPS_ALERT;
+                    IUResetSwitch(&RecordStreamSP);
+                    RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
+                    RecordStreamSP.s = IPS_ALERT;
                 }
             }
         }
@@ -815,6 +801,7 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
             }
         }
         IDSetSwitch(&EncoderSP, nullptr);
+        return true;
     }
 
     // Recorder Selection
@@ -839,16 +826,18 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
             }
         }
         IDSetSwitch(&RecorderSP, nullptr);
+        return true;
     }
 
-    return true;
+    // No properties were processed
+    return false;
 }
 
 bool StreamManager::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     /* ignore if not ours */
     if (dev != nullptr && strcmp(getDeviceName(), dev))
-        return true;
+        return false;
 
     if (!strcmp(name, RecordFileTP.name))
     {
@@ -856,21 +845,23 @@ bool StreamManager::ISNewText(const char * dev, const char * name, char * texts[
         if (strchr(tp->text, '/'))
         {
             LOG_WARN("Dir. separator (/) not allowed in filename.");
-            return false;
+            return true;
         }
 
         IUUpdateText(&RecordFileTP, texts, names, n);
         IDSetText(&RecordFileTP, nullptr);
         return true;
     }
-    return true;
+
+    // No Properties were processed.
+    return false;
 }
 
 bool StreamManager::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     /* ignore if not ours */
     if (dev != nullptr && strcmp(getDeviceName(), dev))
-        return true;
+        return false;
 
     if (!strcmp(StreamExposureNP.name, name))
     {
@@ -886,7 +877,7 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
         if (m_isRecording)
         {
             LOG_WARN("Recording device is busy");
-            return false;
+            return true;
         }
 
         IUUpdateNumber(&RecordOptionsNP, values, names, n);
@@ -901,7 +892,7 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
         if (m_isRecording)
         {
             LOG_WARN("Recording device is busy");
-            return false;
+            return true;
         }
 
         int subW = 0;
@@ -912,9 +903,9 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
             subW = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
             subH = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY();
         }
-        else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+        else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
         {
-            subW = dynamic_cast<INDI::Spectrograph*>(currentDevice)->getBufferSize() * 8 / dynamic_cast<INDI::Spectrograph*>(currentDevice)->getBPS();
+            subW = dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBufferSize() * 8 / dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBPS();
             subH = 1;
         }
 
@@ -932,16 +923,8 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
         return true;
     }
 
-    /* Frames to drop */
-    /*if (!strcmp (FramestoDropNP.name, name))
-      {
-        IUUpdateNumber(&FramestoDropNP, values, names, n);
-        //v4l_base->setDropFrameCount(values[0]);
-        FramestoDropNP.s = IPS_OK;
-        IDSetNumber(&FramestoDropNP, nullptr);
-        return true;
-      }*/
-    return true;
+    // No properties were processed
+    return false;
 }
 
 bool StreamManager::setStream(bool enable)
@@ -976,9 +959,9 @@ bool StreamManager::setStream(bool enable)
                     return false;
                 }
             }
-            else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+            else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
             {
-                if (dynamic_cast<INDI::Spectrograph*>(currentDevice)->StartStreaming() == false)
+                if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->StartStreaming() == false)
                 {
                     IUResetSwitch(&StreamSP);
                     StreamS[1].s = ISS_ON;
@@ -993,7 +976,6 @@ bool StreamManager::setStream(bool enable)
             FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
             IUResetSwitch(&StreamSP);
             StreamS[0].s = ISS_ON;
-
             recorder->setStreamEnabled(true);
         }
     }
@@ -1018,9 +1000,9 @@ bool StreamManager::setStream(bool enable)
                         return false;
                     }
                 }
-                else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+                else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
                 {
-                    if (dynamic_cast<INDI::Spectrograph*>(currentDevice)->StopStreaming() == false)
+                    if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->StopStreaming() == false)
                     {
                         StreamSP.s = IPS_ALERT;
                         LOG_ERROR("Failed to stop streaming.");
@@ -1111,11 +1093,11 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         subW = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
         subH = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY();
     }
-    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
         subX = 0;
         subY = 0;
-        subW = dynamic_cast<INDI::Spectrograph*>(currentDevice)->getBufferSize() * 8 / dynamic_cast<INDI::Spectrograph*>(currentDevice)->getBPS();
+        subW = dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBufferSize() * 8 / dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBPS();
         subH = 1;
     }
 
@@ -1185,20 +1167,20 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
                 return true;
             }
         }
-        else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+        else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
         {
-            if (encoder->upload(imageB, downscaleBuffer, nbytes, false))//dynamic_cast<INDI::Spectrograph*>(currentDevice)->isCompressed())
+            if (encoder->upload(imageB, downscaleBuffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed())
             {
                 /*
-                            if (dynamic_cast<INDI::Spectrograph*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::Spectrograph*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
+                            if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::SensorInterface*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
                             {
                                 if (m_Format != ".stream")
                                 {
                                     m_Format = ".stream";
-                                    dynamic_cast<INDI::Spectrograph*>(currentDevice)->wsServer.send_text(m_Format);
+                                    dynamic_cast<INDI::SensorInterface*>(currentDevice)->wsServer.send_text(m_Format);
                                 }
 
-                                dynamic_cast<INDI::Spectrograph*>(currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
+                                dynamic_cast<INDI::SensorInterface*>(currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
                                 return true;
                             }
                 */
@@ -1273,20 +1255,20 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
             return true;
         }
     }
-    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE)
+    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
-        if (encoder->upload(imageB, buffer, nbytes, false))//dynamic_cast<INDI::Spectrograph*>(currentDevice)->isCompressed()))
+        if (encoder->upload(imageB, buffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed()))
         {
             /*
-                        if (dynamic_cast<INDI::Spectrograph*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::Spectrograph*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
+                        if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::SensorInterface*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
                         {
                             if (m_Format != ".stream")
                             {
                                 m_Format = ".stream";
-                                dynamic_cast<INDI::Spectrograph*>(currentDevice)->wsServer.send_text(m_Format);
+                                dynamic_cast<INDI::SensorInterface*>(currentDevice)->wsServer.send_text(m_Format);
                             }
 
-                            dynamic_cast<INDI::Spectrograph*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
+                            dynamic_cast<INDI::SensorInterface*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
                             return true;
                         }
             */
