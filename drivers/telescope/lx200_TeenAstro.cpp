@@ -1522,10 +1522,14 @@ void LX200_TeenAstro::enableRefractionTracking(bool enable)
  */
 void LX200_TeenAstro::sendCommand(const char *cmd)
 {
+    char resp;
+    int nbytes_read;
     std::unique_lock<std::mutex> guard(lx200CommsLock);
     LOGF_INFO("sendCommand %s", cmd);
     int rc = write(PortFD, cmd, strlen(cmd));
+    rc = tty_read(PortFD, &resp, 1, ONSTEP_TIMEOUT, &nbytes_read);
     INDI_UNUSED(rc);
+    tcflush(PortFD, TCIFLUSH);
 }
 
 
