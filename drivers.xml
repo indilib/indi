@@ -351,6 +351,10 @@
             <driver name="Sesto Senso">indi_sestosenso_focus</driver>
             <version>1.4</version>
         </device>
+        <device label="Sesto Senso 2">
+            <driver name="Sesto Senso 2">indi_sestosenso2_focus</driver>
+            <version>0.1</version>
+        </device>
         <device label="Lakeside">
             <driver name="Lakeside">indi_lakeside_focus</driver>
             <version>1.1</version>

@@ -182,7 +182,7 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len);
  */
 void tty_set_debug(int debug);
 void tty_set_gemini_udp_format(int enabled);
-void tty_set_skywatcher_udp_format(int enabled);
+void tty_set_generic_udp_format(int enabled);
 void tty_clr_trailing_read_lf(int enabled);
 
 int tty_timeout(int fd, int timeout);
