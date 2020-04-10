@@ -27,22 +27,12 @@
 // We declare an auto pointer to ScopeSim.
 static std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 
-#define GOTO_RATE      6.5      /* slew rate, degrees/s */
-#define SLEW_RATE      2.5      /* slew rate, degrees/s */
-#define FINE_SLEW_RATE 0.5      /* slew rate, degrees/s */
-
-#define GOTO_LIMIT      5       /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
-#define SLEW_LIMIT      1       /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
-
 #define RA_AXIS     0
 #define DEC_AXIS    1
 #define GUIDE_NORTH 0
 #define GUIDE_SOUTH 1
 #define GUIDE_WEST  0
 #define GUIDE_EAST  1
-
-#define MIN_AZ_FLIP 180
-#define MAX_AZ_FLIP 200
 
 void ISPoll(void *p);
 
@@ -78,6 +68,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
+
 void ISSnoopDevice(XMLEle *root)
 {
     telescope_sim->ISSnoopDevice(root);
@@ -94,9 +85,6 @@ ScopeSim::ScopeSim()
     /* initialize random seed: */
     srand(static_cast<uint32_t>(time(nullptr)));
 
-    // assume no pier side property
-    currentPierSide = lastPierSide = PIER_UNKNOWN;
-
     // initalise axis positions, for GEM pointing at pole, counterweight down
     axisPrimary.setDegrees(90.0);
     axisSecondary.setDegrees(90.0);
@@ -112,32 +100,26 @@ bool ScopeSim::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
-#ifdef USE_EQUATORIAL_PE
-    /* Simulated periodic error in RA, DEC */
-    IUFillNumber(&EqPEN[RA_AXIS], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 15.);
-    IUFillNumber(&EqPEN[DEC_AXIS], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 15.);
-    IUFillNumberVector(&EqPENV, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "Periodic Error", MOTION_TAB, IP_RO, 60,
-                       IPS_IDLE);
-
-    /* Enable client to manually add periodic error northward or southward for simulation purposes */
-    IUFillSwitch(&PEErrNSS[DIRECTION_NORTH], "PE_N", "North", ISS_OFF);
-    IUFillSwitch(&PEErrNSS[DIRECTION_SOUTH], "PE_S", "South", ISS_OFF);
-    IUFillSwitchVector(&PEErrNSSP, PEErrNSS, 2, getDeviceName(), "PE_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_ATMOST1, 60,
-                       IPS_IDLE);
-
-    /* Enable client to manually add periodic error westward or easthward for simulation purposes */
-    IUFillSwitch(&PEErrWES[DIRECTION_WEST], "PE_W", "West", ISS_OFF);
-    IUFillSwitch(&PEErrWES[DIRECTION_EAST], "PE_E", "East", ISS_OFF);
-    IUFillSwitchVector(&PEErrWESP, PEErrWES, 2, getDeviceName(), "PE_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_ATMOST1, 60,
-                       IPS_IDLE);
-#endif
-
     // mount type and alignment properties, these are in the Simulation tab
     IUFillSwitch(&mountTypeS[Alignment::ALTAZ], "ALTAZ", "AltAz", ISS_OFF);
     IUFillSwitch(&mountTypeS[Alignment::EQ_FORK], "EQ_FORK", "Fork (Eq)", ISS_ON);
     IUFillSwitch(&mountTypeS[Alignment::EQ_GEM], "EQ_GEM", "GEM", ISS_OFF);
     IUFillSwitchVector(&mountTypeSP, mountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", "Simulation",
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE );
+
+    IUFillSwitch(&simPierSideS[0], "PS_OFF", "Off", ISS_ON);
+    IUFillSwitch(&simPierSideS[1], "PS_ON", "On", ISS_OFF);
+    IUFillSwitchVector(&simPierSideSP, simPierSideS, 2, getDeviceName(), "SIM_PIER_SIDE", "Sim Pier Side", "Simulation",
+                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE );
+
+    IUFillNumber(&mountModelN[0], "MM_IH", "Ha Zero (IH)", "%g", -5, 5, 0.01, 0);
+    IUFillNumber(&mountModelN[1], "MM_ID", "Dec Zero (ID)", "%g", -5, 5, 0.01, 0);
+    IUFillNumber(&mountModelN[2], "MM_CH", "Cone (CH)", "%g", -5, 5, 0.01, 0);
+    IUFillNumber(&mountModelN[3], "MM_NP", "Ha/Dec (NP)", "%g", -5, 5, 0.01, 0);
+    IUFillNumber(&mountModelN[4], "MM_MA", "Pole Azm (MA)", "%g", -5, 5, 0.01, 0);
+    IUFillNumber(&mountModelN[5], "MM_ME", "Pole elev (ME)", "%g", -5, 5, 0.01, 0);
+    IUFillNumberVector(&mountModelNP, mountModelN, 6, getDeviceName(), "MOUNT_MODEL", "Mount Model",
+                       "Simulation", IP_RW, 0, IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.5);
@@ -171,16 +153,6 @@ bool ScopeSim::initProperties()
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
-//    double longitude = 0, latitude = 90;
-//    // Get value from config file if it exists.
-//    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-//    currentRA  = get_local_sidereal_time(longitude);
-//    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-//    currentDEC = latitude > 0 ? 90 : -90;
-
-//    alignment.latitude = Angle(latitude);
-//    alignment.longitude = Angle(longitude);
-
     setDefaultPollingPeriod(250);
 
     return true;
@@ -195,6 +167,11 @@ void ScopeSim::ISGetProperties(const char *dev)
     {
         defineSwitch(&mountTypeSP);
         loadConfig(true, mountTypeSP.name);
+
+        defineSwitch(&simPierSideSP);
+        loadConfig(true, simPierSideSP.name);
+        defineNumber(&mountModelNP);
+        loadConfig(true, mountModelNP.name);
     }
 
     /*
@@ -212,21 +189,7 @@ void ScopeSim::ISGetProperties(const char *dev)
 
 bool ScopeSim::updateProperties()
 {
-    // update the pier side capability depending on the mount type
-    uint32_t cap = GetTelescopeCapability();
-
-    int type = IUFindOnSwitchIndex(&mountTypeSP);
-    LOGF_INFO("updatePropertiers: Mount Type set to %i", type);
-    if (type == Alignment::EQ_GEM)
-    {
-        cap |= TELESCOPE_HAS_PIER_SIDE;
-    }
-    else
-    {
-        cap &= ~static_cast<uint32_t>(TELESCOPE_HAS_PIER_SIDE);
-    }
-
-    SetTelescopeCapability(cap, 4);
+    updateMountAndPierSide();
 
     INDI::Telescope::updateProperties();
 
@@ -238,13 +201,9 @@ bool ScopeSim::updateProperties()
         loadConfig(true, GuideRateNP.name);
 
         // the simulation properties are only available when not connected
-        deleteProperty("MOUNT_TYPE");
-
-#ifdef USE_EQUATORIAL_PE
-        defineNumber(&EqPENV);
-        defineSwitch(&PEErrNSSP);
-        defineSwitch(&PEErrWESP);
-#endif
+        deleteProperty(mountTypeSP.name);
+        deleteProperty(simPierSideSP.name);
+        deleteProperty(mountModelNP.name);
 
         if (InitPark())
         {
@@ -273,15 +232,11 @@ bool ScopeSim::updateProperties()
     {
         // the simulation properties are only defined when not connected
         defineSwitch(&mountTypeSP);
+        defineSwitch(&simPierSideSP);
+        defineNumber(&mountModelNP);
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-
-#ifdef USE_EQUATORIAL_PE
-        deleteProperty(EqPENV.name);
-        deleteProperty(PEErrNSSP.name);
-        deleteProperty(PEErrWESP.name);
-#endif
         deleteProperty(GuideRateNP.name);
     }
 
@@ -309,7 +264,7 @@ bool ScopeSim::ReadScopeStatus()
     axisSecondary.update();
 
     Angle ra, dec;
-    alignment.MountToRaDec(axisPrimary.position, axisSecondary.position, &ra, &dec);
+    alignment.mountToApparentRaDec(axisPrimary.position, axisSecondary.position, &ra, &dec);
 
     // move both axes
     currentRA = ra.Hours();
@@ -363,342 +318,6 @@ bool ScopeSim::ReadScopeStatus()
     LOGF_DEBUG("%s: %f, ra %f", axisPrimary.axisName, axisPrimary.position.Degrees(), ra.Hours());
     LOGF_DEBUG("%s: %f, dec %f", axisSecondary.axisName, axisSecondary.position.Degrees(), dec.Degrees());
 
-#ifdef OLD
-    static struct timeval lastTime
-    {
-        0, 0
-    };
-    struct timeval currentTime
-    {
-        0, 0
-    };
-    double deltaTimeSecs = 0, da_ra = 0, da_dec = 0, deltaRa = 0, deltaDec = 0, ra_guide_dt = 0, dec_guide_dt = 0;
-    int nlocked, ns_guide_dir = -1, we_guide_dir = -1;
-
-#ifdef USE_EQUATORIAL_PE
-    static double last_dx = 0, last_dy = 0;
-    char RA_DISP[64], DEC_DISP[64], RA_GUIDE[64], DEC_GUIDE[64], RA_PE[64], DEC_PE[64], RA_TARGET[64], DEC_TARGET[64];
-#endif
-
-    /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday(&currentTime, nullptr);
-
-    if (lastTime.tv_sec == 0 && lastTime.tv_usec == 0)
-        lastTime = currentTime;
-
-    // Time diff in seconds
-    deltaTimeSecs  = currentTime.tv_sec - lastTime.tv_sec + (currentTime.tv_usec - lastTime.tv_usec) / 1e6;
-    lastTime = currentTime;
-
-    if (fabs(targetRA - currentRA) * 15. >= GOTO_LIMIT)
-        da_ra = GOTO_RATE * deltaTimeSecs;
-    else if (fabs(targetRA - currentRA) * 15. >= SLEW_LIMIT)
-        da_ra = SLEW_RATE * deltaTimeSecs;
-    else
-        da_ra = FINE_SLEW_RATE * deltaTimeSecs;
-
-    if (fabs(targetDEC - currentDEC) >= GOTO_LIMIT)
-        da_dec = GOTO_RATE * deltaTimeSecs;
-    else if (fabs(targetDEC - currentDEC) >= SLEW_LIMIT)
-        da_dec = SLEW_RATE * deltaTimeSecs;
-    else
-        da_dec = FINE_SLEW_RATE * deltaTimeSecs;
-
-    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
-    {
-        int rate = IUFindOnSwitchIndex(&SlewRateSP);
-
-        switch (rate)
-        {
-            case SLEW_GUIDE:
-                da_ra  = TrackRateN[AXIS_RA].value / (3600.0 * 15) * GuideRateN[RA_AXIS].value * deltaTimeSecs;
-                da_dec = TrackRateN[AXIS_RA].value / 3600.0 * GuideRateN[DEC_AXIS].value * deltaTimeSecs;;
-                break;
-
-            case SLEW_CENTERING:
-                da_ra  = FINE_SLEW_RATE * deltaTimeSecs * .1;
-                da_dec = FINE_SLEW_RATE * deltaTimeSecs * .1;
-                break;
-
-            case SLEW_FIND:
-                da_ra  = SLEW_RATE * deltaTimeSecs;
-                da_dec = SLEW_RATE * deltaTimeSecs;
-                break;
-
-            default:
-                da_ra  = GOTO_RATE * deltaTimeSecs;
-                da_dec = GOTO_RATE * deltaTimeSecs;
-                break;
-        }
-
-        switch (MovementNSSP.s)
-        {
-            case IPS_BUSY:
-                if (MovementNSS[DIRECTION_NORTH].s == ISS_ON)
-                    currentDEC += da_dec;
-                else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
-                    currentDEC -= da_dec;
-                break;
-
-            default:
-                break;
-        }
-
-        switch (MovementWESP.s)
-        {
-            case IPS_BUSY:
-
-                if (MovementWES[DIRECTION_WEST].s == ISS_ON)
-                    currentRA -= da_ra / 15.;
-                else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
-                    currentRA += da_ra / 15.;
-                break;
-
-            default:
-                break;
-        }
-
-        NewRaDec(currentRA, currentDEC);
-
-        return true;
-    }
-
-    /* Process per current state. We check the state of EQUATORIAL_EOD_COORDS_REQUEST and act acoordingly */
-    switch (TrackState)
-    {
-        /*case SCOPE_IDLE:
-            EqNP.s = IPS_IDLE;
-            break;*/
-        case SCOPE_SLEWING:
-        case SCOPE_PARKING:
-            /* slewing - nail it when both within one pulse @ SLEWRATE */
-            nlocked = 0;        // seems to be some sort of state variable
-
-            deltaRa = targetRA - currentRA;
-
-            // Always take the shortcut, don't go all around the globe
-            // If the difference between target and current is more than 12 hours, then we need to take the shortest path
-            if (deltaRa > 12)
-                deltaRa -= 24;
-            else if (deltaRa < -12)
-                deltaRa += 24;
-
-            // In meridian flip, move to the position by doing a full rotation
-            if (forceMeridianFlip)
-            {
-                // set deltaRa according to the target pier side so that the
-                // slew is away from the meridian until the direction to go is towards
-                // the target.
-                switch (currentPierSide)
-                {
-                case PIER_EAST:
-                    // force Ra move direction to be positive, i.e. to the West,
-                    // until it is large and positive
-                    if (deltaRa < 9)
-                        deltaRa = 1;
-                    else
-                        forceMeridianFlip = false;
-                    break;
-                case PIER_WEST:
-                    // force Ra move direction to be negative, i.e. East,
-                    // until it is large and negative
-                    if (deltaRa > -9)
-                        deltaRa = -1;
-                    else
-                        forceMeridianFlip = false;
-                    break;
-                case PIER_UNKNOWN:
-                    break;
-                }
-            }
-
-            if (fabs(deltaRa) * 15. <= da_ra)
-            {
-                currentRA = targetRA;
-                nlocked++;
-            }
-            else if (deltaRa > 0)
-                currentRA += da_ra / 15.;
-            else
-                currentRA -= da_ra / 15.;
-
-            currentRA = range24(currentRA);
-
-            deltaDec = targetDEC - currentDEC;
-            if (fabs(deltaDec) <= da_dec)
-            {
-                currentDEC = targetDEC;
-                nlocked++;
-            }
-            else if (deltaDec > 0)
-                currentDEC += da_dec;
-            else
-                currentDEC -= da_dec;
-
-            EqNP.s = IPS_BUSY;
-
-            if (nlocked == 2)
-            {
-                forceMeridianFlip = false;
-
-                if (TrackState == SCOPE_SLEWING)
-                {
-                    // Initially no PE in both axis.
-#ifdef USE_EQUATORIAL_PE
-                    EqPEN[0].value = currentRA;
-                    EqPEN[1].value = currentDEC;
-                    IDSetNumber(&EqPENV, nullptr);
-#endif
-
-                    TrackState = SCOPE_TRACKING;
-
-                    if (IUFindOnSwitchIndex(&SlewRateSP) != SLEW_CENTERING)
-                    {
-                        IUResetSwitch(&SlewRateSP);
-                        SlewRateS[SLEW_CENTERING].s = ISS_ON;
-                        IDSetSwitch(&SlewRateSP, nullptr);
-                    }
-
-
-                    EqNP.s = IPS_OK;
-                    LOG_INFO("Telescope slew is complete. Tracking...");
-                }
-                else
-                {
-                    SetParked(true);
-                    EqNP.s = IPS_IDLE;
-                }
-            }
-
-            break;
-
-        case SCOPE_IDLE:
-            //currentRA += (TRACKRATE_SIDEREAL/3600.0 * dt) / 15.0;
-            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * deltaTimeSecs) / 15.0;
-            currentRA = range24(currentRA);
-            break;
-
-        case SCOPE_TRACKING:
-            // In case of custom tracking rate
-            if (TrackModeS[1].s == ISS_ON)
-            {
-                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * deltaTimeSecs) / 15.0;
-                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * deltaTimeSecs);
-            }
-
-            deltaTimeSecs *= 1000;
-
-            if (guiderNSTarget[GUIDE_NORTH] > 0)
-            {
-                LOGF_DEBUG("Commanded to GUIDE NORTH for %g ms", guiderNSTarget[GUIDE_NORTH]);
-                ns_guide_dir = GUIDE_NORTH;
-            }
-            else if (guiderNSTarget[GUIDE_SOUTH] > 0)
-            {
-                LOGF_DEBUG("Commanded to GUIDE SOUTH for %g ms", guiderNSTarget[GUIDE_SOUTH]);
-                ns_guide_dir = GUIDE_SOUTH;
-            }
-
-            // WE Guide Selection
-            if (guiderEWTarget[GUIDE_WEST] > 0)
-            {
-                we_guide_dir = GUIDE_WEST;
-                LOGF_DEBUG("Commanded to GUIDE WEST for %g ms", guiderEWTarget[GUIDE_WEST]);
-            }
-            else if (guiderEWTarget[GUIDE_EAST] > 0)
-            {
-                we_guide_dir = GUIDE_EAST;
-                LOGF_DEBUG("Commanded to GUIDE EAST for %g ms", guiderEWTarget[GUIDE_EAST]);
-            }
-
-            if ( (ns_guide_dir != -1 || we_guide_dir != -1) && IUFindOnSwitchIndex(&SlewRateSP) != SLEW_GUIDE)
-            {
-                IUResetSwitch(&SlewRateSP);
-                SlewRateS[SLEW_GUIDE].s = ISS_ON;
-                IDSetSwitch(&SlewRateSP, nullptr);
-            }
-
-            if (ns_guide_dir != -1)
-            {
-                dec_guide_dt = (TrackRateN[AXIS_RA].value * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 *
-                                (ns_guide_dir == GUIDE_NORTH ? 1 : -1)) / 3600.0;
-
-                guiderNSTarget[ns_guide_dir] = 0;
-                GuideNSNP.s = IPS_IDLE;
-                IDSetNumber(&GuideNSNP, nullptr);
-
-#ifdef USE_EQUATORIAL_PE
-                EqPEN[DEC_AXIS].value += dec_guide_dt;
-#else
-                currentDEC += dec_guide_dt;
-#endif
-            }
-
-            if (we_guide_dir != -1)
-            {
-                ra_guide_dt = (TrackRateN[AXIS_RA].value * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 *
-                               (we_guide_dir == GUIDE_WEST ? -1 : 1)) / (3600.0 * 15.0);
-
-                ra_guide_dt /= (cos(currentDEC * 0.0174532925));
-
-                guiderEWTarget[we_guide_dir] = 0;
-                GuideWENP.s = IPS_IDLE;
-                IDSetNumber(&GuideWENP, nullptr);
-
-#ifdef USE_EQUATORIAL_PE
-                EqPEN[RA_AXIS].value += ra_guide_dt;
-#else
-                currentRA += ra_guide_dt;
-#endif
-            }
-
-            //Mention the followng:
-            // Current RA displacemet and direction
-            // Current DEC displacement and direction
-            // Amount of RA GUIDING correction and direction
-            // Amount of DEC GUIDING correction and direction
-
-#ifdef USE_EQUATORIAL_PE
-
-            dx = EqPEN[RA_AXIS].value - targetRA;
-            dy = EqPEN[DEC_AXIS].value - targetDEC;
-            fs_sexa(RA_DISP, fabs(dx), 2, 3600);
-            fs_sexa(DEC_DISP, fabs(dy), 2, 3600);
-
-            fs_sexa(RA_GUIDE, fabs(ra_guide_dt), 2, 3600);
-            fs_sexa(DEC_GUIDE, fabs(dec_guide_dt), 2, 3600);
-
-            fs_sexa(RA_PE, EqPEN[RA_AXIS].value, 2, 3600);
-            fs_sexa(DEC_PE, EqPEN[DEC_AXIS].value, 2, 3600);
-
-            fs_sexa(RA_TARGET, targetRA, 2, 3600);
-            fs_sexa(DEC_TARGET, targetDEC, 2, 3600);
-
-            if (dx != last_dx || dy != last_dy || ra_guide_dt != 0.0 || dec_guide_dt != 0.0)
-            {
-                last_dx = dx;
-                last_dy = dy;
-                //LOGF_DEBUG("dt is %g\n", dt);
-                LOGF_DEBUG("RA Displacement (%c%s) %s -- %s of target RA %s", dx >= 0 ? '+' : '-',
-                           RA_DISP, RA_PE, (EqPEN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
-                LOGF_DEBUG("DEC Displacement (%c%s) %s -- %s of target RA %s", dy >= 0 ? '+' : '-',
-                           DEC_DISP, DEC_PE, (EqPEN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
-                LOGF_DEBUG("RA Guide Correction (%g) %s -- Direction %s", ra_guide_dt, RA_GUIDE,
-                           ra_guide_dt > 0 ? "East" : "West");
-                LOGF_DEBUG("DEC Guide Correction (%g) %s -- Direction %s", dec_guide_dt, DEC_GUIDE,
-                           dec_guide_dt > 0 ? "North" : "South");
-            }
-
-            if (ns_guide_dir != -1 || we_guide_dir != -1)
-                IDSetNumber(&EqPENV, nullptr);
-#endif
-
-            break;
-
-        default:
-            break;
-    }
-#endif
     char RAStr[64], DecStr[64];
 
     fs_sexa(RAStr, currentRA, 2, 3600);
@@ -720,21 +339,15 @@ bool ScopeSim::Goto(double r, double d)
 bool ScopeSim::Sync(double ra, double dec)
 {
     Angle a1, a2;
-    alignment.RaDecToMount(Angle(ra * 15.0), Angle(dec), &a1, &a2);
+    alignment.apparentRaDecToMount(Angle(ra * 15.0), Angle(dec), &a1, &a2);
     axisPrimary.setDegrees(a1.Degrees());
     axisSecondary.setDegrees(a2.Degrees());
 
     Angle r, d;
-    alignment.MountToRaDec(a1, a2, &r, &d);
+    alignment.mountToApparentRaDec(a1, a2, &r, &d);
     LOGF_DEBUG("sync to %f, %f, reached %f, %f", ra, dec, r.Hours(), d.Degrees());
     currentRA = r.Hours();
     currentDEC = d.Degrees();
-
-#ifdef USE_EQUATORIAL_PE
-    EqPEN[RA_AXIS].value  = ra;
-    EqPEN[DEC_AXIS].value = dec;
-    IDSetNumber(&EqPENV, nullptr);
-#endif
 
     LOG_INFO("Sync is successful.");
 
@@ -755,7 +368,7 @@ bool ScopeSim::Park()
 void ScopeSim::StartSlew(double ra, double dec, TelescopeStatus status)
 {
     Angle a1, a2;
-    alignment.RaDecToMount(Angle(ra * 15.0), Angle(dec), &a1, &a2);
+    alignment.apparentRaDecToMount(Angle(ra * 15.0), Angle(dec), &a1, &a2);
 
     axisPrimary.StartSlew(a1);
     axisSecondary.StartSlew(a2);
@@ -809,6 +422,15 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
             processGuiderProperties(name, values, names, n);
             return true;
         }
+        if (strcmp(name, mountModelNP.name) == 0)
+        {
+            IUUpdateNumber(&mountModelNP, values, names, n);
+            alignment.setCorrections(mountModelN[0].value, mountModelN[1].value,
+                    mountModelN[2].value, mountModelN[3].value,
+                    mountModelN[4].value, mountModelN[5].value);
+
+            return true;
+        }
     }
 
     //  if we didn't process it, continue up the chain, let somebody else
@@ -826,11 +448,16 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                 return false;
 
             mountTypeSP.s = IPS_OK;
-            int type = IUFindOnSwitchIndex(&mountTypeSP);
-            if (type < 0)
+            updateMountAndPierSide();
+            return true;
+        }
+        if (strcmp(name, simPierSideSP.name) == 0)
+        {
+            if (IUUpdateSwitch(&simPierSideSP, states, names, n) < 0)
                 return false;
-            alignment.mountType = static_cast<Alignment::MOUNT_TYPE>(type);
-            LOGF_DEBUG("ISNewSwitch: Mount Type set to %i", type);
+
+            simPierSideSP.s = IPS_OK;
+            updateMountAndPierSide();
             return true;
         }
 
@@ -844,56 +471,6 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             IDSetSwitch(&SlewRateSP, nullptr);
             return true;
         }
-
-#ifdef USE_EQUATORIAL_PE
-        if (strcmp(name, "PE_NS") == 0)
-        {
-            IUUpdateSwitch(&PEErrNSSP, states, names, n);
-
-            PEErrNSSP.s = IPS_OK;
-
-            if (PEErrNSS[DIRECTION_NORTH].s == ISS_ON)
-            {
-                EqPEN[DEC_AXIS].value += TRACKRATE_SIDEREAL / 3600.0 * GuideRateN[DEC_AXIS].value;
-                LOGF_DEBUG("Simulating PE in NORTH direction for value of %g", TRACKRATE_SIDEREAL / 3600.0);
-            }
-            else
-            {
-                EqPEN[DEC_AXIS].value -= TRACKRATE_SIDEREAL / 3600.0 * GuideRateN[DEC_AXIS].value;
-                LOGF_DEBUG("Simulating PE in SOUTH direction for value of %g", TRACKRATE_SIDEREAL / 3600.0);
-            }
-
-            IUResetSwitch(&PEErrNSSP);
-            IDSetSwitch(&PEErrNSSP, nullptr);
-            IDSetNumber(&EqPENV, nullptr);
-
-            return true;
-        }
-
-        if (strcmp(name, "PE_WE") == 0)
-        {
-            IUUpdateSwitch(&PEErrWESP, states, names, n);
-
-            PEErrWESP.s = IPS_OK;
-
-            if (PEErrWES[DIRECTION_WEST].s == ISS_ON)
-            {
-                EqPEN[RA_AXIS].value -= TRACKRATE_SIDEREAL / 3600.0 / 15. * GuideRateN[RA_AXIS].value;
-                LOGF_DEBUG("Simulator PE in WEST direction for value of %g", TRACKRATE_SIDEREAL / 3600.0);
-            }
-            else
-            {
-                EqPEN[RA_AXIS].value += TRACKRATE_SIDEREAL / 3600.0 / 15. * GuideRateN[RA_AXIS].value;
-                LOGF_DEBUG("Simulator PE in EAST direction for value of %g", TRACKRATE_SIDEREAL / 3600.0);
-            }
-
-            IUResetSwitch(&PEErrWESP);
-            IDSetSwitch(&PEErrWESP, nullptr);
-            IDSetNumber(&EqPENV, nullptr);
-
-            return true;
-        }
-#endif
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -1015,8 +592,10 @@ bool ScopeSim::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &mountTypeSP);
     IUSaveConfigNumber(fp, &GuideRateNP);
+    IUSaveConfigSwitch(fp, &mountTypeSP);
+    IUSaveConfigSwitch(fp, &simPierSideSP);
+    IUSaveConfigNumber(fp, &mountModelNP);
 
     return true;
 }
@@ -1027,211 +606,32 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
 
     alignment.latitude = Angle(latitude);
     alignment.longitude = Angle(longitude);
+    axisPrimary.setTrackMode(latitude >= 0 ? Axis::AXIS_TRACK_MODE::EQ_N : Axis::AXIS_TRACK_MODE::EQ_S);
+
     INDI_UNUSED(elevation);
     return true;
  }
 
+void ScopeSim::updateMountAndPierSide()
+{
+    int m = IUFindOnSwitchIndex(&mountTypeSP);
+    int p = IUFindOnSwitchIndex(&simPierSideSP);
+    if (m < 0 || p < 0) return;
+
+    alignment.mountType = static_cast<Alignment::MOUNT_TYPE>(m);
+    LOGF_INFO("update mount and pier side: Pier Side %s, mount type %d", p == 0 ? "Off" : "On", m);
+    // update the pier side capability depending on the mount type
+    uint32_t cap = GetTelescopeCapability();
+    if (p == 1 && m == 2)
+    {
+        cap |= TELESCOPE_HAS_PIER_SIDE;
+    }
+    else
+    {
+        cap &= ~static_cast<uint32_t>(TELESCOPE_HAS_PIER_SIDE);
+    }
+    SetTelescopeCapability(cap, 4);
+}
 
 /////////////////////////////////////////////////////////////////////
-
-// Angle implementation
-
-Angle::Angle(double value, ANGLE_UNITS type)
-{
-    switch(type)
-    {
-        case DEGREES:
-            angle = range(value);
-            break;
-        case HOURS:
-            angle = range(value * 15.0);
-            break;
-        case RADIANS:
-            angle = range(value * M_PI);
-            break;
-    }
-}
-
-// Axis Implementation
-
-
-void Axis::setDegrees(double degrees)
-{
-    this->position = degrees;
-}
-
-void Axis::setHours(double hours)
-{
-    this->position = hours * 15.0;
-}
-
-void Axis::update()         // called about once a second to update the position and mode
-{
-    struct timeval currentTime { 0, 0 };
-    /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday(&currentTime, nullptr);
-
-    if (lastTime.tv_sec == 0 && lastTime.tv_usec == 0)
-        lastTime = currentTime;
-
-
-    // Time diff in seconds
-    double interval  = currentTime.tv_sec - lastTime.tv_sec + (currentTime.tv_usec - lastTime.tv_usec) / 1e6;
-    lastTime = currentTime;
-    double change = 0;
-
-    //LOGF_DEBUG("axis %s: position %f, target %f, interval %f", axisName, position.Degrees(), target.Degrees(), interval);
-
-    // handle the slew
-    if (isSlewing)
-    {
-        // get positions relative to the rotate centre
-        Angle trc = target - rotateCentre;
-        Angle prc = position - rotateCentre;
-        // get the change, don't use Angle so the change goes through the rotate centre
-        double delta = trc.Degrees() - prc.Degrees();
-        double fastChange = mcRates[4].Degrees() * interval;
-        double slowChange = fastChange / 5;
-        //LOGF_DEBUG("slew: trc %f prc %f, delta %f", trc.Degrees(), prc.Degrees(), delta);
-        // apply the change to the relative position
-        const char * b;
-        if (delta < -fastChange)
-        {
-            change = -fastChange;
-            b = "--";
-        }
-        else if (delta < -slowChange)
-        {
-            change = -slowChange;
-            b = "-";
-        }
-        else if (delta > fastChange)
-        {
-            change = fastChange;
-            b = "++";
-        }
-        else if (delta > slowChange)
-        {
-            change = slowChange;
-            b = "+";
-        }
-        else
-        {
-            position = target;
-            isSlewing = false;
-            //OnMoveFinished();
-            b = "=";
-        }
-        position += change;
-        //LOGF_DEBUG("move %s: change %f, position %f", b, change, position.Degrees());
-    }
-
-    // handle the motion control
-    if (mcRate < 0)
-    {
-        change = -mcRates[-mcRate].Degrees() * interval;
-        //LOGF_DEBUG("mcRate %d, rate %f, change %f", mcRate, mcRates[-mcRate].Degrees(), change);
-        position += change;
-    }
-    else if (mcRate > 0)
-    {
-        change = mcRates[mcRate].Degrees() * interval;
-        //LOGF_DEBUG("mcRate %d, rate %f, change %f", mcRate, mcRates[mcRate].Degrees(), change);
-        position += change;
-    }
-
-    // handle guiding
-    if (guideDuration > 0)
-    {
-        change = guideRateDegSec.Degrees() * (guideDuration > interval ? interval : guideDuration);
-        guideDuration -= interval;
-        //LOGF_DEBUG("guide rate %f, remaining duration %f, change %f", guideRateDegSec.Degrees(), guideDuration, change);
-        position += change;
-    }
-
-    // tracking
-    if (trackMode != AXIS_TRACK_MODE::OFF)
-    {
-        position += trackingRateDegSec * interval;
-        target += trackingRateDegSec * interval;
-        //LOGF_DEBUG("tracking, rate %f, position %f, target %f", trackingRateDegSec.Degrees(), position.Degrees(), target.Degrees());
-    }
-}
-
-// Alignment methods
-
-Angle Alignment::lst()
-{
-    return Angle(get_local_sidereal_time(longitude.Degrees360()) * 15.0);
-}
-
-void Alignment::MountToHaDec(Angle primary, Angle secondary, Angle * ha, Angle* dec)
-{
-    switch (mountType)
-    {
-    case MOUNT_TYPE::ALTAZ:
-        break;
-    case MOUNT_TYPE::EQ_FORK:
-        if (latitude >= 0)
-            *dec = Angle(secondary);
-        else
-            *dec = Angle(-secondary);
-        *ha = Angle(primary);
-        break;
-    case MOUNT_TYPE::EQ_GEM:
-        auto d = secondary.Degrees();
-        auto h = primary.Degrees();
-        if (d > 90 || d < -90)
-        {
-            // pointing state inverted
-            d = 180.0 - d;
-            h += 180.0;
-        }
-        *ha = Angle(h);
-        *dec = Angle(d);
-        break;
-    }
-}
-
-void Alignment::MountToRaDec(Angle primary, Angle secondary, Angle * ra, Angle* dec)
-{
-    MountToHaDec(primary, secondary, ra, dec);
-    *ra = lst() - *ra;
-}
-
-void Alignment::HaDecToMount(Angle ha, Angle dec, Angle* primary, Angle* secondary)
-{
-    switch (mountType)
-    {
-    case MOUNT_TYPE::ALTAZ:
-        break;
-    case MOUNT_TYPE::EQ_FORK:
-        if (latitude >= 0)
-            *secondary = Angle(dec);
-        else
-            *secondary = Angle(-dec);
-        *primary = Angle(ha);
-        break;
-    case MOUNT_TYPE::EQ_GEM:
-        *primary = Angle(ha);
-        *secondary = Angle(dec);
-        if (ha < 0)
-        {
-            // pointing state inverted
-            *primary += Angle(180);
-            *secondary = Angle(180) - dec;
-        }
-        if (latitude < 0)
-            *secondary = -*secondary;
-        break;
-    }
-}
-
-void Alignment::RaDecToMount(Angle ra, Angle dec, Angle* primary, Angle* secondary)
-{
-    HaDecToMount(lst() - ra, dec, primary, secondary);
-}
-
-
-
 

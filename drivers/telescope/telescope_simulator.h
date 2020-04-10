@@ -20,7 +20,9 @@
 
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
+#include "scopesim_helper.h"
 
+/*
 static char device_str[MAXINDIDEVICE] = "Telescope Simulator";
 
 ///
@@ -85,7 +87,7 @@ public:
     /// \brief radians
     /// \return angle in radians, range -Pi to 0 to +PI
     ///
-    double radians() { return angle / M_PI; }
+    double radians() { return angle * M_PI / 180.0; }
 
     ///
     /// \brief setDegrees
@@ -349,6 +351,21 @@ private:
 /// Both axis directions are mirrored in the South
 ///
 /// A future enhancement will be to use a simple mount model based on Patrick Wallace's paper.
+/// this is at http://www.tpointsw.uk/pointing.htm
+///
+/// Terminology is as defined in figure 1:
+///
+///  Apparent Ra and Dec - what is (incorrectly) called JNow.
+///     apply local sidereal time
+///  Apparent Ha and Dec    positions are apparentRa, apparentHa and apparentDec
+///     ignore diurnal effects
+///     ignore refraction (for now)
+///  Observed Place  These are the mount coordinates for a perfect mount, positions are observedHa and observedDec
+///     apply telescope pointing corrections
+///  Instrument Place these are the mount coordinates for the mount with corrections, values are instrumentHa and instrumentDec
+///     for a  GEM convert to axis cooordinates ( this isn't in the paper).
+///  Mount Place these give primary (ha) and secondary (dec) positions
+///
 ///
 class Alignment
 {
@@ -357,22 +374,72 @@ public:
 
     enum MOUNT_TYPE { ALTAZ, EQ_FORK, EQ_GEM };
 
-    void MountToHaDec(Angle primary, Angle Secondary, Angle *ra, Angle *dec);
+    ///
+    /// \brief mountToApparentHaDec: convert mount position to apparent Ha, Dec
+    /// \param primary
+    /// \param Secondary
+    /// \param ra
+    /// \param dec
+    ///
+    void mountToApparentHaDec(Angle primary, Angle Secondary, Angle *ra, Angle *dec);
 
-    void MountToRaDec(Angle primary, Angle secondary, Angle * ra, Angle* dec);
+    ///
+    /// \brief mountToApparentRaDec: convert mount position to apparent Ra, Dec
+    /// \param primary
+    /// \param secondary
+    /// \param ra
+    /// \param dec
+    ///
+    void mountToApparentRaDec(Angle primary, Angle secondary, Angle * ra, Angle* dec);
 
-    void HaDecToMount(Angle ha, Angle dec, Angle *primary, Angle *secondary);
+    void apparentHaDecToMount(Angle ha, Angle dec, Angle *primary, Angle *secondary);
 
-    void RaDecToMount(Angle ra, Angle dec, Angle *primary, Angle *secondary);
+    void apparentRaDecToMount(Angle ra, Angle dec, Angle *primary, Angle *secondary);
 
     Angle lst();            // returns the current LST as an angle
     Angle latitude = 0;
     Angle longitude = 0;
     MOUNT_TYPE mountType = EQ_FORK;
 
+    void setCorrections(double ih, double id, double ch, double np, double ma, double me);
+
     // needed for debug MACROS
     const char *getDeviceName() { return device_str;}
+private:
+    void instrumentToObserved(Angle ham, Angle decm, Angle *hao, Angle *deco);
+    void observedToInstrument(Angle ha, Angle dec, Angle * hac, Angle * decc);
+
+    ///
+    /// \brief correction: determins the correction to the instrument position to get the observed
+    /// Based on Patrick Wallace's paper, see Table 1.
+    ///
+    /// correction parameters are:
+    /// IH: The hour angle axis index error
+    /// ID: The dec axis index error
+    /// CH: the telescope collimation error, popularly known as cone
+    /// NP: the amount that the mount dec axis is not perpendicular to the hour angle axis
+    /// MA: the polar axis azimuth error
+    /// ME: the polar axis elevation error
+    ///
+    /// \param instrumentHa
+    /// \param instrumentDec
+    /// \param correctionHa
+    /// \param correctionDec
+    ///
+    void correction(Angle instrumentHa, Angle instrumentDec, Angle *correctionHa, Angle *correctionDec);
+    double separation(double ha1, double dec1, double ha2, double dec2);
+
+    // mount model, these angles are in degrees
+    // the angles are small so as double to avoid
+    // load of conversions
+    double IH = 0;
+    double ID = 0;
+    double CH = 0;
+    double NP = 0;
+    double MA = 0;
+    double ME = 0;
 };
+*/
 
 /**
  * @brief The ScopeSim class provides a simple mount simulator of an equatorial mount.
@@ -462,6 +529,12 @@ private:
     // Scope type and alignment
     ISwitch mountTypeS[3];
     ISwitchVectorProperty mountTypeSP;
+    ISwitch simPierSideS[2];
+    ISwitchVectorProperty simPierSideSP;
+    void updateMountAndPierSide();
+
+    INumber mountModelN[6];
+    INumberVectorProperty mountModelNP;
 
     Alignment alignment;
 
