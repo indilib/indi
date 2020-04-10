@@ -121,6 +121,18 @@ class WeatherInterface
         void setParameterValue(std::string name, double value);
 
         /**
+         * @brief checkParameterState Checks the given parameter against the defined bounds
+         * @param param Name of parameter to check.
+         * @returns IPS_IDLE:  The given parameter name is not valid.
+         * @returns IPS_OK:    The given parameter is within the safe zone.
+         * @returns IPS_BUSY:  The given parameter is in the warning zone.
+         * @returns IPS_ALERT: The given parameter is in the danger zone.
+         */
+        IPState checkParameterState(const std::string &param) const;
+
+        IPState checkParameterState(const INumber &parameter) const;
+
+        /**
          * @brief updateWeatherState Send update weather state to client
          * @returns true if any parameters changed from last update. False if no states changed.
          */
