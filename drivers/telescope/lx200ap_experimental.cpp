@@ -1366,15 +1366,6 @@ bool LX200AstroPhysicsExperimental::Park()
         ln_equ_posn equatorialPos;
 
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-        double lst;
-        double lha;
-        lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-        lha = get_local_hour_angle(lst, equatorialPos.ra);
-
-        char HAStr[16];
-        fs_sexa(HAStr, lha, 2, 3600);
-        LOGF_DEBUG("Parking to HA (%s)...", HAStr);
 	
         Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
@@ -1439,9 +1430,11 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
         // Park 3
         // Northern Hemisphere should be pointing at ALT=LAT AZ=0 with scope pointing NORTH with CW down
         // Southern Hemisphere should be pointing at ALT=LAT AZ=180 with scope pointing SOUTH with CW down
+	// wildi: the hour angle is undefined if AZ = 0,180 and ALT=LAT is chosen, adding .1 sets PARK3
+	//        as close as possible to to HA = -6 hours (CW down), valid for both hemispheres.
         case 3:
             LOG_INFO("Computing PARK3 position...");
-            *parkAlt = fabs(LocationN[LOCATION_LATITUDE].value);
+            *parkAlt = fabs(LocationN[LOCATION_LATITUDE].value) + .1;
             *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180;
             break;
 
