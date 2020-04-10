@@ -128,9 +128,9 @@ class WeatherInterface
          * @returns IPS_BUSY:  The given parameter is in the warning zone.
          * @returns IPS_ALERT: The given parameter is in the danger zone.
          */
-        IPState checkParameterState(std::string param);
+        IPState checkParameterState(const std::string &param) const;
 
-        IPState checkParameterState(INumber parameter);
+        IPState checkParameterState(const INumber &parameter) const;
 
         /**
          * @brief updateWeatherState Send update weather state to client

@@ -187,7 +187,7 @@ bool WeatherInterface::setCriticalParameter(std::string param)
     return false;
 }
 
-IPState WeatherInterface::checkParameterState(INumber parameter)
+IPState WeatherInterface::checkParameterState(const INumber &parameter) const
 {
     double warn = *(static_cast<double *>(parameter.aux0));
     double rangeWarn = (parameter.max - parameter.min) * (warn / 100);
@@ -211,7 +211,7 @@ IPState WeatherInterface::checkParameterState(INumber parameter)
     return IPS_IDLE;
 }
 
-IPState WeatherInterface::checkParameterState(std::string param)
+IPState WeatherInterface::checkParameterState(const std::string &param) const
 {
     for (int i = 0; i < ParametersNP.nnp; i++)
     {
