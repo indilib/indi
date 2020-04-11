@@ -112,10 +112,14 @@ private:
     ISwitchVectorProperty mountTypeSP;
     ISwitch simPierSideS[2];
     ISwitchVectorProperty simPierSideSP;
+
+
     void updateMountAndPierSide();
 
     INumber mountModelN[6];
     INumberVectorProperty mountModelNP;
+    INumber mountAxisN[2];
+    INumberVectorProperty mountAxisNP;
 
     Alignment alignment;
 

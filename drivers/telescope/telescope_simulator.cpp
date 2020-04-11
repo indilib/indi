@@ -121,6 +121,11 @@ bool ScopeSim::initProperties()
     IUFillNumberVector(&mountModelNP, mountModelN, 6, getDeviceName(), "MOUNT_MODEL", "Mount Model",
                        "Simulation", IP_RW, 0, IPS_IDLE);
 
+    IUFillNumber(&mountAxisN[0], "PRIMARY", "Primary (Ha)", "%g", -180, 180, 0.01, 0);
+    IUFillNumber(&mountAxisN[1], "SECONDARY", "Secondary (Dec)", "%g", -180, 180, 0.01, 0);
+    IUFillNumberVector(&mountAxisNP, mountAxisN, 2, getDeviceName(), "MOUNT_AXES", "Mount Axes",
+                       "Simulation", IP_RO, 0, IPS_IDLE);
+
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.5);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.5);
@@ -163,16 +168,13 @@ void ScopeSim::ISGetProperties(const char *dev)
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
-    if (!isConnected())
-    {
-        defineSwitch(&mountTypeSP);
-        loadConfig(true, mountTypeSP.name);
-
-        defineSwitch(&simPierSideSP);
-        loadConfig(true, simPierSideSP.name);
-        defineNumber(&mountModelNP);
-        loadConfig(true, mountModelNP.name);
-    }
+    defineSwitch(&mountTypeSP);
+    loadConfig(true, mountTypeSP.name);
+    defineSwitch(&simPierSideSP);
+    loadConfig(true, simPierSideSP.name);
+    defineNumber(&mountModelNP);
+    loadConfig(true, mountModelNP.name);
+    defineNumber(&mountAxisNP);
 
     /*
     if (isConnected())
@@ -200,11 +202,6 @@ bool ScopeSim::updateProperties()
         defineNumber(&GuideRateNP);
         loadConfig(true, GuideRateNP.name);
 
-        // the simulation properties are only available when not connected
-        deleteProperty(mountTypeSP.name);
-        deleteProperty(simPierSideSP.name);
-        deleteProperty(mountModelNP.name);
-
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
@@ -230,11 +227,6 @@ bool ScopeSim::updateProperties()
     }
     else
     {
-        // the simulation properties are only defined when not connected
-        defineSwitch(&mountTypeSP);
-        defineSwitch(&simPierSideSP);
-        defineNumber(&mountModelNP);
-
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
@@ -315,8 +307,12 @@ bool ScopeSim::ReadScopeStatus()
         guidingNS = false;
     }
 
-    LOGF_DEBUG("%s: %f, ra %f", axisPrimary.axisName, axisPrimary.position.Degrees(), ra.Hours());
-    LOGF_DEBUG("%s: %f, dec %f", axisSecondary.axisName, axisSecondary.position.Degrees(), dec.Degrees());
+    mountAxisN[0].value = axisPrimary.position.Degrees();
+    mountAxisN[1].value = axisSecondary.position.Degrees();
+    IDSetNumber(&mountAxisNP, nullptr);
+
+    LOGF_EXTRA1("%s: %f, ra %f", axisPrimary.axisName, axisPrimary.position.Degrees(), ra.Hours());
+    LOGF_EXTRA1("%s: %f, dec %f", axisSecondary.axisName, axisSecondary.position.Degrees(), dec.Degrees());
 
     char RAStr[64], DecStr[64];
 
@@ -367,11 +363,11 @@ bool ScopeSim::Park()
 // common code for GoTo and park
 void ScopeSim::StartSlew(double ra, double dec, TelescopeStatus status)
 {
-    Angle a1, a2;
-    alignment.apparentRaDecToMount(Angle(ra * 15.0), Angle(dec), &a1, &a2);
+    Angle primary, secondary;
+    alignment.apparentRaDecToMount(Angle(ra * 15.0), Angle(dec), &primary, &secondary);
 
-    axisPrimary.StartSlew(a1);
-    axisSecondary.StartSlew(a2);
+    axisPrimary.StartSlew(primary);
+    axisSecondary.StartSlew(secondary);
 
     targetRA  = ra;
     targetDEC = dec;
@@ -413,7 +409,7 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
-            IDSetNumber(&GuideRateNP, nullptr);
+            //IDSetNumber(&GuideRateNP, nullptr);
             return true;
         }
 
@@ -425,6 +421,8 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
         if (strcmp(name, mountModelNP.name) == 0)
         {
             IUUpdateNumber(&mountModelNP, values, names, n);
+            mountModelNP.s = IPS_OK;
+            IDSetNumber(&mountModelNP, nullptr);
             alignment.setCorrections(mountModelN[0].value, mountModelN[1].value,
                     mountModelN[2].value, mountModelN[3].value,
                     mountModelN[4].value, mountModelN[5].value);
@@ -614,15 +612,15 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
 
 void ScopeSim::updateMountAndPierSide()
 {
-    int m = IUFindOnSwitchIndex(&mountTypeSP);
-    int p = IUFindOnSwitchIndex(&simPierSideSP);
-    if (m < 0 || p < 0) return;
+    auto mountType = IUFindOnSwitchIndex(&mountTypeSP);
+    int pierSide = IUFindOnSwitchIndex(&simPierSideSP);
+    if (mountType < 0 || pierSide < 0) return;
 
-    alignment.mountType = static_cast<Alignment::MOUNT_TYPE>(m);
-    LOGF_INFO("update mount and pier side: Pier Side %s, mount type %d", p == 0 ? "Off" : "On", m);
+    alignment.mountType = static_cast<Alignment::MOUNT_TYPE>(mountType);
+    LOGF_INFO("update mount and pier side: Pier Side %s, mount type %d", pierSide == 0 ? "Off" : "On", mountType);
     // update the pier side capability depending on the mount type
     uint32_t cap = GetTelescopeCapability();
-    if (p == 1 && m == 2)
+    if (pierSide == 1 && mountType == 2)
     {
         cap |= TELESCOPE_HAS_PIER_SIDE;
     }

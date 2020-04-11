@@ -60,8 +60,6 @@ bool Angle::operator!= (const Angle& a)
     return std::abs(difference(a)) >= 10E-6;
 }
 
-
-
 ////////////////////////////////////////////////////////////////////
 
 // Axis Implementation
@@ -242,6 +240,8 @@ void Axis::update()         // called about once a second to update the position
     }
 }
 
+/////////////////////////////////////////////////////////////////////////
+
 // Alignment methods
 
 Angle Alignment::lst()
@@ -308,8 +308,8 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
     case MOUNT_TYPE::EQ_GEM:
         *primary = instrumentHa;
         *secondary = instrumentDec;
-        // use the apparent Ha to select the pointing state
-        if (apparentHa < 0)
+        // use the instrument Ha to select the pointing state
+        if (instrumentHa < 0)
         {
             // pointing state inverted
             *primary += Angle(180);
@@ -325,7 +325,7 @@ void Alignment::apparentRaDecToMount(Angle apparentRa, Angle apparentDec, Angle*
 {
     Angle ha = lst() - apparentRa;
     apparentHaDecToMount(ha, apparentDec, primary, secondary);
-    LOGF_DEBUG("RaDecToMount %f, %f to %f, %f", ha.Degrees(), apparentDec.Degrees(), primary->Degrees(), secondary->Degrees());
+    LOGF_EXTRA1("RaDecToMount %f, %f to %f, %f", ha.Degrees(), apparentDec.Degrees(), primary->Degrees(), secondary->Degrees());
 }
 
 void Alignment::instrumentToObserved(Angle instrumentHa, Angle instrumentDec, Angle * observedHa, Angle* observedDec)
