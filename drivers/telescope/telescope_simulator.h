@@ -121,6 +121,9 @@ private:
     INumber mountAxisN[2];
     INumberVectorProperty mountAxisNP;
 
+    INumber flipHourAngleN[1];
+    INumberVectorProperty flipHourAngleNP;
+
     Alignment alignment;
 
 #ifdef USE_EQUATORIAL_PE

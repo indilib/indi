@@ -104,13 +104,13 @@ bool ScopeSim::initProperties()
     IUFillSwitch(&mountTypeS[Alignment::ALTAZ], "ALTAZ", "AltAz", ISS_OFF);
     IUFillSwitch(&mountTypeS[Alignment::EQ_FORK], "EQ_FORK", "Fork (Eq)", ISS_ON);
     IUFillSwitch(&mountTypeS[Alignment::EQ_GEM], "EQ_GEM", "GEM", ISS_OFF);
-    IUFillSwitchVector(&mountTypeSP, mountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", "Simulation",
-                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE );
+    IUFillSwitchVector(&mountTypeSP, mountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type",
+                       "Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE );
 
     IUFillSwitch(&simPierSideS[0], "PS_OFF", "Off", ISS_ON);
     IUFillSwitch(&simPierSideS[1], "PS_ON", "On", ISS_OFF);
-    IUFillSwitchVector(&simPierSideSP, simPierSideS, 2, getDeviceName(), "SIM_PIER_SIDE", "Sim Pier Side", "Simulation",
-                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE );
+    IUFillSwitchVector(&simPierSideSP, simPierSideS, 2, getDeviceName(), "SIM_PIER_SIDE", "Sim Pier Side",
+                       "Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE );
 
     IUFillNumber(&mountModelN[0], "MM_IH", "Ha Zero (IH)", "%g", -5, 5, 0.01, 0);
     IUFillNumber(&mountModelN[1], "MM_ID", "Dec Zero (ID)", "%g", -5, 5, 0.01, 0);
@@ -119,12 +119,16 @@ bool ScopeSim::initProperties()
     IUFillNumber(&mountModelN[4], "MM_MA", "Pole Azm (MA)", "%g", -5, 5, 0.01, 0);
     IUFillNumber(&mountModelN[5], "MM_ME", "Pole elev (ME)", "%g", -5, 5, 0.01, 0);
     IUFillNumberVector(&mountModelNP, mountModelN, 6, getDeviceName(), "MOUNT_MODEL", "Mount Model",
-                       "Simulation", IP_RW, 0, IPS_IDLE);
+                       "Simulation", IP_WO, 0, IPS_IDLE);
 
     IUFillNumber(&mountAxisN[0], "PRIMARY", "Primary (Ha)", "%g", -180, 180, 0.01, 0);
     IUFillNumber(&mountAxisN[1], "SECONDARY", "Secondary (Dec)", "%g", -180, 180, 0.01, 0);
     IUFillNumberVector(&mountAxisNP, mountAxisN, 2, getDeviceName(), "MOUNT_AXES", "Mount Axes",
                        "Simulation", IP_RO, 0, IPS_IDLE);
+
+    IUFillNumber(&flipHourAngleN[0], "FLIP_HA", "Hour Angle (deg)", "%g", -20, 20, 0.1, 0);
+    IUFillNumberVector(&flipHourAngleNP, flipHourAngleN, 1, getDeviceName(), "FLIP_HA", "Flip Posn.",
+                       "Simulation", IP_WO, 0, IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.5);
@@ -175,6 +179,8 @@ void ScopeSim::ISGetProperties(const char *dev)
     defineNumber(&mountModelNP);
     loadConfig(true, mountModelNP.name);
     defineNumber(&mountAxisNP);
+    defineNumber(&flipHourAngleNP);
+    loadConfig(true, flipHourAngleNP.name);
 
     /*
     if (isConnected())
@@ -429,6 +435,15 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
 
             return true;
         }
+
+        if (strcmp(name, flipHourAngleNP.name) == 0)
+        {
+            IUUpdateNumber(&flipHourAngleNP, values, names, n);
+            flipHourAngleNP.s = IPS_OK;
+            IDSetNumber(&flipHourAngleNP, nullptr);
+            alignment.setFlipHourAngle(flipHourAngleN[0].value);
+            return true;
+        }
     }
 
     //  if we didn't process it, continue up the chain, let somebody else
@@ -594,6 +609,7 @@ bool ScopeSim::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &mountTypeSP);
     IUSaveConfigSwitch(fp, &simPierSideSP);
     IUSaveConfigNumber(fp, &mountModelNP);
+    IUSaveConfigNumber(fp, &flipHourAngleNP);
 
     return true;
 }

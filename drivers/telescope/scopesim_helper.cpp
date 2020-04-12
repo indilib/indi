@@ -283,8 +283,10 @@ void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * hap
 
 void Alignment::mountToApparentRaDec(Angle primary, Angle secondary, Angle * apparentRa, Angle* apparentDec)
 {
-    mountToApparentHaDec(primary, secondary, apparentRa, apparentDec);
-    *apparentRa = lst() - *apparentRa;
+    Angle ha;
+    mountToApparentHaDec(primary, secondary, &ha, apparentDec);
+    *apparentRa = lst() - ha;
+    LOGF_EXTRA1("mountToApparentRaDec %f, %f to ha %f, ra %f, %f", primary.Degrees(), secondary.Degrees(), ha.Degrees(), apparentRa->Degrees(), apparentDec->Degrees());
 }
 
 void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle* primary, Angle* secondary)
@@ -309,7 +311,7 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         *primary = instrumentHa;
         *secondary = instrumentDec;
         // use the instrument Ha to select the pointing state
-        if (instrumentHa < 0)
+        if (instrumentHa < flipHourAngle)
         {
             // pointing state inverted
             *primary += Angle(180);
@@ -325,7 +327,7 @@ void Alignment::apparentRaDecToMount(Angle apparentRa, Angle apparentDec, Angle*
 {
     Angle ha = lst() - apparentRa;
     apparentHaDecToMount(ha, apparentDec, primary, secondary);
-    LOGF_EXTRA1("RaDecToMount %f, %f to %f, %f", ha.Degrees(), apparentDec.Degrees(), primary->Degrees(), secondary->Degrees());
+    LOGF_EXTRA1("apparentRaDecToMount ra %f, ha %f, %f to %f, %f", apparentRa.Degrees(), ha.Degrees(), apparentDec.Degrees(), primary->Degrees(), secondary->Degrees());
 }
 
 void Alignment::instrumentToObserved(Angle instrumentHa, Angle instrumentDec, Angle * observedHa, Angle* observedDec)
@@ -335,7 +337,7 @@ void Alignment::instrumentToObserved(Angle instrumentHa, Angle instrumentDec, An
     // add the correction to the instrument to get the observed position
     *observedHa = instrumentHa + correctionHa;
     *observedDec = instrumentDec + correctionDec;
-//    LOGF_DEBUG("instrumentToObserved %f, %f to %f, %f", instrumentHa.Degrees(), instrumentDec.Degrees(),
+//    LOGF_EXTRA1("instrumentToObserved %f, %f to %f, %f", instrumentHa.Degrees(), instrumentDec.Degrees(),
 //               observedHa->Degrees(), observedDec->Degrees());
 }
 
@@ -412,7 +414,7 @@ void Alignment::correction(Angle instrumentHa, Angle instrumentDec, Angle * corr
     *correctionHa += (ME * sinHa * tanDec);
     *correctionDec += (ME * cosHa);
 
-    //LOGF_DEBUG("correction %f, %f", correctionHa->Degrees(), correctionDec->Degrees());
+    LOGF_EXTRA1("correction %f, %f", correctionHa->Degrees(), correctionDec->Degrees());
 }
 
 void Alignment::setCorrections(double ih, double id, double ch, double np, double ma, double me)

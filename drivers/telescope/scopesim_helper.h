@@ -373,6 +373,8 @@ public:
     ///
     void setCorrections(double ih, double id, double ch, double np, double ma, double me);
 
+    void setFlipHourAngle(double deg) { flipHourAngle = deg; }
+
     // needed for debug MACROS
     const char *getDeviceName() { return device_str;}
 
@@ -398,6 +400,8 @@ private:
     Angle lst();            // returns the current LST as an angle
     void instrumentToObserved(Angle instrumentHa, Angle instrumentDec, Angle *observedHa, Angle *observedDec);
     void observedToInstrument(Angle observedHa, Angle observedDec, Angle * instrumentHa, Angle * instrumentDec);
+
+    Angle flipHourAngle = 0;
 
     ///
     /// \brief correction: determins the correction to the instrument position to get the observed
