@@ -87,8 +87,7 @@ public:
     ///
     double Degrees360()
     {
-        if (angle >= 0) return angle;
-        return 360.0 - angle;
+        return (angle >= 0) ? angle : 360.0 + angle;
     }
 
     ///
