@@ -107,14 +107,16 @@ private:
     Axis axisPrimary { "HaAxis" };         // hour angle mount axis
     Axis axisSecondary { "DecAxis" };       // declination mount axis
 
+    Alignment alignment;
+    void updateMountAndPierSide();
+
+#ifdef USE_SIM_TAB
+    // Simulator Tab properties
     // Scope type and alignment
     ISwitch mountTypeS[3];
     ISwitchVectorProperty mountTypeSP;
     ISwitch simPierSideS[2];
     ISwitchVectorProperty simPierSideSP;
-
-
-    void updateMountAndPierSide();
 
     INumber mountModelN[6];
     INumberVectorProperty mountModelNP;
@@ -123,8 +125,7 @@ private:
 
     INumber flipHourAngleN[1];
     INumberVectorProperty flipHourAngleNP;
-
-    Alignment alignment;
+#endif
 
 #ifdef USE_EQUATORIAL_PE
     INumberVectorProperty EqPENV;

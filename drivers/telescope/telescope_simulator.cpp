@@ -78,7 +78,7 @@ ScopeSim::ScopeSim()
 {
     DBG_SCOPE = static_cast<uint32_t>(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE"));
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | /*TELESCOPE_HAS_PIER_SIDE_SIMULATION |*/
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
                            4);
 
@@ -100,6 +100,7 @@ bool ScopeSim::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
+#ifdef USE_SIM_TAB
     // mount type and alignment properties, these are in the Simulation tab
     IUFillSwitch(&mountTypeS[Alignment::ALTAZ], "ALTAZ", "AltAz", ISS_OFF);
     IUFillSwitch(&mountTypeS[Alignment::EQ_FORK], "EQ_FORK", "Fork (Eq)", ISS_OFF);
@@ -129,6 +130,7 @@ bool ScopeSim::initProperties()
     IUFillNumber(&mountAxisN[1], "SECONDARY", "Secondary (Dec)", "%g", -180, 180, 0.01, 0);
     IUFillNumberVector(&mountAxisNP, mountAxisN, 2, getDeviceName(), "MOUNT_AXES", "Mount Axes",
                        "Simulation", IP_RO, 0, IPS_IDLE);
+#endif
 
        /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.5);
@@ -172,6 +174,7 @@ void ScopeSim::ISGetProperties(const char *dev)
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
+#ifdef USE_SIM_TAB
     defineSwitch(&mountTypeSP);
     loadConfig(true, mountTypeSP.name);
     defineSwitch(&simPierSideSP);
@@ -181,6 +184,7 @@ void ScopeSim::ISGetProperties(const char *dev)
     defineNumber(&mountAxisNP);
     defineNumber(&flipHourAngleNP);
     loadConfig(true, flipHourAngleNP.name);
+#endif
 
     /*
     if (isConnected())
@@ -288,7 +292,10 @@ bool ScopeSim::ReadScopeStatus()
         case SCOPE_SLEWING:
             if (!slewing)
             {
-                TrackState = axisPrimary.isTracking() ? SCOPE_TRACKING : SCOPE_IDLE;
+                // It seems to be required that tracking is enabled when a slew finishes but is it correct?
+                // if the mount was not tracking before the slew should it remain not tracking?
+                TrackState = SCOPE_TRACKING;
+                SetTrackEnabled(true);
                 EqNP.s = IPS_IDLE;
                 LOG_INFO("Telescope slew is complete. Tracking...");
             }
@@ -313,9 +320,11 @@ bool ScopeSim::ReadScopeStatus()
         guidingNS = false;
     }
 
+#ifdef USE_SIM_TAB
     mountAxisN[0].value = axisPrimary.position.Degrees();
     mountAxisN[1].value = axisSecondary.position.Degrees();
     IDSetNumber(&mountAxisNP, nullptr);
+#endif
 
     LOGF_EXTRA1("%s: %f, ra %f", axisPrimary.axisName, axisPrimary.position.Degrees(), ra.Hours());
     LOGF_EXTRA1("%s: %f, dec %f", axisSecondary.axisName, axisSecondary.position.Degrees(), dec.Degrees());
@@ -424,6 +433,8 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
             processGuiderProperties(name, values, names, n);
             return true;
         }
+
+#ifdef USE_SIM_TAB
         if (strcmp(name, mountModelNP.name) == 0)
         {
             IUUpdateNumber(&mountModelNP, values, names, n);
@@ -444,6 +455,7 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
             alignment.setFlipHourAngle(flipHourAngleN[0].value);
             return true;
         }
+#endif
     }
 
     //  if we didn't process it, continue up the chain, let somebody else
@@ -455,6 +467,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+#ifdef USE_SIM_TAB
         if (strcmp(name, mountTypeSP.name) == 0)
         {
             if (IUUpdateSwitch(&mountTypeSP, states, names, n) < 0)
@@ -473,6 +486,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             updateMountAndPierSide();
             return true;
         }
+#endif
 
         // Slew mode
         if (strcmp(name, SlewRateSP.name) == 0)
@@ -606,12 +620,13 @@ bool ScopeSim::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
+#ifdef USE_SIM_TAB
     IUSaveConfigNumber(fp, &GuideRateNP);
     IUSaveConfigSwitch(fp, &mountTypeSP);
     IUSaveConfigSwitch(fp, &simPierSideSP);
     IUSaveConfigNumber(fp, &mountModelNP);
     IUSaveConfigNumber(fp, &flipHourAngleNP);
-
+#endif
     return true;
 }
 
@@ -628,12 +643,16 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
 
 void ScopeSim::updateMountAndPierSide()
 {
-    auto mountType = IUFindOnSwitchIndex(&mountTypeSP);
+#ifdef USE_SIM_TAB
+    int mountType = IUFindOnSwitchIndex(&mountTypeSP);
     int pierSide = IUFindOnSwitchIndex(&simPierSideSP);
     if (mountType < 0 || pierSide < 0) return;
-
-    alignment.mountType = static_cast<Alignment::MOUNT_TYPE>(mountType);
     LOGF_INFO("update mount and pier side: Pier Side %s, mount type %d", pierSide == 0 ? "Off" : "On", mountType);
+#else
+    int mountType = 2;
+    int pierSide = 1;
+#endif
+    alignment.mountType = static_cast<Alignment::MOUNT_TYPE>(mountType);
     // update the pier side capability depending on the mount type
     uint32_t cap = GetTelescopeCapability();
     if (pierSide == 1 && mountType == 2)

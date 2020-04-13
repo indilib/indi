@@ -309,7 +309,7 @@ private:
 
     struct timeval lastTime { 0, 0 };
 
-    AXIS_TRACK_RATE trackingRate { AXIS_TRACK_RATE::SIDEREAL };
+    AXIS_TRACK_RATE trackingRate { AXIS_TRACK_RATE::OFF };
 
     Angle trackingRateDegSec;
     Angle rotateCentre { 90.0 };
