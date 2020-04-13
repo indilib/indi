@@ -74,12 +74,6 @@ void Axis::setHours(double hours)
     this->position = hours * 15.0;
 }
 
-void Axis::Tracking(bool enabled)
-{
-    auto mode = enabled ? trackMode : AXIS_TRACK_MODE::OFF;
-    setTrackingRate(mode);
-}
-
 void Axis::StartSlew(Angle angle)
 {
     LOGF_DEBUG("StartSlew %s to %f", axisName, angle.Degrees());
@@ -87,55 +81,31 @@ void Axis::StartSlew(Angle angle)
     isSlewing = true;
 }
 
-
 void Axis::TrackRate(AXIS_TRACK_RATE rate)
 {
     LOGF_DEBUG("TrackRate %i", rate);
     trackingRate = rate;
-    setTrackingRate(trackMode);
-}
-
-void Axis::setTrackMode(AXIS_TRACK_MODE mode)
-{
-    LOGF_DEBUG("TrackMode %i", mode);
-    trackMode = mode;
-    setTrackingRate(trackMode);
-}
-	
-Axis::AXIS_TRACK_MODE Axis::getTrackmode()
-{
-    return trackMode;
-}
-    
-void Axis::setTrackingRate(AXIS_TRACK_MODE mode)
-{
-    Angle tr = 0;
     switch (trackingRate)
     {
-        case AXIS_TRACK_RATE::SIDEREAL:
-            tr = siderealRate;
-            break;
-        case AXIS_TRACK_RATE::SOLAR:
-            tr = solarRate;
-            break;
-        case AXIS_TRACK_RATE::LUNAR:
-            tr = lunarRate;
-            break;
-    }
-
-    switch (mode)
-    {
-        case AXIS_TRACK_MODE::OFF:
-        case AXIS_TRACK_MODE::ALTAZ:
+        case AXIS_TRACK_RATE::OFF:
             trackingRateDegSec = 0;
             break;
-        case AXIS_TRACK_MODE::EQ_N:
-            trackingRateDegSec = tr;
+        case AXIS_TRACK_RATE::SIDEREAL:
+            trackingRateDegSec = siderealRate;
             break;
-        case AXIS_TRACK_MODE::EQ_S:
-            trackingRateDegSec = -tr;
+        case AXIS_TRACK_RATE::SOLAR:
+            trackingRateDegSec = solarRate;
+            break;
+        case AXIS_TRACK_RATE::LUNAR:
+            trackingRateDegSec = lunarRate;
             break;
     }
+    LOGF_EXTRA1("TrackRate %i, trackingRateDegSec %f", trackingRate, trackingRateDegSec.Degrees());
+}
+
+Axis::AXIS_TRACK_RATE Axis::TrackRate()
+{
+    return trackingRate;
 }
 
 void Axis::StartGuide(double rate, uint32_t durationMs)
@@ -232,7 +202,7 @@ void Axis::update()         // called about once a second to update the position
     }
 
     // tracking
-    if (trackMode != AXIS_TRACK_MODE::OFF)
+    if (isTracking())
     {
         position += trackingRateDegSec * interval;
         target += trackingRateDegSec * interval;
@@ -258,23 +228,18 @@ void Alignment::mountToApparentHaDec(Angle primary, Angle secondary, Angle * hap
     case MOUNT_TYPE::ALTAZ:
         break;
     case MOUNT_TYPE::EQ_FORK:
-        if (latitude >= 0)
-            seco = secondary;
-        else
-            seco = -secondary;
+        seco = (latitude >= 0) ? secondary : -secondary;
         prio = primary;
         break;
     case MOUNT_TYPE::EQ_GEM:
-        auto d = secondary.Degrees();
-        auto h = primary.Degrees();
-        if (d > 90 || d < -90)
+        seco = (latitude >= 0) ? secondary : -secondary;
+        prio = primary;
+        if (seco > 90 || seco < -90)
         {
             // pointing state inverted
-            d = 180.0 - d;
-            h += 180.0;
+            seco = Angle(180.0 - seco.Degrees());
+            prio += 180.0;
         }
-        prio = Angle(h);
-        seco = Angle(d);
         break;
     }
     // instrument to observed, ignore apparent
@@ -301,15 +266,12 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
     case MOUNT_TYPE::ALTAZ:
         break;
     case MOUNT_TYPE::EQ_FORK:
-        if (latitude >= 0)
-            *secondary = instrumentDec;
-        else
-            *secondary = -instrumentDec;
+        *secondary = (latitude >= 0) ? instrumentDec : -instrumentDec;
         *primary = instrumentHa;
         break;
     case MOUNT_TYPE::EQ_GEM:
-        *primary = instrumentHa;
         *secondary = instrumentDec;
+        *primary = instrumentHa;
         // use the instrument Ha to select the pointing state
         if (instrumentHa < flipHourAngle)
         {

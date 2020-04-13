@@ -229,17 +229,22 @@ public:
     }
 };
 
-
-
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///
-
+/// \brief The Axis class
+/// Implements a generic Axis which can be used for equatorial or AltAz mounts for both axes.
+///
+/// For an equatorial mount use the TrackRate to set the standard tracking rates. for the primary axis only.
+/// For an AltAz mount the TrackingRateDegSec rate must be set for both axes.
+///
 class Axis
 {
 public:
-    enum AXIS_TRACK_MODE {OFF, ALTAZ, EQ_N, EQ_S };
-    enum AXIS_TRACK_RATE { SIDEREAL, LUNAR, SOLAR };
+    ///
+    /// \brief The AXIS_TRACK_RATE enum defines the common track rates
+    ///
+    enum AXIS_TRACK_RATE { OFF, SIDEREAL, SOLAR, LUNAR };
 
     Axis(const char * name) { axisName = name; }
     
@@ -256,27 +261,48 @@ public:
 
     bool isSlewing;
 
-    void Tracking(bool enabled);
-
     bool isTracking() { return trackingRateDegSec != 0; }
 
+    ///
+    /// \brief TrackRate set the track rate to one of the standard rates
+    /// \param rate as AXIS_TRACK_RATE
+    ///
+    /// use this for the primary axis on an equatorial mount
+    ///
     void TrackRate(AXIS_TRACK_RATE rate);
 
-    void setTrackMode(AXIS_TRACK_MODE mode);
-    AXIS_TRACK_MODE getTrackmode();
+    ///
+    /// \brief TrackRate returns the AXIS_TRACK_RATE property
+    /// \return
+    ///
+    AXIS_TRACK_RATE TrackRate();
 
+    ///
+    /// \brief TrackingRateDegSec set the tracking rate
+    /// \param rate Angle giving the rate per second
+    ///
+    void TrackingRateDegSec(Angle rate);
+    ///
+    /// \brief TrackingRateDegSec returns the tracking rate in deg/sec
+    /// \return
+    ///
+    Angle TrackingRateDegSec();
+
+    ///
+    /// \brief StartGuide   start guiding
+    /// \param rate as a fraction of the sidereal rate, signed
+    /// \param durationMs
+    ///
     void StartGuide(double rate, uint32_t durationMs);
 
     bool IsGuiding() { return guideDuration > 0; }
-
-    //Angle moveRate;         // degrees per second, set to move mount while tracking
 
     int mcRate;             // int -4 to 4 sets move rate, zero is stopped
 
     void update();         // called about once a second to update the position and mode
 
     // needed for debug MACROS
-    const char *getDeviceName() { return device_str;}
+    const char *getDeviceName() { return device_str; }
 
 private:
     Angle target;           // target axis position
@@ -284,7 +310,6 @@ private:
     struct timeval lastTime { 0, 0 };
 
     AXIS_TRACK_RATE trackingRate { AXIS_TRACK_RATE::SIDEREAL };
-    AXIS_TRACK_MODE trackMode;
 
     Angle trackingRateDegSec;
     Angle rotateCentre { 90.0 };
@@ -305,9 +330,6 @@ private:
         2.5,            // center rate
         6.0,            // goto rate
     };
-
-    void setTrackingRate(AXIS_TRACK_MODE mode);
-
 };
 
 ///

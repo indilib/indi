@@ -102,13 +102,13 @@ bool ScopeSim::initProperties()
 
     // mount type and alignment properties, these are in the Simulation tab
     IUFillSwitch(&mountTypeS[Alignment::ALTAZ], "ALTAZ", "AltAz", ISS_OFF);
-    IUFillSwitch(&mountTypeS[Alignment::EQ_FORK], "EQ_FORK", "Fork (Eq)", ISS_ON);
-    IUFillSwitch(&mountTypeS[Alignment::EQ_GEM], "EQ_GEM", "GEM", ISS_OFF);
+    IUFillSwitch(&mountTypeS[Alignment::EQ_FORK], "EQ_FORK", "Fork (Eq)", ISS_OFF);
+    IUFillSwitch(&mountTypeS[Alignment::EQ_GEM], "EQ_GEM", "GEM", ISS_ON);
     IUFillSwitchVector(&mountTypeSP, mountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type",
                        "Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE );
 
-    IUFillSwitch(&simPierSideS[0], "PS_OFF", "Off", ISS_ON);
-    IUFillSwitch(&simPierSideS[1], "PS_ON", "On", ISS_OFF);
+    IUFillSwitch(&simPierSideS[0], "PS_OFF", "Off", ISS_OFF);
+    IUFillSwitch(&simPierSideS[1], "PS_ON", "On", ISS_ON);
     IUFillSwitchVector(&simPierSideSP, simPierSideS, 2, getDeviceName(), "SIM_PIER_SIDE", "Sim Pier Side",
                        "Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE );
 
@@ -121,16 +121,16 @@ bool ScopeSim::initProperties()
     IUFillNumberVector(&mountModelNP, mountModelN, 6, getDeviceName(), "MOUNT_MODEL", "Mount Model",
                        "Simulation", IP_WO, 0, IPS_IDLE);
 
+    IUFillNumber(&flipHourAngleN[0], "FLIP_HA", "Hour Angle (deg)", "%g", -20, 20, 0.1, 0);
+    IUFillNumberVector(&flipHourAngleNP, flipHourAngleN, 1, getDeviceName(), "FLIP_HA", "Flip Posn.",
+                       "Simulation", IP_WO, 0, IPS_IDLE);
+
     IUFillNumber(&mountAxisN[0], "PRIMARY", "Primary (Ha)", "%g", -180, 180, 0.01, 0);
     IUFillNumber(&mountAxisN[1], "SECONDARY", "Secondary (Dec)", "%g", -180, 180, 0.01, 0);
     IUFillNumberVector(&mountAxisNP, mountAxisN, 2, getDeviceName(), "MOUNT_AXES", "Mount Axes",
                        "Simulation", IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&flipHourAngleN[0], "FLIP_HA", "Hour Angle (deg)", "%g", -20, 20, 0.1, 0);
-    IUFillNumberVector(&flipHourAngleNP, flipHourAngleN, 1, getDeviceName(), "FLIP_HA", "Flip Posn.",
-                       "Simulation", IP_WO, 0, IPS_IDLE);
-
-    /* How fast do we guide compared to sidereal rate */
+       /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.5);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
@@ -590,7 +590,8 @@ bool ScopeSim::SetTrackMode(uint8_t mode)
 
 bool ScopeSim::SetTrackEnabled(bool enabled)
 {
-    axisPrimary.Tracking(enabled);
+    Axis::AXIS_TRACK_RATE rate = enabled ? Axis::AXIS_TRACK_RATE::SIDEREAL : Axis::AXIS_TRACK_RATE::OFF;
+    axisPrimary.TrackRate(rate);
     return true;
 }
 
@@ -620,7 +621,6 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
 
     alignment.latitude = Angle(latitude);
     alignment.longitude = Angle(longitude);
-    axisPrimary.setTrackMode(latitude >= 0 ? Axis::AXIS_TRACK_MODE::EQ_N : Axis::AXIS_TRACK_MODE::EQ_S);
 
     INDI_UNUSED(elevation);
     return true;
