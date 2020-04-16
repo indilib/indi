@@ -92,7 +92,7 @@ void ISSnoopDevice(XMLEle *root)
  */
 LX200_TeenAstro::LX200_TeenAstro()
 {
-    setVersion(1, 1);
+    setVersion(1, 1);           // don't forget to update drivers.xml
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
