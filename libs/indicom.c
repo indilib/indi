@@ -1705,7 +1705,6 @@ double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, 
 {
     double* uv = (double*)malloc(sizeof(double) * 2);
     ha *= M_PI / 12.0;
-    dec += 90.0;
     dec *= M_PI / 180.0;
     uv[0] = (baseline[0] * sin(ha) + baseline[1] * cos(ha));
     uv[1] = (-baseline[0] * sin(dec) * cos(ha) + baseline[1] * sin(dec) * sin(ha) + baseline[2] * cos(dec));
