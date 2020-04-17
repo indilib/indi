@@ -23,7 +23,7 @@
         </device>
         <device label="LX200 TeenAstro">
             <driver name="LX200 TeenAstro">indi_lx200_TeenAstro</driver>
-            <version>1.0</version>
+            <version>1.1/version>
         </device>
         <device label="LX200 16" manufacturer="Meade">
             <driver name="LX200 16">indi_lx200_16</driver>
