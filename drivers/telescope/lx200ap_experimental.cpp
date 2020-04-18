@@ -134,10 +134,10 @@ bool LX200AstroPhysicsExperimental::initProperties()
                        0, IPS_IDLE);
 
     // Unpark from?
-    IUFillSwitch(&UnparkFromS[0], "Last", "Last Parked", ISS_ON);
+    IUFillSwitch(&UnparkFromS[0], "Last", "Last Parked", ISS_OFF);
     IUFillSwitch(&UnparkFromS[1], "Park1", "Park1", ISS_OFF);
     IUFillSwitch(&UnparkFromS[2], "Park2", "Park2", ISS_OFF);
-    IUFillSwitch(&UnparkFromS[3], "Park3", "Park3", ISS_OFF);
+    IUFillSwitch(&UnparkFromS[3], "Park3", "Park3", ISS_ON);
     IUFillSwitch(&UnparkFromS[4], "Park4", "Park4", ISS_OFF);
     IUFillSwitchVector(&UnparkFromSP, UnparkFromS, 5, getDeviceName(), "UNPARK_FROM", "Unpark From?", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -1430,12 +1430,12 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
         // Park 3
         // Northern Hemisphere should be pointing at ALT=LAT AZ=0 with scope pointing NORTH with CW down
         // Southern Hemisphere should be pointing at ALT=LAT AZ=180 with scope pointing SOUTH with CW down
-	// wildi: the hour angle is undefined if AZ = 0,180 and ALT=LAT is chosen, adding .1 sets PARK3
+	// wildi: the hour angle is undefined if AZ = 0,180 and ALT=LAT is chosen, adding .1 to Az sets PARK3
 	//        as close as possible to to HA = -6 hours (CW down), valid for both hemispheres.
         case 3:
-            LOG_INFO("Computing PARK3 position...");
-            *parkAlt = fabs(LocationN[LOCATION_LATITUDE].value) + .1;
-            *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180;
+            LOG_INFO("Computing PARK3 position... Az = .1, 179.9");
+            *parkAlt = fabs(LocationN[LOCATION_LATITUDE].value);
+            *parkAz = LocationN[LOCATION_LATITUDE].value > 0.1 ? 0 : 179.9;
             break;
 
         // Park 4
@@ -1485,18 +1485,51 @@ bool LX200AstroPhysicsExperimental::UnPark()
         }
 
         LOGF_DEBUG("unparkPos=%d unparkAlt=%f unparkAz=%f", unparkPos, unparkAlt, unparkAz);
-
-        if (!isSimulation() && (setAPObjectAZ(PortFD, unparkAz) < 0 || (setAPObjectAlt(PortFD, unparkAlt)) < 0))
+        if (isSimulation())
         {
-            LOG_ERROR("Error setting Az/Alt.");
-            return false;
+	    // 2020-04-18, wildi: do not copy yourself (see Park())
+            ln_lnlat_posn observer;
+            observer.lat = LocationN[LOCATION_LATITUDE].value;
+            observer.lng = LocationN[LOCATION_LONGITUDE].value;
+            if (observer.lng > 180)
+                observer.lng -= 360;
+
+            ln_hrz_posn horizontalPos;
+            // Libnova south = 0, west = 90, north = 180, east = 270
+
+            horizontalPos.az = unparkAz + 180;
+            if (horizontalPos.az > 360)
+                 horizontalPos.az -= 360;
+            horizontalPos.alt = unparkAlt;
+
+            ln_equ_posn equatorialPos;
+
+            ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+	
+            char AzStr[16], AltStr[16];
+            fs_sexa(AzStr, unparkAz, 2, 3600);
+            fs_sexa(AltStr, unparkAlt, 2, 3600);
+            char RaStr[16], DecStr[16];
+            fs_sexa(RaStr, equatorialPos.ra / 15., 2, 3600);
+            fs_sexa(DecStr, equatorialPos.dec, 2, 3600);
+	    
+	    LOGF_DEBUG("Current parking position Az (%s) Alt (%s), RA (%s) Dec (%s)", AzStr, AltStr, RaStr, DecStr);
+            Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
         }
-
-        char syncString[256];
-        if (!isSimulation() && APSyncCM(PortFD, syncString) < 0)
+        else
         {
-            LOG_WARN("Sync failed.");
-            return false;
+            if ((setAPObjectAZ(PortFD, unparkAz) < 0 || (setAPObjectAlt(PortFD, unparkAlt)) < 0))
+            {
+                LOG_ERROR("Error setting Az/Alt.");
+                return false;
+            }
+
+            char syncString[256];
+            if (APSyncCM(PortFD, syncString) < 0)
+            {
+                 LOG_WARN("Sync failed.");
+                 return false;
+            }
         }
     }
 
