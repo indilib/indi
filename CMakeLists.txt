@@ -799,8 +799,9 @@ install(TARGETS indi_pmc8_telescope RUNTIME DESTINATION bin)
 
 ########### Telescope Simulator ##############
 SET(telescopesimulator_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/telescope_simulator.cpp)
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/telescope_simulator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/scopesim_helper.cpp)
+    
 add_executable(indi_simulator_telescope ${telescopesimulator_SRC})
 target_link_libraries(indi_simulator_telescope indidriver)
 install(TARGETS indi_simulator_telescope RUNTIME DESTINATION bin)
