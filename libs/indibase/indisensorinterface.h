@@ -357,10 +357,6 @@ protected:
         IBLOB FitsB;
         IBLOBVectorProperty FitsBP;
 
-        //  We are going to snoop these from a telescope
-        INumberVectorProperty EqNP;
-        INumber EqN[2];
-
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[4] {};
 
@@ -405,12 +401,19 @@ protected:
          */
         virtual bool saveConfigItems(FILE *fp);
 
-        double primaryAperture;
-        double primaryFocalLength;
         bool InIntegration;
 
-        double Lat, Lon, El;
+        INumberVectorProperty EqNP;
+        INumber EqN[2];
         double RA, Dec;
+
+        INumberVectorProperty LocationNP;
+        INumber LocationN[3];
+        double Lat, Lon, El;
+
+        INumberVectorProperty ScopeParametersNP;
+        INumber ScopeParametersN[4];
+        double primaryAperture, primaryFocalLength;
 
         bool AutoLoop;
         bool SendIntegration;
