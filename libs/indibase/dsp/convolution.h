@@ -67,7 +67,7 @@ private:
     dsp_stream_p matrix;
 
     INumberVectorProperty WaveletsNP;
-    INumber *WaveletsN;
+    INumber WaveletsN[N_WAVELETS];
 
     bool matrix_loaded { false };
     void Convolute();

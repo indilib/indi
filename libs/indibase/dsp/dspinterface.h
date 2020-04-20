@@ -174,7 +174,7 @@ class Interface
 
         char processedFileName[MAXINDINAME];
         void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
-        void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
+        void addFITSKeywords(fitsfile *fptr);
         bool sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture);
         bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration, const char* format);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);

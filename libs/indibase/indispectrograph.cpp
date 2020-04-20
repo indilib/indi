@@ -158,8 +158,7 @@ void Spectrograph::setFrequency(double freq)
 
 void Spectrograph::SetSpectrographCapability(uint32_t cap)
 {
-    capability = cap;
-
+    SetCapability(cap);
     setDriverInterface(getDriverInterface());
 }
 

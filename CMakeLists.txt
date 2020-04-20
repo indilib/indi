@@ -1836,7 +1836,6 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indireceiver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweatherinterface.h

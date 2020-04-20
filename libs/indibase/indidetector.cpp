@@ -144,8 +144,7 @@ void Detector::setTriggerLevel(double level)
 
 void Detector::SetDetectorCapability(uint32_t cap)
 {
-    capability = cap;
-
+    SetCapability(cap);
     setDriverInterface(getDriverInterface());
 }
 

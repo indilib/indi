@@ -166,8 +166,7 @@ void Correlator::setBandwidth(double bw)
 
 void Correlator::SetCorrelatorCapability(uint32_t cap)
 {
-    capability = cap;
-
+    SetCapability(cap);
     setDriverInterface(getDriverInterface());
 }
 
