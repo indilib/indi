@@ -109,23 +109,27 @@ bool PegasusUPB::initProperties()
     // Cycle all power on/off
     IUFillSwitch(&PowerCycleAllS[POWER_CYCLE_ON], "POWER_CYCLE_ON", "All On", ISS_OFF);
     IUFillSwitch(&PowerCycleAllS[POWER_CYCLE_OFF], "POWER_CYCLE_OFF", "All Off", ISS_OFF);
-    IUFillSwitchVector(&PowerCycleAllSP, PowerCycleAllS, 2, getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&PowerCycleAllSP, PowerCycleAllS, 2, getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Reboot
     IUFillSwitch(&RebootS[0], "REBOOT", "Reboot Device", ISS_OFF);
-    IUFillSwitchVector(&RebootSP, RebootS, 1, getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&RebootSP, RebootS, 1, getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
+                       60, IPS_IDLE);
 
     // Power Sensors
     IUFillNumber(&PowerSensorsN[SENSOR_VOLTAGE], "SENSOR_VOLTAGE", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
     IUFillNumber(&PowerSensorsN[SENSOR_CURRENT], "SENSOR_CURRENT", "Current (A)", "%4.2f", 0, 999, 100, 0);
     IUFillNumber(&PowerSensorsN[SENSOR_POWER], "SENSOR_POWER", "Power (W)", "%4.2f", 0, 999, 100, 0);
-    IUFillNumberVector(&PowerSensorsNP, PowerSensorsN, 3, getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&PowerSensorsNP, PowerSensorsN, 3, getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO,
+                       60, IPS_IDLE);
 
     // Overall Power Consumption
     IUFillNumber(&PowerConsumptionN[CONSUMPTION_AVG_AMPS], "CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
     IUFillNumber(&PowerConsumptionN[CONSUMPTION_AMP_HOURS], "CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
     IUFillNumber(&PowerConsumptionN[CONSUMPTION_WATT_HOURS], "CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
-    IUFillNumberVector(&PowerConsumptionNP, PowerConsumptionN, 3, getDeviceName(), "POWER_CONSUMPTION", "Consumption", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&PowerConsumptionNP, PowerConsumptionN, 3, getDeviceName(), "POWER_CONSUMPTION", "Consumption",
+                       MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Power Group
@@ -136,42 +140,50 @@ bool PegasusUPB::initProperties()
     IUFillText(&PowerControlsLabelsT[1], "POWER_LABEL_2", "Port 2", "Port 2");
     IUFillText(&PowerControlsLabelsT[2], "POWER_LABEL_3", "Port 3", "Port 3");
     IUFillText(&PowerControlsLabelsT[3], "POWER_LABEL_4", "Port 4", "Port 4");
-    IUFillTextVector(&PowerControlsLabelsTP, PowerControlsLabelsT, 4, getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels", POWER_TAB, IP_WO, 60, IPS_IDLE);
+    IUFillTextVector(&PowerControlsLabelsTP, PowerControlsLabelsT, 4, getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels",
+                     POWER_TAB, IP_WO, 60, IPS_IDLE);
 
     char portLabel[MAXINDILABEL];
 
     // Turn on/off power and power boot up
     memset(portLabel, 0, MAXINDILABEL);
-    int portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[0].name, portLabel, MAXINDILABEL);
+    int portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[0].name, portLabel,
+                                 MAXINDILABEL);
     IUFillSwitch(&PowerControlS[0], "POWER_CONTROL_1", portRC == -1 ? "Port 1" : portLabel, ISS_OFF);
 
     memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[1].name, portLabel, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[1].name, portLabel,
+                             MAXINDILABEL);
     IUFillSwitch(&PowerControlS[1], "POWER_CONTROL_2", portRC == -1 ? "Port 2" : portLabel, ISS_OFF);
 
     memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[2].name, portLabel, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[2].name, portLabel,
+                             MAXINDILABEL);
     IUFillSwitch(&PowerControlS[2], "POWER_CONTROL_3", portRC == -1 ? "Port 3" : portLabel, ISS_OFF);
 
     memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[3].name, portLabel, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[3].name, portLabel,
+                             MAXINDILABEL);
     IUFillSwitch(&PowerControlS[3], "POWER_CONTROL_4", portRC == -1 ? "Port 4" : portLabel, ISS_OFF);
 
-    IUFillSwitchVector(&PowerControlSP, PowerControlS, 4, getDeviceName(), "POWER_CONTROL", "Power Control", POWER_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&PowerControlSP, PowerControlS, 4, getDeviceName(), "POWER_CONTROL", "Power Control", POWER_TAB, IP_RW,
+                       ISR_NOFMANY, 60, IPS_IDLE);
 
     // Current Draw
     IUFillNumber(&PowerCurrentN[0], "POWER_CURRENT_1", "#1 (A)", "%4.2f", 0, 1000, 0, 0);
     IUFillNumber(&PowerCurrentN[1], "POWER_CURRENT_2", "#2 (A)", "%4.2f", 0, 1000, 0, 0);
     IUFillNumber(&PowerCurrentN[2], "POWER_CURRENT_3", "#3 (A)", "%4.2f", 0, 1000, 0, 0);
     IUFillNumber(&PowerCurrentN[3], "POWER_CURRENT_4", "#4 (A)", "%4.2f", 0, 1000, 0, 0);
-    IUFillNumberVector(&PowerCurrentNP, PowerCurrentN, 4, getDeviceName(), "POWER_CURRENT", "Current Draw", POWER_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&PowerCurrentNP, PowerCurrentN, 4, getDeviceName(), "POWER_CURRENT", "Current Draw", POWER_TAB, IP_RO,
+                       60, IPS_IDLE);
 
     // Power on Boot
     IUFillSwitch(&PowerOnBootS[0], "POWER_PORT_1", PowerControlS[0].label, ISS_ON);
     IUFillSwitch(&PowerOnBootS[1], "POWER_PORT_2", PowerControlS[1].label, ISS_ON);
     IUFillSwitch(&PowerOnBootS[2], "POWER_PORT_3", PowerControlS[2].label, ISS_ON);
     IUFillSwitch(&PowerOnBootS[3], "POWER_PORT_4", PowerControlS[3].label, ISS_ON);
-    IUFillSwitchVector(&PowerOnBootSP, PowerOnBootS, 4, getDeviceName(), "POWER_ON_BOOT", "Power On Boot", POWER_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&PowerOnBootSP, PowerOnBootS, 4, getDeviceName(), "POWER_ON_BOOT", "Power On Boot", POWER_TAB, IP_RW,
+                       ISR_NOFMANY, 60, IPS_IDLE);
 
     // Over Current
     IUFillLight(&OverCurrentL[0], "POWER_PORT_1", PowerControlS[0].label, IPS_OK);
@@ -181,15 +193,18 @@ bool PegasusUPB::initProperties()
     IUFillLight(&OverCurrentL[4], "DEW_A", "Dew A", IPS_OK);
     IUFillLight(&OverCurrentL[5], "DEW_B", "Dew B", IPS_OK);
     IUFillLight(&OverCurrentL[6], "DEW_C", "Dew C", IPS_OK);
-    IUFillLightVector(&OverCurrentLP, OverCurrentL, 7, getDeviceName(), "POWER_OVER_CURRENT", "Over Current", POWER_TAB, IPS_IDLE);
+    IUFillLightVector(&OverCurrentLP, OverCurrentL, 7, getDeviceName(), "POWER_OVER_CURRENT", "Over Current", POWER_TAB,
+                      IPS_IDLE);
 
     // Power LED
     IUFillSwitch(&PowerLEDS[POWER_LED_ON], "POWER_LED_ON", "On", ISS_ON);
     IUFillSwitch(&PowerLEDS[POWER_LED_OFF], "POWER_LED_OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&PowerLEDSP, PowerLEDS, 2, getDeviceName(), "POWER_LED", "LED", POWER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&PowerLEDSP, PowerLEDS, 2, getDeviceName(), "POWER_LED", "LED", POWER_TAB, IP_RW, ISR_1OFMANY, 60,
+                       IPS_IDLE);
 
     IUFillNumber(&AdjustableOutputN[0], "ADJUSTABLE_VOLTAGE_VALUE", "Voltage (V)", "%.f", 3, 12, 1, 12);
-    IUFillNumberVector(&AdjustableOutputNP, AdjustableOutputN, 1, getDeviceName(), "ADJUSTABLE_VOLTAGE", "Adj. Output", POWER_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&AdjustableOutputNP, AdjustableOutputN, 1, getDeviceName(), "ADJUSTABLE_VOLTAGE", "Adj. Output",
+                       POWER_TAB, IP_RW, 60, IPS_IDLE);
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -199,13 +214,15 @@ bool PegasusUPB::initProperties()
     // Automatic Dew v1
     IUFillSwitch(&AutoDewS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&AutoDewS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&AutoDewSP, AutoDewS, 2, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&AutoDewSP, AutoDewS, 2, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60,
+                       IPS_IDLE);
 
     // Automatic Dew v2
     IUFillSwitch(&AutoDewV2S[DEW_PWM_A], "DEW_A", "Dew A", ISS_OFF);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_B], "DEW_B", "Dew B", ISS_OFF);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_C], "DEW_C", "Dew C", ISS_OFF);
-    IUFillSwitchVector(&AutoDewV2SP, AutoDewV2S, 3, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&AutoDewV2SP, AutoDewV2S, 3, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
+                       IPS_IDLE);
 
     // Dew PWM
     IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", "Dew A (%)", "%.2f", 0, 100, 10, 0);
@@ -217,7 +234,8 @@ bool PegasusUPB::initProperties()
     IUFillNumber(&DewCurrentDrawN[DEW_PWM_A], "DEW_CURRENT_A", "Dew A (A)", "%4.2f", 0, 1000, 10, 0);
     IUFillNumber(&DewCurrentDrawN[DEW_PWM_B], "DEW_CURRENT_B", "Dew B (A)", "%4.2f", 0, 1000, 10, 0);
     IUFillNumber(&DewCurrentDrawN[DEW_PWM_C], "DEW_CURRENT_C", "Dew C (A)", "%4.2f", 0, 1000, 10, 0);
-    IUFillNumberVector(&DewCurrentDrawNP, DewCurrentDrawN, 3, getDeviceName(), "DEW_CURRENT", "Dew Current", DEW_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&DewCurrentDrawNP, DewCurrentDrawN, 3, getDeviceName(), "DEW_CURRENT", "Dew Current", DEW_TAB, IP_RO, 60,
+                       IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// USB Group
@@ -226,7 +244,8 @@ bool PegasusUPB::initProperties()
     // USB Hub control v1
     IUFillSwitch(&USBControlS[0], "ENABLED", "Enabled", ISS_ON);
     IUFillSwitch(&USBControlS[1], "DISABLED", "Disabled", ISS_OFF);
-    IUFillSwitchVector(&USBControlSP, USBControlS, 2, getDeviceName(), "USB_HUB_CONTROL", "Hub", USB_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&USBControlSP, USBControlS, 2, getDeviceName(), "USB_HUB_CONTROL", "Hub", USB_TAB, IP_RW, ISR_1OFMANY,
+                       60, IPS_IDLE);
 
     // USB Hub control v2
     IUFillSwitch(&USBControlV2S[0], "PORT_1", "USB3 Port1", ISS_ON);
@@ -235,7 +254,8 @@ bool PegasusUPB::initProperties()
     IUFillSwitch(&USBControlV2S[3], "PORT_4", "USB3 Port4", ISS_ON);
     IUFillSwitch(&USBControlV2S[4], "PORT_5", "USB2 Port5", ISS_ON);
     IUFillSwitch(&USBControlV2S[5], "PORT_6", "USB2 Port6", ISS_ON);
-    IUFillSwitchVector(&USBControlV2SP, USBControlV2S, 6, getDeviceName(), "USB_PORT_CONTROL", "Ports", USB_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&USBControlV2SP, USBControlV2S, 6, getDeviceName(), "USB_PORT_CONTROL", "Ports", USB_TAB, IP_RW,
+                       ISR_NOFMANY, 60, IPS_IDLE);
 
     // USB Hub Status
     IUFillLight(&USBStatusL[0], "PORT_1", "Port #1", IPS_OK);
@@ -253,7 +273,8 @@ bool PegasusUPB::initProperties()
     // Settings
     //    IUFillNumber(&FocusBacklashN[0], "SETTING_BACKLASH", "Backlash (steps)", "%.f", 0, 999, 100, 0);
     IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
-    IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 1, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 1, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
+                       IP_RW, 60, IPS_IDLE);
 
     // Backlash
     //    IUFillSwitch(&FocusBacklashS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
@@ -262,14 +283,16 @@ bool PegasusUPB::initProperties()
 
     // Temperature
     IUFillNumber(&FocuserTemperatureN[0], "FOCUSER_TEMPERATURE_VALUE", "Value (C)", "%4.2f", -50, 85, 1, 0);
-    IUFillNumberVector(&FocuserTemperatureNP, FocuserTemperatureN, 1, getDeviceName(), "FOCUSER_TEMPERATURE", "Temperature", FOCUS_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&FocuserTemperatureNP, FocuserTemperatureN, 1, getDeviceName(), "FOCUSER_TEMPERATURE", "Temperature",
+                       FOCUS_TAB, IP_RO, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Firmware Group
     ////////////////////////////////////////////////////////////////////////////
     IUFillText(&FirmwareT[FIRMWARE_VERSION], "VERSION", "Version", "NA");
     IUFillText(&FirmwareT[FIRMWARE_UPTIME], "UPTIME", "Uptime (h)", "NA");
-    IUFillTextVector(&FirmwateTP, FirmwareT, 2, getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillTextVector(&FirmwateTP, FirmwareT, 2, getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
+                     IPS_IDLE);
     ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
     ////////////////////////////////////////////////////////////////////////////
@@ -455,12 +478,12 @@ bool PegasusUPB::Handshake()
         tcflush(PortFD, TCIOFLUSH);
     }
 
-    response[nbytes_read - 1] = '\0';
+    response[nbytes_read - 2] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
     setupComplete = false;
 
-    version = !strcmp(response, "UPB2_OK") ? UPB_V2 : UPB_V1;
+    version = strstr(response, "UPB2_OK") ? UPB_V2 : UPB_V1;
 
     return true;
 }
@@ -828,7 +851,8 @@ bool PegasusUPB::sendCommand(const char * cmd, char * res)
             return true;
         }
 
-        if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, stopChar, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK || nbytes_read == 1)
+        if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, stopChar, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK
+                || nbytes_read == 1)
             continue;
 
         tcflush(PortFD, TCIOFLUSH);
@@ -1557,7 +1581,8 @@ bool PegasusUPB::setupParams()
         uint32_t value = std::stol(res);
         if (value == UINT16_MAX)
         {
-            LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropiate for your motor focus type (0-900)", value);
+            LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropiate for your motor focus type (0-900)",
+                      value);
             FocuserSettingsNP.s = IPS_ALERT;
         }
         else
