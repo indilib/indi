@@ -169,13 +169,13 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 
     // MSF 2018/04/10 - disable this behavior for now - we want to have
     //                  UnparkFromSP to always start out as "Last Parked" for safety
-
     // load config to get unpark from position user wants BEFORE we connect to mount
-    //    if (!isConnected())
-    //    {
-    //        LOG_DEBUG("Loading unpark from location from config file");
-    //        loadConfig(true, UnparkFromSP.name);
-    //    }
+    // 2020-04-18, wildi, make it right
+    if (!isConnected())
+    {
+        LOG_DEBUG("Loading unpark from location from config file");
+        loadConfig(true, UnparkFromSP.name);
+    }
 
     if (isConnected())
     {
@@ -596,7 +596,17 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         mountSim();
         return true;
     }
-
+    double sdt;
+    if (getSDTime(PortFD, &sdt) < 0)
+    {
+      LOGF_DEBUG("Reading sidereal time failed %d", -1);
+	
+    }
+    else
+    {
+      LOGF_DEBUG("Sidereal time %g", sdt);
+      
+    }
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
         EqNP.s = IPS_ALERT;
@@ -1244,10 +1254,12 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    LOGF_DEBUG("New JD is %.2f", JD);
+    LOGF_DEBUG("New JD is %.8f", JD);
 
     // Set Local Time
-    if (isSimulation() == false && setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
+    // 2020-04-18, wildi, four seconds, hm, [2020-04-18T21:43:28.144 AEST "[DEBUG] Set Local Time 21:43:24 is successful. "
+    // should be done here not via inditelescope.cpp, Telescope::ISSnoopDevice(XMLEle *root), return processTimeInfo(utc, offset);
+    if (!isSimulation() && setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
     {
         LOG_ERROR("Error setting local time.");
         return false;
@@ -1512,8 +1524,11 @@ bool LX200AstroPhysicsExperimental::UnPark()
             char RaStr[16], DecStr[16];
             fs_sexa(RaStr, equatorialPos.ra / 15., 2, 3600);
             fs_sexa(DecStr, equatorialPos.dec, 2, 3600);
-	    
-	    LOGF_DEBUG("Current parking position Az (%s) Alt (%s), RA (%s) Dec (%s)", AzStr, AltStr, RaStr, DecStr);
+	    double lst = get_local_sidereal_time(observer.lng);
+	    double ha = get_local_hour_angle(lst, equatorialPos.ra/15.);
+            char HaStr[16];
+            fs_sexa(HaStr, ha , 2, 3600);
+	    LOGF_ERROR("Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr, RaStr, DecStr);
             Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
         }
         else
