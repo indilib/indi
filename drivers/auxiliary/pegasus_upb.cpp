@@ -856,6 +856,9 @@ bool PegasusUPB::sendCommand(const char * cmd, char * res)
             continue;
 
         tcflush(PortFD, TCIOFLUSH);
+        if (res[0] == 0xA)
+            res++;
+
         res[nbytes_read - 1] = '\0';
         LOGF_DEBUG("RES <%s>", res);
         return true;
