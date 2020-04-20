@@ -242,10 +242,10 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         {
             double parkAz, parkAlt;
 
-            if (calcParkPosition(parkPos, &parkAz, &parkAlt))
+            if (calcParkPosition(parkPos, &parkAlt, &parkAz))
             {
-                SetAxis1Park(parkAlt);
-                SetAxis2Park(parkAz);
+                SetAxis1Park(parkAz);
+                SetAxis2Park(parkAlt);
                 LOGF_DEBUG("Set predefined park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
             }
             else
@@ -347,7 +347,7 @@ bool LX200AstroPhysicsExperimental::initMount()
     {
         LOG_DEBUG("Mount is not yet initialized. Initializing it...");
 
-        if (isSimulation() == false)
+        if (!isSimulation())
         {
             // This is how to init the mount in case RA/DE are missing.
             // :PO#
@@ -571,10 +571,10 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         {
             double parkAz, parkAlt;
 
-            if (calcParkPosition(parkPos, &parkAz, &parkAlt))
+            if (calcParkPosition(parkPos, &parkAlt, &parkAz))
             {
-                SetAxis1Park(parkAlt);
-                SetAxis2Park(parkAz);
+                SetAxis1Park(parkAz);
+                SetAxis2Park(parkAlt);
                 LOGF_DEBUG("Set predefined park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
             }
             else
@@ -1338,6 +1338,7 @@ bool LX200AstroPhysicsExperimental::SetSlewRate(int index)
 
 bool LX200AstroPhysicsExperimental::Park()
 {
+    // 2020-04-05, wildi, Astro-Physics does not sell AltAz mounts
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
@@ -1365,7 +1366,7 @@ bool LX200AstroPhysicsExperimental::Park()
         ln_equ_posn equatorialPos;
 
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
+	
         Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
     else
@@ -1429,9 +1430,11 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
         // Park 3
         // Northern Hemisphere should be pointing at ALT=LAT AZ=0 with scope pointing NORTH with CW down
         // Southern Hemisphere should be pointing at ALT=LAT AZ=180 with scope pointing SOUTH with CW down
+	// wildi: the hour angle is undefined if AZ = 0,180 and ALT=LAT is chosen, adding .1 sets PARK3
+	//        as close as possible to to HA = -6 hours (CW down), valid for both hemispheres.
         case 3:
             LOG_INFO("Computing PARK3 position...");
-            *parkAlt = fabs(LocationN[LOCATION_LATITUDE].value);
+            *parkAlt = fabs(LocationN[LOCATION_LATITUDE].value) + .1;
             *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180;
             break;
 
@@ -1483,14 +1486,14 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
         LOGF_DEBUG("unparkPos=%d unparkAlt=%f unparkAz=%f", unparkPos, unparkAlt, unparkAz);
 
-        if (setAPObjectAZ(PortFD, unparkAz) < 0 || (setAPObjectAlt(PortFD, unparkAlt)) < 0)
+        if (!isSimulation() && (setAPObjectAZ(PortFD, unparkAz) < 0 || (setAPObjectAlt(PortFD, unparkAlt)) < 0))
         {
             LOG_ERROR("Error setting Az/Alt.");
             return false;
         }
 
         char syncString[256];
-        if (APSyncCM(PortFD, syncString) < 0)
+        if (!isSimulation() && APSyncCM(PortFD, syncString) < 0)
         {
             LOG_WARN("Sync failed.");
             return false;
