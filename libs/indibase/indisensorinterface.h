@@ -82,6 +82,18 @@ class SensorInterface : public DefaultDevice
         SensorInterface();
         ~SensorInterface();
 
+
+        /**
+         * \enum SensorConnection
+         * \brief Holds the connection mode of the Sensor.
+         */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
+            CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
+            CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
+        } SensorConnection;
+
         bool initProperties();
         bool updateProperties();
         bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
@@ -283,6 +295,21 @@ class SensorInterface : public DefaultDevice
          */
         virtual bool IntegrationComplete();
 
+        /** \brief perform handshake with device to check communication */
+        virtual bool Handshake();
+
+        /**
+         * @brief setSensorConnection Set Sensor connection mode. Child class should call this in the constructor before Sensor registers
+         * any connection interfaces
+         * @param value ORed combination of SensorConnection values.
+         */
+        void setSensorConnection(const uint8_t &value);
+
+        /**
+         * @return Get current Sensor connection mode
+         */
+        inline uint8_t getSensorConnection() { return sensorConnection; }
+
 protected:
 
         /**
@@ -439,7 +466,17 @@ protected:
         std::unique_ptr<StreamManager> Streamer;
         std::unique_ptr<DSP::Manager> DSP;
 
-    private:
+
+
+        Connection::Serial *serialConnection = NULL;
+        Connection::TCP *tcpConnection       = NULL;
+
+        /// For Serial & TCP connections
+        int PortFD = -1;
+
+      private:
+        bool callHandshake();
+        uint8_t sensorConnection = CONNECTION_NONE;
 
         int BPS;
         /// # of Axis

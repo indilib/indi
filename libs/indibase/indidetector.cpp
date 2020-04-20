@@ -22,8 +22,6 @@
 
 #include "indicom.h"
 #include "locale_compat.h"
-#include "connectionplugins/connectionserial.h"
-#include "connectionplugins/connectiontcp.h"
 
 #include <fitsio.h>
 
@@ -61,21 +59,6 @@ bool Detector::initProperties()
     IUFillNumberVector(&DetectorSettingsNP, DetectorSettingsN, 2, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     setDriverInterface(DETECTOR_INTERFACE);
-
-    if (detectorConnection & CONNECTION_SERIAL)
-    {
-        serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return callHandshake(); });
-        registerConnection(serialConnection);
-    }
-
-    if (detectorConnection & CONNECTION_TCP)
-    {
-        tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]() { return callHandshake(); });
-
-        registerConnection(tcpConnection);
-    }
 
     return SensorInterface::initProperties();
 }
@@ -175,37 +158,6 @@ void Detector::setMinMaxStep(const char *property, const char *element, double m
         }
     }
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
-}
-
-bool Detector::Handshake()
-{
-    return false;
-}
-
-bool Detector::callHandshake()
-{
-    if (detectorConnection > 0)
-    {
-        if (getActiveConnection() == serialConnection)
-            PortFD = serialConnection->getPortFD();
-        else if (getActiveConnection() == tcpConnection)
-            PortFD = tcpConnection->getPortFD();
-    }
-
-    return Handshake();
-}
-
-void Detector::setDetectorConnection(const uint8_t &value)
-{
-    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
-
-    if (value == 0 || (mask & value) == 0)
-    {
-        DEBUGF(Logger::DBG_ERROR, "Invalid connection mode %d", value);
-        return;
-    }
-
-    detectorConnection = value;
 }
 }
 

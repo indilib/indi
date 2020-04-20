@@ -67,16 +67,6 @@ struct pulse_t {
 class Detector : public SensorInterface
 {
     public:
-        /**
-         * \struct DetectorConnection
-         * \brief Holds the connection mode of the Detector.
-         */
-        enum
-        {
-            CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
-            CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
-            CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
-        } DetectorConnection;
 
         enum
         {
@@ -96,18 +86,6 @@ class Detector : public SensorInterface
         bool ISSnoopDevice(XMLEle *root);
 
         bool StartIntegration(double duration);
-
-        /**
-         * @brief setDetectorConnection Set Detector connection mode. Child class should call this in the constructor before Detector registers
-         * any connection interfaces
-         * @param value ORed combination of DetectorConnection values.
-         */
-        void setDetectorConnection(const uint8_t &value);
-
-        /**
-         * @return Get current Detector connection mode
-         */
-        uint8_t getDetectorConnection() const;
 
         /**
          * @brief setTriggerLevel Set Trigger voltage level used for pulse detection.
@@ -158,9 +136,6 @@ class Detector : public SensorInterface
          */
         void setMinMaxStep(const char *property, const char *element, double min, double max, double step, bool sendToClient);
 
-        /** \brief perform handshake with device to check communication */
-        virtual bool Handshake();
-
         typedef enum
         {
             DETECTOR_RESOLUTION = 0,
@@ -168,16 +143,7 @@ class Detector : public SensorInterface
         } DETECTOR_INFO_INDEX;
         INumberVectorProperty DetectorSettingsNP;
 
-
-        Connection::Serial *serialConnection = NULL;
-        Connection::TCP *tcpConnection       = NULL;
-
-        /// For Serial & TCP connections
-        int PortFD = -1;
-
       private:
-        bool callHandshake();
-        uint8_t detectorConnection = CONNECTION_NONE;
         double TriggerLevel;
         INumber DetectorSettingsN[2];
 };

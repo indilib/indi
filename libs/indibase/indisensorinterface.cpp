@@ -19,6 +19,8 @@
 
 #include "defaultdevice.h"
 #include "indisensorinterface.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include "indicom.h"
 #include "stream/streammanager.h"
@@ -495,6 +497,21 @@ bool SensorInterface::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
+
+    if (sensorConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        registerConnection(serialConnection);
+    }
+
+    if (sensorConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+
+        registerConnection(tcpConnection);
+    }
 
     return true;
 }
@@ -1230,4 +1247,35 @@ void SensorInterface::setBPS(int bps)
         DSP->setSizes(1, new int[1]{ getBufferSize() * 8 / BPS });
 }
 
+
+bool SensorInterface::Handshake()
+{
+    return false;
+}
+
+bool SensorInterface::callHandshake()
+{
+    if (sensorConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
+
+    return Handshake();
+}
+
+void SensorInterface::setSensorConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
+
+    if (value == 0 || (mask & value) == 0)
+    {
+        DEBUGF(Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
+    sensorConnection = value;
+}
 }
