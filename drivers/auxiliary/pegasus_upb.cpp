@@ -478,7 +478,7 @@ bool PegasusUPB::Handshake()
         tcflush(PortFD, TCIOFLUSH);
     }
 
-    response[nbytes_read - 2] = '\0';
+    response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
 
     setupComplete = false;
