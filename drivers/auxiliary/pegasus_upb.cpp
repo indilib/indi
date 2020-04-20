@@ -242,8 +242,8 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // USB Hub control v1
-    IUFillSwitch(&USBControlS[0], "ENABLED", "Enabled", ISS_ON);
-    IUFillSwitch(&USBControlS[1], "DISABLED", "Disabled", ISS_OFF);
+    IUFillSwitch(&USBControlS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_ON);
+    IUFillSwitch(&USBControlS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_OFF);
     IUFillSwitchVector(&USBControlSP, USBControlS, 2, getDeviceName(), "USB_HUB_CONTROL", "Hub", USB_TAB, IP_RW, ISR_1OFMANY,
                        60, IPS_IDLE);
 
