@@ -92,7 +92,7 @@ void ISSnoopDevice(XMLEle *root)
  */
 LX200_TeenAstro::LX200_TeenAstro()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);           // don't forget to update drivers.xml
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -171,8 +171,8 @@ bool LX200_TeenAstro::initProperties()
     // ============== GUIDE_TAB
     // Motion speed of axis when guiding
     IUFillSwitch(&GuideRateS[0], "25", "0.25x", ISS_OFF);
-    IUFillSwitch(&GuideRateS[1], "50", "0.5x", ISS_OFF);
-    IUFillSwitch(&GuideRateS[2], "100", "1.0x", ISS_ON);
+    IUFillSwitch(&GuideRateS[1], "50", "0.5x", ISS_ON);
+    IUFillSwitch(&GuideRateS[2], "100", "1.0x", ISS_OFF);
     IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(), "TELESCOPE_GUIDE_RATE", "Guide Rate", GUIDE_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     initGuiderProperties(getDeviceName(), GUIDE_TAB);
 
@@ -871,6 +871,7 @@ bool LX200_TeenAstro::ISNewSwitch(const char *dev, const char *name, ISState *st
         {
             IUUpdateSwitch(&GuideRateSP, states, names, n);
             int index = IUFindOnSwitchIndex(&GuideRateSP);
+            GuideRateSP.s = IPS_OK;
             SetGuideRate(index);
             IDSetSwitch(&GuideRateSP, nullptr);
         }
@@ -1378,14 +1379,12 @@ bool LX200_TeenAstro::Move(TDirection dir, TelescopeMotionCommand cmd)
  */
 bool LX200_TeenAstro::saveConfigItems(FILE *fp)
 {
-    INDI::Telescope::saveConfigItems(fp);
-
     IUSaveConfigSwitch(fp, &UsePulseCmdSP);
     IUSaveConfigSwitch(fp, &SlewRateSP);
     IUSaveConfigSwitch(fp, &GuideRateSP);
     IUSaveConfigSwitch(fp, &RefractionSP);
 
-    return true;
+    return INDI::Telescope::saveConfigItems(fp);
 }
 
 
@@ -1522,10 +1521,14 @@ void LX200_TeenAstro::enableRefractionTracking(bool enable)
  */
 void LX200_TeenAstro::sendCommand(const char *cmd)
 {
+    char resp;
+    int nbytes_read;
     std::unique_lock<std::mutex> guard(lx200CommsLock);
     LOGF_INFO("sendCommand %s", cmd);
     int rc = write(PortFD, cmd, strlen(cmd));
+    rc = tty_read(PortFD, &resp, 1, ONSTEP_TIMEOUT, &nbytes_read);
     INDI_UNUSED(rc);
+    tcflush(PortFD, TCIFLUSH);
 }
 
 

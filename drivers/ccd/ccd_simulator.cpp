@@ -742,14 +742,16 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             // Transform to the mount coordinate system
             // remember it is the center of the simulated image
             double J2_mnt_d_rar = king_gamma * sin(J2decr) * sin(JnHAr - king_theta) / cos(J2decr);
-            double J2_mnt_rar = rar - J2_mnt_d_rar ; // rad = currentRA * 15.0; rar = rad * 0.0174532925; currentRA  = J2000Pos.ra / 15.0;
+            double J2_mnt_rar = rar - J2_mnt_d_rar
+                                ; // rad = currentRA * 15.0; rar = rad * 0.0174532925; currentRA  = J2000Pos.ra / 15.0;
 
             // Imagine the HA axis points to HA=0, dec=89deg, then in the mount's coordinate
             // system a star at true dec = 88 is seen at 89 deg in the mount's system
             // Or in other words: if one uses the setting circle, that is the mount system,
             // and set it to 87 deg then the real location is at 88 deg.
             double J2_mnt_d_decr = king_gamma * cos(JnHAr - king_theta);
-            double J2_mnt_decr = decr + J2_mnt_d_decr ; // decr      = cameradec * 0.0174532925; cameradec = currentDE + OAGoffset / 60; currentDE = J2000Pos.dec;
+            double J2_mnt_decr = decr + J2_mnt_d_decr
+                                 ; // decr      = cameradec * 0.0174532925; cameradec = currentDE + OAGoffset / 60; currentDE = J2000Pos.dec;
             IDLog("raw mod ra     : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar / 0.0174532925, J2_mnt_decr / 0.0174532925 );
             if (J2_mnt_decr > M_PI / 2.)
             {
@@ -799,7 +801,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             if (!Streamer->isStreaming() || (king_gamma > 0.))
                 LOGF_DEBUG("GSC Command: %s", gsccmd);
 
-            IDLog("-->GSC Command: %s\n", gsccmd);
             pp = popen(gsccmd, "r");
             if (pp != nullptr)
             {
