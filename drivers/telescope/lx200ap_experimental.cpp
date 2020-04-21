@@ -596,17 +596,53 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         mountSim();
         return true;
     }
-    double sdt;
-    if (getSDTime(PortFD, &sdt) < 0)
-    {
+    double val;
+    if (getSDTime(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading sidereal time failed %d", -1);
 	
+    } else {
+      LOGF_DEBUG("Sidereal time :GS %f", val);
     }
-    else
-    {
-      LOGF_DEBUG("Sidereal time %g", sdt);
-      
+    if (getAPUTCOffset(PortFD, &val) < 0) {
+      LOGF_DEBUG("Reading offset from greenwich  failed %d", -1);
+	
+    } else {
+      LOGF_DEBUG("Offset Greenwich time :GG %f", val);
     }
+    //local time, '#:GL#'
+    if (getLocalTime24(PortFD, &val) < 0) {
+      LOGF_DEBUG("Reading local time failed :GL %d", -1);	
+    } else {
+      LOGF_DEBUG("Local time :GL %f", val);
+    }
+    if (getLX200Az(PortFD, &val) < 0) {
+      LOGF_DEBUG("Reading Az failed :GZ %d", -1);
+    } else {
+      LOGF_DEBUG("Az :GZ %f", val);
+    }
+    if (getLX200Alt(PortFD, &val) < 0) {
+      LOGF_DEBUG("Reading Alt failed :GA %d", -1);
+    } else {
+      LOGF_DEBUG("Alt :GA %f", val);
+    }
+    if (getLX200RA(PortFD, &val) < 0) {
+      LOGF_DEBUG("Reading Ra failed :GR %d", -1);
+    } else {
+      LOGF_DEBUG("RA :GR %f", val);
+    }
+    if (getLX200DEC(PortFD, &val) < 0) {
+      LOGF_DEBUG("Reading Dec failed :GD %d", -1);
+    } else {
+      LOGF_DEBUG("Dec :GD %f", val);
+    }
+    // ev. comment that out
+    char buf[64];
+    if (getCalendarDate(PortFD, buf) < 0) {
+      LOGF_DEBUG("Reading calendar day failed :GC %d", -1);
+    } else {
+      LOGF_DEBUG("Calendar day :GC %f", val);
+    }
+
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
         EqNP.s = IPS_ALERT;
