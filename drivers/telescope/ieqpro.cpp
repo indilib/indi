@@ -337,6 +337,15 @@ void IEQPro::getStartupData()
         SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
     }
 
+    // can we read pier side?
+    IEQ_PIER_SIDE pierSide = IEQ_PIER_UNKNOWN;
+    if (driver->getPierSide(&pierSide) && pierSide != IEQ_PIER_UNKNOWN)
+    {
+        // add the pier side capability
+        auto cap = GetTelescopeCapability();
+        cap |= TELESCOPE_HAS_PIER_SIDE;
+        SetTelescopeCapability(cap, 9);
+    }
     //    if (isSimulation())
     //    {
     //        if (isParked())
@@ -540,6 +549,15 @@ bool IEQPro::ReadScopeStatus()
         IDSetSwitch(&TrackModeSP, nullptr);
 
         scopeInfo = newInfo;
+    }
+
+    if (HasPierSide())
+    {
+        IEQ_PIER_SIDE pierSide;
+        if (driver->getPierSide(&pierSide))
+        {
+            setPierSide(static_cast<TelescopePierSide>(pierSide));
+        }
     }
 
     rc = driver->getCoords(&currentRA, &currentDEC);
