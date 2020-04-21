@@ -528,9 +528,8 @@ bool Base::getCoords(double *ra, double *dec)
 
     if (sendCommand(":GEC#", res))
     {        
-        *ra = DecodeString(res + 9, 8, ieqDegrees);
+        *ra = DecodeString(res + 9, 8, ieqHours);
         *dec = DecodeString(res, 9, ieqDegrees);
-
         return true;
     }
 
