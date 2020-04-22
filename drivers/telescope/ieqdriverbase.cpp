@@ -608,19 +608,33 @@ bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
 {
     char res[DRIVER_LEN] = {0};
 
-    // use the GEA command, hoping that it returns the dec and hour angle axis positions
+    // use the GEA command, hoping that it returns the dec and polar angle axis positions
     // see https://www.indilib.org/forum/mounts/6720-ioptron-cem60-question.html#52154
+    // the polar angle is in units of 1/100 arc second, signed, and the hour angle is in milliseconds,
+    // possibly with an offset. The home axis positions are PA +0.0, HA 12.0.
+    // For the West pointing state the ha = 18 - haAxis.
     //
     if (sendCommand(":GEA#", res))
     {
-        // assume the ha axis is in degrees
-        haAxis  = DecodeString(res + 9, 8, ieqDegrees);
+        // get the hour angle in hours
+        haAxis  = DecodeString(res + 9, 8, ieqHours);
         // this is the pole angle in degrees
         decAxis = DecodeString(res, 9, ieqDegrees);
 
-        *pierSide = decAxis >= 0 ? IEQ_PIER_WEST : IEQ_PIER_EAST;
+        double hA = 0;
 
-        LOGF_DEBUG("getPierSide pole Axis %f, haAxis %f, pierSide %s", decAxis, haAxis, *pierSide == IEQ_PIER_EAST ? "EAST" : "WEST");
+        if (decAxis >= 0)
+        {
+            *pierSide = IEQ_PIER_WEST;
+            hA = 18 - haAxis;        // OK for the West PS
+        }
+        else
+        {
+            *pierSide = IEQ_PIER_EAST;
+            hA = haAxis - 6;        // OK for the West PS
+        }
+
+        LOGF_DEBUG("getPierSide pole Axis %f, haAxis %f, Ha %f, pierSide %s", decAxis, haAxis, hA, *pierSide == IEQ_PIER_EAST ? "EAST" : "WEST");
 
         return true;
     }

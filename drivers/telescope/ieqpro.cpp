@@ -204,10 +204,13 @@ bool IEQPro::initProperties()
 
 bool IEQPro::updateProperties()
 {
-    INDI::Telescope::updateProperties();
 
     if (isConnected())
     {
+        getStartupData();
+
+        INDI::Telescope::updateProperties();
+
         // Remove find home if we do not support it.
         if (!canFindHome)
             HomeSP.nsp = 2;
@@ -224,11 +227,11 @@ bool IEQPro::updateProperties()
         defineSwitch(&GPSStatusSP);
         defineSwitch(&TimeSourceSP);
         defineSwitch(&HemisphereSP);
-
-        getStartupData();
     }
     else
     {
+        INDI::Telescope::updateProperties();
+
         HomeSP.nsp = 3;
         deleteProperty(HomeSP.name);
 
@@ -346,6 +349,7 @@ void IEQPro::getStartupData()
         cap |= TELESCOPE_HAS_PIER_SIDE;
         SetTelescopeCapability(cap, 9);
     }
+
     //    if (isSimulation())
     //    {
     //        if (isParked())
