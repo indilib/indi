@@ -20,6 +20,9 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#define SIDEREAL_TIME 0
+
+
 #include "lx200ap_experimental.h"
 
 #include "indicom.h"
@@ -153,9 +156,12 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // meridian delay (experimental!)
-    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "Delay (experimental)", "%4.2f", 0.0, 3.0, 0.25, 0.0);
-    IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY", "Meridian Delay", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
-
+    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "UTC offset", "%4.2f", 0.0, 24.0, 0.0, 0.0);
+    IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY", "UTC offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
+    // sidereal time
+    IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
+    IUFillNumberVector(&SiderealTimeNP, SiderealTimeN, 1, getDeviceName(), "SIDEREAL_TIME", "sidereal time", MAIN_CONTROL_TAB, IP_RO, 60, IPS_OK);
+        
     SetParkDataType(PARK_AZ_ALT);
 
     return true;
@@ -207,6 +213,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineSwitch(&APGuideSpeedSP);
         defineSwitch(&ParkToSP);
         defineNumber(&MeridianDelayNP);
+        defineNumber(&SiderealTimeNP);
 
         // load in config value for park to and initialize park position
         loadConfig(true, ParkToSP.name);
@@ -263,6 +270,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         deleteProperty(APGuideSpeedSP.name);
         deleteProperty(ParkToSP.name);
         deleteProperty(MeridianDelayNP.name);
+        deleteProperty(SiderealTimeNP.name);
     }
 
     return true;
@@ -418,14 +426,36 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 
         LOGF_INFO("lx200ap_experimental: meridian delay request = %f", mdelay);
 
-        if (!isSimulation() && (err = setAPMeridianDelay(PortFD, mdelay) < 0))
+        //if (!isSimulation() && (err = setAPMeridianDelay(PortFD, mdelay) < 0))
+        if ((err = setAPMeridianDelay(PortFD, mdelay) < 0))
         {
-            LOGF_ERROR("lx200ap_experimental: Error setting meridian delay (%d).", err);
+            LOGF_ERROR("lx200ap_experimental: Error setting UTC offset (%d).", err);
             return false;
-        }
+        } else {
+	  LOGF_ERROR("lx200ap_experimental: success setting UTC offset (%d), (%f).", err, mdelay);
+
+	}
 
         MeridianDelayNP.s = IPS_OK;
         IDSetNumber(&MeridianDelayNP, nullptr);
+
+	SiderealTimeNP.s           = IPS_BUSY;
+	IDSetNumber(&SiderealTimeNP, nullptr);
+
+	const struct timespec timeout = {0, 250000000L};
+	nanosleep(&timeout, nullptr);
+
+	double val;
+	if (getSDTime(PortFD, &val) < 0) {
+	  LOGF_DEBUG("Reading sidereal time failed %d", -1);
+      	} else {
+	  LOGF_DEBUG("Sidereal time :GS %f in ISNewNumber", val);
+	  SiderealTimeNP.np[SIDEREAL_TIME].value = val;
+	  SiderealTimeNP.s           = IPS_OK;
+	  IDSetNumber(&SiderealTimeNP, "sidereal read from GTOCP4 in ISNewNumber");
+	}
+
+	
         return true;
     }
 
@@ -591,17 +621,22 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
 
 bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 {
-    if (isSimulation())
+  /*
+  if (isSimulation())
     {
         mountSim();
         return true;
     }
+  */
     double val;
     if (getSDTime(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading sidereal time failed %d", -1);
 	
     } else {
       LOGF_DEBUG("Sidereal time :GS %f", val);
+      SiderealTimeNP.np[SIDEREAL_TIME].value = val;
+      SiderealTimeNP.s           = IPS_IDLE;
+      IDSetNumber(&SiderealTimeNP, "sidereal read from GTOCP4 in ReadScopeStatus");
     }
     if (getAPUTCOffset(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading offset from greenwich  failed %d", -1);

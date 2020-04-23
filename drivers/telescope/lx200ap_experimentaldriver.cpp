@@ -175,7 +175,9 @@ int setAPMeridianDelay(int fd, double mdelay)
     DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "Meridian Delay %f -> %s", mdelay, hourstr)\
             ;
 
-    sprintf(cmd, ":SM%s#", hourstr);
+    // sprintf(cmd, ":SM%s#", hourstr);
+    // set UTC offset
+    sprintf(cmd, ":SG%s#", hourstr);
 
     DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "CMD <%s>", cmd);
 
