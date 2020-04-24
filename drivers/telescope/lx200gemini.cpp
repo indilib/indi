@@ -164,7 +164,7 @@ bool LX200Gemini::updateProperties()
         if (getGeminiProperty(GUIDING_SPEED_ID, value))
         {
             sscanf(value, "%f", &guidingSpeed);
-            GuidingSpeedN[0].value = guidingSpeed;
+            GuidingSpeedN[0].value = static_cast<double>(guidingSpeed);
             defineNumber(&GuidingSpeedNP);
         }
         if (getGeminiProperty(CENTERING_SPEED_ID, value))
@@ -497,9 +497,35 @@ void LX200Gemini::syncSideOfPier()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    LOGF_DEBUG("RES: <%s>", response);
+    //LOGF_DEBUG("RES: <%s>", response);
 
-    setPierSide(response[0] == 'E' ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
+    // fix to pier side read from the mount using the hour angle as a guide
+    // see https://www.indilib.org/forum/general/6785-side-of-pier-problem-bug.html?start=12#52492
+    // for a description of the problem and the proposed fix
+    //
+    auto lst = get_local_sidereal_time(this->LocationN[LOCATION_LONGITUDE].value);
+    auto ha = rangeHA(lst - currentRA);
+    auto pointingState = PIER_UNKNOWN;
+
+    if (ha >= -5.0 && ha <= 5.0)
+    {
+        // mount pier side is used unchanged
+        pointingState = response[0] == 'E' ? PIER_EAST : PIER_WEST;
+    }
+    else if (ha <= -7.0 || ha >= 7.0)
+    {
+        // mount pier side is reversed
+        pointingState = response[0] == 'W' ? PIER_EAST : PIER_WEST;
+    }
+    else
+    {
+        // use hour angle because the pier side changes spontaneously near +-6h
+        pointingState = ha > 0 ? PIER_EAST : PIER_WEST;
+    }
+
+    LOGF_DEBUG("RES: <%s>, lst %f, ha %f, pierSide %d", response, lst, ha, pointingState);
+
+    setPierSide(pointingState);
 }
 
 bool LX200Gemini::Park()
