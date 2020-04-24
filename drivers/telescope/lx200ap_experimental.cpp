@@ -87,10 +87,10 @@ bool LX200AstroPhysicsExperimental::initProperties()
 
     timeFormat = LX200_24;
 
-    IUFillNumber(&HourangleCoordsN[0], "HA", "HA H:M:S", "%10.6m", 0., 24., 0., 0.);
+    IUFillNumber(&HourangleCoordsN[0], "HA", "HA H:M:S", "%10.6m", -24., 24., 0., 0.);
     IUFillNumber(&HourangleCoordsN[1], "DEC", "Dec D:M:S", "%10.6m", -90.0, 90.0, 0., 0.);
     IUFillNumberVector(&HourangleCoordsNP, HourangleCoordsN, 2, getDeviceName(), "HOURANGLE_COORD", "Hourangle Coords",
-                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&HorizontalCoordsN[0], "AZ", "Az D:M:S", "%10.6m", 0., 360., 0., 0.);
     IUFillNumber(&HorizontalCoordsN[1], "ALT", "Alt D:M:S", "%10.6m", -90., 90., 0., 0.);
@@ -156,7 +156,7 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // meridian delay (experimental!)
-    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "UTC offset", "%4.2f", 0.0, 24.0, 0.0, 0.0);
+    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "UTC offset", "%8.5f", -24.0, 24.0, 0.0, 13.9348);
     IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY", "UTC offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
     // sidereal time
     IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
@@ -214,6 +214,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineSwitch(&ParkToSP);
         defineNumber(&MeridianDelayNP);
         defineNumber(&SiderealTimeNP);
+        defineNumber(&HourangleCoordsNP);
 
         // load in config value for park to and initialize park position
         loadConfig(true, ParkToSP.name);
@@ -271,6 +272,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         deleteProperty(ParkToSP.name);
         deleteProperty(MeridianDelayNP.name);
         deleteProperty(SiderealTimeNP.name);
+        deleteProperty(HourangleCoordsNP.name);
     }
 
     return true;
@@ -424,38 +426,71 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 
         mdelay = MeridianDelayN[0].value;
 
-        LOGF_INFO("lx200ap_experimental: meridian delay request = %f", mdelay);
+        //LOGF_INFO("lx200ap_experimental: meridian delay request = %f", mdelay);
 
-        //if (!isSimulation() && (err = setAPMeridianDelay(PortFD, mdelay) < 0))
-        if ((err = setAPMeridianDelay(PortFD, mdelay) < 0))
+        if (!isSimulation() && (err = setAPMeridianDelay(PortFD, mdelay) < 0))
         {
             LOGF_ERROR("lx200ap_experimental: Error setting UTC offset (%d).", err);
             return false;
         } else {
-	  LOGF_ERROR("lx200ap_experimental: success setting UTC offset (%d), (%f).", err, mdelay);
-
+	  LOGF_ERROR("lx200ap_experimental: NO ERROR, success setting UTC offset (%d), (%f).", err, mdelay);
 	}
 
         MeridianDelayNP.s = IPS_OK;
         IDSetNumber(&MeridianDelayNP, nullptr);
 
-	SiderealTimeNP.s           = IPS_BUSY;
+	SiderealTimeNP.s  = IPS_BUSY;
 	IDSetNumber(&SiderealTimeNP, nullptr);
 
 	const struct timespec timeout = {0, 250000000L};
 	nanosleep(&timeout, nullptr);
 
 	double val;
-	if (getSDTime(PortFD, &val) < 0) {
+	if (!isSimulation() && getSDTime(PortFD, &val) < 0) {
 	  LOGF_DEBUG("Reading sidereal time failed %d", -1);
+	  return false;
       	} else {
-	  LOGF_DEBUG("Sidereal time :GS %f in ISNewNumber", val);
-	  SiderealTimeNP.np[SIDEREAL_TIME].value = val;
-	  SiderealTimeNP.s           = IPS_OK;
-	  IDSetNumber(&SiderealTimeNP, "sidereal read from GTOCP4 in ISNewNumber");
+	  double lng = LocationN[LOCATION_LONGITUDE].value;
+	  val = get_local_sidereal_time(lng);
 	}
-
+	LOGF_DEBUG("Sidereal time :(GS) %f in ISNewNumber", val);
+	SiderealTimeNP.np[SIDEREAL_TIME].value = val;
+	SiderealTimeNP.s = IPS_OK;
+	IDSetNumber(&SiderealTimeNP, "sidereal read from GTOCP4 in ISNewNumber");
 	
+        return true;
+    }
+    if (!strcmp(name, HourangleCoordsNP.name))
+    {
+	HourangleCoordsNP.s = IPS_BUSY;
+	IDSetNumber(&HourangleCoordsNP, nullptr);
+	
+        if (IUUpdateNumber(&HourangleCoordsNP, values, names, n) < 0)
+            return false;
+  
+	double lng = LocationN[LOCATION_LONGITUDE].value;
+	double lst = get_local_sidereal_time(lng);
+	double ra = lst - HourangleCoordsN[0].value;
+	double dec = HourangleCoordsN[1].value;
+	bool success = false;
+	if ((ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s) || (ISS_ON == IUFindSwitch(&CoordSP, "SLEW")->s))     
+	{
+	  success = Goto(ra, dec);
+	}
+	else
+	{
+	  success = Sync(ra, dec);
+	}
+	if (success)
+	{
+	  HourangleCoordsNP.s = IPS_OK;
+	}
+	else
+	{
+	  HourangleCoordsNP.s = IPS_ALERT;
+	}
+	HourangleCoordsNP.s = IPS_IDLE;
+	IDSetNumber(&HourangleCoordsNP, nullptr);
         return true;
     }
 
@@ -621,62 +656,64 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
 
 bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 {
-  /*
-  if (isSimulation())
+    bool isParked ;
+    getMountStatus(&isParked);
+    if (!isParked || ParkSP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
+    {
+        // in case of simulation this update stops too early, park, unpark, park
+        // to have more precision
+        HourangleCoordsNP.s = IPS_BUSY;
+        IDSetNumber(&HourangleCoordsNP, nullptr);
+        double lng = LocationN[LOCATION_LONGITUDE].value;
+        double lst = get_local_sidereal_time(lng);
+        HourangleCoordsN[0].value = get_local_hour_angle(lst, currentRA);
+        HourangleCoordsN[1].value = currentDEC;
+        HourangleCoordsNP.s = IPS_OK;
+        IDSetNumber(&HourangleCoordsNP, nullptr);
+    }
+    double val;
+    if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0)) {
+      LOGF_ERROR("Reading sidereal time failed %d", -1);
+      return false;
+    } else {
+
+      double lng = LocationN[LOCATION_LONGITUDE].value;
+      val = get_local_sidereal_time(lng);
+    }
+  
+    SiderealTimeNP.np[SIDEREAL_TIME].value = val;
+    SiderealTimeNP.s           = IPS_IDLE;
+    IDSetNumber(&SiderealTimeNP, nullptr);
+     if (isSimulation())
     {
         mountSim();
         return true;
     }
-  */
-    double val;
-    if (getSDTime(PortFD, &val) < 0) {
-      LOGF_DEBUG("Reading sidereal time failed %d", -1);
-	
-    } else {
-      LOGF_DEBUG("Sidereal time :GS %f", val);
-      SiderealTimeNP.np[SIDEREAL_TIME].value = val;
-      SiderealTimeNP.s           = IPS_IDLE;
-      IDSetNumber(&SiderealTimeNP, "sidereal read from GTOCP4 in ReadScopeStatus");
-    }
+  
     if (getAPUTCOffset(PortFD, &val) < 0) {
-      LOGF_DEBUG("Reading offset from greenwich  failed %d", -1);
-	
-    } else {
-      LOGF_DEBUG("Offset Greenwich time :GG %f", val);
-    }
+      LOGF_DEBUG("Reading offset from greenwich  failed %d", -1);	
+    } 
     //local time, '#:GL#'
     if (getLocalTime24(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading local time failed :GL %d", -1);	
-    } else {
-      LOGF_DEBUG("Local time :GL %f", val);
-    }
+    } 
     if (getLX200Az(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading Az failed :GZ %d", -1);
-    } else {
-      LOGF_DEBUG("Az :GZ %f", val);
-    }
+    } 
     if (getLX200Alt(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading Alt failed :GA %d", -1);
-    } else {
-      LOGF_DEBUG("Alt :GA %f", val);
-    }
+    } 
     if (getLX200RA(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading Ra failed :GR %d", -1);
-    } else {
-      LOGF_DEBUG("RA :GR %f", val);
-    }
+    } 
     if (getLX200DEC(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading Dec failed :GD %d", -1);
-    } else {
-      LOGF_DEBUG("Dec :GD %f", val);
-    }
+    } 
     // ev. comment that out
     char buf[64];
     if (getCalendarDate(PortFD, buf) < 0) {
       LOGF_DEBUG("Reading calendar day failed :GC %d", -1);
-    } else {
-      LOGF_DEBUG("Calendar day :GC %f", val);
-    }
+    } 
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
@@ -1450,7 +1487,9 @@ bool LX200AstroPhysicsExperimental::Park()
 
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 	
-        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
+        if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
+	{
+	}
     }
     else
     {
