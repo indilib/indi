@@ -87,6 +87,7 @@ ScopeSim::ScopeSim()
 
     // initalise axis positions, for GEM pointing at pole, counterweight down
     axisPrimary.setDegrees(90.0);
+    axisPrimary.TrackRate(Axis::SIDEREAL);
     axisSecondary.setDegrees(90.0);
 }
 
@@ -145,8 +146,10 @@ bool ScopeSim::initProperties()
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Add Tracking Modes
+    // Add Tracking Modes, the order must match the order of the TelescopeTrackMode enum
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
+    AddTrackMode("TRACK_SOLAR", "Solar");
+    AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Let's simulate it to be an F/7.5 120mm telescope
@@ -185,7 +188,6 @@ void ScopeSim::ISGetProperties(const char *dev)
     defineNumber(&flipHourAngleNP);
     loadConfig(true, flipHourAngleNP.name);
 #endif
-
     /*
     if (isConnected())
     {
@@ -350,6 +352,7 @@ bool ScopeSim::Goto(double r, double d)
 bool ScopeSim::Sync(double ra, double dec)
 {
     Angle a1, a2;
+    // set the mount axes to the position that will cause it to report the sync position
     alignment.apparentRaDecToMount(Angle(ra * 15.0), Angle(dec), &a1, &a2);
     axisPrimary.setDegrees(a1.Degrees());
     axisSecondary.setDegrees(a2.Degrees());
@@ -424,7 +427,7 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
-            //IDSetNumber(&GuideRateNP, nullptr);
+            IDSetNumber(&GuideRateNP, nullptr);
             return true;
         }
 
@@ -474,6 +477,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                 return false;
 
             mountTypeSP.s = IPS_OK;
+            IDSetSwitch(&mountTypeSP, nullptr);
             updateMountAndPierSide();
             return true;
         }
@@ -483,11 +487,11 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                 return false;
 
             simPierSideSP.s = IPS_OK;
+            IDSetSwitch(&simPierSideSP, nullptr);
             updateMountAndPierSide();
             return true;
         }
 #endif
-
         // Slew mode
         if (strcmp(name, SlewRateSP.name) == 0)
         {
@@ -506,8 +510,8 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
 bool ScopeSim::Abort()
 {
-    axisPrimary.AbortSlew();
-    axisSecondary.AbortSlew();
+    axisPrimary.Abort();
+    axisSecondary.Abort();
     return true;
 }
 
@@ -521,7 +525,7 @@ bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     mcRate = static_cast<int>(IUFindOnSwitchIndex(&SlewRateSP)) + 1;
 
     int rate = (dir == INDI_DIR_NS::DIRECTION_NORTH) ? mcRate : -mcRate;
-    //LOGF_DEBUG("MoveNS dir %s, motion %s, rate %d", dir == DIRECTION_NORTH ? "N" : "S" , command == 0 ? "start" : "stop", rate);
+    LOGF_DEBUG("MoveNS dir %s, motion %s, rate %d", dir == DIRECTION_NORTH ? "N" : "S" , command == 0 ? "start" : "stop", rate);
 
     axisSecondary.mcRate = command == MOTION_START ? rate : 0;
 
@@ -537,8 +541,8 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     }
 
     mcRate = static_cast<int>(IUFindOnSwitchIndex(&SlewRateSP)) + 1;
-    int rate = (dir == INDI_DIR_WE::DIRECTION_EAST) ? mcRate : -mcRate;
-    //LOGF_DEBUG("MoveWE dir %d, motion %s, rate %d", dir == DIRECTION_EAST ? "E" : "W", command == 0 ? "start" : "stop", rate);
+    int rate = (dir == INDI_DIR_WE::DIRECTION_EAST) ? -mcRate : mcRate;
+    LOGF_DEBUG("MoveWE dir %d, motion %s, rate %d", dir == DIRECTION_EAST ? "E" : "W", command == 0 ? "start" : "stop", rate);
 
     axisPrimary.mcRate = command == MOTION_START ? rate : 0;
     return true;
@@ -597,22 +601,38 @@ bool ScopeSim::SetDefaultPark()
 
 bool ScopeSim::SetTrackMode(uint8_t mode)
 {
-    INDI_UNUSED(mode);
-    axisPrimary.TrackRate(Axis::SIDEREAL);
-    return true;
+    switch (static_cast<TelescopeTrackMode>(mode))
+    {
+    case TRACK_SIDEREAL:
+        axisPrimary.TrackRate(Axis::SIDEREAL);
+        axisSecondary.TrackRate(Axis::OFF);
+        return true;
+    case TRACK_SOLAR:
+        axisPrimary.TrackRate(Axis::SOLAR);
+        axisSecondary.TrackRate(Axis::OFF);
+        return true;
+    case TRACK_LUNAR:
+        axisPrimary.TrackRate(Axis::LUNAR);
+        axisSecondary.TrackRate(Axis::OFF);
+        return true;
+    case TRACK_CUSTOM:
+        SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+        return true;
+    }
+    return false;
 }
 
 bool ScopeSim::SetTrackEnabled(bool enabled)
 {
-    Axis::AXIS_TRACK_RATE rate = enabled ? Axis::AXIS_TRACK_RATE::SIDEREAL : Axis::AXIS_TRACK_RATE::OFF;
-    axisPrimary.TrackRate(rate);
+    axisPrimary.Tracking(enabled);
+    axisSecondary.Tracking(enabled);
     return true;
 }
 
 bool ScopeSim::SetTrackRate(double raRate, double deRate)
 {
-    INDI_UNUSED(raRate);
-    INDI_UNUSED(deRate);
+    axisPrimary.TrackingRateDegSec = Angle(raRate / 3600.0);
+    axisSecondary.TrackingRateDegSec = Angle(deRate / 3600.0);
     return true;
 }
 
@@ -641,17 +661,24 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
     return true;
  }
 
-void ScopeSim::updateMountAndPierSide()
+bool ScopeSim::updateMountAndPierSide()
 {
 #ifdef USE_SIM_TAB
     int mountType = IUFindOnSwitchIndex(&mountTypeSP);
     int pierSide = IUFindOnSwitchIndex(&simPierSideSP);
-    if (mountType < 0 || pierSide < 0) return;
+    if (mountType < 0 || pierSide < 0) return false;
+
     LOGF_INFO("update mount and pier side: Pier Side %s, mount type %d", pierSide == 0 ? "Off" : "On", mountType);
 #else
     int mountType = 2;
     int pierSide = 1;
 #endif
+    if ( mountType == Alignment::MOUNT_TYPE::ALTAZ)
+    {
+        LOG_INFO("AltAz mount type not implemented yet");
+        return false;
+    }
+
     alignment.mountType = static_cast<Alignment::MOUNT_TYPE>(mountType);
     // update the pier side capability depending on the mount type
     uint32_t cap = GetTelescopeCapability();
@@ -664,6 +691,8 @@ void ScopeSim::updateMountAndPierSide()
         cap &= ~static_cast<uint32_t>(TELESCOPE_HAS_PIER_SIDE);
     }
     SetTelescopeCapability(cap, 4);
+
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////

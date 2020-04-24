@@ -23,7 +23,6 @@
 
 #include "scopesim_helper.h"
 
-#include "indicom.h"
 #include "indilogger.h"
 
 #include <cmath>
@@ -67,40 +66,47 @@ bool Angle::operator!= (const Angle& a)
 void Axis::setDegrees(double degrees)
 {
     this->position = degrees;
+    this->target = degrees;
 }
 
 void Axis::setHours(double hours)
 {
     this->position = hours * 15.0;
+    this->target = hours * 15.0;
 }
 
 void Axis::StartSlew(Angle angle)
 {
-    LOGF_DEBUG("StartSlew %s to %f", axisName, angle.Degrees());
+    LOGF_DEBUG("%s StartSlew to %f", axisName, angle.Degrees());
     target = angle;
     isSlewing = true;
 }
 
+void Axis::Tracking(bool enabled)
+{
+    tracking = enabled;
+    LOGF_EXTRA1("%s Teacking enabled %s", axisName, enabled ? "true" : "false");
+}
+
 void Axis::TrackRate(AXIS_TRACK_RATE rate)
 {
-    LOGF_DEBUG("TrackRate %i", rate);
     trackingRate = rate;
     switch (trackingRate)
     {
         case AXIS_TRACK_RATE::OFF:
-            trackingRateDegSec = 0;
+            TrackingRateDegSec = 0;
             break;
         case AXIS_TRACK_RATE::SIDEREAL:
-            trackingRateDegSec = siderealRate;
+            TrackingRateDegSec = siderealRate;
             break;
         case AXIS_TRACK_RATE::SOLAR:
-            trackingRateDegSec = solarRate;
+            TrackingRateDegSec = solarRate;
             break;
         case AXIS_TRACK_RATE::LUNAR:
-            trackingRateDegSec = lunarRate;
+            TrackingRateDegSec = lunarRate;
             break;
     }
-    LOGF_EXTRA1("TrackRate %i, trackingRateDegSec %f", trackingRate, trackingRateDegSec.Degrees());
+    LOGF_EXTRA1("%s: TrackRate %i, trackingRateDegSec %f arcsec", axisName, trackingRate, TrackingRateDegSec.Degrees() * 3600);
 }
 
 Axis::AXIS_TRACK_RATE Axis::TrackRate()
@@ -204,9 +210,9 @@ void Axis::update()         // called about once a second to update the position
     // tracking
     if (isTracking())
     {
-        position += trackingRateDegSec * interval;
-        target += trackingRateDegSec * interval;
-        //LOGF_DEBUG("tracking, rate %f, position %f, target %f", trackingRateDegSec.Degrees(), position.Degrees(), target.Degrees());
+        position += TrackingRateDegSec * interval;
+        target += TrackingRateDegSec * interval;
+        LOGF_EXTRA1("%s: tracking, rate %f, position %f, target %f", axisName, TrackingRateDegSec.Degrees(), position.Degrees(), target.Degrees());
     }
 }
 
@@ -277,7 +283,7 @@ void Alignment::apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle*
         {
             // pointing state inverted
             *primary += Angle(180);
-            *secondary = Angle(180) - apparentDec;
+            *secondary = Angle(180) - instrumentDec;
         }
         if (latitude < 0)
             *secondary = -*secondary;
