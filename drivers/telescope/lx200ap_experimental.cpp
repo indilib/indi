@@ -660,6 +660,12 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     getMountStatus(&isParked);
     if (!isParked || ParkSP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
     {
+        if(ParkSP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
+	{
+	  // 1 sec, bad solution will go away 
+          const struct timespec timeout = {0, 10000000000L};
+          nanosleep(&timeout, nullptr);
+	}
         // in case of simulation this update stops too early, park, unpark, park
         // to have more precision
         HourangleCoordsNP.s = IPS_BUSY;
@@ -1487,9 +1493,7 @@ bool LX200AstroPhysicsExperimental::Park()
 
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 	
-        if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
-	{
-	}
+        Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
     }
     else
     {
