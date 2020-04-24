@@ -188,7 +188,7 @@ bool SensorInterface::processSnoopDevice(XMLEle *root)
         Lat = LocationNP.np[0].value;
         Lon = LocationNP.np[1].value;
         El = LocationNP.np[2].value;
-        IDLog("Snooped Lat %4.2f  Lon %4.2  El %4.2f\n",RA,Dec,El);
+        IDLog("Snooped Lat %4.2f  Lon %4.2f  El %4.2f\n",RA,Dec,El);
     }
     if (!IUSnoopNumber(root, &ScopeParametersNP))
     {
@@ -219,8 +219,8 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
             strncpy(ScopeParametersNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
 
             IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
+            IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -472,7 +472,8 @@ bool SensorInterface::initProperties()
 
     // Snooped Devices
     IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
+    IUFillText(&ActiveDeviceT[1], "ACTIVE_GPS", "GPS", "GPS Simulator");
+    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 2, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     // Snoop properties of interest
@@ -484,8 +485,8 @@ bool SensorInterface::initProperties()
     IUFillNumber(&LocationN[0], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
     IUFillNumber(&LocationN[1], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
     IUFillNumber(&LocationN[2], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
-    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Scope Location", SITE_TAB,
-                       IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB,
+                       IP_RO, 60, IPS_IDLE);
 
     IUFillNumber(&ScopeParametersN[0], "TELESCOPE_APERTURE", "Aperture (mm)", "%g", 10, 5000, 0, 0.0);
     IUFillNumber(&ScopeParametersN[1], "TELESCOPE_FOCAL_LENGTH", "Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
@@ -495,8 +496,8 @@ bool SensorInterface::initProperties()
                        OPTIONS_TAB, IP_RW, 60, IPS_OK);
 
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
+    IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
 
     if (sensorConnection & CONNECTION_SERIAL)
     {

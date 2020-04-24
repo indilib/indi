@@ -183,7 +183,6 @@ class Spectrograph : public SensorInterface
             SPECTROGRAPH_BANDWIDTH,
             SPECTROGRAPH_BITSPERSAMPLE,
             SPECTROGRAPH_SAMPLERATE,
-            SPECTROGRAPH_CHANNEL,
             SPECTROGRAPH_ANTENNA,
         } SPECTROGRAPH_INFO_INDEX;
         INumberVectorProperty SpectrographSettingsNP;
