@@ -1361,7 +1361,7 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 
     return true;
 }
-#define ERROR -0.3167245901
+#define ERROR -26.3167245901
 double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off) {
    if( setAPUTCOffset(PortFD, utc_off) < 0)
    {
@@ -1425,18 +1425,32 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	double c ;
 	double val_sid;
 	double val_sid_a;
+	int cnt = 500;
         while ((b-a) >= EP) {
+	    cnt -= 1;
+	    if(cnt ==0) {
+	      
+	      LOG_ERROR("after 500 iterations, comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
+	      break;
+	    }
             // Find middle point
 	    c = (a+b)/2;
             // Check if middle point is root
 	    val_sid = setUTCgetSID(c);
+	    LOGF_DEBUG("UTC offset (%f), diff sid (%)", c, val_sid);
 	    if (val_sid == ERROR)
 	    {
-	      LOG_ERROR("Setting SID failed, set UTC offset manually, proceed ONLY, if you understand this");
+	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
 	      break;
 	    }
-            else if (val_sid == 0.0)
+#define MAX_DIFF_SID 0.001 // better 0.0001 
+            else if (fabs(val_sid) <= 0.001)
 	    {
+	        LOGF_ERROR("NOT an ERROR, Comparing UTC offset successful (%f)", c + dst_off);
+		if( fabs(c - 13.9348) <= 0.01) {
+		  LOG_ERROR("NOT an ERROR, we did find the correct value :-)");
+		}
+		
 	        utc_offset = c + dst_off; // 2020-04-25, wildi, ToDo define sign
                 break;
 	    }
@@ -1444,7 +1458,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
             val_sid_a = setUTCgetSID(a);
 	    if (val_sid_a == ERROR)
 	    {
-	      LOG_ERROR("Setting SID failed, set UTC offset manually, proceed ONLY, if you understand this");
+	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
 	      break;
 	    }
             // Decide the side to repeat the steps
