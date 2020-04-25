@@ -386,7 +386,7 @@ bool LX200AstroPhysicsExperimental::initMount()
     // Slew speeds so we have to keep two lists.
     //
     // SlewRateS is used as the MoveTo speed
-    if (isSimulation() == false && (err = selectAPCenterRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP))) < 0)
+    if (!isSimulation() && (err = selectAPCenterRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP))) < 0)
     {
         LOGF_ERROR("Error setting center (MoveTo) rate (%d).", err);
         return false;
@@ -396,7 +396,7 @@ bool LX200AstroPhysicsExperimental::initMount()
     IDSetSwitch(&SlewRateSP, nullptr);
 
     // APSlewSpeedsS defines the Slew (GOTO) speeds valid on the AP mounts
-    if (isSimulation() == false && (err = selectAPSlewRate(PortFD, IUFindOnSwitchIndex(&APSlewSpeedSP))) < 0)
+    if (!isSimulation() && (err = selectAPSlewRate(PortFD, IUFindOnSwitchIndex(&APSlewSpeedSP))) < 0)
     {
         LOGF_ERROR("Error setting slew to rate (%d).", err);
         return false;
@@ -433,7 +433,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
             LOGF_ERROR("lx200ap_experimental: Error setting UTC offset (%d).", err);
             return false;
         } else {
-	  LOGF_ERROR("lx200ap_experimental: NO ERROR, success setting UTC offset (%d), (%f).", err, mdelay);
+	  LOGF_ERROR("lx200ap_experimental: NO ERROR, success setting UTC offset (%f).", mdelay);
 	}
 
         MeridianDelayNP.s = IPS_OK;
@@ -660,9 +660,11 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     getMountStatus(&isParked);
     if (!isParked || ParkSP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
     {
-        if(ParkSP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
+        if(ParkSP.s == IPS_BUSY &&  EqNP.s == IPS_BUSY)
 	{
-	  // 1 sec, bad solution will go away 
+	  // 1 sec, bad solution will go away
+	  // HA must be calculated, where in the code
+	  // RA/Dec is set (for the clients).
           const struct timespec timeout = {0, 10000000000L};
           nanosleep(&timeout, nullptr);
 	}
@@ -1338,7 +1340,7 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
                 break;
         }
 
-        if (syncOK == false)
+        if (!syncOK)
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Synchronization failed.");
@@ -1359,12 +1361,103 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 
     return true;
 }
+#define ERROR -0.3167245901
+double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off) {
+   if( setAPUTCOffset(PortFD, utc_off) < 0)
+   {
+        LOG_ERROR("Error setting UTC Offset, while finding correct SID.");
+        return ERROR;
+   }
+   //.1 sec
+   const struct timespec timeout = {0, 100000000L};
+   nanosleep(&timeout, nullptr);
+   
+   double val = ERROR;
+   if (getSDTime(PortFD, &val) < 0) {
+        LOG_ERROR("Reading sidereal time failed, while finding correct SID.");
+	return ERROR;
+   }
+   double lng = LocationN[LOCATION_LONGITUDE].value;
+   double sid = get_local_sidereal_time(lng);
 
+   return val - sid;
+}
+#define EP 0.0001
 bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 {
     struct ln_zonedate ltm;
 
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
+
+    // back port :-)
+    double dst_off = 0.;
+    time_t lrt_is_dst=  time (NULL);
+    tm ltm_is_dst;
+    localtime_r(&lrt_is_dst,&ltm_is_dst);
+    if( ltm_is_dst.tm_isdst < 0){
+      LOG_ERROR("updateTime DST information not available, ignoring");
+    } else if(ltm_is_dst.tm_isdst >= 1) { 
+      LOG_ERROR("updateTime DST is in effect");
+      dst_off= 1.;
+    } else {
+      LOG_ERROR("updateTime DST is not in effect"); 
+    }
+    // do the find only, if there is utc_offset of the form 10.0000
+    // if there is a fraction present the assumption is that it was
+    // set intentionally
+    double fractpart, intpart;
+    fractpart = modf (utc_offset , &intpart);
+    LOGF_ERROR("utc offset (%f), intpart (%f), fractpart (%f)", utc_offset, intpart, fractpart);
+#define UPPER_LIMIT 0.001
+    if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT )) {
+        LOG_ERROR("Trying to find correct UTC offset");
+      
+    } else if (!isSimulation() && (fabs(fractpart) >= UPPER_LIMIT )) {
+      LOGF_ERROR("Assuming correct UTC offset (%)", utc_offset);
+    }
+    // 2020-04-25, wildi, finally fabs(utc_offset) is set, verify that
+    // In case of GTOCP2 and long = 7.5 the offset was 1.065
+    if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT ))
+    {
+	// find correct by bisection
+	double a = 0.;
+	double b = 24.;
+	double c ;
+	double val_sid;
+	double val_sid_a;
+        while ((b-a) >= EP) {
+            // Find middle point
+	    c = (a+b)/2;
+            // Check if middle point is root
+	    val_sid = setUTCgetSID(c);
+	    if (val_sid == ERROR)
+	    {
+	      LOG_ERROR("Setting SID failed, set UTC offset manually, proceed ONLY, if you understand this");
+	      break;
+	    }
+            else if (val_sid == 0.0)
+	    {
+	        utc_offset = c + dst_off; // 2020-04-25, wildi, ToDo define sign
+                break;
+	    }
+ 
+            val_sid_a = setUTCgetSID(a);
+	    if (val_sid_a == ERROR)
+	    {
+	      LOG_ERROR("Setting SID failed, set UTC offset manually, proceed ONLY, if you understand this");
+	      break;
+	    }
+            // Decide the side to repeat the steps
+            if (val_sid * val_sid_a < 0)
+	    {
+                b = c;
+	    }
+            else
+	    {
+	        a = c;
+	    }
+        }
+    }
 
     JD = ln_get_julian_day(utc);
 
@@ -1382,7 +1475,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     LOGF_DEBUG("Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
                (int)ltm.seconds);
 
-    if (isSimulation() == false && setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
+    if (!isSimulation() && setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
         LOG_ERROR("Error setting local date.");
         return false;
@@ -1390,7 +1483,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
     LOGF_DEBUG("Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
 
-    if (isSimulation() == false && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
+    if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
     {
         LOG_ERROR("Error setting UTC Offset.");
         return false;
@@ -1402,7 +1495,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
     timeUpdated = true;
 
-    if (locationUpdated && timeUpdated && mountInitialized == false)
+    if (locationUpdated && timeUpdated && !mountInitialized)
         initMount();
 
     return true;
@@ -1432,7 +1525,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 
     locationUpdated = true;
 
-    if (locationUpdated && timeUpdated && mountInitialized == false)
+    if (locationUpdated && timeUpdated && !mountInitialized)
         initMount();
 
     return true;
@@ -1493,7 +1586,7 @@ bool LX200AstroPhysicsExperimental::Park()
 
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 	
-        Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
+        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
     else
     {
@@ -1559,9 +1652,9 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
 	// wildi: the hour angle is undefined if AZ = 0,180 and ALT=LAT is chosen, adding .1 to Az sets PARK3
 	//        as close as possible to to HA = -6 hours (CW down), valid for both hemispheres.
         case 3:
-            LOG_INFO("Computing PARK3 position... Az = .1, 179.9");
             *parkAlt = fabs(LocationN[LOCATION_LATITUDE].value);
-            *parkAz = LocationN[LOCATION_LATITUDE].value > 0.1 ? 0 : 179.9;
+            *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 0.1 : 179.9;
+            LOGF_INFO("Computing PARK3 position, Az = (%f), Alt = (%f)", *parkAz, *parkAlt);
             break;
 
         // Park 4
