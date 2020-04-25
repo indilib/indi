@@ -131,8 +131,8 @@ bool NightCrawler::initProperties()
     IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "FIND_HOME", "Home Find", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Encoders
-    IUFillSwitch(&EncoderS[0], "ENABLED", "Enabled", ISS_ON);
-    IUFillSwitch(&EncoderS[1], "DISABLED", "Disabled", ISS_OFF);
+    IUFillSwitch(&EncoderS[0], "INDI_ENABLED", "Enabled", ISS_ON);
+    IUFillSwitch(&EncoderS[1], "INDI_DISABLED", "Disabled", ISS_OFF);
     IUFillSwitchVector(&EncoderSP, EncoderS, 2, getDeviceName(), "ENCODERS", "Encoders", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Brightness
