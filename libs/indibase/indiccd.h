@@ -493,6 +493,9 @@ class CCD : public DefaultDevice, GuiderInterface
         // Epoch Position
         double RA, Dec;
 
+        // pier side, read from mount if available, set to NaN if not available
+        int pierSide;       // West = 0, East =1. No enum available
+
         // J2000 Position
         double J2000RA;
         double J2000DE;
@@ -510,8 +513,8 @@ class CCD : public DefaultDevice, GuiderInterface
         bool ShowMarker;
         bool GuiderShowMarker;
 
-        float ExposureTime;
-        float GuiderExposureTime;
+        double ExposureTime;
+        double GuiderExposureTime;
 
         // Sky Quality
         double MPSAS;
