@@ -319,6 +319,7 @@ void IDLog(const char *fmt, ...)
 const char *timestamp()
 {
     static char ts[32];
+    char iso8601[32];
     struct tm *tp;
     struct timespec tm;
 
@@ -328,8 +329,8 @@ const char *timestamp()
 
     tp = gmtime(&t);
 
-    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
-    snprintf(ts, 32, "%s.%09ld", ts, n);
+    strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
+    snprintf(ts, 32, "%s.%09ld", iso8601, n);
     return (ts);
 }
 
