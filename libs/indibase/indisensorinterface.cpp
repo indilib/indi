@@ -592,7 +592,7 @@ void SensorInterface::setIntegrationLeft(double duration)
 void SensorInterface::setIntegrationTime(double duration)
 {
     integrationTime = duration;
-    clock_gettime(CLOCK_REALTIME, &startIntegrationTime);
+    timespec_get(&startIntegrationTime, TIME_UTC);
 }
 
 const char *SensorInterface::getIntegrationStartTime()

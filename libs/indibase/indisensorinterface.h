@@ -310,6 +310,26 @@ class SensorInterface : public DefaultDevice
          */
         inline uint8_t getSensorConnection() { return sensorConnection; }
 
+        /**
+         * \brief Add FITS keywords to a fits file
+         * \param fptr pointer to a valid FITS file.
+         * \param buf The buffer of the fits contents.
+         * \param len The lenght of the buffer.
+         * \note In additional to the standard FITS keywords, this function write the following
+         * keywords the FITS file:
+         * <ul>
+         * <li>EXPTIME: Total Integration Time (s)</li>
+         * <li>DATAMIN: Minimum value</li>
+         * <li>DATAMAX: Maximum value</li>
+         * <li>INSTRUME: Sensor Name</li>
+         * <li>DATE-OBS: UTC start date of observation</li>
+         * </ul>
+         *
+         * To add additional information, override this function in the child class and ensure to call
+         * SensorInterface::addFITSKeywords.
+         */
+        virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
+
 protected:
 
         /**
@@ -491,25 +511,6 @@ protected:
         bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration);
         void getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
-        /**
-         * \brief Add FITS keywords to a fits file
-         * \param fptr pointer to a valid FITS file.
-         * \param targetDevice The target device to extract the keywords from.
-         * \param blobIndex The blob index of this FITS (0: continuum, 1: spectrum, 2: timedev).
-         * \note In additional to the standard FITS keywords, this function write the following
-         * keywords the FITS file:
-         * <ul>
-         * <li>EXPTIME: Total Integration Time (s)</li>
-         * <li>DATAMIN: Minimum value</li>
-         * <li>DATAMAX: Maximum value</li>
-         * <li>INSTRUME: Sensor Name</li>
-         * <li>DATE-OBS: UTC start date of observation</li>
-         * </ul>
-         *
-         * To add additional information, override this function in the child class and ensure to call
-         * Receiver::addFITSKeywords.
-         */
-        virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
 
         bool IntegrationCompletePrivate();
         void* sendFITS(uint8_t* buf, int len);

@@ -189,5 +189,26 @@ void Spectrograph::setMinMaxStep(const char *property, const char *element, doub
     }
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
 }
+void Spectrograph::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
+{
+    char fitsString[MAXINDILABEL];
 
+    // SPECTROGRAPH
+    strncpy(fitsString, getBPS(), MAXINDILABEL);
+    fits_update_key_s(fptr, TSTRING, "BITSPERSAMPLE", lat_str, "Bits per sample", &status);
+
+    strncpy(fitsString, getBandwidth(), MAXINDILABEL);
+    fits_update_key_s(fptr, TSTRING, "BANDWIDTH", lat_str, "Bandwidth", &status);
+
+    strncpy(fitsString, getFrequency(), MAXINDILABEL);
+    fits_update_key_s(fptr, TSTRING, "FREQ", lat_str, "Center Frequency", &status);
+
+    strncpy(fitsString, getSampleRate(), MAXINDILABEL);
+    fits_update_key_s(fptr, TSTRING, "SAMPLERATE", lat_str, "Sampling Rate", &status);
+
+    strncpy(fitsString, getGain(), MAXINDILABEL);
+    fits_update_key_s(fptr, TSTRING, "GAIN", lat_str, "Gain", &status);
+
+    SensorInterface::addFITSKeywords(fptr, buf, len);
+}
 }

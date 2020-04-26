@@ -80,6 +80,7 @@ class Spectrograph : public SensorInterface
         virtual bool ISSnoopDevice(XMLEle *root);
 
         virtual bool StartIntegration(double duration);
+        virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
 
         /**
          * @brief setSampleRate Set depth of Spectrograph device.
