@@ -432,9 +432,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
         {
             LOGF_ERROR("lx200ap_experimental: Error setting UTC offset (%d).", err);
             return false;
-        } else {
-	  LOGF_ERROR("lx200ap_experimental: NO ERROR, success setting UTC offset (%f).", mdelay);
-	}
+        }
 
         MeridianDelayNP.s = IPS_OK;
         IDSetNumber(&MeridianDelayNP, nullptr);
@@ -449,14 +447,16 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 	if (!isSimulation() && getSDTime(PortFD, &val) < 0) {
 	  LOGF_DEBUG("Reading sidereal time failed %d", -1);
 	  return false;
-      	} else {
+      	}
+	if (isSimulation())
+	{
 	  double lng = LocationN[LOCATION_LONGITUDE].value;
 	  val = get_local_sidereal_time(lng);
-	}
+	} 
 	LOGF_DEBUG("Sidereal time :(GS) %f in ISNewNumber", val);
 	SiderealTimeNP.np[SIDEREAL_TIME].value = val;
 	SiderealTimeNP.s = IPS_OK;
-	IDSetNumber(&SiderealTimeNP, "sidereal read from GTOCP4 in ISNewNumber");
+	IDSetNumber(&SiderealTimeNP, nullptr);
 	
         return true;
     }
@@ -665,7 +665,9 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 	  // 1 sec, bad solution will go away
 	  // HA must be calculated, where in the code
 	  // RA/Dec is set (for the clients).
-          const struct timespec timeout = {0, 10000000000L};
+	  // ARM CPUs do not like 1 sec
+          const struct timespec timeout = {0, 5000000000L};
+          nanosleep(&timeout, nullptr);
           nanosleep(&timeout, nullptr);
 	}
         // in case of simulation this update stops too early, park, unpark, park
@@ -1362,7 +1364,16 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
     return true;
 }
 #define ERROR -26.3167245901
+#define UTC_OFFSET_TO_FIND 1.38999
+
 double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off) {
+
+   if (isSimulation()) {
+     // no sid in simulation
+     return utc_off - UTC_OFFSET_TO_FIND;
+   }
+   double lng = LocationN[LOCATION_LONGITUDE].value;
+   double sid = get_local_sidereal_time(lng);
    if( setAPUTCOffset(PortFD, utc_off) < 0)
    {
         LOG_ERROR("Error setting UTC Offset, while finding correct SID.");
@@ -1377,12 +1388,9 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off) {
         LOG_ERROR("Reading sidereal time failed, while finding correct SID.");
 	return ERROR;
    }
-   double lng = LocationN[LOCATION_LONGITUDE].value;
-   double sid = get_local_sidereal_time(lng);
 
    return val - sid;
 }
-#define EP 0.0001
 bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 {
     struct ln_zonedate ltm;
@@ -1417,16 +1425,38 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     }
     // 2020-04-25, wildi, finally fabs(utc_offset) is set, verify that
     // In case of GTOCP2 and long = 7.5 the offset was 1.065
-    if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT ))
+    //if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT ))
+    if (fabs(fractpart) < UPPER_LIMIT )
     {
 	// find correct by bisection
-	double a = 0.;
-	double b = 24.;
-	double c ;
+	double lwr_lmt = 0.;
+	double uppr_lmt = 24.;
+	double sltn ;
 	double val_sid;
-	double val_sid_a;
+	double val_sid_a, val_sid_b;
 	int cnt = 500;
-        while ((b-a) >= EP) {
+	// define first two points that have a different sign
+	bool found = false;
+	val_sid_a = setUTCgetSID(lwr_lmt);
+	int tp;
+	for(tp = lwr_lmt; tp <= uppr_lmt; tp++) {
+	    val_sid_b = setUTCgetSID((double)tp);
+	    if (( val_sid_a * val_sid_b) < 0) {
+	      found = true;
+	      break;
+	    }
+	}
+        if(found) {
+	
+	  uppr_lmt = (double) tp ;
+	  LOGF_ERROR("sign change found at (%f), starting at: (%f)", uppr_lmt, lwr_lmt);
+        } else {
+	  // do not loop
+	  uppr_lmt = lwr_lmt ;
+	  LOG_ERROR("no sign change found");
+	}
+#define EP 0.0001
+        while ((uppr_lmt-lwr_lmt) >= EP) {
 	    cnt -= 1;
 	    if(cnt ==0) {
 	      
@@ -1434,28 +1464,28 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	      break;
 	    }
             // Find middle point
-	    c = (a+b)/2;
+	    sltn = (lwr_lmt+uppr_lmt)/2;
             // Check if middle point is root
-	    val_sid = setUTCgetSID(c);
-	    LOGF_DEBUG("UTC offset (%f), diff sid (%)", c, val_sid);
+	    val_sid = setUTCgetSID(sltn);
+	    LOGF_DEBUG("UTC offset (%f), diff sid (%)", sltn, val_sid);
 	    if (val_sid == ERROR)
 	    {
 	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
 	      break;
 	    }
-#define MAX_DIFF_SID 0.001 // better 0.0001 
+#define MAX_DIFF_SID 0.0001 // better 0.0001 
             else if (fabs(val_sid) <= 0.001)
 	    {
-	        LOGF_ERROR("NOT an ERROR, Comparing UTC offset successful (%f)", c + dst_off);
-		if( fabs(c - 13.9348) <= 0.01) {
+	        LOGF_ERROR("NOT an ERROR, Comparing UTC offset successful (%f)", sltn + dst_off);
+		if( fabs(sltn - 13.9348) <= 0.01) {
 		  LOG_ERROR("NOT an ERROR, we did find the correct value :-)");
 		}
 		
-	        utc_offset = c + dst_off; // 2020-04-25, wildi, ToDo define sign
+	        utc_offset = sltn + dst_off; // 2020-04-25, wildi, ToDo define sign
                 break;
 	    }
  
-            val_sid_a = setUTCgetSID(a);
+            val_sid_a = setUTCgetSID(lwr_lmt);
 	    if (val_sid_a == ERROR)
 	    {
 	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
@@ -1464,11 +1494,11 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
             // Decide the side to repeat the steps
             if (val_sid * val_sid_a < 0)
 	    {
-                b = c;
+                uppr_lmt = sltn;
 	    }
             else
 	    {
-	        a = c;
+	        lwr_lmt = sltn;
 	    }
         }
     }
