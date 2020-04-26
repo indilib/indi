@@ -493,7 +493,7 @@ class CCD : public DefaultDevice, GuiderInterface
         // Epoch Position
         double RA, Dec;
 
-        // pier side, read from mount if available, set to NaN if not available
+        // pier side, read from mount if available, set to -1 if not available
         int pierSide;       // West = 0, East =1. No enum available
 
         // J2000 Position

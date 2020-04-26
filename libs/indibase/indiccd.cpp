@@ -112,7 +112,7 @@ CCD::CCD()
 
     RA              = std::numeric_limits<double>::quiet_NaN();
     Dec             = std::numeric_limits<double>::quiet_NaN();
-    pierSide        = std::numeric_limits<int>::quiet_NaN();
+    pierSide        = -1;
     J2000RA         = std::numeric_limits<double>::quiet_NaN();
     J2000DE         = std::numeric_limits<double>::quiet_NaN();
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
@@ -695,7 +695,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
     else if (!strcmp("TELESCOPE_PIER_SIDE", propName))
     {
         // set default to say we have no valid information from mount
-        pierSide = std::numeric_limits<int>::quiet_NaN();
+        pierSide = -1;
         //  crack the message
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -1885,17 +1885,14 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         fits_update_key_dbl(fptr, "DEC", J2000DE, 6, "Object J2000 DEC in Degrees", &status);
 
         // pier side
-        if (!std::isnan(pierSide))
+        switch (pierSide)
         {
-            switch (pierSide)
-            {
             case 0:
                 fits_update_key_str(fptr, "PIERSIDE", "WEST", "West, looking East", &status);
                 break;
             case 1:
                 fits_update_key_str(fptr, "PIERSIDE", "EAST", "East, looking West", &status);
                 break;
-            }
         }
 
         //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
