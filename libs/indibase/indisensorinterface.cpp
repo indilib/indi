@@ -174,9 +174,6 @@ void SensorInterface::processProperties(const char *dev)
 
 bool SensorInterface::processSnoopDevice(XMLEle *root)
 {
-    XMLEle *ep           = nullptr;
-    const char *propName = findXMLAttValu(root, "name");
-
     if (!IUSnoopNumber(root, &EqNP))
     {
         RA = EqNP.np[0].value;

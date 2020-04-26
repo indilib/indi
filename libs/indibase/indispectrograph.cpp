@@ -192,22 +192,23 @@ void Spectrograph::setMinMaxStep(const char *property, const char *element, doub
 void Spectrograph::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 {
     char fitsString[MAXINDILABEL];
+    int status = 0;
 
     // SPECTROGRAPH
-    strncpy(fitsString, getBPS(), MAXINDILABEL);
-    fits_update_key_s(fptr, TSTRING, "BITSPERSAMPLE", lat_str, "Bits per sample", &status);
+    sprintf(fitsString, "%d", getBPS());
+    fits_update_key_s(fptr, TSTRING, "BITSPERSAMPLE", fitsString, "Bits per sample", &status);
 
-    strncpy(fitsString, getBandwidth(), MAXINDILABEL);
-    fits_update_key_s(fptr, TSTRING, "BANDWIDTH", lat_str, "Bandwidth", &status);
+    sprintf(fitsString, "%lf", getBandwidth());
+    fits_update_key_s(fptr, TSTRING, "BANDWIDTH", fitsString, "Bandwidth", &status);
 
-    strncpy(fitsString, getFrequency(), MAXINDILABEL);
-    fits_update_key_s(fptr, TSTRING, "FREQ", lat_str, "Center Frequency", &status);
+    sprintf(fitsString, "%lf", getFrequency());
+    fits_update_key_s(fptr, TSTRING, "FREQ", fitsString, "Center Frequency", &status);
 
-    strncpy(fitsString, getSampleRate(), MAXINDILABEL);
-    fits_update_key_s(fptr, TSTRING, "SAMPLERATE", lat_str, "Sampling Rate", &status);
+    sprintf(fitsString, "%lf", getSampleRate());
+    fits_update_key_s(fptr, TSTRING, "SAMPLERATE", fitsString, "Sampling Rate", &status);
 
-    strncpy(fitsString, getGain(), MAXINDILABEL);
-    fits_update_key_s(fptr, TSTRING, "GAIN", lat_str, "Gain", &status);
+    sprintf(fitsString, "%lf", getGain());
+    fits_update_key_s(fptr, TSTRING, "GAIN", fitsString, "Gain", &status);
 
     SensorInterface::addFITSKeywords(fptr, buf, len);
 }

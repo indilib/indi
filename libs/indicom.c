@@ -320,12 +320,12 @@ const char *timestamp()
 {
     static char ts[32];
     struct tm *tp;
-    struct timespec ts;
-    timespec_get(&ts, TIME_UTC);
+    struct timespec t;
+    timespec_get(&t, TIME_UTC);
 
-    tp = gmtime(&ts.tv_sec);
+    tp = gmtime(&t.tv_sec);
     strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
-    sprintf(ts, "%s.ld", ts.tv_nsec);
+    sprintf(ts, "%s.%ld", ts, t.tv_nsec);
 
     return (ts);
 }

@@ -330,6 +330,9 @@ class SensorInterface : public DefaultDevice
          */
         virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
 
+        /** A function to just remove GCC warnings about deprecated conversion */
+        void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
+
 protected:
 
         /**
@@ -514,7 +517,5 @@ protected:
 
         bool IntegrationCompletePrivate();
         void* sendFITS(uint8_t* buf, int len);
-        /** A function to just remove GCC warnings about deprecated conversion */
-        void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
 };
 }
