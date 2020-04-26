@@ -666,7 +666,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 	  // HA must be calculated, where in the code
 	  // RA/Dec is set (for the clients).
 	  // ARM CPUs do not like 1 sec
-          const struct timespec timeout = {0, 500000000L};
+          const struct timespec timeout = {0, 500000000L}; // do not sleep too long
           nanosleep(&timeout, nullptr);
           nanosleep(&timeout, nullptr);
 	}
