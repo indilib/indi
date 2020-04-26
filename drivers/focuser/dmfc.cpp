@@ -498,8 +498,8 @@ bool DMFC::updateFocusParams()
     if (reverseStatus >= 0 && reverseStatus <= 1)
     {
         IUResetSwitch(&FocusReverseSP);
-        FocusReverseS[REVERSED_ENABLED].s = (reverseStatus == 1) ? ISS_ON : ISS_OFF;
-        FocusReverseS[REVERSED_DISABLED].s = (reverseStatus == 0) ? ISS_ON : ISS_OFF;
+        FocusReverseS[INDI_ENABLED].s = (reverseStatus == 1) ? ISS_ON : ISS_OFF;
+        FocusReverseS[INDI_DISABLED].s = (reverseStatus == 0) ? ISS_ON : ISS_OFF;
         FocusReverseSP.s = IPS_OK;
         IDSetSwitch(&FocusReverseSP, nullptr);
     }
@@ -533,16 +533,16 @@ bool DMFC::updateFocusParams()
 
     int backlash = atoi(token);
     // If backlash is zero then compensation is disabled
-    if (backlash == 0 && FocusBacklashS[BACKLASH_ENABLED].s == ISS_ON)
+    if (backlash == 0 && FocusBacklashS[INDI_ENABLED].s == ISS_ON)
     {
         LOG_WARN("Backlash value is zero, disabling backlash switch...");
 
-        FocusBacklashS[BACKLASH_ENABLED].s = ISS_OFF;
-        FocusBacklashS[BACKLASH_DISABLED].s = ISS_ON;
+        FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
+        FocusBacklashS[INDI_DISABLED].s = ISS_ON;
         FocusBacklashSP.s = IPS_IDLE;
         IDSetSwitch(&FocusBacklashSP, nullptr);
     }
-    else if (backlash > 0 && (FocusBacklashS[BACKLASH_DISABLED].s == ISS_ON || backlash != FocusBacklashN[0].value))
+    else if (backlash > 0 && (FocusBacklashS[INDI_DISABLED].s == ISS_ON || backlash != FocusBacklashN[0].value))
     {
         if (backlash != FocusBacklashN[0].value)
         {
@@ -551,10 +551,10 @@ bool DMFC::updateFocusParams()
             IDSetNumber(&FocusBacklashNP, nullptr);
         }
 
-        if (FocusBacklashS[BACKLASH_DISABLED].s == ISS_ON)
+        if (FocusBacklashS[INDI_DISABLED].s == ISS_ON)
         {
-            FocusBacklashS[BACKLASH_ENABLED].s = ISS_OFF;
-            FocusBacklashS[BACKLASH_DISABLED].s = ISS_ON;
+            FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
+            FocusBacklashS[INDI_DISABLED].s = ISS_ON;
             FocusBacklashSP.s = IPS_IDLE;
             IDSetSwitch(&FocusBacklashSP, nullptr);
         }

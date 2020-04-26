@@ -155,14 +155,15 @@ bool CelestronGPS::initProperties()
     IUFillTextVector(&FirmwareTP, FirmwareT, 7, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
-    // Celestron Track Modes are Off, AltAz, EQ N and EQ S
+    // Celestron Track Modes are Off, AltAz, EQ N, EQ S and Ra and Dec (StarSense only)
     // off is not provided as these are used to set the track mode when tracking is enabled
     // may be required for set up, value will be read from the mount if possible
-    IUFillSwitchVector(&CelestronTrackModeSP, CelestronTrackModeS, 3, getDeviceName(), "CELESTRON_TRACK_MODE", "Track Mode",
+    IUFillSwitchVector(&CelestronTrackModeSP, CelestronTrackModeS, 4, getDeviceName(), "CELESTRON_TRACK_MODE", "Track Mode",
                        MOUNTINFO_TAB, IP_RO, ISR_1OFMANY, 0, IPS_IDLE);
     IUFillSwitch(&CelestronTrackModeS[0], "MODE_ALTAZ", "Alt Az", ISS_OFF);
     IUFillSwitch(&CelestronTrackModeS[1], "MODE_EQ_N", "EQ N", ISS_ON);
     IUFillSwitch(&CelestronTrackModeS[2], "MODE_EQ_S", "EQ S", ISS_OFF);
+    IUFillSwitch(&CelestronTrackModeS[3], "MODE_RA_DEC", "Ra and Dec", ISS_OFF);
 
     // INDI track modes are sidereal, solar and lunar
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
@@ -216,6 +217,13 @@ bool CelestronGPS::initProperties()
     IUFillText(&PecFileNameT[0], "PEC_FILE_NAME", "File Name", "");
     IUFillTextVector(&PecFileNameTP, PecFileNameT, 1, getDeviceName(), "PEC_LOAD", "Load PEC", MOTION_TAB, IP_WO, 60, IPS_IDLE);
 
+    /////////////////////////////
+    /// DST setting
+    /////////////////////////////
+
+    IUFillSwitch(&DSTSettingS[0], "DST_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitchVector(&DSTSettingSP, DSTSettingS, 1, getDeviceName(), "DST_STATE", "DST", SITE_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    
     addAuxControls();
 
     //GUIDE Set guider interface.
@@ -313,7 +321,9 @@ bool CelestronGPS::updateProperties()
             cap |= TELESCOPE_CAN_SYNC;
 
         if (checkMinVersion(2.3, "updating time and location settings"))
+        {
             cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
+        }
 
         // changing track mode (aka rate) is only available for equatorial mounts
 
@@ -412,7 +422,8 @@ bool CelestronGPS::updateProperties()
         // support guiding.  That's GEMs and fork mounts in equatorial modes.
         // well, anything in an equatorial mode
         if (fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_EQN ||
-                fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_EQS)
+                fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_EQS ||
+                fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_RADEC)
         {
             defineNumber(&GuideRateNP);
             uint8_t rate;
@@ -444,9 +455,10 @@ bool CelestronGPS::updateProperties()
         {
             double utc_offset;
             int yy, dd, mm, hh, minute, ss;
+            bool dst;
             // StarSense doesn't seems to handle the precise time commands
             bool precise = fwInfo.controllerVersion >= 5.28;
-            if (driver.get_utc_date_time(&utc_offset, &yy, &mm, &dd, &hh, &minute, &ss, precise))
+            if (driver.get_utc_date_time(&utc_offset, &yy, &mm, &dd, &hh, &minute, &ss, &dst, precise))
             {
                 char isoDateTime[32];
                 char utcOffset[8];
@@ -457,11 +469,15 @@ bool CelestronGPS::updateProperties()
                 IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
                 IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
 
-                LOGF_INFO("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
+                defineSwitch(&DSTSettingSP);
+                DSTSettingS[0].s = dst ? ISS_ON : ISS_OFF;
+
+                LOGF_INFO("Mount UTC offset: %s. UTC time: %s. DST: %s", utcOffset, isoDateTime, dst ? "On" : "Off");
                 //LOGF_DEBUG("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
                 TimeTP.s = IPS_OK;
                 IDSetText(&TimeTP, nullptr);
+                IDSetSwitch(&DSTSettingSP, nullptr);
             }
             double longitude, latitude;
             if (driver.get_location(&longitude, &latitude))
@@ -536,6 +552,8 @@ bool CelestronGPS::updateProperties()
         deleteProperty(LastAlignSP.name);
         deleteProperty(CelestronTrackModeSP.name);
 
+        deleteProperty(DSTSettingSP.name);
+
         deleteProperty(PecInfoTP.name);
         deleteProperty(PecControlSP.name);
         deleteProperty(PecFileNameTP.name);
@@ -559,7 +577,7 @@ bool CelestronGPS::Goto(double ra, double dec)
         usleep(500000);
     }
 
-    if (driver.slew_radec(targetRA, targetDEC, usePreciseCoords) == false)
+    if (driver.slew_radec(targetRA + SlewOffsetRa, targetDEC, usePreciseCoords) == false)
     {
         LOG_ERROR("Failed to slew telescope in RA/DEC.");
         return false;
@@ -570,7 +588,7 @@ bool CelestronGPS::Goto(double ra, double dec)
     char RAStr[32], DecStr[32];
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
-    LOGF_INFO("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to JNOW RA %s - DEC %s SlewOffsetRa %4.1f arcsec", RAStr, DecStr, SlewOffsetRa * 3600 * 15);
 
     return true;
 }
@@ -782,6 +800,15 @@ bool CelestronGPS::ReadScopeStatus()
             {
                 LOG_INFO("Slew complete, tracking...");
                 TrackState = SCOPE_TRACKING;
+                // update ra offset
+                double raoffset = targetRA - currentRA + SlewOffsetRa;
+                if (raoffset > 0.0 || raoffset < 10.0 / 3600.0)
+                {
+                    // average last two values
+                    SlewOffsetRa = SlewOffsetRa > 0 ? (SlewOffsetRa + raoffset) / 2 : raoffset;
+                    
+                    LOGF_DEBUG("raoffset %4.1f, SlewOffsetRa %4.1f arcsec", raoffset * 3600 * 15, SlewOffsetRa * 3600 * 15);
+                }
             }
             break;
 
@@ -1490,10 +1517,12 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
     // starsense HC doesn't seem to support the precise time setting
     bool precise = fwInfo.controllerVersion >= 5.28;
 
-    LOGF_DEBUG("Update time: offset %f UTC %i-%02i-%02iT%02i:%02i:%02.0f", utc_offset, utc->years, utc->months, utc->days,
+    bool dst = DSTSettingS[0].s == ISS_ON;
+
+    LOGF_DEBUG("Update time: offset %f %s UTC %i-%02i-%02iT%02i:%02i:%02.0f", utc_offset, dst ? "DST" : "", utc->years, utc->months, utc->days,
                utc->hours, utc->minutes, utc->seconds);
 
-    return (driver.set_datetime(utc, utc_offset, precise));
+    return (driver.set_datetime(utc, utc_offset, dst, precise));
 }
 
 bool CelestronGPS::Park()
@@ -1611,6 +1640,7 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &UseHibernateSP);
     IUSaveConfigSwitch(fp, &CelestronTrackModeSP);
+    IUSaveConfigSwitch(fp, &DSTSettingSP);
 
     IUSaveConfigNumber(fp, &FocusMinPosNP);
 
@@ -1900,6 +1930,7 @@ bool CelestronGPS::SetTrackMode(uint8_t mode)
     {
         case CTM_OFF:
         case CTM_ALTAZ:
+        case CTM_RADEC:
             return false;
         case CTM_EQN:
         case CTM_EQS:

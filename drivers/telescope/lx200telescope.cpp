@@ -1611,7 +1611,7 @@ IPState LX200Telescope::MoveFocuser(FocusDirection dir, int speed, uint16_t dura
 {
     FocusDirection finalDirection = dir;
     // Reverse final direction if necessary
-    if (FocusReverseS[REVERSED_ENABLED].s == ISS_ON)
+    if (FocusReverseS[INDI_ENABLED].s == ISS_ON)
         finalDirection = (dir == FOCUS_INWARD) ? FOCUS_OUTWARD : FOCUS_INWARD;
 
     SetFocuserSpeed(speed);

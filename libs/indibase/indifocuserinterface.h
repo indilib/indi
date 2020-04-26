@@ -146,7 +146,7 @@ class FocuserInterface
         }
 
         /**
-         * @return True if the focuser has multiple speeds.
+         * @return True if the focuser supports backlash.
          */
         bool HasBacklash()
         {
@@ -301,20 +301,10 @@ class FocuserInterface
         // Reverse Focuser
         ISwitchVectorProperty FocusReverseSP;
         ISwitch FocusReverseS[2];
-        enum
-        {
-            REVERSED_ENABLED,
-            REVERSED_DISABLED,
-        };
 
         // Backlash toogle
         ISwitchVectorProperty FocusBacklashSP;
         ISwitch FocusBacklashS[2];
-        enum
-        {
-            BACKLASH_ENABLED,
-            BACKLASH_DISABLED,
-        };
 
         // Backlash steps
         INumberVectorProperty FocusBacklashNP;

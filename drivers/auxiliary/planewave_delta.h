@@ -1,7 +1,5 @@
 /*
-    PlaneWave EFA Protocol
-
-    Hendrick Focuser
+    PlaneWave Delta Protocol
 
     Copyright (C) 2020 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
@@ -23,14 +21,16 @@
 
 #pragma once
 
+
 #include "indifocuser.h"
 
+#include <memory>
 #include <map>
 
-class EFA : public INDI::Focuser
+class DeltaT : public INDI::DefaultDevice
 {
     public:
-        EFA();
+        DeltaT();
 
         virtual bool Handshake();
         const char *getDefaultName();
@@ -42,62 +42,53 @@ class EFA : public INDI::Focuser
 
         enum
         {
-            MTR_GET_POS = 0x01,
-            MTR_GOTO_POS2 = 0x17,
-            MTR_OFFSET_CNT = 0x04,
-            MTR_GOTO_OVER = 0x13,
-            MTR_SLEWLIMITMAX = 0x1B,
-            MTR_SLEWLIMITGETMAX = 0x1D,
-            MTR_PMSLEW_RATE = 0x24,
-            MTR_NMSLEW_RATE = 0x25,
-            TEMP_GET = 0x26,
-            FANS_SET = 0x27,
-            FANS_GET = 0x28,
-            MTR_GET_CALIBRATION_STATE = 0x30,
-            MTR_SET_CALIBRATION_STATE = 0x31,
-            MTR_GET_STOP_DETECT = 0xEE,
-            MTR_STOP_DETECT = 0xEF,
-            MTR_GET_APPROACH_DIRECTION = 0xFC,
-            MTR_APPROACH_DIRECTION = 0xFD,
-            GET_VERSION = 0xFE
+            CMD_FORCE_RESET = 0x80,
+            CMD_FORCE_BOOT = 0x81,
+            COH_NUMHEATERS = 0xB0,
+            COH_ON_MANUAL = 0xB1,
+            COH_OFF = 0xB4,
+            COH_REPORT = 0xB5,
+            COH_RESCAN = 0xBF,
+            CMD_GET_VERSION = 0xFE
         };
 
         enum
         {
             DEVICE_PC = 0x20,
-            DEVICE_HC = 0x0D,
-            DEVICE_FOC = 0x12,
-            DEVICE_FAN = 0x13,
-            DEVICE_TEMP = 0x12
+            DEVICE_DELTA = 0x32
         };
 
-    protected:
-        virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-        virtual bool SyncFocuser(uint32_t ticks);
-        virtual bool ReverseFocuser(bool enabled);
-        virtual bool SetFocuserMaxPosition(uint32_t ticks);
-        virtual bool AbortFocuser();
-        virtual void TimerHit();
+        typedef struct
+        {
+            uint8_t  StateUB;
+            uint8_t  ModeUB;
+            uint16_t SetPointUW;
+            uint8_t  TempHtrIdUB;
+            uint16_t TempHtrUW;
+            uint16_t TempAmbUW;
+            uint16_t PeriodUW;
+            uint8_t  DutyCycleUB;
+        } HeaterReport;
 
+
+    protected:
+        virtual void TimerHit();
         virtual bool saveConfigItems(FILE *fp);
 
     private:
         ///////////////////////////////////////////////////////////////////////////////////
         /// Query functions
         ///////////////////////////////////////////////////////////////////////////////////
-        bool isGOTOComplete();
-        bool readPosition();
-        bool readTemperature();
-        bool readFanState();
-        bool readCalibrationState();
-        bool readMaxSlewLimit();
+        bool readReport(uint8_t index);
+        bool initializeHeaters();
 
         ///////////////////////////////////////////////////////////////////////////////////
         /// Set functions
         ///////////////////////////////////////////////////////////////////////////////////
-        bool setFanEnabled(bool enabled);
-        bool setCalibrationEnabled(bool enabled);
+        bool setHeaterEnabled(uint8_t index, bool enabled);
+        bool setHeaterParam(uint8_t index, double period, double duty);
+        bool forceBoot();
+        bool forceReset();
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
@@ -109,8 +100,6 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
         /// Misc
         ///////////////////////////////////////////////////////////////////////////////////
-        void getStartupValues();
-        double calculateTemperature(uint8_t byte2, uint8_t byte3);
         uint8_t calculateCheckSum(const char *cmd, uint32_t len);
         template <typename T> std::string to_string(const T a_value, const int n = 2);
 
@@ -118,7 +107,7 @@ class EFA : public INDI::Focuser
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
 
-        // Focuser Informatin
+        // Delta-T Informatin
         ITextVectorProperty InfoTP;
         IText InfoT[1];
         enum
@@ -127,49 +116,45 @@ class EFA : public INDI::Focuser
         };
 
 
-        // FAN State
-        ISwitchVectorProperty FanStateSP;
-        ISwitch FanStateS[2];
+        // Force Control
+        ISwitchVectorProperty ForceSP;
+        ISwitch ForceS[2];
         enum
         {
-            FAN_ON,
-            FAN_OFF
+            FORCE_RESET,
+            FORCE_BOOT
         };
 
-        // Calibration State
-        ISwitchVectorProperty CalibrationStateSP;
-        ISwitch CalibrationStateS[2];
+        // Heater Control
+        std::vector<std::unique_ptr<ISwitchVectorProperty>> HeaterControlSP;
+        std::vector<std::unique_ptr<ISwitch[]>> HeaterControlS;
         enum
         {
-            CALIBRATION_ON,
-            CALIBRATION_OFF
+            HEATER_ON,
+            HEATER_OFF
         };
 
-        // Read Only Temperature Reporting
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[3];
+        // PWM Control
+        std::vector<std::unique_ptr<INumberVectorProperty>> HeaterParamNP;
+        std::vector<std::unique_ptr<INumber[]>> HeaterParamN;
         enum
         {
-            TEMPERATURE_PRIMARY,
-            TEMPERATURE_AMBIENT,
-            TEMPERATURE_SECONDARY
+            PARAM_PERIOD,
+            PARAM_DUTY
         };
 
         /////////////////////////////////////////////////////////////////////////////
         /// Private variables
         /////////////////////////////////////////////////////////////////////////////
-        double m_LastTemperature {0};
-        double m_LastPosition {0};
+        Connection::Serial *serialConnection { nullptr };
+        int PortFD { -1 };
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
         // Start of Message
         static const char DRIVER_SOM { 0x3B };
-        // Temperature Reporting threshold
-        static constexpr double TEMPERATURE_THRESHOLD { 0.05 };
-
-        static constexpr const uint8_t DRIVER_LEN {9};
+        static constexpr const uint8_t DRIVER_LEN {32};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
 };

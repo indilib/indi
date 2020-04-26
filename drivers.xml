@@ -23,7 +23,7 @@
         </device>
         <device label="LX200 TeenAstro">
             <driver name="LX200 TeenAstro">indi_lx200_TeenAstro</driver>
-            <version>1.0</version>
+            <version>1.1/version>
         </device>
         <device label="LX200 16" manufacturer="Meade">
             <driver name="LX200 16">indi_lx200_16</driver>
@@ -65,21 +65,25 @@
             <driver name="Celestron GPS">indi_celestron_gps</driver>
             <version>3.3</version>
         </device>
+        <device label="Celestron CPC" manufacturer="Celestron">
+            <driver name="Celestron GPS">indi_celestron_gps</driver>
+            <version>3.3</version>
+        </device>
         <device label="Celestron NexStar" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.2</version>
+            <version>3.3</version>
         </device>
         <device label="Celestron AVX" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.2</version>
+            <version>3.3</version>
         </device>
         <device label="Celestron CGEM" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.2</version>
+            <version>3.3</version>
         </device>
         <device label="Celestron CGX" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.2</version>
+            <version>3.3</version>
         </device>
         <device label="Astro-Electronic FS-2">
             <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
@@ -111,7 +115,7 @@
         </device>
         <device label="Temma Takahashi" manufacturer="Takahashi">
             <driver name="Temma">indi_temma_telescope</driver>
-            <version>0.4</version>
+            <version>0.5</version>
         </device>
         <device label="Argo Navis">
             <driver name="LX200 Basic">indi_lx200basic</driver>
@@ -259,6 +263,10 @@
             <driver name="AAF2">indi_aaf2_focus</driver>
             <version>1.0</version>
         </device>
+        <device label="PlaneWave EFA">
+            <driver name="PlaneWave EFA">indi_efa_focus</driver>
+            <version>1.0</version>
+        </device>
         <device label="Rigelsys NFocus">
             <driver name="NFocus">indi_nfocus</driver>
             <version>1.1</version>
@@ -343,6 +351,10 @@
             <driver name="Sesto Senso">indi_sestosenso_focus</driver>
             <version>1.4</version>
         </device>
+        <device label="Sesto Senso 2">
+            <driver name="Sesto Senso 2">indi_sestosenso2_focus</driver>
+            <version>0.1</version>
+        </device>
         <device label="Lakeside">
             <driver name="Lakeside">indi_lakeside_focus</driver>
             <version>1.1</version>
@@ -377,6 +389,10 @@
             <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
             <version>1.0</version>
         </device>
+        <device label="SVBONY">
+            <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
+            <version>1.0</version>
+        </device>
         <device label="iOptron iPolar">
             <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
             <version>1.0</version>
@@ -395,7 +411,7 @@
     <devGroup group="Filter Wheels">
         <device label="XAGYL Wheel">
             <driver name="XAGYL Wheel">indi_xagyl_wheel</driver>
-            <version>0.2</version>
+            <version>0.3</version>
         </device>
         <device label="Filter Simulator">
             <driver name="Filter Simulator">indi_simulator_wheel</driver>
@@ -411,7 +427,7 @@
         </device>
         <device label="TruTech Wheel">
             <driver name="TruTech Wheel">indi_trutech_wheel</driver>
-            <version>0.1</version>
+            <version>1.0</version>
         </device>
         <device label="QHYCFW1">
             <driver name="QHYCFW1">indi_qhycfw1_wheel</driver>
@@ -446,6 +462,10 @@
         <device label="Pegasus UPB">
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>
             <version>1.2</version>
+        </device>
+        <device label="PlaneWave Delta-T">
+            <driver name="Pegasus UPB">indi_planewave_deltat</driver>
+            <version>1.0</version>
         </device>
         <device label="WatchDog">
             <driver name="WatchDog">indi_watchdog</driver>

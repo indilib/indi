@@ -45,7 +45,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 8)
-set(CMAKE_INDI_VERSION_RELEASE 4)
+set(CMAKE_INDI_VERSION_RELEASE 5)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -799,8 +799,9 @@ install(TARGETS indi_pmc8_telescope RUNTIME DESTINATION bin)
 
 ########### Telescope Simulator ##############
 SET(telescopesimulator_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/telescope_simulator.cpp)
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/telescope_simulator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/scopesim_helper.cpp)
+    
 add_executable(indi_simulator_telescope ${telescopesimulator_SRC})
 target_link_libraries(indi_simulator_telescope indidriver)
 install(TARGETS indi_simulator_telescope RUNTIME DESTINATION bin)
@@ -895,7 +896,7 @@ install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin)
 SET(efa_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/planewave_efa.cpp)
 
-add_executable(indi_efa_focus ${nstep_SRC})
+add_executable(indi_efa_focus ${efa_SRC})
 target_link_libraries(indi_efa_focus indidriver)
 install(TARGETS indi_efa_focus RUNTIME DESTINATION bin)
 
@@ -962,6 +963,14 @@ SET(sesto_SRC
 add_executable(indi_sestosenso_focus ${sesto_SRC})
 target_link_libraries(indi_sestosenso_focus indidriver)
 install(TARGETS indi_sestosenso_focus RUNTIME DESTINATION bin)
+
+################ Sesto Senso 2 Focuser ################
+SET(sesto2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/sestosenso2.cpp)
+
+add_executable(indi_sestosenso2_focus ${sesto2_SRC})
+target_link_libraries(indi_sestosenso2_focus indidriver)
+install(TARGETS indi_sestosenso2_focus RUNTIME DESTINATION bin)
 
 ################ Televue FocusMaster ################
 #SET(focusmaster_SRC
@@ -1488,6 +1497,19 @@ ENDIF ()
 add_executable(indi_arduinost4 ${arduinost4_SRC})
 target_link_libraries(indi_arduinost4 indidriver)
 install(TARGETS indi_arduinost4 RUNTIME DESTINATION bin)
+
+########### PlaneWave Delta-T Driver ###############
+
+SET(planewave_deltat_SRC ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/planewave_delta.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indi_planewave_deltat planewave_deltat_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_planewave_deltat ${planewave_deltat_SRC})
+target_link_libraries(indi_planewave_deltat indidriver)
+install(TARGETS indi_planewave_deltat RUNTIME DESTINATION bin)
+
 
 ########### GPUSB Driver ###############
 

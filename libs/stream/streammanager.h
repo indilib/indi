@@ -28,6 +28,7 @@
 
 #include <string>
 #include <map>
+#include <functional>
 #include <sys/time.h>
 
 #include <stdint.h>
@@ -87,6 +88,9 @@
 \author Jasem Mutlaq
 \author Jean-Luc Geehalel
 */
+
+#include <mutex>
+
 namespace INDI
 {
 
@@ -177,7 +181,7 @@ class StreamManager
 
         const char *getDeviceName();
 
-        void setSize(uint16_t width, uint16_t height=1);
+        void setSize(uint16_t width, uint16_t height = 1);
         bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth = 8);
         void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
 
@@ -297,5 +301,7 @@ class StreamManager
         uint32_t downscaleBufferSize = 0;
 
         uint8_t *gammaLUT_16_8 = nullptr;
+
+        std::mutex recordMutex;
 };
 }

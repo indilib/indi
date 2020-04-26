@@ -54,7 +54,7 @@ git clone --depth 1 https://github.com/indilib/indi.git
 
 On the other hand, if you plan to submit a PR or engage in INDI driver development, then getting a full clone is recommended:
 ```
-git clone https://github.com/indilib/indi.github
+git clone https://github.com/indilib/indi.git
 ```
 
 ## Build indi-core
@@ -120,6 +120,7 @@ INDI uses [Artistic Style](http://astyle.sourceforge.net) to format all the C++ 
 --pad-oper
 --indent-col1-comments
 --lineend=linux
+--max-code-length=124
 ```
 
 Some IDEs (e.g. QtCreator) support automatic formatting for the code everytime you save the file to disk.

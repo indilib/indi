@@ -1,68 +1,5 @@
-/*
-    SestoSenso Focuser
-    Copyright (C) 2018 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-    Commands and responses:
-
-    Only use the SM/Sm commands during calibration. Will cause direction reversal!
-    #Sm;xxxxxxx! Set xxxxxxx as min value
-    #SM!	Set current position as max
-    #SM;xxxxxxx!	Set xxxxxxx as max value (xxxxxxx between 0 to 2097152)
-
-    #SPxxxx! Set_current_position as xxxx
-    #SC;HOLD;RUN;ACC;DEC! Shell_set_current_supply in HOLD, RUN, ACC, DEC situations (Value must be from 0 to 24, maximum hold value 10)
-    #QM! Query max value
-    #Qm! Query min value
-    #QT! Qeury temperature
-    #QF! Query firmware version
-    #QN! Read the device name	-> reply	QN;SESTOSENSO!
-    #QP! Query_position
-    #FI! Fast_inward
-    #FO! Fast_outward
-    #SI! Slow_inward
-    #SO! Slow_outward
-    #GTxxxx! Go_to absolute position xxxx
-    #MA! Motion_abort and hold position
-    #MF!	Motor free
-    #PS! param_save save current position for next power ON and currents supply
-    #PD! param_to_default , and position to zero
-
-    Response examples:
-
-    #QF! 14.06\r
-    #QT! -10.34\r
-    #FI! FIok!\r
-    #FO! FOok!\r
-    #SI! SIok!\r
-    #SO! SOok!\r
-    #GTxxxx! 100\r 200\r 300\r xxxx\r GTok!\r
-    #MA! MAok!\r
-    #MF!	MFok!\r
-    #QP! 1530\r
-    #SPxxxx! SPok!\r
-    #SC;HOLD;RUN;ACC;DEC! SCok!\r
-    #PS! PSok!\r
-    #PD! PDok!\r
-
-    Before to disconnect the COM port, send the #PS! command in order to save the position on internal memory
-
-*/
-
-#include "sestosenso.h"
+#include "sestosenso2.h"
 
 #include "indicom.h"
 
@@ -72,12 +9,16 @@
 
 #include <termios.h>
 #include <unistd.h>
+#include <connectionplugins/connectionserial.h>
+#include <sys/ioctl.h>
 
-static std::unique_ptr<SestoSenso> sesto(new SestoSenso());
+static std::unique_ptr<SestoSenso2> sesto(new SestoSenso2());
+
 
 void ISGetProperties(const char *dev)
 {
     sesto->ISGetProperties(dev);
+
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -113,16 +54,20 @@ void ISSnoopDevice(XMLEle *root)
     sesto->ISSnoopDevice(root);
 }
 
-SestoSenso::SestoSenso()
+SestoSenso2::SestoSenso2()
 {
-    setVersion(1, 4);
+    setVersion(0, 1);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+
 }
 
-bool SestoSenso::initProperties()
+bool SestoSenso2::initProperties()
 {
+
     INDI::Focuser::initProperties();
+
+    setConnectionParams();
 
     // Firmware Information
     IUFillText(&FirmwareT[0], "VERSION", "Version", "");
@@ -130,7 +75,10 @@ bool SestoSenso::initProperties()
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Motor temp.", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+    IUFillNumber(&SpeedN[0], "SPEED", "RPM", "%0.0f", 0, 7000., 1, 0);
+    IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Motor speed", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Focuser calibration
     IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "");
@@ -143,6 +91,7 @@ bool SestoSenso::initProperties()
     IUFillSwitch(&FastMoveS[FASTMOVE_IN], "FASTMOVE_IN", "Move In", ISS_OFF);
     IUFillSwitch(&FastMoveS[FASTMOVE_OUT], "FASTMOVE_OUT", "Move out", ISS_OFF);
     IUFillSwitch(&FastMoveS[FASTMOVE_STOP], "FASTMOVE_STOP", "Stop", ISS_OFF);
+
     IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     //
@@ -169,15 +118,15 @@ bool SestoSenso::initProperties()
     return true;
 }
 
-bool SestoSenso::updateProperties()
+bool SestoSenso2::updateProperties()
 {
     INDI::Focuser::updateProperties();
 
     if (isConnected())
     {
-        // Only define temperature if there is a probe
         if (updateTemperature())
             defineNumber(&TemperatureNP);
+        defineNumber(&SpeedNP);
         defineText(&FirmwareTP);
         IUSaveText(&CalibrationMessageT[0], "Press START to begin the Calibration");
         defineText(&CalibrationMessageTP);
@@ -195,12 +144,13 @@ bool SestoSenso::updateProperties()
         deleteProperty(FirmwareTP.name);
         deleteProperty(CalibrationMessageTP.name);
         deleteProperty(CalibrationSP.name);
+        deleteProperty(SpeedNP.name);
     }
 
     return true;
 }
 
-bool SestoSenso::Handshake()
+bool SestoSenso2::Handshake()
 {
     if (Ack())
     {
@@ -208,47 +158,31 @@ bool SestoSenso::Handshake()
         return true;
     }
 
-    LOG_INFO(
-        "Error retrieving data from SestoSenso, please ensure SestoSenso controller is powered and the port is correct.");
+    LOG_INFO("Error retrieving data from SestoSenso, please ensure SestoSenso controller is powered and the port is correct.");
     return false;
 }
 
-bool SestoSenso::Disconnect()
+bool SestoSenso2::Disconnect()
 {
-    // Save current position to memory.
     if (isSimulation() == false)
-        sendCommand("#PS!");
+        command->goHome();
 
     return INDI::Focuser::Disconnect();
 }
 
-const char *SestoSenso::getDefaultName()
+const char *SestoSenso2::getDefaultName()
 {
-    return "Sesto Senso";
+    return "Sesto Senso 2";
 }
 
-bool SestoSenso::Ack()
-{
-    char res[SESTO_LEN] = {0};
-
-    if (isSimulation())
-        strncpy(res, "1.0 Simulation", SESTO_LEN);
-    else if (sendCommand("#QF!", res) == false)
-        return false;
-
-    IUSaveText(&FirmwareT[0], res);
-
-    return true;
-}
-
-bool SestoSenso::updateTemperature()
+bool SestoSenso2::updateTemperature()
 {
     char res[SESTO_LEN] = {0};
     double temperature = 0;
 
     if (isSimulation())
         strncpy(res, "23.45", SESTO_LEN);
-    else if (sendCommand("#QT!", res) == false)
+    else if (command->getMotorTemp(res) == CMD_FALSE)
         return false;
 
     try
@@ -270,19 +204,20 @@ bool SestoSenso::updateTemperature()
     return true;
 }
 
-bool SestoSenso::updateMaxLimit()
+
+bool SestoSenso2::updateMaxLimit()
 {
     char res[SESTO_LEN] = {0};
 
     if (isSimulation())
         return true;
 
-    if (sendCommand("#QM!", res) == false)
+    if (command->getMaxPosition(res) == CMD_FALSE)
         return false;
 
     int maxLimit = 0;
 
-    sscanf(res, "QM;%d!", &maxLimit);
+    sscanf(res, "%d", &maxLimit);
 
     if (maxLimit > 0)
     {
@@ -308,16 +243,17 @@ bool SestoSenso::updateMaxLimit()
         return true;
     }
 
+
     FocusMaxPosNP.s = IPS_ALERT;
     return false;
 }
 
-bool SestoSenso::updatePosition()
+bool SestoSenso2::updatePosition()
 {
     char res[SESTO_LEN] = {0};
     if (isSimulation())
         snprintf(res, SESTO_LEN, "%d", static_cast<uint32_t>(FocusAbsPosN[0].value));
-    else if (sendCommand("#QP!", res) == false)
+    else if (command->getAbsolutePosition(res) == CMD_FALSE)
         return false;
 
     try
@@ -334,7 +270,17 @@ bool SestoSenso::updatePosition()
     }
 }
 
-bool SestoSenso::isMotionComplete()
+bool SestoSenso2::setupRunPreset()
+{
+    char res[SESTO_LEN] = {0};
+    if (command->loadSlowPreset(res) == CMD_FALSE)
+    {
+        return false;
+    }
+    return true;
+}
+
+bool SestoSenso2::isMotionComplete()
 {
     char res[SESTO_LEN] = {0};
 
@@ -359,36 +305,43 @@ bool SestoSenso::isMotionComplete()
     }
     else
     {
-        int nbytes_read = 0;
-
-        //while (rc != TTY_TIME_OUT)
-        //{
-        int rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, 1, &nbytes_read);
-        if (rc == TTY_OK)
+        if(command->getCurrentSpeed(res) == CMD_OK)
         {
-            res[nbytes_read - 1] = 0;
-
-
-            if (!strcmp(res, "GTok!"))
-                return true;
-
             try
             {
-                uint32_t newPos = std::stoi(res);
-                FocusAbsPosN[0].value = newPos;
+                uint32_t newSpeed = std::stoi(res);
+                SpeedN[0].value = newSpeed;
+                SpeedNP.s = IPS_OK;
             }
             catch (...)
             {
-                LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
+                LOGF_WARN("Failed to get motor speed response: %s (%d bytes)", res, strlen(res));
+            }
+
+            if(!strcmp(res, "0"))
+                return true;
+
+            *res = {0};
+            if(command->getAbsolutePosition(res) == CMD_OK)
+            {
+                try
+                {
+                    uint32_t newPos = std::stoi(res);
+                    FocusAbsPosN[0].value = newPos;
+                }
+                catch (...)
+                {
+                    LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
+                }
             }
         }
-        //}
+
     }
 
     return false;
 }
 
-bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -396,7 +349,7 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
         // Calibrate focuser
         if (!strcmp(name, CalibrationSP.name))
         {
-            char res[SESTO_LEN] = {0};
+
             int current_switch = 0;
 
             CalibrationSP.s = IPS_BUSY;
@@ -417,12 +370,12 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     IDSetSwitch(&CalibrationSP, nullptr);
 
                     //
-                    // Unlock the motor to allow manual movement of the focuser
+                    // Init
                     //
-                    if (sendCommand("#MF!") == false)
+                    if (command->initCalibration() == false)
                         return false;
 
-                    IUSaveText(&CalibrationMessageT[0], "Move focuser manually to the middle then press NEXT");
+                    IUSaveText(&CalibrationMessageT[0], "Set focus in MIN position and then press NEXT");
                     IDSetText(&CalibrationMessageTP, nullptr);
 
                     // Set next step
@@ -439,36 +392,32 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
             {
                 if (cStage == GoToMiddle)
                 {
+                    if (command->storeAsMinPosition() == CMD_FALSE)
+                        return false;
                     defineSwitch(&FastMoveSP);
-                    IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MIN position then press NEXT");
+                    IUSaveText(&CalibrationMessageT[0], "Press MOVE OUT to move focuser out (CAUTION!)");
                     IDSetText(&CalibrationMessageTP, nullptr);
                     cStage = GoMinimum;
                 }
                 else if (cStage == GoMinimum)
                 {
-                    // Minimum position needs setting
-                    if (sendCommand("#Sm;0!") == false)
+                    char res[SESTO_LEN] = {0};
+                    if (command->storeAsMaxPosition(res) == CMD_FALSE)
                         return false;
 
-                    IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MAX position then press NEXT");
+                    IUSaveText(&CalibrationMessageT[0], "Press NEXT to finish");
                     IDSetText(&CalibrationMessageTP, nullptr);
                     cStage = GoMaximum;
                 }
                 else if (cStage == GoMaximum)
                 {
-                    // Maximum position needs setting and save
-                    // Do not split these commands.
+                    char res[SESTO_LEN] = {0};
 
-                    if (sendCommand("#SM!", res) == false)
+                    if (command->getMaxPosition(res) == CMD_FALSE)
                         return false;
-                    if (sendCommand("#PS!") == false)
-                        return false;
-                    //
-                    // MAX value is in maxLimit
-                    // MIN value is 0
-                    //
+
                     int maxLimit = 0;
-                    sscanf(res, "SM;%d!", &maxLimit);
+                    sscanf(res, "%d", &maxLimit);
                     LOGF_INFO("MAX setting is %d", maxLimit);
 
                     FocusMaxPosN[0].max = maxLimit;
@@ -517,26 +466,30 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
             switch (current_switch)
             {
-                case FASTMOVE_IN:
-                    if (sendCommand("#FI!") == false)
-                    {
-                        return false;
-                    }
-                    break;
-                case FASTMOVE_OUT:
-                    if (sendCommand("#FO!") == false)
-                    {
-                        return false;
-                    }
-                    break;
-                case FASTMOVE_STOP:
-                    if (sendCommand("#MA!") == false)
-                    {
-                        return false;
-                    }
-                    break;
-                default:
-                    break;
+            case FASTMOVE_IN:
+                if (command->fastMoveIn() == CMD_FALSE)
+                {
+                    return false;
+                }
+                break;
+            case FASTMOVE_OUT:
+                if (command->goOutToFindMaxPos() == CMD_FALSE)
+                {
+                    return false;
+                }
+                IUSaveText(&CalibrationMessageT[0], "Press STOP focuser almost at MAX position.");
+                IDSetText(&CalibrationMessageTP, nullptr);
+                break;
+            case FASTMOVE_STOP:
+                if (command->stop() == CMD_FALSE)
+                {
+                    return false;
+                }
+                IUSaveText(&CalibrationMessageT[0], "Press NEXT to store max limit");
+                IDSetText(&CalibrationMessageTP, nullptr);
+                break;
+            default:
+                break;
             }
 
             FastMoveSP.s = IPS_BUSY;
@@ -548,25 +501,24 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
+IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
+    char res[SESTO_LEN] = {0};
 
-    char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, 16, "#GT%u!", targetTicks);
     if (isSimulation() == false)
     {
-        if (sendCommand(cmd) == false)
+        if (command->go(targetTicks,res) == CMD_FALSE)
             return IPS_ALERT;
     }
 
     if (m_MotionProgressTimerID > 0)
         IERmTimer(m_MotionProgressTimerID);
-    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso::checkMotionProgressHelper, this);
+    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso2::checkMotionProgressHelper, this);
     return IPS_BUSY;
 }
 
-IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+IPState SestoSenso2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
@@ -577,7 +529,7 @@ IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return (rc ? IPS_BUSY : IPS_ALERT);
 }
 
-bool SestoSenso::AbortFocuser()
+bool SestoSenso2::AbortFocuser()
 {
     if (m_MotionProgressTimerID > 0)
     {
@@ -588,40 +540,52 @@ bool SestoSenso::AbortFocuser()
     if (isSimulation())
         return true;
 
-    return sendCommand("#MA!");
+    return command->abort();
+
 }
 
-void SestoSenso::checkMotionProgressHelper(void *context)
+void SestoSenso2::checkMotionProgressHelper(void *context)
 {
-    static_cast<SestoSenso*>(context)->checkMotionProgressCallback();
+    static_cast<SestoSenso2*>(context)->checkMotionProgressCallback();
 }
 //
 // This timer function is initiated when a GT command has been issued
 // A timer will call this function on a regular interval during the motion
 // Modified the code to exit when motion is complete
 //
-void SestoSenso::checkMotionProgressCallback()
+void SestoSenso2::checkMotionProgressCallback()
 {
     if (isMotionComplete())
     {
         FocusAbsPosNP.s = IPS_OK;
         FocusRelPosNP.s = IPS_OK;
+        SpeedNP.s = IPS_OK;
+        SpeedN[0].value = 0;
+        IDSetNumber(&SpeedNP, nullptr);
+
         IDSetNumber(&FocusRelPosNP, nullptr);
         IDSetNumber(&FocusAbsPosNP, nullptr);
+
+
         lastPos = FocusAbsPosN[0].value;
         LOG_INFO("Focuser reached requested position.");
         return;
     }
     else
+    {
         IDSetNumber(&FocusAbsPosNP, nullptr);
+    }
+
+    SpeedNP.s = IPS_BUSY;
+    IDSetNumber(&SpeedNP, nullptr);
 
     lastPos = FocusAbsPosN[0].value;
 
     IERmTimer(m_MotionProgressTimerID);
-    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso::checkMotionProgressHelper, this);
+    m_MotionProgressTimerID = IEAddTimer(500, &SestoSenso2::checkMotionProgressHelper, this);
 }
 
-void SestoSenso::TimerHit()
+void SestoSenso2::TimerHit()
 {
     if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY || CalibrationSP.s == IPS_BUSY)
     {
@@ -656,8 +620,9 @@ void SestoSenso::TimerHit()
     SetTimer(POLLMS);
 }
 
-bool SestoSenso::getStartupValues()
+bool SestoSenso2::getStartupValues()
 {
+    setupRunPreset();
     bool rc1 = updatePosition();
     if (rc1)
         IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -668,79 +633,227 @@ bool SestoSenso::getStartupValues()
     return (rc1);
 }
 
-bool SestoSenso::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
+
+bool SestoSenso2::ReverseFocuser(bool enable)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    INDI_UNUSED(enable);
+    return false;
+}
 
-    tcflush(PortFD, TCIOFLUSH);
 
-    if (cmd_len > 0)
-    {
-        char hex_cmd[SESTO_LEN * 3] = {0};
-        hexDump(hex_cmd, cmd, cmd_len);
-        LOGF_DEBUG("CMD <%s>", hex_cmd);
-        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
-    }
+bool SestoSenso2::Ack()
+{
+    char res[SESTO_LEN] = {0};
+
+    if (isSimulation())
+        strncpy(res, "1.0 Simulation", SESTO_LEN);
     else
     {
-        LOGF_DEBUG("CMD <%s>", cmd);
-        rc = tty_write_string(PortFD, cmd, &nbytes_written);
+        if(initCommandSet() == false)
+        {
+            LOG_ERROR("Failed setting attributes on serial port and init command sets");
+            return false;
+        }
+        if(command->getSerialNumber(res))
+        {
+            LOGF_INFO("Hello,I'm %s !", res);
+        }
+        else
+        {
+            return false;
+        }
     }
+    IUSaveText(&FirmwareT[0], res);
 
-    if (rc != TTY_OK)
+    return true;
+}
+
+
+void SestoSenso2::setConnectionParams()
+{
+    serialConnection->setDefaultBaudRate(serialConnection->B_115200);
+    serialConnection->setWordSize(8);
+}
+
+
+bool SestoSenso2::initCommandSet()
+{
+    command = new CommandSet(PortFD, getDeviceName());
+
+    struct termios tty_setting;
+    if (tcgetattr(PortFD, &tty_setting) == -1)
     {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
+        LOG_ERROR("setTTYFlags: failed getting tty attributes.");
         return false;
     }
+    tty_setting.c_lflag |= ICANON;
+    if (tcsetattr(PortFD, TCSANOW, &tty_setting))
+    {
+        LOG_ERROR("setTTYFlags: failed setting attributes on serial port.");
+        return false;
+    }
+    return true;
+}
 
-    if (res == nullptr)
+
+
+bool CommandSet::sendCmd(std::string cmd, std::string property, char *res)
+{  
+    LOGF_DEBUG("Sending comand: %s with property: %s", cmd.c_str(), property.c_str());
+    tcflush(CommandSet::PortFD, TCIOFLUSH);
+    std::string cmd_str;
+    cmd_str.append(cmd);
+
+    if(write(CommandSet::PortFD, cmd.c_str(), cmd_str.length()) == 0)
+    {
+        LOGF_ERROR("Device not response: cmd %s property %s", cmd.c_str(), property.c_str());
+        return false;
+    }
+    if(property.empty() || res == nullptr)
         return true;
 
-    if (res_len > 0)
-        rc = tty_read(PortFD, res, res_len, SESTO_TIMEOUT, &nbytes_read);
-    else
+    char read_buf[SESTO_LEN] = {0};
+    if(read(CommandSet::PortFD, &read_buf, sizeof(read_buf)) == 0)
     {
-        rc = tty_nread_section(PortFD, res, SESTO_LEN, SESTO_STOP_CHAR, SESTO_TIMEOUT, &nbytes_read);
-        res[nbytes_read - 1] = 0;
-    }
-
-    if (rc != TTY_OK)
-    {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s.", errstr);
+        LOGF_ERROR("Device not response: cmd %s property %s", cmd.c_str(), property.c_str());
         return false;
     }
-
-    if (res_len > 0)
+    std::string response(read_buf);
+    if(CommandSet::getValueFromResponse(response, property, res) == CMD_FALSE)
     {
-        char hex_res[SESTO_LEN * 3] = {0};
-        hexDump(hex_res, res, res_len);
-        LOGF_DEBUG("RES <%s>", hex_res);
+        LOGF_ERROR("Communication error: cmd %s property %s resvalue: %s", cmd.c_str(), property.c_str(), res);
+        return false;
     }
-    else
-    {
-        LOGF_DEBUG("RES <%s>", res);
-    }
-
+    LOGF_DEBUG("Received response: %s", res);
     tcflush(PortFD, TCIOFLUSH);
 
     return true;
 }
 
-void SestoSenso::hexDump(char * buf, const char * data, int size)
+bool CommandSet::getValueFromResponse(std::string response, std::string property, char *value)
 {
-    for (int i = 0; i < size; i++)
-        sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
+    std::size_t property_pos = response.find(property);
+    if(property_pos == std::string::npos)
+    {
+        LOGF_ERROR("Invalid property: %s", property.c_str());
+        return false;
+    }
+    int property_length = std::string(property).length();
+    response = response.substr(property_pos + property_length);
+    std::size_t found = response.find(",");
+    if(found != std::string::npos)
+    {
+        response = response.substr(0,found);
+    }
+    else
+    {
+        found = response.find("}");
+        response = response.substr(0,found);
+    }
+    response = removeChars(response,'\"');
+    response = removeChars(response,',');
+    response = removeChars(response,':');
+    strcpy(value,response.c_str());
 
-    if (size > 0)
-        buf[3 * size - 1] = '\0';
+    return true;
 }
 
-bool SestoSenso::ReverseFocuser(bool enable)
+std::string CommandSet::removeChars(std::string str, char ch)
 {
-    INDI_UNUSED(enable);
-    return false;
+    std::size_t found = str.find(ch);
+    if(found != std::string::npos)
+    {
+        str = str.erase(found,1);
+        str = removeChars(str, ch);
+    }
+
+    return str;
 }
+
+bool CommandSet::getSerialNumber(char *res)
+{
+    return CommandSet::sendCmd("{\"req\":{\"get\":{\"SN\":\"\"}}}", "SN", res);
+}
+
+bool CommandSet::abort()
+{
+    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"MOT_ABORT\":\"\"}}}}");
+}
+
+bool CommandSet::go(uint32_t targetTicks, char *res)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd,sizeof(cmd),"{\"req\":{\"cmd\":{\"MOT1\" :{\"GOTO\":%u}}}}", targetTicks);
+    return CommandSet::sendCmd(cmd,"GOTO",res);
+}
+
+bool CommandSet::stop()
+{
+    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"MOT_STOP\":\"\"}}}}");
+}
+
+bool CommandSet::goHome()
+{
+    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"GOHOME\":\"\"}}}}","GOHOME");
+}
+
+bool CommandSet::fastMoveOut()
+{
+    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"F_OUTW\":\"\"}}}}");
+}
+
+bool CommandSet::fastMoveIn()
+{
+    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"F_INW\":\"\"}}}}");
+}
+
+bool CommandSet::getMaxPosition(char *res)
+{
+    return CommandSet::sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "CAL_MAXPOS", res);
+}
+
+bool CommandSet::storeAsMaxPosition(char *res)
+{
+    return CommandSet::sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMaxPos\"}}}}"), res;
+}
+
+bool CommandSet::goOutToFindMaxPos()
+{
+    return CommandSet::sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"GoOutToFindMaxPos\"}}}}");
+}
+
+bool CommandSet::storeAsMinPosition()
+{
+    return CommandSet::sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMinPos\"}}}}");
+}
+
+bool CommandSet::initCalibration()
+{
+    return CommandSet::sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"Init\"}}}}");
+}
+
+bool CommandSet::getAbsolutePosition(char *res)
+{
+    return CommandSet::sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "ABS_POS", res);
+}
+
+bool CommandSet::getCurrentSpeed(char *res)
+{
+    return CommandSet::sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "SPEED", res);
+}
+
+bool CommandSet::loadSlowPreset(char *res)
+{
+    return sendCmd("{\"req\":{\"cmd\":{\"RUNPRESET\":\"slow\"}}}","RUNPRESET",res);
+}
+
+bool CommandSet::getMotorTemp(char *res)
+{
+    return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "NTC_T", res);
+}
+
+
+
+
+
+

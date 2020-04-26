@@ -209,11 +209,6 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         // Auto Dew v1
         ISwitch AutoDewS[2];
         ISwitchVectorProperty AutoDewSP;
-        enum
-        {
-            AUTO_DEW_ENABLED,
-            AUTO_DEW_DISABLED,
-        };
 
         enum
         {
@@ -274,14 +269,6 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             FIRMWARE_UPTIME
         };
 
-        // Focuser backlash enable/disable
-        //    ISwitch FocuserBacklashS[2];
-        //    ISwitchVectorProperty FocuserBacklashSP;
-        //    enum
-        //    {
-        //        BACKLASH_ENABLED,
-        //        BACKLASH_DISABLED,
-        //    };
 
         // Temperature
         INumber FocuserTemperatureN[1];
