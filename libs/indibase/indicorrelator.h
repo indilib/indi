@@ -108,7 +108,7 @@ class Correlator : public SensorInterface
         bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
         bool ISSnoopDevice(XMLEle *root);
 
-        virtual bool StartIntegration(double duration);
+        virtual bool StartIntegration(double duration) override;
 
         /**
          * @brief getCorrelationDegree Get current correlation degree.

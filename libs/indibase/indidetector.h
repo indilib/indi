@@ -85,7 +85,24 @@ class Detector : public SensorInterface
         bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
         bool ISSnoopDevice(XMLEle *root);
 
-        bool StartIntegration(double duration);
+        void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
+
+        virtual bool StartIntegration(double duration);
+
+        /**
+         * @brief setResolution Set resolution of the detector in ns.
+         * @param level trigger voltage level
+         */
+        void setResolution(double res);
+
+        /**
+         * @brief getResolution Get resolution of the detector in ns.
+         * @return requested trigger voltage level.
+         */
+        inline double getResolution()
+        {
+            return Resolution;
+        }
 
         /**
          * @brief setTriggerLevel Set Trigger voltage level used for pulse detection.
@@ -145,6 +162,7 @@ class Detector : public SensorInterface
 
       private:
         double TriggerLevel;
+        double Resolution;
         INumber DetectorSettingsN[2];
 };
 }

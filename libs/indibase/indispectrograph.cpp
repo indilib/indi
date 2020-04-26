@@ -189,6 +189,7 @@ void Spectrograph::setMinMaxStep(const char *property, const char *element, doub
     }
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
 }
+
 void Spectrograph::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 {
     char fitsString[MAXINDILABEL];

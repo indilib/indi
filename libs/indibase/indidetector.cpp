@@ -125,6 +125,15 @@ void Detector::setTriggerLevel(double level)
     IDSetNumber(&DetectorSettingsNP, nullptr);
 }
 
+void Detector::setResolution(double res)
+{
+    Resolution = res;
+
+    DetectorSettingsN[Detector::DETECTOR_RESOLUTION].value = res;
+
+    IDSetNumber(&DetectorSettingsNP, nullptr);
+}
+
 void Detector::SetDetectorCapability(uint32_t cap)
 {
     SetCapability(cap);
@@ -158,6 +167,21 @@ void Detector::setMinMaxStep(const char *property, const char *element, double m
         }
     }
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
+}
+
+void Detector::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
+{
+    char fitsString[MAXINDILABEL];
+    int status = 0;
+
+    // SPECTROGRAPH
+    sprintf(fitsString, "%lf", getResolution());
+    fits_update_key_s(fptr, TSTRING, "RESOLUTION", fitsString, "Timing resolution", &status);
+
+    sprintf(fitsString, "%lf", getTriggerLevel());
+    fits_update_key_s(fptr, TSTRING, "TRIGGER", fitsString, "Trigger level", &status);
+
+    SensorInterface::addFITSKeywords(fptr, buf, len);
 }
 }
 

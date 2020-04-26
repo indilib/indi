@@ -173,7 +173,7 @@ Correlator::UVCoordinate Correlator::getUVCoordinates()
 bool Correlator::StartIntegration(double duration)
 {
     INDI_UNUSED(duration);
-    DEBUGF(Logger::DBG_WARNING, "Correlator::StartIntegration %4.2f -  Should never get here", duration);
+    DEBUGF(Logger::DBG_WARNING, "Correlator::StartIntegration %4.2f - Not supported", duration);
     return false;
 }
 
