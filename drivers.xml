@@ -23,7 +23,7 @@
         </device>
         <device label="LX200 TeenAstro">
             <driver name="LX200 TeenAstro">indi_lx200_TeenAstro</driver>
-            <version>1.1/version>
+            <version>1.1</version>
         </device>
         <device label="LX200 16" manufacturer="Meade">
             <driver name="LX200 16">indi_lx200_16</driver>
@@ -295,7 +295,7 @@
             <driver name="DeepSkyDad AF2">indi_deepskydad_af2_focus</driver>
             <version>1.0</version>
         </device>
-                <device label="DeepSkyDad AF3">
+        <device label="DeepSkyDad AF3">
             <driver name="DeepSkyDad AF3">indi_deepskydad_af3_focus</driver>
             <version>1.0</version>
         </device>
@@ -549,7 +549,7 @@
         </device>
         <device label="SQM">
             <driver name="SQM">indi_sqm_weather</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="Weather Meta">
             <driver name="Weather Meta">indi_meta_weather</driver>

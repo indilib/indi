@@ -58,14 +58,51 @@ class SQM : public INDI::DefaultDevice
         // Readings
         INumberVectorProperty AverageReadingNP;
         INumber AverageReadingN[5];
+        enum
+        {
+            SKY_BRIGHTNESS,
+            SENSOR_FREQUENCY,
+            SENSOR_COUNTS,
+            SENSOR_PERIOD,
+            SKY_TEMPERATURE
+        };
 
         // Device Information
         INumberVectorProperty UnitInfoNP;
         INumber UnitInfoN[4];
+        enum
+        {
+            UNIT_PROTOCOL,
+            UNIT_MODEL,
+            UNIT_FEATURE,
+            UNIT_SERIAL
+        };
 
         Connection::Serial *serialConnection { nullptr };
         Connection::TCP *tcpConnection { nullptr };
 
         int PortFD { -1 };
         uint8_t sqmConnection { CONNECTION_SERIAL | CONNECTION_TCP };
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Communication Functions
+        ///////////////////////////////////////////////////////////////////////////////
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        void hexDump(char * buf, const char * data, int size);
+        std::vector<std::string> split(const std::string &input, const std::string &regex);
+
+        ///////////////////////////////////////////////////////////////////////////////////
+        /// Properties
+        ///////////////////////////////////////////////////////////////////////////////////
+
+        /////////////////////////////////////////////////////////////////////////////
+        /// Static Helper Values
+        /////////////////////////////////////////////////////////////////////////////
+        static constexpr const char * INFO_TAB = "Info";
+        // 0xA is the stop char
+        static const char DRIVER_STOP_CHAR { 0x0A };
+        // Wait up to a maximum of 3 seconds for serial input
+        static constexpr const uint8_t DRIVER_TIMEOUT {3};
+        // Maximum buffer for sending/receving.
+        static constexpr const uint8_t DRIVER_LEN {128};
 };

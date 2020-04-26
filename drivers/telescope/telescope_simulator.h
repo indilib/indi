@@ -108,7 +108,7 @@ private:
     Axis axisSecondary { "DecAxis" };       // declination mount axis
 
     Alignment alignment;
-    void updateMountAndPierSide();
+    bool updateMountAndPierSide();
 
 #ifdef USE_SIM_TAB
     // Simulator Tab properties
@@ -127,15 +127,5 @@ private:
     INumberVectorProperty flipHourAngleNP;
 #endif
 
-#ifdef USE_EQUATORIAL_PE
-    INumberVectorProperty EqPENV;
-    INumber EqPEN[2];
-
-    ISwitch PEErrNSS[2];
-    ISwitchVectorProperty PEErrNSSP;
-
-    ISwitch PEErrWES[2];
-    ISwitchVectorProperty PEErrWESP;
-#endif
 };
 

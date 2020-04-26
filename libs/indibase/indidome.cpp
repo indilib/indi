@@ -105,8 +105,8 @@ bool Dome::initProperties()
     IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&AutoParkS[0], "ENABLED", "Enable", ISS_OFF);
-    IUFillSwitch(&AutoParkS[1], "DISABLED", "Disable", ISS_ON);
+    IUFillSwitch(&AutoParkS[0], "INDI_ENABLED", "Enable", ISS_OFF);
+    IUFillSwitch(&AutoParkS[1], "INDI_DISABLED", "Disable", ISS_ON);
     IUFillSwitchVector(&AutoParkSP, AutoParkS, 2, getDeviceName(), "DOME_AUTOPARK", "Auto Park", OPTIONS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 

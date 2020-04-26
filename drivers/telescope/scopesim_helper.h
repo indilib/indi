@@ -36,6 +36,7 @@
 #include <stdint.h>
 #include <sys/time.h>
 
+#include "indicom.h"
 
 static char device_str[64] = "Telescope Simulator";
 
@@ -43,7 +44,7 @@ static char device_str[64] = "Telescope Simulator";
 /// \brief The Angle class
 /// This class implements an angle type.
 /// This holds an angle that is always in the range -180 to +180
-/// Relational and arithmatic operators work over the -180 - +180 discontinuity
+/// Relational and arithmetic operators work over the -180 - +180 discontinuity
 ///
 class Angle
 {
@@ -250,6 +251,7 @@ public:
     
     const char * axisName;
 
+    // sets position and target so does not cause a slew.
     void setDegrees(double degrees);
     void setHours(double hours);
 
@@ -257,11 +259,13 @@ public:
 
     void StartSlew(Angle angle);
 
-    void AbortSlew() {  target = position; }
+    void Abort() {  target = position; mcRate = 0; guideDuration = 0; }
 
     bool isSlewing;
 
-    bool isTracking() { return trackingRateDegSec != 0; }
+    bool isTracking() { return tracking; }
+
+    void Tracking(bool enabled);
 
     ///
     /// \brief TrackRate set the track rate to one of the standard rates
@@ -278,15 +282,9 @@ public:
     AXIS_TRACK_RATE TrackRate();
 
     ///
-    /// \brief TrackingRateDegSec set the tracking rate
-    /// \param rate Angle giving the rate per second
+    /// \brief TrackingRateDegSec
     ///
-    void TrackingRateDegSec(Angle rate);
-    ///
-    /// \brief TrackingRateDegSec returns the tracking rate in deg/sec
-    /// \return
-    ///
-    Angle TrackingRateDegSec();
+    Angle TrackingRateDegSec;
 
     ///
     /// \brief StartGuide   start guiding
@@ -309,18 +307,21 @@ private:
 
     struct timeval lastTime { 0, 0 };
 
+    bool tracking;      // this allows the tracking state and rate to be set independently
+
     AXIS_TRACK_RATE trackingRate { AXIS_TRACK_RATE::OFF };
 
-    Angle trackingRateDegSec;
     Angle rotateCentre { 90.0 };
 
     double guideDuration;
     Angle guideRateDegSec;
 
-    // rates are angles in degrees per second
-    const Angle solarRate { 360.0 / 86400};
-    const Angle siderealRate { (360.0 / 86400) * 0.99726958  };
-    const Angle lunarRate { (360.0 / 86400) * 1.034 };
+    // rates are angles in degrees per second derived from the values in indicom.h
+    // which are in arcsec per second.
+
+    const Angle solarRate { TRACKRATE_SOLAR / 3600.0 };
+    const Angle siderealRate { TRACKRATE_SIDEREAL / 3600.0 };
+    const Angle lunarRate { TRACKRATE_LUNAR / 3600.0 };
 
     Angle mcRates[5]
     {

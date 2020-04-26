@@ -31,7 +31,8 @@
 
 typedef enum
 {
-    SCRIPT_CONNECT = 1,
+    SCRIPT_FOLDER = 0,
+    SCRIPT_CONNECT,
     SCRIPT_DISCONNECT,
     SCRIPT_STATUS,
     SCRIPT_OPEN,
@@ -100,9 +101,9 @@ bool DomeScript::initProperties()
     INDI::Dome::initProperties();
     SetParkDataType(PARK_AZ);
 #if defined(__APPLE__)
-    IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/local/share/indi/scripts");
+    IUFillText(&ScriptsT[SCRIPT_FOLDER], "SCRIPT_FOLDER", "Folder", "/usr/local/share/indi/scripts");
 #else
-    IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/share/indi/scripts");
+    IUFillText(&ScriptsT[SCRIPT_FOLDER], "SCRIPT_FOLDER", "Folder", "/usr/share/indi/scripts");
 #endif
     IUFillText(&ScriptsT[SCRIPT_CONNECT], "SCRIPT_CONNECT", "Connect script", "connect.py");
     IUFillText(&ScriptsT[SCRIPT_DISCONNECT], "SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
@@ -133,6 +134,7 @@ void DomeScript::ISGetProperties(const char *dev)
 {
     INDI::Dome::ISGetProperties(dev);
     defineText(&ScriptsTP);
+    loadConfig(true, "SCRIPTS");
 }
 
 bool DomeScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
