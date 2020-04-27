@@ -156,7 +156,7 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // meridian delay (experimental!)
-    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "UTC offset", "%8.5f", -24.0, 24.0, 0.0, 13.9348);
+    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "UTC offset", "%8.5f", -24.0, 24.0, 0.0, 0.);
     IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY", "UTC offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
     // sidereal time
     IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
@@ -433,9 +433,6 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
             LOGF_ERROR("lx200ap_experimental: Error setting UTC offset (%d).", err);
             return false;
         }
-
-        MeridianDelayNP.s = IPS_OK;
-        IDSetNumber(&MeridianDelayNP, nullptr);
 
 	SiderealTimeNP.s  = IPS_BUSY;
 	IDSetNumber(&SiderealTimeNP, nullptr);
@@ -1476,7 +1473,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 #define MAX_DIFF_SID 0.0001 // better 0.0001 
             else if (fabs(val_sid) <= 0.001)
 	    {
-	        LOGF_ERROR("NOT an ERROR, Comparing UTC offset successful (%f)", sltn + dst_off);
+	      LOGF_ERROR("NOT an ERROR, Comparing UTC offset successful (%f), dst (%f)", sltn + dst_off, dst);
 		if( fabs(sltn - 13.9348) <= 0.01) {
 		  LOG_ERROR("NOT an ERROR, we did find the correct value :-)");
 		}
@@ -1534,7 +1531,12 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     }
 
     LOGF_DEBUG("Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
+    
+    MeridianDelayNP.np[0].value = utc_offset;
+    MeridianDelayNP.s = IPS_OK;
+    IDSetNumber(&MeridianDelayNP, nullptr);
 
+  
     LOG_INFO("Time updated.");
 
     timeUpdated = true;
