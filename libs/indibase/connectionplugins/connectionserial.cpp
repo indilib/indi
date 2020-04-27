@@ -48,8 +48,8 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
     IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, IP_RW, 60,
                      IPS_IDLE);
 
-    IUFillSwitch(&AutoSearchS[0], "ENABLED", "Enabled", ISS_ON);
-    IUFillSwitch(&AutoSearchS[1], "DISABLED", "Disabled", ISS_OFF);
+    IUFillSwitch(&AutoSearchS[INDI::DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_ON);
+    IUFillSwitch(&AutoSearchS[INDI::DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_OFF);
     IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(), INDI::SP::DEVICE_AUTO_SEARCH, "Auto Search",
                        CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 

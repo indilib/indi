@@ -33,6 +33,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <termios.h>
+#include <regex>
 
 // We declare an auto pointer to SQM.
 static std::unique_ptr<SQM> sqm(new SQM());
@@ -78,7 +79,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SQM::SQM()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
 }
 
 bool SQM::initProperties()
@@ -86,22 +87,20 @@ bool SQM::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Average Readings
-    IUFillNumber(&AverageReadingN[0], "SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
-    IUFillNumber(&AverageReadingN[1], "SENSOR_FREQUENCY", "Freq (Hz)", "%6.2f", 0, 1000000, 0, 0);
-    IUFillNumber(&AverageReadingN[2], "SENSOR_COUNTS", "Period (counts)", "%6.2f", 0, 1000000, 0, 0);
-    IUFillNumber(&AverageReadingN[3], "SENSOR_PERIOD", "Period (s)", "%6.2f", 0, 1000000, 0, 0);
-    IUFillNumber(&AverageReadingN[4], "SKY_TEMPERATURE", "Temperature (C)", "%6.2f", -50, 80, 0, 0);
+    IUFillNumber(&AverageReadingN[SKY_BRIGHTNESS], "SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
+    IUFillNumber(&AverageReadingN[SENSOR_FREQUENCY], "SENSOR_FREQUENCY", "Freq (Hz)", "%6.2f", 0, 1000000, 0, 0);
+    IUFillNumber(&AverageReadingN[SENSOR_COUNTS], "SENSOR_COUNTS", "Period (counts)", "%6.2f", 0, 1000000, 0, 0);
+    IUFillNumber(&AverageReadingN[SENSOR_PERIOD], "SENSOR_PERIOD", "Period (s)", "%6.2f", 0, 1000000, 0, 0);
+    IUFillNumber(&AverageReadingN[SKY_TEMPERATURE], "SKY_TEMPERATURE", "Temperature (C)", "%6.2f", -50, 80, 0, 0);
     IUFillNumberVector(&AverageReadingNP, AverageReadingN, 5, getDeviceName(), "SKY_QUALITY", "Readings",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Unit Info
-    IUFillNumber(&UnitInfoN[0], "Protocol", "", "%.f", 0, 1000000, 0, 0);
-    IUFillNumber(&UnitInfoN[1], "Model", "", "%.f", 0, 1000000, 0, 0);
-    IUFillNumber(&UnitInfoN[2], "Feature", "", "%.f", 0, 1000000, 0, 0);
-    IUFillNumber(&UnitInfoN[3], "Serial", "", "%.f", 0, 1000000, 0, 0);
+    IUFillNumber(&UnitInfoN[UNIT_PROTOCOL], "UNIT_PROTOCOL", "Protocol", "%.f", 0, 1000000, 0, 0);
+    IUFillNumber(&UnitInfoN[UNIT_MODEL], "UNIT_MODEL", "Model", "%.f", 0, 1000000, 0, 0);
+    IUFillNumber(&UnitInfoN[UNIT_FEATURE], "UNIT_FEATURE", "Feature", "%.f", 0, 1000000, 0, 0);
+    IUFillNumber(&UnitInfoN[UNIT_SERIAL], "UNIT_SERIAL", "Serial", "%.f", 0, 1000000, 0, 0);
     IUFillNumberVector(&UnitInfoNP, UnitInfoN, 4, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RW, 0, IPS_IDLE);
-
-
 
     if (sqmConnection & CONNECTION_SERIAL)
     {
@@ -163,116 +162,24 @@ bool SQM::ISNewNumber(const char *dev, const char *name, double values[], char *
         {
             uint32_t seconds = values[0] / 1000;
             if (seconds > 2)
-                LOGF_WARN("Make sure SQM web timeout is configured for %ld seconds or more. Otherwise SQM will disconnect prematurely.", seconds);
+                LOGF_WARN("Make sure SQM web timeout is configured for %ld seconds or more. Otherwise SQM will disconnect prematurely.",
+                          seconds);
         }
     }
 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-
-#if 0
 bool SQM::getReadings()
 {
-    const char *cmd = "rx";
-    char buffer[57] = {0};
+    char res[DRIVER_LEN] = {0};
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("CMD <%s>", cmd);
-
-    ssize_t written = write(PortFD, cmd, 2);
-
-    if (written < 2)
-    {
-        LOGF_ERROR("Error getting device readings: %s", strerror(errno));
+    if (!sendCommand("rx", res))
         return false;
-    }
-
-    ssize_t received = 0;
-
-    while (received < 57)
-    {
-        ssize_t response = read(PortFD, buffer + received, 57 - received);
-        if (response < 0)
-        {
-            LOGF_ERROR("Error getting device readings: %s", strerror(errno));
-            return false;
-        }
-
-        received += response;
-    }
-
-    if (received < 57)
-    {
-        LOG_ERROR("Error getting device readings");
-        return false;
-    }
-
-    LOGF_DEBUG("RES <%s>", buffer);
-
-    tcflush(PortFD, TCIOFLUSH);
 
     float mpsas, period_seconds, temperature;
     int frequency, period_counts;
-    int rc =
-        sscanf(buffer, "r,%fm,%dHz,%dc,%fs,%fC", &mpsas, &frequency, &period_counts, &period_seconds, &temperature);
-
-    if (rc < 5)
-    {
-        LOGF_ERROR("Failed to parse input %s", buffer);
-        return false;
-    }
-
-    AverageReadingN[0].value = mpsas;
-    AverageReadingN[1].value = frequency;
-    AverageReadingN[2].value = period_counts;
-    AverageReadingN[3].value = period_seconds;
-    AverageReadingN[4].value = temperature;
-
-    return true;
-}
-#endif
-
-bool SQM::getReadings()
-{
-    const char *cmd = "rx";
-    char res[128] = {0};
-    int nbytes_read = 0, nbytes_written = 0, rc = 0;
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("CMD <%s>", cmd);
-
-    if ( (rc = tty_write(PortFD, cmd, 2, &nbytes_written)) != TTY_OK)
-    {
-        char errorMessage[MAXRBUF] = {0};
-        tty_error_msg(rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Error getting device readings: %s", errorMessage);
-        return false;
-    }
-
-    if ( (rc = tty_nread_section(PortFD, res, 128, 0xA, 3, &nbytes_read)) != TTY_OK)
-    {
-        if (rc == TTY_OVERFLOW)
-        {
-            return true;
-        }
-
-        char errorMessage[MAXRBUF] = {0};
-        tty_error_msg(rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Error getting device readings: %s", errorMessage);
-        return false;
-    }
-
-    res[nbytes_read - 2] = 0;
-    LOGF_DEBUG("RES <%s>", res);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    float mpsas, period_seconds, temperature;
-    int frequency, period_counts;
-    rc = sscanf(res, "r,%fm,%dHz,%dc,%fs,%fC", &mpsas, &frequency, &period_counts, &period_seconds, &temperature);
+    int rc = sscanf(res, "r,%fm,%dHz,%dc,%fs,%fC", &mpsas, &frequency, &period_counts, &period_seconds, &temperature);
 
     if (rc < 5)
     {
@@ -300,9 +207,6 @@ const char *SQM::getDefaultName()
 
 bool SQM::getDeviceInfo()
 {
-    const char *cmd = "ix";
-    char buffer[39] = {0};
-
     if (getActiveConnection() == serialConnection)
     {
         PortFD = serialConnection->getPortFD();
@@ -312,44 +216,29 @@ bool SQM::getDeviceInfo()
         PortFD = tcpConnection->getPortFD();
     }
 
-    LOGF_DEBUG("CMD <%s>", cmd);
-
-    ssize_t written = write(PortFD, cmd, 2);
-
-    if (written < 2)
+    char res[DRIVER_LEN] = {0};
+    for (int i = 0; i < 3; i++)
     {
-        LOGF_ERROR("Error getting device info while writing to device: %s", strerror(errno));
-        return false;
-    }
-
-    ssize_t received = 0;
-
-    while (received < 39)
-    {
-        ssize_t response = read(PortFD, buffer + received, 39 - received);
-        if (response < 0)
+        if (!sendCommand("ix", res))
         {
-            LOGF_ERROR("Error getting device info while reading response: %s", strerror(errno));
-            return false;
+            usleep(500000);
         }
-
-        received += response;
+        else
+            break;
     }
 
-    if (received < 39)
+    if (res[0] == 0)
     {
-        LOG_ERROR("Error getting device info");
+        LOGF_ERROR("Error getting device info while reading response: %s", strerror(errno));
         return false;
     }
-
-    LOGF_DEBUG("RES <%s>", buffer);
 
     int protocol, model, feature, serial;
-    int rc = sscanf(buffer, "i,%d,%d,%d,%d", &protocol, &model, &feature, &serial);
+    int rc = sscanf(res, "i,%d,%d,%d,%d", &protocol, &model, &feature, &serial);
 
     if (rc < 4)
     {
-        LOGF_ERROR("Failed to parse input %s", buffer);
+        LOGF_ERROR("Failed to parse input %s", res);
         return false;
     }
 
@@ -372,4 +261,93 @@ void SQM::TimerHit()
     IDSetNumber(&AverageReadingNP, nullptr);
 
     SetTimer(POLLMS);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Send Command
+/////////////////////////////////////////////////////////////////////////////
+bool SQM::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
+{
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if (cmd_len > 0)
+    {
+        char hex_cmd[DRIVER_LEN * 3] = {0};
+        hexDump(hex_cmd, cmd, cmd_len);
+        LOGF_DEBUG("CMD <%s>", hex_cmd);
+        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
+    }
+    else
+    {
+        LOGF_DEBUG("CMD <%s>", cmd);
+        rc = tty_write_string(PortFD, cmd, &nbytes_written);
+    }
+
+    if (rc != TTY_OK)
+    {
+        char errstr[MAXRBUF] = {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial write error: %s.", errstr);
+        return false;
+    }
+
+    if (res == nullptr)
+        return true;
+
+    if (res_len > 0)
+        rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+    else
+        rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
+
+    if (rc != TTY_OK)
+    {
+        char errstr[MAXRBUF] = {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial read error: %s.", errstr);
+        return false;
+    }
+
+    if (res_len > 0)
+    {
+        char hex_res[DRIVER_LEN * 3] = {0};
+        hexDump(hex_res, res, res_len);
+        LOGF_DEBUG("RES <%s>", hex_res);
+    }
+    else
+    {
+        // Remove extra \r\n
+        res[nbytes_read - 2] = 0;
+        LOGF_DEBUG("RES <%s>", res);
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+void SQM::hexDump(char * buf, const char * data, int size)
+{
+    for (int i = 0; i < size; i++)
+        sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
+
+    if (size > 0)
+        buf[3 * size - 1] = '\0';
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+std::vector<std::string> SQM::split(const std::string &input, const std::string &regex)
+{
+    // passing -1 as the submatch index parameter performs splitting
+    std::regex re(regex);
+    std::sregex_token_iterator
+    first{input.begin(), input.end(), re, -1},
+          last;
+    return {first, last};
 }
