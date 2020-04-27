@@ -176,7 +176,7 @@ void Detector::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 
     // SPECTROGRAPH
     sprintf(fitsString, "%lf", getResolution());
-    fits_update_key_s(fptr, TSTRING, "RESOLUTION", fitsString, "Timing resolution", &status);
+    fits_update_key_s(fptr, TSTRING, "RESOLUTI", fitsString, "Timing resolution", &status);
 
     sprintf(fitsString, "%lf", getTriggerLevel());
     fits_update_key_s(fptr, TSTRING, "TRIGGER", fitsString, "Trigger level", &status);

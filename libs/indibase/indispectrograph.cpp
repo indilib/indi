@@ -197,16 +197,16 @@ void Spectrograph::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 
     // SPECTROGRAPH
     sprintf(fitsString, "%d", getBPS());
-    fits_update_key_s(fptr, TSTRING, "BITSPERSAMPLE", fitsString, "Bits per sample", &status);
+    fits_update_key_s(fptr, TSTRING, "BPS", fitsString, "Bits per sample", &status);
 
     sprintf(fitsString, "%lf", getBandwidth());
-    fits_update_key_s(fptr, TSTRING, "BANDWIDTH", fitsString, "Bandwidth", &status);
+    fits_update_key_s(fptr, TSTRING, "BANDWIDT", fitsString, "Bandwidth", &status);
 
     sprintf(fitsString, "%lf", getFrequency());
     fits_update_key_s(fptr, TSTRING, "FREQ", fitsString, "Center Frequency", &status);
 
     sprintf(fitsString, "%lf", getSampleRate());
-    fits_update_key_s(fptr, TSTRING, "SAMPLERATE", fitsString, "Sampling Rate", &status);
+    fits_update_key_s(fptr, TSTRING, "SRATE", fitsString, "Sampling Rate", &status);
 
     sprintf(fitsString, "%lf", getGain());
     fits_update_key_s(fptr, TSTRING, "GAIN", fitsString, "Gain", &status);

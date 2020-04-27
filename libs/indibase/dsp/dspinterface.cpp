@@ -91,7 +91,7 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
     IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), m_Name, m_Label, DSP_TAB, IP_RO, 60, IPS_IDLE);
     BufferSizes = nullptr;
     BufferSizesQty = 0;
-    strncpy (FitsB.format, "fits", MAXINDIFORMAT);
+    strncpy (FitsB.format, ".fits", MAXINDIFORMAT);
 }
 
 Interface::~Interface()
@@ -212,7 +212,7 @@ bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_pe
             if (buffer)
             {
                 LOGF_INFO("%s processing done. Creating file..", m_Label);
-                if (!strcmp(FitsB.format, "fits"))
+                if (!strcmp(FitsB.format, ".fits"))
                 {
                     sendFITS(buffer, sendCapture, saveCapture);
                 }
