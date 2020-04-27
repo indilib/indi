@@ -22,6 +22,8 @@
 #include "inditelescope.h"
 #include "scopesim_helper.h"
 
+#define USE_SIM_TAB
+
 /**
  * @brief The ScopeSim class provides a simple mount simulator of an equatorial mount.
  *

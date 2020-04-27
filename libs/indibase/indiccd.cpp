@@ -112,6 +112,7 @@ CCD::CCD()
 
     RA              = std::numeric_limits<double>::quiet_NaN();
     Dec             = std::numeric_limits<double>::quiet_NaN();
+    pierSide        = -1;
     J2000RA         = std::numeric_limits<double>::quiet_NaN();
     J2000DE         = std::numeric_limits<double>::quiet_NaN();
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
@@ -442,6 +443,7 @@ bool CCD::initProperties()
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_PIER_SIDE");
 
     // Snoop Rotator
     IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
@@ -680,7 +682,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
 
     if (IUSnoopNumber(root, &EqNP) == 0)
     {
-        float newra, newdec;
+        double newra, newdec;
         newra  = EqN[0].value;
         newdec = EqN[1].value;
         if ((newra != RA) || (newdec != Dec))
@@ -688,6 +690,21 @@ bool CCD::ISSnoopDevice(XMLEle * root)
             //IDLog("RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
             RA  = newra;
             Dec = newdec;
+        }
+    }
+    else if (!strcmp("TELESCOPE_PIER_SIDE", propName))
+    {
+        // set default to say we have no valid information from mount
+        pierSide = -1;
+        //  crack the message
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * elemName = findXMLAttValu(ep, "name");
+
+            if (!strcmp(elemName, "PIER_EAST") && !strcmp(pcdataXMLEle(ep), "On"))
+                pierSide = 1;
+            else if (!strcmp(elemName, "PIER_WEST") && !strcmp(pcdataXMLEle(ep), "On"))
+                pierSide = 0;
         }
     }
     else if (!strcmp(propName, "TELESCOPE_INFO"))
@@ -1866,6 +1883,17 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 
         fits_update_key_dbl(fptr, "RA", J2000RA * 15, 6, "Object J2000 RA in Degrees", &status);
         fits_update_key_dbl(fptr, "DEC", J2000DE, 6, "Object J2000 DEC in Degrees", &status);
+
+        // pier side
+        switch (pierSide)
+        {
+            case 0:
+                fits_update_key_str(fptr, "PIERSIDE", "WEST", "West, looking East", &status);
+                break;
+            case 1:
+                fits_update_key_str(fptr, "PIERSIDE", "EAST", "East, looking West", &status);
+                break;
+        }
 
         //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
         fits_update_key_lng(fptr, "EQUINOX", 2000, "Equinox", &status);
