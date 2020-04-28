@@ -148,10 +148,9 @@ void Convolution::Convolute()
 
 Wavelets::Wavelets(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "WAVELETS", "Wavelets")
 {
-    WaveletsN = (INumber*)malloc(sizeof(INumber)*N_WAVELETS);
     for(int i = 0; i < N_WAVELETS; i++) {
         char strname[MAXINDINAME];
-        char strlabel[MAXINDINAME];
+        char strlabel[MAXINDILABEL];
         sprintf(strname, "WAVELET%0d", i);
         sprintf(strlabel, "%d pixels Gaussian Wavelet", (i+1)*3);
         IUFillNumber(&WaveletsN[i], strname, strlabel, "%3.3f", -15.0, 255.0, 1.0, 0.0);

@@ -319,12 +319,18 @@ void IDLog(const char *fmt, ...)
 const char *timestamp()
 {
     static char ts[32];
+    char iso8601[32];
     struct tm *tp;
-    time_t t;
+    struct timespec tm;
 
-    time(&t);
+    timespec_get(&tm, TIME_UTC);
+    time_t t = (time_t)tm.tv_sec;
+    long n    = tm.tv_nsec % 1000000000;
+
     tp = gmtime(&t);
-    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
+
+    strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
+    snprintf(ts, 32, "%s.%09ld", iso8601, n);
     return (ts);
 }
 
@@ -786,6 +792,15 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     case 230400:
         bps = B230400;
         break;
+    case 460800:
+        bps = B460800;
+        break;
+    case 576000:
+        bps = B576000;
+        break;
+    case 921600:
+        bps = B921600;
+        break;
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
             perror(NULL);
@@ -1053,6 +1068,15 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
         break;
     case 230400:
         bps = B230400;
+        break;
+    case 460800:
+        bps = B460800;
+        break;
+    case 576000:
+        bps = B576000;
+        break;
+    case 921600:
+        bps = B921600;
         break;
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)

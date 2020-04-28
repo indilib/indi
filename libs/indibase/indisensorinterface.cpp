@@ -19,6 +19,8 @@
 
 #include "defaultdevice.h"
 #include "indisensorinterface.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include "indicom.h"
 #include "stream/streammanager.h"
@@ -172,49 +174,24 @@ void SensorInterface::processProperties(const char *dev)
 
 bool SensorInterface::processSnoopDevice(XMLEle *root)
 {
-    XMLEle *ep           = nullptr;
-    const char *propName = findXMLAttValu(root, "name");
-
-    if (IUSnoopNumber(root, &EqNP) == 0)
+    if (!IUSnoopNumber(root, &EqNP))
     {
-        double newra, newdec;
-        newra  = EqN[0].value;
-        newdec = EqN[1].value;
-        if ((newra != RA) || (newdec != Dec))
-        {
-            //IDLog("RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
-            RA  = newra;
-            Dec = newdec;
-        }
+        RA = EqNP.np[0].value;
+        Dec = EqNP.np[1].value;
+        IDLog("Snooped RA %4.2f  Dec %4.2f\n",RA,Dec);
     }
-    else if (!strcmp(propName, "TELESCOPE_INFO"))
+    if (!IUSnoopNumber(root, &LocationNP))
     {
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            const char *name = findXMLAttValu(ep, "name");
-
-            if (!strcmp(name, "TELESCOPE_APERTURE"))
-            {
-                primaryAperture = atof(pcdataXMLEle(ep));
-            }
-            else if (!strcmp(name, "TELESCOPE_FOCAL_LENGTH"))
-            {
-                primaryFocalLength = atof(pcdataXMLEle(ep));
-            }
-        }
+        Lat = LocationNP.np[0].value;
+        Lon = LocationNP.np[1].value;
+        El = LocationNP.np[2].value;
+        IDLog("Snooped Lat %4.2f  Lon %4.2f  El %4.2f\n",RA,Dec,El);
     }
-    else if (!strcmp(propName, "SKY_QUALITY"))
+    if (!IUSnoopNumber(root, &ScopeParametersNP))
     {
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-        {
-            const char *name = findXMLAttValu(ep, "name");
-
-            if (!strcmp(name, "SKY_BRIGHTNESS"))
-            {
-                MPSAS = atof(pcdataXMLEle(ep));
-                break;
-            }
-        }
+        primaryAperture = ScopeParametersNP.np[0].value;
+        primaryFocalLength = ScopeParametersNP.np[1].value;
+        IDLog("Snooped primaryAperture %4.2f  primaryFocalLength %4.2f\n",primaryAperture,primaryFocalLength);
     }
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
@@ -235,11 +212,12 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
 
             // Update the property name!
             strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+            strncpy(LocationNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+            strncpy(ScopeParametersNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+
             IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
-            IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
-            IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
-            IDSnoopDevice(ActiveDeviceT[3].text, "SKY_QUALITY");
+            IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -491,24 +469,47 @@ bool SensorInterface::initProperties()
 
     // Snooped Devices
     IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    IUFillText(&ActiveDeviceT[1], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
-    IUFillText(&ActiveDeviceT[2], "ACTIVE_FILTER", "Filter", "Filter Simulator");
-    IUFillText(&ActiveDeviceT[3], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 4, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
+    IUFillText(&ActiveDeviceT[1], "ACTIVE_GPS", "GPS", "GPS Simulator");
+    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 2, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    // Snooped RA/DEC Property
-    IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW,
-                       60, IPS_IDLE);
-
     // Snoop properties of interest
+    IUFillNumber(&EqN[0], "RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&EqN[1], "DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumberVector(&EqNP, EqN, 2, getDeviceName(), "EQUATORIAL_EOD_COORD", "Eq. Coordinates", MAIN_CONTROL_TAB,
+                       IP_RW, 60, IPS_IDLE);
+
+    IUFillNumber(&LocationN[0], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
+    IUFillNumber(&LocationN[1], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
+    IUFillNumber(&LocationN[2], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
+    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB,
+                       IP_RO, 60, IPS_IDLE);
+
+    IUFillNumber(&ScopeParametersN[0], "TELESCOPE_APERTURE", "Aperture (mm)", "%g", 10, 5000, 0, 0.0);
+    IUFillNumber(&ScopeParametersN[1], "TELESCOPE_FOCAL_LENGTH", "Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
+    IUFillNumber(&ScopeParametersN[2], "GUIDER_APERTURE", "Guider Aperture (mm)", "%g", 10, 5000, 0, 0.0);
+    IUFillNumber(&ScopeParametersN[3], "GUIDER_FOCAL_LENGTH", "Guider Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
+    IUFillNumberVector(&ScopeParametersNP, ScopeParametersN, 4, getDeviceName(), "TELESCOPE_INFO", "Scope Properties",
+                       OPTIONS_TAB, IP_RW, 60, IPS_OK);
+
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
-    IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
-    IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
-    IDSnoopDevice(ActiveDeviceT[3].text, "SKY_QUALITY");
+    IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
+
+    if (sensorConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        registerConnection(serialConnection);
+    }
+
+    if (sensorConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+
+        registerConnection(tcpConnection);
+    }
 
     return true;
 }
@@ -588,7 +589,7 @@ void SensorInterface::setIntegrationLeft(double duration)
 void SensorInterface::setIntegrationTime(double duration)
 {
     integrationTime = duration;
-    clock_gettime(CLOCK_REALTIME, &startIntegrationTime);
+    timespec_get(&startIntegrationTime, TIME_UTC);
 }
 
 const char *SensorInterface::getIntegrationStartTime()
@@ -692,72 +693,56 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
         fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
     }
 
-    INumberVectorProperty *nv = this->getNumber("GEOGRAPHIC_COORDS");
-    if(nv != nullptr)
+    if (Lat != -1000 && Lon != -1000 && El != -1000)
     {
-        Lat = nv->np[0].value;
-        Lon = nv->np[1].value;
-        El = nv->np[2].value;
-
-        if (Lat != -1000 && Lon != -1000 && El != -1000)
-        {
-            char lat_str[MAXINDIFORMAT];
-            char lon_str[MAXINDIFORMAT];
-            char el_str[MAXINDIFORMAT];
-            fs_sexa(lat_str, Lat, 2, 360000);
-            fs_sexa(lat_str, Lon, 2, 360000);
-            snprintf(el_str, MAXINDIFORMAT, "%lf", El);
-            fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
-            fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
-            fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
-        }
+        char lat_str[MAXINDIFORMAT];
+        char lon_str[MAXINDIFORMAT];
+        char el_str[MAXINDIFORMAT];
+        fs_sexa(lat_str, Lat, 2, 360000);
+        fs_sexa(lat_str, Lon, 2, 360000);
+        snprintf(el_str, MAXINDIFORMAT, "%lf", El);
+        fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
+        fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
+        fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
     }
-
-    nv = this->getNumber("EQUATORIAL_EOD_COORDS");
-    if(nv != nullptr)
+    if (RA != -1000 && Dec != -1000)
     {
-        RA = nv->np[0].value;
-        Dec = nv->np[1].value;
+        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+        epochPos.ra  = RA * 15.0;
+        epochPos.dec = Dec;
 
-        if (RA != -1000 && Dec != -1000)
+        // Convert from JNow to J2000
+        //TODO use exp_start instead of julian from system
+        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+
+        double raJ2000  = J2000Pos.ra / 15.0;
+        double decJ2000 = J2000Pos.dec;
+        char ra_str[32], de_str[32];
+
+        fs_sexa(ra_str, raJ2000, 2, 360000);
+        fs_sexa(de_str, decJ2000, 2, 360000);
+
+        char *raPtr = ra_str, *dePtr = de_str;
+        while (*raPtr != '\0')
         {
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.ra  = RA * 15.0;
-            epochPos.dec = Dec;
-
-            // Convert from JNow to J2000
-            //TODO use exp_start instead of julian from system
-            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-
-            double raJ2000  = J2000Pos.ra / 15.0;
-            double decJ2000 = J2000Pos.dec;
-            char ra_str[32], de_str[32];
-
-            fs_sexa(ra_str, raJ2000, 2, 360000);
-            fs_sexa(de_str, decJ2000, 2, 360000);
-
-            char *raPtr = ra_str, *dePtr = de_str;
-            while (*raPtr != '\0')
-            {
-                if (*raPtr == ':')
-                    *raPtr = ' ';
-                raPtr++;
-            }
-            while (*dePtr != '\0')
-            {
-                if (*dePtr == ':')
-                    *dePtr = ' ';
-                dePtr++;
-            }
-
-            fits_update_key_s(fptr, TSTRING, "OBJCTRA", ra_str, "Object RA", &status);
-            fits_update_key_s(fptr, TSTRING, "OBJCTDEC", de_str, "Object DEC", &status);
-
-            int epoch = 2000;
-
-            //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
-            fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
+            if (*raPtr == ':')
+                *raPtr = ' ';
+            raPtr++;
         }
+        while (*dePtr != '\0')
+        {
+            if (*dePtr == ':')
+                *dePtr = ' ';
+            dePtr++;
+        }
+
+        fits_update_key_s(fptr, TSTRING, "OBJCTRA", ra_str, "Object RA", &status);
+        fits_update_key_s(fptr, TSTRING, "OBJCTDEC", de_str, "Object DEC", &status);
+
+        int epoch = 2000;
+
+        //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
+        fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
     }
 
     fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
@@ -1260,4 +1245,35 @@ void SensorInterface::setBPS(int bps)
         DSP->setSizes(1, new int[1]{ getBufferSize() * 8 / BPS });
 }
 
+
+bool SensorInterface::Handshake()
+{
+    return false;
+}
+
+bool SensorInterface::callHandshake()
+{
+    if (sensorConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
+
+    return Handshake();
+}
+
+void SensorInterface::setSensorConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
+
+    if (value == 0 || (mask & value) == 0)
+    {
+        DEBUGF(Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
+    sensorConnection = value;
+}
 }
