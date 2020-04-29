@@ -609,11 +609,9 @@ const char *SensorInterface::getIntegrationStartTime()
     char iso8601[32];
     struct tm *tp;
     time_t t = (time_t)startIntegrationTime;
-    long n    = (startIntegrationTime-t)*1000000000;
 
     tp = gmtime(&t);
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
-    snprintf(ts, 32, "%s.%09ld", iso8601, n);
     return (ts);
 }
 
@@ -652,7 +650,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     int status = 0;
     char dev_name[32];
     char exp_start[32];
-    char exp_start_ns[32];
+    char timestamp[32];
     double integrationTime;
 
     char *orig = setlocale(LC_NUMERIC, "C");
@@ -678,8 +676,8 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     integrationTime = getIntegrationTime();
 
     strncpy(dev_name, getDeviceName(), 32);
-    strncpy(exp_start, getIntegrationStartTime(), 19);
-    strncpy(exp_start_ns, getIntegrationStartTime(), 32);
+    strncpy(exp_start, getIntegrationStartTime(), 32);
+    snprintf(timestamp, 32, "%lf", startIntegrationTime);
 
     fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(integrationTime), "Total Integration Time (s)", &status);
 
@@ -758,7 +756,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
         fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
     }
 
-    fits_update_key_s(fptr, TSTRING, "DATE", exp_start_ns, "UTC start date of integration", &status);
+    fits_update_key_s(fptr, TSTRING, "TIMESTAMP", timestamp, "Timestamp of start of integration", &status);
 
     fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
 

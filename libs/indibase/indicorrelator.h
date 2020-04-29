@@ -99,14 +99,14 @@ class Correlator : public SensorInterface
         Correlator();
         virtual ~Correlator();
 
-        bool initProperties();
-        bool updateProperties();
-        void ISGetProperties(const char *dev);
-        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        bool ISSnoopDevice(XMLEle *root);
+        bool initProperties() override;
+        bool updateProperties() override;
+        void ISGetProperties(const char *dev) override;
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
+        bool ISSnoopDevice(XMLEle *root) override;
 
         virtual bool StartIntegration(double duration) override;
 
