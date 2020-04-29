@@ -421,7 +421,7 @@ bool PegasusUPB::updateProperties()
 
 const char * PegasusUPB::getDefaultName()
 {
-    return "Pegasus UBP";
+    return "Pegasus UPB";
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1112,8 +1112,8 @@ bool PegasusUPB::setUSBHubEnabled(bool enabled)
 bool PegasusUPB::setUSBPortEnabled(uint8_t port, bool enabled)
 {
     char cmd[PEGASUS_LEN] = {0}, expected[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "U%d:%d", port, enabled ? 1 : 0);
-    snprintf(expected, PEGASUS_LEN, "U%d:%d", port, enabled ? 1 : 0);
+    snprintf(cmd, PEGASUS_LEN, "U%d:%d", port + 1, enabled ? 1 : 0);
+    snprintf(expected, PEGASUS_LEN, "U%d:%d", port + 1, enabled ? 1 : 0);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, expected));

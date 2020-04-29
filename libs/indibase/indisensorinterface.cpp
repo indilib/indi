@@ -178,20 +178,20 @@ bool SensorInterface::processSnoopDevice(XMLEle *root)
     {
         RA = EqNP.np[0].value;
         Dec = EqNP.np[1].value;
-        IDLog("Snooped RA %4.2f  Dec %4.2f\n",RA,Dec);
+        //IDLog("Snooped RA %4.2f  Dec %4.2f\n", RA, Dec);
     }
     if (!IUSnoopNumber(root, &LocationNP))
     {
         Lat = LocationNP.np[0].value;
         Lon = LocationNP.np[1].value;
         El = LocationNP.np[2].value;
-        IDLog("Snooped Lat %4.2f  Lon %4.2f  El %4.2f\n",RA,Dec,El);
+        //IDLog("Snooped Lat %4.2f  Lon %4.2f  El %4.2f\n", RA, Dec, El);
     }
     if (!IUSnoopNumber(root, &ScopeParametersNP))
     {
         primaryAperture = ScopeParametersNP.np[0].value;
         primaryFocalLength = ScopeParametersNP.np[1].value;
-        IDLog("Snooped primaryAperture %4.2f  primaryFocalLength %4.2f\n",primaryAperture,primaryFocalLength);
+        //IDLog("Snooped primaryAperture %4.2f  primaryFocalLength %4.2f\n", primaryAperture, primaryFocalLength);
     }
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
@@ -392,7 +392,7 @@ bool SensorInterface::processSwitch(const char *dev, const char *name, ISState *
 }
 
 bool SensorInterface::processBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                                    char *formats[], char *names[], int n)
+                                  char *formats[], char *names[], int n)
 {
     if (HasDSP())
         DSP->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
@@ -499,14 +499,20 @@ bool SensorInterface::initProperties()
     if (sensorConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(serialConnection);
     }
 
     if (sensorConnection & CONNECTION_TCP)
     {
         tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
 
         registerConnection(tcpConnection);
     }
@@ -531,11 +537,12 @@ void SensorInterface::SetCapability(uint32_t cap)
 }
 
 void SensorInterface::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                                   bool sendToClient)
+                                    bool sendToClient)
 {
     INumberVectorProperty *vp = nullptr;
 
-    if (!strcmp(property, FramedIntegrationNP.name)) {
+    if (!strcmp(property, FramedIntegrationNP.name))
+    {
         vp = &FramedIntegrationNP;
 
         INumber *np = IUFindNumber(vp, element);
@@ -564,7 +571,7 @@ void SensorInterface::setBufferSize(int nbuf, bool allocMem)
 
     // DSP
     if (HasDSP())
-        DSP->setSizes(1, new int[1]{ BufferSize * 8 / getBPS() });
+        DSP->setSizes(1, new int[1] { BufferSize * 8 / getBPS() });
 
     if (allocMem == false)
         return;
@@ -589,7 +596,9 @@ void SensorInterface::setIntegrationLeft(double duration)
 void SensorInterface::setIntegrationTime(double duration)
 {
     integrationTime = duration;
-    timespec_get(&startIntegrationTime, TIME_UTC);
+    // JM 2020-04-28: FIXME
+    // This does not compile on MacOS, so commenting now.
+    //timespec_get(&startIntegrationTime, TIME_UTC);
 }
 
 const char *SensorInterface::getIntegrationStartTime()
@@ -672,7 +681,8 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(integrationTime), "Total Integration Time (s)", &status);
 
     if (HasCooler())
-        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureN[0].value), "PrimarySensorInterface Temperature (Celsius)", &status);
+        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureN[0].value), "PrimarySensorInterface Temperature (Celsius)",
+                          &status);
 
 #ifdef WITH_MINMAX
     if (getNAxis() == 2)
@@ -752,7 +762,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 }
 
 void SensorInterface::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation,
-                                 int *status)
+                                        int *status)
 {
     // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
@@ -881,10 +891,11 @@ bool SensorInterface::IntegrationComplete()
     // Reset POLLMS to default value
     POLLMS = getPollingPeriod();
 
-    if(HasDSP()) {
+    if(HasDSP())
+    {
         uint8_t* buf = (uint8_t*)malloc(getBufferSize());
         memcpy(buf, getBuffer(), getBufferSize());
-        DSP->processBLOB(buf, 1, new int[1]{ getBufferSize()*8/getBPS() }, getBPS());
+        DSP->processBLOB(buf, 1, new int[1] { getBufferSize() * 8 / getBPS() }, getBPS());
         free(buf);
     }
     // Run async
@@ -943,7 +954,7 @@ bool SensorInterface::IntegrationCompletePrivate()
 }
 
 bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration,
-                          bool saveIntegration)
+                                 bool saveIntegration)
 {
 
     DEBUGF(Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendIntegration? %s, saveIntegration? %s",
@@ -1242,7 +1253,7 @@ void SensorInterface::setBPS(int bps)
 
     // DSP
     if (HasDSP())
-        DSP->setSizes(1, new int[1]{ getBufferSize() * 8 / BPS });
+        DSP->setSizes(1, new int[1] { getBufferSize() * 8 / BPS });
 }
 
 
