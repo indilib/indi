@@ -63,7 +63,10 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
     IUFillSwitch(&BaudRateS[3], "57600", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[4], "115200", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[5], "230400", "", ISS_OFF);
-    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, dev->getDeviceName(), INDI::SP::DEVICE_BAUD_RATE, "Baud Rate", CONNECTION_TAB,
+    IUFillSwitch(&BaudRateS[6], "460800", "", ISS_OFF);
+    IUFillSwitch(&BaudRateS[7], "576000", "", ISS_OFF);
+    IUFillSwitch(&BaudRateS[8], "921600", "", ISS_OFF);
+    IUFillSwitchVector(&BaudRateSP, BaudRateS, 9, dev->getDeviceName(), INDI::SP::DEVICE_BAUD_RATE, "Baud Rate", CONNECTION_TAB,
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 }
 

@@ -53,6 +53,8 @@
 
 #ifdef __APPLE__
 #include <sys/param.h>
+#include <mach/clock.h>
+#include <mach/mach.h>
 #endif
 
 #if defined(BSD) && !defined(__GNU__)
@@ -315,16 +317,39 @@ void IDLog(const char *fmt, ...)
     va_end(ap);
 }
 
+double time_ns()
+{
+struct timespec ts;
+#ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
+clock_serv_t cclock;
+mach_timespec_t mts;
+host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+clock_get_time(cclock, &mts);
+mach_port_deallocate(mach_task_self(), cclock);
+ts.tv_sec = mts.tv_sec;
+ts.tv_nsec = mts.tv_nsec;
+#else
+timespec_get(&ts, TIME_UTC);
+#endif
+return (double)ts.tv_sec+(double)(ts.tv_nsec%1000000000)/1000000000.0;
+}
+
 /* return current system time in message format */
 const char *timestamp()
 {
     static char ts[32];
+    char iso8601[32];
     struct tm *tp;
-    time_t t;
+    struct timespec tm;
 
-    time(&t);
+    timespec_get(&tm, TIME_UTC);
+    time_t t = (time_t)tm.tv_sec;
+    long n    = tm.tv_nsec % 1000000000;
+
     tp = gmtime(&t);
-    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
+
+    strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
+    snprintf(ts, 32, "%s.%09ld", iso8601, n);
     return (ts);
 }
 
@@ -786,6 +811,15 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     case 230400:
         bps = B230400;
         break;
+    case 460800:
+        bps = B460800;
+        break;
+    case 576000:
+        bps = B576000;
+        break;
+    case 921600:
+        bps = B921600;
+        break;
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
             perror(NULL);
@@ -1053,6 +1087,15 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
         break;
     case 230400:
         bps = B230400;
+        break;
+    case 460800:
+        bps = B460800;
+        break;
+    case 576000:
+        bps = B576000;
+        break;
+    case 921600:
+        bps = B921600;
         break;
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
