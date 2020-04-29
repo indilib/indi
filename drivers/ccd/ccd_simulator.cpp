@@ -31,10 +31,7 @@
 static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
-// We declare an auto pointer to ccdsim.
 static std::unique_ptr<CCDSim> ccdsim(new CCDSim());
-
-void ISPoll(void * p);
 
 void ISGetProperties(const char * dev)
 {
@@ -152,8 +149,6 @@ const char * CCDSim::getDefaultName()
 
 bool CCDSim::initProperties()
 {
-    //  Most hardware layers wont actually have indi properties defined
-    //  but the simulators are a special case
     INDI::CCD::initProperties();
 
     IUFillNumber(&SimulatorSettingsN[0], "SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
@@ -176,30 +171,40 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[16], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
 
     IUFillNumberVector(SimulatorSettingsNV, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
-                       "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
+                       "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
     IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
     IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
-    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
-                       "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "RGB",
+                       SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    // Simulate Crash
+    IUFillSwitch(&CrashS[0], "CRASH", "Crash driver", ISS_OFF);
+    IUFillSwitchVector(&CrashSP, CrashS, 1, getDeviceName(), "CCD_SIMULATE_CRASH", "Crash", SIMULATOR_TAB, IP_WO,
+                       ISR_ATMOST1, 0, IPS_IDLE);
+
+    // Periodic Error
+    IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
+                       IPS_IDLE);
+
+    // FWHM
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
     IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
+    // Cooler
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    // CCD Gain
+
+    // Gain
     IUFillNumber(&GainN[0], "GAIN", "Gain", "%.f", 0, 100, 10, 50);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config", IP_RW, 60,
-                       IPS_IDLE);
 
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
@@ -270,6 +275,7 @@ void CCDSim::ISGetProperties(const char * dev)
     defineNumber(SimulatorSettingsNV);
     defineNumber(&EqPENP);
     defineSwitch(&SimulateRgbSP);
+    defineSwitch(&CrashSP);
 }
 
 bool CCDSim::updateProperties()
@@ -1243,7 +1249,7 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-
+        // Simulate RGB
         if (!strcmp(name, SimulateRgbSP.name))
         {
             IUUpdateSwitch(&SimulateRgbSP, states, names, n);
@@ -1266,8 +1272,7 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 
             return true;
         }
-
-        if (strcmp(name, CoolerSP.name) == 0)
+        else if (strcmp(name, CoolerSP.name) == 0)
         {
             IUUpdateSwitch(&CoolerSP, states, names, n);
 
@@ -1283,6 +1288,10 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             IDSetSwitch(&CoolerSP, nullptr);
 
             return true;
+        }
+        else if (strcmp(name, CrashSP.name) == 0)
+        {
+            abort();
         }
     }
 

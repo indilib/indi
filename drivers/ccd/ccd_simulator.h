@@ -170,7 +170,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         bool terminateThread;
 
         //  And this lives in our simulator settings page
-
         INumberVectorProperty *SimulatorSettingsNV;
         INumber SimulatorSettingsN[17];
 
@@ -189,4 +188,9 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         INumber GainN[1];
         INumberVectorProperty GainNP;
+
+        ISwitchVectorProperty CrashSP;
+        ISwitch CrashS[1];
+
+        static const constexpr char* SIMULATOR_TAB = "Simulator Config";
 };
