@@ -508,7 +508,7 @@ protected:
         uint8_t *Buffer;
         int BufferSize;
         double integrationTime;
-        timespec startIntegrationTime;
+        double startIntegrationTime;
         char integrationExtention[MAXINDIBLOBFMT];
 
         bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration);
