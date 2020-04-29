@@ -2738,7 +2738,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         }
 
         int n = 0;
-        for (int nr = 0; nr < (int)targetChip->FitsB.bloblen; nr += n)
+        for (int nr = 0; nr < targetChip->FitsB.bloblen; nr += n)
             n = fwrite((static_cast<char *>(targetChip->FitsB.blob) + nr), 1, targetChip->FitsB.bloblen - nr, fp);
 
         fclose(fp);
@@ -3100,7 +3100,7 @@ int CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
     }
     int maxIndex = 0;
 
-    for (int i = 0; i < (int)files.size(); i++)
+    for (uint32_t i = 0; i < files.size(); i++)
     {
         int index = -1;
 
