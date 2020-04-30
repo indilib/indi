@@ -338,18 +338,12 @@ return (double)ts.tv_sec+(double)(ts.tv_nsec%1000000000)/1000000000.0;
 const char *timestamp()
 {
     static char ts[32];
-    char iso8601[32];
     struct tm *tp;
-    struct timespec tm;
+    time_t t;
 
-    timespec_get(&tm, TIME_UTC);
-    time_t t = (time_t)tm.tv_sec;
-    long n    = tm.tv_nsec % 1000000000;
-
+    time(&t);
     tp = gmtime(&t);
-
-    strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
-    snprintf(ts, 32, "%s.%09ld", iso8601, n);
+    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
     return (ts);
 }
 
