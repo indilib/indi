@@ -134,7 +134,7 @@ protected:
     ITextVectorProperty PortTP;
     IText PortT[1] {};
 
-    ISwitch BaudRateS[9];
+    ISwitch BaudRateS[6];
     ISwitchVectorProperty BaudRateSP;
 
     ISwitch AutoSearchS[2];
