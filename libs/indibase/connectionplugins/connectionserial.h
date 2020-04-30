@@ -42,7 +42,7 @@ class Serial : public Interface
      * \brief Supported baud rates
      * \note: Default baud rate is 9600. To change default baud rate, use setDefaultBaudrate(..) function.
      */
-    typedef enum { B_9600, B_19200, B_38400, B_57600, B_115200, B_230400, B_460800, B_576000, B_921600 } BaudRate;
+    typedef enum { B_9600, B_19200, B_38400, B_57600, B_115200, B_230400 } BaudRate;
 
     Serial(INDI::DefaultDevice *dev);
     virtual ~Serial();
