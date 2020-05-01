@@ -1473,7 +1473,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 #define MAX_DIFF_SID 0.0001 // better 0.0001 
             else if (fabs(val_sid) <= 0.001)
 	    {
-	      LOGF_ERROR("NOT an ERROR, Comparing UTC offset successful (%f), dst (%f)", sltn + dst_off, dst);
+	      LOGF_ERROR("NOT an ERROR, Comparing UTC offset successful (%f), dst (%f)", sltn + dst_off, dst_off);
 		if( fabs(sltn - 13.9348) <= 0.01) {
 		  LOG_ERROR("NOT an ERROR, we did find the correct value :-)");
 		}
