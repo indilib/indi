@@ -755,7 +755,8 @@ void LX200_TeenAstro::getBasicData()
 
         // Set pulse guiding 
         loadConfig(true, UsePulseCmdSP.name);
-        usePulseCommand = IUFindOnSwitchIndex(&UsePulseCmdSP);
+//        usePulseCommand = IUFindOnSwitchIndex(&UsePulseCmdSP);
+        usePulseCommand = true;     // sometimes we can't read from config file - until this is solved set it manually
         IDSetSwitch(&UsePulseCmdSP, nullptr);
 
         // set guide rate 
