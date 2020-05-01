@@ -126,12 +126,12 @@ void Axis::StartGuide(double rate, uint32_t durationMs)
 void Axis::update()         // called about once a second to update the position and mode
 {
     struct timeval currentTime { 0, 0 };
+
     /* update elapsed time since last poll, don't presume exactly POLLMS */
     gettimeofday(&currentTime, nullptr);
 
     if (lastTime.tv_sec == 0 && lastTime.tv_usec == 0)
         lastTime = currentTime;
-
 
     // Time diff in seconds
     double interval  = currentTime.tv_sec - lastTime.tv_sec + (currentTime.tv_usec - lastTime.tv_usec) / 1e6;
@@ -145,7 +145,7 @@ void Axis::update()         // called about once a second to update the position
     {
         position += TrackingRateDegSec * interval;
         target += TrackingRateDegSec * interval;
-        LOGF_EXTRA1("%s: tracking, rate %f, position %f, target %f", axisName, TrackingRateDegSec.Degrees(), position.Degrees(), target.Degrees());
+        //LOGF_EXTRA1("%s: tracking, rate %f, position %f, target %f", axisName, TrackingRateDegSec.Degrees(), position.Degrees(), target.Degrees());
     }
 
     // handle the slew
