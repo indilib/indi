@@ -484,7 +484,7 @@ bool PegasusUPB::Handshake()
 
     setupComplete = false;
 
-    version = !strcmp(response, "UPB2_OK") ? UPB_V2 : UPB_V1;
+    version = strstr(response, "UPB2_OK") ? UPB_V2 : UPB_V1;
 
     return true;
 }
