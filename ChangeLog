@@ -1,3 +1,22 @@
+From 1.8.4 to 1.8.5
+
+      + New PlaneWave EFA Driver.
+      + New PlaneWave Delta-T driver.
+      + New SestoSenso2 driver.
+      + New Radio Astronomy Interferometer Driver.
+      + Fixed parking in Temma driver.
+      + Improved Slew accuray for Celestron mounts.
+      + Improved TeenAstro Mount driver.
+      + Fixed declination issue in Rainbow driver.
+      + Fixed Guide problem with StarSense.
+      + Fixed AAG driver and Weather Parameters state.
+      + Fixed OnStep Speed change
+      + Added Park3 to AP mount driver.
+      + Improved XAGYL driver.
+      + Added hour axis offset to CCD Simulator.
+      + Added FOCUSPOS to the FITS header.
+      + Updated Telescope Simulator Driver.
+
 From 1.8.3 to 1.8.4
 
       + New TeenAstro Mount driver.

@@ -20,6 +20,9 @@
 
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
+#include "scopesim_helper.h"
+
+#define USE_SIM_TAB
 
 /**
  * @brief The ScopeSim class provides a simple mount simulator of an equatorial mount.
@@ -54,6 +57,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
+    // Slew Rate
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
     virtual bool Abort() override;
@@ -75,6 +79,9 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     // Parking
     virtual bool SetCurrentPark() override;
     virtual bool SetDefaultPark() override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+
+    virtual bool saveConfigItems(FILE *fp) override;
 
 private:
     double currentRA { 0 };
@@ -88,20 +95,39 @@ private:
     bool forceMeridianFlip { false };
     unsigned int DBG_SCOPE { 0 };
 
-    double guiderEWTarget[2];
-    double guiderNSTarget[2];
+    int mcRate = 0;
+
+//    double guiderEWTarget[2];
+//    double guiderNSTarget[2];
+
+    bool guidingNS = false;
+    bool guidingEW = false;
 
     INumber GuideRateN[2];
     INumberVectorProperty GuideRateNP;
 
-#ifdef USE_EQUATORIAL_PE
-    INumberVectorProperty EqPENV;
-    INumber EqPEN[2];
+    Axis axisPrimary { "HaAxis" };         // hour angle mount axis
+    Axis axisSecondary { "DecAxis" };       // declination mount axis
 
-    ISwitch PEErrNSS[2];
-    ISwitchVectorProperty PEErrNSSP;
+    Alignment alignment;
+    bool updateMountAndPierSide();
 
-    ISwitch PEErrWES[2];
-    ISwitchVectorProperty PEErrWESP;
+#ifdef USE_SIM_TAB
+    // Simulator Tab properties
+    // Scope type and alignment
+    ISwitch mountTypeS[3];
+    ISwitchVectorProperty mountTypeSP;
+    ISwitch simPierSideS[2];
+    ISwitchVectorProperty simPierSideSP;
+
+    INumber mountModelN[6];
+    INumberVectorProperty mountModelNP;
+    INumber mountAxisN[2];
+    INumberVectorProperty mountAxisNP;
+
+    INumber flipHourAngleN[1];
+    INumberVectorProperty flipHourAngleNP;
 #endif
+
 };
+

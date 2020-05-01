@@ -243,6 +243,11 @@ void getSexComponentsIID(double value, int *d, int *m, double *s);
 */
 int numberFormat(char *buf, const char *format, double value);
 
+/** \brief Get a unix timestamp with nanosecond precision
+    \return Seconds since UNIX Epoch.
+*/
+double time_ns();
+
 /** \brief Create an ISO 8601 formatted time stamp. The format is YYYY-MM-DDTHH:MM:SS
     \return The formatted time stamp.
 */

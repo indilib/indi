@@ -1,3 +1,9 @@
+libindi (1.8.6) bionic; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 28 Apr 2020 19:00:00 +0300
+
 libindi (1.8.5) bionic; urgency=medium
 
   * Minor release.

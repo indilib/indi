@@ -44,6 +44,7 @@ uint8_t* Transforms::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_
 {
     setStream(buf, dims, sizes, bits_per_sample);
     dsp_fourier_dft_magnitude(stream);
+    dsp_buffer_stretch(stream->buf, stream->len, 0.0, (bits_per_sample < 0 ? 1.0 : pow(2, bits_per_sample)-1));
     return getStream();
 }
 
