@@ -23,7 +23,8 @@
 #include "locale_compat.h"
 
 #include <libnova/julian_day.h>
-#include <libnova/precession.h>
+//#include <libnova/precession.h>
+#include <libastro.h>
 
 #include <cmath>
 #include <unistd.h>
@@ -636,14 +637,18 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
             ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
+            double jd = ln_get_julian_from_sys();
+
             epochPos.ra  = currentRA * 15.0;
             epochPos.dec = currentDE;
 
             // Convert from JNow to J2000
-            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+            LibAstro::ObservedToJ2000(&epochPos, jd, &J2000Pos);
 
             currentRA  = J2000Pos.ra / 15.0;
             currentDE = J2000Pos.dec;
+
+            LOGF_DEBUG("DrawCcdFrame JNow %f, %f J2000 %f, %f", RA, Dec, currentRA, currentDE);
 
             currentDE += guideNSOffset;
             currentRA += guideWEOffset;
@@ -1220,7 +1225,8 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             RA = EqPEN[AXIS_RA].value;
             Dec = EqPEN[AXIS_DE].value;
 
-            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+            LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
             currentRA  = J2000Pos.ra / 15.0;
             currentDE = J2000Pos.dec;
             usePE = true;
@@ -1493,3 +1499,4 @@ void CCDSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
     int status = 0;
     fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
 }
+

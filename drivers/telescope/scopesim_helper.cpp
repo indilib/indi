@@ -138,7 +138,15 @@ void Axis::update()         // called about once a second to update the position
     lastTime = currentTime;
     double change = 0;
 
-    //LOGF_DEBUG("axis %s: position %f, target %f, interval %f", axisName, position.Degrees(), target.Degrees(), interval);
+    //LOGF_DEBUG("%s: position %f, target %f, interval %f", axisName, position.Degrees(), target.Degrees(), interval);
+
+    // tracking
+    if (isTracking())
+    {
+        position += TrackingRateDegSec * interval;
+        target += TrackingRateDegSec * interval;
+        LOGF_EXTRA1("%s: tracking, rate %f, position %f, target %f", axisName, TrackingRateDegSec.Degrees(), position.Degrees(), target.Degrees());
+    }
 
     // handle the slew
     if (isSlewing)
@@ -205,14 +213,6 @@ void Axis::update()         // called about once a second to update the position
         guideDuration -= interval;
         //LOGF_DEBUG("guide rate %f, remaining duration %f, change %f", guideRateDegSec.Degrees(), guideDuration, change);
         position += change;
-    }
-
-    // tracking
-    if (isTracking())
-    {
-        position += TrackingRateDegSec * interval;
-        target += TrackingRateDegSec * interval;
-        LOGF_EXTRA1("%s: tracking, rate %f, position %f, target %f", axisName, TrackingRateDegSec.Degrees(), position.Degrees(), target.Degrees());
     }
 }
 
