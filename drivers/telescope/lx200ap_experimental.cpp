@@ -433,7 +433,10 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
             LOGF_ERROR("lx200ap_experimental: Error setting UTC offset (%d).", err);
             return false;
         }
-
+ 
+	MeridianDelayNP.s  = IPS_OK;
+	IDSetNumber(&MeridianDelayNP, nullptr);
+	
 	SiderealTimeNP.s  = IPS_BUSY;
 	IDSetNumber(&SiderealTimeNP, nullptr);
 
@@ -1394,6 +1397,39 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
 
+
+    JD = ln_get_julian_day(utc);
+
+    LOGF_DEBUG("New JD is %.8f", JD);
+
+    // Set Local Time
+    // 2020-04-18, wildi, four seconds, hm, [2020-04-18T21:43:28.144 AEST "[DEBUG] Set Local Time 21:43:24 is successful. "
+    // should be done here not via inditelescope.cpp, Telescope::ISSnoopDevice(XMLEle *root), return processTimeInfo(utc, offset);
+    if (!isSimulation() && setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
+    {
+        LOG_ERROR("Error setting local time.");
+        return false;
+    }
+
+    LOGF_DEBUG("Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
+               (int)ltm.seconds);
+
+    if (!isSimulation() && setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
+    {
+        LOG_ERROR("Error setting local date.");
+        return false;
+    }
+
+    LOGF_DEBUG("Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
+
+    if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
+    {
+        LOG_ERROR("Error setting UTC Offset.");
+        return false;
+    }
+
+    LOGF_DEBUG("Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
+    
     // back port :-)
     double dst_off = 0.;
     time_t lrt_is_dst=  time (NULL);
@@ -1501,31 +1537,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	    }
         }
     }
-
-    JD = ln_get_julian_day(utc);
-
-    LOGF_DEBUG("New JD is %.8f", JD);
-
-    // Set Local Time
-    // 2020-04-18, wildi, four seconds, hm, [2020-04-18T21:43:28.144 AEST "[DEBUG] Set Local Time 21:43:24 is successful. "
-    // should be done here not via inditelescope.cpp, Telescope::ISSnoopDevice(XMLEle *root), return processTimeInfo(utc, offset);
-    if (!isSimulation() && setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
-    {
-        LOG_ERROR("Error setting local time.");
-        return false;
-    }
-
-    LOGF_DEBUG("Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
-               (int)ltm.seconds);
-
-    if (!isSimulation() && setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
-    {
-        LOG_ERROR("Error setting local date.");
-        return false;
-    }
-
-    LOGF_DEBUG("Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
-
+    // yes, again
     if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
     {
         LOG_ERROR("Error setting UTC Offset.");
@@ -1533,7 +1545,6 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     }
 
     LOGF_DEBUG("Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
-    
     MeridianDelayNP.np[0].value = utc_offset;
     MeridianDelayNP.s = IPS_OK;
     IDSetNumber(&MeridianDelayNP, nullptr);
