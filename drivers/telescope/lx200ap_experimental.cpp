@@ -1368,12 +1368,11 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 
 double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off) {
 
-   if (isSimulation()) {
-     // no sid in simulation
-     return utc_off - UTC_OFFSET_TO_FIND;
-   }
    double lng = LocationN[LOCATION_LONGITUDE].value;
    double sid = get_local_sidereal_time(lng);
+   if (isSimulation()) {
+     return utc_off - UTC_OFFSET_TO_FIND;
+   }
    if( setAPUTCOffset(PortFD, utc_off) < 0)
    {
         LOG_ERROR("Error setting UTC Offset, while finding correct SID.");
@@ -1461,9 +1460,16 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     //if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT ))
     if (fabs(fractpart) < UPPER_LIMIT )
     {
-	// find correct by bisection
-	double lwr_lmt = 0.;
-	double uppr_lmt = 24.;
+        double lng = LocationN[LOCATION_LONGITUDE].value;
+        double sid = get_local_sidereal_time(lng); // rangeHA
+        if( sid < 0) {
+	  sid += 12.;
+        }
+        // lwr_mnt is an approximation
+        // to find the correct time (understood as UTC) use the inverse
+        // get_local_sidereal_time function, see e.g.: https://www.aa.quae.nl/en/reken/sterrentijd.html
+        double lwr_lmt = - (sid * 86400./86164.0905);
+        double uppr_lmt = 86164.0905 / 86400. * 24.; // unit sid hour 
 	double sltn ;
 	double val_sid;
 	double val_sid_a, val_sid_b;
@@ -1479,6 +1485,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	      break;
 	    }
 	}
+	bool val_found = false; // used in bisection loop
         if(found) {
 	
 	  uppr_lmt = (double) tp ;
@@ -1495,11 +1502,13 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	  LOGF_DEBUG("Reset UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
         } else {
 	  // do not loop
+	  val_found = true;
 	  uppr_lmt = lwr_lmt ;
 	  LOG_ERROR("no sign change found");
 	}
+
+	// find correct by bisection
 #define EP 0.00001
-	bool val_found = false;
         while (!val_found || fabs(uppr_lmt-lwr_lmt) >= EP) {
 	    cnt -= 1;
 	    if(cnt ==0) {
@@ -1516,9 +1525,9 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
 	      break;
 	    }
-#define MAX_DIFF_SID 0.00015 // lowest value found so far: 0.000076
-	    //            0.00015
-	    //            0.000076  
+#define MAX_DIFF_SID 0.00024 // lowest value found so far: 0.000076
+	    // dt = 1 sec   0.0002
+	    //              0.000076  
 	    // required  13.9348
             else if (fabs(val_sid) <= MAX_DIFF_SID)
 	    {
