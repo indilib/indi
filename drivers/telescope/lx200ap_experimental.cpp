@@ -439,7 +439,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 	
 	SiderealTimeNP.s  = IPS_BUSY;
 	IDSetNumber(&SiderealTimeNP, nullptr);
-
+	// ToDo: eventually goes away
 	const struct timespec timeout = {0, 250000000L};
 	nanosleep(&timeout, nullptr);
 
@@ -1475,9 +1475,11 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	double val_sid_a, val_sid_b;
 	int cnt = 500;
 	// define first two points that have a different sign
-	bool found = false;
+	// this loop is not needed in a strict sense
+	// since within t_sid = 0 and t_sid = 24 hour_sid (see definition of limist)
 	val_sid_a = setUTCgetSID(lwr_lmt);
 	int tp;
+	bool found = false;
 	for(tp = lwr_lmt; tp <= uppr_lmt; tp++) {
 	    val_sid_b = setUTCgetSID((double)tp);
 	    if (( val_sid_a * val_sid_b) < 0) {
