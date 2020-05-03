@@ -300,6 +300,11 @@ bool ScopeSim::ReadScopeStatus()
                 SetTrackEnabled(true);
                 EqNP.s = IPS_IDLE;
                 LOG_INFO("Telescope slew is complete. Tracking...");
+
+               // check the slew accuracy
+                auto dRa = targetRA - currentRA;
+                auto dDec = targetDEC - currentDEC;
+                LOGF_DEBUG("slew accuracy %f, %f", dRa * 15 * 3600, dDec * 3600);
             }
             break;
         default:
