@@ -1483,6 +1483,16 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	
 	  uppr_lmt = (double) tp ;
 	  LOGF_ERROR("sign change found at (%f), starting at: (%f)", uppr_lmt, lwr_lmt);
+	  // since we messed around with time, restore initial utc_offset
+	  // The sign change was found in the utc_offset intervel [0,uppr_lmt]
+	  // The blow loop assumes that.
+	  if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
+	    {
+	      LOG_ERROR("Error setting UTC Offset.");
+	      return false;
+	    }
+	  
+	  LOGF_DEBUG("Reset UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
         } else {
 	  // do not loop
 	  uppr_lmt = lwr_lmt ;
