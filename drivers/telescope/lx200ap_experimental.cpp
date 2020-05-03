@@ -1516,7 +1516,10 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
 	      break;
 	    }
-#define MAX_DIFF_SID 0.00001 // test, better 0.0001 
+#define MAX_DIFF_SID 0.00015 // lowest value found so far: 0.000076
+	    //            0.00015
+	    //            0.000076  
+	    // required  13.9348
             else if (fabs(val_sid) <= MAX_DIFF_SID)
 	    {
 	      val_found = true;
