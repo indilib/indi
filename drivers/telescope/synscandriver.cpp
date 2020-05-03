@@ -32,6 +32,7 @@
 #include <memory>
 #include <termios.h>
 #include <cstring>
+#include <assert.h>
 
 constexpr uint16_t SynscanDriver::SIM_SLEW_RATE[];
 
@@ -112,6 +113,11 @@ bool SynscanDriver::initProperties()
     AddTrackMode("TRACK_EQ", "Equatorial", true);
     AddTrackMode("TRACK_PEC", "PEC Mode");
 
+    IUFillSwitch(&GotoModeS[0], "ALTAZ", "Alt/Az", ISS_OFF);
+    IUFillSwitch(&GotoModeS[1], "RADEC", "Ra/Dec", ISS_ON);
+    IUFillSwitchVector(&GotoModeSP, GotoModeS, NARRAY(GotoModeS), getDeviceName(), "GOTOMODE", "Goto mode",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     SetParkDataType(PARK_AZ_ALT);
 
     // Initialize guiding properties.
@@ -140,6 +146,10 @@ bool SynscanDriver::updateProperties()
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
 
+        if (m_isAltAz) {
+            defineSwitch(&GotoModeSP);
+        }
+
         if (InitPark())
         {
             SetAxis1ParkDefault(359);
@@ -161,6 +171,9 @@ bool SynscanDriver::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
+        if (m_isAltAz) {
+            deleteProperty(GotoModeSP.name);
+        }
     }
 
     return true;
@@ -295,6 +308,30 @@ bool SynscanDriver::ISNewNumber(const char * dev, const char * name, double valu
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
+bool SynscanDriver::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev && !strcmp(dev, getDeviceName())) {
+        ISwitchVectorProperty *svp = getSwitch(name);
+
+        if (!strcmp(svp->name, GotoModeSP.name))
+        {
+            IUUpdateSwitch(svp, states, names, n);
+            ISwitch *sp = IUFindOnSwitch(svp);
+
+            assert(sp != nullptr);
+
+            if (!strcmp(sp->name, GotoModeS[0].name))
+                SetAltAzMode(true);
+            else
+                SetAltAzMode(false);
+            return true;
+        }
+
+    }
+
+    return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
+}
+
 bool SynscanDriver::echo()
 {
     char res[SYN_RES] = {0};
@@ -382,6 +419,7 @@ bool SynscanDriver::readModel()
         {5, "AZ-EQ6 GOTO Series"},
         {6, "AZ-EQ5 GOTO Series"},
         {160, "AllView GOTO Series"},
+        {161, "Virtuoso Alt/Az mount"},
         {165, "AZ-GTi GOTO Series"}
     };
 
@@ -545,6 +583,36 @@ bool SynscanDriver::SetTrackMode(uint8_t mode)
     return sendCommand(cmd, res);
 }
 
+bool SynscanDriver::SetAltAzMode(bool enable)
+{
+    IUResetSwitch(&GotoModeSP);
+
+    if (enable)
+    {
+        ISwitch *sp = IUFindSwitch(&GotoModeSP, "ALTAZ");
+        if (sp)
+        {
+            LOG_INFO("Using AltAz goto.");
+            sp->s = ISS_ON;
+        }
+        goto_AltAz = true;
+    }
+    else
+    {
+        ISwitch *sp = IUFindSwitch(&GotoModeSP, "RADEC");
+        if (sp)
+        {
+            sp->s = ISS_ON;
+            LOG_INFO("Using Ra/Dec goto.");
+        }
+        goto_AltAz = false;
+    }
+
+    GotoModeSP.s = IPS_OK;
+    IDSetSwitch(&GotoModeSP, nullptr);
+    return true;
+}
+
 bool SynscanDriver::Goto(double ra, double dec)
 {
     char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
@@ -562,7 +630,7 @@ bool SynscanDriver::Goto(double ra, double dec)
     epochPos.dec = dec;
 
     // For Alt/Az mounts, we must issue Goto Alt/Az
-    if (m_isAltAz)
+    if (goto_AltAz && m_isAltAz) // only if enabled to use AltAz goto
     {
         struct ln_lnlat_posn lnobserver;
         struct ln_hrz_posn lnaltaz;
@@ -582,9 +650,11 @@ bool SynscanDriver::Goto(double ra, double dec)
     // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
     ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
 
+    double dec_pos = J2000Pos.dec;
+    if (J2000Pos.dec < 0) dec_pos = dec_pos + 360;
     // Mount deals in J2000 coords.
     uint32_t n1 = J2000Pos.ra  / 360  * 0x100000000;
-    uint32_t n2 = J2000Pos.dec / 360 * 0x100000000;
+    uint32_t n2 = dec_pos / 360 * 0x100000000;
 
     LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra / 15.0, J2000Pos.dec);
 

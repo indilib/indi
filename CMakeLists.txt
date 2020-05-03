@@ -185,6 +185,7 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 SET(indiclient_C_SRC ${indiclient_C_SRC}
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 add_library(indiclient STATIC ${indiclient_C_SRC} ${indiclient_CXX_SRC})
@@ -244,6 +245,7 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 SET(indiclientqt_C_SRC ${indiclientqt_C_SRC}
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 add_library(indiclientqt STATIC ${indiclientqt_C_SRC} ${indiclientqt_CXX_SRC})
@@ -441,6 +443,7 @@ SET(indidriver_C_SRC
     ${indidriver_C_SRC}
     ${libdsp_C_SRC}
     ${fpack_C_SRC}
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 ##################################################
@@ -1665,6 +1668,7 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 SET(indi_get_SRC ${indi_get_SRC}
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 add_executable(indi_getprop ${indi_get_SRC})
@@ -1687,6 +1691,7 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 SET(indi_set_SRC ${indi_set_SRC}
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 add_executable(indi_setprop ${indi_set_SRC})
@@ -1710,6 +1715,7 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 SET(indi_eval_SRC ${indi_eval_SRC}
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 add_executable(indi_eval ${indi_eval_SRC})
@@ -1823,6 +1829,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/indidevapi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/base64.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
         ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
