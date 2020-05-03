@@ -364,7 +364,13 @@ protected:
          */
         bool HasDSP()
         {
-            return capability & SENSOR_HAS_DSP;
+            if(capability & SENSOR_HAS_DSP)
+            {
+                if (DSP.get() == nullptr)
+                    DSP.reset(new DSP::Manager(this));
+                return true;
+            }
+            return false;
         }
 
         /**
@@ -372,7 +378,16 @@ protected:
          */
         bool HasStreaming()
         {
-            return capability & SENSOR_HAS_STREAMING;
+            if(capability & SENSOR_HAS_STREAMING)
+            {
+                if (Streamer.get() == nullptr)
+                {
+                    Streamer.reset(new StreamManager(this));
+                    Streamer->initProperties();
+                }
+                return true;
+            }
+            return false;
         }
 
         /**
