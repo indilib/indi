@@ -1488,9 +1488,9 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	  uppr_lmt = lwr_lmt ;
 	  LOG_ERROR("no sign change found");
 	}
-#define EP 0.0001
+#define EP 0.00001
 	bool val_found = false;
-        while (!val_found && (uppr_lmt-lwr_lmt) >= EP) {
+        while (!val_found || fabs(uppr_lmt-lwr_lmt) >= EP) {
 	    cnt -= 1;
 	    if(cnt ==0) {
 	      
@@ -1501,17 +1501,16 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	    sltn = (lwr_lmt+uppr_lmt)/2;
             // Check if middle point is root
 	    val_sid = setUTCgetSID(sltn);
-	    LOGF_DEBUG("UTC offset (%f), diff sid (%f)", sltn, val_sid);
 	    if (val_sid == ERROR)
 	    {
 	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
 	      break;
 	    }
-#define MAX_DIFF_SID 0.0001 // better 0.0001 
-            else if (fabs(val_sid) <= 0.001)
+#define MAX_DIFF_SID 0.001 // test, better 0.0001 
+            else if (fabs(val_sid) <= MAX_DIFF_SID)
 	    {
 	      val_found = true;
-	      LOGF_ERROR("NOT an ERROR, Comparing UTC offset successful (%f), dst (%f)", sltn + dst_off, dst_off);
+	      LOGF_ERROR(">>>>NOT an ERROR, Comparing UTC offset successful (%f), dst (%f), val_sid (%f), diff (%f)", sltn + dst_off, dst_off, val_sid, uppr_lmt-lwr_lmt);
 		if( fabs(sltn - 13.9348) <= 0.01) {
 		  LOG_ERROR("NOT an ERROR, we did find the correct value :-)");
 		}
@@ -1535,6 +1534,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	    {
 	        lwr_lmt = sltn;
 	    }
+	    LOGF_ERROR("UTC offset (%f), diff sid (%f), diff (%f), cnt (%d)", sltn, val_sid, uppr_lmt-lwr_lmt, cnt);
         }
     }
     // yes, again
