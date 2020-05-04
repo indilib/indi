@@ -1472,14 +1472,14 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	double sltn ;
 	double val_sid;
 	double val_sid_a;
-	int cnt = 500;
 	// define first two points that have a different sign
 	// this loop is not needed in a strict sense
-	// since within t_sid = 0 and t_sid = 24 hour_sid (see definition of limist)
+	// since within t_sid = 0 and t_sid = 24 hour_sid (see definition of limits)
 #define SIMULATION_OFFSET_TO_FIND  4.12345678
 	double val_sim_offset = 0.;
 	if(isSimulation()) {
-	  val_sim_offset =  SIMULATION_OFFSET_TO_FIND ;
+	  val_sim_offset =  lwr_lmt + SIMULATION_OFFSET_TO_FIND ;
+	  
 	}
 #ifdef no
 	val_sid_a = setUTCgetSID(lwr_lmt, val_sim_offset);
@@ -1518,14 +1518,15 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 #endif
 	// find correct by bisection
 	//#define EP 0.00001
+	double val_found = false;
+	int cnt = 200;
 #define EP 0.0001
-	LOGF_ERROR("lower (%f), upper: (%f)", lwr_lmt, uppr_lmt);
-        //while (!val_found || fabs(uppr_lmt-lwr_lmt) >= EP) {
-        while (fabs(uppr_lmt-lwr_lmt) > EP) {
+	LOGF_ERROR("lower (%f), upper: (%f), sid (%f), sim: val (%f)", lwr_lmt, uppr_lmt, sid, val_sim_offset);
+        while (!val_found || fabs(uppr_lmt-lwr_lmt) > EP) {
 	    cnt -= 1;
 	    if(cnt ==0) {
 	      
-	      LOG_ERROR("after 500 iterations, comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
+	      LOG_ERROR("after 200 iterations, comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
 	      break;
 	    }
 
@@ -1544,7 +1545,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	    // required  13.9348
             else if (fabs(val_sid) <= MAX_DIFF_SID && fabs(uppr_lmt-lwr_lmt) <= (2. * EP))
 	    {
-	      //val_found = true;
+	      val_found = true;
 	      if( sltn< 0.) { // must be positive
 	        LOGF_ERROR(">>>>NOT an ERROR, UTC offset was: %f", sltn);
 	       sltn += 24.;
