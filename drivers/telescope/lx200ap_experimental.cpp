@@ -1372,6 +1372,9 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
    if (isSimulation()) {
      return utc_off -  sim_offset;
    }
+   if(utc_off < 0) {
+     utc_off += 24.;
+   }
    if( setAPUTCOffset(PortFD, utc_off) < 0)
    {
         LOG_ERROR("Error setting UTC Offset, while finding correct SID.");
@@ -1468,9 +1471,8 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
         double uppr_lmt = lwr_lmt + 86164.0905 / 86400. * 24.; // unit sid hour 
 	double sltn ;
 	double val_sid;
-	double val_sid_a, val_sid_b;
+	double val_sid_a;
 	int cnt = 500;
-	//#ifdef no
 	// define first two points that have a different sign
 	// this loop is not needed in a strict sense
 	// since within t_sid = 0 and t_sid = 24 hour_sid (see definition of limist)
@@ -1479,8 +1481,10 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	if(isSimulation()) {
 	  val_sim_offset =  SIMULATION_OFFSET_TO_FIND ;
 	}
+#ifdef no
 	val_sid_a = setUTCgetSID(lwr_lmt, val_sim_offset);
 	
+	double val_sid_b;
 	int tp;
 	bool found = false;
 	for(tp = lwr_lmt; tp <= uppr_lmt; tp++) {
@@ -1511,11 +1515,13 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	  uppr_lmt = lwr_lmt ;
 	  LOG_ERROR("no sign change found");
 	}
-	//#endif
+#endif
 	// find correct by bisection
-#define EP 0.00001
+	//#define EP 0.00001
+#define EP 0.0001
 	LOGF_ERROR("lower (%f), upper: (%f)", lwr_lmt, uppr_lmt);
-        while (!val_found || fabs(uppr_lmt-lwr_lmt) >= EP) {
+        //while (!val_found || fabs(uppr_lmt-lwr_lmt) >= EP) {
+        while (fabs(uppr_lmt-lwr_lmt) > EP) {
 	    cnt -= 1;
 	    if(cnt ==0) {
 	      
@@ -1536,9 +1542,9 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	    // dt = 1 sec   0.0002
 	    //              0.000076  
 	    // required  13.9348
-            else if (fabs(val_sid) <= MAX_DIFF_SID && fabs(uppr_lmt-lwr_lmt) <= EP)
+            else if (fabs(val_sid) <= MAX_DIFF_SID && fabs(uppr_lmt-lwr_lmt) <= (2. * EP))
 	    {
-	      val_found = true;
+	      //val_found = true;
 	      if( sltn< 0.) { // must be positive
 	        LOGF_ERROR(">>>>NOT an ERROR, UTC offset was: %f", sltn);
 	       sltn += 24.;
