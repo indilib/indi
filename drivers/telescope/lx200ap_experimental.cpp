@@ -1461,9 +1461,6 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     {
         double lng = LocationN[LOCATION_LONGITUDE].value;
         double sid = get_local_sidereal_time(lng); // rangeHA
-        if( sid < 0) {
-	  sid += 12.;
-        }
         // lwr_mnt is an approximation
         // to find the correct time (understood as UTC) use the inverse
         // get_local_sidereal_time function, see e.g.: https://www.aa.quae.nl/en/reken/sterrentijd.html
@@ -1487,9 +1484,6 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	int tp;
 	bool found = false;
 	for(tp = lwr_lmt; tp <= uppr_lmt; tp++) {
-	  if(tp < 0) { // must be positive
-	    tp += 12.;
-	  }
 	  val_sid_b = setUTCgetSID((double)tp, val_sim_offset);
 	    if (( val_sid_a * val_sid_b) < 0) {
 	      found = true;
@@ -1531,12 +1525,8 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
             // Find middle point
 	    sltn = (lwr_lmt+uppr_lmt)/2;
-	    double t_sltn = sltn;
-	    if( t_sltn< 0.) { // must be positive
-	      t_sltn += 12.;
-	    }
             // Check if middle point is root
-	    val_sid = setUTCgetSID(t_sltn, val_sim_offset);
+	    val_sid = setUTCgetSID(sltn, val_sim_offset);
 	    if (val_sid == ERROR)
 	    {
 	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
@@ -1546,24 +1536,27 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	    // dt = 1 sec   0.0002
 	    //              0.000076  
 	    // required  13.9348
-            else if (fabs(val_sid) <= MAX_DIFF_SID)
+            else if (fabs(val_sid) <= MAX_DIFF_SID && fabs(uppr_lmt-lwr_lmt) <= EP)
 	    {
 	      val_found = true;
+	      if( sltn< 0.) { // must be positive
+	        LOGF_ERROR(">>>>NOT an ERROR, UTC offset was: %f", sltn);
+	       sltn += 24.;
+	      }
 	      
-	      LOGF_ERROR(">>>>NOT an ERROR, Comparing UTC offset successful (%f), dst (%f), val_sid (%f), diff (%f)", t_sltn + dst_off, dst_off, val_sid, uppr_lmt-lwr_lmt);
-		if( fabs(sltn - 13.9348) <= 0.01) {
+	      LOGF_ERROR(">>>>NOT an ERROR, Comparing UTC offset successful (%f), dst (%f), val_sid (%f), diff (%f)", sltn + dst_off, dst_off, val_sid, uppr_lmt-lwr_lmt);
+	      if(isSimulation()) {
+		//if( fabs(sltn - 13.9348) <= 0.01) {
+		if( fabs(sltn - SIMULATION_OFFSET_TO_FIND) <= 0.01) {
 		  LOG_ERROR("NOT an ERROR, we did find the correct value :-)");
 		}
+	      }
 		
-	        utc_offset = t_sltn + dst_off; // 2020-04-25, wildi, ToDo define sign
+	        utc_offset = sltn + dst_off; // 2020-04-25, wildi, ToDo define sign
                 break;
 	    }
-	    double t_lwr_lmt = lwr_lmt;
 	    
-	    if( t_lwr_lmt< 0.) { // must be positive
-	      t_lwr_lmt += 12.;
-	    }
-            val_sid_a = setUTCgetSID(t_lwr_lmt, val_sim_offset);
+            val_sid_a = setUTCgetSID(lwr_lmt, val_sim_offset);
 	    if (val_sid_a == ERROR)
 	    {
 	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
@@ -1578,8 +1571,8 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	    {
 	        lwr_lmt = sltn;
 	    }
-	    LOGF_ERROR("cnt (%d), UTC offset (%f), lower: (%f), upper: (%f), diff (%f) , val_sid (%f),  t_sltn: %f, t_lwr_lmt: %f",
-		       cnt, sltn, lwr_lmt,uppr_lmt, uppr_lmt-lwr_lmt, val_sid, t_sltn, t_lwr_lmt);
+	    LOGF_ERROR("cnt (%d), UTC offset (%f), lower: (%f), upper: (%f), diff (%f) , val_sid (%f)",
+		       cnt, sltn, lwr_lmt,uppr_lmt, uppr_lmt-lwr_lmt, val_sid);
         }
     }
     // yes, again
