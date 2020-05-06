@@ -33,7 +33,7 @@
 
 #include <cerrno>
 #include <cstring>
-
+#include <cmath>
 #include <fcntl.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -127,7 +127,8 @@ bool SkySafari::initProperties()
 
     IUFillSwitch(&ServerControlS[SERVER_ENABLE], "SERVER_ENABLE", "Enabled", ISS_OFF);
     IUFillSwitch(&ServerControlS[SERVER_DISABLE], "SERVER_DISABLE", "Disabled", ISS_ON);
-    IUFillSwitchVector(&ServerControlSP, ServerControlS, 2, getDeviceName(), "SKYSAFARI_SERVER", "Server", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&ServerControlSP, ServerControlS, 2, getDeviceName(), "SKYSAFARI_SERVER", "Server", MAIN_CONTROL_TAB,
+                       IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
@@ -531,7 +532,7 @@ void SkySafari::processCommand(std::string cmd)
         if (sscanf(cmd.c_str(), "Sd%d*%d:%d", &dd, &mm, &ss) == 3)
         {
             DE = abs(dd) + mm / 60.0 + ss / 3600.0;
-            if (dd < 0)
+            if (std::signbit(dd))
                 DE *= -1;
         }
 
