@@ -267,7 +267,7 @@ int getCommandSexa(int fd, double *value, const char *cmd)
         return -1;
     }
 
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%g]", *value);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL WILDI [%g]", *value);
 
     tcflush(fd, TCIFLUSH);
     return 0;

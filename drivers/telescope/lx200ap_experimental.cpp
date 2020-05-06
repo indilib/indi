@@ -156,7 +156,8 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // meridian delay (experimental!)
-    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "UTC offset", "%8.5f", -24.0, 24.0, 0.0, 0.);
+    // ToTo, set 0., 24. not -24,24.
+    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "UTC offset", "%8.5f", -30.0, 30.0, 0.0, 0.);
     IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY", "UTC offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
     // sidereal time
     IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
@@ -718,7 +719,15 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     } 
     if (getLX200DEC(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading Dec failed :GD %d", -1);
-    } 
+    }
+    int ddd = 0;
+    int fmm= 0;
+    if (getSiteLongitude(PortFD, &ddd, &fmm) < 0) {
+      LOGF_DEBUG("Reading longitude failed :Gg %d", -1);
+    }
+    double lng = LocationN[LOCATION_LONGITUDE].value    ;
+    LOGF_DEBUG("Reading longitude  %f", lng);
+    
     // ev. comment that out
     char buf[64];
     if (getCalendarDate(PortFD, buf) < 0) {
@@ -1367,13 +1376,11 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 // ugly
 double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_offset) {
 
-   double lng = LocationN[LOCATION_LONGITUDE].value;
-   double sid = get_local_sidereal_time(lng);
    if (isSimulation()) {
      return utc_off -  sim_offset;
    }
    if(utc_off < 0) {
-     utc_off += 24.;
+     utc_off += 24. / 1.00273790935; // add one sid day
    }
    if( setAPUTCOffset(PortFD, utc_off) < 0)
    {
@@ -1389,7 +1396,8 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
         LOG_ERROR("Reading sidereal time failed, while finding correct SID.");
 	return ERROR;
    }
-
+   double lng = LocationN[LOCATION_LONGITUDE].value;
+   double sid = get_local_sidereal_time(lng);
    return val - sid;
 }
 bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
@@ -1422,7 +1430,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     }
 
     LOGF_DEBUG("Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
-
+#ifdef no
     if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
     {
         LOG_ERROR("Error setting UTC Offset.");
@@ -1430,8 +1438,44 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     }
 
     LOGF_DEBUG("Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
+#endif
     
     // back port :-)
+    ReadScopeStatus();
+    double ap_sid_sid = setUTCgetSID(0., 0.);
+    double lng = LocationN[LOCATION_LONGITUDE].value;
+    double bla;
+    if ((!isSimulation()) && (getLocalTime24(PortFD, &bla) < 0)) {
+      LOGF_DEBUG("Reading local time failed :GL %d", -1);	
+    } 
+
+    int ddd = 0;
+    int fmm = 0;
+    if ((!isSimulation()) && (getSiteLongitude(PortFD, &ddd, &fmm) < 0)) {
+      LOGF_DEBUG("Reading longitude failed :Gg %d", -1);
+    }
+
+    double ap_sid;
+    if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
+      LOGF_ERROR("Reading sidereal time failed %d", -1);
+      return false;
+    } else {
+      double lng = LocationN[LOCATION_LONGITUDE].value;
+      ap_sid = get_local_sidereal_time(lng);
+    }
+    double sid = get_local_sidereal_time(lng); // rangeHA
+    LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid: %f, AP sid: %f", lng, sid, ap_sid);
+    if (sid < 0) {
+      sid +=24.;
+      LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid +24.: %f, AP sid: %f", lng, sid, ap_sid);
+    }
+    utc_offset = fabs(sid - ap_sid);
+    ap_sid_sid = setUTCgetSID(utc_offset, 0.);
+    LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid: %f, AP sid: %f, sid diff: %f", lng, sid, ap_sid, ap_sid_sid);
+    ReadScopeStatus();
+   
+
+#ifdef no
     double dst_off = 0.;
     time_t lrt_is_dst=  time (NULL);
     tm ltm_is_dst;
@@ -1467,8 +1511,8 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
         // lwr_mnt is an approximation
         // to find the correct time (understood as UTC) use the inverse
         // get_local_sidereal_time function, see e.g.: https://www.aa.quae.nl/en/reken/sterrentijd.html
-        double lwr_lmt = - (sid * 86400./86164.0905);
-        double uppr_lmt = lwr_lmt + 86164.0905 / 86400. * 24.; // unit sid hour 
+        double lwr_lmt = - sid; // NO: (sid * 86400./86164.0905);
+        double uppr_lmt = lwr_lmt + 24. / 1.00273790935; // add one sid day 
 	double sltn ;
 	double val_sid;
 	double val_sid_a;
@@ -1481,7 +1525,6 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	  val_sim_offset =  lwr_lmt + SIMULATION_OFFSET_TO_FIND ;
 	  
 	}
-#ifdef no
 	val_sid_a = setUTCgetSID(lwr_lmt, val_sim_offset);
 	
 	double val_sid_b;
@@ -1515,7 +1558,6 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	  uppr_lmt = lwr_lmt ;
 	  LOG_ERROR("no sign change found");
 	}
-#endif
 	// find correct by bisection
 	//#define EP 0.00001
 	double val_found = false;
@@ -1548,7 +1590,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	      val_found = true;
 	      if( sltn< 0.) { // must be positive
 	        LOGF_ERROR(">>>>NOT an ERROR, UTC offset was: %f", sltn);
-	       sltn += 24.;
+		sltn += 24. / 1.00273790935; // add one sid day
 	      }
 	      
 	      LOGF_ERROR(">>>>NOT an ERROR, Comparing UTC offset successful (%f), dst (%f), val_sid (%f), diff (%f)", sltn + dst_off, dst_off, val_sid, uppr_lmt-lwr_lmt);
@@ -1588,6 +1630,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
         LOG_ERROR("Error setting UTC Offset.");
         return false;
     }
+#endif
 
     LOGF_DEBUG("Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
     MeridianDelayNP.np[0].value = utc_offset;
