@@ -1396,9 +1396,7 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
         LOG_ERROR("Reading sidereal time failed, while finding correct SID.");
 	return ERROR;
    }
-   double lng = LocationN[LOCATION_LONGITUDE].value;
-   double sid = get_local_sidereal_time(lng);
-   return val - sid;
+   return val;
 }
 bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 {
@@ -1430,7 +1428,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     }
 
     LOGF_DEBUG("Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
-#ifdef no
+    utc_offset = 0.;
     if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
     {
         LOG_ERROR("Error setting UTC Offset.");
@@ -1438,13 +1436,12 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     }
 
     LOGF_DEBUG("Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
-#endif
     
     // back port :-)
     ReadScopeStatus();
-    double ap_sid_sid = setUTCgetSID(0., 0.);
+    double bla = setUTCgetSID(0., 0.);
     double lng = LocationN[LOCATION_LONGITUDE].value;
-    double bla;
+ 
     if ((!isSimulation()) && (getLocalTime24(PortFD, &bla) < 0)) {
       LOGF_DEBUG("Reading local time failed :GL %d", -1);	
     } 
@@ -1458,11 +1455,15 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     double ap_sid;
     if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
       LOGF_ERROR("Reading sidereal time failed %d", -1);
-      return false;
-    } else {
+
+    }
+#ifdef no
+    else
+    {
       double lng = LocationN[LOCATION_LONGITUDE].value;
       ap_sid = get_local_sidereal_time(lng);
     }
+#endif 
     double sid = get_local_sidereal_time(lng); // rangeHA
     LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid: %f, AP sid: %f", lng, sid, ap_sid);
     if (sid < 0) {
@@ -1470,8 +1471,17 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
       LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid +24.: %f, AP sid: %f", lng, sid, ap_sid);
     }
     utc_offset = fabs(sid - ap_sid);
-    ap_sid_sid = setUTCgetSID(utc_offset, 0.);
-    LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid: %f, AP sid: %f, sid diff: %f", lng, sid, ap_sid, ap_sid_sid);
+    //double ap_sid_sid = setUTCgetSID(utc_offset, 0.);
+    if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
+    {
+        LOG_ERROR("Error setting UTC Offset.");
+        return false;
+    }
+    if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
+      LOGF_ERROR("Reading sidereal time failed %d", -1);
+
+    }
+    LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid: %f, AP sid: %f, utc_offset: %f", lng, sid, ap_sid, utc_offset);
     ReadScopeStatus();
    
 
