@@ -31,9 +31,9 @@ class Transforms : public Interface
 {
 public:
     Transforms(INDI::DefaultDevice *dev);
-    virtual ~Transforms();
 
 protected:
+    ~Transforms();
     uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 
 private:
@@ -44,9 +44,9 @@ class Spectrum : public Interface
 {
 public:
     Spectrum(INDI::DefaultDevice *dev);
-    virtual ~Spectrum();
 
 protected:
+    ~Spectrum();
     uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 };
 
@@ -54,9 +54,9 @@ class Histogram : public Interface
 {
 public:
     Histogram(INDI::DefaultDevice *dev);
-    virtual ~Histogram();
 
 protected:
+    ~Histogram();
     uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
 };
 }

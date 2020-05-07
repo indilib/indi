@@ -32,10 +32,10 @@ class Convolution : public Interface
 {
 public:
     Convolution(INDI::DefaultDevice *dev);
-    ~Convolution();
-    bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+    bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
 
 protected:
+    ~Convolution();
     void Activated();
     void Deactivated();
 
@@ -50,14 +50,15 @@ private:
     bool matrix_loaded { false };
     void Convolute();
 };
+
 class Wavelets : public Interface
 {
 public:
     Wavelets(INDI::DefaultDevice *dev);
-    ~Wavelets();
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
 protected:
+    ~Wavelets();
     void Activated();
     void Deactivated();
 
