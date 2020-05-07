@@ -1480,7 +1480,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
       ap_sid = get_local_sidereal_time(lng);
     }
 #endif 
-    double sid = get_local_sidereal_time(lng); // rangeHA
+    double sid = get_local_sidereal_time(153.021); // rangeHA
     LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid: %f, AP sid: %f", lng, sid, ap_sid);
     if (sid < 0) {
       sid +=24.;
