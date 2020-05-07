@@ -24,6 +24,7 @@
 #include "indilogger.h"
 #include "locale_compat.h"
 #include "indicom.h"
+#include "libastro.h"
 
 #include <fitsio.h>
 
@@ -80,7 +81,8 @@ namespace DSP
 {
 const char *DSP_TAB = "Signal Processing";
 
-Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, const char *label) : m_Device(dev), m_Name(name), m_Label(label), m_Type(type)
+Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, const char *label) : m_Device(dev),
+    m_Name(name), m_Label(label), m_Type(type)
 {
     char activatestrname[MAXINDINAME];
     char activatestrlabel[MAXINDILABEL];
@@ -88,7 +90,8 @@ Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, cons
     sprintf(activatestrlabel, "Activate %s", m_Label);
     IUFillSwitch(&ActivateS[0], "DSP_ACTIVATE_ON", "Activate", ISState::ISS_OFF);
     IUFillSwitch(&ActivateS[1], "DSP_ACTIVATE_OFF", "Deactivate", ISState::ISS_ON);
-    IUFillSwitchVector(&ActivateSP, ActivateS, 2, getDeviceName(), activatestrname, activatestrlabel, DSP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ActivateSP, ActivateS, 2, getDeviceName(), activatestrname, activatestrlabel, DSP_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillBLOB(&FitsB, m_Name, m_Label, "");
     IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), m_Name, m_Label, DSP_TAB, IP_RO, 60, IPS_IDLE);
@@ -176,7 +179,8 @@ bool Interface::ISNewText(const char *dev, const char *name, char *texts[], char
     return false;
 }
 
-bool Interface::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+bool Interface::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                          char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -203,8 +207,10 @@ bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_pe
 {
     if(PluginActive)
     {
-        bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
-        bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
+        bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON
+                            || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
+        bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON
+                            || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
 
         if (sendCapture || saveCapture)
         {
@@ -303,7 +309,8 @@ void Interface::addFITSKeywords(fitsfile *fptr)
 
         // Convert from JNow to J2000
         //TODO use exp_start instead of julian from system
-        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+        //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+        LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
         double raJ2000  = J2000Pos.ra / 15.0;
         double decJ2000 = J2000Pos.dec;
@@ -559,7 +566,7 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
         std::string prefix = m_Device->getText("UPLOAD_SETTINGS")->tp[1].text;
 
         int maxIndex = getFileIndex(m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(),
-                                          format);
+                                    format);
 
         if (maxIndex < 0)
         {
@@ -586,7 +593,8 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        snprintf(processedFileName, MAXINDINAME, "%s/%s_%s.%s", m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(), m_Name, format);
+        snprintf(processedFileName, MAXINDINAME, "%s/%s_%s.%s", m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(),
+                 m_Name, format);
 
         fp = fopen(processedFileName, "w");
         if (fp == nullptr)
