@@ -653,10 +653,10 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             currentRA  = J2000Pos.ra / 15.0;
             currentDE = J2000Pos.dec;
 
-            LOGF_DEBUG("DrawCcdFrame JNow %f, %f J2000 %f, %f", epochPos.ra, epochPos.dec, J2000Pos.ra, J2000Pos.dec);
-            ln_equ_posn jnpos;
-            LibAstro::J2000toObserved(&J2000Pos, jd, &jnpos);
-            LOGF_DEBUG("J2000toObserved JNow %f, %f J2000 %f, %f", jnpos.ra, jnpos.dec, J2000Pos.ra, J2000Pos.dec);
+            //LOGF_DEBUG("DrawCcdFrame JNow %f, %f J2000 %f, %f", epochPos.ra, epochPos.dec, J2000Pos.ra, J2000Pos.dec);
+            //ln_equ_posn jnpos;
+            //LibAstro::J2000toObserved(&J2000Pos, jd, &jnpos);
+            //LOGF_DEBUG("J2000toObserved JNow %f, %f J2000 %f, %f", jnpos.ra, jnpos.dec, J2000Pos.ra, J2000Pos.dec);
 
             currentDE += guideNSOffset;
             currentRA += guideWEOffset;
