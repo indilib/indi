@@ -33,6 +33,7 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
         virtual const char * getDefaultName() override;
 
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
         static void guideTimeoutHelperNS(void *context);
         static void guideTimeoutHelperWE(void *context);
@@ -97,6 +98,8 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
         bool readFirmware();
         bool readModel();
         bool readTracking();
+        // Goto mode
+        bool SetAltAzMode(bool);
 
         // Slew
         bool slewFixedRate(SynscanDirection direction, uint8_t rate);
@@ -133,6 +136,8 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
 
         // Is mount type Alt-Az?
         bool m_isAltAz { false };
+        // Use Alt-Az Goto?
+        bool goto_AltAz { false };
 
         //////////////////////////////////////////////////////////////////
         /// Properties
@@ -153,6 +158,10 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
         // Horizontal Coords
         INumber HorizontalCoordsN[2];
         INumberVectorProperty HorizontalCoordsNP;
+
+        // Goto mode
+        ISwitch GotoModeS[2];
+        ISwitchVectorProperty GotoModeSP;
 
         // Mount Info
         enum MountInfo

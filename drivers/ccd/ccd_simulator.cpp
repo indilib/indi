@@ -23,7 +23,7 @@
 #include "locale_compat.h"
 
 #include <libnova/julian_day.h>
-#include <libnova/precession.h>
+#include <libastro.h>
 
 #include <cmath>
 #include <unistd.h>
@@ -31,10 +31,7 @@
 static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
-// We declare an auto pointer to ccdsim.
 static std::unique_ptr<CCDSim> ccdsim(new CCDSim());
-
-void ISPoll(void * p);
 
 void ISGetProperties(const char * dev)
 {
@@ -152,8 +149,6 @@ const char * CCDSim::getDefaultName()
 
 bool CCDSim::initProperties()
 {
-    //  Most hardware layers wont actually have indi properties defined
-    //  but the simulators are a special case
     INDI::CCD::initProperties();
 
     IUFillNumber(&SimulatorSettingsN[0], "SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
@@ -176,30 +171,40 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[16], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
 
     IUFillNumberVector(SimulatorSettingsNV, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
-                       "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
+                       "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
     IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
     IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
-    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
-                       "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "RGB",
+                       SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    // Simulate Crash
+    IUFillSwitch(&CrashS[0], "CRASH", "Crash driver", ISS_OFF);
+    IUFillSwitchVector(&CrashSP, CrashS, 1, getDeviceName(), "CCD_SIMULATE_CRASH", "Crash", SIMULATOR_TAB, IP_WO,
+                       ISR_ATMOST1, 0, IPS_IDLE);
+
+    // Periodic Error
+    IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
+                       IPS_IDLE);
+
+    // FWHM
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
     IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
+    // Cooler
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    // CCD Gain
+
+    // Gain
     IUFillNumber(&GainN[0], "GAIN", "Gain", "%.f", 0, 100, 10, 50);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config", IP_RW, 60,
-                       IPS_IDLE);
 
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
@@ -270,6 +275,7 @@ void CCDSim::ISGetProperties(const char * dev)
     defineNumber(SimulatorSettingsNV);
     defineNumber(&EqPENP);
     defineSwitch(&SimulateRgbSP);
+    defineSwitch(&CrashSP);
 }
 
 bool CCDSim::updateProperties()
@@ -603,9 +609,12 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 #endif
 
         double theta = rotationCW + 270;
-        if (theta > 360)
+        if (pierSide == 1)
+            theta -= 180;       // rotate 180 if on East
+
+        if (theta >= 360)
             theta -= 360;
-        else if (theta < -360)
+        else if (theta <= -360)
             theta += 360;
 
         // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
@@ -633,14 +642,21 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
             ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
+            double jd = ln_get_julian_from_sys();
+
             epochPos.ra  = currentRA * 15.0;
             epochPos.dec = currentDE;
 
             // Convert from JNow to J2000
-            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+            LibAstro::ObservedToJ2000(&epochPos, jd, &J2000Pos);
 
             currentRA  = J2000Pos.ra / 15.0;
             currentDE = J2000Pos.dec;
+
+            //LOGF_DEBUG("DrawCcdFrame JNow %f, %f J2000 %f, %f", epochPos.ra, epochPos.dec, J2000Pos.ra, J2000Pos.dec);
+            //ln_equ_posn jnpos;
+            //LibAstro::J2000toObserved(&J2000Pos, jd, &jnpos);
+            //LOGF_DEBUG("J2000toObserved JNow %f, %f J2000 %f, %f", jnpos.ra, jnpos.dec, J2000Pos.ra, J2000Pos.dec);
 
             currentDE += guideNSOffset;
             currentRA += guideWEOffset;
@@ -1217,7 +1233,8 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             RA = EqPEN[AXIS_RA].value;
             Dec = EqPEN[AXIS_DE].value;
 
-            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+            LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
             currentRA  = J2000Pos.ra / 15.0;
             currentDE = J2000Pos.dec;
             usePE = true;
@@ -1240,7 +1257,7 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-
+        // Simulate RGB
         if (!strcmp(name, SimulateRgbSP.name))
         {
             IUUpdateSwitch(&SimulateRgbSP, states, names, n);
@@ -1263,8 +1280,7 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 
             return true;
         }
-
-        if (strcmp(name, CoolerSP.name) == 0)
+        else if (strcmp(name, CoolerSP.name) == 0)
         {
             IUUpdateSwitch(&CoolerSP, states, names, n);
 
@@ -1280,6 +1296,10 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             IDSetSwitch(&CoolerSP, nullptr);
 
             return true;
+        }
+        else if (strcmp(name, CrashSP.name) == 0)
+        {
+            abort();
         }
     }
 
@@ -1490,3 +1510,4 @@ void CCDSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
     int status = 0;
     fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
 }
+

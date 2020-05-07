@@ -91,17 +91,6 @@ class Correlator : public SensorInterface
             double coefficient;
         } Correlation;
 
-        /**
-         * \enum CorrelatorConnection
-         * \brief Holds the connection mode of the Correlator.
-         */
-        enum
-        {
-            CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
-            CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
-            CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
-        } CorrelatorConnection;
-
         enum
         {
             CORRELATOR_MAX_CAPABILITY                  = SENSOR_MAX_CAPABILITY<<0,  /*!< Can the Sensor Integration be aborted?  */
@@ -110,16 +99,16 @@ class Correlator : public SensorInterface
         Correlator();
         virtual ~Correlator();
 
-        bool initProperties();
-        bool updateProperties();
-        void ISGetProperties(const char *dev);
-        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        bool ISSnoopDevice(XMLEle *root);
+        bool initProperties() override;
+        bool updateProperties() override;
+        void ISGetProperties(const char *dev) override;
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
+        bool ISSnoopDevice(XMLEle *root) override;
 
-        virtual bool StartIntegration(double duration);
+        virtual bool StartIntegration(double duration) override;
 
         /**
          * @brief getCorrelationDegree Get current correlation degree.
@@ -132,21 +121,6 @@ class Correlator : public SensorInterface
          * @return the correlation and UV coordinates.
          */
         inline Correlation getCorrelation() { Correlation ret; ret.coordinate = getUVCoordinates(); ret.baseline = baseline; ret.coefficient = getCorrelationDegree(); return ret; }
-
-        /** \brief perform handshake with device to check communication */
-        virtual bool Handshake();
-
-        /**
-         * @brief setCorrelatorConnection Set Correlator connection mode. Child class should call this in the constructor before Correlator registers
-         * any connection interfaces
-         * @param value ORed combination of CorrelatorConnection values.
-         */
-        void setCorrelatorConnection(const uint8_t &value);
-
-        /**
-         * @return Get current Correlator connection mode
-         */
-        uint8_t getCorrelatorConnection() const;
 
         /**
          * @brief setBaseline Set the baseline size in meters.
@@ -243,16 +217,7 @@ class Correlator : public SensorInterface
         } CORRELATOR_INFO_INDEX;
         INumberVectorProperty CorrelatorSettingsNP;
 
-
-        Connection::Serial *serialConnection = NULL;
-        Connection::TCP *tcpConnection       = NULL;
-
-        /// For Serial & TCP connections
-        int PortFD = -1;
-
       private:
-        bool callHandshake();
-        uint8_t correlatorConnection = CONNECTION_NONE;
         Baseline baseline;
         double wavelength;
         double bandwidth;
