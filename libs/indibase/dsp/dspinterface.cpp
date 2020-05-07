@@ -364,8 +364,12 @@ dsp_stream_p Interface::loadFITS(char* buffer, int len)
     char filename[MAXINDIMESSAGE];
     sprintf(filename, "/tmp/%s_%s_%08X.fits", m_Label, getDeviceName(), rand());
     int fd = creat(filename, 0600);
-    write(fd, buffer, len);
-    close(fd);
+    if(fd >= 0) {
+        int written = write(fd, buffer, len);
+        if(written != len)
+            return nullptr;
+        close(fd);
+    }
     fits_open_file(&fptr, filename, 0, &status);
     if(status != 0)
         goto load_err;

@@ -36,10 +36,10 @@ public:
 
 protected:
     ~Convolution();
-    void Activated();
-    void Deactivated();
+    void Activated() override;
+    void Deactivated() override;
 
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
 private:
     dsp_stream_p matrix;
@@ -59,10 +59,10 @@ public:
 
 protected:
     ~Wavelets();
-    void Activated();
-    void Deactivated();
+    void Activated() override;
+    void Deactivated() override;
 
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 
 private:
     dsp_stream_p matrix;

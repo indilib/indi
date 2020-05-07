@@ -1971,7 +1971,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
     {
         uint8_t* buf = static_cast<uint8_t*>(malloc(targetChip->getFrameBufferSize()));
         memcpy(buf, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
-        DSP->processBLOB(buf, 2, new int[2] { targetChip->getSubW() / targetChip->getBinX(), targetChip->getSubH() / targetChip->getBinY() },
+        DSP->processBLOB(buf, 2, new int[2] { targetChip->getXRes() / targetChip->getBinX(), targetChip->getYRes() / targetChip->getBinY() },
                          targetChip->getBPP());
         free(buf);
     }

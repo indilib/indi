@@ -52,11 +52,13 @@ Convolution::~Convolution()
 void Convolution::Activated()
 {
     m_Device->defineBLOB(&DownloadBP);
+    Interface::Activated();
 }
 
 void Convolution::Deactivated()
 {
     m_Device->deleteProperty(DownloadBP.name);
+    Interface::Deactivated();
 }
 
 bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
@@ -111,11 +113,13 @@ Wavelets::~Wavelets()
 void Wavelets::Activated()
 {
     m_Device->defineNumber(&WaveletsNP);
+    Interface::Activated();
 }
 
 void Wavelets::Deactivated()
 {
     m_Device->deleteProperty(WaveletsNP.name);
+    Interface::Deactivated();
 }
 
 bool Wavelets::ISNewNumber(const char *dev, const char *name, double *values, char *names[], int n)
