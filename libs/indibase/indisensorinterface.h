@@ -21,6 +21,7 @@
 #include "defaultdevice.h"
 #include "dsp.h"
 #include "dsp/manager.h"
+#include "stream/streammanager.h"
 #include <fitsio.h>
 
 #ifdef HAVE_WEBSOCKET
@@ -35,6 +36,7 @@
 #include <stdint.h>
 #include <mutex>
 #include <thread>
+#include <stream/streammanager.h>
 
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
@@ -360,14 +362,16 @@ protected:
         }
 
         /**
-         * @return  True if the Sensor supports live video streaming. False otherwise.
+         * @return  True if the Sensor wants DSP processing. False otherwise.
          */
         bool HasDSP()
         {
-            if(capability & SENSOR_HAS_DSP)
+            if (capability & SENSOR_HAS_DSP)
             {
-                if (DSP.get() == nullptr)
+                if(DSP.get() == nullptr)
+                {
                     DSP.reset(new DSP::Manager(this));
+                }
                 return true;
             }
             return false;
@@ -378,9 +382,9 @@ protected:
          */
         bool HasStreaming()
         {
-            if(capability & SENSOR_HAS_STREAMING)
+            if (capability & SENSOR_HAS_STREAMING)
             {
-                if (Streamer.get() == nullptr)
+                if(Streamer.get() == nullptr)
                 {
                     Streamer.reset(new StreamManager(this));
                     Streamer->initProperties();

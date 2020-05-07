@@ -23,7 +23,6 @@
 #include "connectionplugins/connectiontcp.h"
 
 #include "indicom.h"
-#include "stream/streammanager.h"
 #include "locale_compat.h"
 
 #include <fitsio.h>
