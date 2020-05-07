@@ -140,19 +140,18 @@ bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if(!strcmp(dev, getDeviceName()) && !strcmp(name, ActivateSP.name))
     {
-        for (int i = 0; i < n; i++)
+        IUUpdateSwitch(&ActivateSP, states, names, n);
+        if(ActivateSP.sp[0].s == ISS_ON)
         {
-            if (!strcmp(names[i], "DSP_ACTIVATE_ON") && states[i] == ISS_ON)
-            {
-                PluginActive = true;
-                Activated();
-            }
-            else
-            {
-                PluginActive = false;
-                Deactivated();
-            }
+            PluginActive = true;
+            Activated();
         }
+        else
+        {
+            PluginActive = false;
+            Deactivated();
+        }
+        IDSetSwitch(&ActivateSP, nullptr);
     }
     return false;
 }
