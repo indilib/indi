@@ -727,7 +727,13 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     }
     double lng = LocationN[LOCATION_LONGITUDE].value    ;
     LOGF_DEBUG("Reading longitude  %f", lng);
-    
+    double val_utc_offset;
+    if (!isSimulation() && getAPUTCOffset(PortFD, &val_utc_offset) < 0)
+    {
+        LOG_ERROR("Error reading UTC Offset.");
+        return false;
+    }
+
     // ev. comment that out
     char buf[64];
     if (getCalendarDate(PortFD, buf) < 0) {
@@ -1426,12 +1432,22 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
         LOG_ERROR("Error setting local date.");
         return false;
     }
-
     LOGF_DEBUG("Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
+
+    updateLocation(-27.435, 153.021, 0.);
+    LOG_DEBUG("set location in updateTime");
+    
+    
     utc_offset = 0.;
     if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
     {
         LOG_ERROR("Error setting UTC Offset.");
+        return false;
+    }
+    double val_utc_offset;
+    if (!isSimulation() && getAPUTCOffset(PortFD, &val_utc_offset) < 0)
+    {
+        LOG_ERROR("Error reading UTC Offset.");
         return false;
     }
 
