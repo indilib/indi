@@ -23,6 +23,7 @@
 #include "connectionplugins/connectiontcp.h"
 
 #include "indicom.h"
+#include "libastro.h"
 #include "stream/streammanager.h"
 #include "locale_compat.h"
 
@@ -724,7 +725,8 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 
         // Convert from JNow to J2000
         //TODO use exp_start instead of julian from system
-        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+        //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+        LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
         double raJ2000  = J2000Pos.ra / 15.0;
         double decJ2000 = J2000Pos.dec;

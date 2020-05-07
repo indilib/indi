@@ -20,6 +20,7 @@
 #include "connectionplugins/connectioninterface.h"
 #include "connectionplugins/connectiontcp.h"
 #include "indicom.h"
+#include "libastro.h"
 
 #include <libnova/transform.h>
 #include <libnova/precession.h>
@@ -92,14 +93,16 @@ bool SynscanDriver::initProperties()
     //////////////////////////////////////////////////////////////////////////////////////////////////
     IUFillNumber(&CustomSlewRateN[AXIS_RA], "AXIS1", "RA/AZ (arcsecs/s)", "%.2f", 0.05, 800, 10, 0);
     IUFillNumber(&CustomSlewRateN[AXIS_DE], "AXIS2", "DE/AL (arcsecs/s)", "%.2f", 0.05, 800, 10, 0);
-    IUFillNumberVector(&CustomSlewRateNP, CustomSlewRateN, 2, getDeviceName(), "CUSTOM_SLEW_RATE", "Custom Slew", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&CustomSlewRateNP, CustomSlewRateN, 2, getDeviceName(), "CUSTOM_SLEW_RATE", "Custom Slew", MOTION_TAB,
+                       IP_RW, 60, IPS_IDLE);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Guide Rate
     //////////////////////////////////////////////////////////////////////////////////////////////////
     IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%.2f", 0, 1, 0.1, 0.5);
     IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%.2f", 0, 1, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", GUIDE_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", GUIDE_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Horizontal Coords
@@ -146,7 +149,8 @@ bool SynscanDriver::updateProperties()
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
 
-        if (m_isAltAz) {
+        if (m_isAltAz)
+        {
             defineSwitch(&GotoModeSP);
         }
 
@@ -171,7 +175,8 @@ bool SynscanDriver::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
-        if (m_isAltAz) {
+        if (m_isAltAz)
+        {
             deleteProperty(GotoModeSP.name);
         }
     }
@@ -310,7 +315,8 @@ bool SynscanDriver::ISNewNumber(const char * dev, const char * name, double valu
 
 bool SynscanDriver::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (dev && !strcmp(dev, getDeviceName())) {
+    if (dev && !strcmp(dev, getDeviceName()))
+    {
         ISwitchVectorProperty *svp = getSwitch(name);
 
         if (!strcmp(svp->name, GotoModeSP.name))
@@ -445,7 +451,8 @@ bool SynscanDriver::readModel()
     m_isAltAz = m_MountModel > 4;
 
     LOGF_INFO("Driver is running in %s mode.", m_isAltAz ? "Alt-Az" : "Equatorial");
-    LOGF_INFO("Detected mount: %s. Mount must be aligned from the handcontroller before using the driver.", StatusT[MI_MOUNT_MODEL].text);
+    LOGF_INFO("Detected mount: %s. Mount must be aligned from the handcontroller before using the driver.",
+              StatusT[MI_MOUNT_MODEL].text);
 
     return true;
 }
@@ -517,7 +524,7 @@ bool SynscanDriver::ReadScopeStatus()
     J2000Pos.dec = rangeDec(de);
 
     // Synscan reports J2000 coordinates so we need to convert from J2000 to JNow
-    ln_get_equ_prec2(&J2000Pos, JD2000, ln_get_julian_from_sys(), &epochPos);
+    LibAstro::J2000toObserved(&J2000Pos, ln_get_julian_from_sys(), &epochPos);
 
     CurrentRA = epochPos.ra / 15.0;
     CurrentDE = epochPos.dec;
@@ -648,7 +655,7 @@ bool SynscanDriver::Goto(double ra, double dec)
     }
 
     // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
-    ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+    LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
     double dec_pos = J2000Pos.dec;
     if (J2000Pos.dec < 0) dec_pos = dec_pos + 360;
@@ -1182,7 +1189,7 @@ bool SynscanDriver::Sync(double ra, double dec)
     epochPos.dec = dec;
 
     // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
-    ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+    LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
     // Mount deals in J2000 coords.
     uint32_t n1 = J2000Pos.ra  / 360 * 0x100000000;
