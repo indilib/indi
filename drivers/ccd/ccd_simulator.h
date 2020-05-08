@@ -162,6 +162,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         float polarError { 0 };
         float polarDrift { 0 };
+        float king_gamma = { 0 };
+        float king_theta = { 0 };
 
         int streamPredicate;
         pthread_t primary_thread;
@@ -170,13 +172,10 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         //  And this lives in our simulator settings page
 
         INumberVectorProperty *SimulatorSettingsNV;
-        INumber SimulatorSettingsN[14];
+        INumber SimulatorSettingsN[17];
 
         ISwitchVectorProperty SimulateRgbSP;
         ISwitch SimulateRgbS[2];
-
-        ISwitch TimeFactorS[3];
-        ISwitchVectorProperty *TimeFactorSV;
 
         //  We are going to snoop these from focuser
         INumberVectorProperty FWHMNP;
