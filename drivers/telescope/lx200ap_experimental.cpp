@@ -428,6 +428,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
         mdelay = MeridianDelayN[0].value;
 
         //LOGF_INFO("lx200ap_experimental: meridian delay request = %f", mdelay);
+        LOGF_INFO("lx200ap_experimental: utc offset request = %f", mdelay);
 
         if (!isSimulation() && (err = setAPMeridianDelay(PortFD, mdelay) < 0))
         {
