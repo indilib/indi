@@ -37,10 +37,13 @@
 #include <dirent.h>
 #include <cerrno>
 #include <locale.h>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <zlib.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 // Create dir recursively
 static int _det_mkdir(const char *dir, mode_t mode)
@@ -140,19 +143,18 @@ bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if(!strcmp(dev, getDeviceName()) && !strcmp(name, ActivateSP.name))
     {
-        for (int i = 0; i < n; i++)
+        IUUpdateSwitch(&ActivateSP, states, names, n);
+        if(ActivateSP.sp[0].s == ISS_ON)
         {
-            if (!strcmp(names[i], "DSP_ACTIVATE_ON") && states[i] == ISS_ON)
-            {
-                PluginActive = true;
-                Activated();
-            }
-            else
-            {
-                PluginActive = false;
-                Deactivated();
-            }
+            PluginActive = true;
+            Activated();
         }
+        else
+        {
+            PluginActive = false;
+            Deactivated();
+        }
+        IDSetSwitch(&ActivateSP, nullptr);
     }
     return false;
 }
@@ -351,6 +353,87 @@ void Interface::fits_update_key_s(fitsfile *fptr, int type, std::string name, vo
 {
     // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
+}
+
+dsp_stream_p Interface::loadFITS(char* buffer, int len)
+{
+    dsp_stream_p loaded_stream = dsp_stream_new();
+    long ndims;
+    long bits_per_sample;
+    int status;
+    __off_t offset;
+    __off_t head;
+    __off_t end;
+    fitsfile *fptr;
+    void* buf;
+    char error_status[MAXINDINAME];
+    char comment[MAXINDINAME];
+    char filename[MAXINDIMESSAGE];
+    sprintf(filename, "/tmp/%s_%s_%08X.fits", m_Label, getDeviceName(), rand());
+    int fd = creat(filename, 0600);
+    if(fd >= 0) {
+        int written = write(fd, buffer, len);
+        if(written != len)
+            return nullptr;
+        close(fd);
+    }
+    fits_open_file(&fptr, filename, 0, &status);
+    if(status != 0)
+        goto load_err;
+    fits_read_key_lng(fptr, "BITPIX", &bits_per_sample, comment, &status);
+    if(status != 0)
+        goto load_err;
+    fits_read_key_lng(fptr, "NAXIS", &ndims, comment, &status);
+    if(status != 0)
+        goto load_err;
+    for (int d = 1; d <= ndims; d++) {
+        char query[MAXINDINAME];
+        long value;
+        sprintf(query, "NAXIS%d", d);
+        fits_read_key_lng(fptr, query, &value, comment, &status);
+        if(status != 0)
+            goto load_err;
+        dsp_stream_add_dim(loaded_stream, value);
+    }
+    dsp_stream_alloc_buffer(loaded_stream, loaded_stream->len);
+    fits_get_hduoff(fptr, &head, &offset, &end, &status);
+    buf = static_cast<void*>(&buffer[offset]);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto err_free;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto err_free;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto err_free;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto err_free;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto err_free;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto dsp_err;
+        default:
+        break;
+    }
+load_err:
+    fits_report_error(stderr, status); /* print out any error messages */
+    fits_get_errstatus(status, error_status);
+    LOGF_ERROR("FITS Error: %s", error_status);
+dsp_err:
+    //Destroy the dsp stream
+    dsp_stream_free_buffer(loaded_stream);
+    dsp_stream_free(loaded_stream);
+    return nullptr;
+err_free:
+    fits_close_file(fptr, &status);
+    unlink(filename);
+    return loaded_stream;
 }
 
 bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
