@@ -446,15 +446,17 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 
 	double val;
 	if (!isSimulation() && getSDTime(PortFD, &val) < 0) {
-	  LOGF_DEBUG("Reading sidereal time failed %d", -1);
+	  LOGF_ERROR("Reading sidereal time failed %d", -1);
 	  return false;
       	}
+#ifdef no
 	if (isSimulation())
 	{
 	  double lng = LocationN[LOCATION_LONGITUDE].value;
 	  val = get_local_sidereal_time(lng);
-	} 
-	LOGF_DEBUG("Sidereal time :(GS) %f in ISNewNumber", val);
+	}
+#endif
+	LOGF_ERROR("not an Error Sidereal time :(GS) %f in ISNewNumber", val);
 	SiderealTimeNP.np[SIDEREAL_TIME].value = val;
 	SiderealTimeNP.s = IPS_OK;
 	IDSetNumber(&SiderealTimeNP, nullptr);
