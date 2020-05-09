@@ -438,13 +438,13 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
  
 	MeridianDelayNP.s  = IPS_OK;
 	IDSetNumber(&MeridianDelayNP, nullptr);
-	
+#ifdef no
 	SiderealTimeNP.s  = IPS_BUSY;
 	IDSetNumber(&SiderealTimeNP, nullptr);
 	// ToDo: eventually goes away
 	const struct timespec timeout = {0, 250000000L};
 	nanosleep(&timeout, nullptr);
-
+#endif
 	double val;
 	if (!isSimulation() && getSDTime(PortFD, &val) < 0) {
 	  LOGF_ERROR("Reading sidereal time failed %d", -1);
