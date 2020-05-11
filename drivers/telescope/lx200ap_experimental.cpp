@@ -428,7 +428,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
         mdelay = MeridianDelayN[0].value;
 
         //LOGF_INFO("lx200ap_experimental: meridian delay request = %f", mdelay);
-        LOGF_INFO("lx200ap_experimental: utc offset request = %f", mdelay);
+        LOGF_ERROR("lx200ap_experimental: utc offset request = %f", mdelay);
 
         if (!isSimulation() && (err = setAPMeridianDelay(PortFD, mdelay) < 0))
         {
@@ -438,25 +438,28 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
  
 	MeridianDelayNP.s  = IPS_OK;
 	IDSetNumber(&MeridianDelayNP, nullptr);
-#ifdef no
+	LOG_ERROR("ISNewNumber 1");
+	//#ifdef no
 	SiderealTimeNP.s  = IPS_BUSY;
 	IDSetNumber(&SiderealTimeNP, nullptr);
 	// ToDo: eventually goes away
 	const struct timespec timeout = {0, 250000000L};
 	nanosleep(&timeout, nullptr);
-#endif
+	//#endif
 	double val;
 	if (!isSimulation() && getSDTime(PortFD, &val) < 0) {
 	  LOGF_ERROR("Reading sidereal time failed %d", -1);
 	  return false;
       	}
-#ifdef no
+	//#ifdef no
 	if (isSimulation())
 	{
 	  double lng = LocationN[LOCATION_LONGITUDE].value;
-	  val = get_local_sidereal_time(lng);
+	  val = -4. + get_local_sidereal_time(lng);
 	}
-#endif
+	//#endif
+	LOG_ERROR("ISNewNumber 2");
+
 	LOGF_ERROR("not an Error Sidereal time :(GS) %f in ISNewNumber", val);
 	SiderealTimeNP.np[SIDEREAL_TIME].value = val;
 	SiderealTimeNP.s = IPS_OK;
@@ -690,16 +693,18 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
       LOGF_ERROR("Reading sidereal time failed %d", -1);
       return false;
     } else {
-
-      double lng = LocationN[LOCATION_LONGITUDE].value;
-      val = get_local_sidereal_time(lng);
-    }
-  
     SiderealTimeNP.np[SIDEREAL_TIME].value = val;
     SiderealTimeNP.s           = IPS_IDLE;
     IDSetNumber(&SiderealTimeNP, nullptr);
-     if (isSimulation())
-    {
+    }
+    //#ifdef no
+    if (isSimulation()) {
+
+      double lng = LocationN[LOCATION_LONGITUDE].value;
+      val = -2. + get_local_sidereal_time(lng);
+    SiderealTimeNP.np[SIDEREAL_TIME].value = val;
+    SiderealTimeNP.s           = IPS_IDLE;
+    IDSetNumber(&SiderealTimeNP, nullptr);
         mountSim();
         return true;
     }
@@ -1476,13 +1481,13 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
       LOGF_ERROR("Reading sidereal time failed %d", -1);
 
     }
-#ifdef no
+    //#ifdef no
     else
     {
       double lng = LocationN[LOCATION_LONGITUDE].value;
-      ap_sid = get_local_sidereal_time(lng);
+      ap_sid = 2. + get_local_sidereal_time(lng);
     }
-#endif 
+    //#endif 
     double sid = get_local_sidereal_time(153.021); // rangeHA
     LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid: %f, AP sid: %f", lng, sid, ap_sid);
     if (sid < 0) {
