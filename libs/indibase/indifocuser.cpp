@@ -175,8 +175,8 @@ bool Focuser::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 return true;
             }
 
-            int rc = MoveAbsFocuser(PresetN[index].value);
-            if (rc >= 0)
+            IPState rc = MoveAbsFocuser(PresetN[index].value);
+            if (rc != IPS_ALERT)
             {
                 PresetGotoSP.s = IPS_OK;
                 DEBUGF(Logger::DBG_SESSION, "Moving to Preset %d with position %g.", index + 1,

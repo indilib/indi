@@ -565,14 +565,9 @@ bool DefaultDevice::ISNewText(const char *dev, const char *name, char *texts[], 
 bool DefaultDevice::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                               char *formats[], char *names[], int n)
 {
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
+    for (Connection::Interface *oneConnection : connections)
+        oneConnection->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+
     return false;
 }
 

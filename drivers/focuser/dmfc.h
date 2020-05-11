@@ -44,17 +44,15 @@ class DMFC : public INDI::Focuser
         virtual bool SyncFocuser(uint32_t ticks) override;
         virtual bool ReverseFocuser(bool enabled) override;
         virtual bool SetFocuserBacklash(int32_t steps) override;
+        virtual bool SetFocuserBacklashEnabled(bool enabled) override;
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:
         bool updateFocusParams();
-        //bool sync(uint32_t newPosition);
         bool move(uint32_t newPosition);
         bool setMaxSpeed(uint16_t speed);
-        //bool setReverseEnabled(bool enable);
         bool setLedEnabled(bool enable);
         bool setEncodersEnabled(bool enable);
-        //bool setBacklash(uint16_t value);
         bool setMotorType(uint8_t type);
         bool ack();
 

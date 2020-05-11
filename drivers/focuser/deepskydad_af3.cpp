@@ -3,7 +3,7 @@
 
     Copyright (C) 2019 Pavle Gartner
 
-    Based on Moonline driver.
+    Based on Moonlite driver.
     Copyright (C) 2013-2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -75,7 +75,7 @@ void ISSnoopDevice(XMLEle * root)
  
 DeepSkyDadAF3::DeepSkyDadAF3()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE | FOCUSER_CAN_ABORT | FOCUSER_HAS_BACKLASH);
 }
 
 bool DeepSkyDadAF3::initProperties()
@@ -122,6 +122,11 @@ bool DeepSkyDadAF3::initProperties()
     FocusSyncN[0].max = 1000000.;
     FocusSyncN[0].value = 50000.;
     FocusSyncN[0].step = 5000.;
+
+    FocusBacklashN[0].min = -1000;
+    FocusBacklashN[0].max = 1000;
+    FocusBacklashN[0].step = 1;
+    FocusBacklashN[0].value = 0;
 
     // Max. movement
     IUFillNumber(&FocusMaxMoveN[0], "MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
@@ -466,14 +471,16 @@ bool DeepSkyDadAF3::SyncFocuser(uint32_t ticks)
 {
     char cmd[DSD_RES] = {0};
     snprintf(cmd, DSD_RES, "[SPOS%07d]", ticks);
-    return sendCommand(cmd);
+    char res[DSD_RES] = {0};
+    return sendCommand(cmd, res);
 }
 
 bool DeepSkyDadAF3::ReverseFocuser(bool enabled)
 {
     char cmd[DSD_RES] = {0};
     snprintf(cmd, DSD_RES, "[SREV%01d]", enabled ? 1 : 0);
-    return sendCommand(cmd);
+    char res[DSD_RES] = {0};
+    return sendCommand(cmd, res);
 }
 
 bool DeepSkyDadAF3::MoveFocuser(uint32_t position)
@@ -492,7 +499,7 @@ bool DeepSkyDadAF3::MoveFocuser(uint32_t position)
     }
 
     // Now start motion toward position
-    if (sendCommand("[SMOV]") == false)
+    if (sendCommand("[SMOV]", res) == false)
         return false;
 
     return true;
@@ -772,6 +779,14 @@ IPState DeepSkyDadAF3::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
+    double bcValue = FocusBacklashN[0].value;
+    int diff = targetTicks - FocusAbsPosN[0].value;
+    if ((diff > 0 && bcValue < 0) || (diff < 0 && bcValue > 0))
+    {
+        backlashComp = bcValue;
+        targetPos -= bcValue;
+    }
+
     if (!MoveFocuser(targetPos))
         return IPS_ALERT;
 
@@ -789,7 +804,7 @@ IPState DeepSkyDadAF3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     // Clamp
     newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
-    if (!MoveFocuser(newPosition))
+    if (!MoveAbsFocuser(newPosition))
         return IPS_ALERT;
 
     // JM 2019-02-10: This is already set by the framework
@@ -826,7 +841,19 @@ void DeepSkyDadAF3::TimerHit()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
-            LOG_INFO("Focuser reached requested position.");
+
+            if(moveAborted) {
+                LOG_INFO("Move aborted.");
+            } else if(backlashComp != 0) {
+                LOGF_INFO("Performing backlash compensation of %i.", (int)backlashComp);
+                targetPos += backlashComp;
+                MoveFocuser(targetPos);
+            } else {
+                LOG_INFO("Focuser reached requested position.");
+            }
+
+            moveAborted = false;
+            backlashComp = 0;
         }
     }
     
@@ -845,6 +872,7 @@ void DeepSkyDadAF3::TimerHit()
 
 bool DeepSkyDadAF3::AbortFocuser()
 {
+    moveAborted = true;
     return sendCommand("[STOP]");
 }
 
@@ -905,3 +933,10 @@ bool DeepSkyDadAF3::sendCommandSet(const char * cmd)
 
     return strcmp(res, "(OK)") == 0;
 }
+
+bool DeepSkyDadAF3::SetFocuserBacklash(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    return true;
+}
+

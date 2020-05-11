@@ -44,8 +44,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
-        //GUIDE guideTimeout() funcion
-        void guideTimeout(CELESTRON_DIRECTION calldir);
+        virtual bool ISNewText(const char *dev, const char *name, char **texts, char **names, int n) override;
 
     protected:
         // Goto, Sync, and Motion
@@ -65,13 +64,26 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         virtual IPState GuideSouth(uint32_t ms) override;
         virtual IPState GuideEast(uint32_t ms) override;
         virtual IPState GuideWest(uint32_t ms) override;
+        // these all call this function
+        IPState Guide(CELESTRON_DIRECTION dirn, uint32_t ms);
 
-        //GUIDE guideTimeoutHelper() function
-        static void guideTimeoutHelperN(void *p);
-        static void guideTimeoutHelperS(void *p);
-        static void guideTimeoutHelperW(void *p);
-        static void guideTimeoutHelperE(void *p);
+        // Guide Rate
+        INumber GuideRateN[2];
+        INumberVectorProperty GuideRateNP;
 
+        uint8_t guideRateRa;    // 0 to 255 corresponding to 0 to 100% sidereal
+        uint8_t guideRateDec;
+
+        //GUIDE guideTimerHelper() function
+        static void guideTimerHelperN(void *p);
+        static void guideTimerHelperS(void *p);
+        static void guideTimerHelperW(void *p);
+        static void guideTimerHelperE(void *p);
+        // these all call this function
+        void guideTimer(CELESTRON_DIRECTION dirn);
+
+        void AddGuideTimer(CELESTRON_DIRECTION dirn, int ms);
+        
         // Focus Backlash
         virtual bool SetFocuserBacklash(int32_t steps) override;
 
@@ -94,10 +106,12 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         //GUIDE variables.
         int GuideNSTID;
         int GuideWETID;
-        CELESTRON_DIRECTION guide_direction;
+        int ticksNS;
+        int ticksWE;
+        //CELESTRON_DIRECTION guide_direction;
 
         /* Firmware */
-        IText FirmwareT[5] {};
+        IText FirmwareT[7] {};
         ITextVectorProperty FirmwareTP;
 
         //INumberVectorProperty HorizontalCoordsNP;
@@ -106,30 +120,40 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         //ISwitch TrackS[4];
         //ISwitchVectorProperty TrackSP;
 
-        // Celestron Track Mode (AltAz, EQ N, EQ S)
+        // Celestron Track Mode (AltAz, EQ N, EQ S, Ra and Dec)
         ISwitchVectorProperty CelestronTrackModeSP;
-        ISwitch CelestronTrackModeS[3];
+        ISwitch CelestronTrackModeS[4];
 
         //GUIDE Pulse guide switch
-        ISwitchVectorProperty UsePulseCmdSP;
-        ISwitch UsePulseCmdS[2];
+//        ISwitchVectorProperty UsePulseCmdSP;
+//        ISwitch UsePulseCmdS[2];
 
         ISwitchVectorProperty UseHibernateSP;
         ISwitch UseHibernateS[2];
 
-        //FocuserInterface
+        // PEC - implemented without using the base definition because this doesn't match what is required
+        IText PecInfoT[2];        // shows status and index
+        ITextVectorProperty PecInfoTP;
+
+        ISwitch PecControlS[4];     // Find Index, Stop, Playback, Record
+        ISwitchVectorProperty PecControlSP;
+        enum { PEC_Seek, PEC_Stop, PEC_Playback, PEC_Record } PecControl;
+
+        // move PEC data from file to mount
+        IText PecFileNameT[1];
+        ITextVectorProperty PecFileNameTP;
+
+        // FocuserInterface
 
         IPState MoveAbsFocuser (uint32_t targetTicks) override;
         IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
         bool AbortFocuser () override;
 
-
-
-        //End FocuserInterface
+        // End FocuserInterface
 
     private:
         bool setCelestronTrackMode(CELESTRON_TRACK_MODE mode);
-        bool checkMinVersion(float minVersion, const char *feature, bool debug = false);
+        bool checkMinVersion(double minVersion, const char *feature, bool debug = false);
         void checkAlignment();
 
         double currentRA, currentDEC, currentAZ, currentALT;
@@ -137,14 +161,29 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
 
         CelestronDriver driver;
         FirmwareInfo fwInfo;
-        bool usePreciseCoords {false};
-        bool usePulseCommand { false };
 
-        // experimental last align property
+        bool usePreciseCoords {false};
+//        bool usePulseCommand { false };
+        bool canAuxGuide { false};
+
+        //CelestronGuide guider;
+
+        // Last align property
         ISwitch LastAlignS[1];
         ISwitchVectorProperty LastAlignSP;
 
+        // DST setting
+        ISwitch DSTSettingS[1];
+        ISwitchVectorProperty DSTSettingSP;
+
         bool slewToIndex;
+
+        size_t numPecBins = 0;
+
+        bool savePecData();
+
+        // Slew Offsets
+        double SlewOffsetRa = 0.0;
 
         // focuser
         //        INumber FocusBacklashN[1];

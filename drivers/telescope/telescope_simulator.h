@@ -62,7 +62,6 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     virtual IPState GuideSouth(uint32_t ms) override;
     virtual IPState GuideEast(uint32_t ms) override;
     virtual IPState GuideWest(uint32_t ms) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
     virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool SetTrackEnabled(bool enabled) override;
@@ -77,16 +76,15 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool SetCurrentPark() override;
     virtual bool SetDefaultPark() override;
 
-    // helper functions
-    double getAzimuth(double r, double d);
-
 private:
     double currentRA { 0 };
     double currentDEC { 90 };
     double targetRA { 0 };
     double targetDEC { 0 };
 
-    ln_lnlat_posn lnobserver { 0, 0 };
+    /// used by GoTo and Park
+    void StartSlew(double ra, double dec, TelescopeStatus status);
+
     bool forceMeridianFlip { false };
     unsigned int DBG_SCOPE { 0 };
 

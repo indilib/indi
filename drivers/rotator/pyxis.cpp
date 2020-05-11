@@ -174,9 +174,9 @@ void Pyxis::queryParams()
     IUResetSwitch(&ReverseRotatorSP);
     ReverseRotatorSP.s = IPS_OK;
     if (dir == 0)
-        ReverseRotatorS[REVERSE_DISABLED].s = ISS_ON;
+        ReverseRotatorS[INDI_DISABLED].s = ISS_ON;
     else if (dir == 1)
-        ReverseRotatorS[REVERSE_ENABLED].s = ISS_ON;
+        ReverseRotatorS[INDI_ENABLED].s = ISS_ON;
     else
         ReverseRotatorSP.s = IPS_ALERT;
 

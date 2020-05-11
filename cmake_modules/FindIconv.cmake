@@ -28,6 +28,13 @@ ELSEIF(APPLE)
                /usr/lib/
                NO_CMAKE_SYSTEM_PATH)
     SET(ICONV_EXTERNAL TRUE)
+ELSEIF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+  # Force paths to GNU version of iconv to avoid clashes with
+  # the libc version.
+  find_library(ICONV_LIBRARIES NAMES iconv libiconv PATHS
+               /usr/local/lib
+               NO_CMAKE_SYSTEM_PATH)
+  SET(ICONV_EXTERNAL TRUE)
 ELSE()
   find_library(ICONV_LIBRARIES NAMES iconv libiconv libiconv-2)
   IF(ICONV_LIBRARIES)
