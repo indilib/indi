@@ -2930,7 +2930,7 @@ bool CCD::saveConfigItems(FILE * fp)
         IUSaveConfigNumber(fp, &GuideCCD.ImageBinNP);
     }
 
-    if (CanSubFrame())
+    if (CanSubFrame() && PrimaryCCD.ImageFrameN[2].value > 0)
         IUSaveConfigNumber(fp, &PrimaryCCD.ImageFrameNP);
 
     if (CanBin())
