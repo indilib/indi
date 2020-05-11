@@ -110,7 +110,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
 {
     public:
         DefaultDevice();
-        virtual ~DefaultDevice() override;
+        virtual ~DefaultDevice() override = default;
 
         /** \brief Add Debug, Simulation, and Configuration options to the driver */
         void addAuxControls();
@@ -462,8 +462,24 @@ class INDI::DefaultDevice : public INDI::BaseDevice
             return activeConnection;
         }
 
+        /**
+         * @brief setDefaultPollingPeriod Change the default polling period to call TimerHit() function in the driver.
+         * @param period period in milliseconds
+         * @note default period is 1000ms
+         */
         void setDefaultPollingPeriod(uint32_t period);
+
+        /**
+         * @brief setPollingPeriodRange Set the range permitted by the polling range in milliseconds
+         * @param minimum Minimum duration in ms.
+         * @param maximum Maximum duration in ms.
+         */
         void setPollingPeriodRange(uint32_t minimum, uint32_t maximum);
+
+        /**
+         * @brief getPollingPeriod Return the current polling period.
+         * @return Polling period in milliseconds.
+         */
         uint32_t getPollingPeriod()
         {
             return static_cast<uint32_t>(PollPeriodN[0].value);
@@ -472,13 +488,16 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         /** \return Default name of the device. */
         virtual const char *getDefaultName() = 0;
 
-        /// Period in milliseconds to call TimerHit(). Default 1000 ms
+        /**
+         * @brief POLLMS Period in milliseconds to call TimerHit(). Default 1000 ms
+         */
         uint32_t POLLMS = 1000;
 
     private:
         bool isInit { false };
         bool pDebug { false };
         bool pSimulation { false };
+        bool pDefaultConfigLoaded {false};
 
         uint16_t majorVersion { 1 };
         uint16_t minorVersion { 0 };
@@ -511,6 +530,6 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         friend class Connection::TCP;
         friend class FilterInterface;
 
-        bool defineDynamicProperties = true;
-        bool deleteDynamicProperties = true;
+        bool defineDynamicProperties {true};
+        bool deleteDynamicProperties {true};
 };

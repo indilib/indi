@@ -130,8 +130,9 @@ extern int IUReadConfig(const char *filename, const char *dev, const char *prope
            If set to NULL, it will attempt to generate the filename as described in the <b>Detailed Description</b> introduction and then load it.
            If the file already exists, the function returns. If the file doesn't exist, it gets created and its contents copied from the source_config file.
     \param dev device name. This is used if either the source_config or desg_config are NULL, and INDICONFIG environment variable is not set as described in the <b>Detailed Description</b> introduction.
+    \return 0 is successful, -1 othereise.
 */
-extern void IUSaveDefaultConfig(const char *source_config, const char *dest_config, const char *dev);
+extern int IUSaveDefaultConfig(const char *source_config, const char *dest_config, const char *dev);
 
 /** \brief Add opening or closing tag to a configuration file.
 
