@@ -31,17 +31,18 @@
 #define PEC_TAB "PEC"
 #define ALIGN_TAB "Align"
 #define OUTPUT_TAB "Outputs"
+#define ENVIRONMENT_TAB "Weather"
 
 #define ONSTEP_TIMEOUT  3
 #define RA_AXIS     0
 #define DEC_AXIS    1
 
-LX200_OnStep::LX200_OnStep() : LX200Generic()
+LX200_OnStep::LX200_OnStep() : LX200Generic() , WI(this)
 {
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 8);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 9);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
@@ -57,6 +58,8 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
 
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     // Unused option: FOCUSER_HAS_VARIABLE_SPEED
+    
+    
 }
 
 const char *LX200_OnStep::getDefaultName()
@@ -69,6 +72,7 @@ bool LX200_OnStep::initProperties()
 
     LX200Generic::initProperties();
     FI::initProperties(FOCUS_TAB);
+    WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
     SetParkDataType(PARK_RA_DEC);
 
     //FocuserInterface
@@ -307,9 +311,16 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[8], "Multi-Axis Tracking", "", "");
     IUFillTextVector(&OnstepStatTP, OnstepStat, 9, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
-
+    // ============== WEATHER TAB
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -40, 85, 15);
+    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
+    addParameter("WEATHER_BAROMETER", "Pressure (hPa)", 0, 100, 15);
+    setCriticalParameter("WEATHER_TEMPERATURE");
     
-    setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
+    addAuxControls();
+    
+    
+    setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE | WEATHER_INTERFACE);
 
     return true;
 }
@@ -536,9 +547,9 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
         if (!strcmp(name, MaxSlewRateNP.name))
         {
-            int ret;
-            char cmd[4];
-            snprintf(cmd, 4, ":R%d#", (int)values[0]);
+            int ret; 
+            char cmd[5];
+            snprintf(cmd, 5, ":R%d#", (int)values[0]);
             ret = sendOnStepCommandBlind(cmd);
 
             //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
@@ -769,6 +780,10 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         return true;
     }
+    if (strstr(name, "WEATHER_"))
+    {
+        return WI::processNumber(dev, name, values, names, n);
+    }
 
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
@@ -809,9 +824,9 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         {
                 IUUpdateSwitch(&SlewRateSP, states, names, n);
                 int ret;
-                char cmd[4];
+                char cmd[5];
                 int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
-                snprintf(cmd, 4, ":R%d#", index);
+                snprintf(cmd, 5, ":R%d#", index);
                 ret = sendOnStepCommandBlind(cmd);
                 
                 //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
@@ -1977,6 +1992,23 @@ bool LX200_OnStep::ReadScopeStatus()
     //TODO: Rotator support
     
     
+    //Weather update
+    getCommandString(PortFD,TempValue, ":GX9A#"); 
+    setParameterValue("WEATHER_TEMPERATURE", std::stod(TempValue));
+    getCommandString(PortFD,TempValue, ":GX9C#"); 
+    setParameterValue("WEATHER_HUMIDITY", std::stod(TempValue));
+    getCommandString(PortFD,TempValue, ":GX9B#"); 
+    setParameterValue("WEATHER_BAROMETER", std::stod(TempValue));
+    
+    WI::updateProperties();
+    
+    if (WI::syncCriticalParameters())
+        IDSetLight(&critialParametersLP, nullptr);
+    ParametersNP.s = IPS_OK;
+    IDSetNumber(&ParametersNP, nullptr);
+    
+    
+    
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, nullptr);
     //Align tab, so it doesn't conflict
@@ -1991,7 +2023,7 @@ bool LX200_OnStep::ReadScopeStatus()
     //#Gu# has this built in
     #endif
     
-    
+   
     NewRaDec(currentRA, currentDEC);
     return true;
 }

@@ -185,7 +185,7 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
         ////////////////////////////////////////////
         else if (strcmp(name, ReverseRotatorSP.name) == 0)
         {
-            bool enabled = (!strcmp(IUFindOnSwitchName(states, names, n), "ENABLED"));
+            bool enabled = (!strcmp(IUFindOnSwitchName(states, names, n), "INDI_ENABLED"));
             bool rc = ReverseRotator(enabled);
 
             if (rc)
