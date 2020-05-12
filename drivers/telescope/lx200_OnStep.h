@@ -23,6 +23,10 @@
 
     ===========================================
     
+    Version 1.9:
+    - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
+    - Bugfix: Slew speed
+    
     Version 1.8: 
     - Bugfixes for FORK mounted scopes
     
@@ -78,6 +82,7 @@
 #include "lx200driver.h"
 #include "indicom.h"
 #include "indifocuserinterface.h"
+#include "indiweatherinterface.h"
 
 #include <cstring>
 #include <unistd.h>
@@ -106,7 +111,7 @@ enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BO
 
 enum MountType {MOUNTTYPE_GEM, MOUNTTYPE_FORK, MOUNTTYPE_FORK_ALT, MOUNTTYPE_ALTAZ};
 
-class LX200_OnStep : public LX200Generic
+class LX200_OnStep : public LX200Generic , public INDI::WeatherInterface
 {
   public:
     LX200_OnStep();
@@ -323,6 +328,15 @@ class LX200_OnStep : public LX200Generic
     bool OSSupports_bitfield_Gu = false;
     uint8_t PECStatusGU = 0;
     uint8_t ParkStatusGU = 0;
+    
+    // Weather support
+    
+    //This is updated via other commands, as such I'm going to ignore it like some others do. 
+    virtual IPState updateWeather() override
+    {
+        return IPS_OK;
+    }
+    
     
     
   private:
