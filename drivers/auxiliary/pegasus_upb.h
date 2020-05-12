@@ -120,6 +120,12 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         bool sendCommand(const char *cmd, char *res);
 
         /**
+         * @brief cleanupResponse Removes all spaces
+         * @param response buffer
+         */
+        void cleanupResponse(char *response);
+
+        /**
          * @return Return true if sensor data different from last data
          */
         bool sensorUpdated(const std::vector<std::string> &result, uint8_t start, uint8_t end);

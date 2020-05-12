@@ -128,7 +128,7 @@ class GuideSim : public INDI::CCD
         float ImageScaley { 1.0 };
         //  An oag is offset this much from center of scope position (arcminutes)
         float OAGoffset { 0 };
-        float rotationCW { 0 };
+        double rotationCW { 0 };
         float TimeFactor { 1 };
 
         bool simulateRGB { false };

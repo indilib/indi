@@ -187,6 +187,43 @@ bool WeatherInterface::setCriticalParameter(std::string param)
     return false;
 }
 
+IPState WeatherInterface::checkParameterState(const INumber &parameter) const
+{
+    double warn = *(static_cast<double *>(parameter.aux0));
+    double rangeWarn = (parameter.max - parameter.min) * (warn / 100);
+
+    if ((parameter.value < parameter.min) || (parameter.value > parameter.max))
+    {
+        return IPS_ALERT;
+    }
+    //else if (parameter.value < (parameter.min + rangeWarn) || parameter.value > (parameter.max - rangeWarn))
+    // FIXME This is a hack to prevent warnings parameters which minimum values are zero (e.g. Wind)
+    else if (   ((parameter.value < (parameter.min + rangeWarn)) && parameter.min != 0)
+                || ((parameter.value > (parameter.max - rangeWarn)) && parameter.max != 0))
+    {
+        return IPS_BUSY;
+    }
+    else
+    {
+        return IPS_OK;
+    }
+
+    return IPS_IDLE;
+}
+
+IPState WeatherInterface::checkParameterState(const std::string &param) const
+{
+    for (int i = 0; i < ParametersNP.nnp; i++)
+    {
+        if (!strcmp(ParametersN[i].name, param.c_str()))
+        {
+            return checkParameterState(ParametersN[i]);
+        }
+    }
+
+    return IPS_IDLE;
+}
+
 bool WeatherInterface::syncCriticalParameters()
 {
     if (critialParametersL == nullptr)
@@ -204,30 +241,25 @@ bool WeatherInterface::syncCriticalParameters()
         {
             if (!strcmp(critialParametersL[i].name, ParametersN[j].name))
             {
-                double warn = *(static_cast<double *>(ParametersN[j].aux0));
-
-                double rangeWarn = (ParametersN[j].max - ParametersN[j].min) * (warn / 100);
-
-                if ((ParametersN[j].value < ParametersN[j].min) || (ParametersN[j].value > ParametersN[j].max))
+                IPState state = checkParameterState(ParametersN[j]);
+                switch (state)
                 {
-                    critialParametersL[i].s = IPS_ALERT;
-                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!",
-                                 ParametersN[j].label, ParametersN[j].value);
-                }
-                //else if (ParametersN[j].value < (ParametersN[j].min + rangeWarn) || ParametersN[j].value > (ParametersN[j].max - rangeWarn))
-                // FIXME This is a hack to prevent warnings parameters which minimum values are zero (e.g. Wind)
-                else if (   ((ParametersN[j].value < (ParametersN[j].min + rangeWarn)) && ParametersN[j].min != 0)
-                            || ((ParametersN[j].value > (ParametersN[j].max - rangeWarn)) && ParametersN[j].max != 0))
-                {
+                case IPS_BUSY:
                     critialParametersL[i].s = IPS_BUSY;
                     DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING, "Warning: Parameter %s value (%g) is in the warning zone!",
                                  ParametersN[j].label, ParametersN[j].value);
-                }
-                else
-                {
+                    break;
+
+                case IPS_ALERT:
+                    critialParametersL[i].s = IPS_ALERT;
+                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!",
+                                 ParametersN[j].label, ParametersN[j].value);
+                    break;
+
+                case IPS_IDLE:
+                case IPS_OK:
                     critialParametersL[i].s = IPS_OK;
                 }
-                break;
             }
         }
 

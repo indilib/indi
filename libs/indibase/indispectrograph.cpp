@@ -58,9 +58,8 @@ bool Spectrograph::initProperties()
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BITSPERSAMPLE], "SPECTROGRAPH_BITSPERSAMPLE", "Bits per sample", "%3.0f", -64, 64, 8, 8);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BANDWIDTH], "SPECTROGRAPH_BANDWIDTH", "Bandwidth (Hz)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_GAIN], "SPECTROGRAPH_GAIN", "Gain", "%3.2f", 0.01, 255.0, 0.01, 1.0);
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_CHANNEL], "SPECTROGRAPH_CHANNEL", "Channel", "%16.2f", 1.0, 32.0, 1.0, 1.0);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_ANTENNA], "SPECTROGRAPH_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
-    IUFillNumberVector(&SpectrographSettingsNP, SpectrographSettingsN, 7, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&SpectrographSettingsNP, SpectrographSettingsN, 6, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     setDriverInterface(SPECTROGRAPH_INTERFACE);
 
@@ -158,8 +157,7 @@ void Spectrograph::setFrequency(double freq)
 
 void Spectrograph::SetSpectrographCapability(uint32_t cap)
 {
-    capability = cap;
-
+    SetCapability(cap);
     setDriverInterface(getDriverInterface());
 }
 
@@ -192,4 +190,27 @@ void Spectrograph::setMinMaxStep(const char *property, const char *element, doub
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
 }
 
+void Spectrograph::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
+{
+    char fitsString[MAXINDILABEL];
+    int status = 0;
+
+    // SPECTROGRAPH
+    sprintf(fitsString, "%d", getBPS());
+    fits_update_key_s(fptr, TSTRING, "BPS", fitsString, "Bits per sample", &status);
+
+    sprintf(fitsString, "%lf", getBandwidth());
+    fits_update_key_s(fptr, TSTRING, "BANDWIDT", fitsString, "Bandwidth", &status);
+
+    sprintf(fitsString, "%lf", getFrequency());
+    fits_update_key_s(fptr, TSTRING, "FREQ", fitsString, "Center Frequency", &status);
+
+    sprintf(fitsString, "%lf", getSampleRate());
+    fits_update_key_s(fptr, TSTRING, "SRATE", fitsString, "Sampling Rate", &status);
+
+    sprintf(fitsString, "%lf", getGain());
+    fits_update_key_s(fptr, TSTRING, "GAIN", fitsString, "Gain", &status);
+
+    SensorInterface::addFITSKeywords(fptr, buf, len);
+}
 }
