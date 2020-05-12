@@ -30,6 +30,7 @@
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
 #include "dsp/manager.h"
+#include "stream/streammanager.h"
 
 #ifdef HAVE_WEBSOCKET
 #include "indiwsserver.h"
@@ -233,7 +234,16 @@ class CCD : public DefaultDevice, GuiderInterface
          */
         bool HasStreaming()
         {
-            return capability & CCD_HAS_STREAMING;
+            if (capability & CCD_HAS_STREAMING)
+            {
+                if(Streamer.get() == nullptr)
+                {
+                    Streamer.reset(new StreamManager(this));
+                    Streamer->initProperties();
+                }
+                return true;
+            }
+            return false;
         }
 
         /**
@@ -245,11 +255,19 @@ class CCD : public DefaultDevice, GuiderInterface
         }
 
         /**
-         * @return  True if the CCD supports live video streaming. False otherwise.
+         * @return  True if the CCD wants DSP processing. False otherwise.
          */
         bool HasDSP()
         {
-            return capability & CCD_HAS_DSP;
+            if (capability & CCD_HAS_DSP)
+            {
+                if(DSP.get() == nullptr)
+                {
+                    DSP.reset(new DSP::Manager(this));
+                }
+                return true;
+            }
+            return false;
         }
 
         /**

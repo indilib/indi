@@ -527,14 +527,8 @@ void SensorInterface::SetCapability(uint32_t cap)
 
     setDriverInterface(getDriverInterface());
 
-    if (HasStreaming() && Streamer.get() == nullptr)
-    {
-        Streamer.reset(new StreamManager(this));
-        Streamer->initProperties();
-    }
-
-    if (HasDSP() && DSP.get() == nullptr)
-        DSP.reset(new DSP::Manager(this));
+    HasStreaming();
+    HasDSP();
 }
 
 void SensorInterface::setMinMaxStep(const char *property, const char *element, double min, double max, double step,

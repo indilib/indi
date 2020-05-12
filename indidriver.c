@@ -1282,7 +1282,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
     return (0);
 }
 
-void IUSaveDefaultConfig(const char *source_config, const char *dest_config, const char *dev)
+int IUSaveDefaultConfig(const char *source_config, const char *dest_config, const char *dev)
 {
     char configFileName[MAXRBUF], configDefaultFileName[MAXRBUF];
 
@@ -1315,11 +1315,21 @@ void IUSaveDefaultConfig(const char *source_config, const char *dest_config, con
                 int ch = 0;
                 while ((ch = getc(fpin)) != EOF)
                     putc(ch, fpout);
-        fclose(fpout);
+
+                fflush(fpout);
+                fclose(fpout);
             }
-        fclose(fpin);
+            fclose(fpin);
+
+            return 0;
         }
     }
+    // If default config file exists already, then no need to modify it
+    else
+        return 0;
+
+
+    return -1;
 }
 
 int IUGetConfigSwitch(const char *dev, const char *property, const char *member, ISState *value)

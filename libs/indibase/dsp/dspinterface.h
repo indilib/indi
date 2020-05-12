@@ -119,6 +119,8 @@ class Interface
          */
         int getBPS() { return BPS; }
 
+    protected:
+
         /**
          * @brief Activated Called after activation from client application.
          */
@@ -139,7 +141,14 @@ class Interface
          */
         virtual uint8_t* Callback(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample);
 
-    protected:
+        /**
+         * @brief loadFITS Converts FITS data into a dsp_stream structure pointer.
+         * @param buf The input buffer
+         * @param len Size of the FIT in bytes
+         * @return A dsp_stream_p structure containing the data of the loaded FITS
+         */
+        dsp_stream_p loadFITS(char* buf, int len);
+
         bool PluginActive;
 
         IBLOBVectorProperty FitsBP;
