@@ -156,11 +156,10 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // meridian delay (experimental!)
-    // ToTo, set 0., 24. not -24,24.
-    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "UTC offset", "%8.5f", -30.0, 30.0, 0.0, 0.);
+    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "UTC offset", "%8.5f", 0.0, 24.0, 0.0, 0.);
     IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY", "UTC offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
     // sidereal time
-    IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
+    IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "AP sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
     IUFillNumberVector(&SiderealTimeNP, SiderealTimeN, 1, getDeviceName(), "SIDEREAL_TIME", "sidereal time", MAIN_CONTROL_TAB, IP_RO, 60, IPS_OK);
         
     SetParkDataType(PARK_AZ_ALT);
@@ -438,29 +437,20 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
  
 	MeridianDelayNP.s  = IPS_OK;
 	IDSetNumber(&MeridianDelayNP, nullptr);
-	LOG_ERROR("ISNewNumber 1");
-	//#ifdef no
+	
 	SiderealTimeNP.s  = IPS_BUSY;
 	IDSetNumber(&SiderealTimeNP, nullptr);
-	// ToDo: eventually goes away
-	const struct timespec timeout = {0, 250000000L};
-	nanosleep(&timeout, nullptr);
-	//#endif
+	
 	double val;
 	if (!isSimulation() && getSDTime(PortFD, &val) < 0) {
 	  LOGF_ERROR("Reading sidereal time failed %d", -1);
 	  return false;
       	}
-	//#ifdef no
 	if (isSimulation())
 	{
 	  double lng = LocationN[LOCATION_LONGITUDE].value;
 	  val = -4. + get_local_sidereal_time(lng);
 	}
-	//#endif
-	LOG_ERROR("ISNewNumber 2");
-
-	LOGF_ERROR("not an Error Sidereal time :(GS) %f in ISNewNumber", val);
 	SiderealTimeNP.np[SIDEREAL_TIME].value = val;
 	SiderealTimeNP.s = IPS_OK;
 	IDSetNumber(&SiderealTimeNP, nullptr);
@@ -692,22 +682,19 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0)) {
       LOGF_ERROR("Reading sidereal time failed %d", -1);
       return false;
-    } else {
-    SiderealTimeNP.np[SIDEREAL_TIME].value = val;
-    SiderealTimeNP.s           = IPS_IDLE;
-    IDSetNumber(&SiderealTimeNP, nullptr);
     }
-    //#ifdef no
     if (isSimulation()) {
-
       double lng = LocationN[LOCATION_LONGITUDE].value;
-      val = -2. + get_local_sidereal_time(lng);
+      val = get_local_sidereal_time(lng);
+    }
     SiderealTimeNP.np[SIDEREAL_TIME].value = val;
     SiderealTimeNP.s           = IPS_IDLE;
     IDSetNumber(&SiderealTimeNP, nullptr);
+    if (isSimulation()) {
         mountSim();
         return true;
-    }
+    }   
+    
   
     if (getAPUTCOffset(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading offset from greenwich  failed %d", -1);	
@@ -1390,27 +1377,29 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 // ugly
 double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_offset) {
 
-   if (isSimulation()) {
-     return utc_off -  sim_offset;
-   }
-   if(utc_off < 0) {
-     utc_off += 24. / 1.00273790935; // add one sid day
-   }
-   if( setAPUTCOffset(PortFD, utc_off) < 0)
-   {
-        LOG_ERROR("Error setting UTC Offset, while finding correct SID.");
-        return ERROR;
-   }
-   //.1 sec
-   const struct timespec timeout = {0, 100000000L};
-   nanosleep(&timeout, nullptr);
-   
-   double val = ERROR;
-   if (getSDTime(PortFD, &val) < 0) {
-        LOG_ERROR("Reading sidereal time failed, while finding correct SID.");
-	return ERROR;
-   }
-   return val;
+
+  double lng = LocationN[LOCATION_LONGITUDE].value;
+  double sid_loc = get_local_sidereal_time(lng);
+  double sid_ap;
+  if (isSimulation()) {
+
+    double sid_ap_ori =  sid_loc + sim_offset - utc_off;
+    sid_ap =  fmod(sid_ap_ori, 24.);
+    //LOGF_WARN("sid_ap_ori: %f, sid_ap: %f, sid_loc: %f, sim_offset: %f, utc_off: %f", sid_ap_ori, sid_ap, sid_loc, sim_offset, utc_off);
+    return sid_loc - sid_ap;
+  }
+  
+  if( setAPUTCOffset(PortFD, utc_off) < 0) {
+    LOG_ERROR("Error setting UTC Offset, while finding correct SID.");
+    return ERROR;
+  }
+
+  sid_ap = ERROR;
+  if (getSDTime(PortFD, &sid_ap) < 0) {
+    LOG_ERROR("Reading sidereal time failed, while finding correct SID.");
+    return ERROR;
+  }
+  return sid_loc - sid_ap;
 }
 bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 {
@@ -1445,8 +1434,6 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     updateLocation(-27.435, 153.021, 0.);
     LOG_DEBUG("set location in updateTime");
     
-    
-    utc_offset = 0.;
     if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
     {
         LOG_ERROR("Error setting UTC Offset.");
@@ -1462,54 +1449,19 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     LOGF_DEBUG("Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
     
     // back port :-)
-    ReadScopeStatus();
-    double bla = setUTCgetSID(0., 0.);
-    double lng = LocationN[LOCATION_LONGITUDE].value;
- 
-    if ((!isSimulation()) && (getLocalTime24(PortFD, &bla) < 0)) {
-      LOGF_DEBUG("Reading local time failed :GL %d", -1);	
-    } 
-
-    int ddd = 0;
-    int fmm = 0;
-    if ((!isSimulation()) && (getSiteLongitude(PortFD, &ddd, &fmm) < 0)) {
-      LOGF_DEBUG("Reading longitude failed :Gg %d", -1);
-    }
-
     double ap_sid;
     if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
       LOGF_ERROR("Reading sidereal time failed %d", -1);
 
     }
-    //#ifdef no
-    else
+
+    if(isSimulation())
     {
       double lng = LocationN[LOCATION_LONGITUDE].value;
-      ap_sid = 2. + get_local_sidereal_time(lng);
+      ap_sid = get_local_sidereal_time(lng);
+      LOGF_ERROR("LNG (%f), sid (%f)", lng, ap_sid);
     }
-    //#endif 
-    double sid = get_local_sidereal_time(153.021); // rangeHA
-    LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid: %f, AP sid: %f", lng, sid, ap_sid);
-    if (sid < 0) {
-      sid +=24.;
-      LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid +24.: %f, AP sid: %f", lng, sid, ap_sid);
-    }
-    utc_offset = fabs(sid - ap_sid);
-    //double ap_sid_sid = setUTCgetSID(utc_offset, 0.);
-    if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
-    {
-        LOG_ERROR("Error setting UTC Offset.");
-        return false;
-    }
-    if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
-      LOGF_ERROR("Reading sidereal time failed %d", -1);
-
-    }
-    LOGF_ERROR("updateTime: SEE ME: longitude: %f, INDI sid: %f, AP sid: %f, utc_offset: %f", lng, sid, ap_sid, utc_offset);
-    ReadScopeStatus();
-   
-
-#ifdef no
+ 
     double dst_off = 0.;
     time_t lrt_is_dst=  time (NULL);
     tm ltm_is_dst;
@@ -1526,150 +1478,117 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     // if there is a fraction present the assumption is that it was
     // set intentionally
     double fractpart, intpart;
-    fractpart = modf (utc_offset , &intpart);
-    LOGF_ERROR("utc offset (%f), intpart (%f), fractpart (%f)", utc_offset, intpart, fractpart);
+    fractpart = modf(utc_offset , &intpart);
+    LOGF_DEBUG("utc offset (%f), intpart (%f), fractpart (%f)", utc_offset, intpart, fractpart);
+    
 #define UPPER_LIMIT 0.001
+#define AP_UTC_OFFSET 6.123456
+
     if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT )) {
         LOG_ERROR("Trying to find correct UTC offset");
       
     } else if (!isSimulation() && (fabs(fractpart) >= UPPER_LIMIT )) {
       LOGF_ERROR("Assuming correct UTC offset (%)", utc_offset);
     }
-    // 2020-04-25, wildi, finally fabs(utc_offset) is set, verify that
-    // In case of GTOCP2 and long = 7.5 the offset was 1.065
-    //if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT ))
+    // 2020-04-25, wildi, In case of GTOCP2 and long = 7.5 the offset was 1.065
+    // ToDo if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT ))
     if (fabs(fractpart) < UPPER_LIMIT )
     {
         double lng = LocationN[LOCATION_LONGITUDE].value;
-        double sid = get_local_sidereal_time(lng); // rangeHA
-        // lwr_mnt is an approximation
-        // to find the correct time (understood as UTC) use the inverse
-        // get_local_sidereal_time function, see e.g.: https://www.aa.quae.nl/en/reken/sterrentijd.html
-        double lwr_lmt = - sid; // NO: (sid * 86400./86164.0905);
-        double uppr_lmt = lwr_lmt + 24. / 1.00273790935; // add one sid day 
-	double sltn ;
-	double val_sid;
-	double val_sid_a;
-	// define first two points that have a different sign
-	// this loop is not needed in a strict sense
-	// since within t_sid = 0 and t_sid = 24 hour_sid (see definition of limits)
-#define SIMULATION_OFFSET_TO_FIND  4.12345678
-	double val_sim_offset = 0.;
-	if(isSimulation()) {
-	  val_sim_offset =  lwr_lmt + SIMULATION_OFFSET_TO_FIND ;
-	  
-	}
-	val_sid_a = setUTCgetSID(lwr_lmt, val_sim_offset);
-	
-	double val_sid_b;
-	int tp;
-	bool found = false;
-	for(tp = lwr_lmt; tp <= uppr_lmt; tp++) {
-	  val_sid_b = setUTCgetSID((double)tp, val_sim_offset);
-	    if (( val_sid_a * val_sid_b) < 0) {
-	      found = true;
-	      break;
-	    }
-	}
-	bool val_found = false; // used in bisection loop
-        if(found) {
-	
-	  uppr_lmt = (double) tp ;
-	  LOGF_ERROR("sign change found at (%f), starting at: (%f)", uppr_lmt, lwr_lmt);
-	  // since we messed around with time, restore initial utc_offset
-	  // The sign change was found in the utc_offset intervel [0,uppr_lmt]
-	  // The blow loop assumes that.
-	  if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
-	    {
-	      LOG_ERROR("Error setting UTC Offset.");
-	      return false;
-	    }
-	  
-	  LOGF_DEBUG("Reset UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
-        } else {
-	  // do not loop
-	  val_found = true;
-	  uppr_lmt = lwr_lmt ;
-	  LOG_ERROR("no sign change found");
-	}
-	// find correct by bisection
-	//#define EP 0.00001
-	double val_found = false;
-	int cnt = 200;
-#define EP 0.0001
-	LOGF_ERROR("lower (%f), upper: (%f), sid (%f), sim: val (%f)", lwr_lmt, uppr_lmt, sid, val_sim_offset);
-        while (!val_found || fabs(uppr_lmt-lwr_lmt) > EP) {
-	    cnt -= 1;
-	    if(cnt ==0) {
-	      
-	      LOG_ERROR("after 200 iterations, comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
-	      break;
-	    }
-
-            // Find middle point
-	    sltn = (lwr_lmt+uppr_lmt)/2;
-            // Check if middle point is root
-	    val_sid = setUTCgetSID(sltn, val_sim_offset);
-	    if (val_sid == ERROR)
-	    {
-	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
-	      break;
-	    }
-#define MAX_DIFF_SID 0.00024 // lowest value found so far: 0.000076
-	    // dt = 1 sec   0.0002
-	    //              0.000076  
-	    // required  13.9348
-            else if (fabs(val_sid) <= MAX_DIFF_SID && fabs(uppr_lmt-lwr_lmt) <= (2. * EP))
-	    {
-	      val_found = true;
-	      if( sltn< 0.) { // must be positive
-	        LOGF_ERROR(">>>>NOT an ERROR, UTC offset was: %f", sltn);
-		sltn += 24. / 1.00273790935; // add one sid day
-	      }
-	      
-	      LOGF_ERROR(">>>>NOT an ERROR, Comparing UTC offset successful (%f), dst (%f), val_sid (%f), diff (%f)", sltn + dst_off, dst_off, val_sid, uppr_lmt-lwr_lmt);
-	      if(isSimulation()) {
-		//if( fabs(sltn - 13.9348) <= 0.01) {
-		if( fabs(sltn - SIMULATION_OFFSET_TO_FIND) <= 0.01) {
-		  LOG_ERROR("NOT an ERROR, we did find the correct value :-)");
-		}
-	      }
-		
-	        utc_offset = sltn + dst_off; // 2020-04-25, wildi, ToDo define sign
-                break;
-	    }
+        // ToDo double sid = get_local_sidereal_time(lng); // rangeHA
+        double last_diff = NAN;
+        double utc_offset = NAN;                                  
+        double utc_offset_sid_24 = NAN;
+	int cnt = 0;
+        for( int iutc = 0; iutc < 25; iutc++) {
+	  double diff = setUTCgetSID(float(iutc), AP_UTC_OFFSET); 
+	  if (last_diff != last_diff){ //test if NAN
+	    last_diff = diff;
+	  }
+	  double sid = get_local_sidereal_time(lng); 
+	  //LOGF_ERROR("within, UTC offset (%f), sid %f, diff %f, last diff: %f",
+	  //	     (double)iutc, sid, diff, last_diff);
+	  if((utc_offset != utc_offset) && ((last_diff * diff)<0)) {
 	    
-            val_sid_a = setUTCgetSID(lwr_lmt, val_sim_offset);
-	    if (val_sid_a == ERROR)
-	    {
-	      LOG_ERROR("Comparing SID failed, set UTC offset manually, proceed ONLY, if you understand this");
-	      break;
+	    if( fabs(diff -last_diff) > 1.5) {
+	      LOGF_ERROR("sign change at sid 24 hours, local sid (%f), UTC offset (%f)", sid, (double)iutc) ;
+	      utc_offset_sid_24 = (double)iutc;
+	    } else {          
+	      LOGF_WARN("sign change, local sid (%f), UTC offset (%f)", sid, (double)iutc);
+	      utc_offset = (double)iutc;              
 	    }
-            // Decide the side to repeat the steps
-            if (val_sid * val_sid_a < 0)
-	    {
-                uppr_lmt = sltn;
-	    }
-            else
-	    {
-	        lwr_lmt = sltn;
-	    }
-	    LOGF_ERROR("cnt (%d), UTC offset (%f), lower: (%f), upper: (%f), diff (%f) , val_sid (%f)",
-		       cnt, sltn, lwr_lmt,uppr_lmt, uppr_lmt-lwr_lmt, val_sid);
-        }
-    }
-    // yes, again
-    if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
-    {
-        LOG_ERROR("Error setting UTC Offset.");
-        return false;
-    }
-#endif
+	  }
+	  last_diff = diff;               
+	}
+	if (utc_offset != utc_offset) {
+	  utc_offset = 23.002;
+	}
 
-    LOGF_DEBUG("Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
-    MeridianDelayNP.np[0].value = utc_offset;
-    MeridianDelayNP.s = IPS_OK;
-    IDSetNumber(&MeridianDelayNP, nullptr);
+	
+	double ll = 0.;
+	double ul = 24.;
+	if (!(utc_offset_sid_24 != utc_offset_sid_24)) {
+	  if (utc_offset  < utc_offset_sid_24) {
+            ll = utc_offset_sid_24;
+            ul = 24.;
+	  } else {                              
+            ll = utc_offset_sid_24;
+            ul = utc_offset;
+	  }
+	} else {                                               
+	  ll = 0.;                
+	  ul = utc_offset;
+	}
+	// bisection
+        double utc_off = (ll+ul)/2.0;
+        cnt = 0;
+	double tol = 0.00001 ;
+	LOGF_WARN("initial values cnt (%d), UTC offset (%f), lower: (%f), upper: (%f)",
+		       cnt, utc_off, ll, ul);
+	bool fnd = false;
+        while((ul-ll)/2.0 > tol) {
+                              
+	  double mltr = setUTCgetSID(ll, AP_UTC_OFFSET) * setUTCgetSID(utc_off, AP_UTC_OFFSET); 
+	  double mlt = mltr/fabs(mltr);
+
+	  double sid_diff = setUTCgetSID(utc_off, AP_UTC_OFFSET);
+	  //  LOGF_ERROR("cnt (%d), UTC offset (%f), lower: (%f), upper: (%f), sign: %f, sid_diff: %f",
+	  //	       cnt, utc_off, ll, ul, mlt, sid_diff);
+	  if (fabs(sid_diff) < tol) {  
+	    fnd = true;
+	    break;
+                                     
+          } else if( mlt < 0) {                               
+	    ul = utc_off;
+          } else {              
+	    ll = utc_off ;
+	  }
+      
+          utc_off = (ll+ul)/2.0;
+	  cnt++;
+	}
+	if (fnd) {
+	  LOGF_WARN("found solution after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
+		   cnt, utc_off, ll, ul);
+	} else {
+	  LOGF_ERROR("solution NOT found after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
+		   cnt, utc_off, ll, ul);
+	  LOG_WARN("continue only if you understand the implications");
+	}
+	// subtract day light saving
+	utc_off -= dst_off;
+	// yes, again
+	if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_off)) < 0)
+	  {
+	    LOG_ERROR("Error setting UTC Offset.");
+	    return false;
+	  }
+
+	LOGF_DEBUG("Set UTC Offset after bisection: %g (always positive for AP) is successful.", fabs(utc_offset));
+	MeridianDelayNP.np[0].value = utc_off;
+	MeridianDelayNP.s = IPS_OK;
+	IDSetNumber(&MeridianDelayNP, nullptr);
+    }
 
   
     LOG_INFO("Time updated.");
