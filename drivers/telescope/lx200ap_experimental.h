@@ -125,8 +125,8 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     ISwitch ParkToS[5];
     ISwitchVectorProperty ParkToSP;
 
-    INumberVectorProperty MeridianDelayNP;
-    INumber MeridianDelayN[1];
+    INumberVectorProperty UTCOffsetNP;
+    INumber UTCOffsetN[1];
 
     IText VersionT[1] {};
     ITextVectorProperty VersionInfo;

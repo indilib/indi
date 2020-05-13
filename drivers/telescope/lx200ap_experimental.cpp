@@ -20,7 +20,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#define SIDEREAL_TIME 0
 
 
 #include "lx200ap_experimental.h"
@@ -155,10 +154,11 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillText(&VersionT[0], "Version", "Version", "");
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    // meridian delay (experimental!)
-    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "UTC offset", "%8.5f", 0.0, 24.0, 0.0, 0.);
-    IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY", "UTC offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
-    // sidereal time
+    // UTC offset
+    IUFillNumber(&UTCOffsetN[0], "UTC_OFFSET", "UTC offset", "%8.5f", 0.0, 24.0, 0.0, 0.);
+    IUFillNumberVector(&UTCOffsetNP, UTCOffsetN, 1, getDeviceName(), "UTC_OFFSET", "UTC offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
+    // sidereal time, ToDO move define where it belongs to
+#define SIDEREAL_TIME 0
     IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "AP sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
     IUFillNumberVector(&SiderealTimeNP, SiderealTimeN, 1, getDeviceName(), "SIDEREAL_TIME", "sidereal time", MAIN_CONTROL_TAB, IP_RO, 60, IPS_OK);
         
@@ -212,7 +212,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineSwitch(&SyncCMRSP);
         defineSwitch(&APGuideSpeedSP);
         defineSwitch(&ParkToSP);
-        defineNumber(&MeridianDelayNP);
+	defineNumber(&UTCOffsetNP);
         defineNumber(&SiderealTimeNP);
         defineNumber(&HourangleCoordsNP);
 
@@ -270,7 +270,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         deleteProperty(SyncCMRSP.name);
         deleteProperty(APGuideSpeedSP.name);
         deleteProperty(ParkToSP.name);
-        deleteProperty(MeridianDelayNP.name);
+        deleteProperty(UTCOffsetNP.name);
         deleteProperty(SiderealTimeNP.name);
         deleteProperty(HourangleCoordsNP.name);
     }
@@ -416,27 +416,26 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
     if (strcmp(getDeviceName(), dev))
         return false;
 
-    if (!strcmp(name, MeridianDelayNP.name))
+    if (!strcmp(name, UTCOffsetNP.name))
     {
-        if (IUUpdateNumber(&MeridianDelayNP, values, names, n) < 0)
+        if (IUUpdateNumber(&UTCOffsetNP, values, names, n) < 0)
             return false;
 
         float mdelay;
         int err;
 
-        mdelay = MeridianDelayN[0].value;
+        mdelay = UTCOffsetN[0].value;
 
-        //LOGF_INFO("lx200ap_experimental: meridian delay request = %f", mdelay);
         LOGF_ERROR("lx200ap_experimental: utc offset request = %f", mdelay);
 
-        if (!isSimulation() && (err = setAPMeridianDelay(PortFD, mdelay) < 0))
+        if (!isSimulation() && (err = setAPUTCOffset(PortFD, mdelay) < 0))
         {
             LOGF_ERROR("lx200ap_experimental: Error setting UTC offset (%d).", err);
             return false;
         }
  
-	MeridianDelayNP.s  = IPS_OK;
-	IDSetNumber(&MeridianDelayNP, nullptr);
+	UTCOffsetNP.s  = IPS_OK;
+	IDSetNumber(&UTCOffsetNP, nullptr);
 	
 	SiderealTimeNP.s  = IPS_BUSY;
 	IDSetNumber(&SiderealTimeNP, nullptr);
@@ -449,7 +448,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 	if (isSimulation())
 	{
 	  double lng = LocationN[LOCATION_LONGITUDE].value;
-	  val = -4. + get_local_sidereal_time(lng);
+	  val = get_local_sidereal_time(lng);
 	}
 	SiderealTimeNP.np[SIDEREAL_TIME].value = val;
 	SiderealTimeNP.s = IPS_OK;
@@ -687,7 +686,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
       double lng = LocationN[LOCATION_LONGITUDE].value;
       val = get_local_sidereal_time(lng);
     }
-    SiderealTimeNP.np[SIDEREAL_TIME].value = val;
+    SiderealTimeNP.np[0].value = val;
     SiderealTimeNP.s           = IPS_IDLE;
     IDSetNumber(&SiderealTimeNP, nullptr);
     if (isSimulation()) {
@@ -1421,19 +1420,12 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
         return false;
     }
 
-    LOGF_DEBUG("Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
-               (int)ltm.seconds);
-
     if (!isSimulation() && setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
         LOG_ERROR("Error setting local date.");
         return false;
     }
-    LOGF_DEBUG("Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
 
-    updateLocation(-27.435, 153.021, 0.);
-    LOG_DEBUG("set location in updateTime");
-    
     if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
     {
         LOG_ERROR("Error setting UTC Offset.");
@@ -1446,20 +1438,17 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
         return false;
     }
 
-    LOGF_DEBUG("Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
-    
     // back port :-)
     double ap_sid;
     if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
       LOGF_ERROR("Reading sidereal time failed %d", -1);
-
     }
 
     if(isSimulation())
     {
       double lng = LocationN[LOCATION_LONGITUDE].value;
       ap_sid = get_local_sidereal_time(lng);
-      LOGF_ERROR("LNG (%f), sid (%f)", lng, ap_sid);
+      LOGF_DEBUG("Longitude (%f), local sidereal time (%f)", lng, ap_sid);
     }
  
     double dst_off = 0.;
@@ -1467,13 +1456,11 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     tm ltm_is_dst;
     localtime_r(&lrt_is_dst,&ltm_is_dst);
     if( ltm_is_dst.tm_isdst < 0){
-      LOG_ERROR("updateTime DST information not available, ignoring");
+      LOG_WARN("DST information not available, ignoring");
     } else if(ltm_is_dst.tm_isdst >= 1) { 
-      LOG_ERROR("updateTime DST is in effect");
+      LOG_INFO("DST is in effect");
       dst_off= 1.;
-    } else {
-      LOG_ERROR("updateTime DST is not in effect"); 
-    }
+    } 
     // do the find only, if there is utc_offset of the form 10.0000
     // if there is a fraction present the assumption is that it was
     // set intentionally
@@ -1485,11 +1472,9 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 #define AP_UTC_OFFSET 6.123456
 
     if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT )) {
-        LOG_ERROR("Trying to find correct UTC offset");
-      
-    } else if (!isSimulation() && (fabs(fractpart) >= UPPER_LIMIT )) {
-      LOGF_ERROR("Assuming correct UTC offset (%)", utc_offset);
-    }
+
+      LOG_INFO("Trying to find correct UTC offset, see field UTC offset and check if AP sidereal time is the correct LST");
+    } 
     // 2020-04-25, wildi, In case of GTOCP2 and long = 7.5 the offset was 1.065
     // ToDo if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT ))
     if (fabs(fractpart) < UPPER_LIMIT )
@@ -1511,10 +1496,10 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	  if((utc_offset != utc_offset) && ((last_diff * diff)<0)) {
 	    
 	    if( fabs(diff -last_diff) > 1.5) {
-	      LOGF_ERROR("sign change at sid 24 hours, local sid (%f), UTC offset (%f)", sid, (double)iutc) ;
+	      LOGF_DEBUG("sign change at sid 24 hours, local sid (%f), UTC offset (%f)", sid, (double)iutc) ;
 	      utc_offset_sid_24 = (double)iutc;
 	    } else {          
-	      LOGF_WARN("sign change, local sid (%f), UTC offset (%f)", sid, (double)iutc);
+	      LOGF_DEBUG("sign change, local sid (%f), UTC offset (%f)", sid, (double)iutc);
 	      utc_offset = (double)iutc;              
 	    }
 	  }
@@ -1523,8 +1508,6 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	if (utc_offset != utc_offset) {
 	  utc_offset = 23.002;
 	}
-
-	
 	double ll = 0.;
 	double ul = 24.;
 	if (!(utc_offset_sid_24 != utc_offset_sid_24)) {
@@ -1542,8 +1525,8 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	// bisection
         double utc_off = (ll+ul)/2.0;
         cnt = 0;
-	double tol = 0.0001 ;
-	LOGF_WARN("initial values cnt (%d), UTC offset (%f), lower: (%f), upper: (%f)",
+	double tol = 0.00001 ;
+	LOGF_DEBUG("initial values cnt (%d), UTC offset (%f), lower: (%f), upper: (%f)",
 		       cnt, utc_off, ll, ul);
 	bool fnd = false;
         while((ul-ll)/2.0 > tol) {
@@ -1552,8 +1535,6 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	  double mlt = mltr/fabs(mltr);
 
 	  double sid_diff = setUTCgetSID(utc_off, AP_UTC_OFFSET);
-	  //  LOGF_ERROR("cnt (%d), UTC offset (%f), lower: (%f), upper: (%f), sign: %f, sid_diff: %f",
-	  //	       cnt, utc_off, ll, ul, mlt, sid_diff);
 	  if (fabs(sid_diff) < tol) {  
 	    fnd = true;
 	    break;
@@ -1568,7 +1549,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	  cnt++;
 	}
 	if (fnd) {
-	  LOGF_WARN("found solution after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
+	  LOGF_INFO("found solution after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
 		   cnt, utc_off, ll, ul);
 	} else {
 	  LOGF_ERROR("solution NOT found after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
@@ -1583,13 +1564,12 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	    LOG_ERROR("Error setting UTC Offset.");
 	    return false;
 	  }
-
+	// ToDo, 2020-05-03, do that only if fnd true
 	LOGF_DEBUG("Set UTC Offset after bisection: %g (always positive for AP) is successful.", fabs(utc_offset));
-	MeridianDelayNP.np[0].value = utc_off;
-	MeridianDelayNP.s = IPS_OK;
-	IDSetNumber(&MeridianDelayNP, nullptr);
+	UTCOffsetNP.np[0].value = utc_off;
+	UTCOffsetNP.s = IPS_OK;
+	IDSetNumber(&UTCOffsetNP, nullptr);
     }
-
   
     LOG_INFO("Time updated.");
 
@@ -1835,7 +1815,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
 	    double ha = get_local_hour_angle(lst, equatorialPos.ra/15.);
             char HaStr[16];
             fs_sexa(HaStr, ha , 2, 3600);
-	    LOGF_ERROR("Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr, RaStr, DecStr);
+	    LOGF_DEBUG("Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr, RaStr, DecStr);
             Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
         }
         else
