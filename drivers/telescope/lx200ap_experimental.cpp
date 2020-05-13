@@ -1542,7 +1542,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 	// bisection
         double utc_off = (ll+ul)/2.0;
         cnt = 0;
-	double tol = 0.00001 ;
+	double tol = 0.0001 ;
 	LOGF_WARN("initial values cnt (%d), UTC offset (%f), lower: (%f), upper: (%f)",
 		       cnt, utc_off, ll, ul);
 	bool fnd = false;
