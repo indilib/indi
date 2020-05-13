@@ -20,8 +20,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-
-
 #include "lx200ap_experimental.h"
 
 #include "indicom.h"
@@ -658,9 +656,10 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     {
         if(ParkSP.s == IPS_BUSY &&  EqNP.s == IPS_BUSY)
 	{
-	  // 1 sec, bad solution will go away
+	  // ToDo, wildi discuss with Jasem
 	  // HA must be calculated, where in the code
 	  // RA/Dec is set (for the clients).
+	  // 1 sec, bad solution will go away
 	  // ARM CPUs do not like 1 sec
           const struct timespec timeout = {0, 500000000L}; // do not sleep too long
           nanosleep(&timeout, nullptr);
@@ -1372,8 +1371,7 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 
     return true;
 }
-#define ERROR -26.3167245901
-// ugly
+
 double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_offset) {
 
 
@@ -1388,6 +1386,7 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
     return sid_loc - sid_ap;
   }
   
+#define ERROR -26.3167245901
   if( setAPUTCOffset(PortFD, utc_off) < 0) {
     LOG_ERROR("Error setting UTC Offset, while finding correct SID.");
     return ERROR;
@@ -1406,11 +1405,10 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
 
-
     JD = ln_get_julian_day(utc);
 
     LOGF_DEBUG("New JD is %.8f", JD);
-
+    // ToDo, discuss with Jasem
     // Set Local Time
     // 2020-04-18, wildi, four seconds, hm, [2020-04-18T21:43:28.144 AEST "[DEBUG] Set Local Time 21:43:24 is successful. "
     // should be done here not via inditelescope.cpp, Telescope::ISSnoopDevice(XMLEle *root), return processTimeInfo(utc, offset);
@@ -1437,7 +1435,6 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
         LOG_ERROR("Error reading UTC Offset.");
         return false;
     }
-
     // back port :-)
     double ap_sid;
     if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
@@ -1816,7 +1813,13 @@ bool LX200AstroPhysicsExperimental::UnPark()
             char HaStr[16];
             fs_sexa(HaStr, ha , 2, 3600);
 	    LOGF_DEBUG("Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr, RaStr, DecStr);
-            Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
+
+	    HourangleCoordsNP.s = IPS_OK;
+	    HourangleCoordsN[0].value = ha;
+	    HourangleCoordsN[1].value = equatorialPos.dec;
+	    IDSetNumber(&HourangleCoordsNP, nullptr);
+
+	    Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
         }
         else
         {
