@@ -105,7 +105,7 @@ public:
         this->seeing = 1.0f; // No way to control seeing from properties
 
         // Setup
-        ASSERT_TRUE(SetupParms());
+        ASSERT_TRUE(setupParameters());
 
         // Assert our parameters
         ASSERT_EQ(PrimaryCCD.getBPP(), 16) << "Simulator CCD depth is hardcoded at 16 bits";
@@ -119,8 +119,8 @@ public:
         EXPECT_EQ(this->seeing, 1.0f);
         EXPECT_EQ(this->ImageScalex, 1.0f);
         EXPECT_EQ(this->ImageScaley, 1.0f);
-        EXPECT_EQ(this->skyglow, 0.0f);
-        EXPECT_EQ(this->maxnoise, 0.0f);
+        EXPECT_EQ(this->m_SkyGlow, 0.0f);
+        EXPECT_EQ(this->m_MaxNoise, 0.0f);
 
         // The CCD frame is NOT initialized after this call, so manually clear the buffer
         memset(this->PrimaryCCD.getFrameBuffer(), 0, this->PrimaryCCD.getFrameBufferSize());
