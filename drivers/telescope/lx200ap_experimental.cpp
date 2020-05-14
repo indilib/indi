@@ -39,6 +39,7 @@
 
 // maximum guide pulse request to send to controller
 #define MAX_LX200AP_PULSE_LEN 999
+#define AP_UTC_OFFSET 6.123456
 
 void LX200AstroPhysicsExperimental::disclaimerMessage()
 {
@@ -156,7 +157,6 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillNumber(&UTCOffsetN[0], "UTC_OFFSET", "UTC offset", "%8.5f", 0.0, 24.0, 0.0, 0.);
     IUFillNumberVector(&UTCOffsetNP, UTCOffsetN, 1, getDeviceName(), "UTC_OFFSET", "UTC offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
     // sidereal time, ToDO move define where it belongs to
-#define SIDEREAL_TIME 0
     IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "AP sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
     IUFillNumberVector(&SiderealTimeNP, SiderealTimeN, 1, getDeviceName(), "SIDEREAL_TIME", "sidereal time", MAIN_CONTROL_TAB, IP_RO, 60, IPS_OK);
         
@@ -225,8 +225,20 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
         if (longitude != -1000 && latitude != -1000)
-            updateLocation(latitude, longitude, 0);
-
+	  {
+	  // nobody wants to ruin his/her precious AP mount
+	  // 2020-03-14, wildi, I do not know yet, why it is called so early
+	  // updateLocation seems to be called externally
+	  if (longitude != 0 && latitude != 0)  
+	    {
+	      updateLocation(latitude, longitude, 0);
+	    }
+	  else
+	    {
+	      LOG_WARN("No geographic coordinates available, can not calculate park positions");
+	      return false;
+	    }
+	  }
         // initialize park position
         if (InitPark())
         {
@@ -407,30 +419,14 @@ bool LX200AstroPhysicsExperimental::initMount()
     if(isSimulation())
     {
       double lng = LocationN[LOCATION_LONGITUDE].value;
-      ap_sid = get_local_sidereal_time(lng);
+      ap_sid = get_local_sidereal_time(lng) - AP_UTC_OFFSET - UTCOffsetN[0].value;
       LOGF_DEBUG("Longitude (%f), local sidereal time (%f)", lng, ap_sid);
     }
  
-    double dst_off = 0.;
-    time_t lrt_is_dst=  time (NULL);
-    tm ltm_is_dst;
-    localtime_r(&lrt_is_dst,&ltm_is_dst);
-    if( ltm_is_dst.tm_isdst < 0){
-      LOG_WARN("DST information not available, ignoring");
-    } else if(ltm_is_dst.tm_isdst >= 1) { 
-      LOG_INFO("DST is in effect");
-      dst_off= 1.;
-    } 
-    
-#define UPPER_LIMIT 0.001
-#define AP_UTC_OFFSET 6.123456
-
-
     LOG_INFO("Trying to find correct UTC offset, see field UTC offset and check if AP sidereal time is the correct LST");
     // 2020-04-25, wildi, In case of GTOCP2 and long = 7.5 the offset was 1.065
-    // ToDo if (!isSimulation() && (fabs(fractpart) < UPPER_LIMIT ))
+    // at lng 153 deg it was 13.94
     double lng = LocationN[LOCATION_LONGITUDE].value;
-    // ToDo double sid = get_local_sidereal_time(lng); // rangeHA
     double last_diff = NAN;
     double utc_offset = NAN;                                  
     double utc_offset_sid_24 = NAN;
@@ -506,8 +502,25 @@ bool LX200AstroPhysicsExperimental::initMount()
 		 cnt, utc_off, ll, ul);
       LOG_WARN("continue only if you understand the implications");
     }
+    double dst_off = 0.;
+    time_t lrt_is_dst=  time (NULL);
+    tm ltm_is_dst;
+    localtime_r(&lrt_is_dst,&ltm_is_dst);
+    if( ltm_is_dst.tm_isdst < 0){
+      LOG_WARN("DST information not available, ignoring");
+    } else if(ltm_is_dst.tm_isdst >= 1) { 
+      LOG_INFO("DST is in effect");
+      dst_off= 1.; // ToDo get offset from tz
+    } 
     // subtract day light saving
-    utc_off -= dst_off;
+    // AP mount is usually set with local time including DST,
+    // if in effect.
+    // ToDo: I think it is better simply to ignore DST while
+    // setting AP mount's local time (:SL) and drop these
+    // lines
+    if(!isSimulation()){
+      utc_off -= dst_off;
+    }
     // yes, again
     if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_off)) < 0)
       {
@@ -515,7 +528,7 @@ bool LX200AstroPhysicsExperimental::initMount()
 	    return false;
       }
     // ToDo, 2020-05-03, do that only if fnd true
-    LOGF_DEBUG("Set UTC Offset after bisection: %g (always positive for AP) is successful.", fabs(utc_offset));
+    LOGF_DEBUG("Set UTC Offset after bisection: %f (always positive for AP) is successful.", fabs(utc_off));
     UTCOffsetNP.np[0].value = utc_off;
     UTCOffsetNP.s = IPS_OK;
     IDSetNumber(&UTCOffsetNP, nullptr);
@@ -575,7 +588,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 
         mdelay = UTCOffsetN[0].value;
 
-        LOGF_ERROR("lx200ap_experimental: utc offset request = %f", mdelay);
+        LOGF_DEBUG("lx200ap_experimental: utc offset request = %f", mdelay);
 
         if (!isSimulation() && (err = setAPUTCOffset(PortFD, mdelay) < 0))
         {
@@ -597,9 +610,9 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 	if (isSimulation())
 	{
 	  double lng = LocationN[LOCATION_LONGITUDE].value;
-	  val = get_local_sidereal_time(lng);
+	  val = get_local_sidereal_time(lng) - AP_UTC_OFFSET - UTCOffsetN[0].value;
 	}
-	SiderealTimeNP.np[SIDEREAL_TIME].value = val;
+	SiderealTimeNP.np[0].value = val;
 	SiderealTimeNP.s = IPS_OK;
 	IDSetNumber(&SiderealTimeNP, nullptr);
 	
@@ -614,7 +627,11 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
             return false;
   
 	double lng = LocationN[LOCATION_LONGITUDE].value;
-	double lst = get_local_sidereal_time(lng);
+	double sim_offset = 0;
+	if(isSimulation()) {
+	  sim_offset = AP_UTC_OFFSET - UTCOffsetN[0].value;    
+	}
+	double lst = get_local_sidereal_time(lng) - sim_offset;
 	double ra = lst - HourangleCoordsN[0].value;
 	double dec = HourangleCoordsN[1].value;
 	bool success = false;
@@ -803,25 +820,17 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 {
     bool isParked ;
     getMountStatus(&isParked);
-    if (!isParked || ParkSP.s == IPS_BUSY || EqNP.s == IPS_BUSY)
+    double lng = LocationN[LOCATION_LONGITUDE].value;
+    double sim_offset = 0;
+    if(isSimulation()) {
+      sim_offset = AP_UTC_OFFSET - UTCOffsetN[0].value;
+    }
+    double lst = get_local_sidereal_time(lng) + sim_offset;
+    if (!isParked)
     {
-        if(ParkSP.s == IPS_BUSY &&  EqNP.s == IPS_BUSY)
-	{
-	  // ToDo, wildi discuss with Jasem
-	  // HA must be calculated, where in the code
-	  // RA/Dec is set (for the clients).
-	  // 1 sec, bad solution will go away
-	  // ARM CPUs do not like 1 sec
-          const struct timespec timeout = {0, 500000000L}; // do not sleep too long
-          nanosleep(&timeout, nullptr);
-          nanosleep(&timeout, nullptr);
-	}
-        // in case of simulation this update stops too early, park, unpark, park
-        // to have more precision
+      // in case of simulation, the coordinates are set on parking
         HourangleCoordsNP.s = IPS_BUSY;
         IDSetNumber(&HourangleCoordsNP, nullptr);
-        double lng = LocationN[LOCATION_LONGITUDE].value;
-        double lst = get_local_sidereal_time(lng);
         HourangleCoordsN[0].value = get_local_hour_angle(lst, currentRA);
         HourangleCoordsN[1].value = currentDEC;
         HourangleCoordsNP.s = IPS_OK;
@@ -833,22 +842,20 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
       return false;
     }
     if (isSimulation()) {
-      double lng = LocationN[LOCATION_LONGITUDE].value;
-      val = get_local_sidereal_time(lng);
+      val = lst;
     }
     SiderealTimeNP.np[0].value = val;
     SiderealTimeNP.s           = IPS_IDLE;
     IDSetNumber(&SiderealTimeNP, nullptr);
+    
     if (isSimulation()) {
         mountSim();
         return true;
     }   
     
-  
     if (getAPUTCOffset(PortFD, &val) < 0) {
-      LOGF_DEBUG("Reading offset from greenwich  failed %d", -1);	
+      LOG_ERROR("Reading UTC offset  %d");	
     } 
-    //local time, '#:GL#'
     if (getLocalTime24(PortFD, &val) < 0) {
       LOGF_DEBUG("Reading local time failed :GL %d", -1);	
     } 
@@ -869,8 +876,6 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     if (getSiteLongitude(PortFD, &ddd, &fmm) < 0) {
       LOGF_DEBUG("Reading longitude failed :Gg %d", -1);
     }
-    double lng = LocationN[LOCATION_LONGITUDE].value    ;
-    LOGF_DEBUG("Reading longitude  %f", lng);
     double val_utc_offset;
     if (!isSimulation() && getAPUTCOffset(PortFD, &val_utc_offset) < 0)
     {
@@ -990,7 +995,7 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 
     if (isSimulation())
     {
-        ra = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+      ra = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value) + (AP_UTC_OFFSET - UTCOffsetN[0].value); // right handed
         dec = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
     }
     else if (getLX200RA(PortFD, &ra) || getLX200DEC(PortFD, &dec))
@@ -1566,7 +1571,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     if (locationUpdated && timeUpdated && mountInitialized == false)
         initMount();
 
-    return true;  
+    return true;
 }
 
 bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longitude, double elevation)
@@ -1634,25 +1639,36 @@ bool LX200AstroPhysicsExperimental::Park()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+      observer.lng -= 360;
+
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+
+    horizontalPos.az = parkAz + 180;
+    if (horizontalPos.az > 360)
+      horizontalPos.az -= 360;
+    horizontalPos.alt = parkAlt;
+
+    ln_equ_posn equatorialPos;
+    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    double sim_offset = 0.;
+    if(isSimulation()) {
+      sim_offset = AP_UTC_OFFSET - UTCOffsetN[0].value;
+    }
+    double lst = get_local_sidereal_time(observer.lng) - sim_offset;
+    double ha = get_local_hour_angle(lst, equatorialPos.ra/15.);
+    
+    HourangleCoordsNP.s = IPS_OK;
+    HourangleCoordsN[0].value = ha;
+    HourangleCoordsN[1].value = equatorialPos.dec;
+    IDSetNumber(&HourangleCoordsNP, nullptr);
+    
     if (isSimulation())
     {
-        ln_lnlat_posn observer;
-        observer.lat = LocationN[LOCATION_LATITUDE].value;
-        observer.lng = LocationN[LOCATION_LONGITUDE].value;
-        if (observer.lng > 180)
-            observer.lng -= 360;
-
-        ln_hrz_posn horizontalPos;
-        // Libnova south = 0, west = 90, north = 180, east = 270
-
-        horizontalPos.az = parkAz + 180;
-        if (horizontalPos.az > 360)
-            horizontalPos.az -= 360;
-        horizontalPos.alt = parkAlt;
-
-        ln_equ_posn equatorialPos;
-
-        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 	
         Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
@@ -1761,74 +1777,78 @@ bool LX200AstroPhysicsExperimental::UnPark()
     {
         LOG_INFO("Unparking from last parked position...");
     }
-    else
-    {
-        double unparkAlt, unparkAz;
+   
+    
+    double unparkAlt, unparkAz;
 
-        if (!calcParkPosition(unparkPos, &unparkAlt, &unparkAz))
-        {
-            LOG_ERROR("Error calculating unpark position!");
-            return false;
-        }
+    if (!calcParkPosition(unparkPos, &unparkAlt, &unparkAz))
+      {
+	LOG_ERROR("Error calculating unpark position!");
+	return false;
+      }
 
-        LOGF_DEBUG("unparkPos=%d unparkAlt=%f unparkAz=%f", unparkPos, unparkAlt, unparkAz);
-        if (isSimulation())
-        {
-	    // 2020-04-18, wildi: do not copy yourself (see Park())
-            ln_lnlat_posn observer;
-            observer.lat = LocationN[LOCATION_LATITUDE].value;
-            observer.lng = LocationN[LOCATION_LONGITUDE].value;
-            if (observer.lng > 180)
-                observer.lng -= 360;
-
-            ln_hrz_posn horizontalPos;
-            // Libnova south = 0, west = 90, north = 180, east = 270
-
-            horizontalPos.az = unparkAz + 180;
-            if (horizontalPos.az > 360)
-                 horizontalPos.az -= 360;
-            horizontalPos.alt = unparkAlt;
-
-            ln_equ_posn equatorialPos;
-
-            ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    LOGF_DEBUG("unparkPos=%d unparkAlt=%f unparkAz=%f", unparkPos, unparkAlt, unparkAz);
+    // 2020-04-18, wildi: do not copy yourself (see Park())
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+      observer.lng -= 360;
+    
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+    
+    horizontalPos.az = unparkAz + 180;
+    if (horizontalPos.az > 360)
+      horizontalPos.az -= 360;
+    horizontalPos.alt = unparkAlt;
 	
-            char AzStr[16], AltStr[16];
-            fs_sexa(AzStr, unparkAz, 2, 3600);
-            fs_sexa(AltStr, unparkAlt, 2, 3600);
-            char RaStr[16], DecStr[16];
-            fs_sexa(RaStr, equatorialPos.ra / 15., 2, 3600);
-            fs_sexa(DecStr, equatorialPos.dec, 2, 3600);
-	    double lst = get_local_sidereal_time(observer.lng);
-	    double ha = get_local_hour_angle(lst, equatorialPos.ra/15.);
-            char HaStr[16];
-            fs_sexa(HaStr, ha , 2, 3600);
-	    LOGF_DEBUG("Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr, RaStr, DecStr);
-
-	    HourangleCoordsNP.s = IPS_OK;
-	    HourangleCoordsN[0].value = ha;
-	    HourangleCoordsN[1].value = equatorialPos.dec;
-	    IDSetNumber(&HourangleCoordsNP, nullptr);
-
-	    Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
-        }
-        else
-        {
-            if ((setAPObjectAZ(PortFD, unparkAz) < 0 || (setAPObjectAlt(PortFD, unparkAlt)) < 0))
-            {
-                LOG_ERROR("Error setting Az/Alt.");
-                return false;
-            }
-
-            char syncString[256];
-            if (APSyncCM(PortFD, syncString) < 0)
-            {
-                 LOG_WARN("Sync failed.");
-                 return false;
-            }
-        }
+    ln_equ_posn equatorialPos;
+    
+    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, unparkAz, 2, 3600);
+    fs_sexa(AltStr, unparkAlt, 2, 3600);
+    char RaStr[16], DecStr[16];
+    fs_sexa(RaStr, equatorialPos.ra / 15., 2, 3600);
+    fs_sexa(DecStr, equatorialPos.dec, 2, 3600);
+    double sim_offset = 0.;
+    if(isSimulation()) {
+      sim_offset = AP_UTC_OFFSET - UTCOffsetN[0].value;
     }
-
+    double lst = get_local_sidereal_time(observer.lng) - sim_offset;
+    double ha = get_local_hour_angle(lst, equatorialPos.ra/15.);
+    char HaStr[16];
+    fs_sexa(HaStr, ha , 2, 3600);
+    LOGF_DEBUG("Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr, RaStr, DecStr);
+    
+    HourangleCoordsNP.s = IPS_OK;
+    HourangleCoordsN[0].value = ha;
+    HourangleCoordsN[1].value = equatorialPos.dec;
+    IDSetNumber(&HourangleCoordsNP, nullptr);
+    
+    if (isSimulation())
+      {
+	
+	Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
+      }
+    else
+      {
+	if ((setAPObjectAZ(PortFD, unparkAz) < 0 || (setAPObjectAlt(PortFD, unparkAlt)) < 0))
+	  {
+	    LOG_ERROR("Error setting Az/Alt.");
+	    return false;
+	  }
+	
+	char syncString[256];
+	if (APSyncCM(PortFD, syncString) < 0)
+	  {
+	    LOG_WARN("Sync failed.");
+	    return false;
+	  }
+      }
+    
     SetParked(false);
 
     // Enable tracking
