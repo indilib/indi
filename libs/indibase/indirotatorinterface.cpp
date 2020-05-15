@@ -36,36 +36,43 @@ void RotatorInterface::initProperties(const char *groupName)
 {
     // Rotator Angle
     IUFillNumber(&GotoRotatorN[0], "ANGLE", "Angle", "%.2f", 0, 360., 10., 0.);
-    IUFillNumberVector(&GotoRotatorNP, GotoRotatorN, 1, m_defaultDevice->getDeviceName(), "ABS_ROTATOR_ANGLE", "Goto", groupName, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&GotoRotatorNP, GotoRotatorN, 1, m_defaultDevice->getDeviceName(), "ABS_ROTATOR_ANGLE", "Goto",
+                       groupName, IP_RW, 0, IPS_IDLE );
 
     // Abort Rotator
     IUFillSwitch(&AbortRotatorS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&AbortRotatorSP, AbortRotatorS, 1, m_defaultDevice->getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&AbortRotatorSP, AbortRotatorS, 1, m_defaultDevice->getDeviceName(), "ROTATOR_ABORT_MOTION",
+                       "Abort Motion", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Rotator Sync
     IUFillNumber(&SyncRotatorN[0], "ANGLE", "Angle", "%.2f", 0, 360., 10., 0.);
-    IUFillNumberVector(&SyncRotatorNP, SyncRotatorN, 1, m_defaultDevice->getDeviceName(), "SYNC_ROTATOR_ANGLE", "Sync", groupName, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&SyncRotatorNP, SyncRotatorN, 1, m_defaultDevice->getDeviceName(), "SYNC_ROTATOR_ANGLE", "Sync",
+                       groupName, IP_RW, 0, IPS_IDLE );
 
     // Home Rotator
     IUFillSwitch(&HomeRotatorS[0], "HOME", "Start", ISS_OFF);
-    IUFillSwitchVector(&HomeRotatorSP, HomeRotatorS, 1, m_defaultDevice->getDeviceName(), "ROTATOR_HOME", "Homing", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&HomeRotatorSP, HomeRotatorS, 1, m_defaultDevice->getDeviceName(), "ROTATOR_HOME", "Homing", groupName,
+                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Reverse Direction
     IUFillSwitch(&ReverseRotatorS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&ReverseRotatorS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&ReverseRotatorSP, ReverseRotatorS, 2, m_defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse", groupName, IP_RW, ISR_1OFMANY,
+    IUFillSwitchVector(&ReverseRotatorSP, ReverseRotatorS, 2, m_defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse",
+                       groupName, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     // Backlash Compensation
     IUFillSwitch(&RotatorBacklashS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&RotatorBacklashS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&RotatorBacklashSP, RotatorBacklashS, 2, m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_TOGGLE", "Backlash", groupName, IP_RW,
+    IUFillSwitchVector(&RotatorBacklashSP, RotatorBacklashS, 2, m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_TOGGLE",
+                       "Backlash", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
 
     // Backlash Compensation Value
     IUFillNumber(&RotatorBacklashN[0], "ROTATOR_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
-    IUFillNumberVector(&RotatorBacklashNP, RotatorBacklashN, 1, m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_STEPS", "Backlash",
+    IUFillNumberVector(&RotatorBacklashNP, RotatorBacklashN, 1, m_defaultDevice->getDeviceName(), "ROTATOR_BACKLASH_STEPS",
+                       "Backlash",
                        groupName, IP_RW, 60, IPS_OK);
 }
 
@@ -185,17 +192,21 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
         ////////////////////////////////////////////
         else if (strcmp(name, ReverseRotatorSP.name) == 0)
         {
-            bool enabled = (!strcmp(IUFindOnSwitchName(states, names, n), "ENABLED"));
-            bool rc = ReverseRotator(enabled);
+            int prevIndex = IUFindOnSwitchIndex(&ReverseRotatorSP);
+            IUUpdateSwitch(&ReverseRotatorSP, states, names, n);
+            const bool enabled = IUFindOnSwitchIndex(&ReverseRotatorSP) == DefaultDevice::INDI_ENABLED;
 
-            if (rc)
+            if (ReverseRotator(enabled))
             {
                 IUUpdateSwitch(&ReverseRotatorSP, states, names, n);
                 ReverseRotatorSP.s = IPS_OK;
-                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator direction is %s.", (enabled ? "reversed" : "normal"));
+                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator direction is %s.",
+                             (enabled ? "reversed" : "normal"));
             }
             else
             {
+                IUResetSwitch(&ReverseRotatorSP);
+                ReverseRotatorS[prevIndex].s = ISS_ON;
                 ReverseRotatorSP.s = IPS_ALERT;
                 DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator reverse direction failed.");
             }
@@ -208,19 +219,22 @@ bool RotatorInterface::processSwitch(const char *dev, const char *name, ISState 
         ////////////////////////////////////////////
         else if (strcmp(name, RotatorBacklashSP.name) == 0)
         {
-            bool enabled = (!strcmp(IUFindOnSwitchName(states, names, n), RotatorBacklashS[DefaultDevice::INDI_ENABLED].name));
-            bool rc = SetRotatorBacklashEnabled(enabled);
+            int prevIndex = IUFindOnSwitchIndex(&RotatorBacklashSP);
+            IUUpdateSwitch(&RotatorBacklashSP, states, names, n);
+            const bool enabled = IUFindOnSwitchIndex(&RotatorBacklashSP) == DefaultDevice::INDI_ENABLED;
 
-            if (rc)
+            if (SetRotatorBacklashEnabled(enabled))
             {
-                IUUpdateSwitch(&RotatorBacklashSP, states, names, n);
                 RotatorBacklashSP.s = IPS_OK;
-                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator backlash is %s.", (enabled ? "enabled" : "disabled"));
+                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Rotator backlash is %s.",
+                             (enabled ? "enabled" : "disabled"));
             }
             else
             {
+                IUResetSwitch(&RotatorBacklashSP);
+                RotatorBacklashS[prevIndex].s = ISS_ON;
                 RotatorBacklashSP.s = IPS_ALERT;
-                DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Failed to set trigger rotator backlash.");
+                DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Failed to set trigger rotator backlash.");
             }
 
             IDSetSwitch(&RotatorBacklashSP, nullptr);

@@ -27,21 +27,7 @@ namespace INDI
 
 CCDChip::CCDChip()
 {
-    SendCompressed = false;
-    Interlaced     = false;
-
-    SubX = SubY = 0;
-    SubW = SubH = 1;
-    BPP         = 8;
-    BinX = BinY = 1;
-    NAxis       = 2;
-
-    BinFrame = nullptr;
-
     strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
-
-    FrameType  = LIGHT_FRAME;
-    //lastRapidX = lastRapidY = -1;
 }
 
 CCDChip::~CCDChip()
@@ -55,7 +41,7 @@ void CCDChip::setFrameType(CCD_FRAME type)
     FrameType = type;
 }
 
-void CCDChip::setResolution(int x, int y)
+void CCDChip::setResolution(uint32_t x, uint32_t y)
 {
     XRes = x;
     YRes = y;
@@ -77,7 +63,7 @@ void CCDChip::setResolution(int x, int y)
     IUUpdateMinMax(&ImageFrameNP);
 }
 
-void CCDChip::setFrame(int subx, int suby, int subw, int subh)
+void CCDChip::setFrame(uint32_t subx, uint32_t suby, uint32_t subw, uint32_t subh)
 {
     SubX = subx;
     SubY = suby;
@@ -92,7 +78,7 @@ void CCDChip::setFrame(int subx, int suby, int subw, int subh)
     IDSetNumber(&ImageFrameNP, nullptr);
 }
 
-void CCDChip::setBin(int hor, int ver)
+void CCDChip::setBin(uint8_t hor, uint8_t ver)
 {
     BinX = hor;
     BinY = ver;
@@ -133,7 +119,7 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
     }
 }
 
-void CCDChip::setPixelSize(float x, float y)
+void CCDChip::setPixelSize(double x, double y)
 {
     PixelSizex = x;
     PixelSizey = y;
@@ -145,7 +131,7 @@ void CCDChip::setPixelSize(float x, float y)
     IDSetNumber(&ImagePixelSizeNP, nullptr);
 }
 
-void CCDChip::setBPP(int bbp)
+void CCDChip::setBPP(uint8_t bbp)
 {
     BPP = bbp;
 
@@ -154,7 +140,7 @@ void CCDChip::setBPP(int bbp)
     IDSetNumber(&ImagePixelSizeNP, nullptr);
 }
 
-void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
+void CCDChip::setFrameBufferSize(uint32_t nbuf, bool allocMem)
 {
     if (nbuf == RawFrameSize)
         return;
@@ -215,10 +201,10 @@ const char *CCDChip::getExposureStartTime()
     return (ts);
 }
 
-void CCDChip::setInterlaced(bool intr)
-{
-    Interlaced = intr;
-}
+//void CCDChip::setInterlaced(bool intr)
+//{
+//    Interlaced = intr;
+//}
 
 void CCDChip::setExposureFailed()
 {
@@ -261,8 +247,8 @@ void CCDChip::binFrame()
             double factor      = (BinX * BinX) / 2;
             double accumulator = 0;
 
-            for (int i = 0; i < SubH; i += BinX)
-                for (int j = 0; j < SubW; j += BinX)
+            for (uint32_t i = 0; i < SubH; i += BinX)
+                for (uint32_t j = 0; j < SubW; j += BinX)
                 {
                     accumulator = 0;
                     for (int k = 0; k < BinX; k++)
@@ -288,8 +274,8 @@ void CCDChip::binFrame()
             uint16_t *bin_buf    = reinterpret_cast<uint16_t *>(BinFrame);
             uint16_t *RawFrame16 = reinterpret_cast<uint16_t *>(RawFrame);
             uint16_t val;
-            for (int i = 0; i < SubH; i += BinX)
-                for (int j = 0; j < SubW; j += BinX)
+            for (uint32_t i = 0; i < SubH; i += BinX)
+                for (uint32_t j = 0; j < SubW; j += BinX)
                 {
                     for (int k = 0; k < BinX; k++)
                     {

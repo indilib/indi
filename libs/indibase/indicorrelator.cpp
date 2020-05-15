@@ -22,8 +22,6 @@
 
 #include "indicom.h"
 #include "locale_compat.h"
-#include "connectionplugins/connectionserial.h"
-#include "connectionplugins/connectiontcp.h"
 
 #include <fitsio.h>
 
@@ -63,21 +61,6 @@ bool Correlator::initProperties()
     IUFillNumberVector(&CorrelatorSettingsNP, CorrelatorSettingsN, 5, getDeviceName(), "CORRELATOR_SETTINGS", "Correlator Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     setDriverInterface(CORRELATOR_INTERFACE);
-
-    if (correlatorConnection & CONNECTION_SERIAL)
-    {
-        serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return callHandshake(); });
-        registerConnection(serialConnection);
-    }
-
-    if (correlatorConnection & CONNECTION_TCP)
-    {
-        tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]() { return callHandshake(); });
-
-        registerConnection(tcpConnection);
-    }
 
     return SensorInterface::initProperties();
 }
@@ -166,8 +149,7 @@ void Correlator::setBandwidth(double bw)
 
 void Correlator::SetCorrelatorCapability(uint32_t cap)
 {
-    capability = cap;
-
+    SetCapability(cap);
     setDriverInterface(getDriverInterface());
 }
 
@@ -191,7 +173,7 @@ Correlator::UVCoordinate Correlator::getUVCoordinates()
 bool Correlator::StartIntegration(double duration)
 {
     INDI_UNUSED(duration);
-    DEBUGF(Logger::DBG_WARNING, "Correlator::StartIntegration %4.2f -  Should never get here", duration);
+    DEBUGF(Logger::DBG_WARNING, "Correlator::StartIntegration %4.2f - Not supported", duration);
     return false;
 }
 
@@ -215,37 +197,6 @@ void Correlator::setMinMaxStep(const char *property, const char *element, double
         }
     }
     INDI::SensorInterface::setMinMaxStep(property, element, min, max, step, sendToClient);
-}
-
-bool Correlator::Handshake()
-{
-    return false;
-}
-
-bool Correlator::callHandshake()
-{
-    if (correlatorConnection > 0)
-    {
-        if (getActiveConnection() == serialConnection)
-            PortFD = serialConnection->getPortFD();
-        else if (getActiveConnection() == tcpConnection)
-            PortFD = tcpConnection->getPortFD();
-    }
-
-    return Handshake();
-}
-
-void Correlator::setCorrelatorConnection(const uint8_t &value)
-{
-    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
-
-    if (value == 0 || (mask & value) == 0)
-    {
-        DEBUGF(Logger::DBG_ERROR, "Invalid connection mode %d", value);
-        return;
-    }
-
-    correlatorConnection = value;
 }
 }
 
