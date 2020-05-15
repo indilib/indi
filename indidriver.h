@@ -190,6 +190,15 @@ extern int IUGetConfigNumber(const char *dev, const char *property, const char *
 extern int IUGetConfigSwitch(const char *dev, const char *property, const char *member, ISState *value);
 
 /**
+ * @brief IUGetConfigOnSwitch Opens configuration file and reads a single switch vector property to find the index
+ * of the first ON switch element.
+ * @param property pointer to initialized switch vector property.
+ * @param index index of first ON switch property. If none is found, it is set to -1
+ * @return 0 on success, -1 if not found.
+ */
+extern int IUGetConfigOnSwitch(const ISwitchVectorProperty *property, int *index);
+
+/**
  * @brief IUGetConfigText Opens configuration file and reads single text property.
  * @param dev name of device
  * @param property name of vector property
