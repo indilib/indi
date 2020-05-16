@@ -175,11 +175,11 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
     //                  UnparkFromSP to always start out as "Last Parked" for safety
     // load config to get unpark from position user wants BEFORE we connect to mount
     // 2020-04-18, wildi, make it right
-    if (!isConnected())
-    {
-        LOG_DEBUG("Loading unpark from location from config file");
-        loadConfig(true, UnparkFromSP.name);
-    }
+    //if (!isConnected())
+    //{
+    //    LOG_DEBUG("Loading unpark from location from config file");
+    //    loadConfig(true, UnparkFromSP.name);
+    //}
 
     if (isConnected())
     {
@@ -214,6 +214,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineNumber(&SiderealTimeNP);
         defineNumber(&HourangleCoordsNP);
 
+#ifdef no
         // load in config value for park to and initialize park position
         loadConfig(true, ParkToSP.name);
         ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
@@ -271,6 +272,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
                 LOGF_ERROR("Unable to set predefined park position %d!!", parkPos);
             }
         }
+#endif
     }
     else
     {
@@ -470,18 +472,20 @@ bool LX200AstroPhysicsExperimental::initMount()
     }
     // bisection
     double utc_off = (ll+ul)/2.0;
-    cnt = 0;
-    double tol = 0.00001 ;
+#define UL 50
+#define DIFF_UTC .00001
+#define DIFF_SID .0003 // 1./3600., ToDo AP sid has .1 sec
+    cnt = UL;
     LOGF_DEBUG("initial values cnt (%d), UTC offset (%f), lower: (%f), upper: (%f)",
 		       cnt, utc_off, ll, ul);
     bool fnd = false;
-    while((ul-ll)/2.0 > tol) {
+    while(!fnd && (ul-ll)/2.0 > DIFF_UTC) {
       
       double mltr = setUTCgetSID(ll, AP_UTC_OFFSET) * setUTCgetSID(utc_off, AP_UTC_OFFSET); 
       double mlt = mltr/fabs(mltr);
       
       double sid_diff = setUTCgetSID(utc_off, AP_UTC_OFFSET);
-      if (fabs(sid_diff) < tol) {  
+      if (fabs(sid_diff) < DIFF_SID) {  
 	fnd = true;
 	break;
         
@@ -490,10 +494,13 @@ bool LX200AstroPhysicsExperimental::initMount()
       } else {              
 	ll = utc_off ;
       }
-      
+      if( cnt == 0) {
+	break;
+      }
       utc_off = (ll+ul)/2.0;
       cnt++;
     }
+    cnt = UL - cnt;
     if (fnd) {
       LOGF_INFO("found solution after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
 		cnt, utc_off, ll, ul);
@@ -785,6 +792,18 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
     // ===========================================================
     if (!strcmp(name, ParkToSP.name))
     {
+      // 2020-05-16, wildi is it the right place?
+      // it is called the first time during mount init phase
+        if (LocationNP.s != IPS_OK) {
+            LOG_DEBUG("no geo location data available yet");
+            return false;
+        }
+        if (!IsMountInitialized(&mountInitialized))
+	{
+	  LOG_ERROR("Error determining if mount is initialized!");
+	  return false;
+	}
+
         IUUpdateSwitch(&ParkToSP, states, names, n);
         ParkPosition parkPos = (ParkPosition) IUFindOnSwitchIndex(&ParkToSP);
 
