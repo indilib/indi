@@ -216,9 +216,10 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 
         // load in config value for park to and initialize park position
         //loadConfig(true, ParkToSP.name);
-        //ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
-        //LOGF_DEBUG("park position = %d", parkPos);
-
+        loadConfig(false, ParkToSP.name);
+        ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
+        LOGF_DEBUG("park position = %d", parkPos);
+#ifdef no
 	ParkPosition parkPos = PARK_LAST;
 	int index = -1;
 	IUGetConfigOnSwitch(&ParkToSP, &index);
@@ -227,13 +228,13 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	  parkPos = static_cast<ParkPosition>(index);
           LOGF_DEBUG("park position = %d from config file", parkPos);
 	}
-	
+#endif
         // setup location
         double longitude = -1000, latitude = -1000;
         // Get value from config file if it exists.
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-	LOGF_ERROR("updateProperties: from config read long: %f, lat: %f, see: ", longitude, latitude);)
+	LOGF_ERROR("updateProperties: from config read long: %f, lat: %f, see: Site location updated to ...", longitude, latitude);
         if (longitude != -1000 && latitude != -1000)
 	  {
 	  // nobody wants to ruin his/her precious AP mount
@@ -441,16 +442,20 @@ bool LX200AstroPhysicsExperimental::initMount()
     // 2020-04-25, wildi, In case of GTOCP2 and long = 7.5 the offset was 1.065
     // at lng 153 deg it was 13.94
     int ddd = 0;
-    int fmm= 0;
-    if (getSiteLongitude(PortFD, &ddd, &fmm) < 0) {
+    int mm= 0;
+    if (getSiteLongitude(PortFD, &ddd, &mm) < 0) {
       LOGF_DEBUG("Reading longitude failed :Gg %d", -1);
     }
-    if(fabs((float) ddd - LocationN[LOCATION_LONGITUDE].value) >= 1.){
+    double lng ;
+    if(fabs((float) ddd - LocationN[LOCATION_LONGITUDE].value) <= 1.){
       LOGF_ERROR("not an error correct better than 1 degree: LocationN[LOCATION_LONGITUDE].value: %f", LocationN[LOCATION_LONGITUDE].value);
+      lng = LocationN[LOCATION_LONGITUDE].value;
     } else {
       LOGF_ERROR("difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f", LocationN[LOCATION_LONGITUDE].value, ddd - LocationN[LOCATION_LONGITUDE].value);
+      lng = 360. - ((double) ddd + (double) mm /60.);
+      LOGF_ERROR("FYI: difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f, using mount's lng: %f", LocationN[LOCATION_LONGITUDE].value, ddd - LocationN[LOCATION_LONGITUDE].value, lng);
     }
-    double lng = LocationN[LOCATION_LONGITUDE].value;
+    
     double last_diff = NAN;
     double utc_offset = NAN;                                  
     double utc_offset_sid_24 = NAN;
@@ -460,7 +465,7 @@ bool LX200AstroPhysicsExperimental::initMount()
       if (last_diff != last_diff){ //test if NAN
 	last_diff = diff;
       }
-      double sid = get_local_sidereal_time(longitude); 
+      double sid = get_local_sidereal_time(lng); 
       LOGF_ERROR("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f",
       	     (double)iutc, sid, diff, last_diff);
       
