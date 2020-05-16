@@ -214,17 +214,26 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineNumber(&SiderealTimeNP);
         defineNumber(&HourangleCoordsNP);
 
-#ifdef no
         // load in config value for park to and initialize park position
-        loadConfig(true, ParkToSP.name);
-        ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
-        LOGF_DEBUG("park position = %d", parkPos);
+        //loadConfig(true, ParkToSP.name);
+        //ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
+        //LOGF_DEBUG("park position = %d", parkPos);
 
+	ParkPosition parkPos = PARK_LAST;
+	int index = -1;
+	IUGetConfigOnSwitch(&ParkToSP, &index);
+
+	if (index >= 0) {
+	  parkPos = static_cast<ParkPosition>(index);
+          LOGF_DEBUG("park position = %d from config file", parkPos);
+	}
+	
         // setup location
         double longitude = -1000, latitude = -1000;
         // Get value from config file if it exists.
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+	LOGF_ERROR("updateProperties: from config read long: %f, lat: %f, see: ", longitude, latitude);)
         if (longitude != -1000 && latitude != -1000)
 	  {
 	  // nobody wants to ruin his/her precious AP mount
@@ -240,6 +249,9 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	      return false;
 	    }
 	  }
+#ifdef no
+	// 2020-03, wildi, initial values are not suitable
+	// meant to be park 3
         // initialize park position
         if (InitPark())
         {
@@ -255,6 +267,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
             SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
             SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
+#endif
 
         // override with predefined position if selected
         if (parkPos != PARK_CUSTOM)
@@ -272,7 +285,6 @@ bool LX200AstroPhysicsExperimental::updateProperties()
                 LOGF_ERROR("Unable to set predefined park position %d!!", parkPos);
             }
         }
-#endif
     }
     else
     {
@@ -424,10 +436,20 @@ bool LX200AstroPhysicsExperimental::initMount()
       ap_sid = get_local_sidereal_time(lng) - AP_UTC_OFFSET - UTCOffsetN[0].value;
       LOGF_DEBUG("Longitude (%f), local sidereal time (%f)", lng, ap_sid);
     }
- 
+
     LOG_INFO("Trying to find correct UTC offset, see field UTC offset and check if AP sidereal time is the correct LST");
     // 2020-04-25, wildi, In case of GTOCP2 and long = 7.5 the offset was 1.065
     // at lng 153 deg it was 13.94
+    int ddd = 0;
+    int fmm= 0;
+    if (getSiteLongitude(PortFD, &ddd, &fmm) < 0) {
+      LOGF_DEBUG("Reading longitude failed :Gg %d", -1);
+    }
+    if(fabs((float) ddd - LocationN[LOCATION_LONGITUDE].value) >= 1.){
+      LOGF_ERROR("not an error correct better than 1 degree: LocationN[LOCATION_LONGITUDE].value: %f", LocationN[LOCATION_LONGITUDE].value);
+    } else {
+      LOGF_ERROR("difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f", LocationN[LOCATION_LONGITUDE].value, ddd - LocationN[LOCATION_LONGITUDE].value);
+    }
     double lng = LocationN[LOCATION_LONGITUDE].value;
     double last_diff = NAN;
     double utc_offset = NAN;                                  
@@ -438,13 +460,13 @@ bool LX200AstroPhysicsExperimental::initMount()
       if (last_diff != last_diff){ //test if NAN
 	last_diff = diff;
       }
-      double sid = get_local_sidereal_time(lng); 
-      //LOGF_ERROR("within, UTC offset (%f), sid %f, diff %f, last diff: %f",
-      //	     (double)iutc, sid, diff, last_diff);
+      double sid = get_local_sidereal_time(longitude); 
+      LOGF_ERROR("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f",
+      	     (double)iutc, sid, diff, last_diff);
+      
       if((utc_offset != utc_offset) && ((last_diff * diff)<0)) {
-	    
-	if( fabs(diff -last_diff) > 1.5) {
-	  LOGF_DEBUG("sign change at sid 24 hours, local sid (%f), UTC offset (%f)", sid, (double)iutc) ;
+	if( fabs(diff - last_diff) > 1.5) { // 
+	  LOGF_DEBUG("sign change at sid 24 hours, local sid (%f), UTC offset (%f), diff: (%f)", sid, (double)iutc, diff -last_diff) ;
 	  utc_offset_sid_24 = (double)iutc;
 	} else {          
 	  LOGF_DEBUG("sign change, local sid (%f), UTC offset (%f)", sid, (double)iutc);
@@ -500,10 +522,10 @@ bool LX200AstroPhysicsExperimental::initMount()
       utc_off = (ll+ul)/2.0;
       cnt++;
     }
-    cnt = UL - cnt;
+ 
     if (fnd) {
       LOGF_INFO("found solution after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
-		cnt, utc_off, ll, ul);
+		UL - cnt, utc_off, ll, ul);
     } else {
       LOGF_ERROR("solution NOT found after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
 		 cnt, utc_off, ll, ul);
