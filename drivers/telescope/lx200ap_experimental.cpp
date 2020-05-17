@@ -361,11 +361,9 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
     return success;
 }
 
-double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_offset) {
+double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_offset, double sid_loc) {
 
 
-  double lng = LocationN[LOCATION_LONGITUDE].value;
-  double sid_loc = get_local_sidereal_time(lng);
   double sid_ap;
   if (isSimulation()) {
 
@@ -409,7 +407,8 @@ bool LX200AstroPhysicsExperimental::initMount()
     if (!mountInitialized)
     {
         LOG_DEBUG("Mount is not yet initialized. Initializing it...");
-
+#ifdef no
+	// 2020-03-17, wildi, unpark after the mount is initialized
         if (!isSimulation())
         {
             // This is how to init the mount in case RA/DE are missing.
@@ -423,6 +422,7 @@ bool LX200AstroPhysicsExperimental::initMount()
             // Stop :Q#
             abortSlew(PortFD);
         }
+#endif
     }
 
     // back port :-)
@@ -468,11 +468,11 @@ bool LX200AstroPhysicsExperimental::initMount()
     double utc_offset_sid_24 = NAN;
     int cnt = 0;
     for( int iutc = 0; iutc < 25; iutc++) {
-      double diff = setUTCgetSID(float(iutc), AP_UTC_OFFSET); 
+      double sid = get_local_sidereal_time(lng); 
+      double diff = setUTCgetSID(float(iutc), AP_UTC_OFFSET, sid); 
       if (last_diff != last_diff){ //test if NAN
 	last_diff = diff;
       }
-      double sid = get_local_sidereal_time(lng); 
       LOGF_DEBUG("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f",
       	     (double)iutc, sid, diff, last_diff);
       
@@ -516,10 +516,11 @@ bool LX200AstroPhysicsExperimental::initMount()
     bool fnd = false;
     while(!fnd && (ul-ll)/2.0 > DIFF_UTC) {
       
-      double mltr = setUTCgetSID(ll, AP_UTC_OFFSET) * setUTCgetSID(utc_off, AP_UTC_OFFSET); 
+      double sid = get_local_sidereal_time(lng); 
+      double mltr = setUTCgetSID(ll, AP_UTC_OFFSET, sid) * setUTCgetSID(utc_off, AP_UTC_OFFSET, sid); 
       double mlt = mltr/fabs(mltr);
       
-      double sid_diff = setUTCgetSID(utc_off, AP_UTC_OFFSET);
+      double sid_diff = setUTCgetSID(utc_off, AP_UTC_OFFSET, sid);
       if (fabs(sid_diff) < DIFF_SID) {  
 	fnd = true;
 	break;
