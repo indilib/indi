@@ -447,13 +447,16 @@ bool LX200AstroPhysicsExperimental::initMount()
       LOG_DEBUG("Reading longitude failed");
       return false;
     }
+    if (LocationNP.s != IPS_OK) {
+      LOG_ERROR("no geo location data available");
+    }
     double lng ;
     lng = 360. - ((double) ddd + (double) mm /60.);
     if(isSimulation()) {
       lng = LocationN[LOCATION_LONGITUDE].value;
     } else {
     if(fabs(lng - LocationN[LOCATION_LONGITUDE].value) <= 1.){
-      LOGF_ERROR("not an error correct better than 1 degree: LocationN[LOCATION_LONGITUDE].value: %f", LocationN[LOCATION_LONGITUDE].value);
+      LOGF_ERROR("not an error diff better than 1 degree: LocationN[LOCATION_LONGITUDE].value: %f", LocationN[LOCATION_LONGITUDE].value);
       lng = LocationN[LOCATION_LONGITUDE].value;
     } else {
       LOGF_ERROR("difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f", LocationN[LOCATION_LONGITUDE].value, lng - LocationN[LOCATION_LONGITUDE].value);
@@ -470,7 +473,7 @@ bool LX200AstroPhysicsExperimental::initMount()
 	last_diff = diff;
       }
       double sid = get_local_sidereal_time(lng); 
-      LOGF_ERROR("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f",
+      LOGF_DEBUG("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f",
       	     (double)iutc, sid, diff, last_diff);
       
       //if((utc_offset != utc_offset) && ((last_diff * diff)<0)) {
@@ -504,7 +507,7 @@ bool LX200AstroPhysicsExperimental::initMount()
     }
     // bisection
     double utc_off = (ll+ul)/2.0;
-#define UL 50
+#define UL 100
 #define DIFF_UTC .00001
 #define DIFF_SID .0003 // 1./3600., ToDo AP sid has .1 sec
     cnt = UL;
@@ -526,11 +529,13 @@ bool LX200AstroPhysicsExperimental::initMount()
       } else {              
 	ll = utc_off ;
       }
+      
       if( cnt == 0) {
+	LOGF_WARN("breaking in bisection %d", cnt);
 	break;
       }
       utc_off = (ll+ul)/2.0;
-      cnt++;
+      cnt--;
     }
  
     if (fnd) {
@@ -538,7 +543,7 @@ bool LX200AstroPhysicsExperimental::initMount()
 		UL - cnt, utc_off, ll, ul);
     } else {
       LOGF_ERROR("solution NOT found after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
-		 cnt, utc_off, ll, ul);
+		 UL - cnt, utc_off, ll, ul);
       LOG_WARN("continue only if you understand the implications");
     }
     double dst_off = 0.;
