@@ -443,19 +443,23 @@ bool LX200AstroPhysicsExperimental::initMount()
     // at lng 153 deg it was 13.94
     int ddd = 0;
     int mm= 0;
-    if (getSiteLongitude(PortFD, &ddd, &mm) < 0) {
-      LOGF_DEBUG("Reading longitude failed :Gg %d", -1);
+    if (!isSimulation() && (getSiteLongitude(PortFD, &ddd, &mm) < 0)) {
+      LOG_DEBUG("Reading longitude failed");
+      return false;
     }
     double lng ;
-    if(fabs((float) ddd - LocationN[LOCATION_LONGITUDE].value) <= 1.){
+    lng = 360. - ((double) ddd + (double) mm /60.);
+    if(isSimulation()) {
+      lng = LocationN[LOCATION_LONGITUDE].value;
+    } else {
+    if(fabs(lng - LocationN[LOCATION_LONGITUDE].value) <= 1.){
       LOGF_ERROR("not an error correct better than 1 degree: LocationN[LOCATION_LONGITUDE].value: %f", LocationN[LOCATION_LONGITUDE].value);
       lng = LocationN[LOCATION_LONGITUDE].value;
     } else {
-      LOGF_ERROR("difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f", LocationN[LOCATION_LONGITUDE].value, ddd - LocationN[LOCATION_LONGITUDE].value);
-      lng = 360. - ((double) ddd + (double) mm /60.);
+      LOGF_ERROR("difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f", LocationN[LOCATION_LONGITUDE].value, lng - LocationN[LOCATION_LONGITUDE].value);
       LOGF_ERROR("FYI: difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f, using mount's lng: %f", LocationN[LOCATION_LONGITUDE].value, ddd - LocationN[LOCATION_LONGITUDE].value, lng);
     }
-    
+    }
     double last_diff = NAN;
     double utc_offset = NAN;                                  
     double utc_offset_sid_24 = NAN;
@@ -469,11 +473,12 @@ bool LX200AstroPhysicsExperimental::initMount()
       LOGF_ERROR("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f",
       	     (double)iutc, sid, diff, last_diff);
       
-      if((utc_offset != utc_offset) && ((last_diff * diff)<0)) {
+      //if((utc_offset != utc_offset) && ((last_diff * diff)<0)) {
+      if((last_diff * diff)<0) {
 	if( fabs(diff - last_diff) > 1.5) { // 
 	  LOGF_DEBUG("sign change at sid 24 hours, local sid (%f), UTC offset (%f), diff: (%f)", sid, (double)iutc, diff -last_diff) ;
 	  utc_offset_sid_24 = (double)iutc;
-	} else {          
+	} else if (utc_offset != utc_offset){          
 	  LOGF_DEBUG("sign change, local sid (%f), UTC offset (%f)", sid, (double)iutc);
 	  utc_offset = (double)iutc;              
 	}
@@ -600,6 +605,7 @@ bool LX200AstroPhysicsExperimental::initMount()
 
     APSlewSpeedSP.s = IPS_OK;
     IDSetSwitch(&APSlewSpeedSP, nullptr);
+    LOG_DEBUG("Mount is initialized AND unparked");
 
     return true;
 }
@@ -689,6 +695,10 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 	IDSetNumber(&HourangleCoordsNP, nullptr);
         return true;
     }
+        if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
+        {
+	  LOG_ERROR("PROCESSING GEOGRAPHIC_COORD");
+        }
 
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
@@ -825,12 +835,14 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
             LOG_DEBUG("no geo location data available yet");
             return false;
         }
+#ifdef no
+	// this is contra productive in init phase
         if (!IsMountInitialized(&mountInitialized))
 	{
 	  LOG_ERROR("Error determining if mount is initialized!");
 	  return false;
 	}
-
+#endif
         IUUpdateSwitch(&ParkToSP, states, names, n);
         ParkPosition parkPos = (ParkPosition) IUFindOnSwitchIndex(&ParkToSP);
 
@@ -843,17 +855,30 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         if (parkPos != PARK_CUSTOM)
         {
             double parkAz, parkAlt;
-
-            if (calcParkPosition(parkPos, &parkAlt, &parkAz))
-            {
-                SetAxis1Park(parkAz);
-                SetAxis2Park(parkAlt);
-                LOGF_DEBUG("Set predefined park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
-            }
-            else
-            {
-                LOGF_ERROR("Unable to set predefined park position %d!!", parkPos);
-            }
+	    // 2020-03-17, wildi, ToDo
+	    // 2020-05-17 09:16:26 Computing PARK3 position, Az = (179.900000), Alt = (0.000000)
+	    // indicates that LocationN has not been set properly
+	    // Az = .1 is correct for Northern Hemisphere
+	    // LocationN is used in calcParkPosition
+	    // watch out for log entry: Observer location updated
+	    // from inditelescope.cpp
+	    if (LocationNP.s == IPS_OK) {
+	      if (calcParkPosition(parkPos, &parkAlt, &parkAz))
+		{
+		  SetAxis1Park(parkAz);
+		  SetAxis2Park(parkAlt);
+		  LOGF_DEBUG("Set predefined park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
+		}
+	      else
+		{
+		  LOGF_ERROR("Unable to set predefined park position %d!!", parkPos);
+		}
+	    }
+	    else
+	      {
+		LOG_DEBUG("can not calculate park position, no geo location data available yet");
+		return false;
+	      }
         }
 
         return true;
@@ -1041,23 +1066,25 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 
     if (isSimulation())
     {
-      ra = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value) + (AP_UTC_OFFSET - UTCOffsetN[0].value); // right handed
+        ra = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value) + (AP_UTC_OFFSET - UTCOffsetN[0].value); // right handed
         dec = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
     }
     else if (getLX200RA(PortFD, &ra) || getLX200DEC(PortFD, &dec))
+    {
         return false;
-
+    }
     LOGF_DEBUG("IsMountInitialized: RA: %f - DEC: %f", ra, dec);
 
     raZE = (fabs(ra) < epscheck);
     deZE = (fabs(dec) < epscheck);
     de90 = (fabs(dec - 90) < epscheck);
 
-    LOGF_DEBUG("IsMountInitialized: raZE: %d - deZE: %d - de90: %d", raZE, deZE, de90);
+    LOGF_DEBUG("IsMountInitialized: raZE: %s - deZE: %s - de90: %s, (raZE && deZE): %s, (raZE && de90): %s", raZE ? "true" : "false", deZE ? "true" : "false", de90 ? "true" : "false", (raZE && deZE) ? "true" : "false", (raZE && de90) ? "true" : "false");
 
     // RA is zero and DEC is zero or 90
     // then mount is not initialized and we need to initialized it.
-    if ( (raZE && deZE) || (raZE && de90))
+    //if ( (raZE && deZE) || (raZE && de90))
+    if ( (raZE  || deZE || de90))
     {
         LOG_WARN("Mount is not yet initialized.");
         *initialized = false;
@@ -1067,6 +1094,7 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
     // mount is initialized
     LOG_INFO("Mount is initialized.");
     *initialized = true;
+    LOGF_DEBUG("Mount is initialized %s %s %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 
     return true;
 }
@@ -1521,7 +1549,7 @@ bool LX200AstroPhysicsExperimental::Disconnect()
 
 bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 {
-    char syncString[256];
+  char syncString[256] = ""; // simulation needs UTF-8
 
     int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
 
@@ -1614,7 +1642,8 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
     timeUpdated = true;
 
-    if (locationUpdated && timeUpdated && mountInitialized == false)
+    LOGF_INFO("Time updated. %s %s %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
+    if (locationUpdated && timeUpdated && !mountInitialized)
         initMount();
 
     return true;
@@ -1643,6 +1672,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
     LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     locationUpdated = true;
+    LOGF_INFO("Location updated. %s %s %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 
     if (locationUpdated && timeUpdated && !mountInitialized)
         initMount();
