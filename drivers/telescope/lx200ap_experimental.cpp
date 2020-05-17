@@ -1930,7 +1930,28 @@ bool LX200AstroPhysicsExperimental::UnPark()
 	    return false;
 	  }
       }
-    
+    if (APUnParkMount(PortFD) < 0)
+      {
+	LOG_ERROR("UnParking Failed.");
+	return false;
+      }
+    LOG_ERROR("sleeping 900 micros after unpark");
+        // sleep for 100 mseconds
+    const struct timespec timeout = {0, 900000000L};
+    nanosleep(&timeout, nullptr);
+
+    // Stop :Q#
+    if ( abortSlew(PortFD) < 0) {
+	LOG_ERROR("Abort motion Failed");
+    }
+    LOG_ERROR("sleeping 900 micros after stop motion");
+        // sleep for 100 mseconds
+    nanosleep(&timeout, nullptr);
+    LOG_ERROR("sleeping 900 micros after stop motion");
+    nanosleep(&timeout, nullptr);
+    LOG_ERROR("sleeping 900 micros after stop motion");
+    nanosleep(&timeout, nullptr);
+
     SetParked(false);
 
     // Enable tracking
