@@ -1903,20 +1903,24 @@ bool LX200AstroPhysicsExperimental::UnPark()
     double ha = get_local_hour_angle(lst, equatorialPos.ra/15.);
     char HaStr[16];
     fs_sexa(HaStr, ha , 2, 3600);
-    LOGF_DEBUG("Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr, RaStr, DecStr);
+    LOGF_DEBUG("Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s), RA_deg: %f", AzStr, AltStr, HaStr, RaStr, DecStr, equatorialPos.ra);
     
     HourangleCoordsNP.s = IPS_OK;
-    HourangleCoordsN[0].value = ha;
+    HourangleCoordsN[0].value = equatorialPos.ra;
     HourangleCoordsN[1].value = equatorialPos.dec;
     IDSetNumber(&HourangleCoordsNP, nullptr);
-    
+
+    Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
+
+#ifdef no
     if (isSimulation())
       {
-	
+	// doe not sync being in simulation
 	Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
       }
     else
       {
+	// 2020-03-17, wildi, why not sync in RA/dec?
 	if ((setAPObjectAZ(PortFD, unparkAz) < 0 || (setAPObjectAlt(PortFD, unparkAlt)) < 0))
 	  {
 	    LOG_ERROR("Error setting Az/Alt.");
@@ -1930,6 +1934,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
 	    return false;
 	  }
       }
+#endif
     if (APUnParkMount(PortFD) < 0)
       {
 	LOG_ERROR("UnParking Failed.");
