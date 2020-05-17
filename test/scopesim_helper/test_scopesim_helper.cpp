@@ -270,6 +270,44 @@ TEST_F(AlignmentTest, observedToInstrumentME1)
     EXPECT_FLOAT_EQ(oDec.Degrees(), 88.5858);
 }
 
+
+TEST_F(AlignmentTest, observedToInstrumentMEn1)
+{
+    Angle oHa, oDec;
+
+    alignment.setCorrections(0,0,0,0,0,-1);      // ME -1
+
+    // looking NS
+    alignment.observedToInstrument(Angle(0), Angle(0), &oHa, &oDec);
+    EXPECT_EQ(oHa.Degrees(), 0);
+    EXPECT_EQ(oDec.Degrees(), 1);
+
+    // looking EW
+    alignment.instrumentToObserved(Angle(-90), Angle(0), &oHa, &oDec);
+    EXPECT_EQ(oHa.Degrees(), -90);
+    EXPECT_NEAR(oDec.Degrees(), 0, 1e10);
+
+    // on meridian, dec 80
+    alignment.observedToInstrument(Angle(0), Angle(80), &oHa, &oDec);
+    EXPECT_EQ(oHa.Degrees(), 0);
+    EXPECT_FLOAT_EQ(oDec.Degrees(), 81);
+
+    // looking at pole
+    alignment.observedToInstrument(Angle(90), Angle(90), &oHa, &oDec);
+    EXPECT_NEAR(oHa.HoursHa(), 12, 0.0001);
+    EXPECT_FLOAT_EQ(oDec.Degrees(), 89);
+
+    // 89 dec, expect move to pole
+    alignment.observedToInstrument(Angle(0), Angle(89), &oHa, &oDec);
+    //EXPECT_FLOAT_EQ(oHa.HoursHa(), 0);
+    EXPECT_FLOAT_EQ(oDec.Degrees(), 90);
+
+    // 1 deg E of pole
+    alignment.observedToInstrument(Angle(-90), Angle(89), &oHa, &oDec);
+    EXPECT_NEAR(oHa.HoursHa(), -8.9997, 0.00001);
+    EXPECT_FLOAT_EQ(oDec.Degrees(), 88.5858);
+}
+
 TEST_F(AlignmentTest, instrumentToObservedMA1)
 {
     Angle oHa, oDec;
@@ -304,6 +342,44 @@ TEST_F(AlignmentTest, instrumentToObservedMA1)
     // 1 deg N of pole
     alignment.instrumentToObserved(Angle(180), Angle(89), &oHa, &oDec);
     EXPECT_NEAR(oHa.HoursHa(), 9.0003, 0.0001);
+    EXPECT_FLOAT_EQ(oDec.Degrees(), 88.5858);
+}
+
+
+TEST_F(AlignmentTest, instrumentToObservedMAm1)
+{
+    Angle oHa, oDec;
+
+    alignment.setCorrections(0,0,0,0,-1,0);      // MA -1
+
+    // looking NS
+    alignment.instrumentToObserved(Angle(0), Angle(0), &oHa, &oDec);
+    EXPECT_EQ(oHa.Degrees(), 0);
+    EXPECT_EQ(oDec.Degrees(), 0);
+
+    // looking WE
+    alignment.instrumentToObserved(Angle(-90), Angle(0), &oHa, &oDec);
+    EXPECT_EQ(oHa.Degrees(), -90);
+    EXPECT_EQ(oDec.Degrees(), -1);
+
+    // W, dec 80
+    alignment.instrumentToObserved(Angle(90), Angle(80), &oHa, &oDec);
+    EXPECT_EQ(oHa.Degrees(), 90);
+    EXPECT_FLOAT_EQ(oDec.Degrees(), 81);
+
+    // looking at pole
+    alignment.instrumentToObserved(Angle(0), Angle(90), &oHa, &oDec);
+    EXPECT_FLOAT_EQ(oHa.HoursHa(), -6);
+    EXPECT_FLOAT_EQ(oDec.Degrees(), 89);
+
+    // 89 dec, expect move to pole
+    alignment.instrumentToObserved(Angle(90), Angle(89), &oHa, &oDec);
+    //EXPECT_FLOAT_EQ(oHa.HoursHa(), -6);
+    EXPECT_FLOAT_EQ(oDec.Degrees(), 90);
+
+    // 1 deg S of pole
+    alignment.instrumentToObserved(Angle(0), Angle(89), &oHa, &oDec);
+    EXPECT_NEAR(oHa.HoursHa(), -2.9997, 0.0001);
     EXPECT_FLOAT_EQ(oDec.Degrees(), 88.5858);
 }
 
