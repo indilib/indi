@@ -234,6 +234,10 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
     ISwitch *sp;
     char sn[MAXINDINAME];
 
+    if (svp == 0) {
+    	IDLog("IUUpdateSwitch svp is NULL\n");
+    	return -1;
+    }
     /* store On switch name */
     if (svp->r == ISR_1OFMANY)
     {
