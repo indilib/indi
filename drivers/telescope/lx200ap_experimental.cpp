@@ -1597,9 +1597,11 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	}
 	last_diff = diff;               
       }
+#ifdef no
       if (utc_offset != utc_offset) {
 	utc_offset = 23.002;
       }
+#endfi
       double ll = utc_offset - 1.;
       double ul = utc_offset;
 #ifdef no
