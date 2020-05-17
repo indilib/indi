@@ -40,6 +40,8 @@
 // maximum guide pulse request to send to controller
 #define MAX_LX200AP_PULSE_LEN 999
 #define AP_UTC_OFFSET 6.123456
+//#define AP_UTC_OFFSET 23.9
+//#define AP_UTC_OFFSET 0.1
 
 void LX200AstroPhysicsExperimental::disclaimerMessage()
 {
@@ -424,159 +426,6 @@ bool LX200AstroPhysicsExperimental::initMount()
         }
 #endif
     }
-
-    // back port :-)
-    double ap_sid;
-    if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
-      LOGF_ERROR("Reading sidereal time failed %d", -1);
-    }
-
-    if(isSimulation())
-    {
-      double lng = LocationN[LOCATION_LONGITUDE].value;
-      ap_sid = get_local_sidereal_time(lng) - AP_UTC_OFFSET - UTCOffsetN[0].value;
-      LOGF_DEBUG("Longitude (%f), local sidereal time (%f)", lng, ap_sid);
-    }
-
-    LOG_INFO("Trying to find correct UTC offset, see field UTC offset and check if AP sidereal time is the correct LST");
-    // 2020-04-25, wildi, In case of GTOCP2 and long = 7.5 the offset was 1.065
-    // at lng 153 deg it was 13.94
-    int ddd = 0;
-    int mm= 0;
-    if (!isSimulation() && (getSiteLongitude(PortFD, &ddd, &mm) < 0)) {
-      LOG_DEBUG("Reading longitude failed");
-      return false;
-    }
-    if (LocationNP.s != IPS_OK) {
-      LOG_ERROR("no geo location data available");
-    }
-    double lng ;
-    lng = 360. - ((double) ddd + (double) mm /60.);
-    if(isSimulation()) {
-      lng = LocationN[LOCATION_LONGITUDE].value;
-    } else {
-    if(fabs(lng - LocationN[LOCATION_LONGITUDE].value) <= 1.){
-      LOGF_ERROR("not an error diff better than 1 degree: LocationN[LOCATION_LONGITUDE].value: %f", LocationN[LOCATION_LONGITUDE].value);
-      lng = LocationN[LOCATION_LONGITUDE].value;
-    } else {
-      LOGF_ERROR("difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f", LocationN[LOCATION_LONGITUDE].value, lng - LocationN[LOCATION_LONGITUDE].value);
-      LOGF_ERROR("FYI: difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f, using mount's lng: %f", LocationN[LOCATION_LONGITUDE].value, ddd - LocationN[LOCATION_LONGITUDE].value, lng);
-    }
-    }
-    double last_diff = NAN;
-    double utc_offset = NAN;                                  
-    double utc_offset_sid_24 = NAN;
-    int cnt = 0;
-    for( int iutc = 0; iutc < 25; iutc++) {
-      double sid = get_local_sidereal_time(lng); 
-      double diff = setUTCgetSID(float(iutc), AP_UTC_OFFSET, sid); 
-      if (last_diff != last_diff){ //test if NAN
-	last_diff = diff;
-      }
-      LOGF_DEBUG("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f",
-      	     (double)iutc, sid, diff, last_diff);
-      
-      //if((utc_offset != utc_offset) && ((last_diff * diff)<0)) {
-      if((last_diff * diff)<0) {
-	if( fabs(diff - last_diff) > 1.5) { // 
-	  LOGF_DEBUG("sign change at sid 24 hours, local sid (%f), UTC offset (%f), diff: (%f)", sid, (double)iutc, diff -last_diff) ;
-	  utc_offset_sid_24 = (double)iutc;
-	} else if (utc_offset != utc_offset){          
-	  LOGF_DEBUG("sign change, local sid (%f), UTC offset (%f)", sid, (double)iutc);
-	  utc_offset = (double)iutc;              
-	}
-      }
-      last_diff = diff;               
-    }
-    if (utc_offset != utc_offset) {
-      utc_offset = 23.002;
-    }
-    double ll = 0.;
-    double ul = 24.;
-    if (!(utc_offset_sid_24 != utc_offset_sid_24)) {
-      if (utc_offset  < utc_offset_sid_24) {
-	ll = utc_offset_sid_24;
-	ul = 24.;
-      } else {                              
-	ll = utc_offset_sid_24;
-	ul = utc_offset;
-      }
-    } else {                                               
-      ll = 0.;                
-      ul = utc_offset;
-    }
-    // bisection
-    double utc_off = (ll+ul)/2.0;
-#define UL 100
-#define DIFF_UTC .00001
-#define DIFF_SID .0003 // 1./3600., ToDo AP sid has .1 sec
-    cnt = UL;
-    LOGF_DEBUG("initial values cnt (%d), UTC offset (%f), lower: (%f), upper: (%f)",
-		       cnt, utc_off, ll, ul);
-    bool fnd = false;
-    while(!fnd && (ul-ll)/2.0 > DIFF_UTC) {
-      
-      double sid = get_local_sidereal_time(lng); 
-      double mltr = setUTCgetSID(ll, AP_UTC_OFFSET, sid) * setUTCgetSID(utc_off, AP_UTC_OFFSET, sid); 
-      double mlt = mltr/fabs(mltr);
-      
-      double sid_diff = setUTCgetSID(utc_off, AP_UTC_OFFSET, sid);
-      if (fabs(sid_diff) < DIFF_SID) {  
-	fnd = true;
-	break;
-        
-      } else if( mlt < 0) {                               
-	ul = utc_off;
-      } else {              
-	ll = utc_off ;
-      }
-      
-      if( cnt == 0) {
-	LOGF_WARN("breaking in bisection %d", cnt);
-	break;
-      }
-      utc_off = (ll+ul)/2.0;
-      cnt--;
-    }
- 
-    if (fnd) {
-      LOGF_INFO("found solution after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
-		UL - cnt, utc_off, ll, ul);
-    } else {
-      LOGF_ERROR("solution NOT found after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
-		 UL - cnt, utc_off, ll, ul);
-      LOG_WARN("continue only if you understand the implications");
-    }
-    double dst_off = 0.;
-    time_t lrt_is_dst=  time (NULL);
-    tm ltm_is_dst;
-    localtime_r(&lrt_is_dst,&ltm_is_dst);
-    if( ltm_is_dst.tm_isdst < 0){
-      LOG_WARN("DST information not available, ignoring");
-    } else if(ltm_is_dst.tm_isdst >= 1) { 
-      LOG_INFO("DST is in effect");
-      dst_off= 1.; // ToDo get offset from tz
-    } 
-    // subtract day light saving
-    // AP mount is usually set with local time including DST,
-    // if in effect.
-    // ToDo: I think it is better simply to ignore DST while
-    // setting AP mount's local time (:SL) and drop these
-    // lines
-    if(!isSimulation()){
-      utc_off -= dst_off;
-    }
-    // yes, again
-    if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_off)) < 0)
-      {
-	LOG_ERROR("Error setting UTC Offset.");
-	    return false;
-      }
-    // ToDo, 2020-05-03, do that only if fnd true
-    LOGF_DEBUG("Set UTC Offset after bisection: %f (always positive for AP) is successful.", fabs(utc_off));
-    UTCOffsetNP.np[0].value = utc_off;
-    UTCOffsetNP.s = IPS_OK;
-    IDSetNumber(&UTCOffsetNP, nullptr);
 
     
     mountInitialized = true;
@@ -1680,9 +1529,166 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
     locationUpdated = true;
     LOGF_INFO("Location updated. %s %s %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 
-    if (locationUpdated && timeUpdated && !mountInitialized)
+    if (locationUpdated && timeUpdated && !mountInitialized) 
         initMount();
 
+    if (locationUpdated && timeUpdated && mountInitialized) {
+
+    // back port :-)
+    double ap_sid;
+    if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
+      LOGF_ERROR("Reading sidereal time failed %d", -1);
+    }
+
+    if(isSimulation())
+    {
+      double lng = LocationN[LOCATION_LONGITUDE].value;
+      ap_sid = get_local_sidereal_time(lng) - AP_UTC_OFFSET - UTCOffsetN[0].value;
+      LOGF_DEBUG("Longitude (%f), AP local sidereal time (%f)", lng, ap_sid);
+    }
+
+    LOG_INFO("Trying to find correct UTC offset, see field UTC offset and check if AP sidereal time is the correct LST");
+    // 2020-04-25, wildi, In case of GTOCP2 and long = 7.5 the offset was 1.065
+    // at lng 153 deg it was 13.94
+    int ddd = 0;
+    int mm= 0;
+    if (!isSimulation() && (getSiteLongitude(PortFD, &ddd, &mm) < 0)) {
+      LOG_DEBUG("Reading longitude failed");
+      return false;
+    }
+    if (LocationNP.s != IPS_OK) {
+      LOG_ERROR("no geo location data available");
+    }
+    double lng ;
+    lng = 360. - ((double) ddd + (double) mm /60.);
+    if(isSimulation()) {
+      lng = LocationN[LOCATION_LONGITUDE].value;
+    } else {
+    if(fabs(lng - LocationN[LOCATION_LONGITUDE].value) <= 1.){
+      LOGF_ERROR("not an error diff better than 1 degree: LocationN[LOCATION_LONGITUDE].value: %f", LocationN[LOCATION_LONGITUDE].value);
+      lng = LocationN[LOCATION_LONGITUDE].value;
+    } else {
+      LOGF_ERROR("difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f", LocationN[LOCATION_LONGITUDE].value, lng - LocationN[LOCATION_LONGITUDE].value);
+      LOGF_ERROR("FYI: difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f, using mount's lng: %f", LocationN[LOCATION_LONGITUDE].value, ddd - LocationN[LOCATION_LONGITUDE].value, lng);
+    }
+    }
+    double last_diff = NAN;
+    double utc_offset = NAN;                                  
+    double utc_offset_sid_24 = NAN;
+    int cnt = 0;
+    for( int iutc = 0; iutc < 25; iutc++) {
+      double sid = get_local_sidereal_time(lng); 
+      double diff = setUTCgetSID(float(iutc), AP_UTC_OFFSET, sid); 
+      if (last_diff != last_diff){ //test if NAN
+	last_diff = diff;
+      }
+      LOGF_DEBUG("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f",
+      	     (double)iutc, sid, diff, last_diff);
+      
+      //if((utc_offset != utc_offset) && ((last_diff * diff)<0)) {
+      if((last_diff * diff)<0) {
+	if( fabs(diff - last_diff) > 1.5) { // 
+	  LOGF_DEBUG("sign change at sid 24 hours, local sid (%f), UTC offset (%f), diff: (%f)", sid, (double)iutc, diff -last_diff) ;
+	  utc_offset_sid_24 = (double)iutc;
+	} else if (utc_offset != utc_offset){          
+	  LOGF_DEBUG("sign change, local sid (%f), UTC offset (%f)", sid, (double)iutc);
+	  utc_offset = (double)iutc;              
+	}
+      }
+      last_diff = diff;               
+    }
+    if (utc_offset != utc_offset) {
+      utc_offset = 23.002;
+    }
+    double ll = utc_offset - 1.;
+    double ul = utc_offset;
+ #ifdef no
+    if (!(utc_offset_sid_24 != utc_offset_sid_24)) {
+      if (utc_offset  < utc_offset_sid_24) {
+	ll = utc_offset_sid_24;
+	ul = utc_offset;
+      } else {                              
+	ll = utc_offset_sid_24;
+	ul = utc_offset;
+      }
+    } else {                                               
+      ll = 0.;                
+      ul = utc_offset;
+    }
+ #endif
+    // bisection
+    double utc_off = (ll+ul)/2.0;
+#define UL 100
+#define DIFF_UTC .00001
+#define DIFF_SID .0003 // 1./3600., ToDo AP sid has .1 sec
+    cnt = UL;
+    LOGF_DEBUG("initial values cnt (%d), UTC offset (%f), lower: (%f), upper: (%f)",
+		       cnt, utc_off, ll, ul);
+    bool fnd = false;
+    while(!fnd && (ul-ll)/2.0 > DIFF_UTC) {
+      
+      double sid = get_local_sidereal_time(lng); 
+      double mltr = setUTCgetSID(ll, AP_UTC_OFFSET, sid) * setUTCgetSID(utc_off, AP_UTC_OFFSET, sid); 
+      double mlt = mltr/fabs(mltr);
+      
+      double sid_diff = setUTCgetSID(utc_off, AP_UTC_OFFSET, sid);
+      if (fabs(sid_diff) < DIFF_SID) {  
+	fnd = true;
+	break;
+        
+      } else if( mlt < 0) {                               
+	ul = utc_off;
+      } else {              
+	ll = utc_off ;
+      }
+      
+      if( cnt == 0) {
+	LOGF_WARN("breaking in bisection %d", cnt);
+	break;
+      }
+      utc_off = (ll+ul)/2.0;
+      cnt--;
+    }
+ 
+    if (fnd) {
+      LOGF_INFO("found solution after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
+		UL - cnt, utc_off, ll, ul);
+    } else {
+      LOGF_ERROR("solution NOT found after (%d) bisections, UTC offset (%f), lower: (%f), upper: (%f)",
+		 UL - cnt, utc_off, ll, ul);
+      LOG_WARN("continue only if you understand the implications");
+    }
+    double dst_off = 0.;
+    time_t lrt_is_dst=  time (NULL);
+    tm ltm_is_dst;
+    localtime_r(&lrt_is_dst,&ltm_is_dst);
+    if( ltm_is_dst.tm_isdst < 0){
+      LOG_WARN("DST information not available, ignoring");
+    } else if(ltm_is_dst.tm_isdst >= 1) { 
+      LOG_INFO("DST is in effect");
+      dst_off= 1.; // ToDo get offset from tz
+    } 
+    // subtract day light saving
+    // AP mount is usually set with local time including DST,
+    // if in effect.
+    // ToDo: I think it is better simply to ignore DST while
+    // setting AP mount's local time (:SL) and drop these
+    // lines
+    if(!isSimulation()){
+      utc_off -= dst_off;
+    }
+    // yes, again
+    if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_off)) < 0)
+      {
+	LOG_ERROR("Error setting UTC Offset.");
+	    return false;
+      }
+    // ToDo, 2020-05-03, do that only if fnd true
+    LOGF_DEBUG("Set UTC Offset after bisection: %f (always positive for AP) is successful.", fabs(utc_off));
+    UTCOffsetNP.np[0].value = utc_off;
+    UTCOffsetNP.s = IPS_OK;
+    IDSetNumber(&UTCOffsetNP, nullptr);
+    }
     return true;
 }
 
@@ -1871,6 +1877,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
     LOGF_DEBUG("unparkPos=%d unparkAlt=%f unparkAz=%f", unparkPos, unparkAlt, unparkAz);
     // 2020-04-18, wildi: do not copy yourself (see Park())
+    
     ln_lnlat_posn observer;
     observer.lat = LocationN[LOCATION_LATITUDE].value;
     observer.lng = LocationN[LOCATION_LONGITUDE].value;
@@ -1946,24 +1953,22 @@ bool LX200AstroPhysicsExperimental::UnPark()
       const struct timespec timeout = {0, 900000000L};
       nanosleep(&timeout, nullptr);
 
+      SetParked(false);
       // Stop :Q#
       if ( abortSlew(PortFD) < 0) {
 	LOG_ERROR("Abort motion Failed");
+	return false;
       }
-      LOG_ERROR("sleeping 900 micros after stop motion");
-      // sleep for 100 mseconds
-      nanosleep(&timeout, nullptr);
-      LOG_ERROR("sleeping 900 micros after stop motion");
-      nanosleep(&timeout, nullptr);
-      LOG_ERROR("sleeping 900 micros after stop motion");
-      nanosleep(&timeout, nullptr);
+      // NO: Enable tracking
+      //2020-03-17, wildi, was SetTrackEnabled(true);
+      SetTrackEnabled(false);
+      TrackState = SCOPE_IDLE;
+    } else {
+      SetParked(false);
+      SetTrackEnabled(false);
+      TrackState = SCOPE_IDLE;
     }
     
-    SetParked(false);
-
-    // Enable tracking
-    SetTrackEnabled(true);
-    TrackState = SCOPE_TRACKING;
 
     return true;
 }
