@@ -1906,7 +1906,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
     LOGF_DEBUG("Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s), RA_deg: %f", AzStr, AltStr, HaStr, RaStr, DecStr, equatorialPos.ra);
     
     HourangleCoordsNP.s = IPS_OK;
-    HourangleCoordsN[0].value = equatorialPos.ra;
+    HourangleCoordsN[0].value = ha;
     HourangleCoordsN[1].value = equatorialPos.dec;
     IDSetNumber(&HourangleCoordsNP, nullptr);
 
@@ -1935,28 +1935,30 @@ bool LX200AstroPhysicsExperimental::UnPark()
 	  }
       }
 #endif
-    if (APUnParkMount(PortFD) < 0)
-      {
-	LOG_ERROR("UnParking Failed.");
-	return false;
-      }
-    LOG_ERROR("sleeping 900 micros after unpark");
-        // sleep for 100 mseconds
-    const struct timespec timeout = {0, 900000000L};
-    nanosleep(&timeout, nullptr);
+    if(!isSimulation()) {
+      if (APUnParkMount(PortFD) < 0)
+	{
+	  LOG_ERROR("UnParking Failed.");
+	  return false;
+	}
+      LOG_ERROR("sleeping 900 micros after unpark");
+      // sleep for 100 mseconds
+      const struct timespec timeout = {0, 900000000L};
+      nanosleep(&timeout, nullptr);
 
-    // Stop :Q#
-    if ( abortSlew(PortFD) < 0) {
+      // Stop :Q#
+      if ( abortSlew(PortFD) < 0) {
 	LOG_ERROR("Abort motion Failed");
+      }
+      LOG_ERROR("sleeping 900 micros after stop motion");
+      // sleep for 100 mseconds
+      nanosleep(&timeout, nullptr);
+      LOG_ERROR("sleeping 900 micros after stop motion");
+      nanosleep(&timeout, nullptr);
+      LOG_ERROR("sleeping 900 micros after stop motion");
+      nanosleep(&timeout, nullptr);
     }
-    LOG_ERROR("sleeping 900 micros after stop motion");
-        // sleep for 100 mseconds
-    nanosleep(&timeout, nullptr);
-    LOG_ERROR("sleeping 900 micros after stop motion");
-    nanosleep(&timeout, nullptr);
-    LOG_ERROR("sleeping 900 micros after stop motion");
-    nanosleep(&timeout, nullptr);
-
+    
     SetParked(false);
 
     // Enable tracking
