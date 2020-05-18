@@ -127,8 +127,6 @@ void Detector::setTriggerLevel(double level)
 
 void Detector::setResolution(double res)
 {
-<<<<<<< HEAD
-=======
     Resolution = res;
 
     DetectorSettingsN[Detector::DETECTOR_RESOLUTION].value = res;
@@ -138,7 +136,6 @@ void Detector::setResolution(double res)
 
 void Detector::SetDetectorCapability(uint32_t cap)
 {
->>>>>>> refs/remotes/upstream/master
     SetCapability(cap);
     setDriverInterface(getDriverInterface());
 }
