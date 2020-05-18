@@ -68,7 +68,7 @@
 #define PARSEC (ASTRONOMICALUNIT*2.06264806247096E+5)
 #define LIGHTSPEED 299792458.0
 #define LY (LIGHTSPEED * SOLAR_DAY * 365)
-#define LUMEN(wavelength) ((1.464129E-3*wavelength)/(h_20190520*LIGHTSPEED))
+#define LUMEN(wavelength) ((1.46412884E-3*wavelength)/(h_20190520*LIGHTSPEED))
 
 extern const char *Direction[];
 extern const char *SolarSystem[];
@@ -370,14 +370,14 @@ double m2au(double m);
 double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spectrum, int spectrum_size);
 
 /**
- * @brief calc_photon_flux Returns the photon flux of the object with the given magnitude observed at a determined wavelenght using a passband filter over an incident surface
+ * @brief calc_photon_flux Returns the photon flux of the object with the given magnitude observed at a determined wavelenght using a passband filter through a steradian expressed cone
  * @param rel_magnitude Relative magnitude of the object observed
  * @param filter_bandwidth Filter bandwidth in meters
  * @param wavelength Wavelength in meters
- * @param incident_surface The incident surface in square meters
+ * @param steradian The light cone in steradians
  * @return the photon flux in Lumen
  */
-double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double incident_surface);
+double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian);
 
 /**
  * @brief calc_rel_magnitude Returns the relative magnitude of the object with the given photon flux measured at a determined wavelenght using a passband filter over an incident surface
