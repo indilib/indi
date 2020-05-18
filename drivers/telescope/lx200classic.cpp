@@ -27,16 +27,14 @@
 
 LX200Classic::LX200Classic() : LX200Generic()
 {
-    currentCatalog      = LX200_STAR_C;
-    currentSubCatalog   = 0;
     MaxReticleFlashRate = 3;
 
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 const char *LX200Classic::getDefaultName()
 {
-    return (const char *)"LX200 Classic";
+    return "LX200 Classic";
 }
 
 bool LX200Classic::initProperties()
@@ -80,37 +78,15 @@ bool LX200Classic::initProperties()
     IUFillNumberVector(&ObjectNoNP, ObjectNoN, 1, getDeviceName(), "Object Number", "", LIBRARY_TAB, IP_RW, 0,
                        IPS_IDLE);
 
-    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 2.0, 9.0, 1.0, 9.0);
-    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,
-                       IPS_IDLE);
+    IUFillNumber(&MaxSlewRateN[0], "RATE", "Rate", "%.2f", 2.0, 9.0, 1.0, 9.0);
+    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "TELESCOPE_MAX_SLEW_RATE", "Slew Rate", MOTION_TAB,
+                       IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&ElevationLimitN[0], "minAlt", "Speed", "%+03f", -90.0, 90.0, 0.0,
-                 0.0); //azwing removed typo double %% in fromat
-    IUFillNumber(&ElevationLimitN[1], "maxAlt", "Speed", "%+03f", -90.0, 90.0, 0.0, 0.0);
-    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 1, getDeviceName(), "Slew elevation Limit", "",
-                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&ElevationLimitN[0], "MIN_ALT", "Min Alt.", "%+.2f", -90.0, 90.0, 0.0, 0.0);
+    IUFillNumber(&ElevationLimitN[1], "MAX_ALT", "Max Alt", "%+.2f", -90.0, 90.0, 0.0, 0.0);
+    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 2, getDeviceName(), "TELESCOPE_ELEVATION_SLEW_LIMIT",
+                       "Slew elevation Limit", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
     return true;
-}
-
-void LX200Classic::ISGetProperties(const char *dev)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
-        return;
-
-    LX200Generic::ISGetProperties(dev);
-
-    /*
-    if (isConnected())
-    {
-        defineNumber(&ElevationLimitNP);
-        defineText(&ObjectInfoTP);
-        defineSwitch(&SolarSP);
-        defineSwitch(&StarCatalogSP);
-        defineSwitch(&DeepSkyCatalogSP);
-        defineNumber(&ObjectNoNP);
-        defineNumber(&MaxSlewRateNP);
-    }
-    */
 }
 
 bool LX200Classic::updateProperties()
@@ -147,7 +123,7 @@ bool LX200Classic::ISNewNumber(const char *dev, const char *name, double values[
     {
         if (!strcmp(name, ObjectNoNP.name))
         {
-            char object_name[256]={0};
+            char object_name[256] = {0};
 
             if (selectCatalogObject(PortFD, currentCatalog, (int)values[0]) < 0)
             {
@@ -338,4 +314,14 @@ bool LX200Classic::ISNewSwitch(const char *dev, const char *name, ISState *state
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool LX200Classic::saveConfigItems(FILE *fp)
+{
+    LX200Generic::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &MaxSlewRateNP);
+    IUSaveConfigNumber(fp, &ElevationLimitNP);
+
+    return true;
 }
