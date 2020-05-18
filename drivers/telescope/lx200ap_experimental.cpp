@@ -1601,7 +1601,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
       if (utc_offset != utc_offset) {
 	utc_offset = 23.002;
       }
-#endfi
+#endif
       double ll = utc_offset - 1.;
       double ul = utc_offset;
 #ifdef no
@@ -1691,6 +1691,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
       UTCOffsetNP.s = IPS_OK;
       IDSetNumber(&UTCOffsetNP, nullptr);
     }
+
     return true;
 }
 
