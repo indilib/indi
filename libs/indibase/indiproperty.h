@@ -42,23 +42,23 @@ class Property
         void setDynamic(bool d);
         void setBaseDevice(BaseDevice *idp);
 
-        void *getProperty()
+        void *getProperty() const
         {
             return pPtr;
         }
-        INDI_PROPERTY_TYPE getType()
+        INDI_PROPERTY_TYPE getType() const
         {
             return pType;
         }
-        bool getRegistered()
+        bool getRegistered() const
         {
             return pRegistered;
         }
-        bool isDynamic()
+        bool isDynamic() const
         {
             return pDynamic;
         }
-        BaseDevice *getBaseDevice()
+        BaseDevice *getBaseDevice() const
         {
             return dp;
         }

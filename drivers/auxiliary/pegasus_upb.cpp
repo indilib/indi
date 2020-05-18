@@ -78,7 +78,7 @@ void ISSnoopDevice(XMLEle * root)
 
 PegasusUPB::PegasusUPB() : FI(this), WI(this)
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
 
     lastSensorData.reserve(21);
     lastPowerData.reserve(4);
@@ -421,7 +421,7 @@ bool PegasusUPB::updateProperties()
 
 const char * PegasusUPB::getDefaultName()
 {
-    return "Pegasus UBP";
+    return "Pegasus UPB";
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -475,10 +475,11 @@ bool PegasusUPB::Handshake()
             }
         }
 
+        cleanupResponse(response);
         tcflush(PortFD, TCIOFLUSH);
     }
 
-    response[nbytes_read - 1] = '\0';
+
     LOGF_DEBUG("RES <%s>", response);
 
     setupComplete = false;
@@ -856,10 +857,8 @@ bool PegasusUPB::sendCommand(const char * cmd, char * res)
             continue;
 
         tcflush(PortFD, TCIOFLUSH);
-        if (res[0] == 0xA)
-            res++;
 
-        res[nbytes_read - 1] = '\0';
+        cleanupResponse(res);
         LOGF_DEBUG("RES <%s>", res);
         return true;
     }
@@ -1112,8 +1111,8 @@ bool PegasusUPB::setUSBHubEnabled(bool enabled)
 bool PegasusUPB::setUSBPortEnabled(uint8_t port, bool enabled)
 {
     char cmd[PEGASUS_LEN] = {0}, expected[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "U%d:%d", port, enabled ? 1 : 0);
-    snprintf(expected, PEGASUS_LEN, "U%d:%d", port, enabled ? 1 : 0);
+    snprintf(cmd, PEGASUS_LEN, "U%d:%d", port + 1, enabled ? 1 : 0);
+    snprintf(expected, PEGASUS_LEN, "U%d:%d", port + 1, enabled ? 1 : 0);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, expected));
@@ -1598,3 +1597,16 @@ bool PegasusUPB::setupParams()
     return false;
 }
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+void PegasusUPB::cleanupResponse(char *response)
+{
+    std::string s(response);
+    s.erase(std::remove_if(s.begin(), s.end(),
+                           [](unsigned char x)
+    {
+        return std::isspace(x);
+    }), s.end());
+    strncpy(response, s.c_str(), PEGASUS_LEN);
+}

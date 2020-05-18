@@ -19,8 +19,11 @@
 
 #include "defaultdevice.h"
 #include "indisensorinterface.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include "indicom.h"
+#include "libastro.h"
 #include "stream/streammanager.h"
 #include "locale_compat.h"
 
@@ -172,27 +175,24 @@ void SensorInterface::processProperties(const char *dev)
 
 bool SensorInterface::processSnoopDevice(XMLEle *root)
 {
-    XMLEle *ep           = nullptr;
-    const char *propName = findXMLAttValu(root, "name");
-
     if (!IUSnoopNumber(root, &EqNP))
     {
         RA = EqNP.np[0].value;
         Dec = EqNP.np[1].value;
-        IDLog("Snooped RA %4.2f  Dec %4.2f\n",RA,Dec);
+        //IDLog("Snooped RA %4.2f  Dec %4.2f\n", RA, Dec);
     }
     if (!IUSnoopNumber(root, &LocationNP))
     {
         Lat = LocationNP.np[0].value;
         Lon = LocationNP.np[1].value;
         El = LocationNP.np[2].value;
-        IDLog("Snooped Lat %4.2f  Lon %4.2  El %4.2f\n",RA,Dec,El);
+        //IDLog("Snooped Lat %4.2f  Lon %4.2f  El %4.2f\n", RA, Dec, El);
     }
     if (!IUSnoopNumber(root, &ScopeParametersNP))
     {
         primaryAperture = ScopeParametersNP.np[0].value;
         primaryFocalLength = ScopeParametersNP.np[1].value;
-        IDLog("Snooped primaryAperture %4.2f  primaryFocalLength %4.2f\n",primaryAperture,primaryFocalLength);
+        //IDLog("Snooped primaryAperture %4.2f  primaryFocalLength %4.2f\n", primaryAperture, primaryFocalLength);
     }
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
@@ -219,6 +219,7 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
             IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
+            IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -393,7 +394,7 @@ bool SensorInterface::processSwitch(const char *dev, const char *name, ISState *
 }
 
 bool SensorInterface::processBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                                    char *formats[], char *names[], int n)
+                                  char *formats[], char *names[], int n)
 {
     if (HasDSP())
         DSP->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
@@ -470,7 +471,8 @@ bool SensorInterface::initProperties()
 
     // Snooped Devices
     IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
+    IUFillText(&ActiveDeviceT[1], "ACTIVE_GPS", "GPS", "GPS Simulator");
+    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 2, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     // Snoop properties of interest
@@ -482,8 +484,8 @@ bool SensorInterface::initProperties()
     IUFillNumber(&LocationN[0], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
     IUFillNumber(&LocationN[1], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
     IUFillNumber(&LocationN[2], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
-    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Scope Location", SITE_TAB,
-                       IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB,
+                       IP_RO, 60, IPS_IDLE);
 
     IUFillNumber(&ScopeParametersN[0], "TELESCOPE_APERTURE", "Aperture (mm)", "%g", 10, 5000, 0, 0.0);
     IUFillNumber(&ScopeParametersN[1], "TELESCOPE_FOCAL_LENGTH", "Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
@@ -495,6 +497,28 @@ bool SensorInterface::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
+    IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
+
+    if (sensorConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
+        registerConnection(serialConnection);
+    }
+
+    if (sensorConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
+
+        registerConnection(tcpConnection);
+    }
 
     return true;
 }
@@ -505,22 +529,17 @@ void SensorInterface::SetCapability(uint32_t cap)
 
     setDriverInterface(getDriverInterface());
 
-    if (HasStreaming() && Streamer.get() == nullptr)
-    {
-        Streamer.reset(new StreamManager(this));
-        Streamer->initProperties();
-    }
-
-    if (HasDSP() && DSP.get() == nullptr)
-        DSP.reset(new DSP::Manager(this));
+    HasStreaming();
+    HasDSP();
 }
 
 void SensorInterface::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                                   bool sendToClient)
+                                    bool sendToClient)
 {
     INumberVectorProperty *vp = nullptr;
 
-    if (!strcmp(property, FramedIntegrationNP.name)) {
+    if (!strcmp(property, FramedIntegrationNP.name))
+    {
         vp = &FramedIntegrationNP;
 
         INumber *np = IUFindNumber(vp, element);
@@ -549,7 +568,7 @@ void SensorInterface::setBufferSize(int nbuf, bool allocMem)
 
     // DSP
     if (HasDSP())
-        DSP->setSizes(1, new int[1]{ BufferSize * 8 / getBPS() });
+        DSP->setSizes(1, new int[1] { BufferSize * 8 / getBPS() });
 
     if (allocMem == false)
         return;
@@ -574,7 +593,10 @@ void SensorInterface::setIntegrationLeft(double duration)
 void SensorInterface::setIntegrationTime(double duration)
 {
     integrationTime = duration;
-    clock_gettime(CLOCK_REALTIME, &startIntegrationTime);
+    // JM 2020-04-28: FIXME
+    // This does not compile on MacOS, so commenting now.
+    // IP 2020-04-29: trying with some adaptation
+    startIntegrationTime = time_ns();
 }
 
 const char *SensorInterface::getIntegrationStartTime()
@@ -583,12 +605,10 @@ const char *SensorInterface::getIntegrationStartTime()
 
     char iso8601[32];
     struct tm *tp;
-    time_t t = (time_t)startIntegrationTime.tv_sec;
-    long n    = startIntegrationTime.tv_nsec % 1000000000;
+    time_t t = (time_t)startIntegrationTime;
 
     tp = gmtime(&t);
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
-    snprintf(ts, 32, "%s.%09ld", iso8601, n);
     return (ts);
 }
 
@@ -627,6 +647,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     int status = 0;
     char dev_name[32];
     char exp_start[32];
+    char timestamp[32];
     double integrationTime;
 
     char *orig = setlocale(LC_NUMERIC, "C");
@@ -653,11 +674,13 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 
     strncpy(dev_name, getDeviceName(), 32);
     strncpy(exp_start, getIntegrationStartTime(), 32);
+    snprintf(timestamp, 32, "%lf", startIntegrationTime);
 
     fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(integrationTime), "Total Integration Time (s)", &status);
 
     if (HasCooler())
-        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureN[0].value), "PrimarySensorInterface Temperature (Celsius)", &status);
+        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureN[0].value), "PrimarySensorInterface Temperature (Celsius)",
+                          &status);
 
 #ifdef WITH_MINMAX
     if (getNAxis() == 2)
@@ -698,7 +721,8 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 
         // Convert from JNow to J2000
         //TODO use exp_start instead of julian from system
-        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+        //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+        LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
         double raJ2000  = J2000Pos.ra / 15.0;
         double decJ2000 = J2000Pos.dec;
@@ -730,14 +754,17 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
         fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
     }
 
+    fits_update_key_s(fptr, TSTRING, "TIMESTAMP", timestamp, "Timestamp of start of integration", &status);
+
     fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
+
     fits_write_comment(fptr, "Generated by INDI", &status);
 
     setlocale(LC_NUMERIC, orig);
 }
 
 void SensorInterface::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation,
-                                 int *status)
+                                        int *status)
 {
     // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
@@ -866,10 +893,11 @@ bool SensorInterface::IntegrationComplete()
     // Reset POLLMS to default value
     POLLMS = getPollingPeriod();
 
-    if(HasDSP()) {
+    if(HasDSP())
+    {
         uint8_t* buf = (uint8_t*)malloc(getBufferSize());
         memcpy(buf, getBuffer(), getBufferSize());
-        DSP->processBLOB(buf, 1, new int[1]{ getBufferSize()*8/getBPS() }, getBPS());
+        DSP->processBLOB(buf, 1, new int[1] { getBufferSize() * 8 / getBPS() }, getBPS());
         free(buf);
     }
     // Run async
@@ -928,7 +956,7 @@ bool SensorInterface::IntegrationCompletePrivate()
 }
 
 bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration,
-                          bool saveIntegration)
+                                 bool saveIntegration)
 {
 
     DEBUGF(Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendIntegration? %s, saveIntegration? %s",
@@ -1227,7 +1255,38 @@ void SensorInterface::setBPS(int bps)
 
     // DSP
     if (HasDSP())
-        DSP->setSizes(1, new int[1]{ getBufferSize() * 8 / BPS });
+        DSP->setSizes(1, new int[1] { getBufferSize() * 8 / BPS });
 }
 
+
+bool SensorInterface::Handshake()
+{
+    return false;
+}
+
+bool SensorInterface::callHandshake()
+{
+    if (sensorConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
+
+    return Handshake();
+}
+
+void SensorInterface::setSensorConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
+
+    if (value == 0 || (mask & value) == 0)
+    {
+        DEBUGF(Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
+    sensorConnection = value;
+}
 }

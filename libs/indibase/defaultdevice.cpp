@@ -57,23 +57,12 @@ namespace INDI
 
 DefaultDevice::DefaultDevice()
 {
-    pDebug      = false;
-    pSimulation = false;
-    isInit      = false;
-
-    majorVersion        = 1;
-    minorVersion        = 0;
-    interfaceDescriptor = GENERAL_INTERFACE;
     memset(&ConnectionModeSP, 0, sizeof(ConnectionModeSP));
-}
-
-DefaultDevice::~DefaultDevice()
-{
 }
 
 bool DefaultDevice::loadConfig(bool silent, const char *property)
 {
-    char errmsg[MAXRBUF];
+    char errmsg[MAXRBUF] = {0};
     bool pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
 
     if (!silent)
@@ -83,10 +72,15 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
             LOG_DEBUG("Configuration successfully loaded.");
         }
         else
-            LOG_INFO("No previous configuration found. To save driver configuration, click Save Configuration in Options tab");
+            LOG_INFO("No previous configuration found. To save driver configuration, click Save Configuration in Options tab.");
     }
 
-    IUSaveDefaultConfig(nullptr, nullptr, deviceID);
+    // Determine default config file name
+    // Need to be done only once per device.
+    if (pDefaultConfigLoaded == false)
+    {
+        pDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+    }
 
     return pResult;
 }
@@ -163,8 +157,8 @@ bool DefaultDevice::purgeConfig()
 
 bool DefaultDevice::saveConfig(bool silent, const char *property)
 {
-    //std::vector<orderPtr>::iterator orderi;
-    char errmsg[MAXRBUF];
+    silent = false;
+    char errmsg[MAXRBUF] = {0};
 
     FILE *fp = nullptr;
 
@@ -185,9 +179,13 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
 
         IUSaveConfigTag(fp, 1, getDeviceName(), silent ? 1 : 0);
 
+        fflush(fp);
         fclose(fp);
 
-        IUSaveDefaultConfig(nullptr, nullptr, deviceID);
+        if (pDefaultConfigLoaded == false)
+        {
+            pDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+        }
 
         LOG_DEBUG("Configuration successfully saved.");
     }
@@ -304,6 +302,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         {
             fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
             prXMLEle(fp, root, 0);
+            fflush(fp);
             fclose(fp);
             delXMLEle(root);
             LOGF_DEBUG("Configuration successfully saved for %s.", property);
@@ -945,7 +944,8 @@ bool DefaultDevice::initProperties()
                        "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillNumber(&PollPeriodN[0], "PERIOD_MS", "Period (ms)", "%.f", 10, 600000, 1000, POLLMS);
-    IUFillNumberVector(&PollPeriodNP, PollPeriodN, 1, getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&PollPeriodNP, PollPeriodN, 1, getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0,
+                       IPS_IDLE);
 
     INDI::Logger::initProperties(this);
 

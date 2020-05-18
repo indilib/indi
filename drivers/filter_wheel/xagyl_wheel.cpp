@@ -358,8 +358,7 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
         if (m_FirmwareVersion >= 3 && newPulseWidth >= 0)
         {
             int curPulseWidth = SettingsN[SET_PULSE_WITDH].value;
-            rc_pulsewidth &= setRelativeCommand(SET_PULSE_WITDH,
-                                                newPulseWidth - curPulseWidth);
+            rc_pulsewidth &= setRelativeCommand(SET_PULSE_WITDH, (newPulseWidth - curPulseWidth) / 100.0);
             getPulseWidth();
         }
 
@@ -632,7 +631,7 @@ bool XAGYLWheel::getPulseWidth()
         return false;
 
     int pulseWidth = 0;
-    int rc         = sscanf(res, "Pulse Width %duS", &pulseWidth);
+    int rc         = sscanf(res, "PulseWidth %duS", &pulseWidth);
 
     if (rc > 0)
     {

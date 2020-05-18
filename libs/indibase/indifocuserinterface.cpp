@@ -430,24 +430,29 @@ bool FocuserInterface::processSwitch(const char * dev, const char * name, ISStat
     }
 
     // Backlash compensation
-    if (!strcmp(name, FocusBacklashSP.name))
+    else if (!strcmp(name, FocusBacklashSP.name))
     {
-        bool enable = !strcmp(FocusBacklashS[DefaultDevice::INDI_ENABLED].name, IUFindOnSwitchName(states, names, n));
+        int prevIndex = IUFindOnSwitchIndex(&FocusBacklashSP);
+        IUUpdateSwitch(&FocusBacklashSP, states, names, n);
 
-        if (SetFocuserBacklashEnabled(enable))
+        if (SetFocuserBacklashEnabled(IUFindOnSwitchIndex(&FocusBacklashSP) == DefaultDevice::INDI_ENABLED))
         {
             IUUpdateSwitch(&FocusBacklashSP, states, names, n);
             FocusBacklashSP.s = IPS_OK;
         }
         else
+        {
+            IUResetSwitch(&FocusBacklashSP);
+            FocusBacklashS[prevIndex].s = ISS_ON;
             FocusBacklashSP.s = IPS_ALERT;
+        }
 
         IDSetSwitch(&FocusBacklashSP, nullptr);
         return true;
     }
 
     // Abort Focuser
-    if (!strcmp(name, FocusAbortSP.name))
+    else if (!strcmp(name, FocusAbortSP.name))
     {
         IUResetSwitch(&FocusAbortSP);
 
@@ -473,17 +478,19 @@ bool FocuserInterface::processSwitch(const char * dev, const char * name, ISStat
     }
 
     // Reverse Motion
-    if (!strcmp(name, FocusReverseSP.name))
+    else if (!strcmp(name, FocusReverseSP.name))
     {
-        bool enabled = !strcmp("INDI_ENABLED", IUFindOnSwitchName(states, names, n));
+        int prevIndex = IUFindOnSwitchIndex(&FocusReverseSP);
+        IUUpdateSwitch(&FocusReverseSP, states, names, n);
 
-        if (ReverseFocuser(enabled))
+        if (ReverseFocuser(IUFindOnSwitchIndex(&FocusReverseSP) == DefaultDevice::INDI_ENABLED))
         {
-            IUUpdateSwitch(&FocusReverseSP, states, names, n);
             FocusReverseSP.s = IPS_OK;
         }
         else
         {
+            IUResetSwitch(&FocusReverseSP);
+            FocusReverseS[prevIndex].s = ISS_ON;
             FocusReverseSP.s = IPS_ALERT;
         }
 
