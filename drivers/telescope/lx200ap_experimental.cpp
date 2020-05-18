@@ -1529,8 +1529,9 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
     locationUpdated = true;
     LOGF_INFO("Location updated. %s %s %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 
-    if (locationUpdated && timeUpdated && !mountInitialized) 
+    if (locationUpdated && timeUpdated && !mountInitialized) { 
         initMount();
+    }
 
     if (locationUpdated && timeUpdated && mountInitialized) {
 
@@ -1690,6 +1691,18 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
       UTCOffsetNP.np[0].value = utc_off;
       UTCOffsetNP.s = IPS_OK;
       IDSetNumber(&UTCOffsetNP, nullptr);
+      // 2020-05-17, ToDo must be confirmed by Brsb.'s Mike
+      double sim_offset = 0.;
+      if(isSimulation()) {
+	sim_offset = AP_UTC_OFFSET - UTCOffsetN[0].value;
+      }
+      double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value) - sim_offset;
+      double ha = get_local_hour_angle(lst, EqN[AXIS_RA].value);
+    
+      HourangleCoordsNP.s = IPS_OK;
+      HourangleCoordsN[0].value = ha;
+      HourangleCoordsN[1].value = EqN[AXIS_DE].value;
+      IDSetNumber(&HourangleCoordsNP, nullptr);
     }
 
     return true;
@@ -1971,7 +1984,22 @@ bool LX200AstroPhysicsExperimental::UnPark()
       SetTrackEnabled(false);
       TrackState = SCOPE_IDLE;
     }
+    // 2020-05-17, wildi, ToDo, Brsb.'s  Mike must confirm this
+    AbortSP.s = IPS_OK;
+    EqNP.s    = IPS_IDLE;
+    IDSetSwitch(&AbortSP, "Any movement aborted.");
+    IDSetNumber(&EqNP, nullptr);
     
+    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+      {
+	MovementNSSP.s = MovementWESP.s = IPS_IDLE;
+	EqNP.s                          = IPS_IDLE;
+	IUResetSwitch(&MovementNSSP);
+	IUResetSwitch(&MovementWESP);
+	IDSetSwitch(&MovementNSSP, nullptr);
+	IDSetSwitch(&MovementWESP, nullptr);
+      }
+
 
     return true;
 }
