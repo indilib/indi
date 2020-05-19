@@ -117,16 +117,15 @@ bool EFA::initProperties()
 
     // Fan Control Parameters
     IUFillNumber(&FanControlN[FAN_MAX_ABSOLUTE], "FAN_MAX_ABSOLUTE", "Max Primary (c)", "%.2f", 0, 50., 5., 25.);
-    IUFillNumber(&FanControlN[FAN_MAX_RELATIVE], "FAN_MAX_RELATIVE", "Max Relative (c)", "%.2f", 0.5, 30., 1., 2.5);
-    IUFillNumber(&FanControlN[FAN_DEADZONE], "FAN_DEADZONE", "Deadone (c)", "%.2f", 0.5, 10, 0.5, 0.5);
+    IUFillNumber(&FanControlN[FAN_MAX_RELATIVE], "FAN_MAX_RELATIVE", "Max Relative (c)", "%.2f", 0., 30., 1., 2.5);
+    IUFillNumber(&FanControlN[FAN_DEADZONE], "FAN_DEADZONE", "Deadzone (c)", "%.2f", 0.5, 10, 0.5, 0.5);
     IUFillNumberVector(&FanControlNP, FanControlN, 3, getDeviceName(), "FOCUS_FAN_PARAMS", "Control Params",
                        FAN_TAB, IP_RW, 0, IPS_IDLE);
 
     // Fan Off on Disconnect
     IUFillSwitch(&FanDisconnectS[FAN_OFF_ON_DISCONNECT], "FAN_OFF_ON_DISCONNECT", "Switch Off", ISS_ON);
-    IUFillSwitchVector(&FanDisconnectSP, FanDisconnectS, 2, getDeviceName(), "FOCUS_FAN_DISCONNECT", "On Disconnect", FAN_TAB,
-                       IP_RW, ISR_NOFMANY, 0,
-                       IPS_IDLE);
+    IUFillSwitchVector(&FanDisconnectSP, FanDisconnectS, 1, getDeviceName(), "FOCUS_FAN_DISCONNECT", "On Disconnect", FAN_TAB,
+                       IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     // Calibration Control
     IUFillSwitch(&CalibrationStateS[CALIBRATION_ON], "CALIBRATION_ON", "Calibrated", ISS_OFF);
@@ -438,8 +437,8 @@ void EFA::TimerHit()
             // Check if we need to do automatic regulation of fan
             if (FanControlS[FAN_AUTOMATIC_ABSOLUTE].s == ISS_ON)
             {
-                turnOn = (TemperatureN[TEMPERATURE_PRIMARY].value + FanControlN[FAN_DEADZONE].value) >
-                         FanControlN[FAN_MAX_ABSOLUTE].value;
+                turnOn = TemperatureN[TEMPERATURE_PRIMARY].value >
+                         (FanControlN[FAN_MAX_ABSOLUTE].value +  FanControlN[FAN_DEADZONE].value);
                 turnOff = (TemperatureN[TEMPERATURE_PRIMARY].value - FanControlN[FAN_DEADZONE].value) <
                           FanControlN[FAN_MAX_ABSOLUTE].value;
             }
@@ -542,6 +541,11 @@ bool EFA::ReverseFocuser(bool enabled)
 bool EFA::saveConfigItems(FILE * fp)
 {
     INDI::Focuser::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &FanControlSP);
+    if (FanControlNP.s == IPS_OK)
+        IUSaveConfigNumber(fp, &FanControlNP);
+    IUSaveConfigSwitch(fp, &FanDisconnectSP);
     return true;
 }
 
