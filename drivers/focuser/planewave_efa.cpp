@@ -219,6 +219,7 @@ bool EFA::Handshake()
         return false;
 
     version = std::to_string(res[5]) + "." + std::to_string(res[6]);
+    IUSaveText(&InfoT[INFO_VERSION], version.c_str());
 
     LOGF_INFO("Detected version %s", version.c_str());
 
@@ -437,10 +438,12 @@ void EFA::TimerHit()
             // Check if we need to do automatic regulation of fan
             if (FanControlS[FAN_AUTOMATIC_ABSOLUTE].s == ISS_ON)
             {
-                turnOn = TemperatureN[TEMPERATURE_PRIMARY].value >
-                         (FanControlN[FAN_MAX_ABSOLUTE].value +  FanControlN[FAN_DEADZONE].value);
-                turnOff = (TemperatureN[TEMPERATURE_PRIMARY].value - FanControlN[FAN_DEADZONE].value) <
-                          FanControlN[FAN_MAX_ABSOLUTE].value;
+                // Adjust delta for deadzone
+                double min_delta = FanControlN[FAN_MAX_ABSOLUTE].value - FanControlN[FAN_DEADZONE].value;
+                double max_delta = FanControlN[FAN_MAX_ABSOLUTE].value + FanControlN[FAN_DEADZONE].value;
+
+                turnOn = TemperatureN[TEMPERATURE_PRIMARY].value > max_delta;
+                turnOff = TemperatureN[TEMPERATURE_PRIMARY].value < min_delta;
             }
             else if (FanControlS[FAN_AUTOMATIC_RELATIVE].s == ISS_ON)
             {
@@ -451,8 +454,8 @@ void EFA::TimerHit()
                 double max_delta = FanControlN[FAN_MAX_RELATIVE].value + FanControlN[FAN_DEADZONE].value;
 
                 // Check if we need to turn off/on fan
-                turnOff = tDiff < min_delta;
                 turnOn = tDiff > max_delta;
+                turnOff = tDiff < min_delta;
             }
 
             if (isFanOn && turnOff)
