@@ -32,13 +32,13 @@ class EFA : public INDI::Focuser
     public:
         EFA();
 
-        virtual bool Handshake();
-        const char *getDefaultName();
-        virtual bool initProperties();
-        virtual bool updateProperties();
+        virtual bool Handshake() override;
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
         enum
         {
@@ -72,15 +72,16 @@ class EFA : public INDI::Focuser
         };
 
     protected:
-        virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-        virtual bool SyncFocuser(uint32_t ticks);
-        virtual bool ReverseFocuser(bool enabled);
-        virtual bool SetFocuserMaxPosition(uint32_t ticks);
-        virtual bool AbortFocuser();
-        virtual void TimerHit();
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks) override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
+        virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
+        virtual bool Disconnect() override;
 
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
     private:
         ///////////////////////////////////////////////////////////////////////////////////
@@ -136,6 +137,34 @@ class EFA : public INDI::Focuser
             FAN_OFF
         };
 
+        // Fan Control Mode
+        ISwitchVectorProperty FanControlSP;
+        ISwitch FanControlS[3];
+        enum
+        {
+            FAN_MANUAL,
+            FAN_AUTOMATIC_ABSOLUTE,
+            FAN_AUTOMATIC_RELATIVE,
+        };
+
+        // Fan Control Parameters
+        INumberVectorProperty FanControlNP;
+        INumber FanControlN[3];
+        enum
+        {
+            FAN_MAX_ABSOLUTE,
+            FAN_MAX_RELATIVE,
+            FAN_DEADZONE,
+        };
+
+        // Fan Off on Disconnect
+        ISwitchVectorProperty FanDisconnectSP;
+        ISwitch FanDisconnectS[1];
+        enum
+        {
+            FAN_OFF_ON_DISCONNECT
+        };
+
         // Calibration State
         ISwitchVectorProperty CalibrationStateSP;
         ISwitch CalibrationStateS[2];
@@ -147,18 +176,17 @@ class EFA : public INDI::Focuser
 
         // Read Only Temperature Reporting
         INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[3];
+        INumber TemperatureN[2];
         enum
         {
             TEMPERATURE_PRIMARY,
-            TEMPERATURE_AMBIENT,
-            TEMPERATURE_SECONDARY
+            TEMPERATURE_AMBIENT
         };
 
         /////////////////////////////////////////////////////////////////////////////
         /// Private variables
         /////////////////////////////////////////////////////////////////////////////
-        double m_LastTemperature {0};
+        double m_LastTemperature[2];
         double m_LastPosition {0};
 
         /////////////////////////////////////////////////////////////////////////////
@@ -172,4 +200,6 @@ class EFA : public INDI::Focuser
         static constexpr const uint8_t DRIVER_LEN {9};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
+        // Fan Control
+        static constexpr const char *FAN_TAB = "Fan";
 };
