@@ -377,7 +377,7 @@ double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spec
  * @param steradian The light cone in steradians
  * @return the photon flux in Lumen
  */
-double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double incident_surface);
+double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian);
 
 /**
  * @brief calc_rel_magnitude Returns the relative magnitude of the object with the given photon flux measured at a determined wavelenght using a passband filter over an incident surface
@@ -387,7 +387,7 @@ double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wa
  * @param incident_surface The incident surface in square meters
  * @return the relative magnitude of the object observed
  */
-double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double incident_surface);
+double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double steradian);
 
 /**
  * @brief estimate_absolute_magnitude Returns an estimation of the absolute magnitude of an object given its distance and the difference of its magnitude with a reference object
