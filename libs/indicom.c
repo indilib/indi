@@ -1710,12 +1710,12 @@ double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spec
 
 double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian)
 {
-    return (1.51E+7*(filter_bandwidth/wavelength)*(steradian/(M_PI*4))*pow(10, -0.4*rel_magnitude))/LUMEN(wavelength);
+    return (filter_bandwidth/wavelength)*(steradian/(M_PI*4)*pow(10, -0.4*rel_magnitude))/LUMEN(wavelength);
 }
 
 double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double steradian)
 {
-    return (1.51E+7*(filter_bandwidth/wavelength)*(steradian/(M_PI*4))*log10(photon_flux*LUMEN(wavelength)))/-0.4;
+    return (filter_bandwidth/wavelength)*(steradian/(M_PI*4))*log10(photon_flux*LUMEN(wavelength))/-0.4;
 }
 
 double estimate_absolute_magnitude(double delta_dist, double delta_mag)
