@@ -68,7 +68,7 @@
 #define PARSEC (ASTRONOMICALUNIT*2.06264806247096E+5)
 #define LIGHTSPEED 299792458.0
 #define LY (LIGHTSPEED * SOLAR_DAY * 365)
-#define LUMEN(wavelength) ((1.46412884E-3*wavelength)/(h_20190520*LIGHTSPEED))
+#define LUMEN(wavelength, cd) ((1.46412884E-3*cd*M_PI*4*wavelength)/(h_20190520*LIGHTSPEED))
 
 extern const char *Direction[];
 extern const char *SolarSystem[];
