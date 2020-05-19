@@ -386,6 +386,8 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
     LOG_ERROR("Reading sidereal time failed, while finding correct SID.");
     return ERROR;
   }
+  //19.184389
+  LOGF_ERROR("sid_ap: %12.8lf", sid_ap);
   return sid_loc - sid_ap;
 }
 
@@ -949,7 +951,7 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
     // mount is initialized
     LOG_INFO("Mount is initialized.");
     *initialized = true;
-    LOGF_DEBUG("Mount is initialized %s %s %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
+    LOGF_DEBUG("Mount is initialized,  loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 
     return true;
 }
@@ -1497,7 +1499,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
     timeUpdated = true;
 
-    LOGF_INFO("Time updated. %s %s %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
+    LOGF_INFO("Time updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
     if (locationUpdated && timeUpdated && !mountInitialized)
         initMount();
 
@@ -1527,7 +1529,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
     LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     locationUpdated = true;
-    LOGF_INFO("Location updated. %s %s %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
+    LOGF_INFO("Location updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 
     if (locationUpdated && timeUpdated && !mountInitialized) { 
         initMount();
@@ -1557,6 +1559,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	LOG_DEBUG("Reading longitude failed");
 	return false;
       }
+      // DEBUG, can go away
       if (LocationNP.s != IPS_OK) {
 	LOG_ERROR("no geo location data available");
       }
@@ -1622,8 +1625,8 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
       // bisection
       double utc_off = (ll+ul)/2.0;
 #define UL 100
-#define DIFF_UTC .00001
-#define DIFF_SID .0003 // 1./3600., ToDo AP sid has .1 sec
+#define DIFF_UTC .000001 // already set
+#define DIFF_SID .0003 // 1./3600., ToDo AP sid has .1 sec: .00003
       cnt = UL;
       LOGF_DEBUG("initial values cnt (%d), UTC offset (%f), lower: (%f), upper: (%f)",
 		 cnt, utc_off, ll, ul);
@@ -1931,7 +1934,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
     HourangleCoordsN[1].value = equatorialPos.dec;
-    IDSetNumber(&HourangleCoordsNP, nullptr);
+    IDSetNumber(&HourangleCoordsNP, "setting HA before snc");
 
     Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
 
@@ -1964,10 +1967,6 @@ bool LX200AstroPhysicsExperimental::UnPark()
 	  LOG_ERROR("UnParking Failed.");
 	  return false;
 	}
-      LOG_ERROR("sleeping 900 micros after unpark");
-      // sleep for 100 mseconds
-      const struct timespec timeout = {0, 900000000L};
-      nanosleep(&timeout, nullptr);
 
       SetParked(false);
       // Stop :Q#
