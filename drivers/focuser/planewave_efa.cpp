@@ -118,7 +118,7 @@ bool EFA::initProperties()
     // Fan Control Parameters
     IUFillNumber(&FanControlN[FAN_MAX_ABSOLUTE], "FAN_MAX_ABSOLUTE", "Max Primary (c)", "%.2f", 0, 50., 5., 25.);
     IUFillNumber(&FanControlN[FAN_MAX_RELATIVE], "FAN_MAX_RELATIVE", "Max Relative (c)", "%.2f", 0., 30., 1., 2.5);
-    IUFillNumber(&FanControlN[FAN_DEADZONE], "FAN_DEADZONE", "Deadzone (c)", "%.2f", 0.5, 10, 0.5, 0.5);
+    IUFillNumber(&FanControlN[FAN_DEADZONE], "FAN_DEADZONE", "Deadzone (c)", "%.2f", 0.1, 10, 0.5, 0.5);
     IUFillNumberVector(&FanControlNP, FanControlN, 3, getDeviceName(), "FOCUS_FAN_PARAMS", "Control Params",
                        FAN_TAB, IP_RW, 0, IPS_IDLE);
 
@@ -273,7 +273,7 @@ bool EFA::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             if (setFanEnabled(enabled))
             {
                 IUUpdateSwitch(&FanStateSP, states, names, n);
-                FanStateSP.s = IPS_OK;
+                FanStateSP.s = enabled ? IPS_OK : IPS_IDLE;
             }
             else
             {
@@ -463,6 +463,7 @@ void EFA::TimerHit()
                 setFanEnabled(false);
                 FanStateS[FAN_ON].s = ISS_OFF;
                 FanStateS[FAN_OFF].s = ISS_ON;
+                FanStateSP.s = IPS_IDLE;
                 IDSetSwitch(&FanStateSP, nullptr);
             }
             else if (!isFanOn && turnOn)
@@ -470,6 +471,7 @@ void EFA::TimerHit()
                 setFanEnabled(true);
                 FanStateS[FAN_ON].s = ISS_ON;
                 FanStateS[FAN_OFF].s = ISS_OFF;
+                FanStateSP.s = IPS_OK;
                 IDSetSwitch(&FanStateSP, nullptr);
             }
         }
