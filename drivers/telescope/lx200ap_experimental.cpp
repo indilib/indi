@@ -372,15 +372,22 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
     double sid_ap_ori =  sid_loc + sim_offset - utc_off;
     sid_ap =  fmod(sid_ap_ori, 24.);
     //LOGF_WARN("sid_ap_ori: %f, sid_ap: %f, sid_loc: %f, sim_offset: %f, utc_off: %f", sid_ap_ori, sid_ap, sid_loc, sim_offset, utc_off);
+    LOGF_ERROR("sid_ap: %12.8lf", sid_ap);
     return sid_loc - sid_ap;
   }
-  
+  const struct timespec timeout = {0, 250000000L};
+  // wait 250ms
+  LOG_WARN("sleeping .25 sec");
+  nanosleep(&timeout, nullptr);
+
 #define ERROR -26.3167245901
   if( setAPUTCOffset(PortFD, utc_off) < 0) {
     LOG_ERROR("Error setting UTC Offset, while finding correct SID.");
     return ERROR;
   }
 
+  LOG_WARN("sleeping .25 sec");
+  nanosleep(&timeout, nullptr);
   sid_ap = ERROR;
   if (getSDTime(PortFD, &sid_ap) < 0) {
     LOG_ERROR("Reading sidereal time failed, while finding correct SID.");
