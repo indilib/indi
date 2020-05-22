@@ -238,6 +238,11 @@ char ACK(int fd)
 
 int getCommandSexa(int fd, double *value, const char *cmd)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing telescope connection using ACK...");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
@@ -275,6 +280,11 @@ int getCommandSexa(int fd, double *value, const char *cmd)
 
 int getCommandInt(int fd, int *value, const char *cmd)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry getCommandInt");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     char read_buffer[RB_MAX_LEN]={0};
     float temp_number;
     int error_type;
@@ -318,6 +328,11 @@ int getCommandInt(int fd, int *value, const char *cmd)
 
 int getCommandString(int fd, char *data, const char *cmd)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry getCommandString");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     char *term;
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
@@ -536,6 +551,11 @@ int getSiteName(int fd, char *siteName, int siteNum)
 
 int getSiteLatitude(int fd, int *dd, int *mm)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry getSiteLatitude");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
@@ -575,6 +595,11 @@ int getSiteLatitude(int fd, int *dd, int *mm)
 
 int getSiteLongitude(int fd, int *ddd, int *mm)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry getSiteLongitude");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
@@ -764,6 +789,11 @@ int setStandardProcedure(int fd, const char *data)
 
 int setCommandInt(int fd, int data, const char *cmd)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry setCommandInt");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
     int nbytes_write = 0;
@@ -833,6 +863,11 @@ int setMaxSlewRate(int fd, int slewRate)
 
 int setObjectRA(int fd, double ra)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry setObjectRA");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
     int h, m, s;
@@ -868,6 +903,11 @@ int setObjectRA(int fd, double ra)
 
 int setObjectDEC(int fd, double dec)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry setObjectDEC");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
 /* Add mutex */
@@ -913,6 +953,11 @@ int setObjectDEC(int fd, double dec)
 
 int setCommandXYZ(int fd, int x, int y, int z, const char *cmd)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry setCommandXYZ");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     char read_buffer[RB_MAX_LEN]={0};
 
     snprintf(read_buffer, sizeof(read_buffer), "%s %02d:%02d:%02d#", cmd, x, y, z);
@@ -956,6 +1001,11 @@ int setAlignmentMode(int fd, unsigned int alignMode)
 
 int setCalenderDate(int fd, int dd, int mm, int yy)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry setCalenderDate");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     const struct timespec timeout = {0, 10000000L};
     char read_buffer[RB_MAX_LEN];
@@ -1005,6 +1055,11 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
 
 int setUTCOffset(int fd, double hours)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry setUTCOffset");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
 
@@ -1019,6 +1074,11 @@ int setUTCOffset(int fd, double hours)
 // Meade defines longitude as 0 to 360 WESTWARD
 int setSiteLongitude(int fd, double Long)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry setSiteLongitude");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
     char read_buffer[RB_MAX_LEN]={0};
@@ -1035,6 +1095,11 @@ int setSiteLongitude(int fd, double Long)
 
 int setSiteLatitude(int fd, double Lat)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
     char read_buffer[RB_MAX_LEN]={0};
@@ -1112,6 +1177,11 @@ int setSiteName(int fd, char *siteName, int siteNum)
 
 int setSlewMode(int fd, int slewMode)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
@@ -1375,6 +1445,11 @@ int SendPulseCmd(int fd, int direction, int duration_msec)
 
 int HaltMovement(int fd, int direction)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
@@ -1419,6 +1494,11 @@ int HaltMovement(int fd, int direction)
 
 int abortSlew(int fd)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
@@ -1436,6 +1516,11 @@ int abortSlew(int fd)
 
 int Sync(int fd, char *matchedObject)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     const struct timespec timeout = {0, 10000000L};
     int error_type;
@@ -1652,6 +1737,11 @@ int checkLX200Format(int fd)
 
 int selectTrackingMode(int fd, int trackMode)
 {
+  DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry");
+  for(int tms = 0; tms < 11; tms++) {
+    const struct timespec timeout = {0, 250000000L};
+    nanosleep(&timeout, nullptr);
+  }
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
