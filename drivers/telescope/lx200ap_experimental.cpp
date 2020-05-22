@@ -456,8 +456,9 @@ bool LX200AstroPhysicsExperimental::initMount()
     // Astrophysics mount is always unparked on startup
     // In this driver, unpark only sets the tracking ON.
     // APParkMount() is NOT called as this function, despite its name, is only used for initialization purposes.
+#ifdef no
     UnPark();
-
+#endif
     // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
     // lx200ap is different - some of the MoveTo speeds are not VALID
     // Slew speeds so we have to keep two lists.
