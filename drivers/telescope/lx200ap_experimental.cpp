@@ -237,7 +237,6 @@ bool LX200AstroPhysicsExperimental::updateProperties()
           LOGF_DEBUG("park position = %d from config file", parkPos);
 	}
 #endif
-#ifdef no
         // setup location
         double longitude = -1000, latitude = -1000;
         // Get value from config file if it exists.
@@ -259,6 +258,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	      return false;
 	    }
 	  }
+#ifdef no
 	// 2020-03, wildi, initial values are not suitable
 	// meant to be park 3
         // initialize park position
@@ -1472,14 +1472,12 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
         }
 
         bool syncOK = true;
-#ifdef no
+
         switch (syncType)
         {
             case USE_REGULAR_SYNC:
-#endif
                 if (::Sync(PortFD, syncString) < 0)
                     syncOK = false;
-#ifdef no
                 break;
 
             case USE_CMR_SYNC:
@@ -1490,7 +1488,6 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
             default:
                 break;
         }
-#endif
 
         if (!syncOK)
         {
@@ -1504,9 +1501,7 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-#ifdef no
     LOGF_DEBUG("%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
-#endif
     LOG_INFO("Synchronization successful.");
 
     EqNP.s     = IPS_OK;
@@ -1564,11 +1559,9 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     timeUpdated = true;
 
     LOGF_INFO("Time updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
-    LOG_ERROR("Time updated: NOT INIT mount here");
-#ifdef no
     if (locationUpdated && timeUpdated && !mountInitialized)
         initMount();
-#endif
+
     return true;
 }
 
@@ -1601,30 +1594,26 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
     LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     locationUpdated = true;
-    LOGF_ERROR("Location updated 1, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
+    LOGF_INFO("Location updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 
     if (locationUpdated && timeUpdated && !mountInitialized) { 
-      if (!initMount()){
-	LOG_ERROR("Location update 1a, error in initMount RETURNING");
-	return false;
-      }
+        initMount();
     }
-    LOGF_ERROR(">>>>>>>>>>>>>>Location updated 2, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 
-    //if (locationUpdated && timeUpdated && mountInitialized) {
-    if (!(locationUpdated && timeUpdated && mountInitialized)) {
-      
-      LOGF_ERROR(">>>>>>>>>>>>>NOT TRUE Location updated 3, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
-    LOG_ERROR("NOT TRUE Location updated 3, RETURNING");
-    return false;
-    } else {
-      LOGF_ERROR(">>>>>>>>>>>>>>>>Location updated 4, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
+    if (locationUpdated && timeUpdated && mountInitialized) {
+
       // back port :-)
       double ap_sid;
       if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
 	LOGF_ERROR("Reading sidereal time failed %d", -1);
       }
       
+      if(isSimulation())
+	{
+	  double lng = LocationN[LOCATION_LONGITUDE].value;
+	  ap_sid = get_local_sidereal_time(lng) - AP_UTC_OFFSET - UTCOffsetN[0].value;
+	  LOGF_DEBUG("Longitude (%f), AP local sidereal time (%f)", lng, ap_sid);
+	}
       
       LOG_INFO("Trying to find correct UTC offset, see field UTC offset and check if AP sidereal time is the correct LST");
       LOG_WARN("sleeping 2.5 sec 1 before doing utc offset");
@@ -1649,9 +1638,8 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
       if (LocationNP.s != IPS_OK) {
 	LOG_ERROR("no geo location data available");
       }
-      double lng_ap ;
-      lng_ap = 360. - ((double) ddd + (double) mm /60.);
-#ifdef no
+      double lng ;
+      lng = 360. - ((double) ddd + (double) mm /60.);
       if(isSimulation()) {
 	lng = LocationN[LOCATION_LONGITUDE].value;
       } else {
@@ -1662,15 +1650,6 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	  LOGF_ERROR("difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f", LocationN[LOCATION_LONGITUDE].value, lng - LocationN[LOCATION_LONGITUDE].value);
 	  LOGF_ERROR("FYI: difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f, using mount's lng: %f", LocationN[LOCATION_LONGITUDE].value, ddd - LocationN[LOCATION_LONGITUDE].value, lng);
 	}
-      }
-#endif
-      double lng;
-      if(isSimulation()) {
-	lng = LocationN[LOCATION_LONGITUDE].value;
-      } else {
-	lng = longitude;
-	LOGF_ERROR("not an error LocationN[LOCATION_LONGITUDE].value: %f", LocationN[LOCATION_LONGITUDE].value);
-	LOGF_ERROR("not an error longitude: %f", longitude);
       }
       LOG_WARN("sleeping 2.5 sec 2 after geo info");
       for(int tms = 0; tms < 11; tms++) {
@@ -2068,7 +2047,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
     HourangleCoordsN[1].value = equatorialPos.dec;
-    IDSetNumber(&HourangleCoordsNP, "setting HA before sync");
+    IDSetNumber(&HourangleCoordsNP, "setting HA before snc");
 
     Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
 
