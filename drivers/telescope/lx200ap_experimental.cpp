@@ -2094,6 +2094,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
 	    return false;
 	  }
       }
+#endif
     if(!isSimulation()) {
       if (APUnParkMount(PortFD) < 0)
 	{
@@ -2116,7 +2117,6 @@ bool LX200AstroPhysicsExperimental::UnPark()
       SetTrackEnabled(false);
       TrackState = SCOPE_IDLE;
     }
-#endif
     // 2020-05-17, wildi, ToDo, Brsb.'s  Mike must confirm this
     AbortSP.s = IPS_OK;
     EqNP.s    = IPS_IDLE;
