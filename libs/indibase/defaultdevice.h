@@ -178,9 +178,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
 
         /**
          * \brief Set connection switch status in the client.
-         * \param status If true, the driver will attempt to connect to the device (CONNECT=ON).
-         * If false, it will attempt to disconnect the device.
-         * \param status True to set CONNECT on, false to set DISCONNECT on.
+         * \param status True to toggle CONNECT on, false to toggle DISCONNECT on.
          * \param state State of CONNECTION properti, by default IPS_OK.
          * \param msg A message to be sent along with connect/disconnect command, by default nullptr.
          */
