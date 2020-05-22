@@ -35,7 +35,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <termios.h>
-
+#include <math.h>
 
 // maximum guide pulse request to send to controller
 #define MAX_LX200AP_PULSE_LEN 999
@@ -216,12 +216,18 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineNumber(&SiderealTimeNP);
         defineNumber(&HourangleCoordsNP);
 
+#ifdef no
+	// 2020-05-22, wildi, it is too early
+	// all the values will be overridden later
+	// move this block just before UnPark.
+	// May be IsMountInitialized(&mountInitialized) worked
+	// but now not really
+	
         // load in config value for park to and initialize park position
         //loadConfig(true, ParkToSP.name);
         loadConfig(false, ParkToSP.name);
         ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
         LOGF_DEBUG("park position = %d", parkPos);
-#ifdef no
 	ParkPosition parkPos = PARK_LAST;
 	int index = -1;
 	IUGetConfigOnSwitch(&ParkToSP, &index);
@@ -230,7 +236,6 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	  parkPos = static_cast<ParkPosition>(index);
           LOGF_DEBUG("park position = %d from config file", parkPos);
 	}
-#endif
         // setup location
         double longitude = -1000, latitude = -1000;
         // Get value from config file if it exists.
@@ -252,7 +257,6 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	      return false;
 	    }
 	  }
-#ifdef no
 	// 2020-03, wildi, initial values are not suitable
 	// meant to be park 3
         // initialize park position
@@ -270,7 +274,6 @@ bool LX200AstroPhysicsExperimental::updateProperties()
             SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
             SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
-#endif
 
         // override with predefined position if selected
         if (parkPos != PARK_CUSTOM)
@@ -288,6 +291,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
                 LOGF_ERROR("Unable to set predefined park position %d!!", parkPos);
             }
         }
+#endif
     }
     else
     {
@@ -369,10 +373,10 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
   double sid_ap;
   if (isSimulation()) {
 
-    double sid_ap_ori =  sid_loc + sim_offset - utc_off;
+    double sid_ap_ori =  sid_loc - (sim_offset - utc_off) * (86400./86164.);
     sid_ap =  fmod(sid_ap_ori, 24.);
     //LOGF_WARN("sid_ap_ori: %f, sid_ap: %f, sid_loc: %f, sim_offset: %f, utc_off: %f", sid_ap_ori, sid_ap, sid_loc, sim_offset, utc_off);
-    LOGF_ERROR("sid_ap: %12.8lf", sid_ap);
+    //LOGF_ERROR("sid_ap: %12.8lf", sid_ap);
     return sid_loc - sid_ap;
   }
   const struct timespec timeout = {0, 250000000L};
@@ -393,8 +397,6 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
     LOG_ERROR("Reading sidereal time failed, while finding correct SID.");
     return ERROR;
   }
-  //19.184389
-  LOGF_ERROR("sid_ap: %12.8lf", sid_ap);
   return sid_loc - sid_ap;
 }
 
@@ -415,11 +417,12 @@ bool LX200AstroPhysicsExperimental::initMount()
         return false;
     }
 
+#ifdef no
+    // 2020-03-17, wildi, unpark after the mount is initialized
+    // and more importantly, do not do it twice
     if (!mountInitialized)
     {
         LOG_DEBUG("Mount is not yet initialized. Initializing it...");
-#ifdef no
-	// 2020-03-17, wildi, unpark after the mount is initialized
         if (!isSimulation())
         {
             // This is how to init the mount in case RA/DE are missing.
@@ -433,18 +436,19 @@ bool LX200AstroPhysicsExperimental::initMount()
             // Stop :Q#
             abortSlew(PortFD);
         }
-#endif
     }
+#endif
 
     
     mountInitialized = true;
 
     LOG_DEBUG("Mount is initialized.");
 
+#ifdef no
     // Astrophysics mount is always unparked on startup
     // In this driver, unpark only sets the tracking ON.
     // APParkMount() is NOT called as this function, despite its name, is only used for initialization purposes.
-#ifdef no
+    // 2020-05-22, wildi, that might be too early
     UnPark();
 #endif
     // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
@@ -505,7 +509,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 	IDSetNumber(&UTCOffsetNP, nullptr);
 	
 	SiderealTimeNP.s  = IPS_BUSY;
-	IDSetNumber(&SiderealTimeNP, nullptr);
+	IDSetNumber(&SiderealTimeNP, "ISNewNumber: IDSetNumber: SiderealTimeNP IPS_BUSY");
 	
 	double val;
 	if (!isSimulation() && getSDTime(PortFD, &val) < 0) {
@@ -519,14 +523,14 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 	}
 	SiderealTimeNP.np[0].value = val;
 	SiderealTimeNP.s = IPS_OK;
-	IDSetNumber(&SiderealTimeNP, nullptr);
+	IDSetNumber(&SiderealTimeNP, "ISNewNumber: IDSetNumber: SiderealTimeNP value");
 	
         return true;
     }
     if (!strcmp(name, HourangleCoordsNP.name))
     {
 	HourangleCoordsNP.s = IPS_BUSY;
-	IDSetNumber(&HourangleCoordsNP, nullptr);
+	IDSetNumber(&HourangleCoordsNP, "ISNewNumber: IDSetNumber: HourangleCoordsNP IPS_BUSY");
 	
         if (IUUpdateNumber(&HourangleCoordsNP, values, names, n) < 0)
             return false;
@@ -557,7 +561,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 	  HourangleCoordsNP.s = IPS_ALERT;
 	}
 	HourangleCoordsNP.s = IPS_IDLE;
-	IDSetNumber(&HourangleCoordsNP, nullptr);
+	IDSetNumber(&HourangleCoordsNP,  "ISNewNumber: IDSetNumber: HourangleCoordsNP values");
         return true;
     }
         if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
@@ -770,7 +774,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         HourangleCoordsN[0].value = get_local_hour_angle(lst, currentRA);
         HourangleCoordsN[1].value = currentDEC;
         HourangleCoordsNP.s = IPS_OK;
-        IDSetNumber(&HourangleCoordsNP, nullptr);
+        IDSetNumber(&HourangleCoordsNP, "ReadScopeStatus: IDSetNumber: HourangleCoordsNP" );
     }
     double val;
     if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0)) {
@@ -782,7 +786,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     }
     SiderealTimeNP.np[0].value = val;
     SiderealTimeNP.s           = IPS_IDLE;
-    IDSetNumber(&SiderealTimeNP, nullptr);
+    IDSetNumber(&SiderealTimeNP, "ReadScopeStatus: IDSetNumber: SiderealTimeNP: IPS_IDLE");
     
     if (isSimulation()) {
         mountSim();
@@ -1508,9 +1512,11 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     timeUpdated = true;
 
     LOGF_INFO("Time updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
+#ifdef no
+    // 2020-05-22, wildi, do it once and at last 
     if (locationUpdated && timeUpdated && !mountInitialized)
         initMount();
-
+#endif
     return true;
 }
 
@@ -1540,11 +1546,17 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
     LOGF_INFO("Location updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 
     if (locationUpdated && timeUpdated && !mountInitialized) { 
-        initMount();
+      if (!initMount()) {
+	return false;
+      }
     }
 
-    if (locationUpdated && timeUpdated && mountInitialized) {
-
+    //if (locationUpdated && timeUpdated && mountInitialized) {
+    if (!(locationUpdated && timeUpdated && mountInitialized)) {
+      LOGF_WARN("Location updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
+      LOG_WARN("Location updated: something wrong with init, returnig");
+      return false;
+    } else {
       // back port :-)
       double ap_sid;
       if ((!isSimulation()) && (getSDTime(PortFD, &ap_sid) < 0)) {
@@ -1567,27 +1579,80 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	LOG_DEBUG("Reading longitude failed");
 	return false;
       }
-      // DEBUG, can go away
-      if (LocationNP.s != IPS_OK) {
-	LOG_ERROR("no geo location data available");
-      }
       double lng ;
       lng = 360. - ((double) ddd + (double) mm /60.);
       if(isSimulation()) {
-	lng = LocationN[LOCATION_LONGITUDE].value;
+	lng = longitude;
       } else {
-	if(fabs(lng - LocationN[LOCATION_LONGITUDE].value) <= 1.){
-	  LOGF_ERROR("not an error diff better than 1 degree: LocationN[LOCATION_LONGITUDE].value: %f", LocationN[LOCATION_LONGITUDE].value);
-	  lng = LocationN[LOCATION_LONGITUDE].value;
+	if(fabs(lng - longitude) <= 1.){
+	  LOGF_ERROR("not an error diff better than 1 degree: longitude: %f", LocationN[LOCATION_LONGITUDE].value);
+	  lng = longitude;
 	} else {
 	  LOGF_ERROR("difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f", LocationN[LOCATION_LONGITUDE].value, lng - LocationN[LOCATION_LONGITUDE].value);
 	  LOGF_ERROR("FYI: difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f, using mount's lng: %f", LocationN[LOCATION_LONGITUDE].value, ddd - LocationN[LOCATION_LONGITUDE].value, lng);
 	}
       }
+
       double last_diff = NAN;
+      double last_utc_offset = NAN;                                  
       double utc_offset = NAN;                                  
       double utc_offset_sid_24 = NAN;
-      int cnt = 0;
+      
+      double utcs[25];
+      double diffs[25];
+      double ap_utc_offset = 0.;
+      if(isSimulation()){
+	ap_utc_offset = AP_UTC_OFFSET;
+      }
+      for( int iutc = 0; iutc < 25; iutc++) {
+	double sid = get_local_sidereal_time(lng); 
+	double diff = setUTCgetSID(float(iutc), ap_utc_offset, sid);
+	double sid_day = 0.;
+	if (!isnan(utc_offset_sid_24)) { 
+	  sid_day = -24.;
+	}
+	if (!isnan(last_utc_offset)){ 
+	  utcs[iutc-1] = last_utc_offset;
+	  diffs[iutc -1] = last_diff + sid_day + 24.;
+	}
+	
+	if (isnan(last_diff)){ 
+	  last_diff = diff;
+	}
+	LOGF_DEBUG("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f", (double)iutc, sid, diff, last_diff);
+      
+	//if((utc_offset != utc_offset) && ((last_diff * diff)<0)) {
+	if((last_diff * diff)<0) {
+	  if( fabs(diff - last_diff) > 1.5) { // 
+	    LOGF_DEBUG("sign change at sid 24 hours, local sid (%f), UTC offset (%f), diff: (%f)", sid, (double)iutc, diff -last_diff) ;
+	    utc_offset_sid_24 = (double)iutc;
+	  } else if (isnan(utc_offset)){          
+	    LOGF_DEBUG("sign change, local sid (%f), UTC offset (%f)", sid, (double)iutc);
+	    utc_offset = (double)iutc;              
+	  }
+	}
+	last_diff = diff;
+	last_utc_offset = float(iutc);
+      }
+      // least square fit
+      double xsum=0.;
+      double x2sum=0.;                                  
+      double ysum=0.;                                         
+      double xysum=0.;
+      int n = 25 - 1;
+      for (int i=0;i < 25; i++)
+	{
+	  xsum=xsum+diffs[i];
+	  ysum=ysum+utcs[i];
+	  x2sum=x2sum+pow(diffs[i],2);
+	  xysum=xysum+diffs[i]*utcs[i];
+	}
+      double slope = (n*xysum-xsum*ysum)/(n*x2sum-xsum*xsum);
+      double intersection = (x2sum*ysum-xsum*xysum)/(x2sum*n-xsum*xsum);
+
+      LOGF_WARN("slope: %f, intersection: % f", slope, intersection);
+      
+#ifdef no      
       for( int iutc = 0; iutc < 25; iutc++) {
 	double sid = get_local_sidereal_time(lng); 
 	double diff = setUTCgetSID(float(iutc), AP_UTC_OFFSET, sid); 
@@ -1609,6 +1674,14 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	}
 	last_diff = diff;               
       }
+#endif
+
+
+
+
+
+
+      
 #ifdef no
       if (utc_offset != utc_offset) {
 	utc_offset = 23.002;
@@ -1635,6 +1708,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 #define UL 100
 #define DIFF_UTC .000001 // already set
 #define DIFF_SID .0003 // 1./3600., ToDo AP sid has .1 sec: .00003
+      int cnt = 0;
       cnt = UL;
       LOGF_DEBUG("initial values cnt (%d), UTC offset (%f), lower: (%f), upper: (%f)",
 		 cnt, utc_off, ll, ul);
@@ -1713,9 +1787,12 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
       HourangleCoordsNP.s = IPS_OK;
       HourangleCoordsN[0].value = ha;
       HourangleCoordsN[1].value = EqN[AXIS_DE].value;
-      IDSetNumber(&HourangleCoordsNP, nullptr);
+      IDSetNumber(&HourangleCoordsNP, "updateLocation: IDSetNumber: HourangleCoordsNP");
     }
-
+    // 2020-05-22, wildi, now everything is ready
+    if (!UnPark()){
+      return false;
+    }
     return true;
 }
 
@@ -1780,7 +1857,7 @@ bool LX200AstroPhysicsExperimental::Park()
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
     HourangleCoordsN[1].value = equatorialPos.dec;
-    IDSetNumber(&HourangleCoordsNP, nullptr);
+    IDSetNumber(&HourangleCoordsNP, "Park: IDSetNumber: HourangleCoordsNP values");
     
     if (isSimulation())
     {
@@ -1892,8 +1969,6 @@ bool LX200AstroPhysicsExperimental::UnPark()
     {
         LOG_INFO("Unparking from last parked position...");
     }
-   
-    
     double unparkAlt, unparkAz;
 
     if (!calcParkPosition(unparkPos, &unparkAlt, &unparkAz))
@@ -1942,14 +2017,14 @@ bool LX200AstroPhysicsExperimental::UnPark()
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
     HourangleCoordsN[1].value = equatorialPos.dec;
-    IDSetNumber(&HourangleCoordsNP, "setting HA before snc");
+    IDSetNumber(&HourangleCoordsNP, "UnPark: IDSetNumber: HourangleCoordsNP before sync");
 
     Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
 
 #ifdef no
     if (isSimulation())
       {
-	// doe not sync being in simulation
+	// does not sync being in simulation
 	Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
       }
     else
@@ -1979,7 +2054,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
       SetParked(false);
       // Stop :Q#
       if ( abortSlew(PortFD) < 0) {
-	LOG_ERROR("Abort motion Failed");
+	LOG_WARN("Abort motion Failed");
 	return false;
       }
       // NO: Enable tracking
@@ -2006,8 +2081,8 @@ bool LX200AstroPhysicsExperimental::UnPark()
 	IDSetSwitch(&MovementNSSP, nullptr);
 	IDSetSwitch(&MovementWESP, nullptr);
       }
-
-
+    LOG_WARN("Mount unparked successfully");
+    // 2020-05.22, wildi, ToDo load config here and set the values
     return true;
 }
 
