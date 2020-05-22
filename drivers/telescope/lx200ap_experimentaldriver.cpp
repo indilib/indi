@@ -57,11 +57,6 @@ void set_lx200ap_exp_name(const char *deviceName, unsigned int debug_level)
 // make this a function with logging instead of a #define like in legacy driver
 int APParkMount(int fd)
 {
-  DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry APParkMount");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int error_type;
     int nbytes_write = 0;
 
@@ -77,12 +72,6 @@ int APParkMount(int fd)
 // make this a function with logging instead of a #define like in legacy driver
 int APUnParkMount(int fd)
 {
-
-  DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry APUnParkMount");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int error_type;
     int nbytes_write = 0;
 
@@ -102,11 +91,6 @@ int APUnParkMount(int fd)
 // to GUIDE and then starting and halting a move of the correct duration.
 int selectAPCenterRate(int fd, int centerRate)
 {
-  DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry selectAPCenterRate");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int error_type;
     int nbytes_write = 0;
 
@@ -168,11 +152,6 @@ int selectAPCenterRate(int fd, int centerRate)
 
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
 {
-  DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "sleeping 2.5 sec 1 entry check_lx200ap_status");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     char temp_string[64];
     int error_type;
     int nbytes_write = 0;

@@ -52,11 +52,6 @@ void set_lx200ap_name(const char *deviceName, unsigned int debug_level)
 
 int check_lx200ap_connection(int fd)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry check_lx200ap_connection");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     const struct timespec timeout = {0, 50000000L};
     int i = 0;
     char temp_string[64];
@@ -102,11 +97,6 @@ int check_lx200ap_connection(int fd)
 }
 int getAPUTCOffset(int fd, double *value)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry getAPUTCOffset");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
@@ -234,11 +224,6 @@ int getAPUTCOffset(int fd, double *value)
 
 int setAPObjectAZ(int fd, double az)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry setAPObjectAZ");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int h, m, s;
     char temp_string[16];
 
@@ -255,11 +240,6 @@ int setAPObjectAZ(int fd, double az)
 
 int setAPObjectAlt(int fd, double alt)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry setAPObjectAlt");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int d, m, s;
     char temp_string[16];
 
@@ -281,11 +261,6 @@ int setAPObjectAlt(int fd, double alt)
 }
 int setAPUTCOffset(int fd, double hours)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry setAPUTCOffset");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int h, m, s;
 
     char temp_string[16];
@@ -300,11 +275,6 @@ int setAPUTCOffset(int fd, double hours)
 }
 int APSyncCM(int fd, char *matchedObject)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry APSyncCM");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     const struct timespec timeout = {0, 10000000L};
     int error_type;
     int nbytes_write = 0;
@@ -332,11 +302,6 @@ int APSyncCM(int fd, char *matchedObject)
 
 int APSyncCMR(int fd, char *matchedObject)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry APSyncCMR");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     const struct timespec timeout = {0, 10000000L};
     int error_type;
     int nbytes_write = 0;
@@ -365,11 +330,6 @@ int APSyncCMR(int fd, char *matchedObject)
 
 int selectAPPECState(int fd, int pecstate)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry selectAPPECState");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int error_type;
     int nbytes_write = 0;
 
@@ -405,11 +365,6 @@ int selectAPPECState(int fd, int pecstate)
 
 int selectAPMoveToRate(int fd, int moveToRate)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry selectAPMoveToRate");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int error_type;
     int nbytes_write = 0;
 
@@ -459,11 +414,6 @@ int selectAPMoveToRate(int fd, int moveToRate)
 
 int selectAPSlewRate(int fd, int slewRate)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry selectAPSlewRate");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int error_type;
     int nbytes_write = 0;
     switch (slewRate)
@@ -508,11 +458,6 @@ int selectAPSlewRate(int fd, int slewRate)
 
 int selectAPTrackingMode(int fd, int trackMode)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry selectAPTrackingMode");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int error_type;
     int nbytes_write = 0;
 
@@ -572,11 +517,6 @@ int selectAPTrackingMode(int fd, int trackMode)
 
 int selectAPGuideRate(int fd, int guideRate)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry selectAPGuideRate");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int error_type;
     int nbytes_write = 0;
     switch (guideRate)
@@ -621,11 +561,6 @@ int selectAPGuideRate(int fd, int guideRate)
 
 int swapAPButtons(int fd, int currentSwap)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry swapAPButtons");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int error_type;
     int nbytes_write = 0;
 
@@ -653,11 +588,6 @@ int swapAPButtons(int fd, int currentSwap)
 
 int setAPObjectRA(int fd, double ra)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry setAPObjectRA");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     /*ToDo AP accepts "#:Sr %02d:%02d:%02d.%1d#"*/
     int h, m, s;
     char temp_string[16];
@@ -673,11 +603,6 @@ int setAPObjectRA(int fd, double ra)
 
 int setAPObjectDEC(int fd, double dec)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry setAPObjectDEC");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int d, m, s;
     char temp_string[16];
 
@@ -699,11 +624,6 @@ int setAPObjectDEC(int fd, double dec)
 
 int setAPSiteLongitude(int fd, double Long)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry setAPSiteLongitude");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int d, m, s;
     char temp_string[32];
 
@@ -717,16 +637,6 @@ int setAPSiteLongitude(int fd, double Long)
 
 int setAPSiteLatitude(int fd, double Lat)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry setAPSiteLatitude");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry ");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     int d, m, s;
     char temp_string[32];
 
@@ -740,11 +650,6 @@ int setAPSiteLatitude(int fd, double Lat)
 
 int setAPRATrackRate(int fd, double rate)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry setAPRATrackRate");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     char cmd[16];
     char sign;
     int errcode = 0;
@@ -793,11 +698,6 @@ int setAPRATrackRate(int fd, double rate)
 
 int setAPDETrackRate(int fd, double rate)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry setAPDETrackRate");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     char cmd[16];
     char sign;
     int errcode = 0;
@@ -888,11 +788,6 @@ int APSendPulseCmd(int fd, int direction, int duration_msec)
 // experimental function!!!
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
 {
-  DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "sleeping 2.5 sec 1 entry check_lx200ap_status");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     char temp_string[64];
     int error_type;
     int nbytes_write = 0;
