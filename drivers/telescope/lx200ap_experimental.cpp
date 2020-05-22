@@ -1430,14 +1430,16 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
             IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
             return false;
         }
-
         bool syncOK = true;
 
+#ifdef no
         switch (syncType)
         {
             case USE_REGULAR_SYNC:
+#endif	      
                 if (::Sync(PortFD, syncString) < 0)
                     syncOK = false;
+#ifdef no
                 break;
 
             case USE_CMR_SYNC:
@@ -1448,6 +1450,7 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
             default:
                 break;
         }
+#endif	      
 
         if (!syncOK)
         {
