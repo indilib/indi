@@ -198,12 +198,6 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 
 bool LX200AstroPhysicsExperimental::updateProperties()
 {
-  LOG_WARN("sleeping 2.5 sec 1 entry updateProperties");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
-
     LX200Generic::updateProperties();
 
     defineSwitch(&UnparkFromSP);
@@ -406,12 +400,6 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
 
 bool LX200AstroPhysicsExperimental::initMount()
 {
-  LOG_WARN("sleeping 2.5 sec entry initMount");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
-
     // Make sure that the mount is setup according to the properties
     int err = 0;
 
@@ -538,8 +526,8 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
     if (!strcmp(name, HourangleCoordsNP.name))
     {
 	HourangleCoordsNP.s = IPS_BUSY;
-	IDSetNumber(&HourangleCoordsNP, "ISNewNumber: IDSetNumber: HourangleCoordsNP, IPS_BUSY");
-	// wildi update
+	IDSetNumber(&HourangleCoordsNP, nullptr);
+	
         if (IUUpdateNumber(&HourangleCoordsNP, values, names, n) < 0)
             return false;
   
@@ -569,13 +557,13 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 	  HourangleCoordsNP.s = IPS_ALERT;
 	}
 	HourangleCoordsNP.s = IPS_IDLE;
-	IDSetNumber(&HourangleCoordsNP, "ISNewNumber: IDSetNumber: HourangleCoordsNP, values");
+	IDSetNumber(&HourangleCoordsNP, nullptr);
         return true;
     }
-    if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
-      {
-	LOG_ERROR("PROCESSING GEOGRAPHIC_COORD");
-      }
+        if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
+        {
+	  LOG_ERROR("PROCESSING GEOGRAPHIC_COORD");
+        }
 
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
@@ -766,12 +754,7 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
 
 bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 {
-   LOG_WARN("sleeping 2.5 sec entry ReadScope");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
-   bool isParked ;
+    bool isParked ;
     getMountStatus(&isParked);
     double lng = LocationN[LOCATION_LONGITUDE].value;
     double sim_offset = 0;
@@ -783,11 +766,11 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     {
       // in case of simulation, the coordinates are set on parking
         HourangleCoordsNP.s = IPS_BUSY;
-        IDSetNumber(&HourangleCoordsNP, "ReadScopeStatus: IDSetNumber::HourangleCoordsNP, IPS_BUSY");
+        IDSetNumber(&HourangleCoordsNP, nullptr);
         HourangleCoordsN[0].value = get_local_hour_angle(lst, currentRA);
         HourangleCoordsN[1].value = currentDEC;
         HourangleCoordsNP.s = IPS_OK;
-        IDSetNumber(&HourangleCoordsNP, "ReadScopeStatus: IDSetNumber::HourangleCoordsNP, values");
+        IDSetNumber(&HourangleCoordsNP, nullptr);
     }
     double val;
     if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0)) {
@@ -939,11 +922,6 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 // experimental function needs testing!!!
 bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 {
-  LOG_WARN("sleeping 2.5 sec entry IsMountInitialized");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     double ra, dec;
     bool raZE, deZE, de90;
 
@@ -989,12 +967,6 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 // experimental function needs testing!!!
 bool LX200AstroPhysicsExperimental::IsMountParked(bool *isParked)
 {
-   LOG_WARN("sleeping 2.5 sec entry IsMountParked");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
-
     const struct timespec timeout = {0, 250000000L};
     double ra1, ra2;
 
@@ -1030,11 +1002,6 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isParked)
 
 bool LX200AstroPhysicsExperimental::getMountStatus(bool *isParked)
 {
-  LOG_WARN("sleeping 2.5 sec entry getMountStatus");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
     if (isSimulation())
     {
         *isParked = (ParkS[0].s == ISS_ON);
@@ -1134,12 +1101,6 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 
 bool LX200AstroPhysicsExperimental::updateAPSlewRate(int index)
 {
-  LOG_WARN("sleeping 2.5 sec 1 entry updateAPSlewRate");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
-
     //    if (IUFindOnSwitchIndex(&SlewRateSP) == index)
     //    {
     //        LOGF_DEBUG("updateAPSlewRate: slew rate %d already chosen so ignoring.", index);
@@ -1453,11 +1414,6 @@ bool LX200AstroPhysicsExperimental::Disconnect()
 
 bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 {
-  LOG_WARN("sleeping 2.5 sec entry Sync");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
   char syncString[256] = ""; // simulation needs UTF-8
 
     int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
@@ -1513,13 +1469,6 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 
 bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 {
-  LOG_WARN("sleeping 2.5 sec 1 entry updateTime");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
-
- 
    struct ln_zonedate ltm;
 
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
@@ -1567,12 +1516,6 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
 bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longitude, double elevation)
 {
-  LOG_WARN("sleeping 2.5 sec 1 entry updateLocation");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
-
     INDI_UNUSED(elevation);
 
     if (!isSimulation() && setAPSiteLongitude(PortFD, 360.0 - longitude) < 0)
@@ -1616,16 +1559,6 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	}
       
       LOG_INFO("Trying to find correct UTC offset, see field UTC offset and check if AP sidereal time is the correct LST");
-      LOG_WARN("sleeping 2.5 sec 1 before doing utc offset");
-      for(int tms = 0; tms < 11; tms++) {
-	const struct timespec timeout = {0, 250000000L};
-	nanosleep(&timeout, nullptr);
-      }
-      LOG_WARN("sleeping 2.5 sec 1 before doing utc offset");
-      for(int tms = 0; tms < 11; tms++) {
-	const struct timespec timeout = {0, 250000000L};
-	nanosleep(&timeout, nullptr);
-      }
       // 2020-04-25, wildi, In case of GTOCP2 and long = 7.5 the offset was 1.065
       // at lng 153 deg it was 13.94
       int ddd = 0;
@@ -1650,11 +1583,6 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	  LOGF_ERROR("difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f", LocationN[LOCATION_LONGITUDE].value, lng - LocationN[LOCATION_LONGITUDE].value);
 	  LOGF_ERROR("FYI: difference is greater than 1. degree: LocationN[LOCATION_LONGITUDE].value: %f, diff: %f, using mount's lng: %f", LocationN[LOCATION_LONGITUDE].value, ddd - LocationN[LOCATION_LONGITUDE].value, lng);
 	}
-      }
-      LOG_WARN("sleeping 2.5 sec 2 after geo info");
-      for(int tms = 0; tms < 11; tms++) {
-	const struct timespec timeout = {0, 250000000L};
-	nanosleep(&timeout, nullptr);
       }
       double last_diff = NAN;
       double utc_offset = NAN;                                  
@@ -1702,11 +1630,6 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	ul = utc_offset;
       }
 #endif
-      LOG_WARN("sleeping 2.5 sec 3 after sign change");
-      for(int tms = 0; tms < 11; tms++) {
-	const struct timespec timeout = {0, 250000000L};
-	nanosleep(&timeout, nullptr);
-      }
       // bisection
       double utc_off = (ll+ul)/2.0;
 #define UL 100
@@ -1749,11 +1672,6 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 		   UL - cnt, utc_off, ll, ul);
 	LOG_WARN("continue only if you understand the implications");
       }
-      LOG_WARN("sleeping 2.5 sec 4 after bisection");
-      for(int tms = 0; tms < 11; tms++) {
-	const struct timespec timeout = {0, 250000000L};
-	nanosleep(&timeout, nullptr);
-      }
       double dst_off = 0.;
       time_t lrt_is_dst=  time (NULL);
       tm ltm_is_dst;
@@ -1773,23 +1691,12 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
       if(!isSimulation()){
 	utc_off -= dst_off;
       }
-      LOG_WARN("sleeping 2.5 sec 5 before setting UTC offset");
-      for(int tms = 0; tms < 11; tms++) {
-	const struct timespec timeout = {0, 250000000L};
-	nanosleep(&timeout, nullptr);
-      }
       // yes, again
       if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_off)) < 0)
 	{
 	  LOG_ERROR("Error setting UTC Offset.");
 	  return false;
 	}
-      LOG_WARN("sleeping 2.5 sec 6 after setting UTC offset");
-      for(int tms = 0; tms < 11; tms++) {
-	const struct timespec timeout = {0, 250000000L};
-	nanosleep(&timeout, nullptr);
-      }
-
       // ToDo, 2020-05-03, do that only if fnd true
       LOGF_DEBUG("Set UTC Offset after bisection: %f (always positive for AP) is successful.", fabs(utc_off));
       UTCOffsetNP.np[0].value = utc_off;
@@ -1806,7 +1713,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
       HourangleCoordsNP.s = IPS_OK;
       HourangleCoordsN[0].value = ha;
       HourangleCoordsN[1].value = EqN[AXIS_DE].value;
-      IDSetNumber(&HourangleCoordsNP, "updateLocation: IDSetNumber: HourangleCoordsNP at the end");
+      IDSetNumber(&HourangleCoordsNP, nullptr);
     }
 
     return true;
@@ -1838,12 +1745,6 @@ bool LX200AstroPhysicsExperimental::SetSlewRate(int index)
 
 bool LX200AstroPhysicsExperimental::Park()
 {
-  LOG_WARN("sleeping 2.5 sec entry Park");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
-
     // 2020-04-05, wildi, Astro-Physics does not sell AltAz mounts
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
@@ -1879,7 +1780,7 @@ bool LX200AstroPhysicsExperimental::Park()
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
     HourangleCoordsN[1].value = equatorialPos.dec;
-    IDSetNumber(&HourangleCoordsNP, "Park: IDSetNumber: HourangleCoordsNP");
+    IDSetNumber(&HourangleCoordsNP, nullptr);
     
     if (isSimulation())
     {
@@ -1978,12 +1879,6 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
 
 bool LX200AstroPhysicsExperimental::UnPark()
 {
-  LOG_WARN("sleeping 2.5 sec entry UnPark");
-  for(int tms = 0; tms < 11; tms++) {
-    const struct timespec timeout = {0, 250000000L};
-    nanosleep(&timeout, nullptr);
-  }
-
     // The AP :PO# should only be used during initilization and not here as indicated by email from Preston on 2017-12-12
 
     // check the unpark from position and set mount as appropriate
