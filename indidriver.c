@@ -235,13 +235,8 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
     ISwitch *sp;
     char sn[MAXINDINAME];
 
-    if (svp == 0) {
-    	IDLog("IUUpdateSwitch svp is NULL\n");
-        assert(svp != 0);
-    	return -1;
-    } else {
-        IDLog("IUUpdateSwitch svp: %s\n", svp->name);
-    }
+    assert(svp != NULL && "IUUpdateSwitch SVP is NULL");
+
     /* store On switch name */
     if (svp->r == ISR_1OFMANY)
     {
@@ -295,8 +290,9 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
 int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], int n)
 {
     int i = 0;
-
     INumber *np;
+
+    assert(nvp != NULL && "IUUpdateNumber NVP is NULL");
 
     for (i = 0; i < n; i++)
     {
@@ -331,8 +327,9 @@ int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], i
 int IUUpdateText(ITextVectorProperty *tvp, char *texts[], char *names[], int n)
 {
     int i = 0;
-
     IText *tp;
+
+    assert(tvp != NULL && "IUUpdateText TVP is NULL");
 
     for (i = 0; i < n; i++)
     {
@@ -360,8 +357,9 @@ int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *b
                  int n)
 {
     int i = 0;
-
     IBLOB *bp;
+
+    assert(bvp != NULL && "IUUpdateBLOB BVP is NULL");
 
     for (i = 0; i < n; i++)
     {
