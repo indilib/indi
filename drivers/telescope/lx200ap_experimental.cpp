@@ -139,8 +139,8 @@ bool LX200AstroPhysicsExperimental::initProperties()
     // Unpark from?
     IUFillSwitch(&UnparkFromS[0], "Last", "Last Parked", ISS_OFF);
     IUFillSwitch(&UnparkFromS[1], "Park1", "Park1", ISS_OFF);
-    IUFillSwitch(&UnparkFromS[2], "Park2", "Park2", ISS_OFF);
-    IUFillSwitch(&UnparkFromS[3], "Park3", "Park3", ISS_ON);
+    IUFillSwitch(&UnparkFromS[2], "Park2", "Park2", ISS_ON);
+    IUFillSwitch(&UnparkFromS[3], "Park3", "Park3", ISS_OFF);
     IUFillSwitch(&UnparkFromS[4], "Park4", "Park4", ISS_OFF);
     IUFillSwitchVector(&UnparkFromSP, UnparkFromS, 5, getDeviceName(), "UNPARK_FROM", "Unpark From?", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -216,7 +216,6 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineNumber(&SiderealTimeNP);
         defineNumber(&HourangleCoordsNP);
 
-#ifdef no
 	// 2020-05-22, wildi, it is too early
 	// all the values will be overridden later
 	// move this block just before UnPark.
@@ -224,10 +223,11 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	// but now not really
 	
         // load in config value for park to and initialize park position
-        //loadConfig(true, ParkToSP.name);
-        loadConfig(false, ParkToSP.name);
+        loadConfig(true, ParkToSP.name);
         ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
         LOGF_DEBUG("park position = %d", parkPos);
+	// 2020-05-23, Jasem's code
+#ifdef no
 	ParkPosition parkPos = PARK_LAST;
 	int index = -1;
 	IUGetConfigOnSwitch(&ParkToSP, &index);
@@ -236,6 +236,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	  parkPos = static_cast<ParkPosition>(index);
           LOGF_DEBUG("park position = %d from config file", parkPos);
 	}
+#endif
         // setup location
         double longitude = -1000, latitude = -1000;
         // Get value from config file if it exists.
@@ -291,7 +292,6 @@ bool LX200AstroPhysicsExperimental::updateProperties()
                 LOGF_ERROR("Unable to set predefined park position %d!!", parkPos);
             }
         }
-#endif
     }
     else
     {
@@ -379,10 +379,6 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
     //LOGF_ERROR("sid_ap: %12.8lf", sid_ap);
     return sid_loc - sid_ap;
   }
-  const struct timespec timeout = {0, 250000000L};
-  // wait 250ms
-  LOG_WARN("sleeping .25 sec");
-  nanosleep(&timeout, nullptr);
 
 #define ERROR -26.3167245901
   if( setAPUTCOffset(PortFD, utc_off) < 0) {
@@ -390,8 +386,6 @@ double LX200AstroPhysicsExperimental::setUTCgetSID(double utc_off, double sim_of
     return ERROR;
   }
 
-  LOG_WARN("sleeping .25 sec");
-  nanosleep(&timeout, nullptr);
   sid_ap = ERROR;
   if (getSDTime(PortFD, &sid_ap) < 0) {
     LOG_ERROR("Reading sidereal time failed, while finding correct SID.");
@@ -418,7 +412,7 @@ bool LX200AstroPhysicsExperimental::initMount()
     }
 
 #ifdef no
-    // 2020-03-17, wildi, unpark after the mount is initialized
+    // 2020-03-17, wildi, AP unpark after the mount is initialized
     // and more importantly, do not do it twice
     if (!mountInitialized)
     {
@@ -774,7 +768,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         HourangleCoordsN[0].value = get_local_hour_angle(lst, currentRA);
         HourangleCoordsN[1].value = currentDEC;
         HourangleCoordsNP.s = IPS_OK;
-        IDSetNumber(&HourangleCoordsNP, "ReadScopeStatus: IDSetNumber: HourangleCoordsNP" );
+        IDSetNumber(&HourangleCoordsNP, nullptr );
     }
     double val;
     if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0)) {
@@ -786,7 +780,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     }
     SiderealTimeNP.np[0].value = val;
     SiderealTimeNP.s           = IPS_IDLE;
-    IDSetNumber(&SiderealTimeNP, "ReadScopeStatus: IDSetNumber: SiderealTimeNP: IPS_IDLE");
+    IDSetNumber(&SiderealTimeNP, nullptr);
     
     if (isSimulation()) {
         mountSim();
@@ -1433,6 +1427,10 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
         bool syncOK = true;
 
 #ifdef no
+	// 2020-05-23, wildi, for now CMR is disabled.
+	// To me AP description is not clear although
+	// I fully understand it. A contradiction? Yes,
+	// the same as in AP descirption.
         switch (syncType)
         {
             case USE_REGULAR_SYNC:
@@ -1525,6 +1523,13 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
 bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longitude, double elevation)
 {
+  // 2020-05-23, wildi, at least in simulation mode the geo information ist not set
+  // by now.
+    LocationN[LOCATION_LATITUDE].value = latitude;
+    LocationN[LOCATION_LONGITUDE].value = longitude;
+
+
+  
     INDI_UNUSED(elevation);
 
     if (!isSimulation() && setAPSiteLongitude(PortFD, 360.0 - longitude) < 0)
@@ -1553,6 +1558,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	return false;
       }
     }
+    LOGF_INFO("Location updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 
     //if (locationUpdated && timeUpdated && mountInitialized) {
     if (!(locationUpdated && timeUpdated && mountInitialized)) {
