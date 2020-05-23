@@ -41,6 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <assert.h>
 
 pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -236,7 +237,10 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
 
     if (svp == 0) {
     	IDLog("IUUpdateSwitch svp is NULL\n");
+        assert(svp != 0);
     	return -1;
+    } else {
+        IDLog("IUUpdateSwitch svp: %s\n", svp->name);
     }
     /* store On switch name */
     if (svp->r == ISR_1OFMANY)
