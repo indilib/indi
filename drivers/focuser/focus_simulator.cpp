@@ -130,6 +130,10 @@ bool FocusSim::initProperties()
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "arcseconds", "%4.2f", 0, 60, 0, 7.5);
     IUFillNumberVector(&FWHMNP, FWHMN, 1, getDeviceName(), "FWHM", "FWHM", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50., 70., 0., 0.);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
     IUFillSwitch(&ModeS[MODE_ALL], "All", "All", ISS_ON);
     IUFillSwitch(&ModeS[MODE_ABSOLUTE], "Absolute", "Absolute", ISS_OFF);
     IUFillSwitch(&ModeS[MODE_RELATIVE], "Relative", "Relative", ISS_OFF);
@@ -162,11 +166,13 @@ bool FocusSim::updateProperties()
     {
         defineNumber(&SeeingNP);
         defineNumber(&FWHMNP);
+        defineNumber(&TemperatureNP);
     }
     else
     {
         deleteProperty(SeeingNP.name);
         deleteProperty(FWHMNP.name);
+        deleteProperty(TemperatureNP.name);
     }
 
     return true;
@@ -233,6 +239,15 @@ bool FocusSim::ISNewNumber(const char *dev, const char *name, double values[], c
             IUUpdateNumber(&SeeingNP, values, names, n);
 
             IDSetNumber(&SeeingNP, nullptr);
+            return true;
+        }
+
+        if (strcmp(name, "FOCUS_TEMPERATURE") == 0)
+        {
+            TemperatureNP.s = IPS_OK;
+            IUUpdateNumber(&TemperatureNP, values, names, n);
+
+            IDSetNumber(&TemperatureNP, nullptr);
             return true;
         }
     }
