@@ -2122,7 +2122,25 @@ bool LX200AstroPhysicsExperimental::UnPark()
     char HaStr[16];
     fs_sexa(HaStr, ha , 2, 3600);
     LOGF_DEBUG("UnPark: Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s), RA_deg: %f", AzStr, AltStr, HaStr, RaStr, DecStr, equatorialPos.ra);
-    
+    if(!isSimulation()) {
+      int g_ddd = 0;
+      int g_fmm= 0;
+      if (getSiteLongitude(PortFD, &g_ddd, &g_fmm) < 0) {
+	LOG_DEBUG("Reading longitude failed :Gg %d");
+      }
+      int t_ddd = 0;
+      int t_fmm= 0;
+      if (getSiteLongitude(PortFD, &t_ddd, &t_fmm) < 0) {
+	LOG_DEBUG("Reading latitude failed :Gt %d");
+      }
+      double t_val ;
+      if (t_ddd > 0)
+          t_val = t_ddd + t_fmm / 60.0;
+      else
+          t_val = t_ddd - t_fmm / 60.0;
+      
+      LOGF_WARN("UnPark: read back longitude: %f, latitude", (360. - (g_ddd + g_fmm/60.)), t_val);
+    }
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
     HourangleCoordsN[1].value = equatorialPos.dec;
