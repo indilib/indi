@@ -805,6 +805,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     case 230400:
         bps = B230400;
         break;
+#ifndef __APPLE__
     case 460800:
         bps = B460800;
         break;
@@ -814,6 +815,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     case 921600:
         bps = B921600;
         break;
+#endif
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
             perror(NULL);

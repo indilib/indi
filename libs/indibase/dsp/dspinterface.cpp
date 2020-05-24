@@ -361,9 +361,9 @@ dsp_stream_p Interface::loadFITS(char* buffer, int len)
     long ndims;
     long bits_per_sample;
     int status;
-    __off_t offset;
-    __off_t head;
-    __off_t end;
+    off_t offset;
+    off_t head;
+    off_t end;
     fitsfile *fptr;
     void* buf;
     char error_status[MAXINDINAME];
