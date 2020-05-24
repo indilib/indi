@@ -1603,14 +1603,24 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 
     LOGF_INFO("updateLocation entry: LOCATION_LATITUDE: %f, LOCATION_LONGITUDE: %f", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
     
-    //if(locationUpdated && !mountParked) {
-    //
-    //}
+    if ((latitude == -1.) && (longitude == -1.)) {
+      LOG_DEBUG("updateLocation: latitude, longitude both -1.");
+
+      if (!(locationUpdated && timeUpdated && mountInitialized)) {
+	LOGF_WARN("Location updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
+	LOG_WARN("Location updated: not all information present, returning");
+	return false;
+      }
+      // 2020-05-22, wildi, now everything is ready
+      if (!UnPark()){
+	return false;
+      }
+      return true;
+    }
     if ((latitude == 0.) && (longitude == 0.)) {
       LOG_DEBUG("updateLocation: latitude, longitude both zero");
       return false;
     }
-
   
   // 2020-05-23, wildi, at least in simulation mode the geo information is not set
   // by now.
@@ -1643,6 +1653,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	return false;
       }
     }
+#ifdef no
     if (!(locationUpdated && timeUpdated && mountInitialized)) {
       LOGF_WARN("Location updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
       LOG_WARN("Location updated: not all information present, returning");
@@ -1652,6 +1663,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
     if (!UnPark()){
       return false;
     }
+#endif
     return true;
 }
 
