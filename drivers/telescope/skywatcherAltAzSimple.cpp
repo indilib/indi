@@ -670,11 +670,13 @@ bool SkywatcherAltAzSimple::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand comma
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS2, speed, true);
+            moving = true;
             break;
 
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS2);
+            moving = false;
             break;
     }
 
@@ -697,11 +699,13 @@ bool SkywatcherAltAzSimple::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand comma
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS1, speed, true);
+            moving = true;
             break;
 
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS1);
+            moving = false;
             break;
     }
 
@@ -1116,6 +1120,14 @@ void SkywatcherAltAzSimple::TimerHit()
                 ResetGuidePulses();
             }
 
+            if (moving) 
+			{
+                TrackedAltAz  = CurrentAltAz;
+                CurrentTrackingTarget.ra = EqN[AXIS_RA].value;
+                CurrentTrackingTarget.dec = EqN[AXIS_DE].value;
+            } 
+			else 
+			{
             // Restart the drift compensation after syncing
             if (ResetTrackingSeconds)
             {
@@ -1234,6 +1246,7 @@ void SkywatcherAltAzSimple::TimerHit()
 
             OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
             OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
+            }
             break;
         }
         break;
