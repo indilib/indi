@@ -153,10 +153,13 @@ class LX200AstroPhysicsExperimental : public LX200Generic
 
     //int GuideNSTID;
     //int GuideWETID;
-
-    bool motionCommanded=false;
+  
+    bool motionCommanded=false; // 2020-05-24, wildi, never reset
     bool mountInitialized=false;
-    bool mountParked=false;
-
+    // 2020-05-24, wildi, init phase as state between first call to
+    // updateProperties() until the mount is unparked.
+    bool mountParked=true; // 2020-05-24, wildi, is mount's status, ends init phase
+  bool values_from_config = false;
+  ParkPosition park_pos_from_config ;
     int rememberSlewRate = { -1 };
 };
