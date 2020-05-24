@@ -194,4 +194,6 @@ private:
     bool VerboseScopeStatus { false };
 
     std::vector<GuidingPulse> GuidingPulses;
+
+    bool moving { false };
 };
