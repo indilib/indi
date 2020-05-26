@@ -273,7 +273,8 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	    }
 	  else
 	    {
-	      LOG_WARN("updateProperties: no geographic coordinates available, can not calculate park positions, lat/lng both zero");
+	      LOG_WARN("updateProperties: no geographic coordinates available from config file, can not calculate park positions, lat/lng both zero");
+	      LOG_INFO("On Site management, choose your Park To? position, save your configuration and dis- and reconnect.");
 	      return false;
 	    }
 	  }
@@ -328,13 +329,31 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	// opinion, does does not meen much. I set it here to true, to
 	// by pass that.
 	mountInitialized = true;
-	locationUpdated = true;
+	// done in updateLocation: locationUpdated = true;
 	values_from_config = true;
 	if (!IsMountParked(&mountParked))
 	  {
 	    return false;
 	  }
+	
+	double utc_offset = 0;
 
+	time_t now = time(nullptr);
+	tm *gtm = gmtime(&now);
+	ln_date utc;
+	
+        utc.years = gtm->tm_year - 100;
+        utc.months =gtm->tm_mon;
+        utc.days = gtm->tm_mday;
+        utc.hours = gtm->tm_hour;
+        utc.minutes = gtm->tm_min;
+        utc.seconds = gtm->tm_sec;
+	utc_offset = gtm->tm_gmtoff;
+	
+	if(!updateTime( &utc, utc_offset)){
+	  return false;
+	}
+	UnPark() ;
 #ifdef no
         // override with predefined position if selected
         if (parkPos != PARK_CUSTOM)
@@ -620,16 +639,14 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 	IDSetNumber(&HourangleCoordsNP,  "ISNewNumber: IDSetNumber: HourangleCoordsNP values");
         return true;
     }
-        if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
-        {
-	  LOG_ERROR("ISNewNumber: PROCESSING GEOGRAPHIC_COORD");
-	  if(values_from_config) {
+    if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
+      {
+	if(values_from_config) {
 	    
 	  LOG_WARN("ISNewNumber: ignoring PROCESSING GEOGRAPHIC_COORD while reading values from config (init phase)");
-	  updateLocation(-1.,-1.,-1.);
 	  return false;
-	  }
-        }
+	}
+      }
 
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
@@ -1472,9 +1489,10 @@ bool LX200AstroPhysicsExperimental::Handshake()
 bool LX200AstroPhysicsExperimental::Disconnect()
 {
     timeUpdated     = false;
-    //locationUpdated = false;
+    locationUpdated = false;
     mountInitialized = false;
-
+    values_from_config = false;
+    
     return LX200Generic::Disconnect();
 }
 
@@ -1556,7 +1574,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    LOGF_DEBUG("New JD is %.2f", JD);
+    LOGF_DEBUG("New JD is %f, utc offset: %f", JD, utc_offset);
 
     // Set Local Time
     if (isSimulation() == false && setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
@@ -2208,16 +2226,16 @@ bool LX200AstroPhysicsExperimental::UnPark()
 	IDSetSwitch(&MovementNSSP, nullptr);
 	IDSetSwitch(&MovementWESP, nullptr);
       }
-    LOG_WARN("UnPark: Mount unparked successfully");
     //
     timeUpdated=false;
     locationUpdated=false;
-    mountInitialized=false;
+    //mountInitialized=false;
     values_from_config=false;
     if (!IsMountParked(&mountParked))
       {
 	return false;
       }
+    LOG_WARN("UnPark: Mount unparked successfully");
     return true;
 }
 
