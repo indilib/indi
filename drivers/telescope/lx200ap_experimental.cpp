@@ -336,10 +336,11 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	    return false;
 	  }
 	
-	double utc_offset = 0;
+        long utc_offset = 0;
 
 	time_t now = time(nullptr);
 	tm *gtm = gmtime(&now);
+	tm *ltm = localtime(&now);
 	ln_date utc;
 	
         utc.years = gtm->tm_year - 100;
@@ -348,12 +349,15 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         utc.hours = gtm->tm_hour;
         utc.minutes = gtm->tm_min;
         utc.seconds = gtm->tm_sec;
-	utc_offset = gtm->tm_gmtoff;
+	utc_offset = (double)ltm->tm_gmtoff/3600;
 	
 	if(!updateTime( &utc, utc_offset)){
 	  return false;
 	}
-	UnPark() ;
+	if (!UnPark()) {
+	  values_from_config = false;
+	  return false;
+	}
 #ifdef no
         // override with predefined position if selected
         if (parkPos != PARK_CUSTOM)
@@ -1621,20 +1625,6 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 
     LOGF_INFO("updateLocation entry: LOCATION_LATITUDE: %f, LOCATION_LONGITUDE: %f", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
     
-    if ((latitude == -1.) && (longitude == -1.)) {
-      LOG_DEBUG("updateLocation: latitude, longitude both -1.");
-
-      if (!(locationUpdated && timeUpdated && mountInitialized)) {
-	LOGF_WARN("Location updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
-	LOG_WARN("Location updated: not all information present, returning");
-	return false;
-      }
-      // 2020-05-22, wildi, now everything is ready
-      if (!UnPark()){
-	return false;
-      }
-      return true;
-    }
     if ((latitude == 0.) && (longitude == 0.)) {
       LOG_DEBUG("updateLocation: latitude, longitude both zero");
       return false;
@@ -1671,17 +1661,6 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 	return false;
       }
     }
-#ifdef no
-    if (!(locationUpdated && timeUpdated && mountInitialized)) {
-      LOGF_WARN("Location updated, loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
-      LOG_WARN("Location updated: not all information present, returning");
-      return false;
-    }
-    // 2020-05-22, wildi, now everything is ready
-    if (!UnPark()){
-      return false;
-    }
-#endif
     return true;
 }
 
@@ -2057,6 +2036,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
       if (!isSimulation() && setAPUTCOffset(PortFD, fabs(utc_off)) < 0)
 	{
 	  LOG_ERROR("Error setting UTC Offset.");
+	  values_from_config = true;
 	  return false;
 	}
       // ToDo, 2020-05-03, do that only if fnd true
@@ -2140,6 +2120,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
     char HaStr[16];
     fs_sexa(HaStr, ha , 2, 3600);
     LOGF_DEBUG("UnPark: Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s), RA_deg: %f", AzStr, AltStr, HaStr, RaStr, DecStr, equatorialPos.ra);
+    // 2020-05-26, wildi goes away:
     if(!isSimulation()) {
       int g_ddd = 0;
       int g_fmm= 0;
@@ -2157,7 +2138,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
       else
           t_val = t_ddd - t_fmm / 60.0;
       
-      LOGF_WARN("UnPark: read back longitude: %f, latitude", (360. - (g_ddd + g_fmm/60.)), t_val);
+      LOGF_WARN("UnPark: read back longitude: %f, latitude: %f", (360. - (g_ddd + g_fmm/60.)), t_val);
     }
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
