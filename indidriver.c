@@ -41,6 +41,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <assert.h>
 
 pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -234,6 +235,8 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
     ISwitch *sp;
     char sn[MAXINDINAME];
 
+    assert(svp != NULL && "IUUpdateSwitch SVP is NULL");
+
     /* store On switch name */
     if (svp->r == ISR_1OFMANY)
     {
@@ -287,8 +290,9 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
 int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], int n)
 {
     int i = 0;
-
     INumber *np;
+
+    assert(nvp != NULL && "IUUpdateNumber NVP is NULL");
 
     for (i = 0; i < n; i++)
     {
@@ -323,8 +327,9 @@ int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], i
 int IUUpdateText(ITextVectorProperty *tvp, char *texts[], char *names[], int n)
 {
     int i = 0;
-
     IText *tp;
+
+    assert(tvp != NULL && "IUUpdateText TVP is NULL");
 
     for (i = 0; i < n; i++)
     {
@@ -352,8 +357,9 @@ int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *b
                  int n)
 {
     int i = 0;
-
     IBLOB *bp;
+
+    assert(bvp != NULL && "IUUpdateBLOB BVP is NULL");
 
     for (i = 0; i < n; i++)
     {

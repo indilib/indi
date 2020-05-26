@@ -42,6 +42,7 @@ class DeltaT : public INDI::DefaultDevice
 
         enum
         {
+            TEMP_GET = 0x26,
             CMD_FORCE_RESET = 0x80,
             CMD_FORCE_BOOT = 0x81,
             COH_NUMHEATERS = 0xB0,
@@ -49,12 +50,16 @@ class DeltaT : public INDI::DefaultDevice
             COH_OFF = 0xB4,
             COH_REPORT = 0xB5,
             COH_RESCAN = 0xBF,
-            CMD_GET_VERSION = 0xFE
+            CMD_GET_VERSION = 0xFE,
         };
 
         enum
         {
             DEVICE_PC = 0x20,
+            DEVICE_HC = 0x0D,
+            DEVICE_FOC = 0x12,
+            DEVICE_FAN = 0x13,
+            DEVICE_TEMP = 0x12,
             DEVICE_DELTA = 0x32
         };
 
@@ -80,6 +85,7 @@ class DeltaT : public INDI::DefaultDevice
         /// Query functions
         ///////////////////////////////////////////////////////////////////////////////////
         bool readReport(uint8_t index);
+        bool readTemperature();
         bool initializeHeaters();
 
         ///////////////////////////////////////////////////////////////////////////////////
@@ -100,6 +106,7 @@ class DeltaT : public INDI::DefaultDevice
         ///////////////////////////////////////////////////////////////////////////////////
         /// Misc
         ///////////////////////////////////////////////////////////////////////////////////
+        double calculateTemperature(uint8_t byte2, uint8_t byte3);
         uint8_t calculateCheckSum(const char *cmd, uint32_t len);
         template <typename T> std::string to_string(const T a_value, const int n = 2);
 
@@ -141,6 +148,16 @@ class DeltaT : public INDI::DefaultDevice
         {
             PARAM_PERIOD,
             PARAM_DUTY
+        };
+
+        // Read Only Temperature Reporting
+        INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[3];
+        enum
+        {
+            TEMPERATURE_PRIMARY,
+            TEMPERATURE_AMBIENT,
+            TEMPERATURE_SECONDARY
         };
 
         /////////////////////////////////////////////////////////////////////////////
