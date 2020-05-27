@@ -350,7 +350,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         utc.minutes = gtm->tm_min;
         utc.seconds = gtm->tm_sec;
 	utc_offset = (double)ltm->tm_gmtoff/3600;
-	
+	LOGF_WARN("time from sys: year: %d, mounth: %d, day: %d, hour: %d, minutes: %d, seconds: %d, offset: %f ", utc.years, utc.months, utc.days, utc.hours, utc.minutes, utc.seconds, utc_offset);
 	if(!updateTime( &utc, utc_offset)){
 	  return false;
 	}
@@ -1893,7 +1893,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
       if (isnan(last_diff)){ 
 	last_diff = diff;
       }
-      //LOGF_DEBUG("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f", (double)iutc, sid, diff, last_diff);
+      LOGF_DEBUG("Loop, UTC offset (%f), sid %f, diff %f, last diff: %f", (double)iutc, sid, diff, last_diff);
       
       //if((utc_offset != utc_offset) && ((last_diff * diff)<0)) {
       if((last_diff * diff)<0) {
