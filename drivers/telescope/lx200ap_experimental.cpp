@@ -1578,7 +1578,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    LOGF_DEBUG("New JD is %f, utc offset: %f", JD, utc_offset);
+    LOGF_DEBUG("New JD is %f, local time: %d, %d, %d, utc offset: %f", JD, ltm.hours, ltm.minutes, (int)ltm.seconds, utc_offset);
 
     // Set Local Time
     if (isSimulation() == false && setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
