@@ -336,21 +336,23 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 	    return false;
 	  }
 	
-        long utc_offset = 0;
+        double utc_offset = 0;
 
 	time_t now = time(nullptr);
 	tm *gtm = gmtime(&now);
-	tm *ltm = localtime(&now);
 	ln_date utc;
 	
-        utc.years = gtm->tm_year - 100;
-        utc.months =gtm->tm_mon;
+        utc.years = gtm->tm_year + 1900;
+        utc.months =gtm->tm_mon + 1;
         utc.days = gtm->tm_mday;
         utc.hours = gtm->tm_hour;
         utc.minutes = gtm->tm_min;
-        utc.seconds = gtm->tm_sec;
+        utc.seconds = (double)gtm->tm_sec;
+	LOGF_DEBUG("utc time from sys: year: %d, mounth: %d, day: %d, hour: %d, minutes: %d, seconds: %d, offset: %f ", gtm->tm_year + 1900,gtm->tm_mon+1, gtm->tm_mday,gtm->tm_hour,gtm->tm_min, gtm->tm_sec, gtm->tm_gmtoff/3600 );
+	tm *ltm = localtime(&now);
 	utc_offset = (double)ltm->tm_gmtoff/3600;
-	LOGF_WARN("time from sys: year: %d, mounth: %d, day: %d, hour: %d, minutes: %d, seconds: %d, offset: %f ", utc.years, utc.months, utc.days, utc.hours, utc.minutes, utc.seconds, utc_offset);
+	LOGF_DEBUG("lcl time from sys: year: %d, mounth: %d, day: %d, hour: %d, minutes: %d, seconds: %d, offset: %f ", ltm->tm_year + 1900,ltm->tm_mon+1, ltm->tm_mday,ltm->tm_hour,ltm->tm_min, ltm->tm_sec, ltm->tm_gmtoff/3600 );
+	LOGF_DEBUG("utc time from sys: year: %d, mounth: %d, day: %d, hour: %d, minutes: %d, seconds: %f, offset: %f ", utc.years,          utc.months,    utc.days,    utc.hours,   utc.minutes, utc.seconds, utc_offset);
 	if(!updateTime( &utc, utc_offset)){
 	  return false;
 	}
