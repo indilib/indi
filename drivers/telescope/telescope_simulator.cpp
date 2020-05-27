@@ -79,7 +79,8 @@ ScopeSim::ScopeSim()
     DBG_SCOPE = static_cast<uint32_t>(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE"));
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK |
+                           TELESCOPE_HAS_TRACK_RATE,
                            4);
 
     /* initialize random seed: */
@@ -133,7 +134,7 @@ bool ScopeSim::initProperties()
                        "Simulation", IP_RO, 0, IPS_IDLE);
 #endif
 
-       /* How fast do we guide compared to sidereal rate */
+    /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.5);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
@@ -234,7 +235,7 @@ bool ScopeSim::updateProperties()
             SetAxis1ParkDefault(currentRA);
             SetAxis2ParkDefault(currentDEC);
         }
-        
+
         sendTimeFromSystem();
     }
     else
@@ -301,7 +302,7 @@ bool ScopeSim::ReadScopeStatus()
                 EqNP.s = IPS_IDLE;
                 LOG_INFO("Telescope slew is complete. Tracking...");
 
-               // check the slew accuracy
+                // check the slew accuracy
                 auto dRa = targetRA - currentRA;
                 auto dDec = targetDEC - currentDEC;
                 LOGF_DEBUG("slew accuracy %f, %f", dRa * 15 * 3600, dDec * 3600);
@@ -328,19 +329,25 @@ bool ScopeSim::ReadScopeStatus()
     }
 
 #ifdef USE_SIM_TAB
-    mountAxisN[0].value = axisPrimary.position.Degrees();
-    mountAxisN[1].value = axisSecondary.position.Degrees();
-    IDSetNumber(&mountAxisNP, nullptr);
+    double axisRA = axisPrimary.position.Degrees();
+    double axisDE = axisSecondary.position.Degrees();
+    // No need to spam log until we have some actual changes.
+    if (std::fabs(mountAxisN[AXIS_RA].value - axisRA) > 0.0001 ||
+            std::fabs(mountAxisN[AXIS_DE].value - axisDE) > 0.0001)
+    {
+        mountAxisN[AXIS_RA].value = axisRA;
+        mountAxisN[AXIS_DE].value = axisDE;
+
+        LOGF_EXTRA1("%s: %f, ra %f", axisPrimary.axisName, axisPrimary.position.Degrees(), ra.Hours());
+        LOGF_EXTRA1("%s: %f, dec %f", axisSecondary.axisName, axisSecondary.position.Degrees(), dec.Degrees());
+
+        IDSetNumber(&mountAxisNP, nullptr);
+    }
 #endif
 
-    LOGF_EXTRA1("%s: %f, ra %f", axisPrimary.axisName, axisPrimary.position.Degrees(), ra.Hours());
-    LOGF_EXTRA1("%s: %f, dec %f", axisSecondary.axisName, axisSecondary.position.Degrees(), dec.Degrees());
-
     char RAStr[64], DecStr[64];
-
     fs_sexa(RAStr, currentRA, 2, 3600);
     fs_sexa(DecStr, currentDEC, 2, 3600);
-
     DEBUGF(DBG_SCOPE, "Current RA: %s Current DEC: %s", RAStr, DecStr);
 
     NewRaDec(currentRA, currentDEC);
@@ -449,8 +456,8 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
             mountModelNP.s = IPS_OK;
             IDSetNumber(&mountModelNP, nullptr);
             alignment.setCorrections(mountModelN[0].value, mountModelN[1].value,
-                    mountModelN[2].value, mountModelN[3].value,
-                    mountModelN[4].value, mountModelN[5].value);
+                                     mountModelN[2].value, mountModelN[3].value,
+                                     mountModelN[4].value, mountModelN[5].value);
 
             return true;
         }
@@ -530,7 +537,7 @@ bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     mcRate = static_cast<int>(IUFindOnSwitchIndex(&SlewRateSP)) + 1;
 
     int rate = (dir == INDI_DIR_NS::DIRECTION_NORTH) ? mcRate : -mcRate;
-    LOGF_DEBUG("MoveNS dir %s, motion %s, rate %d", dir == DIRECTION_NORTH ? "N" : "S" , command == 0 ? "start" : "stop", rate);
+    LOGF_DEBUG("MoveNS dir %s, motion %s, rate %d", dir == DIRECTION_NORTH ? "N" : "S", command == 0 ? "start" : "stop", rate);
 
     axisSecondary.mcRate = command == MOTION_START ? rate : 0;
 
@@ -608,21 +615,21 @@ bool ScopeSim::SetTrackMode(uint8_t mode)
 {
     switch (static_cast<TelescopeTrackMode>(mode))
     {
-    case TRACK_SIDEREAL:
-        axisPrimary.TrackRate(Axis::SIDEREAL);
-        axisSecondary.TrackRate(Axis::OFF);
-        return true;
-    case TRACK_SOLAR:
-        axisPrimary.TrackRate(Axis::SOLAR);
-        axisSecondary.TrackRate(Axis::OFF);
-        return true;
-    case TRACK_LUNAR:
-        axisPrimary.TrackRate(Axis::LUNAR);
-        axisSecondary.TrackRate(Axis::OFF);
-        return true;
-    case TRACK_CUSTOM:
-        SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
-        return true;
+        case TRACK_SIDEREAL:
+            axisPrimary.TrackRate(Axis::SIDEREAL);
+            axisSecondary.TrackRate(Axis::OFF);
+            return true;
+        case TRACK_SOLAR:
+            axisPrimary.TrackRate(Axis::SOLAR);
+            axisSecondary.TrackRate(Axis::OFF);
+            return true;
+        case TRACK_LUNAR:
+            axisPrimary.TrackRate(Axis::LUNAR);
+            axisSecondary.TrackRate(Axis::OFF);
+            return true;
+        case TRACK_CUSTOM:
+            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+            return true;
     }
     return false;
 }
@@ -664,7 +671,7 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
 
     INDI_UNUSED(elevation);
     return true;
- }
+}
 
 bool ScopeSim::updateMountAndPierSide()
 {
