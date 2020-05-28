@@ -678,7 +678,15 @@ bool ScopeSim::updateMountAndPierSide()
 #ifdef USE_SIM_TAB
     int mountType = IUFindOnSwitchIndex(&mountTypeSP);
     int pierSide = IUFindOnSwitchIndex(&simPierSideSP);
-    if (mountType < 0 || pierSide < 0) return false;
+    if (mountType < 0 || pierSide < 0)
+        return false;
+
+    // If nothing changed, return
+    if (mountType == m_MountType && pierSide == m_PierSide)
+        return true;
+
+    m_MountType = mountType;
+    m_PierSide = pierSide;
 
     LOGF_INFO("update mount and pier side: Pier Side %s, mount type %d", pierSide == 0 ? "Off" : "On", mountType);
 #else
