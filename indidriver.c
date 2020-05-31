@@ -83,27 +83,28 @@ char *escapeXML(const char *s, unsigned int MAX_BUF_SIZE)
         switch (s[i])
         {
             case '&':
-                strncpy(out, "&amp;", 5);
+                strncpy(out, "&amp;", 6);
                 out += 5;
                 break;
             case '\'':
-                strncpy(out, "&apos;", 6);
+                strncpy(out, "&apos;", 7);
                 out += 6;
                 break;
             case '"':
-                strncpy(out, "&quot;", 6);
+                strncpy(out, "&quot;", 7);
                 out += 6;
                 break;
             case '<':
-                strncpy(out, "&lt;", 4);
+                strncpy(out, "&lt;", 5);
                 out += 4;
                 break;
             case '>':
-                strncpy(out, "&gt;", 4);
+                strncpy(out, "&gt;", 5);
                 out += 4;
                 break;
             default:
-                strncpy(out++, s + i, 1);
+                *out++ = s[i];
+                *out = 0;
                 break;
         }
     }
