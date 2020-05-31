@@ -1128,132 +1128,132 @@ void SkywatcherAltAzSimple::TimerHit()
 
             if (moving) 
 			{
-                TrackedAltAz  = CurrentAltAz;
+//                TrackedAltAz  = CurrentAltAz;
                 CurrentTrackingTarget.ra = EqN[AXIS_RA].value;
                 CurrentTrackingTarget.dec = EqN[AXIS_DE].value;
             } 
 			else 
 			{
-            // Restart the drift compensation after syncing
-            if (ResetTrackingSeconds)
-            {
-                ResetTrackingSeconds = false;
-                TrackingMsecs        = 0;
-                GuideDeltaAlt        = 0;
-                GuideDeltaAz         = 0;
-                ResetGuidePulses();
-            }
-            TrackingMsecs += TimeoutDuration;
-            if (TrackingMsecs % 60000 == 0)
-            {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
-            }
-            Tracking = true;
-            Slewing  = false;
-            // Continue or start tracking
-            //            ln_hrz_posn AltAz { 0, 0 };
-            ln_hrz_posn FutureAltAz { 0, 0 };
+                // Restart the drift compensation after syncing
+                if (ResetTrackingSeconds)
+                {
+                    ResetTrackingSeconds = false;
+                    TrackingMsecs        = 0;
+                    GuideDeltaAlt        = 0;
+                    GuideDeltaAz         = 0;
+                    ResetGuidePulses();
+                }
+                TrackingMsecs += TimeoutDuration;
+                if (TrackingMsecs % 60000 == 0)
+                {
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
+                }
+                Tracking = true;
+                Slewing  = false;
+                // Continue or start tracking
+                //            ln_hrz_posn AltAz { 0, 0 };
+                ln_hrz_posn FutureAltAz { 0, 0 };
 
-            //            AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
-            //            AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
-            FutureAltAz = GetAltAzPosition(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
-                                           (double)TimeoutDuration / 1000);
-            //            DEBUGF(DBG_SCOPE,
-            //                   "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
-            //                   "%ld",
-            //                   CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
-            //            DEBUGF(DBG_SCOPE,
-            //                   "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-            //                   AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+                //            AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+                //            AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+                FutureAltAz = GetAltAzPosition(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
+                                               (double)TimeoutDuration / 1000);
+                //            DEBUGF(DBG_SCOPE,
+                //                   "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
+                //                   "%ld",
+                //                   CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
+                //            DEBUGF(DBG_SCOPE,
+                //                   "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
+                //                   AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
 
-            // Calculate the auto-guiding delta degrees
-            for (auto pulse : GuidingPulses)
-            {
-                GuideDeltaAlt += pulse.DeltaAlt;
-                GuideDeltaAz += pulse.DeltaAz;
-            }
-            GuidingPulses.clear();
+                // Calculate the auto-guiding delta degrees
+                for (auto pulse : GuidingPulses)
+                {
+                    GuideDeltaAlt += pulse.DeltaAlt;
+                    GuideDeltaAz += pulse.DeltaAz;
+                }
+                GuidingPulses.clear();
 
-            long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, FutureAltAz.alt - CurrentAltAz.alt + GuideDeltaAlt);
-            long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, FutureAltAz.az - CurrentAltAz.az + GuideDeltaAz);
+                long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, FutureAltAz.alt - CurrentAltAz.alt + GuideDeltaAlt);
+                long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, FutureAltAz.az - CurrentAltAz.az + GuideDeltaAz);
 
-            // When the Alt/Az mount is on the top of an EQ mount, the EQ mount already tracks in
-            // sidereal speed. Only autoguiding is enabled in tracking mode.
-            if (IUFindSwitch(&WedgeModeSP, "WEDGE_EQ")->s == ISS_ON)
-            {
-                AltitudeOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDEDEC_RATE")->value * GuideDeltaAlt);
-                AzimuthOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDERA_RATE")->value * GuideDeltaAz);
-                GuideDeltaAlt = 0;
-                GuideDeltaAz = 0;
-                // Correct the movements of the EQ mount
-                double DeltaAz = CurrentAltAz.az - FutureAltAz.az;
-                double DeltaAlt = CurrentAltAz.alt - FutureAltAz.alt;
+                // When the Alt/Az mount is on the top of an EQ mount, the EQ mount already tracks in
+                // sidereal speed. Only autoguiding is enabled in tracking mode.
+                if (IUFindSwitch(&WedgeModeSP, "WEDGE_EQ")->s == ISS_ON)
+                {
+                    AltitudeOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDEDEC_RATE")->value * GuideDeltaAlt);
+                    AzimuthOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDERA_RATE")->value * GuideDeltaAz);
+                    GuideDeltaAlt = 0;
+                    GuideDeltaAz = 0;
+                    // Correct the movements of the EQ mount
+                    double DeltaAz = CurrentAltAz.az - FutureAltAz.az;
+                    double DeltaAlt = CurrentAltAz.alt - FutureAltAz.alt;
 
-                PolarisPositionEncoders[AXIS1] += DegreesToMicrosteps(AXIS1, DeltaAz);
-                PolarisPositionEncoders[AXIS2] += DegreesToMicrosteps(AXIS2, DeltaAlt);
-                ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
-                ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
-            }
+                    PolarisPositionEncoders[AXIS1] += DegreesToMicrosteps(AXIS1, DeltaAz);
+                    PolarisPositionEncoders[AXIS2] += DegreesToMicrosteps(AXIS2, DeltaAlt);
+                    ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
+                    ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
+                }
 
-            if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
-            {
-                // Going the long way round - send it the other way
-                AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
-            }
-            if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
-            {
-                // Going the long way round - send it the other way
-                AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
-            }
-            if (AltitudeOffsetMicrosteps < -MicrostepsPerRevolution[AXIS2] / 2)
-            {
-                // Going the long way round - send it the other way
-                AltitudeOffsetMicrosteps += MicrostepsPerRevolution[AXIS2];
-            }
-            if (AzimuthOffsetMicrosteps < -MicrostepsPerRevolution[AXIS1] / 2)
-            {
-                // Going the long way round - send it the other way
-                AzimuthOffsetMicrosteps += MicrostepsPerRevolution[AXIS1];
-            }
+                if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
+                }
+                if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
+                }
+                if (AltitudeOffsetMicrosteps < -MicrostepsPerRevolution[AXIS2] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AltitudeOffsetMicrosteps += MicrostepsPerRevolution[AXIS2];
+                }
+                if (AzimuthOffsetMicrosteps < -MicrostepsPerRevolution[AXIS1] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AzimuthOffsetMicrosteps += MicrostepsPerRevolution[AXIS1];
+                }
 
-            AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
+                AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
                                               "TRACKING_RATE_ALT")->value);
-            AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
+                AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
                                              "TRACKING_RATE_AZ")->value);
 
-            LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
-                       CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,
-                       AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+                LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
+                           CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,
+                           AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
 
-            //            DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
-            //                   AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+                //            DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
+                //                   AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
 
-            if (0 != AzimuthOffsetMicrosteps)
-            {
-                SlewTo(AXIS1, AzimuthOffsetMicrosteps, false);
-            }
-            else
-            {
-                // Nothing to do - stop the axis
-                SlowStop(AXIS1);
-            }
+                if (0 != AzimuthOffsetMicrosteps)
+                {
+                    SlewTo(AXIS1, AzimuthOffsetMicrosteps, false);
+                }
+                else
+                {
+                    // Nothing to do - stop the axis
+                    SlowStop(AXIS1);
+                }
 
-            if (0 != AltitudeOffsetMicrosteps)
-            {
-                SlewTo(AXIS2, AltitudeOffsetMicrosteps, false);
-            }
-            else
-            {
-                // Nothing to do - stop the axis
-                SlowStop(AXIS2);
-            }
+                if (0 != AltitudeOffsetMicrosteps)
+                {
+                    SlewTo(AXIS2, AltitudeOffsetMicrosteps, false);
+                }
+                else
+                {
+                    // Nothing to do - stop the axis
+                    SlowStop(AXIS2);
+                }
 
-            DEBUGF(DBG_SCOPE, "Tracking - AXIS1 error %d (offset: %ld) AXIS2 error %d (offset: %ld)",
-                   OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1], AzimuthOffsetMicrosteps,
-                   OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2], AltitudeOffsetMicrosteps);
+                DEBUGF(DBG_SCOPE, "Tracking - AXIS1 error %d (offset: %ld) AXIS2 error %d (offset: %ld)",
+                       OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1], AzimuthOffsetMicrosteps,
+                       OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2], AltitudeOffsetMicrosteps);
 
-            OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
-            OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
+                OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
+                OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
             }
             break;
         }
