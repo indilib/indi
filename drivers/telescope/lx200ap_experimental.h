@@ -81,7 +81,6 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     void AstroPhysicsGuideTimeoutNS(bool simul);
 
     virtual bool getUTFOffset(double *offset) override;
-  virtual double setUTCgetSID(double offset, double sim_offset, double sid); // override;
   
     // Tracking
     virtual bool SetTrackMode(uint8_t mode) override;
@@ -125,8 +124,8 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     ISwitch ParkToS[5];
     ISwitchVectorProperty ParkToSP;
 
-    INumberVectorProperty UTCOffsetNP;
-    INumber UTCOffsetN[1];
+    INumberVectorProperty APUTCOffsetNP;
+    INumber APUTCOffsetN[1];
 
     IText VersionT[1] {};
     ITextVectorProperty VersionInfo;
