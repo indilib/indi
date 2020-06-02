@@ -34,6 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
@@ -146,8 +147,9 @@ void lilxmlMalloc(void *(*newmalloc)(size_t size), void *(*newrealloc)(void *ptr
 /* pass back a fresh handle for use with our other functions */
 LilXML *newLilXML()
 {
-    LilXML *lp = (LilXML *)moremem(NULL, sizeof(LilXML));
-    memset(lp, 0, sizeof(LilXML));
+    LilXML *lp = (LilXML *)moremem(NULL, sizeof *lp);
+    memset(lp, 0, sizeof *lp);
+    assert(lp);
     initParser(lp);
     return (lp);
 }
@@ -211,8 +213,8 @@ void delXMLEle(XMLEle *ep)
 //#define WITH_MEMCHR
 XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
 {
-    XMLEle **nodes = (XMLEle **)malloc(sizeof(XMLEle *));
-    int nnodes     = 1;
+    unsigned int nnodes     = 1;
+    XMLEle **nodes = (XMLEle **)malloc(nnodes * sizeof *nodes);
     *nodes         = NULL;
     char *curr     = buf;
     int s;
@@ -235,6 +237,7 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
         if (!ltpos)
         {
             lp->ce->pcdata.s = (char *)moremem(lp->ce->pcdata.s, lp->ce->pcdata.sm + size);
+            assert(lp->ce->pcdata.s);
             lp->ce->pcdata.sm += size;
             memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
             lp->ce->pcdata.sl += size;
@@ -257,15 +260,15 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
                 {
                     int blen;
                     sscanf(valuXMLAtt(blenatt), "%d", &blen);
-                    // if (lp->ce->pcdata.sm < blen) { // always realloc
-                    if (blen % 72 != 0)
-                        blen += (blen / 72) + 1; // add room for those '\n'
-                    else
-                        blen += (blen / 72);
+
+                    // Add room for those '\n' on every 72 character line + extra half-full line.
+                    blen += (blen / 72) + 1;
+
                     lp->ce->pcdata.s  = (char *)moremem(lp->ce->pcdata.s, blen);
-                    lp->ce->pcdata.sm = blen; // or always set sm
-                    //}
-                    if (size < blen - lp->ce->pcdata.sl)
+                    assert(lp->ce->pcdata.s);
+                    lp->ce->pcdata.sm = blen; // always set sm
+
+                    if (size <= blen - lp->ce->pcdata.sl)
                     {
                         memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
                         lp->ce->pcdata.sl += size;
@@ -279,6 +282,7 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
                 if (!ltpos)
                 {
                     lp->ce->pcdata.s = (char *)moremem(lp->ce->pcdata.s, lp->ce->pcdata.sm + size);
+                    assert(lp->ce->pcdata.s);
                     lp->ce->pcdata.sm += size;
                     memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
                     lp->ce->pcdata.sl += size;
@@ -361,7 +365,7 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
          * N.B. up to caller to call delXMLEle with what we return.
          */
         nodes[nnodes - 1] = lp->ce;
-        nodes             = (XMLEle **)realloc(nodes, (nnodes + 1) * sizeof(XMLEle *));
+        nodes             = (XMLEle **)realloc(nodes, (nnodes + 1) * sizeof *nodes);
         nodes[nnodes]     = NULL;
         nnodes += 1;
         lp->ce = NULL;
@@ -649,6 +653,7 @@ XMLEle *addXMLEle(XMLEle *parent, const char *tag)
 void appXMLEle(XMLEle *ep, XMLEle *newep)
 {
     ep->el            = (XMLEle **)moremem(ep->el, (ep->nel + 1) * sizeof(XMLEle *));
+    assert(ep->el);
     ep->el[ep->nel++] = newep;
 }
 
@@ -825,6 +830,7 @@ char *entityXML(char *s)
         /* found another entity, copy preceding to malloced buffer */
         int nnew = ep - s; /* all but entity itself */
         sret = malbuf = moremem(malbuf, nmalbuf + nnew + 10);
+        assert(sret);
         memcpy(malbuf + nmalbuf, s, nnew);
         nmalbuf += nnew;
 
@@ -865,6 +871,7 @@ char *entityXML(char *s)
         /* put remaining part of s into malbuf */
         int nleft = strlen(s) + 1; /* include \0 */
         sret = malbuf = moremem(malbuf, nmalbuf + nleft);
+        assert(sret);
         memcpy(malbuf + nmalbuf, s, nleft);
     }
 
@@ -1173,6 +1180,7 @@ static void popXMLEle(LilXML *lp)
 static XMLEle *growEle(XMLEle *pe)
 {
     XMLEle *newe = (XMLEle *)moremem(NULL, sizeof(XMLEle));
+    assert(newe);
 
     memset(newe, 0, sizeof(XMLEle));
     newString(&newe->tag);
@@ -1182,6 +1190,7 @@ static XMLEle *growEle(XMLEle *pe)
     if (pe)
     {
         pe->el            = (XMLEle **)moremem(pe->el, (pe->nel + 1) * sizeof(XMLEle *));
+        assert(pe->el);
         pe->el[pe->nel++] = newe;
     }
 
@@ -1191,7 +1200,8 @@ static XMLEle *growEle(XMLEle *pe)
 /* add room for and return one new XMLAtt to the given element */
 static XMLAtt *growAtt(XMLEle *ep)
 {
-    XMLAtt *newa = (XMLAtt *)moremem(NULL, sizeof(XMLAtt));
+    XMLAtt *newa = (XMLAtt *)moremem(NULL, sizeof *newa);
+    assert(newa);
 
     memset(newa, 0, sizeof(*newa));
     newString(&newa->name);
@@ -1199,6 +1209,7 @@ static XMLAtt *growAtt(XMLEle *ep)
     newa->ce = ep;
 
     ep->at            = (XMLAtt **)moremem(ep->at, (ep->nat + 1) * sizeof(XMLAtt *));
+    assert(ep->at);
     ep->at[ep->nat++] = newa;
 
     return (newa);
@@ -1238,8 +1249,10 @@ static void growString(String *sp, int c)
     {
         if (!sp->s)
             newString(sp);
-        else
+        else {
             sp->s = (char *)moremem(sp->s, sp->sm *= 2);
+            assert(sp->s);
+        }
     }
     sp->s[--l] = '\0';
     sp->s[--l] = (char)c;
@@ -1259,8 +1272,10 @@ static void appendString(String *sp, const char *str)
     {
         if (!sp->s)
             newString(sp);
-        if (l > sp->sm)
+        if (l > sp->sm) {
             sp->s = (char *)moremem(sp->s, (sp->sm = l));
+            assert(sp->s);
+        }
     }
     if (sp->s)
     {
@@ -1276,6 +1291,7 @@ static void newString(String *sp)
         return;
 
     sp->s  = (char *)moremem(NULL, MINMEM);
+    assert(sp->s);
     sp->sm = MINMEM;
     *sp->s = '\0';
     sp->sl = 0;

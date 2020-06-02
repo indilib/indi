@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <cstring>
 #include <algorithm>
+#include <assert.h>
 
 #ifdef _WINDOWS
 #include <WinSock2.h>
@@ -936,6 +937,7 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
     int rc = 0;
     uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * bp->size / 3 + 4));
     uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size);
+    assert(base64Len <= (4 * bp->size / 3 + 4));
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", bp->name);
@@ -983,6 +985,7 @@ void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, 
     int rc = 0;
     uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * blobSize / 3 + 4));
     uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(blobBuffer), blobSize);
+    assert(base64Len <= (4 * blobSize / 3 + 4));
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", blobName);

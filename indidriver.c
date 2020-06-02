@@ -1774,6 +1774,7 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
 
         encblob        = malloc(4 * bp->bloblen / 3 + 4);
         l              = to64frombits(encblob, bp->blob, bp->bloblen);
+        assert(l <= (4 * bp->bloblen / 3 + 4));
         size_t written = 0;
 
         while ((int)written < l)
@@ -2317,6 +2318,7 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
         {
             encblob = malloc(4 * bp->bloblen / 3 + 4);
             l       = to64frombits(encblob, bp->blob, bp->bloblen);
+            assert(l <= (4 * bp->bloblen / 3 + 4));
             printf("    enclen='%d'\n", l);
             printf("    format='%s'>\n", bp->format);
             size_t written = 0;

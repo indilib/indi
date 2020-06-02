@@ -30,6 +30,7 @@
 #include <algorithm>
 
 #include <cstdlib>
+#include <assert.h>
 
 #define MAXINDIBUF 49152
 
@@ -672,6 +673,7 @@ void INDI::BaseClientQt::sendOneBlob(IBLOB *bp)
 
     encblob = static_cast<unsigned char *>(malloc(4 * bp->size / 3 + 4));
     l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size);
+    assert(l <= (4 * bp->size / 3 + 4));
 
     prop += QString("  <oneBLOB\n");
     prop += QString("    name='%1'\n").arg(bp->name);
@@ -710,6 +712,7 @@ void INDI::BaseClientQt::sendOneBlob(const char *blobName, unsigned int blobSize
 
     encblob = static_cast<unsigned char *>(malloc(4 * blobSize / 3 + 4));
     l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(blobBuffer), blobSize);
+    assert(l <= (4 * bp->size / 3 + 4));
 
     QString prop;
 
