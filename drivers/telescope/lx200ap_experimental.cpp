@@ -1,7 +1,8 @@
 /*
     Astro-Physics INDI driver
 
-    Copyright (C) 2014 Jasem Mutlaq
+    Copyright (C) 2014 Jasem Mutlaq, Mike Fowler
+    Copyright (C) 2020 indilib.org, by Markus Wildi
 
     Based on INDI Astrophysics Driver by Markus Wildi
 
@@ -121,6 +122,7 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillSwitchVector(&SwapSP, SwapS, 2, getDeviceName(), "SWAP", "Swap buttons", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 #ifdef no
+    //2020-06-02, wildi, I'm not fond of this CMR sync
     IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_OFF);
     IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_ON);
     IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
@@ -1406,7 +1408,7 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
         {
             case USE_REGULAR_SYNC:
 #endif	      
-                if (::Sync(PortFD, syncString) < 0)
+	      if (::Sync(PortFD, syncString) < 0)
                     syncOK = false;
 #ifdef no
                 break;
@@ -1804,7 +1806,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
       ParkSP.s = IPS_ALERT;
       IDSetSwitch(&ParkSP, nullptr);
       LOGF_ERROR("UnPark: can not unpark, ParkData.xml's is: %s and mount is: %s during last session", parkDataValid ? "valid" : "invalid", parkDataValid_and_parked ? "parked" : "not parked");
-      LOG_INFO("UnPark: select an appropriate Unpark From? position, save driver configuration and unpark again.");
+      LOG_INFO("UnPark: select an appropriate Park To position, park, write park data to file, save driver's configuration and unpark again using e.g. Last Parked.");
       return false;
     }
     SetAxis1ParkDefault(unparkAz);
