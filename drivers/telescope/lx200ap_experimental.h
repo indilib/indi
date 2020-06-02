@@ -131,18 +131,22 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     ITextVectorProperty VersionInfo;
 
   private:
+#ifdef no
     bool initMount();
+#endif
 
     // Side of pier
     void syncSideOfPier();
+#ifdef no
     bool IsMountInitialized(bool *initialized);
+#endif
     bool IsMountParked(bool *isParked);
     bool getMountStatus(bool *isParked);
     bool getFirmwareVersion(void);
     bool calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz);
     void disclaimerMessage(void);
 
-    bool timeUpdated=false, locationUpdated=false;
+  //bool timeUpdated=false, locationUpdated=false;
     ControllerVersion firmwareVersion = MCV_UNKNOWN;
     ServoVersion servoType = GTOCP_UNKNOWN;
 
@@ -153,12 +157,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     //int GuideNSTID;
     //int GuideWETID;
   
-    bool motionCommanded=false; // 2020-05-24, wildi, never reset
-    bool mountInitialized=false;
-    // 2020-05-24, wildi, init phase as state between first call to
-    // updateProperties() until the mount is unparked.
-    bool mountParked=true; // 2020-05-24, wildi, is mount's status, ends init phase
-  bool values_from_config = false;
-  ParkPosition park_pos_from_config ;
+    //bool motionCommanded=false; // 2020-05-24, wildi, never reset
+    //bool mountInitialized=false;
     int rememberSlewRate = { -1 };
 };
