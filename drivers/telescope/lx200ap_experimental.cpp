@@ -52,7 +52,8 @@ void LX200AstroPhysicsExperimental::disclaimerMessage()
 LX200AstroPhysicsExperimental::LX200AstroPhysicsExperimental() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 5);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK
+                           | TELESCOPE_HAS_TRACK_RATE, 5);
 
     sendLocationOnStartup = false;
     sendTimeOnStartup = false;
@@ -108,7 +109,8 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillSwitch(&SlewRateS[2], "64", "64x", ISS_ON);
     IUFillSwitch(&SlewRateS[3], "600", "600x", ISS_OFF);
     IUFillSwitch(&SlewRateS[4], "1200", "1200x", ISS_OFF);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 5, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 5, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slew speed when performing regular GOTO
     IUFillSwitch(&APSlewSpeedS[0], "600", "600x", ISS_ON);
@@ -141,7 +143,8 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillSwitch(&UnparkFromS[2], "Park2", "Park2", ISS_ON);
     IUFillSwitch(&UnparkFromS[3], "Park3", "Park3", ISS_OFF);
     IUFillSwitch(&UnparkFromS[4], "Park4", "Park4", ISS_OFF);
-    IUFillSwitchVector(&UnparkFromSP, UnparkFromS, 5, getDeviceName(), "UNPARK_FROM", "Unpark From?", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&UnparkFromSP, UnparkFromS, 5, getDeviceName(), "UNPARK_FROM", "Unpark From?", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // park presets
     IUFillSwitch(&ParkToS[0], "Custom", "Custom", ISS_OFF);
@@ -149,18 +152,21 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillSwitch(&ParkToS[2], "Park2", "Park2", ISS_ON);
     IUFillSwitch(&ParkToS[3], "Park3", "Park3", ISS_OFF);
     IUFillSwitch(&ParkToS[4], "Park4", "Park4", ISS_OFF);
-    IUFillSwitchVector(&ParkToSP, ParkToS, 5, getDeviceName(), "PARK_TO", "Park To?", SITE_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ParkToSP, ParkToS, 5, getDeviceName(), "PARK_TO", "Park To?", SITE_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillText(&VersionT[0], "Version", "Version", "");
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // UTC offset
     IUFillNumber(&APUTCOffsetN[0], "APUTC_OFFSET", "AP UTC offset", "%8.5f", 0.0, 24.0, 0.0, 0.);
-    IUFillNumberVector(&APUTCOffsetNP, APUTCOffsetN, 1, getDeviceName(), "APUTC_OFFSET", "AP UTC offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
+    IUFillNumberVector(&APUTCOffsetNP, APUTCOffsetN, 1, getDeviceName(), "APUTC_OFFSET", "AP UTC offset", MAIN_CONTROL_TAB,
+                       IP_RW, 60, IPS_OK);
     // sidereal time, ToDO move define where it belongs to
     IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "AP sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
-    IUFillNumberVector(&SiderealTimeNP, SiderealTimeN, 1, getDeviceName(), "SIDEREAL_TIME", "sidereal time", MAIN_CONTROL_TAB, IP_RO, 60, IPS_OK);
-        
+    IUFillNumberVector(&SiderealTimeNP, SiderealTimeN, 1, getDeviceName(), "SIDEREAL_TIME", "sidereal time", MAIN_CONTROL_TAB,
+                       IP_RO, 60, IPS_OK);
+
     SetParkDataType(PARK_AZ_ALT);
 
     return true;
@@ -219,16 +225,16 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineNumber(&APUTCOffsetNP);
 
         IUResetSwitch(&ParkSP);
-	ParkS[0].s = ISS_ON ;
+        ParkS[0].s = ISS_ON ;
         ParkSP.s = IPS_OK;
         IDSetSwitch(&ParkSP, nullptr);
 
 
 #ifdef no
-	// 2020-05-30, wildi, this is the wrong place to load config data,
-	// see celestron driver.
-	// The RA/Dec values are 0,90 at startup and should not be
-	// displayed until they are set in UnPark()
+        // 2020-05-30, wildi, this is the wrong place to load config data,
+        // see celestron driver.
+        // The RA/Dec values are 0,90 at startup and should not be
+        // displayed until they are set in UnPark()
         // load in config value for park to and initialize park position
         loadConfig(true, ParkToSP.name);
         ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
@@ -242,7 +248,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         if (longitude != -1000 && latitude != -1000)
             updateLocation(latitude, longitude, 0);
 
-	//2020-05-30, wildi, LocationN will be overwritten
+        //2020-05-30, wildi, LocationN will be overwritten
         // initialize park position
         if (InitPark())
         {
@@ -359,7 +365,7 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
 #ifdef no
 bool LX200AstroPhysicsExperimental::initMount()
 {
-  LOG_DEBUG("initMount entry"); 
+    LOG_DEBUG("initMount entry");
     // Make sure that the mount is setup according to the properties
     int err = 0;
     if (!IsMountInitialized(&mountInitialized))
@@ -431,7 +437,7 @@ bool LX200AstroPhysicsExperimental::initMount()
 ***************************************************************************************/
 bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-  LOG_DEBUG("ISNewNumber entry");
+    LOG_DEBUG("ISNewNumber entry");
     if (strcmp(getDeviceName(), dev))
         return false;
 
@@ -450,43 +456,43 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
             LOGF_ERROR("lx200ap_experimental: Error setting UTC offset (%d).", err);
             return false;
         }
- 
-	APUTCOffsetNP.s  = IPS_OK;
-	IDSetNumber(&APUTCOffsetNP, nullptr);
-	
+
+        APUTCOffsetNP.s  = IPS_OK;
+        IDSetNumber(&APUTCOffsetNP, nullptr);
+
         return true;
     }
     if (!strcmp(name, HourangleCoordsNP.name))
     {
-	HourangleCoordsNP.s = IPS_BUSY;
-	IDSetNumber(&HourangleCoordsNP, nullptr);
-	
+        HourangleCoordsNP.s = IPS_BUSY;
+        IDSetNumber(&HourangleCoordsNP, nullptr);
+
         if (IUUpdateNumber(&HourangleCoordsNP, values, names, n) < 0)
             return false;
-  
-	double lng = LocationN[LOCATION_LONGITUDE].value;
-	double lst = get_local_sidereal_time(lng);
-	double ra = lst - HourangleCoordsN[0].value;
-	double dec = HourangleCoordsN[1].value;
-	bool success = false;
-	if ((ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s) || (ISS_ON == IUFindSwitch(&CoordSP, "SLEW")->s))     
-	{
-	  success = Goto(ra, dec);
-	}
-	else
-	{
-	  success = Sync(ra, dec);
-	}
-	if (success)
-	{
-	  HourangleCoordsNP.s = IPS_OK;
-	}
-	else
-	{
-	  HourangleCoordsNP.s = IPS_ALERT;
-	}
-	HourangleCoordsNP.s = IPS_IDLE;
-	IDSetNumber(&HourangleCoordsNP,  nullptr);
+
+        double lng = LocationN[LOCATION_LONGITUDE].value;
+        double lst = get_local_sidereal_time(lng);
+        double ra = lst - HourangleCoordsN[0].value;
+        double dec = HourangleCoordsN[1].value;
+        bool success = false;
+        if ((ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s) || (ISS_ON == IUFindSwitch(&CoordSP, "SLEW")->s))
+        {
+            success = Goto(ra, dec);
+        }
+        else
+        {
+            success = Sync(ra, dec);
+        }
+        if (success)
+        {
+            HourangleCoordsNP.s = IPS_OK;
+        }
+        else
+        {
+            HourangleCoordsNP.s = IPS_ALERT;
+        }
+        HourangleCoordsNP.s = IPS_IDLE;
+        IDSetNumber(&HourangleCoordsNP,  nullptr);
         return true;
     }
 
@@ -495,7 +501,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 
 bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-  //LOG_DEBUG("ISNewSwitch entry");
+    //LOG_DEBUG("ISNewSwitch entry");
     int err = 0;
 
     // ignore if not ours //
@@ -607,24 +613,27 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
     {
         IUUpdateSwitch(&UnparkFromSP, states, names, n);
         ParkPosition unparkPos = (ParkPosition)IUFindOnSwitchIndex(&UnparkFromSP);
-	
-	if( unparkPos != PARK_LAST) {
-	  double unparkAlt, unparkAz;
-	  if (!calcParkPosition(unparkPos, &unparkAlt, &unparkAz))
-	    {
-	      LOG_DEBUG("ISNewSwitch: Error calculating unpark position!");
-	      UnparkFromSP.s = IPS_ALERT;
-	    }
-	  LOGF_DEBUG("ISNewSwitch: parkPos=%d parkAlt=%f parkAz=%f", unparkPos, unparkAlt, unparkAz);
-	  SetAxis1ParkDefault(unparkAz);
-	  SetAxis2ParkDefault(unparkAlt);
-	  UnparkFromSP.s = IPS_OK;
-	} else {
-	  UnparkFromSP.s = IPS_ALERT;
-	  LOG_ERROR("ISNewSwitch: set park 1, 2, 3 or 4, PARK_LAST is not a defined park position");
-	}
-	// 2020-06-01, wildi, UnPark() relies on it
-	saveConfig(true);
+
+        if( unparkPos != PARK_LAST)
+        {
+            double unparkAlt, unparkAz;
+            if (!calcParkPosition(unparkPos, &unparkAlt, &unparkAz))
+            {
+                LOG_DEBUG("ISNewSwitch: Error calculating unpark position!");
+                UnparkFromSP.s = IPS_ALERT;
+            }
+            LOGF_DEBUG("ISNewSwitch: parkPos=%d parkAlt=%f parkAz=%f", unparkPos, unparkAlt, unparkAz);
+            SetAxis1ParkDefault(unparkAz);
+            SetAxis2ParkDefault(unparkAlt);
+            UnparkFromSP.s = IPS_OK;
+        }
+        else
+        {
+            UnparkFromSP.s = IPS_ALERT;
+            LOG_ERROR("ISNewSwitch: set park 1, 2, 3 or 4, PARK_LAST is not a defined park position");
+        }
+        // 2020-06-01, wildi, UnPark() relies on it
+        saveConfig(true);
         IDSetSwitch(&UnparkFromSP, nullptr);
         return true;
     }
@@ -637,16 +646,19 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
     {
         IUUpdateSwitch(&ParkSP, states, names, n);
         int sw = IUFindOnSwitchIndex(&ParkSP);
-	if(sw == 0) {
-	  Park();
-	  IUResetSwitch(&ParkSP);
-	  ParkS[0].s = ISS_ON;
-	} else {
-	  UnPark();
-	  IUResetSwitch(&ParkSP);
-	  ParkS[1].s = ISS_ON;
-	}
-	
+        if(sw == 0)
+        {
+            Park();
+            IUResetSwitch(&ParkSP);
+            ParkS[0].s = ISS_ON;
+        }
+        else
+        {
+            UnPark();
+            IUResetSwitch(&ParkSP);
+            ParkS[1].s = ISS_ON;
+        }
+
         ParkSP.s = IPS_OK;
         IDSetSwitch(&ParkSP, nullptr);
         return true;
@@ -666,33 +678,35 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         if (parkPos != PARK_CUSTOM)
         {
             double parkAz, parkAlt;
-	    if (LocationNP.s != IPS_OK) 
-	     {
-		LOG_WARN("ISNewSwitch: ParkTo can not calculate park position, latitude, longitude not yet available");
-		IUResetSwitch(&ParkToSP);
-		ParkToSP.s = IPS_ALERT;
-		IDSetSwitch(&ParkToSP, nullptr);
-		return false;
-	    }
-	    if (calcParkPosition(parkPos, &parkAlt, &parkAz))
-	      {
-		SetAxis1Park(parkAz);
-		SetAxis2Park(parkAlt);
-		LOGF_DEBUG("ISNewSwitch: Set predefined park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
-	      }
-	    else
-	      {
-		LOGF_ERROR("ISNewSwitch: Unable to set predefined park position %d!!", parkPos);
-	      }
-        } else {
-	  LOG_WARN("ISNewSwitch: park custom not yet supported");
-	  IUResetSwitch(&ParkToSP);
-	  ParkToSP.s = IPS_ALERT;
-	  IDSetSwitch(&ParkToSP, nullptr);
-	  return false;
-	}
-	IUResetSwitch(&ParkToSP);
-	ParkToS[(int)parkPos].s = ISS_ON;
+            if (LocationNP.s != IPS_OK)
+            {
+                LOG_WARN("ISNewSwitch: ParkTo can not calculate park position, latitude, longitude not yet available");
+                IUResetSwitch(&ParkToSP);
+                ParkToSP.s = IPS_ALERT;
+                IDSetSwitch(&ParkToSP, nullptr);
+                return false;
+            }
+            if (calcParkPosition(parkPos, &parkAlt, &parkAz))
+            {
+                SetAxis1Park(parkAz);
+                SetAxis2Park(parkAlt);
+                LOGF_DEBUG("ISNewSwitch: Set predefined park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
+            }
+            else
+            {
+                LOGF_ERROR("ISNewSwitch: Unable to set predefined park position %d!!", parkPos);
+            }
+        }
+        else
+        {
+            LOG_WARN("ISNewSwitch: park custom not yet supported");
+            IUResetSwitch(&ParkToSP);
+            ParkToSP.s = IPS_ALERT;
+            IDSetSwitch(&ParkToSP, nullptr);
+            return false;
+        }
+        IUResetSwitch(&ParkToSP);
+        ParkToS[(int)parkPos].s = ISS_ON;
         ParkToSP.s = IPS_OK;
         IDSetSwitch(&ParkToSP, nullptr);
         return true;
@@ -707,11 +721,11 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     double lst = get_local_sidereal_time(lng);
     // 2020-06-02, wildi, isParked is reserved for the state in ParkData.xml
     // see method isParked()
-    bool isAPParked ; 
+    bool isAPParked ;
     getMountStatus(&isAPParked);
     if (!isAPParked)
     {
-      // in case of simulation, the coordinates are set on parking
+        // in case of simulation, the coordinates are set on parking
         HourangleCoordsNP.s = IPS_BUSY;
         IDSetNumber(&HourangleCoordsNP, nullptr);
         HourangleCoordsN[0].value = get_local_hour_angle(lst, currentRA);
@@ -720,44 +734,54 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         IDSetNumber(&HourangleCoordsNP, nullptr );
     }
     double val;
-    if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0)) {
-      LOG_ERROR("Reading sidereal time failed %d");
-      return false;
+    if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0))
+    {
+        LOG_ERROR("Reading sidereal time failed %d");
+        return false;
     }
-    if (isSimulation()) {
-      val = lst;
+    if (isSimulation())
+    {
+        val = lst;
     }
     SiderealTimeNP.np[0].value = val;
     SiderealTimeNP.s           = IPS_IDLE;
     IDSetNumber(&SiderealTimeNP, nullptr);
-    
-    if (isSimulation()) {
+
+    if (isSimulation())
+    {
         mountSim();
         return true;
-    }   
-    
-    if (getAPUTCOffset(PortFD, &val) < 0) {
-      LOG_ERROR("Reading UTC offset  %d");	
-    } 
-    if (getLocalTime24(PortFD, &val) < 0) {
-      LOGF_DEBUG("Reading local time failed :GL %d", -1);	
-    } 
-    if (getLX200Az(PortFD, &val) < 0) {
-      LOGF_DEBUG("Reading Az failed :GZ %d", -1);
-    } 
-    if (getLX200Alt(PortFD, &val) < 0) {
-      LOGF_DEBUG("Reading Alt failed :GA %d", -1);
-    } 
-    if (getLX200RA(PortFD, &val) < 0) {
-      LOGF_DEBUG("Reading Ra failed :GR %d", -1);
-    } 
-    if (getLX200DEC(PortFD, &val) < 0) {
-      LOGF_DEBUG("Reading Dec failed :GD %d", -1);
+    }
+
+    if (getAPUTCOffset(PortFD, &val) < 0)
+    {
+        LOG_ERROR("Reading UTC offset  %d");
+    }
+    if (getLocalTime24(PortFD, &val) < 0)
+    {
+        LOGF_DEBUG("Reading local time failed :GL %d", -1);
+    }
+    if (getLX200Az(PortFD, &val) < 0)
+    {
+        LOGF_DEBUG("Reading Az failed :GZ %d", -1);
+    }
+    if (getLX200Alt(PortFD, &val) < 0)
+    {
+        LOGF_DEBUG("Reading Alt failed :GA %d", -1);
+    }
+    if (getLX200RA(PortFD, &val) < 0)
+    {
+        LOGF_DEBUG("Reading Ra failed :GR %d", -1);
+    }
+    if (getLX200DEC(PortFD, &val) < 0)
+    {
+        LOGF_DEBUG("Reading Dec failed :GD %d", -1);
     }
     int ddd = 0;
-    int fmm= 0;
-    if (getSiteLongitude(PortFD, &ddd, &fmm) < 0) {
-      LOGF_DEBUG("Reading longitude failed :Gg %d", -1);
+    int fmm = 0;
+    if (getSiteLongitude(PortFD, &ddd, &fmm) < 0)
+    {
+        LOGF_DEBUG("Reading longitude failed :Gg %d", -1);
     }
     double val_utc_offset;
     if (!isSimulation() && getAPUTCOffset(PortFD, &val_utc_offset) < 0)
@@ -770,7 +794,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     //char buf[64];
     //if (getCalendarDate(PortFD, buf) < 0) {
     //  LOGF_DEBUG("Reading calendar day failed :GC %d", -1);
-    //} 
+    //}
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
@@ -850,7 +874,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
             // Turn off tracking.
             SetTrackEnabled(false);
             SetParked(true);
-	    saveConfig(true);
+            saveConfig(true);
             LOG_INFO("Please, save park data, disconnect and power off the mount");
         }
 
@@ -871,9 +895,10 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 {
     LOG_DEBUG("IsMountInitialized entry");
-    if(*initialized) {
-      LOG_DEBUG("IsMountInitialized  I am initialized");
-      return true;
+    if(*initialized)
+    {
+        LOG_DEBUG("IsMountInitialized  I am initialized");
+        return true;
     }
     double ra, dec;
     bool raZE, deZE, de90;
@@ -882,7 +907,7 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 
     if (isSimulation())
     {
-        ra = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value); 
+        ra = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
         dec = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
     }
     else if (getLX200RA(PortFD, &ra) || getLX200DEC(PortFD, &dec))
@@ -895,7 +920,9 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
     deZE = (fabs(dec) < epscheck);
     de90 = (fabs(dec - 90) < epscheck);
 
-    LOGF_DEBUG("IsMountInitialized: raZE: %s - deZE: %s - de90: %s, (raZE && deZE): %s, (raZE && de90): %s", raZE ? "true" : "false", deZE ? "true" : "false", de90 ? "true" : "false", (raZE && deZE) ? "true" : "false", (raZE && de90) ? "true" : "false");
+    LOGF_DEBUG("IsMountInitialized: raZE: %s - deZE: %s - de90: %s, (raZE && deZE): %s, (raZE && de90): %s",
+               raZE ? "true" : "false", deZE ? "true" : "false", de90 ? "true" : "false", (raZE && deZE) ? "true" : "false", (raZE
+                       && de90) ? "true" : "false");
 
     // RA is zero and DEC is zero or 90
     // then mount is not initialized and we need to initialized it.
@@ -911,7 +938,8 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
     LOG_INFO("IsMountInitialized: Mount is initialized.");
     *initialized = true;
 #ifdef no
-    LOGF_DEBUG("IsMountInitialized: Mount is initialized,  loc: %s time: %s mount: %s", locationUpdated ? "true" : "false", timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
+    LOGF_DEBUG("IsMountInitialized: Mount is initialized,  loc: %s time: %s mount: %s", locationUpdated ? "true" : "false",
+               timeUpdated ? "true" : "false", mountInitialized ? "true" : "false");
 #endif
 
     return true;
@@ -929,7 +957,7 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isAPParked)
 
     // try one method
     if (getMountStatus(isAPParked))
-    {   
+    {
         return true;
     }
 
@@ -958,10 +986,10 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isAPParked)
 #endif
 bool LX200AstroPhysicsExperimental::getMountStatus(bool *isAPParked)
 {
-  // 2020-06-02, wildi, ToDo unify for GTOCPX
+    // 2020-06-02, wildi, ToDo unify for GTOCPX
     if (isSimulation())
     {
-      // 2030-05-30, if Unparked is selected, this condition is not met
+        // 2030-05-30, if Unparked is selected, this condition is not met
         *isAPParked = (ParkS[0].s == ISS_ON);
         return true;
     }
@@ -1369,14 +1397,14 @@ bool LX200AstroPhysicsExperimental::Disconnect()
     locationUpdated = false;
     mountInitialized = false;
 #endif
-    
+
     return LX200Generic::Disconnect();
 }
 // 2020-06-02, disabled CMR since there is no real use case and
 // it is dangerous.
 bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 {
-  char syncString[256] = ""; // simulation needs UTF-8
+    char syncString[256] = ""; // simulation needs UTF-8
 
 #ifdef no
     int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
@@ -1392,15 +1420,15 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
         bool syncOK = true;
 
 #ifdef no
-	// 2020-05-23, wildi, for now CMR is disabled.
-	// To me AP description is not clear although
-	// I fully understand it. A contradiction? Yes,
-	// the same as in AP descirption.
+        // 2020-05-23, wildi, for now CMR is disabled.
+        // To me AP description is not clear although
+        // I fully understand it. A contradiction? Yes,
+        // the same as in AP descirption.
         switch (syncType)
         {
             case USE_REGULAR_SYNC:
-#endif	      
-	      if (::Sync(PortFD, syncString) < 0)
+#endif
+                if (::Sync(PortFD, syncString) < 0)
                     syncOK = false;
 #ifdef no
                 break;
@@ -1413,7 +1441,7 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
             default:
                 break;
         }
-#endif	      
+#endif
 
         if (!syncOK)
         {
@@ -1450,7 +1478,8 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    LOGF_DEBUG("New JD is %f, local time: %d, %d, %d, utc offset: %f", JD, ltm.hours, ltm.minutes, (int)ltm.seconds, utc_offset);
+    LOGF_DEBUG("New JD is %f, local time: %d, %d, %d, utc offset: %f", JD, ltm.hours, ltm.minutes, (int)ltm.seconds,
+               utc_offset);
 
     // Set Local Time
     if (isSimulation() == false && setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
@@ -1474,13 +1503,16 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     // AP:  TZ (0,12) West, (-1,-11), (>12,24) East
     // AP GTOCPX accepts a converted float
     double ap_utc_offset ;
-    if(utc_offset > 0. && utc_offset <=12.) {
-      ap_utc_offset = - utc_offset;
-    } else {
-      // Linux and Windows  seem to agree on negative to the West
-      //(TX=':Gg#'), RX='+77*01:42#
-      //(TX=':SG05:00:00#'), RX='1'
-      ap_utc_offset = utc_offset ;
+    if(utc_offset > 0. && utc_offset <= 12.)
+    {
+        ap_utc_offset = - utc_offset;
+    }
+    else
+    {
+        // Linux and Windows  seem to agree on negative to the West
+        //(TX=':Gg#'), RX='+77*01:42#
+        //(TX=':SG05:00:00#'), RX='1'
+        ap_utc_offset = utc_offset ;
     }
     if (!isSimulation() && setAPUTCOffset(PortFD, ap_utc_offset) < 0)
     {
@@ -1494,7 +1526,7 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 #ifdef no
     // 2020-06-02, wildi, done in UnPark()
     timeUpdated = true;
-    // 2020-05-22, wildi, do it once and at last 
+    // 2020-05-22, wildi, do it once and at last
     if (locationUpdated && timeUpdated && !mountInitialized)
         initMount();
 #endif
@@ -1506,12 +1538,13 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
     INDI_UNUSED(elevation);
 
     LOG_DEBUG("updateLocation entry");
-    
-    if ((latitude == 0.) && (longitude == 0.)) {
-      LOG_DEBUG("updateLocation: latitude, longitude both zero");
-      return false;
+
+    if ((latitude == 0.) && (longitude == 0.))
+    {
+        LOG_DEBUG("updateLocation: latitude, longitude both zero");
+        return false;
     }
-  
+
     if (!isSimulation() && setAPSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
         LOG_ERROR("Error setting site longitude coordinates");
@@ -1533,10 +1566,12 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
     // 2020-06-02, wildi, done in UnPark()
     locationUpdated = true;
 
-    if (locationUpdated && timeUpdated && !mountInitialized) { 
-      if (!initMount()) {
-	return false;
-      }
+    if (locationUpdated && timeUpdated && !mountInitialized)
+    {
+        if (!initMount())
+        {
+            return false;
+        }
     }
 #endif
     return true;
@@ -1568,8 +1603,8 @@ bool LX200AstroPhysicsExperimental::SetSlewRate(int index)
 
 bool LX200AstroPhysicsExperimental::Park()
 {
-  LOG_DEBUG("Park entry");
-  
+    LOG_DEBUG("Park entry");
+
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
@@ -1582,28 +1617,28 @@ bool LX200AstroPhysicsExperimental::Park()
     observer.lat = LocationN[LOCATION_LATITUDE].value;
     observer.lng = LocationN[LOCATION_LONGITUDE].value;
     if (observer.lng > 180)
-      observer.lng -= 360;
+        observer.lng -= 360;
 
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
     horizontalPos.az = parkAz + 180;
     if (horizontalPos.az > 360)
-      horizontalPos.az -= 360;
+        horizontalPos.az -= 360;
     horizontalPos.alt = parkAlt;
 
     ln_equ_posn equatorialPos;
     ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
     double lst = get_local_sidereal_time(observer.lng);
-    double ha = get_local_hour_angle(lst, equatorialPos.ra/15.);
-    
+    double ha = get_local_hour_angle(lst, equatorialPos.ra / 15.);
+
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
     HourangleCoordsN[1].value = equatorialPos.dec;
     IDSetNumber(&HourangleCoordsNP, nullptr);
-    
+
     if (isSimulation())
     {
-	
+
         Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
     else
@@ -1668,8 +1703,8 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
         // Park 3
         // Northern Hemisphere should be pointing at ALT=LAT AZ=0 with scope pointing NORTH with CW down
         // Southern Hemisphere should be pointing at ALT=LAT AZ=180 with scope pointing SOUTH with CW down
-	// wildi: the hour angle is undefined if AZ = 0,180 and ALT=LAT is chosen, adding .1 to Az sets PARK3
-	//        as close as possible to to HA = -6 hours (CW down), valid for both hemispheres.
+        // wildi: the hour angle is undefined if AZ = 0,180 and ALT=LAT is chosen, adding .1 to Az sets PARK3
+        //        as close as possible to to HA = -6 hours (CW down), valid for both hemispheres.
         case 3:
             *parkAlt = fabs(LocationN[LOCATION_LATITUDE].value);
             *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 0.1 : 179.9;
@@ -1699,45 +1734,54 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
 
 bool LX200AstroPhysicsExperimental::UnPark()
 {
-  
-  bool initpark = InitPark() ;
-  if (initpark) {
-    LOG_DEBUG("updateProperties: InitPark() ok");
-  } else {
-    LOG_DEBUG("updateProperties: InitPark() NOK");
-  }
-    
+
+    bool initpark = InitPark() ;
+    if (initpark)
+    {
+        LOG_DEBUG("updateProperties: InitPark() ok");
+    }
+    else
+    {
+        LOG_DEBUG("updateProperties: InitPark() NOK");
+    }
+
     LOG_DEBUG("Unpark: entry");
     // 2020-05-30, wildi, NO: if (!(locationUpdated && timeUpdated)) {
-    if (!(TimeTP.s== IPS_OK && LocationNP.s== IPS_OK)) {
-      LOG_WARN("UnPark: can not unpark, either missing location or time data");
-      IUResetSwitch(&UnparkFromSP);
-      UnparkFromSP.s = IPS_ALERT;
-      IDSetSwitch(&UnparkFromSP, nullptr);
-      return false;
+    if (!(TimeTP.s == IPS_OK && LocationNP.s == IPS_OK))
+    {
+        LOG_WARN("UnPark: can not unpark, either missing location or time data");
+        IUResetSwitch(&UnparkFromSP);
+        UnparkFromSP.s = IPS_ALERT;
+        IDSetSwitch(&UnparkFromSP, nullptr);
+        return false;
     }
 
     bool isAPParked = false;
-    if(isSimulation()) {
-      // ToDo, quick fix
-      isAPParked = true ;
-    } else {
-      if (!getMountStatus(&isAPParked)) {
-	// 2020-05-30, wildi, ToDo set INDI stuff
-	LOG_WARN("UnPark:could not determine AP park status");
-	IUResetSwitch(&UnparkFromSP);
-	UnparkFromSP.s = IPS_ALERT;
-	IDSetSwitch(&UnparkFromSP, nullptr);
-	return false;
-      }
+    if(isSimulation())
+    {
+        // ToDo, quick fix
+        isAPParked = true ;
     }
-    if(!isAPParked) {
-      // 2020-05-30, wildi, ToDo set INDI stuff
-      LOG_WARN("UnPark: AP mount status: unparked, park first");
-      IUResetSwitch(&UnparkFromSP);
-      UnparkFromSP.s = IPS_ALERT;
-      IDSetSwitch(&UnparkFromSP, nullptr);
-      return false;
+    else
+    {
+        if (!getMountStatus(&isAPParked))
+        {
+            // 2020-05-30, wildi, ToDo set INDI stuff
+            LOG_WARN("UnPark:could not determine AP park status");
+            IUResetSwitch(&UnparkFromSP);
+            UnparkFromSP.s = IPS_ALERT;
+            IDSetSwitch(&UnparkFromSP, nullptr);
+            return false;
+        }
+    }
+    if(!isAPParked)
+    {
+        // 2020-05-30, wildi, ToDo set INDI stuff
+        LOG_WARN("UnPark: AP mount status: unparked, park first");
+        IUResetSwitch(&UnparkFromSP);
+        UnparkFromSP.s = IPS_ALERT;
+        IDSetSwitch(&UnparkFromSP, nullptr);
+        return false;
     }
     // Check if we need to wake up IF:
     // 1. Park data exists in ParkData.xml
@@ -1745,129 +1789,155 @@ bool LX200AstroPhysicsExperimental::UnPark()
     // 3. Fallback INDI driver configuration
     ParkPosition current_unparkfromPos = (ParkPosition)IUFindOnSwitchIndex(&UnparkFromSP);
     LOGF_DEBUG("UnPark: current_unparkfromPos=%d ", current_unparkfromPos);
-    
+
     bool parkDataValid = (LoadParkData() == nullptr);
     bool parkDataValid_and_parked = false;
     bool driverConfig = loadConfig(false, UnparkFromSP.name);
     bool unpark_from_last_config = false;
-    if(parkDataValid) {
-      parkDataValid_and_parked = isParked();
-      if(parkDataValid_and_parked) {
-	if (driverConfig) {
-	  unpark_from_last_config = (PARK_LAST == IUFindOnSwitchIndex(&UnparkFromSP));
-	  if (unpark_from_last_config) {
-	    LOG_INFO("UnPark: mount is parked, has valid park data and driver config is set to PARK_LAST");
-	  }
-	} else {
-	  LOG_INFO("UnPark: mount is parked and has valid park data");
-	}
-      }
-    } else {
+    if(parkDataValid)
+    {
+        parkDataValid_and_parked = isParked();
+        if(parkDataValid_and_parked)
+        {
+            if (driverConfig)
+            {
+                unpark_from_last_config = (PARK_LAST == IUFindOnSwitchIndex(&UnparkFromSP));
+                if (unpark_from_last_config)
+                {
+                    LOG_INFO("UnPark: mount is parked, has valid park data and driver config is set to PARK_LAST");
+                }
+            }
+            else
+            {
+                LOG_INFO("UnPark: mount is parked and has valid park data");
+            }
+        }
+    }
+    else
+    {
     }
 
     double unparkAlt, unparkAz;
-    if(unpark_from_last_config && !parkDataValid_and_parked) {
-      // select first a park position and save it
-      if(parkDataValid) {
-	LOG_ERROR("UnPark: having valid park data but mount park state in ParkData.xml is false");
-      } else {
-	LOG_ERROR("UnPark: can not unpark, select a Park To position and save configuration");
-      }
-      IUResetSwitch(&UnparkFromSP);
-      UnparkFromSP.s = IPS_ALERT;
-      IDSetSwitch(&UnparkFromSP, nullptr);
-      return false;
-    } else if (unpark_from_last_config && parkDataValid_and_parked) {
-      // unpark from ParkData.xml
-      unparkAz = GetAxis1Park(); //Az
-      unparkAlt = GetAxis2Park(); //Alt
-      LOG_DEBUG("UnPark: unparking last, using ParkData.xml");
-      //} else if(!unpark_from_last_config && !parkDataValid_and_parked && driverConfig) {
-    } else if(!unpark_from_last_config && ( current_unparkfromPos != PARK_LAST)) {
-	LOGF_DEBUG("UnPark: park position = %d from current driver", current_unparkfromPos);
-	if (!calcParkPosition(current_unparkfromPos, &unparkAlt, &unparkAz))
-	  {
-	    LOG_ERROR("UnPark.current_unparkfrom: Error calculating unpark position!");
-	    IUResetSwitch(&UnparkFromSP);
-	    UnparkFromSP.s = IPS_ALERT;
-	    IDSetSwitch(&UnparkFromSP, nullptr);
-	    return false;
-	  }
-	LOGF_DEBUG("UnPark: parkPos=%d parkAlt=%f parkAz=%f", current_unparkfromPos, unparkAlt, unparkAz);
+    if(unpark_from_last_config && !parkDataValid_and_parked)
+    {
+        // select first a park position and save it
+        if(parkDataValid)
+        {
+            LOG_ERROR("UnPark: having valid park data but mount park state in ParkData.xml is false");
+        }
+        else
+        {
+            LOG_ERROR("UnPark: can not unpark, select a Park To position and save configuration");
+        }
+        IUResetSwitch(&UnparkFromSP);
+        UnparkFromSP.s = IPS_ALERT;
+        IDSetSwitch(&UnparkFromSP, nullptr);
+        return false;
+    }
+    else if (unpark_from_last_config && parkDataValid_and_parked)
+    {
+        // unpark from ParkData.xml
+        unparkAz = GetAxis1Park(); //Az
+        unparkAlt = GetAxis2Park(); //Alt
+        LOG_DEBUG("UnPark: unparking last, using ParkData.xml");
+        //} else if(!unpark_from_last_config && !parkDataValid_and_parked && driverConfig) {
+    }
+    else if(!unpark_from_last_config && ( current_unparkfromPos != PARK_LAST))
+    {
+        LOGF_DEBUG("UnPark: park position = %d from current driver", current_unparkfromPos);
+        if (!calcParkPosition(current_unparkfromPos, &unparkAlt, &unparkAz))
+        {
+            LOG_ERROR("UnPark.current_unparkfrom: Error calculating unpark position!");
+            IUResetSwitch(&UnparkFromSP);
+            UnparkFromSP.s = IPS_ALERT;
+            IDSetSwitch(&UnparkFromSP, nullptr);
+            return false;
+        }
+        LOGF_DEBUG("UnPark: parkPos=%d parkAlt=%f parkAz=%f", current_unparkfromPos, unparkAlt, unparkAz);
 
-    } else if(!unpark_from_last_config && parkDataValid_and_parked) {
-      // 2020-05-31, wildi, that's my humble decision
-      // InitPark is done early in updateProperties 
-      unparkAz = GetAxis1Park(); //Az
-      unparkAlt = GetAxis2Park(); //Alt
-      LOG_DEBUG("UnPark: unparking not last, using ParkData.xml");
-    } else {
-      //2020-06-02, wildi, ToDo stays green
-      IUResetSwitch(&ParkSP);
-      ParkS[0].s = ISS_ON;
-      ParkSP.s = IPS_ALERT;
-      IDSetSwitch(&ParkSP, nullptr);
-      LOGF_ERROR("UnPark: can not unpark, ParkData.xml's is: %s and mount is: %s during last session", parkDataValid ? "valid" : "invalid", parkDataValid_and_parked ? "parked" : "not parked");
-      LOG_INFO("UnPark: select an appropriate Park To position, park, write park data to file, save driver's configuration and unpark again using e.g. Last Parked.");
-      return false;
+    }
+    else if(!unpark_from_last_config && parkDataValid_and_parked)
+    {
+        // 2020-05-31, wildi, that's my humble decision
+        // InitPark is done early in updateProperties
+        unparkAz = GetAxis1Park(); //Az
+        unparkAlt = GetAxis2Park(); //Alt
+        LOG_DEBUG("UnPark: unparking not last, using ParkData.xml");
+    }
+    else
+    {
+        //2020-06-02, wildi, ToDo stays green
+        IUResetSwitch(&ParkSP);
+        ParkS[0].s = ISS_ON;
+        ParkSP.s = IPS_ALERT;
+        IDSetSwitch(&ParkSP, nullptr);
+        LOGF_ERROR("UnPark: can not unpark, ParkData.xml's is: %s and mount is: %s during last session",
+                   parkDataValid ? "valid" : "invalid", parkDataValid_and_parked ? "parked" : "not parked");
+        LOG_INFO("UnPark: select an appropriate Park To position, park, write park data to file, save driver's configuration and unpark again using e.g. Last Parked.");
+        return false;
     }
     SetAxis1ParkDefault(unparkAz);
     SetAxis2ParkDefault(unparkAlt);
-    if(!initpark) {
-      SetAxis1ParkDefault(unparkAz);
-      SetAxis2ParkDefault(unparkAlt);
+    if(!initpark)
+    {
+        SetAxis1ParkDefault(unparkAz);
+        SetAxis2ParkDefault(unparkAlt);
     }
-       
+
     // The AP :PO# should only be used during initilization and not here as indicated by email from Preston on 2017-12-12
     // 2020-05-27, wildi, ToDo taking care of above comment later
-    if(!isSimulation()) {
-      if (APUnParkMount(PortFD) < 0)
-	{
-	  IUResetSwitch(&ParkSP);
-	  ParkS[0].s = ISS_ON;
-	  ParkSP.s = IPS_ALERT;
-	  IDSetSwitch(&ParkSP, nullptr);
-	  LOG_ERROR("UnParking AP mount failed.");
-	  return false;
-	}
+    if(!isSimulation())
+    {
+        if (APUnParkMount(PortFD) < 0)
+        {
+            IUResetSwitch(&ParkSP);
+            ParkS[0].s = ISS_ON;
+            ParkSP.s = IPS_ALERT;
+            IDSetSwitch(&ParkSP, nullptr);
+            LOG_ERROR("UnParking AP mount failed.");
+            return false;
+        }
 
-      SetParked(false);
-      // Stop :Q#
-      if ( abortSlew(PortFD) < 0) {
-	IUResetSwitch(&ParkSP);
-	ParkS[0].s = ISS_ON;
-	ParkSP.s = IPS_ALERT;
-	IDSetSwitch(&ParkSP, nullptr);
-	LOG_WARN("Abort motion Failed");
-	return false;
-      }
-      // NO: Enable tracking
-      //2020-03-17, wildi, was SetTrackEnabled(true);
-      SetTrackEnabled(false);
-      TrackState = SCOPE_IDLE;
-    } else {
-      SetParked(false);
-      SetTrackEnabled(false);
-      TrackState = SCOPE_IDLE;
+        SetParked(false);
+        // Stop :Q#
+        if ( abortSlew(PortFD) < 0)
+        {
+            IUResetSwitch(&ParkSP);
+            ParkS[0].s = ISS_ON;
+            ParkSP.s = IPS_ALERT;
+            IDSetSwitch(&ParkSP, nullptr);
+            LOG_WARN("Abort motion Failed");
+            return false;
+        }
+        // NO: Enable tracking
+        //2020-03-17, wildi, was SetTrackEnabled(true);
+        SetTrackEnabled(false);
+        TrackState = SCOPE_IDLE;
     }
-    
+    else
+    {
+        SetParked(false);
+        SetTrackEnabled(false);
+        TrackState = SCOPE_IDLE;
+    }
+
     // 2020-04-18, wildi: do not copy yourself (see Park())
     ln_lnlat_posn observer;
     observer.lat = LocationN[LOCATION_LATITUDE].value;
     observer.lng = LocationN[LOCATION_LONGITUDE].value;
     if (observer.lng > 180)
-      observer.lng -= 360;
-    
+        observer.lng -= 360;
+
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
     horizontalPos.az = unparkAz + 180;
     if (horizontalPos.az > 360)
-      horizontalPos.az -= 360;
+        horizontalPos.az -= 360;
     horizontalPos.alt = unparkAlt;
-	
+
     ln_equ_posn equatorialPos;
     ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-    
+
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, unparkAz, 2, 3600);
     fs_sexa(AltStr, unparkAlt, 2, 3600);
@@ -1877,78 +1947,79 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
     // 2020-03-24, ToDo, clean up UnPark
     double lst = get_local_sidereal_time(observer.lng);
-    double ha = get_local_hour_angle(lst, equatorialPos.ra/15.);
+    double ha = get_local_hour_angle(lst, equatorialPos.ra / 15.);
     char HaStr[16];
-    fs_sexa(HaStr, ha , 2, 3600);
-    LOGF_DEBUG("UnPark: Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s), RA_deg: %f", AzStr, AltStr, HaStr, RaStr, DecStr, equatorialPos.ra);
-    
+    fs_sexa(HaStr, ha, 2, 3600);
+    LOGF_DEBUG("UnPark: Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s), RA_deg: %f", AzStr, AltStr, HaStr,
+               RaStr, DecStr, equatorialPos.ra);
+
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
     HourangleCoordsN[1].value = equatorialPos.dec;
     IDSetNumber(&HourangleCoordsNP, nullptr);
 
     Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
-    
+
 #ifdef no
     if (isSimulation())
-      {
-	// does not sync being in simulation
-	Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
-      }
+    {
+        // does not sync being in simulation
+        Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
+    }
     else
-      {
-	// 2020-03-17, wildi, why not sync in RA/dec?
-	if ((setAPObjectAZ(PortFD, unparkAz) < 0 || (setAPObjectAlt(PortFD, unparkAlt)) < 0))
-	  {
-	    LOG_ERROR("Error setting Az/Alt.");
-	    return false;
-	  }
-	
-	char syncString[256];
-	if (APSyncCM(PortFD, syncString) < 0)
-	  {
-	    LOG_WARN("Sync failed.");
-	    return false;
-	  }
-      }
+    {
+        // 2020-03-17, wildi, why not sync in RA/dec?
+        if ((setAPObjectAZ(PortFD, unparkAz) < 0 || (setAPObjectAlt(PortFD, unparkAlt)) < 0))
+        {
+            LOG_ERROR("Error setting Az/Alt.");
+            return false;
+        }
+
+        char syncString[256];
+        if (APSyncCM(PortFD, syncString) < 0)
+        {
+            LOG_WARN("Sync failed.");
+            return false;
+        }
+    }
 #endif
     // 2020-05-17, wildi, ToDo, Brsb.'s  Mike must confirm this
     AbortSP.s = IPS_OK;
     EqNP.s    = IPS_IDLE;
     IDSetSwitch(&AbortSP, "Any movement aborted.");
     IDSetNumber(&EqNP, nullptr);
-    
+
     if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
-      {
-	MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-	EqNP.s                          = IPS_IDLE;
-	IUResetSwitch(&MovementNSSP);
-	IUResetSwitch(&MovementWESP);
-	IDSetSwitch(&MovementNSSP, nullptr);
-	IDSetSwitch(&MovementWESP, nullptr);
-      }
+    {
+        MovementNSSP.s = MovementWESP.s = IPS_IDLE;
+        EqNP.s                          = IPS_IDLE;
+        IUResetSwitch(&MovementNSSP);
+        IUResetSwitch(&MovementWESP);
+        IDSetSwitch(&MovementNSSP, nullptr);
+        IDSetSwitch(&MovementWESP, nullptr);
+    }
     //
 #ifdef no
-    timeUpdated=false;
-    locationUpdated=false;
+    timeUpdated = false;
+    locationUpdated = false;
     //mountInitialized=false;
     if (!IsMountParked(&mountParked))
-      {
-	return false;
-      }
+    {
+        return false;
+    }
 #endif
     IUResetSwitch(&UnparkFromSP);
     UnparkFromSP.s = IPS_OK;
     ParkS[1].s = ISS_ON;
     IDSetSwitch(&UnparkFromSP, nullptr);
-    
+
     LOG_DEBUG("UnPark: Mount unparked successfully");
     return true;
 }
 
 bool LX200AstroPhysicsExperimental::SetCurrentPark()
 {
-  LOG_DEBUG("SetCurrentPark entry");
+    LOG_DEBUG("SetCurrentPark entry");
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
 
