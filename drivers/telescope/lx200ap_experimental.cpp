@@ -1500,19 +1500,16 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     LOGF_DEBUG("Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
 
     // 2020-05-30, wildi, after a very long journey
-    // AP:  TZ (0,12) West, (-1,-11), (>12,24) East
-    // AP GTOCPX accepts a converted float
-    double ap_utc_offset ;
-    if(utc_offset > 0. && utc_offset <= 12.)
+    // AP:  TZ (0,12): West, East (-12.,-0), (>12,24)
+    // Peru, Lima:
+    //(TX=':Gg#'), RX='+77*01:42#
+    //(TX=':SG05:00:00#'), RX='1'
+    // Linux/Windows TZ values: West: <=0, East >0
+    // AP GTOCPX accepts a converted float including 24.
+    double ap_utc_offset = - utc_offset;
+    if(utc_offset > 12.)
     {
-        ap_utc_offset = - utc_offset;
-    }
-    else
-    {
-        // Linux and Windows  seem to agree on negative to the West
-        //(TX=':Gg#'), RX='+77*01:42#
-        //(TX=':SG05:00:00#'), RX='1'
-        ap_utc_offset = utc_offset ;
+      ap_utc_offset = utc_offset;
     }
     if (!isSimulation() && setAPUTCOffset(PortFD, ap_utc_offset) < 0)
     {
@@ -1736,14 +1733,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
 {
 
     bool initpark = InitPark() ;
-    if (initpark)
-    {
-        LOG_DEBUG("updateProperties: InitPark() ok");
-    }
-    else
-    {
-        LOG_DEBUG("updateProperties: InitPark() NOK");
-    }
+    LOGF_DEBUG("updateProperties: InitPark() %s", initpark ? "OK" : "NOK");
 
     LOG_DEBUG("Unpark: entry");
     // 2020-05-30, wildi, NO: if (!(locationUpdated && timeUpdated)) {
