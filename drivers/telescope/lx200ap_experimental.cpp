@@ -2015,7 +2015,6 @@ bool LX200AstroPhysicsExperimental::UnPark()
         LOGF_ERROR("Error setting slew to rate (%d).", err);
         return false;
     }
-    LOGF_ERROR("Slew speed set to: %d.", (int)IUFindOnSwitchIndex(&APSlewSpeedSP));
 
     APSlewSpeedSP.s = IPS_OK;
     IDSetSwitch(&APSlewSpeedSP, nullptr);
