@@ -152,19 +152,19 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillSwitch(&ParkToS[2], "Park2", "Park2", ISS_ON);
     IUFillSwitch(&ParkToS[3], "Park3", "Park3", ISS_OFF);
     IUFillSwitch(&ParkToS[4], "Park4", "Park4", ISS_OFF);
-    IUFillSwitchVector(&ParkToSP, ParkToS, 5, getDeviceName(), "PARK_TO", "Park To?", SITE_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&ParkToSP, ParkToS, 5, getDeviceName(), "PARK_TO", "Park To?", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     IUFillText(&VersionT[0], "Version", "Version", "");
-    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", SITE_TAB, IP_RO, 0, IPS_IDLE);
 
     // UTC offset
     IUFillNumber(&APUTCOffsetN[0], "APUTC_OFFSET", "AP UTC offset", "%8.5f", 0.0, 24.0, 0.0, 0.);
-    IUFillNumberVector(&APUTCOffsetNP, APUTCOffsetN, 1, getDeviceName(), "APUTC_OFFSET", "AP UTC offset", MAIN_CONTROL_TAB,
+    IUFillNumberVector(&APUTCOffsetNP, APUTCOffsetN, 1, getDeviceName(), "APUTC_OFFSET", "AP UTC offset", SITE_TAB,
                        IP_RW, 60, IPS_OK);
     // sidereal time, ToDO move define where it belongs to
     IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "AP sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
-    IUFillNumberVector(&SiderealTimeNP, SiderealTimeN, 1, getDeviceName(), "SIDEREAL_TIME", "sidereal time", MAIN_CONTROL_TAB,
+    IUFillNumberVector(&SiderealTimeNP, SiderealTimeN, 1, getDeviceName(), "SIDEREAL_TIME", "sidereal time", SITE_TAB,
                        IP_RO, 60, IPS_OK);
 
     SetParkDataType(PARK_AZ_ALT);
@@ -189,9 +189,9 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
+        defineSwitch(&ParkToSP);
         defineText(&VersionInfo);
 
-        /* Motion group */
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
 #ifdef no
@@ -396,6 +396,7 @@ bool LX200AstroPhysicsExperimental::initMount()
             abortSlew(PortFD);
         }
     }
+
     mountInitialized = true;
 
 
@@ -626,11 +627,6 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
             SetAxis1ParkDefault(unparkAz);
             SetAxis2ParkDefault(unparkAlt);
             UnparkFromSP.s = IPS_OK;
-        }
-        else
-        {
-            UnparkFromSP.s = IPS_ALERT;
-            LOG_ERROR("ISNewSwitch: set park 1, 2, 3 or 4, PARK_LAST is not a defined park position");
         }
         // 2020-06-01, wildi, UnPark() relies on it
         saveConfig(true);
@@ -2002,6 +1998,27 @@ bool LX200AstroPhysicsExperimental::UnPark()
     UnparkFromSP.s = IPS_OK;
     ParkS[1].s = ISS_ON;
     IDSetSwitch(&UnparkFromSP, nullptr);
+    // SlewRateS is used as the MoveTo speed
+    int err;
+    if (!isSimulation() && (err = selectAPCenterRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP))) < 0)
+    {
+        LOGF_ERROR("Error setting center (MoveTo) rate (%d).", err);
+        return false;
+    }
+
+    SlewRateSP.s = IPS_OK;
+    IDSetSwitch(&SlewRateSP, nullptr);
+
+    // APSlewSpeedsS defines the Slew (GOTO) speeds valid on the AP mounts
+    if (!isSimulation() && (err = selectAPSlewRate(PortFD, IUFindOnSwitchIndex(&APSlewSpeedSP))) < 0)
+    {
+        LOGF_ERROR("Error setting slew to rate (%d).", err);
+        return false;
+    }
+    LOGF_ERROR("Slew speed set to: %d.", (int)IUFindOnSwitchIndex(&APSlewSpeedSP));
+
+    APSlewSpeedSP.s = IPS_OK;
+    IDSetSwitch(&APSlewSpeedSP, nullptr);
 
     LOG_DEBUG("UnPark: Mount unparked successfully");
     return true;
