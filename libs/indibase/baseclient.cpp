@@ -937,7 +937,7 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
     int rc = 0;
     uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * bp->size / 3 + 4));
     uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size);
-    assert(base64Len <= (4 * bp->size / 3 + 4));
+    assert(static_cast<int>(base64Len) <= (4 * bp->size / 3 + 4));
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", bp->name);
