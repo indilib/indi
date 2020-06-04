@@ -149,7 +149,6 @@ LilXML *newLilXML()
 {
     LilXML *lp = (LilXML *)moremem(NULL, sizeof *lp);
     memset(lp, 0, sizeof *lp);
-    assert(lp);
     initParser(lp);
     return (lp);
 }
@@ -237,7 +236,6 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
         if (!ltpos)
         {
             lp->ce->pcdata.s = (char *)moremem(lp->ce->pcdata.s, lp->ce->pcdata.sm + size);
-            assert(lp->ce->pcdata.s);
             lp->ce->pcdata.sm += size;
             memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
             lp->ce->pcdata.sl += size;
@@ -265,7 +263,6 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
                     blen += (blen / 72) + 1;
 
                     lp->ce->pcdata.s  = (char *)moremem(lp->ce->pcdata.s, blen);
-                    assert(lp->ce->pcdata.s);
                     lp->ce->pcdata.sm = blen; // always set sm
 
                     if (size <= blen - lp->ce->pcdata.sl)
@@ -282,7 +279,6 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[])
                 if (!ltpos)
                 {
                     lp->ce->pcdata.s = (char *)moremem(lp->ce->pcdata.s, lp->ce->pcdata.sm + size);
-                    assert(lp->ce->pcdata.s);
                     lp->ce->pcdata.sm += size;
                     memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
                     lp->ce->pcdata.sl += size;
@@ -653,7 +649,6 @@ XMLEle *addXMLEle(XMLEle *parent, const char *tag)
 void appXMLEle(XMLEle *ep, XMLEle *newep)
 {
     ep->el            = (XMLEle **)moremem(ep->el, (ep->nel + 1) * sizeof(XMLEle *));
-    assert(ep->el);
     ep->el[ep->nel++] = newep;
 }
 
@@ -830,7 +825,6 @@ char *entityXML(char *s)
         /* found another entity, copy preceding to malloced buffer */
         int nnew = ep - s; /* all but entity itself */
         sret = malbuf = moremem(malbuf, nmalbuf + nnew + 10);
-        assert(sret);
         memcpy(malbuf + nmalbuf, s, nnew);
         nmalbuf += nnew;
 
@@ -871,7 +865,6 @@ char *entityXML(char *s)
         /* put remaining part of s into malbuf */
         int nleft = strlen(s) + 1; /* include \0 */
         sret = malbuf = moremem(malbuf, nmalbuf + nleft);
-        assert(sret);
         memcpy(malbuf + nmalbuf, s, nleft);
     }
 
@@ -1180,7 +1173,6 @@ static void popXMLEle(LilXML *lp)
 static XMLEle *growEle(XMLEle *pe)
 {
     XMLEle *newe = (XMLEle *)moremem(NULL, sizeof(XMLEle));
-    assert(newe);
 
     memset(newe, 0, sizeof(XMLEle));
     newString(&newe->tag);
@@ -1190,7 +1182,6 @@ static XMLEle *growEle(XMLEle *pe)
     if (pe)
     {
         pe->el            = (XMLEle **)moremem(pe->el, (pe->nel + 1) * sizeof(XMLEle *));
-        assert(pe->el);
         pe->el[pe->nel++] = newe;
     }
 
@@ -1201,7 +1192,6 @@ static XMLEle *growEle(XMLEle *pe)
 static XMLAtt *growAtt(XMLEle *ep)
 {
     XMLAtt *newa = (XMLAtt *)moremem(NULL, sizeof *newa);
-    assert(newa);
 
     memset(newa, 0, sizeof(*newa));
     newString(&newa->name);
@@ -1209,7 +1199,6 @@ static XMLAtt *growAtt(XMLEle *ep)
     newa->ce = ep;
 
     ep->at            = (XMLAtt **)moremem(ep->at, (ep->nat + 1) * sizeof(XMLAtt *));
-    assert(ep->at);
     ep->at[ep->nat++] = newa;
 
     return (newa);
@@ -1251,7 +1240,6 @@ static void growString(String *sp, int c)
             newString(sp);
         else {
             sp->s = (char *)moremem(sp->s, sp->sm *= 2);
-            assert(sp->s);
         }
     }
     sp->s[--l] = '\0';
@@ -1274,7 +1262,6 @@ static void appendString(String *sp, const char *str)
             newString(sp);
         if (l > sp->sm) {
             sp->s = (char *)moremem(sp->s, (sp->sm = l));
-            assert(sp->s);
         }
     }
     if (sp->s)
@@ -1291,7 +1278,6 @@ static void newString(String *sp)
         return;
 
     sp->s  = (char *)moremem(NULL, MINMEM);
-    assert(sp->s);
     sp->sm = MINMEM;
     *sp->s = '\0';
     sp->sl = 0;
@@ -1310,7 +1296,12 @@ static void freeString(String *sp)
 /* like malloc but knows to use realloc if already started */
 static void *moremem(void *old, int n)
 {
-    return (old ? (*myrealloc)(old, n) : (*mymalloc)(n));
+    void *p = (old ? (*myrealloc)(old, n) : (*mymalloc)(n));
+    if (p == 0) {
+        fprintf(stderr, "%s(%s): Failed to allocate memory.\n", __FILE__, __func__);
+        exit(1);
+    }
+    return p;
 }
 
 #if defined(MAIN_TST)
