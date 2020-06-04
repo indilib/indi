@@ -27,7 +27,6 @@
 #include "lx200driver.h"
 #include "lx200apdriver.h"
 #include "lx200ap_experimentaldriver.h"
-#include "connectionplugins/connectioninterface.h"
 #include "connectionplugins/connectiontcp.h"
 
 #include <libnova/transform.h>
@@ -210,6 +209,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 
     if (isConnected())
     {
+        deleteProperty("TELESCOPE_PIER_SIDE");  
         defineText(&VersionInfo);
 
         /* Motion group */
@@ -269,16 +269,15 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         if (parkPos != PARK_CUSTOM)
         {
             double parkAz, parkAlt;
-
             if (calcParkPosition(parkPos, &parkAlt, &parkAz))
             {
                 SetAxis1Park(parkAz);
                 SetAxis2Park(parkAlt);
-                LOGF_DEBUG("Set predefined park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
+                LOGF_DEBUG("Set park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
             }
             else
             {
-                LOGF_ERROR("Unable to set predefined park position %d!!", parkPos);
+                LOGF_ERROR("Unable to set park position %d!!", parkPos);
             }
         }
 #endif
@@ -615,6 +614,7 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         IUUpdateSwitch(&UnparkFromSP, states, names, n);
         ParkPosition unparkPos = (ParkPosition)IUFindOnSwitchIndex(&UnparkFromSP);
 
+	UnparkFromSP.s = IPS_OK;
         if( unparkPos != PARK_LAST)
         {
             double unparkAlt, unparkAz;
@@ -626,7 +626,6 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
             LOGF_DEBUG("ISNewSwitch: parkPos=%d parkAlt=%f parkAz=%f", unparkPos, unparkAlt, unparkAz);
             SetAxis1ParkDefault(unparkAz);
             SetAxis2ParkDefault(unparkAlt);
-            UnparkFromSP.s = IPS_OK;
         }
         // 2020-06-01, wildi, UnPark() relies on it
         saveConfig(true);
@@ -1598,13 +1597,23 @@ bool LX200AstroPhysicsExperimental::Park()
 {
     LOG_DEBUG("Park entry");
 
-    double parkAz  = GetAxis1Park();
-    double parkAlt = GetAxis2Park();
+    ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
+    double parkAz, parkAlt;
+    if (calcParkPosition(parkPos, &parkAlt, &parkAz))
+    {
+      SetAxis1Park(parkAz);
+      SetAxis2Park(parkAlt);
+      LOGF_DEBUG("Set park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
+    }
+    else
+    {
+      LOGF_ERROR("Unable to set park position %d!!", parkPos);
+    }
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAz, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
-    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
+    LOGF_INFO("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
     ln_lnlat_posn observer;
     observer.lat = LocationN[LOCATION_LATITUDE].value;
@@ -1799,9 +1808,6 @@ bool LX200AstroPhysicsExperimental::UnPark()
             }
         }
     }
-    else
-    {
-    }
 
     double unparkAlt, unparkAz;
     if(unpark_from_last_config && !parkDataValid_and_parked)
@@ -1826,9 +1832,8 @@ bool LX200AstroPhysicsExperimental::UnPark()
         unparkAz = GetAxis1Park(); //Az
         unparkAlt = GetAxis2Park(); //Alt
         LOG_DEBUG("UnPark: unparking last, using ParkData.xml");
-        //} else if(!unpark_from_last_config && !parkDataValid_and_parked && driverConfig) {
     }
-    else if(!unpark_from_last_config && ( current_unparkfromPos != PARK_LAST))
+    else if(!unpark_from_last_config && (current_unparkfromPos != PARK_LAST))
     {
         LOGF_DEBUG("UnPark: park position = %d from current driver", current_unparkfromPos);
         if (!calcParkPosition(current_unparkfromPos, &unparkAlt, &unparkAz))
@@ -1936,8 +1941,8 @@ bool LX200AstroPhysicsExperimental::UnPark()
     double ha = get_local_hour_angle(lst, equatorialPos.ra / 15.);
     char HaStr[16];
     fs_sexa(HaStr, ha, 2, 3600);
-    LOGF_DEBUG("UnPark: Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s), RA_deg: %f", AzStr, AltStr, HaStr,
-               RaStr, DecStr, equatorialPos.ra);
+    LOGF_INFO("UnPark: Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr,
+               RaStr, DecStr);
 
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
@@ -1994,10 +1999,10 @@ bool LX200AstroPhysicsExperimental::UnPark()
         return false;
     }
 #endif
-    IUResetSwitch(&UnparkFromSP);
-    UnparkFromSP.s = IPS_OK;
-    ParkS[1].s = ISS_ON;
-    IDSetSwitch(&UnparkFromSP, nullptr);
+    // 2020-06-04, wildi, ToDo does not work
+    //IUResetSwitch(&UnparkFromSP);
+    //UnparkFromSP.s = IPS_OK;
+    //IDSetSwitch(&UnparkFromSP, nullptr);
     // SlewRateS is used as the MoveTo speed
     int err;
     if (!isSimulation() && (err = selectAPCenterRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP))) < 0)
