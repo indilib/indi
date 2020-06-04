@@ -162,8 +162,8 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillNumberVector(&APUTCOffsetNP, APUTCOffsetN, 1, getDeviceName(), "APUTC_OFFSET", "AP UTC offset", SITE_TAB,
                        IP_RW, 60, IPS_OK);
     // sidereal time, ToDO move define where it belongs to
-    IUFillNumber(&SiderealTimeN[0], "SIDEREAL_TIME", "AP sidereal time  H:M:S", "%10.6m", 0.0, 24.0, 0.0, 0.0);
-    IUFillNumberVector(&SiderealTimeNP, SiderealTimeN, 1, getDeviceName(), "SIDEREAL_TIME", "sidereal time", SITE_TAB,
+    IUFillNumber(&APSiderealTimeN[0], "AP_SIDEREAL_TIME", "AP sidereal time", "%10.6m", 0.0, 24.0, 0.0, 0.0);
+    IUFillNumberVector(&APSiderealTimeNP, APSiderealTimeN, 1, getDeviceName(), "AP_SIDEREAL_TIME", "ap sidereal time", SITE_TAB,
                        IP_RO, 60, IPS_OK);
 
     SetParkDataType(PARK_AZ_ALT);
@@ -220,7 +220,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 #endif
         defineSwitch(&APGuideSpeedSP);
         defineSwitch(&ParkToSP);
-        defineNumber(&SiderealTimeNP);
+        defineNumber(&APSiderealTimeNP);
         defineNumber(&HourangleCoordsNP);
         defineNumber(&APUTCOffsetNP);
 
@@ -293,7 +293,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         deleteProperty(APGuideSpeedSP.name);
         deleteProperty(ParkToSP.name);
         deleteProperty(APUTCOffsetNP.name);
-        deleteProperty(SiderealTimeNP.name);
+        deleteProperty(APSiderealTimeNP.name);
         deleteProperty(HourangleCoordsNP.name);
     }
 
@@ -358,8 +358,6 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
 
     return success;
 }
-
-
 
 #ifdef no
 bool LX200AstroPhysicsExperimental::initMount()
@@ -738,9 +736,9 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     {
         val = lst;
     }
-    SiderealTimeNP.np[0].value = val;
-    SiderealTimeNP.s           = IPS_IDLE;
-    IDSetNumber(&SiderealTimeNP, nullptr);
+    APSiderealTimeNP.np[0].value = val;
+    APSiderealTimeNP.s           = IPS_IDLE;
+    IDSetNumber(&APSiderealTimeNP, nullptr);
 
     if (isSimulation())
     {
