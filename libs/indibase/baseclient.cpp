@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <cstring>
 #include <algorithm>
+#include <assert.h>
 
 #ifdef _WINDOWS
 #include <WinSock2.h>
@@ -934,8 +935,14 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
     char nl = '\n';
     int rc = 0;
-    uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * bp->size / 3 + 4));
-    uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size);
+    size_t sz = 4 * bp->size / 3 + 4;
+    uint8_t *encblob = static_cast<uint8_t*>(malloc(sz));
+    assert_mem(encblob);
+    uint32_t base64Len = to64frombits_s(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size, sz);
+    if (base64Len == 0) {
+        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
+        exit(1);
+    }
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", bp->name);
@@ -981,8 +988,14 @@ void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, 
 {
     char nl = '\n';
     int rc = 0;
-    uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * blobSize / 3 + 4));
-    uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(blobBuffer), blobSize);
+    size_t sz = 4 * blobSize / 3 + 4;
+    uint8_t *encblob = static_cast<uint8_t*>(malloc(sz));
+    assert_mem(encblob);
+    uint32_t base64Len = to64frombits_s(encblob, reinterpret_cast<const uint8_t *>(blobBuffer), blobSize, sz);
+    if (base64Len == 0) {
+        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
+        exit(1);
+    }
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", blobName);
