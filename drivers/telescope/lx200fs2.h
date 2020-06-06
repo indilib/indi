@@ -29,7 +29,8 @@ class LX200FS2 : public LX200Generic
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    
   protected:
     virtual const char *getDefaultName() override;
     virtual bool isSlewComplete() override;
@@ -45,7 +46,11 @@ class LX200FS2 : public LX200Generic
 
     // Fake Location
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual bool ReadScopeStatus() override;
 
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
+    
+    ISwitchVectorProperty StopAfterParkSP;
+    ISwitch StopAfterParkS[2];
 };

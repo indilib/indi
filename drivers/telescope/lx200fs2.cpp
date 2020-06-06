@@ -42,9 +42,15 @@ bool LX200FS2::initProperties()
     IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
     IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillSwitchVector(&StopAfterParkSP, StopAfterParkS, 2, getDeviceName(), "Stop after Park", "Stop after Park", OPTIONS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitch(&StopAfterParkS[0], "ON", "ON", ISS_OFF);
+    IUFillSwitch(&StopAfterParkS[1], "OFF", "OFF", ISS_ON);
 
     SetParkDataType(PARK_AZ_ALT);
 
+    SetParked(true);
+    
+    
     return true;
 }
 
@@ -56,6 +62,7 @@ bool LX200FS2::updateProperties()
     {
         defineSwitch(&SlewRateSP);
         defineNumber(&SlewAccuracyNP);
+        defineSwitch(&StopAfterParkSP);
 
         if (InitPark())
         {
@@ -76,6 +83,7 @@ bool LX200FS2::updateProperties()
     {
         deleteProperty(SlewRateSP.name);
         deleteProperty(SlewAccuracyNP.name);
+        deleteProperty(StopAfterParkSP.name);
     }
 
     return true;
@@ -103,6 +111,37 @@ bool LX200FS2::ISNewNumber(const char *dev, const char *name, double values[], c
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
+bool LX200FS2::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(name, StopAfterParkSP.name))
+        {
+            // Find out which state is requested by the client
+            const char *actionName = IUFindOnSwitchName(states, names, n);
+            // If switch is the same state as actionName, then we do nothing.
+            int currentIndex = IUFindOnSwitchIndex(&StopAfterParkSP);
+            if (!strcmp(actionName, StopAfterParkS[currentIndex].name))
+            {
+                DEBUGF(INDI::Logger::DBG_SESSION, "Stop After Park is already %s", StopAfterParkS[currentIndex].label);
+                StopAfterParkSP.s = IPS_IDLE;
+                IDSetSwitch(&StopAfterParkSP, NULL);
+                return true;
+            }
+
+            // Otherwise, let us update the switch state
+            IUUpdateSwitch(&StopAfterParkSP, states, names, n);
+            currentIndex = IUFindOnSwitchIndex(&StopAfterParkSP);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Stop After Park is now %s", StopAfterParkS[currentIndex].label);
+            StopAfterParkSP.s = IPS_OK;
+            IDSetSwitch(&StopAfterParkSP, NULL);
+            return true;
+        }
+    }
+
+    return LX200Generic::ISNewSwitch(dev, name, states, names, n);
+}
+
 const char *LX200FS2::getDefaultName()
 {
     return "Astro-Electronic FS-2";
@@ -125,6 +164,7 @@ bool LX200FS2::saveConfigItems(FILE *fp)
     INDI::Telescope::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &SlewAccuracyNP);
+    IUSaveConfigSwitch(fp, &StopAfterParkSP);
 
     return true;
 }
@@ -165,13 +205,35 @@ bool LX200FS2::Park()
 
     if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
     {
-        TrackState = SCOPE_PARKING;
+        TrackState = SCOPE_PARKING;         
         LOG_INFO("Parking is in progress...");
 
         return true;
     }
     else
         return false;
+}
+
+bool LX200FS2::ReadScopeStatus()
+{
+    bool retval = LX200Generic::ReadScopeStatus();
+    // For FS-2 v1.21 owners, stop tracking once Parked.
+    if (retval && 
+        StopAfterParkS[0].s == ISS_ON &&
+        isConnected() && 
+        !isSimulation() &&
+        TrackState == SCOPE_PARKING)
+    {
+        if (isSlewComplete())
+        {
+            LOG_INFO("Mount is parked. Tracking stopped.");
+            updateSlewRate(SLEW_CENTERING);
+            MoveWE(DIRECTION_EAST, MOTION_START);
+            return true;
+        }
+    }
+    
+    return retval;
 }
 
 bool LX200FS2::UnPark()
@@ -211,6 +273,11 @@ bool LX200FS2::UnPark()
     if (Sync(equatorialPos.ra / 15.0, equatorialPos.dec))
     {
         SetParked(false);
+        //if( StopAfterParkS[0].s == ISS_ON)
+        {
+            MoveWE(DIRECTION_EAST, MOTION_STOP);
+            updateSlewRate(SLEW_MAX);
+        }
         return true;
     }
     else
