@@ -98,8 +98,8 @@ class LX200AstroPhysicsExperimental : public LX200Generic
 
     INumber HourangleCoordsN[2];
     INumberVectorProperty HourangleCoordsNP;
-    INumber SiderealTimeN[1];
-    INumberVectorProperty SiderealTimeNP;
+    INumber APSiderealTimeN[1];
+    INumberVectorProperty APSiderealTimeNP;
 
     INumber HorizontalCoordsN[2];
     INumberVectorProperty HorizontalCoordsNP;

@@ -237,7 +237,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         // displayed until they are set in UnPark()
         // load in config value for park to and initialize park position
         loadConfig(true, ParkToSP.name);
-        ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
+        ParkPosition parkPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&ParkToSP));
         LOGF_DEBUG("park position = %d", parkPos);
 
         // setup location
@@ -462,8 +462,6 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
     }
     if (!strcmp(name, HourangleCoordsNP.name))
     {
-        HourangleCoordsNP.s = IPS_BUSY;
-        IDSetNumber(&HourangleCoordsNP, nullptr);
 
         if (IUUpdateNumber(&HourangleCoordsNP, values, names, n) < 0)
             return false;
@@ -489,7 +487,6 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
         {
             HourangleCoordsNP.s = IPS_ALERT;
         }
-        HourangleCoordsNP.s = IPS_IDLE;
         IDSetNumber(&HourangleCoordsNP,  nullptr);
         return true;
     }
@@ -610,7 +607,7 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
     if (!strcmp(name, UnparkFromSP.name))
     {
         IUUpdateSwitch(&UnparkFromSP, states, names, n);
-        ParkPosition unparkPos = (ParkPosition)IUFindOnSwitchIndex(&UnparkFromSP);
+        ParkPosition unparkPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&UnparkFromSP));
 
 	UnparkFromSP.s = IPS_OK;
         if( unparkPos != PARK_LAST)
@@ -631,6 +628,7 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         return true;
     }
 
+#ifdef no
     // ===========================================================
     // Switch Park(ed), Unpark(ed)
     // ===========================================================
@@ -656,13 +654,14 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         IDSetSwitch(&ParkSP, nullptr);
         return true;
     }
+#endif
     // ===========================================================
     // Park To positions
     // ===========================================================
     if (!strcmp(name, ParkToSP.name))
     {
         IUUpdateSwitch(&ParkToSP, states, names, n);
-        ParkPosition parkPos = (ParkPosition) IUFindOnSwitchIndex(&ParkToSP);
+        ParkPosition parkPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&ParkToSP));
 
         LOGF_DEBUG("ISNewSwitch: ParkTo pos set to (%d).", parkPos);
 
@@ -719,8 +718,6 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     if (!isAPParked)
     {
         // in case of simulation, the coordinates are set on parking
-        HourangleCoordsNP.s = IPS_BUSY;
-        IDSetNumber(&HourangleCoordsNP, nullptr);
         HourangleCoordsN[0].value = get_local_hour_angle(lst, currentRA);
         HourangleCoordsN[1].value = currentDEC;
         HourangleCoordsNP.s = IPS_OK;
@@ -752,29 +749,29 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     }
     if (getLocalTime24(PortFD, &val) < 0)
     {
-        LOGF_DEBUG("Reading local time failed :GL %d", -1);
+        LOG_DEBUG("Reading local time failed :GL %d");
     }
     if (getLX200Az(PortFD, &val) < 0)
     {
-        LOGF_DEBUG("Reading Az failed :GZ %d", -1);
+        LOG_DEBUG("Reading Az failed :GZ %d");
     }
     if (getLX200Alt(PortFD, &val) < 0)
     {
-        LOGF_DEBUG("Reading Alt failed :GA %d", -1);
+        LOG_DEBUG("Reading Alt failed :GA %d");
     }
     if (getLX200RA(PortFD, &val) < 0)
     {
-        LOGF_DEBUG("Reading Ra failed :GR %d", -1);
+        LOG_DEBUG("Reading Ra failed :GR %d");
     }
     if (getLX200DEC(PortFD, &val) < 0)
     {
-        LOGF_DEBUG("Reading Dec failed :GD %d", -1);
+        LOG_DEBUG("Reading Dec failed :GD %d");
     }
     int ddd = 0;
     int fmm = 0;
     if (getSiteLongitude(PortFD, &ddd, &fmm) < 0)
     {
-        LOGF_DEBUG("Reading longitude failed :Gg %d", -1);
+        LOG_DEBUG("Reading longitude failed :Gg %d");
     }
     double val_utc_offset;
     if (!isSimulation() && getAPUTCOffset(PortFD, &val_utc_offset) < 0)
@@ -786,7 +783,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     // comment that out
     //char buf[64];
     //if (getCalendarDate(PortFD, buf) < 0) {
-    //  LOGF_DEBUG("Reading calendar day failed :GC %d", -1);
+    //  LOGF_DEBUG("Reading calendar day failed :GC %d");
     //}
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
@@ -1595,7 +1592,7 @@ bool LX200AstroPhysicsExperimental::Park()
 {
     LOG_DEBUG("Park entry");
 
-    ParkPosition parkPos = (ParkPosition)IUFindOnSwitchIndex(&ParkToSP);
+    ParkPosition parkPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&ParkToSP));
     double parkAz, parkAlt;
     if (calcParkPosition(parkPos, &parkAlt, &parkAz))
     {
@@ -1780,7 +1777,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
     // 1. Park data exists in ParkData.xml
     // 2. Mount is currently parked
     // 3. Fallback INDI driver configuration
-    ParkPosition current_unparkfromPos = (ParkPosition)IUFindOnSwitchIndex(&UnparkFromSP);
+    ParkPosition current_unparkfromPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&UnparkFromSP));
     LOGF_DEBUG("UnPark: current_unparkfromPos=%d ", current_unparkfromPos);
 
     bool parkDataValid = (LoadParkData() == nullptr);
