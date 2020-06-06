@@ -413,25 +413,25 @@ bool LX200Classic::Park()
 bool LX200Classic::UnPark()
 {
     // Parked in Land alignment. 
-    // Return to previous alignment as theUI switch is not updated
     int alignment = LX200_ALIGN_ALTAZ;
     
-    if (AlignmentS[LX200_ALIGN_ALTAZ].s == ISS_ON)
-    {
-        alignment = LX200_ALIGN_ALTAZ;
-        LOG_INFO("Continuing in AltAz alignment mode after unparking.");
-    }
-    else if (AlignmentS[LX200_ALIGN_LAND].s == ISS_ON)
-    {
-        alignment = LX200_ALIGN_LAND;
-        LOG_WARN("Continuing in land alignment mode after unparking.");
-    }
-    else
-    {
-        alignment = LX200_ALIGN_POLAR;
-       LOG_INFO("Continuing in Polar alignment mode after unparking.");
-    }
-    
+    //// Return to previous alignment as theUI switch is not updated
+    //if (AlignmentS[LX200_ALIGN_ALTAZ].s == ISS_ON)
+    //{
+        //alignment = LX200_ALIGN_ALTAZ;
+        //LOG_INFO("Continuing in AltAz alignment mode after unparking.");
+    //}
+    //else if (AlignmentS[LX200_ALIGN_LAND].s == ISS_ON)
+    //{
+        //alignment = LX200_ALIGN_LAND;
+        //LOG_WARN("Continuing in land alignment mode after unparking.");
+    //}
+    //else
+    //{
+        //alignment = LX200_ALIGN_POLAR;
+       //LOG_INFO("Continuing in Polar alignment mode after unparking.");
+    //}
+
     if (isSimulation() == false)
     {
         if (setAlignmentMode(PortFD, alignment) < 0)
@@ -545,27 +545,20 @@ bool LX200Classic::SetDefaultPark()
 
 bool LX200Classic::ReadScopeStatus()
 {
-    if (!isConnected())
-        return false;
-
-    if (isSimulation())
-    {
-        mountSim();
-        return true;
+    int curTrackState = TrackState;
+    
+    if (LX200Generic::ReadScopeStatus())
+    { 
+        if ((TrackState == SCOPE_PARKED) && (curTrackState == SCOPE_PARKING) && !isSimulation())
+        {
+            setAlignmentMode(PortFD, LX200_ALIGN_LAND);
+            
+            IUResetSwitch(&AlignmentSP);
+            AlignmentSP.s = IPS_OK;
+            AlignmentS[LX200_ALIGN_LAND].s = ISS_ON;
+            IDSetSwitch(&AlignmentSP, nullptr);
+        }
     }
-
-    if ((TrackState == SCOPE_PARKING) &&  (isSlewComplete()))
-    {
-        setAlignmentMode(PortFD, LX200_ALIGN_LAND);
-        
-        //IUResetSwitch(&AlignmentSP);
-        //AlignmentSP.s = IPS_OK;
-        //AlignmentS[LX200_ALIGN_LAND].s = ISS_ON;
-        //IDSetSwitch(&AlignmentSP, nullptr);
-    }
-
-    LX200Generic::ReadScopeStatus();
 
     return true;
 }
-
