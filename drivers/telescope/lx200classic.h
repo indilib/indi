@@ -38,6 +38,13 @@ class LX200Classic : public LX200Generic
         bool updateProperties() override;
         virtual bool saveConfigItems(FILE *fp) override;
 
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool ReadScopeStatus() override;
+
     private:
 
         ITextVectorProperty ObjectInfoTP;
