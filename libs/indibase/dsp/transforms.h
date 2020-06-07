@@ -27,36 +27,33 @@
 
 namespace DSP
 {
-class Transforms : public Interface
+class FourierTransform : public Interface
 {
 public:
-    Transforms(INDI::DefaultDevice *dev);
-    virtual ~Transforms();
+    FourierTransform(INDI::DefaultDevice *dev);
 
 protected:
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
-
-private:
-    void FourierTransform();
+    ~FourierTransform();
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 };
 
 class Spectrum : public Interface
 {
 public:
     Spectrum(INDI::DefaultDevice *dev);
-    virtual ~Spectrum();
 
 protected:
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
+    ~Spectrum();
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 };
 
 class Histogram : public Interface
 {
 public:
     Histogram(INDI::DefaultDevice *dev);
-    virtual ~Histogram();
 
 protected:
-    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample);
+    ~Histogram();
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 };
 }

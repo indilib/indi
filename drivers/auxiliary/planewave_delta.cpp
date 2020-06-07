@@ -89,7 +89,8 @@ bool DeltaT::initProperties()
 
     IUFillSwitch(&ForceS[FORCE_RESET], "FORCE_RESET", "Reset", ISS_OFF);
     IUFillSwitch(&ForceS[FORCE_BOOT], "FORCE_BOOT", "Boot", ISS_OFF);
-    IUFillSwitchVector(&ForceSP, ForceS, 2, getDeviceName(), "FORCE_CONTROL", "Force", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&ForceSP, ForceS, 2, getDeviceName(), "FORCE_CONTROL", "Force", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_IDLE);
 
     serialConnection = new Connection::Serial(this);
     serialConnection->registerHandshake([&]()
@@ -511,6 +512,47 @@ bool DeltaT::forceReset()
     cmd[4] = CMD_FORCE_RESET;
     cmd[5] = calculateCheckSum(cmd, 6);
     return sendCommand(cmd, nullptr, 6, 0);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Get Temperature
+/////////////////////////////////////////////////////////////////////////////
+bool DeltaT::readTemperature()
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        cmd[0] = DRIVER_SOM;
+        cmd[1] = 0x04;
+        cmd[2] = DEVICE_PC;
+        cmd[3] = DEVICE_TEMP;
+        cmd[4] = TEMP_GET;
+        cmd[5] = i + 1;
+        cmd[6] = calculateCheckSum(cmd, 7);
+
+        if (!sendCommand(cmd, res, 7, 8))
+            return false;
+
+        TemperatureN[i].value = calculateTemperature(res[6], res[5]);
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Calculate temperature from bytes
+/////////////////////////////////////////////////////////////////////////////
+double DeltaT::calculateTemperature(uint8_t byte2, uint8_t byte3)
+{
+    if (byte2 == 0x7F && byte3 == 0x7F)
+        return -100;
+
+    int raw_temperature = byte3 << 8 | byte2;
+    if (raw_temperature & 0x8000)
+        raw_temperature = raw_temperature - 0x10000;
+
+    return raw_temperature / 16.0;
 }
 
 /////////////////////////////////////////////////////////////////////////////

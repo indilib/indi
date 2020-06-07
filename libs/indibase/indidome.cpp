@@ -184,8 +184,8 @@ bool Dome::initProperties()
     // Backlash Compensation
     IUFillSwitch(&DomeBacklashS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&DomeBacklashS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&DomeBacklashSP, DomeBacklashS, 2, getDeviceName(), "DOME_BACKLASH_TOGGLE", "Backlash", OPTIONS_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&DomeBacklashSP, DomeBacklashS, 2, getDeviceName(), "DOME_BACKLASH_TOGGLE", "Backlash", OPTIONS_TAB,
+                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 
     // Backlash Compensation Value
@@ -724,10 +724,11 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         else if (strcmp(name, DomeBacklashSP.name) == 0)
         {
-            bool enabled = (!strcmp(IUFindOnSwitchName(states, names, n), DomeBacklashS[DefaultDevice::INDI_ENABLED].name));
-            bool rc = SetBacklashEnabled(enabled);
+            int prevIndex = IUFindOnSwitchIndex(&DomeBacklashSP);
+            IUUpdateSwitch(&DomeBacklashSP, states, names, n);
+            const bool enabled = IUFindOnSwitchIndex(&DomeBacklashSP) == INDI_ENABLED;
 
-            if (rc)
+            if (SetBacklashEnabled(enabled))
             {
                 IUUpdateSwitch(&DomeBacklashSP, states, names, n);
                 DomeBacklashSP.s = IPS_OK;
@@ -735,6 +736,8 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             }
             else
             {
+                IUResetSwitch(&DomeBacklashSP);
+                DomeBacklashS[prevIndex].s = ISS_ON;
                 DomeBacklashSP.s = IPS_ALERT;
                 LOG_ERROR("Failed to set trigger Dome backlash.");
             }

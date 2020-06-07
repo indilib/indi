@@ -31,17 +31,18 @@
 #define PEC_TAB "PEC"
 #define ALIGN_TAB "Align"
 #define OUTPUT_TAB "Outputs"
+#define ENVIRONMENT_TAB "Weather"
 
 #define ONSTEP_TIMEOUT  3
 #define RA_AXIS     0
 #define DEC_AXIS    1
 
-LX200_OnStep::LX200_OnStep() : LX200Generic()
+LX200_OnStep::LX200_OnStep() : LX200Generic() , WI(this)
 {
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 8);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 9);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
@@ -57,6 +58,8 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
 
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     // Unused option: FOCUSER_HAS_VARIABLE_SPEED
+    
+    
 }
 
 const char *LX200_OnStep::getDefaultName()
@@ -69,6 +72,7 @@ bool LX200_OnStep::initProperties()
 
     LX200Generic::initProperties();
     FI::initProperties(FOCUS_TAB);
+    WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
     SetParkDataType(PARK_RA_DEC);
 
     //FocuserInterface
@@ -307,9 +311,32 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[8], "Multi-Axis Tracking", "", "");
     IUFillTextVector(&OnstepStatTP, OnstepStat, 9, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
-
+    // ============== WEATHER TAB
+    // Uses OnStep's defaults for this
+    IUFillNumber(&OSSetTemperatureN[0], "Set Temperature (C)", "C", "%4.2f", -100, 100, 1, 10);//-274, 999, 1, 10);
+    IUFillNumberVector(&OSSetTemperatureNP, OSSetTemperatureN, 1, getDeviceName(), "Set Temperature (C)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE);
+    IUFillNumber(&OSSetHumidityN[0], "Set Relative Humidity (%)", "%", "%5.2f", 0, 100, 1, 70);
+    IUFillNumberVector(&OSSetHumidityNP, OSSetHumidityN, 1, getDeviceName(), "Set Relative Humidity (%)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE); 
+    IUFillNumber(&OSSetPressureN[0], "Set Pressure (hPa)", "hPa", "%4f", 500, 1500, 1, 1010);
+    IUFillNumberVector(&OSSetPressureNP, OSSetPressureN, 1, getDeviceName(), "Set Pressure (hPa)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE); 
     
-    setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
+    //Will eventually pull from the elevation in site settings
+    //TODO: Pull from elevation in site settings
+    IUFillNumber(&OSSetAltitudeN[0], "Set Altitude (m)", "m", "%4f", 0, 20000, 1, 110);
+    IUFillNumberVector(&OSSetAltitudeNP, OSSetAltitudeN, 1, getDeviceName(), "Set Altitude (m)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE); 
+    
+    
+    
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -40, 85, 15);
+    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
+    addParameter("WEATHER_BAROMETER", "Pressure (hPa)", 0, 1500, 15);
+    addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15); // From OnStep
+    setCriticalParameter("WEATHER_TEMPERATURE");
+    
+    addAuxControls();
+    
+    
+    setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE | WEATHER_INTERFACE);
 
     return true;
 }
@@ -324,7 +351,7 @@ bool LX200_OnStep::updateProperties()
 {
     LX200Generic::updateProperties();
     FI::updateProperties();
-
+    WI::updateProperties();
     if (isConnected())
     {
         // Firstinitialize some variables
@@ -337,6 +364,9 @@ bool LX200_OnStep::updateProperties()
 
         // Options
 
+        // OnStep Status
+        defineText(&OnstepStatTP);
+        
         // Motion Control
         defineNumber(&MaxSlewRateNP);
         defineSwitch(&TrackCompSP);
@@ -400,9 +430,13 @@ bool LX200_OnStep::updateProperties()
 #endif
 
         defineNumber(&OutputPorts_NP);
+        
+        //Weather
+        defineNumber(&OSSetTemperatureNP);
+        defineNumber(&OSSetPressureNP);
+        defineNumber(&OSSetHumidityNP);
+        defineNumber(&OSSetAltitudeNP);
 
-        // OnStep Status
-        defineText(&OnstepStatTP);
 
         if (InitPark())
         {
@@ -496,6 +530,14 @@ bool LX200_OnStep::updateProperties()
 
         // OnStep Status
         deleteProperty(OnstepStatTP.name);
+        
+        
+        //Weather
+        deleteProperty(OSSetTemperatureNP.name);
+        deleteProperty(OSSetPressureNP.name);
+        deleteProperty(OSSetHumidityNP.name);
+        deleteProperty(OSSetAltitudeNP.name);
+        
     }
     return true;
 }
@@ -768,6 +810,73 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             }
         }
         return true;
+    }
+    //Weather not handled by Weather Interface
+
+    if (!strcmp(name, OSSetTemperatureNP.name))
+    {
+        char cmd[32];
+        
+        if ((values[0] >= -100) && (values[0] <= 100))
+        {
+            snprintf(cmd, 15, ":SX9A,%d#", (int)values[0]);
+            sendOnStepCommandBlind(cmd);
+            OSSetTemperatureNP.s           = IPS_OK;
+            IDSetNumber(&OSSetTemperatureNP, "Temperature set to %d", (int)values[0]);
+        }
+        else
+        {
+            OSSetTemperatureNP.s = IPS_ALERT;
+            IDSetNumber(&OSSetTemperatureNP, "Setting Temperature Failed");
+        }
+        return true;
+    }
+    
+    if (!strcmp(name, OSSetHumidityNP.name))
+    {
+        char cmd[32];
+        
+        if ((values[0] >= 0) && (values[0] <= 100))
+        {
+            snprintf(cmd, 15, ":SX9C,%d#", (int)values[0]);
+            sendOnStepCommandBlind(cmd);
+            OSSetHumidityNP.s           = IPS_OK;
+            IDSetNumber(&OSSetHumidityNP, "Humidity set to %d", (int)values[0]);
+        }
+        else
+        {
+            OSSetHumidityNP.s = IPS_ALERT;
+            IDSetNumber(&OSSetHumidityNP, "Setting Humidity Failed");
+        }
+        return true;
+    }
+    
+    if (!strcmp(name, OSSetPressureNP.name))
+    {
+        char cmd[32];
+        
+        if ((values[0] >= 0) && (values[0] <= 100))
+        {
+            snprintf(cmd, 15, ":SX9B,%d#", (int)values[0]);
+            sendOnStepCommandBlind(cmd);
+            OSSetPressureNP.s           = IPS_OK;
+            IDSetNumber(&OSSetPressureNP, "Pressure set to %d", (int)values[0]);
+        }
+        else
+        {
+            OSSetPressureNP.s = IPS_ALERT;
+            IDSetNumber(&OSSetPressureNP, "Setting Pressure Failed");
+        }
+        return true;
+    }
+    
+    
+    
+    
+    
+    if (strstr(name, "WEATHER_"))
+    {
+        return WI::processNumber(dev, name, values, names, n);
     }
 
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
@@ -1977,6 +2086,28 @@ bool LX200_OnStep::ReadScopeStatus()
     //TODO: Rotator support
     
     
+    //Weather update
+    getCommandString(PortFD,TempValue, ":GX9A#"); 
+    setParameterValue("WEATHER_TEMPERATURE", std::stod(TempValue));
+    getCommandString(PortFD,TempValue, ":GX9C#"); 
+    setParameterValue("WEATHER_HUMIDITY", std::stod(TempValue));
+    getCommandString(PortFD,TempValue, ":GX9B#"); 
+    setParameterValue("WEATHER_BAROMETER", std::stod(TempValue));
+    getCommandString(PortFD,TempValue, ":GX9E#"); 
+    setParameterValue("WEATHER_DEWPOINT", std::stod(TempValue));
+    
+    //Disabled, because this is supplied via Kstars or other location, no sensor to read this
+    //getCommandString(PortFD,TempValue, ":GX9D#"); 
+    //setParameterValue("WEATHER_ALTITUDE", std::stod(TempValue));
+    WI::updateProperties();
+    
+    if (WI::syncCriticalParameters())
+        IDSetLight(&critialParametersLP, nullptr);
+    ParametersNP.s = IPS_OK;
+    IDSetNumber(&ParametersNP, nullptr);
+    
+    
+    
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, nullptr);
     //Align tab, so it doesn't conflict
@@ -1991,7 +2122,7 @@ bool LX200_OnStep::ReadScopeStatus()
     //#Gu# has this built in
     #endif
     
-    
+   
     NewRaDec(currentRA, currentDEC);
     return true;
 }

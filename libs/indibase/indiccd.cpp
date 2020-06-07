@@ -31,7 +31,6 @@
 
 #include "fpack/fpack.h"
 #include "indicom.h"
-#include "stream/streammanager.h"
 #include "locale_compat.h"
 
 #include <fitsio.h>
@@ -143,16 +142,8 @@ void CCD::SetCCDCapability(uint32_t cap)
     else
         setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);
 
-    if (HasStreaming() && Streamer.get() == nullptr)
-    {
-        Streamer.reset(new StreamManager(this));
-        Streamer->initProperties();
-    }
-
-    if (HasDSP() && DSP.get() == nullptr)
-    {
-        DSP.reset(new DSP::Manager(this));
-    }
+    HasStreaming();
+    HasDSP();
 }
 
 bool CCD::initProperties()
@@ -201,15 +192,15 @@ bool CCD::initProperties()
                        IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Info
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y], "CCD_MAX_Y", "Max. Height", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE], "CCD_PIXEL_SIZE", "Pixel size (um)", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%.f", 1, 16000, 0, 0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y], "CCD_MAX_Y", "Max. Height", "%.f", 1, 16000, 0, 0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE], "CCD_PIXEL_SIZE", "Pixel size (um)", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X], "CCD_PIXEL_SIZE_X", "Pixel size X", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X], "CCD_PIXEL_SIZE_X", "Pixel size X", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y], "CCD_PIXEL_SIZE_Y", "Pixel size Y", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y], "CCD_PIXEL_SIZE_Y", "Pixel size Y", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%3.0f",
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%.f",
                  8, 64, 0, 0);
     IUFillNumberVector(&PrimaryCCD.ImagePixelSizeNP, PrimaryCCD.ImagePixelSizeN, 6, getDeviceName(), "CCD_INFO",
                        "CCD Information", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
@@ -1196,14 +1187,20 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         // Primary CCD Info
         if (!strcmp(name, PrimaryCCD.ImagePixelSizeNP.name))
         {
-            IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n);
-            PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value,
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, PrimaryCCD.getBPP(),
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
+            if (IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n) == 0)
+            {
+                PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
+                SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value,
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value,
+                             PrimaryCCD.getBPP(),
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
+                saveConfig(true, PrimaryCCD.ImagePixelSizeNP.name);
+            }
+            else
+                PrimaryCCD.ImagePixelSizeNP.s = IPS_ALERT;
+
             IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, nullptr);
-            saveConfig(true);
             return true;
         }
 
@@ -1982,7 +1979,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
     {
         uint8_t* buf = static_cast<uint8_t*>(malloc(targetChip->getFrameBufferSize()));
         memcpy(buf, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
-        DSP->processBLOB(buf, 2, new int[2] { targetChip->getSubW() / targetChip->getBinX(), targetChip->getSubH() / targetChip->getBinY() },
+        DSP->processBLOB(buf, 2, new int[2] { targetChip->getXRes() / targetChip->getBinX(), targetChip->getYRes() / targetChip->getBinY() },
                          targetChip->getBPP());
         free(buf);
     }
@@ -2939,7 +2936,7 @@ bool CCD::saveConfigItems(FILE * fp)
         IUSaveConfigNumber(fp, &GuideCCD.ImageBinNP);
     }
 
-    if (CanSubFrame())
+    if (CanSubFrame() && PrimaryCCD.ImageFrameN[2].value > 0)
         IUSaveConfigNumber(fp, &PrimaryCCD.ImageFrameNP);
 
     if (CanBin())

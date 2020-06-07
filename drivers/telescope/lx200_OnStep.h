@@ -23,6 +23,13 @@
 
     ===========================================
     
+    Version not yet updated: 
+    - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
+    
+    Version 1.9:
+    - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
+    - Bugfix: Slew speed
+    
     Version 1.8: 
     - Bugfixes for FORK mounted scopes
     
@@ -78,6 +85,7 @@
 #include "lx200driver.h"
 #include "indicom.h"
 #include "indifocuserinterface.h"
+#include "indiweatherinterface.h"
 
 #include <cstring>
 #include <unistd.h>
@@ -106,7 +114,7 @@ enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BO
 
 enum MountType {MOUNTTYPE_GEM, MOUNTTYPE_FORK, MOUNTTYPE_FORK_ALT, MOUNTTYPE_ALTAZ};
 
-class LX200_OnStep : public LX200Generic
+class LX200_OnStep : public LX200Generic , public INDI::WeatherInterface
 {
   public:
     LX200_OnStep();
@@ -323,6 +331,29 @@ class LX200_OnStep : public LX200Generic
     bool OSSupports_bitfield_Gu = false;
     uint8_t PECStatusGU = 0;
     uint8_t ParkStatusGU = 0;
+    
+    // Weather support
+    // NOTE: Much is handled by WeatherInterface, these controls are mainly for setting values which are not detected
+    // As of right now, if there is a sensor the values will be overwritten on the next update
+    
+
+    INumberVectorProperty OSSetTemperatureNP;
+    INumber OSSetTemperatureN[1];
+    INumberVectorProperty OSSetHumidityNP;
+    INumber OSSetHumidityN[1];
+    INumberVectorProperty OSSetPressureNP;
+    INumber OSSetPressureN[1];
+    //Not sure why this would be used, but will feed to it from site settings
+    INumberVectorProperty OSSetAltitudeNP;
+    INumber OSSetAltitudeN[1];
+    
+    
+    //This is updated via other commands, as such I'm going to ignore it like some others do. 
+    virtual IPState updateWeather() override
+    {
+        return IPS_OK;
+    }
+    
     
     
   private:
