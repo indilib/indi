@@ -1384,10 +1384,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IUResetSwitch(&ParkOptionSP);
 
             bool rc = false;
-	    // 2020-06-01, wildi, why not writing while parked, slewing, ...?
-	    // In case the driver died, one can not set it to true again,
-	    // without editing the ParkData.xml
-#ifdef no
+
             if ((TrackState != SCOPE_IDLE && TrackState != SCOPE_TRACKING) || MovementNSSP.s == IPS_BUSY ||
                     MovementWESP.s == IPS_BUSY)
             {
@@ -1396,7 +1393,6 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 IDSetSwitch(&ParkOptionSP, nullptr);
                 return false;
             }
-#endif
 
             switch (index)
             {
