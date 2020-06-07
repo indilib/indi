@@ -131,51 +131,6 @@ bool LX200Classic::updateProperties()
             SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
             SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
-        
-        if (LX200Generic::isParked())
-        {
-            LOG_INFO("Try to reset object coordinates for EKOS UI");
-            double parkAz  = GetAxis1Park();
-            double parkAlt = GetAxis2Park();
-            
-            char AzStr[16], AltStr[16];
-            fs_sexa(AzStr, parkAz, 2, 3600);
-            fs_sexa(AltStr, parkAlt, 2, 3600);
-            LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
-
-            //LX200 classic set target in RA/Dec
-            ln_lnlat_posn observer;
-            observer.lat = LocationN[LOCATION_LATITUDE].value;
-            observer.lng = LocationN[LOCATION_LONGITUDE].value;
-            if (observer.lng > 180)
-                observer.lng -= 360;
-
-            ln_hrz_posn horizontalPos;
-            // Libnova south = 0, west = 90, north = 180, east = 270
-
-            horizontalPos.az = parkAz + 180;
-            if (horizontalPos.az > 360)
-                horizontalPos.az -= 360;
-            horizontalPos.alt = parkAlt;
-
-            ln_equ_posn equatorialPos;
-
-            ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-            LOGF_DEBUG("Reseting to RA (%f) DEC (%f)...", equatorialPos.ra / 15.0, equatorialPos.dec);
-            if ((setObjectRA(PortFD, equatorialPos.ra / 15.0) < 0) || (setObjectDEC(PortFD, equatorialPos.dec) < 0))
-            {
-                LOG_ERROR("Error setting Reset RA/Dec.");
-                return false;
-            }
-            
-            currentRA = equatorialPos.ra / 15.0;
-            currentDEC = equatorialPos.dec;
-            NewRaDec(currentRA, currentDEC);
-
-            
-        }
-        
 
         return true;
     }
@@ -392,13 +347,9 @@ bool LX200Classic::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Unpark Alignment Mode
         if (!strcmp(name, UnparkAlignmentSP.name))
         {
-            //IUResetSwitch(&UnparkAlignmentSP);
             IUUpdateSwitch(&UnparkAlignmentSP, states, names, n);
             UnparkAlignmentSP.s = IPS_OK;
             IDSetSwitch(&UnparkAlignmentSP, nullptr);
-            
-            index = IUFindOnSwitchIndex(&UnparkAlignmentSP);
-            LOGF_INFO("ISNewSwitch() UnparkAlignmentSP %d", index);
 
             return true;
         }
@@ -423,8 +374,6 @@ bool LX200Classic::saveConfigItems(FILE *fp)
 //Parking
 bool LX200Classic::Park()
 {
-    //const struct timespec timeout = {0, 100000000L};
-    
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
     
@@ -461,71 +410,13 @@ bool LX200Classic::Park()
     UnparkAlignmentS[curAlignment].s = ISS_ON;
     UnparkAlignmentSP.s = IPS_OK;
     IDSetSwitch(&UnparkAlignmentSP, nullptr);
-    
-    int index = IUFindOnSwitchIndex(&UnparkAlignmentSP);
-    LOGF_INFO("Park() UnparkAlignmentSP %d", index);
-
     saveConfig(true, UnparkAlignmentSP.name);
 
-
-    if (isSimulation())
+    if (!Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
     {
-        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
-    }
-    else
-    {
-        //// If scope is moving, let's stop it first.
-        //if (EqNP.s == IPS_BUSY)
-        //{
-            //if (!isSimulation() && abortSlew(PortFD) < 0)
-            //{
-                //AbortSP.s = IPS_ALERT;
-                //IDSetSwitch(&AbortSP, "Abort slew failed.");
-                //return false;
-            //}
-
-            //AbortSP.s = IPS_OK;
-            //EqNP.s    = IPS_IDLE;
-            //IDSetSwitch(&AbortSP, "Slew aborted.");
-            //IDSetNumber(&EqNP, nullptr);
-
-            //if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
-            //{
-                //MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-                //EqNP.s                          = IPS_IDLE;
-                //IUResetSwitch(&MovementNSSP);
-                //IUResetSwitch(&MovementWESP);
-
-                //IDSetSwitch(&MovementNSSP, nullptr);
-                //IDSetSwitch(&MovementWESP, nullptr);
-            //}
-
-            //// sleep for 100 msec
-            //nanosleep(&timeout, nullptr);
-        //}
-
-        //if ((setObjectRA(PortFD, equatorialPos.ra / 15.0) < 0) || (setObjectDEC(PortFD, equatorialPos.dec) < 0))
-        //{
-            //LOG_ERROR("Error setting Park RA/Dec.");
-            //return false;
-        //}
-
-        //int err = 0;
-
-        ///* Slew reads the '0', that is not the end of the slew */
-        //if ((err = Slew(PortFD)))
-        //{
-            //LOGF_ERROR("Park Error Slewing to Az %s - Alt %s", AzStr, AltStr);
-            //slewError(err);
-            //return false;
-        //}
-        
-        if (!Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
-        {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Parking Failed.");
-            return false;
-        }
+        ParkSP.s = IPS_ALERT;
+        IDSetSwitch(&ParkSP, "Parking Failed.");
+        return false;
     }
 
     EqNP.s     = IPS_BUSY;
@@ -539,10 +430,8 @@ bool LX200Classic::UnPark()
 {
     if (isSimulation() == false)
     {
-        // Parked in Land alignment. Restore previuos mode.
-        int oldAlignment = IUFindOnSwitchIndex(&UnparkAlignmentSP);
-    
-        if (setAlignmentMode(PortFD, oldAlignment) < 0)
+        // Parked in Land alignment. Restore previous mode.
+        if (setAlignmentMode(PortFD, IUFindOnSwitchIndex(&UnparkAlignmentSP)) < 0)
         {
             LOG_ERROR("UnParking Failed.");
             return false;
