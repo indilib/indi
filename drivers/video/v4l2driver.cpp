@@ -53,6 +53,7 @@ static const PixelSizeInfo pixelSizeInfo[] =
     { "Skyris 236M", nullptr, 2.8f, -1, false },
     { "iOptron iPolar: iOptron iPolar", nullptr, 3.75f, -1, true },
     { "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
+    { "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
     { nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
 };
 

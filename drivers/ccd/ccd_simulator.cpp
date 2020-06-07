@@ -1413,21 +1413,28 @@ bool CCDSim::UpdateCCDFrame(int x, int y, int w, int h)
 
 bool CCDSim::UpdateCCDBin(int hor, int ver)
 {
-    if (hor == 3 || ver == 3)
+    if (PrimaryCCD.getSubW() % hor != 0 || PrimaryCCD.getSubH() % ver != 0)
     {
-        LOG_ERROR("3x3 binning is not supported.");
+        LOGF_ERROR("%dx%d binning is not supported.", hor, ver);
         return false;
     }
 
-    long bin_width  = PrimaryCCD.getSubW() / hor;
-    long bin_height = PrimaryCCD.getSubH() / ver;
-
-    bin_width  = bin_width - (bin_width % 2);
-    bin_height = bin_height - (bin_height % 2);
-
+    uint32_t bin_width  = PrimaryCCD.getSubW() / hor;
+    uint32_t bin_height = PrimaryCCD.getSubH() / ver;
     Streamer->setSize(bin_width, bin_height);
 
     return INDI::CCD::UpdateCCDBin(hor, ver);
+}
+
+bool CCDSim::UpdateGuiderBin(int hor, int ver)
+{
+    if (GuideCCD.getSubW() % hor != 0 || GuideCCD.getSubH() % ver != 0)
+    {
+        LOGF_ERROR("%dx%d binning is not supported.", hor, ver);
+        return false;
+    }
+
+    return INDI::CCD::UpdateGuiderBin(hor, ver);
 }
 
 void * CCDSim::streamVideoHelper(void * context)

@@ -45,6 +45,8 @@
 #define _USE_MATH_DEFINES
 #endif
 
+#include <math.h>
+
 #define J2000       2451545.0
 #define ERRMSG_SIZE 1024
 
@@ -387,7 +389,7 @@ double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wa
  * @param incident_surface The incident surface in square meters
  * @return the relative magnitude of the object observed
  */
-double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double incident_surface);
+double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double steradian);
 
 /**
  * @brief estimate_absolute_magnitude Returns an estimation of the absolute magnitude of an object given its distance and the difference of its magnitude with a reference object
