@@ -382,26 +382,10 @@ bool LX200Classic::Park()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    //LX200 classic set target in RA/Dec
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    horizontalPos.az = parkAz + 180;
-    if (horizontalPos.az > 360)
-        horizontalPos.az -= 360;
-    horizontalPos.alt = parkAlt;
-
-    ln_equ_posn equatorialPos;
-
-    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-    LOGF_DEBUG("Parking to RA (%f) DEC (%f)...", equatorialPos.ra / 15.0, equatorialPos.dec);
+    double parkRA  = 0.0;
+    double parkDEC = 0.0;
+    azAltToRaDecNow(parkAz, parkAlt, parkRA, parkDEC);
+    LOGF_DEBUG("Parking to RA (%f) DEC (%f)...", parkRA, parkDEC);
     
     //save the current AlignmentMode to UnparkAlignment
     LX200Generic::getAlignment();
@@ -412,7 +396,7 @@ bool LX200Classic::Park()
     IDSetSwitch(&UnparkAlignmentSP, nullptr);
     saveConfig(true, UnparkAlignmentSP.name);
 
-    if (!Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
+    if (!Goto(parkRA, parkDEC))
     {
         ParkSP.s = IPS_ALERT;
         IDSetSwitch(&ParkSP, "Parking Failed.");
@@ -434,6 +418,8 @@ bool LX200Classic::UnPark()
         if (setAlignmentMode(PortFD, IUFindOnSwitchIndex(&UnparkAlignmentSP)) < 0)
         {
             LOG_ERROR("UnParking Failed.");
+            AlignmentSP.s = IPS_ALERT;
+            IDSetSwitch(&AlignmentSP, "Error setting alignment mode.");
             return false;
         }
         //Update the UI
@@ -449,32 +435,18 @@ bool LX200Classic::UnPark()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     LOGF_DEBUG("Syncing to parked coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    horizontalPos.az = parkAz + 180;
-    if (horizontalPos.az > 360)
-        horizontalPos.az -= 360;
-    horizontalPos.alt = parkAlt;
-
-    ln_equ_posn equatorialPos;
-
-    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    double parkRA  = 0.0;
+    double parkDEC = 0.0;
+    azAltToRaDecNow(parkAz, parkAlt, parkRA, parkDEC);
 
     if (isSimulation())
     {
-        currentRA = equatorialPos.ra / 15.0;
-        currentDEC= equatorialPos.dec;
+        currentRA = parkRA;
+        currentDEC= parkDEC;
     }
     else
     {
-        if ((setObjectRA(PortFD, equatorialPos.ra / 15.0) < 0) || (setObjectDEC(PortFD, equatorialPos.dec) < 0))
+        if ((setObjectRA(PortFD, parkRA) < 0) || (setObjectDEC(PortFD, parkDEC) < 0))
         {
             LOG_ERROR("Error setting Unpark RA/Dec.");
             return false;
@@ -494,29 +466,13 @@ bool LX200Classic::UnPark()
 
 bool LX200Classic::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = currentRA * 15;
-    equatorialPos.dec = currentDEC;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    double parkAZ = horizontalPos.az - 180;
-    if (parkAZ < 0)
-        parkAZ += 360;
-    double parkAlt = horizontalPos.alt;
-
+    double parkAZ = 0.0;
+    double parkAlt = 0.0;
+    raDecToAzAltNow(currentRA, currentDEC, parkAZ, parkAlt);
+    
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
-
     LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
 
     SetAxis1Park(parkAZ);
@@ -544,7 +500,13 @@ bool LX200Classic::ReadScopeStatus()
     { 
         if ((TrackState == SCOPE_PARKED) && (curTrackState == SCOPE_PARKING) && !isSimulation())
         {
-            setAlignmentMode(PortFD, LX200_ALIGN_LAND);
+            if (setAlignmentMode(PortFD, LX200_ALIGN_LAND) < 0)
+            {
+                LOG_ERROR("Parking Failed.");
+                AlignmentSP.s = IPS_ALERT;
+                IDSetSwitch(&AlignmentSP, "Error setting alignment mode.");
+                return false;
+            }
             //Update the UI
             LX200Generic::getAlignment();
         }
@@ -552,3 +514,54 @@ bool LX200Classic::ReadScopeStatus()
 
     return true;
 }
+
+void LX200Classic::azAltToRaDecNow(double az, double alt, double &ra, double &dec)
+{
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+
+    horizontalPos.az = az + 180;
+    if (horizontalPos.az > 360)
+        horizontalPos.az -= 360;
+    horizontalPos.alt = alt;
+
+    ln_equ_posn equatorialPos;
+
+    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    
+    ra = equatorialPos.ra / 15.0;
+    dec = equatorialPos.dec;
+    
+    return;
+}
+
+void LX200Classic::raDecToAzAltNow(double ra, double dec, double &az, double &alt)
+{
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+        observer.lng -= 360;
+        
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+
+    ln_equ_posn equatorialPos;
+    equatorialPos.ra  = ra * 15;
+    equatorialPos.dec = dec;
+    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+
+    az = horizontalPos.az - 180;
+    if (az < 0)
+        az+= 360;
+    alt = horizontalPos.alt;
+    
+    return;
+}
+

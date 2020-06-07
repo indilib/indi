@@ -75,4 +75,7 @@ class LX200Classic : public LX200Generic
         int currentCatalog {0};
         int currentSubCatalog {0};
         
+        void azAltToRaDecNow(double az, double alt, double &ra, double &dec);
+        void raDecToAzAltNow(double ra, double dec, double &az, double &alt);
+        
 };
