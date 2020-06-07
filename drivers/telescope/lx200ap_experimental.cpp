@@ -122,13 +122,13 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillSwitch(&SwapS[1], "EW", "East/West", ISS_OFF);
     IUFillSwitchVector(&SwapSP, SwapS, 2, getDeviceName(), "SWAP", "Swap buttons", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
-#ifdef no
+
     //2020-06-02, wildi, I'm not fond of this CMR sync
     IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_OFF);
     IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_ON);
     IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
-#endif
+
     // guide speed
     IUFillSwitch(&APGuideSpeedS[0], "0.25", "0.25x", ISS_OFF);
     IUFillSwitch(&APGuideSpeedS[1], "0.5", "0.50x", ISS_OFF);
@@ -190,12 +190,9 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
     {
         defineSwitch(&ParkToSP);
         defineText(&VersionInfo);
-
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
-#ifdef no
         defineSwitch(&SyncCMRSP);
-#endif
         defineSwitch(&APGuideSpeedSP);
         defineSwitch(&ParkToSP);
     }
@@ -215,9 +212,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         /* Motion group */
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
-#ifdef no
         defineSwitch(&SyncCMRSP);
-#endif
         defineSwitch(&APGuideSpeedSP);
         defineSwitch(&ParkToSP);
         defineNumber(&APSiderealTimeNP);
@@ -287,9 +282,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         deleteProperty(VersionInfo.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
-#ifdef no
         deleteProperty(SyncCMRSP.name);
-#endif
         deleteProperty(APGuideSpeedSP.name);
         deleteProperty(ParkToSP.name);
         deleteProperty(APUTCOffsetNP.name);
@@ -564,7 +557,7 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         IDSetSwitch(&APGuideSpeedSP, nullptr);
         return true;
     }
-#ifdef no
+
     // =======================================
     // Choose the appropriate sync command
     // =======================================
@@ -577,7 +570,7 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         IDSetSwitch(&SyncCMRSP, nullptr);
         return true;
     }
-#endif
+
     // =======================================
     // Choose the PEC playback mode
     // =======================================
@@ -1390,15 +1383,11 @@ bool LX200AstroPhysicsExperimental::Disconnect()
 
     return LX200Generic::Disconnect();
 }
-// 2020-06-02, disabled CMR since there is no real use case and
-// it is dangerous.
 bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 {
     char syncString[256] = ""; // simulation needs UTF-8
 
-#ifdef no
     int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
-#endif
     if (!isSimulation())
     {
         if (setAPObjectRA(PortFD, ra) < 0 || setAPObjectDEC(PortFD, dec) < 0)
@@ -1409,18 +1398,12 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
         }
         bool syncOK = true;
 
-#ifdef no
-        // 2020-05-23, wildi, for now CMR is disabled.
-        // To me AP description is not clear although
-        // I fully understand it. A contradiction? Yes,
-        // the same as in AP descirption.
         switch (syncType)
         {
             case USE_REGULAR_SYNC:
-#endif
+	      
                 if (::Sync(PortFD, syncString) < 0)
                     syncOK = false;
-#ifdef no
                 break;
 
             case USE_CMR_SYNC:
@@ -1431,7 +1414,6 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
             default:
                 break;
         }
-#endif
 
         if (!syncOK)
         {
@@ -1444,10 +1426,7 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 
     currentRA  = ra;
     currentDEC = dec;
-#ifdef no
     LOGF_DEBUG("%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
-#endif
-    LOG_INFO("Synchronization successful.");
 
     EqNP.s     = IPS_OK;
 
@@ -2113,9 +2092,8 @@ void LX200AstroPhysicsExperimental::syncSideOfPier()
 bool LX200AstroPhysicsExperimental::saveConfigItems(FILE *fp)
 {
     LX200Generic::saveConfigItems(fp);
-#ifdef no
+
     IUSaveConfigSwitch(fp, &SyncCMRSP);
-#endif
     IUSaveConfigSwitch(fp, &APSlewSpeedSP);
     IUSaveConfigSwitch(fp, &APGuideSpeedSP);
     IUSaveConfigSwitch(fp, &ParkToSP);
