@@ -67,8 +67,12 @@ class LX200Classic : public LX200Generic
 
         INumberVectorProperty ElevationLimitNP;
         INumber ElevationLimitN[2];
+        
+        ISwitchVectorProperty UnparkAlignmentSP;
+        ISwitch UnparkAlignmentS[3];
 
     private:
         int currentCatalog {0};
         int currentSubCatalog {0};
+        
 };
