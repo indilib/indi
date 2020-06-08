@@ -28,9 +28,13 @@
 #include <dirent.h>
 #include <cerrno>
 #include <cstring>
+#include <cstdio>
+#include <cstdlib>
 #include <algorithm>
 #include <thread>
 #include <chrono>
+#include <fcntl.h>
+#include <unistd.h>
 
 namespace DSP
 {
@@ -48,85 +52,29 @@ Convolution::~Convolution()
 void Convolution::Activated()
 {
     m_Device->defineBLOB(&DownloadBP);
+    Interface::Activated();
 }
 
 void Convolution::Deactivated()
 {
     m_Device->deleteProperty(DownloadBP.name);
+    Interface::Deactivated();
 }
 
 bool Convolution::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
-    INDI_UNUSED(blobsizes);
     if(!strcmp(dev, getDeviceName())) {
-        LOGF_INFO("Received new BLOB for %s.", dev);
         if(!strcmp(name, DownloadBP.name)) {
-            LOGF_INFO("Received new BLOB for %s.", dev);
-            for (int i = 0; i < n; i++) {
-                if (!strcmp(names[i], DownloadB.name)) {
-                    LOGF_INFO("Received new BLOB for %s.", dev);
-                    if(matrix) {
-                        dsp_stream_free_buffer(matrix);
-                        dsp_stream_free(matrix);
-                    }
-                    matrix = dsp_stream_new();
-                    void* buf = blobs[i];
-                    long ndims;
-                    int bits_per_sample = 8;
-                    int offset = 0;
-                    if(!strcmp(formats[i], "fits")) {
-                        fitsfile *fptr;
-                        int status;
-                        size_t size = sizes[i];
-                        ffimem(&fptr, &buf, &size, sizes[i], realloc, &status);
-                        char value[MAXINDINAME];
-                        char comment[MAXINDINAME];
-                        char query[MAXINDINAME];
-                        ffgkys(fptr, "BITPIX", value, comment, &status);
-                        bits_per_sample = (int)atol(value);
-                        ffgkys(fptr, "NAXES", value, comment, &status);
-                        ndims = (long)atol(value);
-                        for (int d = 1; d <= ndims; d++) {
-                            sprintf(query, "NAXIS%d", d);
-                            ffgkys(fptr, query, value, comment, &status);
-                            dsp_stream_add_dim(matrix, (long)atol(value));
-                        }
-                        offset = 2880;
-                        fffree(fptr, &status);
-                        buf = static_cast<void*>(static_cast<uint8_t *>(buf)+offset);
-                    } else {
-                        LOG_ERROR("Only fits decoding at the moment.");
-                        continue;
-                    }
-                    switch (bits_per_sample)
-                    {
-                        case 8:
-                            dsp_buffer_copy((static_cast<uint8_t *>(buf)), matrix->buf, matrix->len);
-                            break;
-                        case 16:
-                            dsp_buffer_copy((static_cast<uint16_t *>(buf)), matrix->buf, matrix->len);
-                            break;
-                        case 32:
-                            dsp_buffer_copy((static_cast<uint32_t *>(buf)), matrix->buf, matrix->len);
-                            break;
-                        case 64:
-                            dsp_buffer_copy((static_cast<unsigned long *>(buf)), matrix->buf, matrix->len);
-                            break;
-                        case -32:
-                            dsp_buffer_copy((static_cast<float *>(buf)), matrix->buf, matrix->len);
-                            break;
-                        case -64:
-                            dsp_buffer_copy((static_cast<double *>(buf)), matrix->buf, matrix->len);
-                            break;
-                        default:
-                            dsp_stream_free_buffer(matrix);
-                            //Destroy the dsp stream
-                            dsp_stream_free(matrix);
-                        break;
-                    }
-                    LOG_INFO("DSP::Convolution: convolution matrix loaded");
-                    matrix_loaded = true;
-                }
+            IUUpdateBLOB(&DownloadBP, sizes, blobsizes, blobs, formats, names, n);
+            LOGF_INFO("Received convolution matrix BLOB for %s", getDeviceName());
+            if(matrix)
+                dsp_stream_free_buffer(matrix);
+            dsp_stream_free(matrix);
+            matrix = loadFITS(blobs[0], sizes[0]);
+            if(matrix != nullptr) {
+                LOGF_INFO("Convolution matrix for %s loaded", getDeviceName());
+                matrix_loaded = true;
+                IDSetBLOB(&DownloadBP, nullptr);
             }
         }
     }
@@ -148,10 +96,9 @@ void Convolution::Convolute()
 
 Wavelets::Wavelets(INDI::DefaultDevice *dev) : Interface(dev, DSP_CONVOLUTION, "WAVELETS", "Wavelets")
 {
-    WaveletsN = (INumber*)malloc(sizeof(INumber)*N_WAVELETS);
     for(int i = 0; i < N_WAVELETS; i++) {
         char strname[MAXINDINAME];
-        char strlabel[MAXINDINAME];
+        char strlabel[MAXINDILABEL];
         sprintf(strname, "WAVELET%0d", i);
         sprintf(strlabel, "%d pixels Gaussian Wavelet", (i+1)*3);
         IUFillNumber(&WaveletsN[i], strname, strlabel, "%3.3f", -15.0, 255.0, 1.0, 0.0);
@@ -166,19 +113,19 @@ Wavelets::~Wavelets()
 void Wavelets::Activated()
 {
     m_Device->defineNumber(&WaveletsNP);
+    Interface::Activated();
 }
 
 void Wavelets::Deactivated()
 {
     m_Device->deleteProperty(WaveletsNP.name);
+    Interface::Deactivated();
 }
 
 bool Wavelets::ISNewNumber(const char *dev, const char *name, double *values, char *names[], int n)
 {
-    INDI_UNUSED(values);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
     if (!strcmp(dev, getDeviceName()) && !strcmp(name, WaveletsNP.name)) {
+        IUUpdateNumber(&WaveletsNP, values, names, n);
         IDSetNumber(&WaveletsNP, nullptr);
     }
     return true;

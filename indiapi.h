@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #pragma once
 
+#include <stdio.h>
+
 /** \mainpage Instrument Neutral Distributed Interface INDI
  *
 \section Introduction
@@ -133,7 +135,7 @@ For a full list of contributors, please check <a href="https://github.com/indili
 /* INDI Library version */
 #define INDI_VERSION_MAJOR   1
 #define INDI_VERSION_MINOR   8
-#define INDI_VERSION_RELEASE 5
+#define INDI_VERSION_RELEASE 6
 
 /*******************************************************************************
  * Manifest constants
@@ -495,3 +497,9 @@ typedef struct _IBLOBVectorProperty /* BLOB vector property descriptor */
  * with actual array, not pointer.
  */
 #define NARRAY(a) (sizeof(a) / sizeof(a[0]))
+
+/**
+ * @brief Bails out if memory pointer is 0. Prints file and function.
+ */
+#define assert_mem(p) if((p) == 0) { fprintf(stderr, "%s(%s): Failed to allocate memory\n", __FILE__, __func__); exit(1); }
+

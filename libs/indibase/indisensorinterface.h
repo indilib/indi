@@ -21,6 +21,7 @@
 #include "defaultdevice.h"
 #include "dsp.h"
 #include "dsp/manager.h"
+#include "stream/streammanager.h"
 #include <fitsio.h>
 
 #ifdef HAVE_WEBSOCKET
@@ -35,6 +36,7 @@
 #include <stdint.h>
 #include <mutex>
 #include <thread>
+#include <stream/streammanager.h>
 
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
@@ -81,6 +83,18 @@ class SensorInterface : public DefaultDevice
 
         SensorInterface();
         ~SensorInterface();
+
+
+        /**
+         * \enum SensorConnection
+         * \brief Holds the connection mode of the Sensor.
+         */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
+            CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
+            CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
+        } SensorConnection;
 
         bool initProperties();
         bool updateProperties();
@@ -283,6 +297,44 @@ class SensorInterface : public DefaultDevice
          */
         virtual bool IntegrationComplete();
 
+        /** \brief perform handshake with device to check communication */
+        virtual bool Handshake();
+
+        /**
+         * @brief setSensorConnection Set Sensor connection mode. Child class should call this in the constructor before Sensor registers
+         * any connection interfaces
+         * @param value ORed combination of SensorConnection values.
+         */
+        void setSensorConnection(const uint8_t &value);
+
+        /**
+         * @return Get current Sensor connection mode
+         */
+        inline uint8_t getSensorConnection() { return sensorConnection; }
+
+        /**
+         * \brief Add FITS keywords to a fits file
+         * \param fptr pointer to a valid FITS file.
+         * \param buf The buffer of the fits contents.
+         * \param len The lenght of the buffer.
+         * \note In additional to the standard FITS keywords, this function write the following
+         * keywords the FITS file:
+         * <ul>
+         * <li>EXPTIME: Total Integration Time (s)</li>
+         * <li>DATAMIN: Minimum value</li>
+         * <li>DATAMAX: Maximum value</li>
+         * <li>INSTRUME: Sensor Name</li>
+         * <li>DATE-OBS: UTC start date of observation</li>
+         * </ul>
+         *
+         * To add additional information, override this function in the child class and ensure to call
+         * SensorInterface::addFITSKeywords.
+         */
+        virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
+
+        /** A function to just remove GCC warnings about deprecated conversion */
+        void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
+
 protected:
 
         /**
@@ -310,11 +362,19 @@ protected:
         }
 
         /**
-         * @return  True if the Sensor supports live video streaming. False otherwise.
+         * @return  True if the Sensor wants DSP processing. False otherwise.
          */
         bool HasDSP()
         {
-            return capability & SENSOR_HAS_DSP;
+            if (capability & SENSOR_HAS_DSP)
+            {
+                if(DSP.get() == nullptr)
+                {
+                    DSP.reset(new DSP::Manager(this));
+                }
+                return true;
+            }
+            return false;
         }
 
         /**
@@ -322,7 +382,16 @@ protected:
          */
         bool HasStreaming()
         {
-            return capability & SENSOR_HAS_STREAMING;
+            if (capability & SENSOR_HAS_STREAMING)
+            {
+                if(Streamer.get() == nullptr)
+                {
+                    Streamer.reset(new StreamManager(this));
+                    Streamer->initProperties();
+                }
+                return true;
+            }
+            return false;
         }
 
         /**
@@ -356,10 +425,6 @@ protected:
 
         IBLOB FitsB;
         IBLOBVectorProperty FitsBP;
-
-        //  We are going to snoop these from a telescope
-        INumberVectorProperty EqNP;
-        INumber EqN[2];
 
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[4] {};
@@ -405,12 +470,19 @@ protected:
          */
         virtual bool saveConfigItems(FILE *fp);
 
-        double primaryAperture;
-        double primaryFocalLength;
         bool InIntegration;
 
-        double Lat, Lon, El;
+        INumberVectorProperty EqNP;
+        INumber EqN[2];
         double RA, Dec;
+
+        INumberVectorProperty LocationNP;
+        INumber LocationN[3];
+        double Lat, Lon, El;
+
+        INumberVectorProperty ScopeParametersNP;
+        INumber ScopeParametersN[4];
+        double primaryAperture, primaryFocalLength;
 
         bool AutoLoop;
         bool SendIntegration;
@@ -436,7 +508,17 @@ protected:
         std::unique_ptr<StreamManager> Streamer;
         std::unique_ptr<DSP::Manager> DSP;
 
-    private:
+
+
+        Connection::Serial *serialConnection = NULL;
+        Connection::TCP *tcpConnection       = NULL;
+
+        /// For Serial & TCP connections
+        int PortFD = -1;
+
+      private:
+        bool callHandshake();
+        uint8_t sensorConnection = CONNECTION_NONE;
 
         int BPS;
         /// # of Axis
@@ -445,35 +527,14 @@ protected:
         uint8_t *Buffer;
         int BufferSize;
         double integrationTime;
-        timespec startIntegrationTime;
+        double startIntegrationTime;
         char integrationExtention[MAXINDIBLOBFMT];
 
         bool uploadFile(const void *fitsData, size_t totalBytes, bool sendIntegration, bool saveIntegration);
         void getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
-        /**
-         * \brief Add FITS keywords to a fits file
-         * \param fptr pointer to a valid FITS file.
-         * \param targetDevice The target device to extract the keywords from.
-         * \param blobIndex The blob index of this FITS (0: continuum, 1: spectrum, 2: timedev).
-         * \note In additional to the standard FITS keywords, this function write the following
-         * keywords the FITS file:
-         * <ul>
-         * <li>EXPTIME: Total Integration Time (s)</li>
-         * <li>DATAMIN: Minimum value</li>
-         * <li>DATAMAX: Maximum value</li>
-         * <li>INSTRUME: Sensor Name</li>
-         * <li>DATE-OBS: UTC start date of observation</li>
-         * </ul>
-         *
-         * To add additional information, override this function in the child class and ensure to call
-         * Receiver::addFITSKeywords.
-         */
-        virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
 
         bool IntegrationCompletePrivate();
         void* sendFITS(uint8_t* buf, int len);
-        /** A function to just remove GCC warnings about deprecated conversion */
-        void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
 };
 }

@@ -52,6 +52,8 @@ static const PixelSizeInfo pixelSizeInfo[] =
     { "Skyris 236C", nullptr, 2.8f, -1, false },
     { "Skyris 236M", nullptr, 2.8f, -1, false },
     { "iOptron iPolar: iOptron iPolar", nullptr, 3.75f, -1, true },
+    { "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
+    { "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
     { nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
 };
 
@@ -294,7 +296,8 @@ bool V4L2_Driver::updateProperties()
             LOGF_INFO("Setting pixel size correctly for %s", commonName);
             if (info->tested == false)
             {
-                LOGF_INFO("Please report that the camera worked: Name: %s/%s Detected and working, to https://bit.ly/2S1Vxjq", v4l_base->getDeviceName(), commonName);
+                LOGF_INFO("Please report that the camera worked: Name: %s/%s Detected and working, to https://bit.ly/2S1Vxjq",
+                          v4l_base->getDeviceName(), commonName);
             }
         }
         else

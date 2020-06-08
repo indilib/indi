@@ -501,7 +501,17 @@ bool SkywatcherAltAzSimple::ISNewNumber(const char *dev, const char *name, doubl
 
 bool SkywatcherAltAzSimple::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    IUUpdateSwitch(getSwitch(name), states, names, n);
+    ISwitchVectorProperty *svp;
+    svp = getSwitch(name);
+    if (svp == nullptr)
+    {
+        LOGF_WARN("getSwitch failed for %s", name);
+    }
+    else
+    {
+        LOGF_DEBUG("getSwitch OK %s", name);
+        IUUpdateSwitch(svp, states, names, n);
+    }
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us

@@ -53,6 +53,8 @@
 
 #ifdef __APPLE__
 #include <sys/param.h>
+#include <mach/clock.h>
+#include <mach/mach.h>
 #endif
 
 #if defined(BSD) && !defined(__GNU__)
@@ -313,6 +315,23 @@ void IDLog(const char *fmt, ...)
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
     va_end(ap);
+}
+
+double time_ns()
+{
+    struct timespec ts;
+#ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    ts.tv_sec = mts.tv_sec;
+    ts.tv_nsec = mts.tv_nsec;
+#else
+    timespec_get(&ts, TIME_UTC);
+#endif
+    return (double)ts.tv_sec+(double)(ts.tv_nsec%1000000000)/1000000000.0;
 }
 
 /* return current system time in message format */
@@ -786,6 +805,17 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     case 230400:
         bps = B230400;
         break;
+#ifndef __APPLE__
+    case 460800:
+        bps = B460800;
+        break;
+    case 576000:
+        bps = B576000;
+        break;
+    case 921600:
+        bps = B921600;
+        break;
+#endif
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
             perror(NULL);
@@ -1053,6 +1083,15 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
         break;
     case 230400:
         bps = B230400;
+        break;
+    case 460800:
+        bps = B460800;
+        break;
+    case 576000:
+        bps = B576000;
+        break;
+    case 921600:
+        bps = B921600;
         break;
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
@@ -1671,14 +1710,14 @@ double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spec
     return delta_mag;
 }
 
-double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double incident_surface)
+double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian)
 {
-    return LUMEN(wavelength)/(1.51E+7*(filter_bandwidth/wavelength)*incident_surface*pow(10, -0.4*rel_magnitude));
+    return pow(10, rel_magnitude*-0.4)*(LUMEN(wavelength)*(steradian/(M_PI*4))/filter_bandwidth);
 }
 
-double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double incident_surface)
+double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double steradian)
 {
-    return (1.51E+7*(filter_bandwidth/wavelength)*incident_surface*log10(LUMEN(wavelength)/photon_flux))/-0.4;
+    return log10(photon_flux/(LUMEN(wavelength)*(steradian/(M_PI*4))/filter_bandwidth))/-0.4;
 }
 
 double estimate_absolute_magnitude(double delta_dist, double delta_mag)

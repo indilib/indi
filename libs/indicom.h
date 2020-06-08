@@ -45,6 +45,8 @@
 #define _USE_MATH_DEFINES
 #endif
 
+#include <math.h>
+
 #define J2000       2451545.0
 #define ERRMSG_SIZE 1024
 
@@ -68,7 +70,7 @@
 #define PARSEC (ASTRONOMICALUNIT*2.06264806247096E+5)
 #define LIGHTSPEED 299792458.0
 #define LY (LIGHTSPEED * SOLAR_DAY * 365)
-#define LUMEN(wavelength) ((1.464129E-3*wavelength)/(h_20190520*LIGHTSPEED))
+#define LUMEN(wavelength) ((1.46412884E-3*wavelength)/(h_20190520*LIGHTSPEED))
 
 extern const char *Direction[];
 extern const char *SolarSystem[];
@@ -243,6 +245,11 @@ void getSexComponentsIID(double value, int *d, int *m, double *s);
 */
 int numberFormat(char *buf, const char *format, double value);
 
+/** \brief Get a unix timestamp with nanosecond precision
+    \return Seconds since UNIX Epoch.
+*/
+double time_ns();
+
 /** \brief Create an ISO 8601 formatted time stamp. The format is YYYY-MM-DDTHH:MM:SS
     \return The formatted time stamp.
 */
@@ -365,14 +372,14 @@ double m2au(double m);
 double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spectrum, int spectrum_size);
 
 /**
- * @brief calc_photon_flux Returns the photon flux of the object with the given magnitude observed at a determined wavelenght using a passband filter over an incident surface
+ * @brief calc_photon_flux Returns the photon flux of the object with the given magnitude observed at a determined wavelenght using a passband filter through a steradian expressed cone
  * @param rel_magnitude Relative magnitude of the object observed
  * @param filter_bandwidth Filter bandwidth in meters
  * @param wavelength Wavelength in meters
- * @param incident_surface The incident surface in square meters
+ * @param steradian The light cone in steradians
  * @return the photon flux in Lumen
  */
-double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double incident_surface);
+double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian);
 
 /**
  * @brief calc_rel_magnitude Returns the relative magnitude of the object with the given photon flux measured at a determined wavelenght using a passband filter over an incident surface
@@ -382,7 +389,7 @@ double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wa
  * @param incident_surface The incident surface in square meters
  * @return the relative magnitude of the object observed
  */
-double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double incident_surface);
+double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double steradian);
 
 /**
  * @brief estimate_absolute_magnitude Returns an estimation of the absolute magnitude of an object given its distance and the difference of its magnitude with a reference object
