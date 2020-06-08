@@ -124,9 +124,14 @@ class Base
         }
 
         bool getPierSide(IEQ_PIER_SIDE * pierSide);
+    private:
         // read from mount using the GEA command
         double haAxis;      // not sure, try degrees to start with
         double decAxis;     // degrees, zero at 90 dec, sign determines pointing state
+        double Ra;          // read from mount
+        double Dec;
+        Info info;
+    public:
 
         /**************************************************************************
          Communication
