@@ -81,7 +81,6 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     void AstroPhysicsGuideTimeoutNS(bool simul);
 
     virtual bool getUTFOffset(double *offset) override;
-
     // Tracking
     virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool SetTrackEnabled(bool enabled) override;
@@ -99,6 +98,8 @@ class LX200AstroPhysicsExperimental : public LX200Generic
 
     INumber HourangleCoordsN[2];
     INumberVectorProperty HourangleCoordsNP;
+    INumber APSiderealTimeN[1];
+    INumberVectorProperty APSiderealTimeNP;
 
     INumber HorizontalCoordsN[2];
     INumberVectorProperty HorizontalCoordsNP;
@@ -122,25 +123,29 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     ISwitch ParkToS[5];
     ISwitchVectorProperty ParkToSP;
 
-    INumberVectorProperty MeridianDelayNP;
-    INumber MeridianDelayN[1];
+    INumberVectorProperty APUTCOffsetNP;
+    INumber APUTCOffsetN[1];
 
     IText VersionT[1] {};
     ITextVectorProperty VersionInfo;
 
   private:
+#ifdef no
     bool initMount();
+#endif
 
     // Side of pier
     void syncSideOfPier();
+#ifdef no
     bool IsMountInitialized(bool *initialized);
+#endif
     bool IsMountParked(bool *isParked);
     bool getMountStatus(bool *isParked);
     bool getFirmwareVersion(void);
     bool calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz);
     void disclaimerMessage(void);
 
-    bool timeUpdated=false, locationUpdated=false;
+  //bool timeUpdated=false, locationUpdated=false;
     ControllerVersion firmwareVersion = MCV_UNKNOWN;
     ServoVersion servoType = GTOCP_UNKNOWN;
 
@@ -150,10 +155,8 @@ class LX200AstroPhysicsExperimental : public LX200Generic
 
     //int GuideNSTID;
     //int GuideWETID;
-
-    bool motionCommanded=false;
-    bool mountInitialized=false;
-    bool mountParked=false;
-
+  
+    //bool motionCommanded=false; // 2020-05-24, wildi, never reset
+    //bool mountInitialized=false;
     int rememberSlewRate = { -1 };
 };
