@@ -47,9 +47,6 @@ bool LX200FS2::initProperties()
     IUFillSwitch(&StopAfterParkS[1], "OFF", "OFF", ISS_ON);
 
     SetParkDataType(PARK_AZ_ALT);
-
-    SetParked(true);
-    
     
     return true;
 }
@@ -69,6 +66,13 @@ bool LX200FS2::updateProperties()
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(0);
             SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            
+            if (isParked())
+            {
+                // Force tracking to stop at startup.
+                MotorsParked = false;
+                TrackingStop();
+            }
         }
         else
         {
@@ -214,21 +218,41 @@ bool LX200FS2::Park()
         return false;
 }
 
+void LX200FS2::TrackingStop()
+{
+    LOG_INFO("tracking stop");
+    if (MotorsParked) return;
+    LOG_INFO("first time");
+    
+    updateSlewRate(SLEW_CENTERING); 
+    MoveWE(DIRECTION_EAST, MOTION_START);
+    MotorsParked = true;
+}
+
+void LX200FS2::TrackingStart()
+{
+    MoveWE(DIRECTION_EAST, MOTION_STOP);
+    updateSlewRate(SLEW_FIND);
+    MotorsParked = false;
+}
+
 bool LX200FS2::ReadScopeStatus()
 {
+    int curTrackState = TrackState;
     bool retval = LX200Generic::ReadScopeStatus();
+    
     // For FS-2 v1.21 owners, stop tracking once Parked.
-    if (retval && 
+    if (retval &&
         StopAfterParkS[0].s == ISS_ON &&
         isConnected() && 
-        !isSimulation() &&
-        TrackState == SCOPE_PARKING)
+        !isSimulation() && 
+        curTrackState == SCOPE_PARKING &&
+        TrackState == SCOPE_PARKED)
     {
         if (isSlewComplete())
         {
             LOG_INFO("Mount is parked. Tracking stopped.");
-            updateSlewRate(SLEW_CENTERING);
-            MoveWE(DIRECTION_EAST, MOTION_START);
+            TrackingStop();
             return true;
         }
     }
@@ -273,11 +297,7 @@ bool LX200FS2::UnPark()
     if (Sync(equatorialPos.ra / 15.0, equatorialPos.dec))
     {
         SetParked(false);
-        //if( StopAfterParkS[0].s == ISS_ON)
-        {
-            MoveWE(DIRECTION_EAST, MOTION_STOP);
-            updateSlewRate(SLEW_MAX);
-        }
+        TrackingStart();
         return true;
     }
     else

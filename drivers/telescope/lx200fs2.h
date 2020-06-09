@@ -20,6 +20,7 @@
 #pragma once
 
 #include "lx200generic.h"
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
 class LX200FS2 : public LX200Generic
 {
@@ -43,14 +44,19 @@ class LX200FS2 : public LX200Generic
     virtual bool UnPark() override;
     virtual bool SetCurrentPark() override;
     virtual bool SetDefaultPark() override;
+    
+    // StopAfterPark
+    virtual bool ReadScopeStatus() override;
+    void TrackingStart();
+    void TrackingStop();
 
     // Fake Location
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool ReadScopeStatus() override;
 
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
     
     ISwitchVectorProperty StopAfterParkSP;
     ISwitch StopAfterParkS[2];
+    bool MotorsParked;
 };
