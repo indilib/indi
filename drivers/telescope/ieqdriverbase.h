@@ -48,7 +48,7 @@ typedef enum { RA_AXIS, DEC_AXIS } Axis;
 typedef enum { IEQ_N, IEQ_S, IEQ_W, IEQ_E } Direction;
 typedef enum { IEQ_SET_HOME, IEQ_GOTO_HOME, IEQ_FIND_HOME } HomeOperation;
 
-typedef enum { IEQ_PIER_UNKNOWN = -1, IEQ_PIER_WEST = 0, IEQ_PIER_EAST = 1 } IEQ_PIER_SIDE;
+typedef enum { IEQ_PIER_UNKNOWN = -1, IEQ_PIER_WEST = 0, IEQ_PIER_EAST = 1, IEQ_PIER_UNCERTAIN = 2 } IEQ_PIER_SIDE;
 
 /**
  * @brief The BaseFirmware class provides control for iOptron version 2014 v2.0 protocol

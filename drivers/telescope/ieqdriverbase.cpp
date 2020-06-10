@@ -616,6 +616,8 @@ const char * pierSideStr(IEQ_PIER_SIDE ps)
             return "WEST";
         case IEQ_PIER_UNKNOWN:
             return "UNKNOWN";
+        case IEQ_PIER_UNCERTAIN:
+            return "UNCERTAIN";
     }
 }
 
@@ -662,7 +664,7 @@ bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
         double ha = rangeHA(get_local_hour_angle(lst, Ra));
 
         const char* reason;
-        double decPA = 90 - std::fabs(Dec);
+        double decPA = 90 - std::fabs(Dec);     // the distance from the pole determined using the declination, ok for +ve and -ve dec
 
         if ((ha > 2 && ha < 10) || (ha < -2 && ha > -10))
         {
@@ -672,19 +674,19 @@ bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
         }
         else
         {
-            // use the pole angle
-            if (decPA > std::fabs(decAxis))
+            double decDiff = std::fabs(decPA - std::fabs(decAxis)); // not sure about this in the Southern hemisphere
+            if (decPA > decDiff)
             {
+                // use the pole angle
                 *pierSide = decAxis > 0 ? IEQ_PIER_WEST : IEQ_PIER_EAST;
                 reason = "pole angle";
             }
             else
             {
-                *pierSide = IEQ_PIER_UNKNOWN;
+                *pierSide = IEQ_PIER_UNCERTAIN;
                 reason= "uncertain";
             }
         }
-
 
         LOGF_DEBUG("getPierSide pole Axis %f, haAxis %f, axisHa %f, ha %f, decPa %f, %s pierSide %s", decAxis, haAxis, axisHa , ha, decPA, reason,
                    pierSideStr(*pierSide));
