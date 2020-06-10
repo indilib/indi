@@ -59,4 +59,5 @@ class LX200FS2 : public LX200Generic
     ISwitchVectorProperty StopAfterParkSP;
     ISwitch StopAfterParkS[2];
     bool MotorsParked;
+    enum TelescopeSlewRate savedSlewRateIndex {SLEW_MAX};
 };

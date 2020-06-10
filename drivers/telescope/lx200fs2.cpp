@@ -220,11 +220,13 @@ bool LX200FS2::Park()
 
 void LX200FS2::TrackingStop()
 {
-    LOG_INFO("tracking stop");
     if (MotorsParked) return;
-    LOG_INFO("first time");
     
-    updateSlewRate(SLEW_CENTERING); 
+    // Remember current slew rate
+    savedSlewRateIndex = static_cast <enum TelescopeSlewRate> (IUFindOnSwitchIndex(&SlewRateSP));
+    
+    updateSlewRate(SLEW_CENTERING);
+    Abort(); 
     MoveWE(DIRECTION_EAST, MOTION_START);
     MotorsParked = true;
 }
@@ -232,7 +234,8 @@ void LX200FS2::TrackingStop()
 void LX200FS2::TrackingStart()
 {
     MoveWE(DIRECTION_EAST, MOTION_STOP);
-    updateSlewRate(SLEW_FIND);
+    Abort(); 
+    updateSlewRate(savedSlewRateIndex);
     MotorsParked = false;
 }
 
@@ -297,7 +300,10 @@ bool LX200FS2::UnPark()
     if (Sync(equatorialPos.ra / 15.0, equatorialPos.dec))
     {
         SetParked(false);
-        TrackingStart();
+        if (StopAfterParkS[0].s == ISS_ON)
+        {
+            TrackingStart();
+        }
         return true;
     }
     else
