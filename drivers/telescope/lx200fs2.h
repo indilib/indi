@@ -48,7 +48,10 @@ class LX200FS2 : public LX200Generic
     // StopAfterPark
     virtual bool ReadScopeStatus() override;
     void TrackingStart();
+    void TrackingStart_RestoreSlewRate();
     void TrackingStop();
+    void TrackingStop_Abort();
+    void TrackingStop_AllStop();
 
     // Fake Location
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
@@ -60,4 +63,12 @@ class LX200FS2 : public LX200Generic
     ISwitch StopAfterParkS[2];
     bool MotorsParked;
     enum TelescopeSlewRate savedSlewRateIndex {SLEW_MAX};
+    enum TelescopeParkedStatus
+    {
+        PARKED_NOTPARKED = 0,
+        PARKED_NEEDABORT,
+        PARKED_NEEDSTOP,
+        PARKED_STOPPED,
+        UNPARKED_NEEDSLEW,
+    } ParkedStatus;
 };

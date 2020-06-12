@@ -70,7 +70,7 @@ bool LX200FS2::updateProperties()
             if (isParked())
             {
                 // Force tracking to stop at startup.
-                MotorsParked = false;
+                ParkedStatus = PARKED_NOTPARKED;
                 TrackingStop();
             }
         }
@@ -220,23 +220,47 @@ bool LX200FS2::Park()
 
 void LX200FS2::TrackingStop()
 {
-    if (MotorsParked) return;
+    if (ParkedStatus != PARKED_NOTPARKED) return;
     
     // Remember current slew rate
     savedSlewRateIndex = static_cast <enum TelescopeSlewRate> (IUFindOnSwitchIndex(&SlewRateSP));
     
     updateSlewRate(SLEW_CENTERING);
+    ParkedStatus = PARKED_NEEDABORT;
+}
+
+void LX200FS2::TrackingStop_Abort()
+{
+    if (ParkedStatus != PARKED_NEEDABORT) return;
+    
     Abort(); 
+    ParkedStatus = PARKED_NEEDSTOP;
+}
+
+void LX200FS2::TrackingStop_AllStop()
+{
+    if (ParkedStatus != PARKED_NEEDSTOP) return;
+    
     MoveWE(DIRECTION_EAST, MOTION_START);
-    MotorsParked = true;
+    ParkedStatus = PARKED_STOPPED;
 }
 
 void LX200FS2::TrackingStart()
 {
+    if (ParkedStatus != PARKED_STOPPED) return;
+    
     MoveWE(DIRECTION_EAST, MOTION_STOP);
-    Abort(); 
+    
+    ParkedStatus = UNPARKED_NEEDSLEW;
+}
+
+void LX200FS2::TrackingStart_RestoreSlewRate()
+{
+    if (ParkedStatus != UNPARKED_NEEDSLEW) return;
+    
     updateSlewRate(savedSlewRateIndex);
-    MotorsParked = false;
+    
+    ParkedStatus = PARKED_NOTPARKED;
 }
 
 bool LX200FS2::ReadScopeStatus()
@@ -248,17 +272,33 @@ bool LX200FS2::ReadScopeStatus()
     if (retval &&
         StopAfterParkS[0].s == ISS_ON &&
         isConnected() && 
-        !isSimulation() && 
-        curTrackState == SCOPE_PARKING &&
+        !isSimulation() &&
         TrackState == SCOPE_PARKED)
-    {
-        if (isSlewComplete())
         {
-            LOG_INFO("Mount is parked. Tracking stopped.");
-            TrackingStop();
+            // If you are changing state from parking to parked, 
+            // kick off the motor-stopping state machine    
+            switch (ParkedStatus)
+            {
+                case PARKED_NOTPARKED:
+                    LOG_INFO("Mount at park position. Tracking stopping.");
+                    TrackingStop();
+                    break;
+                case PARKED_NEEDABORT:
+                    LOG_INFO("Mount at 1x sidereal.");
+                    TrackingStop_Abort();
+                    break;
+                case PARKED_NEEDSTOP:
+                    LOG_INFO("Mount is parked, motors stopped.");
+                    TrackingStop_AllStop();
+                    break;
+                case PARKED_STOPPED:
+                default:
+                    break;
+                    
+            }
             return true;
         }
-    }
+
     
     return retval;
 }
