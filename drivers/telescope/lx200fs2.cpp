@@ -266,7 +266,6 @@ void LX200FS2::TrackingStart_RestoreSlewRate()
 
 bool LX200FS2::ReadScopeStatus()
 {
-    int curTrackState = TrackState;
     bool retval = LX200Generic::ReadScopeStatus();
 
     // For FS-2 v1.21 owners, stop tracking once Parked.
