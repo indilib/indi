@@ -106,8 +106,9 @@ class DeltaT : public INDI::DefaultDevice
         ///////////////////////////////////////////////////////////////////////////////////
         /// Misc
         ///////////////////////////////////////////////////////////////////////////////////
-        double calculateTemperature(uint8_t byte2, uint8_t byte3);
+        double calculateTemperature(uint8_t byte3, uint8_t byte2);
         uint8_t calculateCheckSum(const char *cmd, uint32_t len);
+        const char *getHeaterName(int index);
         template <typename T> std::string to_string(const T a_value, const int n = 2);
 
         ///////////////////////////////////////////////////////////////////////////////////
@@ -137,8 +138,10 @@ class DeltaT : public INDI::DefaultDevice
         std::vector<std::unique_ptr<ISwitch[]>> HeaterControlS;
         enum
         {
+            HEATER_OFF,
             HEATER_ON,
-            HEATER_OFF
+            HEATER_CONTROL,
+            HEATER_THRESHOLD
         };
 
         // PWM Control
@@ -147,7 +150,9 @@ class DeltaT : public INDI::DefaultDevice
         enum
         {
             PARAM_PERIOD,
-            PARAM_DUTY
+            PARAM_DUTY,
+            PARAM_CONTROL,
+            PARAM_THRESHOLD,
         };
 
         // Read Only Temperature Reporting
@@ -155,15 +160,16 @@ class DeltaT : public INDI::DefaultDevice
         INumber TemperatureN[3];
         enum
         {
-            TEMPERATURE_PRIMARY,
             TEMPERATURE_AMBIENT,
-            TEMPERATURE_SECONDARY
+            TEMPERATURE_SECONDARY,
+            TEMPERATURE_BACKPLATE
         };
 
         /////////////////////////////////////////////////////////////////////////////
         /// Private variables
         /////////////////////////////////////////////////////////////////////////////
         Connection::Serial *serialConnection { nullptr };
+        double m_LastTemperature[3];
         int PortFD { -1 };
 
         /////////////////////////////////////////////////////////////////////////////
@@ -171,7 +177,14 @@ class DeltaT : public INDI::DefaultDevice
         /////////////////////////////////////////////////////////////////////////////
         // Start of Message
         static const char DRIVER_SOM { 0x3B };
+        // Temperature Reporting threshold
+        static constexpr double TEMPERATURE_THRESHOLD { 0.05 };
         static constexpr const uint8_t DRIVER_LEN {32};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
+
+        // Primary Backplate heater
+        static constexpr const char *PRIMARY_TAB = "Primary Backplate Heater";
+        // Secondary Mirror heater
+        static constexpr const char *SECONDARY_TAB = "Secondary Mirror Heater";
 };
