@@ -1378,8 +1378,7 @@ void SkywatcherAltAzSimple::ResetGuidePulses()
     GuidingPulses.clear();
 }
 
-int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
-{
+int SkywatcherAltAzSimple::recover_tty_reconnect() {
     if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
     {
         RecoverAfterReconnection = true;
@@ -1399,31 +1398,37 @@ int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, in
         SetSerialPort(serialConnection->getPortFD());
         SerialPortName           = serialConnection->port();
         RecoverAfterReconnection = false;
+        return 1;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+{
+    if (!recover_tty_reconnect())
+    {
+        return 0;
     }
     return tty_read(fd, buf, nbytes, timeout, nbytes_read);
 }
 
+int SkywatcherAltAzSimple::skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
+{
+    if (!recover_tty_reconnect())
+    {
+        return 0;
+    }
+    return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+}
+
 int SkywatcherAltAzSimple::skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written)
 {
-    if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
+    if (!recover_tty_reconnect())
     {
-        RecoverAfterReconnection = true;
-        serialConnection->Disconnect();
-        serialConnection->Refresh();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        if (!serialConnection->Connect())
-        {
-            RecoverAfterReconnection = true;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            if (!serialConnection->Connect())
-            {
-                RecoverAfterReconnection = false;
-                return 0;
-            }
-        }
-        SetSerialPort(serialConnection->getPortFD());
-        SerialPortName           = serialConnection->port();
-        RecoverAfterReconnection = false;
+        return 0;
     }
     return tty_write(fd, buffer, nbytes, nbytes_written);
 }

@@ -752,6 +752,7 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
     bool StartReading   = false;
     bool EndReading     = false;
     bool mount_response = false;
+    char response[257];
 
     SendBuffer.push_back(':');
     SendBuffer.push_back(Command);
@@ -761,14 +762,14 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
     skywatcher_tty_write(MyPortFD, SendBuffer.c_str(), SendBuffer.size(), &bytesWritten);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    while (!EndReading)
+    response[0] = '\0';
+    int rc = skywatcher_tty_read_section(MyPortFD, response, 0x0D, 10, &bytesRead);
+    if (rc != TTY_OK)
+        return false;
+    char c;
+    for (int i=0; i<bytesRead && !EndReading; i++)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        char c;
-
-        int rc = skywatcher_tty_read(MyPortFD, &c, 1, 10, &bytesRead);
-        if ((rc != TTY_OK) || (bytesRead != 1))
-            return false;
+        c = response[i];
 
         if ((c == '=') || (c == '!'))
         {
@@ -787,7 +788,7 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
             responseStr.push_back(c);
     }
 //    MYDEBUGF(DBG_SCOPE, "TalkWithAxis - %s Response (%s)", mount_response ? "Good" : "Bad", responseStr.c_str());
-    return true;
+    return EndReading;
 }
 
 bool SkywatcherAPI::IsInMotion(AXISID Axis)
