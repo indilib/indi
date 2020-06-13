@@ -770,7 +770,7 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
         response[0] = '\0';
-        rc = skywatcher_tty_read_section(MyPortFD, response, 0x0A, 10, &bytesRead);
+        rc = skywatcher_tty_read_section(MyPortFD, response, 0x0D, 10, &bytesRead);
         if (rc != TTY_OK)
             return false;
         for (int i=0; i<bytesRead && !EndReading; i++)
