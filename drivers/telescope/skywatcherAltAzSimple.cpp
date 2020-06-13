@@ -139,6 +139,12 @@ bool SkywatcherAltAzSimple::Handshake()
     DEBUG(DBG_SCOPE, "SkywatcherAltAzSimple::Handshake");
     SetSerialPort(PortFD);
 
+    Connection::Interface *activeConnection = getActiveConnection();
+    if (!activeConnection->name().compare("CONNECTION_TCP"))
+    {
+        tty_set_generic_udp_format(1);
+    }
+
     bool Result = InitMount(RecoverAfterReconnection);
 
     if (getActiveConnection() == serialConnection)
@@ -501,7 +507,17 @@ bool SkywatcherAltAzSimple::ISNewNumber(const char *dev, const char *name, doubl
 
 bool SkywatcherAltAzSimple::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    IUUpdateSwitch(getSwitch(name), states, names, n);
+    ISwitchVectorProperty *svp;
+    svp = getSwitch(name);
+    if (svp == nullptr)
+    {
+        LOGF_WARN("getSwitch failed for %s", name);
+    }
+    else
+    {
+        LOGF_DEBUG("getSwitch OK %s", name);
+        IUUpdateSwitch(svp, states, names, n);
+    }
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
@@ -1188,8 +1204,10 @@ void SkywatcherAltAzSimple::TimerHit()
                 AzimuthOffsetMicrosteps += MicrostepsPerRevolution[AXIS1];
             }
 
-            AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP, "TRACKING_RATE_ALT")->value);
-            AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP, "TRACKING_RATE_AZ")->value);
+            AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
+                                              "TRACKING_RATE_ALT")->value);
+            AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
+                                             "TRACKING_RATE_AZ")->value);
 
             LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
                        CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,

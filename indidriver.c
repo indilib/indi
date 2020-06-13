@@ -1,22 +1,26 @@
 #if 0
-    INDI Driver Functions
+INDI Driver Functions
 
-    Copyright (C) 2003-2015 Jasem Mutlaq
-    Copyright (C) 2003-2006 Elwood C. Downey
+Copyright (C) 2003 - 2020 Jasem Mutlaq
+Copyright (C) 2003 - 2006 Elwood C. Downey
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+This library is free software;
+you can redistribute it and / or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation;
+either
+version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY;
+without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU Lesser General Public
+License along with this library;
+if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
@@ -37,6 +41,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <assert.h>
 
 pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -45,12 +50,12 @@ pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 /*! INDI property type */
 enum
 {
-    INDI_NUMBER,
-    INDI_SWITCH,
-    INDI_TEXT,
-    INDI_LIGHT,
-    INDI_BLOB,
-    INDI_UNKNOWN
+INDI_NUMBER,
+INDI_SWITCH,
+INDI_TEXT,
+INDI_LIGHT,
+INDI_BLOB,
+INDI_UNKNOWN
 };
 
 /* Return index of property property if already cached, -1 otherwise */
@@ -69,8 +74,9 @@ int isPropDefined(const char *property_name, const char *device_name)
 /* N.B. You must free the returned buffer after use! */
 char *escapeXML(const char *s, unsigned int MAX_BUF_SIZE)
 {
-    char *buf      = malloc(sizeof(char) * MAX_BUF_SIZE);
-    char *out      = buf;
+    char *buf = malloc(sizeof(char) * MAX_BUF_SIZE);
+    assert_mem(buf);
+    char *out = buf;
     unsigned int i = 0;
 
     for (i = 0; i <= strlen(s); i++)
@@ -78,27 +84,28 @@ char *escapeXML(const char *s, unsigned int MAX_BUF_SIZE)
         switch (s[i])
         {
             case '&':
-                strncpy(out, "&amp;", 5);
+                strncpy(out, "&amp;", 6);
                 out += 5;
                 break;
             case '\'':
-                strncpy(out, "&apos;", 6);
+                strncpy(out, "&apos;", 7);
                 out += 6;
                 break;
             case '"':
-                strncpy(out, "&quot;", 6);
+                strncpy(out, "&quot;", 7);
                 out += 6;
                 break;
             case '<':
-                strncpy(out, "&lt;", 4);
+                strncpy(out, "&lt;", 5);
                 out += 4;
                 break;
             case '>':
-                strncpy(out, "&gt;", 4);
+                strncpy(out, "&gt;", 5);
                 out += 4;
                 break;
             default:
-                strncpy(out++, s + i, 1);
+                *out++ = s[i];
+                *out = 0;
                 break;
         }
     }
@@ -230,6 +237,8 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
     ISwitch *sp;
     char sn[MAXINDINAME];
 
+    assert(svp != NULL && "IUUpdateSwitch SVP is NULL");
+
     /* store On switch name */
     if (svp->r == ISR_1OFMANY)
     {
@@ -283,8 +292,9 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
 int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], int n)
 {
     int i = 0;
-
     INumber *np;
+
+    assert(nvp != NULL && "IUUpdateNumber NVP is NULL");
 
     for (i = 0; i < n; i++)
     {
@@ -319,8 +329,9 @@ int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], i
 int IUUpdateText(ITextVectorProperty *tvp, char *texts[], char *names[], int n)
 {
     int i = 0;
-
     IText *tp;
+
+    assert(tvp != NULL && "IUUpdateText TVP is NULL");
 
     for (i = 0; i < n; i++)
     {
@@ -348,8 +359,9 @@ int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *b
                  int n)
 {
     int i = 0;
-
     IBLOB *bp;
+
+    assert(bvp != NULL && "IUUpdateBLOB BVP is NULL");
 
     for (i = 0; i < n; i++)
     {
@@ -837,7 +849,7 @@ int IUSnoopBLOB(XMLEle *root, IBLOBVectorProperty *bvp)
             if (fa && sa && ec)
             {
                 int enclen  = atoi(valuXMLAtt(ec));
-                bp->blob    = realloc(bp->blob, 3 * enclen / 4);
+                assert_mem(bp->blob = realloc(bp->blob, 3 * enclen / 4));
                 bp->bloblen = from64tobits_fast(bp->blob, pcdataXMLEle(ep), enclen);
                 strncpy(bp->format, valuXMLAtt(fa), MAXINDIFORMAT);
                 bp->size = atoi(valuXMLAtt(sa));
@@ -970,9 +982,9 @@ int dispatch(XMLEle *root, char msg[])
          * all remaining valid messages
          */
     if (!strcmp(rtag, "setNumberVector") || !strcmp(rtag, "setTextVector") || !strcmp(rtag, "setLightVector") ||
-        !strcmp(rtag, "setSwitchVector") || !strcmp(rtag, "setBLOBVector") || !strcmp(rtag, "defNumberVector") ||
-        !strcmp(rtag, "defTextVector") || !strcmp(rtag, "defLightVector") || !strcmp(rtag, "defSwitchVector") ||
-        !strcmp(rtag, "defBLOBVector") || !strcmp(rtag, "message") || !strcmp(rtag, "delProperty"))
+            !strcmp(rtag, "setSwitchVector") || !strcmp(rtag, "setBLOBVector") || !strcmp(rtag, "defNumberVector") ||
+            !strcmp(rtag, "defTextVector") || !strcmp(rtag, "defLightVector") || !strcmp(rtag, "defSwitchVector") ||
+            !strcmp(rtag, "defBLOBVector") || !strcmp(rtag, "message") || !strcmp(rtag, "delProperty"))
     {
         ISSnoopDevice(root);
         return (0);
@@ -1015,8 +1027,8 @@ int dispatch(XMLEle *root, char msg[])
         /* seed for reallocs */
         if (!doubles)
         {
-            doubles = (double *)malloc(1);
-            names   = (char **)malloc(1);
+            assert_mem(doubles = (double *)malloc(sizeof *doubles));
+            assert_mem(names = (char **)malloc(sizeof *names));
         }
 
         // Set locale to C and save previous value
@@ -1033,10 +1045,9 @@ int dispatch(XMLEle *root, char msg[])
                     if (n >= maxn)
                     {
                         /* grow for this and another */
-                        int newsz = (maxn = n + 1) * sizeof(double);
-                        doubles   = (double *)realloc(doubles, newsz);
-                        newsz     = maxn * sizeof(char *);
-                        names     = (char **)realloc(names, newsz);
+                        maxn = n + 1;
+                        assert_mem(doubles = (double *)realloc(doubles, maxn * sizeof *doubles));
+                        assert_mem(names = (char **)realloc(names, maxn * sizeof *names));
                     }
                     if (f_scansexa(pcdataXMLEle(ep), &doubles[n]) < 0)
                         IDMessage(dev, "[ERROR] %s: Bad format %s", name, pcdataXMLEle(ep));
@@ -1067,8 +1078,8 @@ int dispatch(XMLEle *root, char msg[])
         /* seed for reallocs */
         if (!states)
         {
-            states = (ISState *)malloc(1);
-            names  = (char **)malloc(1);
+            assert_mem(states = (ISState *)malloc(sizeof *states));
+            assert_mem(names  = (char **)malloc(sizeof *names));
         }
 
         /* pull out each name/state pair */
@@ -1081,10 +1092,9 @@ int dispatch(XMLEle *root, char msg[])
                 {
                     if (n >= maxn)
                     {
-                        int newsz = (maxn = n + 1) * sizeof(ISState);
-                        states    = (ISState *)realloc(states, newsz);
-                        newsz     = maxn * sizeof(char *);
-                        names     = (char **)realloc(names, newsz);
+                        maxn = n + 1;
+                        assert_mem(states = (ISState *)realloc(states, maxn * sizeof *states));
+                        assert_mem(names = (char **)realloc(names, maxn * sizeof *names));
                     }
                     if (strncmp(pcdataXMLEle(ep), "On", 2) == 0)
                     {
@@ -1121,8 +1131,8 @@ int dispatch(XMLEle *root, char msg[])
         /* seed for reallocs */
         if (!texts)
         {
-            texts = (char **)malloc(1);
-            names = (char **)malloc(1);
+            assert_mem(texts = (char **)malloc(sizeof *texts));
+            assert_mem(names = (char **)malloc(sizeof *names));
         }
 
         /* pull out each name/text pair */
@@ -1135,9 +1145,9 @@ int dispatch(XMLEle *root, char msg[])
                 {
                     if (n >= maxn)
                     {
-                        int newsz = (maxn = n + 1) * sizeof(char *);
-                        texts     = (char **)realloc(texts, newsz);
-                        names     = (char **)realloc(names, newsz);
+                        maxn = n + 1;
+                        assert_mem(texts = (char **)realloc(texts, maxn * sizeof *texts));
+                        assert_mem(names = (char **)realloc(names, maxn * sizeof *names));
                     }
                     texts[n] = pcdataXMLEle(ep);
                     names[n] = valuXMLAtt(na);
@@ -1167,11 +1177,11 @@ int dispatch(XMLEle *root, char msg[])
         /* seed for reallocs */
         if (!blobs)
         {
-            blobs     = (char **)malloc(1);
-            names     = (char **)malloc(1);
-            formats   = (char **)malloc(1);
-            blobsizes = (int *)malloc(1);
-            sizes     = (int *)malloc(1);
+            assert_mem(blobs = (char **)malloc(sizeof *blobs));
+            assert_mem(names = (char **)malloc(sizeof *names));
+            assert_mem(formats = (char **)malloc(sizeof *formats));
+            assert_mem(blobsizes = (int *)malloc(sizeof *blobsizes));
+            assert_mem(sizes = (int *)malloc(sizeof *sizes));
         }
 
         /* pull out each name/BLOB pair, decode */
@@ -1187,19 +1197,18 @@ int dispatch(XMLEle *root, char msg[])
                 {
                     if (n >= maxn)
                     {
-                        int newsz = (maxn = n + 1) * sizeof(char *);
-                        blobs     = (char **)realloc(blobs, newsz);
-                        names     = (char **)realloc(names, newsz);
-                        formats   = (char **)realloc(formats, newsz);
-                        newsz     = maxn * sizeof(int);
-                        sizes     = (int *)realloc(sizes, newsz);
-                        blobsizes = (int *)realloc(blobsizes, newsz);
+                        maxn = n + 1;
+                        assert_mem(blobs = (char **)realloc(blobs, maxn * sizeof *blobs));
+                        assert_mem(names = (char **)realloc(names, maxn * sizeof *names));
+                        assert_mem(formats = (char **)realloc(formats, maxn * sizeof *formats));
+                        assert_mem(sizes = (int *)realloc(sizes, maxn * sizeof *sizes));
+                        assert_mem(blobsizes = (int *)realloc(blobsizes, maxn * sizeof *blobsizes));
                     }
                     int bloblen = pcdatalenXMLEle(ep);
                     // enclen is optional and not required by INDI protocol
                     if (el)
                         bloblen = atoi(valuXMLAtt(el));
-                    blobs[n]     = malloc(3 * bloblen / 4);
+                    assert_mem(blobs[n] = malloc(3 * bloblen / 4));
                     blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
                     names[n]     = valuXMLAtt(na);
                     formats[n]   = valuXMLAtt(fa);
@@ -1282,7 +1291,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
     return (0);
 }
 
-void IUSaveDefaultConfig(const char *source_config, const char *dest_config, const char *dev)
+int IUSaveDefaultConfig(const char *source_config, const char *dest_config, const char *dev)
 {
     char configFileName[MAXRBUF], configDefaultFileName[MAXRBUF];
 
@@ -1315,11 +1324,82 @@ void IUSaveDefaultConfig(const char *source_config, const char *dest_config, con
                 int ch = 0;
                 while ((ch = getc(fpin)) != EOF)
                     putc(ch, fpout);
-        fclose(fpout);
+
+                fflush(fpout);
+                fclose(fpout);
             }
-        fclose(fpin);
+            fclose(fpin);
+
+            return 0;
         }
     }
+    // If default config file exists already, then no need to modify it
+    else
+        return 0;
+
+
+    return -1;
+}
+
+int IUGetConfigOnSwitch(const ISwitchVectorProperty *property, int *index)
+{
+    char *rname, *rdev;
+    XMLEle *root = NULL, *fproot = NULL;
+    char errmsg[MAXRBUF];
+    LilXML *lp = newLilXML();
+    int propertyFound = 0;
+    *index = -1;
+
+    FILE *fp = IUGetConfigFP(NULL, property->device, "r", errmsg);
+
+    if (fp == NULL)
+        return -1;
+
+    fproot = readXMLFile(fp, lp, errmsg);
+
+    if (fproot == NULL)
+    {
+        fclose(fp);
+        return -1;
+    }
+
+    for (root = nextXMLEle(fproot, 1); root != NULL; root = nextXMLEle(fproot, 0))
+    {
+        /* pull out device and name */
+        if (crackDN(root, &rdev, &rname, errmsg) < 0)
+        {
+            fclose(fp);
+            delXMLEle(fproot);
+            return -1;
+        }
+
+        // It doesn't belong to our device??
+        if (strcmp(property->device, rdev))
+            continue;
+
+        if (!strcmp(property->name, rname))
+        {
+            propertyFound = 1;
+            XMLEle *oneSwitch = NULL;
+            int oneSwitchIndex = 0;
+            ISState oneSwitchState;
+            for (oneSwitch = nextXMLEle(root, 1); oneSwitch != NULL; oneSwitch = nextXMLEle(root, 0), oneSwitchIndex++)
+            {
+                if (crackISState(pcdataXMLEle(oneSwitch), &oneSwitchState) == 0 && oneSwitchState == ISS_ON)
+                {
+                    *index = oneSwitchIndex;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    fclose(fp);
+    delXMLEle(fproot);
+    delLilXML(lp);
+
+    return (propertyFound ? 0 : -1);
 }
 
 int IUGetConfigSwitch(const char *dev, const char *property, const char *member, ISState *value)
@@ -1328,7 +1408,7 @@ int IUGetConfigSwitch(const char *dev, const char *property, const char *member,
     XMLEle *root = NULL, *fproot = NULL;
     char errmsg[MAXRBUF];
     LilXML *lp = newLilXML();
-    int valueFound=0;
+    int valueFound = 0;
 
     FILE *fp = IUGetConfigFP(NULL, dev, "r", errmsg);
 
@@ -1386,7 +1466,7 @@ int IUGetConfigNumber(const char *dev, const char *property, const char *member,
     XMLEle *root = NULL, *fproot = NULL;
     char errmsg[MAXRBUF];
     LilXML *lp = newLilXML();
-    int valueFound=0;
+    int valueFound = 0;
 
     FILE *fp = IUGetConfigFP(NULL, dev, "r", errmsg);
 
@@ -1444,7 +1524,7 @@ int IUGetConfigText(const char *dev, const char *property, const char *member, c
     XMLEle *root = NULL, *fproot = NULL;
     char errmsg[MAXRBUF];
     LilXML *lp = newLilXML();
-    int valueFound=0;
+    int valueFound = 0;
 
     FILE *fp = IUGetConfigFP(NULL, dev, "r", errmsg);
 
@@ -1582,7 +1662,9 @@ FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, cha
     /* If file is owned by root and current user is NOT root then abort */
     if ( (st.st_uid == 0 && getuid() != 0) || (st.st_gid == 0 && getgid() != 0) )
     {
-        strncpy(errmsg, "Config file is owned by root! This will lead to serious errors. To fix this, run: sudo chown -R $USER:$USER ~/.indi", MAXRBUF);
+        strncpy(errmsg,
+                "Config file is owned by root! This will lead to serious errors. To fix this, run: sudo chown -R $USER:$USER ~/.indi",
+                MAXRBUF);
         return NULL;
     }
 
@@ -1688,8 +1770,12 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
         fprintf(fp, "    size='%d'\n", bp->size);
         fprintf(fp, "    format='%s'>\n", bp->format);
 
-        encblob        = malloc(4 * bp->bloblen / 3 + 4);
-        l              = to64frombits(encblob, bp->blob, bp->bloblen);
+        assert_mem(encblob = malloc(4 * bp->bloblen / 3 + 4));
+        l = to64frombits_s(encblob, bp->blob, bp->bloblen, bp->bloblen);
+        if (l == 0) {
+            fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", me, __func__);
+            exit(1);
+        }
         size_t written = 0;
 
         while ((int)written < l)
@@ -1757,8 +1843,7 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
     if (isPropDefined(tvp->name, tvp->device) < 0)
     {
         /* Add this property to insure proper sanity check */
-        propCache =
-            propCache ? (ROSC *)realloc(propCache, sizeof(ROSC) * (nPropCache + 1)) : (ROSC *)malloc(sizeof(ROSC));
+        assert_mem(propCache = (ROSC *)(propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
         SC = &propCache[nPropCache++];
 
         strcpy(SC->propName, tvp->name);
@@ -1829,8 +1914,7 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
     if (isPropDefined(n->name, n->device) < 0)
     {
         /* Add this property to insure proper sanity check */
-        propCache =
-            propCache ? (ROSC *)realloc(propCache, sizeof(ROSC) * (nPropCache + 1)) : (ROSC *)malloc(sizeof(ROSC));
+        assert_mem(propCache = (ROSC *) (propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
         SC = &propCache[nPropCache++];
 
         strcpy(SC->propName, n->name);
@@ -1896,8 +1980,7 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
     if (isPropDefined(s->name, s->device) < 0)
     {
         /* Add this property to insure proper sanity check */
-        propCache =
-            propCache ? (ROSC *)realloc(propCache, sizeof(ROSC) * (nPropCache + 1)) : (ROSC *)malloc(sizeof(ROSC));
+        assert_mem(propCache = (ROSC *) (propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
         SC = &propCache[nPropCache++];
 
         strcpy(SC->propName, s->name);
@@ -2005,8 +2088,7 @@ void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
     if (isPropDefined(b->name, b->device) < 0)
     {
         /* Add this property to insure proper sanity check */
-        propCache =
-            propCache ? (ROSC *)realloc(propCache, sizeof(ROSC) * (nPropCache + 1)) : (ROSC *)malloc(sizeof(ROSC));
+        assert_mem(propCache = (ROSC *)(propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
         SC = &propCache[nPropCache++];
 
         strcpy(SC->propName, b->name);
@@ -2231,8 +2313,13 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
         }
         else
         {
-            encblob = malloc(4 * bp->bloblen / 3 + 4);
-            l       = to64frombits(encblob, bp->blob, bp->bloblen);
+            size_t sz = 4 * bp->bloblen / 3 + 4;
+            assert_mem(encblob = malloc(sz));
+            l = to64frombits_s(encblob, bp->blob, bp->bloblen, sz);
+            if (l == 0) {
+                fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", me, __func__);
+                exit(1);
+            }
             printf("    enclen='%d'\n", l);
             printf("    format='%s'>\n", bp->format);
             size_t written = 0;

@@ -527,7 +527,7 @@ bool Base::getCoords(double *ra, double *dec)
     char res[DRIVER_LEN] = {0};
 
     if (sendCommand(":GEC#", res))
-    {        
+    {
         *ra = DecodeString(res + 9, 8, ieqHours);
         *dec = DecodeString(res, 9, ieqDegrees);
         return true;
@@ -543,7 +543,7 @@ bool Base::getUTCDateTime(double *utc_hours, int *yy, int *mm, int *dd, int *hh,
     if (sendCommand(":GLT#", res))
     {
         *utc_hours = DecodeString(res, 4, 60.0);
-        *yy = DecodeString(res + 5, 2);
+        *yy = DecodeString(res + 5, 2) + 2000;
         *mm = DecodeString(res + 7, 2);
         *dd = DecodeString(res + 9, 2);
         *hh = DecodeString(res + 11, 2);
@@ -634,7 +634,8 @@ bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
             hA = haAxis - 6;        // OK for the West PS
         }
 
-        LOGF_DEBUG("getPierSide pole Axis %f, haAxis %f, Ha %f, pierSide %s", decAxis, haAxis, hA, *pierSide == IEQ_PIER_EAST ? "EAST" : "WEST");
+        LOGF_DEBUG("getPierSide pole Axis %f, haAxis %f, Ha %f, pierSide %s", decAxis, haAxis, hA,
+                   *pierSide == IEQ_PIER_EAST ? "EAST" : "WEST");
 
         return true;
     }

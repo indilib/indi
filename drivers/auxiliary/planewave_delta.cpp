@@ -83,13 +83,22 @@ bool DeltaT::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    // Focuser Information
+    // Version
     IUFillText(&InfoT[INFO_VERSION], "INFO_VERSION", "Version", "NA");
     IUFillTextVector(&InfoTP, InfoT, 1, getDeviceName(), "INFO", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    // Reset
     IUFillSwitch(&ForceS[FORCE_RESET], "FORCE_RESET", "Reset", ISS_OFF);
     IUFillSwitch(&ForceS[FORCE_BOOT], "FORCE_BOOT", "Boot", ISS_OFF);
-    IUFillSwitchVector(&ForceSP, ForceS, 2, getDeviceName(), "FORCE_CONTROL", "Force", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&ForceSP, ForceS, 2, getDeviceName(), "FORCE_CONTROL", "Force", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_IDLE);
+
+    // Temperature
+    IUFillNumber(&TemperatureN[TEMPERATURE_AMBIENT], "TEMPERATURE_AMBIENT", "Ambient (c)", "%.2f", -50, 70., 0., 0.);
+    IUFillNumber(&TemperatureN[TEMPERATURE_SECONDARY], "TEMPERATURE_SECONDARY", "Secondary (c)", "%.2f", -50, 70., 0., 0.);
+    IUFillNumber(&TemperatureN[TEMPERATURE_BACKPLATE], "TEMPERATURE_BACKPLATE", "Backplate (c)", "%.2f", -50, 70., 0., 0.);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 3, getDeviceName(), "DELTA_TEMPERATURE", "Temperature",
+                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     serialConnection = new Connection::Serial(this);
     serialConnection->registerHandshake([&]()
@@ -119,6 +128,7 @@ bool DeltaT::updateProperties()
         initializeHeaters();
 
         defineText(&InfoTP);
+        defineNumber(&TemperatureNP);
         defineSwitch(&ForceSP);
 
         for (auto &oneSP : HeaterControlSP)
@@ -131,6 +141,7 @@ bool DeltaT::updateProperties()
     else
     {
         deleteProperty(InfoTP.name);
+        deleteProperty(TemperatureNP.name);
         deleteProperty(ForceSP.name);
 
         for (auto &oneSP : HeaterControlSP)
@@ -188,6 +199,24 @@ const char *DeltaT::getDefaultName()
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
+const char *DeltaT::getHeaterName(int index)
+{
+    switch (index)
+    {
+        case 0:
+            return "Primary Backplate Heater";
+        case 1:
+            return "Secondary Mirror Heater";
+        case 2:
+            return "Terietary Heater";
+        default:
+            return "Uknkown heater";
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool DeltaT::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -214,20 +243,35 @@ bool DeltaT::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             {
                 if (!strcmp(HeaterControlSP[i]->name, name))
                 {
-                    bool wasOn = IUFindOnSwitchIndex(HeaterControlSP[i].get()) == HEATER_ON;
                     IUUpdateSwitch(HeaterControlSP[i].get(), states, names, n);
-                    if (setHeaterEnabled(i, IUFindOnSwitchIndex(HeaterControlSP[i].get()) == HEATER_ON))
+
+                    int index = IUFindOnSwitchIndex(HeaterControlSP[i].get());
+                    switch (index)
                     {
-                        HeaterControlSP[i]->s = IPS_OK;
-                    }
-                    else
-                    {
-                        IUResetSwitch(HeaterControlSP[i].get());
-                        HeaterControlSP[i]->sp[HEATER_ON].s = wasOn ? ISS_ON : ISS_OFF;
-                        HeaterControlSP[i]->sp[HEATER_OFF].s = wasOn ? ISS_OFF : ISS_ON;
-                        HeaterControlSP[i]->s = IPS_ALERT;
+                        case HEATER_OFF:
+                            setHeaterEnabled(i, false);
+                            LOGF_INFO("%s is off.", getHeaterName(i));
+                            break;
+
+                        case HEATER_ON:
+                            setHeaterEnabled(i, true);
+                            LOGF_INFO("%s if on.", getHeaterName(i));
+                            break;
+
+                        case HEATER_CONTROL:
+                            LOGF_INFO("%s automatic control is enabled. Temperature delta will kept at %.2f C", getHeaterName(i),
+                                      HeaterParamNP[i]->np[PARAM_CONTROL].value);
+                            break;
+
+                        case HEATER_THRESHOLD:
+                            LOGF_INFO("%s threshold control is enabled. When ambient < %.2f C, heater would be turned on at %d%% power.",
+                                      getHeaterName(i),
+                                      HeaterParamNP[i]->np[PARAM_THRESHOLD].value,
+                                      HeaterParamNP[i]->np[PARAM_DUTY].value * 100.0);
+                            break;
                     }
 
+                    HeaterControlSP[i]->s = IPS_OK;
                     IDSetSwitch(HeaterControlSP[i].get(), nullptr);
                     return true;
                 }
@@ -250,22 +294,10 @@ bool DeltaT::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             if (!strcmp(HeaterParamNP[i]->name, name))
             {
-                double prevPeriod = HeaterParamNP[i]->np[PARAM_PERIOD].value;
-                double prevDuty   = HeaterParamNP[i]->np[PARAM_DUTY].value;
-
                 IUUpdateNumber(HeaterParamNP[i].get(), values, names, n);
-                if (setHeaterParam(i, HeaterParamNP[i]->np[PARAM_PERIOD].value, HeaterParamNP[i]->np[PARAM_DUTY].value))
-                {
-                    HeaterParamNP[i]->s = IPS_OK;
-                }
-                else
-                {
-                    HeaterParamNP[i]->s = IPS_ALERT;
-                    HeaterParamNP[i]->np[PARAM_PERIOD].value = prevPeriod;
-                    HeaterParamNP[i]->np[PARAM_DUTY].value = prevDuty;
-                }
-
+                HeaterParamNP[i]->s = IPS_OK;
                 IDSetNumber(HeaterParamNP[i].get(), nullptr);
+                saveConfig(true, HeaterParamNP[i]->name);
                 return true;
             }
         }
@@ -290,6 +322,23 @@ void DeltaT::TimerHit()
             IDSetSwitch(HeaterControlSP[i].get(), nullptr);
             IDSetNumber(HeaterParamNP[i].get(), nullptr);
         }
+    }
+
+    if (readTemperature())
+    {
+        // Send temperature is above threshold
+        bool aboveThreshold = false;
+        for (int i = 0; i < TemperatureNP.nnp; i++)
+        {
+            if (std::fabs(TemperatureN[i].value - m_LastTemperature[i]) > TEMPERATURE_THRESHOLD)
+            {
+                aboveThreshold = true;
+                m_LastTemperature[i] = TemperatureN[i].value;
+            }
+        }
+
+        if (aboveThreshold)
+            IDSetNumber(&TemperatureNP, nullptr);
     }
 
     SetTimer(POLLMS);
@@ -388,14 +437,16 @@ bool DeltaT::initializeHeaters()
         std::unique_ptr<ISwitchVectorProperty> ControlSP;
         ControlSP.reset(new ISwitchVectorProperty);
         std::unique_ptr<ISwitch[]> ControlS;
-        ControlS.reset(new ISwitch[2]);
+        ControlS.reset(new ISwitch[4]);
 
         char switchName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
         snprintf(switchName, MAXINDINAME, "DEW_%d", i + 1);
-        snprintf(groupLabel, MAXINDINAME, "Dew #%d", i + 1);
-        IUFillSwitch(&ControlS[HEATER_ON], "HEATER_ON", "On", ISS_OFF);
+        snprintf(groupLabel, MAXINDINAME, "%s", getHeaterName(i));
         IUFillSwitch(&ControlS[HEATER_OFF], "HEATER_OFF", "Off", ISS_ON);
-        IUFillSwitchVector(ControlSP.get(), ControlS.get(), 2, getDeviceName(), switchName, "Dew",
+        IUFillSwitch(&ControlS[HEATER_ON], "HEATER_ON", "On", ISS_OFF);
+        IUFillSwitch(&ControlS[HEATER_CONTROL], "HEATER_CONTROL", "Control", ISS_OFF);
+        IUFillSwitch(&ControlS[HEATER_THRESHOLD], "HEATER_THRESHOLD", "Theshold", ISS_OFF);
+        IUFillSwitchVector(ControlSP.get(), ControlS.get(), 4, getDeviceName(), switchName, "Dew",
                            groupLabel, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
         HeaterControlSP.push_back(std::move(ControlSP));
@@ -408,14 +459,16 @@ bool DeltaT::initializeHeaters()
         std::unique_ptr<INumberVectorProperty> ControlNP;
         ControlNP.reset(new INumberVectorProperty);
         std::unique_ptr<INumber[]> ControlN;
-        ControlN.reset(new INumber[2]);
+        ControlN.reset(new INumber[4]);
 
         char numberName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
         snprintf(numberName, MAXINDINAME, "PARAM_%d", i + 1);
-        snprintf(groupLabel, MAXINDINAME, "Dew #%d", i + 1);
+        snprintf(groupLabel, MAXINDINAME, "%s", getHeaterName(i));
         IUFillNumber(&ControlN[PARAM_PERIOD], "PARAM_PERIOD", "Period", "%.1f", 0.1, 60, 1, 1);
         IUFillNumber(&ControlN[PARAM_DUTY], "PARAM_DUTY", "Duty", "%.f", 1, 100, 5, 1);
-        IUFillNumberVector(ControlNP.get(), ControlN.get(), 2, getDeviceName(), numberName, "Params",
+        IUFillNumber(&ControlN[PARAM_CONTROL], "PARAM_CONTROL", "ΔAmbient", "%.f", 0, 100, 5, 2.5);
+        IUFillNumber(&ControlN[PARAM_THRESHOLD], "PARAM_THRESHOLD", "Ambient <", "%.f", -50, 50, 5, 2.5);
+        IUFillNumberVector(ControlNP.get(), ControlN.get(), 4, getDeviceName(), numberName, "Params",
                            groupLabel, IP_RW, 60, IPS_IDLE);
 
         HeaterParamNP.push_back(std::move(ControlNP));
@@ -514,6 +567,47 @@ bool DeltaT::forceReset()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+/// Get Temperature
+/////////////////////////////////////////////////////////////////////////////
+bool DeltaT::readTemperature()
+{
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        cmd[0] = DRIVER_SOM;
+        cmd[1] = 0x04;
+        cmd[2] = DEVICE_PC;
+        cmd[3] = DEVICE_TEMP;
+        cmd[4] = TEMP_GET;
+        cmd[5] = i + 1;
+        cmd[6] = calculateCheckSum(cmd, 7);
+
+        if (!sendCommand(cmd, res, 7, 8))
+            return false;
+
+        TemperatureN[i].value = calculateTemperature(res[6], res[5]);
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Calculate temperature from bytes
+/////////////////////////////////////////////////////////////////////////////
+double DeltaT::calculateTemperature(uint8_t byte3, uint8_t byte2)
+{
+    if (byte2 == 0x7F && byte3 == 0x7F)
+        return -100;
+
+    int raw_temperature = byte3 << 8 | byte2;
+    if (raw_temperature & 0x8000)
+        raw_temperature = raw_temperature - 0x10000;
+
+    return raw_temperature / 16.0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
 bool DeltaT::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t res_len)
@@ -569,7 +663,6 @@ bool DeltaT::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_
 
     return true;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 ///
