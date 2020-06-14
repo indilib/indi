@@ -200,6 +200,7 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 
 bool LX200AstroPhysicsExperimental::updateProperties()
 {
+  LOG_INFO("LX200AstroPhysicsExperimental::updateProperties entry");
     LX200Generic::updateProperties();
 
     defineSwitch(&UnparkFromSP);
@@ -218,12 +219,8 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineNumber(&APSiderealTimeNP);
         defineNumber(&HourangleCoordsNP);
         defineNumber(&APUTCOffsetNP);
-
-        IUResetSwitch(&ParkSP);
-        ParkS[0].s = ISS_ON ;
-        ParkSP.s = IPS_OK;
-        IDSetSwitch(&ParkSP, nullptr);
-
+	// InitPark() hinders INDI to set ParkS[1].s = ISS_ON (Unpar(ed)), uff.
+	InitPark();
 
 #ifdef no
         // 2020-05-30, wildi, this is the wrong place to load config data,
@@ -355,7 +352,7 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
 #ifdef no
 bool LX200AstroPhysicsExperimental::initMount()
 {
-    LOG_DEBUG("initMount entry");
+    LOG_INFO("initMount entry");
     // Make sure that the mount is setup according to the properties
     int err = 0;
     if (!IsMountInitialized(&mountInitialized))
@@ -428,7 +425,7 @@ bool LX200AstroPhysicsExperimental::initMount()
 ***************************************************************************************/
 bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    LOG_DEBUG("ISNewNumber entry");
+    LOG_INFO("LX200AstroPhysicsExperimental::ISNewNumber entry");
     if (strcmp(getDeviceName(), dev))
         return false;
 
@@ -489,7 +486,7 @@ bool LX200AstroPhysicsExperimental::ISNewNumber(const char *dev, const char *nam
 
 bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    //LOG_DEBUG("ISNewSwitch entry");
+    LOG_DEBUG("LX200AstroPhysicsExperimental::ISNewSwitch entry");
     int err = 0;
 
     // ignore if not ours //
@@ -933,7 +930,7 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 // experimental function needs testing!!!
 bool LX200AstroPhysicsExperimental::IsMountParked(bool *isAPParked)
 {
-    LOG_DEBUG("IsMountParked entry");
+    LOG_DEBUG("LX200AstroPhysicsExperimental::IsMountParked entry");
     const struct timespec timeout = {0, 250000000L};
     double ra1, ra2;
 
@@ -1438,7 +1435,7 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 {
 
-    LOG_DEBUG("updateTime entry");
+    LOG_DEBUG("LX200AstroPhysicsExperimental::updateTime entry");
     // 2020-06-02, wildi, ToDo, time obtained from KStars differs up to a couple
     // of 5 seconds from system time.
     struct ln_zonedate ltm;
@@ -1503,7 +1500,7 @@ bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longi
 {
     INDI_UNUSED(elevation);
 
-    LOG_DEBUG("updateLocation entry");
+    LOG_DEBUG("LX200AstroPhysicsExperimental::updateLocation entry");
 
     if ((latitude == 0.) && (longitude == 0.))
     {
@@ -1710,9 +1707,7 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
 
 bool LX200AstroPhysicsExperimental::UnPark()
 {
-
-    bool initpark = InitPark() ;
-    LOGF_DEBUG("updateProperties: InitPark() %s", initpark ? "OK" : "NOK");
+  LOG_INFO("LX200AstroPhysicsExperimental::UnPark");
 
     LOG_DEBUG("Unpark: entry");
     // 2020-05-30, wildi, NO: if (!(locationUpdated && timeUpdated)) {
@@ -1723,6 +1718,39 @@ bool LX200AstroPhysicsExperimental::UnPark()
         UnparkFromSP.s = IPS_ALERT;
         IDSetSwitch(&UnparkFromSP, nullptr);
         return false;
+    }
+    bool parkDataValid = InitPark() ;
+    LOGF_DEBUG("updateProperties: InitPark() %s", parkDataValid ? "OK" : "NOK");
+    
+    bool parkDataValid_and_parked = (parkDataValid && isParked());
+    bool unpark_from_last_config = false;
+    
+    unpark_from_last_config = (PARK_LAST == IUFindOnSwitchIndex(&UnparkFromSP));
+    double unparkAlt, unparkAz;
+    if (parkDataValid_and_parked && unpark_from_last_config) {
+
+      LOG_INFO("updateProperties: mount is parked, has valid park data and driver config is set to PARK_LAST");
+      unparkAz = GetAxis1Park(); //Az
+      unparkAlt = GetAxis2Park(); //Alt
+    } else if(!unpark_from_last_config) {
+      ParkPosition unparkfromPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&UnparkFromSP));
+      LOGF_DEBUG("UnPark: park position = %d from current driver", unparkfromPos);
+      if (!calcParkPosition(unparkfromPos, &unparkAlt, &unparkAz))
+	{
+	  LOG_ERROR("UnPark: Error calculating unpark position!");
+	  IUResetSwitch(&UnparkFromSP);
+	  UnparkFromSP.s = IPS_ALERT;
+	  IDSetSwitch(&UnparkFromSP, nullptr);
+	  return false;
+	}
+      LOGF_DEBUG("UnPark: parkPos=%d parkAlt=%f parkAz=%f", unparkfromPos, unparkAlt, unparkAz);
+    } 	  
+    SetAxis1ParkDefault(unparkAz);
+    SetAxis2ParkDefault(unparkAlt);
+    if(!parkDataValid)
+    {
+        SetAxis1ParkDefault(unparkAz);
+        SetAxis2ParkDefault(unparkAlt);
     }
 
     bool isAPParked = false;
@@ -1752,102 +1780,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
         IDSetSwitch(&UnparkFromSP, nullptr);
         return false;
     }
-    // Check if we need to wake up IF:
-    // 1. Park data exists in ParkData.xml
-    // 2. Mount is currently parked
-    // 3. Fallback INDI driver configuration
-    ParkPosition current_unparkfromPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&UnparkFromSP));
-    LOGF_DEBUG("UnPark: current_unparkfromPos=%d ", current_unparkfromPos);
-
-    bool parkDataValid = (LoadParkData() == nullptr);
-    bool parkDataValid_and_parked = false;
-    bool driverConfig = loadConfig(false, UnparkFromSP.name);
-    bool unpark_from_last_config = false;
-    if(parkDataValid)
-    {
-        parkDataValid_and_parked = isParked();
-        if(parkDataValid_and_parked)
-        {
-            if (driverConfig)
-            {
-                unpark_from_last_config = (PARK_LAST == IUFindOnSwitchIndex(&UnparkFromSP));
-                if (unpark_from_last_config)
-                {
-                    LOG_INFO("UnPark: mount is parked, has valid park data and driver config is set to PARK_LAST");
-                }
-            }
-            else
-            {
-                LOG_INFO("UnPark: mount is parked and has valid park data");
-            }
-        }
-    }
-
-    double unparkAlt, unparkAz;
-    if(unpark_from_last_config && !parkDataValid_and_parked)
-    {
-        // select first a park position and save it
-        if(parkDataValid)
-        {
-            LOG_ERROR("UnPark: having valid park data but mount park state in ParkData.xml is false");
-        }
-        else
-        {
-            LOG_ERROR("UnPark: can not unpark, select a Park To position and save configuration");
-        }
-        IUResetSwitch(&UnparkFromSP);
-        UnparkFromSP.s = IPS_ALERT;
-        IDSetSwitch(&UnparkFromSP, nullptr);
-        return false;
-    }
-    else if (unpark_from_last_config && parkDataValid_and_parked)
-    {
-        // unpark from ParkData.xml
-        unparkAz = GetAxis1Park(); //Az
-        unparkAlt = GetAxis2Park(); //Alt
-        LOG_DEBUG("UnPark: unparking last, using ParkData.xml");
-    }
-    else if(!unpark_from_last_config && (current_unparkfromPos != PARK_LAST))
-    {
-        LOGF_DEBUG("UnPark: park position = %d from current driver", current_unparkfromPos);
-        if (!calcParkPosition(current_unparkfromPos, &unparkAlt, &unparkAz))
-        {
-            LOG_ERROR("UnPark.current_unparkfrom: Error calculating unpark position!");
-            IUResetSwitch(&UnparkFromSP);
-            UnparkFromSP.s = IPS_ALERT;
-            IDSetSwitch(&UnparkFromSP, nullptr);
-            return false;
-        }
-        LOGF_DEBUG("UnPark: parkPos=%d parkAlt=%f parkAz=%f", current_unparkfromPos, unparkAlt, unparkAz);
-
-    }
-    else if(!unpark_from_last_config && parkDataValid_and_parked)
-    {
-        // 2020-05-31, wildi, that's my humble decision
-        // InitPark is done early in updateProperties
-        unparkAz = GetAxis1Park(); //Az
-        unparkAlt = GetAxis2Park(); //Alt
-        LOG_DEBUG("UnPark: unparking not last, using ParkData.xml");
-    }
-    else
-    {
-        //2020-06-02, wildi, ToDo stays green
-        IUResetSwitch(&ParkSP);
-        ParkS[0].s = ISS_ON;
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, nullptr);
-        LOGF_ERROR("UnPark: can not unpark, ParkData.xml's is: %s and mount is: %s during last session",
-                   parkDataValid ? "valid" : "invalid", parkDataValid_and_parked ? "parked" : "not parked");
-        LOG_INFO("UnPark: select an appropriate Park To position, park, write park data to file, save driver's configuration and unpark again using e.g. Last Parked.");
-        return false;
-    }
-    SetAxis1ParkDefault(unparkAz);
-    SetAxis2ParkDefault(unparkAlt);
-    if(!initpark)
-    {
-        SetAxis1ParkDefault(unparkAz);
-        SetAxis2ParkDefault(unparkAlt);
-    }
+ 
 
     // The AP :PO# should only be used during initilization and not here as indicated by email from Preston on 2017-12-12
     // 2020-05-27, wildi, ToDo taking care of above comment later
