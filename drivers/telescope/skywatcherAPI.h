@@ -317,7 +317,7 @@ class SkywatcherAPI
         TTY_ERRNO        = -7
     };
     virtual int skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) = 0;
-    //    virtual int skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read) = 0;
+    virtual int skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read) = 0;
     virtual int skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written) = 0;
     //    virtual int skywatcher_tty_write_string(int fd, const char * buffer, int *nbytes_written) = 0;
     //    virtual int skywatcher_tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd) = 0;
