@@ -23,6 +23,7 @@
 
 
 #include "indifocuser.h"
+#include "pid/pid.h"
 
 #include <memory>
 #include <map>
@@ -170,7 +171,9 @@ class DeltaT : public INDI::DefaultDevice
         /////////////////////////////////////////////////////////////////////////////
         Connection::Serial *serialConnection { nullptr };
         double m_LastTemperature[3];
+        std::vector<bool> HeaterStatus;
         int PortFD { -1 };
+        std::vector<std::unique_ptr<PID>> m_Controllers;
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
@@ -178,7 +181,9 @@ class DeltaT : public INDI::DefaultDevice
         // Start of Message
         static const char DRIVER_SOM { 0x3B };
         // Temperature Reporting threshold
-        static constexpr double TEMPERATURE_THRESHOLD { 0.05 };
+        static constexpr double TEMPERATURE_REPORT_THRESHOLD { 0.05 };
+        // Temperature Control threshold
+        static constexpr double TEMPERATURE_CONTROL_THRESHOLD { 0.1 };
         static constexpr const uint8_t DRIVER_LEN {32};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
