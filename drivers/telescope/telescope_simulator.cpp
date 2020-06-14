@@ -159,7 +159,8 @@ bool ScopeSim::initProperties()
     ScopeParametersN[2].value = 120;
     ScopeParametersN[3].value = 900;
 
-    SetParkDataType(PARK_RA_DEC);
+    // RA is a rotating frame, while HA or Alt/Az is not
+    SetParkDataType(PARK_HA_DEC);
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -217,15 +218,17 @@ bool ScopeSim::updateProperties()
 
         if (InitPark())
         {
-            // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(currentRA);
-            SetAxis2ParkDefault(currentDEC);
 
             if (isParked())
             {
-                currentRA = ParkPositionN[AXIS_RA].value;
+                currentRA = (alignment.lst() - Angle(ParkPositionN[AXIS_RA].value * 15.)).Degrees()/15.;
                 currentDEC = ParkPositionN[AXIS_DE].value;
+                Sync(currentRA, currentDEC);
+
             }
+            // If loading parking data is successful, we just set the default parking values.
+            SetAxis1ParkDefault(currentRA);
+            SetAxis2ParkDefault(currentDEC);
         }
         else
         {
@@ -289,7 +292,7 @@ bool ScopeSim::ReadScopeStatus()
             {
                 SetParked(true);
                 EqNP.s = IPS_IDLE;
-                LOG_INFO("Telescope slew is complete. Parking...");
+                LOG_INFO("Telescope slew is complete. Parked");
             }
             break;
         case SCOPE_SLEWING:
@@ -386,7 +389,8 @@ bool ScopeSim::Sync(double ra, double dec)
 
 bool ScopeSim::Park()
 {
-    StartSlew(GetAxis1Park(), GetAxis2Park(), SCOPE_PARKING);
+    double ra = (alignment.lst() - Angle(GetAxis1Park() * 15.)).Degrees()/15.;
+    StartSlew(ra, GetAxis2Park(), SCOPE_PARKING);
     return true;
 }
 
