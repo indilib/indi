@@ -94,9 +94,9 @@ bool DeltaT::initProperties()
                        IPS_IDLE);
 
     // Temperature
-    IUFillNumber(&TemperatureN[TEMPERATURE_BACKPLATE], "TEMPERATURE_BACKPLATE", "Backplate (c)", "%.2f", -50, 70., 0., 0.);
     IUFillNumber(&TemperatureN[TEMPERATURE_AMBIENT], "TEMPERATURE_AMBIENT", "Ambient (c)", "%.2f", -50, 70., 0., 0.);
     IUFillNumber(&TemperatureN[TEMPERATURE_SECONDARY], "TEMPERATURE_SECONDARY", "Secondary (c)", "%.2f", -50, 70., 0., 0.);
+    IUFillNumber(&TemperatureN[TEMPERATURE_BACKPLATE], "TEMPERATURE_BACKPLATE", "Backplate (c)", "%.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 3, getDeviceName(), "DELTA_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -632,13 +632,13 @@ bool DeltaT::readTemperature()
         cmd[2] = DEVICE_PC;
         cmd[3] = DEVICE_DELTA;
         cmd[4] = TEMP_GET;
-        cmd[5] = i;
+        cmd[5] = i + 1;
         cmd[6] = calculateCheckSum(cmd, 7);
 
         if (!sendCommand(cmd, res, 7, 8))
             return false;
 
-        TemperatureN[i].value = calculateTemperature(res[6], res[5]);
+        TemperatureN[i].value = calculateTemperature(res[5], res[6]);
     }
 
     return true;
@@ -647,12 +647,12 @@ bool DeltaT::readTemperature()
 /////////////////////////////////////////////////////////////////////////////
 /// Calculate temperature from bytes
 /////////////////////////////////////////////////////////////////////////////
-double DeltaT::calculateTemperature(uint8_t byte3, uint8_t byte2)
+double DeltaT::calculateTemperature(uint8_t lsb, uint8_t msb)
 {
-    if (byte2 == 0x7F && byte3 == 0x7F)
+    if (lsb == 0x7F && msb == 0x7F)
         return -100;
 
-    int raw_temperature = byte3 << 8 | byte2;
+    int raw_temperature = lsb << 8 | msb;
     if (raw_temperature & 0x8000)
         raw_temperature = raw_temperature - 0x10000;
 

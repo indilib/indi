@@ -107,7 +107,7 @@ class DeltaT : public INDI::DefaultDevice
         ///////////////////////////////////////////////////////////////////////////////////
         /// Misc
         ///////////////////////////////////////////////////////////////////////////////////
-        double calculateTemperature(uint8_t byte3, uint8_t byte2);
+        double calculateTemperature(uint8_t lsb, uint8_t msb);
         uint8_t calculateCheckSum(const char *cmd, uint32_t len);
         const char *getHeaterName(int index);
         template <typename T> std::string to_string(const T a_value, const int n = 2);
@@ -161,9 +161,13 @@ class DeltaT : public INDI::DefaultDevice
         INumber TemperatureN[3];
         enum
         {
-            TEMPERATURE_BACKPLATE,
+            // Primary is 0 , not used in this driver.
+            // 1
             TEMPERATURE_AMBIENT,
-            TEMPERATURE_SECONDARY
+            // 2
+            TEMPERATURE_SECONDARY,
+            // 3
+            TEMPERATURE_BACKPLATE,
         };
 
         /////////////////////////////////////////////////////////////////////////////
