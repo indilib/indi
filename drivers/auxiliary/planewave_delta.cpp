@@ -261,7 +261,7 @@ bool DeltaT::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
                         case HEATER_ON:
                             setHeaterEnabled(i, true);
-                            LOGF_INFO("%s if on.", getHeaterName(i));
+                            LOGF_INFO("%s is on.", getHeaterName(i));
                             break;
 
                         case HEATER_CONTROL:
@@ -303,6 +303,11 @@ bool DeltaT::ISNewNumber(const char *dev, const char *name, double values[], cha
                 IUUpdateNumber(HeaterParamNP[i].get(), values, names, n);
                 HeaterParamNP[i]->s = IPS_OK;
                 IDSetNumber(HeaterParamNP[i].get(), nullptr);
+
+                // Update existing on heater
+                if (IUFindOnSwitchIndex(HeaterControlSP[i].get()) == HEATER_ON)
+                    setHeaterEnabled(i, true);
+
                 saveConfig(true, HeaterParamNP[i]->name);
                 return true;
             }
@@ -380,9 +385,11 @@ void DeltaT::TimerHit()
                     break;
 
                 // If heater is off, check if we need to turn it on.
-                if (HeaterStatus[i] == false && (TemperatureN[TEMPERATURE_AMBIENT].value < HeaterParamNP[i]->np[PARAM_THRESHOLD].value))
+                if (HeaterParamNP[i]->s == IPS_IDLE
+                        && (TemperatureN[TEMPERATURE_AMBIENT].value < HeaterParamNP[i]->np[PARAM_THRESHOLD].value))
                     setHeaterEnabled(i, true);
-                else if (HeaterStatus[i] && (TemperatureN[TEMPERATURE_AMBIENT].value > HeaterParamNP[i]->np[PARAM_THRESHOLD].value))
+                else if (HeaterParamNP[i]->s == IPS_BUSY
+                         && (TemperatureN[TEMPERATURE_AMBIENT].value > HeaterParamNP[i]->np[PARAM_THRESHOLD].value))
                     setHeaterEnabled(i, false);
                 break;
             }
@@ -434,8 +441,6 @@ bool DeltaT::readReport(uint8_t index)
     report.PeriodUW     = res[16] << 8 | res[15];
     report.DutyCycleUB  = res[17];
 
-    HeaterStatus[index] = (report.StateUB == 1);
-
     //bool stateChanged = false, paramChanged = false;
 
     //    bool wasOn = IUFindOnSwitchIndex(HeaterControlSP[index].get()) == HEATER_ON;
@@ -450,12 +455,15 @@ bool DeltaT::readReport(uint8_t index)
 
     double currentPeriod = HeaterMonitorNP[index]->np[MONITOR_PERIOD].value;
     double currentDuty = HeaterMonitorNP[index]->np[MONITOR_DUTY].value;
+    IPState currentState = HeaterMonitorNP[index]->s;
 
     HeaterMonitorNP[index]->np[MONITOR_PERIOD].value = report.PeriodUW / 10.0;
     HeaterMonitorNP[index]->np[MONITOR_DUTY].value = report.DutyCycleUB;
+    HeaterMonitorNP[index]->s = (report.StateUB == 1) ? IPS_BUSY : IPS_IDLE;
 
     bool paramChanged = std::fabs(currentPeriod - HeaterMonitorNP[index]->np[MONITOR_PERIOD].value) > 0.1 ||
-                        std::fabs(currentDuty - HeaterMonitorNP[index]->np[MONITOR_DUTY].value) > 0;
+                        std::fabs(currentDuty - HeaterMonitorNP[index]->np[MONITOR_DUTY].value) > 0 ||
+                        currentState != HeaterMonitorNP[index]->s;
 
     // Return true if only something changed.
     return (paramChanged);
@@ -481,8 +489,6 @@ bool DeltaT::initializeHeaters()
     uint8_t nHeaters = res[5];
 
     LOGF_INFO("Detected %d heaters", nHeaters);
-
-    HeaterStatus.resize(nHeaters, false);
 
     // Create heater controls
     for (uint8_t i = 0; i < nHeaters; i++)

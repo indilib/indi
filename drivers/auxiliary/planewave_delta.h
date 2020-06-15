@@ -184,7 +184,6 @@ class DeltaT : public INDI::DefaultDevice
         /////////////////////////////////////////////////////////////////////////////
         Connection::Serial *serialConnection { nullptr };
         double m_LastTemperature[3];
-        std::vector<bool> HeaterStatus;
         int PortFD { -1 };
         std::vector<std::unique_ptr<PID>> m_Controllers;
 
