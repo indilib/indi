@@ -161,9 +161,9 @@ class DeltaT : public INDI::DefaultDevice
         INumber TemperatureN[3];
         enum
         {
+            TEMPERATURE_BACKPLATE,
             TEMPERATURE_AMBIENT,
-            TEMPERATURE_SECONDARY,
-            TEMPERATURE_BACKPLATE
+            TEMPERATURE_SECONDARY
         };
 
         /////////////////////////////////////////////////////////////////////////////

@@ -94,9 +94,9 @@ bool DeltaT::initProperties()
                        IPS_IDLE);
 
     // Temperature
+    IUFillNumber(&TemperatureN[TEMPERATURE_BACKPLATE], "TEMPERATURE_BACKPLATE", "Backplate (c)", "%.2f", -50, 70., 0., 0.);
     IUFillNumber(&TemperatureN[TEMPERATURE_AMBIENT], "TEMPERATURE_AMBIENT", "Ambient (c)", "%.2f", -50, 70., 0., 0.);
     IUFillNumber(&TemperatureN[TEMPERATURE_SECONDARY], "TEMPERATURE_SECONDARY", "Secondary (c)", "%.2f", -50, 70., 0., 0.);
-    IUFillNumber(&TemperatureN[TEMPERATURE_BACKPLATE], "TEMPERATURE_BACKPLATE", "Backplate (c)", "%.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 3, getDeviceName(), "DELTA_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -630,9 +630,9 @@ bool DeltaT::readTemperature()
         cmd[0] = DRIVER_SOM;
         cmd[1] = 0x04;
         cmd[2] = DEVICE_PC;
-        cmd[3] = DEVICE_TEMP;
+        cmd[3] = DEVICE_DELTA;
         cmd[4] = TEMP_GET;
-        cmd[5] = i + 1;
+        cmd[5] = i;
         cmd[6] = calculateCheckSum(cmd, 7);
 
         if (!sendCommand(cmd, res, 7, 8))
