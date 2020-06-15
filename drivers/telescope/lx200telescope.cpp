@@ -76,7 +76,8 @@ bool LX200Telescope::initProperties()
     IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 #endif
 
 #if 0
@@ -1394,7 +1395,8 @@ bool LX200Telescope::sendScopeLocation()
 
     }
 
-    LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
+    LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value,
+               LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
 
@@ -1405,6 +1407,12 @@ bool LX200Telescope::sendScopeLocation()
 
 IPState LX200Telescope::GuideNorth(uint32_t ms)
 {
+    if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
+    {
+        LOG_ERROR("Cannot guide while slewing or parking in progress. Stop first.");
+        return IPS_ALERT;
+    }
+
     // If we're using pulse command, then MovementXXX should NOT be active at all.
     if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1438,6 +1446,12 @@ IPState LX200Telescope::GuideNorth(uint32_t ms)
 
 IPState LX200Telescope::GuideSouth(uint32_t ms)
 {
+    if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
+    {
+        LOG_ERROR("Cannot guide while slewing or parking in progress. Stop first.");
+        return IPS_ALERT;
+    }
+
     // If we're using pulse command, then MovementXXX should NOT be active at all.
     if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1471,6 +1485,12 @@ IPState LX200Telescope::GuideSouth(uint32_t ms)
 
 IPState LX200Telescope::GuideEast(uint32_t ms)
 {
+    if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
+    {
+        LOG_ERROR("Cannot guide while slewing or parking in progress. Stop first.");
+        return IPS_ALERT;
+    }
+
     // If we're using pulse command, then MovementXXX should NOT be active at all.
     if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1504,6 +1524,12 @@ IPState LX200Telescope::GuideEast(uint32_t ms)
 
 IPState LX200Telescope::GuideWest(uint32_t ms)
 {
+    if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
+    {
+        LOG_ERROR("Cannot guide while slewing or parking in progress. Stop first.");
+        return IPS_ALERT;
+    }
+
     // If we're using pulse command, then MovementXXX should NOT be active at all.
     if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {

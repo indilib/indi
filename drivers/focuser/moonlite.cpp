@@ -313,7 +313,7 @@ bool MoonLite::isMoving()
 bool MoonLite::setTemperatureCalibration(double calibration)
 {
     char cmd[ML_RES] = {0};
-    uint8_t hex = static_cast<uint8_t>(calibration * 2);
+    uint8_t hex = static_cast<int8_t>(calibration * 2) & 0xFF;
     snprintf(cmd, ML_RES, ":PO%02X#", hex);
     return sendCommand(cmd);
 }
@@ -321,7 +321,7 @@ bool MoonLite::setTemperatureCalibration(double calibration)
 bool MoonLite::setTemperatureCoefficient(double coefficient)
 {
     char cmd[ML_RES] = {0};
-    uint8_t hex = static_cast<uint8_t>(coefficient * 2);
+    uint8_t hex = static_cast<int8_t>(coefficient * 2) & 0xFF;
     snprintf(cmd, ML_RES, ":SC%02X#", hex);
     return sendCommand(cmd);
 }

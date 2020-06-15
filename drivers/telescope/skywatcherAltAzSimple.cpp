@@ -139,6 +139,12 @@ bool SkywatcherAltAzSimple::Handshake()
     DEBUG(DBG_SCOPE, "SkywatcherAltAzSimple::Handshake");
     SetSerialPort(PortFD);
 
+    Connection::Interface *activeConnection = getActiveConnection();
+    if (!activeConnection->name().compare("CONNECTION_TCP"))
+    {
+        tty_set_generic_udp_format(1);
+    }
+
     bool Result = InitMount(RecoverAfterReconnection);
 
     if (getActiveConnection() == serialConnection)
@@ -1198,8 +1204,10 @@ void SkywatcherAltAzSimple::TimerHit()
                 AzimuthOffsetMicrosteps += MicrostepsPerRevolution[AXIS1];
             }
 
-            AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP, "TRACKING_RATE_ALT")->value);
-            AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP, "TRACKING_RATE_AZ")->value);
+            AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
+                                              "TRACKING_RATE_ALT")->value);
+            AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
+                                             "TRACKING_RATE_AZ")->value);
 
             LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
                        CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,
@@ -1370,8 +1378,7 @@ void SkywatcherAltAzSimple::ResetGuidePulses()
     GuidingPulses.clear();
 }
 
-int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
-{
+int SkywatcherAltAzSimple::recover_tty_reconnect() {
     if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
     {
         RecoverAfterReconnection = true;
@@ -1391,31 +1398,37 @@ int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, in
         SetSerialPort(serialConnection->getPortFD());
         SerialPortName           = serialConnection->port();
         RecoverAfterReconnection = false;
+        return 1;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+{
+    if (!recover_tty_reconnect())
+    {
+        return 0;
     }
     return tty_read(fd, buf, nbytes, timeout, nbytes_read);
 }
 
+int SkywatcherAltAzSimple::skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
+{
+    if (!recover_tty_reconnect())
+    {
+        return 0;
+    }
+    return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+}
+
 int SkywatcherAltAzSimple::skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written)
 {
-    if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
+    if (!recover_tty_reconnect())
     {
-        RecoverAfterReconnection = true;
-        serialConnection->Disconnect();
-        serialConnection->Refresh();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        if (!serialConnection->Connect())
-        {
-            RecoverAfterReconnection = true;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            if (!serialConnection->Connect())
-            {
-                RecoverAfterReconnection = false;
-                return 0;
-            }
-        }
-        SetSerialPort(serialConnection->getPortFD());
-        SerialPortName           = serialConnection->port();
-        RecoverAfterReconnection = false;
+        return 0;
     }
     return tty_write(fd, buffer, nbytes, nbytes_written);
 }
