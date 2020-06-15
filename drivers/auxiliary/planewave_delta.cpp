@@ -498,7 +498,7 @@ bool DeltaT::initializeHeaters()
     {
         // TODO fine tune the params
         std::unique_ptr<PID> Controller;
-        Controller.reset(new PID(1, 100, 0, 200, 0, 0.2));
+        Controller.reset(new PID(1, 100, 0, 200, 0, 0.75));
         m_Controllers.push_back(std::move(Controller));
 
         std::unique_ptr<ISwitchVectorProperty> ControlSP;
@@ -535,8 +535,8 @@ bool DeltaT::initializeHeaters()
         snprintf(groupLabel, MAXINDINAME, "%s", getHeaterName(i));
         IUFillNumber(&ControlN[PARAM_PERIOD], "PARAM_PERIOD", "Period", "%.1f", 0.1, 60, 1, 1);
         IUFillNumber(&ControlN[PARAM_DUTY], "PARAM_DUTY", "Duty", "%.f", 1, 100, 5, 1);
-        IUFillNumber(&ControlN[PARAM_CONTROL], "PARAM_CONTROL", "ΔAmbient", "%.1f", 0, 100, 5, 2.5);
-        IUFillNumber(&ControlN[PARAM_THRESHOLD], "PARAM_THRESHOLD", "Ambient <", "%.1f", -50, 50, 5, 2.5);
+        IUFillNumber(&ControlN[PARAM_CONTROL], "PARAM_CONTROL", "ΔAmbient =", "%.1f", 0, 100, 5, 2.5);
+        IUFillNumber(&ControlN[PARAM_THRESHOLD], "PARAM_THRESHOLD", "Ambient less", "%.1f", -50, 50, 5, 2.5);
         IUFillNumberVector(ControlNP.get(), ControlN.get(), 4, getDeviceName(), numberName, "Params",
                            groupLabel, IP_RW, 60, IPS_IDLE);
 
