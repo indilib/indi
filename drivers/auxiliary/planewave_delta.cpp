@@ -270,10 +270,10 @@ bool DeltaT::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                             break;
 
                         case HEATER_THRESHOLD:
-                            LOGF_INFO("%s threshold control is enabled. When ambient temperature falls below %.2f C, heater would be turned on at %d%% power.",
+                            LOGF_INFO("%s threshold control is enabled. When ambient temperature falls below %.2f C, heater would be turned on at %.f%% power.",
                                       getHeaterName(i),
                                       HeaterParamNP[i]->np[PARAM_THRESHOLD].value,
-                                      HeaterParamNP[i]->np[PARAM_DUTY].value * 100.0);
+                                      HeaterParamNP[i]->np[PARAM_DUTY].value);
                             break;
                     }
 
@@ -409,6 +409,8 @@ void DeltaT::TimerHit()
 bool DeltaT::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
+    for (uint8_t i = 0; i < HeaterParamNP.size(); i++)
+        IUSaveConfigNumber(fp, HeaterMonitorNP[i].get());
     return true;
 }
 
