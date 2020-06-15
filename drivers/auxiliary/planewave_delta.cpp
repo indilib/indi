@@ -498,7 +498,7 @@ bool DeltaT::initializeHeaters()
     {
         // TODO fine tune the params
         std::unique_ptr<PID> Controller;
-        Controller.reset(new PID(1, 100, 0, 150, 0, 0));
+        Controller.reset(new PID(1, 100, 0, 200, 0, 0.2));
         m_Controllers.push_back(std::move(Controller));
 
         std::unique_ptr<ISwitchVectorProperty> ControlSP;
@@ -672,7 +672,11 @@ bool DeltaT::readTemperature()
         if (!sendCommand(cmd, res, 7, 8))
             return false;
 
-        TemperatureN[i].value = calculateTemperature(res[5], res[6]);
+        double newTemperature = calculateTemperature(res[5], res[6]);
+        // Temperature fluctuates a lot so let's change it only when the delta > 0.1
+        if (std::abs(TemperatureN[i].value - newTemperature) > TEMPERATURE_CONTROL_THRESHOLD)
+            TemperatureN[i].value = newTemperature;
+
     }
 
     return true;
