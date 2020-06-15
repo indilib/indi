@@ -145,7 +145,7 @@ class DeltaT : public INDI::DefaultDevice
             HEATER_THRESHOLD
         };
 
-        // PWM Control
+        // Control Params
         std::vector<std::unique_ptr<INumberVectorProperty>> HeaterParamNP;
         std::vector<std::unique_ptr<INumber[]>> HeaterParamN;
         enum
@@ -154,6 +154,15 @@ class DeltaT : public INDI::DefaultDevice
             PARAM_DUTY,
             PARAM_CONTROL,
             PARAM_THRESHOLD,
+        };
+
+        // Monitor
+        std::vector<std::unique_ptr<INumberVectorProperty>> HeaterMonitorNP;
+        std::vector<std::unique_ptr<INumber[]>> HeaterMonitorN;
+        enum
+        {
+            MONITOR_PERIOD,
+            MONITOR_DUTY
         };
 
         // Read Only Temperature Reporting

@@ -137,6 +137,9 @@ bool DeltaT::updateProperties()
         for (auto &oneNP : HeaterParamNP)
             defineNumber(oneNP.get());
 
+        for (auto &oneNP : HeaterMonitorNP)
+            defineNumber(oneNP.get());
+
     }
     else
     {
@@ -148,6 +151,9 @@ bool DeltaT::updateProperties()
             deleteProperty(oneSP->name);
 
         for (auto &oneNP : HeaterParamNP)
+            deleteProperty(oneNP->name);
+
+        for (auto &oneNP : HeaterMonitorNP)
             deleteProperty(oneNP->name);
     }
 
@@ -320,7 +326,7 @@ void DeltaT::TimerHit()
         if (readReport(i))
         {
             //IDSetSwitch(HeaterControlSP[i].get(), nullptr);
-            IDSetNumber(HeaterParamNP[i].get(), nullptr);
+            IDSetNumber(HeaterMonitorNP[i].get(), nullptr);
         }
     }
 
@@ -442,14 +448,14 @@ bool DeltaT::readReport(uint8_t index)
 
     //    stateChanged = wasOn != isOn;
 
-    double currentPeriod = HeaterParamNP[index]->np[PARAM_PERIOD].value;
-    double currentDuty = HeaterParamNP[index]->np[PARAM_DUTY].value;
+    double currentPeriod = HeaterMonitorNP[index]->np[MONITOR_PERIOD].value;
+    double currentDuty = HeaterMonitorNP[index]->np[MONITOR_DUTY].value;
 
-    HeaterParamNP[index]->np[PARAM_PERIOD].value = report.PeriodUW / 10.0;
-    HeaterParamNP[index]->np[PARAM_DUTY].value = report.DutyCycleUB;
+    HeaterMonitorNP[index]->np[MONITOR_PERIOD].value = report.PeriodUW / 10.0;
+    HeaterMonitorNP[index]->np[MONITOR_DUTY].value = report.DutyCycleUB;
 
-    bool paramChanged = std::fabs(currentPeriod - HeaterParamNP[index]->np[PARAM_PERIOD].value) > 0.1 ||
-                        std::fabs(currentDuty - HeaterParamNP[index]->np[PARAM_DUTY].value) > 0;
+    bool paramChanged = std::fabs(currentPeriod - HeaterMonitorNP[index]->np[MONITOR_PERIOD].value) > 0.1 ||
+                        std::fabs(currentDuty - HeaterMonitorNP[index]->np[MONITOR_DUTY].value) > 0;
 
     // Return true if only something changed.
     return (paramChanged);
@@ -492,13 +498,13 @@ bool DeltaT::initializeHeaters()
         ControlS.reset(new ISwitch[4]);
 
         char switchName[MAXINDINAME] = {0}, groupLabel[MAXINDINAME] = {0};
-        snprintf(switchName, MAXINDINAME, "DEW_%d", i + 1);
+        snprintf(switchName, MAXINDINAME, "HEATER_%d", i + 1);
         snprintf(groupLabel, MAXINDINAME, "%s", getHeaterName(i));
         IUFillSwitch(&ControlS[HEATER_OFF], "HEATER_OFF", "Off", ISS_ON);
         IUFillSwitch(&ControlS[HEATER_ON], "HEATER_ON", "On", ISS_OFF);
         IUFillSwitch(&ControlS[HEATER_CONTROL], "HEATER_CONTROL", "Control", ISS_OFF);
         IUFillSwitch(&ControlS[HEATER_THRESHOLD], "HEATER_THRESHOLD", "Theshold", ISS_OFF);
-        IUFillSwitchVector(ControlSP.get(), ControlS.get(), 4, getDeviceName(), switchName, "Dew",
+        IUFillSwitchVector(ControlSP.get(), ControlS.get(), 4, getDeviceName(), switchName, "Heater",
                            groupLabel, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
         HeaterControlSP.push_back(std::move(ControlSP));
@@ -508,6 +514,8 @@ bool DeltaT::initializeHeaters()
     // Create heater parameters
     for (uint8_t i = 0; i < nHeaters; i++)
     {
+
+        // Control Parameters
         std::unique_ptr<INumberVectorProperty> ControlNP;
         ControlNP.reset(new INumberVectorProperty);
         std::unique_ptr<INumber[]> ControlN;
@@ -525,6 +533,23 @@ bool DeltaT::initializeHeaters()
 
         HeaterParamNP.push_back(std::move(ControlNP));
         HeaterParamN.push_back(std::move(ControlN));
+
+
+        // Monitoring
+        std::unique_ptr<INumberVectorProperty> MonitorNP;
+        MonitorNP.reset(new INumberVectorProperty);
+        std::unique_ptr<INumber[]> MonitorN;
+        MonitorN.reset(new INumber[2]);
+
+        snprintf(numberName, MAXINDINAME, "MONITOR_%d", i + 1);
+        snprintf(groupLabel, MAXINDINAME, "%s", getHeaterName(i));
+        IUFillNumber(&MonitorN[MONITOR_PERIOD], "MONITOR_PERIOD", "Period", "%.1f", 0.1, 60, 1, 1);
+        IUFillNumber(&MonitorN[MONITOR_DUTY], "MONITOR_DUTY", "Duty", "%.f", 1, 100, 5, 1);
+        IUFillNumberVector(MonitorNP.get(), MonitorN.get(), 2, getDeviceName(), numberName, "Params",
+                           groupLabel, IP_RO, 60, IPS_IDLE);
+
+        HeaterMonitorNP.push_back(std::move(MonitorNP));
+        HeaterMonitorN.push_back(std::move(MonitorN));
     }
 
     return true;
