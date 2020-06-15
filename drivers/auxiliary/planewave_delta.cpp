@@ -372,7 +372,10 @@ void DeltaT::TimerHit()
                 double targetDuty = m_Controllers[i]->calculate(targetTemperature, surfaceTemperature);
                 // Limit to 0 - 100
                 double heaterDuty = std::max(0., std::min(100., targetDuty));
-                setHeaterParam(i, HeaterParamNP[i]->np[PARAM_PERIOD].value, heaterDuty);
+                // Only update if there is a difference
+                if (std::abs(heaterDuty - HeaterMonitorNP[i]->np[MONITOR_DUTY].value) > 0.001 ||
+                        std::abs(HeaterParamNP[i]->np[PARAM_PERIOD].value - HeaterMonitorNP[i]->np[MONITOR_PERIOD].value) > 0)
+                    setHeaterParam(i, HeaterParamNP[i]->np[PARAM_PERIOD].value, heaterDuty);
             }
             break;
 
@@ -495,7 +498,7 @@ bool DeltaT::initializeHeaters()
     {
         // TODO fine tune the params
         std::unique_ptr<PID> Controller;
-        Controller.reset(new PID(1, 100, 0, 200, 1, 1));
+        Controller.reset(new PID(1, 100, 0, 150, 0, 0));
         m_Controllers.push_back(std::move(Controller));
 
         std::unique_ptr<ISwitchVectorProperty> ControlSP;
@@ -532,8 +535,8 @@ bool DeltaT::initializeHeaters()
         snprintf(groupLabel, MAXINDINAME, "%s", getHeaterName(i));
         IUFillNumber(&ControlN[PARAM_PERIOD], "PARAM_PERIOD", "Period", "%.1f", 0.1, 60, 1, 1);
         IUFillNumber(&ControlN[PARAM_DUTY], "PARAM_DUTY", "Duty", "%.f", 1, 100, 5, 1);
-        IUFillNumber(&ControlN[PARAM_CONTROL], "PARAM_CONTROL", "ΔAmbient", "%.f", 0, 100, 5, 2.5);
-        IUFillNumber(&ControlN[PARAM_THRESHOLD], "PARAM_THRESHOLD", "Ambient <", "%.f", -50, 50, 5, 2.5);
+        IUFillNumber(&ControlN[PARAM_CONTROL], "PARAM_CONTROL", "ΔAmbient", "%.1f", 0, 100, 5, 2.5);
+        IUFillNumber(&ControlN[PARAM_THRESHOLD], "PARAM_THRESHOLD", "Ambient <", "%.1f", -50, 50, 5, 2.5);
         IUFillNumberVector(ControlNP.get(), ControlN.get(), 4, getDeviceName(), numberName, "Params",
                            groupLabel, IP_RW, 60, IPS_IDLE);
 
@@ -551,7 +554,7 @@ bool DeltaT::initializeHeaters()
         snprintf(groupLabel, MAXINDINAME, "%s", getHeaterName(i));
         IUFillNumber(&MonitorN[MONITOR_PERIOD], "MONITOR_PERIOD", "Period", "%.1f", 0.1, 60, 1, 1);
         IUFillNumber(&MonitorN[MONITOR_DUTY], "MONITOR_DUTY", "Duty", "%.f", 1, 100, 5, 1);
-        IUFillNumberVector(MonitorNP.get(), MonitorN.get(), 2, getDeviceName(), numberName, "Params",
+        IUFillNumberVector(MonitorNP.get(), MonitorN.get(), 2, getDeviceName(), numberName, "Monitor",
                            groupLabel, IP_RO, 60, IPS_IDLE);
 
         HeaterMonitorNP.push_back(std::move(MonitorNP));
