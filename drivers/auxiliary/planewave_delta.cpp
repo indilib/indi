@@ -388,10 +388,10 @@ void DeltaT::TimerHit()
                     break;
 
                 // If heater is off, check if we need to turn it on.
-                if (HeaterParamNP[i]->s == IPS_IDLE
+                if (HeaterMonitorNP[i]->s == IPS_IDLE
                         && (TemperatureN[TEMPERATURE_AMBIENT].value < HeaterParamNP[i]->np[PARAM_THRESHOLD].value))
                     setHeaterEnabled(i, true);
-                else if (HeaterParamNP[i]->s == IPS_BUSY
+                else if (HeaterMonitorNP[i]->s == IPS_BUSY
                          && (TemperatureN[TEMPERATURE_AMBIENT].value > HeaterParamNP[i]->np[PARAM_THRESHOLD].value))
                     setHeaterEnabled(i, false);
                 break;
