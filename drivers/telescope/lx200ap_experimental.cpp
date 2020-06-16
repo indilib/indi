@@ -1,7 +1,7 @@
 /*
     Astro-Physics INDI driver
 
-    Copyright (C) 2014 Jasem Mutlaq, Mike Fowler
+    Copyright (C) 2014 Jasem Mutlaq, Mike Fulbright
     Copyright (C) 2020 indilib.org, by Markus Wildi
 
     Based on INDI Astrophysics Driver by Markus Wildi
@@ -219,7 +219,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineNumber(&APSiderealTimeNP);
         defineNumber(&HourangleCoordsNP);
         defineNumber(&APUTCOffsetNP);
-	// InitPark() hinders INDI to set ParkS[1].s = ISS_ON (Unpar(ed)), uff.
+	// if InitPark() is not called, Telescope::SyncParkStatus sets: ParkS[1].s = ISS_ON
 	InitPark();
 
 #ifdef no
@@ -707,11 +707,18 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     getMountStatus(&isAPParked);
     if (!isAPParked)
     {
-        // in case of simulation, the coordinates are set on parking
-        HourangleCoordsN[0].value = get_local_hour_angle(lst, currentRA);
-        HourangleCoordsN[1].value = currentDEC;
-        HourangleCoordsNP.s = IPS_OK;
-        IDSetNumber(&HourangleCoordsNP, nullptr );
+        double ha = get_local_hour_angle(lst, currentRA);
+
+        // No need to spam log until we have some actual changes.
+        if (std::fabs(HourangleCoordsN[0].value - ha) > 0.0001 ||
+            std::fabs(HourangleCoordsN[1].value - currentDEC) > 0.0001)
+        {
+	    // in case of simulation, the coordinates are set on parking
+	    HourangleCoordsN[0].value = ha;
+	    HourangleCoordsN[1].value = currentDEC;
+	    HourangleCoordsNP.s = IPS_OK;
+	    IDSetNumber(&HourangleCoordsNP, nullptr );
+	}
     }
     double val;
     if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0))
@@ -1611,7 +1618,6 @@ bool LX200AstroPhysicsExperimental::Park()
 
     if (isSimulation())
     {
-
         Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
     else
@@ -1744,7 +1750,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
 	  return false;
 	}
       LOGF_DEBUG("UnPark: parkPos=%d parkAlt=%f parkAz=%f", unparkfromPos, unparkAlt, unparkAz);
-    } 	  
+    }
     SetAxis1ParkDefault(unparkAz);
     SetAxis2ParkDefault(unparkAlt);
     if(!parkDataValid)
