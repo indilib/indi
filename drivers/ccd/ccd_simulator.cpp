@@ -1131,6 +1131,13 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
+        else if (!strcmp(name, FocusSimulationNP.name))
+        {
+            // update focus simulation parameters
+            IUUpdateNumber(&FocusSimulationNP, values, names, n);
+            FocusSimulationNP.s = IPS_OK;
+            IDSetNumber(&FocusSimulationNP, nullptr);
+        }
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
