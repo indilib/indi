@@ -105,7 +105,8 @@ Paramount::Paramount()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_CONTROL_TRACK,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE |
+                           TELESCOPE_CAN_CONTROL_TRACK,
                            9);
     setTelescopeConnection(CONNECTION_TCP);
 }
@@ -172,7 +173,7 @@ bool Paramount::initProperties()
 
     TrackState = SCOPE_IDLE;
 
-    SetParkDataType(PARK_RA_DEC);
+    SetParkDataType(PARK_HA_DEC);
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -217,19 +218,19 @@ bool Paramount::updateProperties()
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
 
-        // Initial currentRA and currentDEC to LST and +90 or -90
+        // Initial HA to 0 and currentDEC (+90 or -90)
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(currentRA);
+            SetAxis1ParkDefault(0);
             SetAxis2ParkDefault(currentDEC);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(currentRA);
+            SetAxis1Park(0);
             SetAxis2Park(currentDEC);
-            SetAxis1ParkDefault(currentRA);
+            SetAxis1ParkDefault(0);
             SetAxis2ParkDefault(currentDEC);
         }
 
@@ -582,7 +583,8 @@ bool Paramount::Sync(double ra, double dec)
 
 bool Paramount::Park()
 {
-    targetRA  = GetAxis1Park();
+    double targetHA = GetAxis1Park();
+    targetRA  = range24(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value) - targetHA);
     targetDEC = GetAxis2Park();
 
     char pCMD[MAXRBUF] = {0};
@@ -783,7 +785,10 @@ bool Paramount::SetCurrentPark()
     if (!sendTheSkyOKCommand(pCMD, "Setting Park Position"))
         return false;
 
-    SetAxis1Park(currentRA);
+    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    double ha  = get_local_hour_angle(lst, currentRA);
+
+    SetAxis1Park(ha);
     SetAxis2Park(currentDEC);
 
     return true;
@@ -791,8 +796,8 @@ bool Paramount::SetCurrentPark()
 
 bool Paramount::SetDefaultPark()
 {
-    // By default set RA to HA
-    SetAxis1Park(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value));
+    // By default set HA to 0
+    SetAxis1Park(0);
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
