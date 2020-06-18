@@ -664,7 +664,7 @@ bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
         double ha = rangeHA(get_local_hour_angle(lst, Ra));
 
         const char* reason;
-        double decPA = 90 - std::fabs(Dec);     // the distance from the pole determined using the declination, ok for +ve and -ve dec
+        double decPA = info.latitude >= 0 ? 90 - Dec : 90 + Dec;     // the distance from the pole determined using the declination, ok for both hemispheres
 
         if ((ha > 2 && ha < 10) || (ha < -2 && ha > -10))
         {
