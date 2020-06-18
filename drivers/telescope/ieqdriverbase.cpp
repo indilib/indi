@@ -619,6 +619,7 @@ const char * pierSideStr(IEQ_PIER_SIDE ps)
         case IEQ_PIER_UNCERTAIN:
             return "UNCERTAIN";
     }
+    return "Impossible";
 }
 
 bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
