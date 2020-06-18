@@ -342,6 +342,23 @@ void LX200_TeenAstro::handleStatusChange(void)
 {
     LOGF_DEBUG ("Status Change: %s", OSStat);        
 
+    if (OSStat[0] != OldOSStat[0])
+    {
+        if (OSStat[0] == '0')
+        {
+            TrackState = SCOPE_IDLE;
+        }
+        else if (OSStat[0] == '1')
+        {
+            TrackState = SCOPE_TRACKING;
+        }
+        else if (OSStat[0] == '2' || OSStat[0] == '3' )
+        {
+            TrackState = SCOPE_SLEWING;
+        }
+    }
+
+
     // Byte 2 is park status
     if (OSStat[2] != OldOSStat[2])
     {
@@ -1126,7 +1143,7 @@ bool LX200_TeenAstro::getLocation()
 }
 
 /*
- * Set Guide Rate -  :SX90# (v1.1) or :SXR0# (v1.2 and above) where ddd is guide rate * 100
+ * Set Guide Rate -  :SXR0:dddd# (v1.2 and above) where ddd is guide rate * 100
  */
 bool LX200_TeenAstro::SetGuideRate(int index)
 {
