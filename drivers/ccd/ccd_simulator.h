@@ -59,8 +59,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             SIM_PE_PERIOD,
             SIM_PE_MAX,
             SIM_ROTATION,
-            SIM_KING_GAMMA,
-            SIM_KING_THETA,
             SIM_TIME_FACTOR,
             SIM_N
         };
@@ -189,8 +187,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         float m_PolarError { 0 };
         float m_PolarDrift { 0 };
-        float m_KingGamma = { 0 };
-        float m_KingTheta = { 0 };
 
         int streamPredicate {0};
         pthread_t primary_thread;
