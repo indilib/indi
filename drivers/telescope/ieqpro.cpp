@@ -560,7 +560,21 @@ bool IEQPro::ReadScopeStatus()
         IEQ_PIER_SIDE pierSide;
         if (driver->getPierSide(&pierSide))
         {
-            setPierSide(static_cast<TelescopePierSide>(pierSide));
+            TelescopePierSide tps = PIER_UNKNOWN;
+            switch (pierSide)
+            {
+                case IEQ_PIER_UNKNOWN:
+                case IEQ_PIER_UNCERTAIN:
+                    tps = PIER_UNKNOWN;
+                    break;
+                case IEQ_PIER_EAST:
+                    tps = PIER_EAST;
+                    break;
+                case IEQ_PIER_WEST:
+                    tps = PIER_WEST;
+                    break;
+            }
+            setPierSide(tps);
         }
     }
 
