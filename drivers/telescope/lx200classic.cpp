@@ -406,7 +406,7 @@ bool LX200Classic::Park()
     EqNP.s     = IPS_BUSY;
     TrackState = SCOPE_PARKING;
     LOG_INFO("Parking is in progress...");
-
+    
     return true;
 }
 
@@ -495,20 +495,36 @@ bool LX200Classic::SetDefaultPark()
 bool LX200Classic::ReadScopeStatus()
 {
     int curTrackState = TrackState;
+    static int settling = -1;
     
+    if (settling >= 0) settling--;
+    
+    if ((TrackState == SCOPE_PARKED) && (settling == 0) && !isSimulation())
+    {
+        settling = -1;
+        LOG_INFO("Settling for park done");
+        if (setAlignmentMode(PortFD, LX200_ALIGN_LAND) < 0)
+        {
+            LOG_ERROR("Parking Failed.");
+            AlignmentSP.s = IPS_ALERT;
+            IDSetSwitch(&AlignmentSP, "Error setting alignment mode.");
+            return false;
+        }
+        //Update the UI
+        LX200Generic::getAlignment();
+        LOG_INFO("Land mode set");
+    }
+
     if (LX200Generic::ReadScopeStatus())
     { 
         if ((TrackState == SCOPE_PARKED) && (curTrackState == SCOPE_PARKING) && !isSimulation())
         {
-            if (setAlignmentMode(PortFD, LX200_ALIGN_LAND) < 0)
-            {
-                LOG_ERROR("Parking Failed.");
-                AlignmentSP.s = IPS_ALERT;
-                IDSetSwitch(&AlignmentSP, "Error setting alignment mode.");
-                return false;
-            }
-            //Update the UI
-            LX200Generic::getAlignment();
+            //allow scope to make internal state change to settled on target.
+            //otherwise changing to landmode slews the scope to same 
+            //coordinates intepreted in landmode.
+            //Between isSlewComplete() and the beep there is nearly 3 seconds!
+            LOG_INFO("Slew done parking");
+            settling = 3; //n iterations of default 1000ms
         }
     }
 
