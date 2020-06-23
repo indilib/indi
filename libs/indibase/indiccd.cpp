@@ -118,7 +118,7 @@ CCD::CCD()
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
     RotatorAngle    = std::numeric_limits<double>::quiet_NaN();
     // JJ ed 2019-12-10
-    FocusPos        = std::numeric_limits<long>::quiet_NaN();
+    FocuserPos      = std::numeric_limits<long>::quiet_NaN();
 
     Airmass         = std::numeric_limits<double>::quiet_NaN();
     Latitude        = std::numeric_limits<double>::quiet_NaN();
@@ -772,7 +772,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
 
             if (!strcmp(name, "FOCUS_ABSOLUTE_POSITION"))
             {
-                FocusPos = atol(pcdataXMLEle(ep));
+                FocuserPos = atol(pcdataXMLEle(ep));
                 break;
             }
         }
@@ -840,9 +840,9 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
 
             // JJ ed 2019-12-10
             if (strlen(ActiveDeviceT[ACTIVE_FOCUSER].text) > 0)
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_ABSOLUTE_POSITION");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
             else
-                FocusPos = std::numeric_limits<long>::quiet_NaN();
+                FocuserPos = std::numeric_limits<long>::quiet_NaN();
             //
 
 
@@ -1834,9 +1834,9 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 
     // JJ ed 2020-03-28
     // If the focus position is set, add the information to the FITS header
-    if (!std::isnan(FocusPos))
+    if (!std::isnan(FocuserPos))
     {
-        fits_update_key_lng(fptr, "FOCUSPOS", FocusPos, "Focus position in steps", &status);
+        fits_update_key_lng(fptr, "FOCUSPOS", FocuserPos, "Focus position in steps", &status);
     }
 
     // SCALE assuming square-pixels

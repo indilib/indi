@@ -177,6 +177,12 @@ bool CCDSim::initProperties()
     IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "RGB",
                        SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    // Simulate focusing
+    IUFillNumber(&FocusSimulationN[0], "SIM_FOCUS_POSITION", "Focus", "%.f", 0.0, 100000.0, 1.0, 36700.0);
+    IUFillNumber(&FocusSimulationN[1], "SIM_FOCUS_MAX", "Max. Position", "%.f", 0.0, 100000.0, 1.0, 100000.0);
+    IUFillNumber(&FocusSimulationN[2], "SIM_SEEING", "Seeing (arcsec)", "%4.2f", 0, 60, 0, 3.5);
+    IUFillNumberVector(&FocusSimulationNP, FocusSimulationN, 3, getDeviceName(), "SIM_FOCUSING", "Focus Simulation", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
+
     // Simulate Crash
     IUFillSwitch(&CrashS[0], "CRASH", "Crash driver", ISS_OFF);
     IUFillSwitchVector(&CrashSP, CrashS, 1, getDeviceName(), "CCD_SIMULATE_CRASH", "Crash", SIMULATOR_TAB, IP_WO,
@@ -272,6 +278,7 @@ void CCDSim::ISGetProperties(const char * dev)
 
     defineNumber(&SimulatorSettingsNP);
     defineNumber(&EqPENP);
+    defineNumber(&FocusSimulationNP);
     defineSwitch(&SimulateRgbSP);
     defineSwitch(&CrashSP);
 }
@@ -1124,6 +1131,13 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
+        else if (!strcmp(name, FocusSimulationNP.name))
+        {
+            // update focus simulation parameters
+            IUUpdateNumber(&FocusSimulationNP, values, names, n);
+            FocusSimulationNP.s = IPS_OK;
+            IDSetNumber(&FocusSimulationNP, nullptr);
+        }
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
@@ -1199,10 +1213,37 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
 {
     if (IUSnoopNumber(root, &FWHMNP) == 0)
     {
-        seeing = FWHMNP.np[0].value;
+        // we calculate the FWHM and do not snoop it from the focus simulator
+        // seeing = FWHMNP.np[0].value;
         return true;
     }
 
+    XMLEle * ep           = nullptr;
+    const char * propName = findXMLAttValu(root, "name");
+
+    if (!strcmp(propName, "ABS_FOCUS_POSITION"))
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, "FOCUS_ABSOLUTE_POSITION"))
+            {
+                FocuserPos = atol(pcdataXMLEle(ep));
+
+                // calculate FWHM
+                double focus       = FocusSimulationN[0].value;
+                double max         = FocusSimulationN[1].value;
+                double optimalFWHM = FocusSimulationN[2].value;
+
+                // limit to +/- 10
+                double ticks = 20 * (FocuserPos - focus) / max;
+
+                seeing = 0.5625 * ticks * ticks + optimalFWHM;
+                return true;
+            }
+        }
+    }
     // We try to snoop EQPEC first, if not found, we snoop regular EQNP
 #ifdef USE_EQUATORIAL_PE
     const char * propName = findXMLAttValu(root, "name");
@@ -1262,6 +1303,9 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // RGB
     IUSaveConfigSwitch(fp, &SimulateRgbSP);
+
+    // Focus simulation
+    IUSaveConfigNumber(fp, &FocusSimulationNP);
 
     return true;
 }

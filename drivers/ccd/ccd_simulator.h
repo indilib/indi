@@ -203,6 +203,15 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         INumberVectorProperty FWHMNP;
         INumber FWHMN[1];
 
+        // Focuser positions for focusing simulation
+        // FocuserPosition[0] is the position where the scope is in focus
+        // FocuserPosition[1] is the maximal position the focuser may move to (@see FOCUS_MAX in #indifocuserinterface.cpp)
+        // FocuserPosition[2] is the seeing (in arcsec)
+        // We need to have these values here, since we cannot snoop it from the focuser (the focuser does not
+        // publish these values)
+        INumberVectorProperty FocusSimulationNP;
+        INumber FocusSimulationN[3];
+
         INumberVectorProperty EqPENP;
         INumber EqPEN[2];
 
