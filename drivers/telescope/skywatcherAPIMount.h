@@ -196,6 +196,8 @@ private:
     GuidingPulse WestPulse;
     std::vector<GuidingPulse> GuidingPulses;
 
+    bool moving { false };
+
 #ifdef USE_INITIAL_JULIAN_DATE
     double InitialJulianDate { 0 };
 #endif
