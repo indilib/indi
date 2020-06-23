@@ -178,7 +178,7 @@ bool CCDSim::initProperties()
                        SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Simulate focusing
-    IUFillNumber(&FocusSimulationN[0], "SIM_FOCUS_POSITION", "Focus", "%.f", 0.0, 100000.0, 1.0, 45000.0);
+    IUFillNumber(&FocusSimulationN[0], "SIM_FOCUS_POSITION", "Focus", "%.f", 0.0, 100000.0, 1.0, 36700.0);
     IUFillNumber(&FocusSimulationN[1], "SIM_FOCUS_MAX", "Max. Position", "%.f", 0.0, 100000.0, 1.0, 100000.0);
     IUFillNumber(&FocusSimulationN[2], "SIM_SEEING", "Seeing (arcsec)", "%4.2f", 0, 60, 0, 3.5);
     IUFillNumberVector(&FocusSimulationNP, FocusSimulationN, 3, getDeviceName(), "SIM_FOCUSING", "Focus Simulation", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
@@ -1236,8 +1236,8 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
                 double max         = FocusSimulationN[1].value;
                 double optimalFWHM = FocusSimulationN[2].value;
 
-                // limit to +/- 50
-                double ticks = 100 * (FocuserPos - focus) / max;
+                // limit to +/- 10
+                double ticks = 20 * (FocuserPos - focus) / max;
 
                 seeing = 0.5625 * ticks * ticks + optimalFWHM;
                 return true;
