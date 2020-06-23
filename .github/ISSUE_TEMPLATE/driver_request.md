@@ -29,7 +29,7 @@ All INDI devices fall under one or more of the following categories:
 **Provide device communication protocol**
 All devices use some sort of communication language between them and the host system. This could be called *Command Set* or *SDK*. It is best to provide a link to a document or PDF with such details from the manufacutrer. It needs to include the following information:
 * Communication Method: Serial, USB, TCP...etc. along with the connection parameters.
-* Communication Protocol: Detailed description of the language used to communicate with the device along with examples if avaialble.
+* Communication Protocol: Detailed description of the language used to communicate with the device along with examples if available.
 
 **Hardware Sample**
 Would it be possible to send the developer a sample hardware unit to develop the driver? If that's not possible, would it be possible to setup a remote environment with the devie attached?
