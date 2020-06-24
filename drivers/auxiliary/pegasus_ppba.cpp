@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2019 Jasem Mutlaq. All rights reserved.
 
-  Pegasus Pocket Power Box Driver.
+  Pegasus Pocket Power Box Advance Driver.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -26,33 +26,32 @@
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
-#include <memory>
 #include <regex>
 #include <termios.h>
-#include <cstring>
-#include <sys/ioctl.h>
+#include <chrono>
+#include <iomanip>
 
 // We declare an auto pointer to PegasusPPBA.
-static std::unique_ptr<PegasusPPBA> pocket_power_box(new PegasusPPBA());
+static std::unique_ptr<PegasusPPBA> ppba(new PegasusPPBA());
 
 void ISGetProperties(const char * dev)
 {
-    pocket_power_box->ISGetProperties(dev);
+    ppba->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    pocket_power_box->ISNewSwitch(dev, name, states, names, n);
+    ppba->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    pocket_power_box->ISNewText(dev, name, texts, names, n);
+    ppba->ISNewText(dev, name, texts, names, n);
 }
 
 void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
-    pocket_power_box->ISNewNumber(dev, name, values, names, n);
+    ppba->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
@@ -70,7 +69,7 @@ void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[]
 
 void ISSnoopDevice(XMLEle * root)
 {
-    pocket_power_box->ISSnoopDevice(root);
+    ppba->ISSnoopDevice(root);
 }
 
 PegasusPPBA::PegasusPPBA() : WI(this)
@@ -170,6 +169,14 @@ bool PegasusPPBA::initProperties()
     IUFillNumberVector(&DewPWMNP, DewPWMN, 2, getDeviceName(), "DEW_PWM", "Dew PWM", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
+    /// Firmware Group
+    ////////////////////////////////////////////////////////////////////////////
+    IUFillText(&FirmwareT[FIRMWARE_VERSION], "VERSION", "Version", "NA");
+    IUFillText(&FirmwareT[FIRMWARE_UPTIME], "UPTIME", "Uptime (h)", "NA");
+    IUFillTextVector(&FirmwareTP, FirmwareT, 2, getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
+                     IPS_IDLE);
+
+    ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
     ////////////////////////////////////////////////////////////////////////////
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15);
@@ -203,14 +210,17 @@ bool PegasusPPBA::updateProperties()
         defineNumber(&PowerSensorsNP);
         defineSwitch(&PowerOnBootSP);
         defineSwitch(&RebootSP);
-	defineLight(&PowerWarnLP);
-	defineSwitch(&LedIndicatorSP);
+	      defineLight(&PowerWarnLP);
+	      defineSwitch(&LedIndicatorSP);
 
         // Dew
         defineSwitch(&AutoDewSP);
         defineNumber(&DewPWMNP);
 
         WI::updateProperties();
+
+         // Firmware
+        defineText(&FirmwareTP);
 
         setupComplete = true;
     }
@@ -223,14 +233,16 @@ bool PegasusPPBA::updateProperties()
         deleteProperty(PowerSensorsNP.name);
         deleteProperty(PowerOnBootSP.name);
         deleteProperty(RebootSP.name);
-	deleteProperty(PowerWarnLP.name);
-	deleteProperty(LedIndicatorSP.name);
+	      deleteProperty(PowerWarnLP.name);
+	      deleteProperty(LedIndicatorSP.name);
 
         // Dew
         deleteProperty(AutoDewSP.name);
         deleteProperty(DewPWMNP.name);
 
         WI::updateProperties();
+
+        deleteProperty(FirmwareTP.name);
 
         setupComplete = false;
     }
@@ -564,6 +576,8 @@ bool PegasusPPBA::sendFirmware()
     if (sendCommand("PV", res))
     {
         LOGF_INFO("Detected firmware %s", res);
+        IUSaveText(&FirmwareT[FIRMWARE_VERSION], res);
+        IDSetText(&FirmwareTP, nullptr);
         return true;
     }
 
@@ -708,8 +722,18 @@ bool PegasusPPBA::getMetricsData()
         PowerSensorsN[SENSOR_DEWA_CURRENT].value = std::stod(result[PC_DEWA_CURRENT]);
         PowerSensorsN[SENSOR_DEWB_CURRENT].value = std::stod(result[PC_DEWB_CURRENT]);
         PowerSensorsNP.s = IPS_OK;
-        if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT] || lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT] || lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] || lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
+        if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT] ||
+            lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT] ||
+            lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
+            lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
             IDSetNumber(&PowerSensorsNP, nullptr);
+
+        std::chrono::milliseconds uptime(std::stol(result[PC_UPTIME]));
+        using dhours = std::chrono::duration<double, std::ratio<3600>>;
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
+        IUSaveText(&FirmwareT[FIRMWARE_UPTIME], ss.str().c_str());
+        IDSetText(&FirmwareTP, nullptr);
 
         lastMetricsData = result;
 
