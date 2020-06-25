@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2019 Jasem Mutlaq. All rights reserved.
 
-  Pegasus Pocket Power Box
+  Pegasus Pocket Power Box Advance
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -25,7 +25,6 @@
 #pragma once
 
 #include "defaultdevice.h"
-#include "indifocuserinterface.h"
 #include "indiweatherinterface.h"
 
 #include <vector>
@@ -179,9 +178,9 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         ISwitch PowerOnBootS[4];
         ISwitchVectorProperty PowerOnBootSP;
 
-	// Short circuit warn
-	ILight PowerWarnL[1];
-	ILightVectorProperty PowerWarnLP;
+	      // Short circuit warn
+	      ILight PowerWarnL[1];
+	      ILightVectorProperty PowerWarnLP;
 
         ISwitch LedIndicatorS[2];
         ISwitchVectorProperty LedIndicatorSP;
@@ -203,6 +202,18 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
             DEW_PWM_B,
         };
 
+        ////////////////////////////////////////////////////////////////////////////////////
+        /// Firmware
+        ////////////////////////////////////////////////////////////////////////////////////
+
+        ITextVectorProperty FirmwareTP;
+        IText FirmwareT[2];
+        enum
+        {
+            FIRMWARE_VERSION,
+            FIRMWARE_UPTIME,
+        };
+
         std::vector<std::string> lastSensorData;
         std::vector<std::string> lastConsumptionData;
         std::vector<std::string> lastMetricsData;
@@ -212,4 +223,5 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         static constexpr const uint8_t PEGASUS_LEN {128};
         static constexpr const char *DEW_TAB {"Dew"};
         static constexpr const char *ENVIRONMENT_TAB {"Environment"};
+        static constexpr const char *FIRMWARE_TAB {"Firmware"};
 };
