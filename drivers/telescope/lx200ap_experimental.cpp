@@ -194,7 +194,6 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
         defineSwitch(&APGuideSpeedSP);
-        defineSwitch(&ParkToSP);
     }
 }
 
@@ -1477,20 +1476,19 @@ bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
     // Peru, Lima:
     //(TX=':Gg#'), RX='+77*01:42#
     //(TX=':SG05:00:00#'), RX='1'
-    // Linux/Windows TZ values: West: <=0, East >0
+    // Linux/Windows TZ values: West: -12,0, East 0,12
     // AP GTOCPX accepts a converted float including 24.
     double ap_utc_offset = - utc_offset;
-    if(utc_offset > 12.)
-    {
-      ap_utc_offset = utc_offset;
-    }
     if (!isSimulation() && setAPUTCOffset(PortFD, ap_utc_offset) < 0)
     {
         LOG_ERROR("Error setting UTC Offset.");
         return false;
     }
+    APUTCOffsetN[0].value = ap_utc_offset ;
+    APUTCOffsetNP.s  = IPS_OK;
+    IDSetNumber(&APUTCOffsetNP, nullptr);
 
-    LOGF_DEBUG("Set UTC Offset %g is successful.", utc_offset);
+    LOGF_DEBUG("Set UTC Offset %g as AP UTC Offset %g is successful.", utc_offset, ap_utc_offset);
 
     LOG_DEBUG("Time updated.");
 #ifdef no
