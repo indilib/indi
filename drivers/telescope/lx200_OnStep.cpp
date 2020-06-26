@@ -312,9 +312,26 @@ bool LX200_OnStep::initProperties()
     IUFillTextVector(&OnstepStatTP, OnstepStat, 9, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
     // ============== WEATHER TAB
+    // Uses OnStep's defaults for this
+    IUFillNumber(&OSSetTemperatureN[0], "Set Temperature (C)", "C", "%4.2f", -100, 100, 1, 10);//-274, 999, 1, 10);
+    IUFillNumberVector(&OSSetTemperatureNP, OSSetTemperatureN, 1, getDeviceName(), "Set Temperature (C)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE);
+    IUFillNumber(&OSSetHumidityN[0], "Set Relative Humidity (%)", "%", "%5.2f", 0, 100, 1, 70);
+    IUFillNumberVector(&OSSetHumidityNP, OSSetHumidityN, 1, getDeviceName(), "Set Relative Humidity (%)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE); 
+    IUFillNumber(&OSSetPressureN[0], "Set Pressure (hPa)", "hPa", "%4f", 500, 1500, 1, 1010);
+    IUFillNumberVector(&OSSetPressureNP, OSSetPressureN, 1, getDeviceName(), "Set Pressure (hPa)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE); 
+    
+    //Will eventually pull from the elevation in site settings
+    //TODO: Pull from elevation in site settings
+    IUFillNumber(&OSSetAltitudeN[0], "Set Altitude (m)", "m", "%4f", 0, 20000, 1, 110);
+    IUFillNumberVector(&OSSetAltitudeNP, OSSetAltitudeN, 1, getDeviceName(), "Set Altitude (m)", "", ENVIRONMENT_TAB, IP_RW, 0,IPS_IDLE); 
+    
+    
+    
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -40, 85, 15);
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
-    addParameter("WEATHER_BAROMETER", "Pressure (hPa)", 0, 100, 15);
+    addParameter("WEATHER_BAROMETER", "Pressure (hPa)", 0, 1500, 15);
+    addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15); // From OnStep
+    addParameter("WEATHER_CPU_TEMPERATURE", "OnStep CPU Temperature", -274, 200, -274); // From OnStep, -274 = unread
     setCriticalParameter("WEATHER_TEMPERATURE");
     
     addAuxControls();
@@ -335,7 +352,7 @@ bool LX200_OnStep::updateProperties()
 {
     LX200Generic::updateProperties();
     FI::updateProperties();
-
+    WI::updateProperties();
     if (isConnected())
     {
         // Firstinitialize some variables
@@ -348,6 +365,9 @@ bool LX200_OnStep::updateProperties()
 
         // Options
 
+        // OnStep Status
+        defineText(&OnstepStatTP);
+        
         // Motion Control
         defineNumber(&MaxSlewRateNP);
         defineSwitch(&TrackCompSP);
@@ -411,9 +431,13 @@ bool LX200_OnStep::updateProperties()
 #endif
 
         defineNumber(&OutputPorts_NP);
+        
+        //Weather
+        defineNumber(&OSSetTemperatureNP);
+        defineNumber(&OSSetPressureNP);
+        defineNumber(&OSSetHumidityNP);
+        defineNumber(&OSSetAltitudeNP);
 
-        // OnStep Status
-        defineText(&OnstepStatTP);
 
         if (InitPark())
         {
@@ -507,6 +531,14 @@ bool LX200_OnStep::updateProperties()
 
         // OnStep Status
         deleteProperty(OnstepStatTP.name);
+        
+        
+        //Weather
+        deleteProperty(OSSetTemperatureNP.name);
+        deleteProperty(OSSetPressureNP.name);
+        deleteProperty(OSSetHumidityNP.name);
+        deleteProperty(OSSetAltitudeNP.name);
+        
     }
     return true;
 }
@@ -547,9 +579,9 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
         if (!strcmp(name, MaxSlewRateNP.name))
         {
-            int ret;
-            char cmd[4];
-            snprintf(cmd, 4, ":R%d#", (int)values[0]);
+            int ret; 
+            char cmd[5];
+            snprintf(cmd, 5, ":R%d#", (int)values[0]);
             ret = sendOnStepCommandBlind(cmd);
 
             //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
@@ -780,6 +812,69 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         return true;
     }
+    //Weather not handled by Weather Interface
+
+    if (!strcmp(name, OSSetTemperatureNP.name))
+    {
+        char cmd[32];
+        
+        if ((values[0] >= -100) && (values[0] <= 100))
+        {
+            snprintf(cmd, 15, ":SX9A,%d#", (int)values[0]);
+            sendOnStepCommandBlind(cmd);
+            OSSetTemperatureNP.s           = IPS_OK;
+            IDSetNumber(&OSSetTemperatureNP, "Temperature set to %d", (int)values[0]);
+        }
+        else
+        {
+            OSSetTemperatureNP.s = IPS_ALERT;
+            IDSetNumber(&OSSetTemperatureNP, "Setting Temperature Failed");
+        }
+        return true;
+    }
+    
+    if (!strcmp(name, OSSetHumidityNP.name))
+    {
+        char cmd[32];
+        
+        if ((values[0] >= 0) && (values[0] <= 100))
+        {
+            snprintf(cmd, 15, ":SX9C,%d#", (int)values[0]);
+            sendOnStepCommandBlind(cmd);
+            OSSetHumidityNP.s           = IPS_OK;
+            IDSetNumber(&OSSetHumidityNP, "Humidity set to %d", (int)values[0]);
+        }
+        else
+        {
+            OSSetHumidityNP.s = IPS_ALERT;
+            IDSetNumber(&OSSetHumidityNP, "Setting Humidity Failed");
+        }
+        return true;
+    }
+    
+    if (!strcmp(name, OSSetPressureNP.name))
+    {
+        char cmd[32];
+        
+        if ((values[0] >= 0) && (values[0] <= 100))
+        {
+            snprintf(cmd, 15, ":SX9B,%d#", (int)values[0]);
+            sendOnStepCommandBlind(cmd);
+            OSSetPressureNP.s           = IPS_OK;
+            IDSetNumber(&OSSetPressureNP, "Pressure set to %d", (int)values[0]);
+        }
+        else
+        {
+            OSSetPressureNP.s = IPS_ALERT;
+            IDSetNumber(&OSSetPressureNP, "Setting Pressure Failed");
+        }
+        return true;
+    }
+    
+    
+    
+    
+    
     if (strstr(name, "WEATHER_"))
     {
         return WI::processNumber(dev, name, values, names, n);
@@ -824,9 +919,9 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         {
                 IUUpdateSwitch(&SlewRateSP, states, names, n);
                 int ret;
-                char cmd[4];
+                char cmd[5];
                 int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
-                snprintf(cmd, 4, ":R%d#", index);
+                snprintf(cmd, 5, ":R%d#", index);
                 ret = sendOnStepCommandBlind(cmd);
                 
                 //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
@@ -1999,7 +2094,14 @@ bool LX200_OnStep::ReadScopeStatus()
     setParameterValue("WEATHER_HUMIDITY", std::stod(TempValue));
     getCommandString(PortFD,TempValue, ":GX9B#"); 
     setParameterValue("WEATHER_BAROMETER", std::stod(TempValue));
+    getCommandString(PortFD,TempValue, ":GX9E#"); 
+    setParameterValue("WEATHER_DEWPOINT", std::stod(TempValue));
+    getCommandString(PortFD,TempValue, ":GX9F#"); 
+    setParameterValue("WEATHER_CPU_TEMPERATURE", std::stod(TempValue));
     
+    //Disabled, because this is supplied via Kstars or other location, no sensor to read this
+    //getCommandString(PortFD,TempValue, ":GX9D#"); 
+    //setParameterValue("WEATHER_ALTITUDE", std::stod(TempValue));
     WI::updateProperties();
     
     if (WI::syncCriticalParameters())

@@ -204,10 +204,13 @@ bool IEQPro::initProperties()
 
 bool IEQPro::updateProperties()
 {
-    INDI::Telescope::updateProperties();
 
     if (isConnected())
     {
+        getStartupData();
+
+        INDI::Telescope::updateProperties();
+
         // Remove find home if we do not support it.
         if (!canFindHome)
             HomeSP.nsp = 2;
@@ -224,11 +227,11 @@ bool IEQPro::updateProperties()
         defineSwitch(&GPSStatusSP);
         defineSwitch(&TimeSourceSP);
         defineSwitch(&HemisphereSP);
-
-        getStartupData();
     }
     else
     {
+        INDI::Telescope::updateProperties();
+
         HomeSP.nsp = 3;
         deleteProperty(HomeSP.name);
 
@@ -335,6 +338,16 @@ void IEQPro::getStartupData()
         SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
         SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
         SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+    }
+
+    // can we read pier side?
+    IEQ_PIER_SIDE pierSide = IEQ_PIER_UNKNOWN;
+    if (driver->getPierSide(&pierSide) && pierSide != IEQ_PIER_UNKNOWN)
+    {
+        // add the pier side capability
+        auto cap = GetTelescopeCapability();
+        cap |= TELESCOPE_HAS_PIER_SIDE;
+        SetTelescopeCapability(cap, 9);
     }
 
     //    if (isSimulation())
@@ -540,6 +553,15 @@ bool IEQPro::ReadScopeStatus()
         IDSetSwitch(&TrackModeSP, nullptr);
 
         scopeInfo = newInfo;
+    }
+
+    if (HasPierSide())
+    {
+        IEQ_PIER_SIDE pierSide;
+        if (driver->getPierSide(&pierSide))
+        {
+            setPierSide(static_cast<TelescopePierSide>(pierSide));
+        }
     }
 
     rc = driver->getCoords(&currentRA, &currentDEC);

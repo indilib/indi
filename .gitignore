@@ -7,6 +7,7 @@ build-*/
 # Gedit backup files
 *~
 
+.cmake
 nbproject/
 .directory
 CMakeCache.txt
