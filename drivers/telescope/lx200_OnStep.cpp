@@ -331,6 +331,7 @@ bool LX200_OnStep::initProperties()
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
     addParameter("WEATHER_BAROMETER", "Pressure (hPa)", 0, 1500, 15);
     addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15); // From OnStep
+    addParameter("WEATHER_CPU_TEMPERATURE", "OnStep CPU Temperature", -274, 200, -274); // From OnStep, -274 = unread
     setCriticalParameter("WEATHER_TEMPERATURE");
     
     addAuxControls();
@@ -2095,6 +2096,8 @@ bool LX200_OnStep::ReadScopeStatus()
     setParameterValue("WEATHER_BAROMETER", std::stod(TempValue));
     getCommandString(PortFD,TempValue, ":GX9E#"); 
     setParameterValue("WEATHER_DEWPOINT", std::stod(TempValue));
+    getCommandString(PortFD,TempValue, ":GX9F#"); 
+    setParameterValue("WEATHER_CPU_TEMPERATURE", std::stod(TempValue));
     
     //Disabled, because this is supplied via Kstars or other location, no sensor to read this
     //getCommandString(PortFD,TempValue, ":GX9D#"); 
