@@ -323,7 +323,7 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
     {
         // Check earlier versions
         // FIXME could probably use better range checking in case we get a letter like 'Z' that doesn't map to anything!
-        int typeIndex = VersionT[0].text[0] - 'E';
+        int typeIndex = VersionT[0].text[0] - 'D';
         if (typeIndex >= 0)
         {
             firmwareVersion = static_cast<ControllerVersion>(typeIndex);
@@ -337,6 +337,10 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
 
             success = true;
         }
+	else
+	{
+          LOGF_WARN("unknown AP controller version %s", VersionT[0].text);
+	}
     }
 
     if (success)
@@ -691,7 +695,7 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         ParkToSP.s = IPS_OK;
         IDSetSwitch(&ParkToSP, nullptr);
         return true;
-    }
+   } 
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
 }
@@ -703,7 +707,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     // 2020-06-02, wildi, isParked is reserved for the state in ParkData.xml
     // see method isParked()
     bool isAPParked ;
-    getMountStatus(&isAPParked);
+    IsMountParked(&isAPParked);
     if (!isAPParked)
     {
         double ha = get_local_hour_angle(lst, currentRA);
@@ -816,15 +820,17 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         double PARKTHRES = 0.1; // max difference from parked position to consider mount PARKED
 
         slewcomplete = false;
-
-        if (check_lx200ap_status(PortFD, &parkStatus, &slewStatus) == 0)
-        {
+	// wildi, downgrade
+	if ((firmwareVersion != MCV_UNKNOWN) && (firmwareVersion >= MCV_T))
+	{
+	  if (check_lx200ap_status(PortFD, &parkStatus, &slewStatus) == 0)
+	  {
             LOGF_DEBUG("parkStatus: %c slewStatus: %c", parkStatus, slewStatus);
 
             if (slewStatus == '0')
                 slewcomplete = true;
-        }
-
+          }
+	}
         // old way
         if (getLX200Az(PortFD, &currentAz) < 0 || getLX200Alt(PortFD, &currentAlt) < 0)
         {
@@ -847,7 +853,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
             slewcomplete = false;
         }
 
-        if (slewcomplete)
+        if (slewcomplete || (dx <= PARKTHRES && dy <= PARKTHRES))
         {
             LOG_DEBUG("Parking slew is complete. Asking astrophysics mount to park...");
 
@@ -857,6 +863,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
                 return false;
             }
 
+	    slewcomplete = true;
             // Turn off tracking.
             SetTrackEnabled(false);
             SetParked(true);
@@ -931,22 +938,25 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
     return true;
 }
 #endif
-// 2020-05-31, wildi, disabled in favor of getMountStatus(isAPParked)
-#ifdef no
 // experimental function needs testing!!!
 bool LX200AstroPhysicsExperimental::IsMountParked(bool *isAPParked)
 {
     LOG_DEBUG("LX200AstroPhysicsExperimental::IsMountParked entry");
-    const struct timespec timeout = {0, 250000000L};
-    double ra1, ra2;
-
-
-    // try one method
-    if (getMountStatus(isAPParked))
+    // 2020-06-02, wildi, ToDo unify for GTOCPX
+    if (isSimulation())
     {
+        // 2030-05-30, if Unparked is selected, this condition is not met
+        *isAPParked = (ParkS[0].s == ISS_ON);
         return true;
     }
-
+    // check for newer
+    if ((firmwareVersion != MCV_UNKNOWN) && (firmwareVersion >= MCV_T))
+    {
+        // try one method
+        return getMountStatus(isAPParked);
+    }
+    const struct timespec timeout = {0, 250000000L};
+    double ra1, ra2;
     // fallback for older controllers
     if (getLX200RA(PortFD, &ra1))
         return false;
@@ -962,6 +972,9 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isAPParked)
     {
         *isAPParked = false;
         return true;
+    } else {
+        *isAPParked = true;
+        return true;
     }
 
     // can't determine
@@ -969,33 +982,21 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isAPParked)
     return false;
 
 }
-#endif
+
 bool LX200AstroPhysicsExperimental::getMountStatus(bool *isAPParked)
 {
-    // 2020-06-02, wildi, ToDo unify for GTOCPX
-    if (isSimulation())
-    {
-        // 2030-05-30, if Unparked is selected, this condition is not met
-        *isAPParked = (ParkS[0].s == ISS_ON);
-        return true;
-    }
+  char parkStatus;
+  char slewStatus;
 
-    // check for newer
-    if ((firmwareVersion != MCV_UNKNOWN) && (firmwareVersion >= MCV_T))
-    {
-        char parkStatus;
-        char slewStatus;
+  if (check_lx200ap_status(PortFD, &parkStatus, &slewStatus) == 0)
+  {
+    LOGF_DEBUG("parkStatus: %c", parkStatus);
 
-        if (check_lx200ap_status(PortFD, &parkStatus, &slewStatus) == 0)
-        {
-            LOGF_DEBUG("parkStatus: %c", parkStatus);
+    *isAPParked = (parkStatus == 'P');
+    return true;
+  }
 
-            *isAPParked = (parkStatus == 'P');
-            return true;
-        }
-    }
-
-    return false;
+  return false;
 }
 
 bool LX200AstroPhysicsExperimental::Goto(double r, double d)
@@ -1350,7 +1351,8 @@ bool LX200AstroPhysicsExperimental::Handshake()
         if ((err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
         {
             LOGF_ERROR("Error setting back lash compensation (%d): %s.", err, strerror(err));
-            return false;
+	    // wildi, downgrade
+            //return false;
         }
     }
 
@@ -1358,18 +1360,35 @@ bool LX200AstroPhysicsExperimental::Handshake()
     bool rc = false;
 
     rc = getFirmwareVersion();
-
+#ifdef no
     // see if firmware is 'V' or not
     if (!rc || firmwareVersion == MCV_UNKNOWN || firmwareVersion < MCV_V)
     {
         LOG_ERROR("Firmware version is not 'V' - too old to use the experimental driver!");
-        return false;
+	// wildi, downgrade
+        //return false;
     }
     else
     {
         LOG_INFO("Firmware level 'V' detected - driver loaded.");
     }
+#endif
+    if(!rc || firmwareVersion == MCV_UNKNOWN)
+    {
+        LOG_ERROR("Firmware detection failed or is unknown");
+        return false;
+	
+    }
+    if(firmwareVersion == MCV_V)
+    {
+      LOG_INFO("Firmware level 'V' detected - driver loaded.");
+    }
+    else if(firmwareVersion == MCV_D)
+    {
+      LOG_INFO("Firmware level 'D' detected - driver loaded.");
+    }
 
+    
     disclaimerMessage();
 
     // Detect and set fomat. It should be LONG.
@@ -1718,7 +1737,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
     if (!(TimeTP.s == IPS_OK && LocationNP.s == IPS_OK))
     {
         LOG_WARN("UnPark: can not unpark, either missing location or time data");
-        IUResetSwitch(&UnparkFromSP);
+        //wildi IUResetSwitch(&UnparkFromSP);
         UnparkFromSP.s = IPS_ALERT;
         IDSetSwitch(&UnparkFromSP, nullptr);
         return false;
@@ -1740,13 +1759,13 @@ bool LX200AstroPhysicsExperimental::UnPark()
       ParkPosition unparkfromPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&UnparkFromSP));
       LOGF_DEBUG("UnPark: park position = %d from current driver", unparkfromPos);
       if (!calcParkPosition(unparkfromPos, &unparkAlt, &unparkAz))
-	{
+      {
 	  LOG_ERROR("UnPark: Error calculating unpark position!");
-	  IUResetSwitch(&UnparkFromSP);
+	  //wildiIUResetSwitch(&UnparkFromSP);
 	  UnparkFromSP.s = IPS_ALERT;
 	  IDSetSwitch(&UnparkFromSP, nullptr);
 	  return false;
-	}
+      }
       LOGF_DEBUG("UnPark: parkPos=%d parkAlt=%f parkAz=%f", unparkfromPos, unparkAlt, unparkAz);
     }
     SetAxis1ParkDefault(unparkAz);
@@ -1757,7 +1776,9 @@ bool LX200AstroPhysicsExperimental::UnPark()
         SetAxis2ParkDefault(unparkAlt);
     }
 
-    bool isAPParked = false;
+    // wildi, downgrade
+    //bool isAPParked = false;
+    bool isAPParked = true;
     if(isSimulation())
     {
         // ToDo, quick fix
@@ -1765,27 +1786,30 @@ bool LX200AstroPhysicsExperimental::UnPark()
     }
     else
     {
-        if (!getMountStatus(&isAPParked))
-        {
-            // 2020-05-30, wildi, ToDo set INDI stuff
-            LOG_WARN("UnPark:could not determine AP park status");
-            IUResetSwitch(&UnparkFromSP);
-            UnparkFromSP.s = IPS_ALERT;
-            IDSetSwitch(&UnparkFromSP, nullptr);
-            return false;
+        if (firmwareVersion == MCV_D)
+	{
+	    // no :GOS command
+	    // 2020-06-27, wildi, revision D slews without :PO after power cycle
+	    isAPParked = true ;
+	}
+	else
+	{
+	    if (!IsMountParked(&isAPParked))
+            {
+                LOG_WARN("UnPark:could not determine AP park status");
+                UnparkFromSP.s = IPS_ALERT;
+                IDSetSwitch(&UnparkFromSP, nullptr);
+                return false;
+	    }
         }
     }
     if(!isAPParked)
     {
-        // 2020-05-30, wildi, ToDo set INDI stuff
         LOG_WARN("UnPark: AP mount status: unparked, park first");
-        IUResetSwitch(&UnparkFromSP);
         UnparkFromSP.s = IPS_ALERT;
         IDSetSwitch(&UnparkFromSP, nullptr);
         return false;
     }
- 
-
     // The AP :PO# should only be used during initilization and not here as indicated by email from Preston on 2017-12-12
     // 2020-05-27, wildi, ToDo taking care of above comment later
     if(!isSimulation())
@@ -1860,8 +1884,12 @@ bool LX200AstroPhysicsExperimental::UnPark()
     HourangleCoordsN[1].value = equatorialPos.dec;
     IDSetNumber(&HourangleCoordsNP, nullptr);
 
-    Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
-
+    bool success = Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
+    if(!success)
+    {
+      LOG_WARN("Could not sync mount");
+      return false;
+    }
 #ifdef no
     if (isSimulation())
     {
@@ -1912,8 +1940,8 @@ bool LX200AstroPhysicsExperimental::UnPark()
 #endif
     // 2020-06-04, wildi, ToDo does not work
     //IUResetSwitch(&UnparkFromSP);
-    //UnparkFromSP.s = IPS_OK;
-    //IDSetSwitch(&UnparkFromSP, nullptr);
+    UnparkFromSP.s = IPS_OK;
+    IDSetSwitch(&UnparkFromSP, nullptr);
     // SlewRateS is used as the MoveTo speed
     int err;
     if (!isSimulation() && (err = selectAPCenterRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP))) < 0)

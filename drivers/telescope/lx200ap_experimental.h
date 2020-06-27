@@ -29,7 +29,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
   public:
     LX200AstroPhysicsExperimental();
 
-    typedef enum { MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_K_UNUSED,
+    typedef enum { MCV_D, MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_K_UNUSED,
                    MCV_L, MCV_M, MCV_N, MCV_O, MCV_P, MCV_Q, MCV_R, MCV_S,
                    MCV_T, MCV_U, MCV_V, MCV_UNKNOWN} ControllerVersion;
     typedef enum { GTOCP1=1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
