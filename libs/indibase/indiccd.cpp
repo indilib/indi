@@ -118,7 +118,7 @@ CCD::CCD()
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
     RotatorAngle    = std::numeric_limits<double>::quiet_NaN();
     // JJ ed 2019-12-10
-    FocusPos        = std::numeric_limits<long>::quiet_NaN();
+    FocuserPos      = std::numeric_limits<long>::quiet_NaN();
 
     Airmass         = std::numeric_limits<double>::quiet_NaN();
     Latitude        = std::numeric_limits<double>::quiet_NaN();
@@ -192,15 +192,15 @@ bool CCD::initProperties()
                        IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Info
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y], "CCD_MAX_Y", "Max. Height", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE], "CCD_PIXEL_SIZE", "Pixel size (um)", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%.f", 1, 16000, 0, 0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y], "CCD_MAX_Y", "Max. Height", "%.f", 1, 16000, 0, 0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE], "CCD_PIXEL_SIZE", "Pixel size (um)", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X], "CCD_PIXEL_SIZE_X", "Pixel size X", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X], "CCD_PIXEL_SIZE_X", "Pixel size X", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y], "CCD_PIXEL_SIZE_Y", "Pixel size Y", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y], "CCD_PIXEL_SIZE_Y", "Pixel size Y", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%3.0f",
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%.f",
                  8, 64, 0, 0);
     IUFillNumberVector(&PrimaryCCD.ImagePixelSizeNP, PrimaryCCD.ImagePixelSizeN, 6, getDeviceName(), "CCD_INFO",
                        "CCD Information", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
@@ -772,7 +772,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
 
             if (!strcmp(name, "FOCUS_ABSOLUTE_POSITION"))
             {
-                FocusPos = atol(pcdataXMLEle(ep));
+                FocuserPos = atol(pcdataXMLEle(ep));
                 break;
             }
         }
@@ -840,9 +840,9 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
 
             // JJ ed 2019-12-10
             if (strlen(ActiveDeviceT[ACTIVE_FOCUSER].text) > 0)
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_ABSOLUTE_POSITION");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
             else
-                FocusPos = std::numeric_limits<long>::quiet_NaN();
+                FocuserPos = std::numeric_limits<long>::quiet_NaN();
             //
 
 
@@ -1187,14 +1187,20 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         // Primary CCD Info
         if (!strcmp(name, PrimaryCCD.ImagePixelSizeNP.name))
         {
-            IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n);
-            PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value,
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, PrimaryCCD.getBPP(),
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
+            if (IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n) == 0)
+            {
+                PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
+                SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value,
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value,
+                             PrimaryCCD.getBPP(),
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
+                saveConfig(true, PrimaryCCD.ImagePixelSizeNP.name);
+            }
+            else
+                PrimaryCCD.ImagePixelSizeNP.s = IPS_ALERT;
+
             IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, nullptr);
-            saveConfig(true);
             return true;
         }
 
@@ -1828,9 +1834,9 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 
     // JJ ed 2020-03-28
     // If the focus position is set, add the information to the FITS header
-    if (!std::isnan(FocusPos))
+    if (!std::isnan(FocuserPos))
     {
-        fits_update_key_lng(fptr, "FOCUSPOS", FocusPos, "Focus position in steps", &status);
+        fits_update_key_lng(fptr, "FOCUSPOS", FocuserPos, "Focus position in steps", &status);
     }
 
     // SCALE assuming square-pixels

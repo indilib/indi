@@ -1167,9 +1167,9 @@ bool SynscanDriver::updateLocation(double latitude, double longitude, double ele
     cmd[5] = p2.lng.degrees;
     cmd[6] = p2.lng.minutes;
     cmd[7] = rint(p2.lng.seconds);
-    cmd[9] = IsWest ? 1 : 0;
+    cmd[8] = IsWest ? 1 : 0;
 
-    return sendCommand(cmd, res, 10);
+    return sendCommand(cmd, res, 9);
 }
 
 bool SynscanDriver::Sync(double ra, double dec)

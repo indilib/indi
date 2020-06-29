@@ -115,6 +115,11 @@ bool SkywatcherAPIMount::Abort()
 bool SkywatcherAPIMount::Handshake()
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Handshake");
+    if (!getActiveConnection()->name().compare("CONNECTION_TCP"))
+    {
+        tty_set_generic_udp_format(1);
+    }
+
     SetSerialPort(PortFD);
 
     bool Result = InitMount(RecoverAfterReconnection);
@@ -564,7 +569,17 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
 
 bool SkywatcherAPIMount::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    IUUpdateSwitch(getSwitch(name), states, names, n);
+    ISwitchVectorProperty *svp;
+    svp = getSwitch(name);
+    if (svp == nullptr)
+    {
+        LOGF_WARN("getSwitch failed for %s", name);
+    }
+    else
+    {
+        LOGF_DEBUG("getSwitch OK %s", name);
+        IUUpdateSwitch(svp, states, names, n);
+    }
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
@@ -719,11 +734,13 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS2, speed, true);
+            moving = true;
             break;
 
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS2);
+            moving = false;
             break;
     }
 
@@ -747,11 +764,13 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS1, speed, true);
+            moving = true;
             break;
 
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS1);
+            moving = false;
             break;
     }
 
@@ -1275,239 +1294,249 @@ void SkywatcherAPIMount::TimerHit()
                 TrackedAltAz  = CurrentAltAz;
             }
 
-            // Restart the drift compensation after syncing
-            if (ResetTrackingSeconds)
-            {
-                ResetTrackingSeconds = false;
-                TrackingMsecs        = 0;
-                GuideDeltaAlt        = 0;
-                GuideDeltaAz         = 0;
-                ResetGuidePulses();
-                TrackedAltAz         = CurrentAltAz;
-            }
-            double trackingDeltaAlt = std::abs(CurrentAltAz.alt - TrackedAltAz.alt);
-            double trackingDeltaAz = std::abs(CurrentAltAz.az - TrackedAltAz.az);
+            if (moving) 
+			{
+                TrackedAltAz  = CurrentAltAz;
+                CurrentTrackingTarget.ra = EqN[AXIS_RA].value;
+                CurrentTrackingTarget.dec = EqN[AXIS_DE].value;
+            } 
+			else 
+			{
+                // Restart the drift compensation after syncing
+                if (ResetTrackingSeconds)
+                {
+                    ResetTrackingSeconds = false;
+                    TrackingMsecs        = 0;
+                    GuideDeltaAlt        = 0;
+                    GuideDeltaAz         = 0;
+                    ResetGuidePulses();
+                    TrackedAltAz         = CurrentAltAz;
+                }
+                double trackingDeltaAlt = std::abs(CurrentAltAz.alt - TrackedAltAz.alt);
+                double trackingDeltaAz = std::abs(CurrentAltAz.az - TrackedAltAz.az);
 
-            if (trackingDeltaAlt + trackingDeltaAz > 50.0)
-            {
-                IDMessage(nullptr, "Abort tracking after too much margin (%1.4f > 10)",
-                          trackingDeltaAlt + trackingDeltaAz);
-                Abort();
-            }
-            TrackingMsecs += TimeoutDuration;
-            if (TrackingMsecs % 60000 == 0)
-            {
-                LOGF_INFO("Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
-            }
-            Tracking = true;
-            Slewing  = false;
-            // Continue or start tracking
-            // Calculate where the mount needs to be in POLLMS time
-            // POLLMS is hardcoded to be one second
-            double JulianOffset =
-                1.0 / (24.0 * 60 * 60); // TODO may need to make this longer to get a meaningful result
-            TelescopeDirectionVector TDV;
-            ln_hrz_posn AltAz { 0, 0 };
+                if (trackingDeltaAlt + trackingDeltaAz > 50.0)
+                {
+                    IDMessage(nullptr, "Abort tracking after too much margin (%1.4f > 10)",
+                              trackingDeltaAlt + trackingDeltaAz);
+                    Abort();
+                }
+                TrackingMsecs += TimeoutDuration;
+                if (TrackingMsecs % 60000 == 0)
+                {
+                    LOGF_INFO("Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
+                }
+                Tracking = true;
+                Slewing  = false;
+                // Continue or start tracking
+                // Calculate where the mount needs to be in POLLMS time
+                // POLLMS is hardcoded to be one second
+                double JulianOffset =
+                    1.0 / (24.0 * 60 * 60); // TODO may need to make this longer to get a meaningful result
+                TelescopeDirectionVector TDV;
+                ln_hrz_posn AltAz { 0, 0 };
 
-            if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
+                if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
 #ifdef USE_INITIAL_JULIAN_DATE
-                                              0, TDV))
+                                                  0, TDV))
 #else
-                                              JulianOffset, TDV))
+                                                  JulianOffset, TDV))
 #endif
-            {
-                DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
-                AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
-            }
-            else
-            {
-                // Try a conversion with the stored observatory position if any
-                bool HavePosition = false;
-                ln_lnlat_posn Position { 0, 0 };
-
-                if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-                        (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
                 {
-                    // I assume that being on the equator and exactly on the prime meridian is unlikely
-                    Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
-                    Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
-                    HavePosition = true;
-                }
-                ln_equ_posn EquatorialCoordinates { 0, 0 };
-
-                // libnova works in decimal degrees
-                EquatorialCoordinates.ra  = CurrentTrackingTarget.ra * 360.0 / 24.0;
-                EquatorialCoordinates.dec = CurrentTrackingTarget.dec;
-                if (HavePosition)
-                    ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
-#ifdef USE_INITIAL_JULIAN_DATE
-                                        InitialJulianDate, &AltAz);
-#else
-                                        ln_get_julian_from_sys() + JulianOffset, &AltAz);
-#endif
-                else
-                {
-                    // No sense in tracking in this case
-                    TrackState = SCOPE_IDLE;
-                    break;
-                }
-            }
-            if (IsVirtuosoMount())
-            {
-                // The initial position of the Virtuoso mount is polar aligned when switched on.
-                // The altitude is corrected by the latitude.
-                if (IUFindNumber(&LocationNP, "LAT") != nullptr)
-                {
-                    AltAz.alt = AltAz.alt - IUFindNumber(&LocationNP, "LAT")->value;
-                }
-                // Drift compensation for tracking mode (SoftPEC)
-                if (IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") != nullptr &&
-                        IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s == ISS_ON &&
-                        IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE") != nullptr)
-                {
-                    AltAz.alt += (IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60) * TrackingMsecs / 1000;
-                }
-                AltAz.az = 180 + AltAz.az;
-            }
-            DEBUGF(DBG_SCOPE,
-                   "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
-                   "%ld",
-                   CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
-            DEBUGF(DBG_SCOPE,
-                   "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-                   AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
-
-            // Calculate the auto-guiding delta degrees
-            double DeltaAlt = 0;
-            double DeltaAz = 0;
-
-            for (auto Iter = GuidingPulses.begin(); Iter != GuidingPulses.end(); )
-            {
-                // We treat the guide calibration specially
-                if (Iter->OriginalDuration == 1000)
-                {
-                    DeltaAlt += Iter->DeltaAlt;
-                    DeltaAz += Iter->DeltaAz;
+                    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
+                    AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
                 }
                 else
                 {
-                    DeltaAlt += Iter->DeltaAlt / 2;
-                    DeltaAz += Iter->DeltaAz / 2;
-                }
-                Iter->Duration -= TimeoutDuration;
+                    // Try a conversion with the stored observatory position if any
+                    bool HavePosition = false;
+                    ln_lnlat_posn Position { 0, 0 };
 
-                if (Iter->Duration < TimeoutDuration)
-                {
-                    Iter = GuidingPulses.erase(Iter);
-                    if (Iter == GuidingPulses.end())
+                    if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
+                            (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
                     {
+                        // I assume that being on the equator and exactly on the prime meridian is unlikely
+                        Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
+                        Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
+                        HavePosition = true;
+                    }
+                    ln_equ_posn EquatorialCoordinates { 0, 0 };
+
+                    // libnova works in decimal degrees
+                    EquatorialCoordinates.ra  = CurrentTrackingTarget.ra * 360.0 / 24.0;
+                    EquatorialCoordinates.dec = CurrentTrackingTarget.dec;
+                    if (HavePosition)
+                        ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
+#ifdef USE_INITIAL_JULIAN_DATE
+                                            InitialJulianDate, &AltAz);
+#else
+                                            ln_get_julian_from_sys() + JulianOffset, &AltAz);
+#endif
+                    else
+                    {
+                        // No sense in tracking in this case
+                        TrackState = SCOPE_IDLE;
                         break;
                     }
-                    continue;
                 }
-                ++Iter;
-            }
-            GuideDeltaAlt += DeltaAlt;
-            GuideDeltaAz += DeltaAz;
-
-            long AltitudeOffsetMicrosteps =
-                DegreesToMicrosteps(AXIS2, AltAz.alt + GuideDeltaAlt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
-            long AzimuthOffsetMicrosteps =
-                DegreesToMicrosteps(AXIS1, AltAz.az + GuideDeltaAz) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
-
-            DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
-                   AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
-
-            if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
-            {
-                DEBUG(DBG_SCOPE, "Tracking AXIS1 going long way round");
-                // Going the long way round - send it the other way
-                AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
-            }
-            if (0 != AzimuthOffsetMicrosteps)
-            {
-                // Calculate the slewing rates needed to reach that position
-                // at the correct time.
-                long AzimuthRate = StepperClockFrequency[AXIS1] / AzimuthOffsetMicrosteps;
-                if (!AxesStatus[AXIS1].FullStop && ((AxesStatus[AXIS1].SlewingForward && (AzimuthRate < 0)) ||
-                                                    (!AxesStatus[AXIS1].SlewingForward && (AzimuthRate > 0))))
+                if (IsVirtuosoMount())
                 {
-                    // Direction change whilst axis running
-                    // Abandon tracking for this clock tick
-                    DEBUG(DBG_SCOPE, "Tracking - AXIS1 direction change");
+                    // The initial position of the Virtuoso mount is polar aligned when switched on.
+                    // The altitude is corrected by the latitude.
+                    if (IUFindNumber(&LocationNP, "LAT") != nullptr)
+                    {
+                        AltAz.alt = AltAz.alt - IUFindNumber(&LocationNP, "LAT")->value;
+                    }
+                    // Drift compensation for tracking mode (SoftPEC)
+                    if (IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") != nullptr &&
+                            IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s == ISS_ON &&
+                            IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE") != nullptr)
+                    {
+                        AltAz.alt += (IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60) * TrackingMsecs / 1000;
+                    }
+                    AltAz.az = 180 + AltAz.az;
+                }
+                DEBUGF(DBG_SCOPE,
+                       "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
+                       "%ld",
+                       CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
+                DEBUGF(DBG_SCOPE,
+                       "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
+                       AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+
+                // Calculate the auto-guiding delta degrees
+                double DeltaAlt = 0;
+                double DeltaAz = 0;
+
+                for (auto Iter = GuidingPulses.begin(); Iter != GuidingPulses.end(); )
+                {
+                    // We treat the guide calibration specially
+                    if (Iter->OriginalDuration == 1000)
+                    {
+                        DeltaAlt += Iter->DeltaAlt;
+                        DeltaAz += Iter->DeltaAz;
+                    }
+                    else
+                    {
+                        DeltaAlt += Iter->DeltaAlt / 2;
+                        DeltaAz += Iter->DeltaAz / 2;
+                    }
+                    Iter->Duration -= TimeoutDuration;
+
+                    if (Iter->Duration < TimeoutDuration)
+                    {
+                        Iter = GuidingPulses.erase(Iter);
+                        if (Iter == GuidingPulses.end())
+                        {
+                            break;
+                        }
+                        continue;
+                    }
+                    ++Iter;
+                }
+                GuideDeltaAlt += DeltaAlt;
+                GuideDeltaAz += DeltaAz;
+
+                long AltitudeOffsetMicrosteps =
+                    DegreesToMicrosteps(AXIS2, AltAz.alt + GuideDeltaAlt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
+                long AzimuthOffsetMicrosteps =
+                    DegreesToMicrosteps(AXIS1, AltAz.az + GuideDeltaAz) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
+
+                DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
+                       AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+
+                if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
+                {
+                    DEBUG(DBG_SCOPE, "Tracking AXIS1 going long way round");
+                    // Going the long way round - send it the other way
+                    AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
+                }
+                if (0 != AzimuthOffsetMicrosteps)
+                {
+                    // Calculate the slewing rates needed to reach that position
+                    // at the correct time.
+                    long AzimuthRate = StepperClockFrequency[AXIS1] / AzimuthOffsetMicrosteps;
+                    if (!AxesStatus[AXIS1].FullStop && ((AxesStatus[AXIS1].SlewingForward && (AzimuthRate < 0)) ||
+                                                        (!AxesStatus[AXIS1].SlewingForward && (AzimuthRate > 0))))
+                    {
+                        // Direction change whilst axis running
+                        // Abandon tracking for this clock tick
+                        DEBUG(DBG_SCOPE, "Tracking - AXIS1 direction change");
+                        SlowStop(AXIS1);
+                    }
+                    else
+                    {
+                        char Direction = AzimuthRate > 0 ? '0' : '1';
+                        AzimuthRate    = std::abs(AzimuthRate);
+                        SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
+                        if (AxesStatus[AXIS1].FullStop)
+                        {
+                            DEBUG(DBG_SCOPE, "Tracking - AXIS1 restart");
+                            SetMotionMode(AXIS1, '1', Direction);
+                            StartMotion(AXIS1);
+                        }
+                        DEBUGF(DBG_SCOPE, "Tracking - AXIS1 offset %ld microsteps rate %ld direction %c",
+                               AzimuthOffsetMicrosteps, AzimuthRate, Direction);
+                    }
+                }
+                else
+                {
+                    // Nothing to do - stop the axis
+                    DEBUG(DBG_SCOPE, "Tracking - AXIS1 zero offset");
                     SlowStop(AXIS1);
                 }
+
+                // Do I need to take out any complete revolutions before I do this test?
+                if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
+                {
+                    DEBUG(DBG_SCOPE, "Tracking AXIS2 going long way round");
+                    // Going the long way round - send it the other way
+                    AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
+                }
+                if (0 != AltitudeOffsetMicrosteps)
+                {
+                    // Calculate the slewing rates needed to reach that position
+                    // at the correct time.
+                    long AltitudeRate = StepperClockFrequency[AXIS2] / AltitudeOffsetMicrosteps;
+
+                    if (!AxesStatus[AXIS2].FullStop && ((AxesStatus[AXIS2].SlewingForward && (AltitudeRate < 0)) ||
+                                                        (!AxesStatus[AXIS2].SlewingForward && (AltitudeRate > 0))))
+                    {
+                        // Direction change whilst axis running
+                        // Abandon tracking for this clock tick
+                        DEBUG(DBG_SCOPE, "Tracking - AXIS2 direction change");
+                        SlowStop(AXIS2);
+                    }
+                    else
+                    {
+                        char Direction = AltitudeRate > 0 ? '0' : '1';
+                        AltitudeRate   = std::abs(AltitudeRate);
+                        SetClockTicksPerMicrostep(AXIS2, AltitudeRate < 1 ? 1 : AltitudeRate);
+                        if (AxesStatus[AXIS2].FullStop)
+                        {
+                            DEBUG(DBG_SCOPE, "Tracking - AXIS2 restart");
+                            SetMotionMode(AXIS2, '1', Direction);
+                            StartMotion(AXIS2);
+                        }
+                        DEBUGF(DBG_SCOPE, "Tracking - AXIS2 offset %ld microsteps rate %ld direction %c",
+                               AltitudeOffsetMicrosteps, AltitudeRate, Direction);
+                    }
+                }
                 else
                 {
-                    char Direction = AzimuthRate > 0 ? '0' : '1';
-                    AzimuthRate    = std::abs(AzimuthRate);
-                    SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
-                    if (AxesStatus[AXIS1].FullStop)
-                    {
-                        DEBUG(DBG_SCOPE, "Tracking - AXIS1 restart");
-                        SetMotionMode(AXIS1, '1', Direction);
-                        StartMotion(AXIS1);
-                    }
-                    DEBUGF(DBG_SCOPE, "Tracking - AXIS1 offset %ld microsteps rate %ld direction %c",
-                           AzimuthOffsetMicrosteps, AzimuthRate, Direction);
-                }
-            }
-            else
-            {
-                // Nothing to do - stop the axis
-                DEBUG(DBG_SCOPE, "Tracking - AXIS1 zero offset");
-                SlowStop(AXIS1);
-            }
-
-            // Do I need to take out any complete revolutions before I do this test?
-            if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
-            {
-                DEBUG(DBG_SCOPE, "Tracking AXIS2 going long way round");
-                // Going the long way round - send it the other way
-                AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
-            }
-            if (0 != AltitudeOffsetMicrosteps)
-            {
-                // Calculate the slewing rates needed to reach that position
-                // at the correct time.
-                long AltitudeRate = StepperClockFrequency[AXIS2] / AltitudeOffsetMicrosteps;
-
-                if (!AxesStatus[AXIS2].FullStop && ((AxesStatus[AXIS2].SlewingForward && (AltitudeRate < 0)) ||
-                                                    (!AxesStatus[AXIS2].SlewingForward && (AltitudeRate > 0))))
-                {
-                    // Direction change whilst axis running
-                    // Abandon tracking for this clock tick
-                    DEBUG(DBG_SCOPE, "Tracking - AXIS2 direction change");
+                    // Nothing to do - stop the axis
+                    DEBUG(DBG_SCOPE, "Tracking - AXIS2 zero offset");
                     SlowStop(AXIS2);
                 }
-                else
-                {
-                    char Direction = AltitudeRate > 0 ? '0' : '1';
-                    AltitudeRate   = std::abs(AltitudeRate);
-                    SetClockTicksPerMicrostep(AXIS2, AltitudeRate < 1 ? 1 : AltitudeRate);
-                    if (AxesStatus[AXIS2].FullStop)
-                    {
-                        DEBUG(DBG_SCOPE, "Tracking - AXIS2 restart");
-                        SetMotionMode(AXIS2, '1', Direction);
-                        StartMotion(AXIS2);
-                    }
-                    DEBUGF(DBG_SCOPE, "Tracking - AXIS2 offset %ld microsteps rate %ld direction %c",
-                           AltitudeOffsetMicrosteps, AltitudeRate, Direction);
-                }
-            }
-            else
-            {
-                // Nothing to do - stop the axis
-                DEBUG(DBG_SCOPE, "Tracking - AXIS2 zero offset");
-                SlowStop(AXIS2);
+
+                DEBUGF(DBG_SCOPE, "Tracking - AXIS1 error %d AXIS2 error %d",
+                       OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1],
+                       OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2]);
+
+                OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
+                OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
             }
 
-            DEBUGF(DBG_SCOPE, "Tracking - AXIS1 error %d AXIS2 error %d",
-                   OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1],
-                   OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2]);
-
-            OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
-            OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
             break;
         }
         break;
@@ -1709,8 +1738,7 @@ void SkywatcherAPIMount::ConvertGuideCorrection(double delta_ra, double delta_de
     delta_az = NewAltAz.az - OldAltAz.az;
 }
 
-int SkywatcherAPIMount::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
-{
+int SkywatcherAPIMount::recover_tty_reconnect() {
     if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
     {
         RecoverAfterReconnection = true;
@@ -1730,31 +1758,37 @@ int SkywatcherAPIMount::skywatcher_tty_read(int fd, char *buf, int nbytes, int t
         SetSerialPort(serialConnection->getPortFD());
         SerialPortName           = serialConnection->port();
         RecoverAfterReconnection = false;
+        return 1;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+int SkywatcherAPIMount::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+{
+    if (!recover_tty_reconnect())
+    {
+        return 0;
     }
     return tty_read(fd, buf, nbytes, timeout, nbytes_read);
 }
 
+int SkywatcherAPIMount::skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
+{
+    if (!recover_tty_reconnect())
+    {
+        return 0;
+    }
+    return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+}
+
 int SkywatcherAPIMount::skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written)
 {
-    if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
+    if (!recover_tty_reconnect())
     {
-        RecoverAfterReconnection = true;
-        serialConnection->Disconnect();
-        serialConnection->Refresh();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        if (!serialConnection->Connect())
-        {
-            RecoverAfterReconnection = true;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            if (!serialConnection->Connect())
-            {
-                RecoverAfterReconnection = false;
-                return 0;
-            }
-        }
-        SetSerialPort(serialConnection->getPortFD());
-        SerialPortName           = serialConnection->port();
-        RecoverAfterReconnection = false;
+        return 0;
     }
     return tty_write(fd, buffer, nbytes, nbytes_written);
 }

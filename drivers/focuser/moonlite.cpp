@@ -89,7 +89,8 @@ bool MoonLite::initProperties()
     // Step Mode
     IUFillSwitch(&StepModeS[FOCUS_HALF_STEP], "FOCUS_HALF_STEP", "Half Step", ISS_OFF);
     IUFillSwitch(&StepModeS[FOCUS_FULL_STEP], "FOCUS_FULL_STEP", "Full Step", ISS_ON);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 2, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&StepModeSP, StepModeS, 2, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
@@ -312,7 +313,7 @@ bool MoonLite::isMoving()
 bool MoonLite::setTemperatureCalibration(double calibration)
 {
     char cmd[ML_RES] = {0};
-    uint8_t hex = static_cast<uint8_t>(calibration * 2);
+    uint8_t hex = static_cast<int8_t>(calibration * 2) & 0xFF;
     snprintf(cmd, ML_RES, ":PO%02X#", hex);
     return sendCommand(cmd);
 }
@@ -320,7 +321,7 @@ bool MoonLite::setTemperatureCalibration(double calibration)
 bool MoonLite::setTemperatureCoefficient(double coefficient)
 {
     char cmd[ML_RES] = {0};
-    uint8_t hex = static_cast<uint8_t>(coefficient * 2);
+    uint8_t hex = static_cast<int8_t>(coefficient * 2) & 0xFF;
     snprintf(cmd, ML_RES, ":SC%02X#", hex);
     return sendCommand(cmd);
 }
@@ -525,7 +526,8 @@ IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     // Clamp
     int32_t offset = ((dir == FOCUS_INWARD) ? -1 : 1) * static_cast<int32_t>(ticks);
     int32_t newPosition = FocusAbsPosN[0].value + offset;
-    newPosition = std::max(static_cast<int32_t>(FocusAbsPosN[0].min), std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
+    newPosition = std::max(static_cast<int32_t>(FocusAbsPosN[0].min), std::min(static_cast<int32_t>(FocusAbsPosN[0].max),
+                           newPosition));
 
     if (!MoveFocuser(newPosition))
         return IPS_ALERT;
@@ -609,7 +611,10 @@ bool MoonLite::sendCommand(const char * cmd, char * res, bool silent, int nret)
     }
 
     if (res == nullptr)
+    {
+        tcdrain(PortFD);
         return true;
+    }
 
     // this is to handle the GV command which doesn't return the terminator, use the number of chars expected
     if (nret == 0)
