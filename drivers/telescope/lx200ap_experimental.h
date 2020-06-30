@@ -23,6 +23,8 @@
 #pragma once
 
 #include "lx200generic.h"
+#define MOUNTNOTINITIALIZED 0
+#define MOUNTINITIALIZED    1
 
 class LX200AstroPhysicsExperimental : public LX200Generic
 {
@@ -95,6 +97,9 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     virtual void debugTriggered(bool enable) override;
 
     void handleGTOCP2MotionBug();
+    
+    ISwitch StartUpS[2];
+    ISwitchVectorProperty StartUpSP;
 
     INumber HourangleCoordsN[2];
     INumberVectorProperty HourangleCoordsNP;
@@ -130,6 +135,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     ITextVectorProperty VersionInfo;
 
   private:
+    bool setBasicData();
 #ifdef no
     bool initMount();
 #endif
@@ -145,7 +151,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     bool calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz);
     void disclaimerMessage(void);
 
-  //bool timeUpdated=false, locationUpdated=false;
+    bool timeUpdated=false, locationUpdated=false;
     ControllerVersion firmwareVersion = MCV_UNKNOWN;
     ServoVersion servoType = GTOCP_UNKNOWN;
 
@@ -159,4 +165,5 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     //bool motionCommanded=false; // 2020-05-24, wildi, never reset
     //bool mountInitialized=false;
     int rememberSlewRate = { -1 };
+    uint8_t initStatus = MOUNTNOTINITIALIZED;
 };

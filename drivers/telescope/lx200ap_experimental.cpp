@@ -20,6 +20,16 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
+/*
+AP commands not yet implemented for revision >= G
+
+Sets the centering rate for the N-S-E-W buttons to xxx Rcxxx#
+Default command for an equatorial fork mount, which eliminates the meridian flip :FM#
+Default command for A German equatorial mount that includes the meridian flip :EM#
+Horizon check during slewing functions :ho# and :hq#
+*/
+
+
 
 #include "lx200ap_experimental.h"
 
@@ -84,6 +94,11 @@ bool LX200AstroPhysicsExperimental::initProperties()
     LX200Generic::initProperties();
 
     timeFormat = LX200_24;
+    
+    IUFillSwitch(&StartUpS[0], "COLD", "Cold", ISS_OFF);
+    IUFillSwitch(&StartUpS[1], "WARM", "Warm", ISS_OFF);
+    IUFillSwitchVector(&StartUpSP, StartUpS, 2, getDeviceName(), "STARTUP", "Mount init.", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&HourangleCoordsN[0], "HA", "HA H:M:S", "%10.6m", -24., 24., 0., 0.);
     IUFillNumber(&HourangleCoordsN[1], "DEC", "Dec D:M:S", "%10.6m", -90.0, 90.0, 0., 0.);
@@ -175,7 +190,7 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 {
     LX200Generic::ISGetProperties(dev);
 
-    defineSwitch(&UnparkFromSP);
+    defineSwitch(&StartUpSP);
 
     // MSF 2018/04/10 - disable this behavior for now - we want to have
     //                  UnparkFromSP to always start out as "Last Parked" for safety
@@ -188,6 +203,7 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
+        defineSwitch(&UnparkFromSP);
         defineSwitch(&ParkToSP);
         defineText(&VersionInfo);
         defineSwitch(&APSlewSpeedSP);
@@ -202,13 +218,13 @@ bool LX200AstroPhysicsExperimental::updateProperties()
   LOG_INFO("LX200AstroPhysicsExperimental::updateProperties entry");
     LX200Generic::updateProperties();
 
-    defineSwitch(&UnparkFromSP);
+    defineSwitch(&StartUpSP);
 
     if (isConnected())
     {
         deleteProperty("TELESCOPE_PIER_SIDE");  
         defineText(&VersionInfo);
-
+	defineSwitch(&UnparkFromSP);
         /* Motion group */
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
@@ -275,6 +291,8 @@ bool LX200AstroPhysicsExperimental::updateProperties()
     }
     else
     {
+      //deleteProperty(StartUpSP.name);
+      	deleteProperty(UnparkFromSP.name);
         deleteProperty(VersionInfo.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
@@ -495,6 +513,135 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
     // ignore if not ours //
     if (strcmp(getDeviceName(), dev))
         return false;
+
+    // ============================================================
+    // Satisfy AP mount initialization, see AP key pad manual p. 76
+    // ============================================================
+    if (!strcmp(name, StartUpSP.name))
+    {
+        if (!isConnected())
+	{
+	  StartUpSP.s = IPS_ALERT;
+	  LOG_ERROR("Connect first before mount initialization");
+	  IDSetSwitch(&StartUpSP, nullptr);
+	  return false;
+	}
+	
+        int switch_nr;
+
+        IUUpdateSwitch(&StartUpSP, states, names, n);
+
+        if (initStatus == MOUNTNOTINITIALIZED)
+        {
+            if (timeUpdated == false || locationUpdated == false)
+            {
+                StartUpSP.s = IPS_ALERT;
+                LOG_ERROR("Time and location must be set before mount initialization is invoked.");
+                IDSetSwitch(&StartUpSP, nullptr);
+                return false;
+            }
+
+            if (StartUpSP.sp[0].s == ISS_ON) // do it only in case a power on (cold start)
+            {
+                if (!setBasicData())
+                {
+                    StartUpSP.s = IPS_ALERT;
+                    IDSetSwitch(&StartUpSP, "Cold mount initialization failed.");
+                    return false;
+                }
+            }
+
+            initStatus = MOUNTINITIALIZED;
+
+            if (isSimulation())
+            {
+                SlewRateSP.s = IPS_OK;
+                IDSetSwitch(&SlewRateSP, nullptr);
+
+                APSlewSpeedSP.s = IPS_OK;
+                IDSetSwitch(&APSlewSpeedSP, nullptr);
+
+                IUSaveText(&VersionT[0], "1.0");
+                VersionInfo.s = IPS_OK;
+                IDSetText(&VersionInfo, nullptr);
+
+                StartUpSP.s = IPS_OK;
+                IDSetSwitch(&StartUpSP, "Mount initialized.");
+
+                //currentRA  = 0;
+                //currentDEC = 90;
+            }
+            else
+            {
+                // Make sure that the mount is setup according to the properties
+                switch_nr = IUFindOnSwitchIndex(&TrackModeSP);
+
+                if ( (err = selectAPTrackingMode(PortFD, switch_nr)) < 0)
+                {
+                    LOGF_ERROR("StartUpSP: Error setting tracking mode (%d).", err);
+                    return false;
+                }
+
+                TrackState = (switch_nr != AP_TRACKING_OFF) ? SCOPE_TRACKING : SCOPE_IDLE;
+
+                // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
+                // lx200ap is different - some of the MoveTo speeds are not VALID
+                // Slew speeds so we have to keep two lists.
+                //
+                // SlewRateS is used as the MoveTo speed
+                switch_nr = IUFindOnSwitchIndex(&SlewRateSP);
+                if ( (err = selectAPMoveToRate(PortFD, switch_nr)) < 0)
+                {
+                    LOGF_ERROR("StartUpSP: Error setting move rate (%d).", err);
+                    return false;
+                }
+
+                SlewRateSP.s = IPS_OK;
+                IDSetSwitch(&SlewRateSP, nullptr);
+
+                // APSlewSpeedsS defines the Slew (GOTO) speeds valid on the AP mounts
+                switch_nr = IUFindOnSwitchIndex(&APSlewSpeedSP);
+                if ( (err = selectAPSlewRate(PortFD, switch_nr)) < 0)
+                {
+                    LOGF_ERROR("StartUpSP: Error setting slew to rate (%d).", err);
+                    return false;
+                }
+                APSlewSpeedSP.s = IPS_OK;
+                IDSetSwitch(&APSlewSpeedSP, nullptr);
+
+                getLX200RA(PortFD, &currentRA);
+                getLX200DEC(PortFD, &currentDEC);
+
+                // make a IDSet in order the dome controller is aware of the initial values
+                targetRA  = currentRA;
+                targetDEC = currentDEC;
+
+                NewRaDec(currentRA, currentDEC);
+
+                char versionString[64];
+                getAPVersionNumber(PortFD, versionString);
+                VersionInfo.s = IPS_OK;
+                IUSaveText(&VersionT[0], versionString);
+                IDSetText(&VersionInfo, nullptr);
+
+		// wildi, ToDo, disabled make sure it works
+                // TODO check controller type here
+                //INDI_UNUSED(controllerType);
+                //INDI_UNUSED(servoType);
+                //controllerType = ...;
+
+                StartUpSP.s = IPS_OK;
+                IDSetSwitch(&StartUpSP, "Mount initialized.");
+
+            }
+        }
+        else
+        {
+            StartUpSP.s = IPS_OK;
+            IDSetSwitch(&StartUpSP, "Mount is already initialized.");
+        }
+        return true;
+    }
 
     // =======================================
     // Swap Buttons
@@ -743,13 +890,23 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         return true;
     }
 
-    if (getAPUTCOffset(PortFD, &val) < 0)
+    double val_utc_offset;
+    if (getAPUTCOffset(PortFD, &val_utc_offset) < 0)
     {
-        LOG_ERROR("Reading UTC offset  %d");
+        LOG_ERROR("Error reading UTC Offset.");
+        return false;
     }
     if (getLocalTime24(PortFD, &val) < 0)
     {
         LOG_DEBUG("Reading local time failed :GL %d");
+    }
+    if (firmwareVersion >= MCV_G)
+    {
+        char buf[64];
+        if (getCalendarDate(PortFD, buf) < 0)
+        {
+            LOG_DEBUG("Reading calendar day failed :GC");
+	}
     }
     if (getLX200Az(PortFD, &val) < 0)
     {
@@ -759,32 +916,12 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     {
         LOG_DEBUG("Reading Alt failed :GA %d");
     }
-    if (getLX200RA(PortFD, &val) < 0)
-    {
-        LOG_DEBUG("Reading Ra failed :GR %d");
-    }
-    if (getLX200DEC(PortFD, &val) < 0)
-    {
-        LOG_DEBUG("Reading Dec failed :GD %d");
-    }
     int ddd = 0;
     int fmm = 0;
     if (getSiteLongitude(PortFD, &ddd, &fmm) < 0)
     {
         LOG_DEBUG("Reading longitude failed :Gg %d");
     }
-    double val_utc_offset;
-    if (!isSimulation() && getAPUTCOffset(PortFD, &val_utc_offset) < 0)
-    {
-        LOG_ERROR("Error reading UTC Offset.");
-        return false;
-    }
-
-    // comment that out
-    //char buf[64];
-    //if (getCalendarDate(PortFD, buf) < 0) {
-    //  LOGF_DEBUG("Reading calendar day failed :GC %d");
-    //}
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
@@ -857,7 +994,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         {
             LOG_DEBUG("Parking slew is complete. Asking astrophysics mount to park...");
 
-            if (!isSimulation() && APParkMount(PortFD) < 0)
+            if (APParkMount(PortFD) < 0)
             {
                 LOG_ERROR("Parking Failed.");
                 return false;
@@ -976,11 +1113,10 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isAPParked)
         *isAPParked = true;
         return true;
     }
-
+ 
     // can't determine
     LOG_ERROR("IsMountParked: park status undefined");
     return false;
-
 }
 
 bool LX200AstroPhysicsExperimental::getMountStatus(bool *isAPParked)
@@ -998,7 +1134,10 @@ bool LX200AstroPhysicsExperimental::getMountStatus(bool *isAPParked)
 
   return false;
 }
-
+bool LX200AstroPhysicsExperimental::setBasicData()
+{
+  return false;
+}
 bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 {
     const struct timespec timeout = {0, 100000000L};
