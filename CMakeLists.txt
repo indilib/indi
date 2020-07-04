@@ -1435,6 +1435,15 @@ add_executable(indi_pegasus_ppb ${pegasus_ppb_SRC})
 target_link_libraries(indi_pegasus_ppb indidriver)
 install(TARGETS indi_pegasus_ppb RUNTIME DESTINATION bin)
 
+########### Pegasus Pocket Power Box Advance Driver ###############
+
+SET(pegasus_ppba_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/pegasus_ppba.cpp)
+
+add_executable(indi_pegasus_ppba ${pegasus_ppba_SRC})
+target_link_libraries(indi_pegasus_ppba indidriver)
+install(TARGETS indi_pegasus_ppba RUNTIME DESTINATION bin)
+
 ########### SnapCap Driver ###############
 
 SET(snapcap_SRC

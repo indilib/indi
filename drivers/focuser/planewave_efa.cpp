@@ -134,7 +134,7 @@ bool EFA::initProperties()
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Setup limits
-    FocusMaxPosN[0].max = FocusMaxPosN[0].value = 3799422;
+    FocusMaxPosN[0].max = FocusMaxPosN[0].value = 1e7;
     FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
 
     FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].max;
