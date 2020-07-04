@@ -1453,6 +1453,7 @@ bool PecData::Load(CelestronDriver *driver)
 bool PecData::Load(const char *fileName)
 {
     std::ifstream pecFile(fileName);
+
     if (pecFile.is_open())
     {
         pecFile >> numBins;
@@ -1463,6 +1464,11 @@ bool PecData::Load(const char *fileName)
         pecFile >> wormArcSeconds;
         LOGF_DEBUG("PEC Load File %s, numBins %d, wormarcsecs %d", fileName, numBins, wormArcSeconds);
         return true;
+    }
+    else
+    {
+        // report file open failure
+        LOGF_WARN("Load PEC file %s, error %s", fileName, strerror(errno));
     }
     return false;
 }

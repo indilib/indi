@@ -1270,6 +1270,12 @@ bool CelestronGPS::ISNewText(const char *dev, const char *name, char **texts, ch
 
         if (name && std::string(name) == "PEC_LOAD")
         {
+
+            IUUpdateText(&PecFileNameTP, texts, names, n);
+            IDSetText(&PecFileNameTP, nullptr);
+
+            LOGF_DEBUG("PEC Set %s", PecFileNameT[0].text);
+
             PecData pecData;
 
             // load from file
