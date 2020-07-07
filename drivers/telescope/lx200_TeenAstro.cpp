@@ -369,7 +369,7 @@ void LX200_TeenAstro::handleStatusChange(void)
         else
         {
             SetParked(false);
-            SetTrackEnabled(false);     //disable since TeenAstro enables it by default            
+//            SetTrackEnabled(false);     //disable since TeenAstro enables it by default            
         }
     }
     // Byte 13 is pier side
@@ -644,7 +644,7 @@ void LX200_TeenAstro::getBasicData()
         IUSaveText(&VersionT[1], buffer);
         getVersionNumber(PortFD, buffer);
         statusCommand = ":GXI#";
-        guideSpeedCommand = ":SXR0:%s";
+        guideSpeedCommand = ":SXR0:%s#";
         IUSaveText(&VersionT[2], buffer);
         getProductName(PortFD, buffer);
         IUSaveText(&VersionT[3], buffer);
@@ -690,14 +690,11 @@ void LX200_TeenAstro::getBasicData()
         }
 
         // Turn off tracking. (too much interaction with telescope.cpp if we try to keep the mount's current track state)
-        SetTrackEnabled(false);
+        if (TrackState != SCOPE_TRACKING)
+        {
+            SetTrackEnabled(false);
+        }
 
-        // set guide rate 
-        loadConfig(true, GuideRateSP.name);
-        int index = IUFindOnSwitchIndex(&GuideRateSP);
-        SetGuideRate(index);
-        GuideRateSP.s = IPS_OK;
-        IDSetSwitch(&GuideRateSP, nullptr);
  
         if (InitPark())
         {
@@ -1057,18 +1054,12 @@ bool LX200_TeenAstro::getSiteIndex(int *ndxP)
 
 /*
  * getSlewRate - not in Meade standard
- * uses character 4 in string returned by :GXI#
- * returns the index in table SlewRateS[]
  */
 bool LX200_TeenAstro::getSlewRate(int *ndxP)
 {
-    char code = OSStat[4];
-    if (code >='0' && code <= '4')
-    {
-        *ndxP = OSStat[4] - '0';
-        return true;
-    }    
-    return false;
+    if (getCommandInt(PortFD, ndxP, ":GXRD#") !=0)
+        return false;
+    return true;
 }
 
 /*
@@ -1356,7 +1347,7 @@ bool LX200_TeenAstro::selectSlewRate(int index)
 {
     char cmd[20];
 
-    snprintf(cmd, sizeof(cmd), ":SXRD%d#", index);
+    snprintf(cmd, sizeof(cmd), ":SXRD:%d#", index);
     sendCommand(cmd);
     return true;
 }
