@@ -133,7 +133,7 @@ sudo apt-get update &amp;&amp; sudo apt-get install indi-DRIVER_NAME
 ## CCD
 
 ```
-<h2><i class="fa fa-star" data-mce-empty="1"> </i> Installation</h2>
+<h2><i class="fa fa-star" data-mce-empty="1"></i> Installation</h2>
 <p>
 INDI DRIVER_NAME Driver currently supports XXXXXXXXX.
 1. Link to supported hardware?
@@ -147,7 +147,7 @@ sudo apt-get update
 sudo apt-get install indi-XXX
 </pre>
 <h2><i class="fa fa-plus"></i> Features</h2>
-<p style="text-align: center;"><img src="images/devices/XXXX/main_control.jpg" alt="Main Control Panel" /></p>
+<p style="text-align: center;"><img src="images/devices/DRIVER_NAME/main_control.jpg" alt="Main Control Panel" /></p>
 <p>
 The driver supports capture, binning, setting temperature, gain and offset adjustment....
 1. Can it guide?
@@ -158,18 +158,17 @@ The driver supports capture, binning, setting temperature, gain and offset adjus
 6. Temperature control?
 7. Fan control?
 </p>
-<h2><i class="fa fa-gears" data-mce-empty="1"> </i> Operation</h2>
+<p>To capture a single-frame image, simple set the desired exposure time in seconds and click <b>Set</b>. After the capture is complete, it should be downloaded as a FITS image. If the camera is equipped with a cooler, target temperature can be set. To change the format and bit depth (if supported), select a different image format in the <b>Controls</b> tab.</p>
+<h2><i class="fa fa-gears" data-mce-empty="1"></i> Operation</h2>
 <h3>Connecting to DRIVER_NAME</h3>
 <p>
-1. How is the device connectd? USB? Ethernet? WiFi..etc?
+1. How is the device connected? USB? Ethernet? WiFi..etc?
 2. Dedicate a section to each connection method. Put images of each. What configuration required..etc
 3. Any special settings to take care of to ensure successful connection? e.g. turn off "Auto Sleep" mode in DSLR camera.
 </p>
 <h3>General Info</h3>
 <p style="text-align: center;"><img src="images/devices/DRIVER_NAME/general_info.jpg" alt="General Info" /></p>
 This provides general information about the currently running driver and driver version.  It also lets you set the Observer and Object Information for the FITS Header.
-<h3>Capture</h3>
-<p>To capture a signle-frame image, simple set the desired exposure time in seconds and click <b>Set</b>. After the capture is complete, it should be downloaded as a FITS image. If the camera is equipped with a cooler, target temperature can be set. To change the format and bit depth (if supported), select a different image format in the <b>Controls</b> tab.</p>
 <h3>Options</h3>
 <p style="text-align: center;"><img src="images/devices/DRIVER_NAME/options.jpg" alt="Options" /></p>
 <p>The Options tab contains settings for default file locations, upload behavior, and debugging. The polling period for this driver should be kept as is unless you need to reduce it for a specific reason.</p>
@@ -195,10 +194,10 @@ This provides general information about the currently running driver and driver 
 </p>
 <ul>
   <li><strong>Frame</strong>: Set the desired <i>Region-Of-Interest</i> (ROI) by specifying the starting X and Y positions of the image and the desired width and height. It is recommended to set use even numbers only to enable binning if required. The ROI values are indenepdent of the binning used.</li>
-<li><strong>Binning</strong>: Set the desired binning. The usually supported  </li>
-<p>Image compression can be turned on in image settings to compress FITS images. This might require more processing but can reduce the size of the image by <b>up to 70%</b>. The uploaded image would have an extenstion of .fits.fz and it can be viewed in multiple clients like KStars.</p>
-<p>The <b>Frame Type</b> property is used to mark the frame type in the FITS header which is useful information for some processing applications. If there an electronic or mechanical shutter, the driver closes it automatically when taking dark frames.</p>
-<p>To restore the ROI to the default values, click on the <b>Reset</b> button.</p>
+<li><strong>Binning</strong>: Set the desired binning.</li>
+<li>The usually supported image compression can be turned on in image settings to compress FITS images. This might require more processing but can reduce the size of the image by <b>up to 70%</b>. The uploaded image would have an extenstion of .fits.fz and it can be viewed in multiple clients like KStars.</li>
+<li>The <b>Frame Type</b> property is used to mark the frame type in the FITS header which is useful information for some processing applications. If there an electronic or mechanical shutter, the driver closes it automatically when taking dark frames.</li>
+<li>To restore the ROI to the default values, click on the <b>Reset</b> button.</li>
 <h3>Image Info</h3>
 <p style="text-align: center;"><img src="images/devices/DRIVER_NAME/image_info.jpg" alt="Image Info" /></p>
 <p>The image info tab contains information on the resolution of the CCD (Maximum Width & Height) in addition to the pixel size in microns. If the camera supports Bayer mask, then the bayer filter and offset can be set here. These are usually set automatically by the driver, but can be adjusted manually if needed.</p>

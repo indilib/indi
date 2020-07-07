@@ -197,6 +197,10 @@
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
             <version>1.1</version>
         </device>
+        <device label="iOptron CEM70" manufacturer="iOptron">
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.1</version>
+        </device>
         <device label="Pulsar2">
             <driver name="Pulsar2">indi_lx200pulsar2</driver>
             <version>1.0</version>
@@ -459,13 +463,17 @@
             <driver name="Pegasus PPB">indi_pegasus_ppb</driver>
             <version>1.1</version>
         </device>
+        <device label="Pegasus PPBA">
+            <driver name="Pegasus PPBA">indi_pegasus_ppba</driver>
+            <version>1.0</version>
+        </device>
         <device label="Pegasus UPB">
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>
             <version>1.3</version>
         </device>
         <device label="PlaneWave Delta-T">
-            <driver name="Pegasus UPB">indi_planewave_deltat</driver>
-            <version>1.0</version>
+            <driver name="PlaneWave Delta-T">indi_planewave_deltat</driver>
+            <version>1.1</version>
         </device>
         <device label="WatchDog">
             <driver name="WatchDog">indi_watchdog</driver>

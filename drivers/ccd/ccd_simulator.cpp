@@ -109,8 +109,6 @@ bool CCDSim::setupParameters()
     m_PEPeriod = SimulatorSettingsN[SIM_PE_PERIOD].value;
     m_PEMax = SimulatorSettingsN[SIM_PE_MAX].value;
     m_RotationCW = SimulatorSettingsN[SIM_ROTATION].value;
-    m_KingGamma = SimulatorSettingsN[SIM_KING_GAMMA].value * 0.0174532925;
-    m_KingTheta = SimulatorSettingsN[SIM_KING_THETA].value * 0.0174532925;
     m_TimeFactor = SimulatorSettingsN[SIM_TIME_FACTOR].value;
 
     uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
@@ -168,8 +166,6 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (minutes)", "%4.1f", 0, 60, 0, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_PE_MAX], "SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 0, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_ROTATION], "SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_KING_GAMMA], "SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_KING_THETA], "SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_TIME_FACTOR], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
 
     IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, SIM_N, getDeviceName(), "SIMULATOR_SETTINGS",
@@ -180,6 +176,12 @@ bool CCDSim::initProperties()
     IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
     IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "RGB",
                        SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Simulate focusing
+    IUFillNumber(&FocusSimulationN[0], "SIM_FOCUS_POSITION", "Focus", "%.f", 0.0, 100000.0, 1.0, 36700.0);
+    IUFillNumber(&FocusSimulationN[1], "SIM_FOCUS_MAX", "Max. Position", "%.f", 0.0, 100000.0, 1.0, 100000.0);
+    IUFillNumber(&FocusSimulationN[2], "SIM_SEEING", "Seeing (arcsec)", "%4.2f", 0, 60, 0, 3.5);
+    IUFillNumberVector(&FocusSimulationNP, FocusSimulationN, 3, getDeviceName(), "SIM_FOCUSING", "Focus Simulation", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // Simulate Crash
     IUFillSwitch(&CrashS[0], "CRASH", "Crash driver", ISS_OFF);
@@ -276,6 +278,7 @@ void CCDSim::ISGetProperties(const char * dev)
 
     defineNumber(&SimulatorSettingsNP);
     defineNumber(&EqPENP);
+    defineNumber(&FocusSimulationNP);
     defineSwitch(&SimulateRgbSP);
     defineSwitch(&CrashSP);
 }
@@ -703,98 +706,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         if (radius > 60)
             lookuplimit = 11;
 
-        if (m_KingGamma > 0.)
-        {
-            // wildi, make sure there are always stars, e.g. in case where king_gamma is set to 1 degree.
-            // Otherwise the solver will fail.
-            radius = 60.;
-
-            // wildi, transform to telescope coordinate system, differential form
-            // see E.S. King based on Chauvenet:
-            // https://ui.adsabs.harvard.edu/link_gateway/1902AnHar..41..153K/ADS_PDF
-            char JnRAStr[64] = {0};
-            fs_sexa(JnRAStr, RA, 2, 360000);
-            char JnDecStr[64] = {0};
-            fs_sexa(JnDecStr, Dec, 2, 360000);
-#ifdef __DEV__
-            //            IDLog("Longitude      : %8.3f, Latitude    : %8.3f\n", this->Longitude, this->Latitude);
-            //            IDLog("King gamma     : %8.3f, King theta  : %8.3f\n", king_gamma / 0.0174532925, king_theta / 0.0174532925);
-            //            IDLog("Jnow RA        : %11s,       dec: %11s\n", JnRAStr, JnDecStr );
-            //            IDLog("Jnow RA        : %8.3f, Dec         : %8.3f\n", RA * 15., Dec);
-            //            IDLog("J2000    Pos.ra: %8.3f,      Pos.dec: %8.3f\n", J2000Pos.ra, J2000Pos.dec);
-#endif
-
-            // Since the catalog is J2000, we  are going back in time
-            // tra, tdec are at the center of the projection center for the simulated
-            // images
-            //double J2ra = J2000Pos.ra;  // J2000Pos: 0,360, RA: 0,24
-            double J2dec = J2000Pos.dec;
-
-            //double J2rar = J2ra * 0.0174532925;
-            double J2decr = J2dec * 0.0174532925;
-            double sid  = get_local_sidereal_time(this->Longitude);
-            // HA is what is observed, that is Jnow
-            // ToDo check if mean or apparent
-            double JnHAr  = get_local_hour_angle(sid, RA) * 15. * 0.0174532925;
-
-            char sidStr[64] = {0};
-            fs_sexa(sidStr, sid, 2, 3600);
-            char JnHAStr[64] = {0};
-            fs_sexa(JnHAStr, JnHAr / 15. / 0.0174532925, 2, 360000);
-
-#ifdef __DEV__
-            IDLog("sid            : %s\n", sidStr);
-            IDLog("Jnow                               JnHA: %8.3f degree\n", JnHAr / 0.0174532925);
-            IDLog("                                JnHAStr: %11s hms\n", JnHAStr);
-#endif
-            // king_theta is the HA of the great circle where the HA axis is in.
-            // RA is a right and HA a left handed coordinate system.
-            // apparent or J2000? apparent, since we live now :-)
-
-            // Transform to the mount coordinate system
-            // remember it is the center of the simulated image
-            double J2_mnt_d_rar = m_KingGamma * sin(J2decr) * sin(JnHAr - m_KingTheta) / cos(J2decr);
-            double J2_mnt_rar = rar - J2_mnt_d_rar
-                                ; // rad = currentRA * 15.0; rar = rad * 0.0174532925; currentRA  = J2000Pos.ra / 15.0;
-
-            // Imagine the HA axis points to HA=0, dec=89deg, then in the mount's coordinate
-            // system a star at true dec = 88 is seen at 89 deg in the mount's system
-            // Or in other words: if one uses the setting circle, that is the mount system,
-            // and set it to 87 deg then the real location is at 88 deg.
-            double J2_mnt_d_decr = m_KingGamma * cos(JnHAr - m_KingTheta);
-            double J2_mnt_decr = decr + J2_mnt_d_decr;
-#ifdef __DEV__
-            IDLog("raw mod ra     : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar / 0.0174532925, J2_mnt_decr / 0.0174532925 );
-#endif
-            if (J2_mnt_decr > M_PI / 2.)
-            {
-                J2_mnt_decr = M_PI / 2. - (J2_mnt_decr - M_PI / 2.);
-                J2_mnt_rar -= M_PI;
-            }
-            J2_mnt_rar = fmod(J2_mnt_rar, 2. * M_PI) ;
-#ifdef __DEV__
-            IDLog("mod sin        : %8.3f,          cos: %8.3f\n", sin(JnHAr - king_theta), cos(JnHAr - king_theta));
-            IDLog("mod dra        : %8.3f,         ddec: %8.3f (degree)\n", J2_mnt_d_rar / 0.0174532925, J2_mnt_d_decr / 0.0174532925 );
-            IDLog("mod ra         : %8.3f,          dec: %8.3f (degree)\n", J2_mnt_rar / 0.0174532925, J2_mnt_decr / 0.0174532925 );
-#endif
-            char J2RAStr[64] = {0};
-            fs_sexa(J2RAStr, J2_mnt_rar / 15. / 0.0174532925, 2, 360000);
-            char J2DecStr[64] = {0};
-            fs_sexa(J2DecStr, J2_mnt_decr / 0.0174532925, 2, 360000);
-#ifdef __DEV__
-            IDLog("mod ra         : %s,       dec: %s\n", J2RAStr, J2DecStr );
-            IDLog("PEOffset       : %10.5f setting it to ZERO\n", PEOffset);
-#endif
-            PEOffset = 0.;
-            // feed the result to the original variables
-            rar = J2_mnt_rar ;
-            rad = rar / 0.0174532925;
-            decr = J2_mnt_decr;
-            cameradec = decr / 0.0174532925;
-#ifdef __DEV__
-            IDLog("mod ra      rad: %8.3f (degree)\n", rad);
-#endif
-        }
         //  if this is a light frame, we need a star field drawn
         INDI::CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
 
@@ -815,9 +726,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                     rangeDec(cameradec),
                     radius,
                     lookuplimit);
-
-            if (!Streamer->isStreaming() || (m_KingGamma > 0.))
-                LOGF_DEBUG("GSC Command: %s", gsccmd);
 
             pp = popen(gsccmd, "r");
             if (pp != nullptr)
@@ -1223,6 +1131,13 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
+        else if (!strcmp(name, FocusSimulationNP.name))
+        {
+            // update focus simulation parameters
+            IUUpdateNumber(&FocusSimulationNP, values, names, n);
+            FocusSimulationNP.s = IPS_OK;
+            IDSetNumber(&FocusSimulationNP, nullptr);
+        }
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
@@ -1298,10 +1213,37 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
 {
     if (IUSnoopNumber(root, &FWHMNP) == 0)
     {
-        seeing = FWHMNP.np[0].value;
+        // we calculate the FWHM and do not snoop it from the focus simulator
+        // seeing = FWHMNP.np[0].value;
         return true;
     }
 
+    XMLEle * ep           = nullptr;
+    const char * propName = findXMLAttValu(root, "name");
+
+    if (!strcmp(propName, "ABS_FOCUS_POSITION"))
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, "FOCUS_ABSOLUTE_POSITION"))
+            {
+                FocuserPos = atol(pcdataXMLEle(ep));
+
+                // calculate FWHM
+                double focus       = FocusSimulationN[0].value;
+                double max         = FocusSimulationN[1].value;
+                double optimalFWHM = FocusSimulationN[2].value;
+
+                // limit to +/- 10
+                double ticks = 20 * (FocuserPos - focus) / max;
+
+                seeing = 0.5625 * ticks * ticks + optimalFWHM;
+                return true;
+            }
+        }
+    }
     // We try to snoop EQPEC first, if not found, we snoop regular EQNP
 #ifdef USE_EQUATORIAL_PE
     const char * propName = findXMLAttValu(root, "name");
@@ -1361,6 +1303,9 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // RGB
     IUSaveConfigSwitch(fp, &SimulateRgbSP);
+
+    // Focus simulation
+    IUSaveConfigNumber(fp, &FocusSimulationNP);
 
     return true;
 }

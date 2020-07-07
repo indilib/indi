@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include "telescope_simulator.h"
+#include "scopesim_helper.h"
 
 #include "indicom.h"
 
@@ -159,7 +160,8 @@ bool ScopeSim::initProperties()
     ScopeParametersN[2].value = 120;
     ScopeParametersN[3].value = 900;
 
-    SetParkDataType(PARK_RA_DEC);
+    // RA is a rotating frame, while HA or Alt/Az is not
+    SetParkDataType(PARK_HA_DEC);
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -217,23 +219,32 @@ bool ScopeSim::updateProperties()
 
         if (InitPark())
         {
-            // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(currentRA);
-            SetAxis2ParkDefault(currentDEC);
 
             if (isParked())
             {
-                currentRA = ParkPositionN[AXIS_RA].value;
+	        // at this point there is a valid ParkData.xml available
+	        double longitude, latitude;
+	        IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+	        IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+	        alignment.latitude = Angle(latitude);
+		alignment.longitude = Angle(longitude);
+
+	        currentRA = (alignment.lst() - Angle(ParkPositionN[AXIS_RA].value, Angle::ANGLE_UNITS::HOURS)).Hours();
                 currentDEC = ParkPositionN[AXIS_DE].value;
+                Sync(currentRA, currentDEC);
+
             }
+            // If loading parking data is successful, we just set the default parking values.
+            SetAxis1ParkDefault(-6.);
+            SetAxis2ParkDefault(0.);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(currentRA);
-            SetAxis2Park(currentDEC);
-            SetAxis1ParkDefault(currentRA);
-            SetAxis2ParkDefault(currentDEC);
+            SetAxis1Park(-6.);
+            SetAxis2Park(0.);
+            SetAxis1ParkDefault(-6.);
+            SetAxis2ParkDefault(0.);
         }
 
         sendTimeFromSystem();
@@ -289,7 +300,7 @@ bool ScopeSim::ReadScopeStatus()
             {
                 SetParked(true);
                 EqNP.s = IPS_IDLE;
-                LOG_INFO("Telescope slew is complete. Parking...");
+                LOG_INFO("Telescope slew is complete. Parked");
             }
             break;
         case SCOPE_SLEWING:
@@ -386,7 +397,8 @@ bool ScopeSim::Sync(double ra, double dec)
 
 bool ScopeSim::Park()
 {
-    StartSlew(GetAxis1Park(), GetAxis2Park(), SCOPE_PARKING);
+    double ra = (alignment.lst() - Angle(GetAxis1Park() * 15.)).Degrees()/15.;
+    StartSlew(ra, GetAxis2Park(), SCOPE_PARKING);
     return true;
 }
 
@@ -594,7 +606,9 @@ IPState ScopeSim::GuideWest(uint32_t ms)
 
 bool ScopeSim::SetCurrentPark()
 {
-    SetAxis1Park(currentRA);
+
+    double ha  = (alignment.lst() - Angle(currentRA, Angle::ANGLE_UNITS::HOURS)).Hours();
+    SetAxis1Park(ha);
     SetAxis2Park(currentDEC);
 
     return true;
@@ -602,11 +616,10 @@ bool ScopeSim::SetCurrentPark()
 
 bool ScopeSim::SetDefaultPark()
 {
-    // By default set RA to HA
-    SetAxis1Park(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value));
-
-    // Set DEC to 90 or -90 depending on the hemisphere
-    SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
+    // mount points to East (couter weights down) at the horizon
+    // works for both hemispheres
+    SetAxis1Park(-6.);
+    SetAxis2Park(0.);
 
     return true;
 }
