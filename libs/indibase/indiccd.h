@@ -540,10 +540,10 @@ class CCD : public DefaultDevice, GuiderInterface
         // Rotator Angle
         double RotatorAngle;
 
-        // JJ ed 2019-12-10
-        long FocusPos;
+        // JJ ed 2019-12-10 current focuser position
+        long FocuserPos;
 
-        // Airmas
+        // Airmass
         double Airmass;
         double Latitude;
         double Longitude;

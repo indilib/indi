@@ -23,6 +23,7 @@
 
 
 #include "indifocuser.h"
+#include "pid/pid.h"
 
 #include <memory>
 #include <map>
@@ -106,8 +107,9 @@ class DeltaT : public INDI::DefaultDevice
         ///////////////////////////////////////////////////////////////////////////////////
         /// Misc
         ///////////////////////////////////////////////////////////////////////////////////
-        double calculateTemperature(uint8_t byte2, uint8_t byte3);
+        double calculateTemperature(uint8_t lsb, uint8_t msb);
         uint8_t calculateCheckSum(const char *cmd, uint32_t len);
+        const char *getHeaterName(int index);
         template <typename T> std::string to_string(const T a_value, const int n = 2);
 
         ///////////////////////////////////////////////////////////////////////////////////
@@ -137,17 +139,30 @@ class DeltaT : public INDI::DefaultDevice
         std::vector<std::unique_ptr<ISwitch[]>> HeaterControlS;
         enum
         {
+            HEATER_OFF,
             HEATER_ON,
-            HEATER_OFF
+            HEATER_CONTROL,
+            HEATER_THRESHOLD
         };
 
-        // PWM Control
+        // Control Params
         std::vector<std::unique_ptr<INumberVectorProperty>> HeaterParamNP;
         std::vector<std::unique_ptr<INumber[]>> HeaterParamN;
         enum
         {
             PARAM_PERIOD,
-            PARAM_DUTY
+            PARAM_DUTY,
+            PARAM_CONTROL,
+            PARAM_THRESHOLD,
+        };
+
+        // Monitor
+        std::vector<std::unique_ptr<INumberVectorProperty>> HeaterMonitorNP;
+        std::vector<std::unique_ptr<INumber[]>> HeaterMonitorN;
+        enum
+        {
+            MONITOR_PERIOD,
+            MONITOR_DUTY
         };
 
         // Read Only Temperature Reporting
@@ -155,23 +170,38 @@ class DeltaT : public INDI::DefaultDevice
         INumber TemperatureN[3];
         enum
         {
-            TEMPERATURE_PRIMARY,
+            // Primary is 0 , not used in this driver.
+            // 1
             TEMPERATURE_AMBIENT,
-            TEMPERATURE_SECONDARY
+            // 2
+            TEMPERATURE_SECONDARY,
+            // 3
+            TEMPERATURE_BACKPLATE,
         };
 
         /////////////////////////////////////////////////////////////////////////////
         /// Private variables
         /////////////////////////////////////////////////////////////////////////////
         Connection::Serial *serialConnection { nullptr };
+        double m_LastTemperature[3];
         int PortFD { -1 };
+        std::vector<std::unique_ptr<PID>> m_Controllers;
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
         // Start of Message
         static const char DRIVER_SOM { 0x3B };
+        // Temperature Reporting threshold
+        static constexpr double TEMPERATURE_REPORT_THRESHOLD { 0.05 };
+        // Temperature Control threshold
+        static constexpr double TEMPERATURE_CONTROL_THRESHOLD { 0.1 };
         static constexpr const uint8_t DRIVER_LEN {32};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
+
+        // Primary Backplate heater
+        static constexpr const char *PRIMARY_TAB = "Primary Backplate Heater";
+        // Secondary Mirror heater
+        static constexpr const char *SECONDARY_TAB = "Secondary Mirror Heater";
 };

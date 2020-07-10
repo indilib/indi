@@ -31,53 +31,59 @@
 
 class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
 {
-  public:
-    STAR2000() = default;
+    public:
+        STAR2000() = default;
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual void ISGetProperties(const char *dev);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool ISSnoopDevice(XMLEle *root);
 
-  protected:
-    virtual bool saveConfigItems(FILE *fp);
+    protected:
+        virtual bool saveConfigItems(FILE *fp);
 
-    //  Generic indi device entries
-    bool Connect();
-    bool Connect(char *);
-    bool Disconnect();
-    const char *getDefaultName();
+        //  Generic indi device entries
+        bool Connect();
+        bool Connect(char *);
+        bool Disconnect();
+        const char *getDefaultName();
 
-    void TimerHit();
+        void TimerHit();
 
-    virtual IPState GuideNorth(uint32_t ms);
-    virtual IPState GuideSouth(uint32_t ms);
-    virtual IPState GuideEast(uint32_t ms);
-    virtual IPState GuideWest(uint32_t ms);
+        virtual IPState GuideNorth(uint32_t ms);
+        virtual IPState GuideSouth(uint32_t ms);
+        virtual IPState GuideEast(uint32_t ms);
+        virtual IPState GuideWest(uint32_t ms);
 
-  private:
-    float CalcWEPulseTimeLeft();
-    float CalcNSPulseTimeLeft();
+    private:
+        float CalcWEPulseTimeLeft();
+        float CalcNSPulseTimeLeft();
 
-  public:
-    // STAR2000 box RS232 port
-    ITextVectorProperty PortTP;
-    IText PortT[1];
+    public:
+        // STAR2000 box RS232 port
+        ITextVectorProperty PortTP;
+        IText PortT[1] {};
 
-  private:
-    bool InWEPulse { false };
-    float WEPulseRequest { 0 };
-    struct timeval WEPulseStart { 0, 0 };
-    int WEtimerID { 0 };
+    private:
+        bool InWEPulse { false };
+        float WEPulseRequest { 0 };
+        struct timeval WEPulseStart
+        {
+            0, 0
+        };
+        int WEtimerID { 0 };
 
-    bool InNSPulse { false };
-    float NSPulseRequest { 0 };
-    struct timeval NSPulseStart { 0, 0 };
-    int NStimerID { 0 };
+        bool InNSPulse { false };
+        float NSPulseRequest { 0 };
+        struct timeval NSPulseStart
+        {
+            0, 0
+        };
+        int NStimerID { 0 };
 
-    int WEDir { 0 };
-    int NSDir { 0 };
+        int WEDir { 0 };
+        int NSDir { 0 };
 };

@@ -59,8 +59,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             SIM_PE_PERIOD,
             SIM_PE_MAX,
             SIM_ROTATION,
-            SIM_KING_GAMMA,
-            SIM_KING_THETA,
             SIM_TIME_FACTOR,
             SIM_N
         };
@@ -189,8 +187,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         float m_PolarError { 0 };
         float m_PolarDrift { 0 };
-        float m_KingGamma = { 0 };
-        float m_KingTheta = { 0 };
 
         int streamPredicate {0};
         pthread_t primary_thread;
@@ -206,6 +202,15 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         //  We are going to snoop these from focuser
         INumberVectorProperty FWHMNP;
         INumber FWHMN[1];
+
+        // Focuser positions for focusing simulation
+        // FocuserPosition[0] is the position where the scope is in focus
+        // FocuserPosition[1] is the maximal position the focuser may move to (@see FOCUS_MAX in #indifocuserinterface.cpp)
+        // FocuserPosition[2] is the seeing (in arcsec)
+        // We need to have these values here, since we cannot snoop it from the focuser (the focuser does not
+        // publish these values)
+        INumberVectorProperty FocusSimulationNP;
+        INumber FocusSimulationN[3];
 
         INumberVectorProperty EqPENP;
         INumber EqPEN[2];

@@ -432,9 +432,10 @@ public:
     ///
     void apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle *primary, Angle *secondary);
 
+    Angle lst();            // returns the current LST as an angle
 private:
 
-    Angle lst();            // returns the current LST as an angle
+
 
 
     Angle flipHourAngle = 0;

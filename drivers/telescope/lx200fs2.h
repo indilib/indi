@@ -20,32 +20,55 @@
 #pragma once
 
 #include "lx200generic.h"
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
 class LX200FS2 : public LX200Generic
 {
-  public:
-    LX200FS2();
+    public:
+        LX200FS2();
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    virtual const char *getDefaultName() override;
-    virtual bool isSlewComplete() override;
-    virtual bool checkConnection() override;
+    protected:
+        virtual const char *getDefaultName() override;
+        virtual bool isSlewComplete() override;
+        virtual bool checkConnection() override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    // Parking
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
+        // Parking
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
-    // Fake Location
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        // StopAfterPark
+        virtual bool ReadScopeStatus() override;
+        void TrackingStart();
+        void TrackingStart_RestoreSlewRate();
+        void TrackingStop();
+        void TrackingStop_Abort();
+        void TrackingStop_AllStop();
 
-    INumber SlewAccuracyN[2];
-    INumberVectorProperty SlewAccuracyNP;
+        // Fake Location
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+
+        INumber SlewAccuracyN[2];
+        INumberVectorProperty SlewAccuracyNP;
+
+        ISwitchVectorProperty StopAfterParkSP;
+        ISwitch StopAfterParkS[2];
+        bool MotorsParked;
+        enum TelescopeSlewRate savedSlewRateIndex {SLEW_MAX};
+        enum TelescopeParkedStatus
+        {
+            PARKED_NOTPARKED = 0,
+            PARKED_NEEDABORT,
+            PARKED_NEEDSTOP,
+            PARKED_STOPPED,
+            UNPARKED_NEEDSLEW,
+        } ParkedStatus;
 };

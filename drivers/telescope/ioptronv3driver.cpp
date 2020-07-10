@@ -46,6 +46,7 @@ const std::map<std::string, std::string> Driver::models =
     {"0046", "iEQ45 Pro AA"},
     {"0060", "CEM60"},
     {"0061", "CEM60-EC"},
+    {"0070", "CEM70"},
     {"0120", "CEM120"},
     {"0121", "CEM120-EC"},
     {"0122", "CEM120-EC2"},
@@ -435,7 +436,8 @@ bool Driver::getGuideRate(double *RARate, double *DERate)
     char res[IOP_BUFFER] = {0};
 
     if (m_Simulation)
-        snprintf(res, IOP_BUFFER, "%02d%02d", static_cast<uint32_t>(simData.ra_guide_rate * 100), static_cast<uint32_t>(simData.de_guide_rate * 100));
+        snprintf(res, IOP_BUFFER, "%02d%02d", static_cast<uint32_t>(simData.ra_guide_rate * 100),
+                 static_cast<uint32_t>(simData.de_guide_rate * 100));
     else if (sendCommand(":AG#", -1, res) == false)
         return false;
 
@@ -618,7 +620,8 @@ bool Driver::getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW
     char res[IOP_BUFFER] = {0};
     if (m_Simulation)
     {
-        snprintf(res, IOP_BUFFER, "%c%08d%09d%d%d", (simData.de >= 0 ? '+' : '-'), static_cast<uint32_t>(fabs(simData.de) * 60 * 60 * 100),
+        snprintf(res, IOP_BUFFER, "%c%08d%09d%d%d", (simData.de >= 0 ? '+' : '-'),
+                 static_cast<uint32_t>(fabs(simData.de) * 60 * 60 * 100),
                  static_cast<uint32_t>(simData.ra * 15 * 60 * 60 * 100), simData.pier_state, simData.cw_state);
     }
     else if (sendCommand(":GEP#", -1, res, IOP_TIMEOUT, INDI::Logger::DBG_EXTRA_1) == false)
@@ -643,7 +646,8 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
     char res[IOP_BUFFER] = {0};
     if (m_Simulation)
     {
-        snprintf(res, IOP_BUFFER, "%c%03d%c%013" PRIu64, (simData.utc_offset_minutes >= 0 ? '+' : '-'), abs(simData.utc_offset_minutes),
+        snprintf(res, IOP_BUFFER, "%c%03d%c%013" PRIu64, (simData.utc_offset_minutes >= 0 ? '+' : '-'),
+                 abs(simData.utc_offset_minutes),
                  (simData.day_light_saving ? '1' : '0'), static_cast<uint64_t>((simData.JD - J2000) * 8.64e+7));
     }
     else if (sendCommand(":GUT#", -1, res) == false)
