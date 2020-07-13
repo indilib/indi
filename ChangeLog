@@ -1,3 +1,66 @@
+From 1.8.4 to 1.8.5
+
+      + New PlaneWave EFA Driver.
+      + New PlaneWave Delta-T driver.
+      + New SestoSenso2 driver.
+      + New Radio Astronomy Interferometer Driver.
+      + Fixed parking in Temma driver.
+      + Improved Slew accuray for Celestron mounts.
+      + Improved TeenAstro Mount driver.
+      + Fixed declination issue in Rainbow driver.
+      + Fixed Guide problem with StarSense.
+      + Fixed AAG driver and Weather Parameters state.
+      + Fixed OnStep Speed change
+      + Added Park3 to AP mount driver.
+      + Improved XAGYL driver.
+      + Added hour axis offset to CCD Simulator.
+      + Added FOCUSPOS to the FITS header.
+      + Updated Telescope Simulator Driver.
+
+From 1.8.3 to 1.8.4
+
+      + New TeenAstro Mount driver.
+      + New DSP plugin for Signal Processing.
+      + New INDI interface for correlators.
+      + Draft for Pulse Detectors (revealers, dosimeters, cosmic ray).
+      + Created SensorInterface and Spectrograph, Detector subclasses.
+      + Celestron PEC control is added that provides seek index, stop, playback and record commands.
+      + Celestron negative UTC fix.
+      + Fixed iOptron mount firmware parsing.
+      + Fixed version read in MoonLite focuser.
+      + DeepSkyDad3 backlash compensation.
+      + CCD Simulator bayer support.
+      + FCUSB2 support.
+      + Fixed complation on FreeBSD.
+    
+From 1.8.2 to 1.8.3
+
+      + New RainbowAstro Mount driver.
+      + New Simulated Pier Side option for all mounts.
+      + Added iOptron GEM45 support. (#1041)
+      + Added *preliminary* support for iOptron iPolar. (#1043)
+      + Update Celestron GPS Guide (#1048)
+      + Bug fix: meridian flip working for longer polling intervals (#1042)
+      + Update Celestron GPS Guide (#1048)
+      + Added recording the absolute position of the focuser to the FITS header (#1052)
+      + Fix enabling/disabling DMFC properties and remove dead code (#1050)
+      + Enable saving/loading backlash steps and fix motor type select (#1055)
+
+
+From 1.8.1 to 1.8.2
+
+      + First release of INDI separate from INDI 3rd party repository.
+      + New Pular Domes driver.
+      + New MyFocuserPro2 driver.
+      + New SteelDriverII focuser driver.
+      + New Deep Sky Dad AF3 driver.
+      + Fixed INDI Client build on Windows.
+      + Fixed weather override functionality in INDI::Weather.
+      + Fixed INDI Dome tracking.
+      + Updated PCM8 driver to automatically detect mount types.
+      + Serial communication polling period is configurable 1-30 secs.
+      + Added ISGetConfigSwitch to read switch information directly from config.
+
 From 1.8.0 to 1.8.1
 
       + Unified Toupbase driver for Touptek-based cameras.

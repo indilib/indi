@@ -71,6 +71,10 @@ class FocusSim : public INDI::Focuser
         INumberVectorProperty FWHMNP;
         INumber FWHMN[1];
 
+        // Temperature in celcius degrees
+        INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[1];
+
         // Current mode of Focus simulator for testing purposes
         enum
         {

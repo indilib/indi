@@ -2,9 +2,9 @@
    INDI Developers Manual
    Tutorial #3
 
-   "Simple Detector Driver"
+   "Simple Spectrograph Driver"
 
-   We develop a simple Detector driver.
+   We develop a simple Spectrograph driver.
 
    Refer to README, which contains instruction on how to build this driver, and use it
    with an INDI-compatible client.
@@ -12,41 +12,41 @@
 */
 
 /** \file simpledetector.cpp
-    \brief Construct a basic INDI Detector device that simulates exposure & temperature settings. It also generates a random pattern and uploads it as a FITS file.
+    \brief Construct a basic INDI Spectrograph device that simulates exposure & temperature settings. It also generates a random pattern and uploads it as a FITS file.
     \author Ilia Platone, clearly taken from SimpleCCD by Jasem Mutlaq
 
     \example simpledetector.cpp
-    A simple Detector device that can capture images and control temperature. It returns a FITS image to the client. To build drivers for complex Detectors, please
-    refer to the INDI Generic Detector driver template in INDI SVN (under 3rdparty).
+    A simple Spectrograph device that can capture images and control temperature. It returns a FITS image to the client. To build drivers for complex Spectrographs, please
+    refer to the INDI Generic Spectrograph driver template in INDI SVN (under 3rdparty).
 */
 
-#include "simple_detector_simulator.h"
+#include "simple_spectrograph.h"
 
 #include <memory>
 
-/* Macro shortcut to Detector temperature value */
-#define currentDetectorTemperature TemperatureN[0].value
+/* Macro shortcut to Spectrograph temperature value */
+#define currentSpectrographTemperature TemperatureN[0].value
 
-std::unique_ptr<SimpleDetector> simpleDetector(new SimpleDetector());
+std::unique_ptr<SimpleSpectrograph> simpleSpectrograph(new SimpleSpectrograph());
 
 void ISGetProperties(const char *dev)
 {
-    simpleDetector->ISGetProperties(dev);
+    simpleSpectrograph->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    simpleDetector->ISNewSwitch(dev, name, states, names, n);
+    simpleSpectrograph->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    simpleDetector->ISNewText(dev, name, texts, names, n);
+    simpleSpectrograph->ISNewText(dev, name, texts, names, n);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    simpleDetector->ISNewNumber(dev, name, values, names, n);
+    simpleSpectrograph->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -64,17 +64,17 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    simpleDetector->ISSnoopDevice(root);
+    simpleSpectrograph->ISSnoopDevice(root);
 }
 
 /**************************************************************************************
 ** Client is asking us to establish connection to the device
 ***************************************************************************************/
-bool SimpleDetector::Connect()
+bool SimpleSpectrograph::Connect()
 {
-    IDMessage(getDeviceName(), "Simple Detector connected successfully!");
+    IDMessage(getDeviceName(), "Simple Spectrograph connected successfully!");
 
-    // Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
+    // Let's set a timer that checks teleSpectrographs status every POLLMS milliseconds.
     SetTimer(POLLMS);
 
     return true;
@@ -83,31 +83,31 @@ bool SimpleDetector::Connect()
 /**************************************************************************************
 ** Client is asking us to terminate connection to the device
 ***************************************************************************************/
-bool SimpleDetector::Disconnect()
+bool SimpleSpectrograph::Disconnect()
 {
-    IDMessage(getDeviceName(), "Simple Detector disconnected successfully!");
+    IDMessage(getDeviceName(), "Simple Spectrograph disconnected successfully!");
     return true;
 }
 
 /**************************************************************************************
 ** INDI is asking us for our default device name
 ***************************************************************************************/
-const char *SimpleDetector::getDefaultName()
+const char *SimpleSpectrograph::getDefaultName()
 {
-    return "Simple Detector";
+    return "Simple Spectrograph";
 }
 
 /**************************************************************************************
 ** INDI is asking us to init our properties.
 ***************************************************************************************/
-bool SimpleDetector::initProperties()
+bool SimpleSpectrograph::initProperties()
 {
     // Must init parent properties first!
-    INDI::Detector::initProperties();
+    INDI::Spectrograph::initProperties();
 
-    // We set the Detector capabilities
-    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_COOLER | DETECTOR_HAS_SHUTTER | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
-    SetDetectorCapability(cap);
+    // We set the Spectrograph capabilities
+    uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_COOLER | SENSOR_HAS_SHUTTER;
+    SetCapability(cap);
 
     // Add Debug, Simulator, and Configuration controls
     addAuxControls();
@@ -121,14 +121,14 @@ bool SimpleDetector::initProperties()
 ** INDI is asking us to update the properties because there is a change in CONNECTION status
 ** This fucntion is called whenever the device is connected or disconnected.
 *********************************************************************************************/
-bool SimpleDetector::updateProperties()
+bool SimpleSpectrograph::updateProperties()
 {
     // Call parent update properties first
-    INDI::Detector::updateProperties();
+    INDI::Spectrograph::updateProperties();
 
     if (isConnected())
     {
-        // Let's get parameters now from Detector
+        // Let's get parameters now from Spectrograph
         setupParams();
 
         // Start the timer
@@ -141,38 +141,42 @@ bool SimpleDetector::updateProperties()
 /**************************************************************************************
 ** Client is updating capture settings
 ***************************************************************************************/
-bool SimpleDetector::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
+bool SimpleSpectrograph::paramsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
-    	INDI_UNUSED(bps);
-        INDI_UNUSED(freq);
-        INDI_UNUSED(sr);
-        INDI_UNUSED(bw);
-        INDI_UNUSED(gain);
+    INDI_UNUSED(bps);
+    INDI_UNUSED(freq);
+    INDI_UNUSED(sr);
+    INDI_UNUSED(bw);
+    INDI_UNUSED(gain);
 	return true;
 }
 
 /**************************************************************************************
-** Setting up Detector parameters
+** Setting up Spectrograph parameters
 ***************************************************************************************/
-void SimpleDetector::setupParams()
+void SimpleSpectrograph::setupParams()
 {
-    // Our Detector is an 8 bit Detector, 100MHz frequency 1MHz samplerate.
-    SetDetectorParams(1000000.0, 100000000.0, 8, 10000.0, 1.0);
+    // Our Spectrograph is an 8 bit Spectrograph, 100MHz frequency 1MHz samplerate.
+    setFrequency(1000000.0);
+    setSampleRate(100000000.0);
+    setBPS(16);
+    setBandwidth(0.0);
+    setGain(25.0);
 }
 
 /**************************************************************************************
 ** Client is asking us to start an exposure
 ***************************************************************************************/
-bool SimpleDetector::StartCapture(float duration)
+bool SimpleSpectrograph::StartIntegration(double duration)
 {
-    CaptureRequest = duration;
+    IntegrationRequest = duration;
 
-    // Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
-    PrimaryDetector.setCaptureDuration(duration);
+    // Since we have only have one Spectrograph with one chip, we set the exposure duration of the primary Spectrograph
+    setIntegrationTime(duration);
 
     gettimeofday(&CapStart, nullptr);
 
-    InCapture = true;
+    InIntegration = true;
 
     // We're done
     return true;
@@ -181,16 +185,16 @@ bool SimpleDetector::StartCapture(float duration)
 /**************************************************************************************
 ** Client is asking us to abort an exposure
 ***************************************************************************************/
-bool SimpleDetector::AbortCapture()
+bool SimpleSpectrograph::AbortIntegration()
 {
-    InCapture = false;
+    InIntegration = false;
     return true;
 }
 
 /**************************************************************************************
 ** Client is asking us to set a new temperature
 ***************************************************************************************/
-int SimpleDetector::SetTemperature(double temperature)
+int SimpleSpectrograph::SetTemperature(double temperature)
 {
     TemperatureRequest = temperature;
 
@@ -201,7 +205,7 @@ int SimpleDetector::SetTemperature(double temperature)
 /**************************************************************************************
 ** How much longer until exposure is done?
 ***************************************************************************************/
-float SimpleDetector::CalcTimeLeft()
+float SimpleSpectrograph::CalcTimeLeft()
 {
     double timesince;
     double timeleft;
@@ -213,46 +217,46 @@ float SimpleDetector::CalcTimeLeft()
                 (double)(CapStart.tv_sec * 1000.0 + CapStart.tv_usec / 1000);
     timesince = timesince / 1000;
 
-    timeleft = CaptureRequest - timesince;
+    timeleft = IntegrationRequest - timesince;
     return timeleft;
 }
 
 /**************************************************************************************
 ** Main device loop. We check for exposure and temperature progress here
 ***************************************************************************************/
-void SimpleDetector::TimerHit()
+void SimpleSpectrograph::TimerHit()
 {
     long timeleft;
 
     if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
-    if (InCapture)
+    if (InIntegration)
     {
         timeleft = CalcTimeLeft();
 
         // Less than a 0.1 second away from exposure completion
-        // This is an over simplified timing method, check DetectorSimulator and simpleDetector for better timing checks
+        // This is an over simplified timing method, check SpectrographSimulator and simpleSpectrograph for better timing checks
         if (timeleft < 0.1)
         {
             /* We're done exposing */
-            IDMessage(getDeviceName(), "Capture done, downloading image...");
+            IDMessage(getDeviceName(), "Integration done, downloading image...");
 
             // Set exposure left to zero
-            PrimaryDetector.setCaptureLeft(0);
+            setIntegrationLeft(0);
 
             // We're no longer exposing...
-            InCapture = false;
+            InIntegration = false;
 
             /* grab and save image */
             grabFrame();
         }
         else
             // Just update time left in client
-            PrimaryDetector.setCaptureLeft(timeleft);
+            setIntegrationLeft(timeleft);
     }
 
-    // TemperatureNP is defined in INDI::Detector
+    // TemperatureNP is defined in INDI::Spectrograph
     switch (TemperatureNP.s)
     {
         case IPS_IDLE:
@@ -260,12 +264,12 @@ void SimpleDetector::TimerHit()
             break;
 
         case IPS_BUSY:
-            /* If target temperature is higher, then increase current Detector temperature */
-            if (currentDetectorTemperature < TemperatureRequest)
-                currentDetectorTemperature++;
-            /* If target temperature is lower, then decrese current Detector temperature */
-            else if (currentDetectorTemperature > TemperatureRequest)
-                currentDetectorTemperature--;
+            /* If target temperature is higher, then increase current Spectrograph temperature */
+            if (currentSpectrographTemperature < TemperatureRequest)
+                currentSpectrographTemperature++;
+            /* If target temperature is lower, then decrese current Spectrograph temperature */
+            else if (currentSpectrographTemperature > TemperatureRequest)
+                currentSpectrographTemperature--;
             /* If they're equal, stop updating */
             else
             {
@@ -289,32 +293,21 @@ void SimpleDetector::TimerHit()
 /**************************************************************************************
 ** Create a random image and return it to client
 ***************************************************************************************/
-void SimpleDetector::grabFrame()
+void SimpleSpectrograph::grabFrame()
 {
     // Set length of continuum
-    int len  = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration() * PrimaryDetector.getBPS() / 8;
-    PrimaryDetector.setContinuumBufferSize(len);
+    int len  = getSampleRate() * getIntegrationTime() * getBPS() / 8;
+    setBufferSize(len);
  
    // Let's get a pointer to the frame buffer
-    uint8_t *continuum = PrimaryDetector.getContinuumBuffer();
+    uint8_t *continuum = getBuffer();
 
     // Fill buffer with random pattern
     for (int i = 0; i < len; i++)
         continuum[i] = rand() % 255;
 
-    // Set length of spectrum
-    len  = 1000;
-    PrimaryDetector.setSpectrumBufferSize(len);
- 
-   // Let's get a pointer to the frame buffer
-    uint8_t *spectrum = PrimaryDetector.getSpectrumBuffer();
-
-    // Fill buffer with random pattern
-    for (int i = 0; i < len; i++)
-        spectrum[i] = rand() % 255;
-
     IDMessage(getDeviceName(), "Download complete.");
 
-    // Let INDI::Detector know we're done filling the image buffer
-    CaptureComplete(&PrimaryDetector);
+    // Let INDI::Spectrograph know we're done filling the image buffer
+    IntegrationComplete();
 }

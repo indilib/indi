@@ -476,3 +476,13 @@ void LX200Basic::slewError(int slewCode)
     else
         IDSetNumber(&EqNP, "Slew failed.");
 }
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200Basic::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+    IUSaveConfigNumber(fp, &SlewAccuracyNP);
+    return true;
+}

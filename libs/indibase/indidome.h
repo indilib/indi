@@ -146,13 +146,14 @@ class Dome : public DefaultDevice
 
         enum
         {
-            DOME_CAN_ABORT    = 1 << 0, /*!< Can the dome motion be aborted? */
-            DOME_CAN_ABS_MOVE = 1 << 1, /*!< Can the dome move to an absolute azimuth position? */
-            DOME_CAN_REL_MOVE = 1 << 2, /*!< Can the dome move to a relative position a number of degrees away from current position? Positive degress is Clockwise direction. Negative Degrees is counter clock wise direction */
-            DOME_CAN_PARK     = 1 << 3, /*!< Can the dome park and unpark itself? */
-            DOME_CAN_SYNC     = 1 << 4, /*!< Can the dome sync to arbitrary postion? */
-            DOME_HAS_SHUTTER  = 1 << 5, /*!< Does the dome has a shutter than can be opened and closed electronically? */
-            DOME_HAS_VARIABLE_SPEED = 1 << 6 /*!< Can the dome move in different configurable speeds? */
+            DOME_CAN_ABORT          = 1 << 0, /*!< Can the dome motion be aborted? */
+            DOME_CAN_ABS_MOVE       = 1 << 1, /*!< Can the dome move to an absolute azimuth position? */
+            DOME_CAN_REL_MOVE       = 1 << 2, /*!< Can the dome move to a relative position a number of degrees away from current position? Positive degress is Clockwise direction. Negative Degrees is counter clock wise direction */
+            DOME_CAN_PARK           = 1 << 3, /*!< Can the dome park and unpark itself? */
+            DOME_CAN_SYNC           = 1 << 4, /*!< Can the dome sync to arbitrary postion? */
+            DOME_HAS_SHUTTER        = 1 << 5, /*!< Does the dome has a shutter than can be opened and closed electronically? */
+            DOME_HAS_VARIABLE_SPEED = 1 << 6, /*!< Can the dome move in different configurable speeds? */
+            DOME_HAS_BACKLASH       = 1 << 7  /*!< Can the dome compensate for backlash? */
         };
 
         /** \struct DomeConnection
@@ -177,6 +178,7 @@ class Dome : public DefaultDevice
         virtual bool ISSnoopDevice(XMLEle * root);
 
         static void buttonHelper(const char * button_n, ISState state, void * context);
+        static void updateMountCoordsHelper(void *context);
 
         /**
              * @brief setDomeConnection Set Dome connection mode. Child class should call this in the constructor before Dome registers
@@ -261,6 +263,14 @@ class Dome : public DefaultDevice
         }
 
         /**
+         * @return True if the dome supports backlash
+         */
+        bool HasBacklash()
+        {
+            return capability & DOME_HAS_BACKLASH;
+        }
+
+        /**
              * @brief isLocked, is the dome currently locked?
              * @return True if lock status equals true, and TelescopeClosedLockTP is Telescope Locks.
              */
@@ -335,6 +345,20 @@ class Dome : public DefaultDevice
                         Return -IPS_ALERT if there is an error.
              */
         virtual IPState UnPark();
+
+        /**
+         * @brief SetBacklash Set the dome backlash compensation value
+         * @param steps value in absolute steps to compensate
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SetBacklash(int32_t steps);
+
+        /**
+         * @brief SetBacklashEnabled Enables or disables the dome backlash compensation
+         * @param enable flag to enable or disable backlash compensation
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SetBacklashEnabled(bool enabled);
 
         /**
              * \brief Open or Close shutter
@@ -552,6 +576,14 @@ class Dome : public DefaultDevice
         ISwitchVectorProperty DomeAutoSyncSP;
         ISwitch DomeAutoSyncS[2];
 
+        // Backlash toogle
+        ISwitchVectorProperty DomeBacklashSP;
+        ISwitch DomeBacklashS[2];
+
+        // Backlash steps
+        INumberVectorProperty DomeBacklashNP;
+        INumber DomeBacklashN[1];
+
         double prev_az, prev_alt, prev_ra, prev_dec;
 
         // For Serial and TCP connections
@@ -607,6 +639,7 @@ class Dome : public DefaultDevice
 
         const char * ParkDeviceName;
         const std::string ParkDataFileName;
+        int m_HorizontalUpdateTimerID { -1 };
         XMLEle * ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;
 
         double Axis1ParkPosition;
@@ -614,6 +647,9 @@ class Dome : public DefaultDevice
 
         bool callHandshake();
         uint8_t domeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+
+        // How often we update horizontal coordinates (10 seconds).
+        static constexpr uint32_t HORZ_UPDATE_TIMER { 10000 };
 };
 
 }

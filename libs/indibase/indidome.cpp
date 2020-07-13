@@ -105,8 +105,8 @@ bool Dome::initProperties()
     IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&AutoParkS[0], "ENABLED", "Enable", ISS_OFF);
-    IUFillSwitch(&AutoParkS[1], "DISABLED", "Disable", ISS_ON);
+    IUFillSwitch(&AutoParkS[0], "INDI_ENABLED", "Enable", ISS_OFF);
+    IUFillSwitch(&AutoParkS[1], "INDI_DISABLED", "Disable", ISS_ON);
     IUFillSwitchVector(&AutoParkSP, AutoParkS, 2, getDeviceName(), "DOME_AUTOPARK", "Auto Park", OPTIONS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -180,6 +180,19 @@ bool Dome::initProperties()
     IUFillSwitch(&ParkS[1], "UNPARK", "UnPark", ISS_OFF);
     IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "DOME_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY,
                        60, IPS_OK);
+
+    // Backlash Compensation
+    IUFillSwitch(&DomeBacklashS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&DomeBacklashS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&DomeBacklashSP, DomeBacklashS, 2, getDeviceName(), "DOME_BACKLASH_TOGGLE", "Backlash", OPTIONS_TAB,
+                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+
+    // Backlash Compensation Value
+    IUFillNumber(&DomeBacklashN[0], "DOME_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
+    IUFillNumberVector(&DomeBacklashNP, DomeBacklashN, 1, getDeviceName(), "DOME_BACKLASH_STEPS", "Backlash",
+                       OPTIONS_TAB, IP_RW, 60, IPS_OK);
+
 
     IUFillSwitch(&DomeShutterS[0], "SHUTTER_OPEN", "Open", ISS_OFF);
     IUFillSwitch(&DomeShutterS[1], "SHUTTER_CLOSE", "Close", ISS_ON);
@@ -290,6 +303,12 @@ bool Dome::updateProperties()
             }
         }
 
+        if (HasBacklash())
+        {
+            defineSwitch(&DomeBacklashSP);
+            defineNumber(&DomeBacklashNP);
+        }
+
         defineSwitch(&AutoParkSP);
     }
     else
@@ -333,6 +352,13 @@ bool Dome::updateProperties()
                 deleteProperty(ParkOptionSP.name);
             }
         }
+
+        if (HasBacklash())
+        {
+            deleteProperty(DomeBacklashSP.name);
+            deleteProperty(DomeBacklashNP.name);
+        }
+
         deleteProperty(AutoParkSP.name);
     }
 
@@ -353,9 +379,8 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
 
             return true;
         }
-
         // Dome Sync
-        if (!strcmp(name, DomeSyncNP.name))
+        else if (!strcmp(name, DomeSyncNP.name))
         {
             if (Sync(values[0]))
             {
@@ -372,37 +397,32 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
             IDSetNumber(&DomeSyncNP, nullptr);
             return true;
         }
-
-        if (!strcmp(name, DomeParamNP.name))
+        else if (!strcmp(name, DomeParamNP.name))
         {
             IUUpdateNumber(&DomeParamNP, values, names, n);
             DomeParamNP.s = IPS_OK;
             IDSetNumber(&DomeParamNP, nullptr);
             return true;
         }
-
-        if (!strcmp(name, DomeSpeedNP.name))
+        else if (!strcmp(name, DomeSpeedNP.name))
         {
             double newSpeed = values[0];
             Dome::SetSpeed(newSpeed);
             return true;
         }
-
-        if (!strcmp(name, DomeAbsPosNP.name))
+        else if (!strcmp(name, DomeAbsPosNP.name))
         {
             double newPos = values[0];
             Dome::MoveAbs(newPos);
             return true;
         }
-
-        if (!strcmp(name, DomeRelPosNP.name))
+        else if (!strcmp(name, DomeRelPosNP.name))
         {
             double newPos = values[0];
             Dome::MoveRel(newPos);
             return true;
         }
-
-        if (!strcmp(name, DomeMeasurementsNP.name))
+        else if (!strcmp(name, DomeMeasurementsNP.name))
         {
             IUUpdateNumber(&DomeMeasurementsNP, values, names, n);
             DomeMeasurementsNP.s = IPS_OK;
@@ -410,14 +430,37 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
 
             return true;
         }
-
-        if (strcmp(name, ParkPositionNP.name) == 0)
+        else if (strcmp(name, ParkPositionNP.name) == 0)
         {
             IUUpdateNumber(&ParkPositionNP, values, names, n);
             ParkPositionNP.s = IPS_OK;
 
             Axis1ParkPosition = ParkPositionN[AXIS_RA].value;
             IDSetNumber(&ParkPositionNP, nullptr);
+            return true;
+        }
+        ////////////////////////////////////////////
+        // Backlash value
+        ////////////////////////////////////////////
+        else if (!strcmp(name, DomeBacklashNP.name))
+        {
+            if (DomeBacklashS[INDI_ENABLED].s != ISS_ON)
+            {
+                DomeBacklashNP.s = IPS_IDLE;
+                DEBUGDEVICE(dev, Logger::DBG_WARNING, "Dome backlash must be enabled first.");
+            }
+            else
+            {
+                uint32_t steps = static_cast<uint32_t>(values[0]);
+                if (SetBacklash(steps))
+                {
+                    DomeBacklashN[0].value = values[0];
+                    DomeBacklashNP.s = IPS_OK;
+                }
+                else
+                    DomeBacklashNP.s = IPS_ALERT;
+            }
+            IDSetNumber(&DomeBacklashNP, nullptr);
             return true;
         }
     }
@@ -429,6 +472,9 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        ////////////////////////////////////////////
+        // GOTO Presets
+        ////////////////////////////////////////////
         if (!strcmp(PresetGotoSP.name, name))
         {
             if (domeState == DOME_PARKED)
@@ -455,8 +501,10 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             IDSetSwitch(&PresetGotoSP, nullptr);
             return false;
         }
-
-        if (!strcmp(name, DomeAutoSyncSP.name))
+        ////////////////////////////////////////////
+        // Dome Auto Sync
+        ////////////////////////////////////////////
+        else if (!strcmp(name, DomeAutoSyncSP.name))
         {
             IUUpdateSwitch(&DomeAutoSyncSP, states, names, n);
             DomeAutoSyncSP.s = IPS_OK;
@@ -464,19 +512,28 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (DomeAutoSyncS[0].s == ISS_ON)
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome will now be synced to mount azimuth position.");
-                UpdateAutoSync();
+                //UpdateAutoSync();
+                m_HorizontalUpdateTimerID = IEAddTimer(10, &Dome::updateMountCoordsHelper, this);
             }
             else
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome is no longer synced to mount azimuth position.");
+                if (m_HorizontalUpdateTimerID > 0)
+                {
+                    IERmTimer(m_HorizontalUpdateTimerID);
+                    m_HorizontalUpdateTimerID = -1;
+                }
+
                 if (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY /* || DomeTimerNP.s == IPS_BUSY*/)
                     Dome::Abort();
             }
 
             return true;
         }
-
-        if (!strcmp(name, OTASideSP.name))
+        ////////////////////////////////////////////
+        // OTA Side
+        ////////////////////////////////////////////
+        else if (!strcmp(name, OTASideSP.name))
         {
             IUUpdateSwitch(&OTASideSP, states, names, n);
             OTASideSP.s = IPS_OK;
@@ -494,8 +551,10 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
 
             return true;
         }
-
-        if (!strcmp(name, DomeMotionSP.name))
+        ////////////////////////////////////////////
+        // Dome Motion
+        ////////////////////////////////////////////
+        else if (!strcmp(name, DomeMotionSP.name))
         {
             // Check if any switch is ON
             for (int i = 0; i < n; i++)
@@ -525,15 +584,18 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
 
             return true;
         }
-
-        if (!strcmp(name, AbortSP.name))
+        ////////////////////////////////////////////
+        // Abort Motion
+        ////////////////////////////////////////////
+        else if (!strcmp(name, AbortSP.name))
         {
             Dome::Abort();
             return true;
         }
-
-        // Dome Shutter
-        if (!strcmp(name, DomeShutterSP.name))
+        ////////////////////////////////////////////
+        // Shutter
+        ////////////////////////////////////////////
+        else if (!strcmp(name, DomeShutterSP.name))
         {
             // Check if any switch is ON
             for (int i = 0; i < n; i++)
@@ -552,8 +614,10 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
                 }
             }
         }
-
-        if (!strcmp(name, ParkSP.name))
+        ////////////////////////////////////////////
+        // Parking Switch
+        ////////////////////////////////////////////
+        else if (!strcmp(name, ParkSP.name))
         {
             // Check if any switch is ON
             for (int i = 0; i < n; i++)
@@ -577,8 +641,10 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
                 }
             }
         }
-
-        if (!strcmp(name, ParkOptionSP.name))
+        ////////////////////////////////////////////
+        // Parking Option
+        ////////////////////////////////////////////
+        else if (!strcmp(name, ParkOptionSP.name))
         {
             IUUpdateSwitch(&ParkOptionSP, states, names, n);
             ISwitch * sp = IUFindOnSwitch(&ParkOptionSP);
@@ -611,8 +677,10 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
 
             return true;
         }
-
-        if (!strcmp(name, AutoParkSP.name))
+        ////////////////////////////////////////////
+        // Auto Park
+        ////////////////////////////////////////////
+        else if (!strcmp(name, AutoParkSP.name))
         {
             IUUpdateSwitch(&AutoParkSP, states, names, n);
 
@@ -630,9 +698,10 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
 
             return true;
         }
-
-        // Telescope parking policy
-        if (!strcmp(name, TelescopeClosedLockTP.name))
+        ////////////////////////////////////////////
+        // Telescope Parking Policy
+        ////////////////////////////////////////////
+        else if (!strcmp(name, TelescopeClosedLockTP.name))
         {
             if (n == 1)
             {
@@ -648,6 +717,32 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             IDSetSwitch(&TelescopeClosedLockTP, nullptr);
 
             triggerSnoop(ActiveDeviceT[0].text, "TELESCOPE_PARK");
+            return true;
+        }
+        ////////////////////////////////////////////
+        // Backlash enable/disable
+        ////////////////////////////////////////////
+        else if (strcmp(name, DomeBacklashSP.name) == 0)
+        {
+            int prevIndex = IUFindOnSwitchIndex(&DomeBacklashSP);
+            IUUpdateSwitch(&DomeBacklashSP, states, names, n);
+            const bool enabled = IUFindOnSwitchIndex(&DomeBacklashSP) == INDI_ENABLED;
+
+            if (SetBacklashEnabled(enabled))
+            {
+                IUUpdateSwitch(&DomeBacklashSP, states, names, n);
+                DomeBacklashSP.s = IPS_OK;
+                LOGF_INFO("Dome backlash is %s.", (enabled ? "enabled" : "disabled"));
+            }
+            else
+            {
+                IUResetSwitch(&DomeBacklashSP);
+                DomeBacklashS[prevIndex].s = ISS_ON;
+                DomeBacklashSP.s = IPS_ALERT;
+                LOG_ERROR("Failed to set trigger Dome backlash.");
+            }
+
+            IDSetSwitch(&DomeBacklashSP, nullptr);
             return true;
         }
     }
@@ -898,6 +993,22 @@ bool Dome::ISSnoopDevice(XMLEle * root)
     return DefaultDevice::ISSnoopDevice(root);
 }
 
+bool Dome::SetBacklash(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    LOG_ERROR("Dome does not support backlash compensation.");
+    return false;
+}
+
+bool Dome::SetBacklashEnabled(bool enabled)
+{
+    // If disabled, set the Domeer backlash to zero.
+    if (enabled)
+        return SetBacklash(static_cast<int32_t>(DomeBacklashN[0].value));
+    else
+        return SetBacklash(0);
+}
+
 bool Dome::saveConfigItems(FILE * fp)
 {
     DefaultDevice::saveConfigItems(fp);
@@ -909,6 +1020,12 @@ bool Dome::saveConfigItems(FILE * fp)
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
     IUSaveConfigSwitch(fp, &AutoParkSP);
     IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
+
+    if (HasBacklash())
+    {
+        IUSaveConfigSwitch(fp, &DomeBacklashSP);
+        IUSaveConfigNumber(fp, &DomeBacklashNP);
+    }
 
     controller->saveConfigItems(fp);
 
@@ -1341,6 +1458,12 @@ bool Dome::CheckHorizon(double HA, double dec, double lat)
 
 void Dome::UpdateMountCoords()
 {
+    if (m_HorizontalUpdateTimerID > 0)
+    {
+        IERmTimer(m_HorizontalUpdateTimerID);
+        m_HorizontalUpdateTimerID = IEAddTimer(HORZ_UPDATE_TIMER, &Dome::updateMountCoordsHelper, this);
+    }
+
     // If not initialized yet, return.
     if (mountEquatorialCoords.ra == -1)
         return;
@@ -2148,6 +2271,11 @@ void Dome::setDomeConnection(const uint8_t &value)
     }
 
     domeConnection = value;
+}
+
+void Dome::updateMountCoordsHelper(void *context)
+{
+    static_cast<Dome*>(context)->UpdateMountCoords();
 }
 
 }

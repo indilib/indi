@@ -30,6 +30,7 @@
 #include <algorithm>
 
 #include <cstdlib>
+#include <assert.h>
 
 #define MAXINDIBUF 49152
 
@@ -670,8 +671,13 @@ void INDI::BaseClientQt::sendOneBlob(IBLOB *bp)
     unsigned char *encblob;
     int l;
 
-    encblob = static_cast<unsigned char *>(malloc(4 * bp->size / 3 + 4));
-    l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size);
+    size_t sz = 4 * bp->size / 3 + 4; 
+    assert_mem(encblob = static_cast<unsigned char *>(malloc(sz));)
+    l = to64frombits_s(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size, sz);
+    if (l == 0) {
+        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
+        exit(1);
+    }
 
     prop += QString("  <oneBLOB\n");
     prop += QString("    name='%1'\n").arg(bp->name);
@@ -708,8 +714,14 @@ void INDI::BaseClientQt::sendOneBlob(const char *blobName, unsigned int blobSize
     unsigned char *encblob;
     int l;
 
-    encblob = static_cast<unsigned char *>(malloc(4 * blobSize / 3 + 4));
-    l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(blobBuffer), blobSize);
+    size_t sz = 4 * blobSize / 3 + 4;
+    assert_mem(encblob = static_cast<unsigned char *>(malloc(sz)));
+    l = to64frombits_s(encblob, reinterpret_cast<const unsigned char *>(blobBuffer), blobSize, sz);
+    if (l == 0) {
+        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
+        exit(1);
+    }
+
 
     QString prop;
 

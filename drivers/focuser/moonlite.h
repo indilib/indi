@@ -90,9 +90,11 @@ class MoonLite : public INDI::Focuser
          * @param cmd Command to be sent, must already have the necessary delimeter ('#')
          * @param res If not nullptr, the function will read until it detects the default delimeter ('#') up to ML_RES length.
          *        if nullptr, no read back is done and the function returns true.
+         * @param silent if true, do not print any error messages.
+         * @param nret if > 0 read nret chars, otherwise read to the terminator
          * @return True if successful, false otherwise.
          */
-        bool sendCommand(const char * cmd, char * res = nullptr);
+        bool sendCommand(const char * cmd, char * res = nullptr, bool silent = false, int nret = 0);
 
         // Get initial focuser parameter when we first connect
         void GetFocusParams();
@@ -104,18 +106,20 @@ class MoonLite : public INDI::Focuser
         bool readPosition();
         // Read and update speed
         bool readSpeed();
+        // Read version
+        bool readVersion();
         // Are we moving?
         bool isMoving();
 
         bool MoveFocuser(uint32_t position);
         bool setStepMode(FocusStepMode mode);
-        bool setSpeed(uint16_t speed);
+        bool setSpeed(int speed);
         bool setTemperatureCalibration(double calibration);
         bool setTemperatureCoefficient(double coefficient);
         bool setTemperatureCompensation(bool enable);
         void timedMoveCallback();
 
-        double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
+        uint32_t targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
 
         // Read Only Temperature Reporting
         INumber TemperatureN[1];

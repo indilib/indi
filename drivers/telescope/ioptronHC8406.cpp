@@ -125,7 +125,8 @@ bool ioptronHC8406::initProperties()
     // Sync Type
     IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], "USE_REGULAR_SYNC", ":CM#", ISS_ON);
     IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], "USE_CMR_SYNC", ":CMR#", ISS_OFF);
-    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNC_MODE", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNC_MODE", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     // Cursor move Guiding/Center
     IUFillSwitch(&CursorMoveSpeedS[USE_GUIDE_SPEED], "USE_GUIDE_SPEED", "Guide Speed", ISS_ON);
@@ -407,13 +408,6 @@ bool ioptronHC8406::Goto(double r, double d)
         nanosleep(&timeout, nullptr);
     }
 
-    // If parking/parked, let's unpark it first.
-    /*
-    if (TrackState == SCOPE_PARKING || TrackState == SCOPE_PARKED)
-    {
-    UnPark();
-    }*/
-
     if (!isSimulation())
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
@@ -423,7 +417,7 @@ bool ioptronHC8406::Goto(double r, double d)
             return false;
         }
 
-        if (slewioptronHC8406() == 0)  //action
+        if (slewioptronHC8406() == 0)
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
@@ -433,7 +427,6 @@ bool ioptronHC8406::Goto(double r, double d)
     }
 
     TrackState = SCOPE_SLEWING;
-    //EqNP.s     = IPS_BUSY;
     LOGF_DEBUG("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
@@ -441,7 +434,6 @@ bool ioptronHC8406::Goto(double r, double d)
 bool ioptronHC8406::Sync(double ra, double dec)
 {
     char syncString[256];
-
     int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
 
     if (!isSimulation())
@@ -485,9 +477,6 @@ bool ioptronHC8406::Sync(double ra, double dec)
 
     LOGF_DEBUG("%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
     LOG_INFO("Synchronization successful.");
-
-    EqNP.s     = IPS_OK;
-
     NewRaDec(currentRA, currentDEC);
 
     return true;
@@ -828,7 +817,6 @@ bool ioptronHC8406::Park()
     tcflush(PortFD, TCIFLUSH);
     DEBUG(DBG_SCOPE, "CMD <:KA#>");
 
-    EqNP.s     = IPS_BUSY;
     TrackState = SCOPE_PARKING;
     LOG_INFO("Parking is in progress...");
 

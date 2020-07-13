@@ -41,6 +41,7 @@ class LX200Basic : public INDI::Telescope
         virtual bool Sync(double ra, double dec) override;
 
         virtual void debugTriggered(bool enable) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
         void getBasicData();
 

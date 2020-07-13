@@ -231,7 +231,7 @@ IPState SIEFS::MoveAbsFocuser(uint32_t targetTicks)
 IPState SIEFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int direction = (dir == FOCUS_INWARD) ? -1 : 1;
-    int reversed = (FocusReverseS[REVERSED_ENABLED].s == ISS_ON) ? -1 : 1;
+    int reversed = (FocusReverseS[INDI_ENABLED].s == ISS_ON) ? -1 : 1;
     int relative = static_cast<int>(ticks);
 
     int targetAbsPosition = FocusAbsPosN[0].value + (relative * direction * reversed);

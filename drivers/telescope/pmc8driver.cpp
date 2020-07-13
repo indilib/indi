@@ -2,7 +2,10 @@
     INDI Explore Scientific PMC8 driver
 
     Copyright (C) 2017 Michael Fulbright
-
+    Additional contributors: 
+        Thomas Olson, Copyright (C) 2019
+        Karl Rees, Copyright (C) 2019
+	
     Based on IEQPro driver.
 
     This library is free software; you can redistribute it and/or
@@ -51,8 +54,9 @@
 #define PMC8_iEXOS100_AXIS0_SCALE 4147200.0
 #define PMC8_iEXOS100_AXIS1_SCALE 4147200.0
 
-double PMC8_AXIS0_SCALE;
-double PMC8_AXIS1_SCALE;
+// Need to initialize to some value, or certain clients (e.g., KStars Lite) freak out
+double PMC8_AXIS0_SCALE = PMC8_EXOS2_AXIS0_SCALE;
+double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 
 #define ARCSEC_IN_CIRCLE 1296000.0
 
@@ -80,6 +84,8 @@ double PMC8_AXIS1_SCALE;
 
 // dont send pulses if already moving faster than this
 #define PMC8_PULSE_GUIDE_MAX_CURRATE 120
+
+#define PMC8_MAX_RETRIES 3 /*number of times to retry getting a response */
 
 bool pmc8_debug                 = false;
 bool pmc8_simulation            = false;
@@ -123,13 +129,13 @@ struct
 } simPMC8Data;
 
 
-void set_pmc8_myMount(int index)
+void set_pmc8_mountParameters(int index)
 {
 	switch(index)
 	{
 	case 0: // LosMandy G11
 		PMC8_AXIS0_SCALE = PMC8_G11_AXIS0_SCALE;
-		PMC8_AXIS1_SCALE = PMC8_G11_AXIS1_SCALE;
+        PMC8_AXIS1_SCALE = PMC8_G11_AXIS1_SCALE;
 		break;
 	case 1: // EXOS2
 		PMC8_AXIS0_SCALE = PMC8_EXOS2_AXIS0_SCALE;
@@ -246,30 +252,22 @@ bool check_pmc8_connection(int fd)
                 continue;
             }
 
-            if ((errcode = tty_read_section(fd, response, '!', PMC8_TIMEOUT, &nbytes_read)))
+			if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGv")))
             {
-                tty_error_msg(errcode, errmsg, MAXRBUF);
-
-                DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "check_pmc8_connection(): Error connecting - %s. "
+                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "check_pmc8_connection(): Error connecting. "
                                                                    "Please read the instructions at: "
                                                                    "http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ "
                                                                    "before using this driver!"
-                                                                   "A special USB SERIAL cable setup is REQUIRED for it work currently.",
-                                                                   errmsg);
+                                                                   "For serial connections, a special USB SERIAL cable setup is REQUIRED.");
 
                 usleep(50000);
                 continue;
             }
         }
 
-        if (nbytes_read > 0)
-        {
-            response[nbytes_read] = '\0';
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-            // FIXME - need to put in better check for a valid firmware version response
-            if (!strncmp(response, "ESGvES", 6))
-                return true;
+        // FIXME - need to put in better check for a valid firmware version response
+        if (!strncmp(response, "ESGvES", 6)) {
+            return true;
         }
 
         usleep(50000);
@@ -315,33 +313,41 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
             return false;
         }
 
-        if ((errcode = tty_read_section(fd, response, '!', PMC8_TIMEOUT, &nbytes_read)))
+		if ((errcode = get_pmc8_response(fd, response, &nbytes_read,"ESG")))
         {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_main_firmware(): Error reading response - %s", errmsg);
+            DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_main_firmware(): Error reading response.");
             return false;
         }
     }
 
-    if (nbytes_read > 0)
+    //minimum size firmware string is 12 (for iExos100), 14 for others, but can be up to 20 thus far
+    if (nbytes_read >= 12)
     {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-        if (nbytes_read == 14)
-        {
-            response[13] = '\0';
-            strncpy(board, response+6, 6);
+        //strip ESGvES from string when getting firmware version
+        strncpy(board, response+6, nbytes_read-7);
+        info->MainBoardFirmware.assign(board, nbytes_read-7);
 
-            info->MainBoardFirmware.assign(board, 6);
-
-            tcflush(fd, TCIFLUSH);
-
-            return true;
+        // Set the mount type from firmware if we can (instead of relying on interface)
+        if (strstr(board,"G11")) {
+            info->MountType = MOUNT_G11;
         }
+        else if (strstr(board,"EXOS2")) {
+            info->MountType = MOUNT_EXOS2;
+        }
+        //not sure if this is a reliable way to detect iexos 100 going forward?
+        else if (strstr(board,"ES1A")) {
+            info->MountType = MOUNT_iEXOS100;
+        }
+        // update mount parameters
+        set_pmc8_mountParameters(info->MountType);
+
+        tcflush(fd, TCIFLUSH);
+
+        return true;
     }
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 14.", nbytes_read);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected at least 12.", nbytes_read);
     return false;
 }
 
@@ -395,16 +401,11 @@ bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate)
         return false;
     }
 
-    if ((errcode = tty_read(fd, response, 10, PMC8_TIMEOUT, &nbytes_read)))
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGr")))
     {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error getting Tracking Rate");
         return false;
     }
-
-    response[nbytes_read] = '\0';
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     if (nbytes_read != 10)
     {
@@ -456,16 +457,11 @@ bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
         return false;
     }
 
-    if ((errcode = tty_read(fd, response, 7, PMC8_TIMEOUT, &nbytes_read)))
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGd")))    
+	{
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error getting direction axis");
         return false;
     }
-
-    response[nbytes_read] = '\0';
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     if (nbytes_read != 7)
     {
@@ -520,21 +516,17 @@ bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir, bool fast)
         return false;
     }
 
-    if (fast)
+    if (fast) {
         return true;
+    }
 
-    if ((errcode = tty_read(fd, response, 7, PMC8_TIMEOUT, &nbytes_read)))
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGd")))   
     {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting direction axis");
         return false;
     }
 
-    response[nbytes_read] = '\0';
-
     snprintf(expresp, sizeof(expresp), "ESGd%d%d!", axis, dir);
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     if (nbytes_read != 7 || strcmp(response, expresp))
     {
@@ -786,21 +778,18 @@ bool set_pmc8_axis_motor_rate(int fd, PMC8_AXIS axis, int mrate, bool fast)
         return false;
     }
 
-    if (fast)
+    if (fast) {
         return true;
+    }
 
-    if ((errcode = tty_read(fd, response, strlen(cmd), PMC8_TIMEOUT, &nbytes_read)))
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGr")))     
     {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting axis motor rate");
         return false;
     }
 
     if (nbytes_read == 10)
     {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
         tcflush(fd, TCIFLUSH);
         return true;
     }
@@ -875,7 +864,7 @@ bool set_pmc8_track_enabled(int fd, bool enabled)
 }
 #endif
 
-bool set_pmc8_track_mode(int fd, uint rate)
+bool set_pmc8_track_mode(int fd, uint32_t rate)
 {
     float ratereal=0;
 
@@ -936,10 +925,9 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, strlen(cmd), PMC8_TIMEOUT, &nbytes_read)))
+        if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGx")))
         {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting custom RA track rate");
             return false;
         }
     }
@@ -949,9 +937,6 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate)
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 9.", nbytes_read);
         return false;
     }
-
-    response[nbytes_read] = '\0';
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     tcflush(fd, TCIFLUSH);
 
@@ -1515,17 +1500,11 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
         return false;
     }
 
-    if ((errcode = tty_read(fd, response, strlen(cmd), PMC8_TIMEOUT, &nbytes_read)))
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGt")))   
     {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting target position axis");
         return false;
     }
-
-    response[nbytes_read] = '\0';
-
-    if (nbytes_read > 0)
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     // compare to expected response
     snprintf(expresp, sizeof(expresp), "ESGt%d%s!", axis, hexpt);
@@ -1588,17 +1567,11 @@ bool set_pmc8_position_axis(int fd, PMC8_AXIS axis, int point)
         return false;
     }
 
-    if ((errcode = tty_read(fd, response, strlen(cmd), PMC8_TIMEOUT, &nbytes_read)))
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read,"ESGp")))   
     {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting position axis");
         return false;
     }
-
-    response[nbytes_read] = '\0';
-
-    if (nbytes_read > 0)
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     // compare to expected response
     snprintf(expresp, sizeof(expresp), "ESGp%d%s!", axis, hexpt);
@@ -1659,16 +1632,11 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
         return false;
     }
 
-    if ((errcode = tty_read(fd, response, 12, PMC8_TIMEOUT, &nbytes_read)))
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGp")))   
     {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error getting position axis");
         return false;
     }
-
-    response[nbytes_read] = '\0';
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     if (nbytes_read != 12)
     {
@@ -1976,4 +1944,55 @@ bool get_pmc8_coords(int fd, double &ra, double &dec)
 //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "dec motor_counts=%d  DEC = %f", deccounts, dec);
 
     return rc;
+}
+
+//PMC8 connection is not entirely reliable when using Ethernet instead of Serial connection.
+//So, wrap tty_read statements in a get_pmc8_response call to handle common problems
+bool get_pmc8_response(int fd, char* buf, int *nbytes_read, const char* expected = NULL )
+{
+	
+	int err_code = 1;
+	int cnt = 0;
+	
+	//repeat a few times, after that, let's assume we're in an irrecoverable state
+    while ((err_code) && (cnt++ < PMC8_MAX_RETRIES))
+	{ 
+		//Read until exclamation point to get response
+        if ((err_code = tty_read_section(fd, buf, '!', PMC8_TIMEOUT, nbytes_read))) {
+            char errmsg[MAXRBUF];
+            tty_error_msg(err_code, errmsg, MAXRBUF);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR,"Read error: %s",errmsg);
+        }
+        if (*nbytes_read > 0) {
+            buf[*nbytes_read] = '\0';
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", buf);
+
+            //One problem is we get the string *HELLO* when we connect or disconnect, so discard that
+            if (buf[0]=='*') {
+                buf=buf+7;
+                *nbytes_read = *nbytes_read-7;
+            }
+
+            //Another problem is random extraneous ESGp! reponses during slew, so when we see those, drop them and try again
+            if (strncmp(buf, "ESGp!",5)==0) {
+                err_code = 1;
+                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Invalid response ESGp!");
+            }
+            //If a particular response was expected, make sure we got it
+            else if (expected) {
+                if (strncmp(buf, expected,strlen(expected))!=0) {
+                    err_code = 1;
+                    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "No Match for %s", expected);
+                }
+                else {
+                    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "Matches %s", expected);
+                }
+            }
+        }
+        else {
+            DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "No Response");
+            err_code = 1;
+        }
+	}
+	return err_code;
 }

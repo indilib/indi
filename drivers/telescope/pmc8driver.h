@@ -2,7 +2,10 @@
     INDI Explore Scientific PMC8 driver
 
     Copyright (C) 2017 Michael Fulbright
-
+    Additional contributors: 
+        Thomas Olson, Copyright (C) 2019
+        Karl Rees, Copyright (C) 2019
+        
     Based on IEQPro driver.
 
     This library is free software; you can redistribute it and/or
@@ -50,6 +53,8 @@ typedef enum { PMC8_MOVE_4X, PMC8_MOVE_16X, PMC8_MOVE_64X, PMC8_MOVE_256X } PMC8
 typedef enum { PMC8_AXIS_RA=0, PMC8_AXIS_DEC=1 } PMC8_AXIS;
 typedef enum { PMC8_N, PMC8_S, PMC8_W, PMC8_E } PMC8_DIRECTION;
 
+typedef enum { MOUNT_G11 = 0, MOUNT_EXOS2 = 1, MOUNT_iEXOS100 = 2 } PMC8_MOUNT_TYPES;
+
 typedef struct
 {
     PMC8_SYSTEM_STATUS systemStatus;
@@ -61,6 +66,7 @@ typedef struct
 {
     std::string Model;
     std::string MainBoardFirmware;
+    PMC8_MOUNT_TYPES MountType;
 } FirmwareInfo;
 
 /**************************************************************************
@@ -70,7 +76,8 @@ typedef struct
 void set_pmc8_debug(bool enable);
 void set_pmc8_simulation(bool enable);
 void set_pmc8_device(const char *name);
-void set_pmc8_myMount(int index);
+void set_pmc8_mountParameters(int index);
+bool get_pmc8_response(int fd, char* buf, int* nbytes_read, const char* expected);
 
 /**************************************************************************
  Simulation
@@ -108,7 +115,7 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate);
 bool set_pmc8_custom_dec_track_rate(int fd, double rate);
 bool set_pmc8_custom_ra_move_rate(int fd, double rate);
 bool set_pmc8_custom_dec_move_rate(int fd, double rate);
-bool set_pmc8_track_mode(int fd, uint rate);
+bool set_pmc8_track_mode(int fd, uint32_t rate);
 //bool set_pmc8_track_enabled(int fd, bool enabled);
 bool get_pmc8_is_scope_slewing(int fd, bool &isslew);
 bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir);
@@ -153,4 +160,6 @@ void set_pmc8_location(double latitude, double longitude);
 //bool set_ieqpro_local_time(int fd, int hh, int mm, int ss);
 //bool set_ieqpro_utc_offset(int fd, double offset_hours);
 //bool set_ieqpro_daylight_saving(int fd, bool enabled);
+
+
 

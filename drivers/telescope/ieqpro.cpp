@@ -25,6 +25,8 @@
 #include <libnova/sidereal_time.h>
 #include <libnova/transform.h>
 #include <memory>
+#include <thread>
+#include <chrono>
 
 #include <cmath>
 #include <cstring>
@@ -78,7 +80,7 @@ void ISSnoopDevice(XMLEle *root)
 
 IEQPro::IEQPro()
 {
-    setVersion(1, 8);
+    setVersion(1, 9);
 
     driver.reset(new Base());
 
@@ -186,8 +188,8 @@ bool IEQPro::initProperties()
 
     driver->setDeviceName(getDeviceName());
 
-    // Only CEM40 has 115200 baud, rest are 9600
-    if (strstr(getDeviceName(), "CEM40"))
+    // Only CEM40 and GEM45 have 115200 baud, rest are 9600
+    if (strstr(getDeviceName(), "CEM40") || strstr(getDeviceName(), "GEM45"))
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     double longitude = 0, latitude = 90;
@@ -202,10 +204,13 @@ bool IEQPro::initProperties()
 
 bool IEQPro::updateProperties()
 {
-    INDI::Telescope::updateProperties();
 
     if (isConnected())
     {
+        getStartupData();
+
+        INDI::Telescope::updateProperties();
+
         // Remove find home if we do not support it.
         if (!canFindHome)
             HomeSP.nsp = 2;
@@ -222,11 +227,11 @@ bool IEQPro::updateProperties()
         defineSwitch(&GPSStatusSP);
         defineSwitch(&TimeSourceSP);
         defineSwitch(&HemisphereSP);
-
-        getStartupData();
     }
     else
     {
+        INDI::Telescope::updateProperties();
+
         HomeSP.nsp = 3;
         deleteProperty(HomeSP.name);
 
@@ -333,6 +338,16 @@ void IEQPro::getStartupData()
         SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
         SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
         SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+    }
+
+    // can we read pier side?
+    IEQ_PIER_SIDE pierSide = IEQ_PIER_UNKNOWN;
+    if (driver->getPierSide(&pierSide) && pierSide != IEQ_PIER_UNKNOWN)
+    {
+        // add the pier side capability
+        auto cap = GetTelescopeCapability();
+        cap |= TELESCOPE_HAS_PIER_SIDE;
+        SetTelescopeCapability(cap, 9);
     }
 
     //    if (isSimulation())
@@ -540,6 +555,29 @@ bool IEQPro::ReadScopeStatus()
         scopeInfo = newInfo;
     }
 
+    if (HasPierSide())
+    {
+        IEQ_PIER_SIDE pierSide;
+        if (driver->getPierSide(&pierSide))
+        {
+            TelescopePierSide tps = PIER_UNKNOWN;
+            switch (pierSide)
+            {
+                case IEQ_PIER_UNKNOWN:
+                case IEQ_PIER_UNCERTAIN:
+                    tps = PIER_UNKNOWN;
+                    break;
+                case IEQ_PIER_EAST:
+                    tps = PIER_EAST;
+                    break;
+                case IEQ_PIER_WEST:
+                    tps = PIER_WEST;
+                    break;
+            }
+            setPierSide(tps);
+        }
+    }
+
     rc = driver->getCoords(&currentRA, &currentDEC);
 
     if (rc)
@@ -569,10 +607,29 @@ bool IEQPro::Goto(double r, double d)
         return false;
     }
 
-    TrackState = SCOPE_SLEWING;
+    iEQ::Base::Info newInfo;
 
-    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
-    return true;
+    // Wait until the mount system status changes to SLEWING
+    // up to 500ms
+    for (int i = 0; i < 5; i++)
+    {
+        bool rc = driver->getStatus(&newInfo);
+        if (rc && newInfo.systemStatus == ST_SLEWING)
+            break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    if (newInfo.systemStatus == ST_SLEWING)
+    {
+        TrackState = SCOPE_SLEWING;
+        LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+        return true;
+    }
+    else
+    {
+        LOG_ERROR("Mount status failed to update to slewing.");
+        return false;
+    }
 }
 
 bool IEQPro::Sync(double ra, double dec)

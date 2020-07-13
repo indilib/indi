@@ -60,14 +60,20 @@ bool Rotator::initProperties()
     if (rotatorConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(serialConnection);
     }
 
     if (rotatorConnection & CONNECTION_TCP)
     {
         tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(tcpConnection);
     }
 
@@ -75,7 +81,7 @@ bool Rotator::initProperties()
 }
 
 void Rotator::ISGetProperties(const char *dev)
-{    
+{
     DefaultDevice::ISGetProperties(dev);
 
     // If connected, let's define properties.
@@ -94,7 +100,7 @@ bool Rotator::updateProperties()
     RotatorInterface::updateProperties();
 
     if (isConnected())
-    {        
+    {
         defineNumber(&PresetNP);
         defineSwitch(&PresetGotoSP);
     }
@@ -122,8 +128,8 @@ bool Rotator::ISNewNumber(const char *dev, const char *name, double values[], ch
 
         if (strstr(name, "ROTATOR"))
         {
-          if (RotatorInterface::processNumber(dev, name, values, names, n))
-          return true;
+            if (RotatorInterface::processNumber(dev, name, values, names, n))
+                return true;
         }
     }
 
@@ -155,7 +161,7 @@ bool Rotator::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         if (strstr(name, "ROTATOR"))
         {
             if (RotatorInterface::processSwitch(dev, name, states, names, n))
-            return true;
+                return true;
         }
     }
 
@@ -170,6 +176,7 @@ bool Rotator::Handshake()
 bool Rotator::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
+    RI::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &PresetNP);
     IUSaveConfigSwitch(fp, &ReverseRotatorSP);

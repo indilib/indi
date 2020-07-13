@@ -54,92 +54,105 @@ namespace INDI
 */
 class WeatherInterface
 {
-  public:
+    public:
 
-  protected:
-    explicit WeatherInterface(DefaultDevice *defaultDevice);
-    virtual ~WeatherInterface();
+    protected:
+        explicit WeatherInterface(DefaultDevice *defaultDevice);
+        virtual ~WeatherInterface();
 
-    /**
-     * \brief Initilize focuser properties. It is recommended to call this function within
-     * initProperties() of your primary device
-     * \param statusGroup group for status properties
-     * \param paramsGroup group for parameter properties
-     */
-    void initProperties(const char *statusGroup, const char *paramsGroup);
+        /**
+         * \brief Initilize focuser properties. It is recommended to call this function within
+         * initProperties() of your primary device
+         * \param statusGroup group for status properties
+         * \param paramsGroup group for parameter properties
+         */
+        void initProperties(const char *statusGroup, const char *paramsGroup);
 
-    /**
-     * @brief updateProperties Define or Delete Rotator properties based on the connection status of the base device
-     * @return True if successful, false otherwise.
-     */
-    bool updateProperties();
+        /**
+         * @brief updateProperties Define or Delete Rotator properties based on the connection status of the base device
+         * @return True if successful, false otherwise.
+         */
+        bool updateProperties();
 
-    /** \brief Process focus number properties */
-    bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        /** \brief Process focus number properties */
+        bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-    /**
-     * @brief updateWeather Update weather conditions from device or service. The function should
-     * not change the state of any property in the device as this is handled by Weather. It
-     * should only update the raw values.
-     * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if
-     * weather update is in progress. IPS_ALERT is there is an error. The clients will only accept
-     * values with IPS_OK state.
-     */
-    virtual IPState updateWeather();
+        /**
+         * @brief updateWeather Update weather conditions from device or service. The function should
+         * not change the state of any property in the device as this is handled by Weather. It
+         * should only update the raw values.
+         * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if
+         * weather update is in progress. IPS_ALERT is there is an error. The clients will only accept
+         * values with IPS_OK state.
+         */
+        virtual IPState updateWeather();
 
-    /**
-     * @brief addParameter Add a physical weather measurable parameter to the weather driver.
-     * The weather value has three zones:
-     * <ol>
-     * <li>OK: Set minimum and maximum values for acceptable values.</li>
-     * <li>Warning: Set minimum and maximum values for values outside of Ok range and in the
-     * dangerous warning zone.</li>
-     * <li>Alert: Any value outsize of Ok and Warning zone is marked as Alert.</li>
-     * </ol>
-     * @param name Name of parameter
-     * @param label Label of paremeter (in GUI)
-     * @param numMinOk minimum Ok range value.
-     * @param numMaxOk maximum Ok range value.
-     * @param percWarning percentage for Warning.
-     */
-    void addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning);
+        /**
+         * @brief addParameter Add a physical weather measurable parameter to the weather driver.
+         * The weather value has three zones:
+         * <ol>
+         * <li>OK: Set minimum and maximum values for acceptable values.</li>
+         * <li>Warning: Set minimum and maximum values for values outside of Ok range and in the
+         * dangerous warning zone.</li>
+         * <li>Alert: Any value outsize of Ok and Warning zone is marked as Alert.</li>
+         * </ol>
+         * @param name Name of parameter
+         * @param label Label of paremeter (in GUI)
+         * @param numMinOk minimum Ok range value.
+         * @param numMaxOk maximum Ok range value.
+         * @param percWarning percentage for Warning.
+         */
+        void addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning);
 
-    /**
-     * @brief setCriticalParameter Set parameter that is considered critical to the operation of the
-     * observatory. The parameter state can affect the overall weather driver state which signals
-     * the client to take appropriate action depending on the severity of the state.
-     * @param param Name of critical parameter.
-     * @return True if critical parameter was set, false if parameter is not found.
-     */
-    bool setCriticalParameter(std::string param);
+        /**
+         * @brief setCriticalParameter Set parameter that is considered critical to the operation of the
+         * observatory. The parameter state can affect the overall weather driver state which signals
+         * the client to take appropriate action depending on the severity of the state.
+         * @param param Name of critical parameter.
+         * @return True if critical parameter was set, false if parameter is not found.
+         */
+        bool setCriticalParameter(std::string param);
 
-    /**
-     * @brief setParameterValue Update weather parameter value
-     * @param name name of weather parameter
-     * @param value new value of weather parameter;
-     */
-    void setParameterValue(std::string name, double value);
+        /**
+         * @brief setParameterValue Update weather parameter value
+         * @param name name of weather parameter
+         * @param value new value of weather parameter;
+         */
+        void setParameterValue(std::string name, double value);
 
-    /**
-     * @brief updateWeatherState Send update weather state to client
-     */
-    void syncCriticalParameters();
+        /**
+         * @brief checkParameterState Checks the given parameter against the defined bounds
+         * @param param Name of parameter to check.
+         * @returns IPS_IDLE:  The given parameter name is not valid.
+         * @returns IPS_OK:    The given parameter is within the safe zone.
+         * @returns IPS_BUSY:  The given parameter is in the warning zone.
+         * @returns IPS_ALERT: The given parameter is in the danger zone.
+         */
+        IPState checkParameterState(const std::string &param) const;
 
-    // Parameters
-    INumber *ParametersN {nullptr};
-    INumberVectorProperty ParametersNP;
+        IPState checkParameterState(const INumber &parameter) const;
 
-    // Parameter Ranges
-    INumberVectorProperty *ParametersRangeNP {nullptr};
-    uint8_t nRanges {0};
+        /**
+         * @brief updateWeatherState Send update weather state to client
+         * @returns true if any parameters changed from last update. False if no states changed.
+         */
+        bool syncCriticalParameters();
 
-    // Weather status
-    ILight *critialParametersL {nullptr};
-    ILightVectorProperty critialParametersLP;
+        // Parameters
+        INumber *ParametersN {nullptr};
+        INumberVectorProperty ParametersNP;
 
-private:
-    void createParameterRange(std::string name, std::string label);
-    DefaultDevice *m_defaultDevice { nullptr };
-    std::string m_ParametersGroup;
+        // Parameter Ranges
+        INumberVectorProperty *ParametersRangeNP {nullptr};
+        uint8_t nRanges {0};
+
+        // Weather status
+        ILight *critialParametersL {nullptr};
+        ILightVectorProperty critialParametersLP;
+
+    private:
+        void createParameterRange(std::string name, std::string label);
+        DefaultDevice *m_defaultDevice { nullptr };
+        std::string m_ParametersGroup;
 };
 }

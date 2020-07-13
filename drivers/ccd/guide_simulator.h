@@ -1,7 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
-
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
@@ -20,128 +19,169 @@
 #pragma once
 
 #include "indiccd.h"
+#include "indifilterinterface.h"
 
 /**
- * @brief The GuideSim class provides a simple Guide CCD simulator driver.
+ * @brief The GuideSim class provides an advanced simulator for a CCD that includes a dedicated on-board guide chip.
  *
- * It can stream video and generate images based on General-Star-Catalog tool (gsc). It simulates guiding pulses.
+ * The CCD driver can generate star fields given that General-Star-Catalog (gsc) tool is installed on the same machine the driver is running.
+ *
+ * Many simulator parameters can be configured to generate the final star field image. In addition to support guider chip and guiding pulses (ST4),
+ * a filter wheel support is provided for 8 filter wheels. Cooler and temperature control is also supported.
+ *
+ * The driver can snoop the mount equatorial coords to draw the star field. It listens to EQUATORIAL_PE property and also defines it so that the user
+ * can set it manually.
+ *
+ * Video streaming can be enabled from the Stream property group with several encoders and recorders supported.
+ *
+ * @author Gerry Rozema
+ * @author Jasem Mutlaq
  */
 class GuideSim : public INDI::CCD
 {
-  public:
+    public:
 
-    GuideSim();
-    virtual ~GuideSim() = default;
+        GuideSim();
+        virtual ~GuideSim() override = default;
 
-    const char *getDefaultName() override;
+        const char *getDefaultName() override;
 
-    bool initProperties() override;
-    bool updateProperties() override;
+        bool initProperties() override;
+        bool updateProperties() override;
 
-    void ISGetProperties(const char *dev) override;
+        void ISGetProperties(const char *dev) override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISSnoopDevice(XMLEle *root) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
-    static void *streamVideoHelper(void *context);
-    void *streamVideo();
+        static void *streamVideoHelper(void *context);
+        void *streamVideo();
 
-protected:
+    protected:
 
-    bool Connect() override;
-    bool Disconnect() override;
+        bool Connect() override;
+        bool Disconnect() override;
 
-    bool StartExposure(float duration) override;    
+        bool StartExposure(float duration) override;
+        bool StartGuideExposure(float) override;
 
-    bool AbortExposure() override;
+        bool AbortExposure() override;
+        bool AbortGuideExposure() override;
 
-    void TimerHit() override;
+        void TimerHit() override;
 
-    int DrawCcdFrame(INDI::CCDChip *targetChip);
+        int DrawCcdFrame(INDI::CCDChip *targetChip);
 
-    int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
-    int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
+        int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
+        int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
 
-    IPState GuideNorth(uint32_t) override;
-    IPState GuideSouth(uint32_t) override;
-    IPState GuideEast(uint32_t) override;
-    IPState GuideWest(uint32_t) override;
+        virtual IPState GuideNorth(uint32_t) override;
+        virtual IPState GuideSouth(uint32_t) override;
+        virtual IPState GuideEast(uint32_t) override;
+        virtual IPState GuideWest(uint32_t) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
-    virtual void activeDevicesUpdated() override;
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
-    virtual bool UpdateCCDBin(int hor, int ver) override;
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;
+        virtual void activeDevicesUpdated() override;
+        virtual int SetTemperature(double temperature) override;
+        virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+        virtual bool UpdateCCDBin(int hor, int ver) override;
 
-    virtual bool StartStreaming() override;
-    virtual bool StopStreaming() override;
+        virtual bool StartStreaming() override;
+        virtual bool StopStreaming() override;
 
-  private:
+    private:
 
-    float CalcTimeLeft(timeval, float);
-    bool SetupParms();
+        float CalcTimeLeft(timeval, float);
+        bool SetupParms();
 
-    float ExposureRequest { 0 };
-    struct timeval ExpStart { 0, 0 };
+        // Turns on/off Bayer RGB simulation.
+        void setRGB(bool onOff);
 
-    int testvalue { 0 };
-    bool ShowStarField { true };
-    int bias { 1500 };
-    int maxnoise { 20 };
-    int maxval { 65000 };
-    int maxpix { 0 };
-    int minpix { 65000 };
-    float skyglow { 40 };
-    float limitingmag { 11.5 };
-    float saturationmag { 2 };
-    float seeing { 3.5 };
-    float ImageScalex { 1.0 };
-    float ImageScaley { 1.0 };
-    //  An oag is offset this much from center of scope position (arcminutes)
-    float OAGoffset { 0 };
-    float rotationCW { 0 };
-    float TimeFactor { 1 };
-    //  our zero point calcs used for drawing stars
-    float k { 0 };
-    float z { 0 };
+        float TemperatureRequest { 0 };
 
-    float guideNSOffset {0};
-    float guideWEOffset {0};
+        float ExposureRequest { 0 };
+        struct timeval ExpStart
+        {
+            0, 0
+        };
 
-    bool AbortPrimaryFrame { false };
+        float GuideExposureRequest { 0 };
+        struct timeval GuideExpStart
+        {
+            0, 0
+        };
 
-    /// Guide rate is 7 arcseconds per second
-    float GuideRate { 7 };
+        int testvalue { 0 };
+        bool ShowStarField { true };
+        int bias { 1500 };
+        int maxnoise { 20 };
+        int maxval { 65000 };
+        int maxpix { 0 };
+        int minpix { 65000 };
+        float skyglow { 40 };
+        float limitingmag { 11.5 };
+        float saturationmag { 2 };
+        float seeing { 3.5 };
+        float ImageScalex { 1.0 };
+        float ImageScaley { 1.0 };
+        //  An oag is offset this much from center of scope position (arcminutes)
+        float OAGoffset { 0 };
+        double rotationCW { 0 };
+        float TimeFactor { 1 };
 
-    /// Our PEPeriod is 8 minutes and we have a 22 arcsecond swing
-    float PEPeriod { 8*60 };
-    float PEMax { 11 };
+        bool simulateRGB { false };
 
-    double currentRA { 0 };
-    double currentDE { 0 };
-    bool usePE { false };
-    time_t RunStart;
+        //  our zero point calcs used for drawing stars
+        float k { 0 };
+        float z { 0 };
 
-    float polarError { 0 };
-    float polarDrift { 0 };
+        bool AbortGuideFrame { false };
+        bool AbortPrimaryFrame { false };
 
-    int streamPredicate;
-    pthread_t primary_thread;
-    bool terminateThread;
+        /// Guide rate is 7 arcseconds per second
+        float GuideRate { 7 };
 
-    //  And this lives in our simulator settings page
+        /// Our PEPeriod is 8 minutes and we have a 22 arcsecond swing
+        float PEPeriod { 8 * 60 };
+        float PEMax { 11 };
 
-    INumberVectorProperty *SimulatorSettingsNV;
-    INumber SimulatorSettingsN[14];
+        double currentRA { 0 };
+        double currentDE { 0 };
+        bool usePE { false };
+        time_t RunStart;
 
-    ISwitch TimeFactorS[3];
-    ISwitchVectorProperty *TimeFactorSV;
+        float guideNSOffset {0};
+        float guideWEOffset {0};
 
-    //  We are going to snoop these from focuser
-    INumberVectorProperty FWHMNP;
-    INumber FWHMN[1];
+        float polarError { 0 };
+        float polarDrift { 0 };
+        float king_gamma = { 0 };
+        float king_theta = { 0 };
 
-    INumberVectorProperty EqPENP;
-    INumber EqPEN[2];
+        int streamPredicate;
+        pthread_t primary_thread;
+        bool terminateThread;
 
+        //  And this lives in our simulator settings page
+
+        INumberVectorProperty *SimulatorSettingsNV;
+        INumber SimulatorSettingsN[17];
+
+        ISwitchVectorProperty SimulateRgbSP;
+        ISwitch SimulateRgbS[2];
+
+        //  We are going to snoop these from focuser
+        INumberVectorProperty FWHMNP;
+        INumber FWHMN[1];
+
+        INumberVectorProperty EqPENP;
+        INumber EqPEN[2];
+
+        ISwitch CoolerS[2];
+        ISwitchVectorProperty CoolerSP;
+
+        INumber GainN[1];
+        INumberVectorProperty GainNP;
 };

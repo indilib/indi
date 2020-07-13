@@ -162,6 +162,7 @@ bool Weather::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 OverrideSP.s = IPS_IDLE;
 
                 syncCriticalParameters();
+                IDSetLight(&critialParametersLP, nullptr);
             }
 
             IDSetSwitch(&OverrideSP, nullptr);
@@ -287,19 +288,19 @@ void Weather::TimerHit()
 
     IPState state = updateWeather();
 
-    // Override weather state if required
-    if (OverrideS[0].s == ISS_ON)
-        state = IPS_OK;
-
     switch (state)
     {
         // Ok
         case IPS_OK:
 
-            syncCriticalParameters();
+            if (syncCriticalParameters())
+            {
+                // Override weather state if required
+                if (OverrideS[0].s == ISS_ON)
+                    critialParametersLP.s = IPS_OK;
 
-            if (OverrideS[0].s == ISS_ON)
-                critialParametersLP.s = IPS_OK;
+                IDSetLight(&critialParametersLP, nullptr);
+            }
 
             ParametersNP.s = state;
             IDSetNumber(&ParametersNP, nullptr);

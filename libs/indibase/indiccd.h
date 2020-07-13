@@ -29,6 +29,8 @@
 #include "indiccdchip.h"
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
+#include "dsp/manager.h"
+#include "stream/streammanager.h"
 
 #ifdef HAVE_WEBSOCKET
 #include "indiwsserver.h"
@@ -51,6 +53,10 @@ extern const char * IMAGE_INFO_TAB;
 extern const char * GUIDE_HEAD_TAB;
 //extern const char * RAPIDGUIDE_TAB;
 
+namespace DSP
+{
+class Manager;
+}
 namespace INDI
 {
 
@@ -120,7 +126,8 @@ class CCD : public DefaultDevice, GuiderInterface
             CCD_HAS_COOLER     = 1 << 6, /*!< Does the CCD have a cooler and temperature control?  */
             CCD_HAS_BAYER      = 1 << 7, /*!< Does the CCD send color data in bayer format?  */
             CCD_HAS_STREAMING  = 1 << 8, /*!< Does the CCD support live video streaming?  */
-            CCD_HAS_WEB_SOCKET = 1 << 9  /*!< Does the CCD support web socket transfers?  */
+            CCD_HAS_WEB_SOCKET = 1 << 9, /*!< Does the CCD support web socket transfers?  */
+            CCD_HAS_DSP        = 1 << 10 /*!< Does the CCD support image processing?  */
         } CCDCapability;
 
         typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
@@ -131,6 +138,7 @@ class CCD : public DefaultDevice, GuiderInterface
         virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
         virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
         virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
         virtual bool ISSnoopDevice(XMLEle * root);
 
         static void wsThreadHelper(void * context);
@@ -226,7 +234,16 @@ class CCD : public DefaultDevice, GuiderInterface
          */
         bool HasStreaming()
         {
-            return capability & CCD_HAS_STREAMING;
+            if (capability & CCD_HAS_STREAMING)
+            {
+                if(Streamer.get() == nullptr)
+                {
+                    Streamer.reset(new StreamManager(this));
+                    Streamer->initProperties();
+                }
+                return true;
+            }
+            return false;
         }
 
         /**
@@ -235,6 +252,22 @@ class CCD : public DefaultDevice, GuiderInterface
         bool HasWebSocket()
         {
             return capability & CCD_HAS_WEB_SOCKET;
+        }
+
+        /**
+         * @return  True if the CCD wants DSP processing. False otherwise.
+         */
+        bool HasDSP()
+        {
+            if (capability & CCD_HAS_DSP)
+            {
+                if(DSP.get() == nullptr)
+                {
+                    DSP.reset(new DSP::Manager(this));
+                }
+                return true;
+            }
+            return false;
         }
 
         /**
@@ -478,6 +511,9 @@ class CCD : public DefaultDevice, GuiderInterface
         // Epoch Position
         double RA, Dec;
 
+        // pier side, read from mount if available, set to -1 if not available
+        int pierSide;       // West = 0, East =1. No enum available
+
         // J2000 Position
         double J2000RA;
         double J2000DE;
@@ -495,8 +531,8 @@ class CCD : public DefaultDevice, GuiderInterface
         bool ShowMarker;
         bool GuiderShowMarker;
 
-        float ExposureTime;
-        float GuiderExposureTime;
+        double ExposureTime;
+        double GuiderExposureTime;
 
         // Sky Quality
         double MPSAS;
@@ -504,7 +540,10 @@ class CCD : public DefaultDevice, GuiderInterface
         // Rotator Angle
         double RotatorAngle;
 
-        // Airmas
+        // JJ ed 2019-12-10 current focuser position
+        long FocuserPos;
+
+        // Airmass
         double Airmass;
         double Latitude;
         double Longitude;
@@ -516,6 +555,8 @@ class CCD : public DefaultDevice, GuiderInterface
         int CurrentFilterSlot;
 
         std::unique_ptr<StreamManager> Streamer;
+
+        std::unique_ptr<DSP::Manager> DSP;
 
         CCDChip PrimaryCCD;
         CCDChip GuideCCD;
@@ -542,13 +583,16 @@ class CCD : public DefaultDevice, GuiderInterface
          * + **SQM**: Listens for sky quality meter magnitude.
          */
         ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[4] {};
+
+        // JJ ed 2019-12-10
+        IText ActiveDeviceT[5] {};
         enum
         {
-            SNOOP_MOUNT,
-            SNOOP_ROTATOR,
-            SNOOP_FILTER_WHEEL,
-            SNOOP_SQM
+            ACTIVE_TELESCOPE,
+            ACTIVE_ROTATOR,
+            ACTIVE_FOCUSER,
+            ACTIVE_FILTER,
+            ACTIVE_SKYQUALITY
         };
 
         /**

@@ -22,21 +22,22 @@ void dsp_buffer_shift(dsp_stream_p stream)
 {
     if(stream->dims == 0)
         return;
-    double* out = (double*)malloc(sizeof(double) * stream->len);
     double* tmp = (double*)malloc(sizeof(double) * stream->len);
-    memcpy(out, stream->buf, stream->len * sizeof(double));
-    for(int len = stream->sizes[0], dim = 0; dim < stream->dims; dim++) {
-        for(int y = 0; y < stream->len; y += len) {
-            int offset = len / 2;
-            memcpy(&tmp[y], &out[y + offset], sizeof(double) * offset);
-            memcpy(&out[y + offset], &out[y], sizeof(double) * offset);
-            memcpy(&out[y], &tmp[y], sizeof(double) * offset);
+    for(int x = 0; x < stream->len/2; x++) {
+        int* pos = dsp_stream_get_position(stream, x);
+        for(int d = 0; d < stream->dims; d++) {
+            if(pos[d]<stream->sizes[d] / 2) {
+                pos[d] += stream->sizes[d] / 2;
+            } else {
+                pos[d] -= stream->sizes[d] / 2;
+            }
         }
-        len *= stream->sizes[dim];
+        tmp[x] = stream->buf[dsp_stream_set_position(stream, pos)];
+        tmp[dsp_stream_set_position(stream, pos)] = stream->buf[x];
+        free(pos);
     }
+    memcpy(stream->buf, tmp, stream->len * sizeof(double));
     free(tmp);
-    memcpy(stream->buf, out, stream->len * sizeof(double));
-    free(out);
 }
 
 void dsp_buffer_clear(dsp_stream_p stream)
@@ -215,7 +216,6 @@ static int compare( const void* a, const void* b)
 
 void dsp_buffer_median(dsp_stream_p stream, int size, int median)
 {
-
 	int k;
     int mid = (size / 2) + (size % 2);
     double* sorted = (double*)malloc(size * sizeof(double));

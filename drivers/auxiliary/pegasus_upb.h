@@ -120,6 +120,12 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         bool sendCommand(const char *cmd, char *res);
 
         /**
+         * @brief cleanupResponse Removes all spaces
+         * @param response buffer
+         */
+        void cleanupResponse(char *response);
+
+        /**
          * @return Return true if sensor data different from last data
          */
         bool sensorUpdated(const std::vector<std::string> &result, uint8_t start, uint8_t end);
@@ -209,11 +215,6 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         // Auto Dew v1
         ISwitch AutoDewS[2];
         ISwitchVectorProperty AutoDewSP;
-        enum
-        {
-            AUTO_DEW_ENABLED,
-            AUTO_DEW_DISABLED,
-        };
 
         enum
         {
@@ -274,14 +275,6 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             FIRMWARE_UPTIME
         };
 
-        // Focuser backlash enable/disable
-        //    ISwitch FocuserBacklashS[2];
-        //    ISwitchVectorProperty FocuserBacklashSP;
-        //    enum
-        //    {
-        //        BACKLASH_ENABLED,
-        //        BACKLASH_DISABLED,
-        //    };
 
         // Temperature
         INumber FocuserTemperatureN[1];
