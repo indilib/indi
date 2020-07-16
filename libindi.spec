@@ -1,7 +1,7 @@
 %global forgeurl https://github.com/indilib/indi/
 
 Name: libindi
-Version: 1.8.5
+Version: 1.8.6
 Release: 1%{?dist}
 Summary: Instrument Neutral Distributed Interface
 
