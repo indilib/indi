@@ -89,7 +89,7 @@ ScopeDome::ScopeDome()
 {
     setVersion(1, 2);
     targetAz         = 0;
-    shutterState     = SHUTTER_UNKNOWN;
+    m_ShutterState     = SHUTTER_UNKNOWN;
     simShutterStatus = SHUTTER_CLOSED;
 
     status        = DOME_UNKNOWN;
@@ -512,11 +512,11 @@ bool ScopeDome::UpdateShutterStatus()
 
     if (getInputState(IN_OPEN1) == ISS_ON) // shutter open switch triggered
     {
-        if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
+        if (m_ShutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
         {
             LOGF_INFO("%s", GetShutterStatusString(SHUTTER_OPENED));
             setOutputState(OUT_OPEN1, ISS_OFF);
-            shutterState = SHUTTER_OPENED;
+            m_ShutterState = SHUTTER_OPENED;
             if (getDomeState() == DOME_UNPARKING)
                 SetParked(false);
         }
@@ -524,11 +524,11 @@ bool ScopeDome::UpdateShutterStatus()
     }
     else if (getInputState(IN_CLOSED1) == ISS_ON) // shutter closed switch triggered
     {
-        if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
+        if (m_ShutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
         {
             LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
             setOutputState(OUT_CLOSE1, ISS_OFF);
-            shutterState = SHUTTER_CLOSED;
+            m_ShutterState = SHUTTER_CLOSED;
 
             if (getDomeState() == DOME_PARKING && DomeAbsPosNP.s != IPS_BUSY)
             {
@@ -539,7 +539,7 @@ bool ScopeDome::UpdateShutterStatus()
     }
     else
     {
-        shutterState    = SHUTTER_MOVING;
+        m_ShutterState    = SHUTTER_MOVING;
         DomeShutterSP.s = IPS_BUSY;
     }
     return true;
@@ -928,7 +928,7 @@ IPState ScopeDome::ControlShutter(ShutterOperation operation)
         setOutputState(OUT_CLOSE1, ISS_ON);
     }
 
-    shutterState = SHUTTER_MOVING;
+    m_ShutterState = SHUTTER_MOVING;
     return IPS_BUSY;
 }
 

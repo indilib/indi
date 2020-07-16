@@ -775,7 +775,7 @@ bool MyFocuserPro2::setBacklashOutEnabled(bool enabled)
 bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":12%02d#", static_cast<int>(enable));
+    snprintf(cmd, ML_RES, ":12%01d#", static_cast<int>(enable));
     return sendCommand(cmd);
 }
 

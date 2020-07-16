@@ -1708,6 +1708,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
 
     AutoCNumeric locale;
+    fits_update_key_str(fptr, "ROWORDER", "TOP-DOWN", "Row Order", &status);
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
 
     // Telescope
