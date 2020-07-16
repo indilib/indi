@@ -70,7 +70,7 @@ void ISSnoopDevice(XMLEle *root)
 
 DomePro2::DomePro2()
 {
-    shutterState     = SHUTTER_UNKNOWN;
+    m_ShutterState     = SHUTTER_UNKNOWN;
 
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER |
                       DOME_HAS_VARIABLE_SPEED);

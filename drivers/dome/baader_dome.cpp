@@ -84,7 +84,7 @@ void ISSnoopDevice(XMLEle *root)
 BaaderDome::BaaderDome()
 {
     targetAz         = 0;
-    shutterState     = SHUTTER_UNKNOWN;
+    m_ShutterState     = SHUTTER_UNKNOWN;
     flapStatus       = FLAP_UNKNOWN;
     simShutterStatus = SHUTTER_CLOSED;
     simFlapStatus    = FLAP_CLOSED;
@@ -393,28 +393,28 @@ bool BaaderDome::UpdateShutterStatus()
 
         if (strcmp(status, "ope") == 0)
         {
-            if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
+            if (m_ShutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
                 LOGF_INFO("%s", GetShutterStatusString(SHUTTER_OPENED));
 
-            shutterState                 = SHUTTER_OPENED;
+            m_ShutterState                 = SHUTTER_OPENED;
             DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
         }
         else if (strcmp(status, "clo") == 0)
         {
-            if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
+            if (m_ShutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
                 LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
 
-            shutterState                  = SHUTTER_CLOSED;
+            m_ShutterState                  = SHUTTER_CLOSED;
             DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
         }
         else if (strcmp(status, "run") == 0)
         {
-            shutterState    = SHUTTER_MOVING;
+            m_ShutterState    = SHUTTER_MOVING;
             DomeShutterSP.s = IPS_BUSY;
         }
         else
         {
-            shutterState    = SHUTTER_UNKNOWN;
+            m_ShutterState    = SHUTTER_UNKNOWN;
             DomeShutterSP.s = IPS_ALERT;
             LOGF_ERROR("Unknown Shutter status: %s.", resp);
         }
@@ -801,7 +801,7 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
 
     if (strcmp(resp, "d#gotmess") == 0)
     {
-        shutterState = simShutterStatus = SHUTTER_MOVING;
+        m_ShutterState = simShutterStatus = SHUTTER_MOVING;
         return IPS_BUSY;
     }
     return IPS_ALERT;
