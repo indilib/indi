@@ -12,7 +12,7 @@ License: LGPLv2+ and GPLv2+
 
 URL: http://www.indilib.org
 Source0: %{forgesource} 
-# Patch0:        libindi-uaccess.patch
+Patch0:        libindi-uaccess.patch
 # https://github.com/indilib/indi/issues/1090
 
 BuildRequires: cmake
