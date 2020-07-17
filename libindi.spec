@@ -1,6 +1,6 @@
 %global forgeurl https://github.com/xsnrg/indi/
 
-Name: libindi
+Name: libindi-git
 Version: 1.8.6
 Release: 1%{?dist}
 Summary: Instrument Neutral Distributed Interface
@@ -12,8 +12,6 @@ License: LGPLv2+ and GPLv2+
 
 URL: http://www.indilib.org
 Source0: %{forgesource} 
-#Patch0:        libindi-uaccess.patch
-# https://github.com/indilib/indi/issues/1090
 
 BuildRequires: cmake
 BuildRequires: libfli-devel
@@ -63,7 +61,6 @@ Static library needed to develop a %{name} application
 
 %prep
 %forgesetup
-#%patch0 -p1
 # For Fedora we want to put udev rules in %{_udevrulesdir}
 sed -i 's|/lib/udev/rules.d|%{_udevrulesdir}|g' CMakeLists.txt
 chmod -x drivers/telescope/pmc8driver.h
