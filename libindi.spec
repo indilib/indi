@@ -1,6 +1,6 @@
 %global forgeurl https://github.com/xsnrg/indi/
 
-Name: indi
+Name: libindi
 Version: 1.8.6.git
 Release: 1%{?dist}
 Summary: Instrument Neutral Distributed Interface
