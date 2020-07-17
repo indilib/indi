@@ -386,7 +386,7 @@ class Telescope : public DefaultDevice
 
         /**
          * @brief isLocked is mount currently locked?
-         * @return true if lock status equals true and DomeClosedLockTP is Dome Locks.
+         * @return true if lock status equals true and Dome Policy is Dome Locks.
          */
         bool isLocked() const;
 
@@ -749,9 +749,9 @@ class Telescope : public DefaultDevice
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[2] {};
 
-        // Switch to lock if dome is closed, and or force parking if dome parks
+        // Switch to lock if dome is closed.
         ISwitchVectorProperty DomePolicySP;
-        ISwitch DomePolicyS[4];
+        ISwitch DomePolicyS[2];
 
         // Switch for choosing between motion control by 4-way joystick or two seperate axes
         ISwitchVectorProperty MotionControlModeTP;
