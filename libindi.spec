@@ -1,6 +1,6 @@
 %global forgeurl https://github.com/xsnrg/indi/
 
-Name: indi
+Name: libindi
 Version: 1.8.6.git
 Release: 1%{?dist}
 Summary: Instrument Neutral Distributed Interface
@@ -59,7 +59,7 @@ Requires: %{name}-libs%{?_isa} = %{version}-%{release}
 %description static
 Static library needed to develop a %{name} application
 
-%prep
+%prep -n libindi-%{version}
 %forgesetup
 # For Fedora we want to put udev rules in %{_udevrulesdir}
 sed -i 's|/lib/udev/rules.d|%{_udevrulesdir}|g' CMakeLists.txt
