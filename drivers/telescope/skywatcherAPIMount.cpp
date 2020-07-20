@@ -73,7 +73,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    INDI_UNUSED(root);
+    SkywatcherAPIMountPtr->ISSnoopDevice(root);
 }
 
 SkywatcherAPIMount::SkywatcherAPIMount()
@@ -1295,13 +1295,13 @@ void SkywatcherAPIMount::TimerHit()
             }
 
             if (moving) 
-			{
+            {
                 TrackedAltAz  = CurrentAltAz;
                 CurrentTrackingTarget.ra = EqN[AXIS_RA].value;
                 CurrentTrackingTarget.dec = EqN[AXIS_DE].value;
             } 
-			else 
-			{
+            else
+            {
                 // Restart the drift compensation after syncing
                 if (ResetTrackingSeconds)
                 {
@@ -1738,7 +1738,8 @@ void SkywatcherAPIMount::ConvertGuideCorrection(double delta_ra, double delta_de
     delta_az = NewAltAz.az - OldAltAz.az;
 }
 
-int SkywatcherAPIMount::recover_tty_reconnect() {
+int SkywatcherAPIMount::recover_tty_reconnect()
+{
     if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
     {
         RecoverAfterReconnection = true;
