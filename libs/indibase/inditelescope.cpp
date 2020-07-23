@@ -272,9 +272,11 @@ void Telescope::ISGetProperties(const char *dev)
         loadConfig(true, "ACTIVE_DEVICES");
 
         ISState isDomeIgnored = ISS_OFF;
-        IUGetConfigSwitch(getDeviceName(), DomePolicySP.name, DomePolicyS[DOME_IGNORED].name, &isDomeIgnored);
-        DomePolicyS[DOME_IGNORED].s = isDomeIgnored;
-        DomePolicyS[DOME_LOCKS].s = (isDomeIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
+        if (IUGetConfigSwitch(getDeviceName(), DomePolicySP.name, DomePolicyS[DOME_IGNORED].name, &isDomeIgnored) == 0)
+        {
+            DomePolicyS[DOME_IGNORED].s = isDomeIgnored;
+            DomePolicyS[DOME_LOCKS].s = (isDomeIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
+        }
         defineSwitch(&DomePolicySP);
     }
 

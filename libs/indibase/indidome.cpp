@@ -253,9 +253,11 @@ void Dome::ISGetProperties(const char * dev)
     loadConfig(true, "ACTIVE_DEVICES");
 
     ISState isMountIgnored = ISS_OFF;
-    IUGetConfigSwitch(getDeviceName(), MountPolicySP.name, MountPolicyS[MOUNT_IGNORED].name, &isMountIgnored);
-    MountPolicyS[MOUNT_IGNORED].s = isMountIgnored;
-    MountPolicyS[MOUNT_LOCKS].s = (isMountIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
+    if (IUGetConfigSwitch(getDeviceName(), MountPolicySP.name, MountPolicyS[MOUNT_IGNORED].name, &isMountIgnored) == 0)
+    {
+        MountPolicyS[MOUNT_IGNORED].s = isMountIgnored;
+        MountPolicyS[MOUNT_LOCKS].s = (isMountIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
+    }
     defineSwitch(&MountPolicySP);
 
     controller->ISGetProperties(dev);
