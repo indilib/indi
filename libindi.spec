@@ -1,7 +1,10 @@
 %global forgeurl https://github.com/xsnrg/indi/
 
+%global commit d50a1870cbad2aef74eae48db6bdfdbbfb2939d8
+%global shortcommit %(c=%{commit}; echo ${c:0:7})
+
 Name: indi
-Version: 1.8.6.git
+Version: 1.8.6.git%{shortcommit}
 Release: 1%{?dist}
 Summary: Instrument Neutral Distributed Interface
 
