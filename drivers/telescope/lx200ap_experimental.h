@@ -98,7 +98,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
 
     void handleGTOCP2MotionBug();
     
-    ISwitch StartUpS[2];
+    ISwitch StartUpS[1];
     ISwitchVectorProperty StartUpSP;
 
     INumber HourangleCoordsN[2];
@@ -135,7 +135,6 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     ITextVectorProperty VersionInfo;
 
   private:
-    bool setBasicData();
 #ifdef no
     bool initMount();
 #endif
@@ -151,7 +150,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     bool calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz);
     void disclaimerMessage(void);
 
-    bool timeUpdated=false, locationUpdated=false;
+    //bool timeUpdated=false, locationUpdated=false;
     ControllerVersion firmwareVersion = MCV_UNKNOWN;
     ServoVersion servoType = GTOCP_UNKNOWN;
 
