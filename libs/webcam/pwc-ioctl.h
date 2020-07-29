@@ -51,7 +51,13 @@
 
 #pragma once
 
+#ifndef __FreeBSD__
 #include <linux/types.h>
+#else
+#include <stdint.h>
+typedef uint16_t __le16;
+typedef uint8_t __u8;
+#endif
 
 /* Enumeration of image sizes */
 #define PSZ_SQCIF 0x00

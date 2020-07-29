@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include "detector_simulator.h"
+#include "spectrograph_simulator.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -55,16 +55,9 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
+               char *names[], int num)
 {
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
+    receiver->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
 }
 
 void ISSnoopDevice(XMLEle *root)
@@ -88,13 +81,15 @@ RadioSim::~RadioSim()
 ***************************************************************************************/
 bool RadioSim::Connect()
 {
-    LOG_INFO("Simulator Detector connected successfully!");
-    // Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
+    LOG_INFO("Simulator Spectrograph connected successfully!");
+    // Let's set a timer that checks teleSpectrographs status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
     //SetTimer(POLLMS);
+
     streamPredicate = 0;
     terminateThread = false;
-    pthread_create(&primary_thread, nullptr, &streamCaptureHelper, this);
+    // Run threads
+    std::thread(&RadioSim::streamCaptureHelper, this).detach();
     SetTimer(POLLMS);
 
     return true;
@@ -105,15 +100,14 @@ bool RadioSim::Connect()
 ***************************************************************************************/
 bool RadioSim::Disconnect()
 {
-    InCapture = false;
-    PrimaryDetector.setContinuumBufferSize(1);
-    PrimaryDetector.setSpectrumBufferSize(1);
+    InIntegration = false;
+    setBufferSize(1);
     pthread_mutex_lock(&condMutex);
     streamPredicate = 1;
     terminateThread = true;
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&condMutex);
-    LOG_INFO("Simulator Detector disconnected successfully!");
+    LOG_INFO("Simulator Spectrograph disconnected successfully!");
     return true;
 }
 
@@ -122,7 +116,7 @@ bool RadioSim::Disconnect()
 ***************************************************************************************/
 const char *RadioSim::getDefaultName()
 {
-    return "Detector Simulator";
+    return "Spectrograph Simulator";
 }
 
 /**************************************************************************************
@@ -130,20 +124,20 @@ const char *RadioSim::getDefaultName()
 ***************************************************************************************/
 bool RadioSim::initProperties()
 {
-    // We set the Detector capabilities
-    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM | DETECTOR_HAS_STREAMING;
-    SetDetectorCapability(cap);
+    // We set the Spectrograph capabilities
+    uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_STREAMING | SENSOR_HAS_DSP;
+    SetCapability(cap);
 
     // Must init parent properties first!
-    INDI::Detector::initProperties();
+    INDI::Spectrograph::initProperties();
 
-    PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.001, 86164.092, 0.001, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1.0e+6, 2.0e+6, 1, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_GAIN", 0.0, 25.0, 0.1, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BANDWIDTH", 0, 0, 0, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 16, 16, 0, false);
-    PrimaryDetector.setCaptureExtension("fits");
+    setMinMaxStep("SENSOR_INTEGRATION", "SENSOR_INTEGRATION_VALUE", 0.001, 86164.092, 0.001, false);
+    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
+    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_SAMPLERATE", 1.0e+6, 2.0e+6, 1, false);
+    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_GAIN", 0.0, 25.0, 0.1, false);
+    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_BANDWIDTH", 0, 0, 0, false);
+    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_BITSPERSAMPLE", 16, 16, 0, false);
+    setIntegrationFileExtension("fits");
 
     // Add Debug, Simulator, and Configuration controls
     addAuxControls();
@@ -158,52 +152,70 @@ bool RadioSim::initProperties()
 *********************************************************************************************/
 bool RadioSim::updateProperties()
 {
-    // Call parent update properties first
-    INDI::Detector::updateProperties();
-
     if (isConnected())
     {
-        // Let's get parameters now from Detector
-        setupParams();
+        // Inital values
+        setupParams(1000000, 1420000000, 10000, 10);
 
         // Start the timer
         SetTimer(POLLMS);
     }
 
-    return true;
+    return INDI::Spectrograph::updateProperties();
 }
 
 /**************************************************************************************
-** Setting up Detector parameters
+** Setting up Spectrograph parameters
 ***************************************************************************************/
-void RadioSim::setupParams()
+void RadioSim::setupParams(float sr, float freq, float bw, float gain)
 {
-    // Our Detector is an 8 bit Detector, 100MHz frequency 1MHz bandwidth.
-    SetDetectorParams(1000000.0, 100000000.0, 16, 0.0, 25.0);
+    // Our Spectrograph is an 8 bit Spectrograph, 100MHz frequency 1MHz bandwidth.
+    setFrequency(freq);
+    setSampleRate(sr);
+    setBPS(16);
+    setBandwidth(bw);
+    setGain(gain);
+}
+
+bool RadioSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    bool r = false;
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, SpectrographSettingsNP.name)) {
+        for(int i = 0; i < n; i++) {
+            if (!strcmp(names[i], "SPECTROGRAPH_GAIN")) {
+                setupParams(getSampleRate(), getFrequency(), getBandwidth(), values[i]);
+            } else if (!strcmp(names[i], "SPECTROGRAPH_BANDWIDTH")) {
+                setupParams(getSampleRate(), getFrequency(), values[i], getGain());
+            } else if (!strcmp(names[i], "SPECTROGRAPH_FREQUENCY")) {
+                setupParams(getSampleRate(), values[i], getBandwidth(), getGain());
+            } else if (!strcmp(names[i], "SPECTROGRAPH_SAMPLERATE")) {
+                setupParams(values[i], getFrequency(), getBandwidth(), getGain());
+            }
+        }
+        IDSetNumber(&SpectrographSettingsNP, nullptr);
+    }
+    return processNumber(dev, name, values, names, n) & !r;
 }
 
 /**************************************************************************************
 ** Client is asking us to start an exposure
 ***************************************************************************************/
-bool RadioSim::StartCapture(float duration)
+bool RadioSim::StartIntegration(double duration)
 {
-    CaptureRequest = duration;
-    AbortCapture();
+    IntegrationRequest = duration;
+    AbortIntegration();
 
-    // Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
-    PrimaryDetector.setCaptureDuration(duration);
-    int to_read = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration() * abs(PrimaryDetector.getBPS()) / 8;
+    // Since we have only have one Spectrograph with one chip, we set the exposure duration of the primary Spectrograph
+    setIntegrationTime(duration);
+    int to_read = getSampleRate() * getIntegrationTime() * abs(getBPS()) / 8;
 
-    PrimaryDetector.setContinuumBufferSize(to_read);
-    if(HasSpectrum()) {
-        PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE * abs(PrimaryDetector.getBPS()) / 8);
-    }
-    InCapture = true;
+    setBufferSize(to_read);
+    InIntegration = true;
 
     gettimeofday(&CapStart, nullptr);
     if(HasStreaming()) {
-        Streamer->setPixelFormat(INDI_MONO, PrimaryDetector.getBPS());
-        Streamer->setSize(PrimaryDetector.getContinuumBufferSize() * 8 / abs(PrimaryDetector.getBPS()), 1);
+        Streamer->setPixelFormat(INDI_MONO, getBPS());
+        Streamer->setSize(getBufferSize() * 8 / abs(getBPS()), 1);
     }
 
     // We're done
@@ -211,28 +223,12 @@ bool RadioSim::StartCapture(float duration)
 }
 
 /**************************************************************************************
-** Client is updating capture settings
-***************************************************************************************/
-bool RadioSim::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
-{
-    INDI_UNUSED(gain);
-    INDI_UNUSED(freq);
-    INDI_UNUSED(bps);
-    INDI_UNUSED(bw);
-    PrimaryDetector.setBPS(16);
-    PrimaryDetector.setBandwidth(100000);
-    PrimaryDetector.setSampleRate(sr);
-
-    return true;
-}
-
-/**************************************************************************************
 ** Client is asking us to abort a capture
 ***************************************************************************************/
-bool RadioSim::AbortCapture()
+bool RadioSim::AbortIntegration()
 {
-    if(InCapture) {
-        InCapture = false;
+    if(InIntegration) {
+        InIntegration = false;
     }
     return true;
 }
@@ -251,7 +247,7 @@ float RadioSim::CalcTimeLeft()
                 (double)(CapStart.tv_sec * 1000.0 + CapStart.tv_usec / 1000);
     timesince = timesince / 1000;
 
-    timeleft = CaptureRequest - timesince;
+    timeleft = IntegrationRequest - timesince;
     return timeleft;
 }
 
@@ -265,19 +261,19 @@ void RadioSim::TimerHit()
     if (isConnected() == false)
         return; //  No need to reset timer if we are not connected anymore
 
-    if (InCapture)
+    if (InIntegration)
     {
         timeleft = CalcTimeLeft();
         if(timeleft <= 0.0)
         {
             /* We're done capturing */
-            LOG_INFO("Capture done, expecting data...");
+            LOG_INFO("Integration done, expecting data...");
             timeleft = 0.0;
             grabData();
         }
 
-        // This is an over simplified timing method, check DetectorSimulator and RadioSimDetector for better timing checks
-        PrimaryDetector.setCaptureLeft(timeleft);
+        // This is an over simplified timing method, check SpectrographSimulator and RadioSimSpectrograph for better timing checks
+        setIntegrationLeft(timeleft);
     }
 
     SetTimer(POLLMS);
@@ -289,28 +285,21 @@ void RadioSim::TimerHit()
 ***************************************************************************************/
 void RadioSim::grabData()
 {
-    if(InCapture) {
+    if(InIntegration) {
 
         LOG_INFO("Downloading...");
-        InCapture = false;
+        InIntegration = false;
 
         uint8_t* continuum;
-        int size = PrimaryDetector.getContinuumBufferSize() * 8 / abs(PrimaryDetector.getBPS());
+        int size = getBufferSize();
 
         //Fill the continuum
-        if(HasContinuum()) {
-            continuum = PrimaryDetector.getContinuumBuffer();
-            WhiteNoise(continuum, size, PrimaryDetector.getBPS());
-
-            //Create the spectrum
-            if(HasSpectrum()) {
-                uint8_t* spectrum = PrimaryDetector.getSpectrumBuffer();
-                Spectrum(continuum, spectrum, size, SPECTRUM_SIZE, PrimaryDetector.getBPS());
-            }
-        }
+        continuum = getBuffer();
+        for(int i = 0; i < size; i++)
+            continuum[i] = rand() % 255;
 
         LOG_INFO("Download complete.");
-        CaptureComplete(&PrimaryDetector);
+        IntegrationComplete();
     }
 }
 
@@ -336,15 +325,13 @@ bool RadioSim::StopStreaming()
     return true;
 }
 
-void * RadioSim::streamCaptureHelper(void * context)
-{
-    return ((RadioSim *)context)->streamCapture();
-}
-
-void * RadioSim::streamCapture()
+void RadioSim::streamCaptureHelper()
 {
     struct itimerval tframe1, tframe2;
-    double s1, s2, deltas;
+    double deltas;
+    getitimer(ITIMER_REAL, &tframe1);
+    auto s1 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
+    auto s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
 
     while (true)
     {
@@ -353,8 +340,8 @@ void * RadioSim::streamCapture()
         while (streamPredicate == 0)
         {
             pthread_cond_wait(&cv, &condMutex);
-            StartCapture(1.0 / Streamer->getTargetFPS());
         }
+        StartIntegration(1.0 / Streamer->getTargetFPS());
 
         if (terminateThread)
             break;
@@ -367,19 +354,19 @@ void * RadioSim::streamCapture()
         grabData();
         getitimer(ITIMER_REAL, &tframe1);
 
-        s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
         s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
         deltas = fabs(s2 - s1);
 
-        if (deltas < CaptureTime)
-            usleep(fabs(CaptureTime - deltas) * 1e6);
+        if (deltas < IntegrationTime)
+            usleep(fabs(IntegrationTime - deltas) * 1e6);
 
-        uint32_t size = PrimaryDetector.getContinuumBufferSize();
-        Streamer->newFrame(PrimaryDetector.getContinuumBuffer(), size);
+        int32_t size = getBufferSize();
+        Streamer->newFrame(getBuffer(), size);
+
+        s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
 
         getitimer(ITIMER_REAL, &tframe2);
     }
 
     pthread_mutex_unlock(&condMutex);
-    return nullptr;
 }

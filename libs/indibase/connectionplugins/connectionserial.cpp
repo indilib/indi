@@ -48,8 +48,8 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
     IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, IP_RW, 60,
                      IPS_IDLE);
 
-    IUFillSwitch(&AutoSearchS[0], "ENABLED", "Enabled", ISS_ON);
-    IUFillSwitch(&AutoSearchS[1], "DISABLED", "Disabled", ISS_OFF);
+    IUFillSwitch(&AutoSearchS[INDI::DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_ON);
+    IUFillSwitch(&AutoSearchS[INDI::DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_OFF);
     IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(), INDI::SP::DEVICE_AUTO_SEARCH, "Auto Search",
                        CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -355,11 +355,13 @@ int dev_file_select(const dirent *entry)
 
 bool Serial::Refresh(bool silent)
 {
-    if (SystemPortS)
-        m_Device->deleteProperty(SystemPortSP.name);
+    std::vector<std::string> m_CurrentPorts;
+    if (SystemPortS && SystemPortSP.nsp > 0)
+    {
+        for (uint8_t i = 0; i < SystemPortSP.nsp; i++)
+            m_CurrentPorts.push_back(SystemPortS[i].name);
+    }
 
-    delete[] SystemPortS;
-    SystemPortS = nullptr;
     std::vector<std::string> m_Ports;
 
     struct dirent **namelist;
@@ -402,6 +404,15 @@ bool Serial::Refresh(bool silent)
         if (!silent)
             LOGF_INFO("Scan complete. Found %d port(s).", pCount);
     }
+
+    // Check if anything changed. If not we return.
+    if (m_Ports == m_CurrentPorts)
+        return true;
+
+    if (SystemPortS)
+        m_Device->deleteProperty(SystemPortSP.name);
+
+    delete[] SystemPortS;
 
     SystemPortS = new ISwitch[pCount];
     ISwitch *sp = SystemPortS;

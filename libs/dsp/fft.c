@@ -1,4 +1,4 @@
-/*
+﻿/*
  *   libDSPAU - a digital signal processing library for astronomy usage
  *   Copyright (C) 2017  Ilia Platone <info@iliaplatone.com>
  *
@@ -57,11 +57,11 @@ dsp_complex* dsp_fourier_dft(dsp_stream_p stream)
 {
     dsp_complex* dft = (dsp_complex*)malloc(sizeof(dsp_complex) * stream->len);
     dsp_complex* out = (dsp_complex*)malloc(sizeof(dsp_complex) * stream->len);
-    fftw_plan plan = fftw_plan_dft(stream->dims, stream->sizes, (fftw_complex*)dft, (fftw_complex*)out, -1, FFTW_ESTIMATE);
     for (int x=0; x<stream->len; x++) {
         dft[x].real = stream->buf[x];
         dft[x].imaginary = 0;
     }
+    fftw_plan plan = fftw_plan_dft(stream->dims, stream->sizes, (fftw_complex*)dft, (fftw_complex*)out, FFTW_FORWARD, FFTW_MEASURE);
     fftw_execute(plan);
     fftw_free(plan);
     free(dft);
@@ -70,28 +70,20 @@ dsp_complex* dsp_fourier_dft(dsp_stream_p stream)
 
 void dsp_fourier_dft_magnitude(dsp_stream_p stream)
 {
-    double mn = dsp_stats_min(stream->buf, stream->len);
-    double mx = dsp_stats_min(stream->buf, stream->len);
-    (void)mn;
-    (void)mx;
     dsp_complex* dft = dsp_fourier_dft(stream);
     double* mag = dsp_fourier_complex_array_get_magnitude(dft, stream->len);
-    dsp_buffer_stretch(mag, stream->len, mn, mx);
     free(dft);
     dsp_buffer_copy(mag, stream->buf, stream->len);
+    dsp_buffer_shift(stream);
     free(mag);
 }
 
 void dsp_fourier_dft_phase(dsp_stream_p stream)
 {
-    double mn = dsp_stats_min(stream->buf, stream->len);
-    double mx = dsp_stats_min(stream->buf, stream->len);
-    (void)mn;
-    (void)mx;
     dsp_complex* dft = dsp_fourier_dft(stream);
     double* phi = dsp_fourier_complex_array_get_phase(dft, stream->len);
-    dsp_buffer_stretch(phi, stream->len, mn, mx);
     free(dft);
     dsp_buffer_copy(phi, stream->buf, stream->len);
+    dsp_buffer_shift(stream);
     free(phi);
 }

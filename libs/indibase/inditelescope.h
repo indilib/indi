@@ -132,6 +132,13 @@ class Telescope : public DefaultDevice
             PEC_ON      = 1
         };
 
+        /*! Dome Locking Policy */
+        enum DomeLockingPolicy
+        {
+            DOME_IGNORED,       /*!< Dome is ignored. Mount can park or unpark irrespective of dome parking status. */
+            DOME_LOCKS,         /*!< Dome locks. Mount can only unpark if dome is already unparked. */
+        };
+
         /**
          * \struct TelescopeConnection
          * \brief Holds the connection mode of the telescope.
@@ -149,17 +156,18 @@ class Telescope : public DefaultDevice
          */
         enum
         {
-            TELESCOPE_CAN_GOTO          = 1 << 0, /** Can the telescope go to to specific coordinates? */
-            TELESCOPE_CAN_SYNC          = 1 << 1, /** Can the telescope sync to specific coordinates? */
-            TELESCOPE_CAN_PARK          = 1 << 2, /** Can the telescope park? */
-            TELESCOPE_CAN_ABORT         = 1 << 3, /** Can the telescope abort motion? */
-            TELESCOPE_HAS_TIME          = 1 << 4, /** Does the telescope have configurable date and time settings? */
-            TELESCOPE_HAS_LOCATION      = 1 << 5, /** Does the telescope have configuration location settings? */
-            TELESCOPE_HAS_PIER_SIDE     = 1 << 6, /** Does the telescope have pier side property? */
-            TELESCOPE_HAS_PEC           = 1 << 7,  /** Does the telescope have PEC playback? */
-            TELESCOPE_HAS_TRACK_MODE    = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
-            TELESCOPE_CAN_CONTROL_TRACK = 1 << 9,  /** Can the telescope engage and disengage tracking? */
-            TELESCOPE_HAS_TRACK_RATE    = 1 << 10,  /** Does the telescope have custom track rates? */
+            TELESCOPE_CAN_GOTO                    = 1 << 0,  /** Can the telescope go to to specific coordinates? */
+            TELESCOPE_CAN_SYNC                    = 1 << 1,  /** Can the telescope sync to specific coordinates? */
+            TELESCOPE_CAN_PARK                    = 1 << 2,  /** Can the telescope park? */
+            TELESCOPE_CAN_ABORT                   = 1 << 3,  /** Can the telescope abort motion? */
+            TELESCOPE_HAS_TIME                    = 1 << 4,  /** Does the telescope have configurable date and time settings? */
+            TELESCOPE_HAS_LOCATION                = 1 << 5,  /** Does the telescope have configuration location settings? */
+            TELESCOPE_HAS_PIER_SIDE               = 1 << 6,  /** Does the telescope have pier side property? */
+            TELESCOPE_HAS_PEC                     = 1 << 7,  /** Does the telescope have PEC playback? */
+            TELESCOPE_HAS_TRACK_MODE              = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
+            TELESCOPE_CAN_CONTROL_TRACK           = 1 << 9,  /** Can the telescope engage and disengage tracking? */
+            TELESCOPE_HAS_TRACK_RATE              = 1 << 10, /** Does the telescope have custom track rates? */
+            TELESCOPE_HAS_PIER_SIDE_SIMULATION     = 1 << 11, /** Does the telescope simulate the pier side property? */
         } TelescopeCapability;
 
         Telescope();
@@ -253,6 +261,13 @@ class Telescope : public DefaultDevice
             return capability & TELESCOPE_HAS_PIER_SIDE;
         }
 
+        /**
+         * @return True if telescope simulates pier side property
+         */
+        bool HasPierSideSimulation()
+        {
+            return capability & TELESCOPE_HAS_PIER_SIDE_SIMULATION;
+        }
         /**
          * @return True if telescope supports PEC playback property
          */
@@ -371,8 +386,7 @@ class Telescope : public DefaultDevice
 
         /**
          * @brief isLocked is mount currently locked?
-         * @return true if lock status equals true and DomeClosedLockTP is Dome Locks or Dome Locks and
-         * Dome Parks (both).
+         * @return true if lock status equals true and Dome Policy is Dome Locks.
          */
         bool isLocked() const;
 
@@ -547,6 +561,17 @@ class Telescope : public DefaultDevice
         virtual bool updateLocation(double latitude, double longitude, double elevation);
 
         /**
+         * \brief Update location settings of the observer
+         * \param latitude Site latitude in degrees.
+         * \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
+         * \param elevation Site elevation in meters.
+         * \return True if successful, false otherwise
+         * \note If not implemented by the child class, this function by default returns false with a
+         * warning message.
+         */
+        void updateObserverLocation(double latitude, double longitude, double elevation);
+
+        /**
          * \brief SetParkPosition Set desired parking position to the supplied value. This ONLY sets the
          * desired park position value and does not perform parking.
          * \param Axis1Value First axis value
@@ -597,6 +622,17 @@ class Telescope : public DefaultDevice
         void processAxis(const char *axis_n, double value);
         void processSlewPresets(double mag, double angle);
         void processButton(const char *button_n, ISState state);
+
+        /**
+         * @brief Calculate the expected pier side for scopes that do not report
+         * this property themselves.
+         */
+        TelescopePierSide expectedPierSide(double ra);
+
+        // helper functions
+        double getAzimuth(double r, double d);
+
+        ln_lnlat_posn lnobserver { 0, 0 };
 
         /**
          * @brief Load scope settings from XML files.
@@ -713,9 +749,9 @@ class Telescope : public DefaultDevice
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[2] {};
 
-        // Switch to lock if dome is closed, and or force parking if dome parks
-        ISwitchVectorProperty DomeClosedLockTP;
-        ISwitch DomeClosedLockT[4];
+        // Switch to lock if dome is closed.
+        ISwitchVectorProperty DomePolicySP;
+        ISwitch DomePolicyS[2];
 
         // Switch for choosing between motion control by 4-way joystick or two seperate axes
         ISwitchVectorProperty MotionControlModeTP;
@@ -734,8 +770,16 @@ class Telescope : public DefaultDevice
         ISwitch PierSideS[2];
         ISwitchVectorProperty PierSideSP;
 
+        // Pier Side Simulation
+        ISwitchVectorProperty SimulatePierSideSP;
+        ISwitch SimulatePierSideS[2];
+        bool getSimulatePierSide() const;
+        void setSimulatePierSide(bool value);
+
         // Pier Side
         TelescopePierSide lastPierSide, currentPierSide;
+
+        const char * getPierSideStr(TelescopePierSide ps);
 
         // PEC State
         ISwitch PECStateS[2];
@@ -836,6 +880,8 @@ class Telescope : public DefaultDevice
 
         float motionDirNSValue {0};
         float motionDirWEValue {0};
+
+        bool m_simulatePierSide;    // use setSimulatePierSide and getSimulatePierSide for public access
 };
 
 }

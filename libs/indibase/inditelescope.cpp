@@ -23,6 +23,9 @@
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 
+#include <libnova/sidereal_time.h>
+#include <libnova/transform.h>
+
 #include <cmath>
 #include <cerrno>
 #include <pwd.h>
@@ -71,12 +74,12 @@ bool Telescope::initProperties()
                      IP_RW, 60, IPS_IDLE);
 
     // Use locking if dome is closed (and or) park scope if dome is closing
-    IUFillSwitch(&DomeClosedLockT[0], "NO_ACTION", "Ignore dome", ISS_ON);
-    IUFillSwitch(&DomeClosedLockT[1], "LOCK_PARKING", "Dome locks", ISS_OFF);
-    IUFillSwitch(&DomeClosedLockT[2], "FORCE_CLOSE", "Dome parks", ISS_OFF);
-    IUFillSwitch(&DomeClosedLockT[3], "LOCK_AND_FORCE", "Both", ISS_OFF);
-    IUFillSwitchVector(&DomeClosedLockTP, DomeClosedLockT, 4, getDeviceName(), "DOME_POLICY", "Dome parking policy",
-                       OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitch(&DomePolicyS[DOME_IGNORED], "DOME_IGNORED", "Dome ignored", ISS_ON);
+    IUFillSwitch(&DomePolicyS[DOME_LOCKS], "DOME_LOCKS", "Dome locks", ISS_OFF);
+    //    IUFillSwitch(&DomeClosedLockT[2], "FORCE_CLOSE", "Dome parks", ISS_OFF);
+    //    IUFillSwitch(&DomeClosedLockT[3], "LOCK_AND_FORCE", "Both", ISS_OFF);
+    IUFillSwitchVector(&DomePolicySP, DomePolicyS, 2, getDeviceName(), "DOME_POLICY", "Dome Policy",  OPTIONS_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&EqN[AXIS_RA], "RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[AXIS_DE], "DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
@@ -111,6 +114,13 @@ bool Telescope::initProperties()
     IUFillSwitch(&PierSideS[PIER_EAST], "PIER_EAST", "East (pointing west)", ISS_OFF);
     IUFillSwitchVector(&PierSideSP, PierSideS, 2, getDeviceName(), "TELESCOPE_PIER_SIDE", "Pier Side", MAIN_CONTROL_TAB,
                        IP_RO, ISR_ATMOST1, 60, IPS_IDLE);
+    // Pier Side Simulation
+    IUFillSwitch(&SimulatePierSideS[0], "SIMULATE_YES", "Yes", ISS_OFF);
+    IUFillSwitch(&SimulatePierSideS[1], "SIMULATE_NO", "No", ISS_ON);
+    IUFillSwitchVector(&SimulatePierSideSP, SimulatePierSideS, 2, getDeviceName(), "SIMULATE_PIER_SIDE", "Simulate Pier Side",
+                       MAIN_CONTROL_TAB,
+                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     // PEC State
     IUFillSwitch(&PECStateS[PEC_OFF], "PEC OFF", "PEC OFF", ISS_OFF);
     IUFillSwitch(&PECStateS[PEC_ON], "PEC ON", "PEC ON", ISS_ON);
@@ -124,11 +134,13 @@ bool Telescope::initProperties()
     // Track State
     IUFillSwitch(&TrackStateS[TRACK_ON], "TRACK_ON", "On", ISS_OFF);
     IUFillSwitch(&TrackStateS[TRACK_OFF], "TRACK_OFF", "Off", ISS_ON);
-    IUFillSwitchVector(&TrackStateSP, TrackStateS, 2, getDeviceName(), "TELESCOPE_TRACK_STATE", "Tracking", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&TrackStateSP, TrackStateS, 2, getDeviceName(), "TELESCOPE_TRACK_STATE", "Tracking", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Track Rate
-    IUFillNumber(&TrackRateN[AXIS_RA], "TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, TRACKRATE_SIDEREAL);
+    IUFillNumber(&TrackRateN[AXIS_RA], "TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001,
+                 TRACKRATE_SIDEREAL);
     IUFillNumber(&TrackRateN[AXIS_DE], "TRACK_RATE_DE", "DE (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 0.0);
     IUFillNumberVector(&TrackRateNP, TrackRateN, 2, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
@@ -158,8 +170,8 @@ bool Telescope::initProperties()
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&ParkS[0], "PARK", "Park", ISS_OFF);
-    IUFillSwitch(&ParkS[1], "UNPARK", "UnPark", ISS_OFF);
+    IUFillSwitch(&ParkS[0], "PARK", "Park(ed)", ISS_OFF);
+    IUFillSwitch(&ParkS[1], "UNPARK", "UnPark(ed)", ISS_OFF);
     IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "TELESCOPE_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -259,8 +271,13 @@ void Telescope::ISGetProperties(const char *dev)
         defineText(&ActiveDeviceTP);
         loadConfig(true, "ACTIVE_DEVICES");
 
-        defineSwitch(&DomeClosedLockTP);
-        loadConfig(true, "DOME_POLICY");
+        ISState isDomeIgnored = ISS_OFF;
+        if (IUGetConfigSwitch(getDeviceName(), DomePolicySP.name, DomePolicyS[DOME_IGNORED].name, &isDomeIgnored) == 0)
+        {
+            DomePolicyS[DOME_IGNORED].s = isDomeIgnored;
+            DomePolicyS[DOME_LOCKS].s = (isDomeIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
+        }
+        defineSwitch(&DomePolicySP);
     }
 
     defineNumber(&ScopeParametersNP);
@@ -275,60 +292,6 @@ void Telescope::ISGetProperties(const char *dev)
         loadConfig(true, "TELESCOPE_INFO");
         loadConfig(true, "SCOPE_CONFIG_NAME");
     }
-
-    /*
-    if (isConnected())
-    {
-        //  Now we add our telescope specific stuff
-
-        if (CanGOTO())
-            defineSwitch(&CoordSP);
-        defineNumber(&EqNP);
-        if (CanAbort())
-            defineSwitch(&AbortSP);
-        if (HasTrackMode() && TrackModeS != nullptr)
-            defineSwitch(&TrackModeSP);
-        if (CanControlTrack())
-            defineSwitch(&TrackStateSP);
-        if (HasTrackRate())
-            defineNumber(&TrackRateNP);
-
-
-        if (HasTime())
-            defineText(&TimeTP);
-        if (HasLocation())
-            defineNumber(&LocationNP);
-
-        if (CanPark())
-        {
-            defineSwitch(&ParkSP);
-            if (parkDataType != PARK_NONE)
-            {
-                defineNumber(&ParkPositionNP);
-                defineSwitch(&ParkOptionSP);
-            }
-        }
-
-        if (CanGOTO())
-        {
-            defineSwitch(&MovementNSSP);
-            defineSwitch(&MovementWESP);
-
-            if (nSlewRate >= 4)
-                defineSwitch(&SlewRateSP);
-
-            defineNumber(&TargetNP);
-        }
-
-        if (HasPierSide())
-            defineSwitch(&PierSideSP);
-
-        if (HasPECState())
-            defineSwitch(&PECStateSP);
-
-        defineSwitch(&ScopeConfigsSP);
-    }
-    */
 
     if (CanGOTO())
         controller->ISGetProperties(dev);
@@ -398,6 +361,14 @@ bool Telescope::updateProperties()
         if (HasPierSide())
             defineSwitch(&PierSideSP);
 
+        if (HasPierSideSimulation())
+        {
+            defineSwitch(&SimulatePierSideSP);
+            ISState value;
+            if (IUGetConfigSwitch(getDefaultName(), "SIMULATE_PIER_SIDE", "SIMULATE_YES", &value) )
+                setSimulatePierSide(value == ISS_ON);
+        }
+
         if (HasPECState())
             defineSwitch(&PECStateSP);
 
@@ -444,6 +415,13 @@ bool Telescope::updateProperties()
 
         if (HasPierSide())
             deleteProperty(PierSideSP.name);
+
+        if (HasPierSideSimulation())
+        {
+            deleteProperty(SimulatePierSideSP.name);
+            if (getSimulatePierSide() == true)
+                deleteProperty(PierSideSP.name);
+        }
 
         if (HasPECState())
             deleteProperty(PECStateSP.name);
@@ -536,8 +514,11 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
 
             return processTimeInfo(utc, offset);
         }
-        else if (!strcmp(propName, "DOME_PARK") || !strcmp(propName, "DOME_SHUTTER"))
+        else if (!strcmp(propName, "DOME_PARK")/* || !strcmp(propName, "DOME_SHUTTER")*/)
         {
+            // This is handled by Watchdog driver.
+            // Mount shouldn't park due to dome closing in INDI::Telescope
+#if 0
             if (strcmp(findXMLAttValu(root, "state"), "Ok"))
             {
                 // Dome options is dome parks or both and dome is parking.
@@ -556,22 +537,23 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
                     }
                 }
             } // Dome is changing state and Dome options is lock or both. d
-            else if (!strcmp(findXMLAttValu(root, "state"), "Ok"))
-            {
-                bool prevState = IsLocked;
-                for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+            else
+#endif
+                if (!strcmp(findXMLAttValu(root, "state"), "Ok"))
                 {
-                    const char *elemName = findXMLAttValu(ep, "name");
+                    bool prevState = IsLocked;
+                    for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+                    {
+                        const char *elemName = findXMLAttValu(ep, "name");
 
-                    if (!IsLocked && (!strcmp(elemName, "PARK")) && !strcmp(pcdataXMLEle(ep), "On"))
-                        IsLocked = true;
-                    else if (IsLocked && (!strcmp(elemName, "UNPARK")) && !strcmp(pcdataXMLEle(ep), "On"))
-                        IsLocked = false;
+                        if (!IsLocked && (!strcmp(elemName, "PARK")) && !strcmp(pcdataXMLEle(ep), "On"))
+                            IsLocked = true;
+                        else if (IsLocked && (!strcmp(elemName, "UNPARK")) && !strcmp(pcdataXMLEle(ep), "On"))
+                            IsLocked = false;
+                    }
+                    if (prevState != IsLocked && (DomePolicyS[DOME_LOCKS].s == ISS_ON))
+                        LOGF_INFO("Dome status changed. Lock is set to: %s", IsLocked ? "locked" : "unlock");
                 }
-                if (prevState != IsLocked && (DomeClosedLockT[1].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON))
-                    LOGF_INFO("Dome status changed. Lock is set to: %s",
-                              IsLocked ? "locked" : "unlock");
-            }
             return true;
         }
     }
@@ -608,9 +590,10 @@ bool Telescope::saveConfigItems(FILE *fp)
     DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigSwitch(fp, &DomeClosedLockTP);
+    IUSaveConfigSwitch(fp, &DomePolicySP);
 
-    if (HasLocation())
+    // Ensure that we only save valid locations
+    if (HasLocation() && (LocationN[LOCATION_LONGITUDE].value != 0 || LocationN[LOCATION_LATITUDE].value != 0))
         IUSaveConfigNumber(fp, &LocationNP);
 
     if (!HasDefaultScopeConfig())
@@ -632,6 +615,7 @@ bool Telescope::saveConfigItems(FILE *fp)
     controller->saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &MotionControlModeTP);
     IUSaveConfigSwitch(fp, &LockAxisSP);
+    IUSaveConfigSwitch(fp, &SimulatePierSideSP);
 
     return true;
 }
@@ -652,9 +636,6 @@ void Telescope::NewRaDec(double ra, double dec)
 
         case SCOPE_TRACKING:
             EqNP.s = IPS_OK;
-            break;
-
-        default:
             break;
     }
 
@@ -940,7 +921,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 // Give warning is tracking sign would cause a reverse in direction
                 if ( (preAxis1 * TrackRateN[AXIS_RA].value < 0) || (preAxis2 * TrackRateN[AXIS_DE].value < 0) )
                 {
-                    DEBUG(Logger::DBG_ERROR, "Cannot reverse tracking while tracking is engaged. Disengage tracking then try again.");
+                    LOG_ERROR("Cannot reverse tracking while tracking is engaged. Disengage tracking then try again.");
                     return false;
                 }
 
@@ -1045,8 +1026,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 IUResetSwitch(&ParkSP);
                 ParkS[0].s = ISS_ON;
-                ParkSP.s   = IPS_IDLE;
-                LOG_WARN("Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab.");
+                ParkSP.s   = IPS_ALERT;
+                LOG_WARN("Cannot unpark mount when dome is locking. See: Dome Policy in options tab.");
                 IsParked = true;
                 IDSetSwitch(&ParkSP, nullptr);
                 return true;
@@ -1405,30 +1386,57 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ///////////////////////////////////
         // Parking Dome Policy
         ///////////////////////////////////
-        if (!strcmp(name, DomeClosedLockTP.name))
+        if (!strcmp(name, DomePolicySP.name))
         {
-            if (n == 1)
-            {
-                if (!strcmp(names[0], DomeClosedLockT[0].name))
-                    LOG_INFO("Dome parking policy set to: Ignore dome");
-                else if (!strcmp(names[0], DomeClosedLockT[1].name))
-                    LOG_INFO("Warning: Dome parking policy set to: Dome locks. This disallows "
-                             "the scope from unparking when dome is parked");
-                else if (!strcmp(names[0], DomeClosedLockT[2].name))
-                    LOG_INFO("Warning: Dome parking policy set to: Dome parks. This tells "
-                             "scope to park if dome is parking. This will disable the locking "
-                             "for dome parking, EVEN IF MOUNT PARKING FAILS");
-                else if (!strcmp(names[0], DomeClosedLockT[3].name))
-                    LOG_INFO("Warning: Dome parking policy set to: Both. This disallows the "
-                             "scope from unparking when dome is parked, and tells scope to "
-                             "park if dome is parking. This will disable the locking for dome "
-                             "parking, EVEN IF MOUNT PARKING FAILS.");
-            }
-            IUUpdateSwitch(&DomeClosedLockTP, states, names, n);
-            DomeClosedLockTP.s = IPS_OK;
-            IDSetSwitch(&DomeClosedLockTP, nullptr);
-
+            IUUpdateSwitch(&DomePolicySP, states, names, n);
+            if (DomePolicyS[DOME_IGNORED].s == ISS_ON)
+                LOG_INFO("Dome Policy set to: Dome ignored. Mount can park or unpark regardless of dome parking state.");
+            else
+                LOG_WARN("Dome Policy set to: Dome locks. This prevents the mount from unparking when dome is parked.");
+#if 0
+            else if (!strcmp(names[0], DomeClosedLockT[2].name))
+                LOG_INFO("Warning: Dome parking policy set to: Dome parks. This tells "
+                         "scope to park if dome is parking. This will disable the locking "
+                         "for dome parking, EVEN IF MOUNT PARKING FAILS");
+            else if (!strcmp(names[0], DomeClosedLockT[3].name))
+                LOG_INFO("Warning: Dome parking policy set to: Both. This disallows the "
+                         "scope from unparking when dome is parked, and tells scope to "
+                         "park if dome is parking. This will disable the locking for dome "
+                         "parking, EVEN IF MOUNT PARKING FAILS.");
+#endif
+            DomePolicySP.s = IPS_OK;
+            IDSetSwitch(&DomePolicySP, nullptr);
             triggerSnoop(ActiveDeviceT[1].text, "DOME_PARK");
+            return true;
+        }
+
+        ///////////////////////////////////
+        // Simulate Pier Side
+        // This ia a major change to the design of the simulated scope, it might not handle changes on the fly
+        ///////////////////////////////////
+        if (!strcmp(name, SimulatePierSideSP.name))
+        {
+            IUUpdateSwitch(&SimulatePierSideSP, states, names, n);
+            int index = IUFindOnSwitchIndex(&SimulatePierSideSP);
+            if (index == -1)
+            {
+                SimulatePierSideSP.s = IPS_ALERT;
+                LOG_INFO("Cannot determine whether pier side simulation should be switched on or off.");
+                IDSetSwitch(&SimulatePierSideSP, nullptr);
+                return false;
+            }
+
+            bool pierSideEnabled = index == 0;
+
+            LOGF_INFO("Simulating Pier Side %s.", (pierSideEnabled ? "enabled" : "disabled"));
+
+            setSimulatePierSide(pierSideEnabled);
+            if (pierSideEnabled)
+            {
+                // set the pier side from the current Ra
+                // assumes we haven't tracked across the meridian
+                setPierSide(expectedPierSide(EqN[AXIS_RA].value));
+            }
             return true;
         }
 
@@ -1589,8 +1597,8 @@ bool Telescope::SetTrackEnabled(bool enabled)
 
 int Telescope::AddTrackMode(const char *name, const char *label, bool isDefault)
 {
-    TrackModeS = (TrackModeS == nullptr) ? (ISwitch *)malloc(sizeof(ISwitch)) :
-                 (ISwitch *)realloc(TrackModeS, (TrackModeSP.nsp + 1) * sizeof(ISwitch));
+    TrackModeS = (TrackModeS == nullptr) ? static_cast<ISwitch *>(malloc(sizeof(ISwitch))) :
+                 static_cast<ISwitch *>(realloc(TrackModeS, (TrackModeSP.nsp + 1) * sizeof(ISwitch)));
 
     IUFillSwitch(&TrackModeS[TrackModeSP.nsp], name, label, isDefault ? ISS_ON : ISS_OFF);
 
@@ -1632,23 +1640,6 @@ bool Telescope::processTimeInfo(const char *utc, const char *offset)
         IUSaveText(&TimeT[1], offset);
         TimeTP.s = IPS_OK;
         IDSetText(&TimeTP, nullptr);
-
-        // 2018-04-20 JM: Update system time on ARM architecture.
-#ifdef __arm__
-#ifdef __linux__
-        struct tm utm;
-        if (strptime(utc, "%Y-%m-%dT%H:%M:%S", &utm))
-        {
-            time_t raw_time = mktime(&utm);
-            time_t now_time;
-            time(&now_time);
-            // Only sync if difference > 30 seconds
-            if (labs(now_time - raw_time) > 30)
-                stime(&raw_time);
-        }
-#endif
-#endif
-
         return true;
     }
     else
@@ -1688,6 +1679,8 @@ bool Telescope::processLocationInfo(double latitude, double longitude, double el
         // Always save geographic coord config immediately.
         saveConfig(true, "GEOGRAPHIC_COORD");
 
+        updateObserverLocation(latitude, longitude, elevation);
+
         return true;
     }
     else
@@ -1713,6 +1706,19 @@ bool Telescope::updateLocation(double latitude, double longitude, double elevati
     INDI_UNUSED(longitude);
     INDI_UNUSED(elevation);
     return true;
+}
+
+void Telescope::updateObserverLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(elevation);
+    // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
+    lnobserver.lng = longitude;
+
+    if (lnobserver.lng > 180)
+        lnobserver.lng -= 360;
+    lnobserver.lat = latitude;
+
+    LOGF_INFO("Observer location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
 }
 
 bool Telescope::SetParkPosition(double Axis1Value, double Axis2Value)
@@ -1746,7 +1752,7 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
     if (nSlewRate >= 4)
     {
         free(SlewRateS);
-        SlewRateS = (ISwitch *)malloc(sizeof(ISwitch) * nSlewRate);
+        SlewRateS = static_cast<ISwitch *>(malloc(sizeof(ISwitch) * nSlewRate));
         //int step  = nSlewRate / 4;
         for (int i = 0; i < nSlewRate; i++)
         {
@@ -1823,19 +1829,18 @@ void Telescope::SyncParkStatus(bool isparked)
 {
     IsParked = isparked;
     IUResetSwitch(&ParkSP);
+    ParkSP.s = IPS_OK;
 
     if (IsParked)
     {
         ParkS[0].s = ISS_ON;
         TrackState = SCOPE_PARKED;
-        ParkSP.s = IPS_OK;
         LOG_INFO("Mount is parked.");
     }
     else
     {
         ParkS[1].s = ISS_ON;
         TrackState = SCOPE_IDLE;
-        ParkSP.s = IPS_IDLE;
         LOG_INFO("Mount is unparked.");
     }
 
@@ -2204,7 +2209,7 @@ void Telescope::SetAxis2ParkDefault(double value)
 
 bool Telescope::isLocked() const
 {
-    return (DomeClosedLockT[1].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON) && IsLocked;
+    return DomePolicyS[DOME_LOCKS].s == ISS_ON && IsLocked;
 }
 
 bool Telescope::SetSlewRate(int index)
@@ -2278,7 +2283,7 @@ void Telescope::processAxis(const char *axis_n, double value)
         {
             if ((TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
             {
-                DEBUG(Logger::DBG_WARNING, "Cannot slew while mount is parking/parked.");
+                LOG_WARN("Cannot slew while mount is parking/parked.");
                 return;
             }
 
@@ -2512,6 +2517,10 @@ void Telescope::buttonHelper(const char *button_n, ISState state, void *context)
 
 void Telescope::setPierSide(TelescopePierSide side)
 {
+    // ensure that the scope knows it's pier side or the pier side is simulated
+    if (HasPierSide() == false && getSimulatePierSide() == false)
+        return;
+
     currentPierSide = side;
 
     if (currentPierSide != lastPierSide)
@@ -2523,6 +2532,25 @@ void Telescope::setPierSide(TelescopePierSide side)
 
         lastPierSide = currentPierSide;
     }
+}
+
+/// Simulates pier side using the hour angle.
+/// A correct implementation uses the declination axis value, this is only for where this isn't available,
+/// such as in the telescope simulator or a GEM which does not provide any pier side or axis information.
+/// This last is deeply unsatisfactory, it will not be able to reflect the true pointing state
+/// reliably for positions close to the meridian.
+Telescope::TelescopePierSide Telescope::expectedPierSide(double ra)
+{
+    // return unknown if the mount does not have pier side, this will be the case for a fork mount
+    // where a pier flip is not required.
+    if (!HasPierSide() && !HasPierSideSimulation())
+        return INDI::Telescope::PIER_UNKNOWN;
+
+    // calculate the hour angle and derive the pier side
+    double lst = get_local_sidereal_time(lnobserver.lng);
+    double hourAngle = get_local_hour_angle(lst, ra);
+
+    return hourAngle <= 0 ? INDI::Telescope::PIER_WEST : INDI::Telescope::PIER_EAST;
 }
 
 void Telescope::setPECState(TelescopePECState state)
@@ -2557,7 +2585,7 @@ bool Telescope::LoadScopeConfig()
     char ErrMsg[512];
 
     RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
-    fclose(FilePtr);    
+    fclose(FilePtr);
     delLilXML(XmlHandle);
     XmlHandle = nullptr;
     if (!RootXmlNode)
@@ -2943,5 +2971,60 @@ void Telescope::sendTimeFromSystem()
 
     IDSetText(&TimeTP, nullptr);
 }
+
+bool Telescope::getSimulatePierSide() const
+{
+    return m_simulatePierSide;
+}
+
+const char * Telescope::getPierSideStr(TelescopePierSide ps)
+{
+    switch (ps)
+    {
+        case PIER_WEST:
+            return "PIER_WEST";
+        case PIER_EAST:
+            return "PIER_EAST";
+        default:
+            return "PIER_UNKNOWN";
+    }
+}
+
+void Telescope::setSimulatePierSide(bool simulate)
+{
+    IUResetSwitch(&SimulatePierSideSP);
+    SimulatePierSideS[0].s = simulate ? ISS_ON : ISS_OFF;
+    SimulatePierSideS[1].s = simulate ? ISS_OFF : ISS_ON;
+    SimulatePierSideSP.s = IPS_OK;
+    IDSetSwitch(&SimulatePierSideSP, nullptr);
+
+    if (simulate)
+    {
+        capability |= TELESCOPE_HAS_PIER_SIDE;
+        defineSwitch(&PierSideSP);
+    }
+    else
+    {
+        capability &= static_cast<uint32_t>(~TELESCOPE_HAS_PIER_SIDE);
+        deleteProperty(PierSideSP.name);
+    }
+
+    m_simulatePierSide = simulate;
+}
+
+double Telescope::getAzimuth(double r, double d)
+{
+    ln_equ_posn lnradec { 0, 0 };
+    ln_hrz_posn altaz { 0, 0 };
+
+    lnradec.ra  = (r * 360) / 24.0;
+    lnradec.dec = d;
+
+    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &altaz);
+
+    /* libnova measures azimuth from south towards west */
+    return (range360(altaz.az + 180));
+}
+
 
 }

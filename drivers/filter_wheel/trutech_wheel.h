@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2020 Jasem Mutlaq. All rights reserved.
 
   Tru Technology Filter Wheel
 
@@ -24,26 +24,25 @@
 
 class TruTech : public INDI::FilterWheel
 {
-  public:
-    TruTech();
+    public:
+        TruTech();
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    protected:
+        const char *getDefaultName() override;
+        bool initProperties() override;
+        bool updateProperties() override;
 
-  protected:
-    const char *getDefaultName() override;
-    bool initProperties() override;
-    bool updateProperties() override;
+        bool Handshake() override;
 
-    bool Handshake() override;
-    bool SelectFilter(int) override;
-    void TimerHit() override;
+        int QueryFilter() override;
+        bool SelectFilter(int) override;
+        void TimerHit() override;
 
-  private:
-    ISwitch HomeS[1];
-    ISwitchVectorProperty HomeSP;
+    private:
 
-    INumber MaxFilterN[1];
-    INumberVectorProperty MaxFilterNP;
+        bool home();
+
+        ISwitch HomeS[1];
+        ISwitchVectorProperty HomeSP;
 };

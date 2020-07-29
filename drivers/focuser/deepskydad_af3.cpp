@@ -3,7 +3,7 @@
 
     Copyright (C) 2019 Pavle Gartner
 
-    Based on Moonline driver.
+    Based on Moonlite driver.
     Copyright (C) 2013-2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -72,10 +72,11 @@ void ISSnoopDevice(XMLEle * root)
 {
     deepSkyDadAf3->ISSnoopDevice(root);
 }
- 
+
 DeepSkyDadAF3::DeepSkyDadAF3()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE | FOCUSER_CAN_ABORT |
+                      FOCUSER_HAS_BACKLASH);
 }
 
 bool DeepSkyDadAF3::initProperties()
@@ -92,15 +93,17 @@ bool DeepSkyDadAF3::initProperties()
     IUFillSwitch(&StepModeS[S4], "S4", "1/4 Step", ISS_OFF);
     IUFillSwitch(&StepModeS[S2], "S2", "1/2 Step", ISS_OFF);
     IUFillSwitch(&StepModeS[S1], "S1", "Full Step", ISS_OFF);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 9, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    
+    IUFillSwitchVector(&StepModeSP, StepModeS, 9, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
+
     // Speed Mode
     IUFillSwitch(&SpeedModeS[VERY_SLOW], "VERY_SLOW", "Very slow", ISS_OFF);
     IUFillSwitch(&SpeedModeS[SLOW], "SLOW", "Slow", ISS_OFF);
     IUFillSwitch(&SpeedModeS[MEDIUM], "MEDIUM", "Medium", ISS_OFF);
     IUFillSwitch(&SpeedModeS[FAST], "FAST", "Fast", ISS_OFF);
     IUFillSwitch(&SpeedModeS[VERY_FAST], "VERY_FAST", "Very fast", ISS_OFF);
-    IUFillSwitchVector(&SpeedModeSP, SpeedModeS, 5, getDeviceName(), "Speed Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SpeedModeSP, SpeedModeS, 5, getDeviceName(), "Speed Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min = 0.;
@@ -115,13 +118,18 @@ bool DeepSkyDadAF3::initProperties()
 
     FocusMaxPosN[0].min = 0.;
     FocusMaxPosN[0].max = 1000000.;
-    FocusMaxPosN[0].value = 50000.;
+    FocusMaxPosN[0].value = 1000000.;
     FocusMaxPosN[0].step = 5000.;
 
     FocusSyncN[0].min = 0.;
     FocusSyncN[0].max = 1000000.;
     FocusSyncN[0].value = 50000.;
     FocusSyncN[0].step = 5000.;
+
+    FocusBacklashN[0].min = -1000;
+    FocusBacklashN[0].max = 1000;
+    FocusBacklashN[0].step = 1;
+    FocusBacklashN[0].value = 0;
 
     // Max. movement
     IUFillNumber(&FocusMaxMoveN[0], "MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
@@ -132,17 +140,19 @@ bool DeepSkyDadAF3::initProperties()
     IUFillNumber(&SettleBufferN[0], "SETTLE_BUFFER", "Period (ms)", "%5.0f", 0, 99999, 100, 0);
     IUFillNumberVector(&SettleBufferNP, SettleBufferN, 1, getDeviceName(), "FOCUS_SETTLE_BUFFER", "Settle buffer",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-                       
+
     // Motor move multiplier
     IUFillNumber(&MoveCurrentMultiplierN[0], "MOTOR_MOVE_MULTIPLIER", "%", "%3.0f", 1, 100, 1, 90);
-    IUFillNumberVector(&MoveCurrentMultiplierNP, MoveCurrentMultiplierN, 1, getDeviceName(), "FOCUS_MMM", "Move current multiplier",
-       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-       
+    IUFillNumberVector(&MoveCurrentMultiplierNP, MoveCurrentMultiplierN, 1, getDeviceName(), "FOCUS_MMM",
+                       "Move current multiplier",
+                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
     // Motor hold multiplier
     IUFillNumber(&HoldCurrentMultiplierN[0], "MOTOR_HOLD_MULTIPLIER", "%", "%3.0f", 1, 100, 1, 40);
-    IUFillNumberVector(&HoldCurrentMultiplierNP, HoldCurrentMultiplierN, 1, getDeviceName(), "FOCUS_MHM", "Hold current multiplier",
-       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-    
+    IUFillNumberVector(&HoldCurrentMultiplierNP, HoldCurrentMultiplierN, 1, getDeviceName(), "FOCUS_MHM",
+                       "Hold current multiplier",
+                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
@@ -209,7 +219,7 @@ bool DeepSkyDadAF3::Ack()
     sleep(2);
 
     char res[DSD_RES] = {0};
-    if (!sendCommand("[GPOS]", res) && !sendCommand("[GPOS]", res)) //try twice 
+    if (!sendCommand("[GPOS]", res) && !sendCommand("[GPOS]", res)) //try twice
     {
         LOG_ERROR("ACK - getPosition failed");
         return false;
@@ -404,7 +414,7 @@ bool DeepSkyDadAF3::readMoveCurrentMultiplier()
 
 bool DeepSkyDadAF3::readHoldCurrentMultiplier()
 {
-     char res[DSD_RES] = {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GMHM]", res) == false)
         return false;
@@ -427,14 +437,15 @@ bool DeepSkyDadAF3::readHoldCurrentMultiplier()
 
 bool DeepSkyDadAF3::readTemperature()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GTMC]", res) == false)
         return false;
 
     double temp = 0;
     int rc = sscanf(res, "(%lf)", &temp);
-    if (rc > 0) {
+    if (rc > 0)
+    {
         TemperatureN[0].value = temp;
     }
     else
@@ -466,14 +477,16 @@ bool DeepSkyDadAF3::SyncFocuser(uint32_t ticks)
 {
     char cmd[DSD_RES] = {0};
     snprintf(cmd, DSD_RES, "[SPOS%07d]", ticks);
-    return sendCommand(cmd);
+    char res[DSD_RES] = {0};
+    return sendCommand(cmd, res);
 }
 
 bool DeepSkyDadAF3::ReverseFocuser(bool enabled)
 {
     char cmd[DSD_RES] = {0};
     snprintf(cmd, DSD_RES, "[SREV%01d]", enabled ? 1 : 0);
-    return sendCommand(cmd);
+    char res[DSD_RES] = {0};
+    return sendCommand(cmd, res);
 }
 
 bool DeepSkyDadAF3::MoveFocuser(uint32_t position)
@@ -492,7 +505,7 @@ bool DeepSkyDadAF3::MoveFocuser(uint32_t position)
     }
 
     // Now start motion toward position
-    if (sendCommand("[SMOV]") == false)
+    if (sendCommand("[SMOV]", res) == false)
         return false;
 
     return true;
@@ -554,7 +567,7 @@ bool DeepSkyDadAF3::ISNewSwitch(const char * dev, const char * name, ISState * s
             IDSetSwitch(&StepModeSP, nullptr);
             return true;
         }
-        
+
         // Focus Speed Mode
         if (strcmp(SpeedModeSP.name, name) == 0)
         {
@@ -625,7 +638,7 @@ bool DeepSkyDadAF3::ISNewNumber(const char * dev, const char * name, double valu
             IDSetNumber(&SettleBufferNP, nullptr);
             return true;
         }
-        
+
         // Move current multiplier
         if (strcmp(name, MoveCurrentMultiplierNP.name) == 0)
         {
@@ -643,7 +656,7 @@ bool DeepSkyDadAF3::ISNewNumber(const char * dev, const char * name, double valu
             IDSetNumber(&MoveCurrentMultiplierNP, nullptr);
             return true;
         }
-        
+
         // Hold current multiplier
         if (strcmp(name, HoldCurrentMultiplierNP.name) == 0)
         {
@@ -681,22 +694,22 @@ bool DeepSkyDadAF3::ISNewNumber(const char * dev, const char * name, double valu
         }
 
         // Max. movement
-        if (strcmp(name, FocusMaxMoveNP.name) == 0)
-        {
-            IUUpdateNumber(&FocusMaxMoveNP, values, names, n);
-            char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SMXM%d]", static_cast<int>(FocusMaxMoveN[0].value));
-            bool rc = sendCommandSet(cmd);
-            if (!rc)
-            {
-                FocusMaxMoveNP.s = IPS_ALERT;
-                return false;
-            }
+        //        if (strcmp(name, FocusMaxMoveNP.name) == 0)
+        //        {
+        //            IUUpdateNumber(&FocusMaxMoveNP, values, names, n);
+        //            char cmd[DSD_RES] = {0};
+        //            snprintf(cmd, DSD_RES, "[SMXM%d]", static_cast<int>(FocusMaxMoveN[0].value));
+        //            bool rc = sendCommandSet(cmd);
+        //            if (!rc)
+        //            {
+        //                FocusMaxMoveNP.s = IPS_ALERT;
+        //                return false;
+        //            }
 
-            FocusMaxMoveNP.s = IPS_OK;
-            IDSetNumber(&FocusMaxMoveNP, nullptr);
-            return true;
-        }
+        //            FocusMaxMoveNP.s = IPS_OK;
+        //            IDSetNumber(&FocusMaxMoveNP, nullptr);
+        //            return true;
+        //        }
 
     }
 
@@ -713,16 +726,16 @@ void DeepSkyDadAF3::GetFocusParams()
 
     if (readStepMode())
         IDSetSwitch(&StepModeSP, nullptr);
-    
+
     if (readSpeedMode())
         IDSetSwitch(&SpeedModeSP, nullptr);
 
     if (readSettleBuffer())
         IDSetNumber(&SettleBufferNP, nullptr);
-    
+
     if (readMoveCurrentMultiplier())
         IDSetNumber(&MoveCurrentMultiplierNP, nullptr);
-    
+
     if (readHoldCurrentMultiplier())
         IDSetNumber(&HoldCurrentMultiplierNP, nullptr);
 
@@ -731,7 +744,7 @@ void DeepSkyDadAF3::GetFocusParams()
 
     if (readMaxMovement())
         IDSetNumber(&FocusMaxMoveNP, nullptr);
-    
+
     if (readTemperature())
         IDSetNumber(&TemperatureNP, nullptr);
 }
@@ -772,6 +785,14 @@ IPState DeepSkyDadAF3::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
+    double bcValue = FocusBacklashN[0].value;
+    int diff = targetTicks - FocusAbsPosN[0].value;
+    if ((diff > 0 && bcValue < 0) || (diff < 0 && bcValue > 0))
+    {
+        backlashComp = bcValue;
+        targetPos -= bcValue;
+    }
+
     if (!MoveFocuser(targetPos))
         return IPS_ALERT;
 
@@ -789,7 +810,7 @@ IPState DeepSkyDadAF3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     // Clamp
     newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
-    if (!MoveFocuser(newPosition))
+    if (!MoveAbsFocuser(newPosition))
         return IPS_ALERT;
 
     // JM 2019-02-10: This is already set by the framework
@@ -826,10 +847,27 @@ void DeepSkyDadAF3::TimerHit()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
-            LOG_INFO("Focuser reached requested position.");
+
+            if(moveAborted)
+            {
+                LOG_INFO("Move aborted.");
+            }
+            else if(backlashComp != 0)
+            {
+                LOGF_INFO("Performing backlash compensation of %i.", (int)backlashComp);
+                targetPos += backlashComp;
+                MoveFocuser(targetPos);
+            }
+            else
+            {
+                LOG_INFO("Focuser reached requested position.");
+            }
+
+            moveAborted = false;
+            backlashComp = 0;
         }
     }
-    
+
     rc = readTemperature();
     if (rc)
     {
@@ -845,6 +883,7 @@ void DeepSkyDadAF3::TimerHit()
 
 bool DeepSkyDadAF3::AbortFocuser()
 {
+    moveAborted = true;
     return sendCommand("[STOP]");
 }
 
@@ -904,4 +943,25 @@ bool DeepSkyDadAF3::sendCommandSet(const char * cmd)
         return false;
 
     return strcmp(res, "(OK)") == 0;
+}
+
+bool DeepSkyDadAF3::SetFocuserBacklash(int32_t steps)
+{
+    INDI_UNUSED(steps);
+    return true;
+}
+
+bool DeepSkyDadAF3::SetFocuserMaxPosition(uint32_t ticks)
+{
+    char cmd[DSD_RES] = {0};
+
+    snprintf(cmd, DSD_RES, "[SMXP%d]", ticks);
+
+    if (sendCommandSet(cmd))
+    {
+        SyncPresets(ticks);
+        return true;
+    }
+
+    return false;
 }

@@ -39,6 +39,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #define TEMPFILE_LEN 16
 
+#ifdef __FreeBSD__
+typedef unsigned long ulong;
+#endif
+
 class Lx;
 
 class V4L2_Driver : public INDI::CCD
