@@ -112,6 +112,10 @@ class WatchDog : public INDI::DefaultDevice
         uint32_t m_INDIServerPort { 7624 };
         // Weather State
         IPState m_WeatherState { IPS_IDLE };
+        // Mount Parked?
+        bool m_IsMountParked { false };
+        // Dome Parked?
+        bool m_IsDomeParked { false };
         // State machine to store where in the shutdown procedure we currently stand
         ShutdownStages m_ShutdownStage;
 };
