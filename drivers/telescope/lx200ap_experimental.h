@@ -98,7 +98,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
 
     void handleGTOCP2MotionBug();
     
-    ISwitch StartUpS[1];
+    ISwitch StartUpS[2];
     ISwitchVectorProperty StartUpSP;
 
     INumber HourangleCoordsN[2];
