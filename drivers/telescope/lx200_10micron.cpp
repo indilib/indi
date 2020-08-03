@@ -159,8 +159,6 @@ bool LX200_10MICRON::initProperties()
     IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
                        "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    LOG_INFO("I LOADED ALL PROPERTIES");
-
     return result;
 }
 
@@ -595,7 +593,6 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
             }
             return 1;
         }
-        LOG_INFO(response);
     }
     else
     {
@@ -629,7 +626,6 @@ bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
             LOG_ERROR("TLE number not in mount");
             return 1;
         }
-        LOG_INFO(response);
     }
     return 0;
 }
@@ -668,7 +664,6 @@ bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour,
                 LOG_ERROR("No passes loaded");
                 return 1;
             }
-            LOG_INFO(response);
         }
     return 0;
 }
@@ -712,8 +707,6 @@ bool LX200_10MICRON::TrackSat()
             LOG_ERROR("Transit is already over");
             return 4;
         }
-        LOG_INFO(response);
-        LOG_INFO("I am here");
     }
   return 0;
 }
