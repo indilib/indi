@@ -752,6 +752,7 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
     bool StartReading   = false;
     bool EndReading     = false;
     bool mount_response = false;
+    char response[257];
 
     SendBuffer.push_back(':');
     SendBuffer.push_back(Command);
@@ -760,31 +761,38 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
     SendBuffer.push_back('\r');
     skywatcher_tty_write(MyPortFD, SendBuffer.c_str(), SendBuffer.size(), &bytesWritten);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
     while (!EndReading)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
         char c;
+        int rc;
 
-        int rc = skywatcher_tty_read(MyPortFD, &c, 1, 10, &bytesRead);
-        if ((rc != TTY_OK) || (bytesRead != 1))
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+        response[0] = '\0';
+        rc = skywatcher_tty_read_section(MyPortFD, response, 0x0D, 10, &bytesRead);
+        if (rc != TTY_OK)
             return false;
-
-        if ((c == '=') || (c == '!'))
+        for (int i=0; i<bytesRead && !EndReading; i++)
         {
-            mount_response = (c == '=');
-            StartReading = true;
-            continue;
-        }
+            c = response[i];
 
-        if ((c == '\r') && StartReading)
-        {
-            EndReading = true;
-            continue;
-        }
+            if ((c == '=') || (c == '!'))
+            {
+                mount_response = (c == '=');
+                StartReading = true;
+                continue;
+            }
 
-        if (StartReading)
-            responseStr.push_back(c);
+            if ((c == '\r') && StartReading)
+            {
+                EndReading = true;
+                continue;
+            }
+
+            if (StartReading)
+                responseStr.push_back(c);
+        }
     }
 //    MYDEBUGF(DBG_SCOPE, "TalkWithAxis - %s Response (%s)", mount_response ? "Good" : "Bad", responseStr.c_str());
     return true;

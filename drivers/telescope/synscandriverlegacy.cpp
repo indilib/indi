@@ -21,6 +21,7 @@
 #include "connectionplugins/connectioninterface.h"
 #include "connectionplugins/connectiontcp.h"
 #include "indicom.h"
+#include "libastro.h"
 
 #include <libnova/transform.h>
 #include <libnova/precession.h>
@@ -93,7 +94,7 @@ bool SynscanLegacyDriver::initProperties()
     IUFillText(&BasicMountInfoT[MI_ALIGN_STATUS], "ALIGNMENT_STATUS", "Alignment status", "-");
     IUFillText(&BasicMountInfoT[MI_GOTO_STATUS], "GOTO_STATUS", "Goto status", "-");
     IUFillText(&BasicMountInfoT[MI_POINT_STATUS], "MOUNT_POINTING_STATUS",
-            "Mount pointing status", "-");
+               "Mount pointing status", "-");
     IUFillText(&BasicMountInfoT[MI_TRACK_MODE], "TRACKING_MODE", "Tracking mode", "-");
     IUFillTextVector(&BasicMountInfoTP, BasicMountInfoT, 6, getDeviceName(), "BASIC_MOUNT_INFO",
                      "Mount information", MountInfoPage, IP_RO, 60, IPS_IDLE);
@@ -101,9 +102,9 @@ bool SynscanLegacyDriver::initProperties()
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Use WiFi Switch Property
     //////////////////////////////////////////////////////////////////////////////////////////////////
-//    IUFillSwitch(&UseWiFiS[WIFI_ENABLED], "Enabled", "Enabled", ISS_OFF);
-//    IUFillSwitch(&UseWiFiS[WIFI_DISABLED], "Disabled", "Disabled", ISS_ON);
-//    IUFillSwitchVector(&UseWiFiSP, UseWiFiS, 2, getDeviceName(), "WIFI_SELECT", "Use WiFi?", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    //    IUFillSwitch(&UseWiFiS[WIFI_ENABLED], "Enabled", "Enabled", ISS_OFF);
+    //    IUFillSwitch(&UseWiFiS[WIFI_DISABLED], "Disabled", "Disabled", ISS_ON);
+    //    IUFillSwitchVector(&UseWiFiSP, UseWiFiS, 2, getDeviceName(), "WIFI_SELECT", "Use WiFi?", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     addAuxControls();
 
@@ -130,38 +131,38 @@ bool SynscanLegacyDriver::ISNewSwitch(const char *dev, const char *name, ISState
                 return true;
             }
 
-        IUUpdateSwitch(&UseWiFiSP, states, names, n);
+            IUUpdateSwitch(&UseWiFiSP, states, names, n);
 
-        if (UseWiFiS[WIFI_ENABLED].s == ISS_ON)
-        {
-            setTelescopeConnection(CONNECTION_TCP);
-            tcpConnection->setDefaultHost("192.168.4.2");
-            tcpConnection->setDefaultPort(11882);
+            if (UseWiFiS[WIFI_ENABLED].s == ISS_ON)
+            {
+                setTelescopeConnection(CONNECTION_TCP);
+                tcpConnection->setDefaultHost("192.168.4.2");
+                tcpConnection->setDefaultPort(11882);
 
-            LOG_INFO("Driver is configured for WiFi connection to 192.168.4.2 at TCP port 11882");
+                LOG_INFO("Driver is configured for WiFi connection to 192.168.4.2 at TCP port 11882");
 
-            saveConfig(true, "WIFI_SELECT");
-            UseWiFiSP.s = IPS_OK;
-            IDSetSwitch(&UseWiFiSP, nullptr);
+                saveConfig(true, "WIFI_SELECT");
+                UseWiFiSP.s = IPS_OK;
+                IDSetSwitch(&UseWiFiSP, nullptr);
 
-            ISState newStates[] = { ISS_OFF, ISS_ON };
-            const char *newNames[] = { "CONNECTION_SERIAL", "CONNECTION_TCP" };
-            ISNewSwitch(getDeviceName(), "CONNECTION_MODE", newStates, const_cast<char **>(newNames), 2);
-        }
-        else
-        {
-            setTelescopeConnection(CONNECTION_SERIAL);
-            LOG_INFO("Driver is configured for serial connection to the hand controller.");
+                ISState newStates[] = { ISS_OFF, ISS_ON };
+                const char *newNames[] = { "CONNECTION_SERIAL", "CONNECTION_TCP" };
+                ISNewSwitch(getDeviceName(), "CONNECTION_MODE", newStates, const_cast<char **>(newNames), 2);
+            }
+            else
+            {
+                setTelescopeConnection(CONNECTION_SERIAL);
+                LOG_INFO("Driver is configured for serial connection to the hand controller.");
 
-            UseWiFiSP.s = IPS_OK;
-            IDSetSwitch(&UseWiFiSP, nullptr);
+                UseWiFiSP.s = IPS_OK;
+                IDSetSwitch(&UseWiFiSP, nullptr);
 
-            ISState newStates[] = { ISS_ON, ISS_OFF };
-            const char *newNames[] = { "CONNECTION_SERIAL", "CONNECTION_TCP" };
-            ISNewSwitch(getDeviceName(), "CONNECTION_MODE", newStates, const_cast<char **>(newNames), 2);
-        }
+                ISState newStates[] = { ISS_ON, ISS_OFF };
+                const char *newNames[] = { "CONNECTION_SERIAL", "CONNECTION_TCP" };
+                ISNewSwitch(getDeviceName(), "CONNECTION_MODE", newStates, const_cast<char **>(newNames), 2);
+            }
 
-        return true;
+            return true;
         }
     }
 #endif
@@ -169,7 +170,7 @@ bool SynscanLegacyDriver::ISNewSwitch(const char *dev, const char *name, ISState
 }
 
 bool SynscanLegacyDriver::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                             char *formats[], char *names[], int n)
+                                    char *formats[], char *names[], int n)
 {
     return INDI::Telescope::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
@@ -198,11 +199,14 @@ bool SynscanLegacyDriver::updateProperties()
 
 int SynscanLegacyDriver::HexStrToInteger(const std::string &res)
 {
-    int result=0;
+    int result = 0;
 
-    try {
+    try
+    {
         result = std::stoi(res, nullptr, 16);
-    } catch (std::invalid_argument &) {
+    }
+    catch (std::invalid_argument &)
+    {
         LOGF_ERROR("Failed to parse %s to integer.", res.c_str());
     }
 
@@ -217,7 +221,7 @@ bool SynscanLegacyDriver::AnalyzeMount()
     int tmp = 0;
     int bytesWritten = 0;
     int bytesRead, numread;
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
 
     // JM 2018-08-15 Why are we reading caps here? Looks like it serves no purpose
     //caps = GetTelescopeCapability();
@@ -268,7 +272,9 @@ bool SynscanLegacyDriver::AnalyzeMount()
                 FirmwareVersion += tmp1;
                 FirmwareVersion /= 100;
                 FirmwareVersion += tmp;
-            } else {
+            }
+            else
+            {
                 FirmwareVersion = (double)HexStrToInteger(std::string(&res[0], 2));
                 FirmwareVersion += (double)HexStrToInteger(std::string(&res[2], 2)) / 100;
                 FirmwareVersion += (double)HexStrToInteger(std::string(&res[4], 2)) / 10000;
@@ -279,7 +285,8 @@ bool SynscanLegacyDriver::AnalyzeMount()
             if (FirmwareVersion < 3.38 || (FirmwareVersion >= 4.0 && FirmwareVersion < 4.38))
             {
                 LOG_WARN("Firmware version is too old. Update Synscan firmware to v4.38+");
-            } else
+            }
+            else
             {
                 NewFirmware = true;
             }
@@ -349,7 +356,7 @@ bool SynscanLegacyDriver::ReadScopeStatus()
         return true;
     }
 
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
     int bytesWritten, bytesRead;
     int numread;
     double ra, dec;
@@ -397,10 +404,10 @@ bool SynscanLegacyDriver::ReadScopeStatus()
     */
 
     //  on subsequent passes, we just need to read the time
-//    if (HasTime())
-//    {
-//        ReadTime();
-//    }
+    //    if (HasTime())
+    //    {
+    //        ReadTime();
+    //    }
     if (HasLocation())
     {
         //  this flag is set when we get a new lat/long from the host
@@ -453,18 +460,18 @@ bool SynscanLegacyDriver::ReadScopeStatus()
         TrackingStatus = res[0];
         switch((int)res[0])
         {
-        case 0:
-            TrackingMode = "Tracking off";
-            break;
-        case 1:
-            TrackingMode = "Alt/Az tracking";
-            break;
-        case 2:
-            TrackingMode = "EQ tracking";
-            break;
-        case 3:
-            TrackingMode = "PEC mode";
-            break;
+            case 0:
+                TrackingMode = "Tracking off";
+                break;
+            case 1:
+                TrackingMode = "Alt/Az tracking";
+                break;
+            case 2:
+                TrackingMode = "EQ tracking";
+                break;
+            case 3:
+                TrackingMode = "PEC mode";
+                break;
         }
     }
 
@@ -586,9 +593,10 @@ bool SynscanLegacyDriver::ReadScopeStatus()
     J2000Pos.dec = rangeDec(dec);
 
     // Synscan reports J2000 coordinates so we need to convert from J2000 to JNow
-    ln_get_equ_prec2(&J2000Pos, JD2000, ln_get_julian_from_sys(), &epochPos);
+    //ln_get_equ_prec2(&J2000Pos, JD2000, ln_get_julian_from_sys(), &epochPos);
+    LibAstro::J2000toObserved(&J2000Pos, ln_get_julian_from_sys(), &epochPos);
 
-    CurrentRA  = epochPos.ra/15.0;
+    CurrentRA  = epochPos.ra / 15.0;
     CurrentDEC = epochPos.dec;
 
     //  Now feed the rest of the system with corrected data
@@ -601,7 +609,7 @@ bool SynscanLegacyDriver::ReadScopeStatus()
         double DiffAz { 0 };
 
         CurrentAltAz = GetAltAzPosition(ra, dec);
-        DiffAlt = CurrentAltAz.alt-SlewTargetAlt;
+        DiffAlt = CurrentAltAz.alt - SlewTargetAlt;
         if (SlewTargetAlt != -1 && std::abs(DiffAlt) > 0.01)
         {
             int NewRate = 2;
@@ -609,49 +617,50 @@ bool SynscanLegacyDriver::ReadScopeStatus()
             if (std::abs(DiffAlt) > 4)
             {
                 NewRate = 9;
-            } else
-                if (std::abs(DiffAlt) > 1.2)
-                {
-                    NewRate = 7;
-                } else
-                    if (std::abs(DiffAlt) > 0.5)
-                    {
-                        NewRate = 5;
-                    } else
-                        if (std::abs(DiffAlt) > 0.2)
-                        {
-                            NewRate = 4;
-                        } else
-                            if (std::abs(DiffAlt) > 0.025)
-                            {
-                                NewRate = 3;
-                            }
+            }
+            else if (std::abs(DiffAlt) > 1.2)
+            {
+                NewRate = 7;
+            }
+            else if (std::abs(DiffAlt) > 0.5)
+            {
+                NewRate = 5;
+            }
+            else if (std::abs(DiffAlt) > 0.2)
+            {
+                NewRate = 4;
+            }
+            else if (std::abs(DiffAlt) > 0.025)
+            {
+                NewRate = 3;
+            }
             LOGF_DEBUG("Slewing Alt axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
-                       CurrentAltAz.alt, SlewTargetAlt, CurrentAltAz.alt-SlewTargetAlt, CustomNSSlewRate);
+                       CurrentAltAz.alt, SlewTargetAlt, CurrentAltAz.alt - SlewTargetAlt, CustomNSSlewRate);
             if (NewRate != CustomNSSlewRate)
             {
                 if (DiffAlt < 0)
                 {
                     CustomNSSlewRate = NewRate;
                     MoveNS(DIRECTION_NORTH, MOTION_START);
-                } else {
+                }
+                else
+                {
                     CustomNSSlewRate = NewRate;
                     MoveNS(DIRECTION_SOUTH, MOTION_START);
                 }
             }
-        } else
-            if (SlewTargetAlt != -1 && std::abs(DiffAlt) < 0.01)
-            {
-                MoveNS(DIRECTION_NORTH, MOTION_STOP);
-                SlewTargetAlt = -1;
-                LOG_DEBUG("Slewing on Alt axis finished");
-            }
-        DiffAz = CurrentAltAz.az-SlewTargetAz;
+        }
+        else if (SlewTargetAlt != -1 && std::abs(DiffAlt) < 0.01)
+        {
+            MoveNS(DIRECTION_NORTH, MOTION_STOP);
+            SlewTargetAlt = -1;
+            LOG_DEBUG("Slewing on Alt axis finished");
+        }
+        DiffAz = CurrentAltAz.az - SlewTargetAz;
         if (DiffAz < -180)
-            DiffAz = (DiffAz+360)*2;
-        else
-            if (DiffAz > 180)
-                DiffAz = (DiffAz-360)*2;
+            DiffAz = (DiffAz + 360) * 2;
+        else if (DiffAz > 180)
+            DiffAz = (DiffAz - 360) * 2;
         if (SlewTargetAz != -1 && std::abs(DiffAz) > 0.01)
         {
             int NewRate = 2;
@@ -659,43 +668,45 @@ bool SynscanLegacyDriver::ReadScopeStatus()
             if (std::abs(DiffAz) > 4)
             {
                 NewRate = 9;
-            } else
-                if (std::abs(DiffAz) > 1.2)
-                {
-                    NewRate = 7;
-                } else
-                    if (std::abs(DiffAz) > 0.5)
-                    {
-                        NewRate = 5;
-                    } else
-                        if (std::abs(DiffAz) > 0.2)
-                        {
-                            NewRate = 4;
-                        } else
-                            if (std::abs(DiffAz) > 0.025)
-                            {
-                                NewRate = 3;
-                            }
+            }
+            else if (std::abs(DiffAz) > 1.2)
+            {
+                NewRate = 7;
+            }
+            else if (std::abs(DiffAz) > 0.5)
+            {
+                NewRate = 5;
+            }
+            else if (std::abs(DiffAz) > 0.2)
+            {
+                NewRate = 4;
+            }
+            else if (std::abs(DiffAz) > 0.025)
+            {
+                NewRate = 3;
+            }
             LOGF_DEBUG("Slewing Az axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
-                       CurrentAltAz.az, SlewTargetAz, CurrentAltAz.az-SlewTargetAz, CustomWESlewRate);
+                       CurrentAltAz.az, SlewTargetAz, CurrentAltAz.az - SlewTargetAz, CustomWESlewRate);
             if (NewRate != CustomWESlewRate)
             {
                 if (DiffAz > 0)
                 {
                     CustomWESlewRate = NewRate;
                     MoveWE(DIRECTION_WEST, MOTION_START);
-                } else {
+                }
+                else
+                {
                     CustomWESlewRate = NewRate;
                     MoveWE(DIRECTION_EAST, MOTION_START);
                 }
             }
-        } else
-            if (SlewTargetAz != -1 && std::abs(DiffAz) < 0.01)
-            {
-                MoveWE(DIRECTION_WEST, MOTION_STOP);
-                SlewTargetAz = -1;
-                LOG_DEBUG("Slewing on Az axis finished");
-            }
+        }
+        else if (SlewTargetAz != -1 && std::abs(DiffAz) < 0.01)
+        {
+            MoveWE(DIRECTION_WEST, MOTION_STOP);
+            SlewTargetAz = -1;
+            LOG_DEBUG("Slewing on Az axis finished");
+        }
         if (SlewTargetAz == -1 && SlewTargetAlt == -1)
         {
             StartTrackMode();
@@ -706,7 +717,7 @@ bool SynscanLegacyDriver::ReadScopeStatus()
 
 bool SynscanLegacyDriver::StartTrackMode()
 {
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
     int numread, bytesWritten, bytesRead;
 
     TrackState = SCOPE_TRACKING;
@@ -722,7 +733,9 @@ bool SynscanLegacyDriver::StartTrackMode()
     {
         // Alt/Az tracking mode
         res[1] = 1;
-    } else {
+    }
+    else
+    {
         // EQ tracking mode
         res[1] = 2;
     }
@@ -738,7 +751,7 @@ bool SynscanLegacyDriver::StartTrackMode()
 
 bool SynscanLegacyDriver::Goto(double ra, double dec)
 {
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
     int bytesWritten, bytesRead;
     ln_hrz_posn TargetAltAz { 0, 0 };
 
@@ -767,14 +780,15 @@ bool SynscanLegacyDriver::Goto(double ra, double dec)
         epochPos.dec = dec;
 
         // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
-        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+        //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+        LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
         // Mount deals in J2000 coords.
-        int n1 = J2000Pos.ra/15.0 * 0x1000000 / 24;
+        int n1 = J2000Pos.ra / 15.0 * 0x1000000 / 24;
         int n2 = J2000Pos.dec * 0x1000000 / 360;
         int numread;
 
-        LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra/15.0, J2000Pos.dec);
+        LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra / 15.0, J2000Pos.dec);
 
         n1 = n1 << 8;
         n2 = n2 << 8;
@@ -795,7 +809,7 @@ bool SynscanLegacyDriver::Goto(double ra, double dec)
 
     TargetAltAz = GetAltAzPosition(ra, dec);
     LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g (az: %g alt: %g)", ra, dec, TargetAltAz.az, TargetAltAz.alt);
-    char RAStr[MAX_SYN_BUF]={0}, DEStr[MAX_SYN_BUF]={0}, AZStr[MAX_SYN_BUF]={0}, ATStr[MAX_SYN_BUF]={0};
+    char RAStr[MAX_SYN_BUF] = {0}, DEStr[MAX_SYN_BUF] = {0}, AZStr[MAX_SYN_BUF] = {0}, ATStr[MAX_SYN_BUF] = {0};
     fs_sexa(RAStr, ra, 2, 3600);
     fs_sexa(DEStr, dec, 2, 3600);
     fs_sexa(AZStr, TargetAltAz.az, 2, 3600);
@@ -814,7 +828,7 @@ bool SynscanLegacyDriver::Goto(double ra, double dec)
 
 bool SynscanLegacyDriver::Park()
 {
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
     int numread, bytesWritten, bytesRead;
 
     if (isSimulation() == false)
@@ -887,7 +901,7 @@ bool SynscanLegacyDriver::Abort()
     if (TrackState == SCOPE_IDLE || RecoverTrials >= 3)
         return true;
 
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
     int numread, bytesWritten, bytesRead;
 
     LOG_DEBUG("Abort mount...");
@@ -992,7 +1006,7 @@ bool SynscanLegacyDriver::SetSlewRate(int s)
 
 int SynscanLegacyDriver::PassthruCommand(int cmd, int target, int msgsize, int data, int numReturn)
 {
-    char test[20]={0};
+    char test[20] = {0};
     int bytesRead, bytesWritten;
     char a, b, c;
     int tt = data;
@@ -1055,7 +1069,7 @@ bool SynscanLegacyDriver::ReadTime()
         return true;
     }
 
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
     int bytesWritten = 0, bytesRead = 0;
 
     //  lets see if this hand controller responds to a time request
@@ -1126,7 +1140,7 @@ bool SynscanLegacyDriver::ReadLocation()
         return true;
     }
 
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
     int bytesWritten = 0, bytesRead = 0;
 
     LOG_DEBUG("CMD <Ka>");
@@ -1164,7 +1178,7 @@ bool SynscanLegacyDriver::ReadLocation()
             g = res[6];
             h = res[7];
 
-            LOGF_DEBUG("Pos %d:%d:%d  %d:%d:%d",a,b,c,e,f,g);
+            LOGF_DEBUG("Pos %d:%d:%d  %d:%d:%d", a, b, c, e, f, g);
 
             double t1, t2, t3;
 
@@ -1192,7 +1206,7 @@ bool SynscanLegacyDriver::ReadLocation()
 
             saveConfig(true, "GEOGRAPHIC_COORD");
 
-            char LongitudeStr[32]={0}, LatitudeStr[32]={0};
+            char LongitudeStr[32] = {0}, LatitudeStr[32] = {0};
             fs_sexa(LongitudeStr, lon, 2, 3600);
             fs_sexa(LatitudeStr, lat, 2, 3600);
             LOGF_INFO("Mount Longitude %s Latitude %s", LongitudeStr, LatitudeStr);
@@ -1212,7 +1226,7 @@ bool SynscanLegacyDriver::ReadLocation()
 
 bool SynscanLegacyDriver::updateTime(ln_date *utc, double utc_offset)
 {
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
     int bytesWritten = 0, bytesRead = 0;
 
     //  start by formatting a time for the hand controller
@@ -1262,7 +1276,7 @@ bool SynscanLegacyDriver::updateLocation(double latitude, double longitude, doub
 {
     INDI_UNUSED(elevation);
 
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
     int bytesWritten = 0, bytesRead = 0;
     int s = 0;
     bool IsWest = false;
@@ -1314,7 +1328,9 @@ bool SynscanLegacyDriver::updateLocation(double latitude, double longitude, doub
         if (p2.lat.neg == 0)
         {
             res[4] = 0;
-        } else {
+        }
+        else
+        {
             res[4] = 1;
         }
 
@@ -1374,7 +1390,7 @@ bool SynscanLegacyDriver::Sync(double ra, double dec)
     Abort();
 
     LOGF_INFO("Sync JNow %g %g -> %g %g", CurrentRA, CurrentDEC, ra, dec);
-    char res[MAX_SYN_BUF]={0};
+    char res[MAX_SYN_BUF] = {0};
     int numread, bytesWritten, bytesRead;
 
     if (isSimulation())
@@ -1392,31 +1408,31 @@ bool SynscanLegacyDriver::Sync(double ra, double dec)
         TargetAltAz = GetAltAzPosition(ra, dec);
         LOGF_DEBUG("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec, TargetAltAz.az, TargetAltAz.alt);
         // Assemble the Reset Position command for Az axis
-        int Az = (int)(TargetAltAz.az*16777216 / 360);
+        int Az = (int)(TargetAltAz.az * 16777216 / 360);
 
         res[0] = 'P';
         res[1] = 4;
         res[2] = 16;
         res[3] = 4;
         *reinterpret_cast<unsigned char*>(&res[4]) = (unsigned char)(Az / 65536);
-        Az -= (Az / 65536)*65536;
+        Az -= (Az / 65536) * 65536;
         *reinterpret_cast<unsigned char*>(&res[5]) = (unsigned char)(Az / 256);
-        Az -= (Az / 256)*256;
+        Az -= (Az / 256) * 256;
         *reinterpret_cast<unsigned char*>(&res[6]) = (unsigned char)Az;
         res[7] = 0;
         tty_write(PortFD, res, 8, &bytesWritten);
         numread = tty_read(PortFD, res, 1, 3, &bytesRead);
         // Assemble the Reset Position command for Alt axis
-        int Alt = (int)(TargetAltAz.alt*16777216 / 360);
+        int Alt = (int)(TargetAltAz.alt * 16777216 / 360);
 
         res[0] = 'P';
         res[1] = 4;
         res[2] = 17;
         res[3] = 4;
         *reinterpret_cast<unsigned char*>(&res[4]) = (unsigned char)(Alt / 65536);
-        Alt -= (Alt / 65536)*65536;
+        Alt -= (Alt / 65536) * 65536;
         *reinterpret_cast<unsigned char*>(&res[5]) = (unsigned char)(Alt / 256);
-        Alt -= (Alt / 256)*256;
+        Alt -= (Alt / 256) * 256;
         *reinterpret_cast<unsigned char*>(&res[6]) = (unsigned char)Alt;
         res[7] = 0;
         LOGF_DEBUG("CMD <%s>", res);
@@ -1432,10 +1448,11 @@ bool SynscanLegacyDriver::Sync(double ra, double dec)
     epochPos.dec = dec;
 
     // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
-    ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+    //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+    LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
     // Pass the sync command to the handset
-    int n1 = J2000Pos.ra/15.0 * 0x1000000 / 24;
+    int n1 = J2000Pos.ra / 15.0 * 0x1000000 / 24;
     int n2 = J2000Pos.dec * 0x1000000 / 360;
 
     n1 = n1 << 8;
@@ -1472,7 +1489,7 @@ ln_hrz_posn SynscanLegacyDriver::GetAltAzPosition(double ra, double dec)
     Location.lat = LocationN[LOCATION_LATITUDE].value;
     Location.lng = LocationN[LOCATION_LONGITUDE].value;
 
-    Eq.ra  = ra*360.0 / 24.0;
+    Eq.ra  = ra * 360.0 / 24.0;
     Eq.dec = dec;
     ln_get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys(), &AltAz);
     AltAz.az -= 180;
@@ -1538,69 +1555,69 @@ void SynscanLegacyDriver::MountSim()
 
     dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    double currentSlewRate = SLEW_RATE[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL/3600.0;
+    double currentSlewRate = SLEW_RATE[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL / 3600.0;
     da  = currentSlewRate * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-    case SCOPE_IDLE:
-        CurrentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
-        CurrentRA = range24(CurrentRA);
-        break;
+        case SCOPE_IDLE:
+            CurrentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+            CurrentRA = range24(CurrentRA);
+            break;
 
-    case SCOPE_TRACKING:
-        break;
+        case SCOPE_TRACKING:
+            break;
 
-    case SCOPE_SLEWING:
-    case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ SLEWRATE */
-        nlocked = 0;
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
+            /* slewing - nail it when both within one pulse @ SLEWRATE */
+            nlocked = 0;
 
-        dx = TargetRA - CurrentRA;
+            dx = TargetRA - CurrentRA;
 
-        // Take shortest path
-        if (fabs(dx) > 12)
-            dx *= -1;
+            // Take shortest path
+            if (fabs(dx) > 12)
+                dx *= -1;
 
-        if (fabs(dx) <= da)
-        {
-            CurrentRA = TargetRA;
-            nlocked++;
-        }
-        else if (dx > 0)
-            CurrentRA += da / 15.;
-        else
-            CurrentRA -= da / 15.;
-
-        if (CurrentRA < 0)
-            CurrentRA += 24;
-        else if (CurrentRA > 24)
-            CurrentRA -= 24;
-
-        dx = TargetDEC - CurrentDEC;
-        if (fabs(dx) <= da)
-        {
-            CurrentDEC = TargetDEC;
-            nlocked++;
-        }
-        else if (dx > 0)
-            CurrentDEC += da;
-        else
-            CurrentDEC -= da;
-
-        if (nlocked == 2)
-        {
-            if (TrackState == SCOPE_SLEWING)
-                TrackState = SCOPE_TRACKING;
+            if (fabs(dx) <= da)
+            {
+                CurrentRA = TargetRA;
+                nlocked++;
+            }
+            else if (dx > 0)
+                CurrentRA += da / 15.;
             else
-                TrackState = SCOPE_PARKED;
-        }
+                CurrentRA -= da / 15.;
 
-        break;
+            if (CurrentRA < 0)
+                CurrentRA += 24;
+            else if (CurrentRA > 24)
+                CurrentRA -= 24;
 
-    default:
-        break;
+            dx = TargetDEC - CurrentDEC;
+            if (fabs(dx) <= da)
+            {
+                CurrentDEC = TargetDEC;
+                nlocked++;
+            }
+            else if (dx > 0)
+                CurrentDEC += da;
+            else
+                CurrentDEC -= da;
+
+            if (nlocked == 2)
+            {
+                if (TrackState == SCOPE_SLEWING)
+                    TrackState = SCOPE_TRACKING;
+                else
+                    TrackState = SCOPE_PARKED;
+            }
+
+            break;
+
+        default:
+            break;
     }
 
     NewRaDec(CurrentRA, CurrentDEC);

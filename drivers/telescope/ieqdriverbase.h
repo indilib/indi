@@ -48,6 +48,8 @@ typedef enum { RA_AXIS, DEC_AXIS } Axis;
 typedef enum { IEQ_N, IEQ_S, IEQ_W, IEQ_E } Direction;
 typedef enum { IEQ_SET_HOME, IEQ_GOTO_HOME, IEQ_FIND_HOME } HomeOperation;
 
+typedef enum { IEQ_PIER_UNKNOWN = -1, IEQ_PIER_WEST = 0, IEQ_PIER_EAST = 1, IEQ_PIER_UNCERTAIN = 2 } IEQ_PIER_SIDE;
+
 /**
  * @brief The BaseFirmware class provides control for iOptron version 2014 v2.0 protocol
  */
@@ -121,6 +123,15 @@ class Base
             return m_FirmwareInfo;
         }
 
+        bool getPierSide(IEQ_PIER_SIDE * pierSide);
+    private:
+        // read from mount using the GEA command
+        double haAxis;      // not sure, try degrees to start with
+        double decAxis;     // degrees, zero at 90 dec, sign determines pointing state
+        double Ra;          // read from mount
+        double Dec;
+        Info info;
+    public:
 
         /**************************************************************************
          Communication
@@ -233,7 +244,8 @@ class Base
             {"0030", "iEQ30 Pro", "161101"},
             {"0040", "CEM40", "181018"},
             {"0041", "CEM40-EC", "181018"},
-            {"0043", "GEM45", "191111"},
+            {"0043", "GEM45", "191018"},
+            {"0044", "GEM45-EC", "191018"},
             {"0045", "iEQ45 Pro EQ", "161101"},
             {"0046", "iEQ45 Pro AA", "161101"},
             {"0060", "CEM60", "161101"},
@@ -242,6 +254,25 @@ class Base
             {"5035", "AZ Mount Pro", "170410"},
         };
 
+        ///
+        /// \brief DecodeString converts the string to a double by dividing by the factor
+        /// \param data
+        /// \param size
+        /// \param factor
+        /// \return
+        ///
+        double DecodeString(const char * data, size_t size, double factor);
+
+        ///
+        /// \brief DecodeString converts a string of defined size to an int
+        /// \param data
+        /// \param size
+        /// \return
+        ///
+        int DecodeString(const char * data, size_t size);
+
+        constexpr static const double ieqDegrees { 60.0 * 60.0 * 100.0 };
+        constexpr static const double ieqHours { 60.0 * 60.0 * 1000.0 };
 };
 
 class Simulator: public Base

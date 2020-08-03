@@ -126,7 +126,7 @@ class CCDChip
          */
         inline float getPixelSizeX()
         {
-            return PixelSizex;
+            return PixelSizeX;
         }
 
         /**
@@ -135,7 +135,7 @@ class CCDChip
          */
         inline float getPixelSizeY()
         {
-            return PixelSizey;
+            return PixelSizeY;
         }
 
         /**
@@ -144,7 +144,7 @@ class CCDChip
          */
         inline int getBPP()
         {
-            return BPP;
+            return BitsPerPixel;
         }
 
         /**
@@ -171,7 +171,7 @@ class CCDChip
          */
         inline double getExposureDuration()
         {
-            return exposureDuration;
+            return ExposureDuration;
         }
 
         /**
@@ -215,10 +215,10 @@ class CCDChip
          * @brief isInterlaced
          * @return True if CCD chip is Interlaced, false otherwise.
          */
-        inline bool isInterlaced()
-        {
-            return Interlaced;
-        }
+        //        inline bool isInterlaced()
+        //        {
+        //            return Interlaced;
+        //        }
 
         /**
          * @brief getFrameType
@@ -249,7 +249,7 @@ class CCDChip
          * @param x width
          * @param y height
          */
-        void setResolution(int x, int y);
+        void setResolution(uint32_t x, uint32_t y);
 
         /**
          * @brief setFrame Set desired frame resolutoin for an exposure.
@@ -258,14 +258,14 @@ class CCDChip
          * @param subw unbinned width of the frame.
          * @param subh unbinned height of the frame.
          */
-        void setFrame(int subx, int suby, int subw, int subh);
+        void setFrame(uint32_t subx, uint32_t suby, uint32_t subw, uint32_t subh);
 
         /**
          * @brief setBin Set CCD Chip binnig
          * @param hor Horizontal binning.
          * @param ver Vertical binning.
          */
-        void setBin(int hor, int ver);
+        void setBin(uint8_t hor, uint8_t ver);
 
         /**
          * @brief setMinMaxStep for a number property element
@@ -285,7 +285,7 @@ class CCDChip
          * @param x Horziontal pixel size in microns.
          * @param y Vertical pixel size in microns.
          */
-        void setPixelSize(float x, float y);
+        void setPixelSize(double x, double y);
 
         /**
          * @brief setCompressed Set whether a frame is compressed after exposure?
@@ -293,11 +293,11 @@ class CCDChip
          */
         void setCompressed(bool cmp);
 
-        /**
-         * @brief setInterlaced Set whether the CCD chip is interlaced or not?
-         * @param intr If true, the CCD chip is interlaced.
-         */
-        void setInterlaced(bool intr);
+        //        /**
+        //         * @brief setInterlaced Set whether the CCD chip is interlaced or not?
+        //         * @param intr If true, the CCD chip is interlaced.
+        //         */
+        //        void setInterlaced(bool intr);
 
         /**
          * @brief setFrameBufferSize Set desired frame buffer size. The function will allocate memory
@@ -307,13 +307,13 @@ class CCDChip
          * @param nbuf size of buffer in bytes.
          * @param allocMem if True, it will allocate memory of nbut size bytes.
          */
-        void setFrameBufferSize(int nbuf, bool allocMem = true);
+        void setFrameBufferSize(uint32_t nbuf, bool allocMem = true);
 
         /**
          * @brief setBPP Set depth of CCD chip.
          * @param bpp bits per pixel
          */
-        void setBPP(int bpp);
+        void setBPP(uint8_t bpp);
 
         /**
          * @brief setFrameType Set desired frame type for next exposure.
@@ -363,7 +363,7 @@ class CCDChip
          */
         char *getImageExtension()
         {
-            return imageExtention;
+            return ImageExtention;
         }
 
         /**
@@ -381,66 +381,112 @@ class CCDChip
         void binFrame();
 
     private:
-        /// Native x resolution of the ccd
-        int XRes;
-        /// Native y resolution of the ccd
-        int YRes;
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// Chip Variables
+        /////////////////////////////////////////////////////////////////////////////////////////
+
+        /// Native Horizontal resolution of the camera chip
+        uint32_t XRes {0};
+        /// Native Vertical resolution of the camera chip
+        uint32_t YRes {0};
         /// Left side of the subframe we are requesting
-        int SubX;
+        uint32_t SubX {0};
         /// Top of the subframe requested
-        int SubY;
+        uint32_t SubY {0};
         /// UNBINNED width of the subframe
-        int SubW;
+        uint32_t SubW {0};
         /// UNBINNED height of the subframe
-        int SubH;
+        uint32_t SubH {0};
         /// Binning requested in the x direction
-        int BinX;
+        uint8_t BinX {1};
         /// Binning requested in the y direction
-        int BinY;
+        uint32_t BinY {1};
         /// # of Axis
-        int NAxis;
+        uint8_t NAxis {2};
         /// Pixel size in microns, x direction
-        float PixelSizex;
+        double PixelSizeX {0};
         /// Pixel size in microns, y direction
-        float PixelSizey;
-        /// Bytes per Pixel
-        int BPP;
-        bool Interlaced = false;
-        uint8_t *RawFrame = nullptr;
-        uint8_t *BinFrame = nullptr;
-        int RawFrameSize = 0;
-        bool SendCompressed = false;
-        CCD_FRAME FrameType;
-        double exposureDuration;
-        timeval startExposureTime;
+        double PixelSizeY {0};
+        /// Bit per Pixel
+        uint8_t BitsPerPixel {8};
+        //bool Interlaced {false};
+        // RAW Frame for image data stored as bytes.
+        uint8_t *RawFrame {nullptr};
+        // RAW Frame size in bytes.
+        uint32_t RawFrameSize {0};
+        // BINNED Frame when software binning is used.
+        uint8_t *BinFrame {nullptr};
+        // Should we compress frame before transmission?
+        bool SendCompressed {false};
+        // Frame Type
+        CCD_FRAME FrameType {LIGHT_FRAME};
+        // Exposure duration in seconds.
+        double ExposureDuration {0};
+        // Exposure startup time
+        timeval StartExposureTime;
+        // Image extension type (e.g. jpg)
+        char ImageExtention[MAXINDIBLOBFMT];
 
-        //int lastRapidX;
-        //int lastRapidY;
-        char imageExtention[MAXINDIBLOBFMT];
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// Chip Properties
+        /////////////////////////////////////////////////////////////////////////////////////////
 
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// Image Exposure Duration
+        /////////////////////////////////////////////////////////////////////////////////////////
         INumberVectorProperty ImageExposureNP;
         INumber ImageExposureN[1];
 
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// Abort Exposure
+        /////////////////////////////////////////////////////////////////////////////////////////
         ISwitchVectorProperty AbortExposureSP;
         ISwitch AbortExposureS[1];
 
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// Image Frame ROI
+        /////////////////////////////////////////////////////////////////////////////////////////
         INumberVectorProperty ImageFrameNP;
         INumber ImageFrameN[4];
 
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// Image Binning
+        /////////////////////////////////////////////////////////////////////////////////////////
         INumberVectorProperty ImageBinNP;
         INumber ImageBinN[2];
 
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// Image Resolution & Pixel Size data
+        /////////////////////////////////////////////////////////////////////////////////////////
         INumberVectorProperty ImagePixelSizeNP;
         INumber ImagePixelSizeN[6];
 
-        ISwitch FrameTypeS[5];
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// Frame Type (Light, Bias..etc)
+        /////////////////////////////////////////////////////////////////////////////////////////
         ISwitchVectorProperty FrameTypeSP;
+        ISwitch FrameTypeS[4];
 
-        ISwitch CompressS[2];
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// Compression Toggle
+        /////////////////////////////////////////////////////////////////////////////////////////
         ISwitchVectorProperty CompressSP;
+        ISwitch CompressS[2];
 
-        IBLOB FitsB;
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// FITS Binary Data
+        /////////////////////////////////////////////////////////////////////////////////////////
         IBLOBVectorProperty FitsBP;
+        IBLOB FitsB;
+
+        /////////////////////////////////////////////////////////////////////////////////////////
+        /// Reset ROI Frame to Full Resolution
+        /////////////////////////////////////////////////////////////////////////////////////////
+        ISwitchVectorProperty ResetSP;
+        ISwitch ResetS[1];
+
+        friend class CCD;
+        friend class StreamRecoder;
 
 #if 0
         ISwitch RapidGuideS[2];
@@ -453,11 +499,6 @@ class CCDChip
         INumberVectorProperty RapidGuideDataNP;
 #endif
 
-        ISwitch ResetS[1];
-        ISwitchVectorProperty ResetSP;
-
-        friend class CCD;
-        friend class StreamRecoder;
 };
 
 }

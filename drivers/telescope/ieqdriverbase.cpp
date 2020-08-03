@@ -285,11 +285,8 @@ bool Base::getGuideRate(double *raRate, double *deRate)
 
     if (sendCommand(":AG#", res))
     {
-        char ra[8] = {0}, de[8] = {0};
-        strncpy(res, ra, 2);
-        strncpy(res + 2, de, 2);
-        *raRate = atoi(ra) / 100.0;
-        *deRate = atoi(de) / 100.0;
+        *raRate = DecodeString(res, 2, 100.0);
+        *deRate = DecodeString(res + 2, 2, 100.0);
 
         return true;
     }
@@ -386,7 +383,7 @@ bool Base::setRA(double ra)
     char res[DRIVER_LEN] = {0};
 
     // Send as milliseconds resolution
-    int ieqValue = ra * 60 * 60 * 1000;
+    int ieqValue = static_cast<int>(ra * 60 * 60 * 1000);
 
     snprintf(cmd, DRIVER_LEN, ":Sr%08d#", ieqValue);
 
@@ -399,7 +396,7 @@ bool Base::setDE(double dec)
     char res[DRIVER_LEN] = {0};
 
     // Send as 0.01 arcseconds resolution
-    int ieqValue = fabs(dec) * 60 * 60 * 100;
+    int ieqValue = static_cast<int>(fabs(dec) * 60 * 60 * 100);
 
     snprintf(cmd, DRIVER_LEN, ":Sd%c%08d#", (dec >= 0) ? '+' : '-', ieqValue);
 
@@ -412,7 +409,7 @@ bool Base::setAz(double az)
     char res[DRIVER_LEN] = {0};
 
     // Send as 0.01 arcsec resolution
-    int ieqValue = az * 60 * 60 * 100;
+    int ieqValue = static_cast<int>(az * 60 * 60 * 100);
 
     snprintf(cmd, DRIVER_LEN, ":Sz%09d#", ieqValue);
 
@@ -425,7 +422,7 @@ bool Base::setAlt(double alt)
     char res[DRIVER_LEN] = {0};
 
     // Send as 0.01 arcsec resolution
-    int ieqValue = alt * 60 * 60 * 100;
+    int ieqValue = static_cast<int>(alt * 60 * 60 * 100);
 
     snprintf(cmd, DRIVER_LEN, ":Sa%c%08d#", (alt >= 0) ? '+' : '-', ieqValue);
 
@@ -441,7 +438,7 @@ bool Base::setParkAz(double az)
     char res[DRIVER_LEN] = {0};
 
     // Send as 0.01 arcsec resolution
-    int ieqValue = az * 60 * 60 * 100;
+    int ieqValue = static_cast<int>(az * 60 * 60 * 100);
 
     snprintf(cmd, DRIVER_LEN, ":SPA%09d#", ieqValue);
 
@@ -459,7 +456,7 @@ bool Base::setParkAlt(double alt)
     alt = std::max(0.0, alt);
 
     // Send as 0.01 arcsec resolution
-    int ieqValue = alt * 60 * 60 * 100;
+    int ieqValue = static_cast<int>(alt * 60 * 60 * 100);
 
     snprintf(cmd, DRIVER_LEN, ":SPH%08d#", ieqValue);
 
@@ -471,7 +468,7 @@ bool Base::setLongitude(double longitude)
     char cmd[DRIVER_LEN] = {0};
     char res[DRIVER_LEN] = {0};
 
-    int arcsecs = fabs(longitude) * 60 * 60;
+    int arcsecs = static_cast<int>(fabs(longitude) * 60 * 60);
     snprintf(cmd, DRIVER_LEN, ":Sg%c%06d#", (longitude >= 0) ? '+' : '-', arcsecs);
 
     return sendCommand(cmd, res, -1, 1);
@@ -482,7 +479,7 @@ bool Base::setLatitude(double latitude)
     char cmd[DRIVER_LEN] = {0};
     char res[DRIVER_LEN] = {0};
 
-    int arcsecs = fabs(latitude) * 60 * 60;
+    int arcsecs = static_cast<int>(fabs(latitude) * 60 * 60);
     snprintf(cmd, DRIVER_LEN, ":St%c%06d#", (latitude >= 0) ? '+' : '-', arcsecs);
 
     return sendCommand(cmd, res, -1, 1);
@@ -519,7 +516,7 @@ bool Base::setUTCOffset(double offset_hours)
     char cmd[DRIVER_LEN] = {0};
     char res[DRIVER_LEN] = {0};
 
-    int offset_minutes = fabs(offset_hours) * 60.0;
+    int offset_minutes = static_cast<int>(fabs(offset_hours) * 60.0);
     snprintf(cmd, 16, ":SG%c%03d#", (offset_hours >= 0) ? '+' : '-', offset_minutes);
 
     return sendCommand(cmd, res, -1, 1);
@@ -531,19 +528,8 @@ bool Base::getCoords(double *ra, double *dec)
 
     if (sendCommand(":GEC#", res))
     {
-        char ra_str[DRIVER_LEN / 2] = {0}, dec_str[DRIVER_LEN / 2] = {0};
-
-        strncpy(dec_str, res, 9);
-        strncpy(ra_str, res + 9, 8);
-
-        int ieqDEC = atoi(dec_str);
-        int ieqRA  = atoi(ra_str);
-
-        // Resolution is 1 milli-second
-        *ra  = ieqRA / (60.0 * 60.0 * 1000.0);
-        // Resolution is 0.01 arcsec
-        *dec = ieqDEC / (60.0 * 60.0 * 100.0);
-
+        *ra = Ra = DecodeString(res + 9, 8, ieqHours);
+        *dec = Dec = DecodeString(res, 9, ieqDegrees);
         return true;
     }
 
@@ -556,33 +542,13 @@ bool Base::getUTCDateTime(double *utc_hours, int *yy, int *mm, int *dd, int *hh,
 
     if (sendCommand(":GLT#", res))
     {
-        char utc_str[8] = {0}, yy_str[8] = {0}, mm_str[8] = {0}, dd_str[8] = {0}, hh_str[8] = {0}, minute_str[8] = {0}, ss_str[8] = {0}, dst_str[8] = {0};
-
-        // UTC Offset
-        strncpy(utc_str, res, 4);
-        // Daylight savings
-        strncpy(dst_str, res + 4, 1);
-        // Year
-        strncpy(yy_str, res + 5, 2);
-        // Month
-        strncpy(mm_str, res + 7, 2);
-        // Day
-        strncpy(dd_str, res + 9, 2);
-        // Hour
-        strncpy(hh_str, res + 11, 2);
-        // Minute
-        strncpy(minute_str, res + 13, 2);
-        // Second
-        strncpy(ss_str, res + 15, 2);
-
-        *utc_hours = atoi(utc_str) / 60.0;
-        *yy        = atoi(yy_str) + 2000;
-        //*mm        = atoi(mm_str) + 1;
-        *mm        = atoi(mm_str);
-        *dd        = atoi(dd_str);
-        *hh        = atoi(hh_str);
-        *minute    = atoi(minute_str);
-        *ss        = atoi(ss_str);
+        *utc_hours = DecodeString(res, 4, 60.0);
+        *yy = DecodeString(res + 5, 2) + 2000;
+        *mm = DecodeString(res + 7, 2);
+        *dd = DecodeString(res + 9, 2);
+        *hh = DecodeString(res + 11, 2);
+        *minute = DecodeString(res + 13, 2);
+        *ss = DecodeString(res + 15, 2);
 
         ln_zonedate localTime;
         ln_date utcTime;
@@ -593,7 +559,7 @@ bool Base::getUTCDateTime(double *utc_hours, int *yy, int *mm, int *dd, int *hh,
         localTime.hours   = *hh;
         localTime.minutes = *minute;
         localTime.seconds = *ss;
-        localTime.gmtoff  = *utc_hours * 3600;
+        localTime.gmtoff  = static_cast<long>(*utc_hours * 3600);
 
         ln_zonedate_to_date(&localTime, &utcTime);
 
@@ -602,7 +568,7 @@ bool Base::getUTCDateTime(double *utc_hours, int *yy, int *mm, int *dd, int *hh,
         *dd     = utcTime.days;
         *hh     = utcTime.hours;
         *minute = utcTime.minutes;
-        *ss     = utcTime.seconds;
+        *ss     = static_cast<int>(utcTime.seconds);
 
         return true;
 
@@ -623,18 +589,112 @@ bool Base::getStatus(Info *info)
         strncpy(latitude, res + 7, 6);
         strncpy(status, res + 13, 6);
 
-        info->longitude = atof(longitude) / 3600.0;
-        info->latitude  = atof(latitude) / 3600.0 - 90;
-        info->gpsStatus    = static_cast<GPSStatus>(status[0] - '0');
-        info->systemStatus = static_cast<SystemStatus>(status[1] - '0');
-        info->trackRate    = static_cast<TrackRate>(status[2] - '0');
-        info->slewRate     = static_cast<SlewRate>(status[3] - '0' - 1);
-        info->timeSource   = static_cast<TimeSource>(status[4] - '0');
-        info->hemisphere   = static_cast<Hemisphere>(status[5] - '0');
+        info->longitude     = DecodeString(res, 7, 3600.0);
+        info->latitude      = DecodeString(res + 7, 6, 3600.0) - 90;
+        info->gpsStatus     = static_cast<GPSStatus>(status[0] - '0');
+        info->systemStatus  = static_cast<SystemStatus>(status[1] - '0');
+        info->trackRate     = static_cast<TrackRate>(status[2] - '0');
+        info->slewRate      = static_cast<SlewRate>(status[3] - '0' - 1);
+        info->timeSource    = static_cast<TimeSource>(status[4] - '0');
+        info->hemisphere    = static_cast<Hemisphere>(status[5] - '0');
+
+        this->info = *info;     // keep a local copy
 
         return true;
     }
 
+    return false;
+}
+
+const char * pierSideStr(IEQ_PIER_SIDE ps)
+{
+    switch (ps)
+    {
+        case IEQ_PIER_EAST:
+            return "EAST";
+        case IEQ_PIER_WEST:
+            return "WEST";
+        case IEQ_PIER_UNKNOWN:
+            return "UNKNOWN";
+        case IEQ_PIER_UNCERTAIN:
+            return "UNCERTAIN";
+    }
+    return "Impossible";
+}
+
+bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
+{
+    char res[DRIVER_LEN] = {0};
+
+    // use the GEA command, hoping that it returns the dec and polar angle axis positions
+    // see https://www.indilib.org/forum/mounts/6720-ioptron-cem60-question.html#52154
+    // the polar angle is in units of 1/100 arc second, signed, and the hour angle is in milliseconds,
+    // possibly with an offset. The home axis positions are PA +0.0, HA 12.0.
+    // For the West pointing state the ha = 18 - haAxis.
+    //
+    if (sendCommand(":GEA#", res))
+    {
+        // get the hour angle in hours
+        haAxis  = DecodeString(res + 9, 8, ieqHours);
+        // this is the pole angle in degrees
+        decAxis = DecodeString(res, 9, ieqDegrees);
+
+        double axisHa = 0;
+
+        if (decAxis >= 0)
+        {
+            *pierSide = IEQ_PIER_WEST;
+            axisHa  = 18 - haAxis;        // OK for the West PS
+        }
+        else
+        {
+            *pierSide = IEQ_PIER_EAST;
+            axisHa  = haAxis - 6;        // OK for the West PS
+        }
+
+        // The pole angle is not exactly at 0 when the dec is 90 and this gives problems with incorrect pier side close to the pole.
+        //
+        // Attempt to handle this by using the hour angle where the HA can be relied on - away from the meridian
+        // Use pole angle when within 2 hours of a meridian.
+        // If the pole angle is less than the difference between the pole angle and the dec report the pier side as unknown
+        //
+        // I know, horrible, but the data the mount reports is so difficult to interpret that this seems to be the least
+        // worst solution, anyway, let's see if it works CR
+
+        double lst = get_local_sidereal_time(info.longitude);
+        double ha = rangeHA(get_local_hour_angle(lst, Ra));
+
+        const char* reason;
+        double decPA = info.latitude >= 0 ? 90 - Dec : 90 + Dec;     // the distance from the pole determined using the declination, ok for both hemispheres
+
+        if ((ha > 2 && ha < 10) || (ha < -2 && ha > -10))
+        {
+            // use Ha to determine pier side
+            *pierSide = ha > 0 ? IEQ_PIER_EAST : IEQ_PIER_WEST;
+            reason = "Hour Angle";
+        }
+        else
+        {
+            double decDiff = std::fabs(decPA - std::fabs(decAxis)); // not sure about this in the Southern hemisphere
+            if (decPA > decDiff)
+            {
+                // use the pole angle
+                *pierSide = decAxis > 0 ? IEQ_PIER_WEST : IEQ_PIER_EAST;
+                reason = "pole angle";
+            }
+            else
+            {
+                *pierSide = IEQ_PIER_UNCERTAIN;
+                reason= "uncertain";
+            }
+        }
+
+        LOGF_DEBUG("getPierSide pole Axis %f, haAxis %f, axisHa %f, ha %f, decPa %f, %s pierSide %s", decAxis, haAxis, axisHa , ha, decPA, reason,
+                   pierSideStr(*pierSide));
+
+        return true;
+    }
+    *pierSide = IEQ_PIER_UNKNOWN;
     return false;
 }
 
@@ -753,6 +813,20 @@ bool Base::isCommandSupported(const std::string &command, bool silent)
     }
 
     return true;
+}
+
+double Base::DecodeString(const char * data, size_t size, double factor)
+{
+    return DecodeString(data, size) / factor;
+}
+
+int Base::DecodeString(const char *data, size_t size)
+{
+    char str[DRIVER_LEN / 2] = {0};
+    strncpy(str, data, size);
+
+    int iVal = atoi(str);
+    return iVal;
 }
 
 }

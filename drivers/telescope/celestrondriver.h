@@ -96,7 +96,7 @@ typedef uint8_t u_int8_t;
 
 typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
 typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9 } CELESTRON_SLEW_RATE;
-typedef enum { CTM_OFF, CTM_ALTAZ, CTM_EQN, CTM_EQS } CELESTRON_TRACK_MODE;
+typedef enum { CTM_OFF, CTM_ALTAZ, CTM_EQN, CTM_EQS, CTM_RADEC } CELESTRON_TRACK_MODE;
 typedef enum { RA_AXIS, DEC_AXIS } CELESTRON_AXIS;
 typedef enum { CELESTRON_N, CELESTRON_S, CELESTRON_W, CELESTRON_E } CELESTRON_DIRECTION;
 typedef enum { FW_MODEL, FW_VERSION, FW_RA, FW_DEC, FW_ISGEM, FW_CAN_AUX, FW_HAS_FOC } CELESTRON_FIRMWARE;
@@ -275,7 +275,7 @@ class CelestronDriver
         bool get_dev_firmware(int dev, char *version, size_t size);
         bool get_radec(double *ra, double *dec, bool precise);
         bool get_azalt(double *az, double *alt, bool precise);
-        bool get_utc_date_time(double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss, bool precise = false);
+        bool get_utc_date_time(double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss, bool *dst, bool precise);
 
         // Motion
         bool start_motion(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate);
@@ -289,7 +289,7 @@ class CelestronDriver
         // Time & Location
         bool set_location(double longitude, double latitude);
         bool get_location(double* longitude, double *latitude);
-        bool set_datetime(struct ln_date *utc, double utc_offset, bool precise = false);
+        bool set_datetime(struct ln_date *utc, double utc_offset, bool dst = false, bool precise = false);
 
         // Track Mode, this is not the Indi track mode
         bool get_track_mode(CELESTRON_TRACK_MODE *mode);

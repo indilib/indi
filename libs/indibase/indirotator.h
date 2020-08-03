@@ -44,61 +44,61 @@ namespace INDI
 
 class Rotator : public DefaultDevice, public RotatorInterface
 {
-  public:
-    Rotator();
-    virtual ~Rotator();
+    public:
+        Rotator();
+        virtual ~Rotator();
 
-    /** \struct RotatorConnection
-            \brief Holds the connection mode of the Rotator.
-        */
-    enum
-    {
-        CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
-        CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
-        CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
-    } RotatorConnection;
+        /** \struct RotatorConnection
+                \brief Holds the connection mode of the Rotator.
+            */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
+            CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
+            CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
+        } RotatorConnection;
 
-    virtual bool initProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool initProperties();
+        virtual void ISGetProperties(const char *dev);
+        virtual bool updateProperties();
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    /**
-         * @brief setRotatorConnection Set Rotator connection mode. Child class should call this in the constructor before Rotator registers
-         * any connection interfaces
-         * @param value ORed combination of RotatorConnection values.
-         */
-    void setRotatorConnection(const uint8_t &value);
+        /**
+             * @brief setRotatorConnection Set Rotator connection mode. Child class should call this in the constructor before Rotator registers
+             * any connection interfaces
+             * @param value ORed combination of RotatorConnection values.
+             */
+        void setRotatorConnection(const uint8_t &value);
 
-    /**
-         * @return Get current Rotator connection mode
-         */
-    uint8_t getRotatorConnection() const;
+        /**
+             * @return Get current Rotator connection mode
+             */
+        uint8_t getRotatorConnection() const;
 
-  protected:
-    /**
-         * @brief saveConfigItems Saves the reverse direction property in the configuration file
-         * @param fp pointer to configuration file
-         * @return true if successful, false otherwise.
-         */
-    virtual bool saveConfigItems(FILE *fp);
+    protected:
+        /**
+             * @brief saveConfigItems Saves the reverse direction property in the configuration file
+             * @param fp pointer to configuration file
+             * @return true if successful, false otherwise.
+             */
+        virtual bool saveConfigItems(FILE *fp);
 
-    /** \brief perform handshake with device to check communication */
-    virtual bool Handshake();
+        /** \brief perform handshake with device to check communication */
+        virtual bool Handshake();
 
-    INumber PresetN[3];
-    INumberVectorProperty PresetNP;
-    ISwitch PresetGotoS[3];
-    ISwitchVectorProperty PresetGotoSP;
+        INumber PresetN[3];
+        INumberVectorProperty PresetNP;
+        ISwitch PresetGotoS[3];
+        ISwitchVectorProperty PresetGotoSP;
 
-    Connection::Serial *serialConnection = NULL;
-    Connection::TCP *tcpConnection       = NULL;
+        Connection::Serial *serialConnection = nullptr;
+        Connection::TCP *tcpConnection       = nullptr;
 
-    int PortFD = -1;
+        int PortFD = -1;
 
-  private:
-    bool callHandshake();
-    uint8_t rotatorConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+    private:
+        bool callHandshake();
+        uint8_t rotatorConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 };
 }

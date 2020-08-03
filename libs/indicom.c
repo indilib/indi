@@ -53,6 +53,8 @@
 
 #ifdef __APPLE__
 #include <sys/param.h>
+#include <mach/clock.h>
+#include <mach/mach.h>
 #endif
 
 #if defined(BSD) && !defined(__GNU__)
@@ -84,10 +86,10 @@
 #define MAXRBUF 2048
 
 int tty_debug = 0;
-int ttyGeminiUdpFormat = 0;
-int ttySkyWatcherUdpFormat = 0;
-int sequenceNumber = 1;
-int ttyClrTrailingLF = 0;
+int tty_gemini_udp_format = 0;
+int tty_generic_udp_format = 0;
+int tty_sequence_number = 1;
+int tty_clear_trailing_lf = 0;
 
 #if defined(HAVE_LIBNOVA)
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
@@ -315,6 +317,23 @@ void IDLog(const char *fmt, ...)
     va_end(ap);
 }
 
+double time_ns()
+{
+    struct timespec ts;
+#ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    ts.tv_sec = mts.tv_sec;
+    ts.tv_nsec = mts.tv_nsec;
+#else
+    timespec_get(&ts, TIME_UTC);
+#endif
+    return (double)ts.tv_sec+(double)(ts.tv_nsec%1000000000)/1000000000.0;
+}
+
 /* return current system time in message format */
 const char *timestamp()
 {
@@ -335,17 +354,17 @@ void tty_set_debug(int debug)
 
 void tty_set_gemini_udp_format(int enabled)
 {
-    ttyGeminiUdpFormat = enabled;
+    tty_gemini_udp_format = enabled;
 }
 
-void tty_set_skywatcher_udp_format(int enabled)
+void tty_set_generic_udp_format(int enabled)
 {
-    ttySkyWatcherUdpFormat = enabled;
+    tty_generic_udp_format = enabled;
 }
 
 void tty_clr_trailing_read_lf(int enabled)
 {
-    ttyClrTrailingLF = enabled;
+    tty_clear_trailing_lf = enabled;
 }
 
 int tty_timeout(int fd, int timeout)
@@ -394,10 +413,10 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
     int geminiBuffer[66]={0};
     char *buffer = (char *)buf;
 
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format)
     {
         buffer = (char*)geminiBuffer;
-        geminiBuffer[0] = ++sequenceNumber;
+        geminiBuffer[0] = ++tty_sequence_number;
         geminiBuffer[1] = 0;
         memcpy((char *)&geminiBuffer[2], buf, nbytes);
         // Add on the 8 bytes for the header and 1 byte for the null terminator
@@ -428,7 +447,7 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
         nbytes -= bytes_w;
     }
 
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format)
         *nbytes_written -= 9;
 
     return TTY_OK;
@@ -467,7 +486,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
     char geminiBuffer[257]={0};
     char* buffer = buf;
 
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format)
     {
         numBytesToRead = nbytes + 8;
         buffer = geminiBuffer;
@@ -491,7 +510,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
                 IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
         }
 
-        if (*nbytes_read == 0 && ttyClrTrailingLF && *buffer == 0x0A)
+        if (*nbytes_read == 0 && tty_clear_trailing_lf && *buffer == 0x0A)
         {
             if (tty_debug)
                 IDLog("%s: Cleared LF char left in buf\n", __FUNCTION__);
@@ -505,10 +524,10 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
     }
 
 
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format)
     {
         int *intSizedBuffer = (int *)geminiBuffer;
-        if (intSizedBuffer[0] != sequenceNumber)
+        if (intSizedBuffer[0] != tty_sequence_number)
         {
             // Not the right reply just do the read again.
             return tty_read(fd, buf, nbytes, timeout, nbytes_read);
@@ -543,7 +562,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     if (tty_debug)
         IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
 
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format)
     {
         bytesRead = read(fd, readBuffer, 255);
 
@@ -551,7 +570,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
             return TTY_READ_ERROR;
 
         int *intSizedBuffer = (int *)readBuffer;
-        if (intSizedBuffer[0] != sequenceNumber)
+        if (intSizedBuffer[0] != tty_sequence_number)
         {
             // Not the right reply just do the read again.
             return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
@@ -568,7 +587,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
             }
         }
     }
-    else if (ttySkyWatcherUdpFormat)
+    else if (tty_generic_udp_format)
     {
         bytesRead = read(fd, readBuffer, 255);
         if (bytesRead < 0)
@@ -600,7 +619,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
             if (tty_debug)
                 IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
-            if (!(ttyClrTrailingLF && *read_char == 0X0A && *nbytes_read == 0))
+            if (!(tty_clear_trailing_lf && *read_char == 0X0A && *nbytes_read == 0))
                 (*nbytes_read)++;
             else {
                 if (tty_debug)
@@ -628,7 +647,7 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
         return TTY_ERRNO;
 
     // For Gemini
-    if (ttyGeminiUdpFormat)
+    if (tty_gemini_udp_format || tty_generic_udp_format)
         return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
 
     int bytesRead = 0;
@@ -654,7 +673,7 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
         if (tty_debug)
             IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
-        if (!(ttyClrTrailingLF && *read_char == 0X0A && *nbytes_read == 0))
+        if (!(tty_clear_trailing_lf && *read_char == 0X0A && *nbytes_read == 0))
             (*nbytes_read)++;
         else {
             if (tty_debug)
@@ -666,8 +685,6 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
         else if (*nbytes_read >= nsize)
             return TTY_OVERFLOW;
     }
-
-    return TTY_TIME_OUT;
 
 #endif
 }
@@ -788,6 +805,17 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     case 230400:
         bps = B230400;
         break;
+#ifndef __APPLE__
+    case 460800:
+        bps = B460800;
+        break;
+    case 576000:
+        bps = B576000;
+        break;
+    case 921600:
+        bps = B921600;
+        break;
+#endif
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
             perror(NULL);
@@ -1055,6 +1083,15 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
         break;
     case 230400:
         bps = B230400;
+        break;
+    case 460800:
+        bps = B460800;
+        break;
+    case 576000:
+        bps = B576000;
+        break;
+    case 921600:
+        bps = B921600;
         break;
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
@@ -1673,14 +1710,14 @@ double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spec
     return delta_mag;
 }
 
-double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double incident_surface)
+double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian)
 {
-    return LUMEN(wavelength)/(1.51E+7*(filter_bandwidth/wavelength)*incident_surface*pow(10, -0.4*rel_magnitude));
+    return pow(10, rel_magnitude*-0.4)*(LUMEN(wavelength)*(steradian/(M_PI*4))/filter_bandwidth);
 }
 
-double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double incident_surface)
+double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double steradian)
 {
-    return (1.51E+7*(filter_bandwidth/wavelength)*incident_surface*log10(LUMEN(wavelength)/photon_flux))/-0.4;
+    return log10(photon_flux/(LUMEN(wavelength)*(steradian/(M_PI*4))/filter_bandwidth))/-0.4;
 }
 
 double estimate_absolute_magnitude(double delta_dist, double delta_mag)
@@ -1707,7 +1744,6 @@ double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, 
 {
     double* uv = (double*)malloc(sizeof(double) * 2);
     ha *= M_PI / 12.0;
-    dec += 90.0;
     dec *= M_PI / 180.0;
     uv[0] = (baseline[0] * sin(ha) + baseline[1] * cos(ha));
     uv[1] = (-baseline[0] * sin(dec) * cos(ha) + baseline[1] * sin(dec) * sin(ha) + baseline[2] * cos(dec));

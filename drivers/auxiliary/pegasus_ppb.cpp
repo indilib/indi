@@ -95,21 +95,25 @@ bool PegasusPPB::initProperties()
     // Cycle all power on/off
     IUFillSwitch(&PowerCycleAllS[POWER_CYCLE_OFF], "POWER_CYCLE_OFF", "All Off", ISS_OFF);
     IUFillSwitch(&PowerCycleAllS[POWER_CYCLE_ON], "POWER_CYCLE_ON", "All On", ISS_OFF);
-    IUFillSwitchVector(&PowerCycleAllSP, PowerCycleAllS, 2, getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&PowerCycleAllSP, PowerCycleAllS, 2, getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // DSLR on/off
     IUFillSwitch(&DSLRPowerS[DSLR_OFF], "DSLR_OFF", "Off", ISS_OFF);
     IUFillSwitch(&DSLRPowerS[DSLR_ON], "DSLR_ON", "On", ISS_OFF);
-    IUFillSwitchVector(&DSLRPowerSP, DSLRPowerS, 2, getDeviceName(), "DSLR_POWER", "DSLR Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&DSLRPowerSP, DSLRPowerS, 2, getDeviceName(), "DSLR_POWER", "DSLR Power", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 60, IPS_IDLE);
 
     // Reboot
     IUFillSwitch(&RebootS[0], "REBOOT", "Reboot Device", ISS_OFF);
-    IUFillSwitchVector(&RebootSP, RebootS, 1, getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&RebootSP, RebootS, 1, getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
+                       60, IPS_IDLE);
 
     // Power Sensors
     IUFillNumber(&PowerSensorsN[SENSOR_VOLTAGE], "SENSOR_VOLTAGE", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
     IUFillNumber(&PowerSensorsN[SENSOR_CURRENT], "SENSOR_CURRENT", "Current (A)", "%4.2f", 0, 999, 100, 0);
-    IUFillNumberVector(&PowerSensorsNP, PowerSensorsN, 2, getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&PowerSensorsNP, PowerSensorsN, 2, getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO,
+                       60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Power Group
@@ -120,16 +124,18 @@ bool PegasusPPB::initProperties()
     IUFillSwitch(&PowerOnBootS[1], "POWER_PORT_2", "Port 2", ISS_ON);
     IUFillSwitch(&PowerOnBootS[2], "POWER_PORT_3", "Port 3", ISS_ON);
     IUFillSwitch(&PowerOnBootS[3], "POWER_PORT_4", "Port 4", ISS_ON);
-    IUFillSwitchVector(&PowerOnBootSP, PowerOnBootS, 4, getDeviceName(), "POWER_ON_BOOT", "Power On Boot", MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&PowerOnBootSP, PowerOnBootS, 4, getDeviceName(), "POWER_ON_BOOT", "Power On Boot", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Dew Group
     ////////////////////////////////////////////////////////////////////////////
 
     // Automatic Dew
-    IUFillSwitch(&AutoDewS[AUTO_DEW_ENABLED], "AUTO_DEW_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&AutoDewS[AUTO_DEW_DISABLED], "AUTO_DEW_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&AutoDewSP, AutoDewS, 2, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitch(&AutoDewS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&AutoDewS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&AutoDewSP, AutoDewS, 2, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60,
+                       IPS_IDLE);
 
     // Dew PWM
     IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", "Dew A (%)", "%.2f", 0, 100, 10, 0);
@@ -250,7 +256,7 @@ bool PegasusPPB::Handshake()
 
     setupComplete = false;
 
-    return (!strcmp(response, "PPB_OK"));
+    return !strcmp(response, "PPB_OK");
 }
 
 bool PegasusPPB::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
@@ -317,7 +323,7 @@ bool PegasusPPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
         {
             int prevIndex = IUFindOnSwitchIndex(&AutoDewSP);
             IUUpdateSwitch(&AutoDewSP, states, names, n);
-            if (setAutoDewEnabled(AutoDewS[AUTO_DEW_ENABLED].s == ISS_ON))
+            if (setAutoDewEnabled(AutoDewS[INDI_ENABLED].s == ISS_ON))
             {
                 AutoDewSP.s = IPS_OK;
             }
@@ -384,7 +390,8 @@ bool PegasusPPB::sendCommand(const char * cmd, char * res)
             return true;
         }
 
-        if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, stopChar, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK || nbytes_read == 1)
+        if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, stopChar, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK
+                || nbytes_read == 1)
             continue;
 
         tcflush(PortFD, TCIOFLUSH);
@@ -533,8 +540,8 @@ bool PegasusPPB::getSensorData()
             IDSetNumber(&DewPWMNP, nullptr);
 
         // Auto Dew
-        AutoDewS[AUTO_DEW_ENABLED].s  = (std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF;
-        AutoDewS[AUTO_DEW_DISABLED].s = (std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_OFF : ISS_ON;
+        AutoDewS[INDI_ENABLED].s  = (std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF;
+        AutoDewS[INDI_DISABLED].s = (std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_OFF : ISS_ON;
         if (lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
             IDSetSwitch(&AutoDewSP, nullptr);
 

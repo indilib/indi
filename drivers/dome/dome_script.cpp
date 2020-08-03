@@ -31,7 +31,8 @@
 
 typedef enum
 {
-    SCRIPT_CONNECT = 1,
+    SCRIPT_FOLDER = 0,
+    SCRIPT_CONNECT,
     SCRIPT_DISCONNECT,
     SCRIPT_STATUS,
     SCRIPT_OPEN,
@@ -100,9 +101,9 @@ bool DomeScript::initProperties()
     INDI::Dome::initProperties();
     SetParkDataType(PARK_AZ);
 #if defined(__APPLE__)
-    IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/local/share/indi/scripts");
+    IUFillText(&ScriptsT[SCRIPT_FOLDER], "SCRIPT_FOLDER", "Folder", "/usr/local/share/indi/scripts");
 #else
-    IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/share/indi/scripts");
+    IUFillText(&ScriptsT[SCRIPT_FOLDER], "SCRIPT_FOLDER", "Folder", "/usr/share/indi/scripts");
 #endif
     IUFillText(&ScriptsT[SCRIPT_CONNECT], "SCRIPT_CONNECT", "Connect script", "connect.py");
     IUFillText(&ScriptsT[SCRIPT_DISCONNECT], "SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
@@ -133,6 +134,7 @@ void DomeScript::ISGetProperties(const char *dev)
 {
     INDI::Dome::ISGetProperties(dev);
     defineText(&ScriptsTP);
+    loadConfig(true, "SCRIPTS");
 }
 
 bool DomeScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -181,7 +183,7 @@ bool DomeScript::RunScript(int script, ...)
     char path[1024];
     snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
 
-    if (access(path, F_OK|X_OK) != 0)
+    if (access(path, F_OK | X_OK) != 0)
     {
         LOGF_ERROR("Cannot use script [%s], %s", path, strerror(errno));
         return false;
@@ -285,8 +287,7 @@ void DomeScript::TimerHit()
         }
         if (std::round(az * 10) != std::round(TargetAz * 10))
         {
-            LOGF_INFO("Moving %g -> %g %d", std::round(az * 10) / 10,
-                   std::round(TargetAz * 10) / 10, getDomeState());
+            LOGF_INFO("Moving %g -> %g %d", std::round(az * 10) / 10, std::round(TargetAz * 10) / 10, getDomeState());
             IDSetNumber(&DomeAbsPosNP, nullptr);
         }
         else if (getDomeState() == DOME_MOVING)
@@ -294,11 +295,11 @@ void DomeScript::TimerHit()
             setDomeState(DOME_SYNCED);
             IDSetNumber(&DomeAbsPosNP, nullptr);
         }
-        if (shutterState == SHUTTER_OPENED)
+        if (m_ShutterState == SHUTTER_OPENED)
         {
             if (shutter == 0)
             {
-                shutterState    = SHUTTER_CLOSED;
+                m_ShutterState    = SHUTTER_CLOSED;
                 DomeShutterSP.s = IPS_OK;
                 IDSetSwitch(&DomeShutterSP, nullptr);
                 LOG_INFO("Shutter was successfully closed");
@@ -308,7 +309,7 @@ void DomeScript::TimerHit()
         {
             if (shutter == 1)
             {
-                shutterState    = SHUTTER_OPENED;
+                m_ShutterState    = SHUTTER_OPENED;
                 DomeShutterSP.s = IPS_OK;
                 IDSetSwitch(&DomeShutterSP, nullptr);
                 LOG_INFO("Shutter was successfully opened");

@@ -95,7 +95,7 @@ void ISSnoopDevice(XMLEle *root)
 MoonLiteDRO::MoonLiteDRO(int ID) : m_ID(ID)
 {
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
-    char name[MAXINDINAME]={0};
+    char name[MAXINDINAME] = {0};
     snprintf(name, MAXINDINAME, "MoonLiteDRO #%d", m_ID);
     setDeviceName(name);
 }
@@ -116,13 +116,15 @@ bool MoonLiteDRO::initProperties()
     // Step Mode
     IUFillSwitch(&StepModeS[FOCUS_HALF_STEP], "HALF_STEP", "Half Step", ISS_OFF);
     IUFillSwitch(&StepModeS[FOCUS_FULL_STEP], "FULL_STEP", "Full Step", ISS_ON);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 2, getDeviceName(), "FOCUS_STEP_MODE", "Step Mode", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&StepModeSP, StepModeS, 2, getDeviceName(), "FOCUS_STEP_MODE", "Step Mode", SETTINGS_TAB, IP_RW,
+                       ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Temperature Settings
     IUFillNumber(&TemperatureSettingN[0], "Calibration", "Calibration", "%6.2f", -20, 20, 0.5, 0);
     IUFillNumber(&TemperatureSettingN[1], "Coefficient", "Coefficient", "%6.2f", -20, 20, 0.5, 0);
-    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "FOCUS_TEMPERATURE_SETTINGS", "T. Settings",
+    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "FOCUS_TEMPERATURE_SETTINGS",
+                       "T. Settings",
                        SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
@@ -229,10 +231,10 @@ void MoonLiteDRO::remoteDisconnect()
 
     if (isConnected())
     {
-      // Otherwise, just set PortFD = -1
-      PortFD = -1;
-      setConnected(false, IPS_IDLE);
-      updateProperties();
+        // Otherwise, just set PortFD = -1
+        PortFD = -1;
+        setConnected(false, IPS_IDLE);
+        updateProperties();
     }
 }
 bool MoonLiteDRO::Handshake()
@@ -249,7 +251,7 @@ bool MoonLiteDRO::Handshake()
 
 const char *MoonLiteDRO::getDefaultName()
 {
-  return "MoonLiteDRO";
+    return "MoonLiteDRO";
 }
 
 bool MoonLiteDRO::Ack()
@@ -280,7 +282,7 @@ bool MoonLiteDRO::Ack()
 
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[5]={0};
+    char resp[5] = {0};
     short pos = -1;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -331,8 +333,8 @@ bool MoonLiteDRO::updateStepDelay()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[3]={0};
-    char cmd[DRO_CMD]={0};
+    char resp[3] = {0};
+    char cmd[DRO_CMD] = {0};
     short speed;
 
     if (m_ID == 1)
@@ -388,8 +390,8 @@ bool MoonLiteDRO::updateStepMode()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[4]={0};
-    char cmd[DRO_CMD]={0};
+    char resp[4] = {0};
+    char cmd[DRO_CMD] = {0};
 
     if (m_ID == 1)
         strncpy(cmd, ":GH#", DRO_CMD);
@@ -439,7 +441,7 @@ bool MoonLiteDRO::updateTemperature()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[16]={0};
+    char resp[16] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -463,7 +465,7 @@ bool MoonLiteDRO::updateTemperature()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    resp[nbytes_read-1] = '\0';
+    resp[nbytes_read - 1] = '\0';
 
     LOGF_DEBUG("RES <%s>", resp);
 
@@ -488,9 +490,9 @@ bool MoonLiteDRO::updatePosition()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[DRO_CMD]={0};
+    char resp[DRO_CMD] = {0};
     int pos = -1;
-    char cmd[DRO_CMD]={0};
+    char cmd[DRO_CMD] = {0};
 
     if (m_ID == 1)
         strncpy(cmd, ":GP#", DRO_CMD);
@@ -538,8 +540,8 @@ bool MoonLiteDRO::isMoving()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[DRO_CMD]={0};
-    char cmd[DRO_CMD]={0};
+    char resp[DRO_CMD] = {0};
+    char cmd[DRO_CMD] = {0};
 
     if (m_ID == 1)
         strncpy(cmd, ":GI#", DRO_CMD);
@@ -582,11 +584,10 @@ bool MoonLiteDRO::isMoving()
 bool MoonLiteDRO::setTemperatureCalibration(double calibration)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[DRO_CMD]={0};
-    int cal = calibration * 2;
+    char cmd[DRO_CMD] = {0};
 
-    snprintf(cmd, 7, ":PO%02X#", cal);
+    uint8_t hex = static_cast<int8_t>(calibration * 2) & 0xFF;
+    snprintf(cmd, DRO_CMD, ":PO%02X#", hex);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -594,6 +595,7 @@ bool MoonLiteDRO::setTemperatureCalibration(double calibration)
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("setTemperatureCalibration error: %s.", errstr);
         return false;
@@ -606,11 +608,9 @@ bool MoonLiteDRO::setTemperatureCoefficient(double coefficient)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[DRO_CMD]={0};
-
-    int coeff = coefficient * 2;
-
-    snprintf(cmd, 7, ":SC%02X#", coeff);
+    char cmd[DRO_CMD] = {0};
+    uint8_t hex = static_cast<int8_t>(coefficient * 2) & 0xFF;
+    snprintf(cmd, DRO_CMD, ":SC%02X#", hex);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -629,8 +629,7 @@ bool MoonLiteDRO::setTemperatureCoefficient(double coefficient)
 bool MoonLiteDRO::SyncFocuser(uint32_t ticks)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[DRO_CMD]={0};
+    char cmd[DRO_CMD] = {0};
 
     if (m_ID == 1)
         snprintf(cmd, DRO_CMD, ":SP%04X#", ticks);
@@ -642,6 +641,7 @@ bool MoonLiteDRO::SyncFocuser(uint32_t ticks)
     // Set Position
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
+        char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("reset error: %s.", errstr);
         return false;
@@ -654,7 +654,7 @@ bool MoonLiteDRO::gotoAbsPosition(unsigned int position)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[DRO_CMD]={0};
+    char cmd[DRO_CMD] = {0};
 
     if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
     {
@@ -700,7 +700,7 @@ bool MoonLiteDRO::setStepMode(FocusStepMode mode)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[DRO_CMD]={0};
+    char cmd[DRO_CMD] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -735,7 +735,7 @@ bool MoonLiteDRO::setStepDelay(uint8_t delay)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[DRO_CMD]={0};
+    char cmd[DRO_CMD] = {0};
 
     int hex_value = 1;
 
@@ -762,7 +762,7 @@ bool MoonLiteDRO::setTemperatureCompensation(bool enable)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[DRO_CMD]={0};
+    char cmd[DRO_CMD] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -992,7 +992,7 @@ void MoonLiteDRO::TimerHit()
 bool MoonLiteDRO::AbortFocuser()
 {
     int nbytes_written;
-    char cmd[DRO_CMD]={0};
+    char cmd[DRO_CMD] = {0};
 
     strncpy(cmd, (m_ID == 1) ? ":FQ#" : "#:2FQ#", DRO_CMD);
 

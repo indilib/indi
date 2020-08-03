@@ -68,9 +68,10 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         virtual IPState GuideSouth(uint32_t ms) override;
         virtual IPState GuideEast(uint32_t ms) override;
         virtual IPState GuideWest(uint32_t ms) override;
+        virtual bool saveConfigItems(FILE *fp) override;
+
         
     private:
-        void syncSideOfPier();    
         bool Move(TDirection dir, TelescopeMotionCommand command);
         bool selectSlewRate(int index);
         bool isSlewComplete();
@@ -99,6 +100,7 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         void handleStatusChange(void);
         void SendPulseCmd(int8_t direction, uint32_t duration_msec);
         void sendCommand(const char *cmd);
+        void updateMountStatus(char);
    
         // Send Mount time and location settings to client
         bool sendScopeTime();
@@ -118,35 +120,14 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
 
-        ISwitch SlewRateS[10];
+        ISwitch SlewRateS[5];
         ISwitchVectorProperty SlewRateSP;
 
-        ISwitch GuideRateS[10];
+        ISwitch GuideRateS[3];
         ISwitchVectorProperty GuideRateSP;
 
         ISwitch TATrackModeS[3];
         ISwitchVectorProperty TATrackModeSP;
-#if 0
-        // Not implemented in TeenAstro
-        // Tracking Frequency 
-        ISwitchVectorProperty FrequencyAdjustSP;
-        ISwitch FrequencyAdjustS[2];
-        INumberVectorProperty TrackFreqNP;
-        INumber TrackFreqN[1];
-#endif
-        // Backlash
-        INumberVectorProperty BacklashRANP;
-        INumber BacklashRAN[1]; 
-        INumberVectorProperty BacklashDecNP;
-        INumber BacklashDecN[1]; 
-
-        // Use pulse-guide commands
-        ISwitchVectorProperty UsePulseCmdSP;
-        ISwitch UsePulseCmdS[2];
-        bool usePulseCommand { true };
-
-        ISwitchVectorProperty RefractionSP;
-        ISwitch RefractionS[2];
 
         // Site Management 
         ISwitchVectorProperty SiteSP;
@@ -157,10 +138,16 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         ITextVectorProperty SiteNameTP;
         IText SiteNameT[1] {};
 
+        // Error Status
+        ITextVectorProperty ErrorStatusTP;
+        IText ErrorStatusT[1] {};
+
         double targetRA = 0, targetDEC = 0;
         double currentRA = 0, currentDEC = 0;
         uint32_t DBG_SCOPE = 0;
         char OSStat[RB_MAX_LEN];
         char OldOSStat[RB_MAX_LEN];
+        const char *statusCommand;           // :GU# for version 1.1, :GXI# for 1.2 and later
+        const char *guideSpeedCommand;       // :SX90# or SXR0
 
 };

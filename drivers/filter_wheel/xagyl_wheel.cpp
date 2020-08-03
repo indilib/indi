@@ -1,5 +1,6 @@
 /*******************************************************************************
-  Copyright(c) 2015 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2020 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2020 Justin Husted.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -17,44 +18,41 @@
 *******************************************************************************/
 
 #include "xagyl_wheel.h"
-
 #include "indicom.h"
 
 #include <cstring>
+#include <cassert>
 #include <memory>
-
+#include <regex>
 #include <termios.h>
 
-#define XAGYL_MAXBUF 32
-#define SETTINGS_TAB "Settings"
-
-// We declare an auto pointer to XAGYLWheel.
 static std::unique_ptr<XAGYLWheel> xagylWheel(new XAGYLWheel());
-
-void ISPoll(void *p);
 
 void ISGetProperties(const char *dev)
 {
     xagylWheel->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+void ISNewSwitch(const char *dev, const char *name, ISState *states,
+                 char *names[], int n)
 {
     xagylWheel->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[],
+               int n)
 {
     xagylWheel->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+void ISNewNumber(const char *dev, const char *name, double values[],
+                 char *names[], int n)
 {
     xagylWheel->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[],
+               char *blobs[], char *formats[], char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -70,66 +68,83 @@ void ISSnoopDevice(XMLEle *root)
     xagylWheel->ISSnoopDevice(root);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 XAGYLWheel::XAGYLWheel()
 {
-    simData.position   = 1;
-    simData.speed      = 0xA;
-    simData.pulseWidth = 1500;
-    simData.threshold  = 30;
-    simData.jitter     = 1;
-    simData.offset[0] = simData.offset[1] = simData.offset[2] = simData.offset[3] = simData.offset[4] = 0;
-    strncpy(simData.product, "Xagyl FW5125VX", 16);
-    strncpy(simData.version, "FW3.1.5", 16);
-    strncpy(simData.serial, "S/N: 123456", 16);
-
-    setVersion(0, 2);
+    setVersion(0, 3);
 
     setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 
     setDefaultPollingPeriod(500);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 XAGYLWheel::~XAGYLWheel()
 {
     delete[] OffsetN;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 const char *XAGYLWheel::getDefaultName()
 {
     return "XAGYL Wheel";
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::initProperties()
 {
     INDI::FilterWheel::initProperties();
 
     // Firmware info
-    IUFillText(&FirmwareInfoT[0], "Product", "Product", nullptr);
-    IUFillText(&FirmwareInfoT[1], "Firmware", "Firmware", nullptr);
-    IUFillText(&FirmwareInfoT[2], "Serial #", "Serial #", nullptr);
-    IUFillTextVector(&FirmwareInfoTP, FirmwareInfoT, 3, getDeviceName(), "Info", "Info", MAIN_CONTROL_TAB, IP_RO, 60,
-                     IPS_IDLE);
+    IUFillText(&FirmwareInfoT[FIRMWARE_PRODUCT], "FIRMWARE_PRODUCT", "Product",
+               nullptr);
+    IUFillText(&FirmwareInfoT[FIRMWARE_VERSION], "FIRMWARE_VERSION", "Version",
+               nullptr);
+    IUFillText(&FirmwareInfoT[FIRMWARE_SERIAL], "FIRMWARE_SERIAL", "Serial #",
+               nullptr);
+    IUFillTextVector(&FirmwareInfoTP, FirmwareInfoT, 3, getDeviceName(),
+                     "Info", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Settings
-    IUFillNumber(&SettingsN[0], "Speed", "Speed", "%.f", 0, 100, 10., 0.);
-    IUFillNumber(&SettingsN[1], "Jitter", "Jitter", "%.f", 0, 10, 1., 0.);
-    IUFillNumber(&SettingsN[2], "Threshold", "Threshold", "%.f", 0, 100, 10., 0.);
-    IUFillNumber(&SettingsN[3], "Pulse Width", "Pulse", "%.f", 100, 10000, 100., 0.);
-    IUFillNumberVector(&SettingsNP, SettingsN, 4, getDeviceName(), "Settings", "Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&SettingsN[SETTING_SPEED], "SETTING_SPEED", "Speed", "%.f",
+                 0, 100, 10., 0.);
+    IUFillNumber(&SettingsN[SETTING_JITTER], "SETTING_JITTER", "Jitter", "%.f",
+                 1, 10, 1., 0.);
+    IUFillNumber(&SettingsN[SETTING_THRESHOLD], "SETTING_THRESHOLD",
+                 "Threshold", "%.f", 10, 30, 1., 0.);
+    IUFillNumber(&SettingsN[SETTING_PW], "SETTING_PW", "Pulse", "%.f",
+                 100, 10000, 100., 0.);
+    IUFillNumberVector(&SettingsNP, SettingsN, 4, getDeviceName(), "Settings",
+                       "Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Reset
-    IUFillSwitch(&ResetS[0], "Reboot", "Reboot", ISS_OFF);
-    IUFillSwitch(&ResetS[1], "Initialize", "Initialize", ISS_OFF);
-    IUFillSwitch(&ResetS[2], "Clear Calibration", "Clear Calibration", ISS_OFF);
-    IUFillSwitch(&ResetS[3], "Perform Calibration", "Perform Calibration", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 4, getDeviceName(), "Commands", "Commands", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
-                       IPS_IDLE);
+    IUFillSwitch(&ResetS[COMMAND_REBOOT], "COMMAND_REBOOT", "Reboot", ISS_OFF);
+    IUFillSwitch(&ResetS[COMMAND_INIT], "COMMAND_INIT", "Initialize", ISS_OFF);
+    IUFillSwitch(&ResetS[COMMAND_CLEAR_CALIBRATION],
+                 "COMMAND_CLEAR_CALIBRATION Calibration", "Clear Calibration",
+                 ISS_OFF);
+    IUFillSwitch(&ResetS[COMMAND_PERFORM_CALIBRAITON],
+                 "COMMAND_PERFORM_CALIBRAITON", "Perform Calibration", ISS_OFF);
+    IUFillSwitchVector(&ResetSP, ResetS, 4, getDeviceName(),
+                       "Commands", "Commands", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     addAuxControls();
 
     return true;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::updateProperties()
 {
     INDI::FilterWheel::updateProperties();
@@ -154,80 +169,97 @@ bool XAGYLWheel::updateProperties()
     return true;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::Handshake()
 {
-    char resp[XAGYL_MAXBUF]={0};
-    bool rc = getCommand(INFO_FIRMWARE_VERSION, resp);
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
-    if (rc)
+    tcflush(PortFD, TCIOFLUSH);
+
+    snprintf(cmd, DRIVER_LEN, "I%d", INFO_FIRMWARE_VERSION);
+    if (!sendCommand(cmd, res))
+        return false;
+
+    int firmware_version = 0;
+    int fw_rc = sscanf(res, "%d", &firmware_version);
+
+    if (fw_rc != 1)
+        fw_rc = sscanf(res, "FW %d", &firmware_version);
+
+    if (fw_rc <= 0)
     {
-        int fwver = 0;
-        int fw_rc = sscanf(resp, "%d", &fwver);
-
-        if (fw_rc != 1)
-            fw_rc = sscanf(resp, "FW %d", &fwver);
-
-        if (fw_rc > 0)
-        {
-            firmwareVersion = fwver;
-
-            // We don't have pulse width for version < 3
-            if (firmwareVersion < 3)
-                SettingsNP.nnp--;
-
-            if (getMaxFilterSlots())
-            {
-                initOffset();
-
-                LOG_INFO("XAGYL is online. Getting filter parameters...");
-                return true;
-            }
-        }
-        else
-            LOGF_ERROR("Unable to parse (%s)", resp);
+        LOGF_ERROR("Unable to parse response <%s>", res);
+        return false;
     }
 
-    LOG_INFO("Error retrieving data from XAGYL Filter Wheel, please ensure filter wheel is "
-                                     "powered and the port is correct.");
-    return false;
+    m_FirmwareVersion = firmware_version;
+
+    // We don't have pulse width for version < 3
+    SettingsNP.nnp = 4;
+    if (m_FirmwareVersion < 3)
+        SettingsNP.nnp = 3;
+
+    bool rc = getMaxFilterSlots();
+    if (!rc)
+    {
+        LOG_ERROR("Unable to parse max filter slots.");
+        return false;
+    }
+
+    initOffset();
+
+    rc = getFilterPosition();
+    if (!rc)
+    {
+        LOG_ERROR("Unable to initialize filter position.");
+        return false;
+    }
+
+    LOG_INFO("XAGYL is online. Getting filter parameters...");
+
+    return true;
 }
 
-bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states,
+                             char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(ResetSP.name, name) == 0)
         {
             IUUpdateSwitch(&ResetSP, states, names, n);
-            int value = IUFindOnSwitchIndex(&ResetSP);
+            int command = IUFindOnSwitchIndex(&ResetSP);
             IUResetSwitch(&ResetSP);
 
-            if (value == 3)
-                value = 6;
-
-            bool rc = reset(value);
-
-            if (rc)
+            switch (command)
             {
-                switch (value)
-                {
-                    case 0:
-                        LOG_INFO("Executing hard reboot...");
-                        break;
+                case COMMAND_REBOOT:
+                    LOG_INFO("Executing hard reboot...");
+                    break;
 
-                    case 1:
-                        LOG_INFO("Restarting and moving to filter position #1...");
-                        break;
+                case COMMAND_INIT:
+                    LOG_INFO("Restarting and moving to filter position #1...");
+                    break;
 
-                    case 2:
-                        LOG_INFO("Calibration removed.");
-                        break;
+                case COMMAND_CLEAR_CALIBRATION:
+                    LOG_INFO("Calibration removed.");
+                    break;
 
-                    case 6:
-                        LOG_INFO("Calibrating...");
-                        break;
-                }
+                case COMMAND_PERFORM_CALIBRAITON:
+                    LOG_INFO("Calibrating...");
+                    break;
             }
+
+            bool rc = reset(command);
+            if (rc)
+                LOG_INFO("Done.");
+            else
+                LOG_ERROR("Error. Please reset device.");
 
             ResetSP.s = rc ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&ResetSP, nullptr);
@@ -239,115 +271,113 @@ bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states,
     return INDI::FilterWheel::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
+                             char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    if (!(dev != nullptr && strcmp(dev, getDeviceName()) == 0))
+        return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
+
+    // Handle Offsets
+    if (strcmp(OffsetNP.name, name) == 0)
     {
-        if (strcmp(OffsetNP.name, name) == 0)
+        // Setting offsets changes the current filter.
+        int origFiler = CurrentFilter;
+        bool rc_offset = true;
+
+        for (int i = 0; i < n; i++)
         {
-            bool rc_offset = true;
+            if (0 != strcmp(names[i], OffsetN[i].name))
+                continue;
 
-            for (int i = 0; i < n; i++)
-            {
-                if (strcmp(names[i], OffsetN[i].name) == 0)
-                {
-                    while (values[i] != OffsetN[i].value && rc_offset)
-                    {
-                        if (values[i] > OffsetN[i].value)
-                            rc_offset = setOffset(i, 1);
-                        else
-                            rc_offset = setOffset(i, -1);
-                    }
-                }
-            }
+            int newOffset = values[i];
+            int curOffset = OffsetN[i].value;
 
-            OffsetNP.s = rc_offset ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&OffsetNP, nullptr);
-            return true;
+            if (newOffset != curOffset)
+                rc_offset &= setOffset(i + 1, newOffset - curOffset);
         }
 
-        if (strcmp(SettingsNP.name, name) == 0)
+        OffsetNP.s = rc_offset ? IPS_OK : IPS_ALERT;
+        IDSetNumber(&OffsetNP, nullptr);
+
+        // Return filter to original position.
+        if (!SelectFilter(origFiler))
+            return false;
+
+        return true;
+    }
+
+    // Handle Speed, Jitter, Threshold, Pulse width
+    if (strcmp(SettingsNP.name, name) == 0)
+    {
+        int newSpeed = -1, newJitter = -1, newThreshold = -1,
+            newPulseWidth = -1;
+
+        for (int i = 0; i < n; i++)
         {
-            double newSpeed = 0, newJitter = 0, newThreshold = 0, newPulseWidth = 0;
-            for (int i = 0; i < n; i++)
-            {
-                if (strcmp(names[i], SettingsN[SET_SPEED].name) == 0)
-                    newSpeed = values[i];
-                else if (strcmp(names[i], SettingsN[SET_JITTER].name) == 0)
-                    newJitter = values[i];
-                if (strcmp(names[i], SettingsN[SET_THRESHOLD].name) == 0)
-                    newThreshold = values[i];
-                if (strcmp(names[i], SettingsN[SET_PULSE_WITDH].name) == 0)
-                    newPulseWidth = values[i];
-            }
-
-            bool rc_speed = true, rc_jitter = true, rc_threshold = true, rc_pulsewidth = true;
-
-            if (newSpeed != SettingsN[SET_SPEED].value)
-            {
-                rc_speed = setCommand(SET_SPEED, newSpeed);
-                getMaximumSpeed();
-            }
-
-            // Jitter
-            while (newJitter != SettingsN[SET_JITTER].value && rc_jitter)
-            {
-                if (newJitter > SettingsN[SET_JITTER].value)
-                {
-                    rc_jitter &= setCommand(SET_JITTER, 1);
-                    getJitter();
-                }
-                else
-                {
-                    rc_jitter &= setCommand(SET_JITTER, -1);
-                    getJitter();
-                }
-            }
-
-            // Threshold
-            while (newThreshold != SettingsN[SET_THRESHOLD].value && rc_threshold)
-            {
-                if (newThreshold > SettingsN[SET_THRESHOLD].value)
-                {
-                    rc_threshold &= setCommand(SET_THRESHOLD, 1);
-                    getThreshold();
-                }
-                else
-                {
-                    rc_threshold &= setCommand(SET_THRESHOLD, -1);
-                    getThreshold();
-                }
-            }
-
-            // Pulse width
-            while (firmwareVersion >= 3 && newPulseWidth != SettingsN[SET_PULSE_WITDH].value && rc_pulsewidth)
-            {
-                if (newPulseWidth > SettingsN[SET_PULSE_WITDH].value)
-                {
-                    rc_pulsewidth &= setCommand(SET_PULSE_WITDH, 1);
-                    getPulseWidth();
-                }
-                else
-                {
-                    rc_pulsewidth &= setCommand(SET_PULSE_WITDH, -1);
-                    getPulseWidth();
-                }
-            }
-
-            if (rc_speed && rc_jitter && rc_threshold && rc_pulsewidth)
-                SettingsNP.s = IPS_OK;
-            else
-                SettingsNP.s = IPS_ALERT;
-
-            IDSetNumber(&SettingsNP, nullptr);
-
-            return true;
+            if (!strcmp(names[i], SettingsN[SET_SPEED].name))
+                newSpeed = values[i];
+            if (!strcmp(names[i], SettingsN[SET_JITTER].name))
+                newJitter = values[i];
+            if (!strcmp(names[i], SettingsN[SET_THRESHOLD].name))
+                newThreshold = values[i];
+            if (!strcmp(names[i], SettingsN[SET_PULSE_WITDH].name))
+                newPulseWidth = values[i];
         }
+
+        bool rc_speed = true, rc_jitter = true, rc_threshold = true,
+             rc_pulsewidth = true;
+
+        // Speed
+        if (newSpeed >= 0)
+        {
+            rc_speed = setMaximumSpeed(newSpeed);
+            getMaximumSpeed();
+        }
+
+        // Jitter
+        if (newJitter >= 0)
+        {
+            int curJitter = SettingsN[SET_JITTER].value;
+            rc_jitter &= setRelativeCommand(SET_JITTER, newJitter - curJitter);
+            getJitter();
+        }
+
+        // Threshold
+        if (newThreshold >= 0)
+        {
+            int curThreshold = SettingsN[SET_THRESHOLD].value;
+            rc_threshold &= setRelativeCommand(SET_THRESHOLD,
+                                               newThreshold - curThreshold);
+            getThreshold();
+        }
+
+        // Pulse width
+        if (m_FirmwareVersion >= 3 && newPulseWidth >= 0)
+        {
+            int curPulseWidth = SettingsN[SET_PULSE_WITDH].value;
+            rc_pulsewidth &= setRelativeCommand(SET_PULSE_WITDH, (newPulseWidth - curPulseWidth) / 100.0);
+            getPulseWidth();
+        }
+
+        if (rc_speed && rc_jitter && rc_threshold && rc_pulsewidth)
+            SettingsNP.s = IPS_OK;
+        else
+            SettingsNP.s = IPS_ALERT;
+
+        IDSetNumber(&SettingsNP, nullptr);
+
+        return true;
     }
 
     return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 void XAGYLWheel::initOffset()
 {
     delete [] OffsetN;
@@ -357,233 +387,100 @@ void XAGYLWheel::initOffset()
     {
         snprintf(offsetName, MAXINDINAME, "OFFSET_%d", i + 1);
         snprintf(offsetLabel, MAXINDINAME, "#%d Offset", i + 1);
-        IUFillNumber(OffsetN + i, offsetName, offsetLabel, "%.f", -99, 99, 10, 0);
+        IUFillNumber(OffsetN + i, offsetName, offsetLabel, "%.f", -9, 9, 1, 0);
     }
 
-    IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotN[0].max, getDeviceName(), "Offsets", "", FILTER_TAB, IP_RW, 0,
-                       IPS_IDLE);
+    IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotN[0].max, getDeviceName(),
+                       "Offsets", "", FILTER_TAB, IP_RW, 0, IPS_IDLE);
 }
 
-bool XAGYLWheel::getCommand(GET_COMMAND cmd, char *result)
+/////////////////////////////////////////////////////////////////////////////
+/// Speed is encoded as S# where number is a hex value from 0 to 10, as a
+/// percentage in 10% increments.
+/////////////////////////////////////////////////////////////////////////////
+bool XAGYLWheel::setMaximumSpeed(int value)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[XAGYL_MAXBUF]={0};
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    snprintf(command, XAGYL_MAXBUF, "I%d", cmd);
-
-    LOGF_DEBUG("CMD <%s>", command);
-
-    if (!isSimulation() && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
-        return false;
-    }
-
-    if (isSimulation())
-    {
-        switch (cmd)
-        {
-            case INFO_PRODUCT_NAME:
-                snprintf(result, XAGYL_MAXBUF, "%s", simData.product);
-                break;
-
-            case INFO_FIRMWARE_VERSION:
-                snprintf(result, XAGYL_MAXBUF, "%s", simData.version);
-                break;
-
-            case INFO_SERIAL_NUMBER:
-                snprintf(result, XAGYL_MAXBUF, "%s", simData.serial);
-                break;
-
-            case INFO_FILTER_POSITION:
-                snprintf(result, XAGYL_MAXBUF, "P%d", simData.position);
-                break;
-
-            case INFO_MAX_SPEED:
-                snprintf(result, XAGYL_MAXBUF, "MaxSpeed %02d%%", simData.speed * 10);
-                break;
-
-            case INFO_JITTER:
-                snprintf(result, XAGYL_MAXBUF, "Jitter %d", simData.jitter);
-                break;
-
-            case INFO_OFFSET:
-                snprintf(result, XAGYL_MAXBUF, "P%d Offset %02d", CurrentFilter, simData.offset[CurrentFilter - 1]);
-                break;
-
-            case INFO_THRESHOLD:
-                snprintf(result, XAGYL_MAXBUF, "Threshold %02d", simData.threshold);
-                break;
-
-            case INFO_MAX_SLOTS:
-                snprintf(result, XAGYL_MAXBUF, "FilterSlots %d", 5);
-                break;
-
-            case INFO_PULSE_WIDTH:
-                snprintf(result, XAGYL_MAXBUF, "Pulse Width %05duS", simData.pulseWidth);
-                break;
-        }
-    }
-    else
-    {
-        if ((rc = tty_read_section(PortFD, result, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s: %s.", command, errstr);
-            return false;
-        }
-
-        result[nbytes_read - 1] = '\0';
-    }
-
-    LOGF_DEBUG("RES <%s>", result);
-
-    return true;
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "S%X", value / 10);
+    return sendCommand(cmd, res);
 }
 
-bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
+/////////////////////////////////////////////////////////////////////////////
+/// These commands are implemented by sending the relevant set command multiple
+/// times.  Each command shifts the value by 1 in the given direction.
+///
+/// TODO: Verify this is true for pulse_width on v3+ HW (and the range).
+/////////////////////////////////////////////////////////////////////////////
+bool XAGYLWheel::setRelativeCommand(SET_COMMAND command, int shift)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[XAGYL_MAXBUF]={0};
+    if (shift == 0)
+        return true;
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    switch (cmd)
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    switch (command)
     {
-        case SET_SPEED:
-            snprintf(command, XAGYL_MAXBUF, "S%X", value / 10);
-            break;
-
         case SET_JITTER:
-            snprintf(command, XAGYL_MAXBUF, "%s0", value > 0 ? "]" : "[");
+            snprintf(cmd, DRIVER_LEN, "%s0", shift > 0 ? "]" : "[");
             break;
 
         case SET_THRESHOLD:
-            snprintf(command, XAGYL_MAXBUF, "%s0", value > 0 ? "}" : "{");
+            snprintf(cmd, DRIVER_LEN, "%s0", shift > 0 ? "}" : "{");
             break;
 
         case SET_PULSE_WITDH:
-            snprintf(command, XAGYL_MAXBUF, "%s0", value > 0 ? "M" : "N");
+            snprintf(cmd, DRIVER_LEN, "%s0", shift > 0 ? "M" : "N");
             break;
-
-        case SET_POSITION:
-            snprintf(command, XAGYL_MAXBUF, "G%X", value);
-            break;
-    }
-
-    LOGF_DEBUG("CMD <%s>", command);
-
-    if (!isSimulation() && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
-        return false;
-    }
-
-    // Commands that have no reply
-    switch (cmd)
-    {
-        case SET_POSITION:
-            simData.position = value;
-            return true;
 
         default:
-            break;
+            assert(false);
     }
 
-    char response[XAGYL_MAXBUF]={0};
-
-    if (isSimulation())
+    for (int i = 0; i < std::abs(shift); ++i)
     {
-        switch (cmd)
-        {
-            case SET_SPEED:
-                simData.speed = value / 10;
-                snprintf(response, XAGYL_MAXBUF, "Speed=%3d%%", simData.speed * 10);
-                break;
-
-            case SET_JITTER:
-                simData.jitter += (value > 0 ? 1 : -1);
-                if (simData.jitter > SettingsN[SET_JITTER].max)
-                    simData.jitter = SettingsN[SET_JITTER].max;
-                else if (simData.jitter < SettingsN[SET_JITTER].min)
-                    simData.jitter = SettingsN[SET_JITTER].min;
-
-                snprintf(response, XAGYL_MAXBUF, "Jitter %d", simData.jitter);
-                break;
-
-            case SET_THRESHOLD:
-                simData.threshold += (value > 0 ? 1 : -1);
-                if (simData.threshold > SettingsN[SET_THRESHOLD].max)
-                    simData.threshold = SettingsN[SET_THRESHOLD].max;
-                else if (simData.threshold < SettingsN[SET_THRESHOLD].min)
-                    simData.threshold = SettingsN[SET_THRESHOLD].min;
-
-                snprintf(response, XAGYL_MAXBUF, "Threshold %d", simData.threshold);
-                break;
-
-            case SET_PULSE_WITDH:
-                simData.pulseWidth += 100 * (value > 0 ? 1 : -1);
-                if (simData.pulseWidth > SettingsN[SET_PULSE_WITDH].max)
-                    simData.pulseWidth = SettingsN[SET_PULSE_WITDH].max;
-                else if (simData.pulseWidth < SettingsN[SET_PULSE_WITDH].min)
-                    simData.pulseWidth = SettingsN[SET_PULSE_WITDH].min;
-
-                snprintf(response, XAGYL_MAXBUF, "pulseWidth %d", simData.pulseWidth);
-                break;
-
-            default:
-                break;
-        }
+        if (!sendCommand(cmd, res))
+            return false;
     }
-    else if ((rc = tty_read_section(PortFD, response, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
-        return false;
-    }
-
-    LOGF_DEBUG("RES <%s>", response);
 
     return true;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::SelectFilter(int f)
 {
-    TargetFilter = f;
-
-    bool rc = setCommand(SET_POSITION, f);
-
-    if (rc)
+    // The wheel does not return a response when setting the value to the
+    // current number.
+    if (CurrentFilter == f)
     {
-        SetTimer(POLLMS);
+        SelectFilterDone(CurrentFilter);
         return true;
     }
-    else
+
+    // The wheel moves to a new position, and responds with one line or two.
+    // On success, the first line will be P#.  On failure, it is an ERROR.
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "G%X", f);
+    if (!sendCommand(cmd, res))
         return false;
+
+    // On success, the wheel may also return an ERROR on a second line.
+    char opt[DRIVER_LEN] = {0};
+    if (!receiveResponse(opt, true))
+        return false;
+
+    if (!getFilterPosition())
+        return false;
+
+    SelectFilterDone(CurrentFilter);
+
+    return true;
+
 }
 
-void XAGYLWheel::TimerHit()
-{
-    bool rc = getFilterPosition();
-
-    if (rc == false)
-    {
-        SetTimer(POLLMS);
-        return;
-    }
-
-    if (CurrentFilter == TargetFilter)
-        SelectFilterDone(CurrentFilter);
-    else
-        SetTimer(POLLMS);
-}
-
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::getStartupData()
 {
     bool rc1 = getFirmwareInfo();
@@ -596,25 +493,37 @@ bool XAGYLWheel::getStartupData()
     return (rc1 && rc2);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::getFirmwareInfo()
 {
-    char resp[XAGYL_MAXBUF]={0};
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
-    bool rc1 = getCommand(INFO_PRODUCT_NAME, resp);
-    if (rc1)
-        IUSaveText(&FirmwareInfoT[0], resp);
+    // Product
+    snprintf(cmd, DRIVER_LEN, "I%d", INFO_PRODUCT_NAME);
+    if (!sendCommand(cmd, res))
+        return false;
+    IUSaveText(&FirmwareInfoT[FIRMWARE_PRODUCT], res);
 
-    bool rc2 = getCommand(INFO_FIRMWARE_VERSION, resp);
-    if (rc2)
-        IUSaveText(&FirmwareInfoT[1], resp);
+    // Version
+    snprintf(cmd, DRIVER_LEN, "I%d", INFO_FIRMWARE_VERSION);
+    if (!sendCommand(cmd, res))
+        return false;
+    IUSaveText(&FirmwareInfoT[FIRMWARE_VERSION], res);
 
-    bool rc3 = getCommand(INFO_SERIAL_NUMBER, resp);
-    if (rc3)
-        IUSaveText(&FirmwareInfoT[2], resp);
+    // Serial Number
+    snprintf(cmd, DRIVER_LEN, "I%d", INFO_SERIAL_NUMBER);
+    if (!sendCommand(cmd, res))
+        return false;
+    IUSaveText(&FirmwareInfoT[FIRMWARE_SERIAL], res);
 
-    return (rc1 && rc2 && rc3);
+    return true;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::getSettingInfo()
 {
     bool rc1 = getMaximumSpeed();
@@ -622,20 +531,23 @@ bool XAGYLWheel::getSettingInfo()
     bool rc3 = getThreshold();
     bool rc4 = true;
 
-    if (firmwareVersion >= 3)
+    if (m_FirmwareVersion >= 3)
         rc4 = getPulseWidth();
 
     return (rc1 && rc2 && rc3 && rc4);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::getFilterPosition()
 {
-    char resp[XAGYL_MAXBUF]={0};
-
-    if (!getCommand(INFO_FILTER_POSITION, resp))
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "I%d", INFO_FILTER_POSITION);
+    if (!sendCommand(cmd, res))
         return false;
 
-    int rc = sscanf(resp, "P%d", &CurrentFilter);
+    int rc = sscanf(res, "P%d", &CurrentFilter);
 
     if (rc > 0)
     {
@@ -646,16 +558,18 @@ bool XAGYLWheel::getFilterPosition()
         return false;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::getMaximumSpeed()
 {
-    char resp[XAGYL_MAXBUF]={0};
-
-    if (!getCommand(INFO_MAX_SPEED, resp))
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "I%d", INFO_MAX_SPEED);
+    if (!sendCommand(cmd, res))
         return false;
 
     int maxSpeed = 0;
-    int rc       = sscanf(resp, "MaxSpeed %d%%", &maxSpeed);
-
+    int rc       = sscanf(res, "MaxSpeed %d%%", &maxSpeed);
     if (rc > 0)
     {
         SettingsN[SET_SPEED].value = maxSpeed;
@@ -664,15 +578,18 @@ bool XAGYLWheel::getMaximumSpeed()
     return false;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::getJitter()
 {
-    char resp[XAGYL_MAXBUF]={0};
-
-    if (!getCommand(INFO_JITTER, resp))
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "I%d", INFO_JITTER);
+    if (!sendCommand(cmd, res))
         return false;
 
     int jitter = 0;
-    int rc     = sscanf(resp, "Jitter %d", &jitter);
+    int rc     = sscanf(res, "Jitter %d", &jitter);
 
     if (rc > 0)
     {
@@ -682,15 +599,18 @@ bool XAGYLWheel::getJitter()
     return false;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::getThreshold()
 {
-    char resp[XAGYL_MAXBUF]={0};
-
-    if (!getCommand(INFO_THRESHOLD, resp))
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "I%d", INFO_THRESHOLD);
+    if (!sendCommand(cmd, res))
         return false;
 
     int threshold = 0;
-    int rc        = sscanf(resp, "Threshold %d", &threshold);
+    int rc        = sscanf(res, "Threshold %d", &threshold);
 
     if (rc > 0)
     {
@@ -700,15 +620,18 @@ bool XAGYLWheel::getThreshold()
     return false;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::getPulseWidth()
 {
-    char resp[XAGYL_MAXBUF]={0};
-
-    if (!getCommand(INFO_PULSE_WIDTH, resp))
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "I%d", INFO_PULSE_WIDTH);
+    if (!sendCommand(cmd, res))
         return false;
 
     int pulseWidth = 0;
-    int rc         = sscanf(resp, "Pulse Width %duS", &pulseWidth);
+    int rc         = sscanf(res, "PulseWidth %duS", &pulseWidth);
 
     if (rc > 0)
     {
@@ -718,15 +641,18 @@ bool XAGYLWheel::getPulseWidth()
     return false;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::getMaxFilterSlots()
 {
-    char resp[XAGYL_MAXBUF]={0};
-
-    if (!getCommand(INFO_MAX_SLOTS, resp))
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "I%d", INFO_MAX_SLOTS);
+    if (!sendCommand(cmd, res))
         return false;
 
     int maxFilterSlots = 0;
-    int rc             = sscanf(resp, "FilterSlots %d", &maxFilterSlots);
+    int rc             = sscanf(res, "FilterSlots %d", &maxFilterSlots);
 
     if (rc > 0)
     {
@@ -736,69 +662,83 @@ bool XAGYLWheel::getMaxFilterSlots()
     return false;
 }
 
-bool XAGYLWheel::reset(int value)
+/////////////////////////////////////////////////////////////////////////////
+/// Reset commands perform various actions:
+///
+/// 0 & 1: Hard/soft reboot. Prints a message like:
+///  Restart�
+///  Xagyl FW5125V1
+///  FW 1.9.9
+///  Initializing
+///  P1
+///
+/// (1 does not print "Restart")
+///
+/// 2 prints "Calibration Removed"
+/// 6 prints nothing.
+///
+/// For safety, 0 & 1 need to wait until a line with "P1" appears.
+/////////////////////////////////////////////////////////////////////////////
+bool XAGYLWheel::reset(int command)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[XAGYL_MAXBUF]={0};
+    char cmd[DRIVER_LEN] = {0}, resbuf[DRIVER_LEN] = {0};
+    char *res = resbuf;
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    snprintf(command, XAGYL_MAXBUF, "R%d", value);
-
-    LOGF_DEBUG("CMD (%s)", command);
-
-    if (!isSimulation() && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+    int value = command;
+    if (command == COMMAND_PERFORM_CALIBRAITON)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
-        return false;
+        value = 6;
+        res = nullptr;
     }
 
-    if (value == 1)
-        simData.position = 1;
+    snprintf(cmd, DRIVER_LEN, "R%d", value);
+    if (!sendCommand(cmd, res))
+        return false;
+
+    // Wait for P1 on relevant commands.
+    if (command == COMMAND_REBOOT || command == COMMAND_INIT)
+    {
+        do
+        {
+            if (!receiveResponse(res))
+                return false;
+        }
+        while (0 != strcmp(res, "P1"));
+    }
 
     getFilterPosition();
+    getStartupData();
 
     return true;
 }
 
-bool XAGYLWheel::setOffset(int filter, int value)
+/////////////////////////////////////////////////////////////////////////////
+/// Offset values are relative encoded to the current filter selected.
+///
+/// Unfortunately, this means that to set them we have to move the wheel.
+///
+/// The valid range is -10 to 10, but the device prints -: for -10. Because of
+/// this, we only support -9 to 9 for simplicity.
+/////////////////////////////////////////////////////////////////////////////
+bool XAGYLWheel::setOffset(int filter, int shift)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[XAGYL_MAXBUF]={0};
-    char resp[XAGYL_MAXBUF]={0};
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    snprintf(command, XAGYL_MAXBUF, "%s", value > 0 ? "(" : ")");
-
-    LOGF_DEBUG("CMD (%s)", command);
-
-    if (!isSimulation() && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
+    if (!SelectFilter(filter))
         return false;
-    }
 
-    if (isSimulation())
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "%s0", shift > 0 ? "(" : ")");
+
+    // Set filter offset.
+    for (int i = 0; i < std::abs(shift); ++i)
     {
-        simData.offset[filter] += value;
-        snprintf(resp, XAGYL_MAXBUF, "P%d Offset %02d", filter + 1, simData.offset[filter]);
-    }
-    else if ((rc = tty_read_section(PortFD, resp, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
-        return false;
+        res[0] = 0;
+        if (!sendCommand(cmd, res))
+            return false;
     }
 
-    LOGF_DEBUG("RES (%s)", resp);
-
+    // Update filter offset based on result.
     int filter_num = 0, offset = 0;
-    rc = sscanf(resp, "P%d Offset %d", &filter_num, &offset);
+    int rc = sscanf(res, "P%d Offset %d", &filter_num, &offset);
 
     if (rc > 0)
     {
@@ -809,44 +749,18 @@ bool XAGYLWheel::setOffset(int filter, int value)
         return false;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::getOffset(int filter)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[XAGYL_MAXBUF]={0};
-    char resp[XAGYL_MAXBUF]={0};
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    snprintf(command, XAGYL_MAXBUF, "O%d", filter + 1);
-
-    LOGF_DEBUG("CMD (%s)", command);
-
-    if (!isSimulation() && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
+    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    snprintf(cmd, DRIVER_LEN, "O%d", filter + 1);
+    if (!sendCommand(cmd, res))
         return false;
-    }
-
-    if (isSimulation())
-        snprintf(resp, XAGYL_MAXBUF, "P%d Offset %02d", filter + 1, simData.offset[filter]);
-    else
-    {
-        if ((rc = tty_read_section(PortFD, resp, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s: %s.", command, errstr);
-            return false;
-        }
-
-        resp[nbytes_read - 1] = '\0';
-    }
-
-    LOGF_DEBUG("RES (%s)", resp);
 
     int filter_num = 0, offset = 0;
-    rc = sscanf(resp, "P%d Offset %d", &filter_num, &offset);
+    int rc = sscanf(res, "P%d Offset %d", &filter_num, &offset);
 
     if (rc > 0)
     {
@@ -857,6 +771,9 @@ bool XAGYLWheel::getOffset(int filter)
         return false;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool XAGYLWheel::saveConfigItems(FILE *fp)
 {
     INDI::FilterWheel::saveConfigItems(fp);
@@ -866,4 +783,83 @@ bool XAGYLWheel::saveConfigItems(FILE *fp)
         IUSaveConfigNumber(fp, &OffsetNP);
 
     return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Read a line from the device and handle it
+/////////////////////////////////////////////////////////////////////////////
+bool XAGYLWheel::receiveResponse(char * res, bool optional)
+{
+    int nbytes_read = 0, rc = -1;
+
+    int timeout = optional ? OPTIONAL_TIMEOUT : DRIVER_TIMEOUT;
+    rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR,
+                           timeout, &nbytes_read);
+    if (optional && rc == TTY_TIME_OUT)
+    {
+        res[0] = '\0';
+        LOG_DEBUG("RES (optional): not found.");
+        return true;
+    }
+    else if (rc != TTY_OK)
+    {
+        char errstr[MAXRBUF] = {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial read error: %s.", errstr);
+        return false;
+    }
+
+    // Remove extra \r
+    assert(nbytes_read > 1);
+    res[nbytes_read - 2] = 0;
+
+    // If the response starts with "ERROR" the command failed.
+    if (0 == strncmp(res, "ERROR", 5))
+    {
+        LOGF_WARN("Device error: %s", res);
+        if (!optional)
+            return false;
+    }
+    else
+        LOGF_DEBUG("RES <%s>", res);
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Send Command
+/////////////////////////////////////////////////////////////////////////////
+bool XAGYLWheel::sendCommand(const char * cmd, char * res)
+{
+    int nbytes_written = 0, rc = -1;
+
+    // Send
+    LOGF_DEBUG("CMD <%s>", cmd);
+    rc = tty_write_string(PortFD, cmd, &nbytes_written);
+
+    if (rc != TTY_OK)
+    {
+        char errstr[MAXRBUF] = {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial write error: %s.", errstr);
+        return false;
+    }
+
+    // Receive
+    if (!res)
+        return true;
+
+    return receiveResponse(res);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+void XAGYLWheel::hexDump(char * buf, const char * data, int size)
+{
+    for (int i = 0; i < size; i++)
+        sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
+
+    if (size > 0)
+        buf[3 * size - 1] = '\0';
 }

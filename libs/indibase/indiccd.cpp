@@ -31,7 +31,6 @@
 
 #include "fpack/fpack.h"
 #include "indicom.h"
-#include "stream/streammanager.h"
 #include "locale_compat.h"
 
 #include <fitsio.h>
@@ -41,6 +40,7 @@
 #include <libnova/airmass.h>
 #include <libnova/transform.h>
 #include <libnova/ln_types.h>
+#include <libastro.h>
 
 #include <cmath>
 #include <regex>
@@ -112,12 +112,13 @@ CCD::CCD()
 
     RA              = std::numeric_limits<double>::quiet_NaN();
     Dec             = std::numeric_limits<double>::quiet_NaN();
+    pierSide        = -1;
     J2000RA         = std::numeric_limits<double>::quiet_NaN();
     J2000DE         = std::numeric_limits<double>::quiet_NaN();
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
     RotatorAngle    = std::numeric_limits<double>::quiet_NaN();
     // JJ ed 2019-12-10
-    FocusPos        = std::numeric_limits<long>::quiet_NaN();
+    FocuserPos      = std::numeric_limits<long>::quiet_NaN();
 
     Airmass         = std::numeric_limits<double>::quiet_NaN();
     Latitude        = std::numeric_limits<double>::quiet_NaN();
@@ -141,16 +142,8 @@ void CCD::SetCCDCapability(uint32_t cap)
     else
         setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);
 
-    if (HasStreaming() && Streamer.get() == nullptr)
-    {
-        Streamer.reset(new StreamManager(this));
-        Streamer->initProperties();
-    }
-
-    if (HasDSP() && DSP.get() == nullptr)
-    {
-        DSP.reset(new DSP::Manager(this));
-    }
+    HasStreaming();
+    HasDSP();
 }
 
 bool CCD::initProperties()
@@ -199,15 +192,15 @@ bool CCD::initProperties()
                        IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Info
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y], "CCD_MAX_Y", "Max. Height", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE], "CCD_PIXEL_SIZE", "Pixel size (um)", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%.f", 1, 16000, 0, 0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y], "CCD_MAX_Y", "Max. Height", "%.f", 1, 16000, 0, 0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE], "CCD_PIXEL_SIZE", "Pixel size (um)", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X], "CCD_PIXEL_SIZE_X", "Pixel size X", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X], "CCD_PIXEL_SIZE_X", "Pixel size X", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y], "CCD_PIXEL_SIZE_Y", "Pixel size Y", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y], "CCD_PIXEL_SIZE_Y", "Pixel size Y", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%3.0f",
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%.f",
                  8, 64, 0, 0);
     IUFillNumberVector(&PrimaryCCD.ImagePixelSizeNP, PrimaryCCD.ImagePixelSizeN, 6, getDeviceName(), "CCD_INFO",
                        "CCD Information", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
@@ -398,7 +391,8 @@ bool CCD::initProperties()
 
     // CCD Should loop until the number of frames specified in this property is completed
     IUFillNumber(&ExposureLoopCountN[0], "FRAMES", "Frames", "%.f", 0, 100000, 1, 1);
-    IUFillNumberVector(&ExposureLoopCountNP, ExposureLoopCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Rapid Count", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&ExposureLoopCountNP, ExposureLoopCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Rapid Count",
+                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 #endif
 
     /**********************************************/
@@ -410,7 +404,8 @@ bool CCD::initProperties()
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&WebSocketSettingsN[WS_SETTINGS_PORT], "WS_SETTINGS_PORT", "Port", "%.f", 0, 50000, 0, 0);
-    IUFillNumberVector(&WebSocketSettingsNP, WebSocketSettingsN, 1, getDeviceName(), "CCD_WEBSOCKET_SETTINGS", "WS Settings", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&WebSocketSettingsNP, WebSocketSettingsN, 1, getDeviceName(), "CCD_WEBSOCKET_SETTINGS", "WS Settings",
+                       OPTIONS_TAB, IP_RW,
                        60, IPS_IDLE);
 
     /**********************************************/
@@ -418,21 +413,20 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Snooped Devices
-    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
 
-    // JJ ed 2019-12-10
+    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_ROTATOR], "ACTIVE_ROTATOR", "Rotator", "Rotator Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_FOCUSER], "ACTIVE_FOCUSER", "Focuser", "Focuser Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_FILTER], "ACTIVE_FILTER", "Filter", "CCD Simulator");
     IUFillText(&ActiveDeviceT[ACTIVE_SKYQUALITY], "ACTIVE_SKYQUALITY", "Sky Quality", "SQM");
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 5, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
-    //
 
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0], "RA", "Ra (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqN[1], "DEC", "Dec (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control", IP_RW,
+    IUFillNumberVector(&EqNP, EqN, 2, ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD", "EQ Coord", "Main Control",
+                       IP_RW,
                        60, IPS_IDLE);
 
     // Snoop properties of interest
@@ -441,6 +435,7 @@ bool CCD::initProperties()
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_PIER_SIDE");
 
     // Snoop Rotator
     IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
@@ -679,7 +674,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
 
     if (IUSnoopNumber(root, &EqNP) == 0)
     {
-        float newra, newdec;
+        double newra, newdec;
         newra  = EqN[0].value;
         newdec = EqN[1].value;
         if ((newra != RA) || (newdec != Dec))
@@ -687,6 +682,21 @@ bool CCD::ISSnoopDevice(XMLEle * root)
             //IDLog("RA %4.2f  Dec %4.2f Snooped RA %4.2f  Dec %4.2f\n",RA,Dec,newra,newdec);
             RA  = newra;
             Dec = newdec;
+        }
+    }
+    else if (!strcmp("TELESCOPE_PIER_SIDE", propName))
+    {
+        // set default to say we have no valid information from mount
+        pierSide = -1;
+        //  crack the message
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * elemName = findXMLAttValu(ep, "name");
+
+            if (!strcmp(elemName, "PIER_EAST") && !strcmp(pcdataXMLEle(ep), "On"))
+                pierSide = 1;
+            else if (!strcmp(elemName, "PIER_WEST") && !strcmp(pcdataXMLEle(ep), "On"))
+                pierSide = 0;
         }
     }
     else if (!strcmp(propName, "TELESCOPE_INFO"))
@@ -762,7 +772,7 @@ bool CCD::ISSnoopDevice(XMLEle * root)
 
             if (!strcmp(name, "FOCUS_ABSOLUTE_POSITION"))
             {
-                FocusPos = atol(pcdataXMLEle(ep));
+                FocuserPos = atol(pcdataXMLEle(ep));
                 break;
             }
         }
@@ -830,9 +840,9 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
 
             // JJ ed 2019-12-10
             if (strlen(ActiveDeviceT[ACTIVE_FOCUSER].text) > 0)
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_ABSOLUTE_POSITION");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
             else
-                FocusPos = std::numeric_limits<long>::quiet_NaN();
+                FocuserPos = std::numeric_limits<long>::quiet_NaN();
             //
 
 
@@ -931,7 +941,8 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                     epochPos.dec = Dec;
 
                     // Convert from JNow to J2000
-                    ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+                    //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+                    LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
                     J2000RA = J2000Pos.ra / 15.0;
                     J2000DE = J2000Pos.dec;
@@ -1176,14 +1187,20 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         // Primary CCD Info
         if (!strcmp(name, PrimaryCCD.ImagePixelSizeNP.name))
         {
-            IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n);
-            PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value,
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, PrimaryCCD.getBPP(),
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
+            if (IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n) == 0)
+            {
+                PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
+                SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value,
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value,
+                             PrimaryCCD.getBPP(),
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
+                saveConfig(true, PrimaryCCD.ImagePixelSizeNP.name);
+            }
+            else
+                PrimaryCCD.ImagePixelSizeNP.s = IPS_ALERT;
+
             IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, nullptr);
-            saveConfig(true);
             return true;
         }
 
@@ -1593,7 +1610,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 }
 
 bool CCD::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-           char *formats[], char *names[], int n)
+                    char *formats[], char *names[], int n)
 {
     // DSP
     if (HasDSP())
@@ -1656,7 +1673,7 @@ bool CCD::UpdateCCDBin(int hor, int ver)
 
     // DSP
     if (HasDSP())
-        DSP->setSizes(2, new int[2]{ PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver });
+        DSP->setSizes(2, new int[2] { PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver });
 
     return true;
 }
@@ -1691,6 +1708,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
 
     AutoCNumeric locale;
+    fits_update_key_str(fptr, "ROWORDER", "TOP-DOWN", "Row Order", &status);
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
 
     // Telescope
@@ -1760,15 +1778,19 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     {
         case CCDChip::LIGHT_FRAME:
             fits_update_key_str(fptr, "FRAME", "Light", "Frame Type", &status);
+            fits_update_key_str(fptr, "IMAGETYP", "Light Frame", "Frame Type", &status);
             break;
         case CCDChip::BIAS_FRAME:
             fits_update_key_str(fptr, "FRAME", "Bias", "Frame Type", &status);
+            fits_update_key_str(fptr, "IMAGETYP", "Bias Frame", "Frame Type", &status);
             break;
         case CCDChip::FLAT_FRAME:
             fits_update_key_str(fptr, "FRAME", "Flat", "Frame Type", &status);
+            fits_update_key_str(fptr, "IMAGETYP", "Flat Frame", "Frame Type", &status);
             break;
         case CCDChip::DARK_FRAME:
             fits_update_key_str(fptr, "FRAME", "Dark", "Frame Type", &status);
+            fits_update_key_str(fptr, "IMAGETYP", "Dark Frame", "Frame Type", &status);
             break;
     }
 
@@ -1809,6 +1831,13 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     if (!std::isnan(RotatorAngle))
     {
         fits_update_key_dbl(fptr, "ROTATANG", RotatorAngle, 3, "Rotator angle in degrees", &status);
+    }
+
+    // JJ ed 2020-03-28
+    // If the focus position is set, add the information to the FITS header
+    if (!std::isnan(FocuserPos))
+    {
+        fits_update_key_lng(fptr, "FOCUSPOS", FocuserPos, "Focus position in steps", &status);
     }
 
     // SCALE assuming square-pixels
@@ -1854,6 +1883,17 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 
         fits_update_key_dbl(fptr, "RA", J2000RA * 15, 6, "Object J2000 RA in Degrees", &status);
         fits_update_key_dbl(fptr, "DEC", J2000DE, 6, "Object J2000 DEC in Degrees", &status);
+
+        // pier side
+        switch (pierSide)
+        {
+            case 0:
+                fits_update_key_str(fptr, "PIERSIDE", "WEST", "West, looking East", &status);
+                break;
+            case 1:
+                fits_update_key_str(fptr, "PIERSIDE", "EAST", "East, looking West", &status);
+                break;
+        }
 
         //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
         fits_update_key_lng(fptr, "EQUINOX", 2000, "Equinox", &status);
@@ -1936,10 +1976,12 @@ bool CCD::ExposureComplete(CCDChip * targetChip)
 
 bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 {
-    if(HasDSP()) {
+    if(HasDSP())
+    {
         uint8_t* buf = static_cast<uint8_t*>(malloc(targetChip->getFrameBufferSize()));
         memcpy(buf, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize());
-        DSP->processBLOB(buf, 2, new int[2]{ targetChip->getSubW() / targetChip->getBinX(), targetChip->getSubH() / targetChip->getBinY() }, targetChip->getBPP());
+        DSP->processBLOB(buf, 2, new int[2] { targetChip->getXRes() / targetChip->getBinX(), targetChip->getYRes() / targetChip->getBinY() },
+                         targetChip->getBPP());
         free(buf);
     }
 #ifdef WITH_EXPOSURE_LOOPING
@@ -1978,7 +2020,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             }
             else
             {
-                LOGF_ERROR("Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
+                LOGF_ERROR("Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime,
+                           duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
                 ExposureLoopCountN[0].value = 1;
@@ -2695,7 +2738,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         }
 
         int n = 0;
-        for (int nr = 0; nr < (int)targetChip->FitsB.bloblen; nr += n)
+        for (int nr = 0; nr < targetChip->FitsB.bloblen; nr += n)
             n = fwrite((static_cast<char *>(targetChip->FitsB.blob) + nr), 1, targetChip->FitsB.bloblen - nr, fp);
 
         fclose(fp);
@@ -2894,7 +2937,7 @@ bool CCD::saveConfigItems(FILE * fp)
         IUSaveConfigNumber(fp, &GuideCCD.ImageBinNP);
     }
 
-    if (CanSubFrame())
+    if (CanSubFrame() && PrimaryCCD.ImageFrameN[2].value > 0)
         IUSaveConfigNumber(fp, &PrimaryCCD.ImageFrameNP);
 
     if (CanBin())
@@ -3057,7 +3100,7 @@ int CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
     }
     int maxIndex = 0;
 
-    for (int i = 0; i < (int)files.size(); i++)
+    for (uint32_t i = 0; i < files.size(); i++)
     {
         int index = -1;
 

@@ -57,23 +57,12 @@ namespace INDI
 
 DefaultDevice::DefaultDevice()
 {
-    pDebug      = false;
-    pSimulation = false;
-    isInit      = false;
-
-    majorVersion        = 1;
-    minorVersion        = 0;
-    interfaceDescriptor = GENERAL_INTERFACE;
     memset(&ConnectionModeSP, 0, sizeof(ConnectionModeSP));
-}
-
-DefaultDevice::~DefaultDevice()
-{
 }
 
 bool DefaultDevice::loadConfig(bool silent, const char *property)
 {
-    char errmsg[MAXRBUF];
+    char errmsg[MAXRBUF] = {0};
     bool pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
 
     if (!silent)
@@ -83,10 +72,15 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
             LOG_DEBUG("Configuration successfully loaded.");
         }
         else
-            LOG_INFO("No previous configuration found. To save driver configuration, click Save Configuration in Options tab");
+            LOG_INFO("No previous configuration found. To save driver configuration, click Save Configuration in Options tab.");
     }
 
-    IUSaveDefaultConfig(nullptr, nullptr, deviceID);
+    // Determine default config file name
+    // Need to be done only once per device.
+    if (pDefaultConfigLoaded == false)
+    {
+        pDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+    }
 
     return pResult;
 }
@@ -163,8 +157,8 @@ bool DefaultDevice::purgeConfig()
 
 bool DefaultDevice::saveConfig(bool silent, const char *property)
 {
-    //std::vector<orderPtr>::iterator orderi;
-    char errmsg[MAXRBUF];
+    silent = false;
+    char errmsg[MAXRBUF] = {0};
 
     FILE *fp = nullptr;
 
@@ -185,9 +179,13 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
 
         IUSaveConfigTag(fp, 1, getDeviceName(), silent ? 1 : 0);
 
+        fflush(fp);
         fclose(fp);
 
-        IUSaveDefaultConfig(nullptr, nullptr, deviceID);
+        if (pDefaultConfigLoaded == false)
+        {
+            pDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+        }
 
         LOG_DEBUG("Configuration successfully saved.");
     }
@@ -304,6 +302,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         {
             fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
             prXMLEle(fp, root, 0);
+            fflush(fp);
             fclose(fp);
             delXMLEle(root);
             LOGF_DEBUG("Configuration successfully saved for %s.", property);
@@ -832,30 +831,12 @@ void DefaultDevice::resetProperties()
 
 void DefaultDevice::setConnected(bool status, IPState state, const char *msg)
 {
-    ISwitch *sp                = nullptr;
     ISwitchVectorProperty *svp = getSwitch(INDI::SP::CONNECTION);
     if (!svp)
         return;
 
-    IUResetSwitch(svp);
-
-    // Connect
-    if (status)
-    {
-        sp = IUFindSwitch(svp, "CONNECT");
-        if (!sp)
-            return;
-        sp->s = ISS_ON;
-    }
-    // Disconnect
-    else
-    {
-        sp = IUFindSwitch(svp, "DISCONNECT");
-        if (!sp)
-            return;
-        sp->s = ISS_ON;
-    }
-
+    svp->sp[INDI_ENABLED].s = status ? ISS_ON : ISS_OFF;
+    svp->sp[INDI_DISABLED].s = status ? ISS_OFF : ISS_ON;
     svp->s = state;
 
     if (msg == nullptr)
@@ -913,8 +894,8 @@ bool DefaultDevice::initProperties()
     snprintf(versionStr, 16, "%d.%d", majorVersion, minorVersion);
     snprintf(interfaceStr, 16, "%d", interfaceDescriptor);
 
-    IUFillSwitch(&ConnectionS[0], "CONNECT", "Connect", ISS_OFF);
-    IUFillSwitch(&ConnectionS[1], "DISCONNECT", "Disconnect", ISS_ON);
+    IUFillSwitch(&ConnectionS[INDI_ENABLED], "CONNECT", "Connect", ISS_OFF);
+    IUFillSwitch(&ConnectionS[INDI_DISABLED], "DISCONNECT", "Disconnect", ISS_ON);
     IUFillSwitchVector(&ConnectionSP, ConnectionS, 2, getDeviceName(), INDI::SP::CONNECTION, "Connection", "Main Control",
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     registerProperty(&ConnectionSP, INDI_SWITCH);
@@ -927,13 +908,13 @@ bool DefaultDevice::initProperties()
                      IP_RO, 60, IPS_IDLE);
     registerProperty(&DriverInfoTP, INDI_TEXT);
 
-    IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&DebugS[1], "DISABLE", "Disable", ISS_ON);
+    IUFillSwitch(&DebugS[INDI_ENABLED], "ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&DebugS[INDI_DISABLED], "DISABLE", "Disable", ISS_ON);
     IUFillSwitchVector(&DebugSP, DebugS, NARRAY(DebugS), getDeviceName(), "DEBUG", "Debug", "Options", IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&SimulationS[0], "ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&SimulationS[1], "DISABLE", "Disable", ISS_ON);
+    IUFillSwitch(&SimulationS[INDI_ENABLED], "ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&SimulationS[INDI_DISABLED], "DISABLE", "Disable", ISS_ON);
     IUFillSwitchVector(&SimulationSP, SimulationS, NARRAY(SimulationS), getDeviceName(), "SIMULATION", "Simulation",
                        "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -945,7 +926,8 @@ bool DefaultDevice::initProperties()
                        "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillNumber(&PollPeriodN[0], "PERIOD_MS", "Period (ms)", "%.f", 10, 600000, 1000, POLLMS);
-    IUFillNumberVector(&PollPeriodNP, PollPeriodN, 1, getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&PollPeriodNP, PollPeriodN, 1, getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0,
+                       IPS_IDLE);
 
     INDI::Logger::initProperties(this);
 

@@ -32,6 +32,7 @@
 #include <memory>
 #include <termios.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <sys/ioctl.h>
 
 // We declare an auto pointer to FlipFlat.
@@ -81,7 +82,7 @@ void ISSnoopDevice(XMLEle *root)
 
 FlipFlat::FlipFlat() : LightBoxInterface(this, true)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 bool FlipFlat::initProperties()
@@ -89,14 +90,14 @@ bool FlipFlat::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Status
-    IUFillText(&StatusT[0], "Cover", "", nullptr);
-    IUFillText(&StatusT[1], "Light", "", nullptr);
-    IUFillText(&StatusT[2], "Motor", "", nullptr);
-    IUFillTextVector(&StatusTP, StatusT, 3, getDeviceName(), "Status", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillText(&StatusT[0], "Cover", "Cover", nullptr);
+    IUFillText(&StatusT[1], "Light", "Light", nullptr);
+    IUFillText(&StatusT[2], "Motor", "Motor", nullptr);
+    IUFillTextVector(&StatusTP, StatusT, 3, getDeviceName(), "Status", "Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Firmware version
-    IUFillText(&FirmwareT[0], "Version", "", nullptr);
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillText(&FirmwareT[0], "Version", "Version", nullptr);
+    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
     initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
@@ -111,7 +112,10 @@ bool FlipFlat::initProperties()
     addAuxControls();
 
     serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]() { return Handshake(); });
+    serialConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
     registerConnection(serialConnection);
 
     return true;
@@ -131,7 +135,7 @@ bool FlipFlat::updateProperties()
 
     if (isConnected())
     {
-        if (isFlipFlat)
+        if (m_Type == FLIP_FLAT || m_Type == ALNITAK_DUST_COVER)
             defineSwitch(&ParkCapSP);
         defineSwitch(&LightSP);
         defineNumber(&LightIntensityNP);
@@ -144,7 +148,7 @@ bool FlipFlat::updateProperties()
     }
     else
     {
-        if (isFlipFlat)
+        if (m_Type == FLIP_FLAT || m_Type == ALNITAK_DUST_COVER)
             deleteProperty(ParkCapSP.name);
         deleteProperty(LightSP.name);
         deleteProperty(LightIntensityNP.name);
@@ -159,7 +163,7 @@ bool FlipFlat::updateProperties()
 
 const char *FlipFlat::getDefaultName()
 {
-    return static_cast<const char *>("Flip Flat");
+    return "Flip Flat";
 }
 
 bool FlipFlat::Handshake()
@@ -171,7 +175,7 @@ bool FlipFlat::Handshake()
         SetTimer(POLLMS);
 
         setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
-        isFlipFlat = true;
+        m_Type = FLIP_FLAT;
 
         return true;
     }
@@ -252,7 +256,7 @@ bool FlipFlat::saveConfigItems(FILE *fp)
 
 bool FlipFlat::ping()
 {
-    char response[FLAT_RES]={0};
+    char response[FLAT_RES] = {0};
 
     if (!sendCommand(">P000", response))
         return false;
@@ -260,20 +264,27 @@ bool FlipFlat::ping()
     char productString[3] = { 0 };
     snprintf(productString, 3, "%s", response + 2);
 
-    int rc = sscanf(productString, "%d", &productID);
+    int rc = sscanf(productString, "%" SCNu16, &productID);
     if (rc <= 0)
     {
         LOGF_ERROR("Unable to parse input (%s)", response);
         return false;
     }
 
+    // Flip Flat
     if (productID == 99)
     {
         setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
-        isFlipFlat = true;
+        m_Type = FLIP_FLAT;
     }
+    // AlNitak Dust Cover
+    else if (productID == 98)
+    {
+        setDriverInterface(AUX_INTERFACE | DUSTCAP_INTERFACE);
+    }
+    // Flip Man
     else
-        isFlipFlat = false;
+        m_Type = FLIP_MAN;
 
     return true;
 }
@@ -349,7 +360,7 @@ bool FlipFlat::EnableLightBox(bool enable)
     char command[FLAT_CMD];
     char response[FLAT_RES];
 
-    if (isFlipFlat && ParkCapS[1].s == ISS_ON)
+    if (m_Type == FLIP_FLAT && ParkCapS[1].s == ISS_ON)
     {
         LOG_ERROR("Cannot control light while cap is unparked.");
         return false;
@@ -525,7 +536,7 @@ bool FlipFlat::getFirmwareVersion()
         return true;
     }
 
-    char response[FLAT_RES]={0};
+    char response[FLAT_RES] = {0};
     if (!sendCommand(">V000", response))
         return false;
 
@@ -563,7 +574,7 @@ bool FlipFlat::getBrightness()
         return true;
     }
 
-    char response[FLAT_RES]={0};
+    char response[FLAT_RES] = {0};
     if (!sendCommand(">J000", response))
         return false;
 
@@ -598,8 +609,8 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
         return true;
     }
 
-    char command[FLAT_CMD]={0};
-    char response[FLAT_RES]={0};
+    char command[FLAT_CMD] = {0};
+    char response[FLAT_RES] = {0};
 
     snprintf(command, FLAT_CMD, ">B%03d", value);
 
@@ -631,17 +642,17 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
 bool FlipFlat::sendCommand(const char *command, char *response)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF]={0};
-    int i=0;
+    char errstr[MAXRBUF] = {0};
+    int i = 0;
 
     tcflush(PortFD, TCIOFLUSH);
 
     LOGF_DEBUG("CMD <%s>", command);
 
-    char buffer[FLAT_CMD + 1]={0}; // space for terminating null
+    char buffer[FLAT_CMD + 1] = {0}; // space for terminating null
     snprintf(buffer, FLAT_CMD + 1, "%s\n", command);
 
-    for (i=0; i < 3; i++)
+    for (i = 0; i < 3; i++)
     {
         if ((rc = tty_write(PortFD, buffer, FLAT_CMD, &nbytes_written)) != TTY_OK)
         {
@@ -655,7 +666,7 @@ bool FlipFlat::sendCommand(const char *command, char *response)
             break;
     }
 
-    if (i==3)
+    if (i == 3)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("%s error: %s.", command, errstr);

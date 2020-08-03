@@ -23,7 +23,7 @@
 #include "locale_compat.h"
 
 #include <libnova/julian_day.h>
-#include <libnova/precession.h>
+#include <libastro.h>
 
 #include <cmath>
 #include <unistd.h>
@@ -31,10 +31,7 @@
 static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
-// We declare an auto pointer to ccdsim.
 static std::unique_ptr<CCDSim> ccdsim(new CCDSim());
-
-void ISPoll(void * p);
 
 void ISGetProperties(const char * dev)
 {
@@ -72,48 +69,49 @@ CCDSim::CCDSim() : INDI::FilterInterface(this)
     currentRA  = RA;
     currentDE = Dec;
 
-    streamPredicate = 0;
     terminateThread = false;
 
-    primaryFocalLength = 900; //  focal length of the telescope in millimeters
+    //  focal length of the telescope in millimeters
+    primaryFocalLength = 900;
     guiderFocalLength  = 300;
 
     time(&RunStart);
-
-    SimulatorSettingsNV = new INumberVectorProperty;
-    TimeFactorSV        = new ISwitchVectorProperty;
 
     // Filter stuff
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 8;
 }
 
-bool CCDSim::SetupParms()
+bool CCDSim::setupParameters()
 {
-    int nbuf;
-    SetCCDParams(SimulatorSettingsN[0].value, SimulatorSettingsN[1].value, 16, SimulatorSettingsN[2].value,
-                 SimulatorSettingsN[3].value);
+    SetCCDParams(SimulatorSettingsN[SIM_XRES].value,
+                 SimulatorSettingsN[SIM_YRES].value,
+                 16,
+                 SimulatorSettingsN[SIM_XSIZE].value,
+                 SimulatorSettingsN[SIM_YSIZE].value);
 
-    if (HasCooler())
-    {
-        TemperatureN[0].value = 20;
-        IDSetNumber(&TemperatureNP, nullptr);
-    }
+    //    if (HasCooler())
+    //    {
+    //        TemperatureN[0].value = 20;
+    //        IDSetNumber(&TemperatureNP, nullptr);
+    //    }
 
-    //  Kwiq
-    maxnoise      = SimulatorSettingsN[8].value;
-    skyglow       = SimulatorSettingsN[9].value;
-    maxval        = SimulatorSettingsN[4].value;
-    bias          = SimulatorSettingsN[5].value;
-    limitingmag   = SimulatorSettingsN[7].value;
-    saturationmag = SimulatorSettingsN[6].value;
-    OAGoffset = SimulatorSettingsN[10].value; //  An oag is offset this much from center of scope position (arcminutes);
-    polarError = SimulatorSettingsN[11].value;
-    polarDrift = SimulatorSettingsN[12].value;
-    rotationCW = SimulatorSettingsN[13].value;
+    m_MaxNoise      = SimulatorSettingsN[SIM_NOISE].value;
+    m_SkyGlow       = SimulatorSettingsN[SIM_SKYGLOW].value;
+    m_MaxVal        = SimulatorSettingsN[SIM_MAXVAL].value;
+    m_Bias          = SimulatorSettingsN[SIM_BIAS].value;
+    m_LimitingMag   = SimulatorSettingsN[SIM_LIMITINGMAG].value;
+    m_SaturationMag = SimulatorSettingsN[SIM_SATURATION].value;
+    //  An oag is offset this much from center of scope position (arcminutes);
+    m_OAGOffset = SimulatorSettingsN[SIM_OAGOFFSET].value;
+    m_PolarError = SimulatorSettingsN[SIM_POLAR].value;
+    m_PolarDrift = SimulatorSettingsN[SIM_POLARDRIFT].value;
+    m_PEPeriod = SimulatorSettingsN[SIM_PE_PERIOD].value;
+    m_PEMax = SimulatorSettingsN[SIM_PE_MAX].value;
+    m_RotationCW = SimulatorSettingsN[SIM_ROTATION].value;
+    m_TimeFactor = SimulatorSettingsN[SIM_TIME_FACTOR].value;
 
-    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
-    //nbuf += 512;
+    uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     Streamer->setPixelFormat(INDI_MONO, 16);
@@ -144,61 +142,73 @@ bool CCDSim::Disconnect()
 
 const char * CCDSim::getDefaultName()
 {
-    return static_cast<const char *>("CCD Simulator");
+    return "CCD Simulator";
 }
 
 bool CCDSim::initProperties()
 {
-    //  Most hardware layers wont actually have indi properties defined
-    //  but the simulators are a special case
     INDI::CCD::initProperties();
 
-    IUFillNumber(&SimulatorSettingsN[0], "SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
-    IUFillNumber(&SimulatorSettingsN[1], "SIM_YRES", "CCD Y resolution", "%4.0f", 0, 8192, 0, 1024);
-    IUFillNumber(&SimulatorSettingsN[2], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 0, 60, 0, 5.2);
-    IUFillNumber(&SimulatorSettingsN[3], "SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 0, 60, 0, 5.2);
-    IUFillNumber(&SimulatorSettingsN[4], "SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 0, 65000, 0, 65000);
-    IUFillNumber(&SimulatorSettingsN[5], "SIM_BIAS", "CCD Bias", "%4.0f", 0, 6000, 0, 10);
-    IUFillNumber(&SimulatorSettingsN[6], "SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 0, 1.0);
-    IUFillNumber(&SimulatorSettingsN[7], "SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 0, 17.0);
-    IUFillNumber(&SimulatorSettingsN[8], "SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 0, 10);
-    IUFillNumber(&SimulatorSettingsN[9], "SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 0, 19.5);
-    IUFillNumber(&SimulatorSettingsN[10], "SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[11], "SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 0,
-                 0); /* PAE = Polar Alignment Error */
-    IUFillNumber(&SimulatorSettingsN[12], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 6000, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[13], "SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
-    IUFillNumberVector(SimulatorSettingsNV, SimulatorSettingsN, 14, getDeviceName(), "SIMULATOR_SETTINGS",
-                       "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
+    IUFillNumber(&SimulatorSettingsN[SIM_XRES], "SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
+    IUFillNumber(&SimulatorSettingsN[SIM_YRES], "SIM_YRES", "CCD Y resolution", "%4.0f", 0, 8192, 0, 1024);
+    IUFillNumber(&SimulatorSettingsN[SIM_XSIZE], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 0, 60, 0, 5.2);
+    IUFillNumber(&SimulatorSettingsN[SIM_YSIZE], "SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 0, 60, 0, 5.2);
+    IUFillNumber(&SimulatorSettingsN[SIM_MAXVAL], "SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 0, 65000, 0, 65000);
+    IUFillNumber(&SimulatorSettingsN[SIM_BIAS], "SIM_BIAS", "CCD Bias", "%4.0f", 0, 6000, 0, 10);
+    IUFillNumber(&SimulatorSettingsN[SIM_SATURATION], "SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 0, 1.0);
+    IUFillNumber(&SimulatorSettingsN[SIM_LIMITINGMAG], "SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 0, 17.0);
+    IUFillNumber(&SimulatorSettingsN[SIM_NOISE], "SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 0, 10);
+    IUFillNumber(&SimulatorSettingsN[SIM_SKYGLOW], "SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 0, 19.5);
+    IUFillNumber(&SimulatorSettingsN[SIM_OAGOFFSET], "SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 0, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_POLAR], "SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 0,
+                 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_POLARDRIFT], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 6000, 0, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (minutes)", "%4.1f", 0, 60, 0, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_PE_MAX], "SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 0, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_ROTATION], "SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_TIME_FACTOR], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
+
+    IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, SIM_N, getDeviceName(), "SIMULATOR_SETTINGS",
+                       "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
     IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
     IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
-    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
-                       "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "RGB",
+                       SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&TimeFactorS[0], "1X", "Actual Time", ISS_ON);
-    IUFillSwitch(&TimeFactorS[1], "10X", "10x", ISS_OFF);
-    IUFillSwitch(&TimeFactorS[2], "100X", "100x", ISS_OFF);
-    IUFillSwitchVector(TimeFactorSV, TimeFactorS, 3, getDeviceName(), "ON_TIME_FACTOR", "Time Factor",
-                       "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    // Simulate focusing
+    IUFillNumber(&FocusSimulationN[0], "SIM_FOCUS_POSITION", "Focus", "%.f", 0.0, 100000.0, 1.0, 36700.0);
+    IUFillNumber(&FocusSimulationN[1], "SIM_FOCUS_MAX", "Max. Position", "%.f", 0.0, 100000.0, 1.0, 100000.0);
+    IUFillNumber(&FocusSimulationN[2], "SIM_SEEING", "Seeing (arcsec)", "%4.2f", 0, 60, 0, 3.5);
+    IUFillNumberVector(&FocusSimulationNP, FocusSimulationN, 3, getDeviceName(), "SIM_FOCUSING", "Focus Simulation", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
+    // Simulate Crash
+    IUFillSwitch(&CrashS[0], "CRASH", "Crash driver", ISS_OFF);
+    IUFillSwitchVector(&CrashSP, CrashS, 1, getDeviceName(), "CCD_SIMULATE_CRASH", "Crash", SIMULATOR_TAB, IP_WO,
+                       ISR_ATMOST1, 0, IPS_IDLE);
+
+    // Periodic Error
+    IUFillNumber(&EqPEN[AXIS_RA], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&EqPEN[AXIS_DE], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", SIMULATOR_TAB, IP_RW, 60,
+                       IPS_IDLE);
+
+    // FWHM
     IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
     IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
-    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
+    // Cooler
+    IUFillSwitch(&CoolerS[INDI_ENABLED], "COOLER_ON", "ON", ISS_OFF);
+    IUFillSwitch(&CoolerS[INDI_DISABLED], "COOLER_OFF", "OFF", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    // CCD Gain
+
+    // Gain
     IUFillNumber(&GainN[0], "GAIN", "Gain", "%.f", 0, 100, 10, 50);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config", IP_RW, 60,
-                       IPS_IDLE);
 
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
@@ -229,7 +239,7 @@ bool CCDSim::initProperties()
 
     // This should be called after the initial SetCCDCapability (above)
     // as it modifies the capabilities.
-    setRGB(simulateRGB);
+    setRGB(m_SimulateRGB);
 
     INDI::FilterInterface::initProperties(FILTER_TAB);
 
@@ -266,10 +276,11 @@ void CCDSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineNumber(SimulatorSettingsNV);
-    defineSwitch(TimeFactorSV);
+    defineNumber(&SimulatorSettingsNP);
     defineNumber(&EqPENP);
+    defineNumber(&FocusSimulationNP);
     defineSwitch(&SimulateRgbSP);
+    defineSwitch(&CrashSP);
 }
 
 bool CCDSim::updateProperties()
@@ -283,7 +294,7 @@ bool CCDSim::updateProperties()
 
         defineNumber(&GainNP);
 
-        SetupParms();
+        setupParameters();
 
         if (HasGuideHead())
         {
@@ -342,7 +353,7 @@ bool CCDSim::StartExposure(float duration)
     //  Leave the proper time showing for the draw routines
     DrawCcdFrame(&PrimaryCCD);
     //  Now compress the actual wait time
-    ExposureRequest = duration * TimeFactor;
+    ExposureRequest = duration * m_TimeFactor;
     InExposure      = true;
 
     return true;
@@ -440,16 +451,10 @@ void CCDSim::TimerHit()
 
     if (InGuideExposure)
     {
-        float timeleft;
-        timeleft = CalcTimeLeft(GuideExpStart, GuideExposureRequest);
-
-        //IDLog("GUIDE Exposure left: %g - Requset: %g\n", timeleft, GuideExposureRequest);
-
+        double timeleft = CalcTimeLeft(GuideExpStart, GuideExposureRequest);
         if (timeleft < 0)
             timeleft = 0;
 
-        //ImageExposureN[0].value = timeleft;
-        //IDSetNumber(ImageExposureNP, nullptr);
         GuideCCD.setExposureLeft(timeleft);
 
         if (timeleft < 1.0)
@@ -519,22 +524,22 @@ void CCDSim::TimerHit()
 int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 {
     //  CCD frame is 16 bit data
-    float ExposureTime;
+    float exposure_time;
     float targetFocalLength;
 
     uint16_t * ptr = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
     if (targetChip->getXRes() == 500)
-        ExposureTime = GuideExposureRequest * 4;
+        exposure_time = GuideExposureRequest * 4;
     else if (Streamer->isStreaming())
-        ExposureTime = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
+        exposure_time = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
     else
-        ExposureTime = ExposureRequest;
+        exposure_time = ExposureRequest;
 
     if (GainN[0].value > 50)
-        ExposureTime *= sqrt(GainN[0].value - 50);
+        exposure_time *= sqrt(GainN[0].value - 50);
     else if (GainN[0].value < 50)
-        ExposureTime /= sqrt(50 - GainN[0].value);
+        exposure_time /= sqrt(50 - GainN[0].value);
 
     if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
         targetFocalLength = primaryFocalLength;
@@ -543,29 +548,33 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
     if (ShowStarField)
     {
-        float PEOffset;
-        float PESpot;
-        float decDrift;
-        double rad;  //  telescope ra in degrees
-        double rar;  //  telescope ra in radians
-        double decr; //  telescope dec in radians;
+        float PEOffset {0};
+        float decDrift {0};
+        //  telescope ra in degrees
+        double rad {0};
+        //  telescope ra in radians
+        double rar {0};
+        //  telescope dec in radians;
+        double decr {0};
         int nwidth = 0, nheight = 0;
 
-        double timesince;
-        time_t now;
-        time(&now);
+        if (m_PEPeriod > 0)
+        {
+            double timesince;
+            time_t now;
+            time(&now);
 
-        //  Lets figure out where we are on the pe curve
-        timesince = difftime(now, RunStart);
-        //  This is our spot in the curve
-        PESpot = timesince / PEPeriod;
-        //  Now convert to radians
-        PESpot = PESpot * 2.0 * 3.14159;
+            //  Lets figure out where we are on the pe curve
+            timesince = difftime(now, RunStart);
+            //  This is our spot in the curve
+            double PESpot = timesince / m_PEPeriod;
+            //  Now convert to radians
+            PESpot = PESpot * 2.0 * 3.14159;
 
-        PEOffset = PEMax * std::sin(PESpot);
-        //fprintf(stderr,"PEOffset = %4.2f arcseconds timesince %4.2f\n",PEOffset,timesince);
-        PEOffset = PEOffset / 3600; //  convert to degrees
-        //PeOffset=PeOffset/15;       //  ra is in h:mm
+            PEOffset = m_PEMax * std::sin(PESpot);
+            //  convert to degrees
+            PEOffset = PEOffset / 3600;
+        }
 
         //  Spin up a set of plate constants that will relate
         //  ra/dec of stars, to our fictitious ccd layout
@@ -602,10 +611,13 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             pprx, ppry, Scalex, Scaley);
 #endif
 
-        double theta = rotationCW + 270;
-        if (theta > 360)
+        double theta = m_RotationCW + 270;
+        if (pierSide == 1)
+            theta -= 180;       // rotate 180 if on East
+
+        if (theta >= 360)
             theta -= 360;
-        else if (theta < -360)
+        else if (theta <= -360)
             theta += 360;
 
         // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
@@ -633,14 +645,21 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
             ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
+            double jd = ln_get_julian_from_sys();
+
             epochPos.ra  = currentRA * 15.0;
             epochPos.dec = currentDE;
 
             // Convert from JNow to J2000
-            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+            LibAstro::ObservedToJ2000(&epochPos, jd, &J2000Pos);
 
             currentRA  = J2000Pos.ra / 15.0;
             currentDE = J2000Pos.dec;
+
+            //LOGF_DEBUG("DrawCcdFrame JNow %f, %f J2000 %f, %f", epochPos.ra, epochPos.dec, J2000Pos.ra, J2000Pos.dec);
+            //ln_equ_posn jnpos;
+            //LibAstro::J2000toObserved(&J2000Pos, jd, &jnpos);
+            //LOGF_DEBUG("J2000toObserved JNow %f, %f J2000 %f, %f", jnpos.ra, jnpos.dec, J2000Pos.ra, J2000Pos.dec);
 
             currentDE += guideNSOffset;
             currentRA += guideWEOffset;
@@ -653,23 +672,20 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         rar = rad * 0.0174532925;
         //  offsetting the dec by the guide head offset
         float cameradec;
-        cameradec = currentDE + OAGoffset / 60;
+        cameradec = currentDE + m_OAGOffset / 60;
         decr      = cameradec * 0.0174532925;
 
-        decDrift = (polarDrift * polarError * cos(decr)) / 3.81;
+        decDrift = (m_PolarDrift * m_PolarError * cos(decr)) / 3.81;
 
         // Add declination drift, if any.
         decr += decDrift / 3600.0 * 0.0174532925;
 
-        //fprintf(stderr,"decPE %7.5f  cameradec %7.5f  CenterOffsetDec %4.4f\n",decPE,cameradec,decr);
         //  now lets calculate the radius we need to fetch
-        float radius;
-
-        radius = sqrt((Scalex * Scalex * targetChip->getXRes() / 2.0 * targetChip->getXRes() / 2.0) +
-                      (Scaley * Scaley * targetChip->getYRes() / 2.0 * targetChip->getYRes() / 2.0));
+        double radius = sqrt((Scalex * Scalex * targetChip->getXRes() / 2.0 * targetChip->getXRes() / 2.0) +
+                             (Scaley * Scaley * targetChip->getYRes() / 2.0 * targetChip->getYRes() / 2.0));
         //  we have radius in arcseconds now
-        radius = radius / 60; //  convert to arcminutes
-
+        //  convert to arcminutes
+        radius = radius / 60;
 #if 0
         LOGF_DEBUG("Lookup radius %4.2f", radius);
 #endif
@@ -678,17 +694,14 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         //  and a limitingmag produces a one adu level in one second
         //  solve for zero point and system gain
 
-        k = (saturationmag - limitingmag) / ((-2.5 * log(maxval)) - (-2.5 * log(1.0 / 2.0)));
-        z = saturationmag - k * (-2.5 * log(maxval));
-        //z=z+saturationmag;
-
-        //IDLog("K=%4.2f  Z=%4.2f\n",k,z);
+        k = (m_SaturationMag - m_LimitingMag) / ((-2.5 * log(m_MaxVal)) - (-2.5 * log(1.0 / 2.0)));
+        z = m_SaturationMag - k * (-2.5 * log(m_MaxVal));
 
         //  Should probably do some math here to figure out the dimmest
         //  star we can see on this exposure
         //  and only fetch to that magnitude
         //  for now, just use the limiting mag number with some room to spare
-        float lookuplimit = limitingmag;
+        double lookuplimit = m_LimitingMag;
 
         if (radius > 60)
             lookuplimit = 11;
@@ -713,9 +726,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                     rangeDec(cameradec),
                     radius,
                     lookuplimit);
-
-            if (!Streamer->isStreaming())
-                LOGF_DEBUG("GSC Command: %s", gsccmd);
 
             pp = popen(gsccmd, "r");
             if (pp != nullptr)
@@ -742,13 +752,10 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
                     int rc = sscanf(line, "%10s %f %f %f %f %f %d %d %4s %2s %f %d", id, &ra, &dec, &pose, &mag, &mage,
                                     &band, &c, plate, ob, &dist, &dir);
-                    //fprintf(stderr,"Parsed %d items\n",rc);
                     if (rc == 12)
                     {
                         lines++;
-                        //if(c==0) {
                         stars++;
-                        //fprintf(stderr,"%s %8.4f %8.4f %5.2f %5.2f %d\n",id,ra,dec,mag,dist,dir);
 
                         //  Convert the ra/dec to standard co-ordinates
                         double sx;    //  standard co-ords
@@ -758,11 +765,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                         double ccdx;
                         double ccdy;
 
-                        //fprintf(stderr,"line %s",line);
-                        //fprintf(stderr,"parsed %6.5f %6.5f\n",ra,dec);
-
                         srar  = ra * 0.0174532925;
                         sdecr = dec * 0.0174532925;
+
                         //  Handbook of astronomical image processing
                         //  page 253
                         //  equations 9.1 and 9.2
@@ -780,13 +785,15 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                         // Invert horizontally
                         ccdx = ccdW - ccdx;
 
-                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy, ExposureTime);
+                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy, exposure_time);
                         drawn += rc;
+#ifdef __DEV__
                         if (rc == 1)
                         {
-                            //LOGF_DEBUG("star %s scope %6.4f %6.4f star %6.4f %6.4f ccd %6.2f %6.2f",id,rad,decPE,ra,dec,ccdx,ccdy);
-                            //LOGF_DEBUG("star %s ccd %6.2f %6.2f",id,ccdx,ccdy);
+                            LOGF_DEBUG("star %s scope %6.4f %6.4f star %6.4f %6.4f ccd %6.2f %6.2f", id, rad, decPE, ra, dec, ccdx, ccdy);
+                            LOGF_DEBUG("star %s ccd %6.2f %6.2f", id, ccdx, ccdy);
                         }
+#endif
                     }
                 }
                 pclose(pp);
@@ -800,7 +807,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                 LOG_ERROR("Got no stars, is gsc installed with appropriate environment variables set ??");
             }
         }
-        //fprintf(stderr,"Got %d stars from %d lines drew %d\n",stars,lines,drawn);
 
         //  now we need to add background sky glow, with vignetting
         //  this is essentially the same math as drawing a dim star with
@@ -810,14 +816,14 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         {
             float skyflux;
             //  calculate flux from our zero point and gain values
-            float glow = skyglow;
+            float glow = m_SkyGlow;
 
             if (ftype == INDI::CCDChip::FLAT_FRAME)
             {
                 //  Assume flats are done with a diffuser
                 //  in broad daylight, so, the sky magnitude
                 //  is much brighter than at night
-                glow = skyglow / 10;
+                glow = m_SkyGlow / 10;
             }
 
             //fprintf(stderr,"Using glow %4.2f\n",glow);
@@ -825,8 +831,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             skyflux = pow(10, ((glow - z) * k / -2.5));
             //  ok, flux represents one second now
             //  scale up linearly for exposure time
-            skyflux = skyflux * ExposureTime;
-            //IDLog("SkyFlux = %g ExposureRequest %g\n",skyflux,ExposureTime);
+            skyflux = skyflux * exposure_time;
 
             uint16_t * pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
@@ -865,8 +870,8 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                     fp = fa * fp;
 
                     //  clamp to limits
-                    if (fp > maxval)
-                        fp = maxval;
+                    if (fp > m_MaxVal)
+                        fp = m_MaxVal;
                     if (fp > maxpix)
                         maxpix = fp;
                     if (fp < minpix)
@@ -884,7 +889,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         int subW = targetChip->getSubW() + subX;
         int subH = targetChip->getSubH() + subY;
 
-        if (maxnoise > 0)
+        if (m_MaxNoise > 0)
         {
             for (int x = subX; x < subW; x++)
             {
@@ -893,10 +898,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
                     int noise;
 
                     noise = random();
-                    noise = noise % maxnoise; //
+                    noise = noise % m_MaxNoise; //
 
-                    //IDLog("noise is %d\n", noise);
-                    AddToPixel(targetChip, x, y, bias + noise);
+                    AddToPixel(targetChip, x, y, m_Bias + noise);
                 }
             }
         }
@@ -919,10 +923,8 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     return 0;
 }
 
-int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float y, float ExposureTime)
+int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float y, float exposure_time)
 {
-    //float d;
-    //float r;
     int sx, sy;
     int drew     = 0;
     //int boxsizex = 5;
@@ -945,7 +947,7 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
 
     //  ok, flux represents one second now
     //  scale up linearly for exposure time
-    flux = flux * ExposureTime;
+    flux = flux * exposure_time;
 
     float qx;
     //  we need a box size that gives a radius at least 3 times fwhm
@@ -1015,8 +1017,8 @@ int CCDSim::AddToPixel(INDI::CCDChip * targetChip, int x, int y, int val)
                     pt += x;
                     newval = pt[0];
                     newval += val;
-                    if (newval > maxval)
-                        newval = maxval;
+                    if (newval > m_MaxVal)
+                        newval = m_MaxVal;
                     if (newval > maxpix)
                         maxpix = newval;
                     if (newval < minpix)
@@ -1091,22 +1093,19 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             IDSetNumber(&GainNP, nullptr);
             return true;
         }
-
-        if (strcmp(name, "SIMULATOR_SETTINGS") == 0)
+        else if (!strcmp(name, SimulatorSettingsNP.name))
         {
-            IUUpdateNumber(SimulatorSettingsNV, values, names, n);
-            SimulatorSettingsNV->s = IPS_OK;
+            IUUpdateNumber(&SimulatorSettingsNP, values, names, n);
+            SimulatorSettingsNP.s = IPS_OK;
 
             //  Reset our parameters now
-            SetupParms();
-            IDSetNumber(SimulatorSettingsNV, nullptr);
-
+            setupParameters();
+            IDSetNumber(&SimulatorSettingsNP, nullptr);
             return true;
         }
-
         // Record PE EQ to simulate different position in the sky than actual mount coordinate
         // This can be useful to simulate Periodic Error or cone error or any arbitrary error.
-        if (!strcmp(name, EqPENP.name))
+        else if (!strcmp(name, EqPENP.name))
         {
             IUUpdateNumber(&EqPENP, values, names, n);
             EqPENP.s = IPS_OK;
@@ -1118,7 +1117,8 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             RA = EqPEN[AXIS_RA].value;
             Dec = EqPEN[AXIS_DE].value;
 
-            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+            LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
             currentRA  = J2000Pos.ra / 15.0;
             currentDE = J2000Pos.dec;
             usePE = true;
@@ -1126,11 +1126,17 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             IDSetNumber(&EqPENP, nullptr);
             return true;
         }
-
-        if (strcmp(name, FilterSlotNP.name) == 0)
+        else if (!strcmp(name, FilterSlotNP.name))
         {
             INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
+        }
+        else if (!strcmp(name, FocusSimulationNP.name))
+        {
+            // update focus simulation parameters
+            IUUpdateNumber(&FocusSimulationNP, values, names, n);
+            FocusSimulationNP.s = IPS_OK;
+            IDSetNumber(&FocusSimulationNP, nullptr);
         }
     }
 
@@ -1141,73 +1147,50 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, "ON_TIME_FACTOR") == 0)
+        // Simulate RGB
+        if (!strcmp(name, SimulateRgbSP.name))
         {
-            //  client is telling us what to do with co-ordinate requests
-            TimeFactorSV->s = IPS_OK;
-            IUUpdateSwitch(TimeFactorSV, states, names, n);
-            //  Update client display
-            IDSetSwitch(TimeFactorSV, nullptr);
+            IUUpdateSwitch(&SimulateRgbSP, states, names, n);
+            int index = IUFindOnSwitchIndex(&SimulateRgbSP);
+            if (index == -1)
+            {
+                SimulateRgbSP.s = IPS_ALERT;
+                LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
+                IDSetSwitch(&SimulateRgbSP, nullptr);
+                return false;
+            }
 
-            if (TimeFactorS[0].s == ISS_ON)
-            {
-                //IDLog("CCDSim:: Time Factor 1\n");
-                TimeFactor = 1;
-            }
-            if (TimeFactorS[1].s == ISS_ON)
-            {
-                //IDLog("CCDSim:: Time Factor 0.1\n");
-                TimeFactor = 0.1;
-            }
-            if (TimeFactorS[2].s == ISS_ON)
-            {
-                //IDLog("CCDSim:: Time Factor 0.01\n");
-                TimeFactor = 0.01;
-            }
+            m_SimulateRGB = index == 0;
+            setRGB(m_SimulateRGB);
+
+            SimulateRgbS[0].s = m_SimulateRGB ? ISS_ON : ISS_OFF;
+            SimulateRgbS[1].s = m_SimulateRGB ? ISS_OFF : ISS_ON;
+            SimulateRgbSP.s   = IPS_OK;
+            IDSetSwitch(&SimulateRgbSP, nullptr);
 
             return true;
         }
-    }
-
-    if (!strcmp(name, SimulateRgbSP.name))
-    {
-        IUUpdateSwitch(&SimulateRgbSP, states, names, n);
-        int index = IUFindOnSwitchIndex(&SimulateRgbSP);
-        if (index == -1)
+        else if (strcmp(name, CoolerSP.name) == 0)
         {
-            SimulateRgbSP.s = IPS_ALERT;
-            LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
-            IDSetSwitch(&SimulateRgbSP, nullptr);
-            return false;
+            IUUpdateSwitch(&CoolerSP, states, names, n);
+
+            if (CoolerS[0].s == ISS_ON)
+                CoolerSP.s = IPS_BUSY;
+            else
+            {
+                CoolerSP.s         = IPS_IDLE;
+                TemperatureRequest = 20;
+                TemperatureNP.s    = IPS_BUSY;
+            }
+
+            IDSetSwitch(&CoolerSP, nullptr);
+
+            return true;
         }
-
-        simulateRGB = index == 0;
-        setRGB(simulateRGB);
-
-        SimulateRgbS[0].s = simulateRGB ? ISS_ON : ISS_OFF;
-        SimulateRgbS[1].s = simulateRGB ? ISS_OFF : ISS_ON;
-        SimulateRgbSP.s   = IPS_OK;
-        IDSetSwitch(&SimulateRgbSP, nullptr);
-
-        return true;
-    }
-
-    if (strcmp(name, CoolerSP.name) == 0)
-    {
-        IUUpdateSwitch(&CoolerSP, states, names, n);
-
-        if (CoolerS[0].s == ISS_ON)
-            CoolerSP.s = IPS_BUSY;
-        else
+        else if (strcmp(name, CrashSP.name) == 0)
         {
-            CoolerSP.s         = IPS_IDLE;
-            TemperatureRequest = 20;
-            TemperatureNP.s    = IPS_BUSY;
+            abort();
         }
-
-        IDSetSwitch(&CoolerSP, nullptr);
-
-        return true;
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -1230,10 +1213,37 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
 {
     if (IUSnoopNumber(root, &FWHMNP) == 0)
     {
-        seeing = FWHMNP.np[0].value;
+        // we calculate the FWHM and do not snoop it from the focus simulator
+        // seeing = FWHMNP.np[0].value;
         return true;
     }
 
+    XMLEle * ep           = nullptr;
+    const char * propName = findXMLAttValu(root, "name");
+
+    if (!strcmp(propName, "ABS_FOCUS_POSITION"))
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, "FOCUS_ABSOLUTE_POSITION"))
+            {
+                FocuserPos = atol(pcdataXMLEle(ep));
+
+                // calculate FWHM
+                double focus       = FocusSimulationN[0].value;
+                double max         = FocusSimulationN[1].value;
+                double optimalFWHM = FocusSimulationN[2].value;
+
+                // limit to +/- 10
+                double ticks = 20 * (FocuserPos - focus) / max;
+
+                seeing = 0.5625 * ticks * ticks + optimalFWHM;
+                return true;
+            }
+        }
+    }
     // We try to snoop EQPEC first, if not found, we snoop regular EQNP
 #ifdef USE_EQUATORIAL_PE
     const char * propName = findXMLAttValu(root, "name");
@@ -1286,14 +1296,16 @@ bool CCDSim::saveConfigItems(FILE * fp)
     INDI::FilterInterface::saveConfigItems(fp);
 
     // Save CCD Simulator Config
-    IUSaveConfigNumber(fp, SimulatorSettingsNV);
-    IUSaveConfigSwitch(fp, TimeFactorSV);
+    IUSaveConfigNumber(fp, &SimulatorSettingsNP);
 
     // Gain
     IUSaveConfigNumber(fp, &GainNP);
 
     // RGB
     IUSaveConfigSwitch(fp, &SimulateRgbSP);
+
+    // Focus simulation
+    IUSaveConfigNumber(fp, &FocusSimulationNP);
 
     return true;
 }
@@ -1346,21 +1358,28 @@ bool CCDSim::UpdateCCDFrame(int x, int y, int w, int h)
 
 bool CCDSim::UpdateCCDBin(int hor, int ver)
 {
-    if (hor == 3 || ver == 3)
+    if (PrimaryCCD.getSubW() % hor != 0 || PrimaryCCD.getSubH() % ver != 0)
     {
-        LOG_ERROR("3x3 binning is not supported.");
+        LOGF_ERROR("%dx%d binning is not supported.", hor, ver);
         return false;
     }
 
-    long bin_width  = PrimaryCCD.getSubW() / hor;
-    long bin_height = PrimaryCCD.getSubH() / ver;
-
-    bin_width  = bin_width - (bin_width % 2);
-    bin_height = bin_height - (bin_height % 2);
-
+    uint32_t bin_width  = PrimaryCCD.getSubW() / hor;
+    uint32_t bin_height = PrimaryCCD.getSubH() / ver;
     Streamer->setSize(bin_width, bin_height);
 
     return INDI::CCD::UpdateCCDBin(hor, ver);
+}
+
+bool CCDSim::UpdateGuiderBin(int hor, int ver)
+{
+    if (GuideCCD.getSubW() % hor != 0 || GuideCCD.getSubH() % ver != 0)
+    {
+        LOGF_ERROR("%dx%d binning is not supported.", hor, ver);
+        return false;
+    }
+
+    return INDI::CCD::UpdateGuiderBin(hor, ver);
 }
 
 void * CCDSim::streamVideoHelper(void * context)
@@ -1418,3 +1437,4 @@ void CCDSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
     int status = 0;
     fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
 }
+

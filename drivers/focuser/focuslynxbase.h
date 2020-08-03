@@ -156,7 +156,6 @@ class FocusLynxBase : public INDI::Focuser
         // Set functions
 
         // Position
-        //bool setMaxTravel(u_int16_t travel);
         bool setStepSize(u_int16_t stepsize);
 
         // Temperature
@@ -165,10 +164,6 @@ class FocusLynxBase : public INDI::Focuser
         bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
         bool setTemperatureInceptions(char mode, int32_t inter);
         bool setTemperatureCompensationOnStart(bool enable);
-
-        // Backlash
-        //    bool setBacklashCompensation(bool enable);
-        //    bool setBacklashCompensationSteps(uint16_t steps);
 
         // Motion functions
         bool stop();
@@ -207,21 +202,9 @@ class FocusLynxBase : public INDI::Focuser
         INumber TemperatureParamN[2];
         INumberVectorProperty TemperatureParamNP;
 
-        // Enable/Disable backlash
-        //    ISwitch BacklashCompensationS[2];
-        //    ISwitchVectorProperty FocuserBacklashSP;
-
-        //    // Backlash Value
-        //    INumber BacklashN[1];
-        //    INumberVectorProperty BacklashNP;
-
         // Reset to Factory setting
         ISwitch ResetS[1];
         ISwitchVectorProperty ResetSP;
-
-        // Reverse Direction
-        //    ISwitch ReverseS[2];
-        //    ISwitchVectorProperty ReverseSP;
 
         // Go to home/center
         ISwitch GotoS[2];

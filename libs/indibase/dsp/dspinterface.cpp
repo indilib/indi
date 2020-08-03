@@ -24,6 +24,7 @@
 #include "indilogger.h"
 #include "locale_compat.h"
 #include "indicom.h"
+#include "libastro.h"
 
 #include <fitsio.h>
 
@@ -36,9 +37,13 @@
 #include <dirent.h>
 #include <cerrno>
 #include <locale.h>
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <zlib.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 // Create dir recursively
 static int _det_mkdir(const char *dir, mode_t mode)
@@ -76,21 +81,23 @@ namespace DSP
 {
 const char *DSP_TAB = "Signal Processing";
 
-Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, const char *label) : m_Device(dev), m_Name(name), m_Label(label), m_Type(type)
+Interface::Interface(INDI::DefaultDevice *dev, Type type, const char *name, const char *label) : m_Device(dev),
+    m_Name(name), m_Label(label), m_Type(type)
 {
     char activatestrname[MAXINDINAME];
-    char activatestrlabel[MAXINDINAME];
+    char activatestrlabel[MAXINDILABEL];
     sprintf(activatestrname, "DSP_ACTIVATE_%s", m_Name);
     sprintf(activatestrlabel, "Activate %s", m_Label);
     IUFillSwitch(&ActivateS[0], "DSP_ACTIVATE_ON", "Activate", ISState::ISS_OFF);
     IUFillSwitch(&ActivateS[1], "DSP_ACTIVATE_OFF", "Deactivate", ISState::ISS_ON);
-    IUFillSwitchVector(&ActivateSP, ActivateS, 2, getDeviceName(), activatestrname, activatestrlabel, DSP_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ActivateSP, ActivateS, 2, getDeviceName(), activatestrname, activatestrlabel, DSP_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillBLOB(&FitsB, m_Name, m_Label, "");
     IUFillBLOBVector(&FitsBP, &FitsB, 1, getDeviceName(), m_Name, m_Label, DSP_TAB, IP_RO, 60, IPS_IDLE);
     BufferSizes = nullptr;
     BufferSizesQty = 0;
-    strncpy (FitsB.format, "fits", MAXINDIFORMAT);
+    strncpy (FitsB.format, ".fits", MAXINDIFORMAT);
 }
 
 Interface::~Interface()
@@ -105,9 +112,12 @@ const char *Interface::getDeviceName()
 void Interface::ISGetProperties(const char *dev)
 {
     INDI_UNUSED(dev);
-    if (m_Device->isConnected()) {
+    if (m_Device->isConnected())
+    {
         m_Device->defineSwitch(&ActivateSP);
-    } else {
+    }
+    else
+    {
         m_Device->deleteProperty(ActivateSP.name);
         PluginActive = false;
         Deactivated();
@@ -116,9 +126,12 @@ void Interface::ISGetProperties(const char *dev)
 
 bool Interface::updateProperties()
 {
-    if (m_Device->isConnected()) {
+    if (m_Device->isConnected())
+    {
         m_Device->defineSwitch(&ActivateSP);
-    } else {
+    }
+    else
+    {
         m_Device->deleteProperty(ActivateSP.name);
         PluginActive = false;
         Deactivated();
@@ -128,16 +141,20 @@ bool Interface::updateProperties()
 
 bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName())&&!strcmp(name, ActivateSP.name)) {
-        for (int i = 0; i < n; i++) {
-            if (!strcmp(names[i], "DSP_ACTIVATE_ON") && states[i] == ISS_ON) {
-                PluginActive = true;
-                Activated();
-            } else {
-                PluginActive = false;
-                Deactivated();
-            }
+    if(!strcmp(dev, getDeviceName()) && !strcmp(name, ActivateSP.name))
+    {
+        IUUpdateSwitch(&ActivateSP, states, names, n);
+        if(ActivateSP.sp[0].s == ISS_ON)
+        {
+            PluginActive = true;
+            Activated();
         }
+        else
+        {
+            PluginActive = false;
+            Deactivated();
+        }
+        IDSetSwitch(&ActivateSP, nullptr);
     }
     return false;
 }
@@ -162,7 +179,8 @@ bool Interface::ISNewText(const char *dev, const char *name, char *texts[], char
     return false;
 }
 
-bool Interface::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+bool Interface::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                          char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -187,9 +205,12 @@ uint8_t* Interface::Callback(uint8_t* buf, uint32_t ndims, int* dims, int bits_p
 
 bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_per_sample)
 {
-    if(PluginActive) {
-        bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
-        bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
+    if(PluginActive)
+    {
+        bool sendCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[0].s == ISS_ON
+                            || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
+        bool saveCapture = (m_Device->getSwitch("UPLOAD_MODE")->sp[1].s == ISS_ON
+                            || m_Device->getSwitch("UPLOAD_MODE")->sp[2].s == ISS_ON);
 
         if (sendCapture || saveCapture)
         {
@@ -199,7 +220,7 @@ bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_pe
             if (buffer)
             {
                 LOGF_INFO("%s processing done. Creating file..", m_Label);
-                if (!strcmp(FitsB.format, "fits"))
+                if (!strcmp(FitsB.format, ".fits"))
                 {
                     sendFITS(buffer, sendCapture, saveCapture);
                 }
@@ -207,7 +228,7 @@ bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_pe
                 {
                     long len = 1;
                     uint32_t i;
-                    for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
+                    for (len = 1, i = 0; i < BufferSizesQty; len *= BufferSizes[i++]);
                     len *= getBPS() / 8;
                     uploadFile(buffer, len, sendCapture, saveCapture, FitsB.format);
                 }
@@ -237,10 +258,8 @@ bool Interface::saveConfigItems(FILE *fp)
     return true;
 }
 
-void Interface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
+void Interface::addFITSKeywords(fitsfile *fptr)
 {
-    INDI_UNUSED(buf);
-    INDI_UNUSED(len);
     int status = 0;
     char exp_start[32];
 
@@ -290,7 +309,8 @@ void Interface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 
         // Convert from JNow to J2000
         //TODO use exp_start instead of julian from system
-        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+        //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+        LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
         double raJ2000  = J2000Pos.ra / 15.0;
         double decJ2000 = J2000Pos.dec;
@@ -329,27 +349,98 @@ void Interface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 }
 
 void Interface::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation,
-                                 int *status)
+                                  int *status)
 {
     // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
 }
 
+dsp_stream_p Interface::loadFITS(char* buffer, int len)
+{
+    dsp_stream_p loaded_stream = dsp_stream_new();
+    long ndims;
+    long bits_per_sample;
+    int status;
+    off_t offset;
+    off_t head;
+    off_t end;
+    fitsfile *fptr;
+    void* buf;
+    char error_status[MAXINDINAME];
+    char comment[MAXINDINAME];
+    char filename[MAXINDIMESSAGE];
+    sprintf(filename, "/tmp/%s_%s_%08X.fits", m_Label, getDeviceName(), rand());
+    int fd = creat(filename, 0600);
+    if(fd >= 0) {
+        int written = write(fd, buffer, len);
+        if(written != len)
+            return nullptr;
+        close(fd);
+    }
+    fits_open_file(&fptr, filename, 0, &status);
+    if(status != 0)
+        goto load_err;
+    fits_read_key_lng(fptr, "BITPIX", &bits_per_sample, comment, &status);
+    if(status != 0)
+        goto load_err;
+    fits_read_key_lng(fptr, "NAXIS", &ndims, comment, &status);
+    if(status != 0)
+        goto load_err;
+    for (int d = 1; d <= ndims; d++) {
+        char query[MAXINDINAME];
+        long value;
+        sprintf(query, "NAXIS%d", d);
+        fits_read_key_lng(fptr, query, &value, comment, &status);
+        if(status != 0)
+            goto load_err;
+        dsp_stream_add_dim(loaded_stream, value);
+    }
+    dsp_stream_alloc_buffer(loaded_stream, loaded_stream->len);
+    fits_get_hduoff(fptr, &head, &offset, &end, &status);
+    buf = static_cast<void*>(&buffer[offset]);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto err_free;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto err_free;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto err_free;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto err_free;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto err_free;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), loaded_stream->buf, loaded_stream->len);
+            goto dsp_err;
+        default:
+        break;
+    }
+load_err:
+    fits_report_error(stderr, status); /* print out any error messages */
+    fits_get_errstatus(status, error_status);
+    LOGF_ERROR("FITS Error: %s", error_status);
+dsp_err:
+    //Destroy the dsp stream
+    dsp_stream_free_buffer(loaded_stream);
+    dsp_stream_free(loaded_stream);
+    return nullptr;
+err_free:
+    fits_close_file(fptr, &status);
+    unlink(filename);
+    return loaded_stream;
+}
+
 bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
 {
-    fitsfile *fptr = nullptr;
-    void *memptr;
-    size_t memsize;
-    int img_type  = 0;
-    int byte_type = 0;
-    int status    = 0;
-    long naxis    = BufferSizesQty;
-    long *naxes = static_cast<long*>(malloc(sizeof(long)*BufferSizesQty));
-    for(uint32_t d = 0; d < BufferSizesQty; d++)
-        naxes[d] = BufferSizes[d];
-    int nelements = 0;
-    std::string bit_depth;
-    char error_status[MAXINDINAME];
+    int img_type  = USHORT_IMG;
+    int byte_type = TUSHORT;
+    std::string bit_depth = "16 bits per sample";
     switch (getBPS())
     {
         case 8:
@@ -365,8 +456,8 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
             break;
 
         case 32:
-            byte_type = TLONG;
-            img_type  = LONG_IMG;
+            byte_type = TULONG;
+            img_type  = ULONG_IMG;
             bit_depth = "32 bits per sample";
             break;
 
@@ -392,17 +483,26 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
             DEBUGF(INDI::Logger::DBG_ERROR, "Unsupported bits per sample value %d", getBPS());
             return false;
     }
-    long len = 1;
-    uint32_t i;
-    for (len = 1, i = 0; i < BufferSizesQty; len*=BufferSizes[i++]);
-    nelements = static_cast<int>(len);
+
+    fitsfile *fptr = nullptr;
+    void *memptr;
+    size_t memsize;
+    int status    = 0;
+    int naxis    = static_cast<int>(BufferSizesQty);
+    long *naxes = static_cast<long*>(malloc(sizeof(long) * BufferSizesQty));
+    long nelements = 0;
+
+    for (uint32_t i = 0, nelements = 1; i < BufferSizesQty; nelements *= static_cast<long>(BufferSizes[i++]))
+        naxes[i] = BufferSizes[i];
+    char error_status[MAXINDINAME];
 
     //  Now we have to send fits format data to the client
     memsize = 5760;
     memptr  = malloc(memsize);
     if (!memptr)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", static_cast<unsigned long>(memsize));
+        LOGF_ERROR("Error: failed to allocate memory: %lu", memsize);
+        return false;
     }
 
     fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
@@ -411,9 +511,9 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
     {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
-        DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        if(memptr != nullptr)
-            free(memptr);
+        fits_close_file(fptr, &status);
+        free(memptr);
+        LOGF_ERROR("FITS Error: %s", error_status);
         return false;
     }
 
@@ -423,13 +523,13 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
     {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
-        DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        if(memptr != nullptr)
-            free(memptr);
+        fits_close_file(fptr, &status);
+        free(memptr);
+        LOGF_ERROR("FITS Error: %s", error_status);
         return false;
     }
 
-    addFITSKeywords(fptr, buf, len);
+    addFITSKeywords(fptr);
 
     fits_write_img(fptr, byte_type, 1, nelements, buf, &status);
 
@@ -437,9 +537,9 @@ bool Interface::sendFITS(uint8_t *buf, bool sendCapture, bool saveCapture)
     {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
-        DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        if(memptr != nullptr)
-            free(memptr);
+        fits_close_file(fptr, &status);
+        free(memptr);
+        LOGF_ERROR("FITS Error: %s", error_status);
         return false;
     }
 
@@ -465,8 +565,8 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
 
         std::string prefix = m_Device->getText("UPLOAD_SETTINGS")->tp[1].text;
 
-        int maxIndex       = getFileIndex(m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(),
-                                          format);
+        int maxIndex = getFileIndex(m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(),
+                                    format);
 
         if (maxIndex < 0)
         {
@@ -493,7 +593,8 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        snprintf(processedFileName, MAXINDINAME, "%s/%s_%s.%s", m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(), m_Name, format);
+        snprintf(processedFileName, MAXINDINAME, "%s/%s_%s.%s", m_Device->getText("UPLOAD_SETTINGS")->tp[0].text, prefix.c_str(),
+                 m_Name, format);
 
         fp = fopen(processedFileName, "w");
         if (fp == nullptr)
@@ -515,29 +616,14 @@ bool Interface::uploadFile(const void *fitsData, size_t totalBytes, bool sendCap
 
     if (sendCapture)
     {
-#ifdef HAVE_WEBSOCKET
-        if (HasWebSocket() && WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
-        {
-            auto start = std::chrono::high_resolution_clock::now();
 
-            // Send format/size/..etc first later
-            wsServer.send_text(std::string(FitsB.format));
-            wsServer.send_binary(FitsB.blob, FitsB.bloblen);
-
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> diff = end - start;
-            LOGF_DEBUG("Websocket transfer took %g seconds", diff.count());
-        }
-        else
-#endif
-        {
-            auto start = std::chrono::high_resolution_clock::now();
-            IDSetBLOB(&FitsBP, nullptr);
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> diff = end - start;
-            LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
-        }
+        auto start = std::chrono::high_resolution_clock::now();
+        IDSetBLOB(&FitsBP, nullptr);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> diff = end - start;
+        LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
     }
+
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Upload complete");
 
@@ -635,7 +721,7 @@ void Interface::setStream(void *buf, uint32_t dims, int *sizes, int bits_per_sam
 
 uint8_t* Interface::getStream()
 {
-    void *buffer = malloc(stream->len*getBPS()/8);
+    void *buffer = malloc(stream->len * getBPS() / 8);
     switch (getBPS())
     {
         case 8:

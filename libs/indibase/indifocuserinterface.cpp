@@ -35,25 +35,30 @@ FocuserInterface::FocuserInterface(DefaultDevice * defaultDevice) : m_defaultDev
 void FocuserInterface::initProperties(const char * groupName)
 {
     IUFillNumber(&FocusSpeedN[0], "FOCUS_SPEED_VALUE", "Focus Speed", "%3.0f", 0.0, 255.0, 1.0, 255.0);
-    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, m_defaultDevice->getDeviceName(), "FOCUS_SPEED", "Speed", groupName, IP_RW, 60, IPS_OK);
+    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, m_defaultDevice->getDeviceName(), "FOCUS_SPEED", "Speed", groupName,
+                       IP_RW, 60, IPS_OK);
 
     IUFillNumber(&FocusTimerN[0], "FOCUS_TIMER_VALUE", "Focus Timer (ms)", "%4.0f", 0.0, 5000.0, 50.0, 1000.0);
-    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, m_defaultDevice->getDeviceName(), "FOCUS_TIMER", "Timer", groupName, IP_RW, 60, IPS_OK);
+    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, m_defaultDevice->getDeviceName(), "FOCUS_TIMER", "Timer", groupName,
+                       IP_RW, 60, IPS_OK);
     lastTimerValue = 1000.0;
 
     IUFillSwitch(&FocusMotionS[0], "FOCUS_INWARD", "Focus In", ISS_ON);
     IUFillSwitch(&FocusMotionS[1], "FOCUS_OUTWARD", "Focus Out", ISS_OFF);
-    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, m_defaultDevice->getDeviceName(), "FOCUS_MOTION", "Direction", groupName, IP_RW,
+    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, m_defaultDevice->getDeviceName(), "FOCUS_MOTION", "Direction",
+                       groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_OK);
 
     // Absolute Position
     IUFillNumber(&FocusAbsPosN[0], "FOCUS_ABSOLUTE_POSITION", "Steps", "%.f", 0.0, 100000.0, 1000.0, 0);
-    IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, m_defaultDevice->getDeviceName(), "ABS_FOCUS_POSITION", "Absolute Position",
+    IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, m_defaultDevice->getDeviceName(), "ABS_FOCUS_POSITION",
+                       "Absolute Position",
                        groupName, IP_RW, 60, IPS_OK);
 
     // Relative Position
     IUFillNumber(&FocusRelPosN[0], "FOCUS_RELATIVE_POSITION", "Steps", "%.f", 0.0, 100000.0, 1000.0, 0);
-    IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, m_defaultDevice->getDeviceName(), "REL_FOCUS_POSITION", "Relative Position",
+    IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, m_defaultDevice->getDeviceName(), "REL_FOCUS_POSITION",
+                       "Relative Position",
                        groupName, IP_RW, 60, IPS_OK);
 
     // Sync
@@ -68,24 +73,28 @@ void FocuserInterface::initProperties(const char * groupName)
 
     // Abort
     IUFillSwitch(&FocusAbortS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&FocusAbortSP, FocusAbortS, 1, m_defaultDevice->getDeviceName(), "FOCUS_ABORT_MOTION", "Abort Motion", groupName, IP_RW,
+    IUFillSwitchVector(&FocusAbortSP, FocusAbortS, 1, m_defaultDevice->getDeviceName(), "FOCUS_ABORT_MOTION", "Abort Motion",
+                       groupName, IP_RW,
                        ISR_ATMOST1, 60, IPS_IDLE);
 
     // Revese
-    IUFillSwitch(&FocusReverseS[REVERSED_ENABLED], "ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&FocusReverseS[REVERSED_DISABLED], "DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION", "Reverse Motion", groupName, IP_RW,
+    IUFillSwitch(&FocusReverseS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&FocusReverseS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION",
+                       "Reverse Motion", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Backlash Compensation
-    IUFillSwitch(&FocusBacklashS[REVERSED_ENABLED], "ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&FocusBacklashS[REVERSED_DISABLED], "DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_TOGGLE", "Backlash", groupName, IP_RW,
+    IUFillSwitch(&FocusBacklashS[DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&FocusBacklashS[DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_TOGGLE",
+                       "Backlash", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Backlash Compensation Value
     IUFillNumber(&FocusBacklashN[0], "FOCUS_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
-    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_STEPS", "Backlash",
+    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, m_defaultDevice->getDeviceName(), "FOCUS_BACKLASH_STEPS",
+                       "Backlash",
                        groupName, IP_RW, 60, IPS_OK);
 }
 
@@ -252,10 +261,13 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
     // Set backlash value
     if (!strcmp(name, FocusBacklashNP.name))
     {
-        if (FocusBacklashS[BACKLASH_ENABLED].s != ISS_ON)
+        if (FocusBacklashS[DefaultDevice::INDI_ENABLED].s != ISS_ON)
         {
             FocusBacklashNP.s = IPS_IDLE;
-            DEBUGDEVICE(dev, Logger::DBG_WARNING, "Focuser backlash must be enabled first.");
+
+            // Only warn if there is non-zero backlash value.
+            if (values[0] > 0)
+                DEBUGDEVICE(dev, Logger::DBG_WARNING, "Focuser backlash must be enabled first.");
         }
         else
         {
@@ -421,24 +433,29 @@ bool FocuserInterface::processSwitch(const char * dev, const char * name, ISStat
     }
 
     // Backlash compensation
-    if (!strcmp(name, FocusBacklashSP.name))
+    else if (!strcmp(name, FocusBacklashSP.name))
     {
-        bool enable = !strcmp(FocusBacklashS[BACKLASH_ENABLED].name, IUFindOnSwitchName(states, names, n));
+        int prevIndex = IUFindOnSwitchIndex(&FocusBacklashSP);
+        IUUpdateSwitch(&FocusBacklashSP, states, names, n);
 
-        if (SetFocuserBacklashEnabled(enable))
+        if (SetFocuserBacklashEnabled(IUFindOnSwitchIndex(&FocusBacklashSP) == DefaultDevice::INDI_ENABLED))
         {
             IUUpdateSwitch(&FocusBacklashSP, states, names, n);
             FocusBacklashSP.s = IPS_OK;
         }
         else
+        {
+            IUResetSwitch(&FocusBacklashSP);
+            FocusBacklashS[prevIndex].s = ISS_ON;
             FocusBacklashSP.s = IPS_ALERT;
+        }
 
         IDSetSwitch(&FocusBacklashSP, nullptr);
         return true;
     }
 
     // Abort Focuser
-    if (!strcmp(name, FocusAbortSP.name))
+    else if (!strcmp(name, FocusAbortSP.name))
     {
         IUResetSwitch(&FocusAbortSP);
 
@@ -464,17 +481,19 @@ bool FocuserInterface::processSwitch(const char * dev, const char * name, ISStat
     }
 
     // Reverse Motion
-    if (!strcmp(name, FocusReverseSP.name))
+    else if (!strcmp(name, FocusReverseSP.name))
     {
-        bool enabled = !strcmp("ENABLED", IUFindOnSwitchName(states, names, n));
+        int prevIndex = IUFindOnSwitchIndex(&FocusReverseSP);
+        IUUpdateSwitch(&FocusReverseSP, states, names, n);
 
-        if (ReverseFocuser(enabled))
+        if (ReverseFocuser(IUFindOnSwitchIndex(&FocusReverseSP) == DefaultDevice::INDI_ENABLED))
         {
-            IUUpdateSwitch(&FocusReverseSP, states, names, n);
             FocusReverseSP.s = IPS_OK;
         }
         else
         {
+            IUResetSwitch(&FocusReverseSP);
+            FocusReverseS[prevIndex].s = ISS_ON;
             FocusReverseSP.s = IPS_ALERT;
         }
 
