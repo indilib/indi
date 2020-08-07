@@ -27,6 +27,8 @@
 #include <memory>
 #include <ctime>
 
+#include <string.h>
+
 // We declare an auto pointer to GPSSimulator.
 std::unique_ptr<GPSSimulator> gpsSimulator(new GPSSimulator());
 
@@ -73,6 +75,86 @@ GPSSimulator::GPSSimulator()
     setDriverInterface(GPS_INTERFACE);
 }
 
+bool GPSSimulator::initProperties()
+{
+    GPS::initProperties();
+
+    IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 29.1);
+    IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 48.5);
+    IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 12);
+    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB,
+                       IP_RW, 60, IPS_IDLE);
+}
+
+bool GPSSimulator::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        ///////////////////////////////////
+        // Geographic Coords
+        ///////////////////////////////////
+        if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
+        {
+            int latindex       = IUFindIndex("LAT",  names, n);
+            int longindex      = IUFindIndex("LONG", names, n);
+            int elevationindex = IUFindIndex("ELEV", names, n);
+
+            if (latindex == -1 || longindex == -1 || elevationindex == -1)
+            {
+                LocationNP.s = IPS_ALERT;
+                IDSetNumber(&LocationNP, "Location data missing or corrupted.");
+            }
+
+            double latitude  = values[latindex];
+            double longitude = values[longindex];
+            double elevation = values[elevationindex];
+
+            /*
+            if (latitude == 0 && longitude == 0)
+            {
+                LOG_DEBUG("Silently ignoring invalid latitude and longitude.");
+                LocationNP.s = IPS_IDLE;
+                IDSetNumber(&LocationNP, nullptr);
+                return false;
+            }
+
+            // Do not update if not necessary
+            if (latitude  == LocationN[LOCATION_LATITUDE].value &&
+                longitude == LocationN[LOCATION_LONGITUDE].value &&
+                elevation == LocationN[LOCATION_ELEVATION].value)
+            {
+                LocationNP.s = IPS_OK;
+                IDSetNumber(&LocationNP, nullptr);
+            }*/
+
+            LocationNP.s                        = IPS_OK;
+            LocationN[LOCATION_LATITUDE].value  = latitude;
+            LocationN[LOCATION_LONGITUDE].value = longitude;
+            LocationN[LOCATION_ELEVATION].value = elevation;
+
+            //IUUpdateNumber(&LocationNP, values, names, n);
+
+            //  Update client display
+            IDSetNumber(&LocationNP, nullptr);
+
+            // Manual trigger
+            TimerHit();
+
+            // Always save geographic coord config immediately.
+            // saveConfig(true, "GEOGRAPHIC_COORD");
+        }
+    }
+
+    return GPS::ISNewNumber(dev, name, values, names, n);
+}
+
+bool GPSSimulator::saveConfigItems(FILE *fp)
+{
+    IUSaveConfigNumber(fp, &LocationNP);
+
+    return GPS::saveConfigItems(fp);
+}
+
 const char *GPSSimulator::getDefaultName()
 {
     return (const char *)"GPS Simulator";
@@ -80,6 +162,7 @@ const char *GPSSimulator::getDefaultName()
 
 bool GPSSimulator::Connect()
 {
+    // Request Data from Stellarium at Connect
     return true;
 }
 
@@ -105,12 +188,15 @@ IPState GPSSimulator::updateGPS()
     IUSaveText(&TimeT[1], ts);
 
     TimeTP.s = IPS_OK;
-
-    LocationN[LOCATION_LATITUDE].value  = 29.1;
-    LocationN[LOCATION_LONGITUDE].value = 48.5;
-    LocationN[LOCATION_ELEVATION].value = 12;
-
     LocationNP.s = IPS_OK;
+
+    /*
+    if (LocationNP.s==IPS_IDLE)
+    {
+        LocationN[LOCATION_LATITUDE].value  = 1;//50.841110;
+        LocationN[LOCATION_LONGITUDE].value = 2;//6.367500;
+        LocationN[LOCATION_ELEVATION].value = 3;//108;
+    }*/
 
     return IPS_OK;
 }
