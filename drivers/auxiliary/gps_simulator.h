@@ -37,6 +37,10 @@ class GPSSimulator : public INDI::GPS
     GPSSimulator();
     virtual ~GPSSimulator() = default;
 
+    bool initProperties();
+    bool saveConfigItems(FILE *fp);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
   protected:
     //  Generic indi device entries
     bool Connect();
