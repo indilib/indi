@@ -21,6 +21,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 /*
+2020-08-07, ToDo
 AP commands not yet implemented for revision >= G
 
 Sets the centering rate for the N-S-E-W buttons to xxx Rcxxx#
@@ -95,7 +96,7 @@ bool LX200AstroPhysicsExperimental::initProperties()
     LX200Generic::initProperties();
 
     timeFormat = LX200_24;
-    
+
     IUFillSwitch(&StartUpS[0], "COLD", "Cold", ISS_OFF);
     IUFillSwitch(&StartUpS[1], "WARM", "Warm", ISS_OFF);
     IUFillSwitchVector(&StartUpSP, StartUpS, 2, getDeviceName(), "STARTUP", "Startup", MAIN_CONTROL_TAB, IP_RW,
@@ -223,13 +224,13 @@ bool LX200AstroPhysicsExperimental::updateProperties()
     if (isConnected())
     {
         deleteProperty("TELESCOPE_PIER_SIDE");
-	if (firmwareVersion < MCV_G)
-	  {
-	    deleteProperty(UsePulseCmdSP.name);
-	    deleteProperty(TrackRateNP.name);
-	  }
+        if (firmwareVersion < MCV_G)
+        {
+            deleteProperty(UsePulseCmdSP.name);
+            deleteProperty(TrackRateNP.name);
+        }
         defineText(&VersionInfo);
-	defineSwitch(&UnparkFromSP);
+        defineSwitch(&UnparkFromSP);
         /* Motion group */
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
@@ -241,15 +242,18 @@ bool LX200AstroPhysicsExperimental::updateProperties()
         defineNumber(&APUTCOffsetNP);
 
 #ifdef no
-	if(!InitPark()) {
-	  LOG_WARN("No valid park position found or ParkData.xml missing");
-	} else {
-	  // wildi: too early, no time, site information
-	  //loadConfig(true, ParkToSP.name);
-	  //loadConfig(true, UnparkFromSP.name);
-	  SetParked(true);
-	}
- 
+        if(!InitPark())
+        {
+            LOG_WARN("No valid park position found or ParkData.xml missing");
+        }
+        else
+        {
+            // wildi: too early, no time, site information
+            //loadConfig(true, ParkToSP.name);
+            //loadConfig(true, UnparkFromSP.name);
+            SetParked(true);
+        }
+
         // 2020-05-30, wildi, this is the wrong place to load config data,
         // see celestron driver.
         // The RA/Dec values are 0,90 at startup and should not be
@@ -303,8 +307,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
     }
     else
     {
-        //deleteProperty(StartUpSP.name);
-      	deleteProperty(UnparkFromSP.name);
+        deleteProperty(UnparkFromSP.name);
         deleteProperty(VersionInfo.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
@@ -367,10 +370,10 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
 
             success = true;
         }
-	else
-	{
-          LOGF_WARN("unknown AP controller version %s", VersionT[0].text);
-	}
+        else
+        {
+            LOGF_WARN("unknown AP controller version %s", VersionT[0].text);
+        }
     }
 
     if (success)
@@ -523,157 +526,150 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
     if (strcmp(getDeviceName(), dev))
         return false;
 
-    // ============================================================
-    // Satisfy AP mount initialization, see AP key pad manual p. 76
-    // ============================================================
+    // Reintroduce cold/warm start from lx200ap.cpp in order to check if a valid park position is available.
+    // AP's startup sequence is not mandatory with the exception of :PO.
+    // Button Startup is defined outside "connected" state only to make it more visible to the user.
     if (!strcmp(name, StartUpSP.name))
     {
         if (!isConnected())
-	{
-	  StartUpSP.s = IPS_ALERT;
-	  LOG_ERROR("Connect first before reading mount's configuration");
-	  IDSetSwitch(&StartUpSP, nullptr);
-	  return false;
-	}
+        {
+            StartUpSP.s = IPS_ALERT;
+            LOG_ERROR("Connect first before reading mount's park configuration");
+            IDSetSwitch(&StartUpSP, nullptr);
+            return false;
+        }
         int switch_nr;
-	
+
         IUUpdateSwitch(&StartUpSP, states, names, n);
-	
-        //if (initStatus == MOUNTNOTINITIALIZED)
+
         if (StartUpSP.s == IPS_OK)
         {
-	    LOG_INFO("Mount's configuration already read");
+            LOG_INFO("Mount's park configuration already read");
             StartUpSP.s = IPS_OK;
             IDSetSwitch(&StartUpSP, nullptr);
-	    return true;
-	}
-	  
-        //if (timeUpdated == false || locationUpdated == false)
-	if (!(TimeTP.s == IPS_OK && LocationNP.s == IPS_OK))
-	  {
-	    StartUpSP.s = IPS_ALERT;
-	    LOGF_ERROR("Time is %s ok and location is %s ok must be set before mount initialization is invoked.", TimeTP.s == IPS_OK ? "" : "not ", LocationNP.s == IPS_OK ? "" : "not " );
-	    IDSetSwitch(&StartUpSP, nullptr);
-	    return false;
-	  }
-	
-	// check only the status of the ParkData.xml, do not set ParkSP
-	bool parkDataValid = (LoadParkData() == nullptr);
-	if (parkDataValid && isParked())
-	  {
-	  if (!loadConfig(true, UnparkFromSP.name))
-	    {
-	      LOG_DEBUG("could not load config data for UnparkFromSP.name");
-	    }
-	  if (!loadConfig(true, ParkToSP.name))
-	    {
-	      LOG_DEBUG("could not load config data for ParkTo.name");
-	    }
+            return true;
+        }
+        // rely on INDI's logic
+        if (!(TimeTP.s == IPS_OK && LocationNP.s == IPS_OK))
+        {
+            StartUpSP.s = IPS_ALERT;
+            LOGF_ERROR("Time is %s ok and location is %s ok must be set before mount initialization is invoked.",
+                       TimeTP.s == IPS_OK ? "" : "not ", LocationNP.s == IPS_OK ? "" : "not " );
+            IDSetSwitch(&StartUpSP, nullptr);
+            return false;
+        }
 
-	  if(UnparkFromS[PARK_LAST].s == ISS_ON)
-	    {
-	      LOGF_INFO("Driver's config 'Unpark From ?' is set to 'Last Parked': will unpark from  Alt=%f Az=%f", GetAxis2Park(), GetAxis1Park());
-	    }  
-	  LOG_DEBUG("ISNewSwitch: forcing mount being parked from INDI's perspective");
-	  SetParked(true);
-	} else {
-	  if (StartUpSP.sp[0].s == ISS_ON) // do it only in case a power on (cold start)
-	    {
-	      LOG_WARN("Set 'Park To' and 'Unpark From ?' manually and save dirver's config and park data");
-	      SetParked(true);
+        // check only the status of the ParkData.xml, do not set ParkSP
+        bool parkDataValid = (LoadParkData() == nullptr);
+        if (parkDataValid && isParked())
+        {
+            if (!loadConfig(true, UnparkFromSP.name))
+            {
+                LOG_DEBUG("could not load config data for UnparkFromSP.name");
+            }
+            if (!loadConfig(true, ParkToSP.name))
+            {
+                LOG_DEBUG("could not load config data for ParkTo.name");
+            }
 
-	      StartUpSP.s = IPS_OK;
-	      IDSetSwitch(&StartUpSP, nullptr);
-	    }
-	  else
-	    {
-	      LOG_WARN("No ParkData.xml or parkstatus is false, do a cold start");
-	      StartUpSP.s = IPS_ALERT;
-	      IDSetSwitch(&StartUpSP, nullptr);
-	    }
-	  return false;
-	}
-	//initStatus = MOUNTINITIALIZED;
+            if(UnparkFromS[PARK_LAST].s == ISS_ON)
+            {
+                LOGF_INFO("Driver's config 'Unpark From ?' is set to 'Last Parked': will unpark from  Alt=%f Az=%f", GetAxis2Park(),
+                          GetAxis1Park());
+            }
+            // forcing mount being parked from INDI's perspective
+            SetParked(true);
+        }
+        else
+        {
+            if (StartUpSP.sp[0].s == ISS_ON)
+            {
+                LOG_WARN("Set 'Park To' and 'Unpark From ?' manually and save dirver's config and park data");
+                SetParked(true);
 
-	if (isSimulation())
-	  {
-	    SlewRateSP.s = IPS_OK;
-	    IDSetSwitch(&SlewRateSP, nullptr);
-	    
-	    APSlewSpeedSP.s = IPS_OK;
-	    IDSetSwitch(&APSlewSpeedSP, nullptr);
+                StartUpSP.s = IPS_OK;
+                IDSetSwitch(&StartUpSP, nullptr);
+            }
+            else
+            {
+                LOG_WARN("No ParkData.xml or parkstatus is false, do a cold start");
+                StartUpSP.s = IPS_ALERT;
+                IDSetSwitch(&StartUpSP, nullptr);
+            }
+            return false;
+        }
 
-	    IUSaveText(&VersionT[0], "1.0");
-	    VersionInfo.s = IPS_OK;
-	    IDSetText(&VersionInfo, nullptr);
+        if (isSimulation())
+        {
+            SlewRateSP.s = IPS_OK;
+            IDSetSwitch(&SlewRateSP, nullptr);
 
-	    StartUpSP.s = IPS_OK;
-	    IDSetSwitch(&StartUpSP, "Mount initialized.");
+            APSlewSpeedSP.s = IPS_OK;
+            IDSetSwitch(&APSlewSpeedSP, nullptr);
 
-	    //currentRA  = 0;
-	    //currentDEC = 90;
-	    return true;
+            IUSaveText(&VersionT[0], "1.0");
+            VersionInfo.s = IPS_OK;
+            IDSetText(&VersionInfo, nullptr);
 
-	  }
-	// Make sure that the mount is setup according to the properties
-	switch_nr = IUFindOnSwitchIndex(&TrackModeSP);
+            StartUpSP.s = IPS_OK;
+            IDSetSwitch(&StartUpSP, "Mount initialized.");
 
-	if ( (err = selectAPTrackingMode(PortFD, switch_nr)) < 0)
-	  {
-	    LOGF_ERROR("StartUpSP: Error setting tracking mode (%d).", err);
-	    return false;
-	  }
+            return true;
 
-	//TrackState = (switch_nr != AP_TRACKING_OFF) ? SCOPE_TRACKING : SCOPE_IDLE;
-	
-	// On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
-	// lx200ap is different - some of the MoveTo speeds are not VALID
-	// Slew speeds so we have to keep two lists.
-	//
-	// SlewRateS is used as the MoveTo speed
-	switch_nr = IUFindOnSwitchIndex(&SlewRateSP);
-	if ( (err = selectAPMoveToRate(PortFD, switch_nr)) < 0)
-	  {
-	    LOGF_ERROR("StartUpSP: Error setting move rate (%d).", err);
-	    return false;
-	  }
+        }
+        // Make sure that the mount is setup according to the properties
+        switch_nr = IUFindOnSwitchIndex(&TrackModeSP);
 
-	SlewRateSP.s = IPS_OK;
-	IDSetSwitch(&SlewRateSP, nullptr);
-	    
-	// APSlewSpeedsS defines the Slew (GOTO) speeds valid on the AP mounts
-	switch_nr = IUFindOnSwitchIndex(&APSlewSpeedSP);
-	if ( (err = selectAPSlewRate(PortFD, switch_nr)) < 0)
-	  {
-	    LOGF_ERROR("StartUpSP: Error setting slew to rate (%d).", err);
-	    return false;
-	  }
-	APSlewSpeedSP.s = IPS_OK;
-	IDSetSwitch(&APSlewSpeedSP, nullptr);
-	
-	getLX200RA(PortFD, &currentRA);
-	getLX200DEC(PortFD, &currentDEC);
-	
-	// make a IDSet in order the dome controller is aware of the initial values
-	targetRA  = currentRA;
-	targetDEC = currentDEC;
-	    
-	NewRaDec(currentRA, currentDEC);
+        if ( (err = selectAPTrackingMode(PortFD, switch_nr)) < 0)
+        {
+            LOGF_ERROR("StartUpSP: Error setting tracking mode (%d).", err);
+            return false;
+        }
 
-	char versionString[64];
-	getAPVersionNumber(PortFD, versionString);
-	VersionInfo.s = IPS_OK;
-	IUSaveText(&VersionT[0], versionString);
-	IDSetText(&VersionInfo, nullptr);
+        //TrackState = (switch_nr != AP_TRACKING_OFF) ? SCOPE_TRACKING : SCOPE_IDLE;
 
-	// wildi, ToDo, disabled make sure it works
-	// TODO check controller type here
-	//INDI_UNUSED(controllerType);
-	//INDI_UNUSED(servoType);
-	//controllerType = ...;
+        // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
+        // lx200ap is different - some of the MoveTo speeds are not VALID
+        // Slew speeds so we have to keep two lists.
+        //
+        // SlewRateS is used as the MoveTo speed
+        switch_nr = IUFindOnSwitchIndex(&SlewRateSP);
+        if ( (err = selectAPMoveToRate(PortFD, switch_nr)) < 0)
+        {
+            LOGF_ERROR("StartUpSP: Error setting move rate (%d).", err);
+            return false;
+        }
 
-	StartUpSP.s = IPS_OK;
-	IDSetSwitch(&StartUpSP, "Mount initialized.");
+        SlewRateSP.s = IPS_OK;
+        IDSetSwitch(&SlewRateSP, nullptr);
+
+        // APSlewSpeedsS defines the Slew (GOTO) speeds valid on the AP mounts
+        switch_nr = IUFindOnSwitchIndex(&APSlewSpeedSP);
+        if ( (err = selectAPSlewRate(PortFD, switch_nr)) < 0)
+        {
+            LOGF_ERROR("StartUpSP: Error setting slew to rate (%d).", err);
+            return false;
+        }
+        APSlewSpeedSP.s = IPS_OK;
+        IDSetSwitch(&APSlewSpeedSP, nullptr);
+
+        getLX200RA(PortFD, &currentRA);
+        getLX200DEC(PortFD, &currentDEC);
+
+        // make a IDSet in order the dome controller is aware of the initial values
+        targetRA  = currentRA;
+        targetDEC = currentDEC;
+
+        NewRaDec(currentRA, currentDEC);
+
+        char versionString[64];
+        getAPVersionNumber(PortFD, versionString);
+        VersionInfo.s = IPS_OK;
+        IUSaveText(&VersionT[0], versionString);
+        IDSetText(&VersionInfo, nullptr);
+
+        StartUpSP.s = IPS_OK;
+        IDSetSwitch(&StartUpSP, "Mount initialized.");
 
         return true;
     }
@@ -784,22 +780,22 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         IUUpdateSwitch(&UnparkFromSP, states, names, n);
         ParkPosition unparkPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&UnparkFromSP));
 
-	UnparkFromSP.s = IPS_OK;
+        UnparkFromSP.s = IPS_OK;
         if( unparkPos != PARK_LAST)
         {
             double unparkAlt, unparkAz;
             if (!calcParkPosition(unparkPos, &unparkAlt, &unparkAz))
             {
-                LOG_WARN("ISNewSwitch: Error calculating unpark position!");
+                LOG_WARN("Error calculating unpark position!");
                 UnparkFromSP.s = IPS_ALERT;
             }
-	    else
-	    {
-	        SetAxis1Park(unparkAz);
+            else
+            {
+                SetAxis1Park(unparkAz);
                 SetAxis2Park(unparkAlt);
-		// 2020-06-01, wildi, UnPark() relies on it
-		saveConfig(true);
-	    }
+                // 2020-06-01, wildi, UnPark() relies on it
+                saveConfig(true);
+            }
         }
         IDSetSwitch(&UnparkFromSP, nullptr);
         return true;
@@ -812,10 +808,10 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
     if (!strcmp(name, ParkSP.name))
     {
         if (StartUpSP.s != IPS_OK)
-	  {
-	    LOG_ERROR("Read driver's config first");
-	    return false;
-	  }
+        {
+            LOG_ERROR("Read driver's config first");
+            return false;
+        }
     }
     // ===========================================================
     // Park To positions
@@ -829,9 +825,9 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         if (parkPos != PARK_CUSTOM)
         {
             double parkAz, parkAlt;
-	    if (!(TimeTP.s == IPS_OK && LocationNP.s == IPS_OK))
+            if (!(TimeTP.s == IPS_OK && LocationNP.s == IPS_OK))
             {
-                LOG_WARN("ISNewSwitch: ParkTo can not calculate park position, latitude, longitude not yet available");
+                LOG_WARN("ParkTo can not calculate park position, latitude, longitude not yet available");
                 IUResetSwitch(&ParkToSP);
                 ParkToSP.s = IPS_ALERT;
                 IDSetSwitch(&ParkToSP, nullptr);
@@ -839,13 +835,13 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
             }
             if (calcParkPosition(parkPos, &parkAlt, &parkAz))
             {
-	        SetAxis1Park(parkAz);
+                SetAxis1Park(parkAz);
                 SetAxis2Park(parkAlt);
-                LOGF_INFO("ISNewSwitch: Set predefined park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
+                LOGF_INFO("Set predefined park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
             }
             else
             {
-                LOGF_ERROR("ISNewSwitch: Unable to set predefined park position %d!!", parkPos);
+                LOGF_ERROR("Unable to set predefined park position %d!!", parkPos);
             }
         }
         else
@@ -861,13 +857,13 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         ParkToSP.s = IPS_OK;
         IDSetSwitch(&ParkToSP, nullptr);
         return true;
-   } 
+    }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool LX200AstroPhysicsExperimental::ReadScopeStatus()
-{  
+{
     double lng = LocationN[LOCATION_LONGITUDE].value;
     double lst = get_local_sidereal_time(lng);
     // 2020-06-02, wildi, isParked is reserved for the state in ParkData.xml
@@ -880,14 +876,14 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 
         // No need to spam log until we have some actual changes.
         if (std::fabs(HourangleCoordsN[0].value - ha) > 0.0001 ||
-            std::fabs(HourangleCoordsN[1].value - currentDEC) > 0.0001)
+                std::fabs(HourangleCoordsN[1].value - currentDEC) > 0.0001)
         {
-	    // in case of simulation, the coordinates are set on parking
-	    HourangleCoordsN[0].value = ha;
-	    HourangleCoordsN[1].value = currentDEC;
-	    HourangleCoordsNP.s = IPS_OK;
-	    IDSetNumber(&HourangleCoordsNP, nullptr );
-	}
+            // in case of simulation, the coordinates are set on parking
+            HourangleCoordsN[0].value = ha;
+            HourangleCoordsN[1].value = currentDEC;
+            HourangleCoordsNP.s = IPS_OK;
+            IDSetNumber(&HourangleCoordsNP, nullptr );
+        }
     }
     double val;
     if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0))
@@ -925,7 +921,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         if (getCalendarDate(PortFD, buf) < 0)
         {
             LOG_DEBUG("Reading calendar day failed :GC");
-	}
+        }
     }
     if (getLX200Az(PortFD, &val) < 0)
     {
@@ -976,17 +972,17 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         double PARKTHRES = 0.1; // max difference from parked position to consider mount PARKED
 
         slewcomplete = false;
-	// wildi, downgrade
-	if ((firmwareVersion != MCV_UNKNOWN) && (firmwareVersion >= MCV_T))
-	{
-	  if (check_lx200ap_status(PortFD, &parkStatus, &slewStatus) == 0)
-	  {
-            LOGF_DEBUG("parkStatus: %c slewStatus: %c", parkStatus, slewStatus);
+        // wildi, downgrade
+        if ((firmwareVersion != MCV_UNKNOWN) && (firmwareVersion >= MCV_T))
+        {
+            if (check_lx200ap_status(PortFD, &parkStatus, &slewStatus) == 0)
+            {
+                LOGF_DEBUG("parkStatus: %c slewStatus: %c", parkStatus, slewStatus);
 
-            if (slewStatus == '0')
-                slewcomplete = true;
-          }
-	}
+                if (slewStatus == '0')
+                    slewcomplete = true;
+            }
+        }
         // old way
         if (getLX200Az(PortFD, &currentAz) < 0 || getLX200Alt(PortFD, &currentAlt) < 0)
         {
@@ -1019,7 +1015,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
                 return false;
             }
 
-	    slewcomplete = true;
+            slewcomplete = true;
             // Turn off tracking.
             SetTrackEnabled(false);
             SetParked(true);
@@ -1128,11 +1124,13 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isAPParked)
     {
         *isAPParked = false;
         return true;
-    } else {
+    }
+    else
+    {
         *isAPParked = true;
         return true;
     }
- 
+
     // can't determine
     LOG_ERROR("IsMountParked: park status undefined");
     return false;
@@ -1140,18 +1138,18 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isAPParked)
 
 bool LX200AstroPhysicsExperimental::getMountStatus(bool *isAPParked)
 {
-  char parkStatus;
-  char slewStatus;
+    char parkStatus;
+    char slewStatus;
 
-  if (check_lx200ap_status(PortFD, &parkStatus, &slewStatus) == 0)
-  {
-    LOGF_DEBUG("parkStatus: %c", parkStatus);
+    if (check_lx200ap_status(PortFD, &parkStatus, &slewStatus) == 0)
+    {
+        LOGF_DEBUG("parkStatus: %c", parkStatus);
 
-    *isAPParked = (parkStatus == 'P');
-    return true;
-  }
+        *isAPParked = (parkStatus == 'P');
+        return true;
+    }
 
-  return false;
+    return false;
 }
 
 bool LX200AstroPhysicsExperimental::Goto(double r, double d)
@@ -1489,7 +1487,7 @@ bool LX200AstroPhysicsExperimental::Handshake()
     if (isSimulation())
     {
         LOG_INFO("Simulated Astrophysics is online. Retrieving basic data...");
-	getFirmwareVersion();
+        getFirmwareVersion();
         return true;
     }
 
@@ -1507,7 +1505,7 @@ bool LX200AstroPhysicsExperimental::Handshake()
         if ((err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
         {
             LOGF_ERROR("Error setting back lash compensation (%d): %s.", err, strerror(err));
-	    // wildi, downgrade
+            // wildi, downgrade
             //return false;
         }
     }
@@ -1521,7 +1519,7 @@ bool LX200AstroPhysicsExperimental::Handshake()
     if (!rc || firmwareVersion == MCV_UNKNOWN || firmwareVersion < MCV_V)
     {
         LOG_ERROR("Firmware version is not 'V' - too old to use the experimental driver!");
-	// wildi, downgrade
+        // wildi, downgrade
         //return false;
     }
     else
@@ -1533,30 +1531,30 @@ bool LX200AstroPhysicsExperimental::Handshake()
     {
         LOG_ERROR("Firmware detection failed or is unknown");
         return false;
-	
+
     }
     if(firmwareVersion == MCV_V)
     {
-      LOG_INFO("Firmware level 'V' detected - driver loaded.");
+        LOG_INFO("Firmware level 'V' detected - driver loaded.");
     }
     else if(firmwareVersion == MCV_D)
     {
-      LOG_INFO("Firmware level 'D' detected - driver loaded.");
+        LOG_INFO("Firmware level 'D' detected - driver loaded.");
     }
     // do not track until mount is umparked
     if ((err = selectAPTrackingMode(PortFD, AP_TRACKING_OFF)) < 0)
-      {
-	LOGF_ERROR("Handshake: Error setting tracking mode to zero (%d).", err);
-	return false;
+    {
+        LOGF_ERROR("Handshake: Error setting tracking mode to zero (%d).", err);
+        return false;
 
-      }
+    }
     else
-      {
-	LOG_INFO("Stopped tracking");
-      }
+    {
+        LOG_INFO("Stopped tracking");
+    }
 
     disclaimerMessage();
-    
+
     // Detect and set fomat. It should be LONG.
     return (checkLX200Format(PortFD) == 0);
 }
@@ -1593,7 +1591,7 @@ bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
         switch (syncType)
         {
             case USE_REGULAR_SYNC:
-	      
+
                 if (::Sync(PortFD, syncString) < 0)
                     syncOK = false;
                 break;
@@ -1766,13 +1764,13 @@ bool LX200AstroPhysicsExperimental::Park()
     double parkAz, parkAlt;
     if (calcParkPosition(parkPos, &parkAlt, &parkAz))
     {
-      SetAxis1Park(parkAz);
-      SetAxis2Park(parkAlt);
-      LOGF_DEBUG("Set park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
+        SetAxis1Park(parkAz);
+        SetAxis2Park(parkAlt);
+        LOGF_DEBUG("Set park position %d to az=%f alt=%f", parkPos, parkAz, parkAlt);
     }
     else
     {
-      LOGF_ERROR("Unable to set park position %d!!", parkPos);
+        LOGF_ERROR("Unable to set park position %d!!", parkPos);
     }
 
     char AzStr[16], AltStr[16];
@@ -1910,28 +1908,31 @@ bool LX200AstroPhysicsExperimental::UnPark()
         return false;
     }
     bool parkDataValid = InitPark() ;
-    
+
     bool parkDataValid_and_parked = (parkDataValid && isParked());
     bool unpark_from_last_config = false;
-    
+
     unpark_from_last_config = (PARK_LAST == IUFindOnSwitchIndex(&UnparkFromSP));
     double unparkAlt, unparkAz;
-    if (parkDataValid_and_parked && unpark_from_last_config) {
+    if (parkDataValid_and_parked && unpark_from_last_config)
+    {
 
-      LOG_INFO("UnPark: mount is parked, has valid park data and driver config is set to PARK_LAST");
-      unparkAz = GetAxis1Park(); //Az
-      unparkAlt = GetAxis2Park(); //Alt
-    } else if(!unpark_from_last_config) {
-      ParkPosition unparkfromPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&UnparkFromSP));
-      LOGF_DEBUG("UnPark: park position = %d from current driver", unparkfromPos);
-      if (!calcParkPosition(unparkfromPos, &unparkAlt, &unparkAz))
-      {
-	  LOG_ERROR("UnPark: Error calculating unpark position!");
-	  UnparkFromSP.s = IPS_ALERT;
-	  IDSetSwitch(&UnparkFromSP, nullptr);
-	  return false;
-      }
-      LOGF_DEBUG("UnPark: parkPos=%d parkAlt=%f parkAz=%f", unparkfromPos, unparkAlt, unparkAz);
+        LOG_INFO("UnPark: mount is parked, has valid park data and driver config is set to Last Parked");
+        unparkAz = GetAxis1Park(); //Az
+        unparkAlt = GetAxis2Park(); //Alt
+    }
+    else if(!unpark_from_last_config)
+    {
+        ParkPosition unparkfromPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&UnparkFromSP));
+        LOGF_DEBUG("UnPark: park position = %d from current driver", unparkfromPos);
+        if (!calcParkPosition(unparkfromPos, &unparkAlt, &unparkAz))
+        {
+            LOG_ERROR("UnPark: Error calculating unpark position!");
+            UnparkFromSP.s = IPS_ALERT;
+            IDSetSwitch(&UnparkFromSP, nullptr);
+            return false;
+        }
+        LOGF_DEBUG("UnPark: parkPos=%d parkAlt=%f parkAz=%f", unparkfromPos, unparkAlt, unparkAz);
     }
     SetAxis1ParkDefault(unparkAz);
     SetAxis2ParkDefault(unparkAlt);
@@ -1941,43 +1942,34 @@ bool LX200AstroPhysicsExperimental::UnPark()
         SetAxis2ParkDefault(unparkAlt);
     }
 
-    //bool isAPParked = false;
     bool isAPParked = true;
-    if(isSimulation())
-    {
-        // ToDo, quick fix
-        isAPParked = true ;
-    }
-    else
+    if(!isSimulation())
     {
         if (firmwareVersion == MCV_D)
-	{
-	    // no :GOS command
-	    // 2020-06-27, wildi, revision D slews without :PO after power cycle
-	    isAPParked = true ;
-	}
-	else
-	{
-	    if (!IsMountParked(&isAPParked))
+        {
+            // no :GOS command
+            // 2020-06-27, wildi, revision D slews without :PO after power cycle
+            isAPParked = true ;
+        }
+        else
+        {
+            if (!IsMountParked(&isAPParked))
             {
                 LOG_WARN("UnPark:could not determine AP park status");
                 UnparkFromSP.s = IPS_ALERT;
                 IDSetSwitch(&UnparkFromSP, nullptr);
                 return false;
-	    }
+            }
         }
-    }
-    if(!isAPParked)
-    {
-        LOG_WARN("UnPark: AP mount status: unparked, park first");
-        UnparkFromSP.s = IPS_ALERT;
-        IDSetSwitch(&UnparkFromSP, nullptr);
-        return false;
-    }
-    // The AP :PO# should only be used during initilization and not here as indicated by email from Preston on 2017-12-12
-    // 2020-05-27, wildi, ToDo taking care of above comment later
-    if(!isSimulation())
-    {
+	if(!isAPParked)
+	{
+	    LOG_WARN("UnPark: AP mount status: unparked, park first");
+            UnparkFromSP.s = IPS_ALERT;
+            IDSetSwitch(&UnparkFromSP, nullptr);
+            return false;
+        }
+        // The AP :PO# should only be used during initilization and not here as indicated by email from Preston on 2017-12-12
+        // 2020-05-27, wildi, ToDo taking care of above comment later
         if (APUnParkMount(PortFD) < 0)
         {
             IUResetSwitch(&ParkSP);
@@ -2011,7 +2003,6 @@ bool LX200AstroPhysicsExperimental::UnPark()
         TrackState = SCOPE_IDLE;
     }
 
-    // 2020-04-18, wildi: do not copy yourself (see Park())
     ln_lnlat_posn observer;
     observer.lat = LocationN[LOCATION_LATITUDE].value;
     observer.lng = LocationN[LOCATION_LONGITUDE].value;
@@ -2035,13 +2026,12 @@ bool LX200AstroPhysicsExperimental::UnPark()
     fs_sexa(RaStr, equatorialPos.ra / 15., 2, 3600);
     fs_sexa(DecStr, equatorialPos.dec, 2, 3600);
 
-    // 2020-03-24, ToDo, clean up UnPark
     double lst = get_local_sidereal_time(observer.lng);
     double ha = get_local_hour_angle(lst, equatorialPos.ra / 15.);
     char HaStr[16];
     fs_sexa(HaStr, ha, 2, 3600);
     LOGF_INFO("UnPark: Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr,
-               RaStr, DecStr);
+              RaStr, DecStr);
 
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
@@ -2051,8 +2041,8 @@ bool LX200AstroPhysicsExperimental::UnPark()
     bool success = Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
     if(!success)
     {
-      LOG_WARN("Could not sync mount");
-      return false;
+        LOG_WARN("Could not sync mount");
+        return false;
     }
 #ifdef no
     if (isSimulation())
