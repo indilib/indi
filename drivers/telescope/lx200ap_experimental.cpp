@@ -66,8 +66,8 @@ LX200AstroPhysicsExperimental::LX200AstroPhysicsExperimental() : LX200Generic()
                            | TELESCOPE_HAS_TRACK_RATE, 5);
 
     // defined in lx200telescope.h, unused in this driver
-    sendLocationOnStartup = false;
-    sendTimeOnStartup = false;
+    //sendLocationOnStartup = false;
+    //sendTimeOnStartup = false;
 
     disclaimerMessage();
 
@@ -1961,9 +1961,9 @@ bool LX200AstroPhysicsExperimental::UnPark()
                 return false;
             }
         }
-	if(!isAPParked)
-	{
-	    LOG_WARN("UnPark: AP mount status: unparked, park first");
+        if(!isAPParked)
+        {
+            LOG_WARN("UnPark: AP mount status: unparked, park first");
             UnparkFromSP.s = IPS_ALERT;
             IDSetSwitch(&UnparkFromSP, nullptr);
             return false;
