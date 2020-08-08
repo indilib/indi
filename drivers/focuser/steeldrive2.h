@@ -84,7 +84,7 @@ class SteelDriveII : public INDI::Focuser
 
         // Focuser Informatin
         ITextVectorProperty InfoTP;
-        IText InfoT[2];
+        IText InfoT[2] {};
         enum
         {
             INFO_NAME,
