@@ -19,7 +19,7 @@
 */
 
 #include "ioptronv3.h"
-
+#include "connectionplugins/connectionserial.h"
 #include "indicom.h"
 
 #include <libnova/transform.h>
@@ -78,7 +78,7 @@ void ISSnoopDevice(XMLEle *root)
 /* Constructor */
 IOptronV3::IOptronV3()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     driver.reset(new Driver(getDeviceName()));
 
@@ -179,14 +179,24 @@ bool IOptronV3::initProperties()
     /* Daylight Savings */
     IUFillSwitch(&DaylightS[0], "ON", "ON", ISS_OFF);
     IUFillSwitch(&DaylightS[1], "OFF", "OFF", ISS_ON);
-    IUFillSwitchVector(&DaylightSP, DaylightS, 2, getDeviceName(), "DaylightSaving", "Daylight Savings", SITE_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&DaylightSP, DaylightS, 2, getDeviceName(), "DaylightSaving", "Daylight Savings", SITE_TAB, IP_RW,
+                       ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     /* Counter Weight State */
     IUFillSwitch(&CWStateS[IOP_CW_NORMAL], "Normal", "Normal", ISS_ON);
     IUFillSwitch(&CWStateS[IOP_CW_UP], "Up", "Up", ISS_OFF);
-    IUFillSwitchVector(&CWStateSP, CWStateS, 2, getDeviceName(), "CWState", "Counter weights", MOTION_TAB, IP_RO, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&CWStateSP, CWStateS, 2, getDeviceName(), "CWState", "Counter weights", MOTION_TAB, IP_RO, ISR_1OFMANY,
+                       0,
                        IPS_IDLE);
+
+    // Baud rates.
+    // 230400 for 120
+    // 115000 for 70
+    if (strstr(getDeviceName(), "120"))
+        serialConnection->setDefaultBaudRate(Connection::Serial::B_230400);
+    else if (strstr(getDeviceName(), "70"))
+        serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     // TODO
     // Add PEC Properties
