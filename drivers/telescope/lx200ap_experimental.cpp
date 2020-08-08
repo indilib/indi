@@ -804,7 +804,7 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
     // ===========================================================
     // Switch Park(ed), Unpark(ed)
     // ===========================================================
-    // 2020-07-26, wildi, no compromise here
+
     if (!strcmp(name, ParkSP.name))
     {
         if (StartUpSP.s != IPS_OK)
