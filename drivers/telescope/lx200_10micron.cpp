@@ -609,7 +609,7 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
 bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
 {
     char command[12];
-    snprintf(command, sizeof(command), ":TLEDL%01d#", tleN);
+    snprintf(command, sizeof(command), ":TLEDL%d#", tleN);
 
     LOG_INFO("Setting TLE from Database");
     if ( !isSimulation() )
