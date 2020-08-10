@@ -90,6 +90,24 @@ class LX200_10MICRON : public LX200Generic
         ALIGN_COUNT
     };
 
+    enum LX200_10MICRON_SAT_TRAJECTORY_TIME
+    {
+        SAT_YYYY,
+        SAT_MM,
+        SAT_DD,
+        SAT_HH24,
+        SAT_MM60,
+        SAT_MM1440_NEXT,
+        SAT_COUNT
+    };
+
+    enum LX200_10MICRON_SAT_TRACK
+    {
+        SAT_TRACK,
+        SAT_HALT,
+        SAT_TRACK_COUNT
+    };
+
     LX200_10MICRON();
     ~LX200_10MICRON() {}
 
@@ -106,6 +124,12 @@ class LX200_10MICRON : public LX200Generic
     bool UnPark() override;
     bool SyncConfigBehaviour(bool cmcfg);
     bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
+    bool SetTLEtoFollow(const char *tle);
+    bool SetTLEfromDatabase(int tleN);
+    bool TrackSat();
+    bool CalculateTrajectory(int year, int month, int day, int hour, int minute, int nextpass, ln_date date_pass);
+    struct ln_date today;
+    struct ln_date date_pass;
 
     int AddSyncPoint(double MRa, double MDec, double MSide, double PRa, double PDec, double SidTime);
     int AddSyncPointHere(double PRa, double PDec);
@@ -152,6 +176,19 @@ class LX200_10MICRON : public LX200Generic
 
     IText NewModelNameT[1] {};
     ITextVectorProperty NewModelNameTP;
+
+    IText TLEtoUploadT[1] {};
+    ITextVectorProperty TLEtoUploadTP;
+
+    INumber TLEfromDatabaseN[1];
+    INumberVectorProperty TLEfromDatabaseNP;
+
+    INumber CalculateSatTrajectoryForTimeN[SAT_COUNT];
+    INumberVectorProperty CalculateSatTrajectoryForTimeNP;
+
+    ISwitch TrackSatS[SAT_TRACK_COUNT];
+    ISwitchVectorProperty TrackSatSP;
+
 
   private:
     int fd = -1; // short notation for PortFD/sockfd
