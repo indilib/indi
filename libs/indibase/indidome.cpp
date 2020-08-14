@@ -497,7 +497,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (rc == IPS_OK || rc == IPS_BUSY)
             {
                 PresetGotoSP.s = IPS_OK;
-                LOGF_INFO("Moving to Preset %d (%g degrees).", index + 1, PresetN[index].value);
+                LOGF_INFO("Moving to Preset %d (%.2f degrees).", index + 1, PresetN[index].value);
                 IDSetSwitch(&PresetGotoSP, nullptr);
                 return true;
             }
@@ -1522,18 +1522,18 @@ void Dome::UpdateAutoSync()
             LOGF_DEBUG("GetTargetAz failed %g", targetAz);
             return;
         }
-        LOGF_DEBUG("Calculated target azimuth is %g. MinAz: %g, MaxAz: %g", targetAz, minAz,
+        LOGF_DEBUG("Calculated target azimuth is %.2f. MinAz: %.2f, MaxAz: %.2f", targetAz, minAz,
                    maxAz);
 
         if (fabs(targetAz - DomeAbsPosN[0].value) > DomeParamN[0].value)
         {
             IPState ret = Dome::MoveAbs(targetAz);
             if (ret == IPS_OK)
-                LOGF_INFO("Dome synced to position %g degrees.", targetAz);
+                LOGF_DEBUG("Dome synced to position %.2f degrees.", targetAz);
             else if (ret == IPS_BUSY)
-                LOGF_INFO("Dome is syncing to position %g degrees...", targetAz);
+                LOGF_DEBUG("Dome is syncing to position %.2f degrees...", targetAz);
             else
-                DEBUG(Logger::DBG_SESSION, "Dome failed to sync to new requested position.");
+                LOG_ERROR("Dome failed to sync to new requested position.");
 
             DomeAbsPosNP.s = ret;
             IDSetNumber(&DomeAbsPosNP, nullptr);
@@ -1924,7 +1924,7 @@ IPState Dome::MoveRel(double azDiff)
         m_DomeState            = DOME_IDLE;
         DomeRelPosNP.s       = IPS_OK;
         DomeRelPosN[0].value = azDiff;
-        IDSetNumber(&DomeRelPosNP, "Dome moved %g degrees %s.", azDiff,
+        IDSetNumber(&DomeRelPosNP, "Dome moved %.2f degrees %s.", azDiff,
                     (azDiff > 0) ? "clockwise" : "counter clockwise");
         if (CanAbsMove())
         {
@@ -1935,10 +1935,10 @@ IPState Dome::MoveRel(double azDiff)
     }
     else if (rc == IPS_BUSY)
     {
-        m_DomeState            = DOME_MOVING;
+        m_DomeState = DOME_MOVING;
         DomeRelPosN[0].value = azDiff;
-        DomeRelPosNP.s       = IPS_BUSY;
-        IDSetNumber(&DomeRelPosNP, "Dome is moving %g degrees %s...", azDiff,
+        DomeRelPosNP.s = IPS_BUSY;
+        IDSetNumber(&DomeRelPosNP, "Dome is moving %.2f degrees %s...", azDiff,
                     (azDiff > 0) ? "clockwise" : "counter clockwise");
         if (CanAbsMove())
         {
@@ -1987,7 +1987,7 @@ IPState Dome::MoveAbs(double az)
 
     if (az < DomeAbsPosN[0].min || az > DomeAbsPosN[0].max)
     {
-        LOGF_ERROR( "Error: requested azimuth angle %g is out of range.", az);
+        LOGF_ERROR( "Error: requested azimuth angle %.2f is out of range.", az);
         DomeAbsPosNP.s = IPS_ALERT;
         IDSetNumber(&DomeAbsPosNP, nullptr);
         return IPS_ALERT;
@@ -1998,7 +1998,7 @@ IPState Dome::MoveAbs(double az)
         m_DomeState            = DOME_IDLE;
         DomeAbsPosNP.s       = IPS_OK;
         DomeAbsPosN[0].value = az;
-        LOGF_INFO("Dome moved to position %g degrees.", az);
+        LOGF_INFO("Dome moved to position %.2f degrees azimuth.", az);
         IDSetNumber(&DomeAbsPosNP, nullptr);
 
         return IPS_OK;
@@ -2007,7 +2007,7 @@ IPState Dome::MoveAbs(double az)
     {
         m_DomeState      = DOME_MOVING;
         DomeAbsPosNP.s = IPS_BUSY;
-        LOGF_INFO("Dome is moving to position %g degrees...", az);
+        LOGF_INFO("Dome is moving to position %.2f degrees azimuth...", az);
         IDSetNumber(&DomeAbsPosNP, nullptr);
 
         DomeMotionSP.s = IPS_BUSY;
