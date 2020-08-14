@@ -237,6 +237,9 @@ bool ScopeDome::initProperties()
 
     // Set serial parameters
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+
+    setPollingPeriodRange(1000, 3000); // Device doesn't like too long interval
+    setDefaultPollingPeriod(1000);
     return true;
 }
 
@@ -591,6 +594,25 @@ bool ScopeDome::UpdateSensorStatus()
     EnvironmentSensorsNP.s        = IPS_OK;
 
     IDSetNumber(&EnvironmentSensorsNP, nullptr);
+
+    // My shutter unit occasionally disconnects so implement a simple watchdog
+    // to check for link strength and reset the controller if link is lost for
+    // more than 5 polling cycles
+    static int count = 0;
+    if (linkStrength == 0)
+    {
+        count++;
+        if (count > 5)
+        {
+            // Issue reset
+            setOutputState(OUT_RELAY1, ISS_ON);
+            count = 0;
+        }
+    }
+    else
+    {
+        count = 0;
+    }
     return true;
 }
 
@@ -607,9 +629,9 @@ bool ScopeDome::UpdateRelayStatus()
     IDSetSwitch(&PowerRelaysSP, nullptr);
 
     RelaysS[0].s = getInputState(OUT_RELAY1);
-    RelaysS[0].s = getInputState(OUT_RELAY1);
-    RelaysS[0].s = getInputState(OUT_RELAY1);
-    RelaysS[0].s = getInputState(OUT_RELAY1);
+    RelaysS[1].s = getInputState(OUT_RELAY2);
+    RelaysS[2].s = getInputState(OUT_RELAY3);
+    RelaysS[3].s = getInputState(OUT_RELAY4);
     RelaysSP.s   = IPS_OK;
     IDSetSwitch(&RelaysSP, nullptr);
     return true;
