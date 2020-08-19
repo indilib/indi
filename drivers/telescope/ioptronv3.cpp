@@ -20,6 +20,7 @@
 
 #include "ioptronv3.h"
 #include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 #include "indicom.h"
 
 #include <libnova/transform.h>
@@ -198,8 +199,9 @@ bool IOptronV3::initProperties()
     else if (strstr(getDeviceName(), "70"))
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
-    // TODO
-    // Add PEC Properties
+    // Default WiFi connection parametes
+    tcpConnection->setDefaultHost("10.10.100.254");
+    tcpConnection->setDefaultPort(8899);
 
     TrackState = SCOPE_IDLE;
 
