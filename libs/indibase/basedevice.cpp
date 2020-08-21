@@ -98,18 +98,16 @@ IBLOBVectorProperty *BaseDevice::getBLOB(const char *name)
 IPState BaseDevice::getPropertyState(const char *name)
 {
     IPState state = IPS_IDLE;
-    INumberVectorProperty *nvp;
-    ITextVectorProperty *tvp;
-    ISwitchVectorProperty *svp;
-    ILightVectorProperty *lvp;
-    IBLOBVectorProperty *bvp;
+    INumberVectorProperty *nvp = nullptr;
+    ITextVectorProperty *tvp = nullptr;
+    ISwitchVectorProperty *svp = nullptr;
+    ILightVectorProperty *lvp = nullptr;
+    IBLOBVectorProperty *bvp = nullptr;
 
-    std::vector<INDI::Property *>::iterator orderi = pAll.begin();
-
-    for (; orderi != pAll.end(); ++orderi)
+    for (const auto &oneProp : pAll)
     {
-        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
-        void *pPtr  = (*orderi)->getProperty();
+        INDI_PROPERTY_TYPE pType = oneProp->getType();
+        void *pPtr  = oneProp->getProperty();
 
         switch (pType)
         {
@@ -159,17 +157,15 @@ IPState BaseDevice::getPropertyState(const char *name)
 IPerm BaseDevice::getPropertyPermission(const char *name)
 {
     IPerm perm = IP_RO;
-    INumberVectorProperty *nvp;
-    ITextVectorProperty *tvp;
-    ISwitchVectorProperty *svp;
-    IBLOBVectorProperty *bvp;
+    INumberVectorProperty *nvp = nullptr;
+    ITextVectorProperty *tvp = nullptr;
+    ISwitchVectorProperty *svp = nullptr;
+    IBLOBVectorProperty *bvp = nullptr;
 
-    std::vector<INDI::Property *>::iterator orderi = pAll.begin();
-
-    for (; orderi != pAll.end(); ++orderi)
+    for (const auto &oneProp : pAll)
     {
-        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
-        void *pPtr  = (*orderi)->getProperty();
+        INDI_PROPERTY_TYPE pType = oneProp->getType();
+        void *pPtr  = oneProp->getProperty();
 
         switch (pType)
         {
@@ -211,19 +207,17 @@ IPerm BaseDevice::getPropertyPermission(const char *name)
 
 void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
 {
-    std::vector<INDI::Property *>::iterator orderi = pAll.begin();
-
     INumberVectorProperty *nvp = nullptr;
     ITextVectorProperty *tvp = nullptr;
     ISwitchVectorProperty *svp = nullptr;
     ILightVectorProperty *lvp = nullptr;
     IBLOBVectorProperty *bvp = nullptr;
 
-    for (; orderi != pAll.end(); ++orderi)
+    for (const auto &oneProp : pAll)
     {
-        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
-        void *pPtr = (*orderi)->getProperty();
-        bool pRegistered = (*orderi)->getRegistered();
+        INDI_PROPERTY_TYPE pType = oneProp->getType();
+        void *pPtr = oneProp->getProperty();
+        bool pRegistered = oneProp->getRegistered();
 
         if (type != INDI_UNKNOWN && pType != type)
             continue;
@@ -282,19 +276,17 @@ void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
 
 INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type)
 {
-    std::vector<INDI::Property *>::iterator orderi;
+    INumberVectorProperty *nvp = nullptr;
+    ITextVectorProperty *tvp = nullptr;
+    ISwitchVectorProperty *svp = nullptr;
+    ILightVectorProperty *lvp = nullptr;
+    IBLOBVectorProperty *bvp = nullptr;
 
-    INumberVectorProperty *nvp;
-    ITextVectorProperty *tvp;
-    ISwitchVectorProperty *svp;
-    ILightVectorProperty *lvp;
-    IBLOBVectorProperty *bvp;
-
-    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
+    for (const auto &oneProp : pAll)
     {
-        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
-        void *pPtr = (*orderi)->getProperty();
-        bool pRegistered = (*orderi)->getRegistered();
+        INDI_PROPERTY_TYPE pType = oneProp->getType();
+        void *pPtr = oneProp->getProperty();
+        bool pRegistered = oneProp->getRegistered();
 
         if (type != INDI_UNKNOWN && pType != type)
             continue;
@@ -307,7 +299,7 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
                     continue;
 
                 if (!strcmp(name, nvp->name) && pRegistered)
-                    return *orderi;
+                    return oneProp;
                 break;
             case INDI_TEXT:
                 tvp = static_cast<ITextVectorProperty *>(pPtr);
@@ -315,7 +307,7 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
                     continue;
 
                 if (!strcmp(name, tvp->name) && pRegistered)
-                    return *orderi;
+                    return oneProp;
                 break;
             case INDI_SWITCH:
                 svp = static_cast<ISwitchVectorProperty *>(pPtr);
@@ -324,7 +316,7 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
 
                 //IDLog("Switch %s and aux value is now %d\n", svp->name, regStatus );
                 if (!strcmp(name, svp->name) && pRegistered)
-                    return *orderi;
+                    return oneProp;
                 break;
             case INDI_LIGHT:
                 lvp = static_cast<ILightVectorProperty *>(pPtr);
@@ -332,7 +324,7 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
                     continue;
 
                 if (!strcmp(name, lvp->name) && pRegistered)
-                    return *orderi;
+                    return oneProp;
                 break;
             case INDI_BLOB:
                 bvp = static_cast<IBLOBVectorProperty *>(pPtr);
@@ -340,7 +332,7 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
                     continue;
 
                 if (!strcmp(name, bvp->name) && pRegistered)
-                    return *orderi;
+                    return oneProp;
                 break;
             case INDI_UNKNOWN:
                 break;
@@ -371,10 +363,8 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
                 nvp = static_cast<INumberVectorProperty *>(pPtr);
                 if (!strcmp(name, nvp->name))
                 {
-                    (*orderi)->setRegistered(false);
                     delete *orderi;
                     orderi = pAll.erase(orderi);
-
                     return 0;
                 }
                 break;
@@ -382,10 +372,8 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
                 tvp = static_cast<ITextVectorProperty *>(pPtr);
                 if (!strcmp(name, tvp->name))
                 {
-                    (*orderi)->setRegistered(false);
                     delete *orderi;
                     orderi = pAll.erase(orderi);
-
                     return 0;
                 }
                 break;
@@ -393,7 +381,6 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
                 svp = static_cast<ISwitchVectorProperty *>(pPtr);
                 if (!strcmp(name, svp->name))
                 {
-                    (*orderi)->setRegistered(false);
                     delete *orderi;
                     orderi = pAll.erase(orderi);
                     return 0;
@@ -403,7 +390,6 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
                 lvp = static_cast<ILightVectorProperty *>(pPtr);
                 if (!strcmp(name, lvp->name))
                 {
-                    (*orderi)->setRegistered(false);
                     delete *orderi;
                     orderi = pAll.erase(orderi);
                     return 0;

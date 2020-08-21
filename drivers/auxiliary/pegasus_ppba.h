@@ -178,9 +178,9 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         ISwitch PowerOnBootS[4];
         ISwitchVectorProperty PowerOnBootSP;
 
-	      // Short circuit warn
-	      ILight PowerWarnL[1];
-	      ILightVectorProperty PowerWarnLP;
+        // Short circuit warn
+        ILight PowerWarnL[1];
+        ILightVectorProperty PowerWarnLP;
 
         ISwitch LedIndicatorS[2];
         ISwitchVectorProperty LedIndicatorSP;
@@ -207,7 +207,7 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         ////////////////////////////////////////////////////////////////////////////////////
 
         ITextVectorProperty FirmwareTP;
-        IText FirmwareT[2];
+        IText FirmwareT[2] {};
         enum
         {
             FIRMWARE_VERSION,
