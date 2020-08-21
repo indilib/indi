@@ -12,7 +12,6 @@ Provides: libindi = %{version}-%{release}
 
 URL: http://www.indilib.org
 Source0: https://github.com/indilib/%{name}/archive/master.tar.gz
-Patch0:  CMakeLists.txt.spec.patch
 
 BuildRequires: cmake
 BuildRequires: libfli-devel
@@ -71,7 +70,6 @@ sed -i 's|/lib/udev/rules.d|%{_udevrulesdir}|g' CMakeLists.txt
 chmod -x drivers/telescope/pmc8driver.h
 chmod -x drivers/telescope/pmc8driver.cpp
 
-%patch0 -p1
 
 %build
 # This package tries to mix and match PIE and PIC which is wrong and will

@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 PROJECT(libindi C CXX)
 
-# Tell CMake to run moc when necessary:
-set(CMAKE_AUTOMOC ON)
 # As moc files are generated in the binary dir, tell CMake
 # to always look for includes there:
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -130,7 +128,6 @@ else()
 
 # 1. Dependencies
 find_package(Threads REQUIRED)
-find_package(Qt5 COMPONENTS Core)
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 # 3. Build
@@ -161,7 +158,6 @@ if (INDI_BUILD_CLIENT AND NOT ANDROID)
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(CFITSIO REQUIRED)
-find_package(Qt5 COMPONENTS Core)
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -202,12 +198,14 @@ endif (INDI_BUILD_CLIENT AND NOT ANDROID)
 #################################################################################################
 #
 # Component   : INDI Qt5 Client
-# Dependencies: Qt5Network, zlib, cfitsio
+# Dependencies: Qt5Network, zlib, cfitsio, Qt5Core
 # Supported OS: Linux, BSD, MacOS, Cygwin, Windows, Android
 #
 #################################################################################################
 if (INDI_BUILD_QT5_CLIENT)
 set(QT_ANDROID "" CACHE path "Qt Android path")
+# Tell CMake to run moc when necessary:
+set(CMAKE_AUTOMOC ON)
 # 1. Dependencies
 if (ANDROID)
     set(Qt5Core_DIR "${QT_ANDROID}/lib/cmake/Qt5Core")
@@ -221,7 +219,6 @@ if (ANDROID)
         set(CFITSIO_LIBRARIES ${CFITSIO_DIR}/libcfitsio.a)
     endif ()
 else ()
-    find_package(Qt5 COMPONENTS Core)
     find_package(Qt5Network REQUIRED)
     find_package(ZLIB REQUIRED)
     find_package(CFITSIO REQUIRED)
@@ -300,7 +297,6 @@ find_package(USB1 REQUIRED)
 find_package(CURL REQUIRED)
 find_package(GSL REQUIRED)
 find_package(JPEG REQUIRED)
-find_package(Qt5 COMPONENTS Core)
 # Math Library
 FIND_LIBRARY(M_LIB m)
 # 2. Includes
