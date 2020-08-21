@@ -12,7 +12,7 @@ Provides: libindi = %{version}-%{release}
 
 URL: http://www.indilib.org
 Source0: https://github.com/indilib/%{name}/archive/master.tar.gz
-Patch0:  spec/CMakeLists.txt.patch
+Patch0:  CMakeLists.txt.spec.patch
 
 BuildRequires: cmake
 BuildRequires: libfli-devel
