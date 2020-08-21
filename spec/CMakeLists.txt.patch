@@ -1,0 +1,36 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 06637173..c17fcd3f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -130,6 +130,7 @@ else()
+ 
+ # 1. Dependencies
+ find_package(Threads REQUIRED)
++find_package(Qt5 COMPONENTS Core)
+ # 2. Includes
+ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
+ # 3. Build
+@@ -160,6 +161,7 @@ if (INDI_BUILD_CLIENT AND NOT ANDROID)
+ find_package(Threads REQUIRED)
+ find_package(ZLIB REQUIRED)
+ find_package(CFITSIO REQUIRED)
++find_package(Qt5 COMPONENTS Core)
+ # 2. Includes
+ include_directories( ${CMAKE_CURRENT_BINARY_DIR})
+ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
+@@ -219,6 +221,7 @@ if (ANDROID)
+         set(CFITSIO_LIBRARIES ${CFITSIO_DIR}/libcfitsio.a)
+     endif ()
+ else ()
++    find_package(Qt5 COMPONENTS Core)
+     find_package(Qt5Network REQUIRED)
+     find_package(ZLIB REQUIRED)
+     find_package(CFITSIO REQUIRED)
+@@ -297,6 +300,7 @@ find_package(USB1 REQUIRED)
+ find_package(CURL REQUIRED)
+ find_package(GSL REQUIRED)
+ find_package(JPEG REQUIRED)
++find_package(Qt5 COMPONENTS Core)
+ # Math Library
+ FIND_LIBRARY(M_LIB m)
+ # 2. Includes
