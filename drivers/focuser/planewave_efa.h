@@ -121,7 +121,7 @@ class EFA : public INDI::Focuser
 
         // Focuser Informatin
         ITextVectorProperty InfoTP;
-        IText InfoT[1];
+        IText InfoT[1] {};
         enum
         {
             INFO_VERSION

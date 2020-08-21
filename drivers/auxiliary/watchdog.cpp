@@ -128,6 +128,9 @@ bool WatchDog::Connect()
         IDSnoopDevice(ActiveDeviceT[ACTIVE_WEATHER].text, "WEATHER_STATUS");
     }
 
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_PARK");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_DOME].text, "DOME_PARK");
+
     return true;
 }
 
@@ -264,6 +267,8 @@ bool WatchDog::ISNewText(const char *dev, const char *name, char *texts[], char 
             }
 
             IDSnoopDevice(ActiveDeviceT[ACTIVE_WEATHER].text, "WEATHER_STATUS");
+            IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_PARK");
+            IDSnoopDevice(ActiveDeviceT[ACTIVE_DOME].text, "DOME_PARK");
 
             IUUpdateText(&ActiveDeviceTP, texts, names, n);
             ActiveDeviceTP.s = IPS_OK;
@@ -505,6 +510,76 @@ bool WatchDog::ISSnoopDevice(XMLEle * root)
 
         m_WeatherState = newWeatherState;
     }
+    // Check Telescope Park status
+    else if (!strcmp("TELESCOPE_PARK", propName))
+    {
+        if (!strcmp(findXMLAttValu(root, "state"), "Ok"))
+        {
+            XMLEle * ep = nullptr;
+            bool parked = false;
+            for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+            {
+                const char * elemName = findXMLAttValu(ep, "name");
+
+                if ((!strcmp(elemName, "PARK") && !strcmp(pcdataXMLEle(ep), "On")))
+                    parked = true;
+                else if ((!strcmp(elemName, "UNPARK") && !strcmp(pcdataXMLEle(ep), "On")))
+                    parked = false;
+            }
+            if (parked != m_IsMountParked)
+            {
+                LOGF_INFO("Mount is %s", parked ? "Parked" : "Unparked");
+                m_IsMountParked = parked;
+                // In case mount was UNPARKED while weather status is still ALERT
+                // And weather shutdown trigger was active and mount parking was selected
+                // then we force the mount to park again.
+                if (parked == false &&
+                        ShutdownTriggerS[TRIGGER_WEATHER].s == ISS_ON &&
+                        m_WeatherState == IPS_ALERT &&
+                        ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
+                {
+                    LOG_WARN("Mount unparked while weather alert is active! Parking mount...");
+                    watchdogClient->parkMount();
+                }
+            }
+            return true;
+        }
+    }
+    // Check Telescope Park status
+    else if (!strcmp("DOME_PARK", propName))
+    {
+        if (!strcmp(findXMLAttValu(root, "state"), "Ok") || !strcmp(findXMLAttValu(root, "state"), "Busy"))
+        {
+            XMLEle * ep = nullptr;
+            bool parked = false;
+            for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+            {
+                const char * elemName = findXMLAttValu(ep, "name");
+
+                if ((!strcmp(elemName, "PARK") && !strcmp(pcdataXMLEle(ep), "On")))
+                    parked = true;
+                else if ((!strcmp(elemName, "UNPARK") && !strcmp(pcdataXMLEle(ep), "On")))
+                    parked = false;
+            }
+            if (parked != m_IsDomeParked)
+            {
+                LOGF_INFO("Dome is %s", parked ? "Parked" : "Unparked");
+                m_IsDomeParked = parked;
+                // In case mount was UNPARKED while weather status is still ALERT
+                // And weather shutdown trigger was active and mount parking was selected
+                // then we force the mount to park again.
+                if (parked == false &&
+                        ShutdownTriggerS[TRIGGER_WEATHER].s == ISS_ON &&
+                        m_WeatherState == IPS_ALERT &&
+                        ShutdownProcedureS[PARK_DOME].s == ISS_ON)
+                {
+                    LOG_WARN("Dome unparked while weather alert is active! Parking dome...");
+                    watchdogClient->parkDome();
+                }
+            }
+            return true;
+        }
+    }
 
     return DefaultDevice::ISSnoopDevice(root);
 }
@@ -512,7 +587,7 @@ bool WatchDog::ISSnoopDevice(XMLEle * root)
 ////////////////////////////////////////////////////////////////////////////////////
 ///
 ////////////////////////////////////////////////////////////////////////////////////
-bool WatchDog::saveConfigItems(FILE *fp)
+bool WatchDog::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
@@ -636,8 +711,12 @@ void WatchDog::TimerHit()
             LOG_INFO("Shutdown procedure complete.");
             ShutdownProcedureSP.s = IPS_OK;
             IDSetSwitch(&ShutdownProcedureSP, nullptr);
-            watchdogClient->disconnectServer();
-            m_ShutdownStage = WATCHDOG_IDLE;
+            // If watch dog client still connected, keep it as such
+            if (watchdogClient->isConnected())
+                m_ShutdownStage = WATCHDOG_CLIENT_STARTED;
+            // If server is shutdown, then we reset to IDLE
+            else
+                m_ShutdownStage = WATCHDOG_IDLE;
             return;
 
         case WATCHDOG_ERROR:

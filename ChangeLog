@@ -1,3 +1,27 @@
+From 1.8.5 to 1.8.6
+
+      + New Raspberry Pi HQ Camera driver.
+      + New Pegasus PPBA driver.
+      + New DomePro2 driver.
+      + Add PierSide to indi_ioptron_telescope (#1120)
+      + Fix Pier Side problem on Gemini mounts (#1122)
+      + Goto mode selectable for Alt/Az mounts via an UI Switch. (#1136)
+      + OnStep: Weather sensor (READ) support (#1142)
+      + OnStep: Support for setting temperatures for dew heaters/focusers
+      + Fix skywatcher altaz crash (#1151)
+      + Add the focus temperature property to the focus simulator (#1152)
+      + Logitech HD C270 webcam data added to v4l2_ccd driver (#1154)
+      + Astrophysics park3 support (#1167)
+      + Implement Parking for LX200 classic (#1164)
+      + UDP support for skywatcherAPI (#1172)
+      + LX200 FS-2 Park (#1165)
+      + Telescope Simulator Parking to HA/Dec frame (#1174)
+      + Update Pointing State determination. (#1179)
+      + Feature Satellite tracking with TLE for 10Micron mounts (#1208)
+      + Add focuser temperature to FITS header (#1209)
+      + myFocuserPro2 Fix coil power command (#1195)
+      + Updated TeenAstro INDI driver for firmware 1.2.0 (#1196)
+
 From 1.8.4 to 1.8.5
 
       + New PlaneWave EFA Driver.

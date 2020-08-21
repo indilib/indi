@@ -83,7 +83,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         void guideTimer(CELESTRON_DIRECTION dirn);
 
         void AddGuideTimer(CELESTRON_DIRECTION dirn, int ms);
-        
+
         // Focus Backlash
         virtual bool SetFocuserBacklash(int32_t steps) override;
 
@@ -125,14 +125,15 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         ISwitch CelestronTrackModeS[4];
 
         //GUIDE Pulse guide switch
-//        ISwitchVectorProperty UsePulseCmdSP;
-//        ISwitch UsePulseCmdS[2];
+        //        ISwitchVectorProperty UsePulseCmdSP;
+        //        ISwitch UsePulseCmdS[2];
 
         ISwitchVectorProperty UseHibernateSP;
         ISwitch UseHibernateS[2];
 
         // PEC - implemented without using the base definition because this doesn't match what is required
-        IText PecInfoT[2];        // shows status and index
+        // shows status and index
+        IText PecInfoT[2] {};
         ITextVectorProperty PecInfoTP;
 
         ISwitch PecControlS[4];     // Find Index, Stop, Playback, Record
@@ -140,7 +141,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         enum { PEC_Seek, PEC_Stop, PEC_Playback, PEC_Record } PecControl;
 
         // move PEC data from file to mount
-        IText PecFileNameT[1];
+        IText PecFileNameT[1] {};
         ITextVectorProperty PecFileNameTP;
 
         // FocuserInterface
@@ -163,7 +164,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         FirmwareInfo fwInfo;
 
         bool usePreciseCoords {false};
-//        bool usePulseCommand { false };
+        //        bool usePulseCommand { false };
         bool canAuxGuide { false};
 
         //CelestronGuide guider;
