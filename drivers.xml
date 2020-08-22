@@ -549,6 +549,10 @@
             <driver name="Dome  Scripting Gateway">indi_script_dome</driver>
             <version>1.0</version>
         </device>
+        <device label="Dome Pro 2">
+            <driver name="Dome Pro 2">indi_domepro2_dome</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Weather">
         <device label="Weather Simulator">
