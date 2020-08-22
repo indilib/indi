@@ -1,3 +1,22 @@
+/*
+    SestoSenso 2 Focuser
+    Copyright (C) 2020 Piotr Zyziuk
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+*/
 
 #include "sestosenso2.h"
 
@@ -56,7 +75,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso2::SestoSenso2()
 {
-    setVersion(0, 1);
+    setVersion(0, 3);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
@@ -71,32 +90,40 @@ bool SestoSenso2::initProperties()
 
     // Firmware Information
     IUFillText(&FirmwareT[0], "VERSION", "Version", "");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FOCUS_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FOCUS_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0,
+                     IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Motor temp.", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumber(&TemperatureN[TEMPERATURE_MOTOR], "TEMPERATURE", "Motor (c)", "%6.2f", -50, 70., 0., 0.);
+    IUFillNumber(&TemperatureN[TEMPERATURE_EXTERNAL], "TEMPERATURE_ETX", "External (c)", "%6.2f", -50, 70., 0., 0.);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 2, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+                       IP_RO, 0, IPS_IDLE);
 
     IUFillNumber(&SpeedN[0], "SPEED", "RPM", "%0.0f", 0, 7000., 1, 0);
-    IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Motor speed", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Motor speed", MAIN_CONTROL_TAB, IP_RO, 0,
+                       IPS_IDLE);
 
     // Focuser calibration
     IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "");
-    IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration",
+                     MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillSwitch(&CalibrationS[CALIBRATION_START], "CALIBRATION_START", "Start", ISS_OFF);
     IUFillSwitch(&CalibrationS[CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
-    IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&FastMoveS[FASTMOVE_IN], "FASTMOVE_IN", "Move In", ISS_OFF);
     IUFillSwitch(&FastMoveS[FASTMOVE_OUT], "FASTMOVE_OUT", "Move out", ISS_OFF);
     IUFillSwitch(&FastMoveS[FASTMOVE_STOP], "FASTMOVE_STOP", "Stop", ISS_OFF);
 
-    IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     //
     // Override the default Max. Position to make it Read-Only
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
+                       0, IPS_IDLE);
 
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
@@ -198,8 +225,25 @@ bool SestoSenso2::updateTemperature()
     if (temperature > 90)
         return false;
 
-    TemperatureN[0].value = temperature;
+    TemperatureN[TEMPERATURE_MOTOR].value = temperature;
     TemperatureNP.s = IPS_OK;
+
+    // External temperature - Optional
+    if (command->getExternalTemp(res))
+    {
+        TemperatureN[TEMPERATURE_EXTERNAL].value = -273.15;
+        try
+        {
+            temperature = std::stod(res);
+        }
+        catch(...)
+        {
+            LOGF_DEBUG("Failed to process external temperature response: %s (%d bytes)", res, strlen(res));
+        }
+
+        if (temperature < 90)
+            TemperatureN[TEMPERATURE_EXTERNAL].value = temperature;
+    }
 
     return true;
 }
@@ -466,30 +510,30 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
 
             switch (current_switch)
             {
-            case FASTMOVE_IN:
-                if (command->fastMoveIn() == CMD_FALSE)
-                {
-                    return false;
-                }
-                break;
-            case FASTMOVE_OUT:
-                if (command->goOutToFindMaxPos() == CMD_FALSE)
-                {
-                    return false;
-                }
-                IUSaveText(&CalibrationMessageT[0], "Press STOP focuser almost at MAX position.");
-                IDSetText(&CalibrationMessageTP, nullptr);
-                break;
-            case FASTMOVE_STOP:
-                if (command->stop() == CMD_FALSE)
-                {
-                    return false;
-                }
-                IUSaveText(&CalibrationMessageT[0], "Press NEXT to store max limit");
-                IDSetText(&CalibrationMessageTP, nullptr);
-                break;
-            default:
-                break;
+                case FASTMOVE_IN:
+                    if (command->fastMoveIn() == CMD_FALSE)
+                    {
+                        return false;
+                    }
+                    break;
+                case FASTMOVE_OUT:
+                    if (command->goOutToFindMaxPos() == CMD_FALSE)
+                    {
+                        return false;
+                    }
+                    IUSaveText(&CalibrationMessageT[0], "Press STOP focuser almost at MAX position.");
+                    IDSetText(&CalibrationMessageTP, nullptr);
+                    break;
+                case FASTMOVE_STOP:
+                    if (command->stop() == CMD_FALSE)
+                    {
+                        return false;
+                    }
+                    IUSaveText(&CalibrationMessageT[0], "Press NEXT to store max limit");
+                    IDSetText(&CalibrationMessageTP, nullptr);
+                    break;
+                default:
+                    break;
             }
 
             FastMoveSP.s = IPS_BUSY;
@@ -508,7 +552,7 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 
     if (isSimulation() == false)
     {
-        if (command->go(targetTicks,res) == CMD_FALSE)
+        if (command->go(targetTicks, res) == CMD_FALSE)
             return IPS_ALERT;
     }
 
@@ -623,14 +667,15 @@ void SestoSenso2::TimerHit()
 bool SestoSenso2::getStartupValues()
 {
     setupRunPreset();
-    bool rc1 = updatePosition();
-    if (rc1)
-        IDSetNumber(&FocusAbsPosNP, nullptr);
 
     if (updateMaxLimit() == false)
         LOG_WARN("Check you have the latest SestoSenso firmware. Focuser requires calibration.");
 
-    return (rc1);
+    bool rc = updatePosition();
+    if (rc)
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+
+    return (rc);
 }
 
 
@@ -698,7 +743,7 @@ bool SestoSenso2::initCommandSet()
 
 
 bool CommandSet::sendCmd(std::string cmd, std::string property, char *res)
-{  
+{
     LOGF_DEBUG("Sending comand: %s with property: %s", cmd.c_str(), property.c_str());
     tcflush(CommandSet::PortFD, TCIOFLUSH);
     std::string cmd_str;
@@ -743,17 +788,17 @@ bool CommandSet::getValueFromResponse(std::string response, std::string property
     std::size_t found = response.find(",");
     if(found != std::string::npos)
     {
-        response = response.substr(0,found);
+        response = response.substr(0, found);
     }
     else
     {
         found = response.find("}");
-        response = response.substr(0,found);
+        response = response.substr(0, found);
     }
-    response = removeChars(response,'\"');
-    response = removeChars(response,',');
-    response = removeChars(response,':');
-    strcpy(value,response.c_str());
+    response = removeChars(response, '\"');
+    response = removeChars(response, ',');
+    response = removeChars(response, ':');
+    strcpy(value, response.c_str());
 
     return true;
 }
@@ -763,7 +808,7 @@ std::string CommandSet::removeChars(std::string str, char ch)
     std::size_t found = str.find(ch);
     if(found != std::string::npos)
     {
-        str = str.erase(found,1);
+        str = str.erase(found, 1);
         str = removeChars(str, ch);
     }
 
@@ -783,8 +828,8 @@ bool CommandSet::abort()
 bool CommandSet::go(uint32_t targetTicks, char *res)
 {
     char cmd[SESTO_LEN] = {0};
-    snprintf(cmd,sizeof(cmd),"{\"req\":{\"cmd\":{\"MOT1\" :{\"GOTO\":%u}}}}", targetTicks);
-    return CommandSet::sendCmd(cmd,"GOTO",res);
+    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT1\" :{\"GOTO\":%u}}}}", targetTicks);
+    return CommandSet::sendCmd(cmd, "GOTO", res);
 }
 
 bool CommandSet::stop()
@@ -794,7 +839,7 @@ bool CommandSet::stop()
 
 bool CommandSet::goHome()
 {
-    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"GOHOME\":\"\"}}}}","GOHOME");
+    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"GOHOME\":\"\"}}}}", "GOHOME");
 }
 
 bool CommandSet::fastMoveOut()
@@ -844,12 +889,17 @@ bool CommandSet::getCurrentSpeed(char *res)
 
 bool CommandSet::loadSlowPreset(char *res)
 {
-    return sendCmd("{\"req\":{\"cmd\":{\"RUNPRESET\":\"slow\"}}}","RUNPRESET",res);
+    return sendCmd("{\"req\":{\"cmd\":{\"RUNPRESET\":\"slow\"}}}", "RUNPRESET", res);
 }
 
 bool CommandSet::getMotorTemp(char *res)
 {
     return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "NTC_T", res);
+}
+
+bool CommandSet::getExternalTemp(char *res)
+{
+    return sendCmd("{\"req\":{\"get\":{\"EXT_T\":\"\"}}}", "EXT_T", res);
 }
 
 

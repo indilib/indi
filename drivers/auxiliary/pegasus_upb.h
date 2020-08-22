@@ -268,7 +268,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         /// USB
         ////////////////////////////////////////////////////////////////////////////////////
         ITextVectorProperty FirmwateTP;
-        IText FirmwareT[2];
+        IText FirmwareT[2] {};
         enum
         {
             FIRMWARE_VERSION,

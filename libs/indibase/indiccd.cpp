@@ -118,7 +118,8 @@ CCD::CCD()
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
     RotatorAngle    = std::numeric_limits<double>::quiet_NaN();
     // JJ ed 2019-12-10
-    FocuserPos      = std::numeric_limits<long>::quiet_NaN();
+    FocuserPos      = -1;
+    FocuserTemp     = std::numeric_limits<double>::quiet_NaN();
 
     Airmass         = std::numeric_limits<double>::quiet_NaN();
     Latitude        = std::numeric_limits<double>::quiet_NaN();
@@ -441,8 +442,9 @@ bool CCD::initProperties()
     IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
 
     // JJ ed 2019-12-10
-    // Snoop Rotator
+    // Snoop Focuser
     IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_TEMPERATURE");
     //
 
     // Snoop Filter Wheel
@@ -777,6 +779,19 @@ bool CCD::ISSnoopDevice(XMLEle * root)
             }
         }
     }
+    else if (!strcmp(propName, "FOCUS_TEMPERATURE"))
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, "TEMPERATURE"))
+            {
+                FocuserTemp = atof(pcdataXMLEle(ep));
+                break;
+            }
+        }
+    }
     //
 
     else if (!strcmp(propName, "GEOGRAPHIC_COORD"))
@@ -840,9 +855,15 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
 
             // JJ ed 2019-12-10
             if (strlen(ActiveDeviceT[ACTIVE_FOCUSER].text) > 0)
+            {
                 IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_TEMPERATURE");
+            }
             else
-                FocuserPos = std::numeric_limits<long>::quiet_NaN();
+            {
+                FocuserPos = -1;
+                FocuserTemp = std::numeric_limits<double>::quiet_NaN();
+            }
             //
 
 
@@ -1708,6 +1729,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
 
     AutoCNumeric locale;
+    fits_update_key_str(fptr, "ROWORDER", "TOP-DOWN", "Row Order", &status);
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
 
     // Telescope
@@ -1833,10 +1855,14 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
     // JJ ed 2020-03-28
-    // If the focus position is set, add the information to the FITS header
-    if (!std::isnan(FocuserPos))
+    // If the focus position or temperature is set, add the information to the FITS header
+    if (FocuserPos != -1)
     {
         fits_update_key_lng(fptr, "FOCUSPOS", FocuserPos, "Focus position in steps", &status);
+    }
+    if (!std::isnan(FocuserTemp))
+    {
+        fits_update_key_dbl(fptr, "FOCUSTEM", FocuserTemp, 3, "Focuser temperature in degrees C", &status);
     }
 
     // SCALE assuming square-pixels

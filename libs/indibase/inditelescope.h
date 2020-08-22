@@ -132,6 +132,13 @@ class Telescope : public DefaultDevice
             PEC_ON      = 1
         };
 
+        /*! Dome Locking Policy */
+        enum DomeLockingPolicy
+        {
+            DOME_IGNORED,       /*!< Dome is ignored. Mount can park or unpark irrespective of dome parking status. */
+            DOME_LOCKS,         /*!< Dome locks. Mount can only unpark if dome is already unparked. */
+        };
+
         /**
          * \struct TelescopeConnection
          * \brief Holds the connection mode of the telescope.
@@ -379,8 +386,7 @@ class Telescope : public DefaultDevice
 
         /**
          * @brief isLocked is mount currently locked?
-         * @return true if lock status equals true and DomeClosedLockTP is Dome Locks or Dome Locks and
-         * Dome Parks (both).
+         * @return true if lock status equals true and Dome Policy is Dome Locks.
          */
         bool isLocked() const;
 
@@ -413,7 +419,7 @@ class Telescope : public DefaultDevice
             return currentPECState;
         }
 
-protected:
+    protected:
         virtual bool saveConfigItems(FILE *fp);
 
         /** \brief The child class calls this function when it has updates */
@@ -743,9 +749,9 @@ protected:
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[2] {};
 
-        // Switch to lock if dome is closed, and or force parking if dome parks
-        ISwitchVectorProperty DomeClosedLockTP;
-        ISwitch DomeClosedLockT[4];
+        // Switch to lock if dome is closed.
+        ISwitchVectorProperty DomePolicySP;
+        ISwitch DomePolicyS[2];
 
         // Switch for choosing between motion control by 4-way joystick or two seperate axes
         ISwitchVectorProperty MotionControlModeTP;
@@ -836,7 +842,7 @@ protected:
         /// The telescope/guide scope configuration file name
         const std::string ScopeConfigFileName;
 
-private:
+    private:
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
         void triggerSnoop(const char *driverName, const char *propertyName);

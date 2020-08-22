@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 PROJECT(libindi C CXX)
 
-# Tell CMake to run moc when necessary:
-set(CMAKE_AUTOMOC ON)
 # As moc files are generated in the binary dir, tell CMake
 # to always look for includes there:
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -200,12 +198,14 @@ endif (INDI_BUILD_CLIENT AND NOT ANDROID)
 #################################################################################################
 #
 # Component   : INDI Qt5 Client
-# Dependencies: Qt5Network, zlib, cfitsio
+# Dependencies: Qt5Network, zlib, cfitsio, Qt5Core
 # Supported OS: Linux, BSD, MacOS, Cygwin, Windows, Android
 #
 #################################################################################################
 if (INDI_BUILD_QT5_CLIENT)
 set(QT_ANDROID "" CACHE path "Qt Android path")
+# Tell CMake to run moc when necessary:
+set(CMAKE_AUTOMOC ON)
 # 1. Dependencies
 if (ANDROID)
     set(Qt5Core_DIR "${QT_ANDROID}/lib/cmake/Qt5Core")

@@ -672,7 +672,7 @@ void INDI::BaseClientQt::sendOneBlob(IBLOB *bp)
     int l;
 
     size_t sz = 4 * bp->size / 3 + 4; 
-    assert_mem(encblob = static_cast<unsigned char *>(malloc(sz));)
+    assert_mem(encblob = static_cast<unsigned char *>(malloc(sz)));
     l = to64frombits_s(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size, sz);
     if (l == 0) {
         fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);

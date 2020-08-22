@@ -112,7 +112,7 @@ class CelestronSCT : public INDI::Focuser
         ISwitch CalibrateS[2];
         ISwitchVectorProperty CalibrateSP;
 
-        IText CalibrateStateT[1];
+        IText CalibrateStateT[1] {};
         ITextVectorProperty CalibrateStateTP;
 
         bool calibrateInProgress;

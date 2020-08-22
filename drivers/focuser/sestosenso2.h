@@ -1,3 +1,23 @@
+/*
+    SestoSenso 2 Focuser
+    Copyright (C) 2020 Piotr Zyziuk
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+*/
+
 #pragma once
 
 #include "indifocuser.h"
@@ -10,7 +30,7 @@ class CommandSet
         CommandSet(int Port, const char *deviceName)
         {
             PortFD = Port;
-            deviceName = deviceName;
+            this->deviceName = deviceName;
         }
         int PortFD;
         bool stop();
@@ -29,11 +49,12 @@ class CommandSet
         bool getCurrentSpeed(char *res);
         bool loadSlowPreset(char *res);
         bool getMotorTemp(char *res);
-        char *deviceName;
+        bool getExternalTemp(char *res);
+        std::string deviceName;
 
-        char *getDeviceName()
+        const char *getDeviceName()
         {
-            return deviceName;
+            return deviceName.data();
         }
 
     private:
@@ -86,7 +107,7 @@ class SestoSenso2 : public INDI::Focuser
         bool initCommandSet();
         void checkMotionProgressCallback();
 
-        CommandSet *command;
+        CommandSet *command {nullptr};
 
         bool getStartupValues();
         bool setupRunPreset();
@@ -98,8 +119,13 @@ class SestoSenso2 : public INDI::Focuser
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
 
-        INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[2];
+        enum
+        {
+            TEMPERATURE_MOTOR,
+            TEMPERATURE_EXTERNAL,
+        };
 
         INumber SpeedN[1];
         INumberVectorProperty SpeedNP;
@@ -151,19 +177,3 @@ class SestoSenso2 : public INDI::Focuser
         static constexpr const int SESTO_LEN {1024};
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

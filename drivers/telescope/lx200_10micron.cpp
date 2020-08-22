@@ -28,9 +28,11 @@
 #include <strings.h>
 #include <termios.h>
 #include <math.h>
+#include <libnova.h>
 
 #define PRODUCT_TAB   "Product"
 #define ALIGNMENT_TAB "Alignment"
+#define SATELLITE_TAB "Satellite"
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
@@ -132,6 +134,31 @@ bool LX200_10MICRON::initProperties()
     IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(), "NEW_MODEL_NAME", "New Name", ALIGNMENT_TAB,
                      IP_RW, 60, IPS_IDLE);
 
+    IUFillText(&TLEtoUploadT[0], "TLE", "TLE", "");
+    IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(), "TLE_TEXT", "TLE", SATELLITE_TAB,
+                     IP_RW, 60, IPS_IDLE);
+
+    IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 1, 1);
+    IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
+                       "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+
+    ln_get_date_from_sys(&today);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_YYYY], "YEAR", "Year (yyyy)", "%.0f", 0, 9999, 0, today.years);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM], "MONTH", "Month (mm)", "%.0f", 1, 12, 0, today.months);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_DD], "DAY", "Day (dd)", "%.0f", 1, 31, 0, today.days);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_HH24], "HOUR", "Hour 24 (hh)", "%.0f", 0, 24, 0, today.hours);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM60], "MINUTE", "Minute", "%.0f", 0, 60, 0, today.minutes);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM1440_NEXT], "COMING",
+                 "In the following # minutes", "%.0f", 0, 1440, 0, 0);
+    IUFillNumberVector(&CalculateSatTrajectoryForTimeNP, CalculateSatTrajectoryForTimeN,
+                       SAT_COUNT, getDeviceName(), "TRAJECTORY_TIME",
+                       "Sat pass", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+
+    IUFillSwitch(&TrackSatS[SAT_TRACK], "Track", "Track", ISS_OFF);
+    IUFillSwitch(&TrackSatS[SAT_HALT], "Halt", "Halt", ISS_ON);
+    IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
+                       "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     return result;
 }
 
@@ -172,6 +199,10 @@ bool LX200_10MICRON::updateProperties()
         defineNumber(&NewAlpNP);
         defineNumber(&NewAlignmentPointsNP);
         defineText(&NewModelNameTP);
+        defineText(&TLEtoUploadTP);
+        defineNumber(&TLEfromDatabaseNP);
+        defineNumber(&CalculateSatTrajectoryForTimeNP);
+        defineSwitch(&TrackSatSP);
     }
     else
     {
@@ -186,6 +217,10 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(NewAlpNP.name);
         deleteProperty(NewAlignmentPointsNP.name);
         deleteProperty(NewModelNameTP.name);
+        deleteProperty(TLEtoUploadTP.name);
+        deleteProperty(TLEfromDatabaseNP.name);
+        deleteProperty(CalculateSatTrajectoryForTimeNP.name);
+        deleteProperty(TrackSatSP.name);
     }
     bool result = LX200Generic::updateProperties();
     return result;
@@ -233,6 +268,7 @@ bool LX200_10MICRON::ReadScopeStatus()
     }
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s> RES <%s>", cmd, data);
 
+    // TODO: check if this needs changing when satellite tracking
     // Now parse the data. This format may consist of more parts some day
     nbytes_read = sscanf(data, "%g,%g,%c,%g,%g,%g,%d,%d#", &Ginfo.RA_JNOW, &Ginfo.DEC_JNOW, &Ginfo.SideOfPier,
         &Ginfo.AZ, &Ginfo.ALT, &Ginfo.Jdate, &Ginfo.Gstat, &Ginfo.SlewStatus);
@@ -514,6 +550,167 @@ bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
     return 0 == setStandardProcedureAndExpect(fd, data, "1");
 }
 
+bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
+{
+    LOGF_INFO("The function is called with TLE %s", tle);
+    if (strlen(tle)>230)
+    {
+        LOG_WARN("TLE is too long");
+    }
+
+    std::string tle_str;
+    std::string sep = "$0a";
+    std::string search = "\n";
+    tle_str = (std::string) tle;
+    for( size_t pos = 0; ; pos += sep.length() ) {
+        // Locate the substring to replace
+        pos = tle_str.find( search, pos );
+        if( pos == std::string::npos ) break;
+        // Replace by erasing and inserting
+        tle_str.erase( pos, search.length() );
+        tle_str.insert( pos, sep );
+    }
+    char command[250];
+    snprintf(command, sizeof(command), ":TLEL0%s#", tle_str.c_str());
+
+    if ( !isSimulation() )
+    {
+        LOG_INFO(command);
+        char response[2];
+        if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 2) )
+        {
+            LOG_ERROR("TLE set error");
+            return 1;
+        }
+        if (response[0] == 'E')
+        {
+            LOG_ERROR("Invalid formatting of TLE, trying to split:");
+            char *pch = strtok ((char*) tle,"\n");
+            while (pch != NULL)
+            {    
+                LOGF_INFO("%s\n",pch);
+                pch = strtok (NULL, "\n");
+            }
+            return 1;
+        }
+    }
+    else
+    {
+        char *pch = strtok ((char*) tle,"\n");
+        while (pch != NULL)
+        { 
+            LOGF_INFO("%s\n",pch);
+            pch = strtok (NULL, "\n");
+        }
+    }
+    return 0;
+}
+	
+bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
+{
+    char command[12];
+    snprintf(command, sizeof(command), ":TLEDL%d#", tleN);
+
+    LOG_INFO("Setting TLE from Database");
+    if ( !isSimulation() )
+    {
+        LOG_INFO(command);
+        char response[210];
+        if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 210) )
+        {
+            LOG_ERROR("TLE set error");
+            return 1;
+        }
+        if (response[0] == 'E')
+        {
+            LOG_ERROR("TLE number not in mount");
+            return 1;
+        }
+    }
+    return 0;
+}
+
+bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour, int minute, int nextpass, ln_date date_pass)
+{
+    LOGF_INFO("Calculate trajectory is called with date: %d-%d-%d %d:%d pass %d",
+                year, month, day, hour, minute, nextpass);
+    date_pass.years = year;
+    date_pass.months = month;
+    date_pass.days = day;
+    date_pass.hours = hour;
+    date_pass.minutes = minute;
+    date_pass.seconds = 0.0;
+    JD = ln_get_julian_day(&date_pass);
+
+    char command[28];
+    snprintf(command, sizeof(command), ":TLEP%7.8f,%01d#", JD, nextpass);
+    LOGF_INFO("Julian day being %7.5f", JD);
+    if ( !isSimulation() )
+        {
+            LOG_INFO(command);
+            char response[36];
+            if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 36) )
+            {
+                LOG_ERROR("TLE calculate error");
+                return 1;
+            }
+            if (response[0] == 'E')
+            {
+                LOG_ERROR("TLE not loaded or invalid command");
+                return 1;
+            }
+            if (response[0] == 'N')
+            {
+                LOG_ERROR("No passes loaded");
+                return 1;
+            }
+        }
+    return 0;
+}
+
+bool LX200_10MICRON::TrackSat()
+{
+    LOG_INFO("Tracking satellite");
+    char command[7];
+    snprintf(command, sizeof(command), ":TLES#");
+    if ( !isSimulation() )
+    {
+        LOG_INFO(command);
+        char response[2];
+        if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 2) )
+        {
+            LOG_ERROR("TLE track error");
+            return 1;
+        }
+        if (response[0] == 'E')
+        {
+            LOG_ERROR("TLE transit not calculated");
+            return 2;
+        }
+        if (response[0] == 'F')
+        {
+            LOG_ERROR("Slew failed");
+            return 3;
+        }
+        if (response[0] == 'V')
+        {
+            LOG_INFO("Slewing to start of transit");
+            return 0;
+        }
+        if (response[0] == 'S')
+        {
+            LOG_INFO("Slewing to transiting satellite");
+            return 0;
+        }
+        if (response[0] == 'Q')
+        {
+            LOG_ERROR("Transit is already over");
+            return 4;
+        }
+    }
+  return 0;
+}
+
 int LX200_10MICRON::SetRefractionModelTemperature(double temperature)
 {
     char data[16];
@@ -673,6 +870,43 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             LOGF_INFO("New unnamed Model now has %d alignment points", NewAlignmentPointsN[0].value);
             return true;
         }
+        if (strcmp(name, "TRAJECTORY_TIME") == 0)
+          {
+            IUUpdateNumber(&CalculateSatTrajectoryForTimeNP, values, names, n);
+            if (0 != CalculateTrajectory(CalculateSatTrajectoryForTimeN[SAT_YYYY].value,
+                                         CalculateSatTrajectoryForTimeN[SAT_MM].value,
+                                         CalculateSatTrajectoryForTimeN[SAT_DD].value,
+                                         CalculateSatTrajectoryForTimeN[SAT_HH24].value,
+                                         CalculateSatTrajectoryForTimeN[SAT_MM60].value,
+                                         CalculateSatTrajectoryForTimeN[SAT_MM1440_NEXT].value,
+                                         date_pass)
+                )
+              {
+                CalculateSatTrajectoryForTimeNP.s = IPS_ALERT;
+                IDSetNumber(&CalculateSatTrajectoryForTimeNP, nullptr);
+                return false;
+              }
+            CalculateSatTrajectoryForTimeNP.s = IPS_OK;
+            IDSetNumber(&CalculateSatTrajectoryForTimeNP, nullptr);
+            return true;
+        }
+        if (strcmp(name, "TLE_NUMBER") == 0)
+        {
+            LOG_INFO("I am trying to set from Database");
+            IUUpdateNumber(&TLEfromDatabaseNP, values, names, n);
+            if ( 0 != SetTLEfromDatabase(TLEfromDatabaseN[0].value) )
+            {
+                TLEfromDatabaseNP.s = IPS_ALERT;
+                IDSetNumber(&TLEfromDatabaseNP, nullptr);
+                return false;
+            }
+            TLEfromDatabaseNP.s = IPS_OK;
+            TLEtoUploadTP.s = IPS_IDLE;
+            IDSetText(&TLEtoUploadTP, nullptr);
+            IDSetNumber(&TLEfromDatabaseNP, nullptr);
+            LOGF_INFO("Selected TLE nr %.0f from database", TLEfromDatabaseN[0].value);
+            return true;
+        }
     }
 
     // Let INDI::LX200Generic handle any other number properties
@@ -742,6 +976,43 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             IDSetSwitch(&AlignmentSP, nullptr);
             return true;
         }
+        if (strcmp(TrackSatSP.name, name)==0)
+          {
+            IUUpdateSwitch(&TrackSatSP, states, names, n);
+            int index    = IUFindOnSwitchIndex(&TrackSatSP);
+
+            switch (index)
+              {
+              case SAT_TRACK:
+                if ( 0!=TrackSat() )
+                {
+                    TrackSatSP.s = IPS_ALERT;
+                    IDSetSwitch(&TrackSatSP, nullptr);
+                    LOG_ERROR("Tracking failed");
+                    return false;
+                }
+                TrackSatSP.s = IPS_OK;
+                IDSetSwitch(&TrackSatSP, nullptr);
+                LOG_INFO("Tracking satellite");
+                return true;
+              case SAT_HALT:
+                if ( !Abort() )
+                {
+                    TrackSatSP.s = IPS_ALERT;
+                    IDSetSwitch(&TrackSatSP, nullptr);
+                    LOG_ERROR("Halt failed");
+                    return false;
+                }
+                TrackSatSP.s = IPS_OK;
+                IDSetSwitch(&TrackSatSP, nullptr);
+                LOG_INFO("Halt tracking");
+                return true;
+              default:
+                TrackSatSP.s = IPS_ALERT;
+                IDSetSwitch(&TrackSatSP, "Unknown tracking modus %d", index);
+                return false;
+              }
+          }
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
@@ -758,6 +1029,28 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
             IDSetText(&NewModelNameTP, nullptr);
             LOGF_INFO("Model saved with name %s", NewModelNameT[0].text);
             return true;
+        }
+        if (strcmp(name, "TLE_TEXT") == 0)
+        {
+          IUUpdateText(&TLEtoUploadTP, texts, names, n);
+          if (0 == SetTLEtoFollow(TLEtoUploadT[0].text))
+            {
+              TLEtoUploadTP.s = IPS_OK;
+              TLEfromDatabaseNP.s = IPS_IDLE;
+              IDSetText(&TLEtoUploadTP, nullptr);
+              IDSetNumber(&TLEfromDatabaseNP, nullptr);
+              LOGF_INFO("Selected TLE %s", TLEtoUploadT[0].text);
+              return true;
+            }
+          else
+            {
+              TLEtoUploadTP.s = IPS_ALERT;
+              TLEfromDatabaseNP.s = IPS_IDLE;
+              IDSetText(&TLEtoUploadTP, nullptr);
+              IDSetNumber(&TLEfromDatabaseNP, nullptr);
+              LOG_ERROR("TLE was not correctly uploaded");
+              return false;
+            }
         }
     }
     return LX200Generic::ISNewText(dev, name, texts, names, n);

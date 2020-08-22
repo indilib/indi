@@ -97,7 +97,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    INDI_UNUSED(root);
+    SkywatcherAltAzSimplePtr->ISSnoopDevice(root);
 }
 
 SkywatcherAltAzSimple::SkywatcherAltAzSimple() : TrackLogFileName(GetHomeDirectory() + "/.indi/sw_mount_track_log.txt")
@@ -1126,14 +1126,14 @@ void SkywatcherAltAzSimple::TimerHit()
                 ResetGuidePulses();
             }
 
-            if (moving) 
-			{
-//                TrackedAltAz  = CurrentAltAz;
+            if (moving)
+            {
+                //                TrackedAltAz  = CurrentAltAz;
                 CurrentTrackingTarget.ra = EqN[AXIS_RA].value;
                 CurrentTrackingTarget.dec = EqN[AXIS_DE].value;
-            } 
-			else 
-			{
+            }
+            else
+            {
                 // Restart the drift compensation after syncing
                 if (ResetTrackingSeconds)
                 {
@@ -1217,9 +1217,9 @@ void SkywatcherAltAzSimple::TimerHit()
                 }
 
                 AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
-                                              "TRACKING_RATE_ALT")->value);
+                                                  "TRACKING_RATE_ALT")->value);
                 AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
-                                             "TRACKING_RATE_AZ")->value);
+                                                 "TRACKING_RATE_AZ")->value);
 
                 LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
                            CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,
@@ -1391,7 +1391,8 @@ void SkywatcherAltAzSimple::ResetGuidePulses()
     GuidingPulses.clear();
 }
 
-int SkywatcherAltAzSimple::recover_tty_reconnect() {
+int SkywatcherAltAzSimple::recover_tty_reconnect()
+{
     if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
     {
         RecoverAfterReconnection = true;
