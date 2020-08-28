@@ -191,15 +191,15 @@
         </device>
         <device label="iOptron v3" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="iOptron CEM120" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="iOptron CEM70" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="Pulsar2">
             <driver name="Pulsar2">indi_lx200pulsar2</driver>
@@ -357,7 +357,7 @@
         </device>
         <device label="Sesto Senso 2">
             <driver name="Sesto Senso 2">indi_sestosenso2_focus</driver>
-            <version>0.2</version>
+            <version>0.3</version>
         </device>
         <device label="Lakeside">
             <driver name="Lakeside">indi_lakeside_focus</driver>
@@ -547,6 +547,10 @@
         </device>
         <device label="Dome Scripting Gateway">
             <driver name="Dome  Scripting Gateway">indi_script_dome</driver>
+            <version>1.0</version>
+        </device>
+        <device label="DomePro2">
+            <driver name="DomePro2">indi_domepro2_dome</driver>
             <version>1.0</version>
         </device>
     </devGroup>

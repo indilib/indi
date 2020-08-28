@@ -542,6 +542,7 @@ class CCD : public DefaultDevice, GuiderInterface
 
         // JJ ed 2019-12-10 current focuser position
         long FocuserPos;
+        double FocuserTemp;
 
         // Airmass
         double Airmass;

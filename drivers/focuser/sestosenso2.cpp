@@ -75,7 +75,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso2::SestoSenso2()
 {
-    setVersion(0, 2);
+    setVersion(0, 3);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
@@ -94,8 +94,9 @@ bool SestoSenso2::initProperties()
                      IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Motor temp.", MAIN_CONTROL_TAB,
+    IUFillNumber(&TemperatureN[TEMPERATURE_MOTOR], "TEMPERATURE", "Motor (c)", "%6.2f", -50, 70., 0., 0.);
+    IUFillNumber(&TemperatureN[TEMPERATURE_EXTERNAL], "TEMPERATURE_ETX", "External (c)", "%6.2f", -50, 70., 0., 0.);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 2, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
                        IP_RO, 0, IPS_IDLE);
 
     IUFillNumber(&SpeedN[0], "SPEED", "RPM", "%0.0f", 0, 7000., 1, 0);
@@ -224,8 +225,25 @@ bool SestoSenso2::updateTemperature()
     if (temperature > 90)
         return false;
 
-    TemperatureN[0].value = temperature;
+    TemperatureN[TEMPERATURE_MOTOR].value = temperature;
     TemperatureNP.s = IPS_OK;
+
+    // External temperature - Optional
+    if (command->getExternalTemp(res))
+    {
+        TemperatureN[TEMPERATURE_EXTERNAL].value = -273.15;
+        try
+        {
+            temperature = std::stod(res);
+        }
+        catch(...)
+        {
+            LOGF_DEBUG("Failed to process external temperature response: %s (%d bytes)", res, strlen(res));
+        }
+
+        if (temperature < 90)
+            TemperatureN[TEMPERATURE_EXTERNAL].value = temperature;
+    }
 
     return true;
 }
@@ -877,6 +895,11 @@ bool CommandSet::loadSlowPreset(char *res)
 bool CommandSet::getMotorTemp(char *res)
 {
     return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "NTC_T", res);
+}
+
+bool CommandSet::getExternalTemp(char *res)
+{
+    return sendCmd("{\"req\":{\"get\":{\"EXT_T\":\"\"}}}", "EXT_T", res);
 }
 
 

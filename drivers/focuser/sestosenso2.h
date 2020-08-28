@@ -49,6 +49,7 @@ class CommandSet
         bool getCurrentSpeed(char *res);
         bool loadSlowPreset(char *res);
         bool getMotorTemp(char *res);
+        bool getExternalTemp(char *res);
         std::string deviceName;
 
         const char *getDeviceName()
@@ -118,8 +119,13 @@ class SestoSenso2 : public INDI::Focuser
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
 
-        INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[2];
+        enum
+        {
+            TEMPERATURE_MOTOR,
+            TEMPERATURE_EXTERNAL,
+        };
 
         INumber SpeedN[1];
         INumberVectorProperty SpeedNP;

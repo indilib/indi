@@ -23,140 +23,147 @@
 #pragma once
 
 #include "lx200generic.h"
+#define MOUNTNOTINITIALIZED 0
+#define MOUNTINITIALIZED    1
 
 class LX200AstroPhysicsExperimental : public LX200Generic
 {
-  public:
-    LX200AstroPhysicsExperimental();
+    public:
+        LX200AstroPhysicsExperimental();
 
-    typedef enum { MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_K_UNUSED,
-                   MCV_L, MCV_M, MCV_N, MCV_O, MCV_P, MCV_Q, MCV_R, MCV_S,
-                   MCV_T, MCV_U, MCV_V, MCV_UNKNOWN} ControllerVersion;
-    typedef enum { GTOCP1=1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
-    typedef enum { PARK_LAST=0, PARK_CUSTOM=0, PARK_PARK1=1, PARK_PARK2=2, PARK_PARK3=3, PARK_PARK4=4} ParkPosition;
-    enum APTelescopeSlewRate {AP_SLEW_GUIDE, AP_SLEW_12X, AP_SLEW_64X, AP_SLEW_600X, AP_SLEW_1200X};
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual void ISGetProperties(const char *dev) override;    
+        typedef enum { MCV_D, MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_K_UNUSED,
+                       MCV_L, MCV_M, MCV_N, MCV_O, MCV_P, MCV_Q, MCV_R, MCV_S,
+                       MCV_T, MCV_U, MCV_V, MCV_UNKNOWN
+                     } ControllerVersion;
+        typedef enum { GTOCP1 = 1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
+        typedef enum { PARK_LAST = 0, PARK_CUSTOM = 0, PARK_PARK1 = 1, PARK_PARK2 = 2, PARK_PARK3 = 3, PARK_PARK4 = 4} ParkPosition;
+        enum APTelescopeSlewRate {AP_SLEW_GUIDE, AP_SLEW_12X, AP_SLEW_64X, AP_SLEW_600X, AP_SLEW_1200X};
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual void ISGetProperties(const char *dev) override;
 
-  protected:
+    protected:
 
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;    
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-    virtual bool ReadScopeStatus() override;
-    virtual bool Handshake() override;
-    virtual bool Disconnect() override;
-    virtual bool Connect() override;
+        virtual bool ReadScopeStatus() override;
+        virtual bool Handshake() override;
+        virtual bool Disconnect() override;
+        virtual bool Connect() override;
 
-    // Parking
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
 
-    virtual bool Sync(double ra, double dec) override;
-    virtual bool Goto(double, double) override;
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool SetSlewRate(int index) override;
-    bool updateAPSlewRate(int index);
+        virtual bool Sync(double ra, double dec) override;
+        virtual bool Goto(double, double) override;
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool SetSlewRate(int index) override;
+        bool updateAPSlewRate(int index);
 
-    // Guide Commands
-    virtual IPState GuideNorth(uint32_t ms) override;
-    virtual IPState GuideSouth(uint32_t ms) override;
-    virtual IPState GuideEast(uint32_t ms) override;
-    virtual IPState GuideWest(uint32_t ms) override;
-    virtual int  SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
-    virtual bool GuideNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-    virtual bool GuideWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+        // Guide Commands
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
+        virtual int  SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
+        virtual bool GuideNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+        virtual bool GuideWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
 
-    // Pulse Guide specific to AstroPhysics
-    static void pulseGuideTimeoutHelperWE(void * p);
-    static void pulseGuideTimeoutHelperNS(void * p);
-    static void simulGuideTimeoutHelperWE(void * p);
-    static void simulGuideTimeoutHelperNS(void * p);
-    void AstroPhysicsGuideTimeoutWE(bool simul);
-    void AstroPhysicsGuideTimeoutNS(bool simul);
+        // Pulse Guide specific to AstroPhysics
+        static void pulseGuideTimeoutHelperWE(void * p);
+        static void pulseGuideTimeoutHelperNS(void * p);
+        static void simulGuideTimeoutHelperWE(void * p);
+        static void simulGuideTimeoutHelperNS(void * p);
+        void AstroPhysicsGuideTimeoutWE(bool simul);
+        void AstroPhysicsGuideTimeoutNS(bool simul);
 
-    virtual bool getUTFOffset(double *offset) override;
-    // Tracking
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool SetTrackEnabled(bool enabled) override;
-    virtual bool SetTrackRate(double raRate, double deRate) override;
+        virtual bool getUTFOffset(double *offset) override;
+        // Tracking
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool SetTrackRate(double raRate, double deRate) override;
 
-    // NSWE Motion Commands
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+        // NSWE Motion Commands
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual void debugTriggered(bool enable) override;
+        virtual void debugTriggered(bool enable) override;
 
-    void handleGTOCP2MotionBug();
+        void handleGTOCP2MotionBug();
 
-    INumber HourangleCoordsN[2];
-    INumberVectorProperty HourangleCoordsNP;
-    INumber APSiderealTimeN[1];
-    INumberVectorProperty APSiderealTimeNP;
+        ISwitch StartUpS[2];
+        ISwitchVectorProperty StartUpSP;
 
-    INumber HorizontalCoordsN[2];
-    INumberVectorProperty HorizontalCoordsNP;
+        INumber HourangleCoordsN[2];
+        INumberVectorProperty HourangleCoordsNP;
+        INumber APSiderealTimeN[1];
+        INumberVectorProperty APSiderealTimeNP;
 
-    ISwitch APSlewSpeedS[3];
-    ISwitchVectorProperty APSlewSpeedSP;
+        INumber HorizontalCoordsN[2];
+        INumberVectorProperty HorizontalCoordsNP;
 
-    ISwitch SwapS[2];
-    ISwitchVectorProperty SwapSP;
+        ISwitch APSlewSpeedS[3];
+        ISwitchVectorProperty APSlewSpeedSP;
 
-    ISwitch SyncCMRS[2];
-    ISwitchVectorProperty SyncCMRSP;
-    enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
+        ISwitch SwapS[2];
+        ISwitchVectorProperty SwapSP;
 
-    ISwitch APGuideSpeedS[3];
-    ISwitchVectorProperty APGuideSpeedSP;
+        ISwitch SyncCMRS[2];
+        ISwitchVectorProperty SyncCMRSP;
+        enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
-    ISwitch UnparkFromS[5];
-    ISwitchVectorProperty UnparkFromSP;
+        ISwitch APGuideSpeedS[3];
+        ISwitchVectorProperty APGuideSpeedSP;
 
-    ISwitch ParkToS[5];
-    ISwitchVectorProperty ParkToSP;
+        ISwitch UnparkFromS[5];
+        ISwitchVectorProperty UnparkFromSP;
 
-    INumberVectorProperty APUTCOffsetNP;
-    INumber APUTCOffsetN[1];
+        ISwitch ParkToS[5];
+        ISwitchVectorProperty ParkToSP;
 
-    IText VersionT[1] {};
-    ITextVectorProperty VersionInfo;
+        INumberVectorProperty APUTCOffsetNP;
+        INumber APUTCOffsetN[1];
 
-  private:
+        IText VersionT[1] {};
+        ITextVectorProperty VersionInfo;
+
+    private:
 #ifdef no
-    bool initMount();
+        bool initMount();
 #endif
 
-    // Side of pier
-    void syncSideOfPier();
+        // Side of pier
+        void syncSideOfPier();
 #ifdef no
-    bool IsMountInitialized(bool *initialized);
+        bool IsMountInitialized(bool *initialized);
 #endif
-    bool IsMountParked(bool *isParked);
-    bool getMountStatus(bool *isParked);
-    bool getFirmwareVersion(void);
-    bool calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz);
-    void disclaimerMessage(void);
+        bool IsMountParked(bool *isParked);
+        bool getMountStatus(bool *isParked);
+        bool getFirmwareVersion(void);
+        bool calcParkPosition(ParkPosition pos, double *parkAlt, double *parkAz);
+        void disclaimerMessage(void);
 
-  //bool timeUpdated=false, locationUpdated=false;
-    ControllerVersion firmwareVersion = MCV_UNKNOWN;
-    ServoVersion servoType = GTOCP_UNKNOWN;
+        //bool timeUpdated=false, locationUpdated=false;
+        ControllerVersion firmwareVersion = MCV_UNKNOWN;
+        ServoVersion servoType = GTOCP_UNKNOWN;
 
-    double currentAlt=0, currentAz=0;
-    double lastRA=0, lastDE=0;
-    double lastAZ=0, lastAL=0;
+        double currentAlt = 0, currentAz = 0;
+        double lastRA = 0, lastDE = 0;
+        double lastAZ = 0, lastAL = 0;
 
-    //int GuideNSTID;
-    //int GuideWETID;
-  
-    //bool motionCommanded=false; // 2020-05-24, wildi, never reset
-    //bool mountInitialized=false;
-    int rememberSlewRate = { -1 };
+        //int GuideNSTID;
+        //int GuideWETID;
+
+        //bool motionCommanded=false; // 2020-05-24, wildi, never reset
+        //bool mountInitialized=false;
+        int rememberSlewRate = { -1 };
+        uint8_t initStatus = MOUNTNOTINITIALIZED;
 };

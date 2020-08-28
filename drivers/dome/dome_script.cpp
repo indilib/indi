@@ -183,7 +183,7 @@ bool DomeScript::RunScript(int script, ...)
     char path[1024];
     snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
 
-    if (access(path, F_OK|X_OK) != 0)
+    if (access(path, F_OK | X_OK) != 0)
     {
         LOGF_ERROR("Cannot use script [%s], %s", path, strerror(errno));
         return false;
@@ -287,8 +287,7 @@ void DomeScript::TimerHit()
         }
         if (std::round(az * 10) != std::round(TargetAz * 10))
         {
-            LOGF_INFO("Moving %g -> %g %d", std::round(az * 10) / 10,
-                   std::round(TargetAz * 10) / 10, getDomeState());
+            LOGF_INFO("Moving %g -> %g %d", std::round(az * 10) / 10, std::round(TargetAz * 10) / 10, getDomeState());
             IDSetNumber(&DomeAbsPosNP, nullptr);
         }
         else if (getDomeState() == DOME_MOVING)
@@ -296,11 +295,11 @@ void DomeScript::TimerHit()
             setDomeState(DOME_SYNCED);
             IDSetNumber(&DomeAbsPosNP, nullptr);
         }
-        if (shutterState == SHUTTER_OPENED)
+        if (m_ShutterState == SHUTTER_OPENED)
         {
             if (shutter == 0)
             {
-                shutterState    = SHUTTER_CLOSED;
+                m_ShutterState    = SHUTTER_CLOSED;
                 DomeShutterSP.s = IPS_OK;
                 IDSetSwitch(&DomeShutterSP, nullptr);
                 LOG_INFO("Shutter was successfully closed");
@@ -310,7 +309,7 @@ void DomeScript::TimerHit()
         {
             if (shutter == 1)
             {
-                shutterState    = SHUTTER_OPENED;
+                m_ShutterState    = SHUTTER_OPENED;
                 DomeShutterSP.s = IPS_OK;
                 IDSetSwitch(&DomeShutterSP, nullptr);
                 LOG_INFO("Shutter was successfully opened");
