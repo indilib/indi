@@ -27,82 +27,89 @@
 
 class Paramount : public INDI::Telescope, public INDI::GuiderInterface
 {
-  public:
-    Paramount();
-    virtual ~Paramount() = default;
+    public:
+        Paramount();
+        virtual ~Paramount() = default;
 
-    virtual const char *getDefaultName() override;
-    virtual bool Handshake() override;
-    virtual bool ReadScopeStatus() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
+        virtual const char *getDefaultName() override;
+        virtual bool Handshake() override;
+        virtual bool ReadScopeStatus() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
-    virtual bool Abort() override;
+    protected:
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+        virtual bool Abort() override;
 
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
-    virtual bool SetParkPosition(double Axis1Value, double Axis2Value) override;
-    virtual bool Goto(double, double) override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-    virtual bool Sync(double ra, double dec) override;
+        virtual bool SetParkPosition(double Axis1Value, double Axis2Value) override;
+        virtual bool Goto(double, double) override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool Sync(double ra, double dec) override;
 
-    // Tracking
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool SetTrackRate(double raRate, double deRate) override;
-    virtual bool SetTrackEnabled(bool enabled) override;
+        // Tracking
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool SetTrackRate(double raRate, double deRate) override;
+        virtual bool SetTrackEnabled(bool enabled) override;
 
-    // Parking
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
-    // Guiding
-    virtual IPState GuideNorth(uint32_t ms) override;
-    virtual IPState GuideSouth(uint32_t ms) override;
-    virtual IPState GuideEast(uint32_t ms) override;
-    virtual IPState GuideWest(uint32_t ms) override;
+        // Guiding
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
-  private:
-    void mountSim();
-    bool getMountRADE();
-    bool isSlewComplete();
+    private:
+        void mountSim();
+        bool getMountRADE();
+        bool isSlewComplete();
 
-    bool sendTheSkyOKCommand(const char *command, const char *errorMessage);
-    bool isTheSkyParked();
-    bool isTheSkyTracking();
-    bool startOpenLoopMotion(uint8_t motion, uint16_t rate);
-    bool stopOpenLoopMotion();
-    bool setTheSkyTracking(bool enable, bool isSidereal, double raRate, double deRate);
+        bool sendTheSkyOKCommand(const char *command, const char *errorMessage);
+        bool isTheSkyParked();
+        bool isTheSkyTracking();
+        bool startOpenLoopMotion(uint8_t motion, uint16_t rate);
+        bool stopOpenLoopMotion();
+        bool setTheSkyTracking(bool enable, bool isSidereal, double raRate, double deRate);
 
-    double currentRA { 0 };
-    double currentDEC { 90 };
-    double targetRA { 0 };
-    double targetDEC { 0 };
+        // Homing
+        bool findHome();
 
-    ln_lnlat_posn lnobserver { 0, 0 };
-    ln_hrz_posn lnaltaz { 0, 0 };
-    unsigned int DBG_SCOPE { 0 };
+        double currentRA { 0 };
+        double currentDEC { 90 };
+        double targetRA { 0 };
+        double targetDEC { 0 };
 
-    // Jog Rate
-    INumber JogRateN[2];
-    INumberVectorProperty JogRateNP;
+        ln_lnlat_posn lnobserver { 0, 0 };
+        ln_hrz_posn lnaltaz { 0, 0 };
+        unsigned int DBG_SCOPE { 0 };
 
-    // Guide Rate
-    INumber GuideRateN[2];
-    INumberVectorProperty GuideRateNP;
+        // Jog Rate
+        INumber JogRateN[2];
+        INumberVectorProperty JogRateNP;
 
-    // Tracking Mode
-    ISwitch TrackModeS[4];
-    ISwitchVectorProperty TrackModeSP;
+        // Guide Rate
+        INumber GuideRateN[2];
+        INumberVectorProperty GuideRateNP;
 
-    // Tracking Rate
-//    INumber TrackRateN[2];
-//    INumberVectorProperty TrackRateNP;
+        // Tracking Mode
+        ISwitch TrackModeS[4];
+        ISwitchVectorProperty TrackModeSP;
+
+        // Homing
+        ISwitchVectorProperty HomeSP;
+        ISwitch HomeS[1];
+
+        // Tracking Rate
+        //    INumber TrackRateN[2];
+        //    INumberVectorProperty TrackRateNP;
 };
