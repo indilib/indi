@@ -376,7 +376,7 @@ static void usage(void)
     fprintf(stderr, " -v       : show key events, no traffic\n");
     fprintf(stderr, " -vv      : -v + key message content\n");
     fprintf(stderr, " -vvv     : -vv + complete xml\n");
-    fprintf(stderr, "driver    : executable or device@host[:port]\n");
+    fprintf(stderr, "driver    : executable or [device]@host[:port]\n");
 
     exit(2);
 }
@@ -617,17 +617,21 @@ static void startLocalDvr(DvrInfo *dp)
 static void startRemoteDvr(DvrInfo *dp)
 {
     Msg *mp;
-    char dev[MAXINDIDEVICE];
-    char host[MAXSBUF];
-    char buf[MAXSBUF];
+    char dev[MAXINDIDEVICE]={0};
+    char host[MAXSBUF]={0};
+    char buf[MAXSBUF]={0};
     int indi_port, sockfd;
 
     /* extract host and port */
     indi_port = INDIPORT;
     if (sscanf(dp->name, "%[^@]@%[^:]:%d", dev, host, &indi_port) < 2)
     {
-        fprintf(stderr, "Bad remote device syntax: %s\n", dp->name);
-        Bye();
+        // Device missing? Try a different syntax for all devices
+        if (sscanf(dp->name, "@%[^:]:%d", host, &indi_port) < 1)
+        {
+            fprintf(stderr, "Bad remote device syntax: %s\n", dp->name);
+            Bye();
+        }
     }
 
     /* connect */
@@ -660,7 +664,13 @@ static void startRemoteDvr(DvrInfo *dp)
      */
     mp = newMsg();
     pushFQ(dp->msgq, mp);
-    sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dp->dev[0], INDIV);
+    if (dev[0])
+        sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dp->dev[0], INDIV);
+    else
+        // This informs downstream server that it is connecting to an upstream server
+        // and not a regular client. The difference is in how it treats snooping properties
+        // among properties.
+        sprintf(buf, "<getProperties device='*' version='%g'/>\n", INDIV);
     setMsgStr(mp, buf);
     mp->count++;
 
@@ -1202,8 +1212,15 @@ static int readFromClient(ClInfo *cp)
          *   remote client connections start returning too much.
          */
             if (dev[0])
-                addClDevice(cp, dev, name, isblob);
-            else if (!strcmp(roottag, "getProperties") && !cp->nprops)
+            {
+                // Signature for CHAINED SERVER
+                // Not a regular client.
+                if (dev[0] == '*' && !cp->nprops)
+                    cp->allprops = 2;
+                else
+                    addClDevice(cp, dev, name, isblob);
+            }
+            else if (!strcmp(roottag, "getProperties") && !cp->nprops && cp->allprops != 2)
                 cp->allprops = 1;
 
             /* snag enableBLOB -- send to remote drivers too */
@@ -1792,7 +1809,7 @@ static int q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
     for (cp = clinfo; cp < &clinfo[nclinfo]; cp++)
     {
         /* cp in use? not chained server? */
-        if (!cp->active || cp->allprops == 1)
+        if (!cp->active || cp->allprops != 2)
             continue;
 
         // Only send the message to the upstream server that is connected specfically to the device in driver dp
@@ -2016,7 +2033,7 @@ static int findClDevice(ClInfo *cp, const char *dev, const char *name)
 {
     int i;
 
-    if (cp->allprops || !dev[0])
+    if (cp->allprops >= 1 || !dev[0])
         return (0);
     for (i = 0; i < cp->nprops; i++)
     {
