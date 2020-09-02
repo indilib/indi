@@ -734,6 +734,8 @@ bool CelestronGPS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 bool CelestronGPS::ReadScopeStatus()
 {
+    INDI::Telescope::TelescopePierSide pierSide = PIER_UNKNOWN;
+
     if (isSimulation())
         mountSim();
 
@@ -742,6 +744,52 @@ bool CelestronGPS::ReadScopeStatus()
         LOG_ERROR("Failed to read RA/DEC values.");
         return false;
     }
+
+    if (HasPierSide())
+    {
+        // read the pier side close to reading the Radec so they should match
+        char sop;
+        char psc = 'u';
+        if (driver.get_pier_side(&sop))
+        {
+            // manage version and hemisphere nonsense
+            // HC versions less than 5.24 reverse the side of pier if the mount
+            // is in the Southern hemisphere.  StarSense doesn't
+            if (LocationN[LOCATION_LATITUDE].value < 0)
+            {
+                if (fwInfo.controllerVersion <= 5.24 && fwInfo.controllerVariant != ISSTARSENSE)
+                {
+                    // swap the char reported
+                    if (sop == 'E')
+                        sop = 'W';
+                    else if (sop == 'W')
+                        sop = 'E';
+                }
+            }
+            // The Celestron and INDI pointing states are opposite
+            if (sop == 'W')
+            {
+                pierSide = PIER_EAST;
+                psc = 'E';
+            }
+            else if (sop == 'E')
+            {
+                pierSide = PIER_WEST;
+                psc = 'W';
+            }
+            // pier side and Ha don't match at +-90 deg dec
+            if (currentDEC > 89.999 || currentDEC < -89.999)
+            {
+                pierSide = PIER_UNKNOWN;
+                psc = 'U';
+            }
+        }
+
+        LOGF_DEBUG("latitude %g, sop %c, PierSide %c",
+                   LocationN[LOCATION_LATITUDE].value,
+                   sop, psc);
+    }
+
 
     // aligning
     if (slewToIndex)
@@ -839,6 +887,10 @@ bool CelestronGPS::ReadScopeStatus()
             break;
     }
 
+    // update pier side and RaDec close together to minimise the possibility of
+    // a mismatch causing an Ha limit error during a pier flip slew.
+    if (HasPierSide())
+        setPierSide(pierSide);
     NewRaDec(currentRA, currentDEC);
 
     // is PEC Handling required
@@ -963,46 +1015,6 @@ bool CelestronGPS::ReadScopeStatus()
             }
         }
     }
-
-    if (!HasPierSide())
-        return true;
-
-    char sop;
-    INDI::Telescope::TelescopePierSide pierSide = PIER_UNKNOWN;
-    char psc = 'U';
-    if (driver.get_pier_side(&sop))
-    {
-        // manage version and hemisphere nonsense
-        // HC versions less than 5.24 reverse the side of pier if the mount
-        // is in the Southern hemisphere.  StarSense doesn't
-        if (LocationN[LOCATION_LATITUDE].value < 0)
-        {
-            if (fwInfo.controllerVersion <= 5.24 && fwInfo.controllerVariant != ISSTARSENSE)
-            {
-                // swap the char reported
-                if (sop == 'E')
-                    sop = 'W';
-                else if (sop == 'W')
-                    sop = 'E';
-            }
-        }
-        // The Celestron and INDI pointing states are opposite
-        if (sop == 'W')
-        {
-            pierSide = PIER_EAST;
-            psc = 'E';
-        }
-        else if (sop == 'E')
-        {
-            pierSide = PIER_WEST;
-            psc = 'W';
-        }
-    }
-
-    LOGF_DEBUG("latitude %g, sop %c, PierSide %c",
-               LocationN[LOCATION_LATITUDE].value,
-               sop, psc);
-    setPierSide(pierSide);
 
     return true;
 }
