@@ -37,10 +37,11 @@ class CommandSet
         bool getSerialNumber(char *res);
         bool abort();
         bool go(uint32_t targetTicks, char *res);
-        bool goHome();
-        bool fastMoveOut();
-        bool fastMoveIn();
+        bool goHome(char *res);
+        bool fastMoveOut(char *res);
+        bool fastMoveIn(char *res);
         bool getMaxPosition(char *res);
+        bool getHallSensor(char *res);
         bool storeAsMaxPosition(char *res);
         bool goOutToFindMaxPos();
         bool storeAsMinPosition();
@@ -85,6 +86,7 @@ class SestoSenso2 : public INDI::Focuser
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
         static void checkMotionProgressHelper(void *context);
+        static void checkHallSensorHelper(void *context);
 
     protected:
         virtual bool Handshake() override;
@@ -106,6 +108,7 @@ class SestoSenso2 : public INDI::Focuser
         void setConnectionParams();
         bool initCommandSet();
         void checkMotionProgressCallback();
+        void checkHallSensorCallback();
 
         CommandSet *command {nullptr};
 
@@ -156,13 +159,18 @@ class SestoSenso2 : public INDI::Focuser
             CMD_FALSE = false
         };
 
+        ISwitchVectorProperty HomeSP;
+        ISwitch HomeS[1];
+
         IText CalibrationMessageT[1] {};
         ITextVectorProperty CalibrationMessageTP;
 
         typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
 
-        int m_MotionProgressTimerID = -1;
+        int m_MotionProgressTimerID {-1};
+        int m_HallSensorTimerID {-1};
+        bool m_IsSestoSenso2 { true };
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
