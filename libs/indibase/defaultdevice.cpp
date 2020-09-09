@@ -63,7 +63,9 @@ DefaultDevice::DefaultDevice()
 bool DefaultDevice::loadConfig(bool silent, const char *property)
 {
     char errmsg[MAXRBUF] = {0};
+    m_ConfigLoading = true;
     bool pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
+    m_ConfigLoading = false;
 
     if (!silent)
     {
@@ -77,9 +79,9 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
 
     // Determine default config file name
     // Need to be done only once per device.
-    if (pDefaultConfigLoaded == false)
+    if (m_DefaultConfigLoaded == false)
     {
-        pDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+        m_DefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
     }
 
     return pResult;
@@ -182,9 +184,9 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         fflush(fp);
         fclose(fp);
 
-        if (pDefaultConfigLoaded == false)
+        if (m_DefaultConfigLoaded == false)
         {
-            pDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+            m_DefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
         }
 
         LOG_DEBUG("Configuration successfully saved.");
@@ -579,13 +581,13 @@ bool DefaultDevice::ISSnoopDevice(XMLEle *root)
 void DefaultDevice::addDebugControl()
 {
     registerProperty(&DebugSP, INDI_SWITCH);
-    pDebug = false;
+    m_Debug = false;
 }
 
 void DefaultDevice::addSimulationControl()
 {
     registerProperty(&SimulationSP, INDI_SWITCH);
-    pSimulation = false;
+    m_Simulation = false;
 }
 
 void DefaultDevice::addConfigurationControl()
@@ -608,7 +610,7 @@ void DefaultDevice::addAuxControls()
 
 void DefaultDevice::setDebug(bool enable)
 {
-    if (pDebug == enable)
+    if (m_Debug == enable)
     {
         DebugSP.s = IPS_OK;
         IDSetSwitch(&DebugSP, nullptr);
@@ -636,7 +638,7 @@ void DefaultDevice::setDebug(bool enable)
         }
     }
 
-    pDebug = enable;
+    m_Debug = enable;
 
     // Inform logger
     if (Logger::updateProperties(enable) == false)
@@ -649,7 +651,7 @@ void DefaultDevice::setDebug(bool enable)
 
 void DefaultDevice::setSimulation(bool enable)
 {
-    if (pSimulation == enable)
+    if (m_Simulation == enable)
     {
         SimulationSP.s = IPS_OK;
         IDSetSwitch(&SimulationSP, nullptr);
@@ -677,7 +679,7 @@ void DefaultDevice::setSimulation(bool enable)
         }
     }
 
-    pSimulation = enable;
+    m_Simulation = enable;
     simulationTriggered(enable);
     SimulationSP.s = IPS_OK;
     IDSetSwitch(&SimulationSP, nullptr);
@@ -685,12 +687,12 @@ void DefaultDevice::setSimulation(bool enable)
 
 bool DefaultDevice::isDebug()
 {
-    return pDebug;
+    return m_Debug;
 }
 
 bool DefaultDevice::isSimulation()
 {
-    return pSimulation;
+    return m_Simulation;
 }
 
 void DefaultDevice::debugTriggered(bool enable)
