@@ -1371,7 +1371,7 @@ void SkywatcherAPIMount::TimerHit()
                     }
                     Iter->Duration -= POLLMS;
 
-                    if (Iter->Duration < POLLMS)
+                    if (Iter->Duration < static_cast<int>(POLLMS))
                     {
                         Iter = GuidingPulses.erase(Iter);
                         if (Iter == GuidingPulses.end())
