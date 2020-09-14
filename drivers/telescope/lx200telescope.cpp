@@ -1037,7 +1037,7 @@ void LX200Telescope::updateFocusTimer()
     //    }
 
     AbortFocuser();
-    FocusTimerNP.s = IPS_IDLE;
+    FocusTimerNP.s = IPS_OK;
     FocusTimerN[0].value = 0;
     IDSetNumber(&FocusTimerNP, nullptr);
 }
