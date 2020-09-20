@@ -103,8 +103,8 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
         ///////////////////////////////////////////////////////////////////////////////
-        bool sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t res_len);
-        void hexDump(char * buf, const char * data, uint32_t size);
+        bool sendCommand(const uint8_t * cmd, uint8_t * res, uint32_t cmd_len, uint32_t res_len);
+        void hexDump(char * buf, const uint8_t * data, uint32_t size);
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
         ///////////////////////////////////////////////////////////////////////////////////
@@ -112,7 +112,7 @@ class EFA : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
         void getStartupValues();
         double calculateTemperature(uint8_t byte2, uint8_t byte3);
-        uint8_t calculateCheckSum(const char *cmd, uint32_t len);
+        uint8_t calculateCheckSum(const uint8_t *cmd, uint32_t len);
         template <typename T> std::string to_string(const T a_value, const int n = 2);
 
         ///////////////////////////////////////////////////////////////////////////////////
