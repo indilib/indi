@@ -1634,20 +1634,6 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/99-vantage.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
 
-########### WunderGround Driver ###############
-
-SET(WunderGround_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/wunderground.cpp)
-
-IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(WunderGround WunderGround_SRC 10 cpp)
-ENDIF ()
-
-add_executable(indi_wunderground_weather ${WunderGround_SRC})
-target_link_libraries(indi_wunderground_weather indidriver ${CURL_LIBRARIES})
-install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin)
-
 ########### OpenWeatherMap Driver ###############
 
 SET(OpenWeatherMap_SRC

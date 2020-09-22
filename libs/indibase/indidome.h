@@ -571,6 +571,15 @@ class Dome : public DefaultDevice
         ISwitchVectorProperty MountPolicySP;
         ISwitch MountPolicyS[2];
 
+        // Shutter control on Park/Unpark
+        ISwitchVectorProperty ShutterParkPolicySP;
+        ISwitch ShutterParkPolicyS[2];
+        enum
+        {
+            SHUTTER_CLOSE_ON_PARK,
+            SHUTTER_OPEN_ON_UNPARK,
+        };
+
         INumber PresetN[3];
         INumberVectorProperty PresetNP;
         ISwitch PresetGotoS[3];

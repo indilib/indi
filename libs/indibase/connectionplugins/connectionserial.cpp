@@ -427,6 +427,24 @@ bool Serial::Refresh(bool silent)
 
     m_Device->defineSwitch(&SystemPortSP);
 
+    // JM 2020-08-30: If we only have ONE serial port on the system
+    // We check if the current port is default port. If it is, then we
+    // set the port to the discovered port. This is useful because sometimes
+    // the discovered port is something like /dev/ttyUSB1, but default is /dev/ttyUSB0 would
+    // fail to connect, so we set it to the discovered port only if it matches this criteria.
+    if (pCount == 1)
+    {
+        bool match = false;
+#ifdef __APPLE__
+        match = !strcmp(PortT[0].text, "/dev/cu.usbserial");
+#else
+        match = !strcmp(PortT[0].text, "/dev/ttyUSB0");
+#endif
+        if (match)
+        {
+            IUSaveText(&PortT[0], m_Ports[0].c_str());
+        }
+    }
     return true;
 }
 }

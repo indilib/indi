@@ -483,6 +483,15 @@ class INDI::DefaultDevice : public INDI::BaseDevice
             return static_cast<uint32_t>(PollPeriodN[0].value);
         }
 
+        /**
+         * @brief isConfigLoading Check if driver configuration is currently in the process of getting loaded.
+         * @return True if property loading in progress, false otherwise.
+         */
+        bool isConfigLoading() const
+        {
+            return m_ConfigLoading;
+        }
+
         /** \return Default name of the device. */
         virtual const char *getDefaultName() = 0;
 
@@ -493,9 +502,10 @@ class INDI::DefaultDevice : public INDI::BaseDevice
 
     private:
         bool isInit { false };
-        bool pDebug { false };
-        bool pSimulation { false };
-        bool pDefaultConfigLoaded {false};
+        bool m_Debug { false };
+        bool m_Simulation { false };
+        bool m_DefaultConfigLoaded {false};
+        bool m_ConfigLoading { false };
 
         uint16_t majorVersion { 1 };
         uint16_t minorVersion { 0 };

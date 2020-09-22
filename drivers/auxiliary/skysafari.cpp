@@ -103,6 +103,7 @@ bool SkySafari::Connect()
     if (rc)
     {
         skySafariClient->setMount(ActiveDeviceT[ACTIVE_TELESCOPE].text);
+        skySafariClient->setServer(SettingsT[INDISERVER_HOST].text, std::stoi(SettingsT[INDISERVER_PORT].text));
         skySafariClient->connectServer();
         SetTimer(POLLMS);
     }
