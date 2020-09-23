@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <assert.h>
+#include <algorithm>
 
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB  = "Main Control";
@@ -780,14 +781,36 @@ void DefaultDevice::ISGetProperties(const char *dev)
                 IUFillSwitch(sp++, oneConnection->name().c_str(), oneConnection->label().c_str(), ISS_OFF);
             }
 
-            activeConnection     = connections[0];
-            ConnectionModeS[0].s = ISS_ON;
             IUFillSwitchVector(&ConnectionModeSP, ConnectionModeS, connections.size(), getDeviceName(),
                                "CONNECTION_MODE", "Connection Mode", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+            // Try to read config first
+            int activeConnectionIndex = -1;
+            if (IUGetConfigOnSwitchIndex(getDeviceName(), ConnectionModeSP.name, &activeConnectionIndex) == 0)
+            {
+                ConnectionModeS[activeConnectionIndex].s = ISS_ON;
+                activeConnection = connections[activeConnectionIndex];
+            }
+            // Check if we already have an active connection set.
+            else if (activeConnection != nullptr)
+            {
+                std::vector<Connection::Interface *>::iterator it = std::find(connections.begin(), connections.end(), activeConnection);
+                if (it != connections.end())
+                {
+                    int index = std::distance(connections.begin(), it);
+                    if (index >= 0)
+                        ConnectionModeS[index].s = ISS_ON;
+                }
+            }
+            // Otherwise use connection 0
+            else
+            {
+                ConnectionModeS[0].s = ISS_ON;
+                activeConnection = connections[0];
+            }
+
             defineSwitch(&ConnectionModeSP);
             activeConnection->Activated();
-            loadConfig(true, "CONNECTION_MODE");
         }
     }
 
@@ -1082,6 +1105,41 @@ void DefaultDevice::setPollingPeriodRange(uint32_t minimum, uint32_t maximum)
     PollPeriodN[0].min = minimum;
     PollPeriodN[0].max = maximum;
     IUUpdateMinMax(&PollPeriodNP);
+}
+
+void DefaultDevice::setActiveConnection(Connection::Interface *existingConnection)
+{
+    if (existingConnection == activeConnection)
+        return;
+
+    for (Connection::Interface *oneConnection : connections)
+    {
+        if (oneConnection == activeConnection)
+        {
+            oneConnection->Deactivated();
+            break;
+        }
+    }
+
+    activeConnection = existingConnection;
+    if (ConnectionModeS)
+    {
+        std::vector<Connection::Interface *>::iterator it = std::find(connections.begin(), connections.end(), activeConnection);
+        if (it != connections.end())
+        {
+            int index = std::distance(connections.begin(), it);
+            if (index >= 0)
+            {
+                IUResetSwitch(&ConnectionModeSP);
+                ConnectionModeS[index].s = ISS_ON;
+                ConnectionModeSP.s = IPS_OK;
+                // If property is registerned then send back response to client
+                INDI::Property *connectionProperty = getProperty(ConnectionModeSP.name, INDI_SWITCH);
+                if (connectionProperty && connectionProperty->getRegistered())
+                    IDSetSwitch(&ConnectionModeSP, nullptr);
+            }
+        }
+    }
 }
 
 }

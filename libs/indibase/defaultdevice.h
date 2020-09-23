@@ -461,6 +461,12 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         }
 
         /**
+         * @brief setActiveConnection Switch the active connection to the passed connection plugin
+         * @param existingConnection pointer to an existing connection to be made active.
+         */
+        void setActiveConnection(Connection::Interface *existingConnection);
+
+        /**
          * @brief setDefaultPollingPeriod Change the default polling period to call TimerHit() function in the driver.
          * @param period period in milliseconds
          * @note default period is 1000ms
