@@ -428,7 +428,9 @@ bool LX200Gemini::ReadScopeStatus()
         return LX200Generic::ReadScopeStatus();
 
     if (m_isSleeping)
+    {
         return true;
+    }
 
     if (TrackState == SCOPE_SLEWING)
     {
@@ -442,17 +444,16 @@ bool LX200Gemini::ReadScopeStatus()
             SlewRateS[SLEW_CENTERING].s = ISS_ON;
             IDSetSwitch(&SlewRateSP, nullptr);
 
-            TrackState = SCOPE_TRACKING;
             LOG_INFO("Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
     {
         updateParkingState();
-        updateMovementState();
 
         if (isSlewComplete())
         {
+            LOG_DEBUG("Park is complete ...");
             SetParked(true);
             sleepMount();
             return true;
@@ -642,6 +643,8 @@ void LX200Gemini::setTrackState(INDI::Telescope::TelescopeStatus state)
 void LX200Gemini::updateMovementState()
 {
     LX200Gemini::MovementState movementState = getMovementState();
+
+    LOGF_DEBUG("Movement state <%d>", movementState);
 
     switch (movementState)
     {
