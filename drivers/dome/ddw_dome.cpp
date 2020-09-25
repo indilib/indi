@@ -92,11 +92,6 @@ void ISSnoopDevice(XMLEle *root)
 DDW::DDW()
 {
     setVersion(1, 0);
-    m_ShutterState     = SHUTTER_UNKNOWN;
-
-    status        = DOME_UNKNOWN;
-    targetShutter = SHUTTER_CLOSE;
-
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER);
 }
 
@@ -105,8 +100,8 @@ bool DDW::initProperties()
     INDI::Dome::initProperties();
 
     IUFillNumber(&FirmwareVersionN[0], "VERSION", "Version", "%2.0f", 0.0, 99.0, 1.0, 0.0);
-    IUFillNumberVector(&FirmwareVersionNP, FirmwareVersionN, 2, getDeviceName(), "FIRMWARE",
-                       "Firmware", INFO_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&FirmwareVersionNP, FirmwareVersionN, 2, getDeviceName(), "FIRMWARE", "Firmware", INFO_TAB,
+                       IP_RO, 60, IPS_IDLE);
 
     SetParkDataType(PARK_AZ);
 
@@ -163,8 +158,10 @@ bool DDW::Handshake()
     LOGF_DEBUG("Initial response: %s", response.c_str());
 
     // Response should start with V
-    if(response[0] != 'V')
+    if (response[0] != 'V')
         return false;
+
+    parseGINF(response.c_str());
     return true;
 }
 
@@ -185,7 +182,7 @@ bool DDW::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&FirmwareVersionNP);
+        defineProperty(&FirmwareVersionNP);
         SetupParms();
     }
     else
@@ -209,7 +206,7 @@ bool DDW::ISNewNumber(const char *dev, const char *name, double values[], char *
     return INDI::Dome::ISNewNumber(dev, name, values, names, n);
 }
 
-int DDW::writeCmd(const char* cmd)
+int DDW::writeCmd(const char *cmd)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
@@ -218,17 +215,17 @@ int DDW::writeCmd(const char* cmd)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Error writing command: %s. Cmd: %s", errstr, cmd);
-    }    
+    }
     return rc;
 }
 
-int DDW::readStatus(std::string& status)
+int DDW::readStatus(std::string &status)
 {
     int nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
     // Read response and parse it
-    char response[256] = {0};
+    char response[256] = { 0 };
 
     // Read buffer
     if ((rc = tty_nread_section(PortFD, response, sizeof(response), '\r', DDW_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -236,9 +233,95 @@ int DDW::readStatus(std::string& status)
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Error reading: %s.", errstr);
     }
-
     status = response;
     return rc;
+}
+
+void DDW::parseGINF(const char *response)
+{
+    /* GINF packet structure:
+
+    Field   Content     Note (each datum is separated by comma)
+    1       V#          Denotes Version Data.  E.g., V1 
+    2       Dticks      DTICKS is dome circumference in ticks 0-32767.  Value is sent as a string of characters, e.g., 457.  Leading zeros not transmitted.
+    3       Home1       Azimuth location of the HOME position in ticks 0-32767
+    4       Coast       Coast value in ticks (0-255)
+    5       ADAZ        Current dome azimuth in Ticks 0-32767
+    6       Slave       Slave Status 0=slave off 1=slave on
+    7       Shutter     Shutter status 0=indeterminate, 1=closed, 2=open
+    8       DSR status  DSR Status 0=indet, 1=closed, 2=open
+    9       Home        Home sensor 0=home, 1=not home
+    10      HTICK_CCLK  Azimuth ticks of counterclockwise edge of Home position
+    11      HTICK_CLK   Azimuth ticks of clockwise edge of Home position
+    12      UPINS       Status of all user digital output pins
+    13      WEAAGE      Age of weather info in minutes 0 to 255 (255 means expired)
+    14      WINDDIR     0-255 wind direction (use (n/255)*359 to compute actual direction), subtract dome azimuth if weather module is mounted on dome top.
+    15      WINDSPD     Windspeed 0-255 miles per hour
+    16      TEMP        Temperature 0-255, representing -100 to 155 degrees F
+    17      HUMID       Humidity 0-100% relative
+    18      WETNESS     Wetness 0 (dry) to 100 (soaking wet)
+    19      SNOW        Snow 0 (none) to 100 (sensor covered)
+    20      WIND PEAK   Windspeed Peak level over session 0-255 miles per hour
+    21      SCOPEAZ     Scope azimuth from LX-200 (999 if not available)
+    22      INTDZ       Internal “deadzone”- angular displacement around the dome opening centerline within which desired dome azimuth can change without causing dome movement.
+    23      INTOFF      Internal offset- angular distance DDW will add to the desired azimuth, causing the dome to preceed the telescope’s position when a slaved goto occurs.
+    24      car ret
+    25      car ret
+    */
+
+    int version;
+    int dticks;
+    int homepos;
+    int coast;
+    int azimuth;
+    int slave;
+    int shutter;
+    int dsr;
+    int home;
+    int htick_cclk;
+    int htick_clk;
+    int upins;
+    int weatherAge;
+    int windDir;
+    int windSpd;
+    int temperature;
+    int humidity;
+    int wetness;
+    int snow;
+    int windPeak;
+    int scopeAzimuth;
+    int deadzone;
+    int offset;
+
+    int num = sscanf(response, "V%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", &version,
+                     &dticks, &homepos, &coast, &azimuth, &slave, &shutter, &dsr, &home, &htick_cclk, &htick_clk,
+                     &upins, &weatherAge, &windDir, &windSpd, &temperature, &humidity, &wetness, &snow, &windPeak,
+                     &scopeAzimuth, &deadzone, &offset);
+
+    if (num == 23)
+    {
+        fwVersion   = version;
+        ticksPerRev = dticks;
+
+        DomeAbsPosN[0].value = 360.0 * azimuth / ticksPerRev;
+        DomeAbsPosNP.s       = IPS_OK;
+        IDSetNumber(&DomeAbsPosNP, nullptr);
+
+        DomeShutterSP.s = IPS_OK;
+        IUResetSwitch(&DomeShutterSP);
+        switch (shutter)
+        {
+            case 1:
+                DomeShutterS[SHUTTER_CLOSED].s = ISS_ON;
+                break;
+            case 2:
+                DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
+                break;
+            default:
+                DomeShutterSP.s = IPS_BUSY;
+        }
+        IDSetSwitch(&DomeShutterSP, nullptr);
+    }
 }
 
 /************************************************************************************
@@ -249,66 +332,81 @@ void DDW::TimerHit()
     if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
-    // Check state machine where we are going currently
-    switch(status)
+    // The controller may write responses at any time due to hand controller usage
+    // and command responses, so need to poll for them here
+    char errstr[MAXRBUF];
+    char response[256] = { 0 };
+    int nr;
+    int rc = tty_read(PortFD, response, 1, 0, &nr);
+    if (rc == TTY_OK && nr == 1)
     {
-        case DOME_READY:
-            break;
-        default:
-            break;
-    }
-#if 0
-    else if (DomeAbsPosNP.s == IPS_BUSY)
-    {
-        if ((currentStatus & STATUS_MOVING) == 0)
+        switch (response[0])
         {
-            // Rotation idle, are we close enough?
-            double azDiff = targetAz - DomeAbsPosN[0].value;
+            case 'L':
+                LOG_DEBUG("Moving left");
+                break;
+            case 'R':
+                LOG_DEBUG("Moving right");
+                break;
+            case 'T':
+                LOG_DEBUG("Move tick");
+                break;
+            case 'P':
+            {
+                // Read tick count
+                tty_read(PortFD, response + 1, 4, 0, &nr);
+                int tick = -1;
+                sscanf(response, "P%d", &tick);
+                LOGF_DEBUG("Tick counter %d", tick);
 
-            if (azDiff > 180)
-            {
-                azDiff -= 360;
+                // Update current position
+                DomeAbsPosN[0].value = 360.0 * tick / ticksPerRev;
+                DomeAbsPosNP.s       = IPS_OK;
+                IDSetNumber(&DomeAbsPosNP, nullptr);
+                break;
             }
-            if (azDiff < -180)
-            {
-                azDiff += 360;
-            }
-            if (!refineMove || fabs(azDiff) <= DomeParamN[0].value)
-            {
-                if (refineMove)
-                    DomeAbsPosN[0].value = targetAz;
-                DomeAbsPosNP.s = IPS_OK;
-                LOG_INFO("Dome reached requested azimuth angle.");
-
-                if (getDomeState() == DOME_PARKING)
+            case 'O':
+                LOG_DEBUG("Opening shutter");
+                break;
+            case 'C':
+                LOG_DEBUG("Closing shutter");
+                break;
+            case 'S':
+                LOG_DEBUG("Shutter tick");
+                break;
+            case 'V':
+                // Move finished, read rest of GINF packet and parse it
+                // Read buffer
+                if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response - 1), '\r', DDW_TIMEOUT, &nr)) !=
+                    TTY_OK)
                 {
-                    if (ParkShutterS[0].s == ISS_ON && getInputState(IN_CLOSED1) == ISS_OFF)
-                    {
-                        ControlShutter(SHUTTER_CLOSE);
-                    }
-                    else
-                    {
-                        SetParked(true);
-                    }
+                    tty_error_msg(rc, errstr, MAXRBUF);
+                    LOGF_ERROR("Error reading: %s.", errstr);
                 }
-                else if (getDomeState() == DOME_UNPARKING)
-                    SetParked(false);
-                else
-                    setDomeState(DOME_SYNCED);
-            }
-            else
-            {
-                // Refine azimuth
-                MoveAbs(targetAz);
-            }
-        }
 
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+                LOGF_DEBUG("GINF packet: %s", response);
+                parseGINF(response);
+
+                // Check which operation was completed
+                switch (getDomeState())
+                {
+                    case DOME_PARKING:
+                        SetParked(true);
+                        break;
+                    case DOME_UNPARKING:
+                        SetParked(false);
+                        break;
+                    default:
+                        break;
+                }
+                cmdState = IDLE;
+                break;
+            default:
+                LOGF_ERROR("Unknown respose character %c", response[0]);
+                break;
+        }
     }
-    else
-        IDSetNumber(&DomeAbsPosNP, nullptr);
-#endif
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************
@@ -318,7 +416,18 @@ IPState DDW::MoveAbs(double az)
 {
     LOGF_DEBUG("MoveAbs (%f)", az);
 
+    if (cmdState != IDLE)
+    {
+        LOG_ERROR("Dome needs to be idle to issue moves");
+        return IPS_ALERT;
+    }
+
     // Construct move command
+    int rounded = round(az); // Controller only supports degrees
+    char cmd[5];
+    snprintf(cmd, sizeof(cmd), "G%03d", rounded);
+    cmdState = MOVING;
+    writeCmd(cmd);
     return IPS_BUSY;
 }
 
@@ -327,6 +436,12 @@ IPState DDW::MoveAbs(double az)
 * ***********************************************************************************/
 IPState DDW::Park()
 {
+    if (cmdState != IDLE)
+    {
+        LOG_ERROR("Dome needs to be idle to issue park");
+        return IPS_ALERT;
+    }
+
     // First move to park position and then optionally close shutter
     IPState s = MoveAbs(GetAxis1Park());
     if (s == IPS_OK && ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON)
@@ -342,6 +457,12 @@ IPState DDW::Park()
 * ***********************************************************************************/
 IPState DDW::UnPark()
 {
+    if (cmdState != IDLE)
+    {
+        LOG_ERROR("Dome needs to be idle to issue unpark");
+        return IPS_ALERT;
+    }
+
     if (ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK].s == ISS_ON)
     {
         return ControlShutter(SHUTTER_OPEN);
@@ -355,31 +476,25 @@ IPState DDW::UnPark()
 IPState DDW::ControlShutter(ShutterOperation operation)
 {
     LOGF_INFO("Control shutter %d", (int)operation);
-    targetShutter = operation;
+    if (cmdState != IDLE)
+    {
+        LOG_ERROR("Dome needs to be idle for shutter operations");
+        return IPS_ALERT;
+    }
     if (operation == SHUTTER_OPEN)
     {
         LOG_INFO("Opening shutter");
-//        if (getInputState(IN_OPEN1))
-        {
-            LOG_INFO("Shutter already open");
-            return IPS_OK;
-        }
-//        setOutputState(OUT_CLOSE1, ISS_OFF);
-//        setOutputState(OUT_OPEN1, ISS_ON);
+        cmdState = SHUTTER_OPERATION;
+        if (writeCmd("GOPN") != TTY_OK)
+            return IPS_ALERT;
     }
     else
     {
         LOG_INFO("Closing shutter");
-//        if (getInputState(IN_CLOSED1))
-        {
-            LOG_INFO("Shutter already closed");
-            return IPS_OK;
-        }
-//        setOutputState(OUT_OPEN1, ISS_OFF);
-//        setOutputState(OUT_CLOSE1, ISS_ON);
+        cmdState = SHUTTER_OPERATION;
+        if (writeCmd("GCLS") != TTY_OK)
+            return IPS_ALERT;
     }
-
-    m_ShutterState = SHUTTER_MOVING;
     return IPS_BUSY;
 }
 
@@ -388,8 +503,8 @@ IPState DDW::ControlShutter(ShutterOperation operation)
 * ***********************************************************************************/
 bool DDW::Abort()
 {
-//    writeCmd(Stop);
-    status = DOME_READY;
+    writeCmd("!!"); // Any two characters not used for command will do
+    cmdState = IDLE;
     return true;
 }
 

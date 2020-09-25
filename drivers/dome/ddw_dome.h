@@ -75,15 +75,25 @@ class DDW : public INDI::Dome
   protected:
     bool SetupParms();
 
-    DomeStatus status{ DOME_UNKNOWN };
-    ShutterOperation targetShutter{ SHUTTER_OPEN };
-
     INumber FirmwareVersionN[1];
     INumberVectorProperty FirmwareVersionNP;
 
   private:
-    int writeCmd(const char* cmd);
-    int readStatus(std::string& status);
+    int writeCmd(const char *cmd);
+    int readStatus(std::string &status);
+    void parseGINF(const char *response);
 
-    int fwVersion { -1 };
+    int ticksPerRev { 100 };
+
+    int fwVersion{ -1 };
+
+    enum
+    {
+        IDLE,
+        MOVING,
+        SHUTTER_OPERATION,
+        HOMING,
+        PARKING,
+        UNPARKING
+    } cmdState{ IDLE };
 };
