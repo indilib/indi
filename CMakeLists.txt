@@ -1179,6 +1179,16 @@ add_executable(indi_pyxis_rotator ${pyxis_SRC})
 target_link_libraries(indi_pyxis_rotator indidriver)
 install(TARGETS indi_pyxis_rotator RUNTIME DESTINATION bin)
 
+
+################ Falcon Rotator ################
+
+SET(falcon_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/pegasus_falcon.cpp)
+
+add_executable(indi_falcon_rotator ${falcon_SRC})
+target_link_libraries(indi_falcon_rotator indidriver)
+install(TARGETS indi_falcon_rotator RUNTIME DESTINATION bin)
+
 ################ Integra85 Focusing Rotator ################
 
 SET(integra_SRC

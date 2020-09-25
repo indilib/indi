@@ -327,6 +327,14 @@
             <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
             <version>1.0</version>
         </device>
+        <device label="Pyxis" manufacturer="Optec">
+            <driver name="Pyxis">indi_pyxis_rotator</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Pegasus Falcon" manufacturer="Pegasus Astro">
+            <driver name="Pegasus Falcon">indi_falcon_rotator</driver>
+            <version>1.0</version>
+        </device>
         <device label="Microtouch">
             <driver name="Microtouch">indi_microtouch_focus</driver>
             <version>0.1</version>
@@ -501,10 +509,6 @@
         </device>
         <device label="SnapCap" manufacturer="DIY">
             <driver name="SnapCap">indi_snapcap</driver>
-            <version>1.0</version>
-        </device>
-        <device label="Pyxis" manufacturer="Optec">
-            <driver name="Pyxis">indi_pyxis_rotator</driver>
             <version>1.0</version>
         </device>
         <device label="Arduino ST4" manufacturer="DIY">
