@@ -48,7 +48,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             SIM_XSIZE,
             SIM_YSIZE,
             SIM_MAXVAL,
-            SIM_BIAS,
             SIM_SATURATION,
             SIM_LIMITINGMAG,
             SIM_NOISE,
@@ -123,10 +122,11 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     protected:
 
         float CalcTimeLeft(timeval, float);
+        bool loadNextImage();
         bool setupParameters();
 
         // Turns on/off Bayer RGB simulation.
-        void setRGB(bool onOff);
+        void setBayerEnabled(bool onOff);
 
         float TemperatureRequest { 0 };
 
@@ -160,7 +160,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float m_RotationCW { 0 };
         float m_TimeFactor { 1 };
 
-        bool m_SimulateRGB { false };
+        bool m_SimulateBayer { false };
 
         //  our zero point calcs used for drawing stars
         float k { 0 };
@@ -192,12 +192,14 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         pthread_t primary_thread;
         bool terminateThread;
 
+        std::deque<std::string> m_AllFiles, m_RemainingFiles;
+
         //  And this lives in our simulator settings page
         INumberVectorProperty SimulatorSettingsNP;
         INumber SimulatorSettingsN[SIM_N];
 
         ISwitchVectorProperty SimulateRgbSP;
-        ISwitch SimulateRgbS[2];
+        ISwitch SimulateBayerS[2];
 
         //  We are going to snoop these from focuser
         INumberVectorProperty FWHMNP;
@@ -220,6 +222,15 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         INumber GainN[1];
         INumberVectorProperty GainNP;
+
+        INumber OffsetN[1];
+        INumberVectorProperty OffsetNP;
+
+        IText DirectoryT[1] {};
+        ITextVectorProperty DirectoryTP;
+
+        ISwitch DirectoryS[2];
+        ISwitchVectorProperty DirectorySP;
 
         ISwitchVectorProperty CrashSP;
         ISwitch CrashS[1];
