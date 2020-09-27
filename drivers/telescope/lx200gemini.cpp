@@ -181,7 +181,6 @@ bool LX200Gemini::updateProperties()
 
         updateParkingState();
         updateMovementState();
-
     }
     else
     {
@@ -421,13 +420,15 @@ bool LX200Gemini::isSlewComplete()
 
 bool LX200Gemini::ReadScopeStatus()
 {
+    LOGF_DEBUG("ReadScopeStatus: TrackState is <%d>", TrackState);
+
     if (!isConnected())
         return false;
 
     if (isSimulation())
         return LX200Generic::ReadScopeStatus();
 
-    if (m_isSleeping)
+    if(m_isSleeping)
     {
         return true;
     }
@@ -436,6 +437,9 @@ bool LX200Gemini::ReadScopeStatus()
     {
         updateMovementState();
 
+        EqNP.s = IPS_BUSY;
+        IDSetNumber(&EqNP, NULL);
+
         // Check if LX200 is done slewing
         if (isSlewComplete())
         {
@@ -443,6 +447,9 @@ bool LX200Gemini::ReadScopeStatus()
             IUResetSwitch(&SlewRateSP);
             SlewRateS[SLEW_CENTERING].s = ISS_ON;
             IDSetSwitch(&SlewRateSP, nullptr);
+
+            EqNP.s = IPS_OK;
+            IDSetNumber(&EqNP, NULL);
 
             LOG_INFO("Slew is complete. Tracking...");
         }
@@ -456,6 +463,10 @@ bool LX200Gemini::ReadScopeStatus()
             LOG_DEBUG("Park is complete ...");
             SetParked(true);
             sleepMount();
+
+            EqNP.s = IPS_IDLE;
+            IDSetNumber(&EqNP, NULL);
+
             return true;
         }
     }
@@ -535,6 +546,7 @@ void LX200Gemini::syncSideOfPier()
 
     setPierSide(pointingState);
 }
+
 
 bool LX200Gemini::Park()
 {
@@ -643,8 +655,6 @@ void LX200Gemini::setTrackState(INDI::Telescope::TelescopeStatus state)
 void LX200Gemini::updateMovementState()
 {
     LX200Gemini::MovementState movementState = getMovementState();
-
-    LOGF_DEBUG("Movement state <%d>", movementState);
 
     switch (movementState)
     {
@@ -879,7 +889,6 @@ bool LX200Gemini::SetTrackMode(uint8_t mode)
 
     snprintf(cmd, 16, "%s%c#", prefix, checksum);
 
-    LOG_ERROR("Setting track mode");
     LOGF_DEBUG("CMD: <%s>", cmd);
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
