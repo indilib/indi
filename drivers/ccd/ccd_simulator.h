@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <deque>
+
 #include "indiccd.h"
 #include "indifilterinterface.h"
 
