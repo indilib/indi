@@ -1,3 +1,23 @@
+/*
+    SestoSenso 2 Focuser
+    Copyright (C) 2020 Piotr Zyziuk
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+*/
+
 #pragma once
 
 #include "indifocuser.h"
@@ -10,17 +30,18 @@ class CommandSet
         CommandSet(int Port, const char *deviceName)
         {
             PortFD = Port;
-            deviceName = deviceName;
+            this->deviceName = deviceName;
         }
         int PortFD;
         bool stop();
         bool getSerialNumber(char *res);
         bool abort();
         bool go(uint32_t targetTicks, char *res);
-        bool goHome();
-        bool fastMoveOut();
-        bool fastMoveIn();
+        bool goHome(char *res);
+        bool fastMoveOut(char *res);
+        bool fastMoveIn(char *res);
         bool getMaxPosition(char *res);
+        bool getHallSensor(char *res);
         bool storeAsMaxPosition(char *res);
         bool goOutToFindMaxPos();
         bool storeAsMinPosition();
@@ -29,11 +50,12 @@ class CommandSet
         bool getCurrentSpeed(char *res);
         bool loadSlowPreset(char *res);
         bool getMotorTemp(char *res);
-        char *deviceName;
+        bool getExternalTemp(char *res);
+        std::string deviceName;
 
-        char *getDeviceName()
+        const char *getDeviceName()
         {
-            return deviceName;
+            return deviceName.data();
         }
 
     private:
@@ -64,6 +86,7 @@ class SestoSenso2 : public INDI::Focuser
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
         static void checkMotionProgressHelper(void *context);
+        static void checkHallSensorHelper(void *context);
 
     protected:
         virtual bool Handshake() override;
@@ -85,8 +108,9 @@ class SestoSenso2 : public INDI::Focuser
         void setConnectionParams();
         bool initCommandSet();
         void checkMotionProgressCallback();
+        void checkHallSensorCallback();
 
-        CommandSet *command;
+        CommandSet *command {nullptr};
 
         bool getStartupValues();
         bool setupRunPreset();
@@ -98,8 +122,13 @@ class SestoSenso2 : public INDI::Focuser
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
 
-        INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[2];
+        enum
+        {
+            TEMPERATURE_MOTOR,
+            TEMPERATURE_EXTERNAL,
+        };
 
         INumber SpeedN[1];
         INumberVectorProperty SpeedNP;
@@ -130,13 +159,18 @@ class SestoSenso2 : public INDI::Focuser
             CMD_FALSE = false
         };
 
+        ISwitchVectorProperty HomeSP;
+        ISwitch HomeS[1];
+
         IText CalibrationMessageT[1] {};
         ITextVectorProperty CalibrationMessageTP;
 
         typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
 
-        int m_MotionProgressTimerID = -1;
+        int m_MotionProgressTimerID {-1};
+        int m_HallSensorTimerID {-1};
+        bool m_IsSestoSenso2 { true };
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
@@ -151,19 +185,3 @@ class SestoSenso2 : public INDI::Focuser
         static constexpr const int SESTO_LEN {1024};
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

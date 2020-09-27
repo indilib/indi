@@ -89,7 +89,7 @@ ScopeDome::ScopeDome()
 {
     setVersion(1, 2);
     targetAz         = 0;
-    shutterState     = SHUTTER_UNKNOWN;
+    m_ShutterState     = SHUTTER_UNKNOWN;
     simShutterStatus = SHUTTER_CLOSED;
 
     status        = DOME_UNKNOWN;
@@ -237,6 +237,9 @@ bool ScopeDome::initProperties()
 
     // Set serial parameters
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+
+    setPollingPeriodRange(1000, 3000); // Device doesn't like too long interval
+    setDefaultPollingPeriod(1000);
     return true;
 }
 
@@ -512,11 +515,11 @@ bool ScopeDome::UpdateShutterStatus()
 
     if (getInputState(IN_OPEN1) == ISS_ON) // shutter open switch triggered
     {
-        if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
+        if (m_ShutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
         {
             LOGF_INFO("%s", GetShutterStatusString(SHUTTER_OPENED));
             setOutputState(OUT_OPEN1, ISS_OFF);
-            shutterState = SHUTTER_OPENED;
+            m_ShutterState = SHUTTER_OPENED;
             if (getDomeState() == DOME_UNPARKING)
                 SetParked(false);
         }
@@ -524,11 +527,11 @@ bool ScopeDome::UpdateShutterStatus()
     }
     else if (getInputState(IN_CLOSED1) == ISS_ON) // shutter closed switch triggered
     {
-        if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
+        if (m_ShutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
         {
             LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
             setOutputState(OUT_CLOSE1, ISS_OFF);
-            shutterState = SHUTTER_CLOSED;
+            m_ShutterState = SHUTTER_CLOSED;
 
             if (getDomeState() == DOME_PARKING && DomeAbsPosNP.s != IPS_BUSY)
             {
@@ -539,7 +542,7 @@ bool ScopeDome::UpdateShutterStatus()
     }
     else
     {
-        shutterState    = SHUTTER_MOVING;
+        m_ShutterState    = SHUTTER_MOVING;
         DomeShutterSP.s = IPS_BUSY;
     }
     return true;
@@ -591,6 +594,25 @@ bool ScopeDome::UpdateSensorStatus()
     EnvironmentSensorsNP.s        = IPS_OK;
 
     IDSetNumber(&EnvironmentSensorsNP, nullptr);
+
+    // My shutter unit occasionally disconnects so implement a simple watchdog
+    // to check for link strength and reset the controller if link is lost for
+    // more than 5 polling cycles
+    static int count = 0;
+    if (linkStrength == 0)
+    {
+        count++;
+        if (count > 5)
+        {
+            // Issue reset
+            setOutputState(OUT_RELAY1, ISS_ON);
+            count = 0;
+        }
+    }
+    else
+    {
+        count = 0;
+    }
     return true;
 }
 
@@ -607,9 +629,9 @@ bool ScopeDome::UpdateRelayStatus()
     IDSetSwitch(&PowerRelaysSP, nullptr);
 
     RelaysS[0].s = getInputState(OUT_RELAY1);
-    RelaysS[0].s = getInputState(OUT_RELAY1);
-    RelaysS[0].s = getInputState(OUT_RELAY1);
-    RelaysS[0].s = getInputState(OUT_RELAY1);
+    RelaysS[1].s = getInputState(OUT_RELAY2);
+    RelaysS[2].s = getInputState(OUT_RELAY3);
+    RelaysS[3].s = getInputState(OUT_RELAY4);
     RelaysSP.s   = IPS_OK;
     IDSetSwitch(&RelaysSP, nullptr);
     return true;
@@ -928,7 +950,7 @@ IPState ScopeDome::ControlShutter(ShutterOperation operation)
         setOutputState(OUT_CLOSE1, ISS_ON);
     }
 
-    shutterState = SHUTTER_MOVING;
+    m_ShutterState = SHUTTER_MOVING;
     return IPS_BUSY;
 }
 

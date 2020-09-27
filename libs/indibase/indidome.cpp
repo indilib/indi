@@ -54,13 +54,12 @@ Dome::Dome() : ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
 
     prev_az = prev_alt = prev_ra = prev_dec = 0;
     mountEquatorialCoords.dec = mountEquatorialCoords.ra = -1;
-    mountState                                           = IPS_ALERT;
-    weatherState                                         = IPS_IDLE;
+    m_MountState = IPS_ALERT;
 
     capability = 0;
 
-    shutterState = SHUTTER_UNKNOWN;
-    domeState    = DOME_IDLE;
+    m_ShutterState = SHUTTER_UNKNOWN;
+    m_DomeState    = DOME_IDLE;
 
     parkDataType = PARK_NONE;
     ParkdataXmlRoot = nullptr;
@@ -105,22 +104,28 @@ bool Dome::initProperties()
     IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&AutoParkS[0], "INDI_ENABLED", "Enable", ISS_OFF);
-    IUFillSwitch(&AutoParkS[1], "INDI_DISABLED", "Disable", ISS_ON);
-    IUFillSwitchVector(&AutoParkSP, AutoParkS, 2, getDeviceName(), "DOME_AUTOPARK", "Auto Park", OPTIONS_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+    //    IUFillSwitch(&AutoParkS[0], "INDI_ENABLED", "Enable", ISS_OFF);
+    //    IUFillSwitch(&AutoParkS[1], "INDI_DISABLED", "Disable", ISS_ON);
+    //    IUFillSwitchVector(&AutoParkSP, AutoParkS, 2, getDeviceName(), "DOME_AUTOPARK", "Auto Park", OPTIONS_TAB, IP_RW,
+    //                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // Active Devices
     IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    IUFillText(&ActiveDeviceT[1], "ACTIVE_WEATHER", "Weather", "WunderGround");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 2, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
+    //IUFillText(&ActiveDeviceT[1], "ACTIVE_WEATHER", "Weather", "WunderGround");
+    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     // Use locking if telescope is unparked
-    IUFillSwitch(&TelescopeClosedLockT[0], "NO_ACTION", "Ignore Telescope", ISS_ON);
-    IUFillSwitch(&TelescopeClosedLockT[1], "LOCK_PARKING", "Telescope locks", ISS_OFF);
-    IUFillSwitchVector(&TelescopeClosedLockTP, TelescopeClosedLockT, 2, getDeviceName(), "TELESCOPE_POLICY",
-                       "Telescope parking policy", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitch(&MountPolicyS[MOUNT_IGNORED], "MOUNT_IGNORED", "Mount ignored", ISS_ON);
+    IUFillSwitch(&MountPolicyS[MOUNT_LOCKS], "MOUNT_LOCKS", "Mount locks", ISS_OFF);
+    IUFillSwitchVector(&MountPolicySP, MountPolicyS, 2, getDeviceName(), "MOUNT_POLICY", "Mount Policy", OPTIONS_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Shutter Policy
+    IUFillSwitch(&ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK], "SHUTTER_CLOSE_ON_PARK", "Close On Park", ISS_OFF);
+    IUFillSwitch(&ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK], "SHUTTER_OPEN_ON_PARK", "Open On UnPark", ISS_OFF);
+    IUFillSwitchVector(&ShutterParkPolicySP, ShutterParkPolicyS, 2, getDeviceName(), "DOME_SHUTTER_PARK_POLICY", "Shutter",
+                       OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     // Measurements
     IUFillNumber(&DomeMeasurementsN[DM_DOME_RADIUS], "DM_DOME_RADIUS", "Radius (m)", "%6.2f", 0.0, 50.0, 1.0, 0.0);
@@ -176,8 +181,8 @@ bool Dome::initProperties()
     IUFillNumberVector(&DomeParamNP, DomeParamN, 1, getDeviceName(), "DOME_PARAMS", "Params", DOME_SLAVING_TAB, IP_RW,
                        60, IPS_OK);
 
-    IUFillSwitch(&ParkS[0], "PARK", "Park", ISS_OFF);
-    IUFillSwitch(&ParkS[1], "UNPARK", "UnPark", ISS_OFF);
+    IUFillSwitch(&ParkS[0], "PARK", "Park(ed)", ISS_OFF);
+    IUFillSwitch(&ParkS[1], "UNPARK", "UnPark(ed)", ISS_OFF);
     IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "DOME_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY,
                        60, IPS_OK);
 
@@ -218,7 +223,7 @@ bool Dome::initProperties()
     if (CanAbsMove())
         IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
 
-    IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
+    //IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
 
     setDriverInterface(DOME_INTERFACE);
 
@@ -252,8 +257,14 @@ void Dome::ISGetProperties(const char * dev)
 
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
-    defineSwitch(&TelescopeClosedLockTP);
-    loadConfig(true, "TELESCOPE_POLICY");
+
+    ISState isMountIgnored = ISS_OFF;
+    if (IUGetConfigSwitch(getDeviceName(), MountPolicySP.name, MountPolicyS[MOUNT_IGNORED].name, &isMountIgnored) == 0)
+    {
+        MountPolicyS[MOUNT_IGNORED].s = isMountIgnored;
+        MountPolicyS[MOUNT_LOCKS].s = (isMountIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
+    }
+    defineSwitch(&MountPolicySP);
 
     controller->ISGetProperties(dev);
     return;
@@ -264,7 +275,10 @@ bool Dome::updateProperties()
     if (isConnected())
     {
         if (HasShutter())
+        {
             defineSwitch(&DomeShutterSP);
+            defineSwitch(&ShutterParkPolicySP);
+        }
 
         //  Now we add our Dome specific stuff
         defineSwitch(&DomeMotionSP);
@@ -309,12 +323,15 @@ bool Dome::updateProperties()
             defineNumber(&DomeBacklashNP);
         }
 
-        defineSwitch(&AutoParkSP);
+        //defineSwitch(&AutoParkSP);
     }
     else
     {
         if (HasShutter())
+        {
             deleteProperty(DomeShutterSP.name);
+            deleteProperty(ShutterParkPolicySP.name);
+        }
 
         deleteProperty(DomeMotionSP.name);
 
@@ -359,7 +376,7 @@ bool Dome::updateProperties()
             deleteProperty(DomeBacklashNP.name);
         }
 
-        deleteProperty(AutoParkSP.name);
+        //deleteProperty(AutoParkSP.name);
     }
 
     controller->updateProperties();
@@ -477,7 +494,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         if (!strcmp(PresetGotoSP.name, name))
         {
-            if (domeState == DOME_PARKED)
+            if (m_DomeState == DOME_PARKED)
             {
                 DEBUGDEVICE(getDeviceName(), Logger::DBG_ERROR,
                             "Please unpark before issuing any motion commands.");
@@ -492,7 +509,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (rc == IPS_OK || rc == IPS_BUSY)
             {
                 PresetGotoSP.s = IPS_OK;
-                LOGF_INFO("Moving to Preset %d (%g degrees).", index + 1, PresetN[index].value);
+                LOGF_INFO("Moving to Preset %d (%.2f degrees).", index + 1, PresetN[index].value);
                 IDSetSwitch(&PresetGotoSP, nullptr);
                 return true;
             }
@@ -626,14 +643,14 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
                 {
                     if (!strcmp(ParkS[0].name, names[i]))
                     {
-                        if (domeState == DOME_PARKING)
+                        if (m_DomeState == DOME_PARKING)
                             return false;
 
                         return (Dome::Park() != IPS_ALERT);
                     }
                     else
                     {
-                        if (domeState == DOME_UNPARKING)
+                        if (m_DomeState == DOME_UNPARKING)
                             return false;
 
                         return (Dome::UnPark() != IPS_ALERT);
@@ -680,6 +697,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         // Auto Park
         ////////////////////////////////////////////
+#if 0
         else if (!strcmp(name, AutoParkSP.name))
         {
             IUUpdateSwitch(&AutoParkSP, states, names, n);
@@ -698,25 +716,30 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
 
             return true;
         }
+#endif
         ////////////////////////////////////////////
         // Telescope Parking Policy
         ////////////////////////////////////////////
-        else if (!strcmp(name, TelescopeClosedLockTP.name))
+        else if (!strcmp(name, MountPolicySP.name))
         {
-            if (n == 1)
-            {
-                if (!strcmp(names[0], TelescopeClosedLockT[0].name))
-                    DEBUG(Logger::DBG_SESSION, "Telescope parking policy set to: Ignore Telescope");
-                else if (!strcmp(names[0], TelescopeClosedLockT[1].name))
-                    DEBUG(Logger::DBG_SESSION, "Warning: Telescope parking policy set to: Telescope locks. This "
-                          "disallows the dome from parking when telescope is unparked, and "
-                          "can lead to damage to hardware if it rains!");
-            }
-            IUUpdateSwitch(&TelescopeClosedLockTP, states, names, n);
-            TelescopeClosedLockTP.s = IPS_OK;
-            IDSetSwitch(&TelescopeClosedLockTP, nullptr);
-
+            IUUpdateSwitch(&MountPolicySP, states, names, n);
+            MountPolicySP.s = IPS_OK;
+            if (MountPolicyS[MOUNT_IGNORED].s == ISS_ON)
+                LOG_INFO("Mount Policy set to: Mount ignored. Dome can park regardless of mount parking state.");
+            else
+                LOG_WARN("Mount Policy set to: Mount locks. This prevents the dome from parking when mount is unparked.");
+            IDSetSwitch(&MountPolicySP, nullptr);
             triggerSnoop(ActiveDeviceT[0].text, "TELESCOPE_PARK");
+            return true;
+        }
+        ////////////////////////////////////////////
+        // Shutter Parking Policy
+        ////////////////////////////////////////////
+        else if (!strcmp(name, ShutterParkPolicySP.name))
+        {
+            IUUpdateSwitch(&ShutterParkPolicySP, states, names, n);
+            ShutterParkPolicySP.s = IPS_OK;
+            IDSetSwitch(&ShutterParkPolicySP, nullptr);
             return true;
         }
         ////////////////////////////////////////////
@@ -769,7 +792,7 @@ bool Dome::ISNewText(const char * dev, const char * name, char * texts[], char *
             IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PARK");
             if (CanAbsMove())
                 IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
-            IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
+            //IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
 
             return true;
         }
@@ -857,8 +880,8 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             mountEquatorialCoords.dec = de;
         }
 
-        mountState = IPS_ALERT;
-        crackIPState(findXMLAttValu(root, "state"), &mountState);
+        m_MountState = IPS_ALERT;
+        crackIPState(findXMLAttValu(root, "state"), &m_MountState);
 
         // If the diff > 0.1 then the mount is in motion, so let's wait until it settles before moving the doom
         if (fabs(mountEquatorialCoords.ra - prev_ra) > DOME_COORD_THRESHOLD ||
@@ -873,7 +896,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 HaveRaDec = true;
         }
         // else mount stable, i.e. tracking, so let's update mount coords and check if we need to move
-        else if (mountState == IPS_OK || mountState == IPS_IDLE)
+        else if (m_MountState == IPS_OK || m_MountState == IPS_IDLE)
             UpdateMountCoords();
 
         return true;
@@ -925,7 +948,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 else if (!IsLocked && !strcmp(elemName, "UNPARK") && !strcmp(pcdataXMLEle(ep), "On"))
                     IsLocked = true;
             }
-            if (prevState != IsLocked && TelescopeClosedLockT[1].s == ISS_ON)
+            if (prevState != IsLocked && MountPolicyS[1].s == ISS_ON)
                 LOGF_INFO("Telescope status changed. Lock is set to: %s",
                           IsLocked ? "locked" : "unlocked");
         }
@@ -933,6 +956,8 @@ bool Dome::ISSnoopDevice(XMLEle * root)
     }
 
     // Weather Status
+    // JM 2020-07-16: Weather handling moved to Watchdog driver
+#if 0
     if (!strcmp("WEATHER_STATUS", propName))
     {
         weatherState = IPS_ALERT;
@@ -961,6 +986,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             return true;
         }
     }
+#endif
     if (!strcmp("TELESCOPE_PIER_SIDE", propName))
     {
         // set defaults to say we have no valid information from mount
@@ -1014,17 +1040,22 @@ bool Dome::saveConfigItems(FILE * fp)
     DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigSwitch(fp, &TelescopeClosedLockTP);
+    IUSaveConfigSwitch(fp, &MountPolicySP);
     IUSaveConfigNumber(fp, &PresetNP);
     IUSaveConfigNumber(fp, &DomeParamNP);
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
-    IUSaveConfigSwitch(fp, &AutoParkSP);
+    //IUSaveConfigSwitch(fp, &AutoParkSP);
     IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
 
     if (HasBacklash())
     {
         IUSaveConfigSwitch(fp, &DomeBacklashSP);
         IUSaveConfigNumber(fp, &DomeBacklashNP);
+    }
+
+    if (HasShutter())
+    {
+        IUSaveConfigSwitch(fp, &ShutterParkPolicySP);
     }
 
     controller->saveConfigItems(fp);
@@ -1040,7 +1071,7 @@ void Dome::triggerSnoop(const char * driverName, const char * snoopedProp)
 
 bool Dome::isLocked()
 {
-    return TelescopeClosedLockT[1].s == ISS_ON && IsLocked;
+    return MountPolicyS[1].s == ISS_ON && IsLocked;
 }
 
 void Dome::buttonHelper(const char * button_n, ISState state, void * context)
@@ -1077,12 +1108,7 @@ void Dome::processButton(const char * button_n, ISState state)
 
 IPState Dome::getMountState() const
 {
-    return mountState;
-}
-
-IPState Dome::getWeatherState() const
-{
-    return weatherState;
+    return m_MountState;
 }
 
 void Dome::setShutterState(const Dome::ShutterState &value)
@@ -1119,8 +1145,9 @@ void Dome::setShutterState(const Dome::ShutterState &value)
     }
 
     IDSetSwitch(&DomeShutterSP, nullptr);
-    shutterState = value;
+    m_ShutterState = value;
 }
+
 void Dome::setDomeState(const Dome::DomeState &value)
 {
     switch (value)
@@ -1225,7 +1252,7 @@ void Dome::setDomeState(const Dome::DomeState &value)
             break;
     }
 
-    domeState = value;
+    m_DomeState = value;
 }
 
 /*
@@ -1243,9 +1270,6 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     point3D MountCenter, OptCenter, OptVector, DomeIntersect;
     double hourAngle;
     double mu1, mu2;
-    double yx;
-    double HalfApertureChordAngle;
-    double RadiusAtAlt;
     int OTASide = 1; /* Side of the telescope with respect of the mount, 1: east, -1: west*/
 
     if (HaveLatLong == false)
@@ -1316,6 +1340,10 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
         // If telescope is pointing over the horizon, the solution is mu1, else is mu2
         if (mu1 < 0)
             mu1 = mu2;
+
+        double yx;
+        double HalfApertureChordAngle;
+        double RadiusAtAlt;
 
         DomeIntersect.x = OptCenter.x + mu1 * (OptVector.x );
         DomeIntersect.y = OptCenter.y + mu1 * (OptVector.y );
@@ -1498,7 +1526,7 @@ void Dome::UpdateMountCoords()
 
 void Dome::UpdateAutoSync()
 {
-    if ((mountState == IPS_OK || mountState == IPS_IDLE) && DomeAbsPosNP.s != IPS_BUSY && DomeAutoSyncS[0].s == ISS_ON)
+    if ((m_MountState == IPS_OK || m_MountState == IPS_IDLE) && DomeAbsPosNP.s != IPS_BUSY && DomeAutoSyncS[0].s == ISS_ON)
     {
         if (CanPark())
         {
@@ -1522,18 +1550,18 @@ void Dome::UpdateAutoSync()
             LOGF_DEBUG("GetTargetAz failed %g", targetAz);
             return;
         }
-        LOGF_DEBUG("Calculated target azimuth is %g. MinAz: %g, MaxAz: %g", targetAz, minAz,
+        LOGF_DEBUG("Calculated target azimuth is %.2f. MinAz: %.2f, MaxAz: %.2f", targetAz, minAz,
                    maxAz);
 
         if (fabs(targetAz - DomeAbsPosN[0].value) > DomeParamN[0].value)
         {
             IPState ret = Dome::MoveAbs(targetAz);
             if (ret == IPS_OK)
-                LOGF_INFO("Dome synced to position %g degrees.", targetAz);
+                LOGF_DEBUG("Dome synced to position %.2f degrees.", targetAz);
             else if (ret == IPS_BUSY)
-                LOGF_INFO("Dome is syncing to position %g degrees...", targetAz);
+                LOGF_DEBUG("Dome is syncing to position %.2f degrees...", targetAz);
             else
-                DEBUG(Logger::DBG_SESSION, "Dome failed to sync to new requested position.");
+                LOG_ERROR("Dome failed to sync to new requested position.");
 
             DomeAbsPosNP.s = ret;
             IDSetNumber(&DomeAbsPosNP, nullptr);
@@ -1866,7 +1894,7 @@ IPState Dome::Move(DomeDirection dir, DomeMotionCommand operation)
     }
 
     if ((DomeMotionSP.s != IPS_BUSY && (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY)) ||
-            (domeState == DOME_PARKING))
+            (m_DomeState == DOME_PARKING))
     {
         LOG_WARN( "Please stop dome before issuing any further motion commands.");
         return IPS_ALERT;
@@ -1882,7 +1910,7 @@ IPState Dome::Move(DomeDirection dir, DomeMotionCommand operation)
 
     if (DomeMotionSP.s == IPS_BUSY || DomeMotionSP.s == IPS_OK)
     {
-        domeState = (operation == MOTION_START) ? DOME_MOVING : DOME_IDLE;
+        m_DomeState = (operation == MOTION_START) ? DOME_MOVING : DOME_IDLE;
         IUResetSwitch(&DomeMotionSP);
         if (operation == MOTION_START)
             DomeMotionS[dir].s = ISS_ON;
@@ -1901,7 +1929,7 @@ IPState Dome::MoveRel(double azDiff)
         return IPS_ALERT;
     }
 
-    if (domeState == DOME_PARKED)
+    if (m_DomeState == DOME_PARKED)
     {
         LOG_ERROR( "Please unpark before issuing any motion commands.");
         DomeRelPosNP.s = IPS_ALERT;
@@ -1909,7 +1937,7 @@ IPState Dome::MoveRel(double azDiff)
         return IPS_ALERT;
     }
 
-    if ((DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY) || (domeState == DOME_PARKING))
+    if ((DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY) || (m_DomeState == DOME_PARKING))
     {
         LOG_WARN( "Please stop dome before issuing any further motion commands.");
         DomeRelPosNP.s = IPS_IDLE;
@@ -1921,10 +1949,10 @@ IPState Dome::MoveRel(double azDiff)
 
     if ((rc = MoveRel(azDiff)) == IPS_OK)
     {
-        domeState            = DOME_IDLE;
+        m_DomeState            = DOME_IDLE;
         DomeRelPosNP.s       = IPS_OK;
         DomeRelPosN[0].value = azDiff;
-        IDSetNumber(&DomeRelPosNP, "Dome moved %g degrees %s.", azDiff,
+        IDSetNumber(&DomeRelPosNP, "Dome moved %.2f degrees %s.", azDiff,
                     (azDiff > 0) ? "clockwise" : "counter clockwise");
         if (CanAbsMove())
         {
@@ -1935,10 +1963,10 @@ IPState Dome::MoveRel(double azDiff)
     }
     else if (rc == IPS_BUSY)
     {
-        domeState            = DOME_MOVING;
+        m_DomeState = DOME_MOVING;
         DomeRelPosN[0].value = azDiff;
-        DomeRelPosNP.s       = IPS_BUSY;
-        IDSetNumber(&DomeRelPosNP, "Dome is moving %g degrees %s...", azDiff,
+        DomeRelPosNP.s = IPS_BUSY;
+        IDSetNumber(&DomeRelPosNP, "Dome is moving %.2f degrees %s...", azDiff,
                     (azDiff > 0) ? "clockwise" : "counter clockwise");
         if (CanAbsMove())
         {
@@ -1954,7 +1982,7 @@ IPState Dome::MoveRel(double azDiff)
         return IPS_BUSY;
     }
 
-    domeState      = DOME_IDLE;
+    m_DomeState      = DOME_IDLE;
     DomeRelPosNP.s = IPS_ALERT;
     LOG_WARN("Dome failed to move to new requested position.");
     IDSetNumber(&DomeRelPosNP, nullptr);
@@ -1969,7 +1997,7 @@ IPState Dome::MoveAbs(double az)
         return IPS_ALERT;
     }
 
-    if (domeState == DOME_PARKED)
+    if (m_DomeState == DOME_PARKED)
     {
         LOG_ERROR( "Please unpark before issuing any motion commands.");
         DomeAbsPosNP.s = IPS_ALERT;
@@ -1977,7 +2005,7 @@ IPState Dome::MoveAbs(double az)
         return IPS_ALERT;
     }
 
-    if ((DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY) || (domeState == DOME_PARKING))
+    if ((DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY) || (m_DomeState == DOME_PARKING))
     {
         LOG_WARN( "Please stop dome before issuing any further motion commands.");
         return IPS_ALERT;
@@ -1987,7 +2015,7 @@ IPState Dome::MoveAbs(double az)
 
     if (az < DomeAbsPosN[0].min || az > DomeAbsPosN[0].max)
     {
-        LOGF_ERROR( "Error: requested azimuth angle %g is out of range.", az);
+        LOGF_ERROR( "Error: requested azimuth angle %.2f is out of range.", az);
         DomeAbsPosNP.s = IPS_ALERT;
         IDSetNumber(&DomeAbsPosNP, nullptr);
         return IPS_ALERT;
@@ -1995,19 +2023,19 @@ IPState Dome::MoveAbs(double az)
 
     if ((rc = MoveAbs(az)) == IPS_OK)
     {
-        domeState            = DOME_IDLE;
+        m_DomeState            = DOME_IDLE;
         DomeAbsPosNP.s       = IPS_OK;
         DomeAbsPosN[0].value = az;
-        LOGF_INFO("Dome moved to position %g degrees.", az);
+        LOGF_INFO("Dome moved to position %.2f degrees azimuth.", az);
         IDSetNumber(&DomeAbsPosNP, nullptr);
 
         return IPS_OK;
     }
     else if (rc == IPS_BUSY)
     {
-        domeState      = DOME_MOVING;
+        m_DomeState      = DOME_MOVING;
         DomeAbsPosNP.s = IPS_BUSY;
-        LOGF_INFO("Dome is moving to position %g degrees...", az);
+        LOGF_INFO("Dome is moving to position %.2f degrees azimuth...", az);
         IDSetNumber(&DomeAbsPosNP, nullptr);
 
         DomeMotionSP.s = IPS_BUSY;
@@ -2019,7 +2047,7 @@ IPState Dome::MoveAbs(double az)
         return IPS_BUSY;
     }
 
-    domeState      = DOME_IDLE;
+    m_DomeState      = DOME_IDLE;
     DomeAbsPosNP.s = IPS_ALERT;
     IDSetNumber(&DomeAbsPosNP, "Dome failed to move to new requested position.");
     return IPS_ALERT;
@@ -2046,10 +2074,10 @@ bool Dome::Abort()
     {
         AbortSP.s = IPS_OK;
 
-        if (domeState == DOME_PARKING || domeState == DOME_UNPARKING)
+        if (m_DomeState == DOME_PARKING || m_DomeState == DOME_UNPARKING)
         {
             IUResetSwitch(&ParkSP);
-            if (domeState == DOME_PARKING)
+            if (m_DomeState == DOME_PARKING)
             {
                 DEBUG(Logger::DBG_SESSION, "Parking aborted.");
                 // If parking was aborted then it was UNPARKED before
@@ -2073,7 +2101,7 @@ bool Dome::Abort()
         AbortSP.s = IPS_ALERT;
 
         // If alert was aborted during parking or unparking, the parking state is unknown
-        if (domeState == DOME_PARKING || domeState == DOME_UNPARKING)
+        if (m_DomeState == DOME_PARKING || m_DomeState == DOME_UNPARKING)
         {
             IUResetSwitch(&ParkSP);
             ParkSP.s = IPS_IDLE;
@@ -2115,11 +2143,11 @@ IPState Dome::ControlShutter(ShutterOperation operation)
         return IPS_ALERT;
     }
 
-    if (weatherState == IPS_ALERT && operation == SHUTTER_OPEN)
-    {
-        LOG_WARN( "Weather is in the danger zone! Cannot open shutter.");
-        return IPS_ALERT;
-    }
+    //    if (weatherState == IPS_ALERT && operation == SHUTTER_OPEN)
+    //    {
+    //        LOG_WARN( "Weather is in the danger zone! Cannot open shutter.");
+    //        return IPS_ALERT;
+    //    }
 
     int currentStatus = IUFindOnSwitchIndex(&DomeShutterSP);
 
@@ -2153,25 +2181,42 @@ IPState Dome::ControlShutter(ShutterOperation operation)
 
 IPState Dome::Park()
 {
+    // Not really supposed to get this at all, but just in case.
     if (CanPark() == false)
     {
         LOG_ERROR( "Dome does not support parking.");
         return IPS_ALERT;
     }
 
-    if (domeState == DOME_PARKED)
+    // No need to park if parked already.
+    if (m_DomeState == DOME_PARKED)
     {
         IUResetSwitch(&ParkSP);
         ParkS[0].s = ISS_ON;
-        DEBUG(Logger::DBG_SESSION, "Dome already parked.");
+        LOG_INFO("Dome already parked.");
         IDSetSwitch(&ParkSP, nullptr);
         return IPS_OK;
     }
 
+    // Check if dome is locked due to Mount Policy
+    if (isLocked())
+    {
+        IUResetSwitch(&ParkSP);
+        ParkS[1].s = ISS_ON;
+        ParkSP.s = IPS_ALERT;
+        IDSetSwitch(&ParkSP, nullptr);
+        LOG_INFO("Cannot Park Dome when mount is locking. See: Mount Policy in options tab.");
+        return IPS_ALERT;
+    }
+
+    // Now ask child driver to start the actual parking process.
     ParkSP.s = Park();
 
+    // IPS_OK is when it is immediately parked so realisticly this does not happen
+    // unless dome is physically parked but just needed a state change.
     if (ParkSP.s == IPS_OK)
         SetParked(true);
+    // Dome is moving to parking position
     else if (ParkSP.s == IPS_BUSY)
     {
         setDomeState(DOME_PARKING);
@@ -2196,7 +2241,7 @@ IPState Dome::UnPark()
         return IPS_ALERT;
     }
 
-    if (domeState != DOME_PARKED)
+    if (m_DomeState != DOME_PARKED)
     {
         IUResetSwitch(&ParkSP);
         ParkS[1].s = ISS_ON;
@@ -2205,13 +2250,13 @@ IPState Dome::UnPark()
         return IPS_OK;
     }
 
-    if (weatherState == IPS_ALERT)
-    {
-        LOG_WARN( "Weather is in the danger zone! Cannot unpark dome.");
-        ParkSP.s = IPS_OK;
-        IDSetSwitch(&ParkSP, nullptr);
-        return IPS_ALERT;
-    }
+    //    if (weatherState == IPS_ALERT)
+    //    {
+    //        LOG_WARN( "Weather is in the danger zone! Cannot unpark dome.");
+    //        ParkSP.s = IPS_OK;
+    //        IDSetSwitch(&ParkSP, nullptr);
+    //        return IPS_ALERT;
+    //    }
 
     ParkSP.s = UnPark();
 
