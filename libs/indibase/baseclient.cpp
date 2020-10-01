@@ -56,6 +56,7 @@
 #endif
 
 #define MAXINDIBUF 49152
+#define DISCONNECTION_DELAY_US 500000
 
 INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 {
@@ -276,6 +277,12 @@ bool INDI::BaseClient::disconnectServer()
         return true;
 
     sConnected = false;
+
+    // Insert a disconnection delay for running threads to finish and
+    // new threads to spot the disconnection state. This mitigates most deadlocks
+    // without causing loss of functionality, but will suffer from real-time
+    // performance of the clients as the timeout is arbitrary.
+    usleep(DISCONNECTION_DELAY_US);
 
 #ifdef _WINDOWS
     net_close(sockfd);
