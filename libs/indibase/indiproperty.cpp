@@ -92,7 +92,8 @@ INDI::Property::~Property()
 
 void INDI::Property::setProperty(void *p)
 {
-    pRegistered = true;
+    pType       = p ? pType : INDI_UNKNOWN;
+    pRegistered = p != nullptr;
     pPtr        = p;
 }
 
