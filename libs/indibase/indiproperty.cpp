@@ -32,7 +32,7 @@ INDI::Property::~Property()
 {
     // Only delete properties if they were created dynamically via the buildSkeleton
     // function. Other drivers are responsible for their own memory allocation.
-    if (pDynamic)
+    if (pDynamic && pPtr != nullptr)
     {
         switch (pType)
         {
