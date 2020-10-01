@@ -62,7 +62,7 @@ TEST(CORE_PROPERTY_CLASS, Test_PropertySetters)
         "label field",
         "group field",
         IP_RW, 42, IPS_BUSY,
-        {}, 0,
+        nullptr, 0,
         "timestamp field",
         nullptr };
 
