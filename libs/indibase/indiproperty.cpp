@@ -209,6 +209,9 @@ const char *INDI::Property::getDeviceName() const
 
 const char *INDI::Property::getTimestamp() const
 {
+    if (pPtr == nullptr)
+        return nullptr;
+
     switch (pType)
     {
         case INDI_NUMBER:
@@ -228,6 +231,9 @@ const char *INDI::Property::getTimestamp() const
 
 IPState INDI::Property::getState() const
 {
+    if (pPtr == nullptr)
+        return IPS_ALERT;
+
     switch (pType)
     {
         case INDI_NUMBER:
@@ -247,6 +253,9 @@ IPState INDI::Property::getState() const
 
 IPerm INDI::Property::getPermission() const
 {
+    if (pPtr == nullptr)
+        return IP_RO;
+
     switch (pType)
     {
         case INDI_NUMBER:
@@ -264,40 +273,45 @@ IPerm INDI::Property::getPermission() const
 
 INumberVectorProperty *INDI::Property::getNumber() const
 {
-    if (pType == INDI_NUMBER)
-        return static_cast <INumberVectorProperty * > (pPtr);
+    if (pPtr != nullptr)
+        if (pType == INDI_NUMBER)
+            return static_cast <INumberVectorProperty * > (pPtr);
 
     return nullptr;
 }
 
 ITextVectorProperty *INDI::Property::getText() const
 {
-    if (pType == INDI_TEXT)
-        return static_cast <ITextVectorProperty * > (pPtr);
+    if (pPtr != nullptr)
+        if (pType == INDI_TEXT)
+            return static_cast <ITextVectorProperty * > (pPtr);
 
     return nullptr;
 }
 
 ILightVectorProperty *INDI::Property::getLight() const
 {
-    if (pType == INDI_LIGHT)
-        return static_cast <ILightVectorProperty * > (pPtr);
+    if (pPtr != nullptr)
+        if (pType == INDI_LIGHT)
+            return static_cast <ILightVectorProperty * > (pPtr);
 
     return nullptr;
 }
 
 ISwitchVectorProperty *INDI::Property::getSwitch() const
 {
-    if (pType == INDI_SWITCH)
-        return static_cast <ISwitchVectorProperty * > (pPtr);
+    if (pPtr != nullptr)
+        if (pType == INDI_SWITCH)
+            return static_cast <ISwitchVectorProperty * > (pPtr);
 
     return nullptr;
 }
 
 IBLOBVectorProperty *INDI::Property::getBLOB() const
 {
-    if (pType == INDI_BLOB)
-        return static_cast <IBLOBVectorProperty * > (pPtr);
+    if (pPtr != nullptr)
+        if (pType == INDI_BLOB)
+            return static_cast <IBLOBVectorProperty * > (pPtr);
 
     return nullptr;
 }
