@@ -871,7 +871,7 @@ void DeepSkyDadAF3::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.1 ) //more accurate update
         {
             IDSetNumber(&TemperatureNP, nullptr);
             lastTemperature = TemperatureN[0].value;
