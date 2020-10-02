@@ -207,7 +207,7 @@ bool CCDSim::initProperties()
 
     // Offset
     IUFillNumber(&OffsetN[0], "OFFSET", "value", "%.f", 0, 6000, 500, 0);
-    IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "CCD_OFSET", "Offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "CCD_OFFSET", "Offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Directory to read images from. This is useful to test real images captured by camera
     // For each capture, one file is read (sorted by name) and is sent to client.
