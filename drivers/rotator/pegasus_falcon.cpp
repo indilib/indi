@@ -25,6 +25,7 @@
 #include "pegasus_falcon.h"
 #include "indicom.h"
 
+#include <cmath>
 #include <memory>
 #include <regex>
 #include <termios.h>
