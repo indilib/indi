@@ -1148,6 +1148,19 @@ ENDIF ()
 ######## Rotator GROUP #########
 #####################################
 
+################ Rotator Simulator ########
+
+SET(rotatorsim_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/rotator_simulator.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(rotatorsim rotatorsim_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_simulator_rotator ${rotatorsim_SRC})
+target_link_libraries(indi_simulator_rotator indidriver)
+install(TARGETS indi_simulator_rotator RUNTIME DESTINATION bin)
+
 ################ Optec Gemini Focusing Rotator ########
 
 SET(gemini_SRC

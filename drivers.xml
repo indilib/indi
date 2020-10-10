@@ -335,6 +335,10 @@
             <driver name="Pegasus Falcon">indi_falcon_rotator</driver>
             <version>1.0</version>
         </device>
+        <device label="Rotator Simulator" manufacturer="Simulator">
+            <driver name="Rotator Simulator">indi_simulator_rotator</driver>
+            <version>1.0</version>
+        </device>
         <device label="Microtouch">
             <driver name="Microtouch">indi_microtouch_focus</driver>
             <version>0.1</version>

@@ -59,7 +59,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             SIM_POLARDRIFT,
             SIM_PE_PERIOD,
             SIM_PE_MAX,
-            SIM_ROTATION,
             SIM_TIME_FACTOR,
             SIM_N
         };
