@@ -635,10 +635,11 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             pprx, ppry, Scalex, Scaley);
 #endif
 
-        double theta = RotatorAngle + 270;
+        double theta = 270;
+        if (!std::isnan(RotatorAngle))
+            theta += RotatorAngle;
         if (pierSide == 1)
             theta -= 180;       // rotate 180 if on East
-
         theta = range360(theta);
 
         // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
