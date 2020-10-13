@@ -139,7 +139,9 @@ int MJPEGEncoder::jpeg_compress_8u_gray (const uint8_t * src, uint16_t width, ui
 
     cinfo.image_width = width;
     cinfo.image_height = height;
+#if JPEG_LIB_VERSION >= 70
     cinfo.scale_denom = scale;
+#endif
     cinfo.input_components = 1;
     cinfo.in_color_space = JCS_GRAYSCALE;
     jpeg_set_defaults (&cinfo);
@@ -177,7 +179,9 @@ int MJPEGEncoder::jpeg_compress_8u_rgb (const uint8_t * src, uint16_t width, uin
 
     cinfo.image_width = width;
     cinfo.image_height = height;
+#if JPEG_LIB_VERSION >= 70
     cinfo.scale_denom = scale;
+#endif
     cinfo.input_components = 3;
     cinfo.in_color_space = JCS_RGB;
     jpeg_set_defaults (&cinfo);
