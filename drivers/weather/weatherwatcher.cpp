@@ -78,7 +78,7 @@ void ISSnoopDevice(XMLEle *root)
 
 WeatherWatcher::WeatherWatcher()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     setWeatherConnection(CONNECTION_NONE);
 }
@@ -175,6 +175,30 @@ bool WeatherWatcher::createPropertiesFromMap()
             addParameter("WEATHER_FORECAST", "Weather", minOK, maxOK, percWarn);
             setCriticalParameter("WEATHER_FORECAST");
         }
+        else if (x.first == keywordT[5].text)
+        {
+            minOK = 20;
+            maxOK = 70;
+            percWarn = 15;
+            IUGetConfigNumber(getDeviceName(), "WEATHER_HUMIDITY", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_HUMIDITY", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_HUMIDITY", "PERC_WARN", &percWarn);
+
+            addParameter("WEATHER_HUMIDITY", "Humidity (%)", minOK, maxOK, percWarn);
+            setCriticalParameter("WEATHER_HUMIDITY");
+        }
+        else if (x.first == keywordT[6].text)
+        {
+            minOK = 980;
+            maxOK = 1020;
+            percWarn = 15;
+            IUGetConfigNumber(getDeviceName(), "WEATHER_PRESSURE", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_PRESSURE", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_PRESSURE", "PERC_WARN", &percWarn);
+
+            addParameter("WEATHER_PRESSURE", "Pressure (hPa)", minOK, maxOK, percWarn);
+            setCriticalParameter("WEATHER_PRESSURE");
+        }
     }
 
     initialParse = true;
@@ -191,7 +215,9 @@ bool WeatherWatcher::initProperties()
     IUFillText(&keywordT[2], "WIND", "Wind", "wind");
     IUFillText(&keywordT[3], "GUST", "Gust", "gust");
     IUFillText(&keywordT[4], "FORECAST", "Forecast", "forecast");
-    IUFillTextVector(&keywordTP, keywordT, 5, getDeviceName(), "KEYWORD", "Keywords", OPTIONS_TAB, IP_RW,
+    IUFillText(&keywordT[5], "HUMIDITY", "Humidity", "humidity");
+    IUFillText(&keywordT[6], "PRESSURE", "Pressure", "pressure");
+    IUFillTextVector(&keywordTP, keywordT, 7, getDeviceName(), "KEYWORD", "Keywords", OPTIONS_TAB, IP_RW,
                      60, IPS_IDLE);
 
     IUFillText(&watchFileT[0], "URL", "File", nullptr);
@@ -275,12 +301,19 @@ IPState WeatherWatcher::updateWeather()
         }
         else if (x.first == keywordT[3].text)
         {
-
             setParameterValue("WEATHER_WIND_GUST", std::strtod(x.second.c_str(), nullptr));
         }
         else if (x.first == keywordT[4].text)
         {
             setParameterValue("WEATHER_FORECAST", std::strtod(x.second.c_str(), nullptr));
+        }
+        else if (x.first == keywordT[5].text)
+        {
+            setParameterValue("WEATHER_HUMIDITY", std::strtod(x.second.c_str(), nullptr));
+        }
+        else if (x.first == keywordT[6].text)
+        {
+            setParameterValue("WEATHER_PRESSURE", std::strtod(x.second.c_str(), nullptr));
         }
     }
 
