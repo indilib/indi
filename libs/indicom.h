@@ -76,6 +76,9 @@ extern const char *Direction[];
 extern const char *SolarSystem[];
 
 struct ln_date;
+struct ln_equ_posn;
+struct ln_lnlat_posn;
+struct ln_hrz_posn;
 
 /* TTY Error Codes */
 enum TTY_ERROR
@@ -298,6 +301,27 @@ double get_local_sidereal_time(double longitude);
  */
 double get_local_hour_angle(double local_sideral_time, double ra);
 
+
+/**
+ * @brief get_hrz_from_equ Calculate horizontal coordinates from equatorial coordinates.
+ * @param object Equatorial Object Coordinates
+ * @param observer Observer Location
+ * @param JD Julian Date
+ * @param position Calculated Horizontal Coordinates.
+ * @note Use this instead of libnova ln_get_hrz_from_equ since it corrects libnova Azimuth (0 = North and not South).
+ */
+void get_hrz_from_equ(struct ln_equ_posn *object, struct ln_lnlat_posn *observer, double JD, struct ln_hrz_posn *position);
+
+/**
+ * @brief ln_get_equ_from_hrz Calculate Equatorial EOD Coordinates from horizontal coordinates
+ * @param object Horizontal Object Coordinates
+ * @param observer Observer Location
+ * @param JD Julian Date
+ * @param position Calculated Equatorial Coordinates.
+ * @note Use this instead of libnova ln_get_equ_from_hrz since it corrects libnova Azimuth (0 = North and not South).
+ */
+void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer, double JD,
+                      struct ln_equ_posn *position);
 /**
  * @brief get_alt_az_coordinates Returns alt-azimuth coordinates of an object
  * @param hour_angle Hour angle in hours (-12 to 12)

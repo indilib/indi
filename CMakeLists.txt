@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 PROJECT(libindi C CXX)
 
-# Tell CMake to run moc when necessary:
-set(CMAKE_AUTOMOC ON)
 # As moc files are generated in the binary dir, tell CMake
 # to always look for includes there:
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -45,7 +43,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 8)
-set(CMAKE_INDI_VERSION_RELEASE 6)
+set(CMAKE_INDI_VERSION_RELEASE 7)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -200,12 +198,14 @@ endif (INDI_BUILD_CLIENT AND NOT ANDROID)
 #################################################################################################
 #
 # Component   : INDI Qt5 Client
-# Dependencies: Qt5Network, zlib, cfitsio
+# Dependencies: Qt5Network, zlib, cfitsio, Qt5Core
 # Supported OS: Linux, BSD, MacOS, Cygwin, Windows, Android
 #
 #################################################################################################
 if (INDI_BUILD_QT5_CLIENT)
 set(QT_ANDROID "" CACHE path "Qt Android path")
+# Tell CMake to run moc when necessary:
+set(CMAKE_AUTOMOC ON)
 # 1. Dependencies
 if (ANDROID)
     set(Qt5Core_DIR "${QT_ANDROID}/lib/cmake/Qt5Core")
@@ -1148,6 +1148,19 @@ ENDIF ()
 ######## Rotator GROUP #########
 #####################################
 
+################ Rotator Simulator ########
+
+SET(rotatorsim_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/rotator_simulator.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(rotatorsim rotatorsim_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_simulator_rotator ${rotatorsim_SRC})
+target_link_libraries(indi_simulator_rotator indidriver)
+install(TARGETS indi_simulator_rotator RUNTIME DESTINATION bin)
+
 ################ Optec Gemini Focusing Rotator ########
 
 SET(gemini_SRC
@@ -1178,6 +1191,16 @@ SET(pyxis_SRC
 add_executable(indi_pyxis_rotator ${pyxis_SRC})
 target_link_libraries(indi_pyxis_rotator indidriver)
 install(TARGETS indi_pyxis_rotator RUNTIME DESTINATION bin)
+
+
+################ Falcon Rotator ################
+
+SET(falcon_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/pegasus_falcon.cpp)
+
+add_executable(indi_falcon_rotator ${falcon_SRC})
+target_link_libraries(indi_falcon_rotator indidriver)
+install(TARGETS indi_falcon_rotator RUNTIME DESTINATION bin)
 
 ################ Integra85 Focusing Rotator ################
 
@@ -1633,20 +1656,6 @@ install(TARGETS indi_vantage_weather RUNTIME DESTINATION bin)
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/99-vantage.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
-
-########### WunderGround Driver ###############
-
-SET(WunderGround_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/wunderground.cpp)
-
-IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(WunderGround WunderGround_SRC 10 cpp)
-ENDIF ()
-
-add_executable(indi_wunderground_weather ${WunderGround_SRC})
-target_link_libraries(indi_wunderground_weather indidriver ${CURL_LIBRARIES})
-install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin)
 
 ########### OpenWeatherMap Driver ###############
 
