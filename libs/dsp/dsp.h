@@ -54,6 +54,26 @@ extern "C" {
 */
 /*@{*/
 
+#define dsp_t unsigned int
+
+#define MAX_THREADS 16
+#ifdef BENCHMARK
+struct timespec ts;
+double ex_time;
+#define start_gettime ({ \
+    clock_gettime(CLOCK_REALTIME, &ts); \
+    ex_time = (ts.tv_sec + ((double)ts.tv_nsec)/1000000000.0); \
+    })
+
+#define end_gettime ({ \
+    clock_gettime(CLOCK_REALTIME, &ts); \
+    ex_time = (ts.tv_sec + ((double)ts.tv_nsec)/1000000000.0)-ex_time; \
+    fprintf(stdout, "%s duration %lfs\n", __func__, ex_time); \
+    })
+#else
+#define start_gettime ({})
+#define end_gettime ({})
+#endif
 ///if min() is not present you can use this one
 #ifndef Min
 #define Min(a,b) \
@@ -86,10 +106,38 @@ extern "C" {
 typedef struct dsp_point_t
 {
 /// Center of the point
-    int* center;
+    double* location;
 /// Dimensions limit of the point
     int dims;
 } dsp_point;
+
+/**
+* \brief Indicates an offset
+*/
+typedef struct dsp_offset_t
+{
+/// Center of the point
+    double* offset;
+/// Dimensions limit of the point
+    int dims;
+} dsp_offset;
+
+/**
+* \brief Alignment informations needed
+*/
+typedef struct dsp_align_info_t
+{
+    /// Traslation offset
+    int* offset;
+    /// Center of rotation coordinates
+    int* center;
+    /// Rotational offset
+    double* radians;
+    /// Scaling factor
+    double factor;
+    /// Dimensions limit
+    int dims;
+} dsp_align_info;
 
 /**
 * \brief Complex number, used in Fourier Transform functions
@@ -122,8 +170,8 @@ typedef struct dsp_star_t
 {
 /// The center of the star
     dsp_point center;
-/// The radius of the star
-    int radius;
+/// The diameter of the star
+    int diameter;
 } dsp_star;
 
 /**
@@ -147,7 +195,7 @@ typedef struct dsp_stream_t
 /// Sizes of each dimension
     int* sizes;
 /// buffer
-    double* buf;
+    dsp_t* buf;
 /// Optional argument for the func() callback
     void *arg;
 /// The stream this one is child of
@@ -163,7 +211,15 @@ typedef struct dsp_stream_t
 /// Time at the beginning of the stream
     struct timespec starttimeutc;
 /// Wavelength observed, used as reference with signal generators or filters
-    double lambda;
+    double wavelength;
+/// Focal ratio
+    double focal_ratio;
+/// Diameter
+    double diameter;
+/// Red pixel (Bayer)
+    int red;
+/// Sensor size
+    double *pixel_sizes;
 /// Sample rate of the buffers
     double samplerate;
 /// Thread type for future usage
@@ -173,9 +229,9 @@ typedef struct dsp_stream_t
 /// Regions of interest for each dimension
     dsp_region *ROI;
 /// Stars or objects identified into the buffers - TODO
-    dsp_star **stars;
+    dsp_star *stars;
 /// Stars or objects quantity - TODO
-    int star_count;
+    int stars_count;
 } dsp_stream, *dsp_stream_p;
 
 /*@}*/
@@ -191,6 +247,14 @@ typedef struct dsp_stream_t
 * error is encountered.
 */
 DLL_EXPORT dsp_complex* dsp_fourier_dft(dsp_stream_p stream);
+
+/**
+* \brief Perform an inverse discrete Fourier Transform of a dsp_stream
+* \param stream the input stream.
+* \return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+*/
+DLL_EXPORT dsp_complex* dsp_fourier_idft(dsp_stream_p stream);
 
 /**
 * \brief Obtain a complex number's magnitude
@@ -233,6 +297,18 @@ DLL_EXPORT void dsp_fourier_dft_magnitude(dsp_stream_p stream);
 * \param stream the input stream.
 */
 DLL_EXPORT void dsp_fourier_dft_phase(dsp_stream_p stream);
+
+/**
+* \brief Perform an inverse discrete Fourier Transform of a dsp_stream and obtain the complex magnitudes
+* \param stream the input stream.
+*/
+DLL_EXPORT void dsp_fourier_idft_magnitude(dsp_stream_p stream);
+
+/**
+* \brief Perform an inverse discrete Fourier Transform of a dsp_stream and obtain the complex phases
+* \param stream the input stream.
+*/
+DLL_EXPORT void dsp_fourier_idft_phase(dsp_stream_p stream);
 
 /*@}*/
 /**
@@ -339,7 +415,7 @@ DLL_EXPORT dsp_stream_p dsp_convolution_convolution(dsp_stream_p stream1, dsp_st
 ({\
     int i;\
     __typeof__(buf[0]) min = dsp_stats_min(buf, len);\
-    (__typeof__(buf[0]))(min - dsp_stats_max(buf, len)) / 2.0 + min);\
+    (__typeof__(buf[0]))(min - dsp_stats_max(buf, len)) / 2.0 + min;\
 })
 
 /**
@@ -483,8 +559,8 @@ DLL_EXPORT void dsp_buffer_removemean(dsp_stream_p stream);
     int k;\
     __typeof__(buf[0]) __mn = dsp_stats_min(buf, len);\
     __typeof__(buf[0]) __mx = dsp_stats_max(buf, len);\
-    double oratio = (_mx - _mn);\
-    double iratio = (__mx - __mn);\
+    double oratio = (double)(_mx - _mn);\
+    double iratio = (double)(__mx - __mn);\
     if(iratio == 0.0) iratio = 1;\
     for(k = 0; k < len; k++) {\
         buf[k] -= __mn;\
@@ -514,7 +590,7 @@ DLL_EXPORT void dsp_buffer_removemean(dsp_stream_p stream);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-DLL_EXPORT void dsp_buffer_sub(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_sub(dsp_stream_p stream, dsp_t* in, int len);
 
 /**
 * \brief Sum elements of one stream to another's
@@ -522,7 +598,7 @@ DLL_EXPORT void dsp_buffer_sub(dsp_stream_p stream, double* in, int len);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-DLL_EXPORT void dsp_buffer_sum(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_sum(dsp_stream_p stream, dsp_t* in, int len);
 
 /**
 * \brief Divide elements of one stream to another's
@@ -530,7 +606,7 @@ DLL_EXPORT void dsp_buffer_sum(dsp_stream_p stream, double* in, int len);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-DLL_EXPORT void dsp_buffer_div(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_div(dsp_stream_p stream, dsp_t* in, int len);
 
 /**
 * \brief Multiply elements of one stream to another's
@@ -538,7 +614,7 @@ DLL_EXPORT void dsp_buffer_div(dsp_stream_p stream, double* in, int len);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-DLL_EXPORT void dsp_buffer_mul(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_mul(dsp_stream_p stream, dsp_t* in, int len);
 
 /**
 * \brief Expose elements of one stream to another's
@@ -546,7 +622,7 @@ DLL_EXPORT void dsp_buffer_mul(dsp_stream_p stream, double* in, int len);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-DLL_EXPORT void dsp_buffer_pow(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_pow(dsp_stream_p stream, dsp_t* in, int len);
 
 /**
 * \brief Logarithm elements of one stream using another's as base
@@ -554,7 +630,7 @@ DLL_EXPORT void dsp_buffer_pow(dsp_stream_p stream, double* in, int len);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-DLL_EXPORT void dsp_buffer_log(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_log(dsp_stream_p stream, dsp_t* in, int len);
 
 /**
 * \brief Subtract a value from elements of the input stream
@@ -624,7 +700,7 @@ DLL_EXPORT void dsp_buffer_median(dsp_stream_p stream, int size, int median);
 * \brief Put zero on each element of the array
 * \param stream the stream on which execute
 */
-DLL_EXPORT void dsp_buffer_clear(dsp_stream_p stream);
+DLL_EXPORT void dsp_buffer_set(dsp_stream_p stream, dsp_t value);
 
 /**
 * \brief Deviate forward the first input stream using the second stream as indexing reference
@@ -649,8 +725,8 @@ DLL_EXPORT void dsp_buffer_deviate(dsp_stream_p stream, double* deviation, doubl
         while(i >= 0) \
         { \
           _x = buf[j]; \
-          buf[i] = buf[j]; \
-          buf[j] = _x; \
+          buf[j] = buf[i]; \
+          buf[i] = _x; \
           i--; \
           j++; \
         } \
@@ -701,7 +777,7 @@ DLL_EXPORT void dsp_stream_set_buffer(dsp_stream_p stream, void *buffer, int len
 * \param stream the target DSP stream.
 * \return the buffer
 */
-DLL_EXPORT double* dsp_stream_get_buffer(dsp_stream_p stream);
+DLL_EXPORT dsp_t* dsp_stream_get_buffer(dsp_stream_p stream);
 
 /**
 * \brief Free the buffer of the DSP Stream passed as argument
@@ -736,7 +812,7 @@ DLL_EXPORT dsp_stream_p dsp_stream_copy(dsp_stream_p stream);
 * \param stream the target DSP stream.
 * \param star the star to add to the stream.
 */
-DLL_EXPORT void dsp_stream_add_star(dsp_stream_p stream, dsp_star *star);
+DLL_EXPORT void dsp_stream_add_star(dsp_stream_p stream, dsp_star star);
 
 /**
 * \brief Add a child to the DSP Stream passed as argument
@@ -806,7 +882,7 @@ DLL_EXPORT int* dsp_stream_get_position(dsp_stream_p stream, int index);
 * \sa dsp_stream_get_position
 * \sa dsp_stream_set_position
 */
-DLL_EXPORT void *dsp_stream_exec(dsp_stream_p stream);
+DLL_EXPORT void *dsp_stream_exec(dsp_stream_p stream, void *args, ...);
 
 /**
 * \brief Crop the buffers of the stream passed as argument by reading the ROI field.
@@ -869,11 +945,120 @@ DLL_EXPORT void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq,
 */
 DLL_EXPORT void dsp_modulation_amplitude(dsp_stream_p stream, double samplefreq, double freq);
 
-DLL_EXPORT dsp_stream_p dsp_find_object(dsp_stream_p stream, dsp_stream_p object, int steps);
+/**
+* \brief Find stars into the stream
+* \param stream The stream containing stars
+* \param levels The level of thresholding
+* \param min_size Minimum stellar size
+* \param threshold Intensity treshold
+* \param matrix The star shape
+* \return The new dsp_stream_p structure pointer
+*/
+DLL_EXPORT int dsp_align_find_stars(dsp_stream_p stream, int levels, int min_size, float threshold, dsp_stream_p matrix);
 
-DLL_EXPORT dsp_stream_p dsp_stream_rotate(dsp_stream_p stream, double *degrees, double *pivot);
+/**
+* \brief Find star baselines between 2 streams and extract align informations
+* \param stream1 The first stream
+* \param stream2 The second stream
+* \return The new dsp_align_info structure pointer
+*/
+DLL_EXPORT dsp_align_info* dsp_align_get_baselines(dsp_stream_p stream1, dsp_stream_p stream2);
 
-DLL_EXPORT dsp_stream_p dsp_stream_scale(dsp_stream_p stream, double ratio);
+/**
+* \brief Find offsets between 2 streams and extract align informations
+* \param stream1 The first stream
+* \param stream2 The second stream
+* \return The new dsp_align_info structure pointer
+*/
+DLL_EXPORT dsp_align_info* dsp_align_get_offset(dsp_stream_p stream1, dsp_stream_p stream2);
+
+/**
+* \brief Rotate a stream around an axis and offset
+* \param stream The stream that need rotation
+* \param info The dsp_align_info structure pointer containing the rotation informations
+* \return The new dsp_stream_p structure pointer
+*/
+DLL_EXPORT dsp_stream_p dsp_stream_rotate(dsp_stream_p stream, dsp_align_info *info);
+
+/**
+* \brief Scale a stream
+* \param stream The stream that need scaling
+* \param info The dsp_align_info structure pointer containing the scaling informations
+* \return The new dsp_stream_p structure pointer
+*/
+DLL_EXPORT dsp_stream_p dsp_stream_scale(dsp_stream_p stream, dsp_align_info *info);
+
+/**
+* \brief Read a FITS file and fill a dsp_stream_p with its content
+* \param filename the file name.
+* \param stretch 1 if the buffer intensities have to be stretched
+* \return The new dsp_stream_p structure pointer
+*/
+DLL_EXPORT dsp_stream_p dsp_file_read_fits(char *filename, int stretch);
+
+/**
+* \brief Write the dsp_stream_p into a FITS file,
+* \param filename the file name.
+* \param bpp the bit depth of the output FITS file.
+* \param stream the input stream to be saved
+*/
+DLL_EXPORT void dsp_file_write_fits(char *filename, int bpp, dsp_stream_p stream);
+
+/**
+* \brief Read a JPEG file and fill a array of dsp_stream_p with its content,
+* each color channel has its own stream in this array and an additional grayscale at end will be added
+* \param filename the file name.
+* \param channels this value will be updated with the channel quantity into the picture.
+* \param stretch 1 if the buffer intensities have to be stretched
+* \return The new dsp_stream_p structure pointers array
+*/
+DLL_EXPORT dsp_stream_p* dsp_file_read_jpeg(char *filename, int *channels, int stretch);
+
+/**
+* \brief Write the stream into a JPEG file,
+* \param filename the file name.
+* \param quality the quality of the output JPEG file 0-100.
+* \param stream the input stream to be saved
+*/
+DLL_EXPORT void dsp_file_write_jpeg(char *filename, int quality, dsp_stream_p stream);
+
+/**
+* \brief Write the components dsp_stream_p array into a JPEG file,
+* \param filename the file name.
+* \param components the number of streams in the array to be used as components 1 or 3.
+* \param quality the quality of the output JPEG file 0-100.
+* \param stream the input stream to be saved
+*/
+DLL_EXPORT void dsp_file_write_jpeg_composite(char *filename, int components, int quality, dsp_stream_p* stream);
+
+/**
+* \brief Convert a bayer pattern dsp_t array into a grayscale array
+* \param src the input buffer
+* \param width the picture width
+* \param height the picture height
+* \return The new dsp_t array
+*/
+DLL_EXPORT dsp_t* dsp_file_bayer_2_gray(dsp_t* src, long int width, long int height);
+
+/**
+* \brief Convert a bayer pattern dsp_t array into a ordered 3 RGB array
+* \param src the input buffer
+* \param red the location of the red pixel within the bayer pattern
+* \param width the picture width
+* \param height the picture height
+* \return The new dsp_t array
+*/
+DLL_EXPORT dsp_t* dsp_file_bayer_2_rgb(dsp_t *src, int red, long int width, long int height);
+
+/**
+* \brief Convert a bayer pattern dsp_t array into a contiguos component array
+* \param src the input buffer
+* \param red the location of the red pixel within the bayer pattern
+* \param width the picture width
+* \param height the picture height
+* \return The new dsp_t array
+*/
+DLL_EXPORT dsp_t* dsp_file_bayer_2_composite(dsp_t *src, int red, long int width, long int height);
 
 /*@}*/
 /*@}*/
