@@ -36,7 +36,6 @@ class MockCCDSimDriver: public CCDSim
             ASSERT_NE(IUFindNumber(p, "SIM_OAGOFFSET"), nullptr);
             ASSERT_NE(IUFindNumber(p, "SIM_POLAR"), nullptr);
             ASSERT_NE(IUFindNumber(p, "SIM_POLARDRIFT"), nullptr);
-            ASSERT_NE(IUFindNumber(p, "SIM_ROTATION"), nullptr);
         }
 
         void testGuideAPI()
