@@ -22,7 +22,7 @@
 #include "mjpegencoder.h"
 #include "stream/streammanager.h"
 #include "indiccd.h"
-
+#include <cmath>
 #include <zlib.h>
 #include <jpeglib.h>
 #include <jerror.h>
