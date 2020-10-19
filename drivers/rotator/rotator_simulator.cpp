@@ -22,6 +22,7 @@
 #include "indicom.h"
 
 #include <memory>
+#include <cmath>
 #include <math.h>
 
 std::unique_ptr<RotatorSimulator> rotatorSimulator(new RotatorSimulator());
