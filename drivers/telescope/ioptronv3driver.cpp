@@ -329,11 +329,15 @@ bool Driver::startMotion(IOP_DIRECTION dir)
         case IOP_S:
             return sendCommand(":ms#", 0);
             break;
+        // JM 2020-10-12
+        // We are reversing this since CEM120 moves CW when commanded WEST
+        // leading to INCREASING RA, when it is expected to move CCW leading
+        // to DECREASING RA
         case IOP_W:
-            return sendCommand(":mw#", 0);
+            return sendCommand(":me#", 0);
             break;
         case IOP_E:
-            return sendCommand(":me#", 0);
+            return sendCommand(":mw#", 0);
             break;
     }
 

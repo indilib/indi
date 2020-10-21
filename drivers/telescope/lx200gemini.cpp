@@ -181,7 +181,6 @@ bool LX200Gemini::updateProperties()
 
         updateParkingState();
         updateMovementState();
-
     }
     else
     {
@@ -421,18 +420,25 @@ bool LX200Gemini::isSlewComplete()
 
 bool LX200Gemini::ReadScopeStatus()
 {
+    LOGF_DEBUG("ReadScopeStatus: TrackState is <%d>", TrackState);
+
     if (!isConnected())
         return false;
 
     if (isSimulation())
         return LX200Generic::ReadScopeStatus();
 
-    if (m_isSleeping)
+    if(m_isSleeping)
+    {
         return true;
+    }
 
     if (TrackState == SCOPE_SLEWING)
     {
         updateMovementState();
+
+        EqNP.s = IPS_BUSY;
+        IDSetNumber(&EqNP, NULL);
 
         // Check if LX200 is done slewing
         if (isSlewComplete())
@@ -442,19 +448,25 @@ bool LX200Gemini::ReadScopeStatus()
             SlewRateS[SLEW_CENTERING].s = ISS_ON;
             IDSetSwitch(&SlewRateSP, nullptr);
 
-            TrackState = SCOPE_TRACKING;
+            EqNP.s = IPS_OK;
+            IDSetNumber(&EqNP, NULL);
+
             LOG_INFO("Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
     {
         updateParkingState();
-        updateMovementState();
 
         if (isSlewComplete())
         {
+            LOG_DEBUG("Park is complete ...");
             SetParked(true);
             sleepMount();
+
+            EqNP.s = IPS_IDLE;
+            IDSetNumber(&EqNP, NULL);
+
             return true;
         }
     }
@@ -534,6 +546,7 @@ void LX200Gemini::syncSideOfPier()
 
     setPierSide(pointingState);
 }
+
 
 bool LX200Gemini::Park()
 {
@@ -876,7 +889,6 @@ bool LX200Gemini::SetTrackMode(uint8_t mode)
 
     snprintf(cmd, 16, "%s%c#", prefix, checksum);
 
-    LOG_ERROR("Setting track mode");
     LOGF_DEBUG("CMD: <%s>", cmd);
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)

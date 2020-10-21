@@ -219,11 +219,15 @@
         </device>
         <device label="Skywatcher Alt-Az" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
-            <version>1.0</version>
+            <version>1.1</version>
+        </device>
+        <device label="AZ-GTi Alt-Az" manufacturer="SkyWatcher">
+            <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
+            <version>1.1</version>
         </device>
         <device label="Skywatcher Alt-Az Wedge" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az Wedge">indi_skywatcherAltAzSimple</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Telescope Scripting Gateway">
             <driver name="Telescope  Scripting Gateway">indi_script_telescope</driver>
@@ -321,6 +325,18 @@
         </device>
         <device label="Pegasus DMFC" manufacturer="Pegasus Astro">
             <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Pyxis" manufacturer="Optec">
+            <driver name="Pyxis">indi_pyxis_rotator</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Pegasus Falcon" manufacturer="Pegasus Astro">
+            <driver name="Pegasus Falcon">indi_falcon_rotator</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Rotator Simulator" manufacturer="Simulator">
+            <driver name="Rotator Simulator">indi_simulator_rotator</driver>
             <version>1.0</version>
         </device>
         <device label="Microtouch">
@@ -499,10 +515,6 @@
             <driver name="SnapCap">indi_snapcap</driver>
             <version>1.0</version>
         </device>
-        <device label="Pyxis" manufacturer="Optec">
-            <driver name="Pyxis">indi_pyxis_rotator</driver>
-            <version>1.0</version>
-        </device>
         <device label="Arduino ST4" manufacturer="DIY">
             <driver name="Arduino ST4">indi_arduinost4</driver>
             <version>1.0</version>
@@ -569,10 +581,6 @@
         </device>
         <device label="Weather Meta">
             <driver name="Weather Meta">indi_meta_weather</driver>
-            <version>1.0</version>
-        </device>
-        <device label="WunderGround">
-            <driver name="WunderGround">indi_wunderground_weather</driver>
             <version>1.0</version>
         </device>
         <device label="OpenWeatherMap">

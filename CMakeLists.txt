@@ -1148,6 +1148,19 @@ ENDIF ()
 ######## Rotator GROUP #########
 #####################################
 
+################ Rotator Simulator ########
+
+SET(rotatorsim_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/rotator_simulator.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(rotatorsim rotatorsim_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_simulator_rotator ${rotatorsim_SRC})
+target_link_libraries(indi_simulator_rotator indidriver)
+install(TARGETS indi_simulator_rotator RUNTIME DESTINATION bin)
+
 ################ Optec Gemini Focusing Rotator ########
 
 SET(gemini_SRC
@@ -1178,6 +1191,16 @@ SET(pyxis_SRC
 add_executable(indi_pyxis_rotator ${pyxis_SRC})
 target_link_libraries(indi_pyxis_rotator indidriver)
 install(TARGETS indi_pyxis_rotator RUNTIME DESTINATION bin)
+
+
+################ Falcon Rotator ################
+
+SET(falcon_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/pegasus_falcon.cpp)
+
+add_executable(indi_falcon_rotator ${falcon_SRC})
+target_link_libraries(indi_falcon_rotator indidriver)
+install(TARGETS indi_falcon_rotator RUNTIME DESTINATION bin)
 
 ################ Integra85 Focusing Rotator ################
 
@@ -1633,20 +1656,6 @@ install(TARGETS indi_vantage_weather RUNTIME DESTINATION bin)
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/99-vantage.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
-
-########### WunderGround Driver ###############
-
-SET(WunderGround_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/wunderground.cpp)
-
-IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(WunderGround WunderGround_SRC 10 cpp)
-ENDIF ()
-
-add_executable(indi_wunderground_weather ${WunderGround_SRC})
-target_link_libraries(indi_wunderground_weather indidriver ${CURL_LIBRARIES})
-install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin)
 
 ########### OpenWeatherMap Driver ###############
 

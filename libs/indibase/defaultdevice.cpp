@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <assert.h>
+#include <algorithm>
 
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB  = "Main Control";
@@ -63,7 +64,9 @@ DefaultDevice::DefaultDevice()
 bool DefaultDevice::loadConfig(bool silent, const char *property)
 {
     char errmsg[MAXRBUF] = {0};
+    m_ConfigLoading = true;
     bool pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
+    m_ConfigLoading = false;
 
     if (!silent)
     {
@@ -77,9 +80,9 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
 
     // Determine default config file name
     // Need to be done only once per device.
-    if (pDefaultConfigLoaded == false)
+    if (m_DefaultConfigLoaded == false)
     {
-        pDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+        m_DefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
     }
 
     return pResult;
@@ -182,9 +185,9 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         fflush(fp);
         fclose(fp);
 
-        if (pDefaultConfigLoaded == false)
+        if (m_DefaultConfigLoaded == false)
         {
-            pDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+            m_DefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
         }
 
         LOG_DEBUG("Configuration successfully saved.");
@@ -579,13 +582,13 @@ bool DefaultDevice::ISSnoopDevice(XMLEle *root)
 void DefaultDevice::addDebugControl()
 {
     registerProperty(&DebugSP, INDI_SWITCH);
-    pDebug = false;
+    m_Debug = false;
 }
 
 void DefaultDevice::addSimulationControl()
 {
     registerProperty(&SimulationSP, INDI_SWITCH);
-    pSimulation = false;
+    m_Simulation = false;
 }
 
 void DefaultDevice::addConfigurationControl()
@@ -608,7 +611,7 @@ void DefaultDevice::addAuxControls()
 
 void DefaultDevice::setDebug(bool enable)
 {
-    if (pDebug == enable)
+    if (m_Debug == enable)
     {
         DebugSP.s = IPS_OK;
         IDSetSwitch(&DebugSP, nullptr);
@@ -636,7 +639,7 @@ void DefaultDevice::setDebug(bool enable)
         }
     }
 
-    pDebug = enable;
+    m_Debug = enable;
 
     // Inform logger
     if (Logger::updateProperties(enable) == false)
@@ -649,7 +652,7 @@ void DefaultDevice::setDebug(bool enable)
 
 void DefaultDevice::setSimulation(bool enable)
 {
-    if (pSimulation == enable)
+    if (m_Simulation == enable)
     {
         SimulationSP.s = IPS_OK;
         IDSetSwitch(&SimulationSP, nullptr);
@@ -677,7 +680,7 @@ void DefaultDevice::setSimulation(bool enable)
         }
     }
 
-    pSimulation = enable;
+    m_Simulation = enable;
     simulationTriggered(enable);
     SimulationSP.s = IPS_OK;
     IDSetSwitch(&SimulationSP, nullptr);
@@ -685,12 +688,12 @@ void DefaultDevice::setSimulation(bool enable)
 
 bool DefaultDevice::isDebug()
 {
-    return pDebug;
+    return m_Debug;
 }
 
 bool DefaultDevice::isSimulation()
 {
-    return pSimulation;
+    return m_Simulation;
 }
 
 void DefaultDevice::debugTriggered(bool enable)
@@ -778,14 +781,36 @@ void DefaultDevice::ISGetProperties(const char *dev)
                 IUFillSwitch(sp++, oneConnection->name().c_str(), oneConnection->label().c_str(), ISS_OFF);
             }
 
-            activeConnection     = connections[0];
-            ConnectionModeS[0].s = ISS_ON;
             IUFillSwitchVector(&ConnectionModeSP, ConnectionModeS, connections.size(), getDeviceName(),
                                "CONNECTION_MODE", "Connection Mode", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+            // Try to read config first
+            int activeConnectionIndex = -1;
+            if (IUGetConfigOnSwitchIndex(getDeviceName(), ConnectionModeSP.name, &activeConnectionIndex) == 0)
+            {
+                ConnectionModeS[activeConnectionIndex].s = ISS_ON;
+                activeConnection = connections[activeConnectionIndex];
+            }
+            // Check if we already have an active connection set.
+            else if (activeConnection != nullptr)
+            {
+                std::vector<Connection::Interface *>::iterator it = std::find(connections.begin(), connections.end(), activeConnection);
+                if (it != connections.end())
+                {
+                    int index = std::distance(connections.begin(), it);
+                    if (index >= 0)
+                        ConnectionModeS[index].s = ISS_ON;
+                }
+            }
+            // Otherwise use connection 0
+            else
+            {
+                ConnectionModeS[0].s = ISS_ON;
+                activeConnection = connections[0];
+            }
+
             defineSwitch(&ConnectionModeSP);
             activeConnection->Activated();
-            loadConfig(true, "CONNECTION_MODE");
         }
     }
 
@@ -1080,6 +1105,41 @@ void DefaultDevice::setPollingPeriodRange(uint32_t minimum, uint32_t maximum)
     PollPeriodN[0].min = minimum;
     PollPeriodN[0].max = maximum;
     IUUpdateMinMax(&PollPeriodNP);
+}
+
+void DefaultDevice::setActiveConnection(Connection::Interface *existingConnection)
+{
+    if (existingConnection == activeConnection)
+        return;
+
+    for (Connection::Interface *oneConnection : connections)
+    {
+        if (oneConnection == activeConnection)
+        {
+            oneConnection->Deactivated();
+            break;
+        }
+    }
+
+    activeConnection = existingConnection;
+    if (ConnectionModeS)
+    {
+        std::vector<Connection::Interface *>::iterator it = std::find(connections.begin(), connections.end(), activeConnection);
+        if (it != connections.end())
+        {
+            int index = std::distance(connections.begin(), it);
+            if (index >= 0)
+            {
+                IUResetSwitch(&ConnectionModeSP);
+                ConnectionModeS[index].s = ISS_ON;
+                ConnectionModeSP.s = IPS_OK;
+                // If property is registerned then send back response to client
+                INDI::Property *connectionProperty = getProperty(ConnectionModeSP.name, INDI_SWITCH);
+                if (connectionProperty && connectionProperty->getRegistered())
+                    IDSetSwitch(&ConnectionModeSP, nullptr);
+            }
+        }
+    }
 }
 
 }

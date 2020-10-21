@@ -1106,6 +1106,10 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     IUResetSwitch(&MovementNSSP);
                     MovementNSSP.s = IPS_IDLE;
                     last_ns_motion = -1;
+                    // Update Target when stopped so that domes can track
+                    TargetN[AXIS_RA].value = EqN[AXIS_RA].value;
+                    TargetN[AXIS_DE].value = EqN[AXIS_DE].value;
+                    IDSetNumber(&TargetNP, nullptr);
                 }
                 else
                     MovementNSSP.s = IPS_ALERT;
@@ -1167,6 +1171,10 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     IUResetSwitch(&MovementWESP);
                     MovementWESP.s = IPS_IDLE;
                     last_we_motion = -1;
+                    // Update Target when stopped so that domes can track
+                    TargetN[AXIS_RA].value = EqN[AXIS_RA].value;
+                    TargetN[AXIS_DE].value = EqN[AXIS_DE].value;
+                    IDSetNumber(&TargetNP, nullptr);
                 }
                 else
                     MovementWESP.s = IPS_ALERT;

@@ -43,23 +43,25 @@ typedef struct
     char ret[2][3];
 } COMMANDDESC;
 
-static const COMMANDDESC IntegraProtocol[] = {
-        { "@SW%d,0\r\n",  { "S", "SW"}},
-        { "@CS%d,0\r\n",  { "C", "CS"}},
-        { "@CE%d,0\r\n",  { "CE", "CE"}},
-        { "@CR%d,0\r\n",  { "CR", "CR"}},
-        { "@TR\r\n",      { "T", "TR"}},
-        { "@PW%d,0\r\n",  { "P", "PW"}},
-        { "@PR%d,0\r\n",  { "P", "PR"}},
-        { "@MI%d,%d\r\n", { "M", "MI"}},
-        { "@MO%d,%d\r\n", { "M", "MO"}},
-        { "@RR%d,0\r\n",  { "R", "RR"}},
-        { "X\r\n",        { "", "X"}},
-        { "@IW%d,0\r\n",  { "I", "IW"}},
-        { "@ZW\r\n",      { "", "ZW"}}
+static const COMMANDDESC IntegraProtocol[] =
+{
+    { "@SW%d,0\r\n",  { "S", "SW"}},
+    { "@CS%d,0\r\n",  { "C", "CS"}},
+    { "@CE%d,0\r\n",  { "CE", "CE"}},
+    { "@CR%d,0\r\n",  { "CR", "CR"}},
+    { "@TR\r\n",      { "T", "TR"}},
+    { "@PW%d,0\r\n",  { "P", "PW"}},
+    { "@PR%d,0\r\n",  { "P", "PR"}},
+    { "@MI%d,%d\r\n", { "M", "MI"}},
+    { "@MO%d,%d\r\n", { "M", "MO"}},
+    { "@RR%d,0\r\n",  { "R", "RR"}},
+    { "X\r\n",        { "", "X"}},
+    { "@IW%d,0\r\n",  { "I", "IW"}},
+    { "@ZW\r\n",      { "", "ZW"}}
 };
 
-enum {
+enum
+{
     stop_motor,
     calibrate,
     calibrate_interrupt,
@@ -145,7 +147,8 @@ bool Integra::initProperties()
     IUFillSwitch(&FindHomeS[HOMING_IDLE], "HOMING_IDLE", "Idle", ISS_ON);
     IUFillSwitch(&FindHomeS[HOMING_START], "HOMING_START", "Start", ISS_OFF);
     IUFillSwitch(&FindHomeS[HOMING_ABORT], "HOMING_ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&FindHomeSP, FindHomeS, HOMING_COUNT, getDeviceName(), "HOMING", "Home at Center", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&FindHomeSP, FindHomeS, HOMING_COUNT, getDeviceName(), "HOMING", "Home at Center", SETTINGS_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     // Relative and absolute movement
     FocusAbsPosN[0].min   = 0;
@@ -162,7 +165,8 @@ bool Integra::initProperties()
 
     // Rotator Ticks
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 61802., 1., 0.);
-    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
+                       0, IPS_IDLE );
 
     addDebugControl();
 
@@ -171,6 +175,8 @@ bool Integra::initProperties()
     serialConnection->setDefaultPort("/dev/ttyACM0");
     // Set mandatory baud speed. The device does not work with anything else.
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+
+    setDriverInterface(getDriverInterface() | ROTATOR_INTERFACE);
 
     return true;
 }
@@ -224,14 +230,20 @@ void Integra::cleanPrint(const char *cmd, char *cleancmd)
 {
     size_t len = strlen(cmd);
     int j = 0;
-    for (size_t i = 0; i<=len; i++) {
-        if (cmd[i] == 0xA) {
+    for (size_t i = 0; i <= len; i++)
+    {
+        if (cmd[i] == 0xA)
+        {
             cleancmd[j++] = '\\';
             cleancmd[j++] = 'n';
-        } else if (cmd[i] == 0xD) {
+        }
+        else if (cmd[i] == 0xD)
+        {
             cleancmd[j++] = '\\';
             cleancmd[j++] = 'r';
-        } else {
+        }
+        else
+        {
             cleancmd[j++] = cmd[i];
         }
     }
@@ -262,10 +274,14 @@ bool Integra::getFirmware()
     {
         strcpy(resp, "20.12.2017");
         this->firmwareVersion = VERSION_20122017;
-    } else if ( genericIntegraCommand(__FUNCTION__, "@RR1,0\r\n", "R", nullptr)) {
+    }
+    else if ( genericIntegraCommand(__FUNCTION__, "@RR1,0\r\n", "R", nullptr))
+    {
         strcpy(resp, "25.01.2017");
         this->firmwareVersion = VERSION_25012017;
-    } else {
+    }
+    else
+    {
         return false;   // cannot retrieve firmware session.
     }
 
@@ -299,35 +315,48 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
     else
         motorMoveCommand = move_mot_in;
 
-    if (type == MOTOR_FOCUS) {
-        if (relativePosition > 0) {
-            if (lastFocuserPosition + relativePosition > MaxPositionN[MOTOR_FOCUS].value) {
+    if (type == MOTOR_FOCUS)
+    {
+        if (relativePosition > 0)
+        {
+            if (lastFocuserPosition + relativePosition > MaxPositionN[MOTOR_FOCUS].value)
+            {
                 int newRelativePosition = (int32_t)floor(MaxPositionN[MOTOR_FOCUS].value) - lastFocuserPosition;
                 LOGF_INFO("Focus position change %d clipped to %d to stay at MAX %d",
-                       relativePosition, newRelativePosition, MaxPositionN[MOTOR_FOCUS].value);
-                relativePosition = newRelativePosition;
-            }
-        } else {
-            if ((int32_t )lastFocuserPosition + relativePosition < 0) {
-                int newRelativePosition = -lastFocuserPosition;
-                LOGF_INFO("Focus position change %d clipped to %d to stay at MIN 0",
-                       relativePosition, newRelativePosition);
+                          relativePosition, newRelativePosition, MaxPositionN[MOTOR_FOCUS].value);
                 relativePosition = newRelativePosition;
             }
         }
-    } else if (type == MOTOR_ROTATOR) {
-        if (relativePosition > 0) {
-            if (lastRotatorPosition + relativePosition > MaxPositionN[MOTOR_ROTATOR].value) {
-                int newRelativePosition = (int32_t)floor(MaxPositionN[MOTOR_ROTATOR].value) - lastRotatorPosition;
-                LOGF_INFO("Rotator position change %d clipped to %d to stay at MAX %d",
-                       relativePosition, newRelativePosition, MaxPositionN[MOTOR_ROTATOR].value);
+        else
+        {
+            if ((int32_t )lastFocuserPosition + relativePosition < 0)
+            {
+                int newRelativePosition = -lastFocuserPosition;
+                LOGF_INFO("Focus position change %d clipped to %d to stay at MIN 0",
+                          relativePosition, newRelativePosition);
                 relativePosition = newRelativePosition;
             }
-        } else {
-            if (lastRotatorPosition + relativePosition < - MaxPositionN[MOTOR_ROTATOR].value) {
+        }
+    }
+    else if (type == MOTOR_ROTATOR)
+    {
+        if (relativePosition > 0)
+        {
+            if (lastRotatorPosition + relativePosition > MaxPositionN[MOTOR_ROTATOR].value)
+            {
+                int newRelativePosition = (int32_t)floor(MaxPositionN[MOTOR_ROTATOR].value) - lastRotatorPosition;
+                LOGF_INFO("Rotator position change %d clipped to %d to stay at MAX %d",
+                          relativePosition, newRelativePosition, MaxPositionN[MOTOR_ROTATOR].value);
+                relativePosition = newRelativePosition;
+            }
+        }
+        else
+        {
+            if (lastRotatorPosition + relativePosition < - MaxPositionN[MOTOR_ROTATOR].value)
+            {
                 int newRelativePosition = - (int32_t)floor(MaxPositionN[MOTOR_ROTATOR].value) - lastRotatorPosition;
                 LOGF_INFO("Rotator position change %d clipped to %d to stay at MIN %d",
-                       relativePosition, newRelativePosition, - MaxPositionN[MOTOR_ROTATOR].value);
+                          relativePosition, newRelativePosition, - MaxPositionN[MOTOR_ROTATOR].value);
                 relativePosition = newRelativePosition;
             }
         }
@@ -365,33 +394,44 @@ bool Integra::getPosition(MotorType type)
     position = atoi(res);
     if (position != -1e6)
     {
-        if (type == MOTOR_FOCUS) {
-            if (FocusAbsPosN[0].value != position) {
+        if (type == MOTOR_FOCUS)
+        {
+            if (FocusAbsPosN[0].value != position)
+            {
                 auto position_from = (int) FocusAbsPosN[0].value;
                 int position_to = position;
-                if (haveReadFocusPositionAtLeastOnce) {
+                if (haveReadFocusPositionAtLeastOnce)
+                {
                     LOGF_DEBUG("Focus position changed from %d to %d", position_from, position_to);
-                } else {
+                }
+                else
+                {
                     LOGF_DEBUG("Focus position is %d", position_to);
                 }
                 FocusAbsPosN[0].value = position;
             }
         }
-        else if (type == MOTOR_ROTATOR) {
-            if (RotatorAbsPosN[0].value != position) {
+        else if (type == MOTOR_ROTATOR)
+        {
+            if (RotatorAbsPosN[0].value != position)
+            {
                 auto position_from = (int) RotatorAbsPosN[0].value;
                 int position_to = position;
-                if (haveReadRotatorPositionAtLeastOnce) {
+                if (haveReadRotatorPositionAtLeastOnce)
+                {
                     LOGF_DEBUG("Rotator changed angle from %.2f to %.2f, position from %d to %d",
-                           rotatorTicksToDegrees(position_from), rotatorTicksToDegrees(position_to), position_from, position_to);
-                } else {
+                               rotatorTicksToDegrees(position_from), rotatorTicksToDegrees(position_to), position_from, position_to);
+                }
+                else
+                {
                     LOGF_DEBUG("Rotator angle is %.2f, position is %d",
-                           rotatorTicksToDegrees(position_to), position_to);
+                               rotatorTicksToDegrees(position_to), position_to);
                 }
                 RotatorAbsPosN[0].value = position;
             }
         }
-        else {
+        else
+        {
             LOGF_ERROR("%s error: motor type %d is unknown", __FUNCTION__, type);
         }
 
@@ -418,23 +458,29 @@ bool Integra::ISNewSwitch (const char * dev, const char * name, ISState * states
                     FindHomeSP.s = IPS_OK;
                     break;
                 case HOMING_START:
-                    if (findHome()) {
+                    if (findHome())
+                    {
                         FindHomeSP.s = IPS_BUSY;
                         FindHomeS[HOMING_START].s = ISS_ON;
                         DEBUG(INDI::Logger::DBG_WARNING,
                               "Homing process can take up to 2 minutes. You cannot control the unit until the process is fully complete.");
-                    } else {
+                    }
+                    else
+                    {
                         FindHomeSP.s = IPS_ALERT;
                         FindHomeS[HOMING_START].s = ISS_OFF;
                         LOG_ERROR("Failed to start homing process.");
                     }
                     break;
                 case HOMING_ABORT:
-                    if (abortHome()) {
+                    if (abortHome())
+                    {
                         FindHomeSP.s = IPS_IDLE;
                         FindHomeS[HOMING_ABORT].s = ISS_ON;
                         LOG_WARN("Homing aborted");
-                    } else {
+                    }
+                    else
+                    {
                         FindHomeSP.s = IPS_ALERT;
                         FindHomeS[HOMING_ABORT].s = ISS_OFF;
                         LOG_ERROR("Failed to abort homing process.");
@@ -540,7 +586,9 @@ void Integra::TimerHit()
             // Next read positions and save to EEPROM :
             haveReadFocusPositionAtLeastOnce = false;
             haveReadRotatorPositionAtLeastOnce = false;
-        } else {
+        }
+        else
+        {
             LOG_DEBUG("Homing");
         }
 
@@ -550,19 +598,24 @@ void Integra::TimerHit()
 
     // #2 Get Temperature, only read this when no motors are active, and about once per minute
     if (FocusAbsPosNP.s != IPS_BUSY && FocusRelPosNP.s != IPS_BUSY
-        && RotatorAbsPosNP.s != IPS_BUSY
-        && timeToReadTemperature <= 0) {
+            && RotatorAbsPosNP.s != IPS_BUSY
+            && timeToReadTemperature <= 0)
+    {
         rc = getTemperature();
         if ( ! rc)
             rc = getTemperature();
-        if (rc) {
+        if (rc)
+        {
             timeToReadTemperature = INTEGRA_TEMPERATURE_LOOP_SKIPS;
-            if (fabs(SensorN[SENSOR_TEMPERATURE].value - lastTemperature) > INTEGRA_TEMPERATURE_TRESHOLD_IN_C) {
+            if (fabs(SensorN[SENSOR_TEMPERATURE].value - lastTemperature) > INTEGRA_TEMPERATURE_TRESHOLD_IN_C)
+            {
                 lastTemperature = SensorN[SENSOR_TEMPERATURE].value;
                 IDSetNumber(&SensorNP, nullptr);
             }
         }
-    } else {
+    }
+    else
+    {
         timeToReadTemperature--;
     }
 
@@ -575,21 +628,28 @@ void Integra::TimerHit()
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
             rc = getPosition(MOTOR_FOCUS);
-            if (rc) {
-                if (FocusAbsPosN[0].value != lastFocuserPosition) {
+            if (rc)
+            {
+                if (FocusAbsPosN[0].value != lastFocuserPosition)
+                {
                     lastFocuserPosition = FocusAbsPosN[0].value;
                     IDSetNumber(&FocusAbsPosNP, nullptr);
                     IDSetNumber(&FocusRelPosNP, nullptr);
-                    if (haveReadFocusPositionAtLeastOnce) {
+                    if (haveReadFocusPositionAtLeastOnce)
+                    {
                         LOGF_INFO("Focuser reached requested position %d", lastFocuserPosition);
-                    } else {
+                    }
+                    else
+                    {
                         LOGF_INFO("Focuser position is %d", lastFocuserPosition);
                         haveReadFocusPositionAtLeastOnce = true;
                     }
                     savePositionsToEEPROM = true;
                 }
             }
-        } else {
+        }
+        else
+        {
             LOG_DEBUG("Focusing");
         }
     }
@@ -603,30 +663,37 @@ void Integra::TimerHit()
             RotatorAbsPosNP.s = IPS_OK;
             GotoRotatorNP.s = IPS_OK;
             rc = getPosition(MOTOR_ROTATOR);
-            if (rc) {
-                if (RotatorAbsPosN[0].value != lastRotatorPosition) {
+            if (rc)
+            {
+                if (RotatorAbsPosN[0].value != lastRotatorPosition)
+                {
                     lastRotatorPosition = RotatorAbsPosN[0].value;
-                    GotoRotatorN[0].value = rotatorTicksToDegrees(lastRotatorPosition); //range360(RotatorAbsPosN[0].value / rotatorTicksPerDegree);
+                    GotoRotatorN[0].value = rotatorTicksToDegrees(
+                                                lastRotatorPosition); //range360(RotatorAbsPosN[0].value / rotatorTicksPerDegree);
                     IDSetNumber(&RotatorAbsPosNP, nullptr);
                     IDSetNumber(&GotoRotatorNP, nullptr);
                     if (haveReadRotatorPositionAtLeastOnce)
                         LOGF_INFO("Rotator reached requested angle %.2f, position %d",
-                               rotatorTicksToDegrees(lastRotatorPosition), lastRotatorPosition);
-                    else {
+                                  rotatorTicksToDegrees(lastRotatorPosition), lastRotatorPosition);
+                    else
+                    {
                         LOGF_INFO("Rotator is at angle %.2f, position %d",
-                               rotatorTicksToDegrees(lastRotatorPosition), lastRotatorPosition);
+                                  rotatorTicksToDegrees(lastRotatorPosition), lastRotatorPosition);
                         haveReadRotatorPositionAtLeastOnce = true;
                     }
                     savePositionsToEEPROM = true;
                 }
             }
-        } else {
+        }
+        else
+        {
             LOG_DEBUG("Rotating");
         }
     }
 
 
-    if (savePositionsToEEPROM) {
+    if (savePositionsToEEPROM)
+    {
         saveToEEPROM();
     }
     SetTimer(POLLMS);
@@ -640,11 +707,14 @@ bool Integra::AbortFocuser()
 bool Integra::stopMotor(MotorType type)
 {
     // TODO (if focuser?) handle CR 2
-    if (integraMotorGetCommand(__FUNCTION__, stop_motor,type, nullptr))
+    if (integraMotorGetCommand(__FUNCTION__, stop_motor, type, nullptr))
     {
-        if (type == MOTOR_FOCUS) {
+        if (type == MOTOR_FOCUS)
+        {
             haveReadFocusPositionAtLeastOnce = false;
-        } else {
+        }
+        else
+        {
             haveReadRotatorPositionAtLeastOnce = false;
         }
         return true;
@@ -653,26 +723,37 @@ bool Integra::stopMotor(MotorType type)
     return false;
 }
 
-bool Integra::isMotorMoving(MotorType type) {
+bool Integra::isMotorMoving(MotorType type)
+{
     char res[16] = {0};
-    if ( ! integraGetCommand( __FUNCTION__, is_moving, res)) {
+    if ( ! integraGetCommand( __FUNCTION__, is_moving, res))
+    {
         return false;
     }
-    if (type == MOTOR_FOCUS) {
-        if (res[0] == '1') {
+    if (type == MOTOR_FOCUS)
+    {
+        if (res[0] == '1')
+        {
             LOG_DEBUG("Focus motor is running");
             return true;
-        } else {
+        }
+        else
+        {
             LOG_DEBUG("Focus motor is not running");
             return false;
         }
-    } else {
+    }
+    else
+    {
         // bug, both motors return 1 at res[0] when running
         //  return (res[0] == '2');
-        if (res[0] == '1') {
+        if (res[0] == '1')
+        {
             LOG_DEBUG("Rotator motor is running");
             return true;
-        } else {
+        }
+        else
+        {
             LOG_DEBUG("Rotator motor is not running");
             return false;
         }
@@ -697,7 +778,8 @@ bool Integra::saveToEEPROM()
     return integraGetCommand(__FUNCTION__, EEPROMwrite, nullptr);
 }
 
-bool Integra::getTemperature() {
+bool Integra::getTemperature()
+{
     char res[16] = {0};
     if (integraGetCommand(__FUNCTION__, get_temperature, res ) )
     {
@@ -743,7 +825,7 @@ IPState Integra::MoveRotator(double angle)
     uint32_t p2 = rotatorDegreesToTicks(angle);
 
     LOGF_INFO("MoveRotator from %.2f to %.2f degrees, from position %d to %d ...",
-           rotatorTicksToDegrees(lastRotatorPosition), angle, p1, p2);
+              rotatorTicksToDegrees(lastRotatorPosition), angle, p1, p2);
     bool rc = relativeGotoMotor(MOTOR_ROTATOR, p2 - p1);
     if (rc)
     {
@@ -770,11 +852,16 @@ bool Integra::AbortRotator()
 uint32_t Integra::rotatorDegreesToTicks(double angle)
 {
     uint32_t position = 61802 / 2;
-    if (angle >= 0.0 && angle <= 180.0) {
+    if (angle >= 0.0 && angle <= 180.0)
+    {
         position = (uint32_t) lround(61802.0 - (180.0 - angle) / rotatorDegreesPerTick);
-    } else if (angle > 180 && angle <= 360) {
+    }
+    else if (angle > 180 && angle <= 360)
+    {
         position = (uint32_t) lround(61802.0 - (540.0 - angle) / rotatorDegreesPerTick);
-    } else {
+    }
+    else
+    {
         LOGF_ERROR("%s error: %.2f is out of range", __FUNCTION__, angle);
     }
     return position;
@@ -786,7 +873,8 @@ double Integra::rotatorTicksToDegrees(uint32_t ticks)
     return degrees;
 }
 
-bool Integra::SyncRotator(double angle) {
+bool Integra::SyncRotator(double angle)
+{
     uint32_t position = rotatorDegreesToTicks(angle);
     if ( integraMotorSetCommand(__FUNCTION__, set_motstep, MOTOR_ROTATOR, position, nullptr ))
     {
@@ -801,22 +889,26 @@ bool Integra::ReverseRotator(bool)
     return  integraMotorGetCommand(__FUNCTION__, invert_dir, MOTOR_ROTATOR, nullptr);
 }
 
-bool Integra::integraGetCommand( const char *name,int commandIdx, char *returnValueString ) {
+bool Integra::integraGetCommand( const char *name, int commandIdx, char *returnValueString )
+{
     char cmd[16] = {0};
     snprintf(cmd, 16, "%s", IntegraProtocol[commandIdx].cmd);
-    return genericIntegraCommand(name, cmd , IntegraProtocol[commandIdx].ret[this->firmwareVersion], returnValueString);
+    return genericIntegraCommand(name, cmd, IntegraProtocol[commandIdx].ret[this->firmwareVersion], returnValueString);
 }
 
-bool Integra::integraMotorGetCommand( const char *name,int commandIdx, MotorType motor, char *returnValueString ) {
+bool Integra::integraMotorGetCommand( const char *name, int commandIdx, MotorType motor, char *returnValueString )
+{
     char cmd[16] = {0};
-    snprintf(cmd, 16, IntegraProtocol[commandIdx].cmd, motor+1);
-    return genericIntegraCommand(name, cmd , IntegraProtocol[commandIdx].ret[this->firmwareVersion], returnValueString);
+    snprintf(cmd, 16, IntegraProtocol[commandIdx].cmd, motor + 1);
+    return genericIntegraCommand(name, cmd, IntegraProtocol[commandIdx].ret[this->firmwareVersion], returnValueString);
 }
 
-bool Integra::integraMotorSetCommand(const char *name, int commandIdx, MotorType motor, int value, char *returnValueString ) {
+bool Integra::integraMotorSetCommand(const char *name, int commandIdx, MotorType motor, int value,
+                                     char *returnValueString )
+{
     char cmd[16] = {0};
-    snprintf(cmd, 16, IntegraProtocol[commandIdx].cmd, motor+1, value);
-    return genericIntegraCommand(name, cmd , IntegraProtocol[commandIdx].ret[this->firmwareVersion], returnValueString);
+    snprintf(cmd, 16, IntegraProtocol[commandIdx].cmd, motor + 1, value);
+    return genericIntegraCommand(name, cmd, IntegraProtocol[commandIdx].ret[this->firmwareVersion], returnValueString);
 }
 
 bool Integra::genericIntegraCommand(const char *name, const char *cmd, const char *expectStart, char *returnValueString)
@@ -851,20 +943,22 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
     if (expectStart != nullptr)
     {
         correctRes = strstr(res, expectStart);      // the hw sometimes returns /r or /n at the beginning ot the response
-        if (correctRes == nullptr) {
+        if (correctRes == nullptr)
+        {
             LOGF_ERROR("%s error: invalid response (%s)", name, res);
             return false;
         }
     }
     // check end of result string
-    if (res[nbytes_read-1] != '#')
+    if (res[nbytes_read - 1] != '#')
     {
         LOGF_ERROR("%s error: invalid response 2 (%s)", name, res);
         return false;
     }
-    res[nbytes_read-1] = '\0';  // wipe the #
+    res[nbytes_read - 1] = '\0'; // wipe the #
 
-    if (returnValueString != nullptr && expectStart != nullptr) {
+    if (returnValueString != nullptr && expectStart != nullptr)
+    {
         size_t expectStrlen = strlen(expectStart);
         strcpy(returnValueString, correctRes + expectStrlen);
     }
