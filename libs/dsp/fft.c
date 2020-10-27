@@ -62,7 +62,7 @@ dsp_complex* dsp_fourier_dft(dsp_stream_p stream)
     int *sizes = (int*)malloc(sizeof(int)*stream->dims);
     memcpy (sizes, stream->sizes, sizeof(int)*stream->dims);
     dsp_buffer_reverse(sizes, stream->dims);
-    fftw_plan plan = fftw_plan_r2c(stream->dims, sizes, dft, (fftw_complex*)out, FFTW_ESTIMATE);
+    fftw_plan plan = fftw_plan_dft_r2c(stream->dims, sizes, dft, (fftw_complex*)out, FFTW_ESTIMATE);
     fftw_execute(plan);
     fftw_free(plan);
     fftw_free(dft);
@@ -81,7 +81,7 @@ dsp_t* dsp_fourier_idft(dsp_stream_p stream)
     int *sizes = (int*)malloc(sizeof(int)*stream->dims);
     memcpy (sizes, stream->sizes, sizeof(int)*stream->dims);
     dsp_buffer_reverse(sizes, stream->dims);
-    fftw_plan plan = fftw_plan_c2r(stream->dims, sizes, (fftw_complex*)dft, out, FFTW_BACKWARD, FFTW_ESTIMATE);
+    fftw_plan plan = fftw_plan_dft_c2r(stream->dims, sizes, (fftw_complex*)dft, out, FFTW_ESTIMATE);
     fftw_execute(plan);
     fftw_free(plan);
     free(dft);
