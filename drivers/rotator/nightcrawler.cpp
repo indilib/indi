@@ -201,6 +201,8 @@ bool NightCrawler::initProperties()
 
     setDefaultPollingPeriod(500);
 
+    setDriverInterface(getDriverInterface() | ROTATOR_INTERFACE);
+
     serialConnection->setDefaultBaudRate(Connection::Serial::B_57600);
 
     return true;

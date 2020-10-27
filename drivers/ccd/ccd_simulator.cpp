@@ -106,7 +106,6 @@ bool CCDSim::setupParameters()
     m_PolarDrift = SimulatorSettingsN[SIM_POLARDRIFT].value;
     m_PEPeriod = SimulatorSettingsN[SIM_PE_PERIOD].value;
     m_PEMax = SimulatorSettingsN[SIM_PE_MAX].value;
-    m_RotationCW = SimulatorSettingsN[SIM_ROTATION].value;
     m_TimeFactor = SimulatorSettingsN[SIM_TIME_FACTOR].value;
 
     uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
@@ -161,7 +160,6 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[SIM_POLARDRIFT], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 60, 5, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (minutes)", "%4.1f", 0, 60, 5, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_PE_MAX], "SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 500, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_ROTATION], "SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 10, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_TIME_FACTOR], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 10, 1);
 
     IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, SIM_N, getDeviceName(), "SIMULATOR_SETTINGS",
@@ -637,14 +635,12 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             pprx, ppry, Scalex, Scaley);
 #endif
 
-        double theta = m_RotationCW + 270;
+        double theta = 270;
+        if (!std::isnan(RotatorAngle))
+            theta += RotatorAngle;
         if (pierSide == 1)
             theta -= 180;       // rotate 180 if on East
-
-        if (theta >= 360)
-            theta -= 360;
-        else if (theta <= -360)
-            theta += 360;
+        theta = range360(theta);
 
         // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
         pa = pprx * cos(theta * M_PI / 180.0);

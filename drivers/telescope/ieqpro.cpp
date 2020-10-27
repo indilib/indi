@@ -416,7 +416,13 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     return true;
 
                 case IEQ_GOTO_HOME:
-                    if (driver->gotoHome() == false)
+    		   if (TrackState == SCOPE_PARKED)
+    		   {
+		       LOG_ERROR("Please unpark the mount before issuing any motion commands.");
+        	       return false;
+    		   }
+
+		    if (driver->gotoHome() == false)
                     {
                         HomeSP.s = IPS_ALERT;
                         IDSetSwitch(&HomeSP, nullptr);

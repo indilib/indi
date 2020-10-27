@@ -1,4 +1,5 @@
 %global forgeurl https://github.com/indilib/indi.git
+%define __cmake_in_source_build %{_vpath_builddir}
 
 Name: indi
 Version: 1.8.7.git
