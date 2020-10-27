@@ -254,7 +254,7 @@ DLL_EXPORT dsp_complex* dsp_fourier_dft(dsp_stream_p stream);
 * \return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 */
-DLL_EXPORT dsp_complex* dsp_fourier_idft(dsp_stream_p stream);
+DLL_EXPORT dsp_t* dsp_fourier_idft(dsp_stream_p stream);
 
 /**
 * \brief Obtain a complex number's magnitude
