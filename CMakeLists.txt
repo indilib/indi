@@ -375,7 +375,6 @@ SET(libdsp_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/buffer.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convert.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fft.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/file.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/filters.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/signals.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convolution.c

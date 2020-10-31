@@ -946,33 +946,6 @@ DLL_EXPORT void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq,
 DLL_EXPORT void dsp_modulation_amplitude(dsp_stream_p stream, double samplefreq, double freq);
 
 /**
-* \brief Find stars into the stream
-* \param stream The stream containing stars
-* \param levels The level of thresholding
-* \param min_size Minimum stellar size
-* \param threshold Intensity treshold
-* \param matrix The star shape
-* \return The new dsp_stream_p structure pointer
-*/
-DLL_EXPORT int dsp_align_find_stars(dsp_stream_p stream, int levels, int min_size, float threshold, dsp_stream_p matrix);
-
-/**
-* \brief Find star baselines between 2 streams and extract align informations
-* \param stream1 The first stream
-* \param stream2 The second stream
-* \return The new dsp_align_info structure pointer
-*/
-DLL_EXPORT dsp_align_info* dsp_align_get_baselines(dsp_stream_p stream1, dsp_stream_p stream2);
-
-/**
-* \brief Find offsets between 2 streams and extract align informations
-* \param stream1 The first stream
-* \param stream2 The second stream
-* \return The new dsp_align_info structure pointer
-*/
-DLL_EXPORT dsp_align_info* dsp_align_get_offset(dsp_stream_p stream1, dsp_stream_p stream2);
-
-/**
 * \brief Rotate a stream around an axis and offset
 * \param stream The stream that need rotation
 * \param info The dsp_align_info structure pointer containing the rotation informations
@@ -987,78 +960,6 @@ DLL_EXPORT dsp_stream_p dsp_stream_rotate(dsp_stream_p stream, dsp_align_info *i
 * \return The new dsp_stream_p structure pointer
 */
 DLL_EXPORT dsp_stream_p dsp_stream_scale(dsp_stream_p stream, dsp_align_info *info);
-
-/**
-* \brief Read a FITS file and fill a dsp_stream_p with its content
-* \param filename the file name.
-* \param stretch 1 if the buffer intensities have to be stretched
-* \return The new dsp_stream_p structure pointer
-*/
-DLL_EXPORT dsp_stream_p dsp_file_read_fits(char *filename, int stretch);
-
-/**
-* \brief Write the dsp_stream_p into a FITS file,
-* \param filename the file name.
-* \param bpp the bit depth of the output FITS file.
-* \param stream the input stream to be saved
-*/
-DLL_EXPORT void dsp_file_write_fits(char *filename, int bpp, dsp_stream_p stream);
-
-/**
-* \brief Read a JPEG file and fill a array of dsp_stream_p with its content,
-* each color channel has its own stream in this array and an additional grayscale at end will be added
-* \param filename the file name.
-* \param channels this value will be updated with the channel quantity into the picture.
-* \param stretch 1 if the buffer intensities have to be stretched
-* \return The new dsp_stream_p structure pointers array
-*/
-DLL_EXPORT dsp_stream_p* dsp_file_read_jpeg(char *filename, int *channels, int stretch);
-
-/**
-* \brief Write the stream into a JPEG file,
-* \param filename the file name.
-* \param quality the quality of the output JPEG file 0-100.
-* \param stream the input stream to be saved
-*/
-DLL_EXPORT void dsp_file_write_jpeg(char *filename, int quality, dsp_stream_p stream);
-
-/**
-* \brief Write the components dsp_stream_p array into a JPEG file,
-* \param filename the file name.
-* \param components the number of streams in the array to be used as components 1 or 3.
-* \param quality the quality of the output JPEG file 0-100.
-* \param stream the input stream to be saved
-*/
-DLL_EXPORT void dsp_file_write_jpeg_composite(char *filename, int components, int quality, dsp_stream_p* stream);
-
-/**
-* \brief Convert a bayer pattern dsp_t array into a grayscale array
-* \param src the input buffer
-* \param width the picture width
-* \param height the picture height
-* \return The new dsp_t array
-*/
-DLL_EXPORT dsp_t* dsp_file_bayer_2_gray(dsp_t* src, long int width, long int height);
-
-/**
-* \brief Convert a bayer pattern dsp_t array into a ordered 3 RGB array
-* \param src the input buffer
-* \param red the location of the red pixel within the bayer pattern
-* \param width the picture width
-* \param height the picture height
-* \return The new dsp_t array
-*/
-DLL_EXPORT dsp_t* dsp_file_bayer_2_rgb(dsp_t *src, int red, long int width, long int height);
-
-/**
-* \brief Convert a bayer pattern dsp_t array into a contiguos component array
-* \param src the input buffer
-* \param red the location of the red pixel within the bayer pattern
-* \param width the picture width
-* \param height the picture height
-* \return The new dsp_t array
-*/
-DLL_EXPORT dsp_t* dsp_file_bayer_2_composite(dsp_t *src, int red, long int width, long int height);
 
 /*@}*/
 /*@}*/
