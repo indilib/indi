@@ -580,7 +580,7 @@ DLL_EXPORT void dsp_buffer_removemean(dsp_stream_p stream);
 ({\
     int k;\
     for(k = 0; k < len; k++) {\
-        buf[k] = (buf[k] < min ? min : (buf[k] > max ? max : buf[k]));\
+        buf[k] = (__typeof__(buf[k]))(buf[k] < (__typeof__(buf[k]))min ? (__typeof__(buf[k]))min : (buf[k] > (__typeof__(buf[k]))max ? (__typeof__(buf[k]))max : buf[k]));\
         }\
 })
 
