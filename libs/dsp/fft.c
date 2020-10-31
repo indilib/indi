@@ -58,7 +58,6 @@ dsp_complex* dsp_fourier_dft(dsp_stream_p stream)
     double* dft = (double*)malloc(sizeof(double) * stream->len);
     dsp_complex* out = (dsp_complex*)malloc(sizeof(dsp_complex) * stream->len);
     dsp_buffer_copy(stream->buf, dft, stream->len);
-    int x;
     int *sizes = (int*)malloc(sizeof(int)*stream->dims);
     memcpy (sizes, stream->sizes, sizeof(int)*stream->dims);
     dsp_buffer_reverse(sizes, stream->dims);
