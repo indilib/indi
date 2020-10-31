@@ -251,7 +251,7 @@ dsp_stream_p dsp_stream_scale(dsp_stream_p in, dsp_align_info *info)
     int dims = in->dims;
     if(dims == 0)
         return NULL;
-    int dim, y;
+    int y;
     dsp_stream_p stream = dsp_stream_copy(in);
     dsp_buffer_set(stream, 0);
     stream->parent = in;
@@ -288,7 +288,7 @@ static void* dsp_stream_rotate_th(void* arg)
     dsp_align_info *info = arguments->info;
     int start = cur_th * stream->len / MAX_THREADS;
     int end = Min(stream->len, start + stream->len / MAX_THREADS);
-    int y, d;
+    int y;
     for(y = start; y < end; y++)
     {
         int *pos = dsp_stream_get_position(stream, y);
