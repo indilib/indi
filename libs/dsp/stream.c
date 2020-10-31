@@ -242,6 +242,7 @@ static void* dsp_stream_scale_th(void* arg)
             stream->buf[y] = in->buf[x];
         free(pos);
     }
+    return NULL;
 }
 
 dsp_stream_p dsp_stream_scale(dsp_stream_p in, dsp_align_info *info)
@@ -310,6 +311,7 @@ static void* dsp_stream_rotate_th(void* arg)
         if(x >= 0 && x < in->len)
             stream->buf[y] = in->buf[x];
     }
+    return NULL;
 }
 
 dsp_stream_p dsp_stream_rotate(dsp_stream_p in, dsp_align_info* info)

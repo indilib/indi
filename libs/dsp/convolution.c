@@ -39,6 +39,7 @@ static void* dsp_convolution_convolution_th(void* arg)
     free(pos);
     dsp_stream_free_buffer(matrix);
     dsp_stream_free(matrix);
+    return NULL;
 }
 
 dsp_stream_p dsp_convolution_convolution(dsp_stream_p stream, dsp_stream_p object) {
