@@ -60,6 +60,7 @@ class Manager
     private:
         Convolution *convolution;
         FourierTransform *dft;
+        InverseFourierTransform *idft;
         Spectrum *spectrum;
         Histogram *histogram;
         Wavelets *wavelets;

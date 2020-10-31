@@ -32,7 +32,7 @@
 namespace DSP
 {
 
-FourierTransform::FourierTransform(INDI::DefaultDevice *dev) : Interface(dev, DSP_TRANSFORMATIONS, "DFT", "DFT")
+FourierTransform::FourierTransform(INDI::DefaultDevice *dev) : Interface(dev, DSP_DFT, "DFT", "DFT")
 {
 }
 
@@ -41,6 +41,24 @@ FourierTransform::~FourierTransform()
 }
 
 uint8_t* FourierTransform::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
+{
+    setStream(buf, dims, sizes, bits_per_sample);
+    dsp_complex* dft = dsp_fourier_dft(stream);
+    for(int x = 0; x < stream->len; x++)
+        stream->buf[x] = sqrt(pow(dft[x].real, 2)+pow(dft[x].imaginary, 2));
+    dsp_buffer_stretch(stream->buf, stream->len, 0.0, (bits_per_sample < 0 ? 1.0 : pow(2, bits_per_sample)-1));
+    return getStream();
+}
+
+InverseFourierTransform::InverseFourierTransform(INDI::DefaultDevice *dev) : Interface(dev, DSP_IDFT, "IDFT", "IDFT")
+{
+}
+
+InverseFourierTransform::~InverseFourierTransform()
+{
+}
+
+uint8_t* InverseFourierTransform::Callback(uint8_t *buf, uint32_t dims, int *sizes, int bits_per_sample)
 {
     setStream(buf, dims, sizes, bits_per_sample);
     dsp_fourier_idft(stream);
