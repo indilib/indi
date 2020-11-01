@@ -157,7 +157,7 @@ Correlator::UVCoordinate Correlator::getUVCoordinates()
 {
     UVCoordinate ret;
     double *bl = static_cast<double*>(malloc(sizeof(double)*3));
-    double lst = get_local_sidereal_time(Lon);
+    double lst = get_local_sidereal_time(Lon)*100.0;
     double ha = get_local_hour_angle(lst, RA);
     bl[0] = baseline.x;
     bl[1] = baseline.y;
