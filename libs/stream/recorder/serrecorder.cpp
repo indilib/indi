@@ -42,19 +42,18 @@ namespace INDI
 SER_Recorder::SER_Recorder()
 {
     name = "SER";
-    strncpy(serh.FileID, "LUCAM-RECORDER", 14);
-    strncpy(serh.Observer, "                        Unknown Observer", 40);
-    strncpy(serh.Instrume, "                      Unknown Instrument", 40);
-    strncpy(serh.Telescope, "                       Unknown Telescope", 40);
+    strncpy(serh.FileID, "INDI-RECORDER", 14);
+    strncpy(serh.Observer, "Unknown Observer", 40);
+    strncpy(serh.Instrume, "Unknown Instrument", 40);
+    strncpy(serh.Telescope, "Unknown Telescope", 40);
     serh.LuID = 0;
     serh.PixelDepth = 8;
     number_of_planes = 1;
-    if (is_little_endian())
-        serh.LittleEndian = SER_LITTLE_ENDIAN;
-    else
-        serh.LittleEndian = SER_BIG_ENDIAN;
+    // JM 2020-11-06: It appears we must always set it to BIG_ENDIAN since this is how astro-processing software
+    // always default to. LITTLE_ENDIAN appears to be ignored by them leading to garbled data.
+    serh.LittleEndian = SER_BIG_ENDIAN;
     isRecordingActive = false;
-    f                 = nullptr;
+    f = nullptr;
 
     jpegBuffer = static_cast<uint8_t*>(malloc(1));
 }
@@ -74,14 +73,14 @@ bool SER_Recorder::is_little_endian()
 void SER_Recorder::write_int_le(uint32_t *i)
 {
     if (is_little_endian())
-        fwrite((const void *)(i), sizeof(uint32_t), 1, f);
+        fwrite((i), sizeof(uint32_t), 1, f);
     else
     {
         unsigned char *c = (unsigned char *)i;
-        fwrite((const void *)(c + 3), sizeof(char), 1, f);
-        fwrite((const void *)(c + 2), sizeof(char), 1, f);
-        fwrite((const void *)(c + 1), sizeof(char), 1, f);
-        fwrite((const void *)(c), sizeof(char), 1, f);
+        fwrite((c + 3), sizeof(char), 1, f);
+        fwrite((c + 2), sizeof(char), 1, f);
+        fwrite((c + 1), sizeof(char), 1, f);
+        fwrite((c), sizeof(char), 1, f);
     }
 }
 
@@ -89,8 +88,8 @@ void SER_Recorder::write_long_int_le(uint64_t *i)
 {
     if (is_little_endian())
     {
-        fwrite((const void *)((uint32_t *)i), sizeof(int), 1, f);
-        fwrite((const void *)((uint32_t *)(i) + 1), sizeof(int), 1, f);
+        fwrite(((uint32_t *)i), sizeof(int), 1, f);
+        fwrite(((uint32_t *)(i) + 1), sizeof(int), 1, f);
     }
     else
     {
@@ -101,7 +100,7 @@ void SER_Recorder::write_long_int_le(uint64_t *i)
 
 void SER_Recorder::write_header(ser_header *s)
 {
-    fwrite((const void *)(s->FileID), sizeof(char), 14, f);
+    fwrite((s->FileID), sizeof(char), 14, f);
     write_int_le(&(s->LuID));
     write_int_le(&(s->ColorID));
     write_int_le(&(s->LittleEndian));
@@ -109,9 +108,9 @@ void SER_Recorder::write_header(ser_header *s)
     write_int_le(&(s->ImageHeight));
     write_int_le(&(s->PixelDepth));
     write_int_le(&(s->FrameCount));
-    fwrite((const void *)(s->Observer), sizeof(char), 40, f);
-    fwrite((const void *)(s->Instrume), sizeof(char), 40, f);
-    fwrite((const void *)(s->Telescope), sizeof(char), 40, f);
+    fwrite((s->Observer), sizeof(char), 40, f);
+    fwrite((s->Instrume), sizeof(char), 40, f);
+    fwrite((s->Telescope), sizeof(char), 40, f);
     write_long_int_le(&(s->DateTime));
     write_long_int_le(&(s->DateTime_UTC));
 }
