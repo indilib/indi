@@ -157,11 +157,11 @@ class StreamManager
         }
         bool isRecording()
         {
-            return m_isRecording;
+            return m_isRecording && !m_isRecordingAboutToClose;
         }
         bool isBusy()
         {
-            return (isStreaming() || isRecording());
+            return (m_isStreaming || m_isRecording);
         }
         double getTargetFPS()
         {
@@ -268,8 +268,9 @@ class StreamManager
         INumberVectorProperty LimitsNP;
         enum { LIMITS_BUFFER_MAX, LIMITS_PREVIEW_FPS };
 
-        bool m_isStreaming { false };
-        bool m_isRecording { false };
+        std::atomic<bool> m_isStreaming { false };
+        std::atomic<bool> m_isRecording { false };
+        std::atomic<bool> m_isRecordingAboutToClose { false };
         bool m_hasStreamingExposure { true };
 
         uint32_t m_RecordingFrameTotal {0};

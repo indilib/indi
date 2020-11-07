@@ -265,6 +265,13 @@ bool StreamManager::updateProperties()
  * Binned frame must be sent from the camera driver for this to work consistentaly for all drivers.*/
 void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 {
+    // close the data stream on the same thread as the data stream
+    if (m_isRecordingAboutToClose)
+    {
+        stopRecording();
+        return;
+    }
+
     if (StreamExposureN[STREAM_DIVISOR].value > 1
             && (m_FPSAverage.totalFrames() % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
         return;
@@ -509,8 +516,8 @@ bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double
     if ((RecordStreamSP.sp[RECORD_TIME].s == ISS_ON) && (m_RecordingFrameDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
     {
         LOGF_INFO("Ending record after %g millisecs", m_RecordingFrameDuration);
-        stopRecording();
-        IUResetSwitch(&RecordStreamSP);
+        m_isRecordingAboutToClose = true;
+        RecordStreamSP.sp[RECORD_TIME].s = ISS_OFF;
         RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
         RecordStreamSP.s = IPS_IDLE;
         IDSetSwitch(&RecordStreamSP, nullptr);
@@ -520,7 +527,7 @@ bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double
     if ((RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON) && (m_RecordingFrameTotal >= (RecordOptionsNP.np[1].value)))
     {
         LOGF_INFO("Ending record after %d frames", m_RecordingFrameTotal);
-        stopRecording();
+        m_isRecordingAboutToClose = true;
         RecordStreamSP.sp[RECORD_FRAME].s = ISS_OFF;
         RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
         RecordStreamSP.s = IPS_IDLE;
@@ -728,6 +735,7 @@ bool StreamManager::stopRecording(bool force)
 {
     if (!m_isRecording && force == false)
         return true;
+
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         if (!m_isStreaming)
@@ -740,6 +748,7 @@ bool StreamManager::stopRecording(bool force)
 
     }
 
+    m_isRecordingAboutToClose = false;
     m_isRecording = false;
     recorder->close();
 
