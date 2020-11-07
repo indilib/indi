@@ -85,6 +85,17 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
 
 StreamManager::~StreamManager()
 {
+    {
+        std::lock_guard<std::mutex> lock(m_framesMutex);
+        if (m_framesThread.joinable())
+        {
+            m_framesThreadTerminate = true;
+            m_framesBuffer.clear();
+            m_framesIncoming.notify_all();
+            m_framesThread.join();
+        }
+    }
+
     delete (recorderManager);
     delete (encoderManager);
     delete [] gammaLUT_16_8;
