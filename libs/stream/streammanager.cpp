@@ -1112,7 +1112,7 @@ void StreamManager::getStreamFrame(uint16_t * x, uint16_t * y, uint16_t * w, uin
 
 bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 {
-// Send as is, already encoded.
+    // Send as is, already encoded.
     if (m_PixelFormat == INDI_JPG)
     {
         // Upload to client now
