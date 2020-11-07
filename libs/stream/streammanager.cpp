@@ -85,15 +85,15 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
 
 StreamManager::~StreamManager()
 {
+    if (m_framesThread.joinable())
     {
-        std::lock_guard<std::mutex> lock(m_framesMutex);
-        if (m_framesThread.joinable())
         {
+            std::lock_guard<std::mutex> lock(m_framesMutex);
             m_framesThreadTerminate = true;
             m_framesBuffer.clear();
             m_framesIncoming.notify_all();
-            m_framesThread.join();
         }
+        m_framesThread.join();
     }
 
     delete (recorderManager);
