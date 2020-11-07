@@ -23,6 +23,7 @@
 #pragma once
 
 #include "indidevapi.h"
+#include "fpsmeter.h"
 #include "recorder/recordermanager.h"
 #include "encoder/encodermanager.h"
 
@@ -288,8 +289,8 @@ class StreamManager
         EncoderInterface *encoder = nullptr;
 
         // Measure FPS
-        struct itimerval tframe1, tframe2;
-        uint32_t mssum = 0, m_FrameCounterPerSecond = 0;
+        FPSMeter m_FPSAverage;
+        FPSMeter m_FPSFast;
 
         INDI_PIXEL_FORMAT m_PixelFormat = INDI_MONO;
         uint8_t m_PixelDepth = 8;

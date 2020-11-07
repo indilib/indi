@@ -62,6 +62,9 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
     signal(SIGALRM, SIG_IGN); //portable
     setitimer(ITIMER_REAL, &fpssettings, nullptr);
 
+    m_FPSAverage.setTimeWindow(1000);
+    m_FPSFast.setTimeWindow(50);
+
     recorderManager = new RecorderManager();
     recorder    = recorderManager->getDefaultRecorder();
     direct_record = false;
@@ -239,41 +242,23 @@ bool StreamManager::updateProperties()
  * Binned frame must be sent from the camera driver for this to work consistentaly for all drivers.*/
 void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 {
-    m_FrameCounterPerSecond += 1;
     if (StreamExposureN[STREAM_DIVISOR].value > 1
-            && (m_FrameCounterPerSecond % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
+            && (m_FPSAverage.totalFrames() % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
         return;
 
-    double ms1, ms2, deltams;
-    // Measure FPS
-    getitimer(ITIMER_REAL, &tframe2);
-    ms1 = (1000.0 * tframe1.it_value.tv_sec) + (tframe1.it_value.tv_usec / 1000.0);
-    ms2 = (1000.0 * tframe2.it_value.tv_sec) + (tframe2.it_value.tv_usec / 1000.0);
-    if (ms2 > ms1)
-        deltams = ms2 - ms1;
-    else
-        deltams = ms1 - ms2;
-
-    tframe1 = tframe2;
-    mssum += deltams;
-
-    double newFPS = 1000.0 / deltams;
-    if (mssum >= 1000.0)
+    if (m_FPSAverage.newFrame())
     {
-        FpsN[1].value = (m_FrameCounterPerSecond * 1000.0) / mssum;
-        mssum         = 0;
-        m_FrameCounterPerSecond = 0;
+        FpsN[1].value = m_FPSAverage.framesPerSecond();
     }
 
-    // Only send FPS when there is a substancial update
-    if (fabs(newFPS - FpsN[0].value) > 1 || m_FrameCounterPerSecond == 0)
+    if (m_FPSFast.newFrame())
     {
-        FpsN[0].value = newFPS;
+        FpsN[0].value = m_FPSFast.framesPerSecond();
         IDSetNumber(&FpsNP, nullptr);
     }
 
     //if (m_isStreaming)
-    std::thread(&StreamManager::asyncStream, this, buffer, nbytes, deltams).detach();
+    std::thread(&StreamManager::asyncStream, this, buffer, nbytes, m_FPSAverage.deltaTime()).detach();
     // JM 2020-03-07: Temporarily disable threading for recording until
     // callback file descriptor looping issue is figured out.
     //    else if (m_isRecording)
@@ -614,9 +599,9 @@ bool StreamManager::startRecording()
     m_RecordingFrameDuration   = 0.0;
     m_RecordingFrameTotal = 0;
 
-    getitimer(ITIMER_REAL, &tframe1);
-    mssum         = 0;
-    m_FrameCounterPerSecond = 0;
+    m_FPSAverage.reset();
+    m_FPSFast.reset();
+
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         if (m_isStreaming == false && dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
@@ -917,9 +902,9 @@ bool StreamManager::setStream(bool enable)
             LOGF_INFO("Starting the video stream with target exposure %.6f s (Max theoritical FPS %.f)", StreamExposureN[0].value,
                       1 / StreamExposureN[0].value);
 
-            getitimer(ITIMER_REAL, &tframe1);
-            mssum         = 0;
-            m_FrameCounterPerSecond = 0;
+            m_FPSAverage.reset();
+            m_FPSFast.reset();
+            
             if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
             {
                 if (dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
