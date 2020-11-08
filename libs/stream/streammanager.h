@@ -273,9 +273,6 @@ class StreamManager
         std::atomic<bool> m_isRecordingAboutToClose { false };
         bool m_hasStreamingExposure { true };
 
-        uint32_t m_RecordingFrameTotal {0};
-        double m_RecordingFrameDuration {0};
-
         // Recorder
         RecorderManager *recorderManager = nullptr;
         RecorderInterface *recorder = nullptr;
@@ -290,6 +287,7 @@ class StreamManager
         FPSMeter m_FPSAverage;
         FPSMeter m_FPSFast;
         FPSMeter m_FPSPreview;
+        FPSMeter m_FPSRecorder;
 
         INDI_PIXEL_FORMAT m_PixelFormat = INDI_MONO;
         uint8_t m_PixelDepth = 8;
@@ -307,6 +305,7 @@ class StreamManager
         std::list<TimeFrame>     m_framesBuffer;   // buffer for incoming frames
         std::condition_variable  m_framesIncoming; // wakeup thread, new frames in framesBuffer
         std::atomic<bool>        m_framesThreadTerminate;
+        std::condition_variable  m_framesBufferEmpty;
 
         std::mutex m_recordMutex;
 
