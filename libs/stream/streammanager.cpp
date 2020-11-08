@@ -266,6 +266,7 @@ bool StreamManager::updateProperties()
 void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 {
     // close the data stream on the same thread as the data stream
+    // manually triggered to stop recording.
     if (m_isRecordingAboutToClose)
     {
         stopRecording();
@@ -304,6 +305,39 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         m_framesBuffer.push_back(TimeFrame{m_FPSFast.deltaTime(), std::move(copyBuffer)}); // add copy of frame to queue
         m_framesIncoming.notify_all();
     }
+
+    if (isRecording())
+    {
+        m_FPSRecorder.newFrame(); // count frames and total time
+
+        // captured all frames, stream should be close
+        if (
+            (RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON && m_FPSRecorder.totalFrames() >= (RecordOptionsNP.np[1].value)) ||
+            (RecordStreamSP.sp[RECORD_TIME].s  == ISS_ON && m_FPSRecorder.totalTime()   >= (RecordOptionsNP.np[0].value * 1000.0))
+        )
+        {
+            LOG_INFO("Waiting for all buffered frames to be recorded");
+            {
+                std::unique_lock<std::mutex> lock(m_framesMutex);
+                m_framesBufferEmpty.wait(lock, [&](){ return m_framesBuffer.size() == 0; });
+            }
+            // duplicated message
+#if 0
+            LOGF_INFO(
+                "Ending record after %g millisecs and %d frames",
+                m_FPSRecorder.totalTime(),
+                m_FPSRecorder.totalFrames()
+            );
+#endif
+            RecordStreamSP.sp[RECORD_TIME].s  = ISS_OFF;
+            RecordStreamSP.sp[RECORD_FRAME].s = ISS_OFF;
+            RecordStreamSP.sp[RECORD_OFF].s   = ISS_ON;
+            RecordStreamSP.s = IPS_IDLE;
+            IDSetSwitch(&RecordStreamSP, nullptr);
+
+            stopRecording();
+        }
+    }
 }
 
 void StreamManager::asyncStreamThread()
@@ -325,10 +359,16 @@ void StreamManager::asyncStreamThread()
             std::unique_lock<std::mutex> lock(m_framesMutex);
 
             if (m_framesBuffer.size() == 0)
+            {
+                m_framesBufferEmpty.notify_all();
                 m_framesIncoming.wait(lock);
+            }
 
             if (m_framesBuffer.size() == 0)
+            {
+                m_framesBufferEmpty.notify_all();
                 continue;
+            }
 
             std::swap(sourceTimeFrame, m_framesBuffer.front());
             m_framesBuffer.pop_front();
@@ -507,39 +547,11 @@ bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelD
 
 bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double deltams)
 {
+    INDI_UNUSED(deltams);
     if (!m_isRecording)
         return false;
 
-    bool rc = recorder->writeFrame(buffer, nbytes);
-    if (rc == false)
-        return rc;
-
-    m_RecordingFrameDuration += deltams;
-    m_RecordingFrameTotal += 1;
-
-    if ((RecordStreamSP.sp[RECORD_TIME].s == ISS_ON) && (m_RecordingFrameDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
-    {
-        LOGF_INFO("Ending record after %g millisecs", m_RecordingFrameDuration);
-        m_isRecordingAboutToClose = true;
-        RecordStreamSP.sp[RECORD_TIME].s = ISS_OFF;
-        RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
-        RecordStreamSP.s = IPS_IDLE;
-        IDSetSwitch(&RecordStreamSP, nullptr);
-        return true;
-    }
-
-    if ((RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON) && (m_RecordingFrameTotal >= (RecordOptionsNP.np[1].value)))
-    {
-        LOGF_INFO("Ending record after %d frames", m_RecordingFrameTotal);
-        m_isRecordingAboutToClose = true;
-        RecordStreamSP.sp[RECORD_FRAME].s = ISS_OFF;
-        RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
-        RecordStreamSP.s = IPS_IDLE;
-        IDSetSwitch(&RecordStreamSP, nullptr);
-        return true;
-    }
-
-    return true;
+    return recorder->writeFrame(buffer, nbytes);
 }
 
 int StreamManager::mkpath(std::string s, mode_t mode)
@@ -703,8 +715,7 @@ bool StreamManager::startRecording()
             recorder->setDefaultColor();
     }
 #endif
-    m_RecordingFrameDuration   = 0.0;
-    m_RecordingFrameTotal = 0;
+    m_FPSRecorder.reset();
 
     if (m_isStreaming == false)
     {
@@ -766,8 +777,11 @@ bool StreamManager::stopRecording(bool force)
     if (force)
         return false;
 
-    LOGF_INFO("Record Duration(millisec): %g -- Frame count: %d", m_RecordingFrameDuration,
-              m_RecordingFrameTotal);
+    LOGF_INFO(
+        "Record Duration: %g millisec / %d frames",
+        m_FPSRecorder.totalTime(),
+        m_FPSRecorder.totalFrames()
+    );
 
     return true;
 }
@@ -840,7 +854,7 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
             FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
             if (m_isRecording)
             {
-                LOGF_INFO("Recording stream has been disabled. Frame count %d", m_RecordingFrameTotal);
+                LOG_INFO("Recording stream has been disabled. Closing the stream...");
                 m_isRecordingAboutToClose = true;
             }
         }
