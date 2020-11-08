@@ -68,6 +68,13 @@ public:
      */
     uint64_t totalFrames() const;
 
+    /**
+     * @brief Total time
+     * @return Total time of counted frames
+     */
+    double totalTime() const;
+
+
 
 public:
     /**
@@ -85,6 +92,8 @@ private:
     
     double mFramesPerSecond = 0;
 
+    double mTotalTime = 0;
     uint64_t mTotalFrames = 0;
+
 };
 }

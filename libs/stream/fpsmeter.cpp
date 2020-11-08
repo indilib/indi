@@ -36,7 +36,11 @@ bool FPSMeter::newFrame()
     
     ++mTotalFrames;
     ++mFramesPerElapsedTime;
-    mElapsedTime += deltaTime();
+
+    double dt = deltaTime();
+
+    mElapsedTime += dt;
+    mTotalTime   += dt;
 
     if (mElapsedTime >= mTimeWindow)
     {            
@@ -74,6 +78,11 @@ uint64_t FPSMeter::totalFrames() const
     return mTotalFrames;
 }
 
+double FPSMeter::totalTime() const
+{
+    return mTotalTime;
+}
+
 void FPSMeter::reset()
 {
     mFramesPerElapsedTime = 0;
@@ -82,6 +91,7 @@ void FPSMeter::reset()
     mFrameTime2 = 0;
     mFramesPerSecond = 0;
     mTotalFrames = 0;
+    mTotalTime = 0;
 }
 
 
