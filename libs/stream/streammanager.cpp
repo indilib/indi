@@ -285,7 +285,8 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
     if (m_FPSFast.newFrame())
     {
         FpsN[0].value = m_FPSFast.framesPerSecond();
-        IDSetNumber(&FpsNP, nullptr);
+        if (m_fastFPSUpdate.try_lock()) // don't block stream thread / record thread
+            std::thread([&](){ IDSetNumber(&FpsNP, nullptr); m_fastFPSUpdate.unlock(); }).detach();
     }
 
     if (isStreaming() || isRecording())

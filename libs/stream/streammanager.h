@@ -307,6 +307,8 @@ class StreamManager
         std::atomic<bool>        m_framesThreadTerminate;
         std::condition_variable  m_framesBufferEmpty;
 
+        std::mutex               m_fastFPSUpdate;
+
         std::mutex m_recordMutex;
 
         uint8_t *gammaLUT_16_8 = nullptr;
