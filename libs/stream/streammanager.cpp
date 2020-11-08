@@ -273,10 +273,6 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         return;
     }
 
-    if (StreamExposureN[STREAM_DIVISOR].value > 1
-            && (m_FPSAverage.totalFrames() % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
-        return;
-
     if (m_FPSAverage.newFrame())
     {
         FpsN[1].value = m_FPSAverage.framesPerSecond();
@@ -288,6 +284,10 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         if (m_fastFPSUpdate.try_lock()) // don't block stream thread / record thread
             std::thread([&](){ IDSetNumber(&FpsNP, nullptr); m_fastFPSUpdate.unlock(); }).detach();
     }
+
+    if (StreamExposureN[STREAM_DIVISOR].value > 1
+            && (m_FPSAverage.totalFrames() % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
+        return;
 
     if (isStreaming() || isRecording())
     {
