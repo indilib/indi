@@ -308,9 +308,8 @@ class StreamManager
         std::condition_variable  m_framesIncoming; // wakeup thread, new frames in framesBuffer
         std::atomic<bool>        m_framesThreadTerminate;
 
+        std::mutex m_recordMutex;
 
         uint8_t *gammaLUT_16_8 = nullptr;
-
-        std::mutex recordMutex;
 };
 }

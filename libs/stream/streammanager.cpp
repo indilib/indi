@@ -289,6 +289,8 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
     if (isStreaming() || isRecording())
     {
+        std::vector<uint8_t> copyBuffer(buffer, buffer + nbytes);
+
         std::lock_guard<std::mutex> lock(m_framesMutex);
         if (m_framesBuffer.size() > 0)
         {
@@ -299,7 +301,7 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
                 return;
             }
         }
-        m_framesBuffer.push_back(std::move(TimeFrame{m_FPSFast.deltaTime(), std::vector<uint8_t>{buffer, buffer + nbytes}})); // add copy to queue
+        m_framesBuffer.push_back(TimeFrame{m_FPSFast.deltaTime(), std::move(copyBuffer)}); // add copy of frame to queue
         m_framesIncoming.notify_all();
     }
 }
@@ -400,14 +402,15 @@ void StreamManager::asyncStreamThread()
             nbytes = frameW * frameH * components * bytesPerPixel;
         }
 
-        // For recording, save immediately.
-        #if 1
-        if (isRecording() && recordStream(sourceBufferData, nbytes, sourceTimeFrame.time) == false)
         {
-            LOG_ERROR("Recording failed.");
-            stopRecording(true);
+            std::lock_guard<std::mutex> lock(m_recordMutex);
+            // For recording, save immediately.
+            if (isRecording() && recordStream(sourceBufferData, nbytes, sourceTimeFrame.time) == false)
+            {
+                LOG_ERROR("Recording failed.");
+                m_isRecordingAboutToClose = true;
+            }
         }
-        #endif
 
         // For streaming, downscale to 8bit if higher than 8bit to reduce bandwidth
         // You can reduce the number of frames by setting a frame limit.
@@ -469,6 +472,7 @@ void StreamManager::setSize(uint16_t width, uint16_t height)
 
 bool StreamManager::close()
 {
+    std::lock_guard<std::mutex> lock(m_recordMutex);
     return recorder->close();
 }
 
@@ -702,8 +706,11 @@ bool StreamManager::startRecording()
     m_RecordingFrameDuration   = 0.0;
     m_RecordingFrameTotal = 0;
 
-    m_FPSAverage.reset();
-    m_FPSFast.reset();
+    if (m_isStreaming == false)
+    {
+        m_FPSAverage.reset();
+        m_FPSFast.reset();
+    }
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
@@ -748,9 +755,13 @@ bool StreamManager::stopRecording(bool force)
 
     }
 
-    m_isRecordingAboutToClose = false;
     m_isRecording = false;
-    recorder->close();
+    m_isRecordingAboutToClose = false;
+
+    {
+        std::lock_guard<std::mutex> lock(m_recordMutex);
+        recorder->close();
+    }
 
     if (force)
         return false;
@@ -830,7 +841,7 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
             if (m_isRecording)
             {
                 LOGF_INFO("Recording stream has been disabled. Frame count %d", m_RecordingFrameTotal);
-                stopRecording();
+                m_isRecordingAboutToClose = true;
             }
         }
 
