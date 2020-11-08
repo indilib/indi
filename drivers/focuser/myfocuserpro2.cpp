@@ -22,7 +22,7 @@
 */
 
 #include "myfocuserpro2.h"
-
+#include "connectionplugins/connectiontcp.h"
 #include "indicom.h"
 
 #include <cmath>
@@ -79,9 +79,9 @@ MyFocuserPro2::MyFocuserPro2()
                       FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
 
-    setSupportedConnections(CONNECTION_SERIAL);
+    setSupportedConnections(CONNECTION_SERIAL | CONNECTION_TCP);
 
-    setVersion(0, 6);
+    setVersion(0, 7);
 }
 
 bool MyFocuserPro2::initProperties()
@@ -180,9 +180,12 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitch(&GotoHomeS[0], "GOTO_HOME", "Go", ISS_OFF);
     IUFillSwitchVector(&GotoHomeSP, GotoHomeS, 1, getDeviceName(), "Goto Home Position", "", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
-    setPollingPeriodRange(1000, 30000);
 
+    setPollingPeriodRange(1000, 30000);
     setDefaultPollingPeriod(1000);
+
+    tcpConnection->setDefaultHost("192.168.4.1");
+    tcpConnection->setDefaultPort(2020);
 
     return true;
 }
