@@ -363,6 +363,8 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
                 nvp = static_cast<INumberVectorProperty *>(pPtr);
                 if (!strcmp(name, nvp->name))
                 {
+                    if (mediator)
+                        mediator->removeProperty(*orderi);
                     delete *orderi;
                     orderi = pAll.erase(orderi);
                     return 0;
@@ -372,6 +374,8 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
                 tvp = static_cast<ITextVectorProperty *>(pPtr);
                 if (!strcmp(name, tvp->name))
                 {
+                    if (mediator)
+                        mediator->removeProperty(*orderi);
                     delete *orderi;
                     orderi = pAll.erase(orderi);
                     return 0;
@@ -381,6 +385,8 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
                 svp = static_cast<ISwitchVectorProperty *>(pPtr);
                 if (!strcmp(name, svp->name))
                 {
+                    if (mediator)
+                        mediator->removeProperty(*orderi);
                     delete *orderi;
                     orderi = pAll.erase(orderi);
                     return 0;
@@ -390,6 +396,8 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
                 lvp = static_cast<ILightVectorProperty *>(pPtr);
                 if (!strcmp(name, lvp->name))
                 {
+                    if (mediator)
+                        mediator->removeProperty(*orderi);
                     delete *orderi;
                     orderi = pAll.erase(orderi);
                     return 0;
@@ -399,6 +407,8 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
                 bvp = static_cast<IBLOBVectorProperty *>(pPtr);
                 if (!strcmp(name, bvp->name))
                 {
+                    if (mediator)
+                        mediator->removeProperty(*orderi);
                     (*orderi)->setRegistered(false);
                     delete *orderi;
                     orderi = pAll.erase(orderi);

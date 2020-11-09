@@ -1037,7 +1037,7 @@ void LX200Telescope::updateFocusTimer()
     //    }
 
     AbortFocuser();
-    FocusTimerNP.s = IPS_IDLE;
+    FocusTimerNP.s = IPS_OK;
     FocusTimerN[0].value = 0;
     IDSetNumber(&FocusTimerNP, nullptr);
 }
@@ -1202,7 +1202,7 @@ void LX200Telescope::slewError(int slewCode)
     else if (slewCode == 2)
         LOG_ERROR("Object below the minimum elevation limit.");
     else
-        LOG_ERROR("Slew failed.");
+        LOGF_ERROR("Slew failed (%d).", slewCode);
 
     EqNP.s = IPS_ALERT;
     IDSetNumber(&EqNP, nullptr);

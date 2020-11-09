@@ -62,6 +62,9 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
     signal(SIGALRM, SIG_IGN); //portable
     setitimer(ITIMER_REAL, &fpssettings, nullptr);
 
+    m_FPSAverage.setTimeWindow(1000);
+    m_FPSFast.setTimeWindow(50);
+
     recorderManager = new RecorderManager();
     recorder    = recorderManager->getDefaultRecorder();
     direct_record = false;
@@ -74,13 +77,27 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
     encoder->init(currentDevice);
 
     LOGF_DEBUG("Using default encoder (%s)", encoder->getName());
+
+    m_framesThreadTerminate = false;
+    m_framesThread = std::thread(&StreamManager::asyncStreamThread, this);
+
 }
 
 StreamManager::~StreamManager()
 {
+    if (m_framesThread.joinable())
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_framesMutex);
+            m_framesThreadTerminate = true;
+            m_framesBuffer.clear();
+            m_framesIncoming.notify_all();
+        }
+        m_framesThread.join();
+    }
+
     delete (recorderManager);
     delete (encoderManager);
-    delete [] downscaleBuffer;
     delete [] gammaLUT_16_8;
 }
 
@@ -100,14 +117,14 @@ bool StreamManager::initProperties()
     else
         IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.6f", 0.000001, 10, 0.1, 0.1);
+    IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.6f", 0.000001, 60, 0.1, 0.1);
     IUFillNumber(&StreamExposureN[STREAM_DIVISOR], "STREAMING_DIVISOR_VALUE", "Divisor", "%.f", 1, 15, 1, 1);
     IUFillNumberVector(&StreamExposureNP, StreamExposureN, NARRAY(StreamExposureN), getDeviceName(), "STREAMING_EXPOSURE",
                        "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
-    IUFillNumber(&FpsN[FPS_INSTANT], "EST_FPS", "Instant.", "%3.2f", 0.0, 999.0, 0.0, 30);
-    IUFillNumber(&FpsN[FPS_AVERAGE], "AVG_FPS", "Average (1 sec.)", "%3.2f", 0.0, 999.0, 0.0, 30);
+    IUFillNumber(&FpsN[FPS_INSTANT], "EST_FPS", "Instant.", "%.2f", 0.0, 999.0, 0.0, 30);
+    IUFillNumber(&FpsN[FPS_AVERAGE], "AVG_FPS", "Average (1 sec.)", "%.2f", 0.0, 999.0, 0.0, 30);
     IUFillNumberVector(&FpsNP, FpsN, NARRAY(FpsN), getDeviceName(), "FPS", "FPS", STREAM_TAB, IP_RO, 60, IPS_IDLE);
 
     /* Record Frames */
@@ -119,8 +136,8 @@ bool StreamManager::initProperties()
                      STREAM_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Record Options */
-    IUFillNumber(&RecordOptionsN[0], "RECORD_DURATION", "Duration (sec)", "%6.3f", 0.001, 999999.0, 0.0, 1);
-    IUFillNumber(&RecordOptionsN[1], "RECORD_FRAME_TOTAL", "Frames", "%9.0f", 1.0, 999999999.0, 1.0, 30.0);
+    IUFillNumber(&RecordOptionsN[0], "RECORD_DURATION", "Duration (sec)", "%.3f", 0.001, 999999.0, 0.0, 1);
+    IUFillNumber(&RecordOptionsN[1], "RECORD_FRAME_TOTAL", "Frames", "%.f", 1.0, 999999999.0, 1.0, 30.0);
     IUFillNumberVector(&RecordOptionsNP, RecordOptionsN, NARRAY(RecordOptionsN), getDeviceName(), "RECORD_OPTIONS",
                        "Record Options", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -135,10 +152,10 @@ bool StreamManager::initProperties()
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         // CCD Streaming Frame
-        IUFillNumber(&StreamFrameN[0], "X", "Left ", "%4.0f", 0, 0.0, 0, 0);
-        IUFillNumber(&StreamFrameN[1], "Y", "Top", "%4.0f", 0, 0, 0, 0);
-        IUFillNumber(&StreamFrameN[2], "WIDTH", "Width", "%4.0f", 0, 0.0, 0, 0.0);
-        IUFillNumber(&StreamFrameN[3], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0.0);
+        IUFillNumber(&StreamFrameN[0], "X", "Left ", "%.f", 0, 0.0, 0, 0);
+        IUFillNumber(&StreamFrameN[1], "Y", "Top", "%.f", 0, 0, 0, 0);
+        IUFillNumber(&StreamFrameN[2], "WIDTH", "Width", "%.f", 0, 0.0, 0, 0.0);
+        IUFillNumber(&StreamFrameN[3], "HEIGHT", "Height", "%.f", 0, 0, 0, 0.0);
         IUFillNumberVector(&StreamFrameNP, StreamFrameN, 4, getDeviceName(), "CCD_STREAM_FRAME", "Frame", STREAM_TAB, IP_RW,
                            60, IPS_IDLE);
     }
@@ -166,6 +183,12 @@ bool StreamManager::initProperties()
 #ifndef HAVE_THEORA
     RecorderSP.nsp = 1;
 #endif
+
+    // Limits
+    IUFillNumber(&LimitsN[LIMITS_BUFFER_MAX], "LIMITS_BUFFER_MAX", "Maximum Buffer Size (MB)", "%.0f", 1, 1024*64, 1, 512);
+    IUFillNumber(&LimitsN[LIMITS_PREVIEW_FPS], "LIMITS_PREVIEW_FPS", "Maximum Preview FPS", "%.0f", 1, 120, 1, 10);
+    IUFillNumberVector(&LimitsNP, LimitsN, NARRAY(LimitsN), getDeviceName(), "LIMITS",
+                       "Limits", STREAM_TAB, IP_RW, 0, IPS_IDLE);
     return true;
 }
 
@@ -187,6 +210,7 @@ void StreamManager::ISGetProperties(const char * dev)
         currentDevice->defineNumber(&StreamFrameNP);
         currentDevice->defineSwitch(&EncoderSP);
         currentDevice->defineSwitch(&RecorderSP);
+        currentDevice->defineNumber(&LimitsNP);
     }
 }
 
@@ -214,6 +238,7 @@ bool StreamManager::updateProperties()
         currentDevice->defineNumber(&StreamFrameNP);
         currentDevice->defineSwitch(&EncoderSP);
         currentDevice->defineSwitch(&RecorderSP);
+        currentDevice->defineNumber(&LimitsNP);
     }
     else
     {
@@ -227,6 +252,7 @@ bool StreamManager::updateProperties()
         currentDevice->deleteProperty(StreamFrameNP.name);
         currentDevice->deleteProperty(EncoderSP.name);
         currentDevice->deleteProperty(RecorderSP.name);
+        currentDevice->deleteProperty(LimitsNP.name);
     }
 
     return true;
@@ -239,109 +265,214 @@ bool StreamManager::updateProperties()
  * Binned frame must be sent from the camera driver for this to work consistentaly for all drivers.*/
 void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 {
-    m_FrameCounterPerSecond += 1;
-    if (StreamExposureN[STREAM_DIVISOR].value > 1
-            && (m_FrameCounterPerSecond % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
-        return;
-
-    double ms1, ms2, deltams;
-    // Measure FPS
-    getitimer(ITIMER_REAL, &tframe2);
-    ms1 = (1000.0 * tframe1.it_value.tv_sec) + (tframe1.it_value.tv_usec / 1000.0);
-    ms2 = (1000.0 * tframe2.it_value.tv_sec) + (tframe2.it_value.tv_usec / 1000.0);
-    if (ms2 > ms1)
-        deltams = ms2 - ms1;
-    else
-        deltams = ms1 - ms2;
-
-    tframe1 = tframe2;
-    mssum += deltams;
-
-    double newFPS = 1000.0 / deltams;
-    if (mssum >= 1000.0)
+    // close the data stream on the same thread as the data stream
+    // manually triggered to stop recording.
+    if (m_isRecordingAboutToClose)
     {
-        FpsN[1].value = (m_FrameCounterPerSecond * 1000.0) / mssum;
-        mssum         = 0;
-        m_FrameCounterPerSecond = 0;
+        stopRecording();
+        return;
     }
 
-    // Only send FPS when there is a substancial update
-    if (fabs(newFPS - FpsN[0].value) > 1 || m_FrameCounterPerSecond == 0)
+    if (StreamExposureN[STREAM_DIVISOR].value > 1
+            && (m_FPSAverage.totalFrames() % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
+        return;
+
+    if (m_FPSAverage.newFrame())
     {
-        FpsN[0].value = newFPS;
+        FpsN[1].value = m_FPSAverage.framesPerSecond();
+    }
+
+    if (m_FPSFast.newFrame())
+    {
+        FpsN[0].value = m_FPSFast.framesPerSecond();
         IDSetNumber(&FpsNP, nullptr);
     }
 
-    //if (m_isStreaming)
-    std::thread(&StreamManager::asyncStream, this, buffer, nbytes, deltams).detach();
-    // JM 2020-03-07: Temporarily disable threading for recording until
-    // callback file descriptor looping issue is figured out.
-    //    else if (m_isRecording)
-    //        asyncStream(buffer, nbytes, deltams);
-}
-
-void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams)
-{
-    std::lock_guard<std::mutex> guard((currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) ?
-                                      dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock :
-                                      dynamic_cast<INDI::SensorInterface*>(currentDevice)->detectorBufferLock);
-
-    // For recording, save immediately.
-    if (isRecording() && recordStream(buffer, nbytes, deltams) == false)
+    if (isStreaming() || isRecording())
     {
-        LOG_ERROR("Recording failed.");
-        stopRecording(true);
-        return;
+        std::vector<uint8_t> copyBuffer(buffer, buffer + nbytes);
+
+        std::lock_guard<std::mutex> lock(m_framesMutex);
+        if (m_framesBuffer.size() > 0)
+        {
+            uint32_t allocated = m_framesBuffer.size() * m_framesBuffer.front().frame.size() / 1024 / 1024; // MB
+            if (allocated > LimitsN[LIMITS_BUFFER_MAX].value)
+            {
+                LOG_WARN("Frame buffer is full, skipping frame...");
+                return;
+            }
+        }
+        m_framesBuffer.push_back(TimeFrame{m_FPSFast.deltaTime(), std::move(copyBuffer)}); // add copy of frame to queue
+        m_framesIncoming.notify_all();
     }
 
-    // For streaming, downscale to 8bit if higher than 8bit to reduce bandwidth
-    // When recording is active, send 1 frame every X recorded frames so that the streaming
-    // operation does not adversely affects the recording performance.
-    if (isStreaming())
+    if (isRecording())
     {
-        // N.B. Send one stream frame per 10 recorded frames
-        // The 10 values needs to be fine-tuned and probably set as configurable
-        if (isRecording() && m_RecordingFrameTotal > 0 && ( (m_RecordingFrameTotal - 1) % 10) != 0)
-            return;
+        m_FPSRecorder.newFrame(); // count frames and total time
 
-        // Downscale to 8bit always for streaming to reduce bandwidth
-        if (m_PixelDepth > 8)
+        // captured all frames, stream should be close
+        if (
+            (RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON && m_FPSRecorder.totalFrames() >= (RecordOptionsNP.np[1].value)) ||
+            (RecordStreamSP.sp[RECORD_TIME].s  == ISS_ON && m_FPSRecorder.totalTime()   >= (RecordOptionsNP.np[0].value * 1000.0))
+        )
         {
-            uint32_t npixels = 0;
-            if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
+            LOG_INFO("Waiting for all buffered frames to be recorded");
             {
-                npixels = (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>
-                           (currentDevice)->PrimaryCCD.getBinX()) * (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() /
-                                   dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+                std::unique_lock<std::mutex> lock(m_framesMutex);
+                m_framesBufferEmpty.wait(lock, [&](){ return m_framesBuffer.size() == 0; });
             }
-            else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
-            {
-                npixels = nbytes * 8 / dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBPS();
-            }
+            // duplicated message
+#if 0
+            LOGF_INFO(
+                "Ending record after %g millisecs and %d frames",
+                m_FPSRecorder.totalTime(),
+                m_FPSRecorder.totalFrames()
+            );
+#endif
+            RecordStreamSP.sp[RECORD_TIME].s  = ISS_OFF;
+            RecordStreamSP.sp[RECORD_FRAME].s = ISS_OFF;
+            RecordStreamSP.sp[RECORD_OFF].s   = ISS_ON;
+            RecordStreamSP.s = IPS_IDLE;
+            IDSetSwitch(&RecordStreamSP, nullptr);
 
-            // Allocale new buffer if size changes
-            if (downscaleBufferSize != npixels)
-            {
-                downscaleBufferSize = npixels;
-                delete [] downscaleBuffer;
-                downscaleBuffer = new uint8_t[npixels];
-            }
-
-            const uint16_t * srcBuffer = reinterpret_cast<const uint16_t *>(buffer);
-
-            // Apply gamma
-            for (uint32_t i = 0; i < npixels; i++)
-                downscaleBuffer[i] = gammaLUT_16_8[srcBuffer[i]];
-
-            nbytes /= 2;
-
-            uploadStream(downscaleBuffer, nbytes);
+            stopRecording();
         }
-        else if (uploadStream(buffer, nbytes) == false)
+    }
+}
+
+void StreamManager::asyncStreamThread()
+{
+    TimeFrame sourceTimeFrame;
+    sourceTimeFrame.time = 0;
+
+    std::vector<uint8_t> subframeBuffer;  // Subframe buffer for recording/streaming
+    std::vector<uint8_t> downscaleBuffer; // Downscale buffer for streaming
+
+    double &frameW = StreamFrameN[CCDChip::FRAME_W].value;
+    double &frameH = StreamFrameN[CCDChip::FRAME_H].value;
+    double &frameX = StreamFrameN[CCDChip::FRAME_X].value;
+    double &frameY = StreamFrameN[CCDChip::FRAME_Y].value;
+
+    while(!m_framesThreadTerminate)
+    {
         {
-            LOG_ERROR("Streaming failed.");
-            setStream(false);
-            return;
+            std::unique_lock<std::mutex> lock(m_framesMutex);
+
+            if (m_framesBuffer.size() == 0)
+            {
+                m_framesBufferEmpty.notify_all();
+                m_framesIncoming.wait(lock);
+            }
+
+            if (m_framesBuffer.size() == 0)
+            {
+                m_framesBufferEmpty.notify_all();
+                continue;
+            }
+
+            std::swap(sourceTimeFrame, m_framesBuffer.front());
+            m_framesBuffer.pop_front();
+        }
+
+        const uint8_t *sourceBufferData = sourceTimeFrame.frame.data();
+        uint32_t nbytes                 = sourceTimeFrame.frame.size();
+
+#if 1 // TODO move above the loop
+        int subX = 0, subY = 0, subW = 0, subH = 0;
+        uint32_t npixels = 0;
+        uint8_t components = (m_PixelFormat == INDI_RGB) ? 3 : 1;
+        uint8_t bytesPerPixel = (m_PixelDepth + 7) / 8;
+
+        if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
+        {
+            INDI::CCD * ccd = dynamic_cast<INDI::CCD*>(currentDevice);
+            subX = ccd->PrimaryCCD.getSubX() / ccd->PrimaryCCD.getBinX();
+            subY = ccd->PrimaryCCD.getSubY() / ccd->PrimaryCCD.getBinY();
+            subW = ccd->PrimaryCCD.getSubW() / ccd->PrimaryCCD.getBinX();
+            subH = ccd->PrimaryCCD.getSubH() / ccd->PrimaryCCD.getBinY();
+            npixels = subW * subH * components;
+        }
+        else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
+        {
+            INDI::SensorInterface* si = dynamic_cast<INDI::SensorInterface*>(currentDevice);
+            subX = 0;
+            subY = 0;
+            subW = si->getBufferSize() * 8 / si->getBPS();
+            subH = 1;
+            npixels = nbytes * 8 / si->getBPS();
+        }
+
+        // If stream frame was not yet initilized, let's do that now
+        if (frameW == 0 || frameH == 0)
+        {
+            //if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
+            //    binFactor = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
+            frameX = subX;
+            frameY = subY;
+            frameW = subW;
+            frameH = subH;
+            StreamFrameNP.s = IPS_IDLE;
+            IDSetNumber(&StreamFrameNP, nullptr);
+        }
+#endif
+
+        // Check if we need to subframe
+        if (
+            (m_PixelFormat != INDI_JPG) &&
+            (frameW > 0 && frameH > 0) &&
+            (frameX != subX || frameY != subY || frameW != subW || frameH != subH))
+        {
+            npixels = frameW * frameH * components;
+
+            subframeBuffer.resize(npixels * bytesPerPixel);
+
+            uint32_t srcOffset = components * bytesPerPixel * (frameY * subW + frameX);
+
+            const uint8_t * srcBuffer = sourceBufferData + srcOffset;
+            uint32_t        srcStride = components * bytesPerPixel * subW;
+
+            uint8_t *       dstBuffer = subframeBuffer.data();
+            uint32_t        dstStride = components * bytesPerPixel * frameW;
+
+            // Copy line-by-line
+            for (int i = 0; i < frameH; ++i)
+                memcpy(dstBuffer + i * dstStride, srcBuffer + srcStride * i, dstStride);
+
+            sourceBufferData = dstBuffer;
+            nbytes = frameW * frameH * components * bytesPerPixel;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(m_recordMutex);
+            // For recording, save immediately.
+            if (isRecording() && recordStream(sourceBufferData, nbytes, sourceTimeFrame.time) == false)
+            {
+                LOG_ERROR("Recording failed.");
+                m_isRecordingAboutToClose = true;
+            }
+        }
+
+        // For streaming, downscale to 8bit if higher than 8bit to reduce bandwidth
+        // You can reduce the number of frames by setting a frame limit.
+        if (isStreaming() && m_FPSPreview.newFrame())
+        {
+            // Downscale to 8bit always for streaming to reduce bandwidth
+            if (m_PixelFormat != INDI_JPG && m_PixelDepth > 8)
+            {
+                // Allocale new buffer if size changes
+                downscaleBuffer.resize(npixels);
+
+                const uint16_t * srcBuffer = reinterpret_cast<const uint16_t *>(sourceBufferData);
+                uint8_t *        dstBuffer = downscaleBuffer.data();
+
+                // Apply gamma
+                for (uint32_t i = 0; i < npixels; ++i)
+                    dstBuffer[i] = gammaLUT_16_8[srcBuffer[i]];
+
+                sourceBufferData = dstBuffer;
+                nbytes /= 2;
+            }
+            uploadStream(sourceBufferData, nbytes);
         }
     }
 }
@@ -381,6 +512,7 @@ void StreamManager::setSize(uint16_t width, uint16_t height)
 
 bool StreamManager::close()
 {
+    std::lock_guard<std::mutex> lock(m_recordMutex);
     return recorder->close();
 }
 
@@ -415,39 +547,11 @@ bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelD
 
 bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double deltams)
 {
+    INDI_UNUSED(deltams);
     if (!m_isRecording)
         return false;
 
-    bool rc = recorder->writeFrame(buffer, nbytes);
-    if (rc == false)
-        return rc;
-
-    m_RecordingFrameDuration += deltams;
-    m_RecordingFrameTotal += 1;
-
-    if ((RecordStreamSP.sp[RECORD_TIME].s == ISS_ON) && (m_RecordingFrameDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
-    {
-        LOGF_INFO("Ending record after %g millisecs", m_RecordingFrameDuration);
-        stopRecording();
-        IUResetSwitch(&RecordStreamSP);
-        RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
-        RecordStreamSP.s = IPS_IDLE;
-        IDSetSwitch(&RecordStreamSP, nullptr);
-        return true;
-    }
-
-    if ((RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON) && (m_RecordingFrameTotal >= (RecordOptionsNP.np[1].value)))
-    {
-        LOGF_INFO("Ending record after %d frames", m_RecordingFrameTotal);
-        stopRecording();
-        RecordStreamSP.sp[RECORD_FRAME].s = ISS_OFF;
-        RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
-        RecordStreamSP.s = IPS_IDLE;
-        IDSetSwitch(&RecordStreamSP, nullptr);
-        return true;
-    }
-
-    return true;
+    return recorder->writeFrame(buffer, nbytes);
 }
 
 int StreamManager::mkpath(std::string s, mode_t mode)
@@ -611,12 +715,14 @@ bool StreamManager::startRecording()
             recorder->setDefaultColor();
     }
 #endif
-    m_RecordingFrameDuration   = 0.0;
-    m_RecordingFrameTotal = 0;
+    m_FPSRecorder.reset();
 
-    getitimer(ITIMER_REAL, &tframe1);
-    mssum         = 0;
-    m_FrameCounterPerSecond = 0;
+    if (m_isStreaming == false)
+    {
+        m_FPSAverage.reset();
+        m_FPSFast.reset();
+    }
+
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         if (m_isStreaming == false && dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
@@ -647,6 +753,7 @@ bool StreamManager::stopRecording(bool force)
 {
     if (!m_isRecording && force == false)
         return true;
+
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         if (!m_isStreaming)
@@ -660,13 +767,21 @@ bool StreamManager::stopRecording(bool force)
     }
 
     m_isRecording = false;
-    recorder->close();
+    m_isRecordingAboutToClose = false;
+
+    {
+        std::lock_guard<std::mutex> lock(m_recordMutex);
+        recorder->close();
+    }
 
     if (force)
         return false;
 
-    LOGF_INFO("Record Duration(millisec): %g -- Frame count: %d", m_RecordingFrameDuration,
-              m_RecordingFrameTotal);
+    LOGF_INFO(
+        "Record Duration: %g millisec / %d frames",
+        m_FPSRecorder.totalTime(),
+        m_FPSRecorder.totalFrames()
+    );
 
     return true;
 }
@@ -739,8 +854,8 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
             FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
             if (m_isRecording)
             {
-                LOGF_INFO("Recording stream has been disabled. Frame count %d", m_RecordingFrameTotal);
-                stopRecording();
+                LOG_INFO("Recording stream has been disabled. Closing the stream...");
+                m_isRecordingAboutToClose = true;
             }
         }
 
@@ -840,6 +955,19 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
         return true;
     }
 
+    /* Limits */
+    if (!strcmp(LimitsNP.name, name))
+    {
+        IUUpdateNumber(&LimitsNP, values, names, n);
+
+        m_FPSPreview.setTimeWindow(1000.0 / LimitsN[LIMITS_PREVIEW_FPS].value);
+        m_FPSPreview.reset();
+
+        LimitsNP.s = IPS_OK;
+        IDSetNumber(&LimitsNP, nullptr);
+        return true;
+    }
+
     /* Record Options */
     if (!strcmp(RecordOptionsNP.name, name))
     {
@@ -917,9 +1045,11 @@ bool StreamManager::setStream(bool enable)
             LOGF_INFO("Starting the video stream with target exposure %.6f s (Max theoritical FPS %.f)", StreamExposureN[0].value,
                       1 / StreamExposureN[0].value);
 
-            getitimer(ITIMER_REAL, &tframe1);
-            mssum         = 0;
-            m_FrameCounterPerSecond = 0;
+            m_FPSAverage.reset();
+            m_FPSFast.reset();
+            m_FPSPreview.reset();
+            m_FPSPreview.setTimeWindow(1000.0 / LimitsN[LIMITS_PREVIEW_FPS].value);
+            
             if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
             {
                 if (dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
@@ -1043,7 +1173,7 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         return true;
     }
 
-    // Binning for grayscale frames only for now
+    // Binning for grayscale frames only for now - REMOVE ME
 #if 0
     if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
     {
@@ -1052,109 +1182,6 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
                   (currentDevice)->PrimaryCCD.getBinY();
     }
 #endif
-
-    int subX, subY, subW, subH;
-    subX = subY = 0;
-    subW = subH = 0;
-    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
-    {
-        subX = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubX() / dynamic_cast<INDI::CCD*>
-               (currentDevice)->PrimaryCCD.getBinX();
-        subY = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubY() / dynamic_cast<INDI::CCD*>
-               (currentDevice)->PrimaryCCD.getBinY();
-        subW = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>
-               (currentDevice)->PrimaryCCD.getBinX();
-        subH = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>
-               (currentDevice)->PrimaryCCD.getBinY();
-    }
-    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
-    {
-        subX = 0;
-        subY = 0;
-        subW = dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBufferSize() * 8 / dynamic_cast<INDI::SensorInterface*>
-               (currentDevice)->getBPS();
-        subH = 1;
-    }
-
-    // If stream frame was not yet initilized, let's do that now
-    if (StreamFrameN[CCDChip::FRAME_W].value == 0 || StreamFrameN[CCDChip::FRAME_H].value == 0)
-    {
-        //if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
-        //    binFactor = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
-
-        StreamFrameN[CCDChip::FRAME_X].value = subX;
-        StreamFrameN[CCDChip::FRAME_Y].value = subY;
-        StreamFrameN[CCDChip::FRAME_W].value = subW;
-        StreamFrameN[CCDChip::FRAME_W].value = subH;
-        StreamFrameNP.s                      = IPS_IDLE;
-        IDSetNumber(&StreamFrameNP, nullptr);
-    }
-    // Check if we need to subframe
-    else if ((StreamFrameN[CCDChip::FRAME_W].value > 0 && StreamFrameN[CCDChip::FRAME_H].value > 0) &&
-             (StreamFrameN[CCDChip::FRAME_X].value != subX || StreamFrameN[CCDChip::FRAME_Y].value != subY ||
-              StreamFrameN[CCDChip::FRAME_W].value != subW || StreamFrameN[CCDChip::FRAME_H].value != subH))
-    {
-        uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((
-                               m_PixelFormat == INDI_RGB) ? 3 : 1);
-        if (downscaleBufferSize < npixels)
-        {
-            downscaleBufferSize = npixels;
-            delete [] downscaleBuffer;
-            downscaleBuffer = new uint8_t[npixels];
-        }
-
-        uint32_t sourceOffset = (subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value;
-        uint8_t components = (m_PixelFormat == INDI_RGB) ? 3 : 1;
-
-        const uint8_t * srcBuffer  = buffer + sourceOffset * components;
-        uint32_t sourceStride = subW * components;
-
-        uint8_t * destBuffer = downscaleBuffer;
-        uint32_t desStride = StreamFrameN[CCDChip::FRAME_W].value * components;
-
-        // Copy line-by-line
-        for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
-            memcpy(destBuffer + i * desStride, srcBuffer + sourceStride * i, desStride);
-
-        nbytes = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * components;
-
-        if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
-        {
-            if (encoder->upload(imageB, downscaleBuffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
-            {
-#ifdef HAVE_WEBSOCKET
-                if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
-                        && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
-                {
-                    if (m_Format != ".stream")
-                    {
-                        m_Format = ".stream";
-                        dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_text(m_Format);
-                    }
-
-                    dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
-                    return true;
-                }
-#endif
-                // Upload to client now
-                imageBP->s = IPS_OK;
-                IDSetBLOB(imageBP, nullptr);
-                return true;
-            }
-        }
-        else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
-        {
-            if (encoder->upload(imageB, downscaleBuffer, nbytes, false))
-            {
-                // Upload to client now
-                imageBP->s = IPS_OK;
-                IDSetBLOB(imageBP, nullptr);
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {

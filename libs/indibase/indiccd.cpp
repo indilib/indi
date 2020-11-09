@@ -2816,7 +2816,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             remove(filename);
 
             // Add .fz
-            strncat(filename, ".fz", 3);
+            strncat(filename, ".fz", 4);
 
             struct stat st;
             stat(filename, &st);

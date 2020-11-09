@@ -189,6 +189,16 @@ extern int IUGetConfigNumber(const char *dev, const char *property, const char *
  */
 extern int IUGetConfigSwitch(const char *dev, const char *property, const char *member, ISState *value);
 
+
+/**
+ * @brief IUGetConfigOnSwitchIndex Opens configuration file and reads single switch property to find ON switch index, if any.
+ * @param dev name of device
+ * @param property name of vector property
+ * @param index pointer to save value of ON switch index, if found.
+ * @return 0 on success, -1 if not found.
+ */
+extern int IUGetConfigOnSwitchIndex(const char *dev, const char *property, int *index);
+
 /**
  * @brief IUGetConfigOnSwitch Opens configuration file and reads a single switch vector property to find the index
  * of the first ON switch element.

@@ -206,7 +206,7 @@ bool EFA::Handshake()
 {
     std::string version;
 
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
@@ -346,7 +346,7 @@ bool EFA::ISNewNumber(const char *dev, const char *name, double values[], char *
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SyncFocuser(uint32_t ticks)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -369,7 +369,7 @@ bool EFA::SyncFocuser(uint32_t ticks)
 /////////////////////////////////////////////////////////////////////////////
 IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -513,7 +513,7 @@ bool EFA::AbortFocuser()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SetFocuserMaxPosition(uint32_t ticks)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -573,6 +573,7 @@ void EFA::getStartupValues()
         FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
         FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
 
+        FocusMaxPosN[0].value = FocusMaxPosN[0].max;
         FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
 
         IUUpdateMinMax(&FocusRelPosNP);
@@ -584,7 +585,7 @@ void EFA::getStartupValues()
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
-bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t res_len)
+bool EFA::sendCommand(const uint8_t * cmd, uint8_t *res, uint32_t cmd_len, uint32_t res_len)
 {
     int nbytes_written = 0, nbytes_read = 0, bits = 0, rc = 0;
     char echo[DRIVER_LEN] = {0};
@@ -612,7 +613,7 @@ bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t r
         char hex_cmd[DRIVER_LEN * 3] = {0};
         hexDump(hex_cmd, cmd, cmd_len);
         LOGF_DEBUG("CMD <%s>", hex_cmd);
-        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
+        rc = tty_write(PortFD, reinterpret_cast<const char *>(cmd), cmd_len, &nbytes_written);
 
         if (rc != TTY_OK)
         {
@@ -629,7 +630,7 @@ bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t r
         ioctl(PortFD, TIOCMBIC, &bits);
 
         // Next read the actual response from EFA
-        rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+        rc = tty_read(PortFD, reinterpret_cast<char *>(res), res_len, DRIVER_TIMEOUT, &nbytes_read);
 
         if (rc == TTY_OK)
             break;
@@ -665,7 +666,7 @@ bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t r
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readPosition()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
@@ -686,7 +687,7 @@ bool EFA::readPosition()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readMaxSlewLimit()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
@@ -714,7 +715,7 @@ bool EFA::readMaxSlewLimit()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::isGOTOComplete()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
@@ -734,7 +735,7 @@ bool EFA::isGOTOComplete()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::setFanEnabled(bool enabled)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x04;
@@ -755,7 +756,7 @@ bool EFA::setFanEnabled(bool enabled)
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readFanState()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
@@ -780,7 +781,7 @@ bool EFA::readFanState()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::setCalibrationEnabled(bool enabled)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x05;
@@ -802,7 +803,7 @@ bool EFA::setCalibrationEnabled(bool enabled)
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readCalibrationState()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x04;
@@ -827,7 +828,7 @@ bool EFA::readCalibrationState()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readTemperature()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     for (uint8_t i = 0; i < 2; i++)
     {
@@ -866,10 +867,10 @@ double EFA::calculateTemperature(uint8_t byte2, uint8_t byte3)
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-void EFA::hexDump(char * buf, const char * data, uint32_t size)
+void EFA::hexDump(char * buf, const uint8_t * data, uint32_t size)
 {
     for (uint32_t i = 0; i < size; i++)
-        sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
+        sprintf(buf + 3 * i, "%02X ", data[i]);
 
     if (size > 0)
         buf[3 * size - 1] = '\0';
@@ -903,10 +904,10 @@ std::string EFA::to_string(const T a_value, const int n)
 /////////////////////////////////////////////////////////////////////////////
 /// Calculate Checksum
 /////////////////////////////////////////////////////////////////////////////
-uint8_t EFA::calculateCheckSum(const char *cmd, uint32_t len)
+uint8_t EFA::calculateCheckSum(const uint8_t *cmd, uint32_t len)
 {
     int32_t sum = 0;
     for (uint32_t i = 1; i < len - 1; i++)
         sum += cmd[i];
-    return (-sum & 0xFF);
+    return (sum & 0xFF);
 }

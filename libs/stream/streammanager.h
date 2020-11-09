@@ -23,12 +23,17 @@
 #pragma once
 
 #include "indidevapi.h"
+#include "fpsmeter.h"
 #include "recorder/recordermanager.h"
 #include "encoder/encodermanager.h"
 
 #include <string>
 #include <map>
 #include <functional>
+#include <list>
+#include <thread>
+#include <atomic>
+#include <condition_variable>
 #include <sys/time.h>
 
 #include <stdint.h>
@@ -127,12 +132,9 @@ class StreamManager
         void newFrame(const uint8_t *buffer, uint32_t nbytes);
 
         /**
-         * @brief asyncStream Upload the stream asynchronously in a separate thread. ccdBufferLock mutex shall be locked until the record/upload
-         * operation is complete.
-         * @param buffer Buffer to stream/record
-         * @param nbytes size of buffer.
+         * @brief Thread processing frames and forwarding to recording and preview
          */
-        void asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams);
+        void asyncStreamThread();
 
         /**
              * @brief setStream Enables (starts) or disables (stops) streaming.
@@ -155,11 +157,11 @@ class StreamManager
         }
         bool isRecording()
         {
-            return m_isRecording;
+            return m_isRecording && !m_isRecordingAboutToClose;
         }
         bool isBusy()
         {
-            return (isStreaming() || isRecording());
+            return (m_isStreaming || m_isRecording);
         }
         double getTargetFPS()
         {
@@ -168,15 +170,6 @@ class StreamManager
         double getTargetExposure()
         {
             return StreamExposureN[0].value;
-        }
-
-        uint8_t *getDownscaleBuffer()
-        {
-            return downscaleBuffer;
-        }
-        uint32_t getDownscaleBufferSize()
-        {
-            return downscaleBufferSize;
         }
 
         const char *getDeviceName();
@@ -270,12 +263,15 @@ class StreamManager
         ISwitchVectorProperty RecorderSP;
         enum { RECORDER_RAW, RECORDER_OGV };
 
-        bool m_isStreaming { false };
-        bool m_isRecording { false };
-        bool m_hasStreamingExposure { true };
+        // Limits. Maximum queue size for incoming frames. FPS Limit for preview
+        INumber LimitsN[2];
+        INumberVectorProperty LimitsNP;
+        enum { LIMITS_BUFFER_MAX, LIMITS_PREVIEW_FPS };
 
-        uint32_t m_RecordingFrameTotal {0};
-        double m_RecordingFrameDuration {0};
+        std::atomic<bool> m_isStreaming { false };
+        std::atomic<bool> m_isRecording { false };
+        std::atomic<bool> m_isRecordingAboutToClose { false };
+        bool m_hasStreamingExposure { true };
 
         // Recorder
         RecorderManager *recorderManager = nullptr;
@@ -288,20 +284,31 @@ class StreamManager
         EncoderInterface *encoder = nullptr;
 
         // Measure FPS
-        struct itimerval tframe1, tframe2;
-        uint32_t mssum = 0, m_FrameCounterPerSecond = 0;
+        FPSMeter m_FPSAverage;
+        FPSMeter m_FPSFast;
+        FPSMeter m_FPSPreview;
+        FPSMeter m_FPSRecorder;
 
         INDI_PIXEL_FORMAT m_PixelFormat = INDI_MONO;
         uint8_t m_PixelDepth = 8;
         uint16_t rawWidth = 0, rawHeight = 0;
         std::string m_Format;
 
-        // Downscale buffer for streaming
-        uint8_t *downscaleBuffer = nullptr;
-        uint32_t downscaleBufferSize = 0;
+        // Processing for streaming
+        typedef struct {
+            double time;
+            std::vector<uint8_t> frame;
+        } TimeFrame;
+
+        std::thread              m_framesThread;   // async incoming frames processing
+        std::mutex               m_framesMutex;    // protect read/write framesBuffer
+        std::list<TimeFrame>     m_framesBuffer;   // buffer for incoming frames
+        std::condition_variable  m_framesIncoming; // wakeup thread, new frames in framesBuffer
+        std::atomic<bool>        m_framesThreadTerminate;
+        std::condition_variable  m_framesBufferEmpty;
+
+        std::mutex m_recordMutex;
 
         uint8_t *gammaLUT_16_8 = nullptr;
-
-        std::mutex recordMutex;
 };
 }

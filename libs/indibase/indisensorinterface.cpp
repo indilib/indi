@@ -217,6 +217,7 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
             strncpy(ScopeParametersNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
 
             IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+            IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
             IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
 
@@ -494,6 +495,7 @@ bool SensorInterface::initProperties()
                        OPTIONS_TAB, IP_RW, 60, IPS_OK);
 
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
 
