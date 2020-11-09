@@ -289,6 +289,8 @@ class StreamManager
         FPSMeter m_FPSPreview;
         FPSMeter m_FPSRecorder;
 
+        uint32_t m_frameCountDivider = 0;
+
         INDI_PIXEL_FORMAT m_PixelFormat = INDI_MONO;
         uint8_t m_PixelDepth = 8;
         uint16_t rawWidth = 0, rawHeight = 0;

@@ -273,6 +273,18 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         return;
     }
 
+    // Discard every N frame.
+    // do not count it to fps statistics
+    // N is StreamExposureN[STREAM_DIVISOR].value
+    ++m_frameCountDivider;
+    if (
+        (StreamExposureN[STREAM_DIVISOR].value > 1) &&
+        (m_frameCountDivider % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0
+    )
+    {
+        return;
+    }
+
     if (m_FPSAverage.newFrame())
     {
         FpsN[1].value = m_FPSAverage.framesPerSecond();
@@ -284,10 +296,6 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         if (m_fastFPSUpdate.try_lock()) // don't block stream thread / record thread
             std::thread([&](){ IDSetNumber(&FpsNP, nullptr); m_fastFPSUpdate.unlock(); }).detach();
     }
-
-    if (StreamExposureN[STREAM_DIVISOR].value > 1
-            && (m_FPSAverage.totalFrames() % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
-        return;
 
     if (isStreaming() || isRecording())
     {
@@ -717,6 +725,7 @@ bool StreamManager::startRecording()
     }
 #endif
     m_FPSRecorder.reset();
+    m_frameCountDivider = 0;
 
     if (m_isStreaming == false)
     {
@@ -1050,6 +1059,7 @@ bool StreamManager::setStream(bool enable)
             m_FPSFast.reset();
             m_FPSPreview.reset();
             m_FPSPreview.setTimeWindow(1000.0 / LimitsN[LIMITS_PREVIEW_FPS].value);
+            m_frameCountDivider = 0;
             
             if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
             {
