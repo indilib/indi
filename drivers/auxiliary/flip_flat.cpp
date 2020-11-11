@@ -175,7 +175,7 @@ bool FlipFlat::Handshake()
         SetTimer(POLLMS);
 
         setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
-        syncDriverInterface();
+        syncDriverInfo();
         m_Type = FLIP_FLAT;
 
         return true;
@@ -276,14 +276,14 @@ bool FlipFlat::ping()
     if (productID == 99)
     {
         setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
-        syncDriverInterface();
+        syncDriverInfo();
         m_Type = FLIP_FLAT;
     }
     // AlNitak Dust Cover
     else if (productID == 98)
     {
         setDriverInterface(AUX_INTERFACE | DUSTCAP_INTERFACE);
-        syncDriverInterface();
+        syncDriverInfo();
     }
     // Flip Man
     else

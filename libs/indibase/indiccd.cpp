@@ -143,6 +143,7 @@ void CCD::SetCCDCapability(uint32_t cap)
     else
         setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);
 
+    syncDriverInfo();
     HasStreaming();
     HasDSP();
 }
