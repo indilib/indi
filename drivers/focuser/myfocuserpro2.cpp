@@ -302,26 +302,32 @@ bool MyFocuserPro2::Ack()
 
     if (rc > 0)
     {
-        if(firmWareVersion >= MINIMUM_FIRMWARE_VERSION)
+        // Minimum check only applicable to serial version
+        if (getActiveConnection()->type() == Connection::Interface::CONNECTION_SERIAL)
         {
-            LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
-            return true;
+            if(firmWareVersion >= MINIMUM_FIRMWARE_VERSION)
+            {
+                LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
+                return true;
 
+            }
+            else
+            {
+                LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion,
+                           MINIMUM_FIRMWARE_VERSION );
+            }
         }
         else
         {
-            LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion,
-                       MINIMUM_FIRMWARE_VERSION );
+            LOG_INFO("Connection to network focuser is successful.");
+            return true;
         }
-
     }
     else
     {
         LOGF_ERROR("Invalid Response: focuser firmware version value (%s)", resp);
     }
     return false;
-
-
 }
 
 bool MyFocuserPro2::readCoilPowerState()
