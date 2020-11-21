@@ -372,6 +372,7 @@ ENDIF(OGGTHEORA_FOUND)
 ENDIF(UNIX)
 
 SET(libdsp_C_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/file.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/buffer.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convert.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fft.c
