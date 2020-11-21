@@ -1,3 +1,23 @@
+From 1.8.6 to 1.8.7
+
+      + New Esatto focuser support.
+      + New Pegasus Falcon Rotator.
+      + Fix QHYCFW3 driver handshake (#1229)
+      + Support for AZ-GTi in Alt-Az mode.
+      + Improve on deadlocks and integrity (#1243)
+      + Rework/streammanager - fix recording subframe issue, add processing qeue, configurable limits memory/fps (#1254)
+      + Baader SteelDrive II - feature, Adjustable holding and move current for stepper drive (#1257)
+      + Do not block the stream thread when sending FPS status, fix frames discarding. (#1258)
+      + Many bug fixes and additions supporting advanced Pulsar2 features (#1261)
+      + Add support to connecting to all remote drivers without specifying an explicit driver.
+      + Added Humidity, Pressure and Clouds to the WeatherWatcher driver (#1247)
+      + Fixed Losmandy Gemini failed to complete park issue (#1239).
+      + Set Eq Coords property state to OK & IDLE as needed (#1240).
+      + 1st fix for CEM25p Slewing to home position while parked (#1245)
+      + DSP Improvements (#1251)
+      + Compatibility fixed for SteelDriver II. New firmware has more arguments. (#1253)
+      + Full support for Fedora builds.
+
 From 1.8.5 to 1.8.6
 
       + New Raspberry Pi HQ Camera driver.
@@ -56,7 +76,7 @@ From 1.8.3 to 1.8.4
       + CCD Simulator bayer support.
       + FCUSB2 support.
       + Fixed complation on FreeBSD.
-    
+
 From 1.8.2 to 1.8.3
 
       + New RainbowAstro Mount driver.
