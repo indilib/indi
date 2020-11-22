@@ -144,20 +144,21 @@ fail:
     return NULL;
 }
 
-void* dsp_file_write_fits(int bpp, dsp_stream_p stream)
+void* dsp_file_write_fits(int bpp, size_t* memsize, dsp_stream_p stream)
 {
     dsp_stream_p tmp = dsp_stream_copy(stream);
     int img_type  = USHORT_IMG;
     int byte_type = TUSHORT;
     char bit_depth[64] = "16 bits per sample";
     void* buf = malloc(tmp->len * abs(bpp) / 8 + 512);
+    void *memfile = NULL;
     int status    = 0;
     int naxis    = tmp->dims;
     long *naxes = (long*)malloc(sizeof(long) * tmp->dims);
     long nelements = tmp->len;
     char error_status[64];
     unsigned int i;
-    dsp_buffer_stretch(tmp->buf, tmp->len, 0, dsp_t_max);
+
     for (i = 0;  i < tmp->dims; i++)
         naxes[i] = tmp->sizes[i];
     switch (bpp)
@@ -209,10 +210,10 @@ void* dsp_file_write_fits(int bpp, dsp_stream_p stream)
             goto fail;
     }
 
-    fitsfile *fptr;
-    int memsize = 5760;
-    void *memfile = malloc(memsize);
-    fits_create_memfile(&fptr, memfile, &memsize, 0, realloc, &status);
+    fitsfile *fptr = NULL;
+    size_t len = 5760;
+    memfile = malloc(len);
+    fits_create_memfile(&fptr, &memfile, &len, 2880, realloc, &status);
 
     if (status)
     {
@@ -235,17 +236,20 @@ void* dsp_file_write_fits(int bpp, dsp_stream_p stream)
 
     fits_close_file(fptr, &status);
 
+    *memsize = len;
+
 fail_fptr:
     if(status) {
         fits_report_error(stderr, status);
         fits_get_errstatus(status, error_status);
         fprintf(stderr, "FITS Error: %s\n", error_status);
+        free(memfile);
     }
 fail:
     dsp_stream_free_buffer(tmp);
     dsp_stream_free(tmp);
     free(naxes);
-    free (buf);
+    free(buf);
     return memfile;
 }
 

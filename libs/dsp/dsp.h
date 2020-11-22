@@ -1102,7 +1102,7 @@ DLL_EXPORT dsp_stream_p* dsp_file_read_fits(char *filename, int *channels, int s
 * \param bpp the bit depth of the output JPEG file [8,16,32,64,-32,-64].
 * \param stream the input stream to be saved
 */
-DLL_EXPORT void* dsp_file_write_fits(int bpp, dsp_stream_p stream);
+DLL_EXPORT void* dsp_file_write_fits(int bpp, size_t* memsize, dsp_stream_p stream);
 
 /**
 * \brief Read a JPEG file and fill a array of dsp_stream_p with its content,
