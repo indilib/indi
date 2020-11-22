@@ -642,8 +642,10 @@ bool SensorInterface::AbortIntegration()
 
 void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 {
+#ifndef WITH_MINMAX
     INDI_UNUSED(buf);
     INDI_UNUSED(len);
+#endif
     int status = 0;
     char dev_name[32];
     char exp_start[32];
