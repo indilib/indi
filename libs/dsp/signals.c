@@ -20,7 +20,8 @@
 
 void dsp_signals_whitenoise(dsp_stream_p stream)
 {
-    for(int k = 0; k < stream->len; k++) {
+    int k;
+    for(k = 0; k < stream->len; k++) {
         stream->buf[k] = (rand() % 255) / 255.0;
     }
 
@@ -31,7 +32,8 @@ void dsp_signals_sinewave(dsp_stream_p stream, double samplefreq, double freq)
     freq /= samplefreq;
     double rad = 0;
     double x = 0;
-    for(int k = 0; k < stream->len; k++) {
+    int k;
+    for(k = 0; k < stream->len; k++) {
         rad += freq;
         x = rad;
         while (x > 1.0)
@@ -47,7 +49,8 @@ void dsp_signals_sawtoothwave(dsp_stream_p stream, double samplefreq, double fre
     freq /= samplefreq;
     double rad = 0;
     double x = 0;
-    for(int k = 0; k < stream->len; k++) {
+    int k;
+    for(k = 0; k < stream->len; k++) {
         rad += freq;
         x = rad;
         while (x > 1.0)
@@ -62,7 +65,8 @@ void dsp_signals_triwave(dsp_stream_p stream, double samplefreq, double freq)
     freq /= samplefreq;
     double rad = 0;
     double x = 0;
-    for(int k = 0; k < stream->len; k++) {
+    int k;
+    for(k = 0; k < stream->len; k++) {
         rad += freq;
         x = rad;
         while (x > 2.0)

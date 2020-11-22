@@ -366,11 +366,11 @@ bool BaaderDome::UpdateShutterStatus()
     if (sim)
     {
         if (simShutterStatus == SHUTTER_CLOSED)
-            strncpy(resp, "d#shutclo", DOME_CMD);
+            strncpy(resp, "d#shutclo", DOME_CMD + 1);
         else if (simShutterStatus == SHUTTER_OPENED)
-            strncpy(resp, "d#shutope", DOME_CMD);
+            strncpy(resp, "d#shutope", DOME_CMD + 1);
         else if (simShutterStatus == SHUTTER_MOVING)
-            strncpy(resp, "d#shutrun", DOME_CMD);
+            strncpy(resp, "d#shutrun", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -506,7 +506,7 @@ unsigned short BaaderDome::MountAzToDomeAz(double mountAz)
 {
     int domeAz = 0;
 
-    domeAz = (mountAz)*10.0 - 1800;
+    domeAz = (mountAz) * 10.0 - 1800;
 
     if (mountAz >= 0 && mountAz <= 179.9)
         domeAz += 3600;
@@ -694,7 +694,7 @@ IPState BaaderDome::MoveAbs(double az)
 
     if (sim)
     {
-        strncpy(resp, "d#gotmess", DOME_CMD);
+        strncpy(resp, "d#gotmess", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -763,12 +763,12 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
     if (operation == SHUTTER_OPEN)
     {
         targetShutter = operation;
-        strncpy(cmd, "d#opeshut", DOME_CMD);
+        strncpy(cmd, "d#opeshut", DOME_CMD + 1);
     }
     else
     {
         targetShutter = operation;
-        strncpy(cmd, "d#closhut", DOME_CMD);
+        strncpy(cmd, "d#closhut", DOME_CMD + 1);
     }
 
     tcflush(PortFD, TCIOFLUSH);
@@ -785,7 +785,7 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
     if (sim)
     {
         simShutterTimer = SIM_SHUTTER_TIMER;
-        strncpy(resp, "d#gotmess", DOME_CMD);
+        strncpy(resp, "d#gotmess", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -855,12 +855,12 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
     if (operation == FLAP_OPEN)
     {
         targetFlap = operation;
-        strncpy(cmd, "d#opeflap", DOME_CMD);
+        strncpy(cmd, "d#opeflap", DOME_CMD + 1);
     }
     else
     {
         targetFlap = operation;
-        strncpy(cmd, "d#cloflap", DOME_CMD);
+        strncpy(cmd, "d#cloflap", DOME_CMD + 1);
     }
 
     tcflush(PortFD, TCIOFLUSH);
@@ -877,7 +877,7 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
     if (sim)
     {
         simFlapTimer = SIM_FLAP_TIMER;
-        strncpy(resp, "d#gotmess", DOME_CMD);
+        strncpy(resp, "d#gotmess", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -923,11 +923,11 @@ bool BaaderDome::UpdateFlapStatus()
     if (sim)
     {
         if (simFlapStatus == FLAP_CLOSED)
-            strncpy(resp, "d#flapclo", DOME_CMD);
+            strncpy(resp, "d#flapclo", DOME_CMD + 1);
         else if (simFlapStatus == FLAP_OPENED)
-            strncpy(resp, "d#flapope", DOME_CMD);
+            strncpy(resp, "d#flapope", DOME_CMD + 1);
         else if (simFlapStatus == FLAP_MOVING)
-            strncpy(resp, "d#flaprun", DOME_CMD);
+            strncpy(resp, "d#flaprun", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -990,7 +990,7 @@ bool BaaderDome::SaveEncoderPosition()
     char cmd[DOME_BUF];
     char resp[DOME_BUF];
 
-    strncpy(cmd, "d#encsave", DOME_CMD);
+    strncpy(cmd, "d#encsave", DOME_CMD + 1);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1005,7 +1005,7 @@ bool BaaderDome::SaveEncoderPosition()
 
     if (sim)
     {
-        strncpy(resp, "d#gotmess", DOME_CMD);
+        strncpy(resp, "d#gotmess", DOME_CMD + 1);
         nbytes_read = DOME_CMD;
     }
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)

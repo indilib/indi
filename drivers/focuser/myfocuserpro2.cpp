@@ -22,7 +22,7 @@
 */
 
 #include "myfocuserpro2.h"
-
+#include "connectionplugins/connectiontcp.h"
 #include "indicom.h"
 
 #include <cmath>
@@ -79,9 +79,9 @@ MyFocuserPro2::MyFocuserPro2()
                       FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
 
-    setSupportedConnections(CONNECTION_SERIAL);
+    setSupportedConnections(CONNECTION_SERIAL | CONNECTION_TCP);
 
-    setVersion(0, 6);
+    setVersion(0, 7);
 }
 
 bool MyFocuserPro2::initProperties()
@@ -180,9 +180,12 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitch(&GotoHomeS[0], "GOTO_HOME", "Go", ISS_OFF);
     IUFillSwitchVector(&GotoHomeSP, GotoHomeS, 1, getDeviceName(), "Goto Home Position", "", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
-    setPollingPeriodRange(1000, 30000);
 
+    setPollingPeriodRange(1000, 30000);
     setDefaultPollingPeriod(1000);
+
+    tcpConnection->setDefaultHost("192.168.4.1");
+    tcpConnection->setDefaultPort(2020);
 
     return true;
 }
@@ -299,26 +302,32 @@ bool MyFocuserPro2::Ack()
 
     if (rc > 0)
     {
-        if(firmWareVersion >= MINIMUM_FIRMWARE_VERSION)
+        // Minimum check only applicable to serial version
+        if (getActiveConnection()->type() == Connection::Interface::CONNECTION_SERIAL)
         {
-            LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
-            return true;
+            if(firmWareVersion >= MINIMUM_FIRMWARE_VERSION)
+            {
+                LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
+                return true;
 
+            }
+            else
+            {
+                LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion,
+                           MINIMUM_FIRMWARE_VERSION );
+            }
         }
         else
         {
-            LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion,
-                       MINIMUM_FIRMWARE_VERSION );
+            LOG_INFO("Connection to network focuser is successful.");
+            return true;
         }
-
     }
     else
     {
         LOGF_ERROR("Invalid Response: focuser firmware version value (%s)", resp);
     }
     return false;
-
-
 }
 
 bool MyFocuserPro2::readCoilPowerState()
