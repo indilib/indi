@@ -58,9 +58,9 @@ dsp_stream_p* dsp_file_read_fits(char *filename, int *channels, int stretch)
     for(dim = 0; dim < dims; dim++) {
         nelements *= naxes[dim];
     }
-    void *array = malloc(abs(bpp) * nelements / 8);
+    void *array = malloc((unsigned int)(abs(bpp) * nelements / 8));
     int anynul = 0;
-    dsp_t* buf = (dsp_t*)malloc(sizeof(dsp_t)*nelements);
+    dsp_t* buf = (dsp_t*)malloc(sizeof(dsp_t)*(unsigned int)nelements);
     switch(bpp) {
     case BYTE_IMG:
         fits_read_img(fptr, TBYTE, 1, (long)nelements, NULL, array, &anynul, &status);
@@ -69,43 +69,43 @@ dsp_stream_p* dsp_file_read_fits(char *filename, int *channels, int stretch)
         break;
     case SHORT_IMG:
         fits_read_img(fptr, TUSHORT, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if(abs(bpp) > 8*(int)sizeof(dsp_t))
             dsp_buffer_stretch(((short*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((short*)array), buf, nelements);
         break;
     case USHORT_IMG:
         fits_read_img(fptr, TUSHORT, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if(abs(bpp) > 8*(int)sizeof(dsp_t))
             dsp_buffer_stretch(((unsigned short*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((unsigned short*)array), buf, nelements);
         break;
     case LONG_IMG:
         fits_read_img(fptr, TULONG, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if(abs(bpp) > 8*(int)sizeof(dsp_t))
             dsp_buffer_stretch(((int*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((int*)array), buf, nelements);
         break;
     case ULONG_IMG:
         fits_read_img(fptr, TULONG, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if(abs(bpp) > 8*(int)sizeof(dsp_t))
             dsp_buffer_stretch(((unsigned int*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((unsigned int*)array), buf, nelements);
         break;
     case LONGLONG_IMG:
         fits_read_img(fptr, TLONGLONG, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if(abs(bpp) > 8*(int)sizeof(dsp_t))
             dsp_buffer_stretch(((long*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((long*)array), buf, nelements);
         break;
     case FLOAT_IMG:
         fits_read_img(fptr, TFLOAT, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if(abs(bpp) > 8*(int)sizeof(dsp_t))
             dsp_buffer_stretch(((float*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((float*)array), buf, nelements);
         break;
     case DOUBLE_IMG:
         fits_read_img(fptr, TDOUBLE, 1, (long)nelements, NULL, array, &anynul, &status);
-        if(abs(bpp) > 8*sizeof(dsp_t))
+        if(abs(bpp) > 8*(int)sizeof(dsp_t))
             dsp_buffer_stretch(((double*)(array)), (long)nelements, 0, dsp_t_max);
         dsp_buffer_copy(((double*)array), buf, nelements);
         break;
@@ -132,8 +132,8 @@ dsp_stream_p* dsp_file_read_fits(char *filename, int *channels, int stretch)
     fits_close_file(fptr, &status);
     if(status)
         goto fail;
-    int sizes[3] = { naxes[0], naxes[1], naxes[2] };
-    *channels = naxes[2];
+    int sizes[3] = { (int)naxes[0], (int)naxes[1], (int)naxes[2] };
+    *channels = (int)naxes[2];
     return dsp_stream_from_components(buf, dims, sizes, sizes[2]);
 fail:
     if(status) {
@@ -150,16 +150,16 @@ void* dsp_file_write_fits(int bpp, size_t* memsize, dsp_stream_p stream)
     int img_type  = USHORT_IMG;
     int byte_type = TUSHORT;
     char bit_depth[64] = "16 bits per sample";
-    void* buf = malloc(tmp->len * abs(bpp) / 8 + 512);
+    void* buf = malloc((unsigned int)(tmp->len * abs(bpp) / 8 + 512));
     void *memfile = NULL;
     int status    = 0;
     int naxis    = tmp->dims;
-    long *naxes = (long*)malloc(sizeof(long) * tmp->dims);
+    long *naxes = (long*)malloc(sizeof(long) * (unsigned int)tmp->dims);
     long nelements = tmp->len;
     char error_status[64];
     unsigned int i;
 
-    for (i = 0;  i < tmp->dims; i++)
+    for (i = 0;  i < (unsigned int)tmp->dims; i++)
         naxes[i] = tmp->sizes[i];
     switch (bpp)
     {
@@ -273,31 +273,31 @@ dsp_stream_p* dsp_file_read_jpeg(char *filename, int *channels, int stretch)
     jpeg_read_header(&info, TRUE);
     info.dct_method = JDCT_FLOAT;
     jpeg_start_decompress(&info);
-    width = info.output_width;
-    height = info.output_height;
-    components = info.num_components;
+    width = (int)info.output_width;
+    height = (int)info.output_height;
+    components = (unsigned int)info.num_components;
 
-    int row_stride = components * width;
-    buf = (unsigned char *)malloc(width * height * components);
+    int row_stride = (int)components * (int)width;
+    buf = (unsigned char *)malloc((unsigned int)(width * height) * components);
     unsigned char *image = buf;
     unsigned int row;
-    for (row = 0; row < height; row++)
+    for (row = 0; row < (unsigned int)height; row++)
     {
         jpeg_read_scanlines(&info, &image, 1);
         image += row_stride;
     }
     jpeg_finish_decompress(&info);
-    *channels = components;
-    return dsp_buffer_rgb_to_components(buf, 2, (int[]){width, height}, components, bpp, stretch);
+    *channels = (int)components;
+    return dsp_buffer_rgb_to_components(buf, 2, (int[]){width, height}, (int)components, (int)bpp, stretch);
 }
 
 void dsp_file_write_jpeg_composite(char *filename, int components, int quality, dsp_stream_p* stream)
 {
     int bpp = 8;
     unsigned int row_stride;
-    unsigned int width = stream[0]->sizes[0];
-    unsigned int height = stream[0]->sizes[1];
-    void *buf = malloc(stream[0]->len*components*bpp/8);
+    unsigned int width = (unsigned int)stream[0]->sizes[0];
+    unsigned int height = (unsigned int)stream[0]->sizes[1];
+    void *buf = malloc((unsigned int)(stream[0]->len*components*bpp/8));
     unsigned char *image = (unsigned char *)buf;
     dsp_buffer_components_to_rgb(stream, buf, components, bpp);
 
@@ -322,9 +322,9 @@ void dsp_file_write_jpeg_composite(char *filename, int components, int quality, 
 
     jpeg_set_quality(&cinfo, quality, TRUE);
     jpeg_start_compress(&cinfo, TRUE);
-    row_stride = width * components;
+    row_stride = width * (unsigned int)components;
     int row;
-    for (row = 0; row < height; row++)
+    for (row = 0; row < (int)height; row++)
     {
         jpeg_write_scanlines(&cinfo, &image, 1);
         image += row_stride;
@@ -339,7 +339,7 @@ void dsp_file_write_jpeg_composite(char *filename, int components, int quality, 
 dsp_stream_p *dsp_stream_from_components(dsp_t* buf, int dims, int *sizes, int components)
 {
     int d, y, x;
-    dsp_stream_p* picture = (dsp_stream_p*) malloc(sizeof(dsp_stream_p)*(components+1));
+    dsp_stream_p* picture = (dsp_stream_p*) malloc(sizeof(dsp_stream_p)*(unsigned int)(components+1));
     for(y = 0; y <= components; y++) {
         picture[y] = dsp_stream_new();
         for(d = 0; d < dims; d++)
@@ -363,7 +363,7 @@ dsp_stream_p *dsp_stream_from_components(dsp_t* buf, int dims, int *sizes, int c
 
 dsp_stream_p *dsp_buffer_rgb_to_components(void* buf, int dims, int *sizes, int components, int bpp, int stretch)
 {
-    dsp_stream_p* picture = (dsp_stream_p*) malloc(sizeof(dsp_stream_p)*(components+1));
+    dsp_stream_p* picture = (dsp_stream_p*) malloc(sizeof(dsp_stream_p)*(unsigned int)(components+1));
     int x, y, z, d;
     for(y = 0; y < components; y++) {
         picture[y] = dsp_stream_new();
@@ -416,7 +416,7 @@ dsp_stream_p *dsp_buffer_rgb_to_components(void* buf, int dims, int *sizes, int 
             for(z = 0; z < y; z++) v += ((unsigned long*)buf)[x*y+z];
             break;
         case -32:
-            for(z = 0; z < y; z++) v += ((float*)buf)[x*y+z];
+            for(z = 0; z < y; z++) v += (double)((float*)buf)[x*y+z];
             break;
         case -64:
             for(z = 0; z < y; z++) v += ((double*)buf)[x*y+z];
@@ -439,7 +439,7 @@ void dsp_buffer_components_to_rgb(dsp_stream_p *stream, void* rgb, int component
     int len = stream[0]->len * components;
     dsp_t max = (dsp_t)((double)((1<<abs(bpp))-1));
     max = Min(max, (dsp_t)~0);
-    for(y = 0; y < components; y++) {
+    for(y = 0; y < (size_t)components; y++) {
         dsp_stream_p in = dsp_stream_copy(stream[y]);
         dsp_buffer_stretch(in->buf, in->len, 0, max);
         switch(bpp) {
