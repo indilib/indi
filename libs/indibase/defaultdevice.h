@@ -297,6 +297,8 @@ class INDI::DefaultDevice : public INDI::BaseDevice
          * @brief setInterface Set driver interface. By default the driver interface is set to GENERAL_DEVICE.
          * You may send an ORed list of DeviceInterface values.
          * @param value ORed list of DeviceInterface values.
+         * @warning This only updates the internal driver interface property and does not send it to the
+         * client. To synchronize the client, use syncDriverInfo funciton.
          */
         void setDriverInterface(uint16_t value);
 
@@ -497,6 +499,12 @@ class INDI::DefaultDevice : public INDI::BaseDevice
         {
             return m_ConfigLoading;
         }
+
+        /**
+         * @brief syncDriverInfo sends the current driver information to the client.
+         */
+        void syncDriverInfo();
+
 
         /** \return Default name of the device. */
         virtual const char *getDefaultName() = 0;

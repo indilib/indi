@@ -911,6 +911,11 @@ void DefaultDevice::setDriverInterface(uint16_t value)
     IUSaveText(&DriverInfoT[3], interfaceStr);
 }
 
+void DefaultDevice::syncDriverInfo()
+{
+    IDSetText(&DriverInfoTP, nullptr);
+}
+
 bool DefaultDevice::initProperties()
 {
     char versionStr[16];

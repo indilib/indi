@@ -139,6 +139,15 @@ class SteelDriveII : public INDI::Focuser
             TEMP_AVG
         };
 
+        // Stepper Drive
+        INumberVectorProperty StepperDriveNP;
+        INumber StepperDriveN[2];
+        enum
+        {
+            CURRENT_MOVE,
+            CURRENT_HOLD
+        };
+
         /////////////////////////////////////////////////////////////////////////////
         /// Private variables
         /////////////////////////////////////////////////////////////////////////////
