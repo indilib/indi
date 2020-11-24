@@ -27,7 +27,6 @@ extern "C" {
 #define DLL_EXPORT extern
 #endif
 
-#include <endian.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
