@@ -283,6 +283,10 @@
             <driver name="Rigelsys NStep">indi_nstep_focus</driver>
             <version>1.2</version>
         </device>
+          <device label="RBFocus" manufacturer="RBFocus">
+            <driver name="RBFocus">indi_rbfocus_focus</driver>
+            <version>1.2</version>
+        </device>
         <device label="MoonLite" manufacturer="MoonLite">
             <driver name="MoonLite">indi_moonlite_focus</driver>
             <version>1.1</version>
