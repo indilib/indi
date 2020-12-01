@@ -923,6 +923,14 @@ SET(aaf2_SRC
 add_executable(indi_aaf2_focus ${aaf2_SRC})
 target_link_libraries(indi_aaf2_focus indidriver)
 install(TARGETS indi_aaf2_focus RUNTIME DESTINATION bin)
+################ AAF2 Focuser ################
+
+SET(rbfocus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/rbfocus.cpp)
+
+add_executable(indi_rbfocus_focus ${rbfocus_SRC})
+target_link_libraries(indi_rbfocus_focus indidriver)
+install(TARGETS indi_rbfocus_focus RUNTIME DESTINATION bin)
 
 ################ Moonlite Focuser ################
 
