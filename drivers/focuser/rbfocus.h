@@ -1,23 +1,3 @@
-#/*
-    Arduino ASCOM Focuser 2 (AAF2) INDI Focuser
-
-    Copyright (C) 2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-*/
 
 #pragma once
 
@@ -71,7 +51,7 @@ class RBFOCUS : public INDI::Focuser
     private:
         bool Ack();
         /**
-         * @brief sendCommand Send a string command to AAF2.
+         * @brief sendCommand Send a string command to RBF.
          * @param cmd Command to be sent, must already have the necessary delimeter ('#')
          * @param res If not nullptr, the function will read until it detects the default delimeter ('#') up to ML_RES length.
          *        if nullptr, no read back is done and the function returns true.
