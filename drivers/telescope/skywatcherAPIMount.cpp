@@ -945,7 +945,7 @@ bool SkywatcherAPIMount::UnPark()
         return true;
         */
 
-    TrackState = SCOPE_IDLE;
+    SetParked(false);
     return true;
 }
 
