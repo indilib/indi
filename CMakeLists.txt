@@ -676,7 +676,9 @@ install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin)
 
 ########### Rainbow Mount driver ##########
 SET(rainbow_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/rainbow.cpp )
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/rainbow.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
+    )
 
 add_executable(indi_rainbow_telescope ${rainbow_SRC})
 
