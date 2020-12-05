@@ -65,17 +65,23 @@ class SkywatcherAPIMount : public SkywatcherAPI,
         virtual void TimerHit() override;
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
         virtual bool updateProperties() override;
+
+        // Guiding
         virtual IPState GuideNorth(uint32_t ms) override;
         virtual IPState GuideSouth(uint32_t ms) override;
         virtual IPState GuideEast(uint32_t ms) override;
         virtual IPState GuideWest(uint32_t ms) override;
+
+        // Parking
+                virtual bool SetCurrentPark() override;
+                virtual bool SetDefaultPark() override;
 
     private:
         void CalculateGuidePulses();
         void ResetGuidePulses();
         void ConvertGuideCorrection(double delta_ra, double delta_dec, double &delta_alt, double &delta_az);
         void UpdateScopeConfigSwitch();
-        int recover_tty_reconnect();
+        //int recover_tty_reconnect();
         // Overrides for the pure virtual functions in SkyWatcherAPI
         virtual int skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) override;
         virtual int skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read) override;
@@ -165,16 +171,16 @@ class SkywatcherAPIMount : public SkywatcherAPI,
         INumberVectorProperty GuidingRatesNP;
 
         // A switch for park movement directions (clockwise/counterclockwise)
-        ISwitch ParkMovementDirection[2];
-        ISwitchVectorProperty ParkMovementDirectionSP;
+//        ISwitch ParkMovementDirection[2];
+//        ISwitchVectorProperty ParkMovementDirectionSP;
 
-        // A switch for park positions
-        ISwitch ParkPosition[4];
-        ISwitchVectorProperty ParkPositionSP;
+//        // A switch for park positions
+//        ISwitch ParkPosition[4];
+//        ISwitchVectorProperty ParkPositionSP;
 
-        // A switch for unpark positions
-        ISwitch UnparkPosition[4];
-        ISwitchVectorProperty UnparkPositionSP;
+//        // A switch for unpark positions
+//        ISwitch UnparkPosition[4];
+//        ISwitchVectorProperty UnparkPositionSP;
 
         // Tracking
         ln_equ_posn CurrentTrackingTarget { 0, 0 };
@@ -194,8 +200,6 @@ class SkywatcherAPIMount : public SkywatcherAPI,
 
         /// Save the serial port name
         std::string SerialPortName;
-        /// Recover after disconnection
-        bool RecoverAfterReconnection { false };
 
         GuidingPulse NorthPulse;
         GuidingPulse WestPulse;

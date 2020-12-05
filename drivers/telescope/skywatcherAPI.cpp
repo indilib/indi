@@ -6,6 +6,8 @@
  * \author Jean-Luc Geehalel
  * \date 13th November 2013
  *
+ * Updated on 2020-12-01 by Jasem Mutlaq
+ *
  * This file contains an implementation in C++ of the Skywatcher API.
  * It is based on work from four sources.
  * A C++ implementation of the API by Roger James.
@@ -142,15 +144,15 @@ bool SkywatcherAPI::CheckIfDCMotor()
     return false;
 }
 
-bool SkywatcherAPI::IsVirtuosoMount() const
-{
-    return MountCode >= 0x90 && (IsAZGTiMount() == false);
-}
+//bool SkywatcherAPI::IsVirtuosoMount() const
+//{
+//    return MountCode >= 0x90 && (IsAZGTiMount() == false);
+//}
 
-bool SkywatcherAPI::IsAZGTiMount() const
-{
-    return MountCode == 0xA5;
-}
+//bool SkywatcherAPI::IsAZGTiMount() const
+//{
+//    return MountCode == 0xA5;
+//}
 
 bool SkywatcherAPI::IsMerlinMount() const
 {
@@ -353,7 +355,7 @@ bool SkywatcherAPI::InitializeMC()
     return true;
 }
 
-bool SkywatcherAPI::InitMount(bool recover)
+bool SkywatcherAPI::InitMount()
 {
     MYDEBUG(DBG_SCOPE, "InitMount");
 
@@ -397,31 +399,36 @@ bool SkywatcherAPI::InitMount(bool recover)
         GetMicrostepsPerWormRevolution(AXIS2);
     }
 
-    // Inquire Axis Position
-    if (!GetEncoder(AXIS1))
-        return false;
-    if (!GetEncoder(AXIS2))
-        return false;
-    MYDEBUGF(DBG_SCOPE, "Encoders before init Axis1 %ld Axis2 %ld", CurrentEncoders[AXIS1], CurrentEncoders[AXIS2]);
+    GetStatus(AXIS1);
+    GetStatus(AXIS2);
 
-    // Set initial axis positions
-    // These are used to define the arbitrary zero position vector for the axis
-    if (!recover)
+    // In case not init, let's do that
+    if (AxesStatus[AXIS1].NotInitialized && AxesStatus[AXIS2].NotInitialized)
     {
+        // Inquire Axis Position
+        if (!GetEncoder(AXIS1))
+            return false;
+        if (!GetEncoder(AXIS2))
+            return false;
+        MYDEBUGF(DBG_SCOPE, "Encoders before init Axis1 %ld Axis2 %ld", CurrentEncoders[AXIS1], CurrentEncoders[AXIS2]);
+
         PolarisPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
         PolarisPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
         ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
         ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
+
+        if (!InitializeMC())
+            return false;
+
     }
-
-    if (!InitializeMC())
-        return false;
-
-    if (!GetEncoder(AXIS1))
-        return false;
-    if (!GetEncoder(AXIS2))
-        return false;
-    MYDEBUGF(DBG_SCOPE, "Encoders after init Axis1 %ld Axis2 %ld", CurrentEncoders[AXIS1], CurrentEncoders[AXIS2]);
+    // Mount already initialized
+    else
+    {
+        PolarisPositionEncoders[AXIS1] = 0x800000;
+        PolarisPositionEncoders[AXIS2] = 0x800000;
+        ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
+        ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
+    }
 
     // These two LowSpeedGotoMargin are calculate from slewing for 5 seconds in 128x sidereal rate
     LowSpeedGotoMargin[(int)AXIS1] = (long)(640 * SIDEREALRATE * MicrostepsPerRadian[(int)AXIS1]);
@@ -527,7 +534,7 @@ bool SkywatcherAPI::SetEncoder(AXISID Axis, long Microsteps)
 
     Long2BCDstr(Microsteps, Parameters);
 
-    return TalkWithAxis(Axis, 'L', Parameters, Response);
+    return TalkWithAxis(Axis, 'E', Parameters, Response);
 }
 
 bool SkywatcherAPI::SetGotoTargetOffset(AXISID Axis, long OffsetInMicrosteps)
