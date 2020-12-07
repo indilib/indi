@@ -63,6 +63,8 @@ class ActiveFocuserUtils{
                 static int Get16(const unsigned char *buffer, int position);
                 static double TicksToMillimeters(int ticks);
                 static int MillimetersToTicks(double millimeters);
+                static void PrintFrame(const unsigned char *buffer);
+                static void PrintBasicDeviceData(const unsigned char *buffer);
             private:
                 Parser() = delete;
                 ~Parser() = delete;

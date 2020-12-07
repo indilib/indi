@@ -53,6 +53,32 @@ int ActiveFocuserUtils::Parser::MillimetersToTicks(double millimeters) {
 
 }
 
+void ActiveFocuserUtils::Parser::PrintFrame(const unsigned char *buffer) {
+
+    std::stringstream outputStream;
+
+    for (int i = 0; i < sizeof(buffer); i++) {
+        outputStream << std::hex << (int)buffer[i];
+    }
+
+    IDLog("%s\r\n", outputStream.str().c_str());
+
+}
+
+void ActiveFocuserUtils::Parser::PrintBasicDeviceData(const unsigned char *buffer) {
+
+    std::stringstream sst;
+
+    sst << "Current device (v " <<
+        std::to_string(ActiveFocuserUtils::Parser::Get16(buffer, 17) >> 8) << "." << std::to_string(ActiveFocuserUtils::Parser::Get16(buffer, 17) & 0xFF)
+        << ") state : (fan=" << std::to_string((buffer[7] & 32) != 0) <<
+        ", position=" << std::to_string(ActiveFocuserUtils::Parser::Get32(buffer, 2)) <<
+        ", position_mm=" << std::to_string(ActiveFocuserUtils::Parser::TicksToMillimeters(ActiveFocuserUtils::Parser::Get32(buffer, 2))) << ")";
+
+    IDLog("%s\r\n", sst.str().c_str());
+
+}
+
 // Poller method definitions
 
 ActiveFocuserUtils::Poller *ActiveFocuserUtils::Poller::pinstance_{nullptr};
@@ -103,21 +129,6 @@ void threaded_poller(std::future<void> futureObj) {
 
         if (res > 0) {
             if (buf[0] == 0x3C) {
-
-                /*std::stringstream ss;
-                for (int i = 0; i < res; i++) {
-                    ss << std::hex << (int)buf[i];
-                }
-                IDLog("%s\r\n", ss.str().c_str());*/
-
-                std::stringstream sst;
-                sst << "Current device (v " <<
-                    std::to_string(ActiveFocuserUtils::Parser::Get16(buf, 17) >> 8) << "." << std::to_string(ActiveFocuserUtils::Parser::Get16(buf, 17) & 0xFF)
-                    << ") state : (fan=" << std::to_string((buf[7] & 32) != 0) <<
-                    ", position=" << std::to_string(ActiveFocuserUtils::Parser::Get32(buf, 2)) <<
-                    ", position_mm=" << std::to_string(ActiveFocuserUtils::Parser::TicksToMillimeters(ActiveFocuserUtils::Parser::Get32(buf, 2))) << ")";
-
-                IDLog("%s\r\n", sst.str().c_str());
 
                 ActiveFocuserUtils::SystemState::SetSpan(ActiveFocuserUtils::Parser::Get32(buf, 25));
                 ActiveFocuserUtils::SystemState::SetImmpp(ActiveFocuserUtils::Parser::Get16(buf, 23));
