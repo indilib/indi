@@ -72,7 +72,7 @@ ActiveFocuser::ActiveFocuser() {
 
     hid_handle = nullptr;
     setSupportedConnections(CONNECTION_NONE);
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
 }
 
@@ -221,6 +221,15 @@ bool ActiveFocuser::initProperties() {
     FocusAbsPosN[0].step = 1000.;
     strncpy(FocusAbsPosN->label, "Steps", MAXINDILABEL);
 
+
+    // Setting default relative position values
+
+    FocusRelPosN[0].min = 0.;
+    FocusRelPosN[0].max = 5000;
+    FocusRelPosN[0].value = 100;
+    FocusRelPosN[0].step = 1;
+    strncpy(FocusRelPosN->label, "Steps", MAXINDILABEL);
+
     internalTicks = FocusAbsPosN[0].value;
 
     setDefaultPollingPeriod(750);
@@ -267,8 +276,6 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
             IUUpdateSwitch(&FanSP, states, names, n);
 
-            // TODO : NOTIFY IF HID_HANDLE IS GONE
-
             if (FanS->s == ISS_ON && !ActiveFocuserUtils::SystemState::GetIsFanOn()) {
 
                 if (hid_handle) {
@@ -276,6 +283,10 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
                     const unsigned char data[3] = {0x01,
                                                    ActiveFocuserUtils::CommandsMap.at(ActiveFocuserUtils::FAN_ON)};
                     hid_write(hid_handle, data, sizeof(data));
+
+                }else{
+
+                    IDLog("Connection failed");
 
                 }
 
@@ -286,6 +297,10 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
                     const unsigned char data[3] = {0x01,
                                                    ActiveFocuserUtils::CommandsMap.at(ActiveFocuserUtils::FAN_OFF)};
                     hid_write(hid_handle, data, sizeof(data));
+
+                }else{
+
+                    IDLog("Connection failed");
 
                 }
 
@@ -307,18 +322,33 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
 bool ActiveFocuser::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
 
+    if(dev != nullptr && strcmp(dev, getDeviceName()) == 0){
+    }
+
+    return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+
 }
 
 bool ActiveFocuser::AbortFocuser() {
 
     if (hid_handle) {
 
-        const unsigned char data[3] = {0x01, ActiveFocuserUtils::CommandsMap.at(ActiveFocuserUtils::STOP)}; // STOP
-        hid_write(hid_handle, data, sizeof(data));
+        if(ActiveFocuserUtils::SystemState::GetIsMoving()){
 
-        return true;
+            const unsigned char data[3] = {0x01, ActiveFocuserUtils::CommandsMap.at(ActiveFocuserUtils::STOP)}; // STOP
+            hid_write(hid_handle, data, sizeof(data));
+
+            return true;
+
+        }else{
+
+            return false;
+
+        }
 
     } else {
+
+        IDLog("Connection failed");
 
         return false;
 
@@ -367,6 +397,19 @@ IPState ActiveFocuser::MoveAbsFocuser(uint32_t targetTicks) {
 
 }
 
+IPState ActiveFocuser::MoveRelFocuser(INDI::FocuserInterface::FocusDirection dir, uint32_t ticks) {
+
+    FocusRelPosN[0].value = ticks;
+    IDSetNumber(&FocusRelPosNP, nullptr);
+
+    int relativeTicks = ((dir == FOCUS_INWARD ? ticks : -ticks));
+
+    double newTicks = FocusAbsPosN[0].value + relativeTicks;
+
+    return MoveAbsFocuser(newTicks);
+
+}
+
 void ActiveFocuser::TimerHit() {
 
     if(!hid_handle){
@@ -384,8 +427,6 @@ void ActiveFocuser::TimerHit() {
 
         FocusAbsPosN[0].value = ActiveFocuserUtils::SystemState::GetCurrentPositionStep();
         IDSetNumber(&FocusAbsPosNP, nullptr);
-        FocusRelPosN[0].value = ActiveFocuserUtils::SystemState::GetCurrentPosition();
-        IDSetNumber(&FocusRelPosNP, nullptr);
 
         AirTemperatureN[0].value = ActiveFocuserUtils::SystemState::GetAirTemperature();
         IDSetNumber(&AirTemperatureNP, nullptr);

@@ -1,4 +1,3 @@
-
 /*
     ActiveFocuser driver for Takahashi CCA-250 and Mewlon-250/300CRS
 
@@ -57,7 +56,7 @@ void ActiveFocuserUtils::Parser::PrintFrame(const unsigned char *buffer) {
 
     std::stringstream outputStream;
 
-    for (int i = 0; i < sizeof(buffer); i++) {
+    for (int i = 0; i < (int) sizeof(buffer); i++) {
         outputStream << std::hex << (int)buffer[i];
     }
 
@@ -311,21 +310,21 @@ void ActiveFocuserUtils::SystemState::SetMirrorTemperature(double mirrorTemperat
 // Commands enum map
 
 const std::map<ActiveFocuserUtils::Commands, unsigned char> ActiveFocuserUtils::CommandsMap =
-{
-        {ActiveFocuserUtils::Commands::AUTO,         0x01},
-        {ActiveFocuserUtils::Commands::COUNTER_CLOCKWISE, 0x02},
-        {ActiveFocuserUtils::Commands::ZERO,              0x03},
-        {ActiveFocuserUtils::Commands::RELEASE,           0x04},
-        {ActiveFocuserUtils::Commands::FUNCTION,          0x05},
-        {ActiveFocuserUtils::Commands::FREE,              0x06},
-        {ActiveFocuserUtils::Commands::AUTO,              0x07},
-        {ActiveFocuserUtils::Commands::MANUAL,            0x08},
-        {ActiveFocuserUtils::Commands::MOVE,              0x09},
-        {ActiveFocuserUtils::Commands::STOP,              0x0A},
-        {ActiveFocuserUtils::Commands::FAN_ON,            0x0B},
-        {ActiveFocuserUtils::Commands::FAN_OFF,           0x0C},
-        {ActiveFocuserUtils::Commands::SETTINGS,          0x7D},
-        {ActiveFocuserUtils::Commands::SETTINGS_2,        0x7C},
-        {ActiveFocuserUtils::Commands::RESET,             0x7E},
-        {ActiveFocuserUtils::Commands::DUMMY,             0xFF},
-};
+        {
+                {ActiveFocuserUtils::Commands::AUTO,         0x01},
+                {ActiveFocuserUtils::Commands::COUNTER_CLOCKWISE, 0x02},
+                {ActiveFocuserUtils::Commands::ZERO,              0x03},
+                {ActiveFocuserUtils::Commands::RELEASE,           0x04},
+                {ActiveFocuserUtils::Commands::FUNCTION,          0x05},
+                {ActiveFocuserUtils::Commands::FREE,              0x06},
+                {ActiveFocuserUtils::Commands::AUTO,              0x07},
+                {ActiveFocuserUtils::Commands::MANUAL,            0x08},
+                {ActiveFocuserUtils::Commands::MOVE,              0x09},
+                {ActiveFocuserUtils::Commands::STOP,              0x0A},
+                {ActiveFocuserUtils::Commands::FAN_ON,            0x0B},
+                {ActiveFocuserUtils::Commands::FAN_OFF,           0x0C},
+                {ActiveFocuserUtils::Commands::SETTINGS,          0x7D},
+                {ActiveFocuserUtils::Commands::SETTINGS_2,        0x7C},
+                {ActiveFocuserUtils::Commands::RESET,             0x7E},
+                {ActiveFocuserUtils::Commands::DUMMY,             0xFF},
+        };
