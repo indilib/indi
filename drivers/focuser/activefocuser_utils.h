@@ -38,20 +38,14 @@ class ActiveFocuserUtils{
 public :
 
     typedef enum {
-        CLOCKWISE,
-        COUNTER_CLOCKWISE,
         ZERO,
         RELEASE,
-        FUNCTION,
         FREE,
         AUTO,
-        MANUAL,
         MOVE,
         STOP,
         FAN_ON,
         FAN_OFF,
-        SETTINGS,
-        SETTINGS_2,
         RESET,
         DUMMY
     } Commands;

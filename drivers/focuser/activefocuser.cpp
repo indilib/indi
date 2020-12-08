@@ -230,6 +230,10 @@ bool ActiveFocuser::initProperties() {
     FocusRelPosN[0].step = 1;
     strncpy(FocusRelPosN->label, "Steps", MAXINDILABEL);
 
+    PresetN[0].max = MAX_TICKS;
+    PresetN[1].max = MAX_TICKS;
+    PresetN[2].max = MAX_TICKS;
+
     internalTicks = FocusAbsPosN[0].value;
 
     setDefaultPollingPeriod(750);
@@ -404,7 +408,7 @@ IPState ActiveFocuser::MoveRelFocuser(INDI::FocuserInterface::FocusDirection dir
 
     int relativeTicks = ((dir == FOCUS_INWARD ? ticks : -ticks));
 
-    double newTicks = FocusAbsPosN[0].value + relativeTicks;
+    double newTicks = internalTicks + relativeTicks;
 
     return MoveAbsFocuser(newTicks);
 
@@ -422,11 +426,17 @@ void ActiveFocuser::TimerHit() {
         FocusMaxPosN[0].value = MAX_TICKS;
         IDSetNumber(&FocusMaxPosNP, nullptr);
 
+        PresetN[0].max = MAX_TICKS;
+        PresetN[1].max = MAX_TICKS;
+        PresetN[2].max = MAX_TICKS;
+
         HardwareVersionN[0].text = ActiveFocuserUtils::SystemState::GetHardwareRevision();
         IDSetText(&HardwareVersionNP, nullptr);
 
         FocusAbsPosN[0].value = ActiveFocuserUtils::SystemState::GetCurrentPositionStep();
         IDSetNumber(&FocusAbsPosNP, nullptr);
+
+        internalTicks = FocusAbsPosN[0].value;
 
         AirTemperatureN[0].value = ActiveFocuserUtils::SystemState::GetAirTemperature();
         IDSetNumber(&AirTemperatureNP, nullptr);

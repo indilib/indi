@@ -72,7 +72,7 @@ protected:
 
     bool AbortFocuser();
 
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+    IPState MoveAbsFocuser(uint32_t targetTicks) override;
 
     IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
 

@@ -31,7 +31,6 @@ int ActiveFocuserUtils::Parser::Get32(const unsigned char *buffer, int position)
     }
     return num;
 
-
 }
 
 int ActiveFocuserUtils::Parser::Get16(const unsigned char *buffer, int position) {
@@ -311,20 +310,14 @@ void ActiveFocuserUtils::SystemState::SetMirrorTemperature(double mirrorTemperat
 
 const std::map<ActiveFocuserUtils::Commands, unsigned char> ActiveFocuserUtils::CommandsMap =
         {
-                {ActiveFocuserUtils::Commands::AUTO,         0x01},
-                {ActiveFocuserUtils::Commands::COUNTER_CLOCKWISE, 0x02},
                 {ActiveFocuserUtils::Commands::ZERO,              0x03},
                 {ActiveFocuserUtils::Commands::RELEASE,           0x04},
-                {ActiveFocuserUtils::Commands::FUNCTION,          0x05},
                 {ActiveFocuserUtils::Commands::FREE,              0x06},
                 {ActiveFocuserUtils::Commands::AUTO,              0x07},
-                {ActiveFocuserUtils::Commands::MANUAL,            0x08},
                 {ActiveFocuserUtils::Commands::MOVE,              0x09},
                 {ActiveFocuserUtils::Commands::STOP,              0x0A},
                 {ActiveFocuserUtils::Commands::FAN_ON,            0x0B},
                 {ActiveFocuserUtils::Commands::FAN_OFF,           0x0C},
-                {ActiveFocuserUtils::Commands::SETTINGS,          0x7D},
-                {ActiveFocuserUtils::Commands::SETTINGS_2,        0x7C},
                 {ActiveFocuserUtils::Commands::RESET,             0x7E},
                 {ActiveFocuserUtils::Commands::DUMMY,             0xFF},
         };
