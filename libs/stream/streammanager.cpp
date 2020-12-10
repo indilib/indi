@@ -1,4 +1,5 @@
 /*
+    Copyright (C) 2020 by Pawel Soja <kernel32.pl@gmail.com>
     Copyright (C) 2015 by Jasem Mutlaq <mutlaqja@ikarustech.com>
     Copyright (C) 2014 by geehalel <geehalel@gmail.com>
 
