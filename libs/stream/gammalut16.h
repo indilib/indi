@@ -24,6 +24,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <cstddef>
 
 class GammaLut16
 {
