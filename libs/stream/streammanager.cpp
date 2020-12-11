@@ -1,4 +1,5 @@
 /*
+    Copyright (C) 2020 by Pawel Soja <kernel32.pl@gmail.com>
     Copyright (C) 2015 by Jasem Mutlaq <mutlaqja@ikarustech.com>
     Copyright (C) 2014 by geehalel <geehalel@gmail.com>
 
@@ -28,7 +29,6 @@
 #include "indilogger.h"
 
 #include <cerrno>
-#include <signal.h>
 #include <sys/stat.h>
 #include <cmath>
 
@@ -45,22 +45,6 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
     m_isRecording = false;
 
     prepareGammaLUT();
-
-    // Timer
-    // now use BSD setimer to avoi librt dependency
-    //sevp.sigev_notify=SIGEV_NONE;
-    //timer_create(CLOCK_MONOTONIC, &sevp, &fpstimer);
-    //fpssettings.it_interval.tv_sec=24*3600;
-    //fpssettings.it_interval.tv_nsec=0;
-    //fpssettings.it_value=fpssettings.it_interval;
-    //timer_settime(fpstimer, 0, &fpssettings, nullptr);
-
-    struct itimerval fpssettings;
-    fpssettings.it_interval.tv_sec  = 24 * 3600;
-    fpssettings.it_interval.tv_usec = 0;
-    fpssettings.it_value            = fpssettings.it_interval;
-    signal(SIGALRM, SIG_IGN); //portable
-    setitimer(ITIMER_REAL, &fpssettings, nullptr);
 
     m_FPSAverage.setTimeWindow(1000);
     m_FPSFast.setTimeWindow(50);
