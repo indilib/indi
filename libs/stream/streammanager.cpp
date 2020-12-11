@@ -30,7 +30,6 @@
 
 #include <cerrno>
 #include <sys/stat.h>
-#include <cmath>
 
 static const char * STREAM_TAB = "Streaming";
 
@@ -43,8 +42,6 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
 
     m_isStreaming = false;
     m_isRecording = false;
-
-    prepareGammaLUT();
 
     m_FPSAverage.setTimeWindow(1000);
     m_FPSFast.setTimeWindow(50);
@@ -78,7 +75,6 @@ StreamManager::~StreamManager()
 
     delete (recorderManager);
     delete (encoderManager);
-    delete [] gammaLUT_16_8;
 }
 
 const char * StreamManager::getDeviceName()
@@ -433,8 +429,7 @@ void StreamManager::asyncStreamThread()
                 uint8_t *        dstBuffer = downscaleBuffer.data();
 
                 // Apply gamma
-                for (uint32_t i = 0; i < npixels; ++i)
-                    dstBuffer[i] = gammaLUT_16_8[srcBuffer[i]];
+                m_gammaLut16.apply(srcBuffer, npixels, dstBuffer);
 
                 sourceBufferData = dstBuffer;
                 nbytes /= 2;
@@ -1189,21 +1184,4 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 
     return false;
 }
-
-void StreamManager::prepareGammaLUT(double gamma, double a, double b, double Ii)
-{
-    if (!gammaLUT_16_8) gammaLUT_16_8 = new uint8_t[65536];
-
-    for (int i = 0; i < 65536; i++)
-    {
-        double I = static_cast<double>(i) / 65535.0;
-        double p;
-        if (I <= Ii)
-            p = a * I;
-        else
-            p = (1 + b) * powf(I, 1.0 / gamma) - b;
-        gammaLUT_16_8[i] = round(255.0 * p);
-    }
-}
-
 }

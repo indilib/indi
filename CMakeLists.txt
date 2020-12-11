@@ -339,6 +339,7 @@ ENDIF(OGGTHEORA_FOUND)
     SET(libstream_CXX_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recordermanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.cpp
@@ -1798,6 +1799,7 @@ if (UNIX)
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/uniquequeue.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_types.h
