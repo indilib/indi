@@ -442,6 +442,15 @@ double* interferometry_uv_coords_vector(double baseline_m, double wavelength, do
  */
 double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, double wavelength);
 
+/**
+ * @brief interferometry_delay_hadec Returns the delay in meters of a single baseline targeting the object by coordinates
+ * @param ha current hour angle of the target.
+ * @param dec declination of the target.
+ * @param baseline the baseline in meters. Three-dimensional xyz north is z axis y is UTC0 x is UTC0+90°.
+ * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
+ * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
+ */
+double interferometry_delay_hadec(double ha, double dec, double *baseline);
 /*@}*/
 
 #ifdef __cplusplus
