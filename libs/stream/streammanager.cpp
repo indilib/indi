@@ -71,12 +71,8 @@ StreamManager::~StreamManager()
 {
     if (m_framesThread.joinable())
     {
-        {
-            std::lock_guard<std::mutex> lock(m_framesMutex);
-            m_framesThreadTerminate = true;
-            m_framesBuffer.clear();
-            m_framesIncoming.notify_all();
-        }
+        m_framesThreadTerminate = true;
+        m_framesIncoming.abort();
         m_framesThread.join();
     }
 
@@ -283,20 +279,16 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
     if (isStreaming() || isRecording())
     {
-        std::vector<uint8_t> copyBuffer(buffer, buffer + nbytes);
-
-        std::lock_guard<std::mutex> lock(m_framesMutex);
-        if (m_framesBuffer.size() > 0)
+        size_t allocatedSize = nbytes * m_framesIncoming.size() / 1024 / 1024; // allocated size in MB
+        if (allocatedSize > LimitsN[LIMITS_BUFFER_MAX].value)
         {
-            uint32_t allocated = m_framesBuffer.size() * m_framesBuffer.front().frame.size() / 1024 / 1024; // MB
-            if (allocated > LimitsN[LIMITS_BUFFER_MAX].value)
-            {
-                LOG_WARN("Frame buffer is full, skipping frame...");
-                return;
-            }
+            LOG_WARN("Frame buffer is full, skipping frame...");
+            return;
         }
-        m_framesBuffer.push_back(TimeFrame{m_FPSFast.deltaTime(), std::move(copyBuffer)}); // add copy of frame to queue
-        m_framesIncoming.notify_all();
+
+        std::vector<uint8_t> copyBuffer(buffer, buffer + nbytes); // copy the frame
+
+        m_framesIncoming.push(TimeFrame{m_FPSFast.deltaTime(), std::move(copyBuffer)}); // push it into the queue
     }
 
     if (isRecording())
@@ -310,10 +302,7 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         )
         {
             LOG_INFO("Waiting for all buffered frames to be recorded");
-            {
-                std::unique_lock<std::mutex> lock(m_framesMutex);
-                m_framesBufferEmpty.wait(lock, [&](){ return m_framesBuffer.size() == 0; });
-            }
+            m_framesIncoming.waitForEmpty();
             // duplicated message
 #if 0
             LOGF_INFO(
@@ -348,24 +337,9 @@ void StreamManager::asyncStreamThread()
 
     while(!m_framesThreadTerminate)
     {
-        {
-            std::unique_lock<std::mutex> lock(m_framesMutex);
+        if (m_framesIncoming.pop(sourceTimeFrame) == false)
+            continue;
 
-            if (m_framesBuffer.size() == 0)
-            {
-                m_framesBufferEmpty.notify_all();
-                m_framesIncoming.wait(lock);
-            }
-
-            if (m_framesBuffer.size() == 0)
-            {
-                m_framesBufferEmpty.notify_all();
-                continue;
-            }
-
-            std::swap(sourceTimeFrame, m_framesBuffer.front());
-            m_framesBuffer.pop_front();
-        }
 
         const uint8_t *sourceBufferData = sourceTimeFrame.frame.data();
         uint32_t nbytes                 = sourceTimeFrame.frame.size();

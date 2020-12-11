@@ -1797,6 +1797,7 @@ if (UNIX)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/uniquequeue.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_types.h

@@ -36,6 +36,8 @@
 #include <atomic>
 #include <condition_variable>
 
+#include "uniquequeue.h"
+
 #include <stdint.h>
 
 /**
@@ -127,8 +129,8 @@ class StreamManager
         virtual bool saveConfigItems(FILE *fp);
 
         /**
-             * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
-             */
+         * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
+         */
         void newFrame(const uint8_t *buffer, uint32_t nbytes);
 
         /**
@@ -137,10 +139,10 @@ class StreamManager
         void asyncStreamThread();
 
         /**
-             * @brief setStream Enables (starts) or disables (stops) streaming.
-             * @param enable True to enable, false to disable
-             * @return True if operation is successful, false otherwise.
-             */
+         * @brief setStream Enables (starts) or disables (stops) streaming.
+         * @param enable True to enable, false to disable
+         * @return True if operation is successful, false otherwise.
+         */
         bool setStream(bool enable);
 
         RecorderInterface *getRecorder()
@@ -303,15 +305,11 @@ class StreamManager
         } TimeFrame;
 
         std::thread              m_framesThread;   // async incoming frames processing
-        std::mutex               m_framesMutex;    // protect read/write framesBuffer
-        std::list<TimeFrame>     m_framesBuffer;   // buffer for incoming frames
-        std::condition_variable  m_framesIncoming; // wakeup thread, new frames in framesBuffer
         std::atomic<bool>        m_framesThreadTerminate;
-        std::condition_variable  m_framesBufferEmpty;
+        UniqueQueue<TimeFrame>   m_framesIncoming;
 
         std::mutex               m_fastFPSUpdate;
-
-        std::mutex m_recordMutex;
+        std::mutex               m_recordMutex;
 
         uint8_t *gammaLUT_16_8 = nullptr;
 };
