@@ -197,7 +197,7 @@ class StreamManager
     private:
         /* Utility for record file */
         int mkpath(std::string s, mode_t mode);
-        std::string expand(const std::string &fname, const std::map<std::string, std::string> &patterns);
+        static std::string expand(const std::string &fname, const std::map<std::string, std::string> &patterns);
 
         bool startRecording();
         // Stop recording. Force stop even in abnormal state if needed.

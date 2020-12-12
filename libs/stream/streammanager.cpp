@@ -31,6 +31,11 @@
 #include <cerrno>
 #include <sys/stat.h>
 
+#include <algorithm>
+#include <sstream>
+#include <ctime>
+#include <iomanip>
+
 static const char * STREAM_TAB = "Streaming";
 
 namespace INDI
@@ -552,57 +557,44 @@ int StreamManager::mkpath(std::string s, mode_t mode)
     return mdret;
 }
 
+static std::string format_time(const std::tm &tm, const char *format)
+{
+    std::stringstream ss;
+    ss << std::put_time(&tm, format);
+    return ss.str();
+}
+
+static void replace_all(std::string &subject, const std::string& search, const std::string& replace)
+{
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos)
+    {
+         subject.replace(pos, search.length(), replace);
+         pos += replace.length();
+    }
+}
+
 std::string StreamManager::expand(const std::string &fname, const std::map<std::string, std::string> &patterns)
 {
-    std::string res = fname;
-    std::size_t pos;
-    time_t now;
-    struct tm * tm_now;
-    char val[20];
-    *(val + 19) = '\0';
+    std::string result = fname;
 
-    time(&now);
-    tm_now = gmtime(&now);
+    std::time_t t  =  std::time(nullptr);
+    std::tm     tm = *std::gmtime(&t);
 
-    pos = res.find("_D_");
-    if (pos != std::string::npos)
+    auto extendedPatterns = patterns;
+    extendedPatterns["_D_"] = format_time(tm, "%Y-%m-%d");
+    extendedPatterns["_H_"] = format_time(tm, "%H-%M-%S");
+    extendedPatterns["_T_"] = format_time(tm, "%Y-%m-%d" "@" "%H-%M-%S");
+
+    for(const auto &pattern: extendedPatterns)
     {
-        strftime(val, 11, "%F", tm_now);
-        res.replace(pos, 3, val);
-    }
-
-    pos = res.find("_T_");
-    if (pos != std::string::npos)
-    {
-        strftime(val, 20, "%F@%T", tm_now);
-        res.replace(pos, 3, val);
-    }
-
-    pos = res.find("_H_");
-    if (pos != std::string::npos)
-    {
-        strftime(val, 9, "%T", tm_now);
-        res.replace(pos, 3, val);
-    }
-
-    for (std::map<std::string, std::string>::const_iterator it = patterns.begin(); it != patterns.end(); ++it)
-    {
-        pos = res.find(it->first);
-        if (pos != std::string::npos)
-        {
-            res.replace(pos, it->first.size(), it->second);
-        }
+        replace_all(result, pattern.first, pattern.second);
     }
 
     // Replace all : to - to be valid filename on Windows
-    size_t start_pos = 0;
-    while ((start_pos = res.find(":", start_pos)) != std::string::npos)
-    {
-        res.replace(start_pos, 1, "-");
-        start_pos++;
-    }
+    std::replace(result.begin(), result.end(), ':', '-'); // it's really needed now?
 
-    return res;
+    return result;
 }
 
 bool StreamManager::startRecording()
