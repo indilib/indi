@@ -183,7 +183,6 @@ protected:
     void asyncStreamThread();
 
 private: // helpers
-    static int mkpath(std::string s, mode_t mode);
     static std::string expand(const std::string &fname, const std::map<std::string, std::string> &patterns);
 
 private: // Utility for record file

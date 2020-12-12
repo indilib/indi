@@ -27,6 +27,7 @@
 #include "indiccd.h"
 #include "indisensorinterface.h"
 #include "indilogger.h"
+#include "indiutility.h"
 
 #include <cerrno>
 #include <sys/stat.h>
@@ -521,41 +522,6 @@ bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double
     return recorder->writeFrame(buffer, nbytes);
 }
 
-int StreamManager::mkpath(std::string s, mode_t mode)
-{
-    size_t pre = 0, pos;
-    std::string dir;
-    int mdret = 0;
-    struct stat st;
-
-    if (s[s.size() - 1] != '/')
-        s += '/';
-
-    while ((pos = s.find_first_of('/', pre)) != std::string::npos)
-    {
-        dir = s.substr(0, pos++);
-        pre = pos;
-        if (dir.size() == 0)
-            continue;
-        if (stat(dir.c_str(), &st))
-        {
-            if (errno != ENOENT || ((mdret = mkdir(dir.c_str(), mode)) && errno != EEXIST))
-            {
-                LOGF_WARN("mkpath: can not create %s", dir.c_str());
-                return mdret;
-            }
-        }
-        else
-        {
-            if (!S_ISDIR(st.st_mode))
-            {
-                LOGF_WARN("mkpath: %s is not a directory", dir.c_str());
-                return -1;
-            }
-        }
-    }
-    return mdret;
-}
 
 static std::string format_time(const std::tm &tm, const char *format)
 {
