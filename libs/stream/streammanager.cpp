@@ -522,24 +522,6 @@ bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double
     return recorder->writeFrame(buffer, nbytes);
 }
 
-
-static std::string format_time(const std::tm &tm, const char *format)
-{
-    std::stringstream ss;
-    ss << std::put_time(&tm, format);
-    return ss.str();
-}
-
-static void replace_all(std::string &subject, const std::string& search, const std::string& replace)
-{
-    size_t pos = 0;
-    while ((pos = subject.find(search, pos)) != std::string::npos)
-    {
-         subject.replace(pos, search.length(), replace);
-         pos += replace.length();
-    }
-}
-
 std::string StreamManager::expand(const std::string &fname, const std::map<std::string, std::string> &patterns)
 {
     std::string result = fname;

@@ -22,6 +22,9 @@
 */
 #include "indiutility.h"
 
+#include <sstream>
+#include <iomanip>
+
 namespace INDI
 {
 
@@ -58,6 +61,23 @@ int mkpath(std::string s, mode_t mode)
         }
     }
     return mdret;
+}
+
+std::string format_time(const std::tm &tm, const char *format)
+{
+    std::stringstream ss;
+    ss << std::put_time(&tm, format);
+    return ss.str();
+}
+
+void replace_all(std::string &subject, const std::string& search, const std::string& replace)
+{
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos)
+    {
+         subject.replace(pos, search.length(), replace);
+         pos += replace.length();
+    }
 }
 
 }

@@ -24,10 +24,24 @@
 
 #include <string>
 #include <sys/stat.h>
+#include <ctime>
 
 namespace INDI
 {
 
-int mkpath(std::string s, mode_t mode);
+/**
+ * @brief Create a path directory - this function uses 'mkdir'
+ */
+int mkpath(std::string path, mode_t mode);
+
+/**
+ * @brief Converts the date and time to string - this function uses 'std::put_time'
+ */
+std::string format_time(const std::tm &tm, const char *format);
+
+/**
+ * @brief Replaces every occurrence of the string 'search' with the string 'replace'
+ */
+void replace_all(std::string &subject, const std::string& search, const std::string& replace);
 
 }
