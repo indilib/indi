@@ -35,7 +35,7 @@ namespace INDI
 int mkpath(std::string path, mode_t mode);
 
 /**
- * @brief Converts the date and time to string - this function uses 'std::put_time'
+ * @brief Converts the date and time to string - this function uses 'strftime'
  */
 std::string format_time(const std::tm &tm, const char *format);
 

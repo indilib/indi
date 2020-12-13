@@ -22,9 +22,6 @@
 */
 #include "indiutility.h"
 
-#include <sstream>
-#include <iomanip>
-
 namespace INDI
 {
 
@@ -65,9 +62,11 @@ int mkpath(std::string s, mode_t mode)
 
 std::string format_time(const std::tm &tm, const char *format)
 {
-    std::stringstream ss;
-    ss << std::put_time(&tm, format);
-    return ss.str();
+    char cstr[32];
+
+    int size = strftime(cstr, sizeof(cstr), format, &tm);
+
+    return std::string(cstr, size);
 }
 
 void replace_all(std::string &subject, const std::string& search, const std::string& replace)
