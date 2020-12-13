@@ -186,14 +186,14 @@ class Correlator : public SensorInterface
         double getDelay();
 
         /**
-         * @brief getUVCoordinates Get current baseline delay with reference to the given sidereal time.
+         * @brief getDelay Get current baseline delay with reference to the given sidereal time.
          * \param lst the local sidereal time
          * @return the delay in meters.
          */
         double getDelay(double lst);
 
         /**
-         * @brief getUVCoordinates Get current baseline delay with reference to zenith/azimuth baseline.
+         * @brief getDelay Get current baseline delay with reference to zenith/azimuth baseline.
          * \param alt altitude of the target
          * \param az azimuth of the target
          * @return the delay in meters.

@@ -1776,13 +1776,9 @@ double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, 
 
 double interferometry_delay_hadec(double ha, double dec, double *baseline)
 {
-    double* uv = (double*)malloc(sizeof(double) * 2);
-    uv[0] = (baseline[0] * sin(ha) + baseline[1] * cos(ha));
-    uv[1] = (baseline[1] * sin(dec) * sin(ha) - baseline[0] * sin(dec) * cos(ha) + baseline[2] * cos(dec));
-    double d = sqrt(pow(baseline[0], 2)+pow(baseline[1], 2)+pow(baseline[2], 2));
-    d -= sqrt(pow(uv[0], 2)+pow(uv[1], 2));
-    free (uv);
-    return d;
+    ha *= M_PI / 12.0;
+    dec *= M_PI / 180.0;
+    return (baseline[1] * cos(dec) * cos(ha) - baseline[0] * cos(dec) * sin(ha) + baseline[2] * sin(dec));
 }
 
 #if defined(_MSC_VER)
