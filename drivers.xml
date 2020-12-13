@@ -99,7 +99,11 @@
         </device>
         <device label="Rainbow RST-135" manufacturer="Rainbow Astro">
             <driver name="Rainbow">indi_rainbow_telescope</driver>
-            <version>1.0</version>
+            <version>1.1</version>
+        </device>
+        <device label="Rainbow RST-300" manufacturer="Rainbow Astro">
+            <driver name="Rainbow">indi_rainbow_telescope</driver>
+            <version>1.1</version>
         </device>
         <device label="Sky Scan">
             <driver name="SynScan">indi_synscan_telescope</driver>
@@ -219,11 +223,11 @@
         </device>
         <device label="Skywatcher Alt-Az" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="AZ-GTi Alt-Az" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="Skywatcher Alt-Az Wedge" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az Wedge">indi_skywatcherAltAzSimple</driver>
@@ -283,6 +287,10 @@
             <driver name="Rigelsys NStep">indi_nstep_focus</driver>
             <version>1.2</version>
         </device>
+          <device label="RBFocus" manufacturer="RBFocus">
+            <driver name="RBFocus">indi_rbfocus_focus</driver>
+            <version>1.2</version>
+        </device>
         <device label="MoonLite" manufacturer="MoonLite">
             <driver name="MoonLite">indi_moonlite_focus</driver>
             <version>1.1</version>
@@ -293,7 +301,7 @@
         </device>
         <device label="MyFocuserPro2" manufacturer="DIY">
             <driver name="MyFocuserPro2">indi_myfocuserpro2_focus</driver>
-            <version>0.6</version>
+            <version>0.7</version>
         </device>
         <device label="DeepSkyDad AF1" manufacturer="DeepSkyDad">
             <driver name="DeepSkyDad AF1">indi_deepskydad_af1_focus</driver>

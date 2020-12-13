@@ -170,6 +170,73 @@ Correlator::UVCoordinate Correlator::getUVCoordinates()
     return ret;
 }
 
+Correlator::UVCoordinate Correlator::getUVCoordinates(double lst)
+{
+    UVCoordinate ret;
+    double *bl = static_cast<double*>(malloc(sizeof(double)*3));
+    double ha = get_local_hour_angle(lst, RA);
+    bl[0] = baseline.x;
+    bl[1] = baseline.y;
+    bl[2] = baseline.z;
+    double *uvcoord = interferometry_uv_coords_hadec(ha, Dec, bl, wavelength);
+    ret.u = uvcoord[0];
+    ret.v = uvcoord[1];
+    free(bl);
+    free(uvcoord);
+    return ret;
+}
+
+Correlator::UVCoordinate Correlator::getUVCoordinates(double alt, double az)
+{
+    UVCoordinate ret;
+    double *bl = static_cast<double*>(malloc(sizeof(double)*3));
+    bl[0] = baseline.x;
+    bl[1] = baseline.y;
+    bl[2] = baseline.z;
+    double *uvcoord = interferometry_uv_coords_hadec(az*12.0/180.0, alt, bl, wavelength);
+    ret.u = uvcoord[0];
+    ret.v = uvcoord[1];
+    free(bl);
+    free(uvcoord);
+    return ret;
+}
+
+double Correlator::getDelay()
+{
+    double *bl = static_cast<double*>(malloc(sizeof(double)*3));
+    double lst = get_local_sidereal_time(Lon);
+    double ha = get_local_hour_angle(lst, RA);
+    bl[0] = baseline.x;
+    bl[1] = baseline.y;
+    bl[2] = baseline.z;
+    double delay = interferometry_delay_hadec(ha, Dec, bl);
+    free(bl);
+    return delay;
+}
+
+double Correlator::getDelay(double lst)
+{
+    double *bl = static_cast<double*>(malloc(sizeof(double)*3));
+    double ha = get_local_hour_angle(lst, RA);
+    bl[0] = baseline.x;
+    bl[1] = baseline.y;
+    bl[2] = baseline.z;
+    double delay = interferometry_delay_hadec(ha, Dec, bl);
+    free(bl);
+    return delay;
+}
+
+double Correlator::getDelay(double alt, double az)
+{
+    double *bl = static_cast<double*>(malloc(sizeof(double)*3));
+    bl[0] = baseline.x;
+    bl[1] = baseline.y;
+    bl[2] = baseline.z;
+    double delay = interferometry_delay_hadec(az*12.0/180.0, alt, bl);
+    free(bl);
+    return delay;
+}
+
 bool Correlator::StartIntegration(double duration)
 {
     INDI_UNUSED(duration);

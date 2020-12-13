@@ -43,7 +43,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 8)
-set(CMAKE_INDI_VERSION_RELEASE 7)
+set(CMAKE_INDI_VERSION_RELEASE 8)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -338,6 +338,8 @@ ENDIF(OGGTHEORA_FOUND)
 
     SET(libstream_CXX_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recordermanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.cpp
@@ -372,7 +374,7 @@ ENDIF(OGGTHEORA_FOUND)
 ENDIF(UNIX)
 
 SET(libdsp_C_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/align.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/file.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/buffer.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convert.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fft.c
@@ -675,7 +677,9 @@ install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin)
 
 ########### Rainbow Mount driver ##########
 SET(rainbow_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/rainbow.cpp )
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/rainbow.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
+    )
 
 add_executable(indi_rainbow_telescope ${rainbow_SRC})
 
@@ -922,6 +926,14 @@ SET(aaf2_SRC
 add_executable(indi_aaf2_focus ${aaf2_SRC})
 target_link_libraries(indi_aaf2_focus indidriver)
 install(TARGETS indi_aaf2_focus RUNTIME DESTINATION bin)
+################ AAF2 Focuser ################
+
+SET(rbfocus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/rbfocus.cpp)
+
+add_executable(indi_rbfocus_focus ${rbfocus_SRC})
+target_link_libraries(indi_rbfocus_focus indidriver)
+install(TARGETS indi_rbfocus_focus RUNTIME DESTINATION bin)
 
 ################ Moonlite Focuser ################
 
@@ -1785,6 +1797,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INS
 if (UNIX)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/uniquequeue.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_types.h

@@ -1760,6 +1760,8 @@ bool V4L2_Driver::saveConfigItems(FILE * fp)
     if (ImageAdjustNP.nnp > 0)
         IUSaveConfigNumber(fp, &ImageAdjustNP);
 
+    IUSaveConfigText(fp, &PortTP);
+
     return Streamer->saveConfigItems(fp);
 }
 

@@ -121,6 +121,15 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         bool checkHoming();
 
         ///////////////////////////////////////////////////////////////////////////////
+        /// Location & Time
+        ///////////////////////////////////////////////////////////////////////////////
+        bool sendScopeTime();
+        bool sendScopeLocation();
+        bool getUTFOffset(double *offset);
+        bool getLocalDate(char *dateString);
+        bool getLocalTime(char *timeString);
+
+        ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
         ///////////////////////////////////////////////////////////////////////////////
         bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
@@ -155,8 +164,8 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         double m_CurrentAZ {0}, m_CurrentAL {0};
         double m_CurrentRA {0}, m_CurrentDE {0};
         std::string m_Version;
-        int m_GuideNSTID;
-        int m_GuideWETID;
+        int m_GuideNSTID {0};
+        int m_GuideWETID {0};
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values

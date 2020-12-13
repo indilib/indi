@@ -322,7 +322,7 @@ void IDLog(const char *fmt, ...)
 double time_ns()
 {
     struct timespec ts;
-#ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
+#ifdef __APPLE__ // OS X does not have clock_gettime, use clock_get_time
     clock_serv_t cclock;
     mach_timespec_t mts;
     host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
@@ -1734,12 +1734,12 @@ double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spec
 
 double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian)
 {
-    return pow(10, rel_magnitude*-0.4)*(LUMEN(wavelength)*(steradian/(M_PI*4))/filter_bandwidth);
+    return pow(10, rel_magnitude*-0.4)*(LUMEN(wavelength)*(steradian/(M_PI*4))*filter_bandwidth);
 }
 
 double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double steradian)
 {
-    return log10(photon_flux/(LUMEN(wavelength)*(steradian/(M_PI*4))/filter_bandwidth))/-0.4;
+    return log10(photon_flux/(LUMEN(wavelength)*(steradian/(M_PI*4))*filter_bandwidth))/-0.4;
 }
 
 double estimate_absolute_magnitude(double delta_dist, double delta_mag)
@@ -1768,10 +1768,21 @@ double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, 
     ha *= M_PI / 12.0;
     dec *= M_PI / 180.0;
     uv[0] = (baseline[0] * sin(ha) + baseline[1] * cos(ha));
-    uv[1] = (-baseline[0] * sin(dec) * cos(ha) + baseline[1] * sin(dec) * sin(ha) + baseline[2] * cos(dec));
+    uv[1] = (baseline[1] * sin(dec) * sin(ha) - baseline[0] * sin(dec) * cos(ha) + baseline[2] * cos(dec));
     uv[0] *= AIRY / wavelength;
     uv[1] *= AIRY / wavelength;
     return uv;
+}
+
+double interferometry_delay_hadec(double ha, double dec, double *baseline)
+{
+    double* uv = (double*)malloc(sizeof(double) * 2);
+    uv[0] = (baseline[0] * sin(ha) + baseline[1] * cos(ha));
+    uv[1] = (baseline[1] * sin(dec) * sin(ha) - baseline[0] * sin(dec) * cos(ha) + baseline[2] * cos(dec));
+    double d = sqrt(pow(baseline[0], 2)+pow(baseline[1], 2)+pow(baseline[2], 2));
+    d -= sqrt(pow(uv[0], 2)+pow(uv[1], 2));
+    free (uv);
+    return d;
 }
 
 #if defined(_MSC_VER)

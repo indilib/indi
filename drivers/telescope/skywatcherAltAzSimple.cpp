@@ -145,7 +145,7 @@ bool SkywatcherAltAzSimple::Handshake()
         tty_set_generic_udp_format(1);
     }
 
-    bool Result = InitMount(RecoverAfterReconnection);
+    bool Result = InitMount();
 
     if (getActiveConnection() == serialConnection)
     {
