@@ -1690,8 +1690,8 @@ double get_local_hour_angle(double sideral_time, double ra)
 double estimate_geocentric_elevation(double Lat, double El)
 {
     Lat *= M_PI / 180.0;
-    Lat = sin(Lat);
-    El = Lat * (EARTHRADIUSPOLAR - EARTHRADIUSEQUATORIAL);
+    Lat = fabs(cos(Lat));
+    El = EARTHRADIUSPOLAR + Lat * (EARTHRADIUSPOLAR - EARTHRADIUSEQUATORIAL);
     return El;
 }
 
