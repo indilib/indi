@@ -1647,14 +1647,7 @@ void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer
 
     ln_get_equ_from_hrz(&libnova_object, observer, JD, position);
 }
-
 #endif // HAVE_LIBNOVA
-
-double get_local_hour_angle(double sideral_time, double ra)
-{
-    double HA = sideral_time - ra;
-    return rangeHA(HA);
-}
 
 void get_alt_az_coordinates(double Ha, double Dec, double Lat, double* Alt, double *Az)
 {
@@ -1664,14 +1657,34 @@ void get_alt_az_coordinates(double Ha, double Dec, double Lat, double* Alt, doub
     Lat *= M_PI / 180.0;
     alt = asin(sin(Dec) * sin(Lat) + cos(Dec) * cos(Lat) * cos(Ha));
     az = asin(-sin(Ha) * cos(Dec) / cos(alt));
-    if ((sin(Dec) - sin(Lat) * sin(alt)) / cos(Lat) * cos(alt) < 0.0)
+    if (((sin(Dec) - sin(Lat) * sin(alt)) / cos(Lat) * cos(alt)) < 0.0)
         az = M_PI*2 - az;
     alt *= 180.0 / M_PI;
     az *= 180.0 / M_PI;
-    range360(az);
-    rangeDec(alt);
     *Alt = alt;
     *Az = az;
+}
+
+void get_ra_dec_coordinates(double Alt, double Az, double Lat, double lst, double* Ra, double *Dec)
+{
+    double ha, dec;
+    Alt *= M_PI / 12.0;
+    Az *= M_PI / 180.0;
+    Lat *= M_PI / 180.0;
+    dec = asin(sin(Alt)*sin(Lat) + cos(Alt) * cos(Lat) * cos(Az));
+    ha = asin(-sin(Az)*cos(Alt)/cos(dec));
+    if (((sin(Alt)-sin(dec)*sin(Lat))/cos(dec)*cos(Lat)) < 0.0)
+        ha = M_PI*2 - ha;
+    ha *= 12.0 / M_PI;
+    dec *= 180.0 / M_PI;
+    *Ra = lst - ha;
+    *Dec = dec;
+}
+
+double get_local_hour_angle(double sideral_time, double ra)
+{
+    double HA = sideral_time - ra;
+    return rangeHA(HA);
 }
 
 double estimate_geocentric_elevation(double Lat, double El)

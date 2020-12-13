@@ -322,6 +322,7 @@ void get_hrz_from_equ(struct ln_equ_posn *object, struct ln_lnlat_posn *observer
  */
 void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer, double JD,
                       struct ln_equ_posn *position);
+
 /**
  * @brief get_alt_az_coordinates Returns alt-azimuth coordinates of an object
  * @param hour_angle Hour angle in hours (-12 to 12)
@@ -331,6 +332,17 @@ void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer
  * @param az AZ of object will be returned here
  */
 void get_alt_az_coordinates(double hour_angle, double dec, double latitude, double* alt, double *az);
+
+/**
+ * @brief get_ra_dec_coordinates Returns ra-dec coordinates of an object
+ * @param alt ALT of object
+ * @param az Az of object
+ * @param latitude latitude in INDI format (-90 to +90)
+ * @param lst local sidereal time
+ * @param ra Ra of object will be returned here
+ * @param dec Dec of object will be returned here
+ */
+void get_ra_dec_coordinates(double Alt, double Az, double Lat, double lst, double* Ra, double *Dec);
 
 /**
  * @brief estimate_geocentric_elevation Returns an estimation of the actual geocentric elevation
