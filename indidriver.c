@@ -71,46 +71,66 @@ int isPropDefined(const char *property_name, const char *device_name)
 }
 
 /* output a string expanding special characters into xml/html escape sequences */
-/* N.B. You must free the returned buffer after use! */
-char *escapeXML(const char *s, unsigned int MAX_BUF_SIZE)
+static size_t escapeXML2(const char *src, char *dst, size_t size)
 {
-    char *buf = malloc(sizeof(char) * MAX_BUF_SIZE);
-    assert_mem(buf);
-    char *out = buf;
-    unsigned int i = 0;
+    char *ptr = dst; // copy pointer
 
-    for (i = 0; i <= strlen(s); i++)
+    // size > 1 - place for null-terminator
+    for(; size > 1 && *src; ++src)
     {
-        switch (s[i])
+        switch (*src)
         {
-            case '&':
-                strncpy(out, "&amp;", 6);
-                out += 5;
-                break;
-            case '\'':
-                strncpy(out, "&apos;", 7);
-                out += 6;
-                break;
-            case '"':
-                strncpy(out, "&quot;", 7);
-                out += 6;
-                break;
-            case '<':
-                strncpy(out, "&lt;", 5);
-                out += 4;
-                break;
-            case '>':
-                strncpy(out, "&gt;", 5);
-                out += 4;
-                break;
-            default:
-                *out++ = s[i];
-                *out = 0;
-                break;
+        case '&':
+            if (size < 6) goto finish;
+            strncpy(ptr, "&amp;", 6);
+            ptr += 5;
+            size -= 5;
+            break;
+        case '\'':
+            if (size < 7) goto finish;
+            strncpy(ptr, "&apos;", 7);
+            ptr += 6;
+            size -= 6;
+            break;
+        case '"':
+            if (size < 7) goto finish;
+            strncpy(ptr, "&quot;", 7);
+            ptr += 6;
+            size -= 6;
+            break;
+        case '<':
+            if (size < 5) goto finish;
+            strncpy(ptr, "&lt;", 5);
+            ptr += 4;
+            size -= 4;
+            break;
+        case '>':
+            if (size < 5) goto finish;
+            strncpy(ptr, "&gt;", 5);
+            ptr += 4;
+            size -= 4;
+            break;
+        default:
+            *ptr++ = *src;
+            size -= 1;
+            break;
         }
     }
 
-    return buf;
+finish:
+    if (size > 0)
+        *ptr = 0;
+    return (size_t)(ptr - dst);
+}
+
+/* output a string expanding special characters into xml/html escape sequences */
+/* N.B. You must free the returned buffer after use! */
+static char *escapeXML(const char *src, size_t size)
+{
+    char *dst = malloc(sizeof(char) * size);
+    assert_mem(dst);
+    escapeXML2(src, dst, size);
+    return dst;
 }
 
 /* tell Client to delete the property with given name on given device, or
