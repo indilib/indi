@@ -331,7 +331,7 @@ void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer
  * @param alt ALT of object will be returned here
  * @param az AZ of object will be returned here
  */
-void get_alt_az_coordinates(double hour_angle, double dec, double latitude, double* alt, double *az);
+void get_alt_az_coordinates(double Ra, double Dec, double Lat, double lst, double* Alt, double *Az);
 
 /**
  * @brief get_ra_dec_coordinates Returns ra-dec coordinates of an object

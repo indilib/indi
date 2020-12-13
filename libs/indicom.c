@@ -1649,14 +1649,15 @@ void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer
 }
 #endif // HAVE_LIBNOVA
 
-void get_alt_az_coordinates(double Ha, double Dec, double Lat, double* Alt, double *Az)
+void get_alt_az_coordinates(double Ra, double Dec, double Lat, double lst, double* Alt, double *Az)
 {
     double alt, az;
-    Ha *= M_PI / 12.0;
+    double ha = get_local_hour_angle(lst, Ra);
+    ha *= M_PI / 12.0;
     Dec *= M_PI / 180.0;
     Lat *= M_PI / 180.0;
-    alt = asin(sin(Dec) * sin(Lat) + cos(Dec) * cos(Lat) * cos(Ha));
-    az = asin(-sin(Ha) * cos(Dec) / cos(alt));
+    alt = asin(sin(Dec) * sin(Lat) + cos(Dec) * cos(Lat) * cos(ha));
+    az = asin(-sin(ha) * cos(Dec) / cos(alt));
     if (((sin(Dec) - sin(Lat) * sin(alt)) / cos(Lat) * cos(alt)) < 0.0)
         az = M_PI*2 - az;
     alt *= 180.0 / M_PI;
