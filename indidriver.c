@@ -71,7 +71,7 @@ int isPropDefined(const char *property_name, const char *device_name)
 }
 
 /* output a string expanding special characters into xml/html escape sequences */
-static size_t escapeXML2(const char *src, char *dst, size_t size)
+static size_t escapeXML2(char *dst, const char *src, size_t size)
 {
     char *ptr = dst; // copy pointer
 
@@ -129,7 +129,7 @@ static char *escapeXML(const char *src, size_t size)
 {
     char *dst = malloc(sizeof(char) * size);
     assert_mem(dst);
-    escapeXML2(src, dst, size);
+    escapeXML2(dst, src, size);
     return dst;
 }
 
