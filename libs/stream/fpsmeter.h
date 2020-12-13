@@ -19,7 +19,7 @@
 */
 #pragma once
 
-#include <sys/time.h>
+#include <chrono>
 #include <cstdint>
 
 namespace INDI
@@ -58,11 +58,6 @@ public:
     double deltaTime() const;
 
     /**
-     * @brief Get last frame timestamp
-     */
-    double frameTime() const;
-
-    /**
      * @brief Total frames
      * @return Number of frames counted
      */
@@ -74,21 +69,13 @@ public:
      */
     double totalTime() const;
 
-
-
-public:
-    /**
-     * @brief get current system timestamp
-     */
-    static double currentTime();
-
 private:
     uint64_t mFramesPerElapsedTime = 0;
     double mElapsedTime = 0;
     double mTimeWindow = 1000;
 
-    double mFrameTime1 = 0;
-    double mFrameTime2 = 0;
+    std::chrono::steady_clock::time_point mFrameTime1;
+    std::chrono::steady_clock::time_point mFrameTime2;
     
     double mFramesPerSecond = 0;
 

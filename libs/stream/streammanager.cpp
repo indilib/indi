@@ -1,4 +1,5 @@
 /*
+    Copyright (C) 2020 by Pawel Soja <kernel32.pl@gmail.com>
     Copyright (C) 2015 by Jasem Mutlaq <mutlaqja@ikarustech.com>
     Copyright (C) 2014 by geehalel <geehalel@gmail.com>
 
@@ -28,9 +29,7 @@
 #include "indilogger.h"
 
 #include <cerrno>
-#include <signal.h>
 #include <sys/stat.h>
-#include <cmath>
 
 static const char * STREAM_TAB = "Streaming";
 
@@ -43,24 +42,6 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
 
     m_isStreaming = false;
     m_isRecording = false;
-
-    prepareGammaLUT();
-
-    // Timer
-    // now use BSD setimer to avoi librt dependency
-    //sevp.sigev_notify=SIGEV_NONE;
-    //timer_create(CLOCK_MONOTONIC, &sevp, &fpstimer);
-    //fpssettings.it_interval.tv_sec=24*3600;
-    //fpssettings.it_interval.tv_nsec=0;
-    //fpssettings.it_value=fpssettings.it_interval;
-    //timer_settime(fpstimer, 0, &fpssettings, nullptr);
-
-    struct itimerval fpssettings;
-    fpssettings.it_interval.tv_sec  = 24 * 3600;
-    fpssettings.it_interval.tv_usec = 0;
-    fpssettings.it_value            = fpssettings.it_interval;
-    signal(SIGALRM, SIG_IGN); //portable
-    setitimer(ITIMER_REAL, &fpssettings, nullptr);
 
     m_FPSAverage.setTimeWindow(1000);
     m_FPSFast.setTimeWindow(50);
@@ -87,18 +68,13 @@ StreamManager::~StreamManager()
 {
     if (m_framesThread.joinable())
     {
-        {
-            std::lock_guard<std::mutex> lock(m_framesMutex);
-            m_framesThreadTerminate = true;
-            m_framesBuffer.clear();
-            m_framesIncoming.notify_all();
-        }
+        m_framesThreadTerminate = true;
+        m_framesIncoming.abort();
         m_framesThread.join();
     }
 
     delete (recorderManager);
     delete (encoderManager);
-    delete [] gammaLUT_16_8;
 }
 
 const char * StreamManager::getDeviceName()
@@ -299,20 +275,16 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
     if (isStreaming() || isRecording())
     {
-        std::vector<uint8_t> copyBuffer(buffer, buffer + nbytes);
-
-        std::lock_guard<std::mutex> lock(m_framesMutex);
-        if (m_framesBuffer.size() > 0)
+        size_t allocatedSize = nbytes * m_framesIncoming.size() / 1024 / 1024; // allocated size in MB
+        if (allocatedSize > LimitsN[LIMITS_BUFFER_MAX].value)
         {
-            uint32_t allocated = m_framesBuffer.size() * m_framesBuffer.front().frame.size() / 1024 / 1024; // MB
-            if (allocated > LimitsN[LIMITS_BUFFER_MAX].value)
-            {
-                LOG_WARN("Frame buffer is full, skipping frame...");
-                return;
-            }
+            LOG_WARN("Frame buffer is full, skipping frame...");
+            return;
         }
-        m_framesBuffer.push_back(TimeFrame{m_FPSFast.deltaTime(), std::move(copyBuffer)}); // add copy of frame to queue
-        m_framesIncoming.notify_all();
+
+        std::vector<uint8_t> copyBuffer(buffer, buffer + nbytes); // copy the frame
+
+        m_framesIncoming.push(TimeFrame{m_FPSFast.deltaTime(), std::move(copyBuffer)}); // push it into the queue
     }
 
     if (isRecording())
@@ -326,10 +298,7 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         )
         {
             LOG_INFO("Waiting for all buffered frames to be recorded");
-            {
-                std::unique_lock<std::mutex> lock(m_framesMutex);
-                m_framesBufferEmpty.wait(lock, [&](){ return m_framesBuffer.size() == 0; });
-            }
+            m_framesIncoming.waitForEmpty();
             // duplicated message
 #if 0
             LOGF_INFO(
@@ -364,24 +333,9 @@ void StreamManager::asyncStreamThread()
 
     while(!m_framesThreadTerminate)
     {
-        {
-            std::unique_lock<std::mutex> lock(m_framesMutex);
+        if (m_framesIncoming.pop(sourceTimeFrame) == false)
+            continue;
 
-            if (m_framesBuffer.size() == 0)
-            {
-                m_framesBufferEmpty.notify_all();
-                m_framesIncoming.wait(lock);
-            }
-
-            if (m_framesBuffer.size() == 0)
-            {
-                m_framesBufferEmpty.notify_all();
-                continue;
-            }
-
-            std::swap(sourceTimeFrame, m_framesBuffer.front());
-            m_framesBuffer.pop_front();
-        }
 
         const uint8_t *sourceBufferData = sourceTimeFrame.frame.data();
         uint32_t nbytes                 = sourceTimeFrame.frame.size();
@@ -475,8 +429,7 @@ void StreamManager::asyncStreamThread()
                 uint8_t *        dstBuffer = downscaleBuffer.data();
 
                 // Apply gamma
-                for (uint32_t i = 0; i < npixels; ++i)
-                    dstBuffer[i] = gammaLUT_16_8[srcBuffer[i]];
+                m_gammaLut16.apply(srcBuffer, npixels, dstBuffer);
 
                 sourceBufferData = dstBuffer;
                 nbytes /= 2;
@@ -1231,21 +1184,4 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 
     return false;
 }
-
-void StreamManager::prepareGammaLUT(double gamma, double a, double b, double Ii)
-{
-    if (!gammaLUT_16_8) gammaLUT_16_8 = new uint8_t[65536];
-
-    for (int i = 0; i < 65536; i++)
-    {
-        double I = static_cast<double>(i) / 65535.0;
-        double p;
-        if (I <= Ii)
-            p = a * I;
-        else
-            p = (1 + b) * powf(I, 1.0 / gamma) - b;
-        gammaLUT_16_8[i] = round(255.0 * p);
-    }
-}
-
 }
