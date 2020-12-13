@@ -1659,15 +1659,17 @@ double get_local_hour_angle(double sideral_time, double ra)
 void get_alt_az_coordinates(double Ha, double Dec, double Lat, double* Alt, double *Az)
 {
     double alt, az;
-    Ha *= M_PI / 180.0;
+    Ha *= M_PI / 12.0;
     Dec *= M_PI / 180.0;
     Lat *= M_PI / 180.0;
     alt = asin(sin(Dec) * sin(Lat) + cos(Dec) * cos(Lat) * cos(Ha));
-    az = acos((sin(Dec) - sin(alt)*sin(Lat)) / (cos(alt) * cos(Lat)));
+    az = asin(-sin(Ha) * cos(Dec) / cos(alt));
+    if ((sin(Dec) - sin(Lat) * sin(alt)) / cos(Lat) * cos(alt) < 0.0)
+        az = M_PI*2 - az;
     alt *= 180.0 / M_PI;
     az *= 180.0 / M_PI;
-    if (sin(Ha) >= 0.0)
-        az = 360 - az;
+    range360(az);
+    rangeDec(alt);
     *Alt = alt;
     *Az = az;
 }
@@ -1676,7 +1678,7 @@ double estimate_geocentric_elevation(double Lat, double El)
 {
     Lat *= M_PI / 180.0;
     Lat = sin(Lat);
-    El += Lat * (EARTHRADIUSPOLAR - EARTHRADIUSEQUATORIAL);
+    El = Lat * (EARTHRADIUSPOLAR - EARTHRADIUSEQUATORIAL);
     return El;
 }
 
@@ -1778,7 +1780,7 @@ double interferometry_delay_hadec(double ha, double dec, double *baseline)
 {
     ha *= M_PI / 12.0;
     dec *= M_PI / 180.0;
-    return (baseline[1] * cos(dec) * cos(ha) - baseline[0] * cos(dec) * sin(ha) + baseline[2] * sin(dec));
+    return sqrt(pow(baseline[1] * cos(dec) * cos(ha), 2)+pow(baseline[0] * cos(dec) * sin(ha), 2)+pow(baseline[2] * sin(dec), 2));
 }
 
 #if defined(_MSC_VER)
