@@ -72,6 +72,34 @@ int isPropDefined(const char *property_name, const char *device_name)
 }
 
 /* output a string expanding special characters into xml/html escape sequences */
+static void escapeXML_fputs(const char *src, FILE *stream)
+{
+    const char *ptr = src;
+    const char *replacement;
+
+    for(; *ptr; ++ptr)
+    {
+        switch(*ptr)
+        {
+        case  '&': replacement = "&amp;";  break;
+        case '\'': replacement = "&apos;"; break;
+        case  '"': replacement = "&quot;"; break;
+        case  '<': replacement = "&lt;";   break;
+        case  '>': replacement = "&gt;";   break;
+        default:   replacement = NULL;
+        }
+
+        if (replacement != NULL)
+        {
+            fwrite(src, 1, (size_t)(ptr - src), stream);
+            src = ptr + 1;
+            fputs(replacement, stream);
+        }
+    }
+    fwrite(src, 1, (size_t)(ptr - src), stream);
+}
+
+/* output a string expanding special characters into xml/html escape sequences */
 static size_t escapeXML2(char *dst, const char *src, size_t size)
 {
     char *ptr = dst; // copy pointer
@@ -124,6 +152,8 @@ finish:
     return (size_t)(ptr - dst);
 }
 
+// unused
+#if 0
 /* output a string expanding special characters into xml/html escape sequences */
 /* N.B. You must free the returned buffer after use! */
 static char *escapeXML(const char *src, size_t size)
@@ -133,6 +163,7 @@ static char *escapeXML(const char *src, size_t size)
     escapeXML2(dst, src, size);
     return dst;
 }
+#endif
 
 /* tell Client to delete the property with given name on given device, or
  * entire device if !name
@@ -1628,12 +1659,12 @@ void IDMessage(const char *dev, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE); // TODO
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf("/>\n");
     fflush(stdout);
@@ -1856,12 +1887,12 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE); // TODO
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -1921,12 +1952,12 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE); // TODO
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -1993,12 +2024,12 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE); // TODO
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2053,12 +2084,12 @@ void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE); // TODO
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2102,12 +2133,12 @@ void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE); // TODO
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf(">\n");
 
