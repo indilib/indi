@@ -391,7 +391,7 @@ void RBFOCUS::TimerHit()
 
 bool RBFOCUS::AbortFocuser()
 {
-    return sendCommand("H#");
+    return sendCommand("L#");
 }
 bool RBFOCUS::setHold()
 {
