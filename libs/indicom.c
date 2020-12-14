@@ -1649,6 +1649,12 @@ void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer
 }
 #endif // HAVE_LIBNOVA
 
+double get_local_hour_angle(double sideral_time, double ra)
+{
+    double HA = sideral_time - ra;
+    return rangeHA(HA);
+}
+
 void get_alt_az_coordinates(double Ra, double Dec, double Lat, double lst, double* Alt, double *Az)
 {
     double alt, az;
