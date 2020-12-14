@@ -1688,12 +1688,6 @@ void get_ra_dec_coordinates(double Alt, double Az, double Lat, double lst, doubl
     *Dec = dec;
 }
 
-double get_local_hour_angle(double sideral_time, double ra)
-{
-    double HA = sideral_time - ra;
-    return rangeHA(HA);
-}
-
 double estimate_geocentric_elevation(double Lat, double El)
 {
     Lat *= M_PI / 180.0;
