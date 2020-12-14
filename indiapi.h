@@ -218,6 +218,52 @@ IP_RW  /*!< Read & Write */
  */
 
 /**
+ * @struct IWidget
+ * @brief Common data for
+ * IText, INumber, ISwitch, ILight, IBLOB
+ */
+typedef struct _IWidget
+{
+    /** Index name */
+    char name[MAXINDINAME];
+    /** Short description */
+    char label[MAXINDILABEL];
+} IWidget;
+
+/**
+ * @struct IWidgetVectorProperty;
+ * @brief Common data for
+ * ITextVectorProperty, INumberVectorProperty,
+ * ISwitchVectorProperty, ILightVectorProperty,
+ * IBLOBVectorProperty
+ */
+typedef struct _IWidgetVectorProperty
+{
+    /** Device name */
+    char device[MAXINDIDEVICE];
+    /** Property name */
+    char name[MAXINDINAME];
+    /** Short description */
+    char label[MAXINDILABEL];
+    /** GUI grouping hint */
+    char group[MAXINDIGROUP];
+    /** Client accessibility hint */
+    IPerm perm;
+    /** Current max time to change, secs */
+    double timeout;
+    /** current property state */
+    IPState state;
+    /** Widget comprising this vector */
+    IWidget *widets;
+    /** Dimension of widgets[] */
+    int  nwidgets;
+    /** ISO 8601 timestamp of this event */
+    char timestamp[MAXINDITSTAMP];
+    /** Helper info */
+    void *aux;
+} IWidgetVectorProperty;
+
+/**
  * @struct IText
  * @brief One text descriptor.
  */
