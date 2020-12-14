@@ -97,178 +97,51 @@ IBLOBVectorProperty *BaseDevice::getBLOB(const char *name)
 
 IPState BaseDevice::getPropertyState(const char *name)
 {
-    IPState state = IPS_IDLE;
-    INumberVectorProperty *nvp = nullptr;
-    ITextVectorProperty *tvp = nullptr;
-    ISwitchVectorProperty *svp = nullptr;
-    ILightVectorProperty *lvp = nullptr;
-    IBLOBVectorProperty *bvp = nullptr;
-
     for (const auto &oneProp : pAll)
     {
         INDI_PROPERTY_TYPE pType = oneProp->getType();
-        void *pPtr  = oneProp->getProperty();
+        IWidgetVectorProperty *wvp = static_cast<IWidgetVectorProperty *>(oneProp->getProperty());
 
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                if (nvp == nullptr)
-                    continue;
-                if (!strcmp(name, nvp->name))
-                    return nvp->s;
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                if (svp == nullptr)
-                    continue;
-                if (!strcmp(name, svp->name))
-                    return svp->s;
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                if (tvp == nullptr)
-                    continue;
-                if (!strcmp(name, tvp->name))
-                    return tvp->s;
-                break;
-            case INDI_LIGHT:
-                lvp = static_cast<ILightVectorProperty *>(pPtr);
-                if (lvp == nullptr)
-                    continue;
-                if (!strcmp(name, lvp->name))
-                    return lvp->s;
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                if (bvp == nullptr)
-                    continue;
-                if (!strcmp(name, bvp->name))
-                    return bvp->s;
-                break;
-            default:
-                break;
-        }
+        if (pType == INDI_UNKNOWN)
+            continue;
+
+        if (wvp != nullptr && !strcmp(name, wvp->name))
+            return wvp->state;
     }
 
-    return state;
+    return IPS_IDLE;
 }
 
 IPerm BaseDevice::getPropertyPermission(const char *name)
 {
-    IPerm perm = IP_RO;
-    INumberVectorProperty *nvp = nullptr;
-    ITextVectorProperty *tvp = nullptr;
-    ISwitchVectorProperty *svp = nullptr;
-    IBLOBVectorProperty *bvp = nullptr;
-
     for (const auto &oneProp : pAll)
     {
         INDI_PROPERTY_TYPE pType = oneProp->getType();
-        void *pPtr  = oneProp->getProperty();
+        IWidgetVectorProperty *wvp = static_cast<IWidgetVectorProperty *>(oneProp->getProperty());
 
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                if (nvp == nullptr)
-                    continue;
-                if (!strcmp(name, nvp->name))
-                    return nvp->p;
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                if (svp == nullptr)
-                    continue;
-                if (!strcmp(name, svp->name))
-                    return svp->p;
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                if (tvp == nullptr)
-                    continue;
-                if (!strcmp(name, tvp->name))
-                    return tvp->p;
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                if (bvp == nullptr)
-                    continue;
-                if (!strcmp(name, bvp->name))
-                    return bvp->p;
-                break;
-            default:
-                break;
-        }
+        if (pType == INDI_UNKNOWN)
+            continue;
+
+        if (wvp != nullptr && !strcmp(name, wvp->name))
+            return wvp->perm;
     }
 
-    return perm;
+    return IP_RO;
 }
 
 void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
 {
-    INumberVectorProperty *nvp = nullptr;
-    ITextVectorProperty *tvp = nullptr;
-    ISwitchVectorProperty *svp = nullptr;
-    ILightVectorProperty *lvp = nullptr;
-    IBLOBVectorProperty *bvp = nullptr;
-
     for (const auto &oneProp : pAll)
     {
         INDI_PROPERTY_TYPE pType = oneProp->getType();
-        void *pPtr = oneProp->getProperty();
+        IWidgetVectorProperty *wvp = static_cast<IWidgetVectorProperty *>(oneProp->getProperty());
         bool pRegistered = oneProp->getRegistered();
 
         if (type != INDI_UNKNOWN && pType != type)
             continue;
 
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                if (nvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, nvp->name) && pRegistered)
-                    return pPtr;
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                if (tvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, tvp->name) && pRegistered)
-                    return pPtr;
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                if (svp == nullptr)
-                    continue;
-
-                //IDLog("Switch %s and aux value is now %d\n", svp->name, regStatus );
-                if (!strcmp(name, svp->name) && pRegistered)
-                    return pPtr;
-                break;
-            case INDI_LIGHT:
-                lvp = static_cast<ILightVectorProperty *>(pPtr);
-                if (lvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, lvp->name) && pRegistered)
-                    return pPtr;
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                if (bvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, bvp->name) && pRegistered)
-                    return pPtr;
-                break;
-
-            case INDI_UNKNOWN:
-                return nullptr;
-        }
+        if (wvp != nullptr && !strcmp(name, wvp->name) && pRegistered)
+            return wvp;
     }
 
     return nullptr;
@@ -276,67 +149,17 @@ void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
 
 INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type)
 {
-    INumberVectorProperty *nvp = nullptr;
-    ITextVectorProperty *tvp = nullptr;
-    ISwitchVectorProperty *svp = nullptr;
-    ILightVectorProperty *lvp = nullptr;
-    IBLOBVectorProperty *bvp = nullptr;
-
     for (const auto &oneProp : pAll)
     {
         INDI_PROPERTY_TYPE pType = oneProp->getType();
-        void *pPtr = oneProp->getProperty();
+        IWidgetVectorProperty *wvp = static_cast<IWidgetVectorProperty *>(oneProp->getProperty());
         bool pRegistered = oneProp->getRegistered();
 
         if (type != INDI_UNKNOWN && pType != type)
             continue;
 
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                if (nvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, nvp->name) && pRegistered)
-                    return oneProp;
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                if (tvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, tvp->name) && pRegistered)
-                    return oneProp;
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                if (svp == nullptr)
-                    continue;
-
-                //IDLog("Switch %s and aux value is now %d\n", svp->name, regStatus );
-                if (!strcmp(name, svp->name) && pRegistered)
-                    return oneProp;
-                break;
-            case INDI_LIGHT:
-                lvp = static_cast<ILightVectorProperty *>(pPtr);
-                if (lvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, lvp->name) && pRegistered)
-                    return oneProp;
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                if (bvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, bvp->name) && pRegistered)
-                    return oneProp;
-                break;
-            case INDI_UNKNOWN:
-                break;
-        }
+        if (wvp != nullptr && !strcmp(name, wvp->name) && pRegistered)
+            return oneProp;
     }
 
     return nullptr;
@@ -344,79 +167,24 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
 
 int BaseDevice::removeProperty(const char *name, char *errmsg)
 {
-    std::vector<INDI::Property *>::iterator orderi;
-
-    INumberVectorProperty *nvp;
-    ITextVectorProperty *tvp;
-    ISwitchVectorProperty *svp;
-    ILightVectorProperty *lvp;
-    IBLOBVectorProperty *bvp;
-
-    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
+    for (const auto &oneProp : pAll)
     {
-        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
-        void *pPtr  = (*orderi)->getProperty();
+        INDI_PROPERTY_TYPE pType = oneProp->getType();
+        IWidgetVectorProperty *wvp = static_cast<IWidgetVectorProperty *>(oneProp->getProperty());
 
-        switch (pType)
+        if (pType == INDI_UNKNOWN)
+            continue;
+
+        if (wvp != nullptr && !strcmp(name, wvp->name))
         {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                if (!strcmp(name, nvp->name))
-                {
-                    if (mediator)
-                        mediator->removeProperty(*orderi);
-                    delete *orderi;
-                    orderi = pAll.erase(orderi);
-                    return 0;
-                }
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                if (!strcmp(name, tvp->name))
-                {
-                    if (mediator)
-                        mediator->removeProperty(*orderi);
-                    delete *orderi;
-                    orderi = pAll.erase(orderi);
-                    return 0;
-                }
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                if (!strcmp(name, svp->name))
-                {
-                    if (mediator)
-                        mediator->removeProperty(*orderi);
-                    delete *orderi;
-                    orderi = pAll.erase(orderi);
-                    return 0;
-                }
-                break;
-            case INDI_LIGHT:
-                lvp = static_cast<ILightVectorProperty *>(pPtr);
-                if (!strcmp(name, lvp->name))
-                {
-                    if (mediator)
-                        mediator->removeProperty(*orderi);
-                    delete *orderi;
-                    orderi = pAll.erase(orderi);
-                    return 0;
-                }
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                if (!strcmp(name, bvp->name))
-                {
-                    if (mediator)
-                        mediator->removeProperty(*orderi);
-                    (*orderi)->setRegistered(false);
-                    delete *orderi;
-                    orderi = pAll.erase(orderi);
-                    return 0;
-                }
-                break;
-            case INDI_UNKNOWN:
-                break;
+            if (mediator)
+                mediator->removeProperty(oneProp);
+
+            if (pType == INDI_BLOB)
+                oneProp->setRegistered(false);
+
+            delete oneProp;
+            return 0;
         }
     }
 
