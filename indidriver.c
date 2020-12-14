@@ -1,6 +1,7 @@
 #if 0
 INDI Driver Functions
 
+Copyright (C) 2020 by Pawel Soja <kernel32.pl@gmail.com>
 Copyright (C) 2003 - 2020 Jasem Mutlaq
 Copyright (C) 2003 - 2006 Elwood C. Downey
 
@@ -71,47 +72,98 @@ int isPropDefined(const char *property_name, const char *device_name)
 }
 
 /* output a string expanding special characters into xml/html escape sequences */
-/* N.B. You must free the returned buffer after use! */
-char *escapeXML(const char *s, unsigned int MAX_BUF_SIZE)
+static void escapeXML_fputs(const char *src, FILE *stream)
 {
-    char *buf = malloc(sizeof(char) * MAX_BUF_SIZE);
-    assert_mem(buf);
-    char *out = buf;
-    unsigned int i = 0;
+    const char *ptr = src;
+    const char *replacement;
 
-    for (i = 0; i <= strlen(s); i++)
+    for(; *ptr; ++ptr)
     {
-        switch (s[i])
+        switch(*ptr)
         {
-            case '&':
-                strncpy(out, "&amp;", 6);
-                out += 5;
-                break;
-            case '\'':
-                strncpy(out, "&apos;", 7);
-                out += 6;
-                break;
-            case '"':
-                strncpy(out, "&quot;", 7);
-                out += 6;
-                break;
-            case '<':
-                strncpy(out, "&lt;", 5);
-                out += 4;
-                break;
-            case '>':
-                strncpy(out, "&gt;", 5);
-                out += 4;
-                break;
-            default:
-                *out++ = s[i];
-                *out = 0;
-                break;
+        case  '&': replacement = "&amp;";  break;
+        case '\'': replacement = "&apos;"; break;
+        case  '"': replacement = "&quot;"; break;
+        case  '<': replacement = "&lt;";   break;
+        case  '>': replacement = "&gt;";   break;
+        default:   replacement = NULL;
+        }
+
+        if (replacement != NULL)
+        {
+            fwrite(src, 1, (size_t)(ptr - src), stream);
+            src = ptr + 1;
+            fputs(replacement, stream);
+        }
+    }
+    fwrite(src, 1, (size_t)(ptr - src), stream);
+}
+
+/* output a string expanding special characters into xml/html escape sequences */
+static size_t escapeXML2(char *dst, const char *src, size_t size)
+{
+    char *ptr = dst; // copy pointer
+
+    // size > 1 - place for null-terminator
+    for(; size > 1 && *src; ++src)
+    {
+        switch (*src)
+        {
+        case '&':
+            if (size < 6) goto finish;
+            strncpy(ptr, "&amp;", 6);
+            ptr += 5;
+            size -= 5;
+            break;
+        case '\'':
+            if (size < 7) goto finish;
+            strncpy(ptr, "&apos;", 7);
+            ptr += 6;
+            size -= 6;
+            break;
+        case '"':
+            if (size < 7) goto finish;
+            strncpy(ptr, "&quot;", 7);
+            ptr += 6;
+            size -= 6;
+            break;
+        case '<':
+            if (size < 5) goto finish;
+            strncpy(ptr, "&lt;", 5);
+            ptr += 4;
+            size -= 4;
+            break;
+        case '>':
+            if (size < 5) goto finish;
+            strncpy(ptr, "&gt;", 5);
+            ptr += 4;
+            size -= 4;
+            break;
+        default:
+            *ptr++ = *src;
+            size -= 1;
+            break;
         }
     }
 
-    return buf;
+finish:
+    if (size > 0)
+        *ptr = 0;
+    return (size_t)(ptr - dst);
 }
+
+// unused
+#if 0
+/* output a string expanding special characters into xml/html escape sequences */
+/* N.B. You must free the returned buffer after use! */
+static char *escapeXML(const char *src, size_t size)
+{
+    char *dst = malloc(sizeof(char) * size);
+    assert_mem(dst);
+    escapeXML2(dst, src, size);
+    return dst;
+}
+#endif
 
 /* tell Client to delete the property with given name on given device, or
  * entire device if !name
@@ -395,52 +447,43 @@ int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format)
 
 void IUFillSwitch(ISwitch *sp, const char *name, const char *label, ISState s)
 {
-    char *escapedName  = escapeXML(name, MAXINDINAME);
-    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+    escapeXML2(sp->name, name, sizeof(sp->name));
 
-    strncpy(sp->name, escapedName, MAXINDINAME);
     if (label[0])
-        strncpy(sp->label, escapedLabel, MAXINDILABEL);
+        escapeXML2(sp->label, label, sizeof(sp->label));
     else
-        strncpy(sp->label, escapedName, MAXINDILABEL);
+        strncpy(sp->label, sp->name, sizeof(sp->label));
+
     sp->s   = s;
     sp->svp = NULL;
     sp->aux = NULL;
-
-    free(escapedName);
-    free(escapedLabel);
 }
 
 void IUFillLight(ILight *lp, const char *name, const char *label, IPState s)
 {
-    char *escapedName  = escapeXML(name, MAXINDINAME);
-    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+    escapeXML2(lp->name, name, sizeof(lp->name));
 
-    strncpy(lp->name, escapedName, MAXINDINAME);
     if (label[0])
-        strncpy(lp->label, escapedLabel, MAXINDILABEL);
+        escapeXML2(lp->label, label, sizeof(lp->label));
     else
-        strncpy(lp->label, escapedName, MAXINDILABEL);
+        strncpy(lp->label, lp->name, sizeof(lp->label));
+
     lp->s   = s;
     lp->lvp = NULL;
     lp->aux = NULL;
-
-    free(escapedName);
-    free(escapedLabel);
 }
 
 void IUFillNumber(INumber *np, const char *name, const char *label, const char *format, double min, double max,
                   double step, double value)
 {
-    char *escapedName  = escapeXML(name, MAXINDINAME);
-    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+    escapeXML2(np->name, name, sizeof(np->name));
 
-    strncpy(np->name, escapedName, MAXINDINAME);
     if (label[0])
-        strncpy(np->label, escapedLabel, MAXINDILABEL);
+        escapeXML2(np->label, label, sizeof(np->label));
     else
-        strncpy(np->label, escapedName, MAXINDILABEL);
-    strncpy(np->format, format, MAXINDIFORMAT);
+        strncpy(np->label, np->name, sizeof(np->label));
+
+    strncpy(np->format, format, sizeof(np->format)); // escape unnecessary?
 
     np->min   = min;
     np->max   = max;
@@ -449,22 +492,16 @@ void IUFillNumber(INumber *np, const char *name, const char *label, const char *
     np->nvp   = NULL;
     np->aux0  = NULL;
     np->aux1  = NULL;
-
-    free(escapedName);
-    free(escapedLabel);
 }
 
 void IUFillText(IText *tp, const char *name, const char *label, const char *initialText)
 {
-    char *escapedName  = escapeXML(name, MAXINDINAME);
-    char *escapedLabel = escapeXML(label, MAXINDILABEL);
-
-    strncpy(tp->name, escapedName, MAXINDINAME);
+    escapeXML2(tp->name, name, sizeof(tp->name));
 
     if (label[0])
-        strncpy(tp->label, escapedLabel, MAXINDILABEL);
+        escapeXML2(tp->label, label, sizeof(tp->label));
     else
-        strncpy(tp->label, escapedName, MAXINDILABEL);
+        strncpy(tp->label, tp->name, sizeof(tp->label));
 
     if (tp->text && tp->text[0])
         free(tp->text);
@@ -474,27 +511,23 @@ void IUFillText(IText *tp, const char *name, const char *label, const char *init
     tp->aux0 = NULL;
     tp->aux1 = NULL;
 
-    if (initialText && strlen(initialText) > 0)
+    if (initialText && initialText[0])
         IUSaveText(tp, initialText);
-
-    free(escapedName);
-    free(escapedLabel);
 }
 
 void IUFillBLOB(IBLOB *bp, const char *name, const char *label, const char *format)
 {
-    char *escapedName  = escapeXML(name, MAXINDINAME);
-    char *escapedLabel = escapeXML(label, MAXINDILABEL);
-
     memset(bp, 0, sizeof(IBLOB));
-    strncpy(bp->name, escapedName, MAXINDINAME);
+
+    escapeXML2(bp->name, name, sizeof(bp->name));
 
     if (label[0])
-        strncpy(bp->label, escapedLabel, MAXINDILABEL);
+        escapeXML2(bp->label, label, sizeof(bp->label));
     else
-        strncpy(bp->label, escapedName, MAXINDILABEL);
+        strncpy(bp->label, bp->name, sizeof(bp->label));
 
-    strncpy(bp->format, format, MAXINDIBLOBFMT);
+    strncpy(bp->format, format, sizeof(bp->format)); // escape unnecessary?
+
     bp->blob    = 0;
     bp->bloblen = 0;
     bp->size    = 0;
@@ -502,26 +535,22 @@ void IUFillBLOB(IBLOB *bp, const char *name, const char *label, const char *form
     bp->aux0    = 0;
     bp->aux1    = 0;
     bp->aux2    = 0;
-
-    free(escapedName);
-    free(escapedLabel);
 }
 
 void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char *dev, const char *name,
                         const char *label, const char *group, IPerm p, ISRule r, double timeout, IPState s)
 {
-    char *escapedName  = escapeXML(name, MAXINDINAME);
-    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+    strncpy(svp->device, dev, sizeof(svp->device)); // escape unnecessary?
 
-    strncpy(svp->device, dev, MAXINDIDEVICE);
-    strncpy(svp->name, escapedName, MAXINDINAME);
+    escapeXML2(svp->name, name, sizeof(svp->name));
 
     if (label[0])
-        strncpy(svp->label, escapedLabel, MAXINDILABEL);
+        escapeXML2(svp->label, label, sizeof(svp->label));
     else
-        strncpy(svp->label, escapedName, MAXINDILABEL);
-    strncpy(svp->group, group, MAXINDIGROUP);
-    strcpy(svp->timestamp, "");
+        strncpy(svp->label, svp->name, sizeof(svp->label));
+
+    strncpy(svp->group, group, sizeof(svp->group)); // escape unnecessary?
+    svp->timestamp[0] = '\0';
 
     svp->p       = p;
     svp->r       = r;
@@ -529,113 +558,93 @@ void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const 
     svp->s       = s;
     svp->sp      = sp;
     svp->nsp     = nsp;
-
-    free(escapedName);
-    free(escapedLabel);
 }
 
 void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const char *dev, const char *name,
                        const char *label, const char *group, IPState s)
 {
-    char *escapedName  = escapeXML(name, MAXINDINAME);
-    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+    strncpy(lvp->device, dev, sizeof(lvp->device)); // escape unnecessary?
 
-    strncpy(lvp->device, dev, MAXINDIDEVICE);
-    strncpy(lvp->name, escapedName, MAXINDINAME);
+    escapeXML2(lvp->name, name, sizeof(lvp->name));
 
     if (label[0])
-        strncpy(lvp->label, escapedLabel, MAXINDILABEL);
+        escapeXML2(lvp->label, label, sizeof(lvp->label));
     else
-        strncpy(lvp->label, escapedName, MAXINDILABEL);
-    strncpy(lvp->group, group, MAXINDIGROUP);
-    strcpy(lvp->timestamp, "");
+        strncpy(lvp->label, lvp->name, sizeof(lvp->label));
+
+    strncpy(lvp->group, group, sizeof(lvp->group)); // escape unnecessary?
+    lvp->timestamp[0] = '\0';
 
     lvp->s   = s;
     lvp->lp  = lp;
     lvp->nlp = nlp;
-
-    free(escapedName);
-    free(escapedLabel);
 }
 
 void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const char *dev, const char *name,
                         const char *label, const char *group, IPerm p, double timeout, IPState s)
 {
-    char *escapedName  = escapeXML(name, MAXINDINAME);
-    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+    strncpy(nvp->device, dev, sizeof(nvp->device)); // escape unnecessary?
 
-    strncpy(nvp->device, dev, MAXINDIDEVICE);
-    strncpy(nvp->name, escapedName, MAXINDINAME);
+    escapeXML2(nvp->name, name, sizeof(nvp->name));
 
     if (label[0])
-        strncpy(nvp->label, escapedLabel, MAXINDILABEL);
+        escapeXML2(nvp->label, label, sizeof(nvp->label));
     else
-        strncpy(nvp->label, escapedName, MAXINDILABEL);
-    strncpy(nvp->group, group, MAXINDIGROUP);
-    strcpy(nvp->timestamp, "");
+        strncpy(nvp->label, nvp->name, sizeof(nvp->label));
+
+    strncpy(nvp->group, group, sizeof(nvp->group)); // escape unnecessary?
+    nvp->timestamp[0] = '\0';
 
     nvp->p       = p;
     nvp->timeout = timeout;
     nvp->s       = s;
     nvp->np      = np;
     nvp->nnp     = nnp;
-
-    free(escapedName);
-    free(escapedLabel);
 }
 
 void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char *dev, const char *name,
                       const char *label, const char *group, IPerm p, double timeout, IPState s)
 {
-    char *escapedName  = escapeXML(name, MAXINDINAME);
-    char *escapedLabel = escapeXML(label, MAXINDILABEL);
+    strncpy(tvp->device, dev, sizeof(tvp->device)); // escape unnecessary?
 
-    strncpy(tvp->device, dev, MAXINDIDEVICE);
-    strncpy(tvp->name, escapedName, MAXINDINAME);
+    escapeXML2(tvp->name, name, sizeof(tvp->name));
 
     if (label[0])
-        strncpy(tvp->label, escapedLabel, MAXINDILABEL);
+        escapeXML2(tvp->label, label, sizeof(tvp->label));
     else
-        strncpy(tvp->label, escapedName, MAXINDILABEL);
-    strncpy(tvp->group, group, MAXINDIGROUP);
-    strcpy(tvp->timestamp, "");
+        strncpy(tvp->label, tvp->name, sizeof(tvp->label));
+
+    strncpy(tvp->group, group, sizeof(tvp->group)); // escape unnecessary?
+    tvp->timestamp[0] = '\0';
 
     tvp->p       = p;
     tvp->timeout = timeout;
     tvp->s       = s;
     tvp->tp      = tp;
     tvp->ntp     = ntp;
-
-    free(escapedName);
-    free(escapedLabel);
 }
 
 void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char *dev, const char *name,
                       const char *label, const char *group, IPerm p, double timeout, IPState s)
 {
-    char *escapedName  = escapeXML(name, MAXINDINAME);
-    char *escapedLabel = escapeXML(label, MAXINDILABEL);
-
     memset(bvp, 0, sizeof(IBLOBVectorProperty));
-    strncpy(bvp->device, dev, MAXINDIDEVICE);
-    strncpy(bvp->name, escapedName, MAXINDINAME);
+    strncpy(bvp->device, dev, sizeof(bvp->device)); // escape unnecessary?
+
+    escapeXML2(bvp->name, name, sizeof(bvp->name));
 
     if (label[0])
-        strncpy(bvp->label, escapedLabel, MAXINDILABEL);
+        escapeXML2(bvp->label, label, sizeof(bvp->label));
     else
-        strncpy(bvp->label, escapedName, MAXINDILABEL);
+        strncpy(bvp->label, bvp->name, sizeof(bvp->label));
 
-    strncpy(bvp->group, group, MAXINDIGROUP);
-    strcpy(bvp->timestamp, "");
+    strncpy(bvp->group, group, sizeof(bvp->group)); // escape unnecessary?
+    bvp->timestamp[0] = '\0';
 
     bvp->p       = p;
     bvp->timeout = timeout;
     bvp->s       = s;
     bvp->bp      = bp;
     bvp->nbp     = nbp;
-
-    free(escapedName);
-    free(escapedLabel);
 }
 
 /*****************************************************************************
@@ -1650,12 +1659,12 @@ void IDMessage(const char *dev, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf("/>\n");
     fflush(stdout);
@@ -1878,12 +1887,12 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -1943,12 +1952,12 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2015,12 +2024,12 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2075,12 +2084,12 @@ void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2124,12 +2133,12 @@ void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
         va_end(ap);
+
+        printf("  message='");
+        escapeXML_fputs(message, stdout);
+        printf("'\n");
     }
     printf(">\n");
 
