@@ -53,7 +53,7 @@ public:
      * @param msecs timeout in milliseconds
      * @return returns false if timeout or the abort function was called while waiting for data
      */
-    bool pop(T & dest, uint msecs);
+    bool pop(T & dest, unsigned msecs);
     
     /**
      * @brief Wait for an empty queue
@@ -65,7 +65,7 @@ public:
      * @param msecs timeout in milliseconds
      * @return returns false if timeout
      */
-    bool waitForEmpty(uint msecs) const;
+    bool waitForEmpty(unsigned msecs) const;
     
     /**
      * @brief Clear queue
@@ -117,7 +117,7 @@ inline bool UniqueQueue<T>::pop(T & dest)
 }
 
 template <typename T>
-inline bool UniqueQueue<T>::pop(T & dest, uint msecs)
+inline bool UniqueQueue<T>::pop(T & dest, unsigned msecs)
 {
     std::unique_lock<std::mutex> lock(mutex);
 
@@ -157,7 +157,7 @@ inline void UniqueQueue<T>::waitForEmpty() const
 }
 
 template <typename T>
-inline bool UniqueQueue<T>::waitForEmpty(uint msecs) const
+inline bool UniqueQueue<T>::waitForEmpty(unsigned msecs) const
 {
     std::unique_lock<std::mutex> lock(mutex);
     return decrease.wait_for(lock, std::chrono::milliseconds(msecs), [this](){ return queue.empty(); });
