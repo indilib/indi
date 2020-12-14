@@ -269,8 +269,8 @@ typedef struct _IWidgetVectorProperty
  */
 typedef struct
 {
-/** Index name */
-char name[MAXINDINAME];
+    /** Index name */
+    char name[MAXINDINAME];
     /** Short description */
     char label[MAXINDILABEL];
     /** Allocated text string */
@@ -420,8 +420,6 @@ typedef struct _ISwitchVectorProperty
     char group[MAXINDIGROUP];
     /** Client accessibility hint */
     IPerm p;
-    /** Switch behavior hint */
-    ISRule r;
     /** Current max time to change, secs */
     double timeout;
     /** Current property state */
@@ -434,6 +432,8 @@ typedef struct _ISwitchVectorProperty
     char timestamp[MAXINDITSTAMP];
     /** Helper info */
     void *aux;
+    /** Switch behavior hint */
+    ISRule r;
 } ISwitchVectorProperty;
 
 /**
@@ -468,6 +468,10 @@ typedef struct _ILightVectorProperty
     char label[MAXINDILABEL];
     /** GUI grouping hint */
     char group[MAXINDIGROUP];
+    /** Client accessibility hint */
+    IPerm p_unused; // only for IWidgetVectorProperty compatibility
+    /** Current max time to change, secs */
+    double timeout_unused; // only for IWidgetVectorProperty compatibility
     /** Current property state */
     IPState s;
     /** Lights comprising this vector */
