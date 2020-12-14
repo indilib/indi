@@ -335,6 +335,7 @@ bool RBFOCUS::SyncFocuser(uint32_t ticks)
 
 IPState RBFOCUS::MoveAbsFocuser(uint32_t targetTicks)
 {
+<<<<<<< HEAD
     char cmd[DRIVER_RES] = {0};
     snprintf(cmd, DRIVER_RES, "T%d#", targetTicks);
 
@@ -342,6 +343,19 @@ IPState RBFOCUS::MoveAbsFocuser(uint32_t targetTicks)
         return IPS_BUSY;
 
     targetPos = targetTicks;
+=======
+    char cmd[DRIVER_RES] = {0}, res[DRIVER_RES] = {0}, expected[DRIVER_RES] = {0};
+    snprintf(cmd, DRIVER_RES, "T%d#", targetTicks);
+    snprintf(expected, DRIVER_RES, "%d#", targetTicks);
+    if (sendCommand(cmd, res) == false)
+        return IPS_BUSY;
+
+    targetPos = targetTicks;
+
+    if (!strcmp(res, expected))
+        return IPS_BUSY;
+    else
+>>>>>>> master
         return IPS_BUSY;
 }
 

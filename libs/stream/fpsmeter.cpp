@@ -18,7 +18,6 @@
 
 */
 #include "fpsmeter.h"
-#include <cmath>
 
 namespace INDI
 {
@@ -32,7 +31,7 @@ FPSMeter::FPSMeter(double timeWindow)
 bool FPSMeter::newFrame()
 {
     mFrameTime2 = mFrameTime1;
-    mFrameTime1 = currentTime();
+    mFrameTime1 = std::chrono::steady_clock::now();
     
     ++mTotalFrames;
     ++mFramesPerElapsedTime;
@@ -65,12 +64,7 @@ double FPSMeter::framesPerSecond() const
 
 double FPSMeter::deltaTime() const
 {
-    return std::abs(mFrameTime1 - mFrameTime2);
-}
-
-double FPSMeter::frameTime() const
-{
-    return mFrameTime1;
+    return std::chrono::duration<double>(mFrameTime1 - mFrameTime2).count() * 1000;
 }
 
 uint64_t FPSMeter::totalFrames() const
@@ -87,19 +81,11 @@ void FPSMeter::reset()
 {
     mFramesPerElapsedTime = 0;
     mElapsedTime = 0;
-    mFrameTime1 = currentTime();
-    mFrameTime2 = 0;
+    mFrameTime1 = std::chrono::steady_clock::now();
+    mFrameTime2 = mFrameTime1;
     mFramesPerSecond = 0;
     mTotalFrames = 0;
     mTotalTime = 0;
-}
-
-
-double FPSMeter::currentTime()
-{
-    struct itimerval itime;
-    getitimer(ITIMER_REAL, &itime);
-    return (1000.0 * itime.it_value.tv_sec) + (itime.it_value.tv_usec / 1000.0);
 }
 
 }

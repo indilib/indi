@@ -72,7 +72,7 @@ class SkywatcherAPI
 
         /// \brief Check if the current mount is a Virtuoso (AltAz)
         /// \return True if the current mount is Virtuoso otherwise false.
-        bool IsVirtuosoMount() const;
+        //bool IsVirtuosoMount() const;
 
         /// \brief Check if the current mount is a Merlin (AltAz)
         /// \return True if the current mount is Merlin otherwise false.
@@ -80,7 +80,7 @@ class SkywatcherAPI
 
         /// \brief Check if the current mount is AZ GTi
         /// \return True if the current mount is AZ GTi otherwise false.
-        bool IsAZGTiMount() const;
+        //bool IsAZGTiMount() const;
 
         /// \brief Convert a slewing rate in degrees per second into the required
         /// clock ticks per microstep setting.
@@ -140,9 +140,8 @@ class SkywatcherAPI
         bool InitializeMC();
 
         /// \brief Initialize the communication to the mount
-        /// \param[in] recover - The connection is recovering
         /// \return True if successful otherwise false
-        bool InitMount(bool recover);
+        bool InitMount();
 
         /// \brief Bring the axis to an immediate halt.
         /// N.B. This command could cause damage to the mount or telescope
