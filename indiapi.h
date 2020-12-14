@@ -253,8 +253,8 @@ typedef struct _IWidgetVectorProperty
     double timeout;
     /** current property state */
     IPState state;
-    /** Widget comprising this vector */
-    IWidget *widets;
+    /** Widget comprising this vector - first cast to valid type to iterate */
+    void *widets;
     /** Dimension of widgets[] */
     int  nwidgets;
     /** ISO 8601 timestamp of this event */
