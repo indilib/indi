@@ -489,7 +489,7 @@
         </device>
         <device label="Pegasus PPBA" manufacturer="Pegasus Astro">
             <driver name="Pegasus PPBA">indi_pegasus_ppba</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Pegasus UPB" manufacturer="Pegasus Astro">
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>
