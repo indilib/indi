@@ -167,8 +167,11 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
 
 int BaseDevice::removeProperty(const char *name, char *errmsg)
 {
-    for (const auto &oneProp : pAll)
+    std::vector<INDI::Property *>::iterator orderi;
+
+    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
     {
+        INDI::Property *oneProp = *orderi;
         INDI_PROPERTY_TYPE pType = oneProp->getType();
         IWidgetVectorProperty *wvp = static_cast<IWidgetVectorProperty *>(oneProp->getProperty());
 
@@ -184,6 +187,7 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
                 oneProp->setRegistered(false);
 
             delete oneProp;
+            orderi = pAll.erase(orderi);
             return 0;
         }
     }
