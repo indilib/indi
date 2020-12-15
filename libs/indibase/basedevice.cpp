@@ -1014,87 +1014,23 @@ std::string BaseDevice::lastMessage()
 
 void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
 {
-    INDI::Property *pContainer;
+    if (type == INDI_UNKNOWN)
+        return;
 
-    if (type == INDI_NUMBER)
+    IWidgetVectorProperty *wvp = static_cast<IWidgetVectorProperty *>(p);
+
+    INDI::Property *pContainer = getProperty(wvp->name, type);
+    if (pContainer != nullptr)
     {
-        INumberVectorProperty *nvp = static_cast<INumberVectorProperty *>(p);
-        if ((pContainer = getProperty(nvp->name, INDI_NUMBER)) != nullptr)
-        {
-            pContainer->setRegistered(true);
-            return;
-        }
-
-        pContainer = new INDI::Property();
-        pContainer->setProperty(p);
-        pContainer->setType(type);
-
-        pAll.push_back(pContainer);
+        pContainer->setRegistered(true);
+        return;
     }
-    else if (type == INDI_TEXT)
-    {
-        ITextVectorProperty *tvp = static_cast<ITextVectorProperty *>(p);
 
-        if ((pContainer = getProperty(tvp->name, INDI_TEXT)) != nullptr)
-        {
-            pContainer->setRegistered(true);
-            return;
-        }
+    pContainer = new INDI::Property();
+    pContainer->setProperty(p);
+    pContainer->setType(type);
 
-        pContainer = new INDI::Property();
-        pContainer->setProperty(p);
-        pContainer->setType(type);
-
-        pAll.push_back(pContainer);
-    }
-    else if (type == INDI_SWITCH)
-    {
-        ISwitchVectorProperty *svp = static_cast<ISwitchVectorProperty *>(p);
-
-        if ((pContainer = getProperty(svp->name, INDI_SWITCH)) != nullptr)
-        {
-            pContainer->setRegistered(true);
-            return;
-        }
-
-        pContainer = new INDI::Property();
-        pContainer->setProperty(p);
-        pContainer->setType(type);
-
-        pAll.push_back(pContainer);
-    }
-    else if (type == INDI_LIGHT)
-    {
-        ILightVectorProperty *lvp = static_cast<ILightVectorProperty *>(p);
-
-        if ((pContainer = getProperty(lvp->name, INDI_LIGHT)) != nullptr)
-        {
-            pContainer->setRegistered(true);
-            return;
-        }
-
-        pContainer = new INDI::Property();
-        pContainer->setProperty(p);
-        pContainer->setType(type);
-
-        pAll.push_back(pContainer);
-    }
-    else if (type == INDI_BLOB)
-    {
-        IBLOBVectorProperty *bvp = static_cast<IBLOBVectorProperty *>(p);
-
-        if ((pContainer = getProperty(bvp->name, INDI_BLOB)) != nullptr)
-        {
-            pContainer->setRegistered(true);
-            return;
-        }
-
-        pContainer = new INDI::Property();
-        pContainer->setProperty(p);
-        pContainer->setType(type);
-
-        pAll.push_back(pContainer);
-    }
+    pAll.push_back(pContainer);
 }
 
 const char *BaseDevice::getDriverName()
