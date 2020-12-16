@@ -1659,17 +1659,17 @@ void get_alt_az_coordinates(double Ra, double Dec, double Lat, double lst, doubl
 {
     double alt, az;
     double ha = get_local_hour_angle(lst, Ra);
-    ha *= M_PI / 12.0;
+    double rad = ha * M_PI / 12.0;
     Dec *= M_PI / 180.0;
     Lat *= M_PI / 180.0;
-    alt = asin(sin(Dec) * sin(Lat) + cos(Dec) * cos(Lat) * cos(ha));
-    az = asin(-sin(ha) * cos(Dec) / cos(alt));
-    if (((sin(Dec) - sin(Lat) * sin(alt)) / cos(Lat) * cos(alt)) < 0.0)
-        az = M_PI*2 - az;
+    alt = asin(sin(Dec) * sin(Lat) + cos(Dec) * cos(Lat) * cos(rad));
+    az = asin(-sin(rad) * cos(Dec) / cos(alt));
     alt *= 180.0 / M_PI;
     az *= 180.0 / M_PI;
-    *Alt = alt;
-    *Az = az;
+    if(ha < -6.0 || ha > 6.0)
+        az = 180.0-az;
+    *Alt = rangeDec(alt);
+    *Az = range360(az);
 }
 
 void get_ra_dec_coordinates(double Alt, double Az, double Lat, double lst, double* Ra, double *Dec)
@@ -1680,12 +1680,12 @@ void get_ra_dec_coordinates(double Alt, double Az, double Lat, double lst, doubl
     Lat *= M_PI / 180.0;
     dec = asin(sin(Alt)*sin(Lat) + cos(Alt) * cos(Lat) * cos(Az));
     ha = asin(-sin(Az)*cos(Alt)/cos(dec));
-    if (((sin(Alt)-sin(dec)*sin(Lat))/cos(dec)*cos(Lat)) < 0.0)
+    if (ha >= 0.0)
         ha = M_PI*2 - ha;
     ha *= 12.0 / M_PI;
     dec *= 180.0 / M_PI;
-    *Ra = lst - ha;
-    *Dec = dec;
+    *Ra = range24(lst - ha);
+    *Dec = rangeDec(dec);
 }
 
 double estimate_geocentric_elevation(double Lat, double El)
