@@ -37,7 +37,8 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 #include <sys/stat.h>
 
-# include "indilogger.h"
+#include "indilogger.h"
+#include "indiutility.h"
 
 //#include <time.h>
 
@@ -1987,31 +1988,6 @@ void CelestronGPS::checkAlignment()
         LOG_WARN("Mount is NOT aligned. You must align the mount first before you can use it. Disconnect, align the mount, and reconnect again.");
 }
 
-// Create dir recursively, reinventing - well copying - the wheel
-static int _mkdir(const char *dir, mode_t mode)
-{
-    char tmp[1024];
-    char *p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
-
 bool CelestronGPS::savePecData()
 {
     // generate the file name:
@@ -2029,9 +2005,9 @@ bool CelestronGPS::savePecData()
     char dir[MAXRBUF];
     snprintf(dir, MAXRBUF, "%s/PEC_Data/%s", getenv("HOME"), ts_date);
 
-    if (_mkdir(dir, 0755) < 0)
+    if (INDI::mkpath(dir, 0755) == -1)
     {
-        LOGF_DEBUG("_mkdir %s failed", dir);
+        LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
         return false;
     }
 
