@@ -51,6 +51,7 @@ class CommandSet
         bool loadSlowPreset(char *res);
         bool getMotorTemp(char *res);
         bool getExternalTemp(char *res);
+        bool getVoltageIn(char *res);
         std::string deviceName;
 
         const char *getDeviceName()
@@ -105,6 +106,7 @@ class SestoSenso2 : public INDI::Focuser
 
         bool updateTemperature();
         bool updatePosition();
+        bool updateVoltageIn();
         void setConnectionParams();
         bool initCommandSet();
         void checkMotionProgressCallback();
@@ -119,6 +121,7 @@ class SestoSenso2 : public INDI::Focuser
 
         uint32_t targetPos { 0 };
         uint32_t lastPos { 0 };
+        double lastVoltageIn { 0 };
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
 
@@ -135,6 +138,9 @@ class SestoSenso2 : public INDI::Focuser
 
         IText FirmwareT[1] {};
         ITextVectorProperty FirmwareTP;
+
+        INumber VoltageInN[1] {};
+        INumberVectorProperty VoltageInNP;
 
         ISwitch CalibrationS[2];
         ISwitchVectorProperty CalibrationSP;

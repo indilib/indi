@@ -339,6 +339,7 @@ ENDIF(OGGTHEORA_FOUND)
     SET(libstream_CXX_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recordermanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.cpp
@@ -401,6 +402,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.cpp
@@ -1797,6 +1799,8 @@ if (UNIX)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/uniquequeue.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_types.h
@@ -1886,6 +1890,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h

@@ -25,6 +25,7 @@
 #include "locale_compat.h"
 #include "indicom.h"
 #include "libastro.h"
+#include "indiutility.h"
 
 #include <fitsio.h>
 
@@ -44,31 +45,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
-
-// Create dir recursively
-static int _det_mkdir(const char *dir, mode_t mode)
-{
-    char tmp[PATH_MAX];
-    char *p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
 
 static std::string regex_replace_compat(const std::string &input, const std::string &pattern, const std::string &replace)
 {
@@ -647,9 +623,9 @@ int Interface::getFileIndex(const char *dir, const char *prefix, const char *ext
 
     if (stat(dir, &st) == -1)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Creating directory %s...", dir);
-        if (_det_mkdir(dir, 0755) == -1)
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
+        LOGF_DEBUG("Creating directory %s...", dir);
+        if (INDI::mkpath(dir, 0755) == -1)
+            LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
     }
 
     dpdf = opendir(dir);

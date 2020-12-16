@@ -757,11 +757,8 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveWE");
 
     double speed =
-        (dir == DIRECTION_WEST) ? GetSlewRate() * LOW_SPEED_MARGIN / 2 : -GetSlewRate() * LOW_SPEED_MARGIN / 2;
+        (dir == DIRECTION_WEST) ? -GetSlewRate() * LOW_SPEED_MARGIN / 2 : GetSlewRate() * LOW_SPEED_MARGIN / 2;
     const char *dirStr = (dir == DIRECTION_WEST) ? "West" : "East";
-
-    //    if (IsVirtuosoMount())
-    //        speed = -speed;
 
     switch (command)
     {
