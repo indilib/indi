@@ -301,7 +301,6 @@ double get_local_sidereal_time(double longitude);
  */
 double get_local_hour_angle(double local_sideral_time, double ra);
 
-
 /**
  * @brief get_hrz_from_equ Calculate horizontal coordinates from equatorial coordinates.
  * @param object Equatorial Object Coordinates
@@ -324,25 +323,25 @@ void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer
                       struct ln_equ_posn *position);
 
 /**
- * @brief get_alt_az_coordinates Returns alt-azimuth coordinates of an object
- * @param hour_angle Hour angle in hours (-12 to 12)
- * @param dec DEC of object
- * @param latitude latitude in INDI format (-90 to +90)
- * @param alt ALT of object will be returned here
- * @param az AZ of object will be returned here
+ * @brief get_hrz_from_equ Calculate horizontal coordinates from equatorial coordinates using sidereal time.
+ * @param object Equatorial Object Coordinates
+ * @param observer Observer Location
+ * @param SD Sidereal Time
+ * @param position Calculated Horizontal Coordinates.
+ * @note Use this instead of libnova ln_get_hrz_from_equ since it corrects libnova Azimuth (0 = North and not South).
  */
-void get_alt_az_coordinates(double Ra, double Dec, double Lat, double lst, double* Alt, double *Az);
+void get_hrz_from_equ_sidereal_time(struct ln_equ_posn *object, struct ln_lnlat_posn *observer, double SD, struct ln_hrz_posn *position);
 
 /**
- * @brief get_ra_dec_coordinates Returns ra-dec coordinates of an object
- * @param alt ALT of object
- * @param az Az of object
- * @param latitude latitude in INDI format (-90 to +90)
- * @param lst local sidereal time
- * @param ra Ra of object will be returned here
- * @param dec Dec of object will be returned here
+ * @brief ln_get_equ_from_hrz Calculate Equatorial EOD Coordinates from horizontal coordinates using sidereal time.
+ * @param object Horizontal Object Coordinates
+ * @param observer Observer Location
+ * @param SD Sidereal Time
+ * @param position Calculated Equatorial Coordinates.
+ * @note Use this instead of libnova ln_get_equ_from_hrz since it corrects libnova Azimuth (0 = North and not South).
  */
-void get_ra_dec_coordinates(double Alt, double Az, double Lat, double lst, double* Ra, double *Dec);
+void get_equ_from_hrz_sidereal_time(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer, double JD,
+                      struct ln_equ_posn *position);
 
 /**
  * @brief estimate_geocentric_elevation Returns an estimation of the actual geocentric elevation

@@ -1647,45 +1647,32 @@ void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer
 
     ln_get_equ_from_hrz(&libnova_object, observer, JD, position);
 }
+
+void get_hrz_from_equ_sidereal_time(struct ln_equ_posn *object, struct ln_lnlat_posn *observer, double SD, struct ln_hrz_posn *position)
+{
+    ln_get_hrz_from_equ_sidereal_time(object, observer, SD, position);
+    position->az -= 180;
+    if (position->az < 0)
+        position->az += 360;
+}
+
+void get_equ_from_hrz_sidereal_time(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer, double SD, struct ln_equ_posn *position)
+{
+    struct ln_hrz_posn libnova_object;
+    libnova_object.az = object->az + 180;
+    if (libnova_object.az > 360)
+        libnova_object.az -= 360;
+    libnova_object.alt = object->alt;
+
+    ln_get_equ_from_hrz(&libnova_object, observer, SD, position);
+}
+
 #endif // HAVE_LIBNOVA
 
 double get_local_hour_angle(double sideral_time, double ra)
 {
     double HA = sideral_time - ra;
     return rangeHA(HA);
-}
-
-void get_alt_az_coordinates(double Ra, double Dec, double Lat, double lst, double* Alt, double *Az)
-{
-    double alt, az;
-    double ha = get_local_hour_angle(lst, Ra);
-    double rad = ha * M_PI / 12.0;
-    Dec *= M_PI / 180.0;
-    Lat *= M_PI / 180.0;
-    alt = asin(sin(Dec) * sin(Lat) + cos(Dec) * cos(Lat) * cos(rad));
-    az = asin(-sin(rad) * cos(Dec) / cos(alt));
-    alt *= 180.0 / M_PI;
-    az *= 180.0 / M_PI;
-    if(ha < -6.0 || ha > 6.0)
-        az = 180.0-az;
-    *Alt = rangeDec(alt);
-    *Az = range360(az);
-}
-
-void get_ra_dec_coordinates(double Alt, double Az, double Lat, double lst, double* Ra, double *Dec)
-{
-    double ha, dec;
-    Alt *= M_PI / 12.0;
-    Az *= M_PI / 180.0;
-    Lat *= M_PI / 180.0;
-    dec = asin(sin(Alt)*sin(Lat) + cos(Alt) * cos(Lat) * cos(Az));
-    ha = asin(-sin(Az)*cos(Alt)/cos(dec));
-    if (ha >= 0.0)
-        ha = M_PI*2 - ha;
-    ha *= 12.0 / M_PI;
-    dec *= 180.0 / M_PI;
-    *Ra = range24(lst - ha);
-    *Dec = rangeDec(dec);
 }
 
 double estimate_geocentric_elevation(double Lat, double El)
