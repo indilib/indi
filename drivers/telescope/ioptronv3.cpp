@@ -309,7 +309,7 @@ void IOptronV3::getStartupData()
         // UTC Offset
         char offset[8] = {0};
         snprintf(offset, 8, "%.2f", utcOffsetMinutes / 60.0);
-        IUSaveText(&TimeT[0], ts);
+        IUSaveText(&TimeT[1], offset);
         LOGF_INFO("Mount UTC Offset: %s", offset);
 
         TimeTP.s = IPS_OK;
