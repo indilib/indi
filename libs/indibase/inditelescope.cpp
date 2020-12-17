@@ -3028,10 +3028,10 @@ double Telescope::getAzimuth(double r, double d)
     lnradec.ra  = (r * 360) / 24.0;
     lnradec.dec = d;
 
-    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &altaz);
+    get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &altaz);
 
     /* libnova measures azimuth from south towards west */
-    return (range360(altaz.az + 180));
+    return altaz.az;
 }
 
 

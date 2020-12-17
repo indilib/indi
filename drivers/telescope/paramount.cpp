@@ -426,7 +426,7 @@ bool Paramount::Goto(double r, double d)
     lnradec.ra  = (currentRA * 360) / 24.0;
     lnradec.dec = currentDEC;
 
-    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+    //get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
     /* libnova measures azimuth from south towards west */
     //    double current_az = range360(lnaltaz.az + 180);
     //double current_alt =lnaltaz.alt;

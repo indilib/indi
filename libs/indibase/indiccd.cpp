@@ -953,7 +953,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                         observer.lat = Latitude;
                         observer.lng = Longitude;
 
-                        ln_get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+                        get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
                         Airmass = ln_get_airmass(horizontalPos.alt, 750);
                     }
                 }
