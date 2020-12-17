@@ -76,7 +76,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso2::SestoSenso2()
 {
-    setVersion(0, 5);
+    setVersion(0, 6);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
@@ -89,9 +89,10 @@ bool SestoSenso2::initProperties()
 
     setConnectionParams();
 
-    // Firmware Information
-    IUFillText(&FirmwareT[0], "VERSION", "Version", "");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FOCUS_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0,
+    // Firmware information
+    IUFillText(&FirmwareT[FIRMWARE_SN], "SERIALNUMBER", "Serial Number", "");
+    IUFillText(&FirmwareT[FIRMWARE_VERSION], "VERSION", "Version", "");
+    IUFillTextVector(&FirmwareTP, FirmwareT, 2, getDeviceName(), "FOCUS_FIRMWARE", "Firmware", INFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
     // Voltage Information
@@ -884,7 +885,7 @@ bool SestoSenso2::Ack()
         }
         if(command->getSerialNumber(res))
         {
-            LOGF_INFO("Serial #%s", res);
+            LOGF_INFO("Serial number: %s", res);
         }
         else
         {
@@ -893,8 +894,18 @@ bool SestoSenso2::Ack()
     }
 
     m_IsSestoSenso2 = !strstr(res, "ESATTO");
-    IUSaveText(&FirmwareT[0], res);
+    IUSaveText(&FirmwareT[FIRMWARE_SN], res);
 
+    if (command->getFirmwareVersion(res))
+    {
+        LOGF_INFO("Firmware version: %s", res);
+        IUSaveText(&FirmwareT[FIRMWARE_VERSION], res);
+    }
+    else
+    {
+        return false;
+    }
+    
     return true;
 }
 
@@ -1003,6 +1014,11 @@ std::string CommandSet::removeChars(std::string str, char ch)
 bool CommandSet::getSerialNumber(char *res)
 {
     return CommandSet::sendCmd("{\"req\":{\"get\":{\"SN\":\"\"}}}", "SN", res);
+}
+
+bool CommandSet::getFirmwareVersion(char* res)
+{
+    return CommandSet::sendCmd("{\"req\":{\"get\":{\"SWVERS\":\"\"}}}", "SWAPP", res);
 }
 
 bool CommandSet::abort()
