@@ -1322,13 +1322,13 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     LOGF_DEBUG("OC.x: %g - OC.y: %g OC.z: %g", OptCenter.x, OptCenter.y, OptCenter.z);
 
     // To be sure mountHoriztonalCoords is up to date.
-    ln_get_hrz_from_equ(&mountEquatorialCoords, &observer, JD, &mountHoriztonalCoords);
+    get_hrz_from_equ(&mountEquatorialCoords, &observer, JD, &mountHoriztonalCoords);
 
-    mountHoriztonalCoords.az += 180;
-    if (mountHoriztonalCoords.az >= 360)
-        mountHoriztonalCoords.az -= 360;
-    if (mountHoriztonalCoords.az < 0)
-        mountHoriztonalCoords.az += 360;
+    //    mountHoriztonalCoords.az += 180;
+    //    if (mountHoriztonalCoords.az >= 360)
+    //        mountHoriztonalCoords.az -= 360;
+    //    if (mountHoriztonalCoords.az < 0)
+    //        mountHoriztonalCoords.az += 360;
 
     // Get optical axis point. This and the previous form the optical axis line
     OpticalVector(mountHoriztonalCoords.az, mountHoriztonalCoords.alt, OptVector);
@@ -1502,13 +1502,13 @@ void Dome::UpdateMountCoords()
     if (!HaveRaDec)
         return;
 
-    ln_get_hrz_from_equ(&mountEquatorialCoords, &observer, ln_get_julian_from_sys(), &mountHoriztonalCoords);
+    get_hrz_from_equ(&mountEquatorialCoords, &observer, ln_get_julian_from_sys(), &mountHoriztonalCoords);
 
-    mountHoriztonalCoords.az += 180;
-    if (mountHoriztonalCoords.az > 360)
-        mountHoriztonalCoords.az -= 360;
-    if (mountHoriztonalCoords.az < 0)
-        mountHoriztonalCoords.az += 360;
+    //    mountHoriztonalCoords.az += 180;
+    //    if (mountHoriztonalCoords.az > 360)
+    //        mountHoriztonalCoords.az -= 360;
+    //    if (mountHoriztonalCoords.az < 0)
+    //        mountHoriztonalCoords.az += 360;
 
     // Control debug flooding
     if (fabs(mountHoriztonalCoords.az - prev_az) > DOME_COORD_THRESHOLD ||
