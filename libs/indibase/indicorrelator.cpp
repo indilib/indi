@@ -162,7 +162,7 @@ Correlator::UVCoordinate Correlator::getUVCoordinates()
     bl[0] = baseline.x;
     bl[1] = baseline.y;
     bl[2] = baseline.z;
-    double *uvcoord = interferometry_uv_coords_hadec(ha, Dec, bl, wavelength);
+    double *uvcoord = baseline_2d_projection(Dec, ha*15, bl, wavelength);
     ret.u = uvcoord[0];
     ret.v = uvcoord[1];
     free(bl);
@@ -178,7 +178,7 @@ Correlator::UVCoordinate Correlator::getUVCoordinates(double lst)
     bl[0] = baseline.x;
     bl[1] = baseline.y;
     bl[2] = baseline.z;
-    double *uvcoord = interferometry_uv_coords_hadec(ha, Dec, bl, wavelength);
+    double *uvcoord = baseline_2d_projection(Dec, ha*15, bl, wavelength);
     ret.u = uvcoord[0];
     ret.v = uvcoord[1];
     free(bl);
@@ -193,7 +193,7 @@ Correlator::UVCoordinate Correlator::getUVCoordinates(double alt, double az)
     bl[0] = baseline.x;
     bl[1] = baseline.y;
     bl[2] = baseline.z;
-    double *uvcoord = interferometry_uv_coords_hadec(az*12.0/180.0, alt, bl, wavelength);
+    double *uvcoord = baseline_2d_projection(alt, az, bl, wavelength);
     ret.u = uvcoord[0];
     ret.v = uvcoord[1];
     free(bl);
@@ -209,7 +209,7 @@ double Correlator::getDelay()
     bl[0] = baseline.x;
     bl[1] = baseline.y;
     bl[2] = baseline.z;
-    double delay = interferometry_delay_hadec(ha, Dec, bl);
+    double delay = baseline_delay(Dec, ha*15, bl);
     free(bl);
     return delay;
 }
@@ -221,7 +221,7 @@ double Correlator::getDelay(double lst)
     bl[0] = baseline.x;
     bl[1] = baseline.y;
     bl[2] = baseline.z;
-    double delay = interferometry_delay_hadec(ha, Dec, bl);
+    double delay = baseline_delay(Dec, ha*15, bl);
     free(bl);
     return delay;
 }
@@ -232,7 +232,7 @@ double Correlator::getDelay(double alt, double az)
     bl[0] = baseline.x;
     bl[1] = baseline.y;
     bl[2] = baseline.z;
-    double delay = interferometry_delay_hadec(az*12.0/180.0, alt, bl);
+    double delay = baseline_delay(alt, az, bl);
     free(bl);
     return delay;
 }
