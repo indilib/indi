@@ -26,7 +26,9 @@
 #include <cmath>
 #include <cstring>
 #include <memory>
+#include <algorithm>
 
+#include <assert.h>
 #include <termios.h>
 #include <unistd.h>
 #include <connectionplugins/connectionserial.h>
@@ -34,6 +36,17 @@
 
 static std::unique_ptr<SestoSenso2> sesto(new SestoSenso2());
 
+static const char *MOTOR_TAB  = "Motor";
+
+struct MotorSettings
+{
+    // Rate values: 1-10
+    uint32_t accRate, runSpeed, decRate;
+    // Current values: 1-10
+    uint32_t accCurrent, runCurrent, decCurrent;
+    // Hold current: 1-5
+    uint32_t holdCurrent;
+};
 
 void ISGetProperties(const char *dev)
 {
@@ -76,7 +89,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso2::SestoSenso2()
 {
-    setVersion(0, 6);
+    setVersion(0, 7);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
@@ -108,8 +121,29 @@ bool SestoSenso2::initProperties()
 
     // Current Speed
     IUFillNumber(&SpeedN[0], "SPEED", "steps/s", "%.f", 0, 7000., 1, 0);
-    IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Motor speed", MAIN_CONTROL_TAB, IP_RO, 0,
+    IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Motor Speed", MAIN_CONTROL_TAB, IP_RO, 0,
                        IPS_IDLE);
+
+    // Motor rate
+    IUFillNumber(&MotorRateN[MOTOR_RATE_ACC], "ACC", "Acceleration", "%.f", 1, 10, 1, 1);
+    IUFillNumber(&MotorRateN[MOTOR_RATE_RUN], "RUN", "Run Speed", "%.f", 1, 10, 1, 1);
+    IUFillNumber(&MotorRateN[MOTOR_RATE_DEC], "DEC", "Deceleration", "%.f", 1, 10, 1, 1);
+    IUFillNumberVector(&MotorRateNP, MotorRateN, 3, getDeviceName(), "MOTOR_RATE", "Motor Rate", MOTOR_TAB, IP_RW, 0,
+                       IPS_IDLE);
+
+    // Motor current
+    IUFillNumber(&MotorCurrentN[MOTOR_CURR_ACC], "CURR_ACC", "Acceleration", "%.f", 1, 10, 1, 1);
+    IUFillNumber(&MotorCurrentN[MOTOR_CURR_RUN], "CURR_RUN", "Run", "%.f", 1, 10, 1, 1);
+    IUFillNumber(&MotorCurrentN[MOTOR_CURR_DEC], "CURR_DEC", "Deceleration", "%.f", 1, 10, 1, 1);
+    IUFillNumber(&MotorCurrentN[MOTOR_CURR_HOLD], "CURR_HOLD", "Hold", "%.f", 0, 5, 1, 1);
+    IUFillNumberVector(&MotorCurrentNP, MotorCurrentN, 4, getDeviceName(), "MOTOR_CURRENT", "Current", MOTOR_TAB, IP_RW, 0,
+                       IPS_IDLE);
+
+    // Hold state
+    IUFillSwitch(&MotorHoldS[MOTOR_HOLD_ON], "HOLD_ON", "Hold On", ISS_OFF);
+    IUFillSwitch(&MotorHoldS[MOTOR_HOLD_OFF], "HOLD_OFF", "Hold Off", ISS_OFF);
+    IUFillSwitchVector(&MotorHoldSP, MotorHoldS, 2, getDeviceName(), "MOTOR_HOLD", "Motor Hold", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Focuser calibration
     IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "Press START to begin the Calibration.");
@@ -137,6 +171,8 @@ bool SestoSenso2::initProperties()
     IUFillSwitch(&HomeS[0], "FOCUS_HOME_GO", "Go", ISS_OFF);
     IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "FOCUS_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_IDLE);
+
+
 
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
@@ -177,12 +213,12 @@ bool SestoSenso2::updateProperties()
         if (updateVoltageIn())
             defineNumber(&VoltageInNP);
 
-        //        if (m_IsSestoSenso2)
-        //        {
         defineText(&CalibrationMessageTP);
         defineSwitch(&CalibrationSP);
-        //}
         defineSwitch(&HomeSP);
+        defineNumber(&MotorRateNP);
+        defineNumber(&MotorCurrentNP);
+        defineSwitch(&MotorHoldSP);
 
         if (getStartupValues())
             LOG_INFO("Parameters updated, focuser ready for use.");
@@ -199,6 +235,9 @@ bool SestoSenso2::updateProperties()
         deleteProperty(CalibrationSP.name);
         deleteProperty(SpeedNP.name);
         deleteProperty(HomeSP.name);
+        deleteProperty(MotorRateNP.name);
+        deleteProperty(MotorCurrentNP.name);
+        deleteProperty(MotorHoldSP.name);
     }
 
     return true;
@@ -371,6 +410,88 @@ bool SestoSenso2::updateVoltageIn()
     VoltageInN[0].value = voltageIn;
     VoltageInNP.s = (voltageIn >= 11.0) ? IPS_OK : IPS_ALERT;
 
+    return true;
+}
+
+bool SestoSenso2::fetchMotorSettings()
+{
+    // Fetch drive state andreflect in INDI
+    MotorSettings ms = {};
+    bool motorHoldActive = false;
+
+    if (isSimulation())
+    {
+        ms.accRate = 1;
+        ms.runSpeed = 2;
+        ms.decRate = 1;
+        ms.accCurrent = 3;
+        ms.runCurrent = 4;
+        ms.decCurrent = 3;
+    }
+    else
+    {
+        if (!command->getMotorSettings(ms, motorHoldActive))
+        {
+            MotorRateNP.s = IPS_IDLE;
+            MotorCurrentNP.s = IPS_IDLE;
+            MotorHoldSP.s = IPS_IDLE;
+            return false;
+        }
+    }
+
+    MotorRateN[MOTOR_RATE_ACC].value = ms.accRate;
+    MotorRateN[MOTOR_RATE_RUN].value = ms.runSpeed;
+    MotorRateN[MOTOR_RATE_DEC].value = ms.decRate;
+    MotorRateNP.s = IPS_OK;
+    IDSetNumber(&MotorRateNP, nullptr);
+
+    MotorCurrentN[MOTOR_CURR_ACC].value = ms.accCurrent;
+    MotorCurrentN[MOTOR_CURR_RUN].value = ms.runCurrent;
+    MotorCurrentN[MOTOR_CURR_DEC].value = ms.decCurrent;
+    MotorCurrentN[MOTOR_CURR_HOLD].value = ms.holdCurrent;
+    MotorCurrentNP.s = IPS_OK;
+    IDSetNumber(&MotorCurrentNP, nullptr);
+
+    // Also update motor hold switch
+    const char *activeSwitchID = motorHoldActive ? "HOLD_ON" : "HOLD_OFF";
+    ISwitch *sp = IUFindSwitch(&MotorHoldSP, activeSwitchID);
+    assert(sp != nullptr && "Motor hold switch not found");
+    if (sp)
+    {
+        IUResetSwitch(&MotorHoldSP);
+        sp->s = ISS_ON;
+        MotorHoldSP.s = motorHoldActive ? IPS_OK : IPS_ALERT;
+        IDSetSwitch(&MotorHoldSP, nullptr);
+    }
+
+    return true;
+}
+
+bool SestoSenso2::applyMotorSettings()
+{
+    if (isSimulation())
+        return true;
+
+    MotorSettings ms = {};
+
+    // Send INDI state to driver
+    ms.accRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_ACC].value);
+    ms.runSpeed = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_RUN].value);
+    ms.decRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_DEC].value);
+
+    ms.accCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_ACC].value);
+    ms.runCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_RUN].value);
+    ms.decCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_DEC].value);
+    ms.holdCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_HOLD].value);
+
+    if (!command->setMotorSettings(ms))
+    {
+        LOG_ERROR("Failed to apply motor settings");
+        // TODO: Error state?
+        return false;
+    }
+
+    LOG_INFO("Motor settings applied");
     return true;
 }
 
@@ -657,9 +778,57 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetSwitch(&HomeSP, nullptr);
             return true;
         }
+        else if (!strcmp(name, MotorHoldSP.name))
+        {
+            IUUpdateSwitch(&MotorHoldSP, states, names, n);
+            ISwitch *sp = IUFindOnSwitch(&MotorHoldSP);
+            assert(sp != nullptr);
+
+            // NOTE: Default to HOLD_ON as a safety feature
+            if (!strcmp(sp->name, "HOLD_OFF"))
+            {
+                command->setMotorHold(false);
+                MotorHoldSP.s = IPS_ALERT;
+                LOG_WARN("Motor hold OFF. You may now manually adjust the focuser. Remember to enable Motor hold once done.");
+            }
+            else
+            {
+                command->setMotorHold(true);
+                MotorHoldSP.s = IPS_OK;
+                LOG_WARN("Motor hold ON. Do NOT attempt to manually adjust the focuser!");
+            }
+
+            IDSetSwitch(&MotorHoldSP, nullptr);
+            return true;
+        }
 
     }
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev == nullptr || strcmp(dev, getDeviceName()) != 0)
+        return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+
+    if (!strcmp(name, MotorRateNP.name))
+    {
+        IUUpdateNumber(&MotorRateNP, values, names, n);
+        MotorRateNP.s = IPS_OK;
+        applyMotorSettings();
+        IDSetNumber(&MotorRateNP, nullptr);
+        return true;
+    }
+    else if (!strcmp(name, MotorCurrentNP.name))
+    {
+        IUUpdateNumber(&MotorCurrentNP, values, names, n);
+        MotorCurrentNP.s = IPS_OK;
+        applyMotorSettings();
+        IDSetNumber(&MotorCurrentNP, nullptr);
+        return true;
+    }
+
+    return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
 IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
@@ -851,13 +1020,17 @@ void SestoSenso2::TimerHit()
 
 bool SestoSenso2::getStartupValues()
 {
-    // Do not run for Esatto
-    if (m_IsSestoSenso2)
-        setupRunPreset();
+    // // Do not run for Esatto
+    // if (m_IsSestoSenso2)
+    //     setupRunPreset();
 
     bool rc = updatePosition();
     if (rc)
+    {
         IDSetNumber(&FocusAbsPosNP, nullptr);
+    }
+
+    rc &= fetchMotorSettings();
 
     return (rc);
 }
@@ -936,161 +1109,186 @@ bool SestoSenso2::initCommandSet()
     return true;
 }
 
-
-
-bool CommandSet::sendCmd(std::string cmd, std::string property, char *res)
+bool CommandSet::send(const std::string &request, std::string &response) const
 {
-    LOGF_DEBUG("Sending comand: %s with property: %s", cmd.c_str(), property.c_str());
     tcflush(CommandSet::PortFD, TCIOFLUSH);
-    std::string cmd_str;
-    cmd_str.append(cmd);
-
-    if(write(CommandSet::PortFD, cmd.c_str(), cmd_str.length()) == 0)
+    if (write(CommandSet::PortFD, request.c_str(), request.length()) == 0)
     {
-        LOGF_ERROR("Device not response: cmd %s property %s", cmd.c_str(), property.c_str());
+        LOGF_ERROR("Failed to send to device: %s", request.c_str());
         return false;
     }
-    if(property.empty() || res == nullptr)
-        return true;
 
+    // NOTE: Every request should result in a response from the device
     char read_buf[SESTO_LEN] = {0};
-    if(read(CommandSet::PortFD, &read_buf, sizeof(read_buf)) == 0)
+    if (read(CommandSet::PortFD, &read_buf, sizeof(read_buf)) == 0)
     {
-        LOGF_ERROR("Device not response: cmd %s property %s", cmd.c_str(), property.c_str());
+        LOGF_ERROR("No response from device for request: %s", request.c_str());
         return false;
     }
-    std::string response(read_buf);
-    if(CommandSet::getValueFromResponse(response, property, res) == false)
+
+    response = read_buf;
+    return true;
+}
+
+bool CommandSet::sendCmd(const std::string &cmd, std::string property, char *res) const
+{
+    LOGF_DEBUG("Sending command: %s with property: %s", cmd.c_str(), property.c_str());
+    std::string response;
+    if (!send(cmd, response))
+        return false;
+
+    if (property.empty() || res == nullptr)
+        return true;
+    
+    if (getValueFromResponse(response, property, res) == false)
     {
-        LOGF_ERROR("Communication error: cmd %s property %s resvalue: %s", cmd.c_str(), property.c_str(), res);
+        LOGF_ERROR("Communication error: cmd %s property %s response: %s", cmd.c_str(), property.c_str(), res);
         return false;
     }
+
     LOGF_DEBUG("Received response: %s", res);
     tcflush(PortFD, TCIOFLUSH);
 
     return true;
 }
 
-bool CommandSet::getValueFromResponse(std::string response, std::string property, char *value)
+inline void remove_chars_inplace(std::string& str, char ch)
 {
+    str.erase(std::remove(str.begin(), str.end(), ch), str.end());
+}
+
+bool CommandSet::getValueFromResponse(const std::string &response, const std::string &property, char *value) const
+{
+    // FIXME: This parsing code will only return the first named property,
+    // if JSON layout changes, this may break things in unexpected ways.
+
+    // Find property
     std::size_t property_pos = response.find(property);
-    if(property_pos == std::string::npos)
+    if (property_pos == std::string::npos)
     {
-        LOGF_ERROR("Invalid property: %s", property.c_str());
+        LOGF_ERROR("Failed to find property: %s", property.c_str());
         return false;
     }
-    int property_length = std::string(property).length();
-    response = response.substr(property_pos + property_length);
-    std::size_t found = response.find(",");
+
+    // Skip past key name
+    std::string sub = response.substr(property_pos + property.length());
+
+    // Find end of current JSON element: , or }
+    std::size_t found = sub.find(",");
     if(found != std::string::npos)
     {
-        response = response.substr(0, found);
+        sub = sub.substr(0, found);
     }
     else
     {
-        found = response.find("}");
-        response = response.substr(0, found);
+        found = sub.find("}");
+        sub = sub.substr(0, found);
     }
-    response = removeChars(response, '\"');
-    response = removeChars(response, ',');
-    response = removeChars(response, ':');
-    strcpy(value, response.c_str());
+
+    // Strip JSON related formatting
+    remove_chars_inplace(sub, '\"');
+    remove_chars_inplace(sub, ',');
+    remove_chars_inplace(sub, ':');
+    strcpy(value, sub.c_str());
 
     return true;
 }
 
-std::string CommandSet::removeChars(std::string str, char ch)
+bool CommandSet::parseUIntFromResponse(const std::string &response, const std::string &property, uint32_t &result) const
 {
-    std::size_t found = str.find(ch);
-    if(found != std::string::npos)
+    char valueBuff[SESTO_LEN] = { 0 };
+    if (!getValueFromResponse(response, property, valueBuff))
+        return false;
+
+    if (sscanf(valueBuff, "%u", &result) != 1)
     {
-        str = str.erase(found, 1);
-        str = removeChars(str, ch);
+        LOGF_ERROR("Failed to parse integer property %s with value: %s", property.c_str(), valueBuff);
+        return false;
     }
 
-    return str;
+    return true;
 }
 
 bool CommandSet::getSerialNumber(char *res)
 {
-    return CommandSet::sendCmd("{\"req\":{\"get\":{\"SN\":\"\"}}}", "SN", res);
+    return sendCmd("{\"req\":{\"get\":{\"SN\":\"\"}}}", "SN", res);
 }
 
-bool CommandSet::getFirmwareVersion(char* res)
+bool CommandSet::getFirmwareVersion(char *res)
 {
-    return CommandSet::sendCmd("{\"req\":{\"get\":{\"SWVERS\":\"\"}}}", "SWAPP", res);
+    return sendCmd("{\"req\":{\"get\":{\"SWVERS\":\"\"}}}", "SWAPP", res);
 }
 
 bool CommandSet::abort()
 {
-    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"MOT_ABORT\":\"\"}}}}");
+    return sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"MOT_ABORT\":\"\"}}}}");
 }
 
 bool CommandSet::go(uint32_t targetTicks, char *res)
 {
     char cmd[SESTO_LEN] = {0};
     snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"MOT1\" :{\"GOTO\":%u}}}}", targetTicks);
-    return CommandSet::sendCmd(cmd, "GOTO", res);
+    return sendCmd(cmd, "GOTO", res);
 }
 
 bool CommandSet::stop()
 {
-    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"MOT_STOP\":\"\"}}}}");
+    return sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"MOT_STOP\":\"\"}}}}");
 }
 
 bool CommandSet::goHome(char *res)
 {
-    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"GOHOME\":\"\"}}}}", "GOHOME", res);
+    return sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"GOHOME\":\"\"}}}}", "GOHOME", res);
 }
 
 bool CommandSet::fastMoveOut(char *res)
 {
-    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"F_OUTW\":\"\"}}}}", "F_OUTW", res);
+    return sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"F_OUTW\":\"\"}}}}", "F_OUTW", res);
 }
 
 bool CommandSet::fastMoveIn(char *res)
 {
-    return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"F_INW\":\"\"}}}}", "F_INW", res);
+    return sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"F_INW\":\"\"}}}}", "F_INW", res);
 }
 
 bool CommandSet::getMaxPosition(char *res)
 {
-    return CommandSet::sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "CAL_MAXPOS", res);
+    return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "CAL_MAXPOS", res);
 }
 
 bool CommandSet::getHallSensor(char *res)
 {
-    return CommandSet::sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "HSENDET", res);
+    return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "HSENDET", res);
 }
 
 bool CommandSet::storeAsMaxPosition(char *res)
 {
-    return CommandSet::sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMaxPos\"}}}}"), res;
+    return sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMaxPos\"}}}}", res);
 }
 
 bool CommandSet::goOutToFindMaxPos()
 {
-    return CommandSet::sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"GoOutToFindMaxPos\"}}}}");
+    return sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"GoOutToFindMaxPos\"}}}}");
 }
 
 bool CommandSet::storeAsMinPosition()
 {
-    return CommandSet::sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMinPos\"}}}}");
+    return sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"StoreAsMinPos\"}}}}");
 }
 
 bool CommandSet::initCalibration()
 {
-    return CommandSet::sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"Init\"}}}}");
+    return sendCmd("{\"req\":{\"cmd\": {\"MOT1\": {\"CAL_FOCUSER\": \"Init\"}}}}");
 }
 
 bool CommandSet::getAbsolutePosition(char *res)
 {
-    return CommandSet::sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "ABS_POS", res);
+    return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "ABS_POS", res);
 }
 
 bool CommandSet::getCurrentSpeed(char *res)
 {
-    return CommandSet::sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "SPEED", res);
+    return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "SPEED", res);
 }
 
 bool CommandSet::loadSlowPreset(char *res)
@@ -1111,4 +1309,58 @@ bool CommandSet::getExternalTemp(char *res)
 bool CommandSet::getVoltageIn(char *res)
 {
     return sendCmd("{\"req\":{\"get\":{\"VIN_12V\":\"\"}}}", "VIN_12V", res);
+}
+
+bool CommandSet::getMotorSettings(struct MotorSettings &ms, bool &motorHoldActive)
+{
+    std::string response;
+    if (!send("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", response))
+        return false;   // send() call handles failure logging
+
+    uint32_t holdStatus = 0;
+    if (parseUIntFromResponse(response, "FnRUN_ACC", ms.accRate)
+        && parseUIntFromResponse(response, "FnRUN_SPD", ms.runSpeed)
+        && parseUIntFromResponse(response, "FnRUN_DEC", ms.decRate)
+        && parseUIntFromResponse(response, "FnRUN_CURR_ACC", ms.accCurrent)
+        && parseUIntFromResponse(response, "FnRUN_CURR_SPD", ms.runCurrent)
+        && parseUIntFromResponse(response, "FnRUN_CURR_DEC", ms.decCurrent)
+        && parseUIntFromResponse(response, "FnRUN_CURR_HOLD", ms.holdCurrent)
+        && parseUIntFromResponse(response, "HOLDCURR_STATUS", holdStatus))
+    {
+        motorHoldActive = holdStatus != 0;
+        return true;
+    }
+
+    // parseUIntFromResponse() should log failure
+    return false;
+}
+
+constexpr char MOTOR_SETTINGS_CMD[] = 
+"{\"req\":{\"set\":{\"MOT1\":{"
+"\"FnRUN_ACC\":%u,"
+"\"FnRUN_SPD\":%u,"
+"\"FnRUN_DEC\":%u,"
+"\"FnRUN_CURR_ACC\":%u,"
+"\"FnRUN_CURR_SPD\":%u,"
+"\"FnRUN_CURR_DEC\":%u,"
+"\"FnRUN_CURR_HOLD\":%u"
+"}}}}";
+
+bool CommandSet::setMotorSettings(struct MotorSettings &ms)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), MOTOR_SETTINGS_CMD, ms.accRate, ms.runSpeed, ms.decRate,
+             ms.accCurrent, ms.runCurrent, ms.decCurrent, ms.holdCurrent);
+
+    std::string response;
+    return send(cmd, response); // TODO: Check response!
+}
+
+bool CommandSet::setMotorHold(bool hold)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), "{\"req\":{\"set\":{\"MOT1\":{\"HOLDCURR_STATUS\":%u}}}}", hold ? 1 : 0);
+    
+    std::string response;
+    return send(cmd, response); // TODO: Check response!
 }

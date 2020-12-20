@@ -22,7 +22,6 @@
 
 #include "indifocuser.h"
 
-
 class CommandSet
 {
 
@@ -53,18 +52,24 @@ class CommandSet
         bool getMotorTemp(char *res);
         bool getExternalTemp(char *res);
         bool getVoltageIn(char *res);
+        bool getMotorSettings(struct MotorSettings &ms, bool &motorHoldActive);
+        bool setMotorSettings(struct MotorSettings &ms);
+        bool setMotorHold(bool hold);
         std::string deviceName;
 
-        const char *getDeviceName()
+        const char *getDeviceName() const
         {
-            return deviceName.data();
+            return deviceName.c_str();
         }
 
     private:
 
-        bool sendCmd(std::string cmd, std::string property = "", char * res = nullptr);
-        bool getValueFromResponse(std::string response, std::string property, char *value);
-        std::string removeChars(std::string response, char ch);
+        // Send request and return full response
+        bool send(const std::string &request, std::string &response) const;
+        // Send command and parse response looking for value of property
+        bool sendCmd(const std::string &cmd, std::string property = "", char *res = nullptr) const;
+        bool getValueFromResponse(const std::string &response, const std::string &property, char *value) const;
+        bool parseUIntFromResponse(const std::string &response, const std::string &property, uint32_t &result) const;
 
         // Maximum buffer for sending/receving.
         static constexpr const int SESTO_LEN {1024};
@@ -86,6 +91,7 @@ class SestoSenso2 : public INDI::Focuser
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
         static void checkMotionProgressHelper(void *context);
         static void checkHallSensorHelper(void *context);
@@ -108,6 +114,8 @@ class SestoSenso2 : public INDI::Focuser
         bool updateTemperature();
         bool updatePosition();
         bool updateVoltageIn();
+        bool fetchMotorSettings();
+        bool applyMotorSettings();
         void setConnectionParams();
         bool initCommandSet();
         void checkMotionProgressCallback();
@@ -169,6 +177,33 @@ class SestoSenso2 : public INDI::Focuser
         {
             CMD_OK = true,
             CMD_FALSE = false
+        };
+
+        INumberVectorProperty MotorRateNP;
+        INumber MotorRateN[3];
+        enum
+        {
+            MOTOR_RATE_ACC,
+            MOTOR_RATE_RUN,
+            MOTOR_RATE_DEC
+        };
+
+        INumberVectorProperty MotorCurrentNP;
+        INumber MotorCurrentN[4];
+        enum
+        {
+            MOTOR_CURR_ACC,
+            MOTOR_CURR_RUN,
+            MOTOR_CURR_DEC,
+            MOTOR_CURR_HOLD
+        };
+
+        ISwitchVectorProperty MotorHoldSP;
+        ISwitch MotorHoldS[2];
+        enum
+        {
+            MOTOR_HOLD_ON,
+            MOTOR_HOLD_OFF
         };
 
         ISwitchVectorProperty HomeSP;
