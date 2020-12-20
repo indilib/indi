@@ -32,6 +32,7 @@
 #include "fpack/fpack.h"
 #include "indicom.h"
 #include "locale_compat.h"
+#include "indiutility.h"
 
 #include <fitsio.h>
 
@@ -59,31 +60,6 @@ const char * GUIDE_HEAD_TAB     = "Guider Head";
 #ifdef HAVE_WEBSOCKET
 uint16_t INDIWSServer::m_global_port = 11623;
 #endif
-
-// Create dir recursively
-static int _ccd_mkdir(const char * dir, mode_t mode)
-{
-    char tmp[PATH_MAX];
-    char * p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
 
 namespace INDI
 {
@@ -977,7 +953,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                         observer.lat = Latitude;
                         observer.lng = Longitude;
 
-                        ln_get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+                        get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
                         Airmass = ln_get_airmass(horizontalPos.alt, 750);
                     }
                 }
@@ -3100,7 +3076,7 @@ int CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
         if (errno == ENOENT)
         {
             DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
-            if (_ccd_mkdir(dir, 0755) == -1)
+            if (INDI::mkpath(dir, 0755) == -1)
                 LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
         }
         else

@@ -26,6 +26,7 @@
 #include "libastro.h"
 #include "stream/streammanager.h"
 #include "locale_compat.h"
+#include "indiutility.h"
 
 #include <fitsio.h>
 
@@ -41,31 +42,6 @@
 #include <cstdlib>
 #include <zlib.h>
 #include <sys/stat.h>
-
-// Create dir recursively
-static int _det_mkdir(const char *dir, mode_t mode)
-{
-    char tmp[PATH_MAX];
-    char *p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
 
 namespace INDI
 {
@@ -1209,9 +1185,9 @@ int SensorInterface::getFileIndex(const char *dir, const char *prefix, const cha
 
     if (stat(dir, &st) == -1)
     {
-        DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
-        if (_det_mkdir(dir, 0755) == -1)
-            DEBUGF(Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
+        LOGF_DEBUG("Creating directory %s...", dir);
+        if (INDI::mkpath(dir, 0755) == -1)
+            LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
     }
 
     dpdf = opendir(dir);

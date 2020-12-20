@@ -76,7 +76,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso2::SestoSenso2()
 {
-    setVersion(0, 4);
+    setVersion(0, 6);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
@@ -89,9 +89,15 @@ bool SestoSenso2::initProperties()
 
     setConnectionParams();
 
-    // Firmware Information
-    IUFillText(&FirmwareT[0], "VERSION", "Version", "");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FOCUS_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0,
+    // Firmware information
+    IUFillText(&FirmwareT[FIRMWARE_SN], "SERIALNUMBER", "Serial Number", "");
+    IUFillText(&FirmwareT[FIRMWARE_VERSION], "VERSION", "Version", "");
+    IUFillTextVector(&FirmwareTP, FirmwareT, 2, getDeviceName(), "FOCUS_FIRMWARE", "Firmware", CONNECTION_TAB, IP_RO, 0,
+                     IPS_IDLE);
+
+    // Voltage Information
+    IUFillNumber(&VoltageInN[0], "VOLTAGEIN", "Volts", "%.2f", 0, 100, 0., 0.);
+    IUFillNumberVector(&VoltageInNP, VoltageInN, 1, getDeviceName(), "VOLTAGE_IN", "Voltage in", MAIN_CONTROL_TAB, IP_RO, 0,
                      IPS_IDLE);
 
     // Focuser temperature
@@ -168,6 +174,8 @@ bool SestoSenso2::updateProperties()
             defineNumber(&TemperatureNP);
         defineNumber(&SpeedNP);
         defineText(&FirmwareTP);
+        if (updateVoltageIn())
+            defineNumber(&VoltageInNP);
 
         //        if (m_IsSestoSenso2)
         //        {
@@ -186,6 +194,7 @@ bool SestoSenso2::updateProperties()
         if (TemperatureNP.s == IPS_OK)
             deleteProperty(TemperatureNP.name);
         deleteProperty(FirmwareTP.name);
+        deleteProperty(VoltageInNP.name);
         deleteProperty(CalibrationMessageTP.name);
         deleteProperty(CalibrationSP.name);
         deleteProperty(SpeedNP.name);
@@ -334,6 +343,35 @@ bool SestoSenso2::updatePosition()
         FocusAbsPosNP.s = IPS_ALERT;
         return false;
     }
+}
+
+bool SestoSenso2::updateVoltageIn()
+{
+    char res[SESTO_LEN] = {0};
+    double voltageIn = 0;
+
+    if (isSimulation())
+        strncpy(res, "12.00", SESTO_LEN);
+    else if (command->getVoltageIn(res) == false)
+        return false;
+
+    try
+    {
+        voltageIn = std::stod(res);
+    }
+    catch(...)
+    {
+        LOGF_WARN("Failed to process voltage response: %s (%d bytes)", res, strlen(res));
+        return false;
+    }
+
+    if (voltageIn > 24)
+        return false;
+
+    VoltageInN[0].value = voltageIn;
+    VoltageInNP.s = (voltageIn >= 11.0) ? IPS_OK : IPS_ALERT;
+
+    return true;
 }
 
 bool SestoSenso2::setupRunPreset()
@@ -788,6 +826,23 @@ void SestoSenso2::TimerHit()
                 lastTemperature = TemperatureN[0].value;
             }
         }
+
+        // Also use temparature poll rate for tracking input voltage
+        rc = updateVoltageIn();
+        if (rc)
+        {
+            if (fabs(lastVoltageIn - VoltageInN[0].value) >= 0.1)
+            {
+                IDSetNumber(&VoltageInNP, nullptr);
+                lastVoltageIn = VoltageInN[0].value;
+
+                if (VoltageInN[0].value < 11.0)
+                {
+                    LOG_WARN("Please check 12v DC power supply is connected.");
+                }
+            }
+        }
+
         m_TemperatureCounter = 0;   // Reset the counter
     }
 
@@ -830,7 +885,7 @@ bool SestoSenso2::Ack()
         }
         if(command->getSerialNumber(res))
         {
-            LOGF_INFO("Serial #%s", res);
+            LOGF_INFO("Serial number: %s", res);
         }
         else
         {
@@ -839,8 +894,18 @@ bool SestoSenso2::Ack()
     }
 
     m_IsSestoSenso2 = !strstr(res, "ESATTO");
-    IUSaveText(&FirmwareT[0], res);
+    IUSaveText(&FirmwareT[FIRMWARE_SN], res);
 
+    if (command->getFirmwareVersion(res))
+    {
+        LOGF_INFO("Firmware version: %s", res);
+        IUSaveText(&FirmwareT[FIRMWARE_VERSION], res);
+    }
+    else
+    {
+        return false;
+    }
+    
     return true;
 }
 
@@ -951,6 +1016,11 @@ bool CommandSet::getSerialNumber(char *res)
     return CommandSet::sendCmd("{\"req\":{\"get\":{\"SN\":\"\"}}}", "SN", res);
 }
 
+bool CommandSet::getFirmwareVersion(char* res)
+{
+    return CommandSet::sendCmd("{\"req\":{\"get\":{\"SWVERS\":\"\"}}}", "SWAPP", res);
+}
+
 bool CommandSet::abort()
 {
     return CommandSet::sendCmd("{\"req\":{\"cmd\":{\"MOT1\" :{\"MOT_ABORT\":\"\"}}}}");
@@ -1036,4 +1106,9 @@ bool CommandSet::getMotorTemp(char *res)
 bool CommandSet::getExternalTemp(char *res)
 {
     return sendCmd("{\"req\":{\"get\":{\"EXT_T\":\"\"}}}", "EXT_T", res);
+}
+
+bool CommandSet::getVoltageIn(char *res)
+{
+    return sendCmd("{\"req\":{\"get\":{\"VIN_12V\":\"\"}}}", "VIN_12V", res);
 }
