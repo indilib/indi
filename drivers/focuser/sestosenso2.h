@@ -35,6 +35,7 @@ class CommandSet
         int PortFD;
         bool stop();
         bool getSerialNumber(char *res);
+        bool getFirmwareVersion(char *res);
         bool abort();
         bool go(uint32_t targetTicks, char *res);
         bool goHome(char *res);
@@ -136,8 +137,13 @@ class SestoSenso2 : public INDI::Focuser
         INumber SpeedN[1];
         INumberVectorProperty SpeedNP;
 
-        IText FirmwareT[1] {};
         ITextVectorProperty FirmwareTP;
+        IText FirmwareT[2];
+        enum
+        {
+            FIRMWARE_SN,
+            FIRMWARE_VERSION,
+        };
 
         INumber VoltageInN[1] {};
         INumberVectorProperty VoltageInNP;
