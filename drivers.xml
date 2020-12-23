@@ -105,6 +105,10 @@
             <driver name="Rainbow">indi_rainbow_telescope</driver>
             <version>1.1</version>
         </device>
+        <device label="CRUX TitanTCS" manufacturer="HOBYM">
+            <driver name="CRUX TitanTCS">indi_crux_mount</driver>
+            <version>1.0</version>
+        </device>
         <device label="Sky Scan">
             <driver name="SynScan">indi_synscan_telescope</driver>
             <version>0.1</version>
