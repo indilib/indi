@@ -1026,9 +1026,24 @@ int setSiteLongitude(int fd, double Long)
 /* Add mutex */
 /*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
 
-    getSexComponents(Long, &d, &m, &s);
-
-    snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d#", d, m);
+    switch (controller_format) {
+    case LX200_SHORT_FORMAT: // d m
+        getSexComponents(Long, &d, &m, &s);
+        snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d#", d, m);
+        break;
+    case LX200_LONG_FORMAT: // d m s
+        getSexComponents(Long, &d, &m, &s);
+        snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d:%02d#", d, m, s);
+        break;
+    case LX200_LONGER_FORMAT: // d m s.f with f being tenths of arcsecond
+        double s_f;
+        getSexComponentsIID(Long, &d, &m, &s_f);
+        snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d:%04.01f#", d, m, s_f);
+        break;
+    default:
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", controller_format);
+        return -1;
+    }
 
     return (setStandardProcedure(fd, read_buffer));
 }
@@ -1042,9 +1057,24 @@ int setSiteLatitude(int fd, double Lat)
 /* Add mutex */
 /*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
 
-    getSexComponents(Lat, &d, &m, &s);
-
-    snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d:%02d#", d, m, s);
+    switch (controller_format) {
+    case LX200_SHORT_FORMAT: // d m
+        getSexComponents(Lat, &d, &m, &s);
+        snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d#", d, m);
+        break;
+    case LX200_LONG_FORMAT: // d m s
+        getSexComponents(Lat, &d, &m, &s);
+        snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d:%02d#", d, m, s);
+        break;
+    case LX200_LONGER_FORMAT: // d m s.f with f being tenths of arcsecond
+        double s_f;
+        getSexComponentsIID(Lat, &d, &m, &s_f);
+        snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d:%04.01f#", d, m, s_f);
+        break;
+    default:
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", controller_format);
+        return -1;
+    }
 
     return (setStandardProcedure(fd, read_buffer));
 }
