@@ -3,7 +3,7 @@
     GM1000HPS GM2000QCI GM2000HPS GM3000HPS GM4000QCI GM4000HPS AZ2000
     Mount Command Protocol 2.14.11
 
-    Copyright (C) 2017 Hans Lambermont
+    Copyright (C) 2017-2020 Hans Lambermont
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -33,7 +33,25 @@
 #define PRODUCT_TAB   "Product"
 #define ALIGNMENT_TAB "Alignment"
 #define SATELLITE_TAB "Satellite"
+
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
+
+// INDI Number and Text names
+#define REFRACTION_MODEL_TEMPERATURE "REFRACTION_MODEL_TEMPERATURE"
+#define REFRACTION_MODEL_PRESSURE "REFRACTION_MODEL_PRESSURE"
+#define MODEL_COUNT "MODEL_COUNT"
+#define ALIGNMENT_POINTS "ALIGNMENT_POINTS"
+#define ALIGNMENT_STATE "Alignment"
+#define MINIMAL_NEW_ALIGNMENT_POINT_RO "MINIMAL_NEW_ALIGNMENT_POINT_RO"
+#define MINIMAL_NEW_ALIGNMENT_POINT "MINIMAL_NEW_ALIGNMENT_POINT"
+#define NEW_ALIGNMENT_POINT "NEW_ALIGNMENT_POINT"
+#define NEW_ALIGNMENT_POINTS "NEW_ALIGNMENT_POINTS"
+#define NEW_MODEL_NAME "NEW_MODEL_NAME"
+#define PRODUCT_INFO "PRODUCT_INFO"
+#define TLE_TEXT "TLE_TEXT"
+#define TLE_NUMBER "TLE_NUMBER"
+#define TRAJECTORY_TIME "TRAJECTORY_TIME"
+#define SAT_TRACKING_STAT "SAT_TRACKING_STAT"
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
@@ -84,38 +102,38 @@ bool LX200_10MICRON::initProperties()
 
     IUFillNumber(&RefractionModelTemperatureN[0], "TEMPERATURE", "Celsius", "%+6.1f", -999.9, 999.9, 0, 0.);
     IUFillNumberVector(&RefractionModelTemperatureNP, RefractionModelTemperatureN, 1, getDeviceName(),
-        "REFRACTION_MODEL_TEMPERATURE", "Temperature", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+        REFRACTION_MODEL_TEMPERATURE, "Temperature", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&RefractionModelPressureN[0], "PRESSURE", "hPa", "%6.1f", 0.0, 9999.9, 0, 0.);
     IUFillNumberVector(&RefractionModelPressureNP, RefractionModelPressureN, 1, getDeviceName(),
-        "REFRACTION_MODEL_PRESSURE", "Pressure", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+        REFRACTION_MODEL_PRESSURE, "Pressure", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&ModelCountN[0], "COUNT", "#", "%.0f", 0, 999, 0, 0);
     IUFillNumberVector(&ModelCountNP, ModelCountN, 1, getDeviceName(),
-        "MODEL_COUNT", "Models", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+        MODEL_COUNT, "Models", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillNumber(&AlignmentPointsN[0], "COUNT", "#", "%.0f", 0, 100, 0, 0);
     IUFillNumberVector(&AlignmentPointsNP, AlignmentPointsN, 1, getDeviceName(),
-        "ALIGNMENT_POINTS", "Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+        ALIGNMENT_POINTS, "Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&AlignmentStateS[ALIGN_IDLE], "Idle", "Idle", ISS_ON);
     IUFillSwitch(&AlignmentStateS[ALIGN_START], "Start", "Start new model", ISS_OFF);
     IUFillSwitch(&AlignmentStateS[ALIGN_END], "End", "End new model", ISS_OFF);
     IUFillSwitch(&AlignmentStateS[ALIGN_DELETE_CURRENT], "Del", "Delete current model", ISS_OFF);
-    IUFillSwitchVector(&AlignmentSP, AlignmentStateS, ALIGN_COUNT, getDeviceName(), "Alignment", "Alignment", ALIGNMENT_TAB,
-        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&AlignmentSP, AlignmentStateS, ALIGN_COUNT, getDeviceName(),
+        ALIGNMENT_STATE, "Alignment", ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&MiniNewAlpRON[MALPRO_MRA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&MiniNewAlpRON[MALPRO_MDEC], "MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
     IUFillNumber(&MiniNewAlpRON[MALPRO_MSIDE], "MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
     IUFillNumber(&MiniNewAlpRON[MALPRO_SIDTIME], "SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumberVector(&MiniNewAlpRONP, MiniNewAlpRON, MALPRO_COUNT, getDeviceName(), "MINIMAL_NEW_ALIGNMENT_POINT_RO",
-        "Actual", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&MiniNewAlpRONP, MiniNewAlpRON, MALPRO_COUNT, getDeviceName(),
+        MINIMAL_NEW_ALIGNMENT_POINT_RO, "Actual", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillNumber(&MiniNewAlpN[MALP_PRA], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&MiniNewAlpN[MALP_PDEC], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&MiniNewAlpNP, MiniNewAlpN, MALP_COUNT, getDeviceName(), "MINIMAL_NEW_ALIGNMENT_POINT",
-        "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&MiniNewAlpNP, MiniNewAlpN, MALP_COUNT, getDeviceName(),
+        MINIMAL_NEW_ALIGNMENT_POINT, "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&NewAlpN[ALP_MRA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&NewAlpN[ALP_MDEC], "MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
@@ -123,24 +141,24 @@ bool LX200_10MICRON::initProperties()
     IUFillNumber(&NewAlpN[ALP_SIDTIME], "SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&NewAlpN[ALP_PRA], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&NewAlpN[ALP_PDEC], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&NewAlpNP, NewAlpN, ALP_COUNT, getDeviceName(), "NEW_ALIGNMENT_POINT",
-        "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&NewAlpNP, NewAlpN, ALP_COUNT, getDeviceName(),
+        NEW_ALIGNMENT_POINT, "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&NewAlignmentPointsN[0], "COUNT", "#", "%.0f", 0, 100, 1, 0);
     IUFillNumberVector(&NewAlignmentPointsNP, NewAlignmentPointsN, 1, getDeviceName(),
-        "NEW_ALIGNMENT_POINTS", "New Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+        NEW_ALIGNMENT_POINTS, "New Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillText(&NewModelNameT[0], "NAME", "Model Name", "newmodel");
-    IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(), "NEW_MODEL_NAME", "New Name", ALIGNMENT_TAB,
-                     IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(),
+        NEW_MODEL_NAME, "New Name", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillText(&TLEtoUploadT[0], "TLE", "TLE", "");
-    IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(), "TLE_TEXT", "TLE", SATELLITE_TAB,
-                     IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(),
+        TLE_TEXT, "TLE", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 1, 1);
     IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
-                       "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+        TLE_NUMBER, "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
     ln_get_date_from_sys(&today);
     IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_YYYY], "YEAR", "Year (yyyy)", "%.0f", 0, 9999, 0, today.years);
@@ -150,14 +168,13 @@ bool LX200_10MICRON::initProperties()
     IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM60], "MINUTE", "Minute", "%.0f", 0, 60, 0, today.minutes);
     IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM1440_NEXT], "COMING",
                  "In the following # minutes", "%.0f", 0, 1440, 0, 0);
-    IUFillNumberVector(&CalculateSatTrajectoryForTimeNP, CalculateSatTrajectoryForTimeN,
-                       SAT_COUNT, getDeviceName(), "TRAJECTORY_TIME",
-                       "Sat pass", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&CalculateSatTrajectoryForTimeNP, CalculateSatTrajectoryForTimeN, SAT_COUNT, getDeviceName(),
+        TRAJECTORY_TIME, "Sat pass", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&TrackSatS[SAT_TRACK], "Track", "Track", ISS_OFF);
     IUFillSwitch(&TrackSatS[SAT_HALT], "Halt", "Halt", ISS_ON);
-    IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
-                       "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(),
+        SAT_TRACKING_STAT, "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     return result;
 }
@@ -436,8 +453,8 @@ bool LX200_10MICRON::getMountInfo()
     IUFillText(&ProductT[PRODUCT_CONTROL_BOX], "CONTROL_BOX", "Control Box", ControlBox);
     IUFillText(&ProductT[PRODUCT_FIRMWARE_VERSION], "FIRMWARE_VERSION", "Firmware Version", FirmwareVersion);
     IUFillText(&ProductT[PRODUCT_FIRMWARE_DATE], "FIRMWARE_DATE", "Firmware Date", FirmwareDate);
-    IUFillTextVector(&ProductTP, ProductT, PRODUCT_COUNT, getDeviceName(), "PRODUCT_INFO", "Product", PRODUCT_TAB,
-            IP_RO, 60, IPS_IDLE);
+    IUFillTextVector(&ProductTP, ProductT, PRODUCT_COUNT, getDeviceName(),
+        PRODUCT_INFO, "Product", PRODUCT_TAB, IP_RO, 60, IPS_IDLE);
 
     defineText(&ProductTP);
 
@@ -532,8 +549,65 @@ bool LX200_10MICRON::UnPark()
     return true;
 }
 
+bool LX200_10MICRON::getUnattendedFlipSetting()
+{
+    //#:Guaf#
+    //Returns the unattended flip setting.
+    //Returns:
+    //0 disabled
+    //1 enabled
+    //Available from version 2.11.
+    //Note: unattended flip didn't work properly in firmware versions up to 2.13.8 included.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char guaf[80];
+    getCommandString(PortFD, guaf, ":Guaf#");
+    return 1 == guaf[0];
+}
+
+bool LX200_10MICRON::setUnattendedFlipSetting(bool setting)
+{
+    //#:SuafN#
+    //Enables or disables the unattended flip. Use N=1 to enable, N=0 to disable. This is set always to 0 after power up.
+    //Returns: nothing
+    //Available from version 2.11.
+    //unattended flip didn't work properly in firmware versions up to 2.13.8 included.
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    if (setCommandInt(fd, setting, "#:Suaf#") < 0)
+    {
+        return false;
+    }
+    return true;
+}
+
+bool LX200_10MICRON::flip()
+{
+    //#:FLIP#
+    //This command acts in different ways on the AZ2000 and german equatorial (GM1000 – GM4000) mounts.
+    //On an AZ2000 mount: When observing an object near the lowest culmination, requests to make a 360° turn of the azimuth axis and point the object again.
+    //On a german equatorial mount: When observing an object near the meridian, requests to make a 180° turn of the RA axis and move the declination axis in order to
+    //point the object with the telescope on the other side of the mount.
+    //Returns:
+    //1 if successful
+    //0 if the movement cannot be done
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char data[64];
+    snprintf(data, sizeof(data), "#:FLIP#");
+    return 0 == setStandardProcedureAndExpect(fd, data, "1");
+}
+
 bool LX200_10MICRON::SyncConfigBehaviour(bool cmcfg)
 {
+    //#:CMCFGn#
+    //Configures the behaviour of the :CM# and :CMR# commands depending on the value
+    //of n. If n=0, :the commands :CM# and :CMR# work in the default mode, i.e. they
+    //synchronize the position ot the mount with the coordinates of the currently selected
+    //target by correcting the axis offset values. If n=1, the commands :CM# and :CMR#
+    //work by using the synchronization position as an additional alignment star for refining
+    //the alignment model.
+    //Returns:
+    //the string "0#" if the value 0 has been passed
+    //the string "1#" if the value 1 has been passed
+    //Available from version 2.8.15.
     LOG_INFO("SyncConfig.");
     if (setCommandInt(fd, cmcfg, "#:CMCFG") < 0)
     {
@@ -776,7 +850,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, "REFRACTION_MODEL_TEMPERATURE") == 0)
+        if (strcmp(name, REFRACTION_MODEL_TEMPERATURE) == 0)
         {
             IUUpdateNumber(&RefractionModelTemperatureNP, values, names, n);
             if (0 != SetRefractionModelTemperature(RefractionModelTemperatureN[0].value))
@@ -791,7 +865,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             LOGF_INFO("RefractionModelTemperature set to %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
             return true;
         }
-        if (strcmp(name, "REFRACTION_MODEL_PRESSURE") == 0)
+        if (strcmp(name, REFRACTION_MODEL_PRESSURE) == 0)
         {
             IUUpdateNumber(&RefractionModelPressureNP, values, names, n);
             if (0 != SetRefractionModelPressure(RefractionModelPressureN[0].value))
@@ -806,7 +880,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             LOGF_INFO("RefractionModelPressure set to %06.1f hPa", RefractionModelPressureN[0].value);
             return true;
         }
-        if (strcmp(name, "MODEL_COUNT") == 0)
+        if (strcmp(name, MODEL_COUNT) == 0)
         {
             IUUpdateNumber(&ModelCountNP, values, names, n);
             ModelCountNP.s = IPS_OK;
@@ -814,14 +888,14 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             LOGF_INFO("ModelCount %d", ModelCountN[0].value);
             return true;
         }
-        if (strcmp(name, "MINIMAL_NEW_ALIGNMENT_POINT_RO") == 0)
+        if (strcmp(name, MINIMAL_NEW_ALIGNMENT_POINT_RO) == 0)
         {
             IUUpdateNumber(&MiniNewAlpNP, values, names, n);
             MiniNewAlpRONP.s = IPS_OK;
             IDSetNumber(&MiniNewAlpRONP, nullptr);
             return true;
         }
-        if (strcmp(name, "MINIMAL_NEW_ALIGNMENT_POINT") == 0)
+        if (strcmp(name, MINIMAL_NEW_ALIGNMENT_POINT) == 0)
         {
             if (AlignmentState != ALIGN_START)
             {
@@ -841,7 +915,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             IDSetNumber(&MiniNewAlpNP, nullptr);
             return true;
         }
-        if (strcmp(name, "NEW_ALIGNMENT_POINT") == 0)
+        if (strcmp(name, NEW_ALIGNMENT_POINT) == 0)
         {
             if (AlignmentState != ALIGN_START)
             {
@@ -862,7 +936,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             IDSetNumber(&NewAlpNP, nullptr);
             return true;
         }
-        if (strcmp(name, "NEW_ALIGNMENT_POINTS") == 0)
+        if (strcmp(name, NEW_ALIGNMENT_POINTS) == 0)
         {
             IUUpdateNumber(&NewAlignmentPointsNP, values, names, n);
             NewAlignmentPointsNP.s = IPS_OK;
@@ -870,8 +944,8 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             LOGF_INFO("New unnamed Model now has %d alignment points", NewAlignmentPointsN[0].value);
             return true;
         }
-        if (strcmp(name, "TRAJECTORY_TIME") == 0)
-          {
+        if (strcmp(name, TRAJECTORY_TIME) == 0)
+        {
             IUUpdateNumber(&CalculateSatTrajectoryForTimeNP, values, names, n);
             if (0 != CalculateTrajectory(CalculateSatTrajectoryForTimeN[SAT_YYYY].value,
                                          CalculateSatTrajectoryForTimeN[SAT_MM].value,
@@ -890,7 +964,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             IDSetNumber(&CalculateSatTrajectoryForTimeNP, nullptr);
             return true;
         }
-        if (strcmp(name, "TLE_NUMBER") == 0)
+        if (strcmp(name, TLE_NUMBER) == 0)
         {
             LOG_INFO("I am trying to set from Database");
             IUUpdateNumber(&TLEfromDatabaseNP, values, names, n);
@@ -1022,7 +1096,7 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, "NEW_MODEL_NAME") == 0)
+        if (strcmp(name, NEW_MODEL_NAME) == 0)
         {
             IUUpdateText(&NewModelNameTP, texts, names, n);
             NewModelNameTP.s = IPS_OK;
@@ -1030,7 +1104,7 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
             LOGF_INFO("Model saved with name %s", NewModelNameT[0].text);
             return true;
         }
-        if (strcmp(name, "TLE_TEXT") == 0)
+        if (strcmp(name, TLE_TEXT) == 0)
         {
           IUUpdateText(&TLEtoUploadTP, texts, names, n);
           if (0 == SetTLEtoFollow(TLEtoUploadT[0].text))

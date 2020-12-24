@@ -122,6 +122,9 @@ class LX200_10MICRON : public LX200Generic
     bool ReadScopeStatus() override;
     bool Park() override;
     bool UnPark() override;
+    bool flip();
+    bool getUnattendedFlipSetting();
+    bool setUnattendedFlipSetting(bool setting);
     bool SyncConfigBehaviour(bool cmcfg);
     bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
     bool SetTLEtoFollow(const char *tle);
