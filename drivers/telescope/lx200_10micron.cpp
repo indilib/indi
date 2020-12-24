@@ -446,8 +446,15 @@ void LX200_10MICRON::getBasicData()
         UnattendedFlipSP.s = IPS_OK;
         IDSetSwitch(&UnattendedFlipSP, nullptr);
     }
-    sendScopeLocation();
-    sendScopeTime();
+
+    if (sendLocationOnStartup)
+    {
+        sendScopeLocation();
+    }
+    if (sendTimeOnStartup)
+    {
+        sendScopeTime();
+    }
 }
 
 // Called by getBasicData
