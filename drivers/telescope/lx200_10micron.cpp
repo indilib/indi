@@ -52,6 +52,7 @@
 #define TLE_NUMBER "TLE_NUMBER"
 #define TRAJECTORY_TIME "TRAJECTORY_TIME"
 #define SAT_TRACKING_STAT "SAT_TRACKING_STAT"
+#define UNATTENDED_FLIP "UNATTENDED_FLIP"
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
@@ -99,6 +100,10 @@ bool LX200_10MICRON::initProperties()
     const bool result = LX200Generic::initProperties();
 
     // TODO initialize properties additional to INDI::Telescope
+    IUFillSwitch(&UnattendedFlipS[UNATTENDED_FLIP_DISABLED], "Disabled", "Disabled", ISS_ON);
+    IUFillSwitch(&UnattendedFlipS[UNATTENDED_FLIP_ENABLED], "Enabled", "Enabled", ISS_OFF);
+    IUFillSwitchVector(&UnattendedFlipSP, UnattendedFlipS, UNATTENDED_FLIP_COUNT, getDeviceName(),
+        UNATTENDED_FLIP, "Unattended Flip", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&RefractionModelTemperatureN[0], "TEMPERATURE", "Celsius", "%+6.1f", -999.9, 999.9, 0, 0.);
     IUFillNumberVector(&RefractionModelTemperatureNP, RefractionModelTemperatureN, 1, getDeviceName(),
@@ -205,6 +210,7 @@ bool LX200_10MICRON::updateProperties()
 {
     if (isConnected())
     {
+        defineSwitch(&UnattendedFlipSP);
         // getMountInfo defines ProductTP
         defineNumber(&RefractionModelTemperatureNP);
         defineNumber(&RefractionModelPressureNP);
@@ -223,6 +229,7 @@ bool LX200_10MICRON::updateProperties()
     }
     else
     {
+        deleteProperty(UnattendedFlipSP.name);
         deleteProperty(ProductTP.name);
         deleteProperty(RefractionModelTemperatureNP.name);
         deleteProperty(RefractionModelPressureNP.name);
@@ -423,6 +430,21 @@ void LX200_10MICRON::getBasicData()
         AlignmentPointsN[0].value = (double) AlignmentPoints;
         LOGF_INFO("%d Alignment Stars in active model", (int) AlignmentPointsN[0].value);
         IDSetNumber(&AlignmentPointsNP, nullptr);
+
+        if (false == getUnattendedFlipSetting())
+        {
+            UnattendedFlipS[UNATTENDED_FLIP_DISABLED].s = ISS_ON;
+            UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s = ISS_OFF;
+            LOG_INFO("Unattended Flip Setting is OFF");
+        }
+        else
+        {
+            UnattendedFlipS[UNATTENDED_FLIP_DISABLED].s = ISS_OFF;
+            UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s = ISS_ON;
+            LOG_INFO("Unattended Flip Setting is ON");
+        }
+        UnattendedFlipSP.s = IPS_OK;
+        IDSetSwitch(&UnattendedFlipSP, nullptr);
     }
     sendScopeLocation();
     sendScopeTime();
@@ -560,8 +582,8 @@ bool LX200_10MICRON::getUnattendedFlipSetting()
     //Note: unattended flip didn't work properly in firmware versions up to 2.13.8 included.
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
     char guaf[80];
-    getCommandString(PortFD, guaf, ":Guaf#");
-    return 1 == guaf[0];
+    getCommandString(PortFD, guaf, "#:Guaf#");
+    return '1' == guaf[0];
 }
 
 bool LX200_10MICRON::setUnattendedFlipSetting(bool setting)
@@ -572,11 +594,9 @@ bool LX200_10MICRON::setUnattendedFlipSetting(bool setting)
     //Available from version 2.11.
     //unattended flip didn't work properly in firmware versions up to 2.13.8 included.
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
-    if (setCommandInt(fd, setting, "#:Suaf#") < 0)
-    {
-        return false;
-    }
-    return true;
+    char data[64];
+    snprintf(data, sizeof(data), "#:Suaf%d#", (setting == false) ? 0 : 1);
+    return 0 == setStandardProcedureWithoutRead(fd, data);
 }
 
 bool LX200_10MICRON::flip()
@@ -1050,8 +1070,9 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             IDSetSwitch(&AlignmentSP, nullptr);
             return true;
         }
+
         if (strcmp(TrackSatSP.name, name)==0)
-          {
+        {
             IUUpdateSwitch(&TrackSatSP, states, names, n);
             int index    = IUFindOnSwitchIndex(&TrackSatSP);
 
@@ -1085,8 +1106,43 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                 TrackSatSP.s = IPS_ALERT;
                 IDSetSwitch(&TrackSatSP, "Unknown tracking modus %d", index);
                 return false;
-              }
-          }
+             }
+        }
+
+        if (strcmp(UnattendedFlipSP.name, name) == 0)
+        {
+            IUUpdateSwitch(&UnattendedFlipSP, states, names, n);
+            int index    = IUFindOnSwitchIndex(&UnattendedFlipSP);
+            switch (index) {
+            case UNATTENDED_FLIP_DISABLED:
+                if (false == setUnattendedFlipSetting(false))
+                {
+                    LOG_ERROR("Setting unattended flip failed");
+                    UnattendedFlipSP.s = IPS_ALERT;
+                    IDSetSwitch(&UnattendedFlipSP, nullptr);
+                    return false;
+                }
+                LOG_INFO("Unattended flip disabled");
+                break;
+            case UNATTENDED_FLIP_ENABLED:
+                if (false == setUnattendedFlipSetting(true))
+                {
+                    LOG_ERROR("Setting unattended flip failed");
+                    UnattendedFlipSP.s = IPS_ALERT;
+                    IDSetSwitch(&UnattendedFlipSP, nullptr);
+                    return false;
+                }
+                LOG_INFO("Unattended flip enabled");
+                break;
+            default:
+                UnattendedFlipSP.s = IPS_ALERT;
+                IDSetSwitch(&UnattendedFlipSP, "Unknown unattended flip setting %d", index);
+                return false;
+            }
+            UnattendedFlipSP.s = IPS_OK;
+            IDSetSwitch(&UnattendedFlipSP, nullptr);
+            return true;
+        }
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);

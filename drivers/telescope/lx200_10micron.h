@@ -26,6 +26,13 @@ class LX200_10MICRON : public LX200Generic
 {
   public:
 
+    enum LX200_10MICRON_UNATTENDED_FLIP_SETTINGS
+    {
+        UNATTENDED_FLIP_DISABLED,
+        UNATTENDED_FLIP_ENABLED,
+        UNATTENDED_FLIP_COUNT
+    };
+
     enum LX200_10MICRON_PRODUCT_INFO
     {
         PRODUCT_NAME,
@@ -145,6 +152,9 @@ class LX200_10MICRON : public LX200Generic
 
   protected:
     void getBasicData() override;
+
+    ISwitch UnattendedFlipS[UNATTENDED_FLIP_COUNT];
+    ISwitchVectorProperty UnattendedFlipSP;
 
     IText ProductT[4] {};
     ITextVectorProperty ProductTP;
