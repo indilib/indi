@@ -32,7 +32,6 @@
 
 #define PRODUCT_TAB   "Product"
 #define ALIGNMENT_TAB "Alignment"
-#define SATELLITE_TAB "Satellite"
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
@@ -134,6 +133,8 @@ bool LX200_10MICRON::initProperties()
     IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(), "NEW_MODEL_NAME", "New Name", ALIGNMENT_TAB,
                      IP_RW, 60, IPS_IDLE);
 
+    /*
+
     IUFillText(&TLEtoUploadT[0], "TLE", "TLE", "");
     IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(), "TLE_TEXT", "TLE", SATELLITE_TAB,
                      IP_RW, 60, IPS_IDLE);
@@ -158,6 +159,7 @@ bool LX200_10MICRON::initProperties()
     IUFillSwitch(&TrackSatS[SAT_HALT], "Halt", "Halt", ISS_ON);
     IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
                        "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    */
 
     return result;
 }
@@ -199,10 +201,10 @@ bool LX200_10MICRON::updateProperties()
         defineNumber(&NewAlpNP);
         defineNumber(&NewAlignmentPointsNP);
         defineText(&NewModelNameTP);
-        defineText(&TLEtoUploadTP);
-        defineNumber(&TLEfromDatabaseNP);
-        defineNumber(&CalculateSatTrajectoryForTimeNP);
-        defineSwitch(&TrackSatSP);
+        //defineText(&TLEtoUploadTP);
+        //defineNumber(&TLEfromDatabaseNP);
+        //defineNumber(&CalculateSatTrajectoryForTimeNP);
+        //defineSwitch(&TrackSatSP);
     }
     else
     {
@@ -217,10 +219,10 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(NewAlpNP.name);
         deleteProperty(NewAlignmentPointsNP.name);
         deleteProperty(NewModelNameTP.name);
-        deleteProperty(TLEtoUploadTP.name);
-        deleteProperty(TLEfromDatabaseNP.name);
-        deleteProperty(CalculateSatTrajectoryForTimeNP.name);
-        deleteProperty(TrackSatSP.name);
+        //deleteProperty(TLEtoUploadTP.name);
+        //deleteProperty(TLEfromDatabaseNP.name);
+        //deleteProperty(CalculateSatTrajectoryForTimeNP.name);
+        //deleteProperty(TrackSatSP.name);
     }
     bool result = LX200Generic::updateProperties();
     return result;
@@ -872,6 +874,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
         }
         if (strcmp(name, "TRAJECTORY_TIME") == 0)
           {
+              /*
             IUUpdateNumber(&CalculateSatTrajectoryForTimeNP, values, names, n);
             if (0 != CalculateTrajectory(CalculateSatTrajectoryForTimeN[SAT_YYYY].value,
                                          CalculateSatTrajectoryForTimeN[SAT_MM].value,
@@ -888,11 +891,13 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
               }
             CalculateSatTrajectoryForTimeNP.s = IPS_OK;
             IDSetNumber(&CalculateSatTrajectoryForTimeNP, nullptr);
+            */
             return true;
         }
         if (strcmp(name, "TLE_NUMBER") == 0)
         {
             LOG_INFO("I am trying to set from Database");
+            /*
             IUUpdateNumber(&TLEfromDatabaseNP, values, names, n);
             if ( 0 != SetTLEfromDatabase(TLEfromDatabaseN[0].value) )
             {
@@ -905,6 +910,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             IDSetText(&TLEtoUploadTP, nullptr);
             IDSetNumber(&TLEfromDatabaseNP, nullptr);
             LOGF_INFO("Selected TLE nr %.0f from database", TLEfromDatabaseN[0].value);
+            */
             return true;
         }
     }
@@ -976,8 +982,9 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             IDSetSwitch(&AlignmentSP, nullptr);
             return true;
         }
-        if (strcmp(TrackSatSP.name, name)==0)
+        if (0)
           {
+              /*
             IUUpdateSwitch(&TrackSatSP, states, names, n);
             int index    = IUFindOnSwitchIndex(&TrackSatSP);
 
@@ -1011,7 +1018,10 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                 TrackSatSP.s = IPS_ALERT;
                 IDSetSwitch(&TrackSatSP, "Unknown tracking modus %d", index);
                 return false;
-              }
+               }
+                */
+               return true;
+              
           }
     }
 
@@ -1032,6 +1042,7 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         }
         if (strcmp(name, "TLE_TEXT") == 0)
         {
+            /*
           IUUpdateText(&TLEtoUploadTP, texts, names, n);
           if (0 == SetTLEtoFollow(TLEtoUploadT[0].text))
             {
@@ -1051,6 +1062,8 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
               LOG_ERROR("TLE was not correctly uploaded");
               return false;
             }
+            */
+           return true;
         }
     }
     return LX200Generic::ISNewText(dev, name, texts, names, n);

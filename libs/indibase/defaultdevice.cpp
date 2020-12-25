@@ -37,6 +37,7 @@ const char *FILTER_TAB        = "Filter Wheel";
 const char *FOCUS_TAB         = "Focuser";
 const char *GUIDE_TAB         = "Guide";
 const char *ALIGNMENT_TAB     = "Alignment";
+const char *SATELLITE_TAB     = "Satellite";
 const char *INFO_TAB          = "General Info";
 
 void timerfunc(void *t)

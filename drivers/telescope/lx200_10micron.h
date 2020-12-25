@@ -177,6 +177,8 @@ class LX200_10MICRON : public LX200Generic
     IText NewModelNameT[1] {};
     ITextVectorProperty NewModelNameTP;
 
+    /*
+
     IText TLEtoUploadT[1] {};
     ITextVectorProperty TLEtoUploadTP;
 
@@ -188,6 +190,8 @@ class LX200_10MICRON : public LX200Generic
 
     ISwitch TrackSatS[SAT_TRACK_COUNT];
     ISwitchVectorProperty TrackSatSP;
+
+    */
 
 
   private:
