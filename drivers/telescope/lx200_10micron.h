@@ -126,6 +126,7 @@ class LX200_10MICRON : public LX200Generic
     bool Handshake() override;
     bool initProperties() override;
     bool updateProperties() override;
+    bool saveConfigItems(FILE *fp) override;
     bool ReadScopeStatus() override;
     bool Park() override;
     bool UnPark() override;
@@ -153,6 +154,7 @@ class LX200_10MICRON : public LX200Generic
   protected:
     void getBasicData() override;
 
+    int UnattendedFlip = -1;
     ISwitch UnattendedFlipS[UNATTENDED_FLIP_COUNT];
     ISwitchVectorProperty UnattendedFlipSP;
 
