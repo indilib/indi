@@ -167,7 +167,8 @@ class Telescope : public DefaultDevice
             TELESCOPE_HAS_TRACK_MODE              = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
             TELESCOPE_CAN_CONTROL_TRACK           = 1 << 9,  /** Can the telescope engage and disengage tracking? */
             TELESCOPE_HAS_TRACK_RATE              = 1 << 10, /** Does the telescope have custom track rates? */
-            TELESCOPE_HAS_PIER_SIDE_SIMULATION     = 1 << 11, /** Does the telescope simulate the pier side property? */
+            TELESCOPE_HAS_PIER_SIDE_SIMULATION    = 1 << 11, /** Does the telescope simulate the pier side property? */
+            TELESCOPE_CAN_TRACK_SATELLITE         = 1 << 12, /** Can the telescope track satellites? */
         } TelescopeCapability;
 
         Telescope();
@@ -267,6 +268,13 @@ class Telescope : public DefaultDevice
         bool HasPierSideSimulation()
         {
             return capability & TELESCOPE_HAS_PIER_SIDE_SIMULATION;
+        }
+        /**
+         * @return True if telescope can track satellites
+         */
+        bool CanTrackSatellite()
+        {
+            return capability & TELESCOPE_CAN_TRACK_SATELLITE;
         }
         /**
          * @return True if telescope supports PEC playback property
@@ -780,6 +788,20 @@ class Telescope : public DefaultDevice
         TelescopePierSide lastPierSide, currentPierSide;
 
         const char * getPierSideStr(TelescopePierSide ps);
+
+        // Satellite tracking
+        IText TLEtoTrackT[1] {};
+        ITextVectorProperty TLEtoTrackTP;
+        IText SatPassWindowT[2] {};
+        ITextVectorProperty SatPassWindowTP;
+        enum
+        {
+            SAT_TRACK,
+            SAT_HALT,
+            SAT_TRACK_COUNT
+        };
+        ISwitch TrackSatS[SAT_TRACK_COUNT];
+        ISwitchVectorProperty TrackSatSP;
 
         // PEC State
         ISwitch PECStateS[2];

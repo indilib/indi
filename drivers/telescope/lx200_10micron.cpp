@@ -40,7 +40,7 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 
     SetTelescopeCapability( TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT |
         TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE |
-        TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE );
+        TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_TRACK_SATELLITE );
 
     setVersion(1, 0);
 }
@@ -133,33 +133,9 @@ bool LX200_10MICRON::initProperties()
     IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(), "NEW_MODEL_NAME", "New Name", ALIGNMENT_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    /*
-
-    IUFillText(&TLEtoUploadT[0], "TLE", "TLE", "");
-    IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(), "TLE_TEXT", "TLE", SATELLITE_TAB,
-                     IP_RW, 60, IPS_IDLE);
-
     IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 1, 1);
     IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
                        "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
-
-    ln_get_date_from_sys(&today);
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_YYYY], "YEAR", "Year (yyyy)", "%.0f", 0, 9999, 0, today.years);
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM], "MONTH", "Month (mm)", "%.0f", 1, 12, 0, today.months);
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_DD], "DAY", "Day (dd)", "%.0f", 1, 31, 0, today.days);
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_HH24], "HOUR", "Hour 24 (hh)", "%.0f", 0, 24, 0, today.hours);
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM60], "MINUTE", "Minute", "%.0f", 0, 60, 0, today.minutes);
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM1440_NEXT], "COMING",
-                 "In the following # minutes", "%.0f", 0, 1440, 0, 0);
-    IUFillNumberVector(&CalculateSatTrajectoryForTimeNP, CalculateSatTrajectoryForTimeN,
-                       SAT_COUNT, getDeviceName(), "TRAJECTORY_TIME",
-                       "Sat pass", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
-
-    IUFillSwitch(&TrackSatS[SAT_TRACK], "Track", "Track", ISS_OFF);
-    IUFillSwitch(&TrackSatS[SAT_HALT], "Halt", "Halt", ISS_ON);
-    IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
-                       "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    */
 
     return result;
 }
@@ -201,10 +177,7 @@ bool LX200_10MICRON::updateProperties()
         defineNumber(&NewAlpNP);
         defineNumber(&NewAlignmentPointsNP);
         defineText(&NewModelNameTP);
-        //defineText(&TLEtoUploadTP);
-        //defineNumber(&TLEfromDatabaseNP);
-        //defineNumber(&CalculateSatTrajectoryForTimeNP);
-        //defineSwitch(&TrackSatSP);
+        defineNumber(&TLEfromDatabaseNP);
     }
     else
     {
@@ -219,10 +192,7 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(NewAlpNP.name);
         deleteProperty(NewAlignmentPointsNP.name);
         deleteProperty(NewModelNameTP.name);
-        //deleteProperty(TLEtoUploadTP.name);
-        //deleteProperty(TLEfromDatabaseNP.name);
-        //deleteProperty(CalculateSatTrajectoryForTimeNP.name);
-        //deleteProperty(TrackSatSP.name);
+        deleteProperty(TLEfromDatabaseNP.name);
     }
     bool result = LX200Generic::updateProperties();
     return result;
@@ -632,21 +602,32 @@ bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
     return 0;
 }
 
-bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour, int minute, int nextpass, ln_date date_pass)
+bool LX200_10MICRON::CalculateSatTrajectory(char *start_pass_iso, char *end_pass_iso)
 {
-    LOGF_INFO("Calculate trajectory is called with date: %d-%d-%d %d:%d pass %d",
-                year, month, day, hour, minute, nextpass);
-    date_pass.years = year;
-    date_pass.months = month;
-    date_pass.days = day;
-    date_pass.hours = hour;
-    date_pass.minutes = minute;
-    date_pass.seconds = 0.0;
-    JD = ln_get_julian_day(&date_pass);
+    struct ln_date start_pass;
+    if (extractISOTime(start_pass_iso, &start_pass) == -1)
+    {
+        LOGF_ERROR("Date/Time is invalid: %s.", start_pass_iso);
+        return 1;
+    }
+
+    struct ln_date end_pass;
+    if (extractISOTime(end_pass_iso, &end_pass) == -1)
+    {
+        LOGF_ERROR("Date/Time is invalid: %s.", end_pass_iso);
+        return 1;
+    }
+
+    double JD_start;
+    double JD_end;
+    JD_start = ln_get_julian_day(&start_pass);
+    JD_end = ln_get_julian_day(&end_pass);
+    int nextPassInMinutes = (int) std::min((int) ceil((JD_end - JD_start) * 24 * 60), 1440);
 
     char command[28];
-    snprintf(command, sizeof(command), ":TLEP%7.8f,%01d#", JD, nextpass);
-    LOGF_INFO("Julian day being %7.5f", JD);
+    snprintf(command, sizeof(command), ":TLEP%7.8f,%01d#", JD, nextPassInMinutes);
+    LOGF_INFO("Julian day %7.8f", JD_start);
+    LOGF_INFO("For the next %01d minutes", nextPassInMinutes);
     if ( !isSimulation() )
         {
             LOG_INFO(command);
@@ -872,32 +853,10 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             LOGF_INFO("New unnamed Model now has %d alignment points", NewAlignmentPointsN[0].value);
             return true;
         }
-        if (strcmp(name, "TRAJECTORY_TIME") == 0)
-          {
-              /*
-            IUUpdateNumber(&CalculateSatTrajectoryForTimeNP, values, names, n);
-            if (0 != CalculateTrajectory(CalculateSatTrajectoryForTimeN[SAT_YYYY].value,
-                                         CalculateSatTrajectoryForTimeN[SAT_MM].value,
-                                         CalculateSatTrajectoryForTimeN[SAT_DD].value,
-                                         CalculateSatTrajectoryForTimeN[SAT_HH24].value,
-                                         CalculateSatTrajectoryForTimeN[SAT_MM60].value,
-                                         CalculateSatTrajectoryForTimeN[SAT_MM1440_NEXT].value,
-                                         date_pass)
-                )
-              {
-                CalculateSatTrajectoryForTimeNP.s = IPS_ALERT;
-                IDSetNumber(&CalculateSatTrajectoryForTimeNP, nullptr);
-                return false;
-              }
-            CalculateSatTrajectoryForTimeNP.s = IPS_OK;
-            IDSetNumber(&CalculateSatTrajectoryForTimeNP, nullptr);
-            */
-            return true;
-        }
         if (strcmp(name, "TLE_NUMBER") == 0)
         {
             LOG_INFO("I am trying to set from Database");
-            /*
+            
             IUUpdateNumber(&TLEfromDatabaseNP, values, names, n);
             if ( 0 != SetTLEfromDatabase(TLEfromDatabaseN[0].value) )
             {
@@ -906,11 +865,11 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
                 return false;
             }
             TLEfromDatabaseNP.s = IPS_OK;
-            TLEtoUploadTP.s = IPS_IDLE;
-            IDSetText(&TLEtoUploadTP, nullptr);
+            TLEtoTrackTP.s = IPS_IDLE;
+            IDSetText(&TLEtoTrackTP, nullptr);
             IDSetNumber(&TLEfromDatabaseNP, nullptr);
             LOGF_INFO("Selected TLE nr %.0f from database", TLEfromDatabaseN[0].value);
-            */
+            
             return true;
         }
     }
@@ -982,9 +941,9 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             IDSetSwitch(&AlignmentSP, nullptr);
             return true;
         }
-        if (0)
+        if (strcmp(TrackSatSP.name, name) == 0)
           {
-              /*
+
             IUUpdateSwitch(&TrackSatSP, states, names, n);
             int index    = IUFindOnSwitchIndex(&TrackSatSP);
 
@@ -1019,7 +978,7 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                 IDSetSwitch(&TrackSatSP, "Unknown tracking modus %d", index);
                 return false;
                }
-                */
+
                return true;
               
           }
@@ -1040,29 +999,50 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
             LOGF_INFO("Model saved with name %s", NewModelNameT[0].text);
             return true;
         }
-        if (strcmp(name, "TLE_TEXT") == 0)
+        if (strcmp(name, "SAT_TLE_TEXT") == 0)
         {
-            /*
-          IUUpdateText(&TLEtoUploadTP, texts, names, n);
-          if (0 == SetTLEtoFollow(TLEtoUploadT[0].text))
+
+          IUUpdateText(&TLEtoTrackTP, texts, names, n);
+          if (0 == SetTLEtoFollow(TLEtoTrackT[0].text))
             {
-              TLEtoUploadTP.s = IPS_OK;
+              TLEtoTrackTP.s = IPS_OK;
               TLEfromDatabaseNP.s = IPS_IDLE;
-              IDSetText(&TLEtoUploadTP, nullptr);
+              IDSetText(&TLEtoTrackTP, nullptr);
               IDSetNumber(&TLEfromDatabaseNP, nullptr);
-              LOGF_INFO("Selected TLE %s", TLEtoUploadT[0].text);
+              LOGF_INFO("Selected TLE %s", TLEtoTrackT[0].text);
               return true;
             }
           else
             {
-              TLEtoUploadTP.s = IPS_ALERT;
+              TLEtoTrackTP.s = IPS_ALERT;
               TLEfromDatabaseNP.s = IPS_IDLE;
-              IDSetText(&TLEtoUploadTP, nullptr);
+              IDSetText(&TLEtoTrackTP, nullptr);
               IDSetNumber(&TLEfromDatabaseNP, nullptr);
               LOG_ERROR("TLE was not correctly uploaded");
               return false;
             }
-            */
+
+           return true;
+        }
+        if (strcmp(name, "SAT_PASS_WINDOW") == 0)
+        {
+
+          IUUpdateText(&SatPassWindowTP, texts, names, n);
+          if (0 == CalculateSatTrajectory(SatPassWindowT[0].text, SatPassWindowT[1].text))
+            {
+              SatPassWindowTP.s = IPS_OK;
+              IDSetText(&SatPassWindowTP, nullptr);
+              LOG_INFO("Trajectory set");
+              return true;
+            }
+          else
+            {
+              SatPassWindowTP.s = IPS_ALERT;
+              IDSetText(&SatPassWindowTP, nullptr);
+              LOG_ERROR("Trajectory could not be calculated");
+              return false;
+            }
+
            return true;
         }
     }

@@ -127,9 +127,7 @@ class LX200_10MICRON : public LX200Generic
     bool SetTLEtoFollow(const char *tle);
     bool SetTLEfromDatabase(int tleN);
     bool TrackSat();
-    bool CalculateTrajectory(int year, int month, int day, int hour, int minute, int nextpass, ln_date date_pass);
-    struct ln_date today;
-    struct ln_date date_pass;
+    bool CalculateSatTrajectory(char *start_pass, char *end_pass);
 
     int AddSyncPoint(double MRa, double MDec, double MSide, double PRa, double PDec, double SidTime);
     int AddSyncPointHere(double PRa, double PDec);
@@ -177,21 +175,8 @@ class LX200_10MICRON : public LX200Generic
     IText NewModelNameT[1] {};
     ITextVectorProperty NewModelNameTP;
 
-    /*
-
-    IText TLEtoUploadT[1] {};
-    ITextVectorProperty TLEtoUploadTP;
-
     INumber TLEfromDatabaseN[1];
     INumberVectorProperty TLEfromDatabaseNP;
-
-    INumber CalculateSatTrajectoryForTimeN[SAT_COUNT];
-    INumberVectorProperty CalculateSatTrajectoryForTimeNP;
-
-    ISwitch TrackSatS[SAT_TRACK_COUNT];
-    ISwitchVectorProperty TrackSatSP;
-
-    */
 
 
   private:
