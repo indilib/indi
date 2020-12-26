@@ -1,7 +1,7 @@
 /*******************************************************************************
   Driver type: TitanTCS for HOBYM CRUX Mount INDI Driver
-  
-  Copyright(c) 2020 Jasem Mutlaq. All rights reserved.
+
+  Copyright(c) 2020 Park Suyoung <hparksy@gmail.com>. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -30,7 +30,7 @@
 #define PRODUCT_NAME    "TitanTCS CRUX"
 #define HANDSHAKE_NAME  "TiTaN TCS"
 #define MIN_FW_VERSION  "3.1.0"
-#define MAX_CMD_LEN  256
+#define MAX_CMD_LEN     256
 
 static std::unique_ptr<TitanTCS> titanTCS(new TitanTCS());
 
@@ -73,7 +73,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
                char *names[], int n)
 {
     //titanTCS->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-    
+
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
     INDI_UNUSED(sizes);
@@ -97,52 +97,50 @@ TitanTCS::TitanTCS()
     setVersion(1, 0);
 
     SetTelescopeCapability(
-            TELESCOPE_CAN_GOTO |
-            TELESCOPE_CAN_SYNC |
-            TELESCOPE_CAN_PARK |
-            TELESCOPE_CAN_ABORT |
-            TELESCOPE_HAS_TIME |
-            TELESCOPE_HAS_LOCATION |
-            //TELESCOPE_HAS_PIER_SIDE |
+        TELESCOPE_CAN_GOTO |
+        TELESCOPE_CAN_SYNC |
+        TELESCOPE_CAN_PARK |
+        TELESCOPE_CAN_ABORT |
+        TELESCOPE_HAS_TIME |
+        TELESCOPE_HAS_LOCATION |
+        //TELESCOPE_HAS_PIER_SIDE |
 #if USE_PEC
-            TELESCOPE_HAS_PEC |
+        TELESCOPE_HAS_PEC |
 #endif
-            TELESCOPE_HAS_TRACK_MODE |
-            TELESCOPE_CAN_CONTROL_TRACK
-            //TELESCOPE_HAS_TRACK_RATE
-            , 4);
+        TELESCOPE_HAS_TRACK_MODE |
+        TELESCOPE_CAN_CONTROL_TRACK
+        //TELESCOPE_HAS_TRACK_RATE
+        , 4);
 
     SetParkDataType(PARK_HA_DEC);
 
     LOG_INFO("Initializing from " PRODUCT_NAME " device...");
-    
+
     m_Connect = 0;
 }
 
 bool TitanTCS::Connect()
 {
     m_Connect = 1;
-    
-    LOG_INFO("Connect()");
+
     bool bResult = Telescope::Connect();
-    LOGF_INFO("Connect() => %s", (bResult ? "true" : "false"));
-    
+    LOGF_DEBUG("Connect() => %s", (bResult ? "true" : "false"));
+
     if(bResult)
         m_Connect = 2;
     else
         m_Connect = -1;
-        
+
     return bResult;
 }
 
 bool TitanTCS::Disconnect()
 {
     m_Connect = 0;
-    
-    LOG_INFO("Disconnect()");
+
     bool bResult = Telescope::Disconnect();
-    LOGF_INFO("Disconnect() => %s", (bResult ? "true" : "false"));
-    
+    LOGF_DEBUG("Disconnect() => %s", (bResult ? "true" : "false"));
+
     return bResult;
 }
 
@@ -163,17 +161,15 @@ bool TitanTCS::initProperties()
     AddTrackMode("TRACK_SIDEREAL", "Sidereal");
     AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_LUNAR", "Lunar");
-    //
+
     addDebugControl();
-    //addSimulationControl();
-    //addConfigurationControl();
-    //addPollPeriodControl();
 
 #if USE_PEC
     // PEC Training
     IUFillSwitch(&PECTrainingS[0], "PEC_Start", "Start", ISS_OFF);
     IUFillSwitch(&PECTrainingS[1], "PEC_Stop", "Stop", ISS_OFF);
-    IUFillSwitchVector(&PECTrainingSP, PECTrainingS, 2, getDeviceName(), "PEC_TRAINING", "PEC Training", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&PECTrainingSP, PECTrainingS, 2, getDeviceName(), "PEC_TRAINING", "PEC Training", MOTION_TAB, IP_RW,
+                       ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // PEC Details
@@ -189,7 +185,7 @@ bool TitanTCS::initProperties()
                      IP_RO, 60, IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
-    
+
     return true;
 }
 
@@ -198,7 +194,8 @@ bool TitanTCS::updateProperties()
 {
     INDI::Telescope::updateProperties();
 
-    if (isConnected()) {
+    if (isConnected())
+    {
 #if USE_PEC
         defineSwitch(&PECTrainingSP);
         defineText(&PECInfoTP);
@@ -214,7 +211,8 @@ bool TitanTCS::updateProperties()
         //
         GetMountParams();
     }
-    else {
+    else
+    {
 #if USE_PEC
         deleteProperty(PECTrainingSP.name);
         deleteProperty(PECInfoTP.name);
@@ -246,7 +244,8 @@ bool TitanTCS::ISNewNumber(const char *dev, const char *name, double values[], c
             return true;
         }
         */
-        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0) {
+        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
+        {
             LOGF_DEBUG("%s = %g", name, values[0]);
             processGuiderProperties(name, values, names, n);
             return true;
@@ -259,10 +258,12 @@ bool TitanTCS::ISNewNumber(const char *dev, const char *name, double values[], c
 bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {   int iVal = 0;
+    {
+        int iVal = 0;
         // ---------------------------------------------------------------------
         // Park $$$
-        if (!strcmp(name, ParkSP.name)) {
+        if (!strcmp(name, ParkSP.name))
+        {
             IUUpdateSwitch(&ParkSP, states, names, n);
             int nowIndex = IUFindOnSwitchIndex(&ParkSP);
             if(nowIndex == 0)
@@ -270,72 +271,85 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             else if(nowIndex == 1)
                 UnPark();
 
-            if(CommandResponse("#:hP?#", "$hP", '#', NULL, &iVal)) {
-                if(TrackState == SCOPE_PARKING) {
-                   if(iVal == 2)
+            if(CommandResponse("#:hP?#", "$hP", '#', NULL, &iVal))
+            {
+                if(TrackState == SCOPE_PARKING)
+                {
+                    if(iVal == 2)
                         TrackState = SCOPE_PARKED;
                     else if(iVal == 0)
                         TrackState = SCOPE_IDLE;
                 }
-                else if(TrackState == SCOPE_PARKED) {
+                else if(TrackState == SCOPE_PARKED)
+                {
                     if(iVal == 0)
                         TrackState = SCOPE_IDLE;
                 }
             }
-            
+
             return true;
         }
         //
 #if USE_PEC
-        if (!strcmp(name, PECStateSP.name)) {
+        if (!strcmp(name, PECStateSP.name))
+        {
             //int preIndex = IUFindOnSwitchIndex(&PECStateSP);
             IUUpdateSwitch(&PECStateSP, states, names, n);
             int nowIndex = IUFindOnSwitchIndex(&PECStateSP);
 
             IDSetSwitch(&PECStateSP, nullptr);
 
-            if(nowIndex == 0) {
+            if(nowIndex == 0)
+            {
                 SendCommand("#:\\e10#:\\e11#");
             }
-            else if(nowIndex == 1) {
+            else if(nowIndex == 1)
+            {
                 SendCommand("#:\\e12#");
             }
             return true;
         }
         //
-        if (!strcmp(name, PECTrainingSP.name)) {
+        if (!strcmp(name, PECTrainingSP.name))
+        {
             //int preIndex = IUFindOnSwitchIndex(&PECTrainingSP);
             IUUpdateSwitch(&PECTrainingSP, states, names, n);
             int nowIndex = IUFindOnSwitchIndex(&PECTrainingSP);
 
             IDSetSwitch(&PECTrainingSP, nullptr);
 
-            if(nowIndex == 0) {
+            if(nowIndex == 0)
+            {
                 SendCommand("#:\\e20#:\\e21#");
             }
-            else if(nowIndex == 1) {
+            else if(nowIndex == 1)
+            {
                 SendCommand("#:\\e23#");
             }
             return true;
         }
 #endif
         //
-        if (!strcmp(name, TrackStateSP.name)) {
+        if (!strcmp(name, TrackStateSP.name))
+        {
             IUUpdateSwitch(&TrackStateSP, states, names, n);
             int nowIndex = IUFindOnSwitchIndex(&TrackStateSP);
 
             IDSetSwitch(&TrackStateSP, nullptr);
 
-            if(nowIndex == 0) {
+            if(nowIndex == 0)
+            {
                 SetTrackEnabled(true);
             }
-            else if(nowIndex == 1) {
+            else if(nowIndex == 1)
+            {
                 SetTrackEnabled(false);
             }
             return true;
         }
         //
-        if (!strcmp(name, TrackModeSP.name)) {
+        if (!strcmp(name, TrackModeSP.name))
+        {
             IUUpdateSwitch(&TrackModeSP, states, names, n);
             int nowIndex = IUFindOnSwitchIndex(&TrackModeSP);
 
@@ -364,7 +378,7 @@ bool TitanTCS::Handshake()
         return true;
 
     char szResponse[MAX_CMD_LEN] = { 0 };
-    
+
     if(CommandResponseStr("#:GVP#", "", '#', szResponse, sizeof(szResponse)))
     {
         LOGF_INFO("Product Name = '%s'", szResponse);
@@ -391,96 +405,96 @@ bool TitanTCS::Handshake()
             LOGF_ERROR("TitanTCS could not be found. return code = '%s'", szResponse);
         }
     }
-    
+
     LOG_ERROR("Handshake() failed!");
-    
+
     //Disconnect();
     return false;
 }
 
 static int Char2Num(char chr)
 {
-	if((chr >= '0') && (chr <= '9'))
-		return chr - '0';
+    if((chr >= '0') && (chr <= '9'))
+        return chr - '0';
 
-	if((chr >= 'A') && (chr <= 'F'))
-		return chr - 'A' + 10;
+    if((chr >= 'A') && (chr <= 'F'))
+        return chr - 'A' + 10;
 
-	if((chr >= 'a') && (chr <= 'f'))
-		return chr - 'a' + 10;
+    if((chr >= 'a') && (chr <= 'f'))
+        return chr - 'a' + 10;
 
-	return 0;
+    return 0;
 }
 
-static int GetDigitParam(const char *pStr, int* pDigit, char* pDelimeter=NULL)
+static int GetDigitParam(const char *pStr, int* pDigit, char* pDelimeter = nullptr)
 {
-	/*
-	HH:MM.T#
-	HH:MM:SS#
-	*/
+    /*
+    HH:MM.T#
+    HH:MM:SS#
+    */
 
-	int cntParam = 0;
-	short	sign = 1;
-	int i, chrCnt;
+    int cntParam = 0;
+    short	sign = 1;
+    int i, chrCnt;
 
-	while (*pStr == ' ' || *pStr == '+')
+    while (*pStr == ' ' || *pStr == '+')
     {
-		++pStr;
-		if(*pStr == 0)
-		{
-			return 0;
-		}
-	}
-
-	if (*pStr == '-')
-	{
-		sign = -1;
-		++pStr;
-	}
-
-	pDigit[cntParam] = sign;
-	if(pDelimeter)
-		pDelimeter[cntParam] = 0;
-	cntParam++;
-
-	for(i=0; i<3; i++)
-	{
-		pDigit[cntParam] = 0;
-		chrCnt = 0;
-		for(;;)
+        ++pStr;
+        if(*pStr == 0)
         {
-			if(*pStr == 0)
+            return 0;
+        }
+    }
+
+    if (*pStr == '-')
+    {
+        sign = -1;
+        ++pStr;
+    }
+
+    pDigit[cntParam] = sign;
+    if(pDelimeter)
+        pDelimeter[cntParam] = 0;
+    cntParam++;
+
+    for(i = 0; i < 3; i++)
+    {
+        pDigit[cntParam] = 0;
+        chrCnt = 0;
+        for(;;)
+        {
+            if(*pStr == 0)
             {
-				if(chrCnt > 0)
-					cntParam++;
-				return cntParam;
-			}
+                if(chrCnt > 0)
+                    cntParam++;
+                return cntParam;
+            }
 
-			if(!isdigit(*pStr))
-			{
-				if(pDelimeter)
-					pDelimeter[cntParam] = *pStr;
-				break;
-			}
+            if(!isdigit(*pStr))
+            {
+                if(pDelimeter)
+                    pDelimeter[cntParam] = *pStr;
+                break;
+            }
 
-			pDigit[cntParam] *= 10;
-			pDigit[cntParam] += Char2Num(*pStr);
+            pDigit[cntParam] *= 10;
+            pDigit[cntParam] += Char2Num(*pStr);
 
-			chrCnt++;
-			pStr++;
-		}
-		cntParam++;
+            chrCnt++;
+            pStr++;
+        }
+        cntParam++;
 
-		if(*pStr == 0)
-			return cntParam;
+        if(*pStr == 0)
+            return cntParam;
 
-		if(!isdigit(*pStr))
-		{
-			pStr++;
-		}
-	}
+        if(!isdigit(*pStr))
+        {
+            pStr++;
+        }
+    }
 
-	return cntParam;
+    return cntParam;
 }
 
 // 00:02:43
@@ -488,13 +502,14 @@ static bool HMS2Hour(const char* pStr, double* hr)
 {
     int digit[5] = { 0, 0, 0, 0, 0 };
     int rtnCode = GetDigitParam(pStr, digit);
-    
+
     int sec = 0;
-    for(int i=1; i<4; i++) {
+    for(int i = 1; i < 4; i++)
+    {
         sec *= 60;
         sec += digit[i];
     }
-    
+
     if(digit[0] < 0)
         sec = -sec;
 
@@ -505,11 +520,12 @@ static bool HMS2Hour(const char* pStr, double* hr)
 static void formatRA(long secRa, char* pStr)
 {
     int sign = 1;
-    if(secRa < 0) {
+    if(secRa < 0)
+    {
         sign = -1;
         secRa = -secRa;
     }
-    
+
     int h = secRa / 3600;
     secRa -= (h * 3600);
 
@@ -532,10 +548,12 @@ static void formatDEC(long secDec, char* pStr)
         secDec = (180 * 3600) - secDec;
 
     char sign;
-    if (secDec >= 0) {
+    if (secDec >= 0)
+    {
         sign = '+';
     }
-    else {
+    else
+    {
         sign = '-';
         secDec = -secDec;
     }
@@ -546,7 +564,7 @@ static void formatDEC(long secDec, char* pStr)
     int m = secDec / 60;
     secDec -= (m * 60);
 
-	int s = secDec;
+    int s = secDec;
 
     sprintf(pStr, "%c%02d*%02d:%02d", sign, h, m, s);
 }
@@ -561,7 +579,8 @@ IPState TitanTCS::GuideNorth(uint32_t ms)
     if(MovementNSSP.s == IPS_BUSY)
         return IPS_ALERT;
 
-    if (GuideNSTID) {
+    if (GuideNSTID)
+    {
         IERmTimer(GuideNSTID);
         GuideNSTID = 0;
     }
@@ -577,7 +596,8 @@ IPState TitanTCS::GuideSouth(uint32_t ms)
     if(MovementNSSP.s == IPS_BUSY)
         return IPS_ALERT;
 
-    if (GuideNSTID) {
+    if (GuideNSTID)
+    {
         IERmTimer(GuideNSTID);
         GuideNSTID = 0;
     }
@@ -593,7 +613,8 @@ IPState TitanTCS::GuideEast(uint32_t ms)
     if(MovementWESP.s == IPS_BUSY)
         return IPS_ALERT;
 
-    if (GuideWETID) {
+    if (GuideWETID)
+    {
         IERmTimer(GuideWETID);
         GuideWETID = 0;
     }
@@ -609,7 +630,8 @@ IPState TitanTCS::GuideWest(uint32_t ms)
     if(MovementWESP.s == IPS_BUSY)
         return IPS_ALERT;
 
-    if (GuideWETID) {
+    if (GuideWETID)
+    {
         IERmTimer(GuideWETID);
         GuideWETID = 0;
     }
@@ -637,7 +659,7 @@ bool TitanTCS::Goto(double ra, double dec)
     char rtnCode;
     char szCommand[MAX_CMD_LEN];
     sprintf(szCommand, ":MS#");
-    
+
     if(!CommandResponseChar(szCommand, "", &rtnCode))
     {
         LOG_ERROR("Goto / No response");
@@ -648,9 +670,9 @@ bool TitanTCS::Goto(double ra, double dec)
         LOGF_ERROR("Goto / Error Code = '%c'", rtnCode);
         return false;
     }
-    
+
     TrackState = SCOPE_SLEWING;
-    
+
     LOG_INFO("Slewing ...");
     return true;
 }
@@ -663,7 +685,7 @@ bool TitanTCS::Abort()
     if(TrackState == SCOPE_PARKING)
         UnPark();
 
-    LOG_INFO("Abort()");
+    LOG_DEBUG("Abort()");
     return SendCommand("#:Q#");
 }
 
@@ -673,7 +695,7 @@ bool TitanTCS::Abort()
 bool TitanTCS::ReadScopeStatus()
 {
     LOGF_DEBUG("ReadScopeStatus(s %d)", TrackState);
-    
+
     GetMountParams();
 
     return true;
@@ -686,24 +708,24 @@ bool TitanTCS::GetParamStr(const char* pInStr, char* pOutStr, int len, const cha
 
     if((pResponse != NULL) && (*pResponse == 0))
         pResponse = NULL;
-        
+
     if(pResponse)
     {
         const char* pFind = strstr(pInStr, pResponse);
         if(pFind == 0)
         {
-            LOG_INFO("Fail!");            
+            LOG_ERROR("Fail!");
             return false;
         }
         int l = strlen(pResponse);
         pInStr = pFind + l;
         len    -= l;
     }
-    
+
     if(len <= 0)
         return false;
 
-    for(int i=0; i<3; i++)
+    for(int i = 0; i < 3; i++)
     {
         if(*pInStr == ' ')
         {
@@ -716,38 +738,42 @@ bool TitanTCS::GetParamStr(const char* pInStr, char* pOutStr, int len, const cha
         else
             break;
     }
-    
+
     strncpy(pOutStr, pInStr, len);
 
-    if(delimeter) {
+    if(delimeter)
+    {
         char* pDel = strchr(pOutStr, delimeter);
-        if(pDel == 0) {
-            LOG_INFO("Fail!");            
+        if(pDel == 0)
+        {
+            LOG_ERROR("Fail!");
             return false;
         }
-        
+
         *pDel = 0;
     }
-    
+
     LOG_DEBUG(pOutStr);
-    
+
     return true;
 }
 
-bool TitanTCS::GetParamNumber(const char* pInStr, char* pOutStr, int len, const char* pResponse, char delimeter, double *pDouble, int *pInteger)
+bool TitanTCS::GetParamNumber(const char* pInStr, char* pOutStr, int len, const char* pResponse, char delimeter,
+                              double *pDouble, int *pInteger)
 {
     if(!GetParamStr(pInStr, pOutStr, len, pResponse, delimeter))
         return false;
-    
+
     if(pDouble)
         *pDouble = atof(pOutStr);
     if(pInteger)
         *pInteger = atoi(pOutStr);
-    
+
     return true;
 }
 
-bool TitanTCS::GetParamHour(const char* pInStr, char* pOutStr, int len, const char* pResponse, char delimeter, double *pHour)
+bool TitanTCS::GetParamHour(const char* pInStr, char* pOutStr, int len, const char* pResponse, char delimeter,
+                            double *pHour)
 {
     if(!GetParamStr(pInStr, pOutStr, len, pResponse, delimeter))
         return false;
@@ -763,22 +789,22 @@ bool TitanTCS::GetParamHour(const char* pInStr, char* pOutStr, int len, const ch
 bool TitanTCS::SendCommand(const char *cmd)
 {
     if (isSimulation())
-        return NULL;
+        return false;
 
     // tcflush(PortFD, TCIOFLUSH);  // Error with Bluetooth!
     ReadFlush();
 
-    char titanfocus_error[256];
     int nbytes_written = 0;
     int err_code;
 
     if ((err_code = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written) != TTY_OK))
     {
+        char titanfocus_error[256];
         tty_error_msg(err_code, titanfocus_error, 256);
         LOGF_ERROR("tty_write() error detected: %s", titanfocus_error);
-        return NULL;
+        return false;
     }
-    
+
     // tcflush(PortFD, TCIOFLUSH);  // Error with Bluetooth!
 
     return true;
@@ -788,7 +814,7 @@ bool TitanTCS::SendCommand(const char *cmd, int val)
 {
     char szBuff[128];
     sprintf(szBuff, cmd, val);
-    
+
     return SendCommand(szBuff);
 }
 
@@ -796,7 +822,7 @@ bool TitanTCS::SendCommand(const char *cmd, double val)
 {
     char szBuff[128];
     sprintf(szBuff, cmd, val);
-    
+
     return SendCommand(szBuff);
 }
 // -----------------------------------------------------------------------------
@@ -806,21 +832,22 @@ void TitanTCS::ReadFlush()
         return;
 
     char buff[256];
-    int err_code;
     int bytesRead = 0;
 
     // tcflush(PortFD, TCIOFLUSH);  // Error with Bluetooth!
 
-    for(int i=0; i<3; i++)
+    for(int i = 0; i < 3; i++)
     {
-        if ((err_code = tty_read(PortFD, buff, sizeof(buff) - 1, 0, &bytesRead)) != TTY_OK) {
+        int err_code;
+        if ((err_code = tty_read(PortFD, buff, sizeof(buff) - 1, 0, &bytesRead)) != TTY_OK)
+        {
             return;
         }
         if(bytesRead <= 0)
             return;
 
         buff[bytesRead] = 0;
-        LOGF_INFO("Buffer Flush '%s'", buff);
+        LOGF_DEBUG("Buffer Flush '%s'", buff);
     }
 }
 
@@ -829,23 +856,21 @@ int TitanTCS::ReadResponse(char *buf, int len, char delimeter, int timeout)
     if (isSimulation())
         return 0;
 
-    char titanfocus_error[256];
-    int err_code;
-
     *buf = 0;
     int bytesRead = 0;
     int recv_len = 0;
-    
+
     // tcflush(PortFD, TCIOFLUSH);  // Error with Bluetooth!
-    
-    for(int i=0; i<len; i++)
+
+    for(int i = 0; i < len; i++)
     {
-        err_code = tty_read(PortFD, buf + recv_len, 1, timeout, &bytesRead);
+        int err_code = tty_read(PortFD, buf + recv_len, 1, timeout, &bytesRead);
         if (err_code != TTY_OK)
         {
-           //if(err_code == TTY_TIME_OUT)
-           //     continue;
+            //if(err_code == TTY_TIME_OUT)
+            //     continue;
 
+            char titanfocus_error[256] = {0};
             tty_error_msg(err_code, titanfocus_error, 256);
             LOGF_ERROR("tty_read() error detected: '%s' len %d, %s", buf, recv_len, titanfocus_error);
             return -1;
@@ -854,7 +879,7 @@ int TitanTCS::ReadResponse(char *buf, int len, char delimeter, int timeout)
         char read_ch = buf[recv_len];
         recv_len++;
         buf[recv_len] = 0;
-        
+
         if(delimeter == 0)
         {
             if(recv_len >= len)
@@ -892,20 +917,20 @@ bool TitanTCS::CommandResponse(const char* pCommand, const char* pResponse, char
     char szResponse[MAX_CMD_LEN] = { 0 };
     char szResult[MAX_CMD_LEN] = { 0 };
 
-    int rd_count = ReadResponse(szResponse, sizeof(szResponse), delimeter);    
+    int rd_count = ReadResponse(szResponse, sizeof(szResponse), delimeter);
     if (rd_count <= 0)
     {
         LOGF_ERROR("No response '%s'", pCommand);
         return false;
     }
     LOGF_DEBUG("ReadResponse('%s')", szResponse);
-        
-    if(!GetParamNumber(szResponse, szResult, sizeof(szResult)-1, pResponse, delimeter, pDouble, pInteger))
+
+    if(!GetParamNumber(szResponse, szResult, sizeof(szResult) - 1, pResponse, delimeter, pDouble, pInteger))
     {
-        LOGF_INFO("CommandResponse('%s', '%s') Fail!", pCommand, pResponse);
+        LOGF_DEBUG("CommandResponse('%s', '%s') Fail!", pCommand, pResponse);
         return false;
     }
-    
+
     return true;
 }
 
@@ -918,20 +943,20 @@ bool TitanTCS::CommandResponseHour(const char* pCommand, const char* pResponse, 
     char szResponse[MAX_CMD_LEN] = { 0 };
     char szResult[MAX_CMD_LEN] = { 0 };
 
-    int rd_count = ReadResponse(szResponse, sizeof(szResponse), delimeter);    
+    int rd_count = ReadResponse(szResponse, sizeof(szResponse), delimeter);
     if (rd_count <= 0)
     {
         LOGF_ERROR("No response '%s'", pCommand);
         return false;
     }
     LOGF_DEBUG("ReadResponse('%s')", szResponse);
-        
-    if(!GetParamHour(szResponse, szResult, sizeof(szResult)-1, pResponse, delimeter, Hour))
+
+    if(!GetParamHour(szResponse, szResult, sizeof(szResult) - 1, pResponse, delimeter, Hour))
     {
-        LOGF_INFO("CommandResponseHour('%s', '%s') Fail!", pCommand, pResponse);
+        LOGF_DEBUG("CommandResponseHour('%s', '%s') Fail!", pCommand, pResponse);
         return false;
     }
-    
+
     return true;
 }
 
@@ -943,20 +968,20 @@ bool TitanTCS::CommandResponseStr(const char* pCommand, const char* pResponse, c
 
     char szResponse[MAX_CMD_LEN * 2] = { 0 };
 
-    int rd_count = ReadResponse(szResponse, sizeof(szResponse), delimeter);    
+    int rd_count = ReadResponse(szResponse, sizeof(szResponse), delimeter);
     if (rd_count <= 0)
     {
         LOGF_ERROR("No response '%s'", pCommand);
         return false;
     }
     LOGF_DEBUG("ReadResponse('%s')", szResponse);
-    
+
     if(!GetParamStr(szResponse, pReturn, len, pResponse, delimeter))
     {
-        LOGF_INFO("CommandResponseStr('%s', '%s') Fail!", pCommand, pResponse);
+        LOGF_DEBUG("CommandResponseStr('%s', '%s') Fail!", pCommand, pResponse);
         return false;
     }
-    
+
     LOGF_DEBUG("%s : %s", pCommand, pReturn);
 
     return true;
@@ -971,7 +996,7 @@ bool TitanTCS::CommandResponseChar(const char* pCommand, const char* pResponse, 
     char szResponse[MAX_CMD_LEN] = { 0 };
     char szResult[MAX_CMD_LEN] = { 0 };
 
-    int rd_count = ReadResponse(szResponse, 1, 0);    
+    int rd_count = ReadResponse(szResponse, 1, 0);
     if (rd_count <= 0)
     {
         LOGF_ERROR("No response '%s'", pCommand);
@@ -979,14 +1004,14 @@ bool TitanTCS::CommandResponseChar(const char* pCommand, const char* pResponse, 
     }
     //LOGF_DEBUG("ReadResponse('%s')", szResponse);
 
-    if(!GetParamStr(szResponse, szResult, sizeof(szResult)-1, pResponse, 0))
+    if(!GetParamStr(szResponse, szResult, sizeof(szResult) - 1, pResponse, 0))
     {
-        LOGF_INFO("CommandResponseChar('%s', '%s') Fail!", pCommand, pResponse);
+        LOGF_DEBUG("CommandResponseChar('%s', '%s') Fail!", pCommand, pResponse);
         return false;
     }
 
     *pReturn = szResult[0];
-    
+
     LOGF_DEBUG("%s : %c", pCommand, *pReturn);
 
     return true;
@@ -1001,7 +1026,7 @@ bool TitanTCS::SetTarget(double ra, double dec)
     char rtnCode = 0;
     char szCommand[MAX_CMD_LEN * 2];
 
-    sprintf(szCommand, "#:Sr %s#", szRA);    
+    sprintf(szCommand, "#:Sr %s#", szRA);
     if(!CommandResponseChar(szCommand, "", &rtnCode))
     {
         LOG_ERROR("SetTarget RA / No response");
@@ -1012,8 +1037,8 @@ bool TitanTCS::SetTarget(double ra, double dec)
         LOGF_ERROR("SetTarget DEC / Error Code = '%c'", rtnCode);
         return false;
     }
-        
-    sprintf(szCommand, "#:Sd %s#", szDEC);    
+
+    sprintf(szCommand, "#:Sd %s#", szDEC);
     if(!CommandResponseChar(szCommand, "", &rtnCode))
     {
         LOG_ERROR("SetTarget DEC / No response");
@@ -1062,88 +1087,100 @@ bool TitanTCS::GetMountParams(bool bAll)
     INDI_UNUSED(bAll);
 
     static int cnt = 0;
-    
+
     char szCommand[256];
     sprintf(szCommand, "#:\\GE($GR #:GR#"
-        ":\\GE$GD #:GD#"
-        "#:hP?#"
-        ":\\?pe#"
-        ":\\?tm#"
-        ":\\?tr#"
-        ":\\?ts#"
-        ":\\GE%d)#", cnt++);
+            ":\\GE$GD #:GD#"
+            "#:hP?#"
+            ":\\?pe#"
+            ":\\?tm#"
+            ":\\?tr#"
+            ":\\?ts#"
+            ":\\GE%d)#", cnt++);
 
     //strcpy(szCommand, "#:hP?#" ":\\GE}#");
 
     char szResponse[256];
-    if(!CommandResponseStr(szCommand, "(", ')', szResponse, sizeof(szResponse)-1))
+    if(!CommandResponseStr(szCommand, "(", ')', szResponse, sizeof(szResponse) - 1))
         return false;
-    
+
     char szToken[128];
     // RA & DEC Coordinate
-    if(GetParamHour(szResponse, szToken, sizeof(szToken)-1, "$GR", '#', &info.ra)) {
-        if(GetParamHour(szResponse, szToken, sizeof(szToken)-1, "$GD", '#', &info.dec)) {
+    if(GetParamHour(szResponse, szToken, sizeof(szToken) - 1, "$GR", '#', &info.ra))
+    {
+        if(GetParamHour(szResponse, szToken, sizeof(szToken) - 1, "$GD", '#', &info.dec))
+        {
             LOGF_DEBUG("RA %g, DEC %g", info.ra, info.dec);
             NewRaDec(info.ra, info.dec);
         }
     }
-    
+
 #if USE_PEC
     // PEC Status
-    if(GetParamNumber(szResponse, szToken, sizeof(szToken)-1, "$?pe", '#', NULL, &info.PECStatus)) {
+    if(GetParamNumber(szResponse, szToken, sizeof(szToken) - 1, "$?pe", '#', NULL, &info.PECStatus))
+    {
         LOGF_DEBUG("PEC Status %d", info.PECStatus);
         _setPECState(info.PECStatus);
     }
 #endif
 
     // Slewing Status  bit0:RA Tracking, bit1:DEC Tracking, bit2:RA Slewing, bit3:DEC Slewing, bit4,5:Goto status
-    if(GetParamNumber(szResponse, szToken, sizeof(szToken)-1, "$?ts", '#', NULL, &info.TrackingStatus)) {
+    if(GetParamNumber(szResponse, szToken, sizeof(szToken) - 1, "$?ts", '#', NULL, &info.TrackingStatus))
+    {
         LOGF_DEBUG("Tracking Status %d", info.TrackingStatus);
 
-        if(info.TrackingStatus & 0x3C) {
+        if(info.TrackingStatus & 0x3C)
+        {
             TrackState = SCOPE_SLEWING;
         }
-        else if(info.TrackingStatus == 3) {
+        else if(info.TrackingStatus == 3)
+        {
             TrackState = SCOPE_TRACKING;
         }
-        else {
+        else
+        {
             TrackState = SCOPE_IDLE;
-        }        
+        }
     }
     // Parking Status
-    if(GetParamNumber(szResponse, szToken, sizeof(szToken)-1, "$hP", '#', NULL, &info.Parking)) {
+    if(GetParamNumber(szResponse, szToken, sizeof(szToken) - 1, "$hP", '#', NULL, &info.Parking))
+    {
         LOGF_DEBUG("Parking Status %d", info.Parking);
-        
-        if(info.Parking == 1) {
+
+        if(info.Parking == 1)
+        {
             TrackState = SCOPE_PARKING;
             ParkS[0].s = ISS_ON;
             ParkS[1].s = ISS_OFF;
             ParkSP.s   = IPS_BUSY;
             IUSaveText(&MountInfoT[0], "Parking");
         }
-        else if(info.Parking == 2) {
+        else if(info.Parking == 2)
+        {
             TrackState = SCOPE_PARKED;
             ParkS[0].s = ISS_ON;
             ParkS[1].s = ISS_OFF;
             ParkSP.s   = IPS_IDLE;
             IUSaveText(&MountInfoT[0], "Parked");
         }
-        else if(info.Parking == 0) {
+        else if(info.Parking == 0)
+        {
             ParkSP.s   = IPS_IDLE;
             ParkS[0].s = ISS_OFF;
             ParkS[1].s = ISS_ON;
             IUSaveText(&MountInfoT[0], "Unpark");
         }
-            
+
         IDSetSwitch(&ParkSP, nullptr);
     }
     // Tracking On / Off
-    if((TrackState == SCOPE_SLEWING) || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED)) {
+    if((TrackState == SCOPE_SLEWING) || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
+    {
         TrackStateS[TRACK_ON].s = ISS_OFF;
         TrackStateS[TRACK_OFF].s = ISS_ON;
         TrackStateSP.s = IPS_IDLE;
         IDSetSwitch(&TrackStateSP, nullptr);
-        
+
         if(TrackState == SCOPE_PARKING)
             IUSaveText(&MountInfoT[1], "Parking");
         else if(TrackState == SCOPE_PARKED)
@@ -1151,11 +1188,14 @@ bool TitanTCS::GetMountParams(bool bAll)
         else if(TrackState == SCOPE_SLEWING)
             IUSaveText(&MountInfoT[1], "Slewing");
     }
-    else {
-        if(GetParamNumber(szResponse, szToken, sizeof(szToken)-1, "$?tm", '#', NULL, &info.Landscape)) {
+    else
+    {
+        if(GetParamNumber(szResponse, szToken, sizeof(szToken) - 1, "$?tm", '#', NULL, &info.Landscape))
+        {
             LOGF_DEBUG("? %d, %d", TrackState, info.Landscape);
-            
-            if((TrackState == SCOPE_TRACKING) && (info.Landscape == 0)) {
+
+            if((TrackState == SCOPE_TRACKING) && (info.Landscape == 0))
+            {
                 TrackStateS[TRACK_ON].s = ISS_ON;
                 TrackStateS[TRACK_OFF].s = ISS_OFF;
                 TrackStateSP.s = IPS_IDLE;
@@ -1163,7 +1203,8 @@ bool TitanTCS::GetMountParams(bool bAll)
 
                 IUSaveText(&MountInfoT[1], "Tracking ON / Skyview");
             }
-            else {            
+            else
+            {
                 TrackStateS[TRACK_ON].s = ISS_OFF;
                 TrackStateS[TRACK_OFF].s = ISS_ON;
                 TrackStateSP.s = IPS_IDLE;
@@ -1180,7 +1221,8 @@ bool TitanTCS::GetMountParams(bool bAll)
     MountInfoTP.s = IPS_OK;
     IDSetText(&MountInfoTP, nullptr);
     //
-    if(GetParamNumber(szResponse, szToken, sizeof(szToken)-1, "$?tr", '#', NULL, &info.TrackingRate)) {
+    if(GetParamNumber(szResponse, szToken, sizeof(szToken) - 1, "$?tr", '#', NULL, &info.TrackingRate))
+    {
         LOGF_DEBUG("Tracking rate %d", info.TrackingRate);
 
         TrackModeS[0].s = info.TrackingRate == 0 ? ISS_ON : ISS_OFF;
@@ -1190,10 +1232,12 @@ bool TitanTCS::GetMountParams(bool bAll)
     }
     //
     static int prev_TrackState = -1;
-    if(prev_TrackState != TrackState) {
+    if(prev_TrackState != TrackState)
+    {
         prev_TrackState = TrackState;
 
-        switch(TrackState) {
+        switch(TrackState)
+        {
             case SCOPE_IDLE:
                 LOG_INFO("Track State : IDLE");
                 break;
@@ -1227,7 +1271,7 @@ void TitanTCS::_setPECState(int pec_status)
         // PEC Valid        BIT 1
         // PEC Training     BIT 2
         // PEC Stopping     BIT 3
-        
+
         if(pec_status & 0x30)
         {
             // Training ...
@@ -1270,7 +1314,7 @@ void TitanTCS::_setPECState(int pec_status)
             PECStateS[PEC_OFF].s = ISS_OFF;
             PECStateS[PEC_ON].s  = ISS_OFF;
             PECStateSP.s = IPS_ALERT;
-            
+
             if(pec_status & 0x30)
                 IUSaveText(&PECInfoT[0], "");
             else
@@ -1279,7 +1323,7 @@ void TitanTCS::_setPECState(int pec_status)
 
         PECStateSP.s = IPS_OK;
         IDSetSwitch(&PECStateSP, nullptr);
-        
+
         PECTrainingSP.s = IPS_OK;
         IDSetSwitch(&PECTrainingSP, nullptr);
         //
@@ -1306,13 +1350,13 @@ bool TitanTCS::updateTime(ln_date *utc, double utc_offset)
     LOGF_DEBUG("Local time is %02d:%02d:%02g", ltm.hours, ltm.minutes, ltm.seconds);
 
     char szText[128];
-    sprintf(szText, "#:SG %.1f#:SC %02d/%02d/%02d#:SL %02d:%02d:%02d#", 
-            -utc_offset, 
+    sprintf(szText, "#:SG %.1f#:SC %02d/%02d/%02d#:SL %02d:%02d:%02d#",
+            -utc_offset,
             ltm.months, ltm.days, ltm.years % 100,
             ltm.hours, ltm.minutes, (int)ltm.seconds % 60);
 
     LOGF_INFO("Set datetime '%s'", szText);
-    
+
     return SendCommand(szText);
 }
 
@@ -1322,9 +1366,9 @@ bool TitanTCS::updateLocation(double latitude, double longitude, double elevatio
     INDI_UNUSED(elevation);
 
     if((fabs(latitude) < 0.001) && (fabs(longitude) < 0.001))
-	return false;
-    
-    int d=0, m=0, s=0;
+        return false;
+
+    int d = 0, m = 0, s = 0;
     char szCommand[128];
     char rtnCode = 0;
 
@@ -1347,9 +1391,9 @@ bool TitanTCS::Sync(double ra, double dec)
 
     char rtnCode[64] = { "" };
     char szCommand[MAX_CMD_LEN];
-    sprintf(szCommand, ":CM#");    
+    sprintf(szCommand, ":CM#");
 
-    if(!CommandResponseStr(szCommand, "", '#', rtnCode, sizeof(rtnCode)-1))
+    if(!CommandResponseStr(szCommand, "", '#', rtnCode, sizeof(rtnCode) - 1))
     {
         LOG_ERROR("Sync / No response");
         return false;
@@ -1367,19 +1411,20 @@ bool TitanTCS::Sync(double ra, double dec)
 bool TitanTCS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     char chDir = 0;
-    
-    switch(dir) {
+
+    switch(dir)
+    {
         case DIRECTION_NORTH:
             chDir = 'n';
-            break; 
+            break;
         case DIRECTION_SOUTH:
             chDir = 's';
-            break; 
+            break;
         default:
             return false;
             break;
     }
-    
+
     char szCommand[MAX_CMD_LEN];
     if(command == MOTION_START)
     {
@@ -1389,7 +1434,7 @@ bool TitanTCS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     {
         sprintf(szCommand, ":Q%c#", chDir);
     }
-    
+
     TrackState = SCOPE_SLEWING;
     LOGF_INFO("Moving command:%s", szCommand);
     return SendCommand(szCommand);
@@ -1399,12 +1444,12 @@ bool TitanTCS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 bool TitanTCS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     char chDir = 0;
-    
+
     switch(dir)
     {
         case DIRECTION_EAST:
             chDir = 'e';
-            break; 
+            break;
         case DIRECTION_WEST:
             chDir = 'w';
             break;
@@ -1422,7 +1467,7 @@ bool TitanTCS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     {
         sprintf(szCommand, ":Q%c#", chDir);
     }
-    
+
     TrackState = SCOPE_SLEWING;
     LOGF_INFO("Moving command:%s", szCommand);
     return SendCommand(szCommand);
@@ -1431,7 +1476,7 @@ bool TitanTCS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 bool TitanTCS::Park()
 {
     LOG_INFO("Parking ...");
-    
+
     if(SendCommand(":hP8#"))
     {
         ParkSP.s   = IPS_BUSY;
@@ -1444,7 +1489,7 @@ bool TitanTCS::Park()
 bool TitanTCS::UnPark()
 {
     LOG_INFO("Unparking ...");
-    
+
     if(SendCommand(":hP0#"))
     {
         ParkSP.s   = IPS_BUSY;
@@ -1480,7 +1525,7 @@ bool TitanTCS::SetTrackEnabled(bool enabled)
     {
         LOG_INFO("Tracking OFF");
         return SendCommand("#:\\t1#");   // Stop
-    }    
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -1488,7 +1533,7 @@ bool TitanTCS::SetParkPosition(double Axis1Value, double Axis2Value)
 {
     INDI_UNUSED(Axis1Value);
     INDI_UNUSED(Axis2Value);
-    
+
     return true;
 }
 
@@ -1505,7 +1550,7 @@ bool TitanTCS::SetDefaultPark()
 bool TitanTCS::SetSlewRate(int index)
 {
     LOGF_INFO("Set Slew Rate '%d'", index);
-    
+
     switch (index)
     {
         case 3:
@@ -1519,10 +1564,3 @@ bool TitanTCS::SetSlewRate(int index)
     }
     return false;
 }
-
-void TitanTCS::debugTriggered(bool enable)
-{
-    setDebug(enable);
-}
-
-
