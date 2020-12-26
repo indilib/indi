@@ -52,6 +52,7 @@ static const PixelSizeInfo pixelSizeInfo[] =
     { "Skyris 236C", nullptr, 2.8f, -1, false },
     { "Skyris 236M", nullptr, 2.8f, -1, false },
     { "iOptron iPolar: iOptron iPolar", nullptr, 3.75f, -1, true },
+    { "iOptron iGuider: iOptron iGuider", nullptr, 3.75f, -1, true },
     { "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
     { "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
     { "0c45:6366 Microdia", "Spinel 2MP Full HD Low Light WDR H264 USB Camera Module IMX290", 2.9f, -1, true },
@@ -60,9 +61,6 @@ static const PixelSizeInfo pixelSizeInfo[] =
 
 V4L2_Driver::V4L2_Driver()
 {
-    //sigevent sevp;
-    //struct itimerspec fpssettings;
-
     setVersion(1, 0);
 
     allocateBuffers();
@@ -110,7 +108,11 @@ bool V4L2_Driver::initProperties()
     addDebugControl();
 
     /* Port */
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/video0");
+    char configPort[256] = {0};
+    if (IUGetConfigText(getDeviceName(), PortTP.name, PortT[0].name, configPort, 256) == 0)
+        IUFillText(&PortT[0], "PORT", "Port", configPort);
+    else
+        IUFillText(&PortT[0], "PORT", "Port", "/dev/video0");
     IUFillTextVector(&PortTP, PortT, NARRAY(PortT), getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 0,
                      IPS_IDLE);
 
@@ -472,6 +474,7 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
                 Streamer->setPixelFormat(pixelFormat, pixelDepth);
 
+            saveConfig(true, CaptureFormatsSP.name);
             IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
             return true;
         }
@@ -521,6 +524,8 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
 
             CaptureSizesSP.s = IPS_OK;
             IDSetSwitch(&CaptureSizesSP, "Capture size (discrete): %d. %s", index, CaptureSizesSP.sp[index].name);
+
+            saveConfig(true, CaptureSizesSP.name);
             return true;
         }
     }
@@ -586,6 +591,8 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
 #endif
         Streamer->setPixelFormat((ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? INDI_MONO : INDI_RGB, 8);
         IDSetSwitch(&ImageColorSP, nullptr);
+
+        saveConfig(true, ImageColorSP.name);
         return true;
     }
 
@@ -713,11 +720,13 @@ bool V4L2_Driver::ISNewText(const char * dev, const char * name, char * texts[],
     if (strcmp(name, PortTP.name) == 0)
     {
         PortTP.s = IPS_OK;
-        tp       = IUFindText(&PortTP, names[0]);
+        tp = IUFindText(&PortTP, names[0]);
         if (!tp)
             return false;
         IUSaveText(tp, texts[0]);
         IDSetText(&PortTP, nullptr);
+
+        saveConfig(true, PortTP.name);
         return true;
     }
 
@@ -1757,10 +1766,10 @@ bool V4L2_Driver::saveConfigItems(FILE * fp)
 {
     INDI::CCD::saveConfigItems(fp);
 
+    IUSaveConfigText(fp, &PortTP);
+
     if (ImageAdjustNP.nnp > 0)
         IUSaveConfigNumber(fp, &ImageAdjustNP);
-
-    IUSaveConfigText(fp, &PortTP);
 
     return Streamer->saveConfigItems(fp);
 }
