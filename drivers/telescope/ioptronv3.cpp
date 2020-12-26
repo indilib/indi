@@ -595,18 +595,12 @@ bool IOptronV3::ReadScopeStatus()
             case ST_TRACKING_PEC_OFF:
             case ST_TRACKING_PEC_ON:
             case ST_GUIDING:
-                // If slew to parking position is complete, issue park command now.
-                if (TrackState == SCOPE_PARKING)
-                    driver->park();
-                else
-                {
-                    TrackModeSP.s = IPS_BUSY;
-                    TrackState    = SCOPE_TRACKING;
-                    if (scopeInfo.systemStatus == ST_SLEWING)
-                        LOG_INFO("Slew complete, tracking...");
-                    else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
-                        LOG_INFO("Meridian flip complete, tracking...");
-                }
+                TrackModeSP.s = IPS_BUSY;
+                TrackState    = SCOPE_TRACKING;
+                if (scopeInfo.systemStatus == ST_SLEWING)
+                    LOG_INFO("Slew complete, tracking...");
+                else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
+                    LOG_INFO("Meridian flip complete, tracking...");
                 break;
         }
 
