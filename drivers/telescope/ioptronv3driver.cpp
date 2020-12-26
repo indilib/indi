@@ -497,6 +497,30 @@ bool Driver::unpark()
     return sendCommand(":MP0#");
 }
 
+bool Driver::setParkAz(double az)
+{
+    char cmd[IOP_BUFFER] = {0};
+
+    // Send as 0.01 arcsec resolution
+    int ieqValue = static_cast<int>(az * 60 * 60 * 100);
+
+    snprintf(cmd, IOP_BUFFER, ":SPA%09d#", ieqValue);
+
+    return sendCommand(cmd);
+}
+
+bool Driver::setParkAlt(double alt)
+{
+    char cmd[IOP_BUFFER] = {0};
+
+    alt = std::max(0.0, alt);
+
+    // Send as 0.01 arcsec resolution
+    int ieqValue = static_cast<int>(alt * 60 * 60 * 100);
+    snprintf(cmd, IOP_BUFFER, ":SPH%08d#", ieqValue);
+    return sendCommand(cmd);
+}
+
 bool Driver::abort()
 {
     if (simData.simInfo.systemStatus == ST_SLEWING)
