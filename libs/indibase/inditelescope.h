@@ -794,7 +794,7 @@ class Telescope : public DefaultDevice
         ITextVectorProperty TLEtoTrackTP;
         IText SatPassWindowT[2] {};
         ITextVectorProperty SatPassWindowTP;
-        enum
+        enum SATELLITE_TRACKING
         {
             SAT_TRACK,
             SAT_HALT,
