@@ -56,9 +56,19 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
     setLX200Capability( LX200_HAS_TRACKING_FREQ | LX200_HAS_PULSE_GUIDING );
 
-    SetTelescopeCapability( TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT |
-        TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE |
-        TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_TRACK_SATELLITE );
+    SetTelescopeCapability( 
+        TELESCOPE_CAN_GOTO |
+        TELESCOPE_CAN_SYNC |
+        TELESCOPE_CAN_PARK |
+        TELESCOPE_CAN_ABORT |
+        TELESCOPE_HAS_TIME |
+        TELESCOPE_HAS_LOCATION |
+        TELESCOPE_HAS_PIER_SIDE |
+        TELESCOPE_HAS_TRACK_MODE |
+        TELESCOPE_CAN_CONTROL_TRACK |
+        TELESCOPE_HAS_TRACK_RATE |
+        TELESCOPE_CAN_TRACK_SATELLITE
+        );
 
     setVersion(1, 0);
 }
@@ -744,7 +754,7 @@ bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
     return 0;
 }
 
-bool LX200_10MICRON::CalculateSatTrajectory(char *start_pass_iso, char *end_pass_iso)
+bool LX200_10MICRON::CalculateSatTrajectory(char *start_pass_isodatetime, char *end_pass_isodatetime)
 {
     // #:TLEPJD,min#
     // Precalulates the first transit of the satellite with the currently loaded orbital elements,
@@ -758,16 +768,16 @@ bool LX200_10MICRON::CalculateSatTrajectory(char *start_pass_iso, char *end_pass
     // empty or contain the letter F – meaning that mount will flip during the transit.
     // Available from version 2.13.20.
     struct ln_date start_pass;
-    if (extractISOTime(start_pass_iso, &start_pass) == -1)
+    if (extractISOTime(start_pass_isodatetime, &start_pass) == -1)
     {
-        LOGF_ERROR("Date/Time is invalid: %s.", start_pass_iso);
+        LOGF_ERROR("Date/Time is invalid: %s.", start_pass_isodatetime);
         return 1;
     }
 
     struct ln_date end_pass;
-    if (extractISOTime(end_pass_iso, &end_pass) == -1)
+    if (extractISOTime(end_pass_isodatetime, &end_pass) == -1)
     {
-        LOGF_ERROR("Date/Time is invalid: %s.", end_pass_iso);
+        LOGF_ERROR("Date/Time is invalid: %s.", end_pass_isodatetime);
         return 1;
     }
 
@@ -1267,7 +1277,6 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         }
         if (strcmp(name, "SAT_PASS_WINDOW") == 0)
         {
-
           IUUpdateText(&SatPassWindowTP, texts, names, n);
           if (0 == CalculateSatTrajectory(SatPassWindowT[0].text, SatPassWindowT[1].text))
             {

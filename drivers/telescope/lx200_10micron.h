@@ -97,24 +97,6 @@ class LX200_10MICRON : public LX200Generic
         ALIGN_COUNT
     };
 
-    enum LX200_10MICRON_SAT_TRAJECTORY_TIME
-    {
-        SAT_YYYY,
-        SAT_MM,
-        SAT_DD,
-        SAT_HH24,
-        SAT_MM60,
-        SAT_MM1440_NEXT,
-        SAT_COUNT
-    };
-
-    enum LX200_10MICRON_SAT_TRACK
-    {
-        SAT_TRACK,
-        SAT_HALT,
-        SAT_TRACK_COUNT
-    };
-
     LX200_10MICRON();
     ~LX200_10MICRON() {}
 
@@ -138,7 +120,7 @@ class LX200_10MICRON : public LX200Generic
     bool SetTLEtoFollow(const char *tle);
     bool SetTLEfromDatabase(int tleN);
     bool TrackSat();
-    bool CalculateSatTrajectory(char *start_pass, char *end_pass);
+    bool CalculateSatTrajectory(char *start_pass_isodatetime, char *end_pass_isodatetime);
 
     int AddSyncPoint(double MRa, double MDec, double MSide, double PRa, double PDec, double SidTime);
     int AddSyncPointHere(double PRa, double PDec);
