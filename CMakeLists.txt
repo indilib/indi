@@ -688,6 +688,18 @@ target_link_libraries(indi_rainbow_telescope indidriver)
 
 install(TARGETS indi_rainbow_telescope RUNTIME DESTINATION bin)
 
+########### HOBYM / TitanTCS for CRUX Mount ##########
+SET(crux_mount_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/crux_mount.cpp
+    )
+
+add_executable(indi_crux_mount ${crux_mount_SRC})
+
+target_link_libraries(indi_crux_mount indidriver)
+
+install(TARGETS indi_crux_mount RUNTIME DESTINATION bin)
+#################################################################################
+
 ########### Takahashi Temma ##########
 SET(temma_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/temmadriver.cpp )

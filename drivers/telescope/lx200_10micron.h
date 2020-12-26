@@ -26,6 +26,13 @@ class LX200_10MICRON : public LX200Generic
 {
   public:
 
+    enum LX200_10MICRON_UNATTENDED_FLIP_SETTINGS
+    {
+        UNATTENDED_FLIP_DISABLED,
+        UNATTENDED_FLIP_ENABLED,
+        UNATTENDED_FLIP_COUNT
+    };
+
     enum LX200_10MICRON_PRODUCT_INFO
     {
         PRODUCT_NAME,
@@ -119,9 +126,13 @@ class LX200_10MICRON : public LX200Generic
     bool Handshake() override;
     bool initProperties() override;
     bool updateProperties() override;
+    bool saveConfigItems(FILE *fp) override;
     bool ReadScopeStatus() override;
     bool Park() override;
     bool UnPark() override;
+    bool flip();
+    bool getUnattendedFlipSetting();
+    bool setUnattendedFlipSetting(bool setting);
     bool SyncConfigBehaviour(bool cmcfg);
     bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
     bool SetTLEtoFollow(const char *tle);
@@ -142,6 +153,10 @@ class LX200_10MICRON : public LX200Generic
 
   protected:
     void getBasicData() override;
+
+    int UnattendedFlip = -1;
+    ISwitch UnattendedFlipS[UNATTENDED_FLIP_COUNT];
+    ISwitchVectorProperty UnattendedFlipSP;
 
     IText ProductT[4] {};
     ITextVectorProperty ProductTP;

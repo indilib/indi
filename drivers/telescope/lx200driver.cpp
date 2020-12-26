@@ -1625,6 +1625,14 @@ int checkLX200Format(int fd)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
 
+    // 10micron returns on U2 15:46:18.03 . Prevent setting it to a lower precision later by detecting this mode here.
+    if (nbytes_read >= 11 && read_buffer[8] == '.')
+    {
+        controller_format = LX200_LONGER_FORMAT;
+        DEBUGDEVICE(lx200Name, DBG_SCOPE, "Coordinate format is ultra high precision.");
+        return 0;
+    }
+
     /* If it's short format, try to toggle to high precision format */
     if (read_buffer[5] == '.')
     {
