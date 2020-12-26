@@ -351,19 +351,24 @@ void IOptronV3::getStartupData()
         IDSetNumber(&LocationNP, nullptr);
     }
 
+    double parkAZ = LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180;
+    double parkAL = LocationN[LOCATION_LATITUDE].value;
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1ParkDefault(parkAZ);
+        SetAxis2ParkDefault(parkAL);
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1Park(parkAZ);
+        SetAxis2Park(parkAL);
+        SetAxis1ParkDefault(parkAZ);
+        SetAxis2ParkDefault(parkAL);
+
+        driver->setParkAz(parkAZ);
+        driver->setParkAlt(parkAL);
     }
 
     if (isSimulation())
@@ -702,7 +707,6 @@ bool IOptronV3::Abort()
 
 bool IOptronV3::Park()
 {
-#if 0
     if (firmwareInfo.Model.find("CEM") == std::string::npos &&
             firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
             firmwareInfo.Model.find("iEQ35") == std::string::npos)
@@ -711,70 +715,7 @@ bool IOptronV3::Park()
         return false;
     }
 
-    targetRA  = GetAxis1Park();
-    targetDEC = GetAxis2Park();
-
-    if (driver->setRA(targetRA) == false || driver->setDE(targetDEC) == false)
-    {
-        LOG_ERROR("Error setting RA/DEC.");
-        return false;
-    }
-
-    bool rc = false;
-    if (IUFindOnSwitchIndex(&SlewModeSP) == IOP_CW_NORMAL)
-        rc = driver->slewNormal();
-    else
-        rc = driver->slewCWUp();
-
-    if (rc == false)
-    {
-        LOG_ERROR("Failed to slew tp parking position.");
-        return false;
-    }
-
-    char RAStr[64] = {0}, DecStr[64] = {0};
-    fs_sexa(RAStr, targetRA, 2, 3600);
-    fs_sexa(DecStr, targetDEC, 2, 3600);
-
-    TrackState = SCOPE_PARKING;
-    LOGF_INFO("Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
-
-    return true;
-#endif
-
-    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ35") == std::string::npos)
-    {
-        LOG_ERROR("Parking is not supported in this mount model.");
-        return false;
-    }
-
-    double parkAz  = GetAxis1Park();
-    double parkAlt = GetAxis2Park();
-
-    char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, parkAz, 2, 3600);
-    fs_sexa(AltStr, parkAlt, 2, 3600);
-    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
-
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    horizontalPos.az = parkAz;
-    horizontalPos.alt = parkAlt;
-
-    ln_equ_posn equatorialPos;
-
-    get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-    if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
+    if (driver->park())
     {
         TrackState = SCOPE_PARKING;
         LOG_INFO("Parking is in progress...");
@@ -1085,6 +1026,9 @@ bool IOptronV3::SetCurrentPark()
     SetAxis1Park(horizontalPos.az);
     SetAxis2Park(horizontalPos.alt);
 
+    driver->setParkAz(horizontalPos.az);
+    driver->setParkAlt(horizontalPos.alt);
+
     return true;
 }
 
@@ -1092,10 +1036,10 @@ bool IOptronV3::SetDefaultPark()
 {
     // By defualt azimuth 0
     SetAxis1Park(0);
-
     // Altitude = latitude of observer
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-
+    driver->setParkAz(0);
+    driver->setParkAlt(LocationN[LOCATION_LATITUDE].value);
     return true;
 }
 
