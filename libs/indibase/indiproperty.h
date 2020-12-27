@@ -34,6 +34,13 @@ class Property
 {
     public:
         Property();
+        Property(void *property, INDI_PROPERTY_TYPE type);
+        Property(INumberVectorProperty *property);
+        Property(ITextVectorProperty   *property);
+        Property(ISwitchVectorProperty *property);
+        Property(ILightVectorProperty  *property);
+        Property(IBLOBVectorProperty   *property);
+
         ~Property();
 
         void setProperty(void *);
@@ -79,11 +86,11 @@ class Property
         IBLOBVectorProperty *getBLOB() const;
 
     private:
-        void *pPtr {nullptr};
-        BaseDevice *dp {nullptr};
-        INDI_PROPERTY_TYPE pType;
-        bool pRegistered;
-        bool pDynamic;
+        void *pPtr = nullptr;
+        BaseDevice *dp = nullptr;
+        INDI_PROPERTY_TYPE pType = INDI_UNKNOWN;
+        bool pRegistered = false;
+        bool pDynamic = false;
 };
 
 } // namespace INDI
