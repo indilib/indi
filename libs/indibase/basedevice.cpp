@@ -242,7 +242,9 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     IPState state = IPS_IDLE;
     XMLEle *ep    = nullptr;
     char *rtag, *rname, *rdev;
-    double timeout = 0;
+
+    INDI::Property *indiProp = nullptr;
+    int n = 0;
 
     rtag = tagXMLEle(root);
 
@@ -263,8 +265,6 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         return -1;
     }
 
-    timeout = atoi(findXMLAttValu(root, "timeout"));
-
     if (crackIPState(findXMLAttValu(root, "state"), &state) < 0)
     {
         IDLog("Error extracting %s state (%s)\n", rname, findXMLAttValu(root, "state"));
@@ -278,19 +278,9 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         INumberVectorProperty *nvp = new INumberVectorProperty;
 
         INumber *np = nullptr;
-        int n       = 0;
-
-        strncpy(nvp->device, deviceID, MAXINDIDEVICE);
-        strncpy(nvp->name, rname, MAXINDINAME);
-        strncpy(nvp->label, findXMLAttValu(root, "label"), MAXINDILABEL);
-        strncpy(nvp->group, findXMLAttValu(root, "group"), MAXINDIGROUP);
-
-        nvp->p       = perm;
-        nvp->s       = state;
-        nvp->timeout = timeout;
 
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
         {
             if (!strcmp(tagXMLEle(ep), "defNumber"))
             {
@@ -336,15 +326,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             nvp->nnp = n;
             nvp->np  = np;
 
-            INDI::Property *indiProp = new INDI::Property(nvp);
-            indiProp->setBaseDevice(this);
-            indiProp->setDynamic(true);
-
-            pAll.push_back(indiProp);
-
-            //IDLog("Adding number property %s to list.\n", nvp->name);
-            if (mediator)
-                mediator->newProperty(indiProp);
+            indiProp = new INDI::Property(nvp);
         }
         else
         {
@@ -357,22 +339,12 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         ISwitchVectorProperty *svp = new ISwitchVectorProperty;
 
         ISwitch *sp = nullptr;
-        int n       = 0;
-
-        strncpy(svp->device, deviceID, MAXINDIDEVICE);
-        strncpy(svp->name, rname, MAXINDINAME);
-        strncpy(svp->label, findXMLAttValu(root, "label"), MAXINDILABEL);
-        strncpy(svp->group, findXMLAttValu(root, "group"), MAXINDIGROUP);
 
         if (crackISRule(findXMLAttValu(root, "rule"), (&svp->r)) < 0)
             svp->r = ISR_1OFMANY;
 
-        svp->p       = perm;
-        svp->s       = state;
-        svp->timeout = timeout;
-
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
         {
             if (!strcmp(tagXMLEle(ep), "defSwitch"))
             {
@@ -399,14 +371,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             svp->nsp = n;
             svp->sp  = sp;
-            INDI::Property *indiProp = new INDI::Property(svp);
-            indiProp->setBaseDevice(this);
-            indiProp->setDynamic(true);
-
-            pAll.push_back(indiProp);
-            //IDLog("Adding Switch property %s to list.\n", svp->name);
-            if (mediator)
-                mediator->newProperty(indiProp);
+            indiProp = new INDI::Property(svp);
         }
         else
         {
@@ -419,19 +384,9 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     {
         ITextVectorProperty *tvp = new ITextVectorProperty;
         IText *tp                = nullptr;
-        int n                    = 0;
-
-        strncpy(tvp->device, deviceID, MAXINDIDEVICE);
-        strncpy(tvp->name, rname, MAXINDINAME);
-        strncpy(tvp->label, findXMLAttValu(root, "label"), MAXINDILABEL);
-        strncpy(tvp->group, findXMLAttValu(root, "group"), MAXINDIGROUP);
-
-        tvp->p       = perm;
-        tvp->s       = state;
-        tvp->timeout = timeout;
 
         // pull out each name/value pair
-        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
         {
             if (!strcmp(tagXMLEle(ep), "defText"))
             {
@@ -462,15 +417,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             tvp->ntp = n;
             tvp->tp  = tp;
 
-            INDI::Property *indiProp = new INDI::Property(tvp);
-            indiProp->setBaseDevice(this);
-            indiProp->setDynamic(true);
-
-            pAll.push_back(indiProp);
-
-            //IDLog("Adding Text property %s to list with initial value of %s.\n", tvp->name, tvp->tp[0].text);
-            if (mediator)
-                mediator->newProperty(indiProp);
+            indiProp = new INDI::Property(tvp);
         }
         else
         {
@@ -482,17 +429,9 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     {
         ILightVectorProperty *lvp = new ILightVectorProperty;
         ILight *lp                = nullptr;
-        int n                     = 0;
-
-        strncpy(lvp->device, deviceID, MAXINDIDEVICE);
-        strncpy(lvp->name, rname, MAXINDINAME);
-        strncpy(lvp->label, findXMLAttValu(root, "label"), MAXINDILABEL);
-        strncpy(lvp->group, findXMLAttValu(root, "group"), MAXINDIGROUP);
-
-        lvp->s = state;
 
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
         {
             if (!strcmp(tagXMLEle(ep), "defLight"))
             {
@@ -520,15 +459,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             lvp->nlp = n;
             lvp->lp  = lp;
 
-            INDI::Property *indiProp  = new INDI::Property(lvp);
-            indiProp->setBaseDevice(this);
-            indiProp->setDynamic(true);
-
-            pAll.push_back(indiProp);
-
-            //IDLog("Adding Light property %s to list.\n", lvp->name);
-            if (mediator)
-                mediator->newProperty(indiProp);
+            indiProp  = new INDI::Property(lvp);
         }
         else
         {
@@ -540,16 +471,6 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     {
         IBLOBVectorProperty *bvp = new IBLOBVectorProperty;
         IBLOB *bp                = nullptr;
-        int n                    = 0;
-
-        strncpy(bvp->device, deviceID, MAXINDIDEVICE);
-        strncpy(bvp->name, rname, MAXINDINAME);
-        strncpy(bvp->label, findXMLAttValu(root, "label"), MAXINDILABEL);
-        strncpy(bvp->group, findXMLAttValu(root, "group"), MAXINDIGROUP);
-
-        bvp->s = state;
-        bvp->p = perm;
-        bvp->timeout = timeout;
 
         /* pull out each name/value pair */
         for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
@@ -592,20 +513,32 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             bvp->nbp = n;
             bvp->bp  = bp;
 
-            INDI::Property *indiProp  = new INDI::Property(bvp);
-            indiProp->setBaseDevice(this);
-            indiProp->setDynamic(true);
-
-            pAll.push_back(indiProp);
-            //IDLog("Adding BLOB property %s to list.\n", bvp->name);
-            if (mediator)
-                mediator->newProperty(indiProp);
+            indiProp  = new INDI::Property(bvp);
         }
         else
         {
             IDLog("%s: newBLOBVector with no valid members\n", rname);
             delete (bvp);
         }
+    }
+
+    if (indiProp)
+    {
+        indiProp->setBaseDevice(this);
+        indiProp->setDynamic(true);
+        indiProp->setDeviceName(deviceID);
+        indiProp->setName(rname);
+        indiProp->setLabel(findXMLAttValu(root, "label"));
+        indiProp->setGroupName(findXMLAttValu(root, "group"));
+        indiProp->setPermission(perm);
+        indiProp->setState(state);
+        indiProp->setTimeout(atoi(findXMLAttValu(root, "timeout")));
+
+        pAll.push_back(indiProp);
+
+        //IDLog("Adding number property %s to list.\n", indiProp->getName());
+        if (mediator)
+            mediator->newProperty(indiProp);
     }
 
     return (0);
