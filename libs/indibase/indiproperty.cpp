@@ -19,6 +19,7 @@
 #include "indiproperty.h"
 
 #include <cstdlib>
+#include <cstring>
 
 namespace INDI
 {
@@ -176,12 +177,100 @@ BaseDevice *Property::getBaseDevice() const
     return dp;
 }
 
+void Property::setName(const char *name)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: strncpy(static_cast<INumberVectorProperty *>(pPtr)->name, name, MAXINDINAME); break;
+        case INDI_TEXT:   strncpy(static_cast<ITextVectorProperty   *>(pPtr)->name, name, MAXINDINAME); break;
+        case INDI_SWITCH: strncpy(static_cast<ISwitchVectorProperty *>(pPtr)->name, name, MAXINDINAME); break;
+        case INDI_LIGHT:  strncpy(static_cast<ILightVectorProperty  *>(pPtr)->name, name, MAXINDINAME); break;
+        case INDI_BLOB:   strncpy(static_cast<IBLOBVectorProperty   *>(pPtr)->name, name, MAXINDINAME); break;
+        default:;
+    }
+}
+
+void Property::setLabel(const char *label)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: strncpy(static_cast<INumberVectorProperty *>(pPtr)->label, label, MAXINDILABEL); break;
+        case INDI_TEXT:   strncpy(static_cast<ITextVectorProperty   *>(pPtr)->label, label, MAXINDILABEL); break;
+        case INDI_SWITCH: strncpy(static_cast<ISwitchVectorProperty *>(pPtr)->label, label, MAXINDILABEL); break;
+        case INDI_LIGHT:  strncpy(static_cast<ILightVectorProperty  *>(pPtr)->label, label, MAXINDILABEL); break;
+        case INDI_BLOB:   strncpy(static_cast<IBLOBVectorProperty   *>(pPtr)->label, label, MAXINDILABEL); break;
+        default:;
+    }
+}
+
+void Property::setGroupName(const char *group)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: strncpy(static_cast<INumberVectorProperty *>(pPtr)->group, group, MAXINDIGROUP); break;
+        case INDI_TEXT:   strncpy(static_cast<ITextVectorProperty   *>(pPtr)->group, group, MAXINDIGROUP); break;
+        case INDI_SWITCH: strncpy(static_cast<ISwitchVectorProperty *>(pPtr)->group, group, MAXINDIGROUP); break;
+        case INDI_LIGHT:  strncpy(static_cast<ILightVectorProperty  *>(pPtr)->group, group, MAXINDIGROUP); break;
+        case INDI_BLOB:   strncpy(static_cast<IBLOBVectorProperty   *>(pPtr)->group, group, MAXINDIGROUP); break;
+        default:;
+    }
+}
+
+void Property::setDeviceName(const char *device)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: strncpy(static_cast<INumberVectorProperty *>(pPtr)->device, device, MAXINDIDEVICE); break;
+        case INDI_TEXT:   strncpy(static_cast<ITextVectorProperty   *>(pPtr)->device, device, MAXINDIDEVICE); break;
+        case INDI_SWITCH: strncpy(static_cast<ISwitchVectorProperty *>(pPtr)->device, device, MAXINDIDEVICE); break;
+        case INDI_LIGHT:  strncpy(static_cast<ILightVectorProperty  *>(pPtr)->device, device, MAXINDIDEVICE); break;
+        case INDI_BLOB:   strncpy(static_cast<IBLOBVectorProperty   *>(pPtr)->device, device, MAXINDIDEVICE); break;
+        default:;
+    }
+}
+
+void Property::setTimestamp(const char *timestamp)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: strncpy(static_cast<INumberVectorProperty *>(pPtr)->timestamp, timestamp, MAXINDITSTAMP); break;
+        case INDI_TEXT:   strncpy(static_cast<ITextVectorProperty   *>(pPtr)->timestamp, timestamp, MAXINDITSTAMP); break;
+        case INDI_SWITCH: strncpy(static_cast<ISwitchVectorProperty *>(pPtr)->timestamp, timestamp, MAXINDITSTAMP); break;
+        case INDI_LIGHT:  strncpy(static_cast<ILightVectorProperty  *>(pPtr)->timestamp, timestamp, MAXINDITSTAMP); break;
+        case INDI_BLOB:   strncpy(static_cast<IBLOBVectorProperty   *>(pPtr)->timestamp, timestamp, MAXINDITSTAMP); break;
+        default:;
+    }
+}
+
+void Property::setState(IPState state)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: static_cast<INumberVectorProperty *>(pPtr)->s = state; break;
+        case INDI_TEXT:   static_cast<ITextVectorProperty   *>(pPtr)->s = state; break;
+        case INDI_SWITCH: static_cast<ISwitchVectorProperty *>(pPtr)->s = state; break;
+        case INDI_LIGHT:  static_cast<ILightVectorProperty  *>(pPtr)->s = state; break;
+        case INDI_BLOB:   static_cast<IBLOBVectorProperty   *>(pPtr)->s = state; break;
+        default:;
+    }
+}
+
+void Property::setPermission(IPerm permission)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: static_cast<INumberVectorProperty *>(pPtr)->p = permission; break;
+        case INDI_TEXT:   static_cast<ITextVectorProperty   *>(pPtr)->p = permission; break;
+        case INDI_SWITCH: static_cast<ISwitchVectorProperty *>(pPtr)->p = permission; break;
+        //case INDI_LIGHT:  static_cast<ILightVectorProperty  *>(pPtr)->p = permission; break;
+        case INDI_BLOB:   static_cast<IBLOBVectorProperty   *>(pPtr)->p = permission; break;
+        default:;
+    }
+}
+
 const char *Property::getName() const
 {
-    if (pPtr == nullptr)
-        return nullptr;
-
-    switch (pType)
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
     {
         case INDI_NUMBER: return (static_cast<INumberVectorProperty *>(pPtr)->name);
         case INDI_TEXT:   return (static_cast<ITextVectorProperty   *>(pPtr)->name);
@@ -194,10 +283,7 @@ const char *Property::getName() const
 
 const char *Property::getLabel() const
 {
-    if (pPtr == nullptr)
-        return nullptr;
-
-    switch (pType)
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
     {
         case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->label;
         case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->label;
@@ -211,10 +297,7 @@ const char *Property::getLabel() const
 
 const char *Property::getGroupName() const
 {
-    if (pPtr == nullptr)
-        return nullptr;
-
-    switch (pType)
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
     {
         case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->group;
         case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->group;
@@ -227,10 +310,7 @@ const char *Property::getGroupName() const
 
 const char *Property::getDeviceName() const
 {
-    if (pPtr == nullptr)
-        return nullptr;
-
-    switch (pType)
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
     {
         case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->device;
         case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->device;
@@ -244,10 +324,7 @@ const char *Property::getDeviceName() const
 
 const char *Property::getTimestamp() const
 {
-    if (pPtr == nullptr)
-        return nullptr;
-
-    switch (pType)
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
     {
         case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->timestamp;
         case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->timestamp;
@@ -260,10 +337,7 @@ const char *Property::getTimestamp() const
 
 IPState Property::getState() const
 {
-    if (pPtr == nullptr)
-        return IPS_ALERT;
-
-    switch (pType)
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
     {
         case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->s;
         case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->s;
@@ -276,10 +350,7 @@ IPState Property::getState() const
 
 IPerm Property::getPermission() const
 {
-    if (pPtr == nullptr)
-        return IP_RO;
-
-    switch (pType)
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
     {
         case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->p;
         case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->p;
@@ -291,45 +362,40 @@ IPerm Property::getPermission() const
 
 INumberVectorProperty *Property::getNumber() const
 {
-    if (pPtr != nullptr)
-        if (pType == INDI_NUMBER)
-            return static_cast <INumberVectorProperty * > (pPtr);
+    if (pType == INDI_NUMBER)
+        return static_cast <INumberVectorProperty * > (pPtr);
 
     return nullptr;
 }
 
 ITextVectorProperty *Property::getText() const
 {
-    if (pPtr != nullptr)
-        if (pType == INDI_TEXT)
-            return static_cast <ITextVectorProperty * > (pPtr);
+    if (pType == INDI_TEXT)
+        return static_cast <ITextVectorProperty * > (pPtr);
 
     return nullptr;
 }
 
 ILightVectorProperty *Property::getLight() const
 {
-    if (pPtr != nullptr)
-        if (pType == INDI_LIGHT)
-            return static_cast <ILightVectorProperty * > (pPtr);
+    if (pType == INDI_LIGHT)
+        return static_cast <ILightVectorProperty * > (pPtr);
 
     return nullptr;
 }
 
 ISwitchVectorProperty *Property::getSwitch() const
 {
-    if (pPtr != nullptr)
-        if (pType == INDI_SWITCH)
-            return static_cast <ISwitchVectorProperty * > (pPtr);
+    if (pType == INDI_SWITCH)
+        return static_cast <ISwitchVectorProperty * > (pPtr);
 
     return nullptr;
 }
 
 IBLOBVectorProperty *Property::getBLOB() const
 {
-    if (pPtr != nullptr)
-        if (pType == INDI_BLOB)
-            return static_cast <IBLOBVectorProperty * > (pPtr);
+    if (pType == INDI_BLOB)
+        return static_cast <IBLOBVectorProperty * > (pPtr);
 
     return nullptr;
 }

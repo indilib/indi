@@ -58,6 +58,15 @@ public:
     BaseDevice *getBaseDevice() const;
 
 public: // Convenience Functions
+    void setName(const char *name);
+    void setLabel(const char *label);
+    void setGroupName(const char *groupName);
+    void setDeviceName(const char *deviceName);
+    void setTimestamp(const char *timestamp);
+    void setState(IPState state);
+    void setPermission(IPerm permission);
+
+public: // Convenience Functions
     const char *getName() const;
     const char *getLabel() const;
     const char *getGroupName() const;
