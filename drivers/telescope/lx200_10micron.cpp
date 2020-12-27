@@ -20,6 +20,13 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+/** \file lx200_10micron.cpp
+    \brief Implementation of the driver for the 10micron mounts.
+
+    \example lx200_10micron.cpp
+    The 10micron mount implementation contains an example for TLE-based satellite tracking.
+*/
+
 #include "lx200_10micron.h"
 #include "indicom.h"
 #include "lx200driver.h"
@@ -827,7 +834,6 @@ bool LX200_10MICRON::TrackSat()
     // S# the transit has already started, slewing to catch the satellite
     // Q# the transit has already ended, no slew occurs
     // Available from version 2.13.20.
-    LOG_INFO("Tracking satellite");
     char command[7];
     snprintf(command, sizeof(command), ":TLES#");
     if ( !isSimulation() )

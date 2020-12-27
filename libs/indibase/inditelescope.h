@@ -790,27 +790,45 @@ class Telescope : public DefaultDevice
         const char * getPierSideStr(TelescopePierSide ps);
 
         // Satellite tracking
-        IText TLEtoTrackT[1] {};
+        /**
+         * \brief Text Vector property defining the orbital elements of an artificial satellite (TLE).
+         * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
+         */
         ITextVectorProperty TLEtoTrackTP;
-        /// Satellite window elements
-        enum SATELLITE_WINDOW
+        IText TLEtoTrackT[1] {};
+        /**
+         * \struct SatelliteWindow
+         * \brief Satellite pass: window start and end.
+         */
+        enum
         {
             SAT_PASS_WINDOW_START, ///< Index for start of the window
             SAT_PASS_WINDOW_END, ///< Index for end of the window
             SAT_PASS_WINDOW_COUNT ///< Number of indices
-        };
-        IText SatPassWindowT[SAT_PASS_WINDOW_COUNT] {};
+        } SatelliteWindow;
+        /**
+         * \brief Text Vector property defining the start and end of a satellite pass (window contains pass).
+         * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
+         */
         ITextVectorProperty SatPassWindowTP;
-        /// Possible states for the satellite tracking
-        enum SATELLITE_TRACKING
+        IText SatPassWindowT[SAT_PASS_WINDOW_COUNT] {};
+        /**
+         * \struct SatelliteTracking
+         * \brief Possible states for the satellite tracking.
+         */
+        enum
         {
             SAT_TRACK, ///< Track signal
             SAT_HALT, ///< Halt signal (abort)
             SAT_TRACK_COUNT ///< State counter
-        };
-        ISwitch TrackSatS[SAT_TRACK_COUNT];
+        } SatelliteTracking;
+        /**
+         * \brief Switch Vector property defining the state of the satellite tracking of the mount.
+         * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
+         */
         ISwitchVectorProperty TrackSatSP;
-
+        ISwitch TrackSatS[SAT_TRACK_COUNT];
+        
         // PEC State
         ISwitch PECStateS[2];
         ISwitchVectorProperty PECStateSP;
