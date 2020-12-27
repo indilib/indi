@@ -181,10 +181,10 @@ bool Telescope::initProperties()
         struct std::tm *utctimeinfo = std::gmtime(&t);
         strftime(curTime, sizeof(curTime), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
         
-        IUFillText(&SatPassWindowT[1], "SAT_PASS_WINDOW_END", "End UTC", curTime);
-        IUFillText(&SatPassWindowT[0], "SAT_PASS_WINDOW_START", "Start UTC", curTime);
-        IUFillTextVector(&SatPassWindowTP, SatPassWindowT, 2, getDeviceName(), "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB,
-        IP_RW, 60, IPS_IDLE);
+        IUFillText(&SatPassWindowT[SAT_PASS_WINDOW_END], "SAT_PASS_WINDOW_END", "End UTC", curTime);
+        IUFillText(&SatPassWindowT[SAT_PASS_WINDOW_START], "SAT_PASS_WINDOW_START", "Start UTC", curTime);
+        IUFillTextVector(&SatPassWindowTP, SatPassWindowT, SAT_PASS_WINDOW_COUNT, getDeviceName(),
+        "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
         IUFillSwitch(&TrackSatS[SAT_TRACK], "SAT_TRACK", "Track", ISS_OFF);
         IUFillSwitch(&TrackSatS[SAT_HALT], "SAT_HALT", "Halt", ISS_ON);

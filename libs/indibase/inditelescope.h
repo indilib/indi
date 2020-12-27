@@ -792,13 +792,21 @@ class Telescope : public DefaultDevice
         // Satellite tracking
         IText TLEtoTrackT[1] {};
         ITextVectorProperty TLEtoTrackTP;
-        IText SatPassWindowT[2] {};
+        /// Satellite window elements
+        enum SATELLITE_WINDOW
+        {
+            SAT_PASS_WINDOW_START, ///< Index for start of the window
+            SAT_PASS_WINDOW_END, ///< Index for end of the window
+            SAT_PASS_WINDOW_COUNT ///< Number of indices
+        };
+        IText SatPassWindowT[SAT_PASS_WINDOW_COUNT] {};
         ITextVectorProperty SatPassWindowTP;
+        /// Possible states for the satellite tracking
         enum SATELLITE_TRACKING
         {
-            SAT_TRACK,
-            SAT_HALT,
-            SAT_TRACK_COUNT
+            SAT_TRACK, ///< Track signal
+            SAT_HALT, ///< Halt signal (abort)
+            SAT_TRACK_COUNT ///< State counter
         };
         ISwitch TrackSatS[SAT_TRACK_COUNT];
         ISwitchVectorProperty TrackSatSP;

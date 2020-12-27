@@ -1281,7 +1281,7 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         if (strcmp(name, "SAT_PASS_WINDOW") == 0)
         {
             IUUpdateText(&SatPassWindowTP, texts, names, n);
-            if (0 == CalculateSatTrajectory(SatPassWindowT[0].text, SatPassWindowT[1].text))
+            if (0 == CalculateSatTrajectory(SatPassWindowT[SAT_PASS_WINDOW_START].text, SatPassWindowT[SAT_PASS_WINDOW_END].text))
             {
                 SatPassWindowTP.s = IPS_OK;
                 IDSetText(&SatPassWindowTP, nullptr);
