@@ -268,6 +268,19 @@ void Property::setPermission(IPerm permission)
     }
 }
 
+void Property::setTimeout(double timeout)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: static_cast<INumberVectorProperty *>(pPtr)->timeout = timeout; break;
+        case INDI_TEXT:   static_cast<ITextVectorProperty   *>(pPtr)->timeout = timeout; break;
+        case INDI_SWITCH: static_cast<ISwitchVectorProperty *>(pPtr)->timeout = timeout; break;
+        //case INDI_LIGHT:  static_cast<ILightVectorProperty  *>(pPtr)->timeout = timeout; break;
+        case INDI_BLOB:   static_cast<IBLOBVectorProperty   *>(pPtr)->timeout = timeout; break;
+        default:;
+    }
+}
+
 const char *Property::getName() const
 {
     switch (pPtr != nullptr ? pType : INDI_UNKNOWN)

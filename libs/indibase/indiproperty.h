@@ -65,6 +65,7 @@ public: // Convenience Functions
     void setTimestamp(const char *timestamp);
     void setState(IPState state);
     void setPermission(IPerm permission);
+    void setTimeout(double timeout);
 
 public: // Convenience Functions
     const char *getName() const;
