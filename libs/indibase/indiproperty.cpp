@@ -183,18 +183,12 @@ const char *Property::getName() const
 
     switch (pType)
     {
-        case INDI_NUMBER:
-            return (static_cast<INumberVectorProperty *>(pPtr)->name);
-        case INDI_TEXT:
-            return (static_cast<ITextVectorProperty *>(pPtr)->name);
-        case INDI_SWITCH:
-            return (static_cast<ISwitchVectorProperty *>(pPtr)->name);
-        case INDI_LIGHT:
-            return (static_cast<ILightVectorProperty *>(pPtr)->name);
-        case INDI_BLOB:
-            return (static_cast<IBLOBVectorProperty *>(pPtr)->name);
-        default:
-            return nullptr;
+        case INDI_NUMBER: return (static_cast<INumberVectorProperty *>(pPtr)->name);
+        case INDI_TEXT:   return (static_cast<ITextVectorProperty   *>(pPtr)->name);
+        case INDI_SWITCH: return (static_cast<ISwitchVectorProperty *>(pPtr)->name);
+        case INDI_LIGHT:  return (static_cast<ILightVectorProperty  *>(pPtr)->name);
+        case INDI_BLOB:   return (static_cast<IBLOBVectorProperty   *>(pPtr)->name);
+        default: return nullptr;
     }
 }
 
@@ -205,18 +199,12 @@ const char *Property::getLabel() const
 
     switch (pType)
     {
-        case INDI_NUMBER:
-            return static_cast <INumberVectorProperty * >(pPtr)->label;
-        case INDI_TEXT:
-            return static_cast <ITextVectorProperty * >(pPtr)->label;
-        case INDI_SWITCH:
-            return static_cast <ISwitchVectorProperty * >(pPtr)->label;
-        case INDI_LIGHT:
-            return static_cast <ILightVectorProperty * >(pPtr)->label;
-        case INDI_BLOB:
-            return static_cast <IBLOBVectorProperty * >(pPtr)->label;
-        default:
-            return nullptr;
+        case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->label;
+        case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->label;
+        case INDI_SWITCH: return static_cast <ISwitchVectorProperty *>(pPtr)->label;
+        case INDI_LIGHT:  return static_cast <ILightVectorProperty  *>(pPtr)->label;
+        case INDI_BLOB:   return static_cast <IBLOBVectorProperty   *>(pPtr)->label;
+        default: return nullptr;
     }
 }
 
@@ -228,18 +216,12 @@ const char *Property::getGroupName() const
 
     switch (pType)
     {
-        case INDI_NUMBER:
-            return static_cast <INumberVectorProperty * >(pPtr)->group;
-        case INDI_TEXT:
-            return static_cast <ITextVectorProperty * >(pPtr)->group;
-        case INDI_SWITCH:
-            return static_cast <ISwitchVectorProperty * >(pPtr)->group;
-        case INDI_LIGHT:
-            return static_cast <ILightVectorProperty * >(pPtr)->group;
-        case INDI_BLOB:
-            return static_cast <IBLOBVectorProperty * >(pPtr)->group;
-        default:
-            return nullptr;
+        case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->group;
+        case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->group;
+        case INDI_SWITCH: return static_cast <ISwitchVectorProperty *>(pPtr)->group;
+        case INDI_LIGHT:  return static_cast <ILightVectorProperty  *>(pPtr)->group;
+        case INDI_BLOB:   return static_cast <IBLOBVectorProperty   *>(pPtr)->group;
+        default:          return nullptr;
     }
 }
 
@@ -250,18 +232,12 @@ const char *Property::getDeviceName() const
 
     switch (pType)
     {
-        case INDI_NUMBER:
-            return static_cast <INumberVectorProperty * >(pPtr)->device;
-        case INDI_TEXT:
-            return static_cast <ITextVectorProperty * >(pPtr)->device;
-        case INDI_SWITCH:
-            return static_cast <ISwitchVectorProperty * >(pPtr)->device;
-        case INDI_LIGHT:
-            return static_cast <ILightVectorProperty * >(pPtr)->device;
-        case INDI_BLOB:
-            return static_cast <IBLOBVectorProperty * >(pPtr)->device;
-        default:
-            return nullptr;
+        case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->device;
+        case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->device;
+        case INDI_SWITCH: return static_cast <ISwitchVectorProperty *>(pPtr)->device;
+        case INDI_LIGHT:  return static_cast <ILightVectorProperty  *>(pPtr)->device;
+        case INDI_BLOB:   return static_cast <IBLOBVectorProperty   *>(pPtr)->device;
+        default:          return nullptr;
     }
 }
 
@@ -273,18 +249,12 @@ const char *Property::getTimestamp() const
 
     switch (pType)
     {
-        case INDI_NUMBER:
-            return static_cast <INumberVectorProperty * >(pPtr)->timestamp;
-        case INDI_TEXT:
-            return static_cast <ITextVectorProperty * >(pPtr)->timestamp;
-        case INDI_SWITCH:
-            return static_cast <ISwitchVectorProperty * >(pPtr)->timestamp;
-        case INDI_LIGHT:
-            return static_cast <ILightVectorProperty * >(pPtr)->timestamp;
-        case INDI_BLOB:
-            return static_cast <IBLOBVectorProperty * >(pPtr)->timestamp;
-        default:
-            return nullptr;
+        case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->timestamp;
+        case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->timestamp;
+        case INDI_SWITCH: return static_cast <ISwitchVectorProperty *>(pPtr)->timestamp;
+        case INDI_LIGHT:  return static_cast <ILightVectorProperty  *>(pPtr)->timestamp;
+        case INDI_BLOB:   return static_cast <IBLOBVectorProperty   *>(pPtr)->timestamp;
+        default:          return nullptr;
     }
 }
 
@@ -295,18 +265,12 @@ IPState Property::getState() const
 
     switch (pType)
     {
-        case INDI_NUMBER:
-            return static_cast <INumberVectorProperty * >(pPtr)->s;
-        case INDI_TEXT:
-            return static_cast <ITextVectorProperty * >(pPtr)->s;
-        case INDI_SWITCH:
-            return static_cast <ISwitchVectorProperty * >(pPtr)->s;
-        case INDI_LIGHT:
-            return static_cast <ILightVectorProperty * >(pPtr)->s;
-        case INDI_BLOB:
-            return static_cast <IBLOBVectorProperty * >(pPtr)->s;
-        default:
-            return IPS_ALERT;
+        case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->s;
+        case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->s;
+        case INDI_SWITCH: return static_cast <ISwitchVectorProperty *>(pPtr)->s;
+        case INDI_LIGHT:  return static_cast <ILightVectorProperty  *>(pPtr)->s;
+        case INDI_BLOB:   return static_cast <IBLOBVectorProperty   *>(pPtr)->s;
+        default:          return IPS_ALERT;
     }
 }
 
@@ -317,16 +281,11 @@ IPerm Property::getPermission() const
 
     switch (pType)
     {
-        case INDI_NUMBER:
-            return static_cast <INumberVectorProperty * >(pPtr)->p;
-        case INDI_TEXT:
-            return static_cast <ITextVectorProperty * >(pPtr)->p;
-        case INDI_SWITCH:
-            return static_cast <ISwitchVectorProperty * >(pPtr)->p;
-        case INDI_BLOB:
-            return static_cast <IBLOBVectorProperty * >(pPtr)->p;
-        default:
-            return IP_RO;
+        case INDI_NUMBER: return static_cast <INumberVectorProperty *>(pPtr)->p;
+        case INDI_TEXT:   return static_cast <ITextVectorProperty   *>(pPtr)->p;
+        case INDI_SWITCH: return static_cast <ISwitchVectorProperty *>(pPtr)->p;
+        case INDI_BLOB:   return static_cast <IBLOBVectorProperty   *>(pPtr)->p;
+        default:          return IP_RO;
     }
 }
 
