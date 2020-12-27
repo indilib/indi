@@ -32,65 +32,53 @@ class BaseDevice;
 */
 class Property
 {
-    public:
-        Property();
-        Property(void *property, INDI_PROPERTY_TYPE type);
-        Property(INumberVectorProperty *property);
-        Property(ITextVectorProperty   *property);
-        Property(ISwitchVectorProperty *property);
-        Property(ILightVectorProperty  *property);
-        Property(IBLOBVectorProperty   *property);
+public:
+    Property();
+    Property(void *property, INDI_PROPERTY_TYPE type);
+    Property(INumberVectorProperty *property);
+    Property(ITextVectorProperty   *property);
+    Property(ISwitchVectorProperty *property);
+    Property(ILightVectorProperty  *property);
+    Property(IBLOBVectorProperty   *property);
 
-        ~Property();
+    ~Property();
 
-        void setProperty(void *);
-        void setType(INDI_PROPERTY_TYPE t);
-        void setRegistered(bool r);
-        void setDynamic(bool d);
-        void setBaseDevice(BaseDevice *idp);
+public:
+    void setProperty(void *);
+    void setType(INDI_PROPERTY_TYPE t);
+    void setRegistered(bool r);
+    void setDynamic(bool d);
+    void setBaseDevice(BaseDevice *idp);
 
-        void *getProperty() const
-        {
-            return pPtr;
-        }
-        INDI_PROPERTY_TYPE getType() const
-        {
-            return pType;
-        }
-        bool getRegistered() const
-        {
-            return pRegistered;
-        }
-        bool isDynamic() const
-        {
-            return pDynamic;
-        }
-        BaseDevice *getBaseDevice() const
-        {
-            return dp;
-        }
+public:
+    void *getProperty() const;
+    INDI_PROPERTY_TYPE getType() const;
+    bool getRegistered() const;
+    bool isDynamic() const;
+    BaseDevice *getBaseDevice() const;
 
-        // Convenience Functions
-        const char *getName() const;
-        const char *getLabel() const;
-        const char *getGroupName() const;
-        const char *getDeviceName() const;
-        const char *getTimestamp() const;
-        IPState getState() const;
-        IPerm getPermission() const;
+public: // Convenience Functions
+    const char *getName() const;
+    const char *getLabel() const;
+    const char *getGroupName() const;
+    const char *getDeviceName() const;
+    const char *getTimestamp() const;
+    IPState getState() const;
+    IPerm getPermission() const;
 
-        INumberVectorProperty *getNumber() const;
-        ITextVectorProperty *getText() const;
-        ISwitchVectorProperty *getSwitch() const;
-        ILightVectorProperty *getLight() const;
-        IBLOBVectorProperty *getBLOB() const;
+public:
+    INumberVectorProperty *getNumber() const;
+    ITextVectorProperty *getText() const;
+    ISwitchVectorProperty *getSwitch() const;
+    ILightVectorProperty *getLight() const;
+    IBLOBVectorProperty *getBLOB() const;
 
-    private:
-        void *pPtr = nullptr;
-        BaseDevice *dp = nullptr;
-        INDI_PROPERTY_TYPE pType = INDI_UNKNOWN;
-        bool pRegistered = false;
-        bool pDynamic = false;
+private:
+    void *pPtr = nullptr;
+    BaseDevice *dp = nullptr;
+    INDI_PROPERTY_TYPE pType = INDI_UNKNOWN;
+    bool pRegistered = false;
+    bool pDynamic = false;
 };
 
 } // namespace INDI

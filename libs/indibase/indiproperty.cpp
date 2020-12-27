@@ -151,6 +151,31 @@ void Property::setBaseDevice(BaseDevice *idp)
     dp = idp;
 }
 
+void *Property::getProperty() const
+{
+    return pPtr;
+}
+
+INDI_PROPERTY_TYPE Property::getType() const
+{
+    return pType;
+}
+
+bool Property::getRegistered() const
+{
+    return pRegistered;
+}
+
+bool Property::isDynamic() const
+{
+    return pDynamic;
+}
+
+BaseDevice *Property::getBaseDevice() const
+{
+    return dp;
+}
+
 const char *Property::getName() const
 {
     if (pPtr == nullptr)
