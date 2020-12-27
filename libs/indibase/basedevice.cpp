@@ -280,12 +280,12 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         INumber *np = nullptr;
 
         /* pull out each name/value pair */
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
             if (!strcmp(tagXMLEle(ep), "defNumber"))
             {
                 np = static_cast<INumber *>(realloc(np, (n + 1) * sizeof(INumber)));
-                INumber *it = &np[n];
+                INumber *it = &np[n++];
                 it->nvp = nvp;
 
                 XMLAtt *na = findXMLAtt(ep, "name");
@@ -344,12 +344,12 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             svp->r = ISR_1OFMANY;
 
         /* pull out each name/value pair */
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
             if (!strcmp(tagXMLEle(ep), "defSwitch"))
             {
                 sp = static_cast<ISwitch *>(realloc(sp, (n + 1) * sizeof(ISwitch)));
-                ISwitch *it = &sp[n];
+                ISwitch *it = &sp[n++];
                 it->svp = svp;
 
                 XMLAtt *na = findXMLAtt(ep, "name");
@@ -386,12 +386,12 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         IText *tp                = nullptr;
 
         // pull out each name/value pair
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
             if (!strcmp(tagXMLEle(ep), "defText"))
             {
                 tp = static_cast<IText *>(realloc(tp, (n + 1) * sizeof(IText)));
-                IText *it = &tp[n];
+                IText *it = &tp[n++];
                 it->tvp = tvp;
 
                 XMLAtt *na = findXMLAtt(ep, "name");
@@ -431,12 +431,12 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         ILight *lp                = nullptr;
 
         /* pull out each name/value pair */
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
             if (!strcmp(tagXMLEle(ep), "defLight"))
             {
                 lp = static_cast<ILight *>(realloc(lp, (n + 1) * sizeof(ILight)));
-                ILight *it = &lp[n];
+                ILight *it = &lp[n++];
                 it->lvp = lvp;
 
                 XMLAtt *na = findXMLAtt(ep, "name");
@@ -473,12 +473,12 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         IBLOB *bp                = nullptr;
 
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
             if (!strcmp(tagXMLEle(ep), "defBLOB"))
             {
                 bp = static_cast<IBLOB *>(realloc(bp, (n + 1) * sizeof(IBLOB)));
-                IBLOB *it = &bp[n];
+                IBLOB *it = &bp[n++];
                 it->bvp = bvp;
 
                 XMLAtt *na = findXMLAtt(ep, "name");
