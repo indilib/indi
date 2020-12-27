@@ -285,37 +285,37 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             if (!strcmp(tagXMLEle(ep), "defNumber"))
             {
                 np = static_cast<INumber *>(realloc(np, (n + 1) * sizeof(INumber)));
-
-                np[n].nvp = nvp;
+                INumber *it = &np[n];
+                it->nvp = nvp;
 
                 XMLAtt *na = findXMLAtt(ep, "name");
 
                 if (na)
                 {
-                    if (f_scansexa(pcdataXMLEle(ep), &(np[n].value)) < 0)
+                    if (f_scansexa(pcdataXMLEle(ep), &(it->value)) < 0)
                         IDLog("%s: Bad format %s\n", rname, pcdataXMLEle(ep));
                     else
                     {
-                        strncpy(np[n].name, valuXMLAtt(na), MAXINDINAME);
-                        np[n].aux0 = nullptr;
-                        np[n].aux1 = nullptr;
+                        strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+                        it->aux0 = nullptr;
+                        it->aux1 = nullptr;
 
                         na = findXMLAtt(ep, "label");
                         if (na)
-                            strncpy(np[n].label, valuXMLAtt(na), MAXINDILABEL);
+                            strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
                         na = findXMLAtt(ep, "format");
                         if (na)
-                            strncpy(np[n].format, valuXMLAtt(na), MAXINDIFORMAT);
+                            strncpy(it->format, valuXMLAtt(na), MAXINDIFORMAT);
 
                         na = findXMLAtt(ep, "min");
                         if (na)
-                            np[n].min = atof(valuXMLAtt(na));
+                            it->min = atof(valuXMLAtt(na));
                         na = findXMLAtt(ep, "max");
                         if (na)
-                            np[n].max = atof(valuXMLAtt(na));
+                            it->max = atof(valuXMLAtt(na));
                         na = findXMLAtt(ep, "step");
                         if (na)
-                            np[n].step = atof(valuXMLAtt(na));
+                            it->step = atof(valuXMLAtt(na));
                     }
                 }
             }
@@ -349,20 +349,20 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             if (!strcmp(tagXMLEle(ep), "defSwitch"))
             {
                 sp = static_cast<ISwitch *>(realloc(sp, (n + 1) * sizeof(ISwitch)));
-
-                sp[n].svp = svp;
+                ISwitch *it = &sp[n];
+                it->svp = svp;
 
                 XMLAtt *na = findXMLAtt(ep, "name");
 
                 if (na)
                 {
-                    crackISState(pcdataXMLEle(ep), &(sp[n].s));
-                    strncpy(sp[n].name, valuXMLAtt(na), MAXINDINAME);
-                    sp[n].aux = nullptr;
+                    crackISState(pcdataXMLEle(ep), &(it->s));
+                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+                    it->aux = nullptr;
 
                     na = findXMLAtt(ep, "label");
                     if (na)
-                        strncpy(sp[n].label, valuXMLAtt(na), MAXINDILABEL);
+                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
                 }
             }
         }
@@ -391,23 +391,23 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             if (!strcmp(tagXMLEle(ep), "defText"))
             {
                 tp = static_cast<IText *>(realloc(tp, (n + 1) * sizeof(IText)));
-
-                tp[n].tvp = tvp;
+                IText *it = &tp[n];
+                it->tvp = tvp;
 
                 XMLAtt *na = findXMLAtt(ep, "name");
 
                 if (na)
                 {
-                    tp[n].text = static_cast<char *>(malloc((pcdatalenXMLEle(ep) * sizeof(char)) + 1));
-                    strncpy(tp[n].text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
-                    tp[n].text[pcdatalenXMLEle(ep)] = '\0';
-                    tp[n].aux0 = nullptr;
-                    tp[n].aux1 = nullptr;
-                    strncpy(tp[n].name, valuXMLAtt(na), MAXINDINAME);
+                    it->text = static_cast<char *>(malloc((pcdatalenXMLEle(ep) * sizeof(char)) + 1));
+                    strncpy(it->text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
+                    it->text[pcdatalenXMLEle(ep)] = '\0';
+                    it->aux0 = nullptr;
+                    it->aux1 = nullptr;
+                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
 
                     na = findXMLAtt(ep, "label");
                     if (na)
-                        strncpy(tp[n].label, valuXMLAtt(na), MAXINDILABEL);
+                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
                 }
             }
         }
@@ -436,20 +436,20 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             if (!strcmp(tagXMLEle(ep), "defLight"))
             {
                 lp = static_cast<ILight *>(realloc(lp, (n + 1) * sizeof(ILight)));
-
-                lp[n].lvp = lvp;
+                ILight *it = &lp[n];
+                it->lvp = lvp;
 
                 XMLAtt *na = findXMLAtt(ep, "name");
 
                 if (na)
                 {
-                    crackIPState(pcdataXMLEle(ep), &(lp[n].s));
-                    strncpy(lp[n].name, valuXMLAtt(na), MAXINDINAME);
-                    lp[n].aux = nullptr;
+                    crackIPState(pcdataXMLEle(ep), &(it->s));
+                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+                    it->aux = nullptr;
 
                     na = findXMLAtt(ep, "label");
                     if (na)
-                        strncpy(lp[n].label, valuXMLAtt(na), MAXINDILABEL);
+                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
                 }
             }
         }
@@ -478,32 +478,32 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             if (!strcmp(tagXMLEle(ep), "defBLOB"))
             {
                 bp = static_cast<IBLOB *>(realloc(bp, (n + 1) * sizeof(IBLOB)));
-
-                bp[n].bvp = bvp;
+                IBLOB *it = &bp[n];
+                it->bvp = bvp;
 
                 XMLAtt *na = findXMLAtt(ep, "name");
 
                 if (na)
                 {
-                    strncpy(bp[n].name, valuXMLAtt(na), MAXINDINAME);
+                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
 
                     na = findXMLAtt(ep, "label");
                     if (na)
-                        strncpy(bp[n].label, valuXMLAtt(na), MAXINDILABEL);
+                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
 
                     na = findXMLAtt(ep, "format");
                     if (na)
-                        strncpy(bp[n].label, valuXMLAtt(na), MAXINDIBLOBFMT);
+                        strncpy(it->label, valuXMLAtt(na), MAXINDIBLOBFMT);
 
                     // Initialize everything to zero
 
                     // Seed for realloc
-                    bp[n].blob    = nullptr;
-                    bp[n].size    = 0;
-                    bp[n].bloblen = 0;
-                    bp[n].aux0    = nullptr;
-                    bp[n].aux1    = nullptr;
-                    bp[n].aux2    = nullptr;
+                    it->blob    = nullptr;
+                    it->size    = 0;
+                    it->bloblen = 0;
+                    it->aux0    = nullptr;
+                    it->aux1    = nullptr;
+                    it->aux2    = nullptr;
                 }
             }
         }
