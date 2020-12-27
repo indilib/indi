@@ -275,7 +275,6 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     {
         AutoCNumeric locale;
 
-        INDI::Property *indiProp   = new INDI::Property();
         INumberVectorProperty *nvp = new INumberVectorProperty;
 
         INumber *np = nullptr;
@@ -337,10 +336,9 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             nvp->nnp = n;
             nvp->np  = np;
 
+            INDI::Property *indiProp = new INDI::Property(nvp);
             indiProp->setBaseDevice(this);
-            indiProp->setProperty(nvp);
             indiProp->setDynamic(true);
-            indiProp->setType(INDI_NUMBER);
 
             pAll.push_back(indiProp);
 
@@ -352,12 +350,10 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newNumberVector with no valid members\n", rname);
             delete (nvp);
-            delete (indiProp);
         }
     }
     else if (!strcmp(rtag, "defSwitchVector"))
     {
-        INDI::Property *indiProp   = new INDI::Property();
         ISwitchVectorProperty *svp = new ISwitchVectorProperty;
 
         ISwitch *sp = nullptr;
@@ -403,11 +399,9 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             svp->nsp = n;
             svp->sp  = sp;
-
+            INDI::Property *indiProp = new INDI::Property(svp);
             indiProp->setBaseDevice(this);
-            indiProp->setProperty(svp);
             indiProp->setDynamic(true);
-            indiProp->setType(INDI_SWITCH);
 
             pAll.push_back(indiProp);
             //IDLog("Adding Switch property %s to list.\n", svp->name);
@@ -418,13 +412,11 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newSwitchVector with no valid members\n", rname);
             delete (svp);
-            delete (indiProp);
         }
     }
 
     else if (!strcmp(rtag, "defTextVector"))
     {
-        INDI::Property *indiProp = new INDI::Property();
         ITextVectorProperty *tvp = new ITextVectorProperty;
         IText *tp                = nullptr;
         int n                    = 0;
@@ -470,10 +462,9 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             tvp->ntp = n;
             tvp->tp  = tp;
 
+            INDI::Property *indiProp = new INDI::Property(tvp);
             indiProp->setBaseDevice(this);
-            indiProp->setProperty(tvp);
             indiProp->setDynamic(true);
-            indiProp->setType(INDI_TEXT);
 
             pAll.push_back(indiProp);
 
@@ -485,12 +476,10 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newTextVector with no valid members\n", rname);
             delete (tvp);
-            delete (indiProp);
         }
     }
     else if (!strcmp(rtag, "defLightVector"))
     {
-        INDI::Property *indiProp  = new INDI::Property();
         ILightVectorProperty *lvp = new ILightVectorProperty;
         ILight *lp                = nullptr;
         int n                     = 0;
@@ -531,10 +520,9 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             lvp->nlp = n;
             lvp->lp  = lp;
 
+            INDI::Property *indiProp  = new INDI::Property(lvp);
             indiProp->setBaseDevice(this);
-            indiProp->setProperty(lvp);
             indiProp->setDynamic(true);
-            indiProp->setType(INDI_LIGHT);
 
             pAll.push_back(indiProp);
 
@@ -546,12 +534,10 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newLightVector with no valid members\n", rname);
             delete (lvp);
-            delete (indiProp);
         }
     }
     else if (!strcmp(rtag, "defBLOBVector"))
     {
-        INDI::Property *indiProp = new INDI::Property();
         IBLOBVectorProperty *bvp = new IBLOBVectorProperty;
         IBLOB *bp                = nullptr;
         int n                    = 0;
@@ -606,10 +592,9 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             bvp->nbp = n;
             bvp->bp  = bp;
 
+            INDI::Property *indiProp  = new INDI::Property(bvp);
             indiProp->setBaseDevice(this);
-            indiProp->setProperty(bvp);
             indiProp->setDynamic(true);
-            indiProp->setType(INDI_BLOB);
 
             pAll.push_back(indiProp);
             //IDLog("Adding BLOB property %s to list.\n", bvp->name);
@@ -620,7 +605,6 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newBLOBVector with no valid members\n", rname);
             delete (bvp);
-            delete (indiProp);
         }
     }
 
