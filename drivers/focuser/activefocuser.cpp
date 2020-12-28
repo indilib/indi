@@ -161,8 +161,6 @@ bool ActiveFocuser::initProperties() {
 
     INDI::Focuser::initProperties();
 
-    addDebugControl();
-
     setVersion(DRIVER_VERSION_MAJOR, DRIVER_VERSION_MINOR);
 
     // Adding version display
