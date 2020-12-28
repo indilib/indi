@@ -28,11 +28,6 @@ public:
         return "AlignmentScope";
     }
 
-    virtual bool ReadScopeStatus() override
-    {
-        return true;
-    }
-
     bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override
     {
         if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -98,11 +93,13 @@ public:
     {
         // TODO: Implement your own code to read the RA/Dec from the scope.
         // mountRA should be in decimal hours.
-        double mountRA, mountDec;
+        double mountRA = 0, mountDec = 0;
 
         ln_equ_posn eq = TelescopeEquatorialToSky(range24(mountRA), rangeDec(mountDec));
 
         NewRaDec(decimalDegreesToDecimalHours(eq.ra), eq.dec);
+
+        return true;
     }
 
     virtual bool Sync(double ra, double dec) override
@@ -144,6 +141,44 @@ public:
         }
 
         return false;
+    }
+
+    ln_equ_posn SkyToTelescopeEquatorial(double ra, double dec)
+    {
+        ln_equ_posn eq{0, 0};
+        TelescopeDirectionVector TDV;
+        double RightAscension, Declination;
+
+        if (GetAlignmentDatabase().size() > 1)
+        {
+            if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
+            {
+                LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, eq);
+
+                //  and now we have to convert from lha back to RA
+                double LST = get_local_sidereal_time(lnobserver.lng);
+                eq.ra = eq.ra * 24 / 360;
+                RightAscension = LST - eq.ra;
+                RightAscension = range24(RightAscension);
+                Declination = eq.dec;
+            }
+            else
+            {
+                RightAscension = ra;
+                Declination = dec;
+            }
+        }
+        else
+        {
+            RightAscension = ra;
+            Declination = dec;
+        }
+
+        // again, ln_equ_posn should have ra in decimal degrees
+        eq.ra = decimalHoursToDecimalDegrees(RightAscension);
+        eq.dec = Declination;
+
+        return eq;
     }
 
     // uses the alignment subsystem to convert a mount RA/Dec to actual RA/Dec.

@@ -92,6 +92,10 @@ TEST(ALIGNMENT_TEST, Test_ThreeSyncPoints)
     s.AddAlignmentEntry(decimalDegreesToDecimalHours(MizarJ2000.ra), MizarJ2000.dec);
 
     ln_equ_posn pos1 = s.TelescopeEquatorialToSky(decimalDegreesToDecimalHours(VegaJ2000.ra), VegaJ2000.dec);
+    ln_equ_posn pos1RoundTrip = s.SkyToTelescopeEquatorial(decimalDegreesToDecimalHours(pos1.ra), pos1.dec);
+
+    ASSERT_DOUBLE_EQ(round(VegaJ2000.ra, 1), round(pos1RoundTrip.ra, 1));
+    ASSERT_DOUBLE_EQ(round(VegaJ2000.dec, 6), round(pos1RoundTrip.dec, 6));
 
     // I would expect these to be much closer than one decimal place off
     ASSERT_DOUBLE_EQ(round(pos1.ra, 1), round(VegaJ2000.ra, 1));
