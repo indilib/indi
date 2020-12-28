@@ -512,8 +512,7 @@ void Imager::newProperty(INDI::Property *property)
 
     if (strcmp(property->getName(), INDI::SP::CONNECTION) == 0)
     {
-        bool state = ((ISwitchVectorProperty *)property->getProperty())->sp[0].s != ISS_OFF;
-
+        bool state = property->getSwitch()->sp[0].s != ISS_OFF;
         if (deviceName == controlledCCD)
         {
             if (state)
