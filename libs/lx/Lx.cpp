@@ -562,13 +562,9 @@ int Lx::stopLxSerial()
 
 INDI::Property *Lx::findbyLabel(INDI::DefaultDevice *dev, char *label)
 {
-    auto allprops = dev->getProperties();
-
-    for (auto it = allprops->begin(); it != allprops->end(); ++it)
-    {
-        if (!(strcmp((*it)->getLabel(), label)))
-            return *it;
-    }
+    for(const auto &oneProperty: *dev->getProperties())
+        if (!strcmp(oneProperty->getLabel(), label))
+            return oneProperty;
     return nullptr;
 }
 
