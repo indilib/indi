@@ -19,6 +19,7 @@
 #pragma once
 
 #include "indibase.h"
+#include <utility>
 
 namespace INDI
 {
@@ -77,6 +78,16 @@ public: // Convenience Functions
     IPerm getPermission() const;
 
 public:
+    void save(FILE *fp);
+
+public:
+    template <typename ... Args>
+    void apply(const char *format = nullptr, Args &&... args);
+
+    template <typename ... Args>
+    void define(const char *format = nullptr, Args &&... args);
+
+public:
     INumberVectorProperty *getNumber() const;
     ITextVectorProperty *getText() const;
     ISwitchVectorProperty *getSwitch() const;
@@ -90,5 +101,39 @@ private:
     bool pRegistered = false;
     bool pDynamic = false;
 };
+
+
+
+
+
+
+template <typename ... Args>
+void Property::apply(const char *format, Args &&... args)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: IDSetNumber(getNumber(), format, std::forward<Args>(args)...); break;
+        case INDI_TEXT:   IDSetText(getText(),     format, std::forward<Args>(args)...); break;
+        case INDI_SWITCH: IDSetSwitch(getSwitch(), format, std::forward<Args>(args)...); break;
+        case INDI_LIGHT:  IDSetLight(getLight(),   format, std::forward<Args>(args)...); break;
+        case INDI_BLOB:   IDSetBLOB(getBLOB(),     format, std::forward<Args>(args)...); break;
+        default:;;
+    }
+}
+
+template <typename ... Args>
+void Property::define(const char *format, Args &&... args)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: IDDefNumber(getNumber(), format, std::forward<Args>(args)...); break;
+        case INDI_TEXT:   IDDefText(getText(),     format, std::forward<Args>(args)...); break;
+        case INDI_SWITCH: IDDefSwitch(getSwitch(), format, std::forward<Args>(args)...); break;
+        case INDI_LIGHT:  IDDefLight(getLight(),   format, std::forward<Args>(args)...); break;
+        case INDI_BLOB:   IDDefBLOB(getBLOB(),     format, std::forward<Args>(args)...); break;
+        default:;;
+    }
+}
+
 
 } // namespace INDI

@@ -21,6 +21,44 @@
 #include <cstdlib>
 #include <cstring>
 
+//#include "indidriver.h"
+void IUSaveConfigNumber(FILE *, const INumberVectorProperty *) __attribute__((weak));
+static void check_IUSaveConfigNumber(FILE *f, const INumberVectorProperty *v)
+{
+    if (IUSaveConfigNumber)
+        IUSaveConfigNumber(f, v);
+    else
+        fprintf(stderr, "Cannot save INumberVectorProperty. Please add indidriver to linker.\n");
+}
+
+void IUSaveConfigText(FILE *, const ITextVectorProperty *) __attribute__((weak));
+static void check_IUSaveConfigText(FILE *f, const ITextVectorProperty *v)
+{
+    if (IUSaveConfigText)
+        IUSaveConfigText(f, v);
+    else
+        fprintf(stderr, "Cannot save ITextVectorProperty. Please add indidriver to linker.\n");
+}
+
+void IUSaveConfigSwitch(FILE *, const ISwitchVectorProperty *) __attribute__((weak));
+static void check_IUSaveConfigSwitch(FILE *f, const ISwitchVectorProperty *v)
+{
+    if (IUSaveConfigSwitch)
+        IUSaveConfigSwitch(f, v);
+    else
+        fprintf(stderr, "Cannot save ISwitchVectorProperty. Please add indidriver to linker.\n");
+}
+
+void IUSaveConfigBLOB(FILE *, const IBLOBVectorProperty *) __attribute__((weak));
+static void check_IUSaveConfigBLOB(FILE *f, const IBLOBVectorProperty *v)
+{
+    if (IUSaveConfigBLOB)
+        IUSaveConfigBLOB(f, v);
+    else
+        fprintf(stderr, "Cannot save IBLOBVectorProperty. Please add indidriver to linker.\n");
+}
+
+
 namespace INDI
 {
 
@@ -175,6 +213,19 @@ bool Property::isDynamic() const
 BaseDevice *Property::getBaseDevice() const
 {
     return dp;
+}
+
+void Property::save(FILE *fp)
+{
+    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    {
+        case INDI_NUMBER: check_IUSaveConfigNumber (fp, getNumber()); break;
+        case INDI_TEXT:   check_IUSaveConfigText   (fp, getText());   break;
+        case INDI_SWITCH: check_IUSaveConfigSwitch (fp, getSwitch()); break;
+        //case INDI_LIGHT:  check_IUSaveConfigLight  (fp, getLight());  break;
+        case INDI_BLOB:   check_IUSaveConfigBLOB   (fp, getBLOB());   break;
+        default:;;
+    }
 }
 
 void Property::setName(const char *name)
