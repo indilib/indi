@@ -44,6 +44,10 @@ namespace INDI
 class BaseDevice
 {
     public:
+        //typedef std::deque<INDI::Property> Properties; // future
+        typedef std::vector<INDI::Property*> Properties;
+
+    public:
         BaseDevice();
         virtual ~BaseDevice();
 
@@ -131,11 +135,11 @@ class BaseDevice
             \return If property is found, it is returned. To be used you must use static_cast with given the type of property
             returned.
         */
-        INDI::Property *getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
+        Property *getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
 
         /** \brief Return a list of all properties in the device.
         */
-        std::vector<INDI::Property *> *getProperties()
+        Properties *getProperties()
         {
             return &pAll;
         }
@@ -235,7 +239,7 @@ class BaseDevice
     private:
         char *deviceID;
 
-        std::vector<INDI::Property *> pAll;
+        Properties pAll;
 
         LilXML *lp;
 
