@@ -89,6 +89,11 @@ extern const char *GUIDE_TAB;
 extern const char *ALIGNMENT_TAB;
 
 /**
+ * @brief SATELLITE_TAB
+ */
+extern const char *SATELLITE_TAB;
+
+/**
  * @brief INFO_TAB Where all the properties for general information are located.
  */
 extern const char *INFO_TAB;
