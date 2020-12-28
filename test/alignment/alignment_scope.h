@@ -6,9 +6,23 @@
 
 using namespace INDI::AlignmentSubsystem;
 
+double decimalHoursToDecimalDegrees(double decimalHours)
+{
+    return (decimalHours * 360.0) / 24.0;
+}
+
+double decimalDegreesToDecimalHours(double decimalDegrees)
+{
+    return (decimalDegrees * 24.0) / 360.0;
+}
+
 class Scope : public INDI::Telescope, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
 public:
+    Scope()
+    {
+    }
+
     virtual const char *getDefaultName() override
     {
         return "AlignmentScope";
@@ -73,18 +87,46 @@ public:
         return INDI::Telescope::Handshake();
     }
 
-protected:
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override
+    {
+        UpdateLocation(latitude, longitude, elevation);
+        updateObserverLocation(latitude, longitude, elevation);
+        return true;
+    }
+
+    virtual bool ReadScopeStatus() override
+    {
+        // TODO: Implement your own code to read the RA/Dec from the scope.
+        // mountRA should be in decimal hours.
+        double mountRA, mountDec;
+
+        ln_equ_posn eq = TelescopeEquatorialToSky(range24(mountRA), rangeDec(mountDec));
+
+        NewRaDec(decimalDegreesToDecimalHours(eq.ra), eq.dec);
+    }
+
     virtual bool Sync(double ra, double dec) override
     {
-        // These values should be the location of where the mount thinks it is.
-        double mountRa = ra, mountDec = dec;
+        return AddAlignmentEntry(ra, dec);
+    }
+
+    // adds an entry to the alignment database.
+    // ra is in decimal hours
+    // returns true if an entry was added, otherwise false
+    bool AddAlignmentEntry(double ra, double dec)
+    {
+        double LST = get_local_sidereal_time(lnobserver.lng);
+
+        // This should be the mounts RA/Dec, but for now we are adding a "perfect" sync point.
+        struct ln_equ_posn RaDec
+        {
+            0, 0
+        };
+        RaDec.ra = range360(((LST - ra) * 360.0) / 24.0);
+        RaDec.dec = dec;
 
         AlignmentDatabaseEntry NewEntry;
-        struct ln_equ_posn RaDec;
-        RaDec.ra = range360((mountRa * 360.0) / 24.0); // Convert decimal hours to decimal degrees
-        RaDec.dec = rangeDec(mountDec);
-
-        TelescopeDirectionVector TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
+        TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
 
         NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
         NewEntry.RightAscension = ra;
@@ -97,10 +139,54 @@ protected:
             GetAlignmentDatabase().push_back(NewEntry);
             UpdateSize();
             Initialise(this);
-            ReadScopeStatus();
+
+            return true;
         }
 
-        return true;
+        return false;
+    }
+
+    // uses the alignment subsystem to convert a mount RA/Dec to actual RA/Dec.
+    // ra should be in decimal hours
+    // ra and dec are where the mount thinks it is.
+    // Returns ln_eq_posn with decimal degrees for RA and Dec.
+    ln_equ_posn TelescopeEquatorialToSky(double ra, double dec)
+    {
+        double RightAscension, Declination;
+        ln_equ_posn eq{0, 0};
+
+        if (GetAlignmentDatabase().size() > 1)
+        {
+            TelescopeDirectionVector TDV;
+
+            double lha, lst;
+            lst = get_local_sidereal_time(lnobserver.lng);
+            lha = get_local_hour_angle(lst, ra);
+
+            eq.ra = decimalHoursToDecimalDegrees(lha);
+            eq.dec = dec;
+
+            TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
+
+            if (!TransformTelescopeToCelestial(TDV, RightAscension, Declination))
+            {
+                RightAscension = decimalDegreesToDecimalHours(eq.ra);
+                Declination = eq.dec;
+            }
+        }
+        else
+        {
+            // With less than 2 align points
+            // Just return raw data
+            RightAscension = ra;
+            Declination = dec;
+        }
+
+        // again, ln_equ_posn should have ra in decimal degrees
+        eq.ra = decimalHoursToDecimalDegrees(RightAscension);
+        eq.dec = Declination;
+
+        return eq;
     }
 };
 

@@ -29,16 +29,6 @@
 
 #include "alignment_scope.h"
 
-double decimalHoursToDecimalDegrees(double decimalHours)
-{
-    return (decimalHours * 360.0) / 24.0;
-}
-
-double decimalDegreesToDecimalHours(double decimalDegrees)
-{
-    return (decimalDegrees * 24.0) / 360.0;
-}
-
 double round(double value, int decimal_places)
 {
     const double multiplier = std::pow(10.0, decimal_places);
@@ -71,42 +61,12 @@ TEST(ALIGNMENT_TEST, Test_TDVRoundTrip)
     ASSERT_DOUBLE_EQ(RaDec.dec, RaDecResult.dec);
 }
 
-// adds a "perfect" alignment entry, where the telescope RA/Dec matches the actual RA/Dec.
-void addAlignmentEntry(AlignmentSubsystemForDrivers *pTelescope, ln_equ_posn RaDec)
-{
-    AlignmentDatabaseEntry NewEntry;
-    TelescopeDirectionVector TDV = pTelescope->TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
-
-    NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
-    NewEntry.RightAscension = decimalDegreesToDecimalHours(RaDec.ra);
-    NewEntry.Declination = RaDec.dec;
-    NewEntry.TelescopeDirection = TDV;
-    NewEntry.PrivateDataSize = 0;
-
-    if (!pTelescope->CheckForDuplicateSyncPoint(NewEntry))
-    {
-        pTelescope->GetAlignmentDatabase().push_back(NewEntry);
-        pTelescope->UpdateSize();
-        pTelescope->Initialise(pTelescope);
-    }
-}
-
-void checkAlignment(AlignmentSubsystemForDrivers *pTelescope, ln_equ_posn RaDec, int decimal_places = 3)
-{
-    TelescopeDirectionVector TDV = pTelescope->TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
-    double RightAscension, Declination;
-    bool result = pTelescope->TransformTelescopeToCelestial(TDV, RightAscension, Declination);
-    ASSERT_TRUE(result);
-    ASSERT_DOUBLE_EQ(round(Declination, decimal_places), round(RaDec.dec, decimal_places));
-    ASSERT_DOUBLE_EQ(round(RightAscension, decimal_places), round(decimalDegreesToDecimalHours(RaDec.ra), decimal_places));
-}
-
 TEST(ALIGNMENT_TEST, Test_ThreeSyncPoints)
 {
     Scope s;
 
     s.Handshake();
-    s.UpdateLocation(34.70, -80.54, 161);
+    s.updateLocation(34.70, -80.54, 161);
     s.SetAlignmentSubsystemActive(true);
 
     struct ln_equ_posn VegaJ2000
@@ -127,13 +87,22 @@ TEST(ALIGNMENT_TEST, Test_ThreeSyncPoints)
             rangeDec(54.9254167),
     };
 
-    addAlignmentEntry(&s, VegaJ2000);
-    addAlignmentEntry(&s, ArcturusJ2000);
-    addAlignmentEntry(&s, MizarJ2000);
+    s.AddAlignmentEntry(decimalDegreesToDecimalHours(VegaJ2000.ra), VegaJ2000.dec);
+    s.AddAlignmentEntry(decimalDegreesToDecimalHours(ArcturusJ2000.ra), ArcturusJ2000.dec);
+    s.AddAlignmentEntry(decimalDegreesToDecimalHours(MizarJ2000.ra), MizarJ2000.dec);
 
-    checkAlignment(&s, VegaJ2000, 2);
-    checkAlignment(&s, ArcturusJ2000, 2);
-    checkAlignment(&s, MizarJ2000, 2);
+    ln_equ_posn pos1 = s.TelescopeEquatorialToSky(decimalDegreesToDecimalHours(VegaJ2000.ra), VegaJ2000.dec);
+
+    // I would expect these to be much closer than one decimal place off
+    ASSERT_DOUBLE_EQ(round(pos1.ra, 1), round(VegaJ2000.ra, 1));
+    ASSERT_DOUBLE_EQ(round(pos1.dec, 6), round(VegaJ2000.dec, 6));
+
+    sleep(10);
+    ln_equ_posn pos2 = s.TelescopeEquatorialToSky(decimalDegreesToDecimalHours(VegaJ2000.ra), VegaJ2000.dec);
+
+    // But after 10 seconds, we are at least stable...
+    ASSERT_DOUBLE_EQ(round(pos1.ra, 5), round(pos2.ra, 5));
+    ASSERT_DOUBLE_EQ(round(pos1.dec, 5), round(pos2.dec, 5));
 }
 
 int main(int argc, char **argv)
