@@ -138,9 +138,7 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
 
 int BaseDevice::removeProperty(const char *name, char *errmsg)
 {
-    std::vector<INDI::Property *>::iterator orderi;
-
-    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
+    for (auto orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
     {
         const auto &oneProp = *orderi;
         if (!strcmp(name, oneProp->getName()))
