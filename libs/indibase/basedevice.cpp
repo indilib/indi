@@ -148,9 +148,6 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
             if (mediator)
                 mediator->removeProperty(oneProp);
 
-            if (oneProp->getType() == INDI_BLOB)
-                oneProp->setRegistered(false);
-
             delete oneProp;
             orderi = pAll.erase(orderi);
             return 0;
