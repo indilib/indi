@@ -201,9 +201,9 @@ int getCommandInt(int fd, int *value, const char *cmd);
 /* Get tracking frequency */
 int getTrackFreq(int fd, double *value);
 /* Get site Latitude */
-int getSiteLatitude(int fd, int *dd, int *mm);
+int getSiteLatitude(int fd, int *dd, int *mm, double *ssf);
 /* Get site Longitude */
-int getSiteLongitude(int fd, int *ddd, int *mm);
+int getSiteLongitude(int fd, int *ddd, int *mm, double *ssf);
 /* Get Calender data */
 int getCalendarDate(int fd, char *date);
 /* Get site Name */

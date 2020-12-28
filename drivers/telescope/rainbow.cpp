@@ -1387,6 +1387,7 @@ bool Rainbow::sendScopeTime()
 bool Rainbow::sendScopeLocation()
 {
     int dd = 0, mm = 0;
+    double ssf = 0.0;
 
     if (isSimulation())
     {
@@ -1398,7 +1399,7 @@ bool Rainbow::sendScopeLocation()
         return true;
     }
 
-    if (getSiteLatitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLatitude(PortFD, &dd, &mm, &ssf) < 0)
     {
         LOG_WARN("Failed to get site latitude from device.");
         return false;
@@ -1411,7 +1412,7 @@ bool Rainbow::sendScopeLocation()
             LocationNP.np[0].value = dd - mm / 60.0;
     }
 
-    if (getSiteLongitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
     {
         LOG_WARN("Failed to get site longitude from device.");
         return false;

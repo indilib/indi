@@ -933,7 +933,8 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     }
     int ddd = 0;
     int fmm = 0;
-    if (getSiteLongitude(PortFD, &ddd, &fmm) < 0)
+    double ssf = 0.0;
+    if (getSiteLongitude(PortFD, &ddd, &fmm, &ssf) < 0)
     {
         LOG_DEBUG("Reading longitude failed :Gg %d");
     }

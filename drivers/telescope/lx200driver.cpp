@@ -46,7 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #define RB_MAX_LEN    64
 
 
-int controller_format;
+int controller_format; /* For possible values see enum TFormat */
 char lx200Name[MAXINDIDEVICE];
 /* ESN DEBUG */
 unsigned int DBG_SCOPE = 8;
@@ -80,9 +80,9 @@ int getCommandInt(int fd, int *value, const char *cmd);
 /* Get tracking frequency */
 int getTrackFreq(int fd, double *value);
 /* Get site Latitude */
-int getSiteLatitude(int fd, int *dd, int *mm);
+int getSiteLatitude(int fd, int *dd, int *mm, double *ssf);
 /* Get site Longitude */
-int getSiteLongitude(int fd, int *ddd, int *mm);
+int getSiteLongitude(int fd, int *ddd, int *mm, double *ssf);
 /* Get Calender data */
 int getCalendarDate(int fd, char *date);
 /* Get site Name */
@@ -119,7 +119,7 @@ int setUTCOffset(int fd, double hours);
 /* Set Track Freq */
 int setTrackFreq(int fd, double trackF);
 /* Set current site longitude */
-int setSiteLongitude(int fd, double Long);
+int setSiteLongitude(int fd, double CartographicLongitude);
 /* Set current site latitude */
 int setSiteLatitude(int fd, double Lat);
 /* Set Object Azimuth */
@@ -534,8 +534,17 @@ int getSiteName(int fd, char *siteName, int siteNum)
     return 0;
 }
 
-int getSiteLatitude(int fd, int *dd, int *mm)
+int getSiteLatitude(int fd, int *dd, int *mm, double *ssf)
 {
+    // :Gt# from 10Micron docs explaining the extensions to the standard LX200 protocol.
+    // Get current site latitude.
+    // Returns the latitude of the current site formatted as follows:
+    // Emulation and precision              Return value
+    // Any emulation, low precision         sDD*MM# (sign, degrees, minutes)
+    // LX200 emulation, high precision      sDD*MM# (sign, degrees, minutes)
+    // Extended emulation, high precision   sDD*MM:SS# (sign, degrees, arcminutes, arcseconds)
+    // Any emulation, ultra precision       sDD:MM:SS.S# (sign, degrees, arcminutes, arcseconds, tenths of arcsecond)
+    // Positive implies north latitude.
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
@@ -562,19 +571,35 @@ int getSiteLatitude(int fd, int *dd, int *mm)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
 
-    if (sscanf(read_buffer, "%d%*c%d", dd, mm) < 2)
+    *ssf = 0.0;
+    if (sscanf(read_buffer, "%d%*c%d:%lf", dd, mm, ssf) < 2)
     {
-        DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
+        DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse :Gt# response");
         return -1;
     }
 
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d,%d]", *dd, *mm);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d,%d,%.1lf]", *dd, *mm, *ssf);
 
     return 0;
 }
 
-int getSiteLongitude(int fd, int *ddd, int *mm)
+// Meade classic handset defines longitude as 0 to 360 WESTWARD. However,
+// Meade API expresses East Longitudes as negative, West Longitudes as positive.
+// Source: https://www.meade.com/support/LX200CommandSet.pdf from 2002 at :Gg#
+// (And also 10Micron has East Longitudes expressed as negative.)
+// Also note that this is the opposite of cartography where East is positive.
+int getSiteLongitude(int fd, int *ddd, int *mm, double *ssf)
 {
+    // :Gg# from 10Micron docs explaining the extensions to the standard LX200 protocol.
+    // Get current site longitude.
+    // Note: East Longitudes are expressed as negative.
+    // Returns the current site longitude formatted as follows:
+    // Emulation and precision               Return value
+    // Any emulation, low precision or LX200 sDDD*MM# (sign, degrees, arcminutes)
+    //  emulation, high precision
+    // Extended emulation, high precision    sDDD*MM:SS# (sign, degrees, arcminutes, arcseconds)
+    // Any emulation, ultra precision        sDDD:MM:SS.S# (sign, degrees, arcminutes, arcseconds, tenths of arcsecond)
+
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
@@ -599,13 +624,15 @@ int getSiteLongitude(int fd, int *ddd, int *mm)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
 
-    if (sscanf(read_buffer, "%d%*c%d", ddd, mm) < 2)
+    *ssf = 0.0;
+    if (sscanf(read_buffer, "%d%*c%d:%lf", ddd, mm, ssf) < 2)
     {
-        DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
+        DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse :Gg# response");
         return -1;
     }
+    *ddd *= -1.0; // Convert LX200Longitude to CartographicLongitude
 
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d,%d]", *ddd, *mm);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL in CartographicLongitude format [%d,%d,%.1lf]", *ddd, *mm, *ssf);
 
     return 0;
 }
@@ -1016,29 +1043,33 @@ int setUTCOffset(int fd, double hours)
     return (setStandardProcedure(fd, read_buffer));
 }
 
-// Meade defines longitude as 0 to 360 WESTWARD
-int setSiteLongitude(int fd, double Long)
+// Meade classic handset defines longitude as 0 to 360 WESTWARD. However,
+// Meade API expresses East Longitudes as negative, West Longitudes as positive.
+// Source: https://www.meade.com/support/LX200CommandSet.pdf from 2002 at :Gg#
+// (And also 10Micron has East Longitudes expressed as negative.)
+// Also note that this is the opposite of cartography where East is positive.
+int setSiteLongitude(int fd, double CartographicLongitude)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
     char read_buffer[RB_MAX_LEN]={0};
+    double LX200Longitude = -1.0 * CartographicLongitude;
 
 /* Add mutex */
 /*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
-
     switch (controller_format) {
     case LX200_SHORT_FORMAT: // d m
-        getSexComponents(Long, &d, &m, &s);
+        getSexComponents(LX200Longitude, &d, &m, &s);
         snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d#", d, m);
         break;
     case LX200_LONG_FORMAT: // d m s
-        getSexComponents(Long, &d, &m, &s);
+        getSexComponents(LX200Longitude, &d, &m, &s);
         snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d:%02d#", d, m, s);
         break;
-    case LX200_LONGER_FORMAT: // d m s.f with f being tenths of arcsecond
+    case LX200_LONGER_FORMAT: // d m s.f with f being tenths
         double s_f;
-        getSexComponentsIID(Long, &d, &m, &s_f);
-        snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d:%04.01f#", d, m, s_f);
+        getSexComponentsIID(LX200Longitude, &d, &m, &s_f);
+        snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d:%04.01lf#", d, m, s_f);
         break;
     default:
         DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", controller_format);
@@ -1066,10 +1097,10 @@ int setSiteLatitude(int fd, double Lat)
         getSexComponents(Lat, &d, &m, &s);
         snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d:%02d#", d, m, s);
         break;
-    case LX200_LONGER_FORMAT: // d m s.f with f being tenths of arcsecond
+    case LX200_LONGER_FORMAT: // d m s.f with f being tenths
         double s_f;
         getSexComponentsIID(Lat, &d, &m, &s_f);
-        snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d:%04.01f#", d, m, s_f);
+        snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d:%04.01lf#", d, m, s_f);
         break;
     default:
         DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", controller_format);
