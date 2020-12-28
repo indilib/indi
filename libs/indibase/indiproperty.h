@@ -20,6 +20,8 @@
 
 #include "indibase.h"
 #include <utility>
+#include "indiutility.h"
+#include <memory>
 
 namespace INDI
 {
@@ -31,8 +33,10 @@ class BaseDevice;
 
 \author Jasem Mutlaq
 */
+class PropertyPrivate;
 class Property
 {
+    DECLARE_PRIVATE(Property)
 public:
     Property();
     Property(void *property, INDI_PROPERTY_TYPE type);
@@ -94,12 +98,8 @@ public:
     ILightVectorProperty *getLight() const;
     IBLOBVectorProperty *getBLOB() const;
 
-private:
-    void *pPtr = nullptr;
-    BaseDevice *dp = nullptr;
-    INDI_PROPERTY_TYPE pType = INDI_UNKNOWN;
-    bool pRegistered = false;
-    bool pDynamic = false;
+protected:
+    std::shared_ptr<PropertyPrivate> d_ptr;
 };
 
 
@@ -110,7 +110,7 @@ private:
 template <typename ... Args>
 void Property::apply(const char *format, Args &&... args)
 {
-    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    switch (getType())
     {
         case INDI_NUMBER: IDSetNumber(getNumber(), format, std::forward<Args>(args)...); break;
         case INDI_TEXT:   IDSetText(getText(),     format, std::forward<Args>(args)...); break;
@@ -124,7 +124,7 @@ void Property::apply(const char *format, Args &&... args)
 template <typename ... Args>
 void Property::define(const char *format, Args &&... args)
 {
-    switch (pPtr != nullptr ? pType : INDI_UNKNOWN)
+    switch (getType())
     {
         case INDI_NUMBER: IDDefNumber(getNumber(), format, std::forward<Args>(args)...); break;
         case INDI_TEXT:   IDDefText(getText(),     format, std::forward<Args>(args)...); break;
