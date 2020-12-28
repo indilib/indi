@@ -32,28 +32,58 @@ class RainbowRSF : public INDI::Focuser
 {
     public:
         RainbowRSF();
-        virtual ~RainbowRSF() override = default;
+        //        virtual ~RainbowRSF() override = default;
 
-        virtual bool Handshake() override;
         const char *getDefaultName() override;
-        virtual bool initProperties() override;
-        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-        //        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        //        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-        //    protected:
+
+    protected:
         //        virtual IPState MoveAbsFocuser(uint32_t targetTicks);
         //        virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-        //        virtual bool FindTemperature();
-        //        virtual bool FindHome();
-        //        virtual void TimerHit();
+        //        virtual bool getTemperature();
+        //        virtual bool getHome();
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        //        virtual void TimerHit() override;
+        virtual bool Handshake() override;
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Focuser Command Functions
+        ///////////////////////////////////////////////////////////////////////////////
+        // Move focuser to absolute position from 0 to 16000 (-8000 to 8000)
+        //        virtual bool MoveAbsFocuser();
+        // Move focuser to a relative position from the current position
+        //        virtual bool MoveRelFocuser();
+        // Get temperature in Celcius
+        virtual bool GetTemperature();
+        // Find home
+        virtual bool findHome();
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Communication Functions
+        ///////////////////////////////////////////////////////////////////////////////
+        virtual bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        virtual void hexDump(char * buf, const char * data, int size);
 
     private:
 
-        IText FirmwareT[1] {};
-        ITextVectorProperty FirmwareTP;
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Properties
+        ///////////////////////////////////////////////////////////////////////////////
+        //        IText FirmwareT[1] {};
+        //        ITextVectorProperty FirmwareTP;
+        INumberVectorProperty CurrentAbsPositionNP;
+        INumber CurrentAbsPositionN[1];
 
+        INumberVectorProperty CurrentTempNP;
+        INumber CurrentTempN[1];
+
+        /////////////////////////////////////////////////////////////////////////////
+        /// Static Helper Values
+        /////////////////////////////////////////////////////////////////////////////
         // # is the stop char
         static const char DRIVER_STOP_CHAR { '#' };
         // Wait up to a maximum of 3 seconds for serial input
