@@ -170,6 +170,28 @@ bool Telescope::initProperties()
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate",
                            MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    if (CanTrackSatellite())
+    {
+        IUFillText(&TLEtoTrackT[0], "TLE", "TLE", "");
+        IUFillTextVector(&TLEtoTrackTP, TLEtoTrackT, 1, getDeviceName(), "SAT_TLE_TEXT", "Orbit Params", SATELLITE_TAB, 
+        IP_RW, 60, IPS_IDLE);
+
+        char curTime[32] = {0};
+        std::time_t t = std::time(nullptr);
+        struct std::tm *utctimeinfo = std::gmtime(&t);
+        strftime(curTime, sizeof(curTime), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
+        
+        IUFillText(&SatPassWindowT[SAT_PASS_WINDOW_END], "SAT_PASS_WINDOW_END", "End UTC", curTime);
+        IUFillText(&SatPassWindowT[SAT_PASS_WINDOW_START], "SAT_PASS_WINDOW_START", "Start UTC", curTime);
+        IUFillTextVector(&SatPassWindowTP, SatPassWindowT, SAT_PASS_WINDOW_COUNT, getDeviceName(),
+        "SAT_PASS_WINDOW", "Pass Window", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+
+        IUFillSwitch(&TrackSatS[SAT_TRACK], "SAT_TRACK", "Track", ISS_OFF);
+        IUFillSwitch(&TrackSatS[SAT_HALT], "SAT_HALT", "Halt", ISS_ON);
+        IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
+        "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    }
+
     IUFillSwitch(&ParkS[0], "PARK", "Park(ed)", ISS_OFF);
     IUFillSwitch(&ParkS[1], "UNPARK", "UnPark(ed)", ISS_OFF);
     IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "TELESCOPE_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW,
@@ -369,6 +391,13 @@ bool Telescope::updateProperties()
                 setSimulatePierSide(value == ISS_ON);
         }
 
+        if (CanTrackSatellite())
+        {
+            defineText(&TLEtoTrackTP);
+            defineText(&SatPassWindowTP);
+            defineSwitch(&TrackSatSP);
+        }
+
         if (HasPECState())
             defineSwitch(&PECStateSP);
 
@@ -421,6 +450,13 @@ bool Telescope::updateProperties()
             deleteProperty(SimulatePierSideSP.name);
             if (getSimulatePierSide() == true)
                 deleteProperty(PierSideSP.name);
+        }
+
+        if (CanTrackSatellite())
+        {
+            deleteProperty(TLEtoTrackTP.name);
+            deleteProperty(SatPassWindowTP.name);
+            deleteProperty(TrackSatSP.name);
         }
 
         if (HasPECState())

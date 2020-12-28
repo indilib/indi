@@ -20,6 +20,13 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+/** \file lx200_10micron.cpp
+    \brief Implementation of the driver for the 10micron mounts.
+
+    \example lx200_10micron.cpp
+    The 10micron mount implementation contains an example for TLE-based satellite tracking.
+*/
+
 #include "lx200_10micron.h"
 #include "indicom.h"
 #include "lx200driver.h"
@@ -32,8 +39,6 @@
 
 #define PRODUCT_TAB   "Product"
 #define ALIGNMENT_TAB "Alignment"
-#define SATELLITE_TAB "Satellite"
-
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 
 // INDI Number and Text names
@@ -58,9 +63,19 @@ LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
     setLX200Capability( LX200_HAS_TRACKING_FREQ | LX200_HAS_PULSE_GUIDING );
 
-    SetTelescopeCapability( TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT |
-        TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE |
-        TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE );
+    SetTelescopeCapability(
+        TELESCOPE_CAN_GOTO |
+        TELESCOPE_CAN_SYNC |
+        TELESCOPE_CAN_PARK |
+        TELESCOPE_CAN_ABORT |
+        TELESCOPE_HAS_TIME |
+        TELESCOPE_HAS_LOCATION |
+        TELESCOPE_HAS_PIER_SIDE |
+        TELESCOPE_HAS_TRACK_MODE |
+        TELESCOPE_CAN_CONTROL_TRACK |
+        TELESCOPE_HAS_TRACK_RATE |
+        TELESCOPE_CAN_TRACK_SATELLITE
+    );
 
     setVersion(1, 0);
 }
@@ -164,28 +179,9 @@ bool LX200_10MICRON::initProperties()
         IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(),
                          NEW_MODEL_NAME, "New Name", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
-        IUFillText(&TLEtoUploadT[0], "TLE", "TLE", "");
-        IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(),
-                         TLE_TEXT, "TLE", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
-
         IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 1, 1);
         IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
-                           TLE_NUMBER, "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
-
-        ln_get_date_from_sys(&today);
-        IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_YYYY], "YEAR", "Year (yyyy)", "%.0f", 0, 9999, 0, today.years);
-        IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM], "MONTH", "Month (mm)", "%.0f", 1, 12, 0, today.months);
-        IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_DD], "DAY", "Day (dd)", "%.0f", 1, 31, 0, today.days);
-        IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_HH24], "HOUR", "Hour 24 (hh)", "%.0f", 0, 24, 0, today.hours);
-        IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM60], "MINUTE", "Minute", "%.0f", 0, 60, 0, today.minutes);
-        IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM1440_NEXT], "COMING", "In the following # minutes", "%.0f", 0, 1440, 0, 0);
-        IUFillNumberVector(&CalculateSatTrajectoryForTimeNP, CalculateSatTrajectoryForTimeN, SAT_COUNT, getDeviceName(),
-                           TRAJECTORY_TIME, "Sat pass", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
-
-        IUFillSwitch(&TrackSatS[SAT_TRACK], "Track", "Track", ISS_OFF);
-        IUFillSwitch(&TrackSatS[SAT_HALT], "Halt", "Halt", ISS_ON);
-        IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(),
-                           SAT_TRACKING_STAT, "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                           "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
     }
     return result;
 }
@@ -216,10 +212,7 @@ bool LX200_10MICRON::updateProperties()
         defineNumber(&NewAlpNP);
         defineNumber(&NewAlignmentPointsNP);
         defineText(&NewModelNameTP);
-        defineText(&TLEtoUploadTP);
         defineNumber(&TLEfromDatabaseNP);
-        defineNumber(&CalculateSatTrajectoryForTimeNP);
-        defineSwitch(&TrackSatSP);
 
         // read UnAttendedFlip setting from config and apply if available
         int readit = 0;
@@ -231,7 +224,8 @@ bool LX200_10MICRON::updateProperties()
         {
             if (UnattendedFlipS[UnattendedFlip].s == ISS_ON)
             {
-                LOGF_INFO("Unattended Flip from config and mount are %s", (UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON) ? "enabled" : "disabled");
+                LOGF_INFO("Unattended Flip from config and mount are %s",
+                          (UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON) ? "enabled" : "disabled");
             }
             else
             {
@@ -260,10 +254,7 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(NewAlpNP.name);
         deleteProperty(NewAlignmentPointsNP.name);
         deleteProperty(NewModelNameTP.name);
-        deleteProperty(TLEtoUploadTP.name);
         deleteProperty(TLEfromDatabaseNP.name);
-        deleteProperty(CalculateSatTrajectoryForTimeNP.name);
-        deleteProperty(TrackSatSP.name);
     }
 
     return result;
@@ -383,7 +374,7 @@ bool LX200_10MICRON::getMountInfo()
     IUFillText(&ProductT[PRODUCT_FIRMWARE_VERSION], "FIRMWARE_VERSION", "Firmware Version", FirmwareVersion);
     IUFillText(&ProductT[PRODUCT_FIRMWARE_DATE], "FIRMWARE_DATE", "Firmware Date", FirmwareDate);
     IUFillTextVector(&ProductTP, ProductT, PRODUCT_COUNT, getDeviceName(),
-        PRODUCT_INFO, "Product", PRODUCT_TAB, IP_RO, 60, IPS_IDLE);
+                     PRODUCT_INFO, "Product", PRODUCT_TAB, IP_RO, 60, IPS_IDLE);
 
     defineText(&ProductTP);
 
@@ -456,7 +447,7 @@ bool LX200_10MICRON::ReadScopeStatus()
     // TODO: check if this needs changing when satellite tracking
     // Now parse the data. This format may consist of more parts some day
     nbytes_read = sscanf(data, "%g,%g,%c,%g,%g,%g,%d,%d#", &Ginfo.RA_JNOW, &Ginfo.DEC_JNOW, &Ginfo.SideOfPier,
-        &Ginfo.AZ, &Ginfo.ALT, &Ginfo.Jdate, &Ginfo.Gstat, &Ginfo.SlewStatus);
+                         &Ginfo.AZ, &Ginfo.ALT, &Ginfo.Jdate, &Ginfo.Gstat, &Ginfo.SlewStatus);
     if (nbytes_read < 0)
     {
         return false;
@@ -686,7 +677,7 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
     // V# valid format
     // Available from version 2.13.20.
     LOGF_INFO("The function is called with TLE %s", tle);
-    if (strlen(tle)>230)
+    if (strlen(tle) > 230)
     {
         LOG_WARN("TLE is too long");
     }
@@ -695,7 +686,8 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
     std::string sep = "$0a";
     std::string search = "\n";
     tle_str = (std::string) tle;
-    for( size_t pos = 0; ; pos += sep.length() ) {
+    for( size_t pos = 0; ; pos += sep.length() )
+    {
         // Locate the substring to replace
         pos = tle_str.find( search, pos );
         if( pos == std::string::npos ) break;
@@ -718,10 +710,10 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
         if (response[0] == 'E')
         {
             LOG_ERROR("Invalid formatting of TLE, trying to split:");
-            char *pch = strtok ((char*) tle,"\n");
+            char *pch = strtok ((char*) tle, "\n");
             while (pch != NULL)
-            {    
-                LOGF_INFO("%s\n",pch);
+            {
+                LOGF_INFO("%s\n", pch);
                 pch = strtok (NULL, "\n");
             }
             return 1;
@@ -729,16 +721,16 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
     }
     else
     {
-        char *pch = strtok ((char*) tle,"\n");
+        char *pch = strtok ((char*) tle, "\n");
         while (pch != NULL)
-        { 
-            LOGF_INFO("%s\n",pch);
+        {
+            LOGF_INFO("%s\n", pch);
             pch = strtok (NULL, "\n");
         }
     }
     return 0;
 }
-	
+
 bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
 {
     // #:TLEDLn#
@@ -771,7 +763,7 @@ bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
     return 0;
 }
 
-bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour, int minute, int nextpass, ln_date date_pass)
+bool LX200_10MICRON::CalculateSatTrajectory(std::string start_pass_isodatetime, std::string end_pass_isodatetime)
 {
     // #:TLEPJD,min#
     // Precalulates the first transit of the satellite with the currently loaded orbital elements,
@@ -784,39 +776,50 @@ bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour,
     // mark the beginning and the end of the given transit. Flags is a string which can be
     // empty or contain the letter F – meaning that mount will flip during the transit.
     // Available from version 2.13.20.
-    LOGF_INFO("Calculate trajectory is called with date: %d-%d-%d %d:%d pass %d",
-                year, month, day, hour, minute, nextpass);
-    date_pass.years = year;
-    date_pass.months = month;
-    date_pass.days = day;
-    date_pass.hours = hour;
-    date_pass.minutes = minute;
-    date_pass.seconds = 0.0;
-    JD = ln_get_julian_day(&date_pass);
+    struct ln_date start_pass;
+    if (extractISOTime(start_pass_isodatetime.c_str(), &start_pass) == -1)
+    {
+        LOGF_ERROR("Date/Time is invalid: %s.", start_pass_isodatetime.c_str());
+        return 1;
+    }
+
+    struct ln_date end_pass;
+    if (extractISOTime(end_pass_isodatetime.c_str(), &end_pass) == -1)
+    {
+        LOGF_ERROR("Date/Time is invalid: %s.", end_pass_isodatetime.c_str());
+        return 1;
+    }
+
+    double JD_start;
+    double JD_end;
+    JD_start = ln_get_julian_day(&start_pass);
+    JD_end = ln_get_julian_day(&end_pass);
+    int nextPassInMinutes = (int) std::min((int) ceil((JD_end - JD_start) * 24 * 60), 1440);
 
     char command[28];
-    snprintf(command, sizeof(command), ":TLEP%7.8f,%01d#", JD, nextpass);
-    LOGF_INFO("Julian day being %7.5f", JD);
+    snprintf(command, sizeof(command), ":TLEP%7.8f,%01d#", JD, nextPassInMinutes);
+    LOGF_INFO("Julian day %7.8f", JD_start);
+    LOGF_INFO("For the next %01d minutes", nextPassInMinutes);
     if ( !isSimulation() )
+    {
+        LOG_INFO(command);
+        char response[36];
+        if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 36) )
         {
-            LOG_INFO(command);
-            char response[36];
-            if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 36) )
-            {
-                LOG_ERROR("TLE calculate error");
-                return 1;
-            }
-            if (response[0] == 'E')
-            {
-                LOG_ERROR("TLE not loaded or invalid command");
-                return 1;
-            }
-            if (response[0] == 'N')
-            {
-                LOG_ERROR("No passes loaded");
-                return 1;
-            }
+            LOG_ERROR("TLE calculate error");
+            return 1;
         }
+        if (response[0] == 'E')
+        {
+            LOG_ERROR("TLE not loaded or invalid command");
+            return 1;
+        }
+        if (response[0] == 'N')
+        {
+            LOG_ERROR("No passes loaded");
+            return 1;
+        }
+    }
     return 0;
 }
 
@@ -831,7 +834,6 @@ bool LX200_10MICRON::TrackSat()
     // S# the transit has already started, slewing to catch the satellite
     // Q# the transit has already ended, no slew occurs
     // Available from version 2.13.20.
-    LOG_INFO("Tracking satellite");
     char command[7];
     snprintf(command, sizeof(command), ":TLES#");
     if ( !isSimulation() )
@@ -869,7 +871,7 @@ bool LX200_10MICRON::TrackSat()
             return 4;
         }
     }
-  return 0;
+    return 0;
 }
 
 int LX200_10MICRON::SetRefractionModelTemperature(double temperature)
@@ -1042,7 +1044,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
 
             IUUpdateNumber(&NewAlpNP, values, names, n);
             if (0 != AddSyncPoint(NewAlpN[ALP_MRA].value, NewAlpN[ALP_MDEC].value, NewAlpN[ALP_MSIDE].value,
-                    NewAlpN[ALP_PRA].value, NewAlpN[ALP_PDEC].value, NewAlpN[ALP_SIDTIME].value))
+                                  NewAlpN[ALP_PRA].value, NewAlpN[ALP_PDEC].value, NewAlpN[ALP_SIDTIME].value))
             {
                 LOG_ERROR("AddSyncPoint error");
                 NewAlpNP.s = IPS_ALERT;
@@ -1061,29 +1063,10 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             LOGF_INFO("New unnamed Model now has %d alignment points", NewAlignmentPointsN[0].value);
             return true;
         }
-        if (strcmp(name, TRAJECTORY_TIME) == 0)
-        {
-            IUUpdateNumber(&CalculateSatTrajectoryForTimeNP, values, names, n);
-            if (0 != CalculateTrajectory(CalculateSatTrajectoryForTimeN[SAT_YYYY].value,
-                                         CalculateSatTrajectoryForTimeN[SAT_MM].value,
-                                         CalculateSatTrajectoryForTimeN[SAT_DD].value,
-                                         CalculateSatTrajectoryForTimeN[SAT_HH24].value,
-                                         CalculateSatTrajectoryForTimeN[SAT_MM60].value,
-                                         CalculateSatTrajectoryForTimeN[SAT_MM1440_NEXT].value,
-                                         date_pass)
-                )
-              {
-                CalculateSatTrajectoryForTimeNP.s = IPS_ALERT;
-                IDSetNumber(&CalculateSatTrajectoryForTimeNP, nullptr);
-                return false;
-              }
-            CalculateSatTrajectoryForTimeNP.s = IPS_OK;
-            IDSetNumber(&CalculateSatTrajectoryForTimeNP, nullptr);
-            return true;
-        }
-        if (strcmp(name, TLE_NUMBER) == 0)
+        if (strcmp(name, "TLE_NUMBER") == 0)
         {
             LOG_INFO("I am trying to set from Database");
+
             IUUpdateNumber(&TLEfromDatabaseNP, values, names, n);
             if ( 0 != SetTLEfromDatabase(TLEfromDatabaseN[0].value) )
             {
@@ -1092,10 +1075,11 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
                 return false;
             }
             TLEfromDatabaseNP.s = IPS_OK;
-            TLEtoUploadTP.s = IPS_IDLE;
-            IDSetText(&TLEtoUploadTP, nullptr);
+            TLEtoTrackTP.s = IPS_IDLE;
+            IDSetText(&TLEtoTrackTP, nullptr);
             IDSetNumber(&TLEfromDatabaseNP, nullptr);
             LOGF_INFO("Selected TLE nr %.0f from database", TLEfromDatabaseN[0].value);
+
             return true;
         }
     }
@@ -1184,74 +1168,75 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             IDSetSwitch(&AlignmentSP, nullptr);
             return true;
         }
-
-        if (strcmp(TrackSatSP.name, name)==0)
+        if (strcmp(TrackSatSP.name, name) == 0)
         {
+
             IUUpdateSwitch(&TrackSatSP, states, names, n);
             int index    = IUFindOnSwitchIndex(&TrackSatSP);
 
             switch (index)
-              {
-              case SAT_TRACK:
-                if ( 0!=TrackSat() )
-                {
-                    TrackSatSP.s = IPS_ALERT;
+            {
+                case SAT_TRACK:
+                    if ( 0 != TrackSat() )
+                    {
+                        TrackSatSP.s = IPS_ALERT;
+                        IDSetSwitch(&TrackSatSP, nullptr);
+                        LOG_ERROR("Tracking failed");
+                        return false;
+                    }
+                    TrackSatSP.s = IPS_OK;
                     IDSetSwitch(&TrackSatSP, nullptr);
-                    LOG_ERROR("Tracking failed");
-                    return false;
-                }
-                TrackSatSP.s = IPS_OK;
-                IDSetSwitch(&TrackSatSP, nullptr);
-                LOG_INFO("Tracking satellite");
-                return true;
-              case SAT_HALT:
-                if ( !Abort() )
-                {
-                    TrackSatSP.s = IPS_ALERT;
+                    LOG_INFO("Tracking satellite");
+                    return true;
+                case SAT_HALT:
+                    if ( !Abort() )
+                    {
+                        TrackSatSP.s = IPS_ALERT;
+                        IDSetSwitch(&TrackSatSP, nullptr);
+                        LOG_ERROR("Halt failed");
+                        return false;
+                    }
+                    TrackSatSP.s = IPS_OK;
                     IDSetSwitch(&TrackSatSP, nullptr);
-                    LOG_ERROR("Halt failed");
+                    LOG_INFO("Halt tracking");
+                    return true;
+                default:
+                    TrackSatSP.s = IPS_ALERT;
+                    IDSetSwitch(&TrackSatSP, "Unknown tracking modus %d", index);
                     return false;
-                }
-                TrackSatSP.s = IPS_OK;
-                IDSetSwitch(&TrackSatSP, nullptr);
-                LOG_INFO("Halt tracking");
-                return true;
-              default:
-                TrackSatSP.s = IPS_ALERT;
-                IDSetSwitch(&TrackSatSP, "Unknown tracking modus %d", index);
-                return false;
-             }
+            }
         }
 
         if (strcmp(UnattendedFlipSP.name, name) == 0)
         {
             IUUpdateSwitch(&UnattendedFlipSP, states, names, n);
             int index    = IUFindOnSwitchIndex(&UnattendedFlipSP);
-            switch (index) {
-            case UNATTENDED_FLIP_DISABLED:
-                if (false == setUnattendedFlipSetting(false))
-                {
-                    LOG_ERROR("Setting unattended flip failed");
+            switch (index)
+            {
+                case UNATTENDED_FLIP_DISABLED:
+                    if (false == setUnattendedFlipSetting(false))
+                    {
+                        LOG_ERROR("Setting unattended flip failed");
+                        UnattendedFlipSP.s = IPS_ALERT;
+                        IDSetSwitch(&UnattendedFlipSP, nullptr);
+                        return false;
+                    }
+                    LOG_INFO("Unattended flip disabled");
+                    break;
+                case UNATTENDED_FLIP_ENABLED:
+                    if (false == setUnattendedFlipSetting(true))
+                    {
+                        LOG_ERROR("Setting unattended flip failed");
+                        UnattendedFlipSP.s = IPS_ALERT;
+                        IDSetSwitch(&UnattendedFlipSP, nullptr);
+                        return false;
+                    }
+                    LOG_INFO("Unattended flip enabled");
+                    break;
+                default:
                     UnattendedFlipSP.s = IPS_ALERT;
-                    IDSetSwitch(&UnattendedFlipSP, nullptr);
+                    IDSetSwitch(&UnattendedFlipSP, "Unknown unattended flip setting %d", index);
                     return false;
-                }
-                LOG_INFO("Unattended flip disabled");
-                break;
-            case UNATTENDED_FLIP_ENABLED:
-                if (false == setUnattendedFlipSetting(true))
-                {
-                    LOG_ERROR("Setting unattended flip failed");
-                    UnattendedFlipSP.s = IPS_ALERT;
-                    IDSetSwitch(&UnattendedFlipSP, nullptr);
-                    return false;
-                }
-                LOG_INFO("Unattended flip enabled");
-                break;
-            default:
-                UnattendedFlipSP.s = IPS_ALERT;
-                IDSetSwitch(&UnattendedFlipSP, "Unknown unattended flip setting %d", index);
-                return false;
             }
             UnattendedFlipSP.s = IPS_OK;
             IDSetSwitch(&UnattendedFlipSP, nullptr);
@@ -1274,27 +1259,50 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
             LOGF_INFO("Model saved with name %s", NewModelNameT[0].text);
             return true;
         }
-        if (strcmp(name, TLE_TEXT) == 0)
+        if (strcmp(name, "SAT_TLE_TEXT") == 0)
         {
-          IUUpdateText(&TLEtoUploadTP, texts, names, n);
-          if (0 == SetTLEtoFollow(TLEtoUploadT[0].text))
+
+            IUUpdateText(&TLEtoTrackTP, texts, names, n);
+            if (0 == SetTLEtoFollow(TLEtoTrackT[0].text))
             {
-              TLEtoUploadTP.s = IPS_OK;
-              TLEfromDatabaseNP.s = IPS_IDLE;
-              IDSetText(&TLEtoUploadTP, nullptr);
-              IDSetNumber(&TLEfromDatabaseNP, nullptr);
-              LOGF_INFO("Selected TLE %s", TLEtoUploadT[0].text);
-              return true;
+                TLEtoTrackTP.s = IPS_OK;
+                TLEfromDatabaseNP.s = IPS_IDLE;
+                IDSetText(&TLEtoTrackTP, nullptr);
+                IDSetNumber(&TLEfromDatabaseNP, nullptr);
+                LOGF_INFO("Selected TLE %s", TLEtoTrackT[0].text);
+                return true;
             }
-          else
+            else
             {
-              TLEtoUploadTP.s = IPS_ALERT;
-              TLEfromDatabaseNP.s = IPS_IDLE;
-              IDSetText(&TLEtoUploadTP, nullptr);
-              IDSetNumber(&TLEfromDatabaseNP, nullptr);
-              LOG_ERROR("TLE was not correctly uploaded");
-              return false;
+                TLEtoTrackTP.s = IPS_ALERT;
+                TLEfromDatabaseNP.s = IPS_IDLE;
+                IDSetText(&TLEtoTrackTP, nullptr);
+                IDSetNumber(&TLEfromDatabaseNP, nullptr);
+                LOG_ERROR("TLE was not correctly uploaded");
+                return false;
             }
+
+            return true;
+        }
+        if (strcmp(name, "SAT_PASS_WINDOW") == 0)
+        {
+            IUUpdateText(&SatPassWindowTP, texts, names, n);
+            if (0 == CalculateSatTrajectory(SatPassWindowT[SAT_PASS_WINDOW_START].text, SatPassWindowT[SAT_PASS_WINDOW_END].text))
+            {
+                SatPassWindowTP.s = IPS_OK;
+                IDSetText(&SatPassWindowTP, nullptr);
+                LOG_INFO("Trajectory set");
+                return true;
+            }
+            else
+            {
+                SatPassWindowTP.s = IPS_ALERT;
+                IDSetText(&SatPassWindowTP, nullptr);
+                LOG_ERROR("Trajectory could not be calculated");
+                return false;
+            }
+
+            return true;
         }
     }
     return LX200Generic::ISNewText(dev, name, texts, names, n);
@@ -1309,8 +1317,9 @@ int LX200_10MICRON::monthToNumber(const char *monthName)
         int id;
     };
     entry month_table[] = { { "Jan", 1 },  { "Feb", 2 },  { "Mar", 3 },  { "Apr", 4 }, { "May", 5 },
-                            { "Jun", 6 },  { "Jul", 7 },  { "Aug", 8 },  { "Sep", 9 }, { "Oct", 10 },
-                            { "Nov", 11 }, { "Dec", 12 }, { nullptr, 0 } };
+        { "Jun", 6 },  { "Jul", 7 },  { "Aug", 8 },  { "Sep", 9 }, { "Oct", 10 },
+        { "Nov", 11 }, { "Dec", 12 }, { nullptr, 0 }
+    };
     entry *p            = month_table;
     while (p->name != nullptr)
     {
