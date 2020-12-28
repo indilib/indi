@@ -44,4 +44,22 @@ std::string format_time(const std::tm &tm, const char *format);
  */
 void replace_all(std::string &subject, const std::string& search, const std::string& replace);
 
+template <typename T>
+static inline T *getPtrHelper(T *ptr) { return ptr; }
+
+template <typename Wrapper>
+static inline typename Wrapper::element_type *getPtrHelper(const Wrapper &p) { return p.get(); }
+
+#define DECLARE_PRIVATE(Class) \
+    inline Class##Private* d_func() { return reinterpret_cast<Class##Private *>(getPtrHelper(d_ptr)); } \
+    inline const Class##Private* d_func() const { return reinterpret_cast<const Class##Private *>(getPtrHelper(d_ptr)); } \
+    friend class Class##Private;
+
+#define DECLARE_PRIVATE_D(Dptr, Class) \
+    inline Class##Private* d_func() { return reinterpret_cast<Class##Private *>(getPtrHelper(Dptr)); } \
+    inline const Class##Private* d_func() const { return reinterpret_cast<const Class##Private *>(getPtrHelper(Dptr)); } \
+    friend class Class##Private;
+
+#define D_PTR(Class) Class##Private * const d = d_func()
+
 }
