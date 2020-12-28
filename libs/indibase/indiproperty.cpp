@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <cstring>
 
+// Maybe add an indidriver when building clients?
 //#include "indidriver.h"
 void IUSaveConfigNumber(FILE *, const INumberVectorProperty *) __attribute__((weak));
 static void check_IUSaveConfigNumber(FILE *f, const INumberVectorProperty *v)
