@@ -72,74 +72,77 @@ public:
     bool registered = false;
     bool dynamic = false;
 
-    PropertyPrivate(void *property = nullptr, INDI_PROPERTY_TYPE type = INDI_UNKNOWN)
-        : property(property)
-        , type(property ? type : INDI_UNKNOWN)
-        , registered(property != nullptr)
-    { }
-
-    virtual ~PropertyPrivate()
-    {
-        // Only delete properties if they were created dynamically via the buildSkeleton
-        // function. Other drivers are responsible for their own memory allocation.
-        if (property == nullptr || !dynamic)
-            return;
-
-        switch (type)
-        {
-            case INDI_NUMBER:
-            {
-                INumberVectorProperty *p = static_cast<INumberVectorProperty *>(property);
-                free(p->np);
-                delete p;
-                break;
-            }
-
-            case INDI_TEXT:
-            {
-                ITextVectorProperty *p = static_cast<ITextVectorProperty *>(property);
-                for (int i = 0; i < p->ntp; ++i)
-                {
-                    free(p->tp[i].text);
-                }
-                free(p->tp);
-                delete p;
-                break;
-            }
-
-            case INDI_SWITCH:
-            {
-                ISwitchVectorProperty *p = static_cast<ISwitchVectorProperty *>(property);
-                free(p->sp);
-                delete p;
-                break;
-            }
-
-            case INDI_LIGHT:
-            {
-                ILightVectorProperty *p = static_cast<ILightVectorProperty *>(property);
-                free(p->lp);
-                delete p;
-                break;
-            }
-
-            case INDI_BLOB:
-            {
-                IBLOBVectorProperty *p = static_cast<IBLOBVectorProperty *>(property);
-                for (int i = 0; i < p->nbp; ++i)
-                {
-                    free(p->bp[i].blob);
-                }
-                free(p->bp);
-                delete p;
-                break;
-            }
-
-            case INDI_UNKNOWN:
-                break;
-        }
-    }
+    PropertyPrivate(void *property = nullptr, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
+    virtual ~PropertyPrivate();
 };
+
+PropertyPrivate::PropertyPrivate(void *property, INDI_PROPERTY_TYPE type)
+    : property(property)
+    , type(property ? type : INDI_UNKNOWN)
+    , registered(property != nullptr)
+{ }
+
+PropertyPrivate::~PropertyPrivate()
+{
+    // Only delete properties if they were created dynamically via the buildSkeleton
+    // function. Other drivers are responsible for their own memory allocation.
+    if (property == nullptr || !dynamic)
+        return;
+
+    switch (type)
+    {
+        case INDI_NUMBER:
+        {
+            INumberVectorProperty *p = static_cast<INumberVectorProperty *>(property);
+            free(p->np);
+            delete p;
+            break;
+        }
+
+        case INDI_TEXT:
+        {
+            ITextVectorProperty *p = static_cast<ITextVectorProperty *>(property);
+            for (int i = 0; i < p->ntp; ++i)
+            {
+                free(p->tp[i].text);
+            }
+            free(p->tp);
+            delete p;
+            break;
+        }
+
+        case INDI_SWITCH:
+        {
+            ISwitchVectorProperty *p = static_cast<ISwitchVectorProperty *>(property);
+            free(p->sp);
+            delete p;
+            break;
+        }
+
+        case INDI_LIGHT:
+        {
+            ILightVectorProperty *p = static_cast<ILightVectorProperty *>(property);
+            free(p->lp);
+            delete p;
+            break;
+        }
+
+        case INDI_BLOB:
+        {
+            IBLOBVectorProperty *p = static_cast<IBLOBVectorProperty *>(property);
+            for (int i = 0; i < p->nbp; ++i)
+            {
+                free(p->bp[i].blob);
+            }
+            free(p->bp);
+            delete p;
+            break;
+        }
+
+        case INDI_UNKNOWN:
+            break;
+    }
+}
 
 Property::Property()
     : d_ptr(new PropertyPrivate())
