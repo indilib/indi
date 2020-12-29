@@ -405,7 +405,7 @@
         </device>
         <device label="ActiveFocuser" manufacturer="Optique Unterlinden">
             <driver name="ActiveFocuser">indi_activefocuser_focus</driver>
-            <version>0.1</version>
+            <version>1.0</version>
         </device>
     </devGroup>
     <devGroup group="CCDs">
