@@ -279,6 +279,10 @@
             <driver name="PlaneWave EFA">indi_efa_focus</driver>
             <version>1.1</version>
         </device>
+        <device label="Rainbow Astro RSF" manufacturer="Rainbow Astro">
+            <driver name="Rainbow Astro RSF">indi_rainbowrsf_focus</driver>
+            <version>1.0</version>
+        </device>
         <device label="Rigelsys NFocus" manufacturer="Rigel Systems">
             <driver name="NFocus">indi_nfocus</driver>
             <version>1.1</version>

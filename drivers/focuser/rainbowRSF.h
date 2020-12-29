@@ -1,5 +1,5 @@
 /*
-    SestoSenso Focuser
+    Rainbow Astro Focuser
     Copyright (C) 2020 Abdulaziz Bouland (boulandab@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -32,60 +32,64 @@ class RainbowRSF : public INDI::Focuser
 {
     public:
         RainbowRSF();
-        //        virtual ~RainbowRSF() override = default;
 
         const char *getDefaultName() override;
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-
-
     protected:
-        //        virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-        //        virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-        //        virtual bool getTemperature();
-        //        virtual bool getHome();
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
-        //        virtual void TimerHit() override;
+        virtual void TimerHit() override;
         virtual bool Handshake() override;
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Focuser Command Functions
         ///////////////////////////////////////////////////////////////////////////////
         // Move focuser to absolute position from 0 to 16000 (-8000 to 8000)
-        //        virtual bool MoveAbsFocuser();
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         // Move focuser to a relative position from the current position
-        //        virtual bool MoveRelFocuser();
+        virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks) override;
+
+
         // Get temperature in Celcius
-        virtual bool GetTemperature();
+        bool updateTemperature();
         // Find home
-        virtual bool findHome();
+        bool findHome();
+        // Update position
+        bool updatePosition();
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
         ///////////////////////////////////////////////////////////////////////////////
-        virtual bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
-        virtual void hexDump(char * buf, const char * data, int size);
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        void hexDump(char * buf, const char * data, int size);
 
     private:
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////
-        //        IText FirmwareT[1] {};
-        //        ITextVectorProperty FirmwareTP;
-        INumberVectorProperty CurrentAbsPositionNP;
-        INumber CurrentAbsPositionN[1];
+        ISwitchVectorProperty GoHomeSP;
+        ISwitch GoHomeS[1];
 
-        INumberVectorProperty CurrentTempNP;
-        INumber CurrentTempN[1];
+        INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[1];
+
+        uint32_t m_TargetPosition { 0 };
+        uint32_t m_LastPosition { 0 };
+        double m_LastTemperature { 0 };
+        uint16_t m_TemperatureCounter { 0 };
+        uint32_t m_HomePosition{ 8000 };
+
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
         // # is the stop char
         static const char DRIVER_STOP_CHAR { '#' };
+        // Update temperature every 10x POLLMS. For 500ms, we would
+        // update the temperature one every 5 seconds.
+        static constexpr const uint8_t DRIVER_TEMPERATURE_FREQ {10};
         // Wait up to a maximum of 3 seconds for serial input
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
         // Maximum buffer for sending/receving.

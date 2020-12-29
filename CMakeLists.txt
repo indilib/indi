@@ -1001,9 +1001,9 @@ install(TARGETS indi_sestosenso2_focus RUNTIME DESTINATION bin)
 SET(RSF_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/rainbowRSF.cpp)
 
-add_executable(indi_rainbowRSF_focus ${RSF_SRC})
-target_link_libraries(indi_rainbowRSF_focus indidriver)
-install(TARGETS indi_rainbowRSF_focus RUNTIME DESTINATION bin)
+add_executable(indi_rainbowrsf_focus ${RSF_SRC})
+target_link_libraries(indi_rainbowrsf_focus indidriver)
+install(TARGETS indi_rainbowrsf_focus RUNTIME DESTINATION bin)
 
 ########### Lakeside ###########
 set(indilakeside_SRCS  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/lakeside.cpp)
