@@ -26,8 +26,8 @@
 static std::unique_ptr<ActiveFocuser> activeFocuser(new ActiveFocuser());
 
 #define DRIVER_NAME "ActiveFocuser"
-#define DRIVER_VERSION_MAJOR 0
-#define DRIVER_VERSION_MINOR 1
+#define DRIVER_VERSION_MAJOR 1
+#define DRIVER_VERSION_MINOR 0
 
 #define VENDOR_ID 0x20E1
 #define PRODUCT_ID 0x0002
