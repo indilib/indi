@@ -168,7 +168,7 @@ static char *escapeXML(const char *src, size_t size)
 /* tell Client to delete the property with given name on given device, or
  * entire device if !name
  */
-void IDDelete(const char *dev, const char *name, const char *fmt, ...)
+void IDDeleteVA(const char *dev, const char *name, const char *fmt, va_list ap)
 {
     pthread_mutex_lock(&stdout_mutex);
 
@@ -179,18 +179,25 @@ void IDDelete(const char *dev, const char *name, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
+
+        // #PS: why not escapeXML_fputs?
+        printf("  message='");
         printf("%s'\n", entityXML(message));
-        va_end(ap);
     }
     printf("/>\n");
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
+}
+
+void IDDelete(const char *dev, const char *name, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDDeleteVA(dev, name, fmt, ap);
+    va_end(ap);
 }
 
 /* tell indiserver we want to snoop on the given device/property.
@@ -1645,7 +1652,7 @@ int IUGetConfigText(const char *dev, const char *property, const char *member, c
 }
 
 /* send client a message for a specific device or at large if !dev */
-void IDMessage(const char *dev, const char *fmt, ...)
+void IDMessageVA(const char *dev, const char *fmt, va_list ap)
 {
     pthread_mutex_lock(&stdout_mutex);
 
@@ -1656,11 +1663,8 @@ void IDMessage(const char *dev, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
 
         printf("  message='");
         escapeXML_fputs(message, stdout);
@@ -1670,6 +1674,14 @@ void IDMessage(const char *dev, const char *fmt, ...)
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
+}
+
+void IDMessage(const char *dev, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDMessageVA(dev, fmt, ap);
+    va_end(ap);
 }
 
 int IUPurgeConfig(const char *filename, const char *dev, char errmsg[])
@@ -1864,7 +1876,7 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
 }
 
 /* tell client to create a text vector property */
-void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
+void IDDefTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
 {
     int i;
     ROSC *SC;
@@ -1884,11 +1896,8 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
 
         printf("  message='");
         escapeXML_fputs(message, stdout);
@@ -1927,8 +1936,16 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
     pthread_mutex_unlock(&stdout_mutex);
 }
 
+void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDDefTextVA(tvp, fmt, ap);
+    va_end(ap);
+}
+
 /* tell client to create a new numeric vector property */
-void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
+void IDDefNumberVA(const INumberVectorProperty *n, const char *fmt, va_list ap)
 {
     int i;
     ROSC *SC;
@@ -1946,14 +1963,10 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
     printf("  perm='%s'\n", permStr(n->p));
     printf("  timeout='%g'\n", n->timeout);
     printf("  timestamp='%s'\n", timestamp());
-
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
 
         printf("  message='");
         escapeXML_fputs(message, stdout);
@@ -1998,8 +2011,16 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
     pthread_mutex_unlock(&stdout_mutex);
 }
 
+void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDDefNumberVA(n, fmt, ap);
+    va_end(ap);
+}
+
 /* tell client to create a new switch vector property */
-void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
+void IDDefSwitchVA(const ISwitchVectorProperty *s, const char *fmt, va_list ap)
 
 {
     int i;
@@ -2021,11 +2042,8 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
 
         printf("  message='");
         escapeXML_fputs(message, stdout);
@@ -2064,8 +2082,16 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
     pthread_mutex_unlock(&stdout_mutex);
 }
 
+void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDDefSwitchVA(s, fmt, ap);
+    va_end(ap);
+}
+
 /* tell client to create a new lights vector property */
-void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
+void IDDefLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
 {
     int i;
 
@@ -2081,11 +2107,8 @@ void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
 
         printf("  message='");
         escapeXML_fputs(message, stdout);
@@ -2109,8 +2132,16 @@ void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
     pthread_mutex_unlock(&stdout_mutex);
 }
 
+void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDDefLightVA(lvp, fmt, ap);
+    va_end(ap);
+}
+
 /* tell client to create a new BLOB vector property */
-void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
+void IDDefBLOBVA(const IBLOBVectorProperty *b, const char *fmt, va_list ap)
 {
     int i;
     ROSC *SC;
@@ -2130,11 +2161,8 @@ void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
 
         printf("  message='");
         escapeXML_fputs(message, stdout);
@@ -2171,9 +2199,16 @@ void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDDefBLOBVA(b, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update an existing text vector property */
-void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
+void IDSetTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
 {
     int i;
 
@@ -2189,13 +2224,12 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
+
+        // #PS: why not escapeXML_fputs?
+        printf("  message='");
         printf("%s'\n", entityXML(message));
-        va_end(ap);
     }
     printf(">\n");
 
@@ -2213,9 +2247,16 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDSetTextVA(tvp, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update an existing numeric vector property */
-void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
+void IDSetNumberVA(const INumberVectorProperty *nvp, const char *fmt, va_list ap)
 {
     int i;
 
@@ -2231,13 +2272,12 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
+
+        // #PS: why not escapeXML_fputs?
+        printf("  message='");
         printf("%s'\n", entityXML(message));
-        va_end(ap);
     }
     printf(">\n");
 
@@ -2255,9 +2295,16 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDSetNumberVA(nvp, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update an existing switch vector property */
-void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
+void IDSetSwitchVA(const ISwitchVectorProperty *svp, const char *fmt, va_list ap)
 {
     int i;
 
@@ -2273,13 +2320,12 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
+
+        // #PS: why not escapeXML_fputs?
+        printf("  message='");
         printf("%s'\n", entityXML(message));
-        va_end(ap);
     }
     printf(">\n");
 
@@ -2297,9 +2343,16 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDSetSwitchVA(svp, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update an existing lights vector property */
-void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
+void IDSetLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
 {
     int i;
 
@@ -2313,13 +2366,12 @@ void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
-        printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
+
+        // #PS: why not escapeXML_fputs?
+        printf("  message='");
         printf("%s'\n", entityXML(message));
-        va_end(ap);
     }
     printf(">\n");
 
@@ -2336,9 +2388,16 @@ void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDSetLightVA(lvp, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update an existing BLOB vector property */
-void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
+void IDSetBLOBVA(const IBLOBVectorProperty *bvp, const char *fmt, va_list ap)
 {
     int i;
 
@@ -2354,12 +2413,10 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         printf("  message='");
+        // #PS: missing escapeXML_fputs ?
         vprintf(fmt, ap);
         printf("'\n");
-        va_end(ap);
     }
     printf(">\n");
 
@@ -2417,6 +2474,13 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
+}
+void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDSetBLOBVA(bvp, fmt, ap);
+    va_end(ap);
 }
 
 /* tell client to update min/max elements of an existing number vector property */

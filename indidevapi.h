@@ -132,57 +132,51 @@ computer on which this driver is running.</p>
 
 */
 
+// enable warnings for printf-style functions
+#ifndef ATTRIBUTE_FORMAT_PRINTF
+# ifdef __GNUC__
+#  define ATTRIBUTE_FORMAT_PRINTF(A, B) __attribute__((format(printf, (A), (B))))
+# else
+#  define ATTRIBUTE_FORMAT_PRINTF(A, B)
+# endif
+#endif
+
 /*@{*/
 
 /** \brief Tell client to create a text vector property.
     \param t pointer to the vector text property to be defined.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDDefText(const ITextVectorProperty *t, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDDefText(const ITextVectorProperty *t, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDDefTextVA(const ITextVectorProperty *t, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /** \brief Tell client to create a number number property.
     \param n pointer to the vector number property to be defined.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDDefNumber(const INumberVectorProperty *n, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDDefNumber(const INumberVectorProperty *n, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDDefNumberVA(const INumberVectorProperty *n, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /** \brief Tell client to create a switch vector property.
     \param s pointer to the vector switch property to be defined.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDDefSwitch(const ISwitchVectorProperty *s, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDDefSwitch(const ISwitchVectorProperty *s, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDDefSwitchVA(const ISwitchVectorProperty *s, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /** \brief Tell client to create a light vector property.
     \param l pointer to the vector light property to be defined.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDDefLight(const ILightVectorProperty *l, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDDefLight(const ILightVectorProperty *l, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDDefLightVA(const ILightVectorProperty *l, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /** \brief Tell client to create a BLOB vector property.
     \param b pointer to the vector BLOB property to be defined.
     \param msg message in printf style to send to the client. May be NULL.
  */
-extern void IDDefBLOB(const IBLOBVectorProperty *b, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDDefBLOB(const IBLOBVectorProperty *b, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDDefBLOBVA(const IBLOBVectorProperty *b, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /*@}*/
 
@@ -195,51 +189,36 @@ __attribute__((format(printf, 2, 3)))
     \param t pointer to the vector text property.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDSetText(const ITextVectorProperty *t, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDSetText(const ITextVectorProperty *t, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDSetTextVA(const ITextVectorProperty *t, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /** \brief Tell client to update an existing number vector property.
     \param n pointer to the vector number property.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDSetNumber(const INumberVectorProperty *n, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDSetNumber(const INumberVectorProperty *n, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDSetNumberVA(const INumberVectorProperty *n, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /** \brief Tell client to update an existing switch vector property.
     \param s pointer to the vector switch property.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDSetSwitch(const ISwitchVectorProperty *s, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDSetSwitch(const ISwitchVectorProperty *s, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDSetSwitchVA(const ISwitchVectorProperty *s, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /** \brief Tell client to update an existing light vector property.
     \param l pointer to the vector light property.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDSetLight(const ILightVectorProperty *l, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDSetLight(const ILightVectorProperty *l, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDSetLightVA(const ILightVectorProperty *l, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /** \brief Tell client to update an existing BLOB vector property.
     \param b pointer to the vector BLOB property.
     \param msg message in printf style to send to the client. May be NULL.
  */
-extern void IDSetBLOB(const IBLOBVectorProperty *b, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDSetBLOB(const IBLOBVectorProperty *b, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDSetBLOBVA(const IBLOBVectorProperty *b, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /*@}*/
 
@@ -255,11 +234,8 @@ __attribute__((format(printf, 2, 3)))
     \param dev device name
     \param msg message in printf style to send to the client.
 */
-extern void IDMessage(const char *dev, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 2, 3)))
-#endif
-;
+extern void IDMessage(const char *dev, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+extern void IDMessageVA(const char *dev, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(2, 0);
 
 /** \brief Function Drivers call to inform Clients a Property is no longer available, or the entire device is gone if name is NULL.
 
@@ -267,11 +243,8 @@ __attribute__((format(printf, 2, 3)))
     \param name property name to be deleted.
     \param msg message in printf style to send to the client.
 */
-extern void IDDelete(const char *dev, const char *name, const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 3, 4)))
-#endif
-;
+extern void IDDelete(const char *dev, const char *name, const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(3, 4);
+extern void IDDeleteVA(const char *dev, const char *name, const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(3, 0);
 
 /** \brief Function Drivers call to log a message locally.
 
@@ -279,11 +252,8 @@ __attribute__((format(printf, 3, 4)))
 
     \param msg message in printf style to send to the client.
 */
-extern void IDLog(const char *msg, ...)
-#ifdef __GNUC__
-__attribute__((format(printf, 1, 2)))
-#endif
-;
+extern void IDLog(const char *msg, ...) ATTRIBUTE_FORMAT_PRINTF(1, 2);
+extern void IDLogVA(const char *msg, va_list arg) ATTRIBUTE_FORMAT_PRINTF(1, 0);
 
 /*@}*/
 
