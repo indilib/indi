@@ -1557,7 +1557,7 @@ bool LX200AstroPhysicsExperimental::Handshake()
     disclaimerMessage();
 
     // Detect and set fomat. It should be LONG.
-    return (checkLX200Format(PortFD) == 0);
+    return (checkLX200EquatorialFormat(PortFD) == 0);
 }
 
 bool LX200AstroPhysicsExperimental::Disconnect()

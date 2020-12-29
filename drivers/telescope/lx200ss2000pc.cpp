@@ -157,7 +157,7 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
 void LX200SS2000PC::getBasicData(void)
 {
     if (!isSimulation())
-        checkLX200Format(PortFD);
+        checkLX200EquatorialFormat(PortFD);
     sendScopeLocation();
     sendScopeTime();
 }

@@ -636,7 +636,7 @@ void LX200_TeenAstro::getBasicData()
 
     if (!isSimulation())
     {
-        checkLX200Format(PortFD);
+        checkLX200EquatorialFormat(PortFD);
         char buffer[128];
         getVersionDate(PortFD, buffer);
         IUSaveText(&VersionT[0], buffer);

@@ -384,7 +384,7 @@ bool LX200Basic::Abort()
 void LX200Basic::getBasicData()
 {
     // Make sure short
-    checkLX200Format(PortFD);
+    checkLX200EquatorialFormat(PortFD);
 
     // Get current RA/DEC
     getLX200RA(PortFD, &currentRA);

@@ -330,13 +330,13 @@ bool LX200Telescope::Goto(double ra, double dec)
     char RAStr[64] = {0}, DecStr[64] = {0};
     int fracbase = 0;
 
-    switch (getLX200Format())
+    switch (getLX200EquatorialFormat())
     {
-        case LX200_LONGER_FORMAT:
+        case LX200_EQ_LONGER_FORMAT:
             fracbase = 360000;
             break;
-        case LX200_LONG_FORMAT:
-        case LX200_SHORT_FORMAT:
+        case LX200_EQ_LONG_FORMAT:
+        case LX200_EQ_SHORT_FORMAT:
         default:
             fracbase = 3600;
             break;
@@ -1146,7 +1146,7 @@ void LX200Telescope::getBasicData()
 {
     if (!isSimulation())
     {
-        checkLX200Format(PortFD);
+        checkLX200EquatorialFormat(PortFD);
 
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
             getAlignment();

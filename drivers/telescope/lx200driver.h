@@ -44,12 +44,19 @@ enum TDirection
     LX200_SOUTH,
     LX200_ALL
 };
-/* Formats of Right Ascension and Declination */
-enum TFormat
+/* Formats of Equatorial Right Ascension and Declination */
+enum TEquatorialFormat
 {
-    LX200_SHORT_FORMAT,
-    LX200_LONG_FORMAT,
-    LX200_LONGER_FORMAT
+    LX200_EQ_SHORT_FORMAT,
+    LX200_EQ_LONG_FORMAT,
+    LX200_EQ_LONGER_FORMAT
+};
+/* Formats of Geographic Latitude and Longitude */
+enum TGeographicFormat
+{
+    LX200_GEO_SHORT_FORMAT,
+    LX200_GEO_LONG_FORMAT,
+    LX200_GEO_LONGER_FORMAT
 };
 /* Time Format */
 enum TTimeFormat
@@ -292,9 +299,9 @@ int SendPulseCmd(int fd, int direction, int duration_msec);
  Other Commands
  **************************************************************************/
 /* Determines LX200 RA/DEC format, tries to set to long if found short */
-int checkLX200Format(int fd);
+int checkLX200EquatorialFormat(int fd);
 /* return the controller_format enum value */
-int getLX200Format();
+int getLX200EquatorialFormat();
 /* Select a site from the LX200 controller */
 int selectSite(int fd, int siteNum);
 /* Select a catalog object */
