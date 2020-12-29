@@ -20,13 +20,8 @@
 
 #pragma once
 
-//#include <cmath>
 #include <memory>
 #include "indifocuser.h"
-//#include <cstring>
-//#include <termios.h>
-//#include <unistd.h>
-//#include <regex>
 
 class RainbowRSF : public INDI::Focuser
 {

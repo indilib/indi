@@ -1,14 +1,8 @@
 #include "rainbowRSF.h"
 #include "indicom.h"
-//#include "connectionplugins/connectionserial.h"
 
-//#include <cmath>
-//#include <memory>
 #include <cstring>
 #include <termios.h>
-//#include <unistd.h>
-//#include <regex>
-
 
 static std::unique_ptr<RainbowRSF> rainbowRSF(new RainbowRSF());
 
