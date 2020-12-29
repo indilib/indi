@@ -20,45 +20,31 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cstdarg>
 
-// Maybe add an indidriver when building clients?
-//#include "indidriver.h"
-void IUSaveConfigNumber(FILE *, const INumberVectorProperty *) __attribute__((weak));
-static void check_IUSaveConfigNumber(FILE *f, const INumberVectorProperty *v)
+extern "C" void indi_property_weak_function_throw(...)
 {
-    if (IUSaveConfigNumber)
-        IUSaveConfigNumber(f, v);
-    else
-        fprintf(stderr, "Cannot save INumberVectorProperty. Please add indidriver to linker.\n");
+    fprintf(stderr, "Unsupported function call. Please add indidriver to linker.\n");
 }
 
-void IUSaveConfigText(FILE *, const ITextVectorProperty *) __attribute__((weak));
-static void check_IUSaveConfigText(FILE *f, const ITextVectorProperty *v)
-{
-    if (IUSaveConfigText)
-        IUSaveConfigText(f, v);
-    else
-        fprintf(stderr, "Cannot save ITextVectorProperty. Please add indidriver to linker.\n");
-}
+#define WEAK_FUNCTION(FUNCTION) extern "C" FUNCTION __attribute__((weak, alias("indi_property_weak_function_throw")));
 
-void IUSaveConfigSwitch(FILE *, const ISwitchVectorProperty *) __attribute__((weak));
-static void check_IUSaveConfigSwitch(FILE *f, const ISwitchVectorProperty *v)
-{
-    if (IUSaveConfigSwitch)
-        IUSaveConfigSwitch(f, v);
-    else
-        fprintf(stderr, "Cannot save ISwitchVectorProperty. Please add indidriver to linker.\n");
-}
+WEAK_FUNCTION(void IUSaveConfigNumber(FILE *, const INumberVectorProperty *))
+WEAK_FUNCTION(void IUSaveConfigText(FILE *, const ITextVectorProperty *))
+WEAK_FUNCTION(void IUSaveConfigSwitch(FILE *, const ISwitchVectorProperty *))
+WEAK_FUNCTION(void IUSaveConfigBLOB(FILE *, const IBLOBVectorProperty *))
 
-void IUSaveConfigBLOB(FILE *, const IBLOBVectorProperty *) __attribute__((weak));
-static void check_IUSaveConfigBLOB(FILE *f, const IBLOBVectorProperty *v)
-{
-    if (IUSaveConfigBLOB)
-        IUSaveConfigBLOB(f, v);
-    else
-        fprintf(stderr, "Cannot save IBLOBVectorProperty. Please add indidriver to linker.\n");
-}
+WEAK_FUNCTION(void IDDefTextVA(const ITextVectorProperty *, const char *, va_list))
+WEAK_FUNCTION(void IDDefNumberVA(const INumberVectorProperty *, const char *, va_list))
+WEAK_FUNCTION(void IDDefSwitchVA(const ISwitchVectorProperty *, const char *, va_list))
+WEAK_FUNCTION(void IDDefLightVA(const ILightVectorProperty *, const char *, va_list))
+WEAK_FUNCTION(void IDDefBLOBVA(const IBLOBVectorProperty *, const char *, va_list))
 
+WEAK_FUNCTION(void IDSetTextVA(const ITextVectorProperty *, const char *, va_list))
+WEAK_FUNCTION(void IDSetNumberVA(const INumberVectorProperty *, const char *, va_list))
+WEAK_FUNCTION(void IDSetSwitchVA(const ISwitchVectorProperty *, const char *, va_list))
+WEAK_FUNCTION(void IDSetLightVA(const ILightVectorProperty *, const char *, va_list))
+WEAK_FUNCTION(void IDSetBLOBVA(const IBLOBVectorProperty *, const char *, va_list))
 
 namespace INDI
 {
@@ -243,11 +229,11 @@ void Property::save(FILE *fp)
 {
     switch (getType())
     {
-        case INDI_NUMBER: check_IUSaveConfigNumber (fp, getNumber()); break;
-        case INDI_TEXT:   check_IUSaveConfigText   (fp, getText());   break;
-        case INDI_SWITCH: check_IUSaveConfigSwitch (fp, getSwitch()); break;
-        //case INDI_LIGHT:  check_IUSaveConfigLight  (fp, getLight());  break;
-        case INDI_BLOB:   check_IUSaveConfigBLOB   (fp, getBLOB());   break;
+        case INDI_NUMBER: IUSaveConfigNumber (fp, getNumber()); break;
+        case INDI_TEXT:   IUSaveConfigText   (fp, getText());   break;
+        case INDI_SWITCH: IUSaveConfigSwitch (fp, getSwitch()); break;
+        //case INDI_LIGHT:  IUSaveConfigLight  (fp, getLight());  break;
+        case INDI_BLOB:   IUSaveConfigBLOB   (fp, getBLOB());   break;
         default:;;
     }
 }
@@ -505,6 +491,38 @@ IBLOBVectorProperty *Property::getBLOB() const
         return static_cast <IBLOBVectorProperty * > (d->property);
 
     return nullptr;
+}
+
+void Property::apply(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    switch (getType())
+    {
+        case INDI_NUMBER: IDSetNumberVA(getNumber(), format, ap); break;
+        case INDI_TEXT:   IDSetTextVA(getText(),     format, ap); break;
+        case INDI_SWITCH: IDSetSwitchVA(getSwitch(), format, ap); break;
+        case INDI_LIGHT:  IDSetLightVA(getLight(),   format, ap); break;
+        case INDI_BLOB:   IDSetBLOBVA(getBLOB(),     format, ap); break;
+        default:;;
+    }
+    va_end(ap);
+}
+
+void Property::define(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    switch (getType())
+    {
+        case INDI_NUMBER: IDDefNumberVA(getNumber(), format, ap); break;
+        case INDI_TEXT:   IDDefTextVA(getText(),     format, ap); break;
+        case INDI_SWITCH: IDDefSwitchVA(getSwitch(), format, ap); break;
+        case INDI_LIGHT:  IDDefLightVA(getLight(),   format, ap); break;
+        case INDI_BLOB:   IDDefBLOBVA(getBLOB(),     format, ap); break;
+        default:;;
+    }
+    va_end(ap);
 }
 
 }
