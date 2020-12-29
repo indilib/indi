@@ -62,4 +62,13 @@ static inline typename Wrapper::element_type *getPtrHelper(const Wrapper &p) { r
 
 #define D_PTR(Class) Class##Private * const d = d_func()
 
+// enable warnings for printf-style functions
+#ifndef ATTRIBUTE_FORMAT_PRINTF
+# ifdef __GNUC__
+#  define ATTRIBUTE_FORMAT_PRINTF(A, B) __attribute__((format(printf, (A), (B))))
+# else
+#  define ATTRIBUTE_FORMAT_PRINTF(A, B)
+# endif
+#endif
+
 }
