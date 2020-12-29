@@ -16,7 +16,6 @@
 *******************************************************************************/
 
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -69,44 +68,31 @@ TEST(ALIGNMENT_TEST, Test_ThreeSyncPoints)
     s.updateLocation(34.70, -80.54, 161);
     s.SetAlignmentSubsystemActive(true);
 
-    struct ln_equ_posn VegaJ2000
-    {
-        range360(decimalHoursToDecimalDegrees(18.6156972)),
-            rangeDec(38.7856944),
-    };
+    double VegaJ2000RA = 18.6156972;
+    double VegaJ2000Dec = 38.7856944;
 
-    struct ln_equ_posn ArcturusJ2000
-    {
-        range360(decimalHoursToDecimalDegrees(14.2612083)),
-            rangeDec(19.1872694),
-    };
+    double ArcturusJ2000RA = 14.2612083;
+    double ArcturusJ2000Dec = 19.1872694;
 
-    struct ln_equ_posn MizarJ2000
-    {
-        range360(decimalHoursToDecimalDegrees(13.3988500)),
-            rangeDec(54.9254167),
-    };
+    double MizarJ2000RA = 13.3988500;
+    double MizarJ2000Dec = 54.9254167;
 
-    s.AddAlignmentEntry(decimalDegreesToDecimalHours(VegaJ2000.ra), VegaJ2000.dec);
-    s.AddAlignmentEntry(decimalDegreesToDecimalHours(ArcturusJ2000.ra), ArcturusJ2000.dec);
-    s.AddAlignmentEntry(decimalDegreesToDecimalHours(MizarJ2000.ra), MizarJ2000.dec);
+    // The test scope will do a "perfect" sync with whatever we send it.
+    s.Sync(VegaJ2000RA, VegaJ2000Dec);
+    s.Sync(ArcturusJ2000RA, ArcturusJ2000Dec);
+    s.Sync(MizarJ2000RA, MizarJ2000Dec);
 
-    ln_equ_posn pos1 = s.TelescopeEquatorialToSky(decimalDegreesToDecimalHours(VegaJ2000.ra), VegaJ2000.dec);
-    ln_equ_posn pos1RoundTrip = s.SkyToTelescopeEquatorial(decimalDegreesToDecimalHours(pos1.ra), pos1.dec);
+    double VegaSkyRA, VegaSkyDec;
+    s.TelescopeEquatorialToSky(VegaJ2000RA, VegaJ2000Dec, VegaSkyRA, VegaSkyDec);
 
-    ASSERT_DOUBLE_EQ(round(VegaJ2000.ra, 1), round(pos1RoundTrip.ra, 1));
-    ASSERT_DOUBLE_EQ(round(VegaJ2000.dec, 6), round(pos1RoundTrip.dec, 6));
+    // I would expect these to be closer than 1 decimal apart, but it seems to work
+    ASSERT_DOUBLE_EQ(round(VegaJ2000RA, 1), round(VegaSkyRA, 1));
+    ASSERT_DOUBLE_EQ(round(VegaJ2000Dec, 6), round(VegaSkyDec, 6));
 
-    // I would expect these to be much closer than one decimal place off
-    ASSERT_DOUBLE_EQ(round(pos1.ra, 1), round(VegaJ2000.ra, 1));
-    ASSERT_DOUBLE_EQ(round(pos1.dec, 6), round(VegaJ2000.dec, 6));
-
-    sleep(10);
-    ln_equ_posn pos2 = s.TelescopeEquatorialToSky(decimalDegreesToDecimalHours(VegaJ2000.ra), VegaJ2000.dec);
-
-    // But after 10 seconds, we are at least stable...
-    ASSERT_DOUBLE_EQ(round(pos1.ra, 5), round(pos2.ra, 5));
-    ASSERT_DOUBLE_EQ(round(pos1.dec, 5), round(pos2.dec, 5));
+    double VegaMountRA, VegaMountDec;
+    s.SkyToTelescopeEquatorial(VegaSkyRA, VegaSkyDec, VegaMountRA, VegaMountDec);
+    ASSERT_DOUBLE_EQ(round(VegaJ2000RA, 1), round(VegaMountRA, 1));
+    ASSERT_DOUBLE_EQ(round(VegaJ2000Dec, 6), round(VegaMountDec, 6));
 }
 
 int main(int argc, char **argv)
@@ -115,6 +101,6 @@ int main(int argc, char **argv)
                                           INDI::Logger::DBG_ERROR, INDI::Logger::DBG_ERROR);
 
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::InitGoogleMock(&argc, argv);
+
     return RUN_ALL_TESTS();
 }

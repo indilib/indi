@@ -8,7 +8,6 @@ TARGET_LINK_LIBRARIES(test_alignment
     indidriver
     AlignmentDriver
     ${GTEST_BOTH_LIBRARIES}
-    ${GMOCK_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
