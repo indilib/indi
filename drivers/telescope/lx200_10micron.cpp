@@ -794,12 +794,15 @@ bool LX200_10MICRON::CalculateSatTrajectory(std::string start_pass_isodatetime, 
     double JD_end;
     JD_start = ln_get_julian_day(&start_pass);
     JD_end = ln_get_julian_day(&end_pass);
-    int nextPassInMinutes = (int) std::min((int) ceil((JD_end - JD_start) * 24 * 60), 1440);
+    int nextPassInMinutes = (int) ceil((JD_end - JD_start) * 24 * 60);
+    int nextPassinMinutesUpTo1440 = std::min(nextPassInMinutes,  1440);
+    int nextPassinMinutesBetween1and1440 = std::max(nextPassinMinutesUpTo1440, 1);
 
     char command[28];
-    snprintf(command, sizeof(command), ":TLEP%7.8f,%01d#", JD, nextPassInMinutes);
+    snprintf(command, sizeof(command), ":TLEP%7.8f,%01d#", JD_start, nextPassinMinutesBetween1and1440);
     LOGF_INFO("Julian day %7.8f", JD_start);
-    LOGF_INFO("For the next %01d minutes", nextPassInMinutes);
+    LOGF_INFO("For the next %01d minutes", nextPassinMinutesBetween1and1440);
+    LOGF_INFO("Command: %s", command);
     if ( !isSimulation() )
     {
         LOG_INFO(command);
