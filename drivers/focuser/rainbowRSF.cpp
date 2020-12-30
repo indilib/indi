@@ -333,7 +333,7 @@ void RainbowRSF::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (std::fabs(m_LastPosition - FocusAbsPosN[0].value) > 0)
+        if (std::abs(m_LastPosition - FocusAbsPosN[0].value) > 0)
         {
             IDSetNumber(&FocusAbsPosNP, nullptr);
             m_LastPosition = FocusAbsPosN[0].value;
@@ -353,7 +353,7 @@ void RainbowRSF::TimerHit()
         rc = updateTemperature();
         if (rc)
         {
-            if (std::fabs(m_LastTemperature - TemperatureN[0].value) >= 0.05)
+            if (std::abs(m_LastTemperature - TemperatureN[0].value) >= 0.05)
             {
                 IDSetNumber(&TemperatureNP, nullptr);
                 m_LastTemperature = TemperatureN[0].value;
