@@ -1,6 +1,7 @@
 #include "rainbowRSF.h"
 #include "indicom.h"
 
+#include <cmath>
 #include <cstring>
 #include <termios.h>
 
@@ -333,7 +334,7 @@ void RainbowRSF::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (std::abs(m_LastPosition - FocusAbsPosN[0].value) > 0)
+        if (abs(m_LastPosition - FocusAbsPosN[0].value) > 0)
         {
             IDSetNumber(&FocusAbsPosNP, nullptr);
             m_LastPosition = FocusAbsPosN[0].value;
@@ -353,7 +354,7 @@ void RainbowRSF::TimerHit()
         rc = updateTemperature();
         if (rc)
         {
-            if (std::abs(m_LastTemperature - TemperatureN[0].value) >= 0.05)
+            if (abs(m_LastTemperature - TemperatureN[0].value) >= 0.05)
             {
                 IDSetNumber(&TemperatureNP, nullptr);
                 m_LastTemperature = TemperatureN[0].value;
