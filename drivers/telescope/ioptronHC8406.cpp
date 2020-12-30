@@ -351,7 +351,7 @@ bool ioptronHC8406::isSlewComplete()
 
 void ioptronHC8406::getBasicData()
 {
-    checkLX200Format(PortFD);
+    checkLX200EquatorialFormat(PortFD);
     sendScopeLocation();
     sendScopeTime();
 }

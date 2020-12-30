@@ -573,7 +573,7 @@ bool LX200AstroPhysicsGTOCP2::Handshake()
     }
 
     // Detect and set fomat. It should be LONG.
-    return (checkLX200Format(PortFD) == 0);
+    return (checkLX200EquatorialFormat(PortFD) == 0);
 }
 
 bool LX200AstroPhysicsGTOCP2::Disconnect()

@@ -330,13 +330,13 @@ bool LX200Telescope::Goto(double ra, double dec)
     char RAStr[64] = {0}, DecStr[64] = {0};
     int fracbase = 0;
 
-    switch (getLX200Format())
+    switch (getLX200EquatorialFormat())
     {
-        case LX200_LONGER_FORMAT:
+        case LX200_EQ_LONGER_FORMAT:
             fracbase = 360000;
             break;
-        case LX200_LONG_FORMAT:
-        case LX200_SHORT_FORMAT:
+        case LX200_EQ_LONG_FORMAT:
+        case LX200_EQ_SHORT_FORMAT:
         default:
             fracbase = 3600;
             break;
@@ -640,7 +640,7 @@ bool LX200Telescope::updateLocation(double latitude, double longitude, double el
     if (isSimulation())
         return true;
 
-    if (!isSimulation() && setSiteLongitude(PortFD, 360.0 - longitude) < 0)
+    if (!isSimulation() && setSiteLongitude(PortFD, longitude) < 0)
     {
         LOG_ERROR("Error setting site longitude coordinates");
         return false;
@@ -653,10 +653,11 @@ bool LX200Telescope::updateLocation(double latitude, double longitude, double el
     }
 
     char l[MAXINDINAME] = {0}, L[MAXINDINAME] = {0};
-    fs_sexa(l, latitude, 3, 3600);
-    fs_sexa(L, longitude, 4, 3600);
+    fs_sexa(l, latitude, 2, 36000);
+    fs_sexa(L, longitude, 2, 36000);
 
-    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
+    // Choose WGS 84, also known as EPSG:4326 for latitude/longitude ordering
+    LOGF_INFO("Site location in the mount updated to Latitude %.12s (%g) Longitude %.12s (%g) (Longitude sign in carthography format)", l, latitude, L, longitude);
 
     return true;
 }
@@ -1145,7 +1146,7 @@ void LX200Telescope::getBasicData()
 {
     if (!isSimulation())
     {
-        checkLX200Format(PortFD);
+        checkLX200EquatorialFormat(PortFD);
 
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
             getAlignment();
@@ -1356,7 +1357,10 @@ bool LX200Telescope::sendScopeTime()
 
 bool LX200Telescope::sendScopeLocation()
 {
-    int dd = 0, mm = 0;
+    int lat_dd = 0, lat_mm = 0, long_dd = 0, long_mm = 0;
+    double lat_ssf = 0.0, long_ssf = 0.0;
+    char lat_sexagesimal[MAXINDIFORMAT];
+    char lng_sexagesimal[MAXINDIFORMAT];
 
     if (isSimulation())
     {
@@ -1368,35 +1372,33 @@ bool LX200Telescope::sendScopeLocation()
         return true;
     }
 
-    if (getSiteLatitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLatitude(PortFD, &lat_dd, &lat_mm, &lat_ssf) < 0)
     {
         LOG_WARN("Failed to get site latitude from device.");
         return false;
     }
     else
     {
-        if (dd > 0)
-            LocationNP.np[0].value = dd + mm / 60.0;
-        else
-            LocationNP.np[0].value = dd - mm / 60.0;
+        snprintf(lat_sexagesimal, MAXINDIFORMAT,"%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+        f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
     }
 
-    if (getSiteLongitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLongitude(PortFD, &long_dd, &long_mm, &long_ssf) < 0)
     {
         LOG_WARN("Failed to get site longitude from device.");
         return false;
     }
     else
     {
-        if (dd > 0)
-            LocationNP.np[1].value = 360.0 - (dd + mm / 60.0);
-        else
-            LocationNP.np[1].value = (dd - mm / 60.0) * -1.0;
-
+        snprintf(lng_sexagesimal, MAXINDIFORMAT,"%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+        f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
     }
 
-    LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value,
-               LocationN[LOCATION_LONGITUDE].value);
+    LOGF_INFO("Mount has Latitude %s (%g) Longitude %s (%g) (Longitude sign in carthography format)",
+              lat_sexagesimal,
+              LocationN[LOCATION_LATITUDE].value,
+              lng_sexagesimal,
+              LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
 
