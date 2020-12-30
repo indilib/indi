@@ -74,7 +74,8 @@ class RainbowRSF : public INDI::Focuser
         uint32_t m_LastPosition { 0 };
         double m_LastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
-        uint32_t m_HomePosition{ 8000 };
+
+        const static uint32_t homePosition { 8000 };
 
 
         /////////////////////////////////////////////////////////////////////////////

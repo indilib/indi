@@ -1,3 +1,23 @@
+/*
+    Rainbow Astro Focuser
+    Copyright (C) 2020 Abdulaziz Bouland (boulandab@ikarustech.com)
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+*/
+
 #include "rainbowRSF.h"
 #include "indicom.h"
 
@@ -185,7 +205,7 @@ bool RainbowRSF::updatePosition()
         // update the states
         if (FocusAbsPosN[0].value == m_TargetPosition)
         {
-            if (GoHomeSP.s == IPS_BUSY && m_TargetPosition == m_HomePosition)
+            if (GoHomeSP.s == IPS_BUSY)
             {
                 GoHomeSP.s = IPS_OK;
                 FocusAbsPosNP.s = IPS_OK;
@@ -222,22 +242,28 @@ bool RainbowRSF::updatePosition()
 
         if (FocusAbsPosN[0].value == m_TargetPosition)
         {
-            if (GoHomeSP.s == IPS_BUSY && m_TargetPosition == m_HomePosition)
+            if (GoHomeSP.s == IPS_BUSY)
             {
                 GoHomeSP.s = IPS_OK;
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
+                GoHomeS[0].s = ISS_OFF;
                 IDSetSwitch(&GoHomeSP, nullptr);
+
+                FocusAbsPosNP.s = IPS_OK;
                 IDSetNumber(&FocusAbsPosNP, nullptr);
+
+                FocusRelPosNP.s = IPS_OK;
                 IDSetNumber(&FocusRelPosNP, nullptr);
+
                 LOG_INFO("Focuser reached home position.");
             }
 
             else if (FocusAbsPosNP.s == IPS_BUSY)
             {
                 FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
                 IDSetNumber(&FocusAbsPosNP, nullptr);
+
+                FocusRelPosNP.s = IPS_OK;
+
                 IDSetNumber(&FocusRelPosNP, nullptr);
                 LOG_INFO("Focuser reached target position.");
             }
@@ -317,12 +343,16 @@ bool RainbowRSF::findHome()
 {
     if (isSimulation())
     {
-        MoveAbsFocuser(m_HomePosition);
+        MoveAbsFocuser(homePosition);
         FocusAbsPosNP.s = IPS_BUSY;
         return true;
     }
     else
+    {
+        m_TargetPosition = homePosition;
+        FocusAbsPosNP.s = IPS_BUSY;
         return sendCommand(":Fh#");
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -339,7 +369,7 @@ void RainbowRSF::TimerHit()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             m_LastPosition = FocusAbsPosN[0].value;
 
-            if (GoHomeSP.s == IPS_BUSY && FocusAbsPosN[0].value == m_HomePosition)
+            if (GoHomeSP.s == IPS_BUSY && FocusAbsPosN[0].value == homePosition)
             {
                 GoHomeSP.s = IPS_OK;
                 LOG_INFO("Focuser arrived at home position.");
