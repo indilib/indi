@@ -1236,6 +1236,13 @@ add_executable(indi_integra_focus ${integra_SRC})
 target_link_libraries(indi_integra_focus indidriver)
 install(TARGETS indi_integra_focus RUNTIME DESTINATION bin)
 
+SET(activefocuser_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/activefocuser.cpp drivers/focuser/activefocuser_utils.cpp drivers/focuser/activefocuser_utils.h)
+
+add_executable(indi_activefocuser_focus ${activefocuser_SRC} drivers/focuser/activefocuser_utils.cpp drivers/focuser/activefocuser_utils.h)
+target_link_libraries(indi_activefocuser_focus indidriver)
+install(TARGETS indi_activefocuser_focus RUNTIME DESTINATION bin)
+
 #################################################################################
 
 #####################################
