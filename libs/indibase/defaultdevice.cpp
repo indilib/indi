@@ -104,44 +104,16 @@ bool DefaultDevice::saveConfigItems(FILE *fp)
 
 bool DefaultDevice::saveAllConfigItems(FILE *fp)
 {
-    std::vector<INDI::Property *>::iterator orderi;
-
-    ISwitchVectorProperty *svp = nullptr;
-    INumberVectorProperty *nvp = nullptr;
-    ITextVectorProperty *tvp   = nullptr;
-    IBLOBVectorProperty *bvp   = nullptr;
-
-    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
+    for (INDI::Property *oneProperty : pAll)
     {
-        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
-        void *pPtr  = (*orderi)->getProperty();
-
-        switch (pType)
+        if (oneProperty->getType() == INDI_SWITCH)
         {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                //IDLog("Trying to save config for number %s\n", nvp->name);
-                IUSaveConfigNumber(fp, nvp);
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                IUSaveConfigText(fp, tvp);
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
-                if (!strcmp(svp->name, INDI::SP::CONNECTION) || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
-                    continue;
-                IUSaveConfigSwitch(fp, svp);
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                IUSaveConfigBLOB(fp, bvp);
-                break;
-            case INDI_LIGHT:
-            case INDI_UNKNOWN:
-                break;
+            ISwitchVectorProperty * svp = oneProperty->getSwitch();
+            /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
+            if (!strcmp(svp->name, INDI::SP::CONNECTION) || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
+                continue;
         }
+        oneProperty->save(fp);
     }
     return true;
 }
@@ -733,32 +705,10 @@ void DefaultDevice::ISGetProperties(const char *dev)
 
     for (INDI::Property *oneProperty : pAll)
     {
-        INDI_PROPERTY_TYPE pType = oneProperty->getType();
-        void *pPtr = oneProperty->getProperty();
-
         if (defineDynamicProperties == false && oneProperty->isDynamic())
             continue;
 
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                IDDefNumber(static_cast<INumberVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_TEXT:
-                IDDefText(static_cast<ITextVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_SWITCH:
-                IDDefSwitch(static_cast<ISwitchVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_LIGHT:
-                IDDefLight(static_cast<ILightVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_BLOB:
-                IDDefBLOB(static_cast<IBLOBVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_UNKNOWN:
-                break;
-        }
+        oneProperty->define();
     }
 
     // Remember debug & logging settings
@@ -820,38 +770,10 @@ void DefaultDevice::ISGetProperties(const char *dev)
 
 void DefaultDevice::resetProperties()
 {
-    std::vector<INDI::Property *>::iterator orderi;
-
-    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
+    for (INDI::Property *oneProperty : pAll)
     {
-        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
-        void *pPtr  = (*orderi)->getProperty();
-
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                static_cast<INumberVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetNumber(static_cast<INumberVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_TEXT:
-                static_cast<ITextVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetText(static_cast<ITextVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_SWITCH:
-                static_cast<ISwitchVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetSwitch(static_cast<ISwitchVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_LIGHT:
-                static_cast<ILightVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetLight(static_cast<ILightVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_BLOB:
-                static_cast<IBLOBVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetBLOB(static_cast<IBLOBVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_UNKNOWN:
-                break;
-        }
+        oneProperty->setState(IPS_IDLE);
+        oneProperty->apply();
     }
 }
 
