@@ -277,43 +277,31 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         /* pull out each name/value pair */
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defNumber"))
+            if (strcmp(tagXMLEle(ep), "defNumber"))
+                continue;
+
+            np = static_cast<INumber *>(realloc(np, (n + 1) * sizeof(INumber)));
+            INumber *it = &np[n];
+            memset(it, 0, sizeof(*it));
+            it->nvp = nvp;
+
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
+
+            if (f_scansexa(pcdataXMLEle(ep), &(it->value)) < 0)
             {
-                np = static_cast<INumber *>(realloc(np, (n + 1) * sizeof(INumber)));
-                INumber *it = &np[n++];
-                it->nvp = nvp;
-
-                XMLAtt *na = findXMLAtt(ep, "name");
-
-                if (na)
-                {
-                    if (f_scansexa(pcdataXMLEle(ep), &(it->value)) < 0)
-                        IDLog("%s: Bad format %s\n", rname, pcdataXMLEle(ep));
-                    else
-                    {
-                        strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-                        it->aux0 = nullptr;
-                        it->aux1 = nullptr;
-
-                        na = findXMLAtt(ep, "label");
-                        if (na)
-                            strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
-                        na = findXMLAtt(ep, "format");
-                        if (na)
-                            strncpy(it->format, valuXMLAtt(na), MAXINDIFORMAT);
-
-                        na = findXMLAtt(ep, "min");
-                        if (na)
-                            it->min = atof(valuXMLAtt(na));
-                        na = findXMLAtt(ep, "max");
-                        if (na)
-                            it->max = atof(valuXMLAtt(na));
-                        na = findXMLAtt(ep, "step");
-                        if (na)
-                            it->step = atof(valuXMLAtt(na));
-                    }
-                }
+                IDLog("%s: Bad format %s\n", rname, pcdataXMLEle(ep));
+                continue;
             }
+
+            strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
+            strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIFORMAT);
+
+            it->min  = atof(findXMLAttValu(ep, "min"));
+            it->max  = atof(findXMLAttValu(ep, "max"));
+            it->step = atof(findXMLAttValu(ep, "step"));
+            ++n;
         }
 
         if (n > 0)
@@ -327,6 +315,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newNumberVector with no valid members\n", rname);
             delete (nvp);
+            free (np);
         }
     }
     else if (!strcmp(rtag, "defSwitchVector"))
@@ -341,25 +330,22 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         /* pull out each name/value pair */
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defSwitch"))
-            {
-                sp = static_cast<ISwitch *>(realloc(sp, (n + 1) * sizeof(ISwitch)));
-                ISwitch *it = &sp[n++];
-                it->svp = svp;
+            if (strcmp(tagXMLEle(ep), "defSwitch"))
+                continue;
 
-                XMLAtt *na = findXMLAtt(ep, "name");
+            sp = static_cast<ISwitch *>(realloc(sp, (n + 1) * sizeof(ISwitch)));
+            ISwitch *it = &sp[n];
+            memset(it, 0, sizeof(*it));
+            it->svp = svp;
 
-                if (na)
-                {
-                    crackISState(pcdataXMLEle(ep), &(it->s));
-                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-                    it->aux = nullptr;
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
-                }
-            }
+            crackISState(pcdataXMLEle(ep), &(it->s));
+
+            strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
+            ++n;
         }
 
         if (n > 0)
@@ -372,6 +358,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newSwitchVector with no valid members\n", rname);
             delete (svp);
+            free (sp);
         }
     }
 
@@ -383,28 +370,22 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         // pull out each name/value pair
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defText"))
-            {
-                tp = static_cast<IText *>(realloc(tp, (n + 1) * sizeof(IText)));
-                IText *it = &tp[n++];
-                it->tvp = tvp;
+            if (strcmp(tagXMLEle(ep), "defText"))
+                continue;
 
-                XMLAtt *na = findXMLAtt(ep, "name");
+            tp = static_cast<IText *>(realloc(tp, (n + 1) * sizeof(IText)));
+            IText *it = &tp[n];
+            memset(it, 0, sizeof(*it));
+            it->tvp = tvp;
 
-                if (na)
-                {
-                    it->text = static_cast<char *>(malloc((pcdatalenXMLEle(ep) * sizeof(char)) + 1));
-                    strncpy(it->text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
-                    it->text[pcdatalenXMLEle(ep)] = '\0';
-                    it->aux0 = nullptr;
-                    it->aux1 = nullptr;
-                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
-                }
-            }
+            it->text = strndup(pcdataXMLEle(ep), pcdatalenXMLEle(ep));
+
+            strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
+            ++n;
         }
 
         if (n > 0)
@@ -418,6 +399,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newTextVector with no valid members\n", rname);
             delete (tvp);
+            free (tp);
         }
     }
     else if (!strcmp(rtag, "defLightVector"))
@@ -428,25 +410,22 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         /* pull out each name/value pair */
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defLight"))
-            {
-                lp = static_cast<ILight *>(realloc(lp, (n + 1) * sizeof(ILight)));
-                ILight *it = &lp[n++];
-                it->lvp = lvp;
+            if (strcmp(tagXMLEle(ep), "defLight"))
+                continue;
 
-                XMLAtt *na = findXMLAtt(ep, "name");
+            lp = static_cast<ILight *>(realloc(lp, (n + 1) * sizeof(ILight)));
+            ILight *it = &lp[n];
+            memset(it, 0, sizeof(*it));
+            it->lvp = lvp;
 
-                if (na)
-                {
-                    crackIPState(pcdataXMLEle(ep), &(it->s));
-                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-                    it->aux = nullptr;
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
-                }
-            }
+            crackIPState(pcdataXMLEle(ep), &(it->s));
+
+            strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
+            ++n;
         }
 
         if (n > 0)
@@ -460,6 +439,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newLightVector with no valid members\n", rname);
             delete (lvp);
+            free (lp);
         }
     }
     else if (!strcmp(rtag, "defBLOBVector"))
@@ -470,37 +450,21 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         /* pull out each name/value pair */
         for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defBLOB"))
-            {
-                bp = static_cast<IBLOB *>(realloc(bp, (n + 1) * sizeof(IBLOB)));
-                IBLOB *it = &bp[n++];
-                it->bvp = bvp;
+            if (strcmp(tagXMLEle(ep), "defBLOB"))
+                continue;
 
-                XMLAtt *na = findXMLAtt(ep, "name");
+            bp = static_cast<IBLOB *>(realloc(bp, (n + 1) * sizeof(IBLOB)));
+            IBLOB *it = &bp[n];
+            memset(it, 0, sizeof(*it));
+            it->bvp = bvp;
 
-                if (na)
-                {
-                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
-
-                    na = findXMLAtt(ep, "format");
-                    if (na)
-                        strncpy(it->label, valuXMLAtt(na), MAXINDIBLOBFMT);
-
-                    // Initialize everything to zero
-
-                    // Seed for realloc
-                    it->blob    = nullptr;
-                    it->size    = 0;
-                    it->bloblen = 0;
-                    it->aux0    = nullptr;
-                    it->aux1    = nullptr;
-                    it->aux2    = nullptr;
-                }
-            }
+            strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
+            strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIBLOBFMT);
+            ++n;
         }
 
         if (n > 0)
@@ -514,6 +478,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newBLOBVector with no valid members\n", rname);
             delete (bvp);
+            free (bp);
         }
     }
 
