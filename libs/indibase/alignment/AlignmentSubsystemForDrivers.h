@@ -120,8 +120,8 @@ namespace INDI
       bool SkyToTelescopeEquatorial(double actualRA, double actualDec, double &mountRA, double &mountDec);
 
       /** \brief Converts a mount location to actual sky coordinates, usually called in ReadScopeStatus.
-       * \param[in] mountRA Right Ascension to send to the mount
-       * \param[in] mountDec Declination to send to the mount
+       * \param[in] mountRA Right Ascension where the mount thinks it is in decimal hours
+       * \param[in] mountDec Declination where the mount thinks it is in decimal degrees
        * \param[out] actualRA actual Right Ascension in decimal hours
        * \param[out] actualDec actual Declination in decimal degrees
        * \return true if we converted mountRa/mountDec to actualRA/actualDec, otherwise false
@@ -130,6 +130,43 @@ namespace INDI
        * is not set. Call UpdateLocation to set the current location.
        */
       bool TelescopeEquatorialToSky(double mountRA, double mountDec, double &actualRA, double &actualDec);
+
+      /** \brief Adds an alignment point to the model database, usually called from Sync.
+       * \param[in] actualRA actual Right Ascension in decimal hours
+       * \param[in] actualDec actual Declination in decimal degrees
+       * \param[in] mountAlt Altitude where the mount thinks it is in decimal degrees
+       * \param[in] mountAz Azimuth where the mount thinks it is in decimal degrees
+       * \return true if the alignment point was added to the database, otherwise false
+       *
+       * This will return false if either the alignment point was already added, or if the location
+       * is not set. Call UpdateLocation to set the current location.
+       */
+      bool AddAlignmentEntryAltAz(double actualRA, double actualDec, double mountAlt, double mountAz);
+
+      /** \brief Converts an actual sky location to coordinates to send to the mount, usually called
+       * in Goto.
+       * \param[in] actualRA actual Right Ascension in decimal hours
+       * \param[in] actualDec actual Declination in decimal degrees
+       * \param[out] mountAlt Altitude to send to the mount
+       * \param[out] mountAz Azimuth to send to the mount
+       * \return true if we converted actualRA/actualDec to mountAlt/mountAz, otherwise false
+       *
+       * This will return false if we have fewer than 2 alignment points added, or if the location
+       * is not set. Call UpdateLocation to set the current location.
+       */
+      bool SkyToTelescopeAltAz(double actualRA, double actualDec, double &mountAlt, double &mountAz);
+
+      /** \brief Converts a mount location to actual sky coordinates, usually called in ReadScopeStatus.
+       * \param[in] mountAlt Altitude where the mount thinks it is in decimal degrees
+       * \param[in] mountAz Azimuth where the mount thinks it is in decimal degrees
+       * \param[out] actualRA actual Right Ascension in decimal hours
+       * \param[out] actualDec actual Declination in decimal degrees
+       * \return true if we converted mountRa/mountDec to actualRA/actualDec, otherwise false
+       *
+       * This will return false if we have fewer than 2 alignment points added, or if the location
+       * is not set. Call UpdateLocation to set the current location.
+       */
+      bool TelescopeAltAzToSky(double mountAlt, double mountAz, double &actualRA, double &actualDec);
 
     private:
       /** \brief This static function is registered as a load database callback with
