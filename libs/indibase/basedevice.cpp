@@ -315,6 +315,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newNumberVector with no valid members\n", rname);
             delete (nvp);
+            free (np);
         }
     }
     else if (!strcmp(rtag, "defSwitchVector"))
@@ -357,6 +358,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newSwitchVector with no valid members\n", rname);
             delete (svp);
+            free (sp);
         }
     }
 
@@ -397,6 +399,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newTextVector with no valid members\n", rname);
             delete (tvp);
+            free (tp);
         }
     }
     else if (!strcmp(rtag, "defLightVector"))
@@ -436,6 +439,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newLightVector with no valid members\n", rname);
             delete (lvp);
+            free (lp);
         }
     }
     else if (!strcmp(rtag, "defBLOBVector"))
@@ -474,6 +478,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         {
             IDLog("%s: newBLOBVector with no valid members\n", rname);
             delete (bvp);
+            free (bp);
         }
     }
 
