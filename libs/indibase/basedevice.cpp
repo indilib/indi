@@ -295,22 +295,12 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                         it->aux0 = nullptr;
                         it->aux1 = nullptr;
 
-                        na = findXMLAtt(ep, "label");
-                        if (na)
-                            strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
-                        na = findXMLAtt(ep, "format");
-                        if (na)
-                            strncpy(it->format, valuXMLAtt(na), MAXINDIFORMAT);
+                        strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
+                        strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIFORMAT);
 
-                        na = findXMLAtt(ep, "min");
-                        if (na)
-                            it->min = atof(valuXMLAtt(na));
-                        na = findXMLAtt(ep, "max");
-                        if (na)
-                            it->max = atof(valuXMLAtt(na));
-                        na = findXMLAtt(ep, "step");
-                        if (na)
-                            it->step = atof(valuXMLAtt(na));
+                        it->min  = atof(findXMLAttValu(ep, "min"));
+                        it->max  = atof(findXMLAttValu(ep, "max"));
+                        it->step = atof(findXMLAttValu(ep, "step"));
                     }
                 }
             }
@@ -355,9 +345,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                     strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
                     it->aux = nullptr;
 
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
+                    strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
                 }
             }
         }
@@ -400,9 +388,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                     it->aux1 = nullptr;
                     strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
 
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
+                    strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
                 }
             }
         }
@@ -442,9 +428,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                     strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
                     it->aux = nullptr;
 
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
+                    strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
                 }
             }
         }
@@ -481,14 +465,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                 if (na)
                 {
                     strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(it->label, valuXMLAtt(na), MAXINDILABEL);
-
-                    na = findXMLAtt(ep, "format");
-                    if (na)
-                        strncpy(it->label, valuXMLAtt(na), MAXINDIBLOBFMT);
+                    strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
+                    strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIBLOBFMT);
 
                     // Initialize everything to zero
 
