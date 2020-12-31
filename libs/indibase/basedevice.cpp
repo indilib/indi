@@ -281,7 +281,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                 continue;
 
             np = static_cast<INumber *>(realloc(np, (n + 1) * sizeof(INumber)));
-            INumber *it = &np[n++];
+            INumber *it = &np[n];
             memset(it, 0, sizeof(*it));
             it->nvp = nvp;
 
@@ -301,6 +301,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             it->min  = atof(findXMLAttValu(ep, "min"));
             it->max  = atof(findXMLAttValu(ep, "max"));
             it->step = atof(findXMLAttValu(ep, "step"));
+            ++n;
         }
 
         if (n > 0)
@@ -332,7 +333,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                 continue;
 
             sp = static_cast<ISwitch *>(realloc(sp, (n + 1) * sizeof(ISwitch)));
-            ISwitch *it = &sp[n++];
+            ISwitch *it = &sp[n];
             memset(it, 0, sizeof(*it));
             it->svp = svp;
 
@@ -343,6 +344,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             crackISState(pcdataXMLEle(ep), &(it->s));
 
             strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
+            ++n;
         }
 
         if (n > 0)
@@ -370,7 +372,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                 continue;
 
             tp = static_cast<IText *>(realloc(tp, (n + 1) * sizeof(IText)));
-            IText *it = &tp[n++];
+            IText *it = &tp[n];
             memset(it, 0, sizeof(*it));
             it->tvp = tvp;
 
@@ -381,6 +383,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             it->text = strndup(pcdataXMLEle(ep), pcdatalenXMLEle(ep));
 
             strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
+            ++n;
         }
 
         if (n > 0)
@@ -408,7 +411,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                 continue;
 
             lp = static_cast<ILight *>(realloc(lp, (n + 1) * sizeof(ILight)));
-            ILight *it = &lp[n++];
+            ILight *it = &lp[n];
             memset(it, 0, sizeof(*it));
             it->lvp = lvp;
 
@@ -419,6 +422,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             crackIPState(pcdataXMLEle(ep), &(it->s));
 
             strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
+            ++n;
         }
 
         if (n > 0)
@@ -446,7 +450,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                 continue;
 
             bp = static_cast<IBLOB *>(realloc(bp, (n + 1) * sizeof(IBLOB)));
-            IBLOB *it = &bp[n++];
+            IBLOB *it = &bp[n];
             memset(it, 0, sizeof(*it));
             it->bvp = bvp;
 
@@ -456,6 +460,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
             strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
             strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIBLOBFMT);
+            ++n;
         }
 
         if (n > 0)
