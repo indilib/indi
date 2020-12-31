@@ -378,9 +378,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             if (*it->name == '\0')
                 continue;
 
-            it->text = static_cast<char *>(malloc((pcdatalenXMLEle(ep) * sizeof(char)) + 1));
-            strncpy(it->text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
-            it->text[pcdatalenXMLEle(ep)] = '\0';
+            it->text = strndup(pcdataXMLEle(ep), pcdatalenXMLEle(ep));
 
             strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
         }
