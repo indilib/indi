@@ -285,24 +285,22 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             memset(it, 0, sizeof(*it));
             it->nvp = nvp;
 
-            XMLAtt *na = findXMLAtt(ep, "name");
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-            if (na)
+            if (f_scansexa(pcdataXMLEle(ep), &(it->value)) < 0)
             {
-                if (f_scansexa(pcdataXMLEle(ep), &(it->value)) < 0)
-                    IDLog("%s: Bad format %s\n", rname, pcdataXMLEle(ep));
-                else
-                {
-                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-
-                    strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
-                    strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIFORMAT);
-
-                    it->min  = atof(findXMLAttValu(ep, "min"));
-                    it->max  = atof(findXMLAttValu(ep, "max"));
-                    it->step = atof(findXMLAttValu(ep, "step"));
-                }
+                IDLog("%s: Bad format %s\n", rname, pcdataXMLEle(ep));
+                continue;
             }
+
+            strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
+            strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIFORMAT);
+
+            it->min  = atof(findXMLAttValu(ep, "min"));
+            it->max  = atof(findXMLAttValu(ep, "max"));
+            it->step = atof(findXMLAttValu(ep, "step"));
         }
 
         if (n > 0)
@@ -338,15 +336,13 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             memset(it, 0, sizeof(*it));
             it->svp = svp;
 
-            XMLAtt *na = findXMLAtt(ep, "name");
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-            if (na)
-            {
-                crackISState(pcdataXMLEle(ep), &(it->s));
-                strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+            crackISState(pcdataXMLEle(ep), &(it->s));
 
-                strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
-            }
+            strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
         }
 
         if (n > 0)
@@ -378,17 +374,15 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             memset(it, 0, sizeof(*it));
             it->tvp = tvp;
 
-            XMLAtt *na = findXMLAtt(ep, "name");
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-            if (na)
-            {
-                it->text = static_cast<char *>(malloc((pcdatalenXMLEle(ep) * sizeof(char)) + 1));
-                strncpy(it->text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
-                it->text[pcdatalenXMLEle(ep)] = '\0';
-                strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+            it->text = static_cast<char *>(malloc((pcdatalenXMLEle(ep) * sizeof(char)) + 1));
+            strncpy(it->text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
+            it->text[pcdatalenXMLEle(ep)] = '\0';
 
-                strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
-            }
+            strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
         }
 
         if (n > 0)
@@ -420,15 +414,13 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             memset(it, 0, sizeof(*it));
             it->lvp = lvp;
 
-            XMLAtt *na = findXMLAtt(ep, "name");
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-            if (na)
-            {
-                crackIPState(pcdataXMLEle(ep), &(it->s));
-                strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+            crackIPState(pcdataXMLEle(ep), &(it->s));
 
-                strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
-            }
+            strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
         }
 
         if (n > 0)
@@ -460,14 +452,12 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             memset(it, 0, sizeof(*it));
             it->bvp = bvp;
 
-            XMLAtt *na = findXMLAtt(ep, "name");
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-            if (na)
-            {
-                strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-                strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
-                strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIBLOBFMT);
-            }
+            strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
+            strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIBLOBFMT);
         }
 
         if (n > 0)
