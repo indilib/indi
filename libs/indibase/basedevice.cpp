@@ -277,31 +277,31 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         /* pull out each name/value pair */
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defNumber"))
+            if (strcmp(tagXMLEle(ep), "defNumber"))
+                continue;
+
+            np = static_cast<INumber *>(realloc(np, (n + 1) * sizeof(INumber)));
+            INumber *it = &np[n++];
+            it->nvp = nvp;
+
+            XMLAtt *na = findXMLAtt(ep, "name");
+
+            if (na)
             {
-                np = static_cast<INumber *>(realloc(np, (n + 1) * sizeof(INumber)));
-                INumber *it = &np[n++];
-                it->nvp = nvp;
-
-                XMLAtt *na = findXMLAtt(ep, "name");
-
-                if (na)
+                if (f_scansexa(pcdataXMLEle(ep), &(it->value)) < 0)
+                    IDLog("%s: Bad format %s\n", rname, pcdataXMLEle(ep));
+                else
                 {
-                    if (f_scansexa(pcdataXMLEle(ep), &(it->value)) < 0)
-                        IDLog("%s: Bad format %s\n", rname, pcdataXMLEle(ep));
-                    else
-                    {
-                        strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-                        it->aux0 = nullptr;
-                        it->aux1 = nullptr;
+                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+                    it->aux0 = nullptr;
+                    it->aux1 = nullptr;
 
-                        strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
-                        strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIFORMAT);
+                    strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
+                    strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIFORMAT);
 
-                        it->min  = atof(findXMLAttValu(ep, "min"));
-                        it->max  = atof(findXMLAttValu(ep, "max"));
-                        it->step = atof(findXMLAttValu(ep, "step"));
-                    }
+                    it->min  = atof(findXMLAttValu(ep, "min"));
+                    it->max  = atof(findXMLAttValu(ep, "max"));
+                    it->step = atof(findXMLAttValu(ep, "step"));
                 }
             }
         }
@@ -331,22 +331,22 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         /* pull out each name/value pair */
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defSwitch"))
+            if (strcmp(tagXMLEle(ep), "defSwitch"))
+                continue;
+
+            sp = static_cast<ISwitch *>(realloc(sp, (n + 1) * sizeof(ISwitch)));
+            ISwitch *it = &sp[n++];
+            it->svp = svp;
+
+            XMLAtt *na = findXMLAtt(ep, "name");
+
+            if (na)
             {
-                sp = static_cast<ISwitch *>(realloc(sp, (n + 1) * sizeof(ISwitch)));
-                ISwitch *it = &sp[n++];
-                it->svp = svp;
+                crackISState(pcdataXMLEle(ep), &(it->s));
+                strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+                it->aux = nullptr;
 
-                XMLAtt *na = findXMLAtt(ep, "name");
-
-                if (na)
-                {
-                    crackISState(pcdataXMLEle(ep), &(it->s));
-                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-                    it->aux = nullptr;
-
-                    strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
-                }
+                strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
             }
         }
 
@@ -371,25 +371,25 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         // pull out each name/value pair
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defText"))
+            if (strcmp(tagXMLEle(ep), "defText"))
+                continue;
+
+            tp = static_cast<IText *>(realloc(tp, (n + 1) * sizeof(IText)));
+            IText *it = &tp[n++];
+            it->tvp = tvp;
+
+            XMLAtt *na = findXMLAtt(ep, "name");
+
+            if (na)
             {
-                tp = static_cast<IText *>(realloc(tp, (n + 1) * sizeof(IText)));
-                IText *it = &tp[n++];
-                it->tvp = tvp;
+                it->text = static_cast<char *>(malloc((pcdatalenXMLEle(ep) * sizeof(char)) + 1));
+                strncpy(it->text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
+                it->text[pcdatalenXMLEle(ep)] = '\0';
+                it->aux0 = nullptr;
+                it->aux1 = nullptr;
+                strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
 
-                XMLAtt *na = findXMLAtt(ep, "name");
-
-                if (na)
-                {
-                    it->text = static_cast<char *>(malloc((pcdatalenXMLEle(ep) * sizeof(char)) + 1));
-                    strncpy(it->text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
-                    it->text[pcdatalenXMLEle(ep)] = '\0';
-                    it->aux0 = nullptr;
-                    it->aux1 = nullptr;
-                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-
-                    strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
-                }
+                strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
             }
         }
 
@@ -414,22 +414,22 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         /* pull out each name/value pair */
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defLight"))
+            if (strcmp(tagXMLEle(ep), "defLight"))
+                continue;
+
+            lp = static_cast<ILight *>(realloc(lp, (n + 1) * sizeof(ILight)));
+            ILight *it = &lp[n++];
+            it->lvp = lvp;
+
+            XMLAtt *na = findXMLAtt(ep, "name");
+
+            if (na)
             {
-                lp = static_cast<ILight *>(realloc(lp, (n + 1) * sizeof(ILight)));
-                ILight *it = &lp[n++];
-                it->lvp = lvp;
+                crackIPState(pcdataXMLEle(ep), &(it->s));
+                strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+                it->aux = nullptr;
 
-                XMLAtt *na = findXMLAtt(ep, "name");
-
-                if (na)
-                {
-                    crackIPState(pcdataXMLEle(ep), &(it->s));
-                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-                    it->aux = nullptr;
-
-                    strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
-                }
+                strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
             }
         }
 
@@ -454,30 +454,30 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         /* pull out each name/value pair */
         for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defBLOB"))
+            if (strcmp(tagXMLEle(ep), "defBLOB"))
+                continue;
+
+            bp = static_cast<IBLOB *>(realloc(bp, (n + 1) * sizeof(IBLOB)));
+            IBLOB *it = &bp[n++];
+            it->bvp = bvp;
+
+            XMLAtt *na = findXMLAtt(ep, "name");
+
+            if (na)
             {
-                bp = static_cast<IBLOB *>(realloc(bp, (n + 1) * sizeof(IBLOB)));
-                IBLOB *it = &bp[n++];
-                it->bvp = bvp;
+                strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
+                strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
+                strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIBLOBFMT);
 
-                XMLAtt *na = findXMLAtt(ep, "name");
+                // Initialize everything to zero
 
-                if (na)
-                {
-                    strncpy(it->name, valuXMLAtt(na), MAXINDINAME);
-                    strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
-                    strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIBLOBFMT);
-
-                    // Initialize everything to zero
-
-                    // Seed for realloc
-                    it->blob    = nullptr;
-                    it->size    = 0;
-                    it->bloblen = 0;
-                    it->aux0    = nullptr;
-                    it->aux1    = nullptr;
-                    it->aux2    = nullptr;
-                }
+                // Seed for realloc
+                it->blob    = nullptr;
+                it->size    = 0;
+                it->bloblen = 0;
+                it->aux0    = nullptr;
+                it->aux1    = nullptr;
+                it->aux2    = nullptr;
             }
         }
 
