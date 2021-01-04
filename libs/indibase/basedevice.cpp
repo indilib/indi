@@ -143,8 +143,8 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
         const auto &oneProp = *orderi;
         if (!strcmp(name, oneProp->getName()))
         {
-            if (mediator)
-                mediator->removeProperty(oneProp);
+            //            if (mediator)
+            //                mediator->removeProperty(oneProp);
 
             delete oneProp;
             orderi = pAll.erase(orderi);
