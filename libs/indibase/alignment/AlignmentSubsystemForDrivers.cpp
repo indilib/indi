@@ -170,6 +170,96 @@ namespace INDI
             return false;
         }
 
+        bool AlignmentSubsystemForDrivers::AddAlignmentEntryAltAz(double actualRA, double actualDec, double mountAlt, double mountAz)
+        {
+            ln_lnlat_posn location;
+            if (!GetDatabaseReferencePosition(location))
+            {
+                return false;
+            }
+
+            struct ln_hrz_posn AltAz
+            {
+                0, 0
+            };
+            AltAz.alt = range360(mountAlt);
+            AltAz.az = range360(mountAz);
+
+            AlignmentDatabaseEntry NewEntry;
+            TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
+
+            NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
+            NewEntry.RightAscension = actualRA;
+            NewEntry.Declination = actualDec;
+            NewEntry.TelescopeDirection = TDV;
+            NewEntry.PrivateDataSize = 0;
+
+            if (!CheckForDuplicateSyncPoint(NewEntry))
+            {
+                GetAlignmentDatabase().push_back(NewEntry);
+                UpdateSize();
+
+                // tell the math plugin about the new alignment point
+                Initialise(this);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        bool AlignmentSubsystemForDrivers::SkyToTelescopeAltAz(double actualRA, double actualDec, double &mountAlt, double &mountAz)
+        {
+            ln_hrz_posn altAz{0, 0};
+            TelescopeDirectionVector TDV;
+            ln_lnlat_posn location;
+
+            if (!GetDatabaseReferencePosition(location))
+            {
+                return false;
+            }
+
+            if (GetAlignmentDatabase().size() > 1)
+            {
+                if (TransformCelestialToTelescope(actualRA, actualDec, 0.0, TDV))
+                {
+                    AltitudeAzimuthFromTelescopeDirectionVector(TDV, altAz);
+
+                    mountAlt = range360(altAz.alt);
+                    mountAz = range360(altAz.az);
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        bool AlignmentSubsystemForDrivers::TelescopeAltAzToSky(double mountAlt, double mountAz, double &actualRa, double &actualDec)
+        {
+            ln_hrz_posn altaz{0, 0};
+            ln_lnlat_posn location;
+
+            if (!GetDatabaseReferencePosition(location))
+            {
+                return false;
+            }
+
+            if (GetAlignmentDatabase().size() > 1)
+            {
+                TelescopeDirectionVector TDV;
+
+                altaz.alt = range360(mountAlt);
+                altaz.az = range360(mountAz);
+
+                TDV = TelescopeDirectionVectorFromAltitudeAzimuth(altaz);
+
+                return TransformTelescopeToCelestial(TDV, actualRa, actualDec);
+            }
+
+            return false;
+        }
+
         // Private methods
 
         void AlignmentSubsystemForDrivers::MyDatabaseLoadCallback(void *ThisPointer)
