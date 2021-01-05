@@ -17,25 +17,13 @@
 *******************************************************************************/
 
 #include "indiproperty.h"
+#include "indiproperty_p.h"
 
 #include <cstdlib>
 #include <cstring>
 
 namespace INDI
 {
-
-class PropertyPrivate
-{
-public:
-    void *property = nullptr;
-    BaseDevice *baseDevice = nullptr;
-    INDI_PROPERTY_TYPE type = INDI_UNKNOWN;
-    bool registered = false;
-    bool dynamic = false;
-
-    PropertyPrivate(void *property = nullptr, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
-    virtual ~PropertyPrivate();
-};
 
 PropertyPrivate::PropertyPrivate(void *property, INDI_PROPERTY_TYPE type)
     : property(property)
@@ -106,7 +94,7 @@ PropertyPrivate::~PropertyPrivate()
 }
 
 Property::Property()
-    : d_ptr(new PropertyPrivate())
+    : d_ptr(new PropertyPrivate(nullptr, INDI_UNKNOWN))
 { }
 
 Property::Property(void *property, INDI_PROPERTY_TYPE type)
