@@ -20,31 +20,6 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <cstdarg>
-
-extern "C" void indi_property_weak_function_throw(...)
-{
-    fprintf(stderr, "Unsupported function call. Please add indidriver to linker.\n");
-}
-
-#define WEAK_FUNCTION(FUNCTION) extern "C" FUNCTION __attribute__((weak, alias("indi_property_weak_function_throw")));
-
-WEAK_FUNCTION(void IUSaveConfigNumber(FILE *, const INumberVectorProperty *))
-WEAK_FUNCTION(void IUSaveConfigText(FILE *, const ITextVectorProperty *))
-WEAK_FUNCTION(void IUSaveConfigSwitch(FILE *, const ISwitchVectorProperty *))
-WEAK_FUNCTION(void IUSaveConfigBLOB(FILE *, const IBLOBVectorProperty *))
-
-WEAK_FUNCTION(void IDDefTextVA(const ITextVectorProperty *, const char *, va_list))
-WEAK_FUNCTION(void IDDefNumberVA(const INumberVectorProperty *, const char *, va_list))
-WEAK_FUNCTION(void IDDefSwitchVA(const ISwitchVectorProperty *, const char *, va_list))
-WEAK_FUNCTION(void IDDefLightVA(const ILightVectorProperty *, const char *, va_list))
-WEAK_FUNCTION(void IDDefBLOBVA(const IBLOBVectorProperty *, const char *, va_list))
-
-WEAK_FUNCTION(void IDSetTextVA(const ITextVectorProperty *, const char *, va_list))
-WEAK_FUNCTION(void IDSetNumberVA(const INumberVectorProperty *, const char *, va_list))
-WEAK_FUNCTION(void IDSetSwitchVA(const ISwitchVectorProperty *, const char *, va_list))
-WEAK_FUNCTION(void IDSetLightVA(const ILightVectorProperty *, const char *, va_list))
-WEAK_FUNCTION(void IDSetBLOBVA(const IBLOBVectorProperty *, const char *, va_list))
 
 namespace INDI
 {
@@ -225,18 +200,6 @@ BaseDevice *Property::getBaseDevice() const
     return d->baseDevice;
 }
 
-void Property::save(FILE *fp)
-{
-    switch (getType())
-    {
-        case INDI_NUMBER: IUSaveConfigNumber (fp, getNumber()); break;
-        case INDI_TEXT:   IUSaveConfigText   (fp, getText());   break;
-        case INDI_SWITCH: IUSaveConfigSwitch (fp, getSwitch()); break;
-        //case INDI_LIGHT:  IUSaveConfigLight  (fp, getLight());  break;
-        case INDI_BLOB:   IUSaveConfigBLOB   (fp, getBLOB());   break;
-        default:;;
-    }
-}
 
 void Property::setName(const char *name)
 {
@@ -491,38 +454,6 @@ IBLOBVectorProperty *Property::getBLOB() const
         return static_cast <IBLOBVectorProperty * > (d->property);
 
     return nullptr;
-}
-
-void Property::apply(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    switch (getType())
-    {
-        case INDI_NUMBER: IDSetNumberVA(getNumber(), format, ap); break;
-        case INDI_TEXT:   IDSetTextVA(getText(),     format, ap); break;
-        case INDI_SWITCH: IDSetSwitchVA(getSwitch(), format, ap); break;
-        case INDI_LIGHT:  IDSetLightVA(getLight(),   format, ap); break;
-        case INDI_BLOB:   IDSetBLOBVA(getBLOB(),     format, ap); break;
-        default:;;
-    }
-    va_end(ap);
-}
-
-void Property::define(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    switch (getType())
-    {
-        case INDI_NUMBER: IDDefNumberVA(getNumber(), format, ap); break;
-        case INDI_TEXT:   IDDefTextVA(getText(),     format, ap); break;
-        case INDI_SWITCH: IDDefSwitchVA(getSwitch(), format, ap); break;
-        case INDI_LIGHT:  IDDefLightVA(getLight(),   format, ap); break;
-        case INDI_BLOB:   IDDefBLOBVA(getBLOB(),     format, ap); break;
-        default:;;
-    }
-    va_end(ap);
 }
 
 }
