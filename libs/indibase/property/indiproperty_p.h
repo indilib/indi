@@ -34,6 +34,12 @@ public:
     bool dynamic = false;
 
     PropertyPrivate(void *property, INDI_PROPERTY_TYPE type);
+    PropertyPrivate(ITextVectorProperty *property);
+    PropertyPrivate(INumberVectorProperty *property);
+    PropertyPrivate(ISwitchVectorProperty *property);
+    PropertyPrivate(ILightVectorProperty *property);
+    PropertyPrivate(IBLOBVectorProperty *property);
+
     virtual ~PropertyPrivate();
 };
 

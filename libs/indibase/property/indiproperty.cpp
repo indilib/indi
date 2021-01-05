@@ -31,6 +31,36 @@ PropertyPrivate::PropertyPrivate(void *property, INDI_PROPERTY_TYPE type)
     , registered(property != nullptr)
 { }
 
+PropertyPrivate::PropertyPrivate(ITextVectorProperty *property)
+    : property(property)
+    , type(property ? INDI_TEXT : INDI_UNKNOWN)
+    , registered(property != nullptr)
+{ }
+
+PropertyPrivate::PropertyPrivate(INumberVectorProperty *property)
+    : property(property)
+    , type(property ? INDI_NUMBER : INDI_UNKNOWN)
+    , registered(property != nullptr)
+{ }
+
+PropertyPrivate::PropertyPrivate(ISwitchVectorProperty *property)
+    : property(property)
+    , type(property ? INDI_SWITCH : INDI_UNKNOWN)
+    , registered(property != nullptr)
+{ }
+
+PropertyPrivate::PropertyPrivate(ILightVectorProperty *property)
+    : property(property)
+    , type(property ? INDI_LIGHT : INDI_UNKNOWN)
+    , registered(property != nullptr)
+{ }
+
+PropertyPrivate::PropertyPrivate(IBLOBVectorProperty *property)
+    : property(property)
+    , type(property ? INDI_BLOB : INDI_UNKNOWN)
+    , registered(property != nullptr)
+{ }
+
 PropertyPrivate::~PropertyPrivate()
 {
     // Only delete properties if they were created dynamically via the buildSkeleton
@@ -102,23 +132,23 @@ Property::Property(void *property, INDI_PROPERTY_TYPE type)
 { }
 
 Property::Property(INumberVectorProperty *property)
-    : d_ptr(new PropertyPrivate(property, INDI_NUMBER))
+    : d_ptr(new PropertyPrivate(property))
 { }
 
 Property::Property(ITextVectorProperty   *property)
-    : d_ptr(new PropertyPrivate(property, INDI_TEXT))
+    : d_ptr(new PropertyPrivate(property))
 { }
 
 Property::Property(ISwitchVectorProperty *property)
-    : d_ptr(new PropertyPrivate(property, INDI_SWITCH))
+    : d_ptr(new PropertyPrivate(property))
 { }
 
 Property::Property(ILightVectorProperty  *property)
-    : d_ptr(new PropertyPrivate(property, INDI_LIGHT))
+    : d_ptr(new PropertyPrivate(property))
 { }
 
 Property::Property(IBLOBVectorProperty   *property)
-    : d_ptr(new PropertyPrivate(property, INDI_BLOB))
+    : d_ptr(new PropertyPrivate(property))
 { }
 
 Property::~Property()
