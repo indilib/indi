@@ -1036,16 +1036,9 @@ int dispatch(XMLEle *root, char msg[])
 
     if (!strcmp(rtag, "newNumberVector"))
     {
-        static double *doubles;
-        static char **names;
-        static int maxn;
-
-        /* seed for reallocs */
-        if (!doubles)
-        {
-            assert_mem(doubles = (double *)malloc(sizeof *doubles));
-            assert_mem(names = (char **)malloc(sizeof *names));
-        }
+        static double *doubles = NULL;
+        static char **names = NULL;
+        static int maxn = 0;
 
         // Set locale to C and save previous value
         locale_char_t *orig = indi_locale_C_numeric_push();
@@ -1086,17 +1079,10 @@ int dispatch(XMLEle *root, char msg[])
 
     if (!strcmp(rtag, "newSwitchVector"))
     {
-        static ISState *states;
-        static char **names;
-        static int maxn;
+        static ISState *states = NULL;
+        static char **names = NULL;
+        static int maxn = 0;
         XMLEle *ep;
-
-        /* seed for reallocs */
-        if (!states)
-        {
-            assert_mem(states = (ISState *)malloc(sizeof *states));
-            assert_mem(names  = (char **)malloc(sizeof *names));
-        }
 
         /* pull out each name/state pair */
         for (n = 0, ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
@@ -1140,16 +1126,9 @@ int dispatch(XMLEle *root, char msg[])
 
     if (!strcmp(rtag, "newTextVector"))
     {
-        static char **texts;
-        static char **names;
-        static int maxn;
-
-        /* seed for reallocs */
-        if (!texts)
-        {
-            assert_mem(texts = (char **)malloc(sizeof *texts));
-            assert_mem(names = (char **)malloc(sizeof *names));
-        }
+        static char **texts = NULL;
+        static char **names = NULL;
+        static int maxn = 0;
 
         /* pull out each name/text pair */
         for (n = 0, ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
@@ -1182,23 +1161,12 @@ int dispatch(XMLEle *root, char msg[])
 
     if (!strcmp(rtag, "newBLOBVector"))
     {
-        static char **blobs;
-        static char **names;
-        static char **formats;
-        static int *blobsizes;
-        static int *sizes;
-        static int maxn;
-        int i;
-
-        /* seed for reallocs */
-        if (!blobs)
-        {
-            assert_mem(blobs = (char **)malloc(sizeof *blobs));
-            assert_mem(names = (char **)malloc(sizeof *names));
-            assert_mem(formats = (char **)malloc(sizeof *formats));
-            assert_mem(blobsizes = (int *)malloc(sizeof *blobsizes));
-            assert_mem(sizes = (int *)malloc(sizeof *sizes));
-        }
+        static char **blobs = NULL;
+        static char **names = NULL;
+        static char **formats = NULL;
+        static int *blobsizes = NULL;
+        static int *sizes = NULL;
+        static int maxn = 0;
 
         /* pull out each name/BLOB pair, decode */
         for (n = 0, ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
@@ -1920,7 +1888,7 @@ void IDDefTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
     if (isPropDefined(tvp->name, tvp->device) < 0)
     {
         /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *)(propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
+        assert_mem(propCache = (ROSC *)(realloc(propCache, (nPropCache + 1) * sizeof *propCache)));
         SC = &propCache[nPropCache++];
 
         strcpy(SC->propName, tvp->name);
@@ -1995,7 +1963,7 @@ void IDDefNumberVA(const INumberVectorProperty *n, const char *fmt, va_list ap)
     if (isPropDefined(n->name, n->device) < 0)
     {
         /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *) (propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
+        assert_mem(propCache = (ROSC *) (realloc(propCache, (nPropCache + 1) * sizeof *propCache)));
         SC = &propCache[nPropCache++];
 
         strcpy(SC->propName, n->name);
@@ -2066,7 +2034,7 @@ void IDDefSwitchVA(const ISwitchVectorProperty *s, const char *fmt, va_list ap)
     if (isPropDefined(s->name, s->device) < 0)
     {
         /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *) (propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
+        assert_mem(propCache = (ROSC *) (realloc(propCache, (nPropCache + 1) * sizeof *propCache)));
         SC = &propCache[nPropCache++];
 
         strcpy(SC->propName, s->name);
@@ -2184,7 +2152,7 @@ void IDDefBLOBVA(const IBLOBVectorProperty *b, const char *fmt, va_list ap)
     if (isPropDefined(b->name, b->device) < 0)
     {
         /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *)(propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
+        assert_mem(propCache = (ROSC *)(realloc(propCache, (nPropCache + 1) * sizeof *propCache)));
         SC = &propCache[nPropCache++];
 
         strcpy(SC->propName, b->name);
