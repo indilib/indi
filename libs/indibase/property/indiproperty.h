@@ -99,6 +99,7 @@ public:
 
 protected:
     std::shared_ptr<PropertyPrivate> d_ptr;
+    Property(PropertyPrivate &dd);
 };
 
 

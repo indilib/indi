@@ -122,9 +122,11 @@ Property::Property(IBLOBVectorProperty   *property)
 { }
 
 Property::~Property()
-{
+{ }
 
-}
+Property::Property(PropertyPrivate &dd)
+    : d_ptr(&dd)
+{ }
 
 void Property::setProperty(void *p)
 {
