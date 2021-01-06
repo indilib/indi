@@ -88,20 +88,14 @@ static void rosc_add(const char *propName, const char *devName, IPerm perm, cons
     SC->type = type;
 }
 
-static int rosc_find_index(const char *propName, const char *devName)
+/* Return pointer of property if already cached, NULL otherwise */
+static ROSC *rosc_find(const char *propName, const char *devName)
 {
     for (int i = 0; i < nPropCache; i++)
         if (!strcmp(propName, propCache[i].propName) && !strcmp(devName, propCache[i].devName))
-            return i;
+            return &propCache[i];
 
-    return -1;
-}
-
-/* Return index of property property if already cached, -1 otherwise */
-static ROSC *rosc_find(const char *propName, const char *devName)
-{
-    int index = rosc_find_index(propName, devName);
-    return index == -1 ? NULL : (propCache + index);
+    return NULL;
 }
 
 static void rosc_add_unique(const char *propName, const char *devName, IPerm perm, const void *ptr, int type)
