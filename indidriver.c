@@ -59,17 +59,57 @@ INDI_BLOB,
 INDI_UNKNOWN
 };
 
-/* Return index of property property if already cached, -1 otherwise */
-int isPropDefined(const char *property_name, const char *device_name)
-{
-    int i = 0;
+// TODO use fast map
+/* insure RO properties are never modified. RO Sanity Check */
+typedef struct {
+    char propName[MAXINDINAME];
+    char devName[MAXINDIDEVICE];
+    IPerm perm;
+    const void *ptr;
+    int type;
+} ROSC;
 
-    for (i = 0; i < nPropCache; i++)
-        if (!strcmp(property_name, propCache[i].propName) && !strcmp(device_name, propCache[i].devName))
+static ROSC *propCache = NULL;
+static int nPropCache = 0; /* # of elements in roCheck */
+
+static ROSC *rosc_new()
+{
+    assert_mem(propCache = (ROSC *)(realloc(propCache, (nPropCache + 1) * sizeof *propCache)));
+    return &propCache[nPropCache++];
+}
+
+static void rosc_add(const char *propName, const char *devName, IPerm perm, const void *ptr, int type)
+{
+    ROSC *SC = rosc_new();
+    strcpy(SC->propName, propName);
+    strcpy(SC->devName, devName);
+    SC->perm = perm;
+    SC->ptr  = ptr;
+    SC->type = type;
+}
+
+static int rosc_find_index(const char *propName, const char *devName)
+{
+    for (int i = 0; i < nPropCache; i++)
+        if (!strcmp(propName, propCache[i].propName) && !strcmp(devName, propCache[i].devName))
             return i;
 
     return -1;
 }
+
+/* Return index of property property if already cached, -1 otherwise */
+static ROSC *rosc_find(const char *propName, const char *devName)
+{
+    int index = rosc_find_index(propName, devName);
+    return index == -1 ? NULL : (propCache + index);
+}
+
+static void rosc_add_unique(const char *propName, const char *devName, IPerm perm, const void *ptr, int type)
+{
+    if (rosc_find(propName, devName) == NULL)
+        rosc_add(propName, devName, perm, ptr, type);
+}
+
 
 /* output a string expanding special characters into xml/html escape sequences */
 static void escapeXML_fputs(const char *src, FILE *stream)
@@ -957,11 +997,11 @@ int dispatch(XMLEle *root, char msg[])
 
         if (name && dev)
         {
-            int index = isPropDefined(valuXMLAtt(name), valuXMLAtt(dev));
-            if (index < 0)
+            ROSC *prop = rosc_find(valuXMLAtt(name), valuXMLAtt(dev));
+
+            if (prop == NULL)
                 return 0;
 
-            ROSC *prop = propCache + index;
             switch (prop->type)
             {
                 /* JM 2019-07-18: Why are we using setXXX here? should be defXXX */
@@ -1011,7 +1051,7 @@ int dispatch(XMLEle *root, char msg[])
     if (crackDN(root, &dev, &name, msg) < 0)
         return (-1);
 
-    if (isPropDefined(name, dev) < 0)
+    if (rosc_find(name, dev) == NULL)
     {
         snprintf(msg, MAXRBUF, "Property %s is not defined in %s.", name, dev);
         return -1;
@@ -1847,7 +1887,6 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
 void IDDefTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
 {
     int i;
-    ROSC *SC;
 
     pthread_mutex_lock(&stdout_mutex);
 
@@ -1885,18 +1924,8 @@ void IDDefTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
 
     printf("</defTextVector>\n");
 
-    if (isPropDefined(tvp->name, tvp->device) < 0)
-    {
-        /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *)(realloc(propCache, (nPropCache + 1) * sizeof *propCache)));
-        SC = &propCache[nPropCache++];
-
-        strcpy(SC->propName, tvp->name);
-        strcpy(SC->devName, tvp->device);
-        SC->perm = tvp->p;
-        SC->ptr  = tvp;
-        SC->type = INDI_TEXT;
-    }
+    /* Add this property to insure proper sanity check */
+    rosc_add_unique(tvp->name, tvp->device, tvp->p, tvp, INDI_TEXT);
 
     indi_locale_C_numeric_pop(orig);
     fflush(stdout);
@@ -1916,7 +1945,6 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
 void IDDefNumberVA(const INumberVectorProperty *n, const char *fmt, va_list ap)
 {
     int i;
-    ROSC *SC;
 
     pthread_mutex_lock(&stdout_mutex);
 
@@ -1960,18 +1988,8 @@ void IDDefNumberVA(const INumberVectorProperty *n, const char *fmt, va_list ap)
 
     printf("</defNumberVector>\n");
 
-    if (isPropDefined(n->name, n->device) < 0)
-    {
-        /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *) (realloc(propCache, (nPropCache + 1) * sizeof *propCache)));
-        SC = &propCache[nPropCache++];
-
-        strcpy(SC->propName, n->name);
-        strcpy(SC->devName, n->device);
-        SC->perm = n->p;
-        SC->ptr  = n;
-        SC->type = INDI_NUMBER;
-    }
+    /* Add this property to insure proper sanity check */
+    rosc_add_unique(n->name, n->device, n->p, n, INDI_NUMBER);
 
     indi_locale_C_numeric_pop(orig);
     fflush(stdout);
@@ -1989,10 +2007,8 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
 
 /* tell client to create a new switch vector property */
 void IDDefSwitchVA(const ISwitchVectorProperty *s, const char *fmt, va_list ap)
-
 {
     int i;
-    ROSC *SC;
 
     pthread_mutex_lock(&stdout_mutex);
 
@@ -2031,18 +2047,8 @@ void IDDefSwitchVA(const ISwitchVectorProperty *s, const char *fmt, va_list ap)
 
     printf("</defSwitchVector>\n");
 
-    if (isPropDefined(s->name, s->device) < 0)
-    {
-        /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *) (realloc(propCache, (nPropCache + 1) * sizeof *propCache)));
-        SC = &propCache[nPropCache++];
-
-        strcpy(SC->propName, s->name);
-        strcpy(SC->devName, s->device);
-        SC->perm = s->p;
-        SC->ptr  = s;
-        SC->type = INDI_SWITCH;
-    }
+    /* Add this property to insure proper sanity check */
+    rosc_add_unique(s->name, s->device, s->p, s, INDI_SWITCH);
 
     indi_locale_C_numeric_pop(orig);
     fflush(stdout);
@@ -2112,7 +2118,6 @@ void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
 void IDDefBLOBVA(const IBLOBVectorProperty *b, const char *fmt, va_list ap)
 {
     int i;
-    ROSC *SC;
 
     pthread_mutex_lock(&stdout_mutex);
 
@@ -2149,18 +2154,8 @@ void IDDefBLOBVA(const IBLOBVectorProperty *b, const char *fmt, va_list ap)
 
     printf("</defBLOBVector>\n");
 
-    if (isPropDefined(b->name, b->device) < 0)
-    {
-        /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *)(realloc(propCache, (nPropCache + 1) * sizeof *propCache)));
-        SC = &propCache[nPropCache++];
-
-        strcpy(SC->propName, b->name);
-        strcpy(SC->devName, b->device);
-        SC->perm = b->p;
-        SC->ptr  = b;
-        SC->type = INDI_BLOB;
-    }
+    /* Add this property to insure proper sanity check */
+    rosc_add_unique(b->name, b->device, b->p, b, INDI_BLOB);
 
     indi_locale_C_numeric_pop(orig);
     fflush(stdout);

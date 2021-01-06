@@ -49,9 +49,6 @@
 
 #define MAXRBUF 2048
 
-ROSC *propCache;
-int nPropCache; /* # of elements in roCheck */
-
 int verbose;    /* chatty */
 char *me;       /* a.out name */
 LilXML *clixml; /* XML parser context */
