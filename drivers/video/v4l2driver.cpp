@@ -56,6 +56,7 @@ static const PixelSizeInfo pixelSizeInfo[] =
     { "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
     { "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
     { "0c45:6366 Microdia", "Spinel 2MP Full HD Low Light WDR H264 USB Camera Module IMX290", 2.9f, -1, true },
+    { "Microsoft® LifeCam Cinema(TM):", "Microsoft® LifeCam Cinema(TM)", 3.0f, -1, false },
     { nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
 };
 
