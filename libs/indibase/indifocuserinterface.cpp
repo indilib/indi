@@ -264,7 +264,10 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
         if (FocusBacklashS[DefaultDevice::INDI_ENABLED].s != ISS_ON)
         {
             FocusBacklashNP.s = IPS_IDLE;
-            DEBUGDEVICE(dev, Logger::DBG_WARNING, "Focuser backlash must be enabled first.");
+
+            // Only warn if there is non-zero backlash value.
+            if (values[0] > 0)
+                DEBUGDEVICE(dev, Logger::DBG_WARNING, "Focuser backlash must be enabled first.");
         }
         else
         {

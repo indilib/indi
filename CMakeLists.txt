@@ -432,6 +432,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/dspinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/transforms.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/convolution.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.cpp
     )
 
 IF (UNITY_BUILD)
@@ -804,7 +805,7 @@ install(TARGETS indi_pmc8_telescope RUNTIME DESTINATION bin)
 SET(telescopesimulator_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/telescope_simulator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/scopesim_helper.cpp)
-    
+
 add_executable(indi_simulator_telescope ${telescopesimulator_SRC})
 target_link_libraries(indi_simulator_telescope indidriver)
 install(TARGETS indi_simulator_telescope RUNTIME DESTINATION bin)
@@ -1434,6 +1435,15 @@ add_executable(indi_pegasus_ppb ${pegasus_ppb_SRC})
 target_link_libraries(indi_pegasus_ppb indidriver)
 install(TARGETS indi_pegasus_ppb RUNTIME DESTINATION bin)
 
+########### Pegasus Pocket Power Box Advance Driver ###############
+
+SET(pegasus_ppba_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/pegasus_ppba.cpp)
+
+add_executable(indi_pegasus_ppba ${pegasus_ppba_SRC})
+target_link_libraries(indi_pegasus_ppba indidriver)
+install(TARGETS indi_pegasus_ppba RUNTIME DESTINATION bin)
+
 ########### SnapCap Driver ###############
 
 SET(snapcap_SRC
@@ -1834,6 +1844,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/dsp.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h
