@@ -42,15 +42,15 @@ static const char *ENVIRONMENT_TAB  = "Environment";
 struct MotorRates
 {
     // Rate values: 1-10
-    uint32_t accRate, runSpeed, decRate;
+    uint32_t accRate = 0, runSpeed = 0, decRate = 0;
 };
 
 struct MotorCurrents
 {
     // Current values: 1-10
-    uint32_t accCurrent, runCurrent, decCurrent;
+    uint32_t accCurrent = 0, runCurrent = 0, decCurrent = 0;
     // Hold current: 1-5
-    uint32_t holdCurrent;
+    uint32_t holdCurrent = 0;
 };
 
 // Settings names for the default motor settings presets
@@ -454,8 +454,8 @@ bool SestoSenso2::updateVoltageIn()
 bool SestoSenso2::fetchMotorSettings()
 {
     // Fetch driver state and reflect in INDI
-    MotorRates ms = {};
-    MotorCurrents mc = {};
+    MotorRates ms;
+    MotorCurrents mc;
     bool motorHoldActive = false;
 
     if (isSimulation())
@@ -518,7 +518,7 @@ bool SestoSenso2::applyMotorRates()
         return true;
 
     // Send INDI state to driver
-    MotorRates mr = {};
+    MotorRates mr;
     mr.accRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_ACC].value);
     mr.runSpeed = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_RUN].value);
     mr.decRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_DEC].value);
@@ -540,7 +540,7 @@ bool SestoSenso2::applyMotorCurrents()
         return true;
 
     // Send INDI state to driver
-    MotorCurrents mc = {};
+    MotorCurrents mc;
     mc.accCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_ACC].value);
     mc.runCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_RUN].value);
     mc.decCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_DEC].value);
@@ -923,12 +923,12 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             assert(index >= 0 && index < 3);
             uint32_t userIndex = index + 1;
 
-            MotorRates mr = {};
+            MotorRates mr;
             mr.accRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_ACC].value);
             mr.runSpeed = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_RUN].value);
             mr.decRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_DEC].value);
 
-            MotorCurrents mc = {};
+            MotorCurrents mc;
             mc.accCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_ACC].value);
             mc.runCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_RUN].value);
             mc.decCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_DEC].value);
