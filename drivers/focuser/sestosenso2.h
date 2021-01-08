@@ -48,12 +48,15 @@ class CommandSet
         bool initCalibration();
         bool getAbsolutePosition(char *res);
         bool getCurrentSpeed(char *res);
-        bool loadSlowPreset(char *res);
+        bool applyMotorPreset(const char *name);
+        bool applyMotorUserPreset(uint32_t index);
+        bool saveMotorUserPreset(uint32_t index, struct MotorRates &mr, struct MotorCurrents &mc);
         bool getMotorTemp(char *res);
         bool getExternalTemp(char *res);
         bool getVoltageIn(char *res);
-        bool getMotorSettings(struct MotorSettings &ms, bool &motorHoldActive);
-        bool setMotorSettings(struct MotorSettings &ms);
+        bool getMotorSettings(struct MotorRates &ms, struct MotorCurrents &mc, bool &motorHoldActive);
+        bool setMotorRates(struct MotorRates &ms);
+        bool setMotorCurrents(struct MotorCurrents &mc);
         bool setMotorHold(bool hold);
         std::string deviceName;
 
@@ -68,6 +71,7 @@ class CommandSet
         bool send(const std::string &request, std::string &response) const;
         // Send command and parse response looking for value of property
         bool sendCmd(const std::string &cmd, std::string property = "", char *res = nullptr) const;
+        bool sendCmd(const std::string &cmd, std::string property, std::string &res) const;
         bool getValueFromResponse(const std::string &response, const std::string &property, char *value) const;
         bool parseUIntFromResponse(const std::string &response, const std::string &property, uint32_t &result) const;
 
@@ -115,7 +119,8 @@ class SestoSenso2 : public INDI::Focuser
         bool updatePosition();
         bool updateVoltageIn();
         bool fetchMotorSettings();
-        bool applyMotorSettings();
+        bool applyMotorRates();
+        bool applyMotorCurrents();
         void setConnectionParams();
         bool initCommandSet();
         void checkMotionProgressCallback();
@@ -124,7 +129,6 @@ class SestoSenso2 : public INDI::Focuser
         CommandSet *command {nullptr};
 
         bool getStartupValues();
-        bool setupRunPreset();
         void hexDump(char * buf, const char * data, int size);
         bool isMotionComplete();
 
@@ -204,6 +208,33 @@ class SestoSenso2 : public INDI::Focuser
         {
             MOTOR_HOLD_ON,
             MOTOR_HOLD_OFF
+        };
+
+        ISwitchVectorProperty MotorApplyPresetSP;
+        ISwitch MotorApplyPresetS[3];
+        enum
+        {
+            MOTOR_APPLY_LIGHT,
+            MOTOR_APPLY_MEDIUM,
+            MOTOR_APPLY_HEAVY,
+        };
+
+        ISwitchVectorProperty MotorApplyUserPresetSP;
+        ISwitch MotorApplyUserPresetS[3];
+        enum
+        {
+            MOTOR_APPLY_USER1,
+            MOTOR_APPLY_USER2,
+            MOTOR_APPLY_USER3
+        };
+
+        ISwitchVectorProperty MotorSaveUserPresetSP;
+        ISwitch MotorSaveUserPresetS[3];
+        enum
+        {
+            MOTOR_SAVE_USER1,
+            MOTOR_SAVE_USER2,
+            MOTOR_SAVE_USER3
         };
 
         ISwitchVectorProperty HomeSP;

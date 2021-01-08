@@ -37,21 +37,28 @@
 static std::unique_ptr<SestoSenso2> sesto(new SestoSenso2());
 
 static const char *MOTOR_TAB  = "Motor";
+static const char *ENVIRONMENT_TAB  = "Environment";
 
-struct MotorSettings
+struct MotorRates
 {
     // Rate values: 1-10
     uint32_t accRate, runSpeed, decRate;
+};
+
+struct MotorCurrents
+{
     // Current values: 1-10
     uint32_t accCurrent, runCurrent, decCurrent;
     // Hold current: 1-5
     uint32_t holdCurrent;
 };
 
+// Settings names for the default motor settings presets
+const char *MOTOR_PRESET_NAMES[] = { "light", "medium", "slow" };
+
 void ISGetProperties(const char *dev)
 {
     sesto->ISGetProperties(dev);
-
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -110,40 +117,19 @@ bool SestoSenso2::initProperties()
 
     // Voltage Information
     IUFillNumber(&VoltageInN[0], "VOLTAGEIN", "Volts", "%.2f", 0, 100, 0., 0.);
-    IUFillNumberVector(&VoltageInNP, VoltageInN, 1, getDeviceName(), "VOLTAGE_IN", "Voltage in", MAIN_CONTROL_TAB, IP_RO, 0,
-                     IPS_IDLE);
+    IUFillNumberVector(&VoltageInNP, VoltageInN, 1, getDeviceName(), "VOLTAGE_IN", "Voltage in", ENVIRONMENT_TAB, IP_RO, 0,
+                       IPS_IDLE);
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[TEMPERATURE_MOTOR], "TEMPERATURE", "Motor (c)", "%.2f", -50, 70., 0., 0.);
     IUFillNumber(&TemperatureN[TEMPERATURE_EXTERNAL], "TEMPERATURE_ETX", "External (c)", "%.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 2, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 2, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", ENVIRONMENT_TAB,
                        IP_RO, 0, IPS_IDLE);
 
     // Current Speed
     IUFillNumber(&SpeedN[0], "SPEED", "steps/s", "%.f", 0, 7000., 1, 0);
     IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Motor Speed", MAIN_CONTROL_TAB, IP_RO, 0,
                        IPS_IDLE);
-
-    // Motor rate
-    IUFillNumber(&MotorRateN[MOTOR_RATE_ACC], "ACC", "Acceleration", "%.f", 1, 10, 1, 1);
-    IUFillNumber(&MotorRateN[MOTOR_RATE_RUN], "RUN", "Run Speed", "%.f", 1, 10, 1, 1);
-    IUFillNumber(&MotorRateN[MOTOR_RATE_DEC], "DEC", "Deceleration", "%.f", 1, 10, 1, 1);
-    IUFillNumberVector(&MotorRateNP, MotorRateN, 3, getDeviceName(), "MOTOR_RATE", "Motor Rate", MOTOR_TAB, IP_RW, 0,
-                       IPS_IDLE);
-
-    // Motor current
-    IUFillNumber(&MotorCurrentN[MOTOR_CURR_ACC], "CURR_ACC", "Acceleration", "%.f", 1, 10, 1, 1);
-    IUFillNumber(&MotorCurrentN[MOTOR_CURR_RUN], "CURR_RUN", "Run", "%.f", 1, 10, 1, 1);
-    IUFillNumber(&MotorCurrentN[MOTOR_CURR_DEC], "CURR_DEC", "Deceleration", "%.f", 1, 10, 1, 1);
-    IUFillNumber(&MotorCurrentN[MOTOR_CURR_HOLD], "CURR_HOLD", "Hold", "%.f", 0, 5, 1, 1);
-    IUFillNumberVector(&MotorCurrentNP, MotorCurrentN, 4, getDeviceName(), "MOTOR_CURRENT", "Current", MOTOR_TAB, IP_RW, 0,
-                       IPS_IDLE);
-
-    // Hold state
-    IUFillSwitch(&MotorHoldS[MOTOR_HOLD_ON], "HOLD_ON", "Hold On", ISS_OFF);
-    IUFillSwitch(&MotorHoldS[MOTOR_HOLD_OFF], "HOLD_OFF", "Hold Off", ISS_OFF);
-    IUFillSwitchVector(&MotorHoldSP, MotorHoldS, 2, getDeviceName(), "MOTOR_HOLD", "Motor Hold", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Focuser calibration
     IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "Press START to begin the Calibration.");
@@ -163,6 +149,12 @@ bool SestoSenso2::initProperties()
     IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
+    // Hold state
+    IUFillSwitch(&MotorHoldS[MOTOR_HOLD_ON], "HOLD_ON", "Hold On", ISS_OFF);
+    IUFillSwitch(&MotorHoldS[MOTOR_HOLD_OFF], "HOLD_OFF", "Hold Off", ISS_OFF);
+    IUFillSwitchVector(&MotorHoldSP, MotorHoldS, 2, getDeviceName(), "MOTOR_HOLD", "Motor Hold", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     // Override the default Max. Position to make it Read-Only
     IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
                        0, IPS_IDLE);
@@ -172,7 +164,41 @@ bool SestoSenso2::initProperties()
     IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "FOCUS_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_IDLE);
 
+    // Motor rate
+    IUFillNumber(&MotorRateN[MOTOR_RATE_ACC], "ACC", "Acceleration", "%.f", 1, 10, 1, 1);
+    IUFillNumber(&MotorRateN[MOTOR_RATE_RUN], "RUN", "Run Speed", "%.f", 1, 10, 1, 2);
+    IUFillNumber(&MotorRateN[MOTOR_RATE_DEC], "DEC", "Deceleration", "%.f", 1, 10, 1, 1);
+    IUFillNumberVector(&MotorRateNP, MotorRateN, 3, getDeviceName(), "MOTOR_RATE", "Motor Rate", MOTOR_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
+    // Motor current
+    IUFillNumber(&MotorCurrentN[MOTOR_CURR_ACC], "CURR_ACC", "Acceleration", "%.f", 1, 10, 1, 7);
+    IUFillNumber(&MotorCurrentN[MOTOR_CURR_RUN], "CURR_RUN", "Run", "%.f", 1, 10, 1, 7);
+    IUFillNumber(&MotorCurrentN[MOTOR_CURR_DEC], "CURR_DEC", "Deceleration", "%.f", 1, 10, 1, 7);
+    IUFillNumber(&MotorCurrentN[MOTOR_CURR_HOLD], "CURR_HOLD", "Hold", "%.f", 0, 5, 1, 3);
+    IUFillNumberVector(&MotorCurrentNP, MotorCurrentN, 4, getDeviceName(), "MOTOR_CURRENT", "Current", MOTOR_TAB, IP_RW, 0,
+                       IPS_IDLE);
+
+    // Load motor preset
+    IUFillSwitch(&MotorApplyPresetS[MOTOR_APPLY_LIGHT], "MOTOR_APPLY_LIGHT", "Light", ISS_OFF);
+    IUFillSwitch(&MotorApplyPresetS[MOTOR_APPLY_MEDIUM], "MOTOR_APPLY_MEDIUM", "Medium", ISS_OFF);
+    IUFillSwitch(&MotorApplyPresetS[MOTOR_APPLY_HEAVY], "MOTOR_APPLY_HEAVY", "Heavy", ISS_OFF);
+    IUFillSwitchVector(&MotorApplyPresetSP, MotorApplyPresetS, 3, getDeviceName(), "MOTOR_APPLY_PRESET", "Apply Preset",
+                       MOTOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    // Load user preset
+    IUFillSwitch(&MotorApplyUserPresetS[MOTOR_APPLY_USER1], "MOTOR_APPLY_USER1", "User 1", ISS_OFF);
+    IUFillSwitch(&MotorApplyUserPresetS[MOTOR_APPLY_USER2], "MOTOR_APPLY_USER2", "User 2", ISS_OFF);
+    IUFillSwitch(&MotorApplyUserPresetS[MOTOR_APPLY_USER3], "MOTOR_APPLY_USER3", "User 3", ISS_OFF);
+    IUFillSwitchVector(&MotorApplyUserPresetSP, MotorApplyUserPresetS, 3, getDeviceName(), "MOTOR_APPLY_USER_PRESET",
+                       "Apply Custom", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    // Save user preset
+    IUFillSwitch(&MotorSaveUserPresetS[MOTOR_SAVE_USER1], "MOTOR_SAVE_USER1", "User 1", ISS_OFF);
+    IUFillSwitch(&MotorSaveUserPresetS[MOTOR_SAVE_USER2], "MOTOR_SAVE_USER2", "User 2", ISS_OFF);
+    IUFillSwitch(&MotorSaveUserPresetS[MOTOR_SAVE_USER3], "MOTOR_SAVE_USER3", "User 3", ISS_OFF);
+    IUFillSwitchVector(&MotorSaveUserPresetSP, MotorSaveUserPresetS, 3, getDeviceName(), "MOTOR_SAVE_USER_PRESET",
+                       "Save Custom", MOTOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
@@ -206,19 +232,26 @@ bool SestoSenso2::updateProperties()
 
     if (isConnected())
     {
-        if (updateTemperature())
-            defineNumber(&TemperatureNP);
         defineNumber(&SpeedNP);
-        defineText(&FirmwareTP);
-        if (updateVoltageIn())
-            defineNumber(&VoltageInNP);
-
         defineText(&CalibrationMessageTP);
         defineSwitch(&CalibrationSP);
         defineSwitch(&HomeSP);
         defineNumber(&MotorRateNP);
         defineNumber(&MotorCurrentNP);
         defineSwitch(&MotorHoldSP);
+        defineSwitch(&MotorApplyPresetSP);
+        /* TODO: Awaiting fix for apply user preset (broken in FW 1.3)
+        defineSwitch(&MotorApplyUserPresetSP);
+        defineSwitch(&MotorSaveUserPresetSP);
+        */
+
+        defineText(&FirmwareTP);
+
+        if (updateTemperature())
+            defineNumber(&TemperatureNP);
+
+        if (updateVoltageIn())
+            defineNumber(&VoltageInNP);
 
         if (getStartupValues())
             LOG_INFO("Parameters updated, focuser ready for use.");
@@ -238,6 +271,11 @@ bool SestoSenso2::updateProperties()
         deleteProperty(MotorRateNP.name);
         deleteProperty(MotorCurrentNP.name);
         deleteProperty(MotorHoldSP.name);
+        deleteProperty(MotorApplyPresetSP.name);
+        /* TODO: Awaiting fix for apply user preset (broken in FW 1.3)
+        deleteProperty(MotorApplyUserPresetSP.name);
+        deleteProperty(MotorSaveUserPresetSP.name);
+        */
     }
 
     return true;
@@ -415,8 +453,9 @@ bool SestoSenso2::updateVoltageIn()
 
 bool SestoSenso2::fetchMotorSettings()
 {
-    // Fetch drive state andreflect in INDI
-    MotorSettings ms = {};
+    // Fetch driver state and reflect in INDI
+    MotorRates ms = {};
+    MotorCurrents mc = {};
     bool motorHoldActive = false;
 
     if (isSimulation())
@@ -424,13 +463,14 @@ bool SestoSenso2::fetchMotorSettings()
         ms.accRate = 1;
         ms.runSpeed = 2;
         ms.decRate = 1;
-        ms.accCurrent = 3;
-        ms.runCurrent = 4;
-        ms.decCurrent = 3;
+        mc.accCurrent = 3;
+        mc.runCurrent = 4;
+        mc.decCurrent = 3;
+        mc.holdCurrent = 2;
     }
     else
     {
-        if (!command->getMotorSettings(ms, motorHoldActive))
+        if (!command->getMotorSettings(ms, mc, motorHoldActive))
         {
             MotorRateNP.s = IPS_IDLE;
             MotorCurrentNP.s = IPS_IDLE;
@@ -445,10 +485,10 @@ bool SestoSenso2::fetchMotorSettings()
     MotorRateNP.s = IPS_OK;
     IDSetNumber(&MotorRateNP, nullptr);
 
-    MotorCurrentN[MOTOR_CURR_ACC].value = ms.accCurrent;
-    MotorCurrentN[MOTOR_CURR_RUN].value = ms.runCurrent;
-    MotorCurrentN[MOTOR_CURR_DEC].value = ms.decCurrent;
-    MotorCurrentN[MOTOR_CURR_HOLD].value = ms.holdCurrent;
+    MotorCurrentN[MOTOR_CURR_ACC].value = mc.accCurrent;
+    MotorCurrentN[MOTOR_CURR_RUN].value = mc.runCurrent;
+    MotorCurrentN[MOTOR_CURR_DEC].value = mc.decCurrent;
+    MotorCurrentN[MOTOR_CURR_HOLD].value = mc.holdCurrent;
     MotorCurrentNP.s = IPS_OK;
     IDSetNumber(&MotorCurrentNP, nullptr);
 
@@ -464,44 +504,57 @@ bool SestoSenso2::fetchMotorSettings()
         IDSetSwitch(&MotorHoldSP, nullptr);
     }
 
+    if (motorHoldActive && mc.holdCurrent == 0)
+    {
+        LOG_WARN("Motor hold current set to 0, motor hold setting will have no effect");
+    }
+
     return true;
 }
 
-bool SestoSenso2::applyMotorSettings()
+bool SestoSenso2::applyMotorRates()
 {
     if (isSimulation())
         return true;
 
-    MotorSettings ms = {};
-
     // Send INDI state to driver
-    ms.accRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_ACC].value);
-    ms.runSpeed = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_RUN].value);
-    ms.decRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_DEC].value);
+    MotorRates mr = {};
+    mr.accRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_ACC].value);
+    mr.runSpeed = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_RUN].value);
+    mr.decRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_DEC].value);
 
-    ms.accCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_ACC].value);
-    ms.runCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_RUN].value);
-    ms.decCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_DEC].value);
-    ms.holdCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_HOLD].value);
-
-    if (!command->setMotorSettings(ms))
+    if (!command->setMotorRates(mr))
     {
-        LOG_ERROR("Failed to apply motor settings");
+        LOG_ERROR("Failed to apply motor rates");
         // TODO: Error state?
         return false;
     }
 
-    LOG_INFO("Motor settings applied");
+    LOGF_INFO("Motor rates applied: Acc: %u Run: %u Dec: %u", mr.accRate, mr.runSpeed, mr.decRate);
     return true;
 }
 
-bool SestoSenso2::setupRunPreset()
+bool SestoSenso2::applyMotorCurrents()
 {
-    char res[SESTO_LEN] = {0};
-    if (command->loadSlowPreset(res) == false)
+    if (isSimulation())
+        return true;
+
+    // Send INDI state to driver
+    MotorCurrents mc = {};
+    mc.accCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_ACC].value);
+    mc.runCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_RUN].value);
+    mc.decCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_DEC].value);
+    mc.holdCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_HOLD].value);
+
+    if (!command->setMotorCurrents(mc))
     {
+        LOG_ERROR("Failed to apply motor currents");
+        // TODO: Error state?
         return false;
     }
+
+    LOGF_INFO("Motor currents applied: Acc: %u Run: %u Dec: %u Hold: %u", mc.accCurrent, mc.runCurrent, mc.decCurrent,
+              mc.holdCurrent);
     return true;
 }
 
@@ -601,6 +654,9 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     IUSaveText(&CalibrationMessageT[0], "Set focus in MIN position and then press NEXT.");
                     IDSetText(&CalibrationMessageTP, nullptr);
 
+                    // Motor hold disabled during calibration init, so fetch new hold state
+                    fetchMotorSettings();
+
                     // Set next step
                     cStage = GoToMiddle;
                 }
@@ -693,6 +749,9 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     IDSetSwitch(&CalibrationSP, nullptr);
                     CalibrationS[current_switch].s = ISS_OFF;
                     IDSetSwitch(&CalibrationSP, nullptr);
+
+                    // Double check motor hold state after calibration
+                    fetchMotorSettings();
                 }
                 else
                 {
@@ -726,6 +785,9 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                             return false;
                         }
                         IUSaveText(&CalibrationMessageT[0], "Press STOP focuser almost at MAX position.");
+
+                        // GoOutToFindMaxPos should cause motor hold to be reactivated
+                        fetchMotorSettings();
                     }
                     else
                     {
@@ -789,19 +851,104 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             {
                 command->setMotorHold(false);
                 MotorHoldSP.s = IPS_ALERT;
-                LOG_WARN("Motor hold OFF. You may now manually adjust the focuser. Remember to enable Motor hold once done.");
+                LOG_INFO("Motor hold OFF. You may now manually adjust the focuser. Remember to enable motor hold once done.");
             }
             else
             {
                 command->setMotorHold(true);
                 MotorHoldSP.s = IPS_OK;
-                LOG_WARN("Motor hold ON. Do NOT attempt to manually adjust the focuser!");
+                LOG_INFO("Motor hold ON. Do NOT attempt to manually adjust the focuser!");
+                if (MotorCurrentN[MOTOR_CURR_HOLD].value < 2.0)
+                {
+                    LOGF_WARN("Motor hold current set to %.1f: This may be insufficent to hold focus", MotorCurrentN[MOTOR_CURR_HOLD].value);
+                }
             }
 
             IDSetSwitch(&MotorHoldSP, nullptr);
             return true;
         }
+        else if (!strcmp(name, MotorApplyPresetSP.name))
+        {
+            IUUpdateSwitch(&MotorApplyPresetSP, states, names, n);
+            int index = IUFindOnSwitchIndex(&MotorApplyPresetSP);
+            assert(index >= 0 && index < 3);
 
+            const char* presetName = MOTOR_PRESET_NAMES[index];
+
+            if (command->applyMotorPreset(presetName))
+            {
+                LOGF_INFO("Loaded motor preset: %s", presetName);
+                MotorApplyPresetSP.s = IPS_IDLE;
+            }
+            else
+            {
+                LOGF_ERROR("Failed to load motor preset: %s", presetName);
+                MotorApplyPresetSP.s = IPS_ALERT;
+            }
+
+            MotorApplyPresetS[index].s = ISS_OFF;
+            IDSetSwitch(&MotorApplyPresetSP, nullptr);
+
+            fetchMotorSettings();
+            return true;
+        }
+        else if (!strcmp(name, MotorApplyUserPresetSP.name))
+        {
+            IUUpdateSwitch(&MotorApplyUserPresetSP, states, names, n);
+            int index = IUFindOnSwitchIndex(&MotorApplyUserPresetSP);
+            assert(index >= 0 && index < 3);
+            uint32_t userIndex = index + 1;
+
+            if (command->applyMotorUserPreset(userIndex))
+            {
+                LOGF_INFO("Loaded motor user preset: %u", userIndex);
+                MotorApplyUserPresetSP.s = IPS_IDLE;
+            }
+            else
+            {
+                LOGF_ERROR("Failed to load motor user preset: %u", userIndex);
+                MotorApplyUserPresetSP.s = IPS_ALERT;
+            }
+
+            MotorApplyUserPresetS[index].s = ISS_OFF;
+            IDSetSwitch(&MotorApplyUserPresetSP, nullptr);
+
+            fetchMotorSettings();
+            return true;
+        }
+        else if (!strcmp(name, MotorSaveUserPresetSP.name))
+        {
+            IUUpdateSwitch(&MotorSaveUserPresetSP, states, names, n);
+            int index = IUFindOnSwitchIndex(&MotorSaveUserPresetSP);
+            assert(index >= 0 && index < 3);
+            uint32_t userIndex = index + 1;
+
+            MotorRates mr = {};
+            mr.accRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_ACC].value);
+            mr.runSpeed = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_RUN].value);
+            mr.decRate = static_cast<uint32_t>(MotorRateN[MOTOR_RATE_DEC].value);
+
+            MotorCurrents mc = {};
+            mc.accCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_ACC].value);
+            mc.runCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_RUN].value);
+            mc.decCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_DEC].value);
+            mc.holdCurrent = static_cast<uint32_t>(MotorCurrentN[MOTOR_CURR_HOLD].value);
+
+            if (command->saveMotorUserPreset(userIndex, mr, mc))
+            {
+                LOGF_INFO("Saved motor user preset %u to firmware", userIndex);
+                MotorSaveUserPresetSP.s = IPS_IDLE;
+            }
+            else
+            {
+                LOGF_ERROR("Failed to save motor user preset %u to firmware", userIndex);
+                MotorSaveUserPresetSP.s = IPS_ALERT;
+            }
+
+            MotorSaveUserPresetS[index].s = ISS_OFF;
+            IDSetSwitch(&MotorSaveUserPresetSP, nullptr);
+            return true;
+        }
     }
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
@@ -815,7 +962,7 @@ bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[]
     {
         IUUpdateNumber(&MotorRateNP, values, names, n);
         MotorRateNP.s = IPS_OK;
-        applyMotorSettings();
+        applyMotorRates();
         IDSetNumber(&MotorRateNP, nullptr);
         return true;
     }
@@ -823,7 +970,7 @@ bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[]
     {
         IUUpdateNumber(&MotorCurrentNP, values, names, n);
         MotorCurrentNP.s = IPS_OK;
-        applyMotorSettings();
+        applyMotorCurrents();
         IDSetNumber(&MotorCurrentNP, nullptr);
         return true;
     }
@@ -1020,10 +1167,6 @@ void SestoSenso2::TimerHit()
 
 bool SestoSenso2::getStartupValues()
 {
-    // // Do not run for Esatto
-    // if (m_IsSestoSenso2)
-    //     setupRunPreset();
-
     bool rc = updatePosition();
     if (rc)
     {
@@ -1078,7 +1221,7 @@ bool SestoSenso2::Ack()
     {
         return false;
     }
-    
+
     return true;
 }
 
@@ -1126,6 +1269,8 @@ bool CommandSet::send(const std::string &request, std::string &response) const
         return false;
     }
 
+    LOGF_DEBUG("Received response: %s", read_buf);
+
     response = read_buf;
     return true;
 }
@@ -1139,20 +1284,27 @@ bool CommandSet::sendCmd(const std::string &cmd, std::string property, char *res
 
     if (property.empty() || res == nullptr)
         return true;
-    
+
     if (getValueFromResponse(response, property, res) == false)
     {
         LOGF_ERROR("Communication error: cmd %s property %s response: %s", cmd.c_str(), property.c_str(), res);
         return false;
     }
 
-    LOGF_DEBUG("Received response: %s", res);
     tcflush(PortFD, TCIOFLUSH);
 
     return true;
 }
 
-inline void remove_chars_inplace(std::string& str, char ch)
+bool CommandSet::sendCmd(const std::string &cmd, std::string property, std::string &res) const
+{
+    char response_buff[SESTO_LEN] = {0};
+    bool success = sendCmd(cmd, property, response_buff);
+    res = response_buff;
+    return success;
+}
+
+inline void remove_chars_inplace(std::string &str, char ch)
 {
     str.erase(std::remove(str.begin(), str.end(), ch), str.end());
 }
@@ -1291,9 +1443,64 @@ bool CommandSet::getCurrentSpeed(char *res)
     return sendCmd("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", "SPEED", res);
 }
 
-bool CommandSet::loadSlowPreset(char *res)
+bool CommandSet::applyMotorPreset(const char *name)
 {
-    return sendCmd("{\"req\":{\"cmd\":{\"RUNPRESET\":\"slow\"}}}", "RUNPRESET", res);
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"RUNPRESET\":\"%s\"}}}", name);
+
+    std::string result;
+    if (!sendCmd(cmd, "RUNPRESET", result))
+        return false;
+
+    if (result == "done")
+        return true;
+
+    LOGF_ERROR("Req RUNPRESET %s returned: %s", name, result.c_str());
+    return false;
+}
+
+
+bool CommandSet::applyMotorUserPreset(uint32_t index)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"RUNPRESET\":%u}}}", index);
+
+    std::string result;
+    if (!sendCmd(cmd, "RUNPRESET", result))
+        return false;
+
+    if (result == "done")
+        return true;
+
+    LOGF_ERROR("Req RUNPRESET %u returned: %s cmd:\n%s", index, result.c_str(), cmd);
+    return false;
+}
+
+constexpr char MOTOR_SAVE_PRESET_CMD[] =
+    "{\"req\":{\"set\":{\"RUNPRESET_%u\":{"
+    "\"RP_NAME\":\"User%u\","
+    "\"M1ACC\":%u,\"M1DEC\":%u,\"M1SPD\":%u,"
+    "\"M1CACC\":%u,\"M1CDEC\":%u,\"M1CSPD\":%u,\"M1HOLD\":%u"
+    "}}}}";
+
+bool CommandSet::saveMotorUserPreset(uint32_t index, MotorRates &mr, MotorCurrents &mc)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), MOTOR_SAVE_PRESET_CMD, index,
+             index,
+             mr.accRate, mr.decRate, mr.runSpeed,
+             mc.accCurrent, mc.decCurrent, mc.runCurrent, mc.holdCurrent);
+
+    std::string result;
+    if (!sendCmd(cmd, "M1ACC", result))
+        return false;
+
+    // TODO: Check each parameter's result
+    if (result == "done")
+        return true;
+
+    LOGF_ERROR("Set RUNPRESET %u returned: %s", index, result.c_str());
+    return false;
 }
 
 bool CommandSet::getMotorTemp(char *res)
@@ -1311,21 +1518,21 @@ bool CommandSet::getVoltageIn(char *res)
     return sendCmd("{\"req\":{\"get\":{\"VIN_12V\":\"\"}}}", "VIN_12V", res);
 }
 
-bool CommandSet::getMotorSettings(struct MotorSettings &ms, bool &motorHoldActive)
+bool CommandSet::getMotorSettings(struct MotorRates &mr, struct MotorCurrents &mc, bool &motorHoldActive)
 {
     std::string response;
     if (!send("{\"req\":{\"get\":{\"MOT1\":\"\"}}}", response))
         return false;   // send() call handles failure logging
 
     uint32_t holdStatus = 0;
-    if (parseUIntFromResponse(response, "FnRUN_ACC", ms.accRate)
-        && parseUIntFromResponse(response, "FnRUN_SPD", ms.runSpeed)
-        && parseUIntFromResponse(response, "FnRUN_DEC", ms.decRate)
-        && parseUIntFromResponse(response, "FnRUN_CURR_ACC", ms.accCurrent)
-        && parseUIntFromResponse(response, "FnRUN_CURR_SPD", ms.runCurrent)
-        && parseUIntFromResponse(response, "FnRUN_CURR_DEC", ms.decCurrent)
-        && parseUIntFromResponse(response, "FnRUN_CURR_HOLD", ms.holdCurrent)
-        && parseUIntFromResponse(response, "HOLDCURR_STATUS", holdStatus))
+    if (parseUIntFromResponse(response, "FnRUN_ACC", mr.accRate)
+            && parseUIntFromResponse(response, "FnRUN_SPD", mr.runSpeed)
+            && parseUIntFromResponse(response, "FnRUN_DEC", mr.decRate)
+            && parseUIntFromResponse(response, "FnRUN_CURR_ACC", mc.accCurrent)
+            && parseUIntFromResponse(response, "FnRUN_CURR_SPD", mc.runCurrent)
+            && parseUIntFromResponse(response, "FnRUN_CURR_DEC", mc.decCurrent)
+            && parseUIntFromResponse(response, "FnRUN_CURR_HOLD", mc.holdCurrent)
+            && parseUIntFromResponse(response, "HOLDCURR_STATUS", holdStatus))
     {
         motorHoldActive = holdStatus != 0;
         return true;
@@ -1335,22 +1542,34 @@ bool CommandSet::getMotorSettings(struct MotorSettings &ms, bool &motorHoldActiv
     return false;
 }
 
-constexpr char MOTOR_SETTINGS_CMD[] = 
-"{\"req\":{\"set\":{\"MOT1\":{"
-"\"FnRUN_ACC\":%u,"
-"\"FnRUN_SPD\":%u,"
-"\"FnRUN_DEC\":%u,"
-"\"FnRUN_CURR_ACC\":%u,"
-"\"FnRUN_CURR_SPD\":%u,"
-"\"FnRUN_CURR_DEC\":%u,"
-"\"FnRUN_CURR_HOLD\":%u"
-"}}}}";
+constexpr char MOTOR_RATES_CMD[] =
+    "{\"req\":{\"set\":{\"MOT1\":{"
+    "\"FnRUN_ACC\":%u,"
+    "\"FnRUN_SPD\":%u,"
+    "\"FnRUN_DEC\":%u"
+    "}}}}";
 
-bool CommandSet::setMotorSettings(struct MotorSettings &ms)
+bool CommandSet::setMotorRates(struct MotorRates &mr)
 {
     char cmd[SESTO_LEN] = {0};
-    snprintf(cmd, sizeof(cmd), MOTOR_SETTINGS_CMD, ms.accRate, ms.runSpeed, ms.decRate,
-             ms.accCurrent, ms.runCurrent, ms.decCurrent, ms.holdCurrent);
+    snprintf(cmd, sizeof(cmd), MOTOR_RATES_CMD, mr.accRate, mr.runSpeed, mr.decRate);
+
+    std::string response;
+    return send(cmd, response); // TODO: Check response!
+}
+
+constexpr char MOTOR_CURRENTS_CMD[] =
+    "{\"req\":{\"set\":{\"MOT1\":{"
+    "\"FnRUN_CURR_ACC\":%u,"
+    "\"FnRUN_CURR_SPD\":%u,"
+    "\"FnRUN_CURR_DEC\":%u,"
+    "\"FnRUN_CURR_HOLD\":%u"
+    "}}}}";
+
+bool CommandSet::setMotorCurrents(struct MotorCurrents &mc)
+{
+    char cmd[SESTO_LEN] = {0};
+    snprintf(cmd, sizeof(cmd), MOTOR_CURRENTS_CMD, mc.accCurrent, mc.runCurrent, mc.decCurrent, mc.holdCurrent);
 
     std::string response;
     return send(cmd, response); // TODO: Check response!
@@ -1360,7 +1579,7 @@ bool CommandSet::setMotorHold(bool hold)
 {
     char cmd[SESTO_LEN] = {0};
     snprintf(cmd, sizeof(cmd), "{\"req\":{\"set\":{\"MOT1\":{\"HOLDCURR_STATUS\":%u}}}}", hold ? 1 : 0);
-    
+
     std::string response;
     return send(cmd, response); // TODO: Check response!
 }
