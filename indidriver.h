@@ -37,10 +37,10 @@ extern "C" {
 
 extern int verbose;    /* chatty */
 extern char *me;       /* a.out name */
-extern LilXML *clixml; /* XML parser context */
+//extern LilXML *clixml; /* XML parser context */
 
 extern int dispatch(XMLEle *root, char msg[]);
-extern void clientMsgCB(int fd, void *arg);
+//extern void clientMsgCB(int fd, void *arg);
 
 /**
  * \defgroup configFunctions Configuration Functions: Functions drivers call to save and load configuraion options.

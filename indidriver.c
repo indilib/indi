@@ -24,7 +24,6 @@ if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
-
 #include "indidriver.h"
 
 #include "base64.h"
@@ -44,7 +43,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <sys/stat.h>
 #include <assert.h>
 
-pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
+int verbose;      /* chatty */
+char *me = NULL;  /* a.out name */
 
 #define MAXRBUF 2048
 
@@ -894,44 +895,6 @@ int IUSnoopBLOB(XMLEle *root, IBLOBVectorProperty *bvp)
     return (0);
 }
 
-/* callback when INDI client message arrives on stdin.
- * collect and dispatch when see outter element closure.
- * exit if OS trouble or see incompatable INDI version.
- * arg is not used.
- */
-void clientMsgCB(int fd, void *arg)
-{
-    (void)arg;
-    char buf[MAXRBUF], msg[MAXRBUF], *bp;
-    int nr;
-
-    /* one read */
-    nr = read(fd, buf, sizeof(buf));
-    if (nr < 0)
-    {
-        fprintf(stderr, "%s: %s\n", me, strerror(errno));
-        exit(1);
-    }
-    if (nr == 0)
-    {
-        fprintf(stderr, "%s: EOF\n", me);
-        exit(1);
-    }
-
-    /* crack and dispatch when complete */
-    for (bp = buf; nr-- > 0; bp++)
-    {
-        XMLEle *root = readXMLEle(clixml, *bp, msg);
-        if (root)
-        {
-            if (dispatch(root, msg) < 0)
-                fprintf(stderr, "%s dispatch error: %s\n", me, msg);
-            delXMLEle(root);
-        }
-        else if (msg[0])
-            fprintf(stderr, "%s XML error: %s\n", me, msg);
-    }
-}
 
 /* crack the given INDI XML element and call driver's IS* entry points as they
  *   are recognized.
