@@ -26,6 +26,7 @@
 #include "locale_compat.h"
 
 #include <cerrno>
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <zlib.h>
@@ -858,22 +859,19 @@ void BaseDevice::addMessage(const std::string &msg)
         d->mediator->newMessage(this, d->messageLog.size() - 1);
 }
 
-std::string BaseDevice::messageQueue(int index) const
+const std::string &BaseDevice::messageQueue(size_t index) const
 {
     D_PTR(const BaseDevice);
     std::lock_guard<std::mutex> lock(d->m_Lock);
-
-    if (index >= static_cast<int>(d->messageLog.size()))
-        return nullptr;
-
+    assert(index < d->messageLog.size());
     return d->messageLog.at(index);
 }
 
-std::string BaseDevice::lastMessage()
+const std::string &BaseDevice::lastMessage() const
 {
-    D_PTR(BaseDevice);
+    D_PTR(const BaseDevice);
     std::lock_guard<std::mutex> lock(d->m_Lock);
-
+    assert(d->messageLog.size() != 0);
     return d->messageLog.back();
 }
 

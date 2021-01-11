@@ -155,10 +155,10 @@ public:
     void doMessage(XMLEle *msg);
 
     /** \return Returns a specific message. */
-    std::string messageQueue(int index) const;
+    const std::string &messageQueue(size_t index) const;
 
     /** \return Returns last message message. */
-    std::string lastMessage() const;
+    const std::string &lastMessage() const;
 
 public:
     /** \return True if the device is connected (CONNECT=ON), False otherwise */
