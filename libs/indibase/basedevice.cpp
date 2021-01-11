@@ -47,15 +47,13 @@ BaseDevice::BaseDevice()
     D_PTR(BaseDevice);
     d->mediator = nullptr;
     d->lp       = newLilXML();
-    d->deviceID = new char[MAXINDIDEVICE];
-    memset(d->deviceID, 0, MAXINDIDEVICE);
 
     char indidev[MAXINDIDEVICE];
     strncpy(indidev, "INDIDEV=", MAXINDIDEVICE);
 
     if (getenv("INDIDEV") != nullptr)
     {
-        strncpy(d->deviceID, getenv("INDIDEV"), MAXINDIDEVICE);
+        d->deviceName = getenv("INDIDEV");
         putenv(indidev);
     }
 }
@@ -70,8 +68,6 @@ BaseDevice::~BaseDevice()
         d->pAll.pop_back();
     }
     d->messageLog.clear();
-
-    delete[] d->deviceID;
 }
 
 INumberVectorProperty *BaseDevice::getNumber(const char *name)
@@ -162,7 +158,7 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
         }
     }
 
-    snprintf(errmsg, MAXRBUF, "Error: Property %s not found in device %s.", name, d->deviceID);
+    snprintf(errmsg, MAXRBUF, "Error: Property %s not found in device %s.", name, getDeviceName());
     return INDI_PROPERTY_INVALID;
 }
 
@@ -259,8 +255,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     if (crackDN(root, &rdev, &rname, errmsg) < 0)
         return -1;
 
-    if (!d->deviceID[0])
-        strncpy(d->deviceID, rdev, MAXINDINAME);
+    if (d->deviceName.empty())
+        d->deviceName = rdev;
 
     //if (getProperty(rname, type) != nullptr)
     if (getProperty(rname) != nullptr)
@@ -498,7 +494,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     {
         indiProp->setBaseDevice(this);
         indiProp->setDynamic(true);
-        indiProp->setDeviceName(d->deviceID);
+        indiProp->setDeviceName(getDeviceName());
         indiProp->setName(rname);
         indiProp->setLabel(findXMLAttValu(root, "label"));
         indiProp->setGroupName(findXMLAttValu(root, "group"));
@@ -587,7 +583,7 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
         INumberVectorProperty *nvp = getNumber(name);
         if (nvp == nullptr)
         {
-            snprintf(errmsg, MAXRBUF, "INDI: Could not find property %s in %s", name, d->deviceID);
+            snprintf(errmsg, MAXRBUF, "INDI: Could not find property %s in %s", name, getDeviceName());
             return -1;
         }
 
@@ -803,13 +799,13 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
 void BaseDevice::setDeviceName(const char *dev)
 {
     D_PTR(BaseDevice);
-    strncpy(d->deviceID, dev, MAXINDINAME);
+    d->deviceName = dev;
 }
 
 const char *BaseDevice::getDeviceName() const
 {
     D_PTR(const BaseDevice);
-    return d->deviceID;
+    return d->deviceName.data();
 }
 
 /* add message to queue

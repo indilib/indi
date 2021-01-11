@@ -32,7 +32,7 @@ namespace INDI
 class BaseDevicePrivate
 {
 public:
-    char *deviceID;
+    std::string deviceName;
     BaseDevice::Properties pAll;
     LilXML *lp {nullptr};
     INDI::BaseMediator *mediator {nullptr};
