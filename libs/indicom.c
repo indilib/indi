@@ -87,11 +87,11 @@
 
 #define MAXRBUF 2048
 
-int tty_debug = 0;
-int tty_gemini_udp_format = 0;
-int tty_generic_udp_format = 0;
-int tty_sequence_number = 1;
-int tty_clear_trailing_lf = 0;
+static int tty_debug = 0;
+static int tty_gemini_udp_format = 0;
+static int tty_generic_udp_format = 0;
+static int tty_sequence_number = 1;
+static int tty_clear_trailing_lf = 0;
 
 #if defined(HAVE_LIBNOVA)
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
