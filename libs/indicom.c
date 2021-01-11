@@ -1142,7 +1142,7 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
     switch (err_code)
     {
     case TTY_OK:
-        strncpy(err_msg, "No Error", err_msg_len);
+        snprintf(err_msg, err_msg_len, "No Error");
         break;
 
     case TTY_READ_ERROR:
@@ -1158,7 +1158,7 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
         break;
 
     case TTY_TIME_OUT:
-        strncpy(err_msg, "Timeout error", err_msg_len);
+        snprintf(err_msg, err_msg_len, "Timeout error");
         break;
 
     case TTY_PORT_FAILURE:
@@ -1174,7 +1174,7 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
         break;
 
     case TTY_PARAM_ERROR:
-        strncpy(err_msg, "Parameter error", err_msg_len);
+        snprintf(err_msg, err_msg_len, "Parameter error");
         break;
 
     case TTY_ERRNO:
@@ -1182,15 +1182,15 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
         break;
 
     case TTY_OVERFLOW:
-        strncpy(err_msg, "Read overflow", err_msg_len);
+        snprintf(err_msg, err_msg_len, "Read overflow");
         break;
 
     case TTY_PORT_BUSY:
-        strncpy(err_msg, "Port is busy", err_msg_len);
+        snprintf(err_msg, err_msg_len, "Port is busy");
         break;
 
     default:
-        strncpy(err_msg, "Error: unrecognized error code", err_msg_len);
+        snprintf(err_msg, err_msg_len, "Error: unrecognized error code");
         break;
     }
 }
