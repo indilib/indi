@@ -20,10 +20,10 @@
 
 #include "indibase.h"
 #include "indiproperty.h"
+#include "indiutility.h"
 
 #include <string>
 #include <vector>
-#include <mutex>
 
 #include <stdint.h>
 
@@ -42,8 +42,10 @@
 namespace INDI
 {
 
+class BaseDevicePrivate;
 class BaseDevice
 {
+    DECLARE_PRIVATE(BaseDevice)
     public:
         //typedef std::deque<INDI::Property> Properties; // future
         typedef std::vector<INDI::Property*> Properties;
@@ -140,10 +142,7 @@ class BaseDevice
 
         /** \brief Return a list of all properties in the device.
         */
-        Properties *getProperties()
-        {
-            return &pAll;
-        }
+        Properties *getProperties();
 
         /** \brief Build driver properties from a skeleton file.
             \param filename full path name of the file.
@@ -167,7 +166,7 @@ class BaseDevice
         void setDeviceName(const char *dev);
 
         /** \return Returns the device name */
-        const char *getDeviceName();
+        const char *getDeviceName() const;
 
         /** \brief Add message to the driver's message queue.
             \param msg Message to add.
@@ -184,16 +183,10 @@ class BaseDevice
         std::string lastMessage();
 
         /** \brief Set the driver's mediator to receive notification of news devices and updated property values. */
-        void setMediator(INDI::BaseMediator *med)
-        {
-            mediator = med;
-        }
+        void setMediator(INDI::BaseMediator *mediator);
 
         /** \returns Get the meditator assigned to this driver */
-        INDI::BaseMediator *getMediator()
-        {
-            return mediator;
-        }
+        INDI::BaseMediator *getMediator();
 
         /** \return driver name
          *  \note This can only be valid if DRIVER_INFO is defined by the driver.
@@ -237,14 +230,8 @@ class BaseDevice
         /** \brief Parse and store BLOB in the respective vector */
         int setBLOB(IBLOBVectorProperty *pp, XMLEle *root, char *errmsg);
 
-    private:
-        char *deviceID;
-        Properties pAll;
-        LilXML *lp {nullptr};
-        INDI::BaseMediator *mediator {nullptr};
-        std::vector<std::string> messageLog;
-        mutable std::mutex m_Lock;
-
+    protected:
+        std::shared_ptr<BaseDevicePrivate> d_ptr;
 
         //friend class INDI::BaseClient;
         //friend class INDI::BaseClientQt;

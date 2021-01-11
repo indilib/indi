@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include "basedevice.h"
+#include "basedevice_p.h"
 
 #include "base64.h"
 #include "config.h"
@@ -41,33 +42,36 @@ namespace INDI
 {
 
 BaseDevice::BaseDevice()
+    : d_ptr(new BaseDevicePrivate)
 {
-    mediator = nullptr;
-    lp       = newLilXML();
-    deviceID = new char[MAXINDIDEVICE];
-    memset(deviceID, 0, MAXINDIDEVICE);
+    D_PTR(BaseDevice);
+    d->mediator = nullptr;
+    d->lp       = newLilXML();
+    d->deviceID = new char[MAXINDIDEVICE];
+    memset(d->deviceID, 0, MAXINDIDEVICE);
 
     char indidev[MAXINDIDEVICE];
     strncpy(indidev, "INDIDEV=", MAXINDIDEVICE);
 
     if (getenv("INDIDEV") != nullptr)
     {
-        strncpy(deviceID, getenv("INDIDEV"), MAXINDIDEVICE);
+        strncpy(d->deviceID, getenv("INDIDEV"), MAXINDIDEVICE);
         putenv(indidev);
     }
 }
 
 BaseDevice::~BaseDevice()
 {
-    delLilXML(lp);
-    while (!pAll.empty())
+    D_PTR(BaseDevice);
+    delLilXML(d->lp);
+    while (!d->pAll.empty())
     {
-        delete pAll.back();
-        pAll.pop_back();
+        delete d->pAll.back();
+        d->pAll.pop_back();
     }
-    messageLog.clear();
+    d->messageLog.clear();
 
-    delete[] deviceID;
+    delete[] d->deviceID;
 }
 
 INumberVectorProperty *BaseDevice::getNumber(const char *name)
@@ -97,7 +101,7 @@ IBLOBVectorProperty *BaseDevice::getBLOB(const char *name)
 
 IPState BaseDevice::getPropertyState(const char *name)
 {
-    for (const auto &oneProp : pAll)
+    for (const auto &oneProp : *getProperties())
         if (!strcmp(name, oneProp->getName()))
             return oneProp->getState();
 
@@ -106,7 +110,7 @@ IPState BaseDevice::getPropertyState(const char *name)
 
 IPerm BaseDevice::getPropertyPermission(const char *name)
 {
-    for (const auto &oneProp : pAll)
+    for (const auto &oneProp : *getProperties())
         if (!strcmp(name, oneProp->getName()))
             return oneProp->getPermission();
 
@@ -121,9 +125,10 @@ void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
 
 INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type)
 {
-    std::lock_guard<std::mutex> lock(m_Lock);
+    D_PTR(BaseDevice);
+    std::lock_guard<std::mutex> lock(d->m_Lock);
 
-    for (const auto &oneProp : pAll)
+    for (const auto &oneProp : *getProperties())
     {
         if (type != oneProp->getType() && type != INDI_UNKNOWN)
             continue;
@@ -140,9 +145,10 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
 
 int BaseDevice::removeProperty(const char *name, char *errmsg)
 {
-    std::lock_guard<std::mutex> lock(m_Lock);
+    D_PTR(BaseDevice);
+    std::lock_guard<std::mutex> lock(d->m_Lock);
 
-    for (auto orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
+    for (auto orderi = d->pAll.begin(); orderi != d->pAll.end(); ++orderi)
     {
         const auto &oneProp = *orderi;
         if (!strcmp(name, oneProp->getName()))
@@ -151,17 +157,18 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
             //                mediator->removeProperty(oneProp);
 
             delete oneProp;
-            orderi = pAll.erase(orderi);
+            orderi = d->pAll.erase(orderi);
             return 0;
         }
     }
 
-    snprintf(errmsg, MAXRBUF, "Error: Property %s not found in device %s.", name, deviceID);
+    snprintf(errmsg, MAXRBUF, "Error: Property %s not found in device %s.", name, d->deviceID);
     return INDI_PROPERTY_INVALID;
 }
 
 bool BaseDevice::buildSkeleton(const char *filename)
 {
+    D_PTR(BaseDevice);
     char errmsg[MAXRBUF];
     FILE *fp     = nullptr;
     XMLEle *root = nullptr, *fproot = nullptr;
@@ -216,7 +223,7 @@ bool BaseDevice::buildSkeleton(const char *filename)
         return false;
     }
 
-    fproot = readXMLFile(fp, lp, errmsg);
+    fproot = readXMLFile(fp, d->lp, errmsg);
     fclose(fp);
 
     if (fproot == nullptr)
@@ -237,6 +244,7 @@ bool BaseDevice::buildSkeleton(const char *filename)
 
 int BaseDevice::buildProp(XMLEle *root, char *errmsg)
 {
+    D_PTR(BaseDevice);
     IPerm perm    = IP_RO;
     IPState state = IPS_IDLE;
     XMLEle *ep    = nullptr;
@@ -251,8 +259,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     if (crackDN(root, &rdev, &rname, errmsg) < 0)
         return -1;
 
-    if (!deviceID[0])
-        strncpy(deviceID, rdev, MAXINDINAME);
+    if (!d->deviceID[0])
+        strncpy(d->deviceID, rdev, MAXINDINAME);
 
     //if (getProperty(rname, type) != nullptr)
     if (getProperty(rname) != nullptr)
@@ -490,7 +498,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     {
         indiProp->setBaseDevice(this);
         indiProp->setDynamic(true);
-        indiProp->setDeviceName(deviceID);
+        indiProp->setDeviceName(d->deviceID);
         indiProp->setName(rname);
         indiProp->setLabel(findXMLAttValu(root, "label"));
         indiProp->setGroupName(findXMLAttValu(root, "group"));
@@ -498,13 +506,13 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         indiProp->setState(state);
         indiProp->setTimeout(atoi(findXMLAttValu(root, "timeout")));
 
-        std::unique_lock<std::mutex> lock(m_Lock);
-        pAll.push_back(indiProp);
+        std::unique_lock<std::mutex> lock(d->m_Lock);
+        d->pAll.push_back(indiProp);
         lock.unlock();
 
         //IDLog("Adding number property %s to list.\n", indiProp->getName());
-        if (mediator)
-            mediator->newProperty(indiProp);
+        if (d->mediator)
+            d->mediator->newProperty(indiProp);
     }
 
     return (0);
@@ -532,6 +540,7 @@ bool BaseDevice::isConnected()
  */
 int BaseDevice::setValue(XMLEle *root, char *errmsg)
 {
+    D_PTR(BaseDevice);
     XMLEle *ep = nullptr;
     char *name = nullptr;
     double timeout = 0;
@@ -578,7 +587,7 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
         INumberVectorProperty *nvp = getNumber(name);
         if (nvp == nullptr)
         {
-            snprintf(errmsg, MAXRBUF, "INDI: Could not find property %s in %s", name, deviceID);
+            snprintf(errmsg, MAXRBUF, "INDI: Could not find property %s in %s", name, d->deviceID);
             return -1;
         }
 
@@ -607,8 +616,8 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
 
         locale.Restore();
 
-        if (mediator)
-            mediator->newNumber(nvp);
+        if (d->mediator)
+            d->mediator->newNumber(nvp);
 
         return 0;
     }
@@ -633,8 +642,8 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
             IUSaveText(tp, pcdataXMLEle(ep));
         }
 
-        if (mediator)
-            mediator->newText(tvp);
+        if (d->mediator)
+            d->mediator->newText(tvp);
 
         return 0;
     }
@@ -661,8 +670,8 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
                 sp->s = swState;
         }
 
-        if (mediator)
-            mediator->newSwitch(svp);
+        if (d->mediator)
+            d->mediator->newSwitch(svp);
 
         return 0;
     }
@@ -687,8 +696,8 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
                 lp->s = lState;
         }
 
-        if (mediator)
-            mediator->newLight(lvp);
+        if (d->mediator)
+            d->mediator->newLight(lvp);
 
         return 0;
     }
@@ -717,6 +726,7 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
 */
 int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
 {
+    D_PTR(BaseDevice);
     /* pull out each name/BLOB pair, decode */
     for (XMLEle *ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
     {
@@ -735,8 +745,8 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                 /* Blob size = 0 when only state changes */
                 if (blobSize == 0)
                 {
-                    if (mediator)
-                        mediator->newBLOB(blobEL);
+                    if (d->mediator)
+                        d->mediator->newBLOB(blobEL);
                     continue;
                 }
 
@@ -775,8 +785,8 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                     blobEL->blob = dataBuffer;
                 }
 
-                if (mediator)
-                    mediator->newBLOB(blobEL);
+                if (d->mediator)
+                    d->mediator->newBLOB(blobEL);
             }
             else
             {
@@ -792,12 +802,14 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
 
 void BaseDevice::setDeviceName(const char *dev)
 {
-    strncpy(deviceID, dev, MAXINDINAME);
+    D_PTR(BaseDevice);
+    strncpy(d->deviceID, dev, MAXINDINAME);
 }
 
-const char *BaseDevice::getDeviceName()
+const char *BaseDevice::getDeviceName() const
 {
-    return deviceID;
+    D_PTR(const BaseDevice);
+    return d->deviceID;
 }
 
 /* add message to queue
@@ -841,33 +853,37 @@ void BaseDevice::doMessage(XMLEle *msg)
 
 void BaseDevice::addMessage(const std::string &msg)
 {
-    std::unique_lock<std::mutex> guard(m_Lock);
-    messageLog.push_back(msg);
+    D_PTR(BaseDevice);
+    std::unique_lock<std::mutex> guard(d->m_Lock);
+    d->messageLog.push_back(msg);
     guard.unlock();
 
-    if (mediator)
-        mediator->newMessage(this, messageLog.size() - 1);
+    if (d->mediator)
+        d->mediator->newMessage(this, d->messageLog.size() - 1);
 }
 
 std::string BaseDevice::messageQueue(int index) const
 {
-    std::lock_guard<std::mutex> lock(m_Lock);
+    D_PTR(const BaseDevice);
+    std::lock_guard<std::mutex> lock(d->m_Lock);
 
-    if (index >= static_cast<int>(messageLog.size()))
+    if (index >= static_cast<int>(d->messageLog.size()))
         return nullptr;
 
-    return messageLog.at(index);
+    return d->messageLog.at(index);
 }
 
 std::string BaseDevice::lastMessage()
 {
-    std::lock_guard<std::mutex> lock(m_Lock);
+    D_PTR(BaseDevice);
+    std::lock_guard<std::mutex> lock(d->m_Lock);
 
-    return messageLog.back();
+    return d->messageLog.back();
 }
 
 void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
 {
+    D_PTR(BaseDevice);
     if (p == nullptr || type == INDI_UNKNOWN)
         return;
 
@@ -879,8 +895,8 @@ void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
         pContainer->setRegistered(true);
     else
     {
-        std::lock_guard<std::mutex> lock(m_Lock);
-        pAll.push_back(new INDI::Property(p, type));
+        std::lock_guard<std::mutex> lock(d->m_Lock);
+        d->pAll.push_back(new INDI::Property(p, type));
     }
 }
 
@@ -938,6 +954,24 @@ uint16_t BaseDevice::getDriverInterface()
         return atoi(driverInterface->text);
 
     return 0;
+}
+
+BaseDevice::Properties *BaseDevice::getProperties()
+{
+    D_PTR(BaseDevice);
+    return &d->pAll;
+}
+
+void BaseDevice::setMediator(INDI::BaseMediator *mediator)
+{
+    D_PTR(BaseDevice);
+    d->mediator = mediator;
+}
+
+INDI::BaseMediator *BaseDevice::getMediator()
+{
+    D_PTR(BaseDevice);
+    return d->mediator;
 }
 
 }
