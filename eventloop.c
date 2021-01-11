@@ -165,7 +165,7 @@ int addCallback(int fd, CBF *fp, void *ud)
             break;
     if (cp == &cback[ncback])
     {
-        cback = cback ? (CB *)realloc(cback, (ncback + 1) * sizeof(CB)) : (CB *)malloc(sizeof(CB));
+        cback = realloc(cback, (ncback + 1) * sizeof(CB));
         cp    = &cback[ncback++];
     }
 
@@ -212,7 +212,7 @@ int addTimer(int ms, TCF *fp, void *ud)
     gettimeofday(&t, NULL);
 
     /* add one entry */
-    timef = timef ? (TF *)realloc(timef, (ntimef + 1) * sizeof(TF)) : (TF *)malloc(sizeof(TF));
+    timef = (TF *)realloc(timef, (ntimef + 1) * sizeof(TF));
     tp    = &timef[ntimef++];
 
     /* init new entry */
@@ -274,7 +274,7 @@ int addWorkProc(WPF *fp, void *ud)
             break;
     if (wp == &wproc[nwproc])
     {
-        wproc = wproc ? (WP *)realloc(wproc, (nwproc + 1) * sizeof(WP)) : (WP *)malloc(sizeof(WP));
+        wproc = (WP *)realloc(wproc, (nwproc + 1) * sizeof(WP));
         wp    = &wproc[nwproc++];
     }
 
