@@ -1467,9 +1467,7 @@ int crackDN(XMLEle *root, char **dev, char **name, char msg[])
 /* find a member of an IText vector, else NULL */
 IText *IUFindText(const ITextVectorProperty *tvp, const char *name)
 {
-    int i;
-
-    for (i = 0; i < tvp->ntp; i++)
+    for (int i = 0; i < tvp->ntp; i++)
         if (strcmp(tvp->tp[i].name, name) == 0)
             return (&tvp->tp[i]);
     fprintf(stderr, "No IText '%s' in %s.%s\n", name, tvp->device, tvp->name);
@@ -1479,9 +1477,7 @@ IText *IUFindText(const ITextVectorProperty *tvp, const char *name)
 /* find a member of an INumber vector, else NULL */
 INumber *IUFindNumber(const INumberVectorProperty *nvp, const char *name)
 {
-    int i;
-
-    for (i = 0; i < nvp->nnp; i++)
+    for (int i = 0; i < nvp->nnp; i++)
         if (strcmp(nvp->np[i].name, name) == 0)
             return (&nvp->np[i]);
     fprintf(stderr, "No INumber '%s' in %s.%s\n", name, nvp->device, nvp->name);
@@ -1491,9 +1487,7 @@ INumber *IUFindNumber(const INumberVectorProperty *nvp, const char *name)
 /* find a member of an ISwitch vector, else NULL */
 ISwitch *IUFindSwitch(const ISwitchVectorProperty *svp, const char *name)
 {
-    int i;
-
-    for (i = 0; i < svp->nsp; i++)
+    for (int i = 0; i < svp->nsp; i++)
         if (strcmp(svp->sp[i].name, name) == 0)
             return (&svp->sp[i]);
     fprintf(stderr, "No ISwitch '%s' in %s.%s\n", name, svp->device, svp->name);
@@ -1503,9 +1497,7 @@ ISwitch *IUFindSwitch(const ISwitchVectorProperty *svp, const char *name)
 /* find a member of an ILight vector, else NULL */
 ILight *IUFindLight(const ILightVectorProperty *lvp, const char *name)
 {
-    int i;
-
-    for (i = 0; i < lvp->nlp; i++)
+    for (int i = 0; i < lvp->nlp; i++)
         if (strcmp(lvp->lp[i].name, name) == 0)
             return (&lvp->lp[i]);
     fprintf(stderr, "No ILight '%s' in %s.%s\n", name, lvp->device, lvp->name);
@@ -1515,9 +1507,7 @@ ILight *IUFindLight(const ILightVectorProperty *lvp, const char *name)
 /* find a member of an IBLOB vector, else NULL */
 IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name)
 {
-    int i;
-
-    for (i = 0; i < bvp->nbp; i++)
+    for (int i = 0; i < bvp->nbp; i++)
         if (strcmp(bvp->bp[i].name, name) == 0)
             return (&bvp->bp[i]);
     fprintf(stderr, "No IBLOB '%s' in %s.%s\n", name, bvp->device, bvp->name);
@@ -1529,9 +1519,7 @@ IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name)
  */
 ISwitch *IUFindOnSwitch(const ISwitchVectorProperty *svp)
 {
-    int i;
-
-    for (i = 0; i < svp->nsp; i++)
+    for (int i = 0; i < svp->nsp; i++)
         if (svp->sp[i].s == ISS_ON)
             return (&svp->sp[i]);
     /*fprintf(stderr, "No ISwitch On in %s.%s\n", svp->device, svp->name);*/
@@ -1541,9 +1529,7 @@ ISwitch *IUFindOnSwitch(const ISwitchVectorProperty *svp)
 /* Find index of the ON member of an ISwitchVectorProperty */
 int IUFindOnSwitchIndex(const ISwitchVectorProperty *svp)
 {
-    int i;
-
-    for (i = 0; i < svp->nsp; i++)
+    for (int i = 0; i < svp->nsp; i++)
         if (svp->sp[i].s == ISS_ON)
             return i;
     return -1;
@@ -1552,9 +1538,7 @@ int IUFindOnSwitchIndex(const ISwitchVectorProperty *svp)
 /* Find name the ON member in the given states and names */
 const char *IUFindOnSwitchName(ISState *states, char *names[], int n)
 {
-    int i;
-
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
         if (states[i] == ISS_ON)
             return names[i];
     return NULL;
@@ -1563,9 +1547,7 @@ const char *IUFindOnSwitchName(ISState *states, char *names[], int n)
 /* Set all switches to off */
 void IUResetSwitch(ISwitchVectorProperty *svp)
 {
-    int i;
-
-    for (i = 0; i < svp->nsp; i++)
+    for (int i = 0; i < svp->nsp; i++)
         svp->sp[i].s = ISS_OFF;
 }
 
