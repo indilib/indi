@@ -1172,7 +1172,7 @@ int dispatch(XMLEle *root, char msg[])
                     // enclen is optional and not required by INDI protocol
                     if (el)
                         bloblen = atoi(valuXMLAtt(el));
-                    assert_mem(blobs[n] = malloc(3 * bloblen / 4));
+                    assert_mem(blobs[n] = (char*)malloc(3 * bloblen / 4));
                     blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
                     names[n]     = valuXMLAtt(na);
                     formats[n]   = valuXMLAtt(fa);
@@ -1790,7 +1790,7 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
         fprintf(fp, "    size='%d'\n", bp->size);
         fprintf(fp, "    format='%s'>\n", bp->format);
 
-        assert_mem(encblob = malloc(4 * bp->bloblen / 3 + 4));
+        assert_mem(encblob = (unsigned char*)malloc(4 * bp->bloblen / 3 + 4));
         l = to64frombits_s(encblob, bp->blob, bp->bloblen, bp->bloblen);
         if (l == 0) {
             fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", me, __func__);
@@ -2314,7 +2314,7 @@ void IDSetBLOBVA(const IBLOBVectorProperty *bvp, const char *fmt, va_list ap)
         else
         {
             size_t sz = 4 * bp->bloblen / 3 + 4;
-            assert_mem(encblob = malloc(sz));
+            assert_mem(encblob = (unsigned char *)malloc(sz));
             l = to64frombits_s(encblob, bp->blob, bp->bloblen, sz);
             if (l == 0) {
                 fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", me, __func__);
