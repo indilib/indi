@@ -1139,8 +1139,6 @@ int tty_disconnect(int fd)
 
 void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
 {
-    char error_string[512];
-
     switch (err_code)
     {
     case TTY_OK:
@@ -1148,18 +1146,15 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
         break;
 
     case TTY_READ_ERROR:
-        snprintf(error_string, 512, "Read Error: %s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
+        snprintf(err_msg, err_msg_len, "Read Error: %s", strerror(errno));
         break;
 
     case TTY_WRITE_ERROR:
-        snprintf(error_string, 512, "Write Error: %s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
+        snprintf(err_msg, err_msg_len, "Write Error: %s", strerror(errno));
         break;
 
     case TTY_SELECT_ERROR:
-        snprintf(error_string, 512, "Select Error: %s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
+        snprintf(err_msg, err_msg_len, "Select Error: %s", strerror(errno));
         break;
 
     case TTY_TIME_OUT:
@@ -1168,15 +1163,14 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
 
     case TTY_PORT_FAILURE:
         if (errno == EACCES)
-            snprintf(error_string, 512,
+            snprintf(err_msg, err_msg_len,
                      "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser "
                      "$USER dialout)",
                      strerror(errno));
         else
-            snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.",
+            snprintf(err_msg, err_msg_len, "Port failure Error: %s. Check if device is connected to this port.",
                      strerror(errno));
 
-        strncpy(err_msg, error_string, err_msg_len);
         break;
 
     case TTY_PARAM_ERROR:
@@ -1184,8 +1178,7 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
         break;
 
     case TTY_ERRNO:
-        snprintf(error_string, 512, "%s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
+        snprintf(err_msg, err_msg_len, "%s", strerror(errno));
         break;
 
     case TTY_OVERFLOW:
