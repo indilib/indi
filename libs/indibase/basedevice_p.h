@@ -22,7 +22,7 @@
 #include "lilxml.h"
 #include "indibase.h"
 
-#include <vector>
+#include <deque>
 #include <string>
 #include <mutex>
 
@@ -36,7 +36,7 @@ public:
     BaseDevice::Properties pAll;
     LilXML *lp {nullptr};
     INDI::BaseMediator *mediator {nullptr};
-    std::vector<std::string> messageLog;
+    std::deque<std::string> messageLog;
     mutable std::mutex m_Lock;
 };
 
