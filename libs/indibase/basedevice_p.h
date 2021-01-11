@@ -32,6 +32,10 @@ namespace INDI
 class BaseDevicePrivate
 {
 public:
+    BaseDevicePrivate();
+    virtual ~BaseDevicePrivate();
+
+public:
     std::string deviceName;
     BaseDevice::Properties pAll;
     LilXML *lp {nullptr};

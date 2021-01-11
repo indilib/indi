@@ -230,6 +230,7 @@ public:
 
 protected:
     std::shared_ptr<BaseDevicePrivate> d_ptr;
+    BaseDevice(BaseDevicePrivate &dd);
 };
 
 }

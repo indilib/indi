@@ -42,34 +42,42 @@
 namespace INDI
 {
 
-BaseDevice::BaseDevice()
-    : d_ptr(new BaseDevicePrivate)
+BaseDevicePrivate::BaseDevicePrivate()
 {
-    D_PTR(BaseDevice);
-    d->mediator = nullptr;
-    d->lp       = newLilXML();
+    mediator = nullptr;
+    lp       = newLilXML();
 
     char indidev[MAXINDIDEVICE];
     strncpy(indidev, "INDIDEV=", MAXINDIDEVICE);
 
     if (getenv("INDIDEV") != nullptr)
     {
-        d->deviceName = getenv("INDIDEV");
+        deviceName = getenv("INDIDEV");
         putenv(indidev);
     }
 }
 
-BaseDevice::~BaseDevice()
+BaseDevicePrivate::~BaseDevicePrivate()
 {
-    D_PTR(BaseDevice);
-    delLilXML(d->lp);
-    while (!d->pAll.empty())
+    delLilXML(lp);
+    while (!pAll.empty())
     {
-        delete d->pAll.back();
-        d->pAll.pop_back();
+        delete pAll.back();
+        pAll.pop_back();
     }
-    d->messageLog.clear();
+    messageLog.clear();
 }
+
+BaseDevice::BaseDevice()
+    : d_ptr(new BaseDevicePrivate)
+{ }
+
+BaseDevice::~BaseDevice()
+{ }
+
+BaseDevice::BaseDevice(BaseDevicePrivate &dd)
+    : d_ptr(&dd)
+{ }
 
 INumberVectorProperty *BaseDevice::getNumber(const char *name)
 {
