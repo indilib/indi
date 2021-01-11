@@ -134,6 +134,13 @@ static void escapeXML_fputs(const char *src, FILE *stream)
     fwrite(src, 1, (size_t)(ptr - src), stream);
 }
 
+static void escapeXML_vprintf(const char *fmt, va_list ap)
+{
+    char message[MAXINDIMESSAGE];
+    vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
+    escapeXML_fputs(message, stdout);
+}
+
 /* output a string expanding special characters into xml/html escape sequences */
 static size_t escapeXML2(char *dst, const char *src, size_t size)
 {
@@ -214,12 +221,9 @@ void IDDeleteVA(const char *dev, const char *name, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
-        // #PS: why not escapeXML_fputs?
         printf("  message='");
-        printf("%s'\n", entityXML(message));
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf("/>\n");
     fflush(stdout);
@@ -1611,11 +1615,8 @@ void IDMessageVA(const char *dev, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf("/>\n");
@@ -1833,11 +1834,8 @@ void IDDefTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
@@ -1889,11 +1887,8 @@ void IDDefNumberVA(const INumberVectorProperty *n, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
@@ -1952,11 +1947,8 @@ void IDDefSwitchVA(const ISwitchVectorProperty *s, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
@@ -2005,11 +1997,8 @@ void IDDefLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
@@ -2056,11 +2045,8 @@ void IDDefBLOBVA(const IBLOBVectorProperty *b, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
@@ -2107,12 +2093,9 @@ void IDSetTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
-        // #PS: why not escapeXML_fputs?
         printf("  message='");
-        printf("%s'\n", entityXML(message));
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2153,12 +2136,9 @@ void IDSetNumberVA(const INumberVectorProperty *nvp, const char *fmt, va_list ap
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
-        // #PS: why not escapeXML_fputs?
         printf("  message='");
-        printf("%s'\n", entityXML(message));
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2199,12 +2179,9 @@ void IDSetSwitchVA(const ISwitchVectorProperty *svp, const char *fmt, va_list ap
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
-        // #PS: why not escapeXML_fputs?
         printf("  message='");
-        printf("%s'\n", entityXML(message));
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2243,12 +2220,9 @@ void IDSetLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
-        // #PS: why not escapeXML_fputs?
         printf("  message='");
-        printf("%s'\n", entityXML(message));
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
