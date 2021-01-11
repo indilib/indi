@@ -225,7 +225,7 @@ class BaseDevice
          */
         virtual uint16_t getDriverInterface();
 
-    protected:
+    public:
         /** \brief Build a property given the supplied XML element (defXXX)
           \param root XML element to parse and build.
           \param errmsg buffer to store error message in parsing fails.
@@ -246,9 +246,9 @@ class BaseDevice
         mutable std::mutex m_Lock;
 
 
-        friend class INDI::BaseClient;
-        friend class INDI::BaseClientQt;
-        friend class INDI::DefaultDevice;
+        //friend class INDI::BaseClient;
+        //friend class INDI::BaseClientQt;
+        //friend class INDI::DefaultDevice;
 };
 
 }
