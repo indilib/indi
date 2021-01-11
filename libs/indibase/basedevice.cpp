@@ -121,6 +121,8 @@ void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
 
 INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type)
 {
+    std::lock_guard<std::mutex> lock(m_Lock);
+
     for (const auto &oneProp : pAll)
     {
         if (type != oneProp->getType() && type != INDI_UNKNOWN)
@@ -138,6 +140,8 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
 
 int BaseDevice::removeProperty(const char *name, char *errmsg)
 {
+    std::lock_guard<std::mutex> lock(m_Lock);
+
     for (auto orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
     {
         const auto &oneProp = *orderi;
@@ -494,7 +498,9 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         indiProp->setState(state);
         indiProp->setTimeout(atoi(findXMLAttValu(root, "timeout")));
 
+        std::unique_lock<std::mutex> lock(m_Lock);
         pAll.push_back(indiProp);
+        lock.unlock();
 
         //IDLog("Adding number property %s to list.\n", indiProp->getName());
         if (mediator)
@@ -835,7 +841,9 @@ void BaseDevice::doMessage(XMLEle *msg)
 
 void BaseDevice::addMessage(const std::string &msg)
 {
+    std::unique_lock<std::mutex> guard(m_Lock);
     messageLog.push_back(msg);
+    guard.unlock();
 
     if (mediator)
         mediator->newMessage(this, messageLog.size() - 1);
@@ -843,6 +851,8 @@ void BaseDevice::addMessage(const std::string &msg)
 
 std::string BaseDevice::messageQueue(int index) const
 {
+    std::lock_guard<std::mutex> lock(m_Lock);
+
     if (index >= static_cast<int>(messageLog.size()))
         return nullptr;
 
@@ -851,6 +861,8 @@ std::string BaseDevice::messageQueue(int index) const
 
 std::string BaseDevice::lastMessage()
 {
+    std::lock_guard<std::mutex> lock(m_Lock);
+
     return messageLog.back();
 }
 
@@ -866,7 +878,10 @@ void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
     if (pContainer != nullptr)
         pContainer->setRegistered(true);
     else
+    {
+        std::lock_guard<std::mutex> lock(m_Lock);
         pAll.push_back(new INDI::Property(p, type));
+    }
 }
 
 const char *BaseDevice::getDriverName()

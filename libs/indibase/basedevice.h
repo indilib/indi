@@ -23,6 +23,7 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include <stdint.h>
 
@@ -238,14 +239,12 @@ class BaseDevice
 
     private:
         char *deviceID;
-
         Properties pAll;
-
-        LilXML *lp;
-
+        LilXML *lp {nullptr};
+        INDI::BaseMediator *mediator {nullptr};
         std::vector<std::string> messageLog;
+        mutable std::mutex m_Lock;
 
-        INDI::BaseMediator *mediator;
 
         friend class INDI::BaseClient;
         friend class INDI::BaseClientQt;
