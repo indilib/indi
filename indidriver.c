@@ -27,7 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indidriver.h"
 
 #include "base64.h"
-#include "eventloop.h"
 #include "indicom.h"
 #include "indidevapi.h"
 #include "locale_compat.h"
@@ -284,48 +283,6 @@ void IDSnoopBLOBs(const char *snooped_device, const char *snooped_property, BLOB
         printf("<enableBLOB device='%s'>%s</enableBLOB>\n", snooped_device, how);
     fflush(stdout);
     pthread_mutex_unlock(&stdout_mutex);
-}
-
-/* "INDI" wrappers to the more generic eventloop facility. */
-
-int IEAddCallback(int readfiledes, IE_CBF *fp, void *p)
-{
-    return (addCallback(readfiledes, (CBF *)fp, p));
-}
-
-void IERmCallback(int callbackid)
-{
-    rmCallback(callbackid);
-}
-
-int IEAddTimer(int millisecs, IE_TCF *fp, void *p)
-{
-    return (addTimer(millisecs, (TCF *)fp, p));
-}
-
-void IERmTimer(int timerid)
-{
-    rmTimer(timerid);
-}
-
-int IEAddWorkProc(IE_WPF *fp, void *p)
-{
-    return (addWorkProc((WPF *)fp, p));
-}
-
-void IERmWorkProc(int workprocid)
-{
-    rmWorkProc(workprocid);
-}
-
-int IEDeferLoop(int maxms, int *flagp)
-{
-    return (deferLoop(maxms, flagp));
-}
-
-int IEDeferLoop0(int maxms, int *flagp)
-{
-    return (deferLoop0(maxms, flagp));
 }
 
 /* Update property switches in accord with states and names. */
