@@ -750,73 +750,29 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     // The baud rate, word length, and handshake options can be set as follows:
     switch (bit_rate)
     {
-    case 0:
-        bps = B0;
-        break;
-    case 50:
-        bps = B50;
-        break;
-    case 75:
-        bps = B75;
-        break;
-    case 110:
-        bps = B110;
-        break;
-    case 134:
-        bps = B134;
-        break;
-    case 150:
-        bps = B150;
-        break;
-    case 200:
-        bps = B200;
-        break;
-    case 300:
-        bps = B300;
-        break;
-    case 600:
-        bps = B600;
-        break;
-    case 1200:
-        bps = B1200;
-        break;
-    case 1800:
-        bps = B1800;
-        break;
-    case 2400:
-        bps = B2400;
-        break;
-    case 4800:
-        bps = B4800;
-        break;
-    case 9600:
-        bps = B9600;
-        break;
-    case 19200:
-        bps = B19200;
-        break;
-    case 38400:
-        bps = B38400;
-        break;
-    case 57600:
-        bps = B57600;
-        break;
-    case 115200:
-        bps = B115200;
-        break;
-    case 230400:
-        bps = B230400;
-        break;
+    case 0:      bps = B0;      break;
+    case 50:     bps = B50;     break;
+    case 75:     bps = B75;     break;
+    case 110:    bps = B110;    break;
+    case 134:    bps = B134;    break;
+    case 150:    bps = B150;    break;
+    case 200:    bps = B200;    break;
+    case 300:    bps = B300;    break;
+    case 600:    bps = B600;    break;
+    case 1200:   bps = B1200;   break;
+    case 1800:   bps = B1800;   break;
+    case 2400:   bps = B2400;   break;
+    case 4800:   bps = B4800;   break;
+    case 9600:   bps = B9600;   break;
+    case 19200:  bps = B19200;  break;
+    case 38400:  bps = B38400;  break;
+    case 57600:  bps = B57600;  break;
+    case 115200: bps = B115200; break;
+    case 230400: bps = B230400; break;
 #ifndef __APPLE__
-    case 460800:
-        bps = B460800;
-        break;
-    case 576000:
-        bps = B576000;
-        break;
-    case 921600:
-        bps = B921600;
-        break;
+    case 460800: bps = B460800; break;
+    case 576000: bps = B576000; break;
+    case 921600: bps = B921600; break;
 #endif
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
@@ -830,18 +786,10 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     /* word size */
     switch (word_size)
     {
-    case 5:
-        tty_setting.c_cflag |= CS5;
-        break;
-    case 6:
-        tty_setting.c_cflag |= CS6;
-        break;
-    case 7:
-        tty_setting.c_cflag |= CS7;
-        break;
-    case 8:
-        tty_setting.c_cflag |= CS8;
-        break;
+    case 5: tty_setting.c_cflag |= CS5; break;
+    case 6: tty_setting.c_cflag |= CS6; break;
+    case 7: tty_setting.c_cflag |= CS7; break;
+    case 8: tty_setting.c_cflag |= CS8; break;
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
             perror(NULL);
@@ -1029,72 +977,28 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     Set bps rate */
     switch (bit_rate)
     {
-    case 0:
-        bps = B0;
-        break;
-    case 50:
-        bps = B50;
-        break;
-    case 75:
-        bps = B75;
-        break;
-    case 110:
-        bps = B110;
-        break;
-    case 134:
-        bps = B134;
-        break;
-    case 150:
-        bps = B150;
-        break;
-    case 200:
-        bps = B200;
-        break;
-    case 300:
-        bps = B300;
-        break;
-    case 600:
-        bps = B600;
-        break;
-    case 1200:
-        bps = B1200;
-        break;
-    case 1800:
-        bps = B1800;
-        break;
-    case 2400:
-        bps = B2400;
-        break;
-    case 4800:
-        bps = B4800;
-        break;
-    case 9600:
-        bps = B9600;
-        break;
-    case 19200:
-        bps = B19200;
-        break;
-    case 38400:
-        bps = B38400;
-        break;
-    case 57600:
-        bps = B57600;
-        break;
-    case 115200:
-        bps = B115200;
-        break;
-    case 230400:
-        bps = B230400;
-        break;
-    case 460800:
-        bps = B460800;
-        break;
-    case 576000:
-        bps = B576000;
-        break;
-    case 921600:
-        bps = B921600;
-        break;
+    case 0:      bps = B0;      break;
+    case 50:     bps = B50;     break;
+    case 75:     bps = B75;     break;
+    case 110:    bps = B110;    break;
+    case 134:    bps = B134;    break;
+    case 150:    bps = B150;    break;
+    case 200:    bps = B200;    break;
+    case 300:    bps = B300;    break;
+    case 600:    bps = B600;    break;
+    case 1200:   bps = B1200;   break;
+    case 1800:   bps = B1800;   break;
+    case 2400:   bps = B2400;   break;
+    case 4800:   bps = B4800;   break;
+    case 9600:   bps = B9600;   break;
+    case 19200:  bps = B19200;  break;
+    case 38400:  bps = B38400;  break;
+    case 57600:  bps = B57600;  break;
+    case 115200: bps = B115200; break;
+    case 230400: bps = B230400; break;
+    case 460800: bps = B460800; break;
+    case 576000: bps = B576000; break;
+    case 921600: bps = B921600; break;
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
             perror(NULL);
@@ -1120,18 +1024,10 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     /* word size */
     switch (word_size)
     {
-    case 5:
-        tty_setting.c_cflag |= CS5;
-        break;
-    case 6:
-        tty_setting.c_cflag |= CS6;
-        break;
-    case 7:
-        tty_setting.c_cflag |= CS7;
-        break;
-    case 8:
-        tty_setting.c_cflag |= CS8;
-        break;
+    case 5: tty_setting.c_cflag |= CS5; break;
+    case 6: tty_setting.c_cflag |= CS6; break;
+    case 7: tty_setting.c_cflag |= CS7; break;
+    case 8: tty_setting.c_cflag |= CS8; break;
     default:
 
         fprintf(stderr, "Default\n");
@@ -1311,14 +1207,10 @@ const char *pstateStr(IPState s)
 {
     switch (s)
     {
-    case IPS_IDLE:
-        return ("Idle");
-    case IPS_OK:
-        return ("Ok");
-    case IPS_BUSY:
-        return ("Busy");
-    case IPS_ALERT:
-        return ("Alert");
+    case IPS_IDLE:  return "Idle";
+    case IPS_OK:    return "Ok";
+    case IPS_BUSY:  return "Busy";
+    case IPS_ALERT: return "Alert";
     default:
         fprintf(stderr, "Impossible IPState %d\n", s);
         return NULL;
@@ -1403,12 +1295,9 @@ const char *ruleStr(ISRule r)
 {
     switch (r)
     {
-    case ISR_1OFMANY:
-        return ("OneOfMany");
-    case ISR_ATMOST1:
-        return ("AtMostOne");
-    case ISR_NOFMANY:
-        return ("AnyOfMany");
+    case ISR_1OFMANY: return "OneOfMany";
+    case ISR_ATMOST1: return "AtMostOne";
+    case ISR_NOFMANY: return "AnyOfMany";
     default:
         fprintf(stderr, "Impossible ISRule %d\n", r);
         return NULL;
@@ -1420,12 +1309,9 @@ const char *permStr(IPerm p)
 {
     switch (p)
     {
-    case IP_RO:
-        return ("ro");
-    case IP_WO:
-        return ("wo");
-    case IP_RW:
-        return ("rw");
+    case IP_RO: return "ro";
+    case IP_WO: return "wo";
+    case IP_RW: return "rw";
     default:
         fprintf(stderr, "Impossible IPerm %d\n", p);
         return NULL;
