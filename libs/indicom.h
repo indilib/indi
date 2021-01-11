@@ -429,9 +429,9 @@ double estimate_absolute_magnitude(double dist, double delta_mag);
  * @param az azimuth position of the target.
  * @param baseline the baseline in meters. Three-dimensional xyz north is z axis y is UTC0 x is UTC0+90°.
  * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
- * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
+ * @param uvresult result plane coordinates of the current projection given the baseline and target vector.
  */
-double* baseline_2d_projection(double alt, double az, double *baseline, double wavelength);
+void baseline_2d_projection(double alt, double az, double baseline[3], double wavelength, double uvresult[2]);
 
 /**
  * @brief baseline_delay Returns the delay in meters of a single baseline targeting the object by coordinates
@@ -441,7 +441,7 @@ double* baseline_2d_projection(double alt, double az, double *baseline, double w
  * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
  * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
  */
-double baseline_delay(double alt, double az, double *baseline);
+double baseline_delay(double alt, double az, double baseline[3]);
 /*@}*/
 
 #ifdef __cplusplus

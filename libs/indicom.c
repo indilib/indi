@@ -1745,28 +1745,24 @@ double estimate_absolute_magnitude(double delta_dist, double delta_mag)
     return sqrt(delta_dist) * delta_mag;
 }
 
-double* baseline_2d_projection(double alt, double az, double *baseline, double wavelength)
+void baseline_2d_projection(double alt, double az, double baseline[3], double wavelength, double uvresult[2])
 {
-    double* proj = (double*)malloc(sizeof(double) * 2);
     az *= M_PI / 180.0;
     alt *= M_PI / 180.0;
-    proj[0] = (baseline[0] * sin(az) + baseline[1] * cos(az));
-    proj[1] = (baseline[1] * sin(alt) * sin(az) - baseline[0] * sin(alt) * cos(az) + baseline[2] * cos(alt));
-    proj[0] *= AIRY / wavelength;
-    proj[1] *= AIRY / wavelength;
-    return proj;
+    uvresult[0] = (baseline[0] * sin(az) + baseline[1] * cos(az));
+    uvresult[1] = (baseline[1] * sin(alt) * sin(az) - baseline[0] * sin(alt) * cos(az) + baseline[2] * cos(alt));
+    uvresult[0] *= AIRY / wavelength;
+    uvresult[1] *= AIRY / wavelength;
 }
 
-double baseline_delay(double alt, double az, double *baseline)
+double baseline_delay(double alt, double az, double baseline[3])
 {
-    double* proj = (double*)malloc(sizeof(double) * 2);
+    double proj[2];
     az *= M_PI / 180.0;
     alt *= M_PI / 180.0;
     proj[0] = (baseline[0] * cos(az) + baseline[1] * sin(az));
     proj[1] = (baseline[1] * cos(alt) * cos(az) - baseline[0] * cos(alt) * sin(az) + baseline[2] * sin(alt));
-    double d = sqrt(pow(proj[0], 2)+pow(proj[1], 2));
-    free (proj);
-    return d;
+    return sqrt(pow(proj[0], 2) + pow(proj[1], 2));
 }
 
 #if defined(_MSC_VER)
