@@ -281,21 +281,11 @@ int numberFormat(char *buf, const char *format, double value)
         /* INDI sexi format */
         switch (f)
         {
-        case 9:
-            s = 360000;
-            break;
-        case 8:
-            s = 36000;
-            break;
-        case 6:
-            s = 3600;
-            break;
-        case 5:
-            s = 600;
-            break;
-        default:
-            s = 60;
-            break;
+        case 9:  s = 360000;  break;
+        case 8:  s = 36000;   break;
+        case 6:  s = 3600;    break;
+        case 5:  s = 600;     break;
+        default: s = 60;      break;
         }
         return (fs_sexa(buf, value, w - f, s));
     }
@@ -1273,10 +1263,8 @@ const char *sstateStr(ISState s)
 {
     switch (s)
     {
-    case ISS_ON:
-        return ("On");
-    case ISS_OFF:
-        return ("Off");
+    case ISS_ON:  return "On";
+    case ISS_OFF: return "Off";
     default:
         fprintf(stderr, "Impossible ISState %d\n", s);
         return NULL;
