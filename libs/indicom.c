@@ -1572,10 +1572,6 @@ void IUResetSwitch(ISwitchVectorProperty *svp)
 /* save malloced copy of newtext in tp->text, reusing if not first time */
 void IUSaveText(IText *tp, const char *newtext)
 {
-    /* seed for realloc */
-    if (tp->text == NULL)
-        tp->text = malloc(1);
-
     /* copy in fresh string */
     tp->text = strcpy(realloc(tp->text, strlen(newtext) + 1), newtext);
 }
