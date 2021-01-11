@@ -132,8 +132,10 @@ bool Integra::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IUFillNumber(&MaxPositionN[0], "FOCUSER", "Focuser", "%.f", 0, 188600., 0., 188600.);
-    IUFillNumber(&MaxPositionN[1], "ROTATOR", "Rotator", "%.f", 0, 61802., 0., 61802.);
+    IUFillNumber(&MaxPositionN[0], "FOCUSER", "Focuser", "%.f",
+                 0, wellKnownIntegra85FocusMax, 0., wellKnownIntegra85FocusMax);
+    IUFillNumber(&MaxPositionN[1], "ROTATOR", "Rotator", "%.f",
+                 0, wellKnownIntegra85RotateMax, 0., wellKnownIntegra85RotateMax);
     IUFillNumberVector(&MaxPositionNP, MaxPositionN, 2, getDeviceName(), "MAX_POSITION", "Max position",
                        SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -293,14 +295,14 @@ bool Integra::getFocuserType()
 {
     int focus_max = int(FocusAbsPosN[0].max);
     int rotator_max = int(RotatorAbsPosN[0].max);
-    if (focus_max != 188600)
+    if (focus_max != wellKnownIntegra85FocusMax)
     {
-        LOGF_ERROR("This is no Integra85 because focus max position %d != 188600", focus_max);
+        LOGF_ERROR("This is no Integra85 because focus max position %d != %d", focus_max, wellKnownIntegra85FocusMax);
         return false;
     }
-    if (rotator_max != 61802)
+    if (rotator_max != wellKnownIntegra85RotateMax)
     {
-        LOGF_ERROR("This is no Integra85 because rotator max position %d != 61802", rotator_max);
+        LOGF_ERROR("This is no Integra85 because rotator max position %d != %d", rotator_max, wellKnownIntegra85RotateMax);
         return false;
     }
 
