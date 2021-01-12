@@ -240,10 +240,8 @@ bool SestoSenso2::updateProperties()
         defineNumber(&MotorCurrentNP);
         defineSwitch(&MotorHoldSP);
         defineSwitch(&MotorApplyPresetSP);
-        /* TODO: Awaiting fix for apply user preset (broken in FW 1.3)
         defineSwitch(&MotorApplyUserPresetSP);
         defineSwitch(&MotorSaveUserPresetSP);
-        */
 
         defineText(&FirmwareTP);
 
@@ -272,10 +270,8 @@ bool SestoSenso2::updateProperties()
         deleteProperty(MotorCurrentNP.name);
         deleteProperty(MotorHoldSP.name);
         deleteProperty(MotorApplyPresetSP.name);
-        /* TODO: Awaiting fix for apply user preset (broken in FW 1.3)
         deleteProperty(MotorApplyUserPresetSP.name);
         deleteProperty(MotorSaveUserPresetSP.name);
-        */
     }
 
     return true;
@@ -1459,9 +1455,35 @@ bool CommandSet::applyMotorPreset(const char *name)
     return false;
 }
 
-
 bool CommandSet::applyMotorUserPreset(uint32_t index)
 {
+    // WORKAROUND: Due to a bug in the Sesto Senso 2 FW, the RUNPRESET
+    // command fails when applied to user presets. Therefore here we 
+    // fetch the motor preset and then apply it ourselves.
+    char request[SESTO_LEN] = {0};
+    snprintf(request, sizeof(request), "{\"req\":{\"get\":{\"RUNPRESET_%u\":\"\"}}}}", index);
+
+    std::string response;
+    if (!send(request, response))
+        return false;   // send() call handles failure logging
+
+    MotorRates mr;
+    MotorCurrents mc;
+    if (parseUIntFromResponse(response, "M1ACC", mr.accRate)
+            && parseUIntFromResponse(response, "M1SPD", mr.runSpeed)
+            && parseUIntFromResponse(response, "M1DEC", mr.decRate)
+            && parseUIntFromResponse(response, "M1CACC", mc.accCurrent)
+            && parseUIntFromResponse(response, "M1CSPD", mc.runCurrent)
+            && parseUIntFromResponse(response, "M1CDEC", mc.decCurrent)
+            && parseUIntFromResponse(response, "M1HOLD", mc.holdCurrent))
+    {
+        return setMotorRates(mr) && setMotorCurrents(mc);
+    }
+
+    // parseUIntFromResponse() should log failure
+    return false;
+
+    /* TODO: Replace above code with this once RUNPRESET is verified as fixed:
     char cmd[SESTO_LEN] = {0};
     snprintf(cmd, sizeof(cmd), "{\"req\":{\"cmd\":{\"RUNPRESET\":%u}}}", index);
 
@@ -1474,6 +1496,7 @@ bool CommandSet::applyMotorUserPreset(uint32_t index)
 
     LOGF_ERROR("Req RUNPRESET %u returned: %s cmd:\n%s", index, result.c_str(), cmd);
     return false;
+    */
 }
 
 constexpr char MOTOR_SAVE_PRESET_CMD[] =
