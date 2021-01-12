@@ -47,8 +47,7 @@ BaseDevicePrivate::BaseDevicePrivate()
     mediator = nullptr;
     lp       = newLilXML();
 
-    char indidev[MAXINDIDEVICE];
-    strncpy(indidev, "INDIDEV=", MAXINDIDEVICE);
+    static char indidev[] = "INDIDEV=";
 
     if (getenv("INDIDEV") != nullptr)
     {
