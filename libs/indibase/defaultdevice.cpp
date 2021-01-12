@@ -66,7 +66,7 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
 {
     char errmsg[MAXRBUF] = {0};
     m_ConfigLoading = true;
-    bool pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
+    bool pResult = IUReadConfig(nullptr, getDeviceName(), property, silent ? 1 : 0, errmsg) == 0 ? true : false;
     m_ConfigLoading = false;
 
     if (!silent)
@@ -83,7 +83,7 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
     // Need to be done only once per device.
     if (m_DefaultConfigLoaded == false)
     {
-        m_DefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+        m_DefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, getDeviceName()) == 0;
     }
 
     return pResult;
@@ -104,7 +104,7 @@ bool DefaultDevice::saveConfigItems(FILE *fp)
 
 bool DefaultDevice::saveAllConfigItems(FILE *fp)
 {
-    for (INDI::Property *oneProperty : pAll)
+    for (const auto &oneProperty : *getProperties())
     {
         if (oneProperty->getType() == INDI_SWITCH)
         {
@@ -121,7 +121,7 @@ bool DefaultDevice::saveAllConfigItems(FILE *fp)
 bool DefaultDevice::purgeConfig()
 {
     char errmsg[MAXRBUF];
-    if (IUPurgeConfig(nullptr, deviceID, errmsg) == -1)
+    if (IUPurgeConfig(nullptr, getDeviceName(), errmsg) == -1)
     {
         LOGF_WARN("%s", errmsg);
         return false;
@@ -140,7 +140,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
 
     if (property == nullptr)
     {
-        fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
+        fp = IUGetConfigFP(nullptr, getDeviceName(), "w", errmsg);
 
         if (fp == nullptr)
         {
@@ -160,14 +160,14 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
 
         if (m_DefaultConfigLoaded == false)
         {
-            m_DefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+            m_DefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, getDeviceName()) == 0;
         }
 
         LOG_DEBUG("Configuration successfully saved.");
     }
     else
     {
-        fp = IUGetConfigFP(nullptr, deviceID, "r", errmsg);
+        fp = IUGetConfigFP(nullptr, getDeviceName(), "r", errmsg);
 
         if (fp == nullptr)
         {
@@ -276,7 +276,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
 
         if (propertySaved)
         {
-            fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
+            fp = IUGetConfigFP(nullptr, getDeviceName(), "w", errmsg);
             prXMLEle(fp, root, 0);
             fflush(fp);
             fclose(fp);
@@ -304,11 +304,11 @@ bool DefaultDevice::loadDefaultConfig()
     if (getenv("INDICONFIG"))
         snprintf(configDefaultFileName, MAXRBUF, "%s.default", getenv("INDICONFIG"));
     else
-        snprintf(configDefaultFileName, MAXRBUF, "%s/.indi/%s_config.xml.default", getenv("HOME"), deviceID);
+        snprintf(configDefaultFileName, MAXRBUF, "%s/.indi/%s_config.xml.default", getenv("HOME"), getDeviceName());
 
     LOGF_DEBUG("Requesting to load default config with: %s", configDefaultFileName);
 
-    pResult = IUReadConfig(configDefaultFileName, deviceID, nullptr, 0, errmsg) == 0 ? true : false;
+    pResult = IUReadConfig(configDefaultFileName, getDeviceName(), nullptr, 0, errmsg) == 0 ? true : false;
 
     if (pResult)
         LOG_INFO("Default configuration loaded.");
@@ -321,7 +321,7 @@ bool DefaultDevice::loadDefaultConfig()
 bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     // ignore if not ours //
-    if (strcmp(dev, deviceID))
+    if (strcmp(dev, getDeviceName()))
         return false;
 
     ISwitchVectorProperty *svp = getSwitch(name);
@@ -703,7 +703,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
             strncpy(DriverInfoTP.group, INFO_TAB, MAXINDINAME);
     }
 
-    for (INDI::Property *oneProperty : pAll)
+    for (const auto &oneProperty : *getProperties())
     {
         if (defineDynamicProperties == false && oneProperty->isDynamic())
             continue;
@@ -770,7 +770,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
 
 void DefaultDevice::resetProperties()
 {
-    for (INDI::Property *oneProperty : pAll)
+    for (const auto &oneProperty : *getProperties())
     {
         oneProperty->setState(IPS_IDLE);
         oneProperty->apply();
