@@ -97,6 +97,10 @@ bool Controller::initProperties()
     IUFillSwitchVector(&UseJoystickSP, UseJoystickS, 2, device->getDeviceName(), "USEJOYSTICK", "Joystick", OPTIONS_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillText(&JoystickDeviceT[0], "JOYSTICK_DEVICE", "Device", "Joystick");
+    IUFillTextVector(&JoystickDeviceTP, JoystickDeviceT, 1, device->getDeviceName(), "JOYSTICK_DEVICE", "Snoop Joystick",
+                     OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
     return true;
 }
 
@@ -108,6 +112,7 @@ void Controller::ISGetProperties(const char *dev)
     if (device->isConnected())
     {
         device->defineSwitch(&UseJoystickSP);
+        device->defineText(&JoystickDeviceTP);
 
         if (JoystickSettingT && UseJoystickS[0].s == ISS_ON)
             device->defineText(&JoystickSettingTP);
@@ -119,6 +124,7 @@ bool Controller::updateProperties()
     if (device->isConnected())
     {
         device->defineSwitch(&UseJoystickSP);
+        device->defineText(&JoystickDeviceTP);
 
         if (JoystickSettingT && UseJoystickS[0].s == ISS_ON)
             device->defineText(&JoystickSettingTP);
@@ -126,6 +132,7 @@ bool Controller::updateProperties()
     else
     {
         device->deleteProperty(UseJoystickSP.name);
+        device->deleteProperty(JoystickDeviceTP.name);
         device->deleteProperty(JoystickSettingTP.name);
     }
 
@@ -161,6 +168,23 @@ bool Controller::ISNewText(const char *dev, const char *name, char *texts[], cha
 {
     if (strcmp(dev, device->getDeviceName()) == 0)
     {
+        if (!strcmp(name, "JOYSTICK_DEVICE"))
+        {
+            IUUpdateText(&JoystickDeviceTP, texts, names, n);
+            JoystickDeviceTP.s = IPS_IDLE;
+
+            IDSetText(&JoystickDeviceTP, nullptr);
+
+            if (UseJoystickSP.sp[0].s == ISS_ON)
+            {
+                // Let's switch over to the new joystick.
+                disableJoystick();
+                enableJoystick();
+            }
+
+            return true;
+        }
+
         if (!strcmp(name, "JOYSTICKSETTINGS") && n <= JoystickSettingTP.ntp)
         {
             for (int i = 0; i < JoystickSettingTP.ntp; i++)
@@ -185,7 +209,7 @@ bool Controller::ISNewText(const char *dev, const char *name, char *texts[], cha
             for (int i = 0; i < n; i++)
             {
                 if (strstr(JoystickSettingT[i].text, "JOYSTICK_"))
-                    IDSnoopDevice("Joystick", JoystickSettingT[i].text);
+                    IDSnoopDevice(JoystickDeviceT[0].text, JoystickSettingT[i].text);
             }
 
             JoystickSettingTP.s = IPS_OK;
@@ -264,6 +288,7 @@ bool Controller::saveConfigItems(FILE *fp)
 {
     IUSaveConfigSwitch(fp, &UseJoystickSP);
     IUSaveConfigText(fp, &JoystickSettingTP);
+    IUSaveConfigText(fp, &JoystickDeviceTP);
 
     return true;
 }
@@ -275,11 +300,11 @@ void Controller::enableJoystick()
     for (int i = 0; i < JoystickSettingTP.ntp; i++)
     {
         if (strstr(JoystickSettingTP.tp[i].text, "JOYSTICK_"))
-            IDSnoopDevice("Joystick", JoystickSettingTP.tp[i].text);
+            IDSnoopDevice(JoystickDeviceT[0].text, JoystickSettingTP.tp[i].text);
     }
 
-    IDSnoopDevice("Joystick", "JOYSTICK_AXES");
-    IDSnoopDevice("Joystick", "JOYSTICK_BUTTONS");
+    IDSnoopDevice(JoystickDeviceT[0].text, "JOYSTICK_AXES");
+    IDSnoopDevice(JoystickDeviceT[0].text, "JOYSTICK_BUTTONS");
 }
 
 void Controller::disableJoystick()
