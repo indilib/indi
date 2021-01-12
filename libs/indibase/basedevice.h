@@ -24,8 +24,7 @@
 
 #include <string>
 #include <vector>
-
-#include <stdint.h>
+#include <cstdint>
 
 #define MAXRBUF 2048
 
@@ -97,21 +96,21 @@ public:
 
 public:
     /** \return Return vector number property given its name */
-    INumberVectorProperty *getNumber(const char *name);
+    INumberVectorProperty *getNumber(const char *name) const;
     /** \return Return vector text property given its name */
-    ITextVectorProperty *getText(const char *name);
+    ITextVectorProperty *getText(const char *name) const;
     /** \return Return vector switch property given its name */
-    ISwitchVectorProperty *getSwitch(const char *name);
+    ISwitchVectorProperty *getSwitch(const char *name) const;
     /** \return Return vector light property given its name */
-    ILightVectorProperty *getLight(const char *name);
+    ILightVectorProperty *getLight(const char *name) const;
     /** \return Return vector BLOB property given its name */
-    IBLOBVectorProperty *getBLOB(const char *name);
+    IBLOBVectorProperty *getBLOB(const char *name) const;
 
 public:
     /** \return Return property state */
-    IPState getPropertyState(const char *name);
+    IPState getPropertyState(const char *name) const;
     /** \return Return property permission */
-    IPerm getPropertyPermission(const char *name);
+    IPerm getPropertyPermission(const char *name) const;
 
 public:
     void registerProperty(void *p, INDI_PROPERTY_TYPE type);
@@ -132,7 +131,7 @@ public:
      *  \note This is a low-level function and should not be called directly unless necessary. Use getXXX instead where XXX
      *  is the property type (Number, Text, Switch..etc).
      */
-    void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
+    void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
     /** \brief Return a property and its type given its name.
      *  \param name of property to be found.
@@ -140,10 +139,11 @@ public:
      *  \return If property is found, it is returned. To be used you must use static_cast with given the type of property
      *  returned.
      */
-    Property *getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
+    Property *getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
     /** \brief Return a list of all properties in the device. */
     Properties *getProperties();
+    const Properties *getProperties() const;
 
 public:
     /** \brief Add message to the driver's message queue.
@@ -161,13 +161,13 @@ public:
 
 public:
     /** \return True if the device is connected (CONNECT=ON), False otherwise */
-    bool isConnected();
+    bool isConnected() const;
 
     /** \brief Set the driver's mediator to receive notification of news devices and updated property values. */
     void setMediator(INDI::BaseMediator *mediator);
 
     /** \returns Get the meditator assigned to this driver */
-    INDI::BaseMediator *getMediator();
+    INDI::BaseMediator *getMediator() const;
 
     /** \brief Set the device name
      *  \param dev new device name
@@ -180,17 +180,17 @@ public:
     /** \return driver name
      *  \note This can only be valid if DRIVER_INFO is defined by the driver.
      */
-    const char *getDriverName();
+    const char *getDriverName() const;
 
     /** \return driver executable name
      *  \note This can only be valid if DRIVER_INFO is defined by the driver.
      */
-    const char *getDriverExec();
+    const char *getDriverExec() const;
 
     /** \return driver version
      *  \note This can only be valid if DRIVER_INFO is defined by the driver.
      */
-    const char *getDriverVersion();
+    const char *getDriverVersion() const;
 
     /**
      * @brief getDriverInterface returns ORed values of @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE". It presents the device classes supported by the driver.

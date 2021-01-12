@@ -44,10 +44,8 @@ namespace INDI
 
 BaseDevicePrivate::BaseDevicePrivate()
 {
-    mediator = nullptr;
-    lp       = newLilXML();
-
     static char indidev[] = "INDIDEV=";
+    lp = newLilXML();
 
     if (getenv("INDIDEV") != nullptr)
     {
@@ -64,7 +62,6 @@ BaseDevicePrivate::~BaseDevicePrivate()
         delete pAll.back();
         pAll.pop_back();
     }
-    messageLog.clear();
 }
 
 BaseDevice::BaseDevice()
@@ -78,32 +75,32 @@ BaseDevice::BaseDevice(BaseDevicePrivate &dd)
     : d_ptr(&dd)
 { }
 
-INumberVectorProperty *BaseDevice::getNumber(const char *name)
+INumberVectorProperty *BaseDevice::getNumber(const char *name) const
 {
     return static_cast<INumberVectorProperty *>(getRawProperty(name, INDI_NUMBER));
 }
 
-ITextVectorProperty *BaseDevice::getText(const char *name)
+ITextVectorProperty *BaseDevice::getText(const char *name) const
 {
     return static_cast<ITextVectorProperty *>(getRawProperty(name, INDI_TEXT));
 }
 
-ISwitchVectorProperty *BaseDevice::getSwitch(const char *name)
+ISwitchVectorProperty *BaseDevice::getSwitch(const char *name) const
 {
     return static_cast<ISwitchVectorProperty *>(getRawProperty(name, INDI_SWITCH));
 }
 
-ILightVectorProperty *BaseDevice::getLight(const char *name)
+ILightVectorProperty *BaseDevice::getLight(const char *name) const
 {
     return static_cast<ILightVectorProperty *>(getRawProperty(name, INDI_LIGHT));
 }
 
-IBLOBVectorProperty *BaseDevice::getBLOB(const char *name)
+IBLOBVectorProperty *BaseDevice::getBLOB(const char *name) const
 {
     return static_cast<IBLOBVectorProperty *>(getRawProperty(name, INDI_BLOB));
 }
 
-IPState BaseDevice::getPropertyState(const char *name)
+IPState BaseDevice::getPropertyState(const char *name) const
 {
     for (const auto &oneProp : *getProperties())
         if (!strcmp(name, oneProp->getName()))
@@ -112,7 +109,7 @@ IPState BaseDevice::getPropertyState(const char *name)
     return IPS_IDLE;
 }
 
-IPerm BaseDevice::getPropertyPermission(const char *name)
+IPerm BaseDevice::getPropertyPermission(const char *name) const
 {
     for (const auto &oneProp : *getProperties())
         if (!strcmp(name, oneProp->getName()))
@@ -121,15 +118,15 @@ IPerm BaseDevice::getPropertyPermission(const char *name)
     return IP_RO;
 }
 
-void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
+void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type) const
 {
     INDI::Property *prop = getProperty(name, type);
     return prop != nullptr ? prop->getProperty() : nullptr;
 }
 
-INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type)
+INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type) const
 {
-    D_PTR(BaseDevice);
+    D_PTR(const BaseDevice);
     std::lock_guard<std::mutex> lock(d->m_Lock);
 
     for (const auto &oneProp : *getProperties())
@@ -522,7 +519,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     return (0);
 }
 
-bool BaseDevice::isConnected()
+bool BaseDevice::isConnected() const
 {
     ISwitchVectorProperty *svp = getSwitch(INDI::SP::CONNECTION);
     if (!svp)
@@ -530,13 +527,7 @@ bool BaseDevice::isConnected()
 
     ISwitch *sp = IUFindSwitch(svp, "CONNECT");
 
-    if (!sp)
-        return false;
-
-    if (sp->s == ISS_ON && svp->s == IPS_OK)
-        return true;
-    else
-        return false;
+    return sp && sp->s == ISS_ON && svp->s == IPS_OK;
 }
 
 /*
@@ -901,7 +892,7 @@ void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
     }
 }
 
-const char *BaseDevice::getDriverName()
+const char *BaseDevice::getDriverName() const
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
 
@@ -915,7 +906,7 @@ const char *BaseDevice::getDriverName()
     return nullptr;
 }
 
-const char *BaseDevice::getDriverExec()
+const char *BaseDevice::getDriverExec() const
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
 
@@ -929,7 +920,7 @@ const char *BaseDevice::getDriverExec()
     return nullptr;
 }
 
-const char *BaseDevice::getDriverVersion()
+const char *BaseDevice::getDriverVersion() const
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
 
@@ -957,6 +948,12 @@ uint16_t BaseDevice::getDriverInterface()
     return 0;
 }
 
+const BaseDevice::Properties *BaseDevice::getProperties() const
+{
+    D_PTR(const BaseDevice);
+    return &d->pAll;
+}
+
 BaseDevice::Properties *BaseDevice::getProperties()
 {
     D_PTR(BaseDevice);
@@ -969,9 +966,9 @@ void BaseDevice::setMediator(INDI::BaseMediator *mediator)
     d->mediator = mediator;
 }
 
-INDI::BaseMediator *BaseDevice::getMediator()
+INDI::BaseMediator *BaseDevice::getMediator() const
 {
-    D_PTR(BaseDevice);
+    D_PTR(const BaseDevice);
     return d->mediator;
 }
 
