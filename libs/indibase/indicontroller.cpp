@@ -97,8 +97,8 @@ bool Controller::initProperties()
     IUFillSwitchVector(&UseJoystickSP, UseJoystickS, 2, device->getDeviceName(), "USEJOYSTICK", "Joystick", OPTIONS_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillText(&JoystickDeviceT[0], "JOYSTICK_DEVICE", "Device", "Joystick");
-    IUFillTextVector(&JoystickDeviceTP, JoystickDeviceT, 1, device->getDeviceName(), "JOYSTICK_DEVICE", "Snoop Joystick",
+    IUFillText(&JoystickDeviceT[0], "SNOOP_JOYSTICK_DEVICE", "Device", "Joystick");
+    IUFillTextVector(&JoystickDeviceTP, JoystickDeviceT, 1, device->getDeviceName(), "SNOOP_JOYSTICK", "Snoop Joystick",
                      OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     return true;
@@ -168,7 +168,7 @@ bool Controller::ISNewText(const char *dev, const char *name, char *texts[], cha
 {
     if (strcmp(dev, device->getDeviceName()) == 0)
     {
-        if (!strcmp(name, "JOYSTICK_DEVICE"))
+        if (!strcmp(name, "SNOOP_JOYSTICK"))
         {
             IUUpdateText(&JoystickDeviceTP, texts, names, n);
             JoystickDeviceTP.s = IPS_IDLE;
@@ -178,7 +178,6 @@ bool Controller::ISNewText(const char *dev, const char *name, char *texts[], cha
             if (UseJoystickSP.sp[0].s == ISS_ON)
             {
                 // Let's switch over to the new joystick.
-                disableJoystick();
                 enableJoystick();
             }
 
