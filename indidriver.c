@@ -27,7 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indidriver.h"
 
 #include "base64.h"
-#include "eventloop.h"
 #include "indicom.h"
 #include "indidevapi.h"
 #include "locale_compat.h"
@@ -134,6 +133,13 @@ static void escapeXML_fputs(const char *src, FILE *stream)
     fwrite(src, 1, (size_t)(ptr - src), stream);
 }
 
+static void escapeXML_vprintf(const char *fmt, va_list ap)
+{
+    char message[MAXINDIMESSAGE];
+    vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
+    escapeXML_fputs(message, stdout);
+}
+
 /* output a string expanding special characters into xml/html escape sequences */
 static size_t escapeXML2(char *dst, const char *src, size_t size)
 {
@@ -214,12 +220,9 @@ void IDDeleteVA(const char *dev, const char *name, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
-        // #PS: why not escapeXML_fputs?
         printf("  message='");
-        printf("%s'\n", entityXML(message));
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf("/>\n");
     fflush(stdout);
@@ -280,48 +283,6 @@ void IDSnoopBLOBs(const char *snooped_device, const char *snooped_property, BLOB
         printf("<enableBLOB device='%s'>%s</enableBLOB>\n", snooped_device, how);
     fflush(stdout);
     pthread_mutex_unlock(&stdout_mutex);
-}
-
-/* "INDI" wrappers to the more generic eventloop facility. */
-
-int IEAddCallback(int readfiledes, IE_CBF *fp, void *p)
-{
-    return (addCallback(readfiledes, (CBF *)fp, p));
-}
-
-void IERmCallback(int callbackid)
-{
-    rmCallback(callbackid);
-}
-
-int IEAddTimer(int millisecs, IE_TCF *fp, void *p)
-{
-    return (addTimer(millisecs, (TCF *)fp, p));
-}
-
-void IERmTimer(int timerid)
-{
-    rmTimer(timerid);
-}
-
-int IEAddWorkProc(IE_WPF *fp, void *p)
-{
-    return (addWorkProc((WPF *)fp, p));
-}
-
-void IERmWorkProc(int workprocid)
-{
-    rmWorkProc(workprocid);
-}
-
-int IEDeferLoop(int maxms, int *flagp)
-{
-    return (deferLoop(maxms, flagp));
-}
-
-int IEDeferLoop0(int maxms, int *flagp)
-{
-    return (deferLoop0(maxms, flagp));
 }
 
 /* Update property switches in accord with states and names. */
@@ -1172,7 +1133,7 @@ int dispatch(XMLEle *root, char msg[])
                     // enclen is optional and not required by INDI protocol
                     if (el)
                         bloblen = atoi(valuXMLAtt(el));
-                    assert_mem(blobs[n] = malloc(3 * bloblen / 4));
+                    assert_mem(blobs[n] = (char*)malloc(3 * bloblen / 4));
                     blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
                     names[n]     = valuXMLAtt(na);
                     formats[n]   = valuXMLAtt(fa);
@@ -1611,11 +1572,8 @@ void IDMessageVA(const char *dev, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf("/>\n");
@@ -1790,7 +1748,7 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
         fprintf(fp, "    size='%d'\n", bp->size);
         fprintf(fp, "    format='%s'>\n", bp->format);
 
-        assert_mem(encblob = malloc(4 * bp->bloblen / 3 + 4));
+        assert_mem(encblob = (unsigned char*)malloc(4 * bp->bloblen / 3 + 4));
         l = to64frombits_s(encblob, bp->blob, bp->bloblen, bp->bloblen);
         if (l == 0) {
             fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", me, __func__);
@@ -1833,11 +1791,8 @@ void IDDefTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
@@ -1889,11 +1844,8 @@ void IDDefNumberVA(const INumberVectorProperty *n, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
@@ -1952,11 +1904,8 @@ void IDDefSwitchVA(const ISwitchVectorProperty *s, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
@@ -2005,11 +1954,8 @@ void IDDefLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
@@ -2056,11 +2002,8 @@ void IDDefBLOBVA(const IBLOBVectorProperty *b, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
@@ -2107,12 +2050,9 @@ void IDSetTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
-        // #PS: why not escapeXML_fputs?
         printf("  message='");
-        printf("%s'\n", entityXML(message));
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2153,12 +2093,9 @@ void IDSetNumberVA(const INumberVectorProperty *nvp, const char *fmt, va_list ap
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
-        // #PS: why not escapeXML_fputs?
         printf("  message='");
-        printf("%s'\n", entityXML(message));
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2199,12 +2136,9 @@ void IDSetSwitchVA(const ISwitchVectorProperty *svp, const char *fmt, va_list ap
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
-        // #PS: why not escapeXML_fputs?
         printf("  message='");
-        printf("%s'\n", entityXML(message));
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2243,12 +2177,9 @@ void IDSetLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-
-        // #PS: why not escapeXML_fputs?
         printf("  message='");
-        printf("%s'\n", entityXML(message));
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
@@ -2314,7 +2245,7 @@ void IDSetBLOBVA(const IBLOBVectorProperty *bvp, const char *fmt, va_list ap)
         else
         {
             size_t sz = 4 * bp->bloblen / 3 + 4;
-            assert_mem(encblob = malloc(sz));
+            assert_mem(encblob = (unsigned char *)malloc(sz));
             l = to64frombits_s(encblob, bp->blob, bp->bloblen, sz);
             if (l == 0) {
                 fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", me, __func__);
