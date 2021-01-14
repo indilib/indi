@@ -118,13 +118,10 @@ void ISSnoopDevice (XMLEle *root)
 
 Integra::Integra() : RotatorInterface(this)
 {
-    // Rotator
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
 
-    // Focuser
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     setSupportedConnections(CONNECTION_SERIAL);
-
     setVersion(1, 1);
 }
 
@@ -193,6 +190,7 @@ bool Integra::updateProperties()
     if (isConnected())
     {
         defineNumber(&MaxPositionNP);
+
         // Focus
         defineNumber(&SensorNP);
         defineSwitch(&FindHomeSP);
@@ -200,11 +198,11 @@ bool Integra::updateProperties()
         // Rotator
         RI::updateProperties();
         defineNumber(&RotatorAbsPosNP);
-
     }
     else
     {
         deleteProperty(MaxPositionNP.name);
+
         // Focus
         deleteProperty(SensorNP.name);
         deleteProperty(FindHomeSP.name);
@@ -223,7 +221,7 @@ bool Integra::Handshake()
     bool rcFirmware = getFirmware();
     bool rcMaxPositionMotorFocus = getMaxPosition(MOTOR_FOCUS);
     bool rcMaxPositionMotorRotator = getMaxPosition(MOTOR_ROTATOR);
-    bool rcType = getFocuserType(); // do this after the getMaxPositions
+    bool rcType = getFocuserType(); // keep this after the getMaxPositions
     if (rcFirmware && rcMaxPositionMotorFocus && rcMaxPositionMotorRotator && rcType)
     {
         return true;
