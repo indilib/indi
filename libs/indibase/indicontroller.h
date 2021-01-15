@@ -153,7 +153,7 @@ class Controller
     ISwitch UseJoystickS[2];
 
     ITextVectorProperty JoystickDeviceTP;
-    IText JoystickDeviceT[1];
+    IText JoystickDeviceT[1] {};
 
     ITextVectorProperty JoystickSettingTP;
     IText *JoystickSettingT = nullptr;
