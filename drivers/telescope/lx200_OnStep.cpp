@@ -793,7 +793,10 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 char cmd[20];
                 int port = STARTING_PORT + i;
 
-                snprintf(cmd, sizeof(cmd), ":SXG%d,%d#", port, value);
+                //This is for newer version of OnStep:
+                snprintf(cmd, sizeof(cmd), ":SXX%d,V%d#", port, value);
+                //This is for older version of OnStep:
+                //snprintf(cmd, sizeof(cmd), ":SXG%d,%d#", port, value);
                 ret = sendOnStepCommandBlind(cmd);
 
                 if (ret == -1)
