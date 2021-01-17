@@ -70,6 +70,15 @@ INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 INDI::BaseClient::~BaseClient()
 {
     clear();
+
+    if (listen_thread)
+    {
+        disconnectServer();
+
+        listen_thread->join();
+        delete(listen_thread);
+        listen_thread = nullptr;
+    }
 }
 
 void INDI::BaseClient::clear()
@@ -296,9 +305,9 @@ bool INDI::BaseClient::disconnectServer()
 
     cDeviceNames.clear();
 
-    listen_thread->join();
-    delete(listen_thread);
-    listen_thread = nullptr;
+    //    listen_thread->join();
+    //    delete(listen_thread);
+    //    listen_thread = nullptr;
     //pthread_join(listen_thread, nullptr);
 
     int exit_code = 0;
@@ -632,7 +641,8 @@ int INDI::BaseClient::delPropertyCmd(XMLEle *root, char *errmsg)
             snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", valuXMLAtt(ap));
             return -1;
         }
-        removeProperty(rProp);
+        if (sConnected)
+            removeProperty(rProp);
         int errCode = dp->removeProperty(valuXMLAtt(ap), errmsg);
 
         return errCode;

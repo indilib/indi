@@ -171,20 +171,26 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 bool Serial::Connect()
 {
     uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
-    bool rc       = Connect(PortT[0].text, baud);
+    if (Connect(PortT[0].text, baud) && processHandshake())
+        return true;
 
-    if (rc)
+    // If if the user port is one of the detected system ports.
+    bool isSystemPort = false;
+    for (int i = 0; i < SystemPortSP.nsp; i++)
     {
-        rc = processHandshake();
+        if (!strcmp(PortT[0].text, SystemPortS[i].name))
+        {
+            isSystemPort = true;
+            break;
+        }
     }
 
     // Important, disconnect from port immediately
     // to release the lock, otherwise another driver will find it busy.
-    if (rc == false)
-        tty_disconnect(PortFD);
+    tty_disconnect(PortFD);
 
     // Start auto-search if option was selected and IF we have system ports to try connecting to
-    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr && SystemPortSP.nsp > 1)
+    if (AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr && SystemPortSP.nsp > 1)
     {
         LOGF_WARN("Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text,
                   baud);
@@ -196,7 +202,7 @@ bool Serial::Connect()
         std::vector<std::string> systemPorts;
         for (int i = 0; i < SystemPortSP.nsp; i++)
         {
-            // Don't connect to the same port again.
+            // Only try the same port last again.
             if (!strcmp(SystemPortS[i].name, PortT[0].text))
                 continue;
 
@@ -204,28 +210,38 @@ bool Serial::Connect()
         }
         std::random_shuffle (systemPorts.begin(), systemPorts.end());
 
-        for (auto port : systemPorts)
+        std::vector<std::string> doubleSearch = systemPorts;
+
+        // Try the current port as LAST port again
+        systemPorts.push_back(PortT[0].text);
+
+        // Double search just in case some items were BUSY in the first pass
+        systemPorts.insert(systemPorts.end(), doubleSearch.begin(), doubleSearch.end());
+
+        for (const auto &port : systemPorts)
         {
             LOGF_INFO("Trying connecting to %s @ %d ...", port.c_str(), baud);
-            if (Connect(port.c_str(), baud))
+            if (Connect(port.c_str(), baud) && processHandshake())
             {
                 IUSaveText(&PortT[0], port.c_str());
                 IDSetText(&PortTP, nullptr);
-                rc = processHandshake();
-                if (rc)
-                    return true;
-                else
-                    tty_disconnect(PortFD);
+
+                // Do not overwrite custom ports because it can be actually some
+                // temporary failure. For users who use mapped named ports (e.g. /dev/mount), it's not good to override their choice.
+                // So only write to config if the port was a system port.
+                if (isSystemPort)
+                    m_Device->saveConfig(true, PortTP.name);
+                return true;
             }
+
+            tty_disconnect(PortFD);
             // sleep randomly anytime between 0.5s and ~1.5s
             // This enables different competing devices to connect
             std::this_thread::sleep_for(std::chrono::milliseconds(500 + (rand() % 1000)));
         }
-
-        return false;
     }
 
-    return rc;
+    return false;
 }
 
 bool Serial::processHandshake()

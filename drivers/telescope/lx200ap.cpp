@@ -551,7 +551,7 @@ bool LX200AstroPhysics::setBasicDataPart0()
     }
 
     // Detect and set fomat. It should be LONG.
-    checkLX200Format(PortFD);
+    checkLX200EquatorialFormat(PortFD);
 
     return true;
 }

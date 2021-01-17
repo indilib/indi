@@ -636,7 +636,7 @@ void LX200_TeenAstro::getBasicData()
 
     if (!isSimulation())
     {
-        checkLX200Format(PortFD);
+        checkLX200EquatorialFormat(PortFD);
         char buffer[128];
         getVersionDate(PortFD, buffer);
         IUSaveText(&VersionT[0], buffer);
@@ -977,6 +977,7 @@ bool LX200_TeenAstro::sendScopeTime()
 bool LX200_TeenAstro::sendScopeLocation()
 {
     int dd = 0, mm = 0, elev = 0;
+    double ssf = 0.0;
 
     LOG_INFO("Send location");
     return true;
@@ -991,7 +992,7 @@ bool LX200_TeenAstro::sendScopeLocation()
         return true;
     }
 
-    if (getSiteLatitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLatitude(PortFD, &dd, &mm, &ssf) < 0)
     {
         LOG_WARN("Failed to get site latitude from device.");
         return false;
@@ -1003,7 +1004,7 @@ bool LX200_TeenAstro::sendScopeLocation()
         else
             LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0;
     }
-    if (getSiteLongitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
     {
         LOG_WARN("Failed to get site longitude from device.");
         return false;
@@ -1094,8 +1095,9 @@ bool LX200_TeenAstro::setSiteElevation(double elevation)
 bool LX200_TeenAstro::getLocation()
 {
     int dd = 0, mm = 0, elev = 0;
+    double ssf = 0.0;
 
-    if (getSiteLatitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLatitude(PortFD, &dd, &mm, &ssf) < 0)
     {
         LOG_WARN("Failed to get site latitude from device.");
         return false;
@@ -1108,7 +1110,7 @@ bool LX200_TeenAstro::getLocation()
             LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0;
     }
 
-    if (getSiteLongitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
     {
         LOG_WARN("Failed to get site longitude from device.");
         return false;

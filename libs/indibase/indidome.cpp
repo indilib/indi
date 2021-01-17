@@ -123,7 +123,7 @@ bool Dome::initProperties()
 
     // Shutter Policy
     IUFillSwitch(&ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK], "SHUTTER_CLOSE_ON_PARK", "Close On Park", ISS_OFF);
-    IUFillSwitch(&ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK], "SHUTTER_OPEN_ON_PARK", "Open On UnPark", ISS_OFF);
+    IUFillSwitch(&ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK], "SHUTTER_OPEN_ON_UNPARK", "Open On UnPark", ISS_OFF);
     IUFillSwitchVector(&ShutterParkPolicySP, ShutterParkPolicyS, 2, getDeviceName(), "DOME_SHUTTER_PARK_POLICY", "Shutter",
                        OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 

@@ -24,11 +24,9 @@ if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
-
 #include "indidriver.h"
 
 #include "base64.h"
-#include "eventloop.h"
 #include "indicom.h"
 #include "indidevapi.h"
 #include "locale_compat.h"
@@ -44,7 +42,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <sys/stat.h>
 #include <assert.h>
 
-pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
+int verbose;      /* chatty */
+char *me = NULL;  /* a.out name */
 
 #define MAXRBUF 2048
 
@@ -59,17 +59,51 @@ INDI_BLOB,
 INDI_UNKNOWN
 };
 
-/* Return index of property property if already cached, -1 otherwise */
-int isPropDefined(const char *property_name, const char *device_name)
+// TODO use fast map
+/* insure RO properties are never modified. RO Sanity Check */
+typedef struct {
+    char propName[MAXINDINAME];
+    char devName[MAXINDIDEVICE];
+    IPerm perm;
+    const void *ptr;
+    int type;
+} ROSC;
+
+static ROSC *propCache = NULL;
+static int nPropCache = 0; /* # of elements in roCheck */
+
+static ROSC *rosc_new()
 {
-    int i = 0;
-
-    for (i = 0; i < nPropCache; i++)
-        if (!strcmp(property_name, propCache[i].propName) && !strcmp(device_name, propCache[i].devName))
-            return i;
-
-    return -1;
+    assert_mem(propCache = (ROSC *)(realloc(propCache, (nPropCache + 1) * sizeof *propCache)));
+    return &propCache[nPropCache++];
 }
+
+static void rosc_add(const char *propName, const char *devName, IPerm perm, const void *ptr, int type)
+{
+    ROSC *SC = rosc_new();
+    strcpy(SC->propName, propName);
+    strcpy(SC->devName, devName);
+    SC->perm = perm;
+    SC->ptr  = ptr;
+    SC->type = type;
+}
+
+/* Return pointer of property if already cached, NULL otherwise */
+static ROSC *rosc_find(const char *propName, const char *devName)
+{
+    for (int i = 0; i < nPropCache; i++)
+        if (!strcmp(propName, propCache[i].propName) && !strcmp(devName, propCache[i].devName))
+            return &propCache[i];
+
+    return NULL;
+}
+
+static void rosc_add_unique(const char *propName, const char *devName, IPerm perm, const void *ptr, int type)
+{
+    if (rosc_find(propName, devName) == NULL)
+        rosc_add(propName, devName, perm, ptr, type);
+}
+
 
 /* output a string expanding special characters into xml/html escape sequences */
 static void escapeXML_fputs(const char *src, FILE *stream)
@@ -97,6 +131,13 @@ static void escapeXML_fputs(const char *src, FILE *stream)
         }
     }
     fwrite(src, 1, (size_t)(ptr - src), stream);
+}
+
+static void escapeXML_vprintf(const char *fmt, va_list ap)
+{
+    char message[MAXINDIMESSAGE];
+    vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
+    escapeXML_fputs(message, stdout);
 }
 
 /* output a string expanding special characters into xml/html escape sequences */
@@ -168,7 +209,7 @@ static char *escapeXML(const char *src, size_t size)
 /* tell Client to delete the property with given name on given device, or
  * entire device if !name
  */
-void IDDelete(const char *dev, const char *name, const char *fmt, ...)
+void IDDeleteVA(const char *dev, const char *name, const char *fmt, va_list ap)
 {
     pthread_mutex_lock(&stdout_mutex);
 
@@ -179,18 +220,22 @@ void IDDelete(const char *dev, const char *name, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
         printf("  message='");
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", entityXML(message));
-        va_end(ap);
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf("/>\n");
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
+}
+
+void IDDelete(const char *dev, const char *name, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDDeleteVA(dev, name, fmt, ap);
+    va_end(ap);
 }
 
 /* tell indiserver we want to snoop on the given device/property.
@@ -240,70 +285,23 @@ void IDSnoopBLOBs(const char *snooped_device, const char *snooped_property, BLOB
     pthread_mutex_unlock(&stdout_mutex);
 }
 
-/* "INDI" wrappers to the more generic eventloop facility. */
-
-int IEAddCallback(int readfiledes, IE_CBF *fp, void *p)
-{
-    return (addCallback(readfiledes, (CBF *)fp, p));
-}
-
-void IERmCallback(int callbackid)
-{
-    rmCallback(callbackid);
-}
-
-int IEAddTimer(int millisecs, IE_TCF *fp, void *p)
-{
-    return (addTimer(millisecs, (TCF *)fp, p));
-}
-
-void IERmTimer(int timerid)
-{
-    rmTimer(timerid);
-}
-
-int IEAddWorkProc(IE_WPF *fp, void *p)
-{
-    return (addWorkProc((WPF *)fp, p));
-}
-
-void IERmWorkProc(int workprocid)
-{
-    rmWorkProc(workprocid);
-}
-
-int IEDeferLoop(int maxms, int *flagp)
-{
-    return (deferLoop(maxms, flagp));
-}
-
-int IEDeferLoop0(int maxms, int *flagp)
-{
-    return (deferLoop0(maxms, flagp));
-}
-
 /* Update property switches in accord with states and names. */
 int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], int n)
 {
-    int i = 0;
-    ISwitch *sp;
-    char sn[MAXINDINAME];
+    ISwitch *so = NULL; // On switch pointer
 
     assert(svp != NULL && "IUUpdateSwitch SVP is NULL");
 
-    /* store On switch name */
+    /* store On switch pointer */
     if (svp->r == ISR_1OFMANY)
     {
-        sp = IUFindOnSwitch(svp);
-        if (sp)
-            strncpy(sn, sp->name, MAXINDINAME);
-
+        so = IUFindOnSwitch(svp);
         IUResetSwitch(svp);
     }
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
-        sp = IUFindSwitch(svp, names[i]);
+        ISwitch *sp = IUFindSwitch(svp, names[i]);
 
         if (!sp)
         {
@@ -319,7 +317,7 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
     if (svp->r == ISR_1OFMANY)
     {
         int t_count = 0;
-        for (i = 0; i < svp->nsp; i++)
+        for (int i = 0; i < svp->nsp; i++)
         {
             if (svp->sp[i].s == ISS_ON)
                 t_count++;
@@ -327,9 +325,10 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
         if (t_count != 1)
         {
             IUResetSwitch(svp);
-            sp = IUFindSwitch(svp, sn);
-            if (sp)
-                sp->s = ISS_ON;
+
+            // restore previous state
+            if (so)
+                so->s = ISS_ON;
             svp->s = IPS_IDLE;
             IDSetSwitch(svp, "Error: invalid state switch for property %s (%s). %s.", svp->label, svp->name,
                         t_count == 0 ? "No switch is on" : "Too many switches are on");
@@ -343,14 +342,11 @@ int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], i
 /* Update property numbers in accord with values and names */
 int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], int n)
 {
-    int i = 0;
-    INumber *np;
-
     assert(nvp != NULL && "IUUpdateNumber NVP is NULL");
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
-        np = IUFindNumber(nvp, names[i]);
+        INumber *np = IUFindNumber(nvp, names[i]);
         if (!np)
         {
             nvp->s = IPS_IDLE;
@@ -368,9 +364,9 @@ int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], i
     }
 
     /* First loop checks for error, second loop set all values atomically*/
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
-        np        = IUFindNumber(nvp, names[i]);
+        INumber *np = IUFindNumber(nvp, names[i]);
         np->value = values[i];
     }
 
@@ -380,14 +376,11 @@ int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], i
 /* Update property text in accord with texts and names */
 int IUUpdateText(ITextVectorProperty *tvp, char *texts[], char *names[], int n)
 {
-    int i = 0;
-    IText *tp;
-
     assert(tvp != NULL && "IUUpdateText TVP is NULL");
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
-        tp = IUFindText(tvp, names[i]);
+        IText *tp = IUFindText(tvp, names[i]);
         if (!tp)
         {
             tvp->s = IPS_IDLE;
@@ -397,9 +390,9 @@ int IUUpdateText(ITextVectorProperty *tvp, char *texts[], char *names[], int n)
     }
 
     /* First loop checks for error, second loop set all values atomically*/
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
-        tp = IUFindText(tvp, names[i]);
+        IText *tp = IUFindText(tvp, names[i]);
         IUSaveText(tp, texts[i]);
     }
 
@@ -410,14 +403,11 @@ int IUUpdateText(ITextVectorProperty *tvp, char *texts[], char *names[], int n)
 int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[],
                  int n)
 {
-    int i = 0;
-    IBLOB *bp;
-
     assert(bvp != NULL && "IUUpdateBLOB BVP is NULL");
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
-        bp = IUFindBLOB(bvp, names[i]);
+        IBLOB *bp = IUFindBLOB(bvp, names[i]);
         if (!bp)
         {
             bvp->s = IPS_IDLE;
@@ -427,9 +417,9 @@ int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *b
     }
 
     /* First loop checks for error, second loop set all values atomically*/
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
-        bp = IUFindBLOB(bvp, names[i]);
+        IBLOB *bp = IUFindBLOB(bvp, names[i]);
         IUSaveBLOB(bp, sizes[i], blobsizes[i], blobs[i], formats[i]);
     }
 
@@ -660,7 +650,6 @@ int IUSnoopNumber(XMLEle *root, INumberVectorProperty *nvp)
 {
     char *dev, *name;
     XMLEle *ep;
-    int i;
 
     /* check and crack type, device, name and state */
     if (strcmp(tagXMLEle(root) + 3, "NumberVector") || crackDN(root, &dev, &name, NULL) < 0)
@@ -671,7 +660,7 @@ int IUSnoopNumber(XMLEle *root, INumberVectorProperty *nvp)
 
     /* match each INumber with a oneNumber */
     locale_char_t *orig = indi_locale_C_numeric_push();
-    for (i = 0; i < nvp->nnp; i++)
+    for (int i = 0; i < nvp->nnp; i++)
     {
         for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
         {
@@ -706,7 +695,6 @@ int IUSnoopText(XMLEle *root, ITextVectorProperty *tvp)
 {
     char *dev, *name;
     XMLEle *ep;
-    int i;
 
     /* check and crack type, device, name and state */
     if (strcmp(tagXMLEle(root) + 3, "TextVector") || crackDN(root, &dev, &name, NULL) < 0)
@@ -716,7 +704,7 @@ int IUSnoopText(XMLEle *root, ITextVectorProperty *tvp)
     (void)crackIPState(findXMLAttValu(root, "state"), &tvp->s);
 
     /* match each IText with a oneText */
-    for (i = 0; i < tvp->ntp; i++)
+    for (int i = 0; i < tvp->ntp; i++)
     {
         for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
         {
@@ -743,7 +731,6 @@ int IUSnoopLight(XMLEle *root, ILightVectorProperty *lvp)
 {
     char *dev, *name;
     XMLEle *ep;
-    int i;
 
     /* check and crack type, device, name and state */
     if (strcmp(tagXMLEle(root) + 3, "LightVector") || crackDN(root, &dev, &name, NULL) < 0)
@@ -759,7 +746,7 @@ int IUSnoopLight(XMLEle *root, ILightVectorProperty *lvp)
         if (!strcmp(tagXMLEle(ep) + 3, "Light"))
         {
             const char *name = findXMLAttValu(ep, "name");
-            for (i = 0; i < lvp->nlp; i++)
+            for (int i = 0; i < lvp->nlp; i++)
             {
                 if (!strcmp(lvp->lp[i].name, name))
                 {
@@ -786,7 +773,6 @@ int IUSnoopSwitch(XMLEle *root, ISwitchVectorProperty *svp)
 {
     char *dev, *name;
     XMLEle *ep;
-    int i;
 
     /* check and crack type, device, name and state */
     if (strcmp(tagXMLEle(root) + 3, "SwitchVector") || crackDN(root, &dev, &name, NULL) < 0)
@@ -801,7 +787,7 @@ int IUSnoopSwitch(XMLEle *root, ISwitchVectorProperty *svp)
         if (!strcmp(tagXMLEle(ep) + 3, "Switch"))
         {
             const char *name = findXMLAttValu(ep, "name");
-            for (i = 0; i < svp->nsp; i++)
+            for (int i = 0; i < svp->nsp; i++)
             {
                 if (!strcmp(svp->sp[i].name, name))
                 {
@@ -870,44 +856,6 @@ int IUSnoopBLOB(XMLEle *root, IBLOBVectorProperty *bvp)
     return (0);
 }
 
-/* callback when INDI client message arrives on stdin.
- * collect and dispatch when see outter element closure.
- * exit if OS trouble or see incompatable INDI version.
- * arg is not used.
- */
-void clientMsgCB(int fd, void *arg)
-{
-    (void)arg;
-    char buf[MAXRBUF], msg[MAXRBUF], *bp;
-    int nr;
-
-    /* one read */
-    nr = read(fd, buf, sizeof(buf));
-    if (nr < 0)
-    {
-        fprintf(stderr, "%s: %s\n", me, strerror(errno));
-        exit(1);
-    }
-    if (nr == 0)
-    {
-        fprintf(stderr, "%s: EOF\n", me);
-        exit(1);
-    }
-
-    /* crack and dispatch when complete */
-    for (bp = buf; nr-- > 0; bp++)
-    {
-        XMLEle *root = readXMLEle(clixml, *bp, msg);
-        if (root)
-        {
-            if (dispatch(root, msg) < 0)
-                fprintf(stderr, "%s dispatch error: %s\n", me, msg);
-            delXMLEle(root);
-        }
-        else if (msg[0])
-            fprintf(stderr, "%s XML error: %s\n", me, msg);
-    }
-}
 
 /* crack the given INDI XML element and call driver's IS* entry points as they
  *   are recognized.
@@ -918,7 +866,7 @@ int dispatch(XMLEle *root, char msg[])
 {
     char *rtag = tagXMLEle(root);
     XMLEle *ep;
-    int n, i = 0;
+    int n;
 
     if (verbose)
         prXMLEle(stderr, root, 0);
@@ -950,11 +898,11 @@ int dispatch(XMLEle *root, char msg[])
 
         if (name && dev)
         {
-            int index = isPropDefined(valuXMLAtt(name), valuXMLAtt(dev));
-            if (index < 0)
+            ROSC *prop = rosc_find(valuXMLAtt(name), valuXMLAtt(dev));
+
+            if (prop == NULL)
                 return 0;
 
-            ROSC *prop = propCache + index;
             switch (prop->type)
             {
                 /* JM 2019-07-18: Why are we using setXXX here? should be defXXX */
@@ -1004,14 +952,14 @@ int dispatch(XMLEle *root, char msg[])
     if (crackDN(root, &dev, &name, msg) < 0)
         return (-1);
 
-    if (isPropDefined(name, dev) < 0)
+    if (rosc_find(name, dev) == NULL)
     {
         snprintf(msg, MAXRBUF, "Property %s is not defined in %s.", name, dev);
         return -1;
     }
 
     /* ensure property is not RO */
-    for (i = 0; i < nPropCache; i++)
+    for (int i = 0; i < nPropCache; i++)
     {
         if (!strcmp(propCache[i].propName, name) && !strcmp(propCache[i].devName, dev))
         {
@@ -1029,16 +977,9 @@ int dispatch(XMLEle *root, char msg[])
 
     if (!strcmp(rtag, "newNumberVector"))
     {
-        static double *doubles;
-        static char **names;
-        static int maxn;
-
-        /* seed for reallocs */
-        if (!doubles)
-        {
-            assert_mem(doubles = (double *)malloc(sizeof *doubles));
-            assert_mem(names = (char **)malloc(sizeof *names));
-        }
+        static double *doubles = NULL;
+        static char **names = NULL;
+        static int maxn = 0;
 
         // Set locale to C and save previous value
         locale_char_t *orig = indi_locale_C_numeric_push();
@@ -1079,17 +1020,10 @@ int dispatch(XMLEle *root, char msg[])
 
     if (!strcmp(rtag, "newSwitchVector"))
     {
-        static ISState *states;
-        static char **names;
-        static int maxn;
+        static ISState *states = NULL;
+        static char **names = NULL;
+        static int maxn = 0;
         XMLEle *ep;
-
-        /* seed for reallocs */
-        if (!states)
-        {
-            assert_mem(states = (ISState *)malloc(sizeof *states));
-            assert_mem(names  = (char **)malloc(sizeof *names));
-        }
 
         /* pull out each name/state pair */
         for (n = 0, ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
@@ -1133,16 +1067,9 @@ int dispatch(XMLEle *root, char msg[])
 
     if (!strcmp(rtag, "newTextVector"))
     {
-        static char **texts;
-        static char **names;
-        static int maxn;
-
-        /* seed for reallocs */
-        if (!texts)
-        {
-            assert_mem(texts = (char **)malloc(sizeof *texts));
-            assert_mem(names = (char **)malloc(sizeof *names));
-        }
+        static char **texts = NULL;
+        static char **names = NULL;
+        static int maxn = 0;
 
         /* pull out each name/text pair */
         for (n = 0, ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
@@ -1175,23 +1102,12 @@ int dispatch(XMLEle *root, char msg[])
 
     if (!strcmp(rtag, "newBLOBVector"))
     {
-        static char **blobs;
-        static char **names;
-        static char **formats;
-        static int *blobsizes;
-        static int *sizes;
-        static int maxn;
-        int i;
-
-        /* seed for reallocs */
-        if (!blobs)
-        {
-            assert_mem(blobs = (char **)malloc(sizeof *blobs));
-            assert_mem(names = (char **)malloc(sizeof *names));
-            assert_mem(formats = (char **)malloc(sizeof *formats));
-            assert_mem(blobsizes = (int *)malloc(sizeof *blobsizes));
-            assert_mem(sizes = (int *)malloc(sizeof *sizes));
-        }
+        static char **blobs = NULL;
+        static char **names = NULL;
+        static char **formats = NULL;
+        static int *blobsizes = NULL;
+        static int *sizes = NULL;
+        static int maxn = 0;
 
         /* pull out each name/BLOB pair, decode */
         for (n = 0, ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
@@ -1217,7 +1133,7 @@ int dispatch(XMLEle *root, char msg[])
                     // enclen is optional and not required by INDI protocol
                     if (el)
                         bloblen = atoi(valuXMLAtt(el));
-                    assert_mem(blobs[n] = malloc(3 * bloblen / 4));
+                    assert_mem(blobs[n] = (char*)malloc(3 * bloblen / 4));
                     blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
                     names[n]     = valuXMLAtt(na);
                     formats[n]   = valuXMLAtt(fa);
@@ -1231,7 +1147,7 @@ int dispatch(XMLEle *root, char msg[])
         if (n > 0)
         {
             ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-            for (i = 0; i < n; i++)
+            for (int i = 0; i < n; i++)
                 free(blobs[i]);
         }
         else
@@ -1645,7 +1561,7 @@ int IUGetConfigText(const char *dev, const char *property, const char *member, c
 }
 
 /* send client a message for a specific device or at large if !dev */
-void IDMessage(const char *dev, const char *fmt, ...)
+void IDMessageVA(const char *dev, const char *fmt, va_list ap)
 {
     pthread_mutex_lock(&stdout_mutex);
 
@@ -1656,20 +1572,22 @@ void IDMessage(const char *dev, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf("/>\n");
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
+}
+
+void IDMessage(const char *dev, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDMessageVA(dev, fmt, ap);
+    va_end(ap);
 }
 
 int IUPurgeConfig(const char *filename, const char *dev, char errmsg[])
@@ -1770,12 +1688,10 @@ void IUSaveConfigTag(FILE *fp, int ctag, const char *dev, int silent)
 
 void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp)
 {
-    int i;
-
     locale_char_t *orig = indi_locale_C_numeric_push();
     fprintf(fp, "<newNumberVector device='%s' name='%s'>\n", nvp->device, nvp->name);
 
-    for (i = 0; i < nvp->nnp; i++)
+    for (int i = 0; i < nvp->nnp; i++)
     {
         INumber *np = &nvp->np[i];
         fprintf(fp, "  <oneNumber name='%s'>\n", np->name);
@@ -1789,11 +1705,9 @@ void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp)
 
 void IUSaveConfigText(FILE *fp, const ITextVectorProperty *tvp)
 {
-    int i;
-
     fprintf(fp, "<newTextVector device='%s' name='%s'>\n", tvp->device, tvp->name);
 
-    for (i = 0; i < tvp->ntp; i++)
+    for (int i = 0; i < tvp->ntp; i++)
     {
         IText *tp = &tvp->tp[i];
         fprintf(fp, "  <oneText name='%s'>\n", tp->name);
@@ -1806,11 +1720,9 @@ void IUSaveConfigText(FILE *fp, const ITextVectorProperty *tvp)
 
 void IUSaveConfigSwitch(FILE *fp, const ISwitchVectorProperty *svp)
 {
-    int i;
-
     fprintf(fp, "<newSwitchVector device='%s' name='%s'>\n", svp->device, svp->name);
 
-    for (i = 0; i < svp->nsp; i++)
+    for (int i = 0; i < svp->nsp; i++)
     {
         ISwitch *sp = &svp->sp[i];
         fprintf(fp, "  <oneSwitch name='%s'>\n", sp->name);
@@ -1823,11 +1735,9 @@ void IUSaveConfigSwitch(FILE *fp, const ISwitchVectorProperty *svp)
 
 void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
 {
-    int i;
-
     fprintf(fp, "<newBLOBVector device='%s' name='%s'>\n", bvp->device, bvp->name);
 
-    for (i = 0; i < bvp->nbp; i++)
+    for (int i = 0; i < bvp->nbp; i++)
     {
         IBLOB *bp = &bvp->bp[i];
         unsigned char *encblob = NULL;
@@ -1838,7 +1748,7 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
         fprintf(fp, "    size='%d'\n", bp->size);
         fprintf(fp, "    format='%s'>\n", bp->format);
 
-        assert_mem(encblob = malloc(4 * bp->bloblen / 3 + 4));
+        assert_mem(encblob = (unsigned char*)malloc(4 * bp->bloblen / 3 + 4));
         l = to64frombits_s(encblob, bp->blob, bp->bloblen, bp->bloblen);
         if (l == 0) {
             fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", me, __func__);
@@ -1864,11 +1774,8 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
 }
 
 /* tell client to create a text vector property */
-void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
+void IDDefTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
 {
-    int i;
-    ROSC *SC;
-
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
@@ -1884,19 +1791,13 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
 
-    for (i = 0; i < tvp->ntp; i++)
+    for (int i = 0; i < tvp->ntp; i++)
     {
         IText *tp = &tvp->tp[i];
         printf("  <defText\n");
@@ -1908,18 +1809,8 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
 
     printf("</defTextVector>\n");
 
-    if (isPropDefined(tvp->name, tvp->device) < 0)
-    {
-        /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *)(propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
-        SC = &propCache[nPropCache++];
-
-        strcpy(SC->propName, tvp->name);
-        strcpy(SC->devName, tvp->device);
-        SC->perm = tvp->p;
-        SC->ptr  = tvp;
-        SC->type = INDI_TEXT;
-    }
+    /* Add this property to insure proper sanity check */
+    rosc_add_unique(tvp->name, tvp->device, tvp->p, tvp, INDI_TEXT);
 
     indi_locale_C_numeric_pop(orig);
     fflush(stdout);
@@ -1927,12 +1818,17 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
     pthread_mutex_unlock(&stdout_mutex);
 }
 
-/* tell client to create a new numeric vector property */
-void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
+void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
 {
-    int i;
-    ROSC *SC;
+    va_list ap;
+    va_start(ap, fmt);
+    IDDefTextVA(tvp, fmt, ap);
+    va_end(ap);
+}
 
+/* tell client to create a new numeric vector property */
+void IDDefNumberVA(const INumberVectorProperty *n, const char *fmt, va_list ap)
+{
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
@@ -1946,22 +1842,15 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
     printf("  perm='%s'\n", permStr(n->p));
     printf("  timeout='%g'\n", n->timeout);
     printf("  timestamp='%s'\n", timestamp());
-
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
 
-    for (i = 0; i < n->nnp; i++)
+    for (int i = 0; i < n->nnp; i++)
     {
         INumber *np = &n->np[i];
 
@@ -1979,18 +1868,8 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
 
     printf("</defNumberVector>\n");
 
-    if (isPropDefined(n->name, n->device) < 0)
-    {
-        /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *) (propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
-        SC = &propCache[nPropCache++];
-
-        strcpy(SC->propName, n->name);
-        strcpy(SC->devName, n->device);
-        SC->perm = n->p;
-        SC->ptr  = n;
-        SC->type = INDI_NUMBER;
-    }
+    /* Add this property to insure proper sanity check */
+    rosc_add_unique(n->name, n->device, n->p, n, INDI_NUMBER);
 
     indi_locale_C_numeric_pop(orig);
     fflush(stdout);
@@ -1998,13 +1877,17 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
     pthread_mutex_unlock(&stdout_mutex);
 }
 
-/* tell client to create a new switch vector property */
-void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
-
+void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
 {
-    int i;
-    ROSC *SC;
+    va_list ap;
+    va_start(ap, fmt);
+    IDDefNumberVA(n, fmt, ap);
+    va_end(ap);
+}
 
+/* tell client to create a new switch vector property */
+void IDDefSwitchVA(const ISwitchVectorProperty *s, const char *fmt, va_list ap)
+{
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
@@ -2021,19 +1904,13 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
 
-    for (i = 0; i < s->nsp; i++)
+    for (int i = 0; i < s->nsp; i++)
     {
         ISwitch *sp = &s->sp[i];
         printf("  <defSwitch\n");
@@ -2045,18 +1922,8 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
 
     printf("</defSwitchVector>\n");
 
-    if (isPropDefined(s->name, s->device) < 0)
-    {
-        /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *) (propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
-        SC = &propCache[nPropCache++];
-
-        strcpy(SC->propName, s->name);
-        strcpy(SC->devName, s->device);
-        SC->perm = s->p;
-        SC->ptr  = s;
-        SC->type = INDI_SWITCH;
-    }
+    /* Add this property to insure proper sanity check */
+    rosc_add_unique(s->name, s->device, s->p, s, INDI_SWITCH);
 
     indi_locale_C_numeric_pop(orig);
     fflush(stdout);
@@ -2064,11 +1931,17 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
     pthread_mutex_unlock(&stdout_mutex);
 }
 
-/* tell client to create a new lights vector property */
-void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
+void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
 {
-    int i;
+    va_list ap;
+    va_start(ap, fmt);
+    IDDefSwitchVA(s, fmt, ap);
+    va_end(ap);
+}
 
+/* tell client to create a new lights vector property */
+void IDDefLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
+{
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
@@ -2081,19 +1954,13 @@ void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
 
-    for (i = 0; i < lvp->nlp; i++)
+    for (int i = 0; i < lvp->nlp; i++)
     {
         ILight *lp = &lvp->lp[i];
         printf("  <defLight\n");
@@ -2109,12 +1976,17 @@ void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
     pthread_mutex_unlock(&stdout_mutex);
 }
 
-/* tell client to create a new BLOB vector property */
-void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
+void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
 {
-    int i;
-    ROSC *SC;
+    va_list ap;
+    va_start(ap, fmt);
+    IDDefLightVA(lvp, fmt, ap);
+    va_end(ap);
+}
 
+/* tell client to create a new BLOB vector property */
+void IDDefBLOBVA(const IBLOBVectorProperty *b, const char *fmt, va_list ap)
+{
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
@@ -2130,19 +2002,13 @@ void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        va_end(ap);
-
         printf("  message='");
-        escapeXML_fputs(message, stdout);
+        escapeXML_vprintf(fmt, ap);
         printf("'\n");
     }
     printf(">\n");
 
-    for (i = 0; i < b->nbp; i++)
+    for (int i = 0; i < b->nbp; i++)
     {
         IBLOB *bp = &b->bp[i];
         printf("  <defBLOB\n");
@@ -2153,30 +2019,25 @@ void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
 
     printf("</defBLOBVector>\n");
 
-    if (isPropDefined(b->name, b->device) < 0)
-    {
-        /* Add this property to insure proper sanity check */
-        assert_mem(propCache = (ROSC *)(propCache ? realloc(propCache, (nPropCache + 1) * sizeof *propCache) : malloc(sizeof *propCache)));
-        SC = &propCache[nPropCache++];
-
-        strcpy(SC->propName, b->name);
-        strcpy(SC->devName, b->device);
-        SC->perm = b->p;
-        SC->ptr  = b;
-        SC->type = INDI_BLOB;
-    }
+    /* Add this property to insure proper sanity check */
+    rosc_add_unique(b->name, b->device, b->p, b, INDI_BLOB);
 
     indi_locale_C_numeric_pop(orig);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDDefBLOBVA(b, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update an existing text vector property */
-void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
+void IDSetTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
 {
-    int i;
-
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
@@ -2189,17 +2050,13 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
         printf("  message='");
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", entityXML(message));
-        va_end(ap);
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
-    for (i = 0; i < tvp->ntp; i++)
+    for (int i = 0; i < tvp->ntp; i++)
     {
         IText *tp = &tvp->tp[i];
         printf("  <oneText name='%s'>\n", tp->name);
@@ -2213,12 +2070,17 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDSetTextVA(tvp, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update an existing numeric vector property */
-void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
+void IDSetNumberVA(const INumberVectorProperty *nvp, const char *fmt, va_list ap)
 {
-    int i;
-
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
@@ -2231,17 +2093,13 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
         printf("  message='");
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", entityXML(message));
-        va_end(ap);
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
-    for (i = 0; i < nvp->nnp; i++)
+    for (int i = 0; i < nvp->nnp; i++)
     {
         INumber *np = &nvp->np[i];
         printf("  <oneNumber name='%s'>\n", np->name);
@@ -2255,12 +2113,17 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDSetNumberVA(nvp, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update an existing switch vector property */
-void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
+void IDSetSwitchVA(const ISwitchVectorProperty *svp, const char *fmt, va_list ap)
 {
-    int i;
-
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
@@ -2273,17 +2136,13 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
         printf("  message='");
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", entityXML(message));
-        va_end(ap);
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
-    for (i = 0; i < svp->nsp; i++)
+    for (int i = 0; i < svp->nsp; i++)
     {
         ISwitch *sp = &svp->sp[i];
         printf("  <oneSwitch name='%s'>\n", sp->name);
@@ -2297,12 +2156,17 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDSetSwitchVA(svp, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update an existing lights vector property */
-void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
+void IDSetLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
 {
-    int i;
-
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
@@ -2313,17 +2177,13 @@ void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        char message[MAXINDIMESSAGE];
         printf("  message='");
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", entityXML(message));
-        va_end(ap);
+        escapeXML_vprintf(fmt, ap);
+        printf("'\n");
     }
     printf(">\n");
 
-    for (i = 0; i < lvp->nlp; i++)
+    for (int i = 0; i < lvp->nlp; i++)
     {
         ILight *lp = &lvp->lp[i];
         printf("  <oneLight name='%s'>\n", lp->name);
@@ -2336,12 +2196,17 @@ void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDSetLightVA(lvp, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update an existing BLOB vector property */
-void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
+void IDSetBLOBVA(const IBLOBVectorProperty *bvp, const char *fmt, va_list ap)
 {
-    int i;
-
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
@@ -2354,16 +2219,14 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
     printf("  timestamp='%s'\n", timestamp());
     if (fmt)
     {
-        va_list ap;
-        va_start(ap, fmt);
         printf("  message='");
+        // #PS: missing escapeXML_fputs ?
         vprintf(fmt, ap);
         printf("'\n");
-        va_end(ap);
     }
     printf(">\n");
 
-    for (i = 0; i < bvp->nbp; i++)
+    for (int i = 0; i < bvp->nbp; i++)
     {
         IBLOB *bp = &bvp->bp[i];
         unsigned char *encblob;
@@ -2382,7 +2245,7 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
         else
         {
             size_t sz = 4 * bp->bloblen / 3 + 4;
-            assert_mem(encblob = malloc(sz));
+            assert_mem(encblob = (unsigned char *)malloc(sz));
             l = to64frombits_s(encblob, bp->blob, bp->bloblen, sz);
             if (l == 0) {
                 fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", me, __func__);
@@ -2418,12 +2281,17 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    IDSetBLOBVA(bvp, fmt, ap);
+    va_end(ap);
+}
 
 /* tell client to update min/max elements of an existing number vector property */
 void IUUpdateMinMax(const INumberVectorProperty *nvp)
 {
-    int i;
-
     pthread_mutex_lock(&stdout_mutex);
     xmlv1();
     locale_char_t *orig = indi_locale_C_numeric_push();
@@ -2435,7 +2303,7 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
     printf("  timestamp='%s'\n", timestamp());
     printf(">\n");
 
-    for (i = 0; i < nvp->nnp; i++)
+    for (int i = 0; i < nvp->nnp; i++)
     {
         INumber *np = &nvp->np[i];
         printf("  <oneNumber name='%s'\n", np->name);
@@ -2455,9 +2323,7 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
 
 int IUFindIndex(const char *needle, char **hay, unsigned int n)
 {
-    int i = 0;
-
-    for (i = 0; i < (int)n; i++)
+    for (int i = 0; i < (int)n; i++)
     {
         if (!strcmp(hay[i], needle))
             return i;
