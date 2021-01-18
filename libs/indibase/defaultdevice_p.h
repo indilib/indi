@@ -28,10 +28,8 @@ namespace INDI
 class DefaultDevicePrivate: public BaseDevicePrivate
 {
 public:
-    DefaultDevicePrivate()
-    {
-        memset(&ConnectionModeSP, 0, sizeof(ConnectionModeSP));
-    }
+    DefaultDevicePrivate();
+    virtual ~DefaultDevicePrivate();
 
     bool isInit { false };
     bool isDebug { false };

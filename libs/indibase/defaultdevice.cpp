@@ -59,6 +59,14 @@ void timerfunc(void *t)
 namespace INDI
 {
 
+DefaultDevicePrivate::DefaultDevicePrivate()
+{
+    memset(&ConnectionModeSP, 0, sizeof(ConnectionModeSP));
+}
+
+DefaultDevicePrivate::~DefaultDevicePrivate()
+{ }
+
 DefaultDevice::DefaultDevice()
     : BaseDevice(*new DefaultDevicePrivate)
 { }
