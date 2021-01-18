@@ -228,10 +228,10 @@ public:
     void setVersion(uint16_t vMajor, uint16_t vMinor);
 
     /** \return Major driver version number. */
-    uint16_t getMajorVersion();
+    uint16_t getMajorVersion() const;
 
     /** \return Minor driver version number. */
-    uint16_t getMinorVersion();
+    uint16_t getMinorVersion() const;
 
 public:
     /**
@@ -402,10 +402,10 @@ protected:
     virtual void simulationTriggered(bool enable);
 
     /** \return True if Debug is on, False otherwise. */
-    bool isDebug();
+    bool isDebug() const;
 
     /** \return True if Simulation is on, False otherwise. */
-    bool isSimulation();
+    bool isSimulation() const;
 
     /**
      * \brief Initilize properties initial state and value. The child class must implement this function.

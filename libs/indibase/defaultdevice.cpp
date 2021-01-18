@@ -685,15 +685,15 @@ void DefaultDevice::setSimulation(bool enable)
     IDSetSwitch(&d->SimulationSP, nullptr);
 }
 
-bool DefaultDevice::isDebug()
+bool DefaultDevice::isDebug() const
 {
-    D_PTR(DefaultDevice);
+    D_PTR(const DefaultDevice);
     return d->isDebug;
 }
 
-bool DefaultDevice::isSimulation()
+bool DefaultDevice::isSimulation() const
 {
-    D_PTR(DefaultDevice);
+    D_PTR(const DefaultDevice);
     return d->isSimulation;
 }
 
@@ -1149,15 +1149,15 @@ void DefaultDevice::setVersion(uint16_t vMajor, uint16_t vMinor)
     d->minorVersion = vMinor;
 }
 
-uint16_t DefaultDevice::getMajorVersion()
+uint16_t DefaultDevice::getMajorVersion() const
 {
-    D_PTR(DefaultDevice);
+    D_PTR(const DefaultDevice);
     return d->majorVersion;
 }
 
-uint16_t DefaultDevice::getMinorVersion()
+uint16_t DefaultDevice::getMinorVersion() const
 {
-    D_PTR(DefaultDevice);
+    D_PTR(const DefaultDevice);
     return d->minorVersion;
 }
 
