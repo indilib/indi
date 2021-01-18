@@ -383,7 +383,7 @@ bool SynscanDriver::readTracking()
         m_TrackingFlag = res[0];
 
         // Track mode?
-        if ((m_TrackingFlag - 1) != IUFindOnSwitchIndex(&TrackModeSP))
+        if (((m_TrackingFlag - 1) != IUFindOnSwitchIndex(&TrackModeSP)) && (m_TrackingFlag))
         {
             IUResetSwitch(&TrackModeSP);
             TrackModeS[m_TrackingFlag - 1].s = ISS_ON;
