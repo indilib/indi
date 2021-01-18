@@ -262,7 +262,7 @@ bool ScopeSim::updateProperties()
 bool ScopeSim::Connect()
 {
     LOG_INFO("Telescope simulator is online.");
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 
     return true;
 }

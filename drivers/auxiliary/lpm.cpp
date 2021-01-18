@@ -365,5 +365,5 @@ void LPM::TimerHit()
     AverageReadingNP.s = rc ? IPS_OK : IPS_ALERT;
     IDSetNumber(&AverageReadingNP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }

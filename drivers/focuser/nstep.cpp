@@ -553,7 +553,7 @@ void NStep::TimerHit()
             IDSetNumber(&TemperatureNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool NStep::isMoving()

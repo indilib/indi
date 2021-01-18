@@ -1213,7 +1213,7 @@ void MyFocuserPro2::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -1250,7 +1250,7 @@ void MyFocuserPro2::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool MyFocuserPro2::AbortFocuser()

@@ -96,7 +96,7 @@ bool FocusMaster::Connect()
         // if digital readout
         //FI::SetCapability(GetFocuserCapability() | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
 
     }
 
@@ -207,7 +207,7 @@ void FocusMaster::TimerHit()
     IDSetNumber(&FocusAbsPosNP, nullptr);
 #endif
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool FocusMaster::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)

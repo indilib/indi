@@ -794,7 +794,7 @@ void ScopeDome::TimerHit()
         tmpCounter = 10;
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************

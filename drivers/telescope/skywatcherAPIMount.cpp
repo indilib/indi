@@ -1261,7 +1261,7 @@ void SkywatcherAPIMount::TimerHit()
                               trackingDeltaAlt + trackingDeltaAz);
                     Abort();
                 }
-                TrackingMsecs += POLLMS;
+                TrackingMsecs += getCurrentPollingPeriod();
                 if (TrackingMsecs % 60000 == 0)
                 {
                     LOGF_INFO("Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
@@ -1361,9 +1361,9 @@ void SkywatcherAPIMount::TimerHit()
                         DeltaAlt += Iter->DeltaAlt / 2;
                         DeltaAz += Iter->DeltaAz / 2;
                     }
-                    Iter->Duration -= POLLMS;
+                    Iter->Duration -= getCurrentPollingPeriod();
 
-                    if (Iter->Duration < static_cast<int>(POLLMS))
+                    if (Iter->Duration < static_cast<int>(getCurrentPollingPeriod()))
                     {
                         Iter = GuidingPulses.erase(Iter);
                         if (Iter == GuidingPulses.end())

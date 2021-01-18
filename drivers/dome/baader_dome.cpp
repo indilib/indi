@@ -658,7 +658,7 @@ void BaaderDome::TimerHit()
     else
         IDSetSwitch(&DomeFlapSP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************

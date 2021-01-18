@@ -1299,9 +1299,9 @@ IPState SteelDrive::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
 
     startMotion(dir);
 
-    if (duration <= POLLMS)
+    if (duration <= getCurrentPollingPeriod())
     {
-        usleep(POLLMS * 1000);
+        usleep(getCurrentPollingPeriod() * 1000);
         AbortFocuser();
         return IPS_OK;
     }
@@ -1450,7 +1450,7 @@ void SteelDrive::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************

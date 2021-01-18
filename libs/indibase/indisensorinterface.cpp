@@ -869,7 +869,7 @@ void* SensorInterface::sendFITS(uint8_t *buf, int len)
 bool SensorInterface::IntegrationComplete()
 {
     // Reset POLLMS to default value
-    POLLMS = getPollingPeriod();
+    setCurrentPollingPeriod(getPollingPeriod());
 
     if(HasDSP())
     {

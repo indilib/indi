@@ -75,7 +75,7 @@ bool SimpleSpectrograph::Connect()
     IDMessage(getDeviceName(), "Simple Spectrograph connected successfully!");
 
     // Let's set a timer that checks teleSpectrographs status every POLLMS milliseconds.
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 
     return true;
 }
@@ -132,7 +132,7 @@ bool SimpleSpectrograph::updateProperties()
         setupParams();
 
         // Start the timer
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 
     return true;
@@ -287,7 +287,7 @@ void SimpleSpectrograph::TimerHit()
             break;
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /**************************************************************************************

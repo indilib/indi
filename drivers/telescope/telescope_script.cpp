@@ -233,7 +233,7 @@ bool ScopeScript::Connect()
     {
         LOG_INFO("Successfully connected");
         ReadScopeStatus();
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
     else
     {

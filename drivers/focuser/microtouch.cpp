@@ -580,7 +580,7 @@ IPState Microtouch::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
     else
         MoveFocuser(FocusAbsPosN[0].value + FocusMaxPosN[0].value - 1);
 
-    if (duration <= POLLMS)
+    if (duration <= getCurrentPollingPeriod())
     {
         usleep(duration * 1000);
         AbortFocuser();
@@ -682,7 +682,7 @@ void Microtouch::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool Microtouch::AbortFocuser()

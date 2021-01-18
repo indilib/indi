@@ -122,7 +122,7 @@ bool SmartFocus::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1;
 
-    POLLMS = TimerInterval;
+    setCurrentPollingPeriod(TimerInterval);
 
     return true;
 }

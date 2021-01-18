@@ -576,7 +576,7 @@ void MoonLite::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool MoonLite::AbortFocuser()

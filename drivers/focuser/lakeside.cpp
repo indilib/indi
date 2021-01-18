@@ -275,7 +275,7 @@ bool Lakeside::Connect()
     if (LakesideOnline())
     {
         LOGF_INFO("Lakeside is online on port %s", serialConnection->port());
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
     else
@@ -2264,7 +2264,7 @@ void Lakeside::TimerHit()
 
     if (isConnected() == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -2312,7 +2312,7 @@ void Lakeside::TimerHit()
     //        LOG_DEBUG("TimerHit: Focuser state = IPS_ALERT");
     //    }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 
 }
 

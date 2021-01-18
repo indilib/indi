@@ -351,7 +351,7 @@ void RBFOCUS::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -386,7 +386,7 @@ void RBFOCUS::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool RBFOCUS::AbortFocuser()

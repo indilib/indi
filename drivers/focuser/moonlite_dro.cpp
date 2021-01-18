@@ -205,7 +205,7 @@ bool MoonLiteDRO::Connect()
     }
 
     PortFD = dro1->getPortFD();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 
@@ -945,7 +945,7 @@ void MoonLiteDRO::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -986,7 +986,7 @@ void MoonLiteDRO::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool MoonLiteDRO::AbortFocuser()

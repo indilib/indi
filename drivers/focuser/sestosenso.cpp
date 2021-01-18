@@ -625,7 +625,7 @@ void SestoSenso::TimerHit()
 {
     if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY || CalibrationSP.s == IPS_BUSY)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -653,7 +653,7 @@ void SestoSenso::TimerHit()
         m_TemperatureCounter = 0;   // Reset the counter
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool SestoSenso::getStartupValues()

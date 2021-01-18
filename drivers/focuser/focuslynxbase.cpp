@@ -3069,9 +3069,9 @@ IPState FocusLynxBase::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
         response[nbytes_read - 1] = '\0';
         LOGF_DEBUG("RES (%s)", response);
 
-        if (duration <= POLLMS)
+        if (duration <= getCurrentPollingPeriod())
         {
-            usleep(POLLMS * 1000);
+            usleep(getCurrentPollingPeriod() * 1000);
             AbortFocuser();
             return IPS_OK;
         }
@@ -3186,7 +3186,7 @@ void FocusLynxBase::TimerHit()
 
     if (configurationComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3201,7 +3201,7 @@ void FocusLynxBase::TimerHit()
     if (statusrc == false)
     {
         LOG_WARN("Unable to read focuser status....");
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3266,7 +3266,7 @@ void FocusLynxBase::TimerHit()
         {
             float remaining = calcTimeLeft(focusMoveStart, focusMoveRequest);
 
-            if (remaining < POLLMS)
+            if (remaining < getCurrentPollingPeriod())
             {
                 sleep(remaining);
                 AbortFocuser();
@@ -3280,7 +3280,7 @@ void FocusLynxBase::TimerHit()
         IDSetSwitch(&GotoSP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************

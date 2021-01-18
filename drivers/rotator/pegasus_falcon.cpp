@@ -289,7 +289,7 @@ void PegasusFalcon::TimerHit()
     if (!isConnected())
         return;
     getStatusData();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 //////////////////////////////////////////////////////////////////////

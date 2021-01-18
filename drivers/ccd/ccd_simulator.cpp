@@ -123,7 +123,7 @@ bool CCDSim::Connect()
     streamPredicate = 0;
     terminateThread = false;
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 
@@ -432,7 +432,7 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
 
 void CCDSim::TimerHit()
 {
-    uint32_t nextTimer = POLLMS;
+    uint32_t nextTimer = getCurrentPollingPeriod();
 
     //  No need to reset timer if we are not connected anymore
     if (!isConnected())

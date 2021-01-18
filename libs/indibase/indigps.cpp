@@ -80,7 +80,7 @@ bool GPS::updateProperties()
             if (state == IPS_BUSY)
                 DEBUG(Logger::DBG_SESSION, "GPS fix is in progress...");
 
-            timerID = SetTimer(POLLMS);
+            timerID = SetTimer(getCurrentPollingPeriod());
         }
         else if (PeriodN[0].value > 0)
             timerID = SetTimer(PeriodN[0].value);
@@ -106,7 +106,7 @@ void GPS::TimerHit()
 {
     if (!isConnected())
     {
-        timerID = SetTimer(POLLMS);
+        timerID = SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -138,7 +138,7 @@ void GPS::TimerHit()
             break;
     }
 
-    timerID = SetTimer(POLLMS);
+    timerID = SetTimer(getCurrentPollingPeriod());
 }
 
 IPState GPS::updateGPS()

@@ -375,7 +375,7 @@ void DomePro2::TimerHit()
         IDSetText(&StatusTP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

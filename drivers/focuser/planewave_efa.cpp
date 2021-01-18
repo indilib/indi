@@ -496,7 +496,7 @@ void EFA::TimerHit()
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 

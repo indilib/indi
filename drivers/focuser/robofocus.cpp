@@ -209,7 +209,7 @@ bool RoboFocus::Handshake()
 
     if (isSimulation())
     {
-        timerID = SetTimer(POLLMS);
+        timerID = SetTimer(getCurrentPollingPeriod());
         LOG_INFO("Simulated Robofocus is online. Getting focus parameters...");
         FocusAbsPosN[0].value = simulatedPosition;
         updateRFFirmware(firmeware);
@@ -1504,7 +1504,7 @@ void RoboFocus::TimerHit()
                    "Bogus position: (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X) - Bytes read: %d",
                    rf_cmd[0], rf_cmd[1], rf_cmd[2], rf_cmd[3], rf_cmd[4], rf_cmd[5], rf_cmd[6], rf_cmd[7], rf_cmd[8],
                    nbytes_read);
-            timerID = SetTimer(POLLMS);
+            timerID = SetTimer(getCurrentPollingPeriod());
             return;
         }
         else if (nbytes_read < 0)
@@ -1536,7 +1536,7 @@ void RoboFocus::TimerHit()
         }
     }
 
-    timerID = SetTimer(POLLMS);
+    timerID = SetTimer(getCurrentPollingPeriod());
 }
 
 bool RoboFocus::AbortFocuser()

@@ -236,7 +236,7 @@ bool ActiveFocuser::initProperties() {
 
     setDefaultPollingPeriod(750);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 
     return true;
 
@@ -416,7 +416,7 @@ void ActiveFocuser::TimerHit() {
 
     if(!hid_handle){
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
 
     }else{
 
@@ -459,7 +459,7 @@ void ActiveFocuser::TimerHit() {
             FocusRelPosNP.s = IPS_IDLE;
         }
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
 
     }
 

@@ -322,7 +322,7 @@ void FocuserDriver::TimerHit()
             IDSetNumber(&TemperatureNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool FocuserDriver::isMoving()

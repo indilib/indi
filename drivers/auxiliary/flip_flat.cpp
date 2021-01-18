@@ -172,7 +172,7 @@ bool FlipFlat::Handshake()
     {
         LOGF_INFO("Connected successfuly to simulated %s. Retrieving startup data...", getDeviceName());
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
 
         setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
         syncDriverInfo();
@@ -567,7 +567,7 @@ void FlipFlat::TimerHit()
             UnParkCap();
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool FlipFlat::getBrightness()

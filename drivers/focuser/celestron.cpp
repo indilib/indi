@@ -423,7 +423,7 @@ void CelestronSCT::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -511,7 +511,7 @@ void CelestronSCT::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool CelestronSCT::AbortFocuser()

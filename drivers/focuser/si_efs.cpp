@@ -99,7 +99,7 @@ bool SIEFS::Connect()
 {
     if (isSimulation())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
 
@@ -127,7 +127,7 @@ bool SIEFS::Connect()
             FocusRelPosN[0].min  = 0;
         }
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 
     return (handle != nullptr);
@@ -206,7 +206,7 @@ void SIEFS::TimerHit()
 
     IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 IPState SIEFS::MoveAbsFocuser(uint32_t targetTicks)

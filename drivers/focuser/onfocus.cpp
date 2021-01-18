@@ -31,7 +31,7 @@
 
 #define ONFOCUS_TIMEOUT 4
 
-#define POLLMS  1500
+//#define POLLMS  1500
 
 std::unique_ptr<OnFocus> onFocus(new OnFocus());
 
@@ -446,7 +446,7 @@ void OnFocus::TimerHit()
 {
     if (isConnected() == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -473,7 +473,7 @@ void OnFocus::TimerHit()
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
         }
     }
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 
 }
 

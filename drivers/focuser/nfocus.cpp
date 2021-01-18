@@ -396,7 +396,7 @@ void NFocus::TimerHit()
             IDSetNumber(&TemperatureNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool NFocus::isMoving()

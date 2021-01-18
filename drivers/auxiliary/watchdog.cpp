@@ -725,7 +725,7 @@ void WatchDog::TimerHit()
             return;
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 void WatchDog::parkDome()

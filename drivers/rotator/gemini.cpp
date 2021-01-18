@@ -2944,9 +2944,9 @@ IPState Gemini::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
         focusMoveRequest = duration / 1000.0;
     }
 
-    if (duration <= POLLMS)
+    if (duration <= getCurrentPollingPeriod())
     {
-        usleep(POLLMS * 1000);
+        usleep(getCurrentPollingPeriod() * 1000);
         AbortFocuser();
         return IPS_OK;
     }
@@ -3022,7 +3022,7 @@ void Gemini::TimerHit()
 
     if (focuserConfigurationComplete == false || rotatorConfigurationComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3038,7 +3038,7 @@ void Gemini::TimerHit()
     if (statusrc == false)
     {
         LOG_WARN("Unable to read focuser status....");
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3111,7 +3111,7 @@ void Gemini::TimerHit()
     if (statusrc == false)
     {
         LOG_WARN("Unable to read rotator status....");
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3173,7 +3173,7 @@ void Gemini::TimerHit()
         IDSetSwitch(&HomeRotatorSP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************

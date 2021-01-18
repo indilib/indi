@@ -309,7 +309,7 @@ void RigelDome::TimerHit()
             IDSetText(&InfoTP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /////////////////////////////////////////////////////////////////////////////

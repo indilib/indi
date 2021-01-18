@@ -180,7 +180,7 @@ bool USBDewpoint::updateProperties()
         loadConfig(true);
         readSettings();
         LOG_INFO("USB_Dewpoint parameters updated, device ready for use.");
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
     else
     {
@@ -561,5 +561,5 @@ void USBDewpoint::TimerHit()
 
     // Get temperatures etc.
     readSettings();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }

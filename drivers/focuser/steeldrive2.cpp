@@ -496,7 +496,7 @@ void SteelDriveII::TimerHit()
         IDSetNumber(&TemperatureSensorNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /////////////////////////////////////////////////////////////////////////////

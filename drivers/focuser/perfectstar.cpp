@@ -83,7 +83,7 @@ bool PerfectStar::Connect()
 
     if (sim)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
 
@@ -95,7 +95,7 @@ bool PerfectStar::Connect()
         return false;
     }
     else
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
 
     return (handle != nullptr);
 }
@@ -220,7 +220,7 @@ void PerfectStar::TimerHit()
 
     IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool PerfectStar::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)

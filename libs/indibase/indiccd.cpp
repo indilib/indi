@@ -959,8 +959,8 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 }
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
-                if (ExposureTime * 1000 < POLLMS)
-                    POLLMS = ExposureTime * 950;
+                if (ExposureTime * 1000 < getCurrentPollingPeriod())
+                    setCurrentPollingPeriod(ExposureTime * 950);
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -1381,7 +1381,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
-            POLLMS = getPollingPeriod();
+            setCurrentPollingPeriod(getPollingPeriod());
 
 #ifdef WITH_EXPOSURE_LOOPING
             if (ExposureLoopCountNP.s == IPS_BUSY)
@@ -1968,7 +1968,7 @@ void CCD::fits_update_key_s(fitsfile * fptr, int type, std::string name, void * 
 bool CCD::ExposureComplete(CCDChip * targetChip)
 {
     // Reset POLLMS to default value
-    POLLMS = getPollingPeriod();
+    setCurrentPollingPeriod(getPollingPeriod());
 
     // Run async
     std::thread(&CCD::ExposureCompletePrivate, this, targetChip).detach();

@@ -1219,7 +1219,7 @@ void USBFocusV3::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool USBFocusV3::AbortFocuser()

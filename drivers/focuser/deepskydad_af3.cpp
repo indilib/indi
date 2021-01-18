@@ -824,7 +824,7 @@ void DeepSkyDadAF3::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -878,7 +878,7 @@ void DeepSkyDadAF3::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool DeepSkyDadAF3::AbortFocuser()

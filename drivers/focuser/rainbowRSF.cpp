@@ -394,7 +394,7 @@ void RainbowRSF::TimerHit()
         m_TemperatureCounter = 0;
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /////////////////////////////////////////////////////////////////////////////

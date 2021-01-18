@@ -704,7 +704,7 @@ void NightCrawler::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -727,7 +727,7 @@ void NightCrawler::TimerHit()
             LOG_INFO("Homing is complete.");
         }
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -836,7 +836,7 @@ void NightCrawler::TimerHit()
     if (absAuxUpdated)
         IDSetNumber(&GotoAuxNP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool NightCrawler::AbortFocuser()

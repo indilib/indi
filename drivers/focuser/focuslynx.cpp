@@ -185,7 +185,7 @@ bool FocusLynxF1::Connect()
          * other value = descriptor number
          */
         PortFD = -1;
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
     else if (!INDI::Focuser::Connect())
         return false;
@@ -864,7 +864,7 @@ bool FocusLynxF2::Connect()
     {
         LOG_INFO("FocusLynx is online. Getting focus parameters...");
         // as DefaultDevice::Connect() is not involved, initiate the timer.
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
 

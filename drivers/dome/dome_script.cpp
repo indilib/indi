@@ -320,7 +320,7 @@ void DomeScript::TimerHit()
     {
         LOG_ERROR("Failed to read status");
     }
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     if (!isParked() && TimeSinceUpdate++ > 4)
     {
         TimeSinceUpdate = 0;

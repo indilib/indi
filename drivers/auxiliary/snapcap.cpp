@@ -185,7 +185,7 @@ bool SnapCap::Handshake()
     {
         LOGF_INFO("Connected successfully to simulated %s. Retrieving startup data...", getDeviceName());
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
 
@@ -607,7 +607,7 @@ void SnapCap::TimerHit()
 
     getStatus();
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool SnapCap::getBrightness()
