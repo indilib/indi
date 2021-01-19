@@ -1602,12 +1602,9 @@ void baseline_2d_projection(double alt, double az, double baseline[3], double wa
 
 double baseline_delay(double alt, double az, double baseline[3])
 {
-    double proj[2];
     az *= M_PI / 180.0;
     alt *= M_PI / 180.0;
-    proj[0] = (baseline[0] * cos(az) + baseline[1] * sin(az));
-    proj[1] = (baseline[1] * cos(alt) * cos(az) - baseline[0] * cos(alt) * sin(az) + baseline[2] * sin(alt));
-    return sqrt(pow(proj[0], 2) + pow(proj[1], 2));
+    return cos(az) * baseline[1] * cos(alt) - baseline[0] * sin(az) * cos(alt) + sin(alt) * baseline[2];
 }
 
 #if defined(_MSC_VER)
