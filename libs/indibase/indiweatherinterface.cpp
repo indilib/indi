@@ -63,15 +63,15 @@ bool WeatherInterface::updateProperties()
     if (m_defaultDevice->isConnected())
     {
         if (critialParametersL)
-            m_defaultDevice->defineLight(&critialParametersLP);
+            m_defaultDevice->defineProperty(&critialParametersLP);
 
         if (ParametersN)
-            m_defaultDevice->defineNumber(&ParametersNP);
+            m_defaultDevice->defineProperty(&ParametersNP);
 
         if (ParametersRangeNP)
         {
             for (int i = 0; i < nRanges; i++)
-                m_defaultDevice->defineNumber(&ParametersRangeNP[i]);
+                m_defaultDevice->defineProperty(&ParametersRangeNP[i]);
         }
     }
     else

@@ -109,7 +109,7 @@ bool AAF2::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
+        defineProperty(&TemperatureNP);
 
         LOG_INFO("Focuser ready.");
     }

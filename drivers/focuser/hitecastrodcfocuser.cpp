@@ -171,9 +171,9 @@ bool HitecAstroDCFocuser::updateProperties()
 
     if (isConnected())
     {
-        //defineNumber(&MaxPositionNP);
-        defineNumber(&SlewSpeedNP);
-        //defineSwitch(&ReverseDirectionSP);
+        //defineProperty(&MaxPositionNP);
+        defineProperty(&SlewSpeedNP);
+        //defineProperty(&ReverseDirectionSP);
     }
     else
     {

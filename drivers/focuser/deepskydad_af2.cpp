@@ -152,15 +152,15 @@ bool DeepSkyDadAF2::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&FocusMaxMoveNP);
-        defineSwitch(&StepModeSP);
-        defineNumber(&SettleBufferNP);
-        defineSwitch(&CoilsModeSP);
-        defineNumber(&IdleCoilsTimeoutNP);
-        defineSwitch(&CurrentMoveSP);
-        defineSwitch(&CurrentHoldSP);
+        defineProperty(&FocusMaxMoveNP);
+        defineProperty(&StepModeSP);
+        defineProperty(&SettleBufferNP);
+        defineProperty(&CoilsModeSP);
+        defineProperty(&IdleCoilsTimeoutNP);
+        defineProperty(&CurrentMoveSP);
+        defineProperty(&CurrentHoldSP);
 		
-        defineNumber(&TemperatureNP);
+        defineProperty(&TemperatureNP);
 
         GetFocusParams();
 

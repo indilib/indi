@@ -133,7 +133,7 @@ bool DomeScript::saveConfigItems(FILE *fp)
 void DomeScript::ISGetProperties(const char *dev)
 {
     INDI::Dome::ISGetProperties(dev);
-    defineText(&ScriptsTP);
+    defineProperty(&ScriptsTP);
     loadConfig(true, "SCRIPTS");
 }
 

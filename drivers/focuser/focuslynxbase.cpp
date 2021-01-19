@@ -207,7 +207,7 @@ void FocusLynxBase::ISGetProperties(const char *dev)
 
     INDI::Focuser::ISGetProperties(dev);
 
-    defineSwitch(&ModelSP);
+    defineProperty(&ModelSP);
     if (isSimulation())
         loadConfig(true, "Model");
 }
@@ -227,24 +227,24 @@ bool FocusLynxBase::updateProperties()
 
     if (isConnected())
     {
-        defineText(&HFocusNameTP);
+        defineProperty(&HFocusNameTP);
 
-        defineNumber(&TemperatureNP);
-        defineSwitch(&TemperatureCompensateModeSP);
-        defineNumber(&TemperatureParamNP);
-        defineSwitch(&TemperatureCompensateSP);
-        defineSwitch(&TemperatureCompensateOnStartSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&TemperatureCompensateModeSP);
+        defineProperty(&TemperatureParamNP);
+        defineProperty(&TemperatureCompensateSP);
+        defineProperty(&TemperatureCompensateOnStartSP);
 
-        //        defineSwitch(&FocusBacklashSP);
-        //        defineNumber(&FocusBacklashNP);
+        //        defineProperty(&FocusBacklashSP);
+        //        defineProperty(&FocusBacklashNP);
 
-        //defineNumber(&MaxTravelNP);
+        //defineProperty(&MaxTravelNP);
 
-        defineNumber(&StepSizeNP);
+        defineProperty(&StepSizeNP);
 
-        defineSwitch(&ResetSP);
-        //defineSwitch(&ReverseSP);
-        defineLight(&StatusLP);
+        defineProperty(&ResetSP);
+        //defineProperty(&ReverseSP);
+        defineProperty(&StatusLP);
 
         if (getFocusConfig() && getFocusTemp())
             LOG_INFO("FocusLynx parameters updated, focuser ready for use.");
@@ -3509,7 +3509,7 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
 
         SyncMandatoryS[0].s = ISS_OFF;
         SyncMandatoryS[1].s = ISS_ON;
-        defineSwitch(&SyncMandatorySP);
+        defineProperty(&SyncMandatorySP);
 
         ISState syncEnabled = ISS_OFF;
         if (IUGetConfigSwitch(getDeviceName(), "SYNC MANDATORY", "Enable", &syncEnabled) == 0)
@@ -3526,7 +3526,7 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
         isAbsolute = false;
     }
 
-    defineSwitch(&GotoSP);
+    defineProperty(&GotoSP);
     return isAbsolute;
 }
 

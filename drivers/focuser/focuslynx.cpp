@@ -234,10 +234,10 @@ bool FocusLynxF1::updateProperties()
 
     if (isConnected())
     {
-        defineText(&HubTP);
-        defineText(&WiredTP);
-        defineText(&WifiTP);
-        defineNumber(&LedNP);
+        defineProperty(&HubTP);
+        defineProperty(&WiredTP);
+        defineProperty(&WifiTP);
+        defineProperty(&LedNP);
 
         if (getHubConfig())
             LOG_INFO("HUB parameters updated.");

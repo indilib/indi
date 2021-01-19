@@ -147,13 +147,13 @@ bool Microtouch::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        //defineNumber(&MaxTravelNP);
-        defineSwitch(&MotorSpeedSP);
-        defineNumber(&TemperatureSettingNP);
-        defineSwitch(&TemperatureCompensateSP);
-//        defineSwitch(&ResetSP);
-//        defineNumber(&ResetToPosNP);
+        defineProperty(&TemperatureNP);
+        //defineProperty(&MaxTravelNP);
+        defineProperty(&MotorSpeedSP);
+        defineProperty(&TemperatureSettingNP);
+        defineProperty(&TemperatureCompensateSP);
+//        defineProperty(&ResetSP);
+//        defineProperty(&ResetToPosNP);
 
         GetFocusParams();
 

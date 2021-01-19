@@ -132,12 +132,12 @@ bool FocuserDriver::updateProperties()
     if (isConnected())
     {
         if (readTemperature())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
 
         bool rc = getStartupValues();
 
         // Settings
-        defineSwitch(&SteppingModeSP);
+        defineProperty(&SteppingModeSP);
 
         if (rc)
             LOG_INFO("FocuserDriver is ready.");

@@ -248,12 +248,12 @@ bool ActiveFocuser::updateProperties() {
 
     if (hid_handle) {
 
-        defineText(&HardwareVersionNP);
-        defineText(&SoftwareVersionNP);
-        defineNumber(&AirTemperatureNP);
-        defineNumber(&TubeTemperatureNP);
-        defineNumber(&MirrorTemperatureNP);
-        defineSwitch(&FanSP);
+        defineProperty(&HardwareVersionNP);
+        defineProperty(&SoftwareVersionNP);
+        defineProperty(&AirTemperatureNP);
+        defineProperty(&TubeTemperatureNP);
+        defineProperty(&MirrorTemperatureNP);
+        defineProperty(&FanSP);
 
     } else {
 

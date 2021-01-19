@@ -165,13 +165,13 @@ bool MoonLiteDRO::updateProperties()
         // Only display such properties for the first focuser only
         if (m_ID == 1)
         {
-            defineNumber(&TemperatureNP);
-            defineNumber(&TemperatureSettingNP);
-            defineSwitch(&TemperatureCompensateSP);
+            defineProperty(&TemperatureNP);
+            defineProperty(&TemperatureSettingNP);
+            defineProperty(&TemperatureCompensateSP);
         }
 
-        defineNumber(&StepDelayNP);
-        defineSwitch(&StepModeSP);
+        defineProperty(&StepDelayNP);
+        defineProperty(&StepModeSP);
 
         GetFocusParams();
 

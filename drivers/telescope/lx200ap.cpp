@@ -137,17 +137,17 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
     /*
     if (isConnected())
     {
-        defineSwitch(&StartUpSP);
-        defineText(&VersionInfo);
+        defineProperty(&StartUpSP);
+        defineProperty(&VersionInfo);
 
-        //defineText(&DeclinationAxisTP);
+        //defineProperty(&DeclinationAxisTP);
 
         // Motion group
-        defineSwitch(&APSlewSpeedSP);
-        defineSwitch(&SwapSP);
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&APGuideSpeedSP);
-        defineNumber(&SlewAccuracyNP);
+        defineProperty(&APSlewSpeedSP);
+        defineProperty(&SwapSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&APGuideSpeedSP);
+        defineProperty(&SlewAccuracyNP);
 
         LOG_INFO("Please initialize the mount before issuing any command.");
     }
@@ -160,17 +160,17 @@ bool LX200AstroPhysics::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&StartUpSP);
-        defineText(&VersionInfo);
+        defineProperty(&StartUpSP);
+        defineProperty(&VersionInfo);
 
-        //defineText(&DeclinationAxisTP);
+        //defineProperty(&DeclinationAxisTP);
 
         /* Motion group */
-        defineSwitch(&APSlewSpeedSP);
-        defineSwitch(&SwapSP);
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&APGuideSpeedSP);
-        defineNumber(&SlewAccuracyNP);
+        defineProperty(&APSlewSpeedSP);
+        defineProperty(&SwapSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&APGuideSpeedSP);
+        defineProperty(&SlewAccuracyNP);
 
         LOG_INFO("Please initialize the mount before issuing any command.");
     }

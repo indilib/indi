@@ -106,8 +106,8 @@ bool NFocus::updateProperties()
     if (isConnected())
     {
         if (readTemperature())
-            defineNumber(&TemperatureNP);
-        defineNumber(&SettingsNP);
+            defineProperty(&TemperatureNP);
+        defineProperty(&SettingsNP);
 
         if (getStartupValues())
             LOG_INFO("NFocus is ready.");

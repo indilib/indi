@@ -256,9 +256,9 @@ void GuideSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineNumber(SimulatorSettingsNV);
-    defineNumber(&EqPENP);
-    defineSwitch(&SimulateRgbSP);
+    defineProperty(SimulatorSettingsNV);
+    defineProperty(&EqPENP);
+    defineProperty(&SimulateRgbSP);
 }
 
 bool GuideSim::updateProperties()
@@ -268,9 +268,9 @@ bool GuideSim::updateProperties()
     if (isConnected())
     {
         if (HasCooler())
-            defineSwitch(&CoolerSP);
+            defineProperty(&CoolerSP);
 
-        defineNumber(&GainNP);
+        defineProperty(&GainNP);
 
         SetupParms();
 

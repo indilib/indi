@@ -101,8 +101,8 @@ bool Rotator::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&PresetNP);
-        defineSwitch(&PresetGotoSP);
+        defineProperty(&PresetNP);
+        defineProperty(&PresetGotoSP);
     }
     else
     {

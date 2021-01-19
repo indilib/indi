@@ -138,8 +138,8 @@ bool SQM::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&AverageReadingNP);
-        defineNumber(&UnitInfoNP);
+        defineProperty(&AverageReadingNP);
+        defineProperty(&UnitInfoNP);
 
         getReadings();
 

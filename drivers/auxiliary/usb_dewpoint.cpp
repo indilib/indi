@@ -165,17 +165,17 @@ bool USBDewpoint::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&OutputsNP);
-        defineNumber(&TemperaturesNP);
-        defineNumber(&HumidityNP);
-        defineNumber(&DewpointNP);
-        defineNumber(&CalibrationsNP);
-        defineNumber(&ThresholdsNP);
-        defineNumber(&AggressivityNP);
-        defineSwitch(&AutoModeSP);
-        defineSwitch(&LinkOut23SP);
-        defineSwitch(&ResetSP);
-        defineNumber(&FWversionNP);
+        defineProperty(&OutputsNP);
+        defineProperty(&TemperaturesNP);
+        defineProperty(&HumidityNP);
+        defineProperty(&DewpointNP);
+        defineProperty(&CalibrationsNP);
+        defineProperty(&ThresholdsNP);
+        defineProperty(&AggressivityNP);
+        defineProperty(&AutoModeSP);
+        defineProperty(&LinkOut23SP);
+        defineProperty(&ResetSP);
+        defineProperty(&FWversionNP);
 
         loadConfig(true);
         readSettings();

@@ -218,13 +218,13 @@ void WatchDog::ISGetProperties(const char *dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
-    defineNumber(&HeartBeatNP);
-    defineNumber(&WeatherThresholdNP);
-    defineText(&SettingsTP);
-    defineSwitch(&ShutdownTriggerSP);
-    defineSwitch(&ShutdownProcedureSP);
-    defineSwitch(&MountPolicySP);
-    defineText(&ActiveDeviceTP);
+    defineProperty(&HeartBeatNP);
+    defineProperty(&WeatherThresholdNP);
+    defineProperty(&SettingsTP);
+    defineProperty(&ShutdownTriggerSP);
+    defineProperty(&ShutdownProcedureSP);
+    defineProperty(&MountPolicySP);
+    defineProperty(&ActiveDeviceTP);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

@@ -142,7 +142,7 @@ bool FCUSB::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&PWMScalerSP);
+        defineProperty(&PWMScalerSP);
     }
     else
     {

@@ -196,17 +196,17 @@ bool MyFocuserPro2::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&GotoHomeSP);
-        defineNumber(&TemperatureNP);
-        defineNumber(&TemperatureSettingNP);
-        defineSwitch(&TemperatureCompensateSP);
-        defineSwitch(&BacklashInSP);
-        defineNumber(&BacklashInStepsNP);
-        defineSwitch(&BacklashOutSP);
-        defineNumber(&BacklashOutStepsNP);
-        defineSwitch(&StepModeSP);
-        defineSwitch(&DisplaySP);
-        defineSwitch(&CoilPowerSP);
+        defineProperty(&GotoHomeSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&TemperatureSettingNP);
+        defineProperty(&TemperatureCompensateSP);
+        defineProperty(&BacklashInSP);
+        defineProperty(&BacklashInStepsNP);
+        defineProperty(&BacklashOutSP);
+        defineProperty(&BacklashOutStepsNP);
+        defineProperty(&StepModeSP);
+        defineProperty(&DisplaySP);
+        defineProperty(&CoilPowerSP);
 
         setTemperatureCelsius();
 

@@ -149,8 +149,8 @@ bool PerfectStar::updateProperties()
 
 //    if (isConnected())
 //    {
-//        defineNumber(&SyncNP);
-//        defineNumber(&MaxPositionNP);
+//        defineProperty(&SyncNP);
+//        defineProperty(&MaxPositionNP);
 //    }
 //    else
 //    {

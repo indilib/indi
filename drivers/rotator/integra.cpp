@@ -187,14 +187,14 @@ bool Integra::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&MaxPositionNP);
+        defineProperty(&MaxPositionNP);
         // Focus
-        defineNumber(&SensorNP);
-        defineSwitch(&FindHomeSP);
+        defineProperty(&SensorNP);
+        defineProperty(&FindHomeSP);
 
         // Rotator
         RI::updateProperties();
-        defineNumber(&RotatorAbsPosNP);
+        defineProperty(&RotatorAbsPosNP);
 
     }
     else

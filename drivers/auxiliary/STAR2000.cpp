@@ -146,8 +146,8 @@ bool STAR2000::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
     }
     else
     {
@@ -161,7 +161,7 @@ bool STAR2000::updateProperties()
 void STAR2000::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
-    defineText(&PortTP);
+    defineProperty(&PortTP);
     loadConfig(true, INDI::SP::DEVICE_PORT);
 }
 

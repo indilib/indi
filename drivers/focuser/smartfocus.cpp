@@ -133,8 +133,8 @@ bool SmartFocus::updateProperties()
 
     if (isConnected())
     {
-        defineLight(&FlagsLP);
-        defineNumber(&MotionErrorNP);
+        defineProperty(&FlagsLP);
+        defineProperty(&MotionErrorNP);
         SFgetState();
         IDMessage(getDeviceName(), "SmartFocus focuser ready for use.");
     }

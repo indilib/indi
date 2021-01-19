@@ -145,11 +145,11 @@ bool LPM::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&AverageReadingNP);
-        defineNumber(&UnitInfoNP);
-        defineSwitch(&ResetBP);
-        defineText(&RecordFileTP);
-        defineSwitch(&SaveBP);
+        defineProperty(&AverageReadingNP);
+        defineProperty(&UnitInfoNP);
+        defineProperty(&ResetBP);
+        defineProperty(&RecordFileTP);
+        defineProperty(&SaveBP);
     }
     else
     {

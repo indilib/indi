@@ -192,7 +192,7 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 {
     LX200Generic::ISGetProperties(dev);
 
-    defineSwitch(&StartUpSP);
+    defineProperty(&StartUpSP);
 
     // MSF 2018/04/10 - disable this behavior for now - we want to have
     //                  UnparkFromSP to always start out as "Last Parked" for safety
@@ -205,13 +205,13 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
-        defineSwitch(&UnparkFromSP);
-        defineSwitch(&ParkToSP);
-        defineText(&VersionInfo);
-        defineSwitch(&APSlewSpeedSP);
-        defineSwitch(&SwapSP);
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&APGuideSpeedSP);
+        defineProperty(&UnparkFromSP);
+        defineProperty(&ParkToSP);
+        defineProperty(&VersionInfo);
+        defineProperty(&APSlewSpeedSP);
+        defineProperty(&SwapSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&APGuideSpeedSP);
     }
 }
 
@@ -219,7 +219,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
 {
     LX200Generic::updateProperties();
 
-    defineSwitch(&StartUpSP);
+    defineProperty(&StartUpSP);
 
     if (isConnected())
     {
@@ -229,17 +229,17 @@ bool LX200AstroPhysicsExperimental::updateProperties()
             deleteProperty(UsePulseCmdSP.name);
             deleteProperty(TrackRateNP.name);
         }
-        defineText(&VersionInfo);
-        defineSwitch(&UnparkFromSP);
+        defineProperty(&VersionInfo);
+        defineProperty(&UnparkFromSP);
         /* Motion group */
-        defineSwitch(&APSlewSpeedSP);
-        defineSwitch(&SwapSP);
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&APGuideSpeedSP);
-        defineSwitch(&ParkToSP);
-        defineNumber(&APSiderealTimeNP);
-        defineNumber(&HourangleCoordsNP);
-        defineNumber(&APUTCOffsetNP);
+        defineProperty(&APSlewSpeedSP);
+        defineProperty(&SwapSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&APGuideSpeedSP);
+        defineProperty(&ParkToSP);
+        defineProperty(&APSiderealTimeNP);
+        defineProperty(&HourangleCoordsNP);
+        defineProperty(&APUTCOffsetNP);
 
 #ifdef no
         if(!InitPark())

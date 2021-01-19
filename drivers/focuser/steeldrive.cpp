@@ -169,16 +169,16 @@ bool SteelDrive::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineNumber(&TemperatureSettingNP);
-        defineSwitch(&TemperatureCompensateSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&TemperatureSettingNP);
+        defineProperty(&TemperatureCompensateSP);
 
-        defineSwitch(&ModelSP);
-        defineNumber(&CustomSettingNP);
-        defineNumber(&AccelerationNP);
-        defineNumber(&SyncNP);
+        defineProperty(&ModelSP);
+        defineProperty(&CustomSettingNP);
+        defineProperty(&AccelerationNP);
+        defineProperty(&SyncNP);
 
-        defineText(&VersionTP);
+        defineProperty(&VersionTP);
 
         GetFocusParams();
 

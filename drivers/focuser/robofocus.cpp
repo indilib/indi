@@ -173,15 +173,15 @@ bool RoboFocus::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineSwitch(&PowerSwitchesSP);
-        defineNumber(&SettingsNP);
-        defineNumber(&MinMaxPositionNP);
-        defineNumber(&MaxTravelNP);
-        //        defineNumber(&SetRegisterPositionNP);
-        //defineNumber(&FocusBacklashNP);
-        //        defineNumber(&FocusRelPosNP);
-        //        defineNumber(&FocusAbsPosNP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&PowerSwitchesSP);
+        defineProperty(&SettingsNP);
+        defineProperty(&MinMaxPositionNP);
+        defineProperty(&MaxTravelNP);
+        //        defineProperty(&SetRegisterPositionNP);
+        //defineProperty(&FocusBacklashNP);
+        //        defineProperty(&FocusRelPosNP);
+        //        defineProperty(&FocusAbsPosNP);
 
         GetFocusParams();
 

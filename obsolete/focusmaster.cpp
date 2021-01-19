@@ -148,8 +148,8 @@ bool FocusMaster::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&FullMotionSP);
-        //defineNumber(&SyncNP);
+        defineProperty(&FullMotionSP);
+        //defineProperty(&SyncNP);
     }
     else
     {

@@ -276,8 +276,8 @@ void CelestronGPS::ISGetProperties(const char *dev)
 
     INDI::Telescope::ISGetProperties(dev);
 
-    defineSwitch(&UseHibernateSP);
-    defineSwitch(&CelestronTrackModeSP);
+    defineProperty(&UseHibernateSP);
+    defineProperty(&CelestronTrackModeSP);
     if (configLoaded == false)
     {
         configLoaded = true;
@@ -390,7 +390,7 @@ bool CelestronGPS::updateProperties()
         INDI::Telescope::updateProperties();
 
         if (fwInfo.Version != "Invalid")
-            defineText(&FirmwareTP);
+            defineProperty(&FirmwareTP);
 
         if (InitPark())
         {
@@ -426,7 +426,7 @@ bool CelestronGPS::updateProperties()
                 fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_EQS ||
                 fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_RADEC)
         {
-            defineNumber(&GuideRateNP);
+            defineProperty(&GuideRateNP);
             uint8_t rate;
             if (driver.get_guide_rate(CELESTRON_AXIS::RA_AXIS, &rate))
             {
@@ -438,8 +438,8 @@ bool CelestronGPS::updateProperties()
                     LOGF_DEBUG("Get Guide Rates: Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
                 }
             }
-            defineNumber(&GuideNSNP);
-            defineNumber(&GuideWENP);
+            defineProperty(&GuideNSNP);
+            defineProperty(&GuideWENP);
 
             LOG_INFO("Mount supports guiding.");
         }
@@ -447,7 +447,7 @@ bool CelestronGPS::updateProperties()
             LOG_INFO("Mount does not support guiding. Tracking mode must be set in handset to either EQ-North or EQ-South.");
 
 
-        defineSwitch(&CelestronTrackModeSP);
+        defineProperty(&CelestronTrackModeSP);
 
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
         // JM 2018-09-27: User (suramara) reports that it works with AVX mount with Star Sense firmware version 1.19
@@ -470,7 +470,7 @@ bool CelestronGPS::updateProperties()
                 IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
                 IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
 
-                defineSwitch(&DSTSettingSP);
+                defineProperty(&DSTSettingSP);
                 DSTSettingS[0].s = dst ? ISS_ON : ISS_OFF;
 
                 LOGF_INFO("Mount UTC offset: %s. UTC time: %s. DST: %s", utcOffset, isoDateTime, dst ? "On" : "Off");
@@ -498,7 +498,7 @@ bool CelestronGPS::updateProperties()
         // comment out this line and rebuild if you want to run with other mounts - at your own risk!
         if (strcmp(fwInfo.Model.c_str(), "CGX") == 0)
         {
-            defineSwitch(&LastAlignSP);
+            defineProperty(&LastAlignSP);
         }
 
         // Sometimes users start their mount when it is NOT yet aligned and then try to proceed to use it
@@ -509,17 +509,17 @@ bool CelestronGPS::updateProperties()
         if (fwInfo.canPec && CelestronTrackModeS[CTM_ALTAZ].s != ISS_OFF)
         {
             driver.pecState = PEC_STATE::PEC_AVAILABLE;
-            defineSwitch(&PecControlSP);
-            defineText(&PecInfoTP);
-            defineText(&PecFileNameTP);
+            defineProperty(&PecControlSP);
+            defineProperty(&PecInfoTP);
+            defineProperty(&PecFileNameTP);
         }
 
         //  handle the focuser
         if (fwInfo.hasFocuser)
         {
             LOG_INFO("update focuser properties");
-            //defineNumber(&FocusBacklashNP);
-            defineNumber(&FocusMinPosNP);
+            //defineProperty(&FocusBacklashNP);
+            defineProperty(&FocusMinPosNP);
             if (focusReadLimits())
             {
                 IUUpdateMinMax(&FocusAbsPosNP);

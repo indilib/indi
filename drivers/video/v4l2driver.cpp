@@ -214,32 +214,32 @@ void V4L2_Driver::ISGetProperties(const char * dev)
 
     INDI::CCD::ISGetProperties(dev);
 
-    defineText(&PortTP);
+    defineProperty(&PortTP);
     loadConfig(true, INDI::SP::DEVICE_PORT);
 
     if (isConnected())
     {
-        defineText(&camNameTP);
+        defineProperty(&camNameTP);
 
-        defineSwitch(&ImageColorSP);
-        defineSwitch(&InputsSP);
-        defineSwitch(&CaptureFormatsSP);
+        defineProperty(&ImageColorSP);
+        defineProperty(&InputsSP);
+        defineProperty(&CaptureFormatsSP);
 
         if (CaptureSizesSP.sp != nullptr)
-            defineSwitch(&CaptureSizesSP);
+            defineProperty(&CaptureSizesSP);
         else if (CaptureSizesNP.np != nullptr)
-            defineNumber(&CaptureSizesNP);
+            defineProperty(&CaptureSizesNP);
         if (FrameRatesSP.sp != nullptr)
-            defineSwitch(&FrameRatesSP);
+            defineProperty(&FrameRatesSP);
         else if (FrameRateNP.np != nullptr)
-            defineNumber(&FrameRateNP);
+            defineProperty(&FrameRateNP);
 
-        defineSwitch(&StackModeSP);
+        defineProperty(&StackModeSP);
 
 #ifdef WITH_V4L2_EXPERIMENTS
-        defineSwitch(&ImageDepthSP);
-        defineSwitch(&ColorProcessingSP);
-        defineText(&CaptureColorSpaceTP);
+        defineProperty(&ImageDepthSP);
+        defineProperty(&ColorProcessingSP);
+        defineProperty(&CaptureColorSpaceTP);
 #endif
     }
 }
@@ -259,28 +259,28 @@ bool V4L2_Driver::updateProperties()
         FrameNP = getNumber("CCD_FRAME");
         FrameN  = FrameNP->np;
 
-        defineText(&camNameTP);
+        defineProperty(&camNameTP);
         getBasicData();
 
-        defineSwitch(&ImageColorSP);
-        defineSwitch(&InputsSP);
-        defineSwitch(&CaptureFormatsSP);
+        defineProperty(&ImageColorSP);
+        defineProperty(&InputsSP);
+        defineProperty(&CaptureFormatsSP);
 
         if (CaptureSizesSP.sp != nullptr)
-            defineSwitch(&CaptureSizesSP);
+            defineProperty(&CaptureSizesSP);
         else if (CaptureSizesNP.np != nullptr)
-            defineNumber(&CaptureSizesNP);
+            defineProperty(&CaptureSizesNP);
         if (FrameRatesSP.sp != nullptr)
-            defineSwitch(&FrameRatesSP);
+            defineProperty(&FrameRatesSP);
         else if (FrameRateNP.np != nullptr)
-            defineNumber(&FrameRateNP);
+            defineProperty(&FrameRateNP);
 
-        defineSwitch(&StackModeSP);
+        defineProperty(&StackModeSP);
 
 #ifdef WITH_V4L2_EXPERIMENTS
-        defineSwitch(&ImageDepthSP);
-        defineSwitch(&ColorProcessingSP);
-        defineText(&CaptureColorSpaceTP);
+        defineProperty(&ImageDepthSP);
+        defineProperty(&ColorProcessingSP);
+        defineProperty(&CaptureColorSpaceTP);
 #endif
 
         // Check if we have pixel size info
@@ -406,7 +406,7 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
 
             deleteProperty(CaptureFormatsSP.name);
             v4l_base->getcaptureformats(&CaptureFormatsSP);
-            defineSwitch(&CaptureFormatsSP);
+            defineProperty(&CaptureFormatsSP);
             if (CaptureSizesSP.sp != nullptr)
                 deleteProperty(CaptureSizesSP.name);
             else if (CaptureSizesNP.np != nullptr)
@@ -415,9 +415,9 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             v4l_base->getcapturesizes(&CaptureSizesSP, &CaptureSizesNP);
 
             if (CaptureSizesSP.sp != nullptr)
-                defineSwitch(&CaptureSizesSP);
+                defineProperty(&CaptureSizesSP);
             else if (CaptureSizesNP.np != nullptr)
-                defineNumber(&CaptureSizesNP);
+                defineProperty(&CaptureSizesNP);
             InputsSP.s = IPS_OK;
             IDSetSwitch(&InputsSP, nullptr);
             LOGF_INFO("Capture input: %d. %s", inputindex, InputsSP.sp[inputindex].name);
@@ -464,9 +464,9 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             v4l_base->getcapturesizes(&CaptureSizesSP, &CaptureSizesNP);
 
             if (CaptureSizesSP.sp != nullptr)
-                defineSwitch(&CaptureSizesSP);
+                defineProperty(&CaptureSizesSP);
             else if (CaptureSizesNP.np != nullptr)
-                defineNumber(&CaptureSizesNP);
+                defineProperty(&CaptureSizesNP);
             CaptureFormatsSP.s = IPS_OK;
 
 #ifdef WITH_V4L2_EXPERIMENTS
@@ -518,9 +518,9 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
                 deleteProperty(FrameRateNP.name);
             v4l_base->getframerates(&FrameRatesSP, &FrameRateNP);
             if (FrameRatesSP.sp != nullptr)
-                defineSwitch(&FrameRatesSP);
+                defineProperty(&FrameRatesSP);
             else if (FrameRateNP.np != nullptr)
-                defineNumber(&FrameRateNP);
+                defineProperty(&FrameRateNP);
 
             PrimaryCCD.setFrame(0, 0, w, h);
             V4LFrame->width  = w;
@@ -1755,7 +1755,7 @@ void V4L2_Driver::updateV4L2Controls()
     ImageAdjustNP.nnp = 0;
 
     //if (v4l_base->queryINTControls(&ImageAdjustNP) > 0)
-    //defineNumber(&ImageAdjustNP);
+    //defineProperty(&ImageAdjustNP);
     v4l_base->enumerate_ext_ctrl();
     useExtCtrl = false;
 
@@ -1768,7 +1768,7 @@ void V4L2_Driver::updateV4L2Controls()
     if (v4ladjustments > 0)
     {
         LOGF_DEBUG("Found %d V4L2 adjustments", v4ladjustments);
-        defineNumber(&ImageAdjustNP);
+        defineProperty(&ImageAdjustNP);
 
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
         {
@@ -1785,7 +1785,7 @@ void V4L2_Driver::updateV4L2Controls()
     LOGF_DEBUG("Found %d V4L2 options", v4loptions);
     for (i = 0; i < v4loptions; i++)
     {
-        defineSwitch(&Options[i]);
+        defineProperty(&Options[i]);
 
         if (strcmp(Options[i].label, "Exposure, Auto") == 0 || strcmp(Options[i].label, "Auto Exposure") == 0)
         {

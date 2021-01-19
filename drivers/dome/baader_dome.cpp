@@ -174,8 +174,8 @@ bool BaaderDome::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&DomeFlapSP);
-        defineSwitch(&CalibrateSP);
+        defineProperty(&DomeFlapSP);
+        defineProperty(&CalibrateSP);
 
         SetupParms();
     }

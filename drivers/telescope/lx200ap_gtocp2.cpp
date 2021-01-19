@@ -119,13 +119,13 @@ void LX200AstroPhysicsGTOCP2::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
-        defineText(&VersionInfo);
+        defineProperty(&VersionInfo);
 
         /* Motion group */
-        defineSwitch(&APSlewSpeedSP);
-        defineSwitch(&SwapSP);
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&APGuideSpeedSP);
+        defineProperty(&APSlewSpeedSP);
+        defineProperty(&SwapSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&APGuideSpeedSP);
     }
 }
 
@@ -135,13 +135,13 @@ bool LX200AstroPhysicsGTOCP2::updateProperties()
 
     if (isConnected())
     {
-        defineText(&VersionInfo);
+        defineProperty(&VersionInfo);
 
         /* Motion group */
-        defineSwitch(&APSlewSpeedSP);
-        defineSwitch(&SwapSP);
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&APGuideSpeedSP);
+        defineProperty(&APSlewSpeedSP);
+        defineProperty(&SwapSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&APGuideSpeedSP);
 
         if (InitPark())
         {

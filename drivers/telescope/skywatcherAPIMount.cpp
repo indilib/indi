@@ -480,24 +480,24 @@ void SkywatcherAPIMount::ISGetProperties(const char *dev)
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX mewssage to any connected clients
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&SoftPECModesSP);
-        defineNumber(&SoftPecNP);
-        defineNumber(&GuidingRatesNP);
-        //        defineSwitch(&ParkMovementDirectionSP);
-        //        defineSwitch(&ParkPositionSP);
-        //        defineSwitch(&UnparkPositionSP);
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&BasicMountInfoV);
+        defineProperty(&AxisOneInfoV);
+        defineProperty(&AxisOneStateV);
+        defineProperty(&AxisTwoInfoV);
+        defineProperty(&AxisTwoStateV);
+        defineProperty(&AxisOneEncoderValuesV);
+        defineProperty(&AxisTwoEncoderValuesV);
+        defineProperty(&SlewModesSP);
+        defineProperty(&SoftPECModesSP);
+        defineProperty(&SoftPecNP);
+        defineProperty(&GuidingRatesNP);
+        //        defineProperty(&ParkMovementDirectionSP);
+        //        defineProperty(&ParkPositionSP);
+        //        defineProperty(&UnparkPositionSP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
     }
 }
 
@@ -714,7 +714,7 @@ void SkywatcherAPIMount::UpdateScopeConfigSwitch()
     deleteProperty("USEJOYSTICK");
     // Recreate the switch control
     deleteProperty(ScopeConfigsSP.name);
-    defineSwitch(&ScopeConfigsSP);
+    defineProperty(&ScopeConfigsSP);
 }
 
 double SkywatcherAPIMount::GetSlewRate()
@@ -1518,27 +1518,27 @@ bool SkywatcherAPIMount::updateProperties()
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX message to any connected clients
         // I have now idea why I have to do this here as well as in ISGetProperties. It makes me
         // concerned there is a design or implementation flaw somewhere.
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&SoftPECModesSP);
-        defineNumber(&SoftPecNP);
-        defineNumber(&GuidingRatesNP);
-        //        defineSwitch(&ParkMovementDirectionSP);
-        //        defineSwitch(&ParkPositionSP);
-        //        defineSwitch(&UnparkPositionSP);
+        defineProperty(&BasicMountInfoV);
+        defineProperty(&AxisOneInfoV);
+        defineProperty(&AxisOneStateV);
+        defineProperty(&AxisTwoInfoV);
+        defineProperty(&AxisTwoStateV);
+        defineProperty(&AxisOneEncoderValuesV);
+        defineProperty(&AxisTwoEncoderValuesV);
+        defineProperty(&SlewModesSP);
+        defineProperty(&SoftPECModesSP);
+        defineProperty(&SoftPecNP);
+        defineProperty(&GuidingRatesNP);
+        //        defineProperty(&ParkMovementDirectionSP);
+        //        defineProperty(&ParkPositionSP);
+        //        defineProperty(&UnparkPositionSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
 
         // Try to read latitude from config file if exists.
         double latitude = 0;

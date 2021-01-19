@@ -162,12 +162,12 @@ bool CelestronSCT::updateProperties()
 
     if (isConnected())
     {
-        //defineNumber(&FocusBacklashNP);
+        //defineProperty(&FocusBacklashNP);
 
-        defineNumber(&FocusMinPosNP);
+        defineProperty(&FocusMinPosNP);
 
-        defineSwitch(&CalibrateSP);
-        defineText(&CalibrateStateTP);
+        defineProperty(&CalibrateSP);
+        defineProperty(&CalibrateStateTP);
 
         if (getStartupParameters())
             LOG_INFO("Celestron SCT focuser parameters updated, focuser ready for use.");

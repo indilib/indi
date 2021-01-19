@@ -144,11 +144,11 @@ bool Pyxis::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&RotationRateNP)  ;
-        defineSwitch(&SteppingSP);
-        defineSwitch(&PowerSP);
-        defineText(&FirmwareTP) ;
-        defineText(&ModelTP) ;
+        defineProperty(&RotationRateNP)  ;
+        defineProperty(&SteppingSP);
+        defineProperty(&PowerSP);
+        defineProperty(&FirmwareTP) ;
+        defineProperty(&ModelTP) ;
 
         queryParams();
     }

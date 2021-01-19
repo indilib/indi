@@ -148,8 +148,8 @@ void SkySafari::ISGetProperties(const char *dev)
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
-    defineText(&SettingsTP);
-    defineText(&ActiveDeviceTP);
+    defineProperty(&SettingsTP);
+    defineProperty(&ActiveDeviceTP);
 
     loadConfig(true);
 }

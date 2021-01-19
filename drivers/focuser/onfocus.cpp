@@ -115,8 +115,8 @@ bool OnFocus::updateProperties()
     INDI::Focuser::updateProperties();
     if (isConnected())
     {
-        defineNumber(&MaxPosNP);
-        defineSwitch(&SetZeroSP);
+        defineProperty(&MaxPosNP);
+        defineProperty(&SetZeroSP);
         GetFocusParams();
         loadConfig(true);
 

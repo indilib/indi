@@ -68,12 +68,12 @@ bool GPS::updateProperties()
         IPState state = updateGPS();
 
         LocationNP.s = state;
-        defineNumber(&LocationNP);
+        defineProperty(&LocationNP);
         TimeTP.s = state;
-        defineText(&TimeTP);
+        defineProperty(&TimeTP);
         RefreshSP.s = state;
-        defineSwitch(&RefreshSP);
-        defineNumber(&PeriodNP);
+        defineProperty(&RefreshSP);
+        defineProperty(&PeriodNP);
 
         if (state != IPS_OK)
         {

@@ -182,8 +182,8 @@ bool RigelDome::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&OperationSP);
-        defineText(&InfoTP);
+        defineProperty(&OperationSP);
+        defineProperty(&InfoTP);
 
         getStartupValues();
     }

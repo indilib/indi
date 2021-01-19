@@ -106,14 +106,14 @@ bool LX200Classic::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&ElevationLimitNP);
-        defineText(&ObjectInfoTP);
-        defineSwitch(&SolarSP);
-        defineSwitch(&StarCatalogSP);
-        defineSwitch(&DeepSkyCatalogSP);
-        defineNumber(&ObjectNoNP);
-        defineNumber(&MaxSlewRateNP);
-        defineSwitch(&UnparkAlignmentSP);
+        defineProperty(&ElevationLimitNP);
+        defineProperty(&ObjectInfoTP);
+        defineProperty(&SolarSP);
+        defineProperty(&StarCatalogSP);
+        defineProperty(&DeepSkyCatalogSP);
+        defineProperty(&ObjectNoNP);
+        defineProperty(&MaxSlewRateNP);
+        defineProperty(&UnparkAlignmentSP);
 
         if (InitPark())
         {

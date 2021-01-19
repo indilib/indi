@@ -181,14 +181,14 @@ bool TCFS::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&FocusGotoSP);
-        defineNumber(&FocusTemperatureNP);
-        defineSwitch(&FocusPowerSP);
-        defineSwitch(&FocusModeSP);
-        defineSwitch(&FocusTelemetrySP);
-        defineSwitch(&FocusStartModeSP);
-        defineNumber(&FocusModeANP);
-        defineNumber(&FocusModeBNP);;
+        defineProperty(&FocusGotoSP);
+        defineProperty(&FocusTemperatureNP);
+        defineProperty(&FocusPowerSP);
+        defineProperty(&FocusModeSP);
+        defineProperty(&FocusTelemetrySP);
+        defineProperty(&FocusStartModeSP);
+        defineProperty(&FocusModeANP);
+        defineProperty(&FocusModeBNP);;
         GetFocusParams();
     }
     else

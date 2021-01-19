@@ -176,10 +176,10 @@ bool DomePro2::updateProperties()
     {
         setupInitialParameters();
 
-        defineText(&VersionTP);
-        defineText(&StatusTP);
-        defineNumber(&SettingsNP);
-        defineSwitch(&HomeSP);
+        defineProperty(&VersionTP);
+        defineProperty(&StatusTP);
+        defineProperty(&SettingsNP);
+        defineProperty(&HomeSP);
     }
     else
     {

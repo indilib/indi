@@ -142,16 +142,16 @@ bool SynscanDriver::updateProperties()
     {
         setupParams();
 
-        defineNumber(&HorizontalCoordsNP);
-        defineText(&StatusTP);
-        defineNumber(&CustomSlewRateNP);
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&HorizontalCoordsNP);
+        defineProperty(&StatusTP);
+        defineProperty(&CustomSlewRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
         if (m_isAltAz)
         {
-            defineSwitch(&GotoModeSP);
+            defineProperty(&GotoModeSP);
         }
 
         if (InitPark())

@@ -97,9 +97,9 @@ bool RBFOCUS::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineSwitch(&focuserHoldSP);
-        defineSwitch(&dirSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&focuserHoldSP);
+        defineProperty(&dirSP);
         LOG_INFO("Focuser ready.");
     }
     else

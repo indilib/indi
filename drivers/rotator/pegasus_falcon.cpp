@@ -121,9 +121,9 @@ bool PegasusFalcon::updateProperties()
     if (isConnected())
     {
         // Main Control
-        defineNumber(&DerotateNP);
-        defineText(&FirmwateTP);
-        defineSwitch(&ReloadFirmwareSP);
+        defineProperty(&DerotateNP);
+        defineProperty(&FirmwateTP);
+        defineProperty(&ReloadFirmwareSP);
 
     }
     else

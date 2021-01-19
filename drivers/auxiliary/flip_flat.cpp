@@ -136,11 +136,11 @@ bool FlipFlat::updateProperties()
     if (isConnected())
     {
         if (m_Type == FLIP_FLAT || m_Type == ALNITAK_DUST_COVER)
-            defineSwitch(&ParkCapSP);
-        defineSwitch(&LightSP);
-        defineNumber(&LightIntensityNP);
-        defineText(&StatusTP);
-        defineText(&FirmwareTP);
+            defineProperty(&ParkCapSP);
+        defineProperty(&LightSP);
+        defineProperty(&LightIntensityNP);
+        defineProperty(&StatusTP);
+        defineProperty(&FirmwareTP);
 
         updateLightBoxProperties();
 

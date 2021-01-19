@@ -206,23 +206,23 @@ bool PegasusPPBA::updateProperties()
     if (isConnected())
     {
         // Main Control
-        defineSwitch(&QuadOutSP);
-        //defineSwitch(&AdjOutSP);
-        defineSwitch(&AdjOutVoltSP);
-        defineNumber(&PowerSensorsNP);
-        defineSwitch(&PowerOnBootSP);
-        defineSwitch(&RebootSP);
-        defineLight(&PowerWarnLP);
-        defineSwitch(&LedIndicatorSP);
+        defineProperty(&QuadOutSP);
+        //defineProperty(&AdjOutSP);
+        defineProperty(&AdjOutVoltSP);
+        defineProperty(&PowerSensorsNP);
+        defineProperty(&PowerOnBootSP);
+        defineProperty(&RebootSP);
+        defineProperty(&PowerWarnLP);
+        defineProperty(&LedIndicatorSP);
 
         // Dew
-        defineSwitch(&AutoDewSP);
-        defineNumber(&DewPWMNP);
+        defineProperty(&AutoDewSP);
+        defineProperty(&DewPWMNP);
 
         WI::updateProperties();
 
         // Firmware
-        defineText(&FirmwareTP);
+        defineProperty(&FirmwareTP);
 
         setupComplete = true;
     }

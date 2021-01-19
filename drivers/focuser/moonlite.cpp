@@ -132,10 +132,10 @@ bool MoonLite::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineSwitch(&StepModeSP);
-        defineNumber(&TemperatureSettingNP);
-        defineSwitch(&TemperatureCompensateSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&StepModeSP);
+        defineProperty(&TemperatureSettingNP);
+        defineProperty(&TemperatureCompensateSP);
 
         GetFocusParams();
 

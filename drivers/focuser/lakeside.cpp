@@ -204,22 +204,22 @@ bool Lakeside::updateProperties()
 
     if (isConnected())
     {
-        //defineNumber(&FocusBacklashNP);
-        //defineNumber(&MaxTravelNP);
-        defineNumber(&StepSizeNP);
-        defineNumber(&TemperatureNP);
-        defineNumber(&TemperatureKNP);
-        //defineSwitch(&MoveDirectionSP);
-        defineSwitch(&TemperatureTrackingSP);
-        defineSwitch(&ActiveTemperatureSlopeSP);
-        defineSwitch(&Slope1DirSP);
-        defineNumber(&Slope1IncNP);
-        defineNumber(&Slope1DeadbandNP);
-        defineNumber(&Slope1PeriodNP);
-        defineSwitch(&Slope2DirSP);
-        defineNumber(&Slope2IncNP);
-        defineNumber(&Slope2DeadbandNP);
-        defineNumber(&Slope2PeriodNP);
+        //defineProperty(&FocusBacklashNP);
+        //defineProperty(&MaxTravelNP);
+        defineProperty(&StepSizeNP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&TemperatureKNP);
+        //defineProperty(&MoveDirectionSP);
+        defineProperty(&TemperatureTrackingSP);
+        defineProperty(&ActiveTemperatureSlopeSP);
+        defineProperty(&Slope1DirSP);
+        defineProperty(&Slope1IncNP);
+        defineProperty(&Slope1DeadbandNP);
+        defineProperty(&Slope1PeriodNP);
+        defineProperty(&Slope2DirSP);
+        defineProperty(&Slope2IncNP);
+        defineProperty(&Slope2DeadbandNP);
+        defineProperty(&Slope2PeriodNP);
 
         GetFocusParams();
 
