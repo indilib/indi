@@ -213,14 +213,14 @@ bool Paramount::updateProperties()
             TrackState = SCOPE_IDLE;
         }
 
-        //defineSwitch(&TrackModeSP);
-        //defineNumber(&TrackRateNP);
+        //defineProperty(&TrackModeSP);
+        //defineProperty(&TrackRateNP);
 
-        defineNumber(&JogRateNP);
+        defineProperty(&JogRateNP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
         // Initial HA to 0 and currentDEC (+90 or -90)
         if (InitPark())
@@ -240,7 +240,7 @@ bool Paramount::updateProperties()
 
         SetParked(isTheSkyParked());
 
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
     }
     else
     {

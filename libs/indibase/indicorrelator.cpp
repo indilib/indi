@@ -74,10 +74,10 @@ bool Correlator::updateProperties()
 {
     if (isConnected())
     {
-        defineNumber(&CorrelatorSettingsNP);
+        defineProperty(&CorrelatorSettingsNP);
 
         if (HasCooler())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
     }
     else
     {

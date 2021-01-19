@@ -148,14 +148,14 @@ bool SteelDriveII::updateProperties()
     {
         getStartupValues();
 
-        defineText(&InfoTP);
-        defineSwitch(&OperationSP);
+        defineProperty(&InfoTP);
+        defineProperty(&OperationSP);
 
-        defineSwitch(&TemperatureCompensationSP);
-        defineSwitch(&TemperatureStateSP);
-        defineNumber(&TemperatureSettingsNP);
-        defineNumber(&TemperatureSensorNP);
-        defineNumber(&StepperDriveNP);
+        defineProperty(&TemperatureCompensationSP);
+        defineProperty(&TemperatureStateSP);
+        defineProperty(&TemperatureSettingsNP);
+        defineProperty(&TemperatureSensorNP);
+        defineProperty(&StepperDriveNP);
     }
     else
     {
@@ -496,7 +496,7 @@ void SteelDriveII::TimerHit()
         IDSetNumber(&TemperatureSensorNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -187,14 +187,14 @@ bool Integra::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&MaxPositionNP);
+        defineProperty(&MaxPositionNP);
         // Focus
-        defineNumber(&SensorNP);
-        defineSwitch(&FindHomeSP);
+        defineProperty(&SensorNP);
+        defineProperty(&FindHomeSP);
 
         // Rotator
         RI::updateProperties();
-        defineNumber(&RotatorAbsPosNP);
+        defineProperty(&RotatorAbsPosNP);
 
     }
     else
@@ -566,7 +566,7 @@ void Integra::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -592,7 +592,7 @@ void Integra::TimerHit()
             LOG_DEBUG("Homing");
         }
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -696,7 +696,7 @@ void Integra::TimerHit()
     {
         saveToEEPROM();
     }
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool Integra::AbortFocuser()

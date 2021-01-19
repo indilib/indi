@@ -324,50 +324,50 @@ bool PegasusUPB::updateProperties()
         setupParams();
 
         // Main Control
-        defineSwitch(&PowerCycleAllSP);
-        defineNumber(&PowerSensorsNP);
-        defineNumber(&PowerConsumptionNP);
-        defineSwitch(&RebootSP);
+        defineProperty(&PowerCycleAllSP);
+        defineProperty(&PowerSensorsNP);
+        defineProperty(&PowerConsumptionNP);
+        defineProperty(&RebootSP);
 
         // Power
-        defineSwitch(&PowerControlSP);
-        defineText(&PowerControlsLabelsTP);
-        defineNumber(&PowerCurrentNP);
-        defineSwitch(&PowerOnBootSP);
+        defineProperty(&PowerControlSP);
+        defineProperty(&PowerControlsLabelsTP);
+        defineProperty(&PowerCurrentNP);
+        defineProperty(&PowerOnBootSP);
         OverCurrentLP.nlp = (version == UPB_V1) ? 4 : 7;
-        defineLight(&OverCurrentLP);
-        defineSwitch(&PowerLEDSP);
+        defineProperty(&OverCurrentLP);
+        defineProperty(&PowerLEDSP);
         if (version == UPB_V2)
-            defineNumber(&AdjustableOutputNP);
+            defineProperty(&AdjustableOutputNP);
 
         // Dew
         if (version == UPB_V1)
-            defineSwitch(&AutoDewSP);
+            defineProperty(&AutoDewSP);
         else
-            defineSwitch(&AutoDewV2SP);
+            defineProperty(&AutoDewV2SP);
         DewPWMNP.nnp = (version == UPB_V1) ? 2 : 3;
-        defineNumber(&DewPWMNP);
+        defineProperty(&DewPWMNP);
 
         DewCurrentDrawNP.nnp = (version == UPB_V1) ? 2 : 3;
-        defineNumber(&DewCurrentDrawNP);
+        defineProperty(&DewCurrentDrawNP);
 
         // USB
-        defineSwitch(&USBControlSP);
+        defineProperty(&USBControlSP);
         if (version == UPB_V2)
-            defineSwitch(&USBControlV2SP);
+            defineProperty(&USBControlV2SP);
         if (version == UPB_V1)
-            defineLight(&USBStatusLP);
+            defineProperty(&USBStatusLP);
 
         // Focuser
         FI::updateProperties();
-        defineNumber(&FocuserSettingsNP);
-        //defineSwitch(&FocusBacklashSP);
-        defineNumber(&FocuserTemperatureNP);
+        defineProperty(&FocuserSettingsNP);
+        //defineProperty(&FocusBacklashSP);
+        defineProperty(&FocuserTemperatureNP);
 
         WI::updateProperties();
 
         // Firmware
-        defineText(&FirmwateTP);
+        defineProperty(&FirmwateTP);
 
         setupComplete = true;
     }
@@ -1180,7 +1180,7 @@ void PegasusUPB::TimerHit()
 {
     if (!isConnected() || setupComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -1190,7 +1190,7 @@ void PegasusUPB::TimerHit()
         getStepperData();
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 //////////////////////////////////////////////////////////////////////

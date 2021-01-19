@@ -40,7 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 /* Our telescope auto pointer */
 std::unique_ptr<IEQ45Basic> telescope(new IEQ45Basic());
 
-const int POLLMS  = 100;     // Period of update, 1 second.
+const int POLLMS_OVERRIDE  = 100;     // Period of update, 1 second.
 const char *mydev = "IEQ45"; // Name of our device.
 
 const char *BASIC_GROUP   = "Main Control"; // Main Group
@@ -68,7 +68,7 @@ void ISInit()
 
     isInit = 1;
 
-    IEAddTimer(POLLMS, ISPoll, nullptr);
+    IEAddTimer(POLLMS_OVERRIDE, ISPoll, nullptr);
 }
 
 /**************************************************************************************
@@ -115,7 +115,7 @@ void ISPoll(void *p)
     INDI_UNUSED(p);
 
     telescope->ISPoll();
-    IEAddTimer(POLLMS, ISPoll, nullptr);
+    IEAddTimer(POLLMS_OVERRIDE, ISPoll, nullptr);
 }
 
 /**************************************************************************************

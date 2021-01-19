@@ -166,7 +166,7 @@ bool LX200Basic::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SlewAccuracyNP);
+        defineProperty(&SlewAccuracyNP);
 
         // We don't support NSWE controls
         deleteProperty(MovementNSSP.name);

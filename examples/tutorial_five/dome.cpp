@@ -127,7 +127,7 @@ bool Dome::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&ShutterSP);
+        defineProperty(&ShutterSP);
         /* Let's listen for Rain Alert property in the device Rain */
         IDSnoopDevice("Rain Detector", "Rain Alert");
     }

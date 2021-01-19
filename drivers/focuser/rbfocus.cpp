@@ -97,9 +97,9 @@ bool RBFOCUS::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineSwitch(&focuserHoldSP);
-        defineSwitch(&dirSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&focuserHoldSP);
+        defineProperty(&dirSP);
         LOG_INFO("Focuser ready.");
     }
     else
@@ -351,7 +351,7 @@ void RBFOCUS::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -386,7 +386,7 @@ void RBFOCUS::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool RBFOCUS::AbortFocuser()

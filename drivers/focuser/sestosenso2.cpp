@@ -232,24 +232,24 @@ bool SestoSenso2::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SpeedNP);
-        defineText(&CalibrationMessageTP);
-        defineSwitch(&CalibrationSP);
-        defineSwitch(&HomeSP);
-        defineNumber(&MotorRateNP);
-        defineNumber(&MotorCurrentNP);
-        defineSwitch(&MotorHoldSP);
-        defineSwitch(&MotorApplyPresetSP);
-        defineSwitch(&MotorApplyUserPresetSP);
-        defineSwitch(&MotorSaveUserPresetSP);
+        defineProperty(&SpeedNP);
+        defineProperty(&CalibrationMessageTP);
+        defineProperty(&CalibrationSP);
+        defineProperty(&HomeSP);
+        defineProperty(&MotorRateNP);
+        defineProperty(&MotorCurrentNP);
+        defineProperty(&MotorHoldSP);
+        defineProperty(&MotorApplyPresetSP);
+        defineProperty(&MotorApplyUserPresetSP);
+        defineProperty(&MotorSaveUserPresetSP);
 
-        defineText(&FirmwareTP);
+        defineProperty(&FirmwareTP);
 
         if (updateTemperature())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
 
         if (updateVoltageIn())
-            defineNumber(&VoltageInNP);
+            defineProperty(&VoltageInNP);
 
         if (getStartupValues())
             LOG_INFO("Parameters updated, focuser ready for use.");
@@ -667,7 +667,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             {
                 if (cStage == GoToMiddle)
                 {
-                    defineSwitch(&FastMoveSP);
+                    defineProperty(&FastMoveSP);
                     if (m_IsSestoSenso2)
                     {
                         if (command->storeAsMinPosition() == false)
@@ -1113,7 +1113,7 @@ void SestoSenso2::TimerHit()
     if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY || (m_IsSestoSenso2
             && CalibrationSP.s == IPS_BUSY))
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -1158,7 +1158,7 @@ void SestoSenso2::TimerHit()
         m_TemperatureCounter = 0;   // Reset the counter
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool SestoSenso2::getStartupValues()

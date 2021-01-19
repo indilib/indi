@@ -69,7 +69,7 @@ void LightBoxInterface::isGetLightBoxProperties(const char *deviceName)
 {
     INDI_UNUSED(deviceName);
 
-    device->defineText(&ActiveDeviceTP);
+    device->defineProperty(&ActiveDeviceTP);
     char errmsg[MAXRBUF];
     IUReadConfig(nullptr, device->getDeviceName(), "ACTIVE_DEVICES", 1, errmsg);
 }
@@ -151,7 +151,7 @@ bool LightBoxInterface::processLightBoxNumber(const char *dev, const char *name,
                 for (int i = 0; i < n; i++)
                     addFilterDuration(names[i], values[i]);
 
-                device->defineNumber(&FilterIntensityNP);
+                device->defineProperty(&FilterIntensityNP);
 
                 return true;
             }
@@ -249,7 +249,7 @@ bool LightBoxInterface::snoopLightBox(XMLEle *root)
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
             addFilterDuration(pcdataXMLEle(ep), 0);
 
-        device->defineNumber(&FilterIntensityNP);
+        device->defineProperty(&FilterIntensityNP);
         char errmsg[MAXRBUF];
         IUReadConfig(nullptr, device->getDeviceName(), "FLAT_LIGHT_FILTER_INTENSITY", 1, errmsg);
 

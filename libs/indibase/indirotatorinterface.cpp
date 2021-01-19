@@ -249,20 +249,20 @@ bool RotatorInterface::updateProperties()
 {
     if (m_defaultDevice->isConnected())
     {
-        m_defaultDevice->defineNumber(&GotoRotatorNP);
+        m_defaultDevice->defineProperty(&GotoRotatorNP);
 
         if (CanAbort())
-            m_defaultDevice->defineSwitch(&AbortRotatorSP);
+            m_defaultDevice->defineProperty(&AbortRotatorSP);
         if (CanSync())
-            m_defaultDevice->defineNumber(&SyncRotatorNP);
+            m_defaultDevice->defineProperty(&SyncRotatorNP);
         if (CanHome())
-            m_defaultDevice->defineSwitch(&HomeRotatorSP);
+            m_defaultDevice->defineProperty(&HomeRotatorSP);
         if (CanReverse())
-            m_defaultDevice->defineSwitch(&ReverseRotatorSP);
+            m_defaultDevice->defineProperty(&ReverseRotatorSP);
         if (HasBacklash())
         {
-            m_defaultDevice->defineSwitch(&RotatorBacklashSP);
-            m_defaultDevice->defineNumber(&RotatorBacklashNP);
+            m_defaultDevice->defineProperty(&RotatorBacklashSP);
+            m_defaultDevice->defineProperty(&RotatorBacklashNP);
         }
     }
     else

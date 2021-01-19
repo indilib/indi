@@ -111,11 +111,11 @@ void Controller::ISGetProperties(const char *dev)
 
     if (device->isConnected())
     {
-        device->defineSwitch(&UseJoystickSP);
-        device->defineText(&JoystickDeviceTP);
+        device->defineProperty(&UseJoystickSP);
+        device->defineProperty(&JoystickDeviceTP);
 
         if (JoystickSettingT && UseJoystickS[0].s == ISS_ON)
-            device->defineText(&JoystickSettingTP);
+            device->defineProperty(&JoystickSettingTP);
     }
 }
 
@@ -123,11 +123,11 @@ bool Controller::updateProperties()
 {
     if (device->isConnected())
     {
-        device->defineSwitch(&UseJoystickSP);
-        device->defineText(&JoystickDeviceTP);
+        device->defineProperty(&UseJoystickSP);
+        device->defineProperty(&JoystickDeviceTP);
 
         if (JoystickSettingT && UseJoystickS[0].s == ISS_ON)
-            device->defineText(&JoystickSettingTP);
+            device->defineProperty(&JoystickSettingTP);
     }
     else
     {
@@ -294,7 +294,7 @@ bool Controller::saveConfigItems(FILE *fp)
 
 void Controller::enableJoystick()
 {
-    device->defineText(&JoystickSettingTP);
+    device->defineProperty(&JoystickSettingTP);
 
     for (int i = 0; i < JoystickSettingTP.ntp; i++)
     {

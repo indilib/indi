@@ -217,27 +217,27 @@ bool LX200_TeenAstro::updateProperties()
         deleteProperty("DOME_POLICY");
         deleteProperty("TELESCOPE_HAS_TRACK_RATE");
         // Main Control
-        defineNumber(&SlewAccuracyNP);
-        defineText(&ErrorStatusTP);
+        defineProperty(&SlewAccuracyNP);
+        defineProperty(&ErrorStatusTP);
         // Connection
         // Options
         // Motion Control
-        defineSwitch(&SlewRateSP);
-        defineSwitch(&GuideRateSP);
+        defineProperty(&SlewRateSP);
+        defineProperty(&GuideRateSP);
 
         // Site Management
-        defineSwitch(&ParkOptionSP);
-        defineSwitch(&SetHomeSP);
+        defineProperty(&ParkOptionSP);
+        defineProperty(&SetHomeSP);
 
-        defineSwitch(&SiteSP);
-        defineText(&SiteNameTP);
+        defineProperty(&SiteSP);
+        defineProperty(&SiteNameTP);
 
         // Guide
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
 
         // Firmware Data
-        defineText(&VersionTP);
+        defineProperty(&VersionTP);
         getBasicData();
     }
     else
