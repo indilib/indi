@@ -1104,6 +1104,12 @@ uint32_t &DefaultDevice::refCurrentPollingPeriod()
     return d->pollingPeriod;
 }
 
+uint32_t DefaultDevice::refCurrentPollingPeriod() const
+{
+    D_PTR(const DefaultDevice);
+    return d->pollingPeriod;
+}
+
 void DefaultDevice::setDefaultPollingPeriod(uint32_t msec)
 {
     D_PTR(DefaultDevice);

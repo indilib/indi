@@ -501,6 +501,7 @@ protected: // polling
 
     /* direct access to POLLMS is deprecated, please use setCurrentPollingPeriod/getCurrentPollingPeriod */
     uint32_t &refCurrentPollingPeriod() __attribute__((deprecated));
+    uint32_t  refCurrentPollingPeriod() const __attribute__((deprecated));
     #define POLLMS refCurrentPollingPeriod()
 
 protected:
