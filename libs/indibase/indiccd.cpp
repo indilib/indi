@@ -2017,8 +2017,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 StartExposure(duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-                if (duration * 1000 < POLLMS)
-                    POLLMS = duration * 950;
+                if (duration * 1000 < getCurrentPollingPeriod())
+                    setCurrentPollingPeriod(duration * 950);
             }
             else
             {

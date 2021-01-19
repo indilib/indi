@@ -29,7 +29,7 @@
 
 #define mydev                "Sky Commander"
 #define BASIC_GROUP          "Main Control"
-#define POLLMS               1000
+#define POLLMS_OVERRIDE      1000
 #define currentRA            eq[0].value
 #define currentDEC           eq[1].value
 #define SKYCOMMANDER_TIMEOUT 5
@@ -67,7 +67,7 @@ void ISInit(void)
     isInit = 1;
     fd     = -1;
 
-    IEAddTimer(POLLMS, ISPoll, NULL);
+    IEAddTimer(POLLMS_OVERRIDE, ISPoll, NULL);
 }
 
 void ISGetProperties(const char *dev)
@@ -193,7 +193,7 @@ void ISPoll(void *p)
         }
     }
 
-    IEAddTimer(POLLMS, ISPoll, NULL);
+    IEAddTimer(POLLMS_OVERRIDE, ISPoll, NULL);
 }
 
 void connectTelescope(void)
