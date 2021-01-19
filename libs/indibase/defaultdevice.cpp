@@ -789,7 +789,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
                 d->activeConnection = d->connections[0];
             }
 
-            defineSwitch(&d->ConnectionModeSP);
+            defineProperty(&d->ConnectionModeSP);
             d->activeConnection->Activated();
         }
     }
@@ -957,34 +957,59 @@ bool DefaultDevice::deleteProperty(const char *propertyName)
         return false;
 }
 
+void DefaultDevice::defineProperty(INumberVectorProperty *property)
+{
+    registerProperty(property, INDI_NUMBER);
+    IDDefNumber(property, nullptr);
+}
+
+void DefaultDevice::defineProperty(ITextVectorProperty *property)
+{
+    registerProperty(property, INDI_TEXT);
+    IDDefText(property, nullptr);
+}
+
+void DefaultDevice::defineProperty(ISwitchVectorProperty *property)
+{
+    registerProperty(property, INDI_SWITCH);
+    IDDefSwitch(property, nullptr);
+}
+
+void DefaultDevice::defineProperty(ILightVectorProperty *property)
+{
+    registerProperty(property, INDI_LIGHT);
+    IDDefLight(property, nullptr);
+}
+
+void DefaultDevice::defineProperty(IBLOBVectorProperty *property)
+{
+    registerProperty(property, INDI_BLOB);
+    IDDefBLOB(property, nullptr);
+}
+
 void DefaultDevice::defineNumber(INumberVectorProperty *nvp)
 {
-    registerProperty(nvp, INDI_NUMBER);
-    IDDefNumber(nvp, nullptr);
+    defineProperty(nvp);
 }
 
 void DefaultDevice::defineText(ITextVectorProperty *tvp)
 {
-    registerProperty(tvp, INDI_TEXT);
-    IDDefText(tvp, nullptr);
+    defineProperty(tvp);
 }
 
 void DefaultDevice::defineSwitch(ISwitchVectorProperty *svp)
 {
-    registerProperty(svp, INDI_SWITCH);
-    IDDefSwitch(svp, nullptr);
+    defineProperty(svp);
 }
 
 void DefaultDevice::defineLight(ILightVectorProperty *lvp)
 {
-    registerProperty(lvp, INDI_LIGHT);
-    IDDefLight(lvp, nullptr);
+    defineProperty(lvp);
 }
 
 void DefaultDevice::defineBLOB(IBLOBVectorProperty *bvp)
 {
-    registerProperty(bvp, INDI_BLOB);
-    IDDefBLOB(bvp, nullptr);
+    defineProperty(bvp);
 }
 
 bool DefaultDevice::Connect()

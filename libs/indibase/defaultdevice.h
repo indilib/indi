@@ -149,7 +149,8 @@ public:
      * save configuration files.
      * \param nvp The number vector property to be defined
      */
-    void defineNumber(INumberVectorProperty *nvp);
+    void defineNumber(INumberVectorProperty *nvp) __attribute__((deprecated));
+    void defineProperty(INumberVectorProperty *property);
 
     /**
      * \brief Define text vector to client & register it. Alternatively, IDDefText can be
@@ -157,7 +158,8 @@ public:
      * configuration files.
      * \param tvp The text vector property to be defined
      */
-    void defineText(ITextVectorProperty *tvp);
+    void defineText(ITextVectorProperty *tvp) __attribute__((deprecated));
+    void defineProperty(ITextVectorProperty *property);
 
     /**
      * \brief Define switch vector to client & register it. Alternatively, IDDefswitch can be
@@ -165,7 +167,8 @@ public:
      * configuration files.
      * \param svp The switch vector property to be defined
      */
-    void defineSwitch(ISwitchVectorProperty *svp);
+    void defineSwitch(ISwitchVectorProperty *svp) __attribute__((deprecated));
+    void defineProperty(ISwitchVectorProperty *property);
 
     /**
      * \brief Define light vector to client & register it. Alternatively, IDDeflight can be
@@ -173,7 +176,8 @@ public:
      * configuration files.
      * \param lvp The light vector property to be defined
      */
-    void defineLight(ILightVectorProperty *lvp);
+    void defineLight(ILightVectorProperty *lvp) __attribute__((deprecated));
+    void defineProperty(ILightVectorProperty *property);
 
     /**
      * \brief Define BLOB vector to client & register it. Alternatively, IDDefBLOB can be
@@ -181,7 +185,8 @@ public:
      * save configuration files.
      * \param bvp The BLOB vector property to be defined
      */
-    void defineBLOB(IBLOBVectorProperty *bvp);
+    void defineBLOB(IBLOBVectorProperty *bvp) __attribute__((deprecated));
+    void defineProperty(IBLOBVectorProperty *property);
 
     /**
      * \brief Delete a property and unregister it. It will also be deleted from all clients.
