@@ -547,6 +547,15 @@ void CCDSim::TimerHit()
     SetTimer(nextTimer);
 }
 
+double CCDSim::flux(double mag) const
+{
+    // The limiting magnitude provides zero ADU whatever the exposure
+    // The saturation magnitude provides max ADU in one second
+    double const z = m_LimitingMag;
+    double const k = 2.5*log10(m_MaxVal)/(m_LimitingMag - m_SaturationMag);
+    return pow(10, (z - mag)*k/2.5);
+}
+
 int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 {
     //  CCD frame is 16 bit data
@@ -718,8 +727,8 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         //  and a limitingmag produces a one adu level in one second
         //  solve for zero point and system gain
 
-        k = (m_SaturationMag - m_LimitingMag) / ((-2.5 * log(m_MaxVal)) - (-2.5 * log(1.0 / 2.0)));
-        z = m_SaturationMag - k * (-2.5 * log(m_MaxVal));
+        //k = (m_SaturationMag - m_LimitingMag) / ((-2.5 * log(m_MaxVal)) - (-2.5 * log(1.0 / 2.0)));
+        //z = m_SaturationMag - k * (-2.5 * log(m_MaxVal));
 
         //  Should probably do some math here to figure out the dimmest
         //  star we can see on this exposure
@@ -852,7 +861,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
             //fprintf(stderr,"Using glow %4.2f\n",glow);
 
-            skyflux = pow(10, ((glow - z) * k / -2.5));
+            //skyflux = pow(10, ((glow - z) * k / -2.5));
+            skyflux = flux(glow);
+
             //  ok, flux represents one second now
             //  scale up linearly for exposure time
             skyflux = skyflux * exposure_time;
@@ -967,7 +978,8 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
     }
 
     //  calculate flux from our zero point and gain values
-    flux = pow(10, ((mag - z) * k / -2.5));
+    //flux = pow(10, ((mag - z) * k / -2.5));
+    flux = this->flux(mag);
 
     //  ok, flux represents one second now
     //  scale up linearly for exposure time
@@ -996,11 +1008,22 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
 
             //  need to make this account for actual pixel size
             dc = std::sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
-            //  now we have the distance from center, in arcseconds
-            //  This should be gaussian, but, for now we'll just go with
-            //  a simple linear function
-            float fa = exp(-2.0 * 0.7 * (dc * dc) / seeing / seeing);
 
+            // Use a gaussian of unitary integral
+            // 1/(sqrt(2pi)*sigma) * exp( -x² / (2*sigma²) )
+
+            // FWHM = 2*sqrt(2*ln(2))*sigma => sigma = seeing/(2*sqrt(2*ln(2)))
+            float sigma = seeing / ( 2 * sqrt(2*log(2)));
+
+            // fa = 1/(sigma*sqrt(2*pi)) * exp( -x² / (2*sigma²) )
+
+            // Use a gaussian in the shape exp(-(FWHM*x)²), x being the normalised distance to the center
+            // FWHM = sqrt( 2 * log(2) ) * sigma, FWHM² = 2 * log(2) * sigma²
+            // fa = exp( -2 * log(2) * (dc / boxsize)²
+            // float fa = exp(-2.0 * 0.7 * (dc * dc) / (boxsizey * boxsizey));
+            float fa = 1 / (sigma * sqrt(2*3.1416)) * exp( -(dc*dc) / (2*sigma*sigma));
+
+            // The gaussian is stretched by seeing/FWHM,
             fp = fa * flux;
 
             if (fp < 0)
