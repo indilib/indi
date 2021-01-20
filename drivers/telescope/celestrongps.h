@@ -68,7 +68,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         IPState Guide(CELESTRON_DIRECTION dirn, uint32_t ms);
 
         // Guide Rate
-        INumber GuideRateN[2];
+        INumber GuideRateN[2];  // 0 to 1 corresponding to 0 to 1.0x sidereal
         INumberVectorProperty GuideRateNP;
 
         uint8_t guideRateRa;    // 0 to 255 corresponding to 0 to 100% sidereal
