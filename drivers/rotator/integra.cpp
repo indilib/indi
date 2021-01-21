@@ -295,13 +295,15 @@ bool Integra::getFocuserType()
     int rotator_max = int(RotatorAbsPosN[0].max);
     if (focus_max != wellKnownIntegra85FocusMax)
     {
-        LOGF_ERROR("This is no Integra85 because focus max position %d != %d", focus_max, wellKnownIntegra85FocusMax);
-        return false;
+        LOGF_ERROR("This is no Integra85 because focus max position %d != %d, trying to continue still", focus_max,
+                   wellKnownIntegra85FocusMax);
+        // return false;
     }
     if (rotator_max != wellKnownIntegra85RotateMax)
     {
-        LOGF_ERROR("This is no Integra85 because rotator max position %d != %d", rotator_max, wellKnownIntegra85RotateMax);
-        return false;
+        LOGF_ERROR("This is no Integra85 because rotator max position %d != %d, trying to continue still", rotator_max,
+                   wellKnownIntegra85RotateMax);
+        // return false;
     }
 
     char resp[64] = "Integra85"; // TODO this is an assumption until the device can report its type
