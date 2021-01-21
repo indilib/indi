@@ -227,7 +227,7 @@ bool Integra::Handshake()
         return true;
     }
 
-    LOG_ERROR("Error retrieving data from Integra, please ensure Integra controller is powered and the port is correct.");
+    LOG_ERROR("Error retrieving data from Integra, please ensure Integra controller is powered, port choice is correct and baud rate is 115200.");
     return false;
 }
 
@@ -584,7 +584,7 @@ void Integra::TimerHit()
     bool rc = false;
     bool savePositionsToEEPROM = false;
 
-    // sanity check ...
+    // sanity check warning ...
     if (int(FocusAbsPosN[0].max) != wellKnownIntegra85FocusMax || int(RotatorAbsPosN[0].max) != wellKnownIntegra85RotateMax)
     {
         LOGF_WARN("Warning: Focus motor max position %d should be %d and Rotator motor max position %d should be %d",
@@ -798,7 +798,7 @@ bool Integra::getMaxPosition(MotorType type)
     }
     else
     {
-        LOGF_INFO("Updated %s motor max position from %d to %d",
+        LOGF_WARN("Updated %s motor max position from %d to %d",
                   (type == MOTOR_FOCUS) ? "Focuser" : "Rotator", MaxPositionN[type].value, position);
         MaxPositionN[type].value = position;
         if (type == MOTOR_FOCUS)
