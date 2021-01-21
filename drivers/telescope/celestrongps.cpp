@@ -196,8 +196,8 @@ bool CelestronGPS::initProperties()
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Guide Rate
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%.00f", 0.1, 1, 0.01, 0.50);
-    IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%.00f", 0.1, 1, 0.01, 0.50);
+    IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%0.2f", 0.0, 1, 0.01, GuideRateN[AXIS_RA].value);
+    IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%0.2f", 0.0, 1, 0.01, GuideRateN[AXIS_DE].value);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guide Rate x sidereal", GUIDE_TAB, IP_RW, 0, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////////////////
