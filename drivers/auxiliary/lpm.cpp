@@ -145,11 +145,11 @@ bool LPM::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&AverageReadingNP);
-        defineNumber(&UnitInfoNP);
-        defineSwitch(&ResetBP);
-        defineText(&RecordFileTP);
-        defineSwitch(&SaveBP);
+        defineProperty(&AverageReadingNP);
+        defineProperty(&UnitInfoNP);
+        defineProperty(&ResetBP);
+        defineProperty(&RecordFileTP);
+        defineProperty(&SaveBP);
     }
     else
     {
@@ -365,5 +365,5 @@ void LPM::TimerHit()
     AverageReadingNP.s = rc ? IPS_OK : IPS_ALERT;
     IDSetNumber(&AverageReadingNP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }

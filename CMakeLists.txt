@@ -43,7 +43,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 8)
-set(CMAKE_INDI_VERSION_RELEASE 8)
+set(CMAKE_INDI_VERSION_RELEASE 9)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -1918,6 +1918,9 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgetview.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgettraits.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h

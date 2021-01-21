@@ -416,25 +416,25 @@ void SkywatcherAltAzSimple::ISGetProperties(const char *dev)
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX mewssage to any connected clients
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&WedgeModeSP);
-        defineSwitch(&TrackLogModeSP);
-        defineNumber(&GuidingRatesNP);
-        defineNumber(&TrackingValuesNP);
-        defineSwitch(&ParkMovementDirectionSP);
-        defineSwitch(&ParkPositionSP);
-        defineSwitch(&UnparkPositionSP);
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&BasicMountInfoV);
+        defineProperty(&AxisOneInfoV);
+        defineProperty(&AxisOneStateV);
+        defineProperty(&AxisTwoInfoV);
+        defineProperty(&AxisTwoStateV);
+        defineProperty(&AxisOneEncoderValuesV);
+        defineProperty(&AxisTwoEncoderValuesV);
+        defineProperty(&SlewModesSP);
+        defineProperty(&WedgeModeSP);
+        defineProperty(&TrackLogModeSP);
+        defineProperty(&GuidingRatesNP);
+        defineProperty(&TrackingValuesNP);
+        defineProperty(&ParkMovementDirectionSP);
+        defineProperty(&ParkPositionSP);
+        defineProperty(&UnparkPositionSP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
     }
 }
 
@@ -646,7 +646,7 @@ void SkywatcherAltAzSimple::UpdateScopeConfigSwitch()
     deleteProperty("USEJOYSTICK");
     // Recreate the switch control
     deleteProperty(ScopeConfigsSP.name);
-    defineSwitch(&ScopeConfigsSP);
+    defineProperty(&ScopeConfigsSP);
 }
 
 double SkywatcherAltAzSimple::GetSlewRate()
@@ -1290,28 +1290,28 @@ bool SkywatcherAltAzSimple::updateProperties()
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX message to any connected clients
         // I have now idea why I have to do this here as well as in ISGetProperties. It makes me
         // concerned there is a design or implementation flaw somewhere.
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&WedgeModeSP);
-        defineSwitch(&TrackLogModeSP);
-        defineNumber(&GuidingRatesNP);
-        defineNumber(&TrackingValuesNP);
-        defineSwitch(&ParkMovementDirectionSP);
-        defineSwitch(&ParkPositionSP);
-        defineSwitch(&UnparkPositionSP);
+        defineProperty(&BasicMountInfoV);
+        defineProperty(&AxisOneInfoV);
+        defineProperty(&AxisOneStateV);
+        defineProperty(&AxisTwoInfoV);
+        defineProperty(&AxisTwoStateV);
+        defineProperty(&AxisOneEncoderValuesV);
+        defineProperty(&AxisTwoEncoderValuesV);
+        defineProperty(&SlewModesSP);
+        defineProperty(&WedgeModeSP);
+        defineProperty(&TrackLogModeSP);
+        defineProperty(&GuidingRatesNP);
+        defineProperty(&TrackingValuesNP);
+        defineProperty(&ParkMovementDirectionSP);
+        defineProperty(&ParkPositionSP);
+        defineProperty(&UnparkPositionSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
         return true;
     }
     else

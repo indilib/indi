@@ -166,28 +166,28 @@ void LX200Telescope::ISGetProperties(const char *dev)
     if (isConnected())
     {
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
-            defineSwitch(&AlignmentSP);
+            defineProperty(&AlignmentSP);
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
-            defineNumber(&TrackingFreqNP);
+            defineProperty(&TrackingFreqNP);
 
         if (genericCapability & LX200_HAS_PULSE_GUIDING)
-            defineSwitch(&UsePulseCmdSP);
+            defineProperty(&UsePulseCmdSP);
 
         if (genericCapability & LX200_HAS_SITES)
         {
-            defineSwitch(&SiteSP);
-            defineText(&SiteNameTP);
+            defineProperty(&SiteSP);
+            defineProperty(&SiteNameTP);
         }
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
 
         if (genericCapability & LX200_HAS_FOCUS)
         {
-            defineSwitch(&FocusMotionSP);
-            defineNumber(&FocusTimerNP);
-            defineSwitch(&FocusModeSP);
+            defineProperty(&FocusMotionSP);
+            defineProperty(&FocusTimerNP);
+            defineProperty(&FocusModeSP);
         }
     }
     */
@@ -200,27 +200,27 @@ bool LX200Telescope::updateProperties()
     if (isConnected())
     {
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
-            defineSwitch(&AlignmentSP);
+            defineProperty(&AlignmentSP);
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
-            defineNumber(&TrackingFreqNP);
+            defineProperty(&TrackingFreqNP);
 
         if (genericCapability & LX200_HAS_PULSE_GUIDING)
-            defineSwitch(&UsePulseCmdSP);
+            defineProperty(&UsePulseCmdSP);
 
         if (genericCapability & LX200_HAS_SITES)
         {
-            defineSwitch(&SiteSP);
-            defineText(&SiteNameTP);
+            defineProperty(&SiteSP);
+            defineProperty(&SiteNameTP);
         }
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
 
         if (genericCapability & LX200_HAS_FOCUS)
         {
             FI::updateProperties();
-            //defineSwitch(&FocusModeSP);
+            //defineProperty(&FocusModeSP);
         }
 
         getBasicData();

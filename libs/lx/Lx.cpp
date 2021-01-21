@@ -108,18 +108,18 @@ bool Lx::updateProperties()
     if (dev->isConnected())
     {
         INDI::Property *pfound;
-        dev->defineSwitch(&LxEnableSP);
-        dev->defineSwitch(&LxModeSP);
-        dev->defineText(&LxPortTP);
-        dev->defineSwitch(&LxSerialOptionSP);
-        //dev->defineSwitch(&LxParallelOptionSP);
-        dev->defineText(&LxStartStopCmdTP);
-        dev->defineSwitch(&LxLogicalLevelSP);
-        dev->defineSwitch(&LxSerialSpeedSP);
-        dev->defineSwitch(&LxSerialSizeSP);
-        dev->defineSwitch(&LxSerialParitySP);
-        dev->defineSwitch(&LxSerialStopSP);
-        dev->defineSwitch(&LxSerialAddeolSP);
+        dev->defineProperty(&LxEnableSP);
+        dev->defineProperty(&LxModeSP);
+        dev->defineProperty(&LxPortTP);
+        dev->defineProperty(&LxSerialOptionSP);
+        //dev->defineProperty(&LxParallelOptionSP);
+        dev->defineProperty(&LxStartStopCmdTP);
+        dev->defineProperty(&LxLogicalLevelSP);
+        dev->defineProperty(&LxSerialSpeedSP);
+        dev->defineProperty(&LxSerialSizeSP);
+        dev->defineProperty(&LxSerialParitySP);
+        dev->defineProperty(&LxSerialStopSP);
+        dev->defineProperty(&LxSerialAddeolSP);
         pfound = findbyLabel(dev, (char *)"Strobe");
         if (pfound)
         {

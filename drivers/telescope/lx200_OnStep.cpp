@@ -357,31 +357,31 @@ bool LX200_OnStep::updateProperties()
         // Firstinitialize some variables
         // keep sorted by TABs is easier
         // Main Control
-        defineSwitch(&ReticSP);
-        defineNumber(&ElevationLimitNP);
-        defineText(&ObjectInfoTP);
+        defineProperty(&ReticSP);
+        defineProperty(&ElevationLimitNP);
+        defineProperty(&ObjectInfoTP);
         // Connection
 
         // Options
 
         // OnStep Status
-        defineText(&OnstepStatTP);
+        defineProperty(&OnstepStatTP);
         
         // Motion Control
-        defineNumber(&MaxSlewRateNP);
-        defineSwitch(&TrackCompSP);
-        defineSwitch(&TrackAxisSP);
-        defineNumber(&BacklashNP);
-        defineNumber(&GuideRateNP);
-        defineSwitch(&AutoFlipSP);
-        defineSwitch(&HomePauseSP);
-        defineSwitch(&FrequencyAdjustSP);
-        defineSwitch(&PreferredPierSideSP);
-        defineNumber(&minutesPastMeridianNP);
+        defineProperty(&MaxSlewRateNP);
+        defineProperty(&TrackCompSP);
+        defineProperty(&TrackAxisSP);
+        defineProperty(&BacklashNP);
+        defineProperty(&GuideRateNP);
+        defineProperty(&AutoFlipSP);
+        defineProperty(&HomePauseSP);
+        defineProperty(&FrequencyAdjustSP);
+        defineProperty(&PreferredPierSideSP);
+        defineProperty(&minutesPastMeridianNP);
 
         // Site Management
-        defineSwitch(&ParkOptionSP);
-        defineSwitch(&SetHomeSP);
+        defineProperty(&ParkOptionSP);
+        defineProperty(&SetHomeSP);
 
         // Guide
 
@@ -392,50 +392,50 @@ bool LX200_OnStep::updateProperties()
         if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
         {
             OSFocuser1 = true;
-            defineSwitch(&OSFocus1InitializeSP);
+            defineProperty(&OSFocus1InitializeSP);
         }
         // Focuser 2
         if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2
         {
             OSFocuser2 = true;
-            //defineSwitch(&OSFocus2SelSP);
-            defineSwitch(&OSFocus2MotionSP);
-            defineSwitch(&OSFocus2RateSP);
-            defineNumber(&OSFocus2TargNP);
+            //defineProperty(&OSFocus2SelSP);
+            defineProperty(&OSFocus2MotionSP);
+            defineProperty(&OSFocus2RateSP);
+            defineProperty(&OSFocus2TargNP);
         }
 
         // Firmware Data
-        defineText(&VersionTP);
+        defineProperty(&VersionTP);
 
         //PEC
-        defineSwitch(&OSPECStatusSP);
-        defineSwitch(&OSPECIndexSP);
-        defineSwitch(&OSPECRecordSP);
-        defineSwitch(&OSPECReadSP);
-        defineNumber(&OSPECCurrentIndexNP);
-        defineNumber(&OSPECRWValuesNP);
+        defineProperty(&OSPECStatusSP);
+        defineProperty(&OSPECIndexSP);
+        defineProperty(&OSPECRecordSP);
+        defineProperty(&OSPECReadSP);
+        defineProperty(&OSPECCurrentIndexNP);
+        defineProperty(&OSPECRWValuesNP);
 
         //New Align
-        defineSwitch(&OSNAlignStarsSP);
-        defineSwitch(&OSNAlignSP);
-        defineSwitch(&OSNAlignWriteSP);
-        defineText(&OSNAlignTP);
-        defineText(&OSNAlignErrTP);
-        defineSwitch(&OSNAlignPolarRealignSP);
+        defineProperty(&OSNAlignStarsSP);
+        defineProperty(&OSNAlignSP);
+        defineProperty(&OSNAlignWriteSP);
+        defineProperty(&OSNAlignTP);
+        defineProperty(&OSNAlignErrTP);
+        defineProperty(&OSNAlignPolarRealignSP);
 
 #ifdef ONSTEP_NOTDONE
         //Outputs
-        defineSwitch(&OSOutput1SP);
-        defineSwitch(&OSOutput2SP);
+        defineProperty(&OSOutput1SP);
+        defineProperty(&OSOutput2SP);
 #endif
 
-        defineNumber(&OutputPorts_NP);
+        defineProperty(&OutputPorts_NP);
         
         //Weather
-        defineNumber(&OSSetTemperatureNP);
-        defineNumber(&OSSetPressureNP);
-        defineNumber(&OSSetHumidityNP);
-        defineNumber(&OSSetAltitudeNP);
+        defineProperty(&OSSetTemperatureNP);
+        defineProperty(&OSSetPressureNP);
+        defineProperty(&OSSetHumidityNP);
+        defineProperty(&OSSetAltitudeNP);
 
 
         if (InitPark())
@@ -793,7 +793,10 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 char cmd[20];
                 int port = STARTING_PORT + i;
 
-                snprintf(cmd, sizeof(cmd), ":SXG%d,%d#", port, value);
+                //This is for newer version of OnStep:
+                snprintf(cmd, sizeof(cmd), ":SXX%d,V%d#", port, value);
+                //This is for older version of OnStep:
+                //snprintf(cmd, sizeof(cmd), ":SXG%d,%d#", port, value);
                 ret = sendOnStepCommandBlind(cmd);
 
                 if (ret == -1)

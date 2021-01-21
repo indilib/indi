@@ -216,18 +216,18 @@ bool IEQPro::updateProperties()
         if (!canFindHome)
             HomeSP.nsp = 2;
 
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
 
         if (canGuideRate)
-            defineNumber(&GuideRateNP);
+            defineProperty(&GuideRateNP);
 
-        defineText(&FirmwareTP);
-        defineSwitch(&GPSStatusSP);
-        defineSwitch(&TimeSourceSP);
-        defineSwitch(&HemisphereSP);
+        defineProperty(&FirmwareTP);
+        defineProperty(&GPSStatusSP);
+        defineProperty(&TimeSourceSP);
+        defineProperty(&HemisphereSP);
     }
     else
     {

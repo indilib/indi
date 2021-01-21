@@ -107,11 +107,11 @@ bool Weather::updateProperties()
         WI::updateProperties();
 
         updateTimerID = -1;
-        defineSwitch(&RefreshSP);
-        defineNumber(&UpdatePeriodNP);
-        defineSwitch(&OverrideSP);
-        defineNumber(&LocationNP);
-        defineText(&ActiveDeviceTP);
+        defineProperty(&RefreshSP);
+        defineProperty(&UpdatePeriodNP);
+        defineProperty(&OverrideSP);
+        defineProperty(&LocationNP);
+        defineProperty(&ActiveDeviceTP);
 
         DEBUG(Logger::DBG_SESSION, "Weather update is in progress...");
         TimerHit();

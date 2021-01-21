@@ -189,11 +189,11 @@ bool PMC8::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
-        defineText(&FirmwareTP);
+        defineProperty(&FirmwareTP);
 
         // do not support park position
         deleteProperty(ParkPositionNP.name);
@@ -340,7 +340,7 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 void PMC8::ISGetProperties(const char *dev)
 {
     INDI::Telescope::ISGetProperties(dev);
-    defineSwitch(&MountTypeSP);
+    defineProperty(&MountTypeSP);
 }
 
 bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -363,7 +363,7 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             set_pmc8_mountParameters(currentMountIndex);
             MountTypeSP.s = IPS_OK;
             IDSetSwitch(&MountTypeSP, nullptr);
-            //		defineSwitch(&MountTypeSP);
+            //		defineProperty(&MountTypeSP);
             return true;
         }
 

@@ -290,7 +290,7 @@ void Telescope::ISGetProperties(const char *dev)
 
     if (CanGOTO())
     {
-        defineText(&ActiveDeviceTP);
+        defineProperty(&ActiveDeviceTP);
         loadConfig(true, "ACTIVE_DEVICES");
 
         ISState isDomeIgnored = ISS_OFF;
@@ -299,11 +299,11 @@ void Telescope::ISGetProperties(const char *dev)
             DomePolicyS[DOME_IGNORED].s = isDomeIgnored;
             DomePolicyS[DOME_LOCKS].s = (isDomeIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
         }
-        defineSwitch(&DomePolicySP);
+        defineProperty(&DomePolicySP);
     }
 
-    defineNumber(&ScopeParametersNP);
-    defineText(&ScopeConfigNameTP);
+    defineProperty(&ScopeParametersNP);
+    defineProperty(&ScopeConfigNameTP);
 
     if (HasDefaultScopeConfig())
     {
@@ -344,48 +344,48 @@ bool Telescope::updateProperties()
 
         //  Now we add our telescope specific stuff
         if (CanGOTO() || CanSync())
-            defineSwitch(&CoordSP);
-        defineNumber(&EqNP);
+            defineProperty(&CoordSP);
+        defineProperty(&EqNP);
         if (CanAbort())
-            defineSwitch(&AbortSP);
+            defineProperty(&AbortSP);
 
         if (HasTrackMode() && TrackModeS != nullptr)
-            defineSwitch(&TrackModeSP);
+            defineProperty(&TrackModeSP);
         if (CanControlTrack())
-            defineSwitch(&TrackStateSP);
+            defineProperty(&TrackStateSP);
         if (HasTrackRate())
-            defineNumber(&TrackRateNP);
+            defineProperty(&TrackRateNP);
 
 
         if (CanGOTO())
         {
-            defineSwitch(&MovementNSSP);
-            defineSwitch(&MovementWESP);
+            defineProperty(&MovementNSSP);
+            defineProperty(&MovementWESP);
             if (nSlewRate >= 4)
-                defineSwitch(&SlewRateSP);
-            defineNumber(&TargetNP);
+                defineProperty(&SlewRateSP);
+            defineProperty(&TargetNP);
         }
 
         if (HasTime())
-            defineText(&TimeTP);
+            defineProperty(&TimeTP);
         if (HasLocation())
-            defineNumber(&LocationNP);
+            defineProperty(&LocationNP);
         if (CanPark())
         {
-            defineSwitch(&ParkSP);
+            defineProperty(&ParkSP);
             if (parkDataType != PARK_NONE)
             {
-                defineNumber(&ParkPositionNP);
-                defineSwitch(&ParkOptionSP);
+                defineProperty(&ParkPositionNP);
+                defineProperty(&ParkOptionSP);
             }
         }
 
         if (HasPierSide())
-            defineSwitch(&PierSideSP);
+            defineProperty(&PierSideSP);
 
         if (HasPierSideSimulation())
         {
-            defineSwitch(&SimulatePierSideSP);
+            defineProperty(&SimulatePierSideSP);
             ISState value;
             if (IUGetConfigSwitch(getDefaultName(), "SIMULATE_PIER_SIDE", "SIMULATE_YES", &value) )
                 setSimulatePierSide(value == ISS_ON);
@@ -393,16 +393,16 @@ bool Telescope::updateProperties()
 
         if (CanTrackSatellite())
         {
-            defineText(&TLEtoTrackTP);
-            defineText(&SatPassWindowTP);
-            defineSwitch(&TrackSatSP);
+            defineProperty(&TLEtoTrackTP);
+            defineProperty(&SatPassWindowTP);
+            defineProperty(&TrackSatSP);
         }
 
         if (HasPECState())
-            defineSwitch(&PECStateSP);
+            defineProperty(&PECStateSP);
 
-        defineText(&ScopeConfigNameTP);
-        defineSwitch(&ScopeConfigsSP);
+        defineProperty(&ScopeConfigNameTP);
+        defineProperty(&ScopeConfigsSP);
     }
     else
     {
@@ -477,9 +477,9 @@ bool Telescope::updateProperties()
             {
                 if (useJoystick->sp[0].s == ISS_ON)
                 {
-                    defineSwitch(&MotionControlModeTP);
+                    defineProperty(&MotionControlModeTP);
                     loadConfig(true, "MOTION_CONTROL_MODE");
-                    defineSwitch(&LockAxisSP);
+                    defineProperty(&LockAxisSP);
                     loadConfig(true, "LOCK_AXIS");
                 }
                 else
@@ -1537,8 +1537,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
         if (useJoystick && useJoystick->sp[0].s == ISS_ON)
         {
-            defineSwitch(&MotionControlModeTP);
-            defineSwitch(&LockAxisSP);
+            defineProperty(&MotionControlModeTP);
+            defineProperty(&LockAxisSP);
         }
         else
         {
@@ -1586,7 +1586,7 @@ void Telescope::TimerHit()
             IDSetNumber(&EqNP, nullptr);
         }
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 }
 
@@ -3050,7 +3050,7 @@ void Telescope::setSimulatePierSide(bool simulate)
     if (simulate)
     {
         capability |= TELESCOPE_HAS_PIER_SIDE;
-        defineSwitch(&PierSideSP);
+        defineProperty(&PierSideSP);
     }
     else
     {

@@ -123,7 +123,7 @@ bool Dome::initProperties()
 
     // Shutter Policy
     IUFillSwitch(&ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK], "SHUTTER_CLOSE_ON_PARK", "Close On Park", ISS_OFF);
-    IUFillSwitch(&ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK], "SHUTTER_OPEN_ON_PARK", "Open On UnPark", ISS_OFF);
+    IUFillSwitch(&ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK], "SHUTTER_OPEN_ON_UNPARK", "Open On UnPark", ISS_OFF);
     IUFillSwitchVector(&ShutterParkPolicySP, ShutterParkPolicyS, 2, getDeviceName(), "DOME_SHUTTER_PARK_POLICY", "Shutter",
                        OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
@@ -255,7 +255,7 @@ void Dome::ISGetProperties(const char * dev)
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
-    defineText(&ActiveDeviceTP);
+    defineProperty(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 
     ISState isMountIgnored = ISS_OFF;
@@ -264,7 +264,7 @@ void Dome::ISGetProperties(const char * dev)
         MountPolicyS[MOUNT_IGNORED].s = isMountIgnored;
         MountPolicyS[MOUNT_LOCKS].s = (isMountIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
     }
-    defineSwitch(&MountPolicySP);
+    defineProperty(&MountPolicySP);
 
     controller->ISGetProperties(dev);
     return;
@@ -276,54 +276,54 @@ bool Dome::updateProperties()
     {
         if (HasShutter())
         {
-            defineSwitch(&DomeShutterSP);
-            defineSwitch(&ShutterParkPolicySP);
+            defineProperty(&DomeShutterSP);
+            defineProperty(&ShutterParkPolicySP);
         }
 
         //  Now we add our Dome specific stuff
-        defineSwitch(&DomeMotionSP);
+        defineProperty(&DomeMotionSP);
 
         if (HasVariableSpeed())
         {
-            defineNumber(&DomeSpeedNP);
-            //defineNumber(&DomeTimerNP);
+            defineProperty(&DomeSpeedNP);
+            //defineProperty(&DomeTimerNP);
         }
         if (CanRelMove())
-            defineNumber(&DomeRelPosNP);
+            defineProperty(&DomeRelPosNP);
         if (CanAbsMove())
-            defineNumber(&DomeAbsPosNP);
+            defineProperty(&DomeAbsPosNP);
         if (CanAbort())
-            defineSwitch(&AbortSP);
+            defineProperty(&AbortSP);
         if (CanAbsMove())
         {
-            defineNumber(&PresetNP);
-            defineSwitch(&PresetGotoSP);
+            defineProperty(&PresetNP);
+            defineProperty(&PresetGotoSP);
 
-            defineSwitch(&DomeAutoSyncSP);
-            defineSwitch(&OTASideSP);
-            defineNumber(&DomeParamNP);
-            defineNumber(&DomeMeasurementsNP);
+            defineProperty(&DomeAutoSyncSP);
+            defineProperty(&OTASideSP);
+            defineProperty(&DomeParamNP);
+            defineProperty(&DomeMeasurementsNP);
         }
         if (CanSync())
-            defineNumber(&DomeSyncNP);
+            defineProperty(&DomeSyncNP);
 
         if (CanPark())
         {
-            defineSwitch(&ParkSP);
+            defineProperty(&ParkSP);
             if (parkDataType != PARK_NONE)
             {
-                defineNumber(&ParkPositionNP);
-                defineSwitch(&ParkOptionSP);
+                defineProperty(&ParkPositionNP);
+                defineProperty(&ParkOptionSP);
             }
         }
 
         if (HasBacklash())
         {
-            defineSwitch(&DomeBacklashSP);
-            defineNumber(&DomeBacklashNP);
+            defineProperty(&DomeBacklashSP);
+            defineProperty(&DomeBacklashNP);
         }
 
-        //defineSwitch(&AutoParkSP);
+        //defineProperty(&AutoParkSP);
     }
     else
     {

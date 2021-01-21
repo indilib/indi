@@ -63,27 +63,27 @@
         </device>
         <device label="Celestron GPS" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.3</version>
+            <version>3.5</version>
         </device>
         <device label="Celestron CPC" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.3</version>
+            <version>3.5</version>
         </device>
         <device label="Celestron NexStar" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.3</version>
+            <version>3.5</version>
         </device>
         <device label="Celestron AVX" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.3</version>
+            <version>3.5</version>
         </device>
         <device label="Celestron CGEM" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.3</version>
+            <version>3.5</version>
         </device>
         <device label="Celestron CGX" manufacturer="Celestron">
             <driver name="Celestron GPS">indi_celestron_gps</driver>
-            <version>3.3</version>
+            <version>3.5</version>
         </device>
         <device label="Astro-Electronic FS-2">
             <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
@@ -389,11 +389,11 @@
         </device>
         <device label="Sesto Senso 2" manufacturer="Primaluce Lab">
             <driver name="Sesto Senso 2">indi_sestosenso2_focus</driver>
-            <version>0.6</version>
+            <version>0.7</version>
         </device>
         <device label="Esatto" manufacturer="Primaluce Lab">
             <driver name="Sesto Senso 2">indi_sestosenso2_focus</driver>
-            <version>0.6</version>
+            <version>0.7</version>
         </device>
         <device label="Lakeside">
             <driver name="Lakeside">indi_lakeside_focus</driver>

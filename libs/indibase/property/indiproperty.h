@@ -20,7 +20,14 @@
 
 #include "indibase.h"
 #include "indiutility.h"
+
+#include "indipropertyview.h"
+
+#include "indidriver.h"
+
 #include <memory>
+#include <cstdarg>
+
 
 namespace INDI
 {
@@ -88,14 +95,61 @@ public:
     void define(const char *format = nullptr, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
 public:
-    INumberVectorProperty *getNumber() const;
-    ITextVectorProperty *getText() const;
-    ISwitchVectorProperty *getSwitch() const;
-    ILightVectorProperty *getLight() const;
-    IBLOBVectorProperty *getBLOB() const;
+    PropertyView<INumber> *getNumber() const;
+    PropertyView<IText>   *getText() const;
+    PropertyView<ISwitch> *getSwitch() const;
+    PropertyView<ILight>  *getLight() const;
+    PropertyView<IBLOB>   *getBLOB() const;
 
 protected:
     std::shared_ptr<PropertyPrivate> d_ptr;
+    Property(PropertyPrivate &dd);
 };
+
+inline void Property::save(FILE *fp)
+{
+    switch (getType())
+    {
+        case INDI_NUMBER: IUSaveConfigNumber (fp, getNumber()); break;
+        case INDI_TEXT:   IUSaveConfigText   (fp, getText());   break;
+        case INDI_SWITCH: IUSaveConfigSwitch (fp, getSwitch()); break;
+        //case INDI_LIGHT:  IUSaveConfigLight  (fp, getLight());  break;
+        case INDI_BLOB:   IUSaveConfigBLOB   (fp, getBLOB());   break;
+        default:;;
+    }
+}
+
+// TODO (move to server side)
+inline void Property::apply(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    switch (getType())
+    {
+        case INDI_NUMBER: IDSetNumberVA(getNumber(), format, ap); break;
+        case INDI_TEXT:   IDSetTextVA(getText(),     format, ap); break;
+        case INDI_SWITCH: IDSetSwitchVA(getSwitch(), format, ap); break;
+        case INDI_LIGHT:  IDSetLightVA(getLight(),   format, ap); break;
+        case INDI_BLOB:   IDSetBLOBVA(getBLOB(),     format, ap); break;
+        default:;;
+    }
+    va_end(ap);
+}
+
+inline void Property::define(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    switch (getType())
+    {
+        case INDI_NUMBER: IDDefNumberVA(getNumber(), format, ap); break;
+        case INDI_TEXT:   IDDefTextVA(getText(),     format, ap); break;
+        case INDI_SWITCH: IDDefSwitchVA(getSwitch(), format, ap); break;
+        case INDI_LIGHT:  IDDefLightVA(getLight(),   format, ap); break;
+        case INDI_BLOB:   IDDefBLOBVA(getBLOB(),     format, ap); break;
+        default:;;
+    }
+    va_end(ap);
+}
 
 } // namespace INDI

@@ -66,19 +66,25 @@ class Correlator : public SensorInterface
          * \struct Baseline
          * \brief the baseline (position of the telescopes) of this correlator.
          */
-        typedef struct {
-            double x;
-            double y;
-            double z;
+        typedef union {
+            struct {
+                double x;
+                double y;
+                double z;
+            };
+            double values[3];
         } Baseline;
 
         /**
          * \enum UVCoordinate
          * \brief The coordinates of the current projection into the UV plane.
          */
-        typedef struct {
-            double u;
-            double v;
+        typedef union {
+            struct {
+                double u;
+                double v;
+            };
+            double values[2];
         } UVCoordinate;
 
         /**
