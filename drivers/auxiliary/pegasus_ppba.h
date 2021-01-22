@@ -160,13 +160,14 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         ISwitch QuadOutS[2];
         ISwitchVectorProperty QuadOutSP;
 
-        ISwitch AdjOutS[2];
-        ISwitchVectorProperty AdjOutSP;
+        //        ISwitch AdjOutS[2];
+        //        ISwitchVectorProperty AdjOutSP;
 
-        ISwitch AdjOutVoltS[5];
+        ISwitch AdjOutVoltS[6];
         ISwitchVectorProperty AdjOutVoltSP;
         enum
         {
+            ADJOUT_OFF,
             ADJOUT_3V,
             ADJOUT_5V,
             ADJOUT_8V,
@@ -178,9 +179,9 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         ISwitch PowerOnBootS[4];
         ISwitchVectorProperty PowerOnBootSP;
 
-	      // Short circuit warn
-	      ILight PowerWarnL[1];
-	      ILightVectorProperty PowerWarnLP;
+        // Short circuit warn
+        ILight PowerWarnL[1];
+        ILightVectorProperty PowerWarnLP;
 
         ISwitch LedIndicatorS[2];
         ISwitchVectorProperty LedIndicatorSP;
@@ -207,7 +208,7 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         ////////////////////////////////////////////////////////////////////////////////////
 
         ITextVectorProperty FirmwareTP;
-        IText FirmwareT[2];
+        IText FirmwareT[2] {};
         enum
         {
             FIRMWARE_VERSION,

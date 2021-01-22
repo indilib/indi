@@ -183,14 +183,14 @@ bool FilterIFW::updateProperties()
    INDI::FilterWheel::updateProperties();
 	 if (isConnected())
     {
-        defineSwitch(&HomeSP);
-        defineText(&FirmwareTP);
-        defineText(&WheelIDTP); // ID of the wheel first in Filter tab page
+        defineProperty(&HomeSP);
+        defineProperty(&FirmwareTP);
+        defineProperty(&WheelIDTP); // ID of the wheel first in Filter tab page
+        // Then the button only for Simulation to select the number of filter of the Wheel (5 or 8)
         if (isSimulation())
-            defineSwitch(
-                &FilterNbrSP); // Then the button only for Simulation to select the number of filter of the Wheel (5 or 8)
-        defineSwitch(&CharSetSP);
-        defineNumber(&FilterSlotNP);
+            defineProperty(&FilterNbrSP);
+        defineProperty(&CharSetSP);
+        defineProperty(&FilterSlotNP);
         controller->updateProperties();
 
         GetFirmware(); // Try to get Firmware version of the IFW. NOt all Firmware support this function
@@ -500,7 +500,7 @@ void FilterIFW::simulationTriggered(bool enable)
     {
         if (isConnected())
         {
-            defineSwitch(&FilterNbrSP);
+            defineProperty(&FilterNbrSP);
         }
     }
     else
@@ -699,7 +699,7 @@ bool FilterIFW::GetFilterNames()
 
             IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filters", FilterSlotNP.group,
                              IP_RW, 0, IPS_OK);
-            defineText(FilterNameTP);
+            defineProperty(FilterNameTP);
 
             // filterList only use for purpose information
             // Remove space from filterList

@@ -170,13 +170,13 @@ bool DeepSkyDadAF3::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&FocusMaxMoveNP);
-        defineSwitch(&StepModeSP);
-        defineSwitch(&SpeedModeSP);
-        defineNumber(&SettleBufferNP);
-        defineNumber(&MoveCurrentMultiplierNP);
-        defineNumber(&HoldCurrentMultiplierNP);
-        defineNumber(&TemperatureNP);
+        defineProperty(&FocusMaxMoveNP);
+        defineProperty(&StepModeSP);
+        defineProperty(&SpeedModeSP);
+        defineProperty(&SettleBufferNP);
+        defineProperty(&MoveCurrentMultiplierNP);
+        defineProperty(&HoldCurrentMultiplierNP);
+        defineProperty(&TemperatureNP);
 
         GetFocusParams();
 
@@ -824,7 +824,7 @@ void DeepSkyDadAF3::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -871,14 +871,14 @@ void DeepSkyDadAF3::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.1 ) //more accurate update
         {
             IDSetNumber(&TemperatureNP, nullptr);
             lastTemperature = TemperatureN[0].value;
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool DeepSkyDadAF3::AbortFocuser()

@@ -92,9 +92,9 @@ bool LX200GotoNova::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&ParkPositionSP);
-        defineSwitch(&GuideRateSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&ParkPositionSP);
+        defineProperty(&GuideRateSP);
     }
     else
     {

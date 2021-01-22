@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2015 Camiel Severijns. All rights reserved.
+  Copyright(c) 2015,2020 Camiel Severijns. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -90,6 +90,6 @@ class SmartFocus : public INDI::Focuser
 
     ILight FlagsL[5];
     ILightVectorProperty FlagsLP;
-    INumber MaxPositionN[1];
-    INumberVectorProperty MaxPositionNP;
+    INumber MotionErrorN[1];
+    INumberVectorProperty MotionErrorNP;
 };

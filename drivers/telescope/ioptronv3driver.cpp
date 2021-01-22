@@ -329,11 +329,15 @@ bool Driver::startMotion(IOP_DIRECTION dir)
         case IOP_S:
             return sendCommand(":ms#", 0);
             break;
+        // JM 2020-10-12
+        // We are reversing this since CEM120 moves CW when commanded WEST
+        // leading to INCREASING RA, when it is expected to move CCW leading
+        // to DECREASING RA
         case IOP_W:
-            return sendCommand(":mw#", 0);
+            return sendCommand(":me#", 0);
             break;
         case IOP_E:
-            return sendCommand(":me#", 0);
+            return sendCommand(":mw#", 0);
             break;
     }
 
@@ -491,6 +495,30 @@ bool Driver::unpark()
     //AA and iEQ30 Pro.
     setSimSytemStatus(ST_STOPPED);
     return sendCommand(":MP0#");
+}
+
+bool Driver::setParkAz(double az)
+{
+    char cmd[IOP_BUFFER] = {0};
+
+    // Send as 0.01 arcsec resolution
+    int ieqValue = static_cast<int>(az * 60 * 60 * 100);
+
+    snprintf(cmd, IOP_BUFFER, ":SPA%09d#", ieqValue);
+
+    return sendCommand(cmd);
+}
+
+bool Driver::setParkAlt(double alt)
+{
+    char cmd[IOP_BUFFER] = {0};
+
+    alt = std::max(0.0, alt);
+
+    // Send as 0.01 arcsec resolution
+    int ieqValue = static_cast<int>(alt * 60 * 60 * 100);
+    snprintf(cmd, IOP_BUFFER, ":SPH%08d#", ieqValue);
+    return sendCommand(cmd);
 }
 
 bool Driver::abort()

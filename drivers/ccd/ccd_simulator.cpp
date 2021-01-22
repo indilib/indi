@@ -27,6 +27,10 @@
 
 #include <cmath>
 #include <unistd.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <algorithm>
 
 static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -90,16 +94,10 @@ bool CCDSim::setupParameters()
                  SimulatorSettingsN[SIM_XSIZE].value,
                  SimulatorSettingsN[SIM_YSIZE].value);
 
-    //    if (HasCooler())
-    //    {
-    //        TemperatureN[0].value = 20;
-    //        IDSetNumber(&TemperatureNP, nullptr);
-    //    }
-
     m_MaxNoise      = SimulatorSettingsN[SIM_NOISE].value;
     m_SkyGlow       = SimulatorSettingsN[SIM_SKYGLOW].value;
     m_MaxVal        = SimulatorSettingsN[SIM_MAXVAL].value;
-    m_Bias          = SimulatorSettingsN[SIM_BIAS].value;
+    m_Bias          = OffsetN[0].value;
     m_LimitingMag   = SimulatorSettingsN[SIM_LIMITINGMAG].value;
     m_SaturationMag = SimulatorSettingsN[SIM_SATURATION].value;
     //  An oag is offset this much from center of scope position (arcminutes);
@@ -108,8 +106,8 @@ bool CCDSim::setupParameters()
     m_PolarDrift = SimulatorSettingsN[SIM_POLARDRIFT].value;
     m_PEPeriod = SimulatorSettingsN[SIM_PE_PERIOD].value;
     m_PEMax = SimulatorSettingsN[SIM_PE_MAX].value;
-    m_RotationCW = SimulatorSettingsN[SIM_ROTATION].value;
     m_TimeFactor = SimulatorSettingsN[SIM_TIME_FACTOR].value;
+    RotatorAngle = SimulatorSettingsN[SIM_ROTATION].value;
 
     uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
@@ -125,7 +123,7 @@ bool CCDSim::Connect()
     streamPredicate = 0;
     terminateThread = false;
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 
@@ -149,39 +147,38 @@ bool CCDSim::initProperties()
 {
     INDI::CCD::initProperties();
 
-    IUFillNumber(&SimulatorSettingsN[SIM_XRES], "SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
-    IUFillNumber(&SimulatorSettingsN[SIM_YRES], "SIM_YRES", "CCD Y resolution", "%4.0f", 0, 8192, 0, 1024);
-    IUFillNumber(&SimulatorSettingsN[SIM_XSIZE], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 0, 60, 0, 5.2);
-    IUFillNumber(&SimulatorSettingsN[SIM_YSIZE], "SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 0, 60, 0, 5.2);
-    IUFillNumber(&SimulatorSettingsN[SIM_MAXVAL], "SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 0, 65000, 0, 65000);
-    IUFillNumber(&SimulatorSettingsN[SIM_BIAS], "SIM_BIAS", "CCD Bias", "%4.0f", 0, 6000, 0, 10);
-    IUFillNumber(&SimulatorSettingsN[SIM_SATURATION], "SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 0, 1.0);
-    IUFillNumber(&SimulatorSettingsN[SIM_LIMITINGMAG], "SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 0, 17.0);
-    IUFillNumber(&SimulatorSettingsN[SIM_NOISE], "SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 0, 10);
-    IUFillNumber(&SimulatorSettingsN[SIM_SKYGLOW], "SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 0, 19.5);
-    IUFillNumber(&SimulatorSettingsN[SIM_OAGOFFSET], "SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_POLAR], "SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 0,
-                 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_POLARDRIFT], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 6000, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (minutes)", "%4.1f", 0, 60, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_PE_MAX], "SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_ROTATION], "SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[SIM_TIME_FACTOR], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
+    IUFillNumber(&SimulatorSettingsN[SIM_XRES], "SIM_XRES", "CCD X resolution", "%4.0f", 512, 8192, 512, 1280);
+    IUFillNumber(&SimulatorSettingsN[SIM_YRES], "SIM_YRES", "CCD Y resolution", "%4.0f", 512, 8192, 512, 1024);
+    IUFillNumber(&SimulatorSettingsN[SIM_XSIZE], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 1, 30, 5, 5.2);
+    IUFillNumber(&SimulatorSettingsN[SIM_YSIZE], "SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 1, 30, 5, 5.2);
+    IUFillNumber(&SimulatorSettingsN[SIM_MAXVAL], "SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 255, 65000, 1000, 65000);
+    IUFillNumber(&SimulatorSettingsN[SIM_SATURATION], "SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 1, 1.0);
+    IUFillNumber(&SimulatorSettingsN[SIM_LIMITINGMAG], "SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 1, 17.0);
+    IUFillNumber(&SimulatorSettingsN[SIM_NOISE], "SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 500, 10);
+    IUFillNumber(&SimulatorSettingsN[SIM_SKYGLOW], "SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 500, 19.5);
+    IUFillNumber(&SimulatorSettingsN[SIM_OAGOFFSET], "SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 500, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_POLAR], "SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 100, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_POLARDRIFT], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 60, 5, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (minutes)", "%4.1f", 0, 60, 5, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_PE_MAX], "SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 500, 0);
+    IUFillNumber(&SimulatorSettingsN[SIM_TIME_FACTOR], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 10, 1);
+    IUFillNumber(&SimulatorSettingsN[SIM_ROTATION], "SIM_ROTATION", "CCD Rotation", "%.2f", 0, 360, 10, 0);
 
     IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, SIM_N, getDeviceName(), "SIMULATOR_SETTINGS",
                        "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
-    IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
-    IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
-    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "RGB",
-                       SIMULATOR_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitch(&SimulateBayerS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&SimulateBayerS[INDI_DISABLED], "INDI_DISABLED", "Dsiabled", ISS_ON);
+    IUFillSwitchVector(&SimulateRgbSP, SimulateBayerS, 2, getDeviceName(), "SIMULATE_BAYER", "Bayer", SIMULATOR_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     // Simulate focusing
     IUFillNumber(&FocusSimulationN[0], "SIM_FOCUS_POSITION", "Focus", "%.f", 0.0, 100000.0, 1.0, 36700.0);
     IUFillNumber(&FocusSimulationN[1], "SIM_FOCUS_MAX", "Max. Position", "%.f", 0.0, 100000.0, 1.0, 100000.0);
     IUFillNumber(&FocusSimulationN[2], "SIM_SEEING", "Seeing (arcsec)", "%4.2f", 0, 60, 0, 3.5);
-    IUFillNumberVector(&FocusSimulationNP, FocusSimulationN, 3, getDeviceName(), "SIM_FOCUSING", "Focus Simulation", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&FocusSimulationNP, FocusSimulationN, 3, getDeviceName(), "SIM_FOCUSING", "Focus Simulation",
+                       SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // Simulate Crash
     IUFillSwitch(&CrashS[0], "CRASH", "Crash driver", ISS_OFF);
@@ -204,11 +201,25 @@ bool CCDSim::initProperties()
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-
     // Gain
-    IUFillNumber(&GainN[0], "GAIN", "Gain", "%.f", 0, 100, 10, 50);
+    IUFillNumber(&GainN[0], "GAIN", "value", "%.f", 0, 100, 10, 50);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
+    // Offset
+    IUFillNumber(&OffsetN[0], "OFFSET", "value", "%.f", 0, 6000, 500, 0);
+    IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "CCD_OFFSET", "Offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Directory to read images from. This is useful to test real images captured by camera
+    // For each capture, one file is read (sorted by name) and is sent to client.
+    IUFillText(&DirectoryT[0], "LOCATION", "Location", getenv("HOME"));
+    IUFillTextVector(&DirectoryTP, DirectoryT, 1, getDeviceName(), "CCD_DIRECTORY_LOCATION", "Directory", SIMULATOR_TAB, IP_RW,
+                     60, IPS_IDLE);
+
+    // Toggle Directory Reading. If enabled. The simulator will just read images from the directory and not generate them.
+    IUFillSwitch(&DirectoryS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&DirectoryS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&DirectorySP, DirectoryS, 2, getDeviceName(), "CCD_DIRECTORY_TOGGLE", "Use Dir.", SIMULATOR_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
 #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
@@ -239,7 +250,7 @@ bool CCDSim::initProperties()
 
     // This should be called after the initial SetCCDCapability (above)
     // as it modifies the capabilities.
-    setRGB(m_SimulateRGB);
+    setBayerEnabled(m_SimulateBayer);
 
     INDI::FilterInterface::initProperties(FILTER_TAB);
 
@@ -257,7 +268,7 @@ bool CCDSim::initProperties()
     return true;
 }
 
-void CCDSim::setRGB(bool onOff)
+void CCDSim::setBayerEnabled(bool onOff)
 {
     if (onOff)
     {
@@ -276,11 +287,11 @@ void CCDSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineNumber(&SimulatorSettingsNP);
-    defineNumber(&EqPENP);
-    defineNumber(&FocusSimulationNP);
-    defineSwitch(&SimulateRgbSP);
-    defineSwitch(&CrashSP);
+    defineProperty(&SimulatorSettingsNP);
+    defineProperty(&EqPENP);
+    defineProperty(&FocusSimulationNP);
+    defineProperty(&SimulateRgbSP);
+    defineProperty(&CrashSP);
 }
 
 bool CCDSim::updateProperties()
@@ -290,9 +301,13 @@ bool CCDSim::updateProperties()
     if (isConnected())
     {
         if (HasCooler())
-            defineSwitch(&CoolerSP);
+            defineProperty(&CoolerSP);
 
-        defineNumber(&GainNP);
+        defineProperty(&GainNP);
+        defineProperty(&OffsetNP);
+
+        defineProperty(&DirectoryTP);
+        defineProperty(&DirectorySP);
 
         setupParameters();
 
@@ -311,6 +326,9 @@ bool CCDSim::updateProperties()
             deleteProperty(CoolerSP.name);
 
         deleteProperty(GainNP.name);
+        deleteProperty(OffsetNP.name);
+        deleteProperty(DirectoryTP.name);
+        deleteProperty(DirectorySP.name);
 
         INDI::FilterInterface::updateProperties();
     }
@@ -351,7 +369,13 @@ bool CCDSim::StartExposure(float duration)
     PrimaryCCD.setExposureDuration(duration);
     gettimeofday(&ExpStart, nullptr);
     //  Leave the proper time showing for the draw routines
-    DrawCcdFrame(&PrimaryCCD);
+    if (DirectoryS[INDI_ENABLED].s == ISS_ON)
+    {
+        if (loadNextImage() == false)
+            return false;
+    }
+    else
+        DrawCcdFrame(&PrimaryCCD);
     //  Now compress the actual wait time
     ExposureRequest = duration * m_TimeFactor;
     InExposure      = true;
@@ -408,7 +432,7 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
 
 void CCDSim::TimerHit()
 {
-    uint32_t nextTimer = POLLMS;
+    uint32_t nextTimer = getCurrentPollingPeriod();
 
     //  No need to reset timer if we are not connected anymore
     if (!isConnected())
@@ -437,7 +461,9 @@ void CCDSim::TimerHit()
                 if (timeleft <= 0.001)
                 {
                     InExposure = false;
-                    PrimaryCCD.binFrame();
+                    // We don't bin for raw images.
+                    if (DirectoryS[INDI_DISABLED].s == ISS_ON)
+                        PrimaryCCD.binFrame();
                     ExposureComplete(&PrimaryCCD);
                 }
                 else
@@ -511,7 +537,7 @@ void CCDSim::TimerHit()
         if (TemperatureN[0].value >= 20)
         {
             CoolerS[0].s = ISS_OFF;
-            CoolerS[0].s = ISS_ON;
+            CoolerS[1].s = ISS_ON;
             CoolerSP.s   = IPS_IDLE;
             IDSetSwitch(&CoolerSP, nullptr);
         }
@@ -611,14 +637,12 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             pprx, ppry, Scalex, Scaley);
 #endif
 
-        double theta = m_RotationCW + 270;
+        double theta = 270;
+        if (!std::isnan(RotatorAngle))
+            theta += RotatorAngle;
         if (pierSide == 1)
             theta -= 180;       // rotate 180 if on East
-
-        if (theta >= 360)
-            theta -= 360;
-        else if (theta <= -360)
-            theta += 360;
+        theta = range360(theta);
 
         // JM: 2015-03-17: Next we do a rotation assuming CW for angle theta
         pa = pprx * cos(theta * M_PI / 180.0);
@@ -1076,6 +1100,14 @@ bool CCDSim::ISNewText(const char * dev, const char * name, char * texts[], char
             INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
+        else if (!strcmp(DirectoryTP.name, name))
+        {
+            IUUpdateText(&DirectoryTP, texts, names, n);
+            DirectoryTP.s = IPS_OK;
+            IDSetText(&DirectoryTP, nullptr);
+            return true;
+        }
+
     }
 
     return INDI::CCD::ISNewText(dev, name, texts, names, n);
@@ -1091,6 +1123,14 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             IUUpdateNumber(&GainNP, values, names, n);
             GainNP.s = IPS_OK;
             IDSetNumber(&GainNP, nullptr);
+            return true;
+        }
+        if (!strcmp(name, OffsetNP.name))
+        {
+            IUUpdateNumber(&OffsetNP, values, names, n);
+            OffsetNP.s = IPS_OK;
+            IDSetNumber(&OffsetNP, nullptr);
+            m_Bias = OffsetN[0].value;
             return true;
         }
         else if (!strcmp(name, SimulatorSettingsNP.name))
@@ -1160,11 +1200,11 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
                 return false;
             }
 
-            m_SimulateRGB = index == 0;
-            setRGB(m_SimulateRGB);
+            m_SimulateBayer = index == 0;
+            setBayerEnabled(m_SimulateBayer);
 
-            SimulateRgbS[0].s = m_SimulateRGB ? ISS_ON : ISS_OFF;
-            SimulateRgbS[1].s = m_SimulateRGB ? ISS_OFF : ISS_ON;
+            SimulateBayerS[INDI_ENABLED].s = m_SimulateBayer ? ISS_ON : ISS_OFF;
+            SimulateBayerS[INDI_DISABLED].s = m_SimulateBayer ? ISS_OFF : ISS_ON;
             SimulateRgbSP.s   = IPS_OK;
             IDSetSwitch(&SimulateRgbSP, nullptr);
 
@@ -1185,6 +1225,53 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 
             IDSetSwitch(&CoolerSP, nullptr);
 
+            return true;
+        }
+        else if (!strcmp(DirectorySP.name, name))
+        {
+            IUUpdateSwitch(&DirectorySP, states, names, n);
+            m_AllFiles.clear();
+            m_RemainingFiles.clear();
+            if (DirectoryS[INDI_ENABLED].s == ISS_ON)
+            {
+                DIR* dirp = opendir(DirectoryT[0].text);
+                struct dirent * dp;
+                std::string d_dir = std::string(DirectoryT[0].text);
+                if (DirectoryT[0].text[strlen(DirectoryT[0].text) - 1] != '/')
+                    d_dir += "/";
+                while ((dp = readdir(dirp)) != NULL)
+                {
+
+                    // For now, just FITS.
+                    if (strstr(dp->d_name, ".fits"))
+                        m_AllFiles.push_back(d_dir + dp->d_name);
+                }
+                closedir(dirp);
+
+                if (m_AllFiles.empty())
+                {
+                    IUResetSwitch(&DirectorySP);
+                    DirectoryS[INDI_DISABLED].s = ISS_ON;
+                    DirectorySP.s = IPS_ALERT;
+                    LOGF_ERROR("No FITS files found in directory %s", DirectoryT[0].text);
+                    IDSetSwitch(&DirectorySP, nullptr);
+                }
+                else
+                {
+                    DirectorySP.s = IPS_OK;
+                    std::sort(m_AllFiles.begin(), m_AllFiles.end());
+                    m_RemainingFiles = m_AllFiles;
+                    LOGF_INFO("Directory-based images are enabled. Subsequent exposures will be loaded from directory %s", DirectoryT[0].text);
+                }
+            }
+            else
+            {
+                m_RemainingFiles.clear();
+                DirectorySP.s = IPS_OK;
+                setBayerEnabled(SimulateBayerS[INDI_ENABLED].s == ISS_ON);
+                LOG_INFO("Directory-based images are disabled.");
+            }
+            IDSetSwitch(&DirectorySP, nullptr);
             return true;
         }
         else if (strcmp(name, CrashSP.name) == 0)
@@ -1300,6 +1387,10 @@ bool CCDSim::saveConfigItems(FILE * fp)
 
     // Gain
     IUSaveConfigNumber(fp, &GainNP);
+    IUSaveConfigNumber(fp, &OffsetNP);
+
+    // Directory
+    IUSaveConfigText(fp, &DirectoryTP);
 
     // RGB
     IUSaveConfigSwitch(fp, &SimulateRgbSP);
@@ -1390,7 +1481,6 @@ void * CCDSim::streamVideoHelper(void * context)
 void * CCDSim::streamVideo()
 {
     auto start = std::chrono::high_resolution_clock::now();
-    auto finish = std::chrono::high_resolution_clock::now();
 
     while (true)
     {
@@ -1414,7 +1504,7 @@ void * CCDSim::streamVideo()
 
         PrimaryCCD.binFrame();
 
-        finish = std::chrono::high_resolution_clock::now();
+        auto finish = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = finish - start;
 
         if (elapsed.count() < ExposureRequest)
@@ -1438,3 +1528,74 @@ void CCDSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
     fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
 }
 
+bool CCDSim::loadNextImage()
+{
+    if (m_RemainingFiles.empty())
+        m_RemainingFiles = m_AllFiles;
+    const std::string filename = m_RemainingFiles[0];
+    m_RemainingFiles.pop_front();
+    char comment[512] = {0}, bayer_pattern[16] = {0};
+    int status = 0, anynull = 0;
+    double pixel_size = 5.2;
+    int ndim {2}, bitpix {8};
+    long naxes[3];
+    fitsfile *fptr = nullptr;
+
+    if (fits_open_diskfile(&fptr, filename.c_str(), READONLY, &status))
+    {
+        char error_status[512] = {0};
+        fits_get_errstatus(status, error_status);
+        LOGF_WARN("Error opening file %s due to error %s", filename.c_str(), error_status);
+        return false;
+    }
+
+    fits_get_img_param(fptr, 3, &bitpix, &ndim, naxes, &status);
+
+    if (ndim < 3)
+        naxes[2] = 1;
+    int samples_per_channel = naxes[0] * naxes[1];
+    int channels = naxes[2];
+    int elements = samples_per_channel * channels;
+    int size =  elements * bitpix / 8;
+    PrimaryCCD.setFrameBufferSize(size);
+
+    if (fits_read_img(fptr, bitpix == 8 ? TBYTE : TUSHORT, 1, elements, 0, PrimaryCCD.getFrameBuffer(), &anynull, &status))
+    {
+        char error_status[512] = {0};
+        fits_get_errstatus(status, error_status);
+        LOGF_WARN("Error reading file %s due to error %s", filename.c_str(), error_status);
+        return false;
+    }
+
+    if (fits_read_key_dbl(fptr, "PIXSIZE1", &pixel_size, comment, &status))
+    {
+        char error_status[512] = {0};
+        fits_get_errstatus(status, error_status);
+        LOGF_WARN("Error reading file %s due to error %s", filename.c_str(), error_status);
+        return false;
+    }
+
+    if (fits_read_key_str(fptr, "BAYERPAT", bayer_pattern, comment, &status))
+    {
+        char error_status[512] = {0};
+        fits_get_errstatus(status, error_status);
+        LOGF_DEBUG("No BAYERPAT keyword found in %s (%s)", filename.c_str(), error_status);
+    }
+    SetCCDParams(naxes[0], naxes[1], bitpix, pixel_size, pixel_size);
+
+    // Check if MONO or Bayer
+    if (channels == 1 && strlen(bayer_pattern)  == 4)
+    {
+        SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
+        IUSaveText(&BayerT[0], "0");
+        IUSaveText(&BayerT[1], "0");
+        IUSaveText(&BayerT[2], bayer_pattern);
+    }
+    else
+    {
+        SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+    }
+
+    fits_close_file(fptr, &status);
+    return true;
+}

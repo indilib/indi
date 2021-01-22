@@ -1,3 +1,72 @@
+From 1.8.7 to 1.8.8
+
+      + New HOBYM Crux telescope driver (#1295)
+      + New Rainbow focuser driver (#1304)
+      + New ActiveFocuser driver release (#1301)
+      + 10Micron: UnattendedFlip handling, implements #1276 (#1298)
+      + Bugfix/sat track lx200 julian day (#1305)
+      + Improved serial port auto-search.
+      + Refactor/satellite tracking properties -> Moving properties to a higher abstraction layer (#1300)
+      + SkyWatcher Alt-Az driver improvements.
+      + Indibase/refactoring - update INDI::Property (#1302)
+      + Update of SmartFocus driver (#1275)
+      + Add new helper methods to the AlignmentSubsystemForDrivers (Alt/Az) (#1308)
+      + Streammanager/chrono - Fix the 24h time limit. (#1278)
+      + Fix remote driver not sending properties to upstream server
+      + Delay calculation in indicommon and indicorrelator (#1277)
+      + Indidriver/refactoring - fix memory leak, increase performance (#1281)
+      + Streammanager/refactoring (#1280)
+      + Move absolute position bugfix (#1285)
+      + Use of the common mkpath function (#1288)
+      + Sesto Senso 2: Support for displaying 12V input voltage. (#1289)
+      + Add Microsoft LifeCam Cinema to pixelSizeInfo (#1314)
+      + Sesto Senso 2: Log & display firmware version (#1292)
+      + fix: inline methods that use unlinked functions (#1312)
+
+From 1.8.6 to 1.8.7
+
+      + New Esatto focuser support.
+      + New Pegasus Falcon Rotator.
+      + Fix QHYCFW3 driver handshake (#1229)
+      + Support for AZ-GTi in Alt-Az mode.
+      + Improve on deadlocks and integrity (#1243)
+      + Rework/streammanager - fix recording subframe issue, add processing qeue, configurable limits memory/fps (#1254)
+      + Baader SteelDrive II - feature, Adjustable holding and move current for stepper drive (#1257)
+      + Do not block the stream thread when sending FPS status, fix frames discarding. (#1258)
+      + Many bug fixes and additions supporting advanced Pulsar2 features (#1261)
+      + Add support to connecting to all remote drivers without specifying an explicit driver.
+      + Added Humidity, Pressure and Clouds to the WeatherWatcher driver (#1247)
+      + Fixed Losmandy Gemini failed to complete park issue (#1239).
+      + Set Eq Coords property state to OK & IDLE as needed (#1240).
+      + 1st fix for CEM25p Slewing to home position while parked (#1245)
+      + DSP Improvements (#1251)
+      + Compatibility fixed for SteelDriver II. New firmware has more arguments. (#1253)
+      + Full support for Fedora builds.
+
+From 1.8.5 to 1.8.6
+
+      + New Raspberry Pi HQ Camera driver.
+      + New Pegasus PPBA driver.
+      + New DomePro2 driver.
+      + Add PierSide to indi_ioptron_telescope (#1120)
+      + Fix Pier Side problem on Gemini mounts (#1122)
+      + Goto mode selectable for Alt/Az mounts via an UI Switch. (#1136)
+      + OnStep: Weather sensor (READ) support (#1142)
+      + OnStep: Support for setting temperatures for dew heaters/focusers
+      + Fix skywatcher altaz crash (#1151)
+      + Add the focus temperature property to the focus simulator (#1152)
+      + Logitech HD C270 webcam data added to v4l2_ccd driver (#1154)
+      + Astrophysics park3 support (#1167)
+      + Implement Parking for LX200 classic (#1164)
+      + UDP support for skywatcherAPI (#1172)
+      + LX200 FS-2 Park (#1165)
+      + Telescope Simulator Parking to HA/Dec frame (#1174)
+      + Update Pointing State determination. (#1179)
+      + Feature Satellite tracking with TLE for 10Micron mounts (#1208)
+      + Add focuser temperature to FITS header (#1209)
+      + myFocuserPro2 Fix coil power command (#1195)
+      + Updated TeenAstro INDI driver for firmware 1.2.0 (#1196)
+
 From 1.8.4 to 1.8.5
 
       + New PlaneWave EFA Driver.
@@ -32,7 +101,7 @@ From 1.8.3 to 1.8.4
       + CCD Simulator bayer support.
       + FCUSB2 support.
       + Fixed complation on FreeBSD.
-    
+
 From 1.8.2 to 1.8.3
 
       + New RainbowAstro Mount driver.

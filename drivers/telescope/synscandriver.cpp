@@ -142,16 +142,16 @@ bool SynscanDriver::updateProperties()
     {
         setupParams();
 
-        defineNumber(&HorizontalCoordsNP);
-        defineText(&StatusTP);
-        defineNumber(&CustomSlewRateNP);
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&HorizontalCoordsNP);
+        defineProperty(&StatusTP);
+        defineProperty(&CustomSlewRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
         if (m_isAltAz)
         {
-            defineSwitch(&GotoModeSP);
+            defineProperty(&GotoModeSP);
         }
 
         if (InitPark())
@@ -383,7 +383,7 @@ bool SynscanDriver::readTracking()
         m_TrackingFlag = res[0];
 
         // Track mode?
-        if ((m_TrackingFlag - 1) != IUFindOnSwitchIndex(&TrackModeSP))
+        if (((m_TrackingFlag - 1) != IUFindOnSwitchIndex(&TrackModeSP)) && (m_TrackingFlag))
         {
             IUResetSwitch(&TrackModeSP);
             TrackModeS[m_TrackingFlag - 1].s = ISS_ON;
@@ -646,9 +646,9 @@ bool SynscanDriver::Goto(double ra, double dec)
         if (lnobserver.lng > 180)
             lnobserver.lng -= 360;
         lnobserver.lat = LocationN[LOCATION_LATITUDE].value;
-        ln_get_hrz_from_equ(&epochPos, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+        get_hrz_from_equ(&epochPos, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
         /* libnova measures azimuth from south towards west */
-        double az = range360(lnaltaz.az + 180);
+        double az = lnaltaz.az;
         double al = lnaltaz.alt;
 
         return GotoAzAlt(az, al);
@@ -697,12 +697,10 @@ bool SynscanDriver::GotoAzAlt(double az, double alt)
             observer.lng -= 360;
         observer.lat = LocationN[LOCATION_LATITUDE].value;
 
-        horizontalPos.az = az + 180;
-        if (horizontalPos.az > 360)
-            horizontalPos.az -= 360;
+        horizontalPos.az = az;
         horizontalPos.alt = alt;
 
-        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+        get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
         return Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
 
@@ -1213,11 +1211,7 @@ ln_hrz_posn SynscanDriver::getAltAzPosition(double ra, double dec)
 
     Eq.ra  = ra * 360.0 / 24.0;
     Eq.dec = dec;
-    ln_get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys(), &AltAz);
-    AltAz.az -= 180;
-    if (AltAz.az < 0)
-        AltAz.az += 360;
-
+    get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys(), &AltAz);
     return AltAz;
 }
 

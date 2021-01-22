@@ -58,9 +58,9 @@ bool LX200FS2::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&SlewRateSP);
-        defineNumber(&SlewAccuracyNP);
-        defineSwitch(&StopAfterParkSP);
+        defineProperty(&SlewRateSP);
+        defineProperty(&SlewAccuracyNP);
+        defineProperty(&StopAfterParkSP);
 
         if (InitPark())
         {
@@ -185,10 +185,7 @@ bool LX200FS2::Park()
     LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
     ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-    horizontalPos.az = parkAZ + 180;
-    if (horizontalPos.az >= 360)
-        horizontalPos.az -= 360;
+    horizontalPos.az = parkAZ;
     horizontalPos.alt = parkAlt;
 
     ln_lnlat_posn observer;
@@ -201,7 +198,7 @@ bool LX200FS2::Park()
 
     ln_equ_posn equatorialPos;
 
-    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
     char RAStr[16], DEStr[16];
     fs_sexa(RAStr, equatorialPos.ra / 15.0, 2, 3600);
@@ -334,10 +331,7 @@ bool LX200FS2::UnPark()
     LOGF_DEBUG("Unparking from Az (%s) Alt (%s)...", AzStr, AltStr);
 
     ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-    horizontalPos.az = parkAZ + 180;
-    if (horizontalPos.az >= 360)
-        horizontalPos.az -= 360;
+    horizontalPos.az = parkAZ;
     horizontalPos.alt = parkAlt;
 
     ln_lnlat_posn observer;
@@ -350,7 +344,7 @@ bool LX200FS2::UnPark()
 
     ln_equ_posn equatorialPos;
 
-    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
     char RAStr[16], DEStr[16];
     fs_sexa(RAStr, equatorialPos.ra / 15.0, 2, 3600);
@@ -384,11 +378,8 @@ bool LX200FS2::SetCurrentPark()
     ln_equ_posn equatorialPos;
     equatorialPos.ra  = currentRA * 15;
     equatorialPos.dec = currentDEC;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    double parkAZ = horizontalPos.az - 180;
-    if (parkAZ < 0)
-        parkAZ += 360;
+    get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+    double parkAZ = horizontalPos.az;
     double parkAlt = horizontalPos.alt;
 
     char AzStr[16], AltStr[16];

@@ -170,15 +170,15 @@ bool PegasusPPB::updateProperties()
     if (isConnected())
     {
         // Main Control
-        defineSwitch(&PowerCycleAllSP);
-        defineSwitch(&DSLRPowerSP);
-        defineNumber(&PowerSensorsNP);
-        defineSwitch(&PowerOnBootSP);
-        defineSwitch(&RebootSP);
+        defineProperty(&PowerCycleAllSP);
+        defineProperty(&DSLRPowerSP);
+        defineProperty(&PowerSensorsNP);
+        defineProperty(&PowerOnBootSP);
+        defineProperty(&RebootSP);
 
         // Dew
-        defineSwitch(&AutoDewSP);
-        defineNumber(&DewPWMNP);
+        defineProperty(&AutoDewSP);
+        defineProperty(&DewPWMNP);
 
         WI::updateProperties();
 
@@ -463,12 +463,12 @@ void PegasusPPB::TimerHit()
 {
     if (!isConnected() || setupComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
     getSensorData();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool PegasusPPB::sendFirmware()

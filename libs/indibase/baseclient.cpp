@@ -56,6 +56,7 @@
 #endif
 
 #define MAXINDIBUF 49152
+#define DISCONNECTION_DELAY_US 500000
 
 INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 {
@@ -69,6 +70,15 @@ INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 INDI::BaseClient::~BaseClient()
 {
     clear();
+
+    if (listen_thread)
+    {
+        disconnectServer();
+
+        listen_thread->join();
+        delete(listen_thread);
+        listen_thread = nullptr;
+    }
 }
 
 void INDI::BaseClient::clear()
@@ -277,6 +287,12 @@ bool INDI::BaseClient::disconnectServer()
 
     sConnected = false;
 
+    // Insert a disconnection delay for running threads to finish and
+    // new threads to spot the disconnection state. This mitigates most deadlocks
+    // without causing loss of functionality, but will suffer from real-time
+    // performance of the clients as the timeout is arbitrary.
+    //usleep(DISCONNECTION_DELAY_US);
+
 #ifdef _WINDOWS
     net_close(sockfd);
     WSACleanup();
@@ -289,9 +305,9 @@ bool INDI::BaseClient::disconnectServer()
 
     cDeviceNames.clear();
 
-    listen_thread->join();
-    delete(listen_thread);
-    listen_thread = nullptr;
+    //    listen_thread->join();
+    //    delete(listen_thread);
+    //    listen_thread = nullptr;
     //pthread_join(listen_thread, nullptr);
 
     int exit_code = 0;
@@ -619,13 +635,14 @@ int INDI::BaseClient::delPropertyCmd(XMLEle *root, char *errmsg)
         if (rProp == nullptr)
         {
             // Silently ignore B_ONLY clients.
-            if (blobModes[0]->blobMode == B_ONLY)
+            if (blobModes.empty() || blobModes[0]->blobMode == B_ONLY)
                 return 0;
 
             snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", valuXMLAtt(ap));
             return -1;
         }
-        removeProperty(rProp);
+        if (sConnected)
+            removeProperty(rProp);
         int errCode = dp->removeProperty(valuXMLAtt(ap), errmsg);
 
         return errCode;
@@ -658,13 +675,13 @@ int INDI::BaseClient::deleteDevice(const char *devName, char *errmsg)
 
 INDI::BaseDevice *INDI::BaseClient::findDev(const char *devName, char *errmsg)
 {
-    std::vector<INDI::BaseDevice *>::const_iterator devicei;
-
-    for (devicei = cDevices.begin(); devicei != cDevices.end(); ++devicei)
+    auto pos = std::find_if(cDevices.begin(), cDevices.end(), [devName](INDI::BaseDevice * oneDevice)
     {
-        if (!strcmp(devName, (*devicei)->getDeviceName()))
-            return (*devicei);
-    }
+        return !strcmp(oneDevice->getDeviceName(), devName);
+    });
+
+    if (pos != cDevices.end())
+        return *pos;
 
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
     return nullptr;

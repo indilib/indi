@@ -97,7 +97,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    INDI_UNUSED(root);
+    SkywatcherAltAzSimplePtr->ISSnoopDevice(root);
 }
 
 SkywatcherAltAzSimple::SkywatcherAltAzSimple() : TrackLogFileName(GetHomeDirectory() + "/.indi/sw_mount_track_log.txt")
@@ -145,7 +145,7 @@ bool SkywatcherAltAzSimple::Handshake()
         tty_set_generic_udp_format(1);
     }
 
-    bool Result = InitMount(RecoverAfterReconnection);
+    bool Result = InitMount();
 
     if (getActiveConnection() == serialConnection)
     {
@@ -416,25 +416,25 @@ void SkywatcherAltAzSimple::ISGetProperties(const char *dev)
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX mewssage to any connected clients
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&WedgeModeSP);
-        defineSwitch(&TrackLogModeSP);
-        defineNumber(&GuidingRatesNP);
-        defineNumber(&TrackingValuesNP);
-        defineSwitch(&ParkMovementDirectionSP);
-        defineSwitch(&ParkPositionSP);
-        defineSwitch(&UnparkPositionSP);
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&BasicMountInfoV);
+        defineProperty(&AxisOneInfoV);
+        defineProperty(&AxisOneStateV);
+        defineProperty(&AxisTwoInfoV);
+        defineProperty(&AxisTwoStateV);
+        defineProperty(&AxisOneEncoderValuesV);
+        defineProperty(&AxisTwoEncoderValuesV);
+        defineProperty(&SlewModesSP);
+        defineProperty(&WedgeModeSP);
+        defineProperty(&TrackLogModeSP);
+        defineProperty(&GuidingRatesNP);
+        defineProperty(&TrackingValuesNP);
+        defineProperty(&ParkMovementDirectionSP);
+        defineProperty(&ParkPositionSP);
+        defineProperty(&UnparkPositionSP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
     }
 }
 
@@ -646,7 +646,7 @@ void SkywatcherAltAzSimple::UpdateScopeConfigSwitch()
     deleteProperty("USEJOYSTICK");
     // Recreate the switch control
     deleteProperty(ScopeConfigsSP.name);
-    defineSwitch(&ScopeConfigsSP);
+    defineProperty(&ScopeConfigsSP);
 }
 
 double SkywatcherAltAzSimple::GetSlewRate()
@@ -1126,14 +1126,14 @@ void SkywatcherAltAzSimple::TimerHit()
                 ResetGuidePulses();
             }
 
-            if (moving) 
-			{
-//                TrackedAltAz  = CurrentAltAz;
+            if (moving)
+            {
+                //                TrackedAltAz  = CurrentAltAz;
                 CurrentTrackingTarget.ra = EqN[AXIS_RA].value;
                 CurrentTrackingTarget.dec = EqN[AXIS_DE].value;
-            } 
-			else 
-			{
+            }
+            else
+            {
                 // Restart the drift compensation after syncing
                 if (ResetTrackingSeconds)
                 {
@@ -1217,9 +1217,9 @@ void SkywatcherAltAzSimple::TimerHit()
                 }
 
                 AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
-                                              "TRACKING_RATE_ALT")->value);
+                                                  "TRACKING_RATE_ALT")->value);
                 AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
-                                             "TRACKING_RATE_AZ")->value);
+                                                 "TRACKING_RATE_AZ")->value);
 
                 LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
                            CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,
@@ -1290,28 +1290,28 @@ bool SkywatcherAltAzSimple::updateProperties()
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX message to any connected clients
         // I have now idea why I have to do this here as well as in ISGetProperties. It makes me
         // concerned there is a design or implementation flaw somewhere.
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&WedgeModeSP);
-        defineSwitch(&TrackLogModeSP);
-        defineNumber(&GuidingRatesNP);
-        defineNumber(&TrackingValuesNP);
-        defineSwitch(&ParkMovementDirectionSP);
-        defineSwitch(&ParkPositionSP);
-        defineSwitch(&UnparkPositionSP);
+        defineProperty(&BasicMountInfoV);
+        defineProperty(&AxisOneInfoV);
+        defineProperty(&AxisOneStateV);
+        defineProperty(&AxisTwoInfoV);
+        defineProperty(&AxisTwoStateV);
+        defineProperty(&AxisOneEncoderValuesV);
+        defineProperty(&AxisTwoEncoderValuesV);
+        defineProperty(&SlewModesSP);
+        defineProperty(&WedgeModeSP);
+        defineProperty(&TrackLogModeSP);
+        defineProperty(&GuidingRatesNP);
+        defineProperty(&TrackingValuesNP);
+        defineProperty(&ParkMovementDirectionSP);
+        defineProperty(&ParkPositionSP);
+        defineProperty(&UnparkPositionSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
         return true;
     }
     else
@@ -1391,7 +1391,8 @@ void SkywatcherAltAzSimple::ResetGuidePulses()
     GuidingPulses.clear();
 }
 
-int SkywatcherAltAzSimple::recover_tty_reconnect() {
+int SkywatcherAltAzSimple::recover_tty_reconnect()
+{
     if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
     {
         RecoverAfterReconnection = true;

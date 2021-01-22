@@ -93,7 +93,8 @@ class Driver
         /**************************************************************************
          Communication
         **************************************************************************/
-        bool sendCommand(const char *command, int count = 1, char *response = nullptr, uint8_t timeout = IOP_TIMEOUT, uint8_t debugLog = INDI::Logger::DBG_DEBUG);
+        bool sendCommand(const char *command, int count = 1, char *response = nullptr, uint8_t timeout = IOP_TIMEOUT,
+                         uint8_t debugLog = INDI::Logger::DBG_DEBUG);
         bool checkConnection(int fd);
 
         /**************************************************************************
@@ -136,6 +137,8 @@ class Driver
         **************************************************************************/
         bool park();
         bool unpark();
+        bool setParkAz(double az);
+        bool setParkAlt(double alt);
 
         /**************************************************************************
          Guide

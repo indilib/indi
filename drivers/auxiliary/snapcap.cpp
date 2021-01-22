@@ -143,17 +143,17 @@ bool SnapCap::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&ParkCapSP);
+        defineProperty(&ParkCapSP);
         if (hasLight)
         {
-            defineSwitch(&LightSP);
-            defineNumber(&LightIntensityNP);
+            defineProperty(&LightSP);
+            defineProperty(&LightIntensityNP);
             updateLightBoxProperties();
         }
-        defineText(&StatusTP);
-        defineText(&FirmwareTP);
-        defineSwitch(&AbortSP);
-        defineSwitch(&ForceSP);
+        defineProperty(&StatusTP);
+        defineProperty(&FirmwareTP);
+        defineProperty(&AbortSP);
+        defineProperty(&ForceSP);
         getStartupData();
     }
     else
@@ -185,7 +185,7 @@ bool SnapCap::Handshake()
     {
         LOGF_INFO("Connected successfully to simulated %s. Retrieving startup data...", getDeviceName());
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
 
@@ -607,7 +607,7 @@ void SnapCap::TimerHit()
 
     getStatus();
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool SnapCap::getBrightness()

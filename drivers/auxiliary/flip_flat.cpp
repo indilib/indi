@@ -136,11 +136,11 @@ bool FlipFlat::updateProperties()
     if (isConnected())
     {
         if (m_Type == FLIP_FLAT || m_Type == ALNITAK_DUST_COVER)
-            defineSwitch(&ParkCapSP);
-        defineSwitch(&LightSP);
-        defineNumber(&LightIntensityNP);
-        defineText(&StatusTP);
-        defineText(&FirmwareTP);
+            defineProperty(&ParkCapSP);
+        defineProperty(&LightSP);
+        defineProperty(&LightIntensityNP);
+        defineProperty(&StatusTP);
+        defineProperty(&FirmwareTP);
 
         updateLightBoxProperties();
 
@@ -172,9 +172,10 @@ bool FlipFlat::Handshake()
     {
         LOGF_INFO("Connected successfuly to simulated %s. Retrieving startup data...", getDeviceName());
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
 
         setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
+        syncDriverInfo();
         m_Type = FLIP_FLAT;
 
         return true;
@@ -275,12 +276,14 @@ bool FlipFlat::ping()
     if (productID == 99)
     {
         setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
+        syncDriverInfo();
         m_Type = FLIP_FLAT;
     }
     // AlNitak Dust Cover
     else if (productID == 98)
     {
         setDriverInterface(AUX_INTERFACE | DUSTCAP_INTERFACE);
+        syncDriverInfo();
     }
     // Flip Man
     else
@@ -564,7 +567,7 @@ void FlipFlat::TimerHit()
             UnParkCap();
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool FlipFlat::getBrightness()

@@ -136,7 +136,7 @@ void AstrometryDriver::ISGetProperties(const char *dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
-    defineText(&ActiveDeviceTP);
+    defineProperty(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 }
 
@@ -146,9 +146,9 @@ bool AstrometryDriver::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&SolverSP);
-        defineText(&SolverSettingsTP);
-        defineBLOB(&SolverDataBP);
+        defineProperty(&SolverSP);
+        defineProperty(&SolverSettingsTP);
+        defineProperty(&SolverDataBP);
     }
     else
     {
@@ -201,7 +201,7 @@ bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[],
                 SolverS[SOLVER_DISABLE].s = ISS_OFF;
                 SolverSP.s   = IPS_BUSY;
                 LOG_INFO("Astrometry solver is enabled.");
-                defineNumber(&SolverResultNP);
+                defineProperty(&SolverResultNP);
             }
 
             processBLOB(reinterpret_cast<uint8_t *>(blobs[0]), static_cast<uint32_t>(sizes[0]),
@@ -262,7 +262,7 @@ bool AstrometryDriver::ISNewSwitch(const char *dev, const char *name, ISState *s
             if (SolverS[SOLVER_ENABLE].s == ISS_ON)
             {
                 LOG_INFO("Astrometry solver is enabled.");
-                defineNumber(&SolverResultNP);
+                defineProperty(&SolverResultNP);
             }
             else
             {

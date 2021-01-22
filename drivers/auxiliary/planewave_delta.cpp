@@ -127,18 +127,18 @@ bool DeltaT::updateProperties()
     {
         initializeHeaters();
 
-        defineText(&InfoTP);
-        defineNumber(&TemperatureNP);
-        defineSwitch(&ForceSP);
+        defineProperty(&InfoTP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&ForceSP);
 
         for (auto &oneSP : HeaterControlSP)
-            defineSwitch(oneSP.get());
+            defineProperty(oneSP.get());
 
         for (auto &oneNP : HeaterParamNP)
-            defineNumber(oneNP.get());
+            defineProperty(oneNP.get());
 
         for (auto &oneNP : HeaterMonitorNP)
-            defineNumber(oneNP.get());
+            defineProperty(oneNP.get());
 
     }
     else
@@ -399,7 +399,7 @@ void DeltaT::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 

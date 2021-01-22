@@ -26,6 +26,7 @@
 #include "libastro.h"
 #include "stream/streammanager.h"
 #include "locale_compat.h"
+#include "indiutility.h"
 
 #include <fitsio.h>
 
@@ -41,31 +42,6 @@
 #include <cstdlib>
 #include <zlib.h>
 #include <sys/stat.h>
-
-// Create dir recursively
-static int _det_mkdir(const char *dir, mode_t mode)
-{
-    char tmp[PATH_MAX];
-    char *p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
 
 namespace INDI
 {
@@ -113,25 +89,25 @@ bool SensorInterface::updateProperties()
     //IDLog("Sensor UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
-        defineNumber(&FramedIntegrationNP);
+        defineProperty(&FramedIntegrationNP);
 
         if (CanAbort())
-            defineSwitch(&AbortIntegrationSP);
+            defineProperty(&AbortIntegrationSP);
 
-        defineText(&FITSHeaderTP);
+        defineProperty(&FITSHeaderTP);
 
         if (HasCooler())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
 
-        defineBLOB(&FitsBP);
+        defineProperty(&FitsBP);
 
-        defineSwitch(&TelescopeTypeSP);
+        defineProperty(&TelescopeTypeSP);
 
-        defineSwitch(&UploadSP);
+        defineProperty(&UploadSP);
 
         if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
-        defineText(&UploadSettingsTP);
+        defineProperty(&UploadSettingsTP);
     }
     else
     {
@@ -163,7 +139,7 @@ void SensorInterface::processProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
-    defineText(&ActiveDeviceTP);
+    defineProperty(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 
     if (HasStreaming())
@@ -217,6 +193,7 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
             strncpy(ScopeParametersNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
 
             IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+            IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
             IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
 
@@ -341,12 +318,12 @@ bool SensorInterface::processSwitch(const char *dev, const char *name, ISState *
             else if (UploadS[1].s == ISS_ON)
             {
                 DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
-                defineText(&FileNameTP);
+                defineProperty(&FileNameTP);
             }
             else
             {
                 DEBUG(Logger::DBG_SESSION, "Upload settings set to client and local.");
-                defineText(&FileNameTP);
+                defineProperty(&FileNameTP);
             }
             return true;
         }
@@ -494,6 +471,7 @@ bool SensorInterface::initProperties()
                        OPTIONS_TAB, IP_RW, 60, IPS_OK);
 
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
 
@@ -640,8 +618,10 @@ bool SensorInterface::AbortIntegration()
 
 void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 {
+#ifndef WITH_MINMAX
     INDI_UNUSED(buf);
     INDI_UNUSED(len);
+#endif
     int status = 0;
     char dev_name[32];
     char exp_start[32];
@@ -889,7 +869,7 @@ void* SensorInterface::sendFITS(uint8_t *buf, int len)
 bool SensorInterface::IntegrationComplete()
 {
     // Reset POLLMS to default value
-    POLLMS = getPollingPeriod();
+    setCurrentPollingPeriod(getPollingPeriod());
 
     if(HasDSP())
     {
@@ -1205,9 +1185,9 @@ int SensorInterface::getFileIndex(const char *dir, const char *prefix, const cha
 
     if (stat(dir, &st) == -1)
     {
-        DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
-        if (_det_mkdir(dir, 0755) == -1)
-            DEBUGF(Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
+        LOGF_DEBUG("Creating directory %s...", dir);
+        if (INDI::mkpath(dir, 0755) == -1)
+            LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
     }
 
     dpdf = opendir(dir);

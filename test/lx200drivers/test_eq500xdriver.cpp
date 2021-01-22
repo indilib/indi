@@ -45,7 +45,7 @@ public:
     double getLST() { return LST; }
     bool getCurrentMechanicalPosition(MechanicalPoint &p) { return EQ500X::getCurrentMechanicalPosition(p); }
     TelescopeStatus getTrackState() const { return TrackState; }
-    long getReadScopeStatusInterval() const { return POLLMS; }
+    long getReadScopeStatusInterval() const { return getCurrentPollingPeriod(); }
     int getSlewRateIndex() const { return IUFindOnSwitchIndex(&SlewRateSP); }
 public:
     void setLongitude(double lng) {
