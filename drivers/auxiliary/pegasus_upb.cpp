@@ -1165,6 +1165,7 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
     // Save CCD Config
     INDI::DefaultDevice::saveConfigItems(fp);
     FI::saveConfigItems(fp);
+    WI::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &PowerLEDSP);
     IUSaveConfigSwitch(fp, &AutoDewSP);

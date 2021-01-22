@@ -559,10 +559,9 @@ bool PegasusPPBA::setDewPWM(uint8_t id, uint8_t value)
 
 bool PegasusPPBA::saveConfigItems(FILE * fp)
 {
-    // Save CCD Config
     INDI::DefaultDevice::saveConfigItems(fp);
+    WI::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &AutoDewSP);
-
     return true;
 }
 

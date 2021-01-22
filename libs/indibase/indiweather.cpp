@@ -369,14 +369,10 @@ bool Weather::processLocationInfo(double latitude, double longitude, double elev
 bool Weather::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
-
+    WI::saveConfigItems(fp);
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigNumber(fp, &LocationNP);
     IUSaveConfigNumber(fp, &UpdatePeriodNP);
-
-    for (int i = 0; i < nRanges; i++)
-        IUSaveConfigNumber(fp, &ParametersRangeNP[i]);
-
     return true;
 }
 
