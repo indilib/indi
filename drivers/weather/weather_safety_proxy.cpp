@@ -139,7 +139,7 @@ bool WeatherSafetyProxy::updateProperties()
 
     if (isConnected())
     {
-        defineText(&reasonsTP);
+        defineProperty(&reasonsTP);
     }
     else
     {
@@ -166,10 +166,10 @@ void WeatherSafetyProxy::ISGetProperties(const char *dev)
     if (once)
     {
         once = false;
-        defineText(&ScriptsTP);
-        defineText(&UrlTP);
-        defineSwitch(&ScriptOrCurlSP);
-        defineNumber(&softErrorHysteresisNP);
+        defineProperty(&ScriptsTP);
+        defineProperty(&UrlTP);
+        defineProperty(&ScriptOrCurlSP);
+        defineProperty(&softErrorHysteresisNP);
         loadConfig(false, "WEATHER_SAFETY_SCRIPTS");
         loadConfig(false, "WEATHER_SAFETY_URLS");
         loadConfig(false, "SCRIPT_OR_CURL");

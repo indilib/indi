@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <cstring>
 #include <algorithm>
+#include <assert.h>
 
 #ifdef _WINDOWS
 #include <WinSock2.h>
@@ -55,6 +56,7 @@
 #endif
 
 #define MAXINDIBUF 49152
+#define DISCONNECTION_DELAY_US 500000
 
 INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 {
@@ -68,6 +70,15 @@ INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 INDI::BaseClient::~BaseClient()
 {
     clear();
+
+    if (listen_thread)
+    {
+        disconnectServer();
+
+        listen_thread->join();
+        delete(listen_thread);
+        listen_thread = nullptr;
+    }
 }
 
 void INDI::BaseClient::clear()
@@ -276,6 +287,12 @@ bool INDI::BaseClient::disconnectServer()
 
     sConnected = false;
 
+    // Insert a disconnection delay for running threads to finish and
+    // new threads to spot the disconnection state. This mitigates most deadlocks
+    // without causing loss of functionality, but will suffer from real-time
+    // performance of the clients as the timeout is arbitrary.
+    //usleep(DISCONNECTION_DELAY_US);
+
 #ifdef _WINDOWS
     net_close(sockfd);
     WSACleanup();
@@ -288,9 +305,9 @@ bool INDI::BaseClient::disconnectServer()
 
     cDeviceNames.clear();
 
-    listen_thread->join();
-    delete(listen_thread);
-    listen_thread = nullptr;
+    //    listen_thread->join();
+    //    delete(listen_thread);
+    //    listen_thread = nullptr;
     //pthread_join(listen_thread, nullptr);
 
     int exit_code = 0;
@@ -532,12 +549,14 @@ void INDI::BaseClient::listenINDI()
 
 int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
 {
-    if (!strcmp(tagXMLEle(root), "message"))
+    const char *tag = tagXMLEle(root);
+
+    if (!strcmp(tag, "message"))
         return messageCmd(root, errmsg);
-    else if (!strcmp(tagXMLEle(root), "delProperty"))
+    else if (!strcmp(tag, "delProperty"))
         return delPropertyCmd(root, errmsg);
     // Just ignore any getProperties we might get
-    else if (!strcmp(tagXMLEle(root), "getProperties"))
+    else if (!strcmp(tag, "getProperties"))
         return INDI_PROPERTY_DUPLICATED;
 
     /* Get the device, if not available, create it */
@@ -549,16 +568,16 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
     }
 
     // Ignore echoed newXXX
-    if (strstr(tagXMLEle(root), "new"))
+    if (strstr(tag, "new"))
         return 0;
 
     // If device is set to BLOB_ONLY, we ignore everything else
     // not related to blobs
     if (getBLOBMode(dp->getDeviceName()) == B_ONLY)
     {
-        if (!strcmp(tagXMLEle(root), "defBLOBVector"))
+        if (!strcmp(tag, "defBLOBVector"))
             return dp->buildProp(root, errmsg);
-        else if (!strcmp(tagXMLEle(root), "setBLOBVector"))
+        else if (!strcmp(tag, "setBLOBVector"))
             return dp->setValue(root, errmsg);
 
         // Ignore everything else
@@ -578,13 +597,13 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
         }
     }
 
-    if ((!strcmp(tagXMLEle(root), "defTextVector")) || (!strcmp(tagXMLEle(root), "defNumberVector")) ||
-            (!strcmp(tagXMLEle(root), "defSwitchVector")) || (!strcmp(tagXMLEle(root), "defLightVector")) ||
-            (!strcmp(tagXMLEle(root), "defBLOBVector")))
+    if ((!strcmp(tag, "defTextVector")) || (!strcmp(tag, "defNumberVector")) ||
+            (!strcmp(tag, "defSwitchVector")) || (!strcmp(tag, "defLightVector")) ||
+            (!strcmp(tag, "defBLOBVector")))
         return dp->buildProp(root, errmsg);
-    else if (!strcmp(tagXMLEle(root), "setTextVector") || !strcmp(tagXMLEle(root), "setNumberVector") ||
-             !strcmp(tagXMLEle(root), "setSwitchVector") || !strcmp(tagXMLEle(root), "setLightVector") ||
-             !strcmp(tagXMLEle(root), "setBLOBVector"))
+    else if (!strcmp(tag, "setTextVector") || !strcmp(tag, "setNumberVector") ||
+             !strcmp(tag, "setSwitchVector") || !strcmp(tag, "setLightVector") ||
+             !strcmp(tag, "setBLOBVector"))
         return dp->setValue(root, errmsg);
 
     return INDI_DISPATCH_ERROR;
@@ -616,13 +635,14 @@ int INDI::BaseClient::delPropertyCmd(XMLEle *root, char *errmsg)
         if (rProp == nullptr)
         {
             // Silently ignore B_ONLY clients.
-            if (blobModes[0]->blobMode == B_ONLY)
+            if (blobModes.empty() || blobModes[0]->blobMode == B_ONLY)
                 return 0;
 
             snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", valuXMLAtt(ap));
             return -1;
         }
-        removeProperty(rProp);
+        if (sConnected)
+            removeProperty(rProp);
         int errCode = dp->removeProperty(valuXMLAtt(ap), errmsg);
 
         return errCode;
@@ -655,13 +675,13 @@ int INDI::BaseClient::deleteDevice(const char *devName, char *errmsg)
 
 INDI::BaseDevice *INDI::BaseClient::findDev(const char *devName, char *errmsg)
 {
-    std::vector<INDI::BaseDevice *>::const_iterator devicei;
-
-    for (devicei = cDevices.begin(); devicei != cDevices.end(); ++devicei)
+    auto pos = std::find_if(cDevices.begin(), cDevices.end(), [devName](INDI::BaseDevice * oneDevice)
     {
-        if (!strcmp(devName, (*devicei)->getDeviceName()))
-            return (*devicei);
-    }
+        return !strcmp(oneDevice->getDeviceName(), devName);
+    });
+
+    if (pos != cDevices.end())
+        return *pos;
 
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
     return nullptr;
@@ -934,8 +954,15 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
     char nl = '\n';
     int rc = 0;
-    uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * bp->size / 3 + 4));
-    uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size);
+    size_t sz = 4 * bp->size / 3 + 4;
+    uint8_t *encblob = static_cast<uint8_t*>(malloc(sz));
+    assert_mem(encblob);
+    uint32_t base64Len = to64frombits_s(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size, sz);
+    if (base64Len == 0)
+    {
+        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
+        exit(1);
+    }
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", bp->name);
@@ -981,8 +1008,15 @@ void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, 
 {
     char nl = '\n';
     int rc = 0;
-    uint8_t *encblob = static_cast<uint8_t*>(malloc(4 * blobSize / 3 + 4));
-    uint32_t base64Len = to64frombits(encblob, reinterpret_cast<const uint8_t *>(blobBuffer), blobSize);
+    size_t sz = 4 * blobSize / 3 + 4;
+    uint8_t *encblob = static_cast<uint8_t*>(malloc(sz));
+    assert_mem(encblob);
+    uint32_t base64Len = to64frombits_s(encblob, reinterpret_cast<const uint8_t *>(blobBuffer), blobSize, sz);
+    if (base64Len == 0)
+    {
+        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
+        exit(1);
+    }
 
     sendString("  <oneBLOB\n");
     sendString("    name='%s'\n", blobName);

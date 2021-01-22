@@ -1,12 +1,18 @@
 CMakeLists.txt.user*
 
+# Projectile tags
+TAGS
+.vscode/
+
 # Ignore build directory
 build/
 build-*/
 
 # Gedit backup files
 *~
+*.orig
 
+.cmake
 nbproject/
 .directory
 CMakeCache.txt

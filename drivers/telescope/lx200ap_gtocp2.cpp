@@ -37,7 +37,8 @@
 LX200AstroPhysicsGTOCP2::LX200AstroPhysicsGTOCP2() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK
+                           | TELESCOPE_HAS_TRACK_RATE, 4);
 
     sendLocationOnStartup = false;
     sendTimeOnStartup = false;
@@ -77,7 +78,8 @@ bool LX200AstroPhysicsGTOCP2::initProperties()
     IUFillSwitch(&SlewRateS[1], "64", "64x", ISS_ON);
     IUFillSwitch(&SlewRateS[2], "600", "600x", ISS_OFF);
     IUFillSwitch(&SlewRateS[3], "1200", "1200x", ISS_OFF);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slew speed when performing regular GOTO
     IUFillSwitch(&APSlewSpeedS[0], "600", "600x", ISS_ON);
@@ -117,13 +119,13 @@ void LX200AstroPhysicsGTOCP2::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
-        defineText(&VersionInfo);
+        defineProperty(&VersionInfo);
 
         /* Motion group */
-        defineSwitch(&APSlewSpeedSP);
-        defineSwitch(&SwapSP);
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&APGuideSpeedSP);
+        defineProperty(&APSlewSpeedSP);
+        defineProperty(&SwapSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&APGuideSpeedSP);
     }
 }
 
@@ -133,13 +135,13 @@ bool LX200AstroPhysicsGTOCP2::updateProperties()
 
     if (isConnected())
     {
-        defineText(&VersionInfo);
+        defineProperty(&VersionInfo);
 
         /* Motion group */
-        defineSwitch(&APSlewSpeedSP);
-        defineSwitch(&SwapSP);
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&APGuideSpeedSP);
+        defineProperty(&APSlewSpeedSP);
+        defineProperty(&SwapSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&APGuideSpeedSP);
 
         if (InitPark())
         {
@@ -571,7 +573,7 @@ bool LX200AstroPhysicsGTOCP2::Handshake()
     }
 
     // Detect and set fomat. It should be LONG.
-    return (checkLX200Format(PortFD) == 0);
+    return (checkLX200EquatorialFormat(PortFD) == 0);
 }
 
 bool LX200AstroPhysicsGTOCP2::Disconnect()
@@ -758,14 +760,12 @@ bool LX200AstroPhysicsGTOCP2::Park()
         ln_hrz_posn horizontalPos;
         // Libnova south = 0, west = 90, north = 180, east = 270
 
-        horizontalPos.az = parkAz + 180;
-        if (horizontalPos.az > 360)
-            horizontalPos.az -= 360;
+        horizontalPos.az = parkAz;
         horizontalPos.alt = parkAlt;
 
         ln_equ_posn equatorialPos;
 
-        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+        get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
         Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
@@ -825,11 +825,8 @@ bool LX200AstroPhysicsGTOCP2::SetCurrentPark()
     ln_equ_posn equatorialPos;
     equatorialPos.ra  = currentRA * 15;
     equatorialPos.dec = currentDEC;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    double parkAZ = horizontalPos.az - 180;
-    if (parkAZ < 0)
-        parkAZ += 360;
+    get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+    double parkAZ = horizontalPos.az;
     double parkAlt = horizontalPos.alt;
 
     char AzStr[16], AltStr[16];

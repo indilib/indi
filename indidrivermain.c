@@ -49,14 +49,46 @@
 
 #define MAXRBUF 2048
 
-ROSC *propCache;
-int nPropCache; /* # of elements in roCheck */
-
-int verbose;    /* chatty */
-char *me;       /* a.out name */
-LilXML *clixml; /* XML parser context */
-
 static void usage(void);
+
+/* callback when INDI client message arrives on stdin.
+ * collect and dispatch when see outter element closure.
+ * exit if OS trouble or see incompatable INDI version.
+ * arg is not used.
+ */
+static void clientMsgCB(int fd, void *arg)
+{
+    LilXML *clixml = (LilXML*)arg;
+    char buf[MAXRBUF], msg[MAXRBUF], *bp;
+    int nr;
+
+    /* one read */
+    nr = read(fd, buf, sizeof(buf));
+    if (nr < 0)
+    {
+        fprintf(stderr, "%s: %s\n", me, strerror(errno));
+        exit(1);
+    }
+    if (nr == 0)
+    {
+        fprintf(stderr, "%s: EOF\n", me);
+        exit(1);
+    }
+
+    /* crack and dispatch when complete */
+    for (bp = buf; nr-- > 0; bp++)
+    {
+        XMLEle *root = readXMLEle(clixml, *bp, msg);
+        if (root)
+        {
+            if (dispatch(root, msg) < 0)
+                fprintf(stderr, "%s dispatch error: %s\n", me, msg);
+            delXMLEle(root);
+        }
+        else if (msg[0])
+            fprintf(stderr, "%s XML error: %s\n", me, msg);
+    }
+}
 
 int main(int ac, char *av[])
 {
@@ -70,6 +102,7 @@ int main(int ac, char *av[])
 #endif
 
     /* save handy pointer to our base name */
+    // #PS: maybe use 'program_invocation_short_name'?
     for (me = av[0]; av[0][0]; av[0]++)
         if (av[0][0] == '/')
             me = &av[0][1];
@@ -91,8 +124,8 @@ int main(int ac, char *av[])
         usage();
 
     /* init */
-    clixml = newLilXML();
-    addCallback(0, clientMsgCB, NULL);
+    LilXML *clixml = newLilXML();
+    addCallback(0, clientMsgCB, clixml);
 
     /* service client */
     eventLoop();

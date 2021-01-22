@@ -103,33 +103,33 @@ bool FocuserInterface::updateProperties()
     if (m_defaultDevice->isConnected())
     {
         //  Now we add our focusser specific stuff
-        m_defaultDevice->defineSwitch(&FocusMotionSP);
+        m_defaultDevice->defineProperty(&FocusMotionSP);
 
         if (HasVariableSpeed())
         {
-            m_defaultDevice->defineNumber(&FocusSpeedNP);
+            m_defaultDevice->defineProperty(&FocusSpeedNP);
 
             // We only define Focus Timer if we can not absolute move
             if (CanAbsMove() == false)
-                m_defaultDevice->defineNumber(&FocusTimerNP);
+                m_defaultDevice->defineProperty(&FocusTimerNP);
         }
         if (CanRelMove())
-            m_defaultDevice->defineNumber(&FocusRelPosNP);
+            m_defaultDevice->defineProperty(&FocusRelPosNP);
         if (CanAbsMove())
         {
-            m_defaultDevice->defineNumber(&FocusAbsPosNP);
-            m_defaultDevice->defineNumber(&FocusMaxPosNP);
+            m_defaultDevice->defineProperty(&FocusAbsPosNP);
+            m_defaultDevice->defineProperty(&FocusMaxPosNP);
         }
         if (CanAbort())
-            m_defaultDevice->defineSwitch(&FocusAbortSP);
+            m_defaultDevice->defineProperty(&FocusAbortSP);
         if (CanSync())
-            m_defaultDevice->defineNumber(&FocusSyncNP);
+            m_defaultDevice->defineProperty(&FocusSyncNP);
         if (CanReverse())
-            m_defaultDevice->defineSwitch(&FocusReverseSP);
+            m_defaultDevice->defineProperty(&FocusReverseSP);
         if (HasBacklash())
         {
-            m_defaultDevice->defineSwitch(&FocusBacklashSP);
-            m_defaultDevice->defineNumber(&FocusBacklashNP);
+            m_defaultDevice->defineProperty(&FocusBacklashSP);
+            m_defaultDevice->defineProperty(&FocusBacklashNP);
         }
     }
     else
@@ -264,7 +264,10 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
         if (FocusBacklashS[DefaultDevice::INDI_ENABLED].s != ISS_ON)
         {
             FocusBacklashNP.s = IPS_IDLE;
-            DEBUGDEVICE(dev, Logger::DBG_WARNING, "Focuser backlash must be enabled first.");
+
+            // Only warn if there is non-zero backlash value.
+            if (values[0] > 0)
+                DEBUGDEVICE(dev, Logger::DBG_WARNING, "Focuser backlash must be enabled first.");
         }
         else
         {
@@ -430,24 +433,29 @@ bool FocuserInterface::processSwitch(const char * dev, const char * name, ISStat
     }
 
     // Backlash compensation
-    if (!strcmp(name, FocusBacklashSP.name))
+    else if (!strcmp(name, FocusBacklashSP.name))
     {
-        bool enable = !strcmp(FocusBacklashS[DefaultDevice::INDI_ENABLED].name, IUFindOnSwitchName(states, names, n));
+        int prevIndex = IUFindOnSwitchIndex(&FocusBacklashSP);
+        IUUpdateSwitch(&FocusBacklashSP, states, names, n);
 
-        if (SetFocuserBacklashEnabled(enable))
+        if (SetFocuserBacklashEnabled(IUFindOnSwitchIndex(&FocusBacklashSP) == DefaultDevice::INDI_ENABLED))
         {
             IUUpdateSwitch(&FocusBacklashSP, states, names, n);
             FocusBacklashSP.s = IPS_OK;
         }
         else
+        {
+            IUResetSwitch(&FocusBacklashSP);
+            FocusBacklashS[prevIndex].s = ISS_ON;
             FocusBacklashSP.s = IPS_ALERT;
+        }
 
         IDSetSwitch(&FocusBacklashSP, nullptr);
         return true;
     }
 
     // Abort Focuser
-    if (!strcmp(name, FocusAbortSP.name))
+    else if (!strcmp(name, FocusAbortSP.name))
     {
         IUResetSwitch(&FocusAbortSP);
 
@@ -473,17 +481,19 @@ bool FocuserInterface::processSwitch(const char * dev, const char * name, ISStat
     }
 
     // Reverse Motion
-    if (!strcmp(name, FocusReverseSP.name))
+    else if (!strcmp(name, FocusReverseSP.name))
     {
-        bool enabled = !strcmp("INDI_ENABLED", IUFindOnSwitchName(states, names, n));
+        int prevIndex = IUFindOnSwitchIndex(&FocusReverseSP);
+        IUUpdateSwitch(&FocusReverseSP, states, names, n);
 
-        if (ReverseFocuser(enabled))
+        if (ReverseFocuser(IUFindOnSwitchIndex(&FocusReverseSP) == DefaultDevice::INDI_ENABLED))
         {
-            IUUpdateSwitch(&FocusReverseSP, states, names, n);
             FocusReverseSP.s = IPS_OK;
         }
         else
         {
+            IUResetSwitch(&FocusReverseSP);
+            FocusReverseS[prevIndex].s = ISS_ON;
             FocusReverseSP.s = IPS_ALERT;
         }
 

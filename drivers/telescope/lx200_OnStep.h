@@ -23,6 +23,9 @@
 
     ===========================================
     
+    Version not yet updated: 
+    - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
+    
     Version 1.9:
     - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
     - Bugfix: Slew speed
@@ -330,6 +333,20 @@ class LX200_OnStep : public LX200Generic , public INDI::WeatherInterface
     uint8_t ParkStatusGU = 0;
     
     // Weather support
+    // NOTE: Much is handled by WeatherInterface, these controls are mainly for setting values which are not detected
+    // As of right now, if there is a sensor the values will be overwritten on the next update
+    
+
+    INumberVectorProperty OSSetTemperatureNP;
+    INumber OSSetTemperatureN[1];
+    INumberVectorProperty OSSetHumidityNP;
+    INumber OSSetHumidityN[1];
+    INumberVectorProperty OSSetPressureNP;
+    INumber OSSetPressureN[1];
+    //Not sure why this would be used, but will feed to it from site settings
+    INumberVectorProperty OSSetAltitudeNP;
+    INumber OSSetAltitudeN[1];
+    
     
     //This is updated via other commands, as such I'm going to ignore it like some others do. 
     virtual IPState updateWeather() override

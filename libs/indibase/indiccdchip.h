@@ -126,7 +126,7 @@ class CCDChip
          */
         inline float getPixelSizeX()
         {
-            return PixelSizex;
+            return PixelSizeX;
         }
 
         /**
@@ -135,7 +135,7 @@ class CCDChip
          */
         inline float getPixelSizeY()
         {
-            return PixelSizey;
+            return PixelSizeY;
         }
 
         /**
@@ -144,7 +144,7 @@ class CCDChip
          */
         inline int getBPP()
         {
-            return BPP;
+            return BitsPerPixel;
         }
 
         /**
@@ -171,7 +171,7 @@ class CCDChip
          */
         inline double getExposureDuration()
         {
-            return exposureDuration;
+            return ExposureDuration;
         }
 
         /**
@@ -363,7 +363,7 @@ class CCDChip
          */
         char *getImageExtension()
         {
-            return imageExtention;
+            return ImageExtention;
         }
 
         /**
@@ -404,11 +404,11 @@ class CCDChip
         /// # of Axis
         uint8_t NAxis {2};
         /// Pixel size in microns, x direction
-        double PixelSizex {0};
+        double PixelSizeX {0};
         /// Pixel size in microns, y direction
-        double PixelSizey {0};
-        /// Bytes per Pixel
-        uint8_t BPP {1};
+        double PixelSizeY {0};
+        /// Bit per Pixel
+        uint8_t BitsPerPixel {8};
         //bool Interlaced {false};
         // RAW Frame for image data stored as bytes.
         uint8_t *RawFrame {nullptr};
@@ -421,11 +421,11 @@ class CCDChip
         // Frame Type
         CCD_FRAME FrameType {LIGHT_FRAME};
         // Exposure duration in seconds.
-        double exposureDuration {0};
+        double ExposureDuration {0};
         // Exposure startup time
-        timeval startExposureTime;
+        timeval StartExposureTime;
         // Image extension type (e.g. jpg)
-        char imageExtention[MAXINDIBLOBFMT];
+        char ImageExtention[MAXINDIBLOBFMT];
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Chip Properties

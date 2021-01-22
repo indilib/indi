@@ -105,7 +105,8 @@ Paramount::Paramount()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_CONTROL_TRACK,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE |
+                           TELESCOPE_CAN_CONTROL_TRACK,
                            9);
     setTelescopeConnection(CONNECTION_TCP);
 }
@@ -141,6 +142,10 @@ bool Paramount::initProperties()
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
+    // Homing
+    IUFillSwitch(&HomeS[0], "GO", "Go", ISS_OFF);
+    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Homing", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_IDLE);
     // Tracking Mode
 #if 0
     IUFillSwitch(&TrackModeS[TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_OFF);
@@ -172,7 +177,7 @@ bool Paramount::initProperties()
 
     TrackState = SCOPE_IDLE;
 
-    SetParkDataType(PARK_RA_DEC);
+    SetParkDataType(PARK_HA_DEC);
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -208,32 +213,34 @@ bool Paramount::updateProperties()
             TrackState = SCOPE_IDLE;
         }
 
-        //defineSwitch(&TrackModeSP);
-        //defineNumber(&TrackRateNP);
+        //defineProperty(&TrackModeSP);
+        //defineProperty(&TrackRateNP);
 
-        defineNumber(&JogRateNP);
+        defineProperty(&JogRateNP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
-        // Initial currentRA and currentDEC to LST and +90 or -90
+        // Initial HA to 0 and currentDEC (+90 or -90)
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(currentRA);
+            SetAxis1ParkDefault(0);
             SetAxis2ParkDefault(currentDEC);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(currentRA);
+            SetAxis1Park(0);
             SetAxis2Park(currentDEC);
-            SetAxis1ParkDefault(currentRA);
+            SetAxis1ParkDefault(0);
             SetAxis2ParkDefault(currentDEC);
         }
 
         SetParked(isTheSkyParked());
+
+        defineProperty(&HomeSP);
     }
     else
     {
@@ -245,6 +252,7 @@ bool Paramount::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
+        deleteProperty(HomeSP.name);
     }
 
     return true;
@@ -367,7 +375,15 @@ bool Paramount::ReadScopeStatus()
         if (isSlewComplete())
         {
             TrackState = SCOPE_TRACKING;
-            LOG_INFO("Slew is complete. Tracking...");
+
+            if (HomeSP.s == IPS_BUSY)
+            {
+                IUResetSwitch(&HomeSP);
+                HomeSP.s = IPS_OK;
+                LOG_INFO("Finding home completed.");
+            }
+            else
+                LOG_INFO("Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -410,7 +426,7 @@ bool Paramount::Goto(double r, double d)
     lnradec.ra  = (currentRA * 360) / 24.0;
     lnradec.dec = currentDEC;
 
-    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+    //get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
     /* libnova measures azimuth from south towards west */
     //    double current_az = range360(lnaltaz.az + 180);
     //double current_alt =lnaltaz.alt;
@@ -582,7 +598,8 @@ bool Paramount::Sync(double ra, double dec)
 
 bool Paramount::Park()
 {
-    targetRA  = GetAxis1Park();
+    double targetHA = GetAxis1Park();
+    targetRA  = range24(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value) - targetHA);
     targetDEC = GetAxis2Park();
 
     char pCMD[MAXRBUF] = {0};
@@ -646,10 +663,26 @@ bool Paramount::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (!strcmp(HomeSP.name, name))
+        {
+            if (findHome())
+            {
+                HomeS[0].s = ISS_ON;
+                TrackState = SCOPE_SLEWING;
+                HomeSP.s = IPS_BUSY;
+                LOG_INFO("Finding Home position...");
+            }
+            else
+            {
+                HomeS[0].s = ISS_OFF;
+                HomeSP.s = IPS_ALERT;
+            }
 
+            IDSetSwitch(&HomeSP, nullptr);
+            return true;
+        }
     }
 
-    //  Nobody has claimed this, so, ignore it
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -660,6 +693,15 @@ bool Paramount::Abort()
     strncpy(pCMD, "sky6RASCOMTele.Abort();", MAXRBUF);
     return sendTheSkyOKCommand(pCMD, "Abort mount slew");
 }
+
+bool Paramount::findHome()
+{
+    char pCMD[MAXRBUF] = {0};
+
+    strncpy(pCMD, "sky6RASCOMTele.FindHome();", MAXRBUF);
+    return sendTheSkyOKCommand(pCMD, "Find home");
+}
+
 
 bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
@@ -783,7 +825,10 @@ bool Paramount::SetCurrentPark()
     if (!sendTheSkyOKCommand(pCMD, "Setting Park Position"))
         return false;
 
-    SetAxis1Park(currentRA);
+    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    double ha  = get_local_hour_angle(lst, currentRA);
+
+    SetAxis1Park(ha);
     SetAxis2Park(currentDEC);
 
     return true;
@@ -791,8 +836,8 @@ bool Paramount::SetCurrentPark()
 
 bool Paramount::SetDefaultPark()
 {
-    // By default set RA to HA
-    SetAxis1Park(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value));
+    // By default set HA to 0
+    SetAxis1Park(0);
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);

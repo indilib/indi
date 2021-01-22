@@ -37,7 +37,8 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 #include <sys/stat.h>
 
-# include "indilogger.h"
+#include "indilogger.h"
+#include "indiutility.h"
 
 //#include <time.h>
 
@@ -89,7 +90,7 @@ void ISSnoopDevice(XMLEle *root)
 
 CelestronGPS::CelestronGPS() : FI(this)
 {
-    setVersion(3, 4); // update libindi/drivers.xml as well
+    setVersion(3, 5); // update libindi/drivers.xml as well
 
 
     fwInfo.Version           = "Invalid";
@@ -195,9 +196,9 @@ bool CelestronGPS::initProperties()
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Guide Rate
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%.0f", 10, 100, 1, 50);
-    IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%.0f", 10, 100, 1, 50);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guide Rate % sidereal", GUIDE_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%0.2f", 0.0, 1, 0.01, GuideRateN[AXIS_RA].value);
+    IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%0.2f", 0.0, 1, 0.01, GuideRateN[AXIS_DE].value);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guide Rate x sidereal", GUIDE_TAB, IP_RW, 0, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////////////////
     /// PEC
@@ -275,8 +276,8 @@ void CelestronGPS::ISGetProperties(const char *dev)
 
     INDI::Telescope::ISGetProperties(dev);
 
-    defineSwitch(&UseHibernateSP);
-    defineSwitch(&CelestronTrackModeSP);
+    defineProperty(&UseHibernateSP);
+    defineProperty(&CelestronTrackModeSP);
     if (configLoaded == false)
     {
         configLoaded = true;
@@ -389,7 +390,7 @@ bool CelestronGPS::updateProperties()
         INDI::Telescope::updateProperties();
 
         if (fwInfo.Version != "Invalid")
-            defineText(&FirmwareTP);
+            defineProperty(&FirmwareTP);
 
         if (InitPark())
         {
@@ -425,20 +426,20 @@ bool CelestronGPS::updateProperties()
                 fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_EQS ||
                 fwInfo.celestronTrackMode == CELESTRON_TRACK_MODE::CTM_RADEC)
         {
-            defineNumber(&GuideRateNP);
+            defineProperty(&GuideRateNP);
             uint8_t rate;
             if (driver.get_guide_rate(CELESTRON_AXIS::RA_AXIS, &rate))
             {
-                GuideRateN[AXIS_RA].value = rate * 100.0 / 255;
+                GuideRateN[AXIS_RA].value = rate / 255;
                 if (driver.get_guide_rate(CELESTRON_AXIS::DEC_AXIS, &rate))
                 {
-                    GuideRateN[AXIS_DE].value = rate * 100.0 / 255;
+                    GuideRateN[AXIS_DE].value = rate / 255;
                     IDSetNumber(&GuideRateNP, nullptr);
                     LOGF_DEBUG("Get Guide Rates: Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
                 }
             }
-            defineNumber(&GuideNSNP);
-            defineNumber(&GuideWENP);
+            defineProperty(&GuideNSNP);
+            defineProperty(&GuideWENP);
 
             LOG_INFO("Mount supports guiding.");
         }
@@ -446,7 +447,7 @@ bool CelestronGPS::updateProperties()
             LOG_INFO("Mount does not support guiding. Tracking mode must be set in handset to either EQ-North or EQ-South.");
 
 
-        defineSwitch(&CelestronTrackModeSP);
+        defineProperty(&CelestronTrackModeSP);
 
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
         // JM 2018-09-27: User (suramara) reports that it works with AVX mount with Star Sense firmware version 1.19
@@ -469,7 +470,7 @@ bool CelestronGPS::updateProperties()
                 IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
                 IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
 
-                defineSwitch(&DSTSettingSP);
+                defineProperty(&DSTSettingSP);
                 DSTSettingS[0].s = dst ? ISS_ON : ISS_OFF;
 
                 LOGF_INFO("Mount UTC offset: %s. UTC time: %s. DST: %s", utcOffset, isoDateTime, dst ? "On" : "Off");
@@ -497,7 +498,7 @@ bool CelestronGPS::updateProperties()
         // comment out this line and rebuild if you want to run with other mounts - at your own risk!
         if (strcmp(fwInfo.Model.c_str(), "CGX") == 0)
         {
-            defineSwitch(&LastAlignSP);
+            defineProperty(&LastAlignSP);
         }
 
         // Sometimes users start their mount when it is NOT yet aligned and then try to proceed to use it
@@ -508,17 +509,17 @@ bool CelestronGPS::updateProperties()
         if (fwInfo.canPec && CelestronTrackModeS[CTM_ALTAZ].s != ISS_OFF)
         {
             driver.pecState = PEC_STATE::PEC_AVAILABLE;
-            defineSwitch(&PecControlSP);
-            defineText(&PecInfoTP);
-            defineText(&PecFileNameTP);
+            defineProperty(&PecControlSP);
+            defineProperty(&PecInfoTP);
+            defineProperty(&PecFileNameTP);
         }
 
         //  handle the focuser
         if (fwInfo.hasFocuser)
         {
             LOG_INFO("update focuser properties");
-            //defineNumber(&FocusBacklashNP);
-            defineNumber(&FocusMinPosNP);
+            //defineProperty(&FocusBacklashNP);
+            defineProperty(&FocusMinPosNP);
             if (focusReadLimits())
             {
                 IUUpdateMinMax(&FocusAbsPosNP);
@@ -734,6 +735,8 @@ bool CelestronGPS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 bool CelestronGPS::ReadScopeStatus()
 {
+    INDI::Telescope::TelescopePierSide pierSide = PIER_UNKNOWN;
+
     if (isSimulation())
         mountSim();
 
@@ -742,6 +745,52 @@ bool CelestronGPS::ReadScopeStatus()
         LOG_ERROR("Failed to read RA/DEC values.");
         return false;
     }
+
+    if (HasPierSide())
+    {
+        // read the pier side close to reading the Radec so they should match
+        char sop;
+        char psc = 'u';
+        if (driver.get_pier_side(&sop))
+        {
+            // manage version and hemisphere nonsense
+            // HC versions less than 5.24 reverse the side of pier if the mount
+            // is in the Southern hemisphere.  StarSense doesn't
+            if (LocationN[LOCATION_LATITUDE].value < 0)
+            {
+                if (fwInfo.controllerVersion <= 5.24 && fwInfo.controllerVariant != ISSTARSENSE)
+                {
+                    // swap the char reported
+                    if (sop == 'E')
+                        sop = 'W';
+                    else if (sop == 'W')
+                        sop = 'E';
+                }
+            }
+            // The Celestron and INDI pointing states are opposite
+            if (sop == 'W')
+            {
+                pierSide = PIER_EAST;
+                psc = 'E';
+            }
+            else if (sop == 'E')
+            {
+                pierSide = PIER_WEST;
+                psc = 'W';
+            }
+            // pier side and Ha don't match at +-90 deg dec
+            if (currentDEC > 89.999 || currentDEC < -89.999)
+            {
+                pierSide = PIER_UNKNOWN;
+                psc = 'U';
+            }
+        }
+
+        LOGF_DEBUG("latitude %g, sop %c, PierSide %c",
+                   LocationN[LOCATION_LATITUDE].value,
+                   sop, psc);
+    }
+
 
     // aligning
     if (slewToIndex)
@@ -839,6 +888,10 @@ bool CelestronGPS::ReadScopeStatus()
             break;
     }
 
+    // update pier side and RaDec close together to minimise the possibility of
+    // a mismatch causing an Ha limit error during a pier flip slew.
+    if (HasPierSide())
+        setPierSide(pierSide);
     NewRaDec(currentRA, currentDEC);
 
     // is PEC Handling required
@@ -963,46 +1016,6 @@ bool CelestronGPS::ReadScopeStatus()
             }
         }
     }
-
-    if (!HasPierSide())
-        return true;
-
-    char sop;
-    INDI::Telescope::TelescopePierSide pierSide = PIER_UNKNOWN;
-    char psc = 'U';
-    if (driver.get_pier_side(&sop))
-    {
-        // manage version and hemisphere nonsense
-        // HC versions less than 5.24 reverse the side of pier if the mount
-        // is in the Southern hemisphere.  StarSense doesn't
-        if (LocationN[LOCATION_LATITUDE].value < 0)
-        {
-            if (fwInfo.controllerVersion <= 5.24 && fwInfo.controllerVariant != ISSTARSENSE)
-            {
-                // swap the char reported
-                if (sop == 'E')
-                    sop = 'W';
-                else if (sop == 'W')
-                    sop = 'E';
-            }
-        }
-        // The Celestron and INDI pointing states are opposite
-        if (sop == 'W')
-        {
-            pierSide = PIER_EAST;
-            psc = 'E';
-        }
-        else if (sop == 'E')
-        {
-            pierSide = PIER_WEST;
-            psc = 'W';
-        }
-    }
-
-    LOGF_DEBUG("latitude %g, sop %c, PierSide %c",
-               LocationN[LOCATION_LATITUDE].value,
-               sop, psc);
-    setPierSide(pierSide);
 
     return true;
 }
@@ -1240,8 +1253,8 @@ bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
             IDSetNumber(&GuideRateNP, nullptr);
-            uint8_t grRa  = static_cast<uint8_t>(std::min(GuideRateN[AXIS_RA].value * 256 / 100, 255.0));
-            uint8_t grDec = static_cast<uint8_t>(std::min(GuideRateN[AXIS_DE].value * 256 / 100, 255.0));
+            uint8_t grRa  = static_cast<uint8_t>(std::min(GuideRateN[AXIS_RA].value * 256, 255.0));
+            uint8_t grDec = static_cast<uint8_t>(std::min(GuideRateN[AXIS_DE].value * 256, 255.0));
             LOGF_DEBUG("Set Guide Rates: Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
             driver.set_guide_rate(CELESTRON_AXIS::RA_AXIS, grRa);
             driver.set_guide_rate(CELESTRON_AXIS::DEC_AXIS, grDec);
@@ -1270,6 +1283,12 @@ bool CelestronGPS::ISNewText(const char *dev, const char *name, char **texts, ch
 
         if (name && std::string(name) == "PEC_LOAD")
         {
+
+            IUUpdateText(&PecFileNameTP, texts, names, n);
+            IDSetText(&PecFileNameTP, nullptr);
+
+            LOGF_DEBUG("PEC Set %s", PecFileNameT[0].text);
+
             PecData pecData;
 
             // load from file
@@ -1969,31 +1988,6 @@ void CelestronGPS::checkAlignment()
         LOG_WARN("Mount is NOT aligned. You must align the mount first before you can use it. Disconnect, align the mount, and reconnect again.");
 }
 
-// Create dir recursively, reinventing - well copying - the wheel
-static int _mkdir(const char *dir, mode_t mode)
-{
-    char tmp[1024];
-    char *p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
-
 bool CelestronGPS::savePecData()
 {
     // generate the file name:
@@ -2011,9 +2005,9 @@ bool CelestronGPS::savePecData()
     char dir[MAXRBUF];
     snprintf(dir, MAXRBUF, "%s/PEC_Data/%s", getenv("HOME"), ts_date);
 
-    if (_mkdir(dir, 0755) < 0)
+    if (INDI::mkpath(dir, 0755) == -1)
     {
-        LOGF_DEBUG("_mkdir %s failed", dir);
+        LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
         return false;
     }
 

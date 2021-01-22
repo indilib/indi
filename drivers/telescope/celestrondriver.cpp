@@ -793,7 +793,7 @@ bool CelestronDriver::set_location(double longitude, double latitude)
     cmd[5] = static_cast<char>(abs(long_d));       // not sure how the conversion from int to char will work for longtitudes > 127
     cmd[6] = static_cast<char>(long_m);
     cmd[7] = static_cast<char>(long_s);
-    cmd[8] = long_d > 0 ? 0 : 1;
+    cmd[8] = longitude > 0 ? 0 : 1;	 //Error fixed here (was cmd[8] = long_d >= 0 ? 0 : 1;) which was wrong for < 1 degree East.
 
     set_sim_response("#");
     return send_command(cmd, 9, response, 1, false, true);
@@ -1453,6 +1453,7 @@ bool PecData::Load(CelestronDriver *driver)
 bool PecData::Load(const char *fileName)
 {
     std::ifstream pecFile(fileName);
+
     if (pecFile.is_open())
     {
         pecFile >> numBins;
@@ -1463,6 +1464,11 @@ bool PecData::Load(const char *fileName)
         pecFile >> wormArcSeconds;
         LOGF_DEBUG("PEC Load File %s, numBins %d, wormarcsecs %d", fileName, numBins, wormArcSeconds);
         return true;
+    }
+    else
+    {
+        // report file open failure
+        LOGF_WARN("Load PEC file %s, error %s", fileName, strerror(errno));
     }
     return false;
 }

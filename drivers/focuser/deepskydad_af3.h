@@ -81,6 +81,7 @@ class DeepSkyDadAF3 : public INDI::Focuser
         virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE * fp) override;
         virtual bool SetFocuserBacklash(int32_t steps) override;
+        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
 
     private:
         bool Ack();
@@ -123,7 +124,7 @@ class DeepSkyDadAF3 : public INDI::Focuser
         ISwitch SpeedModeS[5];
         ISwitchVectorProperty SpeedModeSP;
 
-        //Current move 
+        //Current move
         INumber MoveCurrentMultiplierN[1];
         INumberVectorProperty MoveCurrentMultiplierNP;
 
@@ -138,7 +139,7 @@ class DeepSkyDadAF3 : public INDI::Focuser
         // Settle buffer
         INumber SettleBufferN[1];
         INumberVectorProperty SettleBufferNP;
-        
+
         INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
 

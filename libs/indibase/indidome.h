@@ -116,6 +116,13 @@ class Dome : public DefaultDevice
             SHUTTER_CLOSE /*!< Close Shutter */
         } ShutterOperation;
 
+        /*! Mount Locking Policy */
+        enum MountLockingPolicy
+        {
+            MOUNT_IGNORED,      /*!< Mount is ignored. Dome can park or unpark irrespective of mount parking status */
+            MOUNT_LOCKS,        /*!< Mount Locks. Dome can park if mount is completely parked first. */
+        };
+
         /** \typedef DomeState
                 \brief Dome status
             */
@@ -278,17 +285,16 @@ class Dome : public DefaultDevice
 
         DomeState getDomeState() const
         {
-            return domeState;
+            return m_DomeState;
         }
         void setDomeState(const DomeState &value);
 
         ShutterState getShutterState() const
         {
-            return shutterState;
+            return m_ShutterState;
         }
         void setShutterState(const ShutterState &value);
 
-        IPState getWeatherState() const;
         IPState getMountState() const;
 
     protected:
@@ -552,18 +558,27 @@ class Dome : public DefaultDevice
         ISwitch ParkOptionS[3];
         ISwitchVectorProperty ParkOptionSP;
 
-        ISwitch AutoParkS[2];
-        ISwitchVectorProperty AutoParkSP;
+        //        ISwitch AutoParkS[2];
+        //        ISwitchVectorProperty AutoParkSP;
 
         uint32_t capability;
         DomeParkData parkDataType;
 
         ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[2] {};
+        IText ActiveDeviceT[1] {};
 
         // Switch to lock id mount is unparked
-        ISwitchVectorProperty TelescopeClosedLockTP;
-        ISwitch TelescopeClosedLockT[2];
+        ISwitchVectorProperty MountPolicySP;
+        ISwitch MountPolicyS[2];
+
+        // Shutter control on Park/Unpark
+        ISwitchVectorProperty ShutterParkPolicySP;
+        ISwitch ShutterParkPolicyS[2];
+        enum
+        {
+            SHUTTER_CLOSE_ON_PARK,
+            SHUTTER_OPEN_ON_UNPARK,
+        };
 
         INumber PresetN[3];
         INumberVectorProperty PresetNP;
@@ -593,10 +608,9 @@ class Dome : public DefaultDevice
         Connection::TCP * tcpConnection       = nullptr;
 
         // States
-        DomeState domeState;
-        ShutterState shutterState;
-        IPState mountState;
-        IPState weatherState;
+        DomeState m_DomeState;
+        ShutterState m_ShutterState;
+        IPState m_MountState;
 
         // Observer geographic coords. Snooped from mount driver.
         struct ln_lnlat_posn observer;

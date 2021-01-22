@@ -45,6 +45,8 @@
 #define _USE_MATH_DEFINES
 #endif
 
+#include <math.h>
+
 #define J2000       2451545.0
 #define ERRMSG_SIZE 1024
 
@@ -68,12 +70,15 @@
 #define PARSEC (ASTRONOMICALUNIT*2.06264806247096E+5)
 #define LIGHTSPEED 299792458.0
 #define LY (LIGHTSPEED * SOLAR_DAY * 365)
-#define LUMEN(wavelength) ((1.464129E-3*wavelength)/(h_20190520*LIGHTSPEED))
+#define LUMEN(wavelength) ((1.46412884E-3*wavelength)/(h_20190520*LIGHTSPEED))
 
 extern const char *Direction[];
 extern const char *SolarSystem[];
 
 struct ln_date;
+struct ln_equ_posn;
+struct ln_lnlat_posn;
+struct ln_hrz_posn;
 
 /* TTY Error Codes */
 enum TTY_ERROR
@@ -296,6 +301,27 @@ double get_local_sidereal_time(double longitude);
  */
 double get_local_hour_angle(double local_sideral_time, double ra);
 
+
+/**
+ * @brief get_hrz_from_equ Calculate horizontal coordinates from equatorial coordinates.
+ * @param object Equatorial Object Coordinates
+ * @param observer Observer Location
+ * @param JD Julian Date
+ * @param position Calculated Horizontal Coordinates.
+ * @note Use this instead of libnova ln_get_hrz_from_equ since it corrects libnova Azimuth (0 = North and not South).
+ */
+void get_hrz_from_equ(struct ln_equ_posn *object, struct ln_lnlat_posn *observer, double JD, struct ln_hrz_posn *position);
+
+/**
+ * @brief ln_get_equ_from_hrz Calculate Equatorial EOD Coordinates from horizontal coordinates
+ * @param object Horizontal Object Coordinates
+ * @param observer Observer Location
+ * @param JD Julian Date
+ * @param position Calculated Equatorial Coordinates.
+ * @note Use this instead of libnova ln_get_equ_from_hrz since it corrects libnova Azimuth (0 = North and not South).
+ */
+void get_equ_from_hrz(struct ln_hrz_posn *object, struct ln_lnlat_posn *observer, double JD,
+                      struct ln_equ_posn *position);
 /**
  * @brief get_alt_az_coordinates Returns alt-azimuth coordinates of an object
  * @param hour_angle Hour angle in hours (-12 to 12)
@@ -370,14 +396,14 @@ double m2au(double m);
 double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spectrum, int spectrum_size);
 
 /**
- * @brief calc_photon_flux Returns the photon flux of the object with the given magnitude observed at a determined wavelenght using a passband filter over an incident surface
+ * @brief calc_photon_flux Returns the photon flux of the object with the given magnitude observed at a determined wavelenght using a passband filter through a steradian expressed cone
  * @param rel_magnitude Relative magnitude of the object observed
  * @param filter_bandwidth Filter bandwidth in meters
  * @param wavelength Wavelength in meters
- * @param incident_surface The incident surface in square meters
+ * @param steradian The light cone in steradians
  * @return the photon flux in Lumen
  */
-double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double incident_surface);
+double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian);
 
 /**
  * @brief calc_rel_magnitude Returns the relative magnitude of the object with the given photon flux measured at a determined wavelenght using a passband filter over an incident surface
@@ -387,7 +413,7 @@ double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wa
  * @param incident_surface The incident surface in square meters
  * @return the relative magnitude of the object observed
  */
-double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double incident_surface);
+double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double steradian);
 
 /**
  * @brief estimate_absolute_magnitude Returns an estimation of the absolute magnitude of an object given its distance and the difference of its magnitude with a reference object
@@ -398,24 +424,24 @@ double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wa
 double estimate_absolute_magnitude(double dist, double delta_mag);
 
 /**
- * @brief interferometry_uv_coords_vector Returns the coordinates in the UV plane of the projection of a single baseline targeting the object in vector
- * @param baseline_m the length of the baseline in meters. This is supposed to be placed into the X 3d plane.
+ * @brief baseline_2d_projection Returns the coordinates of the projection of a single baseline targeting the object by coordinates
+ * @param alt current altitude of the target.
+ * @param az azimuth position of the target.
+ * @param baseline the baseline in meters. Three-dimensional xyz north is z axis y is UTC0 x is UTC0+90°.
  * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
- * @param target_vector The target direction vector. This is relative to the baseline in XYZ order where X is parallel to the baseline.
- * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
+ * @param uvresult result plane coordinates of the current projection given the baseline and target vector.
  */
-double* interferometry_uv_coords_vector(double baseline_m, double wavelength, double *target_vector);
+void baseline_2d_projection(double alt, double az, double baseline[3], double wavelength, double uvresult[2]);
 
 /**
- * @brief interferometry_uv_coords_hadec Returns the coordinates in the UV plane of the projection of a single baseline targeting the object by coordinates
- * @param ha current hour angle of the target.
- * @param dec declination of the target.
+ * @brief baseline_delay Returns the delay in meters of a single baseline targeting the object by coordinates
+ * @param alt current altitude of the target.
+ * @param az azimuth position of the target.
  * @param baseline the baseline in meters. Three-dimensional xyz north is z axis y is UTC0 x is UTC0+90°.
  * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
  * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
  */
-double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, double wavelength);
-
+double baseline_delay(double alt, double az, double baseline[3]);
 /*@}*/
 
 #ifdef __cplusplus

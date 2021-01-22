@@ -69,7 +69,7 @@ bool LX200SS2000PC::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SlewAccuracyNP);
+        defineProperty(&SlewAccuracyNP);
     }
     else
     {
@@ -128,7 +128,7 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
         struct ln_zonedate ltm;
         ln_date_to_zonedate(utc, &ltm, static_cast<long>(utc_offset * 3600.0 + 0.5));
         LOGF_DEBUG("New zonetime is %04d-%02d-%02d %02d:%02d:%06.3f (offset=%ld)", ltm.years,
-               ltm.months, ltm.days, ltm.hours, ltm.minutes, ltm.seconds, ltm.gmtoff);
+                   ltm.months, ltm.days, ltm.hours, ltm.minutes, ltm.seconds, ltm.gmtoff);
         JD = ln_get_julian_day(utc);
         LOGF_DEBUG("New JD is %f", JD);
         if (setLocalTime(PortFD, ltm.hours, ltm.minutes, static_cast<int>(ltm.seconds + 0.5)) < 0)
@@ -157,7 +157,7 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
 void LX200SS2000PC::getBasicData(void)
 {
     if (!isSimulation())
-        checkLX200Format(PortFD);
+        checkLX200EquatorialFormat(PortFD);
     sendScopeLocation();
     sendScopeTime();
 }
@@ -178,11 +178,11 @@ bool LX200SS2000PC::getCalendarDate(int &year, int &month, int &day)
     {
         result = (sscanf(date, "%d%*c%d%*c%d", &month, &day, &year) == 3); // Meade format is MM/DD/YY
         LOGF_DEBUG("setCalenderDate: Date retrieved from telescope: %02d/%02d/%02d.", month, day,
-               year);
+                   year);
         if (result)
             year +=
                 (year > 50 ? 1900 :
-                             2000); // Year 50 or later is in the 20th century, anything less is in the 21st century.
+                 2000); // Year 50 or later is in the 20th century, anything less is in the 21st century.
     }
     return result;
 }
@@ -199,7 +199,7 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
     const bool send_to_skysensor =
         (!getCalendarDate(ss_year, ss_month, ss_day) || year != ss_year || month != ss_month || day != ss_day);
     LOGF_DEBUG("LX200SS2000PC::setCalenderDate(): Driver date %02d/%02d/%02d, SS2000PC date %02d/%02d/%02d.", month, day,
-           year, ss_month, ss_day, ss_year);
+               year, ss_month, ss_day, ss_year);
     if (send_to_skysensor)
     {
         char buffer[RB_MAX_LEN];
@@ -210,22 +210,23 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
         if (result)
         {
             int nbytes_read = 0;
-            result          = (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', ShortTimeOut, &nbytes_read) == TTY_OK && nbytes_read == 1 &&
-                      buffer[0] == '1');
+            result          = (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', ShortTimeOut, &nbytes_read) == TTY_OK
+                               && nbytes_read == 1 &&
+                               buffer[0] == '1');
             if (result)
             {
                 if (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', ShortTimeOut, &nbytes_read) != TTY_OK ||
-                    strncmp(buffer, "Updating        planetary data#", 24) != 0)
+                        strncmp(buffer, "Updating        planetary data#", 24) != 0)
                 {
                     LOGF_ERROR(
-                           "LX200SS2000PC::setCalenderDate(): Received unexpected first line '%s'.", buffer);
+                        "LX200SS2000PC::setCalenderDate(): Received unexpected first line '%s'.", buffer);
                     result = false;
                 }
                 else if (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', LongTimeOut, &nbytes_read) != TTY_OK &&
                          strncmp(buffer, "                              #", 24) != 0)
                 {
                     LOGF_ERROR(
-                           "LX200SS2000PC::setCalenderDate(): Received unexpected second line '%s'.", buffer);
+                        "LX200SS2000PC::setCalenderDate(): Received unexpected second line '%s'.", buffer);
                     result = false;
                 }
             }
@@ -333,16 +334,12 @@ bool LX200SS2000PC::Park()
             observer.lng -= 360;
 
         ln_hrz_posn horizontalPos;
-        // Libnova south = 0, west = 90, north = 180, east = 270
-
-        horizontalPos.az = parkAz + 180;
-        if (horizontalPos.az > 360)
-            horizontalPos.az -= 360;
+        horizontalPos.az = parkAz;
         horizontalPos.alt = parkAlt;
 
         ln_equ_posn equatorialPos;
 
-        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+        get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
         Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
@@ -402,19 +399,14 @@ bool LX200SS2000PC::UnPark()
             observer.lng -= 360;
 
         ln_hrz_posn horizontalPos;
-        // Libnova south = 0, west = 90, north = 180, east = 270
-
-        horizontalPos.az = parkAz + 180;
-        if (horizontalPos.az > 360)
-            horizontalPos.az -= 360;
+        horizontalPos.az = parkAz;
         horizontalPos.alt = parkAlt;
 
         ln_equ_posn equatorialPos;
-
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
         currentRA = equatorialPos.ra / 15.0;
-        currentDEC= equatorialPos.dec;
+        currentDEC = equatorialPos.dec;
     }
     else
     {
@@ -450,11 +442,8 @@ bool LX200SS2000PC::SetCurrentPark()
     ln_equ_posn equatorialPos;
     equatorialPos.ra  = currentRA * 15;
     equatorialPos.dec = currentDEC;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    double parkAZ = horizontalPos.az - 180;
-    if (parkAZ < 0)
-        parkAZ += 360;
+    get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+    double parkAZ = horizontalPos.az;
     double parkAlt = horizontalPos.alt;
 
     char AzStr[16], AltStr[16];

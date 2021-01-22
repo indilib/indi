@@ -66,19 +66,25 @@ class Correlator : public SensorInterface
          * \struct Baseline
          * \brief the baseline (position of the telescopes) of this correlator.
          */
-        typedef struct {
-            double x;
-            double y;
-            double z;
+        typedef union {
+            struct {
+                double x;
+                double y;
+                double z;
+            };
+            double values[3];
         } Baseline;
 
         /**
          * \enum UVCoordinate
          * \brief The coordinates of the current projection into the UV plane.
          */
-        typedef struct {
-            double u;
-            double v;
+        typedef union {
+            struct {
+                double u;
+                double v;
+            };
+            double values[2];
         } UVCoordinate;
 
         /**
@@ -159,10 +165,46 @@ class Correlator : public SensorInterface
         }
 
         /**
-         * @brief getUVCoordinates Get current UV projected coordinates.
+         * @brief getUVCoordinates Get current UV projected coordinates with reference to the current sidereal time.
          * @return the UV coordinates.
          */
         UVCoordinate getUVCoordinates();
+
+        /**
+         * @brief getUVCoordinates Get current UV projected coordinates with reference to the given sidereal time.
+         * \param lst the local sidereal time
+         * @return the UV coordinates.
+         */
+        UVCoordinate getUVCoordinates(double lst);
+
+        /**
+         * @brief getUVCoordinates Get current UV projected coordinates with reference to zenith/azimuth baseline.
+         * \param alt altitude of the target
+         * \param az azimuth of the target
+         * @return the UV coordinates.
+         */
+        UVCoordinate getUVCoordinates(double alt, double az);
+
+        /**
+         * @brief getDelay Get current baseline delay with reference to the current sidereal time.
+         * @return the delay in meters.
+         */
+        double getDelay();
+
+        /**
+         * @brief getUVCoordinates Get current baseline delay with reference to the given sidereal time.
+         * \param lst the local sidereal time
+         * @return the delay in meters.
+         */
+        double getDelay(double lst);
+
+        /**
+         * @brief getUVCoordinates Get current baseline delay with reference to zenith/azimuth baseline.
+         * \param alt altitude of the target
+         * \param az azimuth of the target
+         * @return the delay in meters.
+         */
+        double getDelay(double alt, double az);
 
         /**
          * @brief setBandwidth Get the bandwidth of the correlator.
