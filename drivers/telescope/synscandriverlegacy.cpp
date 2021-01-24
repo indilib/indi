@@ -187,7 +187,7 @@ bool SynscanLegacyDriver::updateProperties()
     if (isConnected())
     {
         UpdateMountInformation(false);
-        defineText(&BasicMountInfoTP);
+        defineProperty(&BasicMountInfoTP);
     }
     else
     {
@@ -1491,11 +1491,7 @@ ln_hrz_posn SynscanLegacyDriver::GetAltAzPosition(double ra, double dec)
 
     Eq.ra  = ra * 360.0 / 24.0;
     Eq.dec = dec;
-    ln_get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys(), &AltAz);
-    AltAz.az -= 180;
-    if (AltAz.az < 0)
-        AltAz.az += 360;
-
+    get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys(), &AltAz);
     return AltAz;
 }
 

@@ -160,13 +160,14 @@ class PegasusPPBA : public INDI::DefaultDevice, public INDI::WeatherInterface
         ISwitch QuadOutS[2];
         ISwitchVectorProperty QuadOutSP;
 
-        ISwitch AdjOutS[2];
-        ISwitchVectorProperty AdjOutSP;
+        //        ISwitch AdjOutS[2];
+        //        ISwitchVectorProperty AdjOutSP;
 
-        ISwitch AdjOutVoltS[5];
+        ISwitch AdjOutVoltS[6];
         ISwitchVectorProperty AdjOutVoltSP;
         enum
         {
+            ADJOUT_OFF,
             ADJOUT_3V,
             ADJOUT_5V,
             ADJOUT_8V,

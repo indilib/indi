@@ -94,7 +94,8 @@ IEQPro::IEQPro()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK |
+                           TELESCOPE_HAS_TRACK_RATE,
                            9);
 }
 
@@ -215,18 +216,18 @@ bool IEQPro::updateProperties()
         if (!canFindHome)
             HomeSP.nsp = 2;
 
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
 
         if (canGuideRate)
-            defineNumber(&GuideRateNP);
+            defineProperty(&GuideRateNP);
 
-        defineText(&FirmwareTP);
-        defineSwitch(&GPSStatusSP);
-        defineSwitch(&TimeSourceSP);
-        defineSwitch(&HemisphereSP);
+        defineProperty(&FirmwareTP);
+        defineProperty(&GPSStatusSP);
+        defineProperty(&TimeSourceSP);
+        defineProperty(&HemisphereSP);
     }
     else
     {
@@ -416,13 +417,13 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     return true;
 
                 case IEQ_GOTO_HOME:
-    		   if (TrackState == SCOPE_PARKED)
-    		   {
-		       LOG_ERROR("Please unpark the mount before issuing any motion commands.");
-        	       return false;
-    		   }
+                    if (TrackState == SCOPE_PARKED)
+                    {
+                        LOG_ERROR("Please unpark the mount before issuing any motion commands.");
+                        return false;
+                    }
 
-		    if (driver->gotoHome() == false)
+                    if (driver->gotoHome() == false)
                     {
                         HomeSP.s = IPS_ALERT;
                         IDSetSwitch(&HomeSP, nullptr);
@@ -730,14 +731,11 @@ bool IEQPro::Park()
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
 
-    horizontalPos.az = parkAz + 180;
-    if (horizontalPos.az > 360)
-        horizontalPos.az -= 360;
+    horizontalPos.az = parkAz;
     horizontalPos.alt = parkAlt;
-
     ln_equ_posn equatorialPos;
 
-    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
     if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
     {
@@ -1067,11 +1065,8 @@ bool IEQPro::SetCurrentPark()
     ln_equ_posn equatorialPos;
     equatorialPos.ra  = currentRA * 15;
     equatorialPos.dec = currentDEC;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    double parkAZ = horizontalPos.az - 180;
-    if (parkAZ < 0)
-        parkAZ += 360;
+    get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+    double parkAZ = horizontalPos.az;
     double parkAlt = horizontalPos.alt;
 
     char AzStr[16], AltStr[16];

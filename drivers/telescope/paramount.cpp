@@ -213,14 +213,14 @@ bool Paramount::updateProperties()
             TrackState = SCOPE_IDLE;
         }
 
-        //defineSwitch(&TrackModeSP);
-        //defineNumber(&TrackRateNP);
+        //defineProperty(&TrackModeSP);
+        //defineProperty(&TrackRateNP);
 
-        defineNumber(&JogRateNP);
+        defineProperty(&JogRateNP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
         // Initial HA to 0 and currentDEC (+90 or -90)
         if (InitPark())
@@ -240,7 +240,7 @@ bool Paramount::updateProperties()
 
         SetParked(isTheSkyParked());
 
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
     }
     else
     {
@@ -426,7 +426,7 @@ bool Paramount::Goto(double r, double d)
     lnradec.ra  = (currentRA * 360) / 24.0;
     lnradec.dec = currentDEC;
 
-    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+    //get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
     /* libnova measures azimuth from south towards west */
     //    double current_az = range360(lnaltaz.az + 180);
     //double current_alt =lnaltaz.alt;

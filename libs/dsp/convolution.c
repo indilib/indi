@@ -45,21 +45,21 @@ static void* dsp_convolution_convolution_th(void* arg)
 dsp_stream_p dsp_convolution_convolution(dsp_stream_p stream, dsp_stream_p object) {
     dsp_stream_p field = dsp_stream_copy(stream);
     dsp_stream_p tmp = dsp_stream_copy(stream);
-    dsp_buffer_set(tmp, 0);
+    dsp_buffer_set(tmp->buf, tmp->len, 0);
     field->parent = tmp;
     int n_threads = object->len;
     pthread_t *th = malloc(sizeof(pthread_t)*n_threads);
     int y, xy;
-    for(y = -n_threads; y < n_threads; y+=MAX_THREADS)
+    for(y = -n_threads; y < n_threads; y+=DSP_MAX_THREADS)
     {
-        for(xy = 0; xy < MAX_THREADS; xy++) {
+        for(xy = 0; xy < DSP_MAX_THREADS; xy++) {
             dsp_stream_p matrix = dsp_stream_copy(object);
             matrix->parent = field;
             matrix->ROI[0].start = xy;
             matrix->ROI[0].len = 0;
             pthread_create(&th[xy], NULL, dsp_convolution_convolution_th, (void*)matrix);
         }
-        for(xy = 0; xy < MAX_THREADS; xy++)
+        for(xy = 0; xy < DSP_MAX_THREADS; xy++)
             pthread_join(th[xy], NULL);
     }
     dsp_stream_free_buffer(field);

@@ -424,24 +424,24 @@ double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wa
 double estimate_absolute_magnitude(double dist, double delta_mag);
 
 /**
- * @brief interferometry_uv_coords_vector Returns the coordinates in the UV plane of the projection of a single baseline targeting the object in vector
- * @param baseline_m the length of the baseline in meters. This is supposed to be placed into the X 3d plane.
+ * @brief baseline_2d_projection Returns the coordinates of the projection of a single baseline targeting the object by coordinates
+ * @param alt current altitude of the target.
+ * @param az azimuth position of the target.
+ * @param baseline the baseline in meters. Three-dimensional xyz north is z axis y is UTC0 x is UTC0+90°.
  * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
- * @param target_vector The target direction vector. This is relative to the baseline in XYZ order where X is parallel to the baseline.
- * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
+ * @param uvresult result plane coordinates of the current projection given the baseline and target vector.
  */
-double* interferometry_uv_coords_vector(double baseline_m, double wavelength, double *target_vector);
+void baseline_2d_projection(double alt, double az, double baseline[3], double wavelength, double uvresult[2]);
 
 /**
- * @brief interferometry_uv_coords_hadec Returns the coordinates in the UV plane of the projection of a single baseline targeting the object by coordinates
- * @param ha current hour angle of the target.
- * @param dec declination of the target.
+ * @brief baseline_delay Returns the delay in meters of a single baseline targeting the object by coordinates
+ * @param alt current altitude of the target.
+ * @param az azimuth position of the target.
  * @param baseline the baseline in meters. Three-dimensional xyz north is z axis y is UTC0 x is UTC0+90°.
  * @param wavelength The observing electromagnetic wavelength, the lower the size increases.
  * @return double[2] UV plane coordinates of the current projection given the baseline and target vector.
  */
-double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, double wavelength);
-
+double baseline_delay(double alt, double az, double baseline[3]);
 /*@}*/
 
 #ifdef __cplusplus

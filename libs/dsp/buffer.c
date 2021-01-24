@@ -41,14 +41,6 @@ void dsp_buffer_shift(dsp_stream_p stream)
     free(tmp);
 }
 
-void dsp_buffer_set(dsp_stream_p stream, dsp_t val)
-{
-    int k;
-    for(k = 0; k < stream->len; k++)
-        stream->buf[k] = val;
-
-}
-
 void dsp_buffer_removemean(dsp_stream_p stream)
 {
     int k;
@@ -160,7 +152,7 @@ void dsp_buffer_1div(dsp_stream_p stream, double val)
     int k;
 
     for(k = 0; k < stream->len; k++) {
-        stream->buf[k] = (dsp_t)(val / (double)stream->buf[k]);
+        stream->buf[k] = (dsp_t)(val / (dsp_t)stream->buf[k]);
     }
 
 }
@@ -170,7 +162,7 @@ void dsp_buffer_div1(dsp_stream_p stream, double val)
     int k;
 
     for(k = 0; k < stream->len; k++) {
-        stream->buf[k] = (dsp_t)((double)stream->buf[k] / val);
+        stream->buf[k] = (dsp_t)((dsp_t)stream->buf[k] / val);
     }
 
 }
@@ -180,7 +172,7 @@ void dsp_buffer_mul1(dsp_stream_p stream, double val)
     int k;
 
     for(k = 0; k < stream->len; k++) {
-        stream->buf[k] = (dsp_t)((double)stream->buf[k] * val);
+        stream->buf[k] = (dsp_t)((dsp_t)stream->buf[k] * val);
     }
 
 }
@@ -190,7 +182,7 @@ void dsp_buffer_pow1(dsp_stream_p stream, double val)
     int k;
 
     for(k = 0; k < stream->len; k++) {
-        stream->buf[k] = (dsp_t)pow((double)stream->buf[k], val);
+        stream->buf[k] = (dsp_t)pow((dsp_t)stream->buf[k], val);
     }
 
 }
@@ -200,7 +192,7 @@ void dsp_buffer_log1(dsp_stream_p stream, double val)
     int k;
 
     for(k = 0; k < stream->len; k++) {
-        stream->buf[k] = (dsp_t)Log((double)stream->buf[k], val);
+        stream->buf[k] = (dsp_t)Log((dsp_t)stream->buf[k], val);
     }
 
 }
@@ -228,7 +220,7 @@ void dsp_buffer_median(dsp_stream_p stream, int size, int median)
 
 }
 
-void dsp_buffer_deviate(dsp_stream_p stream, double* deviation, double mindeviation, double maxdeviation)
+void dsp_buffer_deviate(dsp_stream_p stream, dsp_t* deviation, dsp_t mindeviation, dsp_t maxdeviation)
 {
     dsp_stream_p tmp = dsp_stream_copy(stream);
     int k;

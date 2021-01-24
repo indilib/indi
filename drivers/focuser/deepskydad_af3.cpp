@@ -170,13 +170,13 @@ bool DeepSkyDadAF3::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&FocusMaxMoveNP);
-        defineSwitch(&StepModeSP);
-        defineSwitch(&SpeedModeSP);
-        defineNumber(&SettleBufferNP);
-        defineNumber(&MoveCurrentMultiplierNP);
-        defineNumber(&HoldCurrentMultiplierNP);
-        defineNumber(&TemperatureNP);
+        defineProperty(&FocusMaxMoveNP);
+        defineProperty(&StepModeSP);
+        defineProperty(&SpeedModeSP);
+        defineProperty(&SettleBufferNP);
+        defineProperty(&MoveCurrentMultiplierNP);
+        defineProperty(&HoldCurrentMultiplierNP);
+        defineProperty(&TemperatureNP);
 
         GetFocusParams();
 
@@ -824,7 +824,7 @@ void DeepSkyDadAF3::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -878,7 +878,7 @@ void DeepSkyDadAF3::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool DeepSkyDadAF3::AbortFocuser()

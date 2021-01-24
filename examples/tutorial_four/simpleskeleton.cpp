@@ -122,11 +122,10 @@ bool SimpleSkeleton::initProperties()
     //           of the driver.
     addAuxControls();
 
-    std::vector<INDI::Property *> *pAll = getProperties();
-
     // Let's print a list of all device properties
-    for (int i = 0; i < (int)pAll->size(); i++)
-        IDLog("Property #%d: %s\n", i, pAll->at(i)->getName());
+    int i = 0;
+    for(const auto &oneProperty: *getProperties())
+        IDLog("Property #%d: %s\n", i++, oneProperty->getName());
 
     return true;
 }

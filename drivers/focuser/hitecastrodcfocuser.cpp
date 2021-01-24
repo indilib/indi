@@ -104,7 +104,7 @@ bool HitecAstroDCFocuser::Connect()
     if (m_HIDHandle != nullptr)
     {
         LOG_INFO("Experimental driver. Report issues to https://github.com/A-j-K/hitecastrodcfocuser/issues");
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
 
@@ -171,9 +171,9 @@ bool HitecAstroDCFocuser::updateProperties()
 
     if (isConnected())
     {
-        //defineNumber(&MaxPositionNP);
-        defineNumber(&SlewSpeedNP);
-        //defineSwitch(&ReverseDirectionSP);
+        //defineProperty(&MaxPositionNP);
+        defineProperty(&SlewSpeedNP);
+        //defineProperty(&ReverseDirectionSP);
     }
     else
     {

@@ -1,4 +1,5 @@
 /*
+    Copyright (C) 2020 by Pawel Soja <kernel32.pl@gmail.com>
     Copyright (C) 2015 by Jasem Mutlaq <mutlaqja@ikarustech.com>
     Copyright (C) 2014 by geehalel <geehalel@gmail.com>
 
@@ -26,11 +27,12 @@
 #include "indiccd.h"
 #include "indisensorinterface.h"
 #include "indilogger.h"
+#include "indiutility.h"
 
 #include <cerrno>
-#include <signal.h>
 #include <sys/stat.h>
-#include <cmath>
+
+#include <algorithm>
 
 static const char * STREAM_TAB = "Streaming";
 
@@ -43,24 +45,6 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
 
     m_isStreaming = false;
     m_isRecording = false;
-
-    prepareGammaLUT();
-
-    // Timer
-    // now use BSD setimer to avoi librt dependency
-    //sevp.sigev_notify=SIGEV_NONE;
-    //timer_create(CLOCK_MONOTONIC, &sevp, &fpstimer);
-    //fpssettings.it_interval.tv_sec=24*3600;
-    //fpssettings.it_interval.tv_nsec=0;
-    //fpssettings.it_value=fpssettings.it_interval;
-    //timer_settime(fpstimer, 0, &fpssettings, nullptr);
-
-    struct itimerval fpssettings;
-    fpssettings.it_interval.tv_sec  = 24 * 3600;
-    fpssettings.it_interval.tv_usec = 0;
-    fpssettings.it_value            = fpssettings.it_interval;
-    signal(SIGALRM, SIG_IGN); //portable
-    setitimer(ITIMER_REAL, &fpssettings, nullptr);
 
     m_FPSAverage.setTimeWindow(1000);
     m_FPSFast.setTimeWindow(50);
@@ -87,18 +71,13 @@ StreamManager::~StreamManager()
 {
     if (m_framesThread.joinable())
     {
-        {
-            std::lock_guard<std::mutex> lock(m_framesMutex);
-            m_framesThreadTerminate = true;
-            m_framesBuffer.clear();
-            m_framesIncoming.notify_all();
-        }
+        m_framesThreadTerminate = true;
+        m_framesIncoming.abort();
         m_framesThread.join();
     }
 
     delete (recorderManager);
     delete (encoderManager);
-    delete [] gammaLUT_16_8;
 }
 
 const char * StreamManager::getDeviceName()
@@ -200,17 +179,17 @@ void StreamManager::ISGetProperties(const char * dev)
 
     if (currentDevice->isConnected())
     {
-        currentDevice->defineSwitch(&StreamSP);
+        currentDevice->defineProperty(&StreamSP);
         if (m_hasStreamingExposure)
-            currentDevice->defineNumber(&StreamExposureNP);
-        currentDevice->defineNumber(&FpsNP);
-        currentDevice->defineSwitch(&RecordStreamSP);
-        currentDevice->defineText(&RecordFileTP);
-        currentDevice->defineNumber(&RecordOptionsNP);
-        currentDevice->defineNumber(&StreamFrameNP);
-        currentDevice->defineSwitch(&EncoderSP);
-        currentDevice->defineSwitch(&RecorderSP);
-        currentDevice->defineNumber(&LimitsNP);
+            currentDevice->defineProperty(&StreamExposureNP);
+        currentDevice->defineProperty(&FpsNP);
+        currentDevice->defineProperty(&RecordStreamSP);
+        currentDevice->defineProperty(&RecordFileTP);
+        currentDevice->defineProperty(&RecordOptionsNP);
+        currentDevice->defineProperty(&StreamFrameNP);
+        currentDevice->defineProperty(&EncoderSP);
+        currentDevice->defineProperty(&RecorderSP);
+        currentDevice->defineProperty(&LimitsNP);
     }
 }
 
@@ -228,17 +207,17 @@ bool StreamManager::updateProperties()
         }
         imageB  = imageBP->bp;
 
-        currentDevice->defineSwitch(&StreamSP);
+        currentDevice->defineProperty(&StreamSP);
         if (m_hasStreamingExposure)
-            currentDevice->defineNumber(&StreamExposureNP);
-        currentDevice->defineNumber(&FpsNP);
-        currentDevice->defineSwitch(&RecordStreamSP);
-        currentDevice->defineText(&RecordFileTP);
-        currentDevice->defineNumber(&RecordOptionsNP);
-        currentDevice->defineNumber(&StreamFrameNP);
-        currentDevice->defineSwitch(&EncoderSP);
-        currentDevice->defineSwitch(&RecorderSP);
-        currentDevice->defineNumber(&LimitsNP);
+            currentDevice->defineProperty(&StreamExposureNP);
+        currentDevice->defineProperty(&FpsNP);
+        currentDevice->defineProperty(&RecordStreamSP);
+        currentDevice->defineProperty(&RecordFileTP);
+        currentDevice->defineProperty(&RecordOptionsNP);
+        currentDevice->defineProperty(&StreamFrameNP);
+        currentDevice->defineProperty(&EncoderSP);
+        currentDevice->defineProperty(&RecorderSP);
+        currentDevice->defineProperty(&LimitsNP);
     }
     else
     {
@@ -273,9 +252,17 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         return;
     }
 
-    if (StreamExposureN[STREAM_DIVISOR].value > 1
-            && (m_FPSAverage.totalFrames() % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
+    // Discard every N frame.
+    // do not count it to fps statistics
+    // N is StreamExposureN[STREAM_DIVISOR].value
+    ++m_frameCountDivider;
+    if (
+        (StreamExposureN[STREAM_DIVISOR].value > 1) &&
+        (m_frameCountDivider % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0
+    )
+    {
         return;
+    }
 
     if (m_FPSAverage.newFrame())
     {
@@ -285,25 +272,22 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
     if (m_FPSFast.newFrame())
     {
         FpsN[0].value = m_FPSFast.framesPerSecond();
-        IDSetNumber(&FpsNP, nullptr);
+        if (m_fastFPSUpdate.try_lock()) // don't block stream thread / record thread
+            std::thread([&](){ IDSetNumber(&FpsNP, nullptr); m_fastFPSUpdate.unlock(); }).detach();
     }
 
     if (isStreaming() || isRecording())
     {
-        std::vector<uint8_t> copyBuffer(buffer, buffer + nbytes);
-
-        std::lock_guard<std::mutex> lock(m_framesMutex);
-        if (m_framesBuffer.size() > 0)
+        size_t allocatedSize = nbytes * m_framesIncoming.size() / 1024 / 1024; // allocated size in MB
+        if (allocatedSize > LimitsN[LIMITS_BUFFER_MAX].value)
         {
-            uint32_t allocated = m_framesBuffer.size() * m_framesBuffer.front().frame.size() / 1024 / 1024; // MB
-            if (allocated > LimitsN[LIMITS_BUFFER_MAX].value)
-            {
-                LOG_WARN("Frame buffer is full, skipping frame...");
-                return;
-            }
+            LOG_WARN("Frame buffer is full, skipping frame...");
+            return;
         }
-        m_framesBuffer.push_back(TimeFrame{m_FPSFast.deltaTime(), std::move(copyBuffer)}); // add copy of frame to queue
-        m_framesIncoming.notify_all();
+
+        std::vector<uint8_t> copyBuffer(buffer, buffer + nbytes); // copy the frame
+
+        m_framesIncoming.push(TimeFrame{m_FPSFast.deltaTime(), std::move(copyBuffer)}); // push it into the queue
     }
 
     if (isRecording())
@@ -317,10 +301,7 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         )
         {
             LOG_INFO("Waiting for all buffered frames to be recorded");
-            {
-                std::unique_lock<std::mutex> lock(m_framesMutex);
-                m_framesBufferEmpty.wait(lock, [&](){ return m_framesBuffer.size() == 0; });
-            }
+            m_framesIncoming.waitForEmpty();
             // duplicated message
 #if 0
             LOGF_INFO(
@@ -355,24 +336,9 @@ void StreamManager::asyncStreamThread()
 
     while(!m_framesThreadTerminate)
     {
-        {
-            std::unique_lock<std::mutex> lock(m_framesMutex);
+        if (m_framesIncoming.pop(sourceTimeFrame) == false)
+            continue;
 
-            if (m_framesBuffer.size() == 0)
-            {
-                m_framesBufferEmpty.notify_all();
-                m_framesIncoming.wait(lock);
-            }
-
-            if (m_framesBuffer.size() == 0)
-            {
-                m_framesBufferEmpty.notify_all();
-                continue;
-            }
-
-            std::swap(sourceTimeFrame, m_framesBuffer.front());
-            m_framesBuffer.pop_front();
-        }
 
         const uint8_t *sourceBufferData = sourceTimeFrame.frame.data();
         uint32_t nbytes                 = sourceTimeFrame.frame.size();
@@ -466,8 +432,7 @@ void StreamManager::asyncStreamThread()
                 uint8_t *        dstBuffer = downscaleBuffer.data();
 
                 // Apply gamma
-                for (uint32_t i = 0; i < npixels; ++i)
-                    dstBuffer[i] = gammaLUT_16_8[srcBuffer[i]];
+                m_gammaLut16.apply(srcBuffer, npixels, dstBuffer);
 
                 sourceBufferData = dstBuffer;
                 nbytes /= 2;
@@ -554,93 +519,27 @@ bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double
     return recorder->writeFrame(buffer, nbytes);
 }
 
-int StreamManager::mkpath(std::string s, mode_t mode)
-{
-    size_t pre = 0, pos;
-    std::string dir;
-    int mdret = 0;
-    struct stat st;
-
-    if (s[s.size() - 1] != '/')
-        s += '/';
-
-    while ((pos = s.find_first_of('/', pre)) != std::string::npos)
-    {
-        dir = s.substr(0, pos++);
-        pre = pos;
-        if (dir.size() == 0)
-            continue;
-        if (stat(dir.c_str(), &st))
-        {
-            if (errno != ENOENT || ((mdret = mkdir(dir.c_str(), mode)) && errno != EEXIST))
-            {
-                LOGF_WARN("mkpath: can not create %s", dir.c_str());
-                return mdret;
-            }
-        }
-        else
-        {
-            if (!S_ISDIR(st.st_mode))
-            {
-                LOGF_WARN("mkpath: %s is not a directory", dir.c_str());
-                return -1;
-            }
-        }
-    }
-    return mdret;
-}
-
 std::string StreamManager::expand(const std::string &fname, const std::map<std::string, std::string> &patterns)
 {
-    std::string res = fname;
-    std::size_t pos;
-    time_t now;
-    struct tm * tm_now;
-    char val[20];
-    *(val + 19) = '\0';
+    std::string result = fname;
 
-    time(&now);
-    tm_now = gmtime(&now);
+    std::time_t t  =  std::time(nullptr);
+    std::tm     tm = *std::gmtime(&t);
 
-    pos = res.find("_D_");
-    if (pos != std::string::npos)
+    auto extendedPatterns = patterns;
+    extendedPatterns["_D_"] = format_time(tm, "%Y-%m-%d");
+    extendedPatterns["_H_"] = format_time(tm, "%H-%M-%S");
+    extendedPatterns["_T_"] = format_time(tm, "%Y-%m-%d" "@" "%H-%M-%S");
+
+    for(const auto &pattern: extendedPatterns)
     {
-        strftime(val, 11, "%F", tm_now);
-        res.replace(pos, 3, val);
-    }
-
-    pos = res.find("_T_");
-    if (pos != std::string::npos)
-    {
-        strftime(val, 20, "%F@%T", tm_now);
-        res.replace(pos, 3, val);
-    }
-
-    pos = res.find("_H_");
-    if (pos != std::string::npos)
-    {
-        strftime(val, 9, "%T", tm_now);
-        res.replace(pos, 3, val);
-    }
-
-    for (std::map<std::string, std::string>::const_iterator it = patterns.begin(); it != patterns.end(); ++it)
-    {
-        pos = res.find(it->first);
-        if (pos != std::string::npos)
-        {
-            res.replace(pos, it->first.size(), it->second);
-        }
+        replace_all(result, pattern.first, pattern.second);
     }
 
     // Replace all : to - to be valid filename on Windows
-    size_t start_pos = 0;
-    while ((start_pos = res.find(":", start_pos)) != std::string::npos)
-    {
-        res.replace(start_pos, 1, "-");
-        start_pos++;
-    }
+    std::replace(result.begin(), result.end(), ':', '-'); // it's really needed now?
 
-    return res;
+    return result;
 }
 
 bool StreamManager::startRecording()
@@ -716,6 +615,7 @@ bool StreamManager::startRecording()
     }
 #endif
     m_FPSRecorder.reset();
+    m_frameCountDivider = 0;
 
     if (m_isStreaming == false)
     {
@@ -1049,6 +949,7 @@ bool StreamManager::setStream(bool enable)
             m_FPSFast.reset();
             m_FPSPreview.reset();
             m_FPSPreview.setTimeWindow(1000.0 / LimitsN[LIMITS_PREVIEW_FPS].value);
+            m_frameCountDivider = 0;
             
             if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
             {
@@ -1220,21 +1121,4 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 
     return false;
 }
-
-void StreamManager::prepareGammaLUT(double gamma, double a, double b, double Ii)
-{
-    if (!gammaLUT_16_8) gammaLUT_16_8 = new uint8_t[65536];
-
-    for (int i = 0; i < 65536; i++)
-    {
-        double I = static_cast<double>(i) / 65535.0;
-        double p;
-        if (I <= Ii)
-            p = a * I;
-        else
-            p = (1 + b) * powf(I, 1.0 / gamma) - b;
-        gammaLUT_16_8[i] = round(255.0 * p);
-    }
-}
-
 }

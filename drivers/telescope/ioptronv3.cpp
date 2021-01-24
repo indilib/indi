@@ -230,19 +230,19 @@ bool IOptronV3::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
-        defineText(&FirmwareTP);
-        defineSwitch(&GPSStatusSP);
-        defineSwitch(&TimeSourceSP);
-        defineSwitch(&HemisphereSP);
-        defineSwitch(&SlewModeSP);
-        defineSwitch(&DaylightSP);
-        defineSwitch(&CWStateSP);
+        defineProperty(&FirmwareTP);
+        defineProperty(&GPSStatusSP);
+        defineProperty(&TimeSourceSP);
+        defineProperty(&HemisphereSP);
+        defineProperty(&SlewModeSP);
+        defineProperty(&DaylightSP);
+        defineProperty(&CWStateSP);
 
         getStartupData();
     }
@@ -309,7 +309,7 @@ void IOptronV3::getStartupData()
         // UTC Offset
         char offset[8] = {0};
         snprintf(offset, 8, "%.2f", utcOffsetMinutes / 60.0);
-        IUSaveText(&TimeT[0], ts);
+        IUSaveText(&TimeT[1], offset);
         LOGF_INFO("Mount UTC Offset: %s", offset);
 
         TimeTP.s = IPS_OK;
@@ -351,19 +351,24 @@ void IOptronV3::getStartupData()
         IDSetNumber(&LocationNP, nullptr);
     }
 
+    double parkAZ = LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180;
+    double parkAL = LocationN[LOCATION_LATITUDE].value;
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1ParkDefault(parkAZ);
+        SetAxis2ParkDefault(parkAL);
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1Park(parkAZ);
+        SetAxis2Park(parkAL);
+        SetAxis1ParkDefault(parkAZ);
+        SetAxis2ParkDefault(parkAL);
+
+        driver->setParkAz(parkAZ);
+        driver->setParkAlt(parkAL);
     }
 
     if (isSimulation())
@@ -590,18 +595,12 @@ bool IOptronV3::ReadScopeStatus()
             case ST_TRACKING_PEC_OFF:
             case ST_TRACKING_PEC_ON:
             case ST_GUIDING:
-                // If slew to parking position is complete, issue park command now.
-                if (TrackState == SCOPE_PARKING)
-                    driver->park();
-                else
-                {
-                    TrackModeSP.s = IPS_BUSY;
-                    TrackState    = SCOPE_TRACKING;
-                    if (scopeInfo.systemStatus == ST_SLEWING)
-                        LOG_INFO("Slew complete, tracking...");
-                    else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
-                        LOG_INFO("Meridian flip complete, tracking...");
-                }
+                TrackModeSP.s = IPS_BUSY;
+                TrackState    = SCOPE_TRACKING;
+                if (scopeInfo.systemStatus == ST_SLEWING)
+                    LOG_INFO("Slew complete, tracking...");
+                else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
+                    LOG_INFO("Meridian flip complete, tracking...");
                 break;
         }
 
@@ -702,7 +701,6 @@ bool IOptronV3::Abort()
 
 bool IOptronV3::Park()
 {
-#if 0
     if (firmwareInfo.Model.find("CEM") == std::string::npos &&
             firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
             firmwareInfo.Model.find("iEQ35") == std::string::npos)
@@ -711,72 +709,7 @@ bool IOptronV3::Park()
         return false;
     }
 
-    targetRA  = GetAxis1Park();
-    targetDEC = GetAxis2Park();
-
-    if (driver->setRA(targetRA) == false || driver->setDE(targetDEC) == false)
-    {
-        LOG_ERROR("Error setting RA/DEC.");
-        return false;
-    }
-
-    bool rc = false;
-    if (IUFindOnSwitchIndex(&SlewModeSP) == IOP_CW_NORMAL)
-        rc = driver->slewNormal();
-    else
-        rc = driver->slewCWUp();
-
-    if (rc == false)
-    {
-        LOG_ERROR("Failed to slew tp parking position.");
-        return false;
-    }
-
-    char RAStr[64] = {0}, DecStr[64] = {0};
-    fs_sexa(RAStr, targetRA, 2, 3600);
-    fs_sexa(DecStr, targetDEC, 2, 3600);
-
-    TrackState = SCOPE_PARKING;
-    LOGF_INFO("Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
-
-    return true;
-#endif
-
-    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ35") == std::string::npos)
-    {
-        LOG_ERROR("Parking is not supported in this mount model.");
-        return false;
-    }
-
-    double parkAz  = GetAxis1Park();
-    double parkAlt = GetAxis2Park();
-
-    char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, parkAz, 2, 3600);
-    fs_sexa(AltStr, parkAlt, 2, 3600);
-    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
-
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    horizontalPos.az = parkAz + 180;
-    if (horizontalPos.az > 360)
-        horizontalPos.az -= 360;
-    horizontalPos.alt = parkAlt;
-
-    ln_equ_posn equatorialPos;
-
-    ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-    if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
+    if (driver->park())
     {
         TrackState = SCOPE_PARKING;
         LOG_INFO("Parking is in progress...");
@@ -1075,22 +1008,20 @@ bool IOptronV3::SetCurrentPark()
     ln_equ_posn equatorialPos;
     equatorialPos.ra  = currentRA * 15;
     equatorialPos.dec = currentDEC;
-    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
-    double parkAZ = horizontalPos.az - 180;
-    if (parkAZ < 0)
-        parkAZ += 360;
-    double parkAlt = horizontalPos.alt;
+    get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
 
     char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, parkAZ, 2, 3600);
-    fs_sexa(AltStr, parkAlt, 2, 3600);
+    fs_sexa(AzStr, horizontalPos.az, 2, 3600);
+    fs_sexa(AltStr, horizontalPos.alt, 2, 3600);
 
     LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
                AltStr);
 
-    SetAxis1Park(parkAZ);
-    SetAxis2Park(parkAlt);
+    SetAxis1Park(horizontalPos.az);
+    SetAxis2Park(horizontalPos.alt);
+
+    driver->setParkAz(horizontalPos.az);
+    driver->setParkAlt(horizontalPos.alt);
 
     return true;
 }
@@ -1099,10 +1030,10 @@ bool IOptronV3::SetDefaultPark()
 {
     // By defualt azimuth 0
     SetAxis1Park(0);
-
     // Altitude = latitude of observer
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-
+    driver->setParkAz(0);
+    driver->setParkAlt(LocationN[LOCATION_LATITUDE].value);
     return true;
 }
 

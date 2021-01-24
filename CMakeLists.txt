@@ -43,7 +43,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 8)
-set(CMAKE_INDI_VERSION_RELEASE 7)
+set(CMAKE_INDI_VERSION_RELEASE 9)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -163,6 +163,7 @@ include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property)
 include_directories( ${ZLIB_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 # 3. Build
@@ -174,7 +175,7 @@ SET(indiclient_C_SRC
 SET(indiclient_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 
 IF (UNITY_BUILD)
@@ -237,7 +238,7 @@ SET(indiclientqt_C_SRC
 SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclientqt_c indiclientqt_C_SRC 10 c)
@@ -339,6 +340,7 @@ ENDIF(OGGTHEORA_FOUND)
     SET(libstream_CXX_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recordermanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.cpp
@@ -373,6 +375,7 @@ ENDIF(OGGTHEORA_FOUND)
 ENDIF(UNIX)
 
 SET(libdsp_C_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/file.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/buffer.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convert.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fft.c
@@ -399,7 +402,8 @@ SET(indidriver_C_SRC
 SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indisensorinterface.cpp
@@ -675,13 +679,27 @@ install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin)
 
 ########### Rainbow Mount driver ##########
 SET(rainbow_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/rainbow.cpp )
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/rainbow.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
+    )
 
 add_executable(indi_rainbow_telescope ${rainbow_SRC})
 
 target_link_libraries(indi_rainbow_telescope indidriver)
 
 install(TARGETS indi_rainbow_telescope RUNTIME DESTINATION bin)
+
+########### HOBYM / TitanTCS for CRUX Mount ##########
+SET(crux_mount_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/crux_mount.cpp
+    )
+
+add_executable(indi_crux_mount ${crux_mount_SRC})
+
+target_link_libraries(indi_crux_mount indidriver)
+
+install(TARGETS indi_crux_mount RUNTIME DESTINATION bin)
+#################################################################################
 
 ########### Takahashi Temma ##########
 SET(temma_SRC
@@ -922,6 +940,14 @@ SET(aaf2_SRC
 add_executable(indi_aaf2_focus ${aaf2_SRC})
 target_link_libraries(indi_aaf2_focus indidriver)
 install(TARGETS indi_aaf2_focus RUNTIME DESTINATION bin)
+################ AAF2 Focuser ################
+
+SET(rbfocus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/rbfocus.cpp)
+
+add_executable(indi_rbfocus_focus ${rbfocus_SRC})
+target_link_libraries(indi_rbfocus_focus indidriver)
+install(TARGETS indi_rbfocus_focus RUNTIME DESTINATION bin)
 
 ################ Moonlite Focuser ################
 
@@ -983,6 +1009,14 @@ install(TARGETS indi_sestosenso2_focus RUNTIME DESTINATION bin)
 #add_executable(indi_focusmaster_focus ${focusmaster_SRC})
 #target_link_libraries(indi_focusmaster_focus indidriver)
 #install(TARGETS indi_focusmaster_focus RUNTIME DESTINATION bin)
+
+################ RainbowAstro RSF Focuser ################
+SET(RSF_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/rainbowRSF.cpp)
+
+add_executable(indi_rainbowrsf_focus ${RSF_SRC})
+target_link_libraries(indi_rainbowrsf_focus indidriver)
+install(TARGETS indi_rainbowrsf_focus RUNTIME DESTINATION bin)
 
 ########### Lakeside ###########
 set(indilakeside_SRCS  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/lakeside.cpp)
@@ -1210,6 +1244,13 @@ SET(integra_SRC
 add_executable(indi_integra_focus ${integra_SRC})
 target_link_libraries(indi_integra_focus indidriver)
 install(TARGETS indi_integra_focus RUNTIME DESTINATION bin)
+
+SET(activefocuser_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/activefocuser.cpp drivers/focuser/activefocuser_utils.cpp drivers/focuser/activefocuser_utils.h)
+
+add_executable(indi_activefocuser_focus ${activefocuser_SRC} drivers/focuser/activefocuser_utils.cpp drivers/focuser/activefocuser_utils.h)
+target_link_libraries(indi_activefocuser_focus indidriver)
+install(TARGETS indi_activefocuser_focus RUNTIME DESTINATION bin)
 
 #################################################################################
 
@@ -1786,6 +1827,8 @@ if (UNIX)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/fpsmeter.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/uniquequeue.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/gammalut16.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_types.h
@@ -1874,7 +1917,11 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgetview.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgettraits.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h

@@ -207,7 +207,7 @@ void FocusLynxBase::ISGetProperties(const char *dev)
 
     INDI::Focuser::ISGetProperties(dev);
 
-    defineSwitch(&ModelSP);
+    defineProperty(&ModelSP);
     if (isSimulation())
         loadConfig(true, "Model");
 }
@@ -227,24 +227,24 @@ bool FocusLynxBase::updateProperties()
 
     if (isConnected())
     {
-        defineText(&HFocusNameTP);
+        defineProperty(&HFocusNameTP);
 
-        defineNumber(&TemperatureNP);
-        defineSwitch(&TemperatureCompensateModeSP);
-        defineNumber(&TemperatureParamNP);
-        defineSwitch(&TemperatureCompensateSP);
-        defineSwitch(&TemperatureCompensateOnStartSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&TemperatureCompensateModeSP);
+        defineProperty(&TemperatureParamNP);
+        defineProperty(&TemperatureCompensateSP);
+        defineProperty(&TemperatureCompensateOnStartSP);
 
-        //        defineSwitch(&FocusBacklashSP);
-        //        defineNumber(&FocusBacklashNP);
+        //        defineProperty(&FocusBacklashSP);
+        //        defineProperty(&FocusBacklashNP);
 
-        //defineNumber(&MaxTravelNP);
+        //defineProperty(&MaxTravelNP);
 
-        defineNumber(&StepSizeNP);
+        defineProperty(&StepSizeNP);
 
-        defineSwitch(&ResetSP);
-        //defineSwitch(&ReverseSP);
-        defineLight(&StatusLP);
+        defineProperty(&ResetSP);
+        //defineProperty(&ReverseSP);
+        defineProperty(&StatusLP);
 
         if (getFocusConfig() && getFocusTemp())
             LOG_INFO("FocusLynx parameters updated, focuser ready for use.");
@@ -3069,9 +3069,9 @@ IPState FocusLynxBase::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
         response[nbytes_read - 1] = '\0';
         LOGF_DEBUG("RES (%s)", response);
 
-        if (duration <= POLLMS)
+        if (duration <= getCurrentPollingPeriod())
         {
-            usleep(POLLMS * 1000);
+            usleep(getCurrentPollingPeriod() * 1000);
             AbortFocuser();
             return IPS_OK;
         }
@@ -3186,7 +3186,7 @@ void FocusLynxBase::TimerHit()
 
     if (configurationComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3201,7 +3201,7 @@ void FocusLynxBase::TimerHit()
     if (statusrc == false)
     {
         LOG_WARN("Unable to read focuser status....");
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3266,7 +3266,7 @@ void FocusLynxBase::TimerHit()
         {
             float remaining = calcTimeLeft(focusMoveStart, focusMoveRequest);
 
-            if (remaining < POLLMS)
+            if (remaining < getCurrentPollingPeriod())
             {
                 sleep(remaining);
                 AbortFocuser();
@@ -3280,7 +3280,7 @@ void FocusLynxBase::TimerHit()
         IDSetSwitch(&GotoSP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************
@@ -3509,7 +3509,7 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
 
         SyncMandatoryS[0].s = ISS_OFF;
         SyncMandatoryS[1].s = ISS_ON;
-        defineSwitch(&SyncMandatorySP);
+        defineProperty(&SyncMandatorySP);
 
         ISState syncEnabled = ISS_OFF;
         if (IUGetConfigSwitch(getDeviceName(), "SYNC MANDATORY", "Enable", &syncEnabled) == 0)
@@ -3526,7 +3526,7 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
         isAbsolute = false;
     }
 
-    defineSwitch(&GotoSP);
+    defineProperty(&GotoSP);
     return isAbsolute;
 }
 

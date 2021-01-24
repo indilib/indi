@@ -90,7 +90,7 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         double targetDEC { 0 };
 
         ln_lnlat_posn lnobserver { 0, 0 };
-        ln_hrz_posn lnaltaz { 0, 0 };
+        //ln_hrz_posn lnaltaz { 0, 0 };
         unsigned int DBG_SCOPE { 0 };
 
         // Jog Rate

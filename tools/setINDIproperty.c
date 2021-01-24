@@ -297,13 +297,11 @@ static int crackSpec(int *acp, char **avp[])
     }
 
     /* add to list */
-    if (!sets)
-        sets = (SetSpec *)malloc(1); /* seed realloc */
     sets            = (SetSpec *)realloc(sets, (nsets + 1) * sizeof(SetSpec));
-    sets[nsets].d   = strcpy(malloc(strlen(d) + 1), d);
-    sets[nsets].p   = strcpy(malloc(strlen(p) + 1), p);
+    sets[nsets].d   = strdup(d);
+    sets[nsets].p   = strdup(p);
     sets[nsets].dp  = dp;
-    sets[nsets].ev  = (SetEV *)malloc(1); /* seed realloc */
+    sets[nsets].ev  = NULL;
     sets[nsets].nev = 0;
     scanEV(&sets[nsets++], ev);
 
@@ -572,8 +570,8 @@ static void scanEEVV(SetSpec *sp, char *v, char *e)
         }
 
         sp->ev            = (SetEV *)realloc(sp->ev, (sp->nev + 1) * sizeof(SetEV));
-        sp->ev[sp->nev].e = strcpy(malloc(strlen(e0) + 1), e0);
-        sp->ev[sp->nev].v = strcpy(malloc(strlen(v0) + 1), v0);
+        sp->ev[sp->nev].e = strdup(e0);
+        sp->ev[sp->nev].v = strdup(v0);
         if (verbose > 1)
             fprintf(stderr, "Found assignment %s=%s\n", sp->ev[sp->nev].e, sp->ev[sp->nev].v);
         sp->nev++;
@@ -612,8 +610,8 @@ static void scanEVEV(SetSpec *sp, char ev[])
         }
 
         sp->ev            = (SetEV *)realloc(sp->ev, (sp->nev + 1) * sizeof(SetEV));
-        sp->ev[sp->nev].e = strcpy(malloc(strlen(ev) + 1), ev);
-        sp->ev[sp->nev].v = strcpy(malloc(strlen(e) + 1), e);
+        sp->ev[sp->nev].e = strdup(ev);
+        sp->ev[sp->nev].v = strdup(e);
         if (verbose > 1)
             fprintf(stderr, "Found assignment %s=%s\n", sp->ev[sp->nev].e, sp->ev[sp->nev].v);
         sp->nev++;

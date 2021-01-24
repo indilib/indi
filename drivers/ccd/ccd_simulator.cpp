@@ -107,6 +107,7 @@ bool CCDSim::setupParameters()
     m_PEPeriod = SimulatorSettingsN[SIM_PE_PERIOD].value;
     m_PEMax = SimulatorSettingsN[SIM_PE_MAX].value;
     m_TimeFactor = SimulatorSettingsN[SIM_TIME_FACTOR].value;
+    RotatorAngle = SimulatorSettingsN[SIM_ROTATION].value;
 
     uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
@@ -122,7 +123,7 @@ bool CCDSim::Connect()
     streamPredicate = 0;
     terminateThread = false;
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 
@@ -161,6 +162,7 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (minutes)", "%4.1f", 0, 60, 5, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_PE_MAX], "SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 500, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_TIME_FACTOR], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 10, 1);
+    IUFillNumber(&SimulatorSettingsN[SIM_ROTATION], "SIM_ROTATION", "CCD Rotation", "%.2f", 0, 360, 10, 0);
 
     IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, SIM_N, getDeviceName(), "SIMULATOR_SETTINGS",
                        "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
@@ -285,11 +287,11 @@ void CCDSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineNumber(&SimulatorSettingsNP);
-    defineNumber(&EqPENP);
-    defineNumber(&FocusSimulationNP);
-    defineSwitch(&SimulateRgbSP);
-    defineSwitch(&CrashSP);
+    defineProperty(&SimulatorSettingsNP);
+    defineProperty(&EqPENP);
+    defineProperty(&FocusSimulationNP);
+    defineProperty(&SimulateRgbSP);
+    defineProperty(&CrashSP);
 }
 
 bool CCDSim::updateProperties()
@@ -299,13 +301,13 @@ bool CCDSim::updateProperties()
     if (isConnected())
     {
         if (HasCooler())
-            defineSwitch(&CoolerSP);
+            defineProperty(&CoolerSP);
 
-        defineNumber(&GainNP);
-        defineNumber(&OffsetNP);
+        defineProperty(&GainNP);
+        defineProperty(&OffsetNP);
 
-        defineText(&DirectoryTP);
-        defineSwitch(&DirectorySP);
+        defineProperty(&DirectoryTP);
+        defineProperty(&DirectorySP);
 
         setupParameters();
 
@@ -430,7 +432,7 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
 
 void CCDSim::TimerHit()
 {
-    uint32_t nextTimer = POLLMS;
+    uint32_t nextTimer = getCurrentPollingPeriod();
 
     //  No need to reset timer if we are not connected anymore
     if (!isConnected())
