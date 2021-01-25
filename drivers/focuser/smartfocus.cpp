@@ -122,7 +122,7 @@ bool SmartFocus::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1;
 
-    POLLMS = TimerInterval;
+    setCurrentPollingPeriod(TimerInterval);
 
     return true;
 }
@@ -133,8 +133,8 @@ bool SmartFocus::updateProperties()
 
     if (isConnected())
     {
-        defineLight(&FlagsLP);
-        defineNumber(&MotionErrorNP);
+        defineProperty(&FlagsLP);
+        defineProperty(&MotionErrorNP);
         SFgetState();
         IDMessage(getDeviceName(), "SmartFocus focuser ready for use.");
     }

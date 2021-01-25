@@ -20,10 +20,14 @@
 
 #include "indibase.h"
 #include "indiutility.h"
-#include <memory>
 
-#include <cstdarg>
+#include "indipropertyview.h"
+
 #include "indidriver.h"
+
+#include <memory>
+#include <cstdarg>
+
 
 namespace INDI
 {
@@ -91,17 +95,16 @@ public:
     void define(const char *format = nullptr, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
 public:
-    INumberVectorProperty *getNumber() const;
-    ITextVectorProperty *getText() const;
-    ISwitchVectorProperty *getSwitch() const;
-    ILightVectorProperty *getLight() const;
-    IBLOBVectorProperty *getBLOB() const;
+    PropertyView<INumber> *getNumber() const;
+    PropertyView<IText>   *getText() const;
+    PropertyView<ISwitch> *getSwitch() const;
+    PropertyView<ILight>  *getLight() const;
+    PropertyView<IBLOB>   *getBLOB() const;
 
 protected:
     std::shared_ptr<PropertyPrivate> d_ptr;
     Property(PropertyPrivate &dd);
 };
-
 
 inline void Property::save(FILE *fp)
 {
@@ -116,6 +119,7 @@ inline void Property::save(FILE *fp)
     }
 }
 
+// TODO (move to server side)
 inline void Property::apply(const char *format, ...)
 {
     va_list ap;

@@ -125,8 +125,8 @@ bool RainbowRSF::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineSwitch(&GoHomeSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&GoHomeSP);
     }
     else
     {
@@ -394,7 +394,7 @@ void RainbowRSF::TimerHit()
         m_TemperatureCounter = 0;
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /////////////////////////////////////////////////////////////////////////////

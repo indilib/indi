@@ -160,10 +160,10 @@ bool ioptronHC8406::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&SyncCMRSP);
-        defineSwitch(&GuideRateSP);
-        defineSwitch(&CenterRateSP);
-        defineSwitch(&CursorMoveSpeedSP);
+        defineProperty(&SyncCMRSP);
+        defineProperty(&GuideRateSP);
+        defineProperty(&CenterRateSP);
+        defineProperty(&CursorMoveSpeedSP);
         ioptronHC8406Init();
     }
     else

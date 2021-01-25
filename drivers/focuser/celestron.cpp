@@ -162,12 +162,12 @@ bool CelestronSCT::updateProperties()
 
     if (isConnected())
     {
-        //defineNumber(&FocusBacklashNP);
+        //defineProperty(&FocusBacklashNP);
 
-        defineNumber(&FocusMinPosNP);
+        defineProperty(&FocusMinPosNP);
 
-        defineSwitch(&CalibrateSP);
-        defineText(&CalibrateStateTP);
+        defineProperty(&CalibrateSP);
+        defineProperty(&CalibrateStateTP);
 
         if (getStartupParameters())
             LOG_INFO("Celestron SCT focuser parameters updated, focuser ready for use.");
@@ -423,7 +423,7 @@ void CelestronSCT::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -511,7 +511,7 @@ void CelestronSCT::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool CelestronSCT::AbortFocuser()

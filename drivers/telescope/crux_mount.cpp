@@ -197,13 +197,13 @@ bool TitanTCS::updateProperties()
     if (isConnected())
     {
 #if USE_PEC
-        defineSwitch(&PECTrainingSP);
-        defineText(&PECInfoTP);
+        defineProperty(&PECTrainingSP);
+        defineProperty(&PECInfoTP);
 #endif
-        defineText(&MountInfoTP);
+        defineProperty(&MountInfoTP);
         //
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
         //
         IUResetSwitch(&TrackModeSP);
         TrackModeS[TRACK_SIDEREAL].s = ISS_ON;

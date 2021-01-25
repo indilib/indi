@@ -89,25 +89,25 @@ bool SensorInterface::updateProperties()
     //IDLog("Sensor UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
-        defineNumber(&FramedIntegrationNP);
+        defineProperty(&FramedIntegrationNP);
 
         if (CanAbort())
-            defineSwitch(&AbortIntegrationSP);
+            defineProperty(&AbortIntegrationSP);
 
-        defineText(&FITSHeaderTP);
+        defineProperty(&FITSHeaderTP);
 
         if (HasCooler())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
 
-        defineBLOB(&FitsBP);
+        defineProperty(&FitsBP);
 
-        defineSwitch(&TelescopeTypeSP);
+        defineProperty(&TelescopeTypeSP);
 
-        defineSwitch(&UploadSP);
+        defineProperty(&UploadSP);
 
         if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
-        defineText(&UploadSettingsTP);
+        defineProperty(&UploadSettingsTP);
     }
     else
     {
@@ -139,7 +139,7 @@ void SensorInterface::processProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
-    defineText(&ActiveDeviceTP);
+    defineProperty(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 
     if (HasStreaming())
@@ -318,12 +318,12 @@ bool SensorInterface::processSwitch(const char *dev, const char *name, ISState *
             else if (UploadS[1].s == ISS_ON)
             {
                 DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
-                defineText(&FileNameTP);
+                defineProperty(&FileNameTP);
             }
             else
             {
                 DEBUG(Logger::DBG_SESSION, "Upload settings set to client and local.");
-                defineText(&FileNameTP);
+                defineProperty(&FileNameTP);
             }
             return true;
         }
@@ -869,7 +869,7 @@ void* SensorInterface::sendFITS(uint8_t *buf, int len)
 bool SensorInterface::IntegrationComplete()
 {
     // Reset POLLMS to default value
-    POLLMS = getPollingPeriod();
+    setCurrentPollingPeriod(getPollingPeriod());
 
     if(HasDSP())
     {

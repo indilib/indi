@@ -204,16 +204,16 @@ bool IEQProLegacy::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
-        defineText(&FirmwareTP);
-        defineSwitch(&GPSStatusSP);
-        defineSwitch(&TimeSourceSP);
-        defineSwitch(&HemisphereSP);
+        defineProperty(&FirmwareTP);
+        defineProperty(&GPSStatusSP);
+        defineProperty(&TimeSourceSP);
+        defineProperty(&HemisphereSP);
 
         getStartupData();
     }

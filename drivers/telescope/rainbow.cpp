@@ -142,12 +142,12 @@ bool Rainbow::updateProperties()
     {
         getStartupStatus();
 
-        defineNumber(&HorizontalCoordsNP);
-        defineSwitch(&HomeSP);
+        defineProperty(&HorizontalCoordsNP);
+        defineProperty(&HomeSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
     }
     else

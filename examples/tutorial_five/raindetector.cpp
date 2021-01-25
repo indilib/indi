@@ -116,8 +116,8 @@ bool RainDetector::updateProperties()
 
     if (isConnected())
     {
-        defineLight(&RainLP);
-        defineSwitch(&RainSP);
+        defineProperty(&RainLP);
+        defineProperty(&RainSP);
     }
     else
     // We're disconnected

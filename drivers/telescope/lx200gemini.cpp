@@ -87,7 +87,7 @@ void LX200Gemini::ISGetProperties(const char *dev)
     {
         IUResetSwitch(&StartupModeSP);
         StartupModeSP.sp[index].s = ISS_ON;
-        defineSwitch(&StartupModeSP);
+        defineProperty(&StartupModeSP);
     }
 }
 
@@ -145,38 +145,38 @@ bool LX200Gemini::updateProperties()
     {
         uint32_t speed = 0;
         char value[MAX_VALUE_LENGTH] = {0};
-        defineSwitch(&ParkSettingsSP);
+        defineProperty(&ParkSettingsSP);
 
         if (getGeminiProperty(MANUAL_SLEWING_SPEED_ID, value))
         {
             sscanf(value, "%u", &speed);
             ManualSlewingSpeedN[0].value = speed;
-            defineNumber(&ManualSlewingSpeedNP);
+            defineProperty(&ManualSlewingSpeedNP);
         }
         if (getGeminiProperty(GOTO_SLEWING_SPEED_ID, value))
         {
             sscanf(value, "%u", &speed);
             GotoSlewingSpeedN[0].value = speed;
-            defineNumber(&GotoSlewingSpeedNP);
+            defineProperty(&GotoSlewingSpeedNP);
         }
         if (getGeminiProperty(MOVE_SPEED_ID, value))
         {
             sscanf(value, "%u", &speed);
             MoveSpeedN[0].value = speed;
-            defineNumber(&MoveSpeedNP);
+            defineProperty(&MoveSpeedNP);
         }
         if (getGeminiProperty(GUIDING_SPEED_ID, value))
         {
             float guidingSpeed = 0.0;
             sscanf(value, "%f", &guidingSpeed);
             GuidingSpeedN[0].value = guidingSpeed;
-            defineNumber(&GuidingSpeedNP);
+            defineProperty(&GuidingSpeedNP);
         }
         if (getGeminiProperty(CENTERING_SPEED_ID, value))
         {
             sscanf(value, "%u", &speed);
             CenteringSpeedN[0].value = speed;
-            defineNumber(&CenteringSpeedNP);
+            defineProperty(&CenteringSpeedNP);
         }
 
         updateParkingState();

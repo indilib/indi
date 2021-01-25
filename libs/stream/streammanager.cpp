@@ -179,17 +179,17 @@ void StreamManager::ISGetProperties(const char * dev)
 
     if (currentDevice->isConnected())
     {
-        currentDevice->defineSwitch(&StreamSP);
+        currentDevice->defineProperty(&StreamSP);
         if (m_hasStreamingExposure)
-            currentDevice->defineNumber(&StreamExposureNP);
-        currentDevice->defineNumber(&FpsNP);
-        currentDevice->defineSwitch(&RecordStreamSP);
-        currentDevice->defineText(&RecordFileTP);
-        currentDevice->defineNumber(&RecordOptionsNP);
-        currentDevice->defineNumber(&StreamFrameNP);
-        currentDevice->defineSwitch(&EncoderSP);
-        currentDevice->defineSwitch(&RecorderSP);
-        currentDevice->defineNumber(&LimitsNP);
+            currentDevice->defineProperty(&StreamExposureNP);
+        currentDevice->defineProperty(&FpsNP);
+        currentDevice->defineProperty(&RecordStreamSP);
+        currentDevice->defineProperty(&RecordFileTP);
+        currentDevice->defineProperty(&RecordOptionsNP);
+        currentDevice->defineProperty(&StreamFrameNP);
+        currentDevice->defineProperty(&EncoderSP);
+        currentDevice->defineProperty(&RecorderSP);
+        currentDevice->defineProperty(&LimitsNP);
     }
 }
 
@@ -207,17 +207,17 @@ bool StreamManager::updateProperties()
         }
         imageB  = imageBP->bp;
 
-        currentDevice->defineSwitch(&StreamSP);
+        currentDevice->defineProperty(&StreamSP);
         if (m_hasStreamingExposure)
-            currentDevice->defineNumber(&StreamExposureNP);
-        currentDevice->defineNumber(&FpsNP);
-        currentDevice->defineSwitch(&RecordStreamSP);
-        currentDevice->defineText(&RecordFileTP);
-        currentDevice->defineNumber(&RecordOptionsNP);
-        currentDevice->defineNumber(&StreamFrameNP);
-        currentDevice->defineSwitch(&EncoderSP);
-        currentDevice->defineSwitch(&RecorderSP);
-        currentDevice->defineNumber(&LimitsNP);
+            currentDevice->defineProperty(&StreamExposureNP);
+        currentDevice->defineProperty(&FpsNP);
+        currentDevice->defineProperty(&RecordStreamSP);
+        currentDevice->defineProperty(&RecordFileTP);
+        currentDevice->defineProperty(&RecordOptionsNP);
+        currentDevice->defineProperty(&StreamFrameNP);
+        currentDevice->defineProperty(&EncoderSP);
+        currentDevice->defineProperty(&RecorderSP);
+        currentDevice->defineProperty(&LimitsNP);
     }
     else
     {

@@ -58,9 +58,9 @@ bool LX200FS2::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&SlewRateSP);
-        defineNumber(&SlewAccuracyNP);
-        defineSwitch(&StopAfterParkSP);
+        defineProperty(&SlewRateSP);
+        defineProperty(&SlewAccuracyNP);
+        defineProperty(&StopAfterParkSP);
 
         if (InitPark())
         {

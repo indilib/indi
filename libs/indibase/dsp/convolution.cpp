@@ -51,7 +51,7 @@ Convolution::~Convolution()
 
 void Convolution::Activated()
 {
-    m_Device->defineBLOB(&DownloadBP);
+    m_Device->defineProperty(&DownloadBP);
     Interface::Activated();
 }
 
@@ -112,7 +112,7 @@ Wavelets::~Wavelets()
 
 void Wavelets::Activated()
 {
-    m_Device->defineNumber(&WaveletsNP);
+    m_Device->defineProperty(&WaveletsNP);
     Interface::Activated();
 }
 
