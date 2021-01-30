@@ -1,13 +1,13 @@
 /*******************************************************************************
  DDW Dome INDI Driver
 
- Copyright(c) 2020 Jarno Paananen. All rights reserved.
+ Copyright(c) 2020-2021 Jarno Paananen. All rights reserved.
 
  based on:
 
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2020 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2021 Jarno Paananen. All rights reserved.
 
  and
 
@@ -38,15 +38,6 @@
 class DDW : public INDI::Dome
 {
   public:
-    typedef enum
-    {
-        DOME_UNKNOWN,
-        DOME_CALIBRATING,
-        DOME_READY,
-        DOME_HOMING,
-        DOME_DEROTATING
-    } DomeStatus;
-
     DDW();
     virtual ~DDW() = default;
 
