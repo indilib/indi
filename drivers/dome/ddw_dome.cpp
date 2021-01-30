@@ -360,7 +360,7 @@ void DDW::TimerHit()
             case 'P':
             {
                 // Read tick count
-                if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, ' ', DDW_TIMEOUT, &nr)) !=
+                if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, '\r', DDW_TIMEOUT, &nr)) !=
                     TTY_OK)
                 {
                     tty_error_msg(rc, errstr, MAXRBUF);
@@ -387,7 +387,7 @@ void DDW::TimerHit()
                 break;
             case 'Z':
             {
-                if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, ' ', DDW_TIMEOUT, &nr)) !=
+                if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, '\r', DDW_TIMEOUT, &nr)) !=
                     TTY_OK)
                 {
                     tty_error_msg(rc, errstr, MAXRBUF);
