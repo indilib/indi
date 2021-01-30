@@ -176,12 +176,16 @@ bool Serial::Connect()
 
     // If if the user port is one of the detected system ports.
     bool isSystemPort = false;
-    for (int i = 0; i < SystemPortSP.nsp; i++)
+
+    if (SystemPortS != nullptr)
     {
-        if (!strcmp(PortT[0].text, SystemPortS[i].name))
+        for (int i = 0; i < SystemPortSP.nsp; i++)
         {
-            isSystemPort = true;
-            break;
+            if (!strcmp(PortT[0].text, SystemPortS[i].name))
+            {
+                isSystemPort = true;
+                break;
+            }
         }
     }
 
