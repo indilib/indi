@@ -1,13 +1,13 @@
 /*******************************************************************************
  DDW Dome INDI Driver
 
- Copyright(c) 2020 Jarno Paananen. All rights reserved.
+ Copyright(c) 2020-2021 Jarno Paananen. All rights reserved.
 
  based on:
 
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2020 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2021 Jarno Paananen. All rights reserved.
 
  and
 
@@ -228,7 +228,7 @@ int DDW::readStatus(std::string &status)
     char response[256] = { 0 };
 
     // Read buffer
-    if ((rc = tty_nread_section(PortFD, response, sizeof(response), '\r', DDW_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_nread_section(PortFD, response, sizeof(response) - 1, '\r', DDW_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Error reading: %s.", errstr);
@@ -334,12 +334,18 @@ void DDW::TimerHit()
 
     // The controller may write responses at any time due to hand controller usage
     // and command responses, so need to poll for them here
-    char errstr[MAXRBUF];
-    char response[256] = { 0 };
-    int nr;
-    int rc = tty_read(PortFD, response, 1, 0, &nr);
-    if (rc == TTY_OK && nr == 1)
+    while(true)
     {
+        char errstr[MAXRBUF];
+        char response[256] = { 0 };
+        int nr;
+        int rc = tty_read(PortFD, response, 1, 0, &nr);
+        if (rc != TTY_OK || nr != 1)
+        {
+            // All read
+            break;
+        }
+
         switch (response[0])
         {
             case 'L':
@@ -354,13 +360,18 @@ void DDW::TimerHit()
             case 'P':
             {
                 // Read tick count
-                tty_read(PortFD, response + 1, 4, 0, &nr);
+                if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, ' ', DDW_TIMEOUT, &nr)) !=
+                    TTY_OK)
+                {
+                    tty_error_msg(rc, errstr, MAXRBUF);
+                    LOGF_ERROR("Error reading: %s.", errstr);
+                }
                 int tick = -1;
                 sscanf(response, "P%d", &tick);
                 LOGF_DEBUG("Tick counter %d", tick);
 
                 // Update current position
-                DomeAbsPosN[0].value = 360.0 * tick / ticksPerRev;
+                DomeAbsPosN[0].value = 359.0 * tick / ticksPerRev;
                 DomeAbsPosNP.s       = IPS_OK;
                 IDSetNumber(&DomeAbsPosNP, nullptr);
                 break;
@@ -374,10 +385,23 @@ void DDW::TimerHit()
             case 'S':
                 LOG_DEBUG("Shutter tick");
                 break;
+            case 'Z':
+            {
+                if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, ' ', DDW_TIMEOUT, &nr)) !=
+                    TTY_OK)
+                {
+                    tty_error_msg(rc, errstr, MAXRBUF);
+                    LOGF_ERROR("Error reading: %s.", errstr);
+                }
+                int tick = -1;
+                sscanf(response, "Z%d", &tick);
+                LOGF_DEBUG("Shutter encoder? %d", tick);
+                break;
+            }
             case 'V':
                 // Move finished, read rest of GINF packet and parse it
                 // Read buffer
-                if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response - 1), '\r', DDW_TIMEOUT, &nr)) !=
+                if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, '\r', DDW_TIMEOUT, &nr)) !=
                     TTY_OK)
                 {
                     tty_error_msg(rc, errstr, MAXRBUF);
