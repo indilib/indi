@@ -89,7 +89,7 @@ SkywatcherAPIMount::SkywatcherAPIMount()
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
                            SLEWMODES);
 
-    setVersion(1, 2);
+    setVersion(1, 3);
 }
 
 bool SkywatcherAPIMount::Abort()
@@ -462,10 +462,8 @@ bool SkywatcherAPIMount::initProperties()
     SetParkDataType(PARK_AZ_ALT_ENCODER);
 
     // Guiding support
-    // TODO: Hide the auto-guide support now because it is not production-ready
-    //    initGuiderProperties(getDeviceName(), GUIDE_TAB);
-
-    //    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
+    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     return true;
 }
@@ -1799,11 +1797,13 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
     if (BasicMountInfoHasChanged && InformClient)
         IDSetText(&BasicMountInfoV, nullptr);
 
-    if (MountCode >= 128 && MountCode <= 143)
+    if (MountCode == AZEQ6)
+        IUSaveText(&BasicMountInfo[MOUNT_NAME], "AZEQ6");
+    else if (MountCode >= 128 && MountCode <= 143)
         IUSaveText(&BasicMountInfo[MOUNT_NAME], "Az Goto");
-    if (MountCode >= 144 && MountCode <= 159)
+    else if (MountCode >= 144 && MountCode <= 159)
         IUSaveText(&BasicMountInfo[MOUNT_NAME], "Dob Goto");
-    if (MountCode >= 160)
+    else if (MountCode >= 160)
         IUSaveText(&BasicMountInfo[MOUNT_NAME], "AllView Goto");
 
     bool AxisOneInfoHasChanged = false;
