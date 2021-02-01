@@ -37,54 +37,55 @@
 
 class DDW : public INDI::Dome
 {
-  public:
-    DDW();
-    virtual ~DDW() = default;
+    public:
+        DDW();
+        virtual ~DDW() = default;
 
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool Handshake() override;
+        virtual bool Handshake() override;
 
-    virtual void TimerHit() override;
+        virtual void TimerHit() override;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    virtual IPState MoveAbs(double az) override;
-    virtual IPState ControlShutter(ShutterOperation operation) override;
-    virtual bool Abort() override;
+        virtual IPState MoveAbs(double az) override;
+        virtual IPState ControlShutter(ShutterOperation operation) override;
+        virtual bool Abort() override;
 
-    // Parking
-    virtual IPState Park() override;
-    virtual IPState UnPark() override;
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
+        // Parking
+        virtual IPState Park() override;
+        virtual IPState UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
-  protected:
-    bool SetupParms();
+    protected:
+        bool SetupParms();
 
-    INumber FirmwareVersionN[1];
-    INumberVectorProperty FirmwareVersionNP;
+        INumber FirmwareVersionN[1];
+        INumberVectorProperty FirmwareVersionNP;
 
-  private:
-    int writeCmd(const char *cmd);
-    int readStatus(std::string &status);
-    void parseGINF(const char *response);
+    private:
+        int writeCmd(const char *cmd);
+        int readStatus(std::string &status);
+        void parseGINF(const char *response);
 
-    int ticksPerRev { 100 };
+        int ticksPerRev { 100 };
+        double homeAz { 0 };
 
-    int fwVersion{ -1 };
+        int fwVersion{ -1 };
 
-    enum
-    {
-        IDLE,
-        MOVING,
-        SHUTTER_OPERATION,
-        HOMING,
-        PARKING,
-        UNPARKING
-    } cmdState{ IDLE };
+        enum
+        {
+            IDLE,
+            MOVING,
+            SHUTTER_OPERATION,
+            HOMING,
+            PARKING,
+            UNPARKING
+        } cmdState{ IDLE };
 };

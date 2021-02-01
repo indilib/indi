@@ -37,19 +37,10 @@
 #include "connectionplugins/connectionserial.h"
 #include "indicom.h"
 
-#include <cmath>
-#include <cstring>
-#include <memory>
-#include <termios.h>
-#include <wordexp.h>
-#include <unistd.h>
-
 #define DDW_TIMEOUT 2
 
 // We declare an auto pointer to DDW.
 std::unique_ptr<DDW> ddw(new DDW());
-
-void ISPoll(void *p);
 
 void ISGetProperties(const char *dev)
 {
@@ -130,7 +121,7 @@ bool DDW::SetupParms()
     {
         // Otherwise, we set all parking data to default in case no parking data is
         // found.
-        SetAxis1Park(0);
+        SetDefaultPark();
         SetAxis1ParkDefault(0);
     }
 
@@ -242,7 +233,7 @@ void DDW::parseGINF(const char *response)
     /* GINF packet structure:
 
     Field   Content     Note (each datum is separated by comma)
-    1       V#          Denotes Version Data.  E.g., V1 
+    1       V#          Denotes Version Data.  E.g., V1
     2       Dticks      DTICKS is dome circumference in ticks 0-32767.  Value is sent as a string of characters, e.g., 457.  Leading zeros not transmitted.
     3       Home1       Azimuth location of the HOME position in ticks 0-32767
     4       Coast       Coast value in ticks (0-255)
@@ -302,6 +293,7 @@ void DDW::parseGINF(const char *response)
     {
         fwVersion   = version;
         ticksPerRev = dticks;
+        homeAz = 360.0 * homepos / ticksPerRev;
 
         DomeAbsPosN[0].value = 360.0 * azimuth / ticksPerRev;
         DomeAbsPosNP.s       = IPS_OK;
@@ -361,7 +353,7 @@ void DDW::TimerHit()
             {
                 // Read tick count
                 if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, '\r', DDW_TIMEOUT, &nr)) !=
-                    TTY_OK)
+                        TTY_OK)
                 {
                     tty_error_msg(rc, errstr, MAXRBUF);
                     LOGF_ERROR("Error reading: %s.", errstr);
@@ -388,21 +380,21 @@ void DDW::TimerHit()
             case 'Z':
             {
                 if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, '\r', DDW_TIMEOUT, &nr)) !=
-                    TTY_OK)
+                        TTY_OK)
                 {
                     tty_error_msg(rc, errstr, MAXRBUF);
                     LOGF_ERROR("Error reading: %s.", errstr);
                 }
                 int tick = -1;
                 sscanf(response, "Z%d", &tick);
-                LOGF_DEBUG("Shutter encoder? %d", tick);
+                LOGF_DEBUG("Shutter encoder %d", tick);
                 break;
             }
             case 'V':
                 // Move finished, read rest of GINF packet and parse it
                 // Read buffer
                 if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, '\r', DDW_TIMEOUT, &nr)) !=
-                    TTY_OK)
+                        TTY_OK)
                 {
                     tty_error_msg(rc, errstr, MAXRBUF);
                     LOGF_ERROR("Error reading: %s.", errstr);
@@ -415,7 +407,16 @@ void DDW::TimerHit()
                 switch (getDomeState())
                 {
                     case DOME_PARKING:
-                        SetParked(true);
+                        if(cmdState == SHUTTER_OPERATION)
+                        {
+                            // First phase of parking done, now move to park position
+                            cmdState = IDLE;
+                            MoveAbs(GetAxis1Park());
+                        }
+                        else
+                        {
+                            SetParked(true);
+                        }
                         break;
                     case DOME_UNPARKING:
                         SetParked(false);
@@ -466,14 +467,15 @@ IPState DDW::Park()
         return IPS_ALERT;
     }
 
-    // First move to park position and then optionally close shutter
-    IPState s = MoveAbs(GetAxis1Park());
-    if (s == IPS_OK && ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON)
+    // First close the shutter if wanted (moves to home position), then move to park position
+    if (ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK].s == ISS_ON)
     {
-        // Already at home, just close if needed
         return ControlShutter(SHUTTER_CLOSE);
     }
-    return s;
+    else
+    {
+        return MoveAbs(GetAxis1Park());
+    }
 }
 
 /************************************************************************************
@@ -499,7 +501,6 @@ IPState DDW::UnPark()
 * ***********************************************************************************/
 IPState DDW::ControlShutter(ShutterOperation operation)
 {
-    LOGF_INFO("Control shutter %d", (int)operation);
     if (cmdState != IDLE)
     {
         LOG_ERROR("Dome needs to be idle for shutter operations");
@@ -554,7 +555,7 @@ bool DDW::SetCurrentPark()
 
 bool DDW::SetDefaultPark()
 {
-    // By default set position to 90
-    SetAxis1Park(90);
+    // By default set park position to home position
+    SetAxis1Park(homeAz);
     return true;
 }
