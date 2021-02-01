@@ -334,10 +334,17 @@ void DDW::TimerHit()
         int rc = tty_read(PortFD, response, 1, 0, &nr);
         if (rc != TTY_OK || nr != 1)
         {
-            // All read
+            // Nothing more to read
+            if (++watchdog * getCurrentPollingPeriod() > 60 * 1000)
+            {
+                // If we haven't heard from the controller for 60s, send GINF command to keep DDW watchdog from triggering
+                writeCmd("GINF");
+                watchdog = 0; // prevent from triggering immediately again
+            }
             break;
         }
 
+        watchdog = 0;
         switch (response[0])
         {
             case 'L':
