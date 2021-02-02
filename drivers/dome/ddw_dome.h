@@ -76,6 +76,7 @@ class DDW : public INDI::Dome
 
         int ticksPerRev { 100 };
         double homeAz { 0 };
+        int watchdog { 0 };
 
         int fwVersion{ -1 };
 
