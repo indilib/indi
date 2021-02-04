@@ -80,6 +80,9 @@ class DDW : public INDI::Dome
 
         int fwVersion{ -1 };
 
+        double gotoTarget { 0 };
+        bool gotoPending { false };
+
         enum
         {
             IDLE,

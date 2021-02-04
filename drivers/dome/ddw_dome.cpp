@@ -84,6 +84,7 @@ DDW::DDW()
 {
     setVersion(1, 0);
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER);
+    setDomeConnection(CONNECTION_SERIAL);
 }
 
 bool DDW::initProperties()
@@ -153,6 +154,9 @@ bool DDW::Handshake()
         return false;
 
     parseGINF(response.c_str());
+    cmdState = IDLE;
+    DomeAbsPosNP.s = IPS_OK;
+    IDSetNumber(&DomeAbsPosNP, nullptr);
     return true;
 }
 
@@ -296,8 +300,6 @@ void DDW::parseGINF(const char *response)
         homeAz = 360.0 * homepos / ticksPerRev;
 
         DomeAbsPosN[0].value = 360.0 * azimuth / ticksPerRev;
-        DomeAbsPosNP.s       = IPS_OK;
-        IDSetNumber(&DomeAbsPosNP, nullptr);
 
         DomeShutterSP.s = IPS_OK;
         IUResetSwitch(&DomeShutterSP);
@@ -371,7 +373,6 @@ void DDW::TimerHit()
 
                 // Update current position
                 DomeAbsPosN[0].value = 359.0 * tick / ticksPerRev;
-                DomeAbsPosNP.s       = IPS_OK;
                 IDSetNumber(&DomeAbsPosNP, nullptr);
                 break;
             }
@@ -418,23 +419,38 @@ void DDW::TimerHit()
                         {
                             // First phase of parking done, now move to park position
                             cmdState = IDLE;
-                            MoveAbs(GetAxis1Park());
+                            DomeAbsPosNP.s = MoveAbs(GetAxis1Park());
                         }
                         else
                         {
                             SetParked(true);
+                            cmdState = IDLE;
+                            DomeAbsPosNP.s = IPS_OK;
                         }
                         break;
                     case DOME_UNPARKING:
                         SetParked(false);
+                        cmdState = IDLE;
                         break;
                     default:
+                        if(gotoPending && cmdState == MOVING)
+                        {
+                            cmdState = IDLE; // Set state so move goes through
+                            MoveAbs(gotoTarget);
+                            gotoPending = false;
+                        }
+                        else
+                        {
+                            cmdState = IDLE;
+                            // Movement now over
+                            DomeAbsPosNP.s = IPS_OK;
+                        }
                         break;
                 }
-                cmdState = IDLE;
+                IDSetNumber(&DomeAbsPosNP, nullptr);
                 break;
             default:
-                LOGF_ERROR("Unknown respose character %c", response[0]);
+                LOGF_ERROR("Unknown response character %c", response[0]);
                 break;
         }
     }
@@ -448,7 +464,14 @@ IPState DDW::MoveAbs(double az)
 {
     LOGF_DEBUG("MoveAbs (%f)", az);
 
-    if (cmdState != IDLE)
+    if (cmdState == MOVING)
+    {
+        LOG_DEBUG("Dome already moving, latching the new move command");
+        gotoTarget = az;
+        gotoPending = true;
+        return IPS_BUSY;
+    }
+    else if (cmdState != IDLE)
     {
         LOG_ERROR("Dome needs to be idle to issue moves");
         return IPS_ALERT;
