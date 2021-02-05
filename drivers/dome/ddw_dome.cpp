@@ -301,20 +301,18 @@ void DDW::parseGINF(const char *response)
 
         DomeAbsPosN[0].value = 360.0 * azimuth / ticksPerRev;
 
-        DomeShutterSP.s = IPS_OK;
-        IUResetSwitch(&DomeShutterSP);
         switch (shutter)
         {
             case 1:
-                DomeShutterS[SHUTTER_CLOSED].s = ISS_ON;
+                setShutterState(SHUTTER_CLOSED);
                 break;
             case 2:
-                DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
+                setShutterState(SHUTTER_OPENED);
                 break;
             default:
-                DomeShutterSP.s = IPS_BUSY;
+                setShutterState(SHUTTER_UNKNOWN);
+                break;
         }
-        IDSetSwitch(&DomeShutterSP, nullptr);
     }
 }
 
@@ -411,6 +409,8 @@ void DDW::TimerHit()
                 LOGF_DEBUG("GINF packet: %s", response);
                 parseGINF(response);
 
+                cmdState = IDLE;
+
                 // Check which operation was completed
                 switch (getDomeState())
                 {
@@ -418,32 +418,28 @@ void DDW::TimerHit()
                         if(cmdState == SHUTTER_OPERATION)
                         {
                             // First phase of parking done, now move to park position
-                            cmdState = IDLE;
                             DomeAbsPosNP.s = MoveAbs(GetAxis1Park());
                         }
                         else
                         {
                             SetParked(true);
-                            cmdState = IDLE;
-                            DomeAbsPosNP.s = IPS_OK;
                         }
                         break;
                     case DOME_UNPARKING:
                         SetParked(false);
-                        cmdState = IDLE;
                         break;
                     default:
-                        if(gotoPending && cmdState == MOVING)
+                        if(cmdState == MOVING)
                         {
-                            cmdState = IDLE; // Set state so move goes through
-                            MoveAbs(gotoTarget);
-                            gotoPending = false;
-                        }
-                        else
-                        {
-                            cmdState = IDLE;
-                            // Movement now over
-                            DomeAbsPosNP.s = IPS_OK;
+                            if (gotoPending)
+                            {
+                                DomeAbsPosNP.s = MoveAbs(gotoTarget);
+                                gotoPending = false;
+                            }
+                            else
+                            {
+                                setDomeState(DOME_SYNCED);
+                            }
                         }
                         break;
                 }
