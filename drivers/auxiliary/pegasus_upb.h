@@ -228,6 +228,10 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         ISwitch AutoDewV2S[3];
         ISwitchVectorProperty AutoDewV2SP;
 
+        // Rename the power controls above
+        IText DewControlsLabelsT[3] = {};
+        ITextVectorProperty DewControlsLabelsTP;
+
         // Auto Dew v2 Aggressiveness
 
         enum
