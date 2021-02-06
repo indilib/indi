@@ -271,6 +271,7 @@ class SkywatcherAPI
             HEQ5   = 0x01,
             EQ5    = 0x02,
             EQ3    = 0x03,
+            AZEQ6  = 0x22,
             GT     = 0x80,
             MF     = 0x81,
             _114GT = 0x82,

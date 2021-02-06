@@ -95,11 +95,11 @@ public:
     void define(const char *format = nullptr, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
 public:
-    PropertyView<INumber> *getNumber() const;
-    PropertyView<IText>   *getText() const;
-    PropertyView<ISwitch> *getSwitch() const;
-    PropertyView<ILight>  *getLight() const;
-    PropertyView<IBLOB>   *getBLOB() const;
+    INDI::PropertyView<INumber> *getNumber() const;
+    INDI::PropertyView<IText>   *getText() const;
+    INDI::PropertyView<ISwitch> *getSwitch() const;
+    INDI::PropertyView<ILight>  *getLight() const;
+    INDI::PropertyView<IBLOB>   *getBLOB() const;
 
 protected:
     std::shared_ptr<PropertyPrivate> d_ptr;

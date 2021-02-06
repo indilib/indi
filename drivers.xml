@@ -227,11 +227,11 @@
         </device>
         <device label="Skywatcher Alt-Az" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="AZ-GTi Alt-Az" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="Skywatcher Alt-Az Wedge" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az Wedge">indi_skywatcherAltAzSimple</driver>
@@ -507,6 +507,10 @@
             <driver name="Pegasus PPBA">indi_pegasus_ppba</driver>
             <version>1.1</version>
         </device>
+        <device label="Pegasus PPBM" manufacturer="Pegasus Astro">
+            <driver name="Pegasus PPBM">indi_pegasus_ppba</driver>
+            <version>1.1</version>
+        </device>
         <device label="Pegasus UPB" manufacturer="Pegasus Astro">
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>
             <version>1.4</version>
@@ -564,6 +568,10 @@
         <device label="ScopeDome Dome" manufacturer="ScopeDome">
             <driver name="ScopeDome Dome">indi_scopedome_dome</driver>
             <version>1.2</version>
+        </device>
+        <device label="DDW Dome" manufacturer="Technical Innovations">
+            <driver name="DDW Dome">indi_ddw_dome</driver>
+            <version>1.0</version>
         </device>
         <device label="Baader Dome" manufacturer="Baader">
             <driver name="Baader Dome">indi_baader_dome</driver>
