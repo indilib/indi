@@ -301,17 +301,24 @@ void DDW::parseGINF(const char *response)
 
         DomeAbsPosN[0].value = 360.0 * azimuth / ticksPerRev;
 
+        ShutterState newState;
         switch (shutter)
         {
             case 1:
-                setShutterState(SHUTTER_CLOSED);
+                newState = SHUTTER_CLOSED;
                 break;
             case 2:
-                setShutterState(SHUTTER_OPENED);
+                newState = SHUTTER_OPENED;
                 break;
             default:
-                setShutterState(SHUTTER_UNKNOWN);
+                newState = SHUTTER_UNKNOWN;
                 break;
+        }
+
+        // Only send if changed to avoid spam
+        if (getShutterState() != newState)
+        {
+            setShutterState(newState);
         }
     }
 }
