@@ -404,6 +404,7 @@ void DDW::TimerHit()
                 break;
             }
             case 'V':
+            {
                 // Move finished, read rest of GINF packet and parse it
                 // Read buffer
                 if ((rc = tty_nread_section(PortFD, response + 1, sizeof(response) - 2, '\r', DDW_TIMEOUT, &nr)) !=
@@ -416,13 +417,14 @@ void DDW::TimerHit()
                 LOGF_DEBUG("GINF packet: %s", response);
                 parseGINF(response);
 
+                auto prevState = cmdState;
                 cmdState = IDLE;
 
                 // Check which operation was completed
                 switch (getDomeState())
                 {
                     case DOME_PARKING:
-                        if(cmdState == SHUTTER_OPERATION)
+                        if(prevState == SHUTTER_OPERATION)
                         {
                             // First phase of parking done, now move to park position
                             DomeAbsPosNP.s = MoveAbs(GetAxis1Park());
@@ -436,15 +438,17 @@ void DDW::TimerHit()
                         SetParked(false);
                         break;
                     default:
-                        if(cmdState == MOVING)
+                        if(prevState == MOVING)
                         {
                             if (gotoPending)
                             {
+                                LOGF_DEBUG("Performing pending goto to %f", gotoTarget);
                                 DomeAbsPosNP.s = MoveAbs(gotoTarget);
                                 gotoPending = false;
                             }
                             else
                             {
+                                LOG_DEBUG("Move complete");
                                 setDomeState(DOME_SYNCED);
                             }
                         }
@@ -452,6 +456,7 @@ void DDW::TimerHit()
                 }
                 IDSetNumber(&DomeAbsPosNP, nullptr);
                 break;
+            }
             default:
                 LOGF_ERROR("Unknown response character %c", response[0]);
                 break;
