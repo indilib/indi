@@ -847,7 +847,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
         if (ftype == INDI::CCDChip::LIGHT_FRAME || ftype == INDI::CCDChip::FLAT_FRAME)
         {
-            float skyflux;
             //  calculate flux from our zero point and gain values
             float glow = m_SkyGlow;
 
@@ -861,12 +860,8 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
             //fprintf(stderr,"Using glow %4.2f\n",glow);
 
-            //skyflux = pow(10, ((glow - z) * k / -2.5));
-            skyflux = flux(glow);
-
-            //  ok, flux represents one second now
-            //  scale up linearly for exposure time
-            skyflux = skyflux * exposure_time;
+            // Flux represents one second, scale up linearly for exposure time
+            float const skyflux = flux(glow) * exposure_time;
 
             uint16_t * pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
@@ -875,43 +870,31 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
             for (int y = 0; y < nheight; y++)
             {
+                float const sy = nheight / 2 - y;
+
                 for (int x = 0; x < nwidth; x++)
                 {
-                    float dc; //  distance from center
-                    float fp; //  flux this pixel;
-                    float sx, sy;
-                    float vig;
+                    float const sx = nwidth / 2 - x;
 
-                    sx = nwidth / 2 - x;
-                    sy = nheight / 2 - y;
+                    // Vignetting parameter in arcsec
+                    float const vig = std::min(nwidth, nheight) * ImageScalex;
 
-                    vig = nwidth;
-                    vig = vig * ImageScalex;
-                    //  need to make this account for actual pixel size
-                    dc = std::sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
-                    //  now we have the distance from center, in arcseconds
-                    //  now lets plot a gaussian falloff to the edges
-                    //
-                    float fa;
-                    fa = exp(-2.0 * 0.7 * (dc * dc) / vig / vig);
+                    // Squared distance to center in arcsec (need to make this account for actual pixel size)
+                    float const dc2 = sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley;
 
-                    //  get the current value
-                    fp = pt[0];
+                    // Gaussian falloff to the edges of the frame
+                    float const fa = exp(-2.0 * 0.7 * dc2 / (vig * vig));
 
-                    //  Add the sky glow
-                    fp += skyflux;
+                    // Get the current value of the pixel, add the sky glow and scale for vignetting
+                    float fp = (pt[0] + skyflux) * fa;
 
-                    //  now scale it for the vignetting
-                    fp = fa * fp;
+                    // Clamp to limits, store minmax
+                    if (fp > m_MaxVal) fp = m_MaxVal;
+                    if (fp < pt[0]) fp = pt[0];
+                    if (fp > maxpix) maxpix = fp;
+                    if (fp < minpix) minpix = fp;
 
-                    //  clamp to limits
-                    if (fp > m_MaxVal)
-                        fp = m_MaxVal;
-                    if (fp > maxpix)
-                        maxpix = fp;
-                    if (fp < minpix)
-                        minpix = fp;
-                    //  and put it back
+                    // And put it back
                     pt[0] = fp;
                     pt++;
                 }
@@ -978,7 +961,6 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
     }
 
     //  calculate flux from our zero point and gain values
-    //flux = pow(10, ((mag - z) * k / -2.5));
     flux = this->flux(mag);
 
     //  ok, flux represents one second now
@@ -1003,28 +985,18 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
         for (sx = -boxsizey; sx <= boxsizey; sx++)
         {
             int rc;
-            float dc; //  distance from center
-            float fp; //  flux this pixel;
 
-            //  need to make this account for actual pixel size
-            dc = std::sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
+            // Squared distance to center in arcsec (need to make this account for actual pixel size)
+            float const dc2 = sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley;
 
-            // Use a gaussian of unitary integral
-            // 1/(sqrt(2pi)*sigma) * exp( -x² / (2*sigma²) )
+            // Use a gaussian of unitary integral, scale it with the source flux
+            // f(x) = 1/(sqrt(2*pi)*sigma) * exp( -x² / (2*sigma²) )
+            // FWHM = 2*sqrt(2*log(2))*sigma => sigma = seeing/(2*sqrt(2*log(2)))
+            float const sigma = seeing / ( 2 * sqrt(2*log(2)));
+            float const fa = 1 / (sigma * sqrt(2*3.1416)) * exp( -dc2 / (2*sigma*sigma));
 
-            // FWHM = 2*sqrt(2*ln(2))*sigma => sigma = seeing/(2*sqrt(2*ln(2)))
-            float sigma = seeing / ( 2 * sqrt(2*log(2)));
-
-            // fa = 1/(sigma*sqrt(2*pi)) * exp( -x² / (2*sigma²) )
-
-            // Use a gaussian in the shape exp(-(FWHM*x)²), x being the normalised distance to the center
-            // FWHM = sqrt( 2 * log(2) ) * sigma, FWHM² = 2 * log(2) * sigma²
-            // fa = exp( -2 * log(2) * (dc / boxsize)²
-            // float fa = exp(-2.0 * 0.7 * (dc * dc) / (boxsizey * boxsizey));
-            float fa = 1 / (sigma * sqrt(2*3.1416)) * exp( -(dc*dc) / (2*sigma*sigma));
-
-            // The gaussian is stretched by seeing/FWHM,
-            fp = fa * flux;
+            // The source contribution is the gaussian value, stretched by seeing/FWHM
+            float fp = fa * flux;
 
             if (fp < 0)
                 fp = 0;
