@@ -99,7 +99,7 @@ bool ScopeSim::canSync()
 
 bool ScopeSim::Connect()
 {
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 

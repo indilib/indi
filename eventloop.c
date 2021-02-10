@@ -42,6 +42,7 @@
 #include <sys/time.h>
 
 #include "eventloop.h"
+#include "indidevapi.h"
 
 /* info about one registered callback.
  * the malloced array cback is never shrunk, entries are reused. new id's are
@@ -165,7 +166,7 @@ int addCallback(int fd, CBF *fp, void *ud)
             break;
     if (cp == &cback[ncback])
     {
-        cback = cback ? (CB *)realloc(cback, (ncback + 1) * sizeof(CB)) : (CB *)malloc(sizeof(CB));
+        cback = realloc(cback, (ncback + 1) * sizeof(CB));
         cp    = &cback[ncback++];
     }
 
@@ -212,7 +213,7 @@ int addTimer(int ms, TCF *fp, void *ud)
     gettimeofday(&t, NULL);
 
     /* add one entry */
-    timef = timef ? (TF *)realloc(timef, (ntimef + 1) * sizeof(TF)) : (TF *)malloc(sizeof(TF));
+    timef = (TF *)realloc(timef, (ntimef + 1) * sizeof(TF));
     tp    = &timef[ntimef++];
 
     /* init new entry */
@@ -274,7 +275,7 @@ int addWorkProc(WPF *fp, void *ud)
             break;
     if (wp == &wproc[nwproc])
     {
-        wproc = wproc ? (WP *)realloc(wproc, (nwproc + 1) * sizeof(WP)) : (WP *)malloc(sizeof(WP));
+        wproc = (WP *)realloc(wproc, (nwproc + 1) * sizeof(WP));
         wp    = &wproc[nwproc++];
     }
 
@@ -445,6 +446,49 @@ static void oneLoop()
 static void deferTO(void *p)
 {
     *(int *)p = 1;
+}
+
+
+/* "INDI" wrappers to the more generic eventloop facility. */
+
+int IEAddCallback(int readfiledes, IE_CBF *fp, void *p)
+{
+    return (addCallback(readfiledes, (CBF *)fp, p));
+}
+
+void IERmCallback(int callbackid)
+{
+    rmCallback(callbackid);
+}
+
+int IEAddTimer(int millisecs, IE_TCF *fp, void *p)
+{
+    return (addTimer(millisecs, (TCF *)fp, p));
+}
+
+void IERmTimer(int timerid)
+{
+    rmTimer(timerid);
+}
+
+int IEAddWorkProc(IE_WPF *fp, void *p)
+{
+    return (addWorkProc((WPF *)fp, p));
+}
+
+void IERmWorkProc(int workprocid)
+{
+    rmWorkProc(workprocid);
+}
+
+int IEDeferLoop(int maxms, int *flagp)
+{
+    return (deferLoop(maxms, flagp));
+}
+
+int IEDeferLoop0(int maxms, int *flagp)
+{
+    return (deferLoop0(maxms, flagp));
 }
 
 #if defined(MAIN_TEST)

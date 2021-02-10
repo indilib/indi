@@ -90,7 +90,7 @@ void Interface::ISGetProperties(const char *dev)
     INDI_UNUSED(dev);
     if (m_Device->isConnected())
     {
-        m_Device->defineSwitch(&ActivateSP);
+        m_Device->defineProperty(&ActivateSP);
     }
     else
     {
@@ -104,7 +104,7 @@ bool Interface::updateProperties()
 {
     if (m_Device->isConnected())
     {
-        m_Device->defineSwitch(&ActivateSP);
+        m_Device->defineProperty(&ActivateSP);
     }
     else
     {
@@ -220,7 +220,7 @@ bool Interface::processBLOB(uint8_t* buf, uint32_t ndims, int* dims, int bits_pe
 
 void Interface::Activated()
 {
-    m_Device->defineBLOB(&FitsBP);
+    m_Device->defineProperty(&FitsBP);
 }
 
 void Interface::Deactivated()

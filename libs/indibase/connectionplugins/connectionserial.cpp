@@ -176,12 +176,16 @@ bool Serial::Connect()
 
     // If if the user port is one of the detected system ports.
     bool isSystemPort = false;
-    for (int i = 0; i < SystemPortSP.nsp; i++)
+
+    if (SystemPortS != nullptr)
     {
-        if (!strcmp(PortT[0].text, SystemPortS[i].name))
+        for (int i = 0; i < SystemPortSP.nsp; i++)
         {
-            isSystemPort = true;
-            break;
+            if (!strcmp(PortT[0].text, SystemPortS[i].name))
+            {
+                isSystemPort = true;
+                break;
+            }
         }
     }
 
@@ -300,16 +304,16 @@ bool Serial::Disconnect()
 
 void Serial::Activated()
 {
-    m_Device->defineText(&PortTP);
+    m_Device->defineProperty(&PortTP);
     m_Device->loadConfig(true, INDI::SP::DEVICE_PORT);
 
-    m_Device->defineSwitch(&BaudRateSP);
+    m_Device->defineProperty(&BaudRateSP);
     m_Device->loadConfig(true, INDI::SP::DEVICE_BAUD_RATE);
 
-    m_Device->defineSwitch(&AutoSearchSP);
+    m_Device->defineProperty(&AutoSearchSP);
     m_Device->loadConfig(true, INDI::SP::DEVICE_AUTO_SEARCH);
 
-    m_Device->defineSwitch(&RefreshSP);
+    m_Device->defineProperty(&RefreshSP);
     Refresh(true);
 }
 
@@ -441,7 +445,7 @@ bool Serial::Refresh(bool silent)
     IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, m_Device->getDeviceName(), "SYSTEM_PORTS", "System Ports",
                        CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    m_Device->defineSwitch(&SystemPortSP);
+    m_Device->defineProperty(&SystemPortSP);
 
     // JM 2020-08-30: If we only have ONE serial port on the system
     // We check if the current port is default port. If it is, then we

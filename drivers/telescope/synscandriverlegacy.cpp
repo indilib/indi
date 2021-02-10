@@ -187,7 +187,7 @@ bool SynscanLegacyDriver::updateProperties()
     if (isConnected())
     {
         UpdateMountInformation(false);
-        defineText(&BasicMountInfoTP);
+        defineProperty(&BasicMountInfoTP);
     }
     else
     {

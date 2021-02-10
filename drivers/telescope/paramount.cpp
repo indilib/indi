@@ -102,11 +102,13 @@ void ISSnoopDevice(XMLEle *root)
 
 Paramount::Paramount()
 {
+    setVersion(1, 0);
+
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE |
-                           TELESCOPE_CAN_CONTROL_TRACK,
+                           TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PIER_SIDE,
                            9);
     setTelescopeConnection(CONNECTION_TCP);
 }
@@ -213,14 +215,14 @@ bool Paramount::updateProperties()
             TrackState = SCOPE_IDLE;
         }
 
-        //defineSwitch(&TrackModeSP);
-        //defineNumber(&TrackRateNP);
+        //defineProperty(&TrackModeSP);
+        //defineProperty(&TrackRateNP);
 
-        defineNumber(&JogRateNP);
+        defineProperty(&JogRateNP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
         // Initial HA to 0 and currentDEC (+90 or -90)
         if (InitPark())
@@ -240,7 +242,7 @@ bool Paramount::updateProperties()
 
         SetParked(isTheSkyParked());
 
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
     }
     else
     {
@@ -361,6 +363,45 @@ bool Paramount::getMountRADE()
     return false;
 }
 
+INDI::Telescope::TelescopePierSide Paramount::getPierSide()
+{
+    int rc = 0, nbytes_written = 0, nbytes_read = 0;
+    char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
+
+    //"if (sky6RASCOMTele.IsConnected==0) sky6RASCOMTele.Connect();"
+    strncpy(pCMD,
+            "/* Java Script */"
+            "var Out;"
+            "sky6RASCOMTele.DoCommand(11, \"Pier Side\");"
+            "Out = sky6RASCOMTele.DoCommandOutput",
+            MAXRBUF);
+
+    LOGF_DEBUG("CMD: %s", pCMD);
+
+    if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    {
+        LOG_ERROR("Error writing to TheSky6 TCP server.");
+        return PIER_UNKNOWN;
+    }
+
+    // Should we read until we encounter string terminator? or what?
+    if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        LOG_ERROR("Error reading from TheSky6 TCP server.");
+        return PIER_UNKNOWN;
+    }
+
+    LOGF_DEBUG("RES: %s", pRES);
+
+    std::regex rgx(R"((\d+)\|(.+)\. Error = (\d+)\.)");
+    std::smatch match;
+    std::string input(pRES);
+    if (std::regex_search(input, match, rgx))
+        return std::stoi(match.str(1)) == 0 ? PIER_WEST : PIER_EAST;
+
+    return PIER_UNKNOWN;
+}
+
 bool Paramount::ReadScopeStatus()
 {
     if (isSimulation())
@@ -407,6 +448,8 @@ bool Paramount::ReadScopeStatus()
     fs_sexa(DecStr, currentDEC, 2, 3600);
 
     DEBUGF(DBG_SCOPE, "Current RA: %s Current DEC: %s", RAStr, DecStr);
+
+    setPierSide(getPierSide());
 
     NewRaDec(currentRA, currentDEC);
     return true;

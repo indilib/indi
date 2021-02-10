@@ -111,12 +111,12 @@ bool Logger::updateProperties(bool enable)
 {
     if (enable)
     {
-        parentDevice->defineSwitch(&DebugLevelSP);
-        parentDevice->defineSwitch(&LoggingLevelSP);
+        parentDevice->defineProperty(&DebugLevelSP);
+        parentDevice->defineProperty(&LoggingLevelSP);
 
         screenVerbosityLevel_ = rememberscreenlevel_;
 
-        parentDevice->defineSwitch(&ConfigurationSP);
+        parentDevice->defineProperty(&ConfigurationSP);
     }
     else
     {

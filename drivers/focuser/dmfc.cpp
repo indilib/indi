@@ -149,12 +149,12 @@ bool DMFC::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineSwitch(&EncoderSP);
-        defineSwitch(&MotorTypeSP);
-        defineNumber(&MaxSpeedNP);
-        defineSwitch(&LEDSP);
-        defineText(&FirmwareVersionTP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&EncoderSP);
+        defineProperty(&MotorTypeSP);
+        defineProperty(&MaxSpeedNP);
+        defineProperty(&LEDSP);
+        defineProperty(&FirmwareVersionTP);
     }
     else
     {
@@ -754,7 +754,7 @@ void DMFC::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -775,7 +775,7 @@ void DMFC::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool DMFC::AbortFocuser()

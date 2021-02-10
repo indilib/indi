@@ -107,11 +107,11 @@ bool Weather::updateProperties()
         WI::updateProperties();
 
         updateTimerID = -1;
-        defineSwitch(&RefreshSP);
-        defineNumber(&UpdatePeriodNP);
-        defineSwitch(&OverrideSP);
-        defineNumber(&LocationNP);
-        defineText(&ActiveDeviceTP);
+        defineProperty(&RefreshSP);
+        defineProperty(&UpdatePeriodNP);
+        defineProperty(&OverrideSP);
+        defineProperty(&LocationNP);
+        defineProperty(&ActiveDeviceTP);
 
         DEBUG(Logger::DBG_SESSION, "Weather update is in progress...");
         TimerHit();
@@ -369,14 +369,10 @@ bool Weather::processLocationInfo(double latitude, double longitude, double elev
 bool Weather::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
-
+    WI::saveConfigItems(fp);
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigNumber(fp, &LocationNP);
     IUSaveConfigNumber(fp, &UpdatePeriodNP);
-
-    for (int i = 0; i < nRanges; i++)
-        IUSaveConfigNumber(fp, &ParametersRangeNP[i]);
-
     return true;
 }
 

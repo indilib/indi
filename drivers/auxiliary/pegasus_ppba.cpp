@@ -206,23 +206,23 @@ bool PegasusPPBA::updateProperties()
     if (isConnected())
     {
         // Main Control
-        defineSwitch(&QuadOutSP);
-        //defineSwitch(&AdjOutSP);
-        defineSwitch(&AdjOutVoltSP);
-        defineNumber(&PowerSensorsNP);
-        defineSwitch(&PowerOnBootSP);
-        defineSwitch(&RebootSP);
-        defineLight(&PowerWarnLP);
-        defineSwitch(&LedIndicatorSP);
+        defineProperty(&QuadOutSP);
+        //defineProperty(&AdjOutSP);
+        defineProperty(&AdjOutVoltSP);
+        defineProperty(&PowerSensorsNP);
+        defineProperty(&PowerOnBootSP);
+        defineProperty(&RebootSP);
+        defineProperty(&PowerWarnLP);
+        defineProperty(&LedIndicatorSP);
 
         // Dew
-        defineSwitch(&AutoDewSP);
-        defineNumber(&DewPWMNP);
+        defineProperty(&AutoDewSP);
+        defineProperty(&DewPWMNP);
 
         WI::updateProperties();
 
         // Firmware
-        defineText(&FirmwareTP);
+        defineProperty(&FirmwareTP);
 
         setupComplete = true;
     }
@@ -303,7 +303,7 @@ bool PegasusPPBA::Handshake()
 
     setupComplete = false;
 
-    return !strcmp(response, "PPBA_OK");
+    return (!strcmp(response, "PPBA_OK") || !strcmp(response, "PPBM_OK"));
 }
 
 bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
@@ -559,10 +559,9 @@ bool PegasusPPBA::setDewPWM(uint8_t id, uint8_t value)
 
 bool PegasusPPBA::saveConfigItems(FILE * fp)
 {
-    // Save CCD Config
     INDI::DefaultDevice::saveConfigItems(fp);
+    WI::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &AutoDewSP);
-
     return true;
 }
 
@@ -570,14 +569,14 @@ void PegasusPPBA::TimerHit()
 {
     if (!isConnected() || setupComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
     getSensorData();
     getConsumptionData();
     getMetricsData();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool PegasusPPBA::sendFirmware()

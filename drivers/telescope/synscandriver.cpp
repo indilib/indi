@@ -142,16 +142,16 @@ bool SynscanDriver::updateProperties()
     {
         setupParams();
 
-        defineNumber(&HorizontalCoordsNP);
-        defineText(&StatusTP);
-        defineNumber(&CustomSlewRateNP);
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&HorizontalCoordsNP);
+        defineProperty(&StatusTP);
+        defineProperty(&CustomSlewRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
         if (m_isAltAz)
         {
-            defineSwitch(&GotoModeSP);
+            defineProperty(&GotoModeSP);
         }
 
         if (InitPark())
@@ -383,7 +383,7 @@ bool SynscanDriver::readTracking()
         m_TrackingFlag = res[0];
 
         // Track mode?
-        if ((m_TrackingFlag - 1) != IUFindOnSwitchIndex(&TrackModeSP))
+        if (((m_TrackingFlag - 1) != IUFindOnSwitchIndex(&TrackModeSP)) && (m_TrackingFlag))
         {
             IUResetSwitch(&TrackModeSP);
             TrackModeS[m_TrackingFlag - 1].s = ISS_ON;

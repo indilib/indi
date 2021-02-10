@@ -85,8 +85,8 @@ bool LX200ZEQ25::updateProperties()
     if (isConnected())
     {
 
-        defineSwitch(&HomeSP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&HomeSP);
+        defineProperty(&GuideRateNP);
     }
     else
     {

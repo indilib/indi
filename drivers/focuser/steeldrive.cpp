@@ -169,16 +169,16 @@ bool SteelDrive::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineNumber(&TemperatureSettingNP);
-        defineSwitch(&TemperatureCompensateSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&TemperatureSettingNP);
+        defineProperty(&TemperatureCompensateSP);
 
-        defineSwitch(&ModelSP);
-        defineNumber(&CustomSettingNP);
-        defineNumber(&AccelerationNP);
-        defineNumber(&SyncNP);
+        defineProperty(&ModelSP);
+        defineProperty(&CustomSettingNP);
+        defineProperty(&AccelerationNP);
+        defineProperty(&SyncNP);
 
-        defineText(&VersionTP);
+        defineProperty(&VersionTP);
 
         GetFocusParams();
 
@@ -1299,9 +1299,9 @@ IPState SteelDrive::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
 
     startMotion(dir);
 
-    if (duration <= POLLMS)
+    if (duration <= getCurrentPollingPeriod())
     {
-        usleep(POLLMS * 1000);
+        usleep(getCurrentPollingPeriod() * 1000);
         AbortFocuser();
         return IPS_OK;
     }
@@ -1450,7 +1450,7 @@ void SteelDrive::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************

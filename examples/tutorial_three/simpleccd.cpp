@@ -75,7 +75,7 @@ bool SimpleCCD::Connect()
     IDMessage(getDeviceName(), "Simple CCD connected successfully!");
 
     // Let's set a timer that checks teleCCDs status every POLLMS milliseconds.
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 
@@ -131,7 +131,7 @@ bool SimpleCCD::updateProperties()
         setupParams();
 
         // Start the timer
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 
     return true;
@@ -274,7 +274,7 @@ void SimpleCCD::TimerHit()
             break;
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /**************************************************************************************

@@ -89,7 +89,7 @@ SkywatcherAPIMount::SkywatcherAPIMount()
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
                            SLEWMODES);
 
-    setVersion(1, 2);
+    setVersion(1, 3);
 }
 
 bool SkywatcherAPIMount::Abort()
@@ -462,10 +462,8 @@ bool SkywatcherAPIMount::initProperties()
     SetParkDataType(PARK_AZ_ALT_ENCODER);
 
     // Guiding support
-    // TODO: Hide the auto-guide support now because it is not production-ready
-    //    initGuiderProperties(getDeviceName(), GUIDE_TAB);
-
-    //    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
+    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     return true;
 }
@@ -480,24 +478,24 @@ void SkywatcherAPIMount::ISGetProperties(const char *dev)
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX mewssage to any connected clients
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&SoftPECModesSP);
-        defineNumber(&SoftPecNP);
-        defineNumber(&GuidingRatesNP);
-        //        defineSwitch(&ParkMovementDirectionSP);
-        //        defineSwitch(&ParkPositionSP);
-        //        defineSwitch(&UnparkPositionSP);
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&BasicMountInfoV);
+        defineProperty(&AxisOneInfoV);
+        defineProperty(&AxisOneStateV);
+        defineProperty(&AxisTwoInfoV);
+        defineProperty(&AxisTwoStateV);
+        defineProperty(&AxisOneEncoderValuesV);
+        defineProperty(&AxisTwoEncoderValuesV);
+        defineProperty(&SlewModesSP);
+        defineProperty(&SoftPECModesSP);
+        defineProperty(&SoftPecNP);
+        defineProperty(&GuidingRatesNP);
+        //        defineProperty(&ParkMovementDirectionSP);
+        //        defineProperty(&ParkPositionSP);
+        //        defineProperty(&UnparkPositionSP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
     }
 }
 
@@ -714,7 +712,7 @@ void SkywatcherAPIMount::UpdateScopeConfigSwitch()
     deleteProperty("USEJOYSTICK");
     // Recreate the switch control
     deleteProperty(ScopeConfigsSP.name);
-    defineSwitch(&ScopeConfigsSP);
+    defineProperty(&ScopeConfigsSP);
 }
 
 double SkywatcherAPIMount::GetSlewRate()
@@ -1261,7 +1259,7 @@ void SkywatcherAPIMount::TimerHit()
                               trackingDeltaAlt + trackingDeltaAz);
                     Abort();
                 }
-                TrackingMsecs += POLLMS;
+                TrackingMsecs += getCurrentPollingPeriod();
                 if (TrackingMsecs % 60000 == 0)
                 {
                     LOGF_INFO("Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
@@ -1361,9 +1359,9 @@ void SkywatcherAPIMount::TimerHit()
                         DeltaAlt += Iter->DeltaAlt / 2;
                         DeltaAz += Iter->DeltaAz / 2;
                     }
-                    Iter->Duration -= POLLMS;
+                    Iter->Duration -= getCurrentPollingPeriod();
 
-                    if (Iter->Duration < static_cast<int>(POLLMS))
+                    if (Iter->Duration < static_cast<int>(getCurrentPollingPeriod()))
                     {
                         Iter = GuidingPulses.erase(Iter);
                         if (Iter == GuidingPulses.end())
@@ -1518,27 +1516,27 @@ bool SkywatcherAPIMount::updateProperties()
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX message to any connected clients
         // I have now idea why I have to do this here as well as in ISGetProperties. It makes me
         // concerned there is a design or implementation flaw somewhere.
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&SoftPECModesSP);
-        defineNumber(&SoftPecNP);
-        defineNumber(&GuidingRatesNP);
-        //        defineSwitch(&ParkMovementDirectionSP);
-        //        defineSwitch(&ParkPositionSP);
-        //        defineSwitch(&UnparkPositionSP);
+        defineProperty(&BasicMountInfoV);
+        defineProperty(&AxisOneInfoV);
+        defineProperty(&AxisOneStateV);
+        defineProperty(&AxisTwoInfoV);
+        defineProperty(&AxisTwoStateV);
+        defineProperty(&AxisOneEncoderValuesV);
+        defineProperty(&AxisTwoEncoderValuesV);
+        defineProperty(&SlewModesSP);
+        defineProperty(&SoftPECModesSP);
+        defineProperty(&SoftPecNP);
+        defineProperty(&GuidingRatesNP);
+        //        defineProperty(&ParkMovementDirectionSP);
+        //        defineProperty(&ParkPositionSP);
+        //        defineProperty(&UnparkPositionSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
 
         // Try to read latitude from config file if exists.
         double latitude = 0;
@@ -1799,11 +1797,13 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
     if (BasicMountInfoHasChanged && InformClient)
         IDSetText(&BasicMountInfoV, nullptr);
 
-    if (MountCode >= 128 && MountCode <= 143)
+    if (MountCode == AZEQ6)
+        IUSaveText(&BasicMountInfo[MOUNT_NAME], "AZEQ6");
+    else if (MountCode >= 128 && MountCode <= 143)
         IUSaveText(&BasicMountInfo[MOUNT_NAME], "Az Goto");
-    if (MountCode >= 144 && MountCode <= 159)
+    else if (MountCode >= 144 && MountCode <= 159)
         IUSaveText(&BasicMountInfo[MOUNT_NAME], "Dob Goto");
-    if (MountCode >= 160)
+    else if (MountCode >= 160)
         IUSaveText(&BasicMountInfo[MOUNT_NAME], "AllView Goto");
 
     bool AxisOneInfoHasChanged = false;

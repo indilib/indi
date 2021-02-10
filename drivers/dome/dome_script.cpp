@@ -133,7 +133,7 @@ bool DomeScript::saveConfigItems(FILE *fp)
 void DomeScript::ISGetProperties(const char *dev)
 {
     INDI::Dome::ISGetProperties(dev);
-    defineText(&ScriptsTP);
+    defineProperty(&ScriptsTP);
     loadConfig(true, "SCRIPTS");
 }
 
@@ -320,7 +320,7 @@ void DomeScript::TimerHit()
     {
         LOG_ERROR("Failed to read status");
     }
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     if (!isParked() && TimeSinceUpdate++ > 4)
     {
         TimeSinceUpdate = 0;

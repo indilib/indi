@@ -230,19 +230,19 @@ bool IOptronV3::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
-        defineText(&FirmwareTP);
-        defineSwitch(&GPSStatusSP);
-        defineSwitch(&TimeSourceSP);
-        defineSwitch(&HemisphereSP);
-        defineSwitch(&SlewModeSP);
-        defineSwitch(&DaylightSP);
-        defineSwitch(&CWStateSP);
+        defineProperty(&FirmwareTP);
+        defineProperty(&GPSStatusSP);
+        defineProperty(&TimeSourceSP);
+        defineProperty(&HemisphereSP);
+        defineProperty(&SlewModeSP);
+        defineProperty(&DaylightSP);
+        defineProperty(&CWStateSP);
 
         getStartupData();
     }

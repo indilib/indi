@@ -123,7 +123,7 @@ bool CCDSim::Connect()
     streamPredicate = 0;
     terminateThread = false;
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 
@@ -287,11 +287,11 @@ void CCDSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineNumber(&SimulatorSettingsNP);
-    defineNumber(&EqPENP);
-    defineNumber(&FocusSimulationNP);
-    defineSwitch(&SimulateRgbSP);
-    defineSwitch(&CrashSP);
+    defineProperty(&SimulatorSettingsNP);
+    defineProperty(&EqPENP);
+    defineProperty(&FocusSimulationNP);
+    defineProperty(&SimulateRgbSP);
+    defineProperty(&CrashSP);
 }
 
 bool CCDSim::updateProperties()
@@ -301,13 +301,13 @@ bool CCDSim::updateProperties()
     if (isConnected())
     {
         if (HasCooler())
-            defineSwitch(&CoolerSP);
+            defineProperty(&CoolerSP);
 
-        defineNumber(&GainNP);
-        defineNumber(&OffsetNP);
+        defineProperty(&GainNP);
+        defineProperty(&OffsetNP);
 
-        defineText(&DirectoryTP);
-        defineSwitch(&DirectorySP);
+        defineProperty(&DirectoryTP);
+        defineProperty(&DirectorySP);
 
         setupParameters();
 
@@ -432,7 +432,7 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
 
 void CCDSim::TimerHit()
 {
-    uint32_t nextTimer = POLLMS;
+    uint32_t nextTimer = getCurrentPollingPeriod();
 
     //  No need to reset timer if we are not connected anymore
     if (!isConnected())

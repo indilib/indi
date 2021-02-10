@@ -161,16 +161,16 @@ bool EFA::updateProperties()
     {
         getStartupValues();
 
-        defineText(&InfoTP);
-        defineSwitch(&CalibrationStateSP);
+        defineProperty(&InfoTP);
+        defineProperty(&CalibrationStateSP);
 
         // Fan
-        defineSwitch(&FanStateSP);
-        defineSwitch(&FanControlSP);
+        defineProperty(&FanStateSP);
+        defineProperty(&FanControlSP);
         loadConfig(true, FanControlSP.name);
-        defineSwitch(&FanDisconnectSP);
+        defineProperty(&FanDisconnectSP);
 
-        defineNumber(&TemperatureNP);
+        defineProperty(&TemperatureNP);
     }
     else
     {
@@ -295,7 +295,7 @@ bool EFA::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             else
             {
                 LOG_INFO("Fan is now controlled automatically per the control parameters.");
-                defineNumber(&FanControlNP);
+                defineProperty(&FanControlNP);
             }
 
             FanControlSP.s = IPS_OK;
@@ -496,7 +496,7 @@ void EFA::TimerHit()
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 

@@ -78,7 +78,7 @@ void ISSnoopDevice(XMLEle * root)
 
 PegasusUPB::PegasusUPB() : FI(this), WI(this)
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 
     lastSensorData.reserve(21);
     lastPowerData.reserve(4);
@@ -224,6 +224,10 @@ bool PegasusUPB::initProperties()
     IUFillSwitchVector(&AutoDewV2SP, AutoDewV2S, 3, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
                        IPS_IDLE);
 
+    // Automatic Dew Aggressiveness v2
+    IUFillNumber(&AutoDewAggN[AUTO_DEW_AGG], "AUTO_DEW_AGG_VALUE", "Auto Dew Agg (50-250)", "%.2f", 50, 250, 20, 0);
+    IUFillNumberVector(&AutoDewAggNP, AutoDewAggN, 1, getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60, IPS_IDLE);
+
     // Dew PWM
     IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", "Dew A (%)", "%.2f", 0, 100, 10, 0);
     IUFillNumber(&DewPWMN[DEW_PWM_B], "DEW_B", "Dew B (%)", "%.2f", 0, 100, 10, 0);
@@ -324,50 +328,53 @@ bool PegasusUPB::updateProperties()
         setupParams();
 
         // Main Control
-        defineSwitch(&PowerCycleAllSP);
-        defineNumber(&PowerSensorsNP);
-        defineNumber(&PowerConsumptionNP);
-        defineSwitch(&RebootSP);
+        defineProperty(&PowerCycleAllSP);
+        defineProperty(&PowerSensorsNP);
+        defineProperty(&PowerConsumptionNP);
+        defineProperty(&RebootSP);
 
         // Power
-        defineSwitch(&PowerControlSP);
-        defineText(&PowerControlsLabelsTP);
-        defineNumber(&PowerCurrentNP);
-        defineSwitch(&PowerOnBootSP);
+        defineProperty(&PowerControlSP);
+        defineProperty(&PowerControlsLabelsTP);
+        defineProperty(&PowerCurrentNP);
+        defineProperty(&PowerOnBootSP);
         OverCurrentLP.nlp = (version == UPB_V1) ? 4 : 7;
-        defineLight(&OverCurrentLP);
-        defineSwitch(&PowerLEDSP);
+        defineProperty(&OverCurrentLP);
+        defineProperty(&PowerLEDSP);
         if (version == UPB_V2)
-            defineNumber(&AdjustableOutputNP);
+            defineProperty(&AdjustableOutputNP);
 
         // Dew
         if (version == UPB_V1)
-            defineSwitch(&AutoDewSP);
+            defineProperty(&AutoDewSP);
         else
-            defineSwitch(&AutoDewV2SP);
+        {
+            defineProperty(&AutoDewV2SP);
+            defineProperty(&AutoDewAggNP);
+        }
         DewPWMNP.nnp = (version == UPB_V1) ? 2 : 3;
-        defineNumber(&DewPWMNP);
+        defineProperty(&DewPWMNP);
 
         DewCurrentDrawNP.nnp = (version == UPB_V1) ? 2 : 3;
-        defineNumber(&DewCurrentDrawNP);
+        defineProperty(&DewCurrentDrawNP);
 
         // USB
-        defineSwitch(&USBControlSP);
+        defineProperty(&USBControlSP);
         if (version == UPB_V2)
-            defineSwitch(&USBControlV2SP);
+            defineProperty(&USBControlV2SP);
         if (version == UPB_V1)
-            defineLight(&USBStatusLP);
+            defineProperty(&USBStatusLP);
 
         // Focuser
         FI::updateProperties();
-        defineNumber(&FocuserSettingsNP);
-        //defineSwitch(&FocusBacklashSP);
-        defineNumber(&FocuserTemperatureNP);
+        defineProperty(&FocuserSettingsNP);
+        //defineProperty(&FocusBacklashSP);
+        defineProperty(&FocuserTemperatureNP);
 
         WI::updateProperties();
 
         // Firmware
-        defineText(&FirmwateTP);
+        defineProperty(&FirmwateTP);
 
         setupComplete = true;
     }
@@ -393,7 +400,11 @@ bool PegasusUPB::updateProperties()
         if (version == UPB_V1)
             deleteProperty(AutoDewSP.name);
         else
+        {
             deleteProperty(AutoDewV2SP.name);
+            deleteProperty(AutoDewAggNP.name);
+        }
+
         deleteProperty(DewPWMNP.name);
         deleteProperty(DewCurrentDrawNP.name);
 
@@ -561,8 +572,8 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             return true;
         }
 
-        // Auto Dew v1
-        if (!strcmp(name, AutoDewSP.name))
+        // Auto Dew v1. ***RG Added check if it is V1
+        if ((!strcmp(name, AutoDewSP.name)) && (version == UPB_V1))
         {
             int prevIndex = IUFindOnSwitchIndex(&AutoDewSP);
             IUUpdateSwitch(&AutoDewSP, states, names, n);
@@ -581,8 +592,8 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             return true;
         }
 
-        // Auto Dew v2
-        if (!strcmp(name, AutoDewV2SP.name))
+        // Auto Dew v2. ***RG Added check if it is V2
+        if ((!strcmp(name, AutoDewV2SP.name)) && (version == UPB_V2))
         {
             ISState Dew1 = AutoDewV2S[DEW_PWM_A].s;
             ISState Dew2 = AutoDewV2S[DEW_PWM_B].s;
@@ -590,7 +601,13 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             IUUpdateSwitch(&AutoDewV2SP, states, names, n);
             if (toggleAutoDewV2())
             {
-                AutoDewSP.s = IPS_OK;
+                Dew1 = AutoDewV2S[DEW_PWM_A].s;
+                Dew2 = AutoDewV2S[DEW_PWM_B].s;
+                Dew3 = AutoDewV2S[DEW_PWM_C].s;
+                if (Dew1 == ISS_OFF && Dew2 == ISS_OFF && Dew3 == ISS_OFF)
+                    AutoDewV2SP.s = IPS_IDLE;
+                else
+                    AutoDewV2SP.s = IPS_OK;
             }
             else
             {
@@ -738,13 +755,30 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
                 else if (!strcmp(names[i], DewPWMN[DEW_PWM_B].name))
                     rc2 = setDewPWM(6, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
                 else if (!strcmp(names[i], DewPWMN[DEW_PWM_C].name))
-                    rc2 = setDewPWM(7, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
+                    rc3 = setDewPWM(7, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
             }
 
             DewPWMNP.s = (rc1 && rc2 && rc3) ? IPS_OK : IPS_ALERT;
             if (DewPWMNP.s == IPS_OK)
                 IUUpdateNumber(&DewPWMNP, values, names, n);
             IDSetNumber(&DewPWMNP, nullptr);
+            return true;
+        }
+
+        // Auto Dew Aggressiveness
+        if (!strcmp(name,AutoDewAggNP.name))
+        {
+            if (setAutoDewAgg(values[0]))
+            {
+                AutoDewAggN[0].value = values[0];
+                AutoDewAggNP.s = IPS_OK;
+            }
+            else
+            {
+                AutoDewAggNP.s = IPS_ALERT;
+            }
+
+            IDSetNumber(&AutoDewAggNP, nullptr);
             return true;
         }
 
@@ -825,6 +859,10 @@ bool PegasusUPB::sendCommand(const char * cmd, char * res)
         else if (!strcmp(cmd, "SS"))
         {
             strncpy(res, "999", PEGASUS_LEN);
+        }
+        else if (!strcmp(cmd, "PD"))
+        {
+            strncpy(res, "210", PEGASUS_LEN);
         }
         else if (!strcmp(cmd, "PV"))
         {
@@ -1013,6 +1051,21 @@ bool PegasusUPB::setAutoDewEnabled(bool enabled)
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
+bool PegasusUPB::setAutoDewAgg(uint8_t value)
+{
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0}, expected[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "PD:%03d", value);
+    snprintf(expected, PEGASUS_LEN, "PD:%d", value);
+    if (sendCommand(cmd, res))
+    {
+        return (!strcmp(res, expected));
+    }
+
+    return false;
+}
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 bool PegasusUPB::setAdjustableOutput(uint8_t voltage)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
@@ -1165,9 +1218,11 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
     // Save CCD Config
     INDI::DefaultDevice::saveConfigItems(fp);
     FI::saveConfigItems(fp);
+    WI::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &PowerLEDSP);
     IUSaveConfigSwitch(fp, &AutoDewSP);
+    IUSaveConfigNumber(fp, &AutoDewAggNP);
     IUSaveConfigNumber(fp, &FocuserSettingsNP);
     IUSaveConfigText(fp, &PowerControlsLabelsTP);
     return true;
@@ -1180,7 +1235,7 @@ void PegasusUPB::TimerHit()
 {
     if (!isConnected() || setupComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -1190,7 +1245,7 @@ void PegasusUPB::TimerHit()
         getStepperData();
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 //////////////////////////////////////////////////////////////////////

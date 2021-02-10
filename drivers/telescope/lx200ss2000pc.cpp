@@ -69,7 +69,7 @@ bool LX200SS2000PC::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SlewAccuracyNP);
+        defineProperty(&SlewAccuracyNP);
     }
     else
     {
