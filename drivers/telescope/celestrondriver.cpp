@@ -567,15 +567,23 @@ bool CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir)
 ******************************************************************/
 bool CelestronDriver::get_guide_rate(CELESTRON_AXIS axis, uint8_t * rate)
 {
-    int dev = (axis == CELESTRON_AXIS::DEC_AXIS) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
-    //char payload[2] = {0, 0};
-    set_sim_response("%c#", (axis == CELESTRON_AXIS::DEC_AXIS) ? sim_dec_guide_rate : sim_ra_guide_rate);
-
+    int dev = CELESTRON_DEV_DEC;
+    switch (axis)
+    {
+    case CELESTRON_AXIS::RA_AXIS:
+        dev = CELESTRON_DEV_RA;
+        set_sim_response("%c#",sim_ra_guide_rate);
+        break;
+    case CELESTRON_AXIS::DEC_AXIS:
+        dev = CELESTRON_DEV_DEC;
+        set_sim_response("%c#",sim_dec_guide_rate);
+        break;
+    }
     if (!send_passthrough(dev, MC_GET_AUTOGUIDE_RATE, nullptr, 0, response, 1))
         return false;
-
-    *rate = response[0];
-    return true;
+    *rate = static_cast<uint8_t>(response[0]);
+    LOGF_DEBUG("get_guide_rate raw response (0-255) %i", *rate);
+    return true;    
 }
 
 /*****************************************************************
