@@ -479,7 +479,8 @@ bool CelestronGPS::updateProperties()
                 defineProperty(&DSTSettingSP);
                 DSTSettingS[0].s = dst ? ISS_ON : ISS_OFF;
 
-                LOGF_DEBUG("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
+                LOGF_INFO("Mount UTC offset: %s. UTC time: %s. DST: %s", utcOffset, isoDateTime, dst ? "On" : "Off");
+                //LOGF_DEBUG("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
                 TimeTP.s = IPS_OK;
                 IDSetText(&TimeTP, nullptr);
