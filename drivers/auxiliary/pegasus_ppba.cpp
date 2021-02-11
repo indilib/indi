@@ -303,7 +303,7 @@ bool PegasusPPBA::Handshake()
 
     setupComplete = false;
 
-    return !strcmp(response, "PPBA_OK");
+    return (!strcmp(response, "PPBA_OK") || !strcmp(response, "PPBM_OK"));
 }
 
 bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
@@ -559,10 +559,9 @@ bool PegasusPPBA::setDewPWM(uint8_t id, uint8_t value)
 
 bool PegasusPPBA::saveConfigItems(FILE * fp)
 {
-    // Save CCD Config
     INDI::DefaultDevice::saveConfigItems(fp);
+    WI::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &AutoDewSP);
-
     return true;
 }
 

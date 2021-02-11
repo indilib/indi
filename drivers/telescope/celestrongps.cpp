@@ -437,6 +437,7 @@ bool CelestronGPS::updateProperties()
                 if (driver.get_guide_rate(CELESTRON_AXIS::DEC_AXIS, &rate))
                 {
                     GuideRateN[AXIS_DE].value = static_cast<double>(rate) / 255.0;
+
                     IDSetNumber(&GuideRateNP, nullptr);
                     LOGF_DEBUG("Get Guide Rate: Dec %f", GuideRateN[AXIS_DE].value);
                 }

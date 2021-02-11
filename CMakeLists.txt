@@ -1394,6 +1394,17 @@ add_executable(indi_scopedome_dome ${scopedome_SRCS})
 target_link_libraries(indi_scopedome_dome indidriver)
 install(TARGETS indi_scopedome_dome RUNTIME DESTINATION bin )
 
+################ Technical Innovations DDW Dome ################
+
+set(ddw_dome_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/ddw_dome.cpp
+   )
+
+add_executable(indi_ddw_dome ${ddw_dome_SRCS})
+target_link_libraries(indi_ddw_dome indidriver)
+install(TARGETS indi_ddw_dome RUNTIME DESTINATION bin )
+
+
 ########### Dome Scripting Gateway ##############
 SET(domescript_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/dome_script.cpp)
@@ -1922,6 +1933,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgetview.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgettraits.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indimacros.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h

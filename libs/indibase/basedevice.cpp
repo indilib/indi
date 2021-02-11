@@ -746,11 +746,10 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                 }
 
                 blobEL->size    = blobSize;
-                int bloblen     = pcdatalenXMLEle(ep);
-                int blobBufferSize = 3 * bloblen / 4;
-                if (blobBufferSize != blobEL->bloblen)
-                    blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, blobBufferSize));
-                blobEL->bloblen = from64tobits_fast(static_cast<char *>(blobEL->blob), pcdataXMLEle(ep), bloblen);
+                uint32_t base64_encoded_size = pcdatalenXMLEle(ep);
+                uint32_t base64_decoded_size = 3 * base64_encoded_size / 4;
+                blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, base64_decoded_size));
+                blobEL->bloblen = from64tobits_fast(static_cast<char *>(blobEL->blob), pcdataXMLEle(ep), base64_encoded_size);
 
                 strncpy(blobEL->format, valuXMLAtt(fa), MAXINDIFORMAT);
 

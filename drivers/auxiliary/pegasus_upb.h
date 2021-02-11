@@ -100,6 +100,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         // Dew
         bool setAutoDewEnabled(bool enabled);
         bool toggleAutoDewV2();
+        bool setAutoDewAgg(uint8_t value);
         bool setDewPWM(uint8_t id, uint8_t value);
 
         // USB
@@ -226,6 +227,16 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         // Auto Dew v2
         ISwitch AutoDewV2S[3];
         ISwitchVectorProperty AutoDewV2SP;
+
+        // Auto Dew v2 Aggressiveness
+
+        enum
+        {
+            AUTO_DEW_AGG,
+        };
+
+        INumber AutoDewAggN[1];
+        INumberVectorProperty AutoDewAggNP;
 
         // Dew PWM
         INumber DewPWMN[3];
