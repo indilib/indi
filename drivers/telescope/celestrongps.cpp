@@ -1264,6 +1264,7 @@ bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[
             LOGF_DEBUG("Set Guide Rates         (0-255): Ra %i, Dec %i", grRa, grDec);
             driver.set_guide_rate(CELESTRON_AXIS::RA_AXIS, grRa);
             driver.set_guide_rate(CELESTRON_AXIS::DEC_AXIS, grDec);
+            LOG_WARN("Changing guide rates may require recalibration of guiding.");
             return true;
         }
 
