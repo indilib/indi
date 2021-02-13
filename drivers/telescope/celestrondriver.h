@@ -308,7 +308,8 @@ class CelestronDriver
         size_t send_pulse(CELESTRON_DIRECTION direction, unsigned char rate, unsigned char duration_msec);
         bool get_pulse_status(CELESTRON_DIRECTION direction);
 
-        // get and set guide rate as % sidereal
+        // get and set guide rate
+        // 0 to 255 corresponding to 0 to 100% sidereal
         bool get_guide_rate(CELESTRON_AXIS axis, u_int8_t  * rate);
         bool set_guide_rate(CELESTRON_AXIS axis, u_int8_t  rate);
 
