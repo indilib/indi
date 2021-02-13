@@ -153,13 +153,21 @@
             <driver name="iEQ">indi_ieq_telescope</driver>
             <version>1.9</version>
         </device>
+        <device label="iOptron CEM26" manufacturer="iOptron">
+            <driver name="iOptronV3"></driver>
+            <version>1.3</version>
+        </device>
+        <device label="iOptron GEM28" manufacturer="iOptron">
+            <driver name="iOptronV3"></driver>
+            <version>1.3</version>
+        </device>
         <device label="iOptron CEM40" manufacturer="iOptron">
-            <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.9</version>
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.3</version>
         </device>
         <device label="iOptron GEM45" manufacturer="iOptron">
-            <driver name="iEQ">indi_ieq_telescope</driver>
-            <version>1.9</version>
+            <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+            <version>1.3</version>
         </device>
         <device label="iOptron iEQ45 Pro" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
@@ -199,15 +207,15 @@
         </device>
         <device label="iOptron v3" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="iOptron CEM120" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="iOptron CEM70" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.2</version>
+            <version>1.3</version>
         </device>
         <device label="Pulsar2">
             <driver name="Pulsar2">indi_lx200pulsar2</driver>
