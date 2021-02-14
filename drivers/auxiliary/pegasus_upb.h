@@ -85,6 +85,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         bool getSensorData();
         bool getPowerData();
         bool getStepperData();
+        bool getDewAggData();
         std::vector<std::string> split(const std::string &input, const std::string &regex);
 
         // Device Control
@@ -228,6 +229,10 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         ISwitch AutoDewV2S[3];
         ISwitchVectorProperty AutoDewV2SP;
 
+        // Rename the power controls above
+        IText DewControlsLabelsT[3] = {};
+        ITextVectorProperty DewControlsLabelsTP;
+
         // Auto Dew v2 Aggressiveness
 
         enum
@@ -262,6 +267,10 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         ILight USBStatusL[6];
         ILightVectorProperty USBStatusLP;
 
+        // Rename the USB controls above
+        IText USBControlsLabelsT[6] = {};
+        ITextVectorProperty USBControlsLabelsTP;
+
         ////////////////////////////////////////////////////////////////////////////////////
         /// Focuser
         ////////////////////////////////////////////////////////////////////////////////////
@@ -291,7 +300,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         INumber FocuserTemperatureN[1];
         INumberVectorProperty FocuserTemperatureNP;
 
-        std::vector<std::string> lastSensorData, lastPowerData, lastStepperData;
+        std::vector<std::string> lastSensorData, lastPowerData, lastStepperData, lastDewAggData;
         bool focusMotorRunning { false };
         char stopChar { 0xD };
         uint8_t version { UPB_V1 };
