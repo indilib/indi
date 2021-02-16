@@ -708,17 +708,19 @@ bool Paramount::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     {
         if (!strcmp(HomeSP.name, name))
         {
+            LOG_INFO("Moving to home position. Please stand by...");
             if (findHome())
             {
                 HomeS[0].s = ISS_OFF;
                 TrackState = SCOPE_IDLE;
                 HomeSP.s = IPS_OK;
-                LOG_INFO("At home position.");
+                LOG_INFO("Mount arrived at home position.");
             }
             else
             {
                 HomeS[0].s = ISS_OFF;
                 HomeSP.s = IPS_ALERT;
+                LOG_ERROR("Failed to go to home position");
             }
 
             IDSetSwitch(&HomeSP, nullptr);
