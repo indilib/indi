@@ -118,6 +118,11 @@ class Driver
         bool setCustomRATrackRate(double rate);
         bool setTrackMode(IOP_TRACK_RATE rate);
         bool setTrackEnabled(bool enabled);
+        /* v3.0 Add in PEC Control */
+        bool setPECEnabled(bool enabled); // start / stop PEC
+        bool setPETEnabled(bool enabled); // record / cancel PEC
+        bool getPETEnabled(bool enabled); // check data / recording status
+        // End Mod */
         bool abort();
         bool slewNormal();
         bool slewCWUp();
