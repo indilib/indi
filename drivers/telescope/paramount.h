@@ -74,7 +74,7 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         bool getMountRADE();
         bool isSlewComplete();
 
-        bool sendTheSkyOKCommand(const char *command, const char *errorMessage);
+        bool sendTheSkyOKCommand(const char *command, const char *errorMessage, uint8_t timeout = 3);
         bool isTheSkyParked();
         bool isTheSkyTracking();
         bool startOpenLoopMotion(uint8_t motion, uint16_t rate);

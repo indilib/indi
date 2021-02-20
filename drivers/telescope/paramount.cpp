@@ -102,7 +102,7 @@ void ISSnoopDevice(XMLEle *root)
 
 Paramount::Paramount()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -115,7 +115,7 @@ Paramount::Paramount()
 
 const char *Paramount::getDefaultName()
 {
-    return (const char *)"Paramount";
+    return "Paramount";
 }
 
 bool Paramount::initProperties()
@@ -708,17 +708,19 @@ bool Paramount::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     {
         if (!strcmp(HomeSP.name, name))
         {
+            LOG_INFO("Moving to home position. Please stand by...");
             if (findHome())
             {
-                HomeS[0].s = ISS_ON;
-                TrackState = SCOPE_SLEWING;
-                HomeSP.s = IPS_BUSY;
-                LOG_INFO("Finding Home position...");
+                HomeS[0].s = ISS_OFF;
+                TrackState = SCOPE_IDLE;
+                HomeSP.s = IPS_OK;
+                LOG_INFO("Mount arrived at home position.");
             }
             else
             {
                 HomeS[0].s = ISS_OFF;
                 HomeSP.s = IPS_ALERT;
+                LOG_ERROR("Failed to go to home position");
             }
 
             IDSetSwitch(&HomeSP, nullptr);
@@ -741,8 +743,11 @@ bool Paramount::findHome()
 {
     char pCMD[MAXRBUF] = {0};
 
-    strncpy(pCMD, "sky6RASCOMTele.FindHome();", MAXRBUF);
-    return sendTheSkyOKCommand(pCMD, "Find home");
+    strncpy(pCMD, "sky6RASCOMTele.FindHome();"
+            "while(!sky6RASCOMTele.IsSlewComplete) {"
+            "sky6Web.Sleep(1000);}",
+            MAXRBUF);
+    return sendTheSkyOKCommand(pCMD, "Find home", 60);
 }
 
 
@@ -1036,7 +1041,7 @@ void Paramount::mountSim()
     NewRaDec(currentRA, currentDEC);
 }
 
-bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessage)
+bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessage, uint8_t timeout)
 {
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
@@ -1058,7 +1063,7 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
         return false;
     }
 
-    if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', timeout, &nbytes_read)) != TTY_OK)
     {
         LOG_ERROR("Error reading from TheSky6 TCP server.");
         return false;
@@ -1158,7 +1163,7 @@ bool Paramount::SetTrackRate(double raRate, double deRate)
 bool Paramount::SetTrackMode(uint8_t mode)
 {
     bool isSidereal = (mode == TRACK_SIDEREAL);
-    double dRA = TRACKRATE_SIDEREAL, dDE = 0;
+    double dRA = 0, dDE = 0;
 
     if (mode == TRACK_SOLAR)
         dRA = TRACKRATE_SOLAR;
