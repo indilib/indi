@@ -376,7 +376,7 @@ static void usage(void)
     fprintf(stderr, " -v       : show key events, no traffic\n");
     fprintf(stderr, " -vv      : -v + key message content\n");
     fprintf(stderr, " -vvv     : -vv + complete xml\n");
-    fprintf(stderr, "driver    : executable or device@host[:port]\n");
+    fprintf(stderr, "driver    : executable or [device]@host[:port]\n");
 
     exit(2);
 }
@@ -617,17 +617,21 @@ static void startLocalDvr(DvrInfo *dp)
 static void startRemoteDvr(DvrInfo *dp)
 {
     Msg *mp;
-    char dev[MAXINDIDEVICE];
-    char host[MAXSBUF];
-    char buf[MAXSBUF];
+    char dev[MAXINDIDEVICE] = {0};
+    char host[MAXSBUF] = {0};
+    char buf[MAXSBUF] = {0};
     int indi_port, sockfd;
 
     /* extract host and port */
     indi_port = INDIPORT;
     if (sscanf(dp->name, "%[^@]@%[^:]:%d", dev, host, &indi_port) < 2)
     {
-        fprintf(stderr, "Bad remote device syntax: %s\n", dp->name);
-        Bye();
+        // Device missing? Try a different syntax for all devices
+        if (sscanf(dp->name, "@%[^:]:%d", host, &indi_port) < 1)
+        {
+            fprintf(stderr, "Bad remote device syntax: %s\n", dp->name);
+            Bye();
+        }
     }
 
     /* connect */
@@ -660,7 +664,13 @@ static void startRemoteDvr(DvrInfo *dp)
      */
     mp = newMsg();
     pushFQ(dp->msgq, mp);
-    sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dp->dev[0], INDIV);
+    if (dev[0])
+        sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dp->dev[0], INDIV);
+    else
+        // This informs downstream server that it is connecting to an upstream server
+        // and not a regular client. The difference is in how it treats snooping properties
+        // among properties.
+        sprintf(buf, "<getProperties device='*' version='%g'/>\n", INDIV);
     setMsgStr(mp, buf);
     mp->count++;
 
@@ -839,7 +849,7 @@ static void indiRun(void)
     s = select(maxfd + 1, &rs, &ws, NULL, NULL);
     if (s < 0)
     {
-        if(errno==EINTR)
+        if(errno == EINTR)
             return;
         fprintf(stderr, "%s: select(%d): %s\n", indi_tstamp(NULL), maxfd + 1, strerror(errno));
         Bye();
@@ -952,7 +962,7 @@ static void newFIFO(void)
             fprintf(stderr, "FIFO: %s\n", line);
 
         char cmd[MAXSBUF], arg[4][1], var[4][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envConfig[MAXSBUF],
-            envSkel[MAXSBUF], envPrefix[MAXSBUF];
+             envSkel[MAXSBUF], envPrefix[MAXSBUF];
 
         memset(&tDriver[0], 0, sizeof(char) * MAXSBUF);
         memset(&tName[0], 0, sizeof(char) * MAXSBUF);
@@ -1069,22 +1079,22 @@ static void newFIFO(void)
                     if (verbose)
                         fprintf(stderr, "FIFO: Shutting down driver: %s\n", tDriver);
 
-//                    for (i = 0; i < dp->ndev; i++)
-//                    {
-//                        /* Inform clients that this driver is dead */
-//                        XMLEle *root = addXMLEle(NULL, "delProperty");
-//                        addXMLAtt(root, "device", dp->dev[i]);
+                    //                    for (i = 0; i < dp->ndev; i++)
+                    //                    {
+                    //                        /* Inform clients that this driver is dead */
+                    //                        XMLEle *root = addXMLEle(NULL, "delProperty");
+                    //                        addXMLAtt(root, "device", dp->dev[i]);
 
-//                        prXMLEle(stderr, root, 0);
-//                        Msg *mp = newMsg();
+                    //                        prXMLEle(stderr, root, 0);
+                    //                        Msg *mp = newMsg();
 
-//                        q2Clients(NULL, 0, dp->dev[i], NULL, mp, root);
-//                        if (mp->count > 0)
-//                            setMsgXMLEle(mp, root);
-//                        else
-//                            freeMsg(mp);
-//                        delXMLEle(root);
-//                    }
+                    //                        q2Clients(NULL, 0, dp->dev[i], NULL, mp, root);
+                    //                        if (mp->count > 0)
+                    //                            setMsgXMLEle(mp, root);
+                    //                        else
+                    //                            freeMsg(mp);
+                    //                        delXMLEle(root);
+                    //                    }
 
                     shutdownDvr(dp, 0);
                     break;
@@ -1198,12 +1208,19 @@ static int readFromClient(ClInfo *cp)
             }
 
             /* snag interested properties.
-         * N.B. don't open to alldevs if seen specific dev already, else
-         *   remote client connections start returning too much.
-         */
+            * N.B. don't open to alldevs if seen specific dev already, else
+            *   remote client connections start returning too much.
+            */
             if (dev[0])
-                addClDevice(cp, dev, name, isblob);
-            else if (!strcmp(roottag, "getProperties") && !cp->nprops)
+            {
+                // Signature for CHAINED SERVER
+                // Not a regular client.
+                if (dev[0] == '*' && !cp->nprops)
+                    cp->allprops = 2;
+                else
+                    addClDevice(cp, dev, name, isblob);
+            }
+            else if (!strcmp(roottag, "getProperties") && !cp->nprops && cp->allprops != 2)
                 cp->allprops = 1;
 
             /* snag enableBLOB -- send to remote drivers too */
@@ -1217,7 +1234,7 @@ static int readFromClient(ClInfo *cp)
             q2RDrivers(dev, mp, root);
 
             /* JM 2016-05-18: Upstream client can be a chained INDI server. If any driver locally is snooping
-         * on any remote drivers, we should catch it and forward it to the responsible snooping driver. */
+            * on any remote drivers, we should catch it and forward it to the responsible snooping driver. */
             /* send to snooping drivers. */
             // JM 2016-05-26: Only forward setXXX messages
             if (!strncmp(roottag, "set", 3))
@@ -1470,7 +1487,7 @@ static void shutdownClient(ClInfo *cp)
 static void shutdownDvr(DvrInfo *dp, int restart)
 {
     Msg *mp;
-    int i=0;
+    int i = 0;
 
     // Tell client driver is dead.
     for (i = 0; i < dp->ndev; i++)
@@ -1568,7 +1585,7 @@ static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root)
             continue;
 
         /* driver known to not support this dev */
-        if (dev[0] && isDeviceInDriver(dev, dp) == 0)
+        if (dev[0] && dev[0] != '*' && isDeviceInDriver(dev, dp) == 0)
             continue;
 
         /* Only send message to each *unique* remote driver at a particular host:port
@@ -1792,25 +1809,39 @@ static int q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
     for (cp = clinfo; cp < &clinfo[nclinfo]; cp++)
     {
         /* cp in use? not chained server? */
-        if (!cp->active || cp->allprops == 1)
+        if (!cp->active)
             continue;
 
         // Only send the message to the upstream server that is connected specfically to the device in driver dp
-        for (i = 0; i < cp->nprops; i++)
+        switch (cp->allprops)
         {
-            Property *pp = &cp->props[i];
-            int j        = 0;
-            for (j = 0; j < me->ndev; j++)
-            {
-                if (!strcmp(pp->dev, me->dev[j]))
-                    break;
-            }
+            // 0 --> not all props are requested. Check for specific combination
+            case 0:
+                for (i = 0; i < cp->nprops; i++)
+                {
+                    Property *pp = &cp->props[i];
+                    int j        = 0;
+                    for (j = 0; j < me->ndev; j++)
+                    {
+                        if (!strcmp(pp->dev, me->dev[j]))
+                            break;
+                    }
 
-            if (j != me->ndev)
-            {
+                    if (j != me->ndev)
+                    {
+                        devFound = 1;
+                        break;
+                    }
+                }
+            break;
+
+            // All props are requested. This is client-only mode (not upstream server)
+            case 1:
+                break;
+            // Upstream server mode
+            case 2:
                 devFound = 1;
                 break;
-            }
         }
 
         // If no matching device found, continue
@@ -2016,7 +2047,7 @@ static int findClDevice(ClInfo *cp, const char *dev, const char *name)
 {
     int i;
 
-    if (cp->allprops || !dev[0])
+    if (cp->allprops >= 1 || !dev[0])
         return (0);
     for (i = 0; i < cp->nprops; i++)
     {
@@ -2031,12 +2062,9 @@ static int findClDevice(ClInfo *cp, const char *dev, const char *name)
  */
 static void addClDevice(ClInfo *cp, const char *dev, const char *name, int isblob)
 {
-    Property *pp;
-    //char *ip;
-    int i = 0;
-
     if (isblob)
     {
+        int i = 0;
         for (i = 0; i < cp->nprops; i++)
         {
             Property *pp = &cp->props[i];
@@ -2050,7 +2078,7 @@ static void addClDevice(ClInfo *cp, const char *dev, const char *name, int isblo
 
     /* add */
     cp->props = (Property *)realloc(cp->props, (cp->nprops + 1) * sizeof(Property));
-    pp        = &cp->props[cp->nprops++];
+    Property *pp = &cp->props[cp->nprops++];
 
     /*ip = pp->dev;
     strncpy (ip, dev, MAXINDIDEVICE-1);
@@ -2131,7 +2159,8 @@ static void crackBLOBHandling(const char *dev, const char *name, const char *ena
  */
 static void traceMsg(XMLEle *root)
 {
-    static const char *prtags[] = {
+    static const char *prtags[] =
+    {
         "defNumber", "oneNumber", "defText", "oneText", "defSwitch", "oneSwitch", "defLight", "oneLight",
     };
     XMLEle *e;

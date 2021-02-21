@@ -97,7 +97,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    INDI_UNUSED(root);
+    SkywatcherAltAzSimplePtr->ISSnoopDevice(root);
 }
 
 SkywatcherAltAzSimple::SkywatcherAltAzSimple() : TrackLogFileName(GetHomeDirectory() + "/.indi/sw_mount_track_log.txt")
@@ -139,7 +139,13 @@ bool SkywatcherAltAzSimple::Handshake()
     DEBUG(DBG_SCOPE, "SkywatcherAltAzSimple::Handshake");
     SetSerialPort(PortFD);
 
-    bool Result = InitMount(RecoverAfterReconnection);
+    Connection::Interface *activeConnection = getActiveConnection();
+    if (!activeConnection->name().compare("CONNECTION_TCP"))
+    {
+        tty_set_generic_udp_format(1);
+    }
+
+    bool Result = InitMount();
 
     if (getActiveConnection() == serialConnection)
     {
@@ -410,25 +416,25 @@ void SkywatcherAltAzSimple::ISGetProperties(const char *dev)
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX mewssage to any connected clients
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&WedgeModeSP);
-        defineSwitch(&TrackLogModeSP);
-        defineNumber(&GuidingRatesNP);
-        defineNumber(&TrackingValuesNP);
-        defineSwitch(&ParkMovementDirectionSP);
-        defineSwitch(&ParkPositionSP);
-        defineSwitch(&UnparkPositionSP);
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&BasicMountInfoV);
+        defineProperty(&AxisOneInfoV);
+        defineProperty(&AxisOneStateV);
+        defineProperty(&AxisTwoInfoV);
+        defineProperty(&AxisTwoStateV);
+        defineProperty(&AxisOneEncoderValuesV);
+        defineProperty(&AxisTwoEncoderValuesV);
+        defineProperty(&SlewModesSP);
+        defineProperty(&WedgeModeSP);
+        defineProperty(&TrackLogModeSP);
+        defineProperty(&GuidingRatesNP);
+        defineProperty(&TrackingValuesNP);
+        defineProperty(&ParkMovementDirectionSP);
+        defineProperty(&ParkPositionSP);
+        defineProperty(&UnparkPositionSP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
     }
 }
 
@@ -640,7 +646,7 @@ void SkywatcherAltAzSimple::UpdateScopeConfigSwitch()
     deleteProperty("USEJOYSTICK");
     // Recreate the switch control
     deleteProperty(ScopeConfigsSP.name);
-    defineSwitch(&ScopeConfigsSP);
+    defineProperty(&ScopeConfigsSP);
 }
 
 double SkywatcherAltAzSimple::GetSlewRate()
@@ -670,11 +676,13 @@ bool SkywatcherAltAzSimple::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand comma
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS2, speed, true);
+            moving = true;
             break;
 
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS2);
+            moving = false;
             break;
     }
 
@@ -697,11 +705,13 @@ bool SkywatcherAltAzSimple::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand comma
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS1, speed, true);
+            moving = true;
             break;
 
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS1);
+            moving = false;
             break;
     }
 
@@ -1116,124 +1126,135 @@ void SkywatcherAltAzSimple::TimerHit()
                 ResetGuidePulses();
             }
 
-            // Restart the drift compensation after syncing
-            if (ResetTrackingSeconds)
+            if (moving)
             {
-                ResetTrackingSeconds = false;
-                TrackingMsecs        = 0;
-                GuideDeltaAlt        = 0;
-                GuideDeltaAz         = 0;
-                ResetGuidePulses();
-            }
-            TrackingMsecs += TimeoutDuration;
-            if (TrackingMsecs % 60000 == 0)
-            {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
-            }
-            Tracking = true;
-            Slewing  = false;
-            // Continue or start tracking
-            //            ln_hrz_posn AltAz { 0, 0 };
-            ln_hrz_posn FutureAltAz { 0, 0 };
-
-            //            AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
-            //            AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
-            FutureAltAz = GetAltAzPosition(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
-                                           (double)TimeoutDuration / 1000);
-            //            DEBUGF(DBG_SCOPE,
-            //                   "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
-            //                   "%ld",
-            //                   CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
-            //            DEBUGF(DBG_SCOPE,
-            //                   "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-            //                   AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
-
-            // Calculate the auto-guiding delta degrees
-            for (auto pulse : GuidingPulses)
-            {
-                GuideDeltaAlt += pulse.DeltaAlt;
-                GuideDeltaAz += pulse.DeltaAz;
-            }
-            GuidingPulses.clear();
-
-            long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, FutureAltAz.alt - CurrentAltAz.alt + GuideDeltaAlt);
-            long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, FutureAltAz.az - CurrentAltAz.az + GuideDeltaAz);
-
-            // When the Alt/Az mount is on the top of an EQ mount, the EQ mount already tracks in
-            // sidereal speed. Only autoguiding is enabled in tracking mode.
-            if (IUFindSwitch(&WedgeModeSP, "WEDGE_EQ")->s == ISS_ON)
-            {
-                AltitudeOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDEDEC_RATE")->value * GuideDeltaAlt);
-                AzimuthOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDERA_RATE")->value * GuideDeltaAz);
-                GuideDeltaAlt = 0;
-                GuideDeltaAz = 0;
-                // Correct the movements of the EQ mount
-                double DeltaAz = CurrentAltAz.az - FutureAltAz.az;
-                double DeltaAlt = CurrentAltAz.alt - FutureAltAz.alt;
-
-                PolarisPositionEncoders[AXIS1] += DegreesToMicrosteps(AXIS1, DeltaAz);
-                PolarisPositionEncoders[AXIS2] += DegreesToMicrosteps(AXIS2, DeltaAlt);
-                ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
-                ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
-            }
-
-            if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
-            {
-                // Going the long way round - send it the other way
-                AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
-            }
-            if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
-            {
-                // Going the long way round - send it the other way
-                AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
-            }
-            if (AltitudeOffsetMicrosteps < -MicrostepsPerRevolution[AXIS2] / 2)
-            {
-                // Going the long way round - send it the other way
-                AltitudeOffsetMicrosteps += MicrostepsPerRevolution[AXIS2];
-            }
-            if (AzimuthOffsetMicrosteps < -MicrostepsPerRevolution[AXIS1] / 2)
-            {
-                // Going the long way round - send it the other way
-                AzimuthOffsetMicrosteps += MicrostepsPerRevolution[AXIS1];
-            }
-
-            AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP, "TRACKING_RATE_ALT")->value);
-            AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP, "TRACKING_RATE_AZ")->value);
-
-            LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
-                       CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,
-                       AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
-
-            //            DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
-            //                   AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
-
-            if (0 != AzimuthOffsetMicrosteps)
-            {
-                SlewTo(AXIS1, AzimuthOffsetMicrosteps, false);
+                //                TrackedAltAz  = CurrentAltAz;
+                CurrentTrackingTarget.ra = EqN[AXIS_RA].value;
+                CurrentTrackingTarget.dec = EqN[AXIS_DE].value;
             }
             else
             {
-                // Nothing to do - stop the axis
-                SlowStop(AXIS1);
-            }
+                // Restart the drift compensation after syncing
+                if (ResetTrackingSeconds)
+                {
+                    ResetTrackingSeconds = false;
+                    TrackingMsecs        = 0;
+                    GuideDeltaAlt        = 0;
+                    GuideDeltaAz         = 0;
+                    ResetGuidePulses();
+                }
+                TrackingMsecs += TimeoutDuration;
+                if (TrackingMsecs % 60000 == 0)
+                {
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
+                }
+                Tracking = true;
+                Slewing  = false;
+                // Continue or start tracking
+                //            ln_hrz_posn AltAz { 0, 0 };
+                ln_hrz_posn FutureAltAz { 0, 0 };
 
-            if (0 != AltitudeOffsetMicrosteps)
-            {
-                SlewTo(AXIS2, AltitudeOffsetMicrosteps, false);
-            }
-            else
-            {
-                // Nothing to do - stop the axis
-                SlowStop(AXIS2);
-            }
+                //            AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+                //            AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+                FutureAltAz = GetAltAzPosition(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
+                                               (double)TimeoutDuration / 1000);
+                //            DEBUGF(DBG_SCOPE,
+                //                   "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
+                //                   "%ld",
+                //                   CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
+                //            DEBUGF(DBG_SCOPE,
+                //                   "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
+                //                   AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
 
-            DEBUGF(DBG_SCOPE, "Tracking - AXIS1 error %d (offset: %ld) AXIS2 error %d (offset: %ld)",
-                   OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1], AzimuthOffsetMicrosteps,
-                   OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2], AltitudeOffsetMicrosteps);
+                // Calculate the auto-guiding delta degrees
+                for (auto pulse : GuidingPulses)
+                {
+                    GuideDeltaAlt += pulse.DeltaAlt;
+                    GuideDeltaAz += pulse.DeltaAz;
+                }
+                GuidingPulses.clear();
 
-            OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
-            OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
+                long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, FutureAltAz.alt - CurrentAltAz.alt + GuideDeltaAlt);
+                long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, FutureAltAz.az - CurrentAltAz.az + GuideDeltaAz);
+
+                // When the Alt/Az mount is on the top of an EQ mount, the EQ mount already tracks in
+                // sidereal speed. Only autoguiding is enabled in tracking mode.
+                if (IUFindSwitch(&WedgeModeSP, "WEDGE_EQ")->s == ISS_ON)
+                {
+                    AltitudeOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDEDEC_RATE")->value * GuideDeltaAlt);
+                    AzimuthOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDERA_RATE")->value * GuideDeltaAz);
+                    GuideDeltaAlt = 0;
+                    GuideDeltaAz = 0;
+                    // Correct the movements of the EQ mount
+                    double DeltaAz = CurrentAltAz.az - FutureAltAz.az;
+                    double DeltaAlt = CurrentAltAz.alt - FutureAltAz.alt;
+
+                    PolarisPositionEncoders[AXIS1] += DegreesToMicrosteps(AXIS1, DeltaAz);
+                    PolarisPositionEncoders[AXIS2] += DegreesToMicrosteps(AXIS2, DeltaAlt);
+                    ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
+                    ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
+                }
+
+                if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
+                }
+                if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
+                }
+                if (AltitudeOffsetMicrosteps < -MicrostepsPerRevolution[AXIS2] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AltitudeOffsetMicrosteps += MicrostepsPerRevolution[AXIS2];
+                }
+                if (AzimuthOffsetMicrosteps < -MicrostepsPerRevolution[AXIS1] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AzimuthOffsetMicrosteps += MicrostepsPerRevolution[AXIS1];
+                }
+
+                AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
+                                                  "TRACKING_RATE_ALT")->value);
+                AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
+                                                 "TRACKING_RATE_AZ")->value);
+
+                LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
+                           CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,
+                           AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+
+                //            DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
+                //                   AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+
+                if (0 != AzimuthOffsetMicrosteps)
+                {
+                    SlewTo(AXIS1, AzimuthOffsetMicrosteps, false);
+                }
+                else
+                {
+                    // Nothing to do - stop the axis
+                    SlowStop(AXIS1);
+                }
+
+                if (0 != AltitudeOffsetMicrosteps)
+                {
+                    SlewTo(AXIS2, AltitudeOffsetMicrosteps, false);
+                }
+                else
+                {
+                    // Nothing to do - stop the axis
+                    SlowStop(AXIS2);
+                }
+
+                DEBUGF(DBG_SCOPE, "Tracking - AXIS1 error %d (offset: %ld) AXIS2 error %d (offset: %ld)",
+                       OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1], AzimuthOffsetMicrosteps,
+                       OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2], AltitudeOffsetMicrosteps);
+
+                OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
+                OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
+            }
             break;
         }
         break;
@@ -1269,28 +1290,28 @@ bool SkywatcherAltAzSimple::updateProperties()
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX message to any connected clients
         // I have now idea why I have to do this here as well as in ISGetProperties. It makes me
         // concerned there is a design or implementation flaw somewhere.
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&WedgeModeSP);
-        defineSwitch(&TrackLogModeSP);
-        defineNumber(&GuidingRatesNP);
-        defineNumber(&TrackingValuesNP);
-        defineSwitch(&ParkMovementDirectionSP);
-        defineSwitch(&ParkPositionSP);
-        defineSwitch(&UnparkPositionSP);
+        defineProperty(&BasicMountInfoV);
+        defineProperty(&AxisOneInfoV);
+        defineProperty(&AxisOneStateV);
+        defineProperty(&AxisTwoInfoV);
+        defineProperty(&AxisTwoStateV);
+        defineProperty(&AxisOneEncoderValuesV);
+        defineProperty(&AxisTwoEncoderValuesV);
+        defineProperty(&SlewModesSP);
+        defineProperty(&WedgeModeSP);
+        defineProperty(&TrackLogModeSP);
+        defineProperty(&GuidingRatesNP);
+        defineProperty(&TrackingValuesNP);
+        defineProperty(&ParkMovementDirectionSP);
+        defineProperty(&ParkPositionSP);
+        defineProperty(&UnparkPositionSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
         return true;
     }
     else
@@ -1370,7 +1391,7 @@ void SkywatcherAltAzSimple::ResetGuidePulses()
     GuidingPulses.clear();
 }
 
-int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+int SkywatcherAltAzSimple::recover_tty_reconnect()
 {
     if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
     {
@@ -1391,31 +1412,37 @@ int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, in
         SetSerialPort(serialConnection->getPortFD());
         SerialPortName           = serialConnection->port();
         RecoverAfterReconnection = false;
+        return 1;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+{
+    if (!recover_tty_reconnect())
+    {
+        return 0;
     }
     return tty_read(fd, buf, nbytes, timeout, nbytes_read);
 }
 
+int SkywatcherAltAzSimple::skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
+{
+    if (!recover_tty_reconnect())
+    {
+        return 0;
+    }
+    return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+}
+
 int SkywatcherAltAzSimple::skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written)
 {
-    if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
+    if (!recover_tty_reconnect())
     {
-        RecoverAfterReconnection = true;
-        serialConnection->Disconnect();
-        serialConnection->Refresh();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        if (!serialConnection->Connect())
-        {
-            RecoverAfterReconnection = true;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            if (!serialConnection->Connect())
-            {
-                RecoverAfterReconnection = false;
-                return 0;
-            }
-        }
-        SetSerialPort(serialConnection->getPortFD());
-        SerialPortName           = serialConnection->port();
-        RecoverAfterReconnection = false;
+        return 0;
     }
     return tty_write(fd, buffer, nbytes, nbytes_written);
 }

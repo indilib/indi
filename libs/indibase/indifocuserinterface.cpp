@@ -103,33 +103,33 @@ bool FocuserInterface::updateProperties()
     if (m_defaultDevice->isConnected())
     {
         //  Now we add our focusser specific stuff
-        m_defaultDevice->defineSwitch(&FocusMotionSP);
+        m_defaultDevice->defineProperty(&FocusMotionSP);
 
         if (HasVariableSpeed())
         {
-            m_defaultDevice->defineNumber(&FocusSpeedNP);
+            m_defaultDevice->defineProperty(&FocusSpeedNP);
 
             // We only define Focus Timer if we can not absolute move
             if (CanAbsMove() == false)
-                m_defaultDevice->defineNumber(&FocusTimerNP);
+                m_defaultDevice->defineProperty(&FocusTimerNP);
         }
         if (CanRelMove())
-            m_defaultDevice->defineNumber(&FocusRelPosNP);
+            m_defaultDevice->defineProperty(&FocusRelPosNP);
         if (CanAbsMove())
         {
-            m_defaultDevice->defineNumber(&FocusAbsPosNP);
-            m_defaultDevice->defineNumber(&FocusMaxPosNP);
+            m_defaultDevice->defineProperty(&FocusAbsPosNP);
+            m_defaultDevice->defineProperty(&FocusMaxPosNP);
         }
         if (CanAbort())
-            m_defaultDevice->defineSwitch(&FocusAbortSP);
+            m_defaultDevice->defineProperty(&FocusAbortSP);
         if (CanSync())
-            m_defaultDevice->defineNumber(&FocusSyncNP);
+            m_defaultDevice->defineProperty(&FocusSyncNP);
         if (CanReverse())
-            m_defaultDevice->defineSwitch(&FocusReverseSP);
+            m_defaultDevice->defineProperty(&FocusReverseSP);
         if (HasBacklash())
         {
-            m_defaultDevice->defineSwitch(&FocusBacklashSP);
-            m_defaultDevice->defineNumber(&FocusBacklashNP);
+            m_defaultDevice->defineProperty(&FocusBacklashSP);
+            m_defaultDevice->defineProperty(&FocusBacklashNP);
         }
     }
     else

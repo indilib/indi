@@ -153,7 +153,7 @@ void OpenWeatherMap::ISGetProperties(const char *dev)
     if (once)
     {
         once = false;
-        defineText(&owmAPIKeyTP);
+        defineProperty(&owmAPIKeyTP);
 
         loadConfig(true, "OWM_API_KEY");
     }

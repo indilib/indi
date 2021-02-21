@@ -17,6 +17,8 @@
 *******************************************************************************/
 
 #include "defaultdevice.h"
+#include "defaultdevice_p.h"
+
 #include "indicom.h"
 #include "indistandardproperty.h"
 #include "connectionplugins/connectionserial.h"
@@ -24,6 +26,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <assert.h>
+#include <algorithm>
 
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB  = "Main Control";
@@ -36,6 +39,7 @@ const char *FILTER_TAB        = "Filter Wheel";
 const char *FOCUS_TAB         = "Focuser";
 const char *GUIDE_TAB         = "Guide";
 const char *ALIGNMENT_TAB     = "Alignment";
+const char *SATELLITE_TAB     = "Satellite";
 const char *INFO_TAB          = "General Info";
 
 void timerfunc(void *t)
@@ -55,15 +59,29 @@ void timerfunc(void *t)
 namespace INDI
 {
 
-DefaultDevice::DefaultDevice()
+DefaultDevicePrivate::DefaultDevicePrivate()
 {
     memset(&ConnectionModeSP, 0, sizeof(ConnectionModeSP));
 }
 
+DefaultDevicePrivate::~DefaultDevicePrivate()
+{ }
+
+DefaultDevice::DefaultDevice()
+    : BaseDevice(*new DefaultDevicePrivate)
+{ }
+
+DefaultDevice::DefaultDevice(DefaultDevicePrivate &dd)
+    : BaseDevice(dd)
+{ }
+
 bool DefaultDevice::loadConfig(bool silent, const char *property)
 {
+    D_PTR(DefaultDevice);
     char errmsg[MAXRBUF] = {0};
-    bool pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
+    d->isConfigLoading = true;
+    bool pResult = IUReadConfig(nullptr, getDeviceName(), property, silent ? 1 : 0, errmsg) == 0 ? true : false;
+    d->isConfigLoading = false;
 
     if (!silent)
     {
@@ -77,9 +95,9 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
 
     // Determine default config file name
     // Need to be done only once per device.
-    if (pDefaultConfigLoaded == false)
+    if (d->isDefaultConfigLoaded == false)
     {
-        pDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+        d->isDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, getDeviceName()) == 0;
     }
 
     return pResult;
@@ -87,57 +105,30 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
 
 bool DefaultDevice::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigSwitch(fp, &DebugSP);
-    IUSaveConfigNumber(fp, &PollPeriodNP);
-    if (ConnectionModeS != nullptr)
-        IUSaveConfigSwitch(fp, &ConnectionModeSP);
+    D_PTR(DefaultDevice);
+    IUSaveConfigSwitch(fp, &d->DebugSP);
+    IUSaveConfigNumber(fp, &d->PollPeriodNP);
+    if (d->ConnectionModeS != nullptr)
+        IUSaveConfigSwitch(fp, &d->ConnectionModeSP);
 
-    if (activeConnection)
-        activeConnection->saveConfigItems(fp);
+    if (d->activeConnection)
+        d->activeConnection->saveConfigItems(fp);
 
     return INDI::Logger::saveConfigItems(fp);
 }
 
 bool DefaultDevice::saveAllConfigItems(FILE *fp)
 {
-    std::vector<INDI::Property *>::iterator orderi;
-
-    ISwitchVectorProperty *svp = nullptr;
-    INumberVectorProperty *nvp = nullptr;
-    ITextVectorProperty *tvp   = nullptr;
-    IBLOBVectorProperty *bvp   = nullptr;
-
-    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
+    for (const auto &oneProperty : *getProperties())
     {
-        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
-        void *pPtr  = (*orderi)->getProperty();
-
-        switch (pType)
+        if (oneProperty->getType() == INDI_SWITCH)
         {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                //IDLog("Trying to save config for number %s\n", nvp->name);
-                IUSaveConfigNumber(fp, nvp);
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                IUSaveConfigText(fp, tvp);
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
-                if (!strcmp(svp->name, INDI::SP::CONNECTION) || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
-                    continue;
-                IUSaveConfigSwitch(fp, svp);
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                IUSaveConfigBLOB(fp, bvp);
-                break;
-            case INDI_LIGHT:
-            case INDI_UNKNOWN:
-                break;
+            ISwitchVectorProperty * svp = oneProperty->getSwitch();
+            /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
+            if (!strcmp(svp->name, INDI::SP::CONNECTION) || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
+                continue;
         }
+        oneProperty->save(fp);
     }
     return true;
 }
@@ -145,7 +136,7 @@ bool DefaultDevice::saveAllConfigItems(FILE *fp)
 bool DefaultDevice::purgeConfig()
 {
     char errmsg[MAXRBUF];
-    if (IUPurgeConfig(nullptr, deviceID, errmsg) == -1)
+    if (IUPurgeConfig(nullptr, getDeviceName(), errmsg) == -1)
     {
         LOGF_WARN("%s", errmsg);
         return false;
@@ -157,6 +148,7 @@ bool DefaultDevice::purgeConfig()
 
 bool DefaultDevice::saveConfig(bool silent, const char *property)
 {
+    D_PTR(DefaultDevice);
     silent = false;
     char errmsg[MAXRBUF] = {0};
 
@@ -164,7 +156,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
 
     if (property == nullptr)
     {
-        fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
+        fp = IUGetConfigFP(nullptr, getDeviceName(), "w", errmsg);
 
         if (fp == nullptr)
         {
@@ -182,16 +174,16 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         fflush(fp);
         fclose(fp);
 
-        if (pDefaultConfigLoaded == false)
+        if (d->isDefaultConfigLoaded == false)
         {
-            pDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, deviceID) == 0;
+            d->isDefaultConfigLoaded = IUSaveDefaultConfig(nullptr, nullptr, getDeviceName()) == 0;
         }
 
         LOG_DEBUG("Configuration successfully saved.");
     }
     else
     {
-        fp = IUGetConfigFP(nullptr, deviceID, "r", errmsg);
+        fp = IUGetConfigFP(nullptr, getDeviceName(), "r", errmsg);
 
         if (fp == nullptr)
         {
@@ -300,7 +292,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
 
         if (propertySaved)
         {
-            fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
+            fp = IUGetConfigFP(nullptr, getDeviceName(), "w", errmsg);
             prXMLEle(fp, root, 0);
             fflush(fp);
             fclose(fp);
@@ -328,11 +320,11 @@ bool DefaultDevice::loadDefaultConfig()
     if (getenv("INDICONFIG"))
         snprintf(configDefaultFileName, MAXRBUF, "%s.default", getenv("INDICONFIG"));
     else
-        snprintf(configDefaultFileName, MAXRBUF, "%s/.indi/%s_config.xml.default", getenv("HOME"), deviceID);
+        snprintf(configDefaultFileName, MAXRBUF, "%s/.indi/%s_config.xml.default", getenv("HOME"), getDeviceName());
 
     LOGF_DEBUG("Requesting to load default config with: %s", configDefaultFileName);
 
-    pResult = IUReadConfig(configDefaultFileName, deviceID, nullptr, 0, errmsg) == 0 ? true : false;
+    pResult = IUReadConfig(configDefaultFileName, getDeviceName(), nullptr, 0, errmsg) == 0 ? true : false;
 
     if (pResult)
         LOG_INFO("Default configuration loaded.");
@@ -344,8 +336,9 @@ bool DefaultDevice::loadDefaultConfig()
 
 bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    D_PTR(DefaultDevice);
     // ignore if not ours //
-    if (strcmp(dev, deviceID))
+    if (strcmp(dev, getDeviceName()))
         return false;
 
     ISwitchVectorProperty *svp = getSwitch(name);
@@ -356,7 +349,7 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     ////////////////////////////////////////////////////
     // Connection
     ////////////////////////////////////////////////////
-    if (!strcmp(svp->name, ConnectionSP.name))
+    if (!strcmp(svp->name, d->ConnectionSP.name))
     {
         bool rc = false;
 
@@ -409,31 +402,31 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     ////////////////////////////////////////////////////
     // Connection Mode
     ////////////////////////////////////////////////////
-    if (!strcmp(name, ConnectionModeSP.name))
+    if (!strcmp(name, d->ConnectionModeSP.name))
     {
-        IUUpdateSwitch(&ConnectionModeSP, states, names, n);
+        IUUpdateSwitch(&d->ConnectionModeSP, states, names, n);
 
-        int activeConnectionIndex = IUFindOnSwitchIndex(&ConnectionModeSP);
+        int activeConnectionIndex = IUFindOnSwitchIndex(&d->ConnectionModeSP);
 
-        if (activeConnectionIndex >= 0 && activeConnectionIndex < static_cast<int>(connections.size()))
+        if (activeConnectionIndex >= 0 && activeConnectionIndex < static_cast<int>(d->connections.size()))
         {
-            activeConnection = connections[activeConnectionIndex];
-            activeConnection->Activated();
+            d->activeConnection = d->connections[activeConnectionIndex];
+            d->activeConnection->Activated();
 
-            for (Connection::Interface *oneConnection : connections)
+            for (Connection::Interface *oneConnection : d->connections)
             {
-                if (oneConnection == activeConnection)
+                if (oneConnection == d->activeConnection)
                     continue;
 
                 oneConnection->Deactivated();
             }
 
-            ConnectionModeSP.s = IPS_OK;
+            d->ConnectionModeSP.s = IPS_OK;
         }
         else
-            ConnectionModeSP.s = IPS_ALERT;
+            d->ConnectionModeSP.s = IPS_ALERT;
 
-        IDSetSwitch(&ConnectionModeSP, nullptr);
+        IDSetSwitch(&d->ConnectionModeSP, nullptr);
 
         return true;
     }
@@ -527,7 +520,7 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     }
 
     bool rc = false;
-    for (Connection::Interface *oneConnection : connections)
+    for (Connection::Interface *oneConnection : d->connections)
         rc |= oneConnection->ISNewSwitch(dev, name, states, names, n);
 
     return rc;
@@ -535,19 +528,20 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
 bool DefaultDevice::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    D_PTR(DefaultDevice);
     ////////////////////////////////////////////////////
     // Polling Period
     ////////////////////////////////////////////////////
-    if (!strcmp(name, PollPeriodNP.name))
+    if (!strcmp(name, d->PollPeriodNP.name))
     {
-        IUUpdateNumber(&PollPeriodNP, values, names, n);
-        PollPeriodNP.s = IPS_OK;
-        POLLMS = static_cast<uint32_t>(PollPeriodN[0].value);
-        IDSetNumber(&PollPeriodNP, nullptr);
+        IUUpdateNumber(&d->PollPeriodNP, values, names, n);
+        d->PollPeriodNP.s = IPS_OK;
+        d->pollingPeriod = static_cast<uint32_t>(d->PollPeriodN[0].value);
+        IDSetNumber(&d->PollPeriodNP, nullptr);
         return true;
     }
 
-    for (Connection::Interface *oneConnection : connections)
+    for (Connection::Interface *oneConnection : d->connections)
         oneConnection->ISNewNumber(dev, name, values, names, n);
 
     return false;
@@ -555,7 +549,8 @@ bool DefaultDevice::ISNewNumber(const char *dev, const char *name, double values
 
 bool DefaultDevice::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    for (Connection::Interface *oneConnection : connections)
+    D_PTR(DefaultDevice);
+    for (Connection::Interface *oneConnection : d->connections)
         oneConnection->ISNewText(dev, name, texts, names, n);
 
     return false;
@@ -564,7 +559,8 @@ bool DefaultDevice::ISNewText(const char *dev, const char *name, char *texts[], 
 bool DefaultDevice::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                               char *formats[], char *names[], int n)
 {
-    for (Connection::Interface *oneConnection : connections)
+    D_PTR(DefaultDevice);
+    for (Connection::Interface *oneConnection : d->connections)
         oneConnection->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 
     return false;
@@ -578,24 +574,28 @@ bool DefaultDevice::ISSnoopDevice(XMLEle *root)
 
 void DefaultDevice::addDebugControl()
 {
-    registerProperty(&DebugSP, INDI_SWITCH);
-    pDebug = false;
+    D_PTR(DefaultDevice);
+    registerProperty(&d->DebugSP, INDI_SWITCH);
+    d->isDebug = false;
 }
 
 void DefaultDevice::addSimulationControl()
 {
-    registerProperty(&SimulationSP, INDI_SWITCH);
-    pSimulation = false;
+    D_PTR(DefaultDevice);
+    registerProperty(&d->SimulationSP, INDI_SWITCH);
+    d->isSimulation = false;
 }
 
 void DefaultDevice::addConfigurationControl()
 {
-    registerProperty(&ConfigProcessSP, INDI_SWITCH);
+    D_PTR(DefaultDevice);
+    registerProperty(&d->ConfigProcessSP, INDI_SWITCH);
 }
 
 void DefaultDevice::addPollPeriodControl()
 {
-    registerProperty(&PollPeriodNP, INDI_NUMBER);
+    D_PTR(DefaultDevice);
+    registerProperty(&d->PollPeriodNP, INDI_NUMBER);
 }
 
 void DefaultDevice::addAuxControls()
@@ -608,18 +608,19 @@ void DefaultDevice::addAuxControls()
 
 void DefaultDevice::setDebug(bool enable)
 {
-    if (pDebug == enable)
+    D_PTR(DefaultDevice);
+    if (d->isDebug == enable)
     {
-        DebugSP.s = IPS_OK;
-        IDSetSwitch(&DebugSP, nullptr);
+        d->DebugSP.s = IPS_OK;
+        IDSetSwitch(&d->DebugSP, nullptr);
         return;
     }
 
-    IUResetSwitch(&DebugSP);
+    IUResetSwitch(&d->DebugSP);
 
     if (enable)
     {
-        ISwitch *sp = IUFindSwitch(&DebugSP, "ENABLE");
+        ISwitch *sp = IUFindSwitch(&d->DebugSP, "ENABLE");
         if (sp)
         {
             sp->s = ISS_ON;
@@ -628,7 +629,7 @@ void DefaultDevice::setDebug(bool enable)
     }
     else
     {
-        ISwitch *sp = IUFindSwitch(&DebugSP, "DISABLE");
+        ISwitch *sp = IUFindSwitch(&d->DebugSP, "DISABLE");
         if (sp)
         {
             sp->s = ISS_ON;
@@ -636,31 +637,32 @@ void DefaultDevice::setDebug(bool enable)
         }
     }
 
-    pDebug = enable;
+    d->isDebug = enable;
 
     // Inform logger
     if (Logger::updateProperties(enable) == false)
         DEBUG(Logger::DBG_WARNING, "setLogDebug: Logger error");
 
     debugTriggered(enable);
-    DebugSP.s = IPS_OK;
-    IDSetSwitch(&DebugSP, nullptr);
+    d->DebugSP.s = IPS_OK;
+    IDSetSwitch(&d->DebugSP, nullptr);
 }
 
 void DefaultDevice::setSimulation(bool enable)
 {
-    if (pSimulation == enable)
+    D_PTR(DefaultDevice);
+    if (d->isSimulation == enable)
     {
-        SimulationSP.s = IPS_OK;
-        IDSetSwitch(&SimulationSP, nullptr);
+        d->SimulationSP.s = IPS_OK;
+        IDSetSwitch(&d->SimulationSP, nullptr);
         return;
     }
 
-    IUResetSwitch(&SimulationSP);
+    IUResetSwitch(&d->SimulationSP);
 
     if (enable)
     {
-        ISwitch *sp = IUFindSwitch(&SimulationSP, "ENABLE");
+        ISwitch *sp = IUFindSwitch(&d->SimulationSP, "ENABLE");
         if (sp)
         {
             LOG_INFO("Simulation is enabled.");
@@ -669,7 +671,7 @@ void DefaultDevice::setSimulation(bool enable)
     }
     else
     {
-        ISwitch *sp = IUFindSwitch(&SimulationSP, "DISABLE");
+        ISwitch *sp = IUFindSwitch(&d->SimulationSP, "DISABLE");
         if (sp)
         {
             sp->s = ISS_ON;
@@ -677,20 +679,22 @@ void DefaultDevice::setSimulation(bool enable)
         }
     }
 
-    pSimulation = enable;
+    d->isSimulation = enable;
     simulationTriggered(enable);
-    SimulationSP.s = IPS_OK;
-    IDSetSwitch(&SimulationSP, nullptr);
+    d->SimulationSP.s = IPS_OK;
+    IDSetSwitch(&d->SimulationSP, nullptr);
 }
 
-bool DefaultDevice::isDebug()
+bool DefaultDevice::isDebug() const
 {
-    return pDebug;
+    D_PTR(const DefaultDevice);
+    return d->isDebug;
 }
 
-bool DefaultDevice::isSimulation()
+bool DefaultDevice::isSimulation() const
 {
-    return pSimulation;
+    D_PTR(const DefaultDevice);
+    return d->isSimulation;
 }
 
 void DefaultDevice::debugTriggered(bool enable)
@@ -705,7 +709,8 @@ void DefaultDevice::simulationTriggered(bool enable)
 
 void DefaultDevice::ISGetProperties(const char *dev)
 {
-    if (isInit == false)
+    D_PTR(DefaultDevice);
+    if (d->isInit == false)
     {
         if (dev != nullptr)
             setDeviceName(dev);
@@ -718,47 +723,25 @@ void DefaultDevice::ISGetProperties(const char *dev)
                 setDeviceName(getDefaultName());
         }
 
-        strncpy(ConnectionSP.device, getDeviceName(), MAXINDIDEVICE);
+        strncpy(d->ConnectionSP.device, getDeviceName(), MAXINDIDEVICE);
         initProperties();
         addConfigurationControl();
 
         // If we have no connections, move Driver Info to General Info tab
-        if (connections.size() == 0)
-            strncpy(DriverInfoTP.group, INFO_TAB, MAXINDINAME);
+        if (d->connections.size() == 0)
+            strncpy(d->DriverInfoTP.group, INFO_TAB, MAXINDINAME);
     }
 
-    for (INDI::Property *oneProperty : pAll)
+    for (const auto &oneProperty : *getProperties())
     {
-        INDI_PROPERTY_TYPE pType = oneProperty->getType();
-        void *pPtr = oneProperty->getProperty();
-
-        if (defineDynamicProperties == false && oneProperty->isDynamic())
+        if (d->defineDynamicProperties == false && oneProperty->isDynamic())
             continue;
 
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                IDDefNumber(static_cast<INumberVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_TEXT:
-                IDDefText(static_cast<ITextVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_SWITCH:
-                IDDefSwitch(static_cast<ISwitchVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_LIGHT:
-                IDDefLight(static_cast<ILightVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_BLOB:
-                IDDefBLOB(static_cast<IBLOBVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_UNKNOWN:
-                break;
-        }
+        oneProperty->define();
     }
 
     // Remember debug & logging settings
-    if (isInit == false)
+    if (d->isInit == false)
     {
         loadConfig(true, "DEBUG");
         loadConfig(true, "DEBUG_LEVEL");
@@ -767,65 +750,59 @@ void DefaultDevice::ISGetProperties(const char *dev)
         loadConfig(true, "LOG_OUTPUT");
     }
 
-    if (ConnectionModeS == nullptr)
+    if (d->ConnectionModeS == nullptr)
     {
-        if (connections.size() > 0)
+        if (d->connections.size() > 0)
         {
-            ConnectionModeS = static_cast<ISwitch *>(malloc(connections.size() * sizeof(ISwitch)));
-            ISwitch *sp     = ConnectionModeS;
-            for (Connection::Interface *oneConnection : connections)
+            d->ConnectionModeS = static_cast<ISwitch *>(malloc(d->connections.size() * sizeof(ISwitch)));
+            ISwitch *sp     = d->ConnectionModeS;
+            for (Connection::Interface *oneConnection : d->connections)
             {
                 IUFillSwitch(sp++, oneConnection->name().c_str(), oneConnection->label().c_str(), ISS_OFF);
             }
 
-            activeConnection     = connections[0];
-            ConnectionModeS[0].s = ISS_ON;
-            IUFillSwitchVector(&ConnectionModeSP, ConnectionModeS, connections.size(), getDeviceName(),
+            IUFillSwitchVector(&d->ConnectionModeSP, d->ConnectionModeS, d->connections.size(), getDeviceName(),
                                "CONNECTION_MODE", "Connection Mode", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-            defineSwitch(&ConnectionModeSP);
-            activeConnection->Activated();
-            loadConfig(true, "CONNECTION_MODE");
+            // Try to read config first
+            int activeConnectionIndex = -1;
+            if (IUGetConfigOnSwitchIndex(getDeviceName(), d->ConnectionModeSP.name, &activeConnectionIndex) == 0)
+            {
+                d->ConnectionModeS[activeConnectionIndex].s = ISS_ON;
+                d->activeConnection = d->connections[activeConnectionIndex];
+            }
+            // Check if we already have an active connection set.
+            else if (d->activeConnection != nullptr)
+            {
+                auto it = std::find(d->connections.begin(), d->connections.end(), d->activeConnection);
+                if (it != d->connections.end())
+                {
+                    int index = std::distance(d->connections.begin(), it);
+                    if (index >= 0)
+                        d->ConnectionModeS[index].s = ISS_ON;
+                }
+            }
+            // Otherwise use connection 0
+            else
+            {
+                d->ConnectionModeS[0].s = ISS_ON;
+                d->activeConnection = d->connections[0];
+            }
+
+            defineProperty(&d->ConnectionModeSP);
+            d->activeConnection->Activated();
         }
     }
 
-    isInit = true;
+    d->isInit = true;
 }
 
 void DefaultDevice::resetProperties()
 {
-    std::vector<INDI::Property *>::iterator orderi;
-
-    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
+    for (const auto &oneProperty : *getProperties())
     {
-        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
-        void *pPtr  = (*orderi)->getProperty();
-
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                static_cast<INumberVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetNumber(static_cast<INumberVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_TEXT:
-                static_cast<ITextVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetText(static_cast<ITextVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_SWITCH:
-                static_cast<ISwitchVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetSwitch(static_cast<ISwitchVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_LIGHT:
-                static_cast<ILightVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetLight(static_cast<ILightVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_BLOB:
-                static_cast<IBLOBVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetBLOB(static_cast<IBLOBVectorProperty *>(pPtr), nullptr);
-                break;
-            case INDI_UNKNOWN:
-                break;
-        }
+        oneProperty->setState(IPS_IDLE);
+        oneProperty->apply();
     }
 }
 
@@ -875,58 +852,67 @@ bool DefaultDevice::updateProperties()
 
 uint16_t DefaultDevice::getDriverInterface()
 {
-    return interfaceDescriptor;
+    D_PTR(DefaultDevice);
+    return d->interfaceDescriptor;
 }
 
 void DefaultDevice::setDriverInterface(uint16_t value)
 {
+    D_PTR(DefaultDevice);
     char interfaceStr[16];
-    interfaceDescriptor = value;
-    snprintf(interfaceStr, 16, "%d", interfaceDescriptor);
-    IUSaveText(&DriverInfoT[3], interfaceStr);
+    d->interfaceDescriptor = value;
+    snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
+    IUSaveText(&d->DriverInfoT[3], interfaceStr);
+}
+
+void DefaultDevice::syncDriverInfo()
+{
+    D_PTR(DefaultDevice);
+    IDSetText(&d->DriverInfoTP, nullptr);
 }
 
 bool DefaultDevice::initProperties()
 {
+    D_PTR(DefaultDevice);
     char versionStr[16];
     char interfaceStr[16];
 
-    snprintf(versionStr, 16, "%d.%d", majorVersion, minorVersion);
-    snprintf(interfaceStr, 16, "%d", interfaceDescriptor);
+    snprintf(versionStr, 16, "%d.%d", d->majorVersion, d->minorVersion);
+    snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
 
-    IUFillSwitch(&ConnectionS[INDI_ENABLED], "CONNECT", "Connect", ISS_OFF);
-    IUFillSwitch(&ConnectionS[INDI_DISABLED], "DISCONNECT", "Disconnect", ISS_ON);
-    IUFillSwitchVector(&ConnectionSP, ConnectionS, 2, getDeviceName(), INDI::SP::CONNECTION, "Connection", "Main Control",
+    IUFillSwitch(&d->ConnectionS[INDI_ENABLED], "CONNECT", "Connect", ISS_OFF);
+    IUFillSwitch(&d->ConnectionS[INDI_DISABLED], "DISCONNECT", "Disconnect", ISS_ON);
+    IUFillSwitchVector(&d->ConnectionSP, d->ConnectionS, 2, getDeviceName(), INDI::SP::CONNECTION, "Connection", "Main Control",
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    registerProperty(&ConnectionSP, INDI_SWITCH);
+    registerProperty(&d->ConnectionSP, INDI_SWITCH);
 
-    IUFillText(&DriverInfoT[0], "DRIVER_NAME", "Name", getDriverName());
-    IUFillText(&DriverInfoT[1], "DRIVER_EXEC", "Exec", getDriverExec());
-    IUFillText(&DriverInfoT[2], "DRIVER_VERSION", "Version", versionStr);
-    IUFillText(&DriverInfoT[3], "DRIVER_INTERFACE", "Interface", interfaceStr);
-    IUFillTextVector(&DriverInfoTP, DriverInfoT, 4, getDeviceName(), "DRIVER_INFO", "Driver Info", CONNECTION_TAB,
+    IUFillText(&d->DriverInfoT[0], "DRIVER_NAME", "Name", getDriverName());
+    IUFillText(&d->DriverInfoT[1], "DRIVER_EXEC", "Exec", getDriverExec());
+    IUFillText(&d->DriverInfoT[2], "DRIVER_VERSION", "Version", versionStr);
+    IUFillText(&d->DriverInfoT[3], "DRIVER_INTERFACE", "Interface", interfaceStr);
+    IUFillTextVector(&d->DriverInfoTP, d->DriverInfoT, 4, getDeviceName(), "DRIVER_INFO", "Driver Info", CONNECTION_TAB,
                      IP_RO, 60, IPS_IDLE);
-    registerProperty(&DriverInfoTP, INDI_TEXT);
+    registerProperty(&d->DriverInfoTP, INDI_TEXT);
 
-    IUFillSwitch(&DebugS[INDI_ENABLED], "ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&DebugS[INDI_DISABLED], "DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(&DebugSP, DebugS, NARRAY(DebugS), getDeviceName(), "DEBUG", "Debug", "Options", IP_RW,
+    IUFillSwitch(&d->DebugS[INDI_ENABLED], "ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&d->DebugS[INDI_DISABLED], "DISABLE", "Disable", ISS_ON);
+    IUFillSwitchVector(&d->DebugSP, d->DebugS, NARRAY(d->DebugS), getDeviceName(), "DEBUG", "Debug", "Options", IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&SimulationS[INDI_ENABLED], "ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&SimulationS[INDI_DISABLED], "DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(&SimulationSP, SimulationS, NARRAY(SimulationS), getDeviceName(), "SIMULATION", "Simulation",
+    IUFillSwitch(&d->SimulationS[INDI_ENABLED], "ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&d->SimulationS[INDI_DISABLED], "DISABLE", "Disable", ISS_ON);
+    IUFillSwitchVector(&d->SimulationSP, d->SimulationS, NARRAY(d->SimulationS), getDeviceName(), "SIMULATION", "Simulation",
                        "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
-    IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
-    IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
-    IUFillSwitch(&ConfigProcessS[3], "CONFIG_PURGE", "Purge", ISS_OFF);
-    IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS",
+    IUFillSwitch(&d->ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
+    IUFillSwitch(&d->ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
+    IUFillSwitch(&d->ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
+    IUFillSwitch(&d->ConfigProcessS[3], "CONFIG_PURGE", "Purge", ISS_OFF);
+    IUFillSwitchVector(&d->ConfigProcessSP, d->ConfigProcessS, NARRAY(d->ConfigProcessS), getDeviceName(), "CONFIG_PROCESS",
                        "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillNumber(&PollPeriodN[0], "PERIOD_MS", "Period (ms)", "%.f", 10, 600000, 1000, POLLMS);
-    IUFillNumberVector(&PollPeriodNP, PollPeriodN, 1, getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0,
+    IUFillNumber(&d->PollPeriodN[0], "PERIOD_MS", "Period (ms)", "%.f", 10, 600000, 1000, d->pollingPeriod);
+    IUFillNumberVector(&d->PollPeriodNP, d->PollPeriodN, 1, getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0,
                        IPS_IDLE);
 
     INDI::Logger::initProperties(this);
@@ -941,6 +927,7 @@ bool DefaultDevice::initProperties()
 
 bool DefaultDevice::deleteProperty(const char *propertyName)
 {
+    D_PTR(DefaultDevice);
     char errmsg[MAXRBUF];
 
     if (propertyName == nullptr)
@@ -951,7 +938,7 @@ bool DefaultDevice::deleteProperty(const char *propertyName)
     }
 
     // Keep dynamic properties in existing property list so they can be reused
-    if (deleteDynamicProperties == false)
+    if (d->deleteDynamicProperties == false)
     {
         INDI::Property *prop = getProperty(propertyName);
         if (prop && prop->isDynamic())
@@ -970,54 +957,80 @@ bool DefaultDevice::deleteProperty(const char *propertyName)
         return false;
 }
 
+void DefaultDevice::defineProperty(INumberVectorProperty *property)
+{
+    registerProperty(property, INDI_NUMBER);
+    IDDefNumber(property, nullptr);
+}
+
+void DefaultDevice::defineProperty(ITextVectorProperty *property)
+{
+    registerProperty(property, INDI_TEXT);
+    IDDefText(property, nullptr);
+}
+
+void DefaultDevice::defineProperty(ISwitchVectorProperty *property)
+{
+    registerProperty(property, INDI_SWITCH);
+    IDDefSwitch(property, nullptr);
+}
+
+void DefaultDevice::defineProperty(ILightVectorProperty *property)
+{
+    registerProperty(property, INDI_LIGHT);
+    IDDefLight(property, nullptr);
+}
+
+void DefaultDevice::defineProperty(IBLOBVectorProperty *property)
+{
+    registerProperty(property, INDI_BLOB);
+    IDDefBLOB(property, nullptr);
+}
+
 void DefaultDevice::defineNumber(INumberVectorProperty *nvp)
 {
-    registerProperty(nvp, INDI_NUMBER);
-    IDDefNumber(nvp, nullptr);
+    defineProperty(nvp);
 }
 
 void DefaultDevice::defineText(ITextVectorProperty *tvp)
 {
-    registerProperty(tvp, INDI_TEXT);
-    IDDefText(tvp, nullptr);
+    defineProperty(tvp);
 }
 
 void DefaultDevice::defineSwitch(ISwitchVectorProperty *svp)
 {
-    registerProperty(svp, INDI_SWITCH);
-    IDDefSwitch(svp, nullptr);
+    defineProperty(svp);
 }
 
 void DefaultDevice::defineLight(ILightVectorProperty *lvp)
 {
-    registerProperty(lvp, INDI_LIGHT);
-    IDDefLight(lvp, nullptr);
+    defineProperty(lvp);
 }
 
 void DefaultDevice::defineBLOB(IBLOBVectorProperty *bvp)
 {
-    registerProperty(bvp, INDI_BLOB);
-    IDDefBLOB(bvp, nullptr);
+    defineProperty(bvp);
 }
 
 bool DefaultDevice::Connect()
 {
+    D_PTR(DefaultDevice);
     if (isConnected())
         return true;
 
-    if (activeConnection == nullptr)
+    if (d->activeConnection == nullptr)
     {
         LOG_ERROR("No active connection defined.");
         return false;
     }
 
-    bool rc = activeConnection->Connect();
+    bool rc = d->activeConnection->Connect();
 
     if (rc)
     {
         saveConfig(true, "CONNECTION_MODE");
-        if (POLLMS > 0)
-            SetTimer(POLLMS);
+        if (d->pollingPeriod > 0)
+            SetTimer(d->pollingPeriod);
     }
 
     return rc;
@@ -1025,15 +1038,16 @@ bool DefaultDevice::Connect()
 
 bool DefaultDevice::Disconnect()
 {
+    D_PTR(DefaultDevice);
     if (isSimulation())
     {
         DEBUGF(Logger::DBG_SESSION, "%s is offline.", getDeviceName());
         return true;
     }
 
-    if (activeConnection)
+    if (d->activeConnection)
     {
-        bool rc = activeConnection->Disconnect();
+        bool rc = d->activeConnection->Disconnect();
         if (rc)
         {
             DEBUGF(Logger::DBG_SESSION, "%s is offline.", getDeviceName());
@@ -1048,18 +1062,21 @@ bool DefaultDevice::Disconnect()
 
 void DefaultDevice::registerConnection(Connection::Interface *newConnection)
 {
-    connections.push_back(newConnection);
+    D_PTR(DefaultDevice);
+    d->connections.push_back(newConnection);
 }
 
 bool DefaultDevice::unRegisterConnection(Connection::Interface *existingConnection)
 {
-    auto i = std::begin(connections);
+    D_PTR(DefaultDevice);
 
-    while (i != std::end(connections))
+    auto i = std::begin(d->connections);
+
+    while (i != std::end(d->connections))
     {
         if (*i == existingConnection)
         {
-            i = connections.erase(i);
+            i = d->connections.erase(i);
             return true;
         }
         else
@@ -1069,17 +1086,135 @@ bool DefaultDevice::unRegisterConnection(Connection::Interface *existingConnecti
     return false;
 }
 
-void DefaultDevice::setDefaultPollingPeriod(uint32_t period)
+void DefaultDevice::setCurrentPollingPeriod(uint32_t msec)
 {
-    PollPeriodN[0].value = period;
-    POLLMS = period;
+    D_PTR(DefaultDevice);
+    d->pollingPeriod = msec;
+}
+
+uint32_t DefaultDevice::getCurrentPollingPeriod() const
+{
+    D_PTR(const DefaultDevice);
+    return d->pollingPeriod;
+}
+
+uint32_t &DefaultDevice::refCurrentPollingPeriod()
+{
+    D_PTR(DefaultDevice);
+    return d->pollingPeriod;
+}
+
+uint32_t DefaultDevice::refCurrentPollingPeriod() const
+{
+    D_PTR(const DefaultDevice);
+    return d->pollingPeriod;
+}
+
+void DefaultDevice::setDefaultPollingPeriod(uint32_t msec)
+{
+    D_PTR(DefaultDevice);
+    d->PollPeriodN[0].value = msec;
+    d->pollingPeriod = msec;
 }
 
 void DefaultDevice::setPollingPeriodRange(uint32_t minimum, uint32_t maximum)
 {
-    PollPeriodN[0].min = minimum;
-    PollPeriodN[0].max = maximum;
-    IUUpdateMinMax(&PollPeriodNP);
+    D_PTR(DefaultDevice);
+
+    d->PollPeriodN[0].min = minimum;
+    d->PollPeriodN[0].max = maximum;
+    IUUpdateMinMax(&d->PollPeriodNP);
+}
+
+void DefaultDevice::setActiveConnection(Connection::Interface *existingConnection)
+{
+    D_PTR(DefaultDevice);
+
+    if (existingConnection == d->activeConnection)
+        return;
+
+    for (Connection::Interface *oneConnection : d->connections)
+    {
+        if (oneConnection == d->activeConnection)
+        {
+            oneConnection->Deactivated();
+            break;
+        }
+    }
+
+    d->activeConnection = existingConnection;
+    if (d->ConnectionModeS)
+    {
+        auto it = std::find(d->connections.begin(), d->connections.end(), d->activeConnection);
+        if (it != d->connections.end())
+        {
+            int index = std::distance(d->connections.begin(), it);
+            if (index >= 0)
+            {
+                IUResetSwitch(&d->ConnectionModeSP);
+                d->ConnectionModeS[index].s = ISS_ON;
+                d->ConnectionModeSP.s = IPS_OK;
+                // If property is registerned then send back response to client
+                INDI::Property *connectionProperty = getProperty(d->ConnectionModeSP.name, INDI_SWITCH);
+                if (connectionProperty && connectionProperty->getRegistered())
+                    IDSetSwitch(&d->ConnectionModeSP, nullptr);
+            }
+        }
+    }
+}
+
+const char *DefaultDevice::getDriverExec()
+{
+    return me;
+}
+
+const char *DefaultDevice::getDriverName()
+{
+    return getDefaultName();
+}
+
+void DefaultDevice::setVersion(uint16_t vMajor, uint16_t vMinor)
+{
+    D_PTR(DefaultDevice);
+    d->majorVersion = vMajor;
+    d->minorVersion = vMinor;
+}
+
+uint16_t DefaultDevice::getMajorVersion() const
+{
+    D_PTR(const DefaultDevice);
+    return d->majorVersion;
+}
+
+uint16_t DefaultDevice::getMinorVersion() const
+{
+    D_PTR(const DefaultDevice);
+    return d->minorVersion;
+}
+
+void DefaultDevice::setDynamicPropertiesBehavior(bool defineEnabled, bool deleteEnabled)
+{
+    D_PTR(DefaultDevice);
+    d->defineDynamicProperties = defineEnabled;
+    d->deleteDynamicProperties = deleteEnabled;
+}
+
+Connection::Interface *DefaultDevice::getActiveConnection()
+{
+    D_PTR(DefaultDevice);
+    return d->activeConnection;
+}
+
+uint32_t DefaultDevice::getPollingPeriod() const
+{
+    D_PTR(const DefaultDevice);
+    return static_cast<uint32_t>(d->PollPeriodN[0].value);
+}
+
+bool DefaultDevice::isConfigLoading() const
+{
+    D_PTR(const DefaultDevice);
+    return d->isConfigLoading;
 }
 
 }

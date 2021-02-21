@@ -102,17 +102,20 @@ void ISSnoopDevice(XMLEle *root)
 
 Paramount::Paramount()
 {
+    setVersion(1, 1);
+
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_CONTROL_TRACK,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE |
+                           TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PIER_SIDE,
                            9);
     setTelescopeConnection(CONNECTION_TCP);
 }
 
 const char *Paramount::getDefaultName()
 {
-    return (const char *)"Paramount";
+    return "Paramount";
 }
 
 bool Paramount::initProperties()
@@ -141,6 +144,10 @@ bool Paramount::initProperties()
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
+    // Homing
+    IUFillSwitch(&HomeS[0], "GO", "Go", ISS_OFF);
+    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "TELESCOPE_HOME", "Homing", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_IDLE);
     // Tracking Mode
 #if 0
     IUFillSwitch(&TrackModeS[TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_OFF);
@@ -172,7 +179,7 @@ bool Paramount::initProperties()
 
     TrackState = SCOPE_IDLE;
 
-    SetParkDataType(PARK_RA_DEC);
+    SetParkDataType(PARK_HA_DEC);
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -208,32 +215,34 @@ bool Paramount::updateProperties()
             TrackState = SCOPE_IDLE;
         }
 
-        //defineSwitch(&TrackModeSP);
-        //defineNumber(&TrackRateNP);
+        //defineProperty(&TrackModeSP);
+        //defineProperty(&TrackRateNP);
 
-        defineNumber(&JogRateNP);
+        defineProperty(&JogRateNP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
-        // Initial currentRA and currentDEC to LST and +90 or -90
+        // Initial HA to 0 and currentDEC (+90 or -90)
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(currentRA);
+            SetAxis1ParkDefault(0);
             SetAxis2ParkDefault(currentDEC);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(currentRA);
+            SetAxis1Park(0);
             SetAxis2Park(currentDEC);
-            SetAxis1ParkDefault(currentRA);
+            SetAxis1ParkDefault(0);
             SetAxis2ParkDefault(currentDEC);
         }
 
         SetParked(isTheSkyParked());
+
+        defineProperty(&HomeSP);
     }
     else
     {
@@ -245,6 +254,7 @@ bool Paramount::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP.name);
+        deleteProperty(HomeSP.name);
     }
 
     return true;
@@ -353,6 +363,45 @@ bool Paramount::getMountRADE()
     return false;
 }
 
+INDI::Telescope::TelescopePierSide Paramount::getPierSide()
+{
+    int rc = 0, nbytes_written = 0, nbytes_read = 0;
+    char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
+
+    //"if (sky6RASCOMTele.IsConnected==0) sky6RASCOMTele.Connect();"
+    strncpy(pCMD,
+            "/* Java Script */"
+            "var Out;"
+            "sky6RASCOMTele.DoCommand(11, \"Pier Side\");"
+            "Out = sky6RASCOMTele.DoCommandOutput",
+            MAXRBUF);
+
+    LOGF_DEBUG("CMD: %s", pCMD);
+
+    if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    {
+        LOG_ERROR("Error writing to TheSky6 TCP server.");
+        return PIER_UNKNOWN;
+    }
+
+    // Should we read until we encounter string terminator? or what?
+    if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        LOG_ERROR("Error reading from TheSky6 TCP server.");
+        return PIER_UNKNOWN;
+    }
+
+    LOGF_DEBUG("RES: %s", pRES);
+
+    std::regex rgx(R"((\d+)\|(.+)\. Error = (\d+)\.)");
+    std::smatch match;
+    std::string input(pRES);
+    if (std::regex_search(input, match, rgx))
+        return std::stoi(match.str(1)) == 0 ? PIER_WEST : PIER_EAST;
+
+    return PIER_UNKNOWN;
+}
+
 bool Paramount::ReadScopeStatus()
 {
     if (isSimulation())
@@ -367,7 +416,15 @@ bool Paramount::ReadScopeStatus()
         if (isSlewComplete())
         {
             TrackState = SCOPE_TRACKING;
-            LOG_INFO("Slew is complete. Tracking...");
+
+            if (HomeSP.s == IPS_BUSY)
+            {
+                IUResetSwitch(&HomeSP);
+                HomeSP.s = IPS_OK;
+                LOG_INFO("Finding home completed.");
+            }
+            else
+                LOG_INFO("Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -392,6 +449,8 @@ bool Paramount::ReadScopeStatus()
 
     DEBUGF(DBG_SCOPE, "Current RA: %s Current DEC: %s", RAStr, DecStr);
 
+    setPierSide(getPierSide());
+
     NewRaDec(currentRA, currentDEC);
     return true;
 }
@@ -410,7 +469,7 @@ bool Paramount::Goto(double r, double d)
     lnradec.ra  = (currentRA * 360) / 24.0;
     lnradec.dec = currentDEC;
 
-    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+    //get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
     /* libnova measures azimuth from south towards west */
     //    double current_az = range360(lnaltaz.az + 180);
     //double current_alt =lnaltaz.alt;
@@ -582,7 +641,8 @@ bool Paramount::Sync(double ra, double dec)
 
 bool Paramount::Park()
 {
-    targetRA  = GetAxis1Park();
+    double targetHA = GetAxis1Park();
+    targetRA  = range24(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value) - targetHA);
     targetDEC = GetAxis2Park();
 
     char pCMD[MAXRBUF] = {0};
@@ -646,10 +706,28 @@ bool Paramount::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (!strcmp(HomeSP.name, name))
+        {
+            LOG_INFO("Moving to home position. Please stand by...");
+            if (findHome())
+            {
+                HomeS[0].s = ISS_OFF;
+                TrackState = SCOPE_IDLE;
+                HomeSP.s = IPS_OK;
+                LOG_INFO("Mount arrived at home position.");
+            }
+            else
+            {
+                HomeS[0].s = ISS_OFF;
+                HomeSP.s = IPS_ALERT;
+                LOG_ERROR("Failed to go to home position");
+            }
 
+            IDSetSwitch(&HomeSP, nullptr);
+            return true;
+        }
     }
 
-    //  Nobody has claimed this, so, ignore it
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -660,6 +738,18 @@ bool Paramount::Abort()
     strncpy(pCMD, "sky6RASCOMTele.Abort();", MAXRBUF);
     return sendTheSkyOKCommand(pCMD, "Abort mount slew");
 }
+
+bool Paramount::findHome()
+{
+    char pCMD[MAXRBUF] = {0};
+
+    strncpy(pCMD, "sky6RASCOMTele.FindHome();"
+            "while(!sky6RASCOMTele.IsSlewComplete) {"
+            "sky6Web.Sleep(1000);}",
+            MAXRBUF);
+    return sendTheSkyOKCommand(pCMD, "Find home", 60);
+}
+
 
 bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
@@ -783,7 +873,10 @@ bool Paramount::SetCurrentPark()
     if (!sendTheSkyOKCommand(pCMD, "Setting Park Position"))
         return false;
 
-    SetAxis1Park(currentRA);
+    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    double ha  = get_local_hour_angle(lst, currentRA);
+
+    SetAxis1Park(ha);
     SetAxis2Park(currentDEC);
 
     return true;
@@ -791,8 +884,8 @@ bool Paramount::SetCurrentPark()
 
 bool Paramount::SetDefaultPark()
 {
-    // By default set RA to HA
-    SetAxis1Park(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value));
+    // By default set HA to 0
+    SetAxis1Park(0);
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
@@ -948,7 +1041,7 @@ void Paramount::mountSim()
     NewRaDec(currentRA, currentDEC);
 }
 
-bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessage)
+bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessage, uint8_t timeout)
 {
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
@@ -970,7 +1063,7 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
         return false;
     }
 
-    if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', timeout, &nbytes_read)) != TTY_OK)
     {
         LOG_ERROR("Error reading from TheSky6 TCP server.");
         return false;
@@ -1070,7 +1163,7 @@ bool Paramount::SetTrackRate(double raRate, double deRate)
 bool Paramount::SetTrackMode(uint8_t mode)
 {
     bool isSidereal = (mode == TRACK_SIDEREAL);
-    double dRA = TRACKRATE_SIDEREAL, dDE = 0;
+    double dRA = 0, dDE = 0;
 
     if (mode == TRACK_SOLAR)
         dRA = TRACKRATE_SOLAR;

@@ -74,10 +74,10 @@ bool Correlator::updateProperties()
 {
     if (isConnected())
     {
-        defineNumber(&CorrelatorSettingsNP);
+        defineProperty(&CorrelatorSettingsNP);
 
         if (HasCooler())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
     }
     else
     {
@@ -156,18 +156,43 @@ void Correlator::SetCorrelatorCapability(uint32_t cap)
 Correlator::UVCoordinate Correlator::getUVCoordinates()
 {
     UVCoordinate ret;
-    double *bl = static_cast<double*>(malloc(sizeof(double)*3));
     double lst = get_local_sidereal_time(Lon);
     double ha = get_local_hour_angle(lst, RA);
-    bl[0] = baseline.x;
-    bl[1] = baseline.y;
-    bl[2] = baseline.z;
-    double *uvcoord = interferometry_uv_coords_hadec(ha, Dec, bl, wavelength);
-    ret.u = uvcoord[0];
-    ret.v = uvcoord[1];
-    free(bl);
-    free(uvcoord);
+    baseline_2d_projection(Dec, ha*15, baseline.values, wavelength, ret.values);
     return ret;
+}
+
+Correlator::UVCoordinate Correlator::getUVCoordinates(double lst)
+{
+    UVCoordinate ret;
+    double ha = get_local_hour_angle(lst, RA);
+    baseline_2d_projection(Dec, ha*15, baseline.values, wavelength, ret.values);
+    return ret;
+}
+
+Correlator::UVCoordinate Correlator::getUVCoordinates(double alt, double az)
+{
+    UVCoordinate ret;
+    baseline_2d_projection(alt, az, baseline.values, wavelength, ret.values);
+    return ret;
+}
+
+double Correlator::getDelay()
+{
+    double lst = get_local_sidereal_time(Lon);
+    double ha = get_local_hour_angle(lst, RA);
+    return baseline_delay(Dec, ha*15, baseline.values);
+}
+
+double Correlator::getDelay(double lst)
+{
+    double ha = get_local_hour_angle(lst, RA);
+    return baseline_delay(Dec, ha*15, baseline.values);
+}
+
+double Correlator::getDelay(double alt, double az)
+{
+    return baseline_delay(alt, az, baseline.values);
 }
 
 bool Correlator::StartIntegration(double duration)

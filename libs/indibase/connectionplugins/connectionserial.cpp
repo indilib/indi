@@ -171,20 +171,30 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 bool Serial::Connect()
 {
     uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
-    bool rc       = Connect(PortT[0].text, baud);
+    if (Connect(PortT[0].text, baud) && processHandshake())
+        return true;
 
-    if (rc)
+    // If if the user port is one of the detected system ports.
+    bool isSystemPort = false;
+
+    if (SystemPortS != nullptr)
     {
-        rc = processHandshake();
+        for (int i = 0; i < SystemPortSP.nsp; i++)
+        {
+            if (!strcmp(PortT[0].text, SystemPortS[i].name))
+            {
+                isSystemPort = true;
+                break;
+            }
+        }
     }
 
     // Important, disconnect from port immediately
     // to release the lock, otherwise another driver will find it busy.
-    if (rc == false)
-        tty_disconnect(PortFD);
+    tty_disconnect(PortFD);
 
     // Start auto-search if option was selected and IF we have system ports to try connecting to
-    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr && SystemPortSP.nsp > 1)
+    if (AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr && SystemPortSP.nsp > 1)
     {
         LOGF_WARN("Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text,
                   baud);
@@ -196,7 +206,7 @@ bool Serial::Connect()
         std::vector<std::string> systemPorts;
         for (int i = 0; i < SystemPortSP.nsp; i++)
         {
-            // Don't connect to the same port again.
+            // Only try the same port last again.
             if (!strcmp(SystemPortS[i].name, PortT[0].text))
                 continue;
 
@@ -204,28 +214,38 @@ bool Serial::Connect()
         }
         std::random_shuffle (systemPorts.begin(), systemPorts.end());
 
-        for (auto port : systemPorts)
+        std::vector<std::string> doubleSearch = systemPorts;
+
+        // Try the current port as LAST port again
+        systemPorts.push_back(PortT[0].text);
+
+        // Double search just in case some items were BUSY in the first pass
+        systemPorts.insert(systemPorts.end(), doubleSearch.begin(), doubleSearch.end());
+
+        for (const auto &port : systemPorts)
         {
             LOGF_INFO("Trying connecting to %s @ %d ...", port.c_str(), baud);
-            if (Connect(port.c_str(), baud))
+            if (Connect(port.c_str(), baud) && processHandshake())
             {
                 IUSaveText(&PortT[0], port.c_str());
                 IDSetText(&PortTP, nullptr);
-                rc = processHandshake();
-                if (rc)
-                    return true;
-                else
-                    tty_disconnect(PortFD);
+
+                // Do not overwrite custom ports because it can be actually some
+                // temporary failure. For users who use mapped named ports (e.g. /dev/mount), it's not good to override their choice.
+                // So only write to config if the port was a system port.
+                if (isSystemPort)
+                    m_Device->saveConfig(true, PortTP.name);
+                return true;
             }
+
+            tty_disconnect(PortFD);
             // sleep randomly anytime between 0.5s and ~1.5s
             // This enables different competing devices to connect
             std::this_thread::sleep_for(std::chrono::milliseconds(500 + (rand() % 1000)));
         }
-
-        return false;
     }
 
-    return rc;
+    return false;
 }
 
 bool Serial::processHandshake()
@@ -284,16 +304,16 @@ bool Serial::Disconnect()
 
 void Serial::Activated()
 {
-    m_Device->defineText(&PortTP);
+    m_Device->defineProperty(&PortTP);
     m_Device->loadConfig(true, INDI::SP::DEVICE_PORT);
 
-    m_Device->defineSwitch(&BaudRateSP);
+    m_Device->defineProperty(&BaudRateSP);
     m_Device->loadConfig(true, INDI::SP::DEVICE_BAUD_RATE);
 
-    m_Device->defineSwitch(&AutoSearchSP);
+    m_Device->defineProperty(&AutoSearchSP);
     m_Device->loadConfig(true, INDI::SP::DEVICE_AUTO_SEARCH);
 
-    m_Device->defineSwitch(&RefreshSP);
+    m_Device->defineProperty(&RefreshSP);
     Refresh(true);
 }
 
@@ -425,8 +445,26 @@ bool Serial::Refresh(bool silent)
     IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, m_Device->getDeviceName(), "SYSTEM_PORTS", "System Ports",
                        CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    m_Device->defineSwitch(&SystemPortSP);
+    m_Device->defineProperty(&SystemPortSP);
 
+    // JM 2020-08-30: If we only have ONE serial port on the system
+    // We check if the current port is default port. If it is, then we
+    // set the port to the discovered port. This is useful because sometimes
+    // the discovered port is something like /dev/ttyUSB1, but default is /dev/ttyUSB0 would
+    // fail to connect, so we set it to the discovered port only if it matches this criteria.
+    if (pCount == 1)
+    {
+        bool match = false;
+#ifdef __APPLE__
+        match = !strcmp(PortT[0].text, "/dev/cu.usbserial");
+#else
+        match = !strcmp(PortT[0].text, "/dev/ttyUSB0");
+#endif
+        if (match)
+        {
+            IUSaveText(&PortT[0], m_Ports[0].c_str());
+        }
+    }
     return true;
 }
 }

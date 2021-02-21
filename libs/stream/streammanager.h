@@ -1,4 +1,5 @@
 /*
+    Copyright (C) 2020 by Pawel Soja <kernel32.pl@gmail.com>
     Copyright (C) 2015 by Jasem Mutlaq <mutlaqja@ikarustech.com>
     Copyright (C) 2014 by geehalel <geehalel@gmail.com>
 
@@ -23,13 +24,20 @@
 #pragma once
 
 #include "indidevapi.h"
+#include "fpsmeter.h"
 #include "recorder/recordermanager.h"
 #include "encoder/encodermanager.h"
 
 #include <string>
 #include <map>
 #include <functional>
-#include <sys/time.h>
+#include <list>
+#include <thread>
+#include <atomic>
+#include <condition_variable>
+
+#include "uniquequeue.h"
+#include "gammalut16.h"
 
 #include <stdint.h>
 
@@ -99,209 +107,238 @@ class SensorInterface;
 
 class StreamManager
 {
-    public:
-        enum
-        {
-            RECORD_ON,
-            RECORD_TIME,
-            RECORD_FRAME,
-            RECORD_OFF
-        };
+public:
+    enum
+    {
+        RECORD_ON,
+        RECORD_TIME,
+        RECORD_FRAME,
+        RECORD_OFF
+    };
 
-        StreamManager(DefaultDevice *currentDevice);
-        virtual ~StreamManager();
+public:
+    StreamManager(DefaultDevice *currentDevice);
+    virtual ~StreamManager();
 
-        virtual void ISGetProperties(const char *dev);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+public:
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
+    virtual bool initProperties();
+    virtual bool updateProperties();
 
-        virtual bool saveConfigItems(FILE *fp);
+public:
+    virtual bool saveConfigItems(FILE *fp);
 
-        /**
-             * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
-             */
-        void newFrame(const uint8_t *buffer, uint32_t nbytes);
+    /**
+     * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
+     */
+    void newFrame(const uint8_t *buffer, uint32_t nbytes);
 
-        /**
-         * @brief asyncStream Upload the stream asynchronously in a separate thread. ccdBufferLock mutex shall be locked until the record/upload
-         * operation is complete.
-         * @param buffer Buffer to stream/record
-         * @param nbytes size of buffer.
-         */
-        void asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams);
+    /**
+     * @brief setStream Enables (starts) or disables (stops) streaming.
+     * @param enable True to enable, false to disable
+     * @return True if operation is successful, false otherwise.
+     */
+    bool setStream(bool enable);
 
-        /**
-             * @brief setStream Enables (starts) or disables (stops) streaming.
-             * @param enable True to enable, false to disable
-             * @return True if operation is successful, false otherwise.
-             */
-        bool setStream(bool enable);
+    RecorderInterface *getRecorder();
 
-        RecorderInterface *getRecorder()
-        {
-            return recorder;
-        }
-        bool isDirectRecording()
-        {
-            return direct_record;
-        }
-        bool isStreaming()
-        {
-            return m_isStreaming;
-        }
-        bool isRecording()
-        {
-            return m_isRecording;
-        }
-        bool isBusy()
-        {
-            return (isStreaming() || isRecording());
-        }
-        double getTargetFPS()
-        {
-            return 1.0 / StreamExposureN[0].value;
-        }
-        double getTargetExposure()
-        {
-            return StreamExposureN[0].value;
-        }
+public:
+    bool isDirectRecording();
 
-        uint8_t *getDownscaleBuffer()
-        {
-            return downscaleBuffer;
-        }
-        uint32_t getDownscaleBufferSize()
-        {
-            return downscaleBufferSize;
-        }
+    bool isStreaming();
 
-        const char *getDeviceName();
+    bool isRecording();
 
-        void setSize(uint16_t width, uint16_t height = 1);
-        bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth = 8);
-        void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
+    bool isBusy();
 
-        /**
-         * @brief setStreamingExposureEnabled Can stream exposure time be changed?
-         * @param enable True if we can control the exact exposure time for each frame in the stream, false otherwise.
-         */
-        void setStreamingExposureEnabled(bool enable)
-        {
-            m_hasStreamingExposure = enable;
-        }
-        bool close();
+    double getTargetFPS();
 
-    protected:
-        DefaultDevice *currentDevice = nullptr;
+    double getTargetExposure();
 
-    private:
-        /* Utility for record file */
-        int mkpath(std::string s, mode_t mode);
-        std::string expand(const std::string &fname, const std::map<std::string, std::string> &patterns);
+    const char *getDeviceName();
 
-        bool startRecording();
-        // Stop recording. Force stop even in abnormal state if needed.
-        bool stopRecording(bool force = false);
+    void setSize(uint16_t width, uint16_t height = 1);
+    bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth = 8);
+    void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
 
-        /**
-         * @brief uploadStream Upload frame to client using the selected encoder
-         * @param buffer pointer to frame image buffer
-         * @param nbytes size of frame in bytes
-         * @return True if frame is encoded and sent to client, false otherwise.
-         */
-        bool uploadStream(const uint8_t *buffer, uint32_t nbytes);
+    /**
+     * @brief setStreamingExposureEnabled Can stream exposure time be changed?
+     * @param enable True if we can control the exact exposure time for each frame in the stream, false otherwise.
+     */
+    void setStreamingExposureEnabled(bool enable);
 
-        /**
-             * @brief recordStream Calls the backend recorder to record a single frame.
-             * @param deltams time in milliseconds since last frame
-             */
-        bool recordStream(const uint8_t *buffer, uint32_t nbytes, double deltams);
+    bool close();
 
-        void prepareGammaLUT(double gamma = 2.4, double a = 12.92, double b = 0.055, double Ii = 0.00304);
+protected:
+    DefaultDevice *currentDevice = nullptr;
 
-        /* Stream switch */
-        ISwitch StreamS[2];
-        ISwitchVectorProperty StreamSP;
+protected:
+    /**
+     * @brief Thread processing frames and forwarding to recording and preview
+     */
+    void asyncStreamThread();
 
-        /* Record switch */
-        ISwitch RecordStreamS[4];
-        ISwitchVectorProperty RecordStreamSP;
+private: // helpers
+    static std::string expand(const std::string &fname, const std::map<std::string, std::string> &patterns);
 
-        /* Record File Info */
-        IText RecordFileT[2] {};
-        ITextVectorProperty RecordFileTP;
+private: // Utility for record file
+    bool startRecording();
 
-        INumber StreamExposureN[2];
-        INumberVectorProperty StreamExposureNP;
-        enum
-        {
-            STREAM_EXPOSURE,
-            STREAM_DIVISOR,
-        };
+    // Stop recording. Force stop even in abnormal state if needed.
+    bool stopRecording(bool force = false);
 
-        /* Measured FPS */
-        INumber FpsN[2];
-        INumberVectorProperty FpsNP;
-        enum { FPS_INSTANT, FPS_AVERAGE };
+    /**
+     * @brief uploadStream Upload frame to client using the selected encoder
+     * @param buffer pointer to frame image buffer
+     * @param nbytes size of frame in bytes
+     * @return True if frame is encoded and sent to client, false otherwise.
+     */
+    bool uploadStream(const uint8_t *buffer, uint32_t nbytes);
 
-        /* Record Options */
-        INumber RecordOptionsN[2];
-        INumberVectorProperty RecordOptionsNP;
+    /**
+     * @brief recordStream Calls the backend recorder to record a single frame.
+     * @param deltams time in milliseconds since last frame
+     */
+    bool recordStream(const uint8_t *buffer, uint32_t nbytes, double deltams);
 
-        // Stream Frame
-        INumberVectorProperty StreamFrameNP;
-        INumber StreamFrameN[4];
+    /* Stream switch */
+    ISwitch StreamS[2];
+    ISwitchVectorProperty StreamSP;
 
-        /* BLOBs */
-        IBLOBVectorProperty *imageBP = nullptr;
-        IBLOB *imageB = nullptr;
+    /* Record switch */
+    ISwitch RecordStreamS[4];
+    ISwitchVectorProperty RecordStreamSP;
 
-        // Encoder Selector. It's static now but should this implemented as plugin interface?
-        ISwitch EncoderS[2];
-        ISwitchVectorProperty EncoderSP;
-        enum { ENCODER_RAW, ENCODER_MJPEG };
+    /* Record File Info */
+    IText RecordFileT[2] {};
+    ITextVectorProperty RecordFileTP;
 
-        // Recorder Selector. Static but should be implmeneted as a dynamic plugin interface
-        ISwitch RecorderS[2];
-        ISwitchVectorProperty RecorderSP;
-        enum { RECORDER_RAW, RECORDER_OGV };
+    INumber StreamExposureN[2];
+    INumberVectorProperty StreamExposureNP;
+    enum
+    {
+        STREAM_EXPOSURE,
+        STREAM_DIVISOR,
+    };
 
-        bool m_isStreaming { false };
-        bool m_isRecording { false };
-        bool m_hasStreamingExposure { true };
+    /* Measured FPS */
+    INumber FpsN[2];
+    INumberVectorProperty FpsNP;
+    enum { FPS_INSTANT, FPS_AVERAGE };
 
-        uint32_t m_RecordingFrameTotal {0};
-        double m_RecordingFrameDuration {0};
+    /* Record Options */
+    INumber RecordOptionsN[2];
+    INumberVectorProperty RecordOptionsNP;
 
-        // Recorder
-        RecorderManager *recorderManager = nullptr;
-        RecorderInterface *recorder = nullptr;
-        bool direct_record = false;
-        std::string recordfiledir, recordfilename; /* in case we should move it */
+    // Stream Frame
+    INumberVectorProperty StreamFrameNP;
+    INumber StreamFrameN[4];
 
-        // Encoders
-        EncoderManager *encoderManager = nullptr;
-        EncoderInterface *encoder = nullptr;
+    /* BLOBs */
+    IBLOBVectorProperty *imageBP = nullptr;
+    IBLOB *imageB = nullptr;
 
-        // Measure FPS
-        struct itimerval tframe1, tframe2;
-        uint32_t mssum = 0, m_FrameCounterPerSecond = 0;
+    // Encoder Selector. It's static now but should this implemented as plugin interface?
+    ISwitch EncoderS[2];
+    ISwitchVectorProperty EncoderSP;
+    enum { ENCODER_RAW, ENCODER_MJPEG };
 
-        INDI_PIXEL_FORMAT m_PixelFormat = INDI_MONO;
-        uint8_t m_PixelDepth = 8;
-        uint16_t rawWidth = 0, rawHeight = 0;
-        std::string m_Format;
+    // Recorder Selector. Static but should be implmeneted as a dynamic plugin interface
+    ISwitch RecorderS[2];
+    ISwitchVectorProperty RecorderSP;
+    enum { RECORDER_RAW, RECORDER_OGV };
 
-        // Downscale buffer for streaming
-        uint8_t *downscaleBuffer = nullptr;
-        uint32_t downscaleBufferSize = 0;
+    // Limits. Maximum queue size for incoming frames. FPS Limit for preview
+    INumber LimitsN[2];
+    INumberVectorProperty LimitsNP;
+    enum { LIMITS_BUFFER_MAX, LIMITS_PREVIEW_FPS };
 
-        uint8_t *gammaLUT_16_8 = nullptr;
+    std::atomic<bool> m_isStreaming { false };
+    std::atomic<bool> m_isRecording { false };
+    std::atomic<bool> m_isRecordingAboutToClose { false };
+    bool m_hasStreamingExposure { true };
 
-        std::mutex recordMutex;
+    // Recorder
+    RecorderManager *recorderManager = nullptr;
+    RecorderInterface *recorder = nullptr;
+    bool direct_record = false;
+    std::string recordfiledir, recordfilename; /* in case we should move it */
+
+    // Encoders
+    EncoderManager *encoderManager = nullptr;
+    EncoderInterface *encoder = nullptr;
+
+    // Measure FPS
+    FPSMeter m_FPSAverage;
+    FPSMeter m_FPSFast;
+    FPSMeter m_FPSPreview;
+    FPSMeter m_FPSRecorder;
+
+    uint32_t m_frameCountDivider = 0;
+
+    INDI_PIXEL_FORMAT m_PixelFormat = INDI_MONO;
+    uint8_t m_PixelDepth = 8;
+    uint16_t rawWidth = 0, rawHeight = 0;
+    std::string m_Format;
+
+    // Processing for streaming
+    typedef struct {
+        double time;
+        std::vector<uint8_t> frame;
+    } TimeFrame;
+
+    std::thread              m_framesThread;   // async incoming frames processing
+    std::atomic<bool>        m_framesThreadTerminate;
+    UniqueQueue<TimeFrame>   m_framesIncoming;
+
+    std::mutex               m_fastFPSUpdate;
+    std::mutex               m_recordMutex;
+
+    GammaLut16               m_gammaLut16;
 };
+
+
+inline RecorderInterface *StreamManager::getRecorder()
+{
+    return recorder;
+}
+
+inline bool StreamManager::isDirectRecording()
+{
+    return direct_record;
+}
+
+inline bool StreamManager::isStreaming()
+{
+    return m_isStreaming;
+}
+
+inline bool StreamManager::isRecording()
+{
+    return m_isRecording && !m_isRecordingAboutToClose;
+}
+
+inline bool StreamManager::isBusy()
+{
+    return (m_isStreaming || m_isRecording);
+}
+
+inline double StreamManager::getTargetFPS()
+{
+    return 1.0 / StreamExposureN[0].value;
+}
+inline double StreamManager::getTargetExposure()
+{
+    return StreamExposureN[0].value;
+}
+
+inline void StreamManager::setStreamingExposureEnabled(bool enable)
+{
+    m_hasStreamingExposure = enable;
+}
+
 }

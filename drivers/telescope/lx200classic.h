@@ -38,6 +38,13 @@ class LX200Classic : public LX200Generic
         bool updateProperties() override;
         virtual bool saveConfigItems(FILE *fp) override;
 
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool ReadScopeStatus() override;
+
     private:
 
         ITextVectorProperty ObjectInfoTP;
@@ -60,8 +67,15 @@ class LX200Classic : public LX200Generic
 
         INumberVectorProperty ElevationLimitNP;
         INumber ElevationLimitN[2];
+        
+        ISwitchVectorProperty UnparkAlignmentSP;
+        ISwitch UnparkAlignmentS[3];
 
     private:
         int currentCatalog {0};
         int currentSubCatalog {0};
+        
+        void azAltToRaDecNow(double az, double alt, double &ra, double &dec);
+        void raDecToAzAltNow(double ra, double dec, double &az, double &alt);
+        
 };
