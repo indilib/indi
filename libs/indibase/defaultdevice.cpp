@@ -60,9 +60,7 @@ namespace INDI
 {
 
 DefaultDevicePrivate::DefaultDevicePrivate()
-{
-    memset(&ConnectionModeSP, 0, sizeof(ConnectionModeSP));
-}
+{ }
 
 DefaultDevicePrivate::~DefaultDevicePrivate()
 { }
@@ -341,15 +339,15 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     if (strcmp(dev, getDeviceName()))
         return false;
 
-    ISwitchVectorProperty *svp = getSwitch(name);
+    auto svp = getSwitch(name);
 
-    if (!svp)
+    if (svp == nullptr)
         return false;
 
     ////////////////////////////////////////////////////
     // Connection
     ////////////////////////////////////////////////////
-    if (!strcmp(svp->name, d->ConnectionSP.name))
+    if (svp->isNameMatch(d->ConnectionSP.name))
     {
         bool rc = false;
 
@@ -402,7 +400,7 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     ////////////////////////////////////////////////////
     // Connection Mode
     ////////////////////////////////////////////////////
-    if (!strcmp(name, d->ConnectionModeSP.name))
+    if (svp->isNameMatch(d->ConnectionModeSP.name))
     {
         IUUpdateSwitch(&d->ConnectionModeSP, states, names, n);
 
@@ -434,7 +432,7 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     ////////////////////////////////////////////////////
     // Debug
     ////////////////////////////////////////////////////
-    if (!strcmp(svp->name, "DEBUG"))
+    if (svp->isNameMatch("DEBUG"))
     {
         IUUpdateSwitch(svp, states, names, n);
         ISwitch *sp = IUFindOnSwitch(svp);
@@ -452,7 +450,7 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     ////////////////////////////////////////////////////
     // Simulation
     ////////////////////////////////////////////////////
-    if (!strcmp(svp->name, "SIMULATION"))
+    if (svp->isNameMatch("SIMULATION"))
     {
         IUUpdateSwitch(svp, states, names, n);
         ISwitch *sp = IUFindOnSwitch(svp);
@@ -469,35 +467,32 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     ////////////////////////////////////////////////////
     // Configuration
     ////////////////////////////////////////////////////
-    if (!strcmp(svp->name, "CONFIG_PROCESS"))
+    if (svp->isNameMatch("CONFIG_PROCESS"))
     {
         IUUpdateSwitch(svp, states, names, n);
-        ISwitch *sp = IUFindOnSwitch(svp);
-        IUResetSwitch(svp);
+
+        auto sp = svp->findOnSwitch();
+        svp->reset();
         bool pResult = false;
 
         // Not suppose to happen (all switches off) but let's handle it anyway
         if (sp == nullptr)
         {
-            svp->s = IPS_IDLE;
+            svp->setState(IPS_IDLE);
             IDSetSwitch(svp, nullptr);
             return true;
         }
 
-        if (!strcmp(sp->name, "CONFIG_LOAD"))
+        if (sp->isNameMatch("CONFIG_LOAD"))
             pResult = loadConfig();
-        else if (!strcmp(sp->name, "CONFIG_SAVE"))
+        else if (sp->isNameMatch("CONFIG_SAVE"))
             pResult = saveConfig();
-        else if (!strcmp(sp->name, "CONFIG_DEFAULT"))
+        else if (sp->isNameMatch("CONFIG_DEFAULT"))
             pResult = loadDefaultConfig();
-        else if (!strcmp(sp->name, "CONFIG_PURGE"))
+        else if (sp->isNameMatch("CONFIG_PURGE"))
             pResult = purgeConfig();
 
-        if (pResult)
-            svp->s = IPS_OK;
-        else
-            svp->s = IPS_ALERT;
-
+        svp->setState(pResult ? IPS_OK : IPS_ALERT);
         IDSetSwitch(svp, nullptr);
         return true;
     }
@@ -505,14 +500,14 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     ////////////////////////////////////////////////////
     // Debugging and Logging Levels
     ////////////////////////////////////////////////////
-    if (!strcmp(svp->name, "DEBUG_LEVEL") || !strcmp(svp->name, "LOGGING_LEVEL") || !strcmp(svp->name, "LOG_OUTPUT"))
+    if (svp->isNameMatch("DEBUG_LEVEL") || svp->isNameMatch("LOGGING_LEVEL") || svp->isNameMatch("LOG_OUTPUT"))
     {
         bool rc = Logger::ISNewSwitch(dev, name, states, names, n);
 
-        if (!strcmp(svp->name, "LOG_OUTPUT"))
+        if (svp->isNameMatch("LOG_OUTPUT"))
         {
-            ISwitch *sw = IUFindSwitch(svp, "FILE_DEBUG");
-            if (sw && sw->s == ISS_ON)
+            auto sw = svp->findWidgetByName("FILE_DEBUG");
+            if (sw != nullptr && sw->getState() == ISS_ON)
                 DEBUGF(Logger::DBG_SESSION, "Session log file %s", Logger::getLogFile().c_str());
         }
 
@@ -532,10 +527,10 @@ bool DefaultDevice::ISNewNumber(const char *dev, const char *name, double values
     ////////////////////////////////////////////////////
     // Polling Period
     ////////////////////////////////////////////////////
-    if (!strcmp(name, d->PollPeriodNP.name))
+    if (d->PollPeriodNP.isNameMatch(name))
     {
         IUUpdateNumber(&d->PollPeriodNP, values, names, n);
-        d->PollPeriodNP.s = IPS_OK;
+        d->PollPeriodNP.setState(IPS_OK);
         d->pollingPeriod = static_cast<uint32_t>(d->PollPeriodN[0].value);
         IDSetNumber(&d->PollPeriodNP, nullptr);
         return true;
@@ -611,30 +606,18 @@ void DefaultDevice::setDebug(bool enable)
     D_PTR(DefaultDevice);
     if (d->isDebug == enable)
     {
-        d->DebugSP.s = IPS_OK;
+        d->DebugSP.setState(IPS_OK);
         IDSetSwitch(&d->DebugSP, nullptr);
         return;
     }
 
     IUResetSwitch(&d->DebugSP);
 
-    if (enable)
+    auto sp = d->DebugSP.findWidgetByName(enable ? "ENABLE" : "DISABLE");
+    if (sp)
     {
-        ISwitch *sp = IUFindSwitch(&d->DebugSP, "ENABLE");
-        if (sp)
-        {
-            sp->s = ISS_ON;
-            LOG_INFO("Debug is enabled.");
-        }
-    }
-    else
-    {
-        ISwitch *sp = IUFindSwitch(&d->DebugSP, "DISABLE");
-        if (sp)
-        {
-            sp->s = ISS_ON;
-            LOG_INFO("Debug is disabled.");
-        }
+        sp->setState(ISS_ON);
+        LOGF_INFO("Debug is %s.", enable ? "enabled" : "disabled");
     }
 
     d->isDebug = enable;
@@ -644,7 +627,7 @@ void DefaultDevice::setDebug(bool enable)
         DEBUG(Logger::DBG_WARNING, "setLogDebug: Logger error");
 
     debugTriggered(enable);
-    d->DebugSP.s = IPS_OK;
+    d->DebugSP.setState(IPS_OK);
     IDSetSwitch(&d->DebugSP, nullptr);
 }
 
@@ -653,35 +636,23 @@ void DefaultDevice::setSimulation(bool enable)
     D_PTR(DefaultDevice);
     if (d->isSimulation == enable)
     {
-        d->SimulationSP.s = IPS_OK;
+        d->SimulationSP.setState(IPS_OK);
         IDSetSwitch(&d->SimulationSP, nullptr);
         return;
     }
 
     IUResetSwitch(&d->SimulationSP);
 
-    if (enable)
+    auto sp = d->SimulationSP.findWidgetByName(enable ? "ENABLE" : "DISABLE");
+    if (sp)
     {
-        ISwitch *sp = IUFindSwitch(&d->SimulationSP, "ENABLE");
-        if (sp)
-        {
-            LOG_INFO("Simulation is enabled.");
-            sp->s = ISS_ON;
-        }
-    }
-    else
-    {
-        ISwitch *sp = IUFindSwitch(&d->SimulationSP, "DISABLE");
-        if (sp)
-        {
-            sp->s = ISS_ON;
-            LOG_INFO("Simulation is disabled.");
-        }
+        LOGF_INFO("Simulation is %s.", enable ? "enabled" : "disabled");
+        sp->setState(ISS_ON);
     }
 
     d->isSimulation = enable;
     simulationTriggered(enable);
-    d->SimulationSP.s = IPS_OK;
+    d->SimulationSP.setState(IPS_OK);
     IDSetSwitch(&d->SimulationSP, nullptr);
 }
 
@@ -723,7 +694,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
                 setDeviceName(getDefaultName());
         }
 
-        strncpy(d->ConnectionSP.device, getDeviceName(), MAXINDIDEVICE);
+        d->ConnectionSP.setDeviceName(getDeviceName());
         initProperties();
         addConfigurationControl();
 
@@ -754,7 +725,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
     {
         if (d->connections.size() > 0)
         {
-            d->ConnectionModeS = static_cast<ISwitch *>(malloc(d->connections.size() * sizeof(ISwitch)));
+            d->ConnectionModeS = static_cast<WidgetView<ISwitch> *>(malloc(d->connections.size() * sizeof(ISwitch)));
             ISwitch *sp     = d->ConnectionModeS;
             for (Connection::Interface *oneConnection : d->connections)
             {
@@ -785,7 +756,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
             // Otherwise use connection 0
             else
             {
-                d->ConnectionModeS[0].s = ISS_ON;
+                d->ConnectionModeS[0].setState(ISS_ON);
                 d->activeConnection = d->connections[0];
             }
 
@@ -808,13 +779,13 @@ void DefaultDevice::resetProperties()
 
 void DefaultDevice::setConnected(bool status, IPState state, const char *msg)
 {
-    ISwitchVectorProperty *svp = getSwitch(INDI::SP::CONNECTION);
+    auto svp = getSwitch(INDI::SP::CONNECTION);
     if (!svp)
         return;
 
-    svp->sp[INDI_ENABLED].s = status ? ISS_ON : ISS_OFF;
-    svp->sp[INDI_DISABLED].s = status ? ISS_OFF : ISS_ON;
-    svp->s = state;
+    svp->at(INDI_ENABLED)->setState(status ? ISS_ON : ISS_OFF);
+    svp->at(INDI_DISABLED)->setState(status ? ISS_OFF : ISS_ON);
+    svp->setState(state);
 
     if (msg == nullptr)
         IDSetSwitch(svp, nullptr);
@@ -862,7 +833,7 @@ void DefaultDevice::setDriverInterface(uint16_t value)
     char interfaceStr[16];
     d->interfaceDescriptor = value;
     snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
-    IUSaveText(&d->DriverInfoT[3], interfaceStr);
+    d->DriverInfoT[3].setText(interfaceStr);
 }
 
 void DefaultDevice::syncDriverInfo()
@@ -1113,7 +1084,7 @@ uint32_t DefaultDevice::refCurrentPollingPeriod() const
 void DefaultDevice::setDefaultPollingPeriod(uint32_t msec)
 {
     D_PTR(DefaultDevice);
-    d->PollPeriodN[0].value = msec;
+    d->PollPeriodN[0].setValue(msec);
     d->pollingPeriod = msec;
 }
 
@@ -1121,9 +1092,8 @@ void DefaultDevice::setPollingPeriodRange(uint32_t minimum, uint32_t maximum)
 {
     D_PTR(DefaultDevice);
 
-    d->PollPeriodN[0].min = minimum;
-    d->PollPeriodN[0].max = maximum;
-    IUUpdateMinMax(&d->PollPeriodNP);
+    d->PollPeriodN[0].setMinMax(minimum, maximum);
+    d->PollPeriodNP.updateMinMax();
 }
 
 void DefaultDevice::setActiveConnection(Connection::Interface *existingConnection)
@@ -1208,7 +1178,7 @@ Connection::Interface *DefaultDevice::getActiveConnection()
 uint32_t DefaultDevice::getPollingPeriod() const
 {
     D_PTR(const DefaultDevice);
-    return static_cast<uint32_t>(d->PollPeriodN[0].value);
+    return static_cast<uint32_t>(d->PollPeriodN[0].getValue());
 }
 
 bool DefaultDevice::isConfigLoading() const

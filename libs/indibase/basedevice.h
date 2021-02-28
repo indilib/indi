@@ -96,15 +96,15 @@ public:
 
 public:
     /** \return Return vector number property given its name */
-    INumberVectorProperty *getNumber(const char *name) const;
+    INDI::PropertyView<INumber> *getNumber(const char *name) const;
     /** \return Return vector text property given its name */
-    ITextVectorProperty *getText(const char *name) const;
+    INDI::PropertyView<IText>   *getText(const char *name) const;
     /** \return Return vector switch property given its name */
-    ISwitchVectorProperty *getSwitch(const char *name) const;
+    INDI::PropertyView<ISwitch> *getSwitch(const char *name) const;
     /** \return Return vector light property given its name */
-    ILightVectorProperty *getLight(const char *name) const;
+    INDI::PropertyView<ILight>  *getLight(const char *name) const;
     /** \return Return vector BLOB property given its name */
-    IBLOBVectorProperty *getBLOB(const char *name) const;
+    INDI::PropertyView<IBLOB>   *getBLOB(const char *name) const;
 
 public:
     /** \return Return property state */

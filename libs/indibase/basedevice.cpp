@@ -75,29 +75,29 @@ BaseDevice::BaseDevice(BaseDevicePrivate &dd)
     : d_ptr(&dd)
 { }
 
-INumberVectorProperty *BaseDevice::getNumber(const char *name) const
+INDI::PropertyView<INumber> *BaseDevice::getNumber(const char *name) const
 {
-    return static_cast<INumberVectorProperty *>(getRawProperty(name, INDI_NUMBER));
+    return static_cast<PropertyView<INumber> *>(getRawProperty(name, INDI_NUMBER));
 }
 
-ITextVectorProperty *BaseDevice::getText(const char *name) const
+INDI::PropertyView<IText> *BaseDevice::getText(const char *name) const
 {
-    return static_cast<ITextVectorProperty *>(getRawProperty(name, INDI_TEXT));
+    return static_cast<PropertyView<IText> *>(getRawProperty(name, INDI_TEXT));
 }
 
-ISwitchVectorProperty *BaseDevice::getSwitch(const char *name) const
+INDI::PropertyView<ISwitch> *BaseDevice::getSwitch(const char *name) const
 {
-    return static_cast<ISwitchVectorProperty *>(getRawProperty(name, INDI_SWITCH));
+    return static_cast<PropertyView<ISwitch> *>(getRawProperty(name, INDI_SWITCH));
 }
 
-ILightVectorProperty *BaseDevice::getLight(const char *name) const
+INDI::PropertyView<ILight> *BaseDevice::getLight(const char *name) const
 {
-    return static_cast<ILightVectorProperty *>(getRawProperty(name, INDI_LIGHT));
+    return static_cast<PropertyView<ILight> *>(getRawProperty(name, INDI_LIGHT));
 }
 
-IBLOBVectorProperty *BaseDevice::getBLOB(const char *name) const
+INDI::PropertyView<IBLOB> *BaseDevice::getBLOB(const char *name) const
 {
-    return static_cast<IBLOBVectorProperty *>(getRawProperty(name, INDI_BLOB));
+    return static_cast<PropertyView<IBLOB> *>(getRawProperty(name, INDI_BLOB));
 }
 
 IPState BaseDevice::getPropertyState(const char *name) const
