@@ -41,24 +41,24 @@ public:
     uint16_t minorVersion { 0 };
     uint16_t interfaceDescriptor { 0 };
 
-    ISwitch DebugS[2];
-    ISwitch SimulationS[2];
-    ISwitch ConfigProcessS[4];
-    ISwitch ConnectionS[2];
-    INumber PollPeriodN[1];
+    WidgetView<ISwitch> DebugS[2];
+    WidgetView<ISwitch> SimulationS[2];
+    WidgetView<ISwitch> ConfigProcessS[4];
+    WidgetView<ISwitch> ConnectionS[2];
+    WidgetView<INumber> PollPeriodN[1];
 
-    ISwitchVectorProperty DebugSP;
-    ISwitchVectorProperty SimulationSP;
-    ISwitchVectorProperty ConfigProcessSP;
-    ISwitchVectorProperty ConnectionSP;
-    INumberVectorProperty PollPeriodNP;
+    PropertyView<ISwitch> DebugSP;
+    PropertyView<ISwitch> SimulationSP;
+    PropertyView<ISwitch> ConfigProcessSP;
+    PropertyView<ISwitch> ConnectionSP;
+    PropertyView<INumber> PollPeriodNP;
 
-    IText DriverInfoT[4] {};
-    ITextVectorProperty DriverInfoTP;
+    WidgetView<IText> DriverInfoT[4] {};
+    PropertyView<IText> DriverInfoTP;
 
     // Connection modes
-    ISwitch *ConnectionModeS = nullptr;
-    ISwitchVectorProperty ConnectionModeSP;
+    WidgetView<ISwitch> *ConnectionModeS = nullptr;
+    PropertyView<ISwitch> ConnectionModeSP;
 
     std::vector<Connection::Interface *> connections;
     Connection::Interface *activeConnection = nullptr;
