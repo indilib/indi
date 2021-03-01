@@ -323,4 +323,28 @@ PropertyView<IBLOB> *Property::getBLOB() const
     return nullptr;
 }
 
+void Property::save(FILE *fp)
+{
+    D_PTR(Property);
+    PROPERTY_CASE( property->save(fp); )
+}
+
+void Property::apply(const char *format, ...)
+{
+    D_PTR(Property);
+    va_list ap;
+    va_start(ap, format);
+    PROPERTY_CASE( property->vapply(format, ap); )
+    va_end(ap);
+}
+
+void Property::define(const char *format, ...)
+{
+    D_PTR(Property);
+    va_list ap;
+    va_start(ap, format);
+    PROPERTY_CASE( property->vdefine(format, ap); )
+    va_end(ap);
+}
+
 }
