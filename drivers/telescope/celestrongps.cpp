@@ -194,10 +194,11 @@ bool CelestronGPS::initProperties()
     initGuiderProperties(getDeviceName(), GUIDE_TAB);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Guide Rate
+    /// Guide Rate; units and min/max as specified in the INDI Standard Properties SLEW_GUIDE
+    /// https://indilib.org/developers/developer-manual/101-standard-properties.html#h3-telescopes
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%0.2f", 0.0, 1, 0.01, GuideRateN[AXIS_RA].value);
-    IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%0.2f", 0.0, 1, 0.01, GuideRateN[AXIS_DE].value);
+    IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%0.2f", 0, 1, 0.1, GuideRateN[AXIS_RA].value);
+    IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%0.2f", 0, 1, 0.1, GuideRateN[AXIS_DE].value);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guide Rate x sidereal", GUIDE_TAB, IP_RW, 0, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////////////////
@@ -435,9 +436,12 @@ bool CelestronGPS::updateProperties()
                 {
                     GuideRateN[AXIS_DE].value = min(max(static_cast<double>(rate) / 255.0, 0.0), 1.0);
                     IDSetNumber(&GuideRateNP, nullptr);
-                    LOGF_DEBUG("Get Guide Rates: Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
+                    LOGF_DEBUG("Get Guide Rate: Dec %f", GuideRateN[AXIS_DE].value);
                 }
             }
+            else
+                LOG_DEBUG("Unable to get guide rates from mount.");
+
             defineProperty(&GuideNSNP);
             defineProperty(&GuideWENP);
 
@@ -1258,6 +1262,7 @@ bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[
             LOGF_DEBUG("Set Guide Rates: Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
             driver.set_guide_rate(CELESTRON_AXIS::RA_AXIS, grRa);
             driver.set_guide_rate(CELESTRON_AXIS::DEC_AXIS, grDec);
+            LOG_WARN("Changing guide rates may require recalibration of guiding.");
             return true;
         }
 
