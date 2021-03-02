@@ -115,6 +115,19 @@ public:
 public:
     void registerProperty(void *p, INDI_PROPERTY_TYPE type);
 
+    // #PS: will be deprecated / backward compatibility
+    void registerProperty(ITextVectorProperty *property);
+    void registerProperty(INumberVectorProperty *property);
+    void registerProperty(ISwitchVectorProperty *property);
+    void registerProperty(ILightVectorProperty *property);
+    void registerProperty(IBLOBVectorProperty *property);
+
+    void registerProperty(INDI::PropertyView<IText> *property);
+    void registerProperty(INDI::PropertyView<INumber> *property);
+    void registerProperty(INDI::PropertyView<ISwitch> *property);
+    void registerProperty(INDI::PropertyView<ILight> *property);
+    void registerProperty(INDI::PropertyView<IBLOB> *property);
+
     /** \brief Remove a property
      *  \param name name of property to be removed. Pass NULL to remove the whole device.
      *  \param errmsg buffer to store error message.

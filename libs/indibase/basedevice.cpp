@@ -905,6 +905,57 @@ const char *BaseDevice::getDriverName() const
     return nullptr;
 }
 
+
+void BaseDevice::registerProperty(ITextVectorProperty *property)
+{
+    registerProperty(property, INDI_TEXT);
+}
+
+void BaseDevice::registerProperty(INumberVectorProperty *property)
+{
+    registerProperty(property, INDI_NUMBER);
+}
+
+void BaseDevice::registerProperty(ISwitchVectorProperty *property)
+{
+    registerProperty(property, INDI_SWITCH);
+}
+
+void BaseDevice::registerProperty(ILightVectorProperty *property)
+{
+    registerProperty(property, INDI_LIGHT);
+}
+
+void BaseDevice::registerProperty(IBLOBVectorProperty *property)
+{
+    registerProperty(property, INDI_BLOB);
+}
+
+void BaseDevice::registerProperty(PropertyView<IText> *property)
+{
+    registerProperty(static_cast<ITextVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<INumber> *property)
+{
+    registerProperty(static_cast<INumberVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<ISwitch> *property)
+{
+    registerProperty(static_cast<ISwitchVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<ILight> *property)
+{
+    BaseDevice::registerProperty(static_cast<ILightVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<IBLOB> *property)
+{
+    BaseDevice::registerProperty(static_cast<IBLOBVectorProperty*>(property));
+}
+
 const char *BaseDevice::getDriverExec() const
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
