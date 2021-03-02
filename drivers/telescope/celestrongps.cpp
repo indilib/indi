@@ -1736,6 +1736,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementNSS[0];
             guideTID = &GuideNSTID;
             ticks = &ticksNS;
+            /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
             rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value * 100.0);
             break;
         case CELESTRON_S:
@@ -1744,6 +1745,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementNSS[1];
             guideTID = &GuideNSTID;
             ticks = &ticksNS;
+            /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
             rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value * 100.0);
             break;
         case CELESTRON_E:
@@ -1752,6 +1754,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementWES[1];
             guideTID = &GuideWETID;
             ticks = &ticksWE;
+            /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
             rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value * 100.0);
             break;
         case CELESTRON_W:
@@ -1760,6 +1763,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementWES[0];
             guideTID = &GuideWETID;
             ticks = &ticksWE;
+            /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
             rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value * 100.0);
             break;
     }
