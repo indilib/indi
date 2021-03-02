@@ -96,15 +96,15 @@ public:
 
 public:
     /** \return Return vector number property given its name */
-    INumberVectorProperty *getNumber(const char *name) const;
+    INDI::PropertyView<INumber> *getNumber(const char *name) const;
     /** \return Return vector text property given its name */
-    ITextVectorProperty *getText(const char *name) const;
+    INDI::PropertyView<IText>   *getText(const char *name) const;
     /** \return Return vector switch property given its name */
-    ISwitchVectorProperty *getSwitch(const char *name) const;
+    INDI::PropertyView<ISwitch> *getSwitch(const char *name) const;
     /** \return Return vector light property given its name */
-    ILightVectorProperty *getLight(const char *name) const;
+    INDI::PropertyView<ILight>  *getLight(const char *name) const;
     /** \return Return vector BLOB property given its name */
-    IBLOBVectorProperty *getBLOB(const char *name) const;
+    INDI::PropertyView<IBLOB>   *getBLOB(const char *name) const;
 
 public:
     /** \return Return property state */
@@ -114,6 +114,19 @@ public:
 
 public:
     void registerProperty(void *p, INDI_PROPERTY_TYPE type);
+
+    // #PS: will be deprecated / backward compatibility
+    void registerProperty(ITextVectorProperty *property);
+    void registerProperty(INumberVectorProperty *property);
+    void registerProperty(ISwitchVectorProperty *property);
+    void registerProperty(ILightVectorProperty *property);
+    void registerProperty(IBLOBVectorProperty *property);
+
+    void registerProperty(INDI::PropertyView<IText> *property);
+    void registerProperty(INDI::PropertyView<INumber> *property);
+    void registerProperty(INDI::PropertyView<ISwitch> *property);
+    void registerProperty(INDI::PropertyView<ILight> *property);
+    void registerProperty(INDI::PropertyView<IBLOB> *property);
 
     /** \brief Remove a property
      *  \param name name of property to be removed. Pass NULL to remove the whole device.
