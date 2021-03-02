@@ -199,7 +199,8 @@ bool CelestronGPS::initProperties()
     //////////////////////////////////////////////////////////////////////////////////////////////////
     IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%0.2f", 0, 1, 0.1, GuideRateN[AXIS_RA].value);
     IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%0.2f", 0, 1, 0.1, GuideRateN[AXIS_DE].value);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guide Rate x sidereal", GUIDE_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guide Rate x sidereal", GUIDE_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////////////////
     /// PEC
@@ -209,7 +210,8 @@ bool CelestronGPS::initProperties()
     IUFillSwitch(&PecControlS[PEC_Stop], "PEC_STOP", "Stop", ISS_OFF);
     IUFillSwitch(&PecControlS[PEC_Playback], "PEC_PLAYBACK", "Playback", ISS_OFF);
     IUFillSwitch(&PecControlS[PEC_Record], "PEC_RECORD", "Record", ISS_OFF);
-    IUFillSwitchVector(&PecControlSP, PecControlS, 4, getDeviceName(), "PEC_CONTROL", "PEC Control", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&PecControlSP, PecControlS, 4, getDeviceName(), "PEC_CONTROL", "PEC Control", MOTION_TAB, IP_RW,
+                       ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillText(&PecInfoT[0], "PEC_STATE", "Pec State", "undefined");
     IUFillText(&PecInfoT[1], "PEC_INDEX", "Pec Index", " ");
@@ -224,8 +226,9 @@ bool CelestronGPS::initProperties()
     /////////////////////////////
 
     IUFillSwitch(&DSTSettingS[0], "DST_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitchVector(&DSTSettingSP, DSTSettingS, 1, getDeviceName(), "DST_STATE", "DST", SITE_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
-    
+    IUFillSwitchVector(&DSTSettingSP, DSTSettingS, 1, getDeviceName(), "DST_STATE", "DST", SITE_TAB, IP_RW, ISR_NOFMANY, 60,
+                       IPS_IDLE);
+
     addAuxControls();
 
     //GUIDE Set guider interface.
@@ -431,10 +434,11 @@ bool CelestronGPS::updateProperties()
             uint8_t rate;
             if (driver.get_guide_rate(CELESTRON_AXIS::RA_AXIS, &rate))
             {
-                GuideRateN[AXIS_RA].value = min(max(static_cast<double>(rate) / 255.0, 0.0), 1.0);
+                GuideRateN[AXIS_RA].value = std::min(std::max(static_cast<double>(rate) / 255.0, 0.0), 1.0);
+                LOGF_DEBUG("Get Guide Rate: RA %f", GuideRateN[AXIS_RA].value);
                 if (driver.get_guide_rate(CELESTRON_AXIS::DEC_AXIS, &rate))
                 {
-                    GuideRateN[AXIS_DE].value = min(max(static_cast<double>(rate) / 255.0, 0.0), 1.0);
+                    GuideRateN[AXIS_DE].value = std::min(std::max(static_cast<double>(rate) / 255.0, 0.0), 1.0);
                     IDSetNumber(&GuideRateNP, nullptr);
                     LOGF_DEBUG("Get Guide Rate: Dec %f", GuideRateN[AXIS_DE].value);
                 }
@@ -859,7 +863,7 @@ bool CelestronGPS::ReadScopeStatus()
                 {
                     // average last two values
                     SlewOffsetRa = SlewOffsetRa > 0 ? (SlewOffsetRa + raoffset) / 2 : raoffset;
-                    
+
                     LOGF_DEBUG("raoffset %4.1f, SlewOffsetRa %4.1f arcsec", raoffset * 3600 * 15, SlewOffsetRa * 3600 * 15);
                 }
             }
@@ -1259,6 +1263,8 @@ bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[
             IDSetNumber(&GuideRateNP, nullptr);
             uint8_t grRa  = static_cast<uint8_t>(std::min(GuideRateN[AXIS_RA].value * 256.0, 255.0));
             uint8_t grDec = static_cast<uint8_t>(std::min(GuideRateN[AXIS_DE].value * 256.0, 255.0));
+            //LOGF_DEBUG("Set Guide Rates (0-1x sidereal): Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
+            //LOGF_DEBUG("Set Guide Rates         (0-255): Ra %i, Dec %i", grRa, grDec);
             LOGF_DEBUG("Set Guide Rates: Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
             driver.set_guide_rate(CELESTRON_AXIS::RA_AXIS, grRa);
             driver.set_guide_rate(CELESTRON_AXIS::DEC_AXIS, grDec);
@@ -1543,7 +1549,8 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 
     bool dst = DSTSettingS[0].s == ISS_ON;
 
-    LOGF_DEBUG("Update time: offset %f %s UTC %i-%02i-%02iT%02i:%02i:%02.0f", utc_offset, dst ? "DST" : "", utc->years, utc->months, utc->days,
+    LOGF_DEBUG("Update time: offset %f %s UTC %i-%02i-%02iT%02i:%02i:%02.0f", utc_offset, dst ? "DST" : "", utc->years,
+               utc->months, utc->days,
                utc->hours, utc->minutes, utc->seconds);
 
     return (driver.set_datetime(utc, utc_offset, dst, precise));
