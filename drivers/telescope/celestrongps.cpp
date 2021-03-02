@@ -430,10 +430,10 @@ bool CelestronGPS::updateProperties()
             uint8_t rate;
             if (driver.get_guide_rate(CELESTRON_AXIS::RA_AXIS, &rate))
             {
-                GuideRateN[AXIS_RA].value = static_cast<double>(rate) / 255.0;
+                GuideRateN[AXIS_RA].value = min(max(static_cast<double>(rate) / 255.0, 0.0), 1.0);
                 if (driver.get_guide_rate(CELESTRON_AXIS::DEC_AXIS, &rate))
                 {
-                    GuideRateN[AXIS_DE].value = static_cast<double>(rate) / 255.0;
+                    GuideRateN[AXIS_DE].value = min(max(static_cast<double>(rate) / 255.0, 0.0), 1.0);
                     IDSetNumber(&GuideRateNP, nullptr);
                     LOGF_DEBUG("Get Guide Rates: Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
                 }
@@ -1720,7 +1720,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
     ISwitch moveS = MovementNSS[0];
     int* guideTID = &GuideNSTID;
     int* ticks = &ticksNS;
-    uint8_t rate = 0;
+    uint8_t rate = 50;
 
     // set up pointers to the various things needed
     switch (dirn)
@@ -1731,7 +1731,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementNSS[0];
             guideTID = &GuideNSTID;
             ticks = &ticksNS;
-            rate = guideRateDec = static_cast<uint8_t>(std::min(GuideRateN[AXIS_DE].value * 256.0, 255.0));
+            rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value * 100.0);
             break;
         case CELESTRON_S:
             dc = 'S';
@@ -1739,7 +1739,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementNSS[1];
             guideTID = &GuideNSTID;
             ticks = &ticksNS;
-            rate = guideRateDec = static_cast<uint8_t>(std::min(GuideRateN[AXIS_DE].value * 256.0, 255.0));
+            rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value * 100.0);
             break;
         case CELESTRON_E:
             dc = 'E';
@@ -1747,7 +1747,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementWES[1];
             guideTID = &GuideWETID;
             ticks = &ticksWE;
-            rate = guideRateRa = static_cast<uint8_t>(std::min(GuideRateN[AXIS_RA].value * 256.0, 255.0));
+            rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value * 100.0);
             break;
         case CELESTRON_W:
             dc = 'W';
@@ -1755,7 +1755,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementWES[0];
             guideTID = &GuideWETID;
             ticks = &ticksWE;
-            rate = guideRateRa = static_cast<uint8_t>(std::min(GuideRateN[AXIS_RA].value * 256.0, 255.0));
+            rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value * 100.0);
             break;
     }
 
