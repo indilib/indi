@@ -1248,6 +1248,15 @@ bool SestoSenso2::initCommandSet()
     return true;
 }
 
+bool SestoSenso2::saveConfigItems(FILE *fp)
+{
+    Focuser::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &MotorRateNP);
+    IUSaveConfigNumber(fp, &MotorCurrentNP);
+    return true;
+}
+
 bool CommandSet::send(const std::string &request, std::string &response) const
 {
     tcflush(CommandSet::PortFD, TCIOFLUSH);
@@ -1458,7 +1467,7 @@ bool CommandSet::applyMotorPreset(const char *name)
 bool CommandSet::applyMotorUserPreset(uint32_t index)
 {
     // WORKAROUND: Due to a bug in the Sesto Senso 2 FW, the RUNPRESET
-    // command fails when applied to user presets. Therefore here we 
+    // command fails when applied to user presets. Therefore here we
     // fetch the motor preset and then apply it ourselves.
     char request[SESTO_LEN] = {0};
     snprintf(request, sizeof(request), "{\"req\":{\"get\":{\"RUNPRESET_%u\":\"\"}}}}", index);
