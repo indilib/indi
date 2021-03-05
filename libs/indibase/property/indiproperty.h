@@ -88,6 +88,15 @@ public: // Convenience Functions
     IPerm getPermission() const;
 
 public:
+    bool isEmpty() const;
+
+    bool isNameMatch(const char *otherName) const;
+    bool isNameMatch(const std::string &otherName) const;
+
+    bool isLabelMatch(const char *otherLabel) const;
+    bool isLabelMatch(const std::string &otherLabel) const;
+
+public:
     void save(FILE *fp) const;
 
 public:

@@ -278,6 +278,41 @@ IPerm Property::getPermission() const
     return IP_RO;
 }
 
+bool Property::isEmpty() const
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->isEmpty(); )
+    return true;
+}
+
+bool Property::isNameMatch(const char *otherName) const
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->isNameMatch(otherName); )
+    return false;
+}
+
+bool Property::isNameMatch(const std::string &otherName) const
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->isNameMatch(otherName); )
+    return false;
+}
+
+bool Property::isLabelMatch(const char *otherLabel) const
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->isLabelMatch(otherLabel); )
+    return false;
+}
+
+bool Property::isLabelMatch(const std::string &otherLabel) const
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->isLabelMatch(otherLabel); )
+    return false;
+}
+
 PropertyView<INumber> *Property::getNumber() const
 {
     D_PTR(const Property);
