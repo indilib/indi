@@ -891,6 +891,24 @@ void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
     }
 }
 
+void BaseDevice::registerProperty(INDI::Property &property)
+{
+    D_PTR(BaseDevice);
+
+    if (property.getType() == INDI_UNKNOWN)
+        return;
+
+    INDI::Property *pContainer = getProperty(property.getName(), property.getType());
+
+    if (pContainer != nullptr)
+        pContainer->setRegistered(true);
+    else
+    {
+        std::lock_guard<std::mutex> lock(d->m_Lock);
+        d->pAll.push_back(new INDI::Property(property));
+    }
+}
+
 const char *BaseDevice::getDriverName() const
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
