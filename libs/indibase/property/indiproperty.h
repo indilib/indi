@@ -88,14 +88,14 @@ public: // Convenience Functions
     IPerm getPermission() const;
 
 public:
-    void save(FILE *fp);
+    void save(FILE *fp) const;
 
 public:
-    void apply(const char *format, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
-    void define(const char *format, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+    void apply(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
+    void define(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
-    void apply()  { apply(nullptr);  }
-    void define() { define(nullptr); }
+    void apply() const  { apply(nullptr);  }
+    void define() const { define(nullptr); }
 
 public:
     INDI::PropertyView<INumber> *getNumber() const;
