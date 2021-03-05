@@ -23,6 +23,10 @@
 
 #include <cstring>
 
+#include "indipropertyswitch.h"
+#include "indipropertynumber.h"
+#include "indipropertytext.h"
+
 namespace INDI
 {
 class DefaultDevicePrivate: public BaseDevicePrivate
@@ -41,24 +45,13 @@ public:
     uint16_t minorVersion { 0 };
     uint16_t interfaceDescriptor { 0 };
 
-    WidgetView<ISwitch> DebugS[2];
-    WidgetView<ISwitch> SimulationS[2];
-    WidgetView<ISwitch> ConfigProcessS[4];
-    WidgetView<ISwitch> ConnectionS[2];
-    WidgetView<INumber> PollPeriodN[1];
-
-    PropertyView<ISwitch> DebugSP;
-    PropertyView<ISwitch> SimulationSP;
-    PropertyView<ISwitch> ConfigProcessSP;
-    PropertyView<ISwitch> ConnectionSP;
-    PropertyView<INumber> PollPeriodNP;
-
-    WidgetView<IText> DriverInfoT[4] {};
-    PropertyView<IText> DriverInfoTP;
-
-    // Connection modes
-    WidgetView<ISwitch> *ConnectionModeS = nullptr;
-    PropertyView<ISwitch> ConnectionModeSP;
+    PropertySwitch SimulationSP     { 2 };
+    PropertySwitch DebugSP          { 2 };
+    PropertySwitch ConfigProcessSP  { 4 };
+    PropertySwitch ConnectionSP     { 2 };
+    PropertyNumber PollPeriodNP     { 1 };
+    PropertyText   DriverInfoTP     { 4 };
+    PropertySwitch ConnectionModeSP { 0 }; // dynamic count of switches
 
     std::vector<Connection::Interface *> connections;
     Connection::Interface *activeConnection = nullptr;
