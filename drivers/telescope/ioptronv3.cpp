@@ -79,7 +79,7 @@ void ISSnoopDevice(XMLEle *root)
 /* Constructor */
 IOptronV3::IOptronV3()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
 
     driver.reset(new Driver(getDeviceName()));
 
@@ -701,13 +701,13 @@ bool IOptronV3::Abort()
 
 bool IOptronV3::Park()
 {
-    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ35") == std::string::npos)
-    {
-        LOG_ERROR("Parking is not supported in this mount model.");
-        return false;
-    }
+    //    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
+    //            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
+    //            firmwareInfo.Model.find("iEQ35") == std::string::npos)
+    //    {
+    //        LOG_ERROR("Parking is not supported in this mount model.");
+    //        return false;
+    //    }
 
     if (driver->park())
     {
@@ -722,13 +722,13 @@ bool IOptronV3::Park()
 
 bool IOptronV3::UnPark()
 {
-    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
-            firmwareInfo.Model.find("iEQ35") == std::string::npos)
-    {
-        LOG_ERROR("Unparking is not supported in this mount model.");
-        return false;
-    }
+    //    if (firmwareInfo.Model.find("CEM") == std::string::npos &&
+    //            firmwareInfo.Model.find("iEQ45 Pro") == std::string::npos &&
+    //            firmwareInfo.Model.find("iEQ35") == std::string::npos)
+    //    {
+    //        LOG_ERROR("Unparking is not supported in this mount model.");
+    //        return false;
+    //    }
 
     if (driver->unpark())
     {

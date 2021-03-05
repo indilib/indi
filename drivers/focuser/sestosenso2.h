@@ -109,6 +109,8 @@ class SestoSenso2 : public INDI::Focuser
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
 
+        virtual bool saveConfigItems(FILE *fp) override;
+
     private:
         bool Ack();
         bool setMinLimit(uint32_t limit);
