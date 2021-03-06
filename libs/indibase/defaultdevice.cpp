@@ -106,7 +106,7 @@ bool DefaultDevice::saveConfigItems(FILE *fp)
     D_PTR(DefaultDevice);
     d->DebugSP.save(fp);
     d->PollPeriodNP.save(fp);
-    if (d->ConnectionModeS != nullptr)
+    if (!d->ConnectionModeSP.isEmpty())
         d->ConnectionModeSP.save(fp);
 
     if (d->activeConnection != nullptr)
@@ -350,7 +350,7 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     ////////////////////////////////////////////////////
     // Connection
     ////////////////////////////////////////////////////
-    if (svp->isNameMatch(d->ConnectionSP.name))
+    if (svp->isNameMatch(d->ConnectionSP.getName()))
     {
         bool rc = false;
 
@@ -403,9 +403,9 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     ////////////////////////////////////////////////////
     // Connection Mode
     ////////////////////////////////////////////////////
-    if (svp->isNameMatch(d->ConnectionModeSP.name))
+    if (svp->isNameMatch(d->ConnectionModeSP.getName()))
     {
-        IUUpdateSwitch(&d->ConnectionModeSP, states, names, n);
+        d->ConnectionModeSP.update(states, names, n);
 
         int activeConnectionIndex = d->ConnectionModeSP.findOnSwitchIndex();
 
@@ -527,9 +527,9 @@ bool DefaultDevice::ISNewNumber(const char *dev, const char *name, double values
     ////////////////////////////////////////////////////
     if (d->PollPeriodNP.isNameMatch(name))
     {
-        IUUpdateNumber(&d->PollPeriodNP, values, names, n);
+        d->PollPeriodNP.update(values, names, n);
         d->PollPeriodNP.setState(IPS_OK);
-        d->pollingPeriod = static_cast<uint32_t>(d->PollPeriodN[0].value);
+        d->pollingPeriod = static_cast<uint32_t>(d->PollPeriodNP[0].getValue());
         d->PollPeriodNP.apply();
         return true;
     }
@@ -568,27 +568,27 @@ bool DefaultDevice::ISSnoopDevice(XMLEle *root)
 void DefaultDevice::addDebugControl()
 {
     D_PTR(DefaultDevice);
-    registerProperty(&d->DebugSP);
+    registerProperty(d->DebugSP);
     d->isDebug = false;
 }
 
 void DefaultDevice::addSimulationControl()
 {
     D_PTR(DefaultDevice);
-    registerProperty(&d->SimulationSP);
+    registerProperty(d->SimulationSP);
     d->isSimulation = false;
 }
 
 void DefaultDevice::addConfigurationControl()
 {
     D_PTR(DefaultDevice);
-    registerProperty(&d->ConfigProcessSP);
+    registerProperty(d->ConfigProcessSP);
 }
 
 void DefaultDevice::addPollPeriodControl()
 {
     D_PTR(DefaultDevice);
-    registerProperty(&d->PollPeriodNP);
+    registerProperty(d->PollPeriodNP);
 }
 
 void DefaultDevice::addAuxControls()
@@ -719,25 +719,23 @@ void DefaultDevice::ISGetProperties(const char *dev)
         loadConfig(true, "LOG_OUTPUT");
     }
 
-    if (d->ConnectionModeS == nullptr)
+    if (d->ConnectionModeSP.isEmpty())
     {
         if (d->connections.size() > 0)
         {
-            d->ConnectionModeS = static_cast<WidgetView<ISwitch> *>(malloc(d->connections.size() * sizeof(ISwitch)));
-            ISwitch *sp     = d->ConnectionModeS;
+            d->ConnectionModeSP.resize(d->connections.size());
+            auto sp     = &d->ConnectionModeSP[0];
             for (Connection::Interface *oneConnection : d->connections)
             {
-                IUFillSwitch(sp++, oneConnection->name().c_str(), oneConnection->label().c_str(), ISS_OFF);
+                (sp++)->fill(oneConnection->name(), oneConnection->label(), ISS_OFF);
             }
-
-            IUFillSwitchVector(&d->ConnectionModeSP, d->ConnectionModeS, d->connections.size(), getDeviceName(),
-                               "CONNECTION_MODE", "Connection Mode", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+            d->ConnectionModeSP.fill(getDeviceName(), "CONNECTION_MODE", "Connection Mode", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
             // Try to read config first
             int activeConnectionIndex = -1;
             if (IUGetConfigOnSwitchIndex(getDeviceName(), d->ConnectionModeSP.getName(), &activeConnectionIndex) == 0)
             {
-                d->ConnectionModeS[activeConnectionIndex].setState(ISS_ON);
+                d->ConnectionModeSP[activeConnectionIndex].setState(ISS_ON);
                 d->activeConnection = d->connections[activeConnectionIndex];
             }
             // Check if we already have an active connection set.
@@ -748,17 +746,17 @@ void DefaultDevice::ISGetProperties(const char *dev)
                 {
                     int index = std::distance(d->connections.begin(), it);
                     if (index >= 0)
-                        d->ConnectionModeS[index].s = ISS_ON;
+                        d->ConnectionModeSP[index].setState(ISS_ON);
                 }
             }
             // Otherwise use connection 0
             else
             {
-                d->ConnectionModeS[0].setState(ISS_ON);
+                d->ConnectionModeSP[0].setState(ISS_ON);
                 d->activeConnection = d->connections[0];
             }
 
-            defineProperty(&d->ConnectionModeSP);
+            defineProperty(d->ConnectionModeSP);
             d->activeConnection->Activated();
         }
     }
@@ -831,7 +829,7 @@ void DefaultDevice::setDriverInterface(uint16_t value)
     char interfaceStr[16];
     d->interfaceDescriptor = value;
     snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
-    d->DriverInfoT[3].setText(interfaceStr);
+    d->DriverInfoTP[3].setText(interfaceStr);
 }
 
 void DefaultDevice::syncDriverInfo()
@@ -849,39 +847,33 @@ bool DefaultDevice::initProperties()
     snprintf(versionStr, 16, "%d.%d", d->majorVersion, d->minorVersion);
     snprintf(interfaceStr, 16, "%d", d->interfaceDescriptor);
 
-    d->ConnectionS[INDI_ENABLED ].fill("CONNECT",    "Connect",    ISS_OFF);
-    d->ConnectionS[INDI_DISABLED].fill("DISCONNECT", "Disconnect", ISS_ON);
-    d->ConnectionSP.setWidgets(d->ConnectionS);
+    d->ConnectionSP[INDI_ENABLED ].fill("CONNECT",    "Connect",    ISS_OFF);
+    d->ConnectionSP[INDI_DISABLED].fill("DISCONNECT", "Disconnect", ISS_ON);
     d->ConnectionSP.fill(getDeviceName(), INDI::SP::CONNECTION, "Connection", "Main Control", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    registerProperty(&d->ConnectionSP);
+    registerProperty(d->ConnectionSP);
 
-    d->DriverInfoT[0].fill("DRIVER_NAME", "Name", getDriverName());
-    d->DriverInfoT[1].fill("DRIVER_EXEC", "Exec", getDriverExec());
-    d->DriverInfoT[2].fill("DRIVER_VERSION", "Version", versionStr);
-    d->DriverInfoT[3].fill("DRIVER_INTERFACE", "Interface", interfaceStr);
-    d->DriverInfoTP.setWidgets(d->DriverInfoT);
+    d->DriverInfoTP[0].fill("DRIVER_NAME", "Name", getDriverName());
+    d->DriverInfoTP[1].fill("DRIVER_EXEC", "Exec", getDriverExec());
+    d->DriverInfoTP[2].fill("DRIVER_VERSION", "Version", versionStr);
+    d->DriverInfoTP[3].fill("DRIVER_INTERFACE", "Interface", interfaceStr);
     d->DriverInfoTP.fill(getDeviceName(), "DRIVER_INFO", "Driver Info", CONNECTION_TAB, IP_RO, 60, IPS_IDLE);
-    registerProperty(&d->DriverInfoTP);
+    registerProperty(d->DriverInfoTP);
 
-    d->DebugS[INDI_ENABLED ].fill("ENABLE",  "Enable",  ISS_OFF);
-    d->DebugS[INDI_DISABLED].fill("DISABLE", "Disable", ISS_ON);
-    d->DebugSP.setWidgets(d->DebugS);
+    d->DebugSP[INDI_ENABLED ].fill("ENABLE",  "Enable",  ISS_OFF);
+    d->DebugSP[INDI_DISABLED].fill("DISABLE", "Disable", ISS_ON);
     d->DebugSP.fill(getDeviceName(), "DEBUG", "Debug", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    d->SimulationS[INDI_ENABLED ].fill("ENABLE",  "Enable",  ISS_OFF);
-    d->SimulationS[INDI_DISABLED].fill("DISABLE", "Disable", ISS_ON);
-    d->SimulationSP.setWidgets(d->SimulationS);
+    d->SimulationSP[INDI_ENABLED ].fill("ENABLE",  "Enable",  ISS_OFF);
+    d->SimulationSP[INDI_DISABLED].fill("DISABLE", "Disable", ISS_ON);
     d->SimulationSP.fill(getDeviceName(), "SIMULATION", "Simulation", "Options", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    d->ConfigProcessS[0].fill("CONFIG_LOAD",    "Load",    ISS_OFF);
-    d->ConfigProcessS[1].fill("CONFIG_SAVE",    "Save",    ISS_OFF);
-    d->ConfigProcessS[2].fill("CONFIG_DEFAULT", "Default", ISS_OFF);
-    d->ConfigProcessS[3].fill("CONFIG_PURGE",   "Purge",   ISS_OFF);
-    d->ConfigProcessSP.setWidgets(d->ConfigProcessS);
+    d->ConfigProcessSP[0].fill("CONFIG_LOAD",    "Load",    ISS_OFF);
+    d->ConfigProcessSP[1].fill("CONFIG_SAVE",    "Save",    ISS_OFF);
+    d->ConfigProcessSP[2].fill("CONFIG_DEFAULT", "Default", ISS_OFF);
+    d->ConfigProcessSP[3].fill("CONFIG_PURGE",   "Purge",   ISS_OFF);
     d->ConfigProcessSP.fill(getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    d->PollPeriodN[0].fill("PERIOD_MS", "Period (ms)", "%.f", 10, 600000, 1000, d->pollingPeriod);
-    d->PollPeriodNP.setWidgets(d->PollPeriodN);
+    d->PollPeriodNP[0].fill("PERIOD_MS", "Period (ms)", "%.f", 10, 600000, 1000, d->pollingPeriod);
     d->PollPeriodNP.fill(getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0, IPS_IDLE);
 
     INDI::Logger::initProperties(this);
@@ -954,6 +946,12 @@ void DefaultDevice::defineProperty(IBLOBVectorProperty *property)
 {
     registerProperty(property);
     static_cast<PropertyView<IBLOB>*>(property)->define();
+}
+
+void DefaultDevice::defineProperty(INDI::Property &property)
+{
+    registerProperty(property);
+    property.define();
 }
 
 void DefaultDevice::defineNumber(INumberVectorProperty *nvp)
@@ -1082,7 +1080,7 @@ uint32_t DefaultDevice::refCurrentPollingPeriod() const
 void DefaultDevice::setDefaultPollingPeriod(uint32_t msec)
 {
     D_PTR(DefaultDevice);
-    d->PollPeriodN[0].setValue(msec);
+    d->PollPeriodNP[0].setValue(msec);
     d->pollingPeriod = msec;
 }
 
@@ -1090,7 +1088,7 @@ void DefaultDevice::setPollingPeriodRange(uint32_t minimum, uint32_t maximum)
 {
     D_PTR(DefaultDevice);
 
-    d->PollPeriodN[0].setMinMax(minimum, maximum);
+    d->PollPeriodNP[0].setMinMax(minimum, maximum);
     d->PollPeriodNP.updateMinMax();
 }
 
@@ -1111,7 +1109,7 @@ void DefaultDevice::setActiveConnection(Connection::Interface *existingConnectio
     }
 
     d->activeConnection = existingConnection;
-    if (d->ConnectionModeS)
+    if (!d->ConnectionModeSP.isEmpty())
     {
         auto it = std::find(d->connections.begin(), d->connections.end(), d->activeConnection);
         if (it != d->connections.end())
@@ -1120,7 +1118,7 @@ void DefaultDevice::setActiveConnection(Connection::Interface *existingConnectio
             if (index >= 0)
             {
                 d->ConnectionModeSP.reset();
-                d->ConnectionModeS[index].setState(ISS_ON);
+                d->ConnectionModeSP[index].setState(ISS_ON);
                 d->ConnectionModeSP.setState(IPS_OK);
                 // If property is registerned then send back response to client
                 INDI::Property *connectionProperty = getProperty(d->ConnectionModeSP.getName(), INDI_SWITCH);
@@ -1176,7 +1174,7 @@ Connection::Interface *DefaultDevice::getActiveConnection()
 uint32_t DefaultDevice::getPollingPeriod() const
 {
     D_PTR(const DefaultDevice);
-    return static_cast<uint32_t>(d->PollPeriodN[0].getValue());
+    return static_cast<uint32_t>(d->PollPeriodNP[0].getValue());
 }
 
 bool DefaultDevice::isConfigLoading() const

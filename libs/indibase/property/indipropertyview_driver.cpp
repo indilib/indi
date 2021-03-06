@@ -23,51 +23,51 @@ namespace INDI
 {
 
 template <>
-void PropertyView<IText>::vapply(const char *format, va_list arg)
+void PropertyView<IText>::vapply(const char *format, va_list arg) const
 { IDSetTextVA(this, format, arg); }
 
 template <>
-void PropertyView<IText>::vdefine(const char *format, va_list arg)
+void PropertyView<IText>::vdefine(const char *format, va_list arg) const
 { IDDefTextVA(this, format, arg); }
 
 template <>
-void PropertyView<INumber>::vapply(const char *format, va_list arg)
+void PropertyView<INumber>::vapply(const char *format, va_list arg) const
 { IDSetNumberVA(this, format, arg); }
 
 template <>
-void PropertyView<INumber>::vdefine(const char *format, va_list arg)
+void PropertyView<INumber>::vdefine(const char *format, va_list arg) const
 { IDDefNumberVA(this, format, arg); }
 
 template <>
-void PropertyView<ISwitch>::vapply(const char *format, va_list arg)
+void PropertyView<ISwitch>::vapply(const char *format, va_list arg) const
 { IDSetSwitchVA(this, format, arg); }
 
 template <>
-void PropertyView<ISwitch>::vdefine(const char *format, va_list arg)
+void PropertyView<ISwitch>::vdefine(const char *format, va_list arg) const
 { IDDefSwitchVA(this, format, arg); }
 
 template <>
-void PropertyView<ILight>::vapply(const char *format, va_list arg)
+void PropertyView<ILight>::vapply(const char *format, va_list arg) const
 { IDSetLightVA(this, format, arg); }
 
 template <>
-void PropertyView<ILight>::vdefine(const char *format, va_list arg)
+void PropertyView<ILight>::vdefine(const char *format, va_list arg) const
 { IDDefLightVA(this, format, arg); }
 
 template <>
-void PropertyView<IBLOB>::vapply(const char *format, va_list arg)
+void PropertyView<IBLOB>::vapply(const char *format, va_list arg) const
 { IDSetBLOBVA(this, format, arg); }
 
 template <>
-void PropertyView<IBLOB>::vdefine(const char *format, va_list arg)
+void PropertyView<IBLOB>::vdefine(const char *format, va_list arg) const
 { IDDefBLOBVA(this, format, arg); }
 
 template <typename T>
-void PropertyView<T>::apply(const char *format, ...)
+void PropertyView<T>::apply(const char *format, ...) const
 { va_list ap; va_start(ap, format); this->vapply(format, ap); va_end(ap); }
 
 template <typename T>
-void PropertyView<T>::define(const char *format, ...)
+void PropertyView<T>::define(const char *format, ...) const
 { va_list ap; va_start(ap, format); this->vdefine(format, ap); va_end(ap); }
 
 template <> template <>
@@ -131,21 +131,21 @@ void PropertyView<IBLOB>::fill(
 }
 
 template <> template<>
-bool PropertyView<IText>::update(const char *texts[], const char *names[], int n)
+bool PropertyView<IText>::update(const char * const texts[], const char * const names[], int n)
 { return IUUpdateText(this, const_cast<char**>(texts), const_cast<char**>(names), n) == 0; }
 
 template <> template<>
-bool PropertyView<INumber>::update(const double values[], const char *names[], int n)
+bool PropertyView<INumber>::update(const double values[], const char * const names[], int n)
 { return IUUpdateNumber(this, const_cast<double*>(values), const_cast<char**>(names), n) == 0; }
 
 template <> template<>
-bool PropertyView<ISwitch>::update(const ISState states[], const char *names[], int n)
+bool PropertyView<ISwitch>::update(const ISState states[], const char * const names[], int n)
 { return IUUpdateSwitch(this, const_cast<ISState*>(states), const_cast<char**>(names), n) == 0; }
 
 template <> template<>
 bool PropertyView<IBLOB>::update(
-    const int sizes[], const int blobsizes[], const char *blobs[], const char *formats[],
-    const char *names[], int n
+    const int sizes[], const int blobsizes[], const char *const blobs[], const char *const formats[],
+    const char * const names[], int n
 )
 {
     return IUUpdateBLOB(

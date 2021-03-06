@@ -128,6 +128,8 @@ public:
     void registerProperty(INDI::PropertyView<ILight> *property);
     void registerProperty(INDI::PropertyView<IBLOB> *property);
 
+    void registerProperty(INDI::Property &property);
+
     /** \brief Remove a property
      *  \param name name of property to be removed. Pass NULL to remove the whole device.
      *  \param errmsg buffer to store error message.
