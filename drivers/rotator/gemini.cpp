@@ -1921,7 +1921,8 @@ bool Gemini::getFocusStatus()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        strncpy(response, "CurrTemp = +21.7\n", 16);
+        //strncpy(response, "CurrTemp = +21.7\n", 16); // #PS: incorrect, lost last character
+        strcpy(response, "CurrTemp = +21.7\n");
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1930,7 +1931,10 @@ bool Gemini::getFocusStatus()
         LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
+
+    if (nbytes_read > 0)
+        response[nbytes_read - 1] = '\0';
+
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     float temperature = 0;
