@@ -87,6 +87,9 @@ public:
     void define() const;
 
 public:
+    PropertyView<T> * operator &();
+
+public:
     void resize(size_t size);
 
     WidgetView<T> &operator[](size_t index) const;

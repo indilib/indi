@@ -297,6 +297,12 @@ WidgetView<T> &PropertyBasic<T>::operator[](size_t index) const
     return *d->property.at(index);
 }
 
+template <typename T>
+PropertyView<T> * PropertyBasic<T>::operator &()
+{
+    D_PTR(PropertyBasic);
+    return &d->property;
+}
 
 template class PropertyBasicPrivateTemplate<IText>;
 template class PropertyBasicPrivateTemplate<INumber>;
