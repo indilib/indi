@@ -16,4 +16,22 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#pragma once
+
+#include "indipropertybasic_p.h"
 #include "indipropertyview.h"
+
+namespace INDI
+{
+
+class PropertySwitchPrivate: public PropertyBasicPrivateTemplate<ISwitch>
+{
+public:
+    PropertySwitchPrivate(size_t count);
+    virtual ~PropertySwitchPrivate();
+
+public:
+
+};
+
+}

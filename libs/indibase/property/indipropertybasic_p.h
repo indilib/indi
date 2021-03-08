@@ -16,4 +16,26 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#pragma once
+
+#include "indiproperty_p.h"
 #include "indipropertyview.h"
+
+#include <vector>
+
+namespace INDI
+{
+
+template <typename T>
+class PropertyBasicPrivateTemplate: public PropertyPrivate
+{
+public:
+    PropertyBasicPrivateTemplate(size_t count);
+    virtual ~PropertyBasicPrivateTemplate();
+
+public:
+    std::vector<WidgetView<T>>  widgets;
+    PropertyView<T>             property;
+};
+
+}

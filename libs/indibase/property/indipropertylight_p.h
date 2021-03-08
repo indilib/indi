@@ -16,4 +16,22 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#pragma once
+
+#include "indipropertybasic_p.h"
 #include "indipropertyview.h"
+
+namespace INDI
+{
+
+class PropertyLightPrivate: public PropertyBasicPrivateTemplate<ILight>
+{
+public:
+    PropertyLightPrivate(size_t count);
+    virtual ~PropertyLightPrivate();
+
+public:
+
+};
+
+}

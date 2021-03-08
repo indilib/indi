@@ -16,4 +16,28 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "indipropertyview.h"
+#pragma once
+
+#include "indipropertybasic.h"
+
+namespace INDI
+{
+
+class PropertyTextPrivate;
+class PropertyText: public INDI::PropertyBasic<IText>
+{
+    DECLARE_PRIVATE(PropertyText)
+public:
+    PropertyText(size_t count);
+    ~PropertyText();
+
+public:
+    bool update(const char * const texts[], const char * const names[], int n);
+
+    void fill(
+        const char *device, const char *name, const char *label, const char *group,
+        IPerm permission, double timeout, IPState state
+    );
+};
+
+}

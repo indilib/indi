@@ -16,4 +16,31 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "indipropertyview.h"
+#pragma once
+
+#include "indipropertybasic.h"
+
+namespace INDI
+{
+
+class PropertyBlobPrivate;
+class PropertyBlob: public INDI::PropertyBasic<IBLOB>
+{
+    DECLARE_PRIVATE(PropertyBlob)
+public:
+    PropertyBlob(size_t count);
+    ~PropertyBlob();
+
+public:
+    bool update(
+        const int sizes[], const int blobsizes[], const char * const blobs[], const char * const formats[],
+        const char * const names[], int n
+    );
+
+    void fill(
+        const char *device, const char *name, const char *label, const char *group,
+        IPerm permission, double timeout, IPState state
+    );
+};
+
+}
