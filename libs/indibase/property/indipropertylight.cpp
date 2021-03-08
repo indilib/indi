@@ -16,4 +16,34 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "indipropertyview.h"
+#include "indipropertylight.h"
+#include "indipropertylight_p.h"
+
+namespace INDI
+{
+
+PropertyLightPrivate::PropertyLightPrivate(size_t count)
+    : PropertyBasicPrivateTemplate<ILight>(count)
+{ }
+
+PropertyLightPrivate::~PropertyLightPrivate()
+{ }
+
+PropertyLight::PropertyLight(size_t count)
+    : PropertyBasic<ILight>(*new PropertyLightPrivate(count))
+{ }
+
+PropertyLight::~PropertyLight()
+{ }
+
+void PropertyLight::fill(
+    const char *device, const char *name, const char *label, const char *group,
+    IPState state
+)
+{
+    D_PTR(PropertyLight);
+    d->property.setWidgets(d->widgets.data(), d->widgets.size());
+    d->property.fill(device, name, label, group, state);
+}
+
+}

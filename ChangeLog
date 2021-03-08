@@ -1,3 +1,47 @@
++ From 1.8.8 to 1.8.9
+
+    + 91bcd531 2021-02-24 Jasem Mutlaq         Add missing exec                                                                                                                                      
+    + ab630cbd 2021-02-16 Jasem Mutlaq         Add more helpful messages for home position                                                                                                           
+    + 26983606 2021-02-16 Jasem Mutlaq         Fix paramount home and sidereal rate                                                                                                                  
+    + 13420224 2021-02-14 rishi-garrod         Added labels for USB and Dew (#1355)                                                                                                                  
+    + 71b4dbf6 2021-02-13 Jasem Mutlaq         Add entry for star adventurer                                                                                                                         
+    + 3acd0f1c 2021-02-13 Jasem Mutlaq         Add motor rate and current to the config save                                                                                                         
+    + 162bd940 2021-02-13 Jasem Mutlaq         Add CEM26 and GEM28. Migrate CEM40 and GEM45 drivers to iOptronv3 commands and remove parking restrictions. Fixes #1354                               
+    + 186e45f7 2021-02-13 interplanetarychris  Final fixes for Celestrongps guider scale (#1353)                                                                                                     
+    + ace5d9ef 2021-02-09 Jarno Paananen       DDW state change fix part 2 (#1351)                                                                                                                   
+    + 0b670b1b 2021-02-07 Jasem Mutlaq         Add preliminary support to inquire pier side for Paramount. Not tested yet                                                                            
+    + ef4e73f8 2021-02-06 Jarno Paananen       DDW shutter state fix (#1349)                                                                                                                         
+    + 351095ac 2021-02-06 Paweł Soja           Separate useful macros to indimacros.h (#1348)                                                                                                        
+    + 4974cf20 2021-02-06 Jasem Mutlaq         Add support to Pegasus Micro as well                                                                                                                  
+    + 205f72f8 2021-02-05 Jarno Paananen       Fixes to handling of state changes in DDW driver (#1346)                                                                                              
+    + aae54d9c 2021-02-05 Paweł Soja           Fix - PyIndi fails over missing symbol (#1347)                                                                                                        
+    + 0fe8fe1c 2021-02-04 Jarno Paananen       Updates to DDW driver (#1344)                                                                                                                         
+    + 81e0b01e 2021-02-02 Jarno Paananen       Avoid DDW communication watchdog (#1342)                                                                                                              
+    + bb72af43 2021-02-01 Jarno Paananen       Driver for Digital Dome Works (DDW) from Technical Innovations (#1341)                                                                                
+    + 47ed55fc 2021-02-01 Jasem Mutlaq         Increment version for SkyWAtcher Alt-Az                                                                                                               
+    + 3c222a50 2021-02-01 Jasem Mutlaq         Add support for AZEQ6 as proposed by Dirk on INDI forums                                                                                              
+    + fc26c012 2021-02-01 rishi-garrod         Fixed Auto Dew for V2 and added Aggessiveness for V2. Fixed a few lit… (#1340)                                                                        
+    + 077d2a4e 2021-01-30 Rick Bassham         fix: add null pointer check to serial connect (#1335)                                                                                                 
+    + 45ae8e4c 2021-01-23 Jasem Mutlaq         Add saveConfigItems to WeatherInterface and utilize that in classes that inherit it                                                                   
+    + d523ba6b 2021-01-23 Jasem Mutlaq         Simplify code and use better variable names                                                                                                           
+    + 09420ebb 2021-01-21 d33psky              Integra85 driver sanity checks and improved user messages. (#1334)                                                                                    
+    + fa59b727 2021-01-21 interplanetarychris  Fix celestrongps guide rate scaling (#1331)                                                                                                           
+    + d6e9d74a 2021-01-19 Paweł Soja           DefaultDevice - D-Pointer implementation (#1327)                                                                                                      
+    + f01ad1fc 2021-01-19 Lesage Franck        Tracking can now be switched on/off (#1326)                                                                                                           
+    + 3e75b36c 2021-01-19 Paweł Soja           Refactoring - Widget decorators (#1324)                                                                                                               
+    + 022406e2 2021-01-19 Ilia Platone         indicom.c update for delay calculation (#1328)                                                                                                        
+    + 09a1e461 2021-01-18 pmneo                Frame Based V4L Stacking and lazy stop capture for better loop perf (#1325)                                                                           
+    + 5b13bbf7 2021-01-15 Rick Bassham         Add snoop device to joystick controller (#1323)                                                                                                       
+    + ec3836bd 2021-01-15 avarakin             Fix for issue with manipulating output ports (#1322)                                                                                                  
+    + 77128112 2021-01-13 Jasem Mutlaq         Temporary measure to prevent deadlock with some clients. Still requires long term solution                                                            
+    + 4baca66f 2021-01-13 Paweł Soja           Refactoring - less dependencies between files / less mallocs (#1318)                                                                                  
+    + ab26ac5e 2021-01-12 Paweł Soja           Refactoring/INDI::BaseDevice - D-Pointer implemented (#1320)                                                                                          
+    + de9b0461 2021-01-12 lantictac            Sesto Senso 2: Workaround apply motor preset issue (#1319)                                                                                            
+    + 428e0fe9 2021-01-12 Jasem Mutlaq         Starting libindi v1.8.9 development cycle                                                                                                             
+    + 74615e6c 2021-01-11 Jasem Mutlaq         Protect properties and messages when used in multiple threads. While this used to work fine, some conditions may led to corrupted data                
+    + c714f9c5 2021-01-11 pawel-soja           Indidriver/refactoring (#1313)                                                                                                                        
+    + 978290d5 2021-01-11 lantictac            Sesto Senso 2: Motor settings (#1315)
+      
 From 1.8.7 to 1.8.8
 
       + New HOBYM Crux telescope driver (#1295)
