@@ -1300,14 +1300,14 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     LOGF_DEBUG("HA: %g  Lng: %g RA: %g", hourAngle, observer.lng, mountEquatorialCoords.ra);
 
-    int OTASide = 0; /* Side of the telescope with respect of the mount, 1: east, -1: west, 0: use the mid point*/
+    int OTASide = 0; // Side of the telescope with respect of the mount, 1: east, -1: west, 0: use the mid point
     
     if (OTASideSP.s == IPS_OK)
     {
         if(OTASideS[0].s == ISS_ON) OTASide = 1;
         else if(OTASideS[1].s == ISS_ON) OTASide = -1;
-        else if(OTASideS[2].s == ISS_ON && mountOTASide <> 0) OTASide = mountOTASide;
-        else
+        else if(OTASideS[2].s == ISS_ON) OTASide = mountOTASide;
+        else if(OTASideS[3].s == ISS_ON)
         {
             if(hourAngle > 0) OTASide = -1;
             else OTASide = 1;
