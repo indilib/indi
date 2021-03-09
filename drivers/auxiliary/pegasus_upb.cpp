@@ -1673,7 +1673,8 @@ bool PegasusUPB::getStepperData()
 
         if (FocusAbsPosNP.s == IPS_BUSY && focusMotorRunning == false)
         {
-            FocusAbsPosNP.s = FocusRelPosNP.s = IPS_OK;
+            FocusAbsPosNP.s = IPS_OK;
+            FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
         }

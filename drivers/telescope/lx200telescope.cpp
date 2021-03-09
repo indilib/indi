@@ -362,8 +362,9 @@ bool LX200Telescope::Goto(double ra, double dec)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -454,8 +455,9 @@ bool LX200Telescope::Park()
 
             if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
             {
-                MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-                EqNP.s                          = IPS_IDLE;
+                MovementNSSP.s = IPS_IDLE;
+                MovementWESP.s = IPS_IDLE;
+                EqNP.s = IPS_IDLE;
                 IUResetSwitch(&MovementNSSP);
                 IUResetSwitch(&MovementWESP);
 
@@ -829,7 +831,8 @@ bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *sta
             if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
                 sendScopeLocation();
 
-            SiteNameTP.s = SiteSP.s = IPS_OK;
+            SiteNameTP.s = IPS_OK;
+            SiteSP.s = IPS_OK;
 
             IDSetText(&SiteNameTP, nullptr);
             IDSetSwitch(&SiteSP, nullptr);
