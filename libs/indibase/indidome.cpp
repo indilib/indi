@@ -1316,8 +1316,9 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
         else if(OTASideS[2].s == ISS_ON) OTASide = mountOTASide;
         else if(OTASideS[3].s == ISS_ON)
         {
-            if(hourAngle > 0) OTASide = -1;
-            else OTASide = 1;
+            // Note if the telescope points West, OTA is at east of the pier, and viceversa.
+            if(hourAngle > 0) OTASide = 1;
+            else OTASide = -1;
         }
     }
 
