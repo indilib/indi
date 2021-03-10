@@ -27,13 +27,19 @@
 #include "indipropertynumber.h"
 #include "indipropertytext.h"
 
+#include <list>
+#include <mutex>
+#include <shared_mutex>
+
 namespace INDI
 {
 class DefaultDevicePrivate: public BaseDevicePrivate
 {
 public:
-    DefaultDevicePrivate();
+    DefaultDevicePrivate(DefaultDevice *defaultDevice);
     virtual ~DefaultDevicePrivate();
+
+    DefaultDevice *defaultDevice;
 
     bool isInit { false };
     bool isDebug { false };
@@ -63,6 +69,10 @@ public:
 
     bool defineDynamicProperties {true};
     bool deleteDynamicProperties {true};
+
+public:
+    static std::list<DefaultDevicePrivate*> devices;
+    static std::recursive_mutex             devicesLock;
 };
 
 }
