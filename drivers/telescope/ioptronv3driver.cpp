@@ -380,6 +380,40 @@ bool Driver::setCurrentHome()
     return sendCommand(":SZP#");
 }
 
+/* v3.0 Added in control for PEC , Train and Data Integrity */
+bool Driver::setPECEnabled(bool enabled)  
+{ 
+    return sendCommand(enabled ? ":SPP1#" : ":SPP0#");
+}
+
+bool Driver::setPETEnabled(bool enabled)
+{
+    return sendCommand(enabled ? ":SPR1#" : ":SPR0#");
+}
+
+bool Driver::getPETEnabled(bool enabled)
+{
+    char res[IOP_BUFFER] = {0};
+    //  If enabled true then check data quality -> :GPE#
+    //  If enabled false then check if training -> :GPR#
+    if(enabled)
+    {
+        if (sendCommand(":GPE#",1,res))
+         {
+            if (res[0] == '1'){return true;}
+         }
+    }
+    else
+    {
+         if (sendCommand(":GPR#",1,res))
+         {
+            if (res[0] == '1'){return true;}
+         } 
+    }      
+    return false;
+}
+// End Mod */
+
 bool Driver::setSlewRate(IOP_SLEW_RATE rate)
 {
     char cmd[IOP_BUFFER] = {0};

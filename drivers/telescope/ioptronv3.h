@@ -16,6 +16,8 @@
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    
+    Updated for PEC V3
 */
 
 #pragma once
@@ -93,6 +95,23 @@ class IOptronV3 : public INDI::Telescope, public INDI::GuiderInterface
             * @brief getStartupData Get initial mount info on startup.
             */
         void getStartupData();
+        
+        /** Mod v3.0 PEC Data Status
+            * @brief get PEC data from the mount info.
+            * @param true  = Update log
+            * @param false = Don't update log
+            */
+        bool GetPECDataStatus(bool enabled);
+        
+        /* Mod v3.0 Adding PEC Recording Switches  */
+        ISwitch PECTrainingS[2]; 
+        ISwitchVectorProperty PECTrainingSP; 
+        ITextVectorProperty PECInfoTP;
+        IText PECInfoT[2] {};
+        char PECText[128];
+        int PECTime = 0;
+        bool isTraining;
+        // End Mod */
 
         /* Firmware */
         IText FirmwareT[5] {};
@@ -125,17 +144,6 @@ class IOptronV3 : public INDI::Telescope, public INDI::GuiderInterface
         /* Counterweight Status */
         ISwitch CWStateS[2];
         ISwitchVectorProperty CWStateSP;
-
-        // TODO
-#if 0
-        /* PE Recording */
-        ISwitch PERecordS[2];
-        ISwitchVectorProperty PERecordSP;
-
-        /* PEC Playback */
-        ISwitch PEPlaybackS[2];
-        ISwitchVectorProperty PEPlaybackSP;
-#endif
 
         /* Daylight Saving */
         ISwitch DaylightS[2];
