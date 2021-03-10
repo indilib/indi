@@ -200,7 +200,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         INumberVectorProperty SimulatorSettingsNP;
         INumber SimulatorSettingsN[SIM_N];
 
-        ISwitchVectorProperty SimulateRgbSP;
+        ISwitchVectorProperty SimulateBayerSP;
         ISwitch SimulateBayerS[2];
 
         //  We are going to snoop these from focuser

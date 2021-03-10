@@ -187,13 +187,13 @@ class Spectrograph : public SensorInterface
             SPECTROGRAPH_ANTENNA,
         } SPECTROGRAPH_INFO_INDEX;
         INumberVectorProperty SpectrographSettingsNP;
+        INumber SpectrographSettingsN[7];
 
 private:
         double Samplerate;
         double Frequency;
         double Bandwidth;
         double Gain;
-        INumber SpectrographSettingsN[7];
 
 };
 }

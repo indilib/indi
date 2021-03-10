@@ -98,24 +98,24 @@ bool TCFS::initProperties()
     {
         isTCFS3 = true;
 
-        FocusMaxPosN[0].max = 9999;
-
-        FocusAbsPosN[0].max  = 9999;
-        FocusRelPosN[0].max  = 2000;
-        FocusRelPosN[0].step = FocusAbsPosN[0].step = 100;
-        FocusRelPosN[0].value                       = 0;
+        FocusMaxPosN[0].max   = 9999;
+        FocusAbsPosN[0].max   = 9999;
+        FocusRelPosN[0].max   = 2000;
+        FocusRelPosN[0].step  = 100;
+        FocusAbsPosN[0].step  = 100;
+        FocusRelPosN[0].value = 0;
         LOG_DEBUG("TCF-S3 detected. Updating maximum position value to 9999.");
     }
     else
     {
         isTCFS3 = false;
 
-        FocusMaxPosN[0].max = 7000;
-
-        FocusAbsPosN[0].max  = 7000;
-        FocusRelPosN[0].max  = 2000;
-        FocusRelPosN[0].step = FocusAbsPosN[0].step = 100;
-        FocusRelPosN[0].value                       = 0;
+        FocusMaxPosN[0].max   = 7000;
+        FocusAbsPosN[0].max   = 7000;
+        FocusRelPosN[0].max   = 2000;
+        FocusRelPosN[0].step  = 100;
+        FocusAbsPosN[0].step  = 100;
+        FocusRelPosN[0].value = 0;
         LOG_DEBUG("TCF-S detected. Updating maximum position value to 7000.");
     }
 
@@ -679,7 +679,8 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             else if (!strcmp(sp->name, "FOCUS_CENTER"))
             {
                 dispatch_command(FCENTR);
-                FocusAbsPosNP.s = FocusRelPosNP.s = IPS_BUSY;
+                FocusAbsPosNP.s = IPS_BUSY;
+                FocusRelPosNP.s = IPS_BUSY;
                 IDSetNumber(&FocusAbsPosNP, nullptr);
                 IDSetNumber(&FocusRelPosNP, nullptr);
                 IDSetSwitch(&FocusGotoSP, "Moving focuser to center position %d...", isTCFS3 ? 5000 : 3500);

@@ -3225,7 +3225,9 @@ bool Gemini::AbortFocuser()
         IDSetNumber(&FocusRelPosNP, nullptr);
     }
 
-    FocusTimerNP.s = FocusAbsPosNP.s = FocuserGotoSP.s = IPS_IDLE;
+    FocusTimerNP.s = IPS_IDLE;
+    FocusAbsPosNP.s = IPS_IDLE;
+    FocuserGotoSP.s = IPS_IDLE;
     IUResetSwitch(&FocuserGotoSP);
     IDSetNumber(&FocusAbsPosNP, nullptr);
     IDSetSwitch(&FocuserGotoSP, nullptr);
