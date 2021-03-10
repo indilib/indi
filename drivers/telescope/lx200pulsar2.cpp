@@ -2124,8 +2124,7 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
 			if (!isSimulation())
 			{
 				bool success = false; // start out pessimistic
-				int idx = 0;
-				for (; idx < MountTypeSP.nsp; idx++)
+				for (int idx = 0; idx < MountTypeSP.nsp; idx++)
 				{
 					if (MountTypeS[idx].s == ISS_ON)
 					{
