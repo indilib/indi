@@ -88,8 +88,8 @@ IOptronV3::IOptronV3()
     scopeInfo.gpsStatus    = GPS_OFF;
     scopeInfo.systemStatus = ST_STOPPED;
     scopeInfo.trackRate    = TR_SIDEREAL;
-       /* v3.0 use default PEC Settings */
-    scopeInfo.systemStatus = ST_TRACKING_PEC_OFF;  
+    /* v3.0 use default PEC Settings */
+    scopeInfo.systemStatus = ST_TRACKING_PEC_OFF;
     // End Mod */
     scopeInfo.slewRate     = SR_1;
     scopeInfo.timeSource   = TS_RS232;
@@ -98,9 +98,9 @@ IOptronV3::IOptronV3()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                            /* v3.0 use default PEC Settings */
+                           /* v3.0 use default PEC Settings */
                            TELESCOPE_HAS_PEC  |
-                            // End Mod */
+                           // End Mod */
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE |
                            TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_HAS_PIER_SIDE,
                            9);
@@ -215,10 +215,10 @@ bool IOptronV3::initProperties()
 
     // Baud rates.
     // 230400 for 120
-    // 115000 for 70  or 45
+    // 115000 for 70  or 40/45
     if (strstr(getDeviceName(), "120"))
         serialConnection->setDefaultBaudRate(Connection::Serial::B_230400);
-    else if (strstr(getDeviceName(), "70") or strstr(getDeviceName(), "45"))
+    else if (strstr(getDeviceName(), "7") or strstr(getDeviceName(), "4"))
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     // Default WiFi connection parametes
@@ -253,7 +253,7 @@ bool IOptronV3::updateProperties()
     if (isConnected())
     {
         defineProperty(&HomeSP);
-        
+
         /* v3.0 Create PEC switches */
         defineProperty(&PECTrainingSP);
         defineProperty(&PECInfoTP);
@@ -278,7 +278,7 @@ bool IOptronV3::updateProperties()
         deleteProperty(HomeSP.name);
 
         /* v3.0 Delete PEC switches */
-        deleteProperty(PECTrainingSP.name); 
+        deleteProperty(PECTrainingSP.name);
         deleteProperty(PECInfoTP.name);
         // End Mod*/
 
@@ -403,25 +403,30 @@ void IOptronV3::getStartupData()
         driver->setParkAlt(parkAL);
     }
 
-   /* v3.0 Read PEC State at startup */
+    /* v3.0 Read PEC State at startup */
     IOPInfo newInfo;
     if (driver->getStatus(&newInfo))
     {
-    switch (newInfo.systemStatus)
-        {      
-            case ST_STOPPED: case ST_PARKED: case ST_HOME: case ST_SLEWING: case ST_MERIDIAN_FLIPPING: case ST_GUIDING:
-            
+        switch (newInfo.systemStatus)
+        {
+            case ST_STOPPED:
+            case ST_PARKED:
+            case ST_HOME:
+            case ST_SLEWING:
+            case ST_MERIDIAN_FLIPPING:
+            case ST_GUIDING:
+
             case ST_TRACKING_PEC_OFF:
                 setPECState(PEC_OFF);
                 GetPECDataStatus(true);
-                break;           
+                break;
 
             case ST_TRACKING_PEC_ON:
                 setPECState(PEC_ON);
                 GetPECDataStatus(true);
                 break;
-            }
-    scopeInfo = newInfo;
+        }
+        scopeInfo = newInfo;
     }
     // End Mod */
 
@@ -482,7 +487,7 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 case IOP_FIND_HOME:
                     if (firmwareInfo.Model.find("CEM") == std::string::npos &&
-                        firmwareInfo.Model.find("GEM45") == std::string::npos)
+                            firmwareInfo.Model.find("GEM45") == std::string::npos)
                     {
                         HomeSP.s = IPS_IDLE;
                         IDSetSwitch(&HomeSP, nullptr);
@@ -560,81 +565,95 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
     }
 
-   /* v3.0 PEC add controls and calls to the driver */
-        if (!strcmp(name, PECStateSP.name))
-        {
-            IUUpdateSwitch(&PECStateSP, states, names, n);
-            
-                if(IUFindOnSwitchIndex(&PECStateSP) == 0) 
-                {// PEC OFF
-                  if(isTraining)
-                  { // Training check
-                    sprintf(PECText, "Mount PEC busy recording, %d s", PECTime);
-                    LOG_WARN(PECText);
-                  }
-                  else
-                  {
-                    driver->setPECEnabled(false);
-                    PECStateSP.s = IPS_OK;
-                    LOG_INFO("Disabling PEC Chip");
-                  }
-                } 
+    /* v3.0 PEC add controls and calls to the driver */
+    if (!strcmp(name, PECStateSP.name))
+    {
+        IUUpdateSwitch(&PECStateSP, states, names, n);
 
-                if(IUFindOnSwitchIndex(&PECStateSP) == 1) 
-                { // PEC ON
-                    if (GetPECDataStatus(true))
-                    { // Data Check
-                        driver->setPECEnabled(true);
-                        PECStateSP.s = IPS_BUSY;
-                        LOG_INFO("Enabling PEC Chip");  
-                    }
-                }       
-            IDSetSwitch(&PECStateSP, nullptr);
-            return true;
-        }
-        // End Mod */
-
-/* v3.0 PEC add Training Controls to the Driver */
-        if (!strcmp(name, PECTrainingSP.name))
+        if(IUFindOnSwitchIndex(&PECStateSP) == 0)
         {
-            IUUpdateSwitch(&PECTrainingSP, states, names, n); 
+            // PEC OFF
             if(isTraining)
-            { // Check if already training
-                if(IUFindOnSwitchIndex(&PECTrainingSP) == 1)
-                { // Train Check Status
-                    sprintf(PECText, "Mount PEC busy recording, %d s", PECTime);
-                    LOG_WARN(PECText);
-                }
-            
-                if(IUFindOnSwitchIndex(&PECTrainingSP) == 0) 
-                 {  // Train Cancel 
-                    driver->setPETEnabled(false); isTraining = false;
-                    PECTrainingSP.s = IPS_ALERT;
-                    LOG_WARN("PEC Training cancelled by user, chip disabled");
-                } 
-            } else
             {
-                if(IUFindOnSwitchIndex(&PECTrainingSP) == 0)
-                {
-                    if(TrackState == SCOPE_TRACKING) 
-                    { // Train if tracking /guiding
-                        driver->setPETEnabled(true); isTraining = true;
-                        PECTime = 0; PECTrainingSP.s = IPS_BUSY;
-                        LOG_INFO("PEC recording started...");
-                    } else
-                    {
-                        LOG_WARN("PEC Training only possible while guiding");
-                        PECTrainingSP.s = IPS_IDLE;
-                    }
-                }
-                if(IUFindOnSwitchIndex(&PECTrainingSP) == 1) 
-                {  // Train Status
-                   GetPECDataStatus(true);
-                }
-            }        
-            IDSetSwitch(&PECTrainingSP, nullptr);
-            return true;
+                // Training check
+                sprintf(PECText, "Mount PEC busy recording, %d s", PECTime);
+                LOG_WARN(PECText);
+            }
+            else
+            {
+                driver->setPECEnabled(false);
+                PECStateSP.s = IPS_OK;
+                LOG_INFO("Disabling PEC Chip");
+            }
         }
+
+        if(IUFindOnSwitchIndex(&PECStateSP) == 1)
+        {
+            // PEC ON
+            if (GetPECDataStatus(true))
+            {
+                // Data Check
+                driver->setPECEnabled(true);
+                PECStateSP.s = IPS_BUSY;
+                LOG_INFO("Enabling PEC Chip");
+            }
+        }
+        IDSetSwitch(&PECStateSP, nullptr);
+        return true;
+    }
+    // End Mod */
+
+    /* v3.0 PEC add Training Controls to the Driver */
+    if (!strcmp(name, PECTrainingSP.name))
+    {
+        IUUpdateSwitch(&PECTrainingSP, states, names, n);
+        if(isTraining)
+        {
+            // Check if already training
+            if(IUFindOnSwitchIndex(&PECTrainingSP) == 1)
+            {
+                // Train Check Status
+                sprintf(PECText, "Mount PEC busy recording, %d s", PECTime);
+                LOG_WARN(PECText);
+            }
+
+            if(IUFindOnSwitchIndex(&PECTrainingSP) == 0)
+            {
+                // Train Cancel
+                driver->setPETEnabled(false);
+                isTraining = false;
+                PECTrainingSP.s = IPS_ALERT;
+                LOG_WARN("PEC Training cancelled by user, chip disabled");
+            }
+        }
+        else
+        {
+            if(IUFindOnSwitchIndex(&PECTrainingSP) == 0)
+            {
+                if(TrackState == SCOPE_TRACKING)
+                {
+                    // Train if tracking /guiding
+                    driver->setPETEnabled(true);
+                    isTraining = true;
+                    PECTime = 0;
+                    PECTrainingSP.s = IPS_BUSY;
+                    LOG_INFO("PEC recording started...");
+                }
+                else
+                {
+                    LOG_WARN("PEC Training only possible while guiding");
+                    PECTrainingSP.s = IPS_IDLE;
+                }
+            }
+            if(IUFindOnSwitchIndex(&PECTrainingSP) == 1)
+            {
+                // Train Status
+                GetPECDataStatus(true);
+            }
+        }
+        IDSetSwitch(&PECTrainingSP, nullptr);
+        return true;
+    }
     // End Mod */
 
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
@@ -752,8 +771,8 @@ bool IOptronV3::ReadScopeStatus()
         scopeInfo = newInfo;
     }
 
-/* v3.0 Monitor PEC Training */
-    if (isTraining) 
+    /* v3.0 Monitor PEC Training */
+    if (isTraining)
     {
         if (TrackState == SCOPE_TRACKING)
         {
@@ -763,13 +782,15 @@ bool IOptronV3::ReadScopeStatus()
                 LOG_INFO(PECText);
                 PECTrainingSP.s = IPS_OK;
                 isTraining = false;
-            } else
+            }
+            else
             {
-                PECTime = PECTime + 1*getCurrentPollingPeriod()/1000;
+                PECTime = PECTime + 1 * getCurrentPollingPeriod() / 1000;
                 sprintf(PECText, "Recording: %d s", PECTime);
                 IUSaveText(&PECInfoT[0], PECText);
             }
-        } else
+        }
+        else
         {
             driver->setPETEnabled(false);
             PECTrainingSP.s = IPS_ALERT;
@@ -777,10 +798,10 @@ bool IOptronV3::ReadScopeStatus()
             LOG_ERROR(PECText);
             IUSaveText(&PECInfoT[0], "Cancelled");
         }
-        IDSetText(&PECInfoTP,nullptr);
+        IDSetText(&PECInfoTP, nullptr);
         IDSetSwitch(&PECTrainingSP, nullptr);
     }
-// End Mod */
+    // End Mod */
 
     IOP_PIER_STATE pierState = IOP_PIER_UNKNOWN;
     IOP_CW_STATE cwState = IOP_CW_NORMAL;
@@ -1251,26 +1272,25 @@ bool IOptronV3::SetTrackEnabled(bool enabled)
 
 /* v3.0 PEC add data status to the Driver */
 bool IOptronV3::GetPECDataStatus(bool enabled)
-{     
+{
     if(driver->getPETEnabled(true))
-    {    
+    {
         if (enabled)
         {
-          IUSaveText(&PECInfoT[0], "Recorded");
-          IDSetText(&PECInfoTP,nullptr);
-          LOG_INFO("Mount PEC Chip Ready and Trained");
+            IUSaveText(&PECInfoT[0], "Recorded");
+            IDSetText(&PECInfoTP, nullptr);
+            LOG_INFO("Mount PEC Chip Ready and Trained");
         }
-         return true;
-    } 
+        return true;
+    }
     else
-    {      
-       if (enabled)
+    {
+        if (enabled)
         {
-        IUSaveText(&PECInfoT[0], "None");
-        IDSetText(&PECInfoTP,nullptr);
-        LOG_INFO("Mount PEC Chip Needs Training");
+            IUSaveText(&PECInfoT[0], "None");
+            IDSetText(&PECInfoTP, nullptr);
+            LOG_INFO("Mount PEC Chip Needs Training");
         }
     }
     return false;
 }
-// End Mod */
