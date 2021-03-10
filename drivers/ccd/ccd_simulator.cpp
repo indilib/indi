@@ -169,7 +169,7 @@ bool CCDSim::initProperties()
 
     // RGB Simulation
     IUFillSwitch(&SimulateBayerS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&SimulateBayerS[INDI_DISABLED], "INDI_DISABLED", "Dsiabled", ISS_ON);
+    IUFillSwitch(&SimulateBayerS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
     IUFillSwitchVector(&SimulateBayerSP, SimulateBayerS, 2, getDeviceName(), "SIMULATE_BAYER", "Bayer", SIMULATOR_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
