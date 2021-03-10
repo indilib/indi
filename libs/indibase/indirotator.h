@@ -58,11 +58,11 @@ class Rotator : public DefaultDevice, public RotatorInterface
             CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
         } RotatorConnection;
 
-        virtual bool initProperties();
-        virtual void ISGetProperties(const char *dev);
-        virtual bool updateProperties();
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
         /**
              * @brief setRotatorConnection Set Rotator connection mode. Child class should call this in the constructor before Rotator registers
