@@ -22,14 +22,12 @@
 #include "defaultdevice.h"
 
 #include <cstring>
+#include <list>
+#include <mutex>
 
 #include "indipropertyswitch.h"
 #include "indipropertynumber.h"
 #include "indipropertytext.h"
-
-#include <list>
-#include <mutex>
-#include <shared_mutex>
 
 namespace INDI
 {
