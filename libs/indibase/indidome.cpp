@@ -532,14 +532,14 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (DomeAutoSyncS[0].s == ISS_ON)
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome will now be synced to mount azimuth position.");
-                LOGF_DEBUG("Dome will now be synced to mount azimuth position.");
+                LOG_WARN("Dome will now be synced to mount azimuth position.");
                 //UpdateAutoSync();
                 m_HorizontalUpdateTimerID = IEAddTimer(10, &Dome::updateMountCoordsHelper, this);
             }
             else
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome is no longer synced to mount azimuth position.");
-                LOGF_DEBUG("Dome is no longer synced to mount azimuth position.");
+                LOG_WARN("Dome is no longer synced to mount azimuth position.");
                 if (m_HorizontalUpdateTimerID > 0)
                 {
                     IERmTimer(m_HorizontalUpdateTimerID);
@@ -563,31 +563,31 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (OTASideS[0].s == ISS_ON)
             {
                 IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at east of meridian");
-                LOGF_DEBUG("Dome will be synced for telescope been at east of meridian");
+                LOG_WARN("Dome will be synced for telescope been at east of meridian");
                 UpdateAutoSync();
             }
             else if (OTASideS[1].s == ISS_ON)
             {
                 IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at west of meridian");
-                LOGF_DEBUG("Dome will be synced for telescope been at west of meridian");
+                LOG_WARN("Dome will be synced for telescope been at west of meridian");
                 UpdateAutoSync();
             }
             else if (OTASideS[2].s == ISS_ON)
             {
                 IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at the side of the pier reported by mount");
-                LOGF_DEBUG("Dome will be synced for telescope been at the side of the pier reported by mount");
+                LOG_WARN("Dome will be synced for telescope been at the side of the pier reported by mount");
                 UpdateAutoSync();
             }
             else if (OTASideS[3].s == ISS_ON)
             {
                 IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at the side of the pier as of Hour Angle");
-                LOGF_DEBUG("Dome will be synced for telescope been at the side of the pier as of Hour Angle");
+                LOG_WARN("Dome will be synced for telescope been at the side of the pier as of Hour Angle");
                 UpdateAutoSync();
             }
             else if (OTASideS[4].s == ISS_ON)
             {
                 IDSetSwitch(&OTASideSP, "Dome will be synced for telescope ign0ring the side of the pier as in a fork mount");
-                LOGF_DEBUG("Dome will be synced for telescope ign0ring the side of the pier as in a fork mount");
+                LOG_WARN("Dome will be synced for telescope ign0ring the side of the pier as in a fork mount");
                 UpdateAutoSync();
             }
 
