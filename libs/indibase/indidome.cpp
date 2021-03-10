@@ -1311,15 +1311,21 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     
     if (OTASideSP.s == IPS_OK)
     {
-        if(OTASideS[0].s == ISS_ON) OTASide = 1;
-        else if(OTASideS[1].s == ISS_ON) OTASide = -1;
-        else if(OTASideS[2].s == ISS_ON) OTASide = mountOTASide;
-        else if(OTASideS[3].s == ISS_ON)
+        int OTASideS_Idx = -1;
+        
+        if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = 1;
+        else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = -1;
+        else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = mountOTASide;
+        else if(OTASideS[++OTASideS_Idx].s == ISS_ON)
         {
             // Note if the telescope points West, OTA is at east of the pier, and viceversa.
             if(hourAngle > 0) OTASide = 1;
             else OTASide = -1;
         }
+        else
+            ++OTASideS_Idx;
+        
+        LOGF_DEBUG("OTA_SIDE selection: %d", OTASideS_Idx);
     }
 
     OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat, hourAngle, OptCenter);
