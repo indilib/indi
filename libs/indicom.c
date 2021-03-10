@@ -29,6 +29,7 @@
 
 #include "indidevapi.h"
 #include "locale_compat.h"
+#include "base64.h"
 
 #include "config.h"
 
@@ -1423,6 +1424,93 @@ void IUSaveText(IText *tp, const char *newtext)
 {
     /* copy in fresh string */
     tp->text = strcpy(realloc(tp->text, strlen(newtext) + 1), newtext);
+}
+
+void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp)
+{
+    locale_char_t *orig = indi_locale_C_numeric_push();
+    fprintf(fp, "<newNumberVector device='%s' name='%s'>\n", nvp->device, nvp->name);
+
+    for (int i = 0; i < nvp->nnp; i++)
+    {
+        INumber *np = &nvp->np[i];
+        fprintf(fp, "  <oneNumber name='%s'>\n", np->name);
+        fprintf(fp, "      %.20g\n", np->value);
+        fprintf(fp, "  </oneNumber>\n");
+    }
+
+    fprintf(fp, "</newNumberVector>\n");
+    indi_locale_C_numeric_pop(orig);
+}
+
+void IUSaveConfigText(FILE *fp, const ITextVectorProperty *tvp)
+{
+    fprintf(fp, "<newTextVector device='%s' name='%s'>\n", tvp->device, tvp->name);
+
+    for (int i = 0; i < tvp->ntp; i++)
+    {
+        IText *tp = &tvp->tp[i];
+        fprintf(fp, "  <oneText name='%s'>\n", tp->name);
+        fprintf(fp, "      %s\n", tp->text ? tp->text : "");
+        fprintf(fp, "  </oneText>\n");
+    }
+
+    fprintf(fp, "</newTextVector>\n");
+}
+
+void IUSaveConfigSwitch(FILE *fp, const ISwitchVectorProperty *svp)
+{
+    fprintf(fp, "<newSwitchVector device='%s' name='%s'>\n", svp->device, svp->name);
+
+    for (int i = 0; i < svp->nsp; i++)
+    {
+        ISwitch *sp = &svp->sp[i];
+        fprintf(fp, "  <oneSwitch name='%s'>\n", sp->name);
+        fprintf(fp, "      %s\n", sstateStr(sp->s));
+        fprintf(fp, "  </oneSwitch>\n");
+    }
+
+    fprintf(fp, "</newSwitchVector>\n");
+}
+
+void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
+{
+    fprintf(fp, "<newBLOBVector device='%s' name='%s'>\n", bvp->device, bvp->name);
+
+    for (int i = 0; i < bvp->nbp; i++)
+    {
+        IBLOB *bp = &bvp->bp[i];
+        unsigned char *encblob = NULL;
+        int l = 0;
+
+        fprintf(fp, "  <oneBLOB\n");
+        fprintf(fp, "    name='%s'\n", bp->name);
+        fprintf(fp, "    size='%d'\n", bp->size);
+        fprintf(fp, "    format='%s'>\n", bp->format);
+
+        assert_mem(encblob = (unsigned char*)malloc(4 * bp->bloblen / 3 + 4));
+        l = to64frombits_s(encblob, bp->blob, bp->bloblen, bp->bloblen);
+        if (l == 0) {
+            fprintf(stderr, "%s: Not enough memory for decoding.\n", __func__);
+            exit(1);
+        }
+        size_t written = 0;
+
+        while ((int)written < l)
+        {
+            size_t towrite = ((l - written) > 72) ? 72 : l - written;
+            size_t wr      = fwrite(encblob + written, 1, towrite, fp);
+
+            fputc('\n', fp);
+            if (wr > 0)
+                written += wr;
+        }
+        free(encblob);
+
+        fprintf(fp, "  </oneBLOB>\n");
+    }
+
+    fprintf(fp, "</newBLOBVector>\n");
 }
 
 double rangeHA(double r)

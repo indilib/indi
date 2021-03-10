@@ -188,6 +188,7 @@ public:
     void defineBLOB(IBLOBVectorProperty *bvp) __attribute__((deprecated));
     void defineProperty(IBLOBVectorProperty *property);
 
+    void defineProperty(INDI::Property &property);
     /**
      * \brief Delete a property and unregister it. It will also be deleted from all clients.
      * \param propertyName name of property to be deleted.

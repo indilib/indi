@@ -1,9 +1,5 @@
 /*
-    Copyright (C) 2020 by Pawel Soja <kernel32.pl@gmail.com>
-    Copyright (C) 2015 by Jasem Mutlaq <mutlaqja@ikarustech.com>
-    Copyright (C) 2014 by geehalel <geehalel@gmail.com>
-
-    Stream Recorder
+    Copyright (C) 2021 by Pawel Soja <kernel32.pl@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -18,32 +14,28 @@
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
 */
+
 #pragma once
 
-#include <string>
-#include <sys/stat.h>
-#include <ctime>
+#include "indiproperty_p.h"
+#include "indipropertyview.h"
 
-#include "indimacros.h"
+#include <vector>
 
 namespace INDI
 {
 
-/**
- * @brief Create a path directory - this function uses 'mkdir'
- */
-int mkpath(std::string path, mode_t mode);
+template <typename T>
+class PropertyBasicPrivateTemplate: public PropertyPrivate
+{
+public:
+    PropertyBasicPrivateTemplate(size_t count);
+    virtual ~PropertyBasicPrivateTemplate();
 
-/**
- * @brief Converts the date and time to string - this function uses 'strftime'
- */
-std::string format_time(const std::tm &tm, const char *format);
-
-/**
- * @brief Replaces every occurrence of the string 'search' with the string 'replace'
- */
-void replace_all(std::string &subject, const std::string& search, const std::string& replace);
+public:
+    std::vector<WidgetView<T>>  widgets;
+    PropertyView<T>             property;
+};
 
 }

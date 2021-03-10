@@ -368,8 +368,12 @@ bool SkywatcherAPI::InitMount()
     MountCode = MCVersion & 0xFF;
 
     // Disable EQ mounts
-    if (MountCode < 0x80)
+    // 0x22 is code for AZEQ6 which is added as an exception as proposed by Dirk Tetzlaff
+    if (MountCode < 0x80 && MountCode != AZEQ6)
+    {
+        MYDEBUGF(DBG_SCOPE, "Mount type not supported. %d", MountCode);
         return false;
+    }
 
     //// NOTE: Simulator settings, Mount dependent Settings
 

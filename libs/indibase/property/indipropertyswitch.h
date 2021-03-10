@@ -1,9 +1,5 @@
 /*
-    Copyright (C) 2020 by Pawel Soja <kernel32.pl@gmail.com>
-    Copyright (C) 2015 by Jasem Mutlaq <mutlaqja@ikarustech.com>
-    Copyright (C) 2014 by geehalel <geehalel@gmail.com>
-
-    Stream Recorder
+    Copyright (C) 2021 by Pawel Soja <kernel32.pl@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -18,32 +14,35 @@
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
 */
+
 #pragma once
 
-#include <string>
-#include <sys/stat.h>
-#include <ctime>
-
-#include "indimacros.h"
+#include "indipropertybasic.h"
 
 namespace INDI
 {
 
-/**
- * @brief Create a path directory - this function uses 'mkdir'
- */
-int mkpath(std::string path, mode_t mode);
+class PropertySwitchPrivate;
+class PropertySwitch: public INDI::PropertyBasic<ISwitch>
+{
+    DECLARE_PRIVATE(PropertySwitch)
+public:
+    PropertySwitch(size_t count);
+    ~PropertySwitch();
 
-/**
- * @brief Converts the date and time to string - this function uses 'strftime'
- */
-std::string format_time(const std::tm &tm, const char *format);
+public:
+    bool update(const ISState states[], const char * const names[], int n);
 
-/**
- * @brief Replaces every occurrence of the string 'search' with the string 'replace'
- */
-void replace_all(std::string &subject, const std::string& search, const std::string& replace);
+    void fill(
+        const char *device, const char *name, const char *label, const char *group,
+        IPerm permission, ISRule rule, double timeout, IPState state
+    );
+
+public:
+    void reset();
+    int findOnSwitchIndex() const;
+    INDI::WidgetView<ISwitch> *findOnSwitch() const;
+};
 
 }

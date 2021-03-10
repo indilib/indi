@@ -666,7 +666,7 @@ bool FilterIFW::GetFilterNames()
                 p                                   = p + OPTEC_LEN_FLTNAME;
                 LOGF_DEBUG("filterNameIFW[%d] : %s", i, filterNameIFW[i]);
                 strncat(filterList, filterNameIFW[i], OPTEC_LEN_FLTNAME);
-                strncat(filterList, "/", 1);
+                strcat(filterList, "/");
             }
             filterList[strlen(filterList) - 1] = '\0'; //Remove last "/"
 
