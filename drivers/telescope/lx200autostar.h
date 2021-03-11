@@ -29,8 +29,8 @@ class LX200Autostar : public LX200Generic
 
         const char *getDefaultName() override;
         //virtual void ISGetProperties(const char *dev) override;
-        //virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        //virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        //virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        //virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual void getBasicData() override;
 
     protected:

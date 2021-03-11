@@ -32,10 +32,10 @@ class LPM : public INDI::DefaultDevice
     LPM();
     virtual ~LPM();
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     /**
      * @struct LpmConnection

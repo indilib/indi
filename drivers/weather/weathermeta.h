@@ -38,12 +38,12 @@ class WeatherMeta : public INDI::DefaultDevice
     bool Disconnect();
     const char *getDefaultName();
 
-    virtual bool ISSnoopDevice(XMLEle *root);
+    virtual bool ISSnoopDevice(XMLEle *root) override;
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
   protected:
     virtual bool saveConfigItems(FILE *fp);

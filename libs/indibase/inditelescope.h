@@ -174,11 +174,11 @@ class Telescope : public DefaultDevice
         Telescope();
         virtual ~Telescope();
 
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual void ISGetProperties(const char *dev);
-        virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
         /**
          * @brief GetTelescopeCapability returns the capability of the Telescope
@@ -301,9 +301,9 @@ class Telescope : public DefaultDevice
         }
 
         /** \brief Called to initialize basic properties required all the time */
-        virtual bool initProperties();
+        virtual bool initProperties() override;
         /** \brief Called when connected state changes, to add/remove properties */
-        virtual bool updateProperties();
+        virtual bool updateProperties() override;
 
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();

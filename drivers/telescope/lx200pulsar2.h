@@ -40,12 +40,12 @@ class LX200Pulsar2 : public LX200Generic
     virtual bool Disconnect();
     virtual bool Handshake();
     virtual bool ReadScopeStatus();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     static const unsigned int numPulsarTrackingRates = 7;
 
