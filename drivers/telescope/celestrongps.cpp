@@ -90,7 +90,7 @@ void ISSnoopDevice(XMLEle *root)
 
 CelestronGPS::CelestronGPS() : FI(this)
 {
-    setVersion(3, 5); // update libindi/drivers.xml as well
+    setVersion(3, 6); // update libindi/drivers.xml as well
 
 
     fwInfo.Version           = "Invalid";
