@@ -274,12 +274,18 @@ void PropertyBasic<T>::define() const
 }
 
 template <typename T>
-WidgetView<T> *PropertyBasic<T>::findWidgetByName(const char *name)
+WidgetView<T> *PropertyBasic<T>::findWidgetByName(const char *name) const
 {
-    D_PTR(PropertyBasic);
+    D_PTR(const PropertyBasic);
     return d->property.findWidgetByName(name);
 }
 
+template <typename T>
+size_t PropertyBasic<T>::size() const
+{
+    D_PTR(const PropertyBasic);
+    return d->property.count();
+}
 
 template <typename T>
 void PropertyBasic<T>::resize(size_t size)
@@ -291,12 +297,32 @@ void PropertyBasic<T>::resize(size_t size)
 }
 
 template <typename T>
+void PropertyBasic<T>::push(WidgetView<T> &&item)
+{
+    D_PTR(PropertyBasic);
+    d->widgets.push_back(std::move(item));
+    d->property.setWidgets(d->widgets.data(), d->widgets.size());
+}
+
+template <typename T>
+void PropertyBasic<T>::push(const WidgetView<T> &item)
+{
+    push(std::move(WidgetView<T>(item)));
+}
+
+template <typename T>
 WidgetView<T> &PropertyBasic<T>::operator[](size_t index) const
 {
     D_PTR(const PropertyBasic);
     return *d->property.at(index);
 }
 
+template <typename T>
+PropertyView<T> * PropertyBasic<T>::operator &()
+{
+    D_PTR(PropertyBasic);
+    return &d->property;
+}
 
 template class PropertyBasicPrivateTemplate<IText>;
 template class PropertyBasicPrivateTemplate<INumber>;

@@ -87,13 +87,21 @@ public:
     void define() const;
 
 public:
+    PropertyView<T> * operator &();
+
+public:
+    size_t size() const;
+
+public:
     void resize(size_t size);
+    void push(WidgetView<T> &&item);
+    void push(const WidgetView<T> &item);
 
     WidgetView<T> &operator[](size_t index) const;
     // #PS: TODO begin, end, cbegin, cend, etc
 
 public:
-    WidgetView<T> *findWidgetByName(const char *name);
+    WidgetView<T> *findWidgetByName(const char *name) const;
 
 protected:
     PropertyBasic(PropertyBasicPrivate &dd);
