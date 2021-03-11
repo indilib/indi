@@ -20,6 +20,8 @@
 #include "defaultdevice_p.h"
 
 #include "indicom.h"
+#include "indiapi.h"
+
 #include "indistandardproperty.h"
 #include "connectionplugins/connectionserial.h"
 
@@ -42,6 +44,62 @@ const char *ALIGNMENT_TAB     = "Alignment";
 const char *SATELLITE_TAB     = "Satellite";
 const char *INFO_TAB          = "General Info";
 
+std::list<INDI::DefaultDevicePrivate*> INDI::DefaultDevicePrivate::devices;
+std::recursive_mutex                   INDI::DefaultDevicePrivate::devicesLock;
+
+extern "C"
+{
+
+void ISGetProperties(const char *dev)
+{
+    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+    for(auto &it: INDI::DefaultDevicePrivate::devices)
+        it->defaultDevice->ISGetProperties(dev);
+}
+
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+    for(auto &it: INDI::DefaultDevicePrivate::devices)
+        if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
+            it->defaultDevice->ISNewSwitch(dev, name, states, names, n);
+}
+
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+    for(auto &it: INDI::DefaultDevicePrivate::devices)
+        if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
+            it->defaultDevice->ISNewNumber(dev, name, values, names, n);
+}
+
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+    for(auto &it: INDI::DefaultDevicePrivate::devices)
+        if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
+            it->defaultDevice->ISNewText(dev, name, texts, names, n);
+}
+
+void ISNewBLOB(const char *dev, const char *name,
+    int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n
+)
+{
+    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+    for(auto &it: INDI::DefaultDevicePrivate::devices)
+        if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
+            it->defaultDevice->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+}
+
+void ISSnoopDevice(XMLEle *root)
+{
+    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+    for(auto &it: INDI::DefaultDevicePrivate::devices)
+        it->defaultDevice->ISSnoopDevice(root);
+}
+
+} // extern "C"
+
 void timerfunc(void *t)
 {
     //fprintf(stderr,"Got a timer hit with %x\n",t);
@@ -56,17 +114,25 @@ void timerfunc(void *t)
     return;
 }
 
+
 namespace INDI
 {
 
-DefaultDevicePrivate::DefaultDevicePrivate()
-{ }
+DefaultDevicePrivate::DefaultDevicePrivate(DefaultDevice *defaultDevice)
+    : defaultDevice(defaultDevice)
+{
+    const std::unique_lock<std::recursive_mutex> lock(DefaultDevicePrivate::devicesLock);
+    devices.push_back(this);
+}
 
 DefaultDevicePrivate::~DefaultDevicePrivate()
-{ }
+{
+    const std::unique_lock<std::recursive_mutex> lock(DefaultDevicePrivate::devicesLock);
+    devices.remove(this);
+}
 
 DefaultDevice::DefaultDevice()
-    : BaseDevice(*new DefaultDevicePrivate)
+    : BaseDevice(*new DefaultDevicePrivate(this))
 { }
 
 DefaultDevice::DefaultDevice(DefaultDevicePrivate &dd)
