@@ -1,7 +1,7 @@
 usr/lib/*/libindidriver.so.1
-usr/lib/*/libindidriver.so.1.8.*
+usr/lib/*/libindidriver.so.1.9.*
 usr/lib/*/libindilx200.so.1
-usr/lib/*/libindilx200.so.1.8.*
+usr/lib/*/libindilx200.so.1.9.*
 usr/lib/*/libindiAlignmentDriver.so.1
-usr/lib/*/libindiAlignmentDriver.so.1.8.*
+usr/lib/*/libindiAlignmentDriver.so.1.9.*
 usr/lib/*/indi/MathPlugins/

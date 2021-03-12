@@ -329,10 +329,10 @@ void StreamManager::asyncStreamThread()
     std::vector<uint8_t> subframeBuffer;  // Subframe buffer for recording/streaming
     std::vector<uint8_t> downscaleBuffer; // Downscale buffer for streaming
 
-    double &frameW = StreamFrameN[CCDChip::FRAME_W].value;
-    double &frameH = StreamFrameN[CCDChip::FRAME_H].value;
-    double &frameX = StreamFrameN[CCDChip::FRAME_X].value;
-    double &frameY = StreamFrameN[CCDChip::FRAME_Y].value;
+    double frameW = StreamFrameN[CCDChip::FRAME_W].value;
+    double frameH = StreamFrameN[CCDChip::FRAME_H].value;
+    double frameX = StreamFrameN[CCDChip::FRAME_X].value;
+    double frameY = StreamFrameN[CCDChip::FRAME_Y].value;
 
     while(!m_framesThreadTerminate)
     {
@@ -377,6 +377,10 @@ void StreamManager::asyncStreamThread()
             frameY = subY;
             frameW = subW;
             frameH = subH;
+            StreamFrameN[CCDChip::FRAME_W].value = frameW;
+            StreamFrameN[CCDChip::FRAME_H].value = frameH;
+            StreamFrameN[CCDChip::FRAME_X].value = frameX;
+            StreamFrameN[CCDChip::FRAME_Y].value = frameY;
             StreamFrameNP.s = IPS_IDLE;
             IDSetNumber(&StreamFrameNP, nullptr);
         }

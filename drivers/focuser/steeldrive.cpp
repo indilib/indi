@@ -1478,7 +1478,8 @@ bool SteelDrive::AbortFocuser()
         IDSetNumber(&FocusRelPosNP, nullptr);
     }
 
-    FocusTimerNP.s = FocusAbsPosNP.s = IPS_IDLE;
+    FocusTimerNP.s = IPS_IDLE;
+    FocusAbsPosNP.s = IPS_IDLE;
     IDSetNumber(&FocusTimerNP, nullptr);
     IDSetNumber(&FocusAbsPosNP, nullptr);
 

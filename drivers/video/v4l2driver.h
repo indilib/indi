@@ -52,13 +52,13 @@ class V4L2_Driver : public INDI::CCD
     virtual ~V4L2_Driver();
 
     /* INDI Functions that must be called from indidrivermain */
-    virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
     virtual void initCamBase();
 
     static void newFrame(void *p);

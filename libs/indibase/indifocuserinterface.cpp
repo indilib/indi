@@ -219,9 +219,14 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
         {
             IUUpdateNumber(&FocusMaxPosNP, values, names, n);
 
-            FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].value;
-            FocusAbsPosN[0].step = FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
-            FocusAbsPosN[0].min = FocusSyncN[0].min = 0;
+            FocusAbsPosN[0].max = FocusMaxPosN[0].value;
+            FocusSyncN[0].max = FocusMaxPosN[0].value;
+
+            FocusAbsPosN[0].step = FocusMaxPosN[0].value / 50.0;
+            FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
+
+            FocusAbsPosN[0].min = 0;
+            FocusSyncN[0].min = 0;
 
             FocusRelPosN[0].max  = FocusMaxPosN[0].value / 2;
             FocusRelPosN[0].step = FocusMaxPosN[0].value / 100.0;
@@ -245,7 +250,8 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
     {
         if (SyncFocuser(rint(values[0])))
         {
-            FocusSyncN[0].value = FocusAbsPosN[0].value = rint(values[0]);
+            FocusSyncN[0].value = rint(values[0]);
+            FocusAbsPosN[0].value = rint(values[0]);
             FocusSyncNP.s = IPS_OK;
             IDSetNumber(&FocusSyncNP, nullptr);
             IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -373,7 +379,8 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
 
         if ((ret = MoveRelFocuser((FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == IPS_OK)
         {
-            FocusRelPosNP.s = FocusAbsPosNP.s = IPS_OK;
+            FocusRelPosNP.s = IPS_OK;
+            FocusAbsPosNP.s = IPS_OK;
             IUUpdateNumber(&FocusRelPosNP, values, names, n);
             IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps %s", newPos,
                         FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
@@ -383,7 +390,8 @@ bool FocuserInterface::processNumber(const char * dev, const char * name, double
         else if (ret == IPS_BUSY)
         {
             IUUpdateNumber(&FocusRelPosNP, values, names, n);
-            FocusRelPosNP.s = FocusAbsPosNP.s = IPS_BUSY;
+            FocusRelPosNP.s = IPS_BUSY;
+            FocusAbsPosNP.s = IPS_BUSY;
             IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps %s...", newPos,
                         FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
             IDSetNumber(&FocusAbsPosNP, nullptr);

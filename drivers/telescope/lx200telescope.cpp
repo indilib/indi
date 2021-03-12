@@ -102,7 +102,7 @@ bool LX200Telescope::initProperties()
     {
         IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
     }
-    IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
+    IUFillNumberVector(&TrackFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_OFF);
@@ -169,7 +169,7 @@ void LX200Telescope::ISGetProperties(const char *dev)
             defineProperty(&AlignmentSP);
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
-            defineProperty(&TrackingFreqNP);
+            defineProperty(&TrackFreqNP);
 
         if (genericCapability & LX200_HAS_PULSE_GUIDING)
             defineProperty(&UsePulseCmdSP);
@@ -203,7 +203,7 @@ bool LX200Telescope::updateProperties()
             defineProperty(&AlignmentSP);
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
-            defineProperty(&TrackingFreqNP);
+            defineProperty(&TrackFreqNP);
 
         if (genericCapability & LX200_HAS_PULSE_GUIDING)
             defineProperty(&UsePulseCmdSP);
@@ -231,7 +231,7 @@ bool LX200Telescope::updateProperties()
             deleteProperty(AlignmentSP.name);
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
-            deleteProperty(TrackingFreqNP.name);
+            deleteProperty(TrackFreqNP.name);
 
         if (genericCapability & LX200_HAS_PULSE_GUIDING)
             deleteProperty(UsePulseCmdSP.name);
@@ -362,8 +362,9 @@ bool LX200Telescope::Goto(double ra, double dec)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -454,8 +455,9 @@ bool LX200Telescope::Park()
 
             if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
             {
-                MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-                EqNP.s                          = IPS_IDLE;
+                MovementNSSP.s = IPS_IDLE;
+                MovementWESP.s = IPS_IDLE;
+                EqNP.s = IPS_IDLE;
                 IUResetSwitch(&MovementNSSP);
                 IUResetSwitch(&MovementWESP);
 
@@ -696,20 +698,20 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
         }
 
         // Update Frequency
-        if (!strcmp(name, TrackingFreqNP.name))
+        if (!strcmp(name, TrackFreqNP.name))
         {
             LOGF_DEBUG("Trying to set track freq of: %04.1f", values[0]);
             if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
             {
                 if (!isSimulation() && setPreciseTrackFreq(PortFD, values[0]) < 0)
                 {
-                    TrackingFreqNP.s = IPS_ALERT;
-                    IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
+                    TrackFreqNP.s = IPS_ALERT;
+                    IDSetNumber(&TrackFreqNP, "Error setting tracking frequency");
                     return false;
                 }
-                TrackingFreqNP.s           = IPS_OK;
-                TrackingFreqNP.np[0].value = values[0];
-                IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %8.5f", values[0]);
+                TrackFreqNP.s           = IPS_OK;
+                TrackFreqNP.np[0].value = values[0];
+                IDSetNumber(&TrackFreqNP, "Tracking frequency set to %8.5f", values[0]);
             }
             else
             {
@@ -722,18 +724,18 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
                     LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
                     if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
                     {
-                        TrackingFreqNP.s = IPS_ALERT;
-                        IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
+                        TrackFreqNP.s = IPS_ALERT;
+                        IDSetNumber(&TrackFreqNP, "Error setting tracking frequency");
                         return false;
                     }
-                    TrackingFreqNP.s           = IPS_OK;
-                    IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
+                    TrackFreqNP.s           = IPS_OK;
+                    IDSetNumber(&TrackFreqNP, "Error setting tracking frequency");
                     return false;
                 }
 
-                TrackingFreqNP.s           = IPS_OK;
-                TrackingFreqNP.np[0].value = values[0];
-                IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %04.1f", values[0]);
+                TrackFreqNP.s           = IPS_OK;
+                TrackFreqNP.np[0].value = values[0];
+                IDSetNumber(&TrackFreqNP, "Tracking frequency set to %04.1f", values[0]);
             }
 
             if (trackingMode != LX200_TRACK_MANUAL)
@@ -829,7 +831,8 @@ bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *sta
             if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
                 sendScopeLocation();
 
-            SiteNameTP.s = SiteSP.s = IPS_OK;
+            SiteNameTP.s = IPS_OK;
+            SiteSP.s = IPS_OK;
 
             IDSetText(&SiteNameTP, nullptr);
             IDSetSwitch(&SiteSP, nullptr);
@@ -940,7 +943,7 @@ bool LX200Telescope::SetTrackMode(uint8_t mode)
     if (rc &&  (genericCapability & LX200_HAS_TRACKING_FREQ))
     {
         getTrackFreq(PortFD, &TrackFreqN[0].value);
-        IDSetNumber(&TrackingFreqNP, nullptr);
+        IDSetNumber(&TrackFreqNP, nullptr);
     }
     return rc;
 }
@@ -1185,7 +1188,7 @@ void LX200Telescope::getBasicData()
             if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
                 LOG_ERROR("Failed to get tracking frequency from device.");
             else
-                IDSetNumber(&TrackingFreqNP, nullptr);
+                IDSetNumber(&TrackFreqNP, nullptr);
         }
 
     }

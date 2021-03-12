@@ -132,14 +132,14 @@ class CCD : public DefaultDevice, GuiderInterface
 
         typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual void ISGetProperties(const char * dev);
-        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        virtual bool ISSnoopDevice(XMLEle * root);
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual void ISGetProperties(const char * dev) override;
+        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n) override;
+        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n) override;
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle * root) override;
 
         static void wsThreadHelper(void * context);
 

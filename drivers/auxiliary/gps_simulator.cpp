@@ -106,9 +106,9 @@ IPState GPSSimulator::updateGPS()
 
     TimeTP.s = IPS_OK;
 
-    LocationN[LOCATION_LATITUDE].value  = 29.1;
-    LocationN[LOCATION_LONGITUDE].value = 48.5;
-    LocationN[LOCATION_ELEVATION].value = 12;
+    LocationN[LOCATION_LATITUDE].value  = 51.0;
+    LocationN[LOCATION_LONGITUDE].value = 357.7;
+    LocationN[LOCATION_ELEVATION].value = 72;
 
     LocationNP.s = IPS_OK;
 

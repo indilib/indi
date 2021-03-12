@@ -37,9 +37,9 @@ class WunderGround : public INDI::Weather
     bool Disconnect();
     const char *getDefaultName();
 
-    virtual bool initProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
   protected:
     virtual IPState updateWeather();

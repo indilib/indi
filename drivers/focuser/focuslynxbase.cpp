@@ -791,13 +791,17 @@ bool FocusLynxBase::getFocusConfig()
     rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
-        FocusAbsPosN[0].max = FocusSyncN[0].max = maxPos;
-        FocusAbsPosN[0].step = FocusSyncN[0].step = maxPos / 50.0;
-        FocusAbsPosN[0].min = FocusSyncN[0].min = 0;
+        FocusAbsPosN[0].min = 0;
+        FocusAbsPosN[0].max = maxPos;
+        FocusAbsPosN[0].step = maxPos / 50.0;
 
+        FocusSyncN[0].min = 0;
+        FocusSyncN[0].max = maxPos;
+        FocusSyncN[0].step = maxPos / 50.0;
+
+        FocusRelPosN[0].min  = 0;
         FocusRelPosN[0].max  = maxPos / 2;
         FocusRelPosN[0].step = maxPos / 100.0;
-        FocusRelPosN[0].min  = 0;
 
         IUUpdateMinMax(&FocusAbsPosNP);
         IUUpdateMinMax(&FocusRelPosNP);
@@ -1108,7 +1112,8 @@ bool FocusLynxBase::getFocusStatus()
         memset(response, 0, sizeof(response));
         if (isSimulation())
         {
-            strncpy(response, "Temp(C) = +21.7\n", 16);
+            //strncpy(response, "Temp(C) = +21.7\n", 16); // #PS: for string literal, use strcpy
+            strcpy(response, "Temp(C) = +21.7\n");
             nbytes_read = strlen(response);
         }
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1117,7 +1122,10 @@ bool FocusLynxBase::getFocusStatus()
             LOGF_ERROR("%s", errmsg);
             return false;
         }
-        response[nbytes_read - 1] = '\0';
+
+        if (nbytes_read > 0)
+            response[nbytes_read - 1] = '\0'; // remove last character (new line)
+
         LOGF_DEBUG("RES (%s)", response);
 
         float temperature = 0;
@@ -3339,7 +3347,9 @@ bool FocusLynxBase::AbortFocuser()
             IDSetNumber(&FocusRelPosNP, nullptr);
         }
 
-        FocusTimerNP.s = FocusAbsPosNP.s = GotoSP.s = IPS_IDLE;
+        FocusTimerNP.s = IPS_IDLE;
+        FocusAbsPosNP.s = IPS_IDLE;
+        GotoSP.s = IPS_IDLE;
         IUResetSwitch(&GotoSP);
         IDSetNumber(&FocusTimerNP, nullptr);
         IDSetNumber(&FocusAbsPosNP, nullptr);

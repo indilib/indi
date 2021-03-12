@@ -2282,21 +2282,21 @@ void Telescope::processButton(const char *button_n, ISState state)
         {
             // Invoke parent processing so that Telescope takes care of abort cross-check
             ISState states[1] = { ISS_ON };
-            char *names[1]    = { AbortS[0].name };
-            ISNewSwitch(getDeviceName(), AbortSP.name, states, names, 1);
+            const char *names[1]    = { AbortS[0].name };
+            ISNewSwitch(getDeviceName(), AbortSP.name, states, const_cast<char **>(names), 1);
         }
     }
     else if (!strcmp(button_n, "PARKBUTTON"))
     {
         ISState states[2] = { ISS_ON, ISS_OFF };
-        char *names[2]    = { ParkS[0].name, ParkS[1].name };
-        ISNewSwitch(getDeviceName(), ParkSP.name, states, names, 2);
+        const char *names[2]    = { ParkS[0].name, ParkS[1].name };
+        ISNewSwitch(getDeviceName(), ParkSP.name, states, const_cast<char **>(names), 2);
     }
     else if (!strcmp(button_n, "UNPARKBUTTON"))
     {
         ISState states[2] = { ISS_OFF, ISS_ON };
-        char *names[2]    = { ParkS[0].name, ParkS[1].name };
-        ISNewSwitch(getDeviceName(), ParkSP.name, states, names, 2);
+        const char *names[2]    = { ParkS[0].name, ParkS[1].name };
+        ISNewSwitch(getDeviceName(), ParkSP.name, states, const_cast<char **>(names), 2);
     }
     else if (!strcmp(button_n, "SLEWPRESETUP"))
     {

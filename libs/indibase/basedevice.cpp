@@ -75,29 +75,29 @@ BaseDevice::BaseDevice(BaseDevicePrivate &dd)
     : d_ptr(&dd)
 { }
 
-INumberVectorProperty *BaseDevice::getNumber(const char *name) const
+INDI::PropertyView<INumber> *BaseDevice::getNumber(const char *name) const
 {
-    return static_cast<INumberVectorProperty *>(getRawProperty(name, INDI_NUMBER));
+    return static_cast<PropertyView<INumber> *>(getRawProperty(name, INDI_NUMBER));
 }
 
-ITextVectorProperty *BaseDevice::getText(const char *name) const
+INDI::PropertyView<IText> *BaseDevice::getText(const char *name) const
 {
-    return static_cast<ITextVectorProperty *>(getRawProperty(name, INDI_TEXT));
+    return static_cast<PropertyView<IText> *>(getRawProperty(name, INDI_TEXT));
 }
 
-ISwitchVectorProperty *BaseDevice::getSwitch(const char *name) const
+INDI::PropertyView<ISwitch> *BaseDevice::getSwitch(const char *name) const
 {
-    return static_cast<ISwitchVectorProperty *>(getRawProperty(name, INDI_SWITCH));
+    return static_cast<PropertyView<ISwitch> *>(getRawProperty(name, INDI_SWITCH));
 }
 
-ILightVectorProperty *BaseDevice::getLight(const char *name) const
+INDI::PropertyView<ILight> *BaseDevice::getLight(const char *name) const
 {
-    return static_cast<ILightVectorProperty *>(getRawProperty(name, INDI_LIGHT));
+    return static_cast<PropertyView<ILight> *>(getRawProperty(name, INDI_LIGHT));
 }
 
-IBLOBVectorProperty *BaseDevice::getBLOB(const char *name) const
+INDI::PropertyView<IBLOB> *BaseDevice::getBLOB(const char *name) const
 {
-    return static_cast<IBLOBVectorProperty *>(getRawProperty(name, INDI_BLOB));
+    return static_cast<PropertyView<IBLOB> *>(getRawProperty(name, INDI_BLOB));
 }
 
 IPState BaseDevice::getPropertyState(const char *name) const
@@ -891,6 +891,24 @@ void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
     }
 }
 
+void BaseDevice::registerProperty(INDI::Property &property)
+{
+    D_PTR(BaseDevice);
+
+    if (property.getType() == INDI_UNKNOWN)
+        return;
+
+    INDI::Property *pContainer = getProperty(property.getName(), property.getType());
+
+    if (pContainer != nullptr)
+        pContainer->setRegistered(true);
+    else
+    {
+        std::lock_guard<std::mutex> lock(d->m_Lock);
+        d->pAll.push_back(new INDI::Property(property));
+    }
+}
+
 const char *BaseDevice::getDriverName() const
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
@@ -903,6 +921,57 @@ const char *BaseDevice::getDriverName() const
         return driverName->text;
 
     return nullptr;
+}
+
+
+void BaseDevice::registerProperty(ITextVectorProperty *property)
+{
+    registerProperty(property, INDI_TEXT);
+}
+
+void BaseDevice::registerProperty(INumberVectorProperty *property)
+{
+    registerProperty(property, INDI_NUMBER);
+}
+
+void BaseDevice::registerProperty(ISwitchVectorProperty *property)
+{
+    registerProperty(property, INDI_SWITCH);
+}
+
+void BaseDevice::registerProperty(ILightVectorProperty *property)
+{
+    registerProperty(property, INDI_LIGHT);
+}
+
+void BaseDevice::registerProperty(IBLOBVectorProperty *property)
+{
+    registerProperty(property, INDI_BLOB);
+}
+
+void BaseDevice::registerProperty(PropertyView<IText> *property)
+{
+    registerProperty(static_cast<ITextVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<INumber> *property)
+{
+    registerProperty(static_cast<INumberVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<ISwitch> *property)
+{
+    registerProperty(static_cast<ISwitchVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<ILight> *property)
+{
+    BaseDevice::registerProperty(static_cast<ILightVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<IBLOB> *property)
+{
+    BaseDevice::registerProperty(static_cast<IBLOBVectorProperty*>(property));
 }
 
 const char *BaseDevice::getDriverExec() const

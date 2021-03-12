@@ -32,10 +32,10 @@ class SQMSimulator : public INDI::DefaultDevice
     SQMSimulator();
     virtual ~SQMSimulator() = default;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
 
   protected:
     bool Connect();

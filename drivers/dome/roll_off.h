@@ -26,12 +26,12 @@ class RollOff : public INDI::Dome
     RollOff();
     virtual ~RollOff() = default;
 
-    virtual bool initProperties();
+    virtual bool initProperties() override;
     const char *getDefaultName();
     bool updateProperties();
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool saveConfigItems(FILE *fp);
-    virtual bool ISSnoopDevice(XMLEle *root);
+    virtual bool ISSnoopDevice(XMLEle *root) override;
 
   protected:
     bool Connect();

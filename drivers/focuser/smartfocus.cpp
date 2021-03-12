@@ -97,7 +97,9 @@ bool SmartFocus::initProperties()
     INDI::Focuser::initProperties();
 
     // No speed for SmartFocus
-    FocusSpeedN[0].min = FocusSpeedN[0].max = FocusSpeedN[0].value = 1;
+    FocusSpeedN[0].min = 1;
+    FocusSpeedN[0].max = 1;
+    FocusSpeedN[0].value = 1;
     IUUpdateMinMax(&FocusSpeedNP);
 
     IUFillLight(&FlagsL[STATUS_SERIAL_FRAMING_ERROR], "SERIAL_FRAMING_ERROR", "Serial framing error", IPS_OK);
