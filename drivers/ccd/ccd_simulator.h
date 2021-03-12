@@ -130,6 +130,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         // Turns on/off Bayer RGB simulation.
         void setBayerEnabled(bool onOff);
 
+        double flux(double magnitude) const;
+
         float TemperatureRequest { 0 };
 
         float ExposureRequest { 0 };
@@ -165,8 +167,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         bool m_SimulateBayer { false };
 
         //  our zero point calcs used for drawing stars
-        float k { 0 };
-        float z { 0 };
+        //float k { 0 };
+        //float z { 0 };
 
         bool AbortGuideFrame { false };
         bool AbortPrimaryFrame { false };
