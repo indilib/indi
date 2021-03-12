@@ -215,10 +215,10 @@ bool IOptronV3::initProperties()
 
     // Baud rates.
     // 230400 for 120
-    // 115000 for 70  or 40/45
+    // 115000 for everything else
     if (strstr(getDeviceName(), "120"))
         serialConnection->setDefaultBaudRate(Connection::Serial::B_230400);
-    else if (strstr(getDeviceName(), "7") or strstr(getDeviceName(), "4"))
+    else
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     // Default WiFi connection parametes
