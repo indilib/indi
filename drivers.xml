@@ -355,6 +355,10 @@
             <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
             <version>1.0</version>
         </device>
+        <device label="Pegasus OAG" manufacturer="Pegasus Astro">
+            <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
+            <version>1.0</version>
+        </device>
         <device label="Pyxis" manufacturer="Optec">
             <driver name="Pyxis">indi_pyxis_rotator</driver>
             <version>1.0</version>
