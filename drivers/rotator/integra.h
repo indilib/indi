@@ -49,8 +49,8 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
         const char * getDefaultName();
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n) override;
 
     protected:
         // Focuser
