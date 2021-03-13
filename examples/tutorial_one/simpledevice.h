@@ -29,7 +29,7 @@ class SimpleDevice : public INDI::DefaultDevice
     SimpleDevice() = default;
 
   protected:
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+    bool Connect() override;
+    bool Disconnect() override;
+    const char *getDefaultName() override;
 };
