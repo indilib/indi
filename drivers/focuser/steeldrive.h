@@ -22,6 +22,10 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class SteelDrive : public INDI::Focuser
 {
   public:
@@ -107,26 +111,20 @@ class SteelDrive : public INDI::Focuser
     struct timeval focusMoveStart { 0, 0 };
     float focusMoveRequest { 0 };
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+    INDI::PropertyNumber TemperatureNP {1};
 
-    INumber AccelerationN[1];
-    INumberVectorProperty AccelerationNP;
+    INDI::PropertyNumber AccelerationNP {1};
 
-    INumber TemperatureSettingN[2];
-    INumberVectorProperty TemperatureSettingNP;
+    INDI::PropertyNumber TemperatureSettingNP {2};
 
-    ISwitch TemperatureCompensateS[2];
-    ISwitchVectorProperty TemperatureCompensateSP;
+    INDI::PropertySwitch TemperatureCompensateSP {2};
 
     ISwitch ModelS[5];
     ISwitchVectorProperty ModelSP;
 
-    INumber CustomSettingN[2];
-    INumberVectorProperty CustomSettingNP;
+    INDI::PropertyNumber CustomSettingNP {2};
 
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
+    INDI::PropertyNumber SyncNP {1};
 
     IText VersionT[2] {};
     ITextVectorProperty VersionTP;

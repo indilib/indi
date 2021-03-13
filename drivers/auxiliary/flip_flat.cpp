@@ -90,21 +90,21 @@ bool FlipFlat::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Status
-    IUFillText(&StatusT[0], "Cover", "Cover", nullptr);
-    IUFillText(&StatusT[1], "Light", "Light", nullptr);
-    IUFillText(&StatusT[2], "Motor", "Motor", nullptr);
-    IUFillTextVector(&StatusTP, StatusT, 3, getDeviceName(), "Status", "Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    StatusTP[0].fill("Cover", "Cover", nullptr);
+    StatusTP[1].fill("Light", "Light", nullptr);
+    StatusTP[2].fill("Motor", "Motor", nullptr);
+    StatusTP.fill(getDeviceName(), "Status", "Status", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Firmware version
-    IUFillText(&FirmwareT[0], "Version", "Version", nullptr);
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    FirmwareTP[0].fill("Version", "Version", nullptr);
+    FirmwareTP.fill(getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
     initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
 
-    LightIntensityN[0].min  = 0;
-    LightIntensityN[0].max  = 255;
-    LightIntensityN[0].step = 10;
+    LightIntensityNP[0].setMin(0);
+    LightIntensityNP[0].setMax(255);
+    LightIntensityNP[0].setStep(10);
 
     // Set DUSTCAP_INTEFACE later on connect after we verify whether it's flip-flat (dust cover + light) or just flip-man (light only)
     setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE);
@@ -137,10 +137,10 @@ bool FlipFlat::updateProperties()
     {
         if (m_Type == FLIP_FLAT || m_Type == ALNITAK_DUST_COVER)
             defineProperty(&ParkCapSP);
-        defineProperty(&LightSP);
-        defineProperty(&LightIntensityNP);
-        defineProperty(&StatusTP);
-        defineProperty(&FirmwareTP);
+        defineProperty(LightSP);
+        defineProperty(LightIntensityNP);
+        defineProperty(StatusTP);
+        defineProperty(FirmwareTP);
 
         updateLightBoxProperties();
 
@@ -150,10 +150,10 @@ bool FlipFlat::updateProperties()
     {
         if (m_Type == FLIP_FLAT || m_Type == ALNITAK_DUST_COVER)
             deleteProperty(ParkCapSP.name);
-        deleteProperty(LightSP.name);
-        deleteProperty(LightIntensityNP.name);
-        deleteProperty(StatusTP.name);
-        deleteProperty(FirmwareTP.name);
+        deleteProperty(LightSP.getName());
+        deleteProperty(LightIntensityNP.getName());
+        deleteProperty(StatusTP.getName());
+        deleteProperty(FirmwareTP.getName());
 
         updateLightBoxProperties();
     }
@@ -420,7 +420,7 @@ bool FlipFlat::getStatus()
                 response[6] = '2';
         }
 
-        response[5] = (LightS[FLAT_LIGHT_ON].s == ISS_ON) ? '1' : '0';
+        response[5] = (LightSP[FLAT_LIGHT_ON].getState() == ISS_ON) ? '1' : '0';
     }
     else
     {
@@ -443,11 +443,11 @@ bool FlipFlat::getStatus()
         switch (coverStatus)
         {
             case 0:
-                IUSaveText(&StatusT[0], "Not Open/Closed");
+                StatusTP[0].setText("Not Open/Closed");
                 break;
 
             case 1:
-                IUSaveText(&StatusT[0], "Closed");
+                StatusTP[0].setText("Closed");
                 if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
                 {
                     IUResetSwitch(&ParkCapSP);
@@ -459,7 +459,7 @@ bool FlipFlat::getStatus()
                 break;
 
             case 2:
-                IUSaveText(&StatusT[0], "Open");
+                StatusTP[0].setText("Open");
                 if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
                 {
                     IUResetSwitch(&ParkCapSP);
@@ -471,7 +471,7 @@ bool FlipFlat::getStatus()
                 break;
 
             case 3:
-                IUSaveText(&StatusT[0], "Timed out");
+                StatusTP[0].setText("Timed out");
                 break;
         }
     }
@@ -485,22 +485,22 @@ bool FlipFlat::getStatus()
         switch (lightStatus)
         {
             case 0:
-                IUSaveText(&StatusT[1], "Off");
-                if (LightS[0].s == ISS_ON)
+                StatusTP[1].setText("Off");
+                if (LightSP[0].getState() == ISS_ON)
                 {
-                    LightS[0].s = ISS_OFF;
-                    LightS[1].s = ISS_ON;
-                    IDSetSwitch(&LightSP, nullptr);
+                    LightSP[0].setState(ISS_OFF);
+                    LightSP[1].setState(ISS_ON);
+                    LightSP.apply();
                 }
                 break;
 
             case 1:
-                IUSaveText(&StatusT[1], "On");
-                if (LightS[1].s == ISS_ON)
+                StatusTP[1].setText("On");
+                if (LightSP[1].getState() == ISS_ON)
                 {
-                    LightS[0].s = ISS_ON;
-                    LightS[1].s = ISS_OFF;
-                    IDSetSwitch(&LightSP, nullptr);
+                    LightSP[0].setState(ISS_ON);
+                    LightSP[1].setState(ISS_OFF);
+                    LightSP.apply();
                 }
                 break;
         }
@@ -515,17 +515,17 @@ bool FlipFlat::getStatus()
         switch (motorStatus)
         {
             case 0:
-                IUSaveText(&StatusT[2], "Stopped");
+                StatusTP[2].setText("Stopped");
                 break;
 
             case 1:
-                IUSaveText(&StatusT[2], "Running");
+                StatusTP[2].setText("Running");
                 break;
         }
     }
 
     if (statusUpdated)
-        IDSetText(&StatusTP, nullptr);
+        StatusTP.apply();
 
     return true;
 }
@@ -534,8 +534,8 @@ bool FlipFlat::getFirmwareVersion()
 {
     if (isSimulation())
     {
-        IUSaveText(&FirmwareT[0], "Simulation");
-        IDSetText(&FirmwareTP, nullptr);
+        FirmwareTP[0].setText("Simulation");
+        FirmwareTP.apply();
         return true;
     }
 
@@ -545,8 +545,8 @@ bool FlipFlat::getFirmwareVersion()
 
     char versionString[4] = { 0 };
     snprintf(versionString, 4, "%s", response + 4);
-    IUSaveText(&FirmwareT[0], versionString);
-    IDSetText(&FirmwareTP, nullptr);
+    FirmwareTP[0].setText(versionString);
+    FirmwareTP.apply();
 
     return true;
 }
@@ -559,7 +559,7 @@ void FlipFlat::TimerHit()
     getStatus();
 
     // parking or unparking timed out, try again
-    if (ParkCapSP.s == IPS_BUSY && !strcmp(StatusT[0].text, "Timed out"))
+    if (ParkCapSP.s == IPS_BUSY && !strcmp(StatusTP[0].getText(), "Timed out"))
     {
         if (ParkCapS[0].s == ISS_ON)
             ParkCap();
@@ -596,8 +596,8 @@ bool FlipFlat::getBrightness()
     if (brightnessValue != prevBrightness)
     {
         prevBrightness           = brightnessValue;
-        LightIntensityN[0].value = brightnessValue;
-        IDSetNumber(&LightIntensityNP, nullptr);
+        LightIntensityNP[0].setValue(brightnessValue);
+        LightIntensityNP.apply();
     }
 
     return true;
@@ -607,8 +607,8 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
 {
     if (isSimulation())
     {
-        LightIntensityN[0].value = value;
-        IDSetNumber(&LightIntensityNP, nullptr);
+        LightIntensityNP[0].setValue(value);
+        LightIntensityNP.apply();
         return true;
     }
 
@@ -635,8 +635,8 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
     if (brightnessValue != prevBrightness)
     {
         prevBrightness           = brightnessValue;
-        LightIntensityN[0].value = brightnessValue;
-        IDSetNumber(&LightIntensityNP, nullptr);
+        LightIntensityNP[0].setValue(brightnessValue);
+        LightIntensityNP.apply();
     }
 
     return true;

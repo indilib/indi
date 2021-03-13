@@ -35,6 +35,9 @@
 #include "indidome.h"
 #include <memory>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 class DDW : public INDI::Dome
 {
     public:
@@ -66,8 +69,7 @@ class DDW : public INDI::Dome
     protected:
         bool SetupParms();
 
-        INumber FirmwareVersionN[1];
-        INumberVectorProperty FirmwareVersionNP;
+        INDI::PropertyNumber FirmwareVersionNP {1};
 
     private:
         int writeCmd(const char *cmd);

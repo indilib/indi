@@ -23,6 +23,10 @@
 #include <sys/time.h>
 #include <stdint.h>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 namespace INDI
 {
 
@@ -162,7 +166,7 @@ class CCDChip
          */
         inline double getExposureLeft()
         {
-            return ImageExposureN[0].value;
+            return ImageExposureNP[0].getValue();
         }
 
         /**
@@ -241,7 +245,7 @@ class CCDChip
          */
         INumberVectorProperty *getCCDInfo()
         {
-            return &ImagePixelSizeNP;
+            return ImagePixelSizeNP.getNumber(); // #PS: refactor needed
         }
 
         /**
@@ -371,7 +375,7 @@ class CCDChip
          */
         bool isExposing()
         {
-            return (ImageExposureNP.s == IPS_BUSY);
+            return (ImageExposureNP.getState() == IPS_BUSY);
         }
 
         /**
@@ -434,38 +438,32 @@ class CCDChip
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Image Exposure Duration
         /////////////////////////////////////////////////////////////////////////////////////////
-        INumberVectorProperty ImageExposureNP;
-        INumber ImageExposureN[1];
+        INDI::PropertyNumber ImageExposureNP {1};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Abort Exposure
         /////////////////////////////////////////////////////////////////////////////////////////
-        ISwitchVectorProperty AbortExposureSP;
-        ISwitch AbortExposureS[1];
+        INDI::PropertySwitch AbortExposureSP {1};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Image Frame ROI
         /////////////////////////////////////////////////////////////////////////////////////////
-        INumberVectorProperty ImageFrameNP;
-        INumber ImageFrameN[4];
+        INDI::PropertyNumber ImageFrameNP {4};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Image Binning
         /////////////////////////////////////////////////////////////////////////////////////////
-        INumberVectorProperty ImageBinNP;
-        INumber ImageBinN[2];
+        INDI::PropertyNumber ImageBinNP {2};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Image Resolution & Pixel Size data
         /////////////////////////////////////////////////////////////////////////////////////////
-        INumberVectorProperty ImagePixelSizeNP;
-        INumber ImagePixelSizeN[6];
+        INDI::PropertyNumber ImagePixelSizeNP {6};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Frame Type (Light, Bias..etc)
         /////////////////////////////////////////////////////////////////////////////////////////
-        ISwitchVectorProperty FrameTypeSP;
-        ISwitch FrameTypeS[4];
+        INDI::PropertySwitch FrameTypeSP {4};
 
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Compression Toggle
@@ -482,21 +480,17 @@ class CCDChip
         /////////////////////////////////////////////////////////////////////////////////////////
         /// Reset ROI Frame to Full Resolution
         /////////////////////////////////////////////////////////////////////////////////////////
-        ISwitchVectorProperty ResetSP;
-        ISwitch ResetS[1];
+        INDI::PropertySwitch ResetSP {1};
 
         friend class CCD;
         friend class StreamRecoder;
 
 #if 0
-        ISwitch RapidGuideS[2];
-        ISwitchVectorProperty RapidGuideSP;
+        INDI::PropertySwitch RapidGuideSP {2};
 
-        ISwitch RapidGuideSetupS[3];
-        ISwitchVectorProperty RapidGuideSetupSP;
+        INDI::PropertySwitch RapidGuideSetupSP {3};
 
-        INumber RapidGuideDataN[3];
-        INumberVectorProperty RapidGuideDataNP;
+        INDI::PropertyNumber RapidGuideDataNP {3};
 #endif
 
 };

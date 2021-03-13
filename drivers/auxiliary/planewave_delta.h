@@ -28,6 +28,11 @@
 #include <memory>
 #include <map>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class DeltaT : public INDI::DefaultDevice
 {
     public:
@@ -117,8 +122,7 @@ class DeltaT : public INDI::DefaultDevice
         ///////////////////////////////////////////////////////////////////////////////////
 
         // Delta-T Informatin
-        ITextVectorProperty InfoTP;
-        IText InfoT[1] {};
+        INDI::PropertyText InfoTP {1};
         enum
         {
             INFO_VERSION
@@ -126,8 +130,7 @@ class DeltaT : public INDI::DefaultDevice
 
 
         // Force Control
-        ISwitchVectorProperty ForceSP;
-        ISwitch ForceS[2];
+        INDI::PropertySwitch ForceSP {2};
         enum
         {
             FORCE_RESET,
@@ -166,8 +169,7 @@ class DeltaT : public INDI::DefaultDevice
         };
 
         // Read Only Temperature Reporting
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[3];
+        INDI::PropertyNumber TemperatureNP {3};
         enum
         {
             // Primary is 0 , not used in this driver.

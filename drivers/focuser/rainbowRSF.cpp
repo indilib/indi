@@ -87,29 +87,29 @@ bool RainbowRSF::initProperties()
     INDI::Focuser::initProperties();
 
     // Go home switch
-    IUFillSwitch(&GoHomeS[0], "GO_HOME", "Go Home", ISS_OFF);
-    IUFillSwitchVector(&GoHomeSP, GoHomeS, 1, getDeviceName(), "FOCUS_GO_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
+    GoHomeSP[0].fill("GO_HOME", "Go Home", ISS_OFF);
+    GoHomeSP.fill(getDeviceName(), "FOCUS_GO_HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
                        60, IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
                        IP_RO, 0, IPS_IDLE);
 
     // Focuser Limits
-    FocusAbsPosN[0].min = 0;
-    FocusAbsPosN[0].max = 16000;
-    FocusAbsPosN[0].step = 1000;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(16000);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusMaxPosN[0].min = 0 ;
-    FocusMaxPosN[0].max = 16000;
-    FocusMaxPosN[0].step = 1000;
-    FocusMaxPosN[0].value = 16000;
-    FocusMaxPosNP.p = IP_RO;
+    FocusMaxPosNP[0].setMin(0 );
+    FocusMaxPosNP[0].setMax(16000);
+    FocusMaxPosNP[0].setStep(1000);
+    FocusMaxPosNP[0].setValue(16000);
+    FocusMaxPosNP.setPermission(IP_RO);
 
-    FocusRelPosN[0].min = 0;
-    FocusRelPosN[0].max = 8000;
-    FocusRelPosN[0].step = 1000;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax(8000);
+    FocusRelPosNP[0].setStep(1000);
 
     addSimulationControl();
 
@@ -125,13 +125,13 @@ bool RainbowRSF::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&TemperatureNP);
-        defineProperty(&GoHomeSP);
+        defineProperty(TemperatureNP);
+        defineProperty(GoHomeSP);
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(GoHomeSP.name);
+        deleteProperty(TemperatureNP.getName());
+        deleteProperty(GoHomeSP.getName());
     }
     return true;
 }
@@ -144,16 +144,16 @@ bool RainbowRSF::ISNewSwitch(const char *dev, const char *name, ISState *states,
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Find Home
-        if (!strcmp(name, GoHomeSP.name))
+        if (GoHomeSP.isNameMatch(name))
         {
-            GoHomeSP.s = findHome() ? IPS_BUSY : IPS_ALERT;
+            GoHomeSP.setState(findHome() ? IPS_BUSY : IPS_ALERT);
 
-            if (GoHomeSP.s == IPS_BUSY)
+            if (GoHomeSP.getState() == IPS_BUSY)
                 LOG_INFO("Moving to home position...");
             else
                 LOG_ERROR("Failed to move to home position.");
 
-            IDSetSwitch(&GoHomeSP, nullptr);
+            GoHomeSP.apply();
             return true;
         }
     }
@@ -189,39 +189,39 @@ bool RainbowRSF::updatePosition()
     if (isSimulation())
     {
         // Move the focuser
-        if (FocusAbsPosN[0].value > m_TargetPosition)
+        if (FocusAbsPosNP[0].value > m_TargetPosition)
         {
-            FocusAbsPosN[0].value -= 500;
-            if (FocusAbsPosN[0].value < m_TargetPosition)
-                FocusAbsPosN[0].value = m_TargetPosition;
+            FocusAbsPosNP[0].value -= 500;
+            if (FocusAbsPosNP[0].value < m_TargetPosition)
+                FocusAbsPosNP[0].setValue(m_TargetPosition);
         }
-        else if (FocusAbsPosN[0].value < m_TargetPosition)
+        else if (FocusAbsPosNP[0].value < m_TargetPosition)
         {
-            FocusAbsPosN[0].value += 500;
-            if (FocusAbsPosN[0].value > m_TargetPosition)
-                FocusAbsPosN[0].value = m_TargetPosition;
+            FocusAbsPosNP[0].value += 500;
+            if (FocusAbsPosNP[0].value > m_TargetPosition)
+                FocusAbsPosNP[0].setValue(m_TargetPosition);
         }
 
         // update the states
-        if (FocusAbsPosN[0].value == m_TargetPosition)
+        if (FocusAbsPosNP[0].value == m_TargetPosition)
         {
-            if (GoHomeSP.s == IPS_BUSY)
+            if (GoHomeSP.getState() == IPS_BUSY)
             {
-                GoHomeSP.s = IPS_OK;
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
-                IDSetSwitch(&GoHomeSP, nullptr);
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                GoHomeSP.setState(IPS_OK);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
+                GoHomeSP.apply();
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
                 LOG_INFO("Focuser reached home position.");
             }
 
-            else if (FocusAbsPosNP.s == IPS_BUSY)
+            else if (FocusAbsPosNP.getState() == IPS_BUSY)
             {
-                FocusAbsPosNP.s = IPS_OK;
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
+                FocusRelPosNP.apply();
                 LOG_INFO("Focuser reached target position.");
             }
         }
@@ -238,33 +238,33 @@ bool RainbowRSF::updatePosition()
     int newPosition { 0 };
     if (sscanf(res, ":FP%d#", &newPosition) == 1)
     {
-        FocusAbsPosN[0].value = newPosition + 8000;
+        FocusAbsPosNP[0].setValue(newPosition + 8000);
 
-        if (FocusAbsPosN[0].value == m_TargetPosition)
+        if (FocusAbsPosNP[0].value == m_TargetPosition)
         {
-            if (GoHomeSP.s == IPS_BUSY)
+            if (GoHomeSP.getState() == IPS_BUSY)
             {
-                GoHomeSP.s = IPS_OK;
-                GoHomeS[0].s = ISS_OFF;
-                IDSetSwitch(&GoHomeSP, nullptr);
+                GoHomeSP.setState(IPS_OK);
+                GoHomeSP[0].setState(ISS_OFF);
+                GoHomeSP.apply();
 
-                FocusAbsPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
 
-                FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.setState(IPS_OK);
+                FocusRelPosNP.apply();
 
                 LOG_INFO("Focuser reached home position.");
             }
 
-            else if (FocusAbsPosNP.s == IPS_BUSY)
+            else if (FocusAbsPosNP.getState() == IPS_BUSY)
             {
-                FocusAbsPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                FocusAbsPosNP.setState(IPS_OK);
+                FocusAbsPosNP.apply();
 
-                FocusRelPosNP.s = IPS_OK;
+                FocusRelPosNP.setState(IPS_OK);
 
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.apply();
                 LOG_INFO("Focuser reached target position.");
             }
         }
@@ -272,7 +272,7 @@ bool RainbowRSF::updatePosition()
     }
     else
     {
-        FocusAbsPosNP.s = IPS_ALERT;
+        FocusAbsPosNP.setState(IPS_ALERT);
         return false;
     }
 
@@ -294,13 +294,13 @@ bool RainbowRSF::updateTemperature()
 
     if (sscanf(res, ":FT1%g", &temperature) == 1)
     {
-        TemperatureN[0].value = temperature;
-        TemperatureNP.s = IPS_OK;
+        TemperatureNP[0].setValue(temperature);
+        TemperatureNP.setState(IPS_OK);
         return true;
     }
     else
     {
-        TemperatureNP.s = IPS_ALERT;
+        TemperatureNP.setState(IPS_ALERT);
         return false;
     }
 }
@@ -327,9 +327,9 @@ IPState RainbowRSF::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState RainbowRSF::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
-    double newPosition = FocusAbsPosN[0].value + relativeTicks;
+    double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
     bool rc = MoveAbsFocuser(newPosition);
 
@@ -344,13 +344,13 @@ bool RainbowRSF::findHome()
     if (isSimulation())
     {
         MoveAbsFocuser(homePosition);
-        FocusAbsPosNP.s = IPS_BUSY;
+        FocusAbsPosNP.setState(IPS_BUSY);
         return true;
     }
     else
     {
         m_TargetPosition = homePosition;
-        FocusAbsPosNP.s = IPS_BUSY;
+        FocusAbsPosNP.setState(IPS_BUSY);
         return sendCommand(":Fh#");
     }
 }
@@ -364,16 +364,16 @@ void RainbowRSF::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (abs(m_LastPosition - FocusAbsPosN[0].value) > 0)
+        if (abs(m_LastPosition - FocusAbsPosNP[0].getValue()) > 0)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            m_LastPosition = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            m_LastPosition = FocusAbsPosNP[0].getValue();
 
-            if (GoHomeSP.s == IPS_BUSY && FocusAbsPosN[0].value == homePosition)
+            if (GoHomeSP.getState() == IPS_BUSY && FocusAbsPosNP[0].getValue() == homePosition)
             {
-                GoHomeSP.s = IPS_OK;
+                GoHomeSP.setState(IPS_OK);
                 LOG_INFO("Focuser arrived at home position.");
-                IDSetSwitch(&GoHomeSP, nullptr);
+                GoHomeSP.apply();
             }
         }
     }
@@ -384,10 +384,10 @@ void RainbowRSF::TimerHit()
         rc = updateTemperature();
         if (rc)
         {
-            if (abs(m_LastTemperature - TemperatureN[0].value) >= 0.05)
+            if (abs(m_LastTemperature - TemperatureNP[0].getValue()) >= 0.05)
             {
-                IDSetNumber(&TemperatureNP, nullptr);
-                m_LastTemperature = TemperatureN[0].value;
+                TemperatureNP.apply();
+                m_LastTemperature = TemperatureNP[0].getValue();
             }
         }
         // Reset the counter

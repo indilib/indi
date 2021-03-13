@@ -108,28 +108,28 @@ bool PegasusUPB::initProperties()
     /// Main Control Panel
     ////////////////////////////////////////////////////////////////////////////
     // Cycle all power on/off
-    IUFillSwitch(&PowerCycleAllS[POWER_CYCLE_ON], "POWER_CYCLE_ON", "All On", ISS_OFF);
-    IUFillSwitch(&PowerCycleAllS[POWER_CYCLE_OFF], "POWER_CYCLE_OFF", "All Off", ISS_OFF);
-    IUFillSwitchVector(&PowerCycleAllSP, PowerCycleAllS, 2, getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB,
+    PowerCycleAllSP[POWER_CYCLE_ON].fill("POWER_CYCLE_ON", "All On", ISS_OFF);
+    PowerCycleAllSP[POWER_CYCLE_OFF].fill("POWER_CYCLE_OFF", "All Off", ISS_OFF);
+    PowerCycleAllSP.fill(getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Reboot
-    IUFillSwitch(&RebootS[0], "REBOOT", "Reboot Device", ISS_OFF);
-    IUFillSwitchVector(&RebootSP, RebootS, 1, getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
+    RebootSP[0].fill("REBOOT", "Reboot Device", ISS_OFF);
+    RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
                        60, IPS_IDLE);
 
     // Power Sensors
-    IUFillNumber(&PowerSensorsN[SENSOR_VOLTAGE], "SENSOR_VOLTAGE", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
-    IUFillNumber(&PowerSensorsN[SENSOR_CURRENT], "SENSOR_CURRENT", "Current (A)", "%4.2f", 0, 999, 100, 0);
-    IUFillNumber(&PowerSensorsN[SENSOR_POWER], "SENSOR_POWER", "Power (W)", "%4.2f", 0, 999, 100, 0);
-    IUFillNumberVector(&PowerSensorsNP, PowerSensorsN, 3, getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO,
+    PowerSensorsNP[SENSOR_VOLTAGE].fill("SENSOR_VOLTAGE", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
+    PowerSensorsNP[SENSOR_CURRENT].fill("SENSOR_CURRENT", "Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerSensorsNP[SENSOR_POWER].fill("SENSOR_POWER", "Power (W)", "%4.2f", 0, 999, 100, 0);
+    PowerSensorsNP.fill(getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO,
                        60, IPS_IDLE);
 
     // Overall Power Consumption
-    IUFillNumber(&PowerConsumptionN[CONSUMPTION_AVG_AMPS], "CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
-    IUFillNumber(&PowerConsumptionN[CONSUMPTION_AMP_HOURS], "CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
-    IUFillNumber(&PowerConsumptionN[CONSUMPTION_WATT_HOURS], "CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
-    IUFillNumberVector(&PowerConsumptionNP, PowerConsumptionN, 3, getDeviceName(), "POWER_CONSUMPTION", "Consumption",
+    PowerConsumptionNP[CONSUMPTION_AVG_AMPS].fill("CONSUMPTION_AVG_AMPS", "Avg. Amps", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_AMP_HOURS].fill("CONSUMPTION_AMP_HOURS", "Amp Hours", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP[CONSUMPTION_WATT_HOURS].fill("CONSUMPTION_WATT_HOURS", "Watt Hours", "%4.2f", 0, 999, 100, 0);
+    PowerConsumptionNP.fill(getDeviceName(), "POWER_CONSUMPTION", "Consumption",
                        MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -137,121 +137,121 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Dew Labels. Need to delare them here to use in the Power usage section
-    IUFillText(&DewControlsLabelsT[0], "DEW_LABEL_1", "Dew A", "Dew A");
-    IUFillText(&DewControlsLabelsT[1], "DEW_LABEL_2", "Dew B", "Dew B");
-    IUFillText(&DewControlsLabelsT[2], "DEW_LABEL_3", "Dew C", "Dew C");
-    IUFillTextVector(&DewControlsLabelsTP, DewControlsLabelsT, 3, getDeviceName(), "DEW_CONTROL_LABEL", "Dew Labels",
+    DewControlsLabelsTP[0].fill("DEW_LABEL_1", "Dew A", "Dew A");
+    DewControlsLabelsTP[1].fill("DEW_LABEL_2", "Dew B", "Dew B");
+    DewControlsLabelsTP[2].fill("DEW_LABEL_3", "Dew C", "Dew C");
+    DewControlsLabelsTP.fill(getDeviceName(), "DEW_CONTROL_LABEL", "Dew Labels",
                      DEW_TAB, IP_WO, 60, IPS_IDLE);
 
     char dewLabel[MAXINDILABEL];
 
     // Turn on/off power and power boot up
     memset(dewLabel, 0, MAXINDILABEL);
-    int dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.name, DewControlsLabelsT[0].name, dewLabel,
+    int dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[0].getName(), dewLabel,
                                  MAXINDILABEL);
-    IUFillSwitch(&AutoDewV2S[DEW_PWM_A], "DEW_A", dewRC == -1 ? "Dew A" : dewLabel, ISS_OFF);
+    AutoDewV2SP[DEW_PWM_A].fill("DEW_A", dewRC == -1 ? "Dew A" : dewLabel, ISS_OFF);
     memset(dewLabel, 0, MAXINDILABEL);
-    dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.name, DewControlsLabelsT[1].name, dewLabel,
+    dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[1].getName(), dewLabel,
                                      MAXINDILABEL);
-    IUFillSwitch(&AutoDewV2S[DEW_PWM_B], "DEW_B", dewRC == -1 ? "Dew B" : dewLabel, ISS_OFF);
+    AutoDewV2SP[DEW_PWM_B].fill("DEW_B", dewRC == -1 ? "Dew B" : dewLabel, ISS_OFF);
     memset(dewLabel, 0, MAXINDILABEL);
-    dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.name, DewControlsLabelsT[2].name, dewLabel,
+    dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.getName(), DewControlsLabelsTP[2].getName(), dewLabel,
                                      MAXINDILABEL);
-    IUFillSwitch(&AutoDewV2S[DEW_PWM_C], "DEW_C", dewRC == -1 ? "Dew C" : dewLabel, ISS_OFF);
-    IUFillSwitchVector(&AutoDewV2SP, AutoDewV2S, 3, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
+    AutoDewV2SP[DEW_PWM_C].fill("DEW_C", dewRC == -1 ? "Dew C" : dewLabel, ISS_OFF);
+    AutoDewV2SP.fill(getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
                        IPS_IDLE);
 
     // Dew Labels with custom labels
-    IUFillText(&DewControlsLabelsT[0], "DEW_LABEL_1", "Dew A", AutoDewV2S[0].label);
-    IUFillText(&DewControlsLabelsT[1], "DEW_LABEL_2", "Dew B", AutoDewV2S[1].label);
-    IUFillText(&DewControlsLabelsT[2], "DEW_LABEL_3", "Dew C", AutoDewV2S[2].label);
-    IUFillTextVector(&DewControlsLabelsTP, DewControlsLabelsT, 3, getDeviceName(), "DEW_CONTROL_LABEL", "DEW Labels",
+    DewControlsLabelsTP[0].fill("DEW_LABEL_1", "Dew A", AutoDewV2SP[0].label);
+    DewControlsLabelsTP[1].fill("DEW_LABEL_2", "Dew B", AutoDewV2SP[1].label);
+    DewControlsLabelsTP[2].fill("DEW_LABEL_3", "Dew C", AutoDewV2SP[2].label);
+    DewControlsLabelsTP.fill(getDeviceName(), "DEW_CONTROL_LABEL", "DEW Labels",
                      DEW_TAB, IP_WO, 60, IPS_IDLE);
     // Power Labels
-    IUFillText(&PowerControlsLabelsT[0], "POWER_LABEL_1", "Port 1", "Port 1");
-    IUFillText(&PowerControlsLabelsT[1], "POWER_LABEL_2", "Port 2", "Port 2");
-    IUFillText(&PowerControlsLabelsT[2], "POWER_LABEL_3", "Port 3", "Port 3");
-    IUFillText(&PowerControlsLabelsT[3], "POWER_LABEL_4", "Port 4", "Port 4");
-    IUFillTextVector(&PowerControlsLabelsTP, PowerControlsLabelsT, 4, getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels",
+    PowerControlsLabelsTP[0].fill("POWER_LABEL_1", "Port 1", "Port 1");
+    PowerControlsLabelsTP[1].fill("POWER_LABEL_2", "Port 2", "Port 2");
+    PowerControlsLabelsTP[2].fill("POWER_LABEL_3", "Port 3", "Port 3");
+    PowerControlsLabelsTP[3].fill("POWER_LABEL_4", "Port 4", "Port 4");
+    PowerControlsLabelsTP.fill(getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels",
                      POWER_TAB, IP_WO, 60, IPS_IDLE);
 
     char portLabel[MAXINDILABEL];
 
     // Turn on/off power and power boot up
     memset(portLabel, 0, MAXINDILABEL);
-    int portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[0].name, portLabel,
+    int portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[0].getName(), portLabel,
                                  MAXINDILABEL);
-    IUFillSwitch(&PowerControlS[0], "POWER_CONTROL_1", portRC == -1 ? "Port 1" : portLabel, ISS_OFF);
+    PowerControlSP[0].fill("POWER_CONTROL_1", portRC == -1 ? "Port 1" : portLabel, ISS_OFF);
 
     memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[1].name, portLabel,
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[1].getName(), portLabel,
                              MAXINDILABEL);
-    IUFillSwitch(&PowerControlS[1], "POWER_CONTROL_2", portRC == -1 ? "Port 2" : portLabel, ISS_OFF);
+    PowerControlSP[1].fill("POWER_CONTROL_2", portRC == -1 ? "Port 2" : portLabel, ISS_OFF);
 
     memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[2].name, portLabel,
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[2].getName(), portLabel,
                              MAXINDILABEL);
-    IUFillSwitch(&PowerControlS[2], "POWER_CONTROL_3", portRC == -1 ? "Port 3" : portLabel, ISS_OFF);
+    PowerControlSP[2].fill("POWER_CONTROL_3", portRC == -1 ? "Port 3" : portLabel, ISS_OFF);
 
     memset(portLabel, 0, MAXINDILABEL);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[3].name, portLabel,
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.getName(), PowerControlsLabelsTP[3].getName(), portLabel,
                              MAXINDILABEL);
-    IUFillSwitch(&PowerControlS[3], "POWER_CONTROL_4", portRC == -1 ? "Port 4" : portLabel, ISS_OFF);
+    PowerControlSP[3].fill("POWER_CONTROL_4", portRC == -1 ? "Port 4" : portLabel, ISS_OFF);
 
-    IUFillSwitchVector(&PowerControlSP, PowerControlS, 4, getDeviceName(), "POWER_CONTROL", "Power Control", POWER_TAB, IP_RW,
+    PowerControlSP.fill(getDeviceName(), "POWER_CONTROL", "Power Control", POWER_TAB, IP_RW,
                        ISR_NOFMANY, 60, IPS_IDLE);
 
     // Power Labels
-    IUFillText(&PowerControlsLabelsT[0], "POWER_LABEL_1", "Port 1", PowerControlS[0].label);
-    IUFillText(&PowerControlsLabelsT[1], "POWER_LABEL_2", "Port 2", PowerControlS[1].label);
-    IUFillText(&PowerControlsLabelsT[2], "POWER_LABEL_3", "Port 3", PowerControlS[2].label);
-    IUFillText(&PowerControlsLabelsT[3], "POWER_LABEL_4", "Port 4", PowerControlS[3].label);
-    IUFillTextVector(&PowerControlsLabelsTP, PowerControlsLabelsT, 4, getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels",
+    PowerControlsLabelsTP[0].fill("POWER_LABEL_1", "Port 1", PowerControlSP[0].label);
+    PowerControlsLabelsTP[1].fill("POWER_LABEL_2", "Port 2", PowerControlSP[1].label);
+    PowerControlsLabelsTP[2].fill("POWER_LABEL_3", "Port 3", PowerControlSP[2].label);
+    PowerControlsLabelsTP[3].fill("POWER_LABEL_4", "Port 4", PowerControlSP[3].label);
+    PowerControlsLabelsTP.fill(getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels",
                      POWER_TAB, IP_WO, 60, IPS_IDLE);
 
     // Current Draw
-    IUFillNumber(&PowerCurrentN[0], "POWER_CURRENT_1", PowerControlS[0].label, "%4.2f A", 0, 1000, 0, 0);
-    IUFillNumber(&PowerCurrentN[1], "POWER_CURRENT_2", PowerControlS[1].label, "%4.2f A", 0, 1000, 0, 0);
-    IUFillNumber(&PowerCurrentN[2], "POWER_CURRENT_3", PowerControlS[2].label, "%4.2f A", 0, 1000, 0, 0);
-    IUFillNumber(&PowerCurrentN[3], "POWER_CURRENT_4", PowerControlS[3].label, "%4.2f A", 0, 1000, 0, 0);
-    IUFillNumberVector(&PowerCurrentNP, PowerCurrentN, 4, getDeviceName(), "POWER_CURRENT", "Current Draw", POWER_TAB, IP_RO,
+    PowerCurrentNP[0].fill("POWER_CURRENT_1", PowerControlSP[0].label, "%4.2f A", 0, 1000, 0, 0);
+    PowerCurrentNP[1].fill("POWER_CURRENT_2", PowerControlSP[1].label, "%4.2f A", 0, 1000, 0, 0);
+    PowerCurrentNP[2].fill("POWER_CURRENT_3", PowerControlSP[2].label, "%4.2f A", 0, 1000, 0, 0);
+    PowerCurrentNP[3].fill("POWER_CURRENT_4", PowerControlSP[3].label, "%4.2f A", 0, 1000, 0, 0);
+    PowerCurrentNP.fill(getDeviceName(), "POWER_CURRENT", "Current Draw", POWER_TAB, IP_RO,
                        60, IPS_IDLE);
 
     // Power on Boot
-    IUFillSwitch(&PowerOnBootS[0], "POWER_PORT_1", PowerControlS[0].label, ISS_ON);
-    IUFillSwitch(&PowerOnBootS[1], "POWER_PORT_2", PowerControlS[1].label, ISS_ON);
-    IUFillSwitch(&PowerOnBootS[2], "POWER_PORT_3", PowerControlS[2].label, ISS_ON);
-    IUFillSwitch(&PowerOnBootS[3], "POWER_PORT_4", PowerControlS[3].label, ISS_ON);
-    IUFillSwitchVector(&PowerOnBootSP, PowerOnBootS, 4, getDeviceName(), "POWER_ON_BOOT", "Power On Boot", POWER_TAB, IP_RW,
+    PowerOnBootSP[0].fill("POWER_PORT_1", PowerControlSP[0].label, ISS_ON);
+    PowerOnBootSP[1].fill("POWER_PORT_2", PowerControlSP[1].label, ISS_ON);
+    PowerOnBootSP[2].fill("POWER_PORT_3", PowerControlSP[2].label, ISS_ON);
+    PowerOnBootSP[3].fill("POWER_PORT_4", PowerControlSP[3].label, ISS_ON);
+    PowerOnBootSP.fill(getDeviceName(), "POWER_ON_BOOT", "Power On Boot", POWER_TAB, IP_RW,
                        ISR_NOFMANY, 60, IPS_IDLE);
 
     // Over Current
-    IUFillLight(&OverCurrentL[0], "POWER_PORT_1", PowerControlS[0].label, IPS_OK);
-    IUFillLight(&OverCurrentL[1], "POWER_PORT_2", PowerControlS[1].label, IPS_OK);
-    IUFillLight(&OverCurrentL[2], "POWER_PORT_3", PowerControlS[2].label, IPS_OK);
-    IUFillLight(&OverCurrentL[3], "POWER_PORT_4", PowerControlS[3].label, IPS_OK);
+    OverCurrentLP[0].fill("POWER_PORT_1", PowerControlSP[0].label, IPS_OK);
+    OverCurrentLP[1].fill("POWER_PORT_2", PowerControlSP[1].label, IPS_OK);
+    OverCurrentLP[2].fill("POWER_PORT_3", PowerControlSP[2].label, IPS_OK);
+    OverCurrentLP[3].fill("POWER_PORT_4", PowerControlSP[3].label, IPS_OK);
 
     char tempLabel[MAXINDILABEL+5];
     memset(tempLabel, 0, MAXINDILABEL+5);
-    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2S[0].label);
-    IUFillLight(&OverCurrentL[4], "DEW_A", tempLabel, IPS_OK);
+    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2SP[0].label);
+    OverCurrentLP[4].fill("DEW_A", tempLabel, IPS_OK);
     memset(tempLabel, 0, MAXINDILABEL);
-    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2S[1].label);
-    IUFillLight(&OverCurrentL[5], "DEW_B", tempLabel, IPS_OK);
+    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2SP[1].label);
+    OverCurrentLP[5].fill("DEW_B", tempLabel, IPS_OK);
     memset(tempLabel, 0, MAXINDILABEL);
-    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2S[2].label);
-    IUFillLight(&OverCurrentL[6], "DEW_C", tempLabel, IPS_OK);
-    IUFillLightVector(&OverCurrentLP, OverCurrentL, 7, getDeviceName(), "POWER_OVER_CURRENT", "Over Current", POWER_TAB,
+    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2SP[2].label);
+    OverCurrentLP[6].fill("DEW_C", tempLabel, IPS_OK);
+    OverCurrentLP.fill(getDeviceName(), "POWER_OVER_CURRENT", "Over Current", POWER_TAB,
                       IPS_IDLE);
 
     // Power LED
-    IUFillSwitch(&PowerLEDS[POWER_LED_ON], "POWER_LED_ON", "On", ISS_ON);
-    IUFillSwitch(&PowerLEDS[POWER_LED_OFF], "POWER_LED_OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&PowerLEDSP, PowerLEDS, 2, getDeviceName(), "POWER_LED", "LED", POWER_TAB, IP_RW, ISR_1OFMANY, 60,
+    PowerLEDSP[POWER_LED_ON].fill("POWER_LED_ON", "On", ISS_ON);
+    PowerLEDSP[POWER_LED_OFF].fill("POWER_LED_OFF", "Off", ISS_OFF);
+    PowerLEDSP.fill(getDeviceName(), "POWER_LED", "LED", POWER_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
 
-    IUFillNumber(&AdjustableOutputN[0], "ADJUSTABLE_VOLTAGE_VALUE", "Voltage (V)", "%.f", 3, 12, 1, 12);
-    IUFillNumberVector(&AdjustableOutputNP, AdjustableOutputN, 1, getDeviceName(), "ADJUSTABLE_VOLTAGE", "Adj. Output",
+    AdjustableOutputNP[0].fill("ADJUSTABLE_VOLTAGE_VALUE", "Voltage (V)", "%.f", 3, 12, 1, 12);
+    AdjustableOutputNP.fill(getDeviceName(), "ADJUSTABLE_VOLTAGE", "Adj. Output",
                        POWER_TAB, IP_RW, 60, IPS_IDLE);
 
 
@@ -260,26 +260,26 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Automatic Dew v1
-    IUFillSwitch(&AutoDewS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&AutoDewS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&AutoDewSP, AutoDewS, 2, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60,
+    AutoDewSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    AutoDewSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    AutoDewSP.fill(getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
 
     // Automatic Dew Aggressiveness v2
-    IUFillNumber(&AutoDewAggN[AUTO_DEW_AGG], "AUTO_DEW_AGG_VALUE", "Auto Dew Agg (50-250)", "%.2f", 50, 250, 20, 0);
-    IUFillNumberVector(&AutoDewAggNP, AutoDewAggN, 1, getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    AutoDewAggNP[AUTO_DEW_AGG].fill("AUTO_DEW_AGG_VALUE", "Auto Dew Agg (50-250)", "%.2f", 50, 250, 20, 0);
+    AutoDewAggNP.fill(getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     // Dew PWM
-    IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", AutoDewV2S[0].label, "%.2f %%", 0, 100, 10, 0);
-    IUFillNumber(&DewPWMN[DEW_PWM_B], "DEW_B", AutoDewV2S[1].label, "%.2f %%", 0, 100, 10, 0);
-    IUFillNumber(&DewPWMN[DEW_PWM_C], "DEW_C", AutoDewV2S[2].label, "%.2f %%", 0, 100, 10, 0);
-    IUFillNumberVector(&DewPWMNP, DewPWMN, 3, getDeviceName(), "DEW_PWM", "Dew PWM", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    DewPWMNP[DEW_PWM_A].fill("DEW_A", AutoDewV2SP[0].label, "%.2f %%", 0, 100, 10, 0);
+    DewPWMNP[DEW_PWM_B].fill("DEW_B", AutoDewV2SP[1].label, "%.2f %%", 0, 100, 10, 0);
+    DewPWMNP[DEW_PWM_C].fill("DEW_C", AutoDewV2SP[2].label, "%.2f %%", 0, 100, 10, 0);
+    DewPWMNP.fill(getDeviceName(), "DEW_PWM", "Dew PWM", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     // Dew current draw
-    IUFillNumber(&DewCurrentDrawN[DEW_PWM_A], "DEW_CURRENT_A", AutoDewV2S[0].label, "%4.2f A", 0, 1000, 10, 0);
-    IUFillNumber(&DewCurrentDrawN[DEW_PWM_B], "DEW_CURRENT_B", AutoDewV2S[1].label, "%4.2f A", 0, 1000, 10, 0);
-    IUFillNumber(&DewCurrentDrawN[DEW_PWM_C], "DEW_CURRENT_C", AutoDewV2S[2].label, "%4.2f A", 0, 1000, 10, 0);
-    IUFillNumberVector(&DewCurrentDrawNP, DewCurrentDrawN, 3, getDeviceName(), "DEW_CURRENT", "Dew Current", DEW_TAB, IP_RO, 60,
+    DewCurrentDrawNP[DEW_PWM_A].fill("DEW_CURRENT_A", AutoDewV2SP[0].label, "%4.2f A", 0, 1000, 10, 0);
+    DewCurrentDrawNP[DEW_PWM_B].fill("DEW_CURRENT_B", AutoDewV2SP[1].label, "%4.2f A", 0, 1000, 10, 0);
+    DewCurrentDrawNP[DEW_PWM_C].fill("DEW_CURRENT_C", AutoDewV2SP[2].label, "%4.2f A", 0, 1000, 10, 0);
+    DewCurrentDrawNP.fill(getDeviceName(), "DEW_CURRENT", "Dew Current", DEW_TAB, IP_RO, 60,
                        IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -287,20 +287,20 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // USB Hub control v1
-    IUFillSwitch(&USBControlS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_ON);
-    IUFillSwitch(&USBControlS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_OFF);
-    IUFillSwitchVector(&USBControlSP, USBControlS, 2, getDeviceName(), "USB_HUB_CONTROL", "Hub", USB_TAB, IP_RW, ISR_1OFMANY,
+    USBControlSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_ON);
+    USBControlSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_OFF);
+    USBControlSP.fill(getDeviceName(), "USB_HUB_CONTROL", "Hub", USB_TAB, IP_RW, ISR_1OFMANY,
                        60, IPS_IDLE);
 
     // USB Labels
-    IUFillText(&USBControlsLabelsT[0], "USB_LABEL_1", "USB3 Port1", "USB3 Port1");
-    IUFillText(&USBControlsLabelsT[1], "USB_LABEL_2", "USB3 Port2", "USB3 Port2");
-    IUFillText(&USBControlsLabelsT[2], "USB_LABEL_3", "USB3 Port3", "USB3 Port3");
-    IUFillText(&USBControlsLabelsT[3], "USB_LABEL_4", "USB3 Port4", "USB3 Port4");
-    IUFillText(&USBControlsLabelsT[4], "USB_LABEL_5", "USB2 Port5", "USB2 Port5");
-    IUFillText(&USBControlsLabelsT[5], "USB_LABEL_6", "USB2 Port6", "USB2 Port6");
+    USBControlsLabelsTP[0].fill("USB_LABEL_1", "USB3 Port1", "USB3 Port1");
+    USBControlsLabelsTP[1].fill("USB_LABEL_2", "USB3 Port2", "USB3 Port2");
+    USBControlsLabelsTP[2].fill("USB_LABEL_3", "USB3 Port3", "USB3 Port3");
+    USBControlsLabelsTP[3].fill("USB_LABEL_4", "USB3 Port4", "USB3 Port4");
+    USBControlsLabelsTP[4].fill("USB_LABEL_5", "USB2 Port5", "USB2 Port5");
+    USBControlsLabelsTP[5].fill("USB_LABEL_6", "USB2 Port6", "USB2 Port6");
 
-    IUFillTextVector(&USBControlsLabelsTP, USBControlsLabelsT, 6, getDeviceName(), "USB_CONTROL_LABEL", "USB Labels",
+    USBControlsLabelsTP.fill(getDeviceName(), "USB_CONTROL_LABEL", "USB Labels",
                      USB_TAB, IP_WO, 60, IPS_IDLE);
 
     // USB Hub control v2
@@ -309,78 +309,78 @@ bool PegasusUPB::initProperties()
 
     // Turn on/off power and power boot up
     memset(USBLabel, 0, MAXINDILABEL);
-    int USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[0].name, USBLabel,
+    int USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[0].getName(), USBLabel,
                                  MAXINDILABEL);
-    IUFillSwitch(&USBControlV2S[0], "PORT_1", USBRC == -1 ? "USB3 Port1" : USBLabel, ISS_ON);
+    USBControlV2SP[0].fill("PORT_1", USBRC == -1 ? "USB3 Port1" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
-    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[1].name, USBLabel,
+    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[1].getName(), USBLabel,
                                  MAXINDILABEL);
-    IUFillSwitch(&USBControlV2S[1], "PORT_2", USBRC == -1 ? "USB3 Port2" : USBLabel, ISS_ON);
+    USBControlV2SP[1].fill("PORT_2", USBRC == -1 ? "USB3 Port2" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
-    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[2].name, USBLabel,
+    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[2].getName(), USBLabel,
                                  MAXINDILABEL);
-    IUFillSwitch(&USBControlV2S[2], "PORT_3", USBRC == -1 ? "USB3 Port3" : USBLabel, ISS_ON);
+    USBControlV2SP[2].fill("PORT_3", USBRC == -1 ? "USB3 Port3" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
-    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[3].name, USBLabel,
+    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[3].getName(), USBLabel,
                                  MAXINDILABEL);
-    IUFillSwitch(&USBControlV2S[3], "PORT_4", USBRC == -1 ? "USB3 Port4" : USBLabel, ISS_ON);
+    USBControlV2SP[3].fill("PORT_4", USBRC == -1 ? "USB3 Port4" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
-    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[4].name, USBLabel,
+    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[4].getName(), USBLabel,
                                  MAXINDILABEL);
-    IUFillSwitch(&USBControlV2S[4], "PORT_5", USBRC == -1 ? "USB2 Port5" : USBLabel, ISS_ON);
+    USBControlV2SP[4].fill("PORT_5", USBRC == -1 ? "USB2 Port5" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
-    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[5].name, USBLabel,
+    USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.getName(), USBControlsLabelsTP[5].getName(), USBLabel,
                                  MAXINDILABEL);
-    IUFillSwitch(&USBControlV2S[5], "PORT_6", USBRC == -1 ? "USB2 Port6" : USBLabel, ISS_ON);
+    USBControlV2SP[5].fill("PORT_6", USBRC == -1 ? "USB2 Port6" : USBLabel, ISS_ON);
 
-    IUFillSwitchVector(&USBControlV2SP, USBControlV2S, 6, getDeviceName(), "USB_PORT_CONTROL", "Ports", USB_TAB, IP_RW,
+    USBControlV2SP.fill(getDeviceName(), "USB_PORT_CONTROL", "Ports", USB_TAB, IP_RW,
                        ISR_NOFMANY, 60, IPS_IDLE);
 
     // USB Labels update with custom values
-    IUFillText(&USBControlsLabelsT[0], "USB_LABEL_1", "USB3 Port1", USBControlV2S[0].label);
-    IUFillText(&USBControlsLabelsT[1], "USB_LABEL_2", "USB3 Port2", USBControlV2S[1].label);
-    IUFillText(&USBControlsLabelsT[2], "USB_LABEL_3", "USB3 Port3", USBControlV2S[2].label);
-    IUFillText(&USBControlsLabelsT[3], "USB_LABEL_4", "USB3 Port4", USBControlV2S[3].label);
-    IUFillText(&USBControlsLabelsT[4], "USB_LABEL_5", "USB2 Port5", USBControlV2S[4].label);
-    IUFillText(&USBControlsLabelsT[5], "USB_LABEL_6", "USB2 Port6", USBControlV2S[5].label);
+    USBControlsLabelsTP[0].fill("USB_LABEL_1", "USB3 Port1", USBControlV2SP[0].label);
+    USBControlsLabelsTP[1].fill("USB_LABEL_2", "USB3 Port2", USBControlV2SP[1].label);
+    USBControlsLabelsTP[2].fill("USB_LABEL_3", "USB3 Port3", USBControlV2SP[2].label);
+    USBControlsLabelsTP[3].fill("USB_LABEL_4", "USB3 Port4", USBControlV2SP[3].label);
+    USBControlsLabelsTP[4].fill("USB_LABEL_5", "USB2 Port5", USBControlV2SP[4].label);
+    USBControlsLabelsTP[5].fill("USB_LABEL_6", "USB2 Port6", USBControlV2SP[5].label);
 
-    IUFillTextVector(&USBControlsLabelsTP, USBControlsLabelsT, 6, getDeviceName(), "USB_CONTROL_LABEL", "USB Labels",
+    USBControlsLabelsTP.fill(getDeviceName(), "USB_CONTROL_LABEL", "USB Labels",
                      USB_TAB, IP_WO, 60, IPS_IDLE);
     // USB Hub Status
-    IUFillLight(&USBStatusL[0], "PORT_1", USBControlV2S[0].label, IPS_OK);
-    IUFillLight(&USBStatusL[1], "PORT_2", USBControlV2S[1].label, IPS_OK);
-    IUFillLight(&USBStatusL[2], "PORT_3", USBControlV2S[2].label, IPS_OK);
-    IUFillLight(&USBStatusL[3], "PORT_4", USBControlV2S[3].label, IPS_OK);
-    IUFillLight(&USBStatusL[4], "PORT_5", USBControlV2S[4].label, IPS_OK);
-    IUFillLight(&USBStatusL[5], "PORT_6", USBControlV2S[5].label, IPS_OK);
-    IUFillLightVector(&USBStatusLP, USBStatusL, 6, getDeviceName(), "USB_PORT_STATUS", "Status", USB_TAB, IPS_IDLE);
+    USBStatusLP[0].fill("PORT_1", USBControlV2SP[0].label, IPS_OK);
+    USBStatusLP[1].fill("PORT_2", USBControlV2SP[1].label, IPS_OK);
+    USBStatusLP[2].fill("PORT_3", USBControlV2SP[2].label, IPS_OK);
+    USBStatusLP[3].fill("PORT_4", USBControlV2SP[3].label, IPS_OK);
+    USBStatusLP[4].fill("PORT_5", USBControlV2SP[4].label, IPS_OK);
+    USBStatusLP[5].fill("PORT_6", USBControlV2SP[5].label, IPS_OK);
+    USBStatusLP.fill(getDeviceName(), "USB_PORT_STATUS", "Status", USB_TAB, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Focuser Group
     ////////////////////////////////////////////////////////////////////////////
 
     // Settings
-    //    IUFillNumber(&FocusBacklashN[0], "SETTING_BACKLASH", "Backlash (steps)", "%.f", 0, 999, 100, 0);
-    IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
-    IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 1, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
+    //    FocusBacklashNP[0].fill("SETTING_BACKLASH", "Backlash (steps)", "%.f", 0, 999, 100, 0);
+    FocuserSettingsNP[SETTING_MAX_SPEED].fill("SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
+    FocuserSettingsNP.fill(getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
                        IP_RW, 60, IPS_IDLE);
 
     // Backlash
-    //    IUFillSwitch(&FocusBacklashS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    //    IUFillSwitch(&FocusBacklashS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    //    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, getDeviceName(), "FOCUSER_BACKLASH", "Backlash", FOCUS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    //    FocusBacklashSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    //    FocusBacklashSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    //    FocusBacklashSP.fill(getDeviceName(), "FOCUSER_BACKLASH", "Backlash", FOCUS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Temperature
-    IUFillNumber(&FocuserTemperatureN[0], "FOCUSER_TEMPERATURE_VALUE", "Value (C)", "%4.2f", -50, 85, 1, 0);
-    IUFillNumberVector(&FocuserTemperatureNP, FocuserTemperatureN, 1, getDeviceName(), "FOCUSER_TEMPERATURE", "Temperature",
+    FocuserTemperatureNP[0].fill("FOCUSER_TEMPERATURE_VALUE", "Value (C)", "%4.2f", -50, 85, 1, 0);
+    FocuserTemperatureNP.fill(getDeviceName(), "FOCUSER_TEMPERATURE", "Temperature",
                        FOCUS_TAB, IP_RO, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Firmware Group
     ////////////////////////////////////////////////////////////////////////////
-    IUFillText(&FirmwareT[FIRMWARE_VERSION], "VERSION", "Version", "NA");
-    IUFillText(&FirmwareT[FIRMWARE_UPTIME], "UPTIME", "Uptime (h)", "NA");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 2, getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
+    FirmwareTP[FIRMWARE_VERSION].fill("VERSION", "Version", "NA");
+    FirmwareTP[FIRMWARE_UPTIME].fill("UPTIME", "Uptime (h)", "NA");
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
                      IPS_IDLE);
     ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
@@ -413,110 +413,110 @@ bool PegasusUPB::updateProperties()
         setupParams();
 
         // Main Control
-        defineProperty(&PowerCycleAllSP);
-        defineProperty(&PowerSensorsNP);
-        defineProperty(&PowerConsumptionNP);
-        defineProperty(&RebootSP);
+        defineProperty(PowerCycleAllSP);
+        defineProperty(PowerSensorsNP);
+        defineProperty(PowerConsumptionNP);
+        defineProperty(RebootSP);
 
         // Power
-        defineProperty(&PowerControlSP);
-        defineProperty(&PowerControlsLabelsTP);
-        defineProperty(&PowerCurrentNP);
-        defineProperty(&PowerOnBootSP);
-        OverCurrentLP.nlp = (version == UPB_V1) ? 4 : 7;
-        defineProperty(&OverCurrentLP);
+        defineProperty(PowerControlSP);
+        defineProperty(PowerControlsLabelsTP);
+        defineProperty(PowerCurrentNP);
+        defineProperty(PowerOnBootSP);
+        OverCurrentLP.resize((version == UPB_V1) ? 4 : 7);
+        defineProperty(OverCurrentLP);
         if (version == UPB_V1)
-            defineProperty(&PowerLEDSP);
+            defineProperty(PowerLEDSP);
         if (version == UPB_V2)
-            defineProperty(&AdjustableOutputNP);
+            defineProperty(AdjustableOutputNP);
 
         // Dew
         if (version == UPB_V1)
-            defineProperty(&AutoDewSP);
+            defineProperty(AutoDewSP);
         else
-            defineProperty(&AutoDewV2SP);
+            defineProperty(AutoDewV2SP);
 
-        DewControlsLabelsTP.ntp = (version == UPB_V1) ? 2 : 3;
-        defineProperty(&DewControlsLabelsTP);
+        DewControlsLabelsTP.resize((version == UPB_V1) ? 2 : 3);
+        defineProperty(DewControlsLabelsTP);
 
         if (version == UPB_V2)
-            defineProperty(&AutoDewAggNP);
+            defineProperty(AutoDewAggNP);
 
-        DewPWMNP.nnp = (version == UPB_V1) ? 2 : 3;
-        defineProperty(&DewPWMNP);
+        DewPWMNP.resize((version == UPB_V1) ? 2 : 3);
+        defineProperty(DewPWMNP);
 
-        DewCurrentDrawNP.nnp = (version == UPB_V1) ? 2 : 3;
-        defineProperty(&DewCurrentDrawNP);
+        DewCurrentDrawNP.resize((version == UPB_V1) ? 2 : 3);
+        defineProperty(DewCurrentDrawNP);
 
         // USB
-        defineProperty(&USBControlSP);
+        defineProperty(USBControlSP);
         if (version == UPB_V2)
-            defineProperty(&USBControlV2SP);
+            defineProperty(USBControlV2SP);
         if (version == UPB_V1)
-            defineProperty(&USBStatusLP);
-        defineProperty(&USBControlsLabelsTP);
+            defineProperty(USBStatusLP);
+        defineProperty(USBControlsLabelsTP);
 
         // Focuser
         FI::updateProperties();
-        defineProperty(&FocuserSettingsNP);
-        //defineProperty(&FocusBacklashSP);
-        defineProperty(&FocuserTemperatureNP);
+        defineProperty(FocuserSettingsNP);
+        //defineProperty(FocusBacklashSP);
+        defineProperty(FocuserTemperatureNP);
 
         WI::updateProperties();
 
         // Firmware
-        defineProperty(&FirmwareTP);
+        defineProperty(FirmwareTP);
 
         setupComplete = true;
     }
     else
     {
         // Main Control
-        deleteProperty(PowerCycleAllSP.name);
-        deleteProperty(PowerSensorsNP.name);
-        deleteProperty(PowerConsumptionNP.name);
-        deleteProperty(RebootSP.name);
+        deleteProperty(PowerCycleAllSP.getName());
+        deleteProperty(PowerSensorsNP.getName());
+        deleteProperty(PowerConsumptionNP.getName());
+        deleteProperty(RebootSP.getName());
 
         // Power
-        deleteProperty(PowerControlSP.name);
-        deleteProperty(PowerControlsLabelsTP.name);
-        deleteProperty(PowerCurrentNP.name);
-        deleteProperty(PowerOnBootSP.name);
-        deleteProperty(OverCurrentLP.name);
+        deleteProperty(PowerControlSP.getName());
+        deleteProperty(PowerControlsLabelsTP.getName());
+        deleteProperty(PowerCurrentNP.getName());
+        deleteProperty(PowerOnBootSP.getName());
+        deleteProperty(OverCurrentLP.getName());
         if (version == UPB_V1)
-            deleteProperty(PowerLEDSP.name);
+            deleteProperty(PowerLEDSP.getName());
         if (version == UPB_V2)
-            deleteProperty(AdjustableOutputNP.name);
+            deleteProperty(AdjustableOutputNP.getName());
 
         // Dew
         if (version == UPB_V1)
-            deleteProperty(AutoDewSP.name);
+            deleteProperty(AutoDewSP.getName());
         else
         {
-            deleteProperty(AutoDewV2SP.name);
-            deleteProperty(DewControlsLabelsTP.name);
-            deleteProperty(AutoDewAggNP.name);
+            deleteProperty(AutoDewV2SP.getName());
+            deleteProperty(DewControlsLabelsTP.getName());
+            deleteProperty(AutoDewAggNP.getName());
         }
 
-        deleteProperty(DewPWMNP.name);
-        deleteProperty(DewCurrentDrawNP.name);
+        deleteProperty(DewPWMNP.getName());
+        deleteProperty(DewCurrentDrawNP.getName());
 
         // USB
-        deleteProperty(USBControlSP.name);
+        deleteProperty(USBControlSP.getName());
         if (version == UPB_V2)
-            deleteProperty(USBControlV2SP.name);
+            deleteProperty(USBControlV2SP.getName());
         if (version == UPB_V1)
-            deleteProperty(USBStatusLP.name);
-        deleteProperty(USBControlsLabelsTP.name);
+            deleteProperty(USBStatusLP.getName());
+        deleteProperty(USBControlsLabelsTP.getName());
 
         // Focuser
         FI::updateProperties();
-        deleteProperty(FocuserSettingsNP.name);
-        deleteProperty(FocuserTemperatureNP.name);
+        deleteProperty(FocuserSettingsNP.getName());
+        deleteProperty(FocuserTemperatureNP.getName());
 
         WI::updateProperties();
 
-        deleteProperty(FirmwareTP.name);
+        deleteProperty(FirmwareTP.getName());
 
         setupComplete = false;
     }
@@ -602,39 +602,39 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // Cycle all power on or off
-        if (!strcmp(name, PowerCycleAllSP.name))
+        if (PowerCycleAllSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PowerCycleAllSP, states, names, n);
+            PowerCycleAllSP.update(states, names, n);
 
-            PowerCycleAllSP.s = IPS_ALERT;
+            PowerCycleAllSP.setState(IPS_ALERT);
             char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-            snprintf(cmd, PEGASUS_LEN, "PZ:%d", IUFindOnSwitchIndex(&PowerCycleAllSP));
+            snprintf(cmd, PEGASUS_LEN, "PZ:%d", PowerCycleAllSP.findOnSwitchIndex());
             if (sendCommand(cmd, res))
             {
-                PowerCycleAllSP.s = !strcmp(cmd, res) ? IPS_OK : IPS_ALERT;
+                PowerCycleAllSP.setState(!strcmp(cmd, res) ? IPS_OK : IPS_ALERT);
             }
 
-            IUResetSwitch(&PowerCycleAllSP);
-            IDSetSwitch(&PowerCycleAllSP, nullptr);
+            PowerCycleAllSP.reset();
+            PowerCycleAllSP.apply();
             return true;
         }
 
         // Reboot
-        if (!strcmp(name, RebootSP.name))
+        if (RebootSP.isNameMatch(name))
         {
-            RebootSP.s = reboot() ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&RebootSP, nullptr);
+            RebootSP.setState(reboot() ? IPS_OK : IPS_ALERT);
+            RebootSP.apply();
             LOG_INFO("Rebooting device...");
             return true;
         }
 
         // Control Power per port
-        if (!strcmp(name, PowerControlSP.name))
+        if (PowerControlSP.isNameMatch(name))
         {
             bool failed = false;
             for (int i = 0; i < n; i++)
             {
-                if (!strcmp(names[i], PowerControlS[i].name) && states[i] != PowerControlS[i].s)
+                if (!strcmp(names[i], PowerControlSP[i].getName()) && states[i] != PowerControlSP[i].getState())
                 {
                     if (setPowerEnabled(i + 1, states[i] == ISS_ON) == false)
                     {
@@ -645,167 +645,167 @@ bool PegasusUPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
             }
 
             if (failed)
-                PowerControlSP.s = IPS_ALERT;
+                PowerControlSP.setState(IPS_ALERT);
             else
             {
-                PowerControlSP.s = IPS_OK;
-                IUUpdateSwitch(&PowerControlSP, states, names, n);
+                PowerControlSP.setState(IPS_OK);
+                PowerControlSP.update(states, names, n);
             }
 
-            IDSetSwitch(&PowerControlSP, nullptr);
+            PowerControlSP.apply();
             return true;
         }
 
         // Power on boot
-        if (!strcmp(name, PowerOnBootSP.name))
+        if (PowerOnBootSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PowerOnBootSP, states, names, n);
-            PowerOnBootSP.s = setPowerOnBoot() ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&PowerOnBootSP, nullptr);
-            saveConfig(true, PowerOnBootSP.name);
+            PowerOnBootSP.update(states, names, n);
+            PowerOnBootSP.setState(setPowerOnBoot() ? IPS_OK : IPS_ALERT);
+            PowerOnBootSP.apply();
+            saveConfig(true, PowerOnBootSP.getName());
             return true;
         }
 
         // Auto Dew v1.
-        if ((!strcmp(name, AutoDewSP.name)) && (version == UPB_V1))
+        if ((!strcmp(name, AutoDewSP.getName())) && (version == UPB_V1))
         {
-            int prevIndex = IUFindOnSwitchIndex(&AutoDewSP);
-            IUUpdateSwitch(&AutoDewSP, states, names, n);
-            if (setAutoDewEnabled(AutoDewS[INDI_ENABLED].s == ISS_ON))
+            int prevIndex = AutoDewSP.findOnSwitchIndex();
+            AutoDewSP.update(states, names, n);
+            if (setAutoDewEnabled(AutoDewSP[INDI_ENABLED].getState() == ISS_ON))
             {
-                AutoDewSP.s = IPS_OK;
+                AutoDewSP.setState(IPS_OK);
             }
             else
             {
-                IUResetSwitch(&AutoDewSP);
-                AutoDewS[prevIndex].s = ISS_ON;
-                AutoDewSP.s = IPS_ALERT;
+                AutoDewSP.reset();
+                AutoDewSP[prevIndex].setState(ISS_ON);
+                AutoDewSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&AutoDewSP, nullptr);
+            AutoDewSP.apply();
             return true;
         }
 
         // Auto Dew v2.
-        if ((!strcmp(name, AutoDewV2SP.name)) && (version == UPB_V2))
+        if ((!strcmp(name, AutoDewV2SP.getName())) && (version == UPB_V2))
         {
-            ISState Dew1 = AutoDewV2S[DEW_PWM_A].s;
-            ISState Dew2 = AutoDewV2S[DEW_PWM_B].s;
-            ISState Dew3 = AutoDewV2S[DEW_PWM_C].s;
-            IUUpdateSwitch(&AutoDewV2SP, states, names, n);
+            ISState Dew1 = AutoDewV2SP[DEW_PWM_A].getState();
+            ISState Dew2 = AutoDewV2SP[DEW_PWM_B].getState();
+            ISState Dew3 = AutoDewV2SP[DEW_PWM_C].getState();
+            AutoDewV2SP.update(states, names, n);
             if (toggleAutoDewV2())
             {
-                Dew1 = AutoDewV2S[DEW_PWM_A].s;
-                Dew2 = AutoDewV2S[DEW_PWM_B].s;
-                Dew3 = AutoDewV2S[DEW_PWM_C].s;
+                Dew1 = AutoDewV2SP[DEW_PWM_A].getState();
+                Dew2 = AutoDewV2SP[DEW_PWM_B].getState();
+                Dew3 = AutoDewV2SP[DEW_PWM_C].getState();
                 if (Dew1 == ISS_OFF && Dew2 == ISS_OFF && Dew3 == ISS_OFF)
-                    AutoDewV2SP.s = IPS_IDLE;
+                    AutoDewV2SP.setState(IPS_IDLE);
                 else
-                    AutoDewV2SP.s = IPS_OK;
+                    AutoDewV2SP.setState(IPS_OK);
             }
             else
             {
-                IUResetSwitch(&AutoDewV2SP);
-                AutoDewV2S[DEW_PWM_A].s = Dew1;
-                AutoDewV2S[DEW_PWM_B].s = Dew2;
-                AutoDewV2S[DEW_PWM_C].s = Dew3;
-                AutoDewV2SP.s = IPS_ALERT;
+                AutoDewV2SP.reset();
+                AutoDewV2SP[DEW_PWM_A].setState(Dew1);
+                AutoDewV2SP[DEW_PWM_B].setState(Dew2);
+                AutoDewV2SP[DEW_PWM_C].setState(Dew3);
+                AutoDewV2SP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&AutoDewV2SP, nullptr);
+            AutoDewV2SP.apply();
             return true;
         }
 
         // USB Hub Control v1
-        if (!strcmp(name, USBControlSP.name))
+        if (USBControlSP.isNameMatch(name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&USBControlSP);
-            IUUpdateSwitch(&USBControlSP, states, names, n);
-            if (setUSBHubEnabled(USBControlS[0].s == ISS_ON))
+            int prevIndex = USBControlSP.findOnSwitchIndex();
+            USBControlSP.update(states, names, n);
+            if (setUSBHubEnabled(USBControlSP[0].getState() == ISS_ON))
             {
-                USBControlSP.s = IPS_OK;
+                USBControlSP.setState(IPS_OK);
             }
             else
             {
-                IUResetSwitch(&USBControlSP);
-                USBControlS[prevIndex].s = ISS_ON;
-                USBControlSP.s = IPS_ALERT;
+                USBControlSP.reset();
+                USBControlSP[prevIndex].setState(ISS_ON);
+                USBControlSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&USBControlSP, nullptr);
+            USBControlSP.apply();
             return true;
         }
 
         // USB Hub Control v2
-        if (!strcmp(name, USBControlV2SP.name))
+        if (USBControlV2SP.isNameMatch(name))
         {
             bool rc[6] = {true};
             ISState ports[6] = {ISS_ON};
 
-            for (int i = 0; i < USBControlV2SP.nsp; i++)
-                ports[i] = USBControlV2S[i].s;
+            for (size_t i = 0; i < USBControlV2SP.size(); i++)
+                ports[i] = USBControlV2SP[i].getState();
 
-            IUUpdateSwitch(&USBControlV2SP, states, names, n);
-            for (int i = 0; i < USBControlV2SP.nsp; i++)
+            USBControlV2SP.update(states, names, n);
+            for (size_t i = 0; i < USBControlV2SP.size(); i++)
             {
-                if (ports[i] != USBControlV2S[i].s)
-                    rc[i] = setUSBPortEnabled(i, USBControlV2S[i].s == ISS_ON);
+                if (ports[i] != USBControlV2SP[i].getState())
+                    rc[i] = setUSBPortEnabled(i, USBControlV2SP[i].getState() == ISS_ON);
             }
 
             // All is OK
             if (rc[0] && rc[1] && rc[2] && rc[3] && rc[4] && rc[5])
             {
-                USBControlSP.s = IPS_OK;
+                USBControlSP.setState(IPS_OK);
             }
             else
             {
-                IUResetSwitch(&USBControlV2SP);
-                for (int i = 0; i < USBControlV2SP.nsp; i++)
-                    USBControlV2S[i].s = ports[i];
-                USBControlV2SP.s = IPS_ALERT;
+                USBControlV2SP.reset();
+                for (size_t i = 0; i < USBControlV2SP.size(); i++)
+                    USBControlV2SP[i].setState(ports[i]);
+                USBControlV2SP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&USBControlSP, nullptr);
+            USBControlSP.apply();
             return true;
         }
 
         // Focuser backlash
-        //        if (!strcmp(name, FocusBacklashSP.name))
+        //        if (FocusBacklashSP.isNameMatch(name))
         //        {
-        //            int prevIndex = IUFindOnSwitchIndex(&FocusBacklashSP);
-        //            IUUpdateSwitch(&FocusBacklashSP, states, names, n);
-        //            if (setFocuserBacklashEnabled(FocusBacklashS[0].s == ISS_ON))
+        //            int prevIndex = FocusBacklashSP.findOnSwitchIndex();
+        //            FocusBacklashSP.update(states, names, n);
+        //            if (setFocuserBacklashEnabled(FocusBacklashSP[0].getState() == ISS_ON))
         //            {
-        //                FocusBacklashSP.s = IPS_OK;
+        //                FocusBacklashSP.setState(IPS_OK);
         //            }
         //            else
         //            {
-        //                IUResetSwitch(&FocusBacklashSP);
-        //                FocusBacklashS[prevIndex].s = ISS_ON;
-        //                FocusBacklashSP.s = IPS_ALERT;
+        //                FocusBacklashSP.reset();
+        //                FocusBacklashSP[prevIndex].setState(ISS_ON);
+        //                FocusBacklashSP.setState(IPS_ALERT);
         //            }
 
-        //            IDSetSwitch(&FocusBacklashSP, nullptr);
+        //            FocusBacklashSP.apply();
         //            return true;
         //        }
 
         // Power LED
-        if (!strcmp(name, PowerLEDSP.name) && (version == UPB_V1))
+        if (!strcmp(name, PowerLEDSP.getName()) && (version == UPB_V1))
         {
-            int prevIndex = IUFindOnSwitchIndex(&PowerLEDSP);
-            IUUpdateSwitch(&PowerLEDSP, states, names, n);
-            if (setPowerLEDEnabled(PowerLEDS[0].s == ISS_ON))
+            int prevIndex = PowerLEDSP.findOnSwitchIndex();
+            PowerLEDSP.update(states, names, n);
+            if (setPowerLEDEnabled(PowerLEDSP[0].getState() == ISS_ON))
             {
-                PowerLEDSP.s = IPS_OK;
+                PowerLEDSP.setState(IPS_OK);
             }
             else
             {
-                IUResetSwitch(&PowerLEDSP);
-                PowerLEDS[prevIndex].s = ISS_ON;
-                PowerLEDSP.s = IPS_ALERT;
+                PowerLEDSP.reset();
+                PowerLEDSP[prevIndex].setState(ISS_ON);
+                PowerLEDSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&PowerLEDSP, nullptr);
+            PowerLEDSP.apply();
             return true;
         }
 
@@ -824,72 +824,72 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // Adjustable output
-        if (!strcmp(name, AdjustableOutputNP.name))
+        if (AdjustableOutputNP.isNameMatch(name))
         {
             if (setAdjustableOutput(static_cast<uint8_t>(values[0])))
             {
-                IUUpdateNumber(&AdjustableOutputNP, values, names, n);
-                AdjustableOutputNP.s = IPS_OK;
+                AdjustableOutputNP.update(values, names, n);
+                AdjustableOutputNP.setState(IPS_OK);
             }
             else
-                AdjustableOutputNP.s = IPS_ALERT;
+                AdjustableOutputNP.setState(IPS_ALERT);
 
-            IDSetNumber(&AdjustableOutputNP, nullptr);
+            AdjustableOutputNP.apply();
             return true;
         }
 
         // Dew PWM
-        if (!strcmp(name, DewPWMNP.name))
+        if (DewPWMNP.isNameMatch(name))
         {
             bool rc1 = false, rc2 = false, rc3 = false;
             for (int i = 0; i < n; i++)
             {
-                if (!strcmp(names[i], DewPWMN[DEW_PWM_A].name))
+                if (!strcmp(names[i], DewPWMNP[DEW_PWM_A].getName()))
                     rc1 = setDewPWM(5, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
-                else if (!strcmp(names[i], DewPWMN[DEW_PWM_B].name))
+                else if (!strcmp(names[i], DewPWMNP[DEW_PWM_B].getName()))
                     rc2 = setDewPWM(6, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
-                else if (!strcmp(names[i], DewPWMN[DEW_PWM_C].name))
+                else if (!strcmp(names[i], DewPWMNP[DEW_PWM_C].getName()))
                     rc3 = setDewPWM(7, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
             }
 
-            DewPWMNP.s = (rc1 && rc2 && rc3) ? IPS_OK : IPS_ALERT;
-            if (DewPWMNP.s == IPS_OK)
-                IUUpdateNumber(&DewPWMNP, values, names, n);
-            IDSetNumber(&DewPWMNP, nullptr);
+            DewPWMNP.setState((rc1 && rc2 && rc3) ? IPS_OK : IPS_ALERT);
+            if (DewPWMNP.getState() == IPS_OK)
+                DewPWMNP.update(values, names, n);
+            DewPWMNP.apply();
             return true;
         }
 
         // Auto Dew Aggressiveness
-        if (!strcmp(name,AutoDewAggNP.name))
+        if (AutoDewAggNP.isNameMatch(name))
         {
             if (setAutoDewAgg(values[0]))
             {
-                AutoDewAggN[0].value = values[0];
-                AutoDewAggNP.s = IPS_OK;
+                AutoDewAggNP[0].setValue(values[0]);
+                AutoDewAggNP.setState(IPS_OK);
             }
             else
             {
-                AutoDewAggNP.s = IPS_ALERT;
+                AutoDewAggNP.setState(IPS_ALERT);
             }
 
-            IDSetNumber(&AutoDewAggNP, nullptr);
+            AutoDewAggNP.apply();
             return true;
         }
 
         // Focuser Settings
-        if (!strcmp(name, FocuserSettingsNP.name))
+        if (FocuserSettingsNP.isNameMatch(name))
         {
             if (setFocuserMaxSpeed(values[0]))
             {
-                FocuserSettingsN[0].value = values[0];
-                FocuserSettingsNP.s = IPS_OK;
+                FocuserSettingsNP[0].setValue(values[0]);
+                FocuserSettingsNP.setState(IPS_OK);
             }
             else
             {
-                FocuserSettingsNP.s = IPS_ALERT;
+                FocuserSettingsNP.setState(IPS_ALERT);
             }
 
-            IDSetNumber(&FocuserSettingsNP, nullptr);
+            FocuserSettingsNP.apply();
             return true;
         }
 
@@ -910,33 +910,33 @@ bool PegasusUPB::ISNewText(const char * dev, const char * name, char * texts[], 
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // Power Labels
-        if (!strcmp(name, PowerControlsLabelsTP.name))
+        if (PowerControlsLabelsTP.isNameMatch(name))
         {
-            IUUpdateText(&PowerControlsLabelsTP, texts, names, n);
-            PowerControlsLabelsTP.s = IPS_OK;
+            PowerControlsLabelsTP.update(texts, names, n);
+            PowerControlsLabelsTP.setState(IPS_OK);
             LOG_INFO("Power port labels saved. Driver must be restarted for the labels to take effect.");
             saveConfig();
-            IDSetText(&PowerControlsLabelsTP, nullptr);
+            PowerControlsLabelsTP.apply();
             return true;
         }
         // Dew Labels
-        if (!strcmp(name, DewControlsLabelsTP.name))
+        if (DewControlsLabelsTP.isNameMatch(name))
         {
-            IUUpdateText(&DewControlsLabelsTP, texts, names, n);
-            DewControlsLabelsTP.s = IPS_OK;
+            DewControlsLabelsTP.update(texts, names, n);
+            DewControlsLabelsTP.setState(IPS_OK);
             LOG_INFO("Dew labels saved. Driver must be restarted for the labels to take effect.");
             saveConfig();
-            IDSetText(&DewControlsLabelsTP, nullptr);
+            DewControlsLabelsTP.apply();
             return true;
         }
         // USB Labels
-        if (!strcmp(name, USBControlsLabelsTP.name))
+        if (USBControlsLabelsTP.isNameMatch(name))
         {
-            IUUpdateText(&USBControlsLabelsTP, texts, names, n);
-            USBControlsLabelsTP.s = IPS_OK;
+            USBControlsLabelsTP.update(texts, names, n);
+            USBControlsLabelsTP.setState(IPS_OK);
             LOG_INFO("USB labels saved. Driver must be restarted for the labels to take effect.");
             saveConfig();
-            IDSetText(&USBControlsLabelsTP, nullptr);
+            USBControlsLabelsTP.apply();
             return true;
         }
     }
@@ -1045,7 +1045,7 @@ IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
 //////////////////////////////////////////////////////////////////////
 IPState PegasusUPB::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosNP[0].getValue() - ticks : FocusAbsPosNP[0].getValue() + ticks);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1198,10 +1198,10 @@ bool PegasusUPB::setAdjustableOutput(uint8_t voltage)
 bool PegasusUPB::setPowerOnBoot()
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "PE:%d%d%d%d", PowerOnBootS[0].s == ISS_ON ? 1 : 0,
-             PowerOnBootS[1].s == ISS_ON ? 1 : 0,
-             PowerOnBootS[2].s == ISS_ON ? 1 : 0,
-             PowerOnBootS[3].s == ISS_ON ? 1 : 0);
+    snprintf(cmd, PEGASUS_LEN, "PE:%d%d%d%d", PowerOnBootSP[0].getState() == ISS_ON ? 1 : 0,
+             PowerOnBootSP[1].getState() == ISS_ON ? 1 : 0,
+             PowerOnBootSP[2].getState() == ISS_ON ? 1 : 0,
+             PowerOnBootSP[3].getState() == ISS_ON ? 1 : 0);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, "PE:1"));
@@ -1226,13 +1226,13 @@ bool PegasusUPB::getPowerOnBoot()
         }
 
         const char *status = result[1].c_str();
-        PowerOnBootS[0].s = (status[0] == '1') ? ISS_ON : ISS_OFF;
-        PowerOnBootS[1].s = (status[1] == '1') ? ISS_ON : ISS_OFF;
-        PowerOnBootS[2].s = (status[2] == '1') ? ISS_ON : ISS_OFF;
-        PowerOnBootS[3].s = (status[3] == '1') ? ISS_ON : ISS_OFF;
+        PowerOnBootSP[0].setState((status[0] == '1') ? ISS_ON : ISS_OFF);
+        PowerOnBootSP[1].setState((status[1] == '1') ? ISS_ON : ISS_OFF);
+        PowerOnBootSP[2].setState((status[2] == '1') ? ISS_ON : ISS_OFF);
+        PowerOnBootSP[3].setState((status[3] == '1') ? ISS_ON : ISS_OFF);
 
-        AdjustableOutputN[0].value = std::stod(result[2]);
-        AdjustableOutputNP.s = IPS_OK;
+        AdjustableOutputNP[0].setValue(std::stod(result[2]));
+        AdjustableOutputNP.setState(IPS_OK);
 
         return true;
     }
@@ -1297,21 +1297,21 @@ bool PegasusUPB::toggleAutoDewV2()
 
     uint8_t value = 0;
 
-    if (IUFindOnSwitchIndex(&AutoDewV2SP) == -1)
+    if (AutoDewV2SP.findOnSwitchIndex() == -1)
         value = 0;
-    else if (AutoDewV2S[DEW_PWM_A].s == ISS_ON && AutoDewV2S[DEW_PWM_B].s == ISS_ON && AutoDewV2S[DEW_PWM_C].s == ISS_ON)
+    else if (AutoDewV2SP[DEW_PWM_A].getState() == ISS_ON && AutoDewV2SP[DEW_PWM_B].s == ISS_ON && AutoDewV2SP[DEW_PWM_C].s == ISS_ON)
         value = 1;
-    else if (AutoDewV2S[DEW_PWM_A].s == ISS_ON && AutoDewV2S[DEW_PWM_B].s == ISS_ON)
+    else if (AutoDewV2SP[DEW_PWM_A].getState() == ISS_ON && AutoDewV2SP[DEW_PWM_B].s == ISS_ON)
         value = 5;
-    else if (AutoDewV2S[DEW_PWM_A].s == ISS_ON && AutoDewV2S[DEW_PWM_C].s == ISS_ON)
+    else if (AutoDewV2SP[DEW_PWM_A].getState() == ISS_ON && AutoDewV2SP[DEW_PWM_C].s == ISS_ON)
         value = 6;
-    else if (AutoDewV2S[DEW_PWM_B].s == ISS_ON && AutoDewV2S[DEW_PWM_C].s == ISS_ON)
+    else if (AutoDewV2SP[DEW_PWM_B].getState() == ISS_ON && AutoDewV2SP[DEW_PWM_C].s == ISS_ON)
         value = 7;
-    else if (AutoDewV2S[DEW_PWM_A].s == ISS_ON)
+    else if (AutoDewV2SP[DEW_PWM_A].getState() == ISS_ON)
         value = 2;
-    else if (AutoDewV2S[DEW_PWM_B].s == ISS_ON)
+    else if (AutoDewV2SP[DEW_PWM_B].getState() == ISS_ON)
         value = 3;
-    else if (AutoDewV2S[DEW_PWM_C].s == ISS_ON)
+    else if (AutoDewV2SP[DEW_PWM_C].getState() == ISS_ON)
         value = 4;
 
     snprintf(cmd, PEGASUS_LEN, "PD:%d", value);
@@ -1334,13 +1334,13 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
     FI::saveConfigItems(fp);
     WI::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &PowerLEDSP);
-    IUSaveConfigSwitch(fp, &AutoDewSP);
-    IUSaveConfigNumber(fp, &AutoDewAggNP);
-    IUSaveConfigNumber(fp, &FocuserSettingsNP);
-    IUSaveConfigText(fp, &PowerControlsLabelsTP);
-    IUSaveConfigText(fp, &DewControlsLabelsTP);
-    IUSaveConfigText(fp, &USBControlsLabelsTP);
+    PowerLEDSP.save(fp);
+    AutoDewSP.save(fp);
+    AutoDewAggNP.save(fp);
+    FocuserSettingsNP.save(fp);
+    PowerControlsLabelsTP.save(fp);
+    DewControlsLabelsTP.save(fp);
+    USBControlsLabelsTP.save(fp);
     return true;
 }
 
@@ -1374,8 +1374,8 @@ bool PegasusUPB::sendFirmware()
     if (sendCommand("PV", res))
     {
         LOGF_INFO("Detected firmware %s", res);
-        IUSaveText(&FirmwareT[FIRMWARE_VERSION], res);
-        IDSetText(&FirmwareTP, nullptr);
+        FirmwareTP[FIRMWARE_VERSION].setText(res);
+        FirmwareTP.apply();
         return true;
     }
 
@@ -1414,13 +1414,13 @@ bool PegasusUPB::getSensorData()
             return true;
 
         // Power Sensors
-        PowerSensorsN[SENSOR_VOLTAGE].value = std::stod(result[1]);
-        PowerSensorsN[SENSOR_CURRENT].value = std::stod(result[2]);
-        PowerSensorsN[SENSOR_POWER].value = std::stod(result[3]);
-        PowerSensorsNP.s = IPS_OK;
+        PowerSensorsNP[SENSOR_VOLTAGE].setValue(std::stod(result[1]));
+        PowerSensorsNP[SENSOR_CURRENT].setValue(std::stod(result[2]));
+        PowerSensorsNP[SENSOR_POWER].setValue(std::stod(result[3]));
+        PowerSensorsNP.setState(IPS_OK);
         //if (lastSensorData[0] != result[0] || lastSensorData[1] != result[1] || lastSensorData[2] != result[2])
         if (sensorUpdated(result, 0, 2))
-            IDSetNumber(&PowerSensorsNP, nullptr);
+            PowerSensorsNP.apply();
 
         // Environment Sensors
         setParameterValue("WEATHER_TEMPERATURE", std::stod(result[4]));
@@ -1437,89 +1437,89 @@ bool PegasusUPB::getSensorData()
 
         // Port Status
         const char * portStatus = result[7].c_str();
-        PowerControlS[0].s = (portStatus[0] == '1') ? ISS_ON : ISS_OFF;
-        PowerControlS[1].s = (portStatus[1] == '1') ? ISS_ON : ISS_OFF;
-        PowerControlS[2].s = (portStatus[2] == '1') ? ISS_ON : ISS_OFF;
-        PowerControlS[3].s = (portStatus[3] == '1') ? ISS_ON : ISS_OFF;
+        PowerControlSP[0].setState((portStatus[0] == '1') ? ISS_ON : ISS_OFF);
+        PowerControlSP[1].setState((portStatus[1] == '1') ? ISS_ON : ISS_OFF);
+        PowerControlSP[2].setState((portStatus[2] == '1') ? ISS_ON : ISS_OFF);
+        PowerControlSP[3].setState((portStatus[3] == '1') ? ISS_ON : ISS_OFF);
         //if (lastSensorData[7] != result[7])
         if (sensorUpdated(result, 7, 7))
-            IDSetSwitch(&PowerControlSP, nullptr);
+            PowerControlSP.apply();
 
         // Hub Status
         const char * usb_status = result[8].c_str();
         if (version == UPB_V1)
         {
-            USBControlS[0].s = (usb_status[0] == '0') ? ISS_ON : ISS_OFF;
-            USBControlS[1].s = (usb_status[0] == '0') ? ISS_OFF : ISS_ON;
-            USBStatusL[0].s = (USBControlS[0].s == ISS_ON) ? IPS_OK : IPS_IDLE;
-            USBStatusL[1].s = (USBControlS[0].s == ISS_ON) ? IPS_OK : IPS_IDLE;
-            USBStatusL[2].s = (USBControlS[0].s == ISS_ON) ? IPS_OK : IPS_IDLE;
-            USBStatusL[3].s = (USBControlS[0].s == ISS_ON) ? IPS_OK : IPS_IDLE;
-            USBStatusL[4].s = (USBControlS[0].s == ISS_ON) ? IPS_OK : IPS_IDLE;
+            USBControlSP[0].setState((usb_status[0] == '0') ? ISS_ON : ISS_OFF);
+            USBControlSP[1].setState((usb_status[0] == '0') ? ISS_OFF : ISS_ON);
+            USBStatusLP[0].setState((USBControlSP[0].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
+            USBStatusLP[1].setState((USBControlSP[0].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
+            USBStatusLP[2].setState((USBControlSP[0].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
+            USBStatusLP[3].setState((USBControlSP[0].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
+            USBStatusLP[4].setState((USBControlSP[0].getState() == ISS_ON) ? IPS_OK : IPS_IDLE);
             //if (lastSensorData[8] != result[8])
             if (sensorUpdated(result, 8, 8))
             {
-                USBControlSP.s = (IUFindOnSwitchIndex(&USBControlSP) == 0) ? IPS_OK : IPS_IDLE;
-                IDSetSwitch(&USBControlSP, nullptr);
-                IDSetLight(&USBStatusLP, nullptr);
+                USBControlSP.setState((USBControlSP.findOnSwitchIndex() == 0) ? IPS_OK : IPS_IDLE);
+                USBControlSP.apply();
+                USBStatusLP.apply();
             }
         }
         else
         {
-            USBControlV2S[0].s = (usb_status[0] == '1') ? ISS_ON : ISS_OFF;
-            USBControlV2S[1].s = (usb_status[1] == '1') ? ISS_ON : ISS_OFF;
-            USBControlV2S[2].s = (usb_status[2] == '1') ? ISS_ON : ISS_OFF;
-            USBControlV2S[3].s = (usb_status[3] == '1') ? ISS_ON : ISS_OFF;
-            USBControlV2S[4].s = (usb_status[4] == '1') ? ISS_ON : ISS_OFF;
-            USBControlV2S[5].s = (usb_status[5] == '1') ? ISS_ON : ISS_OFF;
-            USBControlV2SP.s = IPS_OK;
+            USBControlV2SP[0].setState((usb_status[0] == '1') ? ISS_ON : ISS_OFF);
+            USBControlV2SP[1].setState((usb_status[1] == '1') ? ISS_ON : ISS_OFF);
+            USBControlV2SP[2].setState((usb_status[2] == '1') ? ISS_ON : ISS_OFF);
+            USBControlV2SP[3].setState((usb_status[3] == '1') ? ISS_ON : ISS_OFF);
+            USBControlV2SP[4].setState((usb_status[4] == '1') ? ISS_ON : ISS_OFF);
+            USBControlV2SP[5].setState((usb_status[5] == '1') ? ISS_ON : ISS_OFF);
+            USBControlV2SP.setState(IPS_OK);
             //if (lastSensorData[8] != result[8])
             if (sensorUpdated(result, 8, 8))
             {
-                IDSetSwitch(&USBControlV2SP, nullptr);
+                USBControlV2SP.apply();
             }
         }
 
         // From here, we get differences between v1 and v2 readings
         int index = 9;
         // Dew PWM
-        DewPWMN[DEW_PWM_A].value = std::stod(result[index]) / 255.0 * 100.0;
-        DewPWMN[DEW_PWM_B].value = std::stod(result[index + 1]) / 255.0 * 100.0;
+        DewPWMNP[DEW_PWM_A].setValue(std::stod(result[index]) / 255.0 * 100.0);
+        DewPWMNP[DEW_PWM_B].setValue(std::stod(result[index + 1]) / 255.0 * 100.0);
         if (version == UPB_V2)
-            DewPWMN[DEW_PWM_C].value = std::stod(result[index + 2]) / 255.0 * 100.0;
+            DewPWMNP[DEW_PWM_C].setValue(std::stod(result[index + 2]) / 255.0 * 100.0);
         //        if (lastSensorData[index] != result[index] ||
         //                lastSensorData[index + 1] != result[index + 1] ||
         //                (version == UPB_V2 && lastSensorData[index +2] != result[index + 2]))
         if (sensorUpdated(result, index, version == UPB_V1 ? index + 1 : index + 2))
-            IDSetNumber(&DewPWMNP, nullptr);
+            DewPWMNP.apply();
 
         index = (version == UPB_V1) ? 11 : 12;
 
         const double ampDivision = (version == UPB_V1) ? 400.0 : 300.0;
 
         // Current draw
-        PowerCurrentN[0].value = std::stod(result[index]) / ampDivision;
-        PowerCurrentN[1].value = std::stod(result[index + 1]) / ampDivision;
-        PowerCurrentN[2].value = std::stod(result[index + 2]) / ampDivision;
-        PowerCurrentN[3].value = std::stod(result[index + 3]) / ampDivision;
+        PowerCurrentNP[0].setValue(std::stod(result[index]) / ampDivision);
+        PowerCurrentNP[1].setValue(std::stod(result[index + 1]) / ampDivision);
+        PowerCurrentNP[2].setValue(std::stod(result[index + 2]) / ampDivision);
+        PowerCurrentNP[3].setValue(std::stod(result[index + 3]) / ampDivision);
         //        if (lastSensorData[index] != result[index] ||
         //                lastSensorData[index + 1] != result[index + 1] ||
         //                lastSensorData[index + 2] != result[index + 2] ||
         //                lastSensorData[index + 3] != result[index + 3])
         if (sensorUpdated(result, index, index + 3))
-            IDSetNumber(&PowerCurrentNP, nullptr);
+            PowerCurrentNP.apply();
 
         index = (version == UPB_V1) ? 15 : 16;
 
-        DewCurrentDrawN[DEW_PWM_A].value = std::stod(result[index]) / ampDivision;
-        DewCurrentDrawN[DEW_PWM_B].value = std::stod(result[index + 1]) / ampDivision;
+        DewCurrentDrawNP[DEW_PWM_A].setValue(std::stod(result[index]) / ampDivision);
+        DewCurrentDrawNP[DEW_PWM_B].setValue(std::stod(result[index + 1]) / ampDivision);
         if (version == UPB_V2)
-            DewCurrentDrawN[DEW_PWM_C].value = std::stod(result[index + 2]) / (ampDivision * 2);
+            DewCurrentDrawNP[DEW_PWM_C].setValue(std::stod(result[index + 2]) / (ampDivision * 2));
         //        if (lastSensorData[index] != result[index] ||
         //                lastSensorData[index + 1] != result[index + 1] ||
         //                (version == UPB_V2 && lastSensorData[index + 2] != result[index + 2]))
         if (sensorUpdated(result, index, version == UPB_V1 ? index + 1 : index + 2))
-            IDSetNumber(&DewCurrentDrawNP, nullptr);
+            DewCurrentDrawNP.apply();
 
         index = (version == UPB_V1) ? 17 : 19;
 
@@ -1528,18 +1528,18 @@ bool PegasusUPB::getSensorData()
         if (sensorUpdated(result, index, index))
         {
             const char * over_curent = result[index].c_str();
-            OverCurrentL[0].s = (over_curent[0] == '0') ? IPS_OK : IPS_ALERT;
-            OverCurrentL[1].s = (over_curent[1] == '0') ? IPS_OK : IPS_ALERT;
-            OverCurrentL[2].s = (over_curent[2] == '0') ? IPS_OK : IPS_ALERT;
-            OverCurrentL[3].s = (over_curent[3] == '0') ? IPS_OK : IPS_ALERT;
+            OverCurrentLP[0].setState((over_curent[0] == '0') ? IPS_OK : IPS_ALERT);
+            OverCurrentLP[1].setState((over_curent[1] == '0') ? IPS_OK : IPS_ALERT);
+            OverCurrentLP[2].setState((over_curent[2] == '0') ? IPS_OK : IPS_ALERT);
+            OverCurrentLP[3].setState((over_curent[3] == '0') ? IPS_OK : IPS_ALERT);
             if (version == UPB_V2)
             {
-                OverCurrentL[4].s = (over_curent[4] == '0') ? IPS_OK : IPS_ALERT;
-                OverCurrentL[5].s = (over_curent[5] == '0') ? IPS_OK : IPS_ALERT;
-                OverCurrentL[6].s = (over_curent[6] == '0') ? IPS_OK : IPS_ALERT;
+                OverCurrentLP[4].setState((over_curent[4] == '0') ? IPS_OK : IPS_ALERT);
+                OverCurrentLP[5].setState((over_curent[5] == '0') ? IPS_OK : IPS_ALERT);
+                OverCurrentLP[6].setState((over_curent[6] == '0') ? IPS_OK : IPS_ALERT);
             }
 
-            IDSetLight(&OverCurrentLP, nullptr);
+            OverCurrentLP.apply();
         }
 
         index = (version == UPB_V1) ? 18 : 20;
@@ -1550,9 +1550,9 @@ bool PegasusUPB::getSensorData()
             //if (lastSensorData[index] != result[index])
             if (sensorUpdated(result, index, index))
             {
-                AutoDewS[INDI_ENABLED].s  = (std::stoi(result[index]) == 1) ? ISS_ON : ISS_OFF;
-                AutoDewS[INDI_DISABLED].s = (std::stoi(result[index]) == 1) ? ISS_OFF : ISS_ON;
-                IDSetSwitch(&AutoDewSP, nullptr);
+                AutoDewSP[INDI_ENABLED].setState((std::stoi(result[index]) == 1) ? ISS_ON : ISS_OFF);
+                AutoDewSP[INDI_DISABLED].setState((std::stoi(result[index]) == 1) ? ISS_OFF : ISS_ON);
+                AutoDewSP.apply();
             }
         }
         else
@@ -1561,43 +1561,43 @@ bool PegasusUPB::getSensorData()
             if (sensorUpdated(result, index, index))
             {
                 int value = std::stoi(result[index]);
-                IUResetSwitch(&AutoDewV2SP);
+                AutoDewV2SP.reset();
                 switch (value)
                 {
                     case 1:
-                        AutoDewV2S[DEW_PWM_A].s = AutoDewV2S[DEW_PWM_B].s = AutoDewV2S[DEW_PWM_C].s = ISS_ON;
+                        AutoDewV2SP[DEW_PWM_A].setState(AutoDewV2SP[DEW_PWM_B].s = AutoDewV2SP[DEW_PWM_C].s = ISS_ON);
                         break;
 
                     case 2:
-                        AutoDewV2S[DEW_PWM_A].s = ISS_ON;
+                        AutoDewV2SP[DEW_PWM_A].setState(ISS_ON);
                         break;
 
                     case 3:
-                        AutoDewV2S[DEW_PWM_B].s = ISS_ON;
+                        AutoDewV2SP[DEW_PWM_B].setState(ISS_ON);
                         break;
 
                     case 4:
-                        AutoDewV2S[DEW_PWM_C].s = ISS_ON;
+                        AutoDewV2SP[DEW_PWM_C].setState(ISS_ON);
                         break;
 
                     case 5:
-                        AutoDewV2S[DEW_PWM_A].s = ISS_ON;
-                        AutoDewV2S[DEW_PWM_B].s = ISS_ON;
+                        AutoDewV2SP[DEW_PWM_A].setState(ISS_ON);
+                        AutoDewV2SP[DEW_PWM_B].setState(ISS_ON);
                         break;
 
                     case 6:
-                        AutoDewV2S[DEW_PWM_A].s = ISS_ON;
-                        AutoDewV2S[DEW_PWM_C].s = ISS_ON;
+                        AutoDewV2SP[DEW_PWM_A].setState(ISS_ON);
+                        AutoDewV2SP[DEW_PWM_C].setState(ISS_ON);
                         break;
 
                     case 7:
-                        AutoDewV2S[DEW_PWM_B].s = ISS_ON;
-                        AutoDewV2S[DEW_PWM_C].s = ISS_ON;
+                        AutoDewV2SP[DEW_PWM_B].setState(ISS_ON);
+                        AutoDewV2SP[DEW_PWM_C].setState(ISS_ON);
                         break;
                     default:
                         break;
                 }
-                IDSetSwitch(&AutoDewV2SP, nullptr);
+                AutoDewV2SP.apply();
             }
         }
 
@@ -1627,11 +1627,11 @@ bool PegasusUPB::getPowerData()
         if (result == lastPowerData)
             return true;
 
-        PowerConsumptionN[CONSUMPTION_AVG_AMPS].value = std::stod(result[0]);
-        PowerConsumptionN[CONSUMPTION_AMP_HOURS].value = std::stod(result[1]);
-        PowerConsumptionN[CONSUMPTION_WATT_HOURS].value = std::stod(result[2]);
-        PowerConsumptionNP.s = IPS_OK;
-        IDSetNumber(&PowerConsumptionNP, nullptr);
+        PowerConsumptionNP[CONSUMPTION_AVG_AMPS].setValue(std::stod(result[0]));
+        PowerConsumptionNP[CONSUMPTION_AMP_HOURS].setValue(std::stod(result[1]));
+        PowerConsumptionNP[CONSUMPTION_WATT_HOURS].setValue(std::stod(result[2]));
+        PowerConsumptionNP.setState(IPS_OK);
+        PowerConsumptionNP.apply();
 
         if (version == UPB_V2)
         {
@@ -1639,8 +1639,8 @@ bool PegasusUPB::getPowerData()
             using dhours = std::chrono::duration<double, std::ratio<3600>>;
             std::stringstream ss;
             ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
-            IUSaveText(&FirmwareT[FIRMWARE_UPTIME], ss.str().c_str());
-            IDSetText(&FirmwareTP, nullptr);
+            FirmwareTP[FIRMWARE_UPTIME].setText(ss.str());
+            FirmwareTP.apply();
         }
 
         lastPowerData = result;
@@ -1668,46 +1668,46 @@ bool PegasusUPB::getStepperData()
         if (result == lastStepperData)
             return true;
 
-        FocusAbsPosN[0].value = std::stoi(result[0]);
+        FocusAbsPosNP[0].setValue(std::stoi(result[0]));
         focusMotorRunning = (std::stoi(result[1]) == 1);
 
-        if (FocusAbsPosNP.s == IPS_BUSY && focusMotorRunning == false)
+        if (FocusAbsPosNP.getState() == IPS_BUSY && focusMotorRunning == false)
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
         }
         else if (result[0] != lastStepperData[0])
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusAbsPosNP.apply();
 
-        FocusReverseS[INDI_ENABLED].s = (std::stoi(result[2]) == 1) ? ISS_ON : ISS_OFF;
-        FocusReverseS[INDI_DISABLED].s = (std::stoi(result[2]) == 1) ? ISS_OFF : ISS_ON;
+        FocusReverseSP[INDI_ENABLED].setState((std::stoi(result[2]) == 1) ? ISS_ON : ISS_OFF);
+        FocusReverseSP[INDI_DISABLED].setState((std::stoi(result[2]) == 1) ? ISS_OFF : ISS_ON);
 
         if (result[2] != lastStepperData[2])
-            IDSetSwitch(&FocusReverseSP, nullptr);
+            FocusReverseSP.apply();
 
         uint16_t backlash = std::stoi(result[3]);
         if (backlash == 0)
         {
-            FocusBacklashN[0].value = backlash;
-            FocusBacklashS[INDI_ENABLED].s = ISS_OFF;
-            FocusBacklashS[INDI_DISABLED].s = ISS_ON;
+            FocusBacklashNP[0].setValue(backlash);
+            FocusBacklashSP[INDI_ENABLED].setState(ISS_OFF);
+            FocusBacklashSP[INDI_DISABLED].setState(ISS_ON);
             if (result[3] != lastStepperData[3])
             {
-                IDSetSwitch(&FocusBacklashSP, nullptr);
-                IDSetNumber(&FocuserSettingsNP, nullptr);
+                FocusBacklashSP.apply();
+                FocuserSettingsNP.apply();
             }
         }
         else
         {
-            FocusBacklashS[INDI_ENABLED].s = ISS_ON;
-            FocusBacklashS[INDI_DISABLED].s = ISS_OFF;
-            FocusBacklashN[0].value = backlash;
+            FocusBacklashSP[INDI_ENABLED].setState(ISS_ON);
+            FocusBacklashSP[INDI_DISABLED].setState(ISS_OFF);
+            FocusBacklashNP[0].setValue(backlash);
             if (result[3] != lastStepperData[3])
             {
-                IDSetSwitch(&FocusBacklashSP, nullptr);
-                IDSetNumber(&FocuserSettingsNP, nullptr);
+                FocusBacklashSP.apply();
+                FocuserSettingsNP.apply();
             }
         }
 
@@ -1732,9 +1732,9 @@ bool PegasusUPB::getDewAggData()
         if (result == lastDewAggData)
             return true;
 
-        AutoDewAggN[0].value = std::stod(result[1]);
-        AutoDewAggNP.s = IPS_OK;
-        IDSetNumber(&AutoDewAggNP, nullptr);
+        AutoDewAggNP[0].setValue(std::stod(result[1]));
+        AutoDewAggNP.setState(IPS_OK);
+        AutoDewAggNP.apply();
 
         lastDewAggData = result;
         return true;
@@ -1781,12 +1781,12 @@ bool PegasusUPB::setupParams()
         {
             LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropiate for your motor focus type (0-900)",
                       value);
-            FocuserSettingsNP.s = IPS_ALERT;
+            FocuserSettingsNP.setState(IPS_ALERT);
         }
         else
         {
-            FocuserSettingsN[SETTING_MAX_SPEED].value = value;
-            FocuserSettingsNP.s = IPS_OK;
+            FocuserSettingsNP[SETTING_MAX_SPEED].setValue(value);
+            FocuserSettingsNP.setState(IPS_OK);
         }
     }
 

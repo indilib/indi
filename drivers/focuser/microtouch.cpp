@@ -83,57 +83,57 @@ bool Microtouch::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusSpeedN[0].min   = 1;
-    FocusSpeedN[0].max   = 5;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(5);
+    FocusSpeedNP[0].setValue(1);
 
     /* Step Mode */
-    IUFillSwitch(&MotorSpeedS[0], "Normal", "", ISS_ON);
-    IUFillSwitch(&MotorSpeedS[1], "Fast", "", ISS_OFF);
-    IUFillSwitchVector(&MotorSpeedSP, MotorSpeedS, 2, getDeviceName(), "Motor Speed", "", OPTIONS_TAB, IP_RW,
+    MotorSpeedSP[0].fill("Normal", "", ISS_ON);
+    MotorSpeedSP[1].fill("Fast", "", ISS_OFF);
+    MotorSpeedSP.fill(getDeviceName(), "Motor Speed", "", OPTIONS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Focuser temperature */
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Maximum Travel
-//    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 60000., 0., 10000.);
-//    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB,
+//    MaxTravelNP[0].fill("MAXTRAVEL", "Maximum travel", "%6.0f", 1., 60000., 0., 10000.);
+//    MaxTravelNP.fill(getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB,
 //                       IP_RW, 0, IPS_IDLE);
 
     // Temperature Settings
-    IUFillNumber(&TemperatureSettingN[0], "Calibration", "", "%6.2f", -20, 20, 0.01, 0);
-    IUFillNumber(&TemperatureSettingN[1], "Coefficient", "", "%6.2f", -20, 20, 0.01, 0);
-    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "Temperature Settings", "",
+    TemperatureSettingNP[0].fill("Calibration", "", "%6.2f", -20, 20, 0.01, 0);
+    TemperatureSettingNP[1].fill("Coefficient", "", "%6.2f", -20, 20, 0.01, 0);
+    TemperatureSettingNP.fill(getDeviceName(), "Temperature Settings", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
-    IUFillSwitch(&TemperatureCompensateS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "Temperature Compensate",
+    TemperatureCompensateSP[0].fill("Enable", "", ISS_OFF);
+    TemperatureCompensateSP[1].fill("Disable", "", ISS_ON);
+    TemperatureCompensateSP.fill(getDeviceName(), "Temperature Compensate",
                        "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Reset
-//    IUFillSwitch(&ResetS[0], "Zero", "", ISS_OFF);
-//    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+//    ResetSP[0].fill("Zero", "", ISS_OFF);
+//    ResetSP.fill(getDeviceName(), "Reset", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
 //                       IPS_IDLE);
 
-//    IUFillNumber(&ResetToPosN[0], "Position", "", "%6.0f", 0, 60000, 1, 0);
-//    IUFillNumberVector(&ResetToPosNP, ResetToPosN, 1, getDeviceName(), "Reset to Position", "", MAIN_CONTROL_TAB, IP_RW,
+//    ResetToPosNP[0].fill("Position", "", "%6.0f", 0, 60000, 1, 0);
+//    ResetToPosNP.fill(getDeviceName(), "Reset to Position", "", MAIN_CONTROL_TAB, IP_RW,
 //                       0, IPS_IDLE);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 30000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000.;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(30000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000.);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 60000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000.;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(60000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000.);
 
     addDebugControl();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -147,13 +147,13 @@ bool Microtouch::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&TemperatureNP);
-        //defineProperty(&MaxTravelNP);
-        defineProperty(&MotorSpeedSP);
-        defineProperty(&TemperatureSettingNP);
-        defineProperty(&TemperatureCompensateSP);
-//        defineProperty(&ResetSP);
-//        defineProperty(&ResetToPosNP);
+        defineProperty(TemperatureNP);
+        //defineProperty(MaxTravelNP);
+        defineProperty(MotorSpeedSP);
+        defineProperty(TemperatureSettingNP);
+        defineProperty(TemperatureCompensateSP);
+//        defineProperty(ResetSP);
+//        defineProperty(ResetToPosNP);
 
         GetFocusParams();
 
@@ -161,13 +161,13 @@ bool Microtouch::updateProperties()
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
-//        deleteProperty(MaxTravelNP.name);
-        deleteProperty(MotorSpeedSP.name);
-        deleteProperty(TemperatureSettingNP.name);
-        deleteProperty(TemperatureCompensateSP.name);
-//        deleteProperty(ResetSP.name);
-//        deleteProperty(ResetToPosNP.name);
+        deleteProperty(TemperatureNP.getName());
+//        deleteProperty(MaxTravelNP.getName());
+        deleteProperty(MotorSpeedSP.getName());
+        deleteProperty(TemperatureSettingNP.getName());
+        deleteProperty(TemperatureCompensateSP.getName());
+//        deleteProperty(ResetSP.getName());
+//        deleteProperty(ResetToPosNP.getName());
     }
 
     return true;
@@ -218,9 +218,9 @@ bool Microtouch::updateTemperature()
     LOGF_DEBUG("updateTemperature : RESP (%02X %02X %02X %02X %02X %02X)", resp[0], resp[1],
            resp[2], resp[3], resp[4], resp[5]);
 
-    TemperatureN[0].value        = raw_temp + raw_coeff;
-    TemperatureSettingN[0].value = raw_coeff;
-    TemperatureSettingN[1].value = tcomp_coeff;
+    TemperatureNP[0].setValue(raw_temp + raw_coeff);
+    TemperatureSettingNP[0].setValue(raw_coeff);
+    TemperatureSettingNP[1].setValue(tcomp_coeff);
 
     return true;
 }
@@ -231,7 +231,7 @@ bool Microtouch::updatePosition()
 
     if (WriteCmdGetResponse(CMD_GET_POSITION, read, 3))
     {
-        FocusAbsPosN[0].value = static_cast<double>(static_cast<uint8_t>(read[2]) << 8 | static_cast<uint8_t>(read[1]));
+        FocusAbsPosNP[0].setValue(static_cast<double>(static_cast<uint8_t>(read[2]) << 8 | static_cast<uint8_t>(read[1])));
         return true;
     }
 
@@ -274,7 +274,7 @@ bool Microtouch::updateSpeed()
         }
 
         currentSpeed = focus_speed;
-        FocusSpeedN[0].value = focus_speed;
+        FocusSpeedNP[0].setValue(focus_speed);
     }
     else
     {
@@ -287,14 +287,14 @@ bool Microtouch::updateSpeed()
 
 bool Microtouch::updateMotorSpeed()
 {
-    IUResetSwitch(&MotorSpeedSP);
+    MotorSpeedSP.reset();
 
     LOGF_DEBUG("MotorSpeed: %d.", WriteCmdGetByte(CMD_GET_MOTOR_SPEED));
 
     if (WriteCmdGetByte(CMD_GET_MOTOR_SPEED) == 8)
-        MotorSpeedS[0].s = ISS_ON;
+        MotorSpeedSP[0].setState(ISS_ON);
     else if (WriteCmdGetByte(CMD_GET_MOTOR_SPEED) == 4)
-        MotorSpeedS[1].s = ISS_ON;
+        MotorSpeedSP[1].setState(ISS_ON);
     else
     {
         LOGF_ERROR("Unknown error: updateMotorSpeed (%s)", WriteCmdGetByte(CMD_GET_MOTOR_SPEED));
@@ -350,7 +350,7 @@ bool Microtouch::MoveFocuser(unsigned int position)
 {
     LOGF_DEBUG("MoveFocuser to Position: %d", position);
 
-    if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
+    if (position < FocusAbsPosNP[0].min || position > FocusAbsPosNP[0].max)
     {
         LOGF_ERROR("Requested position value out of bound: %d", position);
         return false;
@@ -410,19 +410,19 @@ bool Microtouch::ISNewSwitch(const char *dev, const char *name, ISState *states,
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Motor Speed
-        if (strcmp(MotorSpeedSP.name, name) == 0)
+        if (MotorSpeedSP.isNameMatch(name))
         {
             bool rc          = false;
-            int current_mode = IUFindOnSwitchIndex(&MotorSpeedSP);
+            int current_mode = MotorSpeedSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&MotorSpeedSP, states, names, n);
+            MotorSpeedSP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&MotorSpeedSP);
+            int target_mode = MotorSpeedSP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                MotorSpeedSP.s = IPS_OK;
-                IDSetSwitch(&MotorSpeedSP, nullptr);
+                MotorSpeedSP.setState(IPS_OK);
+                MotorSpeedSP.apply();
             }
 
             if (target_mode == 0)
@@ -432,49 +432,49 @@ bool Microtouch::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
             if (!rc)
             {
-                IUResetSwitch(&MotorSpeedSP);
-                MotorSpeedS[current_mode].s = ISS_ON;
-                MotorSpeedSP.s              = IPS_ALERT;
-                IDSetSwitch(&MotorSpeedSP, nullptr);
+                MotorSpeedSP.reset();
+                MotorSpeedSP[current_mode].setState(ISS_ON);
+                MotorSpeedSP.setState(IPS_ALERT);
+                MotorSpeedSP.apply();
                 return false;
             }
 
-            MotorSpeedSP.s = IPS_OK;
-            IDSetSwitch(&MotorSpeedSP, nullptr);
+            MotorSpeedSP.setState(IPS_OK);
+            MotorSpeedSP.apply();
             return true;
         }
 
-        if (strcmp(TemperatureCompensateSP.name, name) == 0)
+        if (TemperatureCompensateSP.isNameMatch(name))
         {
-            int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
-            IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
+            int last_index = TemperatureCompensateSP.findOnSwitchIndex();
+            TemperatureCompensateSP.update(states, names, n);
 
-            bool rc = setTemperatureCompensation((TemperatureCompensateS[0].s == ISS_ON));
+            bool rc = setTemperatureCompensation((TemperatureCompensateSP[0].getState() == ISS_ON));
 
             if (!rc)
             {
-                TemperatureCompensateSP.s = IPS_ALERT;
-                IUResetSwitch(&TemperatureCompensateSP);
-                TemperatureCompensateS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureCompensateSP, nullptr);
+                TemperatureCompensateSP.setState(IPS_ALERT);
+                TemperatureCompensateSP.reset();
+                TemperatureCompensateSP[last_index].setState(ISS_ON);
+                TemperatureCompensateSP.apply();
                 return false;
             }
 
-            TemperatureCompensateSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureCompensateSP, nullptr);
+            TemperatureCompensateSP.setState(IPS_OK);
+            TemperatureCompensateSP.apply();
             return true;
         }
 
-//        if (strcmp(ResetSP.name, name) == 0)
+//        if (ResetSP.isNameMatch(name))
 //        {
-//            IUResetSwitch(&ResetSP);
+//            ResetSP.reset();
 
 //            if (reset())
-//                ResetSP.s = IPS_OK;
+//                ResetSP.setState(IPS_OK);
 //            else
-//                ResetSP.s = IPS_ALERT;
+//                ResetSP.setState(IPS_ALERT);
 
-//            IDSetSwitch(&ResetSP, nullptr);
+//            ResetSP.apply();
 //            return true;
 //        }
     }
@@ -486,41 +486,41 @@ bool Microtouch::ISNewNumber(const char *dev, const char *name, double values[],
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-//        if (strcmp(name, MaxTravelNP.name) == 0)
+//        if (MaxTravelNP.isNameMatch(name))
 //        {
-//            IUUpdateNumber(&MaxTravelNP, values, names, n);
-//            MaxTravelNP.s = IPS_OK;
-//            IDSetNumber(&MaxTravelNP, nullptr);
+//            MaxTravelNP.update(values, names, n);
+//            MaxTravelNP.setState(IPS_OK);
+//            MaxTravelNP.apply();
 //            return true;
 //        }
 
-        if (strcmp(name, TemperatureSettingNP.name) == 0)
+        if (TemperatureSettingNP.isNameMatch(name))
         {
-            IUUpdateNumber(&TemperatureSettingNP, values, names, n);
-            if (!setTemperatureCalibration(TemperatureSettingN[0].value) ||
-                !setTemperatureCoefficient(TemperatureSettingN[1].value))
+            TemperatureSettingNP.update(values, names, n);
+            if (!setTemperatureCalibration(TemperatureSettingNP[0].value) ||
+                !setTemperatureCoefficient(TemperatureSettingNP[1].value))
             {
-                TemperatureSettingNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureSettingNP, nullptr);
+                TemperatureSettingNP.setState(IPS_ALERT);
+                TemperatureSettingNP.apply();
                 return false;
             }
 
-            TemperatureSettingNP.s = IPS_OK;
-            IDSetNumber(&TemperatureSettingNP, nullptr);
+            TemperatureSettingNP.setState(IPS_OK);
+            TemperatureSettingNP.apply();
         }
 
-//        if (strcmp(name, ResetToPosNP.name) == 0)
+//        if (ResetToPosNP.isNameMatch(name))
 //        {
-//            IUUpdateNumber(&ResetToPosNP, values, names, n);
-//            if (!reset(ResetToPosN[0].value))
+//            ResetToPosNP.update(values, names, n);
+//            if (!reset(ResetToPosNP[0].value))
 //            {
-//                ResetToPosNP.s = IPS_ALERT;
-//                IDSetNumber(&ResetToPosNP, nullptr);
+//                ResetToPosNP.setState(IPS_ALERT);
+//                ResetToPosNP.apply();
 //                return false;
 //            }
 
-//            ResetToPosNP.s = IPS_OK;
-//            IDSetNumber(&ResetToPosNP, nullptr);
+//            ResetToPosNP.setState(IPS_OK);
+//            ResetToPosNP.apply();
 //        }
     }
 
@@ -530,19 +530,19 @@ bool Microtouch::ISNewNumber(const char *dev, const char *name, double values[],
 void Microtouch::GetFocusParams()
 {
     if (updatePosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (updateTemperature())
     {
-        IDSetNumber(&TemperatureNP, nullptr);
-        IDSetNumber(&TemperatureSettingNP, nullptr);
+        TemperatureNP.apply();
+        TemperatureSettingNP.apply();
     }
 
     /*    if (updateSpeed())
-        IDSetNumber(&FocusSpeedNP, nullptr);
+        FocusSpeedNP.apply();
     */
     if (updateMotorSpeed())
-        IDSetSwitch(&MotorSpeedSP, nullptr);
+        MotorSpeedSP.apply();
 }
 
 bool Microtouch::SetFocuserSpeed(int speed)
@@ -556,8 +556,8 @@ bool Microtouch::SetFocuserSpeed(int speed)
 
     currentSpeed = speed;
 
-    FocusSpeedNP.s = IPS_OK;
-    IDSetNumber(&FocusSpeedNP, nullptr);
+    FocusSpeedNP.setState(IPS_OK);
+    FocusSpeedNP.apply();
 
     return true;
 }
@@ -578,7 +578,7 @@ IPState Microtouch::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
     else
-        MoveFocuser(FocusAbsPosN[0].value + FocusMaxPosN[0].value - 1);
+        MoveFocuser(FocusAbsPosNP[0].value + FocusMaxPosNP[0].getValue() - 1);
 
     if (duration <= getCurrentPollingPeriod())
     {
@@ -601,7 +601,7 @@ IPState Microtouch::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -612,17 +612,17 @@ IPState Microtouch::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     bool rc            = false;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     rc = MoveFocuser(newPosition);
 
     if (!rc)
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -638,46 +638,46 @@ void Microtouch::TimerHit()
 
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 1)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 1)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
     rc = updateTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.01)
+        if (fabs(lastTemperature - TemperatureNP[0].getValue()) >= 0.01)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            TemperatureNP.apply();
+            lastTemperature = TemperatureNP[0].getValue();
         }
     }
 
-    if (FocusTimerNP.s == IPS_BUSY)
+    if (FocusTimerNP.getState() == IPS_BUSY)
     {
         float remaining = CalcTimeLeft(focusMoveStart, focusMoveRequest);
         if (remaining <= 0)
         {
-            FocusTimerNP.s       = IPS_OK;
-            FocusTimerN[0].value = 0;
+            FocusTimerNP.setState(IPS_OK);
+            FocusTimerNP[0].setValue(0);
             AbortFocuser();
         }
         else
-            FocusTimerN[0].value = remaining * 1000.0;
-        IDSetNumber(&FocusTimerNP, nullptr);
+            FocusTimerNP[0].setValue(remaining * 1000.0);
+        FocusTimerNP.apply();
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             LOG_INFO("Focuser reached requested position.");
         }
     }
@@ -688,10 +688,10 @@ void Microtouch::TimerHit()
 bool Microtouch::AbortFocuser()
 {
     WriteCmd(CMD_HALT);
-    FocusAbsPosNP.s = IPS_IDLE;
-    FocusRelPosNP.s = IPS_IDLE;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-    IDSetNumber(&FocusRelPosNP, nullptr);
+    FocusAbsPosNP.setState(IPS_IDLE);
+    FocusRelPosNP.setState(IPS_IDLE);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.apply();
     return true;
 }
 

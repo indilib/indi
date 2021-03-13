@@ -85,31 +85,31 @@ bool FocuserDriver::initProperties()
     INDI::Focuser::initProperties();
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -100, 100, 0, 0);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -100, 100, 0, 0);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Stepping Modes
-    IUFillSwitch(&SteppingModeS[STEPPING_FULL], "STEPPING_FULL", "Full", ISS_ON);
-    IUFillSwitch(&SteppingModeS[STEPPING_HALF], "STEPPING_HALF", "Half", ISS_OFF);
-    IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 2, getDeviceName(), "STEPPING_MODE", "Mode",
+    SteppingModeSP[STEPPING_FULL].fill("STEPPING_FULL", "Full", ISS_ON);
+    SteppingModeSP[STEPPING_HALF].fill("STEPPING_HALF", "Half", ISS_OFF);
+    SteppingModeSP.fill(getDeviceName(), "STEPPING_MODE", "Mode",
                        STEPPING_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
 
     addDebugControl();
 
     // Set limits as per documentation
-    FocusAbsPosN[0].min  = 0;
-    FocusAbsPosN[0].max  = 999999;
-    FocusAbsPosN[0].step = 1000;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(999999);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusRelPosN[0].min  = 0;
-    FocusRelPosN[0].max  = 999;
-    FocusRelPosN[0].step = 100;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax(999);
+    FocusRelPosNP[0].setStep(100);
 
-    FocusSpeedN[0].min  = 1;
-    FocusSpeedN[0].max  = 254;
-    FocusSpeedN[0].step = 10;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(254);
+    FocusSpeedNP[0].setStep(10);
 
     return true;
 }
@@ -132,12 +132,12 @@ bool FocuserDriver::updateProperties()
     if (isConnected())
     {
         if (readTemperature())
-            defineProperty(&TemperatureNP);
+            defineProperty(TemperatureNP);
 
         bool rc = getStartupValues();
 
         // Settings
-        defineProperty(&SteppingModeSP);
+        defineProperty(SteppingModeSP);
 
         if (rc)
             LOG_INFO("FocuserDriver is ready.");
@@ -146,10 +146,10 @@ bool FocuserDriver::updateProperties()
     }
     else
     {
-        if (TemperatureNP.s == IPS_OK)
-            deleteProperty(TemperatureNP.name);
+        if (TemperatureNP.getState() == IPS_OK)
+            deleteProperty(TemperatureNP.getName());
 
-        deleteProperty(SteppingModeSP.name);
+        deleteProperty(SteppingModeSP.getName());
     }
 
     return true;
@@ -247,11 +247,11 @@ bool FocuserDriver::ISNewSwitch(const char * dev, const char * name, ISState * s
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {        
         // Stepping Mode
-        if (!strcmp(name, SteppingModeSP.name))
+        if (SteppingModeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SteppingModeSP, states, names, n);
-            SteppingModeSP.s = IPS_OK;
-            IDSetSwitch(&SteppingModeSP, nullptr);
+            SteppingModeSP.update(states, names, n);
+            SteppingModeSP.setState(IPS_OK);
+            SteppingModeSP.apply();
             return true;
         }
     }
@@ -279,7 +279,7 @@ IPState FocuserDriver::MoveAbsFocuser(uint32_t targetTicks)
 IPState FocuserDriver::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     m_TargetDiff = ticks * ((dir == FOCUS_INWARD) ? -1 : 1);
-    return MoveAbsFocuser(FocusAbsPosN[0].value + m_TargetDiff);
+    return MoveAbsFocuser(FocusAbsPosNP[0].value + m_TargetDiff);
 }
 
 bool FocuserDriver::AbortFocuser()
@@ -293,7 +293,7 @@ void FocuserDriver::TimerHit()
         return;
 
     // What is the last read position?
-    double currentPosition = FocusAbsPosN[0].value;
+    double currentPosition = FocusAbsPosNP[0].getValue();
 
     // Read the current position
     readPosition();
@@ -301,25 +301,25 @@ void FocuserDriver::TimerHit()
     // Check if we have a pending motion
     // if isMoving() is false, then we stopped, so we need to set the Focus Absolute
     // and relative properties to OK
-    if ( (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY) && isMoving() == false)
+    if ( (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY) && isMoving() == false)
     {
-        FocusAbsPosNP.s = IPS_OK;
-        FocusRelPosNP.s = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusRelPosNP.setState(IPS_OK);
+        FocusAbsPosNP.apply();
+        FocusRelPosNP.apply();
     }
     // If there was a different between last and current positions, let's update all clients
-    else if (currentPosition != FocusAbsPosN[0].value)
+    else if (currentPosition != FocusAbsPosNP[0].getValue())
     {
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
     }
 
     // Read temperature periodically
-    if (TemperatureNP.s == IPS_OK && m_TemperatureCounter++ == DRIVER_TEMPERATURE_FREQ)
+    if (TemperatureNP.getState() == IPS_OK && m_TemperatureCounter++ == DRIVER_TEMPERATURE_FREQ)
     {
         m_TemperatureCounter = 0;
         if (readTemperature())
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -353,8 +353,8 @@ bool FocuserDriver::readTemperature()
     if (temperature < -100)
         return false;
 
-    TemperatureN[0].value = temperature;
-    TemperatureNP.s = IPS_OK;
+    TemperatureNP[0].setValue(temperature);
+    TemperatureNP.setState(IPS_OK);
 
     return true;
 }
@@ -382,7 +382,7 @@ bool FocuserDriver::readPosition()
     if (pos == 1e6)
         return false;
 
-    FocusAbsPosN[0].value = pos;
+    FocusAbsPosNP[0].setValue(pos);
 
     return true;
 }
@@ -402,9 +402,9 @@ bool FocuserDriver::readStepping()
 
     // Assuming the above function returns 10 for full step, and 11 for half step
     // we can update the switch status as follows
-    SteppingModeS[STEPPING_FULL].s = (mode == 10) ? ISS_ON : ISS_OFF;
-    SteppingModeS[STEPPING_HALF].s = (mode == 10) ? ISS_OFF : ISS_ON;
-    SteppingModeSP.s = IPS_OK;
+    SteppingModeSP[STEPPING_FULL].setState((mode == 10) ? ISS_ON : ISS_OFF);
+    SteppingModeSP[STEPPING_HALF].setState((mode == 10) ? ISS_OFF : ISS_ON);
+    SteppingModeSP.setState(IPS_OK);
 
     return true;
 }
@@ -430,7 +430,7 @@ bool FocuserDriver::saveConfigItems(FILE *fp)
 
     // We need to reserve and save stepping mode
     // so that the next time the driver is loaded, it is remembered and applied.
-    IUSaveConfigSwitch(fp, &SteppingModeSP);
+    SteppingModeSP.save(fp);
 
     return true;
 }

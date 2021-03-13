@@ -24,6 +24,10 @@
 
 #include <chrono>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class MoonLite : public INDI::Focuser
 {
     public:
@@ -122,20 +126,16 @@ class MoonLite : public INDI::Focuser
         uint32_t targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
 
         // Read Only Temperature Reporting
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
         // Full/Half Step modes
-        ISwitch StepModeS[2];
-        ISwitchVectorProperty StepModeSP;
+        INDI::PropertySwitch StepModeSP {2};
 
         // Temperature Settings
-        INumber TemperatureSettingN[2];
-        INumberVectorProperty TemperatureSettingNP;
+        INDI::PropertyNumber TemperatureSettingNP {2};
 
         // Temperature Compensation Enable/Disable
-        ISwitch TemperatureCompensateS[2];
-        ISwitchVectorProperty TemperatureCompensateSP;
+        INDI::PropertySwitch TemperatureCompensateSP {2};
 
         // MoonLite Buffer
         static const uint8_t ML_RES { 32 };

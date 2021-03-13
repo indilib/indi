@@ -129,46 +129,46 @@ bool Integra::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IUFillNumber(&MaxPositionN[0], "FOCUSER", "Focuser", "%.f",
+    MaxPositionNP[0].fill("FOCUSER", "Focuser", "%.f",
                  0, wellKnownIntegra85FocusMax, 0., wellKnownIntegra85FocusMax);
-    IUFillNumber(&MaxPositionN[1], "ROTATOR", "Rotator", "%.f",
+    MaxPositionNP[1].fill("ROTATOR", "Rotator", "%.f",
                  0, wellKnownIntegra85RotateMax, 0., wellKnownIntegra85RotateMax);
-    IUFillNumberVector(&MaxPositionNP, MaxPositionN, 2, getDeviceName(), "MAX_POSITION", "Max position",
+    MaxPositionNP.fill(getDeviceName(), "MAX_POSITION", "Max position",
                        SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
 
-    FocusSpeedN[0].min = 1;
-    FocusSpeedN[0].max = 1;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(1);
+    FocusSpeedNP[0].setValue(1);
 
     // Temperature Sensor
-    IUFillNumber(&SensorN[SENSOR_TEMPERATURE], "TEMPERATURE", "Temperature (C)", "%.2f", -100, 100., 1., 0.);
-    IUFillNumberVector(&SensorNP, SensorN, 1, getDeviceName(), "SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
+    SensorNP[SENSOR_TEMPERATURE].fill("TEMPERATURE", "Temperature (C)", "%.2f", -100, 100., 1., 0.);
+    SensorNP.fill(getDeviceName(), "SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
 
     // Home Find
-    IUFillSwitch(&FindHomeS[HOMING_IDLE], "HOMING_IDLE", "Idle", ISS_ON);
-    IUFillSwitch(&FindHomeS[HOMING_START], "HOMING_START", "Start", ISS_OFF);
-    IUFillSwitch(&FindHomeS[HOMING_ABORT], "HOMING_ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&FindHomeSP, FindHomeS, HOMING_COUNT, getDeviceName(), "HOMING", "Home at Center", SETTINGS_TAB, IP_RW,
+    FindHomeSP[HOMING_IDLE].fill("HOMING_IDLE", "Idle", ISS_ON);
+    FindHomeSP[HOMING_START].fill("HOMING_START", "Start", ISS_OFF);
+    FindHomeSP[HOMING_ABORT].fill("HOMING_ABORT", "Abort", ISS_OFF);
+    FindHomeSP.fill(getDeviceName(), "HOMING", "Home at Center", SETTINGS_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Relative and absolute movement
-    FocusAbsPosN[0].min   = 0;
-    FocusAbsPosN[0].max   = MaxPositionN[0].value;
-    FocusAbsPosN[0].step  = MaxPositionN[0].value / 50.0;
-    FocusAbsPosN[0].value = 0;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(MaxPositionNP[0].getValue());
+    FocusAbsPosNP[0].setStep(MaxPositionNP[0].value / 50.0);
+    FocusAbsPosNP[0].setValue(0);
 
-    FocusRelPosN[0].min   = 0;
-    FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-    FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
-    FocusRelPosN[0].value = 100;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax((FocusAbsPosNP[0].max - FocusAbsPosNP[0].min) / 2);
+    FocusRelPosNP[0].setStep(FocusRelPosNP[0].getMax() / 100.0);
+    FocusRelPosNP[0].setValue(100);
 
     RI::initProperties(ROTATOR_TAB);
 
     // Rotator Ticks
-    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 61802., 1., 0.);
-    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
+    RotatorAbsPosNP[0].fill("ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 61802., 1., 0.);
+    RotatorAbsPosNP.fill(getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
                        0, IPS_IDLE );
-    RotatorAbsPosN[0].min = 0;
+    RotatorAbsPosNP[0].setMin(0);
 
     addDebugControl();
 
@@ -189,26 +189,26 @@ bool Integra::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&MaxPositionNP);
+        defineProperty(MaxPositionNP);
         // Focus
-        defineProperty(&SensorNP);
-        defineProperty(&FindHomeSP);
+        defineProperty(SensorNP);
+        defineProperty(FindHomeSP);
 
         // Rotator
         RI::updateProperties();
-        defineProperty(&RotatorAbsPosNP);
+        defineProperty(RotatorAbsPosNP);
     }
     else
     {
-        deleteProperty(MaxPositionNP.name);
+        deleteProperty(MaxPositionNP.getName());
 
         // Focus
-        deleteProperty(SensorNP.name);
-        deleteProperty(FindHomeSP.name);
+        deleteProperty(SensorNP.getName());
+        deleteProperty(FindHomeSP.getName());
 
         // Rotator
         RI::updateProperties();
-        deleteProperty(RotatorAbsPosNP.name);
+        deleteProperty(RotatorAbsPosNP.getName());
     }
 
     return true;
@@ -290,8 +290,8 @@ bool Integra::getFirmware()
 // Called from our ::Handshake
 bool Integra::getFocuserType()
 {
-    int focus_max = int(FocusAbsPosN[0].max);
-    int rotator_max = int(RotatorAbsPosN[0].max);
+    int focus_max = int(FocusAbsPosNP[0].max);
+    int rotator_max = int(RotatorAbsPosNP[0].max);
     if (focus_max != wellKnownIntegra85FocusMax)
     {
         LOGF_ERROR("This is no Integra85 because focus max position %d != %d, trying to continue still", focus_max,
@@ -309,9 +309,9 @@ bool Integra::getFocuserType()
     LOGF_INFO("Focuser Type %s", resp);
     if (strcmp(resp, "Integra85") == 0)
     {
-        // RotatorAbsPosN[0].max is already set by getMaxPosition
-        rotatorTicksPerDegree = RotatorAbsPosN[0].max / 360.0;
-        rotatorDegreesPerTick = 360.0 / RotatorAbsPosN[0].max;
+        // RotatorAbsPosNP[0].max is already set by getMaxPosition
+        rotatorTicksPerDegree = RotatorAbsPosNP[0].getMax() / 360.0;
+        rotatorDegreesPerTick = 360.0 / RotatorAbsPosNP[0].getMax();
     }
 
     return true;
@@ -331,11 +331,11 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
     {
         if (relativePosition > 0)
         {
-            if (lastFocuserPosition + relativePosition > MaxPositionN[MOTOR_FOCUS].value)
+            if (lastFocuserPosition + relativePosition > MaxPositionNP[MOTOR_FOCUS].getValue())
             {
-                int newRelativePosition = (int32_t)floor(MaxPositionN[MOTOR_FOCUS].value) - lastFocuserPosition;
+                int newRelativePosition = (int32_t)floor(MaxPositionNP[MOTOR_FOCUS].value) - lastFocuserPosition;
                 LOGF_INFO("Focus position change %d clipped to %d to stay at MAX %d",
-                          relativePosition, newRelativePosition, MaxPositionN[MOTOR_FOCUS].value);
+                          relativePosition, newRelativePosition, MaxPositionNP[MOTOR_FOCUS].getValue());
                 relativePosition = newRelativePosition;
             }
         }
@@ -354,21 +354,21 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
     {
         if (relativePosition > 0)
         {
-            if (lastRotatorPosition + relativePosition > MaxPositionN[MOTOR_ROTATOR].value)
+            if (lastRotatorPosition + relativePosition > MaxPositionNP[MOTOR_ROTATOR].getValue())
             {
-                int newRelativePosition = (int32_t)floor(MaxPositionN[MOTOR_ROTATOR].value) - lastRotatorPosition;
+                int newRelativePosition = (int32_t)floor(MaxPositionNP[MOTOR_ROTATOR].value) - lastRotatorPosition;
                 LOGF_INFO("Rotator position change %d clipped to %d to stay at MAX %d",
-                          relativePosition, newRelativePosition, MaxPositionN[MOTOR_ROTATOR].value);
+                          relativePosition, newRelativePosition, MaxPositionNP[MOTOR_ROTATOR].getValue());
                 relativePosition = newRelativePosition;
             }
         }
         else
         {
-            if (lastRotatorPosition + relativePosition < - MaxPositionN[MOTOR_ROTATOR].value)
+            if (lastRotatorPosition + relativePosition < - MaxPositionNP[MOTOR_ROTATOR].getValue())
             {
-                int newRelativePosition = - (int32_t)floor(MaxPositionN[MOTOR_ROTATOR].value) - lastRotatorPosition;
+                int newRelativePosition = - (int32_t)floor(MaxPositionNP[MOTOR_ROTATOR].value) - lastRotatorPosition;
                 LOGF_INFO("Rotator position change %d clipped to %d to stay at MIN %d",
-                          relativePosition, newRelativePosition, - MaxPositionN[MOTOR_ROTATOR].value);
+                          relativePosition, newRelativePosition, - MaxPositionNP[MOTOR_ROTATOR].getValue());
                 relativePosition = newRelativePosition;
             }
         }
@@ -408,9 +408,9 @@ bool Integra::getPosition(MotorType type)
     {
         if (type == MOTOR_FOCUS)
         {
-            if (FocusAbsPosN[0].value != position)
+            if (FocusAbsPosNP[0].value != position)
             {
-                auto position_from = (int) FocusAbsPosN[0].value;
+                auto position_from = (int) FocusAbsPosNP[0].getValue();
                 int position_to = position;
                 if (haveReadFocusPositionAtLeastOnce)
                 {
@@ -420,14 +420,14 @@ bool Integra::getPosition(MotorType type)
                 {
                     LOGF_DEBUG("Focus position is %d", position_to);
                 }
-                FocusAbsPosN[0].value = position;
+                FocusAbsPosNP[0].setValue(position);
             }
         }
         else if (type == MOTOR_ROTATOR)
         {
-            if (RotatorAbsPosN[0].value != position)
+            if (RotatorAbsPosNP[0].value != position)
             {
-                auto position_from = (int) RotatorAbsPosN[0].value;
+                auto position_from = (int) RotatorAbsPosNP[0].getValue();
                 int position_to = position;
                 if (haveReadRotatorPositionAtLeastOnce)
                 {
@@ -439,7 +439,7 @@ bool Integra::getPosition(MotorType type)
                     LOGF_DEBUG("Rotator angle is %.2f, position is %d",
                                rotatorTicksToDegrees(position_to), position_to);
                 }
-                RotatorAbsPosN[0].value = position;
+                RotatorAbsPosNP[0].setValue(position);
             }
         }
         else
@@ -458,52 +458,52 @@ bool Integra::ISNewSwitch (const char * dev, const char * name, ISState * states
 {
     if(strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, FindHomeSP.name) == 0)
+        if (FindHomeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&FindHomeSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&FindHomeSP);
+            FindHomeSP.update(states, names, n);
+            int index = FindHomeSP.findOnSwitchIndex();
             switch (index)
             {
                 case HOMING_IDLE:
                     LOG_INFO("Homing state is IDLE");
-                    FindHomeS[HOMING_IDLE].s = ISS_ON;
-                    FindHomeSP.s = IPS_OK;
+                    FindHomeSP[HOMING_IDLE].setState(ISS_ON);
+                    FindHomeSP.setState(IPS_OK);
                     break;
                 case HOMING_START:
                     if (findHome())
                     {
-                        FindHomeSP.s = IPS_BUSY;
-                        FindHomeS[HOMING_START].s = ISS_ON;
+                        FindHomeSP.setState(IPS_BUSY);
+                        FindHomeSP[HOMING_START].setState(ISS_ON);
                         DEBUG(INDI::Logger::DBG_WARNING,
                               "Homing process can take up to 2 minutes. You cannot control the unit until the process is fully complete.");
                     }
                     else
                     {
-                        FindHomeSP.s = IPS_ALERT;
-                        FindHomeS[HOMING_START].s = ISS_OFF;
+                        FindHomeSP.setState(IPS_ALERT);
+                        FindHomeSP[HOMING_START].setState(ISS_OFF);
                         LOG_ERROR("Failed to start homing process.");
                     }
                     break;
                 case HOMING_ABORT:
                     if (abortHome())
                     {
-                        FindHomeSP.s = IPS_IDLE;
-                        FindHomeS[HOMING_ABORT].s = ISS_ON;
+                        FindHomeSP.setState(IPS_IDLE);
+                        FindHomeSP[HOMING_ABORT].setState(ISS_ON);
                         LOG_WARN("Homing aborted");
                     }
                     else
                     {
-                        FindHomeSP.s = IPS_ALERT;
-                        FindHomeS[HOMING_ABORT].s = ISS_OFF;
+                        FindHomeSP.setState(IPS_ALERT);
+                        FindHomeSP[HOMING_ABORT].setState(ISS_OFF);
                         LOG_ERROR("Failed to abort homing process.");
                     }
                     break;
                 default:
-                    FindHomeSP.s = IPS_ALERT;
-                    IDSetSwitch(&FindHomeSP, "Unknown homing index %d", index);
+                    FindHomeSP.setState(IPS_ALERT);
+                    FindHomeSP.apply("Unknown homing index %d", index);
                     return false;
             }
-            IDSetSwitch(&FindHomeSP, nullptr);
+            FindHomeSP.apply();
             return true;
         }
         else if (strstr(name, "ROTATOR"))
@@ -520,11 +520,11 @@ bool Integra::ISNewNumber (const char * dev, const char * name, double values[],
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, RotatorAbsPosNP.name) == 0)
+        if (RotatorAbsPosNP.isNameMatch(name))
         {
-            RotatorAbsPosNP.s = (gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(values[0])) ? IPS_BUSY : IPS_ALERT);
-            IDSetNumber(&RotatorAbsPosNP, nullptr);
-            if (RotatorAbsPosNP.s == IPS_BUSY)
+            RotatorAbsPosNP.setState((gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(values[0])) ? IPS_BUSY : IPS_ALERT));
+            RotatorAbsPosNP.apply();
+            if (RotatorAbsPosNP.getState() == IPS_BUSY)
                 LOGF_DEBUG("Rotator moving from %d to %.f ticks...", lastRotatorPosition, values[0]);
             return true;
         }
@@ -548,7 +548,7 @@ IPState Integra::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -560,16 +560,16 @@ IPState Integra::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     LOGF_DEBUG("Focuser will move in direction %d relative %d ticks...", dir, ticks);
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     rc = gotoMotor(MOTOR_FOCUS, newPosition);
     if (!rc)
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -586,21 +586,21 @@ void Integra::TimerHit()
     bool savePositionsToEEPROM = false;
 
     // sanity check warning ...
-    if (int(FocusAbsPosN[0].max) != wellKnownIntegra85FocusMax || int(RotatorAbsPosN[0].max) != wellKnownIntegra85RotateMax)
+    if (int(FocusAbsPosNP[0].max) != wellKnownIntegra85FocusMax || int(RotatorAbsPosNP[0].max) != wellKnownIntegra85RotateMax)
     {
         LOGF_WARN("Warning: Focus motor max position %d should be %d and Rotator motor max position %d should be %d",
-                  int(FocusAbsPosN[0].max), wellKnownIntegra85FocusMax,
-                  int(RotatorAbsPosN[0].max), wellKnownIntegra85RotateMax);
+                  int(FocusAbsPosNP[0].max), wellKnownIntegra85FocusMax,
+                  int(RotatorAbsPosNP[0].max), wellKnownIntegra85RotateMax);
     }
 
     // #1 If we're homing, we check if homing is complete as we cannot check for anything else
-    if (FindHomeSP.s == IPS_BUSY)
+    if (FindHomeSP.getState() == IPS_BUSY)
     {
         if (isHomingComplete())
         {
-            FindHomeS[0].s = ISS_OFF;
-            FindHomeSP.s = IPS_OK;
-            IDSetSwitch(&FindHomeSP, nullptr);
+            FindHomeSP[0].setState(ISS_OFF);
+            FindHomeSP.setState(IPS_OK);
+            FindHomeSP.apply();
 
             LOG_INFO("Homing is complete");
             // Next read positions and save to EEPROM :
@@ -617,8 +617,8 @@ void Integra::TimerHit()
     }
 
     // #2 Get Temperature, only read this when no motors are active, and about once per minute
-    if (FocusAbsPosNP.s != IPS_BUSY && FocusRelPosNP.s != IPS_BUSY
-            && RotatorAbsPosNP.s != IPS_BUSY
+    if (FocusAbsPosNP.getState() != IPS_BUSY && FocusRelPosNP.getState() != IPS_BUSY
+            && RotatorAbsPosNP.getState() != IPS_BUSY
             && timeToReadTemperature <= 0)
     {
         rc = getTemperature();
@@ -627,10 +627,10 @@ void Integra::TimerHit()
         if (rc)
         {
             timeToReadTemperature = INTEGRA_TEMPERATURE_LOOP_SKIPS;
-            if (fabs(SensorN[SENSOR_TEMPERATURE].value - lastTemperature) > INTEGRA_TEMPERATURE_TRESHOLD_IN_C)
+            if (fabs(SensorNP[SENSOR_TEMPERATURE].value - lastTemperature) > INTEGRA_TEMPERATURE_TRESHOLD_IN_C)
             {
-                lastTemperature = SensorN[SENSOR_TEMPERATURE].value;
-                IDSetNumber(&SensorNP, nullptr);
+                lastTemperature = SensorNP[SENSOR_TEMPERATURE].getValue();
+                SensorNP.apply();
             }
         }
     }
@@ -643,21 +643,21 @@ void Integra::TimerHit()
     // #4 is not used on Integra85
 
     // #5 Focus Position & Status
-    if (!haveReadFocusPositionAtLeastOnce || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (!haveReadFocusPositionAtLeastOnce || FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if ( ! isMotorMoving(MOTOR_FOCUS))
         {
             LOG_DEBUG("Focuser stopped");
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
             rc = getPosition(MOTOR_FOCUS);
             if (rc)
             {
-                if (FocusAbsPosN[0].value != lastFocuserPosition)
+                if (FocusAbsPosNP[0].value != lastFocuserPosition)
                 {
-                    lastFocuserPosition = FocusAbsPosN[0].value;
-                    IDSetNumber(&FocusAbsPosNP, nullptr);
-                    IDSetNumber(&FocusRelPosNP, nullptr);
+                    lastFocuserPosition = FocusAbsPosNP[0].getValue();
+                    FocusAbsPosNP.apply();
+                    FocusRelPosNP.apply();
                     if (haveReadFocusPositionAtLeastOnce)
                     {
                         LOGF_INFO("Focuser reached requested position %d", lastFocuserPosition);
@@ -678,23 +678,23 @@ void Integra::TimerHit()
     }
 
     // #6 Rotator Position & Status
-    if (!haveReadRotatorPositionAtLeastOnce  || RotatorAbsPosNP.s == IPS_BUSY)
+    if (!haveReadRotatorPositionAtLeastOnce  || RotatorAbsPosNP.getState() == IPS_BUSY)
     {
         if ( ! isMotorMoving(MOTOR_ROTATOR))
         {
             LOG_DEBUG("Rotator stopped");
-            RotatorAbsPosNP.s = IPS_OK;
-            GotoRotatorNP.s = IPS_OK;
+            RotatorAbsPosNP.setState(IPS_OK);
+            GotoRotatorNP.setState(IPS_OK);
             rc = getPosition(MOTOR_ROTATOR);
             if (rc)
             {
-                if (RotatorAbsPosN[0].value != lastRotatorPosition)
+                if (RotatorAbsPosNP[0].value != lastRotatorPosition)
                 {
-                    lastRotatorPosition = RotatorAbsPosN[0].value;
-                    GotoRotatorN[0].value = rotatorTicksToDegrees(
-                                                lastRotatorPosition); //range360(RotatorAbsPosN[0].value / rotatorTicksPerDegree);
-                    IDSetNumber(&RotatorAbsPosNP, nullptr);
-                    IDSetNumber(&GotoRotatorNP, nullptr);
+                    lastRotatorPosition = RotatorAbsPosNP[0].getValue();
+                    GotoRotatorNP[0].setValue(rotatorTicksToDegrees(
+                                                lastRotatorPosition)); //range360(RotatorAbsPosNP[0].value / rotatorTicksPerDegree);
+                    RotatorAbsPosNP.apply();
+                    GotoRotatorNP.apply();
                     if (haveReadRotatorPositionAtLeastOnce)
                         LOGF_INFO("Rotator reached requested angle %.2f, position %d",
                                   rotatorTicksToDegrees(lastRotatorPosition), lastRotatorPosition);
@@ -793,22 +793,22 @@ bool Integra::getMaxPosition(MotorType type)
         return false;
     }
     int position = atoi(res);
-    if (MaxPositionN[type].value == position)
+    if (MaxPositionNP[type].value == position)
     {
         LOGF_INFO("%s motor max position is %d", (type == MOTOR_FOCUS) ? "Focuser" : "Rotator", position);
     }
     else
     {
         LOGF_WARN("Updated %s motor max position from %d to %d",
-                  (type == MOTOR_FOCUS) ? "Focuser" : "Rotator", MaxPositionN[type].value, position);
-        MaxPositionN[type].value = position;
+                  (type == MOTOR_FOCUS) ? "Focuser" : "Rotator", MaxPositionNP[type].getValue(), position);
+        MaxPositionNP[type].setValue(position);
         if (type == MOTOR_FOCUS)
         {
-            FocusAbsPosN[0].max = MaxPositionN[type].value;
+            FocusAbsPosNP[0].setMax(MaxPositionNP[type].getValue());
         }
         else if (type == MOTOR_ROTATOR)
         {
-            RotatorAbsPosN[0].max = MaxPositionN[type].value;
+            RotatorAbsPosNP[0].setMax(MaxPositionNP[type].getValue());
         }
         else
         {
@@ -828,7 +828,7 @@ bool Integra::getTemperature()
     char res[16] = {0};
     if (integraGetCommand(__FUNCTION__, get_temperature, res ) )
     {
-        SensorN[SENSOR_TEMPERATURE].value = strtod(res, nullptr);
+        SensorNP[SENSOR_TEMPERATURE].setValue(strtod(res, nullptr));
         return true;
     }
     return false;
@@ -874,8 +874,8 @@ IPState Integra::MoveRotator(double angle)
     bool rc = relativeGotoMotor(MOTOR_ROTATOR, p2 - p1);
     if (rc)
     {
-        RotatorAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        RotatorAbsPosNP.setState(IPS_BUSY);
+        RotatorAbsPosNP.apply();
         return IPS_BUSY;
     }
 
@@ -885,10 +885,10 @@ IPState Integra::MoveRotator(double angle)
 bool Integra::AbortRotator()
 {
     bool rc = stopMotor(MOTOR_ROTATOR);
-    if (rc && RotatorAbsPosNP.s != IPS_OK)
+    if (rc && RotatorAbsPosNP.getState() != IPS_OK)
     {
-        RotatorAbsPosNP.s = IPS_OK;
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        RotatorAbsPosNP.setState(IPS_OK);
+        RotatorAbsPosNP.apply();
     }
 
     return rc;

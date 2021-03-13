@@ -22,6 +22,11 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class SestoSenso : public INDI::Focuser
 {
     public:
@@ -68,22 +73,18 @@ class SestoSenso : public INDI::Focuser
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
-        IText FirmwareT[1] {};
-        ITextVectorProperty FirmwareTP;
+        INDI::PropertyText FirmwareTP {1};
 
-        ISwitch CalibrationS[2];
-        ISwitchVectorProperty CalibrationSP;
+        INDI::PropertySwitch CalibrationSP {2};
         enum
         {
             CALIBRATION_START,
             CALIBRATION_NEXT
         };
 
-        ISwitch FastMoveS[3];
-        ISwitchVectorProperty FastMoveSP;
+        INDI::PropertySwitch FastMoveSP {3};
         enum
         {
             FASTMOVE_IN,
@@ -91,8 +92,7 @@ class SestoSenso : public INDI::Focuser
             FASTMOVE_STOP
         };
 
-        IText CalibrationMessageT[1] {};
-        ITextVectorProperty CalibrationMessageTP;
+        INDI::PropertyText CalibrationMessageTP {1};
 
         typedef enum { Idle, GoToMiddle, GoMinimum, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };

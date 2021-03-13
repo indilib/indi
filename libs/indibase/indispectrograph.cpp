@@ -53,13 +53,13 @@ Spectrograph::~Spectrograph()
 bool Spectrograph::initProperties()
 {
     // PrimarySpectrograph Info
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_SAMPLERATE], "SPECTROGRAPH_SAMPLERATE", "Sample rate (SPS)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+6);
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_FREQUENCY], "SPECTROGRAPH_FREQUENCY", "Center frequency (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BITSPERSAMPLE], "SPECTROGRAPH_BITSPERSAMPLE", "Bits per sample", "%3.0f", -64, 64, 8, 8);
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BANDWIDTH], "SPECTROGRAPH_BANDWIDTH", "Bandwidth (Hz)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_GAIN], "SPECTROGRAPH_GAIN", "Gain", "%3.2f", 0.01, 255.0, 0.01, 1.0);
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_ANTENNA], "SPECTROGRAPH_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
-    IUFillNumberVector(&SpectrographSettingsNP, SpectrographSettingsN, 6, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    SpectrographSettingsNP[SPECTROGRAPH_SAMPLERATE].fill("SPECTROGRAPH_SAMPLERATE", "Sample rate (SPS)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+6);
+    SpectrographSettingsNP[SPECTROGRAPH_FREQUENCY].fill("SPECTROGRAPH_FREQUENCY", "Center frequency (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
+    SpectrographSettingsNP[SPECTROGRAPH_BITSPERSAMPLE].fill("SPECTROGRAPH_BITSPERSAMPLE", "Bits per sample", "%3.0f", -64, 64, 8, 8);
+    SpectrographSettingsNP[SPECTROGRAPH_BANDWIDTH].fill("SPECTROGRAPH_BANDWIDTH", "Bandwidth (Hz)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
+    SpectrographSettingsNP[SPECTROGRAPH_GAIN].fill("SPECTROGRAPH_GAIN", "Gain", "%3.2f", 0.01, 255.0, 0.01, 1.0);
+    SpectrographSettingsNP[SPECTROGRAPH_ANTENNA].fill("SPECTROGRAPH_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
+    SpectrographSettingsNP.fill(getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     setDriverInterface(SPECTROGRAPH_INTERFACE);
 
@@ -75,17 +75,17 @@ bool Spectrograph::updateProperties()
 {
     if (isConnected())
     {
-        defineProperty(&SpectrographSettingsNP);
+        defineProperty(SpectrographSettingsNP);
 
         if (HasCooler())
-            defineProperty(&TemperatureNP);
+            defineProperty(TemperatureNP);
     }
     else
     {
-        deleteProperty(SpectrographSettingsNP.name);
+        deleteProperty(SpectrographSettingsNP.getName());
 
         if (HasCooler())
-            deleteProperty(TemperatureNP.name);
+            deleteProperty(TemperatureNP.getName());
     }
     return SensorInterface::updateProperties();
 }
@@ -102,8 +102,8 @@ bool Spectrograph::ISNewText(const char *dev, const char *name, char *values[], 
 
 bool Spectrograph::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, SpectrographSettingsNP.name)) {
-        IDSetNumber(&SpectrographSettingsNP, nullptr);
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, SpectrographSettingsNP.getName())) {
+        SpectrographSettingsNP.apply();
     }
     return processNumber(dev, name, values, names, n);
 }
@@ -123,36 +123,36 @@ void Spectrograph::setSampleRate(double sr)
 {
     Samplerate = sr;
 
-    SpectrographSettingsN[Spectrograph::SPECTROGRAPH_SAMPLERATE].value = sr;
+    SpectrographSettingsNP[Spectrograph::SPECTROGRAPH_SAMPLERATE].setValue(sr);
 
-    IDSetNumber(&SpectrographSettingsNP, nullptr);
+    SpectrographSettingsNP.apply();
 }
 
 void Spectrograph::setBandwidth(double bw)
 {
     Bandwidth = bw;
 
-    SpectrographSettingsN[Spectrograph::SPECTROGRAPH_BANDWIDTH].value = bw;
+    SpectrographSettingsNP[Spectrograph::SPECTROGRAPH_BANDWIDTH].setValue(bw);
 
-    IDSetNumber(&SpectrographSettingsNP, nullptr);
+    SpectrographSettingsNP.apply();
 }
 
 void Spectrograph::setGain(double gain)
 {
     Gain = gain;
 
-    SpectrographSettingsN[Spectrograph::SPECTROGRAPH_GAIN].value = gain;
+    SpectrographSettingsNP[Spectrograph::SPECTROGRAPH_GAIN].setValue(gain);
 
-    IDSetNumber(&SpectrographSettingsNP, nullptr);
+    SpectrographSettingsNP.apply();
 }
 
 void Spectrograph::setFrequency(double freq)
 {
     Frequency = freq;
 
-    SpectrographSettingsN[Spectrograph::SPECTROGRAPH_FREQUENCY].value = freq;
+    SpectrographSettingsNP[Spectrograph::SPECTROGRAPH_FREQUENCY].setValue(freq);
 
-    IDSetNumber(&SpectrographSettingsNP, nullptr);
+    SpectrographSettingsNP.apply();
 }
 
 void Spectrograph::SetSpectrographCapability(uint32_t cap)
@@ -173,8 +173,8 @@ void Spectrograph::setMinMaxStep(const char *property, const char *element, doub
 {
     INumberVectorProperty *vp = nullptr;
 
-    if (!strcmp(property, SpectrographSettingsNP.name)) {
-        vp = &FramedIntegrationNP;
+    if (SpectrographSettingsNP.isNameMatch(property)) {
+        vp = FramedIntegrationNP.getNumber(); // #PS: refactor needed
 
         INumber *np = IUFindNumber(vp, element);
         if (np)

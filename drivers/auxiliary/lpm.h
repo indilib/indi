@@ -26,6 +26,11 @@
 
 #include "defaultdevice.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class LPM : public INDI::DefaultDevice
 {
   public:
@@ -63,22 +68,17 @@ class LPM : public INDI::DefaultDevice
     void openFilePtr();
 
     // Readings
-    INumberVectorProperty AverageReadingNP;
-    INumber AverageReadingN[5] {};
+    INDI::PropertyNumber AverageReadingNP {5};
 
     // Record File Info
-    IText RecordFileT[2] {};
-    ITextVectorProperty RecordFileTP;
+    INDI::PropertyText RecordFileTP {2};
 
-    ISwitch ResetB[1];
-    ISwitchVectorProperty ResetBP;
+    INDI::PropertySwitch ResetBP {1};
 
-    ISwitch SaveB[2] {};
-    ISwitchVectorProperty SaveBP;
+    INDI::PropertySwitch SaveBP {2};
 
     // Device Information
-    INumberVectorProperty UnitInfoNP;
-    INumber UnitInfoN[1];
+    INDI::PropertyNumber UnitInfoNP {1};
 
     Connection::Serial *serialConnection { nullptr };
 

@@ -147,9 +147,9 @@ bool LX200Basic::initProperties()
     INDI::Telescope::initProperties();
 
     // Slew threshold
-    IUFillNumber(&SlewAccuracyN[0], "SlewRA", "RA (arcmin)", "%10.6m", 0., 60., 1., 3.0);
-    IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
-    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "",
+    SlewAccuracyNP[0].fill("SlewRA", "RA (arcmin)", "%10.6m", 0., 60., 1., 3.0);
+    SlewAccuracyNP[1].fill("SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
+    SlewAccuracyNP.fill(getDeviceName(), "Slew Accuracy", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     addAuxControls();
@@ -166,17 +166,17 @@ bool LX200Basic::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&SlewAccuracyNP);
+        defineProperty(SlewAccuracyNP);
 
         // We don't support NSWE controls
-        deleteProperty(MovementNSSP.name);
-        deleteProperty(MovementWESP.name);
+        deleteProperty(MovementNSSP.getName());
+        deleteProperty(MovementWESP.getName());
 
         getBasicData();
     }
     else
     {
-        deleteProperty(SlewAccuracyNP.name);
+        deleteProperty(SlewAccuracyNP.getName());
     }
 
     return true;
@@ -203,7 +203,7 @@ bool LX200Basic::isSlewComplete()
 {
     const double dx = targetRA - currentRA;
     const double dy = targetDEC - currentDEC;
-    return fabs(dx) <= (SlewAccuracyN[0].value / (900.0)) && fabs(dy) <= (SlewAccuracyN[1].value / 60.0);
+    return fabs(dx) <= (SlewAccuracyNP[0].value / (900.0)) && fabs(dy) <= (SlewAccuracyNP[1].value / 60.0);
 }
 
 /**************************************************************************************
@@ -222,8 +222,8 @@ bool LX200Basic::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Error reading RA/DEC.");
         return false;
     }
 
@@ -255,19 +255,19 @@ bool LX200Basic::Goto(double r, double d)
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            AbortSP.apply("Abort slew failed.");
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        AbortSP.apply("Slew aborted.");
+        EqNP.apply();
 
         // sleep for 100 mseconds
         usleep(100000);
@@ -277,8 +277,8 @@ bool LX200Basic::Goto(double r, double d)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error setting RA/DEC.");
             return false;
         }
 
@@ -287,15 +287,15 @@ bool LX200Basic::Goto(double r, double d)
         /* Slew reads the '0', that is not the end of the slew */
         if ((err = Slew(PortFD)))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(err);
             return false;
         }
     }
 
     TrackState = SCOPE_SLEWING;
-    //EqNP.s     = IPS_BUSY;
+    //EqNP.setState(IPS_BUSY);
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -310,15 +310,15 @@ bool LX200Basic::Sync(double ra, double dec)
 
     if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Error setting RA/DEC. Unable to Sync.");
         return false;
     }
 
     if (!isSimulation() && ::Sync(PortFD, syncString) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Synchronization failed.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Synchronization failed.");
         return false;
     }
 
@@ -327,7 +327,7 @@ bool LX200Basic::Sync(double ra, double dec)
 
     LOG_INFO("Synchronization successful.");
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     NewRaDec(currentRA, currentDEC);
 
@@ -341,17 +341,17 @@ bool LX200Basic::ISNewNumber(const char *dev, const char *name, double values[],
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, SlewAccuracyNP.name))
+        if (SlewAccuracyNP.isNameMatch(name))
         {
-            if (IUUpdateNumber(&SlewAccuracyNP, values, names, n) < 0)
+            if (!SlewAccuracyNP.update(values, names, n))
                 return false;
 
-            SlewAccuracyNP.s = IPS_OK;
+            SlewAccuracyNP.setState(IPS_OK);
 
-            if (SlewAccuracyN[0].value < 3 || SlewAccuracyN[1].value < 3)
-                IDSetNumber(&SlewAccuracyNP, "Warning: Setting the slew accuracy too low may result in a dead lock");
+            if (SlewAccuracyNP[0].value < 3 || SlewAccuracyNP[1].getValue() < 3)
+                SlewAccuracyNP.apply("Warning: Setting the slew accuracy too low may result in a dead lock");
 
-            IDSetNumber(&SlewAccuracyNP, nullptr);
+            SlewAccuracyNP.apply();
             return true;
         }
     }
@@ -370,9 +370,9 @@ bool LX200Basic::Abort()
         return false;
     }
 
-    EqNP.s     = IPS_IDLE;
+    EqNP.setState(IPS_IDLE);
     TrackState = SCOPE_IDLE;
-    IDSetNumber(&EqNP, nullptr);
+    EqNP.apply();
 
     LOG_INFO("Slew aborted.");
     return true;
@@ -390,7 +390,7 @@ void LX200Basic::getBasicData()
     getLX200RA(PortFD, &currentRA);
     getLX200DEC(PortFD, &currentDEC);
 
-    IDSetNumber(&EqNP, nullptr);
+    EqNP.apply();
 }
 
 /**************************************************************************************
@@ -467,14 +467,14 @@ void LX200Basic::mountSim()
 ***************************************************************************************/
 void LX200Basic::slewError(int slewCode)
 {
-    EqNP.s = IPS_ALERT;
+    EqNP.setState(IPS_ALERT);
 
     if (slewCode == 1)
-        IDSetNumber(&EqNP, "Object below horizon.");
+        EqNP.apply("Object below horizon.");
     else if (slewCode == 2)
-        IDSetNumber(&EqNP, "Object below the minimum elevation limit.");
+        EqNP.apply("Object below the minimum elevation limit.");
     else
-        IDSetNumber(&EqNP, "Slew failed.");
+        EqNP.apply("Slew failed.");
 }
 
 /**************************************************************************************
@@ -483,6 +483,6 @@ void LX200Basic::slewError(int slewCode)
 bool LX200Basic::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
-    IUSaveConfigNumber(fp, &SlewAccuracyNP);
+    SlewAccuracyNP.save(fp);
     return true;
 }

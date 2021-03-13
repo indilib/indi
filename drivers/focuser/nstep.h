@@ -25,6 +25,10 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class NStep : public INDI::Focuser
 {
     public:
@@ -56,11 +60,9 @@ class NStep : public INDI::Focuser
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
-        ISwitch CompensationModeS[3];
-        ISwitchVectorProperty CompensationModeSP;
+        INDI::PropertySwitch CompensationModeSP {3};
         enum
         {
             COMPENSATION_MODE_OFF,
@@ -68,8 +70,7 @@ class NStep : public INDI::Focuser
             COMPENSATION_MODE_AUTO,
         };
 
-        INumber CompensationSettingsN[4];
-        INumberVectorProperty CompensationSettingsNP;
+        INDI::PropertyNumber CompensationSettingsNP {4};
         enum
         {
             COMPENSATION_SETTING_CHANGE,
@@ -78,11 +79,9 @@ class NStep : public INDI::Focuser
             COMPENSATION_SETTING_TIMER,
         };
 
-        ISwitch PrimeManualS[1];
-        ISwitchVectorProperty PrimeManualSP;
+        INDI::PropertySwitch PrimeManualSP {1};
 
-        ISwitch SteppingModeS[3];
-        ISwitchVectorProperty SteppingModeSP;
+        INDI::PropertySwitch SteppingModeSP {3};
         enum
         {
             STEPPING_WAVE,
@@ -90,19 +89,16 @@ class NStep : public INDI::Focuser
             STEPPING_FULL,
         };
 
-        ISwitch CoilStatusS[2];
-        ISwitchVectorProperty CoilStatusSP;
+        INDI::PropertySwitch CoilStatusSP {2};
         enum
         {
             COIL_ENERGIZED_OFF,
             COIL_ENERGIZED_ON,
         };
 
-        INumber SteppingPhaseN[1];
-        INumberVectorProperty SteppingPhaseNP;
+        INDI::PropertyNumber SteppingPhaseNP {1};
 
-        INumber MaxSpeedN[1];
-        INumberVectorProperty MaxSpeedNP;
+        INDI::PropertyNumber MaxSpeedNP {1};
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Read Data From Controller

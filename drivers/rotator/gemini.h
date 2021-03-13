@@ -25,6 +25,12 @@
 
 #include <map>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+#include "indipropertylight.h"
+
 class Gemini : public INDI::Focuser, public INDI::RotatorInterface
 {
     public:
@@ -155,44 +161,36 @@ class Gemini : public INDI::Focuser, public INDI::RotatorInterface
         ///////////////////////////////////////////////////////////
 
         // Set/Get Temperature
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
         // Enable/Disable temperature compnesation
-        ISwitch TemperatureCompensateS[2];
-        ISwitchVectorProperty TemperatureCompensateSP;
+        INDI::PropertySwitch TemperatureCompensateSP {2};
 
         // Enable/Disable temperature compnesation on start
-        ISwitch TemperatureCompensateOnStartS[2];
-        ISwitchVectorProperty TemperatureCompensateOnStartSP;
+        INDI::PropertySwitch TemperatureCompensateOnStartSP {2};
 
         // Temperature Coefficient
-        INumber TemperatureCoeffN[5];
-        INumberVectorProperty TemperatureCoeffNP;
+        INDI::PropertyNumber TemperatureCoeffNP {5};
 
         // Temperature Coefficient Mode
-        ISwitch TemperatureCompensateModeS[5];
-        ISwitchVectorProperty TemperatureCompensateModeSP;
+        INDI::PropertySwitch TemperatureCompensateModeSP {5};
 
         // Enable/Disable backlash
-        //    ISwitch FocuserBacklashCompensationS[2];
+        //    INDI::PropertySwitch FocuserBacklashCompensationSP {2};
         //    ISwitchVectorProperty FocuserFocusBacklashSP;
 
         // Backlash Value
-        //    INumber FocusBacklashN[1];
-        //    INumberVectorProperty FocusBacklashNP;
+        //    INDI::PropertyNumber FocusBacklashNP {1};
+        //
 
         // Home On Start
-        ISwitch FocuserHomeOnStartS[2];
-        ISwitchVectorProperty FocuserHomeOnStartSP;
+        INDI::PropertySwitch FocuserHomeOnStartSP {2};
 
         // Go to home/center
-        ISwitch FocuserGotoS[2];
-        ISwitchVectorProperty FocuserGotoSP;
+        INDI::PropertySwitch FocuserGotoSP {2};
 
         // Status indicators
-        ILight FocuserStatusL[8];
-        ILightVectorProperty FocuserStatusLP;
+        INDI::PropertyLight FocuserStatusLP {8};
 
         bool isFocuserAbsolute;
         bool isFocuserHoming;
@@ -214,36 +212,29 @@ class Gemini : public INDI::Focuser, public INDI::RotatorInterface
         ///////////////////////////////////////////////////////////
 
         // Status
-        ILight RotatorStatusL[8];
-        ILightVectorProperty RotatorStatusLP;
+        INDI::PropertyLight RotatorStatusLP {8};
 
         // Rotator Steps
-        INumber RotatorAbsPosN[1];
-        INumberVectorProperty RotatorAbsPosNP;
+        INDI::PropertyNumber RotatorAbsPosNP {1};
 
 #if 0
         // Reverse Direction
-        ISwitch RotatorReverseS[2];
-        ISwitchVectorProperty RotatorReverseSP;
+        INDI::PropertySwitch RotatorReverseSP {2};
 
 
 
         // Rotator Degrees or PA (Position Angle)
-        INumber RotatorAbsAngleN[1];
-        INumberVectorProperty RotatorAbsAngleNP;
+        INDI::PropertyNumber RotatorAbsAngleNP {1};
 
         // Abort
-        ISwitch AbortRotatorS[1];
-        ISwitchVectorProperty AbortRotatorSP;
+        INDI::PropertySwitch AbortRotatorSP {1};
 
         // Go to home/center
-        ISwitch RotatorGotoS[2];
-        ISwitchVectorProperty RotatorGotoSP;
+        INDI::PropertySwitch RotatorGotoSP {2};
 #endif
 
         // Home On Start
-        ISwitch RotatorHomeOnStartS[2];
-        ISwitchVectorProperty RotatorHomeOnStartSP;
+        INDI::PropertySwitch RotatorHomeOnStartSP {2};
 
         bool isRotatorHoming;
 
@@ -266,16 +257,13 @@ class Gemini : public INDI::Focuser, public INDI::RotatorInterface
         ///////////////////////////////////////////////////////////
 
         // Reset to Factory setting
-        ISwitch ResetS[1];
-        ISwitchVectorProperty ResetSP;
+        INDI::PropertySwitch ResetSP {1};
 
         // Focus and rotator name configure in the HUB
-        IText HFocusNameT[2] {};
-        ITextVectorProperty HFocusNameTP;
+        INDI::PropertyText HFocusNameTP {2};
 
         // Led Intensity Value
-        INumber LedN[1];
-        INumberVectorProperty LedNP;
+        INDI::PropertyNumber LedNP {1};
 
         uint32_t DBG_FOCUS;
 };

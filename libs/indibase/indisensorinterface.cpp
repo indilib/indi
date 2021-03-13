@@ -89,42 +89,42 @@ bool SensorInterface::updateProperties()
     //IDLog("Sensor UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
-        defineProperty(&FramedIntegrationNP);
+        defineProperty(FramedIntegrationNP);
 
         if (CanAbort())
-            defineProperty(&AbortIntegrationSP);
+            defineProperty(AbortIntegrationSP);
 
-        defineProperty(&FITSHeaderTP);
+        defineProperty(FITSHeaderTP);
 
         if (HasCooler())
-            defineProperty(&TemperatureNP);
+            defineProperty(TemperatureNP);
 
         defineProperty(&FitsBP);
 
-        defineProperty(&TelescopeTypeSP);
+        defineProperty(TelescopeTypeSP);
 
-        defineProperty(&UploadSP);
+        defineProperty(UploadSP);
 
-        if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
-            IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
-        defineProperty(&UploadSettingsTP);
+        if (UploadSettingsTP[UPLOAD_DIR].text == nullptr)
+            UploadSettingsTP[UPLOAD_DIR].setText(getenv("HOME"));
+        defineProperty(UploadSettingsTP);
     }
     else
     {
-        deleteProperty(FramedIntegrationNP.name);
+        deleteProperty(FramedIntegrationNP.getName());
         if (CanAbort())
-            deleteProperty(AbortIntegrationSP.name);
+            deleteProperty(AbortIntegrationSP.getName());
         deleteProperty(FitsBP.name);
 
-        deleteProperty(FITSHeaderTP.name);
+        deleteProperty(FITSHeaderTP.getName());
 
         if (HasCooler())
-            deleteProperty(TemperatureNP.name);
+            deleteProperty(TemperatureNP.getName());
 
-        deleteProperty(TelescopeTypeSP.name);
+        deleteProperty(TelescopeTypeSP.getName());
 
-        deleteProperty(UploadSP.name);
-        deleteProperty(UploadSettingsTP.name);
+        deleteProperty(UploadSP.getName());
+        deleteProperty(UploadSettingsTP.getName());
     }
 
     if (HasStreaming())
@@ -139,7 +139,7 @@ void SensorInterface::processProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
-    defineProperty(&ActiveDeviceTP);
+    defineProperty(ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 
     if (HasStreaming())
@@ -151,23 +151,23 @@ void SensorInterface::processProperties(const char *dev)
 
 bool SensorInterface::processSnoopDevice(XMLEle *root)
 {
-    if (!IUSnoopNumber(root, &EqNP))
+    if (!IUSnoopNumber(root, EqNP.getNumber())) // #PS: refactor needed
     {
-        RA = EqNP.np[0].value;
-        Dec = EqNP.np[1].value;
+        RA = EqNP[0].getValue();
+        Dec = EqNP[1].getValue();
         //IDLog("Snooped RA %4.2f  Dec %4.2f\n", RA, Dec);
     }
-    if (!IUSnoopNumber(root, &LocationNP))
+    if (!IUSnoopNumber(root, LocationNP.getNumber())) // #PS: refactor needed
     {
-        Lat = LocationNP.np[0].value;
-        Lon = LocationNP.np[1].value;
-        El = LocationNP.np[2].value;
+        Lat = LocationNP[0].getValue();
+        Lon = LocationNP[1].getValue();
+        El = LocationNP[2].getValue();
         //IDLog("Snooped Lat %4.2f  Lon %4.2f  El %4.2f\n", RA, Dec, El);
     }
-    if (!IUSnoopNumber(root, &ScopeParametersNP))
+    if (!IUSnoopNumber(root, ScopeParametersNP.getNumber())) // #PS: refactor needed
     {
-        primaryAperture = ScopeParametersNP.np[0].value;
-        primaryFocalLength = ScopeParametersNP.np[1].value;
+        primaryAperture = ScopeParametersNP[0].getValue();
+        primaryFocalLength = ScopeParametersNP[1].getValue();
         //IDLog("Snooped primaryAperture %4.2f  primaryFocalLength %4.2f\n", primaryAperture, primaryFocalLength);
     }
 
@@ -181,21 +181,21 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if (!strcmp(name, ActiveDeviceTP.name))
+        if (ActiveDeviceTP.isNameMatch(name))
         {
-            ActiveDeviceTP.s = IPS_OK;
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
-            IDSetText(&ActiveDeviceTP, nullptr);
+            ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.update(texts, names, n);
+            ActiveDeviceTP.apply();
 
             // Update the property name!
-            strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
-            strncpy(LocationNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
-            strncpy(ScopeParametersNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+            EqNP.setDeviceName(ActiveDeviceTP[0].getText());
+            LocationNP.setDeviceName(ActiveDeviceTP[0].getText());
+            ScopeParametersNP.setDeviceName(ActiveDeviceTP[0].getText());
 
-            IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
-            IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "EQUATORIAL_EOD_COORD");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "GEOGRAPHIC_COORD");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "TELESCOPE_INFO");
+            IDSnoopDevice(ActiveDeviceTP[1].getText(), "GEOGRAPHIC_COORD");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -204,19 +204,19 @@ bool SensorInterface::processText(const char *dev, const char *name, char *texts
             return true;
         }
 
-        if (!strcmp(name, FITSHeaderTP.name))
+        if (FITSHeaderTP.isNameMatch(name))
         {
-            IUUpdateText(&FITSHeaderTP, texts, names, n);
-            FITSHeaderTP.s = IPS_OK;
-            IDSetText(&FITSHeaderTP, nullptr);
+            FITSHeaderTP.update(texts, names, n);
+            FITSHeaderTP.setState(IPS_OK);
+            FITSHeaderTP.apply();
             return true;
         }
 
-        if (!strcmp(name, UploadSettingsTP.name))
+        if (UploadSettingsTP.isNameMatch(name))
         {
-            IUUpdateText(&UploadSettingsTP, texts, names, n);
-            UploadSettingsTP.s = IPS_OK;
-            IDSetText(&UploadSettingsTP, nullptr);
+            UploadSettingsTP.update(texts, names, n);
+            UploadSettingsTP.setState(IPS_OK);
+            UploadSettingsTP.apply();
             return true;
         }
     }
@@ -238,53 +238,53 @@ bool SensorInterface::processNumber(const char *dev, const char *name, double va
     {
         if (!strcmp(name, "SENSOR_INTEGRATION"))
         {
-            if ((values[0] < FramedIntegrationN[0].min || values[0] > FramedIntegrationN[0].max))
+            if ((values[0] < FramedIntegrationNP[0].min || values[0] > FramedIntegrationNP[0].max))
             {
                 DEBUGF(Logger::DBG_ERROR, "Requested integration value (%g) seconds out of bounds [%g,%g].",
-                       values[0], FramedIntegrationN[0].min, FramedIntegrationN[0].max);
-                FramedIntegrationNP.s = IPS_ALERT;
-                IDSetNumber(&FramedIntegrationNP, nullptr);
+                       values[0], FramedIntegrationNP[0].min, FramedIntegrationNP[0].max);
+                FramedIntegrationNP.setState(IPS_ALERT);
+                FramedIntegrationNP.apply();
                 return false;
             }
 
-            FramedIntegrationN[0].value = IntegrationTime = values[0];
+            FramedIntegrationNP[0].setValue(IntegrationTime = values[0]);
 
-            if (FramedIntegrationNP.s == IPS_BUSY)
+            if (FramedIntegrationNP.getState() == IPS_BUSY)
             {
                 if (CanAbort() && AbortIntegration() == false)
                     DEBUG(Logger::DBG_WARNING, "Warning: Aborting integration failed.");
             }
 
             if (StartIntegration(IntegrationTime))
-                FramedIntegrationNP.s = IPS_BUSY;
+                FramedIntegrationNP.setState(IPS_BUSY);
             else
-                FramedIntegrationNP.s = IPS_ALERT;
-            IDSetNumber(&FramedIntegrationNP, nullptr);
+                FramedIntegrationNP.setState(IPS_ALERT);
+            FramedIntegrationNP.apply();
             return true;
         }
 
         // Sensor TEMPERATURE:
-        if (!strcmp(name, TemperatureNP.name))
+        if (TemperatureNP.isNameMatch(name))
         {
-            if (values[0] < TemperatureN[0].min || values[0] > TemperatureN[0].max)
+            if (values[0] < TemperatureNP[0].min || values[0] > TemperatureNP[0].max)
             {
-                TemperatureNP.s = IPS_ALERT;
+                TemperatureNP.setState(IPS_ALERT);
                 DEBUGF(Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
-                       TemperatureN[0].min, TemperatureN[0].max);
-                IDSetNumber(&TemperatureNP, nullptr);
+                       TemperatureNP[0].min, TemperatureNP[0].max);
+                TemperatureNP.apply();
                 return false;
             }
 
             int rc = SetTemperature(values[0]);
 
             if (rc == 0)
-                TemperatureNP.s = IPS_BUSY;
+                TemperatureNP.setState(IPS_BUSY);
             else if (rc == 1)
-                TemperatureNP.s = IPS_OK;
+                TemperatureNP.setState(IPS_OK);
             else
-                TemperatureNP.s = IPS_ALERT;
+                TemperatureNP.setState(IPS_ALERT);
 
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
             return true;
         }
     }
@@ -302,59 +302,59 @@ bool SensorInterface::processSwitch(const char *dev, const char *name, ISState *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, UploadSP.name))
+        if (UploadSP.isNameMatch(name))
         {
-            int prevMode = IUFindOnSwitchIndex(&UploadSP);
-            IUUpdateSwitch(&UploadSP, states, names, n);
-            UploadSP.s = IPS_OK;
-            IDSetSwitch(&UploadSP, nullptr);
+            int prevMode = UploadSP.findOnSwitchIndex();
+            UploadSP.update(states, names, n);
+            UploadSP.setState(IPS_OK);
+            UploadSP.apply();
 
-            if (UploadS[0].s == ISS_ON)
+            if (UploadSP[0].getState() == ISS_ON)
             {
                 DEBUG(Logger::DBG_SESSION, "Upload settings set to client only.");
                 if (prevMode != 0)
-                    deleteProperty(FileNameTP.name);
+                    deleteProperty(FileNameTP.getName());
             }
-            else if (UploadS[1].s == ISS_ON)
+            else if (UploadSP[1].getState() == ISS_ON)
             {
                 DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
-                defineProperty(&FileNameTP);
+                defineProperty(FileNameTP);
             }
             else
             {
                 DEBUG(Logger::DBG_SESSION, "Upload settings set to client and local.");
-                defineProperty(&FileNameTP);
+                defineProperty(FileNameTP);
             }
             return true;
         }
 
-        if (!strcmp(name, TelescopeTypeSP.name))
+        if (TelescopeTypeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&TelescopeTypeSP, states, names, n);
-            TelescopeTypeSP.s = IPS_OK;
-            IDSetSwitch(&TelescopeTypeSP, nullptr);
+            TelescopeTypeSP.update(states, names, n);
+            TelescopeTypeSP.setState(IPS_OK);
+            TelescopeTypeSP.apply();
             return true;
         }
 
         // Primary Device Abort Expsoure
-        if (strcmp(name, AbortIntegrationSP.name) == 0)
+        if (AbortIntegrationSP.isNameMatch(name))
         {
-            IUResetSwitch(&AbortIntegrationSP);
+            AbortIntegrationSP.reset();
 
             if (AbortIntegration())
             {
-                AbortIntegrationSP.s       = IPS_OK;
-                FramedIntegrationNP.s       = IPS_IDLE;
-                FramedIntegrationN[0].value = 0;
+                AbortIntegrationSP.setState(IPS_OK);
+                FramedIntegrationNP.setState(IPS_IDLE);
+                FramedIntegrationNP[0].setValue(0);
             }
             else
             {
-                AbortIntegrationSP.s = IPS_ALERT;
-                FramedIntegrationNP.s = IPS_ALERT;
+                AbortIntegrationSP.setState(IPS_ALERT);
+                FramedIntegrationNP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&AbortIntegrationSP, nullptr);
-            IDSetNumber(&FramedIntegrationNP, nullptr);
+            AbortIntegrationSP.apply();
+            FramedIntegrationNP.apply();
 
             return true;
         }
@@ -383,8 +383,8 @@ bool SensorInterface::initProperties()
     INDI::DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
     // Sensor Temperature
-    IUFillNumber(&TemperatureN[0], "SENSOR_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "SENSOR_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("SENSOR_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "SENSOR_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     /**********************************************/
@@ -392,15 +392,15 @@ bool SensorInterface::initProperties()
     /**********************************************/
 
     // Sensor Integration
-    IUFillNumber(&FramedIntegrationN[0], "SENSOR_INTEGRATION_VALUE", "Time (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
-    IUFillNumberVector(&FramedIntegrationNP, FramedIntegrationN, 1, getDeviceName(), "SENSOR_INTEGRATION",
+    FramedIntegrationNP[0].fill("SENSOR_INTEGRATION_VALUE", "Time (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
+    FramedIntegrationNP.fill(getDeviceName(), "SENSOR_INTEGRATION",
                        "Integration", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Sensor Abort
     if(CanAbort())
     {
-        IUFillSwitch(&AbortIntegrationS[0], "ABORT", "Abort", ISS_OFF);
-        IUFillSwitchVector(&AbortIntegrationSP, AbortIntegrationS, 1, getDeviceName(), "SENSOR_ABORT_INTEGRATION",
+        AbortIntegrationSP[0].fill("ABORT", "Abort", ISS_OFF);
+        AbortIntegrationSP.fill(getDeviceName(), "SENSOR_ABORT_INTEGRATION",
                            "Integration Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     }
 
@@ -415,30 +415,30 @@ bool SensorInterface::initProperties()
                      IP_RO, 60, IPS_IDLE);
 
     // Upload Mode
-    IUFillSwitch(&UploadS[0], "UPLOAD_CLIENT", "Client", ISS_ON);
-    IUFillSwitch(&UploadS[1], "UPLOAD_LOCAL", "Local", ISS_OFF);
-    IUFillSwitch(&UploadS[2], "UPLOAD_BOTH", "Both", ISS_OFF);
-    IUFillSwitchVector(&UploadSP, UploadS, 3, getDeviceName(), "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
+    UploadSP[0].fill("UPLOAD_CLIENT", "Client", ISS_ON);
+    UploadSP[1].fill("UPLOAD_LOCAL", "Local", ISS_OFF);
+    UploadSP[2].fill("UPLOAD_BOTH", "Both", ISS_OFF);
+    UploadSP.fill(getDeviceName(), "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     // Upload Settings
-    IUFillText(&UploadSettingsT[UPLOAD_DIR], "UPLOAD_DIR", "Dir", "");
-    IUFillText(&UploadSettingsT[UPLOAD_PREFIX], "UPLOAD_PREFIX", "Prefix", "INTEGRATION_XXX");
-    IUFillTextVector(&UploadSettingsTP, UploadSettingsT, 2, getDeviceName(), "UPLOAD_SETTINGS", "Upload Settings",
+    UploadSettingsTP[UPLOAD_DIR].fill("UPLOAD_DIR", "Dir", "");
+    UploadSettingsTP[UPLOAD_PREFIX].fill("UPLOAD_PREFIX", "Prefix", "INTEGRATION_XXX");
+    UploadSettingsTP.fill(getDeviceName(), "UPLOAD_SETTINGS", "Upload Settings",
                      OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Upload File Path
-    IUFillText(&FileNameT[0], "FILE_PATH", "Path", "");
-    IUFillTextVector(&FileNameTP, FileNameT, 1, getDeviceName(), "SENSOR_FILE_PATH", "Filename", OPTIONS_TAB, IP_RO, 60,
+    FileNameTP[0].fill("FILE_PATH", "Path", "");
+    FileNameTP.fill(getDeviceName(), "SENSOR_FILE_PATH", "Filename", OPTIONS_TAB, IP_RO, 60,
                      IPS_IDLE);
 
     /**********************************************/
     /****************** FITS Header****************/
     /**********************************************/
 
-    IUFillText(&FITSHeaderT[FITS_OBSERVER], "FITS_OBSERVER", "Observer", "Unknown");
-    IUFillText(&FITSHeaderT[FITS_OBJECT], "FITS_OBJECT", "Object", "Unknown");
-    IUFillTextVector(&FITSHeaderTP, FITSHeaderT, 2, getDeviceName(), "FITS_HEADER", "FITS Header", INFO_TAB, IP_RW, 60,
+    FITSHeaderTP[FITS_OBSERVER].fill("FITS_OBSERVER", "Observer", "Unknown");
+    FITSHeaderTP[FITS_OBJECT].fill("FITS_OBJECT", "Object", "Unknown");
+    FITSHeaderTP.fill(getDeviceName(), "FITS_HEADER", "FITS Header", INFO_TAB, IP_RW, 60,
                      IPS_IDLE);
 
     /**********************************************/
@@ -446,34 +446,34 @@ bool SensorInterface::initProperties()
     /**********************************************/
 
     // Snooped Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    IUFillText(&ActiveDeviceT[1], "ACTIVE_GPS", "GPS", "GPS Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 2, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
+    ActiveDeviceTP[0].fill("ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    ActiveDeviceTP[1].fill("ACTIVE_GPS", "GPS", "GPS Simulator");
+    ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     // Snoop properties of interest
-    IUFillNumber(&EqN[0], "RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqN[1], "DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqNP, EqN, 2, getDeviceName(), "EQUATORIAL_EOD_COORD", "Eq. Coordinates", MAIN_CONTROL_TAB,
+    EqNP[0].fill("RA", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    EqNP[1].fill("DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    EqNP.fill(getDeviceName(), "EQUATORIAL_EOD_COORD", "Eq. Coordinates", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&LocationN[0], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
-    IUFillNumber(&LocationN[1], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
-    IUFillNumber(&LocationN[2], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
-    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB,
+    LocationNP[0].fill("LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
+    LocationNP[1].fill("LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
+    LocationNP[2].fill("ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
+    LocationNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB,
                        IP_RO, 60, IPS_IDLE);
 
-    IUFillNumber(&ScopeParametersN[0], "TELESCOPE_APERTURE", "Aperture (mm)", "%g", 10, 5000, 0, 0.0);
-    IUFillNumber(&ScopeParametersN[1], "TELESCOPE_FOCAL_LENGTH", "Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
-    IUFillNumber(&ScopeParametersN[2], "GUIDER_APERTURE", "Guider Aperture (mm)", "%g", 10, 5000, 0, 0.0);
-    IUFillNumber(&ScopeParametersN[3], "GUIDER_FOCAL_LENGTH", "Guider Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
-    IUFillNumberVector(&ScopeParametersNP, ScopeParametersN, 4, getDeviceName(), "TELESCOPE_INFO", "Scope Properties",
+    ScopeParametersNP[0].fill("TELESCOPE_APERTURE", "Aperture (mm)", "%g", 10, 5000, 0, 0.0);
+    ScopeParametersNP[1].fill("TELESCOPE_FOCAL_LENGTH", "Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
+    ScopeParametersNP[2].fill("GUIDER_APERTURE", "Guider Aperture (mm)", "%g", 10, 5000, 0, 0.0);
+    ScopeParametersNP[3].fill("GUIDER_FOCAL_LENGTH", "Guider Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
+    ScopeParametersNP.fill(getDeviceName(), "TELESCOPE_INFO", "Scope Properties",
                        OPTIONS_TAB, IP_RW, 60, IPS_OK);
 
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
-    IDSnoopDevice(ActiveDeviceT[1].text, "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "TELESCOPE_INFO");
+    IDSnoopDevice(ActiveDeviceTP[1].getText(), "GEOGRAPHIC_COORD");
 
     if (sensorConnection & CONNECTION_SERIAL)
     {
@@ -514,9 +514,9 @@ void SensorInterface::setMinMaxStep(const char *property, const char *element, d
 {
     INumberVectorProperty *vp = nullptr;
 
-    if (!strcmp(property, FramedIntegrationNP.name))
+    if (FramedIntegrationNP.isNameMatch(property))
     {
-        vp = &FramedIntegrationNP;
+        vp = FramedIntegrationNP.getNumber(); // #PS: refactor needed
 
         INumber *np = IUFindNumber(vp, element);
         if (np)
@@ -561,9 +561,9 @@ bool SensorInterface::StartIntegration(double duration)
 
 void SensorInterface::setIntegrationLeft(double duration)
 {
-    FramedIntegrationN[0].value = duration;
+    FramedIntegrationNP[0].setValue(duration);
 
-    IDSetNumber(&FramedIntegrationNP, nullptr);
+    FramedIntegrationNP.apply();
 }
 
 void SensorInterface::setIntegrationTime(double duration)
@@ -590,8 +590,8 @@ const char *SensorInterface::getIntegrationStartTime()
 
 void SensorInterface::setIntegrationFailed()
 {
-    FramedIntegrationNP.s = IPS_ALERT;
-    IDSetNumber(&FramedIntegrationNP, nullptr);
+    FramedIntegrationNP.setState(IPS_ALERT);
+    FramedIntegrationNP.apply();
 }
 
 int SensorInterface::getNAxis() const
@@ -637,15 +637,15 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "Sensor Name", &status);
 
     // Telescope
-    strncpy(fitsString, ActiveDeviceT[0].text, MAXINDIDEVICE);
+    strncpy(fitsString, ActiveDeviceTP[0].getText(), MAXINDIDEVICE);
     fits_update_key_s(fptr, TSTRING, "TELESCOP", fitsString, "Telescope name", &status);
 
     // Observer
-    strncpy(fitsString, FITSHeaderT[FITS_OBSERVER].text, MAXINDIDEVICE);
+    strncpy(fitsString, FITSHeaderTP[FITS_OBSERVER].getText(), MAXINDIDEVICE);
     fits_update_key_s(fptr, TSTRING, "OBSERVER", fitsString, "Observer name", &status);
 
     // Object
-    strncpy(fitsString, FITSHeaderT[FITS_OBJECT].text, MAXINDIDEVICE);
+    strncpy(fitsString, FITSHeaderTP[FITS_OBJECT].getText(), MAXINDIDEVICE);
     fits_update_key_s(fptr, TSTRING, "OBJECT", fitsString, "Object name", &status);
 
     integrationTime = getIntegrationTime();
@@ -657,7 +657,7 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     fits_update_key_s(fptr, TDOUBLE, "EXPTIME", &(integrationTime), "Total Integration Time (s)", &status);
 
     if (HasCooler())
-        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureN[0].value), "PrimarySensorInterface Temperature (Celsius)",
+        fits_update_key_s(fptr, TDOUBLE, "SENSOR-TEMP", &(TemperatureNP[0].value), "PrimarySensorInterface Temperature (Celsius)",
                           &status);
 
 #ifdef WITH_MINMAX
@@ -750,8 +750,8 @@ void SensorInterface::fits_update_key_s(fitsfile *fptr, int type, std::string na
 
 void* SensorInterface::sendFITS(uint8_t *buf, int len)
 {
-    bool sendIntegration = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
-    bool saveIntegration = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
+    bool sendIntegration = (UploadSP[0].getState() == ISS_ON || UploadSP[2].getState() == ISS_ON);
+    bool saveIntegration = (UploadSP[1].getState() == ISS_ON || UploadSP[2].getState() == ISS_ON);
     fitsfile *fptr = nullptr;
     void *memptr;
     size_t memsize;
@@ -886,8 +886,8 @@ bool SensorInterface::IntegrationComplete()
 
 bool SensorInterface::IntegrationCompletePrivate()
 {
-    bool sendIntegration = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
-    bool saveIntegration = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
+    bool sendIntegration = (UploadSP[0].getState() == ISS_ON || UploadSP[2].getState() == ISS_ON);
+    bool saveIntegration = (UploadSP[1].getState() == ISS_ON || UploadSP[2].getState() == ISS_ON);
     bool autoLoop   = false;
 
     if (sendIntegration || saveIntegration)
@@ -911,23 +911,23 @@ bool SensorInterface::IntegrationCompletePrivate()
         DEBUG(Logger::DBG_DEBUG, "Upload complete");
     }
 
-    FramedIntegrationNP.s = IPS_OK;
-    IDSetNumber(&FramedIntegrationNP, nullptr);
+    FramedIntegrationNP.setState(IPS_OK);
+    FramedIntegrationNP.apply();
 
     if (autoLoop)
     {
-        FramedIntegrationN[0].value = IntegrationTime;
-        FramedIntegrationNP.s       = IPS_BUSY;
+        FramedIntegrationNP[0].setValue(IntegrationTime);
+        FramedIntegrationNP.setState(IPS_BUSY);
 
         if (StartIntegration(IntegrationTime))
-            FramedIntegrationNP.s = IPS_BUSY;
+            FramedIntegrationNP.setState(IPS_BUSY);
         else
         {
             DEBUG(Logger::DBG_DEBUG, "Autoloop: Sensor Integration Error!");
-            FramedIntegrationNP.s = IPS_ALERT;
+            FramedIntegrationNP.setState(IPS_ALERT);
         }
 
-        IDSetNumber(&FramedIntegrationNP, nullptr);
+        FramedIntegrationNP.apply();
     }
 
     return true;
@@ -949,13 +949,13 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
         FILE *fp = nullptr;
         char integrationFileName[MAXRBUF];
 
-        std::string prefix = UploadSettingsT[UPLOAD_PREFIX].text;
-        int maxIndex       = getFileIndex(UploadSettingsT[UPLOAD_DIR].text, UploadSettingsT[UPLOAD_PREFIX].text,
+        std::string prefix = UploadSettingsTP[UPLOAD_PREFIX].getText();
+        int maxIndex       = getFileIndex(UploadSettingsTP[UPLOAD_DIR].getText(), UploadSettingsTP[UPLOAD_PREFIX].getText(),
                                           FitsB.format);
 
         if (maxIndex < 0)
         {
-            DEBUGF(Logger::DBG_ERROR, "Error iterating directory %s. %s", UploadSettingsT[0].text,
+            DEBUGF(Logger::DBG_ERROR, "Error iterating directory %s. %s", UploadSettingsTP[0].getText(),
                    strerror(errno));
             return false;
         }
@@ -978,7 +978,7 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
             prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
-        snprintf(integrationFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), FitsB.format);
+        snprintf(integrationFileName, MAXRBUF, "%s/%s%s", UploadSettingsTP[0].getText(), prefix.c_str(), FitsB.format);
 
         fp = fopen(integrationFileName, "w");
         if (fp == nullptr)
@@ -994,11 +994,11 @@ bool SensorInterface::uploadFile(const void *fitsData, size_t totalBytes, bool s
         fclose(fp);
 
         // Save image file path
-        IUSaveText(&FileNameT[0], integrationFileName);
+        FileNameTP[0].setText(integrationFileName);
 
         DEBUGF(Logger::DBG_SESSION, "Image saved to %s", integrationFileName);
-        FileNameTP.s = IPS_OK;
-        IDSetText(&FileNameTP, nullptr);
+        FileNameTP.setState(IPS_OK);
+        FileNameTP.apply();
     }
 
     FitsB.size = totalBytes;
@@ -1032,10 +1032,10 @@ bool SensorInterface::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigSwitch(fp, &UploadSP);
-    IUSaveConfigText(fp, &UploadSettingsTP);
-    IUSaveConfigSwitch(fp, &TelescopeTypeSP);
+    ActiveDeviceTP.save(fp);
+    UploadSP.save(fp);
+    UploadSettingsTP.save(fp);
+    TelescopeTypeSP.save(fp);
 
     if (HasStreaming())
         Streamer->saveConfigItems(fp);

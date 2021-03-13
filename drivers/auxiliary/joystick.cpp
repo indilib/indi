@@ -163,12 +163,12 @@ bool JoyStick::initProperties()
     IUFillText(&PortT[0], "PORT", "Port", "/dev/input/js0");
     IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillText(&JoystickInfoT[0], "JOYSTICK_NAME", "Name", "");
-    IUFillText(&JoystickInfoT[1], "JOYSTICK_VERSION", "Version", "");
-    IUFillText(&JoystickInfoT[2], "JOYSTICK_NJOYSTICKS", "# Joysticks", "");
-    IUFillText(&JoystickInfoT[3], "JOYSTICK_NAXES", "# Axes", "");
-    IUFillText(&JoystickInfoT[4], "JOYSTICK_NBUTTONS", "# Buttons", "");
-    IUFillTextVector(&JoystickInfoTP, JoystickInfoT, 5, getDeviceName(), "JOYSTICK_INFO", "Joystick Info",
+    JoystickInfoTP[0].fill("JOYSTICK_NAME", "Name", "");
+    JoystickInfoTP[1].fill("JOYSTICK_VERSION", "Version", "");
+    JoystickInfoTP[2].fill("JOYSTICK_NJOYSTICKS", "# Joysticks", "");
+    JoystickInfoTP[3].fill("JOYSTICK_NAXES", "# Axes", "");
+    JoystickInfoTP[4].fill("JOYSTICK_NBUTTONS", "# Buttons", "");
+    JoystickInfoTP.fill(getDeviceName(), "JOYSTICK_INFO", "Joystick Info",
                      MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     addDebugControl();
@@ -184,21 +184,21 @@ bool JoyStick::updateProperties()
     {
         char buf[8];
         // Name
-        IUSaveText(&JoystickInfoT[0], driver->getName());
+        JoystickInfoTP[0].setText(driver->getName());
         // Version
         snprintf(buf, 8, "%d", driver->getVersion());
-        IUSaveText(&JoystickInfoT[1], buf);
+        JoystickInfoTP[1].setText(buf);
         // # of Joysticks
         snprintf(buf, 8, "%d", driver->getNumOfJoysticks());
-        IUSaveText(&JoystickInfoT[2], buf);
+        JoystickInfoTP[2].setText(buf);
         // # of Axes
         snprintf(buf, 8, "%d", driver->getNumOfAxes());
-        IUSaveText(&JoystickInfoT[3], buf);
+        JoystickInfoTP[3].setText(buf);
         // # of buttons
         snprintf(buf, 8, "%d", driver->getNumrOfButtons());
-        IUSaveText(&JoystickInfoT[4], buf);
+        JoystickInfoTP[4].setText(buf);
 
-        defineProperty(&JoystickInfoTP);
+        defineProperty(JoystickInfoTP);
 
         for (int i = 0; i < driver->getNumOfJoysticks(); i++)
             defineProperty(&JoyStickNP[i]);
@@ -218,7 +218,7 @@ bool JoyStick::updateProperties()
     }
     else
     {
-        deleteProperty(JoystickInfoTP.name);
+        deleteProperty(JoystickInfoTP.getName());
 
         for (int i = 0; i < driver->getNumOfJoysticks(); i++)
             deleteProperty(JoyStickNP[i].name);

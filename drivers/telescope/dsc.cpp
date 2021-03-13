@@ -90,33 +90,33 @@ bool DSC::initProperties()
     INDI::Telescope::initProperties();
 
     // Raw encoder values
-    IUFillNumber(&EncoderN[AXIS1_ENCODER], "AXIS1_ENCODER", "Axis 1", "%0.f", 0, 1e6, 0, 0);
-    IUFillNumber(&EncoderN[AXIS2_ENCODER], "AXIS2_ENCODER", "Axis 2", "%0.f", 0, 1e6, 0, 0);
-    IUFillNumber(&EncoderN[AXIS1_RAW_ENCODER], "AXIS1_RAW_ENCODER", "RAW Axis 1", "%0.f", -1e6, 1e6, 0, 0);
-    IUFillNumber(&EncoderN[AXIS2_RAW_ENCODER], "AXIS2_RAW_ENCODER", "RAW Axis 2", "%0.f", -1e6, 1e6, 0, 0);
-    IUFillNumberVector(&EncoderNP, EncoderN, 4, getDeviceName(), "DCS_ENCODER", "Encoders", MAIN_CONTROL_TAB, IP_RO, 0,
+    EncoderNP[AXIS1_ENCODER].fill("AXIS1_ENCODER", "Axis 1", "%0.f", 0, 1e6, 0, 0);
+    EncoderNP[AXIS2_ENCODER].fill("AXIS2_ENCODER", "Axis 2", "%0.f", 0, 1e6, 0, 0);
+    EncoderNP[AXIS1_RAW_ENCODER].fill("AXIS1_RAW_ENCODER", "RAW Axis 1", "%0.f", -1e6, 1e6, 0, 0);
+    EncoderNP[AXIS2_RAW_ENCODER].fill("AXIS2_RAW_ENCODER", "RAW Axis 2", "%0.f", -1e6, 1e6, 0, 0);
+    EncoderNP.fill(getDeviceName(), "DCS_ENCODER", "Encoders", MAIN_CONTROL_TAB, IP_RO, 0,
                        IPS_IDLE);
 
     // Encoder Settings
-    IUFillNumber(&AxisSettingsN[AXIS1_TICKS], "AXIS1_TICKS", "#1 ticks/rev", "%g", 256, 1e6, 0, 4096);
-    IUFillNumber(&AxisSettingsN[AXIS1_DEGREE_OFFSET], "AXIS1_DEGREE_OFFSET", "#1 Degrees Offset", "%g", -180, 180, 30,
+    AxisSettingsNP[AXIS1_TICKS].fill("AXIS1_TICKS", "#1 ticks/rev", "%g", 256, 1e6, 0, 4096);
+    AxisSettingsNP[AXIS1_DEGREE_OFFSET].fill("AXIS1_DEGREE_OFFSET", "#1 Degrees Offset", "%g", -180, 180, 30,
                  0);
-    IUFillNumber(&AxisSettingsN[AXIS2_TICKS], "AXIS2_TICKS", "#2 ticks/rev", "%g", 256, 1e6, 0, 4096);
-    IUFillNumber(&AxisSettingsN[AXIS2_DEGREE_OFFSET], "AXIS2_DEGREE_OFFSET", "#2 Degrees Offset", "%g", -180, 180, 30,
+    AxisSettingsNP[AXIS2_TICKS].fill("AXIS2_TICKS", "#2 ticks/rev", "%g", 256, 1e6, 0, 4096);
+    AxisSettingsNP[AXIS2_DEGREE_OFFSET].fill("AXIS2_DEGREE_OFFSET", "#2 Degrees Offset", "%g", -180, 180, 30,
                  0);
-    IUFillNumberVector(&AxisSettingsNP, AxisSettingsN, 4, getDeviceName(), "AXIS_SETTINGS", "Axis Resolution", AXIS_TAB,
+    AxisSettingsNP.fill(getDeviceName(), "AXIS_SETTINGS", "Axis Resolution", AXIS_TAB,
                        IP_RW, 0, IPS_IDLE);
 
     // Axis Range
-    IUFillSwitch(&AxisRangeS[AXIS_FULL_STEP], "AXIS_FULL_STEP", "Full Step", ISS_ON);
-    IUFillSwitch(&AxisRangeS[AXIS_HALF_STEP], "AXIS_HALF_STEP", "Half Step", ISS_OFF);
-    IUFillSwitchVector(&AxisRangeSP, AxisRangeS, 2, getDeviceName(), "AXIS_RANGE", "Axis Range", AXIS_TAB, IP_RW,
+    AxisRangeSP[AXIS_FULL_STEP].fill("AXIS_FULL_STEP", "Full Step", ISS_ON);
+    AxisRangeSP[AXIS_HALF_STEP].fill("AXIS_HALF_STEP", "Half Step", ISS_OFF);
+    AxisRangeSP.fill(getDeviceName(), "AXIS_RANGE", "Axis Range", AXIS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // Reverse Encoder Direction
-    IUFillSwitch(&ReverseS[AXIS1_ENCODER], "AXIS1_REVERSE", "Axis 1", ISS_OFF);
-    IUFillSwitch(&ReverseS[AXIS2_ENCODER], "AXIS2_REVERSE", "Axis 2", ISS_OFF);
-    IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "AXIS_REVERSE", "Reverse", AXIS_TAB, IP_RW,
+    ReverseSP[AXIS1_ENCODER].fill("AXIS1_REVERSE", "Axis 1", ISS_OFF);
+    ReverseSP[AXIS2_ENCODER].fill("AXIS2_REVERSE", "Axis 2", ISS_OFF);
+    ReverseSP.fill(getDeviceName(), "AXIS_REVERSE", "Reverse", AXIS_TAB, IP_RW,
                        ISR_NOFMANY, 0, IPS_IDLE);
 
 // Offsets applied to raw encoder values to adjust them as necessary
@@ -131,15 +131,15 @@ bool DSC::initProperties()
 #endif
 
     // Mount Type
-    IUFillSwitch(&MountTypeS[MOUNT_EQUATORIAL], "MOUNT_EQUATORIAL", "Equatorial", ISS_ON);
-    IUFillSwitch(&MountTypeS[MOUNT_ALTAZ], "MOUNT_ALTAZ", "AltAz", ISS_OFF);
-    IUFillSwitchVector(&MountTypeSP, MountTypeS, 2, getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB,
+    MountTypeSP[MOUNT_EQUATORIAL].fill("MOUNT_EQUATORIAL", "Equatorial", ISS_ON);
+    MountTypeSP[MOUNT_ALTAZ].fill("MOUNT_ALTAZ", "AltAz", ISS_OFF);
+    MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Simulation encoder values
-    IUFillNumber(&SimEncoderN[AXIS1_ENCODER], "AXIS1_ENCODER", "Axis 1", "%0.f", -1e6, 1e6, 0, 0);
-    IUFillNumber(&SimEncoderN[AXIS2_ENCODER], "AXIS2_ENCODER", "Axis 2", "%0.f", -1e6, 1e6, 0, 0);
-    IUFillNumberVector(&SimEncoderNP, SimEncoderN, 2, getDeviceName(), "SIM_ENCODER", "Sim Encoders", MAIN_CONTROL_TAB,
+    SimEncoderNP[AXIS1_ENCODER].fill("AXIS1_ENCODER", "Axis 1", "%0.f", -1e6, 1e6, 0, 0);
+    SimEncoderNP[AXIS2_ENCODER].fill("AXIS2_ENCODER", "Axis 2", "%0.f", -1e6, 1e6, 0, 0);
+    SimEncoderNP.fill(getDeviceName(), "SIM_ENCODER", "Sim Encoders", MAIN_CONTROL_TAB,
                        IP_RW, 0, IPS_IDLE);
 
     addAuxControls();
@@ -155,29 +155,29 @@ bool DSC::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&EncoderNP);
-        defineProperty(&AxisSettingsNP);
-        defineProperty(&AxisRangeSP);
-        defineProperty(&ReverseSP);
+        defineProperty(EncoderNP);
+        defineProperty(AxisSettingsNP);
+        defineProperty(AxisRangeSP);
+        defineProperty(ReverseSP);
         //defineProperty(&EncoderOffsetNP);
-        defineProperty(&MountTypeSP);
+        defineProperty(MountTypeSP);
 
         if (isSimulation())
-            defineProperty(&SimEncoderNP);
+            defineProperty(SimEncoderNP);
 
         SetAlignmentSubsystemActive(true);
     }
     else
     {
-        deleteProperty(EncoderNP.name);
-        deleteProperty(AxisSettingsNP.name);
-        deleteProperty(AxisRangeSP.name);
-        deleteProperty(ReverseSP.name);
+        deleteProperty(EncoderNP.getName());
+        deleteProperty(AxisSettingsNP.getName());
+        deleteProperty(AxisRangeSP.getName());
+        deleteProperty(ReverseSP.getName());
         //deleteProperty(EncoderOffsetNP.name);
-        deleteProperty(MountTypeSP.name);
+        deleteProperty(MountTypeSP.getName());
 
         if (isSimulation())
-            deleteProperty(SimEncoderNP.name);
+            deleteProperty(SimEncoderNP.getName());
     }
 
     return true;
@@ -187,11 +187,11 @@ bool DSC::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &AxisSettingsNP);
+    AxisSettingsNP.save(fp);
     //IUSaveConfigNumber(fp, &EncoderOffsetNP);
-    IUSaveConfigSwitch(fp, &AxisRangeSP);
-    IUSaveConfigSwitch(fp, &ReverseSP);
-    IUSaveConfigSwitch(fp, &MountTypeSP);
+    AxisRangeSP.save(fp);
+    ReverseSP.save(fp);
+    MountTypeSP.save(fp);
 
     return true;
 }
@@ -207,11 +207,11 @@ bool DSC::ISNewNumber(const char *dev, const char *name, double values[], char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, AxisSettingsNP.name) == 0)
+        if (AxisSettingsNP.isNameMatch(name))
         {
-            IUUpdateNumber(&AxisSettingsNP, values, names, n);
-            AxisSettingsNP.s = IPS_OK;
-            IDSetNumber(&AxisSettingsNP, nullptr);
+            AxisSettingsNP.update(values, names, n);
+            AxisSettingsNP.setState(IPS_OK);
+            AxisSettingsNP.apply();
             return true;
         }
 
@@ -223,11 +223,11 @@ bool DSC::ISNewNumber(const char *dev, const char *name, double values[], char *
             return true;
         }*/
 
-        if (strcmp(name, SimEncoderNP.name) == 0)
+        if (SimEncoderNP.isNameMatch(name))
         {
-            IUUpdateNumber(&SimEncoderNP, values, names, n);
-            SimEncoderNP.s = IPS_OK;
-            IDSetNumber(&SimEncoderNP, nullptr);
+            SimEncoderNP.update(values, names, n);
+            SimEncoderNP.setState(IPS_OK);
+            SimEncoderNP.apply();
             return true;
         }
 
@@ -241,37 +241,37 @@ bool DSC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, ReverseSP.name) == 0)
+        if (ReverseSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ReverseSP, states, names, n);
-            ReverseSP.s = IPS_OK;
-            IDSetSwitch(&ReverseSP, nullptr);
+            ReverseSP.update(states, names, n);
+            ReverseSP.setState(IPS_OK);
+            ReverseSP.apply();
             return true;
         }
 
-        if (strcmp(name, MountTypeSP.name) == 0)
+        if (MountTypeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&MountTypeSP, states, names, n);
-            MountTypeSP.s = IPS_OK;
-            IDSetSwitch(&MountTypeSP, nullptr);
+            MountTypeSP.update(states, names, n);
+            MountTypeSP.setState(IPS_OK);
+            MountTypeSP.apply();
             return true;
         }
 
-        if (strcmp(name, AxisRangeSP.name) == 0)
+        if (AxisRangeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&AxisRangeSP, states, names, n);
-            AxisRangeSP.s = IPS_OK;
+            AxisRangeSP.update(states, names, n);
+            AxisRangeSP.setState(IPS_OK);
 
-            if (AxisRangeS[AXIS_FULL_STEP].s == ISS_ON)
+            if (AxisRangeSP[AXIS_FULL_STEP].getState() == ISS_ON)
             {
-                LOGF_INFO("Axis range is from 0 to %.f", AxisSettingsN[AXIS1_TICKS].value);
+                LOGF_INFO("Axis range is from 0 to %.f", AxisSettingsNP[AXIS1_TICKS].getValue());
             }
             else
             {
                 LOGF_INFO("Axis range is from -%.f to %.f",
-                       AxisSettingsN[AXIS1_TICKS].value / 2, AxisSettingsN[AXIS1_TICKS].value / 2);
+                       AxisSettingsNP[AXIS1_TICKS].value / 2, AxisSettingsNP[AXIS1_TICKS].value / 2);
             }
-            IDSetSwitch(&AxisRangeSP, nullptr);
+            AxisRangeSP.apply();
             return true;
         }
 
@@ -298,7 +298,7 @@ bool DSC::ReadScopeStatus()
 
     if (isSimulation())
     {
-        snprintf(response, 16, "%06.f\t%06.f", SimEncoderN[AXIS1_ENCODER].value, SimEncoderN[AXIS2_ENCODER].value);
+        snprintf(response, 16, "%06.f\t%06.f", SimEncoderNP[AXIS1_ENCODER].getValue(), SimEncoderNP[AXIS2_ENCODER].getValue());
     }
     else
     {
@@ -342,41 +342,41 @@ bool DSC::ReadScopeStatus()
     else
     {
         LOGF_ERROR("Error processing response: %s", response);
-        EncoderNP.s = IPS_ALERT;
-        IDSetNumber(&EncoderNP, nullptr);
+        EncoderNP.setState(IPS_ALERT);
+        EncoderNP.apply();
         return false;
     }
 
     LOGF_DEBUG("Raw Axis encoders. Axis1: %g Axis2: %g", Axis1Encoder, Axis2Encoder);
 
-    EncoderN[AXIS1_RAW_ENCODER].value = Axis1Encoder;
-    EncoderN[AXIS2_RAW_ENCODER].value = Axis2Encoder;
+    EncoderNP[AXIS1_RAW_ENCODER].setValue(Axis1Encoder);
+    EncoderNP[AXIS2_RAW_ENCODER].setValue(Axis2Encoder);
 
     // Convert Half Step to Full Step
-    if (AxisRangeS[AXIS_HALF_STEP].s == ISS_ON)
+    if (AxisRangeSP[AXIS_HALF_STEP].getState() == ISS_ON)
     {
         if (Axis1Encoder < 0)
-            Axis1Encoder += AxisSettingsN[AXIS1_TICKS].value;
+            Axis1Encoder += AxisSettingsNP[AXIS1_TICKS].getValue();
 
         if (Axis2Encoder < 0)
-            Axis2Encoder += AxisSettingsN[AXIS2_TICKS].value;
+            Axis2Encoder += AxisSettingsNP[AXIS2_TICKS].getValue();
     }
 
     // Calculate reverse values
     double Axis1 = Axis1Encoder;
-    if (ReverseS[AXIS1_ENCODER].s == ISS_ON)
-        Axis1 = AxisSettingsN[AXIS1_TICKS].value - Axis1;
+    if (ReverseSP[AXIS1_ENCODER].getState() == ISS_ON)
+        Axis1 = AxisSettingsNP[AXIS1_TICKS].getValue() - Axis1;
 
 #if 0
     if (Axis1Diff < 0)
-        Axis1Diff += AxisSettingsN[AXIS1_TICKS].value;
-    else if (Axis1Diff > AxisSettingsN[AXIS1_TICKS].value)
-        Axis1Diff -= AxisSettingsN[AXIS1_TICKS].value;
+        Axis1Diff += AxisSettingsNP[AXIS1_TICKS].getValue();
+    else if (Axis1Diff > AxisSettingsNP[AXIS1_TICKS].getValue())
+        Axis1Diff -= AxisSettingsNP[AXIS1_TICKS].getValue();
 #endif
 
     double Axis2 = Axis2Encoder;
-    if (ReverseS[AXIS2_ENCODER].s == ISS_ON)
-        Axis2 = AxisSettingsN[AXIS2_TICKS].value - Axis2;
+    if (ReverseSP[AXIS2_ENCODER].getState() == ISS_ON)
+        Axis2 = AxisSettingsNP[AXIS2_TICKS].getValue() - Axis2;
 
     LOGF_DEBUG("Axis encoders after reverse. Axis1: %g Axis2: %g", Axis1, Axis2);
 
@@ -388,13 +388,13 @@ bool DSC::ReadScopeStatus()
 
     //LOGF_DEBUG("Axis encoders after raw offsets. Axis1: %g Axis2: %g", Axis1, Axis2);
 
-    EncoderN[AXIS1_ENCODER].value = Axis1;
-    EncoderN[AXIS2_ENCODER].value = Axis2;
-    EncoderNP.s                   = IPS_OK;
-    IDSetNumber(&EncoderNP, nullptr);
+    EncoderNP[AXIS1_ENCODER].setValue(Axis1);
+    EncoderNP[AXIS2_ENCODER].setValue(Axis2);
+    EncoderNP.setState(IPS_OK);
+    EncoderNP.apply();
 
-    double Axis1Degrees = (Axis1 / AxisSettingsN[AXIS1_TICKS].value * 360.0) + AxisSettingsN[AXIS1_DEGREE_OFFSET].value;
-    double Axis2Degrees = (Axis2 / AxisSettingsN[AXIS2_TICKS].value * 360.0) + AxisSettingsN[AXIS2_DEGREE_OFFSET].value;
+    double Axis1Degrees = (Axis1 / AxisSettingsNP[AXIS1_TICKS].value * 360.0) + AxisSettingsNP[AXIS1_DEGREE_OFFSET].getValue();
+    double Axis2Degrees = (Axis2 / AxisSettingsNP[AXIS2_TICKS].value * 360.0) + AxisSettingsNP[AXIS2_DEGREE_OFFSET].getValue();
 
     Axis1Degrees = range360(Axis1Degrees);
     Axis2Degrees = range360(Axis2Degrees);
@@ -406,7 +406,7 @@ bool DSC::ReadScopeStatus()
     ln_equ_posn eq { 0, 0 };
 
     // Now we proceed depending on mount type
-    if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
+    if (MountTypeSP[MOUNT_EQUATORIAL].getState() == ISS_ON)
     {
         encoderEquatorialCoordinates.ra = Axis1Degrees / 15.0;
 
@@ -452,7 +452,7 @@ bool DSC::Sync(double ra, double dec)
     struct ln_equ_posn RaDec { 0, 0 };
     struct ln_hrz_posn AltAz { 0, 0 };
 
-    if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
+    if (MountTypeSP[MOUNT_EQUATORIAL].getState() == ISS_ON)
     {
         double LST = get_local_sidereal_time(observer.lng);
         RaDec.ra   = ((LST - encoderEquatorialCoordinates.ra) * 360.0) / 24.0;
@@ -468,7 +468,7 @@ bool DSC::Sync(double ra, double dec)
     NewEntry.RightAscension        = ra;
     NewEntry.Declination           = dec;
 
-    if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
+    if (MountTypeSP[MOUNT_EQUATORIAL].getState() == ISS_ON)
         NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
     else
         NewEntry.TelescopeDirection = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
@@ -505,7 +505,7 @@ ln_equ_posn DSC::TelescopeEquatorialToSky()
 
         /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
         double lha, lst;
-        lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+        lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].value);
         lha = get_local_hour_angle(lst, encoderEquatorialCoordinates.ra);
         //  convert lha to degrees
         lha    = lha * 360 / 24;
@@ -598,10 +598,10 @@ void DSC::simulationTriggered(bool enable)
 
     if (enable)
     {
-        defineProperty(&SimEncoderNP);
+        defineProperty(SimEncoderNP);
     }
     else
     {
-        deleteProperty(SimEncoderNP.name);
+        deleteProperty(SimEncoderNP.getName());
     }
 }

@@ -79,33 +79,33 @@ bool AstrometryDriver::initProperties()
     /**********************************************/
 
     // Solver Enable/Disable
-    IUFillSwitch(&SolverS[SOLVER_ENABLE], "ASTROMETRY_SOLVER_ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&SolverS[SOLVER_DISABLE], "ASTROMETRY_SOLVER_DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(&SolverSP, SolverS, 2, getDeviceName(), "ASTROMETRY_SOLVER", "Solver", MAIN_CONTROL_TAB, IP_RW,
+    SolverSP[SOLVER_ENABLE].fill("ASTROMETRY_SOLVER_ENABLE", "Enable", ISS_OFF);
+    SolverSP[SOLVER_DISABLE].fill("ASTROMETRY_SOLVER_DISABLE", "Disable", ISS_ON);
+    SolverSP.fill(getDeviceName(), "ASTROMETRY_SOLVER", "Solver", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // Solver Settings
-    IUFillText(&SolverSettingsT[ASTROMETRY_SETTINGS_BINARY], "ASTROMETRY_SETTINGS_BINARY", "Solver",
+    SolverSettingsTP[ASTROMETRY_SETTINGS_BINARY].fill("ASTROMETRY_SETTINGS_BINARY", "Solver",
                "/usr/bin/solve-field");
-    IUFillText(&SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS], "ASTROMETRY_SETTINGS_OPTIONS", "Options",
+    SolverSettingsTP[ASTROMETRY_SETTINGS_OPTIONS].fill("ASTROMETRY_SETTINGS_OPTIONS", "Options",
                "--no-verify --no-plots --no-fits2fits --resort --downsample 2 -O");
-    IUFillTextVector(&SolverSettingsTP, SolverSettingsT, 2, getDeviceName(), "ASTROMETRY_SETTINGS", "Settings",
+    SolverSettingsTP.fill(getDeviceName(), "ASTROMETRY_SETTINGS", "Settings",
                      MAIN_CONTROL_TAB, IP_WO, 0, IPS_IDLE);
 
     // Solver Results
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_PIXSCALE], "ASTROMETRY_RESULTS_PIXSCALE", "Pixscale (arcsec/pixel)",
+    SolverResultNP[ASTROMETRY_RESULTS_PIXSCALE].fill("ASTROMETRY_RESULTS_PIXSCALE", "Pixscale (arcsec/pixel)",
                  "%g", 0, 10000, 1, 0);
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_ORIENTATION], "ASTROMETRY_RESULTS_ORIENTATION",
+    SolverResultNP[ASTROMETRY_RESULTS_ORIENTATION].fill("ASTROMETRY_RESULTS_ORIENTATION",
                  "Orientation (E of N) °", "%g", -360, 360, 1, 0);
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_RA], "ASTROMETRY_RESULTS_RA", "RA (J2000)", "%g", 0, 24, 1, 0);
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_DE], "ASTROMETRY_RESULTS_DE", "DE (J2000)", "%g", -90, 90, 1, 0);
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_PARITY], "ASTROMETRY_RESULTS_PARITY", "Parity", "%g", -1, 1, 1, 0);
-    IUFillNumberVector(&SolverResultNP, SolverResultN, 5, getDeviceName(), "ASTROMETRY_RESULTS", "Results",
+    SolverResultNP[ASTROMETRY_RESULTS_RA].fill("ASTROMETRY_RESULTS_RA", "RA (J2000)", "%g", 0, 24, 1, 0);
+    SolverResultNP[ASTROMETRY_RESULTS_DE].fill("ASTROMETRY_RESULTS_DE", "DE (J2000)", "%g", -90, 90, 1, 0);
+    SolverResultNP[ASTROMETRY_RESULTS_PARITY].fill("ASTROMETRY_RESULTS_PARITY", "Parity", "%g", -1, 1, 1, 0);
+    SolverResultNP.fill(getDeviceName(), "ASTROMETRY_RESULTS", "Results",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Solver Data Blob
-    IUFillBLOB(&SolverDataB[0], "ASTROMETRY_DATA_BLOB", "Image", "");
-    IUFillBLOBVector(&SolverDataBP, SolverDataB, 1, getDeviceName(), "ASTROMETRY_DATA", "Upload", MAIN_CONTROL_TAB,
+    SolverDataBP[0].fill("ASTROMETRY_DATA_BLOB", "Image", "");
+    SolverDataBP.fill(getDeviceName(), "ASTROMETRY_DATA", "Upload", MAIN_CONTROL_TAB,
                      IP_WO, 60, IPS_IDLE);
 
     /**********************************************/
@@ -113,17 +113,17 @@ bool AstrometryDriver::initProperties()
     /**********************************************/
 
     // Snooped Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_CCD", "CCD", "CCD Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
+    ActiveDeviceTP[0].fill("ACTIVE_CCD", "CCD", "CCD Simulator");
+    ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Chip Data Blob
-    IUFillBLOB(&CCDDataB[0], "CCD1", "Image", "");
-    IUFillBLOBVector(&CCDDataBP, CCDDataB, 1, ActiveDeviceT[0].text, "CCD1", "Image Data", "Image Info", IP_RO, 60,
+    CCDDataBP[0].fill("CCD1", "Image", "");
+    CCDDataBP.fill(ActiveDeviceTP[0].getText(), "CCD1", "Image Data", "Image Info", IP_RO, 60,
                      IPS_IDLE);
 
-    IDSnoopDevice(ActiveDeviceT[0].text, "CCD1");
-    IDSnoopBLOBs(ActiveDeviceT[0].text, "CCD1", B_ONLY);
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "CCD1");
+    IDSnoopBLOBs(ActiveDeviceTP[0].getText(), "CCD1", B_ONLY);
 
     addDebugControl();
 
@@ -136,7 +136,7 @@ void AstrometryDriver::ISGetProperties(const char *dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
-    defineProperty(&ActiveDeviceTP);
+    defineProperty(ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 }
 
@@ -146,19 +146,19 @@ bool AstrometryDriver::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&SolverSP);
-        defineProperty(&SolverSettingsTP);
-        defineProperty(&SolverDataBP);
+        defineProperty(SolverSP);
+        defineProperty(SolverSettingsTP);
+        defineProperty(SolverDataBP);
     }
     else
     {
-        if (SolverS[0].s == ISS_ON)
+        if (SolverSP[0].getState() == ISS_ON)
         {
-            deleteProperty(SolverResultNP.name);
+            deleteProperty(SolverResultNP.getName());
         }
-        deleteProperty(SolverSP.name);
-        deleteProperty(SolverSettingsTP.name);
-        deleteProperty(SolverDataBP.name);
+        deleteProperty(SolverSP.getName());
+        deleteProperty(SolverSettingsTP.getName());
+        deleteProperty(SolverDataBP.getName());
     }
 
     return true;
@@ -189,19 +189,19 @@ bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[],
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, SolverDataBP.name) == 0)
+        if (SolverDataBP.isNameMatch(name))
         {
-            SolverDataBP.s = IPS_OK;
-            IDSetBLOB(&SolverDataBP, nullptr);
+            SolverDataBP.setState(IPS_OK);
+            SolverDataBP.apply();
 
             // If the client explicitly uploaded the data then we solve it.
-            if (SolverS[SOLVER_ENABLE].s == ISS_OFF)
+            if (SolverSP[SOLVER_ENABLE].getState() == ISS_OFF)
             {
-                SolverS[SOLVER_ENABLE].s = ISS_ON;
-                SolverS[SOLVER_DISABLE].s = ISS_OFF;
-                SolverSP.s   = IPS_BUSY;
+                SolverSP[SOLVER_ENABLE].setState(ISS_ON);
+                SolverSP[SOLVER_DISABLE].setState(ISS_OFF);
+                SolverSP.setState(IPS_BUSY);
                 LOG_INFO("Astrometry solver is enabled.");
-                defineProperty(&SolverResultNP);
+                defineProperty(SolverResultNP);
             }
 
             processBLOB(reinterpret_cast<uint8_t *>(blobs[0]), static_cast<uint32_t>(sizes[0]),
@@ -220,26 +220,26 @@ bool AstrometryDriver::ISNewText(const char *dev, const char *name, char *texts[
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if (strcmp(name, ActiveDeviceTP.name) == 0)
+        if (ActiveDeviceTP.isNameMatch(name))
         {
-            ActiveDeviceTP.s = IPS_OK;
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
-            IDSetText(&ActiveDeviceTP, nullptr);
+            ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.update(texts, names, n);
+            ActiveDeviceTP.apply();
 
             // Update the property name!
-            strncpy(CCDDataBP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
-            IDSnoopDevice(ActiveDeviceT[0].text, "CCD1");
-            IDSnoopBLOBs(ActiveDeviceT[0].text, "CCD1", B_ONLY);
+            CCDDataBP.setDeviceName(ActiveDeviceTP[0].getText());
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "CCD1");
+            IDSnoopBLOBs(ActiveDeviceTP[0].getText(), "CCD1", B_ONLY);
 
             //  We processed this one, so, tell the world we did it
             return true;
         }
 
-        if (strcmp(name, SolverSettingsTP.name) == 0)
+        if (SolverSettingsTP.isNameMatch(name))
         {
-            IUUpdateText(&SolverSettingsTP, texts, names, n);
-            SolverSettingsTP.s = IPS_OK;
-            IDSetText(&SolverSettingsTP, nullptr);
+            SolverSettingsTP.update(texts, names, n);
+            SolverSettingsTP.setState(IPS_OK);
+            SolverSettingsTP.apply();
             return true;
         }
     }
@@ -252,25 +252,25 @@ bool AstrometryDriver::ISNewSwitch(const char *dev, const char *name, ISState *s
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Astrometry Enable/Disable
-        if (strcmp(name, SolverSP.name) == 0)
+        if (SolverSP.isNameMatch(name))
         {
             pthread_mutex_lock(&lock);
 
-            IUUpdateSwitch(&SolverSP, states, names, n);
-            SolverSP.s = IPS_OK;
+            SolverSP.update(states, names, n);
+            SolverSP.setState(IPS_OK);
 
-            if (SolverS[SOLVER_ENABLE].s == ISS_ON)
+            if (SolverSP[SOLVER_ENABLE].getState() == ISS_ON)
             {
                 LOG_INFO("Astrometry solver is enabled.");
-                defineProperty(&SolverResultNP);
+                defineProperty(SolverResultNP);
             }
             else
             {
                 LOG_INFO("Astrometry solver is disabled.");
-                deleteProperty(SolverResultNP.name);
+                deleteProperty(SolverResultNP.getName());
             }
 
-            IDSetSwitch(&SolverSP, nullptr);
+            SolverSP.apply();
 
             pthread_mutex_unlock(&lock);
             return true;
@@ -282,10 +282,10 @@ bool AstrometryDriver::ISNewSwitch(const char *dev, const char *name, ISState *s
 
 bool AstrometryDriver::ISSnoopDevice(XMLEle *root)
 {
-    if (SolverS[SOLVER_ENABLE].s == ISS_ON && IUSnoopBLOB(root, &CCDDataBP) == 0)
+    if (SolverSP[SOLVER_ENABLE].getState() == ISS_ON && IUSnoopBLOB(root, CCDDataBP.getBLOB()) == 0) // #PS: refactor needed
     {
-        processBLOB(reinterpret_cast<uint8_t *>(CCDDataB[0].blob), static_cast<uint32_t>(CCDDataB[0].size),
-                    static_cast<uint32_t>(CCDDataB[0].bloblen));
+        processBLOB(reinterpret_cast<uint8_t *>(CCDDataBP[0].blob), static_cast<uint32_t>(CCDDataBP[0].size),
+                    static_cast<uint32_t>(CCDDataBP[0].bloblen));
         return true;
     }
 
@@ -294,8 +294,8 @@ bool AstrometryDriver::ISSnoopDevice(XMLEle *root)
 
 bool AstrometryDriver::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigText(fp, &SolverSettingsTP);
+    ActiveDeviceTP.save(fp);
+    SolverSettingsTP.save(fp);
     return true;
 }
 
@@ -358,18 +358,18 @@ bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
         delete[] processedData;
 
     pthread_mutex_lock(&lock);
-    SolverSP.s = IPS_BUSY;
+    SolverSP.setState(IPS_BUSY);
     LOG_INFO("Solving image...");
-    IDSetSwitch(&SolverSP, nullptr);
+    SolverSP.apply();
     pthread_mutex_unlock(&lock);
 
     int result = pthread_create(&solverThread, nullptr, &AstrometryDriver::runSolverHelper, this);
 
     if (result != 0)
     {
-        SolverSP.s = IPS_ALERT;
+        SolverSP.setState(IPS_ALERT);
         LOGF_INFO("Failed to create solver thread: %s", strerror(errno));
-        IDSetSwitch(&SolverSP, nullptr);
+        SolverSP.apply();
     }
 
     return true;
@@ -386,7 +386,7 @@ void AstrometryDriver::runSolver()
     char cmd[MAXRBUF]={0}, line[256]={0}, parity_str[8]={0};
     float ra = -1000, dec = -1000, angle = -1000, pixscale = -1000, parity = 0;
     snprintf(cmd, MAXRBUF, "%s %s -W /tmp/solution.wcs /tmp/ccdsolver.fits",
-             SolverSettingsT[ASTROMETRY_SETTINGS_BINARY].text, SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS].text);
+             SolverSettingsTP[ASTROMETRY_SETTINGS_BINARY].getText(), SolverSettingsTP[ASTROMETRY_SETTINGS_OPTIONS].getText());
 
     LOGF_DEBUG("%s", cmd);
     FILE *handle = popen(cmd, "r");
@@ -394,8 +394,8 @@ void AstrometryDriver::runSolver()
     {
         LOGF_DEBUG("Failed to run solver: %s", strerror(errno));
         pthread_mutex_lock(&lock);
-        SolverSP.s = IPS_ALERT;
-        IDSetSwitch(&SolverSP, nullptr);
+        SolverSP.setState(IPS_ALERT);
+        SolverSP.apply();
         pthread_mutex_unlock(&lock);
         return;
     }
@@ -417,22 +417,22 @@ void AstrometryDriver::runSolver()
         if (ra != -1000 && dec != -1000 && angle != -1000 && pixscale != -1000)
         {
             // Pixscale is arcsec/pixel. Astrometry result is in arcmin
-            SolverResultN[ASTROMETRY_RESULTS_PIXSCALE].value = pixscale;
+            SolverResultNP[ASTROMETRY_RESULTS_PIXSCALE].setValue(pixscale);
             // Astrometry.net angle, E of N
-            SolverResultN[ASTROMETRY_RESULTS_ORIENTATION].value = angle;
+            SolverResultNP[ASTROMETRY_RESULTS_ORIENTATION].setValue(angle);
             // Astrometry.net J2000 RA in degrees
-            SolverResultN[ASTROMETRY_RESULTS_RA].value = ra;
+            SolverResultNP[ASTROMETRY_RESULTS_RA].setValue(ra);
             // Astrometry.net J2000 DEC in degrees
-            SolverResultN[ASTROMETRY_RESULTS_DE].value = dec;
+            SolverResultNP[ASTROMETRY_RESULTS_DE].setValue(dec);
             // Astrometry.net parity
-            SolverResultN[ASTROMETRY_RESULTS_PARITY].value = parity;
+            SolverResultNP[ASTROMETRY_RESULTS_PARITY].setValue(parity);
 
-            SolverResultNP.s = IPS_OK;
-            IDSetNumber(&SolverResultNP, nullptr);
+            SolverResultNP.setState(IPS_OK);
+            SolverResultNP.apply();
 
             pthread_mutex_lock(&lock);
-            SolverSP.s = IPS_OK;
-            IDSetSwitch(&SolverSP, nullptr);
+            SolverSP.setState(IPS_OK);
+            SolverSP.apply();
             pthread_mutex_unlock(&lock);
 
             fclose(handle);
@@ -441,10 +441,10 @@ void AstrometryDriver::runSolver()
         }
 
         pthread_mutex_lock(&lock);
-        if (SolverS[SOLVER_DISABLE].s == ISS_ON)
+        if (SolverSP[SOLVER_DISABLE].getState() == ISS_ON)
         {
-            SolverSP.s = IPS_IDLE;
-            IDSetSwitch(&SolverSP, nullptr);
+            SolverSP.setState(IPS_IDLE);
+            SolverSP.apply();
             pthread_mutex_unlock(&lock);
             fclose(handle);
             LOG_INFO("Solver canceled.");
@@ -456,8 +456,8 @@ void AstrometryDriver::runSolver()
     fclose(handle);
 
     pthread_mutex_lock(&lock);
-    SolverSP.s = IPS_ALERT;
-    IDSetSwitch(&SolverSP, nullptr);
+    SolverSP.setState(IPS_ALERT);
+    SolverSP.apply();
     LOG_INFO("Solver failed.");
     pthread_mutex_unlock(&lock);
 

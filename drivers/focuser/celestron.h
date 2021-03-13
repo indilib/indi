@@ -27,6 +27,11 @@
 #include <chrono>
 #include "celestronauxpacket.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class CelestronSCT : public INDI::Focuser
 {
     public:
@@ -100,20 +105,17 @@ class CelestronSCT : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////
-        //        INumber BacklashN[1];
-        //        INumberVectorProperty BacklashNP;
+        //        INDI::PropertyNumber BacklashNP {1};
+        //
 
-        INumber FocusMinPosN[1];
-        INumberVectorProperty FocusMinPosNP;
+        INDI::PropertyNumber FocusMinPosNP {1};
 
         bool backlashMove;      // set if a final move is needed
         uint32_t finalPosition;
 
-        ISwitch CalibrateS[2];
-        ISwitchVectorProperty CalibrateSP;
+        INDI::PropertySwitch CalibrateSP {2};
 
-        IText CalibrateStateT[1] {};
-        ITextVectorProperty CalibrateStateTP;
+        INDI::PropertyText CalibrateStateTP {1};
 
         bool calibrateInProgress;
         int calibrateState;

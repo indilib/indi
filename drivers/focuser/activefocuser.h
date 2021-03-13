@@ -23,6 +23,11 @@
 #include "hidapi.h"
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class ActiveFocuser : public INDI::Focuser {
 public:
 
@@ -64,27 +69,21 @@ private:
     double initTicks{0};
 
     // Hardware version display
-    ITextVectorProperty HardwareVersionNP;
-    IText HardwareVersionN[1];
+    INDI::PropertyText HardwareVersionNP {1};
 
     // Software version display
-    ITextVectorProperty SoftwareVersionNP;
-    IText SoftwareVersionN[1];
+    INDI::PropertyText SoftwareVersionNP {1};
 
     // Air Temperature in celsius degrees
-    INumberVectorProperty AirTemperatureNP;
-    INumber AirTemperatureN[1];
+    INDI::PropertyNumber AirTemperatureNP {1};
 
     // Mirror Temperature in celsius degrees
-    INumberVectorProperty MirrorTemperatureNP;
-    INumber MirrorTemperatureN[1];
+    INDI::PropertyNumber MirrorTemperatureNP {1};
 
     // Tube Temperature in celsius degrees
-    INumberVectorProperty TubeTemperatureNP;
-    INumber TubeTemperatureN[1];
+    INDI::PropertyNumber TubeTemperatureNP {1};
 
     // Fan State switch
-    ISwitch FanS[2];
-    ISwitchVectorProperty FanSP;
+    INDI::PropertySwitch FanSP {2};
 
 };

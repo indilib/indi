@@ -22,6 +22,10 @@
 #include "lx200generic.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class LX200FS2 : public LX200Generic
 {
     public:
@@ -56,11 +60,8 @@ class LX200FS2 : public LX200Generic
         // Fake Location
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-        INumber SlewAccuracyN[2];
-        INumberVectorProperty SlewAccuracyNP;
-
-        ISwitchVectorProperty StopAfterParkSP;
-        ISwitch StopAfterParkS[2];
+        INDI::PropertyNumber SlewAccuracyNP {2};
+        INDI::PropertySwitch StopAfterParkSP {2};
         bool MotorsParked;
         enum TelescopeSlewRate savedSlewRateIndex {SLEW_MAX};
         enum TelescopeParkedStatus

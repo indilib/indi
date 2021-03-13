@@ -23,6 +23,10 @@
 #include "indibase.h"
 #include <stdint.h>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 using RI = INDI::RotatorInterface;
 
 /**
@@ -194,28 +198,21 @@ class RotatorInterface
         bool saveConfigItems(FILE * fp);
 
 
-        INumber GotoRotatorN[1];
-        INumberVectorProperty GotoRotatorNP;
+        INDI::PropertyNumber GotoRotatorNP {1};
 
-        INumber SyncRotatorN[1];
-        INumberVectorProperty SyncRotatorNP;
+        INDI::PropertyNumber SyncRotatorNP {1};
 
-        ISwitch AbortRotatorS[1];
-        ISwitchVectorProperty AbortRotatorSP;
+        INDI::PropertySwitch AbortRotatorSP {1};
 
-        ISwitch HomeRotatorS[1];
-        ISwitchVectorProperty HomeRotatorSP;
+        INDI::PropertySwitch HomeRotatorSP {1};
 
-        ISwitch ReverseRotatorS[2];
-        ISwitchVectorProperty ReverseRotatorSP;
+        INDI::PropertySwitch ReverseRotatorSP {2};
 
         // Backlash toogle
-        ISwitchVectorProperty RotatorBacklashSP;
-        ISwitch RotatorBacklashS[2];
+        INDI::PropertySwitch RotatorBacklashSP {2};
 
         // Backlash steps
-        INumberVectorProperty RotatorBacklashNP;
-        INumber RotatorBacklashN[1];
+        INDI::PropertyNumber RotatorBacklashNP {1};
 
         uint32_t rotatorCapability = 0;
         DefaultDevice *m_defaultDevice { nullptr };

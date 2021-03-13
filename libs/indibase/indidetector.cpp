@@ -54,9 +54,9 @@ Detector::~Detector()
 bool Detector::initProperties()
 {
     // PrimaryDetector Info
-    IUFillNumber(&DetectorSettingsN[DETECTOR_RESOLUTION], "DETECTOR_RESOLUTION", "Resolution (ns)", "%16.3f", 0.01, 1.0e+8, 0.01, 1.0e+6);
-    IUFillNumber(&DetectorSettingsN[DETECTOR_TRIGGER], "DETECTOR_TRIGGER", "Trigger pulse (%)", "%3.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
-    IUFillNumberVector(&DetectorSettingsNP, DetectorSettingsN, 2, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    DetectorSettingsNP[DETECTOR_RESOLUTION].fill("DETECTOR_RESOLUTION", "Resolution (ns)", "%16.3f", 0.01, 1.0e+8, 0.01, 1.0e+6);
+    DetectorSettingsNP[DETECTOR_TRIGGER].fill("DETECTOR_TRIGGER", "Trigger pulse (%)", "%3.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
+    DetectorSettingsNP.fill(getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     setDriverInterface(DETECTOR_INTERFACE);
 
@@ -72,17 +72,17 @@ bool Detector::updateProperties()
 {
     if (isConnected())
     {
-        defineProperty(&DetectorSettingsNP);
+        defineProperty(DetectorSettingsNP);
 
         if (HasCooler())
-            defineProperty(&TemperatureNP);
+            defineProperty(TemperatureNP);
     }
     else
     {
-        deleteProperty(DetectorSettingsNP.name);
+        deleteProperty(DetectorSettingsNP.getName());
 
         if (HasCooler())
-            deleteProperty(TemperatureNP.name);
+            deleteProperty(TemperatureNP.getName());
     }
     return SensorInterface::updateProperties();
 }
@@ -99,8 +99,8 @@ bool Detector::ISNewText(const char *dev, const char *name, char *values[], char
 
 bool Detector::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, DetectorSettingsNP.name)) {
-        IDSetNumber(&DetectorSettingsNP, nullptr);
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, DetectorSettingsNP.getName())) {
+        DetectorSettingsNP.apply();
     }
     return processNumber(dev, name, values, names, n);
 }
@@ -120,18 +120,18 @@ void Detector::setTriggerLevel(double level)
 {
     TriggerLevel = level;
 
-    DetectorSettingsN[Detector::DETECTOR_TRIGGER].value = level;
+    DetectorSettingsNP[Detector::DETECTOR_TRIGGER].setValue(level);
 
-    IDSetNumber(&DetectorSettingsNP, nullptr);
+    DetectorSettingsNP.apply();
 }
 
 void Detector::setResolution(double res)
 {
     Resolution = res;
 
-    DetectorSettingsN[Detector::DETECTOR_RESOLUTION].value = res;
+    DetectorSettingsNP[Detector::DETECTOR_RESOLUTION].setValue(res);
 
-    IDSetNumber(&DetectorSettingsNP, nullptr);
+    DetectorSettingsNP.apply();
 }
 
 void Detector::SetDetectorCapability(uint32_t cap)
@@ -152,8 +152,8 @@ void Detector::setMinMaxStep(const char *property, const char *element, double m
 {
     INumberVectorProperty *vp = nullptr;
 
-    if (!strcmp(property, DetectorSettingsNP.name)) {
-        vp = &FramedIntegrationNP;
+    if (DetectorSettingsNP.isNameMatch(property)) {
+        vp = FramedIntegrationNP.getNumber(); // #PS: refactor needed
 
         INumber *np = IUFindNumber(vp, element);
         if (np)

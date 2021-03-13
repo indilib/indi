@@ -22,6 +22,9 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 class LX200Autostar : public LX200Generic
 {
     public:
@@ -42,6 +45,6 @@ class LX200Autostar : public LX200Generic
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
 
-        //        INumberVectorProperty FocusSpeedNP;
-        //        INumber FocusSpeedN[1];
+        //
+        //        INDI::PropertyNumber FocusSpeedNP {1};
 };

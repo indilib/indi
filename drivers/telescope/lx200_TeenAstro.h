@@ -29,6 +29,11 @@
 #include "lx200driver.h"
 #include "indicom.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 #define RB_MAX_LEN 64
 
 class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
@@ -108,14 +113,9 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
 
         // User interface
 
-        INumber SlewAccuracyN[2];
-        INumberVectorProperty SlewAccuracyNP;
-
-        ISwitchVectorProperty HomePauseSP;
-        ISwitch HomePauseS[3];    
-        
-        ISwitchVectorProperty SetHomeSP;
-        ISwitch SetHomeS[2];
+        INDI::PropertyNumber SlewAccuracyNP {2};
+        INDI::PropertySwitch HomePauseSP {3};
+        INDI::PropertySwitch SetHomeSP {2};
 
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
@@ -123,15 +123,12 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         ISwitch SlewRateS[5];
         ISwitchVectorProperty SlewRateSP;
 
-        ISwitch GuideRateS[3];
-        ISwitchVectorProperty GuideRateSP;
+        INDI::PropertySwitch GuideRateSP {3};
 
-        ISwitch TATrackModeS[3];
-        ISwitchVectorProperty TATrackModeSP;
+        INDI::PropertySwitch TATrackModeSP {3};
 
-        // Site Management 
-        ISwitchVectorProperty SiteSP;
-        ISwitch SiteS[4];
+        // Site Management
+        INDI::PropertySwitch SiteSP {4};
         int currentSiteNum {0}; // on TeenAstro, sites are numbered 0 to 3, not 1 to 4 like on the Meade standard
 
         // Site Name
@@ -139,8 +136,7 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         IText SiteNameT[1] {};
 
         // Error Status
-        ITextVectorProperty ErrorStatusTP;
-        IText ErrorStatusT[1] {};
+        INDI::PropertyText ErrorStatusTP {1};
 
         double targetRA = 0, targetDEC = 0;
         double currentRA = 0, currentDEC = 0;

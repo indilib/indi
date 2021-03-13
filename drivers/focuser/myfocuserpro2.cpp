@@ -88,97 +88,97 @@ bool MyFocuserPro2::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusSpeedN[0].min   = 0;
-    FocusSpeedN[0].max   = 2;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(0);
+    FocusSpeedNP[0].setMax(2);
+    FocusSpeedNP[0].setValue(1);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0.);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 200000.;
-    FocusAbsPosN[0].value = 0.;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(200000.);
+    FocusAbsPosNP[0].setValue(0.);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusMaxPosN[0].min   = 1024.;
-    FocusMaxPosN[0].max   = 200000.;
-    FocusMaxPosN[0].value = 0.;
-    FocusMaxPosN[0].step  = 1000;
+    FocusMaxPosNP[0].setMin(1024.);
+    FocusMaxPosNP[0].setMax(200000.);
+    FocusMaxPosNP[0].setValue(0.);
+    FocusMaxPosNP[0].setStep(1000);
 
     //Backlash
-    BacklashInStepsN[0].min   = 0;
-    BacklashInStepsN[0].max   = 512;
-    BacklashInStepsN[0].value = 0;
-    BacklashInStepsN[0].step  = 2;
+    BacklashInStepsNP[0].setMin(0);
+    BacklashInStepsNP[0].setMax(512);
+    BacklashInStepsNP[0].setValue(0);
+    BacklashInStepsNP[0].setStep(2);
 
-    BacklashOutStepsN[0].min   = 0;
-    BacklashOutStepsN[0].max   = 512;
-    BacklashOutStepsN[0].value = 0;
-    BacklashOutStepsN[0].step  = 2;
+    BacklashOutStepsNP[0].setMin(0);
+    BacklashOutStepsNP[0].setMax(512);
+    BacklashOutStepsNP[0].setValue(0);
+    BacklashOutStepsNP[0].setStep(2);
 
 
     // Backlash In
-    IUFillSwitch(&BacklashInS[INDI_ENABLED], "INDI_ENABLED", "On", ISS_OFF);
-    IUFillSwitch(&BacklashInS[INDI_DISABLED], "INDI_DISABLED", "Off", ISS_OFF);
-    IUFillSwitchVector(&BacklashInSP, BacklashInS, 2, getDeviceName(), "Backlash In", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    BacklashInSP[INDI_ENABLED].fill("INDI_ENABLED", "On", ISS_OFF);
+    BacklashInSP[INDI_DISABLED].fill("INDI_DISABLED", "Off", ISS_OFF);
+    BacklashInSP.fill(getDeviceName(), "Backlash In", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    IUFillNumber(&BacklashInStepsN[0], "Steps", "", "%3.0f", 0, 512, 2, 0);
-    IUFillNumberVector(&BacklashInStepsNP, BacklashInStepsN, 1, getDeviceName(), "Backlash-In", "", OPTIONS_TAB, IP_RW, 0,
+    BacklashInStepsNP[0].fill("Steps", "", "%3.0f", 0, 512, 2, 0);
+    BacklashInStepsNP.fill(getDeviceName(), "Backlash-In", "", OPTIONS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     // Backlash Out
-    IUFillSwitch(&BacklashOutS[INDI_ENABLED], "INDI_ENABLED", "On", ISS_OFF);
-    IUFillSwitch(&BacklashOutS[INDI_DISABLED], "INDI_DISABLED", "Off", ISS_OFF);
-    IUFillSwitchVector(&BacklashOutSP, BacklashOutS, 2, getDeviceName(), "Backlash Out", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    BacklashOutSP[INDI_ENABLED].fill("INDI_ENABLED", "On", ISS_OFF);
+    BacklashOutSP[INDI_DISABLED].fill("INDI_DISABLED", "Off", ISS_OFF);
+    BacklashOutSP.fill(getDeviceName(), "Backlash Out", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    IUFillNumber(&BacklashOutStepsN[0], "Steps", "", "%3.0f", 0, 512, 2, 0);
-    IUFillNumberVector(&BacklashOutStepsNP, BacklashOutStepsN, 1, getDeviceName(), "Backlash-Out", "", OPTIONS_TAB, IP_RW, 0,
+    BacklashOutStepsNP[0].fill("Steps", "", "%3.0f", 0, 512, 2, 0);
+    BacklashOutStepsNP.fill(getDeviceName(), "Backlash-Out", "", OPTIONS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -40, 80., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -40, 80., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
                        IP_RO, 0, IPS_IDLE);
 
     // Temperature Settings
-    IUFillNumber(&TemperatureSettingN[0], "Coefficient", "", "%6.2f", 0, 50, 1, 0);
-    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 1, getDeviceName(), "T. Settings", "", OPTIONS_TAB, IP_RW, 0,
+    TemperatureSettingNP[0].fill("Coefficient", "", "%6.2f", 0, 50, 1, 0);
+    TemperatureSettingNP.fill(getDeviceName(), "T. Settings", "", OPTIONS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     // Compensate for temperature
-    IUFillSwitch(&TemperatureCompensateS[TEMP_COMPENSATE_ENABLE], "TEMP_COMPENSATE_ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateS[TEMP_COMPENSATE_DISABLE], "TEMP_COMPENSATE_DISABLE", "Disable", ISS_OFF);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate", "", OPTIONS_TAB,
+    TemperatureCompensateSP[TEMP_COMPENSATE_ENABLE].fill("TEMP_COMPENSATE_ENABLE", "Enable", ISS_OFF);
+    TemperatureCompensateSP[TEMP_COMPENSATE_DISABLE].fill("TEMP_COMPENSATE_DISABLE", "Disable", ISS_OFF);
+    TemperatureCompensateSP.fill(getDeviceName(), "T. Compensate", "", OPTIONS_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Step Mode
-    IUFillSwitch(&StepModeS[FOCUS_THIRTYSECOND_STEP], "FOCUS_THIRTYSECOND_STEP", "1/32 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_SIXTEENTH_STEP], "FOCUS_SIXTEENTH_STEP", "1/16 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_EIGHTH_STEP], "FOCUS_EIGHTH_STEP", "1/8 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_QUARTER_STEP], "FOCUS_QUARTER_STEP", "1/4 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_HALF_STEP], "FOCUS_HALF_STEP", "1/2 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[FOCUS_FULL_STEP], "FOCUS_FULL_STEP", "Full Step", ISS_OFF);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 6, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    StepModeSP[FOCUS_THIRTYSECOND_STEP].fill("FOCUS_THIRTYSECOND_STEP", "1/32 Step", ISS_OFF);
+    StepModeSP[FOCUS_SIXTEENTH_STEP].fill("FOCUS_SIXTEENTH_STEP", "1/16 Step", ISS_OFF);
+    StepModeSP[FOCUS_EIGHTH_STEP].fill("FOCUS_EIGHTH_STEP", "1/8 Step", ISS_OFF);
+    StepModeSP[FOCUS_QUARTER_STEP].fill("FOCUS_QUARTER_STEP", "1/4 Step", ISS_OFF);
+    StepModeSP[FOCUS_HALF_STEP].fill("FOCUS_HALF_STEP", "1/2 Step", ISS_OFF);
+    StepModeSP[FOCUS_FULL_STEP].fill("FOCUS_FULL_STEP", "Full Step", ISS_OFF);
+    StepModeSP.fill(getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
 
-    IUFillSwitch(&CoilPowerS[COIL_POWER_ON], "COIL_POWER_ON", "On", ISS_OFF);
-    IUFillSwitch(&CoilPowerS[COIL_POWER_OFF], "COIL_POWER_OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&CoilPowerSP, CoilPowerS, 2, getDeviceName(), "Coil Power", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    CoilPowerSP[COIL_POWER_ON].fill("COIL_POWER_ON", "On", ISS_OFF);
+    CoilPowerSP[COIL_POWER_OFF].fill("COIL_POWER_OFF", "Off", ISS_OFF);
+    CoilPowerSP.fill(getDeviceName(), "Coil Power", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&DisplayS[DISPLAY_OFF], "DISPLAY_OFF", "Off", ISS_OFF);
-    IUFillSwitch(&DisplayS[DISPLAY_ON], "DISPLAY_ON", "On", ISS_OFF);
-    IUFillSwitchVector(&DisplaySP, DisplayS, 2, getDeviceName(), "Display", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    DisplaySP[DISPLAY_OFF].fill("DISPLAY_OFF", "Off", ISS_OFF);
+    DisplaySP[DISPLAY_ON].fill("DISPLAY_ON", "On", ISS_OFF);
+    DisplaySP.fill(getDeviceName(), "Display", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 
-    IUFillSwitch(&GotoHomeS[0], "GOTO_HOME", "Go", ISS_OFF);
-    IUFillSwitchVector(&GotoHomeSP, GotoHomeS, 1, getDeviceName(), "Goto Home Position", "", MAIN_CONTROL_TAB, IP_RW,
+    GotoHomeSP[0].fill("GOTO_HOME", "Go", ISS_OFF);
+    GotoHomeSP.fill(getDeviceName(), "Goto Home Position", "", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
     setPollingPeriodRange(1000, 30000);
@@ -196,17 +196,17 @@ bool MyFocuserPro2::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&GotoHomeSP);
-        defineProperty(&TemperatureNP);
-        defineProperty(&TemperatureSettingNP);
-        defineProperty(&TemperatureCompensateSP);
-        defineProperty(&BacklashInSP);
-        defineProperty(&BacklashInStepsNP);
-        defineProperty(&BacklashOutSP);
-        defineProperty(&BacklashOutStepsNP);
-        defineProperty(&StepModeSP);
-        defineProperty(&DisplaySP);
-        defineProperty(&CoilPowerSP);
+        defineProperty(GotoHomeSP);
+        defineProperty(TemperatureNP);
+        defineProperty(TemperatureSettingNP);
+        defineProperty(TemperatureCompensateSP);
+        defineProperty(BacklashInSP);
+        defineProperty(BacklashInStepsNP);
+        defineProperty(BacklashOutSP);
+        defineProperty(BacklashOutStepsNP);
+        defineProperty(StepModeSP);
+        defineProperty(DisplaySP);
+        defineProperty(CoilPowerSP);
 
         setTemperatureCelsius();
 
@@ -214,17 +214,17 @@ bool MyFocuserPro2::updateProperties()
     }
     else
     {
-        deleteProperty(GotoHomeSP.name);
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(TemperatureSettingNP.name);
-        deleteProperty(TemperatureCompensateSP.name);
-        deleteProperty(BacklashInSP.name);
-        deleteProperty(BacklashInStepsNP.name);
-        deleteProperty(BacklashOutSP.name);
-        deleteProperty(BacklashOutStepsNP.name);
-        deleteProperty(StepModeSP.name);
-        deleteProperty(DisplaySP.name);
-        deleteProperty(CoilPowerSP.name);
+        deleteProperty(GotoHomeSP.getName());
+        deleteProperty(TemperatureNP.getName());
+        deleteProperty(TemperatureSettingNP.getName());
+        deleteProperty(TemperatureCompensateSP.getName());
+        deleteProperty(BacklashInSP.getName());
+        deleteProperty(BacklashInStepsNP.getName());
+        deleteProperty(BacklashOutSP.getName());
+        deleteProperty(BacklashOutStepsNP.getName());
+        deleteProperty(StepModeSP.getName());
+        deleteProperty(DisplaySP.getName());
+        deleteProperty(CoilPowerSP.getName());
     }
 
     return true;
@@ -344,9 +344,9 @@ bool MyFocuserPro2::readCoilPowerState()
     if (rc > 0)
 
         if(temp == 0)
-            CoilPowerS[COIL_POWER_OFF].s = ISS_ON;
+            CoilPowerSP[COIL_POWER_OFF].setState(ISS_ON);
         else if (temp == 1)
-            CoilPowerS[COIL_POWER_ON].s = ISS_ON;
+            CoilPowerSP[COIL_POWER_ON].setState(ISS_ON);
         else
         {
             LOGF_ERROR("Invalid Response: focuser Coil Power value (%s)", res);
@@ -377,11 +377,11 @@ bool MyFocuserPro2::readReverseDirection()
 
         if(temp == 0)
         {
-            FocusReverseS[INDI_DISABLED].s = ISS_ON;
+            FocusReverseSP[INDI_DISABLED].setState(ISS_ON);
         }
         else if (temp == 1)
         {
-            FocusReverseS[INDI_ENABLED].s = ISS_ON;
+            FocusReverseSP[INDI_ENABLED].setState(ISS_ON);
         }
         else
         {
@@ -405,17 +405,17 @@ bool MyFocuserPro2::readStepMode()
         return false;
 
     if (strcmp(res, "S1#") == 0)
-        StepModeS[FOCUS_FULL_STEP].s = ISS_ON;
+        StepModeSP[FOCUS_FULL_STEP].setState(ISS_ON);
     else if (strcmp(res, "S2#") == 0)
-        StepModeS[FOCUS_HALF_STEP].s = ISS_ON;
+        StepModeSP[FOCUS_HALF_STEP].setState(ISS_ON);
     else if (strcmp(res, "S4#") == 0)
-        StepModeS[FOCUS_QUARTER_STEP].s = ISS_ON;
+        StepModeSP[FOCUS_QUARTER_STEP].setState(ISS_ON);
     else if (strcmp(res, "S8#") == 0)
-        StepModeS[FOCUS_EIGHTH_STEP].s = ISS_ON;
+        StepModeSP[FOCUS_EIGHTH_STEP].setState(ISS_ON);
     else if (strcmp(res, "S16#") == 0)
-        StepModeS[FOCUS_SIXTEENTH_STEP].s = ISS_ON;
+        StepModeSP[FOCUS_SIXTEENTH_STEP].setState(ISS_ON);
     else if (strcmp(res, "S32#") == 0)
-        StepModeS[FOCUS_THIRTYSECOND_STEP].s = ISS_ON;
+        StepModeSP[FOCUS_THIRTYSECOND_STEP].setState(ISS_ON);
     else
     {
         LOGF_ERROR("Unknown error: focuser Step Mode value (%s)", res);
@@ -436,7 +436,7 @@ bool MyFocuserPro2::readTemperature()
     int rc = sscanf(res, "Z%lf#", &temp);
     if (rc > 0)
         // Signed hex
-        TemperatureN[0].value = temp;
+        TemperatureNP[0].setValue(temp);
     else
     {
         LOGF_ERROR("Unknown error: focuser temperature value (%s)", res);
@@ -460,9 +460,9 @@ bool MyFocuserPro2::readTempCompensateEnable()
     if (rc > 0)
 
         if(temp == 0)
-            TemperatureCompensateS[TEMP_COMPENSATE_DISABLE].s = ISS_ON;
+            TemperatureCompensateSP[TEMP_COMPENSATE_DISABLE].setState(ISS_ON);
         else if (temp == 1)
-            TemperatureCompensateS[TEMP_COMPENSATE_ENABLE].s = ISS_ON;
+            TemperatureCompensateSP[TEMP_COMPENSATE_ENABLE].setState(ISS_ON);
         else
         {
             LOGF_ERROR("Invalid Response: focuser T.Compensate value (%s)", res);
@@ -489,7 +489,7 @@ bool MyFocuserPro2::readPosition()
     int rc = sscanf(res, "%*c%d#", &pos);
 
     if (rc > 0)
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosNP[0].setValue(pos);
     else
     {
         LOGF_ERROR("Unknown error: focuser position value (%s)", res);
@@ -510,7 +510,7 @@ bool MyFocuserPro2::readTempeartureCoefficient()
     int rc = sscanf(res, "B%d#", &val);
 
     if (rc > 0)
-        TemperatureSettingN[0].value = val;
+        TemperatureSettingNP[0].setValue(val);
     else
     {
         LOGF_ERROR("Unknown error: Temperature Coefficient value (%s)", res);
@@ -532,7 +532,7 @@ bool MyFocuserPro2::readSpeed()
 
     if (rc > 0)
     {
-        FocusSpeedN[0].value = speed;
+        FocusSpeedNP[0].setValue(speed);
     }
     else
     {
@@ -555,7 +555,7 @@ bool MyFocuserPro2::readMaxPos()
 
     if (rc > 0)
     {
-        FocusMaxPosN[0].value = maxPos;
+        FocusMaxPosNP[0].setValue(maxPos);
         Focuser::SyncPresets(maxPos);
     }
     else
@@ -579,11 +579,11 @@ bool MyFocuserPro2::readBacklashInSteps()
 
     if (rc > 0)
     {
-        BacklashInStepsN[0].value = backlash;
+        BacklashInStepsNP[0].setValue(backlash);
     }
     else
     {
-        BacklashInStepsN[0].value = 0;
+        BacklashInStepsNP[0].setValue(0);
         LOGF_ERROR("Unknown error: focuser Backlash IN value (%s)", res);
         return false;
     }
@@ -604,9 +604,9 @@ bool MyFocuserPro2::readBacklashInEnabled()
     if (rc > 0)
     {
         if(temp == 0)
-            BacklashInS[INDI_DISABLED].s = ISS_ON;
+            BacklashInSP[INDI_DISABLED].setState(ISS_ON);
         else if (temp == 1)
-            BacklashInS[INDI_ENABLED].s = ISS_ON;
+            BacklashInSP[INDI_ENABLED].setState(ISS_ON);
         else
             LOGF_ERROR("Unknown Repsonse: focuser Backlash IN enabled (%s)", res);
         return false;
@@ -630,7 +630,7 @@ bool MyFocuserPro2::readBacklashOutSteps()
 
     if (rc > 0)
     {
-        BacklashOutStepsN[0].value = backlash;
+        BacklashOutStepsNP[0].setValue(backlash);
     }
     else
     {
@@ -654,9 +654,9 @@ bool MyFocuserPro2::readBacklashOutEnabled()
     if (rc > 0)
     {
         if(temp == 0)
-            BacklashOutS[INDI_DISABLED].s = ISS_ON;
+            BacklashOutSP[INDI_DISABLED].setState(ISS_ON);
         else if (temp == 1)
-            BacklashOutS[INDI_ENABLED].s = ISS_ON;
+            BacklashOutSP[INDI_ENABLED].setState(ISS_ON);
         else
             LOGF_ERROR("Unknown response: focuser Backlash OUT enabled (%s)", res);
         return false;
@@ -683,9 +683,9 @@ bool MyFocuserPro2::readDisplayVisible()
     if (rc > 0)
     {
         if(temp == 0)
-            DisplayS[DISPLAY_OFF].s = ISS_ON;
+            DisplaySP[DISPLAY_OFF].setState(ISS_ON);
         else if (temp == 1)
-            DisplayS[DISPLAY_ON].s = ISS_ON;
+            DisplaySP[DISPLAY_ON].setState(ISS_ON);
         else
         {
             LOGF_ERROR("Invalid Response: focuser Display value (%s)", res);
@@ -854,192 +854,192 @@ bool MyFocuserPro2::ISNewSwitch(const char * dev, const char * name, ISState * s
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
-        if (strcmp(StepModeSP.name, name) == 0)
+        if (StepModeSP.isNameMatch(name))
         {
-            int current_mode = IUFindOnSwitchIndex(&StepModeSP);
+            int current_mode = StepModeSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&StepModeSP, states, names, n);
+            StepModeSP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&StepModeSP);
+            int target_mode = StepModeSP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                StepModeSP.s = IPS_OK;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.setState(IPS_OK);
+                StepModeSP.apply();
             }
 
             bool rc = setStepMode(static_cast<FocusStepMode>(target_mode));
             if (!rc)
             {
-                IUResetSwitch(&StepModeSP);
-                StepModeS[current_mode].s = ISS_ON;
-                StepModeSP.s              = IPS_ALERT;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.reset();
+                StepModeSP[current_mode].setState(ISS_ON);
+                StepModeSP.setState(IPS_ALERT);
+                StepModeSP.apply();
                 return false;
             }
 
-            StepModeSP.s = IPS_OK;
-            IDSetSwitch(&StepModeSP, nullptr);
+            StepModeSP.setState(IPS_OK);
+            StepModeSP.apply();
             return true;
         }
 
         // Goto Home Position
-        if (strcmp(GotoHomeSP.name, name) == 0)
+        if (GotoHomeSP.isNameMatch(name))
         {
             bool rc = setGotoHome();
             if (!rc)
             {
-                IUResetSwitch(&GotoHomeSP);
-                CoilPowerSP.s              = IPS_ALERT;
-                IDSetSwitch(&GotoHomeSP, nullptr);
+                GotoHomeSP.reset();
+                CoilPowerSP.setState(IPS_ALERT);
+                GotoHomeSP.apply();
                 return false;
             }
 
-            GotoHomeSP.s = IPS_OK;
-            IDSetSwitch(&GotoHomeSP, nullptr);
+            GotoHomeSP.setState(IPS_OK);
+            GotoHomeSP.apply();
             return true;
         }
 
         // Coil Power Mode
-        if (strcmp(CoilPowerSP.name, name) == 0)
+        if (CoilPowerSP.isNameMatch(name))
         {
-            int current_mode = IUFindOnSwitchIndex(&CoilPowerSP);
+            int current_mode = CoilPowerSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&CoilPowerSP, states, names, n);
+            CoilPowerSP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&CoilPowerSP);
+            int target_mode = CoilPowerSP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                CoilPowerSP.s = IPS_OK;
-                IDSetSwitch(&CoilPowerSP, nullptr);
+                CoilPowerSP.setState(IPS_OK);
+                CoilPowerSP.apply();
             }
 
             bool rc = setCoilPowerState(static_cast<CoilPower>(target_mode));
             if (!rc)
             {
-                IUResetSwitch(&CoilPowerSP);
-                CoilPowerS[current_mode].s = ISS_ON;
-                CoilPowerSP.s              = IPS_ALERT;
-                IDSetSwitch(&CoilPowerSP, nullptr);
+                CoilPowerSP.reset();
+                CoilPowerSP[current_mode].setState(ISS_ON);
+                CoilPowerSP.setState(IPS_ALERT);
+                CoilPowerSP.apply();
                 return false;
             }
 
-            CoilPowerSP.s = IPS_OK;
-            IDSetSwitch(&CoilPowerSP, nullptr);
+            CoilPowerSP.setState(IPS_OK);
+            CoilPowerSP.apply();
             return true;
         }
 
 
         // Display Control
-        if (strcmp(DisplaySP.name, name) == 0)
+        if (DisplaySP.isNameMatch(name))
         {
-            int current_mode = IUFindOnSwitchIndex(&DisplaySP);
+            int current_mode = DisplaySP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&DisplaySP, states, names, n);
+            DisplaySP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&DisplaySP);
+            int target_mode = DisplaySP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                DisplaySP.s = IPS_OK;
-                IDSetSwitch(&DisplaySP, nullptr);
+                DisplaySP.setState(IPS_OK);
+                DisplaySP.apply();
             }
 
             bool rc = setDisplayVisible(static_cast<DisplayMode>(target_mode));
             if (!rc)
             {
-                IUResetSwitch(&DisplaySP);
-                DisplayS[current_mode].s = ISS_ON;
-                DisplaySP.s              = IPS_ALERT;
-                IDSetSwitch(&DisplaySP, nullptr);
+                DisplaySP.reset();
+                DisplaySP[current_mode].setState(ISS_ON);
+                DisplaySP.setState(IPS_ALERT);
+                DisplaySP.apply();
                 return false;
             }
 
-            DisplaySP.s = IPS_OK;
-            IDSetSwitch(&DisplaySP, nullptr);
+            DisplaySP.setState(IPS_OK);
+            DisplaySP.apply();
             return true;
         }
 
         // Backlash In Enable
-        if (strcmp(BacklashInSP.name, name) == 0)
+        if (BacklashInSP.isNameMatch(name))
         {
-            int current_mode = IUFindOnSwitchIndex(&BacklashInSP);
+            int current_mode = BacklashInSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&BacklashInSP, states, names, n);
+            BacklashInSP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&BacklashInSP);
+            int target_mode = BacklashInSP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                BacklashInSP.s = IPS_OK;
-                IDSetSwitch(&BacklashInSP, nullptr);
+                BacklashInSP.setState(IPS_OK);
+                BacklashInSP.apply();
             }
 
             bool rc = setBacklashInEnabled(target_mode == INDI_ENABLED);
             if (!rc)
             {
-                IUResetSwitch(&BacklashInSP);
-                BacklashInS[current_mode].s = ISS_ON;
-                BacklashInSP.s              = IPS_ALERT;
-                IDSetSwitch(&BacklashInSP, nullptr);
+                BacklashInSP.reset();
+                BacklashInSP[current_mode].setState(ISS_ON);
+                BacklashInSP.setState(IPS_ALERT);
+                BacklashInSP.apply();
                 return false;
             }
 
-            BacklashInSP.s = IPS_OK;
-            IDSetSwitch(&BacklashInSP, nullptr);
+            BacklashInSP.setState(IPS_OK);
+            BacklashInSP.apply();
             return true;
         }
 
         // Backlash Out Enable
-        if (strcmp(BacklashOutSP.name, name) == 0)
+        if (BacklashOutSP.isNameMatch(name))
         {
-            int current_mode = IUFindOnSwitchIndex(&BacklashOutSP);
+            int current_mode = BacklashOutSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&BacklashOutSP, states, names, n);
+            BacklashOutSP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&BacklashOutSP);
+            int target_mode = BacklashOutSP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                BacklashOutSP.s = IPS_OK;
-                IDSetSwitch(&BacklashOutSP, nullptr);
+                BacklashOutSP.setState(IPS_OK);
+                BacklashOutSP.apply();
             }
 
             bool rc = setBacklashOutEnabled(target_mode == INDI_ENABLED);
             if (!rc)
             {
-                IUResetSwitch(&BacklashOutSP);
-                BacklashOutS[current_mode].s = ISS_ON;
-                BacklashOutSP.s              = IPS_ALERT;
-                IDSetSwitch(&BacklashOutSP, nullptr);
+                BacklashOutSP.reset();
+                BacklashOutSP[current_mode].setState(ISS_ON);
+                BacklashOutSP.setState(IPS_ALERT);
+                BacklashOutSP.apply();
                 return false;
             }
 
-            BacklashOutSP.s = IPS_OK;
-            IDSetSwitch(&BacklashOutSP, nullptr);
+            BacklashOutSP.setState(IPS_OK);
+            BacklashOutSP.apply();
             return true;
         }
 
         // Temperature Compensation Mode
-        if (strcmp(TemperatureCompensateSP.name, name) == 0)
+        if (TemperatureCompensateSP.isNameMatch(name))
         {
-            int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
-            IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
+            int last_index = TemperatureCompensateSP.findOnSwitchIndex();
+            TemperatureCompensateSP.update(states, names, n);
 
-            bool rc = setTemperatureCompensation((TemperatureCompensateS[0].s == ISS_ON));
+            bool rc = setTemperatureCompensation((TemperatureCompensateSP[0].getState() == ISS_ON));
 
             if (!rc)
             {
-                TemperatureCompensateSP.s = IPS_ALERT;
-                IUResetSwitch(&TemperatureCompensateSP);
-                TemperatureCompensateS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureCompensateSP, nullptr);
+                TemperatureCompensateSP.setState(IPS_ALERT);
+                TemperatureCompensateSP.reset();
+                TemperatureCompensateSP[last_index].setState(ISS_ON);
+                TemperatureCompensateSP.apply();
                 return false;
             }
 
-            TemperatureCompensateSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureCompensateSP, nullptr);
+            TemperatureCompensateSP.setState(IPS_OK);
+            TemperatureCompensateSP.apply();
             return true;
         }
     }
@@ -1052,50 +1052,50 @@ bool MyFocuserPro2::ISNewNumber(const char * dev, const char * name, double valu
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Settings
-        if (strcmp(name, TemperatureSettingNP.name) == 0)
+        if (TemperatureSettingNP.isNameMatch(name))
         {
-            IUUpdateNumber(&TemperatureSettingNP, values, names, n);
-            if (!setTemperatureCoefficient(TemperatureSettingN[0].value))
+            TemperatureSettingNP.update(values, names, n);
+            if (!setTemperatureCoefficient(TemperatureSettingNP[0].value))
             {
-                TemperatureSettingNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureSettingNP, nullptr);
+                TemperatureSettingNP.setState(IPS_ALERT);
+                TemperatureSettingNP.apply();
                 return false;
             }
 
-            TemperatureSettingNP.s = IPS_OK;
-            IDSetNumber(&TemperatureSettingNP, nullptr);
+            TemperatureSettingNP.setState(IPS_OK);
+            TemperatureSettingNP.apply();
             return true;
         }
 
         // Backlash In
-        if (strcmp(name, BacklashInStepsNP.name) == 0)
+        if (BacklashInStepsNP.isNameMatch(name))
         {
-            IUUpdateNumber(&BacklashInStepsNP, values, names, n);
-            if (!setBacklashInSteps(BacklashInStepsN[0].value))
+            BacklashInStepsNP.update(values, names, n);
+            if (!setBacklashInSteps(BacklashInStepsNP[0].value))
             {
-                BacklashInStepsNP.s = IPS_ALERT;
-                IDSetNumber(&BacklashInStepsNP, nullptr);
+                BacklashInStepsNP.setState(IPS_ALERT);
+                BacklashInStepsNP.apply();
                 return false;
             }
 
-            BacklashInStepsNP.s = IPS_OK;
-            IDSetNumber(&BacklashInStepsNP, nullptr);
+            BacklashInStepsNP.setState(IPS_OK);
+            BacklashInStepsNP.apply();
             return true;
         }
 
         // Backlash Out
-        if (strcmp(name, BacklashOutStepsNP.name) == 0)
+        if (BacklashOutStepsNP.isNameMatch(name))
         {
-            IUUpdateNumber(&BacklashOutStepsNP, values, names, n);
-            if (!setBacklashOutSteps(BacklashOutStepsN[0].value))
+            BacklashOutStepsNP.update(values, names, n);
+            if (!setBacklashOutSteps(BacklashOutStepsNP[0].value))
             {
-                BacklashOutStepsNP.s = IPS_ALERT;
-                IDSetNumber(&BacklashOutStepsNP, nullptr);
+                BacklashOutStepsNP.setState(IPS_ALERT);
+                BacklashOutStepsNP.apply();
                 return false;
             }
 
-            BacklashOutStepsNP.s = IPS_OK;
-            IDSetNumber(&BacklashOutStepsNP, nullptr);
+            BacklashOutStepsNP.setState(IPS_OK);
+            BacklashOutStepsNP.apply();
             return true;
         }
 
@@ -1145,7 +1145,7 @@ bool MyFocuserPro2::SetFocuserMaxPosition(uint32_t maxPos)
 
 IPState MyFocuserPro2::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    if (speed != static_cast<int>(FocusSpeedN[0].value))
+    if (speed != static_cast<int>(FocusSpeedNP[0].value))
     {
         if (!setSpeed(speed))
             return IPS_ALERT;
@@ -1156,7 +1156,7 @@ IPState MyFocuserPro2::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
     else
-        MoveFocuser(FocusMaxPosN[0].value);
+        MoveFocuser(FocusMaxPosNP[0].value);
 
     IEAddTimer(duration, &MyFocuserPro2::timedMoveHelper, this);
     return IPS_BUSY;
@@ -1170,13 +1170,13 @@ void MyFocuserPro2::timedMoveHelper(void * context)
 void MyFocuserPro2::timedMoveCallback()
 {
     AbortFocuser();
-    FocusAbsPosNP.s = IPS_IDLE;
-    FocusRelPosNP.s = IPS_IDLE;
-    FocusTimerNP.s = IPS_IDLE;
-    FocusTimerN[0].value = 0;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-    IDSetNumber(&FocusRelPosNP, nullptr);
-    IDSetNumber(&FocusTimerNP, nullptr);
+    FocusAbsPosNP.setState(IPS_IDLE);
+    FocusRelPosNP.setState(IPS_IDLE);
+    FocusTimerNP.setState(IPS_IDLE);
+    FocusTimerNP[0].setValue(0);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.apply();
+    FocusTimerNP.apply();
 }
 
 IPState MyFocuserPro2::MoveAbsFocuser(uint32_t targetTicks)
@@ -1194,17 +1194,17 @@ IPState MyFocuserPro2::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     int32_t newPosition = 0;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     // Clamp
-    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
+    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosNP[0].max), newPosition));
     if (!MoveFocuser(newPosition))
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -1220,32 +1220,32 @@ void MyFocuserPro2::TimerHit()
     bool rc = readPosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (fabs(lastTemperature - TemperatureNP[0].getValue()) >= 0.5)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            TemperatureNP.apply();
+            lastTemperature = TemperatureNP[0].getValue();
         }
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             LOG_INFO("Focuser reached requested position.");
         }
     }
@@ -1262,7 +1262,7 @@ bool MyFocuserPro2::saveConfigItems(FILE * fp)
 {
     Focuser::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &StepModeSP);
+    StepModeSP.save(fp);
 
     return true;
 }

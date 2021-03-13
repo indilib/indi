@@ -30,6 +30,9 @@
 
 #include <stdint.h>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+
 namespace Connection
 {
 class Serial;
@@ -90,12 +93,10 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
         bool Handshake();
 
         // Status
-        ITextVectorProperty StatusTP;
-        IText StatusT[3] {};
+        INDI::PropertyText StatusTP {3};
 
         // Firmware version
-        ITextVectorProperty FirmwareTP;
-        IText FirmwareT[1] {};
+        INDI::PropertyText FirmwareTP {1};
 
         int PortFD{ -1 };
         uint16_t productID{ 0 };

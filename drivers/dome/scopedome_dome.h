@@ -33,6 +33,10 @@
 #include "indidome.h"
 #include <memory>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 /**
  * Interface to either a real ScopeDome card or simulator
  */
@@ -455,45 +459,31 @@ class ScopeDome : public INDI::Dome
     bool sim{ false };
     double simShutterTimer{ 0 };
     ShutterState simShutterStatus{ SHUTTER_OPENED };
+    INDI::PropertyNumber DomeHomePositionNP {1};
 
-    INumberVectorProperty DomeHomePositionNP;
-    INumber DomeHomePositionN[1];
+    INDI::PropertySwitch FindHomeSP {1};
 
-    ISwitch FindHomeS[1];
-    ISwitchVectorProperty FindHomeSP;
+    INDI::PropertySwitch DerotateSP {1};
 
-    ISwitch DerotateS[1];
-    ISwitchVectorProperty DerotateSP;
+    INDI::PropertySwitch PowerRelaysSP {4};
 
-    ISwitch PowerRelaysS[4];
-    ISwitchVectorProperty PowerRelaysSP;
+    INDI::PropertySwitch RelaysSP {4};
 
-    ISwitch RelaysS[4];
-    ISwitchVectorProperty RelaysSP;
+    INDI::PropertySwitch ParkShutterSP {2};
 
-    ISwitch ParkShutterS[2];
-    ISwitchVectorProperty ParkShutterSP;
+    INDI::PropertySwitch AutoCloseSP {8};
 
-    ISwitch AutoCloseS[8];
-    ISwitchVectorProperty AutoCloseSP;
+    INDI::PropertyNumber EnvironmentSensorsNP {11};
 
-    INumber EnvironmentSensorsN[11];
-    INumberVectorProperty EnvironmentSensorsNP;
+    INDI::PropertySwitch SensorsSP {13};
 
-    ISwitch SensorsS[13];
-    ISwitchVectorProperty SensorsSP;
+    INDI::PropertyNumber StepsPerRevolutionNP {1};
 
-    INumber StepsPerRevolutionN[1];
-    INumberVectorProperty StepsPerRevolutionNP;
+    INDI::PropertySwitch CalibrationNeededSP {1};
 
-    ISwitch CalibrationNeededS[1];
-    ISwitchVectorProperty CalibrationNeededSP;
+    INDI::PropertySwitch StartCalibrationSP {1};
 
-    ISwitch StartCalibrationS[1];
-    ISwitchVectorProperty StartCalibrationSP;
-
-    INumber FirmwareVersionsN[2];
-    INumberVectorProperty FirmwareVersionsNP;
+    INDI::PropertyNumber FirmwareVersionsNP {2};
 
   private:
     uint8_t digitalSensorState[5];

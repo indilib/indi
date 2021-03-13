@@ -28,6 +28,11 @@
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class IOptronV3 : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
@@ -104,50 +109,39 @@ class IOptronV3 : public INDI::Telescope, public INDI::GuiderInterface
         bool GetPECDataStatus(bool enabled);
         
         /* Mod v3.0 Adding PEC Recording Switches  */
-        ISwitch PECTrainingS[2]; 
-        ISwitchVectorProperty PECTrainingSP; 
-        ITextVectorProperty PECInfoTP;
-        IText PECInfoT[2] {};
+        INDI::PropertySwitch PECTrainingSP {2};
+        INDI::PropertyText PECInfoTP {2};
         char PECText[128];
         int PECTime = 0;
         bool isTraining;
         // End Mod */
 
         /* Firmware */
-        IText FirmwareT[5] {};
-        ITextVectorProperty FirmwareTP;
+        INDI::PropertyText FirmwareTP {5};
 
         /* GPS Status */
-        ISwitch GPSStatusS[3];
-        ISwitchVectorProperty GPSStatusSP;
+        INDI::PropertySwitch GPSStatusSP {3};
 
         /* Time Source */
-        ISwitch TimeSourceS[3];
-        ISwitchVectorProperty TimeSourceSP;
+        INDI::PropertySwitch TimeSourceSP {3};
 
         /* Hemisphere */
-        ISwitch HemisphereS[2];
-        ISwitchVectorProperty HemisphereSP;
+        INDI::PropertySwitch HemisphereSP {2};
 
         /* Home Control */
-        ISwitch HomeS[3];
-        ISwitchVectorProperty HomeSP;
+        INDI::PropertySwitch HomeSP {3};
 
         /* Guide Rate */
-        INumber GuideRateN[2];
-        INumberVectorProperty GuideRateNP;
+        INDI::PropertyNumber GuideRateNP {2};
 
         /* Slew Mode */
-        ISwitch SlewModeS[2];
-        ISwitchVectorProperty SlewModeSP;
+        INDI::PropertySwitch SlewModeSP {2};
 
         /* Counterweight Status */
-        ISwitch CWStateS[2];
-        ISwitchVectorProperty CWStateSP;
+        INDI::PropertySwitch CWStateSP {2};
 
         /* Daylight Saving */
-        ISwitch DaylightS[2];
-        ISwitchVectorProperty DaylightSP;
+        INDI::PropertySwitch DaylightSP {2};
 
         uint32_t DBG_SCOPE;
 

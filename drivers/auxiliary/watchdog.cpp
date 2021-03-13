@@ -108,28 +108,28 @@ const char *WatchDog::getDefaultName()
 ////////////////////////////////////////////////////////////////////////////////////
 bool WatchDog::Connect()
 {
-    if (ShutdownTriggerS[TRIGGER_CLIENT].s == ISS_ON && HeartBeatN[0].value > 0)
+    if (ShutdownTriggerSP[TRIGGER_CLIENT].getState() == ISS_ON && HeartBeatNP[0].getValue() > 0)
     {
         LOGF_INFO("Client Watchdog is enabled. Shutdown is triggered after %.f seconds of communication loss with the client.",
-                  HeartBeatN[0].value);
+                  HeartBeatNP[0].getValue());
         if (m_WatchDogTimer > 0)
             RemoveTimer(m_WatchDogTimer);
-        m_WatchDogTimer = SetTimer(HeartBeatN[0].value * 1000);
+        m_WatchDogTimer = SetTimer(HeartBeatNP[0].value * 1000);
     }
 
-    if (ShutdownTriggerS[TRIGGER_WEATHER].s == ISS_ON)
+    if (ShutdownTriggerSP[TRIGGER_WEATHER].getState() == ISS_ON)
     {
-        if (WeatherThresholdN[0].value > 0)
+        if (WeatherThresholdNP[0].value > 0)
             LOGF_INFO("Weather Watchdog is enabled. Shutdown is triggered %.f seconds after Weather status enters DANGER zone.",
-                      WeatherThresholdN[0].value);
+                      WeatherThresholdNP[0].getValue());
         else
             LOG_INFO("Weather Watchdog is enabled. Shutdown is triggered when Weather status in DANGER zone.");
         // Trigger Snoop
-        IDSnoopDevice(ActiveDeviceT[ACTIVE_WEATHER].text, "WEATHER_STATUS");
+        IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER].getText(), "WEATHER_STATUS");
     }
 
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_PARK");
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_DOME].text, "DOME_PARK");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "TELESCOPE_PARK");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_DOME].getText(), "DOME_PARK");
 
     return true;
 }
@@ -164,46 +164,46 @@ bool WatchDog::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Heart Beat to client
-    IUFillNumber(&HeartBeatN[0], "WATCHDOG_HEARTBEAT_VALUE", "Threshold (s)", "%.f", 0, 3600, 60, 0);
-    IUFillNumberVector(&HeartBeatNP, HeartBeatN, 1, getDeviceName(), "WATCHDOG_HEARTBEAT", "Heart beat",
+    HeartBeatNP[0].fill("WATCHDOG_HEARTBEAT_VALUE", "Threshold (s)", "%.f", 0, 3600, 60, 0);
+    HeartBeatNP.fill(getDeviceName(), "WATCHDOG_HEARTBEAT", "Heart beat",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Weather Threshold
-    IUFillNumber(&WeatherThresholdN[0], "WATCHDOG_WEATHER_VALUE", "Threshold (s)", "%.f", 0, 3600, 60, 0);
-    IUFillNumberVector(&WeatherThresholdNP, WeatherThresholdN, 1, getDeviceName(), "WATCHDOG_WEATHER", "Weather",
+    WeatherThresholdNP[0].fill("WATCHDOG_WEATHER_VALUE", "Threshold (s)", "%.f", 0, 3600, 60, 0);
+    WeatherThresholdNP.fill(getDeviceName(), "WATCHDOG_WEATHER", "Weather",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // INDI Server Settings
-    IUFillText(&SettingsT[INDISERVER_HOST], "INDISERVER_HOST", "indiserver host", "localhost");
-    IUFillText(&SettingsT[INDISERVER_PORT], "INDISERVER_PORT", "indiserver port", "7624");
-    IUFillText(&SettingsT[SHUTDOWN_SCRIPT], "SHUTDOWN_SCRIPT", "shutdown script", nullptr);
-    IUFillTextVector(&SettingsTP, SettingsT, 3, getDeviceName(), "WATCHDOG_SETTINGS", "Settings", MAIN_CONTROL_TAB,
+    SettingsTP[INDISERVER_HOST].fill("INDISERVER_HOST", "indiserver host", "localhost");
+    SettingsTP[INDISERVER_PORT].fill("INDISERVER_PORT", "indiserver port", "7624");
+    SettingsTP[SHUTDOWN_SCRIPT].fill("SHUTDOWN_SCRIPT", "shutdown script", nullptr);
+    SettingsTP.fill(getDeviceName(), "WATCHDOG_SETTINGS", "Settings", MAIN_CONTROL_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     // Shutdown procedure
-    IUFillSwitch(&ShutdownProcedureS[PARK_MOUNT], "PARK_MOUNT", "Park Mount", ISS_OFF);
-    IUFillSwitch(&ShutdownProcedureS[PARK_DOME], "PARK_DOME", "Park Dome", ISS_OFF);
-    IUFillSwitch(&ShutdownProcedureS[EXECUTE_SCRIPT], "EXECUTE_SCRIPT", "Execute Script", ISS_OFF);
-    IUFillSwitchVector(&ShutdownProcedureSP, ShutdownProcedureS, 3, getDeviceName(), "WATCHDOG_SHUTDOWN", "Shutdown",
+    ShutdownProcedureSP[PARK_MOUNT].fill("PARK_MOUNT", "Park Mount", ISS_OFF);
+    ShutdownProcedureSP[PARK_DOME].fill("PARK_DOME", "Park Dome", ISS_OFF);
+    ShutdownProcedureSP[EXECUTE_SCRIPT].fill("EXECUTE_SCRIPT", "Execute Script", ISS_OFF);
+    ShutdownProcedureSP.fill(getDeviceName(), "WATCHDOG_SHUTDOWN", "Shutdown",
                        MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     // Shutdown Trigger
-    IUFillSwitch(&ShutdownTriggerS[TRIGGER_CLIENT], "TRIGGER_CLIENT", "Client", ISS_OFF);
-    IUFillSwitch(&ShutdownTriggerS[TRIGGER_WEATHER], "TRIGGER_WEATHER", "Weather", ISS_OFF);
-    IUFillSwitchVector(&ShutdownTriggerSP, ShutdownTriggerS, 2, getDeviceName(), "WATCHDOG_Trigger", "Trigger",
+    ShutdownTriggerSP[TRIGGER_CLIENT].fill("TRIGGER_CLIENT", "Client", ISS_OFF);
+    ShutdownTriggerSP[TRIGGER_WEATHER].fill("TRIGGER_WEATHER", "Weather", ISS_OFF);
+    ShutdownTriggerSP.fill(getDeviceName(), "WATCHDOG_Trigger", "Trigger",
                        MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     // Mount Policy
-    IUFillSwitch(&MountPolicyS[MOUNT_IGNORED], "MOUNT_IGNORED", "Mount ignored", ISS_ON);
-    IUFillSwitch(&MountPolicyS[MOUNT_LOCKS], "MOUNT_LOCKS", "Mount locks", ISS_OFF);
-    IUFillSwitchVector(&MountPolicySP, MountPolicyS, 2, getDeviceName(), "WATCHDOG_MOUNT_POLICY", "Mount Policy",
+    MountPolicySP[MOUNT_IGNORED].fill("MOUNT_IGNORED", "Mount ignored", ISS_ON);
+    MountPolicySP[MOUNT_LOCKS].fill("MOUNT_LOCKS", "Mount locks", ISS_OFF);
+    MountPolicySP.fill(getDeviceName(), "WATCHDOG_MOUNT_POLICY", "Mount Policy",
                        OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Active Devices
-    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    IUFillText(&ActiveDeviceT[ACTIVE_DOME], "ACTIVE_DOME", "Dome", "Dome Simulator");
-    IUFillText(&ActiveDeviceT[ACTIVE_WEATHER], "ACTIVE_WEATHER", "Weather", "Weather Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 3, getDeviceName(), "ACTIVE_DEVICES", "Active devices",
+    ActiveDeviceTP[ACTIVE_TELESCOPE].fill("ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    ActiveDeviceTP[ACTIVE_DOME].fill("ACTIVE_DOME", "Dome", "Dome Simulator");
+    ActiveDeviceTP[ACTIVE_WEATHER].fill("ACTIVE_WEATHER", "Weather", "Weather Simulator");
+    ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Active devices",
                      OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     addDebugControl();
@@ -218,13 +218,13 @@ void WatchDog::ISGetProperties(const char *dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
-    defineProperty(&HeartBeatNP);
-    defineProperty(&WeatherThresholdNP);
-    defineProperty(&SettingsTP);
-    defineProperty(&ShutdownTriggerSP);
-    defineProperty(&ShutdownProcedureSP);
-    defineProperty(&MountPolicySP);
-    defineProperty(&ActiveDeviceTP);
+    defineProperty(HeartBeatNP);
+    defineProperty(WeatherThresholdNP);
+    defineProperty(SettingsTP);
+    defineProperty(ShutdownTriggerSP);
+    defineProperty(ShutdownProcedureSP);
+    defineProperty(MountPolicySP);
+    defineProperty(ActiveDeviceTP);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -235,44 +235,44 @@ bool WatchDog::ISNewText(const char *dev, const char *name, char *texts[], char 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Update Settings
-        if (!strcmp(SettingsTP.name, name))
+        if (SettingsTP.isNameMatch(name))
         {
-            IUUpdateText(&SettingsTP, texts, names, n);
-            SettingsTP.s = IPS_OK;
-            IDSetText(&SettingsTP, nullptr);
+            SettingsTP.update(texts, names, n);
+            SettingsTP.setState(IPS_OK);
+            SettingsTP.apply();
 
             try
             {
-                m_INDIServerPort = std::stoi(SettingsT[INDISERVER_PORT].text);
+                m_INDIServerPort = std::stoi(SettingsTP[INDISERVER_PORT].getText());
             }
             catch(...)
             {
-                SettingsTP.s = IPS_ALERT;
+                SettingsTP.setState(IPS_ALERT);
                 LOG_ERROR("Failed to parse numbers.");
             }
 
-            IDSetText(&SettingsTP, nullptr);
+            SettingsTP.apply();
             return true;
         }
 
         // Snoop Active Devices.
-        if (!strcmp(ActiveDeviceTP.name, name))
+        if (ActiveDeviceTP.isNameMatch(name))
         {
             if (watchdogClient->isBusy())
             {
-                ActiveDeviceTP.s = IPS_ALERT;
-                IDSetText(&ActiveDeviceTP, nullptr);
+                ActiveDeviceTP.setState(IPS_ALERT);
+                ActiveDeviceTP.apply();
                 LOG_ERROR("Cannot change devices names while shutdown is in progress...");
                 return true;
             }
 
-            IDSnoopDevice(ActiveDeviceT[ACTIVE_WEATHER].text, "WEATHER_STATUS");
-            IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "TELESCOPE_PARK");
-            IDSnoopDevice(ActiveDeviceT[ACTIVE_DOME].text, "DOME_PARK");
+            IDSnoopDevice(ActiveDeviceTP[ACTIVE_WEATHER].getText(), "WEATHER_STATUS");
+            IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "TELESCOPE_PARK");
+            IDSnoopDevice(ActiveDeviceTP[ACTIVE_DOME].getText(), "DOME_PARK");
 
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
-            ActiveDeviceTP.s = IPS_OK;
-            IDSetText(&ActiveDeviceTP, nullptr);
+            ActiveDeviceTP.update(texts, names, n);
+            ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.apply();
             return true;
         }
     }
@@ -288,51 +288,51 @@ bool WatchDog::ISNewNumber(const char *dev, const char *name, double values[], c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Weather threshold
-        if (!strcmp(WeatherThresholdNP.name, name))
+        if (WeatherThresholdNP.isNameMatch(name))
         {
-            IUUpdateNumber(&WeatherThresholdNP, values, names, n);
-            WeatherThresholdNP.s = IPS_OK;
-            IDSetNumber(&WeatherThresholdNP, nullptr);
+            WeatherThresholdNP.update(values, names, n);
+            WeatherThresholdNP.setState(IPS_OK);
+            WeatherThresholdNP.apply();
             return true;
         }
         // Heart Beat
         // Client must set this property to indicate it is alive.
         // If heat beat not received from client then shutdown procedure begins if
         // the client trigger is selected.
-        else if (!strcmp(HeartBeatNP.name, name))
+        else if (HeartBeatNP.isNameMatch(name))
         {
-            double prevHeartBeat = HeartBeatN[0].value;
+            double prevHeartBeat = HeartBeatNP[0].getValue();
 
             if (watchdogClient->isBusy())
             {
-                HeartBeatNP.s = IPS_ALERT;
-                IDSetNumber(&HeartBeatNP, nullptr);
+                HeartBeatNP.setState(IPS_ALERT);
+                HeartBeatNP.apply();
                 LOG_ERROR("Cannot change heart beat while shutdown is in progress...");
                 return true;
             }
 
-            IUUpdateNumber(&HeartBeatNP, values, names, n);
-            HeartBeatNP.s = IPS_OK;
+            HeartBeatNP.update(values, names, n);
+            HeartBeatNP.setState(IPS_OK);
 
             // If trigger is not set, don't do anything else
-            if (ShutdownTriggerS[TRIGGER_CLIENT].s == ISS_OFF)
+            if (ShutdownTriggerSP[TRIGGER_CLIENT].getState() == ISS_OFF)
             {
                 if (m_WatchDogTimer > 0)
                 {
                     RemoveTimer(m_WatchDogTimer);
                     m_WatchDogTimer = -1;
                 }
-                IDSetNumber(&HeartBeatNP, nullptr);
+                HeartBeatNP.apply();
                 return true;
             }
 
-            if (HeartBeatN[0].value == 0)
+            if (HeartBeatNP[0].value == 0)
                 LOG_INFO("Client Watchdog is disabled.");
             else
             {
-                if (prevHeartBeat != HeartBeatN[0].value)
+                if (prevHeartBeat != HeartBeatNP[0].getValue())
                     LOGF_INFO("Client Watchdog is enabled. Shutdown is triggered after %.f seconds of communication loss with the client.",
-                              HeartBeatN[0].value);
+                              HeartBeatNP[0].getValue());
 
                 LOG_DEBUG("Received heart beat from client.");
 
@@ -342,9 +342,9 @@ bool WatchDog::ISNewNumber(const char *dev, const char *name, double values[], c
                     m_WatchDogTimer = -1;
                 }
 
-                m_WatchDogTimer = SetTimer(HeartBeatN[0].value * 1000);
+                m_WatchDogTimer = SetTimer(HeartBeatNP[0].value * 1000);
             }
-            IDSetNumber(&HeartBeatNP, nullptr);
+            HeartBeatNP.apply();
 
             return true;
         }
@@ -361,45 +361,45 @@ bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Shutdown procedure setting
-        if (!strcmp(ShutdownProcedureSP.name, name))
+        if (ShutdownProcedureSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ShutdownProcedureSP, states, names, n);
+            ShutdownProcedureSP.update(states, names, n);
 
-            if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON &&
-                    (SettingsT[EXECUTE_SCRIPT].text == nullptr || SettingsT[EXECUTE_SCRIPT].text[0] == '\0'))
+            if (ShutdownProcedureSP[EXECUTE_SCRIPT].getState() == ISS_ON &&
+                    (SettingsTP[EXECUTE_SCRIPT].text == nullptr || SettingsTP[EXECUTE_SCRIPT].text[0] == '\0'))
             {
                 LOG_ERROR("Error: shutdown script file is not set.");
-                ShutdownProcedureSP.s                = IPS_ALERT;
-                ShutdownProcedureS[EXECUTE_SCRIPT].s = ISS_OFF;
+                ShutdownProcedureSP.setState(IPS_ALERT);
+                ShutdownProcedureSP[EXECUTE_SCRIPT].setState(ISS_OFF);
             }
             else
-                ShutdownProcedureSP.s = IPS_OK;
-            IDSetSwitch(&ShutdownProcedureSP, nullptr);
+                ShutdownProcedureSP.setState(IPS_OK);
+            ShutdownProcedureSP.apply();
             return true;
         }
         // Mount Lock Policy
-        else if (!strcmp(MountPolicySP.name, name))
+        else if (MountPolicySP.isNameMatch(name))
         {
-            IUUpdateSwitch(&MountPolicySP, states, names, n);
-            MountPolicySP.s = IPS_OK;
+            MountPolicySP.update(states, names, n);
+            MountPolicySP.setState(IPS_OK);
 
-            if (MountPolicyS[MOUNT_IGNORED].s == ISS_ON)
+            if (MountPolicySP[MOUNT_IGNORED].getState() == ISS_ON)
                 LOG_INFO("Mount is ignored. Dome can start parking without waiting for mount to complete parking.");
             else
                 LOG_INFO("Mount locks. Dome must wait for mount to park before it can start the parking procedure.");
-            IDSetSwitch(&MountPolicySP, nullptr);
+            MountPolicySP.apply();
             return true;
         }
         // Shutdown Trigger handling
-        else if (!strcmp(ShutdownTriggerSP.name, name))
+        else if (ShutdownTriggerSP.isNameMatch(name))
         {
-            std::vector<ISState> oldStates(ShutdownTriggerSP.nsp, ISS_OFF);
-            std::vector<ISState> newStates(ShutdownTriggerSP.nsp, ISS_OFF);
-            for (int i = 0; i < ShutdownTriggerSP.nsp; i++)
-                oldStates[i] = ShutdownTriggerS[i].s;
-            IUUpdateSwitch(&ShutdownTriggerSP, states, names, n);
-            for (int i = 0; i < ShutdownTriggerSP.nsp; i++)
-                newStates[i] = ShutdownTriggerS[i].s;
+            std::vector<ISState> oldStates(ShutdownTriggerSP.size(), ISS_OFF);
+            std::vector<ISState> newStates(ShutdownTriggerSP.size(), ISS_OFF);
+            for (size_t i = 0; i < ShutdownTriggerSP.size(); i++)
+                oldStates[i] = ShutdownTriggerSP[i].getState();
+            ShutdownTriggerSP.update(states, names, n);
+            for (size_t i = 0; i < ShutdownTriggerSP.size(); i++)
+                newStates[i] = ShutdownTriggerSP[i].getState();
 
 
             // Check for client changes
@@ -419,21 +419,21 @@ bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                 else
                 {
                     // Check first that we have a valid heart beat
-                    if (HeartBeatN[0].value == 0)
+                    if (HeartBeatNP[0].value == 0)
                     {
                         LOG_ERROR("Heart beat timeout should be set first.");
-                        ShutdownTriggerSP.s = IPS_ALERT;
-                        for (int i = 0; i < ShutdownTriggerSP.nsp; i++)
-                            ShutdownTriggerS[i].s = oldStates[i];
-                        IDSetSwitch(&ShutdownTriggerSP, nullptr);
+                        ShutdownTriggerSP.setState(IPS_ALERT);
+                        for (size_t i = 0; i < ShutdownTriggerSP.size(); i++)
+                            ShutdownTriggerSP[i].setState(oldStates[i]);
+                        ShutdownTriggerSP.apply();
                         return true;
                     }
 
                     LOGF_INFO("Client Watchdog is enabled. Shutdown is triggered after %.f seconds of communication loss with the client.",
-                              HeartBeatN[0].value);
+                              HeartBeatNP[0].getValue());
                     if (m_WatchDogTimer > 0)
                         RemoveTimer(m_WatchDogTimer);
-                    m_WatchDogTimer = SetTimer(HeartBeatN[0].value * 1000);
+                    m_WatchDogTimer = SetTimer(HeartBeatNP[0].value * 1000);
                 }
             }
 
@@ -457,8 +457,8 @@ bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             }
 
-            ShutdownTriggerSP.s = IPS_OK;
-            IDSetSwitch(&ShutdownTriggerSP, nullptr);
+            ShutdownTriggerSP.setState(IPS_OK);
+            ShutdownTriggerSP.apply();
             return true;
         }
     }
@@ -500,11 +500,11 @@ bool WatchDog::ISSnoopDevice(XMLEle * root)
         if (m_WeatherState != IPS_ALERT && newWeatherState == IPS_ALERT)
         {
             LOG_WARN("Weather is in DANGER zone.");
-            if (ShutdownTriggerS[TRIGGER_WEATHER].s == ISS_ON && m_WeatherAlertTimer == -1)
+            if (ShutdownTriggerSP[TRIGGER_WEATHER].getState() == ISS_ON && m_WeatherAlertTimer == -1)
             {
-                if (WeatherThresholdN[0].value > 0)
-                    LOGF_INFO("Shutdown procedure shall commence in %.f seconds unless weather status improves.", WeatherThresholdN[0].value);
-                m_WeatherAlertTimer = SetTimer(WeatherThresholdN[0].value * 1000);
+                if (WeatherThresholdNP[0].value > 0)
+                    LOGF_INFO("Shutdown procedure shall commence in %.f seconds unless weather status improves.", WeatherThresholdNP[0].getValue());
+                m_WeatherAlertTimer = SetTimer(WeatherThresholdNP[0].value * 1000);
             }
         }
 
@@ -534,9 +534,9 @@ bool WatchDog::ISSnoopDevice(XMLEle * root)
                 // And weather shutdown trigger was active and mount parking was selected
                 // then we force the mount to park again.
                 if (parked == false &&
-                        ShutdownTriggerS[TRIGGER_WEATHER].s == ISS_ON &&
+                        ShutdownTriggerSP[TRIGGER_WEATHER].getState() == ISS_ON &&
                         m_WeatherState == IPS_ALERT &&
-                        ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
+                        ShutdownProcedureSP[PARK_MOUNT].getState() == ISS_ON)
                 {
                     LOG_WARN("Mount unparked while weather alert is active! Parking mount...");
                     watchdogClient->parkMount();
@@ -569,9 +569,9 @@ bool WatchDog::ISSnoopDevice(XMLEle * root)
                 // And weather shutdown trigger was active and mount parking was selected
                 // then we force the mount to park again.
                 if (parked == false &&
-                        ShutdownTriggerS[TRIGGER_WEATHER].s == ISS_ON &&
+                        ShutdownTriggerSP[TRIGGER_WEATHER].getState() == ISS_ON &&
                         m_WeatherState == IPS_ALERT &&
-                        ShutdownProcedureS[PARK_DOME].s == ISS_ON)
+                        ShutdownProcedureSP[PARK_DOME].getState() == ISS_ON)
                 {
                     LOG_WARN("Dome unparked while weather alert is active! Parking dome...");
                     watchdogClient->parkDome();
@@ -591,13 +591,13 @@ bool WatchDog::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &HeartBeatNP);
-    IUSaveConfigNumber(fp, &WeatherThresholdNP);
-    IUSaveConfigText(fp, &SettingsTP);
-    IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigSwitch(fp, &MountPolicySP);
-    IUSaveConfigSwitch(fp, &ShutdownTriggerSP);
-    IUSaveConfigSwitch(fp, &ShutdownProcedureSP);
+    HeartBeatNP.save(fp);
+    WeatherThresholdNP.save(fp);
+    SettingsTP.save(fp);
+    ActiveDeviceTP.save(fp);
+    MountPolicySP.save(fp);
+    ShutdownTriggerSP.save(fp);
+    ShutdownProcedureSP.save(fp);
 
     return true;
 }
@@ -610,8 +610,8 @@ void WatchDog::TimerHit()
     // Timer is up, we need to start shutdown procedure
 
     // If nothing to do, then return
-    if (ShutdownProcedureS[PARK_DOME].s == ISS_OFF && ShutdownProcedureS[PARK_MOUNT].s == ISS_OFF &&
-            ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_OFF)
+    if (ShutdownProcedureSP[PARK_DOME].getState() == ISS_OFF && ShutdownProcedureSP[PARK_MOUNT].s == ISS_OFF &&
+            ShutdownProcedureSP[EXECUTE_SCRIPT].getState() == ISS_OFF)
         return;
 
     switch (m_ShutdownStage)
@@ -619,8 +619,8 @@ void WatchDog::TimerHit()
         // Connect to server
         case WATCHDOG_IDLE:
 
-            ShutdownProcedureSP.s = IPS_BUSY;
-            IDSetSwitch(&ShutdownProcedureSP, nullptr);
+            ShutdownProcedureSP.setState(IPS_BUSY);
+            ShutdownProcedureSP.apply();
 
             if (m_WeatherState == IPS_ALERT)
                 LOG_WARN("Warning! Weather status in DANGER zone, executing shutdown procedure...");
@@ -628,22 +628,22 @@ void WatchDog::TimerHit()
                 LOG_WARN("Warning! Heartbeat threshold timed out, executing shutdown procedure...");
 
             // No need to start client if only we need to execute the script
-            if (ShutdownProcedureS[PARK_MOUNT].s == ISS_OFF && ShutdownProcedureS[PARK_DOME].s == ISS_OFF &&
-                    ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
+            if (ShutdownProcedureSP[PARK_MOUNT].getState() == ISS_OFF && ShutdownProcedureSP[PARK_DOME].s == ISS_OFF &&
+                    ShutdownProcedureSP[EXECUTE_SCRIPT].getState() == ISS_ON)
             {
                 executeScript();
                 break;
             }
 
             // Watch mount if requied
-            if (ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
-                watchdogClient->setMount(ActiveDeviceT[ACTIVE_TELESCOPE].text);
+            if (ShutdownProcedureSP[PARK_MOUNT].getState() == ISS_ON)
+                watchdogClient->setMount(ActiveDeviceTP[ACTIVE_TELESCOPE].getText());
             // Watch dome
-            if (ShutdownProcedureS[PARK_DOME].s == ISS_ON)
-                watchdogClient->setDome(ActiveDeviceT[ACTIVE_DOME].text);
+            if (ShutdownProcedureSP[PARK_DOME].getState() == ISS_ON)
+                watchdogClient->setDome(ActiveDeviceTP[ACTIVE_DOME].getText());
 
             // Set indiserver host and port
-            watchdogClient->setServer(SettingsT[INDISERVER_HOST].text, m_INDIServerPort);
+            watchdogClient->setServer(SettingsTP[INDISERVER_HOST].getText(), m_INDIServerPort);
 
             LOG_DEBUG("Connecting to INDI server...");
 
@@ -657,14 +657,14 @@ void WatchDog::TimerHit()
             // Check if client is ready
             if (watchdogClient->isConnected())
             {
-                LOGF_DEBUG("Connected to INDI server %s @ %s", SettingsT[0].text,
-                           SettingsT[1].text);
+                LOGF_DEBUG("Connected to INDI server %s @ %s", SettingsTP[0].getText(),
+                           SettingsTP[1].getText());
 
-                if (ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
+                if (ShutdownProcedureSP[PARK_MOUNT].getState() == ISS_ON)
                     parkMount();
-                else if (ShutdownProcedureS[PARK_DOME].s == ISS_ON)
+                else if (ShutdownProcedureSP[PARK_DOME].getState() == ISS_ON)
                     parkDome();
-                else if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
+                else if (ShutdownProcedureSP[EXECUTE_SCRIPT].getState() == ISS_ON)
                     executeScript();
             }
             else
@@ -680,9 +680,9 @@ void WatchDog::TimerHit()
             {
                 LOG_INFO("Mount parked.");
 
-                if (ShutdownProcedureS[PARK_DOME].s == ISS_ON)
+                if (ShutdownProcedureSP[PARK_DOME].getState() == ISS_ON)
                     parkDome();
-                else if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
+                else if (ShutdownProcedureSP[EXECUTE_SCRIPT].getState() == ISS_ON)
                     executeScript();
                 else
                     m_ShutdownStage = WATCHDOG_COMPLETE;
@@ -699,7 +699,7 @@ void WatchDog::TimerHit()
             {
                 LOG_INFO("Dome parked.");
 
-                if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
+                if (ShutdownProcedureSP[EXECUTE_SCRIPT].getState() == ISS_ON)
                     executeScript();
                 else
                     m_ShutdownStage = WATCHDOG_COMPLETE;
@@ -709,8 +709,8 @@ void WatchDog::TimerHit()
 
         case WATCHDOG_COMPLETE:
             LOG_INFO("Shutdown procedure complete.");
-            ShutdownProcedureSP.s = IPS_OK;
-            IDSetSwitch(&ShutdownProcedureSP, nullptr);
+            ShutdownProcedureSP.setState(IPS_OK);
+            ShutdownProcedureSP.apply();
             // If watch dog client still connected, keep it as such
             if (watchdogClient->isConnected())
                 m_ShutdownStage = WATCHDOG_CLIENT_STARTED;
@@ -720,8 +720,8 @@ void WatchDog::TimerHit()
             return;
 
         case WATCHDOG_ERROR:
-            ShutdownProcedureSP.s = IPS_ALERT;
-            IDSetSwitch(&ShutdownProcedureSP, nullptr);
+            ShutdownProcedureSP.setState(IPS_ALERT);
+            ShutdownProcedureSP.apply();
             return;
     }
 
@@ -754,7 +754,7 @@ void WatchDog::parkMount()
 
     // If mount is set to ignored, and we have active dome shutdown then we start
     // parking the dome immediately.
-    if (MountPolicyS[MOUNT_IGNORED].s == ISS_ON && ShutdownProcedureS[PARK_DOME].s == ISS_ON)
+    if (MountPolicySP[MOUNT_IGNORED].getState() == ISS_ON && ShutdownProcedureSP[PARK_DOME].s == ISS_ON)
         parkDome();
     else
         m_ShutdownStage = WATCHDOG_MOUNT_PARKED;
@@ -765,7 +765,7 @@ void WatchDog::executeScript()
     // child
     if (fork() == 0)
     {
-        int rc = execlp(SettingsT[EXECUTE_SCRIPT].text, SettingsT[EXECUTE_SCRIPT].text, nullptr);
+        int rc = execlp(SettingsTP[EXECUTE_SCRIPT].getText(), SettingsTP[EXECUTE_SCRIPT].getText(), nullptr);
 
         if (rc)
             exit(rc);
@@ -774,7 +774,7 @@ void WatchDog::executeScript()
     else
     {
         int statval;
-        LOGF_INFO("Executing script %s...", SettingsT[EXECUTE_SCRIPT].text);
+        LOGF_INFO("Executing script %s...", SettingsTP[EXECUTE_SCRIPT].getText());
         LOGF_INFO("Waiting for script with PID %d to complete...", getpid());
         wait(&statval);
         if (WIFEXITED(statval))
@@ -787,7 +787,7 @@ void WatchDog::executeScript()
             else
             {
                 LOGF_ERROR("Error: script %s failed. Shutdown procedure terminated.",
-                           SettingsT[EXECUTE_SCRIPT].text);
+                           SettingsTP[EXECUTE_SCRIPT].getText());
                 m_ShutdownStage = WATCHDOG_ERROR;
                 return;
             }
@@ -796,7 +796,7 @@ void WatchDog::executeScript()
         {
             LOGF_ERROR(
                 "Error: script %s did not terminate with exit. Shutdown procedure terminated.",
-                SettingsT[EXECUTE_SCRIPT].text);
+                SettingsTP[EXECUTE_SCRIPT].getText());
             m_ShutdownStage = WATCHDOG_ERROR;
             return;
         }

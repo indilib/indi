@@ -20,6 +20,9 @@
 
 #include "inditelescope.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+
 class ScopeScript : public INDI::Telescope
 {
   public:
@@ -49,7 +52,5 @@ class ScopeScript : public INDI::Telescope
 
   private:
     bool RunScript(int script, ...);
-
-    ITextVectorProperty ScriptsTP;
-    IText ScriptsT[15] {};
+    INDI::PropertyText ScriptsTP {15};
 };

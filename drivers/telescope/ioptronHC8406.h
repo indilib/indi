@@ -22,6 +22,9 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertyswitch.h"
+
 
 
 class ioptronHC8406 : public LX200Generic
@@ -96,20 +99,16 @@ class ioptronHC8406 : public LX200Generic
     void mountSim();
 
     // Sync type
-    ISwitch SyncCMRS[2];
-    ISwitchVectorProperty SyncCMRSP;
+    INDI::PropertySwitch SyncCMRSP {2};
     enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
     //Cursor move speed
-    ISwitch CursorMoveSpeedS[3];
-    ISwitchVectorProperty CursorMoveSpeedSP;
+    INDI::PropertySwitch CursorMoveSpeedSP {3};
     enum { USE_GUIDE_SPEED, USE_CENTERING_SPEED, USE_SLEW_SPEED };
     int setioptronHC8406CursorMoveSpeed(int type);
     /* Guide Rate */
-    ISwitch GuideRateS[3];
-    ISwitchVectorProperty GuideRateSP;
+    INDI::PropertySwitch GuideRateSP {3};
 
     /* Center Rate */
-    ISwitch CenterRateS[4];
-    ISwitchVectorProperty CenterRateSP;
+    INDI::PropertySwitch CenterRateSP {4};
 };

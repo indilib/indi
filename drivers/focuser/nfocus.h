@@ -23,6 +23,9 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 /**
  * @brief The NFocus class Handles communication and control with nFocus DC focuser
  *
@@ -75,11 +78,9 @@ class NFocus : public INDI::Focuser
         /////////////////////////////////////////////////////////////////////////////
         /// Properties
         /////////////////////////////////////////////////////////////////////////////
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
-        INumber SettingsN[3];
-        INumberVectorProperty SettingsNP;
+        INDI::PropertyNumber SettingsNP {3};
         enum
         {
             SETTING_ON_TIME,

@@ -21,6 +21,11 @@
 #include "inditelescope.h"
 #include "indiguiderinterface.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
@@ -144,24 +149,19 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
         //////////////////////////////////////////////////////////////////
 
         // Mount Status
-        IText StatusT[5] = {};
-        ITextVectorProperty StatusTP;
+        INDI::PropertyText StatusTP {5};
 
         // Custom Slew Rate
-        INumber CustomSlewRateN[2];
-        INumberVectorProperty CustomSlewRateNP;
+        INDI::PropertyNumber CustomSlewRateNP {2};
 
         // Guide Rate
-        INumber GuideRateN[2];
-        INumberVectorProperty GuideRateNP;
+        INDI::PropertyNumber GuideRateNP {2};
 
         // Horizontal Coords
-        INumber HorizontalCoordsN[2];
-        INumberVectorProperty HorizontalCoordsNP;
+        INDI::PropertyNumber HorizontalCoordsNP {2};
 
         // Goto mode
-        ISwitch GotoModeS[2];
-        ISwitchVectorProperty GotoModeSP;
+        INDI::PropertySwitch GotoModeSP {2};
 
         // Mount Info
         enum MountInfo

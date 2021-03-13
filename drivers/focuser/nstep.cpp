@@ -83,67 +83,67 @@ bool NStep::initProperties()
     INDI::Focuser::initProperties();
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -100, 100, 0, 0);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -100, 100, 0, 0);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Compensation Modes
-    IUFillSwitch(&CompensationModeS[COMPENSATION_MODE_OFF], "COMPENSATION_MODE_OFF", "Off", ISS_ON);
-    IUFillSwitch(&CompensationModeS[COMPENSATION_MODE_ONE_SHOT], "COMPENSATION_MODE_ONE_SHOT", "One shot", ISS_OFF);
-    IUFillSwitch(&CompensationModeS[COMPENSATION_MODE_AUTO], "COMPENSATION_MODE_AUTO", "Auto", ISS_OFF);
-    IUFillSwitchVector(&CompensationModeSP, CompensationModeS, 3, getDeviceName(), "COMPENSATION_MODE", "Mode",
+    CompensationModeSP[COMPENSATION_MODE_OFF].fill("COMPENSATION_MODE_OFF", "Off", ISS_ON);
+    CompensationModeSP[COMPENSATION_MODE_ONE_SHOT].fill("COMPENSATION_MODE_ONE_SHOT", "One shot", ISS_OFF);
+    CompensationModeSP[COMPENSATION_MODE_AUTO].fill("COMPENSATION_MODE_AUTO", "Auto", ISS_OFF);
+    CompensationModeSP.fill(getDeviceName(), "COMPENSATION_MODE", "Mode",
                        COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     // Prime for Manual
-    IUFillSwitch(&PrimeManualS[0], "MANUAL_MODE_PRIME", "Prime Manual Mode", ISS_OFF);
-    IUFillSwitchVector(&PrimeManualSP, PrimeManualS, 1, getDeviceName(), "COMPENSATION_PRIME", "Prime",
+    PrimeManualSP[0].fill("MANUAL_MODE_PRIME", "Prime Manual Mode", ISS_OFF);
+    PrimeManualSP.fill(getDeviceName(), "COMPENSATION_PRIME", "Prime",
                        COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     // Compensation Settings
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_CHANGE], "COMPENSATION_SETTING_CHANGE", "Delta T. (C)", "%.1f", -99, 99, 0.1, 0);
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_STEP], "COMPENSATION_SETTING_STEP", "Steps per Delta", "%.0f", 0, 999, 1, 0);
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_BACKLASH], "COMPENSATION_SETTING_BACKLASH", "Backlash steps", "%.0f", 0, 999, 1, 0);
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_TIMER], "COMPENSATION_SETTING_TIMER", "Averaged Time (s)", "%.0f", 0, 75, 1, 0);
-    IUFillNumberVector(&CompensationSettingsNP, CompensationSettingsN, 4, getDeviceName(), "COMPENSATION_SETTING", "Settings",
+    CompensationSettingsNP[COMPENSATION_SETTING_CHANGE].fill("COMPENSATION_SETTING_CHANGE", "Delta T. (C)", "%.1f", -99, 99, 0.1, 0);
+    CompensationSettingsNP[COMPENSATION_SETTING_STEP].fill("COMPENSATION_SETTING_STEP", "Steps per Delta", "%.0f", 0, 999, 1, 0);
+    CompensationSettingsNP[COMPENSATION_SETTING_BACKLASH].fill("COMPENSATION_SETTING_BACKLASH", "Backlash steps", "%.0f", 0, 999, 1, 0);
+    CompensationSettingsNP[COMPENSATION_SETTING_TIMER].fill("COMPENSATION_SETTING_TIMER", "Averaged Time (s)", "%.0f", 0, 75, 1, 0);
+    CompensationSettingsNP.fill(getDeviceName(), "COMPENSATION_SETTING", "Settings",
                        COMPENSATION_TAB, IP_RW, 0, IPS_OK);
 
     // Stepping Modes
-    IUFillSwitch(&SteppingModeS[STEPPING_WAVE], "STEPPING_WAVE", "Wave", ISS_OFF);
-    IUFillSwitch(&SteppingModeS[STEPPING_HALF], "STEPPING_HALF", "Half", ISS_OFF);
-    IUFillSwitch(&SteppingModeS[STEPPING_FULL], "STEPPING_FULL", "Full", ISS_ON);
-    IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 3, getDeviceName(), "STEPPING_MODE", "Mode",
+    SteppingModeSP[STEPPING_WAVE].fill("STEPPING_WAVE", "Wave", ISS_OFF);
+    SteppingModeSP[STEPPING_HALF].fill("STEPPING_HALF", "Half", ISS_OFF);
+    SteppingModeSP[STEPPING_FULL].fill("STEPPING_FULL", "Full", ISS_ON);
+    SteppingModeSP.fill(getDeviceName(), "STEPPING_MODE", "Mode",
                        STEPPING_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     // Stepping Phase
-    IUFillNumber(&SteppingPhaseN[0], "PHASES", "Wiring", "%.f", 0, 2, 1, 0);
-    IUFillNumberVector(&SteppingPhaseNP, SteppingPhaseN, 1, getDeviceName(), "STEPPING_PHASE", "Phase",
+    SteppingPhaseNP[0].fill("PHASES", "Wiring", "%.f", 0, 2, 1, 0);
+    SteppingPhaseNP.fill(getDeviceName(), "STEPPING_PHASE", "Phase",
                        STEPPING_TAB, IP_RW, 0, IPS_OK);
 
     // Max Speed
-    IUFillNumber(&MaxSpeedN[0], "RATE", "Rate", "%.f", 1, 254, 10, 0);
-    IUFillNumberVector(&MaxSpeedNP, MaxSpeedN, 1, getDeviceName(), "MAX_SPEED", "Max Speed",
+    MaxSpeedNP[0].fill("RATE", "Rate", "%.f", 1, 254, 10, 0);
+    MaxSpeedNP.fill(getDeviceName(), "MAX_SPEED", "Max Speed",
                        MAIN_CONTROL_TAB, IP_RW, 0, IPS_OK);
 
     // Coil Energized Status
-    IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_OFF], "COIL_ENERGIZED_OFF", "De-energized", ISS_OFF);
-    IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_ON], "COIL_ENERGIZED_OFF", "Energized", ISS_OFF);
-    IUFillSwitchVector(&CoilStatusSP, CoilStatusS, 2, getDeviceName(), "COIL_MODE", "Coil After Move",
+    CoilStatusSP[COIL_ENERGIZED_OFF].fill("COIL_ENERGIZED_OFF", "De-energized", ISS_OFF);
+    CoilStatusSP[COIL_ENERGIZED_ON].fill("COIL_ENERGIZED_OFF", "Energized", ISS_OFF);
+    CoilStatusSP.fill(getDeviceName(), "COIL_MODE", "Coil After Move",
                        OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     addDebugControl();
 
     // Set limits as per documentation
-    FocusAbsPosN[0].min  = 0;
-    FocusAbsPosN[0].max  = 999999;
-    FocusAbsPosN[0].step = 1000;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(999999);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusRelPosN[0].min  = 0;
-    FocusRelPosN[0].max  = 999;
-    FocusRelPosN[0].step = 100;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax(999);
+    FocusRelPosNP[0].setStep(100);
 
-    FocusSpeedN[0].min  = 1;
-    FocusSpeedN[0].max  = 254;
-    FocusSpeedN[0].step = 10;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(254);
+    FocusSpeedNP[0].setStep(10);
 
     return true;
 }
@@ -167,18 +167,18 @@ bool NStep::updateProperties()
     if (isConnected())
     {
         if (readTemperature())
-            defineProperty(&TemperatureNP);
+            defineProperty(TemperatureNP);
 
         bool rc = getStartupValues();
 
         // Settings
-        defineProperty(&MaxSpeedNP);
-        defineProperty(&CompensationModeSP);
-        defineProperty(&PrimeManualSP);
-        defineProperty(&CompensationSettingsNP);
-        defineProperty(&SteppingModeSP);
-        defineProperty(&SteppingPhaseNP);
-        defineProperty(&CoilStatusSP);
+        defineProperty(MaxSpeedNP);
+        defineProperty(CompensationModeSP);
+        defineProperty(PrimeManualSP);
+        defineProperty(CompensationSettingsNP);
+        defineProperty(SteppingModeSP);
+        defineProperty(SteppingPhaseNP);
+        defineProperty(CoilStatusSP);
 
         if (rc)
             LOG_INFO("NStep is ready.");
@@ -187,16 +187,16 @@ bool NStep::updateProperties()
     }
     else
     {
-        if (TemperatureNP.s == IPS_OK)
-            deleteProperty(TemperatureNP.name);
+        if (TemperatureNP.getState() == IPS_OK)
+            deleteProperty(TemperatureNP.getName());
 
-        deleteProperty(MaxSpeedNP.name);
-        deleteProperty(CompensationModeSP.name);
-        deleteProperty(PrimeManualSP.name);
-        deleteProperty(CompensationSettingsNP.name);
-        deleteProperty(SteppingModeSP.name);
-        deleteProperty(SteppingPhaseNP.name);
-        deleteProperty(CoilStatusSP.name);
+        deleteProperty(MaxSpeedNP.getName());
+        deleteProperty(CompensationModeSP.getName());
+        deleteProperty(PrimeManualSP.getName());
+        deleteProperty(CompensationSettingsNP.getName());
+        deleteProperty(SteppingModeSP.getName());
+        deleteProperty(SteppingPhaseNP.getName());
+        deleteProperty(CoilStatusSP.getName());
     }
 
     return true;
@@ -289,25 +289,25 @@ bool NStep::ISNewNumber(const char *dev, const char *name, double values[], char
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Compensation Settings
-        if (!strcmp(name, CompensationSettingsNP.name))
+        if (CompensationSettingsNP.isNameMatch(name))
         {
             // Extract values
             int change = 0, step = 0, backlash = 0, timer = 0;
             for (int i = 0; i < n; i++)
             {
-                if (!strcmp(names[i], CompensationSettingsN[COMPENSATION_SETTING_CHANGE].name))
+                if (!strcmp(names[i], CompensationSettingsNP[COMPENSATION_SETTING_CHANGE].getName()))
                 {
                     change = values[i];
                 }
-                else if (!strcmp(names[i], CompensationSettingsN[COMPENSATION_SETTING_STEP].name))
+                else if (!strcmp(names[i], CompensationSettingsNP[COMPENSATION_SETTING_STEP].getName()))
                 {
                     step = values[i];
                 }
-                else if (!strcmp(names[i], CompensationSettingsN[COMPENSATION_SETTING_BACKLASH].name))
+                else if (!strcmp(names[i], CompensationSettingsNP[COMPENSATION_SETTING_BACKLASH].getName()))
                 {
                     backlash = values[i];
                 }
-                else if (!strcmp(names[i], CompensationSettingsN[COMPENSATION_SETTING_TIMER].name))
+                else if (!strcmp(names[i], CompensationSettingsNP[COMPENSATION_SETTING_TIMER].getName()))
                 {
                     timer = values[i];
                 }
@@ -316,52 +316,52 @@ bool NStep::ISNewNumber(const char *dev, const char *name, double values[], char
             // Try to update settings
             if (setCompensationSettings(change, step, backlash, timer))
             {
-                IUUpdateNumber(&CompensationSettingsNP, values, names, n);
-                CompensationSettingsNP.s = IPS_OK;
+                CompensationSettingsNP.update(values, names, n);
+                CompensationSettingsNP.setState(IPS_OK);
             }
             else
             {
-                CompensationSettingsNP.s = IPS_ALERT;
+                CompensationSettingsNP.setState(IPS_ALERT);
             }
 
-            IDSetNumber(&CompensationSettingsNP, nullptr);
+            CompensationSettingsNP.apply();
             return true;
         }
 
 
         // Stepping Phase
-        if (!strcmp(name, SteppingPhaseNP.name))
+        if (SteppingPhaseNP.isNameMatch(name))
         {
             if (setSteppingPhase(static_cast<uint8_t>(values[0])))
             {
-                IUUpdateNumber(&SteppingPhaseNP, values, names, n);
-                SteppingPhaseNP.s = IPS_OK;
+                SteppingPhaseNP.update(values, names, n);
+                SteppingPhaseNP.setState(IPS_OK);
             }
             else
-                SteppingPhaseNP.s = IPS_ALERT;
+                SteppingPhaseNP.setState(IPS_ALERT);
 
-            IDSetNumber(&SteppingPhaseNP, nullptr);
+            SteppingPhaseNP.apply();
             return true;
         }
 
         // Max Speed
-        if (!strcmp(name, MaxSpeedNP.name))
+        if (MaxSpeedNP.isNameMatch(name))
         {
             if (setMaxSpeed(static_cast<uint8_t>(values[0])))
             {
-                IUUpdateNumber(&MaxSpeedNP, values, names, n);
-                MaxSpeedNP.s = IPS_OK;
+                MaxSpeedNP.update(values, names, n);
+                MaxSpeedNP.setState(IPS_OK);
 
                 // We must update the Min/Max of focus speed
-                FocusSpeedN[0].max = values[0];
-                IUUpdateMinMax(&FocusSpeedNP);
+                FocusSpeedNP[0].setMax(values[0]);
+                FocusSpeedNP.updateMinMax();
             }
             else
             {
-                MaxSpeedNP.s = IPS_ALERT;
+                MaxSpeedNP.setState(IPS_ALERT);
             }
 
-            IDSetNumber(&MaxSpeedNP, nullptr);
+            MaxSpeedNP.apply();
             return true;
         }
     }
@@ -374,14 +374,14 @@ bool NStep::ISNewSwitch(const char * dev, const char * name, ISState * states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Compensation Mode
-        if (!strcmp(name, CompensationModeSP.name))
+        if (CompensationModeSP.isNameMatch(name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&CompensationModeSP);
-            IUUpdateSwitch(&CompensationModeSP, states, names, n);
-            int mode = IUFindOnSwitchIndex(&CompensationModeSP);
+            int prevIndex = CompensationModeSP.findOnSwitchIndex();
+            CompensationModeSP.update(states, names, n);
+            int mode = CompensationModeSP.findOnSwitchIndex();
             if (setCompensationMode(mode))
             {
-                CompensationModeSP.s = IPS_OK;
+                CompensationModeSP.setState(IPS_OK);
                 // If it was set to one shot, we put it back to off?
                 switch (mode)
                 {
@@ -390,8 +390,8 @@ bool NStep::ISNewSwitch(const char * dev, const char * name, ISState * states, c
                         break;
 
                     case COMPENSATION_MODE_ONE_SHOT:
-                        IUResetSwitch(&CompensationModeSP);
-                        CompensationModeS[COMPENSATION_MODE_OFF].s = ISS_ON;
+                        CompensationModeSP.reset();
+                        CompensationModeSP[COMPENSATION_MODE_OFF].setState(ISS_ON);
                         LOG_INFO("One shot compensation applied.");
                         break;
 
@@ -402,44 +402,44 @@ bool NStep::ISNewSwitch(const char * dev, const char * name, ISState * states, c
             }
             else
             {
-                IUResetSwitch(&CompensationModeSP);
-                CompensationModeS[prevIndex].s = ISS_ON;
-                CompensationModeSP.s = IPS_ALERT;
+                CompensationModeSP.reset();
+                CompensationModeSP[prevIndex].setState(ISS_ON);
+                CompensationModeSP.setState(IPS_ALERT);
                 LOG_ERROR("Failed to change temperature compensation mode.");
             }
 
-            IDSetSwitch(&CompensationModeSP, nullptr);
+            CompensationModeSP.apply();
             return true;
         }
 
         // Manual Prime
-        if (!strcmp(name, PrimeManualSP.name))
+        if (PrimeManualSP.isNameMatch(name))
         {
             sendCommand(":TI");
-            PrimeManualSP.s = IPS_OK;
-            IDSetSwitch(&PrimeManualSP, nullptr);
+            PrimeManualSP.setState(IPS_OK);
+            PrimeManualSP.apply();
             LOG_INFO("Prime for manual complete. Click One Shot to apply manual compensation once.");
             return true;
         }
 
         // Stepping Mode
-        if (!strcmp(name, SteppingModeSP.name))
+        if (SteppingModeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SteppingModeSP, states, names, n);
-            SteppingModeSP.s = IPS_OK;
-            IDSetSwitch(&SteppingModeSP, nullptr);
+            SteppingModeSP.update(states, names, n);
+            SteppingModeSP.setState(IPS_OK);
+            SteppingModeSP.apply();
             return true;
         }
 
         // Coil Status after Move is done
-        if (!strcmp(name, CoilStatusSP.name))
+        if (CoilStatusSP.isNameMatch(name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&CoilStatusSP);
-            IUUpdateSwitch(&CoilStatusSP, states, names, n);
-            int state = IUFindOnSwitchIndex(&CoilStatusSP);
+            int prevIndex = CoilStatusSP.findOnSwitchIndex();
+            CoilStatusSP.update(states, names, n);
+            int state = CoilStatusSP.findOnSwitchIndex();
             if (setCoilStatus(state))
             {
-                CoilStatusSP.s = IPS_OK;
+                CoilStatusSP.setState(IPS_OK);
                 if (state == COIL_ENERGIZED_ON)
                     LOG_WARN("Coil shall be kept energized after motion is complete. Watch for motor heating!");
                 else
@@ -447,13 +447,13 @@ bool NStep::ISNewSwitch(const char * dev, const char * name, ISState * states, c
             }
             else
             {
-                IUResetSwitch(&CoilStatusSP);
-                CoilStatusS[prevIndex].s = ISS_ON;
-                CoilStatusSP.s = IPS_ALERT;
+                CoilStatusSP.reset();
+                CoilStatusSP[prevIndex].setState(ISS_ON);
+                CoilStatusSP.setState(IPS_ALERT);
                 LOG_ERROR("Failed to update coil energization status.");
             }
 
-            IDSetSwitch(&CoilStatusSP, nullptr);
+            CoilStatusSP.apply();
             return true;
         }
     }
@@ -472,14 +472,14 @@ bool NStep::getStartupValues()
 
 IPState NStep::MoveAbsFocuser(uint32_t targetTicks)
 {
-    m_TargetDiff = targetTicks - FocusAbsPosN[0].value;
+    m_TargetDiff = targetTicks - FocusAbsPosNP[0].getValue();
     return IPS_BUSY;
 }
 
 IPState NStep::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     m_TargetDiff = ticks * ((dir == FOCUS_INWARD) ? -1 : 1);
-    return MoveAbsFocuser(FocusAbsPosN[0].value + m_TargetDiff);
+    return MoveAbsFocuser(FocusAbsPosNP[0].value + m_TargetDiff);
 }
 
 bool NStep::AbortFocuser()
@@ -492,21 +492,21 @@ void NStep::TimerHit()
     if (isConnected() == false)
         return;
 
-    double currentPosition = FocusAbsPosN[0].value;
+    double currentPosition = FocusAbsPosNP[0].getValue();
 
     readPosition();
 
     // Check if we have a pending motion
     // and if we STOPPED, then let's take the next action
-    if ( (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY) && isMoving() == false)
+    if ( (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY) && isMoving() == false)
     {
         // Are we done moving?
         if (m_TargetDiff == 0)
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
         }
         else
         {
@@ -515,21 +515,21 @@ void NStep::TimerHit()
             // therefore for larger movements, we break it down.
             int nextMotion = (std::abs(m_TargetDiff) > 999) ? 999 : std::abs(m_TargetDiff);
             int direction = m_TargetDiff > 0 ? FOCUS_OUTWARD : FOCUS_INWARD;
-            int mode = IUFindOnSwitchIndex(&SteppingModeSP);
+            int mode = SteppingModeSP.findOnSwitchIndex();
             char cmd[NSTEP_LEN] = {0};
             snprintf(cmd, NSTEP_LEN, ":F%d%d%03d#", direction, mode, nextMotion);
             if (sendCommand(cmd) == false)
             {
                 LOG_ERROR("Failed to issue motion command.");
-                if (FocusRelPosNP.s == IPS_BUSY)
+                if (FocusRelPosNP.getState() == IPS_BUSY)
                 {
-                    FocusRelPosNP.s = IPS_ALERT;
-                    IDSetNumber(&FocusRelPosNP, nullptr);
+                    FocusRelPosNP.setState(IPS_ALERT);
+                    FocusRelPosNP.apply();
                 }
-                if (FocusAbsPosNP.s == IPS_BUSY)
+                if (FocusAbsPosNP.getState() == IPS_BUSY)
                 {
-                    FocusAbsPosNP.s = IPS_ALERT;
-                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                    FocusAbsPosNP.setState(IPS_ALERT);
+                    FocusAbsPosNP.apply();
                 }
             }
             else
@@ -540,17 +540,17 @@ void NStep::TimerHit()
         }
         // Check if can update the absolute position in case it changed.
     }
-    else if (currentPosition != FocusAbsPosN[0].value)
+    else if (currentPosition != FocusAbsPosNP[0].getValue())
     {
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
     }
 
     // Read temperature
-    if (TemperatureNP.s == IPS_OK && m_TemperatureCounter++ == NSTEP_TEMPERATURE_FREQ)
+    if (TemperatureNP.getState() == IPS_OK && m_TemperatureCounter++ == NSTEP_TEMPERATURE_FREQ)
     {
         m_TemperatureCounter = 0;
         if (readTemperature())
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -584,8 +584,8 @@ bool NStep::readTemperature()
     if (temperature < -80)
         return false;
 
-    TemperatureN[0].value = temperature;
-    TemperatureNP.s = IPS_OK;
+    TemperatureNP[0].setValue(temperature);
+    TemperatureNP.setState(IPS_OK);
 
     return true;
 }
@@ -603,7 +603,7 @@ bool NStep::readPosition()
     if (pos == 1e6)
         return false;
 
-    FocusAbsPosN[0].value = pos;
+    FocusAbsPosNP[0].setValue(pos);
 
     return true;
 }
@@ -623,9 +623,9 @@ bool NStep::readCompensationInfo()
     sscanf(res, "%d", &state);
     if (state == 1e6)
         return false;
-    IUResetSwitch(&CompensationModeSP);
-    CompensationModeS[state].s = ISS_ON;
-    CompensationModeSP.s = IPS_OK;
+    CompensationModeSP.reset();
+    CompensationModeSP[state].setState(ISS_ON);
+    CompensationModeSP.setState(IPS_OK);
 
     // Change
     memset(res, 0, NSTEP_LEN);
@@ -638,7 +638,7 @@ bool NStep::readCompensationInfo()
     sscanf(res, "%d", &change);
     if (change == 1e6)
         return false;
-    CompensationSettingsN[COMPENSATION_SETTING_CHANGE].value = change;
+    CompensationSettingsNP[COMPENSATION_SETTING_CHANGE].setValue(change);
 
     // Step
     memset(res, 0, NSTEP_LEN);
@@ -651,7 +651,7 @@ bool NStep::readCompensationInfo()
     sscanf(res, "%d", &step);
     if (step == 1e6)
         return false;
-    CompensationSettingsN[COMPENSATION_SETTING_STEP].value = step;
+    CompensationSettingsNP[COMPENSATION_SETTING_STEP].setValue(step);
 
     // Backlash
     memset(res, 0, NSTEP_LEN);
@@ -664,7 +664,7 @@ bool NStep::readCompensationInfo()
     sscanf(res, "%d", &backlash);
     if (backlash == 1e6)
         return false;
-    CompensationSettingsN[COMPENSATION_SETTING_BACKLASH].value = backlash;
+    CompensationSettingsNP[COMPENSATION_SETTING_BACKLASH].setValue(backlash);
 
     // Timer
     memset(res, 0, NSTEP_LEN);
@@ -677,8 +677,8 @@ bool NStep::readCompensationInfo()
     sscanf(res, "%d", &timer);
     if (timer == 1e6)
         return false;
-    CompensationSettingsN[COMPENSATION_SETTING_TIMER].value = timer;
-    CompensationSettingsNP.s = IPS_OK;
+    CompensationSettingsNP[COMPENSATION_SETTING_TIMER].setValue(timer);
+    CompensationSettingsNP.setState(IPS_OK);
 
     return true;
 
@@ -703,14 +703,14 @@ bool NStep::readSpeedInfo()
     if (current_step == 1e6)
         return false;
 
-    MaxSpeedN[0].value = 254 - max_step + 1;
-    MaxSpeedNP.s = IPS_OK;
+    MaxSpeedNP[0].setValue(254 - max_step + 1);
+    MaxSpeedNP.setState(IPS_OK);
 
     // nStep defines speed step rates from 1 to 254
     // when 1 being the fastest, so for speed we flip the values
-    FocusSpeedN[0].max   = 254 - max_step + 1;
-    FocusSpeedN[0].value = 254 - current_step + 1;
-    FocusSpeedNP.s = IPS_OK;
+    FocusSpeedNP[0].setMax(254 - max_step + 1);
+    FocusSpeedNP[0].setValue(254 - current_step + 1);
+    FocusSpeedNP.setState(IPS_OK);
 
     return true;
 }
@@ -728,8 +728,8 @@ bool NStep::readSteppingInfo()
     if (phase == 1e6)
         return false;
 
-    SteppingPhaseN[0].value = phase;
-    SteppingPhaseNP.s = IPS_OK;
+    SteppingPhaseNP[0].setValue(phase);
+    SteppingPhaseNP.setState(IPS_OK);
 
     return true;
 }
@@ -741,11 +741,11 @@ bool NStep::readCoilStatus()
     if (sendCommand(":RC", res, 3, 1) == false)
         return false;
 
-    IUResetSwitch(&CoilStatusSP);
+    CoilStatusSP.reset();
 
-    CoilStatusS[COIL_ENERGIZED_OFF].s = (res[0] == '0') ? ISS_ON : ISS_OFF;
-    CoilStatusS[COIL_ENERGIZED_ON].s  = (res[0] == '0') ? ISS_OFF : ISS_ON;
-    CoilStatusSP.s = IPS_OK;
+    CoilStatusSP[COIL_ENERGIZED_OFF].setState((res[0] == '0') ? ISS_ON : ISS_OFF);
+    CoilStatusSP[COIL_ENERGIZED_ON].setState((res[0] == '0') ? ISS_OFF : ISS_ON);
+    CoilStatusSP.setState(IPS_OK);
 
     return true;
 }
@@ -828,9 +828,9 @@ bool NStep::saveConfigItems(FILE *fp)
 {
     INDI::Focuser::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &CompensationSettingsNP);
-    IUSaveConfigSwitch(fp, &CompensationModeSP);
-    IUSaveConfigSwitch(fp, &SteppingModeSP);
+    CompensationSettingsNP.save(fp);
+    CompensationModeSP.save(fp);
+    SteppingModeSP.save(fp);
 
     return true;
 }

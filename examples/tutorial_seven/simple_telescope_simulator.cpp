@@ -29,33 +29,33 @@ ScopeSim::ScopeSim() :
 
 bool ScopeSim::Abort()
 {
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        IUResetSwitch(&MovementNSSP);
-        MovementNSSP.s = IPS_IDLE;
-        IDSetSwitch(&MovementNSSP, nullptr);
+        MovementNSSP.reset();
+        MovementNSSP.setState(IPS_IDLE);
+        MovementNSSP.apply();
     }
 
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        MovementWESP.s = IPS_IDLE;
-        IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementWESP, nullptr);
+        MovementWESP.setState(IPS_IDLE);
+        MovementWESP.reset();
+        MovementWESP.apply();
     }
 
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
-        EqNP.s = IPS_IDLE;
-        IDSetNumber(&EqNP, nullptr);
+        EqNP.setState(IPS_IDLE);
+        EqNP.apply();
     }
 
     TrackState = SCOPE_IDLE;
 
     AxisStatusRA = AxisStatusDEC = STOPPED; // This marvelous inertia free scope can be stopped instantly!
 
-    AbortSP.s = IPS_OK;
-    IUResetSwitch(&AbortSP);
-    IDSetSwitch(&AbortSP, nullptr);
+    AbortSP.setState(IPS_OK);
+    AbortSP.reset();
+    AbortSP.apply();
     LOG_INFO("Telescope aborted.");
 
     return true;
@@ -87,7 +87,7 @@ bool ScopeSim::Goto(double ra, double dec)
     DEBUGF(DBG_SIMULATOR, "Goto - Celestial reference frame target right ascension %lf(%lf) declination %lf",
            ra * 360.0 / 24.0, ra, dec);
 
-    if (ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s)
+    if (ISS_ON == CoordSP.findWidgetByName("TRACK")->s)
     {
         char RAStr[32], DecStr[32];
         fs_sexa(RAStr, ra, 2, 3600);
@@ -114,12 +114,12 @@ bool ScopeSim::Goto(double ra, double dec)
         bool HavePosition = false;
         ln_lnlat_posn Position { 0, 0 };
 
-        if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-                (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
+        if ((nullptr != LocationNP.findWidgetByName("LAT")) && (0 != LocationNP.findWidgetByName("LAT")->value) &&
+                (nullptr != LocationNP.findWidgetByName("LONG")) && (0 != LocationNP.findWidgetByName("LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
-            Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
-            Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
+            Position.lat = LocationNP.findWidgetByName("LAT")->value;
+            Position.lng = LocationNP.findWidgetByName("LONG")->value;
             HavePosition = true;
         }
         ln_equ_posn EquatorialCoordinates { 0, 0 };
@@ -211,7 +211,7 @@ bool ScopeSim::Goto(double ra, double dec)
 
     TrackState = SCOPE_SLEWING;
 
-    //EqNP.s = IPS_BUSY;
+    //EqNP.setState(IPS_BUSY);
 
     return true;
 }
@@ -222,10 +222,10 @@ bool ScopeSim::initProperties()
     INDI::Telescope::initProperties();
 
     // Let's simulate it to be an F/10 8" telescope
-    ScopeParametersN[0].value = 203;
-    ScopeParametersN[1].value = 2000;
-    ScopeParametersN[2].value = 203;
-    ScopeParametersN[3].value = 2000;
+    ScopeParametersNP[0].setValue(203);
+    ScopeParametersNP[1].setValue(2000);
+    ScopeParametersNP[2].setValue(203);
+    ScopeParametersNP[3].setValue(2000);
 
     TrackState = SCOPE_IDLE;
 
@@ -330,12 +330,12 @@ bool ScopeSim::ReadScopeStatus()
         bool HavePosition = false;
         ln_lnlat_posn Position { 0, 0 };
 
-        if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-                (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
+        if ((nullptr != LocationNP.findWidgetByName("LAT")) && (0 != LocationNP.findWidgetByName("LAT")->value) &&
+                (nullptr != LocationNP.findWidgetByName("LONG")) && (0 != LocationNP.findWidgetByName("LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
-            Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
-            Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
+            Position.lat = LocationNP.findWidgetByName("LAT")->value;
+            Position.lng = LocationNP.findWidgetByName("LONG")->value;
             HavePosition = true;
         }
         ln_equ_posn EquatorialCoordinates { 0, 0 };
@@ -648,7 +648,7 @@ void ScopeSim::TimerHit()
         case SCOPE_SLEWING:
             if ((STOPPED == AxisStatusRA) && (STOPPED == AxisStatusDEC))
             {
-                if (ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s)
+                if (ISS_ON == CoordSP.findWidgetByName("TRACK")->s)
                 {
                     // Goto has finished start tracking
                     DEBUG(DBG_SIMULATOR, "TimerHit - Goto finished start tracking");
@@ -682,12 +682,12 @@ void ScopeSim::TimerHit()
                 bool HavePosition = false;
                 ln_lnlat_posn Position { 0, 0 };
 
-                if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-                        (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
+                if ((nullptr != LocationNP.findWidgetByName("LAT")) && (0 != LocationNP.findWidgetByName("LAT")->value) &&
+                        (nullptr != LocationNP.findWidgetByName("LONG")) && (0 != LocationNP.findWidgetByName("LONG")->value))
                 {
                     // I assume that being on the equator and exactly on the prime meridian is unlikely
-                    Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
-                    Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
+                    Position.lat = LocationNP.findWidgetByName("LAT")->value;
+                    Position.lng = LocationNP.findWidgetByName("LONG")->value;
                     HavePosition = true;
                 }
                 ln_equ_posn EquatorialCoordinates { 0, 0 };

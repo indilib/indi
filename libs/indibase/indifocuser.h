@@ -21,6 +21,10 @@
 #include "defaultdevice.h"
 #include "indifocuserinterface.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 namespace Connection
 {
 class Serial;
@@ -101,10 +105,8 @@ class Focuser : public DefaultDevice, public FocuserInterface
      */
     virtual void SyncPresets(uint32_t ticks);
 
-    INumber PresetN[3];
-    INumberVectorProperty PresetNP;
-    ISwitch PresetGotoS[3];
-    ISwitchVectorProperty PresetGotoSP;
+    INDI::PropertyNumber PresetNP {3};
+    INDI::PropertySwitch PresetGotoSP {3};
 
     void processButton(const char *button_n, ISState state);
 

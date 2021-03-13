@@ -93,9 +93,9 @@ bool MountDriver::initProperties()
     INDI::Telescope::initProperties();
 
     // How fast do we guide compared to sidereal rate
-    IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%.1f", 0, 1, 0.1, 0.5);
-    IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%.1f", 0, 1, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+    GuideRateNP[AXIS_RA].fill("GUIDE_RATE_WE", "W/E Rate", "%.1f", 0, 1, 0.1, 0.5);
+    GuideRateNP[AXIS_DE].fill("GUIDE_RATE_NS", "N/S Rate", "%.1f", 0, 1, 0.1, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     // Since we have 4 slew rates, let's fill them out
@@ -144,7 +144,7 @@ bool MountDriver::updateProperties()
     {
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(&GuideRateNP);
+        defineProperty(GuideRateNP);
 
         // Read the parking file, and check if we can load any saved parking information.
         if (InitPark())
@@ -167,7 +167,7 @@ bool MountDriver::updateProperties()
     {
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP.name);
+        deleteProperty(GuideRateNP.getName());
     }
 
     return true;
@@ -291,9 +291,9 @@ bool MountDriver::ISNewNumber(const char *dev, const char *name, double values[]
         // Guide Rate
         if (strcmp(name, "GUIDE_RATE") == 0)
         {
-            IUUpdateNumber(&GuideRateNP, values, names, n);
-            GuideRateNP.s = IPS_OK;
-            IDSetNumber(&GuideRateNP, nullptr);
+            GuideRateNP.update(values, names, n);
+            GuideRateNP.setState(IPS_OK);
+            GuideRateNP.apply();
             return true;
         }
 
@@ -408,9 +408,9 @@ bool MountDriver::SetDefaultPark()
     // For RA_DE park, we can use something like this:
 
     // By default set RA to HA
-    SetAxis1Park(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value));
+    SetAxis1Park(get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].value));
     // Set DEC to 90 or -90 depending on the hemisphere
-    SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
+    SetAxis2Park((LocationNP[LOCATION_LATITUDE].value > 0) ? 90 : -90);
 
     // For Az/Alt, we can use something like this:
 

@@ -126,19 +126,19 @@ bool PMC8::initProperties()
     tcpConnection->setDefaultPort(PMC8_DEFAULT_PORT);
 
     // Mount Type
-    IUFillSwitch(&MountTypeS[MOUNT_G11], "MOUNT_G11", "G11", ISS_OFF);
-    IUFillSwitch(&MountTypeS[MOUNT_EXOS2], "MOUNT_EXOS2", "EXOS2", ISS_OFF);
-    IUFillSwitch(&MountTypeS[MOUNT_iEXOS100], "MOUNT_iEXOS100", "iEXOS100", ISS_OFF);
-    IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
+    MountTypeSP[MOUNT_G11].fill("MOUNT_G11", "G11", ISS_OFF);
+    MountTypeSP[MOUNT_EXOS2].fill("MOUNT_EXOS2", "EXOS2", ISS_OFF);
+    MountTypeSP[MOUNT_iEXOS100].fill("MOUNT_iEXOS100", "iEXOS100", ISS_OFF);
+    MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // No need to guess mount type from device name here, can wait until after we get firmware
     /*if (strstr(getDeviceName(), "EXOS2"))
-        MountTypeS[MOUNT_EXOS2].s = ISS_ON;
+        MountTypeSP[MOUNT_EXOS2].setState(ISS_ON);
     else if (strstr(getDeviceName(), "iEXOS100"))
-        MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
+        MountTypeSP[MOUNT_iEXOS100].setState(ISS_ON);
     else
-        MountTypeS[MOUNT_G11].s = ISS_ON;*/
+        MountTypeSP[MOUNT_G11].setState(ISS_ON);*/
 
 
     /* Tracking Mode */
@@ -148,10 +148,10 @@ bool PMC8::initProperties()
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
-    //    TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
-    //    TrackRateN[AXIS_RA].max = TRACKRATE_SIDEREAL + 0.01;
-    //    TrackRateN[AXIS_DE].min = -0.01;
-    //    TrackRateN[AXIS_DE].max = 0.01;
+    //    TrackRateNP[AXIS_RA].setMin(TRACKRATE_SIDEREAL - 0.01);
+    //    TrackRateNP[AXIS_RA].setMax(TRACKRATE_SIDEREAL + 0.01);
+    //    TrackRateNP[AXIS_DE].setMin(-0.01);
+    //    TrackRateNP[AXIS_DE].setMax(0.01);
 
     // relabel move speeds
     strcpy(SlewRateSP.sp[0].label, "4x");
@@ -160,8 +160,8 @@ bool PMC8::initProperties()
     strcpy(SlewRateSP.sp[3].label, "256x");
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+    GuideRateNP[0].fill("GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
@@ -175,8 +175,8 @@ bool PMC8::initProperties()
 
     set_pmc8_device(getDeviceName());
 
-    IUFillText(&FirmwareT[0], "Version", "Version", "");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    FirmwareTP[0].fill("Version", "Version", "");
+    FirmwareTP.fill(getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
@@ -191,13 +191,13 @@ bool PMC8::updateProperties()
     {
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(&GuideRateNP);
+        defineProperty(GuideRateNP);
 
-        defineProperty(&FirmwareTP);
+        defineProperty(FirmwareTP);
 
         // do not support park position
-        deleteProperty(ParkPositionNP.name);
-        deleteProperty(ParkOptionSP.name);
+        deleteProperty(ParkPositionNP.getName());
+        deleteProperty(ParkOptionSP.getName());
 
         getStartupData();
     }
@@ -205,9 +205,9 @@ bool PMC8::updateProperties()
     {
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP.name);
+        deleteProperty(GuideRateNP.getName());
 
-        deleteProperty(FirmwareTP.name);
+        deleteProperty(FirmwareTP.getName());
     }
 
     return true;
@@ -221,50 +221,50 @@ void PMC8::getStartupData()
         const char *c;
 
         // FIXME - Need to add code to get firmware data
-        FirmwareTP.s = IPS_OK;
+        FirmwareTP.setState(IPS_OK);
         c = firmwareInfo.MainBoardFirmware.c_str();
         LOGF_INFO("firmware = %s.", c);
 
         // not sure if there's really a point to the mount switch anymore if we know the mount from the firmware - perhaps remove as newer firmware becomes standard?
         // populate mount type switch in interface from firmware if possible
         if (firmwareInfo.MountType == MOUNT_EXOS2) {
-            MountTypeS[MOUNT_EXOS2].s = ISS_ON;
+            MountTypeSP[MOUNT_EXOS2].setState(ISS_ON);
             LOG_INFO("Detected mount type as Exos2.");
         }
         else if (firmwareInfo.MountType == MOUNT_G11) {
-            MountTypeS[MOUNT_G11].s = ISS_ON;
+            MountTypeSP[MOUNT_G11].setState(ISS_ON);
             LOG_INFO("Detected mount type as G11.");
         }
         else if (firmwareInfo.MountType == MOUNT_iEXOS100) {
-            MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
+            MountTypeSP[MOUNT_iEXOS100].setState(ISS_ON);
             LOG_INFO("Detected mount type as iExos100.");
         }
         else {
             LOG_INFO("Cannot detect mount type--perhaps this is older firmware?");
             if (strstr(getDeviceName(), "EXOS2")) {
-                MountTypeS[MOUNT_EXOS2].s = ISS_ON;
+                MountTypeSP[MOUNT_EXOS2].setState(ISS_ON);
                 LOG_INFO("Guessing mount is EXOS2 from device name.");
             }
             else if (strstr(getDeviceName(), "iEXOS100")) {
-                MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
+                MountTypeSP[MOUNT_iEXOS100].setState(ISS_ON);
                 LOG_INFO("Guessing mount is iEXOS100 from device name.");
             }
             else {
-                MountTypeS[MOUNT_G11].s = ISS_ON;
+                MountTypeSP[MOUNT_G11].setState(ISS_ON);
                 LOG_INFO("Guessing mount is G11.");
             }
         }
-        MountTypeSP.s = IPS_OK;
-        IDSetSwitch(&MountTypeSP,nullptr);
+        MountTypeSP.setState(IPS_OK);
+        MountTypeSP.apply();
 
-        IUSaveText(&FirmwareT[0], c);
-        IDSetText(&FirmwareTP, nullptr);
+        FirmwareTP[0].setText(c);
+        FirmwareTP.apply();
     }
 
     // PMC8 doesn't store location permanently so read from config and set
     // Convert to INDI standard longitude (0 to 360 Eastward)
-    double longitude = LocationN[LOCATION_LONGITUDE].value;
-    double latitude = LocationN[LOCATION_LATITUDE].value;
+    double longitude = LocationNP[LOCATION_LONGITUDE].getValue();
+    double latitude = LocationNP[LOCATION_LATITUDE].getValue();
 
     // must also keep "low level" aware of position to convert motor counts to RA/DEC
     set_pmc8_location(latitude, longitude);
@@ -313,16 +313,16 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
     {
         // FIXME - will add setting guide rate when firmware supports
         // Guiding Rate
-        if (!strcmp(name, GuideRateNP.name))
+        if (GuideRateNP.isNameMatch(name))
         {
-            IUUpdateNumber(&GuideRateNP, values, names, n);
+            GuideRateNP.update(values, names, n);
 
-            if (set_pmc8_guide_rate(PortFD, GuideRateN[0].value))
-                GuideRateNP.s = IPS_OK;
+            if (set_pmc8_guide_rate(PortFD, GuideRateNP[0].getValue()))
+                GuideRateNP.setState(IPS_OK);
             else
-                GuideRateNP.s = IPS_ALERT;
+                GuideRateNP.setState(IPS_ALERT);
 
-            IDSetNumber(&GuideRateNP, nullptr);
+            GuideRateNP.apply();
 
             return true;
         }
@@ -340,18 +340,18 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 void PMC8::ISGetProperties(const char *dev)
 {
     INDI::Telescope::ISGetProperties(dev);
-    defineProperty(&MountTypeSP);
+    defineProperty(MountTypeSP);
 }
 
 bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, MountTypeSP.name) == 0)
+        if (MountTypeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&MountTypeSP, states, names, n);
-            int currentMountIndex = IUFindOnSwitchIndex(&MountTypeSP);
-            LOGF_INFO("Selected mount is %s", MountTypeS[currentMountIndex].label);
+            MountTypeSP.update(states, names, n);
+            int currentMountIndex = MountTypeSP.findOnSwitchIndex();
+            LOGF_INFO("Selected mount is %s", MountTypeSP[currentMountIndex].label);
 
             // Set iEXOS100 baud rate to 115200
             // Not sure why we were only doing this for iEXOS100?  It's the same for everybody, right?
@@ -361,9 +361,9 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 
             //right now, this lets the user override the parameters for the detected mount.  Perhaps we should prevent the user from doing so?
             set_pmc8_mountParameters(currentMountIndex);
-            MountTypeSP.s = IPS_OK;
-            IDSetSwitch(&MountTypeSP, nullptr);
-            //		defineProperty(&MountTypeSP);
+            MountTypeSP.setState(IPS_OK);
+            MountTypeSP.apply();
+            //		defineProperty(MountTypeSP);
             return true;
         }
 
@@ -492,7 +492,7 @@ bool PMC8::Sync(double ra, double dec)
         LOG_ERROR("Failed to sync.");
     }
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     currentRA  = ra;
     currentDEC = dec;
@@ -747,9 +747,9 @@ IPState PMC8::GuideNorth(uint32_t ms)
     int timeremain_ms;
 
     // If already moving, then stop movement
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        int dir = IUFindOnSwitchIndex(&MovementNSSP);
+        int dir = MovementNSSP.findOnSwitchIndex();
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
 
@@ -777,9 +777,9 @@ IPState PMC8::GuideSouth(uint32_t ms)
     int timeremain_ms;
 
     // If already moving, then stop movement
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        int dir = IUFindOnSwitchIndex(&MovementNSSP);
+        int dir = MovementNSSP.findOnSwitchIndex();
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
 
@@ -807,9 +807,9 @@ IPState PMC8::GuideEast(uint32_t ms)
     int timeremain_ms;
 
     // If already moving (no pulse command), then stop movement
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        int dir = IUFindOnSwitchIndex(&MovementWESP);
+        int dir = MovementWESP.findOnSwitchIndex();
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
 
@@ -836,9 +836,9 @@ IPState PMC8::GuideWest(uint32_t ms)
     int timeremain_ms;
 
     // If already moving (no pulse command), then stop movement
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        int dir = IUFindOnSwitchIndex(&MovementWESP);
+        int dir = MovementWESP.findOnSwitchIndex();
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
 
@@ -917,7 +917,7 @@ bool PMC8::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &MountTypeSP);
+    MountTypeSP.save(fp);
     return true;
 }
 
@@ -942,15 +942,15 @@ void PMC8::mountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+            currentRA += (TrackRateNP[AXIS_RA].value / 3600.0 * dt) / 15.0;
             currentRA = range24(currentRA);
             break;
 
         case SCOPE_TRACKING:
             if (TrackModeS[1].s == ISS_ON)
             {
-                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * dt) / 15.0;
-                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * dt);
+                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateNP[AXIS_RA].value / 3600.0)) * dt) / 15.0;
+                currentDEC += ( (TrackRateNP[AXIS_DE].value / 3600.0) * dt);
             }
             break;
 
@@ -1033,7 +1033,7 @@ bool PMC8::SetDefaultPark()
     SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
 
     // Set DEC to 90 or -90 depending on the hemisphere
-    //    SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
+    //    SetAxis2Park((HemisphereSP[HEMI_NORTH].getState() == ISS_ON) ? 90 : -90);
     SetAxis2Park(90);
 
     return true;
@@ -1082,7 +1082,7 @@ bool PMC8::SetTrackMode(uint8_t mode)
 
     if (pmc8_mode == PMC8_TRACK_CUSTOM)
     {
-        if (set_pmc8_custom_ra_track_rate(PortFD, TrackRateN[AXIS_RA].value))
+        if (set_pmc8_custom_ra_track_rate(PortFD, TrackRateNP[AXIS_RA].getValue()))
             return true;
     }
     else

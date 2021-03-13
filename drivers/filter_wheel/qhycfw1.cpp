@@ -87,7 +87,7 @@ void QHYCFW1::ISGetProperties(const char *dev)
     {
         double maxCount = 5;
         IUGetConfigNumber(getDeviceName(), "MAX_FILTER", "Count", &maxCount);
-        FilterSlotN[0].max = maxCount;
+        FilterSlotNP[0].setMax(maxCount);
         if (FilterNameTP->ntp != maxCount)
         {
             char filterName[MAXINDINAME];
@@ -107,22 +107,22 @@ void QHYCFW1::ISGetProperties(const char *dev)
                 snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
                 IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
             }
-            IUFillTextVector(FilterNameTP, FilterNameT, maxCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+            IUFillTextVector(FilterNameTP, FilterNameT, maxCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
         }
     }
-    defineProperty(&MaxFilterNP);
+    defineProperty(MaxFilterNP);
 }
 
 bool QHYCFW1::initProperties()
 {
     INDI::FilterWheel::initProperties();
 
-    IUFillNumber(&MaxFilterN[0], "Count", "Count", "%.f", 1, 16, 1, 5);
-    IUFillNumberVector(&MaxFilterNP, MaxFilterN, 1, getDeviceName(), "MAX_FILTER", "Filters", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    MaxFilterNP[0].fill("Count", "Count", "%.f", 1, 16, 1, 5);
+    MaxFilterNP.fill(getDeviceName(), "MAX_FILTER", "Filters", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     CurrentFilter      = 1;
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 5;
+    FilterSlotNP[0].setMin(1);
+    FilterSlotNP[0].setMax(5);
 
     addAuxControls();
 
@@ -182,17 +182,17 @@ bool QHYCFW1::ISNewNumber(const char *dev, const char *name, double values[], ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, MaxFilterNP.name))
+        if (MaxFilterNP.isNameMatch(name))
         {
-            if (values[0] != MaxFilterN[0].value)
+            if (values[0] != MaxFilterNP[0].getValue())
             {
-                IUUpdateNumber(&MaxFilterNP, values, names, n);
+                MaxFilterNP.update(values, names, n);
                 saveConfig();
                 LOG_INFO("Max number of filters updated. You must reconnect for this change to take effect.");
             }
 
-            MaxFilterNP.s = IPS_OK;
-            IDSetNumber(&MaxFilterNP, nullptr);
+            MaxFilterNP.setState(IPS_OK);
+            MaxFilterNP.apply();
             return true;
         }
 
@@ -205,7 +205,7 @@ bool QHYCFW1::saveConfigItems(FILE *fp)
 {
     FilterWheel::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &MaxFilterNP);
+    MaxFilterNP.save(fp);
 
     return true;
 }

@@ -20,6 +20,9 @@
 
 #include "indidome.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+
 class DomeScript : public INDI::Dome
 {
   public:
@@ -48,9 +51,7 @@ class DomeScript : public INDI::Dome
   private:
     bool ReadDomeStatus();
     bool RunScript(int script, ...);
-
-    ITextVectorProperty ScriptsTP;
-    IText ScriptsT[15] {};
+    INDI::PropertyText ScriptsTP {15};
     double TargetAz { 0 };
     int TimeSinceUpdate { 0 };
 };

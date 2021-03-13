@@ -104,36 +104,36 @@ bool XAGYLWheel::initProperties()
     INDI::FilterWheel::initProperties();
 
     // Firmware info
-    IUFillText(&FirmwareInfoT[FIRMWARE_PRODUCT], "FIRMWARE_PRODUCT", "Product",
+    FirmwareInfoTP[FIRMWARE_PRODUCT].fill("FIRMWARE_PRODUCT", "Product",
                nullptr);
-    IUFillText(&FirmwareInfoT[FIRMWARE_VERSION], "FIRMWARE_VERSION", "Version",
+    FirmwareInfoTP[FIRMWARE_VERSION].fill("FIRMWARE_VERSION", "Version",
                nullptr);
-    IUFillText(&FirmwareInfoT[FIRMWARE_SERIAL], "FIRMWARE_SERIAL", "Serial #",
+    FirmwareInfoTP[FIRMWARE_SERIAL].fill("FIRMWARE_SERIAL", "Serial #",
                nullptr);
-    IUFillTextVector(&FirmwareInfoTP, FirmwareInfoT, 3, getDeviceName(),
+    FirmwareInfoTP.fill(getDeviceName(),
                      "Info", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Settings
-    IUFillNumber(&SettingsN[SETTING_SPEED], "SETTING_SPEED", "Speed", "%.f",
+    SettingsNP[SETTING_SPEED].fill("SETTING_SPEED", "Speed", "%.f",
                  0, 100, 10., 0.);
-    IUFillNumber(&SettingsN[SETTING_JITTER], "SETTING_JITTER", "Jitter", "%.f",
+    SettingsNP[SETTING_JITTER].fill("SETTING_JITTER", "Jitter", "%.f",
                  1, 10, 1., 0.);
-    IUFillNumber(&SettingsN[SETTING_THRESHOLD], "SETTING_THRESHOLD",
+    SettingsNP[SETTING_THRESHOLD].fill("SETTING_THRESHOLD",
                  "Threshold", "%.f", 10, 30, 1., 0.);
-    IUFillNumber(&SettingsN[SETTING_PW], "SETTING_PW", "Pulse", "%.f",
+    SettingsNP[SETTING_PW].fill("SETTING_PW", "Pulse", "%.f",
                  100, 10000, 100., 0.);
-    IUFillNumberVector(&SettingsNP, SettingsN, 4, getDeviceName(), "Settings",
+    SettingsNP.fill(getDeviceName(), "Settings",
                        "Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Reset
-    IUFillSwitch(&ResetS[COMMAND_REBOOT], "COMMAND_REBOOT", "Reboot", ISS_OFF);
-    IUFillSwitch(&ResetS[COMMAND_INIT], "COMMAND_INIT", "Initialize", ISS_OFF);
-    IUFillSwitch(&ResetS[COMMAND_CLEAR_CALIBRATION],
+    ResetSP[COMMAND_REBOOT].fill("COMMAND_REBOOT", "Reboot", ISS_OFF);
+    ResetSP[COMMAND_INIT].fill("COMMAND_INIT", "Initialize", ISS_OFF);
+    IUFillSwitch(&ResetSP[COMMAND_CLEAR_CALIBRATION],
                  "COMMAND_CLEAR_CALIBRATION Calibration", "Clear Calibration",
                  ISS_OFF);
-    IUFillSwitch(&ResetS[COMMAND_PERFORM_CALIBRAITON],
+    IUFillSwitch(&ResetSP[COMMAND_PERFORM_CALIBRAITON],
                  "COMMAND_PERFORM_CALIBRAITON", "Perform Calibration", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 4, getDeviceName(),
+    ResetSP.fill(getDeviceName(),
                        "Commands", "Commands", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
@@ -153,17 +153,17 @@ bool XAGYLWheel::updateProperties()
     {
         getStartupData();
 
-        defineProperty(&ResetSP);
+        defineProperty(ResetSP);
         defineProperty(&OffsetNP);
-        defineProperty(&FirmwareInfoTP);
-        defineProperty(&SettingsNP);
+        defineProperty(FirmwareInfoTP);
+        defineProperty(SettingsNP);
     }
     else
     {
-        deleteProperty(ResetSP.name);
+        deleteProperty(ResetSP.getName());
         deleteProperty(OffsetNP.name);
-        deleteProperty(FirmwareInfoTP.name);
-        deleteProperty(SettingsNP.name);
+        deleteProperty(FirmwareInfoTP.getName());
+        deleteProperty(SettingsNP.getName());
     }
 
     return true;
@@ -197,9 +197,9 @@ bool XAGYLWheel::Handshake()
     m_FirmwareVersion = firmware_version;
 
     // We don't have pulse width for version < 3
-    SettingsNP.nnp = 4;
+    SettingsNP.resize(4);
     if (m_FirmwareVersion < 3)
-        SettingsNP.nnp = 3;
+        SettingsNP.resize(3);
 
     bool rc = getMaxFilterSlots();
     if (!rc)
@@ -230,11 +230,11 @@ bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states,
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(ResetSP.name, name) == 0)
+        if (ResetSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ResetSP, states, names, n);
-            int command = IUFindOnSwitchIndex(&ResetSP);
-            IUResetSwitch(&ResetSP);
+            ResetSP.update(states, names, n);
+            int command = ResetSP.findOnSwitchIndex();
+            ResetSP.reset();
 
             switch (command)
             {
@@ -261,8 +261,8 @@ bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states,
             else
                 LOG_ERROR("Error. Please reset device.");
 
-            ResetSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&ResetSP, nullptr);
+            ResetSP.setState(rc ? IPS_OK : IPS_ALERT);
+            ResetSP.apply();
 
             return true;
         }
@@ -310,20 +310,20 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
     }
 
     // Handle Speed, Jitter, Threshold, Pulse width
-    if (strcmp(SettingsNP.name, name) == 0)
+    if (SettingsNP.isNameMatch(name))
     {
         int newSpeed = -1, newJitter = -1, newThreshold = -1,
             newPulseWidth = -1;
 
         for (int i = 0; i < n; i++)
         {
-            if (!strcmp(names[i], SettingsN[SET_SPEED].name))
+            if (!strcmp(names[i], SettingsNP[SET_SPEED].getName()))
                 newSpeed = values[i];
-            if (!strcmp(names[i], SettingsN[SET_JITTER].name))
+            if (!strcmp(names[i], SettingsNP[SET_JITTER].getName()))
                 newJitter = values[i];
-            if (!strcmp(names[i], SettingsN[SET_THRESHOLD].name))
+            if (!strcmp(names[i], SettingsNP[SET_THRESHOLD].getName()))
                 newThreshold = values[i];
-            if (!strcmp(names[i], SettingsN[SET_PULSE_WITDH].name))
+            if (!strcmp(names[i], SettingsNP[SET_PULSE_WITDH].getName()))
                 newPulseWidth = values[i];
         }
 
@@ -340,7 +340,7 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
         // Jitter
         if (newJitter >= 0)
         {
-            int curJitter = SettingsN[SET_JITTER].value;
+            int curJitter = SettingsNP[SET_JITTER].getValue();
             rc_jitter &= setRelativeCommand(SET_JITTER, newJitter - curJitter);
             getJitter();
         }
@@ -348,7 +348,7 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
         // Threshold
         if (newThreshold >= 0)
         {
-            int curThreshold = SettingsN[SET_THRESHOLD].value;
+            int curThreshold = SettingsNP[SET_THRESHOLD].getValue();
             rc_threshold &= setRelativeCommand(SET_THRESHOLD,
                                                newThreshold - curThreshold);
             getThreshold();
@@ -357,17 +357,17 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
         // Pulse width
         if (m_FirmwareVersion >= 3 && newPulseWidth >= 0)
         {
-            int curPulseWidth = SettingsN[SET_PULSE_WITDH].value;
+            int curPulseWidth = SettingsNP[SET_PULSE_WITDH].getValue();
             rc_pulsewidth &= setRelativeCommand(SET_PULSE_WITDH, (newPulseWidth - curPulseWidth) / 100.0);
             getPulseWidth();
         }
 
         if (rc_speed && rc_jitter && rc_threshold && rc_pulsewidth)
-            SettingsNP.s = IPS_OK;
+            SettingsNP.setState(IPS_OK);
         else
-            SettingsNP.s = IPS_ALERT;
+            SettingsNP.setState(IPS_ALERT);
 
-        IDSetNumber(&SettingsNP, nullptr);
+        SettingsNP.apply();
 
         return true;
     }
@@ -381,16 +381,16 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
 void XAGYLWheel::initOffset()
 {
     delete [] OffsetN;
-    OffsetN = new INumber[static_cast<uint8_t>(FilterSlotN[0].max)];
+    OffsetN = new INumber[static_cast<uint8_t>(FilterSlotNP[0].max)];
     char offsetName[MAXINDINAME], offsetLabel[MAXINDILABEL];
-    for (int i = 0; i < FilterSlotN[0].max; i++)
+    for (int i = 0; i < FilterSlotNP[0].getMax(); i++)
     {
         snprintf(offsetName, MAXINDINAME, "OFFSET_%d", i + 1);
         snprintf(offsetLabel, MAXINDINAME, "#%d Offset", i + 1);
         IUFillNumber(OffsetN + i, offsetName, offsetLabel, "%.f", -9, 9, 1, 0);
     }
 
-    IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotN[0].max, getDeviceName(),
+    IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotNP[0].max, getDeviceName(),
                        "Offsets", "", FILTER_TAB, IP_RW, 0, IPS_IDLE);
 }
 
@@ -504,19 +504,19 @@ bool XAGYLWheel::getFirmwareInfo()
     snprintf(cmd, DRIVER_LEN, "I%d", INFO_PRODUCT_NAME);
     if (!sendCommand(cmd, res))
         return false;
-    IUSaveText(&FirmwareInfoT[FIRMWARE_PRODUCT], res);
+    FirmwareInfoTP[FIRMWARE_PRODUCT].setText(res);
 
     // Version
     snprintf(cmd, DRIVER_LEN, "I%d", INFO_FIRMWARE_VERSION);
     if (!sendCommand(cmd, res))
         return false;
-    IUSaveText(&FirmwareInfoT[FIRMWARE_VERSION], res);
+    FirmwareInfoTP[FIRMWARE_VERSION].setText(res);
 
     // Serial Number
     snprintf(cmd, DRIVER_LEN, "I%d", INFO_SERIAL_NUMBER);
     if (!sendCommand(cmd, res))
         return false;
-    IUSaveText(&FirmwareInfoT[FIRMWARE_SERIAL], res);
+    FirmwareInfoTP[FIRMWARE_SERIAL].setText(res);
 
     return true;
 }
@@ -551,7 +551,7 @@ bool XAGYLWheel::getFilterPosition()
 
     if (rc > 0)
     {
-        FilterSlotN[0].value = CurrentFilter;
+        FilterSlotNP[0].setValue(CurrentFilter);
         return true;
     }
     else
@@ -572,7 +572,7 @@ bool XAGYLWheel::getMaximumSpeed()
     int rc       = sscanf(res, "MaxSpeed %d%%", &maxSpeed);
     if (rc > 0)
     {
-        SettingsN[SET_SPEED].value = maxSpeed;
+        SettingsNP[SET_SPEED].setValue(maxSpeed);
         return true;
     }
     return false;
@@ -593,7 +593,7 @@ bool XAGYLWheel::getJitter()
 
     if (rc > 0)
     {
-        SettingsN[SET_JITTER].value = jitter;
+        SettingsNP[SET_JITTER].setValue(jitter);
         return true;
     }
     return false;
@@ -614,7 +614,7 @@ bool XAGYLWheel::getThreshold()
 
     if (rc > 0)
     {
-        SettingsN[SET_THRESHOLD].value = threshold;
+        SettingsNP[SET_THRESHOLD].setValue(threshold);
         return true;
     }
     return false;
@@ -635,7 +635,7 @@ bool XAGYLWheel::getPulseWidth()
 
     if (rc > 0)
     {
-        SettingsN[SET_PULSE_WITDH].value = pulseWidth;
+        SettingsNP[SET_PULSE_WITDH].setValue(pulseWidth);
         return true;
     }
     return false;
@@ -656,7 +656,7 @@ bool XAGYLWheel::getMaxFilterSlots()
 
     if (rc > 0)
     {
-        FilterSlotN[0].max = maxFilterSlots;
+        FilterSlotNP[0].setMax(maxFilterSlots);
         return true;
     }
     return false;
@@ -778,7 +778,7 @@ bool XAGYLWheel::saveConfigItems(FILE *fp)
 {
     INDI::FilterWheel::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &SettingsNP);
+    SettingsNP.save(fp);
     if (OffsetN != nullptr)
         IUSaveConfigNumber(fp, &OffsetNP);
 

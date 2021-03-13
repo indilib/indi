@@ -22,6 +22,10 @@
 
 #include "lx200gps.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class LX200_16 : public LX200GPS
 {
   public:
@@ -39,17 +43,10 @@ class LX200_16 : public LX200GPS
     bool handleAltAzSlew();
 
   protected:
-    ISwitchVectorProperty FieldDeRotatorSP;
-    ISwitch FieldDeRotatorS[2];
-
-    ISwitchVectorProperty HomeSearchSP;
-    ISwitch HomeSearchS[2];
-
-    ISwitchVectorProperty FanStatusSP;
-    ISwitch FanStatusS[2];
-
-    INumberVectorProperty HorizontalCoordsNP;
-    INumber HorizontalCoordsN[2];
+    INDI::PropertySwitch FieldDeRotatorSP {2};
+    INDI::PropertySwitch HomeSearchSP {2};
+    INDI::PropertySwitch FanStatusSP {2};
+    INDI::PropertyNumber HorizontalCoordsNP {2};
 
   private:
     double targetAZ, targetALT;

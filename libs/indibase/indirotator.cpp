@@ -41,16 +41,16 @@ bool Rotator::initProperties()
     RotatorInterface::initProperties(MAIN_CONTROL_TAB);
 
     // Presets
-    IUFillNumber(&PresetN[0], "PRESET_1", "Preset 1", "%.f", 0, 360, 10, 0);
-    IUFillNumber(&PresetN[1], "PRESET_2", "Preset 2", "%.f", 0, 360, 10, 0);
-    IUFillNumber(&PresetN[2], "PRESET_3", "Preset 3", "%.f", 0, 360, 10, 0);
-    IUFillNumberVector(&PresetNP, PresetN, 3, getDeviceName(), "Presets", "", "Presets", IP_RW, 0, IPS_IDLE);
+    PresetNP[0].fill("PRESET_1", "Preset 1", "%.f", 0, 360, 10, 0);
+    PresetNP[1].fill("PRESET_2", "Preset 2", "%.f", 0, 360, 10, 0);
+    PresetNP[2].fill("PRESET_3", "Preset 3", "%.f", 0, 360, 10, 0);
+    PresetNP.fill(getDeviceName(), "Presets", "", "Presets", IP_RW, 0, IPS_IDLE);
 
     //Preset GOTO
-    IUFillSwitch(&PresetGotoS[0], "Preset 1", "", ISS_OFF);
-    IUFillSwitch(&PresetGotoS[1], "Preset 2", "", ISS_OFF);
-    IUFillSwitch(&PresetGotoS[2], "Preset 3", "", ISS_OFF);
-    IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0,
+    PresetGotoSP[0].fill("Preset 1", "", ISS_OFF);
+    PresetGotoSP[1].fill("Preset 2", "", ISS_OFF);
+    PresetGotoSP[2].fill("Preset 3", "", ISS_OFF);
+    PresetGotoSP.fill(getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     addDebugControl();
@@ -101,13 +101,13 @@ bool Rotator::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&PresetNP);
-        defineProperty(&PresetGotoSP);
+        defineProperty(PresetNP);
+        defineProperty(PresetGotoSP);
     }
     else
     {
-        deleteProperty(PresetNP.name);
-        deleteProperty(PresetGotoSP.name);
+        deleteProperty(PresetNP.getName());
+        deleteProperty(PresetGotoSP.getName());
     }
 
     return true;
@@ -117,11 +117,11 @@ bool Rotator::ISNewNumber(const char *dev, const char *name, double values[], ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, PresetNP.name))
+        if (PresetNP.isNameMatch(name))
         {
-            IUUpdateNumber(&PresetNP, values, names, n);
-            PresetNP.s = IPS_OK;
-            IDSetNumber(&PresetNP, nullptr);
+            PresetNP.update(values, names, n);
+            PresetNP.setState(IPS_OK);
+            PresetNP.apply();
 
             return true;
         }
@@ -140,21 +140,21 @@ bool Rotator::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(PresetGotoSP.name, name))
+        if (PresetGotoSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PresetGotoSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&PresetGotoSP);
+            PresetGotoSP.update(states, names, n);
+            int index = PresetGotoSP.findOnSwitchIndex();
 
-            if (MoveRotator(PresetN[index].value) != IPS_ALERT)
+            if (MoveRotator(PresetNP[index].value) != IPS_ALERT)
             {
-                PresetGotoSP.s = IPS_OK;
-                DEBUGF(Logger::DBG_SESSION, "Moving to Preset %d with angle %g degrees.", index + 1, PresetN[index].value);
-                IDSetSwitch(&PresetGotoSP, nullptr);
+                PresetGotoSP.setState(IPS_OK);
+                DEBUGF(Logger::DBG_SESSION, "Moving to Preset %d with angle %g degrees.", index + 1, PresetNP[index].getValue());
+                PresetGotoSP.apply();
                 return true;
             }
 
-            PresetGotoSP.s = IPS_ALERT;
-            IDSetSwitch(&PresetGotoSP, nullptr);
+            PresetGotoSP.setState(IPS_ALERT);
+            PresetGotoSP.apply();
             return false;
         }
 
@@ -178,8 +178,8 @@ bool Rotator::saveConfigItems(FILE *fp)
     DefaultDevice::saveConfigItems(fp);
     RI::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &PresetNP);
-    IUSaveConfigSwitch(fp, &ReverseRotatorSP);
+    PresetNP.save(fp);
+    ReverseRotatorSP.save(fp);
 
     return true;
 }

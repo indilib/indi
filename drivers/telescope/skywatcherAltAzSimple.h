@@ -18,6 +18,11 @@
 #include "indiguiderinterface.h"
 #include "skywatcherAPI.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
 typedef enum { PARK_NORTH = 0, PARK_EAST, PARK_SOUTH, PARK_WEST } ParkPosition_t;
 
@@ -87,8 +92,7 @@ private:
         MOUNT_NAME,
         IS_DC_MOTOR
     };
-    IText BasicMountInfoT[4] {};
-    ITextVectorProperty BasicMountInfoTP;
+    INDI::PropertyText BasicMountInfoTP {4};
 
     enum
     {
@@ -97,10 +101,8 @@ private:
         HIGH_SPEED_RATIO,
         MICROSTEPS_PER_WORM_REVOLUTION
     };
-    INumber AxisOneInfoN[4];
-    INumberVectorProperty AxisOneInfoNP;
-    INumber AxisTwoInfoN[4];
-    INumberVectorProperty AxisTwoInfoNP;
+    INDI::PropertyNumber AxisOneInfoNP {4};
+    INDI::PropertyNumber AxisTwoInfoNP {4};
     enum
     {
         FULL_STOP,
@@ -110,10 +112,8 @@ private:
         HIGH_SPEED,
         NOT_INITIALISED
     };
-    ISwitch AxisOneStateS[6];
-    ISwitchVectorProperty AxisOneStateSP;
-    ISwitch AxisTwoStateS[6];
-    ISwitchVectorProperty AxisTwoStateSP;
+    INDI::PropertySwitch AxisOneStateSP {6};
+    INDI::PropertySwitch AxisTwoStateSP {6};
     enum
     {
         RAW_MICROSTEPS,
@@ -121,10 +121,8 @@ private:
         OFFSET_FROM_INITIAL,
         DEGREES_FROM_INITIAL
     };
-    INumber AxisOneEncoderValuesN[4];
-    INumberVectorProperty AxisOneEncoderValuesNP;
-    INumber AxisTwoEncoderValuesN[4];
-    INumberVectorProperty AxisTwoEncoderValuesNP;
+    INDI::PropertyNumber AxisOneEncoderValuesNP {4};
+    INDI::PropertyNumber AxisTwoEncoderValuesNP {4};
 
     // A switch for silent/highspeed slewing modes
     enum
@@ -132,8 +130,7 @@ private:
         SLEW_SILENT,
         SLEW_NORMAL
     };
-    ISwitch SlewModesS[2];
-    ISwitchVectorProperty SlewModesSP;
+    INDI::PropertySwitch SlewModesSP {2};
 
     // A switch for wedge mode
     enum
@@ -142,8 +139,7 @@ private:
         WEDGE_EQ,
         WEDGE_DISABLED
     };
-    ISwitch WedgeModeS[3];
-    ISwitchVectorProperty WedgeModeSP;
+    INDI::PropertySwitch WedgeModeSP {3};
 
     // A switch for tracking logging
     enum
@@ -151,28 +147,22 @@ private:
         TRACKLOG_ENABLED,
         TRACKLOG_DISABLED
     };
-    ISwitch TrackLogModeS[2];
-    ISwitchVectorProperty TrackLogModeSP;
+    INDI::PropertySwitch TrackLogModeSP {2};
 
     // Guiding rates (RA/Dec)
-    INumber GuidingRatesN[2];
-    INumberVectorProperty GuidingRatesNP;
+    INDI::PropertyNumber GuidingRatesNP {2};
 
     // Tracking values
-    INumber TrackingValuesN[3];
-    INumberVectorProperty TrackingValuesNP;
+    INDI::PropertyNumber TrackingValuesNP {3};
 
     // A switch for park movement directions (clockwise/counterclockwise)
-    ISwitch ParkMovementDirectionS[2];
-    ISwitchVectorProperty ParkMovementDirectionSP;
+    INDI::PropertySwitch ParkMovementDirectionSP {2};
 
     // A switch for park positions
-    ISwitch ParkPositionS[4];
-    ISwitchVectorProperty ParkPositionSP;
+    INDI::PropertySwitch ParkPositionSP {4};
 
     // A switch for unpark positions
-    ISwitch UnparkPositionS[4];
-    ISwitchVectorProperty UnparkPositionSP;
+    INDI::PropertySwitch UnparkPositionSP {4};
 
     // Tracking
     ln_equ_posn CurrentTrackingTarget { 0, 0 };

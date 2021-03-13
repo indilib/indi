@@ -102,8 +102,8 @@ bool SkySafari::Connect()
     bool rc = startServer();
     if (rc)
     {
-        skySafariClient->setMount(ActiveDeviceT[ACTIVE_TELESCOPE].text);
-        skySafariClient->setServer(SettingsT[INDISERVER_HOST].text, std::stoi(SettingsT[INDISERVER_PORT].text));
+        skySafariClient->setMount(ActiveDeviceTP[ACTIVE_TELESCOPE].getText());
+        skySafariClient->setServer(SettingsTP[INDISERVER_HOST].getText(), std::stoi(SettingsTP[INDISERVER_PORT].getText()));
         skySafariClient->connectServer();
         SetTimer(getCurrentPollingPeriod());
     }
@@ -120,20 +120,20 @@ bool SkySafari::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    IUFillText(&SettingsT[INDISERVER_HOST], "INDISERVER_HOST", "indiserver host", "localhost");
-    IUFillText(&SettingsT[INDISERVER_PORT], "INDISERVER_PORT", "indiserver port", "7624");
-    IUFillText(&SettingsT[SKYSAFARI_PORT], "SKYSAFARI_PORT", "SkySafari port", "9624");
-    IUFillTextVector(&SettingsTP, SettingsT, 3, getDeviceName(), "SKYSAFARI_SETTINGS", "Settings", MAIN_CONTROL_TAB,
+    SettingsTP[INDISERVER_HOST].fill("INDISERVER_HOST", "indiserver host", "localhost");
+    SettingsTP[INDISERVER_PORT].fill("INDISERVER_PORT", "indiserver port", "7624");
+    SettingsTP[SKYSAFARI_PORT].fill("SKYSAFARI_PORT", "SkySafari port", "9624");
+    SettingsTP.fill(getDeviceName(), "SKYSAFARI_SETTINGS", "Settings", MAIN_CONTROL_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    IUFillSwitch(&ServerControlS[SERVER_ENABLE], "SERVER_ENABLE", "Enabled", ISS_OFF);
-    IUFillSwitch(&ServerControlS[SERVER_DISABLE], "SERVER_DISABLE", "Disabled", ISS_ON);
-    IUFillSwitchVector(&ServerControlSP, ServerControlS, 2, getDeviceName(), "SKYSAFARI_SERVER", "Server", MAIN_CONTROL_TAB,
+    ServerControlSP[SERVER_ENABLE].fill("SERVER_ENABLE", "Enabled", ISS_OFF);
+    ServerControlSP[SERVER_DISABLE].fill("SERVER_DISABLE", "Disabled", ISS_ON);
+    ServerControlSP.fill(getDeviceName(), "SKYSAFARI_SERVER", "Server", MAIN_CONTROL_TAB,
                        IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Active devices",
+    ActiveDeviceTP[ACTIVE_TELESCOPE].fill("ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Active devices",
                      OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     addDebugControl();
@@ -148,8 +148,8 @@ void SkySafari::ISGetProperties(const char *dev)
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
-    defineProperty(&SettingsTP);
-    defineProperty(&ActiveDeviceTP);
+    defineProperty(SettingsTP);
+    defineProperty(ActiveDeviceTP);
 
     loadConfig(true);
 }
@@ -158,19 +158,19 @@ bool SkySafari::ISNewText(const char *dev, const char *name, char *texts[], char
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(SettingsTP.name, name))
+        if (SettingsTP.isNameMatch(name))
         {
-            IUUpdateText(&SettingsTP, texts, names, n);
-            SettingsTP.s = IPS_OK;
-            IDSetText(&SettingsTP, nullptr);
+            SettingsTP.update(texts, names, n);
+            SettingsTP.setState(IPS_OK);
+            SettingsTP.apply();
             return true;
         }
 
-        if (!strcmp(ActiveDeviceTP.name, name))
+        if (ActiveDeviceTP.isNameMatch(name))
         {
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
-            ActiveDeviceTP.s = IPS_OK;
-            IDSetText(&ActiveDeviceTP, nullptr);
+            ActiveDeviceTP.update(texts, names, n);
+            ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.apply();
             return true;
         }
     }
@@ -182,42 +182,42 @@ bool SkySafari::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(ServerControlSP.name, name))
+        if (ServerControlSP.isNameMatch(name))
         {
             bool rc = false;
 
-            if (!strcmp(IUFindOnSwitchName(states, names, n), ServerControlS[SERVER_ENABLE].name))
+            if (!strcmp(IUFindOnSwitchName(states, names, n), ServerControlSP[SERVER_ENABLE].getName()))
             {
                 // If already working, do nothing
-                if (ServerControlS[SERVER_ENABLE].s == ISS_ON)
+                if (ServerControlSP[SERVER_ENABLE].getState() == ISS_ON)
                 {
-                    ServerControlSP.s = IPS_OK;
-                    IDSetSwitch(&ServerControlSP, nullptr);
+                    ServerControlSP.setState(IPS_OK);
+                    ServerControlSP.apply();
                     return true;
                 }
 
                 rc                = startServer();
-                ServerControlSP.s = (rc ? IPS_OK : IPS_ALERT);
+                ServerControlSP.setState((rc ? IPS_OK : IPS_ALERT));
             }
             else
             {
-                if (!strcmp(IUFindOnSwitchName(states, names, n), ServerControlS[SERVER_DISABLE].name))
+                if (!strcmp(IUFindOnSwitchName(states, names, n), ServerControlSP[SERVER_DISABLE].getName()))
                 {
                     // If already working, do nothing
-                    if (ServerControlS[SERVER_DISABLE].s == ISS_ON)
+                    if (ServerControlSP[SERVER_DISABLE].getState() == ISS_ON)
                     {
-                        ServerControlSP.s = IPS_IDLE;
-                        IDSetSwitch(&ServerControlSP, nullptr);
+                        ServerControlSP.setState(IPS_IDLE);
+                        ServerControlSP.apply();
                         return true;
                     }
 
                     rc                = stopServer();
-                    ServerControlSP.s = (rc ? IPS_IDLE : IPS_ALERT);
+                    ServerControlSP.setState((rc ? IPS_IDLE : IPS_ALERT));
                 }
             }
 
-            IUUpdateSwitch(&ServerControlSP, states, names, n);
-            IDSetSwitch(&ServerControlSP, nullptr);
+            ServerControlSP.update(states, names, n);
+            ServerControlSP.apply();
             return true;
         }
     }
@@ -227,8 +227,8 @@ bool SkySafari::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
 bool SkySafari::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigText(fp, &SettingsTP);
-    IUSaveConfigText(fp, &ActiveDeviceTP);
+    SettingsTP.save(fp);
+    ActiveDeviceTP.save(fp);
 
     return true;
 }
@@ -341,7 +341,7 @@ bool SkySafari::startServer()
     memset(&serv_socket, 0, sizeof(serv_socket));
     serv_socket.sin_family      = AF_INET;
     serv_socket.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_socket.sin_port        = htons((unsigned short)atoi(SettingsT[SKYSAFARI_PORT].text));
+    serv_socket.sin_port        = htons((unsigned short)atoi(SettingsTP[SKYSAFARI_PORT].getText()));
     if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
     {
         LOGF_ERROR("Error starting server. setsockopt: %s", strerror(errno));

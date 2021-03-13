@@ -105,28 +105,28 @@ bool WeatherSafetyProxy::initProperties()
 {
     INDI::Weather::initProperties();
 
-    IUFillText(&keywordT[0], "WEATHER_CONDITION", "Weather Condition", "condition");
-    IUFillTextVector(&keywordTP, keywordT, 1, getDeviceName(), "KEYWORD", "Keywords", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    keywordTP[0].fill("WEATHER_CONDITION", "Weather Condition", "condition");
+    keywordTP.fill(getDeviceName(), "KEYWORD", "Keywords", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillText(&ScriptsT[WSP_SCRIPT], "WEATHER_SAFETY_SCRIPT", "Weather safety script", "/usr/local/share/indi/scripts/weather_status.py");
-    IUFillTextVector(&ScriptsTP, ScriptsT, WSP_SCRIPT_COUNT, getDefaultName(), "WEATHER_SAFETY_SCRIPTS", "Script", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
+    ScriptsTP[WSP_SCRIPT].fill("WEATHER_SAFETY_SCRIPT", "Weather safety script", "/usr/local/share/indi/scripts/weather_status.py");
+    ScriptsTP.fill(getDefaultName(), "WEATHER_SAFETY_SCRIPTS", "Script", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
 
-    IUFillText(&UrlT[WSP_URL], "WEATHER_SAFETY_URL", "Weather safety URL", "http://0.0.0.0:5000/weather/safety");
-    IUFillTextVector(&UrlTP, UrlT, WSP_URL_COUNT, getDefaultName(), "WEATHER_SAFETY_URLS", "Url", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
+    UrlTP[WSP_URL].fill("WEATHER_SAFETY_URL", "Weather safety URL", "http://0.0.0.0:5000/weather/safety");
+    UrlTP.fill(getDefaultName(), "WEATHER_SAFETY_URLS", "Url", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
 
-    IUFillSwitch(&ScriptOrCurlS[WSP_USE_SCRIPT], "Use script", "", ISS_ON);
-    IUFillSwitch(&ScriptOrCurlS[WSP_USE_CURL], "Use url", "", ISS_OFF);
-    IUFillSwitchVector(&ScriptOrCurlSP, ScriptOrCurlS, WSP_USE_COUNT, getDeviceName(), "SCRIPT_OR_CURL", "Script or url", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    ScriptOrCurlSP[WSP_USE_SCRIPT].fill("Use script", "", ISS_ON);
+    ScriptOrCurlSP[WSP_USE_CURL].fill("Use url", "", ISS_OFF);
+    ScriptOrCurlSP.fill(getDeviceName(), "SCRIPT_OR_CURL", "Script or url", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_MAX], "SOFT_ERROR_MAX", "Max soft errors", "%g", 0.0, 1000.0, 1.0, 30.0);
-    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY], "SOFT_ERROR_RECOVERY", "Minimum soft error for recovery", "%g", 0.0, 1000.0, 1.0, 7.0);
-    IUFillNumberVector(&softErrorHysteresisNP, softErrorHysteresisN, 2, getDeviceName(), "SOFT_ERROR_HYSTERESIS", "Soft error hysterese", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    softErrorHysteresisNP[WSP_SOFT_ERROR_MAX].fill("SOFT_ERROR_MAX", "Max soft errors", "%g", 0.0, 1000.0, 1.0, 30.0);
+    softErrorHysteresisNP[WSP_SOFT_ERROR_RECOVERY].fill("SOFT_ERROR_RECOVERY", "Minimum soft error for recovery", "%g", 0.0, 1000.0, 1.0, 7.0);
+    softErrorHysteresisNP.fill(getDeviceName(), "SOFT_ERROR_HYSTERESIS", "Soft error hysterese", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     addParameter("WEATHER_SAFETY", "Weather Safety", 0.9, 1.1, 0); // 0 is unsafe, 1 is safe
     setCriticalParameter("WEATHER_SAFETY");
 
-    IUFillText(&reasonsT[0], "Reasons", "", nullptr);
-    IUFillTextVector(&reasonsTP, reasonsT, 1, getDeviceName(), "WEATHER_SAFETY_REASONS", "Weather Safety Reasons", MAIN_CONTROL_TAB, IP_RO, 120, IPS_IDLE);
+    reasonsTP[0].fill("Reasons", "", nullptr);
+    reasonsTP.fill(getDeviceName(), "WEATHER_SAFETY_REASONS", "Weather Safety Reasons", MAIN_CONTROL_TAB, IP_RO, 120, IPS_IDLE);
 
     addDebugControl();
 
@@ -139,11 +139,11 @@ bool WeatherSafetyProxy::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&reasonsTP);
+        defineProperty(reasonsTP);
     }
     else
     {
-        deleteProperty(reasonsTP.name);
+        deleteProperty(reasonsTP.getName());
     }
 
     return true;
@@ -152,10 +152,10 @@ bool WeatherSafetyProxy::updateProperties()
 bool WeatherSafetyProxy::saveConfigItems(FILE *fp)
 {
     INDI::Weather::saveConfigItems(fp);
-    IUSaveConfigText(fp, &ScriptsTP);
-    IUSaveConfigText(fp, &UrlTP);
-    IUSaveConfigSwitch(fp, &ScriptOrCurlSP);
-    IUSaveConfigNumber(fp, &softErrorHysteresisNP);
+    ScriptsTP.save(fp);
+    UrlTP.save(fp);
+    ScriptOrCurlSP.save(fp);
+    softErrorHysteresisNP.save(fp);
     return true;
 }
 
@@ -166,10 +166,10 @@ void WeatherSafetyProxy::ISGetProperties(const char *dev)
     if (once)
     {
         once = false;
-        defineProperty(&ScriptsTP);
-        defineProperty(&UrlTP);
-        defineProperty(&ScriptOrCurlSP);
-        defineProperty(&softErrorHysteresisNP);
+        defineProperty(ScriptsTP);
+        defineProperty(UrlTP);
+        defineProperty(ScriptOrCurlSP);
+        defineProperty(softErrorHysteresisNP);
         loadConfig(false, "WEATHER_SAFETY_SCRIPTS");
         loadConfig(false, "WEATHER_SAFETY_URLS");
         loadConfig(false, "SCRIPT_OR_CURL");
@@ -181,12 +181,12 @@ bool WeatherSafetyProxy::ISNewNumber(const char *dev, const char *name, double v
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, softErrorHysteresisNP.name) == 0)
+        if (softErrorHysteresisNP.isNameMatch(name))
         {
             LOG_DEBUG("WeatherSafetyProxy::ISNewNumber");
-            IUUpdateNumber(&softErrorHysteresisNP, values, names, n);
-            softErrorHysteresisNP.s = IPS_OK;
-            IDSetNumber(&softErrorHysteresisNP, nullptr);
+            softErrorHysteresisNP.update(values, names, n);
+            softErrorHysteresisNP.setState(IPS_OK);
+            softErrorHysteresisNP.apply();
             return true;
         }
     }
@@ -197,28 +197,28 @@ bool WeatherSafetyProxy::ISNewText(const char *dev, const char *name, char *text
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, keywordTP.name) == 0)
+        if (keywordTP.isNameMatch(name))
         {
-            keywordTP.s = IPS_OK;
-            IUUpdateText(&keywordTP, texts, names, n);
+            keywordTP.setState(IPS_OK);
+            keywordTP.update(texts, names, n);
             // update client display
-            IDSetText(&keywordTP, nullptr);
+            keywordTP.apply();
             return true;
         }
-        if (strcmp(name, ScriptsTP.name) == 0)
+        if (ScriptsTP.isNameMatch(name))
         {
-            ScriptsTP.s = IPS_OK;
-            IUUpdateText(&ScriptsTP, texts, names, n);
+            ScriptsTP.setState(IPS_OK);
+            ScriptsTP.update(texts, names, n);
             // update client display
-            IDSetText(&ScriptsTP, nullptr);
+            ScriptsTP.apply();
             return true;
         }
-        if (strcmp(name, UrlTP.name) == 0)
+        if (UrlTP.isNameMatch(name))
         {
-            UrlTP.s = IPS_OK;
-            IUUpdateText(&UrlTP, texts, names, n);
+            UrlTP.setState(IPS_OK);
+            UrlTP.update(texts, names, n);
             // update client display
-            IDSetText(&UrlTP, nullptr);
+            UrlTP.apply();
             return true;
         }
     }
@@ -230,12 +230,12 @@ bool WeatherSafetyProxy::ISNewSwitch(const char *dev, const char *name, ISState 
 {
     if (!strcmp(getDeviceName(), dev))
     {
-        if (!strcmp(name, ScriptOrCurlSP.name))
+        if (ScriptOrCurlSP.isNameMatch(name))
         {
             LOG_DEBUG("WeatherSafetyProxy::ISNewSwitch");
-            IUUpdateSwitch(&ScriptOrCurlSP, states, names, n);
-            ScriptOrCurlSP.s = IPS_OK;
-            IDSetSwitch(&ScriptOrCurlSP, nullptr);
+            ScriptOrCurlSP.update(states, names, n);
+            ScriptOrCurlSP.setState(IPS_OK);
+            ScriptOrCurlSP.apply();
             return true;
         }
     }
@@ -243,11 +243,11 @@ bool WeatherSafetyProxy::ISNewSwitch(const char *dev, const char *name, ISState 
     return INDI::Weather::ISNewSwitch(dev, name, states, names, n);
 }
 
-// Called by Weather::TimerHit every UpdatePeriodN[0].value seconds if we return IPS_OK or every 5 seconds otherwise
+// Called by Weather::TimerHit every UpdatePeriodNP[0].value seconds if we return IPS_OK or every 5 seconds otherwise
 IPState WeatherSafetyProxy::updateWeather()
 {
     IPState ret = IPS_ALERT;
-    if (ScriptOrCurlS[WSP_USE_SCRIPT].s == ISS_ON)
+    if (ScriptOrCurlSP[WSP_USE_SCRIPT].getState() == ISS_ON)
     {
         ret = executeScript();
     }
@@ -261,15 +261,15 @@ IPState WeatherSafetyProxy::updateWeather()
         {
             SofterrorCount++;
             LOGF_WARN("Soft error %d occurred during SAFE conditions, counting", SofterrorCount);
-            if (SofterrorCount > softErrorHysteresisN[WSP_SOFT_ERROR_MAX].value)
+            if (SofterrorCount > softErrorHysteresisNP[WSP_SOFT_ERROR_MAX].getValue())
             {
                 char Warning[] = "Max softerrors reached while Weather was SAFE";
                 LOG_WARN(Warning);
                 Safety = WSP_UNSAFE;
                 setParameterValue("WEATHER_SAFETY", WSP_UNSAFE);
-                IUSaveText(&reasonsT[0], Warning);
-                reasonsTP.s = IPS_OK;
-                IDSetText(&reasonsTP, nullptr);
+                reasonsTP[0].setText(Warning);
+                reasonsTP.setState(IPS_OK);
+                reasonsTP.apply();
                 SofterrorRecoveryMode = true;
                 ret = IPS_OK; // So that indiweather actually syncs the CriticalParameters we just set
             }
@@ -290,7 +290,7 @@ IPState WeatherSafetyProxy::updateWeather()
 
 IPState WeatherSafetyProxy::executeScript()
 {
-    const char *cmd = ScriptsT[WSP_SCRIPT].text;
+    const char *cmd = ScriptsTP[WSP_SCRIPT].getText();
 
     if (access(cmd, F_OK|X_OK) == -1)
     {
@@ -331,11 +331,11 @@ IPState WeatherSafetyProxy::executeCurl()
     curl_handle = curl_easy_init();
     if (curl_handle)
     {
-        curl_easy_setopt(curl_handle, CURLOPT_URL, UrlT[WSP_URL].text);
+        curl_easy_setopt(curl_handle, CURLOPT_URL, UrlTP[WSP_URL].getText());
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WSP_WriteCallback);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &readBuffer);
         curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-        LOGF_DEBUG("Call curl %s", UrlT[WSP_URL].text);
+        LOGF_DEBUG("Call curl %s", UrlTP[WSP_URL].getText());
         res = curl_easy_perform(curl_handle);
         if (res != CURLE_OK)
         {
@@ -399,7 +399,7 @@ IPState WeatherSafetyProxy::parseSafetyJSON(const char *clean_buf, int byte_coun
                             if (SofterrorRecoveryMode == true)
                             {
                                 SofterrorRecoveryCount++;
-                                if (SofterrorRecoveryCount > softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY].value)
+                                if (SofterrorRecoveryCount > softErrorHysteresisNP[WSP_SOFT_ERROR_RECOVERY].getValue())
                                 {
                                     LOG_INFO("Minimum soft recovery errors reached while Weather was SAFE");
                                     SofterrorRecoveryCount = 0;
@@ -428,14 +428,14 @@ IPState WeatherSafetyProxy::parseSafetyJSON(const char *clean_buf, int byte_coun
                     {
                         char newReasons[MAXRBUF];
                         snprintf(newReasons, MAXRBUF, "SofterrorRecoveryMode, %s", reasons);
-                        IUSaveText(&reasonsT[0], newReasons);
+                        reasonsTP[0].setText(newReasons);
                     }
                     else
                     {
-                        IUSaveText(&reasonsT[0], reasons);
+                        reasonsTP[0].setText(reasons);
                     }
-                    reasonsTP.s = IPS_OK;
-                    IDSetText(&reasonsTP, nullptr);
+                    reasonsTP.setState(IPS_OK);
+                    reasonsTP.apply();
                 }
             }
         }

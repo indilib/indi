@@ -70,8 +70,8 @@ void ManualFilter::ISGetProperties(const char *dev)
 {
     INDI::FilterWheel::ISGetProperties(dev);
 
-    defineProperty(&MaxFiltersNP);
-    loadConfig(true, MaxFiltersNP.name);
+    defineProperty(MaxFiltersNP);
+    loadConfig(true, MaxFiltersNP.getName());
 }
 
 bool ManualFilter::initProperties()
@@ -79,16 +79,16 @@ bool ManualFilter::initProperties()
     INDI::FilterWheel::initProperties();
 
     // User Set Filter
-    IUFillSwitch(&FilterSetS[0], "FILTER_SET", "Filter is set", ISS_OFF);
-    IUFillSwitchVector(&FilterSetSP, FilterSetS, 1, getDeviceName(), "CONFIRM_FILTER_SET", "Confirm", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    FilterSetSP[0].fill("FILTER_SET", "Filter is set", ISS_OFF);
+    FilterSetSP.fill(getDeviceName(), "CONFIRM_FILTER_SET", "Confirm", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Sync Filter Position. Sets current position to different position without actually changing filter.
-    IUFillNumber(&SyncN[0], "TARGET_FILTER", "Target Filter", "%.f", 1, 16, 1, 0);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "SYNC_FILTER", "Sync", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
+    SyncNP[0].fill("TARGET_FILTER", "Target Filter", "%.f", 1, 16, 1, 0);
+    SyncNP.fill(getDeviceName(), "SYNC_FILTER", "Sync", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 
     // Max number of filters
-    IUFillNumber(&MaxFiltersN[0], "MAX", "Filters", "%.f", 1, 16, 1, 5);
-    IUFillNumberVector(&MaxFiltersNP, MaxFiltersN, 1, getDeviceName(), "MAX_FILTERS", "Max.", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    MaxFiltersNP[0].fill("MAX", "Filters", "%.f", 1, 16, 1, 5);
+    MaxFiltersNP.fill(getDeviceName(), "MAX_FILTERS", "Max.", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     return true;
 }
@@ -99,17 +99,17 @@ bool ManualFilter::updateProperties()
 
     if (isConnected())
     {
-        deleteProperty(MaxFiltersNP.name);
+        deleteProperty(MaxFiltersNP.getName());
 
-        defineProperty(&SyncNP);
-        defineProperty(&FilterSetSP);
+        defineProperty(SyncNP);
+        defineProperty(FilterSetSP);
     }
     else
     {
-        deleteProperty(SyncNP.name);
-        deleteProperty(FilterSetSP.name);
+        deleteProperty(SyncNP.getName());
+        deleteProperty(FilterSetSP.getName());
 
-        defineProperty(&MaxFiltersNP);
+        defineProperty(MaxFiltersNP);
     }
 
     return true;
@@ -119,26 +119,26 @@ bool ManualFilter::ISNewNumber(const char *dev, const char *name, double values[
 {
     if (!strcmp(dev, getDeviceName()))
     {
-        if (!strcmp(name, SyncNP.name))
+        if (SyncNP.isNameMatch(name))
         {
-            IUUpdateNumber(&SyncNP, values, names, n);
-            CurrentFilter = SyncN[0].value;
-            FilterSlotN[0].value = CurrentFilter;
-            IDSetNumber(&FilterSlotNP, nullptr);
-            SyncNP.s = IPS_OK;
-            IDSetNumber(&SyncNP, nullptr);
+            SyncNP.update(values, names, n);
+            CurrentFilter = SyncNP[0].getValue();
+            FilterSlotNP[0].setValue(CurrentFilter);
+            FilterSlotNP.apply();
+            SyncNP.setState(IPS_OK);
+            SyncNP.apply();
 
             LOGF_INFO("Filter wheel is synced to slot %d", CurrentFilter);
 
             return true;
         }
-        else if (!strcmp(MaxFiltersNP.name, name))
+        else if (MaxFiltersNP.isNameMatch(name))
         {
-            IUUpdateNumber(&MaxFiltersNP, values, names, n);
-            FilterSlotN[0].max = MaxFiltersN[0].value;
-            MaxFiltersNP.s = IPS_OK;
-            saveConfig(true, MaxFiltersNP.name);
-            IDSetNumber(&MaxFiltersNP, nullptr);
+            MaxFiltersNP.update(values, names, n);
+            FilterSlotNP[0].setMax(MaxFiltersNP[0].value);
+            MaxFiltersNP.setState(IPS_OK);
+            saveConfig(true, MaxFiltersNP.getName());
+            MaxFiltersNP.apply();
 
             return true;
         }
@@ -152,11 +152,11 @@ bool ManualFilter::ISNewSwitch(const char *dev, const char *name, ISState *state
 {
     if (!strcmp(dev, getDeviceName()))
     {
-        if (!strcmp(name, FilterSetSP.name))
+        if (FilterSetSP.isNameMatch(name))
         {
             SelectFilterDone(CurrentFilter);
-            FilterSetSP.s = IPS_OK;
-            IDSetSwitch(&FilterSetSP, nullptr);
+            FilterSetSP.setState(IPS_OK);
+            FilterSetSP.apply();
             return true;
         }
 
@@ -179,8 +179,8 @@ bool ManualFilter::SelectFilter(int f)
 {
     CurrentFilter = f;
 
-    FilterSetSP.s = IPS_BUSY;
-    IDSetSwitch(&FilterSetSP, nullptr);
+    FilterSetSP.setState(IPS_BUSY);
+    FilterSetSP.apply();
     LOGF_INFO("Please change filter to %s then click Filter is set when done.", FilterNameT[f-1].text);
     return true;
 }
@@ -189,7 +189,7 @@ bool ManualFilter::saveConfigItems(FILE *fp)
 {
     INDI::FilterWheel::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &MaxFiltersNP);
+    MaxFiltersNP.save(fp);
 
     return true;
 }

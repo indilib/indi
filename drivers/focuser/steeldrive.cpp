@@ -88,26 +88,26 @@ bool SteelDrive::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusSpeedN[0].min   = 350;
-    FocusSpeedN[0].max   = 1000;
-    FocusSpeedN[0].value = 500;
-    FocusSpeedN[0].step  = 50;
+    FocusSpeedNP[0].setMin(350);
+    FocusSpeedNP[0].setMax(1000);
+    FocusSpeedNP[0].setValue(500);
+    FocusSpeedNP[0].setStep(50);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Temperature Settings
-    IUFillNumber(&TemperatureSettingN[FOCUS_T_COEFF], "Coefficient", "", "%.3f", 0, 0.999, 0.1, 0.1);
-    IUFillNumber(&TemperatureSettingN[FOCUS_T_SAMPLES], "# of Samples", "", "%3.0f", 16, 128, 16, 16);
-    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "Temperature Settings", "",
+    TemperatureSettingNP[FOCUS_T_COEFF].fill("Coefficient", "", "%.3f", 0, 0.999, 0.1, 0.1);
+    TemperatureSettingNP[FOCUS_T_SAMPLES].fill("# of Samples", "", "%3.0f", 16, 128, 16, 16);
+    TemperatureSettingNP.fill(getDeviceName(), "Temperature Settings", "",
                        FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
-    IUFillSwitch(&TemperatureCompensateS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "Temperature Compensate",
+    TemperatureCompensateSP[0].fill("Enable", "", ISS_OFF);
+    TemperatureCompensateSP[1].fill("Disable", "", ISS_ON);
+    TemperatureCompensateSP.fill(getDeviceName(), "Temperature Compensate",
                        "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Focuser Models
@@ -130,19 +130,19 @@ bool SteelDrive::initProperties()
                        IPS_IDLE);
 
     // Custom Settings
-    IUFillNumber(&CustomSettingN[FOCUS_MAX_TRIP], "Max Trip (mm)", "", "%6.2f", 20, 150, 0, 30);
-    IUFillNumber(&CustomSettingN[FOCUS_GEAR_RATIO], "Gear Ratio", "", "%.5f", 0.1, 1, 0, .25040);
-    IUFillNumberVector(&CustomSettingNP, CustomSettingN, 2, getDeviceName(), "Custom Settings", "", FOCUS_SETTINGS_TAB,
+    CustomSettingNP[FOCUS_MAX_TRIP].fill("Max Trip (mm)", "", "%6.2f", 20, 150, 0, 30);
+    CustomSettingNP[FOCUS_GEAR_RATIO].fill("Gear Ratio", "", "%.5f", 0.1, 1, 0, .25040);
+    CustomSettingNP.fill(getDeviceName(), "Custom Settings", "", FOCUS_SETTINGS_TAB,
                        IP_RW, 0, IPS_IDLE);
 
     // Focuser Accleration
-    IUFillNumber(&AccelerationN[0], "Ramp", "", "%3.0f", 1500., 3000., 100., 2000.);
-    IUFillNumberVector(&AccelerationNP, AccelerationN, 1, getDeviceName(), "FOCUS_ACCELERATION", "Acceleration",
+    AccelerationNP[0].fill("Ramp", "", "%3.0f", 1500., 3000., 100., 2000.);
+    AccelerationNP.fill(getDeviceName(), "FOCUS_ACCELERATION", "Acceleration",
                        FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focus Sync
-    IUFillNumber(&SyncN[0], "Position (steps)", "", "%3.0f", 0., 200000., 100., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    SyncNP[0].fill("Position (steps)", "", "%3.0f", 0., 200000., 100., 0.);
+    SyncNP.fill(getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Version
     IUFillText(&VersionT[0], "HW Rev.", "", nullptr);
@@ -150,9 +150,9 @@ bool SteelDrive::initProperties()
     IUFillTextVector(&VersionTP, VersionT, 2, getDeviceName(), "FOCUS_VERSION", "Version", MAIN_CONTROL_TAB, IP_RO, 0,
                      IPS_IDLE);
 
-    FocusRelPosN[0].value = 0;
-    FocusAbsPosN[0].value = 0;
-    simPosition           = FocusAbsPosN[0].value;
+    FocusRelPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setValue(0);
+    simPosition           = FocusAbsPosNP[0].getValue();
 
     updateFocusMaxRange(fSettings[4].maxTrip, fSettings[4].gearRatio);
 
@@ -169,14 +169,14 @@ bool SteelDrive::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&TemperatureNP);
-        defineProperty(&TemperatureSettingNP);
-        defineProperty(&TemperatureCompensateSP);
+        defineProperty(TemperatureNP);
+        defineProperty(TemperatureSettingNP);
+        defineProperty(TemperatureCompensateSP);
 
         defineProperty(&ModelSP);
-        defineProperty(&CustomSettingNP);
-        defineProperty(&AccelerationNP);
-        defineProperty(&SyncNP);
+        defineProperty(CustomSettingNP);
+        defineProperty(AccelerationNP);
+        defineProperty(SyncNP);
 
         defineProperty(&VersionTP);
 
@@ -188,14 +188,14 @@ bool SteelDrive::updateProperties()
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(TemperatureSettingNP.name);
-        deleteProperty(TemperatureCompensateSP.name);
+        deleteProperty(TemperatureNP.getName());
+        deleteProperty(TemperatureSettingNP.getName());
+        deleteProperty(TemperatureCompensateSP.getName());
 
         deleteProperty(ModelSP.name);
-        deleteProperty(CustomSettingNP.name);
-        deleteProperty(AccelerationNP.name);
-        deleteProperty(SyncNP.name);
+        deleteProperty(CustomSettingNP.getName());
+        deleteProperty(AccelerationNP.getName());
+        deleteProperty(SyncNP.getName());
 
         deleteProperty(VersionTP.name);
     }
@@ -426,8 +426,8 @@ bool SteelDrive::updateTemperature()
 
     if (rc > 0)
     {
-        TemperatureN[0].value = ((double)temperature) / 100.0;
-        TemperatureNP.s       = IPS_OK;
+        TemperatureNP[0].setValue(((double)temperature) / 100.0);
+        TemperatureNP.setState(IPS_OK);
     }
     else
     {
@@ -435,13 +435,13 @@ bool SteelDrive::updateTemperature()
         rc = sscanf(resp, ":F5%s#", junk);
         if (rc > 0)
         {
-            TemperatureN[0].value = 0;
+            TemperatureNP[0].setValue(0);
             LOG_DEBUG("Temperature probe is not connected.");
         }
         else
             LOGF_ERROR("Unknown error: focuser temperature value (%s)", resp);
 
-        TemperatureNP.s = IPS_ALERT;
+        TemperatureNP.setState(IPS_ALERT);
         return false;
     }
 
@@ -503,7 +503,7 @@ bool SteelDrive::updatePosition()
 
     if (rc > 0)
     {
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosNP[0].setValue(pos);
     }
     else
     {
@@ -555,7 +555,7 @@ bool SteelDrive::updateSpeed()
 
     if (rc > 0)
     {
-        FocusSpeedN[0].value = speed;
+        FocusSpeedNP[0].setValue(speed);
     }
     else
     {
@@ -607,7 +607,7 @@ bool SteelDrive::updateAcceleration()
 
     if (rc > 0)
     {
-        AccelerationN[0].value = accel;
+        AccelerationNP[0].setValue(accel);
     }
     else
     {
@@ -663,13 +663,13 @@ bool SteelDrive::updateTemperatureSettings()
         strncpy(enabled, tResp + 3, 1);
         strncpy(selectedFocuser, tResp + 4, 1);
 
-        TemperatureSettingN[FOCUS_T_COEFF].value = atof(coeff) / 1000.0;
+        TemperatureSettingNP[FOCUS_T_COEFF].setValue(atof(coeff) / 1000.0);
 
-        IUResetSwitch(&TemperatureCompensateSP);
+        TemperatureCompensateSP.reset();
         if (enabled[0] == '0')
-            TemperatureCompensateS[1].s = ISS_ON;
+            TemperatureCompensateSP[1].setState(ISS_ON);
         else
-            TemperatureCompensateS[0].s = ISS_ON;
+            TemperatureCompensateSP[0].setState(ISS_ON);
     }
     else
     {
@@ -776,8 +776,8 @@ bool SteelDrive::updateCustomSettings()
         fSettings[sFocuser].maxTrip   = (atof(maxTrip) * gearRatio) / 100.0;
         fSettings[sFocuser].gearRatio = gearRatio;
 
-        CustomSettingN[FOCUS_MAX_TRIP].value   = fSettings[sFocuser].maxTrip;
-        CustomSettingN[FOCUS_GEAR_RATIO].value = fSettings[sFocuser].gearRatio;
+        CustomSettingNP[FOCUS_MAX_TRIP].setValue(fSettings[sFocuser].maxTrip);
+        CustomSettingNP[FOCUS_GEAR_RATIO].setValue(fSettings[sFocuser].gearRatio);
 
         LOGF_DEBUG("Updated max trip: %g gear ratio: %g", fSettings[sFocuser].maxTrip,
                    fSettings[sFocuser].gearRatio);
@@ -800,7 +800,7 @@ bool SteelDrive::setTemperatureSamples(unsigned int targetSamples, unsigned int 
     char errstr[MAXRBUF];
     char cmd[STEELDRIVE_MAXBUF];
 
-    int maxSample = TemperatureSettingN[FOCUS_T_SAMPLES].max;
+    int maxSample = TemperatureSettingNP[FOCUS_T_SAMPLES].getMax();
     int sample    = 0;
 
     for (int i = maxSample; i > 0;)
@@ -837,7 +837,7 @@ bool SteelDrive::setTemperatureSamples(unsigned int targetSamples, unsigned int 
         return false;
     }
 
-    TemperatureSettingN[FOCUS_T_SAMPLES].value = sample;
+    TemperatureSettingNP[FOCUS_T_SAMPLES].setValue(sample);
     *finalSample                               = sample;
 
     return true;
@@ -852,8 +852,8 @@ bool SteelDrive::setTemperatureCompensation()
     char errstr[MAXRBUF];
     char cmd[STEELDRIVE_MAXBUF];
 
-    double coeff      = TemperatureSettingN[FOCUS_T_COEFF].value;
-    bool enable       = TemperatureCompensateS[0].s == ISS_ON;
+    double coeff      = TemperatureSettingNP[FOCUS_T_COEFF].getValue();
+    bool enable       = TemperatureCompensateSP[0].getState() == ISS_ON;
     int selectedFocus = IUFindOnSwitchIndex(&ModelSP);
 
     snprintf(cmd, STEELDRIVE_CMD + 1, ":F%02d%03d%d#", selectedFocus, (int)(coeff * 1000), enable ? 2 : 0);
@@ -948,13 +948,13 @@ bool SteelDrive::moveFocuser(unsigned int position)
     char errstr[MAXRBUF];
     char cmd[STEELDRIVE_MAXBUF];
 
-    if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
+    if (position < FocusAbsPosNP[0].min || position > FocusAbsPosNP[0].max)
     {
         LOGF_ERROR("Requested position value out of bound: %d", position);
         return false;
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY)
         AbortFocuser();
 
     snprintf(cmd, STEELDRIVE_CMD_LONG + 1, ":F9%07d#", position);
@@ -1062,24 +1062,24 @@ bool SteelDrive::ISNewSwitch(const char *dev, const char *name, ISState *states,
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(TemperatureCompensateSP.name, name) == 0)
+        if (TemperatureCompensateSP.isNameMatch(name))
         {
-            int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
-            IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
+            int last_index = TemperatureCompensateSP.findOnSwitchIndex();
+            TemperatureCompensateSP.update(states, names, n);
 
             bool rc = setTemperatureCompensation();
 
             if (!rc)
             {
-                TemperatureCompensateSP.s = IPS_ALERT;
-                IUResetSwitch(&TemperatureCompensateSP);
-                TemperatureCompensateS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureCompensateSP, nullptr);
+                TemperatureCompensateSP.setState(IPS_ALERT);
+                TemperatureCompensateSP.reset();
+                TemperatureCompensateSP[last_index].setState(ISS_ON);
+                TemperatureCompensateSP.apply();
                 return false;
             }
 
-            TemperatureCompensateSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureCompensateSP, nullptr);
+            TemperatureCompensateSP.setState(IPS_OK);
+            TemperatureCompensateSP.apply();
             return true;
         }
 
@@ -1090,13 +1090,13 @@ bool SteelDrive::ISNewSwitch(const char *dev, const char *name, ISState *states,
             int i = IUFindOnSwitchIndex(&ModelSP);
 
             double focusMaxPos  = floor(fSettings[i].maxTrip / fSettings[i].gearRatio) * 100;
-            FocusAbsPosN[0].max = focusMaxPos;
-            IUUpdateMinMax(&FocusAbsPosNP);
+            FocusAbsPosNP[0].setMax(focusMaxPos);
+            FocusAbsPosNP.updateMinMax();
 
-            CustomSettingN[FOCUS_MAX_TRIP].value   = fSettings[i].maxTrip;
-            CustomSettingN[FOCUS_GEAR_RATIO].value = fSettings[i].gearRatio;
+            CustomSettingNP[FOCUS_MAX_TRIP].setValue(fSettings[i].maxTrip);
+            CustomSettingNP[FOCUS_GEAR_RATIO].setValue(fSettings[i].gearRatio);
 
-            IDSetNumber(&CustomSettingNP, nullptr);
+            CustomSettingNP.apply();
 
             ModelSP.s = IPS_OK;
             IDSetSwitch(&ModelSP, nullptr);
@@ -1116,30 +1116,30 @@ bool SteelDrive::ISNewNumber(const char *dev, const char *name, double values[],
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Set Accelration
-        if (strcmp(name, AccelerationNP.name) == 0)
+        if (AccelerationNP.isNameMatch(name))
         {
             if (setAcceleration((int)values[0]))
             {
-                IUUpdateNumber(&AccelerationNP, values, names, n);
-                AccelerationNP.s = IPS_OK;
-                IDSetNumber(&AccelerationNP, nullptr);
+                AccelerationNP.update(values, names, n);
+                AccelerationNP.setState(IPS_OK);
+                AccelerationNP.apply();
                 return true;
             }
             else
             {
-                AccelerationNP.s = IPS_ALERT;
-                IDSetNumber(&AccelerationNP, nullptr);
+                AccelerationNP.setState(IPS_ALERT);
+                AccelerationNP.apply();
                 return false;
             }
         }
 
         // Set Temperature Settings
-        if (strcmp(name, TemperatureSettingNP.name) == 0)
+        if (TemperatureSettingNP.isNameMatch(name))
         {
             // Coeff is only needed when we enable or disable the temperature compensation. Here we only set the # of samples
             unsigned int targetSamples;
 
-            if (strcmp(names[0], TemperatureSettingN[FOCUS_T_SAMPLES].name) == 0)
+            if (strcmp(names[0], TemperatureSettingNP[FOCUS_T_SAMPLES].getName()) == 0)
                 targetSamples = (int)values[0];
             else
                 targetSamples = (int)values[1];
@@ -1148,41 +1148,41 @@ bool SteelDrive::ISNewNumber(const char *dev, const char *name, double values[],
 
             if (setTemperatureSamples(targetSamples, &finalSample))
             {
-                IUUpdateNumber(&TemperatureSettingNP, values, names, n);
-                TemperatureSettingN[FOCUS_T_SAMPLES].value = finalSample;
+                TemperatureSettingNP.update(values, names, n);
+                TemperatureSettingNP[FOCUS_T_SAMPLES].setValue(finalSample);
 
-                if (TemperatureSettingN[FOCUS_T_COEFF].value > TemperatureSettingN[FOCUS_T_COEFF].max)
-                    TemperatureSettingN[FOCUS_T_COEFF].value = TemperatureSettingN[FOCUS_T_COEFF].max;
+                if (TemperatureSettingNP[FOCUS_T_COEFF].value > TemperatureSettingNP[FOCUS_T_COEFF].max)
+                    TemperatureSettingNP[FOCUS_T_COEFF].setValue(TemperatureSettingNP[FOCUS_T_COEFF].max);
 
-                TemperatureSettingNP.s = IPS_OK;
-                IDSetNumber(&TemperatureSettingNP, nullptr);
+                TemperatureSettingNP.setState(IPS_OK);
+                TemperatureSettingNP.apply();
                 return true;
             }
             else
             {
-                TemperatureSettingNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureSettingNP, nullptr);
+                TemperatureSettingNP.setState(IPS_ALERT);
+                TemperatureSettingNP.apply();
                 return true;
             }
         }
 
         // Set Custom Settings
-        if (strcmp(name, CustomSettingNP.name) == 0)
+        if (CustomSettingNP.isNameMatch(name))
         {
             int i = IUFindOnSwitchIndex(&ModelSP);
 
             // If the model is NOT set to custom, then the values cannot be updated
             if (i != 4)
             {
-                CustomSettingNP.s = IPS_IDLE;
+                CustomSettingNP.setState(IPS_IDLE);
                 LOG_WARN("You can not set custom values for a non-custom focuser.");
-                IDSetNumber(&CustomSettingNP, nullptr);
+                CustomSettingNP.apply();
                 return false;
             }
 
             double maxTrip, gearRatio;
 
-            if (strcmp(names[0], CustomSettingN[FOCUS_MAX_TRIP].name) == 0)
+            if (strcmp(names[0], CustomSettingNP[FOCUS_MAX_TRIP].getName()) == 0)
             {
                 maxTrip   = values[0];
                 gearRatio = values[1];
@@ -1195,39 +1195,39 @@ bool SteelDrive::ISNewNumber(const char *dev, const char *name, double values[],
 
             if (setCustomSettings(maxTrip, gearRatio))
             {
-                IUUpdateNumber(&CustomSettingNP, values, names, n);
-                CustomSettingNP.s = IPS_OK;
-                IDSetNumber(&CustomSettingNP, nullptr);
+                CustomSettingNP.update(values, names, n);
+                CustomSettingNP.setState(IPS_OK);
+                CustomSettingNP.apply();
 
                 updateFocusMaxRange(maxTrip, gearRatio);
-                IUUpdateMinMax(&FocusAbsPosNP);
-                IUUpdateMinMax(&FocusRelPosNP);
+                FocusAbsPosNP.updateMinMax();
+                FocusRelPosNP.updateMinMax();
             }
             else
             {
-                CustomSettingNP.s = IPS_ALERT;
-                IDSetNumber(&CustomSettingNP, nullptr);
+                CustomSettingNP.setState(IPS_ALERT);
+                CustomSettingNP.apply();
             }
         }
 
         // Set Sync Position
-        if (strcmp(name, SyncNP.name) == 0)
+        if (SyncNP.isNameMatch(name))
         {
             if (Sync((unsigned int)values[0]))
             {
-                IUUpdateNumber(&SyncNP, values, names, n);
-                SyncNP.s = IPS_OK;
-                IDSetNumber(&SyncNP, nullptr);
+                SyncNP.update(values, names, n);
+                SyncNP.setState(IPS_OK);
+                SyncNP.apply();
 
                 if (updatePosition())
-                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                    FocusAbsPosNP.apply();
 
                 return true;
             }
             else
             {
-                SyncNP.s = IPS_ALERT;
-                IDSetNumber(&SyncNP, nullptr);
+                SyncNP.setState(IPS_ALERT);
+                SyncNP.apply();
 
                 return false;
             }
@@ -1246,23 +1246,23 @@ void SteelDrive::GetFocusParams()
         IDSetText(&VersionTP, nullptr);
 
     if (updateTemperature())
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.apply();
 
     if (updateTemperatureSettings())
-        IDSetNumber(&TemperatureSettingNP, nullptr);
+        TemperatureSettingNP.apply();
 
     if (updatePosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (updateSpeed())
-        IDSetNumber(&FocusSpeedNP, nullptr);
+        FocusSpeedNP.apply();
 
     if (updateAcceleration())
-        IDSetNumber(&AccelerationNP, nullptr);
+        AccelerationNP.apply();
 
     if (updateCustomSettings())
     {
-        IDSetNumber(&CustomSettingNP, nullptr);
+        CustomSettingNP.apply();
         IDSetSwitch(&ModelSP, nullptr);
     }
 }
@@ -1278,8 +1278,8 @@ bool SteelDrive::SetFocuserSpeed(int speed)
 
     currentSpeed = speed;
 
-    FocusSpeedNP.s = IPS_OK;
-    IDSetNumber(&FocusSpeedNP, nullptr);
+    FocusSpeedNP.setState(IPS_OK);
+    FocusSpeedNP.apply();
 
     return true;
 }
@@ -1320,7 +1320,7 @@ IPState SteelDrive::MoveAbsFocuser(uint32_t targetTicks)
     if (!rc)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -1331,18 +1331,18 @@ IPState SteelDrive::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     bool rc            = false;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     rc = moveFocuser(newPosition);
 
     if (!rc)
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
-    FocusAbsPosNP.s       = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -1355,10 +1355,10 @@ void SteelDrive::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > STEELDIVE_POSITION_THRESHOLD)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > STEELDIVE_POSITION_THRESHOLD)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
@@ -1368,84 +1368,84 @@ void SteelDrive::TimerHit()
         rc                       = updateTemperature();
         if (rc)
         {
-            if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
-                lastTemperature = TemperatureN[0].value;
+            if (fabs(lastTemperature - TemperatureNP[0].getValue()) >= 0.5)
+                lastTemperature = TemperatureNP[0].getValue();
         }
 
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.apply();
     }
 
-    if (FocusTimerNP.s == IPS_BUSY)
+    if (FocusTimerNP.getState() == IPS_BUSY)
     {
         float remaining = CalcTimeLeft(focusMoveStart, focusMoveRequest);
 
         if (sim)
         {
-            if (FocusMotionS[FOCUS_INWARD].s == ISS_ON)
+            if (FocusMotionSP[FOCUS_INWARD].getState() == ISS_ON)
             {
-                FocusAbsPosN[0].value -= FocusSpeedN[0].value;
-                if (FocusAbsPosN[0].value <= 0)
-                    FocusAbsPosN[0].value = 0;
-                simPosition = FocusAbsPosN[0].value;
+                FocusAbsPosNP[0].value -= FocusSpeedNP[0].getValue();
+                if (FocusAbsPosNP[0].value <= 0)
+                    FocusAbsPosNP[0].setValue(0);
+                simPosition = FocusAbsPosNP[0].getValue();
             }
             else
             {
-                FocusAbsPosN[0].value += FocusSpeedN[0].value;
-                if (FocusAbsPosN[0].value >= FocusAbsPosN[0].max)
-                    FocusAbsPosN[0].value = FocusAbsPosN[0].max;
-                simPosition = FocusAbsPosN[0].value;
+                FocusAbsPosNP[0].value += FocusSpeedNP[0].getValue();
+                if (FocusAbsPosNP[0].value >= FocusAbsPosNP[0].max)
+                    FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].max);
+                simPosition = FocusAbsPosNP[0].getValue();
             }
         }
 
         // If we exceed focus abs values, stop timer and motion
-        if (FocusAbsPosN[0].value <= 0 || FocusAbsPosN[0].value >= FocusAbsPosN[0].max)
+        if (FocusAbsPosNP[0].value <= 0 || FocusAbsPosNP[0].getValue() >= FocusAbsPosNP[0].max)
         {
             AbortFocuser();
 
-            if (FocusAbsPosN[0].value <= 0)
-                FocusAbsPosN[0].value = 0;
+            if (FocusAbsPosNP[0].value <= 0)
+                FocusAbsPosNP[0].setValue(0);
             else
-                FocusAbsPosN[0].value = FocusAbsPosN[0].max;
+                FocusAbsPosNP[0].setValue(FocusAbsPosNP[0].max);
 
-            FocusTimerN[0].value = 0;
-            FocusTimerNP.s       = IPS_IDLE;
+            FocusTimerNP[0].setValue(0);
+            FocusTimerNP.setState(IPS_IDLE);
         }
         else if (remaining <= 0)
         {
-            FocusTimerNP.s       = IPS_OK;
-            FocusTimerN[0].value = 0;
+            FocusTimerNP.setState(IPS_OK);
+            FocusTimerNP[0].setValue(0);
             AbortFocuser();
         }
         else
-            FocusTimerN[0].value = remaining * 1000.0;
+            FocusTimerNP[0].setValue(remaining * 1000.0);
 
-        IDSetNumber(&FocusTimerNP, nullptr);
+        FocusTimerNP.apply();
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (sim)
         {
-            if (FocusAbsPosN[0].value < targetPos)
+            if (FocusAbsPosNP[0].value < targetPos)
                 simPosition += 100;
             else
                 simPosition -= 100;
 
             if (fabs(simPosition - targetPos) < 100)
             {
-                FocusAbsPosN[0].value = targetPos;
-                simPosition           = FocusAbsPosN[0].value;
+                FocusAbsPosNP[0].setValue(targetPos);
+                simPosition           = FocusAbsPosNP[0].getValue();
             }
         }
 
         // Set it OK to within 5 steps
-        if (fabs(targetPos - FocusAbsPosN[0].value) < 5)
+        if (fabs(targetPos - FocusAbsPosNP[0].getValue()) < 5)
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             LOG_INFO("Focuser reached requested position.");
         }
     }
@@ -1472,16 +1472,16 @@ bool SteelDrive::AbortFocuser()
         return false;
     }
 
-    if (FocusRelPosNP.s == IPS_BUSY)
+    if (FocusRelPosNP.getState() == IPS_BUSY)
     {
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusRelPosNP, nullptr);
+        FocusRelPosNP.setState(IPS_IDLE);
+        FocusRelPosNP.apply();
     }
 
-    FocusTimerNP.s = IPS_IDLE;
-    FocusAbsPosNP.s = IPS_IDLE;
-    IDSetNumber(&FocusTimerNP, nullptr);
-    IDSetNumber(&FocusAbsPosNP, nullptr);
+    FocusTimerNP.setState(IPS_IDLE);
+    FocusAbsPosNP.setState(IPS_IDLE);
+    FocusTimerNP.apply();
+    FocusAbsPosNP.apply();
 
     return true;
 }
@@ -1513,11 +1513,11 @@ bool SteelDrive::saveConfigItems(FILE *fp)
 {
     INDI::Focuser::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &TemperatureSettingNP);
-    IUSaveConfigSwitch(fp, &TemperatureCompensateSP);
-    IUSaveConfigNumber(fp, &FocusSpeedNP);
-    IUSaveConfigNumber(fp, &AccelerationNP);
-    IUSaveConfigNumber(fp, &CustomSettingNP);
+    TemperatureSettingNP.save(fp);
+    TemperatureCompensateSP.save(fp);
+    FocusSpeedNP.save(fp);
+    AccelerationNP.save(fp);
+    CustomSettingNP.save(fp);
     IUSaveConfigSwitch(fp, &ModelSP);
 
     return saveFocuserConfig();
@@ -1561,11 +1561,11 @@ void SteelDrive::updateFocusMaxRange(double maxTrip, double gearRatio)
     double maxSteps = floor(maxTrip / gearRatio * 100.0);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min  = 0;
-    FocusRelPosN[0].max  = floor(maxSteps / 2.0);
-    FocusRelPosN[0].step = 100;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax(floor(maxSteps / 2.0));
+    FocusRelPosNP[0].setStep(100);
 
-    FocusAbsPosN[0].min  = 0;
-    FocusAbsPosN[0].max  = maxSteps;
-    FocusAbsPosN[0].step = 1000;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(maxSteps);
+    FocusAbsPosNP[0].setStep(1000);
 }

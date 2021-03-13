@@ -21,6 +21,10 @@
 #include "defaultdevice.h"
 #include "indirotatorinterface.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 namespace Connection
 {
 class Serial;
@@ -87,10 +91,8 @@ class Rotator : public DefaultDevice, public RotatorInterface
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();
 
-        INumber PresetN[3];
-        INumberVectorProperty PresetNP;
-        ISwitch PresetGotoS[3];
-        ISwitchVectorProperty PresetGotoSP;
+        INDI::PropertyNumber PresetNP {3};
+        INDI::PropertySwitch PresetGotoSP {3};
 
         Connection::Serial *serialConnection = nullptr;
         Connection::TCP *tcpConnection       = nullptr;

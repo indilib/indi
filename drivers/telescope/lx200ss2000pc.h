@@ -22,6 +22,9 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 class LX200SS2000PC : public LX200Generic
 {
   public:
@@ -57,8 +60,7 @@ class LX200SS2000PC : public LX200Generic
     int setSiteLongitude(int fd, double Long);
     int setSiteLatitude(int fd, double Long);
 
-    INumber SlewAccuracyN[2];
-    INumberVectorProperty SlewAccuracyNP;
+    INDI::PropertyNumber SlewAccuracyNP {2};
 
     static const int ShortTimeOut;
     static const int LongTimeOut;

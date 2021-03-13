@@ -22,6 +22,10 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 
 class LX200Pulsar2 : public LX200Generic
 {
@@ -75,92 +79,68 @@ class LX200Pulsar2 : public LX200Generic
 
 
     // Pier Side
-    ISwitch PierSideS[2];
-    ISwitchVectorProperty PierSideSP;
-	ISwitch PierSideToggleS[1];
-	ISwitchVectorProperty PierSideToggleSP;
+    INDI::PropertySwitch PierSideSP {2};
+	INDI::PropertySwitch PierSideToggleSP {1};
 
     // Tracking Rates
-    ISwitchVectorProperty TrackingRateIndSP;
-    ISwitch TrackingRateIndS[numPulsarTrackingRates];
+    INDI::PropertySwitch TrackingRateIndSP {numPulsarTrackingRates};
 
     // Guide Speed Indicator
-    INumberVectorProperty GuideSpeedIndNP;
-    INumber GuideSpeedIndN[1];
+    INDI::PropertyNumber GuideSpeedIndNP {1};
     // Center Speed Indicator
-    INumberVectorProperty CenterSpeedIndNP;
-    INumber CenterSpeedIndN[1];
+    INDI::PropertyNumber CenterSpeedIndNP {1};
     // Find Speed Indicator
-    INumberVectorProperty FindSpeedIndNP;
-    INumber FindSpeedIndN[1];
+    INDI::PropertyNumber FindSpeedIndNP {1};
     // Slew Speed Indicator
-    INumberVectorProperty SlewSpeedIndNP;
-    INumber SlewSpeedIndN[1];
+    INDI::PropertyNumber SlewSpeedIndNP {1};
     // GoTo Speed Indicator
-    INumberVectorProperty GoToSpeedIndNP;
-    INumber GoToSpeedIndN[1];
+    INDI::PropertyNumber GoToSpeedIndNP {1};
 
 	// Ramp
-	INumberVectorProperty RampNP;
-	INumber RampN[2];
+	INDI::PropertyNumber RampNP {2};
 
 	// Reduction
-	INumberVectorProperty ReductionNP;
-	INumber ReductionN[2];
+	INDI::PropertyNumber ReductionNP {2};
 
 	// Maingear
-	INumberVectorProperty MaingearNP;
-	INumber MaingearN[2];
+	INDI::PropertyNumber MaingearNP {2};
 
 	// Backlash
-	INumberVectorProperty BacklashNP;
-	INumber BacklashN[2];
+	INDI::PropertyNumber BacklashNP {2};
 
 	// Home Position
-	INumberVectorProperty HomePositionNP;
-	INumber HomePositionN[2];
+	INDI::PropertyNumber HomePositionNP {2};
 	
 	// SwapTubeDelay
-	INumberVectorProperty SwapTubeDelayNP;
-	INumber SwapTubeDelayN[1];
+	INDI::PropertyNumber SwapTubeDelayNP {1};
 
 	// Mount Type
-	ISwitchVectorProperty MountTypeSP;
-	ISwitch MountTypeS[3];
+	INDI::PropertySwitch MountTypeSP {3};
 
     // Periodic error correction on or off
-    ISwitchVectorProperty PeriodicErrorCorrectionSP;
-    ISwitch PeriodicErrorCorrectionS[2];
+    INDI::PropertySwitch PeriodicErrorCorrectionSP {2};
 
     // Pole crossing on or off
-    ISwitchVectorProperty PoleCrossingSP;
-    ISwitch PoleCrossingS[2];
+    INDI::PropertySwitch PoleCrossingSP {2};
 
     // Refraction correction on or off
-    ISwitchVectorProperty RefractionCorrectionSP;
-    ISwitch RefractionCorrectionS[2];
+    INDI::PropertySwitch RefractionCorrectionSP {2};
 
 	// Rotation RA
-	ISwitchVectorProperty RotationRASP;
-	ISwitch RotationRAS[2];
+	INDI::PropertySwitch RotationRASP {2};
 	// Rotation DEC
-	ISwitchVectorProperty RotationDecSP;
-	ISwitch RotationDecS[2];
+	INDI::PropertySwitch RotationDecSP {2};
 	
 	// User1 Rate
-	INumberVectorProperty UserRate1NP;
-	INumber UserRate1N[2];
+	INDI::PropertyNumber UserRate1NP {2};
 	
 
 	// Tracking Current
-	INumberVectorProperty TrackingCurrentNP;
-	INumber TrackingCurrentN[1]; // only one entry for both RA and Dec
+	INDI::PropertyNumber TrackingCurrentNP {1}; // only one entry for both RA and Dec
 	// Stop Current
-	INumberVectorProperty StopCurrentNP;
-	INumber StopCurrentN[1]; // only one entry for both RA and Dec
+	INDI::PropertyNumber StopCurrentNP {1}; // only one entry for both RA and Dec
 	// GoTo Current
-	INumberVectorProperty GoToCurrentNP;
-	INumber GoToCurrentN[1]; // only one entry for both RA and Dec
+	INDI::PropertyNumber GoToCurrentNP {1}; // only one entry for both RA and Dec
 
   private:
 

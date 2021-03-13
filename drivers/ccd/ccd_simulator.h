@@ -23,6 +23,11 @@
 #include "indiccd.h"
 #include "indifilterinterface.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 /**
  * @brief The CCDSim class provides an advanced simulator for a CCD that includes a dedicated on-board guide chip.
  *
@@ -199,15 +204,11 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         std::deque<std::string> m_AllFiles, m_RemainingFiles;
 
         //  And this lives in our simulator settings page
-        INumberVectorProperty SimulatorSettingsNP;
-        INumber SimulatorSettingsN[SIM_N];
-
-        ISwitchVectorProperty SimulateBayerSP;
-        ISwitch SimulateBayerS[2];
+        INDI::PropertyNumber SimulatorSettingsNP {SIM_N};
+        INDI::PropertySwitch SimulateBayerSP {2};
 
         //  We are going to snoop these from focuser
-        INumberVectorProperty FWHMNP;
-        INumber FWHMN[1];
+        INDI::PropertyNumber FWHMNP {1};
 
         // Focuser positions for focusing simulation
         // FocuserPosition[0] is the position where the scope is in focus
@@ -215,29 +216,20 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         // FocuserPosition[2] is the seeing (in arcsec)
         // We need to have these values here, since we cannot snoop it from the focuser (the focuser does not
         // publish these values)
-        INumberVectorProperty FocusSimulationNP;
-        INumber FocusSimulationN[3];
+        INDI::PropertyNumber FocusSimulationNP {3};
+        INDI::PropertyNumber EqPENP {2};
 
-        INumberVectorProperty EqPENP;
-        INumber EqPEN[2];
+        INDI::PropertySwitch CoolerSP {2};
 
-        ISwitch CoolerS[2];
-        ISwitchVectorProperty CoolerSP;
-
-        INumber GainN[1];
-        INumberVectorProperty GainNP;
+        INDI::PropertyNumber GainNP {1};
 
         INumber OffsetN[1];
         INumberVectorProperty OffsetNP;
 
-        IText DirectoryT[1] {};
-        ITextVectorProperty DirectoryTP;
+        INDI::PropertyText DirectoryTP {1};
 
-        ISwitch DirectoryS[2];
-        ISwitchVectorProperty DirectorySP;
-
-        ISwitchVectorProperty CrashSP;
-        ISwitch CrashS[1];
+        INDI::PropertySwitch DirectorySP {2};
+        INDI::PropertySwitch CrashSP {1};
 
         static const constexpr char* SIMULATOR_TAB = "Simulator Config";
 };

@@ -20,6 +20,10 @@
 
 #include "indifilterwheel.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
+
 #define VERSION    0
 #define SUBVERSION 2
 
@@ -104,24 +108,19 @@ class FilterIFW : public INDI::FilterWheel
     bool GetFirmware();
 
     // Filter Wheel ID
-    ITextVectorProperty WheelIDTP;
-    IText WheelIDT[1] {};
+    INDI::PropertyText WheelIDTP {1};
 
     // Home function
-    ISwitchVectorProperty HomeSP;
-    ISwitch HomeS[1];
+    INDI::PropertySwitch HomeSP {1};
 
     //Simulation, number of filter function
-    ISwitchVectorProperty FilterNbrSP;
-    ISwitch FilterNbrS[4];
+    INDI::PropertySwitch FilterNbrSP {4};
 
     // CharSet unrestricted for FilterNames
-    ISwitchVectorProperty CharSetSP;
-    ISwitch CharSetS[2];
+    INDI::PropertySwitch CharSetSP {2};
 
     // Firmware of teh IFW
-    ITextVectorProperty FirmwareTP;
-    IText FirmwareT[1] {};
+    INDI::PropertyText FirmwareTP {1};
 
     //Filter position in simulation mode
     int actualSimFilter { 1 };

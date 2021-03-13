@@ -5,6 +5,10 @@
 #include "indifocuser.h"
 #include <chrono>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class RBFOCUS : public INDI::Focuser
 {
     public:
@@ -73,12 +77,9 @@ class RBFOCUS : public INDI::Focuser
         bool isMoving();
         bool MaxPos();
         // Read Only Temperature Reporting
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
-        ISwitch focuserHoldS[2];
-        ISwitchVectorProperty focuserHoldSP;
-        ISwitch dirS[3];
-        ISwitchVectorProperty dirSP;
+        INDI::PropertyNumber TemperatureNP {1};
+        INDI::PropertySwitch focuserHoldSP {2};
+        INDI::PropertySwitch dirSP {3};
         double targetPos { 0 }, lastPos { 0 };
         double lastTemperature { 0 };
 

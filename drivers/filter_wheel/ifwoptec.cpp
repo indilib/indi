@@ -141,32 +141,32 @@ bool FilterIFW::initProperties()
     INDI::FilterWheel::initProperties();
 
     // Settings
-    IUFillText(&WheelIDT[0], "ID", "ID", "-");
-    IUFillTextVector(&WheelIDTP, WheelIDT, 1, getDeviceName(), "WHEEL_ID", "Wheel", FILTER_TAB, IP_RO, 60, IPS_IDLE);
+    WheelIDTP[0].fill("ID", "ID", "-");
+    WheelIDTP.fill(getDeviceName(), "WHEEL_ID", "Wheel", FILTER_TAB, IP_RO, 60, IPS_IDLE);
 
     // Command
-    IUFillSwitch(&HomeS[0], "HOME", "Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+    HomeSP[0].fill("HOME", "Home", ISS_OFF);
+    HomeSP.fill(getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Within simulation mode, provide possibilities to select the kind of filter wheel: 5 or 8 filters
-    IUFillSwitch(&FilterNbrS[0], "VAL5", "5", ISS_ON);
-    IUFillSwitch(&FilterNbrS[1], "VAL6", "6", ISS_OFF);
-    IUFillSwitch(&FilterNbrS[2], "VAL8", "8", ISS_OFF);
-    IUFillSwitch(&FilterNbrS[3], "VAL9", "9", ISS_OFF);
-    IUFillSwitchVector(&FilterNbrSP, FilterNbrS, 4, getDeviceName(), "FILTER_NBR", "Filter nbr", FILTER_TAB, IP_RW,
+    FilterNbrSP[0].fill("VAL5", "5", ISS_ON);
+    FilterNbrSP[1].fill("VAL6", "6", ISS_OFF);
+    FilterNbrSP[2].fill("VAL8", "8", ISS_OFF);
+    FilterNbrSP[3].fill("VAL9", "9", ISS_OFF);
+    FilterNbrSP.fill(getDeviceName(), "FILTER_NBR", "Filter nbr", FILTER_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // User could choice to unrestrict chars set to set the filternames if he accepts to have crazy display name on IFW box
     // Within simulation mode, provide possibilities to select the kind of filter wheel: 5 or 8 filters
-    IUFillSwitch(&CharSetS[0], "RES", "Restricted", ISS_ON);
-    IUFillSwitch(&CharSetS[1], "UNRES", "All", ISS_OFF);
-    IUFillSwitchVector(&CharSetSP, CharSetS, 2, getDeviceName(), "CHARSET", "Chars allowed", FILTER_TAB, IP_RW,
+    CharSetSP[0].fill("RES", "Restricted", ISS_ON);
+    CharSetSP[1].fill("UNRES", "All", ISS_OFF);
+    CharSetSP.fill(getDeviceName(), "CHARSET", "Chars allowed", FILTER_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // Firmware of the IFW
-    IUFillText(&FirmwareT[0], "FIRMWARE", "Firmware", "Unknown");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_ID", "IFW", FILTER_TAB, IP_RO, 60, IPS_IDLE);
+    FirmwareTP[0].fill("FIRMWARE", "Firmware", "Unknown");
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE_ID", "IFW", FILTER_TAB, IP_RO, 60, IPS_IDLE);
 
 
     addAuxControls();
@@ -183,14 +183,14 @@ bool FilterIFW::updateProperties()
    INDI::FilterWheel::updateProperties();
 	 if (isConnected())
     {
-        defineProperty(&HomeSP);
-        defineProperty(&FirmwareTP);
-        defineProperty(&WheelIDTP); // ID of the wheel first in Filter tab page
+        defineProperty(HomeSP);
+        defineProperty(FirmwareTP);
+        defineProperty(WheelIDTP); // ID of the wheel first in Filter tab page
         // Then the button only for Simulation to select the number of filter of the Wheel (5 or 8)
         if (isSimulation())
-            defineProperty(&FilterNbrSP);
-        defineProperty(&CharSetSP);
-        defineProperty(&FilterSlotNP);
+            defineProperty(FilterNbrSP);
+        defineProperty(CharSetSP);
+        defineProperty(FilterSlotNP);
         controller->updateProperties();
 
         GetFirmware(); // Try to get Firmware version of the IFW. NOt all Firmware support this function
@@ -198,12 +198,12 @@ bool FilterIFW::updateProperties()
     }
     else
     {
-        deleteProperty(HomeSP.name);
-        deleteProperty(FirmwareTP.name);
-        deleteProperty(WheelIDTP.name);
-        deleteProperty(CharSetSP.name);
-        deleteProperty(FilterNbrSP.name);
-        deleteProperty(FilterSlotNP.name);
+        deleteProperty(HomeSP.getName());
+        deleteProperty(FirmwareTP.getName());
+        deleteProperty(WheelIDTP.getName());
+        deleteProperty(CharSetSP.getName());
+        deleteProperty(FilterNbrSP.getName());
+        deleteProperty(FilterSlotNP.getName());
         deleteProperty(FilterNameTP->name);
         controller->updateProperties();
     }
@@ -356,7 +356,7 @@ bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char
 
             bool match = true;
             //Check only if user allowed chars restriction
-            if (CharSetS[0].s == ISS_ON)
+            if (CharSetSP[0].getState() == ISS_ON)
             {
                 for (int i = 0; i < n; i++)
                 {
@@ -397,12 +397,12 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(HomeSP.name, name) == 0)
+        if (HomeSP.isNameMatch(name))
         {
             bool result = true;
             // User request the IWF reset (Home procedure will read the Wheel ID, load from EEProm the filters names and goes to filter N°1
-            IUUpdateSwitch(&HomeSP, states, names, n);
-            IUResetSwitch(&HomeSP);
+            HomeSP.update(states, names, n);
+            HomeSP.reset();
             LOG_INFO("Executing Home command...");
 
             FilterNameTP->s = IPS_BUSY;
@@ -410,7 +410,7 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             if (!moveHome())
             {
-                HomeSP.s = IPS_ALERT;
+                HomeSP.setState(IPS_ALERT);
                 result   = false;
             }
             else
@@ -419,12 +419,12 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                 if (!(GetFilterNames() && GetFilterPos() != 0))
                 {
-                    HomeSP.s = IPS_ALERT;
+                    HomeSP.setState(IPS_ALERT);
                     result   = false;
                 }
             }
 
-            IDSetSwitch(&HomeSP, nullptr);
+            HomeSP.apply();
             if (!result)
             {
                 LOGF_INFO("%s() failed to get information", __FUNCTION__);
@@ -435,54 +435,54 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             return true;
         }
 
-        if (strcmp(FilterNbrSP.name, name) == 0)
+        if (FilterNbrSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&FilterNbrSP, states, names, n);
+            FilterNbrSP.update(states, names, n);
 
             // Is simulation active, User can change from 5 positions wheel to 6, 8 or 9 ones
             // Check if selection is different from active one
 
-            if ((FilterNbrS[0].s == ISS_ON) & (FilterSlotN[0].max != 5))
+            if ((FilterNbrSP[0].getState() == ISS_ON) & (FilterSlotNP[0].max != 5))
             {
                 strncpy(filterSim, filterSim5, sizeof(filterSim));
-                FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
+                FilterNbrSP.setState((GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT);
             }
-            else if ((FilterNbrS[1].s == ISS_ON) & (FilterSlotN[0].max != 6))
+            else if ((FilterNbrSP[1].getState() == ISS_ON) & (FilterSlotNP[0].max != 6))
             {
                 strncpy(filterSim, filterSim6, sizeof(filterSim));
-                FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
+                FilterNbrSP.setState((GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT);
             }
-            else if ((FilterNbrS[2].s == ISS_ON) & (FilterSlotN[0].max != 8))
+            else if ((FilterNbrSP[2].getState() == ISS_ON) & (FilterSlotNP[0].max != 8))
             {
                 strncpy(filterSim, filterSim8, sizeof(filterSim));
-                FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
+                FilterNbrSP.setState((GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT);
             }
-            else if ((FilterNbrS[3].s == ISS_ON) & (FilterSlotN[0].max != 9))
+            else if ((FilterNbrSP[3].getState() == ISS_ON) & (FilterSlotNP[0].max != 9))
             {
                 strncpy(filterSim, filterSim9, sizeof(filterSim));
-                FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
+                FilterNbrSP.setState((GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT);
             }
             else
-                FilterNbrSP.s = IPS_OK;
+                FilterNbrSP.setState(IPS_OK);
 
-            if (FilterNbrSP.s == IPS_ALERT)
+            if (FilterNbrSP.getState() == IPS_ALERT)
             {
-                IDSetSwitch(&FilterNbrSP, "%s() failed to change number of filters", __FUNCTION__);
+                FilterNbrSP.apply("%s() failed to change number of filters", __FUNCTION__);
                 return false;
             }
             else
-                IDSetSwitch(&FilterNbrSP, nullptr);
+                FilterNbrSP.apply();
 
             return true;
         }
 
         // Set switch from user selection to allowed use of all chars or restricted to display IFW
         // 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ=.#/-%
-        if (strcmp(CharSetSP.name, name) == 0)
+        if (CharSetSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&CharSetSP, states, names, n);
-            CharSetSP.s = IPS_OK;
-            IDSetSwitch(&CharSetSP, nullptr);
+            CharSetSP.update(states, names, n);
+            CharSetSP.setState(IPS_OK);
+            CharSetSP.apply();
             return true;
         }
     }
@@ -500,11 +500,11 @@ void FilterIFW::simulationTriggered(bool enable)
     {
         if (isConnected())
         {
-            defineProperty(&FilterNbrSP);
+            defineProperty(FilterNbrSP);
         }
     }
     else
-        deleteProperty(FilterNbrSP.name);
+        deleteProperty(FilterNbrSP.getName());
 }
 
 /************************************************************************************
@@ -528,8 +528,8 @@ bool FilterIFW::SelectFilter(int f)
     memset(response, 0, sizeof(response));
     snprintf(cmd, 32, "%s%d", "WGOTO", f);
 
-    FilterSlotNP.s = IPS_BUSY;
-    IDSetNumber(&FilterSlotNP, "*** Moving to filter n° %d ***", f);
+    FilterSlotNP.setState(IPS_BUSY);
+    FilterSlotNP.apply("*** Moving to filter n° %d ***", f);
 
     if (!WriteTTY(cmd))
     {
@@ -541,7 +541,7 @@ bool FilterIFW::SelectFilter(int f)
         if (isSimulation())
         {
             // Time depend of rotation direction. Goes via shortest way
-            int maxFilter = FilterSlotN[0].max;
+            int maxFilter = FilterSlotNP[0].getMax();
             int way1, way2;
             if (f > actualSimFilter)
             {
@@ -582,16 +582,16 @@ bool FilterIFW::SelectFilter(int f)
 
     if (!result)
     {
-        FilterSlotNP.s = IPS_ALERT;
-        IDSetNumber(&FilterSlotNP, "*** UNABLE TO SELECT THE FILTER ***");
+        FilterSlotNP.setState(IPS_ALERT);
+        FilterSlotNP.apply("*** UNABLE TO SELECT THE FILTER ***");
         return false;
     }
 
     // As to be called when filter has moved to new position:
     SelectFilterDone(GetFilterPos());
 
-    FilterSlotNP.s = IPS_OK;
-    IDSetNumber(&FilterSlotNP, "Selected filter position reached");
+    FilterSlotNP.setState(IPS_OK);
+    FilterSlotNP.apply("Selected filter position reached");
     return true;
 }
 
@@ -672,11 +672,11 @@ bool FilterIFW::GetFilterNames()
 
             LOG_DEBUG("Redo filters name list");
             // Set new max value on the filter_slot property
-            FilterSlotN[0].max = maxFilter;
+            FilterSlotNP[0].setMax(maxFilter);
             if (isSimulation())
-                FilterSlotN[0].value = actualSimFilter = 1;
-            IUUpdateMinMax(&FilterSlotNP);
-            IDSetNumber(&FilterSlotNP, nullptr);
+                FilterSlotNP[0].setValue(actualSimFilter = 1);
+            FilterSlotNP.updateMinMax();
+            FilterSlotNP.apply();
 
             deleteProperty(FilterNameTP->name);
 
@@ -697,7 +697,7 @@ bool FilterIFW::GetFilterNames()
                 IUFillText(&FilterNameT[i], filterName, filterLabel, filterNameIFW[i]);
             }
 
-            IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filters", FilterSlotNP.group,
+            IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filters", FilterSlotNP.getGroupName(),
                              IP_RW, 0, IPS_OK);
             defineProperty(FilterNameTP);
 
@@ -743,15 +743,15 @@ bool FilterIFW::SetFilterNames()
     memset(response, 0, sizeof(response));
 
     FilterNameTP->s = IPS_BUSY;
-    FilterSlotNP.s = IPS_BUSY;
-    WheelIDTP.s = IPS_BUSY;
+    FilterSlotNP.setState(IPS_BUSY);
+    WheelIDTP.setState(IPS_BUSY);
     IDSetText(FilterNameTP, "*** Saving filters name to IFW... ***");
-    IDSetNumber(&FilterSlotNP, nullptr);
-    IDSetText(&WheelIDTP, nullptr);
+    FilterSlotNP.apply();
+    WheelIDTP.apply();
 
-    snprintf(cmd, 8, "WLOAD%s*", WheelIDT[0].text);
+    snprintf(cmd, 8, "WLOAD%s*", WheelIDTP[0].getText());
 
-    for (int i = 0; i < FilterSlotN[0].max; i++)
+    for (int i = 0; i < FilterSlotNP[0].getMax(); i++)
     {
         // Prepare string in tempo with blank space at right to complete to 8 chars for each filter name
         memset(tempo, ' ', sizeof(tempo));
@@ -840,8 +840,8 @@ bool FilterIFW::GetWheelID()
 
     memset(response, 0, sizeof(response));
 
-    WheelIDTP.s = IPS_BUSY;
-    IDSetText(&WheelIDTP, nullptr);
+    WheelIDTP.setState(IPS_BUSY);
+    WheelIDTP.apply();
 
     if (!WriteTTY((char *)"WIDENT"))
     {
@@ -864,14 +864,14 @@ bool FilterIFW::GetWheelID()
     }
     if (!result)
     {
-        WheelIDTP.s = IPS_ALERT;
-        IDSetText(&WheelIDTP, "*** UNABLE TO GET WHEEL ID ***");
+        WheelIDTP.setState(IPS_ALERT);
+        WheelIDTP.apply("*** UNABLE TO GET WHEEL ID ***");
         return false;
     }
 
-    WheelIDTP.s = IPS_OK;
-    IUSaveText(&WheelIDT[0], response);
-    IDSetText(&WheelIDTP, "IFW wheel active is %s", response);
+    WheelIDTP.setState(IPS_OK);
+    WheelIDTP[0].setText(response);
+    WheelIDTP.apply("IFW wheel active is %s", response);
 
     return true;
 }
@@ -888,8 +888,8 @@ int FilterIFW::GetFilterPos()
 
     memset(response, 0, sizeof(response));
 
-    FilterSlotNP.s = IPS_BUSY;
-    IDSetNumber(&FilterSlotNP, nullptr);
+    FilterSlotNP.setState(IPS_BUSY);
+    FilterSlotNP.apply();
 
     if (!WriteTTY((char *)"WFILTR"))
     {
@@ -910,15 +910,15 @@ int FilterIFW::GetFilterPos()
 
     if (result == -1)
     {
-        FilterSlotNP.s = IPS_ALERT;
-        IDSetNumber(&FilterSlotNP, "*** UNABLE TO GET ACTIVE FILTER ***");
+        FilterSlotNP.setState(IPS_ALERT);
+        FilterSlotNP.apply("*** UNABLE TO GET ACTIVE FILTER ***");
         return result;
     }
 
     result               = atoi(response);
-    FilterSlotN[0].value = result;
-    FilterSlotNP.s       = IPS_OK;
-    IDSetNumber(&FilterSlotNP, "IFW filter active is n° %s -> %s", response, FilterNameT[result - 1].text);
+    FilterSlotNP[0].setValue(result);
+    FilterSlotNP.setState(IPS_OK);
+    FilterSlotNP.apply("IFW filter active is n° %s -> %s", response, FilterNameT[result - 1].text);
     return result;
 }
 
@@ -933,12 +933,12 @@ bool FilterIFW::moveHome()
 
     memset(response, 0, sizeof(response));
 
-    HomeSP.s = IPS_BUSY;
-    WheelIDTP.s = IPS_BUSY;
-    FilterSlotNP.s = IPS_BUSY;
-    IDSetSwitch(&HomeSP, "*** Initialisation of the IFW. Please wait... ***");
-    IDSetText(&WheelIDTP, nullptr);
-    IDSetNumber(&FilterSlotNP, nullptr);
+    HomeSP.setState(IPS_BUSY);
+    WheelIDTP.setState(IPS_BUSY);
+    FilterSlotNP.setState(IPS_BUSY);
+    HomeSP.apply("*** Initialisation of the IFW. Please wait... ***");
+    WheelIDTP.apply();
+    FilterSlotNP.apply();
 
     if (!WriteTTY((char *)"WHOME"))
     {
@@ -968,15 +968,15 @@ bool FilterIFW::moveHome()
 
     if (!result || !GetWheelID() || !GetFilterNames() || (GetFilterPos() <= 0))
     {
-        HomeSP.s = IPS_ALERT;
-        WheelIDTP.s = IPS_ALERT;
-        IDSetSwitch(&HomeSP, "*** INITIALISATION FAILED ***");
+        HomeSP.setState(IPS_ALERT);
+        WheelIDTP.setState(IPS_ALERT);
+        HomeSP.apply("*** INITIALISATION FAILED ***");
         return false;
     }
 
-    HomeSP.s = IPS_OK;
-    WheelIDTP.s = IPS_OK;
-    IDSetSwitch(&HomeSP, "IFW ready");
+    HomeSP.setState(IPS_OK);
+    WheelIDTP.setState(IPS_OK);
+    HomeSP.apply("IFW ready");
     return true;
 }
 
@@ -991,8 +991,8 @@ bool FilterIFW::GetFirmware()
 
     memset(response, 0, sizeof(response));
 
-    FirmwareTP.s = IPS_BUSY;
-    IDSetText(&FirmwareTP, nullptr);
+    FirmwareTP.setState(IPS_BUSY);
+    FirmwareTP.apply();
 
     if (!WriteTTY((char *)"WVAAAA"))
     {
@@ -1015,8 +1015,8 @@ bool FilterIFW::GetFirmware()
     }
     if (!result)
     {
-        FirmwareTP.s = IPS_ALERT;
-        IDSetText(&FirmwareTP, "*** UNABLE TO GET FIRMWARE ***");
+        FirmwareTP.setState(IPS_ALERT);
+        FirmwareTP.apply("*** UNABLE TO GET FIRMWARE ***");
         return false;
     }
 
@@ -1032,9 +1032,9 @@ bool FilterIFW::GetFirmware()
         }
     }
 
-    FirmwareTP.s = IPS_OK;
-    IUSaveText(&FirmwareT[0], p);
-    IDSetText(&FirmwareTP, "IFW Firmware is %s", response);
+    FirmwareTP.setState(IPS_OK);
+    FirmwareTP[0].setText(p);
+    FirmwareTP.apply("IFW Firmware is %s", response);
 
     return true;
 }
@@ -1046,8 +1046,8 @@ bool FilterIFW::saveConfigItems(FILE *fp)
 {
     INDI::FilterWheel::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &CharSetSP);
-    IUSaveConfigSwitch(fp, &FilterNbrSP);
+    CharSetSP.save(fp);
+    FilterNbrSP.save(fp);
 
     return true;
 }

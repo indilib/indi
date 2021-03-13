@@ -27,6 +27,10 @@
 
 #include <cstdint>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class Lakeside : public INDI::Focuser
 {
     public:
@@ -104,53 +108,39 @@ class Lakeside : public INDI::Focuser
 
         void hexDump(char * buf, const char * data, int size);
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
-        INumber TemperatureKN[1];
-        INumberVectorProperty TemperatureKNP;
+        INDI::PropertyNumber TemperatureKNP {1};
 
-        //    ISwitch MoveDirectionS[2];
-        //    ISwitchVectorProperty MoveDirectionSP;
+        //    INDI::PropertySwitch MoveDirectionSP {2};
+        //
 
-        INumber StepSizeN[1];
-        INumberVectorProperty StepSizeNP;
+        INDI::PropertyNumber StepSizeNP {1};
 
-        //    INumber BacklashN[1];
-        //    INumberVectorProperty BacklashNP;
+        //    INDI::PropertyNumber BacklashNP {1};
+        //
 
-        INumber MaxTravelN[1];
-        INumberVectorProperty MaxTravelNP;
+        INDI::PropertyNumber MaxTravelNP {1};
 
-        ISwitch TemperatureTrackingS[2];
-        ISwitchVectorProperty TemperatureTrackingSP;
+        INDI::PropertySwitch TemperatureTrackingSP {2};
 
-        ISwitch ActiveTemperatureSlopeS[2];
-        ISwitchVectorProperty ActiveTemperatureSlopeSP;
+        INDI::PropertySwitch ActiveTemperatureSlopeSP {2};
 
-        INumber Slope1IncN[1];
-        INumberVectorProperty Slope1IncNP;
+        INDI::PropertyNumber Slope1IncNP {1};
 
-        ISwitch Slope1DirS[2];
-        ISwitchVectorProperty Slope1DirSP;
+        INDI::PropertySwitch Slope1DirSP {2};
 
-        INumber Slope1DeadbandN[1];
-        INumberVectorProperty Slope1DeadbandNP;
+        INDI::PropertyNumber Slope1DeadbandNP {1};
 
-        INumber Slope1PeriodN[1];
-        INumberVectorProperty Slope1PeriodNP;
+        INDI::PropertyNumber Slope1PeriodNP {1};
 
-        INumber Slope2IncN[1];
-        INumberVectorProperty Slope2IncNP;
+        INDI::PropertyNumber Slope2IncNP {1};
 
-        ISwitch Slope2DirS[2];
-        ISwitchVectorProperty Slope2DirSP;
+        INDI::PropertySwitch Slope2DirSP {2};
 
-        INumber Slope2DeadbandN[1];
-        INumberVectorProperty Slope2DeadbandNP;
+        INDI::PropertyNumber Slope2DeadbandNP {1};
 
-        INumber Slope2PeriodN[1];
-        INumberVectorProperty Slope2PeriodNP;
+        INDI::PropertyNumber Slope2PeriodNP {1};
 
         static constexpr const char *SETTINGS_TAB { "Settings" };
         static constexpr const double TEMPERATURE_THRESHOLD { 0.05 };

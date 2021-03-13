@@ -26,6 +26,9 @@
 
 #include "defaultdevice.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 class SQM : public INDI::DefaultDevice
 {
     public:
@@ -56,8 +59,7 @@ class SQM : public INDI::DefaultDevice
         bool getDeviceInfo();
 
         // Readings
-        INumberVectorProperty AverageReadingNP;
-        INumber AverageReadingN[5];
+        INDI::PropertyNumber AverageReadingNP {5};
         enum
         {
             SKY_BRIGHTNESS,
@@ -68,8 +70,7 @@ class SQM : public INDI::DefaultDevice
         };
 
         // Device Information
-        INumberVectorProperty UnitInfoNP;
-        INumber UnitInfoN[4];
+        INDI::PropertyNumber UnitInfoNP {4};
         enum
         {
             UNIT_PROTOCOL,

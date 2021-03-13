@@ -31,6 +31,10 @@
 #include "indifocuserinterface.h"
 #include "inditelescope.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, public INDI::FocuserInterface
 {
     public:
@@ -179,29 +183,24 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
         int MaxReticleFlashRate {0};
 
         /* Telescope Alignment Mode */
-        ISwitchVectorProperty AlignmentSP;
-        ISwitch AlignmentS[3];
+        INDI::PropertySwitch AlignmentSP {3};
 
         /* Tracking Frequency */
-        INumberVectorProperty TrackFreqNP;
-        INumber TrackFreqN[1];
+        INDI::PropertyNumber TrackFreqNP {1};
 
         /* Use pulse-guide commands */
-        ISwitchVectorProperty UsePulseCmdSP;
-        ISwitch UsePulseCmdS[2];
+        INDI::PropertySwitch UsePulseCmdSP {2};
         bool usePulseCommand { false };
 
         /* Site Management */
-        ISwitchVectorProperty SiteSP;
-        ISwitch SiteS[4];
+        INDI::PropertySwitch SiteSP {4};
 
         /* Site Name */
         ITextVectorProperty SiteNameTP;
         IText SiteNameT[1] {};
 
         /* Focus Mode */
-        ISwitchVectorProperty FocusModeSP;
-        ISwitch FocusModeS[3];
+        INDI::PropertySwitch FocusModeSP {3};
 
         uint32_t genericCapability {0};
 };

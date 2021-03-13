@@ -130,12 +130,12 @@ bool IOptronV3::initProperties()
     SlewRateS[4].s = ISS_ON;
 
     /* Firmware */
-    IUFillText(&FirmwareT[FW_MODEL], "Model", "", nullptr);
-    IUFillText(&FirmwareT[FW_BOARD], "Board", "", nullptr);
-    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "", nullptr);
-    IUFillText(&FirmwareT[FW_RA], "RA", "", nullptr);
-    IUFillText(&FirmwareT[FW_DEC], "DEC", "", nullptr);
-    IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
+    FirmwareTP[FW_MODEL].fill("Model", "", nullptr);
+    FirmwareTP[FW_BOARD].fill("Board", "", nullptr);
+    FirmwareTP[FW_CONTROLLER].fill("Controller", "", nullptr);
+    FirmwareTP[FW_RA].fill("RA", "", nullptr);
+    FirmwareTP[FW_DEC].fill("DEC", "", nullptr);
+    FirmwareTP.fill(getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
     /* Tracking Mode */
@@ -146,70 +146,70 @@ bool IOptronV3::initProperties()
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
     /* GPS Status */
-    IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
-    IUFillSwitch(&GPSStatusS[GPS_ON], "On", "", ISS_OFF);
-    IUFillSwitch(&GPSStatusS[GPS_DATA_OK], "Data OK", "", ISS_OFF);
-    IUFillSwitchVector(&GPSStatusSP, GPSStatusS, 3, getDeviceName(), "GPS_STATUS", "GPS", MOUNTINFO_TAB, IP_RO,
+    GPSStatusSP[GPS_OFF].fill("Off", "", ISS_ON);
+    GPSStatusSP[GPS_ON].fill("On", "", ISS_OFF);
+    GPSStatusSP[GPS_DATA_OK].fill("Data OK", "", ISS_OFF);
+    GPSStatusSP.fill(getDeviceName(), "GPS_STATUS", "GPS", MOUNTINFO_TAB, IP_RO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Time Source */
-    IUFillSwitch(&TimeSourceS[TS_RS232], "RS232", "", ISS_ON);
-    IUFillSwitch(&TimeSourceS[TS_CONTROLLER], "Controller", "", ISS_OFF);
-    IUFillSwitch(&TimeSourceS[TS_GPS], "GPS", "", ISS_OFF);
-    IUFillSwitchVector(&TimeSourceSP, TimeSourceS, 3, getDeviceName(), "TIME_SOURCE", "Time Source", MOUNTINFO_TAB,
+    TimeSourceSP[TS_RS232].fill("RS232", "", ISS_ON);
+    TimeSourceSP[TS_CONTROLLER].fill("Controller", "", ISS_OFF);
+    TimeSourceSP[TS_GPS].fill("GPS", "", ISS_OFF);
+    TimeSourceSP.fill(getDeviceName(), "TIME_SOURCE", "Time Source", MOUNTINFO_TAB,
                        IP_RO, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Hemisphere */
-    IUFillSwitch(&HemisphereS[HEMI_SOUTH], "South", "", ISS_OFF);
-    IUFillSwitch(&HemisphereS[HEMI_NORTH], "North", "", ISS_ON);
-    IUFillSwitchVector(&HemisphereSP, HemisphereS, 2, getDeviceName(), "HEMISPHERE", "Hemisphere", MOUNTINFO_TAB, IP_RO,
+    HemisphereSP[HEMI_SOUTH].fill("South", "", ISS_OFF);
+    HemisphereSP[HEMI_NORTH].fill("North", "", ISS_ON);
+    HemisphereSP.fill(getDeviceName(), "HEMISPHERE", "Hemisphere", MOUNTINFO_TAB, IP_RO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Home */
-    IUFillSwitch(&HomeS[IOP_FIND_HOME], "FindHome", "Find Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IOP_SET_HOME], "SetCurrentAsHome", "Set current as Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IOP_GOTO_HOME], "GoToHome", "Go to Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+    HomeSP[IOP_FIND_HOME].fill("FindHome", "Find Home", ISS_OFF);
+    HomeSP[IOP_SET_HOME].fill("SetCurrentAsHome", "Set current as Home", ISS_OFF);
+    HomeSP[IOP_GOTO_HOME].fill("GoToHome", "Go to Home", ISS_OFF);
+    HomeSP.fill(getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     /* v3.0 Create PEC Training switches */
     // PEC Training
-    IUFillSwitch(&PECTrainingS[0], "PEC_Recording", "Record", ISS_OFF);
-    IUFillSwitch(&PECTrainingS[1], "PEC_Status", "Status", ISS_OFF);
-    IUFillSwitchVector(&PECTrainingSP, PECTrainingS, 2, getDeviceName(), "PEC_TRAINING", "Training", MOTION_TAB, IP_RW,
+    PECTrainingSP[0].fill("PEC_Recording", "Record", ISS_OFF);
+    PECTrainingSP[1].fill("PEC_Status", "Status", ISS_OFF);
+    PECTrainingSP.fill(getDeviceName(), "PEC_TRAINING", "Training", MOTION_TAB, IP_RW,
                        ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Create PEC Training Information */
-    IUFillText(&PECInfoT[0], "PEC_INFO", "Status", "");
-    IUFillTextVector(&PECInfoTP, PECInfoT, 1, getDeviceName(), "PEC_INFOS", "Data", MOTION_TAB,
+    PECInfoTP[0].fill("PEC_INFO", "Status", "");
+    PECInfoTP.fill(getDeviceName(), "PEC_INFOS", "Data", MOTION_TAB,
                      IP_RO, 60, IPS_IDLE);
     // End Mod */
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[0], "RA_GUIDE_RATE", "x Sidereal", "%g", 0.01, 0.9, 0.1, 0.5);
-    IUFillNumber(&GuideRateN[1], "DE_GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.99, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+    GuideRateNP[0].fill("RA_GUIDE_RATE", "x Sidereal", "%g", 0.01, 0.9, 0.1, 0.5);
+    GuideRateNP[1].fill("DE_GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.99, 0.1, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
 
     /* Slew Mode. Normal vs Counter Weight up */
-    IUFillSwitch(&SlewModeS[IOP_CW_NORMAL], "Normal", "Normal", ISS_ON);
-    IUFillSwitch(&SlewModeS[IOP_CW_UP], "Counterweight UP", "Counterweight up", ISS_OFF);
-    IUFillSwitchVector(&SlewModeSP, SlewModeS, 2, getDeviceName(), "Slew Type", "Slew Type", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+    SlewModeSP[IOP_CW_NORMAL].fill("Normal", "Normal", ISS_ON);
+    SlewModeSP[IOP_CW_UP].fill("Counterweight UP", "Counterweight up", ISS_OFF);
+    SlewModeSP.fill(getDeviceName(), "Slew Type", "Slew Type", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     /* Daylight Savings */
-    IUFillSwitch(&DaylightS[0], "ON", "ON", ISS_OFF);
-    IUFillSwitch(&DaylightS[1], "OFF", "OFF", ISS_ON);
-    IUFillSwitchVector(&DaylightSP, DaylightS, 2, getDeviceName(), "DaylightSaving", "Daylight Savings", SITE_TAB, IP_RW,
+    DaylightSP[0].fill("ON", "ON", ISS_OFF);
+    DaylightSP[1].fill("OFF", "OFF", ISS_ON);
+    DaylightSP.fill(getDeviceName(), "DaylightSaving", "Daylight Savings", SITE_TAB, IP_RW,
                        ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     /* Counter Weight State */
-    IUFillSwitch(&CWStateS[IOP_CW_NORMAL], "Normal", "Normal", ISS_ON);
-    IUFillSwitch(&CWStateS[IOP_CW_UP], "Up", "Up", ISS_OFF);
-    IUFillSwitchVector(&CWStateSP, CWStateS, 2, getDeviceName(), "CWState", "Counter weights", MOTION_TAB, IP_RO, ISR_1OFMANY,
+    CWStateSP[IOP_CW_NORMAL].fill("Normal", "Normal", ISS_ON);
+    CWStateSP[IOP_CW_UP].fill("Up", "Up", ISS_OFF);
+    CWStateSP.fill(getDeviceName(), "CWState", "Counter weights", MOTION_TAB, IP_RO, ISR_1OFMANY,
                        0,
                        IPS_IDLE);
 
@@ -252,47 +252,47 @@ bool IOptronV3::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&HomeSP);
+        defineProperty(HomeSP);
 
         /* v3.0 Create PEC switches */
-        defineProperty(&PECTrainingSP);
-        defineProperty(&PECInfoTP);
+        defineProperty(PECTrainingSP);
+        defineProperty(PECInfoTP);
         // End Mod */
 
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(&GuideRateNP);
+        defineProperty(GuideRateNP);
 
-        defineProperty(&FirmwareTP);
-        defineProperty(&GPSStatusSP);
-        defineProperty(&TimeSourceSP);
-        defineProperty(&HemisphereSP);
-        defineProperty(&SlewModeSP);
-        defineProperty(&DaylightSP);
-        defineProperty(&CWStateSP);
+        defineProperty(FirmwareTP);
+        defineProperty(GPSStatusSP);
+        defineProperty(TimeSourceSP);
+        defineProperty(HemisphereSP);
+        defineProperty(SlewModeSP);
+        defineProperty(DaylightSP);
+        defineProperty(CWStateSP);
 
         getStartupData();
     }
     else
     {
-        deleteProperty(HomeSP.name);
+        deleteProperty(HomeSP.getName());
 
         /* v3.0 Delete PEC switches */
-        deleteProperty(PECTrainingSP.name);
-        deleteProperty(PECInfoTP.name);
+        deleteProperty(PECTrainingSP.getName());
+        deleteProperty(PECInfoTP.getName());
         // End Mod*/
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP.name);
+        deleteProperty(GuideRateNP.getName());
 
-        deleteProperty(FirmwareTP.name);
-        deleteProperty(GPSStatusSP.name);
-        deleteProperty(TimeSourceSP.name);
-        deleteProperty(HemisphereSP.name);
-        deleteProperty(SlewModeSP.name);
-        deleteProperty(DaylightSP.name);
-        deleteProperty(CWStateSP.name);
+        deleteProperty(FirmwareTP.getName());
+        deleteProperty(GPSStatusSP.getName());
+        deleteProperty(TimeSourceSP.getName());
+        deleteProperty(HemisphereSP.getName());
+        deleteProperty(SlewModeSP.getName());
+        deleteProperty(DaylightSP.getName());
+        deleteProperty(CWStateSP.getName());
     }
 
     return true;
@@ -303,23 +303,23 @@ void IOptronV3::getStartupData()
     LOG_DEBUG("Getting firmware data...");
     if (driver->getFirmwareInfo(&firmwareInfo))
     {
-        IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
-        IUSaveText(&FirmwareT[1], firmwareInfo.MainBoardFirmware.c_str());
-        IUSaveText(&FirmwareT[2], firmwareInfo.ControllerFirmware.c_str());
-        IUSaveText(&FirmwareT[3], firmwareInfo.RAFirmware.c_str());
-        IUSaveText(&FirmwareT[4], firmwareInfo.DEFirmware.c_str());
+        FirmwareTP[0].setText(firmwareInfo.Model);
+        FirmwareTP[1].setText(firmwareInfo.MainBoardFirmware);
+        FirmwareTP[2].setText(firmwareInfo.ControllerFirmware);
+        FirmwareTP[3].setText(firmwareInfo.RAFirmware);
+        FirmwareTP[4].setText(firmwareInfo.DEFirmware);
 
-        FirmwareTP.s = IPS_OK;
-        IDSetText(&FirmwareTP, nullptr);
+        FirmwareTP.setState(IPS_OK);
+        FirmwareTP.apply();
     }
 
     LOG_DEBUG("Getting guiding rate...");
     double RARate = 0, DERate = 0;
     if (driver->getGuideRate(&RARate, &DERate))
     {
-        GuideRateN[RA_AXIS].value = RARate;
-        GuideRateN[DEC_AXIS].value = DERate;
-        IDSetNumber(&GuideRateNP, nullptr);
+        GuideRateNP[RA_AXIS].setValue(RARate);
+        GuideRateNP[DEC_AXIS].setValue(DERate);
+        GuideRateNP.apply();
     }
 
     int utcOffsetMinutes = 0;
@@ -335,39 +335,39 @@ void IOptronV3::getStartupData()
         struct tm *utc;
         utc = gmtime(&utc_time);
         strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
-        IUSaveText(&TimeT[0], ts);
+        TimeTP[0].setText(ts);
         LOGF_INFO("Mount UTC: %s", ts);
 
         // UTC Offset
         char offset[8] = {0};
         snprintf(offset, 8, "%.2f", utcOffsetMinutes / 60.0);
-        IUSaveText(&TimeT[1], offset);
+        TimeTP[1].setText(offset);
         LOGF_INFO("Mount UTC Offset: %s", offset);
 
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
 
         LOGF_INFO("Mount Daylight Savings: %s", dayLightSavings ? "ON" : "OFF");
-        DaylightS[0].s = dayLightSavings ? ISS_ON : ISS_OFF;
-        DaylightS[1].s = !dayLightSavings ? ISS_ON : ISS_OFF;
-        DaylightSP.s = IPS_OK;
-        IDSetSwitch(&DaylightSP, nullptr);
+        DaylightSP[0].setState(dayLightSavings ? ISS_ON : ISS_OFF);
+        DaylightSP[1].setState(!dayLightSavings ? ISS_ON : ISS_OFF);
+        DaylightSP.setState(IPS_OK);
+        DaylightSP.apply();
     }
 
     // Get Longitude and Latitude from mount
     double longitude = 0, latitude = 0;
     if (driver->getStatus(&scopeInfo))
     {
-        LocationN[LOCATION_LATITUDE].value  = scopeInfo.latitude;
+        LocationNP[LOCATION_LATITUDE].setValue(scopeInfo.latitude);
         // Convert to INDI standard longitude (0 to 360 Eastward)
-        LocationN[LOCATION_LONGITUDE].value = (scopeInfo.longitude < 0) ? scopeInfo.longitude + 360 : scopeInfo.longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LONGITUDE].setValue((scopeInfo.longitude < 0) ? scopeInfo.longitude + 360 : scopeInfo.longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
 
         char l[32] = {0}, L[32] = {0};
-        fs_sexa(l, LocationN[LOCATION_LATITUDE].value, 3, 3600);
-        fs_sexa(L, LocationN[LOCATION_LONGITUDE].value, 4, 3600);
+        fs_sexa(l, LocationNP[LOCATION_LATITUDE].getValue(), 3, 3600);
+        fs_sexa(L, LocationNP[LOCATION_LONGITUDE].getValue(), 4, 3600);
 
         LOGF_INFO("Mount Location: Lat %.32s - Long %.32s", l, L);
 
@@ -376,15 +376,15 @@ void IOptronV3::getStartupData()
     else if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude) == 0 &&
              IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude) == 0)
     {
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
     }
 
-    double parkAZ = LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180;
-    double parkAL = LocationN[LOCATION_LATITUDE].value;
+    double parkAZ = LocationNP[LOCATION_LATITUDE].getValue() >= 0 ? 0 : 180;
+    double parkAL = LocationNP[LOCATION_LATITUDE].getValue();
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
@@ -444,16 +444,16 @@ bool IOptronV3::ISNewNumber(const char *dev, const char *name, double values[], 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Guiding Rate
-        if (!strcmp(name, GuideRateNP.name))
+        if (GuideRateNP.isNameMatch(name))
         {
-            IUUpdateNumber(&GuideRateNP, values, names, n);
+            GuideRateNP.update(values, names, n);
 
-            if (driver->setGuideRate(GuideRateN[RA_AXIS].value, GuideRateN[DEC_AXIS].value))
-                GuideRateNP.s = IPS_OK;
+            if (driver->setGuideRate(GuideRateNP[RA_AXIS].value, GuideRateNP[DEC_AXIS].getValue()))
+                GuideRateNP.setState(IPS_OK);
             else
-                GuideRateNP.s = IPS_ALERT;
+                GuideRateNP.setState(IPS_ALERT);
 
-            IDSetNumber(&GuideRateNP, nullptr);
+            GuideRateNP.apply();
 
             return true;
         }
@@ -475,13 +475,13 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         /*******************************************************
          * Home Operations
         *******************************************************/
-        if (!strcmp(name, HomeSP.name))
+        if (HomeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&HomeSP, states, names, n);
+            HomeSP.update(states, names, n);
 
-            IOP_HOME_OPERATION operation = (IOP_HOME_OPERATION)IUFindOnSwitchIndex(&HomeSP);
+            IOP_HOME_OPERATION operation = (IOP_HOME_OPERATION)HomeSP.findOnSwitchIndex();
 
-            IUResetSwitch(&HomeSP);
+            HomeSP.reset();
 
             switch (operation)
             {
@@ -489,47 +489,47 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     if (firmwareInfo.Model.find("CEM") == std::string::npos &&
                             firmwareInfo.Model.find("GEM45") == std::string::npos)
                     {
-                        HomeSP.s = IPS_IDLE;
-                        IDSetSwitch(&HomeSP, nullptr);
+                        HomeSP.setState(IPS_IDLE);
+                        HomeSP.apply();
                         LOG_WARN("Home search is not supported in this model.");
                         return true;
                     }
 
                     if (driver->findHome() == false)
                     {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
+                        HomeSP.setState(IPS_ALERT);
+                        HomeSP.apply();
                         return false;
                     }
 
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
                     LOG_INFO("Searching for home position...");
                     return true;
 
                 case IOP_SET_HOME:
                     if (driver->setCurrentHome() == false)
                     {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
+                        HomeSP.setState(IPS_ALERT);
+                        HomeSP.apply();
                         return false;
                     }
 
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
                     LOG_INFO("Home position set to current coordinates.");
                     return true;
 
                 case IOP_GOTO_HOME:
                     if (driver->gotoHome() == false)
                     {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
+                        HomeSP.setState(IPS_ALERT);
+                        HomeSP.apply();
                         return false;
                     }
 
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
                     LOG_INFO("Slewing to home position...");
                     return true;
             }
@@ -540,37 +540,37 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         /*******************************************************
          * Slew Mode Operations
         *******************************************************/
-        if (!strcmp(name, SlewModeSP.name))
+        if (SlewModeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SlewModeSP, states, names, n);
-            SlewModeSP.s = IPS_OK;
-            IDSetSwitch(&SlewModeSP, nullptr);
+            SlewModeSP.update(states, names, n);
+            SlewModeSP.setState(IPS_OK);
+            SlewModeSP.apply();
             return true;
         }
 
         /*******************************************************
          * Daylight Savings Operations
         *******************************************************/
-        if (!strcmp(name, DaylightSP.name))
+        if (DaylightSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&DaylightSP, states, names, n);
+            DaylightSP.update(states, names, n);
 
-            if (driver->setDaylightSaving(DaylightS[0].s == ISS_ON))
-                DaylightSP.s = IPS_OK;
+            if (driver->setDaylightSaving(DaylightSP[0].getState() == ISS_ON))
+                DaylightSP.setState(IPS_OK);
             else
-                DaylightSP.s = IPS_ALERT;
+                DaylightSP.setState(IPS_ALERT);
 
-            IDSetSwitch(&DaylightSP, nullptr);
+            DaylightSP.apply();
             return true;
         }
     }
 
     /* v3.0 PEC add controls and calls to the driver */
-    if (!strcmp(name, PECStateSP.name))
+    if (PECStateSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&PECStateSP, states, names, n);
+        PECStateSP.update(states, names, n);
 
-        if(IUFindOnSwitchIndex(&PECStateSP) == 0)
+        if(PECStateSP.findOnSwitchIndex() == 0)
         {
             // PEC OFF
             if(isTraining)
@@ -582,53 +582,53 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             else
             {
                 driver->setPECEnabled(false);
-                PECStateSP.s = IPS_OK;
+                PECStateSP.setState(IPS_OK);
                 LOG_INFO("Disabling PEC Chip");
             }
         }
 
-        if(IUFindOnSwitchIndex(&PECStateSP) == 1)
+        if(PECStateSP.findOnSwitchIndex() == 1)
         {
             // PEC ON
             if (GetPECDataStatus(true))
             {
                 // Data Check
                 driver->setPECEnabled(true);
-                PECStateSP.s = IPS_BUSY;
+                PECStateSP.setState(IPS_BUSY);
                 LOG_INFO("Enabling PEC Chip");
             }
         }
-        IDSetSwitch(&PECStateSP, nullptr);
+        PECStateSP.apply();
         return true;
     }
     // End Mod */
 
     /* v3.0 PEC add Training Controls to the Driver */
-    if (!strcmp(name, PECTrainingSP.name))
+    if (PECTrainingSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&PECTrainingSP, states, names, n);
+        PECTrainingSP.update(states, names, n);
         if(isTraining)
         {
             // Check if already training
-            if(IUFindOnSwitchIndex(&PECTrainingSP) == 1)
+            if(PECTrainingSP.findOnSwitchIndex() == 1)
             {
                 // Train Check Status
                 sprintf(PECText, "Mount PEC busy recording, %d s", PECTime);
                 LOG_WARN(PECText);
             }
 
-            if(IUFindOnSwitchIndex(&PECTrainingSP) == 0)
+            if(PECTrainingSP.findOnSwitchIndex() == 0)
             {
                 // Train Cancel
                 driver->setPETEnabled(false);
                 isTraining = false;
-                PECTrainingSP.s = IPS_ALERT;
+                PECTrainingSP.setState(IPS_ALERT);
                 LOG_WARN("PEC Training cancelled by user, chip disabled");
             }
         }
         else
         {
-            if(IUFindOnSwitchIndex(&PECTrainingSP) == 0)
+            if(PECTrainingSP.findOnSwitchIndex() == 0)
             {
                 if(TrackState == SCOPE_TRACKING)
                 {
@@ -636,22 +636,22 @@ bool IOptronV3::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     driver->setPETEnabled(true);
                     isTraining = true;
                     PECTime = 0;
-                    PECTrainingSP.s = IPS_BUSY;
+                    PECTrainingSP.setState(IPS_BUSY);
                     LOG_INFO("PEC recording started...");
                 }
                 else
                 {
                     LOG_WARN("PEC Training only possible while guiding");
-                    PECTrainingSP.s = IPS_IDLE;
+                    PECTrainingSP.setState(IPS_IDLE);
                 }
             }
-            if(IUFindOnSwitchIndex(&PECTrainingSP) == 1)
+            if(PECTrainingSP.findOnSwitchIndex() == 1)
             {
                 // Train Status
                 GetPECDataStatus(true);
             }
         }
-        IDSetSwitch(&PECTrainingSP, nullptr);
+        PECTrainingSP.apply();
         return true;
     }
     // End Mod */
@@ -672,25 +672,25 @@ bool IOptronV3::ReadScopeStatus()
 
     if (rc)
     {
-        if (IUFindOnSwitchIndex(&GPSStatusSP) != newInfo.gpsStatus)
+        if (GPSStatusSP.findOnSwitchIndex() != newInfo.gpsStatus)
         {
-            IUResetSwitch(&GPSStatusSP);
-            GPSStatusS[newInfo.gpsStatus].s = ISS_ON;
-            IDSetSwitch(&GPSStatusSP, nullptr);
+            GPSStatusSP.reset();
+            GPSStatusSP[newInfo.gpsStatus].setState(ISS_ON);
+            GPSStatusSP.apply();
         }
 
-        if (IUFindOnSwitchIndex(&TimeSourceSP) != newInfo.timeSource)
+        if (TimeSourceSP.findOnSwitchIndex() != newInfo.timeSource)
         {
-            IUResetSwitch(&TimeSourceSP);
-            TimeSourceS[newInfo.timeSource].s = ISS_ON;
-            IDSetSwitch(&TimeSourceSP, nullptr);
+            TimeSourceSP.reset();
+            TimeSourceSP[newInfo.timeSource].setState(ISS_ON);
+            TimeSourceSP.apply();
         }
 
-        if (IUFindOnSwitchIndex(&HemisphereSP) != newInfo.hemisphere)
+        if (HemisphereSP.findOnSwitchIndex() != newInfo.hemisphere)
         {
-            IUResetSwitch(&HemisphereSP);
-            HemisphereS[newInfo.hemisphere].s = ISS_ON;
-            IDSetSwitch(&HemisphereSP, nullptr);
+            HemisphereSP.reset();
+            HemisphereSP[newInfo.hemisphere].setState(ISS_ON);
+            HemisphereSP.apply();
         }
 
         if (IUFindOnSwitchIndex(&SlewRateSP) != newInfo.slewRate - 1)
@@ -780,26 +780,26 @@ bool IOptronV3::ReadScopeStatus()
             {
                 sprintf(PECText, "%d second worm cycle recorded", PECTime);
                 LOG_INFO(PECText);
-                PECTrainingSP.s = IPS_OK;
+                PECTrainingSP.setState(IPS_OK);
                 isTraining = false;
             }
             else
             {
                 PECTime = PECTime + 1 * getCurrentPollingPeriod() / 1000;
                 sprintf(PECText, "Recording: %d s", PECTime);
-                IUSaveText(&PECInfoT[0], PECText);
+                PECInfoTP[0].setText(PECText);
             }
         }
         else
         {
             driver->setPETEnabled(false);
-            PECTrainingSP.s = IPS_ALERT;
+            PECTrainingSP.setState(IPS_ALERT);
             sprintf(PECText, "Tracking error, recording cancelled %d s", PECTime);
             LOG_ERROR(PECText);
-            IUSaveText(&PECInfoT[0], "Cancelled");
+            PECInfoTP[0].setText("Cancelled");
         }
-        IDSetText(&PECInfoTP, nullptr);
-        IDSetSwitch(&PECTrainingSP, nullptr);
+        PECInfoTP.apply();
+        PECTrainingSP.apply();
     }
     // End Mod */
 
@@ -814,11 +814,11 @@ bool IOptronV3::ReadScopeStatus()
         else
             setPierSide(pierState == IOP_PIER_EAST ? PIER_EAST : PIER_WEST);
 
-        if (IUFindOnSwitchIndex(&CWStateSP) != cwState)
+        if (CWStateSP.findOnSwitchIndex() != cwState)
         {
-            IUResetSwitch(&CWStateSP);
-            CWStateS[cwState].s = ISS_ON;
-            IDSetSwitch(&CWStateSP, nullptr);
+            CWStateSP.reset();
+            CWStateSP[cwState].setState(ISS_ON);
+            CWStateSP.apply();
         }
 
         NewRaDec(currentRA, currentDEC);
@@ -843,7 +843,7 @@ bool IOptronV3::Goto(double ra, double de)
     }
 
     bool rc = false;
-    if (IUFindOnSwitchIndex(&SlewModeSP) == IOP_CW_NORMAL)
+    if (SlewModeSP.findOnSwitchIndex() == IOP_CW_NORMAL)
         rc = driver->slewNormal();
     else
         rc = driver->slewCWUp();
@@ -873,7 +873,7 @@ bool IOptronV3::Sync(double ra, double de)
         LOG_ERROR("Failed to sync.");
     }
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     currentRA  = ra;
     currentDEC = de;
@@ -1088,8 +1088,8 @@ bool IOptronV3::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &SlewModeSP);
-    IUSaveConfigSwitch(fp, &DaylightSP);
+    SlewModeSP.save(fp);
+    DaylightSP.save(fp);
 
     return true;
 }
@@ -1116,15 +1116,15 @@ void IOptronV3::mountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+            currentRA += (TrackRateNP[AXIS_RA].value / 3600.0 * dt) / 15.0;
             currentRA = range24(currentRA);
             break;
 
         case SCOPE_TRACKING:
             if (TrackModeS[TR_CUSTOM].s == ISS_ON)
             {
-                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * dt) / 15.0;
-                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * dt);
+                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateNP[AXIS_RA].value / 3600.0)) * dt) / 15.0;
+                currentDEC += ( (TrackRateNP[AXIS_DE].value / 3600.0) * dt);
             }
             break;
 
@@ -1189,8 +1189,8 @@ bool IOptronV3::SetCurrentPark()
     // Libnova south = 0, west = 90, north = 180, east = 270
 
     ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    observer.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    observer.lng = LocationNP[LOCATION_LONGITUDE].getValue();
     if (observer.lng > 180)
         observer.lng -= 360;
 
@@ -1220,9 +1220,9 @@ bool IOptronV3::SetDefaultPark()
     // By defualt azimuth 0
     SetAxis1Park(0);
     // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].value);
     driver->setParkAz(0);
-    driver->setParkAlt(LocationN[LOCATION_LATITUDE].value);
+    driver->setParkAlt(LocationNP[LOCATION_LATITUDE].value);
     return true;
 }
 
@@ -1264,7 +1264,7 @@ bool IOptronV3::SetTrackEnabled(bool enabled)
         // NOTE: Is this the correct order? or should tracking be switched on first before making these changes? Need to test.
         SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
         if (TrackModeS[TR_CUSTOM].s == ISS_ON)
-            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+            SetTrackRate(TrackRateNP[AXIS_RA].value, TrackRateNP[AXIS_DE].getValue());
     }
 
     return driver->setTrackEnabled(enabled);
@@ -1277,8 +1277,8 @@ bool IOptronV3::GetPECDataStatus(bool enabled)
     {
         if (enabled)
         {
-            IUSaveText(&PECInfoT[0], "Recorded");
-            IDSetText(&PECInfoTP, nullptr);
+            PECInfoTP[0].setText("Recorded");
+            PECInfoTP.apply();
             LOG_INFO("Mount PEC Chip Ready and Trained");
         }
         return true;
@@ -1287,8 +1287,8 @@ bool IOptronV3::GetPECDataStatus(bool enabled)
     {
         if (enabled)
         {
-            IUSaveText(&PECInfoT[0], "None");
-            IDSetText(&PECInfoTP, nullptr);
+            PECInfoTP[0].setText("None");
+            PECInfoTP.apply();
             LOG_INFO("Mount PEC Chip Needs Training");
         }
     }

@@ -44,34 +44,34 @@ bool Weather::initProperties()
     WI::initProperties(MAIN_CONTROL_TAB, PARAMETERS_TAB);
 
     // Location
-    IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
-    IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
-    IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
-    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", SITE_TAB, IP_RW, 60,
+    LocationNP[LOCATION_LATITUDE].fill("LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
+    LocationNP[LOCATION_LONGITUDE].fill("LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
+    LocationNP[LOCATION_ELEVATION].fill("ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
+    LocationNP.fill(getDeviceName(), "GEOGRAPHIC_COORD", "Location", SITE_TAB, IP_RW, 60,
                        IPS_OK);
 
     // Active Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_GPS", "GPS", "GPS Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
+    ActiveDeviceTP[0].fill("ACTIVE_GPS", "GPS", "GPS Simulator");
+    ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     // Update Period
-    IUFillNumber(&UpdatePeriodN[0], "PERIOD", "Period (secs)", "%4.2f", 0, 3600, 60, 60);
-    IUFillNumberVector(&UpdatePeriodNP, UpdatePeriodN, 1, getDeviceName(), "WEATHER_UPDATE", "Update", MAIN_CONTROL_TAB,
+    UpdatePeriodNP[0].fill("PERIOD", "Period (secs)", "%4.2f", 0, 3600, 60, 60);
+    UpdatePeriodNP.fill(getDeviceName(), "WEATHER_UPDATE", "Update", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
 
     // Refresh
-    IUFillSwitch(&RefreshS[0], "REFRESH", "Refresh", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), "WEATHER_REFRESH", "Weather", MAIN_CONTROL_TAB, IP_RW,
+    RefreshSP[0].fill("REFRESH", "Refresh", ISS_OFF);
+    RefreshSP.fill(getDeviceName(), "WEATHER_REFRESH", "Weather", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
     // Override
-    IUFillSwitch(&OverrideS[0], "OVERRIDE", "Override Status", ISS_OFF);
-    IUFillSwitchVector(&OverrideSP, OverrideS, 1, getDeviceName(), "WEATHER_OVERRIDE", "Safety", MAIN_CONTROL_TAB, IP_RW,
+    OverrideSP[0].fill("OVERRIDE", "Override Status", ISS_OFF);
+    OverrideSP.fill(getDeviceName(), "WEATHER_OVERRIDE", "Safety", MAIN_CONTROL_TAB, IP_RW,
                        ISR_NOFMANY, 0, IPS_IDLE);
 
 
-    IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "GEOGRAPHIC_COORD");
 
     if (weatherConnection & CONNECTION_SERIAL)
     {
@@ -107,11 +107,11 @@ bool Weather::updateProperties()
         WI::updateProperties();
 
         updateTimerID = -1;
-        defineProperty(&RefreshSP);
-        defineProperty(&UpdatePeriodNP);
-        defineProperty(&OverrideSP);
-        defineProperty(&LocationNP);
-        defineProperty(&ActiveDeviceTP);
+        defineProperty(RefreshSP);
+        defineProperty(UpdatePeriodNP);
+        defineProperty(OverrideSP);
+        defineProperty(LocationNP);
+        defineProperty(ActiveDeviceTP);
 
         DEBUG(Logger::DBG_SESSION, "Weather update is in progress...");
         TimerHit();
@@ -120,11 +120,11 @@ bool Weather::updateProperties()
     {
         WI::updateProperties();
 
-        deleteProperty(RefreshSP.name);
-        deleteProperty(UpdatePeriodNP.name);
-        deleteProperty(OverrideSP.name);
-        deleteProperty(LocationNP.name);
-        deleteProperty(ActiveDeviceTP.name);
+        deleteProperty(RefreshSP.getName());
+        deleteProperty(UpdatePeriodNP.getName());
+        deleteProperty(OverrideSP.getName());
+        deleteProperty(LocationNP.getName());
+        deleteProperty(ActiveDeviceTP.getName());
     }
 
     return true;
@@ -135,23 +135,23 @@ bool Weather::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Refresh
-        if (!strcmp(name, RefreshSP.name))
+        if (RefreshSP.isNameMatch(name))
         {
-            RefreshS[0].s = ISS_OFF;
-            RefreshSP.s   = IPS_OK;
-            IDSetSwitch(&RefreshSP, nullptr);
+            RefreshSP[0].setState(ISS_OFF);
+            RefreshSP.setState(IPS_OK);
+            RefreshSP.apply();
 
             TimerHit();
         }
 
         // Override
-        if (!strcmp(name, OverrideSP.name))
+        if (OverrideSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&OverrideSP, states, names, n);
-            if (OverrideS[0].s == ISS_ON)
+            OverrideSP.update(states, names, n);
+            if (OverrideSP[0].getState() == ISS_ON)
             {
                 LOG_WARN("Weather override is enabled. Observatory is not safe. Turn off override as soon as possible.");
-                OverrideSP.s = IPS_BUSY;
+                OverrideSP.setState(IPS_BUSY);
 
                 critialParametersLP.s = IPS_OK;
                 IDSetLight(&critialParametersLP, nullptr);
@@ -159,13 +159,13 @@ bool Weather::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             else
             {
                 LOG_INFO("Weather override is disabled");
-                OverrideSP.s = IPS_IDLE;
+                OverrideSP.setState(IPS_IDLE);
 
                 syncCriticalParameters();
                 IDSetLight(&critialParametersLP, nullptr);
             }
 
-            IDSetSwitch(&OverrideSP, nullptr);
+            OverrideSP.apply();
             return true;
         }
     }
@@ -186,8 +186,8 @@ bool Weather::ISNewNumber(const char *dev, const char *name, double values[], ch
 
             if (latindex == -1 || longindex == -1 || elevationindex == -1)
             {
-                LocationNP.s = IPS_ALERT;
-                IDSetNumber(&LocationNP, "Location data missing or corrupted.");
+                LocationNP.setState(IPS_ALERT);
+                LocationNP.apply("Location data missing or corrupted.");
             }
 
             double targetLat  = values[latindex];
@@ -200,19 +200,19 @@ bool Weather::ISNewNumber(const char *dev, const char *name, double values[], ch
         // Update period
         if (strcmp(name, "WEATHER_UPDATE") == 0)
         {
-            IUUpdateNumber(&UpdatePeriodNP, values, names, n);
+            UpdatePeriodNP.update(values, names, n);
 
-            UpdatePeriodNP.s = IPS_OK;
-            IDSetNumber(&UpdatePeriodNP, nullptr);
+            UpdatePeriodNP.setState(IPS_OK);
+            UpdatePeriodNP.apply();
 
-            if (UpdatePeriodN[0].value == 0)
+            if (UpdatePeriodNP[0].value == 0)
                 DEBUG(Logger::DBG_SESSION, "Periodic updates are disabled.");
             else
             {
                 if (updateTimerID > 0)
                     RemoveTimer(updateTimerID);
 
-                updateTimerID = SetTimer(UpdatePeriodN[0].value * 1000);
+                updateTimerID = SetTimer(UpdatePeriodNP[0].value * 1000);
             }
             return true;
         }
@@ -230,14 +230,14 @@ bool INDI::Weather::ISNewText(const char *dev, const char *name, char *texts[], 
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, ActiveDeviceTP.name))
+        if (ActiveDeviceTP.isNameMatch(name))
         {
-            ActiveDeviceTP.s = IPS_OK;
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
+            ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.update(texts, names, n);
             //  Update client display
-            IDSetText(&ActiveDeviceTP, nullptr);
+            ActiveDeviceTP.apply();
 
-            IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "GEOGRAPHIC_COORD");
             return true;
         }
     }
@@ -296,7 +296,7 @@ void Weather::TimerHit()
             if (syncCriticalParameters())
             {
                 // Override weather state if required
-                if (OverrideS[0].s == ISS_ON)
+                if (OverrideSP[0].getState() == ISS_ON)
                     critialParametersLP.s = IPS_OK;
 
                 IDSetLight(&critialParametersLP, nullptr);
@@ -306,8 +306,8 @@ void Weather::TimerHit()
             IDSetNumber(&ParametersNP, nullptr);
 
             // If update period is set, then set up the timer
-            if (UpdatePeriodN[0].value > 0)
-                updateTimerID = SetTimer(static_cast<int>(UpdatePeriodN[0].value * 1000));
+            if (UpdatePeriodNP[0].value > 0)
+                updateTimerID = SetTimer(static_cast<int>(UpdatePeriodNP[0].value * 1000));
 
             return;
 
@@ -338,29 +338,29 @@ bool Weather::updateLocation(double latitude, double longitude, double elevation
 bool Weather::processLocationInfo(double latitude, double longitude, double elevation)
 {
     // Do not update if not necessary
-    if (latitude == LocationN[LOCATION_LATITUDE].value && longitude == LocationN[LOCATION_LONGITUDE].value &&
-            elevation == LocationN[LOCATION_ELEVATION].value)
+    if (latitude == LocationNP[LOCATION_LATITUDE].value && longitude == LocationNP[LOCATION_LONGITUDE].value &&
+            elevation == LocationNP[LOCATION_ELEVATION].getValue())
     {
-        LocationNP.s = IPS_OK;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.setState(IPS_OK);
+        LocationNP.apply();
     }
 
     if (updateLocation(latitude, longitude, elevation))
     {
-        LocationNP.s                        = IPS_OK;
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationN[LOCATION_ELEVATION].value = elevation;
+        LocationNP.setState(IPS_OK);
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP[LOCATION_ELEVATION].setValue(elevation);
         //  Update client display
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
 
         return true;
     }
     else
     {
-        LocationNP.s = IPS_ALERT;
+        LocationNP.setState(IPS_ALERT);
         //  Update client display
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
         return false;
     }
 }
@@ -370,9 +370,9 @@ bool Weather::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
     WI::saveConfigItems(fp);
-    IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigNumber(fp, &LocationNP);
-    IUSaveConfigNumber(fp, &UpdatePeriodNP);
+    ActiveDeviceTP.save(fp);
+    LocationNP.save(fp);
+    UpdatePeriodNP.save(fp);
     return true;
 }
 

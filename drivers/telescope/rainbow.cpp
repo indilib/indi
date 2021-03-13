@@ -103,14 +103,14 @@ bool Rainbow::initProperties()
     SetParkDataType(PARK_AZ_ALT);
 
     // Homing
-    IUFillSwitch(&HomeS[0], "HOME", "Go Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Homing", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+    HomeSP[0].fill("HOME", "Go Home", ISS_OFF);
+    HomeSP.fill(getDeviceName(), "HOME", "Homing", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_IDLE);
 
     // Horizontal Coords
-    IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-    IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
-    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD",
+    HorizontalCoordsNP[AXIS_AZ].fill("AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+    HorizontalCoordsNP[AXIS_ALT].fill("ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
+    HorizontalCoordsNP.fill(getDeviceName(), "HORIZONTAL_COORD",
                        "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
@@ -118,8 +118,8 @@ bool Rainbow::initProperties()
     AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_CUSTOM", "Guide");
 
-    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+    GuideRateNP[0].fill("GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
@@ -142,22 +142,22 @@ bool Rainbow::updateProperties()
     {
         getStartupStatus();
 
-        defineProperty(&HorizontalCoordsNP);
-        defineProperty(&HomeSP);
+        defineProperty(HorizontalCoordsNP);
+        defineProperty(HomeSP);
 
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(&GuideRateNP);
+        defineProperty(GuideRateNP);
 
     }
     else
     {
-        deleteProperty(HorizontalCoordsNP.name);
-        deleteProperty(HomeSP.name);
+        deleteProperty(HorizontalCoordsNP.getName());
+        deleteProperty(HomeSP.getName());
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP.name);
+        deleteProperty(GuideRateNP.getName());
     }
 
     return true;
@@ -171,7 +171,7 @@ bool Rainbow::ISNewNumber(const char *dev, const char *name, double values[], ch
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Horizontal Coordinates
-        if (!strcmp(name, HorizontalCoordsNP.name))
+        if (HorizontalCoordsNP.isNameMatch(name))
         {
             int i = 0, nset = 0;
             double newAlt = -1, newAz = -1;
@@ -179,12 +179,12 @@ bool Rainbow::ISNewNumber(const char *dev, const char *name, double values[], ch
 
             for (nset = i = 0; i < n; i++)
             {
-                if (horp == &HorizontalCoordsN[AXIS_ALT])
+                if (horp == &HorizontalCoordsNP[AXIS_ALT])
                 {
                     newAlt = values[i];
                     nset += newAlt >= -90. && newAlt <= 90.0;
                 }
-                else if (horp == &HorizontalCoordsN[AXIS_AZ])
+                else if (horp == &HorizontalCoordsNP[AXIS_AZ])
                 {
                     newAz = values[i];
                     nset += newAz >= 0. && newAz <= 360.0;
@@ -196,38 +196,38 @@ bool Rainbow::ISNewNumber(const char *dev, const char *name, double values[], ch
                 if (slewToHorizontalCoords(newAz, newAlt))
                 {
                     TrackState = SCOPE_SLEWING;
-                    HorizontalCoordsNP.s = IPS_BUSY;
-                    IDSetNumber(&HorizontalCoordsNP, nullptr);
+                    HorizontalCoordsNP.setState(IPS_BUSY);
+                    HorizontalCoordsNP.apply();
                     return true;
                 }
                 else
                 {
-                    HorizontalCoordsNP.s = IPS_ALERT;
-                    IDSetNumber(&HorizontalCoordsNP, nullptr);
+                    HorizontalCoordsNP.setState(IPS_ALERT);
+                    HorizontalCoordsNP.apply();
                     LOG_ERROR("Failed to slew to target coordinates.");
                     return true;
                 }
             }
             else
             {
-                HorizontalCoordsNP.s = IPS_ALERT;
-                IDSetNumber(&HorizontalCoordsNP, "Altitude or Azimuth missing or invalid");
+                HorizontalCoordsNP.setState(IPS_ALERT);
+                HorizontalCoordsNP.apply("Altitude or Azimuth missing or invalid");
                 return true;
             }
         }
         // Guide Rate
-        else if (!strcmp(name, GuideRateNP.name))
+        else if (GuideRateNP.isNameMatch(name))
         {
             if (setGuideRate(values[0]))
             {
-                IUUpdateNumber(&GuideRateNP, values, names, n);
-                GuideRateNP.s = IPS_OK;
+                GuideRateNP.update(values, names, n);
+                GuideRateNP.setState(IPS_OK);
                 LOGF_INFO("Guide rate updated to %.2fX sidereal rate.", values[0]);
             }
             else
-                GuideRateNP.s = IPS_ALERT;
+                GuideRateNP.setState(IPS_ALERT);
 
-            IDSetNumber(&GuideRateNP, nullptr);
+            GuideRateNP.apply();
             return true;
         }
         else
@@ -246,25 +246,25 @@ bool Rainbow::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Homing
-        if (!strcmp(HomeSP.name, name))
+        if (HomeSP.isNameMatch(name))
         {
-            if (HomeSP.s == IPS_BUSY)
+            if (HomeSP.getState() == IPS_BUSY)
             {
                 LOG_WARN("Homing is already in progress.");
                 return true;
             }
 
-            HomeSP.s = findHome() ? IPS_BUSY : IPS_ALERT;
-            if (HomeSP.s == IPS_BUSY)
+            HomeSP.setState(findHome() ? IPS_BUSY : IPS_ALERT);
+            if (HomeSP.getState() == IPS_BUSY)
             {
                 TrackState = SCOPE_SLEWING;
-                HomeS[0].s = ISS_ON;
+                HomeSP[0].setState(ISS_ON);
                 LOG_INFO("Mount is moving to home position...");
             }
             else
                 LOG_ERROR("Mount failed to move to home position.");
 
-            IDSetSwitch(&HomeSP, nullptr);
+            HomeSP.apply();
             return true;
         }
 
@@ -281,9 +281,9 @@ void Rainbow::getStartupStatus()
     LOGF_INFO("Detected firmware %s", m_Version.c_str());
 
     if (getTrackingState())
-        IDSetSwitch(&TrackStateSP, nullptr);
+        TrackStateSP.apply();
     if (getGuideRate())
-        IDSetNumber(&GuideRateNP, nullptr);
+        GuideRateNP.apply();
 
     double longitude = 0, latitude = 90;
     // Get value from config file if it exists.
@@ -392,9 +392,9 @@ bool Rainbow::getTrackingState()
     if (sendCommand(":AT#", res) == false)
         return false;
 
-    TrackStateS[TRACK_ON].s = (res[3] == '1') ? ISS_ON : ISS_OFF;
-    TrackStateS[TRACK_OFF].s = (res[3] == '0') ? ISS_ON : ISS_OFF;
-    TrackStateSP.s = (TrackStateS[TRACK_ON].s == ISS_ON) ? IPS_BUSY : IPS_IDLE;
+    TrackStateSP[TRACK_ON].setState((res[3] == '1') ? ISS_ON : ISS_OFF);
+    TrackStateSP[TRACK_OFF].setState((res[3] == '0') ? ISS_ON : ISS_OFF);
+    TrackStateSP.setState((TrackStateSP[TRACK_ON].getState() == ISS_ON) ? IPS_BUSY : IPS_IDLE);
 
     return true;
 }
@@ -430,7 +430,7 @@ bool Rainbow::getGuideRate()
 
     memcpy(rate, res + 5, 3);
 
-    GuideRateN[0].value = std::stod(rate);
+    GuideRateNP[0].setValue(std::stod(rate));
 
     return true;
 }
@@ -466,8 +466,8 @@ bool Rainbow::Park()
     if (slewToHorizontalCoords(parkAZ, parkAlt))
     {
         TrackState = SCOPE_PARKING;
-        HorizontalCoordsNP.s = IPS_BUSY;
-        IDSetNumber(&HorizontalCoordsNP, nullptr);
+        HorizontalCoordsNP.setState(IPS_BUSY);
+        HorizontalCoordsNP.apply();
         LOG_INFO("Parking is in progress...");
         return true;
     }
@@ -483,10 +483,10 @@ bool Rainbow::UnPark()
 {
     if (SetTrackEnabled(true))
     {
-        TrackStateS[TRACK_ON].s = ISS_ON;
-        TrackStateS[TRACK_OFF].s = ISS_OFF;
-        TrackStateSP.s = IPS_BUSY;
-        IDSetSwitch(&TrackStateSP, nullptr);
+        TrackStateSP[TRACK_ON].setState(ISS_ON);
+        TrackStateSP[TRACK_OFF].setState(ISS_OFF);
+        TrackStateSP.setState(IPS_BUSY);
+        TrackStateSP.apply();
 
         SetParked(false);
         return true;
@@ -549,15 +549,15 @@ bool Rainbow::ReadScopeStatus()
         // Check if Slewing is complete
         if (isSlewComplete())
         {
-            HorizontalCoordsNP.s = IPS_OK;
-            IDSetNumber(&HorizontalCoordsNP, nullptr);
+            HorizontalCoordsNP.setState(IPS_OK);
+            HorizontalCoordsNP.apply();
 
-            if (HomeSP.s == IPS_BUSY)
+            if (HomeSP.getState() == IPS_BUSY)
             {
                 LOG_INFO("Homing completed successfully.");
-                HomeSP.s = IPS_OK;
-                HomeS[0].s = ISS_OFF;
-                IDSetSwitch(&HomeSP, nullptr);
+                HomeSP.setState(IPS_OK);
+                HomeSP[0].setState(ISS_OFF);
+                HomeSP.apply();
                 TrackState = SCOPE_IDLE;
             }
             else
@@ -571,17 +571,17 @@ bool Rainbow::ReadScopeStatus()
         }
         else if (m_SlewErrorCode > 0)
         {
-            HorizontalCoordsNP.s = IPS_ALERT;
-            IDSetNumber(&HorizontalCoordsNP, nullptr);
+            HorizontalCoordsNP.setState(IPS_ALERT);
+            HorizontalCoordsNP.apply();
 
-            EqNP.s = IPS_ALERT;
+            EqNP.setState(IPS_ALERT);
 
-            if (HomeSP.s == IPS_BUSY)
+            if (HomeSP.getState() == IPS_BUSY)
             {
                 TrackState = SCOPE_IDLE;
-                HomeSP.s = IPS_ALERT;
-                HomeS[0].s = ISS_OFF;
-                IDSetSwitch(&HomeSP, nullptr);
+                HomeSP.setState(IPS_ALERT);
+                HomeSP[0].setState(ISS_OFF);
+                HomeSP.apply();
                 LOGF_ERROR("Homing error: %s", getSlewErrorString(m_SlewErrorCode).c_str());
             }
             else
@@ -597,39 +597,39 @@ bool Rainbow::ReadScopeStatus()
         if (isSlewComplete())
         {
             SetParked(true);
-            HorizontalCoordsNP.s = IPS_OK;
-            IDSetNumber(&HorizontalCoordsNP, nullptr);
+            HorizontalCoordsNP.setState(IPS_OK);
+            HorizontalCoordsNP.apply();
         }
         else if (m_SlewErrorCode > 0)
         {
-            HorizontalCoordsNP.s = IPS_ALERT;
-            EqNP.s = IPS_ALERT;
+            HorizontalCoordsNP.setState(IPS_ALERT);
+            EqNP.setState(IPS_ALERT);
             // JM TODO CHECK: Does the mount RESUME tracking after slew failure or it completely stops idle?
             TrackState = m_GotoType == Horizontal ? SCOPE_IDLE : SCOPE_TRACKING;
             LOGF_ERROR("Parking error: %s", getSlewErrorString(m_SlewErrorCode).c_str());
-            IDSetNumber(&HorizontalCoordsNP, nullptr);
+            HorizontalCoordsNP.apply();
         }
     }
 
     // Equatorial Coords
     if (!getRA() || !getDE())
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Error reading RA/DEC.");
         return false;
     }
 
     // Horizontal Coords
     if (!getAZ() || !getAL())
     {
-        HorizontalCoordsNP.s = IPS_ALERT;
+        HorizontalCoordsNP.setState(IPS_ALERT);
     }
     else
     {
-        HorizontalCoordsN[AXIS_AZ].value = m_CurrentAZ;
-        HorizontalCoordsN[AXIS_ALT].value = m_CurrentAL;
+        HorizontalCoordsNP[AXIS_AZ].setValue(m_CurrentAZ);
+        HorizontalCoordsNP[AXIS_ALT].setValue(m_CurrentAL);
     }
-    IDSetNumber(&HorizontalCoordsNP, nullptr);
+    HorizontalCoordsNP.apply();
 
     NewRaDec(m_CurrentRA, m_CurrentDE);
     return true;
@@ -647,29 +647,29 @@ bool Rainbow::Goto(double ra, double dec)
     fs_sexa(DecStr, dec, 2, 36000);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && Abort() == false)
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            AbortSP.apply("Abort slew failed.");
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        AbortSP.apply("Slew aborted.");
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
 
         // sleep for 100 mseconds
@@ -686,8 +686,8 @@ bool Rainbow::Goto(double ra, double dec)
     LOGF_INFO("Slewing to RA: %s - DE: %s", RAStr, DecStr);
 
     // Also set Horizontal Coors to BUSY
-    HorizontalCoordsNP.s = IPS_BUSY;
-    IDSetNumber(&HorizontalCoordsNP, nullptr);
+    HorizontalCoordsNP.setState(IPS_BUSY);
+    HorizontalCoordsNP.apply();
 
     return true;
 }
@@ -1077,8 +1077,8 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
     // set up direction properties
     char dc = 'x';
     char cmd[DRIVER_LEN] = {0};
-    ISwitchVectorProperty *moveSP = &MovementNSSP;
-    ISwitch moveS = MovementNSS[0];
+    ISwitchVectorProperty *moveSP = MovementNSSP.getSwitch(); // #PS: refactor needed
+    ISwitch moveS = MovementNSSP[0];
     int* guideTID = &m_GuideNSTID;
 
     // set up pointers to the various things needed
@@ -1086,31 +1086,31 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
     {
         case North:
             dc = 'N';
-            moveSP = &MovementNSSP;
-            moveS = MovementNSS[0];
+            moveSP = MovementNSSP.getSwitch(); // #PS: refactor needed
+            moveS = MovementNSSP[0];
             guideTID = &m_GuideNSTID;
             break;
         case South:
             dc = 'S';
-            moveSP = &MovementNSSP;
-            moveS = MovementNSS[1];
+            moveSP = MovementNSSP.getSwitch(); // #PS: refactor needed
+            moveS = MovementNSSP[1];
             guideTID = &m_GuideNSTID;
             break;
         case East:
             dc = 'E';
-            moveSP = &MovementWESP;
-            moveS = MovementWES[1];
+            moveSP = MovementWESP.getSwitch(); // #PS: refactor needed
+            moveS = MovementWESP[1];
             guideTID = &m_GuideWETID;
             break;
         case West:
             dc = 'W';
-            moveSP = &MovementWESP;
-            moveS = MovementWES[0];
+            moveSP = MovementWESP.getSwitch(); // #PS: refactor needed
+            moveS = MovementWESP[0];
             guideTID = &m_GuideWETID;
             break;
     }
 
-    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1207,8 +1207,8 @@ void Rainbow::guideTimeout(Direction direction)
     {
         case North:
         case South:
-            IUResetSwitch(&MovementNSSP);
-            IDSetSwitch(&MovementNSSP, nullptr);
+            MovementNSSP.reset();
+            MovementNSSP.apply();
             GuideNSNP.np[0].value = 0;
             GuideNSNP.np[1].value = 0;
             GuideNSNP.s           = IPS_IDLE;
@@ -1218,8 +1218,8 @@ void Rainbow::guideTimeout(Direction direction)
             break;
         case East:
         case West:
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementWESP.reset();
+            MovementWESP.apply();
             GuideWENP.np[0].value = 0;
             GuideWENP.np[1].value = 0;
             GuideWENP.s           = IPS_IDLE;
@@ -1328,7 +1328,7 @@ bool Rainbow::sendScopeTime()
     {
         char utcStr[8] = {0};
         snprintf(utcStr, 8, "%.2f", offset);
-        IUSaveText(&TimeT[1], utcStr);
+        TimeTP[1].setText(utcStr);
     }
     else
     {
@@ -1370,14 +1370,14 @@ bool Rainbow::sendScopeTime()
 
     // Format it into the final UTC ISO 8601
     strftime(cdate, MAXINDINAME, "%Y-%m-%dT%H:%M:%S", &utm);
-    IUSaveText(&TimeT[0], cdate);
+    TimeTP[0].setText(cdate);
 
-    LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
-    LOGF_DEBUG("Mount controller UTC Offset: %s", TimeT[1].text);
+    LOGF_DEBUG("Mount controller UTC Time: %s", TimeTP[0].getText());
+    LOGF_DEBUG("Mount controller UTC Offset: %s", TimeTP[1].getText());
 
     // Let's send everything to the client
-    TimeTP.s = IPS_OK;
-    IDSetText(&TimeTP, nullptr);
+    TimeTP.setState(IPS_OK);
+    TimeTP.apply();
 
     return true;
 }
@@ -1392,11 +1392,11 @@ bool Rainbow::sendScopeLocation()
 
     if (isSimulation())
     {
-        LocationNP.np[LOCATION_LATITUDE].value = 29.5;
-        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
-        LocationNP.np[LOCATION_ELEVATION].value = 10;
-        LocationNP.s           = IPS_OK;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(29.5);
+        LocationNP[LOCATION_LONGITUDE].setValue(48.0);
+        LocationNP[LOCATION_ELEVATION].setValue(10);
+        LocationNP.setState(IPS_OK);
+        LocationNP.apply();
         return true;
     }
 
@@ -1408,9 +1408,9 @@ bool Rainbow::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[0].value = dd + mm / 60.0;
+            LocationNP[0].setValue(dd + mm / 60.0);
         else
-            LocationNP.np[0].value = dd - mm / 60.0;
+            LocationNP[0].setValue(dd - mm / 60.0);
     }
 
     if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
@@ -1421,16 +1421,16 @@ bool Rainbow::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[1].value = 360.0 - (dd + mm / 60.0);
+            LocationNP[1].setValue(360.0 - (dd + mm / 60.0));
         else
-            LocationNP.np[1].value = (dd - mm / 60.0) * -1.0;
+            LocationNP[1].setValue((dd - mm / 60.0) * -1.0);
 
     }
 
-    LOGF_DEBUG("Mount Controller Latitude: %.3f Longitude: %.3f", LocationN[LOCATION_LATITUDE].value,
-               LocationN[LOCATION_LONGITUDE].value);
+    LOGF_DEBUG("Mount Controller Latitude: %.3f Longitude: %.3f", LocationNP[LOCATION_LATITUDE].getValue(),
+               LocationNP[LOCATION_LONGITUDE].getValue());
 
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP.apply();
 
     //saveConfig(true, "GEOGRAPHIC_COORD");
 

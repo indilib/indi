@@ -22,6 +22,11 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class CommandSet
 {
 
@@ -139,39 +144,31 @@ class SestoSenso2 : public INDI::Focuser
         double lastVoltageIn { 0 };
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
-
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[2];
+        INDI::PropertyNumber TemperatureNP {2};
         enum
         {
             TEMPERATURE_MOTOR,
             TEMPERATURE_EXTERNAL,
         };
 
-        INumber SpeedN[1];
-        INumberVectorProperty SpeedNP;
-
-        ITextVectorProperty FirmwareTP;
-        IText FirmwareT[2];
+        INDI::PropertyNumber SpeedNP {1};
+        INDI::PropertyText FirmwareTP {2};
         enum
         {
             FIRMWARE_SN,
             FIRMWARE_VERSION,
         };
 
-        INumber VoltageInN[1] {};
-        INumberVectorProperty VoltageInNP;
+        INDI::PropertyNumber VoltageInNP {1};
 
-        ISwitch CalibrationS[2];
-        ISwitchVectorProperty CalibrationSP;
+        INDI::PropertySwitch CalibrationSP {2};
         enum
         {
             CALIBRATION_START,
             CALIBRATION_NEXT
         };
 
-        ISwitch FastMoveS[3];
-        ISwitchVectorProperty FastMoveSP;
+        INDI::PropertySwitch FastMoveSP {3};
         enum
         {
             FASTMOVE_IN,
@@ -184,18 +181,14 @@ class SestoSenso2 : public INDI::Focuser
             CMD_OK = true,
             CMD_FALSE = false
         };
-
-        INumberVectorProperty MotorRateNP;
-        INumber MotorRateN[3];
+        INDI::PropertyNumber MotorRateNP {3};
         enum
         {
             MOTOR_RATE_ACC,
             MOTOR_RATE_RUN,
             MOTOR_RATE_DEC
         };
-
-        INumberVectorProperty MotorCurrentNP;
-        INumber MotorCurrentN[4];
+        INDI::PropertyNumber MotorCurrentNP {4};
         enum
         {
             MOTOR_CURR_ACC,
@@ -203,47 +196,36 @@ class SestoSenso2 : public INDI::Focuser
             MOTOR_CURR_DEC,
             MOTOR_CURR_HOLD
         };
-
-        ISwitchVectorProperty MotorHoldSP;
-        ISwitch MotorHoldS[2];
+        INDI::PropertySwitch MotorHoldSP {2};
         enum
         {
             MOTOR_HOLD_ON,
             MOTOR_HOLD_OFF
         };
-
-        ISwitchVectorProperty MotorApplyPresetSP;
-        ISwitch MotorApplyPresetS[3];
+        INDI::PropertySwitch MotorApplyPresetSP {3};
         enum
         {
             MOTOR_APPLY_LIGHT,
             MOTOR_APPLY_MEDIUM,
             MOTOR_APPLY_HEAVY,
         };
-
-        ISwitchVectorProperty MotorApplyUserPresetSP;
-        ISwitch MotorApplyUserPresetS[3];
+        INDI::PropertySwitch MotorApplyUserPresetSP {3};
         enum
         {
             MOTOR_APPLY_USER1,
             MOTOR_APPLY_USER2,
             MOTOR_APPLY_USER3
         };
-
-        ISwitchVectorProperty MotorSaveUserPresetSP;
-        ISwitch MotorSaveUserPresetS[3];
+        INDI::PropertySwitch MotorSaveUserPresetSP {3};
         enum
         {
             MOTOR_SAVE_USER1,
             MOTOR_SAVE_USER2,
             MOTOR_SAVE_USER3
         };
+        INDI::PropertySwitch HomeSP {1};
 
-        ISwitchVectorProperty HomeSP;
-        ISwitch HomeS[1];
-
-        IText CalibrationMessageT[1] {};
-        ITextVectorProperty CalibrationMessageTP;
+        INDI::PropertyText CalibrationMessageTP {1};
 
         typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };

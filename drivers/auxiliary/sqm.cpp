@@ -87,20 +87,20 @@ bool SQM::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Average Readings
-    IUFillNumber(&AverageReadingN[SKY_BRIGHTNESS], "SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
-    IUFillNumber(&AverageReadingN[SENSOR_FREQUENCY], "SENSOR_FREQUENCY", "Freq (Hz)", "%6.2f", 0, 1000000, 0, 0);
-    IUFillNumber(&AverageReadingN[SENSOR_COUNTS], "SENSOR_COUNTS", "Period (counts)", "%6.2f", 0, 1000000, 0, 0);
-    IUFillNumber(&AverageReadingN[SENSOR_PERIOD], "SENSOR_PERIOD", "Period (s)", "%6.2f", 0, 1000000, 0, 0);
-    IUFillNumber(&AverageReadingN[SKY_TEMPERATURE], "SKY_TEMPERATURE", "Temperature (C)", "%6.2f", -50, 80, 0, 0);
-    IUFillNumberVector(&AverageReadingNP, AverageReadingN, 5, getDeviceName(), "SKY_QUALITY", "Readings",
+    AverageReadingNP[SKY_BRIGHTNESS].fill("SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
+    AverageReadingNP[SENSOR_FREQUENCY].fill("SENSOR_FREQUENCY", "Freq (Hz)", "%6.2f", 0, 1000000, 0, 0);
+    AverageReadingNP[SENSOR_COUNTS].fill("SENSOR_COUNTS", "Period (counts)", "%6.2f", 0, 1000000, 0, 0);
+    AverageReadingNP[SENSOR_PERIOD].fill("SENSOR_PERIOD", "Period (s)", "%6.2f", 0, 1000000, 0, 0);
+    AverageReadingNP[SKY_TEMPERATURE].fill("SKY_TEMPERATURE", "Temperature (C)", "%6.2f", -50, 80, 0, 0);
+    AverageReadingNP.fill(getDeviceName(), "SKY_QUALITY", "Readings",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Unit Info
-    IUFillNumber(&UnitInfoN[UNIT_PROTOCOL], "UNIT_PROTOCOL", "Protocol", "%.f", 0, 1000000, 0, 0);
-    IUFillNumber(&UnitInfoN[UNIT_MODEL], "UNIT_MODEL", "Model", "%.f", 0, 1000000, 0, 0);
-    IUFillNumber(&UnitInfoN[UNIT_FEATURE], "UNIT_FEATURE", "Feature", "%.f", 0, 1000000, 0, 0);
-    IUFillNumber(&UnitInfoN[UNIT_SERIAL], "UNIT_SERIAL", "Serial", "%.f", 0, 1000000, 0, 0);
-    IUFillNumberVector(&UnitInfoNP, UnitInfoN, 4, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RW, 0, IPS_IDLE);
+    UnitInfoNP[UNIT_PROTOCOL].fill("UNIT_PROTOCOL", "Protocol", "%.f", 0, 1000000, 0, 0);
+    UnitInfoNP[UNIT_MODEL].fill("UNIT_MODEL", "Model", "%.f", 0, 1000000, 0, 0);
+    UnitInfoNP[UNIT_FEATURE].fill("UNIT_FEATURE", "Feature", "%.f", 0, 1000000, 0, 0);
+    UnitInfoNP[UNIT_SERIAL].fill("UNIT_SERIAL", "Serial", "%.f", 0, 1000000, 0, 0);
+    UnitInfoNP.fill(getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RW, 0, IPS_IDLE);
 
     if (sqmConnection & CONNECTION_SERIAL)
     {
@@ -138,16 +138,16 @@ bool SQM::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&AverageReadingNP);
-        defineProperty(&UnitInfoNP);
+        defineProperty(AverageReadingNP);
+        defineProperty(UnitInfoNP);
 
         getReadings();
 
     }
     else
     {
-        deleteProperty(AverageReadingNP.name);
-        deleteProperty(UnitInfoNP.name);
+        deleteProperty(AverageReadingNP.getName());
+        deleteProperty(UnitInfoNP.getName());
     }
 
     return true;
@@ -191,11 +191,11 @@ bool SQM::getReadings()
         }
     }
 
-    AverageReadingN[0].value = mpsas;
-    AverageReadingN[1].value = frequency;
-    AverageReadingN[2].value = period_counts;
-    AverageReadingN[3].value = period_seconds;
-    AverageReadingN[4].value = temperature;
+    AverageReadingNP[0].setValue(mpsas);
+    AverageReadingNP[1].setValue(frequency);
+    AverageReadingNP[2].setValue(period_counts);
+    AverageReadingNP[3].setValue(period_seconds);
+    AverageReadingNP[4].setValue(temperature);
 
     return true;
 }
@@ -242,10 +242,10 @@ bool SQM::getDeviceInfo()
         return false;
     }
 
-    UnitInfoN[0].value = protocol;
-    UnitInfoN[1].value = model;
-    UnitInfoN[2].value = feature;
-    UnitInfoN[3].value = serial;
+    UnitInfoNP[0].setValue(protocol);
+    UnitInfoNP[1].setValue(model);
+    UnitInfoNP[2].setValue(feature);
+    UnitInfoNP[3].setValue(serial);
 
     return true;
 }
@@ -257,8 +257,8 @@ void SQM::TimerHit()
 
     bool rc = getReadings();
 
-    AverageReadingNP.s = rc ? IPS_OK : IPS_ALERT;
-    IDSetNumber(&AverageReadingNP, nullptr);
+    AverageReadingNP.setState(rc ? IPS_OK : IPS_ALERT);
+    AverageReadingNP.apply();
 
     SetTimer(getCurrentPollingPeriod());
 }

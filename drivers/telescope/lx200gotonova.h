@@ -22,6 +22,9 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertyswitch.h"
+
 class LX200GotoNova : public LX200Generic
 {
   public:
@@ -86,19 +89,16 @@ class LX200GotoNova : public LX200Generic
     void mountSim();
 
     // Custom Parking Position
-    ISwitch ParkPositionS[5];
-    ISwitchVectorProperty ParkPositionSP;
+    INDI::PropertySwitch ParkPositionSP {5};
     enum { PS_NORTH_POLE, PS_LEFT_VERTICAL, PS_LEFT_HORIZON, PS_RIGHT_VERTICAL, PS_RIGHT_HORIZON };
 
     // Sync type
-    ISwitch SyncCMRS[2];
-    ISwitchVectorProperty SyncCMRSP;
+    INDI::PropertySwitch SyncCMRSP {2};
     enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
 
     /* Guide Rate */
-    ISwitch GuideRateS[4];
-    ISwitchVectorProperty GuideRateSP;
+    INDI::PropertySwitch GuideRateSP {4};
 
     bool isGuiding=false;
 };

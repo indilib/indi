@@ -22,6 +22,10 @@
 #include "inditelescope.h"
 #include "scopesim_helper.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 #define USE_SIM_TAB
 
 /**
@@ -103,8 +107,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         bool guidingNS = false;
         bool guidingEW = false;
 
-        INumber GuideRateN[2];
-        INumberVectorProperty GuideRateNP;
+        INDI::PropertyNumber GuideRateNP {2};
 
         Axis axisPrimary { "HaAxis" };         // hour angle mount axis
         Axis axisSecondary { "DecAxis" };       // declination mount axis
@@ -118,18 +121,13 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 #ifdef USE_SIM_TAB
         // Simulator Tab properties
         // Scope type and alignment
-        ISwitch mountTypeS[3];
-        ISwitchVectorProperty mountTypeSP;
-        ISwitch simPierSideS[2];
-        ISwitchVectorProperty simPierSideSP;
+        INDI::PropertySwitch mountTypeSP {3};
+        INDI::PropertySwitch simPierSideSP {2};
 
-        INumber mountModelN[6];
-        INumberVectorProperty mountModelNP;
-        INumber mountAxisN[2];
-        INumberVectorProperty mountAxisNP;
+        INDI::PropertyNumber mountModelNP {6};
+        INDI::PropertyNumber mountAxisNP {2};
 
-        INumber flipHourAngleN[1];
-        INumberVectorProperty flipHourAngleNP;
+        INDI::PropertyNumber flipHourAngleNP {1};
 #endif
 
 };

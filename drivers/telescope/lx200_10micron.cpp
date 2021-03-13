@@ -122,65 +122,65 @@ bool LX200_10MICRON::initProperties()
     if (result)
     {
         // TODO initialize properties additional to INDI::Telescope
-        IUFillSwitch(&UnattendedFlipS[UNATTENDED_FLIP_DISABLED], "Disabled", "Disabled", ISS_ON);
-        IUFillSwitch(&UnattendedFlipS[UNATTENDED_FLIP_ENABLED], "Enabled", "Enabled", ISS_OFF);
-        IUFillSwitchVector(&UnattendedFlipSP, UnattendedFlipS, UNATTENDED_FLIP_COUNT, getDeviceName(),
+        UnattendedFlipSP[UNATTENDED_FLIP_DISABLED].fill("Disabled", "Disabled", ISS_ON);
+        UnattendedFlipSP[UNATTENDED_FLIP_ENABLED].fill("Enabled", "Enabled", ISS_OFF);
+        UnattendedFlipSP.fill(getDeviceName(),
                            UNATTENDED_FLIP, "Unattended Flip", MOTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-        IUFillNumber(&RefractionModelTemperatureN[0], "TEMPERATURE", "Celsius", "%+6.1f", -999.9, 999.9, 0, 0.);
-        IUFillNumberVector(&RefractionModelTemperatureNP, RefractionModelTemperatureN, 1, getDeviceName(),
+        RefractionModelTemperatureNP[0].fill("TEMPERATURE", "Celsius", "%+6.1f", -999.9, 999.9, 0, 0.);
+        RefractionModelTemperatureNP.fill(getDeviceName(),
                            REFRACTION_MODEL_TEMPERATURE, "Temperature", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
-        IUFillNumber(&RefractionModelPressureN[0], "PRESSURE", "hPa", "%6.1f", 0.0, 9999.9, 0, 0.);
-        IUFillNumberVector(&RefractionModelPressureNP, RefractionModelPressureN, 1, getDeviceName(),
+        RefractionModelPressureNP[0].fill("PRESSURE", "hPa", "%6.1f", 0.0, 9999.9, 0, 0.);
+        RefractionModelPressureNP.fill(getDeviceName(),
                            REFRACTION_MODEL_PRESSURE, "Pressure", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
-        IUFillNumber(&ModelCountN[0], "COUNT", "#", "%.0f", 0, 999, 0, 0);
-        IUFillNumberVector(&ModelCountNP, ModelCountN, 1, getDeviceName(),
+        ModelCountNP[0].fill("COUNT", "#", "%.0f", 0, 999, 0, 0);
+        ModelCountNP.fill(getDeviceName(),
                            MODEL_COUNT, "Models", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
-        IUFillNumber(&AlignmentPointsN[0], "COUNT", "#", "%.0f", 0, 100, 0, 0);
-        IUFillNumberVector(&AlignmentPointsNP, AlignmentPointsN, 1, getDeviceName(),
+        AlignmentPointsNP[0].fill("COUNT", "#", "%.0f", 0, 100, 0, 0);
+        AlignmentPointsNP.fill(getDeviceName(),
                            ALIGNMENT_POINTS, "Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
-        IUFillSwitch(&AlignmentStateS[ALIGN_IDLE], "Idle", "Idle", ISS_ON);
-        IUFillSwitch(&AlignmentStateS[ALIGN_START], "Start", "Start new model", ISS_OFF);
-        IUFillSwitch(&AlignmentStateS[ALIGN_END], "End", "End new model", ISS_OFF);
-        IUFillSwitch(&AlignmentStateS[ALIGN_DELETE_CURRENT], "Del", "Delete current model", ISS_OFF);
-        IUFillSwitchVector(&AlignmentStateSP, AlignmentStateS, ALIGN_COUNT, getDeviceName(),
+        AlignmentStateSP[ALIGN_IDLE].fill("Idle", "Idle", ISS_ON);
+        AlignmentStateSP[ALIGN_START].fill("Start", "Start new model", ISS_OFF);
+        AlignmentStateSP[ALIGN_END].fill("End", "End new model", ISS_OFF);
+        AlignmentStateSP[ALIGN_DELETE_CURRENT].fill("Del", "Delete current model", ISS_OFF);
+        AlignmentStateSP.fill(getDeviceName(),
                            ALIGNMENT_STATE, "Alignment", ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-        IUFillNumber(&MiniNewAlpRON[MALPRO_MRA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-        IUFillNumber(&MiniNewAlpRON[MALPRO_MDEC], "MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-        IUFillNumber(&MiniNewAlpRON[MALPRO_MSIDE], "MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
-        IUFillNumber(&MiniNewAlpRON[MALPRO_SIDTIME], "SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-        IUFillNumberVector(&MiniNewAlpRONP, MiniNewAlpRON, MALPRO_COUNT, getDeviceName(),
+        MiniNewAlpRONP[MALPRO_MRA].fill("MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+        MiniNewAlpRONP[MALPRO_MDEC].fill("MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+        MiniNewAlpRONP[MALPRO_MSIDE].fill("MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
+        MiniNewAlpRONP[MALPRO_SIDTIME].fill("SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+        MiniNewAlpRONP.fill(getDeviceName(),
                            MINIMAL_NEW_ALIGNMENT_POINT_RO, "Actual", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
-        IUFillNumber(&MiniNewAlpN[MALP_PRA], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-        IUFillNumber(&MiniNewAlpN[MALP_PDEC], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-        IUFillNumberVector(&MiniNewAlpNP, MiniNewAlpN, MALP_COUNT, getDeviceName(),
+        MiniNewAlpNP[MALP_PRA].fill("PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+        MiniNewAlpNP[MALP_PDEC].fill("PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+        MiniNewAlpNP.fill(getDeviceName(),
                            MINIMAL_NEW_ALIGNMENT_POINT, "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
-        IUFillNumber(&NewAlpN[ALP_MRA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-        IUFillNumber(&NewAlpN[ALP_MDEC], "MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-        IUFillNumber(&NewAlpN[ALP_MSIDE], "MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
-        IUFillNumber(&NewAlpN[ALP_SIDTIME], "SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-        IUFillNumber(&NewAlpN[ALP_PRA], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-        IUFillNumber(&NewAlpN[ALP_PDEC], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-        IUFillNumberVector(&NewAlpNP, NewAlpN, ALP_COUNT, getDeviceName(),
+        NewAlpNP[ALP_MRA].fill("MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+        NewAlpNP[ALP_MDEC].fill("MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+        NewAlpNP[ALP_MSIDE].fill("MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
+        NewAlpNP[ALP_SIDTIME].fill("SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+        NewAlpNP[ALP_PRA].fill("PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+        NewAlpNP[ALP_PDEC].fill("PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+        NewAlpNP.fill(getDeviceName(),
                            NEW_ALIGNMENT_POINT, "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
-        IUFillNumber(&NewAlignmentPointsN[0], "COUNT", "#", "%.0f", 0, 100, 1, 0);
-        IUFillNumberVector(&NewAlignmentPointsNP, NewAlignmentPointsN, 1, getDeviceName(),
+        NewAlignmentPointsNP[0].fill("COUNT", "#", "%.0f", 0, 100, 1, 0);
+        NewAlignmentPointsNP.fill(getDeviceName(),
                            NEW_ALIGNMENT_POINTS, "New Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
-        IUFillText(&NewModelNameT[0], "NAME", "Model Name", "newmodel");
-        IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(),
+        NewModelNameTP[0].fill("NAME", "Model Name", "newmodel");
+        NewModelNameTP.fill(getDeviceName(),
                          NEW_MODEL_NAME, "New Name", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
-        IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 1, 1);
-        IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
+        TLEfromDatabaseNP[0].fill("NUMBER", "#", "%.0f", 1, 999, 1, 1);
+        TLEfromDatabaseNP.fill(getDeviceName(),
                            "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
     }
     return result;
@@ -189,7 +189,7 @@ bool LX200_10MICRON::initProperties()
 bool LX200_10MICRON::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
-    IUSaveConfigSwitch(fp, &UnattendedFlipSP);
+    UnattendedFlipSP.save(fp);
     return true;
 }
 
@@ -200,39 +200,39 @@ bool LX200_10MICRON::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&UnattendedFlipSP);
+        defineProperty(UnattendedFlipSP);
         // getMountInfo defines ProductTP
-        defineProperty(&RefractionModelTemperatureNP);
-        defineProperty(&RefractionModelPressureNP);
-        defineProperty(&ModelCountNP);
-        defineProperty(&AlignmentPointsNP);
-        defineProperty(&AlignmentStateSP);
-        defineProperty(&MiniNewAlpRONP);
-        defineProperty(&MiniNewAlpNP);
-        defineProperty(&NewAlpNP);
-        defineProperty(&NewAlignmentPointsNP);
-        defineProperty(&NewModelNameTP);
-        defineProperty(&TLEfromDatabaseNP);
+        defineProperty(RefractionModelTemperatureNP);
+        defineProperty(RefractionModelPressureNP);
+        defineProperty(ModelCountNP);
+        defineProperty(AlignmentPointsNP);
+        defineProperty(AlignmentStateSP);
+        defineProperty(MiniNewAlpRONP);
+        defineProperty(MiniNewAlpNP);
+        defineProperty(NewAlpNP);
+        defineProperty(NewAlignmentPointsNP);
+        defineProperty(NewModelNameTP);
+        defineProperty(TLEfromDatabaseNP);
 
         // read UnAttendedFlip setting from config and apply if available
         int readit = 0;
-        for (int i = 0; readit == 0 && i < UnattendedFlipSP.nsp; i++)
+        for (size_t i = 0; readit == 0 && i < UnattendedFlipSP.size(); i++)
         {
-            readit = IUGetConfigSwitch(getDeviceName(), UnattendedFlipSP.name, UnattendedFlipS[i].name, &(UnattendedFlipS[i].s));
+            readit = IUGetConfigSwitch(getDeviceName(), UnattendedFlipSP.getName(), UnattendedFlipSP[i].getName(), &(UnattendedFlipSP[i].s));
         }
         if (readit == 0)
         {
-            if (UnattendedFlipS[UnattendedFlip].s == ISS_ON)
+            if (UnattendedFlipSP[UnattendedFlip].getState() == ISS_ON)
             {
                 LOGF_INFO("Unattended Flip from config and mount are %s",
-                          (UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON) ? "enabled" : "disabled");
+                          (UnattendedFlipSP[UNATTENDED_FLIP_ENABLED].getState() == ISS_ON) ? "enabled" : "disabled");
             }
             else
             {
                 LOGF_INFO("Read Unattended Flip %s from config while mount has %s, updating mount",
-                          (UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON) ? "enabled" : "disabled",
+                          (UnattendedFlipSP[UNATTENDED_FLIP_ENABLED].getState() == ISS_ON) ? "enabled" : "disabled",
                           (UnattendedFlip == UNATTENDED_FLIP_ENABLED) ? "enabled" : "disabled");
-                setUnattendedFlipSetting(UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s == ISS_ON);
+                setUnattendedFlipSetting(UnattendedFlipSP[UNATTENDED_FLIP_ENABLED].getState() == ISS_ON);
             }
         }
         else
@@ -242,19 +242,19 @@ bool LX200_10MICRON::updateProperties()
     }
     else
     {
-        deleteProperty(UnattendedFlipSP.name);
-        deleteProperty(ProductTP.name);
-        deleteProperty(RefractionModelTemperatureNP.name);
-        deleteProperty(RefractionModelPressureNP.name);
-        deleteProperty(ModelCountNP.name);
-        deleteProperty(AlignmentPointsNP.name);
-        deleteProperty(AlignmentStateSP.name);
-        deleteProperty(MiniNewAlpRONP.name);
-        deleteProperty(MiniNewAlpNP.name);
-        deleteProperty(NewAlpNP.name);
-        deleteProperty(NewAlignmentPointsNP.name);
-        deleteProperty(NewModelNameTP.name);
-        deleteProperty(TLEfromDatabaseNP.name);
+        deleteProperty(UnattendedFlipSP.getName());
+        deleteProperty(ProductTP.getName());
+        deleteProperty(RefractionModelTemperatureNP.getName());
+        deleteProperty(RefractionModelPressureNP.getName());
+        deleteProperty(ModelCountNP.getName());
+        deleteProperty(AlignmentPointsNP.getName());
+        deleteProperty(AlignmentStateSP.getName());
+        deleteProperty(MiniNewAlpRONP.getName());
+        deleteProperty(MiniNewAlpNP.getName());
+        deleteProperty(NewAlpNP.getName());
+        deleteProperty(NewAlignmentPointsNP.getName());
+        deleteProperty(NewModelNameTP.getName());
+        deleteProperty(TLEfromDatabaseNP.getName());
     }
 
     return result;
@@ -274,58 +274,58 @@ void LX200_10MICRON::getBasicData()
         checkLX200EquatorialFormat(fd);
         timeFormat = LX200_24;
 
-        if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
+        if (getTrackFreq(PortFD, &TrackFreqNP[0].value) < 0)
         {
             LOG_WARN("Failed to get tracking frequency from device.");
         }
         else
         {
-            LOGF_INFO("Tracking frequency is %.1f Hz", TrackFreqN[0].value);
-            IDSetNumber(&TrackFreqNP, nullptr);
+            LOGF_INFO("Tracking frequency is %.1f Hz", TrackFreqNP[0].getValue());
+            TrackFreqNP.apply();
         }
 
         char RefractionModelTemperature[80];
         getCommandString(PortFD, RefractionModelTemperature, "#:GRTMP#");
         float rmtemp;
         sscanf(RefractionModelTemperature, "%f#", &rmtemp);
-        RefractionModelTemperatureN[0].value = (double) rmtemp;
-        LOGF_INFO("RefractionModelTemperature is %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
-        IDSetNumber(&RefractionModelTemperatureNP, nullptr);
+        RefractionModelTemperatureNP[0].setValue((double) rmtemp);
+        LOGF_INFO("RefractionModelTemperature is %0+6.1f degrees C", RefractionModelTemperatureNP[0].getValue());
+        RefractionModelTemperatureNP.apply();
 
         char RefractionModelPressure[80];
         getCommandString(PortFD, RefractionModelPressure, "#:GRPRS#");
         float rmpres;
         sscanf(RefractionModelPressure, "%f#", &rmpres);
-        RefractionModelPressureN[0].value = (double) rmpres;
-        LOGF_INFO("RefractionModelPressure is %06.1f hPa", RefractionModelPressureN[0].value);
-        IDSetNumber(&RefractionModelPressureNP, nullptr);
+        RefractionModelPressureNP[0].setValue((double) rmpres);
+        LOGF_INFO("RefractionModelPressure is %06.1f hPa", RefractionModelPressureNP[0].getValue());
+        RefractionModelPressureNP.apply();
 
         int ModelCount;
         getCommandInt(PortFD, &ModelCount, "#:modelcnt#");
-        ModelCountN[0].value = (double) ModelCount;
-        LOGF_INFO("%d Alignment Models", (int) ModelCountN[0].value);
-        IDSetNumber(&ModelCountNP, nullptr);
+        ModelCountNP[0].setValue((double) ModelCount);
+        LOGF_INFO("%d Alignment Models", (int) ModelCountNP[0].getValue());
+        ModelCountNP.apply();
 
         int AlignmentPoints;
         getCommandInt(PortFD, &AlignmentPoints, "#:getalst#");
-        AlignmentPointsN[0].value = (double) AlignmentPoints;
-        LOGF_INFO("%d Alignment Stars in active model", (int) AlignmentPointsN[0].value);
-        IDSetNumber(&AlignmentPointsNP, nullptr);
+        AlignmentPointsNP[0].setValue((double) AlignmentPoints);
+        LOGF_INFO("%d Alignment Stars in active model", (int) AlignmentPointsNP[0].getValue());
+        AlignmentPointsNP.apply();
 
         if (false == getUnattendedFlipSetting())
         {
-            UnattendedFlipS[UNATTENDED_FLIP_DISABLED].s = ISS_ON;
-            UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s = ISS_OFF;
+            UnattendedFlipSP[UNATTENDED_FLIP_DISABLED].setState(ISS_ON);
+            UnattendedFlipSP[UNATTENDED_FLIP_ENABLED].setState(ISS_OFF);
             LOG_INFO("Unattended Flip is disabled.");
         }
         else
         {
-            UnattendedFlipS[UNATTENDED_FLIP_DISABLED].s = ISS_OFF;
-            UnattendedFlipS[UNATTENDED_FLIP_ENABLED].s = ISS_ON;
+            UnattendedFlipSP[UNATTENDED_FLIP_DISABLED].setState(ISS_OFF);
+            UnattendedFlipSP[UNATTENDED_FLIP_ENABLED].setState(ISS_ON);
             LOG_INFO("Unattended Flip is enabled.");
         }
-        UnattendedFlipSP.s = IPS_OK;
-        IDSetSwitch(&UnattendedFlipSP, nullptr);
+        UnattendedFlipSP.setState(IPS_OK);
+        UnattendedFlipSP.apply();
     }
 
     if (sendLocationOnStartup)
@@ -369,14 +369,14 @@ bool LX200_10MICRON::getMountInfo()
 
     LOGF_INFO("Product:%s Control box:%s Firmware:%s of %s", ProductName, ControlBox, FirmwareVersion, FirmwareDate);
 
-    IUFillText(&ProductT[PRODUCT_NAME], "NAME", "Product Name", ProductName);
-    IUFillText(&ProductT[PRODUCT_CONTROL_BOX], "CONTROL_BOX", "Control Box", ControlBox);
-    IUFillText(&ProductT[PRODUCT_FIRMWARE_VERSION], "FIRMWARE_VERSION", "Firmware Version", FirmwareVersion);
-    IUFillText(&ProductT[PRODUCT_FIRMWARE_DATE], "FIRMWARE_DATE", "Firmware Date", FirmwareDate);
-    IUFillTextVector(&ProductTP, ProductT, PRODUCT_COUNT, getDeviceName(),
+    ProductTP[PRODUCT_NAME].fill("NAME", "Product Name", ProductName);
+    ProductTP[PRODUCT_CONTROL_BOX].fill("CONTROL_BOX", "Control Box", ControlBox);
+    ProductTP[PRODUCT_FIRMWARE_VERSION].fill("FIRMWARE_VERSION", "Firmware Version", FirmwareVersion);
+    ProductTP[PRODUCT_FIRMWARE_DATE].fill("FIRMWARE_DATE", "Firmware Date", FirmwareDate);
+    ProductTP.fill(getDeviceName(),
                      PRODUCT_INFO, "Product", PRODUCT_TAB, IP_RO, 60, IPS_IDLE);
 
-    defineProperty(&ProductTP);
+    defineProperty(ProductTP);
 
     return true;
 }
@@ -522,11 +522,11 @@ bool LX200_10MICRON::ReadScopeStatus()
     char LocalSiderealTimeS[80];
     getCommandString(fd, LocalSiderealTimeS, "#:GS#");
     f_scansexa(LocalSiderealTimeS, &Ginfo.SiderealTime);
-    MiniNewAlpRON[MALPRO_MRA].value = Ginfo.RA_JNOW;
-    MiniNewAlpRON[MALPRO_MDEC].value = Ginfo.DEC_JNOW;
-    MiniNewAlpRON[MALPRO_MSIDE].value = (toupper(Ginfo.SideOfPier) == 'E') ? 0 : 1;
-    MiniNewAlpRON[MALPRO_SIDTIME].value = Ginfo.SiderealTime;
-    IDSetNumber(&MiniNewAlpRONP, nullptr);
+    MiniNewAlpRONP[MALPRO_MRA].setValue(Ginfo.RA_JNOW);
+    MiniNewAlpRONP[MALPRO_MDEC].setValue(Ginfo.DEC_JNOW);
+    MiniNewAlpRONP[MALPRO_MSIDE].setValue((toupper(Ginfo.SideOfPier) == 'E') ? 0 : 1);
+    MiniNewAlpRONP[MALPRO_SIDTIME].setValue(Ginfo.SiderealTime);
+    MiniNewAlpRONP.apply();
 
     return true;
 }
@@ -956,8 +956,8 @@ int LX200_10MICRON::AddSyncPoint(double MRa, double MDec, double MSide, double P
         return 1;
     }
     LOGF_INFO("AddSyncPoint responded [%4s], there are now %d new alignment points", response, points);
-    NewAlignmentPointsN[0].value = points;
-    IDSetNumber(&NewAlignmentPointsNP, nullptr);
+    NewAlignmentPointsNP[0].setValue(points);
+    NewAlignmentPointsNP.apply();
 
     return 0;
 }
@@ -974,47 +974,47 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
     {
         if (strcmp(name, REFRACTION_MODEL_TEMPERATURE) == 0)
         {
-            IUUpdateNumber(&RefractionModelTemperatureNP, values, names, n);
-            if (0 != SetRefractionModelTemperature(RefractionModelTemperatureN[0].value))
+            RefractionModelTemperatureNP.update(values, names, n);
+            if (0 != SetRefractionModelTemperature(RefractionModelTemperatureNP[0].value))
             {
                 LOG_ERROR("SetRefractionModelTemperature error");
-                RefractionModelTemperatureNP.s = IPS_ALERT;
-                IDSetNumber(&RefractionModelTemperatureNP, nullptr);
+                RefractionModelTemperatureNP.setState(IPS_ALERT);
+                RefractionModelTemperatureNP.apply();
                 return false;
             }
-            RefractionModelTemperatureNP.s = IPS_OK;
-            IDSetNumber(&RefractionModelTemperatureNP, nullptr);
-            LOGF_INFO("RefractionModelTemperature set to %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
+            RefractionModelTemperatureNP.setState(IPS_OK);
+            RefractionModelTemperatureNP.apply();
+            LOGF_INFO("RefractionModelTemperature set to %0+6.1f degrees C", RefractionModelTemperatureNP[0].getValue());
             return true;
         }
         if (strcmp(name, REFRACTION_MODEL_PRESSURE) == 0)
         {
-            IUUpdateNumber(&RefractionModelPressureNP, values, names, n);
-            if (0 != SetRefractionModelPressure(RefractionModelPressureN[0].value))
+            RefractionModelPressureNP.update(values, names, n);
+            if (0 != SetRefractionModelPressure(RefractionModelPressureNP[0].value))
             {
                 LOG_ERROR("SetRefractionModelPressure error");
-                RefractionModelPressureNP.s = IPS_ALERT;
-                IDSetNumber(&RefractionModelPressureNP, nullptr);
+                RefractionModelPressureNP.setState(IPS_ALERT);
+                RefractionModelPressureNP.apply();
                 return false;
             }
-            RefractionModelPressureNP.s = IPS_OK;
-            IDSetNumber(&RefractionModelPressureNP, nullptr);
-            LOGF_INFO("RefractionModelPressure set to %06.1f hPa", RefractionModelPressureN[0].value);
+            RefractionModelPressureNP.setState(IPS_OK);
+            RefractionModelPressureNP.apply();
+            LOGF_INFO("RefractionModelPressure set to %06.1f hPa", RefractionModelPressureNP[0].getValue());
             return true;
         }
         if (strcmp(name, MODEL_COUNT) == 0)
         {
-            IUUpdateNumber(&ModelCountNP, values, names, n);
-            ModelCountNP.s = IPS_OK;
-            IDSetNumber(&ModelCountNP, nullptr);
-            LOGF_INFO("ModelCount %d", ModelCountN[0].value);
+            ModelCountNP.update(values, names, n);
+            ModelCountNP.setState(IPS_OK);
+            ModelCountNP.apply();
+            LOGF_INFO("ModelCount %d", ModelCountNP[0].getValue());
             return true;
         }
         if (strcmp(name, MINIMAL_NEW_ALIGNMENT_POINT_RO) == 0)
         {
-            IUUpdateNumber(&MiniNewAlpNP, values, names, n);
-            MiniNewAlpRONP.s = IPS_OK;
-            IDSetNumber(&MiniNewAlpRONP, nullptr);
+            MiniNewAlpNP.update(values, names, n);
+            MiniNewAlpRONP.setState(IPS_OK);
+            MiniNewAlpRONP.apply();
             return true;
         }
         if (strcmp(name, MINIMAL_NEW_ALIGNMENT_POINT) == 0)
@@ -1025,16 +1025,16 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
                 return false;
             }
 
-            IUUpdateNumber(&MiniNewAlpNP, values, names, n);
-            if (0 != AddSyncPointHere(MiniNewAlpN[MALP_PRA].value, MiniNewAlpN[MALP_PDEC].value))
+            MiniNewAlpNP.update(values, names, n);
+            if (0 != AddSyncPointHere(MiniNewAlpNP[MALP_PRA].value, MiniNewAlpNP[MALP_PDEC].getValue()))
             {
                 LOG_ERROR("AddSyncPointHere error");
-                MiniNewAlpNP.s = IPS_ALERT;
-                IDSetNumber(&MiniNewAlpNP, nullptr);
+                MiniNewAlpNP.setState(IPS_ALERT);
+                MiniNewAlpNP.apply();
                 return false;
             }
-            MiniNewAlpNP.s = IPS_OK;
-            IDSetNumber(&MiniNewAlpNP, nullptr);
+            MiniNewAlpNP.setState(IPS_OK);
+            MiniNewAlpNP.apply();
             return true;
         }
         if (strcmp(name, NEW_ALIGNMENT_POINT) == 0)
@@ -1045,43 +1045,43 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
                 return false;
             }
 
-            IUUpdateNumber(&NewAlpNP, values, names, n);
-            if (0 != AddSyncPoint(NewAlpN[ALP_MRA].value, NewAlpN[ALP_MDEC].value, NewAlpN[ALP_MSIDE].value,
-                                  NewAlpN[ALP_PRA].value, NewAlpN[ALP_PDEC].value, NewAlpN[ALP_SIDTIME].value))
+            NewAlpNP.update(values, names, n);
+            if (0 != AddSyncPoint(NewAlpNP[ALP_MRA].value, NewAlpNP[ALP_MDEC].getValue(), NewAlpNP[ALP_MSIDE].getValue(),
+                                  NewAlpNP[ALP_PRA].getValue(), NewAlpNP[ALP_PDEC].getValue(), NewAlpNP[ALP_SIDTIME].getValue()))
             {
                 LOG_ERROR("AddSyncPoint error");
-                NewAlpNP.s = IPS_ALERT;
-                IDSetNumber(&NewAlpNP, nullptr);
+                NewAlpNP.setState(IPS_ALERT);
+                NewAlpNP.apply();
                 return false;
             }
-            NewAlpNP.s = IPS_OK;
-            IDSetNumber(&NewAlpNP, nullptr);
+            NewAlpNP.setState(IPS_OK);
+            NewAlpNP.apply();
             return true;
         }
         if (strcmp(name, NEW_ALIGNMENT_POINTS) == 0)
         {
-            IUUpdateNumber(&NewAlignmentPointsNP, values, names, n);
-            NewAlignmentPointsNP.s = IPS_OK;
-            IDSetNumber(&NewAlignmentPointsNP, nullptr);
-            LOGF_INFO("New unnamed Model now has %d alignment points", NewAlignmentPointsN[0].value);
+            NewAlignmentPointsNP.update(values, names, n);
+            NewAlignmentPointsNP.setState(IPS_OK);
+            NewAlignmentPointsNP.apply();
+            LOGF_INFO("New unnamed Model now has %d alignment points", NewAlignmentPointsNP[0].getValue());
             return true;
         }
         if (strcmp(name, "TLE_NUMBER") == 0)
         {
             LOG_INFO("I am trying to set from Database");
 
-            IUUpdateNumber(&TLEfromDatabaseNP, values, names, n);
-            if ( 0 != SetTLEfromDatabase(TLEfromDatabaseN[0].value) )
+            TLEfromDatabaseNP.update(values, names, n);
+            if ( 0 != SetTLEfromDatabase(TLEfromDatabaseNP[0].value) )
             {
-                TLEfromDatabaseNP.s = IPS_ALERT;
-                IDSetNumber(&TLEfromDatabaseNP, nullptr);
+                TLEfromDatabaseNP.setState(IPS_ALERT);
+                TLEfromDatabaseNP.apply();
                 return false;
             }
-            TLEfromDatabaseNP.s = IPS_OK;
-            TLEtoTrackTP.s = IPS_IDLE;
-            IDSetText(&TLEtoTrackTP, nullptr);
-            IDSetNumber(&TLEfromDatabaseNP, nullptr);
-            LOGF_INFO("Selected TLE nr %.0f from database", TLEfromDatabaseN[0].value);
+            TLEfromDatabaseNP.setState(IPS_OK);
+            TLEtoTrackTP.setState(IPS_IDLE);
+            TLEtoTrackTP.apply();
+            TLEfromDatabaseNP.apply();
+            LOGF_INFO("Selected TLE nr %.0f from database", TLEfromDatabaseNP[0].getValue());
 
             return true;
         }
@@ -1095,10 +1095,10 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(AlignmentStateSP.name, name) == 0)
+        if (AlignmentStateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&AlignmentStateSP, states, names, n);
-            int index    = IUFindOnSwitchIndex(&AlignmentStateSP);
+            AlignmentStateSP.update(states, names, n);
+            int index    = AlignmentStateSP.findOnSwitchIndex();
 
             switch (index)
             {
@@ -1116,8 +1116,8 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     if (0 != setStandardProcedureAndExpect(fd, "#:newalig#", "V"))
                     {
                         LOG_ERROR("New alignment start error");
-                        AlignmentStateSP.s = IPS_ALERT;
-                        IDSetSwitch(&AlignmentStateSP, nullptr);
+                        AlignmentStateSP.setState(IPS_ALERT);
+                        AlignmentStateSP.apply();
                         return false;
                     }
                     LOG_INFO("New Alignment started");
@@ -1136,8 +1136,8 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     if (0 != setStandardProcedureAndExpect(fd, "#:endalig#", "V"))
                     {
                         LOG_ERROR("New alignment end error");
-                        AlignmentStateSP.s = IPS_ALERT;
-                        IDSetSwitch(&AlignmentStateSP, nullptr);
+                        AlignmentStateSP.setState(IPS_ALERT);
+                        AlignmentStateSP.apply();
                         return false;
                     }
                     LOG_INFO("New Alignment ended");
@@ -1152,8 +1152,8 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     if (0 != setStandardProcedureAndExpect(fd, "#:delalig#", "#"))
                     {
                         LOG_ERROR("Delete current alignment error");
-                        AlignmentStateSP.s = IPS_ALERT;
-                        IDSetSwitch(&AlignmentStateSP, nullptr);
+                        AlignmentStateSP.setState(IPS_ALERT);
+                        AlignmentStateSP.apply();
                         return false;
                     }
                     LOG_INFO("Current Alignment deleted");
@@ -1161,67 +1161,67 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     break;
 
                 default:
-                    AlignmentStateSP.s = IPS_ALERT;
-                    IDSetSwitch(&AlignmentStateSP, "Unknown alignment index %d", index);
+                    AlignmentStateSP.setState(IPS_ALERT);
+                    AlignmentStateSP.apply("Unknown alignment index %d", index);
                     AlignmentState = ALIGN_IDLE;
                     return false;
             }
 
-            AlignmentStateSP.s = IPS_OK;
-            IDSetSwitch(&AlignmentStateSP, nullptr);
+            AlignmentStateSP.setState(IPS_OK);
+            AlignmentStateSP.apply();
             return true;
         }
-        if (strcmp(TrackSatSP.name, name) == 0)
+        if (TrackSatSP.isNameMatch(name))
         {
 
-            IUUpdateSwitch(&TrackSatSP, states, names, n);
-            int index    = IUFindOnSwitchIndex(&TrackSatSP);
+            TrackSatSP.update(states, names, n);
+            int index    = TrackSatSP.findOnSwitchIndex();
 
             switch (index)
             {
                 case SAT_TRACK:
                     if ( 0 != TrackSat() )
                     {
-                        TrackSatSP.s = IPS_ALERT;
-                        IDSetSwitch(&TrackSatSP, nullptr);
+                        TrackSatSP.setState(IPS_ALERT);
+                        TrackSatSP.apply();
                         LOG_ERROR("Tracking failed");
                         return false;
                     }
-                    TrackSatSP.s = IPS_OK;
-                    IDSetSwitch(&TrackSatSP, nullptr);
+                    TrackSatSP.setState(IPS_OK);
+                    TrackSatSP.apply();
                     LOG_INFO("Tracking satellite");
                     return true;
                 case SAT_HALT:
                     if ( !Abort() )
                     {
-                        TrackSatSP.s = IPS_ALERT;
-                        IDSetSwitch(&TrackSatSP, nullptr);
+                        TrackSatSP.setState(IPS_ALERT);
+                        TrackSatSP.apply();
                         LOG_ERROR("Halt failed");
                         return false;
                     }
-                    TrackSatSP.s = IPS_OK;
-                    IDSetSwitch(&TrackSatSP, nullptr);
+                    TrackSatSP.setState(IPS_OK);
+                    TrackSatSP.apply();
                     LOG_INFO("Halt tracking");
                     return true;
                 default:
-                    TrackSatSP.s = IPS_ALERT;
-                    IDSetSwitch(&TrackSatSP, "Unknown tracking modus %d", index);
+                    TrackSatSP.setState(IPS_ALERT);
+                    TrackSatSP.apply("Unknown tracking modus %d", index);
                     return false;
             }
         }
 
-        if (strcmp(UnattendedFlipSP.name, name) == 0)
+        if (UnattendedFlipSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&UnattendedFlipSP, states, names, n);
-            int index    = IUFindOnSwitchIndex(&UnattendedFlipSP);
+            UnattendedFlipSP.update(states, names, n);
+            int index    = UnattendedFlipSP.findOnSwitchIndex();
             switch (index)
             {
                 case UNATTENDED_FLIP_DISABLED:
                     if (false == setUnattendedFlipSetting(false))
                     {
                         LOG_ERROR("Setting unattended flip failed");
-                        UnattendedFlipSP.s = IPS_ALERT;
-                        IDSetSwitch(&UnattendedFlipSP, nullptr);
+                        UnattendedFlipSP.setState(IPS_ALERT);
+                        UnattendedFlipSP.apply();
                         return false;
                     }
                     LOG_INFO("Unattended flip disabled");
@@ -1230,19 +1230,19 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     if (false == setUnattendedFlipSetting(true))
                     {
                         LOG_ERROR("Setting unattended flip failed");
-                        UnattendedFlipSP.s = IPS_ALERT;
-                        IDSetSwitch(&UnattendedFlipSP, nullptr);
+                        UnattendedFlipSP.setState(IPS_ALERT);
+                        UnattendedFlipSP.apply();
                         return false;
                     }
                     LOG_INFO("Unattended flip enabled");
                     break;
                 default:
-                    UnattendedFlipSP.s = IPS_ALERT;
-                    IDSetSwitch(&UnattendedFlipSP, "Unknown unattended flip setting %d", index);
+                    UnattendedFlipSP.setState(IPS_ALERT);
+                    UnattendedFlipSP.apply("Unknown unattended flip setting %d", index);
                     return false;
             }
-            UnattendedFlipSP.s = IPS_OK;
-            IDSetSwitch(&UnattendedFlipSP, nullptr);
+            UnattendedFlipSP.setState(IPS_OK);
+            UnattendedFlipSP.apply();
             return true;
         }
     }
@@ -1256,31 +1256,31 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
     {
         if (strcmp(name, NEW_MODEL_NAME) == 0)
         {
-            IUUpdateText(&NewModelNameTP, texts, names, n);
-            NewModelNameTP.s = IPS_OK;
-            IDSetText(&NewModelNameTP, nullptr);
-            LOGF_INFO("Model saved with name %s", NewModelNameT[0].text);
+            NewModelNameTP.update(texts, names, n);
+            NewModelNameTP.setState(IPS_OK);
+            NewModelNameTP.apply();
+            LOGF_INFO("Model saved with name %s", NewModelNameTP[0].getText());
             return true;
         }
         if (strcmp(name, "SAT_TLE_TEXT") == 0)
         {
 
-            IUUpdateText(&TLEtoTrackTP, texts, names, n);
-            if (0 == SetTLEtoFollow(TLEtoTrackT[0].text))
+            TLEtoTrackTP.update(texts, names, n);
+            if (0 == SetTLEtoFollow(TLEtoTrackTP[0].getText()))
             {
-                TLEtoTrackTP.s = IPS_OK;
-                TLEfromDatabaseNP.s = IPS_IDLE;
-                IDSetText(&TLEtoTrackTP, nullptr);
-                IDSetNumber(&TLEfromDatabaseNP, nullptr);
-                LOGF_INFO("Selected TLE %s", TLEtoTrackT[0].text);
+                TLEtoTrackTP.setState(IPS_OK);
+                TLEfromDatabaseNP.setState(IPS_IDLE);
+                TLEtoTrackTP.apply();
+                TLEfromDatabaseNP.apply();
+                LOGF_INFO("Selected TLE %s", TLEtoTrackTP[0].getText());
                 return true;
             }
             else
             {
-                TLEtoTrackTP.s = IPS_ALERT;
-                TLEfromDatabaseNP.s = IPS_IDLE;
-                IDSetText(&TLEtoTrackTP, nullptr);
-                IDSetNumber(&TLEfromDatabaseNP, nullptr);
+                TLEtoTrackTP.setState(IPS_ALERT);
+                TLEfromDatabaseNP.setState(IPS_IDLE);
+                TLEtoTrackTP.apply();
+                TLEfromDatabaseNP.apply();
                 LOG_ERROR("TLE was not correctly uploaded");
                 return false;
             }
@@ -1289,18 +1289,18 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         }
         if (strcmp(name, "SAT_PASS_WINDOW") == 0)
         {
-            IUUpdateText(&SatPassWindowTP, texts, names, n);
-            if (0 == CalculateSatTrajectory(SatPassWindowT[SAT_PASS_WINDOW_START].text, SatPassWindowT[SAT_PASS_WINDOW_END].text))
+            SatPassWindowTP.update(texts, names, n);
+            if (0 == CalculateSatTrajectory(SatPassWindowTP[SAT_PASS_WINDOW_START].getText(), SatPassWindowTP[SAT_PASS_WINDOW_END].getText()))
             {
-                SatPassWindowTP.s = IPS_OK;
-                IDSetText(&SatPassWindowTP, nullptr);
+                SatPassWindowTP.setState(IPS_OK);
+                SatPassWindowTP.apply();
                 LOG_INFO("Trajectory set");
                 return true;
             }
             else
             {
-                SatPassWindowTP.s = IPS_ALERT;
-                IDSetText(&SatPassWindowTP, nullptr);
+                SatPassWindowTP.setState(IPS_ALERT);
+                SatPassWindowTP.apply();
                 LOG_ERROR("Trajectory could not be calculated");
                 return false;
             }

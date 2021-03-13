@@ -98,19 +98,19 @@ IPState GPSSimulator::updateGPS()
 
     utc = gmtime(&raw_time);
     strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
-    IUSaveText(&TimeT[0], ts);
+    TimeTP[0].setText(ts);
 
     local = localtime(&raw_time);
     snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff / 3600.0));
-    IUSaveText(&TimeT[1], ts);
+    TimeTP[1].setText(ts);
 
-    TimeTP.s = IPS_OK;
+    TimeTP.setState(IPS_OK);
 
-    LocationN[LOCATION_LATITUDE].value  = 51.0;
-    LocationN[LOCATION_LONGITUDE].value = 357.7;
-    LocationN[LOCATION_ELEVATION].value = 72;
+    LocationNP[LOCATION_LATITUDE].setValue(51.0);
+    LocationNP[LOCATION_LONGITUDE].setValue(357.7);
+    LocationNP[LOCATION_ELEVATION].setValue(72);
 
-    LocationNP.s = IPS_OK;
+    LocationNP.setState(IPS_OK);
 
     return IPS_OK;
 }

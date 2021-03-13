@@ -78,20 +78,20 @@ bool NFocus::initProperties()
     INDI::Focuser::initProperties();
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -100, 100, 0, 0);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -100, 100, 0, 0);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Settings of the Nfocus
-    IUFillNumber(&SettingsN[SETTING_ON_TIME], "ON time", "ON waiting time", "%6.0f", 10., 250., 0., 73.);
-    IUFillNumber(&SettingsN[SETTING_OFF_TIME], "OFF time", "OFF waiting time", "%6.0f", 1., 250., 0., 15.);
-    IUFillNumber(&SettingsN[SETTING_MODE_DELAY], "Fast Mode Delay", "Fast Mode Delay", "%6.0f", 0., 255., 0., 9.);
-    IUFillNumberVector(&SettingsNP, SettingsN, 3, getDeviceName(), "FOCUS_SETTINGS", "Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    SettingsNP[SETTING_ON_TIME].fill("ON time", "ON waiting time", "%6.0f", 10., 250., 0., 73.);
+    SettingsNP[SETTING_OFF_TIME].fill("OFF time", "OFF waiting time", "%6.0f", 1., 250., 0., 15.);
+    SettingsNP[SETTING_MODE_DELAY].fill("Fast Mode Delay", "Fast Mode Delay", "%6.0f", 0., 255., 0., 9.);
+    SettingsNP.fill(getDeviceName(), "FOCUS_SETTINGS", "Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
-    FocusRelPosN[0].min = 0;
-    FocusRelPosN[0].max = 50000;
-    FocusRelPosN[0].step = 1000;
-    FocusRelPosN[0].value = 0;
+    FocusRelPosNP[0].setMin(0);
+    FocusRelPosNP[0].setMax(50000);
+    FocusRelPosNP[0].setStep(1000);
+    FocusRelPosNP[0].setValue(0);
 
     // Set polling to 500ms
     setDefaultPollingPeriod(500);
@@ -106,16 +106,16 @@ bool NFocus::updateProperties()
     if (isConnected())
     {
         if (readTemperature())
-            defineProperty(&TemperatureNP);
-        defineProperty(&SettingsNP);
+            defineProperty(TemperatureNP);
+        defineProperty(SettingsNP);
 
         if (getStartupValues())
             LOG_INFO("NFocus is ready.");
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(SettingsNP.name);
+        deleteProperty(TemperatureNP.getName());
+        deleteProperty(SettingsNP.getName());
     }
 
     return true;
@@ -223,8 +223,8 @@ bool NFocus::readTemperature()
     if (temperature <= -80)
         return false;
 
-    TemperatureN[0].value = temperature;
-    TemperatureNP.s = IPS_OK;
+    TemperatureNP[0].setValue(temperature);
+    TemperatureNP.setState(IPS_OK);
 
     return true;
 }
@@ -254,9 +254,9 @@ bool NFocus::readMotorSettings()
 
     if (on_rc && off_rc && fast_rc)
     {
-        SettingsN[SETTING_ON_TIME].value = std::stoi(on_res);
-        SettingsN[SETTING_OFF_TIME].value = std::stoi(off_res);
-        SettingsN[SETTING_MODE_DELAY].value = std::stoi(fast_res);
+        SettingsNP[SETTING_ON_TIME].setValue(std::stoi(on_res));
+        SettingsNP[SETTING_OFF_TIME].setValue(std::stoi(off_res));
+        SettingsNP[SETTING_MODE_DELAY].setValue(std::stoi(fast_res));
         return true;
     }
 
@@ -270,7 +270,7 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Settings
-        if (strcmp(name, SettingsNP.name) == 0)
+        if (SettingsNP.isNameMatch(name))
         {
             // New Settings
             double new_onTime    = 0;
@@ -280,20 +280,20 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
             for (nset = i = 0; i < n; i++)
             {
                 /* Find numbers with the passed names in the SettingsNP property */
-                INumber *eqp = IUFindNumber(&SettingsNP, names[i]);
+                INumber *eqp = SettingsNP.findWidgetByName(names[i]);
 
-                /* If the number found is  (SettingsN[0]) then process it */
-                if (eqp == &SettingsN[SETTING_ON_TIME])
+                /* If the number found is  (SettingsNP[0]) then process it */
+                if (eqp == &SettingsNP[SETTING_ON_TIME])
                 {
                     new_onTime = (values[i]);
                     nset += static_cast<int>(new_onTime >= 10 && new_onTime <= 250);
                 }
-                else if (eqp == &SettingsN[SETTING_OFF_TIME])
+                else if (eqp == &SettingsNP[SETTING_OFF_TIME])
                 {
                     new_offTime = (values[i]);
                     nset += static_cast<int>(new_offTime >= 1 && new_offTime <= 250);
                 }
-                else if (eqp == &SettingsN[SETTING_MODE_DELAY])
+                else if (eqp == &SettingsNP[SETTING_MODE_DELAY])
                 {
                     new_fastDelay = (values[i]);
                     nset += static_cast<int>(new_fastDelay >= 1 && new_fastDelay <= 9);
@@ -306,21 +306,21 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
                 if (setMotorSettings(new_onTime, new_offTime, new_fastDelay) == false)
                 {
                     LOG_ERROR("Changing to new settings failed");
-                    SettingsNP.s = IPS_ALERT;
-                    IDSetNumber(&SettingsNP, nullptr);
+                    SettingsNP.setState(IPS_ALERT);
+                    SettingsNP.apply();
                     return false;
                 }
 
-                IUUpdateNumber(&SettingsNP, values, names, n);
-                SettingsNP.s = IPS_OK;
-                IDSetNumber(&SettingsNP, nullptr);
+                SettingsNP.update(values, names, n);
+                SettingsNP.setState(IPS_OK);
+                SettingsNP.apply();
                 return true;
             }
             else
             {
-                SettingsNP.s = IPS_IDLE;
+                SettingsNP.setState(IPS_IDLE);
                 LOG_WARN("Settings invalid.");
-                IDSetNumber(&SettingsNP, nullptr);
+                SettingsNP.apply();
                 return false;
             }
         }
@@ -334,8 +334,8 @@ bool NFocus::getStartupValues()
 {
     if (readMotorSettings())
     {
-        SettingsNP.s = IPS_OK;
-        IDSetNumber(&SettingsNP, nullptr);
+        SettingsNP.setState(IPS_OK);
+        SettingsNP.apply();
     }
 
     return true;
@@ -360,13 +360,13 @@ void NFocus::TimerHit()
 
     // Check if we have a pending motion
     // and if we STOPPED, then let's take the next action
-    if (FocusRelPosNP.s == IPS_BUSY && isMoving() == false)
+    if (FocusRelPosNP.getState() == IPS_BUSY && isMoving() == false)
     {
         // Are we done moving?
         if (m_TargetPosition == 0)
         {
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusRelPosNP.apply();
         }
         else
         {
@@ -374,14 +374,14 @@ void NFocus::TimerHit()
             // so we need to go 999 or LESS
             // therefore for larger movements, we break it down.
             int nextMotion = (m_TargetPosition > 999) ? 999 : m_TargetPosition;
-            int direction = IUFindOnSwitchIndex(&FocusMotionSP);
+            int direction = FocusMotionSP.findOnSwitchIndex();
             char cmd[NFOCUS_LEN] = {0};
             snprintf(cmd, NFOCUS_LEN, ":F%d0%03d#", direction, nextMotion);
             if (sendCommand(cmd) == false)
             {
-                FocusRelPosNP.s = IPS_ALERT;
+                FocusRelPosNP.setState(IPS_ALERT);
                 LOG_ERROR("Failed to issue motion command.");
-                IDSetNumber(&FocusRelPosNP, nullptr);
+                FocusRelPosNP.apply();
             }
             else
                 m_TargetPosition -= nextMotion;
@@ -389,11 +389,11 @@ void NFocus::TimerHit()
     }
 
     // Read temperature
-    if (TemperatureNP.s == IPS_OK && m_TemperatureCounter++ == NFOCUS_TEMPERATURE_FREQ)
+    if (TemperatureNP.getState() == IPS_OK && m_TemperatureCounter++ == NFOCUS_TEMPERATURE_FREQ)
     {
         m_TemperatureCounter = 0;
         if (readTemperature())
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -414,6 +414,6 @@ bool NFocus::isMoving()
 bool NFocus::saveConfigItems(FILE *fp)
 {
     INDI::Focuser::saveConfigItems(fp);
-    IUSaveConfigNumber(fp, &SettingsNP);
+    SettingsNP.save(fp);
     return true;
 }

@@ -20,6 +20,10 @@
 
 #include "indifilterwheel.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 /**
  * @brief Manual filter enables users from changing filter wheels manually
  */
@@ -45,12 +49,9 @@ class ManualFilter : public INDI::FilterWheel
     virtual bool saveConfigItems(FILE *fp) override;
 
   private:
-    ISwitch FilterSetS[1];
-    ISwitchVectorProperty FilterSetSP;
+    INDI::PropertySwitch FilterSetSP {1};
 
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
+    INDI::PropertyNumber SyncNP {1};
 
-    INumber MaxFiltersN[1];
-    INumberVectorProperty MaxFiltersNP;
+    INDI::PropertyNumber MaxFiltersNP {1};
 };

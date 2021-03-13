@@ -89,22 +89,22 @@ bool SynscanLegacyDriver::initProperties()
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Mount Info Text Property
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    IUFillText(&BasicMountInfoT[MI_FW_VERSION], "FW_VERSION", "Firmware version", "-");
-    IUFillText(&BasicMountInfoT[MI_MOUNT_CODE], "MOUNT_CODE", "Mount code", "-");
-    IUFillText(&BasicMountInfoT[MI_ALIGN_STATUS], "ALIGNMENT_STATUS", "Alignment status", "-");
-    IUFillText(&BasicMountInfoT[MI_GOTO_STATUS], "GOTO_STATUS", "Goto status", "-");
-    IUFillText(&BasicMountInfoT[MI_POINT_STATUS], "MOUNT_POINTING_STATUS",
+    BasicMountInfoTP[MI_FW_VERSION].fill("FW_VERSION", "Firmware version", "-");
+    BasicMountInfoTP[MI_MOUNT_CODE].fill("MOUNT_CODE", "Mount code", "-");
+    BasicMountInfoTP[MI_ALIGN_STATUS].fill("ALIGNMENT_STATUS", "Alignment status", "-");
+    BasicMountInfoTP[MI_GOTO_STATUS].fill("GOTO_STATUS", "Goto status", "-");
+    BasicMountInfoTP[MI_POINT_STATUS].fill("MOUNT_POINTING_STATUS",
                "Mount pointing status", "-");
-    IUFillText(&BasicMountInfoT[MI_TRACK_MODE], "TRACKING_MODE", "Tracking mode", "-");
-    IUFillTextVector(&BasicMountInfoTP, BasicMountInfoT, 6, getDeviceName(), "BASIC_MOUNT_INFO",
+    BasicMountInfoTP[MI_TRACK_MODE].fill("TRACKING_MODE", "Tracking mode", "-");
+    BasicMountInfoTP.fill(getDeviceName(), "BASIC_MOUNT_INFO",
                      "Mount information", MountInfoPage, IP_RO, 60, IPS_IDLE);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Use WiFi Switch Property
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    //    IUFillSwitch(&UseWiFiS[WIFI_ENABLED], "Enabled", "Enabled", ISS_OFF);
-    //    IUFillSwitch(&UseWiFiS[WIFI_DISABLED], "Disabled", "Disabled", ISS_ON);
-    //    IUFillSwitchVector(&UseWiFiSP, UseWiFiS, 2, getDeviceName(), "WIFI_SELECT", "Use WiFi?", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    //    UseWiFiSP[WIFI_ENABLED].fill("Enabled", "Enabled", ISS_OFF);
+    //    UseWiFiSP[WIFI_DISABLED].fill("Disabled", "Disabled", ISS_ON);
+    //    UseWiFiSP.fill(getDeviceName(), "WIFI_SELECT", "Use WiFi?", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     addAuxControls();
 
@@ -121,19 +121,19 @@ bool SynscanLegacyDriver::ISNewSwitch(const char *dev, const char *name, ISState
 #if 0
     if (!strcmp(dev, getDeviceName()))
     {
-        if (!strcmp(name, UseWiFiSP.name))
+        if (UseWiFiSP.isNameMatch(name))
         {
             if (isConnected())
             {
-                UseWiFiSP.s = IPS_ALERT;
-                IDSetSwitch(&UseWiFiSP, nullptr);
+                UseWiFiSP.setState(IPS_ALERT);
+                UseWiFiSP.apply();
                 LOG_ERROR("Cannot select WiFi mode while already connected. It must be selected when when disconnected.");
                 return true;
             }
 
-            IUUpdateSwitch(&UseWiFiSP, states, names, n);
+            UseWiFiSP.update(states, names, n);
 
-            if (UseWiFiS[WIFI_ENABLED].s == ISS_ON)
+            if (UseWiFiSP[WIFI_ENABLED].getState() == ISS_ON)
             {
                 setTelescopeConnection(CONNECTION_TCP);
                 tcpConnection->setDefaultHost("192.168.4.2");
@@ -142,8 +142,8 @@ bool SynscanLegacyDriver::ISNewSwitch(const char *dev, const char *name, ISState
                 LOG_INFO("Driver is configured for WiFi connection to 192.168.4.2 at TCP port 11882");
 
                 saveConfig(true, "WIFI_SELECT");
-                UseWiFiSP.s = IPS_OK;
-                IDSetSwitch(&UseWiFiSP, nullptr);
+                UseWiFiSP.setState(IPS_OK);
+                UseWiFiSP.apply();
 
                 ISState newStates[] = { ISS_OFF, ISS_ON };
                 const char *newNames[] = { "CONNECTION_SERIAL", "CONNECTION_TCP" };
@@ -154,8 +154,8 @@ bool SynscanLegacyDriver::ISNewSwitch(const char *dev, const char *name, ISState
                 setTelescopeConnection(CONNECTION_SERIAL);
                 LOG_INFO("Driver is configured for serial connection to the hand controller.");
 
-                UseWiFiSP.s = IPS_OK;
-                IDSetSwitch(&UseWiFiSP, nullptr);
+                UseWiFiSP.setState(IPS_OK);
+                UseWiFiSP.apply();
 
                 ISState newStates[] = { ISS_ON, ISS_OFF };
                 const char *newNames[] = { "CONNECTION_SERIAL", "CONNECTION_TCP" };
@@ -187,11 +187,11 @@ bool SynscanLegacyDriver::updateProperties()
     if (isConnected())
     {
         UpdateMountInformation(false);
-        defineProperty(&BasicMountInfoTP);
+        defineProperty(BasicMountInfoTP);
     }
     else
     {
-        deleteProperty(BasicMountInfoTP.name);
+        deleteProperty(BasicMountInfoTP.getName());
     }
 
     return true;
@@ -554,8 +554,8 @@ bool SynscanLegacyDriver::ReadScopeStatus()
                     else
                     {
                         TrackState = SCOPE_PARKED;
-                        //ParkSP.s=IPS_OK;
-                        //IDSetSwitch(&ParkSP,nullptr);
+                        //ParkSP.setState(PS_OK);
+                        //ParkSP.apply();
                         //IDMessage(getDeviceName(),"Telescope is Parked.");
                         SetParked(true);
                     }
@@ -1062,10 +1062,10 @@ bool SynscanLegacyDriver::ReadTime()
         char timeString[MAXINDINAME] = {0};
         time_t now = time (nullptr);
         strftime(timeString, MAXINDINAME, "%T", gmtime(&now));
-        IUSaveText(&TimeT[0], "3");
-        IUSaveText(&TimeT[1], timeString);
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[0].setText("3");
+        TimeTP[1].setText(timeString);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
         return true;
     }
 
@@ -1115,10 +1115,10 @@ bool SynscanLegacyDriver::ReadTime()
             offset = offset + 1;
         sprintf(ofs, "%d", offset);
 
-        IUSaveText(&TimeT[0], utc);
-        IUSaveText(&TimeT[1], ofs);
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[0].setText(utc);
+        TimeTP[1].setText(ofs);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
 
         LOGF_INFO("Mount UTC Time %s Offset %d", utc, offset);
 
@@ -1133,9 +1133,9 @@ bool SynscanLegacyDriver::ReadLocation()
 
     if (isSimulation())
     {
-        LocationN[LOCATION_LATITUDE].value  = 29.5;
-        LocationN[LOCATION_LONGITUDE].value = 48;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(29.5);
+        LocationNP[LOCATION_LONGITUDE].setValue(48);
+        LocationNP.apply();
         ReadLatLong = false;
         return true;
     }
@@ -1200,9 +1200,9 @@ bool SynscanLegacyDriver::ReadLocation()
                 lat = lat * -1;
             if (h == 1)
                 lon = 360 - lon;
-            LocationN[LOCATION_LATITUDE].value  = lat;
-            LocationN[LOCATION_LONGITUDE].value = lon;
-            IDSetNumber(&LocationNP, nullptr);
+            LocationNP[LOCATION_LATITUDE].setValue(lat);
+            LocationNP[LOCATION_LONGITUDE].setValue(lon);
+            LocationNP.apply();
 
             saveConfig(true, "GEOGRAPHIC_COORD");
 
@@ -1285,9 +1285,9 @@ bool SynscanLegacyDriver::updateLocation(double latitude, double longitude, doub
     ln_lnlat_posn p1 { 0, 0 };
     lnh_lnlat_posn p2;
 
-    LocationN[LOCATION_LATITUDE].value  = latitude;
-    LocationN[LOCATION_LONGITUDE].value = longitude;
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP[LOCATION_LATITUDE].setValue(latitude);
+    LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+    LocationNP.apply();
 
     if (isSimulation())
     {
@@ -1486,8 +1486,8 @@ ln_hrz_posn SynscanLegacyDriver::GetAltAzPosition(double ra, double dec)
     ln_hrz_posn AltAz { 0, 0 };
 
     // Set the current location
-    Location.lat = LocationN[LOCATION_LATITUDE].value;
-    Location.lng = LocationN[LOCATION_LONGITUDE].value;
+    Location.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    Location.lng = LocationNP[LOCATION_LONGITUDE].getValue();
 
     Eq.ra  = ra * 360.0 / 24.0;
     Eq.dec = dec;
@@ -1500,40 +1500,40 @@ void SynscanLegacyDriver::UpdateMountInformation(bool inform_client)
     bool BasicMountInfoHasChanged = false;
     std::string MountCodeStr = std::to_string(MountCode);
 
-    if (std::string(BasicMountInfoT[MI_FW_VERSION].text) != HandsetFwVersion)
+    if (std::string(BasicMountInfoTP[MI_FW_VERSION].getText()) != HandsetFwVersion)
     {
-        IUSaveText(&BasicMountInfoT[MI_FW_VERSION], HandsetFwVersion.c_str());
+        BasicMountInfoTP[MI_FW_VERSION].setText(HandsetFwVersion);
         BasicMountInfoHasChanged = true;
     }
-    if (std::string(BasicMountInfoT[MI_MOUNT_CODE].text) != MountCodeStr)
+    if (std::string(BasicMountInfoTP[MI_MOUNT_CODE].getText()) != MountCodeStr)
     {
-        IUSaveText(&BasicMountInfoT[MI_MOUNT_CODE], MountCodeStr.c_str());
+        BasicMountInfoTP[MI_MOUNT_CODE].setText(MountCodeStr);
         BasicMountInfoHasChanged = true;
     }
 
-    if (std::string(BasicMountInfoT[MI_ALIGN_STATUS].text) != AlignmentStatus)
+    if (std::string(BasicMountInfoTP[MI_ALIGN_STATUS].getText()) != AlignmentStatus)
     {
-        IUSaveText(&BasicMountInfoT[MI_ALIGN_STATUS], AlignmentStatus.c_str());
+        BasicMountInfoTP[MI_ALIGN_STATUS].setText(AlignmentStatus);
         BasicMountInfoHasChanged = true;
     }
-    if (std::string(BasicMountInfoT[MI_GOTO_STATUS].text) != GotoStatus)
+    if (std::string(BasicMountInfoTP[MI_GOTO_STATUS].getText()) != GotoStatus)
     {
-        IUSaveText(&BasicMountInfoT[MI_GOTO_STATUS], GotoStatus.c_str());
+        BasicMountInfoTP[MI_GOTO_STATUS].setText(GotoStatus);
         BasicMountInfoHasChanged = true;
     }
-    if (std::string(BasicMountInfoT[MI_POINT_STATUS].text) != PointingStatus)
+    if (std::string(BasicMountInfoTP[MI_POINT_STATUS].getText()) != PointingStatus)
     {
-        IUSaveText(&BasicMountInfoT[MI_POINT_STATUS], PointingStatus.c_str());
+        BasicMountInfoTP[MI_POINT_STATUS].setText(PointingStatus);
         BasicMountInfoHasChanged = true;
     }
-    if (std::string(BasicMountInfoT[MI_TRACK_MODE].text) != TrackingMode)
+    if (std::string(BasicMountInfoTP[MI_TRACK_MODE].getText()) != TrackingMode)
     {
-        IUSaveText(&BasicMountInfoT[MI_TRACK_MODE], TrackingMode.c_str());
+        BasicMountInfoTP[MI_TRACK_MODE].setText(TrackingMode);
         BasicMountInfoHasChanged = true;
     }
 
     if (BasicMountInfoHasChanged && inform_client)
-        IDSetText(&BasicMountInfoTP, nullptr);
+        BasicMountInfoTP.apply();
 }
 
 void SynscanLegacyDriver::MountSim()
@@ -1558,7 +1558,7 @@ void SynscanLegacyDriver::MountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            CurrentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+            CurrentRA += (TrackRateNP[AXIS_RA].value / 3600.0 * dt) / 15.0;
             CurrentRA = range24(CurrentRA);
             break;
 

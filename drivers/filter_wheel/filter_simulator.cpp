@@ -70,8 +70,8 @@ const char *FilterSim::getDefaultName()
 bool FilterSim::Connect()
 {
     CurrentFilter      = 1;
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 8;
+    FilterSlotNP[0].setMin(1);
+    FilterSlotNP[0].setMax(8);
     return true;
 }
 

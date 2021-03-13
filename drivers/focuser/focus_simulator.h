@@ -20,6 +20,10 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 /**
  * @brief The FocusSim class provides a simple Focuser simulator that can simulator the following devices:
  * + Absolute Focuser with encoders.
@@ -64,16 +68,13 @@ class FocusSim : public INDI::Focuser
         double initTicks { 0 };
 
         // Seeing in arcseconds
-        INumberVectorProperty SeeingNP;
-        INumber SeeingN[1];
+        INDI::PropertyNumber SeeingNP {1};
 
         // FWHM to be used by CCD driver to draw 'fuzzy' stars
-        INumberVectorProperty FWHMNP;
-        INumber FWHMN[1];
+        INDI::PropertyNumber FWHMNP {1};
 
         // Temperature in celcius degrees
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[1];
+        INDI::PropertyNumber TemperatureNP {1};
 
         // Current mode of Focus simulator for testing purposes
         enum
@@ -84,6 +85,5 @@ class FocusSim : public INDI::Focuser
             MODE_TIMER,
             MODE_COUNT
         };
-        ISwitchVectorProperty ModeSP;
-        ISwitch ModeS[MODE_COUNT];
+        INDI::PropertySwitch ModeSP {MODE_COUNT};
 };

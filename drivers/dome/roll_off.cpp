@@ -159,7 +159,7 @@ void RollOff::TimerHit()
     if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
-    if (DomeMotionSP.s == IPS_BUSY)
+    if (DomeMotionSP.getState() == IPS_BUSY)
     {
         // Abort called
         if (MotionRequest < 0)
@@ -171,7 +171,7 @@ void RollOff::TimerHit()
         }
 
         // Roll off is opening
-        if (DomeMotionS[DOME_CW].s == ISS_ON)
+        if (DomeMotionSP[DOME_CW].getState() == ISS_ON)
         {
             if (getFullOpenedLimitSwitch())
             {
@@ -181,7 +181,7 @@ void RollOff::TimerHit()
             }
         }
         // Roll Off is closing
-        else if (DomeMotionS[DOME_CCW].s == ISS_ON)
+        else if (DomeMotionSP[DOME_CCW].getState() == ISS_ON)
         {
             if (getFullClosedLimitSwitch())
             {
@@ -271,9 +271,9 @@ bool RollOff::Abort()
     // If both limit switches are off, then we're neither parked nor unparked.
     if (fullOpenLimitSwitch == ISS_OFF && fullClosedLimitSwitch == ISS_OFF)
     {
-        IUResetSwitch(&ParkSP);
-        ParkSP.s = IPS_IDLE;
-        IDSetSwitch(&ParkSP, nullptr);
+        ParkSP.reset();
+        ParkSP.setState(IPS_IDLE);
+        ParkSP.apply();
     }
 
     return true;

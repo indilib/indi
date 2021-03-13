@@ -29,6 +29,11 @@
 
 #include <list>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 namespace Connection
 {
 class Serial;
@@ -129,24 +134,19 @@ class Weather : public DefaultDevice, public WeatherInterface
         virtual bool Handshake();
 
         // A number vector that stores lattitude and longitude
-        INumberVectorProperty LocationNP;
-        INumber LocationN[3];
+        INDI::PropertyNumber LocationNP {3};
 
         // Active devices to snoop
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[1] {};
+        INDI::PropertyText ActiveDeviceTP {1};
 
         // Update Period
-        INumber UpdatePeriodN[1];
-        INumberVectorProperty UpdatePeriodNP;
+        INDI::PropertyNumber UpdatePeriodNP {1};
 
         // Refresh data
-        ISwitch RefreshS[1];
-        ISwitchVectorProperty RefreshSP;
+        INDI::PropertySwitch RefreshSP {1};
 
         // Override
-        ISwitch OverrideS[1];
-        ISwitchVectorProperty OverrideSP;
+        INDI::PropertySwitch OverrideSP {1};
 
         Connection::Serial *serialConnection {nullptr};
         Connection::TCP *tcpConnection       {nullptr};

@@ -86,8 +86,8 @@ bool TruTech::initProperties()
 {
     INDI::FilterWheel::initProperties();
 
-    IUFillSwitch(&HomeS[0], "Find", "Find", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
+    HomeSP[0].fill("Find", "Find", ISS_OFF);
+    HomeSP.fill(getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
 
     addAuxControls();
@@ -100,9 +100,9 @@ bool TruTech::updateProperties()
     INDI::FilterWheel::updateProperties();
 
     if (isConnected())
-        defineProperty(&HomeSP);
+        defineProperty(HomeSP);
     else
-        deleteProperty(HomeSP.name);
+        deleteProperty(HomeSP.getName());
 
     return true;
 }
@@ -111,18 +111,18 @@ bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(HomeSP.name, name))
+        if (HomeSP.isNameMatch(name))
         {
             if (home())
             {
                 LOG_INFO("Filter set to home position.");
-                HomeSP.s = IPS_OK;
-                FilterSlotNP.s = IPS_OK;
-                IDSetNumber(&FilterSlotNP, nullptr);
+                HomeSP.setState(IPS_OK);
+                FilterSlotNP.setState(IPS_OK);
+                FilterSlotNP.apply();
             }
             else
-                HomeSP.s = IPS_ALERT;
-            IDSetSwitch(&HomeSP, nullptr);
+                HomeSP.setState(IPS_ALERT);
+            HomeSP.apply();
             return true;
         }
     }
@@ -166,9 +166,9 @@ bool TruTech::home()
     if (static_cast<uint8_t>(filter_response[0]) == COMM_INIT)
     {
         CurrentFilter = 1;
-        FilterSlotN[0].value = 1;
-        FilterSlotN[0].min = 1;
-        FilterSlotN[0].max = filter_response[2] - 0x30;
+        FilterSlotNP[0].setValue(1);
+        FilterSlotNP[0].setMin(1);
+        FilterSlotNP[0].setMax(filter_response[2] - 0x30);
     }
 
     return true;
@@ -207,7 +207,7 @@ int TruTech::QueryFilter()
 
 void TruTech::TimerHit()
 {
-    if (FilterSlotNP.s == IPS_BUSY)
+    if (FilterSlotNP.getState() == IPS_BUSY)
     {
         int rc = 0, nbytes_written = 0, nbytes_read = 0;
         uint8_t type   = 0x02;

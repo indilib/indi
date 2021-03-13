@@ -34,6 +34,12 @@
 #include <cmath>
 #include <cstring>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+#include "indipropertylight.h"
+
 #define LYNXFOCUS_MAX_RETRIES          1
 #define LYNXFOCUS_TIMEOUT              3
 #define LYNXFOCUS_MAXBUF               16
@@ -129,8 +135,7 @@ class FocusLynxBase : public INDI::Focuser
         ISwitchVectorProperty ModelSP;
 
         // Led Intensity Value
-        INumber LedN[1];
-        INumberVectorProperty LedNP;
+        INDI::PropertyNumber LedNP {1};
 
         // Store version of the firmware from the HUB
         char version[16];
@@ -183,52 +188,41 @@ class FocusLynxBase : public INDI::Focuser
         // Properties
 
         // Set/Get Temperature
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
         // Enable/Disable temperature compensation
-        ISwitch TemperatureCompensateS[2];
-        ISwitchVectorProperty TemperatureCompensateSP;
+        INDI::PropertySwitch TemperatureCompensateSP {2};
 
         // Enable/Disable temperature compensation on start
-        ISwitch TemperatureCompensateOnStartS[2];
-        ISwitchVectorProperty TemperatureCompensateOnStartSP;
+        INDI::PropertySwitch TemperatureCompensateOnStartSP {2};
 
         // Temperature Coefficient Mode
-        ISwitch TemperatureCompensateModeS[5];
-        ISwitchVectorProperty TemperatureCompensateModeSP;
+        INDI::PropertySwitch TemperatureCompensateModeSP {5};
 
         // Temperature coefficient and Intercept for selected mode
-        INumber TemperatureParamN[2];
-        INumberVectorProperty TemperatureParamNP;
+        INDI::PropertyNumber TemperatureParamNP {2};
 
         // Reset to Factory setting
-        ISwitch ResetS[1];
-        ISwitchVectorProperty ResetSP;
+        INDI::PropertySwitch ResetSP {1};
 
         // Go to home/center
-        ISwitch GotoS[2];
-        ISwitchVectorProperty GotoSP;
+        INDI::PropertySwitch GotoSP {2};
 
         // Status indicators
-        ILight StatusL[8];
-        ILightVectorProperty StatusLP;
+        INDI::PropertyLight StatusLP {8};
 
         // Max Travel for relative focusers
-        //    INumber MaxTravelN[1];
-        //    INumberVectorProperty MaxTravelNP;
+        //    INDI::PropertyNumber MaxTravelNP {1};
+        //
 
         // Focuser Step Size
-        INumber StepSizeN[1];
-        INumberVectorProperty StepSizeNP;
+        INDI::PropertyNumber StepSizeNP {1};
 
         // Focus name configure in the HUB
-        IText HFocusNameT[1] {};
-        ITextVectorProperty HFocusNameTP;
+        INDI::PropertyText HFocusNameTP {1};
 
         // Request mandatory action of sync from user
-        ISwitch SyncMandatoryS[2];
-        ISwitchVectorProperty SyncMandatorySP;
+        INDI::PropertySwitch SyncMandatorySP {2};
 
         bool isAbsolute;
         bool isSynced;

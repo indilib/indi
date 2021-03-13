@@ -21,6 +21,12 @@
 
 #include "baseclient.h"
 #include "defaultdevice.h"
+
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+#include "indipropertylight.h"
 #define MAX_GROUP_COUNT 16
 
 class Group;
@@ -83,35 +89,20 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
         int maxImage { 0 };
         const char *controlledCCD { nullptr };
         const char *controlledFilterWheel { nullptr };
-
-        ITextVectorProperty ControlledDeviceTP;
-        IText ControlledDeviceT[2] {};
-        INumberVectorProperty GroupCountNP;
-        INumber GroupCountN[1];
-        INumberVectorProperty ProgressNP;
-        INumber ProgressN[3];
-        ISwitchVectorProperty BatchSP;
-        ISwitch BatchS[2];
-        ILightVectorProperty StatusLP;
-        ILight StatusL[2];
-        ITextVectorProperty ImageNameTP;
-        IText ImageNameT[2];
-        INumberVectorProperty DownloadNP;
-        INumber DownloadN[2];
+        INDI::PropertyText ControlledDeviceTP {2};
+        INDI::PropertyNumber GroupCountNP {1};
+        INDI::PropertyNumber ProgressNP {3};
+        INDI::PropertySwitch BatchSP {2};
+        INDI::PropertyLight StatusLP {2};
+        INDI::PropertyText ImageNameTP {2};
+        INDI::PropertyNumber DownloadNP {2};
         IBLOBVectorProperty FitsBP;
         IBLOB FitsB[1];
-
-        INumberVectorProperty CCDImageExposureNP;
-        INumber CCDImageExposureN[1];
-        INumberVectorProperty CCDImageBinNP;
-        INumber CCDImageBinN[2];
-        ISwitch CCDUploadS[3];
-        ISwitchVectorProperty CCDUploadSP;
-        IText CCDUploadSettingsT[2] {};
-        ITextVectorProperty CCDUploadSettingsTP;
-
-        INumberVectorProperty FilterSlotNP;
-        INumber FilterSlotN[1];
+        INDI::PropertyNumber CCDImageExposureNP {1};
+        INDI::PropertyNumber CCDImageBinNP {2};
+        INDI::PropertySwitch CCDUploadSP {3};
+        INDI::PropertyText CCDUploadSettingsTP {2};
+        INDI::PropertyNumber FilterSlotNP {1};
 
         std::vector<std::shared_ptr<Group>> groups;
         std::shared_ptr<Group> currentGroup() const;

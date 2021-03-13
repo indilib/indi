@@ -61,31 +61,31 @@ bool RBFOCUS::initProperties()
     INDI::Focuser::initProperties();
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillSwitch(&focuserHoldS[HOLD_ON], "HOLD_ON", "Hold Enabled", ISS_OFF);
-    IUFillSwitch(&focuserHoldS[HOLD_OFF], "HOLD_OFF", "Hold Disabled", ISS_OFF);
-    IUFillSwitchVector(&focuserHoldSP, focuserHoldS, 2, getDeviceName(), "Focuser Hold", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    focuserHoldSP[HOLD_ON].fill("HOLD_ON", "Hold Enabled", ISS_OFF);
+    focuserHoldSP[HOLD_OFF].fill("HOLD_OFF", "Hold Disabled", ISS_OFF);
+    focuserHoldSP.fill(getDeviceName(), "Focuser Hold", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&dirS[NORMAL], "NORMAL", "Normal", ISS_OFF);
-    IUFillSwitch(&dirS[REVERSED], "REVERSED", "Reverse", ISS_OFF);
-    IUFillSwitchVector(&dirSP, dirS, 2, getDeviceName(), "Direction", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    dirSP[NORMAL].fill("NORMAL", "Normal", ISS_OFF);
+    dirSP[REVERSED].fill("REVERSED", "Reverse", ISS_OFF);
+    dirSP.fill(getDeviceName(), "Direction", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
 
     // Relative and absolute movement
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0.);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 100000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(100000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
 
     return true;
@@ -97,16 +97,16 @@ bool RBFOCUS::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&TemperatureNP);
-        defineProperty(&focuserHoldSP);
-        defineProperty(&dirSP);
+        defineProperty(TemperatureNP);
+        defineProperty(focuserHoldSP);
+        defineProperty(dirSP);
         LOG_INFO("Focuser ready.");
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(focuserHoldSP.name);
-        deleteProperty(dirSP.name);
+        deleteProperty(TemperatureNP.getName());
+        deleteProperty(focuserHoldSP.getName());
+        deleteProperty(dirSP.getName());
     }
 
     return true;
@@ -190,7 +190,7 @@ bool RBFOCUS::readTemperature()
        int rc = sscanf(res, "C%d#", &temp);
        if (rc > 0)
            // Hundredth of a degree
-           TemperatureN[0].value = temp / 100.0;
+           TemperatureNP[0].setValue(temp / 100.0);
        else
        {
            LOGF_ERROR("Unknown error: focuser temperature value (%s)", res);
@@ -214,12 +214,12 @@ bool RBFOCUS::readHold()
 
         if(strcmp(res, "Enable")==0)
         {
-            focuserHoldS[HOLD_ON].s = ISS_ON;
+            focuserHoldSP[HOLD_ON].setState(ISS_ON);
 
         }
         else if (strcmp(res, "Disable")==0)
         {
-            focuserHoldS[HOLD_OFF].s = ISS_ON;
+            focuserHoldSP[HOLD_OFF].setState(ISS_ON);
 
 
         }
@@ -238,12 +238,12 @@ bool RBFOCUS::readDir()
 
         if(strcmp(res, "Reversed")==0)
         {
-            dirS[REVERSED].s = ISS_ON;
+            dirSP[REVERSED].setState(ISS_ON);
 
         }
         else if (strcmp(res, "Normal")==0)
         {
-            dirS[NORMAL].s = ISS_ON;
+            dirSP[NORMAL].setState(ISS_ON);
 
 
         }
@@ -263,7 +263,7 @@ bool RBFOCUS::readPosition()
     int rc = sscanf(res, "%d#", &pos);
 
     if (rc > 0)
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosNP[0].setValue(pos);
     else
     {
         return false;
@@ -299,7 +299,7 @@ bool RBFOCUS::MaxPos(){
     int rc = sscanf(res, "%u#", &mPos);
      if (rc >0){
 
-        FocusMaxPosN[0].value = mPos;
+        FocusMaxPosNP[0].setValue(mPos);
         RBFOCUS::SyncPresets(mPos);
        }else
      {
@@ -358,30 +358,30 @@ void RBFOCUS::TimerHit()
     bool rc = readPosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
+        if (fabs(lastTemperature - TemperatureNP[0].getValue()) >= 0.5)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            TemperatureNP.apply();
+            lastTemperature = TemperatureNP[0].getValue();
         }
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
             LOG_INFO("Focuser reached requested position.");
         }
     }
@@ -402,61 +402,61 @@ bool RBFOCUS::setDir()
     return sendCommand("D#");
 }
 bool RBFOCUS::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n){
-    if (strcmp(focuserHoldSP.name, name) == 0)
+    if (focuserHoldSP.isNameMatch(name))
     {
-        int current_mode = IUFindOnSwitchIndex(&focuserHoldSP);
+        int current_mode = focuserHoldSP.findOnSwitchIndex();
 
-        IUUpdateSwitch(&focuserHoldSP, states, names, n);
+        focuserHoldSP.update(states, names, n);
 
-        int target_mode = IUFindOnSwitchIndex(&focuserHoldSP);
+        int target_mode = focuserHoldSP.findOnSwitchIndex();
 
         if (current_mode == target_mode)
         {
-            focuserHoldSP.s = IPS_OK;
-            IDSetSwitch(&focuserHoldSP, nullptr);
+            focuserHoldSP.setState(IPS_OK);
+            focuserHoldSP.apply();
         }
 
         bool rc = setHold();
         if (!rc)
         {
-            IUResetSwitch(&focuserHoldSP);
-            focuserHoldS[current_mode].s = ISS_ON;
-            focuserHoldSP.s              = IPS_ALERT;
-            IDSetSwitch(&focuserHoldSP, nullptr);
+            focuserHoldSP.reset();
+            focuserHoldSP[current_mode].setState(ISS_ON);
+            focuserHoldSP.setState(IPS_ALERT);
+            focuserHoldSP.apply();
             return false;
         }
 
-        focuserHoldSP.s = IPS_OK;
-        IDSetSwitch(&focuserHoldSP, nullptr);
+        focuserHoldSP.setState(IPS_OK);
+        focuserHoldSP.apply();
         return true;
     }
 
-    if (strcmp(dirSP.name, name) == 0)
+    if (dirSP.isNameMatch(name))
     {
-        int current_mode = IUFindOnSwitchIndex(&dirSP);
+        int current_mode = dirSP.findOnSwitchIndex();
 
-        IUUpdateSwitch(&dirSP, states, names, n);
+        dirSP.update(states, names, n);
 
-        int target_mode = IUFindOnSwitchIndex(&dirSP);
+        int target_mode = dirSP.findOnSwitchIndex();
 
         if (current_mode == target_mode)
         {
-            dirSP.s = IPS_OK;
-            IDSetSwitch(&dirSP, nullptr);
+            dirSP.setState(IPS_OK);
+            dirSP.apply();
         }
 
         bool rc = setDir();
         if (!rc)
         {
-            IUResetSwitch(&dirSP);
-            dirS[current_mode].s = ISS_ON;
-            dirSP.s              = IPS_ALERT;
-            IDSetSwitch(&dirSP, nullptr);
+            dirSP.reset();
+            dirSP[current_mode].setState(ISS_ON);
+            dirSP.setState(IPS_ALERT);
+            dirSP.apply();
             return false;
         }
 
-        dirSP.s = IPS_OK;
-        IDSetSwitch(&dirSP, nullptr);
+        dirSP.setState(IPS_OK);
+        dirSP.apply();
         return true;
     }
 

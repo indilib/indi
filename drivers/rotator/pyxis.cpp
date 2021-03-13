@@ -97,26 +97,26 @@ bool Pyxis::initProperties()
     INDI::Rotator::initProperties();
 
     // Rotation Rate
-    IUFillNumber(&RotationRateN[0], "RATE", "Rate", "%.f", 0, 99, 10, 8);
-    IUFillNumberVector(&RotationRateNP, RotationRateN, 1, getDeviceName(), "ROTATION_RATE", "Rotation", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    RotationRateNP[0].fill("RATE", "Rate", "%.f", 0, 99, 10, 8);
+    RotationRateNP.fill(getDeviceName(), "ROTATION_RATE", "Rotation", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Stepping
-    IUFillSwitch(&SteppingS[FULL_STEP], "FULL_STEP", "Full", ISS_OFF);
-    IUFillSwitch(&SteppingS[HALF_STEP], "HALF_STEP", "Half", ISS_OFF);
-    IUFillSwitchVector(&SteppingSP, SteppingS, 2, getDeviceName(), "STEPPING_RATE", "Stepping", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    SteppingSP[FULL_STEP].fill("FULL_STEP", "Full", ISS_OFF);
+    SteppingSP[HALF_STEP].fill("HALF_STEP", "Half", ISS_OFF);
+    SteppingSP.fill(getDeviceName(), "STEPPING_RATE", "Stepping", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Power
-    IUFillSwitch(&PowerS[POWER_SLEEP], "POWER_SLEEP", "Sleep", ISS_OFF);
-    IUFillSwitch(&PowerS[POWER_WAKEUP], "POWER_WAKEUP", "Wake Up", ISS_OFF);
-    IUFillSwitchVector(&PowerSP, PowerS, 2, getDeviceName(), "POWER_STATE", "Power", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    PowerSP[POWER_SLEEP].fill("POWER_SLEEP", "Sleep", ISS_OFF);
+    PowerSP[POWER_WAKEUP].fill("POWER_WAKEUP", "Wake Up", ISS_OFF);
+    PowerSP.fill(getDeviceName(), "POWER_STATE", "Power", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Firmware version
-    IUFillText(&FirmwareT[0], "FIRMWARE_VERSION", "Version", "Unknown");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_VERSION", "Firmware", INFO_TAB, IP_RO, 0, IPS_IDLE);
+    FirmwareTP[0].fill("FIRMWARE_VERSION", "Version", "Unknown");
+    FirmwareTP.fill(getDeviceName(), "FIRMWARE_VERSION", "Firmware", INFO_TAB, IP_RO, 0, IPS_IDLE);
 
     // Firmware version
-    IUFillText(&ModelT[0], "HARDWARE_MODEL", "Model", "Unknown");
-    IUFillTextVector(&ModelTP, ModelT, 1, getDeviceName(), "HARDWARE_MODEL", "Model", INFO_TAB, IP_RO, 0, IPS_IDLE);
+    ModelTP[0].fill("HARDWARE_MODEL", "Model", "Unknown");
+    ModelTP.fill(getDeviceName(), "HARDWARE_MODEL", "Model", INFO_TAB, IP_RO, 0, IPS_IDLE);
 
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -145,8 +145,8 @@ bool Pyxis::updateProperties()
     if (isConnected())
     {
         defineProperty(&RotationRateNP)  ;
-        defineProperty(&SteppingSP);
-        defineProperty(&PowerSP);
+        defineProperty(SteppingSP);
+        defineProperty(PowerSP);
         defineProperty(&FirmwareTP) ;
         defineProperty(&ModelTP) ;
 
@@ -154,11 +154,11 @@ bool Pyxis::updateProperties()
     }
     else
     {
-        deleteProperty(RotationRateNP.name);
-        deleteProperty(SteppingSP.name);
-        deleteProperty(PowerSP.name);
-        deleteProperty(FirmwareTP.name) ;
-        deleteProperty(ModelTP.name) ;
+        deleteProperty(RotationRateNP.getName());
+        deleteProperty(SteppingSP.getName());
+        deleteProperty(PowerSP.getName());
+        deleteProperty(FirmwareTP.getName()) ;
+        deleteProperty(ModelTP.getName()) ;
     }
 
     return true;
@@ -171,22 +171,22 @@ void Pyxis::queryParams()
     ////////////////////////////////////////////
     int dir = getReverseStatus();
 
-    IUResetSwitch(&ReverseRotatorSP);
-    ReverseRotatorSP.s = IPS_OK;
+    ReverseRotatorSP.reset();
+    ReverseRotatorSP.setState(IPS_OK);
     if (dir == 0)
-        ReverseRotatorS[INDI_DISABLED].s = ISS_ON;
+        ReverseRotatorSP[INDI_DISABLED].setState(ISS_ON);
     else if (dir == 1)
-        ReverseRotatorS[INDI_ENABLED].s = ISS_ON;
+        ReverseRotatorSP[INDI_ENABLED].setState(ISS_ON);
     else
-        ReverseRotatorSP.s = IPS_ALERT;
+        ReverseRotatorSP.setState(IPS_ALERT);
 
-    IDSetSwitch(&ReverseRotatorSP, nullptr);
+    ReverseRotatorSP.apply();
 
     // Firmware version parameter
     std::string sversion = getVersion() ;
-    IUSaveText(&FirmwareT[0], sversion.c_str()) ;
-    FirmwareTP.s = IPS_OK;
-    IDSetText(&FirmwareTP, nullptr) ;
+    IUSaveText(&FirmwareTP[0], sversion.c_str()) ;
+    FirmwareTP.setState(IPS_OK);
+    FirmwareTP.apply(nullptr) ;
 
     LOGF_DEBUG("queryParms firmware = %s", sversion.c_str()) ;
 
@@ -198,20 +198,20 @@ void Pyxis::queryParams()
         LOGF_DEBUG("queryParms rate = %d, firmware = %s", rate, sversion.c_str()) ;
         if (rc)
         {
-            RotationRateNP.s = IPS_OK ;
-            RotationRateN[0].value = rate ;
-            IDSetNumber(&RotationRateNP, nullptr) ;
+            RotationRateNP.setState(IPS_OK );
+            RotationRateNP[0].setValue(rate );
+            RotationRateNP.apply(nullptr) ;
 
-            IUSaveText(&ModelT[0], "Pyxis 3 Inch") ;
-            ModelTP.s = IPS_OK;
-            IDSetText(&ModelTP, nullptr)  ;
+            IUSaveText(&ModelTP[0], "Pyxis 3 Inch") ;
+            ModelTP.setState(IPS_OK);
+            ModelTP.apply(nullptr)  ;
         }
     }
     else
     {
-        IUSaveText(&ModelT[0], "Pyxis 2 Inch") ;
-        ModelTP.s = IPS_OK;
-        IDSetText(&ModelTP, nullptr) ;
+        IUSaveText(&ModelTP[0], "Pyxis 2 Inch") ;
+        ModelTP.setState(IPS_OK);
+        ModelTP.apply(nullptr) ;
     }
 
 }
@@ -259,18 +259,18 @@ bool Pyxis::ISNewNumber(const char *dev, const char *name, double values[], char
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, RotationRateNP.name))
+        if (RotationRateNP.isNameMatch(name))
         {
             bool rc = setRotationRate(static_cast<uint8_t>(values[0]));
             if (rc)
             {
-                RotationRateNP.s = IPS_OK;
-                RotationRateN[0].value = values[0];
+                RotationRateNP.setState(IPS_OK);
+                RotationRateNP[0].setValue(values[0]);
             }
             else
-                RotationRateNP.s = IPS_ALERT;
+                RotationRateNP.setState(IPS_ALERT);
 
-            IDSetNumber(&RotationRateNP, nullptr);
+            RotationRateNP.apply();
             return true;
         }
     }
@@ -285,10 +285,10 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
         /////////////////////////////////////////////////////
         // Stepping
         ////////////////////////////////////////////////////
-        if (!strcmp(name, SteppingSP.name))
+        if (SteppingSP.isNameMatch(name))
         {
             bool rc = false;
-            if (!strcmp(IUFindOnSwitchName(states, names, n), SteppingS[FULL_STEP].name))
+            if (!strcmp(IUFindOnSwitchName(states, names, n), SteppingSP[FULL_STEP].getName()))
                 rc = setSteppingMode(FULL_STEP);
             else
                 rc = setSteppingMode(HALF_STEP);
@@ -296,30 +296,30 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
 
             if (rc)
             {
-                IUUpdateSwitch(&SteppingSP, states, names, n);
-                SteppingSP.s = IPS_OK;
+                SteppingSP.update(states, names, n);
+                SteppingSP.setState(IPS_OK);
             }
             else
-                SteppingSP.s = IPS_ALERT;
+                SteppingSP.setState(IPS_ALERT);
 
-            IDSetSwitch(&SteppingSP, nullptr);
+            SteppingSP.apply();
             return true;
         }
 
         /////////////////////////////////////////////////////
         // Power
         ////////////////////////////////////////////////////
-        if (!strcmp(name, PowerSP.name))
+        if (PowerSP.isNameMatch(name))
         {
             bool rc = false;
-            if (!strcmp(IUFindOnSwitchName(states, names, n), PowerS[POWER_WAKEUP].name))
+            if (!strcmp(IUFindOnSwitchName(states, names, n), PowerSP[POWER_WAKEUP].getName()))
             {
                 // If not sleeping
-                if (PowerS[POWER_SLEEP].s == ISS_OFF)
+                if (PowerSP[POWER_SLEEP].getState() == ISS_OFF)
                 {
-                    PowerSP.s = IPS_OK;
+                    PowerSP.setState(IPS_OK);
                     LOG_WARN("Controller is not in sleep mode.");
-                    IDSetSwitch(&PowerSP, nullptr);
+                    PowerSP.apply();
                     return true;
                 }
 
@@ -327,30 +327,30 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
 
                 if (rc)
                 {
-                    IUResetSwitch(&PowerSP);
-                    PowerSP.s = IPS_OK;
+                    PowerSP.reset();
+                    PowerSP.setState(IPS_OK);
                     LOG_INFO("Controller is awake.");
                 }
                 else
-                    PowerSP.s = IPS_ALERT;
+                    PowerSP.setState(IPS_ALERT);
 
-                IDSetSwitch(&PowerSP, nullptr);
+                PowerSP.apply();
                 return true;
             }
             else
             {
                 bool rc = sleepController();
-                IUResetSwitch(&PowerSP);
+                PowerSP.reset();
                 if (rc)
                 {
-                    PowerSP.s = IPS_OK;
-                    PowerS[POWER_SLEEP].s = ISS_ON;
+                    PowerSP.setState(IPS_OK);
+                    PowerSP[POWER_SLEEP].setState(ISS_ON);
                     LOG_INFO("Controller in sleep mode. No functions can be used until controller is waken up.");
                 }
                 else
-                    PowerSP.s = IPS_ALERT;
+                    PowerSP.setState(IPS_ALERT);
 
-                IDSetSwitch(&PowerSP, nullptr);
+                PowerSP.apply();
                 return true;
             }
         }
@@ -500,7 +500,7 @@ IPState Pyxis::MoveRotator(double angle)
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    uint16_t current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
+    uint16_t current = static_cast<uint16_t>(GotoRotatorNP[0].value) ;
 
     targetPA = static_cast<uint16_t>(round(angle));
 
@@ -559,19 +559,19 @@ bool Pyxis::ReverseRotator(bool enabled)
 
 void Pyxis::TimerHit()
 {
-    if (!isConnected() || PowerS[POWER_SLEEP].s == ISS_ON)
+    if (!isConnected() || PowerSP[POWER_SLEEP].getState() == ISS_ON)
     {
         SetTimer(getCurrentPollingPeriod());
         return;
     }
 
-    if (HomeRotatorSP.s == IPS_BUSY)
+    if (HomeRotatorSP.getState() == IPS_BUSY)
     {
         if (isMotionComplete())
         {
-            HomeRotatorSP.s = IPS_OK;
-            HomeRotatorS[0].s = ISS_OFF;
-            IDSetSwitch(&HomeRotatorSP, nullptr);
+            HomeRotatorSP.setState(IPS_OK);
+            HomeRotatorSP[0].setState(ISS_OFF);
+            HomeRotatorSP.apply();
             LOG_INFO("Homing is complete.");
         }
         else
@@ -581,7 +581,7 @@ void Pyxis::TimerHit()
             return;
         }
     }
-    else if (GotoRotatorNP.s == IPS_BUSY)
+    else if (GotoRotatorNP.getState() == IPS_BUSY)
     {
         if (!isMotionComplete())
         {
@@ -589,14 +589,14 @@ void Pyxis::TimerHit()
             SetTimer(POLL_100MS) ;
             return ;
         }
-        GotoRotatorNP.s = IPS_OK;
+        GotoRotatorNP.setState(IPS_OK);
     }
 
     uint16_t PA = 0;
-    if (getPA(PA) && (PA != static_cast<uint16_t>(GotoRotatorN[0].value)))
+    if (getPA(PA) && (PA != static_cast<uint16_t>(GotoRotatorNP[0].value)))
     {
-        GotoRotatorN[0].value = PA;
-        IDSetNumber(&GotoRotatorNP, nullptr);
+        GotoRotatorNP[0].setValue(PA);
+        GotoRotatorNP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -608,7 +608,7 @@ bool Pyxis::isMotionComplete()
     char errstr[MAXRBUF];
     char res[PYXIS_3INCH_PER_DEG + 1] = { 0 };
 
-    bool pyxis3inch = atoi(FirmwareT[0].text) >= 3 ;
+    bool pyxis3inch = atoi(FirmwareTP[0].getText()) >= 3 ;
 
     if ( (rc = tty_nread_section(PortFD, res, (pyxis3inch ? PYXIS_3INCH_PER_DEG : PYXIS_2INCH_PER_DEG), 'F', 1, &nbytes_read)) != TTY_OK)
     {
@@ -619,14 +619,14 @@ bool Pyxis::isMotionComplete()
         {
             LOGF_DEBUG("RES <%s>", res);
 
-            int current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
+            int current = static_cast<uint16_t>(GotoRotatorNP[0].value) ;
 
             current = current + direction ;
             if (current < 0) current = 359 ;
             if (current > 360) current = 1 ;
 
-            GotoRotatorN[0].value = current ;
-            IDSetNumber(&GotoRotatorNP, nullptr);
+            GotoRotatorNP[0].setValue(current );
+            GotoRotatorNP.apply();
 
             LOGF_DEBUG("ANGLE = %d", current) ;
             LOGF_DEBUG("TTY_OVERFLOW, nbytes_read = %d", nbytes_read) ;
@@ -636,10 +636,10 @@ bool Pyxis::isMotionComplete()
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
 
-        if (HomeRotatorSP.s == IPS_BUSY)
+        if (HomeRotatorSP.getState() == IPS_BUSY)
         {
-            HomeRotatorS[0].s = ISS_OFF;
-            HomeRotatorSP.s = IPS_ALERT;
+            HomeRotatorSP[0].setState(ISS_OFF);
+            HomeRotatorSP.setState(IPS_ALERT);
             LOG_ERROR("Homing failed. Check possible jam.");
             tcflush(PortFD, TCIOFLUSH);
         }
@@ -675,10 +675,10 @@ bool Pyxis::isMotionComplete()
     else if (res[0] == 'F')
         return true;
     // Error
-    else if (HomeRotatorSP.s == IPS_BUSY)
+    else if (HomeRotatorSP.getState() == IPS_BUSY)
     {
-        HomeRotatorS[0].s = ISS_OFF;
-        HomeRotatorSP.s = IPS_ALERT;
+        HomeRotatorSP[0].setState(ISS_OFF);
+        HomeRotatorSP.setState(IPS_ALERT);
         LOG_ERROR("Homing failed. Check possible jam.");
         tcflush(PortFD, TCIOFLUSH);
     }

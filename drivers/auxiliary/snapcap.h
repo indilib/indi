@@ -34,6 +34,10 @@
 
 #include <stdint.h>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
+
 namespace Connection
 {
 class Serial;
@@ -82,20 +86,16 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
     IPState Abort();
 
     // Status
-    ITextVectorProperty StatusTP;
-    IText StatusT[3]{};
+    INDI::PropertyText StatusTP {3};
 
     // Firmware version
-    ITextVectorProperty FirmwareTP;
-    IText FirmwareT[1]{};
+    INDI::PropertyText FirmwareTP {1};
 
     // Abort
-    ISwitch AbortS[1];
-    ISwitchVectorProperty AbortSP;
+    INDI::PropertySwitch AbortSP {1};
 
     // Force open & close
-    ISwitch ForceS[2];
-    ISwitchVectorProperty ForceSP;
+    INDI::PropertySwitch ForceSP {2};
 
     int PortFD{ -1 };
     bool hasLight{ true };

@@ -98,18 +98,18 @@ bool MBox::initProperties()
     setCriticalParameter("WEATHER_TEMPERATURE");
 
     // Reset Calibration
-    IUFillSwitch(&ResetS[0], "RESET", "Reset", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "CALIBRATION_RESET", "Reset", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    ResetSP[0].fill("RESET", "Reset", ISS_OFF);
+    ResetSP.fill(getDeviceName(), "CALIBRATION_RESET", "Reset", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Calibration Properties
-    IUFillNumber(&CalibrationN[CAL_TEMPERATURE], "CAL_TEMPERATURE", "Temperature", "%.f", -50, 50, 1, 0);
-    IUFillNumber(&CalibrationN[CAL_PRESSURE], "CAL_PRESSURE", "Pressure", "%.f", -100, 100, 10, 0);
-    IUFillNumber(&CalibrationN[CAL_HUMIDITY], "CAL_HUMIDITY", "Humidity", "%.f", -50, 50, 1, 0);
-    IUFillNumberVector(&CalibrationNP, CalibrationN, 3, getDeviceName(), "CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    CalibrationNP[CAL_TEMPERATURE].fill("CAL_TEMPERATURE", "Temperature", "%.f", -50, 50, 1, 0);
+    CalibrationNP[CAL_PRESSURE].fill("CAL_PRESSURE", "Pressure", "%.f", -100, 100, 10, 0);
+    CalibrationNP[CAL_HUMIDITY].fill("CAL_HUMIDITY", "Humidity", "%.f", -50, 50, 1, 0);
+    CalibrationNP.fill(getDeviceName(), "CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Firmware Information
-    IUFillText(&FirmwareT[0], "VERSION", "Version", "--");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "DEVICE_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    FirmwareTP[0].fill("VERSION", "Version", "--");
+    FirmwareTP.fill(getDeviceName(), "DEVICE_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
 
@@ -124,15 +124,15 @@ bool MBox::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&CalibrationNP);
-        defineProperty(&ResetSP);
-        defineProperty(&FirmwareTP);
+        defineProperty(CalibrationNP);
+        defineProperty(ResetSP);
+        defineProperty(FirmwareTP);
     }
     else
     {
-        deleteProperty(CalibrationNP.name);
-        deleteProperty(ResetSP.name);
-        deleteProperty(FirmwareTP.name);
+        deleteProperty(CalibrationNP.getName());
+        deleteProperty(ResetSP.getName());
+        deleteProperty(FirmwareTP.getName());
     }
 
     return true;
@@ -159,7 +159,7 @@ bool MBox::Handshake()
     else if (rc == ACK_OK_INIT)
     {
         //getCalibration(true);
-        CalibrationNP.s = IPS_BUSY;
+        CalibrationNP.setState(IPS_BUSY);
         return true;
     }
 
@@ -170,12 +170,12 @@ IPState MBox::updateWeather()
 {
     char response[MBOX_BUF];
 
-    if (CalibrationNP.s == IPS_BUSY)
+    if (CalibrationNP.getState() == IPS_BUSY)
     {
         if (getCalibration(true))
         {
-            CalibrationNP.s = IPS_OK;
-            IDSetNumber(&CalibrationNP, nullptr);
+            CalibrationNP.setState(IPS_OK);
+            CalibrationNP.apply();
         }
     }
 
@@ -222,11 +222,11 @@ IPState MBox::updateWeather()
     setParameterValue("WEATHER_TEMPERATURE", std::stod(result[SENSOR_TEMPERATURE]));
     setParameterValue("WEATHER_HUMIDITY", std::stod(result[SENSOR_HUMIDITY]));
     setParameterValue("WEATHER_DEWPOINT", std::stod(result[SENSOR_DEW]));
-    if (strcmp(result[FIRMWARE].c_str(), FirmwareT[0].text))
+    if (strcmp(result[FIRMWARE].c_str(), FirmwareTP[0].getText()))
     {
-        IUSaveText(&FirmwareT[0], result[FIRMWARE].c_str());
-        FirmwareTP.s = IPS_OK;
-        IDSetText(&FirmwareTP, nullptr);
+        FirmwareTP[0].setText(result[FIRMWARE]);
+        FirmwareTP.setState(IPS_OK);
+        FirmwareTP.apply();
     }
 
     return IPS_OK;
@@ -284,15 +284,15 @@ bool MBox::ISNewNumber(const char *dev, const char *name, double values[], char 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, CalibrationNP.name))
+        if (CalibrationNP.isNameMatch(name))
         {
-            double prevPressure = CalibrationN[CAL_PRESSURE].value;
-            double prevTemperature = CalibrationN[CAL_TEMPERATURE].value;
-            double prevHumidaty = CalibrationN[CAL_HUMIDITY].value;
-            IUUpdateNumber(&CalibrationNP, values, names, n);
-            double targetPressure = CalibrationN[CAL_PRESSURE].value;
-            double targetTemperature = CalibrationN[CAL_TEMPERATURE].value;
-            double targetHumidity = CalibrationN[CAL_HUMIDITY].value;
+            double prevPressure = CalibrationNP[CAL_PRESSURE].getValue();
+            double prevTemperature = CalibrationNP[CAL_TEMPERATURE].getValue();
+            double prevHumidaty = CalibrationNP[CAL_HUMIDITY].getValue();
+            CalibrationNP.update(values, names, n);
+            double targetPressure = CalibrationNP[CAL_PRESSURE].getValue();
+            double targetTemperature = CalibrationNP[CAL_TEMPERATURE].getValue();
+            double targetHumidity = CalibrationNP[CAL_HUMIDITY].getValue();
 
             bool rc = true;
             if (targetPressure != prevPressure)
@@ -310,8 +310,8 @@ bool MBox::ISNewNumber(const char *dev, const char *name, double values[], char 
                 rc = setCalibration(CAL_HUMIDITY);
             }
 
-            CalibrationNP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&CalibrationNP, nullptr);
+            CalibrationNP.setState(rc ? IPS_OK : IPS_ALERT);
+            CalibrationNP.apply();
             return true;
         }
     }
@@ -323,24 +323,24 @@ bool MBox::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, ResetSP.name))
+        if (ResetSP.isNameMatch(name))
         {
             if (resetCalibration())
             {
-                ResetSP.s = IPS_OK;
-                IDSetSwitch(&ResetSP, nullptr);
+                ResetSP.setState(IPS_OK);
+                ResetSP.apply();
                 LOG_INFO("Calibration values are reset.");
 
-                CalibrationN[CAL_PRESSURE].value = 0;
-                CalibrationN[CAL_TEMPERATURE].value = 0;
-                CalibrationN[CAL_HUMIDITY].value = 0;
-                CalibrationNP.s = IPS_IDLE;
-                IDSetNumber(&CalibrationNP, nullptr);
+                CalibrationNP[CAL_PRESSURE].setValue(0);
+                CalibrationNP[CAL_TEMPERATURE].setValue(0);
+                CalibrationNP[CAL_HUMIDITY].setValue(0);
+                CalibrationNP.setState(IPS_IDLE);
+                CalibrationNP.apply();
             }
             else
             {
-                ResetSP.s = IPS_ALERT;
-                IDSetSwitch(&ResetSP, nullptr);
+                ResetSP.setState(IPS_ALERT);
+                ResetSP.apply();
             }
 
 
@@ -419,9 +419,9 @@ bool MBox::getCalibration(bool sendCommand)
 
     // PCAL
     std::vector<std::string> result = split(response, ",");
-    CalibrationN[CAL_PRESSURE].value = std::stod(result[SENSOR_PRESSURE]) / 10.0;
-    CalibrationN[CAL_TEMPERATURE].value = std::stod(result[SENSOR_PRESSURE + 2]) / 10.0;
-    CalibrationN[CAL_HUMIDITY].value = std::stod(result[SENSOR_PRESSURE + 4]) / 10.0;
+    CalibrationNP[CAL_PRESSURE].setValue(std::stod(result[SENSOR_PRESSURE]) / 10.0);
+    CalibrationNP[CAL_TEMPERATURE].setValue(std::stod(result[SENSOR_PRESSURE + 2]) / 10.0);
+    CalibrationNP[CAL_HUMIDITY].setValue(std::stod(result[SENSOR_PRESSURE + 4]) / 10.0);
     return true;
 }
 
@@ -434,7 +434,7 @@ bool MBox::setCalibration(CalibrationType type)
     if (type == CAL_PRESSURE)
     {
         // Pressure.
-        snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationN[CAL_PRESSURE].value * 10.0));
+        snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationNP[CAL_PRESSURE].value * 10.0));
 
         LOGF_DEBUG("CMD <%s>", command);
 
@@ -454,7 +454,7 @@ bool MBox::setCalibration(CalibrationType type)
     else if (type == CAL_TEMPERATURE)
     {
         // Temperature
-        snprintf(command, 16, ":calt,%d*", static_cast<int32_t>(CalibrationN[CAL_TEMPERATURE].value * 10.0));
+        snprintf(command, 16, ":calt,%d*", static_cast<int32_t>(CalibrationNP[CAL_TEMPERATURE].value * 10.0));
 
         LOGF_DEBUG("CMD <%s>", command);
 
@@ -473,7 +473,7 @@ bool MBox::setCalibration(CalibrationType type)
     else
     {
         // Humidity
-        snprintf(command, 16, ":calh,%d*", static_cast<int32_t>(CalibrationN[CAL_HUMIDITY].value * 10.0));
+        snprintf(command, 16, ":calh,%d*", static_cast<int32_t>(CalibrationNP[CAL_HUMIDITY].value * 10.0));
 
         LOGF_DEBUG("CMD <%s>", command);
 

@@ -23,6 +23,10 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class RoboFocus : public INDI::Focuser
 {
     public:
@@ -71,30 +75,22 @@ class RoboFocus : public INDI::Focuser
         double simulatedTemperature { 0 };
         double simulatedPosition { 0 };
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
-        INumber SettingsN[3];
-        INumberVectorProperty SettingsNP;
+        INDI::PropertyNumber SettingsNP {3};
 
-        ISwitch PowerSwitchesS[4];
-        ISwitchVectorProperty PowerSwitchesSP;
+        INDI::PropertySwitch PowerSwitchesSP {4};
 
-        INumber MinMaxPositionN[2];
-        INumberVectorProperty MinMaxPositionNP;
+        INDI::PropertyNumber MinMaxPositionNP {2};
 
-        INumber MaxTravelN[1];
-        INumberVectorProperty MaxTravelNP;
+        INDI::PropertyNumber MaxTravelNP {1};
 
-        INumber SetRegisterPositionN[1];
-        INumberVectorProperty SetRegisterPositionNP;
+        INDI::PropertyNumber SetRegisterPositionNP {1};
 
-        INumber RelMovementN[1];
-        INumberVectorProperty RelMovementNP;
+        INDI::PropertyNumber RelMovementNP {1};
 
-        INumber AbsMovementN[1];
-        INumberVectorProperty AbsMovementNP;
+        INDI::PropertyNumber AbsMovementNP {1};
 
-        //    INumber SetBacklashN[1];
-        //    INumberVectorProperty SetBacklashNP;
+        //    INDI::PropertyNumber SetBacklashNP {1};
+        //
 };

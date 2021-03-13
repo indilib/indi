@@ -86,23 +86,23 @@ bool OnFocus::initProperties()
 {
     INDI::Focuser::initProperties();
     // SetZero
-    IUFillSwitch(&SetZeroS[0], "SETZERO", "Set Current Position to 0", ISS_OFF);
-    IUFillSwitchVector(&SetZeroSP, SetZeroS, 1, getDeviceName(), "Zero Position", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    SetZeroSP[0].fill("SETZERO", "Set Current Position to 0", ISS_OFF);
+    SetZeroSP.fill(getDeviceName(), "Zero Position", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     // Maximum Travel
-    IUFillNumber(&MaxPosN[0], "MAXPOS", "Maximum Out Position", "%8.0f", 1., 10000000., 0, 0);
-    IUFillNumberVector(&MaxPosNP, MaxPosN, 1, getDeviceName(), "FOCUS_MAXPOS", "Position", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    MaxPosNP[0].fill("MAXPOS", "Maximum Out Position", "%8.0f", 1., 10000000., 0, 0);
+    MaxPosNP.fill(getDeviceName(), "FOCUS_MAXPOS", "Position", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
 
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 200.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step = 10.;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(200.);
+    FocusRelPosNP[0].setValue(0.);
+    FocusRelPosNP[0].setStep(10.);
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 10000000.;
-    FocusAbsPosN[0].value = 0.;
-    FocusAbsPosN[0].step = 500.;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(10000000.);
+    FocusAbsPosNP[0].setValue(0.);
+    FocusAbsPosNP[0].setStep(500.);
 
     addDebugControl();
 
@@ -115,8 +115,8 @@ bool OnFocus::updateProperties()
     INDI::Focuser::updateProperties();
     if (isConnected())
     {
-        defineProperty(&MaxPosNP);
-        defineProperty(&SetZeroSP);
+        defineProperty(MaxPosNP);
+        defineProperty(SetZeroSP);
         GetFocusParams();
         loadConfig(true);
 
@@ -124,8 +124,8 @@ bool OnFocus::updateProperties()
     }
     else
     {
-        deleteProperty(MaxPosNP.name);
-        deleteProperty(SetZeroSP.name);
+        deleteProperty(MaxPosNP.getName());
+        deleteProperty(SetZeroSP.getName());
     }
 
     return true;
@@ -212,8 +212,8 @@ bool OnFocus::updatePosition()
 
     if (rc > 0)
     {
-        FocusAbsPosN[0].value = pos;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        FocusAbsPosNP[0].setValue(pos);
+        FocusAbsPosNP.apply(NULL);
 
     }
     else
@@ -256,10 +256,10 @@ bool OnFocus::updateMaxPos()
     if (rc > 0)
     {
 
-        MaxPosN[0].value = maxposition;
-        FocusAbsPosN[0].max = maxposition;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        IDSetNumber(&MaxPosNP, NULL);
+        MaxPosNP[0].setValue(maxposition);
+        FocusAbsPosNP[0].setMax(maxposition);
+        FocusAbsPosNP.apply(NULL);
+        MaxPosNP.apply(NULL);
         return true;
     }
 
@@ -361,12 +361,12 @@ bool OnFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, c
 {
     if(strcmp(dev,getDeviceName())==0)
     {
-    if (!strcmp(SetZeroSP.name, name))
+    if (SetZeroSP.isNameMatch(name))
         {
         setZero();
-        IUResetSwitch(&SetZeroSP);
-        SetZeroSP.s = IPS_OK;
-        IDSetSwitch(&SetZeroSP, NULL);
+        SetZeroSP.reset();
+        SetZeroSP.setState(IPS_OK);
+        SetZeroSP.apply(NULL);
         return true;
     }
         
@@ -379,17 +379,17 @@ bool OnFocus::ISNewNumber (const char *dev, const char *name, double values[], c
 {
     if(strcmp(dev,getDeviceName())==0)
     {
-        if (!strcmp (name, MaxPosNP.name))
+        if (MaxPosNP.isNameMatch(name))
         {
-            if (values[0] < FocusAbsPosN[0].value)
+            if (values[0] < FocusAbsPosNP[0].getValue())
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Can't set max position lower than current absolute position ( %8.0f )", FocusAbsPosN[0].value);
+                DEBUGF(INDI::Logger::DBG_ERROR, "Can't set max position lower than current absolute position ( %8.0f )", FocusAbsPosNP[0].getValue());
                 return false;
             }
-            IUUpdateNumber(&MaxPosNP, values, names, n);               
-            FocusAbsPosN[0].max = MaxPosN[0].value;
-            setMaxPos(MaxPosN[0].value);
-            MaxPosNP.s = IPS_OK;
+            MaxPosNP.update(values, names, n);               
+            FocusAbsPosNP[0].setMax(MaxPosNP[0].getValue());
+            setMaxPos(MaxPosNP[0].value);
+            MaxPosNP.setState(IPS_OK);
             return true;
         }
     }
@@ -416,7 +416,7 @@ IPState OnFocus::MoveAbsFocuser(uint32_t targetTicks)
     if (rc == false)
         return IPS_ALERT;
 
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -427,17 +427,17 @@ IPState OnFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     bool rc=false;
 
     if (dir == FOCUS_INWARD)
-        newPosition = uint32_t(FocusAbsPosN[0].value) - ticks;
+        newPosition = uint32_t(FocusAbsPosNP[0].value) - ticks;
     else
-        newPosition = uint32_t(FocusAbsPosN[0].value) + ticks;
+        newPosition = uint32_t(FocusAbsPosNP[0].value) + ticks;
 
     rc = MoveMyFocuser(newPosition);
 
     if (rc == false)
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s = IPS_BUSY;
+    FocusRelPosNP[0].setValue(ticks);
+    FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -453,23 +453,23 @@ void OnFocus::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply(NULL);
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (isMoving() == false)
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            IDSetNumber(&FocusRelPosNP, NULL);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply(NULL);
+            FocusRelPosNP.apply(NULL);
+            lastPos = FocusAbsPosNP[0].getValue();
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
         }
     }
@@ -482,10 +482,10 @@ bool OnFocus::AbortFocuser()
     int nbytes_written;
     if (tty_write(PortFD, ":MH#", 4, &nbytes_written) == TTY_OK)
     {
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        IDSetNumber(&FocusRelPosNP, NULL);
+        FocusAbsPosNP.setState(IPS_IDLE);
+        FocusRelPosNP.setState(IPS_IDLE);
+        FocusAbsPosNP.apply(NULL);
+        FocusRelPosNP.apply(NULL);
         return true;
     }
     else

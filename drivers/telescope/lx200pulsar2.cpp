@@ -1276,8 +1276,8 @@ bool LX200Pulsar2::Connect()
 			LOGF_DEBUG("%s", "The mount was awake on connection.");
 			// the following assumes we are tracking, since there is no "idle" state for Pulsar2
 			TrackState = SCOPE_TRACKING;
-			ParkS[1].s = ISS_ON; // Unparked
-			IDSetSwitch(&ParkSP, nullptr);
+			ParkSP[1].setState(ISS_ON); // Unparked
+			ParkSP.apply();
 		}
     }
 
@@ -1344,8 +1344,8 @@ bool LX200Pulsar2::ReadScopeStatus()
 	                NewRaDec(currentRA, currentDEC);
 	            else
 	            {
-	                EqNP.s = IPS_ALERT;
-	                IDSetNumber(&EqNP, "Error reading RA/DEC.");
+	                EqNP.setState(IPS_ALERT);
+	                EqNP.apply("Error reading RA/DEC.");
 	            }
 
 				// check side of pier -- note that this is done only every other polling cycle
@@ -1357,18 +1357,16 @@ bool LX200Pulsar2::ReadScopeStatus()
 					{
 						if (ota_side_of_pier != Pulsar2Commands::currentOTASideOfPier) // init, or something changed
 						{
-							PierSideS[(int)Pulsar2Commands::EastOfPier].s = 
-								ota_side_of_pier == Pulsar2Commands::EastOfPier ? ISS_ON : ISS_OFF;
-							PierSideS[(int)Pulsar2Commands::WestOfPier].s = 
-								ota_side_of_pier == Pulsar2Commands::WestOfPier ? ISS_ON : ISS_OFF;
-							IDSetSwitch(&PierSideSP, nullptr);
+							PierSideSP[(int)Pulsar2Commands::EastOfPier].setState(ota_side_of_pier == Pulsar2Commands::EastOfPier ? ISS_ON : ISS_OFF);
+							PierSideSP[(int)Pulsar2Commands::WestOfPier].setState(ota_side_of_pier == Pulsar2Commands::WestOfPier ? ISS_ON : ISS_OFF);
+							PierSideSP.apply();
 							Pulsar2Commands::currentOTASideOfPier = ota_side_of_pier; // not thread-safe
 						}
 					}
 					else
 					{
-						PierSideSP.s = IPS_ALERT;
-						IDSetSwitch(&PierSideSP, "Could not read OTA side of pier from controller");
+						PierSideSP.setState(IPS_ALERT);
+						PierSideSP.apply("Could not read OTA side of pier from controller");
 						if (LX200Pulsar2::verboseLogging) LOG_INFO("Could not read OTA side of pier from controller");
 					}
 				} // side of pier check
@@ -1394,19 +1392,19 @@ bool LX200Pulsar2::initProperties()
     const bool result = LX200Generic::initProperties();
     if (result) // pretty much always true
     {
-		IUFillSwitch(&TrackingRateIndS[0], "RATE_SIDEREAL", "Sidereal", ISS_ON);
-		IUFillSwitch(&TrackingRateIndS[1], "RATE_LUNAR", "Lunar", ISS_OFF);
-		IUFillSwitch(&TrackingRateIndS[2], "RATE_SOLAR", "Solar", ISS_OFF);
-		IUFillSwitch(&TrackingRateIndS[3], "RATE_USER1", "User1", ISS_OFF);
-		IUFillSwitch(&TrackingRateIndS[4], "RATE_USER2", "User2", ISS_OFF);
-		IUFillSwitch(&TrackingRateIndS[5], "RATE_USER3", "User3", ISS_OFF);
-		IUFillSwitch(&TrackingRateIndS[6], "RATE_STILL", "Still", ISS_OFF);
-		IUFillSwitchVector(&TrackingRateIndSP, TrackingRateIndS, LX200Pulsar2::numPulsarTrackingRates, getDeviceName(),
+		TrackingRateIndSP[0].fill("RATE_SIDEREAL", "Sidereal", ISS_ON);
+		TrackingRateIndSP[1].fill("RATE_LUNAR", "Lunar", ISS_OFF);
+		TrackingRateIndSP[2].fill("RATE_SOLAR", "Solar", ISS_OFF);
+		TrackingRateIndSP[3].fill("RATE_USER1", "User1", ISS_OFF);
+		TrackingRateIndSP[4].fill("RATE_USER2", "User2", ISS_OFF);
+		TrackingRateIndSP[5].fill("RATE_USER3", "User3", ISS_OFF);
+		TrackingRateIndSP[6].fill("RATE_STILL", "Still", ISS_OFF);
+		TrackingRateIndSP.fill(getDeviceName(),
 			   "TRACKING_RATE_IND", "Tracking  Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 
-		IUFillNumber(&GuideSpeedIndN[0], "GUIDE_SPEED_IND", "0.1x Sidereal", "%.0f", 1, 9, 1, 0.0);
-		IUFillNumberVector(&GuideSpeedIndNP, GuideSpeedIndN, 1, getDeviceName(), "GUIDE_SPEED_IND", "Guide Speed",
+		GuideSpeedIndNP[0].fill("GUIDE_SPEED_IND", "0.1x Sidereal", "%.0f", 1, 9, 1, 0.0);
+		GuideSpeedIndNP.fill(getDeviceName(), "GUIDE_SPEED_IND", "Guide Speed",
 				MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
 		// Note that the following three values may be modified dynamically in getBasicData
@@ -1414,115 +1412,115 @@ bool LX200Pulsar2::initProperties()
 		int nonGuideSpeedStep = Pulsar2Commands::speedsExtended ? 100 : 10;
 		const char *nonGuideSpeedLabel = Pulsar2Commands::speedsExtended ? "1/6x Sidereal" : "1x Sidereal";
 
-		IUFillNumber(&CenterSpeedIndN[0], "CENTER_SPEED_IND", nonGuideSpeedLabel, "%.0f", 1, nonGuideSpeedMax, nonGuideSpeedStep, 0.0);
-		IUFillNumberVector(&CenterSpeedIndNP, CenterSpeedIndN, 1, getDeviceName(), "CENTER_SPEED_IND", "Center Speed",
+		CenterSpeedIndNP[0].fill("CENTER_SPEED_IND", nonGuideSpeedLabel, "%.0f", 1, nonGuideSpeedMax, nonGuideSpeedStep, 0.0);
+		CenterSpeedIndNP.fill(getDeviceName(), "CENTER_SPEED_IND", "Center Speed",
 				MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-		IUFillNumber(&FindSpeedIndN[0], "FIND_SPEED_IND", nonGuideSpeedLabel, "%.0f", 1, nonGuideSpeedMax, nonGuideSpeedStep, 0.0);
-		IUFillNumberVector(&FindSpeedIndNP, FindSpeedIndN, 1, getDeviceName(), "FIND_SPEED_IND", "Find Speed",
+		FindSpeedIndNP[0].fill("FIND_SPEED_IND", nonGuideSpeedLabel, "%.0f", 1, nonGuideSpeedMax, nonGuideSpeedStep, 0.0);
+		FindSpeedIndNP.fill(getDeviceName(), "FIND_SPEED_IND", "Find Speed",
 				MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-		IUFillNumber(&SlewSpeedIndN[0], "SLEW_SPEED_IND", nonGuideSpeedLabel, "%.0f", 1, nonGuideSpeedMax, nonGuideSpeedStep, 0.0);
-		IUFillNumberVector(&SlewSpeedIndNP, SlewSpeedIndN, 1, getDeviceName(), "SLEW_SPEED_IND", "Slew Speed",
+		SlewSpeedIndNP[0].fill("SLEW_SPEED_IND", nonGuideSpeedLabel, "%.0f", 1, nonGuideSpeedMax, nonGuideSpeedStep, 0.0);
+		SlewSpeedIndNP.fill(getDeviceName(), "SLEW_SPEED_IND", "Slew Speed",
 				MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-		IUFillNumber(&GoToSpeedIndN[0], "GOTO_SPEED_IND", nonGuideSpeedLabel, "%.0f", 1, nonGuideSpeedMax, nonGuideSpeedStep, 0.0);
-		IUFillNumberVector(&GoToSpeedIndNP, GoToSpeedIndN, 1, getDeviceName(), "GOTO_SPEED_IND", "GoTo Speed",
+		GoToSpeedIndNP[0].fill("GOTO_SPEED_IND", nonGuideSpeedLabel, "%.0f", 1, nonGuideSpeedMax, nonGuideSpeedStep, 0.0);
+		GoToSpeedIndNP.fill(getDeviceName(), "GOTO_SPEED_IND", "GoTo Speed",
 				MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
 		// ramp
-		IUFillNumber(&RampN[0], "RAMP_RA", "RA Ramp", "%.0f", 1, 10, 1, 0.0);
-		IUFillNumber(&RampN[1], "RAMP_DEC", "Dec Ramp", "%.0f", 1, 10, 1, 0.0);
-		IUFillNumberVector(&RampNP, RampN, 2, getDeviceName(), "RAMP", "Ramp",
+		RampNP[0].fill("RAMP_RA", "RA Ramp", "%.0f", 1, 10, 1, 0.0);
+		RampNP[1].fill("RAMP_DEC", "Dec Ramp", "%.0f", 1, 10, 1, 0.0);
+		RampNP.fill(getDeviceName(), "RAMP", "Ramp",
 				LX200Pulsar2::ADVANCED_TAB, IP_RW, 0, IPS_IDLE);
 
 		// reduction
-		IUFillNumber(&ReductionN[0], "REDUCTION_RA", "RA Reduction", "%.2f", 100, 6000, 100, 0.0);
-		IUFillNumber(&ReductionN[1], "REDUCTION_DEC", "Dec Reduction", "%.2f", 100, 6000, 100, 0.0);
-		IUFillNumberVector(&ReductionNP, ReductionN, 2, getDeviceName(), "REDUCTION", "Reduction",
+		ReductionNP[0].fill("REDUCTION_RA", "RA Reduction", "%.2f", 100, 6000, 100, 0.0);
+		ReductionNP[1].fill("REDUCTION_DEC", "Dec Reduction", "%.2f", 100, 6000, 100, 0.0);
+		ReductionNP.fill(getDeviceName(), "REDUCTION", "Reduction",
 				LX200Pulsar2::ADVANCED_TAB, IP_RW, 0, IPS_IDLE);
 
 		// maingear
-		IUFillNumber(&MaingearN[0], "MAINGEAR_RA", "RA Maingear", "%.2f", 100, 6000, 100, 0.0);
-		IUFillNumber(&MaingearN[1], "MAINGEAR_DEC", "Dec Maingear", "%.2f", 100, 6000, 100, 0.0);
-		IUFillNumberVector(&MaingearNP, MaingearN, 2, getDeviceName(), "MAINGEAR", "Maingear",
+		MaingearNP[0].fill("MAINGEAR_RA", "RA Maingear", "%.2f", 100, 6000, 100, 0.0);
+		MaingearNP[1].fill("MAINGEAR_DEC", "Dec Maingear", "%.2f", 100, 6000, 100, 0.0);
+		MaingearNP.fill(getDeviceName(), "MAINGEAR", "Maingear",
 				LX200Pulsar2::ADVANCED_TAB, IP_RW, 0, IPS_IDLE);
 
 		// backlash
-		IUFillNumber(&BacklashN[0], "BACKLASH_MIN", "Dec Backlash Minutes", "%.0f", 0, 9, 1, 0.0);
-		IUFillNumber(&BacklashN[1], "BACKLASH_SEC", "Dec Backlash Seconds", "%.0f", 0, 59, 1, 0.0);
-		IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "BACKLASH", "Backlash",
+		BacklashNP[0].fill("BACKLASH_MIN", "Dec Backlash Minutes", "%.0f", 0, 9, 1, 0.0);
+		BacklashNP[1].fill("BACKLASH_SEC", "Dec Backlash Seconds", "%.0f", 0, 59, 1, 0.0);
+		BacklashNP.fill(getDeviceName(), "BACKLASH", "Backlash",
 				LX200Pulsar2::ADVANCED_TAB, IP_RW, 0, IPS_IDLE);
 
 		// user rate 1
-		IUFillNumber(&UserRate1N[0], "USERRATE1_RA", "RA (radians/min)", "%.7f", -4.1887902, 4.1887902, 0, 0.0);
-		IUFillNumber(&UserRate1N[1], "USERRATE1_DEC", "Dec (radians/min)", "%.7f", -4.1887902, 4.1887902, 0, 0.0);
-		IUFillNumberVector(&UserRate1NP, UserRate1N, 2, getDeviceName(), "USERRATE1", "UserRate1",
+		UserRate1NP[0].fill("USERRATE1_RA", "RA (radians/min)", "%.7f", -4.1887902, 4.1887902, 0, 0.0);
+		UserRate1NP[1].fill("USERRATE1_DEC", "Dec (radians/min)", "%.7f", -4.1887902, 4.1887902, 0, 0.0);
+		UserRate1NP.fill(getDeviceName(), "USERRATE1", "UserRate1",
 				LX200Pulsar2::ADVANCED_TAB, IP_RW, 0, IPS_IDLE);
 
 		// home position
-		IUFillNumber(&HomePositionN[0], "HOME_POSITION_ALT", "Altitude (0 to +90 deg.)", "%.4f", 0, 90, 0, 0.0);
-		IUFillNumber(&HomePositionN[1], "HOME_POSITION_AZ", "Azimuth (0 to 360 deg.)", "%.4f", 0, 360, 0, 0.0);
-		IUFillNumberVector(&HomePositionNP, HomePositionN, 2, getDeviceName(), "HOME_POSITION", "Home Pos.",
+		HomePositionNP[0].fill("HOME_POSITION_ALT", "Altitude (0 to +90 deg.)", "%.4f", 0, 90, 0, 0.0);
+		HomePositionNP[1].fill("HOME_POSITION_AZ", "Azimuth (0 to 360 deg.)", "%.4f", 0, 360, 0, 0.0);
+		HomePositionNP.fill(getDeviceName(), "HOME_POSITION", "Home Pos.",
 				SITE_TAB, IP_RW, 0, IPS_IDLE);		
 
 		// mount type
-		IUFillSwitch(&MountTypeS[(int)Pulsar2Commands::German], "MOUNT_TYPE_GERMAN", "German", ISS_OFF); // no default
-		IUFillSwitch(&MountTypeS[(int)Pulsar2Commands::Fork], "MOUNT_TYPE_FORK", "Fork", ISS_OFF); // no default
-		IUFillSwitch(&MountTypeS[(int)Pulsar2Commands::AltAz], "MOUNT_TYPE_ALTAZ", "AltAz", ISS_OFF); // no default
-		IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type",
+		MountTypeSP[(int)Pulsar2Commands::German].fill("MOUNT_TYPE_GERMAN", "German", ISS_OFF); // no default
+		MountTypeSP[(int)Pulsar2Commands::Fork].fill("MOUNT_TYPE_FORK", "Fork", ISS_OFF); // no default
+		MountTypeSP[(int)Pulsar2Commands::AltAz].fill("MOUNT_TYPE_ALTAZ", "AltAz", ISS_OFF); // no default
+		MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type",
 				MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
 		// pier side (indicator)
-		IUFillSwitch(&PierSideS[Pulsar2Commands::EastOfPier], "PIER_EAST", "OTA on East side (-> west)", ISS_OFF); // no default
-		IUFillSwitch(&PierSideS[Pulsar2Commands::WestOfPier], "PIER_WEST", "OTA on West side (-> east)", ISS_OFF); // no default
-		IUFillSwitchVector(&PierSideSP, PierSideS, 2, getDeviceName(), "TELESCOPE_PIER_SIDE", "Pier Side Ind",
+		PierSideSP[Pulsar2Commands::EastOfPier].fill("PIER_EAST", "OTA on East side (-> west)", ISS_OFF); // no default
+		PierSideSP[Pulsar2Commands::WestOfPier].fill("PIER_WEST", "OTA on West side (-> east)", ISS_OFF); // no default
+		PierSideSP.fill(getDeviceName(), "TELESCOPE_PIER_SIDE", "Pier Side Ind",
 				MAIN_CONTROL_TAB, IP_RO, ISR_ATMOST1, 60, IPS_IDLE);
 		// pier side (toggle)
-		IUFillSwitch(&PierSideToggleS[0], "PIER_SIDE_TOGGLE", "Toggle OTA Pier Side (init only)", ISS_OFF);
-		IUFillSwitchVector(&PierSideToggleSP, PierSideToggleS, 1, getDeviceName(), "PIER_SIDE_TOGGLE", "Pier Side Switch",
+		PierSideToggleSP[0].fill("PIER_SIDE_TOGGLE", "Toggle OTA Pier Side (init only)", ISS_OFF);
+		PierSideToggleSP.fill(getDeviceName(), "PIER_SIDE_TOGGLE", "Pier Side Switch",
 				MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
 		// PEC on/off
-        IUFillSwitch(&PeriodicErrorCorrectionS[0], "PEC_OFF", "Off", ISS_OFF);
-        IUFillSwitch(&PeriodicErrorCorrectionS[1], "PEC_ON", "On", ISS_ON); // default
-        IUFillSwitchVector(&PeriodicErrorCorrectionSP, PeriodicErrorCorrectionS, 2, getDeviceName(), "PE_CORRECTION",
+        PeriodicErrorCorrectionSP[0].fill("PEC_OFF", "Off", ISS_OFF);
+        PeriodicErrorCorrectionSP[1].fill("PEC_ON", "On", ISS_ON); // default
+        PeriodicErrorCorrectionSP.fill(getDeviceName(), "PE_CORRECTION",
                 "P.E. Correction", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 		// pole crossing on/off
-        IUFillSwitch(&PoleCrossingS[0], "POLE_CROSS_OFF", "Off", ISS_OFF);
-        IUFillSwitch(&PoleCrossingS[1], "POLE_CROSS_ON", "On", ISS_ON); // default
-        IUFillSwitchVector(&PoleCrossingSP, PoleCrossingS, 2, getDeviceName(), "POLE_CROSSING", "Pole Crossing",
+        PoleCrossingSP[0].fill("POLE_CROSS_OFF", "Off", ISS_OFF);
+        PoleCrossingSP[1].fill("POLE_CROSS_ON", "On", ISS_ON); // default
+        PoleCrossingSP.fill(getDeviceName(), "POLE_CROSSING", "Pole Crossing",
                 MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 		// refraction correction
-        IUFillSwitch(&RefractionCorrectionS[0], "REFR_CORR_OFF", "Off", ISS_OFF);
-        IUFillSwitch(&RefractionCorrectionS[1], "REFR_CORR_ON", "On", ISS_ON); // default
-        IUFillSwitchVector(&RefractionCorrectionSP, RefractionCorrectionS, 2, getDeviceName(), "REFR_CORRECTION",
+        RefractionCorrectionSP[0].fill("REFR_CORR_OFF", "Off", ISS_OFF);
+        RefractionCorrectionSP[1].fill("REFR_CORR_ON", "On", ISS_ON); // default
+        RefractionCorrectionSP.fill(getDeviceName(), "REFR_CORRECTION",
                 "Refraction Corr.", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 		// rotation (RA)
-        IUFillSwitch(&RotationRAS[0], "ROT_RA_ZERO", "CW (Right)", ISS_OFF);
-        IUFillSwitch(&RotationRAS[1], "ROT_RA_ONE", "CCW (Left)", ISS_OFF);
-        IUFillSwitchVector(&RotationRASP, RotationRAS, 2, getDeviceName(), "ROT_RA",
+        RotationRASP[0].fill("ROT_RA_ZERO", "CW (Right)", ISS_OFF);
+        RotationRASP[1].fill("ROT_RA_ONE", "CCW (Left)", ISS_OFF);
+        RotationRASP.fill(getDeviceName(), "ROT_RA",
                 "RA Rotation", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 		// rotation (Dec)
-        IUFillSwitch(&RotationDecS[0], "ROT_DEC_ZERO", "CW", ISS_OFF);
-        IUFillSwitch(&RotationDecS[1], "ROT_DEC_ONE", "CCW", ISS_OFF);
-        IUFillSwitchVector(&RotationDecSP, RotationDecS, 2, getDeviceName(), "ROT_DEC",
+        RotationDecSP[0].fill("ROT_DEC_ZERO", "CW", ISS_OFF);
+        RotationDecSP[1].fill("ROT_DEC_ONE", "CCW", ISS_OFF);
+        RotationDecSP.fill(getDeviceName(), "ROT_DEC",
                 "Dec Rotation", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
 		// tracking current
-		IUFillNumber(&TrackingCurrentN[0], "TRACKING_CURRENT", "mA", "%.0f", 200, 2000, 200, 0.0); // min, max, step, value
-		IUFillNumberVector(&TrackingCurrentNP, TrackingCurrentN, 1, getDeviceName(), "TRACKING_CURRENT", "Tracking Current",
+		TrackingCurrentNP[0].fill("TRACKING_CURRENT", "mA", "%.0f", 200, 2000, 200, 0.0); // min, max, step, value
+		TrackingCurrentNP.fill(getDeviceName(), "TRACKING_CURRENT", "Tracking Current",
 				LX200Pulsar2::ADVANCED_TAB, IP_RW, 0, IPS_IDLE);
 		// stop current
-		IUFillNumber(&StopCurrentN[0], "STOP_CURRENT", "mA", "%.0f", 200, 2000, 200, 0.0); // min, max, step, value
-		IUFillNumberVector(&StopCurrentNP, StopCurrentN, 1, getDeviceName(), "STOP_CURRENT", "Stop Current",
+		StopCurrentNP[0].fill("STOP_CURRENT", "mA", "%.0f", 200, 2000, 200, 0.0); // min, max, step, value
+		StopCurrentNP.fill(getDeviceName(), "STOP_CURRENT", "Stop Current",
 				LX200Pulsar2::ADVANCED_TAB, IP_RW, 0, IPS_IDLE);
 		// goto current
-		IUFillNumber(&GoToCurrentN[0], "GOTO_CURRENT", "mA", "%.0f", 200, 2000, 200, 0.0); // min, max, step, value
-		IUFillNumberVector(&GoToCurrentNP, GoToCurrentN, 1, getDeviceName(), "GOTO_CURRENT", "GoTo Current",
+		GoToCurrentNP[0].fill("GOTO_CURRENT", "mA", "%.0f", 200, 2000, 200, 0.0); // min, max, step, value
+		GoToCurrentNP.fill(getDeviceName(), "GOTO_CURRENT", "GoTo Current",
 				LX200Pulsar2::ADVANCED_TAB, IP_RW, 0, IPS_IDLE);
     }
     return result;
@@ -1535,45 +1533,45 @@ bool LX200Pulsar2::updateProperties()
 		if (!this->local_properties_updated)
 		{
 			// note that there are several other "defines" embedded within getBasicData()
-			defineProperty(&MountTypeSP);
-	        defineProperty(&RotationRASP);
+			defineProperty(MountTypeSP);
+	        defineProperty(RotationRASP);
 
-			defineProperty(&PierSideSP);
-			defineProperty(&PierSideToggleSP);
-	        defineProperty(&RotationDecSP);
+			defineProperty(PierSideSP);
+			defineProperty(PierSideToggleSP);
+	        defineProperty(RotationDecSP);
 
-	        defineProperty(&PeriodicErrorCorrectionSP);
-	        defineProperty(&PoleCrossingSP);
-	        defineProperty(&RefractionCorrectionSP);
+	        defineProperty(PeriodicErrorCorrectionSP);
+	        defineProperty(PoleCrossingSP);
+	        defineProperty(RefractionCorrectionSP);
 
 	        this->local_properties_updated = true;
 		}
     }
     else
     {
-		deleteProperty(TrackingRateIndSP.name);
-		deleteProperty(MountTypeSP.name);
-		deleteProperty(PierSideSP.name);
-		deleteProperty(PierSideToggleSP.name);
-        deleteProperty(PeriodicErrorCorrectionSP.name);
-        deleteProperty(PoleCrossingSP.name);
-        deleteProperty(RefractionCorrectionSP.name);
-        deleteProperty(RotationRASP.name);
-        deleteProperty(RotationDecSP.name);
-        deleteProperty(TrackingCurrentNP.name);
-        deleteProperty(StopCurrentNP.name);
-        deleteProperty(GoToCurrentNP.name);
-        deleteProperty(GuideSpeedIndNP.name);
-        deleteProperty(CenterSpeedIndNP.name);
-        deleteProperty(FindSpeedIndNP.name);
-        deleteProperty(SlewSpeedIndNP.name);
-        deleteProperty(GoToSpeedIndNP.name);
-        deleteProperty(RampNP.name);
-        deleteProperty(ReductionNP.name);
-        deleteProperty(MaingearNP.name);
-        deleteProperty(BacklashNP.name);
-        deleteProperty(HomePositionNP.name);
-        //deleteProperty(UserRate1NP.name); // user rates are not working correctly in the controller
+		deleteProperty(TrackingRateIndSP.getName());
+		deleteProperty(MountTypeSP.getName());
+		deleteProperty(PierSideSP.getName());
+		deleteProperty(PierSideToggleSP.getName());
+        deleteProperty(PeriodicErrorCorrectionSP.getName());
+        deleteProperty(PoleCrossingSP.getName());
+        deleteProperty(RefractionCorrectionSP.getName());
+        deleteProperty(RotationRASP.getName());
+        deleteProperty(RotationDecSP.getName());
+        deleteProperty(TrackingCurrentNP.getName());
+        deleteProperty(StopCurrentNP.getName());
+        deleteProperty(GoToCurrentNP.getName());
+        deleteProperty(GuideSpeedIndNP.getName());
+        deleteProperty(CenterSpeedIndNP.getName());
+        deleteProperty(FindSpeedIndNP.getName());
+        deleteProperty(SlewSpeedIndNP.getName());
+        deleteProperty(GoToSpeedIndNP.getName());
+        deleteProperty(RampNP.getName());
+        deleteProperty(ReductionNP.getName());
+        deleteProperty(MaingearNP.getName());
+        deleteProperty(BacklashNP.getName());
+        deleteProperty(HomePositionNP.getName());
+        //deleteProperty(UserRate1NP.getName()); // user rates are not working correctly in the controller
         local_properties_updated = false;
     }
 
@@ -1603,7 +1601,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Guide Speed
 		///////////////////////////////////
-		if (!strcmp(name, GuideSpeedIndNP.name))
+		if (GuideSpeedIndNP.isNameMatch(name))
 		{
 			int ival = static_cast<int>(round(values[0]));
 			if (ival > 0 && ival < 10) // paranoid
@@ -1612,19 +1610,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setGuideSpeedInd(PortFD, ival))
 					{
-						GuideSpeedIndNP.s = IPS_ALERT;
-						IDSetNumber(&GuideSpeedIndNP, "Unable to set guide speed indicator to mount controller");
+						GuideSpeedIndNP.setState(IPS_ALERT);
+						GuideSpeedIndNP.apply("Unable to set guide speed indicator to mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&GuideSpeedIndNP, values, names, n);
-				GuideSpeedIndNP.s = IPS_OK;
-				IDSetNumber(&GuideSpeedIndNP, nullptr);
+				GuideSpeedIndNP.update(values, names, n);
+				GuideSpeedIndNP.setState(IPS_OK);
+				GuideSpeedIndNP.apply();
 			}
             else
             {
-                GuideSpeedIndNP.s = IPS_ALERT;
-                IDSetNumber(&GuideSpeedIndNP, "Value out of bounds for guide speed indicator");
+                GuideSpeedIndNP.setState(IPS_ALERT);
+                GuideSpeedIndNP.apply("Value out of bounds for guide speed indicator");
 				return false; // early exit
             }
 			return true; // early exit
@@ -1632,7 +1630,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Center Speed
 		///////////////////////////////////
-		if (!strcmp(name, CenterSpeedIndNP.name))
+		if (CenterSpeedIndNP.isNameMatch(name))
 		{
 			int ival = static_cast<int>(round(values[0]));
 			if (ival > 0 && ival < (Pulsar2Commands::speedsExtended ? 10000 : 1000)) // paranoid at this point
@@ -1641,19 +1639,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setCenterSpeedInd(PortFD, ival))
 					{
-						CenterSpeedIndNP.s = IPS_ALERT;
-						IDSetNumber(&CenterSpeedIndNP, "Unable to set center speed indicator to mount controller");
+						CenterSpeedIndNP.setState(IPS_ALERT);
+						CenterSpeedIndNP.apply("Unable to set center speed indicator to mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&CenterSpeedIndNP, values, names, n);
-				CenterSpeedIndNP.s = IPS_OK;
-				IDSetNumber(&CenterSpeedIndNP, nullptr);
+				CenterSpeedIndNP.update(values, names, n);
+				CenterSpeedIndNP.setState(IPS_OK);
+				CenterSpeedIndNP.apply();
 			}
             else
             {
-                CenterSpeedIndNP.s = IPS_ALERT;
-                IDSetNumber(&CenterSpeedIndNP, "Value out of bounds for center speed indicator");
+                CenterSpeedIndNP.setState(IPS_ALERT);
+                CenterSpeedIndNP.apply("Value out of bounds for center speed indicator");
 				return false; // early exit
             }
 			return true; // early exit
@@ -1661,7 +1659,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Find Speed
 		///////////////////////////////////
-		if (!strcmp(name, FindSpeedIndNP.name))
+		if (FindSpeedIndNP.isNameMatch(name))
 		{
 			int ival = static_cast<int>(round(values[0]));
 			if (ival > 0 && ival < (Pulsar2Commands::speedsExtended ? 10000 : 1000)) // paranoid at this point
@@ -1670,19 +1668,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setFindSpeedInd(PortFD, ival))
 					{
-						FindSpeedIndNP.s = IPS_ALERT;
-						IDSetNumber(&FindSpeedIndNP, "Unable to set find speed indicator to mount controller");
+						FindSpeedIndNP.setState(IPS_ALERT);
+						FindSpeedIndNP.apply("Unable to set find speed indicator to mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&FindSpeedIndNP, values, names, n);
-				FindSpeedIndNP.s = IPS_OK;
-				IDSetNumber(&FindSpeedIndNP, nullptr);
+				FindSpeedIndNP.update(values, names, n);
+				FindSpeedIndNP.setState(IPS_OK);
+				FindSpeedIndNP.apply();
 			}
             else
             {
-                FindSpeedIndNP.s = IPS_ALERT;
-                IDSetNumber(&FindSpeedIndNP, "Value out of bounds for find speed indicator");
+                FindSpeedIndNP.setState(IPS_ALERT);
+                FindSpeedIndNP.apply("Value out of bounds for find speed indicator");
 				return false; // early exit
             }
 			return true; // early exit
@@ -1690,7 +1688,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Slew Speed
 		///////////////////////////////////
-		if (!strcmp(name, SlewSpeedIndNP.name))
+		if (SlewSpeedIndNP.isNameMatch(name))
 		{
 			int ival = static_cast<int>(round(values[0]));
 			if (ival > 0 && ival < (Pulsar2Commands::speedsExtended ? 10000 : 1000)) // paranoid at this point
@@ -1699,19 +1697,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setSlewSpeedInd(PortFD, ival))
 					{
-						SlewSpeedIndNP.s = IPS_ALERT;
-						IDSetNumber(&SlewSpeedIndNP, "Unable to set slew speed indicator to mount controller");
+						SlewSpeedIndNP.setState(IPS_ALERT);
+						SlewSpeedIndNP.apply("Unable to set slew speed indicator to mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&SlewSpeedIndNP, values, names, n);
-				SlewSpeedIndNP.s = IPS_OK;
-				IDSetNumber(&SlewSpeedIndNP, nullptr);
+				SlewSpeedIndNP.update(values, names, n);
+				SlewSpeedIndNP.setState(IPS_OK);
+				SlewSpeedIndNP.apply();
 			}
             else
             {
-                SlewSpeedIndNP.s = IPS_ALERT;
-                IDSetNumber(&SlewSpeedIndNP, "Value out of bounds for slew speed indicator");
+                SlewSpeedIndNP.setState(IPS_ALERT);
+                SlewSpeedIndNP.apply("Value out of bounds for slew speed indicator");
 				return false; // early exit
             }
 			return true; // early exit
@@ -1719,7 +1717,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// GoTo Speed
 		///////////////////////////////////
-		if (!strcmp(name, GoToSpeedIndNP.name))
+		if (GoToSpeedIndNP.isNameMatch(name))
 		{
 			int ival = static_cast<int>(round(values[0]));
 			if (ival > 0 && ival < (Pulsar2Commands::speedsExtended ? 10000 : 1000)) // paranoid at this point
@@ -1728,19 +1726,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setGoToSpeedInd(PortFD, ival))
 					{
-						GoToSpeedIndNP.s = IPS_ALERT;
-						IDSetNumber(&GoToSpeedIndNP, "Unable to set goto speed indicator to mount controller");
+						GoToSpeedIndNP.setState(IPS_ALERT);
+						GoToSpeedIndNP.apply("Unable to set goto speed indicator to mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&GoToSpeedIndNP, values, names, n);
-				GoToSpeedIndNP.s = IPS_OK;
-				IDSetNumber(&GoToSpeedIndNP, nullptr);
+				GoToSpeedIndNP.update(values, names, n);
+				GoToSpeedIndNP.setState(IPS_OK);
+				GoToSpeedIndNP.apply();
 			}
             else
             {
-                GoToSpeedIndNP.s = IPS_ALERT;
-                IDSetNumber(&GoToSpeedIndNP, "Value out of bounds for goto speed indicator");
+                GoToSpeedIndNP.setState(IPS_ALERT);
+                GoToSpeedIndNP.apply("Value out of bounds for goto speed indicator");
 				return false; // early exit
             }
 			return true; // early exit
@@ -1749,7 +1747,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Ramp
 		///////////////////////////////////
-		if (!strcmp(name, RampNP.name))
+		if (RampNP.isNameMatch(name))
 		{
 			int ra_ramp_val = static_cast<int>(round(values[0]));
 			int dec_ramp_val = static_cast<int>(round(values[1]));
@@ -1759,19 +1757,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setRamp(PortFD, ra_ramp_val, dec_ramp_val))
 					{
-						RampNP.s = IPS_ALERT;
-						IDSetNumber(&RampNP, "Unable to set ramp to mount controller");
+						RampNP.setState(IPS_ALERT);
+						RampNP.apply("Unable to set ramp to mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&RampNP, values, names, n);
-				RampNP.s = IPS_OK;
-				IDSetNumber(&RampNP, nullptr);
+				RampNP.update(values, names, n);
+				RampNP.setState(IPS_OK);
+				RampNP.apply();
 			}
             else
             {
-                RampNP.s = IPS_ALERT;
-                IDSetNumber(&RampNP, "Value(s) out of bounds for ramp");
+                RampNP.setState(IPS_ALERT);
+                RampNP.apply("Value(s) out of bounds for ramp");
 				return false; // early exit
             }
 			return true; // early exit
@@ -1780,7 +1778,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Reduction
 		///////////////////////////////////
-		if (!strcmp(name, ReductionNP.name))
+		if (ReductionNP.isNameMatch(name))
 		{
 			int red_ra_val = static_cast<int>(round(values[0]));
 			int red_dec_val = static_cast<int>(round(values[1]));
@@ -1790,19 +1788,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setReduction(PortFD, red_ra_val, red_dec_val))
 					{
-						ReductionNP.s = IPS_ALERT;
-						IDSetNumber(&ReductionNP, "Unable to set reduction values in mount controller");
+						ReductionNP.setState(IPS_ALERT);
+						ReductionNP.apply("Unable to set reduction values in mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&ReductionNP, values, names, n);
-				ReductionNP.s = IPS_OK;
-				IDSetNumber(&ReductionNP, nullptr);
+				ReductionNP.update(values, names, n);
+				ReductionNP.setState(IPS_OK);
+				ReductionNP.apply();
 			}
             else
             {
-                ReductionNP.s = IPS_ALERT;
-                IDSetNumber(&ReductionNP, "Value(s) out of bounds for reduction");
+                ReductionNP.setState(IPS_ALERT);
+                ReductionNP.apply("Value(s) out of bounds for reduction");
 				return false; // early exit
             }
 			return true; // early exit
@@ -1811,7 +1809,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Maingear
 		///////////////////////////////////
-		if (!strcmp(name, MaingearNP.name))
+		if (MaingearNP.isNameMatch(name))
 		{
 			int mg_ra_val = static_cast<int>(round(values[0]));
 			int mg_dec_val = static_cast<int>(round(values[1]));
@@ -1821,19 +1819,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setMaingear(PortFD, mg_ra_val, mg_dec_val))
 					{
-						MaingearNP.s = IPS_ALERT;
-						IDSetNumber(&MaingearNP, "Unable to set maingear values in mount controller");
+						MaingearNP.setState(IPS_ALERT);
+						MaingearNP.apply("Unable to set maingear values in mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&MaingearNP, values, names, n);
-				MaingearNP.s = IPS_OK;
-				IDSetNumber(&MaingearNP, nullptr);
+				MaingearNP.update(values, names, n);
+				MaingearNP.setState(IPS_OK);
+				MaingearNP.apply();
 			}
             else
             {
-                MaingearNP.s = IPS_ALERT;
-                IDSetNumber(&MaingearNP, "Value(s) out of bounds for maingear");
+                MaingearNP.setState(IPS_ALERT);
+                MaingearNP.apply("Value(s) out of bounds for maingear");
 				return false; // early exit
             }
 			return true; // early exit
@@ -1842,7 +1840,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Backlash
 		///////////////////////////////////
-		if (!strcmp(name, BacklashNP.name))
+		if (BacklashNP.isNameMatch(name))
 		{
 			int bl_min_val = static_cast<int>(round(values[0]));
 			int bl_sec_val = static_cast<int>(round(values[1]));
@@ -1852,8 +1850,8 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setBacklash(PortFD, bl_min_val, bl_sec_val))
 					{
-						BacklashNP.s = IPS_ALERT;
-						IDSetNumber(&BacklashNP, "Unable to set backlash values in mount controller");
+						BacklashNP.setState(IPS_ALERT);
+						BacklashNP.apply("Unable to set backlash values in mount controller");
 						return false; // early exit
 					}
 					else
@@ -1867,14 +1865,14 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 						}
 					}
 				}
-				IUUpdateNumber(&BacklashNP, values, names, n);
-				BacklashNP.s = IPS_OK;
-				IDSetNumber(&BacklashNP, nullptr);
+				BacklashNP.update(values, names, n);
+				BacklashNP.setState(IPS_OK);
+				BacklashNP.apply();
 			}
             else
             {
-                BacklashNP.s = IPS_ALERT;
-                IDSetNumber(&BacklashNP, "Value(s) out of bounds for backlash");
+                BacklashNP.setState(IPS_ALERT);
+                BacklashNP.apply("Value(s) out of bounds for backlash");
 				return false; // early exit
             }
 			return true; // early exit
@@ -1884,7 +1882,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Home Position
 		///////////////////////////////////
-		if (!strcmp(name, HomePositionNP.name))
+		if (HomePositionNP.isNameMatch(name))
 		{
 			double hp_alt = values[0];
 			double hp_az = values[1];
@@ -1894,8 +1892,8 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setHomePosition(PortFD, hp_alt, hp_az))
 					{
-						HomePositionNP.s = IPS_ALERT;
-						IDSetNumber(&HomePositionNP, "Unable to set home position values in mount controller");
+						HomePositionNP.setState(IPS_ALERT);
+						HomePositionNP.apply("Unable to set home position values in mount controller");
 						return false; // early exit
 					}
 					else
@@ -1910,14 +1908,14 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 						}
 					}
 				}
-				IUUpdateNumber(&HomePositionNP, values, names, n);
-				HomePositionNP.s = IPS_OK;
-				IDSetNumber(&HomePositionNP, nullptr);
+				HomePositionNP.update(values, names, n);
+				HomePositionNP.setState(IPS_OK);
+				HomePositionNP.apply();
 			}
 			else
 			{
-                HomePositionNP.s = IPS_ALERT;
-                IDSetNumber(&HomePositionNP, "Value(s) out of bounds for home position");
+                HomePositionNP.setState(IPS_ALERT);
+                HomePositionNP.apply("Value(s) out of bounds for home position");
 				return false; // early exit
 			}
 			return true; // early exit
@@ -1927,7 +1925,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		// User Rate 1
 		///////////////////////////////////
 		// note that the following has not been verified to work correctly
-		if (!strcmp(name, UserRate1NP.name))
+		if (UserRate1NP.isNameMatch(name))
 		{
 			if (!Pulsar2Commands::speedsExtended) // a way to check the firmware version
 			{
@@ -1939,8 +1937,8 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 					{
 						if (!Pulsar2Commands::setUserRate1(PortFD, ur1_ra, ur1_dec))
 						{
-							UserRate1NP.s = IPS_ALERT;
-							IDSetNumber(&UserRate1NP, "Unable to set user rate 1 values in mount controller");
+							UserRate1NP.setState(IPS_ALERT);
+							UserRate1NP.apply("Unable to set user rate 1 values in mount controller");
 							return false; // early exit
 						}
 						else
@@ -1954,9 +1952,9 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 							}
 						}
 					}
-					IUUpdateNumber(&UserRate1NP, values, names, n);
-					UserRate1NP.s = IPS_OK;
-					IDSetNumber(&UserRate1NP, nullptr);
+					UserRate1NP.update(values, names, n);
+					UserRate1NP.setState(IPS_OK);
+					UserRate1NP.apply();
 				}
 			}
 			return true; // early exit
@@ -1965,7 +1963,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Tracking Current
 		///////////////////////////////////
-		if (!strcmp(name, TrackingCurrentNP.name))
+		if (TrackingCurrentNP.isNameMatch(name))
 		{
 			int ival = static_cast<int>(round(values[0]));
 			if (ival >= 200 && ival <= 2000) // paranoid
@@ -1974,19 +1972,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setTrackingCurrent(PortFD, ival))
 					{
-						TrackingCurrentNP.s = IPS_ALERT;
-						IDSetNumber(&TrackingCurrentNP, "Unable to set tracking current to mount controller");
+						TrackingCurrentNP.setState(IPS_ALERT);
+						TrackingCurrentNP.apply("Unable to set tracking current to mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&TrackingCurrentNP, values, names, n);
-				TrackingCurrentNP.s = IPS_OK;
-				IDSetNumber(&TrackingCurrentNP, nullptr);
+				TrackingCurrentNP.update(values, names, n);
+				TrackingCurrentNP.setState(IPS_OK);
+				TrackingCurrentNP.apply();
 			}
             else
             {
-                TrackingCurrentNP.s = IPS_ALERT;
-                IDSetNumber(&TrackingCurrentNP, "Value out of bounds for tracking current");
+                TrackingCurrentNP.setState(IPS_ALERT);
+                TrackingCurrentNP.apply("Value out of bounds for tracking current");
 				return false; // early exit
             }
 			return true; // early exit
@@ -1995,7 +1993,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// Stop Current
 		///////////////////////////////////
-		if (!strcmp(name, StopCurrentNP.name))
+		if (StopCurrentNP.isNameMatch(name))
 		{
 			int ival = static_cast<int>(round(values[0]));
 			if (ival >= 200 && ival <= 2000) // paranoid
@@ -2004,19 +2002,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setStopCurrent(PortFD, ival))
 					{
-						StopCurrentNP.s = IPS_ALERT;
-						IDSetNumber(&StopCurrentNP, "Unable to set stop current to mount controller");
+						StopCurrentNP.setState(IPS_ALERT);
+						StopCurrentNP.apply("Unable to set stop current to mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&StopCurrentNP, values, names, n);
-				StopCurrentNP.s = IPS_OK;
-				IDSetNumber(&StopCurrentNP, nullptr);
+				StopCurrentNP.update(values, names, n);
+				StopCurrentNP.setState(IPS_OK);
+				StopCurrentNP.apply();
 			}
             else
             {
-                StopCurrentNP.s = IPS_ALERT;
-                IDSetNumber(&StopCurrentNP, "Value out of bounds for stop current");
+                StopCurrentNP.setState(IPS_ALERT);
+                StopCurrentNP.apply("Value out of bounds for stop current");
 				return false; // early exit
             }
 			return true; // early exit
@@ -2025,7 +2023,7 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 		///////////////////////////////////
 		// GoTo Current
 		///////////////////////////////////
-		if (!strcmp(name, GoToCurrentNP.name))
+		if (GoToCurrentNP.isNameMatch(name))
 		{
 			int ival = static_cast<int>(round(values[0]));
 			if (ival >= 200 && ival <= 2000) // paranoid
@@ -2034,19 +2032,19 @@ bool LX200Pulsar2::ISNewNumber(const char *dev, const char *name, double values[
 				{
 					if (!Pulsar2Commands::setGoToCurrent(PortFD, ival))
 					{
-						GoToCurrentNP.s = IPS_ALERT;
-						IDSetNumber(&GoToCurrentNP, "Unable to set goto current to mount controller");
+						GoToCurrentNP.setState(IPS_ALERT);
+						GoToCurrentNP.apply("Unable to set goto current to mount controller");
 						return false; // early exit
 					}
 				}
-				IUUpdateNumber(&GoToCurrentNP, values, names, n);
-				GoToCurrentNP.s = IPS_OK;
-				IDSetNumber(&GoToCurrentNP, nullptr);
+				GoToCurrentNP.update(values, names, n);
+				GoToCurrentNP.setState(IPS_OK);
+				GoToCurrentNP.apply();
 			}
             else
             {
-                GoToCurrentNP.s = IPS_ALERT;
-                IDSetNumber(&GoToCurrentNP, "Value out of bounds for goto current");
+                GoToCurrentNP.setState(IPS_ALERT);
+                GoToCurrentNP.apply("Value out of bounds for goto current");
 				return false; // early exit
             }
 			return true; // early exit
@@ -2083,17 +2081,17 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Sites (copied from lx200telescope.cpp, due to call to sendScopeLocation() which is not virtual)
-        if (!strcmp(name, SiteSP.name))
+        if (SiteSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&SiteSP, states, names, n) < 0)
+            if (!SiteSP.update(states, names, n))
                 return false;
 
-            currentSiteNum = IUFindOnSwitchIndex(&SiteSP) + 1;
+            currentSiteNum = SiteSP.findOnSwitchIndex() + 1;
 
             if (!isSimulation() && selectSite(PortFD, currentSiteNum) < 0)
             {
-                SiteSP.s = IPS_ALERT;
-                IDSetSwitch(&SiteSP, "Error selecting sites.");
+                SiteSP.setState(IPS_ALERT);
+                SiteSP.apply("Error selecting sites.");
                 return false;
             }
 
@@ -2106,27 +2104,27 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
                 storeScopeLocation();
 
             SiteNameTP.s = IPS_OK;
-            SiteSP.s = IPS_OK;
+            SiteSP.setState(IPS_OK);
 
             IDSetText(&SiteNameTP, nullptr);
-            IDSetSwitch(&SiteSP, nullptr);
+            SiteSP.apply();
 
             return false;
         }
         // end Sites copy
 
         // mount type
-        if (strcmp(name, MountTypeSP.name) == 0)
+        if (MountTypeSP.isNameMatch(name))
         {
-			if (IUUpdateSwitch(&MountTypeSP, states, names, n) < 0)
+			if (!MountTypeSP.update(states, names, n))
 				return false;
 
 			if (!isSimulation())
 			{
 				bool success = false; // start out pessimistic
-				for (int idx = 0; idx < MountTypeSP.nsp; idx++)
+				for (size_t idx = 0; idx < MountTypeSP.size(); idx++)
 				{
-					if (MountTypeS[idx].s == ISS_ON)
+					if (MountTypeSP[idx].getState() == ISS_ON)
 					{
 						success = setMountType(PortFD, (Pulsar2Commands::MountType)(idx));
 						break;
@@ -2134,22 +2132,22 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
 				}
 				if (success)
 				{
-					MountTypeSP.s = IPS_OK;
-					IDSetSwitch(&MountTypeSP, nullptr);
+					MountTypeSP.setState(IPS_OK);
+					MountTypeSP.apply();
 				}
 				else
 				{
-					MountTypeSP.s = IPS_ALERT;
-					IDSetSwitch(&MountTypeSP, "Could not determine or change the mount type");
+					MountTypeSP.setState(IPS_ALERT);
+					MountTypeSP.apply("Could not determine or change the mount type");
 				}
 			}
 		}
 
 		// pier side toggle -- the sync command requires that the pier side be known.
 		// This is *not* related to a meridian flip, but rather, to the OTA orientation.
-		if (strcmp(name, PierSideToggleSP.name) == 0)
+		if (PierSideToggleSP.isNameMatch(name))
 		{
-            if (IUUpdateSwitch(&PierSideToggleSP, states, names, n) < 0)
+            if (!PierSideToggleSP.update(states, names, n))
                 return false;
 
             if (!isSimulation())
@@ -2160,16 +2158,16 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
 						Pulsar2Commands::currentOTASideOfPier == Pulsar2Commands::EastOfPier ? Pulsar2Commands::WestOfPier: Pulsar2Commands::EastOfPier;
 					bool success = Pulsar2Commands::setSideOfPier(PortFD, requested_side_of_pier);
 					// always turn it off
-					PierSideToggleS[0].s = ISS_OFF;
+					PierSideToggleSP[0].setState(ISS_OFF);
 					if (success)
 					{
-						PierSideToggleSP.s = IPS_OK;
-						IDSetSwitch(&PierSideToggleSP, nullptr);
+						PierSideToggleSP.setState(IPS_OK);
+						PierSideToggleSP.apply();
 					}
 					else
 					{
-						PierSideToggleSP.s = IPS_ALERT;
-						IDSetSwitch(&PierSideToggleSP, "Could not change the OTA side of pier");
+						PierSideToggleSP.setState(IPS_ALERT);
+						PierSideToggleSP.apply("Could not change the OTA side of pier");
 					}
 				}
 				return true; // always signal success
@@ -2177,89 +2175,89 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
 		}
 	
 		// periodic error correction
-        if (strcmp(name, PeriodicErrorCorrectionSP.name) == 0)
+        if (PeriodicErrorCorrectionSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&PeriodicErrorCorrectionSP, states, names, n) < 0)
+            if (!PeriodicErrorCorrectionSP.update(states, names, n))
                 return false;
 
             if (!isSimulation())
             {
                 // Only control PEC in RA; PEC in Declination doesn't seem useful
                 const bool success = Pulsar2Commands::setPECorrection(PortFD,
-                                     (PeriodicErrorCorrectionS[1].s == ISS_ON ?
+                                     (PeriodicErrorCorrectionSP[1].getState() == ISS_ON ?
                                       Pulsar2Commands::PECorrectionOn :
                                       Pulsar2Commands::PECorrectionOff),
                                      Pulsar2Commands::PECorrectionOff);
                 if (success)
                 {
-                    PeriodicErrorCorrectionSP.s = IPS_OK;
-                    IDSetSwitch(&PeriodicErrorCorrectionSP, nullptr);
+                    PeriodicErrorCorrectionSP.setState(IPS_OK);
+                    PeriodicErrorCorrectionSP.apply();
                 }
                 else
                 {
-                    PeriodicErrorCorrectionSP.s = IPS_ALERT;
-                    IDSetSwitch(&PeriodicErrorCorrectionSP, "Could not change the periodic error correction");
+                    PeriodicErrorCorrectionSP.setState(IPS_ALERT);
+                    PeriodicErrorCorrectionSP.apply("Could not change the periodic error correction");
                 }
                 return success;
             }
         }
 
 		// pole crossing
-        if (strcmp(name, PoleCrossingSP.name) == 0)
+        if (PoleCrossingSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&PoleCrossingSP, states, names, n) < 0)
+            if (!PoleCrossingSP.update(states, names, n))
                 return false;
 
             if (!isSimulation())
             {
-                const bool success = Pulsar2Commands::setPoleCrossing(PortFD, (PoleCrossingS[1].s == ISS_ON ?
+                const bool success = Pulsar2Commands::setPoleCrossing(PortFD, (PoleCrossingSP[1].getState() == ISS_ON ?
                                      Pulsar2Commands::PoleCrossingOn :
                                      Pulsar2Commands::PoleCrossingOff));
                 if (success)
                 {
-                    PoleCrossingSP.s = IPS_OK;
-                    IDSetSwitch(&PoleCrossingSP, nullptr);
+                    PoleCrossingSP.setState(IPS_OK);
+                    PoleCrossingSP.apply();
                 }
                 else
                 {
-                    PoleCrossingSP.s = IPS_ALERT;
-                    IDSetSwitch(&PoleCrossingSP, "Could not change the pole crossing");
+                    PoleCrossingSP.setState(IPS_ALERT);
+                    PoleCrossingSP.apply("Could not change the pole crossing");
                 }
                 return success;
             }
         }
 
 		// refraction correction
-        if (strcmp(name, RefractionCorrectionSP.name) == 0)
+        if (RefractionCorrectionSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&RefractionCorrectionSP, states, names, n) < 0)
+            if (!RefractionCorrectionSP.update(states, names, n))
                 return false;
 
             if (!isSimulation())
             {
                 // Control refraction correction in both RA and decl.
                 const Pulsar2Commands::RCorrection rc =
-                    (RefractionCorrectionS[1].s == ISS_ON ? Pulsar2Commands::RCorrectionOn :
+                    (RefractionCorrectionSP[1].getState() == ISS_ON ? Pulsar2Commands::RCorrectionOn :
                      Pulsar2Commands::RCorrectionOff);
                 const bool success = Pulsar2Commands::setRCorrection(PortFD, rc, rc);
                 if (success)
                 {
-                    RefractionCorrectionSP.s = IPS_OK;
-                    IDSetSwitch(&RefractionCorrectionSP, nullptr);
+                    RefractionCorrectionSP.setState(IPS_OK);
+                    RefractionCorrectionSP.apply();
                 }
                 else
                 {
-                    RefractionCorrectionSP.s = IPS_ALERT;
-                    IDSetSwitch(&RefractionCorrectionSP, "Could not change the refraction correction");
+                    RefractionCorrectionSP.setState(IPS_ALERT);
+                    RefractionCorrectionSP.apply("Could not change the refraction correction");
                 }
                 return success;
             }
         }
 
 		// rotation RA
-		if (strcmp(name, RotationRASP.name) == 0)
+		if (RotationRASP.isNameMatch(name))
 		{
-            if (IUUpdateSwitch(&RotationRASP, states, names, n) < 0)
+            if (!RotationRASP.update(states, names, n))
                 return false;
 
             if (!isSimulation())
@@ -2269,17 +2267,17 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
                 bool success = Pulsar2Commands::getRotation(PortFD, &rot_ra, &rot_dec);
                 if (success)
                 {
-					rot_ra = (RotationRAS[0].s == ISS_ON ? Pulsar2Commands::RotationZero : Pulsar2Commands::RotationOne);
+					rot_ra = (RotationRASP[0].getState() == ISS_ON ? Pulsar2Commands::RotationZero : Pulsar2Commands::RotationOne);
 					success = Pulsar2Commands::setRotation(PortFD, rot_ra, rot_dec);
 					if (success)
 					{
-						RotationRASP.s = IPS_OK;
-						IDSetSwitch(&RotationRASP, nullptr);
+						RotationRASP.setState(IPS_OK);
+						RotationRASP.apply();
 					}
 					else
 					{
-						RotationRASP.s = IPS_ALERT;
-						IDSetSwitch(&RotationRASP, "Could not change RA rotation direction");
+						RotationRASP.setState(IPS_ALERT);
+						RotationRASP.apply("Could not change RA rotation direction");
 					}
 				}
                 return success;
@@ -2287,9 +2285,9 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
 		}
 
 		// rotation Dec
-		if (strcmp(name, RotationDecSP.name) == 0)
+		if (RotationDecSP.isNameMatch(name))
 		{
-            if (IUUpdateSwitch(&RotationDecSP, states, names, n) < 0)
+            if (!RotationDecSP.update(states, names, n))
                 return false;
 
             if (!isSimulation())
@@ -2299,17 +2297,17 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
                 bool success = Pulsar2Commands::getRotation(PortFD, &rot_ra, &rot_dec);
                 if (success)
                 {
-					rot_dec = (RotationDecS[0].s == ISS_ON ? Pulsar2Commands::RotationZero : Pulsar2Commands::RotationOne);
+					rot_dec = (RotationDecSP[0].getState() == ISS_ON ? Pulsar2Commands::RotationZero : Pulsar2Commands::RotationOne);
 					success = Pulsar2Commands::setRotation(PortFD, rot_ra, rot_dec);
 					if (success)
 					{
-						RotationDecSP.s = IPS_OK;
-						IDSetSwitch(&RotationDecSP, nullptr);
+						RotationDecSP.setState(IPS_OK);
+						RotationDecSP.apply();
 					}
 					else
 					{
-						RotationDecSP.s = IPS_ALERT;
-						IDSetSwitch(&RotationDecSP, "Could not change Dec rotation direction");
+						RotationDecSP.setState(IPS_ALERT);
+						RotationDecSP.apply("Could not change Dec rotation direction");
 					}
 				}
                 return success;
@@ -2318,9 +2316,9 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
 
 
 		// tracking rate indicator
-		if (strcmp(name, TrackingRateIndSP.name) == 0)
+		if (TrackingRateIndSP.isNameMatch(name))
 		{
-			if (IUUpdateSwitch(&TrackingRateIndSP, states, names, n) < 0)
+			if (!TrackingRateIndSP.update(states, names, n))
 				return false;
 
 			if (!isSimulation())
@@ -2328,19 +2326,19 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
 				int idx = 0;
 				for (; idx < static_cast<int>(LX200Pulsar2::numPulsarTrackingRates); idx++)
 				{
-					if (TrackingRateIndS[idx].s == ISS_ON) break;
+					if (TrackingRateIndSP[idx].getState() == ISS_ON) break;
 				}
 
 				bool success = Pulsar2Commands::setTrackingRateInd(PortFD, static_cast<Pulsar2Commands::TrackingRateInd>(idx));
 				if (success)
 				{
-                    TrackingRateIndSP.s = IPS_OK;
-                    IDSetSwitch(&TrackingRateIndSP, nullptr);
+                    TrackingRateIndSP.setState(IPS_OK);
+                    TrackingRateIndSP.apply();
 				}
 				else
 				{
-                    TrackingRateIndSP.s = IPS_ALERT;
-                    IDSetSwitch(&TrackingRateIndSP, "Could not change the tracking rate");
+                    TrackingRateIndSP.setState(IPS_ALERT);
+                    TrackingRateIndSP.apply("Could not change the tracking rate");
 				}
 				return success;
 			}
@@ -2491,15 +2489,15 @@ bool LX200Pulsar2::Abort()
 
 IPState LX200Pulsar2::GuideNorth(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementNSSP);
+        const int dir = MovementNSSP.findOnSwitchIndex();
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
     if (GuideNSTID)
@@ -2519,7 +2517,7 @@ IPState LX200Pulsar2::GuideNorth(uint32_t ms)
             IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
             return IPS_ALERT;
         }
-        MovementNSS[0].s = ISS_ON;
+        MovementNSSP[0].setState(ISS_ON);
         MoveNS(DIRECTION_NORTH, MOTION_START);
     }
 
@@ -2534,15 +2532,15 @@ IPState LX200Pulsar2::GuideNorth(uint32_t ms)
 
 IPState LX200Pulsar2::GuideSouth(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementNSSP.s == IPS_BUSY)
+    if (MovementNSSP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementNSSP);
+        const int dir = MovementNSSP.findOnSwitchIndex();
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
     if (GuideNSTID)
@@ -2560,7 +2558,7 @@ IPState LX200Pulsar2::GuideSouth(uint32_t ms)
             IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
             return IPS_ALERT;
         }
-        MovementNSS[1].s = ISS_ON;
+        MovementNSSP[1].setState(ISS_ON);
         MoveNS(DIRECTION_SOUTH, MOTION_START);
     }
 
@@ -2575,15 +2573,15 @@ IPState LX200Pulsar2::GuideSouth(uint32_t ms)
 
 IPState LX200Pulsar2::GuideEast(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementWESP);
+        const int dir = MovementWESP.findOnSwitchIndex();
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
     if (GuideWETID)
@@ -2601,7 +2599,7 @@ IPState LX200Pulsar2::GuideEast(uint32_t ms)
             IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
             return IPS_ALERT;
         }
-        MovementWES[1].s = ISS_ON;
+        MovementWESP[1].setState(ISS_ON);
         MoveWE(DIRECTION_EAST, MOTION_START);
     }
 
@@ -2616,15 +2614,15 @@ IPState LX200Pulsar2::GuideEast(uint32_t ms)
 
 IPState LX200Pulsar2::GuideWest(uint32_t ms)
 {
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
-    if (MovementWESP.s == IPS_BUSY)
+    if (MovementWESP.getState() == IPS_BUSY)
     {
-        const int dir = IUFindOnSwitchIndex(&MovementWESP);
+        const int dir = MovementWESP.findOnSwitchIndex();
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
     if (GuideWETID)
@@ -2642,7 +2640,7 @@ IPState LX200Pulsar2::GuideWest(uint32_t ms)
             IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
             return IPS_ALERT;
         }
-        MovementWES[0].s = ISS_ON;
+        MovementWESP[0].setState(ISS_ON);
         MoveWE(DIRECTION_WEST, MOTION_START);
     }
     // Set switched slew to "guide"
@@ -2712,29 +2710,29 @@ bool LX200Pulsar2::Goto(double r, double d)
     fs_sexa(DecStr, targetDEC = d, 2, 3600);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && !Pulsar2Commands::abortSlew(PortFD))
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            AbortSP.apply("Abort slew failed.");
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        AbortSP.apply("Slew aborted.");
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
         nanosleep(&timeout, nullptr);
     }
@@ -2743,14 +2741,14 @@ bool LX200Pulsar2::Goto(double r, double d)
     {
         if (!Pulsar2Commands::setObjectRADec(PortFD, targetRA, targetDEC))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error setting RA/DEC.");
             return false;
         }
         if (!Pulsar2Commands::startSlew(PortFD))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(3);
             return false;
         }
@@ -2758,7 +2756,7 @@ bool LX200Pulsar2::Goto(double r, double d)
     }
 
     TrackState = SCOPE_SLEWING;
-    //EqNP.s     = IPS_BUSY;
+    //EqNP.setState(IPS_BUSY);
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
@@ -2771,55 +2769,55 @@ bool LX200Pulsar2::Park()
     {
         if (!Pulsar2Commands::isHomeSet(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "No parking position defined.");
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply("No parking position defined.");
             return false;
         }
         if (Pulsar2Commands::isParked(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Scope has already been parked.");
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply("Scope has already been parked.");
             return false;
         }
     }
 
     // If scope is moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && !Pulsar2Commands::abortSlew(PortFD))
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            AbortSP.apply("Abort slew failed.");
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        AbortSP.apply("Slew aborted.");
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
 
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
         nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation() && !Pulsar2Commands::park(PortFD))
     {
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, "Parking Failed.");
+        ParkSP.setState(IPS_ALERT);
+        ParkSP.apply("Parking Failed.");
         return false;
     }
 
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
     IDMessage(getDeviceName(), "Parking telescope in progress...");
     return true;
@@ -2838,8 +2836,8 @@ bool LX200Pulsar2::Sync(double ra, double dec)
 	        nanosleep(&timeout, nullptr); // This seems to be necessary (why?)
 	        if (!success)
 	        {
-	            EqNP.s = IPS_ALERT;
-	            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+	            EqNP.setState(IPS_ALERT);
+	            EqNP.apply("Error setting RA/DEC. Unable to Sync.");
 	        }
 	        else
 	        {
@@ -2853,14 +2851,14 @@ bool LX200Pulsar2::Sync(double ra, double dec)
 	                LOGF_DEBUG("Sync RAresponse: %s, DECresponse: %s", RAresponse, DECresponse);
 					currentRA  = ra;
 					currentDEC = dec;
-					EqNP.s     = IPS_OK;
+					EqNP.setState(IPS_OK);
 					NewRaDec(currentRA, currentDEC);
 					LOG_INFO("Synchronization successful.");
 				}
 				else
 				{
-					EqNP.s = IPS_ALERT;
-					IDSetNumber(&EqNP, "Synchronization failed.");
+					EqNP.setState(IPS_ALERT);
+					EqNP.apply("Synchronization failed.");
 					LOG_INFO("Synchronization failed.");
 				}
 	        }
@@ -2882,20 +2880,20 @@ bool LX200Pulsar2::UnPark()
     {
         if (!Pulsar2Commands::isParked(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Mount is not parked.");
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply("Mount is not parked.");
 			LOG_INFO("Mount is not parked, so cannot unpark.");
             return false; // early exit
         }
         if (!Pulsar2Commands::unpark(PortFD))
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Unparking failed.");
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply("Unparking failed.");
 			LOG_INFO("Unparking failed.");
             return false; // early exit
         }
     }
-    ParkSP.s   = IPS_OK;
+    ParkSP.setState(IPS_OK);
     TrackState = SCOPE_IDLE;
     SetParked(false);
     IDMessage(getDeviceName(), "Telescope has been unparked.");
@@ -2904,7 +2902,7 @@ bool LX200Pulsar2::UnPark()
 	// "idle" state for Pulsar2
     LOG_INFO("Telescope has been unparked.");
     TrackState = SCOPE_TRACKING;
-    IDSetSwitch(&ParkSP, nullptr);
+    ParkSP.apply();
 
     return true;
 }
@@ -2985,62 +2983,62 @@ void LX200Pulsar2::getBasicData()
 
 		// mount type
 		Pulsar2Commands::MountType mount_type = Pulsar2Commands::getMountType(PortFD);
-		MountTypeS[(int)mount_type].s = ISS_ON;
-		IDSetSwitch(&MountTypeSP, nullptr);
+		MountTypeSP[(int)mount_type].setState(ISS_ON);
+		MountTypeSP.apply();
 
         // PE correction (one value used for both RA and Dec)
         Pulsar2Commands::PECorrection pec_ra  = Pulsar2Commands::PECorrectionOff,
                                       pec_dec = Pulsar2Commands::PECorrectionOff;
         if (Pulsar2Commands::getPECorrection(PortFD, &pec_ra, &pec_dec))
         {
-			PeriodicErrorCorrectionS[0].s = (pec_ra == Pulsar2Commands::PECorrectionOn ? ISS_OFF : ISS_ON);
-			PeriodicErrorCorrectionS[1].s = (pec_ra == Pulsar2Commands::PECorrectionOn ? ISS_ON : ISS_OFF);
-			IDSetSwitch(&PeriodicErrorCorrectionSP, nullptr);
+			PeriodicErrorCorrectionSP[0].setState((pec_ra == Pulsar2Commands::PECorrectionOn ? ISS_OFF : ISS_ON));
+			PeriodicErrorCorrectionSP[1].setState((pec_ra == Pulsar2Commands::PECorrectionOn ? ISS_ON : ISS_OFF));
+			PeriodicErrorCorrectionSP.apply();
         }
         else
         {
-			PeriodicErrorCorrectionSP.s = IPS_ALERT;
-			IDSetSwitch(&PeriodicErrorCorrectionSP, "Can't check whether PEC is enabled.");
+			PeriodicErrorCorrectionSP.setState(IPS_ALERT);
+			PeriodicErrorCorrectionSP.apply("Can't check whether PEC is enabled.");
         }
 
 		// pole crossing
         Pulsar2Commands::PoleCrossing pole_crossing = Pulsar2Commands::PoleCrossingOff;
         if (Pulsar2Commands::getPoleCrossing(PortFD, &pole_crossing))
         {
-			PoleCrossingS[0].s = (pole_crossing == Pulsar2Commands::PoleCrossingOn ? ISS_OFF : ISS_ON);
-			PoleCrossingS[1].s = (pole_crossing == Pulsar2Commands::PoleCrossingOn ? ISS_ON : ISS_OFF);
-            IDSetSwitch(&PoleCrossingSP, nullptr);
+			PoleCrossingSP[0].setState((pole_crossing == Pulsar2Commands::PoleCrossingOn ? ISS_OFF : ISS_ON));
+			PoleCrossingSP[1].setState((pole_crossing == Pulsar2Commands::PoleCrossingOn ? ISS_ON : ISS_OFF));
+            PoleCrossingSP.apply();
         }
         else
         {
-            PoleCrossingSP.s = IPS_ALERT;
-            IDSetSwitch(&PoleCrossingSP, "Can't check whether pole crossing is enabled.");
+            PoleCrossingSP.setState(IPS_ALERT);
+            PoleCrossingSP.apply("Can't check whether pole crossing is enabled.");
         }
 
         // refraction correction (one value used for both RA and Dec)
         Pulsar2Commands::RCorrection rc_ra = Pulsar2Commands::RCorrectionOff, rc_dec = Pulsar2Commands::RCorrectionOn;
         if (Pulsar2Commands::getRCorrection(PortFD, &rc_ra, &rc_dec))
         {
-			RefractionCorrectionS[0].s = (rc_ra == Pulsar2Commands::RCorrectionOn ? ISS_OFF : ISS_ON);
-			RefractionCorrectionS[1].s = (rc_ra == Pulsar2Commands::RCorrectionOn ? ISS_ON : ISS_OFF);
-            IDSetSwitch(&RefractionCorrectionSP, nullptr);
+			RefractionCorrectionSP[0].setState((rc_ra == Pulsar2Commands::RCorrectionOn ? ISS_OFF : ISS_ON));
+			RefractionCorrectionSP[1].setState((rc_ra == Pulsar2Commands::RCorrectionOn ? ISS_ON : ISS_OFF));
+            RefractionCorrectionSP.apply();
         }
         else
         {
-            RefractionCorrectionSP.s = IPS_ALERT;
-            IDSetSwitch(&RefractionCorrectionSP, "Can't check whether refraction correction is enabled.");
+            RefractionCorrectionSP.setState(IPS_ALERT);
+            RefractionCorrectionSP.apply("Can't check whether refraction correction is enabled.");
         }
 
 		// rotation
 		Pulsar2Commands::Rotation rot_ra, rot_dec;
 		if (Pulsar2Commands::getRotation(PortFD, &rot_ra, &rot_dec))
 		{
-			RotationRAS[0].s = (rot_ra == Pulsar2Commands::RotationZero ? ISS_ON : ISS_OFF);
-			RotationRAS[1].s = (rot_ra == Pulsar2Commands::RotationOne ? ISS_ON : ISS_OFF);
-            IDSetSwitch(&RotationRASP, nullptr);
-			RotationDecS[0].s = (rot_dec == Pulsar2Commands::RotationZero ? ISS_ON : ISS_OFF);
-			RotationDecS[1].s = (rot_dec == Pulsar2Commands::RotationOne ? ISS_ON : ISS_OFF);
-            IDSetSwitch(&RotationDecSP, nullptr);
+			RotationRASP[0].setState((rot_ra == Pulsar2Commands::RotationZero ? ISS_ON : ISS_OFF));
+			RotationRASP[1].setState((rot_ra == Pulsar2Commands::RotationOne ? ISS_ON : ISS_OFF));
+            RotationRASP.apply();
+			RotationDecSP[0].setState((rot_dec == Pulsar2Commands::RotationZero ? ISS_ON : ISS_OFF));
+			RotationDecSP[1].setState((rot_dec == Pulsar2Commands::RotationOne ? ISS_ON : ISS_OFF));
+            RotationDecSP.apply();
 		}
 
 
@@ -3050,80 +3048,80 @@ void LX200Pulsar2::getBasicData()
 
 		// tracking rate indicator
 		Pulsar2Commands::TrackingRateInd tracking_rate_ind = Pulsar2Commands::getTrackingRateInd(PortFD);
-		for (int i = 0; i < static_cast<int>(LX200Pulsar2::numPulsarTrackingRates); i++) TrackingRateIndS[i].s = ISS_OFF;
+		for (int i = 0; i < static_cast<int>(LX200Pulsar2::numPulsarTrackingRates); i++) TrackingRateIndSP[i].setState(ISS_OFF);
 		if (tracking_rate_ind != Pulsar2Commands::RateNone)
 		{
-			TrackingRateIndS[static_cast<int>(tracking_rate_ind)].s = ISS_ON;
-			IDSetSwitch(&TrackingRateIndSP, nullptr);
+			TrackingRateIndSP[static_cast<int>(tracking_rate_ind)].setState(ISS_ON);
+			TrackingRateIndSP.apply();
 		}
 		else
 		{
-			TrackingRateIndSP.s = IPS_ALERT;
-			IDSetSwitch(&TrackingRateIndSP, "Can't get the tracking rate indicator.");
+			TrackingRateIndSP.setState(IPS_ALERT);
+			TrackingRateIndSP.apply("Can't get the tracking rate indicator.");
 		}
-		defineProperty(&TrackingRateIndSP); // defined here for consistency
+		defineProperty(TrackingRateIndSP); // defined here for consistency
 
 		// guide speed indicator
 		int guide_speed_ind = Pulsar2Commands::getGuideSpeedInd(PortFD);
 		if (guide_speed_ind > 0)
 		{
 			double guide_speed_ind_d = static_cast<double>(guide_speed_ind);
-			GuideSpeedIndN[0].value = guide_speed_ind_d;
-			IDSetNumber(&GuideSpeedIndNP, nullptr);
+			GuideSpeedIndNP[0].setValue(guide_speed_ind_d);
+			GuideSpeedIndNP.apply();
 		}
-        defineProperty(&GuideSpeedIndNP); // defined here, in order to match input value with controller value
+        defineProperty(GuideSpeedIndNP); // defined here, in order to match input value with controller value
 
 		// center speed indicator
 		int center_speed_ind = Pulsar2Commands::getCenterSpeedInd(PortFD);
 		if (center_speed_ind > 0)
 		{
 			double center_speed_ind_d = static_cast<double>(center_speed_ind);
-			CenterSpeedIndN[0].value = center_speed_ind_d;
-			CenterSpeedIndN[0].max = nonGuideSpeedMax;
-			CenterSpeedIndN[0].step = nonGuideSpeedStep;
-			strcpy(CenterSpeedIndN[0].label, nonGuideSpeedLabel);
-			IDSetNumber(&CenterSpeedIndNP, nullptr);
+			CenterSpeedIndNP[0].setValue(center_speed_ind_d);
+			CenterSpeedIndNP[0].setMax(nonGuideSpeedMax);
+			CenterSpeedIndNP[0].setStep(nonGuideSpeedStep);
+			strcpy(CenterSpeedIndNP[0].label, nonGuideSpeedLabel);
+			CenterSpeedIndNP.apply();
 		}
-        defineProperty(&CenterSpeedIndNP); // defined here, in order to match input value with controller value
+        defineProperty(CenterSpeedIndNP); // defined here, in order to match input value with controller value
 
 		// find speed indicator
 		int find_speed_ind = Pulsar2Commands::getFindSpeedInd(PortFD);
 		if (find_speed_ind > 0)
 		{
 			double find_speed_ind_d = static_cast<double>(find_speed_ind);
-			FindSpeedIndN[0].value = find_speed_ind_d;
-			FindSpeedIndN[0].max = nonGuideSpeedMax;
-			FindSpeedIndN[0].step = nonGuideSpeedStep;
-			strcpy(FindSpeedIndN[0].label, nonGuideSpeedLabel);
-			IDSetNumber(&FindSpeedIndNP, nullptr);
+			FindSpeedIndNP[0].setValue(find_speed_ind_d);
+			FindSpeedIndNP[0].setMax(nonGuideSpeedMax);
+			FindSpeedIndNP[0].setStep(nonGuideSpeedStep);
+			strcpy(FindSpeedIndNP[0].label, nonGuideSpeedLabel);
+			FindSpeedIndNP.apply();
 		}
-        defineProperty(&FindSpeedIndNP); // defined here, in order to match input value with controller value
+        defineProperty(FindSpeedIndNP); // defined here, in order to match input value with controller value
 
 		// slew speed indicator
 		int slew_speed_ind = Pulsar2Commands::getSlewSpeedInd(PortFD);
 		if (slew_speed_ind > 0)
 		{
 			double slew_speed_ind_d = static_cast<double>(slew_speed_ind);
-			SlewSpeedIndN[0].value = slew_speed_ind_d;
-			SlewSpeedIndN[0].max = nonGuideSpeedMax;
-			SlewSpeedIndN[0].step = nonGuideSpeedStep;
-			strcpy(SlewSpeedIndN[0].label, nonGuideSpeedLabel);
-			IDSetNumber(&SlewSpeedIndNP, nullptr);
+			SlewSpeedIndNP[0].setValue(slew_speed_ind_d);
+			SlewSpeedIndNP[0].setMax(nonGuideSpeedMax);
+			SlewSpeedIndNP[0].setStep(nonGuideSpeedStep);
+			strcpy(SlewSpeedIndNP[0].label, nonGuideSpeedLabel);
+			SlewSpeedIndNP.apply();
 		}
-        defineProperty(&SlewSpeedIndNP); // defined here, in order to match input value with controller value
+        defineProperty(SlewSpeedIndNP); // defined here, in order to match input value with controller value
 
 		// goto speed indicator
 		int goto_speed_ind = Pulsar2Commands::getGoToSpeedInd(PortFD);
 		if (goto_speed_ind > 0)
 		{
 			double goto_speed_ind_d = static_cast<double>(goto_speed_ind);
-			GoToSpeedIndN[0].value = goto_speed_ind_d;
-			GoToSpeedIndN[0].max = nonGuideSpeedMax;
-			GoToSpeedIndN[0].step = nonGuideSpeedStep;
-			strcpy(GoToSpeedIndN[0].label, nonGuideSpeedLabel);
-			IDSetNumber(&GoToSpeedIndNP, nullptr);
+			GoToSpeedIndNP[0].setValue(goto_speed_ind_d);
+			GoToSpeedIndNP[0].setMax(nonGuideSpeedMax);
+			GoToSpeedIndNP[0].setStep(nonGuideSpeedStep);
+			strcpy(GoToSpeedIndNP[0].label, nonGuideSpeedLabel);
+			GoToSpeedIndNP.apply();
 		}
-        defineProperty(&GoToSpeedIndNP); // defined here, in order to match input value with controller value
+        defineProperty(GoToSpeedIndNP); // defined here, in order to match input value with controller value
 
 
 		// - - - - - - - - - - - - - - - - - -
@@ -3134,16 +3132,16 @@ void LX200Pulsar2::getBasicData()
 		double hp_alt, hp_az;
 		if (Pulsar2Commands::getHomePosition(PortFD, &hp_alt, &hp_az))
 		{
-			HomePositionN[0].value = hp_alt;
-			HomePositionN[1].value = hp_az;
-			IDSetNumber(&HomePositionNP, nullptr);
+			HomePositionNP[0].setValue(hp_alt);
+			HomePositionNP[1].setValue(hp_az);
+			HomePositionNP.apply();
 		}
 		else
 		{
-			HomePositionNP.s = IPS_ALERT;
-			IDSetNumber(&HomePositionNP, "Unable to get home position values from controller.");
+			HomePositionNP.setState(IPS_ALERT);
+			HomePositionNP.apply("Unable to get home position values from controller.");
 		}
-        defineProperty(&HomePositionNP); // defined here, in order to match input value with controller value
+        defineProperty(HomePositionNP); // defined here, in order to match input value with controller value
 
 
 		// - - - - - - - - - - - - - - - - - -
@@ -3155,45 +3153,45 @@ void LX200Pulsar2::getBasicData()
 		if (tracking_current > 0)
 		{
 			double tracking_current_d = static_cast<double>(tracking_current);
-			TrackingCurrentN[0].value = tracking_current_d;
-			IDSetNumber(&TrackingCurrentNP, nullptr);
+			TrackingCurrentNP[0].setValue(tracking_current_d);
+			TrackingCurrentNP.apply();
 		}
 		else
 		{
-            TrackingCurrentNP.s = IPS_ALERT;
-            IDSetNumber(&TrackingCurrentNP, "Can't get tracking current value");
+            TrackingCurrentNP.setState(IPS_ALERT);
+            TrackingCurrentNP.apply("Can't get tracking current value");
 		}
-        defineProperty(&TrackingCurrentNP); // defined here, in order to match input value with controller value
+        defineProperty(TrackingCurrentNP); // defined here, in order to match input value with controller value
 
 		// stop current
 		int stop_current = Pulsar2Commands::getStopCurrent(PortFD);
 		if (stop_current > 0)
 		{
 			double stop_current_d = static_cast<double>(stop_current);
-			StopCurrentN[0].value = stop_current_d;
-			IDSetNumber(&StopCurrentNP, nullptr);
+			StopCurrentNP[0].setValue(stop_current_d);
+			StopCurrentNP.apply();
 		}
 		else
 		{
-            StopCurrentNP.s = IPS_ALERT;
-            IDSetNumber(&StopCurrentNP, "Can't get stop current value");
+            StopCurrentNP.setState(IPS_ALERT);
+            StopCurrentNP.apply("Can't get stop current value");
 		}
-		defineProperty(&StopCurrentNP); // defined here, in order to match input value with controller value
+		defineProperty(StopCurrentNP); // defined here, in order to match input value with controller value
 
 		// goto current
 		int goto_current = Pulsar2Commands::getGoToCurrent(PortFD);
 		if (goto_current > 0)
 		{
 			double goto_current_d = static_cast<double>(goto_current);
-			GoToCurrentN[0].value = goto_current_d;
-			IDSetNumber(&GoToCurrentNP, nullptr);
+			GoToCurrentNP[0].setValue(goto_current_d);
+			GoToCurrentNP.apply();
 		}
 		else
 		{
-            GoToCurrentNP.s = IPS_ALERT;
-            IDSetNumber(&GoToCurrentNP, "Can't get goto current value");
+            GoToCurrentNP.setState(IPS_ALERT);
+            GoToCurrentNP.apply("Can't get goto current value");
 		}
-		defineProperty(&GoToCurrentNP); // defined here, in order to match input value with controller value
+		defineProperty(GoToCurrentNP); // defined here, in order to match input value with controller value
 
 		// ramp
 		int ra_ramp, dec_ramp;
@@ -3201,16 +3199,16 @@ void LX200Pulsar2::getBasicData()
 		{
 			double ra_ramp_d = static_cast<double>(ra_ramp);
 			double dec_ramp_d = static_cast<double>(dec_ramp);
-			RampN[0].value = ra_ramp_d;
-			RampN[1].value = dec_ramp_d;
-			IDSetNumber(&RampNP, nullptr);
+			RampNP[0].setValue(ra_ramp_d);
+			RampNP[1].setValue(dec_ramp_d);
+			RampNP.apply();
 		}
 		else
 		{
-			RampNP.s = IPS_ALERT;
-			IDSetNumber(&RampNP, "Unable to get ramp values from controller.");
+			RampNP.setState(IPS_ALERT);
+			RampNP.apply("Unable to get ramp values from controller.");
 		}
-        defineProperty(&RampNP); // defined here, in order to match input value with controller value
+        defineProperty(RampNP); // defined here, in order to match input value with controller value
 
 		// reduction
 		int red_ra, red_dec;
@@ -3218,16 +3216,16 @@ void LX200Pulsar2::getBasicData()
 		{
 			double ra_red_d = static_cast<double>(red_ra);
 			double dec_red_d = static_cast<double>(red_dec);
-			ReductionN[0].value = ra_red_d;
-			ReductionN[1].value = dec_red_d;
-			IDSetNumber(&ReductionNP, nullptr);
+			ReductionNP[0].setValue(ra_red_d);
+			ReductionNP[1].setValue(dec_red_d);
+			ReductionNP.apply();
 		}
 		else
 		{
-			ReductionNP.s = IPS_ALERT;
-			IDSetNumber(&ReductionNP, "Unable to get reduction values from controller.");
+			ReductionNP.setState(IPS_ALERT);
+			ReductionNP.apply("Unable to get reduction values from controller.");
 		}
-        defineProperty(&ReductionNP); // defined here, in order to match input value with controller value
+        defineProperty(ReductionNP); // defined here, in order to match input value with controller value
 
 		// maingear
 		int mg_ra, mg_dec;
@@ -3235,16 +3233,16 @@ void LX200Pulsar2::getBasicData()
 		{
 			double mg_ra_d = static_cast<double>(mg_ra);
 			double mg_dec_d = static_cast<double>(mg_dec);
-			MaingearN[0].value = mg_ra_d;
-			MaingearN[1].value = mg_dec_d;
-			IDSetNumber(&MaingearNP, nullptr);
+			MaingearNP[0].setValue(mg_ra_d);
+			MaingearNP[1].setValue(mg_dec_d);
+			MaingearNP.apply();
 		}
 		else
 		{
-			MaingearNP.s = IPS_ALERT;
-			IDSetNumber(&MaingearNP, "Unable to get maingear values from controller.");
+			MaingearNP.setState(IPS_ALERT);
+			MaingearNP.apply("Unable to get maingear values from controller.");
 		}
-        defineProperty(&MaingearNP); // defined here, in order to match input value with controller value
+        defineProperty(MaingearNP); // defined here, in order to match input value with controller value
 
 		// backlash
 		int bl_min, bl_sec;
@@ -3252,16 +3250,16 @@ void LX200Pulsar2::getBasicData()
 		{
 			double bl_min_d = static_cast<double>(bl_min);
 			double bl_sec_d = static_cast<double>(bl_sec);
-			BacklashN[0].value = bl_min_d;
-			BacklashN[1].value = bl_sec_d;
-			IDSetNumber(&BacklashNP, nullptr);
+			BacklashNP[0].setValue(bl_min_d);
+			BacklashNP[1].setValue(bl_sec_d);
+			BacklashNP.apply();
 		}
 		else
 		{
-			BacklashNP.s = IPS_ALERT;
-			IDSetNumber(&BacklashNP, "Unable to get backlash values from controller.");
+			BacklashNP.setState(IPS_ALERT);
+			BacklashNP.apply("Unable to get backlash values from controller.");
 		}
-        defineProperty(&BacklashNP); // defined here, in order to match input value with controller value
+        defineProperty(BacklashNP); // defined here, in order to match input value with controller value
 
 
 		// user rate 1
@@ -3272,16 +3270,16 @@ void LX200Pulsar2::getBasicData()
 			double ur1_ra, ur1_dec;
 			if (Pulsar2Commands::getUserRate1(PortFD, &ur1_ra, &ur1_dec))
 			{
-				UserRate1N[0].value = ur1_ra;
-				UserRate1N[1].value = ur1_dec;
-				IDSetNumber(&UserRate1NP, nullptr);
+				UserRate1NP[0].setValue(ur1_ra);
+				UserRate1NP[1].setValue(ur1_dec);
+				UserRate1NP.apply();
 			}
 			else
 			{
-				UserRate1NP.s = IPS_ALERT;
-				IDSetNumber(&UserRate1NP, "Unable to get user rate 1 values from controller.");
+				UserRate1NP.setState(IPS_ALERT);
+				UserRate1NP.apply("Unable to get user rate 1 values from controller.");
 			}
-	        //defineProperty(&UserRate1NP); // user rates are not working correctly in the controller
+	        //defineProperty(UserRate1NP); // user rates are not working correctly in the controller
 		}
 
     } // not a simulation
@@ -3294,26 +3292,26 @@ void LX200Pulsar2::getBasicData()
 
 bool LX200Pulsar2::storeScopeLocation()
 {
-    LocationNP.s = IPS_OK;
+    LocationNP.setState(IPS_OK);
     double lat = 29.5; // simulation default
     double lon = 48.0; // simulation default
 
     if (isSimulation() || Pulsar2Commands::getSiteLatitudeLongitude(PortFD, &lat, &lon))
     {
-        LocationNP.np[0].value = lat;
+        LocationNP[0].setValue(lat);
 		double stdLon = (lon < 0 ? 360.0 + lon : lon);
-        LocationNP.np[1].value = stdLon;
+        LocationNP[1].setValue(stdLon);
 
-		LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value,
-               LocationN[LOCATION_LONGITUDE].value);
+		LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationNP[LOCATION_LATITUDE].getValue(),
+               LocationNP[LOCATION_LONGITUDE].getValue());
 
-		IDSetNumber(&LocationNP, nullptr);
+		LocationNP.apply();
 		saveConfig(true, "GEOGRAPHIC_COORD");
         if (LX200Pulsar2::verboseLogging) LOGF_INFO("Controller location read and stored; lat: %+f, lon: %+f", lat, stdLon);
     }
     else
     {
-        LocationNP.s = IPS_ALERT;
+        LocationNP.setState(IPS_ALERT);
         IDMessage(getDeviceName(), "Failed to get site lat/lon from Pulsar controller.");
         return false;
     }
@@ -3324,23 +3322,23 @@ bool LX200Pulsar2::storeScopeLocation()
 // Old-style individual latitude/longitude retrieval
 //void LX200Pulsar2::sendScopeLocation()
 //{
-//    LocationNP.s = IPS_OK;
+//    LocationNP.setState(IPS_OK);
 //    int dd = 29, mm = 30;
 //    if (isSimulation() || Pulsar2Commands::getSiteLatitude(PortFD, &dd, &mm))
 //    {
-//        LocationNP.np[0].value = (dd < 0 ? -1 : 1) * (abs(dd) + mm / 60.0);
+//        LocationNP[0].setValue((dd < 0 ? -1 : 1) * (abs(dd) + mm / 60.0));
 //        LOGF_DEBUG("Pulsar latitude: %d:%d", dd, mm);
 //    }
 //    else
 //    {
 //        IDMessage(getDeviceName(), "Failed to get site latitude from Pulsar controller.");
-//        LocationNP.s = IPS_ALERT;
+//        LocationNP.setState(IPS_ALERT);
 //    }
 //    dd = 48;
 //    mm = 0;
 //    if (isSimulation() || Pulsar2Commands::getSiteLongitude(PortFD, &dd, &mm))
 //    {
-//        LocationNP.np[1].value = (dd > 0 ? 360.0 - (dd + mm / 60.0) : -(dd - mm / 60.0));
+//        LocationNP[1].setValue((dd > 0 ? 360.0 - (dd + mm / 60.0) : -(dd - mm / 60.0)));
 //        LOGF_DEBUG("Pulsar longitude: %d:%d", dd, mm);
 //
 //        saveConfig(true, "GEOGRAPHIC_COORD");
@@ -3348,9 +3346,9 @@ bool LX200Pulsar2::storeScopeLocation()
 //    else
 //    {
 //        IDMessage(getDeviceName(), "Failed to get site longitude from Pulsar controller.");
-//        LocationNP.s = IPS_ALERT;
+//        LocationNP.setState(IPS_ALERT);
 //    }
-//    IDSetNumber(&LocationNP, nullptr);
+//    LocationNP.apply();
 //}
 
 bool LX200Pulsar2::sendScopeTime()
@@ -3381,17 +3379,17 @@ bool LX200Pulsar2::sendScopeTime()
     char cdate[32];
     strftime(cdate, sizeof(cdate), "%Y-%m-%dT%H:%M:%S", &utm);
 
-    IUSaveText(&TimeT[0], cdate);
-    IUSaveText(&TimeT[1], "0"); // Pulsar maintains time in UTC only
+    TimeTP[0].setText(cdate);
+    TimeTP[1].setText("0"); // Pulsar maintains time in UTC only
     if (isDebug())
     {
         IDLog("Telescope Local Time: %02d:%02d:%02d\n", ltm.tm_hour, ltm.tm_min, ltm.tm_sec);
-        IDLog("Telescope TimeT Offset: %s\n", TimeT[1].text);
-        IDLog("Telescope UTC Time: %s\n", TimeT[0].text);
+        IDLog("Telescope TimeT Offset: %s\n", TimeTP[1].getText());
+        IDLog("Telescope UTC Time: %s\n", TimeTP[0].getText());
     }
     // Let's send everything to the client
-    TimeTP.s = IPS_OK;
-    IDSetText(&TimeTP, nullptr);
+    TimeTP.setState(IPS_OK);
+    TimeTP.apply();
     
     return true;
 }

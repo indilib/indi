@@ -21,6 +21,11 @@
 
 #include "indibase/indifilterwheel.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class XAGYLWheel : public INDI::FilterWheel
 {
     public:
@@ -97,8 +102,7 @@ class XAGYLWheel : public INDI::FilterWheel
         //////////////////////////////////////////////////////////////////////
 
         // Firmware info
-        ITextVectorProperty FirmwareInfoTP;
-        IText FirmwareInfoT[3] {};
+        INDI::PropertyText FirmwareInfoTP {3};
         enum
         {
             FIRMWARE_PRODUCT,
@@ -107,8 +111,7 @@ class XAGYLWheel : public INDI::FilterWheel
         };
 
         // Settings
-        INumberVectorProperty SettingsNP;
-        INumber SettingsN[4];
+        INDI::PropertyNumber SettingsNP {4};
         enum
         {
             SETTING_SPEED,
@@ -122,8 +125,7 @@ class XAGYLWheel : public INDI::FilterWheel
         INumber *OffsetN { nullptr };
 
         // Reset
-        ISwitchVectorProperty ResetSP;
-        ISwitch ResetS[4];
+        INDI::PropertySwitch ResetSP {4};
         enum
         {
             COMMAND_REBOOT,

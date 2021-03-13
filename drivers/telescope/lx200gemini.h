@@ -28,6 +28,10 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class LX200Gemini : public LX200Generic
 {
     public:
@@ -70,23 +74,17 @@ class LX200Gemini : public LX200Generic
         // Checksum for private commands
         uint8_t calculateChecksum(char *cmd);
 
-        INumber ManualSlewingSpeedN[1];
-        INumberVectorProperty ManualSlewingSpeedNP;
+        INDI::PropertyNumber ManualSlewingSpeedNP {1};
 
-        INumber GotoSlewingSpeedN[1];
-        INumberVectorProperty GotoSlewingSpeedNP;
+        INDI::PropertyNumber GotoSlewingSpeedNP {1};
 
-        INumber MoveSpeedN[1];
-        INumberVectorProperty MoveSpeedNP;
+        INDI::PropertyNumber MoveSpeedNP {1};
 
-        INumber GuidingSpeedN[1];
-        INumberVectorProperty GuidingSpeedNP;
+        INDI::PropertyNumber GuidingSpeedNP {1};
 
-        INumber CenteringSpeedN[1];
-        INumberVectorProperty CenteringSpeedNP;
+        INDI::PropertyNumber CenteringSpeedNP {1};
 
-        ISwitch ParkSettingsS[3];
-        ISwitchVectorProperty ParkSettingsSP;
+        INDI::PropertySwitch ParkSettingsSP {3};
         enum
         {
             PARK_HOME,
@@ -94,8 +92,7 @@ class LX200Gemini : public LX200Generic
             PARK_ZENITH
         };
 
-        ISwitch StartupModeS[3];
-        ISwitchVectorProperty StartupModeSP;
+        INDI::PropertySwitch StartupModeSP {3};
         enum
         {
             COLD_START,

@@ -22,6 +22,10 @@
 #include "indifocuser.h"
 #include "indirotatorinterface.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class Integra : public INDI::Focuser, public INDI::RotatorInterface
 {
     public:
@@ -90,18 +94,14 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
         uint32_t rotatorDegreesToTicks(double angle);
         double rotatorTicksToDegrees(uint32_t ticks);
 
-        INumber MaxPositionN[2];
-        INumberVectorProperty MaxPositionNP;
+        INDI::PropertyNumber MaxPositionNP {2};
 
-        INumber SensorN[2];
-        INumberVectorProperty SensorNP;
+        INDI::PropertyNumber SensorNP {2};
         enum { SENSOR_TEMPERATURE };
 
-        ISwitch FindHomeS[HOMING_COUNT];
-        ISwitchVectorProperty FindHomeSP;
+        INDI::PropertySwitch FindHomeSP {HOMING_COUNT};
 
-        INumber RotatorAbsPosN[1];
-        INumberVectorProperty RotatorAbsPosNP;
+        INDI::PropertyNumber RotatorAbsPosNP {1};
 
         double lastTemperature { 0 };
         int timeToReadTemperature = 0;

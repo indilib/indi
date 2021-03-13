@@ -97,32 +97,32 @@ bool SmartFocus::initProperties()
     INDI::Focuser::initProperties();
 
     // No speed for SmartFocus
-    FocusSpeedN[0].min = 1;
-    FocusSpeedN[0].max = 1;
-    FocusSpeedN[0].value = 1;
-    IUUpdateMinMax(&FocusSpeedNP);
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(1);
+    FocusSpeedNP[0].setValue(1);
+    FocusSpeedNP.updateMinMax();
 
-    IUFillLight(&FlagsL[STATUS_SERIAL_FRAMING_ERROR], "SERIAL_FRAMING_ERROR", "Serial framing error", IPS_OK);
-    IUFillLight(&FlagsL[STATUS_SERIAL_OVERRUN_ERROR], "SERIAL_OVERRUN_ERROR", "Serial overrun error", IPS_OK);
-    IUFillLight(&FlagsL[STATUS_MOTOR_ENCODE_ERROR], "MOTOR_ENCODER_ERROR", "Motor/encoder error", IPS_OK);
-    IUFillLight(&FlagsL[STATUS_AT_ZERO_POSITION], "AT_ZERO_POSITION", "At zero position", IPS_OK);
-    IUFillLight(&FlagsL[STATUS_AT_MAX_POSITION], "AT_MAX_POSITION", "At max. position", IPS_OK);
-    IUFillLightVector(&FlagsLP, FlagsL, STATUS_NUM_FLAGS, getDeviceName(), "FLAGS", "Status Flags", MAIN_CONTROL_TAB,
+    FlagsLP[STATUS_SERIAL_FRAMING_ERROR].fill("SERIAL_FRAMING_ERROR", "Serial framing error", IPS_OK);
+    FlagsLP[STATUS_SERIAL_OVERRUN_ERROR].fill("SERIAL_OVERRUN_ERROR", "Serial overrun error", IPS_OK);
+    FlagsLP[STATUS_MOTOR_ENCODE_ERROR].fill("MOTOR_ENCODER_ERROR", "Motor/encoder error", IPS_OK);
+    FlagsLP[STATUS_AT_ZERO_POSITION].fill("AT_ZERO_POSITION", "At zero position", IPS_OK);
+    FlagsLP[STATUS_AT_MAX_POSITION].fill("AT_MAX_POSITION", "At max. position", IPS_OK);
+    FlagsLP.fill(getDeviceName(), "FLAGS", "Status Flags", MAIN_CONTROL_TAB,
                       IPS_IDLE);
 
-    IUFillNumber(&MotionErrorN[0], "MOTION_ERROR", "Motion error", "%6.0f", -100., 100., 1., 0.);
-    IUFillNumberVector(&MotionErrorNP, MotionErrorN, 1, getDeviceName(), "MOTION_ERROR", "Motion error",
+    MotionErrorNP[0].fill("MOTION_ERROR", "Motion error", "%6.0f", -100., 100., 1., 0.);
+    MotionErrorNP.fill(getDeviceName(), "MOTION_ERROR", "Motion error",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = FocusMaxPosN[0].value; //MaxPositionN[0].value;
-    FocusRelPosN[0].value = 10;
-    FocusRelPosN[0].step  = 1;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(FocusMaxPosNP[0].value); //MaxPositionNP[0].getValue();
+    FocusRelPosNP[0].setValue(10);
+    FocusRelPosNP[0].setStep(1);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = FocusMaxPosN[0].value; //MaxPositionN[0].value;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(FocusMaxPosNP[0].value); //MaxPositionNP[0].getValue();
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1);
 
     setCurrentPollingPeriod(TimerInterval);
 
@@ -135,15 +135,15 @@ bool SmartFocus::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&FlagsLP);
-        defineProperty(&MotionErrorNP);
+        defineProperty(FlagsLP);
+        defineProperty(MotionErrorNP);
         SFgetState();
         IDMessage(getDeviceName(), "SmartFocus focuser ready for use.");
     }
     else
     {
-        deleteProperty(FlagsLP.name);
-        deleteProperty(MotionErrorNP.name);
+        deleteProperty(FlagsLP.getName());
+        deleteProperty(MotionErrorNP.getName());
     }
     return true;
 }
@@ -172,11 +172,11 @@ bool SmartFocus::ISNewNumber(const char *dev, const char *name, double values[],
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, MotionErrorNP.name) == 0)
+        if (MotionErrorNP.isNameMatch(name))
         {
-            IUUpdateNumber(&MotionErrorNP, values, names, n);
-            MotionErrorNP.s = IPS_OK;
-            IDSetNumber(&MotionErrorNP, nullptr);
+            MotionErrorNP.update(values, names, n);
+            MotionErrorNP.setState(IPS_OK);
+            MotionErrorNP.apply();
             return true;
         }
     }
@@ -214,7 +214,7 @@ IPState SmartFocus::MoveAbsFocuser(uint32_t targetPosition)
         constexpr bool Correct_Positions = true;
         if (Correct_Positions)
         {
-            const int error = MotionErrorN[0].value; // The NGF-S overshoots motions by 3 steps.
+            const int error = MotionErrorNP[0].getValue(); // The NGF-S overshoots motions by 3 steps.
             if (destination > position) destination -= error, destination = std::max(position,destination);
             if (destination < position) destination += error, destination = std::min(position,destination);
         }
@@ -311,7 +311,7 @@ void SmartFocus::TimerHit()
 bool SmartFocus::saveConfigItems(FILE *fp)
 {
     Focuser::saveConfigItems(fp);
-    IUSaveConfigNumber(fp, &MotionErrorNP);
+    MotionErrorNP.save(fp);
     return true;
 }
 
@@ -396,23 +396,23 @@ void SmartFocus::SFgetState()
 {
     const Flags flags = SFgetFlags();
 
-    FlagsL[STATUS_SERIAL_FRAMING_ERROR].s = (flags & SerFramingError ? IPS_ALERT : IPS_OK);
-    FlagsL[STATUS_SERIAL_OVERRUN_ERROR].s = (flags & SerOverrunError ? IPS_ALERT : IPS_OK);
-    FlagsL[STATUS_MOTOR_ENCODE_ERROR].s   = (flags & MotorEncoderError ? IPS_ALERT : IPS_OK);
-    FlagsL[STATUS_AT_ZERO_POSITION].s     = (flags & AtZeroPosition ? IPS_ALERT : IPS_OK);
-    FlagsL[STATUS_AT_MAX_POSITION].s      = (flags & AtMaxPosition ? IPS_ALERT : IPS_OK);
-    IDSetLight(&FlagsLP, nullptr);
+    FlagsLP[STATUS_SERIAL_FRAMING_ERROR].setState((flags & SerFramingError ? IPS_ALERT : IPS_OK));
+    FlagsLP[STATUS_SERIAL_OVERRUN_ERROR].setState((flags & SerOverrunError ? IPS_ALERT : IPS_OK));
+    FlagsLP[STATUS_MOTOR_ENCODE_ERROR].setState((flags & MotorEncoderError ? IPS_ALERT : IPS_OK));
+    FlagsLP[STATUS_AT_ZERO_POSITION].setState((flags & AtZeroPosition ? IPS_ALERT : IPS_OK));
+    FlagsLP[STATUS_AT_MAX_POSITION].setState((flags & AtMaxPosition ? IPS_ALERT : IPS_OK));
+    FlagsLP.apply();
 
     if ((position = SFgetPosition()) == PositionInvalid)
     {
-        FocusAbsPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusAbsPosNP, "Error while reading SmartFocus position");
+        FocusAbsPosNP.setState(IPS_ALERT);
+        FocusAbsPosNP.apply("Error while reading SmartFocus position");
     }
     else
     {
-        FocusAbsPosN[0].value = position;
-        FocusAbsPosNP.s       = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(position);
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusAbsPosNP.apply();
     }
 }
 

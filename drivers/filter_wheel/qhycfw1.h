@@ -22,6 +22,9 @@
 
 #include "indifilterwheel.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 class QHYCFW1 : public INDI::FilterWheel
 {
     public:
@@ -42,6 +45,5 @@ class QHYCFW1 : public INDI::FilterWheel
         virtual bool SelectFilter(int) override;
 
     private:
-        INumber MaxFilterN[1];
-        INumberVectorProperty MaxFilterNP;
+        INDI::PropertyNumber MaxFilterNP {1};
 };

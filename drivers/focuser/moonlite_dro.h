@@ -22,6 +22,10 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class MoonLiteDRO : public INDI::Focuser
 {
   public:
@@ -69,20 +73,15 @@ protected:
     double lastPos { 0 };
     double lastTemperature { 0 };
 
-    ISwitch StepModeS[2];
-    ISwitchVectorProperty StepModeSP;
+    INDI::PropertySwitch StepModeSP {2};
 
-    INumber StepDelayN[1];
-    INumberVectorProperty StepDelayNP;
+    INDI::PropertyNumber StepDelayNP {1};
 
-    INumber TemperatureSettingN[2];
-    INumberVectorProperty TemperatureSettingNP;
+    INDI::PropertyNumber TemperatureSettingNP {2};
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+    INDI::PropertyNumber TemperatureNP {1};
 
-    ISwitch TemperatureCompensateS[2];
-    ISwitchVectorProperty TemperatureCompensateSP;
+    INDI::PropertySwitch TemperatureCompensateSP {2};
 
     const uint8_t m_ID;
     static constexpr const uint8_t DRO_CMD = 16;

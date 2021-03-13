@@ -79,29 +79,29 @@ bool LX200_OnStep::initProperties()
 
     //FocuserInterface
     //Initial, these will be updated later.
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 30000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 10;
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 60000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 10;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(30000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(10);
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(60000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(10);
 
 
     // ============== MAIN_CONTROL_TAB
-    IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
-    IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
-    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW,
+    ReticSP[0].fill("PLUS", "Light", ISS_OFF);
+    ReticSP[1].fill("MOINS", "Dark", ISS_OFF);
+    ReticSP.fill(getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 60, IPS_IDLE);
 
-    IUFillNumber(&ElevationLimitN[0], "minAlt", "Elev Min", "%+03f", -90.0, 90.0, 1.0, -30.0);
-    IUFillNumber(&ElevationLimitN[1], "maxAlt", "Elev Max", "%+03f", -90.0, 90.0, 1.0, 89.0);
-    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 2, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB,
+    ElevationLimitNP[0].fill("minAlt", "Elev Min", "%+03f", -90.0, 90.0, 1.0, -30.0);
+    ElevationLimitNP[1].fill("maxAlt", "Elev Max", "%+03f", -90.0, 90.0, 1.0, 89.0);
+    ElevationLimitNP.fill(getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB,
                        IP_RW, 0, IPS_IDLE);
 
-    IUFillText(&ObjectInfoT[0], "Info", "", "");
-    IUFillTextVector(&ObjectInfoTP, ObjectInfoT, 1, getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    ObjectInfoTP[0].fill("Info", "", "");
+    ObjectInfoTP.fill(getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // ============== CONNECTION_TAB
 
@@ -127,67 +127,67 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
-    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    MaxSlewRateNP[0].fill("maxSlew", "Rate", "%f", 0.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
+    MaxSlewRateNP.fill(getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillSwitch(&TrackCompS[0], "1", "Full Compensation", ISS_OFF);
-    IUFillSwitch(&TrackCompS[1], "2", "Refraction", ISS_OFF);
-    IUFillSwitch(&TrackCompS[2], "3", "Off", ISS_ON);
-    IUFillSwitchVector(&TrackCompSP, TrackCompS, 3, getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW,
+    TrackCompSP[0].fill("1", "Full Compensation", ISS_OFF);
+    TrackCompSP[1].fill("2", "Refraction", ISS_OFF);
+    TrackCompSP[2].fill("3", "Off", ISS_ON);
+    TrackCompSP.fill(getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&TrackAxisS[0], "1", "Single Axis", ISS_OFF);
-    IUFillSwitch(&TrackAxisS[1], "2", "Dual Axis", ISS_OFF);
-    IUFillSwitchVector(&TrackAxisSP, TrackAxisS, 2, getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW,
+    TrackAxisSP[0].fill("1", "Single Axis", ISS_OFF);
+    TrackAxisSP[1].fill("2", "Dual Axis", ISS_OFF);
+    TrackAxisSP.fill(getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&TrackAxisS[0], "1", "Single Axis", ISS_OFF);
-    IUFillSwitch(&TrackAxisS[1], "2", "Dual Axis", ISS_OFF);
-    IUFillSwitchVector(&TrackAxisSP, TrackAxisS, 2, getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW,
+    TrackAxisSP[0].fill("1", "Single Axis", ISS_OFF);
+    TrackAxisSP[1].fill("2", "Dual Axis", ISS_OFF);
+    TrackAxisSP.fill(getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
-    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
-    IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    BacklashNP[0].fill("Backlash DEC", "DE", "%g", 0, 999, 1, 15);
+    BacklashNP[1].fill("Backlash RA", "RA", "%g", 0, 999, 1, 15);
+    BacklashNP.fill(getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.25, 0.5);
-    IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.25, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RO, 0,
+    GuideRateNP[RA_AXIS].fill("GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.25, 0.5);
+    GuideRateNP[DEC_AXIS].fill("GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.25, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RO, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&AutoFlipS[0], "1", "AutoFlip: OFF", ISS_OFF);
-    IUFillSwitch(&AutoFlipS[1], "2", "AutoFlip: ON", ISS_OFF);
-    IUFillSwitchVector(&AutoFlipSP, AutoFlipS, 2, getDeviceName(), "AutoFlip", "Meridian Auto Flip", MOTION_TAB, IP_RW,
+    AutoFlipSP[0].fill("1", "AutoFlip: OFF", ISS_OFF);
+    AutoFlipSP[1].fill("2", "AutoFlip: ON", ISS_OFF);
+    AutoFlipSP.fill(getDeviceName(), "AutoFlip", "Meridian Auto Flip", MOTION_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&HomePauseS[0], "1", "HomePause: OFF", ISS_OFF);
-    IUFillSwitch(&HomePauseS[1], "2", "HomePause: ON", ISS_OFF);
-    IUFillSwitch(&HomePauseS[2], "3", "HomePause: Continue", ISS_OFF);
-    IUFillSwitchVector(&HomePauseSP, HomePauseS, 3, getDeviceName(), "HomePause", "Pause at Home", MOTION_TAB, IP_RW,
+    HomePauseSP[0].fill("1", "HomePause: OFF", ISS_OFF);
+    HomePauseSP[1].fill("2", "HomePause: ON", ISS_OFF);
+    HomePauseSP[2].fill("3", "HomePause: Continue", ISS_OFF);
+    HomePauseSP.fill(getDeviceName(), "HomePause", "Pause at Home", MOTION_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&FrequencyAdjustS[0], "1", "Frequency -", ISS_OFF);
-    IUFillSwitch(&FrequencyAdjustS[1], "2", "Frequency +", ISS_OFF);
-    IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidereal Frequency", ISS_OFF);
-    IUFillSwitchVector(&FrequencyAdjustSP, FrequencyAdjustS, 3, getDeviceName(), "FrequencyAdjust", "Frequency Adjust",
+    FrequencyAdjustSP[0].fill("1", "Frequency -", ISS_OFF);
+    FrequencyAdjustSP[1].fill("2", "Frequency +", ISS_OFF);
+    FrequencyAdjustSP[2].fill("3", "Reset Sidereal Frequency", ISS_OFF);
+    FrequencyAdjustSP.fill(getDeviceName(), "FrequencyAdjust", "Frequency Adjust",
                        MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&PreferredPierSideS[0], "1", "West", ISS_OFF);
-    IUFillSwitch(&PreferredPierSideS[1], "2", "East", ISS_OFF);
-    IUFillSwitch(&PreferredPierSideS[2], "3", "Best", ISS_OFF);
-    IUFillSwitchVector(&PreferredPierSideSP, PreferredPierSideS, 3, getDeviceName(), "Preferred Pier Side",
+    PreferredPierSideSP[0].fill("1", "West", ISS_OFF);
+    PreferredPierSideSP[1].fill("2", "East", ISS_OFF);
+    PreferredPierSideSP[2].fill("3", "Best", ISS_OFF);
+    PreferredPierSideSP.fill(getDeviceName(), "Preferred Pier Side",
                        "Preferred Pier Side", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", 0, 180, 1, 30);
-    IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", 0, 180, 1, 30);
-    IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian",
+    minutesPastMeridianNP[0].fill("East", "East", "%g", 0, 180, 1, 30);
+    minutesPastMeridianNP[1].fill("West", "West", "%g", 0, 180, 1, 30);
+    minutesPastMeridianNP.fill(getDeviceName(), "Minutes Past Meridian",
                        "Minutes Past Meridian", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
 
     // ============== SITE_MANAGEMENT_TAB
-    IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return  Home", ISS_OFF);
-    IUFillSwitch(&SetHomeS[1], "AT_HOME", "At Home (Reset)", ISS_OFF);
-    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60,
+    SetHomeSP[0].fill("RETURN_HOME", "Return  Home", ISS_OFF);
+    SetHomeSP[1].fill("AT_HOME", "At Home (Reset)", ISS_OFF);
+    SetHomeSP.fill(getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_IDLE);
 
     // ============== GUIDE_TAB
@@ -195,10 +195,10 @@ bool LX200_OnStep::initProperties()
     // ============== FOCUS_TAB
     // Focuser 1
 
-    IUFillSwitch(&OSFocus1InitializeS[0], "Focus1_0", "Zero", ISS_OFF);
-    IUFillSwitch(&OSFocus1InitializeS[1], "Focus1_2", "Mid", ISS_OFF);
-    //     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
-    IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
+    OSFocus1InitializeSP[0].fill("Focus1_0", "Zero", ISS_OFF);
+    OSFocus1InitializeSP[1].fill("Focus1_2", "Mid", ISS_OFF);
+    //     OSFocus1InitializeSP[2].fill("Focus1_3", "max", ISS_OFF);
+    OSFocus1InitializeSP.fill(getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
 
@@ -207,21 +207,21 @@ bool LX200_OnStep::initProperties()
     //IUFillSwitch(&OSFocus2SelS[1], "Focus2_Sel2", "Foc 2", ISS_OFF);
     //IUFillSwitchVector(&OSFocus2SelSP, OSFocus2SelS, 2, getDeviceName(), "Foc2Sel", "Foc 2", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillSwitch(&OSFocus2MotionS[0], "Focus2_In", "In", ISS_OFF);
-    IUFillSwitch(&OSFocus2MotionS[1], "Focus2_Out", "Out", ISS_OFF);
-    IUFillSwitch(&OSFocus2MotionS[2], "Focus2_Stop", "Stop", ISS_OFF);
-    IUFillSwitchVector(&OSFocus2MotionSP, OSFocus2MotionS, 3, getDeviceName(), "Foc2Mot", "Foc 2 Motion", FOCUS_TAB, IP_RW,
+    OSFocus2MotionSP[0].fill("Focus2_In", "In", ISS_OFF);
+    OSFocus2MotionSP[1].fill("Focus2_Out", "Out", ISS_OFF);
+    OSFocus2MotionSP[2].fill("Focus2_Stop", "Stop", ISS_OFF);
+    OSFocus2MotionSP.fill(getDeviceName(), "Foc2Mot", "Foc 2 Motion", FOCUS_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillSwitch(&OSFocus2RateS[0], "Focus2_1", "min", ISS_OFF);
-    IUFillSwitch(&OSFocus2RateS[1], "Focus2_2", "0.01", ISS_OFF);
-    IUFillSwitch(&OSFocus2RateS[2], "Focus2_3", "0.1", ISS_OFF);
-    IUFillSwitch(&OSFocus2RateS[3], "Focus2_4", "1", ISS_OFF);
-    IUFillSwitchVector(&OSFocus2RateSP, OSFocus2RateS, 4, getDeviceName(), "Foc2Rate", "Foc 2 Rates", FOCUS_TAB, IP_RW,
+    OSFocus2RateSP[0].fill("Focus2_1", "min", ISS_OFF);
+    OSFocus2RateSP[1].fill("Focus2_2", "0.01", ISS_OFF);
+    OSFocus2RateSP[2].fill("Focus2_3", "0.1", ISS_OFF);
+    OSFocus2RateSP[3].fill("Focus2_4", "1", ISS_OFF);
+    OSFocus2RateSP.fill(getDeviceName(), "Foc2Rate", "Foc 2 Rates", FOCUS_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillNumber(&OSFocus2TargN[0], "FocusTarget2", "Abs Pos", "%g", -25000, 25000, 1, 0);
-    IUFillNumberVector(&OSFocus2TargNP, OSFocus2TargN, 1, getDeviceName(), "Foc2Targ", "Foc 2 Target", FOCUS_TAB, IP_RW, 0,
+    OSFocus2TargNP[0].fill("FocusTarget2", "Abs Pos", "%g", -25000, 25000, 1, 0);
+    OSFocus2TargNP.fill(getDeviceName(), "Foc2Targ", "Foc 2 Target", FOCUS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     // ============== FIRMWARE_TAB
@@ -232,89 +232,89 @@ bool LX200_OnStep::initProperties()
     IUFillTextVector(&VersionTP, VersionT, 4, getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
 
     //PEC Tab
-    IUFillSwitch(&OSPECStatusS[0], "OFF", "OFF", ISS_OFF);
-    IUFillSwitch(&OSPECStatusS[1], "Playing", "Playing", ISS_OFF);
-    IUFillSwitch(&OSPECStatusS[2], "Recording", "Recording", ISS_OFF);
-    IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
-    IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
-    IUFillSwitchVector(&OSPECStatusSP, OSPECStatusS, 5, getDeviceName(), "PEC Status", "PEC Status", PEC_TAB, IP_RO,
+    OSPECStatusSP[0].fill("OFF", "OFF", ISS_OFF);
+    OSPECStatusSP[1].fill("Playing", "Playing", ISS_OFF);
+    OSPECStatusSP[2].fill("Recording", "Recording", ISS_OFF);
+    OSPECStatusSP[3].fill("Will Play", "Will Play", ISS_OFF);
+    OSPECStatusSP[4].fill("Will Record", "Will Record", ISS_OFF);
+    OSPECStatusSP.fill(getDeviceName(), "PEC Status", "PEC Status", PEC_TAB, IP_RO,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillSwitch(&OSPECIndexS[0], "Not Detected", "Not Detected", ISS_ON);
-    IUFillSwitch(&OSPECIndexS[1], "Detected", "Detected", ISS_OFF);
-    IUFillSwitchVector(&OSPECIndexSP, OSPECIndexS, 2, getDeviceName(), "PEC Index Detect", "PEC Index", PEC_TAB, IP_RO,
+    OSPECIndexSP[0].fill("Not Detected", "Not Detected", ISS_ON);
+    OSPECIndexSP[1].fill("Detected", "Detected", ISS_OFF);
+    OSPECIndexSP.fill(getDeviceName(), "PEC Index Detect", "PEC Index", PEC_TAB, IP_RO,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillSwitch(&OSPECRecordS[0], "Clear", "Clear", ISS_OFF);
-    IUFillSwitch(&OSPECRecordS[1], "Record", "Record", ISS_OFF);
-    IUFillSwitch(&OSPECRecordS[2], "Write to EEPROM", "Write to EEPROM", ISS_OFF);
-    IUFillSwitchVector(&OSPECRecordSP, OSPECRecordS, 3, getDeviceName(), "PEC Operations", "PEC Recording", PEC_TAB, IP_RW,
+    OSPECRecordSP[0].fill("Clear", "Clear", ISS_OFF);
+    OSPECRecordSP[1].fill("Record", "Record", ISS_OFF);
+    OSPECRecordSP[2].fill("Write to EEPROM", "Write to EEPROM", ISS_OFF);
+    OSPECRecordSP.fill(getDeviceName(), "PEC Operations", "PEC Recording", PEC_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillSwitch(&OSPECReadS[0], "Read", "Read PEC to FILE****", ISS_OFF);
-    IUFillSwitch(&OSPECReadS[1], "Write", "Write PEC from FILE***", ISS_OFF);
-    //    IUFillSwitch(&OSPECReadS[2], "Write to EEPROM", "Write to EEPROM", ISS_OFF);
-    IUFillSwitchVector(&OSPECReadSP, OSPECReadS, 2, getDeviceName(), "PEC File", "PEC File", PEC_TAB, IP_RW, ISR_ATMOST1, 0,
+    OSPECReadSP[0].fill("Read", "Read PEC to FILE****", ISS_OFF);
+    OSPECReadSP[1].fill("Write", "Write PEC from FILE***", ISS_OFF);
+    //    OSPECReadSP[2].fill("Write to EEPROM", "Write to EEPROM", ISS_OFF);
+    OSPECReadSP.fill(getDeviceName(), "PEC File", "PEC File", PEC_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
     // ============== New ALIGN_TAB
     // Only supports Alpha versions currently (July 2018) Now Beta (Dec 2018)
-    IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
-    IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);
-    IUFillSwitch(&OSNAlignStarsS[2], "3", "3 Stars", ISS_ON);
-    IUFillSwitch(&OSNAlignStarsS[3], "4", "4 Stars", ISS_OFF);
-    IUFillSwitch(&OSNAlignStarsS[4], "5", "5 Stars", ISS_OFF);
-    IUFillSwitch(&OSNAlignStarsS[5], "6", "6 Stars", ISS_OFF);
-    IUFillSwitch(&OSNAlignStarsS[6], "7", "7 Stars", ISS_OFF);
-    IUFillSwitch(&OSNAlignStarsS[7], "8", "8 Stars", ISS_OFF);
-    IUFillSwitch(&OSNAlignStarsS[8], "9", "9 Stars", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 9, getDeviceName(), "AlignStars", "Align using some stars, Alpha only",
+    OSNAlignStarsSP[0].fill("1", "1 Star", ISS_OFF);
+    OSNAlignStarsSP[1].fill("2", "2 Stars", ISS_OFF);
+    OSNAlignStarsSP[2].fill("3", "3 Stars", ISS_ON);
+    OSNAlignStarsSP[3].fill("4", "4 Stars", ISS_OFF);
+    OSNAlignStarsSP[4].fill("5", "5 Stars", ISS_OFF);
+    OSNAlignStarsSP[5].fill("6", "6 Stars", ISS_OFF);
+    OSNAlignStarsSP[6].fill("7", "7 Stars", ISS_OFF);
+    OSNAlignStarsSP[7].fill("8", "8 Stars", ISS_OFF);
+    OSNAlignStarsSP[8].fill("9", "9 Stars", ISS_OFF);
+    OSNAlignStarsSP.fill(getDeviceName(), "AlignStars", "Align using some stars, Alpha only",
                        ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillSwitch(&OSNAlignS[0], "0", "Start Align", ISS_OFF);
-    IUFillSwitch(&OSNAlignS[1], "1", "Issue Align", ISS_OFF);
-    IUFillSwitch(&OSNAlignS[2], "3", "Write Align", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 2, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only",
+    OSNAlignSP[0].fill("0", "Start Align", ISS_OFF);
+    OSNAlignSP[1].fill("1", "Issue Align", ISS_OFF);
+    OSNAlignSP[2].fill("3", "Write Align", ISS_OFF);
+    OSNAlignSP.fill(getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only",
                        ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillSwitch(&OSNAlignWriteS[0], "0", "Write Align to NVRAM/Flash", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignWriteSP, OSNAlignWriteS, 1, getDeviceName(), "NewAlignStar2", "NVRAM", ALIGN_TAB, IP_RW,
+    OSNAlignWriteSP[0].fill("0", "Write Align to NVRAM/Flash", ISS_OFF);
+    OSNAlignWriteSP.fill(getDeviceName(), "NewAlignStar2", "NVRAM", ALIGN_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
-    IUFillSwitch(&OSNAlignPolarRealignS[0], "0", "Instructions", ISS_OFF);
-    IUFillSwitch(&OSNAlignPolarRealignS[1], "1", "Refine Polar Align (manually)", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignPolarRealignSP, OSNAlignPolarRealignS, 2, getDeviceName(), "AlignMP",
+    OSNAlignPolarRealignSP[0].fill("0", "Instructions", ISS_OFF);
+    OSNAlignPolarRealignSP[1].fill("1", "Refine Polar Align (manually)", ISS_OFF);
+    OSNAlignPolarRealignSP.fill(getDeviceName(), "AlignMP",
                        "Polar Correction, See info box", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillText(&OSNAlignT[0], "0", "Align Process Status", "Align not started");
-    IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
-    IUFillText(&OSNAlignT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
-    IUFillText(&OSNAlignT[3], "3", "Manual Action after 1", "Press 'Start Align'");
-    IUFillText(&OSNAlignT[4], "4", "Current Status", "Not Updated");
-    IUFillText(&OSNAlignT[5], "5", "Max Stars", "Not Updated");
-    IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
-    IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
-    IUFillTextVector(&OSNAlignTP, OSNAlignT, 8, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
+    OSNAlignTP[0].fill("0", "Align Process Status", "Align not started");
+    OSNAlignTP[1].fill("1", "1. Manual Process", "Point towards the NCP");
+    OSNAlignTP[2].fill("2", "2. Plate Solver Process", "Point towards the NCP");
+    OSNAlignTP[3].fill("3", "Manual Action after 1", "Press 'Start Align'");
+    OSNAlignTP[4].fill("4", "Current Status", "Not Updated");
+    OSNAlignTP[5].fill("5", "Max Stars", "Not Updated");
+    OSNAlignTP[6].fill("6", "Current Star", "Not Updated");
+    OSNAlignTP[7].fill("7", "# of Align Stars", "Not Updated");
+    OSNAlignTP.fill(getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillText(&OSNAlignErrT[0], "0", "EQ Polar Error Alt", "Available once Aligned");
-    IUFillText(&OSNAlignErrT[1], "1", "EQ Polar Error Az", "Available once Aligned");
-    //     IUFillText(&OSNAlignErrT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
-    //     IUFillText(&OSNAlignErrT[3], "3", "After 1 or 2", "Press 'Start Align'");
-    //     IUFillText(&OSNAlignErrT[4], "4", "Current Status", "Not Updated");
-    //     IUFillText(&OSNAlignErrT[5], "5", "Max Stars", "Not Updated");
-    //     IUFillText(&OSNAlignErrT[6], "6", "Current Star", "Not Updated");
-    //     IUFillText(&OSNAlignErrT[7], "7", "# of Align Stars", "Not Updated");
-    IUFillTextVector(&OSNAlignErrTP, OSNAlignErrT, 2, getDeviceName(), "ErrAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
+    OSNAlignErrTP[0].fill("0", "EQ Polar Error Alt", "Available once Aligned");
+    OSNAlignErrTP[1].fill("1", "EQ Polar Error Az", "Available once Aligned");
+    //     OSNAlignErrTP[2].fill("2", "2. Plate Solver Process", "Point towards the NCP");
+    //     OSNAlignErrTP[3].fill("3", "After 1 or 2", "Press 'Start Align'");
+    //     OSNAlignErrTP[4].fill("4", "Current Status", "Not Updated");
+    //     OSNAlignErrTP[5].fill("5", "Max Stars", "Not Updated");
+    //     OSNAlignErrTP[6].fill("6", "Current Star", "Not Updated");
+    //     OSNAlignErrTP[7].fill("7", "# of Align Stars", "Not Updated");
+    OSNAlignErrTP.fill(getDeviceName(), "ErrAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
 
 #ifdef ONSTEP_NOTDONE
     // =============== OUTPUT_TAB
     // ===============
-    IUFillSwitch(&OSOutput1S[0], "0", "OFF", ISS_ON);
-    IUFillSwitch(&OSOutput1S[1], "1", "ON", ISS_OFF);
-    IUFillSwitchVector(&OSOutput1SP, OSOutput1S, 2, getDeviceName(), "Output 1", "Output 1", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60,
+    OSOutput1SP[0].fill("0", "OFF", ISS_ON);
+    OSOutput1SP[1].fill("1", "ON", ISS_OFF);
+    OSOutput1SP.fill(getDeviceName(), "Output 1", "Output 1", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_ALERT);
 
-    IUFillSwitch(&OSOutput2S[0], "0", "OFF", ISS_ON);
-    IUFillSwitch(&OSOutput2S[1], "1", "ON", ISS_OFF);
-    IUFillSwitchVector(&OSOutput2SP, OSOutput2S, 2, getDeviceName(), "Output 2", "Output 2", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60,
+    OSOutput2SP[0].fill("0", "OFF", ISS_ON);
+    OSOutput2SP[1].fill("1", "ON", ISS_OFF);
+    OSOutput2SP.fill(getDeviceName(), "Output 2", "Output 2", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_ALERT);
 #endif
 
@@ -343,20 +343,20 @@ bool LX200_OnStep::initProperties()
 
     // ============== WEATHER TAB
     // Uses OnStep's defaults for this
-    IUFillNumber(&OSSetTemperatureN[0], "Set Temperature (C)", "C", "%4.2f", -100, 100, 1, 10);//-274, 999, 1, 10);
-    IUFillNumberVector(&OSSetTemperatureNP, OSSetTemperatureN, 1, getDeviceName(), "Set Temperature (C)", "", ENVIRONMENT_TAB,
+    OSSetTemperatureNP[0].fill("Set Temperature (C)", "C", "%4.2f", -100, 100, 1, 10);//-274, 999, 1, 10);
+    OSSetTemperatureNP.fill(getDeviceName(), "Set Temperature (C)", "", ENVIRONMENT_TAB,
                        IP_RW, 0, IPS_IDLE);
-    IUFillNumber(&OSSetHumidityN[0], "Set Relative Humidity (%)", "%", "%5.2f", 0, 100, 1, 70);
-    IUFillNumberVector(&OSSetHumidityNP, OSSetHumidityN, 1, getDeviceName(), "Set Relative Humidity (%)", "", ENVIRONMENT_TAB,
+    OSSetHumidityNP[0].fill("Set Relative Humidity (%)", "%", "%5.2f", 0, 100, 1, 70);
+    OSSetHumidityNP.fill(getDeviceName(), "Set Relative Humidity (%)", "", ENVIRONMENT_TAB,
                        IP_RW, 0, IPS_IDLE);
-    IUFillNumber(&OSSetPressureN[0], "Set Pressure (hPa)", "hPa", "%4f", 500, 1500, 1, 1010);
-    IUFillNumberVector(&OSSetPressureNP, OSSetPressureN, 1, getDeviceName(), "Set Pressure (hPa)", "", ENVIRONMENT_TAB, IP_RW,
+    OSSetPressureNP[0].fill("Set Pressure (hPa)", "hPa", "%4f", 500, 1500, 1, 1010);
+    OSSetPressureNP.fill(getDeviceName(), "Set Pressure (hPa)", "", ENVIRONMENT_TAB, IP_RW,
                        0, IPS_IDLE);
 
     //Will eventually pull from the elevation in site settings
     //TODO: Pull from elevation in site settings
-    IUFillNumber(&OSSetAltitudeN[0], "Set Altitude (m)", "m", "%4f", 0, 20000, 1, 110);
-    IUFillNumberVector(&OSSetAltitudeNP, OSSetAltitudeN, 1, getDeviceName(), "Set Altitude (m)", "", ENVIRONMENT_TAB, IP_RW, 0,
+    OSSetAltitudeNP[0].fill("Set Altitude (m)", "m", "%4f", 0, 20000, 1, 110);
+    OSSetAltitudeNP.fill(getDeviceName(), "Set Altitude (m)", "", ENVIRONMENT_TAB, IP_RW, 0,
                        IPS_IDLE);
 
 
@@ -391,9 +391,9 @@ bool LX200_OnStep::updateProperties()
         // Firstinitialize some variables
         // keep sorted by TABs is easier
         // Main Control
-        defineProperty(&ReticSP);
-        defineProperty(&ElevationLimitNP);
-        defineProperty(&ObjectInfoTP);
+        defineProperty(ReticSP);
+        defineProperty(ElevationLimitNP);
+        defineProperty(ObjectInfoTP);
         // Connection
 
         // Options
@@ -402,20 +402,20 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&OnstepStatTP);
 
         // Motion Control
-        defineProperty(&MaxSlewRateNP);
-        defineProperty(&TrackCompSP);
-        defineProperty(&TrackAxisSP);
-        defineProperty(&BacklashNP);
-        defineProperty(&GuideRateNP);
-        defineProperty(&AutoFlipSP);
-        defineProperty(&HomePauseSP);
-        defineProperty(&FrequencyAdjustSP);
-        defineProperty(&PreferredPierSideSP);
-        defineProperty(&minutesPastMeridianNP);
+        defineProperty(MaxSlewRateNP);
+        defineProperty(TrackCompSP);
+        defineProperty(TrackAxisSP);
+        defineProperty(BacklashNP);
+        defineProperty(GuideRateNP);
+        defineProperty(AutoFlipSP);
+        defineProperty(HomePauseSP);
+        defineProperty(FrequencyAdjustSP);
+        defineProperty(PreferredPierSideSP);
+        defineProperty(minutesPastMeridianNP);
 
         // Site Management
-        defineProperty(&ParkOptionSP);
-        defineProperty(&SetHomeSP);
+        defineProperty(ParkOptionSP);
+        defineProperty(SetHomeSP);
 
         // Guide
 
@@ -426,66 +426,66 @@ bool LX200_OnStep::updateProperties()
         if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
         {
             OSFocuser1 = true;
-            defineProperty(&OSFocus1InitializeSP);
+            defineProperty(OSFocus1InitializeSP);
         }
         // Focuser 2
         if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2
         {
             OSFocuser2 = true;
             //defineProperty(&OSFocus2SelSP);
-            defineProperty(&OSFocus2MotionSP);
-            defineProperty(&OSFocus2RateSP);
-            defineProperty(&OSFocus2TargNP);
+            defineProperty(OSFocus2MotionSP);
+            defineProperty(OSFocus2RateSP);
+            defineProperty(OSFocus2TargNP);
         }
 
         // Firmware Data
         defineProperty(&VersionTP);
 
         //PEC
-        defineProperty(&OSPECStatusSP);
-        defineProperty(&OSPECIndexSP);
-        defineProperty(&OSPECRecordSP);
-        defineProperty(&OSPECReadSP);
-        defineProperty(&OSPECCurrentIndexNP);
-        defineProperty(&OSPECRWValuesNP);
+        defineProperty(OSPECStatusSP);
+        defineProperty(OSPECIndexSP);
+        defineProperty(OSPECRecordSP);
+        defineProperty(OSPECReadSP);
+        defineProperty(OSPECCurrentIndexNP);
+        defineProperty(OSPECRWValuesNP);
 
         //New Align
-        defineProperty(&OSNAlignStarsSP);
-        defineProperty(&OSNAlignSP);
-        defineProperty(&OSNAlignWriteSP);
-        defineProperty(&OSNAlignTP);
-        defineProperty(&OSNAlignErrTP);
-        defineProperty(&OSNAlignPolarRealignSP);
+        defineProperty(OSNAlignStarsSP);
+        defineProperty(OSNAlignSP);
+        defineProperty(OSNAlignWriteSP);
+        defineProperty(OSNAlignTP);
+        defineProperty(OSNAlignErrTP);
+        defineProperty(OSNAlignPolarRealignSP);
 
 #ifdef ONSTEP_NOTDONE
         //Outputs
-        defineProperty(&OSOutput1SP);
-        defineProperty(&OSOutput2SP);
+        defineProperty(OSOutput1SP);
+        defineProperty(OSOutput2SP);
 #endif
 
         defineProperty(&OutputPorts_NP);
 
         //Weather
-        defineProperty(&OSSetTemperatureNP);
-        defineProperty(&OSSetPressureNP);
-        defineProperty(&OSSetHumidityNP);
-        defineProperty(&OSSetAltitudeNP);
+        defineProperty(OSSetTemperatureNP);
+        defineProperty(OSSetPressureNP);
+        defineProperty(OSSetHumidityNP);
+        defineProperty(OSSetAltitudeNP);
 
 
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].value);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1Park(LocationNP[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].value);
 
-            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].value);
         }
 
         double longitude = -1000, latitude = -1000;
@@ -501,63 +501,63 @@ bool LX200_OnStep::updateProperties()
     {
         // keep sorted by TABs is easier
         // Main Control
-        deleteProperty(ReticSP.name);
-        deleteProperty(ElevationLimitNP.name);
+        deleteProperty(ReticSP.getName());
+        deleteProperty(ElevationLimitNP.getName());
         // Connection
 
         // Options
 
         // Motion Control
-        deleteProperty(MaxSlewRateNP.name);
-        deleteProperty(TrackCompSP.name);
-        deleteProperty(TrackAxisSP.name);
-        deleteProperty(BacklashNP.name);
-        deleteProperty(GuideRateNP.name);
-        deleteProperty(AutoFlipSP.name);
-        deleteProperty(HomePauseSP.name);
-        deleteProperty(FrequencyAdjustSP.name);
-        deleteProperty(PreferredPierSideSP.name);
-        deleteProperty(minutesPastMeridianNP.name);
+        deleteProperty(MaxSlewRateNP.getName());
+        deleteProperty(TrackCompSP.getName());
+        deleteProperty(TrackAxisSP.getName());
+        deleteProperty(BacklashNP.getName());
+        deleteProperty(GuideRateNP.getName());
+        deleteProperty(AutoFlipSP.getName());
+        deleteProperty(HomePauseSP.getName());
+        deleteProperty(FrequencyAdjustSP.getName());
+        deleteProperty(PreferredPierSideSP.getName());
+        deleteProperty(minutesPastMeridianNP.getName());
 
         // Site Management
-        deleteProperty(ParkOptionSP.name);
-        deleteProperty(SetHomeSP.name);
+        deleteProperty(ParkOptionSP.getName());
+        deleteProperty(SetHomeSP.getName());
         // Guide
 
         // Focuser
         // Focuser 1
-        deleteProperty(OSFocus1InitializeSP.name);
+        deleteProperty(OSFocus1InitializeSP.getName());
 
         // Focuser 2
         //deleteProperty(OSFocus2SelSP.name);
-        deleteProperty(OSFocus2MotionSP.name);
-        deleteProperty(OSFocus2RateSP.name);
-        deleteProperty(OSFocus2TargNP.name);
+        deleteProperty(OSFocus2MotionSP.getName());
+        deleteProperty(OSFocus2RateSP.getName());
+        deleteProperty(OSFocus2TargNP.getName());
 
         // Firmware Data
         deleteProperty(VersionTP.name);
 
 
         //PEC
-        deleteProperty(OSPECStatusSP.name);
-        deleteProperty(OSPECIndexSP.name);
-        deleteProperty(OSPECRecordSP.name);
-        deleteProperty(OSPECReadSP.name);
-        deleteProperty(OSPECCurrentIndexNP.name);
-        deleteProperty(OSPECRWValuesNP.name);
+        deleteProperty(OSPECStatusSP.getName());
+        deleteProperty(OSPECIndexSP.getName());
+        deleteProperty(OSPECRecordSP.getName());
+        deleteProperty(OSPECReadSP.getName());
+        deleteProperty(OSPECCurrentIndexNP.getName());
+        deleteProperty(OSPECRWValuesNP.getName());
 
         //New Align
-        deleteProperty(OSNAlignStarsSP.name);
-        deleteProperty(OSNAlignSP.name);
-        deleteProperty(OSNAlignWriteSP.name);
-        deleteProperty(OSNAlignTP.name);
-        deleteProperty(OSNAlignErrTP.name);
-        deleteProperty(OSNAlignPolarRealignSP.name);
+        deleteProperty(OSNAlignStarsSP.getName());
+        deleteProperty(OSNAlignSP.getName());
+        deleteProperty(OSNAlignWriteSP.getName());
+        deleteProperty(OSNAlignTP.getName());
+        deleteProperty(OSNAlignErrTP.getName());
+        deleteProperty(OSNAlignPolarRealignSP.getName());
 
 #ifdef ONSTEP_NOTDONE
         //Outputs
-        deleteProperty(OSOutput1SP.name);
-        deleteProperty(OSOutput2SP.name);
+        deleteProperty(OSOutput1SP.getName());
+        deleteProperty(OSOutput2SP.getName());
 #endif
 
         deleteProperty(OutputPorts_NP.name);
@@ -567,10 +567,10 @@ bool LX200_OnStep::updateProperties()
 
 
         //Weather
-        deleteProperty(OSSetTemperatureNP.name);
-        deleteProperty(OSSetPressureNP.name);
-        deleteProperty(OSSetHumidityNP.name);
-        deleteProperty(OSSetAltitudeNP.name);
+        deleteProperty(OSSetTemperatureNP.getName());
+        deleteProperty(OSSetPressureNP.getName());
+        deleteProperty(OSSetHumidityNP.getName());
+        deleteProperty(OSSetAltitudeNP.getName());
 
     }
     return true;
@@ -582,54 +582,54 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     {
         if (strstr(name, "FOCUS_"))
             return FI::processNumber(dev, name, values, names, n);
-        if (!strcmp(name, ObjectNoNP.name))
+        if (ObjectNoNP.isNameMatch(name))
         {
             char object_name[256];
 
             if (selectCatalogObject(PortFD, currentCatalog, (int)values[0]) < 0)
             {
-                ObjectNoNP.s = IPS_ALERT;
-                IDSetNumber(&ObjectNoNP, "Failed to select catalog object.");
+                ObjectNoNP.setState(IPS_ALERT);
+                ObjectNoNP.apply("Failed to select catalog object.");
                 return false;
             }
 
             getLX200RA(PortFD, &targetRA);
             getLX200DEC(PortFD, &targetDEC);
 
-            ObjectNoNP.s = IPS_OK;
-            IDSetNumber(&ObjectNoNP, "Object updated.");
+            ObjectNoNP.setState(IPS_OK);
+            ObjectNoNP.apply("Object updated.");
 
             if (getObjectInfo(PortFD, object_name) < 0)
                 IDMessage(getDeviceName(), "Getting object info failed.");
             else
             {
-                IUSaveText(&ObjectInfoTP.tp[0], object_name);
-                IDSetText(&ObjectInfoTP, nullptr);
+                IUSaveText(&ObjectInfoTP[0], object_name);
+                ObjectInfoTP.apply();
             }
             Goto(targetRA, targetDEC);
             return true;
         }
 
-        if (!strcmp(name, MaxSlewRateNP.name))
+        if (MaxSlewRateNP.isNameMatch(name))
         {
             int ret;
             char cmd[5];
             snprintf(cmd, 5, ":R%d#", (int)values[0]);
             ret = sendOnStepCommandBlind(cmd);
 
-            //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
+            //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateNP[0].value
             if (ret == -1)
             {
                 LOGF_DEBUG("Pas OK Return value =%d", ret);
                 LOGF_DEBUG("Setting Max Slew Rate to %f\n", values[0]);
-                MaxSlewRateNP.s = IPS_ALERT;
-                IDSetNumber(&MaxSlewRateNP, "Setting Max Slew Rate Failed");
+                MaxSlewRateNP.setState(IPS_ALERT);
+                MaxSlewRateNP.apply("Setting Max Slew Rate Failed");
                 return false;
             }
             LOGF_DEBUG("OK Return value =%d", ret);
-            MaxSlewRateNP.s           = IPS_OK;
-            MaxSlewRateNP.np[0].value = values[0];
-            IDSetNumber(&MaxSlewRateNP, "Slewrate set to %04.1f", values[0]);
+            MaxSlewRateNP.setState(IPS_OK);
+            MaxSlewRateNP[0].setValue(values[0]);
+            MaxSlewRateNP.apply("Slewrate set to %04.1f", values[0]);
             IUResetSwitch(&SlewRateSP);
             SlewRateS[int(values[0])].s = ISS_ON;
             SlewRateSP.s = IPS_OK;
@@ -637,7 +637,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             return true;
         }
 
-        if (!strcmp(name, BacklashNP.name))
+        if (BacklashNP.isNameMatch(name))
         {
             char cmd[9];
             int i, nset;
@@ -645,14 +645,14 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
             for (nset = i = 0; i < n; i++)
             {
-                INumber *bktp = IUFindNumber(&BacklashNP, names[i]);
-                if (bktp == &BacklashN[0])
+                INumber *bktp = BacklashNP.findWidgetByName(names[i]);
+                if (bktp == &BacklashNP[0])
                 {
                     bklshdec = values[i];
                     LOGF_DEBUG("===CMD==> Backlash DEC= %f", bklshdec);
                     nset += bklshdec >= 0 && bklshdec <= 999;  //range 0 to 999
                 }
-                else if (bktp == &BacklashN[1])
+                else if (bktp == &BacklashNP[1])
                 {
                     bklshra = values[i];
                     LOGF_DEBUG("===CMD==> Backlash RA= %f", bklshra);
@@ -664,33 +664,33 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 snprintf(cmd, 9, ":$BD%d#", (int)bklshdec);
                 if (sendOnStepCommand(cmd))
                 {
-                    BacklashNP.s = IPS_ALERT;
-                    IDSetNumber(&BacklashNP, "Error Backlash DEC limit.");
+                    BacklashNP.setState(IPS_ALERT);
+                    BacklashNP.apply("Error Backlash DEC limit.");
                 }
                 const struct timespec timeout = {0, 100000000L};
                 nanosleep(&timeout, nullptr); // time for OnStep to respond to previous cmd
                 snprintf(cmd, 9, ":$BR%d#", (int)bklshra);
                 if (sendOnStepCommand(cmd))
                 {
-                    BacklashNP.s = IPS_ALERT;
-                    IDSetNumber(&BacklashNP, "Error Backlash RA limit.");
+                    BacklashNP.setState(IPS_ALERT);
+                    BacklashNP.apply("Error Backlash RA limit.");
                 }
 
-                BacklashNP.np[0].value = bklshdec;
-                BacklashNP.np[1].value = bklshra;
-                BacklashNP.s           = IPS_OK;
-                IDSetNumber(&BacklashNP, nullptr);
+                BacklashNP[0].setValue(bklshdec);
+                BacklashNP[1].setValue(bklshra);
+                BacklashNP.setState(IPS_OK);
+                BacklashNP.apply();
                 return true;
             }
             else
             {
-                BacklashNP.s = IPS_ALERT;
-                IDSetNumber(&BacklashNP, "Backlash invalid.");
+                BacklashNP.setState(IPS_ALERT);
+                BacklashNP.apply("Backlash invalid.");
                 return false;
             }
         }
 
-        if (!strcmp(name, ElevationLimitNP.name))
+        if (ElevationLimitNP.isNameMatch(name))
         {
             // new elevation limits
             double minAlt = 0, maxAlt = 0;
@@ -698,13 +698,13 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
             for (nset = i = 0; i < n; i++)
             {
-                INumber *altp = IUFindNumber(&ElevationLimitNP, names[i]);
-                if (altp == &ElevationLimitN[0])
+                INumber *altp = ElevationLimitNP.findWidgetByName(names[i]);
+                if (altp == &ElevationLimitNP[0])
                 {
                     minAlt = values[i];
                     nset += minAlt >= -30.0 && minAlt <= 30.0;  //range -30 to 30
                 }
-                else if (altp == &ElevationLimitN[1])
+                else if (altp == &ElevationLimitNP[1])
                 {
                     maxAlt = values[i];
                     nset += maxAlt >= 60.0 && maxAlt <= 90.0;   //range 60 to 90
@@ -714,32 +714,32 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             {
                 if (setMinElevationLimit(PortFD, (int)minAlt) < 0)
                 {
-                    ElevationLimitNP.s = IPS_ALERT;
-                    IDSetNumber(&ElevationLimitNP, "Error setting min elevation limit.");
+                    ElevationLimitNP.setState(IPS_ALERT);
+                    ElevationLimitNP.apply("Error setting min elevation limit.");
                 }
 
                 if (setMaxElevationLimit(PortFD, (int)maxAlt) < 0)
                 {
-                    ElevationLimitNP.s = IPS_ALERT;
-                    IDSetNumber(&ElevationLimitNP, "Error setting max elevation limit.");
+                    ElevationLimitNP.setState(IPS_ALERT);
+                    ElevationLimitNP.apply("Error setting max elevation limit.");
                     return false;
                 }
-                ElevationLimitNP.np[0].value = minAlt;
-                ElevationLimitNP.np[1].value = maxAlt;
-                ElevationLimitNP.s           = IPS_OK;
-                IDSetNumber(&ElevationLimitNP, nullptr);
+                ElevationLimitNP[0].setValue(minAlt);
+                ElevationLimitNP[1].setValue(maxAlt);
+                ElevationLimitNP.setState(IPS_OK);
+                ElevationLimitNP.apply();
                 return true;
             }
             else
             {
-                ElevationLimitNP.s = IPS_IDLE;
-                IDSetNumber(&ElevationLimitNP, "elevation limit missing or invalid.");
+                ElevationLimitNP.setState(IPS_IDLE);
+                ElevationLimitNP.apply("elevation limit missing or invalid.");
                 return false;
             }
         }
     }
 
-    if (!strcmp(name, minutesPastMeridianNP.name))
+    if (minutesPastMeridianNP.isNameMatch(name))
     {
         char cmd[20];
         int i, nset;
@@ -747,17 +747,17 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
         for (nset = i = 0; i < n; i++)
         {
-            INumber *bktp = IUFindNumber(&minutesPastMeridianNP, names[i]);
-            if (bktp == &minutesPastMeridianN[0])
+            INumber *bktp = minutesPastMeridianNP.findWidgetByName(names[i]);
+            if (bktp == &minutesPastMeridianNP[0])
             {
                 minPMEast = values[i];
-                LOGF_DEBUG("===CMD==> minutesPastMeridianN[0]/East = %f", minPMEast);
+                LOGF_DEBUG("===CMD==> minutesPastMeridianNP[0]/East = %f", minPMEast);
                 nset += minPMEast >= 0 && minPMEast <= 180;  //range 0 to 180
             }
-            else if (bktp == &minutesPastMeridianN[1])
+            else if (bktp == &minutesPastMeridianNP[1])
             {
                 minPMWest = values[i];
-                LOGF_DEBUG("===CMD==> minutesPastMeridianN[1]/West= %f", minPMWest);
+                LOGF_DEBUG("===CMD==> minutesPastMeridianNP[1]/West= %f", minPMWest);
                 nset += minPMWest >= 0 && minPMWest <= 180;   //range 0 to 180
             }
         }
@@ -766,28 +766,28 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             snprintf(cmd, 20, ":SXE9,%d#", (int) minPMEast);
             if (sendOnStepCommand(cmd))
             {
-                minutesPastMeridianNP.s = IPS_ALERT;
-                IDSetNumber(&minutesPastMeridianNP, "Error Backlash DEC limit.");
+                minutesPastMeridianNP.setState(IPS_ALERT);
+                minutesPastMeridianNP.apply("Error Backlash DEC limit.");
             }
             const struct timespec timeout = {0, 100000000L};
             nanosleep(&timeout, nullptr); // time for OnStep to respond to previous cmd
             snprintf(cmd, 20, ":SXEA,%d#", (int) minPMWest);
             if (sendOnStepCommand(cmd))
             {
-                minutesPastMeridianNP.s = IPS_ALERT;
-                IDSetNumber(&minutesPastMeridianNP, "Error Backlash RA limit.");
+                minutesPastMeridianNP.setState(IPS_ALERT);
+                minutesPastMeridianNP.apply("Error Backlash RA limit.");
             }
 
-            minutesPastMeridianNP.np[0].value = minPMEast;
-            minutesPastMeridianNP.np[1].value = minPMWest;
-            minutesPastMeridianNP.s           = IPS_OK;
-            IDSetNumber(&minutesPastMeridianNP, nullptr);
+            minutesPastMeridianNP[0].setValue(minPMEast);
+            minutesPastMeridianNP[1].setValue(minPMWest);
+            minutesPastMeridianNP.setState(IPS_OK);
+            minutesPastMeridianNP.apply();
             return true;
         }
         else
         {
-            minutesPastMeridianNP.s = IPS_ALERT;
-            IDSetNumber(&minutesPastMeridianNP, "minutesPastMeridian invalid.");
+            minutesPastMeridianNP.setState(IPS_ALERT);
+            minutesPastMeridianNP.apply("minutesPastMeridian invalid.");
             return false;
         }
     }
@@ -795,7 +795,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     // Focuser 1 Now handled by Focusr Interface
 
     // Focuser 2 Target
-    if (!strcmp(name, OSFocus2TargNP.name))
+    if (OSFocus2TargNP.isNameMatch(name))
     {
         char cmd[32];
 
@@ -803,14 +803,14 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         {
             snprintf(cmd, 15, ":fR%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
-            OSFocus2TargNP.s           = IPS_OK;
-            IDSetNumber(&OSFocus2TargNP, "Focuser 2 position (relative) moved by %d", (int)values[0]);
+            OSFocus2TargNP.setState(IPS_OK);
+            OSFocus2TargNP.apply("Focuser 2 position (relative) moved by %d", (int)values[0]);
             OSUpdateFocuser();
         }
         else
         {
-            OSFocus2TargNP.s = IPS_ALERT;
-            IDSetNumber(&OSFocus2TargNP, "Setting Max Slew Rate Failed");
+            OSFocus2TargNP.setState(IPS_ALERT);
+            OSFocus2TargNP.apply("Setting Max Slew Rate Failed");
         }
         return true;
     }
@@ -850,7 +850,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     }
     //Weather not handled by Weather Interface
 
-    if (!strcmp(name, OSSetTemperatureNP.name))
+    if (OSSetTemperatureNP.isNameMatch(name))
     {
         char cmd[32];
 
@@ -858,18 +858,18 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         {
             snprintf(cmd, 15, ":SX9A,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
-            OSSetTemperatureNP.s           = IPS_OK;
-            IDSetNumber(&OSSetTemperatureNP, "Temperature set to %d", (int)values[0]);
+            OSSetTemperatureNP.setState(IPS_OK);
+            OSSetTemperatureNP.apply("Temperature set to %d", (int)values[0]);
         }
         else
         {
-            OSSetTemperatureNP.s = IPS_ALERT;
-            IDSetNumber(&OSSetTemperatureNP, "Setting Temperature Failed");
+            OSSetTemperatureNP.setState(IPS_ALERT);
+            OSSetTemperatureNP.apply("Setting Temperature Failed");
         }
         return true;
     }
 
-    if (!strcmp(name, OSSetHumidityNP.name))
+    if (OSSetHumidityNP.isNameMatch(name))
     {
         char cmd[32];
 
@@ -877,18 +877,18 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         {
             snprintf(cmd, 15, ":SX9C,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
-            OSSetHumidityNP.s           = IPS_OK;
-            IDSetNumber(&OSSetHumidityNP, "Humidity set to %d", (int)values[0]);
+            OSSetHumidityNP.setState(IPS_OK);
+            OSSetHumidityNP.apply("Humidity set to %d", (int)values[0]);
         }
         else
         {
-            OSSetHumidityNP.s = IPS_ALERT;
-            IDSetNumber(&OSSetHumidityNP, "Setting Humidity Failed");
+            OSSetHumidityNP.setState(IPS_ALERT);
+            OSSetHumidityNP.apply("Setting Humidity Failed");
         }
         return true;
     }
 
-    if (!strcmp(name, OSSetPressureNP.name))
+    if (OSSetPressureNP.isNameMatch(name))
     {
         char cmd[32];
 
@@ -896,13 +896,13 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         {
             snprintf(cmd, 15, ":SX9B,%d#", (int)values[0]);
             sendOnStepCommandBlind(cmd);
-            OSSetPressureNP.s           = IPS_OK;
-            IDSetNumber(&OSSetPressureNP, "Pressure set to %d", (int)values[0]);
+            OSSetPressureNP.setState(IPS_OK);
+            OSSetPressureNP.apply("Pressure set to %d", (int)values[0]);
         }
         else
         {
-            OSSetPressureNP.s = IPS_ALERT;
-            IDSetNumber(&OSSetPressureNP, "Setting Pressure Failed");
+            OSSetPressureNP.setState(IPS_ALERT);
+            OSSetPressureNP.apply("Setting Pressure Failed");
         }
         return true;
     }
@@ -926,28 +926,28 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Reticlue +/- Buttons
-        if (!strcmp(name, ReticSP.name))
+        if (ReticSP.isNameMatch(name))
         {
             long ret = 0;
 
-            IUUpdateSwitch(&ReticSP, states, names, n);
-            ReticSP.s = IPS_OK;
+            ReticSP.update(states, names, n);
+            ReticSP.setState(IPS_OK);
 
-            if (ReticS[0].s == ISS_ON)
+            if (ReticSP[0].getState() == ISS_ON)
             {
                 ret = ReticPlus(PortFD);
-                ReticS[0].s = ISS_OFF;
-                IDSetSwitch(&ReticSP, "Bright");
+                ReticSP[0].setState(ISS_OFF);
+                ReticSP.apply("Bright");
             }
             else
             {
                 ret = ReticMoins(PortFD);
-                ReticS[1].s = ISS_OFF;
-                IDSetSwitch(&ReticSP, "Dark");
+                ReticSP[1].setState(ISS_OFF);
+                ReticSP.apply("Dark");
             }
 
-            IUResetSwitch(&ReticSP);
-            IDSetSwitch(&ReticSP, nullptr);
+            ReticSP.reset();
+            ReticSP.apply();
             return true;
         }
         //Move to more standard controls
@@ -960,7 +960,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             snprintf(cmd, 5, ":R%d#", index);
             ret = sendOnStepCommandBlind(cmd);
 
-            //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
+            //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateNP[0].value
             if (ret == -1)
             {
                 LOGF_DEBUG("Pas OK Return value =%d", ret);
@@ -971,9 +971,9 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             }
             LOGF_INFO("Setting Max Slew Rate to %u\n", index);
             LOGF_DEBUG("OK Return value =%d", ret);
-            MaxSlewRateNP.s           = IPS_OK;
-            MaxSlewRateNP.np[0].value = index;
-            IDSetNumber(&MaxSlewRateNP, "Slewrate set to %d", index);
+            MaxSlewRateNP.setState(IPS_OK);
+            MaxSlewRateNP[0].setValue(index);
+            MaxSlewRateNP.apply("Slewrate set to %d", index);
             IUResetSwitch(&SlewRateSP);
             SlewRateS[index].s = ISS_ON;
             SlewRateSP.s = IPS_OK;
@@ -981,298 +981,298 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             return true;
         }
         // Homing, Cold and Warm Init
-        if (!strcmp(name, SetHomeSP.name))
+        if (SetHomeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SetHomeSP, states, names, n);
-            SetHomeSP.s = IPS_OK;
+            SetHomeSP.update(states, names, n);
+            SetHomeSP.setState(IPS_OK);
 
-            if (SetHomeS[0].s == ISS_ON)
+            if (SetHomeSP[0].getState() == ISS_ON)
             {
                 if(!sendOnStepCommandBlind(":hC#"))
                     return false;
-                IDSetSwitch(&SetHomeSP, "Return Home");
-                SetHomeS[0].s = ISS_OFF;
+                SetHomeSP.apply("Return Home");
+                SetHomeSP[0].setState(ISS_OFF);
             }
             else
             {
                 if(!sendOnStepCommandBlind(":hF#"))
                     return false;
-                IDSetSwitch(&SetHomeSP, "At Home (Reset)");
-                SetHomeS[1].s = ISS_OFF;
+                SetHomeSP.apply("At Home (Reset)");
+                SetHomeSP[1].setState(ISS_OFF);
             }
-            IUResetSwitch(&ReticSP);
-            SetHomeSP.s = IPS_IDLE;
-            IDSetSwitch(&SetHomeSP, nullptr);
+            ReticSP.reset();
+            SetHomeSP.setState(IPS_IDLE);
+            SetHomeSP.apply();
             return true;
         }
 
         // Tracking Compensation selection
-        if (!strcmp(name, TrackCompSP.name))
+        if (TrackCompSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&TrackCompSP, states, names, n);
-            TrackCompSP.s = IPS_BUSY;
+            TrackCompSP.update(states, names, n);
+            TrackCompSP.setState(IPS_BUSY);
 
-            if (TrackCompS[0].s == ISS_ON)
+            if (TrackCompSP[0].getState() == ISS_ON)
             {
                 if (!sendOnStepCommand(":To#"))
                 {
-                    IDSetSwitch(&TrackCompSP, "Full Compensated Tracking On");
-                    TrackCompSP.s = IPS_OK;
-                    IDSetSwitch(&TrackCompSP, nullptr);
+                    TrackCompSP.apply("Full Compensated Tracking On");
+                    TrackCompSP.setState(IPS_OK);
+                    TrackCompSP.apply();
                     return true;
                 }
             }
-            if (TrackCompS[1].s == ISS_ON)
+            if (TrackCompSP[1].getState() == ISS_ON)
             {
                 if (!sendOnStepCommand(":Tr#"))
                 {
-                    IDSetSwitch(&TrackCompSP, "Refraction Tracking On");
-                    TrackCompSP.s = IPS_OK;
-                    IDSetSwitch(&TrackCompSP, nullptr);
+                    TrackCompSP.apply("Refraction Tracking On");
+                    TrackCompSP.setState(IPS_OK);
+                    TrackCompSP.apply();
                     return true;
                 }
             }
-            if (TrackCompS[2].s == ISS_ON)
+            if (TrackCompSP[2].getState() == ISS_ON)
             {
                 if (!sendOnStepCommand(":Tn#"))
                 {
-                    IDSetSwitch(&TrackCompSP, "Refraction Tracking Disabled");
-                    TrackCompSP.s = IPS_OK;
-                    IDSetSwitch(&TrackCompSP, nullptr);
+                    TrackCompSP.apply("Refraction Tracking Disabled");
+                    TrackCompSP.setState(IPS_OK);
+                    TrackCompSP.apply();
                     return true;
                 }
             }
-            IUResetSwitch(&TrackCompSP);
-            TrackCompSP.s = IPS_IDLE;
-            IDSetSwitch(&TrackCompSP, nullptr);
+            TrackCompSP.reset();
+            TrackCompSP.setState(IPS_IDLE);
+            TrackCompSP.apply();
             return true;
         }
 
-        if (!strcmp(name, TrackAxisSP.name))
+        if (TrackAxisSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&TrackAxisSP, states, names, n);
-            TrackAxisSP.s = IPS_BUSY;
+            TrackAxisSP.update(states, names, n);
+            TrackAxisSP.setState(IPS_BUSY);
 
-            if (TrackAxisS[0].s == ISS_ON)
+            if (TrackAxisSP[0].getState() == ISS_ON)
             {
                 if (!sendOnStepCommand(":T1#"))
                 {
-                    IDSetSwitch(&TrackAxisSP, "Single Tracking On");
-                    TrackAxisSP.s = IPS_OK;
-                    IDSetSwitch(&TrackAxisSP, nullptr);
+                    TrackAxisSP.apply("Single Tracking On");
+                    TrackAxisSP.setState(IPS_OK);
+                    TrackAxisSP.apply();
                     return true;
                 }
             }
-            if (TrackAxisS[1].s == ISS_ON)
+            if (TrackAxisSP[1].getState() == ISS_ON)
             {
                 if (!sendOnStepCommand(":T2#"))
                 {
-                    IDSetSwitch(&TrackAxisSP, "Dual Axis Tracking On");
-                    TrackAxisSP.s = IPS_OK;
-                    IDSetSwitch(&TrackAxisSP, nullptr);
+                    TrackAxisSP.apply("Dual Axis Tracking On");
+                    TrackAxisSP.setState(IPS_OK);
+                    TrackAxisSP.apply();
                     return true;
                 }
             }
-            IUResetSwitch(&TrackAxisSP);
-            TrackAxisSP.s = IPS_IDLE;
-            IDSetSwitch(&TrackAxisSP, nullptr);
+            TrackAxisSP.reset();
+            TrackAxisSP.setState(IPS_IDLE);
+            TrackAxisSP.apply();
             return true;
         }
 
-        if (!strcmp(name, AutoFlipSP.name))
+        if (AutoFlipSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&AutoFlipSP, states, names, n);
-            AutoFlipSP.s = IPS_BUSY;
+            AutoFlipSP.update(states, names, n);
+            AutoFlipSP.setState(IPS_BUSY);
 
-            if (AutoFlipS[0].s == ISS_ON)
+            if (AutoFlipSP[0].getState() == ISS_ON)
             {
                 if (sendOnStepCommand(":SX95,0#"))
                 {
-                    AutoFlipSP.s = IPS_OK;
-                    IDSetSwitch(&AutoFlipSP, "Auto Meridian Flip OFF");
+                    AutoFlipSP.setState(IPS_OK);
+                    AutoFlipSP.apply("Auto Meridian Flip OFF");
                     return true;
                 }
             }
-            if (AutoFlipS[1].s == ISS_ON)
+            if (AutoFlipSP[1].getState() == ISS_ON)
             {
                 if (sendOnStepCommand(":SX95,1#"))
                 {
-                    AutoFlipSP.s = IPS_OK;
-                    IDSetSwitch(&AutoFlipSP, "Auto Meridian Flip ON");
+                    AutoFlipSP.setState(IPS_OK);
+                    AutoFlipSP.apply("Auto Meridian Flip ON");
                     return true;
                 }
             }
-            IUResetSwitch(&AutoFlipSP);
-            //AutoFlipSP.s = IPS_IDLE;
-            IDSetSwitch(&AutoFlipSP, nullptr);
+            AutoFlipSP.reset();
+            //AutoFlipSP.setState(IPS_IDLE);
+            AutoFlipSP.apply();
             return true;
         }
 
-        if (!strcmp(name, HomePauseSP.name))
+        if (HomePauseSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&HomePauseSP, states, names, n);
-            HomePauseSP.s = IPS_BUSY;
+            HomePauseSP.update(states, names, n);
+            HomePauseSP.setState(IPS_BUSY);
 
-            if (HomePauseS[0].s == ISS_ON)
+            if (HomePauseSP[0].getState() == ISS_ON)
             {
                 if (sendOnStepCommand(":SX98,0#"))
                 {
-                    HomePauseSP.s = IPS_OK;
-                    IDSetSwitch(&HomePauseSP, "Home Pause OFF");
+                    HomePauseSP.setState(IPS_OK);
+                    HomePauseSP.apply("Home Pause OFF");
                     return true;
                 }
             }
-            if (HomePauseS[1].s == ISS_ON)
+            if (HomePauseSP[1].getState() == ISS_ON)
             {
                 if (sendOnStepCommand(":SX98,1#"))
                 {
-                    HomePauseSP.s = IPS_OK;
-                    IDSetSwitch(&HomePauseSP, "Home Pause ON");
+                    HomePauseSP.setState(IPS_OK);
+                    HomePauseSP.apply("Home Pause ON");
                     return true;
                 }
             }
-            if (HomePauseS[2].s == ISS_ON)
+            if (HomePauseSP[2].getState() == ISS_ON)
             {
                 if (sendOnStepCommand(":SX99,1#"))
                 {
-                    IUResetSwitch(&HomePauseSP);
-                    HomePauseSP.s = IPS_OK;
-                    IDSetSwitch(&HomePauseSP, "Home Pause: Continue");
+                    HomePauseSP.reset();
+                    HomePauseSP.setState(IPS_OK);
+                    HomePauseSP.apply("Home Pause: Continue");
                     return true;
                 }
             }
-            IUResetSwitch(&HomePauseSP);
-            HomePauseSP.s = IPS_IDLE;
-            IDSetSwitch(&HomePauseSP, nullptr);
+            HomePauseSP.reset();
+            HomePauseSP.setState(IPS_IDLE);
+            HomePauseSP.apply();
             return true;
         }
 
-        if (!strcmp(name, FrequencyAdjustSP.name))      //
+        if (FrequencyAdjustSP.isNameMatch(name))      //
 
             //
         {
-            IUUpdateSwitch(&FrequencyAdjustSP, states, names, n);
-            FrequencyAdjustSP.s = IPS_OK;
+            FrequencyAdjustSP.update(states, names, n);
+            FrequencyAdjustSP.setState(IPS_OK);
 
-            if (FrequencyAdjustS[0].s == ISS_ON)
+            if (FrequencyAdjustSP[0].getState() == ISS_ON)
             {
                 if (!sendOnStepCommandBlind(":T-#"))
                 {
-                    IDSetSwitch(&FrequencyAdjustSP, "Frequency decreased");
+                    FrequencyAdjustSP.apply("Frequency decreased");
                     return true;
                 }
             }
-            if (FrequencyAdjustS[1].s == ISS_ON)
+            if (FrequencyAdjustSP[1].getState() == ISS_ON)
             {
                 if (!sendOnStepCommandBlind(":T+#"))
                 {
-                    IDSetSwitch(&FrequencyAdjustSP, "Frequency increased");
+                    FrequencyAdjustSP.apply("Frequency increased");
                     return true;
                 }
             }
-            if (FrequencyAdjustS[2].s == ISS_ON)
+            if (FrequencyAdjustSP[2].getState() == ISS_ON)
             {
                 if (!sendOnStepCommandBlind(":TR#"))
                 {
-                    IDSetSwitch(&FrequencyAdjustSP, "Frequency Reset (TO saved EEPROM)");
+                    FrequencyAdjustSP.apply("Frequency Reset (TO saved EEPROM)");
                     return true;
                 }
             }
-            IUResetSwitch(&FrequencyAdjustSP);
-            FrequencyAdjustSP.s = IPS_IDLE;
-            IDSetSwitch(&FrequencyAdjustSP, nullptr);
+            FrequencyAdjustSP.reset();
+            FrequencyAdjustSP.setState(IPS_IDLE);
+            FrequencyAdjustSP.apply();
             return true;
         }
 
         //Pier Side
-        if (!strcmp(name, PreferredPierSideSP.name))
+        if (PreferredPierSideSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PreferredPierSideSP, states, names, n);
-            PreferredPierSideSP.s = IPS_BUSY;
+            PreferredPierSideSP.update(states, names, n);
+            PreferredPierSideSP.setState(IPS_BUSY);
 
-            if (PreferredPierSideS[0].s == ISS_ON) //West
+            if (PreferredPierSideSP[0].getState() == ISS_ON) //West
             {
                 if (sendOnStepCommand(":SX96,W#"))
                 {
-                    PreferredPierSideSP.s = IPS_OK;
-                    IDSetSwitch(&PreferredPierSideSP, "Preferred Pier Side: West");
+                    PreferredPierSideSP.setState(IPS_OK);
+                    PreferredPierSideSP.apply("Preferred Pier Side: West");
                     return true;
                 }
             }
-            if (PreferredPierSideS[1].s == ISS_ON) //East
+            if (PreferredPierSideSP[1].getState() == ISS_ON) //East
             {
                 if (sendOnStepCommand(":SX96,E#"))
                 {
-                    PreferredPierSideSP.s = IPS_OK;
-                    IDSetSwitch(&PreferredPierSideSP, "Preferred Pier Side: East");
+                    PreferredPierSideSP.setState(IPS_OK);
+                    PreferredPierSideSP.apply("Preferred Pier Side: East");
                     return true;
                 }
             }
-            if (PreferredPierSideS[2].s == ISS_ON) //Best
+            if (PreferredPierSideSP[2].getState() == ISS_ON) //Best
             {
                 if (sendOnStepCommand(":SX96,B#"))
                 {
-                    PreferredPierSideSP.s = IPS_OK;
-                    IDSetSwitch(&PreferredPierSideSP, "Preferred Pier Side: Best");
+                    PreferredPierSideSP.setState(IPS_OK);
+                    PreferredPierSideSP.apply("Preferred Pier Side: Best");
                     return true;
                 }
             }
-            IUResetSwitch(&PreferredPierSideSP);
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
+            PreferredPierSideSP.reset();
+            PreferredPierSideSP.apply();
             return true;
         }
 
 
         // Focuser
         // Focuser 1 Rates
-        if (!strcmp(name, OSFocus1InitializeSP.name))
+        if (OSFocus1InitializeSP.isNameMatch(name))
         {
             char cmd[32];
-            if (IUUpdateSwitch(&OSFocus1InitializeSP, states, names, n) < 0)
+            if (!OSFocus1InitializeSP.update(states, names, n))
                 return false;
-            index = IUFindOnSwitchIndex(&OSFocus1InitializeSP);
+            index = OSFocus1InitializeSP.findOnSwitchIndex();
             if (index == 0)
             {
                 snprintf(cmd, 5, ":FZ#");
                 sendOnStepCommandBlind(cmd);
-                OSFocus1InitializeS[index].s = ISS_OFF;
-                OSFocus1InitializeSP.s = IPS_OK;
-                IDSetSwitch(&OSFocus1InitializeSP, nullptr);
+                OSFocus1InitializeSP[index].setState(ISS_OFF);
+                OSFocus1InitializeSP.setState(IPS_OK);
+                OSFocus1InitializeSP.apply();
             }
             if (index == 1)
             {
                 snprintf(cmd, 5, ":FH#");
                 sendOnStepCommandBlind(cmd);
-                OSFocus1InitializeS[index].s = ISS_OFF;
-                OSFocus1InitializeSP.s = IPS_OK;
-                IDSetSwitch(&OSFocus1InitializeSP, nullptr);
+                OSFocus1InitializeSP[index].setState(ISS_OFF);
+                OSFocus1InitializeSP.setState(IPS_OK);
+                OSFocus1InitializeSP.apply();
             }
         }
 
         // Focuser 2 Rates
-        if (!strcmp(name, OSFocus2RateSP.name))
+        if (OSFocus2RateSP.isNameMatch(name))
         {
             char cmd[32];
 
-            if (IUUpdateSwitch(&OSFocus2RateSP, states, names, n) < 0)
+            if (!OSFocus2RateSP.update(states, names, n))
                 return false;
 
-            index = IUFindOnSwitchIndex(&OSFocus2RateSP);
+            index = OSFocus2RateSP.findOnSwitchIndex();
             snprintf(cmd, 5, ":F%d#", index + 1);
             sendOnStepCommandBlind(cmd);
-            OSFocus2RateS[index].s = ISS_OFF;
-            OSFocus2RateSP.s = IPS_OK;
-            IDSetSwitch(&OSFocus2RateSP, nullptr);
+            OSFocus2RateSP[index].setState(ISS_OFF);
+            OSFocus2RateSP.setState(IPS_OK);
+            OSFocus2RateSP.apply();
         }
         // Focuser 2 Motion
-        if (!strcmp(name, OSFocus2MotionSP.name))
+        if (OSFocus2MotionSP.isNameMatch(name))
         {
             char cmd[32];
 
-            if (IUUpdateSwitch(&OSFocus2MotionSP, states, names, n) < 0)
+            if (!OSFocus2MotionSP.update(states, names, n))
                 return false;
 
-            index = IUFindOnSwitchIndex(&OSFocus2MotionSP);
+            index = OSFocus2MotionSP.findOnSwitchIndex();
             if (index == 0)
             {
                 strcpy(cmd, ":f+#");
@@ -1292,207 +1292,207 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 sendOnStepCommandBlind(":fQ#");
             }
-            OSFocus2MotionS[index].s = ISS_OFF;
-            OSFocus2MotionSP.s = IPS_OK;
-            IDSetSwitch(&OSFocus2MotionSP, nullptr);
+            OSFocus2MotionSP[index].setState(ISS_OFF);
+            OSFocus2MotionSP.setState(IPS_OK);
+            OSFocus2MotionSP.apply();
         }
 
         // PEC
-        if (!strcmp(name, OSPECRecordSP.name))
+        if (OSPECRecordSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&OSPECRecordSP, states, names, n);
-            OSPECRecordSP.s = IPS_OK;
+            OSPECRecordSP.update(states, names, n);
+            OSPECRecordSP.setState(IPS_OK);
 
-            if (OSPECRecordS[0].s == ISS_ON)
+            if (OSPECRecordSP[0].getState() == ISS_ON)
             {
                 OSPECEnabled = true;
                 ClearPECBuffer(0);
-                OSPECRecordS[0].s = ISS_OFF;
+                OSPECRecordSP[0].setState(ISS_OFF);
             }
-            if (OSPECRecordS[1].s == ISS_ON)
+            if (OSPECRecordSP[1].getState() == ISS_ON)
             {
                 OSPECEnabled = true;
                 StartPECRecord(0);
-                OSPECRecordS[1].s = ISS_OFF;
+                OSPECRecordSP[1].setState(ISS_OFF);
             }
-            if (OSPECRecordS[2].s == ISS_ON)
+            if (OSPECRecordSP[2].getState() == ISS_ON)
             {
                 OSPECEnabled = true;
                 SavePECBuffer(0);
-                OSPECRecordS[2].s = ISS_OFF;
+                OSPECRecordSP[2].setState(ISS_OFF);
             }
-            IDSetSwitch(&OSPECRecordSP, nullptr);
+            OSPECRecordSP.apply();
         }
-        if (!strcmp(name, OSPECReadSP.name))
+        if (OSPECReadSP.isNameMatch(name))
         {
-            if (OSPECReadS[0].s == ISS_ON)
+            if (OSPECReadSP[0].getState() == ISS_ON)
             {
                 OSPECEnabled = true;
                 ReadPECBuffer(0);
-                OSPECReadS[0].s = ISS_OFF;
+                OSPECReadSP[0].setState(ISS_OFF);
             }
-            if (OSPECReadS[1].s == ISS_ON)
+            if (OSPECReadSP[1].getState() == ISS_ON)
             {
                 OSPECEnabled = true;
                 WritePECBuffer(0);
-                OSPECReadS[1].s = ISS_OFF;
+                OSPECReadSP[1].setState(ISS_OFF);
             }
-            IDSetSwitch(&OSPECReadSP, nullptr);
+            OSPECReadSP.apply();
         }
-        if (!strcmp(name, PECStateSP.name))
+        if (PECStateSP.isNameMatch(name))
         {
-            index = IUFindOnSwitchIndex(&PECStateSP);
+            index = PECStateSP.findOnSwitchIndex();
             if (index == 0)
             {
                 OSPECEnabled = true;
                 StopPECPlayback(0); //Status will set OSPECEnabled to false if that's set by the controller
-                PECStateS[0].s = ISS_ON;
-                PECStateS[1].s = ISS_OFF;
-                IDSetSwitch(&PECStateSP, nullptr);
+                PECStateSP[0].setState(ISS_ON);
+                PECStateSP[1].setState(ISS_OFF);
+                PECStateSP.apply();
             }
             else if (index == 1)
             {
                 OSPECEnabled = true;
                 StartPECPlayback(0);
-                PECStateS[0].s = ISS_OFF;
-                PECStateS[1].s = ISS_ON;
-                IDSetSwitch(&PECStateSP, nullptr);
+                PECStateSP[0].setState(ISS_OFF);
+                PECStateSP[1].setState(ISS_ON);
+                PECStateSP.apply();
             }
 
         }
 
         // Align Buttons
-        if (!strcmp(name, OSNAlignStarsSP.name))
+        if (OSNAlignStarsSP.isNameMatch(name))
         {
-            IUResetSwitch(&OSNAlignStarsSP);
-            IUUpdateSwitch(&OSNAlignStarsSP, states, names, n);
-            index = IUFindOnSwitchIndex(&OSNAlignStarsSP);
+            OSNAlignStarsSP.reset();
+            OSNAlignStarsSP.update(states, names, n);
+            index = OSNAlignStarsSP.findOnSwitchIndex();
 
             return true;
         }
 
         // Alignment
-        if (!strcmp(name, OSNAlignSP.name))
+        if (OSNAlignSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&OSNAlignSP, states, names, n) < 0)
+            if (!OSNAlignSP.update(states, names, n))
                 return false;
 
-            index = IUFindOnSwitchIndex(&OSNAlignSP);
+            index = OSNAlignSP.findOnSwitchIndex();
             //NewGeometricAlignment
             //End NewGeometricAlignment
-            OSNAlignSP.s = IPS_BUSY;
+            OSNAlignSP.setState(IPS_BUSY);
             if (index == 0)
             {
 
                 /* Index is 0-8 and represents index+1*/
 
-                int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
+                int index_stars = OSNAlignStarsSP.findOnSwitchIndex();
                 if ((index_stars <= 8) && (index_stars >= 0))
                 {
                     int stars = index_stars + 1;
-                    OSNAlignS[0].s = ISS_OFF;
+                    OSNAlignSP[0].setState(ISS_OFF);
                     LOGF_INFO("Align index: %d, stars: %d", index_stars, stars);
                     AlignStartGeometric(stars);
                 }
             }
             if (index == 1)
             {
-                OSNAlignS[1].s = ISS_OFF;
-                OSNAlignSP.s = AlignAddStar();
+                OSNAlignSP[1].setState(ISS_OFF);
+                OSNAlignSP.setState(AlignAddStar());
             }
             //Write to EEPROM moved to new line/variable
-            IDSetSwitch(&OSNAlignSP, nullptr);
+            OSNAlignSP.apply();
             UpdateAlignStatus();
         }
 
-        if (!strcmp(name, OSNAlignWriteSP.name))
+        if (OSNAlignWriteSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&OSNAlignWriteSP, states, names, n) < 0)
+            if (!OSNAlignWriteSP.update(states, names, n))
                 return false;
 
-            index = IUFindOnSwitchIndex(&OSNAlignWriteSP);
+            index = OSNAlignWriteSP.findOnSwitchIndex();
 
-            OSNAlignWriteSP.s = IPS_BUSY;
+            OSNAlignWriteSP.setState(IPS_BUSY);
             if (index == 0)
             {
-                OSNAlignWriteS[0].s = ISS_OFF;
-                OSNAlignWriteSP.s = AlignWrite();
+                OSNAlignWriteSP[0].setState(ISS_OFF);
+                OSNAlignWriteSP.setState(AlignWrite());
             }
-            IDSetSwitch(&OSNAlignWriteSP, nullptr);
+            OSNAlignWriteSP.apply();
             UpdateAlignStatus();
         }
 
-        if (!strcmp(name, OSNAlignPolarRealignSP.name))
+        if (OSNAlignPolarRealignSP.isNameMatch(name))
         {
             char cmd[10];
-            if (IUUpdateSwitch(&OSNAlignPolarRealignSP, states, names, n) < 0)
+            if (!OSNAlignPolarRealignSP.update(states, names, n))
                 return false;
 
 
-            OSNAlignPolarRealignSP.s = IPS_BUSY;
-            if (OSNAlignPolarRealignS[0].s == ISS_ON) //INFO
+            OSNAlignPolarRealignSP.setState(IPS_BUSY);
+            if (OSNAlignPolarRealignSP[0].getState() == ISS_ON) //INFO
             {
-                OSNAlignPolarRealignS[0].s = ISS_OFF;
+                OSNAlignPolarRealignSP[0].setState(ISS_OFF);
                 LOG_INFO("Step 1: Goto a bright star between 50 and 80 degrees N/S from the pole. Preferably on the Meridian.");
                 LOG_INFO("Step 2: Make sure it is centered.");
                 LOG_INFO("Step 3: Press Refine Polar Alignment.");
                 LOG_INFO("Step 4: Using the mount's Alt and Az screws manually recenter the star. (Video mode if your camera supports it will be helpful.)");
                 LOG_INFO("Optional: Start a new alignment.");
-                IDSetSwitch(&OSNAlignPolarRealignSP, nullptr);
+                OSNAlignPolarRealignSP.apply();
                 UpdateAlignStatus();
                 return true;
             }
-            if (OSNAlignPolarRealignS[1].s == ISS_ON) //Command
+            if (OSNAlignPolarRealignSP[1].getState() == ISS_ON) //Command
             {
-                OSNAlignPolarRealignS[1].s = ISS_OFF;
+                OSNAlignPolarRealignSP[1].setState(ISS_OFF);
                 // int returncode=sendOnStepCommand("
                 snprintf(cmd, 5, ":MP#");
                 sendOnStepCommandBlind(cmd);
                 if (!sendOnStepCommandBlind(":MP#"))
                 {
-                    IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment successful");
+                    OSNAlignPolarRealignSP.apply("Command for Refine Polar Alignment successful");
                     UpdateAlignStatus();
-                    OSNAlignPolarRealignSP.s = IPS_OK;
+                    OSNAlignPolarRealignSP.setState(IPS_OK);
                     return true;
                 }
                 else
                 {
-                    IDSetSwitch(&OSNAlignPolarRealignSP, "Command for Refine Polar Alignment FAILED");
+                    OSNAlignPolarRealignSP.apply("Command for Refine Polar Alignment FAILED");
                     UpdateAlignStatus();
-                    OSNAlignPolarRealignSP.s = IPS_ALERT;
+                    OSNAlignPolarRealignSP.setState(IPS_ALERT);
                     return false;
                 }
             }
         }
 
 #ifdef ONSTEP_NOTDONE
-        if (!strcmp(name, OSOutput1SP.name))      //
+        if (OSOutput1SP.isNameMatch(name))      //
         {
-            if (OSOutput1S[0].s == ISS_ON)
+            if (OSOutput1SP[0].getState() == ISS_ON)
             {
                 OSDisableOutput(1);
-                //PECStateS[0].s == ISS_OFF;
+                //PECStateSP[0].getState() == ISS_OFF;
             }
-            else if (OSOutput1S[1].s == ISS_ON)
+            else if (OSOutput1SP[1].getState() == ISS_ON)
             {
                 OSEnableOutput(1);
-                //PECStateS[1].s == ISS_OFF;
+                //PECStateSP[1].getState() == ISS_OFF;
             }
-            IDSetSwitch(&OSOutput1SP, nullptr);
+            OSOutput1SP.apply();
         }
-        if (!strcmp(name, OSOutput2SP.name))      //
+        if (OSOutput2SP.isNameMatch(name))      //
         {
-            if (OSOutput2S[0].s == ISS_ON)
+            if (OSOutput2SP[0].getState() == ISS_ON)
             {
                 OSDisableOutput(2);
-                //PECStateS[0].s == ISS_OFF;
+                //PECStateSP[0].getState() == ISS_OFF;
             }
-            else if (OSOutput2S[1].s == ISS_ON)
+            else if (OSOutput2SP[1].getState() == ISS_ON)
             {
                 OSEnableOutput(2);
-                //PECStateS[1].s == ISS_OFF;
+                //PECStateSP[1].getState() == ISS_OFF;
             }
-            IDSetSwitch(&OSOutput2SP, nullptr);
+            OSOutput2SP.apply();
         }
 #endif
 
@@ -1584,39 +1584,39 @@ bool LX200_OnStep::Park()
     if (!isSimulation())
     {
         // If scope is moving, let's stop it first.
-        if (EqNP.s == IPS_BUSY)
+        if (EqNP.getState() == IPS_BUSY)
         {
             if (!isSimulation() && abortSlew(PortFD) < 0)
             {
-                Telescope::AbortSP.s = IPS_ALERT;
+                Telescope::AbortSP.setState(IPS_ALERT);
                 IDSetSwitch(&(Telescope::AbortSP), "Abort slew failed.");
                 return false;
             }
-            Telescope::AbortSP.s = IPS_OK;
-            EqNP.s    = IPS_IDLE;
+            Telescope::AbortSP.setState(IPS_OK);
+            EqNP.setState(IPS_IDLE);
             IDSetSwitch(&(Telescope::AbortSP), "Slew aborted.");
-            IDSetNumber(&EqNP, nullptr);
+            EqNP.apply();
 
-            if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+            if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
             {
-                MovementNSSP.s = IPS_IDLE;
-                MovementWESP.s = IPS_IDLE;
-                EqNP.s = IPS_IDLE;
-                IUResetSwitch(&MovementNSSP);
-                IUResetSwitch(&MovementWESP);
+                MovementNSSP.setState(IPS_IDLE);
+                MovementWESP.setState(IPS_IDLE);
+                EqNP.setState(IPS_IDLE);
+                MovementNSSP.reset();
+                MovementWESP.reset();
 
-                IDSetSwitch(&MovementNSSP, nullptr);
-                IDSetSwitch(&MovementWESP, nullptr);
+                MovementNSSP.apply();
+                MovementWESP.apply();
             }
         }
         if (!isSimulation() && slewToPark(PortFD) < 0)
         {
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, "Parking Failed.");
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply("Parking Failed.");
             return false;
         }
     }
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     return true;
 }
 
@@ -1638,8 +1638,8 @@ bool LX200_OnStep::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Error reading RA/DEC.");
         return false;
     }
 
@@ -1788,15 +1788,15 @@ bool LX200_OnStep::ReadScopeStatus()
             //AutoPauseAtHome
             if (strstr(OSStat, "u"))  //  pa[u]se at home enabled?
             {
-                HomePauseS[1].s = ISS_ON;
-                HomePauseSP.s = IPS_OK;
-                IDSetSwitch(&HomePauseSP, "Pause at Home Enabled");
+                HomePauseSP[1].setState(ISS_ON);
+                HomePauseSP.setState(IPS_OK);
+                HomePauseSP.apply("Pause at Home Enabled");
             }
             else
             {
-                HomePauseS[0].s = ISS_ON;
-                HomePauseSP.s = IPS_OK;
-                IDSetSwitch(&HomePauseSP, nullptr);
+                HomePauseSP[0].setState(ISS_ON);
+                HomePauseSP.setState(IPS_OK);
+                HomePauseSP.apply();
             }
 
             if (strstr(OSStat, "w"))
@@ -1953,15 +1953,15 @@ bool LX200_OnStep::ReadScopeStatus()
         {
             // Pause at home enabled?
             //AutoPauseAtHome
-            HomePauseS[1].s = ISS_ON;
-            HomePauseSP.s = IPS_OK;
-            IDSetSwitch(&HomePauseSP, "Pause at Home Enabled");
+            HomePauseSP[1].setState(ISS_ON);
+            HomePauseSP.setState(IPS_OK);
+            HomePauseSP.apply("Pause at Home Enabled");
         }
         else
         {
-            HomePauseS[0].s = ISS_ON;
-            HomePauseSP.s = IPS_OK;
-            IDSetSwitch(&HomePauseSP, nullptr);
+            HomePauseSP[0].setState(ISS_ON);
+            HomePauseSP.setState(IPS_OK);
+            HomePauseSP.apply();
         }
         if (OSStat[2] & 0b10001000 == 0b10001000)
         {
@@ -1970,15 +1970,15 @@ bool LX200_OnStep::ReadScopeStatus()
         if (OSStat[2] & 0b10010000 == 0b10010000)
         {
             // Auto meridian flip
-            AutoFlipS[1].s = ISS_ON;
-            AutoFlipSP.s = IPS_OK;
-            IDSetSwitch(&AutoFlipSP, nullptr);
+            AutoFlipSP[1].setState(ISS_ON);
+            AutoFlipSP.setState(IPS_OK);
+            AutoFlipSP.apply();
         }
         else
         {
-            AutoFlipS[0].s = ISS_ON;
-            AutoFlipSP.s = IPS_OK;
-            IDSetSwitch(&AutoFlipSP, nullptr);
+            AutoFlipSP[0].setState(ISS_ON);
+            AutoFlipSP.setState(IPS_OK);
+            AutoFlipSP.apply();
         }
         if (OSStat[2] & 0b10100000 == 0b10100000)
         {
@@ -2159,18 +2159,18 @@ bool LX200_OnStep::ReadScopeStatus()
     //========== Get actual Backlash values
     getCommandString(PortFD, OSbacklashDEC, ":%BD#");
     getCommandString(PortFD, OSbacklashRA, ":%BR#");
-    BacklashNP.np[0].value = atof(OSbacklashDEC);
-    BacklashNP.np[1].value = atof(OSbacklashRA);
-    IDSetNumber(&BacklashNP, nullptr);
+    BacklashNP[0].setValue(atof(OSbacklashDEC));
+    BacklashNP[1].setValue(atof(OSbacklashRA));
+    BacklashNP.apply();
 
     double pulseguiderate;
     getCommandString(PortFD, GuideValue, ":GX90#");
     //     LOGF_DEBUG("Guide Rate String: %s", GuideValue);
     pulseguiderate = atof(GuideValue);
     LOGF_DEBUG("Guide Rate: %f", pulseguiderate);
-    GuideRateNP.np[0].value = pulseguiderate;
-    GuideRateNP.np[1].value = pulseguiderate;
-    IDSetNumber(&GuideRateNP, nullptr);
+    GuideRateNP[0].setValue(pulseguiderate);
+    GuideRateNP[1].setValue(pulseguiderate);
+    GuideRateNP.apply();
 
 
 #ifndef OnStep_Alpha
@@ -2180,15 +2180,15 @@ bool LX200_OnStep::ReadScopeStatus()
         getCommandString(PortFD, TempValue, ":GX95#");
         if (atoi(TempValue))
         {
-            AutoFlipS[1].s = ISS_ON;
-            AutoFlipSP.s = IPS_OK;
-            IDSetSwitch(&AutoFlipSP, nullptr);
+            AutoFlipSP[1].setState(ISS_ON);
+            AutoFlipSP.setState(IPS_OK);
+            AutoFlipSP.apply();
         }
         else
         {
-            AutoFlipS[0].s = ISS_ON;
-            AutoFlipSP.s = IPS_OK;
-            IDSetSwitch(&AutoFlipSP, nullptr);
+            AutoFlipSP[0].setState(ISS_ON);
+            AutoFlipSP.setState(IPS_OK);
+            AutoFlipSP.apply();
         }
     }
 #endif
@@ -2199,34 +2199,34 @@ bool LX200_OnStep::ReadScopeStatus()
         getCommandString(PortFD, TempValue, ":GX96#");
         if (strstr(TempValue, "W"))
         {
-            PreferredPierSideS[0].s = ISS_ON;
-            PreferredPierSideSP.s = IPS_OK;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
+            PreferredPierSideSP[0].setState(ISS_ON);
+            PreferredPierSideSP.setState(IPS_OK);
+            PreferredPierSideSP.apply();
         }
         else if (strstr(TempValue, "E"))
         {
-            PreferredPierSideS[1].s = ISS_ON;
-            PreferredPierSideSP.s = IPS_OK;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
+            PreferredPierSideSP[1].setState(ISS_ON);
+            PreferredPierSideSP.setState(IPS_OK);
+            PreferredPierSideSP.apply();
         }
         else if (strstr(TempValue, "B"))
         {
-            PreferredPierSideS[2].s = ISS_ON;
-            PreferredPierSideSP.s = IPS_OK;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
+            PreferredPierSideSP[2].setState(ISS_ON);
+            PreferredPierSideSP.setState(IPS_OK);
+            PreferredPierSideSP.apply();
         }
         else
         {
-            IUResetSwitch(&PreferredPierSideSP);
-            PreferredPierSideSP.s = IPS_BUSY;
-            IDSetSwitch(&PreferredPierSideSP, nullptr);
+            PreferredPierSideSP.reset();
+            PreferredPierSideSP.setState(IPS_BUSY);
+            PreferredPierSideSP.apply();
         }
 
         getCommandString(PortFD, TempValue, ":GXE9#"); // E
         getCommandString(PortFD, TempValue2, ":GXEA#"); // W
-        minutesPastMeridianNP.np[0].value = atof(TempValue); // E
-        minutesPastMeridianNP.np[1].value = atof(TempValue2); //W
-        IDSetNumber(&minutesPastMeridianNP, nullptr);
+        minutesPastMeridianNP[0].setValue(atof(TempValue)); // E
+        minutesPastMeridianNP[1].setValue(atof(TempValue2)); //W
+        minutesPastMeridianNP.apply();
 
     }
 
@@ -2450,7 +2450,7 @@ IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks)
 {
     //  :FSsnnn#  Set focuser target position (in microns)
     //            Returns: Nothing
-    if (FocusAbsPosN[0].max >= int(targetTicks) && FocusAbsPosN[0].min <= int(targetTicks))
+    if (FocusAbsPosNP[0].max >= int(targetTicks) && FocusAbsPosNP[0].min <= int(targetTicks))
     {
         char read_buffer[32];
         snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", int(targetTicks));
@@ -2495,57 +2495,57 @@ void LX200_OnStep::OSUpdateFocuser()
         // Alternate option:
         //if (!sendOnStepCommand(":FA#")) {
         getCommandString(PortFD, value, ":FG#");
-        FocusAbsPosN[0].value =  atoi(value);
-        current = FocusAbsPosN[0].value;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        LOGF_DEBUG("Current focuser: %d, %d", atoi(value), FocusAbsPosN[0].value);
+        FocusAbsPosNP[0].setValue(atoi(value));
+        current = FocusAbsPosNP[0].getValue();
+        FocusAbsPosNP.apply();
+        LOGF_DEBUG("Current focuser: %d, %d", atoi(value), FocusAbsPosNP[0].getValue());
         //  :FT#  get status
         //         Returns: M# (for moving) or S# (for stopped)
         getCommandString(PortFD, value, ":FT#");
         if (value[0] == 'S')
         {
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            FocusAbsPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusRelPosNP.apply();
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
         }
         else if (value[0] == 'M')
         {
-            FocusRelPosNP.s = IPS_BUSY;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            FocusAbsPosNP.s = IPS_BUSY;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusRelPosNP.setState(IPS_BUSY);
+            FocusRelPosNP.apply();
+            FocusAbsPosNP.setState(IPS_BUSY);
+            FocusAbsPosNP.apply();
         }
         else
         {
             //INVALID REPLY
-            FocusRelPosNP.s = IPS_ALERT;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            FocusAbsPosNP.s = IPS_ALERT;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
+            FocusRelPosNP.setState(IPS_ALERT);
+            FocusRelPosNP.apply();
+            FocusAbsPosNP.setState(IPS_ALERT);
+            FocusAbsPosNP.apply();
         }
         //  :FM#  Get max position (in microns)
         //         Returns: n#
         getCommandString(PortFD, value, ":FM#");
-        FocusAbsPosN[0].max   = atoi(value);
-        IUUpdateMinMax(&FocusAbsPosNP);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setMax(atoi(value));
+        FocusAbsPosNP.updateMinMax();
+        FocusAbsPosNP.apply();
         //  :FI#  Get full in position (in microns)
         //         Returns: n#
         getCommandString(PortFD, value, ":FI#");
-        FocusAbsPosN[0].min =  atoi(value);
-        IUUpdateMinMax(&FocusAbsPosNP);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setMin(atoi(value));
+        FocusAbsPosNP.updateMinMax();
+        FocusAbsPosNP.apply();
         FI::updateProperties();
-        LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+        LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosNP[0].min, FocusAbsPosNP[0].max);
     }
 
 
     if(OSFocuser2)
     {
         getCommandString(PortFD, value, ":fG#");
-        OSFocus2TargNP.np[0].value = atoi(value);
-        IDSetNumber(&OSFocus2TargNP, nullptr);
+        OSFocus2TargNP[0].setValue(atoi(value));
+        OSFocus2TargNP.apply();
     }
 }
 
@@ -2679,74 +2679,74 @@ IPState LX200_OnStep::PECStatus (int axis)
         //  :$QZ?  Get PEC status
         //         Returns: S#
         // Returns status (pecSense) In the form: Status is one of "IpPrR" (I)gnore, get ready to (p)lay, (P)laying, get ready to (r)ecord, (R)ecording.  Or an optional (.) to indicate an index detect.
-        // IUFillSwitch(&OSPECStatusS[0], "OFF", "OFF", ISS_ON);
-        // IUFillSwitch(&OSPECStatusS[1], "Playing", "Playing", ISS_OFF);
-        // IUFillSwitch(&OSPECStatusS[2], "Recording", "Recording", ISS_OFF);
-        // IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
-        // IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
+        // OSPECStatusSP[0].fill("OFF", "OFF", ISS_ON);
+        // OSPECStatusSP[1].fill("Playing", "Playing", ISS_OFF);
+        // OSPECStatusSP[2].fill("Recording", "Recording", ISS_OFF);
+        // OSPECStatusSP[3].fill("Will Play", "Will Play", ISS_OFF);
+        // OSPECStatusSP[4].fill("Will Record", "Will Record", ISS_OFF);
         char value[RB_MAX_LEN] = "  ";
-        OSPECStatusSP.s = IPS_BUSY;
+        OSPECStatusSP.setState(IPS_BUSY);
         getCommandString(PortFD, value, ":$QZ?#");
         // LOGF_INFO("Response %s", value);
         // LOGF_INFO("Response %d", value[0]);
         // LOGF_INFO("Response %d", value[1]);
-        OSPECStatusS[0].s = ISS_OFF ;
-        OSPECStatusS[1].s = ISS_OFF ;
-        OSPECStatusS[2].s = ISS_OFF ;
-        OSPECStatusS[3].s = ISS_OFF ;
-        OSPECStatusS[4].s = ISS_OFF ;
+        OSPECStatusSP[0].setState(ISS_OFF );
+        OSPECStatusSP[1].setState(ISS_OFF );
+        OSPECStatusSP[2].setState(ISS_OFF );
+        OSPECStatusSP[3].setState(ISS_OFF );
+        OSPECStatusSP[4].setState(ISS_OFF );
         if (value[0] == 'I') //Ignore
         {
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[0].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
+            OSPECStatusSP.setState(IPS_OK);
+            OSPECStatusSP[0].setState(ISS_ON );
+            OSPECRecordSP.setState(IPS_IDLE);
             OSPECEnabled = false;
             LOG_INFO("Controller reports PEC Ignored and not supported");
             LOG_INFO("No Further PEC Commands will be processed, unless status changed");
         }
         else if (value[0] == 'R') //Active Recording
         {
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[2].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_BUSY;
+            OSPECStatusSP.setState(IPS_OK);
+            OSPECStatusSP[2].setState(ISS_ON );
+            OSPECRecordSP.setState(IPS_BUSY);
         }
         else if (value[0] == 'r')  //Waiting for index before recording
         {
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[4].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_BUSY;
+            OSPECStatusSP.setState(IPS_OK);
+            OSPECStatusSP[4].setState(ISS_ON );
+            OSPECRecordSP.setState(IPS_BUSY);
         }
         else if (value[0] == 'P') //Active Playing
         {
-            OSPECStatusSP.s = IPS_BUSY;
-            OSPECStatusS[1].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
+            OSPECStatusSP.setState(IPS_BUSY);
+            OSPECStatusSP[1].setState(ISS_ON );
+            OSPECRecordSP.setState(IPS_IDLE);
         }
         else if (value[0] == 'p') //Waiting for index before playing
         {
-            OSPECStatusSP.s = IPS_BUSY;
-            OSPECStatusS[3].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
+            OSPECStatusSP.setState(IPS_BUSY);
+            OSPECStatusSP[3].setState(ISS_ON );
+            OSPECRecordSP.setState(IPS_IDLE);
         }
         else //INVALID REPLY
         {
-            OSPECStatusSP.s = IPS_ALERT;
-            OSPECRecordSP.s = IPS_ALERT;
+            OSPECStatusSP.setState(IPS_ALERT);
+            OSPECRecordSP.setState(IPS_ALERT);
         }
         if (value[1] == '.')
         {
-            OSPECIndexSP.s = IPS_OK;
-            OSPECIndexS[0].s = ISS_OFF;
-            OSPECIndexS[1].s = ISS_ON;
+            OSPECIndexSP.setState(IPS_OK);
+            OSPECIndexSP[0].setState(ISS_OFF);
+            OSPECIndexSP[1].setState(ISS_ON);
         }
         else
         {
-            OSPECIndexS[1].s = ISS_OFF;
-            OSPECIndexS[0].s = ISS_ON;
+            OSPECIndexSP[1].setState(ISS_OFF);
+            OSPECIndexSP[0].setState(ISS_ON);
         }
-        IDSetSwitch(&OSPECStatusSP, nullptr);
-        IDSetSwitch(&OSPECRecordSP, nullptr);
-        IDSetSwitch(&OSPECIndexSP, nullptr);
+        OSPECStatusSP.apply();
+        OSPECRecordSP.apply();
+        OSPECIndexSP.apply();
         return IPS_OK;
     }
     else
@@ -2796,11 +2796,11 @@ IPState LX200_OnStep::AlignStartGeometric (int stars)
     char cmd[8];
 
     LOG_INFO("Sending Command to Start Alignment");
-    IUSaveText(&OSNAlignT[0], "Align STARTED");
-    IUSaveText(&OSNAlignT[1], "GOTO a star, center it");
-    IUSaveText(&OSNAlignT[2], "GOTO a star, Solve and Sync");
-    IUSaveText(&OSNAlignT[3], "Press 'Issue Align' if not solving");
-    IDSetText(&OSNAlignTP, "==>Align Started");
+    OSNAlignTP[0].setText("Align STARTED");
+    OSNAlignTP[1].setText("GOTO a star, center it");
+    OSNAlignTP[2].setText("GOTO a star, Solve and Sync");
+    OSNAlignTP[3].setText("Press 'Issue Align' if not solving");
+    OSNAlignTP.apply("==>Align Started");
     // Check for max number of stars and gracefully fall back to max, if more are requested.
     char read_buffer[RB_MAX_LEN];
     if(getCommandString(PortFD, read_buffer, ":A?#"))
@@ -2865,11 +2865,11 @@ bool LX200_OnStep::UpdateAlignStatus ()
     current_star = read_buffer[1] - '0';
     align_stars = read_buffer[2] - '0';
     snprintf(stars, sizeof(stars), "%d", max_stars);
-    IUSaveText(&OSNAlignT[5], stars);
+    OSNAlignTP[5].setText(stars);
     snprintf(stars, sizeof(stars), "%d", current_star);
-    IUSaveText(&OSNAlignT[6], stars);
+    OSNAlignTP[6].setText(stars);
     snprintf(stars, sizeof(stars), "%d", align_stars);
-    IUSaveText(&OSNAlignT[7], stars);
+    OSNAlignTP[7].setText(stars);
     LOGF_DEBUG("Align: max_stars: %i current star: %u, align_stars %u", max_stars, current_star, align_stars);
 
     /* if (align_stars > max_stars) {
@@ -2880,17 +2880,17 @@ bool LX200_OnStep::UpdateAlignStatus ()
     if (current_star <= align_stars)
     {
         snprintf(msg, sizeof(msg), "%s Manual Align: Star %d/%d", read_buffer, current_star, align_stars );
-        IUSaveText(&OSNAlignT[4], msg);
+        OSNAlignTP[4].setText(msg);
     }
     if (current_star > align_stars && max_stars > 1)
     {
         LOGF_DEBUG("Align: current star: %u, align_stars %u", int(current_star), int(align_stars));
         snprintf(msg, sizeof(msg), "Manual Align: Completed");
         AlignDone();
-        IUSaveText(&OSNAlignT[4], msg);
+        OSNAlignTP[4].setText(msg);
         UpdateAlignErr();
     }
-    IDSetText(&OSNAlignTP, nullptr);
+    OSNAlignTP.apply();
     return true;
 }
 
@@ -2919,10 +2919,10 @@ bool LX200_OnStep::UpdateAlignErr()
 
     char read_buffer[RB_MAX_LEN];
     char polar_error[40], sexabuf[20];
-    //  IUFillText(&OSNAlignT[4], "4", "Current Status", "Not Updated");
-    //  IUFillText(&OSNAlignT[5], "5", "Max Stars", "Not Updated");
-    //  IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
-    //  IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
+    //  OSNAlignTP[4].fill("4", "Current Status", "Not Updated");
+    //  OSNAlignTP[5].fill("5", "Max Stars", "Not Updated");
+    //  OSNAlignTP[6].fill("6", "Current Star", "Not Updated");
+    //  OSNAlignTP[7].fill("7", "# of Align Stars", "Not Updated");
 
     // LOG_INFO("Getting Align Error Status");
     if(getCommandString(PortFD, read_buffer, ":GX02#"))
@@ -2943,11 +2943,11 @@ bool LX200_OnStep::UpdateAlignErr()
     long azmCor = strtold(read_buffer, nullptr);
     fs_sexa(sexabuf, (double)azmCor / 3600, 4, 3600);
     snprintf(polar_error, sizeof(polar_error), "%ld'' /%s", azmCor, sexabuf);
-    IUSaveText(&OSNAlignErrT[1], polar_error);
+    OSNAlignErrTP[1].setText(polar_error);
     fs_sexa(sexabuf, (double)altCor / 3600, 4, 3600);
     snprintf(polar_error, sizeof(polar_error), "%ld'' /%s", altCor, sexabuf);
-    IUSaveText(&OSNAlignErrT[0], polar_error);
-    IDSetText(&OSNAlignErrTP, nullptr);
+    OSNAlignErrTP[0].setText(polar_error);
+    OSNAlignErrTP.apply();
 
 
     return true;
@@ -2960,11 +2960,11 @@ IPState LX200_OnStep::AlignDone()
     {
         OSAlignCompleted = true;
         LOG_INFO("Alignment Done - May still be calculating");
-        IUSaveText(&OSNAlignT[0], "Align FINISHED");
-        IUSaveText(&OSNAlignT[1], "------");
-        IUSaveText(&OSNAlignT[2], "Optionally press:");
-        IUSaveText(&OSNAlignT[3], "Write Align to NVRAM/Flash ");
-        IDSetText(&OSNAlignTP, nullptr);
+        OSNAlignTP[0].setText("Align FINISHED");
+        OSNAlignTP[1].setText("------");
+        OSNAlignTP[2].setText("Optionally press:");
+        OSNAlignTP[3].setText("Write Align to NVRAM/Flash ");
+        OSNAlignTP.apply();
         return IPS_OK;
     }
     return IPS_BUSY;
@@ -2976,17 +2976,17 @@ IPState LX200_OnStep::AlignWrite()
     char cmd[8];
     LOG_INFO("Sending Command to Finish Alignment and write");
     strcpy(cmd, ":AW#");
-    IUSaveText(&OSNAlignT[0], "Align FINISHED");
-    IUSaveText(&OSNAlignT[1], "------");
-    IUSaveText(&OSNAlignT[2], "And Written to EEPROM");
-    IUSaveText(&OSNAlignT[3], "------");
-    IDSetText(&OSNAlignTP, nullptr);
+    OSNAlignTP[0].setText("Align FINISHED");
+    OSNAlignTP[1].setText("------");
+    OSNAlignTP[2].setText("And Written to EEPROM");
+    OSNAlignTP[3].setText("------");
+    OSNAlignTP.apply();
     if (sendOnStepCommandBlind(cmd))
     {
         return IPS_OK;
     }
-    IUSaveText(&OSNAlignT[0], "Align WRITE FAILED");
-    IDSetText(&OSNAlignTP, nullptr);
+    OSNAlignTP[0].setText("Align WRITE FAILED");
+    OSNAlignTP.apply();
     return IPS_ALERT;
 
 }
@@ -3085,15 +3085,15 @@ bool LX200_OnStep::OSGetOutputState(int output)
     getCommandString(PortFD, value, command);
     if (value[0] == 0)
     {
-        OSOutput1S[0].s = ISS_ON;
-        OSOutput1S[1].s = ISS_OFF;
+        OSOutput1SP[0].setState(ISS_ON);
+        OSOutput1SP[1].setState(ISS_OFF);
     }
     else
     {
-        OSOutput1S[0].s = ISS_OFF;
-        OSOutput1S[1].s = ISS_ON;
+        OSOutput1SP[0].setState(ISS_OFF);
+        OSOutput1SP[1].setState(ISS_ON);
     }
-    IDSetSwitch(&OSOutput1SP, nullptr);
+    OSOutput1SP.apply();
     return true;
 }
 
@@ -3163,8 +3163,8 @@ void LX200_OnStep::slewError(int slewCode)
         default:
             LOG_ERROR("OnStep slew/syncError: Not in range of values that should be returned! INVALID, Something went wrong!");
     }
-    EqNP.s = IPS_ALERT;
-    IDSetNumber(&EqNP, nullptr);
+    EqNP.setState(IPS_ALERT);
+    EqNP.apply();
 }
 
 
@@ -3179,8 +3179,8 @@ bool LX200_OnStep::Sync(double ra, double dec)
     {
         if (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error setting RA/DEC. Unable to Sync.");
             return false;
         }
         LOG_DEBUG("CMD <:CM#>");
@@ -3191,8 +3191,8 @@ bool LX200_OnStep::Sync(double ra, double dec)
             error_code = read_buffer[1] - '0';
             LOGF_DEBUG("Sync failed with response: %s, Error code: %i", read_buffer, error_code);
             slewError(error_code);
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Synchronization failed.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Synchronization failed.");
             return false;
         }
     }
@@ -3202,7 +3202,7 @@ bool LX200_OnStep::Sync(double ra, double dec)
 
     LOG_INFO("OnStep: Synchronization successful.");
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     NewRaDec(currentRA, currentDEC);
 

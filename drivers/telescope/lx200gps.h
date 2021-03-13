@@ -22,6 +22,10 @@
 
 #include "lx200autostar.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class LX200GPS : public LX200Autostar
 {
   public:
@@ -37,34 +41,14 @@ class LX200GPS : public LX200Autostar
 
   protected:
     virtual bool UnPark();
-
-    ISwitchVectorProperty GPSPowerSP;
-    ISwitch GPSPowerS[2];
-
-    ISwitchVectorProperty GPSStatusSP;
-    ISwitch GPSStatusS[3];
-
-    ISwitchVectorProperty GPSUpdateSP;
-    ISwitch GPSUpdateS[2];
-
-    ISwitchVectorProperty AltDecPecSP;
-    ISwitch AltDecPecS[2];
-
-    ISwitchVectorProperty AzRaPecSP;
-    ISwitch AzRaPecS[2];
-
-    ISwitchVectorProperty SelenSyncSP;
-    ISwitch SelenSyncS[1];
-
-    ISwitchVectorProperty AltDecBacklashSP;
-    ISwitch AltDecBacklashS[1];
-
-    ISwitchVectorProperty AzRaBacklashSP;
-    ISwitch AzRaBacklashS[1];
-
-    ISwitchVectorProperty OTAUpdateSP;
-    ISwitch OTAUpdateS[1];
-
-    INumberVectorProperty OTATempNP;
-    INumber OTATempN[1];
+    INDI::PropertySwitch GPSPowerSP {2};
+    INDI::PropertySwitch GPSStatusSP {3};
+    INDI::PropertySwitch GPSUpdateSP {2};
+    INDI::PropertySwitch AltDecPecSP {2};
+    INDI::PropertySwitch AzRaPecSP {2};
+    INDI::PropertySwitch SelenSyncSP {1};
+    INDI::PropertySwitch AltDecBacklashSP {1};
+    INDI::PropertySwitch AzRaBacklashSP {1};
+    INDI::PropertySwitch OTAUpdateSP {1};
+    INDI::PropertyNumber OTATempNP {1};
 };

@@ -23,6 +23,10 @@
 
 #include "indibase/indidome.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
+
 class RigelDome : public INDI::Dome
 {
     public:
@@ -100,8 +104,7 @@ class RigelDome : public INDI::Dome
         ///////////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
-        ISwitchVectorProperty OperationSP;
-        ISwitch OperationS[2];
+        INDI::PropertySwitch OperationSP {2};
         enum
         {
             OPERATION_FIND_HOME,
@@ -109,8 +112,7 @@ class RigelDome : public INDI::Dome
         };
 
         // Info
-        ITextVectorProperty InfoTP;
-        IText InfoT[4] {};
+        INDI::PropertyText InfoTP {4};
         enum
         {
             INFO_FIRMWARE,

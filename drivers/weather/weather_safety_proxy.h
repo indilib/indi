@@ -26,6 +26,11 @@
 
 #include "indiweather.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 typedef enum
 {
     WSP_SCRIPT = 0,
@@ -86,23 +91,17 @@ class WeatherSafetyProxy : public INDI::Weather
     IPState executeCurl();
     IPState parseSafetyJSON(const char *buf, int byte_count);
 
-    IText keywordT[1] {};
-    ITextVectorProperty keywordTP;
+    INDI::PropertyText keywordTP {1};
 
-    IText ScriptsT[WSP_SCRIPT_COUNT] {};
-    ITextVectorProperty ScriptsTP;
+    INDI::PropertyText ScriptsTP {WSP_SCRIPT_COUNT};
 
-    IText UrlT[WSP_URL_COUNT] {};
-    ITextVectorProperty UrlTP;
+    INDI::PropertyText UrlTP {WSP_URL_COUNT};
 
-    ISwitch ScriptOrCurlS[WSP_USE_COUNT];
-    ISwitchVectorProperty ScriptOrCurlSP;
+    INDI::PropertySwitch ScriptOrCurlSP {WSP_USE_COUNT};
 
-    IText reasonsT[1] {};
-    ITextVectorProperty reasonsTP;
+    INDI::PropertyText reasonsTP {1};
 
-    INumber softErrorHysteresisN[WSP_SOFT_ERROR_COUNT];
-    INumberVectorProperty softErrorHysteresisNP;
+    INDI::PropertyNumber softErrorHysteresisNP {WSP_SOFT_ERROR_COUNT};
 
     int Safety = -1;
     int SofterrorCount = 0;

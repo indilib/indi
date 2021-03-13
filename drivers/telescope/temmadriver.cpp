@@ -148,7 +148,7 @@ void TemmaMount::ISGetProperties(const char *dev)
     //defineProperty(&GuideWENP);
 
     // JM 2016-11-10: This is not used anywhere in the code now. Enable it again when you use it
-    //defineProperty(&GuideRateNP);
+    //defineProperty(GuideRateNP);
 }
 #endif
 
@@ -456,7 +456,7 @@ bool TemmaMount::ReadScopeStatus()
         struct ln_equ_posn RaDec;
         bool aligned;
         juliandate = ln_get_julian_from_sys();
-        lst = ln_get_apparent_sidereal_time(juliandate) + (LocationN[1].value * 24.0 / 360.0);
+        lst = ln_get_apparent_sidereal_time(juliandate) + (LocationNP[1].value * 24.0 / 360.0);
         // Use HA/Dec as  telescope coordinate system
         RaDec.ra = ((lst - currentRA) * 360.0) / 24.0;
         //RaDec.ra = (ra * 360.0) / 24.0;
@@ -965,8 +965,8 @@ ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
             ln_lnlat_posn here;
             ln_hrz_posn altaz;
 
-            here.lat=LocationN[LOCATION_LATITUDE].value;
-            here.lng=LocationN[LOCATION_LONGITUDE].value;
+            here.lat=LocationNP[LOCATION_LATITUDE].getValue();
+            here.lng=LocationNP[LOCATION_LONGITUDE].getValue();
             eq.ra=ra*360.0/24.0;	//  this is wanted in degrees, not hours
             eq.dec=dec;
             ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
@@ -975,7 +975,7 @@ ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
 
         /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
         double lha, lst;
-        lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+        lst = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].value);
         lha = get_local_hour_angle(lst, ra);
         //  convert lha to degrees
         lha    = lha * 360 / 24;
@@ -1036,8 +1036,8 @@ ln_equ_posn TemmaMount::SkyToTelescope(double ra, double dec)
             /*
                 eq.ra=ra*360/24;
                 eq.dec=dec;
-                here.lat=LocationN[LOCATION_LATITUDE].value;
-                here.lng=LocationN[LOCATION_LONGITUDE].value;
+                here.lat=LocationNP[LOCATION_LATITUDE].getValue();
+                here.lng=LocationNP[LOCATION_LONGITUDE].getValue();
                 ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
             AltitudeAzimuthFromTelescopeDirectionVector(TDV,altaz);
             //  now convert the resulting altaz into radec
@@ -1050,7 +1050,7 @@ ln_equ_posn TemmaMount::SkyToTelescope(double ra, double dec)
             double lst;
             LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, eq);
             //  and now we have to convert from lha back to RA
-            lst            = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+            lst            = get_local_sidereal_time(LocationNP[LOCATION_LONGITUDE].value);
             eq.ra          = eq.ra * 24 / 360;
             RightAscension = lst - eq.ra;
             RightAscension = range24(RightAscension);
@@ -1351,8 +1351,8 @@ void TemmaMount::mountSim()
                     break;
 
                 case TRACK_CUSTOM:
-                    da = ((TrackRateN[AXIS_RA].value - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
-                    dx = (TrackRateN[AXIS_DE].value / 3600.0 * dt);
+                    da = ((TrackRateNP[AXIS_RA].value - TRACKRATE_SIDEREAL) / 3600.0 * dt / 15.);
+                    dx = (TrackRateNP[AXIS_DE].value / 3600.0 * dt);
                     break;
 
             }

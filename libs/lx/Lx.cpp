@@ -20,7 +20,7 @@ void Lx::setCamerafd(int fd)
 
 bool Lx::isEnabled()
 {
-    return (LxEnableS[1].s == ISS_ON);
+    return (LxEnableSP[1].getState() == ISS_ON);
 }
 
 bool Lx::initProperties(INDI::DefaultDevice *device)
@@ -28,74 +28,74 @@ bool Lx::initProperties(INDI::DefaultDevice *device)
     //IDLog("Initializing Long Exposure Properties\n");
     dev         = device;
     device_name = dev->getDeviceName();
-    IUFillSwitch(&LxEnableS[0], "Disable", "", ISS_ON);
-    IUFillSwitch(&LxEnableS[1], "Enable", "", ISS_OFF);
-    IUFillSwitchVector(&LxEnableSP, LxEnableS, NARRAY(LxEnableS), device_name, "Activate", "", LX_TAB, IP_RW,
+    LxEnableSP[0].fill("Disable", "", ISS_ON);
+    LxEnableSP[1].fill("Enable", "", ISS_OFF);
+    LxEnableSP.fill(device_name, "Activate", "", LX_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillSwitch(&LxModeS[LXSERIAL], "Serial", "", ISS_ON);
-    //IUFillSwitch(&LxModeS[LXPARALLEL], "Parallel", "", ISS_OFF);
-    IUFillSwitch(&LxModeS[LXLED], "SPC900 LED", "", ISS_OFF);
-    //IUFillSwitch(&LxModeS[LXGPIO], "GPIO (Arm/RPI)", "", ISS_OFF);
-    //  IUFillSwitch(&LxModeS[4], "IndiDuino Switcher", "", ISS_OFF); // Snooping is not enough
-    IUFillSwitchVector(&LxModeSP, LxModeS, NARRAY(LxModeS), device_name, "LX Mode", "", LX_TAB, IP_RW, ISR_1OFMANY, 0,
+    LxModeSP[LXSERIAL].fill("Serial", "", ISS_ON);
+    //LxModeSP[LXPARALLEL].fill("Parallel", "", ISS_OFF);
+    LxModeSP[LXLED].fill("SPC900 LED", "", ISS_OFF);
+    //LxModeSP[LXGPIO].fill("GPIO (Arm/RPI)", "", ISS_OFF);
+    //  LxModeSP[4].fill("IndiDuino Switcher", "", ISS_OFF); // Snooping is not enough
+    LxModeSP.fill(device_name, "LX Mode", "", LX_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
-    IUFillText(&LxPortT[0], "Port", "", "/dev/ttyUSB0");
-    IUFillTextVector(&LxPortTP, LxPortT, NARRAY(LxPortT), device_name, "Lx port", "", LX_TAB, IP_RW, 0, IPS_IDLE);
-    IUFillSwitch(&LxSerialOptionS[0], "Use DTR (pin 4)", "", ISS_OFF);
-    IUFillSwitch(&LxSerialOptionS[1], "Use RTS (pin 7)", "", ISS_ON);
-    IUFillSwitch(&LxSerialOptionS[2], "Use Serial command", "", ISS_OFF);
-    IUFillSwitchVector(&LxSerialOptionSP, LxSerialOptionS, NARRAY(LxSerialOptionS), device_name, "Serial Options", "",
+    LxPortTP[0].fill("Port", "", "/dev/ttyUSB0");
+    LxPortTP.fill(device_name, "Lx port", "", LX_TAB, IP_RW, 0, IPS_IDLE);
+    LxSerialOptionSP[0].fill("Use DTR (pin 4)", "", ISS_OFF);
+    LxSerialOptionSP[1].fill("Use RTS (pin 7)", "", ISS_ON);
+    LxSerialOptionSP[2].fill("Use Serial command", "", ISS_OFF);
+    LxSerialOptionSP.fill(device_name, "Serial Options", "",
                        LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillSwitch(&LxParallelOptionS[0], "Use Data 0 (pin 2)", "", ISS_OFF);
-    IUFillSwitch(&LxParallelOptionS[1], "Use Data 1 (pin 3)", "", ISS_ON); // Steve's Chambers Schematics
-    IUFillSwitch(&LxParallelOptionS[2], "Use Data 2 (pin 4)", "", ISS_OFF);
-    IUFillSwitch(&LxParallelOptionS[3], "Use Data 3 (pin 5)", "", ISS_OFF);
-    IUFillSwitch(&LxParallelOptionS[4], "Use Data 4 (pin 6)", "", ISS_OFF);
-    IUFillSwitch(&LxParallelOptionS[5], "Use Data 5 (pin 7)", "", ISS_OFF);
-    IUFillSwitch(&LxParallelOptionS[6], "Use Data 6 (pin 8)", "", ISS_OFF);
-    IUFillSwitch(&LxParallelOptionS[7], "Use Data 7 (pin 9)", "", ISS_OFF);
-    IUFillSwitch(&LxParallelOptionS[8], "Use Parallel command", "", ISS_OFF);
-    IUFillSwitchVector(&LxParallelOptionSP, LxParallelOptionS, NARRAY(LxParallelOptionS), device_name,
+    LxParallelOptionSP[0].fill("Use Data 0 (pin 2)", "", ISS_OFF);
+    LxParallelOptionSP[1].fill("Use Data 1 (pin 3)", "", ISS_ON); // Steve's Chambers Schematics
+    LxParallelOptionSP[2].fill("Use Data 2 (pin 4)", "", ISS_OFF);
+    LxParallelOptionSP[3].fill("Use Data 3 (pin 5)", "", ISS_OFF);
+    LxParallelOptionSP[4].fill("Use Data 4 (pin 6)", "", ISS_OFF);
+    LxParallelOptionSP[5].fill("Use Data 5 (pin 7)", "", ISS_OFF);
+    LxParallelOptionSP[6].fill("Use Data 6 (pin 8)", "", ISS_OFF);
+    LxParallelOptionSP[7].fill("Use Data 7 (pin 9)", "", ISS_OFF);
+    LxParallelOptionSP[8].fill("Use Parallel command", "", ISS_OFF);
+    LxParallelOptionSP.fill(device_name,
                        "Parallel Options", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillText(&LxStartStopCmdT[0], "Start command", "", ":O1");
-    IUFillText(&LxStartStopCmdT[1], "Stop command", "", ":O0");
-    IUFillTextVector(&LxStartStopCmdTP, LxStartStopCmdT, NARRAY(LxStartStopCmdT), device_name, "Start/Stop commands",
+    LxStartStopCmdTP[0].fill("Start command", "", ":O1");
+    LxStartStopCmdTP[1].fill("Stop command", "", ":O0");
+    LxStartStopCmdTP.fill(device_name, "Start/Stop commands",
                      "", LX_TAB, IP_RW, 0, IPS_IDLE);
-    IUFillSwitch(&LxLogicalLevelS[0], "Low to High", "", ISS_ON);
-    IUFillSwitch(&LxLogicalLevelS[1], "High to Low", "", ISS_OFF);
-    IUFillSwitchVector(&LxLogicalLevelSP, LxLogicalLevelS, NARRAY(LxLogicalLevelS), device_name, "Start Transition", "",
+    LxLogicalLevelSP[0].fill("Low to High", "", ISS_ON);
+    LxLogicalLevelSP[1].fill("High to Low", "", ISS_OFF);
+    LxLogicalLevelSP.fill(device_name, "Start Transition", "",
                        LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillSwitch(&LxSerialSpeedS[0], "1200", "", ISS_OFF);
-    IUFillSwitch(&LxSerialSpeedS[1], "2400", "", ISS_OFF);
-    IUFillSwitch(&LxSerialSpeedS[2], "4800", "", ISS_OFF);
-    IUFillSwitch(&LxSerialSpeedS[3], "9600", "", ISS_ON);
-    IUFillSwitch(&LxSerialSpeedS[4], "19200", "", ISS_OFF);
-    IUFillSwitch(&LxSerialSpeedS[5], "38400", "", ISS_OFF);
-    IUFillSwitch(&LxSerialSpeedS[6], "57600", "", ISS_OFF);
-    IUFillSwitch(&LxSerialSpeedS[7], "115200", "", ISS_OFF);
-    IUFillSwitch(&LxSerialSpeedS[8], "230400", "", ISS_OFF);
-    IUFillSwitchVector(&LxSerialSpeedSP, LxSerialSpeedS, NARRAY(LxSerialSpeedS), device_name, "Serial speed", "",
+    LxSerialSpeedSP[0].fill("1200", "", ISS_OFF);
+    LxSerialSpeedSP[1].fill("2400", "", ISS_OFF);
+    LxSerialSpeedSP[2].fill("4800", "", ISS_OFF);
+    LxSerialSpeedSP[3].fill("9600", "", ISS_ON);
+    LxSerialSpeedSP[4].fill("19200", "", ISS_OFF);
+    LxSerialSpeedSP[5].fill("38400", "", ISS_OFF);
+    LxSerialSpeedSP[6].fill("57600", "", ISS_OFF);
+    LxSerialSpeedSP[7].fill("115200", "", ISS_OFF);
+    LxSerialSpeedSP[8].fill("230400", "", ISS_OFF);
+    LxSerialSpeedSP.fill(device_name, "Serial speed", "",
                        LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillSwitch(&LxSerialSizeS[0], "5", "", ISS_OFF);
-    IUFillSwitch(&LxSerialSizeS[1], "6", "", ISS_OFF);
-    IUFillSwitch(&LxSerialSizeS[2], "7", "", ISS_OFF);
-    IUFillSwitch(&LxSerialSizeS[3], "8", "", ISS_ON);
-    IUFillSwitchVector(&LxSerialSizeSP, LxSerialSizeS, NARRAY(LxSerialSizeS), device_name, "Serial size", "", LX_TAB,
+    LxSerialSizeSP[0].fill("5", "", ISS_OFF);
+    LxSerialSizeSP[1].fill("6", "", ISS_OFF);
+    LxSerialSizeSP[2].fill("7", "", ISS_OFF);
+    LxSerialSizeSP[3].fill("8", "", ISS_ON);
+    LxSerialSizeSP.fill(device_name, "Serial size", "", LX_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillSwitch(&LxSerialParityS[0], "None", "", ISS_ON);
-    IUFillSwitch(&LxSerialParityS[1], "Even", "", ISS_OFF);
-    IUFillSwitch(&LxSerialParityS[2], "Odd", "", ISS_OFF);
-    IUFillSwitchVector(&LxSerialParitySP, LxSerialParityS, NARRAY(LxSerialParityS), device_name, "Serial parity", "",
+    LxSerialParitySP[0].fill("None", "", ISS_ON);
+    LxSerialParitySP[1].fill("Even", "", ISS_OFF);
+    LxSerialParitySP[2].fill("Odd", "", ISS_OFF);
+    LxSerialParitySP.fill(device_name, "Serial parity", "",
                        LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillSwitch(&LxSerialStopS[0], "1", "", ISS_ON);
-    IUFillSwitch(&LxSerialStopS[1], "2", "", ISS_OFF);
-    IUFillSwitchVector(&LxSerialStopSP, LxSerialStopS, NARRAY(LxSerialStopS), device_name, "Serial stop", "", LX_TAB,
+    LxSerialStopSP[0].fill("1", "", ISS_ON);
+    LxSerialStopSP[1].fill("2", "", ISS_OFF);
+    LxSerialStopSP.fill(device_name, "Serial stop", "", LX_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillSwitch(&LxSerialAddeolS[0], "None", "", ISS_OFF);
-    IUFillSwitch(&LxSerialAddeolS[1], "CR (OxD, \\r)", "", ISS_ON);
-    IUFillSwitch(&LxSerialAddeolS[2], "LF (0xA, \\n)", "", ISS_OFF);
-    IUFillSwitch(&LxSerialAddeolS[3], "CR+LF", "", ISS_OFF);
-    IUFillSwitchVector(&LxSerialAddeolSP, LxSerialAddeolS, NARRAY(LxSerialAddeolS), device_name, "Add EOL", "", LX_TAB,
+    LxSerialAddeolSP[0].fill("None", "", ISS_OFF);
+    LxSerialAddeolSP[1].fill("CR (OxD, \\r)", "", ISS_ON);
+    LxSerialAddeolSP[2].fill("LF (0xA, \\n)", "", ISS_OFF);
+    LxSerialAddeolSP[3].fill("CR+LF", "", ISS_OFF);
+    LxSerialAddeolSP.fill(device_name, "Add EOL", "", LX_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     FlashStrobeSP     = nullptr;
     FlashStrobeStopSP = nullptr;
@@ -108,18 +108,18 @@ bool Lx::updateProperties()
     if (dev->isConnected())
     {
         INDI::Property *pfound;
-        dev->defineProperty(&LxEnableSP);
-        dev->defineProperty(&LxModeSP);
-        dev->defineProperty(&LxPortTP);
-        dev->defineProperty(&LxSerialOptionSP);
-        //dev->defineProperty(&LxParallelOptionSP);
-        dev->defineProperty(&LxStartStopCmdTP);
-        dev->defineProperty(&LxLogicalLevelSP);
-        dev->defineProperty(&LxSerialSpeedSP);
-        dev->defineProperty(&LxSerialSizeSP);
-        dev->defineProperty(&LxSerialParitySP);
-        dev->defineProperty(&LxSerialStopSP);
-        dev->defineProperty(&LxSerialAddeolSP);
+        dev->defineProperty(LxEnableSP);
+        dev->defineProperty(LxModeSP);
+        dev->defineProperty(LxPortTP);
+        dev->defineProperty(LxSerialOptionSP);
+        //dev->defineProperty(LxParallelOptionSP);
+        dev->defineProperty(LxStartStopCmdTP);
+        dev->defineProperty(LxLogicalLevelSP);
+        dev->defineProperty(LxSerialSpeedSP);
+        dev->defineProperty(LxSerialSizeSP);
+        dev->defineProperty(LxSerialParitySP);
+        dev->defineProperty(LxSerialStopSP);
+        dev->defineProperty(LxSerialAddeolSP);
         pfound = findbyLabel(dev, (char *)"Strobe");
         if (pfound)
         {
@@ -130,18 +130,18 @@ bool Lx::updateProperties()
     }
     else
     {
-        dev->deleteProperty(LxEnableSP.name);
-        dev->deleteProperty(LxModeSP.name);
-        dev->deleteProperty(LxPortTP.name);
-        dev->deleteProperty(LxSerialOptionSP.name);
-        //dev->deleteProperty(LxParallelOptionSP.name);
-        dev->deleteProperty(LxStartStopCmdTP.name);
-        dev->deleteProperty(LxLogicalLevelSP.name);
-        dev->deleteProperty(LxSerialSpeedSP.name);
-        dev->deleteProperty(LxSerialSizeSP.name);
-        dev->deleteProperty(LxSerialParitySP.name);
-        dev->deleteProperty(LxSerialStopSP.name);
-        dev->deleteProperty(LxSerialAddeolSP.name);
+        dev->deleteProperty(LxEnableSP.getName());
+        dev->deleteProperty(LxModeSP.getName());
+        dev->deleteProperty(LxPortTP.getName());
+        dev->deleteProperty(LxSerialOptionSP.getName());
+        //dev->deleteProperty(LxParallelOptionSP.getName());
+        dev->deleteProperty(LxStartStopCmdTP.getName());
+        dev->deleteProperty(LxLogicalLevelSP.getName());
+        dev->deleteProperty(LxSerialSpeedSP.getName());
+        dev->deleteProperty(LxSerialSizeSP.getName());
+        dev->deleteProperty(LxSerialParitySP.getName());
+        dev->deleteProperty(LxSerialStopSP.getName());
+        dev->deleteProperty(LxSerialAddeolSP.getName());
         FlashStrobeSP     = nullptr;
         FlashStrobeStopSP = nullptr;
     }
@@ -154,124 +154,124 @@ bool Lx::ISNewSwitch(const char *devname, const char *name, ISState *states, cha
     if (devname && strcmp(device_name, devname))
         return true;
 
-    if (!strcmp(name, LxEnableSP.name))
+    if (LxEnableSP.isNameMatch(name))
     {
-        IUResetSwitch(&LxEnableSP);
-        IUUpdateSwitch(&LxEnableSP, states, names, n);
-        LxEnableSP.s = IPS_OK;
+        LxEnableSP.reset();
+        LxEnableSP.update(states, names, n);
+        LxEnableSP.setState(IPS_OK);
 
-        IDSetSwitch(&LxEnableSP, "%s long exposure on device %s", (LxEnableS[0].s == ISS_ON ? "Disabling" : "Enabling"),
+        LxEnableSP.apply("%s long exposure on device %s", (LxEnableSP[0].getState() == ISS_ON ? "Disabling" : "Enabling"),
                     device_name);
         return true;
     }
 
-    if (!strcmp(name, LxModeSP.name))
+    if (LxModeSP.isNameMatch(name))
     {
         unsigned int index, oldindex;
-        oldindex = IUFindOnSwitchIndex(&LxModeSP);
-        IUResetSwitch(&LxModeSP);
-        IUUpdateSwitch(&LxModeSP, states, names, n);
-        LxModeSP.s = IPS_OK;
-        index      = IUFindOnSwitchIndex(&LxModeSP);
+        oldindex = LxModeSP.findOnSwitchIndex();
+        LxModeSP.reset();
+        LxModeSP.update(states, names, n);
+        LxModeSP.setState(IPS_OK);
+        index      = LxModeSP.findOnSwitchIndex();
         if (index == LXLED)
             if (!checkPWC())
             {
-                IUResetSwitch(&LxModeSP);
-                LxModeSP.s          = IPS_ALERT;
-                LxModeS[oldindex].s = ISS_ON;
-                IDSetSwitch(&LxModeSP, "Can not set Lx Mode to %s", LxModeS[index].name);
+                LxModeSP.reset();
+                LxModeSP.setState(IPS_ALERT);
+                LxModeSP[oldindex].setState(ISS_ON);
+                LxModeSP.apply("Can not set Lx Mode to %s", LxModeSP[index].getName());
                 return false;
             }
-        IDSetSwitch(&LxModeSP, "Setting Lx Mode to %s", LxModeS[index].name);
+        LxModeSP.apply("Setting Lx Mode to %s", LxModeSP[index].getName());
         return true;
     }
 
-    if (!strcmp(name, LxSerialOptionSP.name))
+    if (LxSerialOptionSP.isNameMatch(name))
     {
         unsigned int index;
-        IUResetSwitch(&LxSerialOptionSP);
-        IUUpdateSwitch(&LxSerialOptionSP, states, names, n);
-        LxSerialOptionSP.s = IPS_OK;
-        index              = IUFindOnSwitchIndex(&LxSerialOptionSP);
-        IDSetSwitch(&LxSerialOptionSP, "Setting Lx Serial option: %s", LxSerialOptionS[index].name);
+        LxSerialOptionSP.reset();
+        LxSerialOptionSP.update(states, names, n);
+        LxSerialOptionSP.setState(IPS_OK);
+        index              = LxSerialOptionSP.findOnSwitchIndex();
+        LxSerialOptionSP.apply("Setting Lx Serial option: %s", LxSerialOptionSP[index].getName());
         return true;
     }
 
-    if (!strcmp(name, LxParallelOptionSP.name))
+    if (LxParallelOptionSP.isNameMatch(name))
     {
         unsigned int index;
-        IUResetSwitch(&LxParallelOptionSP);
-        IUUpdateSwitch(&LxParallelOptionSP, states, names, n);
-        LxParallelOptionSP.s = IPS_OK;
-        index                = IUFindOnSwitchIndex(&LxParallelOptionSP);
-        IDSetSwitch(&LxParallelOptionSP, "Setting Lx Parallel option: %s", LxParallelOptionS[index].name);
+        LxParallelOptionSP.reset();
+        LxParallelOptionSP.update(states, names, n);
+        LxParallelOptionSP.setState(IPS_OK);
+        index                = LxParallelOptionSP.findOnSwitchIndex();
+        LxParallelOptionSP.apply("Setting Lx Parallel option: %s", LxParallelOptionSP[index].getName());
         return true;
     }
 
-    if (!strcmp(name, LxLogicalLevelSP.name))
+    if (LxLogicalLevelSP.isNameMatch(name))
     {
         unsigned int index;
-        IUResetSwitch(&LxLogicalLevelSP);
-        IUUpdateSwitch(&LxLogicalLevelSP, states, names, n);
-        LxLogicalLevelSP.s = IPS_OK;
-        index              = IUFindOnSwitchIndex(&LxLogicalLevelSP);
-        IDSetSwitch(&LxLogicalLevelSP, "Setting Lx logical levels for start transition: %s",
-                    LxLogicalLevelS[index].name);
+        LxLogicalLevelSP.reset();
+        LxLogicalLevelSP.update(states, names, n);
+        LxLogicalLevelSP.setState(IPS_OK);
+        index              = LxLogicalLevelSP.findOnSwitchIndex();
+        LxLogicalLevelSP.apply("Setting Lx logical levels for start transition: %s",
+                    LxLogicalLevelSP[index].getName());
         return true;
     }
 
-    if (!strcmp(name, LxSerialSpeedSP.name))
+    if (LxSerialSpeedSP.isNameMatch(name))
     {
         unsigned int index;
-        IUResetSwitch(&LxSerialSpeedSP);
-        IUUpdateSwitch(&LxSerialSpeedSP, states, names, n);
-        LxSerialSpeedSP.s = IPS_OK;
-        index             = IUFindOnSwitchIndex(&LxSerialSpeedSP);
-        IDSetSwitch(&LxSerialSpeedSP, "Setting Lx serial speed: %s", LxSerialSpeedS[index].name);
+        LxSerialSpeedSP.reset();
+        LxSerialSpeedSP.update(states, names, n);
+        LxSerialSpeedSP.setState(IPS_OK);
+        index             = LxSerialSpeedSP.findOnSwitchIndex();
+        LxSerialSpeedSP.apply("Setting Lx serial speed: %s", LxSerialSpeedSP[index].getName());
         return true;
     }
 
-    if (!strcmp(name, LxSerialSizeSP.name))
+    if (LxSerialSizeSP.isNameMatch(name))
     {
         unsigned int index;
-        IUResetSwitch(&LxSerialSizeSP);
-        IUUpdateSwitch(&LxSerialSizeSP, states, names, n);
-        LxSerialSizeSP.s = IPS_OK;
-        index            = IUFindOnSwitchIndex(&LxSerialSizeSP);
-        IDSetSwitch(&LxSerialSizeSP, "Setting Lx serial word size: %s", LxSerialSizeS[index].name);
+        LxSerialSizeSP.reset();
+        LxSerialSizeSP.update(states, names, n);
+        LxSerialSizeSP.setState(IPS_OK);
+        index            = LxSerialSizeSP.findOnSwitchIndex();
+        LxSerialSizeSP.apply("Setting Lx serial word size: %s", LxSerialSizeSP[index].getName());
         return true;
     }
 
-    if (!strcmp(name, LxSerialParitySP.name))
+    if (LxSerialParitySP.isNameMatch(name))
     {
         unsigned int index;
-        IUResetSwitch(&LxSerialParitySP);
-        IUUpdateSwitch(&LxSerialParitySP, states, names, n);
-        LxSerialParitySP.s = IPS_OK;
-        index              = IUFindOnSwitchIndex(&LxSerialParitySP);
-        IDSetSwitch(&LxSerialParitySP, "Setting Lx serial parity: %s", LxSerialParityS[index].name);
+        LxSerialParitySP.reset();
+        LxSerialParitySP.update(states, names, n);
+        LxSerialParitySP.setState(IPS_OK);
+        index              = LxSerialParitySP.findOnSwitchIndex();
+        LxSerialParitySP.apply("Setting Lx serial parity: %s", LxSerialParitySP[index].getName());
         return true;
     }
 
-    if (!strcmp(name, LxSerialStopSP.name))
+    if (LxSerialStopSP.isNameMatch(name))
     {
         unsigned int index;
-        IUResetSwitch(&LxSerialStopSP);
-        IUUpdateSwitch(&LxSerialStopSP, states, names, n);
-        LxSerialStopSP.s = IPS_OK;
-        index            = IUFindOnSwitchIndex(&LxSerialStopSP);
-        IDSetSwitch(&LxSerialStopSP, "Setting Lx serial stop bits: %s", LxSerialStopS[index].name);
+        LxSerialStopSP.reset();
+        LxSerialStopSP.update(states, names, n);
+        LxSerialStopSP.setState(IPS_OK);
+        index            = LxSerialStopSP.findOnSwitchIndex();
+        LxSerialStopSP.apply("Setting Lx serial stop bits: %s", LxSerialStopSP[index].getName());
         return true;
     }
 
-    if (!strcmp(name, LxSerialAddeolSP.name))
+    if (LxSerialAddeolSP.isNameMatch(name))
     {
         unsigned int index;
-        IUResetSwitch(&LxSerialAddeolSP);
-        IUUpdateSwitch(&LxSerialAddeolSP, states, names, n);
-        LxSerialAddeolSP.s = IPS_OK;
-        index              = IUFindOnSwitchIndex(&LxSerialAddeolSP);
-        IDSetSwitch(&LxSerialAddeolSP, "Setting Lx End of Line: %s", LxSerialAddeolS[index].name);
+        LxSerialAddeolSP.reset();
+        LxSerialAddeolSP.update(states, names, n);
+        LxSerialAddeolSP.setState(IPS_OK);
+        index              = LxSerialAddeolSP.findOnSwitchIndex();
+        LxSerialAddeolSP.apply("Setting Lx End of Line: %s", LxSerialAddeolSP[index].getName());
         return true;
     }
 
@@ -285,29 +285,29 @@ bool Lx::ISNewText(const char *devname, const char *name, char *texts[], char *n
     if (devname && strcmp(device_name, devname))
         return true;
 
-    if (!strcmp(name, LxPortTP.name))
+    if (LxPortTP.isNameMatch(name))
     {
-        LxPortTP.s = IPS_OK;
-        tp         = IUFindText(&LxPortTP, names[0]);
+        LxPortTP.setState(IPS_OK);
+        tp         = LxPortTP.findWidgetByName(names[0]);
         if (!tp)
             return false;
 
         IUSaveText(tp, texts[0]);
-        IDSetText(&LxPortTP, "Setting Lx port to %s", tp->text);
+        LxPortTP.apply("Setting Lx port to %s", tp->text);
         return true;
     }
 
-    if (!strcmp(name, LxStartStopCmdTP.name))
+    if (LxStartStopCmdTP.isNameMatch(name))
     {
-        LxStartStopCmdTP.s = IPS_OK;
+        LxStartStopCmdTP.setState(IPS_OK);
         for (int i = 0; i < n; i++)
         {
-            tp = IUFindText(&LxStartStopCmdTP, names[i]);
+            tp = LxStartStopCmdTP.findWidgetByName(names[i]);
             if (!tp)
                 return false;
             IUSaveText(tp, texts[i]);
         }
-        IDSetText(&LxStartStopCmdTP, "Setting Lx Start/stop commands");
+        LxStartStopCmdTP.apply("Setting Lx Start/stop commands");
         return true;
     }
 
@@ -316,14 +316,14 @@ bool Lx::ISNewText(const char *devname, const char *name, char *texts[], char *n
 
 unsigned int Lx::getLxmode()
 {
-    return IUFindOnSwitchIndex(&LxModeSP);
+    return LxModeSP.findOnSwitchIndex();
 }
 
 bool Lx::startLx()
 {
     unsigned int index;
     IDMessage(device_name, "Starting Long Exposure");
-    index = IUFindOnSwitchIndex(&LxModeSP);
+    index = LxModeSP.findOnSwitchIndex();
     switch (index)
     {
         case LXSERIAL:
@@ -341,7 +341,7 @@ int Lx::stopLx()
     unsigned int index = 0;
 
     IDMessage(device_name, "Stopping Long Exposure");
-    index = IUFindOnSwitchIndex(&LxModeSP);
+    index = LxModeSP.findOnSwitchIndex();
     switch (index)
     {
         case LXSERIAL:
@@ -461,20 +461,20 @@ void Lx::getSerialOptions(unsigned int *speed, unsigned int *wordsize, unsigned 
     unsigned int sizeopts[]   = { 5, 6, 7, 8 };
     unsigned int parityopts[] = { PARITY_NONE, PARITY_EVEN, PARITY_ODD };
     unsigned int stopopts[]   = { 1, 2 };
-    index                     = IUFindOnSwitchIndex(&LxSerialSpeedSP);
+    index                     = LxSerialSpeedSP.findOnSwitchIndex();
     *speed                    = speedopts[index];
-    index                     = IUFindOnSwitchIndex(&LxSerialSizeSP);
+    index                     = LxSerialSizeSP.findOnSwitchIndex();
     *wordsize                 = sizeopts[index];
-    index                     = IUFindOnSwitchIndex(&LxSerialParitySP);
+    index                     = LxSerialParitySP.findOnSwitchIndex();
     *parity                   = parityopts[index];
-    index                     = IUFindOnSwitchIndex(&LxSerialStopSP);
+    index                     = LxSerialStopSP.findOnSwitchIndex();
     *stops                    = stopopts[index];
 }
 
 const char *Lx::getSerialEOL()
 {
     unsigned int index;
-    index = IUFindOnSwitchIndex(&LxSerialAddeolSP);
+    index = LxSerialAddeolSP.findOnSwitchIndex();
     switch (index)
     {
         case 0:
@@ -493,25 +493,25 @@ bool Lx::startLxSerial()
 {
     unsigned int speed = 0, wordsize = 0, parity = 0, stops = 0;
     const char *eol = nullptr;
-    unsigned int index = IUFindOnSwitchIndex(&LxSerialOptionSP);
+    unsigned int index = LxSerialOptionSP.findOnSwitchIndex();
     int ret = 0;
 
     switch (index)
     {
         case 0:
-            serialfd = openserial(LxPortT[0].text);
+            serialfd = openserial(LxPortTP[0].getText());
             if (serialfd < 0)
                 return false;
-            if (LxLogicalLevelS[0].s == ISS_ON)
+            if (LxLogicalLevelSP[0].getState() == ISS_ON)
                 setDTR(serialfd, 1);
             else
                 setDTR(serialfd, 0);
             break;
         case 1:
-            serialfd = openserial(LxPortT[0].text);
+            serialfd = openserial(LxPortTP[0].getText());
             if (serialfd < 0)
                 return false;
-            if (LxLogicalLevelS[0].s == ISS_ON)
+            if (LxLogicalLevelSP[0].getState() == ISS_ON)
                 setRTS(serialfd, 1);
             else
                 setRTS(serialfd, 0);
@@ -519,11 +519,11 @@ bool Lx::startLxSerial()
         case 2:
             getSerialOptions(&speed, &wordsize, &parity, &stops);
             eol = getSerialEOL();
-            tty_connect(LxPortT[0].text, speed, wordsize, parity, stops, &serialfd);
+            tty_connect(LxPortTP[0].getText(), speed, wordsize, parity, stops, &serialfd);
             if (serialfd < 0)
                 return false;
 
-            ret = write(serialfd, LxStartStopCmdT[0].text, strlen(LxStartStopCmdT[0].text));
+            ret = write(serialfd, LxStartStopCmdTP[0].getText(), strlen(LxStartStopCmdTP[0].getText()));
             ret = write(serialfd, eol, strlen(eol));
             break;
     }
@@ -534,24 +534,24 @@ int Lx::stopLxSerial()
 {
     int ret = 0;
     const char *eol = nullptr;
-    unsigned int index = IUFindOnSwitchIndex(&LxSerialOptionSP);
+    unsigned int index = LxSerialOptionSP.findOnSwitchIndex();
 
     switch (index)
     {
         case 0:
-            if (LxLogicalLevelS[0].s == ISS_ON)
+            if (LxLogicalLevelSP[0].getState() == ISS_ON)
                 setDTR(serialfd, 0);
             else
                 setDTR(serialfd, 1);
             break;
         case 1:
-            if (LxLogicalLevelS[0].s == ISS_ON)
+            if (LxLogicalLevelSP[0].getState() == ISS_ON)
                 setRTS(serialfd, 0);
             else
                 setRTS(serialfd, 1);
             break;
         case 2:
-            ret = write(serialfd, LxStartStopCmdT[1].text, strlen(LxStartStopCmdT[1].text));
+            ret = write(serialfd, LxStartStopCmdTP[1].getText(), strlen(LxStartStopCmdTP[1].getText()));
             eol = getSerialEOL();
             ret = write(serialfd, eol, strlen(eol));
             break;
@@ -631,13 +631,13 @@ bool Lx::startLxPWC()
     switch (ledmethod)
     {
         case PWCIOCTL:
-            if (LxLogicalLevelS[0].s == ISS_ON)
+            if (LxLogicalLevelSP[0].getState() == ISS_ON)
                 pwcsetLed(25500, 0);
             else
                 pwcsetLed(0, 25500);
             return true;
         case FLASHLED:
-            if (LxLogicalLevelS[0].s == ISS_ON)
+            if (LxLogicalLevelSP[0].getState() == ISS_ON)
                 pwcsetflashon();
             else
                 pwcsetflashoff();
@@ -652,13 +652,13 @@ int Lx::stopLxPWC()
     switch (ledmethod)
     {
         case PWCIOCTL:
-            if (LxLogicalLevelS[0].s == ISS_ON)
+            if (LxLogicalLevelSP[0].getState() == ISS_ON)
                 pwcsetLed(0, 25500);
             else
                 pwcsetLed(25500, 0);
             return 0;
         case FLASHLED:
-            if (LxLogicalLevelS[0].s == ISS_ON)
+            if (LxLogicalLevelSP[0].getState() == ISS_ON)
                 pwcsetflashoff();
             else
                 pwcsetflashon();

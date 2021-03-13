@@ -99,23 +99,23 @@ bool ScopeScript::initProperties()
     INDI::Telescope::initProperties();
 
 #if defined(__APPLE__)
-    IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/local/share/indi/scripts");
+    ScriptsTP[0].fill("FOLDER", "Folder", "/usr/local/share/indi/scripts");
 #else
-    IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/share/indi/scripts");
+    ScriptsTP[0].fill("FOLDER", "Folder", "/usr/share/indi/scripts");
 #endif
-    IUFillText(&ScriptsT[SCRIPT_CONNECT], "SCRIPT_CONNECT", "Connect script", "connect.py");
-    IUFillText(&ScriptsT[SCRIPT_DISCONNECT], "SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
-    IUFillText(&ScriptsT[SCRIPT_STATUS], "SCRIPT_STATUS", "Get status script", "status.py");
-    IUFillText(&ScriptsT[SCRIPT_GOTO], "SCRIPT_GOTO", "Goto script", "goto.py");
-    IUFillText(&ScriptsT[SCRIPT_SYNC], "SCRIPT_SYNC", "Sync script", "sync.py");
-    IUFillText(&ScriptsT[SCRIPT_PARK], "SCRIPT_PARK", "Park script", "park.py");
-    IUFillText(&ScriptsT[SCRIPT_UNPARK], "SCRIPT_UNPARK", "Unpark script", "unpark.py");
-    IUFillText(&ScriptsT[SCRIPT_MOVE_NORTH], "SCRIPT_MOVE_NORTH", "Move north script", "move_north.py");
-    IUFillText(&ScriptsT[SCRIPT_MOVE_EAST], "SCRIPT_MOVE_EAST", "Move east script", "move_east.py");
-    IUFillText(&ScriptsT[SCRIPT_MOVE_SOUTH], "SCRIPT_MOVE_SOUTH", "Move south script", "move_south.py");
-    IUFillText(&ScriptsT[SCRIPT_MOVE_WEST], "SCRIPT_MOVE_WEST", "Move west script", "move_west.py");
-    IUFillText(&ScriptsT[SCRIPT_ABORT], "SCRIPT_ABORT", "Abort motion script", "abort.py");
-    IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60,
+    ScriptsTP[SCRIPT_CONNECT].fill("SCRIPT_CONNECT", "Connect script", "connect.py");
+    ScriptsTP[SCRIPT_DISCONNECT].fill("SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
+    ScriptsTP[SCRIPT_STATUS].fill("SCRIPT_STATUS", "Get status script", "status.py");
+    ScriptsTP[SCRIPT_GOTO].fill("SCRIPT_GOTO", "Goto script", "goto.py");
+    ScriptsTP[SCRIPT_SYNC].fill("SCRIPT_SYNC", "Sync script", "sync.py");
+    ScriptsTP[SCRIPT_PARK].fill("SCRIPT_PARK", "Park script", "park.py");
+    ScriptsTP[SCRIPT_UNPARK].fill("SCRIPT_UNPARK", "Unpark script", "unpark.py");
+    ScriptsTP[SCRIPT_MOVE_NORTH].fill("SCRIPT_MOVE_NORTH", "Move north script", "move_north.py");
+    ScriptsTP[SCRIPT_MOVE_EAST].fill("SCRIPT_MOVE_EAST", "Move east script", "move_east.py");
+    ScriptsTP[SCRIPT_MOVE_SOUTH].fill("SCRIPT_MOVE_SOUTH", "Move south script", "move_south.py");
+    ScriptsTP[SCRIPT_MOVE_WEST].fill("SCRIPT_MOVE_WEST", "Move west script", "move_west.py");
+    ScriptsTP[SCRIPT_ABORT].fill("SCRIPT_ABORT", "Abort motion script", "abort.py");
+    ScriptsTP.fill(getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60,
                      IPS_IDLE);
 
     addDebugControl();
@@ -126,22 +126,22 @@ bool ScopeScript::initProperties()
 bool ScopeScript::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
-    IUSaveConfigText(fp, &ScriptsTP);
+    ScriptsTP.save(fp);
     return true;
 }
 
 void ScopeScript::ISGetProperties(const char *dev)
 {
     INDI::Telescope::ISGetProperties(dev);
-    defineProperty(&ScriptsTP);
+    defineProperty(ScriptsTP);
 }
 
 bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0 && strcmp(name, ScriptsTP.name) == 0)
+    if (strcmp(dev, getDeviceName()) == 0 && strcmp(name, ScriptsTP.getName()) == 0)
     {
-        IUUpdateText(&ScriptsTP, texts, names, n);
-        IDSetText(&ScriptsTP, nullptr);
+        ScriptsTP.update(texts, names, n);
+        ScriptsTP.apply();
         return true;
     }
     return Telescope::ISNewText(dev, name, texts, names, n);
@@ -150,7 +150,7 @@ bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], ch
 bool ScopeScript::RunScript(int script, ...)
 {
     char tmp[256];
-    strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
+    strncpy(tmp, ScriptsTP[script].getText(), sizeof(tmp));
 
     char **args = (char **)malloc(MAXARGS * sizeof(char *));
     int arg     = 1;
@@ -176,7 +176,7 @@ bool ScopeScript::RunScript(int script, ...)
     }
     va_end(ap);
     char path[1024];
-    snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
+    snprintf(path, sizeof(path), "%s/%s", ScriptsTP[0].getText(), tmp);
 
     if (access(path, F_OK | X_OK) != 0)
     {
@@ -213,7 +213,7 @@ bool ScopeScript::RunScript(int script, ...)
     {
         int status;
         waitpid(pid, &status, 0);
-        LOGF_DEBUG("Script %s returned %d", ScriptsT[script].text, status);
+        LOGF_DEBUG("Script %s returned %d", ScriptsTP[script].getText(), status);
         return status == 0;
     }
 }

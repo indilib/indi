@@ -30,6 +30,11 @@
 #include "inditelescope.h"
 #include "indifocuserinterface.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, public INDI::FocuserInterface
 {
     public:
@@ -68,8 +73,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         IPState Guide(CELESTRON_DIRECTION dirn, uint32_t ms);
 
         // Guide Rate
-        INumber GuideRateN[2];  // 0 to 1 corresponding to 0 to 1.0x sidereal
-        INumberVectorProperty GuideRateNP;
+        INDI::PropertyNumber GuideRateNP {2};  // 0 to 1 corresponding to 0 to 1.0x sidereal
 
         uint8_t guideRateRa;    // 0 to 255 corresponding to 0 to 100% sidereal
         uint8_t guideRateDec;
@@ -111,8 +115,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         //CELESTRON_DIRECTION guide_direction;
 
         /* Firmware */
-        IText FirmwareT[7] {};
-        ITextVectorProperty FirmwareTP;
+        INDI::PropertyText FirmwareTP {7};
 
         //INumberVectorProperty HorizontalCoordsNP;
         //INumber HorizontalCoordsN[2];
@@ -121,28 +124,22 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         //ISwitchVectorProperty TrackSP;
 
         // Celestron Track Mode (AltAz, EQ N, EQ S, Ra and Dec)
-        ISwitchVectorProperty CelestronTrackModeSP;
-        ISwitch CelestronTrackModeS[4];
+        INDI::PropertySwitch CelestronTrackModeSP {4};
 
         //GUIDE Pulse guide switch
-        //        ISwitchVectorProperty UsePulseCmdSP;
-        //        ISwitch UsePulseCmdS[2];
-
-        ISwitchVectorProperty UseHibernateSP;
-        ISwitch UseHibernateS[2];
+        //
+        //        INDI::PropertySwitch UsePulseCmdSP {2};
+        INDI::PropertySwitch UseHibernateSP {2};
 
         // PEC - implemented without using the base definition because this doesn't match what is required
         // shows status and index
-        IText PecInfoT[2] {};
-        ITextVectorProperty PecInfoTP;
+        INDI::PropertyText PecInfoTP {2};
 
-        ISwitch PecControlS[4];     // Find Index, Stop, Playback, Record
-        ISwitchVectorProperty PecControlSP;
+        INDI::PropertySwitch PecControlSP {4};     // Find Index, Stop, Playback, Record
         enum { PEC_Seek, PEC_Stop, PEC_Playback, PEC_Record } PecControl;
 
         // move PEC data from file to mount
-        IText PecFileNameT[1] {};
-        ITextVectorProperty PecFileNameTP;
+        INDI::PropertyText PecFileNameTP {1};
 
         // FocuserInterface
 
@@ -170,12 +167,10 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         //CelestronGuide guider;
 
         // Last align property
-        ISwitch LastAlignS[1];
-        ISwitchVectorProperty LastAlignSP;
+        INDI::PropertySwitch LastAlignSP {1};
 
         // DST setting
-        ISwitch DSTSettingS[1];
-        ISwitchVectorProperty DSTSettingSP;
+        INDI::PropertySwitch DSTSettingSP {1};
 
         bool slewToIndex;
 
@@ -187,11 +182,10 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         double SlewOffsetRa = 0.0;
 
         // focuser
-        //        INumber FocusBacklashN[1];
-        //        INumberVectorProperty FocusBacklashNP;
+        //        INDI::PropertyNumber FocusBacklashNP {1};
+        //
 
-        INumber FocusMinPosN[1];
-        INumberVectorProperty FocusMinPosNP;
+        INDI::PropertyNumber FocusMinPosNP {1};
 
         bool focusBacklashMove;      // set if a final move is needed
         uint32_t focusPosition;

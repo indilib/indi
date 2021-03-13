@@ -25,6 +25,9 @@
 #include "defaultdevice.h"
 #include <memory>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+
 class JoyStickDriver;
 
 /**
@@ -76,9 +79,7 @@ class JoyStick : public INDI::DefaultDevice
 
         ITextVectorProperty PortTP; //  A text vector that stores out physical port name
         IText PortT[1] {};
-
-        ITextVectorProperty JoystickInfoTP;
-        IText JoystickInfoT[5] {};
+        INDI::PropertyText JoystickInfoTP {5};
 
         std::unique_ptr<JoyStickDriver> driver;
 };

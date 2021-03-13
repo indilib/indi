@@ -28,6 +28,10 @@
 
 #include <chrono>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class DeepSkyDadAF1 : public INDI::Focuser
 {
     public:
@@ -117,32 +121,25 @@ class DeepSkyDadAF1 : public INDI::Focuser
 
 
         // Step modes
-        ISwitch StepModeS[4];
-        ISwitchVectorProperty StepModeSP;
+        INDI::PropertySwitch StepModeSP {4};
 
         // Coils mode
-        ISwitch CoilsModeS[3];
-        ISwitchVectorProperty CoilsModeSP;
+        INDI::PropertySwitch CoilsModeSP {3};
 
         //Current move
-        ISwitch CurrentMoveS[4];
-        ISwitchVectorProperty CurrentMoveSP;
+        INDI::PropertySwitch CurrentMoveSP {4};
 
         //Current hold
-        ISwitch CurrentHoldS[4];
-        ISwitchVectorProperty CurrentHoldSP;
+        INDI::PropertySwitch CurrentHoldSP {4};
 
         // Max movement
-        INumber FocusMaxMoveN[1];
-        INumberVectorProperty FocusMaxMoveNP;
+        INDI::PropertyNumber FocusMaxMoveNP {1};
 
         // Settle buffer
-        INumber SettleBufferN[1];
-        INumberVectorProperty SettleBufferNP;
+        INDI::PropertyNumber SettleBufferNP {1};
 
         // Idle coils timeout (ms)
-        INumber IdleCoilsTimeoutN[1];
-        INumberVectorProperty IdleCoilsTimeoutNP;
+        INDI::PropertyNumber IdleCoilsTimeoutNP {1};
 
         // Response Buffer
 

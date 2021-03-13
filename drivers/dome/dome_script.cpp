@@ -101,22 +101,22 @@ bool DomeScript::initProperties()
     INDI::Dome::initProperties();
     SetParkDataType(PARK_AZ);
 #if defined(__APPLE__)
-    IUFillText(&ScriptsT[SCRIPT_FOLDER], "SCRIPT_FOLDER", "Folder", "/usr/local/share/indi/scripts");
+    ScriptsTP[SCRIPT_FOLDER].fill("SCRIPT_FOLDER", "Folder", "/usr/local/share/indi/scripts");
 #else
-    IUFillText(&ScriptsT[SCRIPT_FOLDER], "SCRIPT_FOLDER", "Folder", "/usr/share/indi/scripts");
+    ScriptsTP[SCRIPT_FOLDER].fill("SCRIPT_FOLDER", "Folder", "/usr/share/indi/scripts");
 #endif
-    IUFillText(&ScriptsT[SCRIPT_CONNECT], "SCRIPT_CONNECT", "Connect script", "connect.py");
-    IUFillText(&ScriptsT[SCRIPT_DISCONNECT], "SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
-    IUFillText(&ScriptsT[SCRIPT_STATUS], "SCRIPT_STATUS", "Get status script", "status.py");
-    IUFillText(&ScriptsT[SCRIPT_OPEN], "SCRIPT_OPEN", "Open shutter script", "open.py");
-    IUFillText(&ScriptsT[SCRIPT_CLOSE], "SCRIPT_CLOSE", "Close shutter script", "close.py");
-    IUFillText(&ScriptsT[SCRIPT_PARK], "SCRIPT_PARK", "Park script", "park.py");
-    IUFillText(&ScriptsT[SCRIPT_UNPARK], "SCRIPT_UNPARK", "Unpark script", "unpark.py");
-    IUFillText(&ScriptsT[SCRIPT_GOTO], "SCRIPT_GOTO", "Goto script", "goto.py");
-    IUFillText(&ScriptsT[SCRIPT_MOVE_CW], "SCRIPT_MOVE_CW", "Move clockwise script", "move_cw.py");
-    IUFillText(&ScriptsT[SCRIPT_MOVE_CCW], "SCRIPT_MOVE_CCW", "Move counter clockwise script", "move_ccw.py");
-    IUFillText(&ScriptsT[SCRIPT_ABORT], "SCRIPT_ABORT", "Abort motion script", "abort.py");
-    IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60,
+    ScriptsTP[SCRIPT_CONNECT].fill("SCRIPT_CONNECT", "Connect script", "connect.py");
+    ScriptsTP[SCRIPT_DISCONNECT].fill("SCRIPT_DISCONNECT", "Disconnect script", "disconnect.py");
+    ScriptsTP[SCRIPT_STATUS].fill("SCRIPT_STATUS", "Get status script", "status.py");
+    ScriptsTP[SCRIPT_OPEN].fill("SCRIPT_OPEN", "Open shutter script", "open.py");
+    ScriptsTP[SCRIPT_CLOSE].fill("SCRIPT_CLOSE", "Close shutter script", "close.py");
+    ScriptsTP[SCRIPT_PARK].fill("SCRIPT_PARK", "Park script", "park.py");
+    ScriptsTP[SCRIPT_UNPARK].fill("SCRIPT_UNPARK", "Unpark script", "unpark.py");
+    ScriptsTP[SCRIPT_GOTO].fill("SCRIPT_GOTO", "Goto script", "goto.py");
+    ScriptsTP[SCRIPT_MOVE_CW].fill("SCRIPT_MOVE_CW", "Move clockwise script", "move_cw.py");
+    ScriptsTP[SCRIPT_MOVE_CCW].fill("SCRIPT_MOVE_CCW", "Move counter clockwise script", "move_ccw.py");
+    ScriptsTP[SCRIPT_ABORT].fill("SCRIPT_ABORT", "Abort motion script", "abort.py");
+    ScriptsTP.fill(getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60,
                      IPS_IDLE);
 
     setDefaultPollingPeriod(2000);
@@ -126,14 +126,14 @@ bool DomeScript::initProperties()
 bool DomeScript::saveConfigItems(FILE *fp)
 {
     INDI::Dome::saveConfigItems(fp);
-    IUSaveConfigText(fp, &ScriptsTP);
+    ScriptsTP.save(fp);
     return true;
 }
 
 void DomeScript::ISGetProperties(const char *dev)
 {
     INDI::Dome::ISGetProperties(dev);
-    defineProperty(&ScriptsTP);
+    defineProperty(ScriptsTP);
     loadConfig(true, "SCRIPTS");
 }
 
@@ -141,11 +141,11 @@ bool DomeScript::ISNewText(const char *dev, const char *name, char *texts[], cha
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, ScriptsTP.name) == 0)
+        if (ScriptsTP.isNameMatch(name))
         {
-            IUUpdateText(&ScriptsTP, texts, names, n);
-            ScriptsTP.s = IPS_OK;
-            IDSetText(&ScriptsTP, nullptr);
+            ScriptsTP.update(texts, names, n);
+            ScriptsTP.setState(IPS_OK);
+            ScriptsTP.apply();
             return true;
         }
     }
@@ -155,7 +155,7 @@ bool DomeScript::ISNewText(const char *dev, const char *name, char *texts[], cha
 bool DomeScript::RunScript(int script, ...)
 {
     char tmp[256];
-    strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
+    strncpy(tmp, ScriptsTP[script].getText(), sizeof(tmp));
 
     char **args = (char **)malloc(MAXARGS * sizeof(char *));
     int arg     = 1;
@@ -181,7 +181,7 @@ bool DomeScript::RunScript(int script, ...)
     }
     va_end(ap);
     char path[1024];
-    snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
+    snprintf(path, sizeof(path), "%s/%s", ScriptsTP[0].getText(), tmp);
 
     if (access(path, F_OK | X_OK) != 0)
     {
@@ -218,7 +218,7 @@ bool DomeScript::RunScript(int script, ...)
     {
         int status;
         waitpid(pid, &status, 0);
-        LOGF_DEBUG("Script %s returned %d", ScriptsT[script].text, status);
+        LOGF_DEBUG("Script %s returned %d", ScriptsTP[script].getText(), status);
         return status == 0;
     }
 }
@@ -266,7 +266,7 @@ void DomeScript::TimerHit()
         ret = fscanf(file, "%d %d %f", &parked, &shutter, &az);
         fclose(file);
         unlink(tmpfile);
-        DomeAbsPosN[0].value = az = round(range360(az) * 10) / 10;
+        DomeAbsPosNP[0].setValue(az = round(range360(az) * 10) / 10);
         if (parked != 0)
         {
             if (getDomeState() == DOME_PARKING || getDomeState() == DOME_UNPARKED)
@@ -288,20 +288,20 @@ void DomeScript::TimerHit()
         if (std::round(az * 10) != std::round(TargetAz * 10))
         {
             LOGF_INFO("Moving %g -> %g %d", std::round(az * 10) / 10, std::round(TargetAz * 10) / 10, getDomeState());
-            IDSetNumber(&DomeAbsPosNP, nullptr);
+            DomeAbsPosNP.apply();
         }
         else if (getDomeState() == DOME_MOVING)
         {
             setDomeState(DOME_SYNCED);
-            IDSetNumber(&DomeAbsPosNP, nullptr);
+            DomeAbsPosNP.apply();
         }
         if (m_ShutterState == SHUTTER_OPENED)
         {
             if (shutter == 0)
             {
                 m_ShutterState    = SHUTTER_CLOSED;
-                DomeShutterSP.s = IPS_OK;
-                IDSetSwitch(&DomeShutterSP, nullptr);
+                DomeShutterSP.setState(IPS_OK);
+                DomeShutterSP.apply();
                 LOG_INFO("Shutter was successfully closed");
             }
         }
@@ -310,8 +310,8 @@ void DomeScript::TimerHit()
             if (shutter == 1)
             {
                 m_ShutterState    = SHUTTER_OPENED;
-                DomeShutterSP.s = IPS_OK;
-                IDSetSwitch(&DomeShutterSP, nullptr);
+                DomeShutterSP.setState(IPS_OK);
+                DomeShutterSP.apply();
                 LOG_INFO("Shutter was successfully opened");
             }
         }
@@ -411,26 +411,26 @@ IPState DomeScript::Move(DomeDirection dir, DomeMotionCommand operation)
     {
         if (RunScript(dir == DOME_CW ? SCRIPT_MOVE_CW : SCRIPT_MOVE_CCW, nullptr))
         {
-            DomeAbsPosNP.s = IPS_BUSY;
+            DomeAbsPosNP.setState(IPS_BUSY);
             TargetAz       = -1;
         }
         else
         {
-            DomeAbsPosNP.s = IPS_ALERT;
+            DomeAbsPosNP.setState(IPS_ALERT);
         }
     }
     else
     {
         if (RunScript(SCRIPT_ABORT, nullptr))
         {
-            DomeAbsPosNP.s = IPS_IDLE;
+            DomeAbsPosNP.setState(IPS_IDLE);
         }
         else
         {
-            DomeAbsPosNP.s = IPS_ALERT;
+            DomeAbsPosNP.setState(IPS_ALERT);
         }
     }
-    IDSetNumber(&DomeAbsPosNP, nullptr);
+    DomeAbsPosNP.apply();
     return ((operation == MOTION_START) ? IPS_BUSY : IPS_OK);
 }
 

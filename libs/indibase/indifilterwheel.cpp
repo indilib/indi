@@ -172,10 +172,10 @@ void FilterWheel::processJoystick(const char *joystick_n, double mag, double ang
             if (angle > 0 && angle < 180)
             {
                 // Previous switch
-                if (FilterSlotN[0].value == FilterSlotN[0].min)
-                    TargetFilter = FilterSlotN[0].max;
+                if (FilterSlotNP[0].value == FilterSlotNP[0].min)
+                    TargetFilter = FilterSlotNP[0].getMax();
                 else
-                    TargetFilter = FilterSlotN[0].value - 1;
+                    TargetFilter = FilterSlotNP[0].getValue() - 1;
 
                 SelectFilter(TargetFilter);
             }
@@ -183,10 +183,10 @@ void FilterWheel::processJoystick(const char *joystick_n, double mag, double ang
             if (angle > 180 && angle < 360)
             {
                 // Next Switch
-                if (FilterSlotN[0].value == FilterSlotN[0].max)
-                    TargetFilter = FilterSlotN[0].min;
+                if (FilterSlotNP[0].value == FilterSlotNP[0].max)
+                    TargetFilter = FilterSlotNP[0].min;
                 else
-                    TargetFilter = FilterSlotN[0].value + 1;
+                    TargetFilter = FilterSlotNP[0].getValue() + 1;
 
                 SelectFilter(TargetFilter);
             }
@@ -203,7 +203,7 @@ void FilterWheel::processButton(const char *button_n, ISState state)
     // Reset
     if (!strcmp(button_n, "Reset"))
     {
-        TargetFilter = FilterSlotN[0].min;
+        TargetFilter = FilterSlotNP[0].min;
         SelectFilter(TargetFilter);
     }
 }

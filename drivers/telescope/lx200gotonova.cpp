@@ -58,26 +58,26 @@ bool LX200GotoNova::initProperties()
     strcpy(SlewRateS[3].label, "512x");
 
     // Sync Type
-    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_ON);
-    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_OFF);
-    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+    SyncCMRSP[USE_REGULAR_SYNC].fill(":CM#", ":CM#", ISS_ON);
+    SyncCMRSP[USE_CMR_SYNC].fill(":CMR#", ":CMR#", ISS_OFF);
+    SyncCMRSP.fill(getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Park Position
-    IUFillSwitch(&ParkPositionS[PS_NORTH_POLE], "North Pole", "", ISS_ON);
-    IUFillSwitch(&ParkPositionS[PS_LEFT_VERTICAL], "Left and Vertical", "", ISS_OFF);
-    IUFillSwitch(&ParkPositionS[PS_LEFT_HORIZON], "Left and Horizon", "", ISS_OFF);
-    IUFillSwitch(&ParkPositionS[PS_RIGHT_VERTICAL], "Right and Vertical", "", ISS_OFF);
-    IUFillSwitch(&ParkPositionS[PS_RIGHT_HORIZON], "Right and Horizon", "", ISS_OFF);
-    IUFillSwitchVector(&ParkPositionSP, ParkPositionS, 5, getDeviceName(), "PARKING_POSITION", "Parking Position", SITE_TAB, IP_RW, ISR_1OFMANY, 0,
+    ParkPositionSP[PS_NORTH_POLE].fill("North Pole", "", ISS_ON);
+    ParkPositionSP[PS_LEFT_VERTICAL].fill("Left and Vertical", "", ISS_OFF);
+    ParkPositionSP[PS_LEFT_HORIZON].fill("Left and Horizon", "", ISS_OFF);
+    ParkPositionSP[PS_RIGHT_VERTICAL].fill("Right and Vertical", "", ISS_OFF);
+    ParkPositionSP[PS_RIGHT_HORIZON].fill("Right and Horizon", "", ISS_OFF);
+    ParkPositionSP.fill(getDeviceName(), "PARKING_POSITION", "Parking Position", SITE_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Guide Rate
-    IUFillSwitch(&GuideRateS[0], "1.0x", "", ISS_ON);
-    IUFillSwitch(&GuideRateS[1], "0.8x", "", ISS_OFF);
-    IUFillSwitch(&GuideRateS[2], "0.6x", "", ISS_OFF);
-    IUFillSwitch(&GuideRateS[3], "0.4x", "", ISS_OFF);
-    IUFillSwitchVector(&GuideRateSP, GuideRateS, 4, getDeviceName(), "GUIDE_RATE", "Guide Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+    GuideRateSP[0].fill("1.0x", "", ISS_ON);
+    GuideRateSP[1].fill("0.8x", "", ISS_OFF);
+    GuideRateSP[2].fill("0.6x", "", ISS_OFF);
+    GuideRateSP[3].fill("0.4x", "", ISS_OFF);
+    GuideRateSP.fill(getDeviceName(), "GUIDE_RATE", "Guide Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Track Mode -- We do not support Custom so let's just define the first 3 properties
@@ -92,15 +92,15 @@ bool LX200GotoNova::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&SyncCMRSP);
-        defineProperty(&ParkPositionSP);
-        defineProperty(&GuideRateSP);
+        defineProperty(SyncCMRSP);
+        defineProperty(ParkPositionSP);
+        defineProperty(GuideRateSP);
     }
     else
     {
-        deleteProperty(SyncCMRSP.name);
-        deleteProperty(ParkPositionSP.name);
-        deleteProperty(GuideRateSP.name);
+        deleteProperty(SyncCMRSP.getName());
+        deleteProperty(ParkPositionSP.getName());
+        deleteProperty(GuideRateSP.getName());
     }
 
     return true;
@@ -164,49 +164,49 @@ bool LX200GotoNova::ISNewSwitch(const char *dev, const char *name, ISState *stat
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Park Position
-        if (!strcmp(ParkPositionSP.name, name))
+        if (ParkPositionSP.isNameMatch(name))
         {
-            int currentSwitch = IUFindOnSwitchIndex(&ParkPositionSP);
-            IUUpdateSwitch(&ParkPositionSP, states, names, n);
-            if (setGotoNovaParkPosition(IUFindOnSwitchIndex(&ParkPositionSP)) == TTY_OK)
-                ParkPositionSP.s = IPS_OK;
+            int currentSwitch = ParkPositionSP.findOnSwitchIndex();
+            ParkPositionSP.update(states, names, n);
+            if (setGotoNovaParkPosition(ParkPositionSP.findOnSwitchIndex()) == TTY_OK)
+                ParkPositionSP.setState(IPS_OK);
             else
             {
-                IUResetSwitch(&ParkPositionSP);
-                ParkPositionS[currentSwitch].s = ISS_ON;
-                ParkPositionSP.s = IPS_ALERT;
+                ParkPositionSP.reset();
+                ParkPositionSP[currentSwitch].setState(ISS_ON);
+                ParkPositionSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&ParkPositionSP, nullptr);
+            ParkPositionSP.apply();
             return true;
         }
 
         // Guide Rate
-        if (!strcmp(GuideRateSP.name, name))
+        if (GuideRateSP.isNameMatch(name))
         {
-            int currentSwitch = IUFindOnSwitchIndex(&ParkPositionSP);
-            IUUpdateSwitch(&GuideRateSP, states, names, n);
-            if (setGotoNovaGuideRate(IUFindOnSwitchIndex(&GuideRateSP)) == TTY_OK)
-                GuideRateSP.s = IPS_OK;
+            int currentSwitch = ParkPositionSP.findOnSwitchIndex();
+            GuideRateSP.update(states, names, n);
+            if (setGotoNovaGuideRate(GuideRateSP.findOnSwitchIndex()) == TTY_OK)
+                GuideRateSP.setState(IPS_OK);
             else
             {
-                IUResetSwitch(&GuideRateSP);
-                GuideRateS[currentSwitch].s = ISS_ON;
-                GuideRateSP.s = IPS_ALERT;
+                GuideRateSP.reset();
+                GuideRateSP[currentSwitch].setState(ISS_ON);
+                GuideRateSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&GuideRateSP, nullptr);
+            GuideRateSP.apply();
             return true;
         }
 
         // Sync type
-        if (!strcmp(name, SyncCMRSP.name))
+        if (SyncCMRSP.isNameMatch(name))
         {
-            IUResetSwitch(&SyncCMRSP);
-            IUUpdateSwitch(&SyncCMRSP, states, names, n);
-            IUFindOnSwitchIndex(&SyncCMRSP);
-            SyncCMRSP.s = IPS_OK;
-            IDSetSwitch(&SyncCMRSP, nullptr);
+            SyncCMRSP.reset();
+            SyncCMRSP.update(states, names, n);
+            SyncCMRSP.findOnSwitchIndex();
+            SyncCMRSP.setState(IPS_OK);
+            SyncCMRSP.apply();
             return true;
         }
     }
@@ -263,10 +263,10 @@ void LX200GotoNova::getBasicData()
     int rc = getGotoNovaGuideRate(&guideRate);
     if (rc == TTY_OK)
     {
-        IUResetSwitch(&GuideRateSP);
-        GuideRateS[guideRate].s = ISS_ON;
-        GuideRateSP.s = IPS_OK;
-        IDSetSwitch(&GuideRateSP, nullptr);
+        GuideRateSP.reset();
+        GuideRateSP[guideRate].setState(ISS_ON);
+        GuideRateSP.setState(IPS_OK);
+        GuideRateSP.apply();
     }
 }
 
@@ -282,29 +282,29 @@ bool LX200GotoNova::Goto(double r, double d)
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            AbortSP.apply("Abort slew failed.");
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        AbortSP.apply("Slew aborted.");
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
 
         // sleep for 100 mseconds
@@ -315,22 +315,22 @@ bool LX200GotoNova::Goto(double r, double d)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error setting RA/DEC.");
             return false;
         }
 
         if (slewGotoNova() == 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(1);
             return false;
         }
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
+    EqNP.setState(IPS_BUSY);
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -340,14 +340,14 @@ bool LX200GotoNova::Sync(double ra, double dec)
 {
     char syncString[256];
 
-    int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
+    int syncType = SyncCMRSP.findOnSwitchIndex();
 
     if (!isSimulation())
     {
         if (setObjectRA(PortFD, ra) < 0 || setObjectDEC(PortFD, dec) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error setting RA/DEC. Unable to Sync.");
             return false;
         }
 
@@ -371,8 +371,8 @@ bool LX200GotoNova::Sync(double ra, double dec)
 
         if (syncOK == false)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Synchronization failed.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Synchronization failed.");
             return false;
         }
 
@@ -384,7 +384,7 @@ bool LX200GotoNova::Sync(double ra, double dec)
     LOGF_DEBUG("%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
     LOG_INFO("Synchronization successful.");
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     NewRaDec(currentRA, currentDEC);
 
@@ -702,7 +702,7 @@ bool LX200GotoNova::Park()
 
     tcflush(PortFD, TCIFLUSH);
 
-    EqNP.s     = IPS_BUSY;
+    EqNP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
     LOG_INFO("Parking is in progress...");
 
@@ -745,8 +745,8 @@ bool LX200GotoNova::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Error reading RA/DEC.");
         return false;
     }
 
@@ -840,7 +840,7 @@ int LX200GotoNova::getGotoNovaGuideRate(int *rate)
 
     if (isSimulation())
     {
-        snprintf(response, 8, "%d#", IUFindOnSwitchIndex(&GuideRateSP));
+        snprintf(response, 8, "%d#", GuideRateSP.findOnSwitchIndex());
         nbytes_read = strlen(response);
     }
     else
@@ -958,8 +958,8 @@ bool LX200GotoNova::saveConfigItems(FILE *fp)
 {
     LX200Generic::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &SyncCMRSP);
-    IUSaveConfigSwitch(fp, &ParkPositionSP);
+    SyncCMRSP.save(fp);
+    ParkPositionSP.save(fp);
 
     return true;
 }

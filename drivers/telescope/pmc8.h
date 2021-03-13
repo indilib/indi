@@ -29,6 +29,11 @@
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
@@ -114,12 +119,10 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         void getStartupData();
 
         /* Firmware */
-        IText FirmwareT[1] {};
-        ITextVectorProperty FirmwareTP;
+        INDI::PropertyText FirmwareTP {1};
 
         /* Mount Types */
-        ISwitch MountTypeS[3];
-        ISwitchVectorProperty MountTypeSP;
+        INDI::PropertySwitch MountTypeSP {3};
 
         //Moved to driver
         //enum { MOUNT_G11, MOUNT_EXOS2, MOUNT_iEXOS100 };
@@ -133,8 +136,7 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         //INumberVectorProperty CustomTrackRateNP;
 
         /* Guide Rate */
-        INumber GuideRateN[1];
-        INumberVectorProperty GuideRateNP;
+        INDI::PropertyNumber GuideRateNP {1};
 
         unsigned int DBG_SCOPE;
         double currentRA, currentDEC;

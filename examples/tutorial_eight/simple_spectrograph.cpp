@@ -25,7 +25,7 @@
 #include <memory>
 
 /* Macro shortcut to Spectrograph temperature value */
-#define currentSpectrographTemperature TemperatureN[0].value
+#define currentSpectrographTemperature TemperatureNP[0].value
 
 std::unique_ptr<SimpleSpectrograph> simpleSpectrograph(new SimpleSpectrograph());
 
@@ -219,7 +219,7 @@ void SimpleSpectrograph::TimerHit()
     }
 
     // TemperatureNP is defined in INDI::Spectrograph
-    switch (TemperatureNP.s)
+    switch (TemperatureNP.getState())
     {
         case IPS_IDLE:
         case IPS_OK:
@@ -235,13 +235,13 @@ void SimpleSpectrograph::TimerHit()
             /* If they're equal, stop updating */
             else
             {
-                TemperatureNP.s = IPS_OK;
-                IDSetNumber(&TemperatureNP, "Target temperature reached.");
+                TemperatureNP.setState(IPS_OK);
+                TemperatureNP.apply("Target temperature reached.");
 
                 break;
             }
 
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
 
             break;
 

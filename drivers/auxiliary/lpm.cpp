@@ -93,36 +93,36 @@ bool LPM::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Readings from device
-    IUFillNumber(&AverageReadingN[0], "SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
-    IUFillNumber(&AverageReadingN[1], "AVG_SKY_BRIGHTNESS", "Avg. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
-    IUFillNumber(&AverageReadingN[2], "MIN_SKY_BRIGHTNESS", "Min. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
-    IUFillNumber(&AverageReadingN[3], "MAX_SKY_BRIGHTNESS", "Max. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
-    IUFillNumber(&AverageReadingN[4], "NAKED_EYES_LIMIT", "NELM (V mags)", "%6.2f", -20, 30, 0, 0);
+    AverageReadingNP[0].fill("SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
+    AverageReadingNP[1].fill("AVG_SKY_BRIGHTNESS", "Avg. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
+    AverageReadingNP[2].fill("MIN_SKY_BRIGHTNESS", "Min. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
+    AverageReadingNP[3].fill("MAX_SKY_BRIGHTNESS", "Max. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
+    AverageReadingNP[4].fill("NAKED_EYES_LIMIT", "NELM (V mags)", "%6.2f", -20, 30, 0, 0);
 
-    IUFillNumberVector(&AverageReadingNP, AverageReadingN, 5, getDeviceName(), "SKY_QUALITY", "Readings",
+    AverageReadingNP.fill(getDeviceName(), "SKY_QUALITY", "Readings",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // add reset button for SQ-Measurements
-    IUFillSwitch(&ResetB[0], "RESET_BUTTON", "Reset", ISS_OFF);
-    IUFillSwitchVector(&ResetBP, ResetB, 1, getDeviceName(), "RESET_READINGS", "",
+    ResetBP[0].fill("RESET_BUTTON", "Reset", ISS_OFF);
+    ResetBP.fill(getDeviceName(), "RESET_READINGS", "",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    IUFillSwitch(&SaveB[SAVE_READINGS], "SAVE_BUTTON", "Save Readings", ISS_OFF);
-    IUFillSwitch(&SaveB[DISCARD_READINGS], "DISCARD_BUTTON", "Discard Readings", ISS_OFF);
-    IUFillSwitchVector(&SaveBP, SaveB, 2, getDeviceName(), "SAVE_READINGS", "",
+    SaveBP[SAVE_READINGS].fill("SAVE_BUTTON", "Save Readings", ISS_OFF);
+    SaveBP[DISCARD_READINGS].fill("DISCARD_BUTTON", "Discard Readings", ISS_OFF);
+    SaveBP.fill(getDeviceName(), "SAVE_READINGS", "",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // LPM-Readings-Log
     std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/lpm");
-    IUFillText(&RecordFileT[0], "RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
-    IUFillText(&RecordFileT[1], "RECORD_FILE_NAME", "Name", "lpmlog.txt");
-    IUFillTextVector(&RecordFileTP, RecordFileT, NARRAY(RecordFileT), getDeviceName(), "RECORD_FILE", "Record File",
+    RecordFileTP[0].fill("RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
+    RecordFileTP[1].fill("RECORD_FILE_NAME", "Name", "lpmlog.txt");
+    RecordFileTP.fill(getDeviceName(), "RECORD_FILE", "Record File",
                      MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-    snprintf(filename, 2048, "%s/%s", RecordFileT[0].text, RecordFileT[1].text);
+    snprintf(filename, 2048, "%s/%s", RecordFileTP[0].getText(), RecordFileTP[1].getText());
 
     // Unit Info
-    IUFillNumber(&UnitInfoN[0], "Calibdata", "", "%6.2f", -20, 30, 0, 0);
-    IUFillNumberVector(&UnitInfoNP, UnitInfoN, 1, getDeviceName(), "Unit Info", "",
+    UnitInfoNP[0].fill("Calibdata", "", "%6.2f", -20, 30, 0, 0);
+    UnitInfoNP.fill(getDeviceName(), "Unit Info", "",
                        UNIT_TAB, IP_RO, 0, IPS_IDLE);
 
     if (lpmConnection & CONNECTION_SERIAL)
@@ -145,19 +145,19 @@ bool LPM::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&AverageReadingNP);
-        defineProperty(&UnitInfoNP);
-        defineProperty(&ResetBP);
-        defineProperty(&RecordFileTP);
-        defineProperty(&SaveBP);
+        defineProperty(AverageReadingNP);
+        defineProperty(UnitInfoNP);
+        defineProperty(ResetBP);
+        defineProperty(RecordFileTP);
+        defineProperty(SaveBP);
     }
     else
     {
-        deleteProperty(AverageReadingNP.name);
-        deleteProperty(UnitInfoNP.name);
-        deleteProperty(RecordFileTP.name);
-        deleteProperty(ResetBP.name);
-        deleteProperty(SaveBP.name);
+        deleteProperty(AverageReadingNP.getName());
+        deleteProperty(UnitInfoNP.getName());
+        deleteProperty(RecordFileTP.getName());
+        deleteProperty(ResetBP.getName());
+        deleteProperty(SaveBP.getName());
     }
 
     return true;
@@ -167,12 +167,12 @@ bool LPM::ISNewText(const char *dev, const char *name, char *texts[], char *name
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, RecordFileTP.name) == 0)
+        if (RecordFileTP.isNameMatch(name))
         {
-            IUUpdateText(&RecordFileTP, texts, names, n);
-            RecordFileTP.s = IPS_OK;
-            IDSetText(&RecordFileTP, nullptr);
-            snprintf(filename, 2048, "%s/%s", RecordFileT[0].text, RecordFileT[1].text);
+            RecordFileTP.update(texts, names, n);
+            RecordFileTP.setState(IPS_OK);
+            RecordFileTP.apply();
+            snprintf(filename, 2048, "%s/%s", RecordFileTP[0].getText(), RecordFileTP[1].getText());
             LOGF_INFO("filename changed to %s", filename);
             if (fp != nullptr)
             {
@@ -191,32 +191,32 @@ bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Reset
-        if (!strcmp(name, ResetBP.name))
+        if (ResetBP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ResetBP, states, names, n);
-            ResetB[0].s = ISS_OFF;
-            ResetBP.s   = IPS_OK;
-            IDSetSwitch(&ResetBP, nullptr);
+            ResetBP.update(states, names, n);
+            ResetBP[0].setState(ISS_OFF);
+            ResetBP.setState(IPS_OK);
+            ResetBP.apply();
 
-            AverageReadingN[0].value = 0;
-            AverageReadingN[1].value = 0;
-            AverageReadingN[2].value = 0;
-            AverageReadingN[3].value = 0;
+            AverageReadingNP[0].setValue(0);
+            AverageReadingNP[1].setValue(0);
+            AverageReadingNP[2].setValue(0);
+            AverageReadingNP[3].setValue(0);
 
             sumSQ = 0;
             count = 0;
             return true;
-        } else if (!strcmp(name, SaveBP.name))
+        } else if (SaveBP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SaveBP, states, names, n);
+            SaveBP.update(states, names, n);
 
-            if (SaveB[SAVE_READINGS].s == ISS_ON)
+            if (SaveBP[SAVE_READINGS].getState() == ISS_ON)
             {
                 LOGF_INFO("Save readings to %s", filename);
                 if (fp == nullptr) {
                     openFilePtr();
                 }
-                SaveBP.s = IPS_OK;
+                SaveBP.setState(IPS_OK);
             } else {
                 LOG_INFO("Discard readings");
                 if (fp != nullptr) {
@@ -226,10 +226,10 @@ bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
                 } else {
                     LOG_WARN("no file open!");
                 }
-                SaveBP.s = IPS_IDLE;
+                SaveBP.setState(IPS_IDLE);
             }
 
-            IDSetSwitch(&SaveBP, nullptr);
+            SaveBP.apply();
             return true;
         }
 
@@ -241,7 +241,7 @@ bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 void LPM::openFilePtr()
 {
     LOG_DEBUG("open file pointer");
-    mkdir(RecordFileT[0].text,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir(RecordFileTP[0].getText(),S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     fp = fopen(filename, "a");
 }
 
@@ -273,24 +273,24 @@ bool LPM::getReadings()
             count++;
         }
 
-        AverageReadingN[0].value = mpsas;
+        AverageReadingNP[0].setValue(mpsas);
         sumSQ += mpsas;
 
         if (count > 1)
         {
-            AverageReadingN[1].value = sumSQ / count;
-            if (mpsas < AverageReadingN[2].value) {
-                AverageReadingN[2].value = mpsas;
+            AverageReadingNP[1].setValue(sumSQ / count);
+            if (mpsas < AverageReadingNP[2].getValue()) {
+                AverageReadingNP[2].setValue(mpsas);
             }
-            if (mpsas > AverageReadingN[3].value) {
-                AverageReadingN[3].value = mpsas;
+            if (mpsas > AverageReadingNP[3].getValue()) {
+                AverageReadingNP[3].setValue(mpsas);
             }
         } else {
-            AverageReadingN[2].value = mpsas;
-            AverageReadingN[3].value = mpsas;
+            AverageReadingNP[2].setValue(mpsas);
+            AverageReadingNP[3].setValue(mpsas);
         }
         //NELM (see http://unihedron.com/projects/darksky/NELM2BCalc.html)
-        AverageReadingN[4].value = 7.93-5*log(pow(10,(4.316-(mpsas/5)))+1)/log(10);
+        AverageReadingNP[4].setValue(7.93-5*log(pow(10,(4.316-(mpsas/5)))+1)/log(10));
     }
     return true;
 }
@@ -350,7 +350,7 @@ bool LPM::getDeviceInfo()
         return false;
     }
 
-    UnitInfoN[0].value = calib;
+    UnitInfoNP[0].setValue(calib);
 
     return true;
 }
@@ -362,8 +362,8 @@ void LPM::TimerHit()
 
     bool rc = getReadings();
 
-    AverageReadingNP.s = rc ? IPS_OK : IPS_ALERT;
-    IDSetNumber(&AverageReadingNP, nullptr);
+    AverageReadingNP.setState(rc ? IPS_OK : IPS_ALERT);
+    AverageReadingNP.apply();
 
     SetTimer(getCurrentPollingPeriod());
 }

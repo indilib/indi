@@ -31,6 +31,10 @@
 
 #include <memory>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
+
 class SkySafariClient;
 
 class SkySafari : public INDI::DefaultDevice
@@ -70,8 +74,7 @@ class SkySafari : public INDI::DefaultDevice
         std::vector<std::string> split(const std::string &s, char delim);
 
         // Settings
-        ITextVectorProperty SettingsTP;
-        IText SettingsT[3] {};
+        INDI::PropertyText SettingsTP {3};
         enum
         {
             INDISERVER_HOST,
@@ -80,16 +83,14 @@ class SkySafari : public INDI::DefaultDevice
         };
 
         // Active Devices
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[1] {};
+        INDI::PropertyText ActiveDeviceTP {1};
         enum
         {
             ACTIVE_TELESCOPE
         };
 
         // Server Control
-        ISwitchVectorProperty ServerControlSP;
-        ISwitch ServerControlS[2];
+        INDI::PropertySwitch ServerControlSP {2};
         enum
         {
             SERVER_ENABLE,

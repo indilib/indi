@@ -125,42 +125,42 @@ bool SestoSenso::initProperties()
     INDI::Focuser::initProperties();
 
     // Firmware Information
-    IUFillText(&FirmwareT[0], "VERSION", "Version", "");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FOCUS_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    FirmwareTP[0].fill("VERSION", "Version", "");
+    FirmwareTP.fill(getDeviceName(), "FOCUS_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Focuser calibration
-    IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "");
-    IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    CalibrationMessageTP[0].fill("CALIBRATION", "Calibration stage", "");
+    CalibrationMessageTP.fill(getDeviceName(), "CALIBRATION_MESSAGE", "Calibration", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillSwitch(&CalibrationS[CALIBRATION_START], "CALIBRATION_START", "Start", ISS_OFF);
-    IUFillSwitch(&CalibrationS[CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
-    IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    CalibrationSP[CALIBRATION_START].fill("CALIBRATION_START", "Start", ISS_OFF);
+    CalibrationSP[CALIBRATION_NEXT].fill("CALIBRATION_NEXT", "Next", ISS_OFF);
+    CalibrationSP.fill(getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&FastMoveS[FASTMOVE_IN], "FASTMOVE_IN", "Move In", ISS_OFF);
-    IUFillSwitch(&FastMoveS[FASTMOVE_OUT], "FASTMOVE_OUT", "Move out", ISS_OFF);
-    IUFillSwitch(&FastMoveS[FASTMOVE_STOP], "FASTMOVE_STOP", "Stop", ISS_OFF);
-    IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    FastMoveSP[FASTMOVE_IN].fill("FASTMOVE_IN", "Move In", ISS_OFF);
+    FastMoveSP[FASTMOVE_OUT].fill("FASTMOVE_OUT", "Move out", ISS_OFF);
+    FastMoveSP[FASTMOVE_STOP].fill("FASTMOVE_STOP", "Stop", ISS_OFF);
+    FastMoveSP.fill(getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     //
     // Override the default Max. Position to make it Read-Only
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    FocusMaxPosNP.fill(getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Relative and absolute movement
-    FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step  = 1000;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0);
+    FocusRelPosNP[0].setStep(1000);
 
-    FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 200000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 1000;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(200000.);
+    FocusAbsPosNP[0].setValue(0);
+    FocusAbsPosNP[0].setStep(1000);
 
-    FocusMaxPosN[0].value = 2097152;
+    FocusMaxPosNP[0].setValue(2097152);
 
     addAuxControls();
 
@@ -177,11 +177,11 @@ bool SestoSenso::updateProperties()
     {
         // Only define temperature if there is a probe
         if (updateTemperature())
-            defineProperty(&TemperatureNP);
-        defineProperty(&FirmwareTP);
-        IUSaveText(&CalibrationMessageT[0], "Press START to begin the Calibration");
-        defineProperty(&CalibrationMessageTP);
-        defineProperty(&CalibrationSP);
+            defineProperty(TemperatureNP);
+        defineProperty(FirmwareTP);
+        CalibrationMessageTP[0].setText("Press START to begin the Calibration");
+        defineProperty(CalibrationMessageTP);
+        defineProperty(CalibrationSP);
 
         if (getStartupValues())
             LOG_INFO("SestoSenso parameters updated, focuser ready for use.");
@@ -190,11 +190,11 @@ bool SestoSenso::updateProperties()
     }
     else
     {
-        if (TemperatureNP.s == IPS_OK)
-            deleteProperty(TemperatureNP.name);
-        deleteProperty(FirmwareTP.name);
-        deleteProperty(CalibrationMessageTP.name);
-        deleteProperty(CalibrationSP.name);
+        if (TemperatureNP.getState() == IPS_OK)
+            deleteProperty(TemperatureNP.getName());
+        deleteProperty(FirmwareTP.getName());
+        deleteProperty(CalibrationMessageTP.getName());
+        deleteProperty(CalibrationSP.getName());
     }
 
     return true;
@@ -236,7 +236,7 @@ bool SestoSenso::Ack()
     else if (sendCommand("#QF!", res) == false)
         return false;
 
-    IUSaveText(&FirmwareT[0], res);
+    FirmwareTP[0].setText(res);
 
     return true;
 }
@@ -264,8 +264,8 @@ bool SestoSenso::updateTemperature()
     if (temperature > 90)
         return false;
 
-    TemperatureN[0].value = temperature;
-    TemperatureNP.s = IPS_OK;
+    TemperatureNP[0].setValue(temperature);
+    TemperatureNP.setState(IPS_OK);
 
     return true;
 }
@@ -286,29 +286,29 @@ bool SestoSenso::updateMaxLimit()
 
     if (maxLimit > 0)
     {
-        FocusMaxPosN[0].max = maxLimit;
-        if (FocusMaxPosN[0].value > maxLimit)
-            FocusMaxPosN[0].value = maxLimit;
+        FocusMaxPosNP[0].setMax(maxLimit);
+        if (FocusMaxPosNP[0].value > maxLimit)
+            FocusMaxPosNP[0].setValue(maxLimit);
 
-        FocusAbsPosN[0].min   = 0;
-        FocusAbsPosN[0].max   = maxLimit;
-        FocusAbsPosN[0].value = 0;
-        FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+        FocusAbsPosNP[0].setMin(0);
+        FocusAbsPosNP[0].setMax(maxLimit);
+        FocusAbsPosNP[0].setValue(0);
+        FocusAbsPosNP[0].setStep((FocusAbsPosNP[0].max - FocusAbsPosNP[0].min) / 50.0);
 
-        FocusRelPosN[0].min   = 0.;
-        FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
-        FocusRelPosN[0].value = 0;
-        FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+        FocusRelPosNP[0].setMin(0.);
+        FocusRelPosNP[0].setMax(FocusAbsPosNP[0].step * 10);
+        FocusRelPosNP[0].setValue(0);
+        FocusRelPosNP[0].setStep(FocusAbsPosNP[0].step);
 
-        IUUpdateMinMax(&FocusAbsPosNP);
-        IUUpdateMinMax(&FocusRelPosNP);
+        FocusAbsPosNP.updateMinMax();
+        FocusRelPosNP.updateMinMax();
 
-        FocusMaxPosNP.s = IPS_OK;
-        IUUpdateMinMax(&FocusMaxPosNP);
+        FocusMaxPosNP.setState(IPS_OK);
+        FocusMaxPosNP.updateMinMax();
         return true;
     }
 
-    FocusMaxPosNP.s = IPS_ALERT;
+    FocusMaxPosNP.setState(IPS_ALERT);
     return false;
 }
 
@@ -316,20 +316,20 @@ bool SestoSenso::updatePosition()
 {
     char res[SESTO_LEN] = {0};
     if (isSimulation())
-        snprintf(res, SESTO_LEN, "%d", static_cast<uint32_t>(FocusAbsPosN[0].value));
+        snprintf(res, SESTO_LEN, "%d", static_cast<uint32_t>(FocusAbsPosNP[0].value));
     else if (sendCommand("#QP!", res) == false)
         return false;
 
     try
     {
-        FocusAbsPosN[0].value = std::stoi(res);
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP[0].setValue(std::stoi(res));
+        FocusAbsPosNP.setState(IPS_OK);
         return true;
     }
     catch(...)
     {
         LOGF_WARN("Failed to process position response: %s (%d bytes)", res, strlen(res));
-        FocusAbsPosNP.s = IPS_ALERT;
+        FocusAbsPosNP.setState(IPS_ALERT);
         return false;
     }
 }
@@ -340,7 +340,7 @@ bool SestoSenso::isMotionComplete()
 
     if (isSimulation())
     {
-        int32_t nextPos = FocusAbsPosN[0].value;
+        int32_t nextPos = FocusAbsPosNP[0].getValue();
         int32_t targPos = static_cast<int32_t>(targetPos);
 
         if (targPos > nextPos)
@@ -352,8 +352,8 @@ bool SestoSenso::isMotionComplete()
             nextPos = targetPos;
         else if (nextPos < 0)
             nextPos = 0;
-        else if (nextPos > FocusAbsPosN[0].max)
-            nextPos = FocusAbsPosN[0].max;
+        else if (nextPos > FocusAbsPosNP[0].max)
+            nextPos = FocusAbsPosNP[0].getMax();
 
         snprintf(res, SESTO_LEN, "%d", nextPos);
     }
@@ -375,7 +375,7 @@ bool SestoSenso::isMotionComplete()
             try
             {
                 uint32_t newPos = std::stoi(res);
-                FocusAbsPosN[0].value = newPos;
+                FocusAbsPosNP[0].setValue(newPos);
             }
             catch (...)
             {
@@ -394,18 +394,18 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
     {
 
         // Calibrate focuser
-        if (!strcmp(name, CalibrationSP.name))
+        if (CalibrationSP.isNameMatch(name))
         {
             char res[SESTO_LEN] = {0};
             int current_switch = 0;
 
-            CalibrationSP.s = IPS_BUSY;
-            //IDSetSwitch(&CalibrationSP, nullptr);
-            IUUpdateSwitch(&CalibrationSP, states, names, n);
+            CalibrationSP.setState(IPS_BUSY);
+            //CalibrationSP.apply();
+            CalibrationSP.update(states, names, n);
 
-            current_switch = IUFindOnSwitchIndex(&CalibrationSP);
-            CalibrationS[current_switch].s = ISS_ON;
-            IDSetSwitch(&CalibrationSP, nullptr);
+            current_switch = CalibrationSP.findOnSwitchIndex();
+            CalibrationSP[current_switch].setState(ISS_ON);
+            CalibrationSP.apply();
 
             if (current_switch == CALIBRATION_START)
             {
@@ -413,8 +413,8 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 {
                     // Start the calibration process
                     LOG_INFO("Start Calibration");
-                    CalibrationSP.s = IPS_BUSY;
-                    IDSetSwitch(&CalibrationSP, nullptr);
+                    CalibrationSP.setState(IPS_BUSY);
+                    CalibrationSP.apply();
 
                     //
                     // Unlock the motor to allow manual movement of the focuser
@@ -422,8 +422,8 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     if (sendCommand("#MF!") == false)
                         return false;
 
-                    IUSaveText(&CalibrationMessageT[0], "Move focuser manually to the middle then press NEXT");
-                    IDSetText(&CalibrationMessageTP, nullptr);
+                    CalibrationMessageTP[0].setText("Move focuser manually to the middle then press NEXT");
+                    CalibrationMessageTP.apply();
 
                     // Set next step
                     cStage = GoToMiddle;
@@ -431,17 +431,17 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 else
                 {
                     LOG_INFO("Already started calibration. Proceed to next step.");
-                    IUSaveText(&CalibrationMessageT[0], "Already started. Proceed to NEXT.");
-                    IDSetText(&CalibrationMessageTP, nullptr);
+                    CalibrationMessageTP[0].setText("Already started. Proceed to NEXT.");
+                    CalibrationMessageTP.apply();
                 }
             }
             else if (current_switch == CALIBRATION_NEXT)
             {
                 if (cStage == GoToMiddle)
                 {
-                    defineProperty(&FastMoveSP);
-                    IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MIN position then press NEXT");
-                    IDSetText(&CalibrationMessageTP, nullptr);
+                    defineProperty(FastMoveSP);
+                    CalibrationMessageTP[0].setText("Move In/Move Out/Stop to MIN position then press NEXT");
+                    CalibrationMessageTP.apply();
                     cStage = GoMinimum;
                 }
                 else if (cStage == GoMinimum)
@@ -450,8 +450,8 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     if (sendCommand("#Sm;0!") == false)
                         return false;
 
-                    IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MAX position then press NEXT");
-                    IDSetText(&CalibrationMessageTP, nullptr);
+                    CalibrationMessageTP[0].setText("Move In/Move Out/Stop to MAX position then press NEXT");
+                    CalibrationMessageTP.apply();
                     cStage = GoMaximum;
                 }
                 else if (cStage == GoMaximum)
@@ -471,49 +471,49 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     sscanf(res, "SM;%d!", &maxLimit);
                     LOGF_INFO("MAX setting is %d", maxLimit);
 
-                    FocusMaxPosN[0].max = maxLimit;
-                    FocusMaxPosN[0].value = maxLimit;
+                    FocusMaxPosNP[0].setMax(maxLimit);
+                    FocusMaxPosNP[0].setValue(maxLimit);
 
-                    FocusAbsPosN[0].min   = 0;
-                    FocusAbsPosN[0].max   = maxLimit;
-                    FocusAbsPosN[0].value = maxLimit;
-                    FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+                    FocusAbsPosNP[0].setMin(0);
+                    FocusAbsPosNP[0].setMax(maxLimit);
+                    FocusAbsPosNP[0].setValue(maxLimit);
+                    FocusAbsPosNP[0].setStep((FocusAbsPosNP[0].max - FocusAbsPosNP[0].min) / 50.0);
 
-                    FocusRelPosN[0].min   = 0.;
-                    FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
-                    FocusRelPosN[0].value = 0;
-                    FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+                    FocusRelPosNP[0].setMin(0.);
+                    FocusRelPosNP[0].setMax(FocusAbsPosNP[0].step * 10);
+                    FocusRelPosNP[0].setValue(0);
+                    FocusRelPosNP[0].setStep(FocusAbsPosNP[0].step);
 
-                    IUUpdateMinMax(&FocusAbsPosNP);
-                    IUUpdateMinMax(&FocusRelPosNP);
-                    FocusMaxPosNP.s = IPS_OK;
-                    IUUpdateMinMax(&FocusMaxPosNP);
+                    FocusAbsPosNP.updateMinMax();
+                    FocusRelPosNP.updateMinMax();
+                    FocusMaxPosNP.setState(IPS_OK);
+                    FocusMaxPosNP.updateMinMax();
 
-                    IUSaveText(&CalibrationMessageT[0], "Calibration Completed.");
-                    IDSetText(&CalibrationMessageTP, nullptr);
+                    CalibrationMessageTP[0].setText("Calibration Completed.");
+                    CalibrationMessageTP.apply();
 
-                    deleteProperty(FastMoveSP.name);
+                    deleteProperty(FastMoveSP.getName());
                     cStage = Complete;
 
                     LOG_INFO("Calibration completed");
-                    CalibrationSP.s = IPS_OK;
-                    IDSetSwitch(&CalibrationSP, nullptr);
-                    CalibrationS[current_switch].s = ISS_OFF;
-                    IDSetSwitch(&CalibrationSP, nullptr);
+                    CalibrationSP.setState(IPS_OK);
+                    CalibrationSP.apply();
+                    CalibrationSP[current_switch].setState(ISS_OFF);
+                    CalibrationSP.apply();
                 }
                 else
                 {
-                    IUSaveText(&CalibrationMessageT[0], "Calibration not in process");
-                    IDSetText(&CalibrationMessageTP, nullptr);
+                    CalibrationMessageTP[0].setText("Calibration not in process");
+                    CalibrationMessageTP.apply();
                 }
 
             }
             return true;
         }
-        else if (!strcmp(name, FastMoveSP.name))
+        else if (FastMoveSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&FastMoveSP, states, names, n);
-            int current_switch = IUFindOnSwitchIndex(&FastMoveSP);
+            FastMoveSP.update(states, names, n);
+            int current_switch = FastMoveSP.findOnSwitchIndex();
 
             switch (current_switch)
             {
@@ -539,8 +539,8 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
                     break;
             }
 
-            FastMoveSP.s = IPS_BUSY;
-            IDSetSwitch(&FastMoveSP, nullptr);
+            FastMoveSP.setState(IPS_BUSY);
+            FastMoveSP.apply();
             return true;
         }
 
@@ -568,9 +568,9 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == INDI_ENABLED) ? -1 : 1;
+    int reversed = (FocusReverseSP.findOnSwitchIndex() == INDI_ENABLED) ? -1 : 1;
     int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
-    double newPosition = FocusAbsPosN[0].value + relativeTicks;
+    double newPosition = FocusAbsPosNP[0].getValue() + relativeTicks;
 
     bool rc = MoveAbsFocuser(newPosition);
 
@@ -604,18 +604,18 @@ void SestoSenso::checkMotionProgressCallback()
 {
     if (isMotionComplete())
     {
-        FocusAbsPosNP.s = IPS_OK;
-        FocusRelPosNP.s = IPS_OK;
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        lastPos = FocusAbsPosN[0].value;
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusRelPosNP.setState(IPS_OK);
+        FocusRelPosNP.apply();
+        FocusAbsPosNP.apply();
+        lastPos = FocusAbsPosNP[0].getValue();
         LOG_INFO("Focuser reached requested position.");
         return;
     }
     else
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
-    lastPos = FocusAbsPosN[0].value;
+    lastPos = FocusAbsPosNP[0].getValue();
 
     IERmTimer(m_MotionProgressTimerID);
     m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso::checkMotionProgressHelper, this);
@@ -623,7 +623,7 @@ void SestoSenso::checkMotionProgressCallback()
 
 void SestoSenso::TimerHit()
 {
-    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY || CalibrationSP.s == IPS_BUSY)
+    if (!isConnected() || FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY || CalibrationSP.getState() == IPS_BUSY)
     {
         SetTimer(getCurrentPollingPeriod());
         return;
@@ -632,10 +632,10 @@ void SestoSenso::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 0)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 0)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
@@ -644,10 +644,10 @@ void SestoSenso::TimerHit()
         rc = updateTemperature();
         if (rc)
         {
-            if (fabs(lastTemperature - TemperatureN[0].value) >= 0.1)
+            if (fabs(lastTemperature - TemperatureNP[0].getValue()) >= 0.1)
             {
-                IDSetNumber(&TemperatureNP, nullptr);
-                lastTemperature = TemperatureN[0].value;
+                TemperatureNP.apply();
+                lastTemperature = TemperatureNP[0].getValue();
             }
         }
         m_TemperatureCounter = 0;   // Reset the counter
@@ -660,7 +660,7 @@ bool SestoSenso::getStartupValues()
 {
     bool rc1 = updatePosition();
     if (rc1)
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (updateMaxLimit() == false)
         LOG_WARN("Check you have the latest SestoSenso firmware. Focuser requires calibration.");

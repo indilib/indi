@@ -46,21 +46,21 @@ void CCDChip::setResolution(uint32_t x, uint32_t y)
     XRes = x;
     YRes = y;
 
-    ImagePixelSizeN[0].value = x;
-    ImagePixelSizeN[1].value = y;
+    ImagePixelSizeNP[0].setValue(x);
+    ImagePixelSizeNP[1].setValue(y);
 
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
+    ImagePixelSizeNP.apply();
 
-    ImageFrameN[FRAME_X].min = 0;
-    ImageFrameN[FRAME_X].max = x - 1;
-    ImageFrameN[FRAME_Y].min = 0;
-    ImageFrameN[FRAME_Y].max = y - 1;
+    ImageFrameNP[FRAME_X].setMin(0);
+    ImageFrameNP[FRAME_X].setMax(x - 1);
+    ImageFrameNP[FRAME_Y].setMin(0);
+    ImageFrameNP[FRAME_Y].setMax(y - 1);
 
-    ImageFrameN[FRAME_W].min = 1;
-    ImageFrameN[FRAME_W].max = x;
-    ImageFrameN[FRAME_H].min = 1;
-    ImageFrameN[FRAME_H].max = y;
-    IUUpdateMinMax(&ImageFrameNP);
+    ImageFrameNP[FRAME_W].setMin(1);
+    ImageFrameNP[FRAME_W].setMax(x);
+    ImageFrameNP[FRAME_H].setMin(1);
+    ImageFrameNP[FRAME_H].setMax(y);
+    ImageFrameNP.updateMinMax();
 }
 
 void CCDChip::setFrame(uint32_t subx, uint32_t suby, uint32_t subw, uint32_t subh)
@@ -70,12 +70,12 @@ void CCDChip::setFrame(uint32_t subx, uint32_t suby, uint32_t subw, uint32_t sub
     SubW = subw;
     SubH = subh;
 
-    ImageFrameN[FRAME_X].value = SubX;
-    ImageFrameN[FRAME_Y].value = SubY;
-    ImageFrameN[FRAME_W].value = SubW;
-    ImageFrameN[FRAME_H].value = SubH;
+    ImageFrameNP[FRAME_X].setValue(SubX);
+    ImageFrameNP[FRAME_Y].setValue(SubY);
+    ImageFrameNP[FRAME_W].setValue(SubW);
+    ImageFrameNP[FRAME_H].setValue(SubH);
 
-    IDSetNumber(&ImageFrameNP, nullptr);
+    ImageFrameNP.apply();
 }
 
 void CCDChip::setBin(uint8_t hor, uint8_t ver)
@@ -83,10 +83,10 @@ void CCDChip::setBin(uint8_t hor, uint8_t ver)
     BinX = hor;
     BinY = ver;
 
-    ImageBinN[BIN_W].value = BinX;
-    ImageBinN[BIN_H].value = BinY;
+    ImageBinNP[BIN_W].setValue(BinX);
+    ImageBinNP[BIN_H].setValue(BinY);
 
-    IDSetNumber(&ImageBinNP, nullptr);
+    ImageBinNP.apply();
 }
 
 void CCDChip::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
@@ -94,16 +94,16 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
 {
     INumberVectorProperty *nvp = nullptr;
 
-    if (!strcmp(property, ImageExposureNP.name))
-        nvp = &ImageExposureNP;
-    else if (!strcmp(property, ImageFrameNP.name))
-        nvp = &ImageFrameNP;
-    else if (!strcmp(property, ImageBinNP.name))
-        nvp = &ImageBinNP;
-    else if (!strcmp(property, ImagePixelSizeNP.name))
-        nvp = &ImagePixelSizeNP;
-    //    else if (!strcmp(property, RapidGuideDataNP.name))
-    //        nvp = &RapidGuideDataNP;
+    if (ImageExposureNP.isNameMatch(property))
+        nvp = ImageExposureNP.getNumber(); // #PS: refactor needed
+    else if (ImageFrameNP.isNameMatch(property))
+        nvp = ImageFrameNP.getNumber(); // #PS: refactor needed
+    else if (ImageBinNP.isNameMatch(property))
+        nvp = ImageBinNP.getNumber(); // #PS: refactor needed
+    else if (ImagePixelSizeNP.isNameMatch(property))
+        nvp = ImagePixelSizeNP.getNumber(); // #PS: refactor needed
+    //    else if (RapidGuideDataNP.isNameMatch(property))
+    //        nvp = RapidGuideDataNP.getNumber(); // #PS: refactor needed
     else
         return;
 
@@ -124,20 +124,20 @@ void CCDChip::setPixelSize(double x, double y)
     PixelSizeX = x;
     PixelSizeY = y;
 
-    ImagePixelSizeN[2].value = x;
-    ImagePixelSizeN[3].value = x;
-    ImagePixelSizeN[4].value = y;
+    ImagePixelSizeNP[2].setValue(x);
+    ImagePixelSizeNP[3].setValue(x);
+    ImagePixelSizeNP[4].setValue(y);
 
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
+    ImagePixelSizeNP.apply();
 }
 
 void CCDChip::setBPP(uint8_t bbp)
 {
     BitsPerPixel = bbp;
 
-    ImagePixelSizeN[5].value = BitsPerPixel;
+    ImagePixelSizeNP[5].setValue(BitsPerPixel);
 
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
+    ImagePixelSizeNP.apply();
 }
 
 void CCDChip::setFrameBufferSize(uint32_t nbuf, bool allocMem)
@@ -162,10 +162,10 @@ void CCDChip::setFrameBufferSize(uint32_t nbuf, bool allocMem)
 
 void CCDChip::setExposureLeft(double duration)
 {
-    ImageExposureNP.s = IPS_BUSY;
-    ImageExposureN[0].value = duration;
+    ImageExposureNP.setState(IPS_BUSY);
+    ImageExposureNP[0].setValue(duration);
 
-    IDSetNumber(&ImageExposureNP, nullptr);
+    ImageExposureNP.apply();
 }
 
 void CCDChip::setExposureDuration(double duration)
@@ -176,7 +176,7 @@ void CCDChip::setExposureDuration(double duration)
 
 const char *CCDChip::getFrameTypeName(CCD_FRAME fType)
 {
-    return FrameTypeS[fType].name;
+    return FrameTypeSP[fType].getName();
 }
 
 const char *CCDChip::getExposureStartTime()
@@ -208,8 +208,8 @@ const char *CCDChip::getExposureStartTime()
 
 void CCDChip::setExposureFailed()
 {
-    ImageExposureNP.s = IPS_ALERT;
-    IDSetNumber(&ImageExposureNP, nullptr);
+    ImageExposureNP.setState(IPS_ALERT);
+    ImageExposureNP.apply();
 }
 
 int CCDChip::getNAxis() const

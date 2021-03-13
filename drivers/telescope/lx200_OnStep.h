@@ -92,6 +92,11 @@
 #include <termios.h>
 #include <stdlib.h>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 #define RB_MAX_LEN 64
 
 #define setParkOnStep(fd)  write(fd, "#:hQ#", 5)
@@ -198,30 +203,14 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         bool sendOnStepCommandBlind(const char *cmd);
         int  setMaxElevationLimit(int fd, int max);
         void OSUpdateFocuser();
-
-        ITextVectorProperty ObjectInfoTP;
-        IText ObjectInfoT[1] {};
-
-        ISwitchVectorProperty StarCatalogSP;
-        ISwitch StarCatalogS[3];
-
-        ISwitchVectorProperty DeepSkyCatalogSP;
-        ISwitch DeepSkyCatalogS[7];
-
-        ISwitchVectorProperty SolarSP;
-        ISwitch SolarS[10];
-
-        INumberVectorProperty ObjectNoNP;
-        INumber ObjectNoN[1];
-
-        INumberVectorProperty MaxSlewRateNP;
-        INumber MaxSlewRateN[2];
-
-        INumberVectorProperty BacklashNP;    //test
-        INumber BacklashN[2];    //Test
-
-        INumberVectorProperty ElevationLimitNP;
-        INumber ElevationLimitN[2];
+        INDI::PropertyText ObjectInfoTP {1};
+        INDI::PropertySwitch StarCatalogSP {3};
+        INDI::PropertySwitch DeepSkyCatalogSP {7};
+        INDI::PropertySwitch SolarSP {10};
+        INDI::PropertyNumber ObjectNoNP {1};
+        INDI::PropertyNumber MaxSlewRateNP {2};    //test
+        INDI::PropertyNumber BacklashNP {2};    //Test
+        INDI::PropertyNumber ElevationLimitNP {2};
 
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
@@ -233,94 +222,53 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         // Focuser controls
         // Focuser 1
         bool OSFocuser1 = false;
-        ISwitchVectorProperty OSFocus1InitializeSP;
-        ISwitch OSFocus1InitializeS[4];
+        INDI::PropertySwitch OSFocus1InitializeSP {4};
 
         // Focuser 2
         //ISwitchVectorProperty OSFocus2SelSP;
         //ISwitch OSFocus2SelS[2];
         bool OSFocuser2 = false;
-        ISwitchVectorProperty OSFocus2RateSP;
-        ISwitch OSFocus2RateS[4];
-
-        ISwitchVectorProperty OSFocus2MotionSP;
-        ISwitch OSFocus2MotionS[3];
-
-        INumberVectorProperty OSFocus2TargNP;
-        INumber OSFocus2TargN[1];
+        INDI::PropertySwitch OSFocus2RateSP {4};
+        INDI::PropertySwitch OSFocus2MotionSP {3};
+        INDI::PropertyNumber OSFocus2TargNP {1};
 
 
         int IsTracking = 0;
 
         // Reticle +/- Buttons
-        ISwitchVectorProperty ReticSP;
-        ISwitch ReticS[2];
+        INDI::PropertySwitch ReticSP {2};
 
         // Align Buttons
-        ISwitchVectorProperty TrackCompSP;
-        ISwitch TrackCompS[3];
-
-        ISwitchVectorProperty TrackAxisSP;
-        ISwitch TrackAxisS[3];
-
-        ISwitchVectorProperty FrequencyAdjustSP;
-        ISwitch FrequencyAdjustS[3];
-
-        ISwitchVectorProperty AutoFlipSP;
-        ISwitch AutoFlipS[2];
-
-        ISwitchVectorProperty HomePauseSP;
-        ISwitch HomePauseS[3];
-
-        ISwitchVectorProperty SetHomeSP;
-        ISwitch SetHomeS[2];
-
-        ISwitchVectorProperty PreferredPierSideSP;
-        ISwitch PreferredPierSideS[3];
-
-        INumberVectorProperty minutesPastMeridianNP;
-        INumber minutesPastMeridianN[2];
-
-        ISwitchVectorProperty OSPECStatusSP;
-        ISwitch OSPECStatusS[5];
-        ISwitchVectorProperty OSPECIndexSP;
-        ISwitch OSPECIndexS[2];
-        ISwitchVectorProperty OSPECRecordSP;
-        ISwitch OSPECRecordS[3];
-        ISwitchVectorProperty OSPECReadSP;
-        ISwitch OSPECReadS[2];
-        INumberVectorProperty OSPECCurrentIndexNP;
-        INumber OSPECCurrentIndexN[2];
-        INumberVectorProperty OSPECUserIndexNP;
-        INumber OSPECUserIndexN[2];
-        INumberVectorProperty OSPECRWValuesNP;
-        INumber OSPECRWValuesN[2]; //Current Index  and User Index
-
-        ISwitchVectorProperty OSNAlignStarsSP;
-        ISwitch OSNAlignStarsS[9];
-        ISwitchVectorProperty OSNAlignSP;
-        ISwitch OSNAlignS[4];
-        ISwitchVectorProperty OSNAlignWriteSP;
-        ISwitch OSNAlignWriteS[1];
-        ISwitchVectorProperty OSNAlignPolarRealignSP;
-        ISwitch OSNAlignPolarRealignS[2];
-        IText OSNAlignT[8] {};
-        ITextVectorProperty OSNAlignTP;
-        IText OSNAlignErrT[4] {};
-        ITextVectorProperty OSNAlignErrTP;
+        INDI::PropertySwitch TrackCompSP {3};
+        INDI::PropertySwitch TrackAxisSP {3};
+        INDI::PropertySwitch FrequencyAdjustSP {3};
+        INDI::PropertySwitch AutoFlipSP {2};
+        INDI::PropertySwitch HomePauseSP {3};
+        INDI::PropertySwitch SetHomeSP {2};
+        INDI::PropertySwitch PreferredPierSideSP {3};
+        INDI::PropertyNumber minutesPastMeridianNP {2};
+        INDI::PropertySwitch OSPECStatusSP {5};
+        INDI::PropertySwitch OSPECIndexSP {2};
+        INDI::PropertySwitch OSPECRecordSP {3};
+        INDI::PropertySwitch OSPECReadSP {2};
+        INDI::PropertyNumber OSPECCurrentIndexNP {2};
+        INDI::PropertyNumber OSPECUserIndexNP {2};
+        INDI::PropertyNumber OSPECRWValuesNP {2}; //Current Index  and User Index
+        INDI::PropertySwitch OSNAlignStarsSP {9};
+        INDI::PropertySwitch OSNAlignSP {4};
+        INDI::PropertySwitch OSNAlignWriteSP {1};
+        INDI::PropertySwitch OSNAlignPolarRealignSP {2};
+        INDI::PropertyText OSNAlignTP {8};
+        INDI::PropertyText OSNAlignErrTP {4};
         char OSNAlignStat[RB_MAX_LEN];
-
-        ISwitchVectorProperty OSOutput1SP;
-        ISwitch OSOutput1S[2];
-        ISwitchVectorProperty OSOutput2SP;
-        ISwitch OSOutput2S[2];
+        INDI::PropertySwitch OSOutput1SP {2};
+        INDI::PropertySwitch OSOutput2SP {2};
 
 
         INumber OutputPorts[PORTS_COUNT];
         INumberVectorProperty OutputPorts_NP;
 
-        INumber GuideRateN[2];
-        INumberVectorProperty GuideRateNP;
+        INDI::PropertyNumber GuideRateNP {2};
 
         char OSStat[RB_MAX_LEN];
         char OldOSStat[RB_MAX_LEN];
@@ -337,17 +285,11 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         // Weather support
         // NOTE: Much is handled by WeatherInterface, these controls are mainly for setting values which are not detected
         // As of right now, if there is a sensor the values will be overwritten on the next update
-
-
-        INumberVectorProperty OSSetTemperatureNP;
-        INumber OSSetTemperatureN[1];
-        INumberVectorProperty OSSetHumidityNP;
-        INumber OSSetHumidityN[1];
-        INumberVectorProperty OSSetPressureNP;
-        INumber OSSetPressureN[1];
+        INDI::PropertyNumber OSSetTemperatureNP {1};
+        INDI::PropertyNumber OSSetHumidityNP {1};
+        INDI::PropertyNumber OSSetPressureNP {1};
         //Not sure why this would be used, but will feed to it from site settings
-        INumberVectorProperty OSSetAltitudeNP;
-        INumber OSSetAltitudeN[1];
+        INDI::PropertyNumber OSSetAltitudeNP {1};
 
 
         //This is updated via other commands, as such I'm going to ignore it like some others do.

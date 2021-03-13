@@ -22,6 +22,11 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class LX200Classic : public LX200Generic
 {
     public:
@@ -46,30 +51,14 @@ class LX200Classic : public LX200Generic
         virtual bool ReadScopeStatus() override;
 
     private:
-
-        ITextVectorProperty ObjectInfoTP;
-        IText ObjectInfoT[1] {};
-
-        ISwitchVectorProperty StarCatalogSP;
-        ISwitch StarCatalogS[3];
-
-        ISwitchVectorProperty DeepSkyCatalogSP;
-        ISwitch DeepSkyCatalogS[7];
-
-        ISwitchVectorProperty SolarSP;
-        ISwitch SolarS[10];
-
-        INumberVectorProperty ObjectNoNP;
-        INumber ObjectNoN[1];
-
-        INumberVectorProperty MaxSlewRateNP;
-        INumber MaxSlewRateN[1];
-
-        INumberVectorProperty ElevationLimitNP;
-        INumber ElevationLimitN[2];
-        
-        ISwitchVectorProperty UnparkAlignmentSP;
-        ISwitch UnparkAlignmentS[3];
+        INDI::PropertyText ObjectInfoTP {1};
+        INDI::PropertySwitch StarCatalogSP {3};
+        INDI::PropertySwitch DeepSkyCatalogSP {7};
+        INDI::PropertySwitch SolarSP {10};
+        INDI::PropertyNumber ObjectNoNP {1};
+        INDI::PropertyNumber MaxSlewRateNP {1};
+        INDI::PropertyNumber ElevationLimitNP {2};
+        INDI::PropertySwitch UnparkAlignmentSP {3};
 
     private:
         int currentCatalog {0};

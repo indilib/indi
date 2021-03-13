@@ -115,27 +115,27 @@ bool lacerta_mfoc::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    FocusBacklashN[0].min = 0;
-    FocusBacklashN[0].max = 255;
-    FocusBacklashN[0].step = 1;
-    FocusBacklashN[0].value = 12;
+    FocusBacklashNP[0].setMin(0);
+    FocusBacklashNP[0].setMax(255);
+    FocusBacklashNP[0].setStep(1);
+    FocusBacklashNP[0].setValue(12);
 
-    //    IUFillNumber(&BacklashN[0], "BACKLASH", "step", "%4.2f", 0, 255, 1, 12);
-    //    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH_SETTINGS", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60,
+    //    BacklashNP[0].fill("BACKLASH", "step", "%4.2f", 0, 255, 1, 12);
+    //    BacklashNP.fill(getDeviceName(), "BACKLASH_SETTINGS", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60,
     //                       IPS_IDLE);
 
     IUFillNumber(&TempCompN[0], "TEMPCOMP", "step/10 degC", "%4.2f", -5000, 5000, 1, 65);
     IUFillNumberVector(&TempCompNP, TempCompN, 1, getDeviceName(), "TEMPCOMP_SETTINGS", "T Comp.", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
 
-    FocusMaxPosN[0].min = MFOC_POSMIN_HARDWARE;
-    FocusMaxPosN[0].max = MFOC_POSMAX_HARDWARE;
-    FocusMaxPosN[0].step = (FocusMaxPosN[0].max - FocusMaxPosN[0].min) / 20.0;
-    FocusMaxPosN[0].value = 110000;
+    FocusMaxPosNP[0].setMin(MFOC_POSMIN_HARDWARE);
+    FocusMaxPosNP[0].setMax(MFOC_POSMAX_HARDWARE);
+    FocusMaxPosNP[0].setStep((FocusMaxPosNP[0].max - FocusMaxPosNP[0].min) / 20.0);
+    FocusMaxPosNP[0].setValue(110000);
 
-    FocusAbsPosN[0].min = 0;
-    FocusAbsPosN[0].max = FocusMaxPosN[0].value;
-    FocusAbsPosN[0].step = FocusAbsPosN[0].max / 50.0;
+    FocusAbsPosNP[0].setMin(0);
+    FocusAbsPosNP[0].setMax(FocusMaxPosNP[0].value);
+    FocusAbsPosNP[0].setStep(FocusAbsPosNP[0].getMax() / 50.0);
 
     IUFillSwitch(&TempTrackDirS[MODE_TDIR_BOTH], "Both", "Both", ISS_ON);
     IUFillSwitch(&TempTrackDirS[MODE_TDIR_IN],   "In",   "In",   ISS_ON);
@@ -157,13 +157,13 @@ bool lacerta_mfoc::initProperties()
 bool lacerta_mfoc::updateProperties()
 {
     // Get Initial Position before we define it in the INDI::Focuser class
-    FocusAbsPosN[0].value = GetAbsFocuserPosition();
+    FocusAbsPosNP[0].setValue(GetAbsFocuserPosition());
 
     INDI::Focuser::updateProperties();
 
     if (isConnected())
     {
-        //defineProperty(&BacklashNP);
+        //defineProperty(BacklashNP);
         defineProperty(&TempCompNP);
         defineProperty(&TempTrackDirSP);
         defineProperty(&StartSavedPositionSP);
@@ -171,7 +171,7 @@ bool lacerta_mfoc::updateProperties()
     }
     else
     {
-        //deleteProperty(BacklashNP.name);
+        //deleteProperty(BacklashNP.getName());
         deleteProperty(TempCompNP.name);
         deleteProperty(TempTrackDirSP.name);
         deleteProperty(StartSavedPositionSP.name);
@@ -202,8 +202,8 @@ bool lacerta_mfoc::Handshake()
 
     if (MFOC_res_type[0] == 'P')
     {
-        FocusAbsPosN[0].value = MFOC_pos_measd;
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP[0].setValue(MFOC_pos_measd);
+        FocusAbsPosNP.setState(IPS_OK);
         return true;
     }
 
@@ -366,9 +366,9 @@ bool lacerta_mfoc::SetFocuserBacklash(int32_t steps)
     //int bl_int = 0;
     char bl_char[32]  = {0};
     char MFOC_res_type[32]  = "0";
-    //    BacklashNP.s = IPS_OK;
-    //    IUUpdateNumber(&BacklashNP, values, names, n);
-    //    bl_int = BacklashN[0].value;
+    //    BacklashNP.setState(IPS_OK);
+    //    BacklashNP.update(values, names, n);
+    //    bl_int = BacklashNP[0].getValue();
     sprintf(bl_char, "%d", steps);
     strcat(bl_char, " #");
     strcat(MFOC_cmd, bl_char);
@@ -383,7 +383,7 @@ bool lacerta_mfoc::SetFocuserBacklash(int32_t steps)
 
     LOGF_DEBUG("RES <%s>", MFOC_res);
 
-    //IDSetNumber(&BacklashNP, nullptr);
+    //BacklashNP.apply();
 
     return true;
 }
@@ -469,7 +469,7 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
     //LOGF_INFO("sleep for %d ms", ticks);
     //usleep(ticks + 5000);
 
-    FocusAbsPosN[0].value = targetTicks;
+    FocusAbsPosNP[0].setValue(targetTicks);
 
     //only for debugging! Maybe there is a bug in the MFOC firmware command "Q #"!
     GetAbsFocuserPosition();
@@ -483,9 +483,9 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
 IPState lacerta_mfoc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Calculation of the demand absolute position
-    uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
-    FocusAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
+    uint32_t targetTicks = FocusAbsPosNP[0].getValue() + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+    FocusAbsPosNP.setState(IPS_BUSY);
+    FocusAbsPosNP.apply();
 
     return MoveAbsFocuser(targetTicks);
 }
@@ -497,7 +497,7 @@ bool lacerta_mfoc::saveConfigItems(FILE *fp)
     INDI::Focuser::saveConfigItems(fp);
 
     // Save additional MFPC Config
-    //IUSaveConfigNumber(fp, &BacklashNP);
+    //BacklashNP.save(fp);
     IUSaveConfigNumber(fp, &TempCompNP);
 
     return true;

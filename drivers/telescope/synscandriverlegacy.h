@@ -21,6 +21,10 @@
 
 #include "inditelescope.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
+
 class SynscanLegacyDriver : public INDI::Telescope
 {
   public:
@@ -97,8 +101,7 @@ private:
     int CustomWESlewRate { -1 };
     int RecoverTrials { 0 };
 
-    IText BasicMountInfoT[6] = {};
-    ITextVectorProperty BasicMountInfoTP;
+    INDI::PropertyText BasicMountInfoTP {6};
     enum MountInfo
     {
         MI_FW_VERSION,
@@ -109,8 +112,8 @@ private:
         MI_TRACK_MODE
     };
 
-//    ISwitch UseWiFiS[2];
-//    ISwitchVectorProperty UseWiFiSP;
+//    INDI::PropertySwitch UseWiFiSP {2};
+//
 //    enum UseWiFiMembers
 //    {
 //        WIFI_ENABLED,

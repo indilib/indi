@@ -29,6 +29,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indiccd.h"
 #include "webcam/v4l2_base.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 #define IMAGE_CONTROL  "Image Control"
 #define IMAGE_GROUP    "V4L2 Control"
 #define IMAGE_BOOLEAN  "V4L2 Options"
@@ -109,37 +114,33 @@ class V4L2_Driver : public INDI::CCD
     /* Switches */
 
     ISwitch *CompressS;
-    ISwitch ImageColorS[2];
+    INDI::PropertySwitch ImageColorSP {2};
     enum
     {
         IMAGE_GRAYSCALE,
         IMAGE_COLOR
     };
-    ISwitch ImageDepthS[2];
-    ISwitch StackModeS[5];
-    ISwitch ColorProcessingS[3];
+    INDI::PropertySwitch ImageDepthSP {2};
+    INDI::PropertySwitch StackModeSP {5};
+    INDI::PropertySwitch ColorProcessingSP {3};
 
     /* Texts */
     IText PortT[1] {};
-    IText camNameT[1] {};
-    IText CaptureColorSpaceT[3] {};
+    INDI::PropertyText camNameTP {1};
+    INDI::PropertyText CaptureColorSpaceTP {3};
 
     /* Numbers */
     //INumber *ExposeTimeN;
     INumber *FrameN;
-    INumber FrameRateN[1];
+    INDI::PropertyNumber FrameRateNP {1};
 
     /* Switch vectors */
-    ISwitchVectorProperty *CompressSP;      /* Compress stream switch */
-    ISwitchVectorProperty ImageColorSP;     /* Color or grey switch */
-    ISwitchVectorProperty ImageDepthSP;     /* 8 bits or 16 bits switch */
-    ISwitchVectorProperty StackModeSP;      /* StackMode switch */
+    ISwitchVectorProperty *CompressSP;      /* Compress stream switch */     /* Color or grey switch */     /* 8 bits or 16 bits switch */      /* StackMode switch */
     ISwitchVectorProperty InputsSP;         /* Select input switch */
     ISwitchVectorProperty CaptureFormatsSP; /* Select Capture format switch */
     ISwitchVectorProperty CaptureSizesSP;   /* Select Capture size switch (Discrete)*/
     ISwitchVectorProperty FrameRatesSP;     /* Select Frame rate (Discrete) */
     ISwitchVectorProperty *Options;
-    ISwitchVectorProperty ColorProcessingSP;
 
     unsigned int v4loptions;
     unsigned int v4ladjustments;
@@ -147,15 +148,12 @@ class V4L2_Driver : public INDI::CCD
 
     /* Number vectors */
     //INumberVectorProperty *ExposeTimeNP;			/* Exposure */
-    INumberVectorProperty CaptureSizesNP; /* Select Capture size switch (Step/Continuous)*/
-    INumberVectorProperty FrameRateNP;    /* Frame rate (Step/Continuous) */
+    INumberVectorProperty CaptureSizesNP; /* Select Capture size switch (Step/Continuous)*/    /* Frame rate (Step/Continuous) */
     INumberVectorProperty *FrameNP;       /* Frame dimenstion */
     INumberVectorProperty ImageAdjustNP;  /* Image controls */
 
     /* Text vectors */
     ITextVectorProperty PortTP;
-    ITextVectorProperty camNameTP;
-    ITextVectorProperty CaptureColorSpaceTP;
 
     /* Pointers to optional properties */
     INumber *AbsExposureN;

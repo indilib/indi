@@ -28,6 +28,10 @@
 
 #include <libnova/ln_types.h>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
   public:
@@ -56,8 +60,7 @@ class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystem
     ln_equ_posn TelescopeEquatorialToSky();
     ln_equ_posn TelescopeHorizontalToSky();
 
-    INumber EncoderN[4];
-    INumberVectorProperty EncoderNP;
+    INDI::PropertyNumber EncoderNP {4};
     enum
     {
         AXIS1_ENCODER,
@@ -66,8 +69,7 @@ class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystem
         AXIS2_RAW_ENCODER
     };
 
-    INumber AxisSettingsN[4];
-    INumberVectorProperty AxisSettingsNP;
+    INDI::PropertyNumber AxisSettingsNP {4};
     //enum { AXIS1_TICKS, AXIS2_TICKS};
     enum
     {
@@ -77,19 +79,16 @@ class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystem
         AXIS2_DEGREE_OFFSET
     };
 
-    ISwitch AxisRangeS[2];
-    ISwitchVectorProperty AxisRangeSP;
+    INDI::PropertySwitch AxisRangeSP {2};
     enum
     {
         AXIS_FULL_STEP,
         AXIS_HALF_STEP
     };
 
-    ISwitch ReverseS[2];
-    ISwitchVectorProperty ReverseSP;
+    INDI::PropertySwitch ReverseSP {2};
 
-    ISwitch MountTypeS[2];
-    ISwitchVectorProperty MountTypeSP;
+    INDI::PropertySwitch MountTypeSP {2};
     enum
     {
         MOUNT_EQUATORIAL,
@@ -101,8 +100,7 @@ class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystem
     //enum { OFFSET_AXIS1_SCALE, OFFSET_AXIS1_OFFSET, AXIS1_DEGREE_OFFSET, OFFSET_AXIS2_SCALE, OFFSET_AXIS2_OFFSET, AXIS2_DEGREE_OFFSET };
 
     // Simulation Only
-    INumber SimEncoderN[2];
-    INumberVectorProperty SimEncoderNP;
+    INDI::PropertyNumber SimEncoderNP {2};
 
     ln_lnlat_posn observer { 0, 0 };
     ln_hrz_posn encoderHorizontalCoordinates { 0, 0 };

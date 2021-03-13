@@ -35,6 +35,9 @@
 #include <mutex>
 #include <thread>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
 
@@ -124,7 +127,7 @@ class Detector : public SensorInterface
          */
         inline INumberVectorProperty *getDetectorSettings()
         {
-            return &DetectorSettingsNP;
+            return DetectorSettingsNP.getNumber(); // #PS: refactor needed
         }
 
         /**
@@ -158,11 +161,10 @@ class Detector : public SensorInterface
             DETECTOR_RESOLUTION = 0,
             DETECTOR_TRIGGER,
         } DETECTOR_INFO_INDEX;
-        INumberVectorProperty DetectorSettingsNP;
 
       private:
         double TriggerLevel;
         double Resolution;
-        INumber DetectorSettingsN[2];
+        INDI::PropertyNumber DetectorSettingsNP {2};
 };
 }

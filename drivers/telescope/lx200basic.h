@@ -22,6 +22,9 @@
 
 #include "inditelescope.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 class LX200Basic : public INDI::Telescope
 {
     public:
@@ -50,8 +53,7 @@ class LX200Basic : public INDI::Telescope
         void slewError(int slewCode);
         void mountSim();
 
-        INumber SlewAccuracyN[2];
-        INumberVectorProperty SlewAccuracyNP;
+        INDI::PropertyNumber SlewAccuracyNP {2};
 
         double targetRA = 0, targetDEC = 0;
         double currentRA = 0, currentDEC = 0;

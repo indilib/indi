@@ -237,7 +237,7 @@ bool FocusLynxF1::updateProperties()
         defineProperty(&HubTP);
         defineProperty(&WiredTP);
         defineProperty(&WifiTP);
-        defineProperty(&LedNP);
+        defineProperty(LedNP);
 
         if (getHubConfig())
             LOG_INFO("HUB parameters updated.");
@@ -252,7 +252,7 @@ bool FocusLynxF1::updateProperties()
         deleteProperty(HubTP.name);
         deleteProperty(WiredTP.name);
         deleteProperty(WifiTP.name);
-        deleteProperty(LedNP.name);
+        deleteProperty(LedNP.getName());
     }
     return true;
 }

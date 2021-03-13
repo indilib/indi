@@ -22,6 +22,11 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class LX200_10MICRON : public LX200Generic
 {
     public:
@@ -135,45 +140,32 @@ class LX200_10MICRON : public LX200Generic
         void getBasicData() override;
 
         int UnattendedFlip = -1;
-        ISwitch UnattendedFlipS[UNATTENDED_FLIP_COUNT];
-        ISwitchVectorProperty UnattendedFlipSP;
+        INDI::PropertySwitch UnattendedFlipSP {UNATTENDED_FLIP_COUNT};
 
-        IText ProductT[4] {};
-        ITextVectorProperty ProductTP;
+        INDI::PropertyText ProductTP {4};
 
         virtual int SetRefractionModelTemperature(double temperature);
-        INumber RefractionModelTemperatureN[1];
-        INumberVectorProperty RefractionModelTemperatureNP;
+        INDI::PropertyNumber RefractionModelTemperatureNP {1};
 
         virtual int SetRefractionModelPressure(double pressure);
-        INumber RefractionModelPressureN[1];
-        INumberVectorProperty RefractionModelPressureNP;
+        INDI::PropertyNumber RefractionModelPressureNP {1};
 
-        INumber ModelCountN[1];
-        INumberVectorProperty ModelCountNP;
+        INDI::PropertyNumber ModelCountNP {1};
 
-        INumber AlignmentPointsN[1];
-        INumberVectorProperty AlignmentPointsNP;
+        INDI::PropertyNumber AlignmentPointsNP {1};
 
-        ISwitch AlignmentStateS[ALIGN_COUNT];
-        ISwitchVectorProperty AlignmentStateSP;
+        INDI::PropertySwitch AlignmentStateSP {ALIGN_COUNT};
 
-        INumber MiniNewAlpRON[MALPRO_COUNT];
-        INumberVectorProperty MiniNewAlpRONP;
-        INumber MiniNewAlpN[MALP_COUNT];
-        INumberVectorProperty MiniNewAlpNP;
+        INDI::PropertyNumber MiniNewAlpRONP {MALPRO_COUNT};
+        INDI::PropertyNumber MiniNewAlpNP {MALP_COUNT};
 
-        INumber NewAlpN[ALP_COUNT];
-        INumberVectorProperty NewAlpNP;
+        INDI::PropertyNumber NewAlpNP {ALP_COUNT};
 
-        INumber NewAlignmentPointsN[1];
-        INumberVectorProperty NewAlignmentPointsNP;
+        INDI::PropertyNumber NewAlignmentPointsNP {1};
 
-        IText NewModelNameT[1] {};
-        ITextVectorProperty NewModelNameTP;
+        INDI::PropertyText NewModelNameTP {1};
 
-        INumber TLEfromDatabaseN[1];
-        INumberVectorProperty TLEfromDatabaseNP;
+        INDI::PropertyNumber TLEfromDatabaseNP {1};
 
 
     private:

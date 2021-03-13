@@ -26,6 +26,9 @@
 
 #include "indiweather.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 class WeatherSimulator : public INDI::Weather
 {
   public:
@@ -45,8 +48,7 @@ class WeatherSimulator : public INDI::Weather
     virtual bool saveConfigItems(FILE *fp) override;
 
   private:
-    INumber ControlWeatherN[5];
-    INumberVectorProperty ControlWeatherNP;
+    INDI::PropertyNumber ControlWeatherNP {5};
     enum
     {
         CONTROL_WEATHER,

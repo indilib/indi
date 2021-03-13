@@ -24,6 +24,9 @@
 #include <vector>
 #include "indibase.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 /**
  * \class FilterInterface
    \brief Provides interface to implement Filter Wheel functionality.
@@ -118,8 +121,7 @@ class FilterInterface
         bool saveConfigItems(FILE *fp);
 
         //  A number vector for filter slot
-        INumberVectorProperty FilterSlotNP;
-        INumber FilterSlotN[1];
+        INDI::PropertyNumber FilterSlotNP {1};
 
         //  A text vector that stores out physical port name
         ITextVectorProperty *FilterNameTP { nullptr };

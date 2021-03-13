@@ -84,30 +84,30 @@ GuideSim::GuideSim()
 bool GuideSim::SetupParms()
 {
     int nbuf;
-    SetCCDParams(SimulatorSettingsN[0].value, SimulatorSettingsN[1].value, 16, SimulatorSettingsN[2].value,
-                 SimulatorSettingsN[3].value);
+    SetCCDParams(SimulatorSettingsNP[0].value, SimulatorSettingsNP[1].getValue(), 16, SimulatorSettingsNP[2].getValue(),
+                 SimulatorSettingsNP[3].getValue());
 
     if (HasCooler())
     {
-        TemperatureN[0].value = 20;
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP[0].setValue(20);
+        TemperatureNP.apply();
     }
 
     //  Kwiq
-    maxnoise      = SimulatorSettingsN[8].value;
-    skyglow       = SimulatorSettingsN[9].value;
-    maxval        = SimulatorSettingsN[4].value;
-    bias          = SimulatorSettingsN[5].value;
-    limitingmag   = SimulatorSettingsN[7].value;
-    saturationmag = SimulatorSettingsN[6].value;
-    OAGoffset = SimulatorSettingsN[10].value; //  An oag is offset this much from center of scope position (arcminutes);
-    polarError = SimulatorSettingsN[11].value;
-    polarDrift = SimulatorSettingsN[12].value;
-    rotationCW = SimulatorSettingsN[13].value;
+    maxnoise      = SimulatorSettingsNP[8].getValue();
+    skyglow       = SimulatorSettingsNP[9].getValue();
+    maxval        = SimulatorSettingsNP[4].getValue();
+    bias          = SimulatorSettingsNP[5].getValue();
+    limitingmag   = SimulatorSettingsNP[7].getValue();
+    saturationmag = SimulatorSettingsNP[6].getValue();
+    OAGoffset = SimulatorSettingsNP[10].getValue(); //  An oag is offset this much from center of scope position (arcminutes);
+    polarError = SimulatorSettingsNP[11].getValue();
+    polarDrift = SimulatorSettingsNP[12].getValue();
+    rotationCW = SimulatorSettingsNP[13].getValue();
     //  Kwiq++
-    king_gamma = SimulatorSettingsN[14].value * 0.0174532925;
-    king_theta = SimulatorSettingsN[15].value * 0.0174532925;
-    TimeFactor = SimulatorSettingsN[16].value;
+    king_gamma = SimulatorSettingsNP[14].value * 0.0174532925;
+    king_theta = SimulatorSettingsNP[15].value * 0.0174532925;
+    TimeFactor = SimulatorSettingsNP[16].getValue();
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     //nbuf += 512;
@@ -150,59 +150,59 @@ bool GuideSim::initProperties()
     //  but the simulators are a special case
     INDI::CCD::initProperties();
 
-    IUFillNumber(&SimulatorSettingsN[0], "SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
-    IUFillNumber(&SimulatorSettingsN[1], "SIM_YRES", "CCD Y resolution", "%4.0f", 0, 8192, 0, 1024);
-    IUFillNumber(&SimulatorSettingsN[2], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 0, 60, 0, 5.2);
-    IUFillNumber(&SimulatorSettingsN[3], "SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 0, 60, 0, 5.2);
-    IUFillNumber(&SimulatorSettingsN[4], "SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 0, 65000, 0, 65000);
-    IUFillNumber(&SimulatorSettingsN[5], "SIM_BIAS", "CCD Bias", "%4.0f", 0, 6000, 0, 10);
-    IUFillNumber(&SimulatorSettingsN[6], "SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 0, 1.0);
-    IUFillNumber(&SimulatorSettingsN[7], "SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 0, 17.0);
-    IUFillNumber(&SimulatorSettingsN[8], "SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 0, 10);
-    IUFillNumber(&SimulatorSettingsN[9], "SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 0, 19.5);
-    IUFillNumber(&SimulatorSettingsN[10], "SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[11], "SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 0,
+    SimulatorSettingsNP[0].fill("SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
+    SimulatorSettingsNP[1].fill("SIM_YRES", "CCD Y resolution", "%4.0f", 0, 8192, 0, 1024);
+    SimulatorSettingsNP[2].fill("SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 0, 60, 0, 5.2);
+    SimulatorSettingsNP[3].fill("SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 0, 60, 0, 5.2);
+    SimulatorSettingsNP[4].fill("SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 0, 65000, 0, 65000);
+    SimulatorSettingsNP[5].fill("SIM_BIAS", "CCD Bias", "%4.0f", 0, 6000, 0, 10);
+    SimulatorSettingsNP[6].fill("SIM_SATURATION", "Saturation Mag", "%4.1f", 0, 20, 0, 1.0);
+    SimulatorSettingsNP[7].fill("SIM_LIMITINGMAG", "Limiting Mag", "%4.1f", 0, 20, 0, 17.0);
+    SimulatorSettingsNP[8].fill("SIM_NOISE", "CCD Noise", "%4.0f", 0, 6000, 0, 10);
+    SimulatorSettingsNP[9].fill("SIM_SKYGLOW", "Sky Glow (magnitudes)", "%4.1f", 0, 6000, 0, 19.5);
+    SimulatorSettingsNP[10].fill("SIM_OAGOFFSET", "Oag Offset (arcminutes)", "%4.1f", 0, 6000, 0, 0);
+    SimulatorSettingsNP[11].fill("SIM_POLAR", "PAE (arcminutes)", "%4.1f", -600, 600, 0,
                  0); /* PAE = Polar Alignment Error */
-    IUFillNumber(&SimulatorSettingsN[12], "SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 6000, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[13], "SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[14], "SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[15], "SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
-    IUFillNumber(&SimulatorSettingsN[16], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
+    SimulatorSettingsNP[12].fill("SIM_POLARDRIFT", "PAE Drift (minutes)", "%4.1f", 0, 6000, 0, 0);
+    SimulatorSettingsNP[13].fill("SIM_ROTATION", "Rotation CW (degrees)", "%4.1f", -360, 360, 0, 0);
+    SimulatorSettingsNP[14].fill("SIM_KING_GAMMA", "(CP,TCP), deg", "%4.1f", 0, 10, 0, 0);
+    SimulatorSettingsNP[15].fill("SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
+    SimulatorSettingsNP[16].fill("SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
 
-    IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
+    SimulatorSettingsNP.fill(getDeviceName(), "SIMULATOR_SETTINGS",
                        "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
-    IUFillSwitch(&SimulateRgbS[0], "SIMULATE_YES", "Yes", ISS_OFF);
-    IUFillSwitch(&SimulateRgbS[1], "SIMULATE_NO", "No", ISS_ON);
-    IUFillSwitchVector(&SimulateRgbSP, SimulateRgbS, 2, getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
+    SimulateRgbSP[0].fill("SIMULATE_YES", "Yes", ISS_OFF);
+    SimulateRgbSP[1].fill("SIMULATE_NO", "No", ISS_ON);
+    SimulateRgbSP.fill(getDeviceName(), "SIMULATE_RGB", "Simulate RGB",
                        "Simulator Config", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillNumber(&FWHMN[0], "SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
-    IUFillNumberVector(&FWHMNP, FWHMN, 1, ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
+    FWHMNP[0].fill("SIM_FWHM", "FWHM (arcseconds)", "%4.2f", 0, 60, 0, 7.5);
+    FWHMNP.fill(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "FWHM", "FWHM", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
-    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
-    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
+    CoolerSP[0].fill("COOLER_ON", "ON", ISS_OFF);
+    CoolerSP[1].fill("COOLER_OFF", "OFF", ISS_ON);
+    CoolerSP.fill(getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Gain
-    IUFillNumber(&GainN[0], "GAIN", "Gain", "%.f", 0, 100, 10, 50);
-    IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    GainNP[0].fill("GAIN", "Gain", "%.f", 0, 100, 10, 50);
+    GainNP.fill(getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config", IP_RW, 60,
+    EqPENP[0].fill("RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    EqPENP[1].fill("DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    EqPENP.fill(getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config", IP_RW, 60,
                        IPS_IDLE);
 
 #ifdef USE_EQUATORIAL_PE
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "EQUATORIAL_PE");
 #else
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
 #endif
 
 
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "FWHM");
 
     uint32_t cap = 0;
 
@@ -228,8 +228,8 @@ bool GuideSim::initProperties()
     setDriverInterface(getDriverInterface());
 
     // Make Guide Scope ON by default
-    TelescopeTypeS[TELESCOPE_PRIMARY].s = ISS_OFF;
-    TelescopeTypeS[TELESCOPE_GUIDE].s = ISS_ON;
+    TelescopeTypeSP[TELESCOPE_PRIMARY].setState(ISS_OFF);
+    TelescopeTypeSP[TELESCOPE_GUIDE].setState(ISS_ON);
 
     return true;
 }
@@ -239,9 +239,9 @@ void GuideSim::setRGB(bool onOff)
     if (onOff)
     {
         SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
-        IUSaveText(&BayerT[0], "0");
-        IUSaveText(&BayerT[1], "0");
-        IUSaveText(&BayerT[2], "RGGB");
+        BayerTP[0].setText("0");
+        BayerTP[1].setText("0");
+        BayerTP[2].setText("RGGB");
     }
     else
     {
@@ -253,9 +253,9 @@ void GuideSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineProperty(&SimulatorSettingsNP);
-    defineProperty(&EqPENP);
-    defineProperty(&SimulateRgbSP);
+    defineProperty(SimulatorSettingsNP);
+    defineProperty(EqPENP);
+    defineProperty(SimulateRgbSP);
 }
 
 bool GuideSim::updateProperties()
@@ -265,9 +265,9 @@ bool GuideSim::updateProperties()
     if (isConnected())
     {
         if (HasCooler())
-            defineProperty(&CoolerSP);
+            defineProperty(CoolerSP);
 
-        defineProperty(&GainNP);
+        defineProperty(GainNP);
 
         SetupParms();
 
@@ -281,9 +281,9 @@ bool GuideSim::updateProperties()
     else
     {
         if (HasCooler())
-            deleteProperty(CoolerSP.name);
+            deleteProperty(CoolerSP.getName());
 
-        deleteProperty(GainNP.name);
+        deleteProperty(GainNP.getName());
     }
 
     return true;
@@ -292,16 +292,16 @@ bool GuideSim::updateProperties()
 int GuideSim::SetTemperature(double temperature)
 {
     TemperatureRequest = temperature;
-    if (fabs(temperature - TemperatureN[0].value) < 0.1)
+    if (fabs(temperature - TemperatureNP[0].getValue()) < 0.1)
     {
-        TemperatureN[0].value = temperature;
+        TemperatureNP[0].setValue(temperature);
         return 1;
     }
 
-    CoolerS[0].s = ISS_ON;
-    CoolerS[1].s = ISS_OFF;
-    CoolerSP.s   = IPS_BUSY;
-    IDSetSwitch(&CoolerSP, nullptr);
+    CoolerSP[0].setState(ISS_ON);
+    CoolerSP[1].setState(ISS_OFF);
+    CoolerSP.setState(IPS_BUSY);
+    CoolerSP.apply();
     return 0;
 }
 
@@ -430,7 +430,7 @@ void GuideSim::TimerHit()
         if (timeleft < 0)
             timeleft = 0;
 
-        //ImageExposureN[0].value = timeleft;
+        //ImageExposureNP[0].setValue(timeleft);
         //IDSetNumber(ImageExposureNP, nullptr);
         GuideCCD.setExposureLeft(timeleft);
 
@@ -466,31 +466,31 @@ void GuideSim::TimerHit()
         }
     }
 
-    if (TemperatureNP.s == IPS_BUSY)
+    if (TemperatureNP.getState() == IPS_BUSY)
     {
-        if (fabs(TemperatureRequest - TemperatureN[0].value) <= 0.5)
+        if (fabs(TemperatureRequest - TemperatureNP[0].getValue()) <= 0.5)
         {
             LOGF_INFO("Temperature reached requested value %.2f degrees C", TemperatureRequest);
-            TemperatureN[0].value = TemperatureRequest;
-            TemperatureNP.s       = IPS_OK;
+            TemperatureNP[0].setValue(TemperatureRequest);
+            TemperatureNP.setState(IPS_OK);
         }
         else
         {
-            if (TemperatureRequest < TemperatureN[0].value)
-                TemperatureN[0].value -= 0.5;
+            if (TemperatureRequest < TemperatureNP[0].getValue())
+                TemperatureNP[0].value -= 0.5;
             else
-                TemperatureN[0].value += 0.5;
+                TemperatureNP[0].value += 0.5;
         }
 
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.apply();
 
         // Above 20, cooler is off
-        if (TemperatureN[0].value >= 20)
+        if (TemperatureNP[0].value >= 20)
         {
-            CoolerS[0].s = ISS_OFF;
-            CoolerS[0].s = ISS_ON;
-            CoolerSP.s   = IPS_IDLE;
-            IDSetSwitch(&CoolerSP, nullptr);
+            CoolerSP[0].setState(ISS_OFF);
+            CoolerSP[0].setState(ISS_ON);
+            CoolerSP.setState(IPS_IDLE);
+            CoolerSP.apply();
         }
     }
 
@@ -513,12 +513,12 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
     else
         exposure_time = ExposureRequest;
 
-    if (GainN[0].value > 50)
-        exposure_time *= sqrt(GainN[0].value - 50);
-    else if (GainN[0].value < 50)
-        exposure_time /= sqrt(50 - GainN[0].value);
+    if (GainNP[0].value > 50)
+        exposure_time *= sqrt(GainNP[0].value - 50);
+    else if (GainNP[0].value < 50)
+        exposure_time /= sqrt(50 - GainNP[0].getValue());
 
-    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
+    if (TelescopeTypeSP[TELESCOPE_PRIMARY].getState() == ISS_ON)
         targetFocalLength = primaryFocalLength;
     else
         targetFocalLength = guiderFocalLength;
@@ -1136,54 +1136,54 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
-        if (!strcmp(name, GainNP.name))
+        if (GainNP.isNameMatch(name))
         {
-            IUUpdateNumber(&GainNP, values, names, n);
-            GainNP.s = IPS_OK;
-            IDSetNumber(&GainNP, nullptr);
+            GainNP.update(values, names, n);
+            GainNP.setState(IPS_OK);
+            GainNP.apply();
             return true;
         }
 
         if (strcmp(name, "SIMULATOR_SETTINGS") == 0)
         {
-            IUUpdateNumber(&SimulatorSettingsNP, values, names, n);
-            SimulatorSettingsNP.s = IPS_OK;
+            SimulatorSettingsNP.update(values, names, n);
+            SimulatorSettingsNP.setState(IPS_OK);
 
             //  Reset our parameters now
             SetupParms();
-            IDSetNumber(&SimulatorSettingsNP, nullptr);
+            SimulatorSettingsNP.apply();
 
-            maxnoise      = SimulatorSettingsN[8].value;
-            skyglow       = SimulatorSettingsN[9].value;
-            maxval        = SimulatorSettingsN[4].value;
-            bias          = SimulatorSettingsN[5].value;
-            limitingmag   = SimulatorSettingsN[7].value;
-            saturationmag = SimulatorSettingsN[6].value;
-            OAGoffset = SimulatorSettingsN[10].value;
-            polarError = SimulatorSettingsN[11].value;
-            polarDrift = SimulatorSettingsN[12].value;
-            rotationCW = SimulatorSettingsN[13].value;
+            maxnoise      = SimulatorSettingsNP[8].getValue();
+            skyglow       = SimulatorSettingsNP[9].getValue();
+            maxval        = SimulatorSettingsNP[4].getValue();
+            bias          = SimulatorSettingsNP[5].getValue();
+            limitingmag   = SimulatorSettingsNP[7].getValue();
+            saturationmag = SimulatorSettingsNP[6].getValue();
+            OAGoffset = SimulatorSettingsNP[10].getValue();
+            polarError = SimulatorSettingsNP[11].getValue();
+            polarDrift = SimulatorSettingsNP[12].getValue();
+            rotationCW = SimulatorSettingsNP[13].getValue();
             //  Kwiq++
-            king_gamma = SimulatorSettingsN[14].value * 0.0174532925;
-            king_theta = SimulatorSettingsN[15].value * 0.0174532925;
-            TimeFactor = SimulatorSettingsN[16].value;
+            king_gamma = SimulatorSettingsNP[14].value * 0.0174532925;
+            king_theta = SimulatorSettingsNP[15].value * 0.0174532925;
+            TimeFactor = SimulatorSettingsNP[16].getValue();
 
             return true;
         }
 
         // Record PE EQ to simulate different position in the sky than actual mount coordinate
         // This can be useful to simulate Periodic Error or cone error or any arbitrary error.
-        if (!strcmp(name, EqPENP.name))
+        if (EqPENP.isNameMatch(name))
         {
-            IUUpdateNumber(&EqPENP, values, names, n);
-            EqPENP.s = IPS_OK;
+            EqPENP.update(values, names, n);
+            EqPENP.setState(IPS_OK);
 
             ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.ra  = EqPEN[AXIS_RA].value * 15.0;
-            epochPos.dec = EqPEN[AXIS_DE].value;
+            epochPos.ra  = EqPENP[AXIS_RA].value * 15.0;
+            epochPos.dec = EqPENP[AXIS_DE].getValue();
 
-            RA = EqPEN[AXIS_RA].value;
-            Dec = EqPEN[AXIS_DE].value;
+            RA = EqPENP[AXIS_RA].getValue();
+            Dec = EqPENP[AXIS_DE].getValue();
 
             LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
             //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
@@ -1191,7 +1191,7 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             currentDE = J2000Pos.dec;
             usePE = true;
 
-            IDSetNumber(&EqPENP, nullptr);
+            EqPENP.apply();
             return true;
         }
 
@@ -1205,43 +1205,43 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
-        if (!strcmp(name, SimulateRgbSP.name))
+        if (SimulateRgbSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&SimulateRgbSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&SimulateRgbSP);
+            SimulateRgbSP.update(states, names, n);
+            int index = SimulateRgbSP.findOnSwitchIndex();
             if (index == -1)
             {
-                SimulateRgbSP.s = IPS_ALERT;
+                SimulateRgbSP.setState(IPS_ALERT);
                 LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
-                IDSetSwitch(&SimulateRgbSP, nullptr);
+                SimulateRgbSP.apply();
                 return false;
             }
 
             simulateRGB = index == 0;
             setRGB(simulateRGB);
 
-            SimulateRgbS[0].s = simulateRGB ? ISS_ON : ISS_OFF;
-            SimulateRgbS[1].s = simulateRGB ? ISS_OFF : ISS_ON;
-            SimulateRgbSP.s   = IPS_OK;
-            IDSetSwitch(&SimulateRgbSP, nullptr);
+            SimulateRgbSP[0].setState(simulateRGB ? ISS_ON : ISS_OFF);
+            SimulateRgbSP[1].setState(simulateRGB ? ISS_OFF : ISS_ON);
+            SimulateRgbSP.setState(IPS_OK);
+            SimulateRgbSP.apply();
 
             return true;
         }
 
-        if (strcmp(name, CoolerSP.name) == 0)
+        if (CoolerSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&CoolerSP, states, names, n);
+            CoolerSP.update(states, names, n);
 
-            if (CoolerS[0].s == ISS_ON)
-                CoolerSP.s = IPS_BUSY;
+            if (CoolerSP[0].getState() == ISS_ON)
+                CoolerSP.setState(IPS_BUSY);
             else
             {
-                CoolerSP.s         = IPS_IDLE;
+                CoolerSP.setState(IPS_IDLE);
                 TemperatureRequest = 20;
-                TemperatureNP.s    = IPS_BUSY;
+                TemperatureNP.setState(IPS_BUSY);
             }
 
-            IDSetSwitch(&CoolerSP, nullptr);
+            CoolerSP.apply();
 
             return true;
         }
@@ -1254,27 +1254,27 @@ bool GuideSim::ISNewSwitch(const char * dev, const char * name, ISState * states
 void GuideSim::activeDevicesUpdated()
 {
 #ifdef USE_EQUATORIAL_PE
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "EQUATORIAL_PE");
 #else
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_TELESCOPE].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_TELESCOPE].getText(), "EQUATORIAL_EOD_COORD");
 #endif
-    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FWHM");
+    IDSnoopDevice(ActiveDeviceTP[ACTIVE_FOCUSER].getText(), "FWHM");
 
-    strncpy(FWHMNP.device, ActiveDeviceT[ACTIVE_FOCUSER].text, MAXINDIDEVICE);
+    FWHMNP.setDeviceName(ActiveDeviceTP[ACTIVE_FOCUSER].getText());
 }
 
 bool GuideSim::ISSnoopDevice(XMLEle * root)
 {
-    if (IUSnoopNumber(root, &FWHMNP) == 0)
+    if (IUSnoopNumber(root, FWHMNP.getNumber()) == 0) // #PS: refactor needed
     {
-        seeing = FWHMNP.np[0].value;
+        seeing = FWHMNP[0].getValue();
         return true;
     }
 
     // We try to snoop EQPEC first, if not found, we snoop regular EQNP
 #ifdef USE_EQUATORIAL_PE
     const char * propName = findXMLAttValu(root, "name");
-    if (!strcmp(propName, EqPENP.name))
+    if (EqPENP.isNameMatch(propName))
     {
         XMLEle * ep = nullptr;
         int rc_ra = -1, rc_de = -1;
@@ -1300,9 +1300,9 @@ bool GuideSim::ISSnoopDevice(XMLEle * root)
             decPE = J2000Pos.dec;
             usePE = true;
 
-            EqPEN[AXIS_RA].value = newra;
-            EqPEN[AXIS_DE].value = newdec;
-            IDSetNumber(&EqPENP, nullptr);
+            EqPENP[AXIS_RA].setValue(newra);
+            EqPENP[AXIS_DE].setValue(newdec);
+            EqPENP.apply();
 
             LOGF_DEBUG("raPE %g  decPE %g Snooped raPE %g  decPE %g", raPE, decPE, newra, newdec);
 
@@ -1321,13 +1321,13 @@ bool GuideSim::saveConfigItems(FILE * fp)
 
 
     // Save CCD Simulator Config
-    IUSaveConfigNumber(fp, &SimulatorSettingsNP);
+    SimulatorSettingsNP.save(fp);
 
     // Gain
-    IUSaveConfigNumber(fp, &GainNP);
+    GainNP.save(fp);
 
     // RGB
-    IUSaveConfigSwitch(fp, &SimulateRgbSP);
+    SimulateRgbSP.save(fp);
 
     return true;
 }
@@ -1438,5 +1438,5 @@ void GuideSim::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
     int status = 0;
-    fits_update_key_dbl(fptr, "Gain", GainN[0].value, 3, "Gain", &status);
+    fits_update_key_dbl(fptr, "Gain", GainNP[0].getValue(), 3, "Gain", &status);
 }

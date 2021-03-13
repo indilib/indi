@@ -45,6 +45,11 @@
 #include <mutex>
 #include <thread>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
 
@@ -572,8 +577,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * ActiveDeviceTP defines snoop devices and the driver listens to this property emitted
          * by the mount driver if specified. It is important to generate a proper FITS header.
          */
-        INumberVectorProperty EqNP;
-        INumber EqN[2];
+        INDI::PropertyNumber EqNP {2};
 
         /**
          * @brief ActiveDeviceTP defines 4 devices the camera driver can listen to (snoop) for
@@ -583,10 +587,9 @@ class CCD : public DefaultDevice, GuiderInterface
          * + **Filter Wheel**: Listens for FILTER_SLOT and FILTER_NAME properties.
          * + **SQM**: Listens for sky quality meter magnitude.
          */
-        ITextVectorProperty ActiveDeviceTP;
 
         // JJ ed 2019-12-10
-        IText ActiveDeviceT[5] {};
+        INDI::PropertyText ActiveDeviceTP {5};
         enum
         {
             ACTIVE_TELESCOPE,
@@ -599,36 +602,30 @@ class CCD : public DefaultDevice, GuiderInterface
         /**
          * @brief TemperatureNP Read-Only Temperature in Celcius.
          */
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[1];
+        INDI::PropertyNumber TemperatureNP {1};
 
         /**
          *@brief BayerTP Bayer pattern offset and type
          */
-        ITextVectorProperty BayerTP;
-        IText BayerT[3] {};
+        INDI::PropertyText BayerTP {3};
 
         /**
          *@brief FileNameTP File name of locally-saved images. By default, images are uploaded to the client
          * but when upload option is set to either @a Both or @a Local, then they are saved on the local disk with
          * this name.
          */
-        ITextVectorProperty FileNameTP;
-        IText FileNameT[1] {};
+        INDI::PropertyText FileNameTP {1};
 
-        ISwitch UploadS[3];
-        ISwitchVectorProperty UploadSP;
+        INDI::PropertySwitch UploadSP {3};
 
-        IText UploadSettingsT[2] {};
-        ITextVectorProperty UploadSettingsTP;
+        INDI::PropertyText UploadSettingsTP {2};
         enum
         {
             UPLOAD_DIR,
             UPLOAD_PREFIX
         };
 
-        ISwitch TelescopeTypeS[2];
-        ISwitchVectorProperty TelescopeTypeSP;
+        INDI::PropertySwitch TelescopeTypeSP {2};
         enum
         {
             TELESCOPE_PRIMARY,
@@ -636,8 +633,7 @@ class CCD : public DefaultDevice, GuiderInterface
         };
 
         // Websocket Support
-        ISwitch WebSocketS[2];
-        ISwitchVectorProperty WebSocketSP;
+        INDI::PropertySwitch WebSocketSP {2};
         enum
         {
             WEBSOCKET_ENABLED,
@@ -646,25 +642,21 @@ class CCD : public DefaultDevice, GuiderInterface
 
 
         // Websocket Settings
-        INumber WebSocketSettingsN[1];
-        INumberVectorProperty WebSocketSettingsNP;
+        INDI::PropertyNumber WebSocketSettingsNP {1};
         enum
         {
             WS_SETTINGS_PORT,
         };
 
         // WCS
-        ISwitch WorldCoordS[2];
-        ISwitchVectorProperty WorldCoordSP;
+        INDI::PropertySwitch WorldCoordSP {2};
 
         // WCS CCD Rotation
-        INumber CCDRotationN[1];
-        INumberVectorProperty CCDRotationNP;
+        INDI::PropertyNumber CCDRotationNP {1};
 
 #ifdef WITH_EXPOSURE_LOOPING
         // Exposure Looping
-        ISwitch ExposureLoopS[2];
-        ISwitchVectorProperty ExposureLoopSP;
+        INDI::PropertySwitch ExposureLoopSP {2};
         enum
         {
             EXPOSURE_LOOP_ON,
@@ -672,15 +664,13 @@ class CCD : public DefaultDevice, GuiderInterface
         };
 
         // Exposure Looping Count
-        INumber ExposureLoopCountN[1];
-        INumberVectorProperty ExposureLoopCountNP;
+        INDI::PropertyNumber ExposureLoopCountNP {1};
         double uploadTime = { 0 };
         std::chrono::system_clock::time_point exposureLoopStartup;
 #endif
 
         // FITS Header
-        IText FITSHeaderT[2] {};
-        ITextVectorProperty FITSHeaderTP;
+        INDI::PropertyText FITSHeaderTP {2};
         enum
         {
             FITS_OBSERVER,

@@ -83,11 +83,11 @@ void LX200Gemini::ISGetProperties(const char *dev)
 
     // Read config from file
     int index = 0;
-    if (IUGetConfigOnSwitch(&StartupModeSP, &index) == 0)
+    if (IUGetConfigOnSwitch(StartupModeSP.getSwitch(), &index) == 0) // #PS: refactor needed
     {
-        IUResetSwitch(&StartupModeSP);
-        StartupModeSP.sp[index].s = ISS_ON;
-        defineProperty(&StartupModeSP);
+        StartupModeSP.reset();
+        StartupModeSP[index].setState(ISS_ON);
+        defineProperty(StartupModeSP);
     }
 }
 
@@ -96,36 +96,36 @@ bool LX200Gemini::initProperties()
     LX200Generic::initProperties();
 
     // Park Option
-    IUFillSwitch(&ParkSettingsS[PARK_HOME], "HOME", "Home", ISS_ON);
-    IUFillSwitch(&ParkSettingsS[PARK_STARTUP], "STARTUP", "Startup", ISS_OFF);
-    IUFillSwitch(&ParkSettingsS[PARK_ZENITH], "ZENITH", "Zenith", ISS_OFF);
-    IUFillSwitchVector(&ParkSettingsSP, ParkSettingsS, 3, getDeviceName(), "PARK_SETTINGS", "Park Settings",
+    ParkSettingsSP[PARK_HOME].fill("HOME", "Home", ISS_ON);
+    ParkSettingsSP[PARK_STARTUP].fill("STARTUP", "Startup", ISS_OFF);
+    ParkSettingsSP[PARK_ZENITH].fill("ZENITH", "Zenith", ISS_OFF);
+    ParkSettingsSP.fill(getDeviceName(), "PARK_SETTINGS", "Park Settings",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&StartupModeS[COLD_START], "COLD_START", "Cold", ISS_ON);
-    IUFillSwitch(&StartupModeS[PARK_STARTUP], "WARM_START", "Warm", ISS_OFF);
-    IUFillSwitch(&StartupModeS[PARK_ZENITH], "WARM_RESTART", "Restart", ISS_OFF);
-    IUFillSwitchVector(&StartupModeSP, StartupModeS, 3, getDeviceName(), "STARTUP_MODE", "Startup Mode",
+    StartupModeSP[COLD_START].fill("COLD_START", "Cold", ISS_ON);
+    StartupModeSP[PARK_STARTUP].fill("WARM_START", "Warm", ISS_OFF);
+    StartupModeSP[PARK_ZENITH].fill("WARM_RESTART", "Restart", ISS_OFF);
+    StartupModeSP.fill(getDeviceName(), "STARTUP_MODE", "Startup Mode",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillNumber(&ManualSlewingSpeedN[0], "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", "%g", 20, 2000., 10., 800);
-    IUFillNumberVector(&ManualSlewingSpeedNP, ManualSlewingSpeedN, 1, getDeviceName(), "MANUAL_SLEWING_SPEED",
+    ManualSlewingSpeedNP[0].fill("MANUAL_SLEWING_SPEED", "Manual Slewing Speed", "%g", 20, 2000., 10., 800);
+    ManualSlewingSpeedNP.fill(getDeviceName(), "MANUAL_SLEWING_SPEED",
                        "Manual Slewing Speed", MOTION_TAB, IP_RW,  0, IPS_IDLE);
 
-    IUFillNumber(&GotoSlewingSpeedN[0], "GOTO_SLEWING_SPEED", "Goto Slewing Speed", "%g", 20, 2000., 10., 800);
-    IUFillNumberVector(&GotoSlewingSpeedNP, GotoSlewingSpeedN, 1, getDeviceName(), "GOTO_SLEWING_SPEED", "Goto Slewing Speed",
+    GotoSlewingSpeedNP[0].fill("GOTO_SLEWING_SPEED", "Goto Slewing Speed", "%g", 20, 2000., 10., 800);
+    GotoSlewingSpeedNP.fill(getDeviceName(), "GOTO_SLEWING_SPEED", "Goto Slewing Speed",
                        MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&MoveSpeedN[0], "MOVE_SPEED", "Move Speed", "%g", 20, 2000., 10., 10);
-    IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", MOTION_TAB,
+    MoveSpeedNP[0].fill("MOVE_SPEED", "Move Speed", "%g", 20, 2000., 10., 10);
+    MoveSpeedNP.fill(getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", MOTION_TAB,
                        IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&GuidingSpeedN[0], "GUIDING_SPEED", "Guiding Speed", "%g", 0.2, 0.8, 0.1, 0.5);
-    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED", "Guiding Slewing Speed",
+    GuidingSpeedNP[0].fill("GUIDING_SPEED", "Guiding Speed", "%g", 0.2, 0.8, 0.1, 0.5);
+    GuidingSpeedNP.fill(getDeviceName(), "GUIDING_SLEWING_SPEED", "Guiding Slewing Speed",
                        GUIDE_TAB, IP_RW, 0, IPS_IDLE);
 
-    IUFillNumber(&CenteringSpeedN[0], "CENTERING_SPEED", "Centering Speed", "%g", 20, 2000., 10., 10);
-    IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED",
+    CenteringSpeedNP[0].fill("CENTERING_SPEED", "Centering Speed", "%g", 20, 2000., 10., 10);
+    CenteringSpeedNP.fill(getDeviceName(), "CENTERING_SLEWING_SPEED",
                        "Centering Slewing Speed", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
@@ -145,38 +145,38 @@ bool LX200Gemini::updateProperties()
     {
         uint32_t speed = 0;
         char value[MAX_VALUE_LENGTH] = {0};
-        defineProperty(&ParkSettingsSP);
+        defineProperty(ParkSettingsSP);
 
         if (getGeminiProperty(MANUAL_SLEWING_SPEED_ID, value))
         {
             sscanf(value, "%u", &speed);
-            ManualSlewingSpeedN[0].value = speed;
-            defineProperty(&ManualSlewingSpeedNP);
+            ManualSlewingSpeedNP[0].setValue(speed);
+            defineProperty(ManualSlewingSpeedNP);
         }
         if (getGeminiProperty(GOTO_SLEWING_SPEED_ID, value))
         {
             sscanf(value, "%u", &speed);
-            GotoSlewingSpeedN[0].value = speed;
-            defineProperty(&GotoSlewingSpeedNP);
+            GotoSlewingSpeedNP[0].setValue(speed);
+            defineProperty(GotoSlewingSpeedNP);
         }
         if (getGeminiProperty(MOVE_SPEED_ID, value))
         {
             sscanf(value, "%u", &speed);
-            MoveSpeedN[0].value = speed;
-            defineProperty(&MoveSpeedNP);
+            MoveSpeedNP[0].setValue(speed);
+            defineProperty(MoveSpeedNP);
         }
         if (getGeminiProperty(GUIDING_SPEED_ID, value))
         {
             float guidingSpeed = 0.0;
             sscanf(value, "%f", &guidingSpeed);
-            GuidingSpeedN[0].value = guidingSpeed;
-            defineProperty(&GuidingSpeedNP);
+            GuidingSpeedNP[0].setValue(guidingSpeed);
+            defineProperty(GuidingSpeedNP);
         }
         if (getGeminiProperty(CENTERING_SPEED_ID, value))
         {
             sscanf(value, "%u", &speed);
-            CenteringSpeedN[0].value = speed;
-            defineProperty(&CenteringSpeedNP);
+            CenteringSpeedNP[0].setValue(speed);
+            defineProperty(CenteringSpeedNP);
         }
 
         updateParkingState();
@@ -184,12 +184,12 @@ bool LX200Gemini::updateProperties()
     }
     else
     {
-        deleteProperty(ParkSettingsSP.name);
-        deleteProperty(ManualSlewingSpeedNP.name);
-        deleteProperty(GotoSlewingSpeedNP.name);
-        deleteProperty(MoveSpeedNP.name);
-        deleteProperty(GuidingSpeedNP.name);
-        deleteProperty(CenteringSpeedNP.name);
+        deleteProperty(ParkSettingsSP.getName());
+        deleteProperty(ManualSlewingSpeedNP.getName());
+        deleteProperty(GotoSlewingSpeedNP.getName());
+        deleteProperty(MoveSpeedNP.getName());
+        deleteProperty(GuidingSpeedNP.getName());
+        deleteProperty(CenteringSpeedNP.getName());
     }
 
     return true;
@@ -199,21 +199,21 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, StartupModeSP.name))
+        if (StartupModeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&StartupModeSP, states, names, n);
-            StartupModeSP.s = IPS_OK;
+            StartupModeSP.update(states, names, n);
+            StartupModeSP.setState(IPS_OK);
             if (isConnected())
                 LOG_INFO("Startup mode will take effect on future connections.");
-            IDSetSwitch(&StartupModeSP, nullptr);
+            StartupModeSP.apply();
             return true;
         }
 
-        if (!strcmp(name, ParkSettingsSP.name))
+        if (ParkSettingsSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ParkSettingsSP, states, names, n);
-            ParkSettingsSP.s = IPS_OK;
-            IDSetSwitch(&ParkSettingsSP, nullptr);
+            ParkSettingsSP.update(states, names, n);
+            ParkSettingsSP.setState(IPS_OK);
+            ParkSettingsSP.apply();
             return true;
         }
     }
@@ -228,58 +228,58 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         char valueString[16] = {0};
         snprintf(valueString, 16, "%2.0f", values[0]);
 
-        if (!strcmp(name, ManualSlewingSpeedNP.name))
+        if (ManualSlewingSpeedNP.isNameMatch(name))
         {
             LOGF_DEBUG("Trying to set manual slewing speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(MANUAL_SLEWING_SPEED_ID, valueString))
             {
-                ManualSlewingSpeedNP.s = IPS_ALERT;
-                IDSetNumber(&ManualSlewingSpeedNP, "Error setting manual slewing speed");
+                ManualSlewingSpeedNP.setState(IPS_ALERT);
+                ManualSlewingSpeedNP.apply("Error setting manual slewing speed");
                 return false;
             }
 
-            ManualSlewingSpeedNP.s    = IPS_OK;
-            ManualSlewingSpeedN[0].value = values[0];
-            IDSetNumber(&ManualSlewingSpeedNP, "Manual slewing speed set to %f", values[0]);
+            ManualSlewingSpeedNP.setState(IPS_OK);
+            ManualSlewingSpeedNP[0].setValue(values[0]);
+            ManualSlewingSpeedNP.apply("Manual slewing speed set to %f", values[0]);
 
             return true;
         }
-        if (!strcmp(name, GotoSlewingSpeedNP.name))
+        if (GotoSlewingSpeedNP.isNameMatch(name))
         {
             LOGF_DEBUG("Trying to set goto slewing speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(GOTO_SLEWING_SPEED_ID, valueString))
             {
-                GotoSlewingSpeedNP.s = IPS_ALERT;
-                IDSetNumber(&GotoSlewingSpeedNP, "Error setting goto slewing speed");
+                GotoSlewingSpeedNP.setState(IPS_ALERT);
+                GotoSlewingSpeedNP.apply("Error setting goto slewing speed");
                 return false;
             }
 
-            GotoSlewingSpeedNP.s       = IPS_OK;
-            GotoSlewingSpeedN[0].value = values[0];
-            IDSetNumber(&GotoSlewingSpeedNP, "Goto slewing speed set to %f", values[0]);
+            GotoSlewingSpeedNP.setState(IPS_OK);
+            GotoSlewingSpeedNP[0].setValue(values[0]);
+            GotoSlewingSpeedNP.apply("Goto slewing speed set to %f", values[0]);
 
             return true;
         }
-        if (!strcmp(name, MoveSpeedNP.name))
+        if (MoveSpeedNP.isNameMatch(name))
         {
             LOGF_DEBUG("Trying to set move speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(MOVE_SPEED_ID, valueString))
             {
-                MoveSpeedNP.s = IPS_ALERT;
-                IDSetNumber(&MoveSpeedNP, "Error setting move speed");
+                MoveSpeedNP.setState(IPS_ALERT);
+                MoveSpeedNP.apply("Error setting move speed");
                 return false;
             }
 
-            MoveSpeedNP.s       = IPS_OK;
-            MoveSpeedN[0].value = values[0];
-            IDSetNumber(&MoveSpeedNP, "Move speed set to %f", values[0]);
+            MoveSpeedNP.setState(IPS_OK);
+            MoveSpeedNP[0].setValue(values[0]);
+            MoveSpeedNP.apply("Move speed set to %f", values[0]);
 
             return true;
         }
-        if (!strcmp(name, GuidingSpeedNP.name))
+        if (GuidingSpeedNP.isNameMatch(name))
         {
             LOGF_DEBUG("Trying to set guiding speed of: %f", values[0]);
 
@@ -288,31 +288,31 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
 
             if (!isSimulation() && !setGeminiProperty(GUIDING_SPEED_ID, valueString))
             {
-                GuidingSpeedNP.s = IPS_ALERT;
-                IDSetNumber(&GuidingSpeedNP, "Error setting guiding speed");
+                GuidingSpeedNP.setState(IPS_ALERT);
+                GuidingSpeedNP.apply("Error setting guiding speed");
                 return false;
             }
 
-            GuidingSpeedNP.s       = IPS_OK;
-            GuidingSpeedN[0].value = values[0];
-            IDSetNumber(&GuidingSpeedNP, "Guiding speed set to %f", values[0]);
+            GuidingSpeedNP.setState(IPS_OK);
+            GuidingSpeedNP[0].setValue(values[0]);
+            GuidingSpeedNP.apply("Guiding speed set to %f", values[0]);
 
             return true;
         }
-        if (!strcmp(name, CenteringSpeedNP.name))
+        if (CenteringSpeedNP.isNameMatch(name))
         {
             LOGF_DEBUG("Trying to set centering speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(CENTERING_SPEED_ID, valueString))
             {
-                CenteringSpeedNP.s = IPS_ALERT;
-                IDSetNumber(&CenteringSpeedNP, "Error setting centering speed");
+                CenteringSpeedNP.setState(IPS_ALERT);
+                CenteringSpeedNP.apply("Error setting centering speed");
                 return false;
             }
 
-            CenteringSpeedNP.s       = IPS_OK;
-            CenteringSpeedN[0].value = values[0];
-            IDSetNumber(&CenteringSpeedNP, "Centering speed set to %f", values[0]);
+            CenteringSpeedNP.setState(IPS_OK);
+            CenteringSpeedNP[0].setValue(values[0]);
+            CenteringSpeedNP.apply("Centering speed set to %f", values[0]);
 
             return true;
         }
@@ -365,7 +365,7 @@ bool LX200Gemini::checkConnection()
     {
         LOG_DEBUG("Mount is waiting for selection of the startup mode.");
         char cmd[4]     = "bC#";
-        int startupMode = IUFindOnSwitchIndex(&StartupModeSP);
+        int startupMode = StartupModeSP.findOnSwitchIndex();
         if (startupMode == WARM_START)
             strncpy(cmd, "bW#", 4);
         else if (startupMode == WARM_RESTART)
@@ -437,8 +437,8 @@ bool LX200Gemini::ReadScopeStatus()
     {
         updateMovementState();
 
-        EqNP.s = IPS_BUSY;
-        IDSetNumber(&EqNP, NULL);
+        EqNP.setState(IPS_BUSY);
+        EqNP.apply(NULL);
 
         // Check if LX200 is done slewing
         if (isSlewComplete())
@@ -448,8 +448,8 @@ bool LX200Gemini::ReadScopeStatus()
             SlewRateS[SLEW_CENTERING].s = ISS_ON;
             IDSetSwitch(&SlewRateSP, nullptr);
 
-            EqNP.s = IPS_OK;
-            IDSetNumber(&EqNP, NULL);
+            EqNP.setState(IPS_OK);
+            EqNP.apply(NULL);
 
             LOG_INFO("Slew is complete. Tracking...");
         }
@@ -464,8 +464,8 @@ bool LX200Gemini::ReadScopeStatus()
             SetParked(true);
             sleepMount();
 
-            EqNP.s = IPS_IDLE;
-            IDSetNumber(&EqNP, NULL);
+            EqNP.setState(IPS_IDLE);
+            EqNP.apply(NULL);
 
             return true;
         }
@@ -522,7 +522,7 @@ void LX200Gemini::syncSideOfPier()
     // see https://www.indilib.org/forum/general/6785-side-of-pier-problem-bug.html?start=12#52492
     // for a description of the problem and the proposed fix
     //
-    auto lst = get_local_sidereal_time(this->LocationN[LOCATION_LONGITUDE].value);
+    auto lst = get_local_sidereal_time(this->LocationNP[LOCATION_LONGITUDE].getValue());
     auto ha = rangeHA(lst - currentRA);
     auto pointingState = PIER_UNKNOWN;
 
@@ -552,7 +552,7 @@ bool LX200Gemini::Park()
 {
     char cmd[6] = ":hP#";
 
-    int parkSetting = IUFindOnSwitchIndex(&ParkSettingsSP);
+    int parkSetting = ParkSettingsSP.findOnSwitchIndex();
 
     if (parkSetting == PARK_STARTUP)
         strncpy(cmd, ":hC#", 5);
@@ -576,7 +576,7 @@ bool LX200Gemini::Park()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    ParkSP.s   = IPS_BUSY;
+    ParkSP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
 
     updateParkingState();
@@ -804,8 +804,8 @@ bool LX200Gemini::saveConfigItems(FILE *fp)
 {
     LX200Generic::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &StartupModeSP);
-    IUSaveConfigSwitch(fp, &ParkSettingsSP);
+    StartupModeSP.save(fp);
+    ParkSettingsSP.save(fp);
 
     return true;
 }

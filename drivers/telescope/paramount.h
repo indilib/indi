@@ -25,6 +25,10 @@
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class Paramount : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
@@ -95,22 +99,19 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         unsigned int DBG_SCOPE { 0 };
 
         // Jog Rate
-        INumber JogRateN[2];
-        INumberVectorProperty JogRateNP;
+        INDI::PropertyNumber JogRateNP {2};
 
         // Guide Rate
-        INumber GuideRateN[2];
-        INumberVectorProperty GuideRateNP;
+        INDI::PropertyNumber GuideRateNP {2};
 
         // Tracking Mode
         ISwitch TrackModeS[4];
         ISwitchVectorProperty TrackModeSP;
 
         // Homing
-        ISwitchVectorProperty HomeSP;
-        ISwitch HomeS[1];
+        INDI::PropertySwitch HomeSP {1};
 
         // Tracking Rate
-        //    INumber TrackRateN[2];
-        //    INumberVectorProperty TrackRateNP;
+        //    INDI::PropertyNumber TrackRateNP {2};
+        //
 };

@@ -53,12 +53,12 @@ Correlator::~Correlator()
 bool Correlator::initProperties()
 {
     // PrimaryCorrelator Info
-    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BASELINE_X], "CORRELATOR_BASELINE_X", "Baseline X size (m)", "%16.12f", 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
-    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BASELINE_X], "CORRELATOR_BASELINE_Y", "Baseline Y size (m)", "%16.12f", 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
-    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BASELINE_X], "CORRELATOR_BASELINE_Z", "Baseline Z size (m)", "%16.12f", 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
-    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_WAVELENGTH], "CORRELATOR_WAVELENGTH", "Wavelength (m)", "%7.12f", 3.0e-12, 3.0e+6, 3.0e-12, 350.0e-9);
-    IUFillNumber(&CorrelatorSettingsN[CORRELATOR_BANDWIDTH], "CORRELATOR_BANDWIDTH", "Bandwidth (Hz)", "%12.0f", 1.0, 100.0e+9, 1.0, 1.42e+9);
-    IUFillNumberVector(&CorrelatorSettingsNP, CorrelatorSettingsN, 5, getDeviceName(), "CORRELATOR_SETTINGS", "Correlator Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    CorrelatorSettingsNP[CORRELATOR_BASELINE_X].fill("CORRELATOR_BASELINE_X", "Baseline X size (m)", "%16.12f", 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
+    CorrelatorSettingsNP[CORRELATOR_BASELINE_X].fill("CORRELATOR_BASELINE_Y", "Baseline Y size (m)", "%16.12f", 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
+    CorrelatorSettingsNP[CORRELATOR_BASELINE_X].fill("CORRELATOR_BASELINE_Z", "Baseline Z size (m)", "%16.12f", 1.0e-12, 1.0e+6, 1.0e-12, 10.0);
+    CorrelatorSettingsNP[CORRELATOR_WAVELENGTH].fill("CORRELATOR_WAVELENGTH", "Wavelength (m)", "%7.12f", 3.0e-12, 3.0e+6, 3.0e-12, 350.0e-9);
+    CorrelatorSettingsNP[CORRELATOR_BANDWIDTH].fill("CORRELATOR_BANDWIDTH", "Bandwidth (Hz)", "%12.0f", 1.0, 100.0e+9, 1.0, 1.42e+9);
+    CorrelatorSettingsNP.fill(getDeviceName(), "CORRELATOR_SETTINGS", "Correlator Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     setDriverInterface(CORRELATOR_INTERFACE);
 
@@ -74,17 +74,17 @@ bool Correlator::updateProperties()
 {
     if (isConnected())
     {
-        defineProperty(&CorrelatorSettingsNP);
+        defineProperty(CorrelatorSettingsNP);
 
         if (HasCooler())
-            defineProperty(&TemperatureNP);
+            defineProperty(TemperatureNP);
     }
     else
     {
-        deleteProperty(CorrelatorSettingsNP.name);
+        deleteProperty(CorrelatorSettingsNP.getName());
 
         if (HasCooler())
-            deleteProperty(TemperatureNP.name);
+            deleteProperty(TemperatureNP.getName());
     }
     return SensorInterface::updateProperties();
 }
@@ -101,8 +101,8 @@ bool Correlator::ISNewText(const char *dev, const char *name, char *values[], ch
 
 bool Correlator::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, CorrelatorSettingsNP.name)) {
-        IDSetNumber(&CorrelatorSettingsNP, nullptr);
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, CorrelatorSettingsNP.getName())) {
+        CorrelatorSettingsNP.apply();
     }
     return processNumber(dev, name, values, names, n);
 }
@@ -122,29 +122,29 @@ void Correlator::setBaseline(Baseline bl)
 {
     baseline = bl;
 
-    CorrelatorSettingsN[Correlator::CORRELATOR_BASELINE_X].value = baseline.x;
-    CorrelatorSettingsN[Correlator::CORRELATOR_BASELINE_Y].value = baseline.y;
-    CorrelatorSettingsN[Correlator::CORRELATOR_BASELINE_Z].value = baseline.z;
+    CorrelatorSettingsNP[Correlator::CORRELATOR_BASELINE_X].setValue(baseline.x);
+    CorrelatorSettingsNP[Correlator::CORRELATOR_BASELINE_Y].setValue(baseline.y);
+    CorrelatorSettingsNP[Correlator::CORRELATOR_BASELINE_Z].setValue(baseline.z);
 
-    IDSetNumber(&CorrelatorSettingsNP, nullptr);
+    CorrelatorSettingsNP.apply();
 }
 
 void Correlator::setWavelength(double wl)
 {
     wavelength = wl;
 
-    CorrelatorSettingsN[Correlator::CORRELATOR_WAVELENGTH].value = wl;
+    CorrelatorSettingsNP[Correlator::CORRELATOR_WAVELENGTH].setValue(wl);
 
-    IDSetNumber(&CorrelatorSettingsNP, nullptr);
+    CorrelatorSettingsNP.apply();
 }
 
 void Correlator::setBandwidth(double bw)
 {
     bandwidth = bw;
 
-    CorrelatorSettingsN[Correlator::CORRELATOR_BANDWIDTH].value = bw;
+    CorrelatorSettingsNP[Correlator::CORRELATOR_BANDWIDTH].setValue(bw);
 
-    IDSetNumber(&CorrelatorSettingsNP, nullptr);
+    CorrelatorSettingsNP.apply();
 }
 
 void Correlator::SetCorrelatorCapability(uint32_t cap)
@@ -207,8 +207,8 @@ void Correlator::setMinMaxStep(const char *property, const char *element, double
 {
     INumberVectorProperty *vp = nullptr;
 
-    if (!strcmp(property, CorrelatorSettingsNP.name)) {
-        vp = &FramedIntegrationNP;
+    if (CorrelatorSettingsNP.isNameMatch(property)) {
+        vp = FramedIntegrationNP.getNumber(); // #PS: refactor needed
 
         INumber *np = IUFindNumber(vp, element);
         if (np)

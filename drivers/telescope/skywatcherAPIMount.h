@@ -20,6 +20,11 @@
 
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
 typedef enum { PARK_NORTH = 0, PARK_EAST, PARK_SOUTH, PARK_WEST } ParkPosition_t;
 
@@ -105,8 +110,7 @@ class SkywatcherAPIMount : public SkywatcherAPI,
             MOUNT_NAME,
             IS_DC_MOTOR
         };
-        IText BasicMountInfoT[4] {};
-        ITextVectorProperty BasicMountInfoTP;
+        INDI::PropertyText BasicMountInfoTP {4};
 
         enum
         {
@@ -115,10 +119,8 @@ class SkywatcherAPIMount : public SkywatcherAPI,
             HIGH_SPEED_RATIO,
             MICROSTEPS_PER_WORM_REVOLUTION
         };
-        INumber AxisOneInfoN[4];
-        INumberVectorProperty AxisOneInfoNP;
-        INumber AxisTwoInfoN[4];
-        INumberVectorProperty AxisTwoInfoNP;
+        INDI::PropertyNumber AxisOneInfoNP {4};
+        INDI::PropertyNumber AxisTwoInfoNP {4};
         enum
         {
             FULL_STOP,
@@ -128,10 +130,8 @@ class SkywatcherAPIMount : public SkywatcherAPI,
             HIGH_SPEED,
             NOT_INITIALISED
         };
-        ISwitch AxisOneStateS[6];
-        ISwitchVectorProperty AxisOneStateSP;
-        ISwitch AxisTwoStateS[6];
-        ISwitchVectorProperty AxisTwoStateSP;
+        INDI::PropertySwitch AxisOneStateSP {6};
+        INDI::PropertySwitch AxisTwoStateSP {6};
         enum
         {
             RAW_MICROSTEPS,
@@ -139,10 +139,8 @@ class SkywatcherAPIMount : public SkywatcherAPI,
             OFFSET_FROM_INITIAL,
             DEGREES_FROM_INITIAL
         };
-        INumber AxisOneEncoderValuesN[4];
-        INumberVectorProperty AxisOneEncoderValuesNP;
-        INumber AxisTwoEncoderValuesN[4];
-        INumberVectorProperty AxisTwoEncoderValuesNP;
+        INDI::PropertyNumber AxisOneEncoderValuesNP {4};
+        INDI::PropertyNumber AxisTwoEncoderValuesNP {4};
 
         // A switch for silent/highspeed slewing modes
         enum
@@ -150,8 +148,7 @@ class SkywatcherAPIMount : public SkywatcherAPI,
             SLEW_SILENT,
             SLEW_NORMAL
         };
-        ISwitch SlewModesS[2];
-        ISwitchVectorProperty SlewModesSP;
+        INDI::PropertySwitch SlewModesSP {2};
 
         // A switch for SoftPEC modes
         enum
@@ -159,28 +156,26 @@ class SkywatcherAPIMount : public SkywatcherAPI,
             SOFTPEC_ENABLED,
             SOFTPEC_DISABLED
         };
-        ISwitch SoftPECModesS[2];
-        ISwitchVectorProperty SoftPECModesSP;
+        INDI::PropertySwitch SoftPECModesSP {2};
 
         // SoftPEC value for tracking mode
         INumber SoftPecN;
         INumberVectorProperty SoftPecNP;
 
         // Guiding rates (RA/Dec)
-        INumber GuidingRatesN[2];
-        INumberVectorProperty GuidingRatesNP;
+        INDI::PropertyNumber GuidingRatesNP {2};
 
         // A switch for park movement directions (clockwise/counterclockwise)
-//        ISwitch ParkMovementDirectionS[2];
-//        ISwitchVectorProperty ParkMovementDirectionSP;
+//        INDI::PropertySwitch ParkMovementDirectionSP {2};
+//
 
 //        // A switch for park positions
-//        ISwitch ParkPositionS[4];
-//        ISwitchVectorProperty ParkPositionSP;
+//        INDI::PropertySwitch ParkPositionSP {4};
+//
 
 //        // A switch for unpark positions
-//        ISwitch UnparkPositionS[4];
-//        ISwitchVectorProperty UnparkPositionSP;
+//        INDI::PropertySwitch UnparkPositionSP {4};
+//
 
         // Tracking
         ln_equ_posn CurrentTrackingTarget { 0, 0 };

@@ -22,6 +22,9 @@
 
 #include "indifilterwheel.h"
 
+/* Smart Widget-Property */
+#include "indipropertyswitch.h"
+
 class TruTech : public INDI::FilterWheel
 {
     public:
@@ -43,6 +46,5 @@ class TruTech : public INDI::FilterWheel
 
         bool home();
 
-        ISwitch HomeS[1];
-        ISwitchVectorProperty HomeSP;
+        INDI::PropertySwitch HomeSP {1};
 };

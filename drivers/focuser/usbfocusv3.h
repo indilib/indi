@@ -23,6 +23,10 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 /***************************** USB Focus V3 Commands **************************/
 
 #define UFOCREADPARAM "SGETAL"
@@ -158,29 +162,22 @@ class USBFocusV3 : public INDI::Focuser
         };
         float focusMoveRequest{ 0 };
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
-        ISwitch StepModeS[2];
-        ISwitchVectorProperty StepModeSP;
+        INDI::PropertySwitch StepModeSP {2};
 
-        ISwitch RotDirS[2];
-        ISwitchVectorProperty RotDirSP;
+        INDI::PropertySwitch RotDirSP {2};
 
-        INumber MaxPositionN[1];
-        INumberVectorProperty MaxPositionNP;
+        INDI::PropertyNumber MaxPositionNP {1};
 
-        INumber TemperatureSettingN[2];
-        INumberVectorProperty TemperatureSettingNP;
+        INDI::PropertyNumber TemperatureSettingNP {2};
 
-        ISwitch TempCompSignS[2];
-        ISwitchVectorProperty TempCompSignSP;
+        INDI::PropertySwitch TempCompSignSP {2};
 
-        ISwitch TemperatureCompensateS[2];
-        ISwitchVectorProperty TemperatureCompensateSP;
+        INDI::PropertySwitch TemperatureCompensateSP {2};
 
-        //    INumber BacklashSettingN[1];
-        //    INumberVectorProperty BacklashSettingNP;
+        //    INDI::PropertyNumber BacklashSettingNP {1};
+        //
 
         typedef enum
         {
@@ -188,12 +185,10 @@ class USBFocusV3 : public INDI::Focuser
             BACKLASH_OUT = 1
         } BacklashDirection;
 
-        //    ISwitch BacklashDirectionS[2];
-        //    ISwitchVectorProperty BacklashDirectionSP;
+        //    INDI::PropertySwitch BacklashDirectionSP {2};
+        //
 
-        ISwitch ResetS[1];
-        ISwitchVectorProperty ResetSP;
+        INDI::PropertySwitch ResetSP {1};
 
-        INumber FWversionN[1];
-        INumberVectorProperty FWversionNP;
+        INDI::PropertyNumber FWversionNP {1};
 };

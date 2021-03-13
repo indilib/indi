@@ -35,6 +35,9 @@
 #include <mutex>
 #include <thread>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
 
@@ -220,7 +223,7 @@ class Correlator : public SensorInterface
          */
         inline INumberVectorProperty *getCorrelatorSettings()
         {
-            return &CorrelatorSettingsNP;
+            return CorrelatorSettingsNP.getNumber(); // #PS: refactor needed
         }
 
         /**
@@ -257,12 +260,11 @@ class Correlator : public SensorInterface
             CORRELATOR_WAVELENGTH,
             CORRELATOR_BANDWIDTH,
         } CORRELATOR_INFO_INDEX;
-        INumberVectorProperty CorrelatorSettingsNP;
 
       private:
         Baseline baseline;
         double wavelength;
         double bandwidth;
-        INumber CorrelatorSettingsN[5];
+        INDI::PropertyNumber CorrelatorSettingsNP {5};
 };
 }

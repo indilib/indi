@@ -29,6 +29,11 @@
 
 #include "defaultdevice.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class WatchDogClient;
 
 class WatchDog : public INDI::DefaultDevice
@@ -72,34 +77,27 @@ class WatchDog : public INDI::DefaultDevice
         void executeScript();
 
         // Heart Beat to check if client is alive
-        INumberVectorProperty HeartBeatNP;
-        INumber HeartBeatN[1];
+        INDI::PropertyNumber HeartBeatNP {1};
 
         // Weather threshold
-        INumberVectorProperty WeatherThresholdNP;
-        INumber WeatherThresholdN[1];
+        INDI::PropertyNumber WeatherThresholdNP {1};
 
         // Settings
-        ITextVectorProperty SettingsTP;
-        IText SettingsT[4] {};
+        INDI::PropertyText SettingsTP {4};
         enum {INDISERVER_HOST, INDISERVER_PORT, SHUTDOWN_SCRIPT};
 
         // Shutdown steps
-        ISwitchVectorProperty ShutdownProcedureSP;
-        ISwitch ShutdownProcedureS[3];
+        INDI::PropertySwitch ShutdownProcedureSP {3};
 
         // Mount Policy
-        ISwitchVectorProperty MountPolicySP;
-        ISwitch MountPolicyS[2];
+        INDI::PropertySwitch MountPolicySP {2};
 
         // Which source should trigger the shutdown?
-        ISwitchVectorProperty ShutdownTriggerSP;
-        ISwitch ShutdownTriggerS[2];
+        INDI::PropertySwitch ShutdownTriggerSP {2};
         enum { TRIGGER_CLIENT, TRIGGER_WEATHER };
 
         // Active Devices to Snoop on
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[3] {};
+        INDI::PropertyText ActiveDeviceTP {3};
         enum { ACTIVE_TELESCOPE, ACTIVE_DOME, ACTIVE_WEATHER };
 
         // Pointer to client to issue commands to the respective mount and/or dome drivers.

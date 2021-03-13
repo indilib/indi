@@ -90,44 +90,42 @@ bool SteelDriveII::initProperties()
     INDI::Focuser::initProperties();
 
     // Focuser Information
-    IUFillText(&InfoT[INFO_NAME], "INFO_NAME", "Name", "NA");
-    IUFillText(&InfoT[INFO_VERSION], "INFO_VERSION", "Version", "NA");
-    IUFillTextVector(&InfoTP, InfoT, 2, getDeviceName(), "INFO", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    InfoTP[INFO_NAME].fill("INFO_NAME", "Name", "NA");
+    InfoTP[INFO_VERSION].fill("INFO_VERSION", "Version", "NA");
+    InfoTP.fill(getDeviceName(), "INFO", "Info", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Focuser Device Operation
-    IUFillSwitch(&OperationS[OPERATION_REBOOT], "OPERATION_REBOOT", "Reboot", ISS_OFF);
-    IUFillSwitch(&OperationS[OPERATION_RESET], "OPERATION_RESET", "Factory Reset", ISS_OFF);
-    IUFillSwitch(&OperationS[OPERATION_ZEROING], "OPERATION_ZEROING", "Zero Home", ISS_OFF);
-    IUFillSwitchVector(&OperationSP, OperationS, 3, getDeviceName(), "OPERATION", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    OperationSP[OPERATION_REBOOT].fill("OPERATION_REBOOT", "Reboot", ISS_OFF);
+    OperationSP[OPERATION_RESET].fill("OPERATION_RESET", "Factory Reset", ISS_OFF);
+    OperationSP[OPERATION_ZEROING].fill("OPERATION_ZEROING", "Zero Home", ISS_OFF);
+    OperationSP.fill(getDeviceName(), "OPERATION", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Temperature Compensation
-    IUFillSwitch(&TemperatureCompensationS[TC_ENABLED], "TC_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensationS[TC_DISABLED], "TC_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensationSP, TemperatureCompensationS, 2, getDeviceName(), "TC_COMPENSATE", "Compensation", COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    TemperatureCompensationSP[TC_ENABLED].fill("TC_ENABLED", "Enabled", ISS_OFF);
+    TemperatureCompensationSP[TC_DISABLED].fill("TC_DISABLED", "Disabled", ISS_ON);
+    TemperatureCompensationSP.fill(getDeviceName(), "TC_COMPENSATE", "Compensation", COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // TC State
-    IUFillSwitch(&TemperatureStateS[TC_ENABLED], "TC_ACTIVE", "Active", ISS_OFF);
-    IUFillSwitch(&TemperatureStateS[TC_DISABLED], "TC_PAUSED", "Paused", ISS_ON);
-    IUFillSwitchVector(&TemperatureStateSP, TemperatureStateS, 2, getDeviceName(), "TC_State", "State", COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    TemperatureStateSP[TC_ENABLED].fill("TC_ACTIVE", "Active", ISS_OFF);
+    TemperatureStateSP[TC_DISABLED].fill("TC_PAUSED", "Paused", ISS_ON);
+    TemperatureStateSP.fill(getDeviceName(), "TC_State", "State", COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Temperature Compensation Settings
-    IUFillNumber(&TemperatureSettingsN[TC_FACTOR], "TC_FACTOR", "Factor", "%.2f", 0, 1, 0.1, 0);
-    IUFillNumber(&TemperatureSettingsN[TC_PERIOD], "TC_PERIOD", "Period (ms)", "%.f", 10, 600000, 1000, 0);
-    IUFillNumber(&TemperatureSettingsN[TC_DELTA], "TC_DELTA", "Delta (C)", "%.2f", 0, 10, 0.1, 0);
-    IUFillNumberVector(&TemperatureSettingsNP, TemperatureSettingsN, 3, getDeviceName(), "TC_SETTINGS", "Settings", COMPENSATION_TAB, IP_RW, 60, IPS_IDLE);
+    TemperatureSettingsNP[TC_FACTOR].fill("TC_FACTOR", "Factor", "%.2f", 0, 1, 0.1, 0);
+    TemperatureSettingsNP[TC_PERIOD].fill("TC_PERIOD", "Period (ms)", "%.f", 10, 600000, 1000, 0);
+    TemperatureSettingsNP[TC_DELTA].fill("TC_DELTA", "Delta (C)", "%.2f", 0, 10, 0.1, 0);
+    TemperatureSettingsNP.fill(getDeviceName(), "TC_SETTINGS", "Settings", COMPENSATION_TAB, IP_RW, 60, IPS_IDLE);
 
     // Temperature Sensors
-    IUFillNumber(&TemperatureSensorN[TEMP_0], "TEMP_0", "Motor (C)", "%.2f", -60, 60, 0, 0);
-    IUFillNumber(&TemperatureSensorN[TEMP_1], "TEMP_1", "Controller (C)", "%.f", -60, 60, 0, 0);
-    IUFillNumber(&TemperatureSensorN[TEMP_AVG], "TEMP_AVG", "Average (C)", "%.2f", -60, 60, 0, 0);
-    IUFillNumberVector(&TemperatureSensorNP, TemperatureSensorN, 3, getDeviceName(), "TC_SENSOR", "Sensor", COMPENSATION_TAB, IP_RO, 60, IPS_IDLE);
+    TemperatureSensorNP[TEMP_0].fill("TEMP_0", "Motor (C)", "%.2f", -60, 60, 0, 0);
+    TemperatureSensorNP[TEMP_1].fill("TEMP_1", "Controller (C)", "%.f", -60, 60, 0, 0);
+    TemperatureSensorNP[TEMP_AVG].fill("TEMP_AVG", "Average (C)", "%.2f", -60, 60, 0, 0);
+    TemperatureSensorNP.fill(getDeviceName(), "TC_SENSOR", "Sensor", COMPENSATION_TAB, IP_RO, 60, IPS_IDLE);
 
     // Stepper Drive
-    IUFillNumber(&StepperDriveN[CURRENT_MOVE], "STEPPER_DRIVE_CURRENT_MOVE", "Inverse Current Move", "%.f", 0, 127, 1, 25);
-    IUFillNumber(&StepperDriveN[CURRENT_HOLD], "STEPPER_DRIVE_CURRENT_HOLD", "Inverse Current Hold", "%.f", 0, 127, 1, 100);
-    IUFillNumberVector(
-        &StepperDriveNP, StepperDriveN, NARRAY(StepperDriveN),
-        getDeviceName(), "STEPPER_DRIVE", "Stepper Drive", OPTIONS_TAB, IP_RW, 60, IPS_IDLE
+    StepperDriveNP[CURRENT_MOVE].fill("STEPPER_DRIVE_CURRENT_MOVE", "Inverse Current Move", "%.f", 0, 127, 1, 25);
+    StepperDriveNP[CURRENT_HOLD].fill("STEPPER_DRIVE_CURRENT_HOLD", "Inverse Current Hold", "%.f", 0, 127, 1, 100);
+    StepperDriveNP.fill(getDeviceName(), "STEPPER_DRIVE", "Stepper Drive", OPTIONS_TAB, IP_RW, 60, IPS_IDLE
     );
 
     addAuxControls();
@@ -148,25 +146,25 @@ bool SteelDriveII::updateProperties()
     {
         getStartupValues();
 
-        defineProperty(&InfoTP);
-        defineProperty(&OperationSP);
+        defineProperty(InfoTP);
+        defineProperty(OperationSP);
 
-        defineProperty(&TemperatureCompensationSP);
-        defineProperty(&TemperatureStateSP);
-        defineProperty(&TemperatureSettingsNP);
-        defineProperty(&TemperatureSensorNP);
-        defineProperty(&StepperDriveNP);
+        defineProperty(TemperatureCompensationSP);
+        defineProperty(TemperatureStateSP);
+        defineProperty(TemperatureSettingsNP);
+        defineProperty(TemperatureSensorNP);
+        defineProperty(StepperDriveNP);
     }
     else
     {
-        deleteProperty(InfoTP.name);
-        deleteProperty(OperationSP.name);
+        deleteProperty(InfoTP.getName());
+        deleteProperty(OperationSP.getName());
 
-        deleteProperty(TemperatureCompensationSP.name);
-        deleteProperty(TemperatureStateSP.name);
-        deleteProperty(TemperatureSettingsNP.name);
-        deleteProperty(TemperatureSensorNP.name);
-        deleteProperty(StepperDriveNP.name);
+        deleteProperty(TemperatureCompensationSP.getName());
+        deleteProperty(TemperatureStateSP.getName());
+        deleteProperty(TemperatureSettingsNP.getName());
+        deleteProperty(TemperatureSensorNP.getName());
+        deleteProperty(StepperDriveNP.getName());
     }
 
     return true;
@@ -203,59 +201,59 @@ bool SteelDriveII::ISNewSwitch(const char *dev, const char *name, ISState *state
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Compensation
-        if (!strcmp(TemperatureCompensationSP.name, name))
+        if (TemperatureCompensationSP.isNameMatch(name))
         {
-            bool enabled = !strcmp(IUFindOnSwitchName(states, names, n), TemperatureCompensationS[TC_ENABLED].name);
+            bool enabled = !strcmp(IUFindOnSwitchName(states, names, n), TemperatureCompensationSP[TC_ENABLED].getName());
             bool rc = setParameter("TCOMP", enabled ? "1" : "0");
 
             if (rc)
             {
-                IUUpdateSwitch(&TemperatureCompensationSP, states, names, n);
-                TemperatureCompensationSP.s = IPS_OK;
+                TemperatureCompensationSP.update(states, names, n);
+                TemperatureCompensationSP.setState(IPS_OK);
                 LOGF_INFO("Temperature compensation is %s.", enabled ? "enabled" : "disabled");
             }
             else
             {
-                TemperatureCompensationSP.s = IPS_ALERT;
+                TemperatureCompensationSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&TemperatureCompensationSP, nullptr);
+            TemperatureCompensationSP.apply();
             return true;
         }
 
         // Temperature State (Paused or Active)
-        if (!strcmp(TemperatureStateSP.name, name))
+        if (TemperatureStateSP.isNameMatch(name))
         {
-            bool active = !strcmp(IUFindOnSwitchName(states, names, n), TemperatureStateS[TC_ACTIVE].name);
+            bool active = !strcmp(IUFindOnSwitchName(states, names, n), TemperatureStateSP[TC_ACTIVE].getName());
             bool rc = setParameter("TCOMP_PAUSE", active ? "0" : "1");
 
             if (rc)
             {
-                IUUpdateSwitch(&TemperatureStateSP, states, names, n);
-                TemperatureStateSP.s = IPS_OK;
+                TemperatureStateSP.update(states, names, n);
+                TemperatureStateSP.setState(IPS_OK);
                 LOGF_INFO("Temperature compensation is %s.", active ? "active" : "paused");
             }
             else
             {
-                TemperatureStateSP.s = IPS_ALERT;
+                TemperatureStateSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&TemperatureStateSP, nullptr);
+            TemperatureStateSP.apply();
             return true;
         }
 
         // Operations
-        if (!strcmp(OperationSP.name, name))
+        if (OperationSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&OperationSP, states, names, n);
-            if (OperationS[OPERATION_RESET].s == ISS_ON)
+            OperationSP.update(states, names, n);
+            if (OperationSP[OPERATION_RESET].getState() == ISS_ON)
             {
-                IUResetSwitch(&OperationSP);
+                OperationSP.reset();
                 if (m_ConfirmFactoryReset == false)
                 {
                     LOG_WARN("Click button again to confirm factory reset.");
-                    OperationSP.s = IPS_IDLE;
-                    IDSetSwitch(&OperationSP, nullptr);
+                    OperationSP.setState(IPS_IDLE);
+                    OperationSP.apply();
                     return true;
                 }
                 else
@@ -263,32 +261,32 @@ bool SteelDriveII::ISNewSwitch(const char *dev, const char *name, ISState *state
                     m_ConfirmFactoryReset = false;
                     if (!sendCommandOK("RESET"))
                     {
-                        OperationSP.s = IPS_ALERT;
+                        OperationSP.setState(IPS_ALERT);
                         LOG_ERROR("Failed to reset to factory settings.");
-                        IDSetSwitch(&OperationSP, nullptr);
+                        OperationSP.apply();
                         return true;
                     }
                 }
             }
 
-            if (OperationS[OPERATION_REBOOT].s == ISS_ON)
+            if (OperationSP[OPERATION_REBOOT].getState() == ISS_ON)
             {
-                IUResetSwitch(&OperationSP);
+                OperationSP.reset();
                 if (!sendCommand("REBOOT"))
                 {
-                    OperationSP.s = IPS_ALERT;
+                    OperationSP.setState(IPS_ALERT);
                     LOG_ERROR("Failed to reboot device.");
-                    IDSetSwitch(&OperationSP, nullptr);
+                    OperationSP.apply();
                     return true;
                 }
 
                 LOG_INFO("Device is rebooting...");
-                OperationSP.s = IPS_OK;
-                IDSetSwitch(&OperationSP, nullptr);
+                OperationSP.setState(IPS_OK);
+                OperationSP.apply();
                 return true;
             }
 
-            if (OperationS[OPERATION_ZEROING].s == ISS_ON)
+            if (OperationSP[OPERATION_ZEROING].getState() == ISS_ON)
             {
                 if (!sendCommandOK("SET USE_ENDSTOP:1"))
                 {
@@ -297,17 +295,17 @@ bool SteelDriveII::ISNewSwitch(const char *dev, const char *name, ISState *state
 
                 if (!sendCommandOK("ZEROING"))
                 {
-                    IUResetSwitch(&OperationSP);
+                    OperationSP.reset();
                     LOG_ERROR("Failed to zero to home position.");
-                    OperationSP.s = IPS_ALERT;
+                    OperationSP.setState(IPS_ALERT);
                 }
                 else
                 {
-                    OperationSP.s = IPS_BUSY;
+                    OperationSP.setState(IPS_BUSY);
                     LOG_INFO("Zeroing to home position in progress...");
                 }
 
-                IDSetSwitch(&OperationSP, nullptr);
+                OperationSP.apply();
                 return true;
             }
         }
@@ -324,47 +322,47 @@ bool SteelDriveII::ISNewNumber(const char *dev, const char *name, double values[
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(TemperatureSettingsNP.name, name))
+        if (TemperatureSettingsNP.isNameMatch(name))
         {
-            double factor = TemperatureSettingsN[TC_FACTOR].value;
-            double period = TemperatureSettingsN[TC_PERIOD].value;
-            double delta  = TemperatureSettingsN[TC_DELTA].value;
+            double factor = TemperatureSettingsNP[TC_FACTOR].getValue();
+            double period = TemperatureSettingsNP[TC_PERIOD].getValue();
+            double delta  = TemperatureSettingsNP[TC_DELTA].getValue();
             bool rc1 = true, rc2 = true, rc3 = true;
-            IUUpdateNumber(&TemperatureSettingsNP, values, names, n);
+            TemperatureSettingsNP.update(values, names, n);
 
-            if (factor != TemperatureSettingsN[TC_FACTOR].value)
+            if (factor != TemperatureSettingsNP[TC_FACTOR].getValue())
                 rc1 = setParameter("TCOMP_FACTOR", to_string(factor));
-            if (period != TemperatureSettingsN[TC_PERIOD].value)
+            if (period != TemperatureSettingsNP[TC_PERIOD].getValue())
                 rc2 = setParameter("TCOMP_PERIOD", to_string(period));
-            if (delta != TemperatureSettingsN[TC_DELTA].value)
+            if (delta != TemperatureSettingsNP[TC_DELTA].getValue())
                 rc3 = setParameter("TCOMP_DELTA", to_string(delta));
 
-            TemperatureSettingsNP.s = (rc1 && rc2 && rc3) ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&TemperatureSettingsNP, nullptr);
+            TemperatureSettingsNP.setState((rc1 && rc2 && rc3) ? IPS_OK : IPS_ALERT);
+            TemperatureSettingsNP.apply();
             return true;
         }
 
-        if (!strcmp(StepperDriveNP.name, name))
+        if (StepperDriveNP.isNameMatch(name))
         {
-            StepperDriveNP.s = IPS_OK;
+            StepperDriveNP.setState(IPS_OK);
 
-            if (StepperDriveN[CURRENT_MOVE].value != values[CURRENT_MOVE])
+            if (StepperDriveNP[CURRENT_MOVE].value != values[CURRENT_MOVE])
             {
                 if (setParameter("CURRENT_MOVE", to_string(values[CURRENT_MOVE], 0)))
-                    StepperDriveN[CURRENT_MOVE].value = values[CURRENT_MOVE];
+                    StepperDriveNP[CURRENT_MOVE].setValue(values[CURRENT_MOVE]);
                 else
-                    StepperDriveNP.s = IPS_ALERT;
+                    StepperDriveNP.setState(IPS_ALERT);
             }
 
-            if (StepperDriveN[CURRENT_HOLD].value != values[CURRENT_HOLD])
+            if (StepperDriveNP[CURRENT_HOLD].value != values[CURRENT_HOLD])
             {
                 if (setParameter("CURRENT_HOLD", to_string(values[CURRENT_HOLD], 0)))
-                    StepperDriveN[CURRENT_HOLD].value = values[CURRENT_HOLD];
+                    StepperDriveNP[CURRENT_HOLD].setValue(values[CURRENT_HOLD]);
                 else
-                    StepperDriveNP.s = IPS_ALERT;
+                    StepperDriveNP.setState(IPS_ALERT);
             }
 
-            IDSetNumber(&StepperDriveNP, nullptr);
+            StepperDriveNP.apply();
             return true;
         }
 
@@ -409,11 +407,11 @@ IPState SteelDriveII::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     uint32_t limit = std::stoul(m_Summary[LIMIT]);
 
     int direction = (dir == FOCUS_INWARD) ? -1 : 1;
-    int reversed = (FocusReverseS[INDI_ENABLED].s == ISS_ON) ? -1 : 1;
+    int reversed = (FocusReverseSP[INDI_ENABLED].getState() == ISS_ON) ? -1 : 1;
     int relative = static_cast<int>(ticks);
-    int targetAbsPosition = FocusAbsPosN[0].value + (relative * direction * reversed);
+    int targetAbsPosition = FocusAbsPosNP[0].getValue() + (relative * direction * reversed);
 
-    targetAbsPosition = std::min(limit, static_cast<uint32_t>(std::max(static_cast<int>(FocusAbsPosN[0].min), targetAbsPosition)));
+    targetAbsPosition = std::min(limit, static_cast<uint32_t>(std::max(static_cast<int>(FocusAbsPosNP[0].min), targetAbsPosition)));
 
     return MoveAbsFocuser(targetAbsPosition);
 }
@@ -431,70 +429,70 @@ void SteelDriveII::TimerHit()
     uint32_t summaryPosition = std::max(0, std::stoi(m_Summary[POSITION]));
 
     // Check if we're idle but the focuser is in motion
-    if (FocusAbsPosNP.s != IPS_BUSY && (m_State == GOING_UP || m_State == GOING_DOWN))
+    if (FocusAbsPosNP.getState() != IPS_BUSY && (m_State == GOING_UP || m_State == GOING_DOWN))
     {
-        IUResetSwitch(&FocusMotionSP);
-        FocusMotionS[FOCUS_INWARD].s = (m_State == GOING_DOWN) ? ISS_ON : ISS_OFF;
-        FocusMotionS[FOCUS_OUTWARD].s = (m_State == GOING_DOWN) ? ISS_OFF : ISS_ON;
-        FocusMotionSP.s = IPS_BUSY;
-        FocusAbsPosNP.s = IPS_BUSY;
-        FocusRelPosNP.s = IPS_BUSY;
-        FocusAbsPosN[0].value = summaryPosition;
+        FocusMotionSP.reset();
+        FocusMotionSP[FOCUS_INWARD].setState((m_State == GOING_DOWN) ? ISS_ON : ISS_OFF);
+        FocusMotionSP[FOCUS_OUTWARD].setState((m_State == GOING_DOWN) ? ISS_OFF : ISS_ON);
+        FocusMotionSP.setState(IPS_BUSY);
+        FocusAbsPosNP.setState(IPS_BUSY);
+        FocusRelPosNP.setState(IPS_BUSY);
+        FocusAbsPosNP[0].setValue(summaryPosition);
 
-        IDSetSwitch(&FocusMotionSP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusMotionSP.apply();
+        FocusRelPosNP.apply();
+        FocusAbsPosNP.apply();
     }
-    else if (FocusAbsPosNP.s == IPS_BUSY && (m_State == STOPPED || m_State == ZEROED))
+    else if (FocusAbsPosNP.getState() == IPS_BUSY && (m_State == STOPPED || m_State == ZEROED))
     {
-        if (OperationSP.s == IPS_BUSY)
+        if (OperationSP.getState() == IPS_BUSY)
         {
-            IUResetSwitch(&OperationSP);
+            OperationSP.reset();
             LOG_INFO("Homing is complete");
-            OperationSP.s = IPS_OK;
-            IDSetSwitch(&OperationSP, nullptr);
+            OperationSP.setState(IPS_OK);
+            OperationSP.apply();
         }
 
-        FocusAbsPosNP.s = IPS_OK;
-        FocusAbsPosN[0].value = summaryPosition;
-        if (FocusRelPosNP.s == IPS_BUSY)
+        FocusAbsPosNP.setState(IPS_OK);
+        FocusAbsPosNP[0].setValue(summaryPosition);
+        if (FocusRelPosNP.getState() == IPS_BUSY)
         {
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusRelPosNP.apply();
         }
-        if (FocusMotionSP.s == IPS_BUSY)
+        if (FocusMotionSP.getState() == IPS_BUSY)
         {
-            FocusMotionSP.s = IPS_IDLE;
-            IDSetSwitch(&FocusMotionSP, nullptr);
+            FocusMotionSP.setState(IPS_IDLE);
+            FocusMotionSP.apply();
         }
 
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
     }
-    else if (std::fabs(FocusAbsPosN[0].value - summaryPosition) > 0)
+    else if (std::fabs(FocusAbsPosNP[0].value - summaryPosition) > 0)
     {
-        FocusAbsPosN[0].value = summaryPosition;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(summaryPosition);
+        FocusAbsPosNP.apply();
     }
 
-    if (std::fabs(FocusMaxPosN[0].value - std::stoul(m_Summary[LIMIT])) > 0)
+    if (std::fabs(FocusMaxPosNP[0].value - std::stoul(m_Summary[LIMIT])) > 0)
     {
-        FocusMaxPosN[0].value = std::stoul(m_Summary[LIMIT]);
-        IDSetNumber(&FocusMaxPosNP, nullptr);
+        FocusMaxPosNP[0].setValue(std::stoul(m_Summary[LIMIT]));
+        FocusMaxPosNP.apply();
     }
 
     double temp0 = std::stod(m_Summary[TEMP0]);
     double temp1 = std::stod(m_Summary[TEMP1]);
     double tempa = std::stod(m_Summary[TEMPAVG]);
 
-    if (temp0 != TemperatureSensorN[TEMP_0].value ||
-            temp1 != TemperatureSensorN[TEMP_1].value ||
-            tempa != TemperatureSensorN[TEMP_AVG].value)
+    if (temp0 != TemperatureSensorNP[TEMP_0].value ||
+            temp1 != TemperatureSensorNP[TEMP_1].value ||
+            tempa != TemperatureSensorNP[TEMP_AVG].getValue())
     {
-        TemperatureSensorN[TEMP_0].value = temp0;
-        TemperatureSensorN[TEMP_1].value = temp1;
-        TemperatureSensorN[TEMP_AVG].value = tempa;
-        TemperatureSensorNP.s = IPS_OK;
-        IDSetNumber(&TemperatureSensorNP, nullptr);
+        TemperatureSensorNP[TEMP_0].setValue(temp0);
+        TemperatureSensorNP[TEMP_1].setValue(temp1);
+        TemperatureSensorNP[TEMP_AVG].setValue(tempa);
+        TemperatureSensorNP.setState(IPS_OK);
+        TemperatureSensorNP.apply();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -544,57 +542,57 @@ void SteelDriveII::getStartupValues()
     std::string value;
 
     if (getParameter("NAME", value))
-        IUSaveText(&InfoT[INFO_NAME], value.c_str());
+        InfoTP[INFO_NAME].setText(value);
 
     if (getParameter("VERSION", value))
-        IUSaveText(&InfoT[INFO_VERSION], value.c_str());
+        InfoTP[INFO_VERSION].setText(value);
 
     if (getParameter("TCOMP", value))
     {
-        TemperatureCompensationS[TC_ENABLED].s = (value == "1") ? ISS_ON : ISS_OFF;
-        TemperatureCompensationS[TC_DISABLED].s = (value == "1") ? ISS_OFF : ISS_ON;
+        TemperatureCompensationSP[TC_ENABLED].setState((value == "1") ? ISS_ON : ISS_OFF);
+        TemperatureCompensationSP[TC_DISABLED].setState((value == "1") ? ISS_OFF : ISS_ON);
     }
 
     if (getParameter("TCOMP_FACTOR", value))
     {
-        TemperatureSettingsN[TC_FACTOR].value = std::stod(value);
+        TemperatureSettingsNP[TC_FACTOR].setValue(std::stod(value));
     }
 
     if (getParameter("TCOMP_PERIOD", value))
     {
-        TemperatureSettingsN[TC_PERIOD].value = std::stod(value);
+        TemperatureSettingsNP[TC_PERIOD].setValue(std::stod(value));
     }
 
     if (getParameter("TCOMP_DELTA", value))
     {
-        TemperatureSettingsN[TC_DELTA].value = std::stod(value);
+        TemperatureSettingsNP[TC_DELTA].setValue(std::stod(value));
     }
 
     if (getParameter("TCOMP_PAUSE", value))
     {
-        TemperatureStateS[TC_ACTIVE].s = (value == "0") ? ISS_ON : ISS_OFF;
-        TemperatureStateS[TC_PAUSED].s = (value == "0") ? ISS_OFF : ISS_ON;
+        TemperatureStateSP[TC_ACTIVE].setState((value == "0") ? ISS_ON : ISS_OFF);
+        TemperatureStateSP[TC_PAUSED].setState((value == "0") ? ISS_OFF : ISS_ON);
     }
 
-    StepperDriveNP.s = IPS_OK;
+    StepperDriveNP.setState(IPS_OK);
     if (getParameter("CURRENT_MOVE", value))
-        StepperDriveN[CURRENT_MOVE].value = std::stod(value);
+        StepperDriveNP[CURRENT_MOVE].setValue(std::stod(value));
     else
-        StepperDriveNP.s = IPS_ALERT;
+        StepperDriveNP.setState(IPS_ALERT);
 
     if (getParameter("CURRENT_HOLD", value))
-        StepperDriveN[CURRENT_HOLD].value = std::stod(value);
+        StepperDriveNP[CURRENT_HOLD].setValue(std::stod(value));
     else
-        StepperDriveNP.s = IPS_ALERT;
+        StepperDriveNP.setState(IPS_ALERT);
 
     getSummary();
 
-    FocusMaxPosN[0].value = std::stoul(m_Summary[LIMIT]);
-    IDSetNumber(&FocusMaxPosNP, nullptr);
+    FocusMaxPosNP[0].setValue(std::stoul(m_Summary[LIMIT]));
+    FocusMaxPosNP.apply();
 
-    TemperatureSensorN[TEMP_0].value = std::stod(m_Summary[TEMP0]);
-    TemperatureSensorN[TEMP_1].value = std::stod(m_Summary[TEMP1]);
-    TemperatureSensorN[TEMP_AVG].value = std::stod(m_Summary[TEMPAVG]);
+    TemperatureSensorNP[TEMP_0].setValue(std::stod(m_Summary[TEMP0]));
+    TemperatureSensorNP[TEMP_1].setValue(std::stod(m_Summary[TEMP1]));
+    TemperatureSensorNP[TEMP_AVG].setValue(std::stod(m_Summary[TEMPAVG]));
 
 }
 

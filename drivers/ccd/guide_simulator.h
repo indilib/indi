@@ -21,6 +21,10 @@
 #include "indiccd.h"
 #include "indifilterinterface.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 /**
  * @brief The GuideSim class provides an advanced simulator for a CCD that includes a dedicated on-board guide chip.
  *
@@ -165,23 +169,14 @@ class GuideSim : public INDI::CCD
         bool terminateThread;
 
         //  And this lives in our simulator settings page
-
-        INumberVectorProperty SimulatorSettingsNP;
-        INumber SimulatorSettingsN[17];
-
-        ISwitchVectorProperty SimulateRgbSP;
-        ISwitch SimulateRgbS[2];
+        INDI::PropertyNumber SimulatorSettingsNP {17};
+        INDI::PropertySwitch SimulateRgbSP {2};
 
         //  We are going to snoop these from focuser
-        INumberVectorProperty FWHMNP;
-        INumber FWHMN[1];
+        INDI::PropertyNumber FWHMNP {1};
+        INDI::PropertyNumber EqPENP {2};
 
-        INumberVectorProperty EqPENP;
-        INumber EqPEN[2];
+        INDI::PropertySwitch CoolerSP {2};
 
-        ISwitch CoolerS[2];
-        ISwitchVectorProperty CoolerSP;
-
-        INumber GainN[1];
-        INumberVectorProperty GainNP;
+        INDI::PropertyNumber GainNP {1};
 };

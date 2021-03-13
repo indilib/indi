@@ -24,6 +24,9 @@
 
 #include <string>
 
+/* Smart Widget-Property */
+#include "indipropertyswitch.h"
+
 namespace Connection
 {
 /**
@@ -134,17 +137,14 @@ protected:
     ITextVectorProperty PortTP;
     IText PortT[1] {};
 
-    ISwitch BaudRateS[6];
-    ISwitchVectorProperty BaudRateSP;
+    INDI::PropertySwitch BaudRateSP {6};
 
-    ISwitch AutoSearchS[2];
-    ISwitchVectorProperty AutoSearchSP;
+    INDI::PropertySwitch AutoSearchSP {2};
 
     ISwitch *SystemPortS = nullptr;
     ISwitchVectorProperty SystemPortSP;
 
-    ISwitch RefreshS[1];
-    ISwitchVectorProperty RefreshSP;
+    INDI::PropertySwitch RefreshSP {1};
 
     int PortFD = -1;
 

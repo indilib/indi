@@ -51,13 +51,13 @@ bool LX200Autostar::initProperties()
     IUFillText(&VersionT[4], "Name", "", "");
     IUFillTextVector(&VersionTP, VersionT, 5, getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
 
-    //    IUFillNumber(&FocusSpeedN[0], "SPEED", "Speed", "%0.f", 0, 4.0, 1.0, 0);
-    //    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Speed", FOCUS_TAB, IP_RW, 0,
+    //    FocusSpeedNP[0].fill("SPEED", "Speed", "%0.f", 0, 4.0, 1.0, 0);
+    //    FocusSpeedNP.fill(getDeviceName(), "FOCUS_SPEED", "Speed", FOCUS_TAB, IP_RW, 0,
     //                       IPS_IDLE);
 
-    FocusSpeedN[0].min = 1;
-    FocusSpeedN[0].max = 4;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedNP[0].setMin(1);
+    FocusSpeedNP[0].setMax(4);
+    FocusSpeedNP[0].setValue(1);
 
     return true;
 }
@@ -73,11 +73,11 @@ bool LX200Autostar::initProperties()
 //    if (isConnected())
 //    {
 //        defineProperty(&VersionTP);
-//        defineProperty(&FocusSpeedNP);
+//        defineProperty(FocusSpeedNP);
 
 //        // For Autostar, we have a different focus speed method
 //        // Therefore, we don't need the classical one
-//        deleteProperty(FocusModeSP.name);
+//        deleteProperty(FocusModeSP.getName());
 //    }
 //    */
 //}
@@ -89,17 +89,17 @@ bool LX200Autostar::updateProperties()
     if (isConnected())
     {
         defineProperty(&VersionTP);
-        //defineProperty(&FocusSpeedNP);
+        //defineProperty(FocusSpeedNP);
 
         // For Autostar, we have a different focus speed method
         // Therefore, we don't need the classical one
-        //deleteProperty(FocusModeSP.name);
+        //deleteProperty(FocusModeSP.getName());
         return true;
     }
     else
     {
         deleteProperty(VersionTP.name);
-        //deleteProperty(FocusSpeedNP.name);
+        //deleteProperty(FocusSpeedNP.getName());
         return true;
     }
 }
@@ -109,15 +109,15 @@ bool LX200Autostar::updateProperties()
 //    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
 //    {
 //        // Focus speed
-//        if (!strcmp(name, FocusSpeedNP.name))
+//        if (FocusSpeedNP.isNameMatch(name))
 //        {
-//            if (IUUpdateNumber(&FocusSpeedNP, values, names, n) < 0)
+//            if (!FocusSpeedNP.update(values, names, n))
 //                return false;
 
 //            if (!isSimulation())
-//                setGPSFocuserSpeed(PortFD, ((int)FocusSpeedN[0].value));
-//            FocusSpeedNP.s = IPS_OK;
-//            IDSetNumber(&FocusSpeedNP, nullptr);
+//                setGPSFocuserSpeed(PortFD, ((int)FocusSpeedNP[0].getValue()));
+//            FocusSpeedNP.setState(IPS_OK);
+//            FocusSpeedNP.apply();
 //            return true;
 //        }
 //    }
@@ -132,53 +132,53 @@ bool LX200Autostar::updateProperties()
 //    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
 //    {
 //        // Focus Motion
-//        if (!strcmp(name, FocusMotionSP.name))
+//        if (FocusMotionSP.isNameMatch(name))
 //        {
 //            // If speed is "halt"
-//            if (FocusSpeedN[0].value == 0)
+//            if (FocusSpeedNP[0].value == 0)
 //            {
-//                FocusMotionSP.s = IPS_IDLE;
-//                IDSetSwitch(&FocusMotionSP, nullptr);
+//                FocusMotionSP.setState(IPS_IDLE);
+//                FocusMotionSP.apply();
 //                return false;
 //            }
 
-//            int last_motion = IUFindOnSwitchIndex(&FocusMotionSP);
+//            int last_motion = FocusMotionSP.findOnSwitchIndex();
 
-//            if (IUUpdateSwitch(&FocusMotionSP, states, names, n) < 0)
+//            if (!FocusMotionSP.update(states, names, n))
 //                return false;
 
-//            index = IUFindOnSwitchIndex(&FocusMotionSP);
+//            index = FocusMotionSP.findOnSwitchIndex();
 
 //            // If same direction and we're busy, stop
-//            if (last_motion == index && FocusMotionSP.s == IPS_BUSY)
+//            if (last_motion == index && FocusMotionSP.getState() == IPS_BUSY)
 //            {
-//                IUResetSwitch(&FocusMotionSP);
-//                FocusMotionSP.s = IPS_IDLE;
+//                FocusMotionSP.reset();
+//                FocusMotionSP.setState(IPS_IDLE);
 //                setFocuserSpeedMode(PortFD, 0);
-//                IDSetSwitch(&FocusMotionSP, nullptr);
+//                FocusMotionSP.apply();
 //                return true;
 //            }
 
 //            if (!isSimulation() && setFocuserMotion(PortFD, index) < 0)
 //            {
-//                FocusMotionSP.s = IPS_ALERT;
-//                IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
+//                FocusMotionSP.setState(IPS_ALERT);
+//                FocusMotionSP.apply("Error setting focuser speed.");
 //                return false;
 //            }
 
-//            FocusMotionSP.s = IPS_BUSY;
+//            FocusMotionSP.setState(IPS_BUSY);
 
 //            // with a timer
-//            if (FocusTimerNP.np[0].value > 0)
+//            if (FocusTimerNP[0].value > 0)
 //            {
-//                FocusTimerNP.s = IPS_BUSY;
+//                FocusTimerNP.setState(IPS_BUSY);
 //                if (isDebug())
 //                    IDLog("Starting Focus Timer BUSY\n");
 
 //                IEAddTimer(50, LX200Generic::updateFocusHelper, this);
 //            }
 
-//            IDSetSwitch(&FocusMotionSP, nullptr);
+//            FocusMotionSP.apply();
 //            return true;
 //        }
 //    }

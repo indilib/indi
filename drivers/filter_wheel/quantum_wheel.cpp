@@ -126,8 +126,8 @@ bool QFW::initProperties()
 
     serialConnection->setDefaultPort("/dev/ttyACM0");
 
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 7;
+    FilterSlotNP[0].setMin(1);
+    FilterSlotNP[0].setMax(7);
     CurrentFilter      = 1;
 
     return true;

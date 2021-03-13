@@ -109,12 +109,12 @@ bool IEQPro::initProperties()
     INDI::Telescope::initProperties();
 
     /* Firmware */
-    IUFillText(&FirmwareT[FW_MODEL], "Model", "", nullptr);
-    IUFillText(&FirmwareT[FW_BOARD], "Board", "", nullptr);
-    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "", nullptr);
-    IUFillText(&FirmwareT[FW_RA], "RA", "", nullptr);
-    IUFillText(&FirmwareT[FW_DEC], "DEC", "", nullptr);
-    IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
+    FirmwareTP[FW_MODEL].fill("Model", "", nullptr);
+    FirmwareTP[FW_BOARD].fill("Board", "", nullptr);
+    FirmwareTP[FW_CONTROLLER].fill("Controller", "", nullptr);
+    FirmwareTP[FW_RA].fill("RA", "", nullptr);
+    FirmwareTP[FW_DEC].fill("DEC", "", nullptr);
+    FirmwareTP.fill(getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
     /* Tracking Mode */
@@ -139,42 +139,42 @@ bool IEQPro::initProperties()
     SlewRateS[4].s = ISS_ON;
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
-    TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
-    TrackRateN[AXIS_RA].max = TRACKRATE_SIDEREAL + 0.01;
-    TrackRateN[AXIS_DE].min = -0.01;
-    TrackRateN[AXIS_DE].max = 0.01;
+    TrackRateNP[AXIS_RA].setMin(TRACKRATE_SIDEREAL - 0.01);
+    TrackRateNP[AXIS_RA].setMax(TRACKRATE_SIDEREAL + 0.01);
+    TrackRateNP[AXIS_DE].setMin(-0.01);
+    TrackRateNP[AXIS_DE].setMax(0.01);
 
     /* GPS Status */
-    IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
-    IUFillSwitch(&GPSStatusS[GPS_ON], "On", "", ISS_OFF);
-    IUFillSwitch(&GPSStatusS[GPS_DATA_OK], "Data OK", "", ISS_OFF);
-    IUFillSwitchVector(&GPSStatusSP, GPSStatusS, 3, getDeviceName(), "GPS_STATUS", "GPS", MOUNTINFO_TAB, IP_RO,
+    GPSStatusSP[GPS_OFF].fill("Off", "", ISS_ON);
+    GPSStatusSP[GPS_ON].fill("On", "", ISS_OFF);
+    GPSStatusSP[GPS_DATA_OK].fill("Data OK", "", ISS_OFF);
+    GPSStatusSP.fill(getDeviceName(), "GPS_STATUS", "GPS", MOUNTINFO_TAB, IP_RO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Time Source */
-    IUFillSwitch(&TimeSourceS[TS_RS232], "RS232", "", ISS_ON);
-    IUFillSwitch(&TimeSourceS[TS_CONTROLLER], "Controller", "", ISS_OFF);
-    IUFillSwitch(&TimeSourceS[TS_GPS], "GPS", "", ISS_OFF);
-    IUFillSwitchVector(&TimeSourceSP, TimeSourceS, 3, getDeviceName(), "TIME_SOURCE", "Time Source", MOUNTINFO_TAB,
+    TimeSourceSP[TS_RS232].fill("RS232", "", ISS_ON);
+    TimeSourceSP[TS_CONTROLLER].fill("Controller", "", ISS_OFF);
+    TimeSourceSP[TS_GPS].fill("GPS", "", ISS_OFF);
+    TimeSourceSP.fill(getDeviceName(), "TIME_SOURCE", "Time Source", MOUNTINFO_TAB,
                        IP_RO, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Hemisphere */
-    IUFillSwitch(&HemisphereS[HEMI_SOUTH], "South", "", ISS_OFF);
-    IUFillSwitch(&HemisphereS[HEMI_NORTH], "North", "", ISS_ON);
-    IUFillSwitchVector(&HemisphereSP, HemisphereS, 2, getDeviceName(), "HEMISPHERE", "Hemisphere", MOUNTINFO_TAB, IP_RO,
+    HemisphereSP[HEMI_SOUTH].fill("South", "", ISS_OFF);
+    HemisphereSP[HEMI_NORTH].fill("North", "", ISS_ON);
+    HemisphereSP.fill(getDeviceName(), "HEMISPHERE", "Hemisphere", MOUNTINFO_TAB, IP_RO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Home */
-    IUFillSwitch(&HomeS[IEQ_SET_HOME], "IEQ_SET_HOME", "Set current as Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IEQ_GOTO_HOME], "IEQ_GOTO_HOME", "Go to Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IEQ_FIND_HOME], "IEQ_FIND_HOME", "Find Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+    HomeSP[IEQ_SET_HOME].fill("IEQ_SET_HOME", "Set current as Home", ISS_OFF);
+    HomeSP[IEQ_GOTO_HOME].fill("IEQ_GOTO_HOME", "Go to Home", ISS_OFF);
+    HomeSP[IEQ_FIND_HOME].fill("IEQ_FIND_HOME", "Find Home", ISS_OFF);
+    HomeSP.fill(getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[RA_AXIS], "RA_GUIDE_RATE", "RA", "%.2f", 0.01, 0.9, 0.1, 0.5);
-    IUFillNumber(&GuideRateN[DEC_AXIS], "DE_GUIDE_RATE", "DE", "%.2f", 0.1, 0.99, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+    GuideRateNP[RA_AXIS].fill("RA_GUIDE_RATE", "RA", "%.2f", 0.01, 0.9, 0.1, 0.5);
+    GuideRateNP[DEC_AXIS].fill("DE_GUIDE_RATE", "DE", "%.2f", 0.1, 0.99, 0.1, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
@@ -214,38 +214,38 @@ bool IEQPro::updateProperties()
 
         // Remove find home if we do not support it.
         if (!canFindHome)
-            HomeSP.nsp = 2;
+            HomeSP.resize(2);
 
-        defineProperty(&HomeSP);
+        defineProperty(HomeSP);
 
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
 
         if (canGuideRate)
-            defineProperty(&GuideRateNP);
+            defineProperty(GuideRateNP);
 
-        defineProperty(&FirmwareTP);
-        defineProperty(&GPSStatusSP);
-        defineProperty(&TimeSourceSP);
-        defineProperty(&HemisphereSP);
+        defineProperty(FirmwareTP);
+        defineProperty(GPSStatusSP);
+        defineProperty(TimeSourceSP);
+        defineProperty(HemisphereSP);
     }
     else
     {
         INDI::Telescope::updateProperties();
 
-        HomeSP.nsp = 3;
-        deleteProperty(HomeSP.name);
+        HomeSP.resize(3);
+        deleteProperty(HomeSP.getName());
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
 
         if (canGuideRate)
-            deleteProperty(GuideRateNP.name);
+            deleteProperty(GuideRateNP.getName());
 
-        deleteProperty(FirmwareTP.name);
-        deleteProperty(GPSStatusSP.name);
-        deleteProperty(TimeSourceSP.name);
-        deleteProperty(HemisphereSP.name);
+        deleteProperty(FirmwareTP.getName());
+        deleteProperty(GPSStatusSP.getName());
+        deleteProperty(TimeSourceSP.getName());
+        deleteProperty(HemisphereSP.getName());
     }
 
     return true;
@@ -257,23 +257,23 @@ void IEQPro::getStartupData()
 
     firmwareInfo = driver->getFirmwareInfo();
 
-    IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
-    IUSaveText(&FirmwareT[1], firmwareInfo.MainBoardFirmware.c_str());
-    IUSaveText(&FirmwareT[2], firmwareInfo.ControllerFirmware.c_str());
-    IUSaveText(&FirmwareT[3], firmwareInfo.RAFirmware.c_str());
-    IUSaveText(&FirmwareT[4], firmwareInfo.DEFirmware.c_str());
+    FirmwareTP[0].setText(firmwareInfo.Model);
+    FirmwareTP[1].setText(firmwareInfo.MainBoardFirmware);
+    FirmwareTP[2].setText(firmwareInfo.ControllerFirmware);
+    FirmwareTP[3].setText(firmwareInfo.RAFirmware);
+    FirmwareTP[4].setText(firmwareInfo.DEFirmware);
 
-    FirmwareTP.s = IPS_OK;
-    IDSetText(&FirmwareTP, nullptr);
+    FirmwareTP.setState(IPS_OK);
+    FirmwareTP.apply();
 
 
     LOG_DEBUG("Getting guiding rate...");
     double raGuideRate = 0, deGuideRate = 0;
     if (driver->getGuideRate(&raGuideRate, &deGuideRate))
     {
-        GuideRateN[RA_AXIS].value = raGuideRate;
-        GuideRateN[DEC_AXIS].value = deGuideRate;
-        IDSetNumber(&GuideRateNP, nullptr);
+        GuideRateNP[RA_AXIS].setValue(raGuideRate);
+        GuideRateNP[DEC_AXIS].setValue(deGuideRate);
+        GuideRateNP.apply();
     }
 
     double utc_offset;
@@ -286,13 +286,13 @@ void IEQPro::getStartupData()
         snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", yy, mm, dd, hh, minute, ss);
         snprintf(utcOffset, 8, "%4.2f", utc_offset);
 
-        IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
-        IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
+        IUSaveText(TimeTP.findWidgetByName("UTC"), isoDateTime);
+        IUSaveText(TimeTP.findWidgetByName("OFFSET"), utcOffset);
 
         LOGF_INFO("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
     }
 
     // Get Longitude and Latitude from mount
@@ -308,37 +308,37 @@ void IEQPro::getStartupData()
 
         LOGF_INFO("Mount Longitude %g Latitude %g", longitude, latitude);
 
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
 
         saveConfig(true, "GEOGRAPHIC_COORD");
     }
     else if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude) == 0 &&
              IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude) == 0)
     {
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationNP.s                        = IPS_OK;
+        LocationNP[LOCATION_LATITUDE].setValue(latitude);
+        LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+        LocationNP.setState(IPS_OK);
 
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP.apply();
     }
 
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].value);
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1Park(LocationNP[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2Park(LocationNP[LOCATION_LATITUDE].value);
+        SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].value);
     }
 
     // can we read pier side?
@@ -365,16 +365,16 @@ bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], cha
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Guiding Rate
-        if (!strcmp(name, GuideRateNP.name))
+        if (GuideRateNP.isNameMatch(name))
         {
-            IUUpdateNumber(&GuideRateNP, values, names, n);
+            GuideRateNP.update(values, names, n);
 
-            if (driver->setGuideRate(GuideRateN[RA_AXIS].value, GuideRateN[DEC_AXIS].value))
-                GuideRateNP.s = IPS_OK;
+            if (driver->setGuideRate(GuideRateNP[RA_AXIS].value, GuideRateNP[DEC_AXIS].getValue()))
+                GuideRateNP.setState(IPS_OK);
             else
-                GuideRateNP.s = IPS_ALERT;
+                GuideRateNP.setState(IPS_ALERT);
 
-            IDSetNumber(&GuideRateNP, nullptr);
+            GuideRateNP.apply();
 
             return true;
         }
@@ -393,26 +393,26 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 {
     if (!strcmp(getDeviceName(), dev))
     {
-        if (!strcmp(name, HomeSP.name))
+        if (HomeSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&HomeSP, states, names, n);
+            HomeSP.update(states, names, n);
 
-            HomeOperation operation = static_cast<HomeOperation>(IUFindOnSwitchIndex(&HomeSP));
+            HomeOperation operation = static_cast<HomeOperation>(HomeSP.findOnSwitchIndex());
 
-            IUResetSwitch(&HomeSP);
+            HomeSP.reset();
 
             switch (operation)
             {
                 case IEQ_SET_HOME:
                     if (driver->setCurrentHome() == false)
                     {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
+                        HomeSP.setState(IPS_ALERT);
+                        HomeSP.apply();
                         return false;
                     }
 
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
                     LOG_INFO("Home position set to current coordinates.");
                     return true;
 
@@ -425,26 +425,26 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
                     if (driver->gotoHome() == false)
                     {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
+                        HomeSP.setState(IPS_ALERT);
+                        HomeSP.apply();
                         return false;
                     }
 
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
                     LOG_INFO("Slewing to home position...");
                     return true;
 
                 case IEQ_FIND_HOME:
                     if (driver->findHome() == false)
                     {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
+                        HomeSP.setState(IPS_ALERT);
+                        HomeSP.apply();
                         return false;
                     }
 
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
+                    HomeSP.setState(IPS_OK);
+                    HomeSP.apply();
                     LOG_INFO("Searching for home position...");
                     return true;
             }
@@ -467,17 +467,17 @@ bool IEQPro::ReadScopeStatus()
 
     if (rc)
     {
-        IUResetSwitch(&GPSStatusSP);
-        GPSStatusS[newInfo.gpsStatus].s = ISS_ON;
-        IDSetSwitch(&GPSStatusSP, nullptr);
+        GPSStatusSP.reset();
+        GPSStatusSP[newInfo.gpsStatus].setState(ISS_ON);
+        GPSStatusSP.apply();
 
-        IUResetSwitch(&TimeSourceSP);
-        TimeSourceS[newInfo.timeSource].s = ISS_ON;
-        IDSetSwitch(&TimeSourceSP, nullptr);
+        TimeSourceSP.reset();
+        TimeSourceSP[newInfo.timeSource].setState(ISS_ON);
+        TimeSourceSP.apply();
 
-        IUResetSwitch(&HemisphereSP);
-        HemisphereS[newInfo.hemisphere].s = ISS_ON;
-        IDSetSwitch(&HemisphereSP, nullptr);
+        HemisphereSP.reset();
+        HemisphereSP[newInfo.hemisphere].setState(ISS_ON);
+        HemisphereSP.apply();
 
         /*
         TelescopeTrackMode trackMode = TRACK_SIDEREAL;
@@ -652,7 +652,7 @@ bool IEQPro::Sync(double ra, double dec)
         LOG_ERROR("Failed to sync.");
     }
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     currentRA  = ra;
     currentDEC = dec;
@@ -723,8 +723,8 @@ bool IEQPro::Park()
 
     // Otherwise fallback to Alt/Az --> RA/DE parking
     ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    observer.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    observer.lng = LocationNP[LOCATION_LONGITUDE].getValue();
     if (observer.lng > 180)
         observer.lng -= 360;
 
@@ -984,15 +984,15 @@ bool IEQPro::saveConfigItems(FILE *fp)
 //    switch (TrackState)
 //    {
 //        case SCOPE_IDLE:
-//            currentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+//            currentRA += (TrackRateNP[AXIS_RA].value / 3600.0 * dt) / 15.0;
 //            currentRA = range24(currentRA);
 //            break;
 
 //        case SCOPE_TRACKING:
 //            if (TrackModeS[1].s == ISS_ON)
 //            {
-//                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateN[AXIS_RA].value / 3600.0)) * dt) / 15.0;
-//                currentDEC += ( (TrackRateN[AXIS_DE].value / 3600.0) * dt);
+//                currentRA  += ( ((TRACKRATE_SIDEREAL / 3600.0) - (TrackRateNP[AXIS_RA].value / 3600.0)) * dt) / 15.0;
+//                currentDEC += ( (TrackRateNP[AXIS_DE].value / 3600.0) * dt);
 //            }
 //            break;
 
@@ -1057,8 +1057,8 @@ bool IEQPro::SetCurrentPark()
     // Libnova south = 0, west = 90, north = 180, east = 270
 
     ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    observer.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    observer.lng = LocationNP[LOCATION_LONGITUDE].getValue();
     if (observer.lng > 180)
         observer.lng -= 360;
 
@@ -1088,7 +1088,7 @@ bool IEQPro::SetDefaultPark()
     SetAxis1Park(0);
 
     // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].value);
 
     return true;
 }
@@ -1130,7 +1130,7 @@ bool IEQPro::SetTrackEnabled(bool enabled)
         // NOTE: Is this the correct order? or should tracking be switched on first before making these changes? Need to test.
         SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
         if (TrackModeS[TR_CUSTOM].s == ISS_ON)
-            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+            SetTrackRate(TrackRateNP[AXIS_RA].value, TrackRateNP[AXIS_DE].getValue());
     }
 
     return driver->setTrackEnabled(enabled);

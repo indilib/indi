@@ -38,6 +38,11 @@
 #include <thread>
 #include <stream/streammanager.h>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
 
@@ -121,7 +126,7 @@ class SensorInterface : public DefaultDevice
          */
         inline double getIntegrationLeft()
         {
-            return FramedIntegrationN[0].value;
+            return FramedIntegrationNP[0].getValue();
         }
 
         /**
@@ -249,7 +254,7 @@ class SensorInterface : public DefaultDevice
          */
         inline bool isCapturing()
         {
-            return (FramedIntegrationNP.s == IPS_BUSY);
+            return (FramedIntegrationNP.getState() == IPS_BUSY);
         }
 
         /**
@@ -416,47 +421,35 @@ protected:
         virtual bool AbortIntegration();
 
         uint32_t capability;
-
-        INumberVectorProperty FramedIntegrationNP;
-        INumber FramedIntegrationN[1];
-
-        ISwitchVectorProperty AbortIntegrationSP;
-        ISwitch AbortIntegrationS[1];
+        INDI::PropertyNumber FramedIntegrationNP {1};
+        INDI::PropertySwitch AbortIntegrationSP {1};
 
         IBLOB FitsB;
         IBLOBVectorProperty FitsBP;
+        INDI::PropertyText ActiveDeviceTP {4};
 
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[4] {};
-
-        IText FileNameT[1] {};
-        ITextVectorProperty FileNameTP;
+        INDI::PropertyText FileNameTP {1};
         enum
         {
             TELESCOPE_PRIMARY
         };
 
-        ISwitch DatasetS[1];
-        ISwitchVectorProperty DatasetSP;
+        INDI::PropertySwitch DatasetSP {1};
 
 
-        ISwitch UploadS[3];
-        ISwitchVectorProperty UploadSP;
+        INDI::PropertySwitch UploadSP {3};
 
-        IText UploadSettingsT[2] {};
-        ITextVectorProperty UploadSettingsTP;
+        INDI::PropertyText UploadSettingsTP {2};
         enum
         {
             UPLOAD_DIR,
             UPLOAD_PREFIX
         };
 
-        ISwitch TelescopeTypeS[2];
-        ISwitchVectorProperty TelescopeTypeSP;
+        INDI::PropertySwitch TelescopeTypeSP {2};
 
         // FITS Header
-        IText FITSHeaderT[2] {};
-        ITextVectorProperty FITSHeaderTP;
+        INDI::PropertyText FITSHeaderTP {2};
         enum
         {
             FITS_OBSERVER,
@@ -471,17 +464,11 @@ protected:
         virtual bool saveConfigItems(FILE *fp);
 
         bool InIntegration;
-
-        INumberVectorProperty EqNP;
-        INumber EqN[2];
+        INDI::PropertyNumber EqNP {2};
         double RA, Dec;
-
-        INumberVectorProperty LocationNP;
-        INumber LocationN[3];
+        INDI::PropertyNumber LocationNP {3};
         double Lat, Lon, El;
-
-        INumberVectorProperty ScopeParametersNP;
-        INumber ScopeParametersN[4];
+        INDI::PropertyNumber ScopeParametersNP {4};
         double primaryAperture, primaryFocalLength;
 
         bool AutoLoop;
@@ -499,8 +486,7 @@ protected:
          */
         virtual void activeDevicesUpdated() {}
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
         // Threading
         std::mutex detectorBufferLock;

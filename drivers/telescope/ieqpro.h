@@ -26,6 +26,11 @@
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
@@ -94,8 +99,7 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
         void getStartupData();
 
         /* Firmware */
-        IText FirmwareT[5] {};
-        ITextVectorProperty FirmwareTP;
+        INDI::PropertyText FirmwareTP {5};
 
         /* Tracking Mode */
         //ISwitchVectorProperty TrackModeSP;
@@ -106,24 +110,19 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
         //INumberVectorProperty CustomTrackRateNP;
 
         /* GPS Status */
-        ISwitch GPSStatusS[3];
-        ISwitchVectorProperty GPSStatusSP;
+        INDI::PropertySwitch GPSStatusSP {3};
 
         /* Time Source */
-        ISwitch TimeSourceS[3];
-        ISwitchVectorProperty TimeSourceSP;
+        INDI::PropertySwitch TimeSourceSP {3};
 
         /* Hemisphere */
-        ISwitch HemisphereS[2];
-        ISwitchVectorProperty HemisphereSP;
+        INDI::PropertySwitch HemisphereSP {2};
 
         /* Home Control */
-        ISwitch HomeS[3];
-        ISwitchVectorProperty HomeSP;
+        INDI::PropertySwitch HomeSP {3};
 
         /* Guide Rate */
-        INumber GuideRateN[2];
-        INumberVectorProperty GuideRateNP;
+        INDI::PropertyNumber GuideRateNP {2};
 
         unsigned int DBG_SCOPE;
         double currentRA = 0, currentDEC = 0;

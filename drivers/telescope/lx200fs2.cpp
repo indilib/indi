@@ -38,14 +38,14 @@ bool LX200FS2::initProperties()
 {
     LX200Generic::initProperties();
 
-    IUFillNumber(&SlewAccuracyN[0], "SlewRA", "RA (arcmin)", "%10.6m", 0., 60., 1., 3.0);
-    IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
-    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "",
+    SlewAccuracyNP[0].fill("SlewRA", "RA (arcmin)", "%10.6m", 0., 60., 1., 3.0);
+    SlewAccuracyNP[1].fill("SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
+    SlewAccuracyNP.fill(getDeviceName(), "Slew Accuracy", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-    IUFillSwitchVector(&StopAfterParkSP, StopAfterParkS, 2, getDeviceName(), "Stop after Park", "Stop after Park", OPTIONS_TAB,
+    StopAfterParkSP.fill(getDeviceName(), "Stop after Park", "Stop after Park", OPTIONS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    IUFillSwitch(&StopAfterParkS[0], "ON", "ON", ISS_OFF);
-    IUFillSwitch(&StopAfterParkS[1], "OFF", "OFF", ISS_ON);
+    StopAfterParkSP[0].fill("ON", "ON", ISS_OFF);
+    StopAfterParkSP[1].fill("OFF", "OFF", ISS_ON);
 
     SetParkDataType(PARK_AZ_ALT);
 
@@ -59,14 +59,14 @@ bool LX200FS2::updateProperties()
     if (isConnected())
     {
         defineProperty(&SlewRateSP);
-        defineProperty(&SlewAccuracyNP);
-        defineProperty(&StopAfterParkSP);
+        defineProperty(SlewAccuracyNP);
+        defineProperty(StopAfterParkSP);
 
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].value);
 
             if (isParked())
             {
@@ -79,16 +79,16 @@ bool LX200FS2::updateProperties()
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
             SetAxis1Park(0);
-            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2Park(LocationNP[LOCATION_LATITUDE].value);
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].value);
         }
     }
     else
     {
         deleteProperty(SlewRateSP.name);
-        deleteProperty(SlewAccuracyNP.name);
-        deleteProperty(StopAfterParkSP.name);
+        deleteProperty(SlewAccuracyNP.getName());
+        deleteProperty(StopAfterParkSP.getName());
     }
 
     return true;
@@ -98,17 +98,17 @@ bool LX200FS2::ISNewNumber(const char *dev, const char *name, double values[], c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, SlewAccuracyNP.name))
+        if (SlewAccuracyNP.isNameMatch(name))
         {
-            if (IUUpdateNumber(&SlewAccuracyNP, values, names, n) < 0)
+            if (!SlewAccuracyNP.update(values, names, n))
                 return false;
 
-            SlewAccuracyNP.s = IPS_OK;
+            SlewAccuracyNP.setState(IPS_OK);
 
-            if (SlewAccuracyN[0].value < 3 || SlewAccuracyN[1].value < 3)
-                IDSetNumber(&SlewAccuracyNP, "Warning: Setting the slew accuracy too low may result in a dead lock");
+            if (SlewAccuracyNP[0].value < 3 || SlewAccuracyNP[1].getValue() < 3)
+                SlewAccuracyNP.apply("Warning: Setting the slew accuracy too low may result in a dead lock");
 
-            IDSetNumber(&SlewAccuracyNP, nullptr);
+            SlewAccuracyNP.apply();
             return true;
         }
     }
@@ -120,26 +120,26 @@ bool LX200FS2::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, StopAfterParkSP.name))
+        if (StopAfterParkSP.isNameMatch(name))
         {
             // Find out which state is requested by the client
             const char *actionName = IUFindOnSwitchName(states, names, n);
             // If switch is the same state as actionName, then we do nothing.
-            int currentIndex = IUFindOnSwitchIndex(&StopAfterParkSP);
-            if (!strcmp(actionName, StopAfterParkS[currentIndex].name))
+            int currentIndex = StopAfterParkSP.findOnSwitchIndex();
+            if (!strcmp(actionName, StopAfterParkSP[currentIndex].getName()))
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Stop After Park is already %s", StopAfterParkS[currentIndex].label);
-                StopAfterParkSP.s = IPS_IDLE;
-                IDSetSwitch(&StopAfterParkSP, NULL);
+                DEBUGF(INDI::Logger::DBG_SESSION, "Stop After Park is already %s", StopAfterParkSP[currentIndex].label);
+                StopAfterParkSP.setState(IPS_IDLE);
+                StopAfterParkSP.apply(NULL);
                 return true;
             }
 
             // Otherwise, let us update the switch state
-            IUUpdateSwitch(&StopAfterParkSP, states, names, n);
-            currentIndex = IUFindOnSwitchIndex(&StopAfterParkSP);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Stop After Park is now %s", StopAfterParkS[currentIndex].label);
-            StopAfterParkSP.s = IPS_OK;
-            IDSetSwitch(&StopAfterParkSP, NULL);
+            StopAfterParkSP.update(states, names, n);
+            currentIndex = StopAfterParkSP.findOnSwitchIndex();
+            DEBUGF(INDI::Logger::DBG_SESSION, "Stop After Park is now %s", StopAfterParkSP[currentIndex].label);
+            StopAfterParkSP.setState(IPS_OK);
+            StopAfterParkSP.apply(NULL);
             return true;
         }
     }
@@ -156,7 +156,7 @@ bool LX200FS2::isSlewComplete()
 {
     const double dx = targetRA - currentRA;
     const double dy = targetDEC - currentDEC;
-    return fabs(dx) <= (SlewAccuracyN[0].value / (900.0)) && fabs(dy) <= (SlewAccuracyN[1].value / 60.0);
+    return fabs(dx) <= (SlewAccuracyNP[0].value / (900.0)) && fabs(dy) <= (SlewAccuracyNP[1].value / 60.0);
 }
 
 bool LX200FS2::checkConnection()
@@ -168,8 +168,8 @@ bool LX200FS2::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &SlewAccuracyNP);
-    IUSaveConfigSwitch(fp, &StopAfterParkSP);
+    SlewAccuracyNP.save(fp);
+    StopAfterParkSP.save(fp);
 
     return true;
 }
@@ -190,8 +190,8 @@ bool LX200FS2::Park()
 
     ln_lnlat_posn observer;
 
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    observer.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    observer.lng = LocationNP[LOCATION_LONGITUDE].getValue();
 
     if (observer.lng > 180)
         observer.lng -= 360;
@@ -267,7 +267,7 @@ bool LX200FS2::ReadScopeStatus()
 
     // For FS-2 v1.21 owners, stop tracking once Parked.
     if (retval &&
-            StopAfterParkS[0].s == ISS_ON &&
+            StopAfterParkSP[0].getState() == ISS_ON &&
             isConnected() &&
             !isSimulation())
     {
@@ -336,8 +336,8 @@ bool LX200FS2::UnPark()
 
     ln_lnlat_posn observer;
 
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    observer.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    observer.lng = LocationNP[LOCATION_LONGITUDE].getValue();
 
     if (observer.lng > 180)
         observer.lng -= 360;
@@ -354,7 +354,7 @@ bool LX200FS2::UnPark()
     if (Sync(equatorialPos.ra / 15.0, equatorialPos.dec))
     {
         SetParked(false);
-        if (StopAfterParkS[0].s == ISS_ON)
+        if (StopAfterParkSP[0].getState() == ISS_ON)
         {
             TrackingStart();
         }
@@ -370,8 +370,8 @@ bool LX200FS2::SetCurrentPark()
     // Libnova south = 0, west = 90, north = 180, east = 270
 
     ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    observer.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    observer.lng = LocationNP[LOCATION_LONGITUDE].getValue();
     if (observer.lng > 180)
         observer.lng -= 360;
 
@@ -401,7 +401,7 @@ bool LX200FS2::SetDefaultPark()
     SetAxis1Park(0);
 
     // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].value);
 
     return true;
 }

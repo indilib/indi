@@ -123,30 +123,30 @@ bool ioptronHC8406::initProperties()
     LX200Generic::initProperties();
 
     // Sync Type
-    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], "USE_REGULAR_SYNC", ":CM#", ISS_ON);
-    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], "USE_CMR_SYNC", ":CMR#", ISS_OFF);
-    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNC_MODE", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+    SyncCMRSP[USE_REGULAR_SYNC].fill("USE_REGULAR_SYNC", ":CM#", ISS_ON);
+    SyncCMRSP[USE_CMR_SYNC].fill("USE_CMR_SYNC", ":CMR#", ISS_OFF);
+    SyncCMRSP.fill(getDeviceName(), "SYNC_MODE", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Cursor move Guiding/Center
-    IUFillSwitch(&CursorMoveSpeedS[USE_GUIDE_SPEED], "USE_GUIDE_SPEED", "Guide Speed", ISS_ON);
-    IUFillSwitch(&CursorMoveSpeedS[USE_CENTERING_SPEED], "USE_CENTERING_SPEED", "Centering Speed", ISS_OFF);
-    IUFillSwitchVector(&CursorMoveSpeedSP, CursorMoveSpeedS, 2, getDeviceName(),
+    CursorMoveSpeedSP[USE_GUIDE_SPEED].fill("USE_GUIDE_SPEED", "Guide Speed", ISS_ON);
+    CursorMoveSpeedSP[USE_CENTERING_SPEED].fill("USE_CENTERING_SPEED", "Centering Speed", ISS_OFF);
+    CursorMoveSpeedSP.fill(getDeviceName(),
                        "CURSOR_MOVE_MODE", "Cursor Move Speed", MOTION_TAB, IP_RO, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Guide Rate
-    IUFillSwitch(&GuideRateS[0], "0.25x", "", ISS_OFF);
-    IUFillSwitch(&GuideRateS[1], "0.50x", "", ISS_ON);
-    IUFillSwitch(&GuideRateS[2], "1.0x", "", ISS_OFF);
-    IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(),
+    GuideRateSP[0].fill("0.25x", "", ISS_OFF);
+    GuideRateSP[1].fill("0.50x", "", ISS_ON);
+    GuideRateSP[2].fill("1.0x", "", ISS_OFF);
+    GuideRateSP.fill(getDeviceName(),
                        "GUIDE_RATE", "Guide Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Center Rate
-    IUFillSwitch(&CenterRateS[0], "12x", "", ISS_OFF);
-    IUFillSwitch(&CenterRateS[1], "64x", "", ISS_ON);
-    IUFillSwitch(&CenterRateS[2], "600x", "", ISS_OFF);
-    IUFillSwitch(&CenterRateS[3], "1200x", "", ISS_OFF);
-    IUFillSwitchVector(&CenterRateSP, CenterRateS, 4, getDeviceName(),
+    CenterRateSP[0].fill("12x", "", ISS_OFF);
+    CenterRateSP[1].fill("64x", "", ISS_ON);
+    CenterRateSP[2].fill("600x", "", ISS_OFF);
+    CenterRateSP[3].fill("1200x", "", ISS_OFF);
+    CenterRateSP.fill(getDeviceName(),
                        "CENTER_RATE", "Center Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     TrackModeSP.nsp = 3;
@@ -160,18 +160,18 @@ bool ioptronHC8406::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&SyncCMRSP);
-        defineProperty(&GuideRateSP);
-        defineProperty(&CenterRateSP);
-        defineProperty(&CursorMoveSpeedSP);
+        defineProperty(SyncCMRSP);
+        defineProperty(GuideRateSP);
+        defineProperty(CenterRateSP);
+        defineProperty(CursorMoveSpeedSP);
         ioptronHC8406Init();
     }
     else
     {
-        deleteProperty(SyncCMRSP.name);
-        deleteProperty(GuideRateSP.name);
-        deleteProperty(CenterRateSP.name);
-        deleteProperty(CursorMoveSpeedSP.name);
+        deleteProperty(SyncCMRSP.getName());
+        deleteProperty(GuideRateSP.getName());
+        deleteProperty(CenterRateSP.getName());
+        deleteProperty(CursorMoveSpeedSP.getName());
     }
 
     return true;
@@ -237,79 +237,79 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
     {
 
         // Sync type
-        if (!strcmp(name, SyncCMRSP.name))
+        if (SyncCMRSP.isNameMatch(name))
         {
-            IUResetSwitch(&SyncCMRSP);
-            IUUpdateSwitch(&SyncCMRSP, states, names, n);
-            IUFindOnSwitchIndex(&SyncCMRSP);
-            SyncCMRSP.s = IPS_OK;
-            IDSetSwitch(&SyncCMRSP, nullptr);
+            SyncCMRSP.reset();
+            SyncCMRSP.update(states, names, n);
+            SyncCMRSP.findOnSwitchIndex();
+            SyncCMRSP.setState(IPS_OK);
+            SyncCMRSP.apply();
             return true;
         }
 
         // Cursor move type
-        if (!strcmp(name, CursorMoveSpeedSP.name))
+        if (CursorMoveSpeedSP.isNameMatch(name))
         {
-            int currentSwitch = IUFindOnSwitchIndex(&CursorMoveSpeedSP);
-            IUUpdateSwitch(&CursorMoveSpeedSP, states, names, n);
-            if (setioptronHC8406CursorMoveSpeed(IUFindOnSwitchIndex(&CursorMoveSpeedSP)) == TTY_OK)
-                CursorMoveSpeedSP.s = IPS_OK;
+            int currentSwitch = CursorMoveSpeedSP.findOnSwitchIndex();
+            CursorMoveSpeedSP.update(states, names, n);
+            if (setioptronHC8406CursorMoveSpeed(CursorMoveSpeedSP.findOnSwitchIndex()) == TTY_OK)
+                CursorMoveSpeedSP.setState(IPS_OK);
             else
             {
-                IUResetSwitch(&CursorMoveSpeedSP);
-                CursorMoveSpeedS[currentSwitch].s = ISS_ON;
-                CursorMoveSpeedSP.s = IPS_ALERT;
+                CursorMoveSpeedSP.reset();
+                CursorMoveSpeedSP[currentSwitch].setState(ISS_ON);
+                CursorMoveSpeedSP.setState(IPS_ALERT);
             }
             return true;
         }
 
         // Guide Rate
-        if (!strcmp(GuideRateSP.name, name))
+        if (GuideRateSP.isNameMatch(name))
         {
-            int currentSwitch = IUFindOnSwitchIndex(&GuideRateSP);
-            IUUpdateSwitch(&GuideRateSP, states, names, n);
-            if (setioptronHC8406GuideRate(IUFindOnSwitchIndex(&GuideRateSP)) == TTY_OK)
+            int currentSwitch = GuideRateSP.findOnSwitchIndex();
+            GuideRateSP.update(states, names, n);
+            if (setioptronHC8406GuideRate(GuideRateSP.findOnSwitchIndex()) == TTY_OK)
             {
-                GuideRateSP.s = IPS_OK;
+                GuideRateSP.setState(IPS_OK);
                 //Shows guide speed selected
-                CursorMoveSpeedS[USE_GUIDE_SPEED].s = ISS_ON;
-                CursorMoveSpeedS[USE_CENTERING_SPEED].s = ISS_OFF;
-                CursorMoveSpeedSP.s = IPS_OK;
-                IDSetSwitch(&CursorMoveSpeedSP, nullptr);
+                CursorMoveSpeedSP[USE_GUIDE_SPEED].setState(ISS_ON);
+                CursorMoveSpeedSP[USE_CENTERING_SPEED].setState(ISS_OFF);
+                CursorMoveSpeedSP.setState(IPS_OK);
+                CursorMoveSpeedSP.apply();
             }
             else
             {
-                IUResetSwitch(&GuideRateSP);
-                GuideRateS[currentSwitch].s = ISS_ON;
-                GuideRateSP.s = IPS_ALERT;
+                GuideRateSP.reset();
+                GuideRateSP[currentSwitch].setState(ISS_ON);
+                GuideRateSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&GuideRateSP, nullptr);
+            GuideRateSP.apply();
             return true;
         }
 
         // Center Rate
-        if (!strcmp(CenterRateSP.name, name))
+        if (CenterRateSP.isNameMatch(name))
         {
-            int currentSwitch = IUFindOnSwitchIndex(&CenterRateSP);
-            IUUpdateSwitch(&CenterRateSP, states, names, n);
-            if (setioptronHC8406CenterRate(IUFindOnSwitchIndex(&CenterRateSP)) == TTY_OK)
+            int currentSwitch = CenterRateSP.findOnSwitchIndex();
+            CenterRateSP.update(states, names, n);
+            if (setioptronHC8406CenterRate(CenterRateSP.findOnSwitchIndex()) == TTY_OK)
             {
-                CenterRateSP.s = IPS_OK;
+                CenterRateSP.setState(IPS_OK);
                 //Shows centering speed selected
-                CursorMoveSpeedS[USE_GUIDE_SPEED].s = ISS_OFF;
-                CursorMoveSpeedS[USE_CENTERING_SPEED].s = ISS_ON;
-                CursorMoveSpeedSP.s = IPS_OK;
-                IDSetSwitch(&CursorMoveSpeedSP, nullptr);
+                CursorMoveSpeedSP[USE_GUIDE_SPEED].setState(ISS_OFF);
+                CursorMoveSpeedSP[USE_CENTERING_SPEED].setState(ISS_ON);
+                CursorMoveSpeedSP.setState(IPS_OK);
+                CursorMoveSpeedSP.apply();
             }
             else
             {
-                IUResetSwitch(&CenterRateSP);
-                CenterRateS[currentSwitch].s = ISS_ON;
-                CenterRateSP.s = IPS_ALERT;
+                CenterRateSP.reset();
+                CenterRateSP[currentSwitch].setState(ISS_ON);
+                CenterRateSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&CenterRateSP, nullptr);
+            CenterRateSP.apply();
             return true;
         }
 
@@ -380,29 +380,29 @@ bool ioptronHC8406::Goto(double r, double d)
     LOGF_DEBUG("<GOTO RA/DEC> %s/%s", RAStr, DecStr);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            AbortSP.apply("Abort slew failed.");
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        AbortSP.apply("Slew aborted.");
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
 
         // sleep for 100 mseconds
@@ -413,15 +413,15 @@ bool ioptronHC8406::Goto(double r, double d)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error setting RA/DEC.");
             return false;
         }
 
         if (slewioptronHC8406() == 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(1);
             return false;
         }
@@ -435,14 +435,14 @@ bool ioptronHC8406::Goto(double r, double d)
 bool ioptronHC8406::Sync(double ra, double dec)
 {
     char syncString[256];
-    int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
+    int syncType = SyncCMRSP.findOnSwitchIndex();
 
     if (!isSimulation())
     {
         if (setObjectRA(PortFD, ra) < 0 || setObjectDEC(PortFD, dec) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error setting RA/DEC. Unable to Sync.");
             return false;
         }
 
@@ -466,8 +466,8 @@ bool ioptronHC8406::Sync(double ra, double dec)
 
         if (syncOK == false)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Synchronization failed.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Synchronization failed.");
             return false;
         }
 
@@ -873,7 +873,7 @@ bool ioptronHC8406::ReadScopeStatus()
         if (isSlewComplete())
         {
             nanosleep(&timeout, nullptr); //Wait until :MS# finish
-            if (IUFindSwitch(&CoordSP, "SYNC")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)
+            if (CoordSP.findWidgetByName("SYNC")->s == ISS_ON || CoordSP.findWidgetByName("SLEW")->s == ISS_ON)
             {
                 TrackState = SCOPE_IDLE;
                 LOG_WARN("Slew is complete. IDLE");
@@ -899,8 +899,8 @@ bool ioptronHC8406::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Error reading RA/DEC.");
         return false;
     }
 
@@ -1113,7 +1113,7 @@ bool ioptronHC8406::saveConfigItems(FILE *fp)
 {
     LX200Generic::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &SyncCMRSP);
+    SyncCMRSP.save(fp);
 
     return true;
 }
@@ -1161,10 +1161,10 @@ void ioptronHC8406::sendScopeTime()
     {
         snprintf(cdate, 32, "%d-%02d-%02dT%02d:%02d:%02d", 1979, 6, 25, 3, 30, 30);
         IDLog("Telescope ISO date and time: %s\n", cdate);
-        IUSaveText(&TimeT[0], cdate);
-        IUSaveText(&TimeT[1], "3");
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[0].setText(cdate);
+        TimeTP[1].setText("3");
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
         return;
     }
 
@@ -1182,8 +1182,8 @@ void ioptronHC8406::sendScopeTime()
     LOGF_DEBUG("<VAL> UTC offset: %d:%d:%d --->%g", utc_h, utc_m, utc_s, lx200_utc_offset);
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
     LOGF_DEBUG("<VAL> UTC offset str: %s", utc_offset_res);
-    IUSaveText(&TimeT[1], utc_offset_res);
-    //IUSaveText(&TimeT[1], lx200_utc_offset);
+    TimeTP[1].setText(utc_offset_res);
+    //TimeTP[1].setText(lx200_utc_offset);
 
     getLocalTime24(PortFD, &ctime);
     getSexComponents(ctime, &h, &m, &s);
@@ -1208,7 +1208,7 @@ void ioptronHC8406::sendScopeTime()
     time_epoch = mktime(&ltm);
 
     // Convert to TimeT
-    //time_epoch -= (int)(atof(TimeT[1].text) * 3600.0);
+    //time_epoch -= (int)(atof(TimeTP[1].getText()) * 3600.0);
     time_epoch -= (int)(lx200_utc_offset * 3600.0);
 
     // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time
@@ -1216,14 +1216,14 @@ void ioptronHC8406::sendScopeTime()
 
     /* Format it into ISO 8601 */
     strftime(cdate, 32, "%Y-%m-%dT%H:%M:%S", &utm);
-    IUSaveText(&TimeT[0], cdate);
+    TimeTP[0].setText(cdate);
 
     LOGF_DEBUG("Mount controller Local Time: %02d:%02d:%02d", h, m, s);
-    LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
+    LOGF_DEBUG("Mount controller UTC Time: %s", TimeTP[0].getText());
 
     // Let's send everything to the client
-    TimeTP.s = IPS_OK;
-    IDSetText(&TimeTP, nullptr);
+    TimeTP.setState(IPS_OK);
+    TimeTP.apply();
 }
 
 int ioptronHC8406::SendPulseCmd(int8_t direction, uint32_t duration_msec)

@@ -22,6 +22,10 @@
 
 #include "indibase/indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class OnFocus : public INDI::Focuser
 {
 public:
@@ -54,10 +58,8 @@ private:
     bool MoveMyFocuser(uint32_t position);
     bool setMaxPos(uint32_t maxPos);
 
-    INumber MaxPosN[1];
-    INumberVectorProperty MaxPosNP;
-    ISwitch SetZeroS[1];
-    ISwitchVectorProperty SetZeroSP;
+    INDI::PropertyNumber MaxPosNP {1};
+    INDI::PropertySwitch SetZeroSP {1};
 };
 
 #endif // ONFOCUS_H

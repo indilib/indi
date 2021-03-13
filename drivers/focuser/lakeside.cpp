@@ -112,83 +112,83 @@ bool Lakeside::initProperties()
     INDI::Focuser::initProperties();
 
     // Current Direction
-    //    IUFillSwitch(&MoveDirectionS[0], "Normal", "", ISS_ON);
-    //    IUFillSwitch(&MoveDirectionS[1], "Reverse", "", ISS_OFF);
-    //    IUFillSwitchVector(&MoveDirectionSP, MoveDirectionS, 2, getDeviceName(), "","Move Direction", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    //    MoveDirectionSP[0].fill("Normal", "", ISS_ON);
+    //    MoveDirectionSP[1].fill("Reverse", "", ISS_OFF);
+    //    MoveDirectionSP.fill(getDeviceName(), "","Move Direction", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Focuser temperature (degrees C) - read only
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%3.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature (C)", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%3.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature (C)", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Focuser temperature (Kelvin)- read only & only read once at connect
-    IUFillNumber(&TemperatureKN[0], "TEMPERATUREK", "Kelvin", "%3.2f", 0., 373.15, 0., 0.);
-    IUFillNumberVector(&TemperatureKNP, TemperatureKN, 1, getDeviceName(), "FOCUS_TEMPERATUREK", "Temperature (K)", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    TemperatureKNP[0].fill("TEMPERATUREK", "Kelvin", "%3.2f", 0., 373.15, 0., 0.);
+    TemperatureKNP.fill(getDeviceName(), "FOCUS_TEMPERATUREK", "Temperature (K)", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Compensate for temperature
-    IUFillSwitch(&TemperatureTrackingS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&TemperatureTrackingS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&TemperatureTrackingSP, TemperatureTrackingS, 2, getDeviceName(), "Temperature Track", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    TemperatureTrackingSP[0].fill("Enable", "", ISS_OFF);
+    TemperatureTrackingSP[1].fill("Disable", "", ISS_ON);
+    TemperatureTrackingSP.fill(getDeviceName(), "Temperature Track", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Backlash 0-255
-    //    IUFillNumber(&FocusBacklashN[0], "BACKLASH", "(0-255)", "%.f", 0, 255, 0, 0);
-    //    IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
-    FocusBacklashN[0].min = 0;
-    FocusBacklashN[0].max = 255;
-    FocusBacklashN[0].step = 10;
-    FocusBacklashN[0].value = 0;
+    //    FocusBacklashNP[0].fill("BACKLASH", "(0-255)", "%.f", 0, 255, 0, 0);
+    //    FocusBacklashNP.fill(getDeviceName(), "BACKLASH", "Backlash", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    FocusBacklashNP[0].setMin(0);
+    FocusBacklashNP[0].setMax(255);
+    FocusBacklashNP[0].setStep(10);
+    FocusBacklashNP[0].setValue(0);
 
     // Maximum Travel - read only
-    //    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "No. Steps", "%.f", 1, 65536, 0, 10000);
-    //    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAXTRAVEL", "Max travel(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE );
-    FocusMaxPosNP.p = IP_RO;
+    //    MaxTravelNP[0].fill("MAXTRAVEL", "No. Steps", "%.f", 1, 65536, 0, 10000);
+    //    MaxTravelNP.fill(getDeviceName(), "MAXTRAVEL", "Max travel(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE );
+    FocusMaxPosNP.setPermission(IP_RO);
 
     // Step Size - read only
-    IUFillNumber(&StepSizeN[0], "STEPSIZE", "No. Steps", "%.f", 1, 65536, 0, 1);
-    IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEPSIZE", "Step Size(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
+    StepSizeNP[0].fill("STEPSIZE", "No. Steps", "%.f", 1, 65536, 0, 1);
+    StepSizeNP.fill(getDeviceName(), "STEPSIZE", "Step Size(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
 
     // Active Temperature Slope - select 1 or 2
-    IUFillSwitch(&ActiveTemperatureSlopeS[0], "Slope 1", "", ISS_ON);
-    IUFillSwitch(&ActiveTemperatureSlopeS[1], "Slope 2", "", ISS_OFF);
-    IUFillSwitchVector(&ActiveTemperatureSlopeSP, ActiveTemperatureSlopeS, 2, getDeviceName(), "Active Slope", "Active Slope", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    ActiveTemperatureSlopeSP[0].fill("Slope 1", "", ISS_ON);
+    ActiveTemperatureSlopeSP[1].fill("Slope 2", "", ISS_OFF);
+    ActiveTemperatureSlopeSP.fill(getDeviceName(), "Active Slope", "Active Slope", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slope 1 : Directions
-    IUFillSwitch(&Slope1DirS[0], "0", "", ISS_ON);
-    IUFillSwitch(&Slope1DirS[1], "1", "", ISS_OFF);
-    IUFillSwitchVector(&Slope1DirSP, Slope1DirS, 2, getDeviceName(), "Slope 1 Direction", "Slope 1 Direction", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    Slope1DirSP[0].fill("0", "", ISS_ON);
+    Slope1DirSP[1].fill("1", "", ISS_OFF);
+    Slope1DirSP.fill(getDeviceName(), "Slope 1 Direction", "Slope 1 Direction", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slope 1 : Slope Increments (counts per degree, 0.1 step increments
-    IUFillNumber(&Slope1IncN[0], "SLOPE1INC", "No. Steps (0-655356", "%.f", 0, 65536, 0, 0);
-    IUFillNumberVector(&Slope1IncNP, Slope1IncN, 1, getDeviceName(), "SLOPE1INC", "Slope1 Increments", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    Slope1IncNP[0].fill("SLOPE1INC", "No. Steps (0-655356", "%.f", 0, 65536, 0, 0);
+    Slope1IncNP.fill(getDeviceName(), "SLOPE1INC", "Slope1 Increments", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // slope 1 : Deadband - value between 0 and 255
-    IUFillNumber(&Slope1DeadbandN[0], "SLOPE1DEADBAND", "(0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&Slope1DeadbandNP, Slope1DeadbandN, 1, getDeviceName(), "SLOPE1DEADBAND", "Slope 1 Deadband", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    Slope1DeadbandNP[0].fill("SLOPE1DEADBAND", "(0-255)", "%.f", 0, 255, 0, 0);
+    Slope1DeadbandNP.fill(getDeviceName(), "SLOPE1DEADBAND", "Slope 1 Deadband", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Slope 1 : Time Period (Minutes, 0.1 step increments
-    IUFillNumber(&Slope1PeriodN[0], "SLOPE1PERIOD", "Minutes (0-99)", "%.f", 0, 99, 0, 0);
-    IUFillNumberVector(&Slope1PeriodNP, Slope1PeriodN, 1, getDeviceName(), "SLOPE1PERIOD", "Slope 1 Period", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    Slope1PeriodNP[0].fill("SLOPE1PERIOD", "Minutes (0-99)", "%.f", 0, 99, 0, 0);
+    Slope1PeriodNP.fill(getDeviceName(), "SLOPE1PERIOD", "Slope 1 Period", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Slope 2 : Direction
-    IUFillSwitch(&Slope2DirS[0], "0", "", ISS_ON);
-    IUFillSwitch(&Slope2DirS[1], "1", "", ISS_OFF);
-    IUFillSwitchVector(&Slope2DirSP, Slope2DirS, 2, getDeviceName(), "Slope 2 Direction", "", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    Slope2DirSP[0].fill("0", "", ISS_ON);
+    Slope2DirSP[1].fill("1", "", ISS_OFF);
+    Slope2DirSP.fill(getDeviceName(), "Slope 2 Direction", "", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // slope 2 : Slope Increments (counts per degree, 0.1 step increments
-    IUFillNumber(&Slope2IncN[0], "SLOPE2INC", "No. Steps (0-65536)", "%.f", 0, 65536, 0, 0);
-    IUFillNumberVector(&Slope2IncNP, Slope2IncN, 1, getDeviceName(), "SLOPE2INC", "Slope 2 Increments", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    Slope2IncNP[0].fill("SLOPE2INC", "No. Steps (0-65536)", "%.f", 0, 65536, 0, 0);
+    Slope2IncNP.fill(getDeviceName(), "SLOPE2INC", "Slope 2 Increments", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // slope 2 : Deadband - value between 0 and 255
-    IUFillNumber(&Slope2DeadbandN[0], "SLOPE2DEADBAND", "Steps (0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&Slope2DeadbandNP, Slope2DeadbandN, 1, getDeviceName(), "SLOPE2DEADBAND", "Slope 2 Deadband", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    Slope2DeadbandNP[0].fill("SLOPE2DEADBAND", "Steps (0-255)", "%.f", 0, 255, 0, 0);
+    Slope2DeadbandNP.fill(getDeviceName(), "SLOPE2DEADBAND", "Slope 2 Deadband", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // slope 2 : Time Period (Minutes, 0.1 step increments)
-    IUFillNumber(&Slope2PeriodN[0], "SLOPE2PERIOD", "Minutes (0-99)", "%.f", 0, 99, 0, 0);
-    IUFillNumberVector(&Slope2PeriodNP, Slope2PeriodN, 1, getDeviceName(), "SLOPE2PERIOD", "Slope 2 Period", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
+    Slope2PeriodNP[0].fill("SLOPE2PERIOD", "Minutes (0-99)", "%.f", 0, 99, 0, 0);
+    Slope2PeriodNP.fill(getDeviceName(), "SLOPE2PERIOD", "Slope 2 Period", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
-    FocusAbsPosN[0].min = 0.;
+    FocusAbsPosNP[0].setMin(0.);
 
     // shephpj - not used
-    //FocusAbsPosN[0].max = 65536.;
+    //FocusAbsPosNP[0].setMax(65536.);
 
     setDefaultPollingPeriod(1000);
 
@@ -204,22 +204,22 @@ bool Lakeside::updateProperties()
 
     if (isConnected())
     {
-        //defineProperty(&FocusBacklashNP);
-        //defineProperty(&MaxTravelNP);
-        defineProperty(&StepSizeNP);
-        defineProperty(&TemperatureNP);
-        defineProperty(&TemperatureKNP);
-        //defineProperty(&MoveDirectionSP);
-        defineProperty(&TemperatureTrackingSP);
-        defineProperty(&ActiveTemperatureSlopeSP);
-        defineProperty(&Slope1DirSP);
-        defineProperty(&Slope1IncNP);
-        defineProperty(&Slope1DeadbandNP);
-        defineProperty(&Slope1PeriodNP);
-        defineProperty(&Slope2DirSP);
-        defineProperty(&Slope2IncNP);
-        defineProperty(&Slope2DeadbandNP);
-        defineProperty(&Slope2PeriodNP);
+        //defineProperty(FocusBacklashNP);
+        //defineProperty(MaxTravelNP);
+        defineProperty(StepSizeNP);
+        defineProperty(TemperatureNP);
+        defineProperty(TemperatureKNP);
+        //defineProperty(MoveDirectionSP);
+        defineProperty(TemperatureTrackingSP);
+        defineProperty(ActiveTemperatureSlopeSP);
+        defineProperty(Slope1DirSP);
+        defineProperty(Slope1IncNP);
+        defineProperty(Slope1DeadbandNP);
+        defineProperty(Slope1PeriodNP);
+        defineProperty(Slope2DirSP);
+        defineProperty(Slope2IncNP);
+        defineProperty(Slope2DeadbandNP);
+        defineProperty(Slope2PeriodNP);
 
         GetFocusParams();
 
@@ -227,22 +227,22 @@ bool Lakeside::updateProperties()
     }
     else
     {
-        //deleteProperty(FocusBacklashNP.name);
-        //deleteProperty(MaxTravelNP.name);
-        deleteProperty(StepSizeNP.name);
-        //deleteProperty(MoveDirectionSP.name);
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(TemperatureKNP.name);
-        deleteProperty(TemperatureTrackingSP.name);
-        deleteProperty(ActiveTemperatureSlopeSP.name);
-        deleteProperty(Slope1DirSP.name);
-        deleteProperty(Slope1IncNP.name);
-        deleteProperty(Slope1DeadbandNP.name);
-        deleteProperty(Slope1PeriodNP.name);
-        deleteProperty(Slope2DirSP.name);
-        deleteProperty(Slope2IncNP.name);
-        deleteProperty(Slope2DeadbandNP.name);
-        deleteProperty(Slope2PeriodNP.name);
+        //deleteProperty(FocusBacklashNP.getName());
+        //deleteProperty(MaxTravelNP.getName());
+        deleteProperty(StepSizeNP.getName());
+        //deleteProperty(MoveDirectionSP.getName());
+        deleteProperty(TemperatureNP.getName());
+        deleteProperty(TemperatureKNP.getName());
+        deleteProperty(TemperatureTrackingSP.getName());
+        deleteProperty(ActiveTemperatureSlopeSP.getName());
+        deleteProperty(Slope1DirSP.getName());
+        deleteProperty(Slope1IncNP.getName());
+        deleteProperty(Slope1DeadbandNP.getName());
+        deleteProperty(Slope1PeriodNP.getName());
+        deleteProperty(Slope2DirSP.getName());
+        deleteProperty(Slope2IncNP.getName());
+        deleteProperty(Slope2DeadbandNP.getName());
+        deleteProperty(Slope2PeriodNP.getName());
     }
 
     return true;
@@ -422,7 +422,7 @@ bool Lakeside::updateMoveDirection()
         return false;
     }
 
-    //IUResetSwitch(&MoveDirectionSP);
+    //MoveDirectionSP.reset();
 
     // direction is in form Dnnnnn#
     // where nnnnn is 0 for normal or 1 for reversed
@@ -430,12 +430,12 @@ bool Lakeside::updateMoveDirection()
 
     if ( temp == 0)
     {
-        FocusReverseS[INDI_DISABLED].s = ISS_ON;
+        FocusReverseSP[INDI_DISABLED].setState(ISS_ON);
         LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
     }
     else if ( temp == 1)
     {
-        FocusReverseS[INDI_ENABLED].s = ISS_ON;
+        FocusReverseSP[INDI_ENABLED].setState(ISS_ON);
         LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
     }
     else
@@ -449,9 +449,9 @@ bool Lakeside::updateMoveDirection()
 
 // Decode contents of buffer
 // Returns:
-//          P : Position update found - FocusAbsPosN[0].value updated
-//          T : Temperature update found - TemperatureN[0].value
-//          K : Temperature in Kelvin update found - TemperatureKN[0].value
+//          P : Position update found - FocusAbsPosNP[0].value updated
+//          T : Temperature update found - TemperatureNP[0].value
+//          K : Temperature in Kelvin update found - TemperatureKNP[0].value
 //          D : DONE# received
 //          O : OK# received
 //          E : Error due to unknown/misformed command having been sent
@@ -483,7 +483,7 @@ char Lakeside::DecodeBuffer(char * in_response)
     // Temperature update is Tnnnnnn# where nnnnn is left space padded
     if (!strcmp("TN/A#", in_response))
     {
-        TemperatureNP.s = IPS_IDLE;
+        TemperatureNP.setState(IPS_IDLE);
         return 'T';
     }
     else
@@ -492,8 +492,8 @@ char Lakeside::DecodeBuffer(char * in_response)
         if (rc > 0)
         {
             // need to divide result by 2
-            TemperatureN[0].value = ((int) temp) / 2.0;
-            LOGF_DEBUG("DecodeBuffer: Result (%3.1f)", TemperatureN[0].value);
+            TemperatureNP[0].setValue(((int) temp) / 2.0);
+            LOGF_DEBUG("DecodeBuffer: Result (%3.1f)", TemperatureNP[0].getValue());
 
             return 'T';
         }
@@ -504,8 +504,8 @@ char Lakeside::DecodeBuffer(char * in_response)
     if (rc > 0)
     {
         // need to divide result by 2
-        TemperatureKN[0].value = ((int) temp) / 2.00;
-        LOGF_DEBUG("DecodeBuffer: Result (%3.2f)", TemperatureKN[0].value);
+        TemperatureKNP[0].setValue(((int) temp) / 2.00);
+        LOGF_DEBUG("DecodeBuffer: Result (%3.2f)", TemperatureKNP[0].getValue());
 
         return 'K';
     }
@@ -515,8 +515,8 @@ char Lakeside::DecodeBuffer(char * in_response)
     // focuser position returned Pnnnnn#
     if (rc > 0)
     {
-        FocusAbsPosN[0].value = pos;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(pos);
+        FocusAbsPosNP.apply();
 
         LOGF_DEBUG("DecodeBuffer: Returned position (%d)", pos);
         return 'P';
@@ -666,7 +666,7 @@ bool Lakeside::updateBacklash()
 
     if ( temp >= 0)
     {
-        FocusBacklashN[0].value = temp;
+        FocusBacklashNP[0].setValue(temp);
         LOGF_DEBUG("updateBacklash: Backlash is (%d)", temp);
     }
     else
@@ -701,7 +701,7 @@ bool Lakeside::updateSlope1Inc()
 
     if ( temp >= 0)
     {
-        Slope1IncN[0].value = temp;
+        Slope1IncNP[0].setValue(temp);
         LOGF_DEBUG("updateSlope1Inc: Slope 1 Increments is (%d)", temp);
     }
     else
@@ -736,7 +736,7 @@ bool Lakeside::updateSlope2Inc()
 
     if ( temp >= 0)
     {
-        Slope2IncN[0].value = temp;
+        Slope2IncNP[0].setValue(temp);
         LOGF_DEBUG("updateSlope2Inc: Slope 2 Increments is (%d)", temp);
     }
     else
@@ -771,12 +771,12 @@ bool Lakeside::updateSlope1Dir()
 
     if ( temp == 0)
     {
-        Slope1DirS[0].s = ISS_ON;
+        Slope1DirSP[0].setState(ISS_ON);
         LOGF_DEBUG("updateSlope1Dir: Slope 1 Direction is (%d)", temp);
     }
     else if ( temp == 1)
     {
-        Slope1DirS[1].s = ISS_ON;
+        Slope1DirSP[1].setState(ISS_ON);
     }
     else
     {
@@ -810,12 +810,12 @@ bool Lakeside::updateSlope2Dir()
 
     if ( temp == 0)
     {
-        Slope2DirS[0].s = ISS_ON;
+        Slope2DirSP[0].setState(ISS_ON);
         LOGF_DEBUG("updateSlope2Dir: Slope 2 Direction is (%d)", temp);
     }
     else if ( temp == 1)
     {
-        Slope2DirS[1].s = ISS_ON;
+        Slope2DirSP[1].setState(ISS_ON);
     }
     else
     {
@@ -849,7 +849,7 @@ bool Lakeside::updateSlope1Deadband()
 
     if ( temp >= 0)
     {
-        Slope1DeadbandN[0].value = temp;
+        Slope1DeadbandNP[0].setValue(temp);
         LOGF_DEBUG("updateSlope1Deadband: Slope 1 Deadband is (%d)", temp);
     }
     else
@@ -884,7 +884,7 @@ bool Lakeside::updateSlope2Deadband()
 
     if ( temp >= 0)
     {
-        Slope2DeadbandN[0].value = temp;
+        Slope2DeadbandNP[0].setValue(temp);
         LOGF_DEBUG("updateSlope2Deadband: Slope 2 Deadband is (%d)", temp);
     }
     else
@@ -919,7 +919,7 @@ bool Lakeside::updateSlope1Period()
 
     if ( temp >= 0)
     {
-        Slope1PeriodN[0].value = temp;
+        Slope1PeriodNP[0].setValue(temp);
         LOGF_DEBUG("updateSlope1Period: Slope 1 Period is (%d)", temp);
     }
     else
@@ -954,7 +954,7 @@ bool Lakeside::updateSlope2Period()
 
     if ( temp >= 0)
     {
-        Slope2PeriodN[0].value = temp;
+        Slope2PeriodNP[0].setValue(temp);
         LOGF_DEBUG("updateSlope2Period: Slope 2 Period is (%d)", temp);
     }
     else
@@ -989,7 +989,7 @@ bool Lakeside::updateMaxTravel()
 
     if ( temp > 0)
     {
-        FocusMaxPosN[0].value = temp;
+        FocusMaxPosNP[0].setValue(temp);
         LOGF_DEBUG("updateMaxTravel: MaxTravel is (%d)", temp);
     }
     else
@@ -1026,7 +1026,7 @@ bool Lakeside::updateStepSize()
 
     if ( temp > 0)
     {
-        StepSizeN[0].value = temp;
+        StepSizeNP[0].setValue(temp);
         LOGF_DEBUG("updateStepSize: step size is (%d)", temp);
     }
     else
@@ -1055,13 +1055,13 @@ bool Lakeside::gotoPosition(uint32_t position)
     // Lakeside only uses move NNNNN steps - goto step not available.
     // calculate as steps to move = current position - new position
     // if -ve then move out, else +ve moves in
-    calc_steps = FocusAbsPosN[0].value - position;
+    calc_steps = FocusAbsPosNP[0].getValue() - position;
 
-    // MaxTravelN[0].value is set by "calibrate" via the control box, & read at connect
-    if ( position > FocusMaxPosN[0].value )
+    // MaxTravelNP[0].value is set by "calibrate" via the control box, & read at connect
+    if ( position > FocusMaxPosNP[0].getValue() )
     {
-        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min, FocusMaxPosN[0].value);
-        FocusAbsPosNP.s = IPS_ALERT;
+        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosNP[0].min, FocusMaxPosNP[0].getValue());
+        FocusAbsPosNP.setState(IPS_ALERT);
         return false;
     }
 
@@ -1083,7 +1083,7 @@ bool Lakeside::gotoPosition(uint32_t position)
         {
             // Zero == no steps to move
             LOGF_DEBUG("MoveFocuser: No steps to move. calc_steps = %d", calc_steps);
-            FocusAbsPosNP.s = IPS_OK;
+            FocusAbsPosNP.setState(IPS_OK);
             return false;
         }
 
@@ -1092,14 +1092,14 @@ bool Lakeside::gotoPosition(uint32_t position)
 
     if (!SendCmd(cmd))
     {
-        FocusAbsPosNP.s = IPS_ALERT;
+        FocusAbsPosNP.setState(IPS_ALERT);
         return false;
     }
     else
         LOGF_DEBUG("MoveFocuser: Sent cmd (%s)", cmd);
 
     // At this point, the move command has been sent, so set BUSY & return true
-    FocusAbsPosNP.s = IPS_BUSY;
+    FocusAbsPosNP.setState(IPS_BUSY);
     return true;
 }
 
@@ -1617,74 +1617,74 @@ bool Lakeside::ISNewSwitch (const char * dev, const char * name, ISState * state
     if(strcmp(dev, getDeviceName()) == 0)
     {
         // Move Direction
-        //        if (!strcmp(MoveDirectionSP.name, name))
+        //        if (MoveDirectionSP.isNameMatch(name))
         //        {
         //            bool rc=false;
-        //            int current_mode = IUFindOnSwitchIndex(&MoveDirectionSP);
-        //            IUUpdateSwitch(&MoveDirectionSP, states, names, n);
-        //            int target_mode = IUFindOnSwitchIndex(&MoveDirectionSP);
+        //            int current_mode = MoveDirectionSP.findOnSwitchIndex();
+        //            MoveDirectionSP.update(states, names, n);
+        //            int target_mode = MoveDirectionSP.findOnSwitchIndex();
         //            if (current_mode == target_mode)
         //            {
-        //                MoveDirectionSP.s = IPS_OK;
-        //                IDSetSwitch(&MoveDirectionSP, nullptr);
+        //                MoveDirectionSP.setState(IPS_OK);
+        //                MoveDirectionSP.apply();
         //            }
         //            // switch will be either 0 for normal or 1 for reverse
         //            rc = setMoveDirection(target_mode);
 
         //            if (rc == false)
         //            {
-        //                IUResetSwitch(&MoveDirectionSP);
-        //                MoveDirectionS[current_mode].s = ISS_ON;
-        //                MoveDirectionSP.s = IPS_ALERT;
-        //                IDSetSwitch(&MoveDirectionSP, nullptr);
+        //                MoveDirectionSP.reset();
+        //                MoveDirectionSP[current_mode].setState(ISS_ON);
+        //                MoveDirectionSP.setState(IPS_ALERT);
+        //                MoveDirectionSP.apply();
         //                return false;
         //            }
 
-        //            MoveDirectionSP.s = IPS_OK;
-        //            IDSetSwitch(&MoveDirectionSP, nullptr);
+        //            MoveDirectionSP.setState(IPS_OK);
+        //            MoveDirectionSP.apply();
         //            return true;
         //        }
 
         // Temperature Tracking
-        if (!strcmp(TemperatureTrackingSP.name, name))
+        if (TemperatureTrackingSP.isNameMatch(name))
         {
-            int last_index = IUFindOnSwitchIndex(&TemperatureTrackingSP);
-            IUUpdateSwitch(&TemperatureTrackingSP, states, names, n);
+            int last_index = TemperatureTrackingSP.findOnSwitchIndex();
+            TemperatureTrackingSP.update(states, names, n);
 
-            bool rc = setTemperatureTracking((TemperatureTrackingS[0].s == ISS_ON));
+            bool rc = setTemperatureTracking((TemperatureTrackingSP[0].getState() == ISS_ON));
 
             if (rc == false)
             {
-                TemperatureTrackingSP.s = IPS_ALERT;
-                IUResetSwitch(&TemperatureTrackingSP);
-                TemperatureTrackingS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureTrackingSP, nullptr);
+                TemperatureTrackingSP.setState(IPS_ALERT);
+                TemperatureTrackingSP.reset();
+                TemperatureTrackingSP[last_index].setState(ISS_ON);
+                TemperatureTrackingSP.apply();
                 return false;
             }
 
-            TemperatureTrackingSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureTrackingSP, nullptr);
+            TemperatureTrackingSP.setState(IPS_OK);
+            TemperatureTrackingSP.apply();
 
             return true;
         }
 
         // Active Temperature Slope
-        if (!strcmp(ActiveTemperatureSlopeSP.name, name))
+        if (ActiveTemperatureSlopeSP.isNameMatch(name))
         {
             bool rc = false;
-            int current_slope = IUFindOnSwitchIndex(&ActiveTemperatureSlopeSP);
+            int current_slope = ActiveTemperatureSlopeSP.findOnSwitchIndex();
             // current slope Selection will be either 1 or 2
             // Need to add 1 to array index, as it starts at 0
             current_slope++;
-            IUUpdateSwitch(&ActiveTemperatureSlopeSP, states, names, n);
-            int target_slope = IUFindOnSwitchIndex(&ActiveTemperatureSlopeSP);
+            ActiveTemperatureSlopeSP.update(states, names, n);
+            int target_slope = ActiveTemperatureSlopeSP.findOnSwitchIndex();
             // target slope Selection will be either 1 or 2
             // Need to add 1 to array index, as it starts at 0
             target_slope++;
             if (current_slope == target_slope)
             {
-                ActiveTemperatureSlopeSP.s = IPS_OK;
-                IDSetSwitch(&ActiveTemperatureSlopeSP, nullptr);
+                ActiveTemperatureSlopeSP.setState(IPS_OK);
+                ActiveTemperatureSlopeSP.apply();
             }
 
             rc = setActiveTemperatureSlope(target_slope);
@@ -1692,82 +1692,82 @@ bool Lakeside::ISNewSwitch (const char * dev, const char * name, ISState * state
             if (rc == false)
             {
                 current_slope--;
-                IUResetSwitch(&ActiveTemperatureSlopeSP);
-                ActiveTemperatureSlopeS[current_slope].s = ISS_ON;
-                ActiveTemperatureSlopeSP.s = IPS_ALERT;
-                IDSetSwitch(&ActiveTemperatureSlopeSP, nullptr);
+                ActiveTemperatureSlopeSP.reset();
+                ActiveTemperatureSlopeSP[current_slope].setState(ISS_ON);
+                ActiveTemperatureSlopeSP.setState(IPS_ALERT);
+                ActiveTemperatureSlopeSP.apply();
                 return false;
             }
 
-            ActiveTemperatureSlopeSP.s = IPS_OK;
-            IDSetSwitch(&ActiveTemperatureSlopeSP, nullptr);
+            ActiveTemperatureSlopeSP.setState(IPS_OK);
+            ActiveTemperatureSlopeSP.apply();
             return true;
         }
 
         // Slope 1 direction - either 0 or 1
-        if (!strcmp(Slope1DirSP.name, name))
+        if (Slope1DirSP.isNameMatch(name))
         {
             bool rc = false;
-            int current_slope_dir1 = IUFindOnSwitchIndex(&Slope1DirSP);
+            int current_slope_dir1 = Slope1DirSP.findOnSwitchIndex();
             // current slope 1 Direction will be either 0 or 1
 
-            IUUpdateSwitch(&Slope1DirSP, states, names, n);
-            int target_slope_dir1 = IUFindOnSwitchIndex(&Slope1DirSP);
+            Slope1DirSP.update(states, names, n);
+            int target_slope_dir1 = Slope1DirSP.findOnSwitchIndex();
             // target slope Selection will be either 0 or 1
 
             if (current_slope_dir1 == target_slope_dir1)
             {
-                Slope1DirSP.s = IPS_OK;
-                IDSetSwitch(&Slope1DirSP, nullptr);
+                Slope1DirSP.setState(IPS_OK);
+                Slope1DirSP.apply();
             }
 
             rc = setSlope1Dir(target_slope_dir1);
 
             if (rc == false)
             {
-                IUResetSwitch(&Slope1DirSP);
-                Slope1DirS[current_slope_dir1].s = ISS_ON;
-                Slope1DirSP.s = IPS_ALERT;
-                IDSetSwitch(&Slope1DirSP, nullptr);
+                Slope1DirSP.reset();
+                Slope1DirSP[current_slope_dir1].setState(ISS_ON);
+                Slope1DirSP.setState(IPS_ALERT);
+                Slope1DirSP.apply();
                 return false;
             }
 
-            Slope1DirSP.s = IPS_OK;
-            IDSetSwitch(&Slope1DirSP, nullptr);
+            Slope1DirSP.setState(IPS_OK);
+            Slope1DirSP.apply();
             return true;
         }
     }
 
     // Slope 2 direction - either 0 or 1
-    if (!strcmp(Slope2DirSP.name, name))
+    if (Slope2DirSP.isNameMatch(name))
     {
         bool rc = false;
-        int current_slope_dir2 = IUFindOnSwitchIndex(&Slope2DirSP);
+        int current_slope_dir2 = Slope2DirSP.findOnSwitchIndex();
         // current slope 2 Direction will be either 0 or 1
 
-        IUUpdateSwitch(&Slope2DirSP, states, names, n);
-        int target_slope_dir2 = IUFindOnSwitchIndex(&Slope2DirSP);
+        Slope2DirSP.update(states, names, n);
+        int target_slope_dir2 = Slope2DirSP.findOnSwitchIndex();
         // target slope 2 Selection will be either 0 or 1
 
         if (current_slope_dir2 == target_slope_dir2)
         {
-            Slope2DirSP.s = IPS_OK;
-            IDSetSwitch(&Slope2DirSP, nullptr);
+            Slope2DirSP.setState(IPS_OK);
+            Slope2DirSP.apply();
         }
 
         rc = setSlope2Dir(target_slope_dir2);
 
         if (rc == false)
         {
-            IUResetSwitch(&Slope2DirSP);
-            Slope2DirS[current_slope_dir2].s = ISS_ON;
-            Slope2DirSP.s = IPS_ALERT;
-            IDSetSwitch(&Slope2DirSP, nullptr);
+            Slope2DirSP.reset();
+            Slope2DirSP[current_slope_dir2].setState(ISS_ON);
+            Slope2DirSP.setState(IPS_ALERT);
+            Slope2DirSP.apply();
             return false;
         }
 
-        Slope2DirSP.s = IPS_OK;
-        IDSetSwitch(&Slope2DirSP, nullptr);
+        Slope2DirSP.setState(IPS_OK);
+        Slope2DirSP.apply();
         return true;
     }
 
@@ -1784,16 +1784,16 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
     if(strcmp(dev, getDeviceName()) == 0)
     {
         //        // max travel - read only
-        //        if (!strcmp (name, MaxTravelNP.name))
+        //        if (MaxTravelNP.isNameMatch(name))
         //        {
-        //            IUUpdateNumber(&MaxTravelNP, values, names, n);
-        //            MaxTravelNP.s = IPS_OK;
-        //            IDSetNumber(&MaxTravelNP, nullptr);
+        //            MaxTravelNP.update(values, names, n);
+        //            MaxTravelNP.setState(IPS_OK);
+        //            MaxTravelNP.apply();
         //            return true;
         //        }
 
         // Backlash compensation
-        //        if (!strcmp (name, FocusBacklashNP.name))
+        //        if (FocusBacklashNP.isNameMatch(name))
         //        {
         //            int new_back = 0 ;
         //            int nset = 0;
@@ -1801,10 +1801,10 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
         //            for (nset = i = 0; i < n; i++)
         //            {
         //                //Find numbers with the passed names in SetFocusBacklashNP property
-        //                INumber * eqp = IUFindNumber (&FocusBacklashNP, names[i]);
+        //                INumber * eqp = FocusBacklashNP.findWidgetByName(names[i]);
 
-        //                //If the number found is Backlash (FocusBacklashN[0]) then process it
-        //                if (eqp == &FocusBacklashN[0])
+        //                //If the number found is Backlash (FocusBacklashNP[0]) then process it
+        //                if (eqp == &FocusBacklashNP[0])
         //                {
 
         //                    new_back = (values[i]);
@@ -1816,29 +1816,29 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
         //                {
 
         //                    // Set the Lakeside state to BUSY
-        //                    FocusBacklashNP.s = IPS_BUSY;
-        //                    IDSetNumber(&FocusBacklashNP, nullptr);
+        //                    FocusBacklashNP.setState(IPS_BUSY);
+        //                    FocusBacklashNP.apply();
 
         //                    if( !setBacklash(new_back))
         //                    {
 
-        //                        FocusBacklashNP.s = IPS_IDLE;
-        //                        IDSetNumber(&FocusBacklashNP, "Setting new backlash failed.");
+        //                        FocusBacklashNP.setState(IPS_IDLE);
+        //                        FocusBacklashNP.apply("Setting new backlash failed.");
 
         //                        return false ;
         //                    }
 
-        //                    FocusBacklashNP.s = IPS_OK;
-        //                    FocusBacklashN[0].value = new_back;
-        //                    IDSetNumber(&FocusBacklashNP, nullptr);
+        //                    FocusBacklashNP.setState(IPS_OK);
+        //                    FocusBacklashNP[0].setValue(new_back);
+        //                    FocusBacklashNP.apply();
 
         //                    return true;
         //                }
         //                else
         //                {
 
-        //                    FocusBacklashNP.s = IPS_IDLE;
-        //                    IDSetNumber(&FocusBacklashNP, "Need exactly one parameter.");
+        //                    FocusBacklashNP.setState(IPS_IDLE);
+        //                    FocusBacklashNP.apply("Need exactly one parameter.");
 
         //                    return false ;
         //                }
@@ -1847,16 +1847,16 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
         //        }
 
         // Step size - read only
-        if (!strcmp (name, StepSizeNP.name))
+        if (StepSizeNP.isNameMatch(name))
         {
-            IUUpdateNumber(&StepSizeNP, values, names, n);
-            StepSizeNP.s = IPS_OK;
-            IDSetNumber(&StepSizeNP, nullptr);
+            StepSizeNP.update(values, names, n);
+            StepSizeNP.setState(IPS_OK);
+            StepSizeNP.apply();
             return true;
         }
 
         // Slope 1 Increments
-        if (!strcmp (name, Slope1IncNP.name))
+        if (Slope1IncNP.isNameMatch(name))
         {
             int new_Slope1Inc = 0 ;
             int nset = 0;
@@ -1864,10 +1864,10 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope1IncNP property
-                INumber * eqp = IUFindNumber (&Slope1IncNP, names[i]);
+                INumber * eqp = Slope1IncNP.findWidgetByName(names[i]);
 
-                //If the number found is Slope1Inc (Slope1IncN[0]) then process it
-                if (eqp == &Slope1IncN[0])
+                //If the number found is Slope1Inc (Slope1IncNP[0]) then process it
+                if (eqp == &Slope1IncNP[0])
                 {
 
                     new_Slope1Inc = (values[i]);
@@ -1879,29 +1879,29 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
                 {
 
                     // Set the Lakeside state to BUSY
-                    Slope1IncNP.s = IPS_BUSY;
-                    IDSetNumber(&Slope1IncNP, nullptr);
+                    Slope1IncNP.setState(IPS_BUSY);
+                    Slope1IncNP.apply();
 
                     if( !setSlope1Inc(new_Slope1Inc))
                     {
 
-                        Slope1IncNP.s = IPS_IDLE;
-                        IDSetNumber(&Slope1IncNP, "Setting new Slope1 increment failed.");
+                        Slope1IncNP.setState(IPS_IDLE);
+                        Slope1IncNP.apply("Setting new Slope1 increment failed.");
 
                         return false ;
                     }
 
-                    Slope1IncNP.s = IPS_OK;
-                    Slope1IncN[0].value = new_Slope1Inc;
-                    IDSetNumber(&Slope1IncNP, nullptr) ;
+                    Slope1IncNP.setState(IPS_OK);
+                    Slope1IncNP[0].setValue(new_Slope1Inc);
+                    Slope1IncNP.apply(nullptr) ;
 
                     return true;
                 }
                 else
                 {
 
-                    Slope1IncNP.s = IPS_IDLE;
-                    IDSetNumber(&Slope1IncNP, "Need exactly one parameter.");
+                    Slope1IncNP.setState(IPS_IDLE);
+                    Slope1IncNP.apply("Need exactly one parameter.");
 
                     return false ;
                 }
@@ -1910,7 +1910,7 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
         }
 
         // Slope 2 Increments
-        if (!strcmp (name, Slope2IncNP.name))
+        if (Slope2IncNP.isNameMatch(name))
         {
             int new_Slope2Inc = 0 ;
             int nset = 0;
@@ -1918,10 +1918,10 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope2IncNP property
-                INumber * eqp = IUFindNumber (&Slope2IncNP, names[i]);
+                INumber * eqp = Slope2IncNP.findWidgetByName(names[i]);
 
-                //If the number found is Slope2Inc (Slope2IncN[0]) then process it
-                if (eqp == &Slope2IncN[0])
+                //If the number found is Slope2Inc (Slope2IncNP[0]) then process it
+                if (eqp == &Slope2IncNP[0])
                 {
 
                     new_Slope2Inc = (values[i]);
@@ -1933,29 +1933,29 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
                 {
 
                     // Set the Lakeside state to BUSY
-                    Slope2IncNP.s = IPS_BUSY;
-                    IDSetNumber(&Slope2IncNP, nullptr);
+                    Slope2IncNP.setState(IPS_BUSY);
+                    Slope2IncNP.apply();
 
                     if( !setSlope2Inc(new_Slope2Inc))
                     {
 
-                        Slope2IncNP.s = IPS_IDLE;
-                        IDSetNumber(&Slope2IncNP, "Setting new Slope2 increment failed.");
+                        Slope2IncNP.setState(IPS_IDLE);
+                        Slope2IncNP.apply("Setting new Slope2 increment failed.");
 
                         return false ;
                     }
 
-                    Slope2IncNP.s = IPS_OK;
-                    Slope2IncN[0].value = new_Slope2Inc;
-                    IDSetNumber(&Slope2IncNP, nullptr);
+                    Slope2IncNP.setState(IPS_OK);
+                    Slope2IncNP[0].setValue(new_Slope2Inc);
+                    Slope2IncNP.apply();
 
                     return true;
                 }
                 else
                 {
 
-                    Slope2IncNP.s = IPS_IDLE;
-                    IDSetNumber(&Slope2IncNP, "Need exactly one parameter.");
+                    Slope2IncNP.setState(IPS_IDLE);
+                    Slope2IncNP.apply("Need exactly one parameter.");
 
                     return false ;
                 }
@@ -1964,7 +1964,7 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
         }
 
         // Slope 1 Deadband
-        if (!strcmp (name, Slope1DeadbandNP.name))
+        if (Slope1DeadbandNP.isNameMatch(name))
         {
             int new_Slope1Deadband = 0 ;
             int nset = 0;
@@ -1972,10 +1972,10 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope1DeadbandNP property
-                INumber * eqp = IUFindNumber (&Slope1DeadbandNP, names[i]);
+                INumber * eqp = Slope1DeadbandNP.findWidgetByName(names[i]);
 
-                //If the number found is Slope1Deadband (Slope1DeadbandN[0]) then process it
-                if (eqp == &Slope1DeadbandN[0])
+                //If the number found is Slope1Deadband (Slope1DeadbandNP[0]) then process it
+                if (eqp == &Slope1DeadbandNP[0])
                 {
 
                     new_Slope1Deadband = (values[i]);
@@ -1987,29 +1987,29 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
                 {
 
                     // Set the Lakeside state to BUSY
-                    Slope1DeadbandNP.s = IPS_BUSY;
-                    IDSetNumber(&Slope1DeadbandNP, nullptr);
+                    Slope1DeadbandNP.setState(IPS_BUSY);
+                    Slope1DeadbandNP.apply();
 
                     if( !setSlope1Deadband(new_Slope1Deadband))
                     {
 
-                        Slope1DeadbandNP.s = IPS_IDLE;
-                        IDSetNumber(&Slope1DeadbandNP, "Setting new Slope 1 Deadband failed.");
+                        Slope1DeadbandNP.setState(IPS_IDLE);
+                        Slope1DeadbandNP.apply("Setting new Slope 1 Deadband failed.");
 
                         return false ;
                     }
 
-                    Slope1DeadbandNP.s = IPS_OK;
-                    Slope1DeadbandN[0].value = new_Slope1Deadband;
-                    IDSetNumber(&Slope1DeadbandNP, nullptr) ;
+                    Slope1DeadbandNP.setState(IPS_OK);
+                    Slope1DeadbandNP[0].setValue(new_Slope1Deadband);
+                    Slope1DeadbandNP.apply(nullptr) ;
 
                     return true;
                 }
                 else
                 {
 
-                    Slope1DeadbandNP.s = IPS_IDLE;
-                    IDSetNumber(&Slope1DeadbandNP, "Need exactly one parameter.");
+                    Slope1DeadbandNP.setState(IPS_IDLE);
+                    Slope1DeadbandNP.apply("Need exactly one parameter.");
 
                     return false ;
                 }
@@ -2018,7 +2018,7 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
         }
 
         // Slope 2 Deadband
-        if (!strcmp (name, Slope2DeadbandNP.name))
+        if (Slope2DeadbandNP.isNameMatch(name))
         {
             int new_Slope2Deadband = 0 ;
             int nset = 0;
@@ -2026,10 +2026,10 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope2DeadbandNP property
-                INumber * eqp = IUFindNumber (&Slope2DeadbandNP, names[i]);
+                INumber * eqp = Slope2DeadbandNP.findWidgetByName(names[i]);
 
-                //If the number found is Slope2Deadband (Slope2DeadbandN[0]) then process it
-                if (eqp == &Slope2DeadbandN[0])
+                //If the number found is Slope2Deadband (Slope2DeadbandNP[0]) then process it
+                if (eqp == &Slope2DeadbandNP[0])
                 {
 
                     new_Slope2Deadband = (values[i]);
@@ -2041,29 +2041,29 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
                 {
 
                     // Set the Lakeside state to BUSY
-                    Slope2DeadbandNP.s = IPS_BUSY;
-                    IDSetNumber(&Slope2DeadbandNP, nullptr);
+                    Slope2DeadbandNP.setState(IPS_BUSY);
+                    Slope2DeadbandNP.apply();
 
                     if( !setSlope2Deadband(new_Slope2Deadband))
                     {
 
-                        Slope2DeadbandNP.s = IPS_IDLE;
-                        IDSetNumber(&Slope2DeadbandNP, "Setting new Slope 2 Deadband failed.");
+                        Slope2DeadbandNP.setState(IPS_IDLE);
+                        Slope2DeadbandNP.apply("Setting new Slope 2 Deadband failed.");
 
                         return false ;
                     }
 
-                    Slope2DeadbandNP.s = IPS_OK;
-                    Slope2DeadbandN[0].value = new_Slope2Deadband;
-                    IDSetNumber(&Slope2DeadbandNP, nullptr) ;
+                    Slope2DeadbandNP.setState(IPS_OK);
+                    Slope2DeadbandNP[0].setValue(new_Slope2Deadband);
+                    Slope2DeadbandNP.apply(nullptr) ;
 
                     return true;
                 }
                 else
                 {
 
-                    Slope2DeadbandNP.s = IPS_IDLE;
-                    IDSetNumber(&Slope2DeadbandNP, "Need exactly one parameter.");
+                    Slope2DeadbandNP.setState(IPS_IDLE);
+                    Slope2DeadbandNP.apply("Need exactly one parameter.");
 
                     return false ;
                 }
@@ -2072,7 +2072,7 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
         }
 
         // Slope 1 Period Minutes
-        if (!strcmp (name, Slope1PeriodNP.name))
+        if (Slope1PeriodNP.isNameMatch(name))
         {
             int new_Slope1Period = 0 ;
             int nset = 0;
@@ -2080,10 +2080,10 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope1PeriodNP property
-                INumber * eqp = IUFindNumber (&Slope1PeriodNP, names[i]);
+                INumber * eqp = Slope1PeriodNP.findWidgetByName(names[i]);
 
-                //If the number found is Slope1Period (Slope1PeriodN[0]) then process it
-                if (eqp == &Slope1PeriodN[0])
+                //If the number found is Slope1Period (Slope1PeriodNP[0]) then process it
+                if (eqp == &Slope1PeriodNP[0])
                 {
 
                     new_Slope1Period = (values[i]);
@@ -2095,29 +2095,29 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
                 {
 
                     // Set the Lakeside state to BUSY
-                    Slope1PeriodNP.s = IPS_BUSY;
-                    IDSetNumber(&Slope1PeriodNP, nullptr);
+                    Slope1PeriodNP.setState(IPS_BUSY);
+                    Slope1PeriodNP.apply();
 
                     if( !setSlope1Period(new_Slope1Period))
                     {
 
-                        Slope1PeriodNP.s = IPS_IDLE;
-                        IDSetNumber(&Slope1PeriodNP, "Setting new Slope 1 Period failed.");
+                        Slope1PeriodNP.setState(IPS_IDLE);
+                        Slope1PeriodNP.apply("Setting new Slope 1 Period failed.");
 
                         return false ;
                     }
 
-                    Slope1PeriodNP.s = IPS_OK;
-                    Slope1PeriodN[0].value = new_Slope1Period;
-                    IDSetNumber(&Slope1PeriodNP, nullptr);
+                    Slope1PeriodNP.setState(IPS_OK);
+                    Slope1PeriodNP[0].setValue(new_Slope1Period);
+                    Slope1PeriodNP.apply();
 
                     return true;
                 }
                 else
                 {
 
-                    Slope1PeriodNP.s = IPS_IDLE;
-                    IDSetNumber(&Slope1PeriodNP, "Need exactly one parameter.");
+                    Slope1PeriodNP.setState(IPS_IDLE);
+                    Slope1PeriodNP.apply("Need exactly one parameter.");
 
                     return false ;
                 }
@@ -2126,7 +2126,7 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
         }
 
         // Slope 2 Period Minutes
-        if (!strcmp (name, Slope2PeriodNP.name))
+        if (Slope2PeriodNP.isNameMatch(name))
         {
             int new_Slope2Period = 0 ;
             int nset = 0;
@@ -2134,10 +2134,10 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope2PeriodNP property
-                INumber * eqp = IUFindNumber (&Slope2PeriodNP, names[i]);
+                INumber * eqp = Slope2PeriodNP.findWidgetByName(names[i]);
 
-                //If the number found is Slope2Period (Slope2PeriodN[0]) then process it
-                if (eqp == &Slope2PeriodN[0])
+                //If the number found is Slope2Period (Slope2PeriodNP[0]) then process it
+                if (eqp == &Slope2PeriodNP[0])
                 {
 
                     new_Slope2Period = (values[i]);
@@ -2149,29 +2149,29 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
                 {
 
                     // Set the Lakeside state to BUSY
-                    Slope2PeriodNP.s = IPS_BUSY;
-                    IDSetNumber(&Slope2PeriodNP, nullptr);
+                    Slope2PeriodNP.setState(IPS_BUSY);
+                    Slope2PeriodNP.apply();
 
                     if( !setSlope2Period(new_Slope2Period))
                     {
 
-                        Slope2PeriodNP.s = IPS_IDLE;
-                        IDSetNumber(&Slope2PeriodNP, "Setting new Slope 2 Period failed.");
+                        Slope2PeriodNP.setState(IPS_IDLE);
+                        Slope2PeriodNP.apply("Setting new Slope 2 Period failed.");
 
                         return false ;
                     }
 
-                    Slope2PeriodNP.s = IPS_OK;
-                    Slope2PeriodN[0].value = new_Slope2Period;
-                    IDSetNumber(&Slope2PeriodNP, nullptr);
+                    Slope2PeriodNP.setState(IPS_OK);
+                    Slope2PeriodNP[0].setValue(new_Slope2Period);
+                    Slope2PeriodNP.apply();
 
                     return true;
                 }
                 else
                 {
 
-                    Slope2PeriodNP.s = IPS_IDLE;
-                    IDSetNumber(&Slope2PeriodNP, "Need exactly one parameter.");
+                    Slope2PeriodNP.setState(IPS_IDLE);
+                    Slope2PeriodNP.apply("Need exactly one parameter.");
 
                     return false ;
                 }
@@ -2189,56 +2189,56 @@ bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[]
 void Lakeside::GetFocusParams ()
 {
     if (updatePosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (updateTemperature())
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.apply();
 
     // This is currently the only time Kelvin is read - just a nice to have
     if (updateTemperatureK())
-        IDSetNumber(&TemperatureKNP, nullptr);
+        TemperatureKNP.apply();
 
     if (updateBacklash())
-        IDSetNumber(&FocusBacklashNP, nullptr);
+        FocusBacklashNP.apply();
 
     if (updateMaxTravel())
-        IDSetNumber(&FocusMaxPosNP, nullptr);
+        FocusMaxPosNP.apply();
 
     if (updateStepSize())
-        IDSetNumber(&StepSizeNP, nullptr);
+        StepSizeNP.apply();
 
     if (updateMoveDirection())
-        IDSetSwitch(&FocusReverseSP, nullptr);
+        FocusReverseSP.apply();
 
     if (updateSlope1Inc())
-        IDSetNumber(&Slope1IncNP, nullptr);
+        Slope1IncNP.apply();
 
     if (updateSlope2Inc())
-        IDSetNumber(&Slope2IncNP, nullptr);
+        Slope2IncNP.apply();
 
     if (updateSlope1Dir())
-        IDSetSwitch(&Slope1DirSP, nullptr);
+        Slope1DirSP.apply();
 
     if (updateSlope2Dir())
-        IDSetSwitch(&Slope2DirSP, nullptr);
+        Slope2DirSP.apply();
 
     if (updateSlope1Deadband())
-        IDSetNumber(&Slope1DeadbandNP, nullptr);
+        Slope1DeadbandNP.apply();
 
     if (updateSlope2Deadband())
-        IDSetNumber(&Slope2DeadbandNP, nullptr);
+        Slope2DeadbandNP.apply();
 
     if (updateSlope1Period())
-        IDSetNumber(&Slope1PeriodNP, nullptr);
+        Slope1PeriodNP.apply();
 
     if (updateSlope1Period())
-        IDSetNumber(&Slope2PeriodNP, nullptr);
+        Slope2PeriodNP.apply();
 
 }
 
 IPState Lakeside::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosNP[0].getValue() - ticks : FocusAbsPosNP[0].getValue() + ticks);
 }
 
 //
@@ -2269,7 +2269,7 @@ void Lakeside::TimerHit()
     }
 
     // focuser supposedly moving...
-    if (FocusAbsPosNP.s == IPS_BUSY )
+    if (FocusAbsPosNP.getState() == IPS_BUSY )
     {
         // Get actual status from focuser
         // Note: GetLakesideStatus sends position count when moving.
@@ -2284,30 +2284,30 @@ void Lakeside::TimerHit()
         {
             // no longer moving, so reset state to IPS_OK or IDLE?
             // IPS_OK turns light green
-            FocusAbsPosNP.s = IPS_OK;
+            FocusAbsPosNP.setState(IPS_OK);
             // update position
             // This is necessary in case user clicks short step moves in quick succession
             // Lakeside will abort move if command received during move
             rc = updatePosition();
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            LOGF_INFO("Focuser reached requested position %.f", FocusAbsPosN[0].value);
+            FocusAbsPosNP.apply();
+            LOGF_INFO("Focuser reached requested position %.f", FocusAbsPosNP[0].getValue());
         }
     }
 
     // focuser not moving, get temperature updates instead
-    if (FocusAbsPosNP.s == IPS_OK || FocusAbsPosNP.s == IPS_IDLE)
+    if (FocusAbsPosNP.getState() == IPS_OK || FocusAbsPosNP.getState() == IPS_IDLE)
     {
         // Get a temperature
         rc = updateTemperature();
-        if (rc && fabs(lastTemperature - TemperatureN[0].value) > TEMPERATURE_THRESHOLD)
+        if (rc && fabs(lastTemperature - TemperatureNP[0].getValue()) > TEMPERATURE_THRESHOLD)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            TemperatureNP.apply();
+            lastTemperature = TemperatureNP[0].getValue();
         }
     }
 
     // IPS_ALERT - any alert situation generated
-    //    if ( FocusAbsPosNP.s == IPS_ALERT )
+    //    if ( FocusAbsPosNP.getState() == IPS_ALERT )
     //    {
     //        LOG_DEBUG("TimerHit: Focuser state = IPS_ALERT");
     //    }
@@ -2377,7 +2377,7 @@ bool Lakeside::GetLakesideStatus()
         rc = updatePosition();
 
         // IPS_IDLE turns off light, IPS_OK turns light green
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP.setState(IPS_OK);
 
         // return false as focuser is not known to be moving
         return false;
@@ -2391,8 +2391,8 @@ bool Lakeside::GetLakesideStatus()
         rc = sscanf(resp, "P%5d#", &pos);
         LOGF_INFO("Focuser Moving... position : %d", pos);
         // Update current position
-        FocusAbsPosN[0].value = pos;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP[0].setValue(pos);
+        FocusAbsPosNP.apply();
 
         // return true as focuser IS moving
         return true;
@@ -2405,7 +2405,7 @@ bool Lakeside::GetLakesideStatus()
         // return false as focuser is not known to be moving
 
         // IPS_IDLE turns off light, IPS_OK turns light green
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP.setState(IPS_OK);
 
         return false;
     }
@@ -2417,14 +2417,14 @@ bool Lakeside::GetLakesideStatus()
         // return false as focuser is not known to be moving
 
         // IPS_IDLE turns off light, IPS_OK turns light green
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP.setState(IPS_OK);
 
         return false;
     }
 
     // At this point, something else is returned
     LOGF_DEBUG("GetLakesideStatus: Unknown response from buffer read : (%s)", resp);
-    FocusAbsPosNP.s = IPS_OK;
+    FocusAbsPosNP.setState(IPS_OK);
 
     // return false as focuser is not known to be moving
     return false;
@@ -2443,8 +2443,8 @@ bool Lakeside::AbortFocuser()
     if (SendCmd(cmd))
     {
         // IPS_IDLE turns off light, IPS_OK turns light green
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusAbsPosNP.s = IPS_OK;
+        FocusAbsPosNP.setState(IPS_IDLE);
+        FocusAbsPosNP.setState(IPS_OK);
         LOG_INFO("Focuser Abort Sent");
         return true;
     }

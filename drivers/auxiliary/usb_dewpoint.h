@@ -22,6 +22,10 @@
 
 #include <defaultdevice.h>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 /***************************** USB_Dewpoint Commands **************************/
 
 // All commands are exactly 6 bytes, no start/end markers
@@ -110,36 +114,25 @@ class USBDewpoint : public INDI::DefaultDevice
     Connection::Serial *serialConnection{ nullptr };
     int PortFD{ -1 };
 
-    INumber OutputsN[3];
-    INumberVectorProperty OutputsNP;
+    INDI::PropertyNumber OutputsNP {3};
 
-    INumber TemperaturesN[3];
-    INumberVectorProperty TemperaturesNP;
+    INDI::PropertyNumber TemperaturesNP {3};
 
-    INumber CalibrationsN[3];
-    INumberVectorProperty CalibrationsNP;
+    INDI::PropertyNumber CalibrationsNP {3};
 
-    INumber ThresholdsN[2];
-    INumberVectorProperty ThresholdsNP;
+    INDI::PropertyNumber ThresholdsNP {2};
 
-    INumber HumidityN[1];
-    INumberVectorProperty HumidityNP;
+    INDI::PropertyNumber HumidityNP {1};
 
-    INumber DewpointN[1];
-    INumberVectorProperty DewpointNP;
+    INDI::PropertyNumber DewpointNP {1};
 
-    INumber AggressivityN[1];
-    INumberVectorProperty AggressivityNP;
+    INDI::PropertyNumber AggressivityNP {1};
 
-    ISwitch AutoModeS[2];
-    ISwitchVectorProperty AutoModeSP;
+    INDI::PropertySwitch AutoModeSP {2};
 
-    ISwitch LinkOut23S[2];
-    ISwitchVectorProperty LinkOut23SP;
+    INDI::PropertySwitch LinkOut23SP {2};
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+    INDI::PropertySwitch ResetSP {1};
 
-    INumber FWversionN[1];
-    INumberVectorProperty FWversionNP;
+    INDI::PropertyNumber FWversionNP {1};
 };

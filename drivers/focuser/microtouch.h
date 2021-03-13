@@ -23,6 +23,10 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 #define CMD_GET_STATUS      0x80
 #define CMD_RESET_POSITION  0x81
 #define CMD_IS_MOVING       0x82
@@ -96,24 +100,20 @@ class Microtouch : public INDI::Focuser
     struct timeval focusMoveStart { 0, 0 };
     float focusMoveRequest { 0 };
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+    INDI::PropertyNumber TemperatureNP {1};
 
-    ISwitch MotorSpeedS[2];
-    ISwitchVectorProperty MotorSpeedSP;
+    INDI::PropertySwitch MotorSpeedSP {2};
 
-//    INumber MaxTravelN[1];
-//    INumberVectorProperty MaxTravelNP;
+//    INDI::PropertyNumber MaxTravelNP {1};
+//
 
-    INumber TemperatureSettingN[2];
-    INumberVectorProperty TemperatureSettingNP;
+    INDI::PropertyNumber TemperatureSettingNP {2};
 
-    ISwitch TemperatureCompensateS[2];
-    ISwitchVectorProperty TemperatureCompensateSP;
+    INDI::PropertySwitch TemperatureCompensateSP {2};
 
-//    ISwitch ResetS[1];
-//    ISwitchVectorProperty ResetSP;
+//    INDI::PropertySwitch ResetSP {1};
+//
 
-//    INumber ResetToPosN[1];
-//    INumberVectorProperty ResetToPosNP;
+//    INDI::PropertyNumber ResetToPosNP {1};
+//
 };

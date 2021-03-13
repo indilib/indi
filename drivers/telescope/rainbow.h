@@ -23,6 +23,10 @@
 #include "inditelescope.h"
 #include "indiguiderinterface.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
@@ -148,14 +152,10 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         ///////////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////////
-        ISwitchVectorProperty HomeSP;
-        ISwitch HomeS[1];
+        INDI::PropertySwitch HomeSP {1};
+        INDI::PropertyNumber HorizontalCoordsNP {2};
 
-        INumberVectorProperty HorizontalCoordsNP;
-        INumber HorizontalCoordsN[2];
-
-        INumber GuideRateN[1];
-        INumberVectorProperty GuideRateNP;
+        INDI::PropertyNumber GuideRateNP {1};
 
         const std::string getSlewErrorString(uint8_t code);
         uint8_t m_SlewErrorCode {0};

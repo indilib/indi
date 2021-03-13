@@ -38,8 +38,8 @@ FilterInterface::~FilterInterface()
 
 void FilterInterface::initProperties(const char *groupName)
 {
-    IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
-    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, m_defaultDevice->getDeviceName(), "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60,
+    FilterSlotNP[0].fill("FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
+    FilterSlotNP.fill(m_defaultDevice->getDeviceName(), "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60,
                        IPS_IDLE);
 
     loadFilterNames();
@@ -50,7 +50,7 @@ bool FilterInterface::updateProperties()
     if (m_defaultDevice->isConnected())
     {
         // Define the Filter Slot and name properties
-        m_defaultDevice->defineProperty(&FilterSlotNP);
+        m_defaultDevice->defineProperty(FilterSlotNP);
         if (FilterNameT == nullptr)
         {
             if (GetFilterNames() == true)
@@ -61,7 +61,7 @@ bool FilterInterface::updateProperties()
     }
     else
     {
-        m_defaultDevice->deleteProperty(FilterSlotNP.name);
+        m_defaultDevice->deleteProperty(FilterSlotNP.getName());
         m_defaultDevice->deleteProperty(FilterNameTP->name);
     }
 
@@ -72,37 +72,37 @@ bool FilterInterface::processNumber(const char *dev, const char *name, double va
 {
     INDI_UNUSED(n);
 
-    if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()) && !strcmp(name, FilterSlotNP.name))
+    if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()) && !strcmp(name, FilterSlotNP.getName()))
     {
         TargetFilter = values[0];
 
-        INumber *np = IUFindNumber(&FilterSlotNP, names[0]);
+        INumber *np = FilterSlotNP.findWidgetByName(names[0]);
 
         if (!np)
         {
-            FilterSlotNP.s = IPS_ALERT;
-            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.", names[0], FilterSlotNP.name);
-            IDSetNumber(&FilterSlotNP, nullptr);
+            FilterSlotNP.setState(IPS_ALERT);
+            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.", names[0], FilterSlotNP.getName());
+            FilterSlotNP.apply();
             return false;
         }
 
-        if (TargetFilter < FilterSlotN[0].min || TargetFilter > FilterSlotN[0].max)
+        if (TargetFilter < FilterSlotNP[0].min || TargetFilter > FilterSlotNP[0].max)
         {
-            FilterSlotNP.s = IPS_ALERT;
-            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g", FilterSlotN[0].min, FilterSlotN[0].max);
-            IDSetNumber(&FilterSlotNP, nullptr);
+            FilterSlotNP.setState(IPS_ALERT);
+            DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g", FilterSlotNP[0].min, FilterSlotNP[0].max);
+            FilterSlotNP.apply();
             return false;
         }
 
-        FilterSlotNP.s = IPS_BUSY;
+        FilterSlotNP.setState(IPS_BUSY);
         DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_SESSION, "Setting current filter to slot %d", TargetFilter);
 
         if (SelectFilter(TargetFilter) == false)
         {
-            FilterSlotNP.s = IPS_ALERT;
+            FilterSlotNP.setState(IPS_ALERT);
         }
 
-        IDSetNumber(&FilterSlotNP, nullptr);
+        FilterSlotNP.apply();
         return true;
     }
 
@@ -139,7 +139,7 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
                 IUFillText(&FilterNameT[i], filterName, filterLabel, texts[i]);
             }
 
-            IUFillTextVector(FilterNameTP, FilterNameT, n, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+            IUFillTextVector(FilterNameTP, FilterNameT, n, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
             m_defaultDevice->defineProperty(FilterNameTP);
             return true;
         }
@@ -166,7 +166,7 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
 
 bool FilterInterface::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigNumber(fp, &FilterSlotNP);
+    FilterSlotNP.save(fp);
     if (FilterNameTP)
         IUSaveConfigText(fp, FilterNameTP);
 
@@ -177,18 +177,18 @@ void FilterInterface::SelectFilterDone(int f)
 {
     //  The hardware has finished changing
     //  filters
-    FilterSlotN[0].value = f;
-    FilterSlotNP.s       = IPS_OK;
+    FilterSlotNP[0].setValue(f);
+    FilterSlotNP.setState(IPS_OK);
     // Tell the clients we are done, and
     //  filter is now useable
-    IDSetNumber(&FilterSlotNP, nullptr);
+    FilterSlotNP.apply();
 }
 
 void FilterInterface::generateSampleFilters()
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
+    int MaxFilter = FilterSlotNP[0].getMax();
 
     const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminance" };
 
@@ -209,7 +209,7 @@ void FilterInterface::generateSampleFilters()
         IUFillText(&FilterNameT[i], filterName, filterLabel, i < 8 ? filterDesignation[i] : filterLabel);
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
 }
 
 bool FilterInterface::GetFilterNames()
@@ -302,7 +302,7 @@ bool FilterInterface::loadFilterNames()
         }
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, nelem, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, nelem, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.getGroupName(), IP_RW, 0, IPS_IDLE);
 
     fclose(fp);
     delXMLEle(fproot);

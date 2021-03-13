@@ -28,6 +28,9 @@
 
 #include <map>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+
 class WeatherWatcher : public INDI::Weather
 {
   public:
@@ -46,19 +49,16 @@ class WeatherWatcher : public INDI::Weather
     virtual IPState updateWeather() override;
     virtual bool saveConfigItems(FILE *fp) override;
 
-    IText keywordT[8] {};
-    ITextVectorProperty keywordTP;
+    INDI::PropertyText keywordTP {8};
 
-    IText separatorT[1] {};
-    ITextVectorProperty separatorTP;
+    INDI::PropertyText separatorTP {1};
 
   private:
     std::map<std::string, std::string> createMap(std::string const& s);
     bool readWatchFile();
     bool createPropertiesFromMap();
 
-    IText watchFileT[1] {};
-    ITextVectorProperty watchFileTP;
+    INDI::PropertyText watchFileTP {1};
 
     bool initialParse { false };
     std::string readBuffer;

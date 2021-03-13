@@ -92,122 +92,122 @@ bool Dome::initProperties()
     DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
     // Presets
-    IUFillNumber(&PresetN[0], "Preset 1", "", "%6.2f", 0, 360.0, 1.0, 0);
-    IUFillNumber(&PresetN[1], "Preset 2", "", "%6.2f", 0, 360.0, 1.0, 0);
-    IUFillNumber(&PresetN[2], "Preset 3", "", "%6.2f", 0, 360.0, 1.0, 0);
-    IUFillNumberVector(&PresetNP, PresetN, 3, getDeviceName(), "Presets", "", "Presets", IP_RW, 0, IPS_IDLE);
+    PresetNP[0].fill("Preset 1", "", "%6.2f", 0, 360.0, 1.0, 0);
+    PresetNP[1].fill("Preset 2", "", "%6.2f", 0, 360.0, 1.0, 0);
+    PresetNP[2].fill("Preset 3", "", "%6.2f", 0, 360.0, 1.0, 0);
+    PresetNP.fill(getDeviceName(), "Presets", "", "Presets", IP_RW, 0, IPS_IDLE);
 
     //Preset GOTO
-    IUFillSwitch(&PresetGotoS[0], "Preset 1", "", ISS_OFF);
-    IUFillSwitch(&PresetGotoS[1], "Preset 2", "", ISS_OFF);
-    IUFillSwitch(&PresetGotoS[2], "Preset 3", "", ISS_OFF);
-    IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0,
+    PresetGotoSP[0].fill("Preset 1", "", ISS_OFF);
+    PresetGotoSP[1].fill("Preset 2", "", ISS_OFF);
+    PresetGotoSP[2].fill("Preset 3", "", ISS_OFF);
+    PresetGotoSP.fill(getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    //    IUFillSwitch(&AutoParkS[0], "INDI_ENABLED", "Enable", ISS_OFF);
-    //    IUFillSwitch(&AutoParkS[1], "INDI_DISABLED", "Disable", ISS_ON);
-    //    IUFillSwitchVector(&AutoParkSP, AutoParkS, 2, getDeviceName(), "DOME_AUTOPARK", "Auto Park", OPTIONS_TAB, IP_RW,
+    //    AutoParkSP[0].fill("INDI_ENABLED", "Enable", ISS_OFF);
+    //    AutoParkSP[1].fill("INDI_DISABLED", "Disable", ISS_ON);
+    //    AutoParkSP.fill(getDeviceName(), "DOME_AUTOPARK", "Auto Park", OPTIONS_TAB, IP_RW,
     //                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // Active Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    //IUFillText(&ActiveDeviceT[1], "ACTIVE_WEATHER", "Weather", "WunderGround");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
+    ActiveDeviceTP[0].fill("ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    //ActiveDeviceTP[1].fill("ACTIVE_WEATHER", "Weather", "WunderGround");
+    ActiveDeviceTP.fill(getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     // Use locking if telescope is unparked
-    IUFillSwitch(&MountPolicyS[MOUNT_IGNORED], "MOUNT_IGNORED", "Mount ignored", ISS_ON);
-    IUFillSwitch(&MountPolicyS[MOUNT_LOCKS], "MOUNT_LOCKS", "Mount locks", ISS_OFF);
-    IUFillSwitchVector(&MountPolicySP, MountPolicyS, 2, getDeviceName(), "MOUNT_POLICY", "Mount Policy", OPTIONS_TAB, IP_RW,
+    MountPolicySP[MOUNT_IGNORED].fill("MOUNT_IGNORED", "Mount ignored", ISS_ON);
+    MountPolicySP[MOUNT_LOCKS].fill("MOUNT_LOCKS", "Mount locks", ISS_OFF);
+    MountPolicySP.fill(getDeviceName(), "MOUNT_POLICY", "Mount Policy", OPTIONS_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Shutter Policy
-    IUFillSwitch(&ShutterParkPolicyS[SHUTTER_CLOSE_ON_PARK], "SHUTTER_CLOSE_ON_PARK", "Close On Park", ISS_OFF);
-    IUFillSwitch(&ShutterParkPolicyS[SHUTTER_OPEN_ON_UNPARK], "SHUTTER_OPEN_ON_UNPARK", "Open On UnPark", ISS_OFF);
-    IUFillSwitchVector(&ShutterParkPolicySP, ShutterParkPolicyS, 2, getDeviceName(), "DOME_SHUTTER_PARK_POLICY", "Shutter",
+    ShutterParkPolicySP[SHUTTER_CLOSE_ON_PARK].fill("SHUTTER_CLOSE_ON_PARK", "Close On Park", ISS_OFF);
+    ShutterParkPolicySP[SHUTTER_OPEN_ON_UNPARK].fill("SHUTTER_OPEN_ON_UNPARK", "Open On UnPark", ISS_OFF);
+    ShutterParkPolicySP.fill(getDeviceName(), "DOME_SHUTTER_PARK_POLICY", "Shutter",
                        OPTIONS_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     // Measurements
-    IUFillNumber(&DomeMeasurementsN[DM_DOME_RADIUS], "DM_DOME_RADIUS", "Radius (m)", "%6.2f", 0.0, 50.0, 1.0, 0.0);
-    IUFillNumber(&DomeMeasurementsN[DM_SHUTTER_WIDTH], "DM_SHUTTER_WIDTH", "Shutter width (m)", "%6.2f", 0.0, 10.0, 1.0,
+    DomeMeasurementsNP[DM_DOME_RADIUS].fill("DM_DOME_RADIUS", "Radius (m)", "%6.2f", 0.0, 50.0, 1.0, 0.0);
+    DomeMeasurementsNP[DM_SHUTTER_WIDTH].fill("DM_SHUTTER_WIDTH", "Shutter width (m)", "%6.2f", 0.0, 10.0, 1.0,
                  0.0);
-    IUFillNumber(&DomeMeasurementsN[DM_NORTH_DISPLACEMENT], "DM_NORTH_DISPLACEMENT", "N displacement (m)", "%6.2f",
+    DomeMeasurementsNP[DM_NORTH_DISPLACEMENT].fill("DM_NORTH_DISPLACEMENT", "N displacement (m)", "%6.2f",
                  -10.0, 10.0, 1.0, 0.0);
-    IUFillNumber(&DomeMeasurementsN[DM_EAST_DISPLACEMENT], "DM_EAST_DISPLACEMENT", "E displacement (m)", "%6.2f", -10.0,
+    DomeMeasurementsNP[DM_EAST_DISPLACEMENT].fill("DM_EAST_DISPLACEMENT", "E displacement (m)", "%6.2f", -10.0,
                  10.0, 1.0, 0.0);
-    IUFillNumber(&DomeMeasurementsN[DM_UP_DISPLACEMENT], "DM_UP_DISPLACEMENT", "Up displacement (m)", "%6.2f", -10,
+    DomeMeasurementsNP[DM_UP_DISPLACEMENT].fill("DM_UP_DISPLACEMENT", "Up displacement (m)", "%6.2f", -10,
                  10.0, 1.0, 0.0);
-    IUFillNumber(&DomeMeasurementsN[DM_OTA_OFFSET], "DM_OTA_OFFSET", "OTA offset (m)", "%6.2f", -10.0, 10.0, 1.0, 0.0);
-    IUFillNumberVector(&DomeMeasurementsNP, DomeMeasurementsN, 6, getDeviceName(), "DOME_MEASUREMENTS", "Measurements",
+    DomeMeasurementsNP[DM_OTA_OFFSET].fill("DM_OTA_OFFSET", "OTA offset (m)", "%6.2f", -10.0, 10.0, 1.0, 0.0);
+    DomeMeasurementsNP.fill(getDeviceName(), "DOME_MEASUREMENTS", "Measurements",
                        DOME_SLAVING_TAB, IP_RW, 60, IPS_OK);
 
-    IUFillSwitch(&OTASideS[0], "DM_OTA_SIDE_EAST", "East", ISS_OFF);
-    IUFillSwitch(&OTASideS[1], "DM_OTA_SIDE_WEST", "West", ISS_OFF);
-    IUFillSwitchVector(&OTASideSP, OTASideS, 2, getDeviceName(), "DM_OTA_SIDE", "Meridian side", DOME_SLAVING_TAB,
+    OTASideSP[0].fill("DM_OTA_SIDE_EAST", "East", ISS_OFF);
+    OTASideSP[1].fill("DM_OTA_SIDE_WEST", "West", ISS_OFF);
+    OTASideSP.fill(getDeviceName(), "DM_OTA_SIDE", "Meridian side", DOME_SLAVING_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
-    IUFillSwitch(&DomeAutoSyncS[0], "DOME_AUTOSYNC_ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&DomeAutoSyncS[1], "DOME_AUTOSYNC_DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(&DomeAutoSyncSP, DomeAutoSyncS, 2, getDeviceName(), "DOME_AUTOSYNC", "Slaving", DOME_SLAVING_TAB,
+    DomeAutoSyncSP[0].fill("DOME_AUTOSYNC_ENABLE", "Enable", ISS_OFF);
+    DomeAutoSyncSP[1].fill("DOME_AUTOSYNC_DISABLE", "Disable", ISS_ON);
+    DomeAutoSyncSP.fill(getDeviceName(), "DOME_AUTOSYNC", "Slaving", DOME_SLAVING_TAB,
                        IP_RW, ISR_1OFMANY, 60, IPS_OK);
 
-    IUFillNumber(&DomeSpeedN[0], "DOME_SPEED_VALUE", "RPM", "%6.2f", 0.0, 10, 0.1, 1.0);
-    IUFillNumberVector(&DomeSpeedNP, DomeSpeedN, 1, getDeviceName(), "DOME_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, 60,
+    DomeSpeedNP[0].fill("DOME_SPEED_VALUE", "RPM", "%6.2f", 0.0, 10, 0.1, 1.0);
+    DomeSpeedNP.fill(getDeviceName(), "DOME_SPEED", "Speed", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_OK);
 
-    IUFillNumber(&DomeSyncN[0], "DOME_SYNC_VALUE", "Az", "%.2f", 0.0, 360, 10, 0.0);
-    IUFillNumberVector(&DomeSyncNP, DomeSyncN, 1, getDeviceName(), "DOME_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 60,
+    DomeSyncNP[0].fill("DOME_SYNC_VALUE", "Az", "%.2f", 0.0, 360, 10, 0.0);
+    DomeSyncNP.fill(getDeviceName(), "DOME_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_OK);
 
-    IUFillSwitch(&DomeMotionS[0], "DOME_CW", "Dome CW", ISS_OFF);
-    IUFillSwitch(&DomeMotionS[1], "DOME_CCW", "Dome CCW", ISS_OFF);
-    IUFillSwitchVector(&DomeMotionSP, DomeMotionS, 2, getDeviceName(), "DOME_MOTION", "Motion", MAIN_CONTROL_TAB, IP_RW,
+    DomeMotionSP[0].fill("DOME_CW", "Dome CW", ISS_OFF);
+    DomeMotionSP[1].fill("DOME_CCW", "Dome CCW", ISS_OFF);
+    DomeMotionSP.fill(getDeviceName(), "DOME_MOTION", "Motion", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 60, IPS_OK);
 
     // Driver can define those to clients if there is support
-    IUFillNumber(&DomeAbsPosN[0], "DOME_ABSOLUTE_POSITION", "Degrees", "%6.2f", 0.0, 360.0, 1.0, 0.0);
-    IUFillNumberVector(&DomeAbsPosNP, DomeAbsPosN, 1, getDeviceName(), "ABS_DOME_POSITION", "Absolute Position",
+    DomeAbsPosNP[0].fill("DOME_ABSOLUTE_POSITION", "Degrees", "%6.2f", 0.0, 360.0, 1.0, 0.0);
+    DomeAbsPosNP.fill(getDeviceName(), "ABS_DOME_POSITION", "Absolute Position",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
 
-    IUFillNumber(&DomeRelPosN[0], "DOME_RELATIVE_POSITION", "Degrees", "%6.2f", -180, 180.0, 10.0, 0.0);
-    IUFillNumberVector(&DomeRelPosNP, DomeRelPosN, 1, getDeviceName(), "REL_DOME_POSITION", "Relative Position",
+    DomeRelPosNP[0].fill("DOME_RELATIVE_POSITION", "Degrees", "%6.2f", -180, 180.0, 10.0, 0.0);
+    DomeRelPosNP.fill(getDeviceName(), "REL_DOME_POSITION", "Relative Position",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
 
-    IUFillSwitch(&AbortS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&AbortSP, AbortS, 1, getDeviceName(), "DOME_ABORT_MOTION", "Abort Motion", MAIN_CONTROL_TAB,
+    AbortSP[0].fill("ABORT", "Abort", ISS_OFF);
+    AbortSP.fill(getDeviceName(), "DOME_ABORT_MOTION", "Abort Motion", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    IUFillNumber(&DomeParamN[0], "AUTOSYNC_THRESHOLD", "Autosync threshold (deg)", "%6.2f", 0.0, 360.0, 1.0, 0.5);
-    IUFillNumberVector(&DomeParamNP, DomeParamN, 1, getDeviceName(), "DOME_PARAMS", "Params", DOME_SLAVING_TAB, IP_RW,
+    DomeParamNP[0].fill("AUTOSYNC_THRESHOLD", "Autosync threshold (deg)", "%6.2f", 0.0, 360.0, 1.0, 0.5);
+    DomeParamNP.fill(getDeviceName(), "DOME_PARAMS", "Params", DOME_SLAVING_TAB, IP_RW,
                        60, IPS_OK);
 
-    IUFillSwitch(&ParkS[0], "PARK", "Park(ed)", ISS_OFF);
-    IUFillSwitch(&ParkS[1], "UNPARK", "UnPark(ed)", ISS_OFF);
-    IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "DOME_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY,
+    ParkSP[0].fill("PARK", "Park(ed)", ISS_OFF);
+    ParkSP[1].fill("UNPARK", "UnPark(ed)", ISS_OFF);
+    ParkSP.fill(getDeviceName(), "DOME_PARK", "Parking", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY,
                        60, IPS_OK);
 
     // Backlash Compensation
-    IUFillSwitch(&DomeBacklashS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&DomeBacklashS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&DomeBacklashSP, DomeBacklashS, 2, getDeviceName(), "DOME_BACKLASH_TOGGLE", "Backlash", OPTIONS_TAB,
+    DomeBacklashSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    DomeBacklashSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    DomeBacklashSP.fill(getDeviceName(), "DOME_BACKLASH_TOGGLE", "Backlash", OPTIONS_TAB,
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 
     // Backlash Compensation Value
-    IUFillNumber(&DomeBacklashN[0], "DOME_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
-    IUFillNumberVector(&DomeBacklashNP, DomeBacklashN, 1, getDeviceName(), "DOME_BACKLASH_STEPS", "Backlash",
+    DomeBacklashNP[0].fill("DOME_BACKLASH_VALUE", "Steps", "%.f", 0, 1e6, 100, 0);
+    DomeBacklashNP.fill(getDeviceName(), "DOME_BACKLASH_STEPS", "Backlash",
                        OPTIONS_TAB, IP_RW, 60, IPS_OK);
 
 
-    IUFillSwitch(&DomeShutterS[0], "SHUTTER_OPEN", "Open", ISS_OFF);
-    IUFillSwitch(&DomeShutterS[1], "SHUTTER_CLOSE", "Close", ISS_ON);
-    IUFillSwitchVector(&DomeShutterSP, DomeShutterS, 2, getDeviceName(), "DOME_SHUTTER", "Shutter", MAIN_CONTROL_TAB,
+    DomeShutterSP[0].fill("SHUTTER_OPEN", "Open", ISS_OFF);
+    DomeShutterSP[1].fill("SHUTTER_CLOSE", "Close", ISS_ON);
+    DomeShutterSP.fill(getDeviceName(), "DOME_SHUTTER", "Shutter", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
-    IUFillSwitch(&ParkOptionS[0], "PARK_CURRENT", "Current", ISS_OFF);
-    IUFillSwitch(&ParkOptionS[1], "PARK_DEFAULT", "Default", ISS_OFF);
-    IUFillSwitch(&ParkOptionS[2], "PARK_WRITE_DATA", "Write Data", ISS_OFF);
-    IUFillSwitchVector(&ParkOptionSP, ParkOptionS, 3, getDeviceName(), "DOME_PARK_OPTION", "Park Options", SITE_TAB,
+    ParkOptionSP[0].fill("PARK_CURRENT", "Current", ISS_OFF);
+    ParkOptionSP[1].fill("PARK_DEFAULT", "Default", ISS_OFF);
+    ParkOptionSP[2].fill("PARK_WRITE_DATA", "Write Data", ISS_OFF);
+    ParkOptionSP.fill(getDeviceName(), "DOME_PARK_OPTION", "Park Options", SITE_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     addDebugControl();
@@ -217,13 +217,13 @@ bool Dome::initProperties()
 
     controller->initProperties();
 
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PARK");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "TELESCOPE_PARK");
     if (CanAbsMove())
-        IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
+        IDSnoopDevice(ActiveDeviceTP[0].getText(), "TELESCOPE_PIER_SIDE");
 
-    //IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
+    //IDSnoopDevice(ActiveDeviceTP[1].getText(), "WEATHER_STATUS");
 
     setDriverInterface(DOME_INTERFACE);
 
@@ -255,16 +255,16 @@ void Dome::ISGetProperties(const char * dev)
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
-    defineProperty(&ActiveDeviceTP);
+    defineProperty(ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 
     ISState isMountIgnored = ISS_OFF;
-    if (IUGetConfigSwitch(getDeviceName(), MountPolicySP.name, MountPolicyS[MOUNT_IGNORED].name, &isMountIgnored) == 0)
+    if (IUGetConfigSwitch(getDeviceName(), MountPolicySP.getName(), MountPolicySP[MOUNT_IGNORED].getName(), &isMountIgnored) == 0)
     {
-        MountPolicyS[MOUNT_IGNORED].s = isMountIgnored;
-        MountPolicyS[MOUNT_LOCKS].s = (isMountIgnored == ISS_ON) ? ISS_OFF : ISS_ON;
+        MountPolicySP[MOUNT_IGNORED].setState(isMountIgnored);
+        MountPolicySP[MOUNT_LOCKS].setState((isMountIgnored == ISS_ON) ? ISS_OFF : ISS_ON);
     }
-    defineProperty(&MountPolicySP);
+    defineProperty(MountPolicySP);
 
     controller->ISGetProperties(dev);
     return;
@@ -276,107 +276,107 @@ bool Dome::updateProperties()
     {
         if (HasShutter())
         {
-            defineProperty(&DomeShutterSP);
-            defineProperty(&ShutterParkPolicySP);
+            defineProperty(DomeShutterSP);
+            defineProperty(ShutterParkPolicySP);
         }
 
         //  Now we add our Dome specific stuff
-        defineProperty(&DomeMotionSP);
+        defineProperty(DomeMotionSP);
 
         if (HasVariableSpeed())
         {
-            defineProperty(&DomeSpeedNP);
+            defineProperty(DomeSpeedNP);
             //defineProperty(&DomeTimerNP);
         }
         if (CanRelMove())
-            defineProperty(&DomeRelPosNP);
+            defineProperty(DomeRelPosNP);
         if (CanAbsMove())
-            defineProperty(&DomeAbsPosNP);
+            defineProperty(DomeAbsPosNP);
         if (CanAbort())
-            defineProperty(&AbortSP);
+            defineProperty(AbortSP);
         if (CanAbsMove())
         {
-            defineProperty(&PresetNP);
-            defineProperty(&PresetGotoSP);
+            defineProperty(PresetNP);
+            defineProperty(PresetGotoSP);
 
-            defineProperty(&DomeAutoSyncSP);
-            defineProperty(&OTASideSP);
-            defineProperty(&DomeParamNP);
-            defineProperty(&DomeMeasurementsNP);
+            defineProperty(DomeAutoSyncSP);
+            defineProperty(OTASideSP);
+            defineProperty(DomeParamNP);
+            defineProperty(DomeMeasurementsNP);
         }
         if (CanSync())
-            defineProperty(&DomeSyncNP);
+            defineProperty(DomeSyncNP);
 
         if (CanPark())
         {
-            defineProperty(&ParkSP);
+            defineProperty(ParkSP);
             if (parkDataType != PARK_NONE)
             {
-                defineProperty(&ParkPositionNP);
-                defineProperty(&ParkOptionSP);
+                defineProperty(ParkPositionNP);
+                defineProperty(ParkOptionSP);
             }
         }
 
         if (HasBacklash())
         {
-            defineProperty(&DomeBacklashSP);
-            defineProperty(&DomeBacklashNP);
+            defineProperty(DomeBacklashSP);
+            defineProperty(DomeBacklashNP);
         }
 
-        //defineProperty(&AutoParkSP);
+        //defineProperty(AutoParkSP);
     }
     else
     {
         if (HasShutter())
         {
-            deleteProperty(DomeShutterSP.name);
-            deleteProperty(ShutterParkPolicySP.name);
+            deleteProperty(DomeShutterSP.getName());
+            deleteProperty(ShutterParkPolicySP.getName());
         }
 
-        deleteProperty(DomeMotionSP.name);
+        deleteProperty(DomeMotionSP.getName());
 
         if (HasVariableSpeed())
         {
-            deleteProperty(DomeSpeedNP.name);
+            deleteProperty(DomeSpeedNP.getName());
             //deleteProperty(DomeTimerNP.name);
         }
         if (CanRelMove())
-            deleteProperty(DomeRelPosNP.name);
+            deleteProperty(DomeRelPosNP.getName());
         if (CanAbsMove())
-            deleteProperty(DomeAbsPosNP.name);
+            deleteProperty(DomeAbsPosNP.getName());
         if (CanAbort())
-            deleteProperty(AbortSP.name);
+            deleteProperty(AbortSP.getName());
         if (CanAbsMove())
         {
-            deleteProperty(PresetNP.name);
-            deleteProperty(PresetGotoSP.name);
+            deleteProperty(PresetNP.getName());
+            deleteProperty(PresetGotoSP.getName());
 
-            deleteProperty(DomeAutoSyncSP.name);
-            deleteProperty(OTASideSP.name);
-            deleteProperty(DomeParamNP.name);
-            deleteProperty(DomeMeasurementsNP.name);
+            deleteProperty(DomeAutoSyncSP.getName());
+            deleteProperty(OTASideSP.getName());
+            deleteProperty(DomeParamNP.getName());
+            deleteProperty(DomeMeasurementsNP.getName());
         }
 
         if (CanSync())
-            deleteProperty(DomeSyncNP.name);
+            deleteProperty(DomeSyncNP.getName());
 
         if (CanPark())
         {
-            deleteProperty(ParkSP.name);
+            deleteProperty(ParkSP.getName());
             if (parkDataType != PARK_NONE)
             {
-                deleteProperty(ParkPositionNP.name);
-                deleteProperty(ParkOptionSP.name);
+                deleteProperty(ParkPositionNP.getName());
+                deleteProperty(ParkOptionSP.getName());
             }
         }
 
         if (HasBacklash())
         {
-            deleteProperty(DomeBacklashSP.name);
-            deleteProperty(DomeBacklashNP.name);
+            deleteProperty(DomeBacklashSP.getName());
+            deleteProperty(DomeBacklashNP.getName());
         }
 
-        //deleteProperty(AutoParkSP.name);
+        //deleteProperty(AutoParkSP.getName());
     }
 
     controller->updateProperties();
@@ -388,82 +388,82 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, PresetNP.name))
+        if (PresetNP.isNameMatch(name))
         {
-            IUUpdateNumber(&PresetNP, values, names, n);
-            PresetNP.s = IPS_OK;
-            IDSetNumber(&PresetNP, nullptr);
+            PresetNP.update(values, names, n);
+            PresetNP.setState(IPS_OK);
+            PresetNP.apply();
 
             return true;
         }
         // Dome Sync
-        else if (!strcmp(name, DomeSyncNP.name))
+        else if (DomeSyncNP.isNameMatch(name))
         {
             if (Sync(values[0]))
             {
-                IUUpdateNumber(&DomeSyncNP, values, names, n);
-                DomeSyncNP.s = IPS_OK;
-                DomeAbsPosN[0].value = values[0];
-                IDSetNumber(&DomeAbsPosNP, nullptr);
+                DomeSyncNP.update(values, names, n);
+                DomeSyncNP.setState(IPS_OK);
+                DomeAbsPosNP[0].setValue(values[0]);
+                DomeAbsPosNP.apply();
             }
             else
             {
-                DomeSyncNP.s = IPS_ALERT;
+                DomeSyncNP.setState(IPS_ALERT);
             }
 
-            IDSetNumber(&DomeSyncNP, nullptr);
+            DomeSyncNP.apply();
             return true;
         }
-        else if (!strcmp(name, DomeParamNP.name))
+        else if (DomeParamNP.isNameMatch(name))
         {
-            IUUpdateNumber(&DomeParamNP, values, names, n);
-            DomeParamNP.s = IPS_OK;
-            IDSetNumber(&DomeParamNP, nullptr);
+            DomeParamNP.update(values, names, n);
+            DomeParamNP.setState(IPS_OK);
+            DomeParamNP.apply();
             return true;
         }
-        else if (!strcmp(name, DomeSpeedNP.name))
+        else if (DomeSpeedNP.isNameMatch(name))
         {
             double newSpeed = values[0];
             Dome::SetSpeed(newSpeed);
             return true;
         }
-        else if (!strcmp(name, DomeAbsPosNP.name))
+        else if (DomeAbsPosNP.isNameMatch(name))
         {
             double newPos = values[0];
             Dome::MoveAbs(newPos);
             return true;
         }
-        else if (!strcmp(name, DomeRelPosNP.name))
+        else if (DomeRelPosNP.isNameMatch(name))
         {
             double newPos = values[0];
             Dome::MoveRel(newPos);
             return true;
         }
-        else if (!strcmp(name, DomeMeasurementsNP.name))
+        else if (DomeMeasurementsNP.isNameMatch(name))
         {
-            IUUpdateNumber(&DomeMeasurementsNP, values, names, n);
-            DomeMeasurementsNP.s = IPS_OK;
-            IDSetNumber(&DomeMeasurementsNP, nullptr);
+            DomeMeasurementsNP.update(values, names, n);
+            DomeMeasurementsNP.setState(IPS_OK);
+            DomeMeasurementsNP.apply();
 
             return true;
         }
-        else if (strcmp(name, ParkPositionNP.name) == 0)
+        else if (ParkPositionNP.isNameMatch(name))
         {
-            IUUpdateNumber(&ParkPositionNP, values, names, n);
-            ParkPositionNP.s = IPS_OK;
+            ParkPositionNP.update(values, names, n);
+            ParkPositionNP.setState(IPS_OK);
 
-            Axis1ParkPosition = ParkPositionN[AXIS_RA].value;
-            IDSetNumber(&ParkPositionNP, nullptr);
+            Axis1ParkPosition = ParkPositionNP[AXIS_RA].getValue();
+            ParkPositionNP.apply();
             return true;
         }
         ////////////////////////////////////////////
         // Backlash value
         ////////////////////////////////////////////
-        else if (!strcmp(name, DomeBacklashNP.name))
+        else if (DomeBacklashNP.isNameMatch(name))
         {
-            if (DomeBacklashS[INDI_ENABLED].s != ISS_ON)
+            if (DomeBacklashSP[INDI_ENABLED].getState() != ISS_ON)
             {
-                DomeBacklashNP.s = IPS_IDLE;
+                DomeBacklashNP.setState(IPS_IDLE);
                 DEBUGDEVICE(dev, Logger::DBG_WARNING, "Dome backlash must be enabled first.");
             }
             else
@@ -471,13 +471,13 @@ bool Dome::ISNewNumber(const char * dev, const char * name, double values[], cha
                 uint32_t steps = static_cast<uint32_t>(values[0]);
                 if (SetBacklash(steps))
                 {
-                    DomeBacklashN[0].value = values[0];
-                    DomeBacklashNP.s = IPS_OK;
+                    DomeBacklashNP[0].setValue(values[0]);
+                    DomeBacklashNP.setState(IPS_OK);
                 }
                 else
-                    DomeBacklashNP.s = IPS_ALERT;
+                    DomeBacklashNP.setState(IPS_ALERT);
             }
-            IDSetNumber(&DomeBacklashNP, nullptr);
+            DomeBacklashNP.apply();
             return true;
         }
     }
@@ -492,56 +492,56 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         // GOTO Presets
         ////////////////////////////////////////////
-        if (!strcmp(PresetGotoSP.name, name))
+        if (PresetGotoSP.isNameMatch(name))
         {
             if (m_DomeState == DOME_PARKED)
             {
                 DEBUGDEVICE(getDeviceName(), Logger::DBG_ERROR,
                             "Please unpark before issuing any motion commands.");
-                PresetGotoSP.s = IPS_ALERT;
-                IDSetSwitch(&PresetGotoSP, nullptr);
+                PresetGotoSP.setState(IPS_ALERT);
+                PresetGotoSP.apply();
                 return false;
             }
 
-            IUUpdateSwitch(&PresetGotoSP, states, names, n);
-            int index  = IUFindOnSwitchIndex(&PresetGotoSP);
-            IPState rc = Dome::MoveAbs(PresetN[index].value);
+            PresetGotoSP.update(states, names, n);
+            int index  = PresetGotoSP.findOnSwitchIndex();
+            IPState rc = Dome::MoveAbs(PresetNP[index].value);
             if (rc == IPS_OK || rc == IPS_BUSY)
             {
-                PresetGotoSP.s = IPS_OK;
-                LOGF_INFO("Moving to Preset %d (%.2f degrees).", index + 1, PresetN[index].value);
-                IDSetSwitch(&PresetGotoSP, nullptr);
+                PresetGotoSP.setState(IPS_OK);
+                LOGF_INFO("Moving to Preset %d (%.2f degrees).", index + 1, PresetNP[index].getValue());
+                PresetGotoSP.apply();
                 return true;
             }
 
-            PresetGotoSP.s = IPS_ALERT;
-            IDSetSwitch(&PresetGotoSP, nullptr);
+            PresetGotoSP.setState(IPS_ALERT);
+            PresetGotoSP.apply();
             return false;
         }
         ////////////////////////////////////////////
         // Dome Auto Sync
         ////////////////////////////////////////////
-        else if (!strcmp(name, DomeAutoSyncSP.name))
+        else if (DomeAutoSyncSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&DomeAutoSyncSP, states, names, n);
-            DomeAutoSyncSP.s = IPS_OK;
+            DomeAutoSyncSP.update(states, names, n);
+            DomeAutoSyncSP.setState(IPS_OK);
 
-            if (DomeAutoSyncS[0].s == ISS_ON)
+            if (DomeAutoSyncSP[0].getState() == ISS_ON)
             {
-                IDSetSwitch(&DomeAutoSyncSP, "Dome will now be synced to mount azimuth position.");
+                DomeAutoSyncSP.apply("Dome will now be synced to mount azimuth position.");
                 //UpdateAutoSync();
                 m_HorizontalUpdateTimerID = IEAddTimer(10, &Dome::updateMountCoordsHelper, this);
             }
             else
             {
-                IDSetSwitch(&DomeAutoSyncSP, "Dome is no longer synced to mount azimuth position.");
+                DomeAutoSyncSP.apply("Dome is no longer synced to mount azimuth position.");
                 if (m_HorizontalUpdateTimerID > 0)
                 {
                     IERmTimer(m_HorizontalUpdateTimerID);
                     m_HorizontalUpdateTimerID = -1;
                 }
 
-                if (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY /* || DomeTimerNP.s == IPS_BUSY*/)
+                if (DomeAbsPosNP.getState() == IPS_BUSY || DomeRelPosNP.getState() == IPS_BUSY /* || DomeTimerNP.s == IPS_BUSY*/)
                     Dome::Abort();
             }
 
@@ -550,19 +550,19 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         // OTA Side
         ////////////////////////////////////////////
-        else if (!strcmp(name, OTASideSP.name))
+        else if (OTASideSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&OTASideSP, states, names, n);
-            OTASideSP.s = IPS_OK;
+            OTASideSP.update(states, names, n);
+            OTASideSP.setState(IPS_OK);
 
-            if (OTASideS[0].s == ISS_ON)
+            if (OTASideSP[0].getState() == ISS_ON)
             {
-                IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at east of meridian");
+                OTASideSP.apply("Dome will be synced for telescope been at east of meridian");
                 UpdateAutoSync();
             }
             else
             {
-                IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at west of meridian");
+                OTASideSP.apply("Dome will be synced for telescope been at west of meridian");
                 UpdateAutoSync();
             }
 
@@ -571,14 +571,14 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         // Dome Motion
         ////////////////////////////////////////////
-        else if (!strcmp(name, DomeMotionSP.name))
+        else if (DomeMotionSP.isNameMatch(name))
         {
             // Check if any switch is ON
             for (int i = 0; i < n; i++)
             {
                 if (states[i] == ISS_ON)
                 {
-                    if (!strcmp(DomeMotionS[DOME_CW].name, names[i]))
+                    if (!strcmp(DomeMotionSP[DOME_CW].getName(), names[i]))
                         Dome::Move(DOME_CW, MOTION_START);
                     else
                         Dome::Move(DOME_CCW, MOTION_START);
@@ -588,12 +588,12 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             }
 
             // All switches are off, so let's turn off last motion
-            int current_direction = IUFindOnSwitchIndex(&DomeMotionSP);
+            int current_direction = DomeMotionSP.findOnSwitchIndex();
             // Shouldn't happen
             if (current_direction < 0)
             {
-                DomeMotionSP.s = IPS_IDLE;
-                IDSetSwitch(&DomeMotionSP, nullptr);
+                DomeMotionSP.setState(IPS_IDLE);
+                DomeMotionSP.apply();
                 return false;
             }
 
@@ -604,7 +604,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         // Abort Motion
         ////////////////////////////////////////////
-        else if (!strcmp(name, AbortSP.name))
+        else if (AbortSP.isNameMatch(name))
         {
             Dome::Abort();
             return true;
@@ -612,7 +612,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         // Shutter
         ////////////////////////////////////////////
-        else if (!strcmp(name, DomeShutterSP.name))
+        else if (DomeShutterSP.isNameMatch(name))
         {
             // Check if any switch is ON
             for (int i = 0; i < n; i++)
@@ -620,7 +620,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
                 if (states[i] == ISS_ON)
                 {
                     // Open
-                    if (!strcmp(DomeShutterS[0].name, names[i]))
+                    if (!strcmp(DomeShutterSP[0].getName(), names[i]))
                     {
                         return (Dome::ControlShutter(SHUTTER_OPEN) != IPS_ALERT);
                     }
@@ -634,14 +634,14 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         // Parking Switch
         ////////////////////////////////////////////
-        else if (!strcmp(name, ParkSP.name))
+        else if (ParkSP.isNameMatch(name))
         {
             // Check if any switch is ON
             for (int i = 0; i < n; i++)
             {
                 if (states[i] == ISS_ON)
                 {
-                    if (!strcmp(ParkS[0].name, names[i]))
+                    if (!strcmp(ParkSP[0].getName(), names[i]))
                     {
                         if (m_DomeState == DOME_PARKING)
                             return false;
@@ -661,16 +661,16 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         // Parking Option
         ////////////////////////////////////////////
-        else if (!strcmp(name, ParkOptionSP.name))
+        else if (ParkOptionSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ParkOptionSP, states, names, n);
-            ISwitch * sp = IUFindOnSwitch(&ParkOptionSP);
+            ParkOptionSP.update(states, names, n);
+            ISwitch * sp = ParkOptionSP.findOnSwitch();
             if (!sp)
                 return false;
 
             bool rc = false;
 
-            IUResetSwitch(&ParkOptionSP);
+            ParkOptionSP.reset();
 
             if (!strcmp(sp->name, "PARK_CURRENT"))
             {
@@ -689,8 +689,8 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
                     LOG_WARN( "Can not save Park Status/Position.");
             }
 
-            ParkOptionSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&ParkOptionSP, nullptr);
+            ParkOptionSP.setState(rc ? IPS_OK : IPS_ALERT);
+            ParkOptionSP.apply();
 
             return true;
         }
@@ -698,13 +698,13 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         // Auto Park
         ////////////////////////////////////////////
 #if 0
-        else if (!strcmp(name, AutoParkSP.name))
+        else if (AutoParkSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&AutoParkSP, states, names, n);
+            AutoParkSP.update(states, names, n);
 
-            AutoParkSP.s = IPS_OK;
+            AutoParkSP.setState(IPS_OK);
 
-            if (AutoParkS[0].s == ISS_ON)
+            if (AutoParkSP[0].getState() == ISS_ON)
                 LOG_WARN( "Warning: Auto park is enabled. If weather conditions are in the "
                           "danger zone, the dome will be automatically parked. Only enable this "
                           "option is parking the dome at any time will not cause damage to any "
@@ -712,7 +712,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             else
                 DEBUG(Logger::DBG_SESSION, "Auto park is disabled.");
 
-            IDSetSwitch(&AutoParkSP, nullptr);
+            AutoParkSP.apply();
 
             return true;
         }
@@ -720,52 +720,52 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
         ////////////////////////////////////////////
         // Telescope Parking Policy
         ////////////////////////////////////////////
-        else if (!strcmp(name, MountPolicySP.name))
+        else if (MountPolicySP.isNameMatch(name))
         {
-            IUUpdateSwitch(&MountPolicySP, states, names, n);
-            MountPolicySP.s = IPS_OK;
-            if (MountPolicyS[MOUNT_IGNORED].s == ISS_ON)
+            MountPolicySP.update(states, names, n);
+            MountPolicySP.setState(IPS_OK);
+            if (MountPolicySP[MOUNT_IGNORED].getState() == ISS_ON)
                 LOG_INFO("Mount Policy set to: Mount ignored. Dome can park regardless of mount parking state.");
             else
                 LOG_WARN("Mount Policy set to: Mount locks. This prevents the dome from parking when mount is unparked.");
-            IDSetSwitch(&MountPolicySP, nullptr);
-            triggerSnoop(ActiveDeviceT[0].text, "TELESCOPE_PARK");
+            MountPolicySP.apply();
+            triggerSnoop(ActiveDeviceTP[0].getText(), "TELESCOPE_PARK");
             return true;
         }
         ////////////////////////////////////////////
         // Shutter Parking Policy
         ////////////////////////////////////////////
-        else if (!strcmp(name, ShutterParkPolicySP.name))
+        else if (ShutterParkPolicySP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ShutterParkPolicySP, states, names, n);
-            ShutterParkPolicySP.s = IPS_OK;
-            IDSetSwitch(&ShutterParkPolicySP, nullptr);
+            ShutterParkPolicySP.update(states, names, n);
+            ShutterParkPolicySP.setState(IPS_OK);
+            ShutterParkPolicySP.apply();
             return true;
         }
         ////////////////////////////////////////////
         // Backlash enable/disable
         ////////////////////////////////////////////
-        else if (strcmp(name, DomeBacklashSP.name) == 0)
+        else if (DomeBacklashSP.isNameMatch(name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&DomeBacklashSP);
-            IUUpdateSwitch(&DomeBacklashSP, states, names, n);
-            const bool enabled = IUFindOnSwitchIndex(&DomeBacklashSP) == INDI_ENABLED;
+            int prevIndex = DomeBacklashSP.findOnSwitchIndex();
+            DomeBacklashSP.update(states, names, n);
+            const bool enabled = DomeBacklashSP.findOnSwitchIndex() == INDI_ENABLED;
 
             if (SetBacklashEnabled(enabled))
             {
-                IUUpdateSwitch(&DomeBacklashSP, states, names, n);
-                DomeBacklashSP.s = IPS_OK;
+                DomeBacklashSP.update(states, names, n);
+                DomeBacklashSP.setState(IPS_OK);
                 LOGF_INFO("Dome backlash is %s.", (enabled ? "enabled" : "disabled"));
             }
             else
             {
-                IUResetSwitch(&DomeBacklashSP);
-                DomeBacklashS[prevIndex].s = ISS_ON;
-                DomeBacklashSP.s = IPS_ALERT;
+                DomeBacklashSP.reset();
+                DomeBacklashSP[prevIndex].setState(ISS_ON);
+                DomeBacklashSP.setState(IPS_ALERT);
                 LOG_ERROR("Failed to set trigger Dome backlash.");
             }
 
-            IDSetSwitch(&DomeBacklashSP, nullptr);
+            DomeBacklashSP.apply();
             return true;
         }
     }
@@ -780,19 +780,19 @@ bool Dome::ISNewText(const char * dev, const char * name, char * texts[], char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, ActiveDeviceTP.name) == 0)
+        if (ActiveDeviceTP.isNameMatch(name))
         {
-            ActiveDeviceTP.s = IPS_OK;
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
-            IDSetText(&ActiveDeviceTP, nullptr);
+            ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.update(texts, names, n);
+            ActiveDeviceTP.apply();
 
-            IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text, "TARGET_EOD_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PARK");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "EQUATORIAL_EOD_COORD");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "TARGET_EOD_COORD");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "GEOGRAPHIC_COORD");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "TELESCOPE_PARK");
             if (CanAbsMove())
-                IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
-            //IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
+                IDSnoopDevice(ActiveDeviceTP[0].getText(), "TELESCOPE_PIER_SIDE");
+            //IDSnoopDevice(ActiveDeviceTP[1].getText(), "WEATHER_STATUS");
 
             return true;
         }
@@ -833,8 +833,8 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 //  If this slew involves a meridian flip, then the slaving calcs will end up using
                 //  the wrong OTA side.  Lets set things up so our slaving code will calculate the side
                 //  for the target slew instead of using mount pier side info
-                OTASideSP.s = IPS_IDLE;
-                IDSetSwitch(&OTASideSP, nullptr);
+                OTASideSP.setState(IPS_IDLE);
+                OTASideSP.apply();
                 //  and see if we can get there at the same time as the mount
                 mountEquatorialCoords.ra  = ra * 15.0;
                 mountEquatorialCoords.dec = de;
@@ -948,7 +948,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 else if (!IsLocked && !strcmp(elemName, "UNPARK") && !strcmp(pcdataXMLEle(ep), "On"))
                     IsLocked = true;
             }
-            if (prevState != IsLocked && MountPolicyS[1].s == ISS_ON)
+            if (prevState != IsLocked && MountPolicySP[1].s == ISS_ON)
                 LOGF_INFO("Telescope status changed. Lock is set to: %s",
                           IsLocked ? "locked" : "unlocked");
         }
@@ -969,7 +969,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             {
                 if (!isParked())
                 {
-                    if (AutoParkS[0].s == ISS_ON)
+                    if (AutoParkSP[0].getState() == ISS_ON)
                     {
                         LOG_WARN("Weather conditions in the danger zone! Parking dome...");
                         Dome::Park();
@@ -992,9 +992,9 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         // set defaults to say we have no valid information from mount
         bool isEast = false;
         bool isWest = false;
-        OTASideS[0].s = ISS_OFF;
-        OTASideS[1].s = ISS_OFF;
-        OTASideSP.s = IPS_IDLE;
+        OTASideSP[0].setState(ISS_OFF);
+        OTASideSP[1].setState(ISS_OFF);
+        OTASideSP.setState(IPS_IDLE);
         //  crack the message
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -1006,11 +1006,11 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 isWest = true;
         }
         //  update the switch
-        if(isEast) OTASideS[0].s = ISS_ON;
-        if(isWest) OTASideS[1].s = ISS_ON;
-        if(isWest || isEast) OTASideSP.s = IPS_OK;
+        if(isEast) OTASideSP[0].setState(ISS_ON);
+        if(isWest) OTASideSP[1].setState(ISS_ON);
+        if(isWest || isEast) OTASideSP.setState(IPS_OK);
         //  and set it.  If we didn't get valid info, it'll be set to idle and neither 'button' pressed in the ui
-        IDSetSwitch(&OTASideSP, nullptr);
+        OTASideSP.apply();
         return true;
     }
 
@@ -1030,7 +1030,7 @@ bool Dome::SetBacklashEnabled(bool enabled)
 {
     // If disabled, set the Domeer backlash to zero.
     if (enabled)
-        return SetBacklash(static_cast<int32_t>(DomeBacklashN[0].value));
+        return SetBacklash(static_cast<int32_t>(DomeBacklashNP[0].value));
     else
         return SetBacklash(0);
 }
@@ -1039,23 +1039,23 @@ bool Dome::saveConfigItems(FILE * fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigSwitch(fp, &MountPolicySP);
-    IUSaveConfigNumber(fp, &PresetNP);
-    IUSaveConfigNumber(fp, &DomeParamNP);
-    IUSaveConfigNumber(fp, &DomeMeasurementsNP);
-    //IUSaveConfigSwitch(fp, &AutoParkSP);
-    IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
+    ActiveDeviceTP.save(fp);
+    MountPolicySP.save(fp);
+    PresetNP.save(fp);
+    DomeParamNP.save(fp);
+    DomeMeasurementsNP.save(fp);
+    //AutoParkSP.save(fp);
+    DomeAutoSyncSP.save(fp);
 
     if (HasBacklash())
     {
-        IUSaveConfigSwitch(fp, &DomeBacklashSP);
-        IUSaveConfigNumber(fp, &DomeBacklashNP);
+        DomeBacklashSP.save(fp);
+        DomeBacklashNP.save(fp);
     }
 
     if (HasShutter())
     {
-        IUSaveConfigSwitch(fp, &ShutterParkPolicySP);
+        ShutterParkPolicySP.save(fp);
     }
 
     controller->saveConfigItems(fp);
@@ -1071,7 +1071,7 @@ void Dome::triggerSnoop(const char * driverName, const char * snoopedProp)
 
 bool Dome::isLocked()
 {
-    return MountPolicyS[1].s == ISS_ON && IsLocked;
+    return MountPolicySP[1].getState() == ISS_ON && IsLocked;
 }
 
 void Dome::buttonHelper(const char * button_n, ISState state, void * context)
@@ -1088,14 +1088,14 @@ void Dome::processButton(const char * button_n, ISState state)
     // Dome In
     if (!strcmp(button_n, "Dome CW"))
     {
-        if (DomeMotionSP.s != IPS_BUSY)
+        if (DomeMotionSP.getState() != IPS_BUSY)
             Dome::Move(DOME_CW, MOTION_START);
         else
             Dome::Move(DOME_CW, MOTION_STOP);
     }
     else if (!strcmp(button_n, "Dome CCW"))
     {
-        if (DomeMotionSP.s != IPS_BUSY)
+        if (DomeMotionSP.getState() != IPS_BUSY)
             Dome::Move(DOME_CCW, MOTION_START);
         else
             Dome::Move(DOME_CCW, MOTION_STOP);
@@ -1116,35 +1116,35 @@ void Dome::setShutterState(const Dome::ShutterState &value)
     switch (value)
     {
         case SHUTTER_OPENED:
-            IUResetSwitch(&DomeShutterSP);
-            DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
-            DomeShutterSP.s = IPS_OK;
+            DomeShutterSP.reset();
+            DomeShutterSP[SHUTTER_OPEN].setState(ISS_ON);
+            DomeShutterSP.setState(IPS_OK);
             break;
 
         case SHUTTER_CLOSED:
-            IUResetSwitch(&DomeShutterSP);
-            DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
-            DomeShutterSP.s = IPS_OK;
+            DomeShutterSP.reset();
+            DomeShutterSP[SHUTTER_CLOSE].setState(ISS_ON);
+            DomeShutterSP.setState(IPS_OK);
             break;
 
 
         case SHUTTER_MOVING:
-            DomeShutterSP.s = IPS_BUSY;
+            DomeShutterSP.setState(IPS_BUSY);
             break;
 
         case SHUTTER_ERROR:
-            DomeShutterSP.s = IPS_ALERT;
+            DomeShutterSP.setState(IPS_ALERT);
             LOG_WARN("Shutter failure.");
             break;
 
         case SHUTTER_UNKNOWN:
-            IUResetSwitch(&DomeShutterSP);
-            DomeShutterSP.s = IPS_IDLE;
+            DomeShutterSP.reset();
+            DomeShutterSP.setState(IPS_IDLE);
             LOG_WARN("Unknown shutter status.");
             break;
     }
 
-    IDSetSwitch(&DomeShutterSP, nullptr);
+    DomeShutterSP.apply();
     m_ShutterState = value;
 }
 
@@ -1153,99 +1153,99 @@ void Dome::setDomeState(const Dome::DomeState &value)
     switch (value)
     {
         case DOME_IDLE:
-            if (DomeMotionSP.s == IPS_BUSY)
+            if (DomeMotionSP.getState() == IPS_BUSY)
             {
-                IUResetSwitch(&DomeMotionSP);
-                DomeMotionSP.s = IPS_IDLE;
-                IDSetSwitch(&DomeMotionSP, nullptr);
+                DomeMotionSP.reset();
+                DomeMotionSP.setState(IPS_IDLE);
+                DomeMotionSP.apply();
             }
-            if (DomeAbsPosNP.s == IPS_BUSY)
+            if (DomeAbsPosNP.getState() == IPS_BUSY)
             {
-                DomeAbsPosNP.s = IPS_IDLE;
-                IDSetNumber(&DomeAbsPosNP, nullptr);
+                DomeAbsPosNP.setState(IPS_IDLE);
+                DomeAbsPosNP.apply();
             }
-            if (DomeRelPosNP.s == IPS_BUSY)
+            if (DomeRelPosNP.getState() == IPS_BUSY)
             {
-                DomeRelPosNP.s = IPS_IDLE;
-                IDSetNumber(&DomeRelPosNP, nullptr);
+                DomeRelPosNP.setState(IPS_IDLE);
+                DomeRelPosNP.apply();
             }
             break;
 
         case DOME_SYNCED:
-            if (DomeMotionSP.s == IPS_BUSY)
+            if (DomeMotionSP.getState() == IPS_BUSY)
             {
-                IUResetSwitch(&DomeMotionSP);
-                DomeMotionSP.s = IPS_OK;
-                IDSetSwitch(&DomeMotionSP, nullptr);
+                DomeMotionSP.reset();
+                DomeMotionSP.setState(IPS_OK);
+                DomeMotionSP.apply();
             }
-            if (DomeAbsPosNP.s == IPS_BUSY)
+            if (DomeAbsPosNP.getState() == IPS_BUSY)
             {
-                DomeAbsPosNP.s = IPS_OK;
-                IDSetNumber(&DomeAbsPosNP, nullptr);
+                DomeAbsPosNP.setState(IPS_OK);
+                DomeAbsPosNP.apply();
             }
-            if (DomeRelPosNP.s == IPS_BUSY)
+            if (DomeRelPosNP.getState() == IPS_BUSY)
             {
-                DomeRelPosNP.s = IPS_OK;
-                IDSetNumber(&DomeRelPosNP, nullptr);
+                DomeRelPosNP.setState(IPS_OK);
+                DomeRelPosNP.apply();
             }
             break;
 
         case DOME_PARKED:
-            if (DomeMotionSP.s == IPS_BUSY)
+            if (DomeMotionSP.getState() == IPS_BUSY)
             {
-                IUResetSwitch(&DomeMotionSP);
-                DomeMotionSP.s = IPS_IDLE;
-                IDSetSwitch(&DomeMotionSP, nullptr);
+                DomeMotionSP.reset();
+                DomeMotionSP.setState(IPS_IDLE);
+                DomeMotionSP.apply();
             }
-            if (DomeAbsPosNP.s == IPS_BUSY)
+            if (DomeAbsPosNP.getState() == IPS_BUSY)
             {
-                DomeAbsPosNP.s = IPS_IDLE;
-                IDSetNumber(&DomeAbsPosNP, nullptr);
+                DomeAbsPosNP.setState(IPS_IDLE);
+                DomeAbsPosNP.apply();
             }
-            if (DomeRelPosNP.s == IPS_BUSY)
+            if (DomeRelPosNP.getState() == IPS_BUSY)
             {
-                DomeRelPosNP.s = IPS_IDLE;
-                IDSetNumber(&DomeRelPosNP, nullptr);
+                DomeRelPosNP.setState(IPS_IDLE);
+                DomeRelPosNP.apply();
             }
-            IUResetSwitch(&ParkSP);
-            ParkSP.s   = IPS_OK;
-            ParkS[0].s = ISS_ON;
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.reset();
+            ParkSP.setState(IPS_OK);
+            ParkSP[0].setState(ISS_ON);
+            ParkSP.apply();
             IsParked = true;
             break;
 
         case DOME_PARKING:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s   = IPS_BUSY;
-            ParkS[0].s = ISS_ON;
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.reset();
+            ParkSP.setState(IPS_BUSY);
+            ParkSP[0].setState(ISS_ON);
+            ParkSP.apply();
             break;
 
         case DOME_UNPARKING:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s   = IPS_BUSY;
-            ParkS[1].s = ISS_ON;
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.reset();
+            ParkSP.setState(IPS_BUSY);
+            ParkSP[1].setState(ISS_ON);
+            ParkSP.apply();
             break;
 
         case DOME_UNPARKED:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s   = IPS_OK;
-            ParkS[1].s = ISS_ON;
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.reset();
+            ParkSP.setState(IPS_OK);
+            ParkSP[1].setState(ISS_ON);
+            ParkSP.apply();
             IsParked = false;
             break;
 
         case DOME_UNKNOWN:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s = IPS_IDLE;
+            ParkSP.reset();
+            ParkSP.setState(IPS_IDLE);
             IsParked = false;
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.apply();
             break;
 
         case DOME_ERROR:
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply();
             break;
 
         case DOME_MOVING:
@@ -1274,7 +1274,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     if (HaveLatLong == false)
     {
-        triggerSnoop(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
+        triggerSnoop(ActiveDeviceTP[0].getText(), "GEOGRAPHIC_COORD");
         LOG_WARN( "Geographic coordinates are not yet defined, triggering snoop...");
         return false;
     }
@@ -1284,9 +1284,9 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     LOGF_DEBUG("JD: %g - MSD: %g", JD, MSD);
 
-    MountCenter.x = DomeMeasurementsN[DM_EAST_DISPLACEMENT].value; // Positive to East
-    MountCenter.y = DomeMeasurementsN[DM_NORTH_DISPLACEMENT].value;  // Positive to North
-    MountCenter.z = DomeMeasurementsN[DM_UP_DISPLACEMENT].value;    // Positive Up
+    MountCenter.x = DomeMeasurementsNP[DM_EAST_DISPLACEMENT].getValue(); // Positive to East
+    MountCenter.y = DomeMeasurementsNP[DM_NORTH_DISPLACEMENT].getValue();  // Positive to North
+    MountCenter.z = DomeMeasurementsNP[DM_UP_DISPLACEMENT].getValue();    // Positive Up
 
     LOGF_DEBUG("MC.x: %g - MC.y: %g MC.z: %g", MountCenter.x, MountCenter.y, MountCenter.z);
 
@@ -1297,10 +1297,10 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     //  this will have state OK if the mount sent us information
     //  and it will be IDLE if not
-    if(CanAbsMove() && OTASideSP.s == IPS_OK)
+    if(CanAbsMove() && OTASideSP.getState() == IPS_OK)
     {
         // process info from the mount
-        if(OTASideS[0].s == ISS_ON) OTASide = -1;
+        if(OTASideSP[0].getState() == ISS_ON) OTASide = -1;
         else OTASide = 1;
     }
     else
@@ -1311,14 +1311,14 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
         //  if we got here because we turned off the PIER_SIDE switches in a target goto
         //  lets try get it back on
         if (CanAbsMove())
-            triggerSnoop(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
+            triggerSnoop(ActiveDeviceTP[0].getText(), "TELESCOPE_PIER_SIDE");
 
     }
 
-    OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat, hourAngle, OptCenter);
+    OpticalCenter(MountCenter, OTASide * DomeMeasurementsNP[DM_OTA_OFFSET].getValue(), observer.lat, hourAngle, OptCenter);
 
     LOGF_DEBUG("OTA_SIDE: %d", OTASide);
-    LOGF_DEBUG("OTA_OFFSET: %g  Lat: %g", DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat);
+    LOGF_DEBUG("OTA_OFFSET: %g  Lat: %g", DomeMeasurementsNP[DM_OTA_OFFSET].getValue(), observer.lat);
     LOGF_DEBUG("OC.x: %g - OC.y: %g OC.z: %g", OptCenter.x, OptCenter.y, OptCenter.z);
 
     // To be sure mountHoriztonalCoords is up to date.
@@ -1335,7 +1335,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     LOGF_DEBUG("Mount Az: %g  Alt: %g", mountHoriztonalCoords.az, mountHoriztonalCoords.alt);
     LOGF_DEBUG("OV.x: %g - OV.y: %g OV.z: %g", OptVector.x, OptVector.y, OptVector.z);
 
-    if (Intersection(OptCenter, OptVector, DomeMeasurementsN[DM_DOME_RADIUS].value, mu1, mu2))
+    if (Intersection(OptCenter, OptVector, DomeMeasurementsNP[DM_DOME_RADIUS].getValue(), mu1, mu2))
     {
         // If telescope is pointing over the horizon, the solution is mu1, else is mu2
         if (mu1 < 0)
@@ -1380,11 +1380,11 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
             Alt = 90; // Dome Zenith
 
         // Calculate the Azimuth range in the given Altitude of the dome
-        RadiusAtAlt = DomeMeasurementsN[DM_DOME_RADIUS].value * cos(M_PI * Alt / 180); // Radius alt the given altitude
+        RadiusAtAlt = DomeMeasurementsNP[DM_DOME_RADIUS].value * cos(M_PI * Alt / 180); // Radius alt the given altitude
 
-        if (DomeMeasurementsN[DM_SHUTTER_WIDTH].value < (2 * RadiusAtAlt))
+        if (DomeMeasurementsNP[DM_SHUTTER_WIDTH].value < (2 * RadiusAtAlt))
         {
-            HalfApertureChordAngle = 180 * asin(DomeMeasurementsN[DM_SHUTTER_WIDTH].value / (2 * RadiusAtAlt)) /
+            HalfApertureChordAngle = 180 * asin(DomeMeasurementsNP[DM_SHUTTER_WIDTH].value / (2 * RadiusAtAlt)) /
                                      M_PI; // Angle of a chord of half aperture length
             minAz = Az - HalfApertureChordAngle;
             if (minAz < 0)
@@ -1526,7 +1526,7 @@ void Dome::UpdateMountCoords()
 
 void Dome::UpdateAutoSync()
 {
-    if ((m_MountState == IPS_OK || m_MountState == IPS_IDLE) && DomeAbsPosNP.s != IPS_BUSY && DomeAutoSyncS[0].s == ISS_ON)
+    if ((m_MountState == IPS_OK || m_MountState == IPS_IDLE) && DomeAbsPosNP.getState() != IPS_BUSY && DomeAutoSyncSP[0].s == ISS_ON)
     {
         if (CanPark())
         {
@@ -1553,7 +1553,7 @@ void Dome::UpdateAutoSync()
         LOGF_DEBUG("Calculated target azimuth is %.2f. MinAz: %.2f, MaxAz: %.2f", targetAz, minAz,
                    maxAz);
 
-        if (fabs(targetAz - DomeAbsPosN[0].value) > DomeParamN[0].value)
+        if (fabs(targetAz - DomeAbsPosNP[0].getValue()) > DomeParamNP[0].getValue())
         {
             IPState ret = Dome::MoveAbs(targetAz);
             if (ret == IPS_OK)
@@ -1563,8 +1563,8 @@ void Dome::UpdateAutoSync()
             else
                 LOG_ERROR("Dome failed to sync to new requested position.");
 
-            DomeAbsPosNP.s = ret;
-            IDSetNumber(&DomeAbsPosNP, nullptr);
+            DomeAbsPosNP.setState(ret);
+            DomeAbsPosNP.apply();
         }
     }
 }
@@ -1602,19 +1602,19 @@ void Dome::SetParkDataType(Dome::DomeParkData type)
     switch (parkDataType)
     {
         case PARK_NONE:
-            strncpy(DomeMotionS[DOME_CW].label, "Open", MAXINDILABEL);
-            strncpy(DomeMotionS[DOME_CCW].label, "Close", MAXINDILABEL);
+            DomeMotionSP[DOME_CW].setLabel("Open");
+            DomeMotionSP[DOME_CCW].setLabel("Close");
             break;
 
         case PARK_AZ:
-            IUFillNumber(&ParkPositionN[AXIS_AZ], "PARK_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-            IUFillNumberVector(&ParkPositionNP, ParkPositionN, 1, getDeviceName(), "DOME_PARK_POSITION", "Park Position",
+            ParkPositionNP[AXIS_AZ].fill("PARK_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+            ParkPositionNP.fill(getDeviceName(), "DOME_PARK_POSITION", "Park Position",
                                SITE_TAB, IP_RW, 60, IPS_IDLE);
             break;
 
         case PARK_AZ_ENCODER:
-            IUFillNumber(&ParkPositionN[AXIS_AZ], "PARK_AZ", "AZ Encoder", "%.0f", 0, 16777215, 1, 0);
-            IUFillNumberVector(&ParkPositionNP, ParkPositionN, 1, getDeviceName(), "DOME_PARK_POSITION", "Park Position",
+            ParkPositionNP[AXIS_AZ].fill("PARK_AZ", "AZ Encoder", "%.0f", 0, 16777215, 1, 0);
+            ParkPositionNP.fill(getDeviceName(), "DOME_PARK_POSITION", "Park Position",
                                SITE_TAB, IP_RW, 60, IPS_IDLE);
             break;
 
@@ -1667,14 +1667,14 @@ bool Dome::InitPark()
     if (parkDataType != PARK_NONE)
     {
         LOGF_DEBUG("InitPark Axis1 %.2f", Axis1ParkPosition);
-        ParkPositionN[AXIS_AZ].value = Axis1ParkPosition;
-        IDSetNumber(&ParkPositionNP, nullptr);
+        ParkPositionNP[AXIS_AZ].setValue(Axis1ParkPosition);
+        ParkPositionNP.apply();
 
         // If parked, store the position as current azimuth angle or encoder ticks
         if (isParked() && CanAbsMove())
         {
-            DomeAbsPosN[0].value = ParkPositionN[AXIS_AZ].value;
-            IDSetNumber(&DomeAbsPosNP, nullptr);
+            DomeAbsPosNP[0].setValue(ParkPositionNP[AXIS_AZ].value);
+            DomeAbsPosNP.apply();
         }
     }
 
@@ -1872,8 +1872,8 @@ double Dome::GetAxis1ParkDefault()
 void Dome::SetAxis1Park(double value)
 {
     Axis1ParkPosition            = value;
-    ParkPositionN[AXIS_RA].value = value;
-    IDSetNumber(&ParkPositionNP, nullptr);
+    ParkPositionNP[AXIS_RA].setValue(value);
+    ParkPositionNP.apply();
 }
 
 void Dome::SetAxis1ParkDefault(double value)
@@ -1893,32 +1893,32 @@ IPState Dome::Move(DomeDirection dir, DomeMotionCommand operation)
         }
     }
 
-    if ((DomeMotionSP.s != IPS_BUSY && (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY)) ||
+    if ((DomeMotionSP.getState() != IPS_BUSY && (DomeAbsPosNP.getState() == IPS_BUSY || DomeRelPosNP.getState() == IPS_BUSY)) ||
             (m_DomeState == DOME_PARKING))
     {
         LOG_WARN( "Please stop dome before issuing any further motion commands.");
         return IPS_ALERT;
     }
 
-    int current_direction = IUFindOnSwitchIndex(&DomeMotionSP);
+    int current_direction = DomeMotionSP.findOnSwitchIndex();
 
     // if same move requested, return
-    if (DomeMotionSP.s == IPS_BUSY && current_direction == dir && operation == MOTION_START)
+    if (DomeMotionSP.getState() == IPS_BUSY && current_direction == dir && operation == MOTION_START)
         return IPS_BUSY;
 
-    DomeMotionSP.s = Move(dir, operation);
+    DomeMotionSP.setState(Move(dir, operation));
 
-    if (DomeMotionSP.s == IPS_BUSY || DomeMotionSP.s == IPS_OK)
+    if (DomeMotionSP.getState() == IPS_BUSY || DomeMotionSP.getState() == IPS_OK)
     {
         m_DomeState = (operation == MOTION_START) ? DOME_MOVING : DOME_IDLE;
-        IUResetSwitch(&DomeMotionSP);
+        DomeMotionSP.reset();
         if (operation == MOTION_START)
-            DomeMotionS[dir].s = ISS_ON;
+            DomeMotionSP[dir].setState(ISS_ON);
     }
 
-    IDSetSwitch(&DomeMotionSP, nullptr);
+    DomeMotionSP.apply();
 
-    return DomeMotionSP.s;
+    return DomeMotionSP.getState();
 }
 
 IPState Dome::MoveRel(double azDiff)
@@ -1932,16 +1932,16 @@ IPState Dome::MoveRel(double azDiff)
     if (m_DomeState == DOME_PARKED)
     {
         LOG_ERROR( "Please unpark before issuing any motion commands.");
-        DomeRelPosNP.s = IPS_ALERT;
-        IDSetNumber(&DomeRelPosNP, nullptr);
+        DomeRelPosNP.setState(IPS_ALERT);
+        DomeRelPosNP.apply();
         return IPS_ALERT;
     }
 
-    if ((DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY) || (m_DomeState == DOME_PARKING))
+    if ((DomeRelPosNP.getState() != IPS_BUSY && DomeMotionSP.getState() == IPS_BUSY) || (m_DomeState == DOME_PARKING))
     {
         LOG_WARN( "Please stop dome before issuing any further motion commands.");
-        DomeRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&DomeRelPosNP, nullptr);
+        DomeRelPosNP.setState(IPS_IDLE);
+        DomeRelPosNP.apply();
         return IPS_ALERT;
     }
 
@@ -1950,42 +1950,42 @@ IPState Dome::MoveRel(double azDiff)
     if ((rc = MoveRel(azDiff)) == IPS_OK)
     {
         m_DomeState            = DOME_IDLE;
-        DomeRelPosNP.s       = IPS_OK;
-        DomeRelPosN[0].value = azDiff;
-        IDSetNumber(&DomeRelPosNP, "Dome moved %.2f degrees %s.", azDiff,
+        DomeRelPosNP.setState(IPS_OK);
+        DomeRelPosNP[0].setValue(azDiff);
+        DomeRelPosNP.apply("Dome moved %.2f degrees %s.", azDiff,
                     (azDiff > 0) ? "clockwise" : "counter clockwise");
         if (CanAbsMove())
         {
-            DomeAbsPosNP.s = IPS_OK;
-            IDSetNumber(&DomeAbsPosNP, nullptr);
+            DomeAbsPosNP.setState(IPS_OK);
+            DomeAbsPosNP.apply();
         }
         return IPS_OK;
     }
     else if (rc == IPS_BUSY)
     {
         m_DomeState = DOME_MOVING;
-        DomeRelPosN[0].value = azDiff;
-        DomeRelPosNP.s = IPS_BUSY;
-        IDSetNumber(&DomeRelPosNP, "Dome is moving %.2f degrees %s...", azDiff,
+        DomeRelPosNP[0].setValue(azDiff);
+        DomeRelPosNP.setState(IPS_BUSY);
+        DomeRelPosNP.apply("Dome is moving %.2f degrees %s...", azDiff,
                     (azDiff > 0) ? "clockwise" : "counter clockwise");
         if (CanAbsMove())
         {
-            DomeAbsPosNP.s = IPS_BUSY;
-            IDSetNumber(&DomeAbsPosNP, nullptr);
+            DomeAbsPosNP.setState(IPS_BUSY);
+            DomeAbsPosNP.apply();
         }
 
-        DomeMotionSP.s = IPS_BUSY;
-        IUResetSwitch(&DomeMotionSP);
-        DomeMotionS[DOME_CW].s  = (azDiff > 0) ? ISS_ON : ISS_OFF;
-        DomeMotionS[DOME_CCW].s = (azDiff < 0) ? ISS_ON : ISS_OFF;
-        IDSetSwitch(&DomeMotionSP, nullptr);
+        DomeMotionSP.setState(IPS_BUSY);
+        DomeMotionSP.reset();
+        DomeMotionSP[DOME_CW].setState((azDiff > 0) ? ISS_ON : ISS_OFF);
+        DomeMotionSP[DOME_CCW].setState((azDiff < 0) ? ISS_ON : ISS_OFF);
+        DomeMotionSP.apply();
         return IPS_BUSY;
     }
 
     m_DomeState      = DOME_IDLE;
-    DomeRelPosNP.s = IPS_ALERT;
+    DomeRelPosNP.setState(IPS_ALERT);
     LOG_WARN("Dome failed to move to new requested position.");
-    IDSetNumber(&DomeRelPosNP, nullptr);
+    DomeRelPosNP.apply();
     return IPS_ALERT;
 }
 
@@ -2000,12 +2000,12 @@ IPState Dome::MoveAbs(double az)
     if (m_DomeState == DOME_PARKED)
     {
         LOG_ERROR( "Please unpark before issuing any motion commands.");
-        DomeAbsPosNP.s = IPS_ALERT;
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.setState(IPS_ALERT);
+        DomeAbsPosNP.apply();
         return IPS_ALERT;
     }
 
-    if ((DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY) || (m_DomeState == DOME_PARKING))
+    if ((DomeRelPosNP.getState() != IPS_BUSY && DomeMotionSP.getState() == IPS_BUSY) || (m_DomeState == DOME_PARKING))
     {
         LOG_WARN( "Please stop dome before issuing any further motion commands.");
         return IPS_ALERT;
@@ -2013,43 +2013,43 @@ IPState Dome::MoveAbs(double az)
 
     IPState rc;
 
-    if (az < DomeAbsPosN[0].min || az > DomeAbsPosN[0].max)
+    if (az < DomeAbsPosNP[0].min || az > DomeAbsPosNP[0].max)
     {
         LOGF_ERROR( "Error: requested azimuth angle %.2f is out of range.", az);
-        DomeAbsPosNP.s = IPS_ALERT;
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.setState(IPS_ALERT);
+        DomeAbsPosNP.apply();
         return IPS_ALERT;
     }
 
     if ((rc = MoveAbs(az)) == IPS_OK)
     {
         m_DomeState            = DOME_IDLE;
-        DomeAbsPosNP.s       = IPS_OK;
-        DomeAbsPosN[0].value = az;
+        DomeAbsPosNP.setState(IPS_OK);
+        DomeAbsPosNP[0].setValue(az);
         LOGF_INFO("Dome moved to position %.2f degrees azimuth.", az);
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
 
         return IPS_OK;
     }
     else if (rc == IPS_BUSY)
     {
         m_DomeState      = DOME_MOVING;
-        DomeAbsPosNP.s = IPS_BUSY;
+        DomeAbsPosNP.setState(IPS_BUSY);
         LOGF_INFO("Dome is moving to position %.2f degrees azimuth...", az);
-        IDSetNumber(&DomeAbsPosNP, nullptr);
+        DomeAbsPosNP.apply();
 
-        DomeMotionSP.s = IPS_BUSY;
-        IUResetSwitch(&DomeMotionSP);
-        DomeMotionS[DOME_CW].s  = (az > DomeAbsPosN[0].value) ? ISS_ON : ISS_OFF;
-        DomeMotionS[DOME_CCW].s = (az < DomeAbsPosN[0].value) ? ISS_ON : ISS_OFF;
-        IDSetSwitch(&DomeMotionSP, nullptr);
+        DomeMotionSP.setState(IPS_BUSY);
+        DomeMotionSP.reset();
+        DomeMotionSP[DOME_CW].setState((az > DomeAbsPosNP[0].getValue()) ? ISS_ON : ISS_OFF);
+        DomeMotionSP[DOME_CCW].setState((az < DomeAbsPosNP[0].getValue()) ? ISS_ON : ISS_OFF);
+        DomeMotionSP.apply();
 
         return IPS_BUSY;
     }
 
     m_DomeState      = DOME_IDLE;
-    DomeAbsPosNP.s = IPS_ALERT;
-    IDSetNumber(&DomeAbsPosNP, "Dome failed to move to new requested position.");
+    DomeAbsPosNP.setState(IPS_ALERT);
+    DomeAbsPosNP.apply("Dome failed to move to new requested position.");
     return IPS_ALERT;
 }
 
@@ -2068,50 +2068,50 @@ bool Dome::Abort()
         return false;
     }
 
-    IUResetSwitch(&AbortSP);
+    AbortSP.reset();
 
     if (Abort())
     {
-        AbortSP.s = IPS_OK;
+        AbortSP.setState(IPS_OK);
 
         if (m_DomeState == DOME_PARKING || m_DomeState == DOME_UNPARKING)
         {
-            IUResetSwitch(&ParkSP);
+            ParkSP.reset();
             if (m_DomeState == DOME_PARKING)
             {
                 DEBUG(Logger::DBG_SESSION, "Parking aborted.");
                 // If parking was aborted then it was UNPARKED before
-                ParkS[1].s = ISS_ON;
+                ParkSP[1].setState(ISS_ON);
             }
             else
             {
                 DEBUG(Logger::DBG_SESSION, "UnParking aborted.");
                 // If unparking aborted then it was PARKED before
-                ParkS[0].s = ISS_ON;
+                ParkSP[0].setState(ISS_ON);
             }
 
-            ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.setState(IPS_ALERT);
+            ParkSP.apply();
         }
 
         setDomeState(DOME_IDLE);
     }
     else
     {
-        AbortSP.s = IPS_ALERT;
+        AbortSP.setState(IPS_ALERT);
 
         // If alert was aborted during parking or unparking, the parking state is unknown
         if (m_DomeState == DOME_PARKING || m_DomeState == DOME_UNPARKING)
         {
-            IUResetSwitch(&ParkSP);
-            ParkSP.s = IPS_IDLE;
-            IDSetSwitch(&ParkSP, nullptr);
+            ParkSP.reset();
+            ParkSP.setState(IPS_IDLE);
+            ParkSP.apply();
         }
     }
 
-    IDSetSwitch(&AbortSP, nullptr);
+    AbortSP.apply();
 
-    return (AbortSP.s == IPS_OK);
+    return (AbortSP.getState() == IPS_OK);
 }
 
 bool Dome::SetSpeed(double speed)
@@ -2124,15 +2124,15 @@ bool Dome::SetSpeed(double speed)
 
     if (SetSpeed(speed))
     {
-        DomeSpeedNP.s       = IPS_OK;
-        DomeSpeedN[0].value = speed;
+        DomeSpeedNP.setState(IPS_OK);
+        DomeSpeedNP[0].setValue(speed);
     }
     else
-        DomeSpeedNP.s = IPS_ALERT;
+        DomeSpeedNP.setState(IPS_ALERT);
 
-    IDSetNumber(&DomeSpeedNP, nullptr);
+    DomeSpeedNP.apply();
 
-    return (DomeSpeedNP.s == IPS_OK);
+    return (DomeSpeedNP.getState() == IPS_OK);
 }
 
 IPState Dome::ControlShutter(ShutterOperation operation)
@@ -2149,33 +2149,33 @@ IPState Dome::ControlShutter(ShutterOperation operation)
     //        return IPS_ALERT;
     //    }
 
-    int currentStatus = IUFindOnSwitchIndex(&DomeShutterSP);
+    int currentStatus = DomeShutterSP.findOnSwitchIndex();
 
     // No change of status, let's return
-    if (DomeShutterSP.s == IPS_BUSY && currentStatus == operation)
+    if (DomeShutterSP.getState() == IPS_BUSY && currentStatus == operation)
     {
-        IDSetSwitch(&DomeShutterSP, nullptr);
-        return DomeShutterSP.s;
+        DomeShutterSP.apply();
+        return DomeShutterSP.getState();
     }
 
-    DomeShutterSP.s = ControlShutter(operation);
+    DomeShutterSP.setState(ControlShutter(operation));
 
-    if (DomeShutterSP.s == IPS_OK)
+    if (DomeShutterSP.getState() == IPS_OK)
     {
-        IDSetSwitch(&DomeShutterSP, "Shutter is %s.", (operation == SHUTTER_OPEN ? "open" : "closed"));
+        DomeShutterSP.apply("Shutter is %s.", (operation == SHUTTER_OPEN ? "open" : "closed"));
         setShutterState(operation == SHUTTER_OPEN ? SHUTTER_OPENED : SHUTTER_CLOSED);
-        return DomeShutterSP.s;
+        return DomeShutterSP.getState();
     }
-    else if (DomeShutterSP.s == IPS_BUSY)
+    else if (DomeShutterSP.getState() == IPS_BUSY)
     {
-        IUResetSwitch(&DomeShutterSP);
-        DomeShutterS[operation].s = ISS_ON;
-        IDSetSwitch(&DomeShutterSP, "Shutter is %s...", (operation == 0 ? "opening" : "closing"));
+        DomeShutterSP.reset();
+        DomeShutterSP[operation].setState(ISS_ON);
+        DomeShutterSP.apply("Shutter is %s...", (operation == 0 ? "opening" : "closing"));
         setShutterState(SHUTTER_MOVING);
-        return DomeShutterSP.s;
+        return DomeShutterSP.getState();
     }
 
-    IDSetSwitch(&DomeShutterSP, "Shutter failed to %s.", (operation == 0 ? "open" : "close"));
+    DomeShutterSP.apply("Shutter failed to %s.", (operation == 0 ? "open" : "close"));
     return IPS_ALERT;
 }
 
@@ -2191,46 +2191,46 @@ IPState Dome::Park()
     // No need to park if parked already.
     if (m_DomeState == DOME_PARKED)
     {
-        IUResetSwitch(&ParkSP);
-        ParkS[0].s = ISS_ON;
+        ParkSP.reset();
+        ParkSP[0].setState(ISS_ON);
         LOG_INFO("Dome already parked.");
-        IDSetSwitch(&ParkSP, nullptr);
+        ParkSP.apply();
         return IPS_OK;
     }
 
     // Check if dome is locked due to Mount Policy
     if (isLocked())
     {
-        IUResetSwitch(&ParkSP);
-        ParkS[1].s = ISS_ON;
-        ParkSP.s = IPS_ALERT;
-        IDSetSwitch(&ParkSP, nullptr);
+        ParkSP.reset();
+        ParkSP[1].setState(ISS_ON);
+        ParkSP.setState(IPS_ALERT);
+        ParkSP.apply();
         LOG_INFO("Cannot Park Dome when mount is locking. See: Mount Policy in options tab.");
         return IPS_ALERT;
     }
 
     // Now ask child driver to start the actual parking process.
-    ParkSP.s = Park();
+    ParkSP.setState(Park());
 
     // IPS_OK is when it is immediately parked so realisticly this does not happen
     // unless dome is physically parked but just needed a state change.
-    if (ParkSP.s == IPS_OK)
+    if (ParkSP.getState() == IPS_OK)
         SetParked(true);
     // Dome is moving to parking position
-    else if (ParkSP.s == IPS_BUSY)
+    else if (ParkSP.getState() == IPS_BUSY)
     {
         setDomeState(DOME_PARKING);
 
         if (CanAbsMove())
-            DomeAbsPosNP.s = IPS_BUSY;
+            DomeAbsPosNP.setState(IPS_BUSY);
 
-        IUResetSwitch(&ParkSP);
-        ParkS[0].s = ISS_ON;
+        ParkSP.reset();
+        ParkSP[0].setState(ISS_ON);
     }
     else
-        IDSetSwitch(&ParkSP, nullptr);
+        ParkSP.apply();
 
-    return ParkSP.s;
+    return ParkSP.getState();
 }
 
 IPState Dome::UnPark()
@@ -2243,31 +2243,31 @@ IPState Dome::UnPark()
 
     if (m_DomeState != DOME_PARKED)
     {
-        IUResetSwitch(&ParkSP);
-        ParkS[1].s = ISS_ON;
+        ParkSP.reset();
+        ParkSP[1].setState(ISS_ON);
         DEBUG(Logger::DBG_SESSION, "Dome already unparked.");
-        IDSetSwitch(&ParkSP, nullptr);
+        ParkSP.apply();
         return IPS_OK;
     }
 
     //    if (weatherState == IPS_ALERT)
     //    {
     //        LOG_WARN( "Weather is in the danger zone! Cannot unpark dome.");
-    //        ParkSP.s = IPS_OK;
-    //        IDSetSwitch(&ParkSP, nullptr);
+    //        ParkSP.setState(IPS_OK);
+    //        ParkSP.apply();
     //        return IPS_ALERT;
     //    }
 
-    ParkSP.s = UnPark();
+    ParkSP.setState(UnPark());
 
-    if (ParkSP.s == IPS_OK)
+    if (ParkSP.getState() == IPS_OK)
         SetParked(false);
-    else if (ParkSP.s == IPS_BUSY)
+    else if (ParkSP.getState() == IPS_BUSY)
         setDomeState(DOME_UNPARKING);
     else
-        IDSetSwitch(&ParkSP, nullptr);
+        ParkSP.apply();
 
-    return ParkSP.s;
+    return ParkSP.getState();
 }
 
 bool Dome::SetCurrentPark()

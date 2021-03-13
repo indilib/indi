@@ -24,6 +24,11 @@
 
 #include <stdint.h>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 /**
  * \class LightBoxInterface
    \brief Provides interface to implement controllable light box/switch device.
@@ -96,16 +101,13 @@ class LightBoxInterface
     virtual bool EnableLightBox(bool enable);
 
     // Turn on/off light
-    ISwitchVectorProperty LightSP;
-    ISwitch LightS[2];
+    INDI::PropertySwitch LightSP {2};
 
     // Light Intensity
-    INumberVectorProperty LightIntensityNP;
-    INumber LightIntensityN[1];
+    INDI::PropertyNumber LightIntensityNP {1};
 
     // Active devices to snoop
-    ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1] {};
+    INDI::PropertyText ActiveDeviceTP {1};
 
     INumberVectorProperty FilterIntensityNP;
     INumber *FilterIntensityN;

@@ -180,7 +180,7 @@ void RadioSim::setupParams(float sr, float freq, float bw, float gain)
 bool RadioSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     bool r = false;
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, SpectrographSettingsNP.name)) {
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, SpectrographSettingsNP.getName())) {
         for(int i = 0; i < n; i++) {
             if (!strcmp(names[i], "SPECTROGRAPH_GAIN")) {
                 setupParams(getSampleRate(), getFrequency(), getBandwidth(), values[i]);
@@ -192,7 +192,7 @@ bool RadioSim::ISNewNumber(const char *dev, const char *name, double values[], c
                 setupParams(values[i], getFrequency(), getBandwidth(), getGain());
             }
         }
-        IDSetNumber(&SpectrographSettingsNP, nullptr);
+        SpectrographSettingsNP.apply();
     }
     return processNumber(dev, name, values, names, n) & !r;
 }

@@ -42,34 +42,34 @@ LightBoxInterface::~LightBoxInterface()
 void LightBoxInterface::initLightBoxProperties(const char *deviceName, const char *groupName)
 {
     // Turn on/off light
-    IUFillSwitch(&LightS[FLAT_LIGHT_ON], "FLAT_LIGHT_ON", "On", ISS_OFF);
-    IUFillSwitch(&LightS[FLAT_LIGHT_OFF], "FLAT_LIGHT_OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&LightSP, LightS, 2, deviceName, "FLAT_LIGHT_CONTROL", "Flat Light", groupName, IP_RW,
+    LightSP[FLAT_LIGHT_ON].fill("FLAT_LIGHT_ON", "On", ISS_OFF);
+    LightSP[FLAT_LIGHT_OFF].fill("FLAT_LIGHT_OFF", "Off", ISS_OFF);
+    LightSP.fill(deviceName, "FLAT_LIGHT_CONTROL", "Flat Light", groupName, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // Light Intensity
-    IUFillNumber(&LightIntensityN[0], "FLAT_LIGHT_INTENSITY_VALUE", "Value", "%.f", 0, 255, 10, 0);
-    IUFillNumberVector(&LightIntensityNP, LightIntensityN, 1, deviceName, "FLAT_LIGHT_INTENSITY", "Brightness",
+    LightIntensityNP[0].fill("FLAT_LIGHT_INTENSITY_VALUE", "Value", "%.f", 0, 255, 10, 0);
+    LightIntensityNP.fill(deviceName, "FLAT_LIGHT_INTENSITY", "Brightness",
                        groupName, IP_RW, 0, IPS_IDLE);
 
     // Active Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_FILTER", "Filter", "Filter Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, deviceName, "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
+    ActiveDeviceTP[0].fill("ACTIVE_FILTER", "Filter", "Filter Simulator");
+    ActiveDeviceTP.fill(deviceName, "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     // Filter duration
     IUFillNumberVector(&FilterIntensityNP, nullptr, 0, deviceName, "FLAT_LIGHT_FILTER_INTENSITY", "Filter Intensity",
                        "Preset", IP_RW, 60, IPS_OK);
 
-    IDSnoopDevice(ActiveDeviceT[0].text, "FILTER_SLOT");
-    IDSnoopDevice(ActiveDeviceT[0].text, "FILTER_NAME");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "FILTER_SLOT");
+    IDSnoopDevice(ActiveDeviceTP[0].getText(), "FILTER_NAME");
 }
 
 void LightBoxInterface::isGetLightBoxProperties(const char *deviceName)
 {
     INDI_UNUSED(deviceName);
 
-    device->defineProperty(&ActiveDeviceTP);
+    device->defineProperty(ActiveDeviceTP);
     char errmsg[MAXRBUF];
     IUReadConfig(nullptr, device->getDeviceName(), "ACTIVE_DEVICES", 1, errmsg);
 }
@@ -96,21 +96,21 @@ bool LightBoxInterface::processLightBoxSwitch(const char *dev, const char *name,
     if (strcmp(dev, device->getDeviceName()) == 0)
     {
         // Light
-        if (!strcmp(LightSP.name, name))
+        if (LightSP.isNameMatch(name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&LightSP);
-            IUUpdateSwitch(&LightSP, states, names, n);
-            bool rc = EnableLightBox(LightS[FLAT_LIGHT_ON].s == ISS_ON ? true : false);
+            int prevIndex = LightSP.findOnSwitchIndex();
+            LightSP.update(states, names, n);
+            bool rc = EnableLightBox(LightSP[FLAT_LIGHT_ON].getState() == ISS_ON ? true : false);
 
-            LightSP.s = rc ? IPS_OK : IPS_ALERT;
+            LightSP.setState(rc ? IPS_OK : IPS_ALERT);
 
             if (!rc)
             {
-                IUResetSwitch(&LightSP);
-                LightS[prevIndex].s = ISS_ON;
+                LightSP.reset();
+                LightSP[prevIndex].setState(ISS_ON);
             }
 
-            IDSetSwitch(&LightSP, nullptr);
+            LightSP.apply();
 
             return true;
         }
@@ -125,21 +125,21 @@ bool LightBoxInterface::processLightBoxNumber(const char *dev, const char *name,
     if (strcmp(dev, device->getDeviceName()) == 0)
     {
         // Light Intensity
-        if (!strcmp(LightIntensityNP.name, name))
+        if (LightIntensityNP.isNameMatch(name))
         {
-            double prevValue = LightIntensityN[0].value;
-            IUUpdateNumber(&LightIntensityNP, values, names, n);
+            double prevValue = LightIntensityNP[0].getValue();
+            LightIntensityNP.update(values, names, n);
 
-            bool rc = SetLightBoxBrightness(LightIntensityN[0].value);
+            bool rc = SetLightBoxBrightness(LightIntensityNP[0].value);
             if (rc)
-                LightIntensityNP.s = IPS_OK;
+                LightIntensityNP.setState(IPS_OK);
             else
             {
-                LightIntensityN[0].value = prevValue;
-                LightIntensityNP.s       = IPS_ALERT;
+                LightIntensityNP[0].setValue(prevValue);
+                LightIntensityNP.setState(IPS_ALERT);
             }
 
-            IDSetNumber(&LightIntensityNP, nullptr);
+            LightIntensityNP.apply();
 
             return true;
         }
@@ -171,15 +171,15 @@ bool LightBoxInterface::processLightBoxText(const char *dev, const char *name, c
 {
     if (strcmp(dev, device->getDeviceName()) == 0)
     {
-        if (!strcmp(name, ActiveDeviceTP.name))
+        if (ActiveDeviceTP.isNameMatch(name))
         {
-            ActiveDeviceTP.s = IPS_OK;
-            IUUpdateText(&ActiveDeviceTP, texts, names, n);
+            ActiveDeviceTP.setState(IPS_OK);
+            ActiveDeviceTP.update(texts, names, n);
             //  Update client display
-            IDSetText(&ActiveDeviceTP, nullptr);
+            ActiveDeviceTP.apply();
 
-            IDSnoopDevice(ActiveDeviceT[0].text, "FILTER_SLOT");
-            IDSnoopDevice(ActiveDeviceT[0].text, "FILTER_NAME");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "FILTER_SLOT");
+            IDSnoopDevice(ActiveDeviceTP[0].getText(), "FILTER_NAME");
             return true;
         }
     }
@@ -313,8 +313,8 @@ void LightBoxInterface::addFilterDuration(const char *filterName, uint16_t filte
         FilterIntensityN = (INumber *)realloc(FilterIntensityN, (FilterIntensityNP.nnp + 1) * sizeof(INumber));
     }
 
-    IUFillNumber(&FilterIntensityN[FilterIntensityNP.nnp], filterName, filterName, "%0.f", 0, LightIntensityN[0].max,
-                 LightIntensityN[0].step, filterDuration);
+    IUFillNumber(&FilterIntensityN[FilterIntensityNP.nnp], filterName, filterName, "%0.f", 0, LightIntensityNP[0].max,
+                 LightIntensityNP[0].step, filterDuration);
 
     FilterIntensityNP.nnp++;
     FilterIntensityNP.np = FilterIntensityN;
@@ -322,7 +322,7 @@ void LightBoxInterface::addFilterDuration(const char *filterName, uint16_t filte
 
 bool LightBoxInterface::saveLightBoxConfigItems(FILE *fp)
 {
-    IUSaveConfigText(fp, &ActiveDeviceTP);
+    ActiveDeviceTP.save(fp);
     if (FilterIntensityN != nullptr)
         IUSaveConfigNumber(fp, &FilterIntensityNP);
 

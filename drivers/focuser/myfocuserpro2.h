@@ -27,6 +27,10 @@
 
 #include <chrono>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class MyFocuserPro2 : public INDI::Focuser
 {
     public:
@@ -174,52 +178,40 @@ class MyFocuserPro2 : public INDI::Focuser
         double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
 
         // Read Only Temperature Reporting
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+        INDI::PropertyNumber TemperatureNP {1};
 
         // Full/Half...32th Step modes
-        ISwitch StepModeS[6];
-        ISwitchVectorProperty StepModeSP;
+        INDI::PropertySwitch StepModeSP {6};
 
         // Backlash In settings
-        INumber BacklashInStepsN[1];
-        INumberVectorProperty BacklashInStepsNP;
+        INDI::PropertyNumber BacklashInStepsNP {1};
 
         // Backlash Out Setting
-        INumber BacklashOutStepsN[1];
-        INumberVectorProperty BacklashOutStepsNP;
+        INDI::PropertyNumber BacklashOutStepsNP {1};
 
         // Temperature Settings
-        INumber TemperatureSettingN[1];
-        INumberVectorProperty TemperatureSettingNP;
+        INDI::PropertyNumber TemperatureSettingNP {1};
 
         // Temperature Compensation Enable/Disable
-        ISwitch TemperatureCompensateS[2];
-        ISwitchVectorProperty TemperatureCompensateSP;
+        INDI::PropertySwitch TemperatureCompensateSP {2};
 
         //Display On Off
-        ISwitch DisplayS[2];
-        ISwitchVectorProperty DisplaySP;
+        INDI::PropertySwitch DisplaySP {2};
 
         //Goto Home Position
-        ISwitch GotoHomeS[1];
-        ISwitchVectorProperty GotoHomeSP;
+        INDI::PropertySwitch GotoHomeSP {1};
 
         //CoilPower On Off
-        ISwitch CoilPowerS[2];
-        ISwitchVectorProperty CoilPowerSP;
+        INDI::PropertySwitch CoilPowerSP {2};
 
         //Backlash In Enable
-        ISwitch BacklashInS[2];
-        ISwitchVectorProperty BacklashInSP;
+        INDI::PropertySwitch BacklashInSP {2};
 
         //Backlash Out Enable
-        ISwitch BacklashOutS[2];
-        ISwitchVectorProperty BacklashOutSP;
+        INDI::PropertySwitch BacklashOutSP {2};
 
         //Focus Speed
-        ISwitch FocusSpeedS[3];
-        ISwitchVectorProperty FocusSpeedSP;
+        INDI::PropertySwitch FocusSpeedSP {3};
 
         // MyFocuserPro2 Buffer
         static const uint8_t ML_RES { 32 };

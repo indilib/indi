@@ -24,6 +24,10 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class LX200AstroPhysicsGTOCP2 : public LX200Generic
 {
   public:
@@ -75,24 +79,18 @@ class LX200AstroPhysicsGTOCP2 : public LX200Generic
 
     void handleGTOCP2MotionBug();
 
-    INumber HourangleCoordsN[2];
-    INumberVectorProperty HourangleCoordsNP;
+    INDI::PropertyNumber HourangleCoordsNP {2};
 
-    INumber HorizontalCoordsN[2];
-    INumberVectorProperty HorizontalCoordsNP;
+    INDI::PropertyNumber HorizontalCoordsNP {2};
 
-    ISwitch APSlewSpeedS[3];
-    ISwitchVectorProperty APSlewSpeedSP;
+    INDI::PropertySwitch APSlewSpeedSP {3};
 
-    ISwitch SwapS[2];
-    ISwitchVectorProperty SwapSP;
+    INDI::PropertySwitch SwapSP {2};
 
-    ISwitch SyncCMRS[2];
-    ISwitchVectorProperty SyncCMRSP;
+    INDI::PropertySwitch SyncCMRSP {2};
     enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
-    ISwitch APGuideSpeedS[3];
-    ISwitchVectorProperty APGuideSpeedSP;
+    INDI::PropertySwitch APGuideSpeedSP {3};
 
     IText VersionT[1] {};
     ITextVectorProperty VersionTP;

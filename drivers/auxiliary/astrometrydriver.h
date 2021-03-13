@@ -28,6 +28,12 @@
 
 #include <pthread.h>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+#include "indipropertyblob.h"
+
 /**
  * @brief The AstrometryDriver class is an INDI driver frontend for astrometry.net
  *
@@ -93,26 +99,18 @@ class AstrometryDriver : public INDI::DefaultDevice
     // Astrometry
 
     // Enable/Disable solver
-    ISwitch SolverS[2];
-    ISwitchVectorProperty SolverSP;
+    INDI::PropertySwitch SolverSP {2};
     enum { SOLVER_ENABLE, SOLVER_DISABLE};
 
     // Solver Settings
-    IText SolverSettingsT[2] {};
-    ITextVectorProperty SolverSettingsTP;
+    INDI::PropertyText SolverSettingsTP {2};
 
     // Solver Results
-    INumber SolverResultN[5];
-    INumberVectorProperty SolverResultNP;
+    INDI::PropertyNumber SolverResultNP {5};
+    INDI::PropertyText ActiveDeviceTP {1};
+    INDI::PropertyBlob SolverDataBP {1};
 
-    ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1] {};
-
-    IBLOBVectorProperty SolverDataBP;
-    IBLOB SolverDataB[1];
-
-    IBLOB CCDDataB[1];
-    IBLOBVectorProperty CCDDataBP;
+    INDI::PropertyBlob CCDDataBP {1};
 
   private:
     // Run solver thread

@@ -26,6 +26,11 @@
 
 #include "defaultdevice.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 /**
  * \class GPS
    \brief Class to provide general functionality of a GPS device.
@@ -82,20 +87,16 @@ class GPS : public DefaultDevice
     virtual bool saveConfigItems(FILE *fp);
 
     //  A number vector that stores lattitude and longitude
-    INumberVectorProperty LocationNP;
-    INumber LocationN[3];
+    INDI::PropertyNumber LocationNP {3};
 
     // UTC and UTC Offset
-    IText TimeT[2] {};
-    ITextVectorProperty TimeTP;
+    INDI::PropertyText TimeTP {2};
 
     // Refresh data
-    ISwitch RefreshS[1];
-    ISwitchVectorProperty RefreshSP;
+    INDI::PropertySwitch RefreshSP {1};
 
     // Refresh Period
-    INumber PeriodN[1];
-    INumberVectorProperty PeriodNP;
+    INDI::PropertyNumber PeriodNP {1};
 
     int timerID = -1;
 };

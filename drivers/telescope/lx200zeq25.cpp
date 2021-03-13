@@ -66,13 +66,13 @@ bool LX200ZEQ25::initProperties()
     // 64x is the default
     SlewRateS[4].s = ISS_ON;
 
-    IUFillSwitch(&HomeS[0], "Home", "", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "Home", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+    HomeSP[0].fill("Home", "", ISS_OFF);
+    HomeSP.fill(getDeviceName(), "Home", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.9, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+    GuideRateNP[0].fill("GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.9, 0.1, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     return true;
@@ -85,13 +85,13 @@ bool LX200ZEQ25::updateProperties()
     if (isConnected())
     {
 
-        defineProperty(&HomeSP);
-        defineProperty(&GuideRateNP);
+        defineProperty(HomeSP);
+        defineProperty(GuideRateNP);
     }
     else
     {
-        deleteProperty(HomeSP.name);
-        deleteProperty(GuideRateNP.name);
+        deleteProperty(HomeSP.getName());
+        deleteProperty(GuideRateNP.getName());
     }
 
     return true;
@@ -154,31 +154,31 @@ bool LX200ZEQ25::ISNewSwitch(const char *dev, const char *name, ISState *states,
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(HomeSP.name, name) == 0)
+        if (HomeSP.isNameMatch(name))
         {
             // If already home, nothing to be done
-            //if (HomeS[0].s == ISS_ON)
+            //if (HomeSP[0].getState() == ISS_ON)
             if (isZEQ25Home())
             {
                 LOG_WARN("Telescope is already homed.");
-                HomeS[0].s = ISS_ON;
-                HomeSP.s   = IPS_OK;
-                IDSetSwitch(&HomeSP, nullptr);
+                HomeSP[0].setState(ISS_ON);
+                HomeSP.setState(IPS_OK);
+                HomeSP.apply();
                 return true;
             }
 
             if (gotoZEQ25Home() < 0)
             {
-                HomeSP.s = IPS_ALERT;
+                HomeSP.setState(IPS_ALERT);
                 LOG_ERROR("Error slewing to home position.");
             }
             else
             {
-                HomeSP.s = IPS_BUSY;
+                HomeSP.setState(IPS_BUSY);
                 LOG_INFO("Slewing to home position.");
             }
 
-            IDSetSwitch(&HomeSP, nullptr);
+            HomeSP.apply();
             return true;
         }
     }
@@ -191,16 +191,16 @@ bool LX200ZEQ25::ISNewNumber(const char *dev, const char *name, double values[],
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Guiding Rate
-        if (!strcmp(name, GuideRateNP.name))
+        if (GuideRateNP.isNameMatch(name))
         {
-            IUUpdateNumber(&GuideRateNP, values, names, n);
+            GuideRateNP.update(values, names, n);
 
-            if (setZEQ25GuideRate(GuideRateN[0].value) == TTY_OK)
-                GuideRateNP.s = IPS_OK;
+            if (setZEQ25GuideRate(GuideRateNP[0].value) == TTY_OK)
+                GuideRateNP.setState(IPS_OK);
             else
-                GuideRateNP.s = IPS_ALERT;
+                GuideRateNP.setState(IPS_ALERT);
 
-            IDSetNumber(&GuideRateNP, nullptr);
+            GuideRateNP.apply();
 
             return true;
         }
@@ -359,16 +359,16 @@ void LX200ZEQ25::getBasicData()
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].value);
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-        SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        SetAxis1Park(LocationNP[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2Park(LocationNP[LOCATION_LATITUDE].value);
+        SetAxis1ParkDefault(LocationNP[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+        SetAxis2ParkDefault(LocationNP[LOCATION_LATITUDE].value);
     }
 
     bool isMountParked = isZEQ25Parked();
@@ -379,17 +379,17 @@ void LX200ZEQ25::getBasicData()
     LOG_DEBUG("Checking if mount is at home position...");
     if (isZEQ25Home())
     {
-        HomeS[0].s = ISS_ON;
-        HomeSP.s   = IPS_OK;
-        IDSetSwitch(&HomeSP, nullptr);
+        HomeSP[0].setState(ISS_ON);
+        HomeSP.setState(IPS_OK);
+        HomeSP.apply();
     }
 
     LOG_DEBUG("Getting guiding rate...");
     double guideRate = 0;
     if (getZEQ25GuideRate(&guideRate) == TTY_OK)
     {
-        GuideRateN[0].value = guideRate;
-        IDSetNumber(&GuideRateNP, nullptr);
+        GuideRateNP[0].setValue(guideRate);
+        GuideRateNP.apply();
     }
 }
 
@@ -397,15 +397,15 @@ bool LX200ZEQ25::Sync(double ra, double dec)
 {
     if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Error setting RA/DEC. Unable to Sync.");
         return false;
     }
 
     if (!isSimulation() && setZEQ25StandardProcedure(PortFD, ":CM#") < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Synchronization failed.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Synchronization failed.");
         return false;
     }
 
@@ -414,7 +414,7 @@ bool LX200ZEQ25::Sync(double ra, double dec)
 
     LOG_INFO("Synchronization successful.");
 
-    EqNP.s     = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     NewRaDec(currentRA, currentDEC);
 
@@ -433,29 +433,29 @@ bool LX200ZEQ25::Goto(double r, double d)
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!isSimulation() && abortSlew(PortFD) < 0)
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            AbortSP.apply("Abort slew failed.");
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        AbortSP.apply("Slew aborted.");
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
 
         // sleep for 100 mseconds
@@ -466,14 +466,14 @@ bool LX200ZEQ25::Goto(double r, double d)
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            EqNP.setState(IPS_ALERT);
+            EqNP.apply("Error setting RA/DEC.");
             return false;
         }
 
         if (slewZEQ25() == false)
         {
-            EqNP.s = IPS_ALERT;
+            EqNP.setState(IPS_ALERT);
             LOGF_DEBUG("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(1);
             return false;
@@ -481,7 +481,7 @@ bool LX200ZEQ25::Goto(double r, double d)
     }
 
     TrackState = SCOPE_SLEWING;
-    //EqNP.s     = IPS_BUSY;
+    //EqNP.setState(IPS_BUSY);
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -977,8 +977,8 @@ bool LX200ZEQ25::SetCurrentPark()
     // Libnova south = 0, west = 90, north = 180, east = 270
 
     ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    observer.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    observer.lng = LocationNP[LOCATION_LONGITUDE].getValue();
     if (observer.lng > 180)
         observer.lng -= 360;
 
@@ -1005,10 +1005,10 @@ bool LX200ZEQ25::SetCurrentPark()
 bool LX200ZEQ25::SetDefaultPark()
 {
     // Az = 0 for North hemisphere
-    SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
+    SetAxis1Park(LocationNP[LOCATION_LATITUDE].value > 0 ? 0 : 180);
 
     // Alt = Latitude
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].value);
 
     return true;
 }
@@ -1024,8 +1024,8 @@ bool LX200ZEQ25::Park()
     }
     else
     {
-        HomeSP.s = IPS_BUSY;
-        IDSetSwitch(&HomeSP, nullptr);
+        HomeSP.setState(IPS_BUSY);
+        HomeSP.apply();
     }
 
     TrackState = SCOPE_PARKING;
@@ -1051,8 +1051,8 @@ bool LX200ZEQ25::Park()
         horizontalPos.az -= 360;
 
     ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    observer.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    observer.lng = LocationNP[LOCATION_LONGITUDE].getValue();
     if (observer.lng > 180)
         observer.lng -= 360;
 
@@ -1074,7 +1074,7 @@ bool LX200ZEQ25::Park()
         return false;
     }
 
-    EqNP.s     = IPS_BUSY;
+    EqNP.setState(IPS_BUSY);
     TrackState = SCOPE_PARKING;
     LOG_INFO("Parking is in progress...");
 
@@ -1113,8 +1113,8 @@ bool LX200ZEQ25::UnPark()
         horizontalPos.az -= 360;
 
     ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    observer.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    observer.lng = LocationNP[LOCATION_LONGITUDE].getValue();
     if (observer.lng > 180)
         observer.lng -= 360;
 
@@ -1153,14 +1153,14 @@ bool LX200ZEQ25::ReadScopeStatus()
     //if (check_lx200_connection(PortFD))
     //return false;
 
-    if (HomeSP.s == IPS_BUSY)
+    if (HomeSP.getState() == IPS_BUSY)
     {
         if (isZEQ25Home())
         {
-            HomeS[0].s = ISS_ON;
-            HomeSP.s   = IPS_OK;
+            HomeSP[0].setState(ISS_ON);
+            HomeSP.setState(IPS_OK);
             LOG_INFO("Telescope arrived at home position.");
-            IDSetSwitch(&HomeSP, nullptr);
+            HomeSP.apply();
         }
     }
 
@@ -1182,7 +1182,7 @@ bool LX200ZEQ25::ReadScopeStatus()
         //            SetParked(true);
         //        }
 
-        if (HomeSP.s  == IPS_OK && HomeS[0].s == ISS_ON)
+        if (HomeSP.getState()  == IPS_OK && HomeSP[0].s == ISS_ON)
         {
             SetParked(true);
         }
@@ -1190,8 +1190,8 @@ bool LX200ZEQ25::ReadScopeStatus()
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Error reading RA/DEC.");
         return false;
     }
 
@@ -1283,7 +1283,7 @@ int LX200ZEQ25::getZEQ25GuideRate(double *rate)
 
     if (isSimulation())
     {
-        snprintf(response, 8, "%3d#", static_cast<int>(GuideRateN[0].value * 100));
+        snprintf(response, 8, "%3d#", static_cast<int>(GuideRateNP[0].value * 100));
         nbytes_read = strlen(response);
     }
     else

@@ -80,45 +80,45 @@ bool SynscanDriver::initProperties()
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Mount Info Text Property
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    IUFillText(&StatusT[MI_FW_VERSION], "MI_FW_VERSION", "Firmware", "-");
-    IUFillText(&StatusT[MI_MOUNT_MODEL], "MI_MOUNT_MODEL", "Model", "-");
-    IUFillText(&StatusT[MI_GOTO_STATUS], "MI_GOTO_STATUS", "Goto", "-");
-    IUFillText(&StatusT[MI_POINT_STATUS], "MI_POINT_STATUS", "Pointing", "-");
-    IUFillText(&StatusT[MI_TRACK_MODE], "MI_TRACK_MODE", "Tracking Mode", "-");
-    IUFillTextVector(&StatusTP, StatusT, 5, getDeviceName(), "MOUNT_STATUS",
+    StatusTP[MI_FW_VERSION].fill("MI_FW_VERSION", "Firmware", "-");
+    StatusTP[MI_MOUNT_MODEL].fill("MI_MOUNT_MODEL", "Model", "-");
+    StatusTP[MI_GOTO_STATUS].fill("MI_GOTO_STATUS", "Goto", "-");
+    StatusTP[MI_POINT_STATUS].fill("MI_POINT_STATUS", "Pointing", "-");
+    StatusTP[MI_TRACK_MODE].fill("MI_TRACK_MODE", "Tracking Mode", "-");
+    StatusTP.fill(getDeviceName(), "MOUNT_STATUS",
                      "Status", MOUNT_TAB, IP_RO, 60, IPS_IDLE);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Custom Slew Rate
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    IUFillNumber(&CustomSlewRateN[AXIS_RA], "AXIS1", "RA/AZ (arcsecs/s)", "%.2f", 0.05, 800, 10, 0);
-    IUFillNumber(&CustomSlewRateN[AXIS_DE], "AXIS2", "DE/AL (arcsecs/s)", "%.2f", 0.05, 800, 10, 0);
-    IUFillNumberVector(&CustomSlewRateNP, CustomSlewRateN, 2, getDeviceName(), "CUSTOM_SLEW_RATE", "Custom Slew", MOTION_TAB,
+    CustomSlewRateNP[AXIS_RA].fill("AXIS1", "RA/AZ (arcsecs/s)", "%.2f", 0.05, 800, 10, 0);
+    CustomSlewRateNP[AXIS_DE].fill("AXIS2", "DE/AL (arcsecs/s)", "%.2f", 0.05, 800, 10, 0);
+    CustomSlewRateNP.fill(getDeviceName(), "CUSTOM_SLEW_RATE", "Custom Slew", MOTION_TAB,
                        IP_RW, 60, IPS_IDLE);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Guide Rate
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%.2f", 0, 1, 0.1, 0.5);
-    IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%.2f", 0, 1, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", GUIDE_TAB, IP_RW, 0,
+    GuideRateNP[AXIS_RA].fill("GUIDE_RATE_WE", "W/E Rate", "%.2f", 0, 1, 0.1, 0.5);
+    GuideRateNP[AXIS_DE].fill("GUIDE_RATE_NS", "N/S Rate", "%.2f", 0, 1, 0.1, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", GUIDE_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     /// Horizontal Coords
     //////////////////////////////////////////////////////////////////////////////////////////////////
-    IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-    IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
-    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD",
+    HorizontalCoordsNP[AXIS_AZ].fill("AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+    HorizontalCoordsNP[AXIS_ALT].fill("ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
+    HorizontalCoordsNP.fill(getDeviceName(), "HORIZONTAL_COORD",
                        "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     AddTrackMode("TRACK_ALTAZ", "Alt/Az");
     AddTrackMode("TRACK_EQ", "Equatorial", true);
     AddTrackMode("TRACK_PEC", "PEC Mode");
 
-    IUFillSwitch(&GotoModeS[0], "ALTAZ", "Alt/Az", ISS_OFF);
-    IUFillSwitch(&GotoModeS[1], "RADEC", "Ra/Dec", ISS_ON);
-    IUFillSwitchVector(&GotoModeSP, GotoModeS, NARRAY(GotoModeS), getDeviceName(), "GOTOMODE", "Goto mode",
+    GotoModeSP[0].fill("ALTAZ", "Alt/Az", ISS_OFF);
+    GotoModeSP[1].fill("RADEC", "Ra/Dec", ISS_ON);
+    GotoModeSP.fill(getDeviceName(), "GOTOMODE", "Goto mode",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     SetParkDataType(PARK_AZ_ALT);
@@ -142,42 +142,42 @@ bool SynscanDriver::updateProperties()
     {
         setupParams();
 
-        defineProperty(&HorizontalCoordsNP);
-        defineProperty(&StatusTP);
-        defineProperty(&CustomSlewRateNP);
+        defineProperty(HorizontalCoordsNP);
+        defineProperty(StatusTP);
+        defineProperty(CustomSlewRateNP);
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(&GuideRateNP);
+        defineProperty(GuideRateNP);
 
         if (m_isAltAz)
         {
-            defineProperty(&GotoModeSP);
+            defineProperty(GotoModeSP);
         }
 
         if (InitPark())
         {
             SetAxis1ParkDefault(359);
-            SetAxis2ParkDefault(m_isAltAz ? 0 : LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(m_isAltAz ? 0 : LocationNP[LOCATION_LATITUDE].getValue());
         }
         else
         {
             SetAxis1Park(359);
-            SetAxis2Park(m_isAltAz ? 0 : LocationN[LOCATION_LATITUDE].value);
+            SetAxis2Park(m_isAltAz ? 0 : LocationNP[LOCATION_LATITUDE].getValue());
             SetAxis1ParkDefault(359);
-            SetAxis2ParkDefault(m_isAltAz ? 0 : LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(m_isAltAz ? 0 : LocationNP[LOCATION_LATITUDE].getValue());
         }
     }
     else
     {
-        deleteProperty(HorizontalCoordsNP.name);
-        deleteProperty(StatusTP.name);
-        deleteProperty(CustomSlewRateNP.name);
+        deleteProperty(HorizontalCoordsNP.getName());
+        deleteProperty(StatusTP.getName());
+        deleteProperty(CustomSlewRateNP.getName());
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP.name);
+        deleteProperty(GuideRateNP.getName());
         if (m_isAltAz)
         {
-            deleteProperty(GotoModeSP.name);
+            deleteProperty(GotoModeSP.getName());
         }
     }
 
@@ -243,37 +243,37 @@ bool SynscanDriver::ISNewNumber(const char * dev, const char * name, double valu
         // Guide Rate
         if (strcmp(name, "GUIDE_RATE") == 0)
         {
-            IUUpdateNumber(&GuideRateNP, values, names, n);
-            GuideRateNP.s = IPS_OK;
-            IDSetNumber(&GuideRateNP, nullptr);
+            GuideRateNP.update(values, names, n);
+            GuideRateNP.setState(IPS_OK);
+            GuideRateNP.apply();
             return true;
         }
 
         // Custom Slew Rate
-        if (strcmp(name, CustomSlewRateNP.name) == 0)
+        if (CustomSlewRateNP.isNameMatch(name))
         {
             if (TrackState == SCOPE_SLEWING)
             {
                 LOG_ERROR("Cannot change rate while slewing.");
-                CustomSlewRateNP.s = IPS_ALERT;
-                IDSetNumber(&CustomSlewRateNP, nullptr);
+                CustomSlewRateNP.setState(IPS_ALERT);
+                CustomSlewRateNP.apply();
                 return true;
             }
 
-            IUUpdateNumber(&CustomSlewRateNP, values, names, n);
-            CustomSlewRateNP.s = IPS_OK;
-            IDSetNumber(&CustomSlewRateNP, nullptr);
+            CustomSlewRateNP.update(values, names, n);
+            CustomSlewRateNP.setState(IPS_OK);
+            CustomSlewRateNP.apply();
             return true;
         }
 
         // Horizonal Coords
-        if (!strcmp(name, HorizontalCoordsNP.name))
+        if (HorizontalCoordsNP.isNameMatch(name))
         {
             if (isParked())
             {
                 LOG_WARN("Unpark mount before issuing GOTO commands.");
-                HorizontalCoordsNP.s = IPS_IDLE;
-                IDSetNumber(&HorizontalCoordsNP, nullptr);
+                HorizontalCoordsNP.setState(IPS_IDLE);
+                HorizontalCoordsNP.apply();
                 return true;
             }
 
@@ -281,13 +281,13 @@ bool SynscanDriver::ISNewNumber(const char * dev, const char * name, double valu
             double newAlt = 0, newAz = 0;
             for (int i = 0; i < n; i++)
             {
-                INumber * horp = IUFindNumber(&HorizontalCoordsNP, names[i]);
-                if (horp == &HorizontalCoordsN[AXIS_AZ])
+                INumber * horp = HorizontalCoordsNP.findWidgetByName(names[i]);
+                if (horp == &HorizontalCoordsNP[AXIS_AZ])
                 {
                     newAz = values[i];
                     nset += newAz >= 0. && newAz <= 360.0;
                 }
-                else if (horp == &HorizontalCoordsN[AXIS_ALT])
+                else if (horp == &HorizontalCoordsNP[AXIS_ALT])
                 {
                     newAlt = values[i];
                     nset += newAlt >= -90. && newAlt <= 90.0;
@@ -297,8 +297,8 @@ bool SynscanDriver::ISNewNumber(const char * dev, const char * name, double valu
             if (nset == 2 && GotoAzAlt(newAz, newAlt))
                 return true;
 
-            HorizontalCoordsNP.s = IPS_ALERT;
-            IDSetNumber(&HorizontalCoordsNP, "Altitude or Azimuth missing or invalid.");
+            HorizontalCoordsNP.setState(IPS_ALERT);
+            HorizontalCoordsNP.apply("Altitude or Azimuth missing or invalid.");
             return false;
         }
 
@@ -319,14 +319,14 @@ bool SynscanDriver::ISNewSwitch(const char *dev, const char *name, ISState *stat
     {
         ISwitchVectorProperty *svp = getSwitch(name);
 
-        if (!strcmp(svp->name, GotoModeSP.name))
+        if (!strcmp(svp->name, GotoModeSP.getName()))
         {
             IUUpdateSwitch(svp, states, names, n);
             ISwitch *sp = IUFindOnSwitch(svp);
 
             assert(sp != nullptr);
 
-            if (!strcmp(sp->name, GotoModeS[0].name))
+            if (!strcmp(sp->name, GotoModeSP[0].getName()))
                 SetAltAzMode(true);
             else
                 SetAltAzMode(false);
@@ -356,7 +356,7 @@ bool SynscanDriver::readFirmware()
 
         LOGF_INFO("Firmware version: %lf", m_FirmwareVersion);
         m_MountInfo[MI_FW_VERSION] = std::to_string(m_FirmwareVersion);
-        IUSaveText(&StatusT[MI_FW_VERSION], m_MountInfo[MI_FW_VERSION].c_str());
+        StatusTP[MI_FW_VERSION].setText(m_MountInfo[MI_FW_VERSION]);
 
         if (m_FirmwareVersion < 3.38 || (m_FirmwareVersion >= 4.0 && m_FirmwareVersion < 4.38))
         {
@@ -439,20 +439,20 @@ bool SynscanDriver::readModel()
 
     // 128 - 143 --> AZ Goto series
     if (m_MountModel >= 128 && m_MountModel <= 143)
-        IUSaveText(&StatusT[MI_MOUNT_MODEL], "AZ GOTO Series");
+        StatusTP[MI_MOUNT_MODEL].setText("AZ GOTO Series");
     // 144 - 159 --> DOB Goto series
     else if (m_MountModel >= 144 && m_MountModel <= 159)
-        IUSaveText(&StatusT[MI_MOUNT_MODEL], "Dob GOTO Series");
+        StatusTP[MI_MOUNT_MODEL].setText("Dob GOTO Series");
     else if (models.count(m_MountModel) > 0)
-        IUSaveText(&StatusT[MI_MOUNT_MODEL], models[m_MountModel].c_str());
+        StatusTP[MI_MOUNT_MODEL].setText(models[m_MountModel]);
     else
-        IUSaveText(&StatusT[MI_MOUNT_MODEL], "Unknown model");
+        StatusTP[MI_MOUNT_MODEL].setText("Unknown model");
 
     m_isAltAz = m_MountModel > 4;
 
     LOGF_INFO("Driver is running in %s mode.", m_isAltAz ? "Alt-Az" : "Equatorial");
     LOGF_INFO("Detected mount: %s. Mount must be aligned from the handcontroller before using the driver.",
-              StatusT[MI_MOUNT_MODEL].text);
+              StatusTP[MI_MOUNT_MODEL].getText());
 
     return true;
 }
@@ -486,16 +486,16 @@ bool SynscanDriver::ReadScopeStatus()
             if (isSlewComplete())
             {
                 TrackState = (m_TrackingFlag == 2) ? SCOPE_TRACKING : SCOPE_IDLE;
-                HorizontalCoordsNP.s = (m_TrackingFlag == 2) ? IPS_OK : IPS_IDLE;
-                IDSetNumber(&HorizontalCoordsNP, nullptr);
+                HorizontalCoordsNP.setState((m_TrackingFlag == 2) ? IPS_OK : IPS_IDLE);
+                HorizontalCoordsNP.apply();
             }
         }
         else if (TrackState == SCOPE_PARKING)
         {
             if (isSlewComplete())
             {
-                HorizontalCoordsNP.s = IPS_IDLE;
-                IDSetNumber(&HorizontalCoordsNP, nullptr);
+                HorizontalCoordsNP.setState(IPS_IDLE);
+                HorizontalCoordsNP.apply();
                 TrackState = SCOPE_PARKED;
                 SetTrackEnabled(false);
                 SetParked(true);
@@ -552,8 +552,8 @@ bool SynscanDriver::ReadScopeStatus()
     double al  = static_cast<double>(n2) / 0x100000000 * 360.0;
     al = rangeDec(al);
 
-    HorizontalCoordsN[AXIS_AZ].value = az;
-    HorizontalCoordsN[AXIS_ALT].value = al;
+    HorizontalCoordsNP[AXIS_AZ].setValue(az);
+    HorizontalCoordsNP[AXIS_ALT].setValue(al);
 
     memset(Axis1Coords, 0, MAXINDINAME);
     memset(Axis2Coords, 0, MAXINDINAME);
@@ -561,7 +561,7 @@ bool SynscanDriver::ReadScopeStatus()
     fs_sexa(Axis2Coords, al, 2, 3600);
     LOGF_DEBUG("AZ <%s> ALT <%s>", Axis1Coords, Axis2Coords);
 
-    IDSetNumber(&HorizontalCoordsNP, nullptr);
+    HorizontalCoordsNP.apply();
 
     return true;
 }
@@ -592,11 +592,11 @@ bool SynscanDriver::SetTrackMode(uint8_t mode)
 
 bool SynscanDriver::SetAltAzMode(bool enable)
 {
-    IUResetSwitch(&GotoModeSP);
+    GotoModeSP.reset();
 
     if (enable)
     {
-        ISwitch *sp = IUFindSwitch(&GotoModeSP, "ALTAZ");
+        ISwitch *sp = GotoModeSP.findWidgetByName("ALTAZ");
         if (sp)
         {
             LOG_INFO("Using AltAz goto.");
@@ -606,7 +606,7 @@ bool SynscanDriver::SetAltAzMode(bool enable)
     }
     else
     {
-        ISwitch *sp = IUFindSwitch(&GotoModeSP, "RADEC");
+        ISwitch *sp = GotoModeSP.findWidgetByName("RADEC");
         if (sp)
         {
             sp->s = ISS_ON;
@@ -615,8 +615,8 @@ bool SynscanDriver::SetAltAzMode(bool enable)
         goto_AltAz = false;
     }
 
-    GotoModeSP.s = IPS_OK;
-    IDSetSwitch(&GotoModeSP, nullptr);
+    GotoModeSP.setState(IPS_OK);
+    GotoModeSP.apply();
     return true;
 }
 
@@ -642,10 +642,10 @@ bool SynscanDriver::Goto(double ra, double dec)
         struct ln_lnlat_posn lnobserver;
         struct ln_hrz_posn lnaltaz;
 
-        lnobserver.lng = LocationN[LOCATION_LONGITUDE].value;
+        lnobserver.lng = LocationNP[LOCATION_LONGITUDE].getValue();
         if (lnobserver.lng > 180)
             lnobserver.lng -= 360;
-        lnobserver.lat = LocationN[LOCATION_LATITUDE].value;
+        lnobserver.lat = LocationNP[LOCATION_LATITUDE].getValue();
         get_hrz_from_equ(&epochPos, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
         /* libnova measures azimuth from south towards west */
         double az = lnaltaz.az;
@@ -670,8 +670,8 @@ bool SynscanDriver::Goto(double ra, double dec)
     if (sendCommand(cmd, res, 18))
     {
         TrackState = SCOPE_SLEWING;
-        HorizontalCoordsNP.s = IPS_BUSY;
-        IDSetNumber(&HorizontalCoordsNP, nullptr);
+        HorizontalCoordsNP.setState(IPS_BUSY);
+        HorizontalCoordsNP.apply();
         return true;
     }
 
@@ -692,10 +692,10 @@ bool SynscanDriver::GotoAzAlt(double az, double alt)
         ln_hrz_posn horizontalPos;
         ln_equ_posn equatorialPos;
 
-        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        observer.lng = LocationNP[LOCATION_LONGITUDE].getValue();
         if (observer.lng > 180)
             observer.lng -= 360;
-        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lat = LocationNP[LOCATION_LATITUDE].getValue();
 
         horizontalPos.az = az;
         horizontalPos.alt = alt;
@@ -714,8 +714,8 @@ bool SynscanDriver::GotoAzAlt(double az, double alt)
     if (sendCommand(cmd, res, 18))
     {
         TrackState = SCOPE_SLEWING;
-        HorizontalCoordsNP.s = IPS_BUSY;
-        IDSetNumber(&HorizontalCoordsNP, nullptr);
+        HorizontalCoordsNP.setState(IPS_BUSY);
+        HorizontalCoordsNP.apply();
         return true;
     }
 
@@ -782,7 +782,7 @@ bool SynscanDriver::SetDefaultPark()
     // By default az to north, and alt to pole
     LOG_DEBUG("Setting Park Data to Default.");
     SetAxis1Park(359);
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(LocationNP[LOCATION_LATITUDE].value);
 
     return true;
 }
@@ -818,7 +818,7 @@ bool SynscanDriver::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         move = (dir == DIRECTION_NORTH) ? SYN_S : SYN_N;
 
     uint8_t rate = static_cast<uint8_t>(IUFindOnSwitchIndex(&SlewRateSP)) + 1;
-    double customRate = CustomSlewRateN[AXIS_DE].value;
+    double customRate = CustomSlewRateNP[AXIS_DE].getValue();
 
     // If we have pulse guiding
     if (m_CustomGuideDE > 0)
@@ -863,7 +863,7 @@ bool SynscanDriver::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     bool rc = false;
     SynscanDirection move = (dir == DIRECTION_WEST) ? SYN_W : SYN_E;
     uint8_t rate = static_cast<uint8_t>(IUFindOnSwitchIndex(&SlewRateSP)) + 1;
-    double customRate = CustomSlewRateN[AXIS_RA].value;
+    double customRate = CustomSlewRateNP[AXIS_RA].getValue();
 
     // If we have pulse guiding
     if (m_CustomGuideRA > 0)
@@ -966,10 +966,10 @@ bool SynscanDriver::sendTime()
         char timeString[MAXINDINAME] = {0};
         time_t now = time (nullptr);
         strftime(timeString, MAXINDINAME, "%T", gmtime(&now));
-        IUSaveText(&TimeT[0], "3");
-        IUSaveText(&TimeT[1], timeString);
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[0].setText("3");
+        TimeTP[1].setText(timeString);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
         return true;
     }
 
@@ -1009,10 +1009,10 @@ bool SynscanDriver::sendTime()
             offset = offset + 1;
         sprintf(ofs, "%d", offset);
 
-        IUSaveText(&TimeT[0], utc);
-        IUSaveText(&TimeT[1], ofs);
-        TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, nullptr);
+        TimeTP[0].setText(utc);
+        TimeTP[1].setText(ofs);
+        TimeTP.setState(IPS_OK);
+        TimeTP.apply();
 
         LOGF_INFO("Mount UTC Time %s Offset %d", utc, offset);
 
@@ -1029,9 +1029,9 @@ bool SynscanDriver::sendLocation()
 
     if (isSimulation())
     {
-        LocationN[LOCATION_LATITUDE].value  = 29.5;
-        LocationN[LOCATION_LONGITUDE].value = 48;
-        IDSetNumber(&LocationNP, nullptr);
+        LocationNP[LOCATION_LATITUDE].setValue(29.5);
+        LocationNP[LOCATION_LONGITUDE].setValue(48);
+        LocationNP.apply();
         return true;
     }
 
@@ -1070,9 +1070,9 @@ bool SynscanDriver::sendLocation()
         lat = lat * -1;
     if (h == 1)
         lon = 360 - lon;
-    LocationN[LOCATION_LATITUDE].value  = lat;
-    LocationN[LOCATION_LONGITUDE].value = lon;
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP[LOCATION_LATITUDE].setValue(lat);
+    LocationNP[LOCATION_LONGITUDE].setValue(lon);
+    LocationNP.apply();
 
     saveConfig(true, "GEOGRAPHIC_COORD");
 
@@ -1129,9 +1129,9 @@ bool SynscanDriver::updateLocation(double latitude, double longitude, double ele
     ln_lnlat_posn p1 { 0, 0 };
     lnh_lnlat_posn p2;
 
-    LocationN[LOCATION_LATITUDE].value  = latitude;
-    LocationN[LOCATION_LONGITUDE].value = longitude;
-    IDSetNumber(&LocationNP, nullptr);
+    LocationNP[LOCATION_LATITUDE].setValue(latitude);
+    LocationNP[LOCATION_LONGITUDE].setValue(longitude);
+    LocationNP.apply();
 
     if (isSimulation())
     {
@@ -1206,8 +1206,8 @@ ln_hrz_posn SynscanDriver::getAltAzPosition(double ra, double dec)
     ln_hrz_posn AltAz { 0, 0 };
 
     // Set the current location
-    Location.lat = LocationN[LOCATION_LATITUDE].value;
-    Location.lng = LocationN[LOCATION_LONGITUDE].value;
+    Location.lat = LocationNP[LOCATION_LATITUDE].getValue();
+    Location.lng = LocationNP[LOCATION_LONGITUDE].getValue();
 
     Eq.ra  = ra * 360.0 / 24.0;
     Eq.dec = dec;
@@ -1219,26 +1219,26 @@ void SynscanDriver::sendStatus()
 {
     bool BasicMountInfoHasChanged = false;
 
-    if (std::string(StatusT[MI_GOTO_STATUS].text) != m_MountInfo[MI_GOTO_STATUS])
+    if (std::string(StatusTP[MI_GOTO_STATUS].getText()) != m_MountInfo[MI_GOTO_STATUS])
     {
-        IUSaveText(&StatusT[MI_GOTO_STATUS], m_MountInfo[MI_GOTO_STATUS].c_str());
+        StatusTP[MI_GOTO_STATUS].setText(m_MountInfo[MI_GOTO_STATUS]);
         BasicMountInfoHasChanged = true;
     }
-    if (std::string(StatusT[MI_POINT_STATUS].text) != m_MountInfo[MI_POINT_STATUS])
+    if (std::string(StatusTP[MI_POINT_STATUS].getText()) != m_MountInfo[MI_POINT_STATUS])
     {
-        IUSaveText(&StatusT[MI_POINT_STATUS], m_MountInfo[MI_POINT_STATUS].c_str());
+        StatusTP[MI_POINT_STATUS].setText(m_MountInfo[MI_POINT_STATUS]);
         BasicMountInfoHasChanged = true;
     }
-    if (std::string(StatusT[MI_TRACK_MODE].text) != m_MountInfo[MI_TRACK_MODE])
+    if (std::string(StatusTP[MI_TRACK_MODE].getText()) != m_MountInfo[MI_TRACK_MODE])
     {
-        IUSaveText(&StatusT[MI_TRACK_MODE], m_MountInfo[MI_TRACK_MODE].c_str());
+        StatusTP[MI_TRACK_MODE].setText(m_MountInfo[MI_TRACK_MODE]);
         BasicMountInfoHasChanged = true;
     }
 
     if (BasicMountInfoHasChanged)
     {
-        StatusTP.s = IPS_OK;
-        IDSetText(&StatusTP, nullptr);
+        StatusTP.setState(IPS_OK);
+        StatusTP.apply();
     }
 }
 
@@ -1332,7 +1332,7 @@ void SynscanDriver::mountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            CurrentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
+            CurrentRA += (TrackRateNP[AXIS_RA].value / 3600.0 * dt) / 15.0;
             CurrentRA = range24(CurrentRA);
             break;
 
@@ -1442,7 +1442,7 @@ IPState SynscanDriver::GuideNorth(uint32_t ms)
         m_GuideNSTID = 0;
     }
 
-    m_CustomGuideDE = TRACKRATE_SIDEREAL + GuideRateN[AXIS_DE].value * TRACKRATE_SIDEREAL;
+    m_CustomGuideDE = TRACKRATE_SIDEREAL + GuideRateNP[AXIS_DE].value * TRACKRATE_SIDEREAL;
     MoveNS(DIRECTION_NORTH, MOTION_START);
     m_GuideNSTID = IEAddTimer(ms, guideTimeoutHelperNS, this);
     return IPS_BUSY;
@@ -1456,7 +1456,7 @@ IPState SynscanDriver::GuideSouth(uint32_t ms)
         m_GuideNSTID = 0;
     }
 
-    m_CustomGuideDE = TRACKRATE_SIDEREAL + GuideRateN[AXIS_DE].value * TRACKRATE_SIDEREAL;
+    m_CustomGuideDE = TRACKRATE_SIDEREAL + GuideRateNP[AXIS_DE].value * TRACKRATE_SIDEREAL;
     MoveNS(DIRECTION_SOUTH, MOTION_START);
     m_GuideNSTID = IEAddTimer(ms, guideTimeoutHelperNS, this);
     return IPS_BUSY;
@@ -1474,8 +1474,8 @@ IPState SynscanDriver::GuideEast(uint32_t ms)
     // but for east we'd be going a lot faster since the stars are moving toward the west
     // in sideral rate. Just standing still we would SID_RATE moving across. So for east
     // we just go GuideRate * SID_RATE without adding any more values.
-    //m_CustomGuideRA = TRACKRATE_SIDEREAL + GuideRateN[AXIS_RA].value * TRACKRATE_SIDEREAL;
-    m_CustomGuideRA = GuideRateN[AXIS_RA].value * TRACKRATE_SIDEREAL;
+    //m_CustomGuideRA = TRACKRATE_SIDEREAL + GuideRateNP[AXIS_RA].value * TRACKRATE_SIDEREAL;
+    m_CustomGuideRA = GuideRateNP[AXIS_RA].value * TRACKRATE_SIDEREAL;
 
     MoveWE(DIRECTION_EAST, MOTION_START);
     m_GuideWETID = IEAddTimer(ms, guideTimeoutHelperWE, this);
@@ -1492,7 +1492,7 @@ IPState SynscanDriver::GuideWest(uint32_t ms)
 
     // Sky already going westward (or earth rotating eastward, pick your favorite)
     // So we go SID_RATE + whatever guide rate was set to.
-    m_CustomGuideRA = TRACKRATE_SIDEREAL + GuideRateN[AXIS_RA].value * TRACKRATE_SIDEREAL;
+    m_CustomGuideRA = TRACKRATE_SIDEREAL + GuideRateNP[AXIS_RA].value * TRACKRATE_SIDEREAL;
     MoveWE(DIRECTION_WEST, MOTION_START);
     m_GuideWETID = IEAddTimer(ms, guideTimeoutHelperWE, this);
     return IPS_BUSY;
@@ -1510,7 +1510,7 @@ void SynscanDriver::guideTimeoutHelperWE(void * context)
 
 void SynscanDriver::guideTimeoutCallbackNS()
 {
-    INDI_DIR_NS direction = static_cast<INDI_DIR_NS>(IUFindOnSwitchIndex(&MovementNSSP));
+    INDI_DIR_NS direction = static_cast<INDI_DIR_NS>(MovementNSSP.findOnSwitchIndex());
     MoveNS(direction, MOTION_STOP);
     GuideComplete(AXIS_DE);
     m_CustomGuideDE = m_GuideNSTID = 0;
@@ -1518,7 +1518,7 @@ void SynscanDriver::guideTimeoutCallbackNS()
 
 void SynscanDriver::guideTimeoutCallbackWE()
 {
-    INDI_DIR_WE direction = static_cast<INDI_DIR_WE>(IUFindOnSwitchIndex(&MovementWESP));
+    INDI_DIR_WE direction = static_cast<INDI_DIR_WE>(MovementWESP.findOnSwitchIndex());
     MoveWE(direction, MOTION_STOP);
     GuideComplete(AXIS_RA);
     m_CustomGuideRA = m_GuideWETID = 0;

@@ -295,8 +295,8 @@ bool EQ500X::ReadScopeStatus()
 
     if (getCurrentMechanicalPosition(currentMechPosition))
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Error reading RA/DEC.");
         return false;
     }
 
@@ -330,7 +330,7 @@ bool EQ500X::ReadScopeStatus()
     // If we are using the goto feature, check state
     if (TrackState == SCOPE_SLEWING && _gotoEngaged)
     {
-        if (EqN[AXIS_RA].value == currentRA && EqN[AXIS_DE].value == currentDEC)
+        if (EqNP[AXIS_RA].value == currentRA && EqNP[AXIS_DE].getValue() == currentDEC)
         {
             _gotoEngaged = false;
 
@@ -549,8 +549,8 @@ bool EQ500X::ReadScopeStatus()
             adjustment = nullptr;
             setCurrentPollingPeriod(1000);
             TrackState = SCOPE_TRACKING;
-            EqNP.s = IPS_OK;
-            IDSetNumber(&EqNP, "Mount is tracking");
+            EqNP.setState(IPS_OK);
+            EqNP.apply("Mount is tracking");
         }
     }
     else
@@ -597,29 +597,29 @@ bool EQ500X::Goto(double ra, double dec)
     targetMechPosition.DECsky(dec);
 
     // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
+    if (EqNP.getState() == IPS_BUSY)
     {
         if (!Abort())
         {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            AbortSP.setState(IPS_ALERT);
+            AbortSP.apply("Abort slew failed.");
             return false;
         }
 
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
+        AbortSP.setState(IPS_OK);
+        EqNP.setState(IPS_IDLE);
+        AbortSP.apply("Slew aborted.");
+        EqNP.apply();
 
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        if (MovementNSSP.getState() == IPS_BUSY || MovementWESP.getState() == IPS_BUSY)
         {
-            MovementNSSP.s = IPS_IDLE;
-            MovementWESP.s = IPS_IDLE;
-            EqNP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
+            MovementNSSP.setState(IPS_IDLE);
+            MovementWESP.setState(IPS_IDLE);
+            EqNP.setState(IPS_IDLE);
+            MovementNSSP.reset();
+            MovementWESP.reset();
+            MovementNSSP.apply();
+            MovementWESP.apply();
         }
 
         // sleep for 100 mseconds
@@ -636,8 +636,8 @@ bool EQ500X::Goto(double ra, double dec)
     // Set target position and adjust
     if (setTargetMechanicalPosition(targetMechPosition))
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error setting RA/DEC.");
+        EqNP.setState(IPS_ALERT);
+        EqNP.apply("Error setting RA/DEC.");
         return false;
     }
     else
@@ -655,7 +655,7 @@ bool EQ500X::Goto(double ra, double dec)
     // Reset movement markers
 
     TrackState = SCOPE_SLEWING;
-    //EqNP.s     = IPS_BUSY;
+    //EqNP.setState(IPS_BUSY);
 
     // Remember current slew rate
     savedSlewRateIndex = static_cast <enum TelescopeSlewRate> (IUFindOnSwitchIndex(&SlewRateSP));
@@ -707,8 +707,8 @@ bool EQ500X::Sync(double ra, double dec)
     }
 
 sync_error:
-    EqNP.s = IPS_ALERT;
-    IDSetNumber(&EqNP, "Synchronization failed.");
+    EqNP.setState(IPS_ALERT);
+    EqNP.apply("Synchronization failed.");
     LOGF_ERROR("Mount sync to target RA '%lf' DEC '%lf' failed", ra, dec);
     return false;
 }
@@ -723,8 +723,8 @@ bool EQ500X::Abort()
 void EQ500X::setPierSide(TelescopePierSide side)
 {
     INDI_UNUSED(side);
-    PierSideSP.s = IPS_ALERT;
-    IDSetSwitch(&PierSideSP, "Not supported");
+    PierSideSP.setState(IPS_ALERT);
+    PierSideSP.apply("Not supported");
 }
 
 bool EQ500X::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)

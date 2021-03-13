@@ -22,6 +22,10 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class LX200ZEQ25 : public LX200Generic
 {
   public:
@@ -84,10 +88,8 @@ class LX200ZEQ25 : public LX200Generic
     bool getMountInfo();
     void mountSim();
 
-    ISwitch HomeS[1];
-    ISwitchVectorProperty HomeSP;
+    INDI::PropertySwitch HomeSP {1};
 
     /* Guide Rate */
-    INumber GuideRateN[1];
-    INumberVectorProperty GuideRateNP;
+    INDI::PropertyNumber GuideRateNP {1};
 };

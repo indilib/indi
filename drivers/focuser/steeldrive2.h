@@ -25,6 +25,11 @@
 
 #include <map>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class SteelDriveII : public INDI::Focuser
 {
     public:
@@ -83,8 +88,7 @@ class SteelDriveII : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////////
 
         // Focuser Informatin
-        ITextVectorProperty InfoTP;
-        IText InfoT[2] {};
+        INDI::PropertyText InfoTP {2};
         enum
         {
             INFO_NAME,
@@ -92,8 +96,7 @@ class SteelDriveII : public INDI::Focuser
         };
 
         // Focuser Operations
-        ISwitchVectorProperty OperationSP;
-        ISwitch OperationS[3];
+        INDI::PropertySwitch OperationSP {3};
         enum
         {
             OPERATION_REBOOT,
@@ -102,8 +105,7 @@ class SteelDriveII : public INDI::Focuser
         };
 
         // Temperature Compensation
-        ISwitchVectorProperty TemperatureCompensationSP;
-        ISwitch TemperatureCompensationS[2];
+        INDI::PropertySwitch TemperatureCompensationSP {2};
         enum
         {
             TC_ENABLED,
@@ -111,8 +113,7 @@ class SteelDriveII : public INDI::Focuser
         };
 
         // TC State
-        ISwitchVectorProperty TemperatureStateSP;
-        ISwitch TemperatureStateS[2];
+        INDI::PropertySwitch TemperatureStateSP {2};
         enum
         {
             TC_ACTIVE,
@@ -120,8 +121,7 @@ class SteelDriveII : public INDI::Focuser
         };
 
         // Temperature Compensation Settings
-        INumberVectorProperty TemperatureSettingsNP;
-        INumber TemperatureSettingsN[3];
+        INDI::PropertyNumber TemperatureSettingsNP {3};
         enum
         {
             TC_FACTOR,
@@ -130,8 +130,7 @@ class SteelDriveII : public INDI::Focuser
         };
 
         // Temperature Sensors
-        INumberVectorProperty TemperatureSensorNP;
-        INumber TemperatureSensorN[3];
+        INDI::PropertyNumber TemperatureSensorNP {3};
         enum
         {
             TEMP_0,
@@ -140,8 +139,7 @@ class SteelDriveII : public INDI::Focuser
         };
 
         // Stepper Drive
-        INumberVectorProperty StepperDriveNP;
-        INumber StepperDriveN[2];
+        INDI::PropertyNumber StepperDriveNP {2};
         enum
         {
             CURRENT_MOVE,

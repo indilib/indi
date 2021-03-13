@@ -93,26 +93,26 @@ bool PegasusPPB::initProperties()
     /// Main Control Panel
     ////////////////////////////////////////////////////////////////////////////
     // Cycle all power on/off
-    IUFillSwitch(&PowerCycleAllS[POWER_CYCLE_OFF], "POWER_CYCLE_OFF", "All Off", ISS_OFF);
-    IUFillSwitch(&PowerCycleAllS[POWER_CYCLE_ON], "POWER_CYCLE_ON", "All On", ISS_OFF);
-    IUFillSwitchVector(&PowerCycleAllSP, PowerCycleAllS, 2, getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB,
+    PowerCycleAllSP[POWER_CYCLE_OFF].fill("POWER_CYCLE_OFF", "All Off", ISS_OFF);
+    PowerCycleAllSP[POWER_CYCLE_ON].fill("POWER_CYCLE_ON", "All On", ISS_OFF);
+    PowerCycleAllSP.fill(getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // DSLR on/off
-    IUFillSwitch(&DSLRPowerS[DSLR_OFF], "DSLR_OFF", "Off", ISS_OFF);
-    IUFillSwitch(&DSLRPowerS[DSLR_ON], "DSLR_ON", "On", ISS_OFF);
-    IUFillSwitchVector(&DSLRPowerSP, DSLRPowerS, 2, getDeviceName(), "DSLR_POWER", "DSLR Power", MAIN_CONTROL_TAB, IP_RW,
+    DSLRPowerSP[DSLR_OFF].fill("DSLR_OFF", "Off", ISS_OFF);
+    DSLRPowerSP[DSLR_ON].fill("DSLR_ON", "On", ISS_OFF);
+    DSLRPowerSP.fill(getDeviceName(), "DSLR_POWER", "DSLR Power", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 60, IPS_IDLE);
 
     // Reboot
-    IUFillSwitch(&RebootS[0], "REBOOT", "Reboot Device", ISS_OFF);
-    IUFillSwitchVector(&RebootSP, RebootS, 1, getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
+    RebootSP[0].fill("REBOOT", "Reboot Device", ISS_OFF);
+    RebootSP.fill(getDeviceName(), "REBOOT_DEVICE", "Device", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1,
                        60, IPS_IDLE);
 
     // Power Sensors
-    IUFillNumber(&PowerSensorsN[SENSOR_VOLTAGE], "SENSOR_VOLTAGE", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
-    IUFillNumber(&PowerSensorsN[SENSOR_CURRENT], "SENSOR_CURRENT", "Current (A)", "%4.2f", 0, 999, 100, 0);
-    IUFillNumberVector(&PowerSensorsNP, PowerSensorsN, 2, getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO,
+    PowerSensorsNP[SENSOR_VOLTAGE].fill("SENSOR_VOLTAGE", "Voltage (V)", "%4.2f", 0, 999, 100, 0);
+    PowerSensorsNP[SENSOR_CURRENT].fill("SENSOR_CURRENT", "Current (A)", "%4.2f", 0, 999, 100, 0);
+    PowerSensorsNP.fill(getDeviceName(), "POWER_SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO,
                        60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -120,11 +120,11 @@ bool PegasusPPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Power on Boot
-    IUFillSwitch(&PowerOnBootS[0], "POWER_PORT_1", "Port 1", ISS_ON);
-    IUFillSwitch(&PowerOnBootS[1], "POWER_PORT_2", "Port 2", ISS_ON);
-    IUFillSwitch(&PowerOnBootS[2], "POWER_PORT_3", "Port 3", ISS_ON);
-    IUFillSwitch(&PowerOnBootS[3], "POWER_PORT_4", "Port 4", ISS_ON);
-    IUFillSwitchVector(&PowerOnBootSP, PowerOnBootS, 4, getDeviceName(), "POWER_ON_BOOT", "Power On Boot", MAIN_CONTROL_TAB,
+    PowerOnBootSP[0].fill("POWER_PORT_1", "Port 1", ISS_ON);
+    PowerOnBootSP[1].fill("POWER_PORT_2", "Port 2", ISS_ON);
+    PowerOnBootSP[2].fill("POWER_PORT_3", "Port 3", ISS_ON);
+    PowerOnBootSP[3].fill("POWER_PORT_4", "Port 4", ISS_ON);
+    PowerOnBootSP.fill(getDeviceName(), "POWER_ON_BOOT", "Power On Boot", MAIN_CONTROL_TAB,
                        IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -132,15 +132,15 @@ bool PegasusPPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Automatic Dew
-    IUFillSwitch(&AutoDewS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&AutoDewS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&AutoDewSP, AutoDewS, 2, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60,
+    AutoDewSP[INDI_ENABLED].fill("INDI_ENABLED", "Enabled", ISS_OFF);
+    AutoDewSP[INDI_DISABLED].fill("INDI_DISABLED", "Disabled", ISS_ON);
+    AutoDewSP.fill(getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
 
     // Dew PWM
-    IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", "Dew A (%)", "%.2f", 0, 100, 10, 0);
-    IUFillNumber(&DewPWMN[DEW_PWM_B], "DEW_B", "Dew B (%)", "%.2f", 0, 100, 10, 0);
-    IUFillNumberVector(&DewPWMNP, DewPWMN, 2, getDeviceName(), "DEW_PWM", "Dew PWM", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    DewPWMNP[DEW_PWM_A].fill("DEW_A", "Dew A (%)", "%.2f", 0, 100, 10, 0);
+    DewPWMNP[DEW_PWM_B].fill("DEW_B", "Dew B (%)", "%.2f", 0, 100, 10, 0);
+    DewPWMNP.fill(getDeviceName(), "DEW_PWM", "Dew PWM", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
@@ -170,15 +170,15 @@ bool PegasusPPB::updateProperties()
     if (isConnected())
     {
         // Main Control
-        defineProperty(&PowerCycleAllSP);
-        defineProperty(&DSLRPowerSP);
-        defineProperty(&PowerSensorsNP);
-        defineProperty(&PowerOnBootSP);
-        defineProperty(&RebootSP);
+        defineProperty(PowerCycleAllSP);
+        defineProperty(DSLRPowerSP);
+        defineProperty(PowerSensorsNP);
+        defineProperty(PowerOnBootSP);
+        defineProperty(RebootSP);
 
         // Dew
-        defineProperty(&AutoDewSP);
-        defineProperty(&DewPWMNP);
+        defineProperty(AutoDewSP);
+        defineProperty(DewPWMNP);
 
         WI::updateProperties();
 
@@ -187,15 +187,15 @@ bool PegasusPPB::updateProperties()
     else
     {
         // Main Control
-        deleteProperty(PowerCycleAllSP.name);
-        deleteProperty(DSLRPowerSP.name);
-        deleteProperty(PowerSensorsNP.name);
-        deleteProperty(PowerOnBootSP.name);
-        deleteProperty(RebootSP.name);
+        deleteProperty(PowerCycleAllSP.getName());
+        deleteProperty(DSLRPowerSP.getName());
+        deleteProperty(PowerSensorsNP.getName());
+        deleteProperty(PowerOnBootSP.getName());
+        deleteProperty(RebootSP.getName());
 
         // Dew
-        deleteProperty(AutoDewSP.name);
-        deleteProperty(DewPWMNP.name);
+        deleteProperty(AutoDewSP.getName());
+        deleteProperty(DewPWMNP.getName());
 
         WI::updateProperties();
 
@@ -264,77 +264,77 @@ bool PegasusPPB::ISNewSwitch(const char * dev, const char * name, ISState * stat
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // Cycle all power on or off
-        if (!strcmp(name, PowerCycleAllSP.name))
+        if (PowerCycleAllSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PowerCycleAllSP, states, names, n);
+            PowerCycleAllSP.update(states, names, n);
 
-            PowerCycleAllSP.s = IPS_ALERT;
+            PowerCycleAllSP.setState(IPS_ALERT);
             char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-            snprintf(cmd, PEGASUS_LEN, "P1:%d", IUFindOnSwitchIndex(&PowerCycleAllSP));
+            snprintf(cmd, PEGASUS_LEN, "P1:%d", PowerCycleAllSP.findOnSwitchIndex());
             if (sendCommand(cmd, res))
             {
-                PowerCycleAllSP.s = !strcmp(cmd, res) ? IPS_OK : IPS_ALERT;
+                PowerCycleAllSP.setState(!strcmp(cmd, res) ? IPS_OK : IPS_ALERT);
             }
 
-            IUResetSwitch(&PowerCycleAllSP);
-            IDSetSwitch(&PowerCycleAllSP, nullptr);
+            PowerCycleAllSP.reset();
+            PowerCycleAllSP.apply();
             return true;
         }
 
         // DSLR
-        if (!strcmp(name, DSLRPowerSP.name))
+        if (DSLRPowerSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&DSLRPowerSP, states, names, n);
+            DSLRPowerSP.update(states, names, n);
 
-            DSLRPowerSP.s = IPS_ALERT;
+            DSLRPowerSP.setState(IPS_ALERT);
             char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-            snprintf(cmd, PEGASUS_LEN, "P2:%d", IUFindOnSwitchIndex(&DSLRPowerSP));
+            snprintf(cmd, PEGASUS_LEN, "P2:%d", DSLRPowerSP.findOnSwitchIndex());
             if (sendCommand(cmd, res))
             {
-                DSLRPowerSP.s = !strcmp(cmd, res) ? IPS_OK : IPS_ALERT;
+                DSLRPowerSP.setState(!strcmp(cmd, res) ? IPS_OK : IPS_ALERT);
             }
 
-            IUResetSwitch(&DSLRPowerSP);
-            IDSetSwitch(&DSLRPowerSP, nullptr);
+            DSLRPowerSP.reset();
+            DSLRPowerSP.apply();
             return true;
         }
 
         // Reboot
-        if (!strcmp(name, RebootSP.name))
+        if (RebootSP.isNameMatch(name))
         {
-            RebootSP.s = reboot() ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&RebootSP, nullptr);
+            RebootSP.setState(reboot() ? IPS_OK : IPS_ALERT);
+            RebootSP.apply();
             LOG_INFO("Rebooting device...");
             return true;
         }
 
         // Power on boot
-        if (!strcmp(name, PowerOnBootSP.name))
+        if (PowerOnBootSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&PowerOnBootSP, states, names, n);
-            PowerOnBootSP.s = setPowerOnBoot() ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&PowerOnBootSP, nullptr);
-            saveConfig(true, PowerOnBootSP.name);
+            PowerOnBootSP.update(states, names, n);
+            PowerOnBootSP.setState(setPowerOnBoot() ? IPS_OK : IPS_ALERT);
+            PowerOnBootSP.apply();
+            saveConfig(true, PowerOnBootSP.getName());
             return true;
         }
 
         // Auto Dew
-        if (!strcmp(name, AutoDewSP.name))
+        if (AutoDewSP.isNameMatch(name))
         {
-            int prevIndex = IUFindOnSwitchIndex(&AutoDewSP);
-            IUUpdateSwitch(&AutoDewSP, states, names, n);
-            if (setAutoDewEnabled(AutoDewS[INDI_ENABLED].s == ISS_ON))
+            int prevIndex = AutoDewSP.findOnSwitchIndex();
+            AutoDewSP.update(states, names, n);
+            if (setAutoDewEnabled(AutoDewSP[INDI_ENABLED].getState() == ISS_ON))
             {
-                AutoDewSP.s = IPS_OK;
+                AutoDewSP.setState(IPS_OK);
             }
             else
             {
-                IUResetSwitch(&AutoDewSP);
-                AutoDewS[prevIndex].s = ISS_ON;
-                AutoDewSP.s = IPS_ALERT;
+                AutoDewSP.reset();
+                AutoDewSP[prevIndex].setState(ISS_ON);
+                AutoDewSP.setState(IPS_ALERT);
             }
 
-            IDSetSwitch(&AutoDewSP, nullptr);
+            AutoDewSP.apply();
             return true;
         }
     }
@@ -347,21 +347,21 @@ bool PegasusPPB::ISNewNumber(const char * dev, const char * name, double values[
     if (dev && !strcmp(dev, getDeviceName()))
     {
         // Dew PWM
-        if (!strcmp(name, DewPWMNP.name))
+        if (DewPWMNP.isNameMatch(name))
         {
             bool rc1 = false, rc2 = false;
             for (int i = 0; i < n; i++)
             {
-                if (!strcmp(names[i], DewPWMN[DEW_PWM_A].name))
+                if (!strcmp(names[i], DewPWMNP[DEW_PWM_A].getName()))
                     rc1 = setDewPWM(3, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
-                else if (!strcmp(names[i], DewPWMN[DEW_PWM_B].name))
+                else if (!strcmp(names[i], DewPWMNP[DEW_PWM_B].getName()))
                     rc2 = setDewPWM(4, static_cast<uint8_t>(values[i] / 100.0 * 255.0));
             }
 
-            DewPWMNP.s = (rc1 && rc2) ? IPS_OK : IPS_ALERT;
-            if (DewPWMNP.s == IPS_OK)
-                IUUpdateNumber(&DewPWMNP, values, names, n);
-            IDSetNumber(&DewPWMNP, nullptr);
+            DewPWMNP.setState((rc1 && rc2) ? IPS_OK : IPS_ALERT);
+            if (DewPWMNP.getState() == IPS_OK)
+                DewPWMNP.update(values, names, n);
+            DewPWMNP.apply();
             return true;
         }
 
@@ -425,10 +425,10 @@ bool PegasusPPB::setAutoDewEnabled(bool enabled)
 bool PegasusPPB::setPowerOnBoot()
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-    snprintf(cmd, PEGASUS_LEN, "PE:%d%d%d%d", PowerOnBootS[0].s == ISS_ON ? 1 : 0,
-             PowerOnBootS[1].s == ISS_ON ? 1 : 0,
-             PowerOnBootS[2].s == ISS_ON ? 1 : 0,
-             PowerOnBootS[3].s == ISS_ON ? 1 : 0);
+    snprintf(cmd, PEGASUS_LEN, "PE:%d%d%d%d", PowerOnBootSP[0].getState() == ISS_ON ? 1 : 0,
+             PowerOnBootSP[1].getState() == ISS_ON ? 1 : 0,
+             PowerOnBootSP[2].getState() == ISS_ON ? 1 : 0,
+             PowerOnBootSP[3].getState() == ISS_ON ? 1 : 0);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, "PE:1"));
@@ -454,7 +454,7 @@ bool PegasusPPB::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
     WI::saveConfigItems(fp);
-    IUSaveConfigSwitch(fp, &AutoDewSP);
+    AutoDewSP.save(fp);
 
     return true;
 }
@@ -499,11 +499,11 @@ bool PegasusPPB::getSensorData()
             return true;
 
         // Power Sensors
-        PowerSensorsN[SENSOR_VOLTAGE].value = std::stod(result[PA_VOLTAGE]);
-        PowerSensorsN[SENSOR_CURRENT].value = std::stod(result[PA_CURRENT]) / 65.0;
-        PowerSensorsNP.s = IPS_OK;
+        PowerSensorsNP[SENSOR_VOLTAGE].setValue(std::stod(result[PA_VOLTAGE]));
+        PowerSensorsNP[SENSOR_CURRENT].setValue(std::stod(result[PA_CURRENT]) / 65.0);
+        PowerSensorsNP.setState(IPS_OK);
         if (lastSensorData[PA_VOLTAGE] != result[PA_VOLTAGE] || lastSensorData[PA_CURRENT] != result[PA_CURRENT])
-            IDSetNumber(&PowerSensorsNP, nullptr);
+            PowerSensorsNP.apply();
 
         // Environment Sensors
         setParameterValue("WEATHER_TEMPERATURE", std::stod(result[PA_TEMPERATURE]));
@@ -520,30 +520,30 @@ bool PegasusPPB::getSensorData()
         }
 
         // Power Status
-        PowerCycleAllS[POWER_CYCLE_ON].s = (std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_ON : ISS_OFF;
-        PowerCycleAllS[POWER_CYCLE_ON].s = (std::stoi(result[PA_PORT_STATUS]) == 0) ? ISS_ON : ISS_OFF;
-        PowerCycleAllSP.s = (std::stoi(result[6]) == 1) ? IPS_OK : IPS_IDLE;
+        PowerCycleAllSP[POWER_CYCLE_ON].setState((std::stoi(result[PA_PORT_STATUS]) == 1) ? ISS_ON : ISS_OFF);
+        PowerCycleAllSP[POWER_CYCLE_ON].setState((std::stoi(result[PA_PORT_STATUS]) == 0) ? ISS_ON : ISS_OFF);
+        PowerCycleAllSP.setState((std::stoi(result[6]) == 1) ? IPS_OK : IPS_IDLE);
         if (lastSensorData[PA_PORT_STATUS] != result[PA_PORT_STATUS])
-            IDSetSwitch(&PowerCycleAllSP, nullptr);
+            PowerCycleAllSP.apply();
 
         // DSLR Power Status
-        DSLRPowerS[POWER_CYCLE_ON].s = (std::stoi(result[PA_DSLR_STATUS]) == 1) ? ISS_ON : ISS_OFF;
-        DSLRPowerS[POWER_CYCLE_ON].s = (std::stoi(result[PA_DSLR_STATUS]) == 0) ? ISS_ON : ISS_OFF;
-        DSLRPowerSP.s = (std::stoi(result[PA_DSLR_STATUS]) == 1) ? IPS_OK : IPS_IDLE;
+        DSLRPowerSP[POWER_CYCLE_ON].setState((std::stoi(result[PA_DSLR_STATUS]) == 1) ? ISS_ON : ISS_OFF);
+        DSLRPowerSP[POWER_CYCLE_ON].setState((std::stoi(result[PA_DSLR_STATUS]) == 0) ? ISS_ON : ISS_OFF);
+        DSLRPowerSP.setState((std::stoi(result[PA_DSLR_STATUS]) == 1) ? IPS_OK : IPS_IDLE);
         if (lastSensorData[PA_DSLR_STATUS] != result[PA_DSLR_STATUS])
-            IDSetSwitch(&DSLRPowerSP, nullptr);
+            DSLRPowerSP.apply();
 
         // Dew PWM
-        DewPWMN[0].value = std::stod(result[PA_DEW_1]) / 255.0 * 100.0;
-        DewPWMN[1].value = std::stod(result[PA_DEW_2]) / 255.0 * 100.0;
+        DewPWMNP[0].setValue(std::stod(result[PA_DEW_1]) / 255.0 * 100.0);
+        DewPWMNP[1].setValue(std::stod(result[PA_DEW_2]) / 255.0 * 100.0);
         if (lastSensorData[PA_DEW_1] != result[PA_DEW_1] || lastSensorData[PA_DEW_2] != result[PA_DEW_2])
-            IDSetNumber(&DewPWMNP, nullptr);
+            DewPWMNP.apply();
 
         // Auto Dew
-        AutoDewS[INDI_ENABLED].s  = (std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF;
-        AutoDewS[INDI_DISABLED].s = (std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_OFF : ISS_ON;
+        AutoDewSP[INDI_ENABLED].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_ON : ISS_OFF);
+        AutoDewSP[INDI_DISABLED].setState((std::stoi(result[PA_AUTO_DEW]) == 1) ? ISS_OFF : ISS_ON);
         if (lastSensorData[PA_AUTO_DEW] != result[PA_AUTO_DEW])
-            IDSetSwitch(&AutoDewSP, nullptr);
+            AutoDewSP.apply();
 
         lastSensorData = result;
 

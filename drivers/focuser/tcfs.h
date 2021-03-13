@@ -25,6 +25,10 @@
 
 #include <string>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 #define TCFS_MAX_CMD      16
 #define TCFS_ERROR_BUFFER 1024
 
@@ -93,22 +97,14 @@ class TCFS : public INDI::Focuser
     bool read_tcfs(char *response, bool silent = false);
     bool dispatch_command(TCFSCommand command_type, int val=0, TCFSMode m=MANUAL);
 
-    INumber FocusModeAN[3];
-    INumberVectorProperty FocusModeANP;
-    INumber FocusModeBN[3];
-    INumberVectorProperty FocusModeBNP;
-    ISwitch FocusTelemetryS[2];
-    ISwitchVectorProperty FocusTelemetrySP;
-    ISwitch FocusModeS[3];
-    ISwitchVectorProperty FocusModeSP;
-    ISwitch FocusPowerS[2];
-    ISwitchVectorProperty FocusPowerSP;
-    ISwitch FocusGotoS[4];
-    ISwitchVectorProperty FocusGotoSP;
-    INumber FocusTemperatureN[1];
-    INumberVectorProperty FocusTemperatureNP;
-    ISwitch FocusStartModeS[3];
-    ISwitchVectorProperty FocusStartModeSP;
+    INDI::PropertyNumber FocusModeANP {3};
+    INDI::PropertyNumber FocusModeBNP {3};
+    INDI::PropertySwitch FocusTelemetrySP {2};
+    INDI::PropertySwitch FocusModeSP {3};
+    INDI::PropertySwitch FocusPowerSP {2};
+    INDI::PropertySwitch FocusGotoSP {4};
+    INDI::PropertyNumber FocusTemperatureNP {1};
+    INDI::PropertySwitch FocusStartModeSP {3};
 
     unsigned int simulated_position { 3000 };
     float simulated_temperature { 25.4 };

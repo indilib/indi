@@ -98,7 +98,7 @@ V4L2_Driver::~V4L2_Driver()
 
 void V4L2_Driver::updateFrameSize()
 {
-    if (ISS_ON == ImageColorS[IMAGE_GRAYSCALE].s)
+    if (ISS_ON == ImageColorSP[IMAGE_GRAYSCALE].getState())
         frameBytes =
             PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP() % 8 ? 1 : 0));
     else
@@ -124,29 +124,29 @@ bool V4L2_Driver::initProperties()
                      IPS_IDLE);
 
     /* Color space */
-    IUFillSwitch(&ImageColorS[IMAGE_GRAYSCALE], "CCD_COLOR_GRAY", "Gray", ISS_ON);
-    IUFillSwitch(&ImageColorS[1], "CCD_COLOR_RGB", "Color", ISS_OFF);
-    IUFillSwitchVector(&ImageColorSP, ImageColorS, NARRAY(ImageColorS), getDeviceName(), "CCD_COLOR_SPACE",
+    ImageColorSP[IMAGE_GRAYSCALE].fill("CCD_COLOR_GRAY", "Gray", ISS_ON);
+    ImageColorSP[1].fill("CCD_COLOR_RGB", "Color", ISS_OFF);
+    ImageColorSP.fill(getDeviceName(), "CCD_COLOR_SPACE",
                        "Image Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Image depth */
-    IUFillSwitch(&ImageDepthS[0], "8 bits", "", ISS_ON);
-    IUFillSwitch(&ImageDepthS[1], "16 bits", "", ISS_OFF);
-    IUFillSwitchVector(&ImageDepthSP, ImageDepthS, NARRAY(ImageDepthS), getDeviceName(), "Image Depth", "",
+    ImageDepthSP[0].fill("8 bits", "", ISS_ON);
+    ImageDepthSP[1].fill("16 bits", "", ISS_OFF);
+    ImageDepthSP.fill(getDeviceName(), "Image Depth", "",
                        IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Camera Name */
-    IUFillText(&camNameT[0], "Model", "", nullptr);
-    IUFillTextVector(&camNameTP, camNameT, NARRAY(camNameT), getDeviceName(), "Camera", "", IMAGE_INFO_TAB, IP_RO, 0,
+    camNameTP[0].fill("Model", "", nullptr);
+    camNameTP.fill(getDeviceName(), "Camera", "", IMAGE_INFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
     /* Stacking Mode */
-    IUFillSwitch(&StackModeS[STACK_NONE], "None", "", ISS_ON);
-    IUFillSwitch(&StackModeS[STACK_MEAN], "Mean", "", ISS_OFF);
-    IUFillSwitch(&StackModeS[STACK_ADDITIVE], "Additive", "", ISS_OFF);
-    IUFillSwitch(&StackModeS[STACK_TAKE_DARK], "Take Dark", "", ISS_OFF);
-    IUFillSwitch(&StackModeS[STACK_RESET_DARK], "Reset Dark", "", ISS_OFF);
-    IUFillSwitchVector(&StackModeSP, StackModeS, NARRAY(StackModeS), getDeviceName(), "Stack", "", MAIN_CONTROL_TAB,
+    StackModeSP[STACK_NONE].fill("None", "", ISS_ON);
+    StackModeSP[STACK_MEAN].fill("Mean", "", ISS_OFF);
+    StackModeSP[STACK_ADDITIVE].fill("Additive", "", ISS_OFF);
+    StackModeSP[STACK_TAKE_DARK].fill("Take Dark", "", ISS_OFF);
+    StackModeSP[STACK_RESET_DARK].fill("Reset Dark", "", ISS_OFF);
+    StackModeSP.fill(getDeviceName(), "Stack", "", MAIN_CONTROL_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     stackMode = STACK_NONE;
@@ -165,20 +165,20 @@ bool V4L2_Driver::initProperties()
     /* Frame Rate */
     IUFillSwitchVector(&FrameRatesSP, nullptr, 0, getDeviceName(), "V4L2_FRAMEINT_DISCRETE", "Frame Interval",
                        CAPTURE_FORMAT, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillNumberVector(&FrameRateNP, nullptr, 0, getDeviceName(), "V4L2_FRAMEINT_STEP", "Frame Interval",
+    FrameRateNP.fill(getDeviceName(), "V4L2_FRAMEINT_STEP", "Frame Interval",
                        CAPTURE_FORMAT, IP_RW, 60, IPS_IDLE);
     /* Capture Colorspace */
-    IUFillText(&CaptureColorSpaceT[0], "Name", "", nullptr);
-    IUFillText(&CaptureColorSpaceT[1], "YCbCr Encoding", "", nullptr);
-    IUFillText(&CaptureColorSpaceT[2], "Quantization", "", nullptr);
-    IUFillTextVector(&CaptureColorSpaceTP, CaptureColorSpaceT, NARRAY(CaptureColorSpaceT), getDeviceName(),
+    CaptureColorSpaceTP[0].fill("Name", "", nullptr);
+    CaptureColorSpaceTP[1].fill("YCbCr Encoding", "", nullptr);
+    CaptureColorSpaceTP[2].fill("Quantization", "", nullptr);
+    CaptureColorSpaceTP.fill(getDeviceName(),
                      "V4L2_COLORSPACE", "ColorSpace", IMAGE_INFO_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Color Processing */
-    IUFillSwitch(&ColorProcessingS[0], "Quantization", "", ISS_ON);
-    IUFillSwitch(&ColorProcessingS[1], "Color Conversion", "", ISS_OFF);
-    IUFillSwitch(&ColorProcessingS[2], "Linearization", "", ISS_OFF);
-    IUFillSwitchVector(&ColorProcessingSP, ColorProcessingS, NARRAY(ColorProcessingS), getDeviceName(),
+    ColorProcessingSP[0].fill("Quantization", "", ISS_ON);
+    ColorProcessingSP[1].fill("Color Conversion", "", ISS_OFF);
+    ColorProcessingSP[2].fill("Linearization", "", ISS_OFF);
+    ColorProcessingSP.fill(getDeviceName(),
                        "V4L2_COLOR_PROCESSING", "Color Process", CAPTURE_FORMAT, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     /* V4L2 Settings */
@@ -219,9 +219,9 @@ void V4L2_Driver::ISGetProperties(const char * dev)
 
     if (isConnected())
     {
-        defineProperty(&camNameTP);
+        defineProperty(camNameTP);
 
-        defineProperty(&ImageColorSP);
+        defineProperty(ImageColorSP);
         defineProperty(&InputsSP);
         defineProperty(&CaptureFormatsSP);
 
@@ -231,15 +231,15 @@ void V4L2_Driver::ISGetProperties(const char * dev)
             defineProperty(&CaptureSizesNP);
         if (FrameRatesSP.sp != nullptr)
             defineProperty(&FrameRatesSP);
-        else if (FrameRateNP.np != nullptr)
-            defineProperty(&FrameRateNP);
+        else if (!FrameRateNP.isEmpty())
+            defineProperty(FrameRateNP);
 
-        defineProperty(&StackModeSP);
+        defineProperty(StackModeSP);
 
 #ifdef WITH_V4L2_EXPERIMENTS
-        defineProperty(&ImageDepthSP);
-        defineProperty(&ColorProcessingSP);
-        defineProperty(&CaptureColorSpaceTP);
+        defineProperty(ImageDepthSP);
+        defineProperty(ColorProcessingSP);
+        defineProperty(CaptureColorSpaceTP);
 #endif
     }
 }
@@ -259,10 +259,10 @@ bool V4L2_Driver::updateProperties()
         FrameNP = getNumber("CCD_FRAME");
         FrameN  = FrameNP->np;
 
-        defineProperty(&camNameTP);
+        defineProperty(camNameTP);
         getBasicData();
 
-        defineProperty(&ImageColorSP);
+        defineProperty(ImageColorSP);
         defineProperty(&InputsSP);
         defineProperty(&CaptureFormatsSP);
 
@@ -272,15 +272,15 @@ bool V4L2_Driver::updateProperties()
             defineProperty(&CaptureSizesNP);
         if (FrameRatesSP.sp != nullptr)
             defineProperty(&FrameRatesSP);
-        else if (FrameRateNP.np != nullptr)
-            defineProperty(&FrameRateNP);
+        else if (!FrameRateNP.isEmpty())
+            defineProperty(FrameRateNP);
 
-        defineProperty(&StackModeSP);
+        defineProperty(StackModeSP);
 
 #ifdef WITH_V4L2_EXPERIMENTS
-        defineProperty(&ImageDepthSP);
-        defineProperty(&ColorProcessingSP);
-        defineProperty(&CaptureColorSpaceTP);
+        defineProperty(ImageDepthSP);
+        defineProperty(ColorProcessingSP);
+        defineProperty(CaptureColorSpaceTP);
 #endif
 
         // Check if we have pixel size info
@@ -331,9 +331,9 @@ bool V4L2_Driver::updateProperties()
         if (v4l_base->isLXmodCapable())
             lx->updateProperties();
 
-        deleteProperty(camNameTP.name);
+        deleteProperty(camNameTP.getName());
 
-        deleteProperty(ImageColorSP.name);
+        deleteProperty(ImageColorSP.getName());
         deleteProperty(InputsSP.name);
         deleteProperty(CaptureFormatsSP.name);
 
@@ -343,8 +343,8 @@ bool V4L2_Driver::updateProperties()
             deleteProperty(CaptureSizesNP.name);
         if (FrameRatesSP.sp != nullptr)
             deleteProperty(FrameRatesSP.name);
-        else if (FrameRateNP.np != nullptr)
-            deleteProperty(FrameRateNP.name);
+        else if (!FrameRateNP.isEmpty())
+            deleteProperty(FrameRateNP.getName());
 
         deleteProperty(ImageAdjustNP.name);
         for (i = 0; i < v4loptions; i++)
@@ -354,12 +354,12 @@ bool V4L2_Driver::updateProperties()
         Options    = nullptr;
         v4loptions = 0;
 
-        deleteProperty(StackModeSP.name);
+        deleteProperty(StackModeSP.getName());
 
 #ifdef WITH_V4L2_EXPERIMENTS
-        deleteProperty(ImageDepthSP.name);
-        deleteProperty(ColorProcessingSP.name);
-        deleteProperty(CaptureColorSpaceTP.name);
+        deleteProperty(ImageDepthSP.getName());
+        deleteProperty(ColorProcessingSP.getName());
+        deleteProperty(CaptureColorSpaceTP.getName());
 #endif
 
         return true;
@@ -378,7 +378,7 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
     /* Input */
     if (strcmp(name, InputsSP.name) == 0)
     {
-        //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
+        //if ((StreamSP.getState() == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.getState() == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
             LOG_ERROR("Can not set input while capturing.");
@@ -428,7 +428,7 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
     /* Capture Format */
     if (strcmp(name, CaptureFormatsSP.name) == 0)
     {
-        //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
+        //if ((StreamSP.getState() == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.getState() == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
             LOG_ERROR("Can not set format while capturing.");
@@ -470,10 +470,10 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             CaptureFormatsSP.s = IPS_OK;
 
 #ifdef WITH_V4L2_EXPERIMENTS
-            IUSaveText(&CaptureColorSpaceT[0], getColorSpaceName(&v4l_base->fmt));
-            IUSaveText(&CaptureColorSpaceT[1], getYCbCrEncodingName(&v4l_base->fmt));
-            IUSaveText(&CaptureColorSpaceT[2], getQuantizationName(&v4l_base->fmt));
-            IDSetText(&CaptureColorSpaceTP, nullptr);
+            CaptureColorSpaceTP[0].setText(getColorSpaceName(&v4l_base->fmt));
+            CaptureColorSpaceTP[1].setText(getYCbCrEncodingName(&v4l_base->fmt));
+            CaptureColorSpaceTP[2].setText(getQuantizationName(&v4l_base->fmt));
+            CaptureColorSpaceTP.apply();
 #endif
             //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
             INDI_PIXEL_FORMAT pixelFormat;
@@ -490,7 +490,7 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
     /* Capture Size (Discrete) */
     if (strcmp(name, CaptureSizesSP.name) == 0)
     {
-        //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
+        //if ((StreamSP.getState() == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.getState() == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
             LOG_ERROR("Can not set capture size while capturing.");
@@ -514,13 +514,13 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
 
             if (FrameRatesSP.sp != nullptr)
                 deleteProperty(FrameRatesSP.name);
-            else if (FrameRateNP.np != nullptr)
-                deleteProperty(FrameRateNP.name);
+            else if (!FrameRateNP.isEmpty())
+                deleteProperty(FrameRateNP.getName());
             v4l_base->getframerates(&FrameRatesSP, &FrameRateNP);
             if (FrameRatesSP.sp != nullptr)
                 defineProperty(&FrameRatesSP);
-            else if (FrameRateNP.np != nullptr)
-                defineProperty(&FrameRateNP);
+            else if (!FrameRateNP.isEmpty())
+                defineProperty(FrameRateNP);
 
             PrimaryCCD.setFrame(0, 0, w, h);
             V4LFrame->width  = w;
@@ -566,7 +566,7 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
     }
 
     /* Image Type */
-    if (strcmp(name, ImageColorSP.name) == 0)
+    if (ImageColorSP.isNameMatch(name))
     {
         if (Streamer->isRecording())
         {
@@ -574,10 +574,10 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             return false;
         }
 
-        IUResetSwitch(&ImageColorSP);
-        IUUpdateSwitch(&ImageColorSP, states, names, n);
-        ImageColorSP.s = IPS_OK;
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        ImageColorSP.reset();
+        ImageColorSP.update(states, names, n);
+        ImageColorSP.setState(IPS_OK);
+        if (ImageColorSP[IMAGE_GRAYSCALE].getState() == ISS_ON)
         {
             //PrimaryCCD.setBPP(8);
             PrimaryCCD.setNAxis(2);
@@ -596,15 +596,15 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
         if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
             Streamer->setPixelFormat(pixelFormat, pixelDepth);
 #endif
-        Streamer->setPixelFormat((ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? INDI_MONO : INDI_RGB, 8);
-        IDSetSwitch(&ImageColorSP, nullptr);
+        Streamer->setPixelFormat((ImageColorSP[IMAGE_GRAYSCALE].getState() == ISS_ON) ? INDI_MONO : INDI_RGB, 8);
+        ImageColorSP.apply();
 
-        saveConfig(true, ImageColorSP.name);
+        saveConfig(true, ImageColorSP.getName());
         return true;
     }
 
     /* Image Depth */
-    if (strcmp(name, ImageDepthSP.name) == 0)
+    if (ImageDepthSP.isNameMatch(name))
     {
         if (Streamer->isRecording())
         {
@@ -612,10 +612,10 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             return false;
         }
 
-        IUResetSwitch(&ImageDepthSP);
-        IUUpdateSwitch(&ImageDepthSP, states, names, n);
-        ImageDepthSP.s = IPS_OK;
-        if (ImageDepthS[0].s == ISS_ON)
+        ImageDepthSP.reset();
+        ImageDepthSP.update(states, names, n);
+        ImageDepthSP.setState(IPS_OK);
+        if (ImageDepthSP[0].getState() == ISS_ON)
         {
             PrimaryCCD.setBPP(8);
         }
@@ -623,17 +623,17 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
         {
             PrimaryCCD.setBPP(16);
         }
-        IDSetSwitch(&ImageDepthSP, nullptr);
+        ImageDepthSP.apply();
         return true;
     }
 
     /* Stacking Mode */
-    if (strcmp(name, StackModeSP.name) == 0)
+    if (StackModeSP.isNameMatch(name))
     {
-        IUResetSwitch(&StackModeSP);
-        IUUpdateSwitch(&StackModeSP, states, names, n);
-        StackModeSP.s = IPS_OK;
-        stackMode     = IUFindOnSwitchIndex(&StackModeSP);
+        StackModeSP.reset();
+        StackModeSP.update(states, names, n);
+        StackModeSP.setState(IPS_OK);
+        stackMode     = StackModeSP.findOnSwitchIndex();
         if (stackMode == STACK_RESET_DARK)
         {
             if (V4LFrame->darkFrame != nullptr)
@@ -643,7 +643,7 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
             }
         }
 
-        IDSetSwitch(&StackModeSP, "Setting Stacking Mode: %s", StackModeS[stackMode].name);
+        StackModeSP.apply("Setting Stacking Mode: %s", StackModeSP[stackMode].getName());
         return true;
     }
 
@@ -691,15 +691,15 @@ bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * sta
     }
 
     /* ColorProcessing */
-    if (strcmp(name, ColorProcessingSP.name) == 0)
+    if (ColorProcessingSP.isNameMatch(name))
     {
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        if (ImageColorSP[IMAGE_GRAYSCALE].getState() == ISS_ON)
         {
-            IUUpdateSwitch(&ColorProcessingSP, states, names, n);
-            v4l_base->setColorProcessing(ColorProcessingS[0].s == ISS_ON, ColorProcessingS[1].s == ISS_ON,
-                                         ColorProcessingS[2].s == ISS_ON);
-            ColorProcessingSP.s = IPS_OK;
-            IDSetSwitch(&ColorProcessingSP, nullptr);
+            ColorProcessingSP.update(states, names, n);
+            v4l_base->setColorProcessing(ColorProcessingSP[0].getState() == ISS_ON, ColorProcessingSP[1].getState() == ISS_ON,
+                                         ColorProcessingSP[2].getState() == ISS_ON);
+            ColorProcessingSP.setState(IPS_OK);
+            ColorProcessingSP.apply();
             V4LFrame->bpp = v4l_base->getBpp();
             PrimaryCCD.setBPP(V4LFrame->bpp);
             PrimaryCCD.setBPP(V4LFrame->bpp);
@@ -955,10 +955,10 @@ bool V4L2_Driver::setManualExposure(double duration)
     if (nullptr == AbsExposureN)
     {
         /* We don't have an absolute exposure control but we can stack gray frames until the exposure elapses */
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        if (ImageColorSP[IMAGE_GRAYSCALE].getState() == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
         {
             LOGF_WARN("Absolute exposure duration control is undefined, stacking up to %.3f seconds using %.16s.",
-                      duration, StackModeS[stackMode].name);
+                      duration, StackModeSP[stackMode].getName());
             return true;
         }
         /* We don't have an absolute exposure control and stacking is not configured, bail out */
@@ -972,21 +972,21 @@ bool V4L2_Driver::setManualExposure(double duration)
     /* Then if we have an exposure control, check the requested exposure duration */
     else if (AbsExposureN->max < ticks)
     {
-        if( ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode == STACK_NONE ) {
+        if( ImageColorSP[IMAGE_GRAYSCALE].getState() == ISS_ON && stackMode == STACK_NONE ) {
             LOG_WARN("Requested manual exposure is out of device bounds auto set stackMode to ADDITIVE" );
             stackMode = STACK_ADDITIVE;
-            StackModeSP.sp[ STACK_NONE ].s = ISS_OFF;
-            StackModeSP.sp[ STACK_ADDITIVE ].s = ISS_ON;
+            StackModeSP[ STACK_NONE ].setState(ISS_OFF);
+            StackModeSP[ STACK_ADDITIVE ].setState(ISS_ON);
             IDSetSwitch(ManualExposureSP, nullptr);
         }
 
         /* We can't expose as long as requested but we can stack gray frames until the exposure elapses */
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        if (ImageColorSP[IMAGE_GRAYSCALE].getState() == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
         {
             if( AbsExposureN->value != AbsExposureN->max ) {
                 LOGF_WARN("Requested manual exposure is out of device bounds [%.3f,%.3f], stacking up to %.3f seconds using %.16s.",
                       (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f,
-                      duration, StackModeS[stackMode].name);
+                      duration, StackModeSP[stackMode].getName());
             }
             ticks = AbsExposureN->max;
         }
@@ -1199,7 +1199,7 @@ void V4L2_Driver::lxtimerCallback(void * userpointer)
 
 bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
 {
-    if (ImageColorS[IMAGE_COLOR].s == ISS_ON)
+    if (ImageColorSP[IMAGE_COLOR].getState() == ISS_ON)
     {
         if (hor == 1 && ver == 1)
         {
@@ -1332,7 +1332,7 @@ void V4L2_Driver::newFrame()
         unsigned char * buffer = nullptr;
 
         std::unique_lock<std::mutex> guard(ccdBufferLock);
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        if (ImageColorSP[IMAGE_GRAYSCALE].getState() == ISS_ON)
         {
             V4LFrame->Y = v4l_base->getY();
             totalBytes  = width * height * (dbpp / 8);
@@ -1428,20 +1428,20 @@ void V4L2_Driver::newFrame()
         PrimaryCCD.setExposureLeft(remaining);
 
         // Stack Mono frames
-        if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON))
+        if ((stackMode) && !(lx->isEnabled()) && !(ImageColorSP[1].getState() == ISS_ON))
         {
             stackFrame();
         }
 
         /* FIXME: stacking does not account for transfer time, so we'll miss the last frames probably */
-        if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON) &&
+        if ((stackMode) && !(lx->isEnabled()) && !(ImageColorSP[1].getState() == ISS_ON) &&
                 (timercmp(&elapsed_exposure, &exposure_duration, < )))
             return; // go on stacking
         
         struct timeval const current_exposure = getElapsedExposure();
 
         //IDLog("Copying frame.\n");
-        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        if (ImageColorSP[IMAGE_GRAYSCALE].getState() == ISS_ON)
         {
             if (!stackMode)
             {
@@ -1481,7 +1481,7 @@ void V4L2_Driver::newFrame()
                 //IDLog("Copying stack frame from %p to %p.\n", src, dest);
                 if (stackMode == STACK_MEAN)
                 {
-                    if (ImageDepthS[0].s == ISS_ON)
+                    if (ImageDepthSP[0].getState() == ISS_ON)
                     {
                         // depth 8 bits
                         unsigned char * dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
@@ -1508,7 +1508,7 @@ void V4L2_Driver::newFrame()
                 else if (stackMode == STACK_ADDITIVE)
                 {
                     /* Clamp additive stacking to frame dynamic range - that is, do not consider normalized source greater than 1.0f */
-                    if (ImageDepthS[0].s == ISS_ON)
+                    if (ImageDepthSP[0].getState() == ISS_ON)
                     {
                         // depth 8 bits
                         unsigned char * dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
@@ -1543,7 +1543,7 @@ void V4L2_Driver::newFrame()
                     V4LFrame->darkFrame    = V4LFrame->stackedFrame;
                     V4LFrame->stackedFrame = nullptr;
                     src                    = V4LFrame->darkFrame;
-                    if (ImageDepthS[0].s == ISS_ON)
+                    if (ImageDepthSP[0].getState() == ISS_ON)
                     {
                         // depth 8 bits
                         unsigned char * dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
@@ -1716,13 +1716,13 @@ void V4L2_Driver::getBasicData()
         LOGF_INFO("Found initial size %dx%d, frame interval %d/%ds", w, h, frate.numerator,
                   frate.denominator);
 
-    IUSaveText(&camNameT[0], v4l_base->getDeviceName());
-    IDSetText(&camNameTP, nullptr);
+    camNameTP[0].setText(v4l_base->getDeviceName());
+    camNameTP.apply();
 #ifdef WITH_V4L2_EXPERIMENTS
-    IUSaveText(&CaptureColorSpaceT[0], getColorSpaceName(&v4l_base->fmt));
-    IUSaveText(&CaptureColorSpaceT[1], getYCbCrEncodingName(&v4l_base->fmt));
-    IUSaveText(&CaptureColorSpaceT[2], getQuantizationName(&v4l_base->fmt));
-    IDSetText(&CaptureColorSpaceTP, nullptr);
+    CaptureColorSpaceTP[0].setText(getColorSpaceName(&v4l_base->fmt));
+    CaptureColorSpaceTP[1].setText(getYCbCrEncodingName(&v4l_base->fmt));
+    CaptureColorSpaceTP[2].setText(getQuantizationName(&v4l_base->fmt));
+    CaptureColorSpaceTP.apply();
 #endif
     if (Options)
         free(Options);

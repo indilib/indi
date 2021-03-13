@@ -35,6 +35,9 @@
 #include <mutex>
 #include <thread>
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
 
@@ -147,7 +150,7 @@ class Spectrograph : public SensorInterface
          */
         inline INumberVectorProperty *getSpectrographSettings()
         {
-            return &SpectrographSettingsNP;
+            return SpectrographSettingsNP.getNumber(); // #PS: refactor needed
         }
 
         /**
@@ -186,8 +189,7 @@ class Spectrograph : public SensorInterface
             SPECTROGRAPH_SAMPLERATE,
             SPECTROGRAPH_ANTENNA,
         } SPECTROGRAPH_INFO_INDEX;
-        INumberVectorProperty SpectrographSettingsNP;
-        INumber SpectrographSettingsN[7];
+        INDI::PropertyNumber SpectrographSettingsNP {7};
 
 private:
         double Samplerate;

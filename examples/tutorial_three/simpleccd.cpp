@@ -25,7 +25,7 @@
 #include <memory>
 
 /* Macro shortcut to CCD temperature value */
-#define currentCCDTemperature TemperatureN[0].value
+#define currentCCDTemperature TemperatureNP[0].value
 
 std::unique_ptr<SimpleCCD> simpleCCD(new SimpleCCD());
 
@@ -206,7 +206,7 @@ void SimpleCCD::TimerHit()
     }
 
     // TemperatureNP is defined in INDI::CCD
-    switch (TemperatureNP.s)
+    switch (TemperatureNP.getState())
     {
         case IPS_IDLE:
         case IPS_OK:
@@ -222,13 +222,13 @@ void SimpleCCD::TimerHit()
             /* If they're equal, stop updating */
             else
             {
-                TemperatureNP.s = IPS_OK;
-                IDSetNumber(&TemperatureNP, "Target temperature reached.");
+                TemperatureNP.setState(IPS_OK);
+                TemperatureNP.apply("Target temperature reached.");
 
                 break;
             }
 
-            IDSetNumber(&TemperatureNP, nullptr);
+            TemperatureNP.apply();
 
             break;
 

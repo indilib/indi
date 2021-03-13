@@ -20,6 +20,10 @@
 
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertylight.h"
+
 class SmartFocus : public INDI::Focuser
 {
   public:
@@ -88,8 +92,6 @@ class SmartFocus : public INDI::Focuser
     State state { Idle };
     int timer_id { 0 };
 
-    ILight FlagsL[5];
-    ILightVectorProperty FlagsLP;
-    INumber MotionErrorN[1];
-    INumberVectorProperty MotionErrorNP;
+    INDI::PropertyLight FlagsLP {5};
+    INDI::PropertyNumber MotionErrorNP {1};
 };

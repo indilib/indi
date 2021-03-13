@@ -84,78 +84,78 @@ bool DeepSkyDadAF3::initProperties()
     INDI::Focuser::initProperties();
 
     // Step Mode
-    IUFillSwitch(&StepModeS[S256], "S256", "1/256 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[S128], "S128", "1/128 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[S64], "S64", "1/64 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[S32], "S32", "1/32 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[S16], "S16", "1/16 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[S8], "S8", "1/8 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[S4], "S4", "1/4 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[S2], "S2", "1/2 Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[S1], "S1", "Full Step", ISS_OFF);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 9, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    StepModeSP[S256].fill("S256", "1/256 Step", ISS_OFF);
+    StepModeSP[S128].fill("S128", "1/128 Step", ISS_OFF);
+    StepModeSP[S64].fill("S64", "1/64 Step", ISS_OFF);
+    StepModeSP[S32].fill("S32", "1/32 Step", ISS_OFF);
+    StepModeSP[S16].fill("S16", "1/16 Step", ISS_OFF);
+    StepModeSP[S8].fill("S8", "1/8 Step", ISS_OFF);
+    StepModeSP[S4].fill("S4", "1/4 Step", ISS_OFF);
+    StepModeSP[S2].fill("S2", "1/2 Step", ISS_OFF);
+    StepModeSP[S1].fill("S1", "Full Step", ISS_OFF);
+    StepModeSP.fill(getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Speed Mode
-    IUFillSwitch(&SpeedModeS[VERY_SLOW], "VERY_SLOW", "Very slow", ISS_OFF);
-    IUFillSwitch(&SpeedModeS[SLOW], "SLOW", "Slow", ISS_OFF);
-    IUFillSwitch(&SpeedModeS[MEDIUM], "MEDIUM", "Medium", ISS_OFF);
-    IUFillSwitch(&SpeedModeS[FAST], "FAST", "Fast", ISS_OFF);
-    IUFillSwitch(&SpeedModeS[VERY_FAST], "VERY_FAST", "Very fast", ISS_OFF);
-    IUFillSwitchVector(&SpeedModeSP, SpeedModeS, 5, getDeviceName(), "Speed Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+    SpeedModeSP[VERY_SLOW].fill("VERY_SLOW", "Very slow", ISS_OFF);
+    SpeedModeSP[SLOW].fill("SLOW", "Slow", ISS_OFF);
+    SpeedModeSP[MEDIUM].fill("MEDIUM", "Medium", ISS_OFF);
+    SpeedModeSP[FAST].fill("FAST", "Fast", ISS_OFF);
+    SpeedModeSP[VERY_FAST].fill("VERY_FAST", "Very fast", ISS_OFF);
+    SpeedModeSP.fill(getDeviceName(), "Speed Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 50000.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step = 10.;
+    FocusRelPosNP[0].setMin(0.);
+    FocusRelPosNP[0].setMax(50000.);
+    FocusRelPosNP[0].setValue(0.);
+    FocusRelPosNP[0].setStep(10.);
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 1000000.;
-    FocusAbsPosN[0].value = 50000.;
-    FocusAbsPosN[0].step = 5000.;
+    FocusAbsPosNP[0].setMin(0.);
+    FocusAbsPosNP[0].setMax(1000000.);
+    FocusAbsPosNP[0].setValue(50000.);
+    FocusAbsPosNP[0].setStep(5000.);
 
-    FocusMaxPosN[0].min = 0.;
-    FocusMaxPosN[0].max = 1000000.;
-    FocusMaxPosN[0].value = 1000000.;
-    FocusMaxPosN[0].step = 5000.;
+    FocusMaxPosNP[0].setMin(0.);
+    FocusMaxPosNP[0].setMax(1000000.);
+    FocusMaxPosNP[0].setValue(1000000.);
+    FocusMaxPosNP[0].setStep(5000.);
 
-    FocusSyncN[0].min = 0.;
-    FocusSyncN[0].max = 1000000.;
-    FocusSyncN[0].value = 50000.;
-    FocusSyncN[0].step = 5000.;
+    FocusSyncNP[0].setMin(0.);
+    FocusSyncNP[0].setMax(1000000.);
+    FocusSyncNP[0].setValue(50000.);
+    FocusSyncNP[0].setStep(5000.);
 
-    FocusBacklashN[0].min = -1000;
-    FocusBacklashN[0].max = 1000;
-    FocusBacklashN[0].step = 1;
-    FocusBacklashN[0].value = 0;
+    FocusBacklashNP[0].setMin(-1000);
+    FocusBacklashNP[0].setMax(1000);
+    FocusBacklashNP[0].setStep(1);
+    FocusBacklashNP[0].setValue(0);
 
     // Max. movement
-    IUFillNumber(&FocusMaxMoveN[0], "MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
-    IUFillNumberVector(&FocusMaxMoveNP, FocusMaxMoveN, 1, getDeviceName(), "FOCUS_MAX_MOVE", "Max. movement",
+    FocusMaxMoveNP[0].fill("MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
+    FocusMaxMoveNP.fill(getDeviceName(), "FOCUS_MAX_MOVE", "Max. movement",
                        MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Settle buffer
-    IUFillNumber(&SettleBufferN[0], "SETTLE_BUFFER", "Period (ms)", "%5.0f", 0, 99999, 100, 0);
-    IUFillNumberVector(&SettleBufferNP, SettleBufferN, 1, getDeviceName(), "FOCUS_SETTLE_BUFFER", "Settle buffer",
+    SettleBufferNP[0].fill("SETTLE_BUFFER", "Period (ms)", "%5.0f", 0, 99999, 100, 0);
+    SettleBufferNP.fill(getDeviceName(), "FOCUS_SETTLE_BUFFER", "Settle buffer",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Motor move multiplier
-    IUFillNumber(&MoveCurrentMultiplierN[0], "MOTOR_MOVE_MULTIPLIER", "%", "%3.0f", 1, 100, 1, 90);
-    IUFillNumberVector(&MoveCurrentMultiplierNP, MoveCurrentMultiplierN, 1, getDeviceName(), "FOCUS_MMM",
+    MoveCurrentMultiplierNP[0].fill("MOTOR_MOVE_MULTIPLIER", "%", "%3.0f", 1, 100, 1, 90);
+    MoveCurrentMultiplierNP.fill(getDeviceName(), "FOCUS_MMM",
                        "Move current multiplier",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Motor hold multiplier
-    IUFillNumber(&HoldCurrentMultiplierN[0], "MOTOR_HOLD_MULTIPLIER", "%", "%3.0f", 1, 100, 1, 40);
-    IUFillNumberVector(&HoldCurrentMultiplierNP, HoldCurrentMultiplierN, 1, getDeviceName(), "FOCUS_MHM",
+    HoldCurrentMultiplierNP[0].fill("MOTOR_HOLD_MULTIPLIER", "%", "%3.0f", 1, 100, 1, 40);
+    HoldCurrentMultiplierNP.fill(getDeviceName(), "FOCUS_MHM",
                        "Hold current multiplier",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    TemperatureNP[0].fill("TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
+    TemperatureNP.fill(getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     setDefaultPollingPeriod(500);
@@ -170,13 +170,13 @@ bool DeepSkyDadAF3::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&FocusMaxMoveNP);
-        defineProperty(&StepModeSP);
-        defineProperty(&SpeedModeSP);
-        defineProperty(&SettleBufferNP);
-        defineProperty(&MoveCurrentMultiplierNP);
-        defineProperty(&HoldCurrentMultiplierNP);
-        defineProperty(&TemperatureNP);
+        defineProperty(FocusMaxMoveNP);
+        defineProperty(StepModeSP);
+        defineProperty(SpeedModeSP);
+        defineProperty(SettleBufferNP);
+        defineProperty(MoveCurrentMultiplierNP);
+        defineProperty(HoldCurrentMultiplierNP);
+        defineProperty(TemperatureNP);
 
         GetFocusParams();
 
@@ -184,13 +184,13 @@ bool DeepSkyDadAF3::updateProperties()
     }
     else
     {
-        deleteProperty(FocusMaxMoveNP.name);
-        deleteProperty(StepModeSP.name);
-        deleteProperty(SpeedModeSP.name);
-        deleteProperty(SettleBufferNP.name);
-        deleteProperty(MoveCurrentMultiplierNP.name);
-        deleteProperty(HoldCurrentMultiplierNP.name);
-        deleteProperty(TemperatureNP.name);
+        deleteProperty(FocusMaxMoveNP.getName());
+        deleteProperty(StepModeSP.getName());
+        deleteProperty(SpeedModeSP.getName());
+        deleteProperty(SettleBufferNP.getName());
+        deleteProperty(MoveCurrentMultiplierNP.getName());
+        deleteProperty(HoldCurrentMultiplierNP.getName());
+        deleteProperty(TemperatureNP.getName());
     }
 
     return true;
@@ -245,30 +245,30 @@ bool DeepSkyDadAF3::readStepMode()
         return false;
 
     if (strcmp(res, "(1)") == 0)
-        StepModeS[S1].s = ISS_ON;
+        StepModeSP[S1].setState(ISS_ON);
     else if (strcmp(res, "(2)") == 0)
-        StepModeS[S2].s = ISS_ON;
+        StepModeSP[S2].setState(ISS_ON);
     else if (strcmp(res, "(4)") == 0)
-        StepModeS[S4].s = ISS_ON;
+        StepModeSP[S4].setState(ISS_ON);
     else if (strcmp(res, "(8)") == 0)
-        StepModeS[S8].s = ISS_ON;
+        StepModeSP[S8].setState(ISS_ON);
     else if (strcmp(res, "(16)") == 0)
-        StepModeS[S16].s = ISS_ON;
+        StepModeSP[S16].setState(ISS_ON);
     else if (strcmp(res, "(32)") == 0)
-        StepModeS[S32].s = ISS_ON;
+        StepModeSP[S32].setState(ISS_ON);
     else if (strcmp(res, "(64)") == 0)
-        StepModeS[S64].s = ISS_ON;
+        StepModeSP[S64].setState(ISS_ON);
     else if (strcmp(res, "(128)") == 0)
-        StepModeS[S128].s = ISS_ON;
+        StepModeSP[S128].setState(ISS_ON);
     else if (strcmp(res, "(256)") == 0)
-        StepModeS[S256].s = ISS_ON;
+        StepModeSP[S256].setState(ISS_ON);
     else
     {
         LOGF_ERROR("Unknown error: focuser step value (%s)", res);
         return false;
     }
 
-    StepModeSP.s = IPS_OK;
+    StepModeSP.setState(IPS_OK);
     return true;
 }
 
@@ -280,22 +280,22 @@ bool DeepSkyDadAF3::readSpeedMode()
         return false;
 
     if (strcmp(res, "(1)") == 0)
-        SpeedModeS[VERY_SLOW].s = ISS_ON;
+        SpeedModeSP[VERY_SLOW].setState(ISS_ON);
     else if (strcmp(res, "(2)") == 0)
-        SpeedModeS[SLOW].s = ISS_ON;
+        SpeedModeSP[SLOW].setState(ISS_ON);
     else if (strcmp(res, "(3)") == 0)
-        SpeedModeS[MEDIUM].s = ISS_ON;
+        SpeedModeSP[MEDIUM].setState(ISS_ON);
     else if (strcmp(res, "(4)") == 0)
-        SpeedModeS[FAST].s = ISS_ON;
+        SpeedModeSP[FAST].setState(ISS_ON);
     else if (strcmp(res, "(5)") == 0)
-        SpeedModeS[VERY_FAST].s = ISS_ON;
+        SpeedModeSP[VERY_FAST].setState(ISS_ON);
     else
     {
         LOGF_ERROR("Unknown error: focuser speed value (%s)", res);
         return false;
     }
 
-    SpeedModeSP.s = IPS_OK;
+    SpeedModeSP.setState(IPS_OK);
     return true;
 }
 
@@ -310,7 +310,7 @@ bool DeepSkyDadAF3::readPosition()
     int rc = sscanf(res, "(%d)", &pos);
 
     if (rc > 0)
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosNP[0].setValue(pos);
     else
     {
         LOGF_ERROR("Unknown error: focuser position value (%s)", res);
@@ -331,8 +331,8 @@ bool DeepSkyDadAF3::readMaxMovement()
     int rc = sscanf(res, "(%d)", &steps);
     if (rc > 0)
     {
-        FocusMaxMoveN[0].value = steps;
-        FocusMaxMoveNP.s = IPS_OK;
+        FocusMaxMoveNP[0].setValue(steps);
+        FocusMaxMoveNP.setState(IPS_OK);
     }
     else
     {
@@ -354,8 +354,8 @@ bool DeepSkyDadAF3::readMaxPosition()
     int rc = sscanf(res, "(%d)", &steps);
     if (rc > 0)
     {
-        FocusMaxPosN[0].value = steps;
-        FocusMaxPosNP.s = IPS_OK;
+        FocusMaxPosNP[0].setValue(steps);
+        FocusMaxPosNP.setState(IPS_OK);
     }
     else
     {
@@ -377,8 +377,8 @@ bool DeepSkyDadAF3::readSettleBuffer()
     int rc = sscanf(res, "(%d)", &settleBuffer);
     if (rc > 0)
     {
-        SettleBufferN[0].value = settleBuffer;
-        SettleBufferNP.s = settleBuffer > 0 ? IPS_OK : IPS_IDLE;
+        SettleBufferNP[0].setValue(settleBuffer);
+        SettleBufferNP.setState(settleBuffer > 0 ? IPS_OK : IPS_IDLE);
     }
     else
     {
@@ -400,8 +400,8 @@ bool DeepSkyDadAF3::readMoveCurrentMultiplier()
     int rc = sscanf(res, "(%d)", &mcm);
     if (rc > 0)
     {
-        MoveCurrentMultiplierN[0].value = mcm;
-        MoveCurrentMultiplierNP.s = IPS_OK;
+        MoveCurrentMultiplierNP[0].setValue(mcm);
+        MoveCurrentMultiplierNP.setState(IPS_OK);
     }
     else
     {
@@ -423,8 +423,8 @@ bool DeepSkyDadAF3::readHoldCurrentMultiplier()
     int rc = sscanf(res, "(%d)", &hcm);
     if (rc > 0)
     {
-        HoldCurrentMultiplierN[0].value = hcm;
-        HoldCurrentMultiplierNP.s = IPS_OK;
+        HoldCurrentMultiplierNP[0].setValue(hcm);
+        HoldCurrentMultiplierNP.setState(IPS_OK);
     }
     else
     {
@@ -446,7 +446,7 @@ bool DeepSkyDadAF3::readTemperature()
     int rc = sscanf(res, "(%lf)", &temp);
     if (rc > 0)
     {
-        TemperatureN[0].value = temp;
+        TemperatureNP[0].setValue(temp);
     }
     else
     {
@@ -516,18 +516,18 @@ bool DeepSkyDadAF3::ISNewSwitch(const char * dev, const char * name, ISState * s
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
-        if (strcmp(StepModeSP.name, name) == 0)
+        if (StepModeSP.isNameMatch(name))
         {
-            int current_mode = IUFindOnSwitchIndex(&StepModeSP);
+            int current_mode = StepModeSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&StepModeSP, states, names, n);
+            StepModeSP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&StepModeSP);
+            int target_mode = StepModeSP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                StepModeSP.s = IPS_OK;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.setState(IPS_OK);
+                StepModeSP.apply();
                 return true;
             }
 
@@ -556,31 +556,31 @@ bool DeepSkyDadAF3::ISNewSwitch(const char * dev, const char * name, ISState * s
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                IUResetSwitch(&StepModeSP);
-                StepModeS[current_mode].s = ISS_ON;
-                StepModeSP.s              = IPS_ALERT;
-                IDSetSwitch(&StepModeSP, nullptr);
+                StepModeSP.reset();
+                StepModeSP[current_mode].setState(ISS_ON);
+                StepModeSP.setState(IPS_ALERT);
+                StepModeSP.apply();
                 return false;
             }
 
-            StepModeSP.s = IPS_OK;
-            IDSetSwitch(&StepModeSP, nullptr);
+            StepModeSP.setState(IPS_OK);
+            StepModeSP.apply();
             return true;
         }
 
         // Focus Speed Mode
-        if (strcmp(SpeedModeSP.name, name) == 0)
+        if (SpeedModeSP.isNameMatch(name))
         {
-            int current_mode = IUFindOnSwitchIndex(&SpeedModeSP);
+            int current_mode = SpeedModeSP.findOnSwitchIndex();
 
-            IUUpdateSwitch(&SpeedModeSP, states, names, n);
+            SpeedModeSP.update(states, names, n);
 
-            int target_mode = IUFindOnSwitchIndex(&SpeedModeSP);
+            int target_mode = SpeedModeSP.findOnSwitchIndex();
 
             if (current_mode == target_mode)
             {
-                SpeedModeSP.s = IPS_OK;
-                IDSetSwitch(&SpeedModeSP, nullptr);
+                SpeedModeSP.setState(IPS_OK);
+                SpeedModeSP.apply();
                 return true;
             }
 
@@ -601,15 +601,15 @@ bool DeepSkyDadAF3::ISNewSwitch(const char * dev, const char * name, ISState * s
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                IUResetSwitch(&SpeedModeSP);
-                SpeedModeS[current_mode].s = ISS_ON;
-                SpeedModeSP.s              = IPS_ALERT;
-                IDSetSwitch(&SpeedModeSP, nullptr);
+                SpeedModeSP.reset();
+                SpeedModeSP[current_mode].setState(ISS_ON);
+                SpeedModeSP.setState(IPS_ALERT);
+                SpeedModeSP.apply();
                 return false;
             }
 
-            SpeedModeSP.s = IPS_OK;
-            IDSetSwitch(&SpeedModeSP, nullptr);
+            SpeedModeSP.setState(IPS_OK);
+            SpeedModeSP.apply();
             return true;
         }
     }
@@ -622,92 +622,92 @@ bool DeepSkyDadAF3::ISNewNumber(const char * dev, const char * name, double valu
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Settle buffer Settings
-        if (strcmp(name, SettleBufferNP.name) == 0)
+        if (SettleBufferNP.isNameMatch(name))
         {
-            IUUpdateNumber(&SettleBufferNP, values, names, n);
+            SettleBufferNP.update(values, names, n);
             char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SBUF%06d]", static_cast<int>(SettleBufferN[0].value));
+            snprintf(cmd, DSD_RES, "[SBUF%06d]", static_cast<int>(SettleBufferNP[0].value));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                SettleBufferNP.s = IPS_ALERT;
+                SettleBufferNP.setState(IPS_ALERT);
                 return false;
             }
 
-            SettleBufferNP.s = IPS_OK;
-            IDSetNumber(&SettleBufferNP, nullptr);
+            SettleBufferNP.setState(IPS_OK);
+            SettleBufferNP.apply();
             return true;
         }
 
         // Move current multiplier
-        if (strcmp(name, MoveCurrentMultiplierNP.name) == 0)
+        if (MoveCurrentMultiplierNP.isNameMatch(name))
         {
-            IUUpdateNumber(&MoveCurrentMultiplierNP, values, names, n);
+            MoveCurrentMultiplierNP.update(values, names, n);
             char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SMMM%03d]", static_cast<int>(MoveCurrentMultiplierN[0].value));
+            snprintf(cmd, DSD_RES, "[SMMM%03d]", static_cast<int>(MoveCurrentMultiplierNP[0].value));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                MoveCurrentMultiplierNP.s = IPS_ALERT;
+                MoveCurrentMultiplierNP.setState(IPS_ALERT);
                 return false;
             }
 
-            MoveCurrentMultiplierNP.s = IPS_OK;
-            IDSetNumber(&MoveCurrentMultiplierNP, nullptr);
+            MoveCurrentMultiplierNP.setState(IPS_OK);
+            MoveCurrentMultiplierNP.apply();
             return true;
         }
 
         // Hold current multiplier
-        if (strcmp(name, HoldCurrentMultiplierNP.name) == 0)
+        if (HoldCurrentMultiplierNP.isNameMatch(name))
         {
-            IUUpdateNumber(&HoldCurrentMultiplierNP, values, names, n);
+            HoldCurrentMultiplierNP.update(values, names, n);
             char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SMHM%03d]", static_cast<int>(HoldCurrentMultiplierN[0].value));
+            snprintf(cmd, DSD_RES, "[SMHM%03d]", static_cast<int>(HoldCurrentMultiplierNP[0].value));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                HoldCurrentMultiplierNP.s = IPS_ALERT;
+                HoldCurrentMultiplierNP.setState(IPS_ALERT);
                 return false;
             }
 
-            HoldCurrentMultiplierNP.s = IPS_OK;
-            IDSetNumber(&HoldCurrentMultiplierNP, nullptr);
+            HoldCurrentMultiplierNP.setState(IPS_OK);
+            HoldCurrentMultiplierNP.apply();
             return true;
         }
 
         // Max. position
-        if (strcmp(name, FocusMaxPosNP.name) == 0)
+        if (FocusMaxPosNP.isNameMatch(name))
         {
-            IUUpdateNumber(&FocusMaxPosNP, values, names, n);
+            FocusMaxPosNP.update(values, names, n);
             char cmd[DSD_RES] = {0};
-            snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(FocusMaxPosN[0].value));
+            snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(FocusMaxPosNP[0].value));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
-                FocusMaxPosNP.s = IPS_ALERT;
+                FocusMaxPosNP.setState(IPS_ALERT);
                 return false;
             }
 
-            FocusMaxPosNP.s = IPS_OK;
-            IDSetNumber(&FocusMaxPosNP, nullptr);
+            FocusMaxPosNP.setState(IPS_OK);
+            FocusMaxPosNP.apply();
             return true;
         }
 
         // Max. movement
-        //        if (strcmp(name, FocusMaxMoveNP.name) == 0)
+        //        if (FocusMaxMoveNP.isNameMatch(name))
         //        {
-        //            IUUpdateNumber(&FocusMaxMoveNP, values, names, n);
+        //            FocusMaxMoveNP.update(values, names, n);
         //            char cmd[DSD_RES] = {0};
-        //            snprintf(cmd, DSD_RES, "[SMXM%d]", static_cast<int>(FocusMaxMoveN[0].value));
+        //            snprintf(cmd, DSD_RES, "[SMXM%d]", static_cast<int>(FocusMaxMoveNP[0].value));
         //            bool rc = sendCommandSet(cmd);
         //            if (!rc)
         //            {
-        //                FocusMaxMoveNP.s = IPS_ALERT;
+        //                FocusMaxMoveNP.setState(IPS_ALERT);
         //                return false;
         //            }
 
-        //            FocusMaxMoveNP.s = IPS_OK;
-        //            IDSetNumber(&FocusMaxMoveNP, nullptr);
+        //            FocusMaxMoveNP.setState(IPS_OK);
+        //            FocusMaxMoveNP.apply();
         //            return true;
         //        }
 
@@ -718,35 +718,35 @@ bool DeepSkyDadAF3::ISNewNumber(const char * dev, const char * name, double valu
 
 void DeepSkyDadAF3::GetFocusParams()
 {
-    IUResetSwitch(&StepModeSP);
-    IUResetSwitch(&SpeedModeSP);
+    StepModeSP.reset();
+    SpeedModeSP.reset();
 
     if (readPosition())
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        FocusAbsPosNP.apply();
 
     if (readStepMode())
-        IDSetSwitch(&StepModeSP, nullptr);
+        StepModeSP.apply();
 
     if (readSpeedMode())
-        IDSetSwitch(&SpeedModeSP, nullptr);
+        SpeedModeSP.apply();
 
     if (readSettleBuffer())
-        IDSetNumber(&SettleBufferNP, nullptr);
+        SettleBufferNP.apply();
 
     if (readMoveCurrentMultiplier())
-        IDSetNumber(&MoveCurrentMultiplierNP, nullptr);
+        MoveCurrentMultiplierNP.apply();
 
     if (readHoldCurrentMultiplier())
-        IDSetNumber(&HoldCurrentMultiplierNP, nullptr);
+        HoldCurrentMultiplierNP.apply();
 
     if (readMaxPosition())
-        IDSetNumber(&FocusMaxPosNP, nullptr);
+        FocusMaxPosNP.apply();
 
     if (readMaxMovement())
-        IDSetNumber(&FocusMaxMoveNP, nullptr);
+        FocusMaxMoveNP.apply();
 
     if (readTemperature())
-        IDSetNumber(&TemperatureNP, nullptr);
+        TemperatureNP.apply();
 }
 
 IPState DeepSkyDadAF3::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
@@ -757,7 +757,7 @@ IPState DeepSkyDadAF3::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
     else
-        MoveFocuser(FocusMaxPosN[0].value);
+        MoveFocuser(FocusMaxPosNP[0].value);
 
     IEAddTimer(duration, &DeepSkyDadAF3::timedMoveHelper, this);
     return IPS_BUSY;
@@ -771,13 +771,13 @@ void DeepSkyDadAF3::timedMoveHelper(void * context)
 void DeepSkyDadAF3::timedMoveCallback()
 {
     AbortFocuser();
-    FocusAbsPosNP.s = IPS_IDLE;
-    FocusRelPosNP.s = IPS_IDLE;
-    FocusTimerNP.s = IPS_IDLE;
-    FocusTimerN[0].value = 0;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-    IDSetNumber(&FocusRelPosNP, nullptr);
-    IDSetNumber(&FocusTimerNP, nullptr);
+    FocusAbsPosNP.setState(IPS_IDLE);
+    FocusRelPosNP.setState(IPS_IDLE);
+    FocusTimerNP.setState(IPS_IDLE);
+    FocusTimerNP[0].setValue(0);
+    FocusAbsPosNP.apply();
+    FocusRelPosNP.apply();
+    FocusTimerNP.apply();
 }
 
 
@@ -785,8 +785,8 @@ IPState DeepSkyDadAF3::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
-    double bcValue = FocusBacklashN[0].value;
-    int diff = targetTicks - FocusAbsPosN[0].value;
+    double bcValue = FocusBacklashNP[0].getValue();
+    int diff = targetTicks - FocusAbsPosNP[0].getValue();
     if ((diff > 0 && bcValue < 0) || (diff < 0 && bcValue > 0))
     {
         backlashComp = bcValue;
@@ -804,18 +804,18 @@ IPState DeepSkyDadAF3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     int32_t newPosition = 0;
 
     if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
+        newPosition = FocusAbsPosNP[0].getValue() - ticks;
     else
-        newPosition = FocusAbsPosN[0].value + ticks;
+        newPosition = FocusAbsPosNP[0].getValue() + ticks;
 
     // Clamp
-    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
+    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosNP[0].max), newPosition));
     if (!MoveAbsFocuser(newPosition))
         return IPS_ALERT;
 
     // JM 2019-02-10: This is already set by the framework
-    //FocusRelPosN[0].value = ticks;
-    //FocusRelPosNP.s       = IPS_BUSY;
+    //FocusRelPosNP[0].setValue(ticks);
+    //FocusRelPosNP.setState(IPS_BUSY);
 
     return IPS_BUSY;
 }
@@ -831,22 +831,22 @@ void DeepSkyDadAF3::TimerHit()
     bool rc = readPosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (fabs(lastPos - FocusAbsPosNP[0].getValue()) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
         }
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (FocusAbsPosNP.getState() == IPS_BUSY || FocusRelPosNP.getState() == IPS_BUSY)
     {
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            lastPos = FocusAbsPosN[0].value;
+            FocusAbsPosNP.setState(IPS_OK);
+            FocusRelPosNP.setState(IPS_OK);
+            FocusAbsPosNP.apply();
+            FocusRelPosNP.apply();
+            lastPos = FocusAbsPosNP[0].getValue();
 
             if(moveAborted)
             {
@@ -871,10 +871,10 @@ void DeepSkyDadAF3::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.1 ) //more accurate update
+        if (fabs(lastTemperature - TemperatureNP[0].getValue()) >= 0.1 ) //more accurate update
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            TemperatureNP.apply();
+            lastTemperature = TemperatureNP[0].getValue();
         }
     }
 
@@ -891,12 +891,12 @@ bool DeepSkyDadAF3::saveConfigItems(FILE * fp)
 {
     Focuser::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &StepModeSP);
-    IUSaveConfigSwitch(fp, &SpeedModeSP);
-    IUSaveConfigNumber(fp, &FocusMaxMoveNP);
-    IUSaveConfigNumber(fp, &SettleBufferNP);
-    IUSaveConfigNumber(fp, &MoveCurrentMultiplierNP);
-    IUSaveConfigNumber(fp, &HoldCurrentMultiplierNP);
+    StepModeSP.save(fp);
+    SpeedModeSP.save(fp);
+    FocusMaxMoveNP.save(fp);
+    SettleBufferNP.save(fp);
+    MoveCurrentMultiplierNP.save(fp);
+    HoldCurrentMultiplierNP.save(fp);
 
     return true;
 }

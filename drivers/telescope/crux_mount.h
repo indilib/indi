@@ -23,6 +23,10 @@
 #include "inditelescope.h"
 #include "indiguiderinterface.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
+
 #define RESPONSE_TIMEOUT  3
 #define USE_PEC           1
 
@@ -65,8 +69,7 @@ class TitanTCS : public INDI::Telescope, public INDI::GuiderInterface
 
     private:
         // Mount Info.
-        ITextVectorProperty MountInfoTP;
-        IText MountInfoT[2] {};
+        INDI::PropertyText MountInfoTP {2};
         int GuideNSTID { -1 };
         int GuideWETID { -1 };
 
@@ -76,11 +79,9 @@ class TitanTCS : public INDI::Telescope, public INDI::GuiderInterface
         int _PECStatus {0};
 
         // PEC Training
-        ISwitch PECTrainingS[2];
-        ISwitchVectorProperty PECTrainingSP;
+        INDI::PropertySwitch PECTrainingSP {2};
         // PEC Info.
-        ITextVectorProperty PECInfoTP;
-        IText PECInfoT[2] {};
+        INDI::PropertyText PECInfoTP {2};
 #endif
 
     protected:

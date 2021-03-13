@@ -105,40 +105,40 @@ bool ScopeSim::initProperties()
 
 #ifdef USE_SIM_TAB
     // mount type and alignment properties, these are in the Simulation tab
-    IUFillSwitch(&mountTypeS[Alignment::ALTAZ], "ALTAZ", "AltAz", ISS_OFF);
-    IUFillSwitch(&mountTypeS[Alignment::EQ_FORK], "EQ_FORK", "Fork (Eq)", ISS_OFF);
-    IUFillSwitch(&mountTypeS[Alignment::EQ_GEM], "EQ_GEM", "GEM", ISS_ON);
-    IUFillSwitchVector(&mountTypeSP, mountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type",
+    mountTypeSP[Alignment::ALTAZ].fill("ALTAZ", "AltAz", ISS_OFF);
+    mountTypeSP[Alignment::EQ_FORK].fill("EQ_FORK", "Fork (Eq)", ISS_OFF);
+    mountTypeSP[Alignment::EQ_GEM].fill("EQ_GEM", "GEM", ISS_ON);
+    mountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type",
                        "Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE );
 
-    IUFillSwitch(&simPierSideS[0], "PS_OFF", "Off", ISS_OFF);
-    IUFillSwitch(&simPierSideS[1], "PS_ON", "On", ISS_ON);
-    IUFillSwitchVector(&simPierSideSP, simPierSideS, 2, getDeviceName(), "SIM_PIER_SIDE", "Sim Pier Side",
+    simPierSideSP[0].fill("PS_OFF", "Off", ISS_OFF);
+    simPierSideSP[1].fill("PS_ON", "On", ISS_ON);
+    simPierSideSP.fill(getDeviceName(), "SIM_PIER_SIDE", "Sim Pier Side",
                        "Simulation", IP_WO, ISR_1OFMANY, 60, IPS_IDLE );
 
-    IUFillNumber(&mountModelN[0], "MM_IH", "Ha Zero (IH)", "%g", -5, 5, 0.01, 0);
-    IUFillNumber(&mountModelN[1], "MM_ID", "Dec Zero (ID)", "%g", -5, 5, 0.01, 0);
-    IUFillNumber(&mountModelN[2], "MM_CH", "Cone (CH)", "%g", -5, 5, 0.01, 0);
-    IUFillNumber(&mountModelN[3], "MM_NP", "Ha/Dec (NP)", "%g", -5, 5, 0.01, 0);
-    IUFillNumber(&mountModelN[4], "MM_MA", "Pole Azm (MA)", "%g", -5, 5, 0.01, 0);
-    IUFillNumber(&mountModelN[5], "MM_ME", "Pole elev (ME)", "%g", -5, 5, 0.01, 0);
-    IUFillNumberVector(&mountModelNP, mountModelN, 6, getDeviceName(), "MOUNT_MODEL", "Mount Model",
+    mountModelNP[0].fill("MM_IH", "Ha Zero (IH)", "%g", -5, 5, 0.01, 0);
+    mountModelNP[1].fill("MM_ID", "Dec Zero (ID)", "%g", -5, 5, 0.01, 0);
+    mountModelNP[2].fill("MM_CH", "Cone (CH)", "%g", -5, 5, 0.01, 0);
+    mountModelNP[3].fill("MM_NP", "Ha/Dec (NP)", "%g", -5, 5, 0.01, 0);
+    mountModelNP[4].fill("MM_MA", "Pole Azm (MA)", "%g", -5, 5, 0.01, 0);
+    mountModelNP[5].fill("MM_ME", "Pole elev (ME)", "%g", -5, 5, 0.01, 0);
+    mountModelNP.fill(getDeviceName(), "MOUNT_MODEL", "Mount Model",
                        "Simulation", IP_WO, 0, IPS_IDLE);
 
-    IUFillNumber(&flipHourAngleN[0], "FLIP_HA", "Hour Angle (deg)", "%g", -20, 20, 0.1, 0);
-    IUFillNumberVector(&flipHourAngleNP, flipHourAngleN, 1, getDeviceName(), "FLIP_HA", "Flip Posn.",
+    flipHourAngleNP[0].fill("FLIP_HA", "Hour Angle (deg)", "%g", -20, 20, 0.1, 0);
+    flipHourAngleNP.fill(getDeviceName(), "FLIP_HA", "Flip Posn.",
                        "Simulation", IP_WO, 0, IPS_IDLE);
 
-    IUFillNumber(&mountAxisN[0], "PRIMARY", "Primary (Ha)", "%g", -180, 180, 0.01, 0);
-    IUFillNumber(&mountAxisN[1], "SECONDARY", "Secondary (Dec)", "%g", -180, 180, 0.01, 0);
-    IUFillNumberVector(&mountAxisNP, mountAxisN, 2, getDeviceName(), "MOUNT_AXES", "Mount Axes",
+    mountAxisNP[0].fill("PRIMARY", "Primary (Ha)", "%g", -180, 180, 0.01, 0);
+    mountAxisNP[1].fill("SECONDARY", "Secondary (Dec)", "%g", -180, 180, 0.01, 0);
+    mountAxisNP.fill(getDeviceName(), "MOUNT_AXES", "Mount Axes",
                        "Simulation", IP_RO, 0, IPS_IDLE);
 #endif
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.5);
-    IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+    GuideRateNP[RA_AXIS].fill("GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.5);
+    GuideRateNP[DEC_AXIS].fill("GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.5);
+    GuideRateNP.fill(getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
@@ -155,10 +155,10 @@ bool ScopeSim::initProperties()
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Let's simulate it to be an F/7.5 120mm telescope
-    ScopeParametersN[0].value = 120;
-    ScopeParametersN[1].value = 900;
-    ScopeParametersN[2].value = 120;
-    ScopeParametersN[3].value = 900;
+    ScopeParametersNP[0].setValue(120);
+    ScopeParametersNP[1].setValue(900);
+    ScopeParametersNP[2].setValue(120);
+    ScopeParametersNP[3].setValue(900);
 
     // RA is a rotating frame, while HA or Alt/Az is not
     SetParkDataType(PARK_HA_DEC);
@@ -181,22 +181,22 @@ void ScopeSim::ISGetProperties(const char *dev)
     INDI::Telescope::ISGetProperties(dev);
 
 #ifdef USE_SIM_TAB
-    defineProperty(&mountTypeSP);
-    loadConfig(true, mountTypeSP.name);
-    defineProperty(&simPierSideSP);
-    loadConfig(true, simPierSideSP.name);
-    defineProperty(&mountModelNP);
-    loadConfig(true, mountModelNP.name);
-    defineProperty(&mountAxisNP);
-    defineProperty(&flipHourAngleNP);
-    loadConfig(true, flipHourAngleNP.name);
+    defineProperty(mountTypeSP);
+    loadConfig(true, mountTypeSP.getName());
+    defineProperty(simPierSideSP);
+    loadConfig(true, simPierSideSP.getName());
+    defineProperty(mountModelNP);
+    loadConfig(true, mountModelNP.getName());
+    defineProperty(mountAxisNP);
+    defineProperty(flipHourAngleNP);
+    loadConfig(true, flipHourAngleNP.getName());
 #endif
     /*
     if (isConnected())
     {
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(&GuideRateNP);
+        defineProperty(GuideRateNP);
         defineProperty(&EqPENV);
         defineProperty(&PEErrNSSP);
         defineProperty(&PEErrWESP);
@@ -214,8 +214,8 @@ bool ScopeSim::updateProperties()
     {
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(&GuideRateNP);
-        loadConfig(true, GuideRateNP.name);
+        defineProperty(GuideRateNP);
+        loadConfig(true, GuideRateNP.getName());
 
         if (InitPark())
         {
@@ -229,8 +229,8 @@ bool ScopeSim::updateProperties()
 	        alignment.latitude = Angle(latitude);
 		alignment.longitude = Angle(longitude);
 
-	        currentRA = (alignment.lst() - Angle(ParkPositionN[AXIS_RA].value, Angle::ANGLE_UNITS::HOURS)).Hours();
-                currentDEC = ParkPositionN[AXIS_DE].value;
+	        currentRA = (alignment.lst() - Angle(ParkPositionNP[AXIS_RA].value, Angle::ANGLE_UNITS::HOURS)).Hours();
+                currentDEC = ParkPositionNP[AXIS_DE].getValue();
                 Sync(currentRA, currentDEC);
 
             }
@@ -253,7 +253,7 @@ bool ScopeSim::updateProperties()
     {
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP.name);
+        deleteProperty(GuideRateNP.getName());
     }
 
     return true;
@@ -299,7 +299,7 @@ bool ScopeSim::ReadScopeStatus()
             if (!slewing)
             {
                 SetParked(true);
-                EqNP.s = IPS_IDLE;
+                EqNP.setState(IPS_IDLE);
                 LOG_INFO("Telescope slew is complete. Parked");
             }
             break;
@@ -310,7 +310,7 @@ bool ScopeSim::ReadScopeStatus()
                 // if the mount was not tracking before the slew should it remain not tracking?
                 TrackState = SCOPE_TRACKING;
                 SetTrackEnabled(true);
-                EqNP.s = IPS_IDLE;
+                EqNP.setState(IPS_IDLE);
                 LOG_INFO("Telescope slew is complete. Tracking...");
 
                 // check the slew accuracy
@@ -343,16 +343,16 @@ bool ScopeSim::ReadScopeStatus()
     double axisRA = axisPrimary.position.Degrees();
     double axisDE = axisSecondary.position.Degrees();
     // No need to spam log until we have some actual changes.
-    if (std::fabs(mountAxisN[AXIS_RA].value - axisRA) > 0.0001 ||
-            std::fabs(mountAxisN[AXIS_DE].value - axisDE) > 0.0001)
+    if (std::fabs(mountAxisNP[AXIS_RA].value - axisRA) > 0.0001 ||
+            std::fabs(mountAxisNP[AXIS_DE].value - axisDE) > 0.0001)
     {
-        mountAxisN[AXIS_RA].value = axisRA;
-        mountAxisN[AXIS_DE].value = axisDE;
+        mountAxisNP[AXIS_RA].setValue(axisRA);
+        mountAxisNP[AXIS_DE].setValue(axisDE);
 
         LOGF_EXTRA1("%s: %f, ra %f", axisPrimary.axisName, axisPrimary.position.Degrees(), ra.Hours());
         LOGF_EXTRA1("%s: %f, dec %f", axisSecondary.axisName, axisSecondary.position.Degrees(), dec.Degrees());
 
-        IDSetNumber(&mountAxisNP, nullptr);
+        mountAxisNP.apply();
     }
 #endif
 
@@ -388,7 +388,7 @@ bool ScopeSim::Sync(double ra, double dec)
 
     LOG_INFO("Sync is successful.");
 
-    EqNP.s = IPS_OK;
+    EqNP.setState(IPS_OK);
 
     NewRaDec(currentRA, currentDEC);
 
@@ -449,9 +449,9 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
     {
         if (strcmp(name, "GUIDE_RATE") == 0)
         {
-            IUUpdateNumber(&GuideRateNP, values, names, n);
-            GuideRateNP.s = IPS_OK;
-            IDSetNumber(&GuideRateNP, nullptr);
+            GuideRateNP.update(values, names, n);
+            GuideRateNP.setState(IPS_OK);
+            GuideRateNP.apply();
             return true;
         }
 
@@ -462,24 +462,24 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
         }
 
 #ifdef USE_SIM_TAB
-        if (strcmp(name, mountModelNP.name) == 0)
+        if (mountModelNP.isNameMatch(name))
         {
-            IUUpdateNumber(&mountModelNP, values, names, n);
-            mountModelNP.s = IPS_OK;
-            IDSetNumber(&mountModelNP, nullptr);
-            alignment.setCorrections(mountModelN[0].value, mountModelN[1].value,
-                                     mountModelN[2].value, mountModelN[3].value,
-                                     mountModelN[4].value, mountModelN[5].value);
+            mountModelNP.update(values, names, n);
+            mountModelNP.setState(IPS_OK);
+            mountModelNP.apply();
+            alignment.setCorrections(mountModelNP[0].value, mountModelNP[1].getValue(),
+                                     mountModelNP[2].getValue(), mountModelNP[3].getValue(),
+                                     mountModelNP[4].getValue(), mountModelNP[5].getValue());
 
             return true;
         }
 
-        if (strcmp(name, flipHourAngleNP.name) == 0)
+        if (flipHourAngleNP.isNameMatch(name))
         {
-            IUUpdateNumber(&flipHourAngleNP, values, names, n);
-            flipHourAngleNP.s = IPS_OK;
-            IDSetNumber(&flipHourAngleNP, nullptr);
-            alignment.setFlipHourAngle(flipHourAngleN[0].value);
+            flipHourAngleNP.update(values, names, n);
+            flipHourAngleNP.setState(IPS_OK);
+            flipHourAngleNP.apply();
+            alignment.setFlipHourAngle(flipHourAngleNP[0].value);
             return true;
         }
 #endif
@@ -495,23 +495,23 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 #ifdef USE_SIM_TAB
-        if (strcmp(name, mountTypeSP.name) == 0)
+        if (mountTypeSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&mountTypeSP, states, names, n) < 0)
+            if (!mountTypeSP.update(states, names, n))
                 return false;
 
-            mountTypeSP.s = IPS_OK;
-            IDSetSwitch(&mountTypeSP, nullptr);
+            mountTypeSP.setState(IPS_OK);
+            mountTypeSP.apply();
             updateMountAndPierSide();
             return true;
         }
-        if (strcmp(name, simPierSideSP.name) == 0)
+        if (simPierSideSP.isNameMatch(name))
         {
-            if (IUUpdateSwitch(&simPierSideSP, states, names, n) < 0)
+            if (!simPierSideSP.update(states, names, n))
                 return false;
 
-            simPierSideSP.s = IPS_OK;
-            IDSetSwitch(&simPierSideSP, nullptr);
+            simPierSideSP.setState(IPS_OK);
+            simPierSideSP.apply();
             updateMountAndPierSide();
             return true;
         }
@@ -574,7 +574,7 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 IPState ScopeSim::GuideNorth(uint32_t ms)
 {
-    double rate = GuideRateN[DEC_AXIS].value;
+    double rate = GuideRateNP[DEC_AXIS].getValue();
     axisSecondary.StartGuide(rate, ms);
     guidingNS = true;
     return IPS_BUSY;
@@ -582,7 +582,7 @@ IPState ScopeSim::GuideNorth(uint32_t ms)
 
 IPState ScopeSim::GuideSouth(uint32_t ms)
 {
-    double rate = GuideRateN[DEC_AXIS].value;
+    double rate = GuideRateNP[DEC_AXIS].getValue();
     axisSecondary.StartGuide(-rate, ms);
     guidingNS = true;
     return IPS_BUSY;
@@ -590,7 +590,7 @@ IPState ScopeSim::GuideSouth(uint32_t ms)
 
 IPState ScopeSim::GuideEast(uint32_t ms)
 {
-    double rate = GuideRateN[RA_AXIS].value;
+    double rate = GuideRateNP[RA_AXIS].getValue();
     axisPrimary.StartGuide(-rate, ms);
     guidingEW = true;
     return IPS_BUSY;
@@ -598,7 +598,7 @@ IPState ScopeSim::GuideEast(uint32_t ms)
 
 IPState ScopeSim::GuideWest(uint32_t ms)
 {
-    double rate = GuideRateN[RA_AXIS].value;
+    double rate = GuideRateNP[RA_AXIS].getValue();
     axisPrimary.StartGuide(rate, ms);
     guidingEW = true;
     return IPS_BUSY;
@@ -641,7 +641,7 @@ bool ScopeSim::SetTrackMode(uint8_t mode)
             axisSecondary.TrackRate(Axis::OFF);
             return true;
         case TRACK_CUSTOM:
-            SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+            SetTrackRate(TrackRateNP[AXIS_RA].value, TrackRateNP[AXIS_DE].getValue());
             return true;
     }
     return false;
@@ -666,11 +666,11 @@ bool ScopeSim::saveConfigItems(FILE *fp)
     INDI::Telescope::saveConfigItems(fp);
 
 #ifdef USE_SIM_TAB
-    IUSaveConfigNumber(fp, &GuideRateNP);
-    IUSaveConfigSwitch(fp, &mountTypeSP);
-    IUSaveConfigSwitch(fp, &simPierSideSP);
-    IUSaveConfigNumber(fp, &mountModelNP);
-    IUSaveConfigNumber(fp, &flipHourAngleNP);
+    GuideRateNP.save(fp);
+    mountTypeSP.save(fp);
+    simPierSideSP.save(fp);
+    mountModelNP.save(fp);
+    flipHourAngleNP.save(fp);
 #endif
     return true;
 }
@@ -689,8 +689,8 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
 bool ScopeSim::updateMountAndPierSide()
 {
 #ifdef USE_SIM_TAB
-    int mountType = IUFindOnSwitchIndex(&mountTypeSP);
-    int pierSide = IUFindOnSwitchIndex(&simPierSideSP);
+    int mountType = mountTypeSP.findOnSwitchIndex();
+    int pierSide = simPierSideSP.findOnSwitchIndex();
     if (mountType < 0 || pierSide < 0)
         return false;
 

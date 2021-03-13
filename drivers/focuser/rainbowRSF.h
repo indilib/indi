@@ -23,6 +23,10 @@
 #include <memory>
 #include "indifocuser.h"
 
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 class RainbowRSF : public INDI::Focuser
 {
     public:
@@ -64,11 +68,8 @@ class RainbowRSF : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////
         /// Properties
         ///////////////////////////////////////////////////////////////////////////////
-        ISwitchVectorProperty GoHomeSP;
-        ISwitch GoHomeS[1];
-
-        INumberVectorProperty TemperatureNP;
-        INumber TemperatureN[1];
+        INDI::PropertySwitch GoHomeSP {1};
+        INDI::PropertyNumber TemperatureNP {1};
 
         uint32_t m_TargetPosition { 0 };
         uint32_t m_LastPosition { 0 };

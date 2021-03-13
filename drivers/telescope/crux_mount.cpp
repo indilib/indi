@@ -166,22 +166,22 @@ bool TitanTCS::initProperties()
 
 #if USE_PEC
     // PEC Training
-    IUFillSwitch(&PECTrainingS[0], "PEC_Start", "Start", ISS_OFF);
-    IUFillSwitch(&PECTrainingS[1], "PEC_Stop", "Stop", ISS_OFF);
-    IUFillSwitchVector(&PECTrainingSP, PECTrainingS, 2, getDeviceName(), "PEC_TRAINING", "PEC Training", MOTION_TAB, IP_RW,
+    PECTrainingSP[0].fill("PEC_Start", "Start", ISS_OFF);
+    PECTrainingSP[1].fill("PEC_Stop", "Stop", ISS_OFF);
+    PECTrainingSP.fill(getDeviceName(), "PEC_TRAINING", "PEC Training", MOTION_TAB, IP_RW,
                        ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // PEC Details
-    IUFillText(&PECInfoT[0], "PEC_INFO", "PEC", "");
-    IUFillText(&PECInfoT[1], "PEC_TR_INFO", "Training", "");
-    IUFillTextVector(&PECInfoTP, PECInfoT, 2, getDeviceName(), "PEC_INFOS", "PEC Info", MOTION_TAB,
+    PECInfoTP[0].fill("PEC_INFO", "PEC", "");
+    PECInfoTP[1].fill("PEC_TR_INFO", "Training", "");
+    PECInfoTP.fill(getDeviceName(), "PEC_INFOS", "PEC Info", MOTION_TAB,
                      IP_RO, 60, IPS_IDLE);
 #endif
     // Mount Details
-    IUFillText(&MountInfoT[0], "MOUNT_PARK", "Park", "");
-    IUFillText(&MountInfoT[1], "MOUNT_TRACKING", "Tracking", "");
-    IUFillTextVector(&MountInfoTP, MountInfoT, 2, getDeviceName(), "MOUNT_INFOS", "Mount Info", MAIN_CONTROL_TAB,
+    MountInfoTP[0].fill("MOUNT_PARK", "Park", "");
+    MountInfoTP[1].fill("MOUNT_TRACKING", "Tracking", "");
+    MountInfoTP.fill(getDeviceName(), "MOUNT_INFOS", "Mount Info", MAIN_CONTROL_TAB,
                      IP_RO, 60, IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
@@ -197,10 +197,10 @@ bool TitanTCS::updateProperties()
     if (isConnected())
     {
 #if USE_PEC
-        defineProperty(&PECTrainingSP);
-        defineProperty(&PECInfoTP);
+        defineProperty(PECTrainingSP);
+        defineProperty(PECInfoTP);
 #endif
-        defineProperty(&MountInfoTP);
+        defineProperty(MountInfoTP);
         //
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
@@ -214,10 +214,10 @@ bool TitanTCS::updateProperties()
     else
     {
 #if USE_PEC
-        deleteProperty(PECTrainingSP.name);
-        deleteProperty(PECInfoTP.name);
+        deleteProperty(PECTrainingSP.getName());
+        deleteProperty(PECInfoTP.getName());
 #endif
-        deleteProperty(MountInfoTP.name);
+        deleteProperty(MountInfoTP.getName());
         //
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
@@ -232,15 +232,15 @@ bool TitanTCS::ISNewNumber(const char *dev, const char *name, double values[], c
     {
         /*
         if (strcmp(name, "JOG_RATE") == 0) {
-            IUUpdateNumber(&JogRateNP, values, names, n);
-            JogRateNP.s = IPS_OK;
-            IDSetNumber(&JogRateNP, nullptr);
+            JogRateNP.update(values, names, n);
+            JogRateNP.setState(IPS_OK);
+            JogRateNP.apply();
             return true;
         }
-        if (strcmp(name, GuideRateNP.name) == 0) {
-            IUUpdateNumber(&GuideRateNP, values, names, n);
-            GuideRateNP.s = IPS_OK;
-            IDSetNumber(&GuideRateNP, nullptr);
+        if (GuideRateNP.isNameMatch(name)) {
+            GuideRateNP.update(values, names, n);
+            GuideRateNP.setState(IPS_OK);
+            GuideRateNP.apply();
             return true;
         }
         */
@@ -262,10 +262,10 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         int iVal = 0;
         // ---------------------------------------------------------------------
         // Park $$$
-        if (!strcmp(name, ParkSP.name))
+        if (ParkSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&ParkSP, states, names, n);
-            int nowIndex = IUFindOnSwitchIndex(&ParkSP);
+            ParkSP.update(states, names, n);
+            int nowIndex = ParkSP.findOnSwitchIndex();
             if(nowIndex == 0)
                 Park();
             else if(nowIndex == 1)
@@ -291,13 +291,13 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         }
         //
 #if USE_PEC
-        if (!strcmp(name, PECStateSP.name))
+        if (PECStateSP.isNameMatch(name))
         {
-            //int preIndex = IUFindOnSwitchIndex(&PECStateSP);
-            IUUpdateSwitch(&PECStateSP, states, names, n);
-            int nowIndex = IUFindOnSwitchIndex(&PECStateSP);
+            //int preIndex = PECStateSP.findOnSwitchIndex();
+            PECStateSP.update(states, names, n);
+            int nowIndex = PECStateSP.findOnSwitchIndex();
 
-            IDSetSwitch(&PECStateSP, nullptr);
+            PECStateSP.apply();
 
             if(nowIndex == 0)
             {
@@ -310,13 +310,13 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             return true;
         }
         //
-        if (!strcmp(name, PECTrainingSP.name))
+        if (PECTrainingSP.isNameMatch(name))
         {
-            //int preIndex = IUFindOnSwitchIndex(&PECTrainingSP);
-            IUUpdateSwitch(&PECTrainingSP, states, names, n);
-            int nowIndex = IUFindOnSwitchIndex(&PECTrainingSP);
+            //int preIndex = PECTrainingSP.findOnSwitchIndex();
+            PECTrainingSP.update(states, names, n);
+            int nowIndex = PECTrainingSP.findOnSwitchIndex();
 
-            IDSetSwitch(&PECTrainingSP, nullptr);
+            PECTrainingSP.apply();
 
             if(nowIndex == 0)
             {
@@ -330,12 +330,12 @@ bool TitanTCS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         }
 #endif
         //
-        if (!strcmp(name, TrackStateSP.name))
+        if (TrackStateSP.isNameMatch(name))
         {
-            IUUpdateSwitch(&TrackStateSP, states, names, n);
-            int nowIndex = IUFindOnSwitchIndex(&TrackStateSP);
+            TrackStateSP.update(states, names, n);
+            int nowIndex = TrackStateSP.findOnSwitchIndex();
 
-            IDSetSwitch(&TrackStateSP, nullptr);
+            TrackStateSP.apply();
 
             if(nowIndex == 0)
             {
@@ -576,7 +576,7 @@ IPState TitanTCS::GuideNorth(uint32_t ms)
 {
     SendCommand(":Mgn%d#", (int)ms);
     //
-    if(MovementNSSP.s == IPS_BUSY)
+    if(MovementNSSP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideNSTID)
@@ -593,7 +593,7 @@ IPState TitanTCS::GuideSouth(uint32_t ms)
 {
     SendCommand(":Mgs%d#", (int)ms);
     //
-    if(MovementNSSP.s == IPS_BUSY)
+    if(MovementNSSP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideNSTID)
@@ -610,7 +610,7 @@ IPState TitanTCS::GuideEast(uint32_t ms)
 {
     SendCommand(":Mge%d#", (int)ms);
     //
-    if(MovementWESP.s == IPS_BUSY)
+    if(MovementWESP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideWETID)
@@ -627,7 +627,7 @@ IPState TitanTCS::GuideWest(uint32_t ms)
 {
     SendCommand(":Mgw%d#", (int)ms);
     //
-    if(MovementWESP.s == IPS_BUSY)
+    if(MovementWESP.getState() == IPS_BUSY)
         return IPS_ALERT;
 
     if (GuideWETID)
@@ -1150,43 +1150,43 @@ bool TitanTCS::GetMountParams(bool bAll)
         if(info.Parking == 1)
         {
             TrackState = SCOPE_PARKING;
-            ParkS[0].s = ISS_ON;
-            ParkS[1].s = ISS_OFF;
-            ParkSP.s   = IPS_BUSY;
-            IUSaveText(&MountInfoT[0], "Parking");
+            ParkSP[0].setState(ISS_ON);
+            ParkSP[1].setState(ISS_OFF);
+            ParkSP.setState(IPS_BUSY);
+            MountInfoTP[0].setText("Parking");
         }
         else if(info.Parking == 2)
         {
             TrackState = SCOPE_PARKED;
-            ParkS[0].s = ISS_ON;
-            ParkS[1].s = ISS_OFF;
-            ParkSP.s   = IPS_IDLE;
-            IUSaveText(&MountInfoT[0], "Parked");
+            ParkSP[0].setState(ISS_ON);
+            ParkSP[1].setState(ISS_OFF);
+            ParkSP.setState(IPS_IDLE);
+            MountInfoTP[0].setText("Parked");
         }
         else if(info.Parking == 0)
         {
-            ParkSP.s   = IPS_IDLE;
-            ParkS[0].s = ISS_OFF;
-            ParkS[1].s = ISS_ON;
-            IUSaveText(&MountInfoT[0], "Unpark");
+            ParkSP.setState(IPS_IDLE);
+            ParkSP[0].setState(ISS_OFF);
+            ParkSP[1].setState(ISS_ON);
+            MountInfoTP[0].setText("Unpark");
         }
 
-        IDSetSwitch(&ParkSP, nullptr);
+        ParkSP.apply();
     }
     // Tracking On / Off
     if((TrackState == SCOPE_SLEWING) || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
     {
-        TrackStateS[TRACK_ON].s = ISS_OFF;
-        TrackStateS[TRACK_OFF].s = ISS_ON;
-        TrackStateSP.s = IPS_IDLE;
-        IDSetSwitch(&TrackStateSP, nullptr);
+        TrackStateSP[TRACK_ON].setState(ISS_OFF);
+        TrackStateSP[TRACK_OFF].setState(ISS_ON);
+        TrackStateSP.setState(IPS_IDLE);
+        TrackStateSP.apply();
 
         if(TrackState == SCOPE_PARKING)
-            IUSaveText(&MountInfoT[1], "Parking");
+            MountInfoTP[1].setText("Parking");
         else if(TrackState == SCOPE_PARKED)
-            IUSaveText(&MountInfoT[1], "Parked");
+            MountInfoTP[1].setText("Parked");
         else if(TrackState == SCOPE_SLEWING)
-            IUSaveText(&MountInfoT[1], "Slewing");
+            MountInfoTP[1].setText("Slewing");
     }
     else
     {
@@ -1196,30 +1196,30 @@ bool TitanTCS::GetMountParams(bool bAll)
 
             if((TrackState == SCOPE_TRACKING) && (info.Landscape == 0))
             {
-                TrackStateS[TRACK_ON].s = ISS_ON;
-                TrackStateS[TRACK_OFF].s = ISS_OFF;
-                TrackStateSP.s = IPS_IDLE;
-                IDSetSwitch(&TrackStateSP, nullptr);
+                TrackStateSP[TRACK_ON].setState(ISS_ON);
+                TrackStateSP[TRACK_OFF].setState(ISS_OFF);
+                TrackStateSP.setState(IPS_IDLE);
+                TrackStateSP.apply();
 
-                IUSaveText(&MountInfoT[1], "Tracking ON / Skyview");
+                MountInfoTP[1].setText("Tracking ON / Skyview");
             }
             else
             {
-                TrackStateS[TRACK_ON].s = ISS_OFF;
-                TrackStateS[TRACK_OFF].s = ISS_ON;
-                TrackStateSP.s = IPS_IDLE;
-                IDSetSwitch(&TrackStateSP, nullptr);
+                TrackStateSP[TRACK_ON].setState(ISS_OFF);
+                TrackStateSP[TRACK_OFF].setState(ISS_ON);
+                TrackStateSP.setState(IPS_IDLE);
+                TrackStateSP.apply();
 
                 if(info.Landscape == 1)
-                    IUSaveText(&MountInfoT[1], "Tracking OFF / Landscape");
+                    MountInfoTP[1].setText("Tracking OFF / Landscape");
                 else
-                    IUSaveText(&MountInfoT[1], "Tracking OFF / Idle");
+                    MountInfoTP[1].setText("Tracking OFF / Idle");
             }
         }
     }
     //
-    MountInfoTP.s = IPS_OK;
-    IDSetText(&MountInfoTP, nullptr);
+    MountInfoTP.setState(IPS_OK);
+    MountInfoTP.apply();
     //
     if(GetParamNumber(szResponse, szToken, sizeof(szToken) - 1, "$?tr", '#', NULL, &info.TrackingRate))
     {
@@ -1275,18 +1275,18 @@ void TitanTCS::_setPECState(int pec_status)
         if(pec_status & 0x30)
         {
             // Training ...
-            PECTrainingS[0].s = ISS_OFF;
-            PECTrainingS[1].s = ISS_ON;
+            PECTrainingSP[0].setState(ISS_OFF);
+            PECTrainingSP[1].setState(ISS_ON);
 
             sprintf(szText, "PEC Training %d %%", (pec_status >> 8));
-            IUSaveText(&PECInfoT[1], szText);
+            PECInfoTP[1].setText(szText);
         }
         else
         {
-            PECTrainingS[0].s = ISS_ON;
-            PECTrainingS[1].s = ISS_OFF;
+            PECTrainingSP[0].setState(ISS_ON);
+            PECTrainingSP[1].setState(ISS_OFF);
 
-            IUSaveText(&PECInfoT[1], "");
+            PECInfoTP[1].setText("");
         }
 
         if(pec_status & 2)
@@ -1294,41 +1294,41 @@ void TitanTCS::_setPECState(int pec_status)
             // Valid
             if(pec_status & 1)
             {
-                PECStateS[PEC_OFF].s = ISS_OFF;
-                PECStateS[PEC_ON].s  = ISS_ON;
+                PECStateSP[PEC_OFF].setState(ISS_OFF);
+                PECStateSP[PEC_ON].setState(ISS_ON);
 
-                IUSaveText(&PECInfoT[0], "PEC is running.");
+                PECInfoTP[0].setText("PEC is running.");
             }
             else
             {
-                PECStateS[PEC_OFF].s = ISS_OFF;
-                PECStateS[PEC_ON].s  = ISS_ON;
+                PECStateSP[PEC_OFF].setState(ISS_OFF);
+                PECStateSP[PEC_ON].setState(ISS_ON);
 
-                IUSaveText(&PECInfoT[0], "PEC is available.");
+                PECInfoTP[0].setText("PEC is available.");
             }
-            PECStateSP.s = IPS_OK;
+            PECStateSP.setState(IPS_OK);
         }
         else
         {
             // Invalid
-            PECStateS[PEC_OFF].s = ISS_OFF;
-            PECStateS[PEC_ON].s  = ISS_OFF;
-            PECStateSP.s = IPS_ALERT;
+            PECStateSP[PEC_OFF].setState(ISS_OFF);
+            PECStateSP[PEC_ON].setState(ISS_OFF);
+            PECStateSP.setState(IPS_ALERT);
 
             if(pec_status & 0x30)
-                IUSaveText(&PECInfoT[0], "");
+                PECInfoTP[0].setText("");
             else
-                IUSaveText(&PECInfoT[0], "PEC training is required.");
+                PECInfoTP[0].setText("PEC training is required.");
         }
 
-        PECStateSP.s = IPS_OK;
-        IDSetSwitch(&PECStateSP, nullptr);
+        PECStateSP.setState(IPS_OK);
+        PECStateSP.apply();
 
-        PECTrainingSP.s = IPS_OK;
-        IDSetSwitch(&PECTrainingSP, nullptr);
+        PECTrainingSP.setState(IPS_OK);
+        PECTrainingSP.apply();
         //
-        PECInfoTP.s = IPS_OK;
-        IDSetText(&PECInfoTP, nullptr);
+        PECInfoTP.setState(IPS_OK);
+        PECInfoTP.apply();
     }
 }
 #endif
@@ -1479,7 +1479,7 @@ bool TitanTCS::Park()
 
     if(SendCommand(":hP8#"))
     {
-        ParkSP.s   = IPS_BUSY;
+        ParkSP.setState(IPS_BUSY);
         TrackState = SCOPE_PARKING;
         return true;
     }
@@ -1492,7 +1492,7 @@ bool TitanTCS::UnPark()
 
     if(SendCommand(":hP0#"))
     {
-        ParkSP.s   = IPS_BUSY;
+        ParkSP.setState(IPS_BUSY);
         TrackState = SCOPE_PARKING;
         return true;
     }

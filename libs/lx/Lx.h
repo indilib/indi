@@ -9,6 +9,10 @@
 //For serial control
 #include <termios.h>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
+
 #define LX_TAB "Long Exposure"
 // LX Modes
 #define LXSERIAL   0
@@ -21,30 +25,18 @@
 class Lx
 {
   public:
-    ISwitch LxEnableS[2];
-    ISwitchVectorProperty LxEnableSP;
-    ISwitch LxModeS[LXMODENUM];
-    ISwitchVectorProperty LxModeSP;
-    IText LxPortT[1];
-    ITextVectorProperty LxPortTP;
-    ISwitch LxSerialOptionS[3];
-    ISwitchVectorProperty LxSerialOptionSP;
-    ISwitch LxParallelOptionS[9];
-    ISwitchVectorProperty LxParallelOptionSP;
-    IText LxStartStopCmdT[2];
-    ITextVectorProperty LxStartStopCmdTP;
-    ISwitch LxLogicalLevelS[2];
-    ISwitchVectorProperty LxLogicalLevelSP;
-    ISwitch LxSerialSpeedS[9];
-    ISwitchVectorProperty LxSerialSpeedSP;
-    ISwitch LxSerialSizeS[4];
-    ISwitchVectorProperty LxSerialSizeSP;
-    ISwitch LxSerialParityS[3];
-    ISwitchVectorProperty LxSerialParitySP;
-    ISwitch LxSerialStopS[2];
-    ISwitchVectorProperty LxSerialStopSP;
-    ISwitch LxSerialAddeolS[4];
-    ISwitchVectorProperty LxSerialAddeolSP;
+    INDI::PropertySwitch LxEnableSP {2};
+    INDI::PropertySwitch LxModeSP {LXMODENUM};
+    INDI::PropertyText LxPortTP {1};
+    INDI::PropertySwitch LxSerialOptionSP {3};
+    INDI::PropertySwitch LxParallelOptionSP {9};
+    INDI::PropertyText LxStartStopCmdTP {2};
+    INDI::PropertySwitch LxLogicalLevelSP {2};
+    INDI::PropertySwitch LxSerialSpeedSP {9};
+    INDI::PropertySwitch LxSerialSizeSP {4};
+    INDI::PropertySwitch LxSerialParitySP {3};
+    INDI::PropertySwitch LxSerialStopSP {2};
+    INDI::PropertySwitch LxSerialAddeolSP {4};
 
     bool isEnabled();
     void setCamerafd(int fd);

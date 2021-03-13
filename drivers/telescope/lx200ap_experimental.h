@@ -23,6 +23,10 @@
 #pragma once
 
 #include "lx200generic.h"
+
+/* Smart Widget-Property */
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
 #define MOUNTNOTINITIALIZED 0
 #define MOUNTINITIALIZED    1
 
@@ -99,38 +103,26 @@ class LX200AstroPhysicsExperimental : public LX200Generic
 
         void handleGTOCP2MotionBug();
 
-        ISwitch StartUpS[2];
-        ISwitchVectorProperty StartUpSP;
+        INDI::PropertySwitch StartUpSP {2};
 
-        INumber HourangleCoordsN[2];
-        INumberVectorProperty HourangleCoordsNP;
-        INumber APSiderealTimeN[1];
-        INumberVectorProperty APSiderealTimeNP;
+        INDI::PropertyNumber HourangleCoordsNP {2};
+        INDI::PropertyNumber APSiderealTimeNP {1};
 
-        INumber HorizontalCoordsN[2];
-        INumberVectorProperty HorizontalCoordsNP;
+        INDI::PropertyNumber HorizontalCoordsNP {2};
 
-        ISwitch APSlewSpeedS[3];
-        ISwitchVectorProperty APSlewSpeedSP;
+        INDI::PropertySwitch APSlewSpeedSP {3};
 
-        ISwitch SwapS[2];
-        ISwitchVectorProperty SwapSP;
+        INDI::PropertySwitch SwapSP {2};
 
-        ISwitch SyncCMRS[2];
-        ISwitchVectorProperty SyncCMRSP;
+        INDI::PropertySwitch SyncCMRSP {2};
         enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
-        ISwitch APGuideSpeedS[3];
-        ISwitchVectorProperty APGuideSpeedSP;
+        INDI::PropertySwitch APGuideSpeedSP {3};
 
-        ISwitch UnparkFromS[5];
-        ISwitchVectorProperty UnparkFromSP;
+        INDI::PropertySwitch UnparkFromSP {5};
 
-        ISwitch ParkToS[5];
-        ISwitchVectorProperty ParkToSP;
-
-        INumberVectorProperty APUTCOffsetNP;
-        INumber APUTCOffsetN[1];
+        INDI::PropertySwitch ParkToSP {5};
+        INDI::PropertyNumber APUTCOffsetNP {1};
 
         IText VersionT[1] {};
         ITextVectorProperty VersionTP;

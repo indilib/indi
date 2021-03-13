@@ -24,6 +24,11 @@
 
 #include "lx200generic.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 #define SYNCCM  0
 #define SYNCCMR 1
 
@@ -79,36 +84,27 @@ class LX200AstroPhysics : public LX200Generic
 
     virtual void debugTriggered(bool enable) override;
 
-    ISwitch StartUpS[2];
-    ISwitchVectorProperty StartUpSP;
+    INDI::PropertySwitch StartUpSP {2};
 
-    INumber HourangleCoordsN[2];
-    INumberVectorProperty HourangleCoordsNP;
+    INDI::PropertyNumber HourangleCoordsNP {2};
 
-    INumber HorizontalCoordsN[2];
-    INumberVectorProperty HorizontalCoordsNP;
+    INDI::PropertyNumber HorizontalCoordsNP {2};
 
-    ISwitch APSlewSpeedS[3];
-    ISwitchVectorProperty APSlewSpeedSP;
+    INDI::PropertySwitch APSlewSpeedSP {3};
 
-    ISwitch SwapS[2];
-    ISwitchVectorProperty SwapSP;
+    INDI::PropertySwitch SwapSP {2};
 
-    ISwitch SyncCMRS[2];
-    ISwitchVectorProperty SyncCMRSP;
+    INDI::PropertySwitch SyncCMRSP {2};
     enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
-    ISwitch APGuideSpeedS[3];
-    ISwitchVectorProperty APGuideSpeedSP;
+    INDI::PropertySwitch APGuideSpeedSP {3};
 
     IText VersionT[1] {};
     ITextVectorProperty VersionTP;
 
-    IText DeclinationAxisT[1] {};
-    ITextVectorProperty DeclinationAxisTP;
+    INDI::PropertyText DeclinationAxisTP {1};
 
-    INumber SlewAccuracyN[2];
-    INumberVectorProperty SlewAccuracyNP;
+    INDI::PropertyNumber SlewAccuracyNP {2};
 
   private:
     bool isMountInit();

@@ -27,6 +27,11 @@
 
 #include "defaultdevice.h"
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertylight.h"
+
 class WeatherMeta : public INDI::DefaultDevice
 {
   public:
@@ -53,16 +58,13 @@ class WeatherMeta : public INDI::DefaultDevice
     void updateUpdatePeriod();
 
     // Active stations
-    IText ActiveDeviceT[4] {};
-    ITextVectorProperty ActiveDeviceTP;
+    INDI::PropertyText ActiveDeviceTP {4};
 
     // Stations status
-    ILight StationL[4];
-    ILightVectorProperty StationLP;
+    INDI::PropertyLight StationLP {4};
 
     // Update Period
-    INumber UpdatePeriodN[1];
-    INumberVectorProperty UpdatePeriodNP;
+    INDI::PropertyNumber UpdatePeriodNP {1};
 
     double updatePeriods[4];
 };

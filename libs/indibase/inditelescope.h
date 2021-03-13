@@ -24,6 +24,11 @@
 
 #include <string>
 
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
+
 /**
  * \class Telescope
  * \brief Class to provide general functionality of a telescope device.
@@ -693,37 +698,29 @@ class Telescope : public DefaultDevice
         TelescopeStatus RememberTrackState {SCOPE_IDLE};
 
         // All telescopes should produce equatorial co-ordinates
-        INumberVectorProperty EqNP;
-        INumber EqN[2];
+        INDI::PropertyNumber EqNP {2};
 
         // When a goto is issued, domes will snoop the target property
         // to start moving the dome when a telescope moves
-        INumberVectorProperty TargetNP;
-        INumber TargetN[2];
+        INDI::PropertyNumber TargetNP {2};
 
         // Abort motion
-        ISwitchVectorProperty AbortSP;
-        ISwitch AbortS[1];
+        INDI::PropertySwitch AbortSP {1};
 
         // On a coord_set message, sync, or slew
-        ISwitchVectorProperty CoordSP;
-        ISwitch CoordS[3];
+        INDI::PropertySwitch CoordSP {3};
 
         // A number vector that stores lattitude and longitude
-        INumberVectorProperty LocationNP;
-        INumber LocationN[3];
+        INDI::PropertyNumber LocationNP {3};
 
         // A Switch in the client interface to park the scope
-        ISwitchVectorProperty ParkSP;
-        ISwitch ParkS[2];
+        INDI::PropertySwitch ParkSP {2};
 
         // Custom parking position
-        INumber ParkPositionN[2];
-        INumberVectorProperty ParkPositionNP;
+        INDI::PropertyNumber ParkPositionNP {2};
 
         // Custom parking options
-        ISwitch ParkOptionS[4];
-        ISwitchVectorProperty ParkOptionSP;
+        INDI::PropertySwitch ParkOptionSP {4};
         enum
         {
             PARK_CURRENT,
@@ -733,37 +730,30 @@ class Telescope : public DefaultDevice
         };
 
         // A switch for North/South motion
-        ISwitch MovementNSS[2];
-        ISwitchVectorProperty MovementNSSP;
+        INDI::PropertySwitch MovementNSSP {2};
 
         // A switch for West/East motion
-        ISwitch MovementWES[2];
-        ISwitchVectorProperty MovementWESP;
+        INDI::PropertySwitch MovementWESP {2};
 
         // Slew Rate
         ISwitchVectorProperty SlewRateSP;
         ISwitch *SlewRateS {nullptr};
 
         // Telescope & guider aperture and focal length
-        INumber ScopeParametersN[4];
-        INumberVectorProperty ScopeParametersNP;
+        INDI::PropertyNumber ScopeParametersNP {4};
 
         // UTC and UTC Offset
-        IText TimeT[2] {};
-        ITextVectorProperty TimeTP;
+        INDI::PropertyText TimeTP {2};
         void sendTimeFromSystem();
 
         // Active GPS/Dome device to snoop
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[2] {};
+        INDI::PropertyText ActiveDeviceTP {2};
 
         // Switch to lock if dome is closed.
-        ISwitchVectorProperty DomePolicySP;
-        ISwitch DomePolicyS[2];
+        INDI::PropertySwitch DomePolicySP {2};
 
         // Switch for choosing between motion control by 4-way joystick or two seperate axes
-        ISwitchVectorProperty MotionControlModeTP;
-        ISwitch MotionControlModeT[2];
+        INDI::PropertySwitch MotionControlModeTP {2};
         enum
         {
             MOTION_CONTROL_JOYSTICK,
@@ -771,16 +761,13 @@ class Telescope : public DefaultDevice
         };
 
         // Lock Joystick Axis to one direciton only
-        ISwitch LockAxisS[2];
-        ISwitchVectorProperty LockAxisSP;
+        INDI::PropertySwitch LockAxisSP {2};
 
         // Pier Side
-        ISwitch PierSideS[2];
-        ISwitchVectorProperty PierSideSP;
+        INDI::PropertySwitch PierSideSP {2};
 
         // Pier Side Simulation
-        ISwitchVectorProperty SimulatePierSideSP;
-        ISwitch SimulatePierSideS[2];
+        INDI::PropertySwitch SimulatePierSideSP {2};
         bool getSimulatePierSide() const;
         void setSimulatePierSide(bool value);
 
@@ -794,8 +781,7 @@ class Telescope : public DefaultDevice
          * \brief Text Vector property defining the orbital elements of an artificial satellite (TLE).
          * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
          */
-        ITextVectorProperty TLEtoTrackTP;
-        IText TLEtoTrackT[1] {};
+        INDI::PropertyText TLEtoTrackTP {1};
         /**
          * \struct SatelliteWindow
          * \brief Satellite pass: window start and end.
@@ -810,8 +796,7 @@ class Telescope : public DefaultDevice
          * \brief Text Vector property defining the start and end of a satellite pass (window contains pass).
          * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
          */
-        ITextVectorProperty SatPassWindowTP;
-        IText SatPassWindowT[SAT_PASS_WINDOW_COUNT] {};
+        INDI::PropertyText SatPassWindowTP {SAT_PASS_WINDOW_COUNT};
         /**
          * \struct SatelliteTracking
          * \brief Possible states for the satellite tracking.
@@ -826,24 +811,20 @@ class Telescope : public DefaultDevice
          * \brief Switch Vector property defining the state of the satellite tracking of the mount.
          * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
          */
-        ISwitchVectorProperty TrackSatSP;
-        ISwitch TrackSatS[SAT_TRACK_COUNT];
+        INDI::PropertySwitch TrackSatSP {SAT_TRACK_COUNT};
         
         // PEC State
-        ISwitch PECStateS[2];
-        ISwitchVectorProperty PECStateSP;
+        INDI::PropertySwitch PECStateSP {2};
 
         // Track Mode
         ISwitchVectorProperty TrackModeSP;
         ISwitch *TrackModeS { nullptr };
 
         // Track State
-        ISwitchVectorProperty TrackStateSP;
-        ISwitch TrackStateS[2];
+        INDI::PropertySwitch TrackStateSP {2};
 
         // Track Rate
-        INumberVectorProperty TrackRateNP;
-        INumber TrackRateN[2];
+        INDI::PropertyNumber TrackRateNP {2};
 
         // PEC State
         TelescopePECState lastPECState {PEC_UNKNOWN}, currentPECState {PEC_UNKNOWN};
@@ -884,8 +865,7 @@ class Telescope : public DefaultDevice
         ISwitchVectorProperty ScopeConfigsSP;
 
         // Scope config name
-        ITextVectorProperty ScopeConfigNameTP;
-        IText ScopeConfigNameT[1] {};
+        INDI::PropertyText ScopeConfigNameTP {1};
 
         /// The telescope/guide scope configuration file name
         const std::string ScopeConfigFileName;
