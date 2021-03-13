@@ -7,34 +7,30 @@
 
 class ScopeSim : public INDI::Telescope, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
-  public:
+public:
     ScopeSim();
 
-private:
-    virtual bool Abort() override;
+protected:
+    bool Abort() override;
     bool canSync();
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
-    virtual const char *getDefaultName() override;
-    virtual bool Goto(double ra, double dec) override;
-    virtual bool initProperties() override;
-    friend void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                          char *formats[], char *names[], int n);
-    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+    bool Connect() override;
+    bool Disconnect() override;
+    const char *getDefaultName() override;
+    bool Goto(double ra, double dec) override;
+    bool initProperties() override;
+    bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                            char *formats[], char *names[], int n) override;
-    friend void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    friend void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    friend void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
-    virtual bool ReadScopeStatus() override;
-    virtual bool Sync(double ra, double dec) override;
-    virtual void TimerHit() override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+    bool ReadScopeStatus() override;
+    bool Sync(double ra, double dec) override;
+    void TimerHit() override;
+    bool updateLocation(double latitude, double longitude, double elevation) override;
 
+private:
     static constexpr long MICROSTEPS_PER_REVOLUTION { 1000000 };
     static constexpr double MICROSTEPS_PER_DEGREE { MICROSTEPS_PER_REVOLUTION / 360.0 };
     static constexpr double DEFAULT_SLEW_RATE { MICROSTEPS_PER_DEGREE * 2.0 };
