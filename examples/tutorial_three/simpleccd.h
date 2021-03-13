@@ -26,10 +26,10 @@
 
 class SimpleCCD : public INDI::CCD
 {
-  public:
+public:
     SimpleCCD() = default;
 
-  protected:
+protected:
     // General device functions
     bool Connect() override;
     bool Disconnect() override;
@@ -43,7 +43,7 @@ class SimpleCCD : public INDI::CCD
     int SetTemperature(double temperature) override;
     void TimerHit() override;
 
-  private:
+private:
     // Utility functions
     float CalcTimeLeft();
     void setupParams();
