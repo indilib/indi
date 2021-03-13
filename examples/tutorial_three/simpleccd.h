@@ -31,17 +31,17 @@ class SimpleCCD : public INDI::CCD
 
   protected:
     // General device functions
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
-    bool initProperties();
-    bool updateProperties();
+    bool Connect() override;
+    bool Disconnect() override;
+    const char *getDefaultName() override;
+    bool initProperties() override;
+    bool updateProperties() override;
 
     // CCD specific functions
-    bool StartExposure(float duration);
-    bool AbortExposure();
-    int SetTemperature(double temperature);
-    void TimerHit();
+    bool StartExposure(float duration) override;
+    bool AbortExposure() override;
+    int SetTemperature(double temperature) override;
+    void TimerHit() override;
 
   private:
     // Utility functions
