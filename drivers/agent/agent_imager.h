@@ -81,8 +81,8 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
         int maxGroup { 0 };
         int image { 0 };
         int maxImage { 0 };
-        char *controlledCCD { nullptr };
-        char *controlledFilterWheel { nullptr };
+        const char *controlledCCD { nullptr };
+        const char *controlledFilterWheel { nullptr };
 
         ITextVectorProperty ControlledDeviceTP;
         IText ControlledDeviceT[2] {};
