@@ -26,25 +26,26 @@
 
 class SimpleSpectrograph : public INDI::Spectrograph
 {
-  public:
+public:
     SimpleSpectrograph() = default;
 
-  protected:
+protected:
     // General device functions
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
-    bool initProperties();
-    bool updateProperties();
+    bool Connect() override;
+    bool Disconnect() override;
+    const char *getDefaultName() override;
+    bool initProperties() override;
+    bool updateProperties() override;
 
     // Spectrograph specific functions
-    bool StartIntegration(double duration);
-    bool paramsUpdated(float sr, float freq, float bps, float bw, float gain);
-    bool AbortIntegration();
-    int SetTemperature(double temperature);
-    void TimerHit();
+    bool StartIntegration(double duration) override;
+    bool AbortIntegration() override;
+    int SetTemperature(double temperature) override;
+    void TimerHit() override;
 
-  private:
+    bool paramsUpdated(float sr, float freq, float bps, float bw, float gain);
+
+private:
     // Utility functions
     float CalcTimeLeft();
     void setupParams();
