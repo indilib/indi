@@ -109,14 +109,22 @@ public:
 
     virtual bool initProperties();
     virtual bool updateProperties();
-
-public:
     virtual bool saveConfigItems(FILE *fp);
 
+public:
     /**
      * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
      */
     void newFrame(const uint8_t *buffer, uint32_t nbytes);
+
+    bool close();
+
+public:
+    /**
+     * @brief setStreamingExposureEnabled Can stream exposure time be changed?
+     * @param enable True if we can control the exact exposure time for each frame in the stream, false otherwise.
+     */
+    void setStreamingExposureEnabled(bool enable);
 
     /**
      * @brief setStream Enables (starts) or disables (stops) streaming.
@@ -124,8 +132,8 @@ public:
      * @return True if operation is successful, false otherwise.
      */
     bool setStream(bool enable);
-
-    RecorderInterface *getRecorder() const;
+    void setSize(uint16_t width, uint16_t height = 1);
+    bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth = 8);
 
 public:
     bool isDirectRecording() const;
@@ -133,22 +141,14 @@ public:
     bool isRecording() const;
     bool isBusy() const;
 
+public:
     double getTargetFPS() const;
     double getTargetExposure() const;
 
-    const char *getDeviceName();
-
-    void setSize(uint16_t width, uint16_t height = 1);
-    bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth = 8);
     void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
+    RecorderInterface *getRecorder() const;
 
-    /**
-     * @brief setStreamingExposureEnabled Can stream exposure time be changed?
-     * @param enable True if we can control the exact exposure time for each frame in the stream, false otherwise.
-     */
-    void setStreamingExposureEnabled(bool enable);
-
-    bool close();
+    const char *getDeviceName();
 
 protected:
     std::shared_ptr<StreamManagerPrivate> d_ptr;
