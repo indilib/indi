@@ -1,10 +1,7 @@
 /*
     TeenAstro Focuser
     Copyright (C) 2021 Markus Noga
-    Derived from the below, and hereby made available under the same license.
 
-    OnFocus Focuser
-    Copyright (C) 2018 Paul de Backer (74.0632@gmail.com)
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -48,36 +45,72 @@ private:
     double targetPos, lastPos;
 
     // Sends a command to the focuser. Returns true on success and false on failure.
-    bool Send(const char *const msg);
+    bool send(const char *const msg);
  
     // Sends a command to the focuser, and waits for a response terminated by '#'. Returns true on success and false on failure.
-    bool SendAndReceive(const char *const msg, char *resp);
+    bool sendAndReceive(const char *const msg, char *resp);
 
-    void setZero();
-    bool updateMaxPos();
+    // Sends a command to the focuser, and waits for a single character response. Returns true if successful and response is '1', otherwise false.
+    bool sendAndReceiveBool(const char *const msg);
 
-    // Updates current state consisting of position, speed, and temperature. Returns true on success and false on failure.
-    bool updateState();   
+
+    // Updates device version string from device
+    bool updateDeviceVersion();
+
+    // Updates current state from device, consisting of position, speed, and temperature. Returns true on success and false on failure.
+    bool updateState();
+
+    // Returns true if focuser is moving, else false.   
     bool isMoving();
 
-    // Updates movement configuration. Returns true on success and false on failure.
+    // Updates movement configuration from device. Returns true on success and false on failure.
     bool updateConfig();
 
-    // Updates motor configuration. Returns true on success and false on failure.
+    // Sets given configuration item on to device to provided value in device native units. Returns true on success and false on failure. 
+    bool setConfigItem(char item, uint32_t deviceValue);
+    bool setParkPos(uint32_t value);
+    bool setMaxPos(uint32_t value);
+    bool setGoToSpeed(uint32_t value);
+    bool setManualSpeed(uint32_t value);
+    bool setGoToAcc(uint32_t value);
+    bool setManualAcc(uint32_t value);
+    bool setManualDec(uint32_t value);
+
+    // Updates motor configuration from device. Returns true on success and false on failure.
     bool updateMotorConfig();
 
+    // Sends new motor inversion flag value to device. Returns true on success and false on failure. 
+    bool setMotorInvert(uint32_t value);
+    bool setMotorMicrosteps(uint32_t value);
+    bool setMotorResolution(uint32_t value);
+    bool setMotorCurrent(uint32_t value);
+    bool setMotorStepsPerRevolution(uint32_t value);
+
+    // Starts movement of focuser towards the given absolute position. Returns immediately, true on success else false.
     bool goTo(uint32_t position);
-    bool setMaxPos(uint32_t maxPos);
+
+    // Starts movement of focuser towards the parking position. Returns immediately, true on success else false.
+    bool goToPark();
+
+    // Stop focuser movement. Returns immediately, true on success else false.
+    bool stop();
+
+    // Syncs focuser zero position to current position, true on success else false.
+    bool syncZero();
+
 
     // UI Elements
     //
 
     // UI Element: Sync current position as zero position
-    ISwitch SetZeroS[1];
-    ISwitchVectorProperty SetZeroSP;
+    ISwitch SyncZeroS[1];
+    ISwitchVectorProperty SyncZeroSP;
 
     // Configuration variables
     //
+
+    IText CfgDeviceVersionT[1];
+    ITextVectorProperty CfgDeviceVersionTP;
 
     // Focuser park position 
     INumber CfgParkPosN[1];
