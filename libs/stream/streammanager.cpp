@@ -58,7 +58,6 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
 
     LOGF_DEBUG("Using default encoder (%s)", d->encoder->getName());
 
-    d->framesThreadTerminate = false;
     d->framesThread = std::thread(&StreamManagerPrivate::asyncStreamThread, d);
 }
 

@@ -184,7 +184,7 @@ public:
     } TimeFrame;
 
     std::thread              framesThread;   // async incoming frames processing
-    std::atomic<bool>        framesThreadTerminate;
+    std::atomic<bool>        framesThreadTerminate {false};
     UniqueQueue<TimeFrame>   framesIncoming;
 
     std::mutex               fastFPSUpdate;
