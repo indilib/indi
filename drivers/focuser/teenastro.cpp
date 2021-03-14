@@ -22,7 +22,7 @@
 
 */
 
-#include "teenastro_focus.h"
+#include "teenastro.h"
 #include "indicom.h"
 
 #include <stdio.h>
@@ -36,6 +36,7 @@
 #define TEENASTRO_FOCUSER_TIMEOUT 4
 
 #define POLLMS_OVERRIDE  1500
+
 
 std::unique_ptr<TeenAstroFocuser> teenAstroFocuser(new TeenAstroFocuser());
 
@@ -78,7 +79,7 @@ void ISSnoopDevice (XMLEle *root)
 
 TeenAstroFocuser::TeenAstroFocuser()
 {
-FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     lastPos = 0;
 }
 
@@ -86,18 +87,17 @@ TeenAstroFocuser::~TeenAstroFocuser()
 {
 }
 
+const char * TeenAstroFocuser::getDefaultName()
+{
+    return "TeenAstroFocuser";
+}
+
 bool TeenAstroFocuser::initProperties()
 {
     INDI::Focuser::initProperties();
-    // SetZero
-    IUFillSwitch(&SetZeroS[0], "SETZERO", "Set Current Position to 0", ISS_OFF);
-    IUFillSwitchVector(&SetZeroSP, SetZeroS, 1, getDeviceName(), "Zero Position", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    // Maximum Travel
-    IUFillNumber(&MaxPosN[0], "MAXPOS", "Maximum Out Position", "%8.0f", 1., 10000000., 0, 0);
-    IUFillNumberVector(&MaxPosNP, MaxPosN, 1, getDeviceName(), "FOCUS_MAXPOS", "Position", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
-
-
-    /* Relative and absolute movement */
+     
+    // Relative and absolute positions
+    /*
     FocusRelPosN[0].min = 0.;
     FocusRelPosN[0].max = 200.;
     FocusRelPosN[0].value = 0.;
@@ -107,6 +107,65 @@ bool TeenAstroFocuser::initProperties()
     FocusAbsPosN[0].max = 10000000.;
     FocusAbsPosN[0].value = 0.;
     FocusAbsPosN[0].step = 500.;
+    */
+
+    // UI Element: SetZero
+    IUFillSwitch(&SetZeroS[0], "VAL", "Sync current position to 0", ISS_OFF);
+    IUFillSwitchVector(&SetZeroSP, SetZeroS, 1, getDeviceName(), "SYNC_ZERO", "Sync current position to 0", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Configuration
+    //
+
+    IUFillNumber(&CfgParkPosN[0], "VAL", "Ticks", "%5.0f", 0, 100000., 0, 0);
+    IUFillNumberVector(&CfgParkPosNP, CfgParkPosN, 1, getDeviceName(), "PARK_POS", "Park position", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    // Focuser max position is inherited from superclass as FocusMaxPosN, FocusMaxPosNP
+
+    IUFillNumber(&CfgGoToSpeedN[0], "VAL", "tbd/s", "%3.0f", 1., 1000., 10, 0);
+    IUFillNumberVector(&CfgGoToSpeedNP, CfgGoToSpeedN, 1, getDeviceName(), "GOTO_SPEED", "Go-to speed", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    IUFillNumber(&CfgGoToAccN[0], "VAL", "tbd/s^2", "%3.0f", 1., 1000., 10, 0);
+    IUFillNumberVector(&CfgGoToAccNP, CfgGoToAccN, 1, getDeviceName(), "GOTO_ACCEL", "Go-to accel.", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    IUFillNumber(&CfgManualSpeedN[0], "VAL", "tbd/s", "%3.0f", 1., 1000., 10, 0);
+    IUFillNumberVector(&CfgManualSpeedNP, CfgManualSpeedN, 1, getDeviceName(), "MAN_SPEED", "Manual speed", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    IUFillNumber(&CfgManualAccN[0], "VAL", "tbd/s^2", "%3.0f", 1., 1000., 10, 0);
+    IUFillNumberVector(&CfgManualAccNP, CfgManualAccN, 1, getDeviceName(), "MAN_ACCEL", "Manual accel.", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    IUFillNumber(&CfgManualDecN[0], "VAL", "tbd/s^2", "%8.0f", 1., 1000., 10, 0);
+    IUFillNumberVector(&CfgManualDecNP, CfgManualDecN, 1, getDeviceName(), "MAN_DECEL", "Manual decel.", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    // Motor configuration
+    //
+
+    IUFillNumber(&CfgMotorInvertN[0], "VAL", "0=norm. 1=inv.", "%8.0f", 0, 1, 1, 0);
+    IUFillNumberVector(&CfgMotorInvertNP, CfgMotorInvertN, 1, getDeviceName(), "MOT_INV", "Motor invert", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    IUFillNumber(&CfgMotorStepsPerRevolutionN[0], "VAL", "Steps", "%3.0f", 1, 800, 10, 0);
+    IUFillNumberVector(&CfgMotorStepsPerRevolutionNP, CfgMotorStepsPerRevolutionN, 1, getDeviceName(), "MOT_STEPS_REV", "Motor steps/rev", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    IUFillNumber(&CfgMotorMicrostepsN[0], "VAL", "Usteps", "%3.0f", 1, 512, 1, 0);
+    IUFillNumberVector(&CfgMotorMicrostepsNP, CfgMotorMicrostepsN, 1, getDeviceName(), "MOT_USTEPS", "Motor usteps", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    IUFillNumber(&CfgMotorResolutionN[0], "VAL", "Usteps/tick", "%3.0f", 1., 1000., 10, 0);
+    IUFillNumberVector(&CfgMotorResolutionNP, CfgMotorResolutionN, 1, getDeviceName(), "MOT_RES", "Motor resolution", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    IUFillNumber(&CfgMotorCurrentN[0], "VAL", "mA", "%4.0f", 1., 10000., 10, 0);
+    IUFillNumberVector(&CfgMotorCurrentNP, CfgMotorCurrentN, 1, getDeviceName(), "MOT_CUR", "Motor current", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+
+    // Status variables
+    //
+    
+    // Focuser current position is inherited from superclass as FocusAbsPosN, FocusAbsPosNP
+
+    // Current speed
+    IUFillNumber(&CurSpeedN[0], "VAL", "tbd/s", "%3.0f", 1., 10000000., 0, 0);
+    IUFillNumberVector(&CurSpeedNP, CurSpeedN, 1, getDeviceName(), "CUR_SPEED", "Current Speed", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
+
+    // Temperature
+    IUFillNumber(&TempN[0], "VAL", "°Celsius", "%+2.2f", -50., 50., 0, 0);
+    IUFillNumberVector(&TempNP, TempN, 1, getDeviceName(), "TEMP", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
 
     addDebugControl();
 
@@ -119,254 +178,239 @@ bool TeenAstroFocuser::updateProperties()
     INDI::Focuser::updateProperties();
     if (isConnected())
     {
-        defineProperty(&MaxPosNP);
         defineProperty(&SetZeroSP);
-        GetFocusParams();
+
+        defineProperty(&CfgParkPosNP);
+        defineProperty(&CfgGoToSpeedNP);
+        defineProperty(&CfgGoToAccNP);
+        defineProperty(&CfgManualSpeedNP);
+        defineProperty(&CfgManualAccNP);
+        defineProperty(&CfgManualDecNP);
+
+        defineProperty(&CfgMotorInvertNP);
+        defineProperty(&CfgMotorStepsPerRevolutionNP);
+        defineProperty(&CfgMotorMicrostepsNP);
+        defineProperty(&CfgMotorResolutionNP);
+        defineProperty(&CfgMotorCurrentNP);
+
+        defineProperty(&CurSpeedNP);
+        defineProperty(&TempNP);
+
+        updateConfig();
+        updateMotorConfig();
+        updateState();
+
         loadConfig(true);
 
         DEBUG(INDI::Logger::DBG_SESSION, "TeenAstroFocuser parameters updated, focuser ready for use.");
     }
     else
     {
-        deleteProperty(MaxPosNP.name);
         deleteProperty(SetZeroSP.name);
+
+        deleteProperty(CfgParkPosNP.name);
+        deleteProperty(CfgGoToSpeedNP.name);
+        deleteProperty(CfgGoToAccNP.name);
+        deleteProperty(CfgManualSpeedNP.name);
+        deleteProperty(CfgManualAccNP.name);
+        deleteProperty(CfgManualDecNP.name);
+
+        deleteProperty(CfgMotorInvertNP.name);
+        deleteProperty(CfgMotorStepsPerRevolutionNP.name);
+        deleteProperty(CfgMotorMicrostepsNP.name);
+        deleteProperty(CfgMotorResolutionNP.name);
+        deleteProperty(CfgMotorCurrentNP.name);
+
+        deleteProperty(CurSpeedNP.name);
+        deleteProperty(TempNP.name);
+
     }
 
     return true;
+}
 
+
+bool TeenAstroFocuser::Send(const char *const msg) {
+    int nbytes_written=0, rc=-1;
+    if ( (rc = tty_write(PortFD, msg, strlen(msg), &nbytes_written)) != TTY_OK)
+    {
+        char errstr[MAXRBUF];
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Send error: %s.", errstr);
+        return false;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+    return true;
+}
+
+
+bool TeenAstroFocuser::SendAndReceive(const char *const msg, char *resp) {
+    if(!Send(msg))
+        return false;
+
+    int nbytes_read=0, rc=-1;
+    if ( (rc = tty_read_section(PortFD, resp, '#', TEENASTRO_FOCUSER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        char errstr[MAXRBUF];
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Receive error: %s.", errstr);
+        resp[0]='\0';
+        return false;
+    }
+    resp[nbytes_read]='\0';
+
+    return true;
 }
 
 bool TeenAstroFocuser::Handshake()
 {
-    if (Ack())
-    {
-        DEBUG(INDI::Logger::DBG_SESSION, "TeenAstroFocuser is online. Getting focus parameters...");
-        return true;
-    }
-    return false;
-}
-
-const char * TeenAstroFocuser::getDefaultName()
-{
-    return "TeenAstroFocuser";
-}
-
-bool TeenAstroFocuser::Ack()
-{
-    int nbytes_written=0, nbytes_read=0, rc=-1;
-    char errstr[MAXRBUF];
-    char resp[16];
     sleep(2);
-    tcflush(PortFD, TCIOFLUSH);
 
-    if ( (rc = tty_write(PortFD, ":IP#", 4, &nbytes_written)) != TTY_OK)
+    char resp[128];
+    if(!SendAndReceive(":FV#", resp))
+        return false;
+
+    int l=strlen(resp);
+    if (strncmp(resp, "$ TeenAstro Focuser ",20) || resp[l-1]!='#')
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Init error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Handshake response: %s", resp);
         return false;
     }
-    if ( (rc = tty_read(PortFD, resp, 9, TEENASTRO_FOCUSER_TIMEOUT * 2, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Init error: %s.", errstr);
-        return false;
-    }
-    tcflush(PortFD, TCIOFLUSH);
-    resp[nbytes_read]='\0';
-    if (!strcmp(resp, "On-Focus#"))
-    { 
-        return true;
-    }
-    else
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Ack Response: %s", resp);
-        return false;
-    }
+
+    DEBUG(INDI::Logger::DBG_SESSION, "TeenAstroFocuser is online. Getting focus parameters...");
+    return true;
 }
 
 
-bool TeenAstroFocuser::updatePosition()
+bool TeenAstroFocuser::updateState()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
-    char errstr[MAXRBUF];
-    char resp[16];
-    int pos=-1;
+    char resp[128];
+    int pos=-1, speed=-1;
+    float temp=-1;
 
-    tcflush(PortFD, TCIOFLUSH);
+    if(!SendAndReceive(":F?#", resp))
+        return false;
 
-    if ( (rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) != TTY_OK)
+    if(sscanf(resp, "?%d %d %f#", &pos, &speed, &temp)<=0)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updatePosition error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid format: focuser state (%s)", resp);
         return false;
     }
 
-    if ( (rc = tty_read_section(PortFD, resp, '#', TEENASTRO_FOCUSER_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updatePosition error: %s.", errstr);
-        return false;
-    }
+    FocusAbsPosN[0].value = pos;
+    IDSetNumber(&FocusAbsPosNP, NULL);
+    CurSpeedN[0].value = speed;
+    IDSetNumber(&CurSpeedNP, NULL);
+    TempN[0].value = temp;
+    IDSetNumber(&TempNP, NULL);
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    resp[nbytes_read]='\0';
-
-    rc = sscanf(resp, "%d#", &pos);
-
-    if (rc > 0)
-    {
-        FocusAbsPosN[0].value = pos;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-
-    }
-    else
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser position value (%s)", resp);
-        return false;
-    }
-
-  return true;
-}
-
-bool TeenAstroFocuser::updateMaxPos()
-{
-    int nbytes_written=0, nbytes_read=0, rc=-1;
-    char errstr[MAXRBUF];
-    char resp[16];
-    long maxposition;
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ( (rc = tty_write(PortFD, ":GM#", 4, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateMaxPosition error: %s.", errstr);
-        return false;
-    }
-
-    if ( (rc = tty_read_section(PortFD, resp, '#', TEENASTRO_FOCUSER_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateMaxPosition error: %s.", errstr);
-        return false;
-    }
-
-    tcflush(PortFD, TCIOFLUSH);
-    resp[nbytes_read]='\0';
-
-    rc = sscanf(resp, "%ld#", &maxposition);
-
-    if (rc > 0)
-    {
-
-        MaxPosN[0].value = maxposition;
-        FocusAbsPosN[0].max = maxposition;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        IDSetNumber(&MaxPosNP, NULL);
-        return true;
-    }
-
-    DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser maxposition (%s)", resp);
-    return false;
+    return true;
 }
 
 bool TeenAstroFocuser::isMoving()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
-    char errstr[MAXRBUF];
-    char resp[16];
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ( (rc = tty_write(PortFD, ":IS#", 4, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "isMoving error: %s.", errstr);
+    if(!updateState())
         return false;
-    }
-
-    if ( (rc = tty_read_section(PortFD, resp, '#', TEENASTRO_FOCUSER_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "isMoving error: %s.", errstr);
-        return false;
-    }
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    resp[nbytes_read]='\0';
-    if (!strcmp(resp, "M#"))
-        return true;
-    else if (!strcmp(resp, "S#"))
-        return false;
-    else
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: isMoving value (%s)", resp);
-        return false;
-    }
-
+    return CurSpeedN[0].value > 0;
 }
 
-bool TeenAstroFocuser::MoveMyFocuser(uint32_t position)
+bool TeenAstroFocuser::updateConfig() 
 {
-    int nbytes_written=0, rc=-1;
-    char errstr[MAXRBUF];
-    char cmd[24];
+    char resp[128];
+    int parkPos=-1, maxPos=-1, goToSpeed=-1, manualSpeed=-1, gotoAcc=-1, manAcc=-1, manDec=-1;
 
-    snprintf(cmd, 24, ":MA%d#", position);
-  
-    // Set Position
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if(!SendAndReceive(":F~#", resp))
+        return false;
+
+    if(sscanf(resp, "~%d %d %d %d %d %d %d#", &parkPos, &maxPos, &goToSpeed, &manualSpeed, &gotoAcc, &manAcc, &manDec)<=0)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setPosition error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid format: focuser state: %s", resp);
         return false;
     }
+
+    CfgParkPosN[0].value = parkPos;
+    IDSetNumber(&CfgParkPosNP, NULL);
+    FocusMaxPosN[0].value = maxPos;
+    IDSetNumber(&FocusMaxPosNP, NULL);
+    CfgGoToSpeedN[0].value = goToSpeed;
+    IDSetNumber(&CfgGoToSpeedNP, NULL);
+    CfgManualSpeedN[0].value = manualSpeed;
+    IDSetNumber(&CfgManualSpeedNP, NULL);
+    CfgGoToAccN[0].value = gotoAcc;
+    IDSetNumber(&CfgGoToAccNP, NULL);
+    CfgManualAccN[0].value = manAcc;
+    IDSetNumber(&CfgManualAccNP, NULL);
+    CfgManualDecN[0].value = manDec;
+    IDSetNumber(&CfgManualDecNP, NULL);
+
+    // Update focuser absolute position limits
+    FocusAbsPosN[0].max = maxPos;
+    IDSetNumber(&FocusAbsPosNP, NULL);
+
     return true;
+}
+
+
+bool TeenAstroFocuser::updateMotorConfig() 
+{
+    char resp[128];
+    int invert=-1, micro=-1, resolution=-1, curr=-1, steprot=-1;
+
+    if(!SendAndReceive(":FM#", resp))
+        return false;
+
+    if(sscanf(resp, "M%d %d %d %d %d#", &invert, &micro, &resolution, &curr, &steprot)<=0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid format: focuser state (%s)", resp);
+        return false;
+    }
+
+    CfgMotorInvertN[0].value = invert;
+    IDSetNumber(&CfgMotorInvertNP, NULL);
+    CfgMotorMicrostepsN[0].value = micro;
+    IDSetNumber(&CfgMotorMicrostepsNP, NULL);
+    CfgMotorResolutionN[0].value = resolution;
+    IDSetNumber(&CfgMotorResolutionNP, NULL);
+    CfgMotorCurrentN[0].value = curr * 10;   // TeenAstro device returns and expects units of 10 mA
+    IDSetNumber(&CfgMotorCurrentNP, NULL);
+    CfgMotorStepsPerRevolutionN[0].value = steprot;
+    IDSetNumber(&CfgMotorStepsPerRevolutionNP, NULL);
+
+    return true;
+}
+
+bool TeenAstroFocuser::goTo(uint32_t position)
+{
+    char cmd[64];
+    snprintf(cmd, 64, ":FG,%d#", position);
+    return Send(cmd);
 }
 
 void TeenAstroFocuser::setZero()
 {
-    int nbytes_written=0, rc=-1;
-    char errstr[MAXRBUF];
-    // Set Zero
-    if ( (rc = tty_write(PortFD, ":SZ#" , 4, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "set Zero error: %s.", errstr);
-        return;
-    }
-    updateMaxPos();
-    return;
+    Send(":FS#"); // ignoring errors, as they are already logged 
 }
 
 
 bool TeenAstroFocuser::setMaxPos(uint32_t maxPos)
 {
-    int nbytes_written=0, rc=-1;
-    char errstr[MAXRBUF];
-    char cmd[24];
-
-    snprintf(cmd, 24, ":SM%d#", maxPos);
-  
-    // Set Max Out
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setPosition error: %s.", errstr);
+    char cmd[64];
+    snprintf(cmd, 64, ":F1,%d#", maxPos);
+    if(!Send(cmd))
         return false;
-    }
-    updateMaxPos();
+
+    updateConfig();
     return true;
 }
 
 bool TeenAstroFocuser::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev,getDeviceName()))
+        return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+
+    if (!strcmp(name, SetZeroSP.name))
     {
-    if (!strcmp(SetZeroSP.name, name))
-        {
         setZero();
         IUResetSwitch(&SetZeroSP);
         SetZeroSP.s = IPS_OK;
@@ -375,74 +419,53 @@ bool TeenAstroFocuser::ISNewSwitch (const char *dev, const char *name, ISState *
     }
         
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
-    }
-    return false;
 }
 
 bool TeenAstroFocuser::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
+        return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+
+    if (!strcmp(name, FocusMaxPosNP.name))
     {
-        if (!strcmp (name, MaxPosNP.name))
+        if (values[0] < FocusAbsPosN[0].value)
         {
-            if (values[0] < FocusAbsPosN[0].value)
-            {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Can't set max position lower than current absolute position ( %8.0f )", FocusAbsPosN[0].value);
-                return false;
-            }
-            IUUpdateNumber(&MaxPosNP, values, names, n);               
-            FocusAbsPosN[0].max = MaxPosN[0].value;
-            setMaxPos(MaxPosN[0].value);
-            MaxPosNP.s = IPS_OK;
-            return true;
+            DEBUGF(INDI::Logger::DBG_ERROR, "Can't set max position lower than current absolute position ( %8.0f )", FocusAbsPosN[0].value);
+            return false;
         }
+        IUUpdateNumber(&FocusMaxPosNP, values, names, n);               
+        FocusAbsPosN[0].max = FocusMaxPosN[0].value;
+        setMaxPos(FocusMaxPosN[0].value);
+        FocusMaxPosNP.s = IPS_OK;
+        return true;
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
-
-}
-
-void TeenAstroFocuser::GetFocusParams ()
-{
-    updatePosition();
-    updateMaxPos();
 }
 
 
-IPState TeenAstroFocuser::MoveAbsFocuser(uint32_t targetTicks)
+IPState TeenAstroFocuser::MoveAbsFocuser(uint32_t pos)
 {
-    uint32_t targetPos = targetTicks;
-
-    bool rc = false;
-
-    rc = MoveMyFocuser(targetPos);
-
-    if (rc == false)
+    if(!goTo(pos))
         return IPS_ALERT;
 
     FocusAbsPosNP.s = IPS_BUSY;
-
     return IPS_BUSY;
 }
 
 IPState TeenAstroFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    uint32_t newPosition=0;
-    bool rc=false;
-
+    uint32_t pos=uint32_t(FocusAbsPosN[0].value);
     if (dir == FOCUS_INWARD)
-        newPosition = uint32_t(FocusAbsPosN[0].value) - ticks;
+        pos -= ticks;
     else
-        newPosition = uint32_t(FocusAbsPosN[0].value) + ticks;
+        pos += ticks;
 
-    rc = MoveMyFocuser(newPosition);
-
-    if (rc == false)
+    if(!goTo(pos))
         return IPS_ALERT;
 
     FocusRelPosN[0].value = ticks;
     FocusRelPosNP.s = IPS_BUSY;
-
     return IPS_BUSY;
 }
 
@@ -454,8 +477,7 @@ void TeenAstroFocuser::TimerHit()
         return;
     }
 
-    bool rc = updatePosition();
-    if (rc)
+    if (updateState())
     {
         if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
         {
@@ -463,7 +485,6 @@ void TeenAstroFocuser::TimerHit()
             lastPos = FocusAbsPosN[0].value;
         }
     }
-
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
@@ -474,26 +495,22 @@ void TeenAstroFocuser::TimerHit()
             IDSetNumber(&FocusAbsPosNP, NULL);
             IDSetNumber(&FocusRelPosNP, NULL);
             lastPos = FocusAbsPosN[0].value;
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
+            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached target position.");
         }
     }
     SetTimer(POLLMS_OVERRIDE);
-
 }
 
 bool TeenAstroFocuser::AbortFocuser()
 {
-    int nbytes_written;
-    if (tty_write(PortFD, ":MH#", 4, &nbytes_written) == TTY_OK)
-    {
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        IDSetNumber(&FocusRelPosNP, NULL);
-        return true;
-    }
-    else
+    if(!Send(":FQ#"))
         return false;
+
+    FocusAbsPosNP.s = IPS_IDLE;
+    FocusRelPosNP.s = IPS_IDLE;
+    IDSetNumber(&FocusAbsPosNP, NULL);
+    IDSetNumber(&FocusRelPosNP, NULL);
+    return true;
 }
 
 

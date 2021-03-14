@@ -32,8 +32,8 @@ public:
     TeenAstroFocuser();
     ~TeenAstroFocuser();
 
-    virtual bool Handshake();
     const char * getDefaultName();
+    virtual bool Handshake();
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
@@ -46,22 +46,102 @@ public:
 private:
 
     double targetPos, lastPos;
+
+    // Sends a command to the focuser. Returns true on success and false on failure.
+    bool Send(const char *const msg);
  
-    void GetFocusParams();
+    // Sends a command to the focuser, and waits for a response terminated by '#'. Returns true on success and false on failure.
+    bool SendAndReceive(const char *const msg, char *resp);
+
     void setZero();
     bool updateMaxPos();
-    bool updateTemperature();
-    bool updatePosition();
-    bool isMoving();
-    bool Ack();
 
-    bool MoveMyFocuser(uint32_t position);
+    // Updates current state consisting of position, speed, and temperature. Returns true on success and false on failure.
+    bool updateState();   
+    bool isMoving();
+
+    // Updates movement configuration. Returns true on success and false on failure.
+    bool updateConfig();
+
+    // Updates motor configuration. Returns true on success and false on failure.
+    bool updateMotorConfig();
+
+    bool goTo(uint32_t position);
     bool setMaxPos(uint32_t maxPos);
 
-    INumber MaxPosN[1];
-    INumberVectorProperty MaxPosNP;
+    // UI Elements
+    //
+
+    // UI Element: Sync current position as zero position
     ISwitch SetZeroS[1];
     ISwitchVectorProperty SetZeroSP;
+
+    // Configuration variables
+    //
+
+    // Focuser park position 
+    INumber CfgParkPosN[1];
+    INumberVectorProperty CfgParkPosNP;
+
+    // Focuser max position is inherited from superclass as FocusMaxPosN, FocusMaxPosNP
+
+    // Focuser goto speed
+    INumber CfgGoToSpeedN[1];
+    INumberVectorProperty CfgGoToSpeedNP;
+
+    // Focuser high speed
+    INumber CfgManualSpeedN[1];
+    INumberVectorProperty CfgManualSpeedNP;
+
+    // Go-to acceleration
+    INumber CfgGoToAccN[1];
+    INumberVectorProperty CfgGoToAccNP;
+
+    // Manual acceleration
+    INumber CfgManualAccN[1];
+    INumberVectorProperty CfgManualAccNP;
+
+    // Manual deceleration
+    INumber CfgManualDecN[1];
+    INumberVectorProperty CfgManualDecNP;
+
+
+    // Motor configuration variables
+    //
+
+    // Configuration element: Invert motor direction
+    INumber CfgMotorInvertN[1];
+    INumberVectorProperty CfgMotorInvertNP;
+
+    // Configuration element: Motor microsteps
+    INumber CfgMotorMicrostepsN[1];
+    INumberVectorProperty CfgMotorMicrostepsNP;
+
+    // Configuration element: Impulse resolution (???)
+    INumber CfgMotorResolutionN[1];
+    INumberVectorProperty CfgMotorResolutionNP;
+
+    // Configuration element: Motor current
+    INumber CfgMotorCurrentN[1];
+    INumberVectorProperty CfgMotorCurrentNP;
+
+    // Configuration element: Motor steps per revolution
+    INumber CfgMotorStepsPerRevolutionN[1];
+    INumberVectorProperty CfgMotorStepsPerRevolutionNP;
+
+    // Status variables
+    //
+    
+    // Status variable: Focuser current position is inherited from superclass as FocusAbsPosN, FocusAbsPosNP
+
+    // Status variable: Current focuser speed
+    INumber CurSpeedN[1];
+    INumberVectorProperty CurSpeedNP;
+
+    // Status variable: Focuser temperature
+    INumber TempN[1];
+    INumberVectorProperty TempNP;
+
 };
 
 #endif // TEENASTRROFOCUSER_H
