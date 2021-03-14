@@ -145,10 +145,10 @@ public:
     double getTargetFPS() const;
     double getTargetExposure() const;
 
-    void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
+    void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h) const;
     RecorderInterface *getRecorder() const;
 
-    const char *getDeviceName();
+    const char *getDeviceName() const;
 
 protected:
     std::shared_ptr<StreamManagerPrivate> d_ptr;

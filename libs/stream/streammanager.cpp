@@ -83,9 +83,9 @@ const char * StreamManagerPrivate::getDeviceName() const
     return currentDevice->getDeviceName();
 }
 
-const char * StreamManager::getDeviceName()
+const char * StreamManager::getDeviceName() const
 {
-    D_PTR(StreamManager);
+    D_PTR(const StreamManager);
     return d->getDeviceName();
 }
 
@@ -1115,9 +1115,9 @@ bool StreamManager::saveConfigItems(FILE * fp)
     return true;
 }
 
-void StreamManager::getStreamFrame(uint16_t * x, uint16_t * y, uint16_t * w, uint16_t * h)
+void StreamManager::getStreamFrame(uint16_t * x, uint16_t * y, uint16_t * w, uint16_t * h) const
 {
-    D_PTR(StreamManager);
+    D_PTR(const StreamManager);
     *x = d->StreamFrameN[CCDChip::FRAME_X].value;
     *y = d->StreamFrameN[CCDChip::FRAME_Y].value;
     *w = d->StreamFrameN[CCDChip::FRAME_W].value;
