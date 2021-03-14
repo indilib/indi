@@ -39,38 +39,41 @@ static const char * STREAM_TAB = "Streaming";
 namespace INDI
 {
 
-StreamManager::StreamManager(DefaultDevice *mainDevice)
-    : d_ptr(new StreamManagerPrivate)
+StreamManagerPrivate::StreamManagerPrivate(DefaultDevice *defaultDevice)
+    : currentDevice(defaultDevice)
 {
-    D_PTR(StreamManager);
-    d->currentDevice = mainDevice;
+    FPSAverage.setTimeWindow(1000);
+    FPSFast.setTimeWindow(50);
 
-    d->FPSAverage.setTimeWindow(1000);
-    d->FPSFast.setTimeWindow(50);
+    recorder = recorderManager.getDefaultRecorder();
 
-    d->recorder = d->recorderManager.getDefaultRecorder();
+    LOGF_DEBUG("Using default recorder (%s)", recorder->getName());
 
-    LOGF_DEBUG("Using default recorder (%s)", d->recorder->getName());
+    encoder = encoderManager.getDefaultEncoder();
 
-    d->encoder = d->encoderManager.getDefaultEncoder();
+    encoder->init(currentDevice);
 
-    d->encoder->init(d->currentDevice);
+    LOGF_DEBUG("Using default encoder (%s)", encoder->getName());
 
-    LOGF_DEBUG("Using default encoder (%s)", d->encoder->getName());
-
-    d->framesThread = std::thread(&StreamManagerPrivate::asyncStreamThread, d);
+    framesThread = std::thread(&StreamManagerPrivate::asyncStreamThread, this);
 }
 
-StreamManager::~StreamManager()
+StreamManagerPrivate::~StreamManagerPrivate()
 {
-    D_PTR(StreamManager);
-    if (d->framesThread.joinable())
+    if (framesThread.joinable())
     {
-        d->framesThreadTerminate = true;
-        d->framesIncoming.abort();
-        d->framesThread.join();
+        framesThreadTerminate = true;
+        framesIncoming.abort();
+        framesThread.join();
     }
 }
+
+StreamManager::StreamManager(DefaultDevice *mainDevice)
+    : d_ptr(new StreamManagerPrivate(mainDevice))
+{ }
+
+StreamManager::~StreamManager()
+{ }
 
 const char * StreamManagerPrivate::getDeviceName() const
 {

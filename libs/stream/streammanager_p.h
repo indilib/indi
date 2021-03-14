@@ -41,6 +41,10 @@ namespace INDI
 class StreamManagerPrivate
 {
 public:
+    StreamManagerPrivate(DefaultDevice *defaultDevice);
+    virtual ~StreamManagerPrivate();
+
+public:
     bool initProperties();
     void ISGetProperties(const char *dev);
 
