@@ -339,9 +339,9 @@
             <driver name="OnFocus">indi_onfocus_focus</driver>
             <version>1.0</version>
         </device>
-        <device Label="TeenAstroFocuser" manufacturer="DIY">
+        <device label="TeenAstroFocuser" manufacturer="TeenAstro">
             <driver name="TeenAstroFocuser">indi_teenastro_focus</driver>
-            <version>0.1</version>
+            <version>1.0</version>
         </device>
         <device label="NightCrawler" manufacturer="MoonLite">
             <driver name="NightCrawler">indi_nightcrawler_focus</driver>
