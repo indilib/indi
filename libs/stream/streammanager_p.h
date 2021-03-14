@@ -149,10 +149,10 @@ public:
     INumberVectorProperty LimitsNP;
     enum { LIMITS_BUFFER_MAX, LIMITS_PREVIEW_FPS };
 
-    std::atomic<bool> m_isStreaming { false };
-    std::atomic<bool> m_isRecording { false };
-    std::atomic<bool> m_isRecordingAboutToClose { false };
-    bool m_hasStreamingExposure { true };
+    std::atomic<bool> isStreaming { false };
+    std::atomic<bool> isRecording { false };
+    std::atomic<bool> isRecordingAboutToClose { false };
+    bool hasStreamingExposure { true };
 
     // Recorder
     RecorderManager *recorderManager = nullptr;
@@ -165,17 +165,17 @@ public:
     EncoderInterface *encoder = nullptr;
 
     // Measure FPS
-    FPSMeter m_FPSAverage;
-    FPSMeter m_FPSFast;
-    FPSMeter m_FPSPreview;
-    FPSMeter m_FPSRecorder;
+    FPSMeter FPSAverage;
+    FPSMeter FPSFast;
+    FPSMeter FPSPreview;
+    FPSMeter FPSRecorder;
 
-    uint32_t m_frameCountDivider = 0;
+    uint32_t frameCountDivider = 0;
 
-    INDI_PIXEL_FORMAT m_PixelFormat = INDI_MONO;
-    uint8_t m_PixelDepth = 8;
+    INDI_PIXEL_FORMAT PixelFormat = INDI_MONO;
+    uint8_t PixelDepth = 8;
     uint16_t rawWidth = 0, rawHeight = 0;
-    std::string m_Format;
+    std::string Format;
 
     // Processing for streaming
     typedef struct {
@@ -183,14 +183,14 @@ public:
         std::vector<uint8_t> frame;
     } TimeFrame;
 
-    std::thread              m_framesThread;   // async incoming frames processing
-    std::atomic<bool>        m_framesThreadTerminate;
-    UniqueQueue<TimeFrame>   m_framesIncoming;
+    std::thread              framesThread;   // async incoming frames processing
+    std::atomic<bool>        framesThreadTerminate;
+    UniqueQueue<TimeFrame>   framesIncoming;
 
-    std::mutex               m_fastFPSUpdate;
-    std::mutex               m_recordMutex;
+    std::mutex               fastFPSUpdate;
+    std::mutex               recordMutex;
 
-    GammaLut16               m_gammaLut16;
+    GammaLut16               gammaLut16;
 };
 
 }
