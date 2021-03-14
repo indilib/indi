@@ -155,13 +155,13 @@ public:
     bool hasStreamingExposure { true };
 
     // Recorder
-    RecorderManager *recorderManager = nullptr;
+    RecorderManager recorderManager;
     RecorderInterface *recorder = nullptr;
     bool direct_record = false;
     std::string recordfiledir, recordfilename; /* in case we should move it */
 
     // Encoders
-    EncoderManager *encoderManager = nullptr;
+    EncoderManager encoderManager;
     EncoderInterface *encoder = nullptr;
 
     // Measure FPS

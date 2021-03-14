@@ -48,13 +48,11 @@ StreamManager::StreamManager(DefaultDevice *mainDevice)
     d->FPSAverage.setTimeWindow(1000);
     d->FPSFast.setTimeWindow(50);
 
-    d->recorderManager = new RecorderManager();
-    d->recorder = d->recorderManager->getDefaultRecorder();
+    d->recorder = d->recorderManager.getDefaultRecorder();
 
     LOGF_DEBUG("Using default recorder (%s)", d->recorder->getName());
 
-    d->encoderManager = new EncoderManager();
-    d->encoder = d->encoderManager->getDefaultEncoder();
+    d->encoder = d->encoderManager.getDefaultEncoder();
 
     d->encoder->init(d->currentDevice);
 
@@ -73,9 +71,6 @@ StreamManager::~StreamManager()
         d->framesIncoming.abort();
         d->framesThread.join();
     }
-
-    delete (d->recorderManager);
-    delete (d->encoderManager);
 }
 
 const char * StreamManagerPrivate::getDeviceName() const
@@ -503,9 +498,9 @@ void StreamManagerPrivate::setSize(uint16_t width, uint16_t height)
     rawWidth = width;
     rawHeight = height;
 
-    for (EncoderInterface * oneEncoder : encoderManager->getEncoderList())
+    for (EncoderInterface * oneEncoder : encoderManager.getEncoderList())
         oneEncoder->setSize(rawWidth, rawHeight);
-    for (RecorderInterface * oneRecorder : recorderManager->getRecorderList())
+    for (RecorderInterface * oneRecorder : recorderManager.getRecorderList())
         oneRecorder->setSize(rawWidth, rawHeight);
 }
 
@@ -821,11 +816,11 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
 
         const char * selectedEncoder = IUFindOnSwitch(&EncoderSP)->name;
 
-        for (EncoderInterface * oneEncoder : encoderManager->getEncoderList())
+        for (EncoderInterface * oneEncoder : encoderManager.getEncoderList())
         {
             if (!strcmp(selectedEncoder, oneEncoder->getName()))
             {
-                encoderManager->setEncoder(oneEncoder);
+                encoderManager.setEncoder(oneEncoder);
 
                 oneEncoder->setPixelFormat(PixelFormat, PixelDepth);
 
@@ -846,11 +841,11 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
 
         const char * selectedRecorder = IUFindOnSwitch(&RecorderSP)->name;
 
-        for (RecorderInterface * oneRecorder : recorderManager->getRecorderList())
+        for (RecorderInterface * oneRecorder : recorderManager.getRecorderList())
         {
             if (!strcmp(selectedRecorder, oneRecorder->getName()))
             {
-                recorderManager->setRecorder(oneRecorder);
+                recorderManager.setRecorder(oneRecorder);
 
                 oneRecorder->setPixelFormat(PixelFormat, PixelDepth);
 
