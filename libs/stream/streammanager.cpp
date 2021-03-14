@@ -22,8 +22,8 @@
 */
 
 #include <config.h>
-
 #include "streammanager.h"
+#include "streammanager_p.h"
 #include "indiccd.h"
 #include "indisensorinterface.h"
 #include "indilogger.h"
@@ -40,52 +40,56 @@ namespace INDI
 {
 
 StreamManager::StreamManager(DefaultDevice *mainDevice)
+    : d_ptr(new StreamManagerPrivate)
 {
-    currentDevice = mainDevice;
+    D_PTR(StreamManager);
+    d->currentDevice = mainDevice;
 
-    m_isStreaming = false;
-    m_isRecording = false;
+    d->m_FPSAverage.setTimeWindow(1000);
+    d->m_FPSFast.setTimeWindow(50);
 
-    m_FPSAverage.setTimeWindow(1000);
-    m_FPSFast.setTimeWindow(50);
+    d->recorderManager = new RecorderManager();
+    d->recorder = d->recorderManager->getDefaultRecorder();
 
-    recorderManager = new RecorderManager();
-    recorder    = recorderManager->getDefaultRecorder();
-    direct_record = false;
+    LOGF_DEBUG("Using default recorder (%s)", d->recorder->getName());
 
-    LOGF_DEBUG("Using default recorder (%s)", recorder->getName());
+    d->encoderManager = new EncoderManager();
+    d->encoder = d->encoderManager->getDefaultEncoder();
 
-    encoderManager = new EncoderManager();
-    encoder = encoderManager->getDefaultEncoder();
+    d->encoder->init(d->currentDevice);
 
-    encoder->init(currentDevice);
+    LOGF_DEBUG("Using default encoder (%s)", d->encoder->getName());
 
-    LOGF_DEBUG("Using default encoder (%s)", encoder->getName());
-
-    m_framesThreadTerminate = false;
-    m_framesThread = std::thread(&StreamManager::asyncStreamThread, this);
-
+    d->m_framesThreadTerminate = false;
+    d->m_framesThread = std::thread(&StreamManagerPrivate::asyncStreamThread, d);
 }
 
 StreamManager::~StreamManager()
 {
-    if (m_framesThread.joinable())
+    D_PTR(StreamManager);
+    if (d->m_framesThread.joinable())
     {
-        m_framesThreadTerminate = true;
-        m_framesIncoming.abort();
-        m_framesThread.join();
+        d->m_framesThreadTerminate = true;
+        d->m_framesIncoming.abort();
+        d->m_framesThread.join();
     }
 
-    delete (recorderManager);
-    delete (encoderManager);
+    delete (d->recorderManager);
+    delete (d->encoderManager);
 }
 
-const char * StreamManager::getDeviceName()
+const char * StreamManagerPrivate::getDeviceName() const
 {
     return currentDevice->getDeviceName();
 }
 
-bool StreamManager::initProperties()
+const char * StreamManager::getDeviceName()
+{
+    D_PTR(StreamManager);
+    return d->getDeviceName();
+}
+
+bool StreamManagerPrivate::initProperties()
 {
     /* Video Stream */
     IUFillSwitch(&StreamS[0], "STREAM_ON", "Stream On", ISS_OFF);
@@ -171,8 +175,13 @@ bool StreamManager::initProperties()
     return true;
 }
 
+bool StreamManager::initProperties()
+{
+    D_PTR(StreamManager);
+    return d->initProperties();
+}
 
-void StreamManager::ISGetProperties(const char * dev)
+void StreamManagerPrivate::ISGetProperties(const char *dev)
 {
     if (dev != nullptr && strcmp(getDeviceName(), dev))
         return;
@@ -193,7 +202,13 @@ void StreamManager::ISGetProperties(const char * dev)
     }
 }
 
-bool StreamManager::updateProperties()
+void StreamManager::ISGetProperties(const char * dev)
+{
+    D_PTR(StreamManager);
+    d->ISGetProperties(dev);
+}
+
+bool StreamManagerPrivate::updateProperties()
 {
     if (currentDevice->isConnected())
     {
@@ -237,12 +252,18 @@ bool StreamManager::updateProperties()
     return true;
 }
 
+bool StreamManager::updateProperties()
+{
+    D_PTR(StreamManager);
+    return d->updateProperties();
+}
+
 /*
  * The camera driver is expected to send the FULL FRAME of the Camera after BINNING without any subframing at all
  * Subframing for streaming/recording is done in the stream manager.
  * Therefore nbytes is expected to be SubW/BinX * SubH/BinY * Bytes_Per_Pixels * Number_Color_Components
  * Binned frame must be sent from the camera driver for this to work consistentaly for all drivers.*/
-void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
+void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
 {
     // close the data stream on the same thread as the data stream
     // manually triggered to stop recording.
@@ -276,7 +297,7 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
             std::thread([&](){ IDSetNumber(&FpsNP, nullptr); m_fastFPSUpdate.unlock(); }).detach();
     }
 
-    if (isStreaming() || isRecording())
+    if (m_isStreaming || (m_isRecording && !m_isRecordingAboutToClose))
     {
         size_t allocatedSize = nbytes * m_framesIncoming.size() / 1024 / 1024; // allocated size in MB
         if (allocatedSize > LimitsN[LIMITS_BUFFER_MAX].value)
@@ -290,7 +311,7 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         m_framesIncoming.push(TimeFrame{m_FPSFast.deltaTime(), std::move(copyBuffer)}); // push it into the queue
     }
 
-    if (isRecording())
+    if (m_isRecording && !m_isRecordingAboutToClose)
     {
         m_FPSRecorder.newFrame(); // count frames and total time
 
@@ -321,7 +342,13 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
     }
 }
 
-void StreamManager::asyncStreamThread()
+void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
+{
+    D_PTR(StreamManager);
+    d->newFrame(buffer, nbytes);
+}
+
+void StreamManagerPrivate::asyncStreamThread()
 {
     TimeFrame sourceTimeFrame;
     sourceTimeFrame.time = 0;
@@ -415,7 +442,10 @@ void StreamManager::asyncStreamThread()
         {
             std::lock_guard<std::mutex> lock(m_recordMutex);
             // For recording, save immediately.
-            if (isRecording() && recordStream(sourceBufferData, nbytes, sourceTimeFrame.time) == false)
+            if (
+                m_isRecording && !m_isRecordingAboutToClose &&
+                recordStream(sourceBufferData, nbytes, sourceTimeFrame.time) == false
+            )
             {
                 LOG_ERROR("Recording failed.");
                 m_isRecordingAboutToClose = true;
@@ -424,7 +454,7 @@ void StreamManager::asyncStreamThread()
 
         // For streaming, downscale to 8bit if higher than 8bit to reduce bandwidth
         // You can reduce the number of frames by setting a frame limit.
-        if (isStreaming() && m_FPSPreview.newFrame())
+        if (m_isStreaming && m_FPSPreview.newFrame())
         {
             // Downscale to 8bit always for streaming to reduce bandwidth
             if (m_PixelFormat != INDI_JPG && m_PixelDepth > 8)
@@ -446,7 +476,7 @@ void StreamManager::asyncStreamThread()
     }
 }
 
-void StreamManager::setSize(uint16_t width, uint16_t height)
+void StreamManagerPrivate::setSize(uint16_t width, uint16_t height)
 {
     if (width != StreamFrameN[CCDChip::FRAME_W].value || height != StreamFrameN[CCDChip::FRAME_H].value)
     {
@@ -481,11 +511,12 @@ void StreamManager::setSize(uint16_t width, uint16_t height)
 
 bool StreamManager::close()
 {
-    std::lock_guard<std::mutex> lock(m_recordMutex);
-    return recorder->close();
+    D_PTR(StreamManager);
+    std::lock_guard<std::mutex> lock(d->m_recordMutex);
+    return d->recorder->close();
 }
 
-bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)
+bool StreamManagerPrivate::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)
 {
     if (pixelFormat == m_PixelFormat && pixelDepth == m_PixelDepth)
         return true;
@@ -514,7 +545,20 @@ bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelD
     return true;
 }
 
-bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double deltams)
+bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)
+{
+    D_PTR(StreamManager);
+    return d->setPixelFormat(pixelFormat, pixelDepth);
+}
+
+
+void StreamManager::setSize(uint16_t width, uint16_t height)
+{
+    D_PTR(StreamManager);
+    d->setSize(width, height);
+}
+
+bool StreamManagerPrivate::recordStream(const uint8_t * buffer, uint32_t nbytes, double deltams)
 {
     INDI_UNUSED(deltams);
     if (!m_isRecording)
@@ -523,7 +567,7 @@ bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double
     return recorder->writeFrame(buffer, nbytes);
 }
 
-std::string StreamManager::expand(const std::string &fname, const std::map<std::string, std::string> &patterns)
+std::string StreamManagerPrivate::expand(const std::string &fname, const std::map<std::string, std::string> &patterns)
 {
     std::string result = fname;
 
@@ -546,7 +590,7 @@ std::string StreamManager::expand(const std::string &fname, const std::map<std::
     return result;
 }
 
-bool StreamManager::startRecording()
+bool StreamManagerPrivate::startRecording()
 {
     char errmsg[MAXRBUF];
     std::string filename, expfilename, expfiledir;
@@ -653,7 +697,7 @@ bool StreamManager::startRecording()
     return true;
 }
 
-bool StreamManager::stopRecording(bool force)
+bool StreamManagerPrivate::stopRecording(bool force)
 {
     if (!m_isRecording && force == false)
         return true;
@@ -690,8 +734,9 @@ bool StreamManager::stopRecording(bool force)
     return true;
 }
 
-bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
+bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
+    /* ignore if not ours */
     if (dev != nullptr && strcmp(getDeviceName(), dev))
         return false;
 
@@ -755,7 +800,8 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
         {
             RecordStreamSP.s = IPS_IDLE;
             m_Format.clear();
-            FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
+            FpsN[FPS_INSTANT].value = 0;
+            FpsN[FPS_AVERAGE].value = 0;
             if (m_isRecording)
             {
                 LOG_INFO("Recording stream has been disabled. Closing the stream...");
@@ -821,7 +867,13 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
     return false;
 }
 
-bool StreamManager::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
+bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
+{
+    D_PTR(StreamManager);
+    return d->ISNewSwitch(dev, name, states, names, n);
+}
+
+bool StreamManagerPrivate::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     /* ignore if not ours */
     if (dev != nullptr && strcmp(getDeviceName(), dev))
@@ -845,7 +897,13 @@ bool StreamManager::ISNewText(const char * dev, const char * name, char * texts[
     return false;
 }
 
-bool StreamManager::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
+bool StreamManager::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
+{
+    D_PTR(StreamManager);
+    return d->ISNewText(dev, name, texts, names, n);
+}
+
+bool StreamManagerPrivate::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     /* ignore if not ours */
     if (dev != nullptr && strcmp(getDeviceName(), dev))
@@ -931,7 +989,13 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
     return false;
 }
 
-bool StreamManager::setStream(bool enable)
+bool StreamManager::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
+{
+    D_PTR(StreamManager);
+    return d->ISNewNumber(dev, name, values, names, n);
+}
+
+bool StreamManagerPrivate::setStream(bool enable)
 {
     if (enable)
     {
@@ -946,8 +1010,8 @@ bool StreamManager::setStream(bool enable)
             else
                 LOGF_INFO("Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
 #endif
-            LOGF_INFO("Starting the video stream with target exposure %.6f s (Max theoritical FPS %.f)", StreamExposureN[0].value,
-                      1 / StreamExposureN[0].value);
+            LOGF_INFO("Starting the video stream with target exposure %.6f s (Max theoritical FPS %.f)",
+                      StreamExposureN[0].value, 1 / StreamExposureN[0].value);
 
             m_FPSAverage.reset();
             m_FPSFast.reset();
@@ -981,7 +1045,8 @@ bool StreamManager::setStream(bool enable)
             }
             m_isStreaming = true;
             m_Format.clear();
-            FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
+            FpsN[FPS_INSTANT].value = 0;
+            FpsN[FPS_AVERAGE].value = 0;
             IUResetSwitch(&StreamSP);
             StreamS[0].s = ISS_ON;
             recorder->setStreamEnabled(true);
@@ -991,7 +1056,8 @@ bool StreamManager::setStream(bool enable)
     {
         StreamSP.s = IPS_IDLE;
         m_Format.clear();
-        FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
+        FpsN[FPS_INSTANT].value = 0;
+        FpsN[FPS_AVERAGE].value = 0;
         if (m_isStreaming)
         {
             if (!m_isRecording)
@@ -1022,7 +1088,8 @@ bool StreamManager::setStream(bool enable)
             StreamS[1].s = ISS_ON;
             m_isStreaming = false;
             m_Format.clear();
-            FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
+            FpsN[FPS_INSTANT].value = 0;
+            FpsN[FPS_AVERAGE].value = 0;
 
             recorder->setStreamEnabled(false);
         }
@@ -1032,24 +1099,32 @@ bool StreamManager::setStream(bool enable)
     return true;
 }
 
+bool StreamManager::setStream(bool enable)
+{
+    D_PTR(StreamManager);
+    return d->setStream(enable);
+}
+
 bool StreamManager::saveConfigItems(FILE * fp)
 {
-    IUSaveConfigSwitch(fp, &EncoderSP);
-    IUSaveConfigText(fp, &RecordFileTP);
-    IUSaveConfigNumber(fp, &RecordOptionsNP);
-    IUSaveConfigSwitch(fp, &RecorderSP);
+    D_PTR(StreamManager);
+    IUSaveConfigSwitch(fp, &d->EncoderSP);
+    IUSaveConfigText(fp, &d->RecordFileTP);
+    IUSaveConfigNumber(fp, &d->RecordOptionsNP);
+    IUSaveConfigSwitch(fp, &d->RecorderSP);
     return true;
 }
 
 void StreamManager::getStreamFrame(uint16_t * x, uint16_t * y, uint16_t * w, uint16_t * h)
 {
-    *x = StreamFrameN[CCDChip::FRAME_X].value;
-    *y = StreamFrameN[CCDChip::FRAME_Y].value;
-    *w = StreamFrameN[CCDChip::FRAME_W].value;
-    *h = StreamFrameN[CCDChip::FRAME_H].value;
+    D_PTR(StreamManager);
+    *x = d->StreamFrameN[CCDChip::FRAME_X].value;
+    *y = d->StreamFrameN[CCDChip::FRAME_Y].value;
+    *w = d->StreamFrameN[CCDChip::FRAME_W].value;
+    *h = d->StreamFrameN[CCDChip::FRAME_H].value;
 }
 
-bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
+bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 {
     // Send as is, already encoded.
     if (m_PixelFormat == INDI_JPG)
@@ -1125,4 +1200,52 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 
     return false;
 }
+
+RecorderInterface *StreamManager::getRecorder()
+{
+    D_PTR(StreamManager);
+    return d->recorder;
+}
+
+bool StreamManager::isDirectRecording()
+{
+    D_PTR(StreamManager);
+    return d->direct_record;
+}
+
+bool StreamManager::isStreaming()
+{
+    D_PTR(StreamManager);
+    return d->m_isStreaming;
+}
+
+bool StreamManager::isRecording()
+{
+    D_PTR(StreamManager);
+    return d->m_isRecording && !d->m_isRecordingAboutToClose;
+}
+
+bool StreamManager::isBusy()
+{
+    D_PTR(StreamManager);
+    return (d->m_isStreaming || d->m_isRecording);
+}
+
+double StreamManager::getTargetFPS()
+{
+    D_PTR(StreamManager);
+    return 1.0 / d->StreamExposureN[0].value;
+}
+double StreamManager::getTargetExposure()
+{
+    D_PTR(StreamManager);
+    return d->StreamExposureN[0].value;
+}
+
+void StreamManager::setStreamingExposureEnabled(bool enable)
+{
+    D_PTR(StreamManager);
+    d->m_hasStreamingExposure = enable;
+}
+
 }

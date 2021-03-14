@@ -711,5 +711,6 @@ class CCD : public DefaultDevice, GuiderInterface
         /// Misc.
         /////////////////////////////////////////////////////////////////////////////
         friend class StreamManager;
+        friend class StreamManagerPrivate;
 };
 }
