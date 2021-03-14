@@ -1201,44 +1201,44 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     return false;
 }
 
-RecorderInterface *StreamManager::getRecorder()
+RecorderInterface *StreamManager::getRecorder() const
 {
-    D_PTR(StreamManager);
+    D_PTR(const StreamManager);
     return d->recorder;
 }
 
-bool StreamManager::isDirectRecording()
+bool StreamManager::isDirectRecording() const
 {
-    D_PTR(StreamManager);
+    D_PTR(const StreamManager);
     return d->direct_record;
 }
 
-bool StreamManager::isStreaming()
+bool StreamManager::isStreaming() const
 {
-    D_PTR(StreamManager);
+    D_PTR(const StreamManager);
     return d->m_isStreaming;
 }
 
-bool StreamManager::isRecording()
+bool StreamManager::isRecording() const
 {
-    D_PTR(StreamManager);
+    D_PTR(const StreamManager);
     return d->m_isRecording && !d->m_isRecordingAboutToClose;
 }
 
-bool StreamManager::isBusy()
+bool StreamManager::isBusy() const
 {
-    D_PTR(StreamManager);
+    D_PTR(const StreamManager);
     return (d->m_isStreaming || d->m_isRecording);
 }
 
-double StreamManager::getTargetFPS()
+double StreamManager::getTargetFPS() const
 {
-    D_PTR(StreamManager);
+    D_PTR(const StreamManager);
     return 1.0 / d->StreamExposureN[0].value;
 }
-double StreamManager::getTargetExposure()
+double StreamManager::getTargetExposure() const
 {
-    D_PTR(StreamManager);
+    D_PTR(const StreamManager);
     return d->StreamExposureN[0].value;
 }
 

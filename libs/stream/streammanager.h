@@ -125,20 +125,16 @@ public:
      */
     bool setStream(bool enable);
 
-    RecorderInterface *getRecorder();
+    RecorderInterface *getRecorder() const;
 
 public:
-    bool isDirectRecording();
+    bool isDirectRecording() const;
+    bool isStreaming() const;
+    bool isRecording() const;
+    bool isBusy() const;
 
-    bool isStreaming();
-
-    bool isRecording();
-
-    bool isBusy();
-
-    double getTargetFPS();
-
-    double getTargetExposure();
+    double getTargetFPS() const;
+    double getTargetExposure() const;
 
     const char *getDeviceName();
 
