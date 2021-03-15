@@ -212,7 +212,6 @@ bool StreamManagerPrivate::updateProperties()
         {
             imageBP = currentDevice->getBLOB("SENSOR");
         }
-        imageB  = imageBP->bp;
 
         currentDevice->defineProperty(StreamSP);
         if (hasStreamingExposure)
@@ -1163,10 +1162,10 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
             return true;
         }
 #endif
-        imageB->blob    = (const_cast<uint8_t *>(buffer));
-        imageB->bloblen = nbytes;
-        imageB->size    = nbytes;
-        strcpy(imageB->format, ".streajpg");
+        imageBP->bp->blob    = (const_cast<uint8_t *>(buffer));
+        imageBP->bp->bloblen = nbytes;
+        imageBP->bp->size    = nbytes;
+        strcpy(imageBP->bp->format, ".streajpg");
         imageBP->s = IPS_OK;
         IDSetBLOB(imageBP, nullptr);
         return true;
@@ -1184,7 +1183,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
-        if (encoder->upload(imageB, buffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
+        if (encoder->upload(imageBP->bp, buffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
         {
 #ifdef HAVE_WEBSOCKET
             if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
@@ -1208,7 +1207,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     }
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
-        if (encoder->upload(imageB, buffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed()))
+        if (encoder->upload(imageBP->bp, buffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed()))
         {
             // Upload to client now
             imageBP->s = IPS_OK;

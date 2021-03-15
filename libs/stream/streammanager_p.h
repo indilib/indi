@@ -192,7 +192,6 @@ public:
 
     /* BLOBs */
     IBLOBVectorProperty *imageBP = nullptr;
-    IBLOB *imageB = nullptr;
 
     // Encoder Selector. It's static now but should this implemented as plugin interface?
     INDI::PropertySwitch EncoderSP {2};
