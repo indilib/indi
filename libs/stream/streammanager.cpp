@@ -89,7 +89,7 @@ const char * StreamManager::getDeviceName() const
 bool StreamManagerPrivate::initProperties()
 {
     /* Video Stream */
-    StreamSP[0].fill("STREAM_ON", "Stream On", ISS_OFF);
+    StreamSP[0].fill("STREAM_ON",  "Stream On",  ISS_OFF);
     StreamSP[1].fill("STREAM_OFF", "Stream Off", ISS_ON);
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
         StreamSP.fill(getDeviceName(), "SENSOR_DATA_STREAM", "Video Stream",
@@ -97,13 +97,13 @@ bool StreamManagerPrivate::initProperties()
     else
         StreamSP.fill(getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     StreamExposureNP[STREAM_EXPOSURE].fill("STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.6f", 0.000001, 60, 0.1, 0.1);
-    StreamExposureNP[STREAM_DIVISOR].fill("STREAMING_DIVISOR_VALUE", "Divisor", "%.f", 1, 15, 1, 1);
-    StreamExposureNP.fill(getDeviceName(), "STREAMING_EXPOSURE",
-                       "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
+    StreamExposureNP[STREAM_DIVISOR ].fill("STREAMING_DIVISOR_VALUE",  "Divisor",      "%.f",  1,        15, 1.0, 1.0);
+    StreamExposureNP.fill(getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
-    FpsNP[FPS_INSTANT].fill("EST_FPS", "Instant.", "%.2f", 0.0, 999.0, 0.0, 30);
+    FpsNP[FPS_INSTANT].fill("EST_FPS", "Instant.",         "%.2f", 0.0, 999.0, 0.0, 30);
     FpsNP[FPS_AVERAGE].fill("AVG_FPS", "Average (1 sec.)", "%.2f", 0.0, 999.0, 0.0, 30);
     FpsNP.fill(getDeviceName(), "FPS", "FPS", STREAM_TAB, IP_RO, 60, IPS_IDLE);
 
@@ -116,59 +116,54 @@ bool StreamManagerPrivate::initProperties()
                      STREAM_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Record Options */
-    RecordOptionsNP[0].fill("RECORD_DURATION", "Duration (sec)", "%.3f", 0.001, 999999.0, 0.0, 1);
-    RecordOptionsNP[1].fill("RECORD_FRAME_TOTAL", "Frames", "%.f", 1.0, 999999999.0, 1.0, 30.0);
+    RecordOptionsNP[0].fill("RECORD_DURATION",    "Duration (sec)", "%.3f", 0.001,    999999.0, 0.0,  1.0);
+    RecordOptionsNP[1].fill("RECORD_FRAME_TOTAL", "Frames",          "%.f", 1.0,   999999999.0, 1.0, 30.0);
     RecordOptionsNP.fill(getDeviceName(), "RECORD_OPTIONS",
                        "Record Options", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Record Switch */
-    RecordStreamSP[RECORD_ON].fill("RECORD_ON", "Record On", ISS_OFF);
-    RecordStreamSP[RECORD_TIME].fill("RECORD_DURATION_ON", "Record (Duration)", ISS_OFF);
-    RecordStreamSP[RECORD_FRAME].fill("RECORD_FRAME_ON", "Record (Frames)", ISS_OFF);
-    RecordStreamSP[RECORD_OFF].fill("RECORD_OFF", "Record Off", ISS_ON);
-    RecordStreamSP.fill(getDeviceName(), "RECORD_STREAM",
-                       "Video Record", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    RecordStreamSP[RECORD_ON   ].fill("RECORD_ON",          "Record On",         ISS_OFF);
+    RecordStreamSP[RECORD_TIME ].fill("RECORD_DURATION_ON", "Record (Duration)", ISS_OFF);
+    RecordStreamSP[RECORD_FRAME].fill("RECORD_FRAME_ON",    "Record (Frames)",   ISS_OFF);
+    RecordStreamSP[RECORD_OFF  ].fill("RECORD_OFF",         "Record Off",        ISS_ON);
+    RecordStreamSP.fill(getDeviceName(), "RECORD_STREAM", "Video Record", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         // CCD Streaming Frame
-        StreamFrameNP[0].fill("X", "Left ", "%.f", 0, 0.0, 0, 0);
-        StreamFrameNP[1].fill("Y", "Top", "%.f", 0, 0, 0, 0);
-        StreamFrameNP[2].fill("WIDTH", "Width", "%.f", 0, 0.0, 0, 0.0);
-        StreamFrameNP[3].fill("HEIGHT", "Height", "%.f", 0, 0, 0, 0.0);
+        StreamFrameNP[0].fill("X",      "Left",   "%.f", 0, 0, 0, 0);
+        StreamFrameNP[1].fill("Y",      "Top",    "%.f", 0, 0, 0, 0);
+        StreamFrameNP[2].fill("WIDTH",  "Width",  "%.f", 0, 0, 0, 0);
+        StreamFrameNP[3].fill("HEIGHT", "Height", "%.f", 0, 0, 0, 0);
         StreamFrameNP.fill(getDeviceName(), "CCD_STREAM_FRAME", "Frame", STREAM_TAB, IP_RW,
                            60, IPS_IDLE);
     }
 
     // Encoder Selection
-    EncoderSP[ENCODER_RAW].fill("RAW", "RAW", ISS_ON);
+    EncoderSP[ENCODER_RAW  ].fill("RAW",   "RAW",   ISS_ON);
     EncoderSP[ENCODER_MJPEG].fill("MJPEG", "MJPEG", ISS_OFF);
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
-        EncoderSP.fill(getDeviceName(), "SENSOR_STREAM_ENCODER", "Encoder", STREAM_TAB,
-                           IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        EncoderSP.fill(getDeviceName(), "SENSOR_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
-        EncoderSP.fill(getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB,
-                           IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        EncoderSP.fill(getDeviceName(), "CCD_STREAM_ENCODER",    "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Recorder Selector
     RecorderSP[RECORDER_RAW].fill("SER", "SER", ISS_ON);
     RecorderSP[RECORDER_OGV].fill("OGV", "OGV", ISS_OFF);
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
-        RecorderSP.fill(getDeviceName(), "SENSOR_STREAM_RECORDER", "Recorder",
-                           STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        RecorderSP.fill(getDeviceName(), "SENSOR_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
-        RecorderSP.fill(getDeviceName(), "CCD_STREAM_RECORDER", "Recorder",
-                           STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        RecorderSP.fill(getDeviceName(), "CCD_STREAM_RECORDER",    "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     // If we do not have theora installed, let's just define SER default recorder
 #ifndef HAVE_THEORA
     RecorderSP.resize(1);
 #endif
 
     // Limits
-    LimitsNP[LIMITS_BUFFER_MAX].fill("LIMITS_BUFFER_MAX", "Maximum Buffer Size (MB)", "%.0f", 1, 1024*64, 1, 512);
-    LimitsNP[LIMITS_PREVIEW_FPS].fill("LIMITS_PREVIEW_FPS", "Maximum Preview FPS", "%.0f", 1, 120, 1, 10);
-    LimitsNP.fill(getDeviceName(), "LIMITS",
-                       "Limits", STREAM_TAB, IP_RW, 0, IPS_IDLE);
+    LimitsNP[LIMITS_BUFFER_MAX ].fill("LIMITS_BUFFER_MAX",  "Maximum Buffer Size (MB)", "%.0f", 1, 1024*64, 1, 512);
+    LimitsNP[LIMITS_PREVIEW_FPS].fill("LIMITS_PREVIEW_FPS", "Maximum Preview FPS",      "%.0f", 1, 120,     1,  10);
+    LimitsNP.fill(getDeviceName(), "LIMITS", "Limits", STREAM_TAB, IP_RW, 0, IPS_IDLE);
     return true;
 }
 
