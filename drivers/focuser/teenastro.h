@@ -31,24 +31,33 @@ public:
 
     const char * getDefaultName();
     virtual bool Handshake();
-    virtual bool initProperties();
-    virtual bool updateProperties();
+
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+
+protected:
+    // Helper function to update NP with the values if res is true and display status IPS_OK, else display status IPS_ALERT. Returns res for convenience. 
+    bool ISNewNumberHelper(INumberVectorProperty *NP, double values[], char *names[], int n, bool res);
+
+    virtual bool initProperties();
+    virtual bool updateProperties();
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual bool AbortFocuser();
     virtual void TimerHit();
 
-private:
+    // Syncs device focuser position to given value. Returns true on success else false.
+    virtual bool SyncFocuser(uint32_t value);
 
-    double targetPos, lastPos;
+    bool SetFocuserMaxPosition(uint32_t value);
+
+
 
     // Sends a command to the focuser. Returns true on success and false on failure.
     bool send(const char *const msg);
  
     // Sends a command to the focuser, and waits for a response terminated by '#'. Returns true on success and false on failure.
-    bool sendAndReceive(const char *const msg, char *resp);
+    bool sendAndReceive(const char *const msg, char *resp, int bufsize);
 
     // Sends a command to the focuser, and waits for a single character response. Returns true if successful and response is '1', otherwise false.
     bool sendAndReceiveBool(const char *const msg);
@@ -69,7 +78,6 @@ private:
     // Sets given configuration item on to device to provided value in device native units. Returns true on success and false on failure. 
     bool setConfigItem(char item, uint32_t deviceValue);
     bool setParkPos(uint32_t value);
-    bool setMaxPos(uint32_t value);
     bool setGoToSpeed(uint32_t value);
     bool setManualSpeed(uint32_t value);
     bool setGoToAcc(uint32_t value);
@@ -95,28 +103,26 @@ private:
     // Stop focuser movement. Returns immediately, true on success else false.
     bool stop();
 
-    // Syncs focuser zero position to current position, true on success else false.
-    bool syncZero();
-
 
     // UI Elements
     //
 
-    // UI Element: Sync current position as zero position
-    ISwitch SyncZeroS[1];
-    ISwitchVectorProperty SyncZeroSP;
+    IText DeviceVersionT[1];
+    ITextVectorProperty DeviceVersionTP;
 
     // Configuration variables
     //
-
-    IText CfgDeviceVersionT[1];
-    ITextVectorProperty CfgDeviceVersionTP;
 
     // Focuser park position 
     INumber CfgParkPosN[1];
     INumberVectorProperty CfgParkPosNP;
 
+    ISwitch GoToParkS[1];
+    ISwitchVectorProperty GoToParkSP;
+
     // Focuser max position is inherited from superclass as FocusMaxPosN, FocusMaxPosNP
+
+    // Sync current focuser position to given value inherited from superclass as FocusSyncN, FocusSyncNP
 
     // Focuser goto speed
     INumber CfgGoToSpeedN[1];
@@ -174,7 +180,6 @@ private:
     // Status variable: Focuser temperature
     INumber TempN[1];
     INumberVectorProperty TempNP;
-
 };
 
 #endif // TEENASTRROFOCUSER_H

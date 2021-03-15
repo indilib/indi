@@ -29,7 +29,38 @@
 #include <math.h>
 #include <memory>
 
+// Default, minimal and maximal values for focuser configuration properties
+// In absolute units (not device units, where e.g. current is /10 and microsteps are log_2)
+//
+
+#define TAF_curr_default  500
+#define TAF_curr_min 100
+#define TAF_curr_max 1600
+#define TAF_micro_default  (1<<4)
+#define TAF_micro_min (1<<2)
+#define TAF_micro_max (1<<7)
+#define TAF_steprot_default  200
+#define TAF_steprot_min 10
+#define TAF_steprot_max 800
+#define TAF_pos_default 0
+#define TAF_pos_min 0
+#define TAF_pos_max 2000000000UL
+#define TAF_speed_default 20
+#define TAF_speed_min 1
+#define TAF_speed_max 999
+#define TAF_acc_default 30
+#define TAF_acc_min 1
+#define TAF_acc_max 99
+#define TAF_res_default 16
+#define TAF_res_min 1
+#define TAF_res_max 512
+
+#define TAF_UI_STEPS    20.0
+#define TAF_STEP(min,max)  (((max)-(min))/(TAF_UI_STEPS))
+
+
 #define TEENASTRO_FOCUSER_TIMEOUT 4
+#define TEENASTRO_FOCUSER_BUFSIZE 128
 
 #define POLLMS_OVERRIDE  1500
 
@@ -60,7 +91,7 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
          teenAstroFocuser->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
    INDI_UNUSED(dev);
    INDI_UNUSED(name);
@@ -72,7 +103,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
    INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
      teenAstroFocuser->ISSnoopDevice(root);
 }
@@ -83,8 +114,7 @@ void ISSnoopDevice (XMLEle *root)
 
 TeenAstroFocuser::TeenAstroFocuser()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    lastPos = 0;
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
 }
 
 TeenAstroFocuser::~TeenAstroFocuser()
@@ -100,8 +130,8 @@ bool TeenAstroFocuser::Handshake()
 {
     sleep(2);
 
-    char resp[128];
-    if(!sendAndReceive(":FV#", resp))
+    char resp[TEENASTRO_FOCUSER_BUFSIZE];
+    if(!sendAndReceive(":FV#", resp, TEENASTRO_FOCUSER_BUFSIZE))
         return false;
     if (strncmp(resp, "$ TeenAstro Focuser ",20))
     {
@@ -109,7 +139,7 @@ bool TeenAstroFocuser::Handshake()
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "TeenAstroFocuser is online. Getting parameters...");
+    DEBUG(INDI::Logger::DBG_SESSION, "TeenAstroFocuser found, updating parameters...");
     return true;
 }
 
@@ -117,78 +147,60 @@ bool TeenAstroFocuser::initProperties()
 {
     INDI::Focuser::initProperties();
      
-    // Relative and absolute positions
-    /*
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 200.;
-    FocusRelPosN[0].value = 0.;
-    FocusRelPosN[0].step = 10.;
-
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 10000000.;
-    FocusAbsPosN[0].value = 0.;
-    FocusAbsPosN[0].step = 500.;
-    */
-
-    // UI Element: SetZero
-    IUFillSwitch(&SyncZeroS[0], "VAL", "Sync", ISS_OFF);
-    IUFillSwitchVector(&SyncZeroSP, SyncZeroS, 1, getDeviceName(), "SYNC_ZERO", "Sync zero position", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillText(&DeviceVersionT[0], "VAL", "Version", "unknown");
+    IUFillTextVector(&DeviceVersionTP, DeviceVersionT, 1, getDeviceName(), "DEVICE_VERSION", "Device version", FOCUS_TAB, IP_RO, 60, IPS_IDLE);
 
     // Configuration
     //
 
-    IUFillText(&CfgDeviceVersionT[0], "VAL", "Version", "unknown");
-    IUFillTextVector(&CfgDeviceVersionTP, CfgDeviceVersionT, 1, getDeviceName(), "DEVICE_VERSION", "Device version", FOCUS_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumber(&CfgParkPosN[0], "VAL", "Ticks", "%5.0f", 0, 100000, 1000, 0);
+    IUFillNumberVector(&CfgParkPosNP, CfgParkPosN, 1, getDeviceName(), "PARK_POS", "Park position", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgParkPosN[0], "VAL", "Ticks", "%5.0f", 0, 100000., 0, 0);
-    IUFillNumberVector(&CfgParkPosNP, CfgParkPosN, 1, getDeviceName(), "PARK_POS", "Park position", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillSwitch(&GoToParkS[0], "VAL", "Park", ISS_OFF);
+    IUFillSwitchVector(&GoToParkSP, GoToParkS, 1, getDeviceName(), "GOTO_PARK", "Go-to park", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE );
 
-    // Focuser max position is inherited from superclass as FocusMaxPosN, FocusMaxPosNP
+    IUFillNumber(&CfgGoToSpeedN[0], "VAL", "1/s", "%3.0f", TAF_speed_min, TAF_speed_max, TAF_STEP(TAF_speed_min, TAF_speed_max), TAF_speed_default);
+    IUFillNumberVector(&CfgGoToSpeedNP, CfgGoToSpeedN, 1, getDeviceName(), "GOTO_SPEED", "Go-to speed", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgGoToSpeedN[0], "VAL", "tbd/s", "%3.0f", 1., 1000., 10, 0);
-    IUFillNumberVector(&CfgGoToSpeedNP, CfgGoToSpeedN, 1, getDeviceName(), "GOTO_SPEED", "Go-to speed", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&CfgGoToAccN[0], "VAL", "1/s^2", "%3.0f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max), TAF_acc_default);
+    IUFillNumberVector(&CfgGoToAccNP, CfgGoToAccN, 1, getDeviceName(), "GOTO_ACCEL", "Go-to accel.", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgGoToAccN[0], "VAL", "tbd/s^2", "%3.0f", 1., 1000., 10, 0);
-    IUFillNumberVector(&CfgGoToAccNP, CfgGoToAccN, 1, getDeviceName(), "GOTO_ACCEL", "Go-to accel.", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&CfgManualSpeedN[0], "VAL", "1/s", "%3.0f", TAF_speed_min, TAF_speed_max, TAF_STEP(TAF_speed_min, TAF_speed_max), TAF_speed_default);
+    IUFillNumberVector(&CfgManualSpeedNP, CfgManualSpeedN, 1, getDeviceName(), "MAN_SPEED", "Manual speed", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgManualSpeedN[0], "VAL", "tbd/s", "%3.0f", 1., 1000., 10, 0);
-    IUFillNumberVector(&CfgManualSpeedNP, CfgManualSpeedN, 1, getDeviceName(), "MAN_SPEED", "Manual speed", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&CfgManualAccN[0], "VAL", "1/s^2", "%3.0f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max), TAF_acc_default);
+    IUFillNumberVector(&CfgManualAccNP, CfgManualAccN, 1, getDeviceName(), "MAN_ACCEL", "Manual accel.", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgManualAccN[0], "VAL", "tbd/s^2", "%3.0f", 1., 1000., 10, 0);
-    IUFillNumberVector(&CfgManualAccNP, CfgManualAccN, 1, getDeviceName(), "MAN_ACCEL", "Manual accel.", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
-
-    IUFillNumber(&CfgManualDecN[0], "VAL", "tbd/s^2", "%8.0f", 1., 1000., 10, 0);
-    IUFillNumberVector(&CfgManualDecNP, CfgManualDecN, 1, getDeviceName(), "MAN_DECEL", "Manual decel.", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&CfgManualDecN[0], "VAL", "1/s^2", "%8.0f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max), TAF_acc_default);
+    IUFillNumberVector(&CfgManualDecNP, CfgManualDecN, 1, getDeviceName(), "MAN_DECEL", "Manual decel.", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
     // Motor configuration
     //
 
     IUFillNumber(&CfgMotorInvertN[0], "VAL", "0=norm. 1=inv.", "%8.0f", 0, 1, 1, 0);
-    IUFillNumberVector(&CfgMotorInvertNP, CfgMotorInvertN, 1, getDeviceName(), "MOT_INV", "Motor invert", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&CfgMotorInvertNP, CfgMotorInvertN, 1, getDeviceName(), "MOT_INV", "Motor invert", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgMotorStepsPerRevolutionN[0], "VAL", "Steps", "%3.0f", 1, 800, 10, 0);
-    IUFillNumberVector(&CfgMotorStepsPerRevolutionNP, CfgMotorStepsPerRevolutionN, 1, getDeviceName(), "MOT_STEPS_REV", "Motor steps/rev", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&CfgMotorStepsPerRevolutionN[0], "VAL", "Steps", "%3.0f", TAF_steprot_min, TAF_steprot_max, TAF_STEP(TAF_steprot_min, TAF_steprot_max), TAF_steprot_default);
+    IUFillNumberVector(&CfgMotorStepsPerRevolutionNP, CfgMotorStepsPerRevolutionN, 1, getDeviceName(), "MOT_STEPS_REV", "Motor steps/rev", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgMotorMicrostepsN[0], "VAL", "Usteps", "%3.0f", 1, 512, 1, 0);
-    IUFillNumberVector(&CfgMotorMicrostepsNP, CfgMotorMicrostepsN, 1, getDeviceName(), "MOT_USTEPS", "Motor usteps", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&CfgMotorMicrostepsN[0], "VAL", "Usteps", "%3.0f", TAF_micro_min, TAF_micro_max, TAF_STEP(TAF_micro_min, TAF_micro_max), TAF_micro_default);
+    IUFillNumberVector(&CfgMotorMicrostepsNP, CfgMotorMicrostepsN, 1, getDeviceName(), "MOT_USTEPS", "Motor usteps", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgMotorResolutionN[0], "VAL", "Usteps/tick", "%3.0f", 1., 1000., 10, 0);
-    IUFillNumberVector(&CfgMotorResolutionNP, CfgMotorResolutionN, 1, getDeviceName(), "MOT_RES", "Motor resolution", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&CfgMotorResolutionN[0], "VAL", "Usteps/tick", "%3.0f", TAF_res_min, TAF_res_max, TAF_STEP(TAF_res_min, TAF_res_max), TAF_res_default);
+    IUFillNumberVector(&CfgMotorResolutionNP, CfgMotorResolutionN, 1, getDeviceName(), "MOT_RES", "Motor resolution", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgMotorCurrentN[0], "VAL", "mA", "%4.0f", 1., 10000., 10, 0);
-    IUFillNumberVector(&CfgMotorCurrentNP, CfgMotorCurrentN, 1, getDeviceName(), "MOT_CUR", "Motor current", FOCUS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&CfgMotorCurrentN[0], "VAL", "mA", "%4.0f", TAF_curr_min, TAF_curr_max, TAF_STEP(TAF_curr_min, TAF_curr_max), TAF_curr_default);
+    IUFillNumberVector(&CfgMotorCurrentNP, CfgMotorCurrentN, 1, getDeviceName(), "MOT_CUR", "Motor current", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
     // Status variables
     //
     
-    // Focuser current position is inherited from superclass as FocusAbsPosN, FocusAbsPosNP
-
     // Current speed
-    IUFillNumber(&CurSpeedN[0], "VAL", "tbd/s", "%3.0f", 1., 10000000., 0, 0);
+    IUFillNumber(&CurSpeedN[0], "VAL", "tbd/s", "%3.0f", TAF_speed_min, TAF_speed_max, TAF_STEP(TAF_speed_min, TAF_speed_max), TAF_speed_default);
     IUFillNumberVector(&CurSpeedNP, CurSpeedN, 1, getDeviceName(), "CUR_SPEED", "Current Speed", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
 
     // Temperature
-    IUFillNumber(&TempN[0], "VAL", "°Celsius", "%+2.2f", -50., 50., 0, 0);
+    IUFillNumber(&TempN[0], "VAL", "°Celsius", "%+2.1f", -50., 50., 0, 0);
     IUFillNumberVector(&TempNP, TempN, 1, getDeviceName(), "TEMP", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
 
     addDebugControl();
@@ -202,11 +214,17 @@ bool TeenAstroFocuser::updateProperties()
     INDI::Focuser::updateProperties();
     if (isConnected())
     {
-        defineProperty(&SyncZeroSP);
+        defineProperty(&DeviceVersionTP);
 
-        defineProperty(&CfgDeviceVersionTP);
-        updateDeviceVersion();
+        defineProperty(&GoToParkSP);
         defineProperty(&CfgParkPosNP);
+
+		deleteProperty(FocusSyncNP.name);
+		defineProperty(&FocusSyncNP);
+
+		deleteProperty(FocusMaxPosNP.name);
+		defineProperty(&FocusMaxPosNP);
+
         defineProperty(&CfgGoToSpeedNP);
         defineProperty(&CfgGoToAccNP);
         defineProperty(&CfgManualSpeedNP);
@@ -222,20 +240,20 @@ bool TeenAstroFocuser::updateProperties()
         defineProperty(&CurSpeedNP);
         defineProperty(&TempNP);
 
+        updateDeviceVersion();
         updateConfig();
         updateMotorConfig();
         updateState();
 
-        loadConfig(true);
-
-        DEBUG(INDI::Logger::DBG_SESSION, "TeenAstroFocuser parameters updated, focuser ready for use.");
+        DEBUG(INDI::Logger::DBG_SESSION, "TeenAstroFocuser ready for use.");
     }
     else
     {
-        deleteProperty(SyncZeroSP.name);
+        deleteProperty(DeviceVersionTP.name);
 
-        deleteProperty(CfgDeviceVersionTP.name);
+        deleteProperty(GoToParkSP.name);
         deleteProperty(CfgParkPosNP.name);
+
         deleteProperty(CfgGoToSpeedNP.name);
         deleteProperty(CfgGoToAccNP.name);
         deleteProperty(CfgManualSpeedNP.name);
@@ -260,209 +278,166 @@ bool TeenAstroFocuser::updateProperties()
 bool TeenAstroFocuser::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if(dev==NULL || strcmp(dev,getDeviceName()))
-        return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+	    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 
-    if (!strcmp(name, SyncZeroSP.name))
-    {
-        SyncZeroSP.s = IPS_BUSY;
-        IDSetSwitch(&SyncZeroSP, NULL);
+	if(!strcmp(name, GoToParkSP.name)) {
+		GoToParkSP.s=IPS_BUSY;
+		IDSetSwitch(&GoToParkSP, NULL);
+		bool res=goToPark();
+		GoToParkS[0].s=ISS_OFF;
+		GoToParkSP.s= res ? IPS_OK : IPS_ALERT;
+		IDSetSwitch(&GoToParkSP, NULL);
+		return res;
+	}
 
-        syncZero();
+    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+}
 
-        IUResetSwitch(&SyncZeroSP);
-        SyncZeroSP.s = IPS_OK;
-        IDSetSwitch(&SyncZeroSP, NULL);
-        return true;
-    }
-    else 
-        return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+bool TeenAstroFocuser::ISNewNumberHelper(INumberVectorProperty *NP, double values[], char *names[], int n, bool res) 
+{
+	if(res)
+		IUUpdateNumber(NP, values, names, n);               
+	NP->s=res ? IPS_OK : IPS_ALERT;
+	IDSetNumber(NP, NULL);
+	return res;
 }
 
 bool TeenAstroFocuser::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(dev==NULL || strcmp(dev,getDeviceName()))
-        return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+	if(dev==NULL || strcmp(dev,getDeviceName()))
+		return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 
-    if(!strcmp(name, CfgParkPosNP.name)) 
+	if(!strcmp(name, FocusSyncNP.name)) 
     {
-        IUUpdateNumber(&CfgParkPosNP, values, names, n);               
-        if(!setParkPos((uint32_t) CfgParkPosN[0].value))
-            return false;
-        CfgParkPosNP.s = IPS_OK;
-        return true;
+        bool res=SyncFocuser((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&FocusSyncNP, values, names, n, res);
     }
-    else if(!strcmp(name, FocusMaxPosNP.name))
+	else if(!strcmp(name, CfgParkPosNP.name)) 
     {
-        if (values[0] < FocusAbsPosN[0].value)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Can't set max position lower than current absolute position ( %8.0f )", FocusAbsPosN[0].value);
-            return false;
-        }
-        IUUpdateNumber(&FocusMaxPosNP, values, names, n);               
-        FocusAbsPosN[0].max = FocusMaxPosN[0].value;
-        setMaxPos(FocusMaxPosN[0].value);
-        FocusMaxPosNP.s = IPS_OK;
-        return true;
+        bool res=setParkPos((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgParkPosNP, values, names, n, res);
+    }
+ 	else if(!strcmp(name, FocusMaxPosNP.name))
+    {
+        bool res=SetFocuserMaxPosition((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&FocusMaxPosNP, values, names, n, res);
     }
     else if(!strcmp(name, CfgManualSpeedNP.name))
     {
-        IUUpdateNumber(&CfgManualSpeedNP, values, names, n);               
-        if(!setManualSpeed((uint32_t) CfgManualSpeedN[0].value))
-            return false;
-        CfgManualSpeedNP.s = IPS_OK;
-        return true;
+        bool res=setManualSpeed((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgManualSpeedNP, values, names, n, res);
     }
     else if(!strcmp(name, CfgGoToSpeedNP.name))
     {
-        IUUpdateNumber(&CfgGoToSpeedNP, values, names, n);               
-        if(!setGoToSpeed((uint32_t) CfgGoToSpeedN[0].value))
-            return false;
-        CfgGoToSpeedNP.s = IPS_OK;
-        return true;
+        bool res=setGoToSpeed((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgGoToSpeedNP, values, names, n, res);
     }
     else if(!strcmp(name, CfgGoToAccNP.name))
     {
-        IUUpdateNumber(&CfgGoToAccNP, values, names, n);               
-        if(!setGoToAcc((uint32_t) CfgGoToAccN[0].value))
-            return false;
-        CfgGoToAccNP.s = IPS_OK;
-        return true;
+        bool res=setGoToAcc((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgGoToAccNP, values, names, n, res);
     }
     else if(!strcmp(name, CfgManualAccNP.name))
     {
-        IUUpdateNumber(&CfgManualAccNP, values, names, n);               
-        if(!setManualAcc((uint32_t) CfgManualAccN[0].value))
-            return false;
-        CfgManualAccNP.s = IPS_OK;
-        return true;
+        bool res=setManualAcc((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgManualAccNP, values, names, n, res);
     }
     else if(!strcmp(name, CfgManualDecNP.name))
     {
-        IUUpdateNumber(&CfgManualDecNP, values, names, n);               
-        if(!setManualDec((uint32_t) CfgManualDecN[0].value))
-            return false;
-        CfgManualDecNP.s = IPS_OK;
-        return true;
+        bool res=setManualDec((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgManualDecNP, values, names, n, res);
     }
     else if(!strcmp(name, CfgMotorInvertNP.name))
     {
-        IUUpdateNumber(&CfgMotorInvertNP, values, names, n);               
-        if(!setMotorInvert((uint32_t) CfgMotorInvertN[0].value))
-            return false;
-        CfgMotorInvertNP.s = IPS_OK;
-        return true;
+        bool res=setMotorInvert((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgMotorInvertNP, values, names, n, res);
     }
     else if(!strcmp(name, CfgMotorStepsPerRevolutionNP.name))
     {
-        IUUpdateNumber(&CfgMotorStepsPerRevolutionNP, values, names, n);               
-        if(!setMotorStepsPerRevolution((uint32_t) CfgMotorStepsPerRevolutionN[0].value))
-            return false;
-        CfgMotorStepsPerRevolutionNP.s = IPS_OK;
-        return true;
+        bool res=setMotorStepsPerRevolution((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgMotorStepsPerRevolutionNP, values, names, n, res);
     }
     else if(!strcmp(name, CfgMotorMicrostepsNP.name))
     {
-        IUUpdateNumber(&CfgMotorMicrostepsNP, values, names, n);               
-        if(!setMotorMicrosteps((uint32_t) CfgMotorMicrostepsN[0].value))
-            return false;
-        CfgMotorMicrostepsNP.s = IPS_OK;
-        return true;
+        bool res=setMotorMicrosteps((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgMotorMicrostepsNP, values, names, n, res);
     }
     else if(!strcmp(name, CfgMotorResolutionNP.name))
     {
-        IUUpdateNumber(&CfgMotorResolutionNP, values, names, n);               
-        if(!setMotorResolution((uint32_t) CfgMotorResolutionN[0].value))
-            return false;
-        CfgMotorResolutionNP.s = IPS_OK;
-        return true;
+        bool res=setMotorResolution((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgMotorResolutionNP, values, names, n, res);
     }
     else if(!strcmp(name, CfgMotorCurrentNP.name))
     {
-        IUUpdateNumber(&CfgMotorCurrentNP, values, names, n);               
-        if(!setMotorCurrent((uint32_t) CfgMotorCurrentN[0].value))
-            return false;
-        CfgMotorCurrentNP.s = IPS_OK;
-        return true;
+        bool res=setMotorCurrent((uint32_t) rint(values[0]));
+        return ISNewNumberHelper(&CfgMotorCurrentNP, values, names, n, res);
     }
     else
-        return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+        return INDI::Focuser::ISNewNumber(dev, name, values, names, n);  // handle maxPos, sync, ...
 }
 
 
 IPState TeenAstroFocuser::MoveAbsFocuser(uint32_t pos)
 {
-    if(!goTo(pos))
-        return IPS_ALERT;
-
     FocusAbsPosNP.s = IPS_BUSY;
+    IDSetNumber(&FocusAbsPosNP, NULL);
+    FocusRelPosNP.s = IPS_BUSY;
+    IDSetNumber(&FocusRelPosNP, NULL);
+
+    if(!goTo(pos)) {
+	    FocusAbsPosNP.s = IPS_ALERT;
+	    IDSetNumber(&FocusAbsPosNP, NULL);
+	    FocusRelPosNP.s = IPS_ALERT;
+	    IDSetNumber(&FocusRelPosNP, NULL);
+
+        return IPS_ALERT;
+    }
     return IPS_BUSY;
 }
 
 IPState TeenAstroFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
+    FocusRelPosN[0].value = ticks;
+
     uint32_t pos=uint32_t(FocusAbsPosN[0].value);
     if (dir == FOCUS_INWARD)
         pos -= ticks;
     else
         pos += ticks;
 
-    if(!goTo(pos))
-        return IPS_ALERT;
-
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s = IPS_BUSY;
-    return IPS_BUSY;
+    return MoveAbsFocuser(pos);
 }
 
 void TeenAstroFocuser::TimerHit()
 {
-    if (isConnected() == false)
-    {
-        SetTimer(POLLMS_OVERRIDE);
-        return;
-    }
-
-    if (updateState())
-    {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
-        {
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            lastPos = FocusAbsPosN[0].value;
-        }
-    }
-
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
-    {
-        if (isMoving() == false)
-        {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            IDSetNumber(&FocusRelPosNP, NULL);
-            lastPos = FocusAbsPosN[0].value;
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached target position.");
-        }
-    }
+	if(isConnected())
+		updateState();
     SetTimer(POLLMS_OVERRIDE);
 }
 
 bool TeenAstroFocuser::AbortFocuser()
 {
-    if(!stop())
-        return false;
+	FocusAbortSP.s=IPS_BUSY;
+	IDSetSwitch(&FocusAbortSP, NULL);
 
-    FocusAbsPosNP.s = IPS_IDLE;
-    FocusRelPosNP.s = IPS_IDLE;
-    IDSetNumber(&FocusAbsPosNP, NULL);
-    IDSetNumber(&FocusRelPosNP, NULL);
-    return true;
+    if(!stop()) {
+		FocusAbortSP.s=IPS_ALERT;
+		IDSetSwitch(&FocusAbortSP, NULL);
+        return false;
+    }
+	FocusAbortSP.s=IPS_OK;
+	IDSetSwitch(&FocusAbortSP, NULL);
+
+    return updateState();
 }
 
 
-// Private methods
+// Protected methods
 //
 
 bool TeenAstroFocuser::send(const char *const msg) {
+    DEBUGF(INDI::Logger::DBG_DEBUG, "send(\"%s\")", msg);
+
     int nbytes_written=0, rc=-1;
     if ( (rc = tty_write(PortFD, msg, strlen(msg), &nbytes_written)) != TTY_OK)
     {
@@ -471,27 +446,25 @@ bool TeenAstroFocuser::send(const char *const msg) {
         DEBUGF(INDI::Logger::DBG_ERROR, "Send error: %s.", errstr);
         return false;
     }
-
-    tcflush(PortFD, TCIOFLUSH);
     return true;
 }
 
 
-bool TeenAstroFocuser::sendAndReceive(const char *const msg, char *resp) {
+bool TeenAstroFocuser::sendAndReceive(const char *const msg, char *resp, int bufsize) {
     if(!send(msg))
         return false;
 
-    int nbytes_read=0, rc=-1;
-    if ( (rc = tty_read_section(PortFD, resp, '#', TEENASTRO_FOCUSER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    int nbytes_read=0;
+    int rc = tty_nread_section(PortFD, resp, bufsize, '#', TEENASTRO_FOCUSER_TIMEOUT, &nbytes_read);
+    resp[nbytes_read]='\0';
+	if(rc!=TTY_OK || nbytes_read==0 || resp[nbytes_read-1]!='#')
     {
         char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Receive error: %s.", errstr);
-        resp[0]='\0';
+        DEBUGF(INDI::Logger::DBG_ERROR, "sendAndReceive(\"%s\"): got \"%s\": receive error: %s.", msg, resp, errstr);
         return false;
     }
-    resp[nbytes_read]='\0';
-
+    DEBUGF(INDI::Logger::DBG_DEBUG, "sendAndReceive(\"%s\"): got \"%s\"", msg, resp);
     return true;
 }
 
@@ -500,41 +473,41 @@ bool TeenAstroFocuser::sendAndReceiveBool(const char *const msg) {
         return false;
 
     char resp[2];
-    int nbytes_read=0, rc=-1;
-    if ( (rc = tty_read(PortFD, resp, 1, TEENASTRO_FOCUSER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    int nbytes_read=0;
+    int rc = tty_read(PortFD, resp, 1, TEENASTRO_FOCUSER_TIMEOUT, &nbytes_read);
+    resp[nbytes_read]='\0';
+    if(rc!=TTY_OK || resp[0]!='1')
     {
         char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Receive error: %s.", errstr);
-        resp[0]='\0';
+        DEBUGF(INDI::Logger::DBG_ERROR, "sendAndReceiveBool(\"%s\"): got \"%s\": receive error: %s.", msg, resp, errstr);
         return false;
     }
-    resp[nbytes_read]='\0';
-
+    DEBUGF(INDI::Logger::DBG_DEBUG, "sendAndReceiveBool(\"%s\"): got \"%s\"", msg, resp);
     return resp[0]=='1';
 }
 
 
 bool TeenAstroFocuser::updateDeviceVersion()
 {
-    char resp[128];
-    if(!sendAndReceive(":FV#", resp))
+    char resp[TEENASTRO_FOCUSER_BUFSIZE];
+    if(!sendAndReceive(":FV#", resp, TEENASTRO_FOCUSER_BUFSIZE))
         return false;
     int len=strlen(resp);
     resp[len-1]=0;
-    IUSaveText(&CfgDeviceVersionT[0], resp+2);
-    CfgDeviceVersionTP.s = IPS_OK;
-    IDSetText(&CfgDeviceVersionTP, NULL);
+    IUSaveText(&DeviceVersionT[0], resp+2);
+    DeviceVersionTP.s = IPS_OK;
+    IDSetText(&DeviceVersionTP, NULL);
     return true;
 }
 
 bool TeenAstroFocuser::updateState()
 {
-    char resp[128];
+    char resp[TEENASTRO_FOCUSER_BUFSIZE];
     int pos=-1, speed=-1;
     float temp=-1;
 
-    if(!sendAndReceive(":F?#", resp))
+    if(!sendAndReceive(":F?#", resp, TEENASTRO_FOCUSER_BUFSIZE))
         return false;
 
     if(sscanf(resp, "?%d %d %f#", &pos, &speed, &temp)<=0)
@@ -543,14 +516,20 @@ bool TeenAstroFocuser::updateState()
         return false;
     }
 
+    if(FocusAbsPosNP.s==IPS_BUSY && speed==0)
+        DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached target position.");
+
     FocusAbsPosN[0].value = pos;
-    FocusAbsPosNP.s = IPS_OK;
+    FocusAbsPosNP.s = speed>0 ? IPS_BUSY : IPS_OK;
     IDSetNumber(&FocusAbsPosNP, NULL);
+    FocusRelPosNP.s = speed>0 ? IPS_BUSY : IPS_OK;
+    IDSetNumber(&FocusRelPosNP, NULL);
+
     CurSpeedN[0].value = speed;
-    CurSpeedNP.s = IPS_OK;
+    CurSpeedNP.s = speed>0 ? IPS_BUSY : IPS_OK;
     IDSetNumber(&CurSpeedNP, NULL);
     TempN[0].value = temp;
-    TempNP.s = IPS_OK;
+    TempNP.s = (temp==-99) ? IPS_ALERT : IPS_OK;
     IDSetNumber(&TempNP, NULL);
 
     return true;
@@ -566,10 +545,10 @@ bool TeenAstroFocuser::isMoving()
 
 bool TeenAstroFocuser::updateConfig() 
 {
-    char resp[128];
+    char resp[TEENASTRO_FOCUSER_BUFSIZE];
     int parkPos=-1, maxPos=-1, manualSpeed=-1, goToSpeed=-1, gotoAcc=-1, manAcc=-1, manDec=-1;
 
-    if(!sendAndReceive(":F~#", resp))
+    if(!sendAndReceive(":F~#", resp, TEENASTRO_FOCUSER_BUFSIZE))
         return false;
 
     if(sscanf(resp, "~%d %d %d %d %d %d %d#", &parkPos, &maxPos, &manualSpeed, &goToSpeed, &gotoAcc, &manAcc, &manDec)<=0)
@@ -578,6 +557,7 @@ bool TeenAstroFocuser::updateConfig()
         return false;
     }
 
+    // Update proper values
     CfgParkPosN[0].value = parkPos;
     CfgParkPosNP.s = IPS_OK;
     IDSetNumber(&CfgParkPosNP, NULL);
@@ -600,9 +580,19 @@ bool TeenAstroFocuser::updateConfig()
     CfgManualDecNP.s = IPS_OK;
     IDSetNumber(&CfgManualDecNP, NULL);
 
-    // Update focuser absolute position limits
+    // Update UI control maximum values for focuser positions
     FocusAbsPosN[0].max = maxPos;
-    IDSetNumber(&FocusAbsPosNP, NULL);
+    FocusAbsPosN[0].step = maxPos / TAF_UI_STEPS;
+    IUUpdateMinMax(&FocusAbsPosNP);
+    FocusRelPosN[0].max = maxPos;
+    FocusRelPosN[0].step = maxPos / TAF_UI_STEPS;
+    IUUpdateMinMax(&FocusRelPosNP);
+    FocusSyncN[0].max = maxPos;
+    FocusSyncN[0].step = maxPos / TAF_UI_STEPS;
+    IUUpdateMinMax(&FocusSyncNP);
+    CfgParkPosN[0].max = maxPos;
+    CfgParkPosN[0].step = maxPos / TAF_UI_STEPS;
+    IUUpdateMinMax(&CfgParkPosNP);
 
     return true;
 }
@@ -611,10 +601,7 @@ bool TeenAstroFocuser::setConfigItem(char item, uint32_t deviceValue)
 {
     char cmd[64];
     snprintf(cmd, 64, ":F%c,%d#", item, deviceValue);
-    if(!sendAndReceiveBool(cmd))
-        return false;
-    updateConfig();
-    return true;
+    return sendAndReceiveBool(cmd);
 }
 
 bool TeenAstroFocuser::setParkPos(uint32_t value)
@@ -622,7 +609,7 @@ bool TeenAstroFocuser::setParkPos(uint32_t value)
     return setConfigItem('0', value);
 }
 
-bool TeenAstroFocuser::setMaxPos(uint32_t value)
+bool TeenAstroFocuser::SetFocuserMaxPosition(uint32_t value)
 {
     return setConfigItem('1', value);
 }
@@ -655,10 +642,10 @@ bool TeenAstroFocuser::setManualDec(uint32_t value)
 
 bool TeenAstroFocuser::updateMotorConfig() 
 {
-    char resp[128];
+    char resp[TEENASTRO_FOCUSER_BUFSIZE];
     int invert=-1, log2_micro=-1, resolution=-1, curr_10ma=-1, steprot=-1;
 
-    if(!sendAndReceive(":FM#", resp))
+    if(!sendAndReceive(":FM#", resp, TEENASTRO_FOCUSER_BUFSIZE))
         return false;
 
     if(sscanf(resp, "M%d %d %d %d %d#", &invert, &log2_micro, &resolution, &curr_10ma, &steprot)<=0)
@@ -715,6 +702,12 @@ bool TeenAstroFocuser::setMotorStepsPerRevolution(uint32_t value)
     return setConfigItem('r', value);
 }
 
+bool TeenAstroFocuser::SyncFocuser(uint32_t value)
+{
+    char cmd[64];
+    snprintf(cmd, 64, ":FS,%d#", value);
+    return send(cmd); // no confirmation via "0" or "1"
+}
 
 
 bool TeenAstroFocuser::goTo(uint32_t position)
@@ -733,10 +726,3 @@ bool TeenAstroFocuser::stop()
 {
     return send(":FQ#");
 }
-
-bool TeenAstroFocuser::syncZero()
-{
-    return sendAndReceiveBool(":FS#");  
-}
-
-
