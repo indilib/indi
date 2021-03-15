@@ -191,7 +191,7 @@ public:
     INDI::PropertyNumber StreamFrameNP {4};
 
     /* BLOBs */
-    IBLOBVectorProperty *imageBP = nullptr;
+    INDI::PropertyView<IBLOB> *imageBP {nullptr};
 
     // Encoder Selector. It's static now but should this implemented as plugin interface?
     INDI::PropertySwitch EncoderSP {2};
