@@ -89,85 +89,85 @@ const char * StreamManager::getDeviceName() const
 bool StreamManagerPrivate::initProperties()
 {
     /* Video Stream */
-    IUFillSwitch(&StreamS[0], "STREAM_ON", "Stream On", ISS_OFF);
-    IUFillSwitch(&StreamS[1], "STREAM_OFF", "Stream Off", ISS_ON);
+    StreamSP[0].fill("STREAM_ON", "Stream On", ISS_OFF);
+    StreamSP[1].fill("STREAM_OFF", "Stream Off", ISS_ON);
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
-        IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "SENSOR_DATA_STREAM", "Video Stream",
+        StreamSP.fill(getDeviceName(), "SENSOR_DATA_STREAM", "Video Stream",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
-        IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
+        StreamSP.fill(getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.6f", 0.000001, 60, 0.1, 0.1);
-    IUFillNumber(&StreamExposureN[STREAM_DIVISOR], "STREAMING_DIVISOR_VALUE", "Divisor", "%.f", 1, 15, 1, 1);
-    IUFillNumberVector(&StreamExposureNP, StreamExposureN, NARRAY(StreamExposureN), getDeviceName(), "STREAMING_EXPOSURE",
+    StreamExposureNP[STREAM_EXPOSURE].fill("STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.6f", 0.000001, 60, 0.1, 0.1);
+    StreamExposureNP[STREAM_DIVISOR].fill("STREAMING_DIVISOR_VALUE", "Divisor", "%.f", 1, 15, 1, 1);
+    StreamExposureNP.fill(getDeviceName(), "STREAMING_EXPOSURE",
                        "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
-    IUFillNumber(&FpsN[FPS_INSTANT], "EST_FPS", "Instant.", "%.2f", 0.0, 999.0, 0.0, 30);
-    IUFillNumber(&FpsN[FPS_AVERAGE], "AVG_FPS", "Average (1 sec.)", "%.2f", 0.0, 999.0, 0.0, 30);
-    IUFillNumberVector(&FpsNP, FpsN, NARRAY(FpsN), getDeviceName(), "FPS", "FPS", STREAM_TAB, IP_RO, 60, IPS_IDLE);
+    FpsNP[FPS_INSTANT].fill("EST_FPS", "Instant.", "%.2f", 0.0, 999.0, 0.0, 30);
+    FpsNP[FPS_AVERAGE].fill("AVG_FPS", "Average (1 sec.)", "%.2f", 0.0, 999.0, 0.0, 30);
+    FpsNP.fill(getDeviceName(), "FPS", "FPS", STREAM_TAB, IP_RO, 60, IPS_IDLE);
 
     /* Record Frames */
     /* File */
     std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/indi__D_");
-    IUFillText(&RecordFileT[0], "RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
-    IUFillText(&RecordFileT[1], "RECORD_FILE_NAME", "Name", "indi_record__T_");
-    IUFillTextVector(&RecordFileTP, RecordFileT, NARRAY(RecordFileT), getDeviceName(), "RECORD_FILE", "Record File",
+    RecordFileTP[0].fill("RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
+    RecordFileTP[1].fill("RECORD_FILE_NAME", "Name", "indi_record__T_");
+    RecordFileTP.fill(getDeviceName(), "RECORD_FILE", "Record File",
                      STREAM_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Record Options */
-    IUFillNumber(&RecordOptionsN[0], "RECORD_DURATION", "Duration (sec)", "%.3f", 0.001, 999999.0, 0.0, 1);
-    IUFillNumber(&RecordOptionsN[1], "RECORD_FRAME_TOTAL", "Frames", "%.f", 1.0, 999999999.0, 1.0, 30.0);
-    IUFillNumberVector(&RecordOptionsNP, RecordOptionsN, NARRAY(RecordOptionsN), getDeviceName(), "RECORD_OPTIONS",
+    RecordOptionsNP[0].fill("RECORD_DURATION", "Duration (sec)", "%.3f", 0.001, 999999.0, 0.0, 1);
+    RecordOptionsNP[1].fill("RECORD_FRAME_TOTAL", "Frames", "%.f", 1.0, 999999999.0, 1.0, 30.0);
+    RecordOptionsNP.fill(getDeviceName(), "RECORD_OPTIONS",
                        "Record Options", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Record Switch */
-    IUFillSwitch(&RecordStreamS[RECORD_ON], "RECORD_ON", "Record On", ISS_OFF);
-    IUFillSwitch(&RecordStreamS[RECORD_TIME], "RECORD_DURATION_ON", "Record (Duration)", ISS_OFF);
-    IUFillSwitch(&RecordStreamS[RECORD_FRAME], "RECORD_FRAME_ON", "Record (Frames)", ISS_OFF);
-    IUFillSwitch(&RecordStreamS[RECORD_OFF], "RECORD_OFF", "Record Off", ISS_ON);
-    IUFillSwitchVector(&RecordStreamSP, RecordStreamS, NARRAY(RecordStreamS), getDeviceName(), "RECORD_STREAM",
+    RecordStreamSP[RECORD_ON].fill("RECORD_ON", "Record On", ISS_OFF);
+    RecordStreamSP[RECORD_TIME].fill("RECORD_DURATION_ON", "Record (Duration)", ISS_OFF);
+    RecordStreamSP[RECORD_FRAME].fill("RECORD_FRAME_ON", "Record (Frames)", ISS_OFF);
+    RecordStreamSP[RECORD_OFF].fill("RECORD_OFF", "Record Off", ISS_ON);
+    RecordStreamSP.fill(getDeviceName(), "RECORD_STREAM",
                        "Video Record", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
         // CCD Streaming Frame
-        IUFillNumber(&StreamFrameN[0], "X", "Left ", "%.f", 0, 0.0, 0, 0);
-        IUFillNumber(&StreamFrameN[1], "Y", "Top", "%.f", 0, 0, 0, 0);
-        IUFillNumber(&StreamFrameN[2], "WIDTH", "Width", "%.f", 0, 0.0, 0, 0.0);
-        IUFillNumber(&StreamFrameN[3], "HEIGHT", "Height", "%.f", 0, 0, 0, 0.0);
-        IUFillNumberVector(&StreamFrameNP, StreamFrameN, 4, getDeviceName(), "CCD_STREAM_FRAME", "Frame", STREAM_TAB, IP_RW,
+        StreamFrameNP[0].fill("X", "Left ", "%.f", 0, 0.0, 0, 0);
+        StreamFrameNP[1].fill("Y", "Top", "%.f", 0, 0, 0, 0);
+        StreamFrameNP[2].fill("WIDTH", "Width", "%.f", 0, 0.0, 0, 0.0);
+        StreamFrameNP[3].fill("HEIGHT", "Height", "%.f", 0, 0, 0, 0.0);
+        StreamFrameNP.fill(getDeviceName(), "CCD_STREAM_FRAME", "Frame", STREAM_TAB, IP_RW,
                            60, IPS_IDLE);
     }
 
     // Encoder Selection
-    IUFillSwitch(&EncoderS[ENCODER_RAW], "RAW", "RAW", ISS_ON);
-    IUFillSwitch(&EncoderS[ENCODER_MJPEG], "MJPEG", "MJPEG", ISS_OFF);
+    EncoderSP[ENCODER_RAW].fill("RAW", "RAW", ISS_ON);
+    EncoderSP[ENCODER_MJPEG].fill("MJPEG", "MJPEG", ISS_OFF);
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
-        IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "SENSOR_STREAM_ENCODER", "Encoder", STREAM_TAB,
+        EncoderSP.fill(getDeviceName(), "SENSOR_STREAM_ENCODER", "Encoder", STREAM_TAB,
                            IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
-        IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB,
+        EncoderSP.fill(getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB,
                            IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Recorder Selector
-    IUFillSwitch(&RecorderS[RECORDER_RAW], "SER", "SER", ISS_ON);
-    IUFillSwitch(&RecorderS[RECORDER_OGV], "OGV", "OGV", ISS_OFF);
+    RecorderSP[RECORDER_RAW].fill("SER", "SER", ISS_ON);
+    RecorderSP[RECORDER_OGV].fill("OGV", "OGV", ISS_OFF);
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
-        IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "SENSOR_STREAM_RECORDER", "Recorder",
+        RecorderSP.fill(getDeviceName(), "SENSOR_STREAM_RECORDER", "Recorder",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
-        IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder",
+        RecorderSP.fill(getDeviceName(), "CCD_STREAM_RECORDER", "Recorder",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     // If we do not have theora installed, let's just define SER default recorder
 #ifndef HAVE_THEORA
-    RecorderSP.nsp = 1;
+    RecorderSP.resize(1);
 #endif
 
     // Limits
-    IUFillNumber(&LimitsN[LIMITS_BUFFER_MAX], "LIMITS_BUFFER_MAX", "Maximum Buffer Size (MB)", "%.0f", 1, 1024*64, 1, 512);
-    IUFillNumber(&LimitsN[LIMITS_PREVIEW_FPS], "LIMITS_PREVIEW_FPS", "Maximum Preview FPS", "%.0f", 1, 120, 1, 10);
-    IUFillNumberVector(&LimitsNP, LimitsN, NARRAY(LimitsN), getDeviceName(), "LIMITS",
+    LimitsNP[LIMITS_BUFFER_MAX].fill("LIMITS_BUFFER_MAX", "Maximum Buffer Size (MB)", "%.0f", 1, 1024*64, 1, 512);
+    LimitsNP[LIMITS_PREVIEW_FPS].fill("LIMITS_PREVIEW_FPS", "Maximum Preview FPS", "%.0f", 1, 120, 1, 10);
+    LimitsNP.fill(getDeviceName(), "LIMITS",
                        "Limits", STREAM_TAB, IP_RW, 0, IPS_IDLE);
     return true;
 }
@@ -185,17 +185,17 @@ void StreamManagerPrivate::ISGetProperties(const char *dev)
 
     if (currentDevice->isConnected())
     {
-        currentDevice->defineProperty(&StreamSP);
+        currentDevice->defineProperty(StreamSP);
         if (hasStreamingExposure)
-            currentDevice->defineProperty(&StreamExposureNP);
-        currentDevice->defineProperty(&FpsNP);
-        currentDevice->defineProperty(&RecordStreamSP);
-        currentDevice->defineProperty(&RecordFileTP);
-        currentDevice->defineProperty(&RecordOptionsNP);
-        currentDevice->defineProperty(&StreamFrameNP);
-        currentDevice->defineProperty(&EncoderSP);
-        currentDevice->defineProperty(&RecorderSP);
-        currentDevice->defineProperty(&LimitsNP);
+            currentDevice->defineProperty(StreamExposureNP);
+        currentDevice->defineProperty(FpsNP);
+        currentDevice->defineProperty(RecordStreamSP);
+        currentDevice->defineProperty(RecordFileTP);
+        currentDevice->defineProperty(RecordOptionsNP);
+        currentDevice->defineProperty(StreamFrameNP);
+        currentDevice->defineProperty(EncoderSP);
+        currentDevice->defineProperty(RecorderSP);
+        currentDevice->defineProperty(LimitsNP);
     }
 }
 
@@ -219,31 +219,31 @@ bool StreamManagerPrivate::updateProperties()
         }
         imageB  = imageBP->bp;
 
-        currentDevice->defineProperty(&StreamSP);
+        currentDevice->defineProperty(StreamSP);
         if (hasStreamingExposure)
-            currentDevice->defineProperty(&StreamExposureNP);
-        currentDevice->defineProperty(&FpsNP);
-        currentDevice->defineProperty(&RecordStreamSP);
-        currentDevice->defineProperty(&RecordFileTP);
-        currentDevice->defineProperty(&RecordOptionsNP);
-        currentDevice->defineProperty(&StreamFrameNP);
-        currentDevice->defineProperty(&EncoderSP);
-        currentDevice->defineProperty(&RecorderSP);
-        currentDevice->defineProperty(&LimitsNP);
+            currentDevice->defineProperty(StreamExposureNP);
+        currentDevice->defineProperty(FpsNP);
+        currentDevice->defineProperty(RecordStreamSP);
+        currentDevice->defineProperty(RecordFileTP);
+        currentDevice->defineProperty(RecordOptionsNP);
+        currentDevice->defineProperty(StreamFrameNP);
+        currentDevice->defineProperty(EncoderSP);
+        currentDevice->defineProperty(RecorderSP);
+        currentDevice->defineProperty(LimitsNP);
     }
     else
     {
-        currentDevice->deleteProperty(StreamSP.name);
+        currentDevice->deleteProperty(StreamSP.getName());
         if (hasStreamingExposure)
-            currentDevice->deleteProperty(StreamExposureNP.name);
-        currentDevice->deleteProperty(FpsNP.name);
-        currentDevice->deleteProperty(RecordFileTP.name);
-        currentDevice->deleteProperty(RecordStreamSP.name);
-        currentDevice->deleteProperty(RecordOptionsNP.name);
-        currentDevice->deleteProperty(StreamFrameNP.name);
-        currentDevice->deleteProperty(EncoderSP.name);
-        currentDevice->deleteProperty(RecorderSP.name);
-        currentDevice->deleteProperty(LimitsNP.name);
+            currentDevice->deleteProperty(StreamExposureNP.getName());
+        currentDevice->deleteProperty(FpsNP.getName());
+        currentDevice->deleteProperty(RecordFileTP.getName());
+        currentDevice->deleteProperty(RecordStreamSP.getName());
+        currentDevice->deleteProperty(RecordOptionsNP.getName());
+        currentDevice->deleteProperty(StreamFrameNP.getName());
+        currentDevice->deleteProperty(EncoderSP.getName());
+        currentDevice->deleteProperty(RecorderSP.getName());
+        currentDevice->deleteProperty(LimitsNP.getName());
     }
 
     return true;
@@ -272,11 +272,11 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
     // Discard every N frame.
     // do not count it to fps statistics
-    // N is StreamExposureN[STREAM_DIVISOR].value
+    // N is StreamExposureNP[STREAM_DIVISOR].getValue()
     ++frameCountDivider;
     if (
-        (StreamExposureN[STREAM_DIVISOR].value > 1) &&
-        (frameCountDivider % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0
+        (StreamExposureNP[STREAM_DIVISOR].value > 1) &&
+        (frameCountDivider % static_cast<int>(StreamExposureNP[STREAM_DIVISOR].value)) == 0
     )
     {
         return;
@@ -284,20 +284,20 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
     if (FPSAverage.newFrame())
     {
-        FpsN[1].value = FPSAverage.framesPerSecond();
+        FpsNP[1].setValue(FPSAverage.framesPerSecond());
     }
 
     if (FPSFast.newFrame())
     {
-        FpsN[0].value = FPSFast.framesPerSecond();
+        FpsNP[0].setValue(FPSFast.framesPerSecond());
         if (fastFPSUpdate.try_lock()) // don't block stream thread / record thread
-            std::thread([&](){ IDSetNumber(&FpsNP, nullptr); fastFPSUpdate.unlock(); }).detach();
+            std::thread([&](){ FpsNP.apply(); fastFPSUpdate.unlock(); }).detach();
     }
 
     if (isStreaming || (isRecording && !isRecordingAboutToClose))
     {
         size_t allocatedSize = nbytes * framesIncoming.size() / 1024 / 1024; // allocated size in MB
-        if (allocatedSize > LimitsN[LIMITS_BUFFER_MAX].value)
+        if (allocatedSize > LimitsNP[LIMITS_BUFFER_MAX].getValue())
         {
             LOG_WARN("Frame buffer is full, skipping frame...");
             return;
@@ -314,8 +314,8 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
         // captured all frames, stream should be close
         if (
-            (RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON && FPSRecorder.totalFrames() >= (RecordOptionsNP.np[1].value)) ||
-            (RecordStreamSP.sp[RECORD_TIME].s  == ISS_ON && FPSRecorder.totalTime()   >= (RecordOptionsNP.np[0].value * 1000.0))
+            (RecordStreamSP[RECORD_FRAME].s == ISS_ON && FPSRecorder.totalFrames() >= (RecordOptionsNP[1].value)) ||
+            (RecordStreamSP[RECORD_TIME].s  == ISS_ON && FPSRecorder.totalTime()   >= (RecordOptionsNP[0].value * 1000.0))
         )
         {
             LOG_INFO("Waiting for all buffered frames to be recorded");
@@ -328,11 +328,11 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
                 FPSRecorder.totalFrames()
             );
 #endif
-            RecordStreamSP.sp[RECORD_TIME].s  = ISS_OFF;
-            RecordStreamSP.sp[RECORD_FRAME].s = ISS_OFF;
-            RecordStreamSP.sp[RECORD_OFF].s   = ISS_ON;
-            RecordStreamSP.s = IPS_IDLE;
-            IDSetSwitch(&RecordStreamSP, nullptr);
+            RecordStreamSP[RECORD_TIME].setState(ISS_OFF);
+            RecordStreamSP[RECORD_FRAME].setState(ISS_OFF);
+            RecordStreamSP[RECORD_OFF].setState(ISS_ON);
+            RecordStreamSP.setState(IPS_IDLE);
+            RecordStreamSP.apply();
 
             stopRecording();
         }
@@ -377,8 +377,8 @@ StreamManagerPrivate::FrameInfo StreamManagerPrivate::updateSourceFrameInfo()
         //    binFactor = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
         dstFrameInfo = srcFrameInfo;
         setStreamFrame(dstFrameInfo);
-        StreamFrameNP.s = IPS_IDLE;
-        IDSetNumber(&StreamFrameNP, nullptr);
+        StreamFrameNP.setState(IPS_IDLE);
+        StreamFrameNP.apply();
     }
 
     return srcFrameInfo;
@@ -484,30 +484,30 @@ void StreamManagerPrivate::asyncStreamThread()
 
 void StreamManagerPrivate::setSize(uint16_t width, uint16_t height)
 {
-    if (width != StreamFrameN[CCDChip::FRAME_W].value || height != StreamFrameN[CCDChip::FRAME_H].value)
+    if (width != StreamFrameNP[CCDChip::FRAME_W].value || height != StreamFrameNP[CCDChip::FRAME_H].getValue())
     {
         if (PixelFormat == INDI_JPG)
             LOG_WARN("Cannot subframe JPEG streams.");
 
-        StreamFrameN[CCDChip::FRAME_X].value = 0;
-        StreamFrameN[CCDChip::FRAME_X].max   = width - 1;
-        StreamFrameN[CCDChip::FRAME_Y].value = 0;
-        StreamFrameN[CCDChip::FRAME_Y].max   = height - 1;
-        StreamFrameN[CCDChip::FRAME_W].value = width;
-        StreamFrameN[CCDChip::FRAME_W].min   = 10;
-        StreamFrameN[CCDChip::FRAME_W].max   = width;
-        StreamFrameN[CCDChip::FRAME_H].value = height;
-        StreamFrameN[CCDChip::FRAME_H].min   = 10;
-        StreamFrameN[CCDChip::FRAME_H].max   = height;
+        StreamFrameNP[CCDChip::FRAME_X].setValue(0);
+        StreamFrameNP[CCDChip::FRAME_X].setMax(width - 1);
+        StreamFrameNP[CCDChip::FRAME_Y].setValue(0);
+        StreamFrameNP[CCDChip::FRAME_Y].setMax(height - 1);
+        StreamFrameNP[CCDChip::FRAME_W].setValue(width);
+        StreamFrameNP[CCDChip::FRAME_W].setMin(10);
+        StreamFrameNP[CCDChip::FRAME_W].setMax(width);
+        StreamFrameNP[CCDChip::FRAME_H].setValue(height);
+        StreamFrameNP[CCDChip::FRAME_H].setMin(10);
+        StreamFrameNP[CCDChip::FRAME_H].setMax(height);
 
-        StreamFrameNP.s = IPS_OK;
-        IUUpdateMinMax(&StreamFrameNP);
+        StreamFrameNP.setState(IPS_OK);
+        StreamFrameNP.updateMinMax();
     }
 
-    dstFrameInfo.x = StreamFrameN[CCDChip::FRAME_X].value;
-    dstFrameInfo.y = StreamFrameN[CCDChip::FRAME_Y].value;
-    dstFrameInfo.w = StreamFrameN[CCDChip::FRAME_W].value;
-    dstFrameInfo.h = StreamFrameN[CCDChip::FRAME_H].value;
+    dstFrameInfo.x = StreamFrameNP[CCDChip::FRAME_X].getValue();
+    dstFrameInfo.y = StreamFrameNP[CCDChip::FRAME_Y].getValue();
+    dstFrameInfo.w = StreamFrameNP[CCDChip::FRAME_W].getValue();
+    dstFrameInfo.h = StreamFrameNP[CCDChip::FRAME_H].getValue();
 
     // Width & Height are BINNED dimensions.
     // Since they're the final size to make it to encoders and recorders.
@@ -624,14 +624,14 @@ bool StreamManagerPrivate::startRecording()
         }
     }
 
-    recorder->setFPS(FpsN[FPS_AVERAGE].value);
+    recorder->setFPS(FpsNP[FPS_AVERAGE].value);
 
     /* pattern substitution */
-    recordfiledir.assign(RecordFileTP.tp[0].text);
+    recordfiledir.assign(RecordFileTP[0].text);
     expfiledir = expand(recordfiledir, patterns);
     if (expfiledir.at(expfiledir.size() - 1) != '/')
         expfiledir += '/';
-    recordfilename.assign(RecordFileTP.tp[1].text);
+    recordfilename.assign(RecordFileTP[1].text);
     expfilename = expand(recordfilename, patterns);
     if (expfilename.size() < 4 || expfilename.substr(expfilename.size() - 4, 4) != recorder->getExtension())
         expfilename += recorder->getExtension();
@@ -649,8 +649,8 @@ bool StreamManagerPrivate::startRecording()
     }
     if (!recorder->open(filename.c_str(), errmsg))
     {
-        RecordStreamSP.s = IPS_ALERT;
-        IDSetSwitch(&RecordStreamSP, nullptr);
+        RecordStreamSP.setState(IPS_ALERT);
+        RecordStreamSP.apply();
         LOGF_WARN("Can not open record file: %s", errmsg);
         return false;
     }
@@ -687,10 +687,10 @@ bool StreamManagerPrivate::startRecording()
         if (isStreaming == false && dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
         {
             LOG_ERROR("Failed to start recording.");
-            RecordStreamSP.s = IPS_ALERT;
-            IUResetSwitch(&RecordStreamSP);
-            RecordStreamS[RECORD_OFF].s = ISS_ON;
-            IDSetSwitch(&RecordStreamSP, nullptr);
+            RecordStreamSP.setState(IPS_ALERT);
+            RecordStreamSP.reset();
+            RecordStreamSP[RECORD_OFF].setState(ISS_ON);
+            RecordStreamSP.apply();
         }
     }
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
@@ -698,10 +698,10 @@ bool StreamManagerPrivate::startRecording()
         if (isStreaming == false && dynamic_cast<INDI::SensorInterface*>(currentDevice)->StartStreaming() == false)
         {
             LOG_ERROR("Failed to start recording.");
-            RecordStreamSP.s = IPS_ALERT;
-            IUResetSwitch(&RecordStreamSP);
-            RecordStreamS[RECORD_OFF].s = ISS_ON;
-            IDSetSwitch(&RecordStreamSP, nullptr);
+            RecordStreamSP.setState(IPS_ALERT);
+            RecordStreamSP.reset();
+            RecordStreamSP[RECORD_OFF].setState(ISS_ON);
+            RecordStreamSP.apply();
         }
     }
     isRecording = true;
@@ -752,7 +752,7 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
         return false;
 
     /* Video Stream */
-    if (!strcmp(name, StreamSP.name))
+    if (StreamSP.isNameMatch(name))
     {
         for (int i = 0; i < n; i++)
         {
@@ -771,48 +771,48 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
     }
 
     // Record Stream
-    if (!strcmp(name, RecordStreamSP.name))
+    if (RecordStreamSP.isNameMatch(name))
     {
-        int prevSwitch = IUFindOnSwitchIndex(&RecordStreamSP);
-        IUUpdateSwitch(&RecordStreamSP, states, names, n);
+        int prevSwitch = RecordStreamSP.findOnSwitchIndex();
+        RecordStreamSP.update(states, names, n);
 
-        if (isRecording && RecordStreamSP.sp[RECORD_OFF].s != ISS_ON)
+        if (isRecording && RecordStreamSP[RECORD_OFF].s != ISS_ON)
         {
-            IUResetSwitch(&RecordStreamSP);
-            RecordStreamS[prevSwitch].s = ISS_ON;
-            IDSetSwitch(&RecordStreamSP, nullptr);
+            RecordStreamSP.reset();
+            RecordStreamSP[prevSwitch].setState(ISS_ON);
+            RecordStreamSP.apply();
             LOG_WARN("Recording device is busy.");
             return true;
         }
 
-        if ((RecordStreamSP.sp[RECORD_ON].s == ISS_ON) ||
-                (RecordStreamSP.sp[RECORD_TIME].s == ISS_ON) ||
-                (RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON))
+        if ((RecordStreamSP[RECORD_ON].s == ISS_ON) ||
+                (RecordStreamSP[RECORD_TIME].s == ISS_ON) ||
+                (RecordStreamSP[RECORD_FRAME].s == ISS_ON))
         {
             if (!isRecording)
             {
-                RecordStreamSP.s = IPS_BUSY;
-                if (RecordStreamSP.sp[RECORD_TIME].s == ISS_ON)
-                    LOGF_INFO("Starting video record (Duration): %g secs.", RecordOptionsNP.np[0].value);
-                else if (RecordStreamSP.sp[RECORD_FRAME].s == ISS_ON)
-                    LOGF_INFO("Starting video record (Frame count): %d.", static_cast<int>(RecordOptionsNP.np[1].value));
+                RecordStreamSP.setState(IPS_BUSY);
+                if (RecordStreamSP[RECORD_TIME].s == ISS_ON)
+                    LOGF_INFO("Starting video record (Duration): %g secs.", RecordOptionsNP[0].getValue());
+                else if (RecordStreamSP[RECORD_FRAME].s == ISS_ON)
+                    LOGF_INFO("Starting video record (Frame count): %d.", static_cast<int>(RecordOptionsNP[1].value));
                 else
                     LOG_INFO("Starting video record.");
 
                 if (!startRecording())
                 {
-                    IUResetSwitch(&RecordStreamSP);
-                    RecordStreamSP.sp[RECORD_OFF].s = ISS_ON;
-                    RecordStreamSP.s = IPS_ALERT;
+                    RecordStreamSP.reset();
+                    RecordStreamSP[RECORD_OFF].setState(ISS_ON);
+                    RecordStreamSP.setState(IPS_ALERT);
                 }
             }
         }
         else
         {
-            RecordStreamSP.s = IPS_IDLE;
+            RecordStreamSP.setState(IPS_IDLE);
             Format.clear();
-            FpsN[FPS_INSTANT].value = 0;
-            FpsN[FPS_AVERAGE].value = 0;
+            FpsNP[FPS_INSTANT].setValue(0);
+            FpsNP[FPS_AVERAGE].setValue(0);
             if (isRecording)
             {
                 LOG_INFO("Recording stream has been disabled. Closing the stream...");
@@ -820,17 +820,17 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
             }
         }
 
-        IDSetSwitch(&RecordStreamSP, nullptr);
+        RecordStreamSP.apply();
         return true;
     }
 
     // Encoder Selection
-    if (!strcmp(name, EncoderSP.name))
+    if (EncoderSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&EncoderSP, states, names, n);
-        EncoderSP.s = IPS_ALERT;
+        EncoderSP.update(states, names, n);
+        EncoderSP.setState(IPS_ALERT);
 
-        const char * selectedEncoder = IUFindOnSwitch(&EncoderSP)->name;
+        const char * selectedEncoder = EncoderSP.findOnSwitch()->name;
 
         for (EncoderInterface * oneEncoder : encoderManager.getEncoderList())
         {
@@ -842,20 +842,20 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
 
                 encoder = oneEncoder;
 
-                EncoderSP.s = IPS_OK;
+                EncoderSP.setState(IPS_OK);
             }
         }
-        IDSetSwitch(&EncoderSP, nullptr);
+        EncoderSP.apply();
         return true;
     }
 
     // Recorder Selection
-    if (!strcmp(name, RecorderSP.name))
+    if (RecorderSP.isNameMatch(name))
     {
-        IUUpdateSwitch(&RecorderSP, states, names, n);
-        RecorderSP.s = IPS_ALERT;
+        RecorderSP.update(states, names, n);
+        RecorderSP.setState(IPS_ALERT);
 
-        const char * selectedRecorder = IUFindOnSwitch(&RecorderSP)->name;
+        const char * selectedRecorder = RecorderSP.findOnSwitch()->name;
 
         for (RecorderInterface * oneRecorder : recorderManager.getRecorderList())
         {
@@ -867,10 +867,10 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
 
                 recorder = oneRecorder;
 
-                RecorderSP.s = IPS_OK;
+                RecorderSP.setState(IPS_OK);
             }
         }
-        IDSetSwitch(&RecorderSP, nullptr);
+        RecorderSP.apply();
         return true;
     }
 
@@ -890,17 +890,17 @@ bool StreamManagerPrivate::ISNewText(const char * dev, const char * name, char *
     if (dev != nullptr && strcmp(getDeviceName(), dev))
         return false;
 
-    if (!strcmp(name, RecordFileTP.name))
+    if (RecordFileTP.isNameMatch(name))
     {
-        IText * tp = IUFindText(&RecordFileTP, "RECORD_FILE_NAME");
+        IText * tp = RecordFileTP.findWidgetByName("RECORD_FILE_NAME");
         if (strchr(tp->text, '/'))
         {
             LOG_WARN("Dir. separator (/) not allowed in filename.");
             return true;
         }
 
-        IUUpdateText(&RecordFileTP, texts, names, n);
-        IDSetText(&RecordFileTP, nullptr);
+        RecordFileTP.update(texts, names, n);
+        RecordFileTP.apply();
         return true;
     }
 
@@ -920,29 +920,29 @@ bool StreamManagerPrivate::ISNewNumber(const char * dev, const char * name, doub
     if (dev != nullptr && strcmp(getDeviceName(), dev))
         return false;
 
-    if (!strcmp(StreamExposureNP.name, name))
+    if (StreamExposureNP.isNameMatch(name))
     {
-        IUUpdateNumber(&StreamExposureNP, values, names, n);
-        StreamExposureNP.s = IPS_OK;
-        IDSetNumber(&StreamExposureNP, nullptr);
+        StreamExposureNP.update(values, names, n);
+        StreamExposureNP.setState(IPS_OK);
+        StreamExposureNP.apply();
         return true;
     }
 
     /* Limits */
-    if (!strcmp(LimitsNP.name, name))
+    if (LimitsNP.isNameMatch(name))
     {
-        IUUpdateNumber(&LimitsNP, values, names, n);
+        LimitsNP.update(values, names, n);
 
-        FPSPreview.setTimeWindow(1000.0 / LimitsN[LIMITS_PREVIEW_FPS].value);
+        FPSPreview.setTimeWindow(1000.0 / LimitsNP[LIMITS_PREVIEW_FPS].getValue());
         FPSPreview.reset();
 
-        LimitsNP.s = IPS_OK;
-        IDSetNumber(&LimitsNP, nullptr);
+        LimitsNP.setState(IPS_OK);
+        LimitsNP.apply();
         return true;
     }
 
     /* Record Options */
-    if (!strcmp(RecordOptionsNP.name, name))
+    if (RecordOptionsNP.isNameMatch(name))
     {
         if (isRecording)
         {
@@ -950,14 +950,14 @@ bool StreamManagerPrivate::ISNewNumber(const char * dev, const char * name, doub
             return true;
         }
 
-        IUUpdateNumber(&RecordOptionsNP, values, names, n);
-        RecordOptionsNP.s = IPS_OK;
-        IDSetNumber(&RecordOptionsNP, nullptr);
+        RecordOptionsNP.update(values, names, n);
+        RecordOptionsNP.setState(IPS_OK);
+        RecordOptionsNP.apply();
         return true;
     }
 
     /* Stream Frame */
-    if (!strcmp(StreamFrameNP.name, name))
+    if (StreamFrameNP.isNameMatch(name))
     {
         if (isRecording)
         {
@@ -976,18 +976,18 @@ bool StreamManagerPrivate::ISNewNumber(const char * dev, const char * name, doub
             srcFrameInfo = FrameInfo(*dynamic_cast<const INDI::SensorInterface*>(currentDevice));
         }
 
-        IUUpdateNumber(&StreamFrameNP, values, names, n);
-        StreamFrameNP.s = IPS_OK;
+        StreamFrameNP.update(values, names, n);
+        StreamFrameNP.setState(IPS_OK);
 
-        double subW = srcFrameInfo.w - StreamFrameN[CCDChip::FRAME_X].value;
-        double subH = srcFrameInfo.h - StreamFrameN[CCDChip::FRAME_Y].value;
+        double subW = srcFrameInfo.w - StreamFrameNP[CCDChip::FRAME_X].getValue();
+        double subH = srcFrameInfo.h - StreamFrameNP[CCDChip::FRAME_Y].getValue();
 
-        StreamFrameN[CCDChip::FRAME_W].value = std::min(StreamFrameN[CCDChip::FRAME_W].value, subW);
-        StreamFrameN[CCDChip::FRAME_H].value = std::min(StreamFrameN[CCDChip::FRAME_H].value, subH);
+        StreamFrameNP[CCDChip::FRAME_W].setValue(std::min(StreamFrameNP[CCDChip::FRAME_W].value, subW));
+        StreamFrameNP[CCDChip::FRAME_H].setValue(std::min(StreamFrameNP[CCDChip::FRAME_H].value, subH));
 
-        setSize(StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
+        setSize(StreamFrameNP[CCDChip::FRAME_W].value, StreamFrameNP[CCDChip::FRAME_H].getValue());
 
-        IDSetNumber(&StreamFrameNP, nullptr);
+        StreamFrameNP.apply();
         return true;
     }
 
@@ -1007,7 +1007,7 @@ bool StreamManagerPrivate::setStream(bool enable)
     {
         if (!isStreaming)
         {
-            StreamSP.s       = IPS_BUSY;
+            StreamSP.setState(IPS_BUSY);
 #if 0
             if (StreamOptionsN[OPTION_RATE_DIVISOR].value > 0)
                 DEBUGF(INDI::Logger::DBG_SESSION,
@@ -1017,23 +1017,23 @@ bool StreamManagerPrivate::setStream(bool enable)
                 LOGF_INFO("Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
 #endif
             LOGF_INFO("Starting the video stream with target exposure %.6f s (Max theoritical FPS %.f)",
-                      StreamExposureN[0].value, 1 / StreamExposureN[0].value);
+                      StreamExposureNP[0].getValue(), 1 / StreamExposureNP[0].getValue());
 
             FPSAverage.reset();
             FPSFast.reset();
             FPSPreview.reset();
-            FPSPreview.setTimeWindow(1000.0 / LimitsN[LIMITS_PREVIEW_FPS].value);
+            FPSPreview.setTimeWindow(1000.0 / LimitsNP[LIMITS_PREVIEW_FPS].getValue());
             frameCountDivider = 0;
             
             if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
             {
                 if (dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
                 {
-                    IUResetSwitch(&StreamSP);
-                    StreamS[1].s = ISS_ON;
-                    StreamSP.s   = IPS_ALERT;
+                    StreamSP.reset();
+                    StreamSP[1].setState(ISS_ON);
+                    StreamSP.setState(IPS_ALERT);
                     LOG_ERROR("Failed to start streaming.");
-                    IDSetSwitch(&StreamSP, nullptr);
+                    StreamSP.apply();
                     return false;
                 }
             }
@@ -1041,29 +1041,29 @@ bool StreamManagerPrivate::setStream(bool enable)
             {
                 if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->StartStreaming() == false)
                 {
-                    IUResetSwitch(&StreamSP);
-                    StreamS[1].s = ISS_ON;
-                    StreamSP.s   = IPS_ALERT;
+                    StreamSP.reset();
+                    StreamSP[1].setState(ISS_ON);
+                    StreamSP.setState(IPS_ALERT);
                     LOG_ERROR("Failed to start streaming.");
-                    IDSetSwitch(&StreamSP, nullptr);
+                    StreamSP.apply();
                     return false;
                 }
             }
             isStreaming = true;
             Format.clear();
-            FpsN[FPS_INSTANT].value = 0;
-            FpsN[FPS_AVERAGE].value = 0;
-            IUResetSwitch(&StreamSP);
-            StreamS[0].s = ISS_ON;
+            FpsNP[FPS_INSTANT].setValue(0);
+            FpsNP[FPS_AVERAGE].setValue(0);
+            StreamSP.reset();
+            StreamSP[0].setState(ISS_ON);
             recorder->setStreamEnabled(true);
         }
     }
     else
     {
-        StreamSP.s = IPS_IDLE;
+        StreamSP.setState(IPS_IDLE);
         Format.clear();
-        FpsN[FPS_INSTANT].value = 0;
-        FpsN[FPS_AVERAGE].value = 0;
+        FpsNP[FPS_INSTANT].setValue(0);
+        FpsNP[FPS_AVERAGE].setValue(0);
         if (isStreaming)
         {
             if (!isRecording)
@@ -1072,9 +1072,9 @@ bool StreamManagerPrivate::setStream(bool enable)
                 {
                     if (dynamic_cast<INDI::CCD*>(currentDevice)->StopStreaming() == false)
                     {
-                        StreamSP.s = IPS_ALERT;
+                        StreamSP.setState(IPS_ALERT);
                         LOG_ERROR("Failed to stop streaming.");
-                        IDSetSwitch(&StreamSP, nullptr);
+                        StreamSP.apply();
                         return false;
                     }
                 }
@@ -1082,26 +1082,26 @@ bool StreamManagerPrivate::setStream(bool enable)
                 {
                     if (dynamic_cast<INDI::SensorInterface*>(currentDevice)->StopStreaming() == false)
                     {
-                        StreamSP.s = IPS_ALERT;
+                        StreamSP.setState(IPS_ALERT);
                         LOG_ERROR("Failed to stop streaming.");
-                        IDSetSwitch(&StreamSP, nullptr);
+                        StreamSP.apply();
                         return false;
                     }
                 }
             }
 
-            IUResetSwitch(&StreamSP);
-            StreamS[1].s = ISS_ON;
+            StreamSP.reset();
+            StreamSP[1].setState(ISS_ON);
             isStreaming = false;
             Format.clear();
-            FpsN[FPS_INSTANT].value = 0;
-            FpsN[FPS_AVERAGE].value = 0;
+            FpsNP[FPS_INSTANT].setValue(0);
+            FpsNP[FPS_AVERAGE].setValue(0);
 
             recorder->setStreamEnabled(false);
         }
     }
 
-    IDSetSwitch(&StreamSP, nullptr);
+    StreamSP.apply();
     return true;
 }
 
@@ -1123,18 +1123,18 @@ bool StreamManager::saveConfigItems(FILE * fp)
 
 void StreamManagerPrivate::getStreamFrame(uint16_t * x, uint16_t * y, uint16_t * w, uint16_t * h) const
 {
-    *x = StreamFrameN[CCDChip::FRAME_X].value;
-    *y = StreamFrameN[CCDChip::FRAME_Y].value;
-    *w = StreamFrameN[CCDChip::FRAME_W].value;
-    *h = StreamFrameN[CCDChip::FRAME_H].value;
+    *x = StreamFrameNP[CCDChip::FRAME_X].getValue();
+    *y = StreamFrameNP[CCDChip::FRAME_Y].getValue();
+    *w = StreamFrameNP[CCDChip::FRAME_W].getValue();
+    *h = StreamFrameNP[CCDChip::FRAME_H].getValue();
 }
 
 void StreamManagerPrivate::setStreamFrame(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
-    StreamFrameN[CCDChip::FRAME_X].value = x;
-    StreamFrameN[CCDChip::FRAME_Y].value = y;
-    StreamFrameN[CCDChip::FRAME_W].value = w;
-    StreamFrameN[CCDChip::FRAME_H].value = h;
+    StreamFrameNP[CCDChip::FRAME_X].setValue(x);
+    StreamFrameNP[CCDChip::FRAME_Y].setValue(y);
+    StreamFrameNP[CCDChip::FRAME_W].setValue(w);
+    StreamFrameNP[CCDChip::FRAME_H].setValue(h);
 }
 
 void StreamManagerPrivate::setStreamFrame(const FrameInfo &frameInfo)
@@ -1258,12 +1258,12 @@ bool StreamManager::isBusy() const
 double StreamManager::getTargetFPS() const
 {
     D_PTR(const StreamManager);
-    return 1.0 / d->StreamExposureN[0].value;
+    return 1.0 / d->StreamExposureNP[0].getValue();
 }
 double StreamManager::getTargetExposure() const
 {
     D_PTR(const StreamManager);
-    return d->StreamExposureN[0].value;
+    return d->StreamExposureNP[0].getValue();
 }
 
 void StreamManager::setStreamingExposureEnabled(bool enable)

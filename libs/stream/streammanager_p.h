@@ -37,6 +37,11 @@
 
 #include "indiccdchip.h"
 #include "indisensorinterface.h"
+
+/* Smart Widget-Property */
+#include "indipropertytext.h"
+#include "indipropertynumber.h"
+#include "indipropertyswitch.h"
 namespace INDI
 {
 
@@ -153,12 +158,10 @@ public:
     FrameInfo dstFrameInfo;
 
     /* Stream switch */
-    ISwitch StreamS[2];
-    ISwitchVectorProperty StreamSP;
+    INDI::PropertySwitch StreamSP {2};
 
     /* Record switch */
-    ISwitch RecordStreamS[4];
-    ISwitchVectorProperty RecordStreamSP;
+    INDI::PropertySwitch RecordStreamSP {4};
     enum
     {
         RECORD_ON,
@@ -168,11 +171,9 @@ public:
     };
 
     /* Record File Info */
-    IText RecordFileT[2] {};
-    ITextVectorProperty RecordFileTP;
+    INDI::PropertyText RecordFileTP {2};
 
-    INumber StreamExposureN[2];
-    INumberVectorProperty StreamExposureNP;
+    INDI::PropertyNumber StreamExposureNP {2};
     enum
     {
         STREAM_EXPOSURE,
@@ -180,35 +181,29 @@ public:
     };
 
     /* Measured FPS */
-    INumber FpsN[2];
-    INumberVectorProperty FpsNP;
+    INDI::PropertyNumber FpsNP {2};
     enum { FPS_INSTANT, FPS_AVERAGE };
 
     /* Record Options */
-    INumber RecordOptionsN[2];
-    INumberVectorProperty RecordOptionsNP;
+    INDI::PropertyNumber RecordOptionsNP {2};
 
     // Stream Frame
-    INumberVectorProperty StreamFrameNP;
-    INumber StreamFrameN[4];
+    INDI::PropertyNumber StreamFrameNP {4};
 
     /* BLOBs */
     IBLOBVectorProperty *imageBP = nullptr;
     IBLOB *imageB = nullptr;
 
     // Encoder Selector. It's static now but should this implemented as plugin interface?
-    ISwitch EncoderS[2];
-    ISwitchVectorProperty EncoderSP;
+    INDI::PropertySwitch EncoderSP {2};
     enum { ENCODER_RAW, ENCODER_MJPEG };
 
     // Recorder Selector. Static but should be implmeneted as a dynamic plugin interface
-    ISwitch RecorderS[2];
-    ISwitchVectorProperty RecorderSP;
+    INDI::PropertySwitch RecorderSP {2};
     enum { RECORDER_RAW, RECORDER_OGV };
 
     // Limits. Maximum queue size for incoming frames. FPS Limit for preview
-    INumber LimitsN[2];
-    INumberVectorProperty LimitsNP;
+    INDI::PropertyNumber LimitsNP {2};
     enum { LIMITS_BUFFER_MAX, LIMITS_PREVIEW_FPS };
 
     std::atomic<bool> isStreaming { false };
