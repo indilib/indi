@@ -308,8 +308,8 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
         // captured all frames, stream should be close
         if (
-            (RecordStreamSP[RECORD_FRAME].s == ISS_ON && FPSRecorder.totalFrames() >= (RecordOptionsNP[1].value)) ||
-            (RecordStreamSP[RECORD_TIME].s  == ISS_ON && FPSRecorder.totalTime()   >= (RecordOptionsNP[0].value * 1000.0))
+            (RecordStreamSP[RECORD_FRAME].getState() == ISS_ON && FPSRecorder.totalFrames() >= (RecordOptionsNP[1].value)) ||
+            (RecordStreamSP[RECORD_TIME ].getState() == ISS_ON && FPSRecorder.totalTime()   >= (RecordOptionsNP[0].value * 1000.0))
         )
         {
             LOG_INFO("Waiting for all buffered frames to be recorded");
@@ -322,8 +322,7 @@ void StreamManagerPrivate::newFrame(const uint8_t * buffer, uint32_t nbytes)
                 FPSRecorder.totalFrames()
             );
 #endif
-            RecordStreamSP[RECORD_TIME].setState(ISS_OFF);
-            RecordStreamSP[RECORD_FRAME].setState(ISS_OFF);
+            RecordStreamSP.reset();
             RecordStreamSP[RECORD_OFF].setState(ISS_ON);
             RecordStreamSP.setState(IPS_IDLE);
             RecordStreamSP.apply();
@@ -770,7 +769,7 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
         int prevSwitch = RecordStreamSP.findOnSwitchIndex();
         RecordStreamSP.update(states, names, n);
 
-        if (isRecording && RecordStreamSP[RECORD_OFF].s != ISS_ON)
+        if (isRecording && RecordStreamSP[RECORD_OFF].getState() != ISS_ON)
         {
             RecordStreamSP.reset();
             RecordStreamSP[prevSwitch].setState(ISS_ON);
@@ -779,9 +778,11 @@ bool StreamManagerPrivate::ISNewSwitch(const char * dev, const char * name, ISSt
             return true;
         }
 
-        if ((RecordStreamSP[RECORD_ON].s == ISS_ON) ||
-                (RecordStreamSP[RECORD_TIME].s == ISS_ON) ||
-                (RecordStreamSP[RECORD_FRAME].s == ISS_ON))
+        if (
+            RecordStreamSP[RECORD_ON   ].getState() == ISS_ON ||
+            RecordStreamSP[RECORD_TIME ].getState() == ISS_ON ||
+            RecordStreamSP[RECORD_FRAME].getState() == ISS_ON
+        )
         {
             if (!isRecording)
             {
@@ -1108,10 +1109,10 @@ bool StreamManager::setStream(bool enable)
 bool StreamManager::saveConfigItems(FILE * fp)
 {
     D_PTR(StreamManager);
-    IUSaveConfigSwitch(fp, &d->EncoderSP);
-    IUSaveConfigText(fp, &d->RecordFileTP);
-    IUSaveConfigNumber(fp, &d->RecordOptionsNP);
-    IUSaveConfigSwitch(fp, &d->RecorderSP);
+    d->EncoderSP.save(fp);
+    d->RecordFileTP.save(fp);
+    d->RecordOptionsNP.save(fp);
+    d->RecorderSP.save(fp);
     return true;
 }
 
@@ -1162,12 +1163,12 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
             return true;
         }
 #endif
-        imageBP->bp->blob    = (const_cast<uint8_t *>(buffer));
-        imageBP->bp->bloblen = nbytes;
-        imageBP->bp->size    = nbytes;
-        strcpy(imageBP->bp->format, ".streajpg");
-        imageBP->s = IPS_OK;
-        IDSetBLOB(imageBP, nullptr);
+        imageBP->at(0)->setBlob(const_cast<uint8_t *>(buffer));
+        imageBP->at(0)->setBlobLen(nbytes);
+        imageBP->at(0)->setSize(nbytes);
+        imageBP->at(0)->setFormat(".streajpg");
+        imageBP->setState(IPS_OK);
+        imageBP->apply();
         return true;
     }
 
@@ -1183,7 +1184,7 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
     {
-        if (encoder->upload(imageBP->bp, buffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
+        if (encoder->upload(imageBP->at(0), buffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
         {
 #ifdef HAVE_WEBSOCKET
             if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket()
@@ -1200,18 +1201,18 @@ bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
             }
 #endif
             // Upload to client now
-            imageBP->s = IPS_OK;
-            IDSetBLOB(imageBP, nullptr);
+            imageBP->setState(IPS_OK);
+            imageBP->apply();
             return true;
         }
     }
     else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
     {
-        if (encoder->upload(imageBP->bp, buffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed()))
+        if (encoder->upload(imageBP->at(0), buffer, nbytes, false))//dynamic_cast<INDI::SensorInterface*>(currentDevice)->isCompressed()))
         {
             // Upload to client now
-            imageBP->s = IPS_OK;
-            IDSetBLOB(imageBP, nullptr);
+            imageBP->setState(IPS_OK);
+            imageBP->apply();
             return true;
         }
     }
