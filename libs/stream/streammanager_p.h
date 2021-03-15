@@ -35,11 +35,55 @@
 #include <map>
 #include <thread>
 
+#include "indiccdchip.h"
+#include "indisensorinterface.h"
 namespace INDI
 {
 
 class StreamManagerPrivate
 {
+public:
+    struct FrameInfo
+    {
+        size_t x, y, w, h;
+        size_t bytesPerColor;
+
+        FrameInfo()
+            : x(0)
+            , y(0)
+            , w(0)
+            , h(0)
+            , bytesPerColor(0)
+        { }
+
+        explicit FrameInfo(const CCDChip &ccdChip, size_t bytesPerColor = 1)
+            : x(ccdChip.getSubX() / ccdChip.getBinX())
+            , y(ccdChip.getSubY() / ccdChip.getBinY())
+            , w(ccdChip.getSubW() / ccdChip.getBinX())
+            , h(ccdChip.getSubH() / ccdChip.getBinY())
+            , bytesPerColor(bytesPerColor)
+        { }
+
+        explicit FrameInfo(const SensorInterface &sensorInterface, size_t bytesPerColor = 1)
+            : x(0)
+            , y(0)
+            , w(sensorInterface.getBufferSize() * 8 / sensorInterface.getBPS())
+            , h(1)
+            , bytesPerColor(bytesPerColor)
+        { }
+
+        size_t pixels() const
+        { return w * h; }
+
+        size_t totalSize() const
+        { return w * h * bytesPerColor; }
+
+        size_t lineSize() const
+        { return w * bytesPerColor; }
+
+        bool operator!=(const FrameInfo &other) const
+        { return other.x != x || other.y != y || other.w != w || other.h != h; }
+    };
 public:
     StreamManagerPrivate(DefaultDevice *defaultDevice);
     virtual ~StreamManagerPrivate();
@@ -90,9 +134,23 @@ public:
      */
     bool recordStream(const uint8_t *buffer, uint32_t nbytes, double deltams);
 
+    void getStreamFrame(uint16_t * x, uint16_t * y, uint16_t * w, uint16_t * h) const;
+    void setStreamFrame(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+    void setStreamFrame(const FrameInfo &frameInfo);
+
+    FrameInfo updateSourceFrameInfo();
+
+    static void subframe(
+            const uint8_t *srcBuffer,
+            const FrameInfo &srcFrameInfo,
+            uint8_t *dstBuffer,
+            const FrameInfo &dstFrameInfo
+    );
 
 public:
     DefaultDevice *currentDevice = nullptr;
+
+    FrameInfo dstFrameInfo;
 
     /* Stream switch */
     ISwitch StreamS[2];

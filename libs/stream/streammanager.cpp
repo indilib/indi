@@ -345,6 +345,67 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
     d->newFrame(buffer, nbytes);
 }
 
+
+StreamManagerPrivate::FrameInfo StreamManagerPrivate::updateSourceFrameInfo()
+{
+    FrameInfo srcFrameInfo;
+
+    uint8_t components = (PixelFormat == INDI_RGB) ? 3 : 1;
+    uint8_t bytesPerComponent = (PixelDepth + 7) / 8;
+
+    dstFrameInfo.bytesPerColor = components * bytesPerComponent;
+
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
+    {
+        srcFrameInfo = FrameInfo(
+            dynamic_cast<const INDI::CCD*>(currentDevice)->PrimaryCCD,
+            components * bytesPerComponent
+        );
+    }
+    else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
+    {
+        srcFrameInfo = FrameInfo(
+            *dynamic_cast<const INDI::SensorInterface*>(currentDevice),
+            components * bytesPerComponent
+        );
+    }
+
+    // If stream frame was not yet initilized, let's do that now
+    if (dstFrameInfo.pixels() == 0)
+    {
+        //if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
+        //    binFactor = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
+        dstFrameInfo = srcFrameInfo;
+        setStreamFrame(dstFrameInfo);
+        StreamFrameNP.s = IPS_IDLE;
+        IDSetNumber(&StreamFrameNP, nullptr);
+    }
+
+    return srcFrameInfo;
+}
+
+void StreamManagerPrivate::subframe(
+    const uint8_t *srcBuffer,
+    const FrameInfo &srcFrameInfo,
+    uint8_t *dstBuffer,
+    const FrameInfo &dstFrameInfo
+)
+{
+    size_t   srcOffset = srcFrameInfo.bytesPerColor * (dstFrameInfo.y * srcFrameInfo.w + dstFrameInfo.x);
+    uint32_t srcStride = srcFrameInfo.lineSize();
+    uint32_t dstStride = dstFrameInfo.lineSize();
+
+    srcBuffer += srcOffset;
+
+    // Copy line-by-line
+    for (size_t i = 0; i < dstFrameInfo.h; ++i)
+    {
+        memcpy(dstBuffer, srcBuffer, dstStride);
+        dstBuffer += dstStride;
+        srcBuffer += srcStride;
+    }
+}
+
 void StreamManagerPrivate::asyncStreamThread()
 {
     TimeFrame sourceTimeFrame;
@@ -353,92 +414,39 @@ void StreamManagerPrivate::asyncStreamThread()
     std::vector<uint8_t> subframeBuffer;  // Subframe buffer for recording/streaming
     std::vector<uint8_t> downscaleBuffer; // Downscale buffer for streaming
 
-    double frameW = StreamFrameN[CCDChip::FRAME_W].value;
-    double frameH = StreamFrameN[CCDChip::FRAME_H].value;
-    double frameX = StreamFrameN[CCDChip::FRAME_X].value;
-    double frameY = StreamFrameN[CCDChip::FRAME_Y].value;
-
     while(!framesThreadTerminate)
     {
         if (framesIncoming.pop(sourceTimeFrame) == false)
             continue;
 
+        FrameInfo srcFrameInfo = updateSourceFrameInfo();
 
         const uint8_t *sourceBufferData = sourceTimeFrame.frame.data();
         uint32_t nbytes                 = sourceTimeFrame.frame.size();
 
-#if 1 // TODO move above the loop
-        int subX = 0, subY = 0, subW = 0, subH = 0;
-        uint32_t npixels = 0;
-        uint8_t components = (PixelFormat == INDI_RGB) ? 3 : 1;
-        uint8_t bytesPerPixel = (PixelDepth + 7) / 8;
-
-        if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
+        if (nbytes != srcFrameInfo.totalSize())
         {
-            INDI::CCD * ccd = dynamic_cast<INDI::CCD*>(currentDevice);
-            subX = ccd->PrimaryCCD.getSubX() / ccd->PrimaryCCD.getBinX();
-            subY = ccd->PrimaryCCD.getSubY() / ccd->PrimaryCCD.getBinY();
-            subW = ccd->PrimaryCCD.getSubW() / ccd->PrimaryCCD.getBinX();
-            subH = ccd->PrimaryCCD.getSubH() / ccd->PrimaryCCD.getBinY();
-            npixels = subW * subH * components;
+            LOG_ERROR("Invalid source buffer size, skipping frame...");
+            continue;
         }
-        else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
-        {
-            INDI::SensorInterface* si = dynamic_cast<INDI::SensorInterface*>(currentDevice);
-            subX = 0;
-            subY = 0;
-            subW = si->getBufferSize() * 8 / si->getBPS();
-            subH = 1;
-            npixels = nbytes * 8 / si->getBPS();
-        }
-
-        // If stream frame was not yet initilized, let's do that now
-        if (frameW == 0 || frameH == 0)
-        {
-            //if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
-            //    binFactor = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
-            frameX = subX;
-            frameY = subY;
-            frameW = subW;
-            frameH = subH;
-            StreamFrameN[CCDChip::FRAME_W].value = frameW;
-            StreamFrameN[CCDChip::FRAME_H].value = frameH;
-            StreamFrameN[CCDChip::FRAME_X].value = frameX;
-            StreamFrameN[CCDChip::FRAME_Y].value = frameY;
-            StreamFrameNP.s = IPS_IDLE;
-            IDSetNumber(&StreamFrameNP, nullptr);
-        }
-#endif
 
         // Check if we need to subframe
         if (
-            (PixelFormat != INDI_JPG) &&
-            (frameW > 0 && frameH > 0) &&
-            (frameX != subX || frameY != subY || frameW != subW || frameH != subH))
+            PixelFormat != INDI_JPG &&
+            dstFrameInfo.pixels() != 0 &&
+            dstFrameInfo != srcFrameInfo
+        )
         {
-            npixels = frameW * frameH * components;
+            subframeBuffer.resize(dstFrameInfo.totalSize());
+            subframe(sourceBufferData, srcFrameInfo, subframeBuffer.data(), dstFrameInfo);
 
-            subframeBuffer.resize(npixels * bytesPerPixel);
-
-            uint32_t srcOffset = components * bytesPerPixel * (frameY * subW + frameX);
-
-            const uint8_t * srcBuffer = sourceBufferData + srcOffset;
-            uint32_t        srcStride = components * bytesPerPixel * subW;
-
-            uint8_t *       dstBuffer = subframeBuffer.data();
-            uint32_t        dstStride = components * bytesPerPixel * frameW;
-
-            // Copy line-by-line
-            for (int i = 0; i < frameH; ++i)
-                memcpy(dstBuffer + i * dstStride, srcBuffer + srcStride * i, dstStride);
-
-            sourceBufferData = dstBuffer;
-            nbytes = frameW * frameH * components * bytesPerPixel;
+            sourceBufferData = subframeBuffer.data();
+            nbytes = dstFrameInfo.totalSize();
         }
 
+        // For recording, save immediately.
         {
             std::lock_guard<std::mutex> lock(recordMutex);
-            // For recording, save immediately.
             if (
                 isRecording && !isRecordingAboutToClose &&
                 recordStream(sourceBufferData, nbytes, sourceTimeFrame.time) == false
@@ -456,14 +464,15 @@ void StreamManagerPrivate::asyncStreamThread()
             // Downscale to 8bit always for streaming to reduce bandwidth
             if (PixelFormat != INDI_JPG && PixelDepth > 8)
             {
+                size_t downScaleBufferSize = dstFrameInfo.pixels();
                 // Allocale new buffer if size changes
-                downscaleBuffer.resize(npixels);
+                downscaleBuffer.resize(downScaleBufferSize);
 
                 const uint16_t * srcBuffer = reinterpret_cast<const uint16_t *>(sourceBufferData);
                 uint8_t *        dstBuffer = downscaleBuffer.data();
 
                 // Apply gamma
-                gammaLut16.apply(srcBuffer, npixels, dstBuffer);
+                gammaLut16.apply(srcBuffer, downScaleBufferSize, dstBuffer);
 
                 sourceBufferData = dstBuffer;
                 nbytes /= 2;
@@ -494,6 +503,11 @@ void StreamManagerPrivate::setSize(uint16_t width, uint16_t height)
         StreamFrameNP.s = IPS_OK;
         IUUpdateMinMax(&StreamFrameNP);
     }
+
+    dstFrameInfo.x = StreamFrameN[CCDChip::FRAME_X].value;
+    dstFrameInfo.y = StreamFrameN[CCDChip::FRAME_Y].value;
+    dstFrameInfo.w = StreamFrameN[CCDChip::FRAME_W].value;
+    dstFrameInfo.h = StreamFrameN[CCDChip::FRAME_H].value;
 
     // Width & Height are BINNED dimensions.
     // Since they're the final size to make it to encoders and recorders.
@@ -951,30 +965,25 @@ bool StreamManagerPrivate::ISNewNumber(const char * dev, const char * name, doub
             return true;
         }
 
-        int subW = 0;
-        int subH = 0;
+        FrameInfo srcFrameInfo;
 
         if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE)
         {
-            subW = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>
-                   (currentDevice)->PrimaryCCD.getBinX();
-            subH = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>
-                   (currentDevice)->PrimaryCCD.getBinY();
+            srcFrameInfo = FrameInfo(dynamic_cast<const INDI::CCD*>(currentDevice)->PrimaryCCD);
         }
         else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::SENSOR_INTERFACE)
         {
-            subW = dynamic_cast<INDI::SensorInterface*>(currentDevice)->getBufferSize() * 8 / dynamic_cast<INDI::SensorInterface*>
-                   (currentDevice)->getBPS();
-            subH = 1;
+            srcFrameInfo = FrameInfo(*dynamic_cast<const INDI::SensorInterface*>(currentDevice));
         }
 
         IUUpdateNumber(&StreamFrameNP, values, names, n);
         StreamFrameNP.s = IPS_OK;
-        if (StreamFrameN[CCDChip::FRAME_X].value + StreamFrameN[CCDChip::FRAME_W].value > subW)
-            StreamFrameN[CCDChip::FRAME_W].value = subW - StreamFrameN[CCDChip::FRAME_X].value;
 
-        if (StreamFrameN[CCDChip::FRAME_Y].value + StreamFrameN[CCDChip::FRAME_H].value > subH)
-            StreamFrameN[CCDChip::FRAME_H].value = subH - StreamFrameN[CCDChip::FRAME_Y].value;
+        double subW = srcFrameInfo.w - StreamFrameN[CCDChip::FRAME_X].value;
+        double subH = srcFrameInfo.h - StreamFrameN[CCDChip::FRAME_Y].value;
+
+        StreamFrameN[CCDChip::FRAME_W].value = std::min(StreamFrameN[CCDChip::FRAME_W].value, subW);
+        StreamFrameN[CCDChip::FRAME_H].value = std::min(StreamFrameN[CCDChip::FRAME_H].value, subH);
 
         setSize(StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
 
@@ -1112,13 +1121,31 @@ bool StreamManager::saveConfigItems(FILE * fp)
     return true;
 }
 
+void StreamManagerPrivate::getStreamFrame(uint16_t * x, uint16_t * y, uint16_t * w, uint16_t * h) const
+{
+    *x = StreamFrameN[CCDChip::FRAME_X].value;
+    *y = StreamFrameN[CCDChip::FRAME_Y].value;
+    *w = StreamFrameN[CCDChip::FRAME_W].value;
+    *h = StreamFrameN[CCDChip::FRAME_H].value;
+}
+
+void StreamManagerPrivate::setStreamFrame(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
+{
+    StreamFrameN[CCDChip::FRAME_X].value = x;
+    StreamFrameN[CCDChip::FRAME_Y].value = y;
+    StreamFrameN[CCDChip::FRAME_W].value = w;
+    StreamFrameN[CCDChip::FRAME_H].value = h;
+}
+
+void StreamManagerPrivate::setStreamFrame(const FrameInfo &frameInfo)
+{
+    setStreamFrame(frameInfo.x, frameInfo.y, frameInfo.w, frameInfo.h);
+}
+
 void StreamManager::getStreamFrame(uint16_t * x, uint16_t * y, uint16_t * w, uint16_t * h) const
 {
     D_PTR(const StreamManager);
-    *x = d->StreamFrameN[CCDChip::FRAME_X].value;
-    *y = d->StreamFrameN[CCDChip::FRAME_Y].value;
-    *w = d->StreamFrameN[CCDChip::FRAME_W].value;
-    *h = d->StreamFrameN[CCDChip::FRAME_H].value;
+    d->getStreamFrame(x, y, w, h);
 }
 
 bool StreamManagerPrivate::uploadStream(const uint8_t * buffer, uint32_t nbytes)
