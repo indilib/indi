@@ -164,6 +164,7 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property)
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer)
 include_directories( ${ZLIB_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 # 3. Build
@@ -424,6 +425,8 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertylight.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyblob.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/inditimer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/indielapsedtimer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
@@ -1959,6 +1962,8 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgetview.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgettraits.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/inditimer.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/indielapsedtimer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indimacros.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h

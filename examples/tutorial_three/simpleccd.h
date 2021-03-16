@@ -23,6 +23,7 @@
 #pragma once
 
 #include "indiccd.h"
+#include "indielapsedtimer.h"
 
 class SimpleCCD : public INDI::CCD
 {
@@ -51,8 +52,8 @@ private:
 
     // Are we exposing?
     bool InExposure { false };
-    // Struct to keep timing
-    struct timeval ExpStart { 0, 0 };
+
+    INDI::ElapsedTimer ExposureTimer;
 
     float ExposureRequest { 0 };
     float TemperatureRequest { 0 };
