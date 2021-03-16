@@ -40,7 +40,17 @@ protected:
     bool ISNewNumberHelper(INumberVectorProperty *NP, double values[], char *names[], int n, bool res);
 
     virtual bool initProperties();
+
+    // Initializes value ranges and steps for position UI controls based on maxPos. 
+    // Does not force redraw via deleteMainControlProperties() and defineMainControlProperties()
+    void initPositionPropertiesRanges(uint32_t maxPos);
+
     virtual bool updateProperties();
+    void defineMainControlProperties();
+    void defineOtherProperties();
+    void deleteMainControlProperties();
+    void deleteOtherProperties();
+
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual bool AbortFocuser();
@@ -51,6 +61,7 @@ protected:
 
     bool SetFocuserMaxPosition(uint32_t value);
 
+    bool ReverseFocuser(bool enable);
 
 
     // Sends a command to the focuser. Returns true on success and false on failure.
@@ -78,7 +89,7 @@ protected:
     // Sets given configuration item on to device to provided value in device native units. Returns true on success and false on failure. 
     bool setConfigItem(char item, uint32_t deviceValue);
     bool setParkPos(uint32_t value);
-    bool setGoToSpeed(uint32_t value);
+    bool SetFocuserSpeed(int value); // sets TeenAstro GoTo speed
     bool setManualSpeed(uint32_t value);
     bool setGoToAcc(uint32_t value);
     bool setManualAcc(uint32_t value);
@@ -87,8 +98,6 @@ protected:
     // Updates motor configuration from device. Returns true on success and false on failure.
     bool updateMotorConfig();
 
-    // Sends new motor inversion flag value to device. Returns true on success and false on failure. 
-    bool setMotorInvert(uint32_t value);
     bool setMotorMicrosteps(uint32_t value);
     bool setMotorResolution(uint32_t value);
     bool setMotorCurrent(uint32_t value);
@@ -103,32 +112,47 @@ protected:
     // Stop focuser movement. Returns immediately, true on success else false.
     bool stop();
 
+    // Reboots the device microcontroller
+    bool rebootDevice();
 
-    // UI Elements
-    //
+    // Clears the device EEPROM
+    bool eraseDeviceEEPROM();
 
-    IText DeviceVersionT[1];
-    ITextVectorProperty DeviceVersionTP;
-
-    // Configuration variables
+    // Main control tab
     //
 
     // Focuser park position 
     INumber CfgParkPosN[1];
     INumberVectorProperty CfgParkPosNP;
 
+    // Go to park button
     ISwitch GoToParkS[1];
     ISwitchVectorProperty GoToParkSP;
 
     // Focuser max position is inherited from superclass as FocusMaxPosN, FocusMaxPosNP
-
     // Sync current focuser position to given value inherited from superclass as FocusSyncN, FocusSyncNP
 
-    // Focuser goto speed
-    INumber CfgGoToSpeedN[1];
-    INumberVectorProperty CfgGoToSpeedNP;
+    // Current focuser speed
+    INumber CurSpeedN[1];
+    INumberVectorProperty CurSpeedNP;
 
-    // Focuser high speed
+    // Focuser temperature
+    INumber TempN[1];
+    INumberVectorProperty TempNP;
+
+    // Focuser current position is inherited from superclass as FocusAbsPosN, FocusAbsPosNP
+
+
+    // Focuser configuration tab: motion configuration
+    //
+
+    // Device version string
+    IText DeviceVersionT[1];
+    ITextVectorProperty DeviceVersionTP;
+
+    // Focuser goto speed: FocusSpeedNP and FocusSpeedN[1] from superclass
+
+    // Focuser manual speed
     INumber CfgManualSpeedN[1];
     INumberVectorProperty CfgManualSpeedNP;
 
@@ -145,16 +169,18 @@ protected:
     INumberVectorProperty CfgManualDecNP;
 
 
-    // Motor configuration variables
+    // Focuser configuration tab: motor configuration
     //
 
-    // Configuration element: Invert motor direction
-    INumber CfgMotorInvertN[1];
-    INumberVectorProperty CfgMotorInvertNP;
+    // Reverse motor direction: FocusReverseSP and FocusReverseS[2] from superclass. [0] is enable, [1] is disable (i.e. normal)
 
     // Configuration element: Motor microsteps
-    INumber CfgMotorMicrostepsN[1];
-    INumberVectorProperty CfgMotorMicrostepsNP;
+    enum
+    {
+        TAF_MICROS_4, TAF_MICROS_8, TAF_MICROS_16, TAF_MICROS_32, TAF_MICROS_64, TAF_MICROS_128, TAF_MICROS_N,
+    };
+    ISwitch CfgMotorMicrostepsS[TAF_MICROS_N] {};
+    ISwitchVectorProperty CfgMotorMicrostepsSP;
 
     // Configuration element: Impulse resolution (???)
     INumber CfgMotorResolutionN[1];
@@ -168,18 +194,13 @@ protected:
     INumber CfgMotorStepsPerRevolutionN[1];
     INumberVectorProperty CfgMotorStepsPerRevolutionNP;
 
-    // Status variables
-    //
-    
-    // Status variable: Focuser current position is inherited from superclass as FocusAbsPosN, FocusAbsPosNP
+    // Reboot device microcontroller button
+    ISwitch RebootDeviceS[1];
+    ISwitchVectorProperty RebootDeviceSP;
 
-    // Status variable: Current focuser speed
-    INumber CurSpeedN[1];
-    INumberVectorProperty CurSpeedNP;
-
-    // Status variable: Focuser temperature
-    INumber TempN[1];
-    INumberVectorProperty TempNP;
+    // Erase device EEPROM button
+    ISwitch EraseEEPROMS[1];
+    ISwitchVectorProperty EraseEEPROMSP;    
 };
 
 #endif // TEENASTRROFOCUSER_H
