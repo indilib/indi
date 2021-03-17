@@ -33,14 +33,19 @@ TimerPrivate::~TimerPrivate()
 
 void TimerPrivate::start()
 {
-    timerId = addTimer(interval, [](void *arg){
-        TimerPrivate *d = static_cast<TimerPrivate*>(arg);
-        d->p->timeout();
-        if (d->singleShot)
+    if (singleShot)
+    {
+        timerId = addTimer(interval, [](void *arg){
+            TimerPrivate *d = static_cast<TimerPrivate*>(arg);
+            d->p->timeout();
             d->timerId = -1;
-        else
-            d->start();
-    }, this);
+        }, this);
+    } else {
+        timerId = addPeriodicTimer(interval, [](void *arg){
+            TimerPrivate *d = static_cast<TimerPrivate*>(arg);
+            d->p->timeout();
+        }, this);
+    }
 }
 
 void TimerPrivate::stop()
