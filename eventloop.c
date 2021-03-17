@@ -523,6 +523,11 @@ int IEAddPeriodicTimer(int millisecs, IE_TCF *fp, void *p)
     return (addPeriodicTimer(millisecs, (TCF *)fp, p));
 }
 
+int IERemainingTimer(int timerid)
+{
+    return (remainingTimer(timerid));
+}
+
 void IERmTimer(int timerid)
 {
     rmTimer(timerid);
