@@ -1059,6 +1059,7 @@ bool Dome::saveConfigItems(FILE * fp)
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
     //IUSaveConfigSwitch(fp, &AutoParkSP);
     IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
+    IUSaveConfigSwitch(fp, &OTASideSP);
 
     if (HasBacklash())
     {
