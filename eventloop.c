@@ -270,6 +270,16 @@ static TF *dettachTimer(TF *node)
     return NULL;
 }
 
+/* find the timer by id */
+static TF *findTimer(int timer_id)
+{
+    TF *it = timefunc->next;
+    for(; it != NULL; it = it->next)
+        if (it->tid == timer_id)
+            return it;
+    return NULL;
+}
+
 /* remove the timer with the given id, as returned from addTimer().
  * silently ignore if id not found.
  */
@@ -285,6 +295,23 @@ void rmTimer(int timer_id)
             break;
         }
     }
+}
+
+/* Returns the timer's remaining value in milliseconds left until the timeout. */
+static double remainingTimerNode(TF *node)
+{
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    return (node->tgo - EPOCHDT(&now));
+}
+
+/* Returns the timer's remaining value in milliseconds left until the timeout.
+ * If the timer not exists, the returned value will be -1.
+ */
+int remainingTimer(int timer_id)
+{
+    TF *it = findTimer(timer_id);
+    return it == NULL ? -1 : remainingTimerNode(it);
 }
 
 /* add a new work procedure, fp, to be called with ud when nothing else to do.
@@ -379,33 +406,24 @@ static void callCallback(fd_set *rfdp)
  */
 static void checkTimer()
 {
-    struct timeval now;
-    double tgonow;
     TF *node = timefunc->next;
 
-    /* skip if list is empty */
+    if (node == NULL || remainingTimerNode(node) > 0)
+        return;
+
+    (*node->fp)(node->ud);
+
+    node = dettachTimer(node);
+
     if (node == NULL)
         return;
 
-    gettimeofday(&now, NULL);
-    tgonow = EPOCHDT(&now);
-
-    if (node->tgo <= tgonow)
+    if (node->interval > 0)
     {
-        (*node->fp)(node->ud);
-
-        node = dettachTimer(node);
-
-        if (node == NULL)
-            return;
-
-        if (node->interval > 0)
-        {
-            node->tgo += node->interval;
-            insertTimer(node);
-        } else {
-            free(node);
-        }
+        node->tgo += node->interval;
+        insertTimer(node);
+    } else {
+        free(node);
     }
 }
 
@@ -447,10 +465,7 @@ static void oneLoop()
     }
     else if (timefunc->next != NULL)
     {
-        struct timeval now;
-        double late;
-        gettimeofday(&now, NULL);
-        late = timefunc->next->tgo - EPOCHDT(&now); /* ms late */
+        double late = remainingTimerNode(timefunc->next); /* ms late */
         if (late < 0)
             late = 0;
         late /= 1000.0; /* secs late */

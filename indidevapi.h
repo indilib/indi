@@ -343,6 +343,13 @@ extern int IEAddTimer(int millisecs, IE_TCF *fp, void *userpointer);
 */
 extern int IEAddPeriodicTimer(int millisecs, IE_TCF *fp, void *userpointer);
 
+/** \brief Returns the timer's remaining value in milliseconds left until the timeout.
+ *
+ * \param timerid the timer callback ID returned from IEAddTimer() or IEAddPeriodicTimer()
+ * \return  If the timer not exists, the returned value will be -1.
+ */
+extern int IERemainingTimer(int timerid);
+
 /** \brief Remove the timer with the given \e timerid, as returned from IEAddTimer() or IEAddPeriodicTimer().
 *
 * \param timerid the timer callback ID returned from IEAddTimer() or IEAddPeriodicTimer().
