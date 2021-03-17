@@ -82,7 +82,7 @@ public:
     /** @brief This static function calls a the given function after a given time interval. */
     static void singleShot(int msec, const std::function<void()> &callback);
 
-protected:
+public:
     /** @brief This function is called when the timer times out. */
     virtual void timeout();
 
