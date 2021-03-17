@@ -67,4 +67,10 @@ bool ElapsedTimer::hasExpired(int64_t timeout) const
     return elapsed() > timeout;
 }
 
+void ElapsedTimer::nsecsRewind(int64_t nsecs)
+{
+    D_PTR(ElapsedTimer);
+    d->start += std::chrono::nanoseconds(nsecs);
+}
+
 }

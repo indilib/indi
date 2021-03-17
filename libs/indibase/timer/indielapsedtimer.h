@@ -56,6 +56,10 @@ public:
     /** @brief Returns true if this ElapsedTimer has already expired by timeout milliseconds. */
     bool hasExpired(int64_t timeout) const;
 
+public:
+    /** @brief Rewind elapsed time of nsec nanoseconds */
+    void nsecsRewind(int64_t nsecs);
+
 protected:
     std::unique_ptr<ElapsedTimerPrivate> d_ptr;
     ElapsedTimer(ElapsedTimerPrivate &dd);
