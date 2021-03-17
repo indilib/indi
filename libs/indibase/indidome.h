@@ -588,7 +588,7 @@ class Dome : public DefaultDevice
         INumberVectorProperty DomeMeasurementsNP;
         ISwitchVectorProperty OTASideSP;
         ISwitch OTASideS[5]; // 0 is East, 1 is West, 2 is as reported by mout, 3 as deducted by Hour Angle, 4 ignore pier side and perform as in a fork mount
-        int mountOTASide = 0; // Side of the telescope with respect of the mount, 1: east, -1: west, 0 not defined
+        int mountOTASide = 0; // Side of the telescope with respect of the mount, 1: west, -1: east, 0 not reported
         ISwitchVectorProperty DomeAutoSyncSP;
         ISwitch DomeAutoSyncS[2];
 

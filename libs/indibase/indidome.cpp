@@ -1019,9 +1019,9 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             const char * elemName = findXMLAttValu(ep, "name");
 
             if (!strcmp(elemName, "PIER_EAST") && !strcmp(pcdataXMLEle(ep), "On"))
-                mountOTASide = 1;
-            else if (!strcmp(elemName, "PIER_WEST") && !strcmp(pcdataXMLEle(ep), "On"))
                 mountOTASide = -1;
+            else if (!strcmp(elemName, "PIER_WEST") && !strcmp(pcdataXMLEle(ep), "On"))
+                mountOTASide = 1;
         }
         
         return true;
@@ -1307,20 +1307,20 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     LOGF_DEBUG("HA: %g  Lng: %g RA: %g", hourAngle, observer.lng, mountEquatorialCoords.ra);
 
-    int OTASide = 0; // Side of the telescope with respect of the mount, 1: east, -1: west, 0: use the mid point
+    int OTASide = 0; // Side of the telescope with respect of the mount, 1: west, -1: east, 0: use the mid point
     
     if (OTASideSP.s == IPS_OK)
     {
         int OTASideS_Idx = -1;
         
-        if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = 1;
-        else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = -1;
+        if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = -1;
+        else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = 1;
         else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = mountOTASide;
         else if(OTASideS[++OTASideS_Idx].s == ISS_ON)
         {
             // Note if the telescope points West, OTA is at east of the pier, and viceversa.
-            if(hourAngle > 0) OTASide = 1;
-            else OTASide = -1;
+            if(hourAngle > 0) OTASide = -1;
+            else OTASide = 1;
         }
         else
             ++OTASideS_Idx;
