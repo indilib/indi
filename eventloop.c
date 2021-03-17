@@ -67,12 +67,13 @@ static int lastcb;   /* cback index of last cb called */
 typedef struct TF
 {
     double tgo;       /* trigger time, ms from epoch */
+    int interval;     /* repeat timer if interval > 0, ms */
     void *ud;         /* user's data handle */
     TCF *fp;          /* timer function */
     int tid;          /* unique id for this timer */
     struct TF *next;  /* pointer to next item */
 } TF;
-static TF  timefunc_null = {0, NULL, NULL, 0, NULL};
+static TF  timefunc_null = {0, 0, NULL, NULL, 0, NULL};
 static TF *timefunc = &timefunc_null;  /* list of timer functions */
 static int tid = 0;    /* source of unique timer ids */
 #define EPOCHDT(tp) /* ms from epoch to timeval *tp */ (((tp)->tv_usec) / 1000.0 + ((tp)->tv_sec) * 1000.0)
@@ -201,14 +202,30 @@ void rmCallback(int cid)
     ncbinuse--;
 }
 
+/* insert maintaining sort */
+static void insertTimer(TF *node)
+{
+    TF *it = timefunc;
+
+    for(; ; it = it->next)
+    {
+        if (it->next == NULL || node->tgo < it->next->tgo)
+        {
+            node->next = it->next;
+            it->next = node;
+            break;
+        }
+    }
+}
+
 /* register a new timer function, fp, to be called with ud as arg after ms
  * milliseconds. add to list in order of increasing time from epoch, ie,
  * first entry runs soonest. return id for use with rmTimer().
  */
-int addTimer(int ms, TCF *fp, void *ud)
+static int addTimerImpl(int delay, int interval, TCF *fp, void *ud)
 {
     struct timeval t;
-    TF *node, *it = timefunc;
+    TF *node;
 
     /* get time now */
     gettimeofday(&t, NULL);
@@ -219,22 +236,38 @@ int addTimer(int ms, TCF *fp, void *ud)
     /* init new entry */
     node->ud  = ud;
     node->fp  = fp;
-    node->tgo = EPOCHDT(&t) + ms;
+    node->tid = ++tid; /* store new unique id */
+    node->tgo = EPOCHDT(&t) + delay;
+    node->interval = interval;
 
-    /* insert maintaining sort */
-    for(; ; it = it->next)
+    insertTimer(node);
+
+    return node->tid;
+}
+
+int addTimer(int ms, TCF *fp, void *ud)
+{
+    return addTimerImpl(ms, 0, fp, ud);
+}
+
+int addPeriodicTimer(int ms, TCF *fp, void *ud)
+{
+    return addTimerImpl(ms, ms, fp, ud);
+}
+
+/* find the timer and remove from list */
+static TF *dettachTimer(TF *node)
+{
+    TF *it = timefunc;
+    for(; it->next != NULL; it = it->next)
     {
-        if (it->next == NULL || node->tgo < it->next->tgo)
+        if (it->next == node)
         {
-            node->next = it->next;
-            it->next = node;
-            break;
+            it->next = node->next;
+            return node;
         }
     }
-
-
-    /* store and return new unique id */
-    return (node->tid = ++tid);
+    return NULL;
 }
 
 /* remove the timer with the given id, as returned from addTimer().
@@ -359,9 +392,20 @@ static void checkTimer()
 
     if (node->tgo <= tgonow)
     {
-        timefunc->next = node->next; // remove node from list
         (*node->fp)(node->ud);
-        free(node);
+
+        node = dettachTimer(node);
+
+        if (node == NULL)
+            return;
+
+        if (node->interval > 0)
+        {
+            node->tgo += node->interval;
+            insertTimer(node);
+        } else {
+            free(node);
+        }
     }
 }
 
@@ -457,6 +501,11 @@ void IERmCallback(int callbackid)
 int IEAddTimer(int millisecs, IE_TCF *fp, void *p)
 {
     return (addTimer(millisecs, (TCF *)fp, p));
+}
+
+int IEAddPeriodicTimer(int millisecs, IE_TCF *fp, void *p)
+{
+    return (addPeriodicTimer(millisecs, (TCF *)fp, p));
 }
 
 void IERmTimer(int timerid)
