@@ -35,13 +35,11 @@ class ElapsedTimerPrivate;
 class ElapsedTimer
 {
     DECLARE_PRIVATE(ElapsedTimer)
-
 public:
     ElapsedTimer();
     virtual ~ElapsedTimer();
 
 public:
-
     /** @brief Starts this timer. Once started, a timer value can be checked with elapsed(). */
     void start();
 
@@ -49,9 +47,11 @@ public:
     int64_t restart();
 
 public:
-
     /** @brief Returns the number of milliseconds since this ElapsedTimer was last started. */
     int64_t elapsed() const;
+
+    /** @brief Returns the number of nanoseconds since this ElapsedTimer was last started. */
+    int64_t nsecsElapsed() const;
 
     /** @brief Returns true if this ElapsedTimer has already expired by timeout milliseconds. */
     bool hasExpired(int64_t timeout) const;
