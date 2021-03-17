@@ -88,6 +88,7 @@ protected:
 
 protected:
     std::unique_ptr<TimerPrivate> d_ptr;
+    Timer(TimerPrivate &dd);
 };
 
 }

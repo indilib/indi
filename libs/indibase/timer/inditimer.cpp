@@ -54,6 +54,10 @@ Timer::Timer()
     : d_ptr(new TimerPrivate(this))
 { }
 
+Timer::Timer(TimerPrivate &dd)
+    : d_ptr(&dd)
+{ }
+
 Timer::~Timer()
 { }
 

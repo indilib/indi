@@ -26,6 +26,10 @@ ElapsedTimer::ElapsedTimer()
     : d_ptr(new ElapsedTimerPrivate)
 { start(); }
 
+ElapsedTimer::ElapsedTimer(ElapsedTimerPrivate &dd)
+    : d_ptr(&dd)
+{ start(); }
+
 ElapsedTimer::~ElapsedTimer()
 { }
 

@@ -58,6 +58,7 @@ public:
 
 protected:
     std::unique_ptr<ElapsedTimerPrivate> d_ptr;
+    ElapsedTimer(ElapsedTimerPrivate &dd);
 };
 
 }
