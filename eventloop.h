@@ -109,6 +109,13 @@ extern int addPeriodicTimer(int ms, TCF *fp, void *ud);
  */
 extern int remainingTimer(int tid);
 
+/** Returns the timer's remaining value in nanoseconds left until the timeout.
+ *
+ * \param tid the timer callback ID returned from addTimer() or addPeriodicTimer()
+ * \return  If the timer not exists, the returned value will be -1.
+ */
+extern int nsecRemainingTimer(int tid);
+
 /** Remove the timer with the given \e id, as returned from addTimer() or addPeriodicTimer().
 *
 * \param tid the timer callback ID returned from addTimer() or addPeriodicTimer().

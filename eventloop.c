@@ -314,6 +314,15 @@ int remainingTimer(int timer_id)
     return it == NULL ? -1 : remainingTimerNode(it);
 }
 
+/* Returns the timer's remaining value in nanoseconds left until the timeout.
+ * If the timer not exists, the returned value will be -1.
+ */
+int64_t nsecsRemainingTimer(int timer_id)
+{
+    TF *it = findTimer(timer_id);
+    return it == NULL ? -1 : remainingTimerNode(it) * 1000000;
+}
+
 /* add a new work procedure, fp, to be called with ud when nothing else to do.
  * return unique id for use with rmWorkProc().
  */
@@ -526,6 +535,11 @@ int IEAddPeriodicTimer(int millisecs, IE_TCF *fp, void *p)
 int IERemainingTimer(int timerid)
 {
     return (remainingTimer(timerid));
+}
+
+int64_t IENSecsRemainingTimer(int timerid)
+{
+    return (nsecsRemainingTimer(timerid));
 }
 
 void IERmTimer(int timerid)
