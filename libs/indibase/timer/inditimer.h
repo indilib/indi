@@ -72,7 +72,9 @@ public:
     /** @brief Returns whether the timer is a single-shot timer. */
     bool isSingleShot() const;
 
-    /** @brief This function doesn't work - yet. */
+    /** @brief Returns the timer's remaining value in milliseconds left until the timeout.
+     * If the timer not exists, the returned value will be -1.
+     */
     int remainingTime() const;
 
     /** @brief Returns the timeout interval in milliseconds. */

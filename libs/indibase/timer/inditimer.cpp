@@ -119,8 +119,8 @@ bool Timer::isSingleShot() const
 
 int Timer::remainingTime() const
 {
-    //D_PTR(const Timer);
-    return 0;
+    D_PTR(const Timer);
+    return d->timerId != -1 ? std::max(remainingTimer(d->timerId), 0) : 0;
 }
 
 int Timer::interval() const
