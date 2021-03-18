@@ -93,11 +93,20 @@ public:
     size_t size() const;
 
 public:
+    void reserve(size_t size);
     void resize(size_t size);
+
+    void shrink_to_fit();
+
     void push(WidgetView<T> &&item);
     void push(const WidgetView<T> &item);
 
     WidgetView<T> &operator[](size_t index) const;
+
+public:
+    WidgetView<T> *begin();
+    WidgetView<T> *end();
+    
     // #PS: TODO begin, end, cbegin, cend, etc
 
 public:
