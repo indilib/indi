@@ -143,7 +143,10 @@ bool Dome::initProperties()
 
     IUFillSwitch(&OTASideS[0], "DM_OTA_SIDE_EAST", "East", ISS_OFF);
     IUFillSwitch(&OTASideS[1], "DM_OTA_SIDE_WEST", "West", ISS_OFF);
-    IUFillSwitchVector(&OTASideSP, OTASideS, 2, getDeviceName(), "DM_OTA_SIDE", "Meridian side", DOME_SLAVING_TAB,
+    IUFillSwitch(&OTASideS[2], "DM_OTA_SIDE_MOUNT", "Mount", ISS_OFF);
+    IUFillSwitch(&OTASideS[3], "DM_OTA_SIDE_HA", "Hour Angle", ISS_OFF);
+    IUFillSwitch(&OTASideS[4], "DM_OTA_SIDE_IGNORE", "Ignore", ISS_OFF);
+    IUFillSwitchVector(&OTASideSP, OTASideS, 5, getDeviceName(), "DM_OTA_SIDE", "Meridian side", DOME_SLAVING_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
     IUFillSwitch(&DomeAutoSyncS[0], "DOME_AUTOSYNC_ENABLE", "Enable", ISS_OFF);
@@ -529,12 +532,14 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (DomeAutoSyncS[0].s == ISS_ON)
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome will now be synced to mount azimuth position.");
+                LOG_WARN("Dome will now be synced to mount azimuth position.");
                 //UpdateAutoSync();
                 m_HorizontalUpdateTimerID = IEAddTimer(10, &Dome::updateMountCoordsHelper, this);
             }
             else
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome is no longer synced to mount azimuth position.");
+                LOG_WARN("Dome is no longer synced to mount azimuth position.");
                 if (m_HorizontalUpdateTimerID > 0)
                 {
                     IERmTimer(m_HorizontalUpdateTimerID);
@@ -558,11 +563,31 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (OTASideS[0].s == ISS_ON)
             {
                 IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at east of meridian");
+                LOG_WARN("Dome will be synced for telescope tube been at east of pier");
                 UpdateAutoSync();
             }
-            else
+            else if (OTASideS[1].s == ISS_ON)
             {
                 IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at west of meridian");
+                LOG_WARN("Dome will be synced for telescope tube been at west of pier");
+                UpdateAutoSync();
+            }
+            else if (OTASideS[2].s == ISS_ON)
+            {
+                IDSetSwitch(&OTASideSP, "Dome will be synced for telescope tube been at the side of the pier reported by mount");
+                LOG_WARN("Dome will be synced for telescope tube been at the side of the pier reported by mount");
+                UpdateAutoSync();
+            }
+            else if (OTASideS[3].s == ISS_ON)
+            {
+                IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at the side of the pier as of Hour Angle");
+                LOG_WARN("Dome will be synced for telescope tube been at the side of the pier derived from Hour Angle");
+                UpdateAutoSync();
+            }
+            else if (OTASideS[4].s == ISS_ON)
+            {
+                IDSetSwitch(&OTASideSP, "Dome will be synced for telescope ignoring the side of the pier as in a fork mount");
+                LOG_WARN("Dome will be synced for telescope ignoring the side of the pier as in a fork mount");
                 UpdateAutoSync();
             }
 
@@ -833,9 +858,8 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 //  If this slew involves a meridian flip, then the slaving calcs will end up using
                 //  the wrong OTA side.  Lets set things up so our slaving code will calculate the side
                 //  for the target slew instead of using mount pier side info
-                OTASideSP.s = IPS_IDLE;
-                IDSetSwitch(&OTASideSP, nullptr);
                 //  and see if we can get there at the same time as the mount
+                // TODO: see what happens in a meridian flip with OTASide
                 mountEquatorialCoords.ra  = ra * 15.0;
                 mountEquatorialCoords.dec = de;
                 LOGF_DEBUG("Calling Update mount to anticipate goto target: %g - DEC: %g",
@@ -989,28 +1013,17 @@ bool Dome::ISSnoopDevice(XMLEle * root)
 #endif
     if (!strcmp("TELESCOPE_PIER_SIDE", propName))
     {
-        // set defaults to say we have no valid information from mount
-        bool isEast = false;
-        bool isWest = false;
-        OTASideS[0].s = ISS_OFF;
-        OTASideS[1].s = ISS_OFF;
-        OTASideSP.s = IPS_IDLE;
         //  crack the message
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
             const char * elemName = findXMLAttValu(ep, "name");
 
             if (!strcmp(elemName, "PIER_EAST") && !strcmp(pcdataXMLEle(ep), "On"))
-                isEast = true;
+                mountOTASide = -1;
             else if (!strcmp(elemName, "PIER_WEST") && !strcmp(pcdataXMLEle(ep), "On"))
-                isWest = true;
+                mountOTASide = 1;
         }
-        //  update the switch
-        if(isEast) OTASideS[0].s = ISS_ON;
-        if(isWest) OTASideS[1].s = ISS_ON;
-        if(isWest || isEast) OTASideSP.s = IPS_OK;
-        //  and set it.  If we didn't get valid info, it'll be set to idle and neither 'button' pressed in the ui
-        IDSetSwitch(&OTASideSP, nullptr);
+        
         return true;
     }
 
@@ -1046,6 +1059,7 @@ bool Dome::saveConfigItems(FILE * fp)
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
     //IUSaveConfigSwitch(fp, &AutoParkSP);
     IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
+    IUSaveConfigSwitch(fp, &OTASideSP);
 
     if (HasBacklash())
     {
@@ -1270,7 +1284,6 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     point3D MountCenter, OptCenter, OptVector, DomeIntersect;
     double hourAngle;
     double mu1, mu2;
-    int OTASide = 1; /* Side of the telescope with respect of the mount, 1: east, -1: west*/
 
     if (HaveLatLong == false)
     {
@@ -1295,29 +1308,31 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     LOGF_DEBUG("HA: %g  Lng: %g RA: %g", hourAngle, observer.lng, mountEquatorialCoords.ra);
 
-    //  this will have state OK if the mount sent us information
-    //  and it will be IDLE if not
-    if(CanAbsMove() && OTASideSP.s == IPS_OK)
+    int OTASide = 0; // Side of the telescope with respect of the mount, 1: west, -1: east, 0: use the mid point
+    
+    if (OTASideSP.s == IPS_OK)
     {
-        // process info from the mount
-        if(OTASideS[0].s == ISS_ON) OTASide = -1;
-        else OTASide = 1;
-    }
-    else
-    {
-        //  figure out the pier side without help from the mount
-        if(hourAngle > 0) OTASide = -1;
-        else OTASide = 1;
-        //  if we got here because we turned off the PIER_SIDE switches in a target goto
-        //  lets try get it back on
-        if (CanAbsMove())
-            triggerSnoop(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
-
+        int OTASideS_Idx = -1;
+        
+        if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = -1;
+        else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = 1;
+        else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = mountOTASide;
+        else if(OTASideS[++OTASideS_Idx].s == ISS_ON)
+        {
+            // Note if the telescope points West, OTA is at east of the pier, and viceversa.
+            if(hourAngle > 0) OTASide = -1;
+            else OTASide = 1;
+        }
+        else
+            ++OTASideS_Idx;
+        
+        LOGF_DEBUG("OTA_SIDE selection: %d", OTASideS_Idx);
     }
 
     OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat, hourAngle, OptCenter);
 
     LOGF_DEBUG("OTA_SIDE: %d", OTASide);
+    LOGF_DEBUG("Mount OTA_SIDE: %d", mountOTASide);
     LOGF_DEBUG("OTA_OFFSET: %g  Lat: %g", DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat);
     LOGF_DEBUG("OC.x: %g - OC.y: %g OC.z: %g", OptCenter.x, OptCenter.y, OptCenter.z);
 
