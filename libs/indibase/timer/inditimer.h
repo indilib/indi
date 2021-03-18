@@ -72,7 +72,9 @@ public:
     /** @brief Returns whether the timer is a single-shot timer. */
     bool isSingleShot() const;
 
-    /** @brief This function doesn't work - yet. */
+    /** @brief Returns the timer's remaining value in milliseconds left until the timeout.
+     * If the timer not exists, the returned value will be -1.
+     */
     int remainingTime() const;
 
     /** @brief Returns the timeout interval in milliseconds. */
@@ -82,12 +84,13 @@ public:
     /** @brief This static function calls a the given function after a given time interval. */
     static void singleShot(int msec, const std::function<void()> &callback);
 
-protected:
+public:
     /** @brief This function is called when the timer times out. */
     virtual void timeout();
 
 protected:
     std::unique_ptr<TimerPrivate> d_ptr;
+    Timer(TimerPrivate &dd);
 };
 
 }

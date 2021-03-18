@@ -29,18 +29,25 @@ TimerPrivate::TimerPrivate(Timer *p)
 { }
 
 TimerPrivate::~TimerPrivate()
-{ }
+{
+    stop();
+}
 
 void TimerPrivate::start()
 {
-    timerId = addTimer(interval, [](void *arg){
-        TimerPrivate *d = static_cast<TimerPrivate*>(arg);
-        d->p->timeout();
-        if (d->singleShot)
+    if (singleShot)
+    {
+        timerId = addTimer(interval, [](void *arg){
+            TimerPrivate *d = static_cast<TimerPrivate*>(arg);
             d->timerId = -1;
-        else
-            d->start();
-    }, this);
+            d->p->timeout();
+        }, this);
+    } else {
+        timerId = addPeriodicTimer(interval, [](void *arg){
+            TimerPrivate *d = static_cast<TimerPrivate*>(arg);
+            d->p->timeout();
+        }, this);
+    }
 }
 
 void TimerPrivate::stop()
@@ -52,6 +59,10 @@ void TimerPrivate::stop()
 
 Timer::Timer()
     : d_ptr(new TimerPrivate(this))
+{ }
+
+Timer::Timer(TimerPrivate &dd)
+    : d_ptr(&dd)
 { }
 
 Timer::~Timer()
@@ -110,8 +121,8 @@ bool Timer::isSingleShot() const
 
 int Timer::remainingTime() const
 {
-    //D_PTR(const Timer);
-    return 0;
+    D_PTR(const Timer);
+    return d->timerId != -1 ? std::max(remainingTimer(d->timerId), 0) : 0;
 }
 
 int Timer::interval() const

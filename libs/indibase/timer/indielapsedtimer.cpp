@@ -26,6 +26,10 @@ ElapsedTimer::ElapsedTimer()
     : d_ptr(new ElapsedTimerPrivate)
 { start(); }
 
+ElapsedTimer::ElapsedTimer(ElapsedTimerPrivate &dd)
+    : d_ptr(&dd)
+{ start(); }
+
 ElapsedTimer::~ElapsedTimer()
 { }
 
@@ -48,13 +52,25 @@ int64_t ElapsedTimer::elapsed() const
 {
     D_PTR(const ElapsedTimer);
     std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-
     return std::chrono::duration_cast<std::chrono::milliseconds>(now - d->start).count();
+}
+
+int64_t ElapsedTimer::nsecsElapsed() const
+{
+    D_PTR(const ElapsedTimer);
+    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(now - d->start).count();
 }
 
 bool ElapsedTimer::hasExpired(int64_t timeout) const
 {
     return elapsed() > timeout;
+}
+
+void ElapsedTimer::nsecsRewind(int64_t nsecs)
+{
+    D_PTR(ElapsedTimer);
+    d->start += std::chrono::nanoseconds(nsecs);
 }
 
 }
