@@ -37,8 +37,8 @@ void TimerPrivate::start()
     {
         timerId = addTimer(interval, [](void *arg){
             TimerPrivate *d = static_cast<TimerPrivate*>(arg);
-            d->p->timeout();
             d->timerId = -1;
+            d->p->timeout();
         }, this);
     } else {
         timerId = addPeriodicTimer(interval, [](void *arg){
