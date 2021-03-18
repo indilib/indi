@@ -29,7 +29,9 @@ TimerPrivate::TimerPrivate(Timer *p)
 { }
 
 TimerPrivate::~TimerPrivate()
-{ }
+{
+    stop();
+}
 
 void TimerPrivate::start()
 {
