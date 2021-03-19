@@ -121,7 +121,7 @@ bool WeatherSimulator::updateProperties()
     INDI::Weather::updateProperties();
 
     if (isConnected())
-        defineNumber(&ControlWeatherNP);
+        defineProperty(&ControlWeatherNP);
     else
         deleteProperty(ControlWeatherNP.name);
 

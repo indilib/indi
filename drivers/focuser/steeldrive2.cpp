@@ -122,6 +122,13 @@ bool SteelDriveII::initProperties()
     IUFillNumber(&TemperatureSensorN[TEMP_AVG], "TEMP_AVG", "Average (C)", "%.2f", -60, 60, 0, 0);
     IUFillNumberVector(&TemperatureSensorNP, TemperatureSensorN, 3, getDeviceName(), "TC_SENSOR", "Sensor", COMPENSATION_TAB, IP_RO, 60, IPS_IDLE);
 
+    // Stepper Drive
+    IUFillNumber(&StepperDriveN[CURRENT_MOVE], "STEPPER_DRIVE_CURRENT_MOVE", "Inverse Current Move", "%.f", 0, 127, 1, 25);
+    IUFillNumber(&StepperDriveN[CURRENT_HOLD], "STEPPER_DRIVE_CURRENT_HOLD", "Inverse Current Hold", "%.f", 0, 127, 1, 100);
+    IUFillNumberVector(
+        &StepperDriveNP, StepperDriveN, NARRAY(StepperDriveN),
+        getDeviceName(), "STEPPER_DRIVE", "Stepper Drive", OPTIONS_TAB, IP_RW, 60, IPS_IDLE
+    );
 
     addAuxControls();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -141,13 +148,14 @@ bool SteelDriveII::updateProperties()
     {
         getStartupValues();
 
-        defineText(&InfoTP);
-        defineSwitch(&OperationSP);
+        defineProperty(&InfoTP);
+        defineProperty(&OperationSP);
 
-        defineSwitch(&TemperatureCompensationSP);
-        defineSwitch(&TemperatureStateSP);
-        defineNumber(&TemperatureSettingsNP);
-        defineNumber(&TemperatureSensorNP);
+        defineProperty(&TemperatureCompensationSP);
+        defineProperty(&TemperatureStateSP);
+        defineProperty(&TemperatureSettingsNP);
+        defineProperty(&TemperatureSensorNP);
+        defineProperty(&StepperDriveNP);
     }
     else
     {
@@ -158,6 +166,7 @@ bool SteelDriveII::updateProperties()
         deleteProperty(TemperatureStateSP.name);
         deleteProperty(TemperatureSettingsNP.name);
         deleteProperty(TemperatureSensorNP.name);
+        deleteProperty(StepperDriveNP.name);
     }
 
     return true;
@@ -334,6 +343,31 @@ bool SteelDriveII::ISNewNumber(const char *dev, const char *name, double values[
             IDSetNumber(&TemperatureSettingsNP, nullptr);
             return true;
         }
+
+        if (!strcmp(StepperDriveNP.name, name))
+        {
+            StepperDriveNP.s = IPS_OK;
+
+            if (StepperDriveN[CURRENT_MOVE].value != values[CURRENT_MOVE])
+            {
+                if (setParameter("CURRENT_MOVE", to_string(values[CURRENT_MOVE], 0)))
+                    StepperDriveN[CURRENT_MOVE].value = values[CURRENT_MOVE];
+                else
+                    StepperDriveNP.s = IPS_ALERT;
+            }
+
+            if (StepperDriveN[CURRENT_HOLD].value != values[CURRENT_HOLD])
+            {
+                if (setParameter("CURRENT_HOLD", to_string(values[CURRENT_HOLD], 0)))
+                    StepperDriveN[CURRENT_HOLD].value = values[CURRENT_HOLD];
+                else
+                    StepperDriveNP.s = IPS_ALERT;
+            }
+
+            IDSetNumber(&StepperDriveNP, nullptr);
+            return true;
+        }
+
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -403,7 +437,8 @@ void SteelDriveII::TimerHit()
         FocusMotionS[FOCUS_INWARD].s = (m_State == GOING_DOWN) ? ISS_ON : ISS_OFF;
         FocusMotionS[FOCUS_OUTWARD].s = (m_State == GOING_DOWN) ? ISS_OFF : ISS_ON;
         FocusMotionSP.s = IPS_BUSY;
-        FocusAbsPosNP.s = FocusRelPosNP.s = IPS_BUSY;
+        FocusAbsPosNP.s = IPS_BUSY;
+        FocusRelPosNP.s = IPS_BUSY;
         FocusAbsPosN[0].value = summaryPosition;
 
         IDSetSwitch(&FocusMotionSP, nullptr);
@@ -462,7 +497,7 @@ void SteelDriveII::TimerHit()
         IDSetNumber(&TemperatureSensorNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -541,6 +576,17 @@ void SteelDriveII::getStartupValues()
         TemperatureStateS[TC_PAUSED].s = (value == "0") ? ISS_OFF : ISS_ON;
     }
 
+    StepperDriveNP.s = IPS_OK;
+    if (getParameter("CURRENT_MOVE", value))
+        StepperDriveN[CURRENT_MOVE].value = std::stod(value);
+    else
+        StepperDriveNP.s = IPS_ALERT;
+
+    if (getParameter("CURRENT_HOLD", value))
+        StepperDriveN[CURRENT_HOLD].value = std::stod(value);
+    else
+        StepperDriveNP.s = IPS_ALERT;
+
     getSummary();
 
     FocusMaxPosN[0].value = std::stoul(m_Summary[LIMIT]);
@@ -563,7 +609,7 @@ bool SteelDriveII::getSummary()
         return false;
 
     std::vector<std::string> params = split(res, ";");
-    if (params.size() != 10)
+    if (params.size() < 10)
         return false;
 
     for (int i = 0; i < 10; i++)

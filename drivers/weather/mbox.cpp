@@ -124,9 +124,9 @@ bool MBox::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&CalibrationNP);
-        defineSwitch(&ResetSP);
-        defineText(&FirmwareTP);
+        defineProperty(&CalibrationNP);
+        defineProperty(&ResetSP);
+        defineProperty(&FirmwareTP);
     }
     else
     {

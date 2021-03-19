@@ -108,18 +108,18 @@ bool Lx::updateProperties()
     if (dev->isConnected())
     {
         INDI::Property *pfound;
-        dev->defineSwitch(&LxEnableSP);
-        dev->defineSwitch(&LxModeSP);
-        dev->defineText(&LxPortTP);
-        dev->defineSwitch(&LxSerialOptionSP);
-        //dev->defineSwitch(&LxParallelOptionSP);
-        dev->defineText(&LxStartStopCmdTP);
-        dev->defineSwitch(&LxLogicalLevelSP);
-        dev->defineSwitch(&LxSerialSpeedSP);
-        dev->defineSwitch(&LxSerialSizeSP);
-        dev->defineSwitch(&LxSerialParitySP);
-        dev->defineSwitch(&LxSerialStopSP);
-        dev->defineSwitch(&LxSerialAddeolSP);
+        dev->defineProperty(&LxEnableSP);
+        dev->defineProperty(&LxModeSP);
+        dev->defineProperty(&LxPortTP);
+        dev->defineProperty(&LxSerialOptionSP);
+        //dev->defineProperty(&LxParallelOptionSP);
+        dev->defineProperty(&LxStartStopCmdTP);
+        dev->defineProperty(&LxLogicalLevelSP);
+        dev->defineProperty(&LxSerialSpeedSP);
+        dev->defineProperty(&LxSerialSizeSP);
+        dev->defineProperty(&LxSerialParitySP);
+        dev->defineProperty(&LxSerialStopSP);
+        dev->defineProperty(&LxSerialAddeolSP);
         pfound = findbyLabel(dev, (char *)"Strobe");
         if (pfound)
         {
@@ -364,7 +364,7 @@ void Lx::closeserial(int fd)
         perror("closeserial()");
 }
 
-int Lx::openserial(char *devicename)
+int Lx::openserial(const char *devicename)
 {
     int fd;
     struct termios attr;
@@ -562,13 +562,9 @@ int Lx::stopLxSerial()
 
 INDI::Property *Lx::findbyLabel(INDI::DefaultDevice *dev, char *label)
 {
-    std::vector<INDI::Property *> *allprops = dev->getProperties();
-
-    for (std::vector<INDI::Property *>::iterator it = allprops->begin(); it != allprops->end(); ++it)
-    {
-        if (!(strcmp((*it)->getLabel(), label)))
-            return *it;
-    }
+    for(const auto &oneProperty: *dev->getProperties())
+        if (!strcmp(oneProperty->getLabel(), label))
+            return oneProperty;
     return nullptr;
 }
 

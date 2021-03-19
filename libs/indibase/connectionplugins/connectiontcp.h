@@ -62,8 +62,8 @@ class TCP : public Interface
     virtual uint32_t port() const { return atoi(AddressT[1].text); }
     ConnectionType connectionType() const { return static_cast<ConnectionType>(IUFindOnSwitchIndex(&TcpUdpSP)); }
 
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool saveConfigItems(FILE *fp);
 
     int getPortFD() const { return PortFD; }

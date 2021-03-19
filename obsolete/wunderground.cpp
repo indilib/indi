@@ -142,7 +142,7 @@ void WunderGround::ISGetProperties(const char *dev)
 {
     INDI::Weather::ISGetProperties(dev);
 
-    defineText(&wunderAPIKeyTP);
+    defineProperty(&wunderAPIKeyTP);
 
     loadConfig(true, "WUNDER_API_KEY");
 }

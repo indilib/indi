@@ -22,21 +22,32 @@
 
 #include "lx200generic.h"
 
+
 class LX200Pulsar2 : public LX200Generic
 {
   public:
     LX200Pulsar2();
     virtual ~LX200Pulsar2() {}
 
+	static constexpr char const *ADVANCED_TAB = "Advanced Setup";
+	static constexpr bool verboseLogging = false;
+	static constexpr char Null = '\0';
+
+
     virtual const char *getDefaultName();
+
     virtual bool Connect();
+    virtual bool Disconnect();
     virtual bool Handshake();
     virtual bool ReadScopeStatus();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+
+    static const unsigned int numPulsarTrackingRates = 7;
 
   protected:
     virtual bool SetSlewRate(int index);
@@ -62,21 +73,104 @@ class LX200Pulsar2 : public LX200Generic
 
     virtual void getBasicData();
 
+
+    // Pier Side
+    ISwitch PierSideS[2];
+    ISwitchVectorProperty PierSideSP;
+	ISwitch PierSideToggleS[1];
+	ISwitchVectorProperty PierSideToggleSP;
+
+    // Tracking Rates
+    ISwitchVectorProperty TrackingRateIndSP;
+    ISwitch TrackingRateIndS[numPulsarTrackingRates];
+
+    // Guide Speed Indicator
+    INumberVectorProperty GuideSpeedIndNP;
+    INumber GuideSpeedIndN[1];
+    // Center Speed Indicator
+    INumberVectorProperty CenterSpeedIndNP;
+    INumber CenterSpeedIndN[1];
+    // Find Speed Indicator
+    INumberVectorProperty FindSpeedIndNP;
+    INumber FindSpeedIndN[1];
+    // Slew Speed Indicator
+    INumberVectorProperty SlewSpeedIndNP;
+    INumber SlewSpeedIndN[1];
+    // GoTo Speed Indicator
+    INumberVectorProperty GoToSpeedIndNP;
+    INumber GoToSpeedIndN[1];
+
+	// Ramp
+	INumberVectorProperty RampNP;
+	INumber RampN[2];
+
+	// Reduction
+	INumberVectorProperty ReductionNP;
+	INumber ReductionN[2];
+
+	// Maingear
+	INumberVectorProperty MaingearNP;
+	INumber MaingearN[2];
+
+	// Backlash
+	INumberVectorProperty BacklashNP;
+	INumber BacklashN[2];
+
+	// Home Position
+	INumberVectorProperty HomePositionNP;
+	INumber HomePositionN[2];
+	
+	// SwapTubeDelay
+	INumberVectorProperty SwapTubeDelayNP;
+	INumber SwapTubeDelayN[1];
+
+	// Mount Type
+	ISwitchVectorProperty MountTypeSP;
+	ISwitch MountTypeS[3];
+
     // Periodic error correction on or off
     ISwitchVectorProperty PeriodicErrorCorrectionSP;
     ISwitch PeriodicErrorCorrectionS[2];
+
     // Pole crossing on or off
     ISwitchVectorProperty PoleCrossingSP;
     ISwitch PoleCrossingS[2];
+
     // Refraction correction on or off
     ISwitchVectorProperty RefractionCorrectionSP;
     ISwitch RefractionCorrectionS[2];
 
+	// Rotation RA
+	ISwitchVectorProperty RotationRASP;
+	ISwitch RotationRAS[2];
+	// Rotation DEC
+	ISwitchVectorProperty RotationDecSP;
+	ISwitch RotationDecS[2];
+	
+	// User1 Rate
+	INumberVectorProperty UserRate1NP;
+	INumber UserRate1N[2];
+	
+
+	// Tracking Current
+	INumberVectorProperty TrackingCurrentNP;
+	INumber TrackingCurrentN[1]; // only one entry for both RA and Dec
+	// Stop Current
+	INumberVectorProperty StopCurrentNP;
+	INumber StopCurrentN[1]; // only one entry for both RA and Dec
+	// GoTo Current
+	INumberVectorProperty GoToCurrentNP;
+	INumber GoToCurrentN[1]; // only one entry for both RA and Dec
+
   private:
-    void sendScopeLocation();
-    void sendScopeTime();
+
+    bool storeScopeLocation();
+    bool sendScopeTime();
 
     bool isSlewing();
-
     bool just_started_slewing;
+
+	bool local_properties_updated = false;
+	bool initialization_complete = false;  // actually completion of getBasicData
+	
 };

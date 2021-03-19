@@ -26,8 +26,6 @@ extern "C" {
 
 void set_lx200ap_exp_name(const char *deviceName, unsigned int debug_level);
 int selectAPCenterRate(int fd, int centerRate);
-int setAPMeridianDelay(int fd, double mdelay);
-int getAPMeridianDelay(int fd, double *mdelay);
 int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus);
 int APParkMount(int fd);
 int APUnParkMount(int fd);

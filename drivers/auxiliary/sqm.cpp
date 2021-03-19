@@ -138,8 +138,8 @@ bool SQM::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&AverageReadingNP);
-        defineNumber(&UnitInfoNP);
+        defineProperty(&AverageReadingNP);
+        defineProperty(&UnitInfoNP);
 
         getReadings();
 
@@ -260,7 +260,7 @@ void SQM::TimerHit()
     AverageReadingNP.s = rc ? IPS_OK : IPS_ALERT;
     IDSetNumber(&AverageReadingNP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /////////////////////////////////////////////////////////////////////////////

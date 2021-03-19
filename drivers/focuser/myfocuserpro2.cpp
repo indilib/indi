@@ -22,7 +22,7 @@
 */
 
 #include "myfocuserpro2.h"
-
+#include "connectionplugins/connectiontcp.h"
 #include "indicom.h"
 
 #include <cmath>
@@ -75,12 +75,13 @@ void ISSnoopDevice(XMLEle * root)
 MyFocuserPro2::MyFocuserPro2()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_REVERSE | FOCUSER_HAS_VARIABLE_SPEED |
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_REVERSE |
+                      FOCUSER_HAS_VARIABLE_SPEED |
                       FOCUSER_CAN_SYNC);
 
-    setSupportedConnections(CONNECTION_SERIAL);
+    setSupportedConnections(CONNECTION_SERIAL | CONNECTION_TCP);
 
-    setVersion(0, 6);
+    setVersion(0, 7);
 }
 
 bool MyFocuserPro2::initProperties()
@@ -122,31 +123,38 @@ bool MyFocuserPro2::initProperties()
     // Backlash In
     IUFillSwitch(&BacklashInS[INDI_ENABLED], "INDI_ENABLED", "On", ISS_OFF);
     IUFillSwitch(&BacklashInS[INDI_DISABLED], "INDI_DISABLED", "Off", ISS_OFF);
-    IUFillSwitchVector(&BacklashInSP, BacklashInS, 2, getDeviceName(), "Backlash In", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&BacklashInSP, BacklashInS, 2, getDeviceName(), "Backlash In", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillNumber(&BacklashInStepsN[0], "Steps", "", "%3.0f", 0, 512, 2, 0);
-    IUFillNumberVector(&BacklashInStepsNP, BacklashInStepsN, 1, getDeviceName(), "Backlash-In", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&BacklashInStepsNP, BacklashInStepsN, 1, getDeviceName(), "Backlash-In", "", OPTIONS_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     // Backlash Out
     IUFillSwitch(&BacklashOutS[INDI_ENABLED], "INDI_ENABLED", "On", ISS_OFF);
     IUFillSwitch(&BacklashOutS[INDI_DISABLED], "INDI_DISABLED", "Off", ISS_OFF);
-    IUFillSwitchVector(&BacklashOutSP, BacklashOutS, 2, getDeviceName(), "Backlash Out", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&BacklashOutSP, BacklashOutS, 2, getDeviceName(), "Backlash Out", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillNumber(&BacklashOutStepsN[0], "Steps", "", "%3.0f", 0, 512, 2, 0);
-    IUFillNumberVector(&BacklashOutStepsNP, BacklashOutStepsN, 1, getDeviceName(), "Backlash-Out", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&BacklashOutStepsNP, BacklashOutStepsN, 1, getDeviceName(), "Backlash-Out", "", OPTIONS_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -40, 80., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+                       IP_RO, 0, IPS_IDLE);
 
     // Temperature Settings
     IUFillNumber(&TemperatureSettingN[0], "Coefficient", "", "%6.2f", 0, 50, 1, 0);
-    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 1, getDeviceName(), "T. Settings", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 1, getDeviceName(), "T. Settings", "", OPTIONS_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     // Compensate for temperature
     IUFillSwitch(&TemperatureCompensateS[TEMP_COMPENSATE_ENABLE], "TEMP_COMPENSATE_ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateS[TEMP_COMPENSATE_DISABLE], "TEMP_COMPENSATE_DISABLE", "Disable", ISS_OFF);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate", "", OPTIONS_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Step Mode
     IUFillSwitch(&StepModeS[FOCUS_THIRTYSECOND_STEP], "FOCUS_THIRTYSECOND_STEP", "1/32 Step", ISS_OFF);
@@ -155,12 +163,14 @@ bool MyFocuserPro2::initProperties()
     IUFillSwitch(&StepModeS[FOCUS_QUARTER_STEP], "FOCUS_QUARTER_STEP", "1/4 Step", ISS_OFF);
     IUFillSwitch(&StepModeS[FOCUS_HALF_STEP], "FOCUS_HALF_STEP", "1/2 Step", ISS_OFF);
     IUFillSwitch(&StepModeS[FOCUS_FULL_STEP], "FOCUS_FULL_STEP", "Full Step", ISS_OFF);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 6, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&StepModeSP, StepModeS, 6, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
 
     IUFillSwitch(&CoilPowerS[COIL_POWER_ON], "COIL_POWER_ON", "On", ISS_OFF);
     IUFillSwitch(&CoilPowerS[COIL_POWER_OFF], "COIL_POWER_OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&CoilPowerSP, CoilPowerS, 2, getDeviceName(), "Coil Power", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CoilPowerSP, CoilPowerS, 2, getDeviceName(), "Coil Power", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&DisplayS[DISPLAY_OFF], "DISPLAY_OFF", "Off", ISS_OFF);
     IUFillSwitch(&DisplayS[DISPLAY_ON], "DISPLAY_ON", "On", ISS_OFF);
@@ -168,10 +178,14 @@ bool MyFocuserPro2::initProperties()
 
 
     IUFillSwitch(&GotoHomeS[0], "GOTO_HOME", "Go", ISS_OFF);
-    IUFillSwitchVector(&GotoHomeSP, GotoHomeS, 1, getDeviceName(), "Goto Home Position", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-    setPollingPeriodRange(1000, 30000);
+    IUFillSwitchVector(&GotoHomeSP, GotoHomeS, 1, getDeviceName(), "Goto Home Position", "", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
+    setPollingPeriodRange(1000, 30000);
     setDefaultPollingPeriod(1000);
+
+    tcpConnection->setDefaultHost("192.168.4.1");
+    tcpConnection->setDefaultPort(2020);
 
     return true;
 }
@@ -182,17 +196,17 @@ bool MyFocuserPro2::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&GotoHomeSP);
-        defineNumber(&TemperatureNP);
-        defineNumber(&TemperatureSettingNP);
-        defineSwitch(&TemperatureCompensateSP);
-        defineSwitch(&BacklashInSP);
-        defineNumber(&BacklashInStepsNP);
-        defineSwitch(&BacklashOutSP);
-        defineNumber(&BacklashOutStepsNP);
-        defineSwitch(&StepModeSP);
-        defineSwitch(&DisplaySP);
-        defineSwitch(&CoilPowerSP);
+        defineProperty(&GotoHomeSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&TemperatureSettingNP);
+        defineProperty(&TemperatureCompensateSP);
+        defineProperty(&BacklashInSP);
+        defineProperty(&BacklashInStepsNP);
+        defineProperty(&BacklashOutSP);
+        defineProperty(&BacklashOutStepsNP);
+        defineProperty(&StepModeSP);
+        defineProperty(&DisplaySP);
+        defineProperty(&CoilPowerSP);
 
         setTemperatureCelsius();
 
@@ -288,25 +302,32 @@ bool MyFocuserPro2::Ack()
 
     if (rc > 0)
     {
-        if(firmWareVersion >= MINIMUM_FIRMWARE_VERSION)
+        // Minimum check only applicable to serial version
+        if (getActiveConnection()->type() == Connection::Interface::CONNECTION_SERIAL)
         {
-            LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
-            return true;
+            if(firmWareVersion >= MINIMUM_FIRMWARE_VERSION)
+            {
+                LOGF_INFO("MyFP2 reported firmware %d", firmWareVersion);
+                return true;
 
+            }
+            else
+            {
+                LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion,
+                           MINIMUM_FIRMWARE_VERSION );
+            }
         }
         else
         {
-            LOGF_ERROR("Invalid Firmware: focuser firmware version value %d, minimum supported is %d", firmWareVersion, MINIMUM_FIRMWARE_VERSION );
+            LOG_INFO("Connection to network focuser is successful.");
+            return true;
         }
-
     }
     else
     {
         LOGF_ERROR("Invalid Response: focuser firmware version value (%s)", resp);
     }
     return false;
-
-
 }
 
 bool MyFocuserPro2::readCoilPowerState()
@@ -775,7 +796,7 @@ bool MyFocuserPro2::setBacklashOutEnabled(bool enabled)
 bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":12%02d#", static_cast<int>(enable));
+    snprintf(cmd, ML_RES, ":12%01d#", static_cast<int>(enable));
     return sendCommand(cmd);
 }
 
@@ -783,7 +804,7 @@ bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
 bool MyFocuserPro2::ReverseFocuser(bool enable)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":14%02d#", static_cast<int>(enable));
+    snprintf(cmd, ML_RES, ":14%c#", enable ? '1' : '0');
     return sendCommand(cmd);
 }
 
@@ -1192,7 +1213,7 @@ void MyFocuserPro2::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -1229,7 +1250,7 @@ void MyFocuserPro2::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool MyFocuserPro2::AbortFocuser()

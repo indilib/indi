@@ -38,13 +38,13 @@ class SkySafari : public INDI::DefaultDevice
     public:
         SkySafari();
 
-        virtual void ISGetProperties(const char *dev);
+        virtual void ISGetProperties(const char *dev) override;
 
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
-        virtual bool initProperties();
+        virtual bool initProperties() override;
 
         virtual void TimerHit();
 

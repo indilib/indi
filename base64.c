@@ -44,6 +44,20 @@
  * out size should be at least 4*inlen/3 + 4.
  * return length of out (sans trailing NUL).
  */
+int to64frombits_s(unsigned char *out, const unsigned char *in, int inlen, size_t outlen)
+{
+    size_t dlen = (((size_t)inlen + 2) / 3) * 4; /* 4/3, rounded up */
+
+    if (dlen > outlen) {
+        return 0;
+    }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    return to64frombits(out, in, inlen);
+#pragma GCC diagnostic pop
+}
+
 int to64frombits(unsigned char *out, const unsigned char *in, int inlen)
 {
     uint16_t *b64lut = (uint16_t *)base64lut;

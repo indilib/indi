@@ -133,7 +133,7 @@ bool ScopeScript::saveConfigItems(FILE *fp)
 void ScopeScript::ISGetProperties(const char *dev)
 {
     INDI::Telescope::ISGetProperties(dev);
-    defineText(&ScriptsTP);
+    defineProperty(&ScriptsTP);
 }
 
 bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -233,7 +233,7 @@ bool ScopeScript::Connect()
     {
         LOG_INFO("Successfully connected");
         ReadScopeStatus();
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
     else
     {

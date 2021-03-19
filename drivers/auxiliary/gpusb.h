@@ -35,9 +35,9 @@ class GPUSB : public INDI::GuiderInterface, public INDI::DefaultDevice
         GPUSB();
         virtual ~GPUSB();
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
         static void NSTimerHelper(void *context);
         static void WETimerHelper(void *context);

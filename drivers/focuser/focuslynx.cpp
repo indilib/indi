@@ -185,7 +185,7 @@ bool FocusLynxF1::Connect()
          * other value = descriptor number
          */
         PortFD = -1;
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
     else if (!INDI::Focuser::Connect())
         return false;
@@ -234,10 +234,10 @@ bool FocusLynxF1::updateProperties()
 
     if (isConnected())
     {
-        defineText(&HubTP);
-        defineText(&WiredTP);
-        defineText(&WifiTP);
-        defineNumber(&LedNP);
+        defineProperty(&HubTP);
+        defineProperty(&WiredTP);
+        defineProperty(&WifiTP);
+        defineProperty(&LedNP);
 
         if (getHubConfig())
             LOG_INFO("HUB parameters updated.");
@@ -864,7 +864,7 @@ bool FocusLynxF2::Connect()
     {
         LOG_INFO("FocusLynx is online. Getting focus parameters...");
         // as DefaultDevice::Connect() is not involved, initiate the timer.
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
 

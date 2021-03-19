@@ -32,6 +32,7 @@
 #include "fpack/fpack.h"
 #include "indicom.h"
 #include "locale_compat.h"
+#include "indiutility.h"
 
 #include <fitsio.h>
 
@@ -59,31 +60,6 @@ const char * GUIDE_HEAD_TAB     = "Guider Head";
 #ifdef HAVE_WEBSOCKET
 uint16_t INDIWSServer::m_global_port = 11623;
 #endif
-
-// Create dir recursively
-static int _ccd_mkdir(const char * dir, mode_t mode)
-{
-    char tmp[PATH_MAX];
-    char * p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
 
 namespace INDI
 {
@@ -118,7 +94,8 @@ CCD::CCD()
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
     RotatorAngle    = std::numeric_limits<double>::quiet_NaN();
     // JJ ed 2019-12-10
-    FocusPos        = std::numeric_limits<long>::quiet_NaN();
+    FocuserPos      = -1;
+    FocuserTemp     = std::numeric_limits<double>::quiet_NaN();
 
     Airmass         = std::numeric_limits<double>::quiet_NaN();
     Latitude        = std::numeric_limits<double>::quiet_NaN();
@@ -142,6 +119,7 @@ void CCD::SetCCDCapability(uint32_t cap)
     else
         setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);
 
+    syncDriverInfo();
     HasStreaming();
     HasDSP();
 }
@@ -192,15 +170,15 @@ bool CCD::initProperties()
                        IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Info
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y], "CCD_MAX_Y", "Max. Height", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE], "CCD_PIXEL_SIZE", "Pixel size (um)", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X], "CCD_MAX_X", "Max. Width", "%.f", 1, 16000, 0, 0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y], "CCD_MAX_Y", "Max. Height", "%.f", 1, 16000, 0, 0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE], "CCD_PIXEL_SIZE", "Pixel size (um)", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X], "CCD_PIXEL_SIZE_X", "Pixel size X", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X], "CCD_PIXEL_SIZE_X", "Pixel size X", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y], "CCD_PIXEL_SIZE_Y", "Pixel size Y", "%5.2f", 1,
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y], "CCD_PIXEL_SIZE_Y", "Pixel size Y", "%.2f", 1,
                  40, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%3.0f",
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL], "CCD_BITSPERPIXEL", "Bits per pixel", "%.f",
                  8, 64, 0, 0);
     IUFillNumberVector(&PrimaryCCD.ImagePixelSizeNP, PrimaryCCD.ImagePixelSizeN, 6, getDeviceName(), "CCD_INFO",
                        "CCD Information", IMAGE_INFO_TAB, IP_RO, 60, IPS_IDLE);
@@ -441,8 +419,9 @@ bool CCD::initProperties()
     IDSnoopDevice(ActiveDeviceT[ACTIVE_ROTATOR].text, "ABS_ROTATOR_ANGLE");
 
     // JJ ed 2019-12-10
-    // Snoop Rotator
+    // Snoop Focuser
     IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
+    IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_TEMPERATURE");
     //
 
     // Snoop Filter Wheel
@@ -466,7 +445,7 @@ void CCD::ISGetProperties(const char * dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
-    defineText(&ActiveDeviceTP);
+    defineProperty(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 
     if (HasStreaming())
@@ -481,96 +460,96 @@ bool CCD::updateProperties()
     //IDLog("CCD UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
-        defineNumber(&PrimaryCCD.ImageExposureNP);
+        defineProperty(&PrimaryCCD.ImageExposureNP);
 
         if (CanAbort())
-            defineSwitch(&PrimaryCCD.AbortExposureSP);
+            defineProperty(&PrimaryCCD.AbortExposureSP);
         if (CanSubFrame() == false)
             PrimaryCCD.ImageFrameNP.p = IP_RO;
 
-        defineNumber(&PrimaryCCD.ImageFrameNP);
+        defineProperty(&PrimaryCCD.ImageFrameNP);
         if (CanBin())
-            defineNumber(&PrimaryCCD.ImageBinNP);
+            defineProperty(&PrimaryCCD.ImageBinNP);
 
-        defineText(&FITSHeaderTP);
+        defineProperty(&FITSHeaderTP);
 
         if (HasGuideHead())
         {
-            defineNumber(&GuideCCD.ImageExposureNP);
+            defineProperty(&GuideCCD.ImageExposureNP);
             if (CanAbort())
-                defineSwitch(&GuideCCD.AbortExposureSP);
+                defineProperty(&GuideCCD.AbortExposureSP);
             if (CanSubFrame() == false)
                 GuideCCD.ImageFrameNP.p = IP_RO;
-            defineNumber(&GuideCCD.ImageFrameNP);
+            defineProperty(&GuideCCD.ImageFrameNP);
         }
 
         if (HasCooler())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
 
-        defineNumber(&PrimaryCCD.ImagePixelSizeNP);
+        defineProperty(&PrimaryCCD.ImagePixelSizeNP);
         if (HasGuideHead())
         {
-            defineNumber(&GuideCCD.ImagePixelSizeNP);
+            defineProperty(&GuideCCD.ImagePixelSizeNP);
             if (CanBin())
-                defineNumber(&GuideCCD.ImageBinNP);
+                defineProperty(&GuideCCD.ImageBinNP);
         }
-        defineSwitch(&PrimaryCCD.CompressSP);
-        defineBLOB(&PrimaryCCD.FitsBP);
+        defineProperty(&PrimaryCCD.CompressSP);
+        defineProperty(&PrimaryCCD.FitsBP);
         if (HasGuideHead())
         {
-            defineSwitch(&GuideCCD.CompressSP);
-            defineBLOB(&GuideCCD.FitsBP);
+            defineProperty(&GuideCCD.CompressSP);
+            defineProperty(&GuideCCD.FitsBP);
         }
         if (HasST4Port())
         {
-            defineNumber(&GuideNSNP);
-            defineNumber(&GuideWENP);
+            defineProperty(&GuideNSNP);
+            defineProperty(&GuideWENP);
         }
-        defineSwitch(&PrimaryCCD.FrameTypeSP);
+        defineProperty(&PrimaryCCD.FrameTypeSP);
 
         if (CanBin() || CanSubFrame())
-            defineSwitch(&PrimaryCCD.ResetSP);
+            defineProperty(&PrimaryCCD.ResetSP);
 
         if (HasGuideHead())
-            defineSwitch(&GuideCCD.FrameTypeSP);
+            defineProperty(&GuideCCD.FrameTypeSP);
 
         if (HasBayer())
-            defineText(&BayerTP);
+            defineProperty(&BayerTP);
 
 #if 0
-        defineSwitch(&PrimaryCCD.RapidGuideSP);
+        defineProperty(&PrimaryCCD.RapidGuideSP);
 
         if (HasGuideHead())
-            defineSwitch(&GuideCCD.RapidGuideSP);
+            defineProperty(&GuideCCD.RapidGuideSP);
 
         if (RapidGuideEnabled)
         {
-            defineSwitch(&PrimaryCCD.RapidGuideSetupSP);
-            defineNumber(&PrimaryCCD.RapidGuideDataNP);
+            defineProperty(&PrimaryCCD.RapidGuideSetupSP);
+            defineProperty(&PrimaryCCD.RapidGuideDataNP);
         }
         if (GuiderRapidGuideEnabled)
         {
-            defineSwitch(&GuideCCD.RapidGuideSetupSP);
-            defineNumber(&GuideCCD.RapidGuideDataNP);
+            defineProperty(&GuideCCD.RapidGuideSetupSP);
+            defineProperty(&GuideCCD.RapidGuideDataNP);
         }
 #endif
-        defineSwitch(&TelescopeTypeSP);
+        defineProperty(&TelescopeTypeSP);
 
-        defineSwitch(&WorldCoordSP);
-        defineSwitch(&UploadSP);
+        defineProperty(&WorldCoordSP);
+        defineProperty(&UploadSP);
 
         if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
-        defineText(&UploadSettingsTP);
+        defineProperty(&UploadSettingsTP);
 
 #ifdef HAVE_WEBSOCKET
         if (HasWebSocket())
-            defineSwitch(&WebSocketSP);
+            defineProperty(&WebSocketSP);
 #endif
 
 #ifdef WITH_EXPOSURE_LOOPING
-        defineSwitch(&ExposureLoopSP);
-        defineNumber(&ExposureLoopCountNP);
+        defineProperty(&ExposureLoopSP);
+        defineProperty(&ExposureLoopCountNP);
 #endif
     }
     else
@@ -772,7 +751,20 @@ bool CCD::ISSnoopDevice(XMLEle * root)
 
             if (!strcmp(name, "FOCUS_ABSOLUTE_POSITION"))
             {
-                FocusPos = atol(pcdataXMLEle(ep));
+                FocuserPos = atol(pcdataXMLEle(ep));
+                break;
+            }
+        }
+    }
+    else if (!strcmp(propName, "FOCUS_TEMPERATURE"))
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, "TEMPERATURE"))
+            {
+                FocuserTemp = atof(pcdataXMLEle(ep));
                 break;
             }
         }
@@ -840,9 +832,15 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
 
             // JJ ed 2019-12-10
             if (strlen(ActiveDeviceT[ACTIVE_FOCUSER].text) > 0)
-                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_ABSOLUTE_POSITION");
+            {
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "ABS_FOCUS_POSITION");
+                IDSnoopDevice(ActiveDeviceT[ACTIVE_FOCUSER].text, "FOCUS_TEMPERATURE");
+            }
             else
-                FocusPos = std::numeric_limits<long>::quiet_NaN();
+            {
+                FocuserPos = -1;
+                FocuserTemp = std::numeric_limits<double>::quiet_NaN();
+            }
             //
 
 
@@ -955,14 +953,14 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                         observer.lat = Latitude;
                         observer.lng = Longitude;
 
-                        ln_get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+                        get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
                         Airmass = ln_get_airmass(horizontalPos.alt, 750);
                     }
                 }
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
-                if (ExposureTime * 1000 < POLLMS)
-                    POLLMS = ExposureTime * 950;
+                if (ExposureTime * 1000 < getCurrentPollingPeriod())
+                    setCurrentPollingPeriod(ExposureTime * 950);
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -1187,14 +1185,20 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         // Primary CCD Info
         if (!strcmp(name, PrimaryCCD.ImagePixelSizeNP.name))
         {
-            IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n);
-            PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value,
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, PrimaryCCD.getBPP(),
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
-                         PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
+            if (IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n) == 0)
+            {
+                PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
+                SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value,
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value,
+                             PrimaryCCD.getBPP(),
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
+                             PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
+                saveConfig(true, PrimaryCCD.ImagePixelSizeNP.name);
+            }
+            else
+                PrimaryCCD.ImagePixelSizeNP.s = IPS_ALERT;
+
             IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, nullptr);
-            saveConfig(true);
             return true;
         }
 
@@ -1258,12 +1262,12 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 else if (UploadS[UPLOAD_LOCAL].s == ISS_ON)
                 {
                     DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
-                    defineText(&FileNameTP);
+                    defineProperty(&FileNameTP);
                 }
                 else
                 {
                     DEBUG(Logger::DBG_SESSION, "Upload settings set to client and local.");
-                    defineText(&FileNameTP);
+                    defineProperty(&FileNameTP);
                 }
 
                 UploadSP.s = IPS_OK;
@@ -1311,7 +1315,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 wsThread = std::thread(&wsThreadHelper, this);
                 WebSocketSettingsN[WS_SETTINGS_PORT].value = wsServer.generatePort();
                 WebSocketSettingsNP.s = IPS_OK;
-                defineNumber(&WebSocketSettingsNP);
+                defineProperty(&WebSocketSettingsNP);
             }
             else if (wsServer.is_running())
             {
@@ -1334,7 +1338,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             if (WorldCoordS[0].s == ISS_ON)
             {
                 LOG_INFO("World Coordinate System is enabled.");
-                defineNumber(&CCDRotationNP);
+                defineProperty(&CCDRotationNP);
             }
             else
             {
@@ -1377,7 +1381,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
-            POLLMS = getPollingPeriod();
+            setCurrentPollingPeriod(getPollingPeriod());
 
 #ifdef WITH_EXPOSURE_LOOPING
             if (ExposureLoopCountNP.s == IPS_BUSY)
@@ -1528,8 +1532,8 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 
             if (RapidGuideEnabled)
             {
-                defineSwitch(&PrimaryCCD.RapidGuideSetupSP);
-                defineNumber(&PrimaryCCD.RapidGuideDataNP);
+                defineProperty(&PrimaryCCD.RapidGuideSetupSP);
+                defineProperty(&PrimaryCCD.RapidGuideDataNP);
             }
             else
             {
@@ -1550,8 +1554,8 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 
             if (GuiderRapidGuideEnabled)
             {
-                defineSwitch(&GuideCCD.RapidGuideSetupSP);
-                defineNumber(&GuideCCD.RapidGuideDataNP);
+                defineProperty(&GuideCCD.RapidGuideSetupSP);
+                defineProperty(&GuideCCD.RapidGuideDataNP);
             }
             else
             {
@@ -1702,6 +1706,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     double effectiveAperture = std::numeric_limits<double>::quiet_NaN();
 
     AutoCNumeric locale;
+    fits_update_key_str(fptr, "ROWORDER", "TOP-DOWN", "Row Order", &status);
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
 
     // Telescope
@@ -1827,10 +1832,14 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
     // JJ ed 2020-03-28
-    // If the focus position is set, add the information to the FITS header
-    if (!std::isnan(FocusPos))
+    // If the focus position or temperature is set, add the information to the FITS header
+    if (FocuserPos != -1)
     {
-        fits_update_key_lng(fptr, "FOCUSPOS", FocusPos, "Focus position in steps", &status);
+        fits_update_key_lng(fptr, "FOCUSPOS", FocuserPos, "Focus position in steps", &status);
+    }
+    if (!std::isnan(FocuserTemp))
+    {
+        fits_update_key_dbl(fptr, "FOCUSTEM", FocuserTemp, 3, "Focuser temperature in degrees C", &status);
     }
 
     // SCALE assuming square-pixels
@@ -1959,7 +1968,7 @@ void CCD::fits_update_key_s(fitsfile * fptr, int type, std::string name, void * 
 bool CCD::ExposureComplete(CCDChip * targetChip)
 {
     // Reset POLLMS to default value
-    POLLMS = getPollingPeriod();
+    setCurrentPollingPeriod(getPollingPeriod());
 
     // Run async
     std::thread(&CCD::ExposureCompletePrivate, this, targetChip).detach();
@@ -2008,8 +2017,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 StartExposure(duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-                if (duration * 1000 < POLLMS)
-                    POLLMS = duration * 950;
+                if (duration * 1000 < getCurrentPollingPeriod())
+                    setCurrentPollingPeriod(duration * 950);
             }
             else
             {
@@ -2784,7 +2793,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             remove(filename);
 
             // Add .fz
-            strncat(filename, ".fz", 3);
+            strncat(filename, ".fz", 4);
 
             struct stat st;
             stat(filename, &st);
@@ -3067,7 +3076,7 @@ int CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
         if (errno == ENOENT)
         {
             DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
-            if (_ccd_mkdir(dir, 0755) == -1)
+            if (INDI::mkpath(dir, 0755) == -1)
                 LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
         }
         else

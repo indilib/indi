@@ -70,7 +70,7 @@ void ManualFilter::ISGetProperties(const char *dev)
 {
     INDI::FilterWheel::ISGetProperties(dev);
 
-    defineNumber(&MaxFiltersNP);
+    defineProperty(&MaxFiltersNP);
     loadConfig(true, MaxFiltersNP.name);
 }
 
@@ -101,15 +101,15 @@ bool ManualFilter::updateProperties()
     {
         deleteProperty(MaxFiltersNP.name);
 
-        defineNumber(&SyncNP);
-        defineSwitch(&FilterSetSP);
+        defineProperty(&SyncNP);
+        defineProperty(&FilterSetSP);
     }
     else
     {
         deleteProperty(SyncNP.name);
         deleteProperty(FilterSetSP.name);
 
-        defineNumber(&MaxFiltersNP);
+        defineProperty(&MaxFiltersNP);
     }
 
     return true;

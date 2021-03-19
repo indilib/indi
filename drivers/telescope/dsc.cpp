@@ -155,15 +155,15 @@ bool DSC::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&EncoderNP);
-        defineNumber(&AxisSettingsNP);
-        defineSwitch(&AxisRangeSP);
-        defineSwitch(&ReverseSP);
-        //defineNumber(&EncoderOffsetNP);
-        defineSwitch(&MountTypeSP);
+        defineProperty(&EncoderNP);
+        defineProperty(&AxisSettingsNP);
+        defineProperty(&AxisRangeSP);
+        defineProperty(&ReverseSP);
+        //defineProperty(&EncoderOffsetNP);
+        defineProperty(&MountTypeSP);
 
         if (isSimulation())
-            defineNumber(&SimEncoderNP);
+            defineProperty(&SimEncoderNP);
 
         SetAlignmentSubsystemActive(true);
     }
@@ -598,7 +598,7 @@ void DSC::simulationTriggered(bool enable)
 
     if (enable)
     {
-        defineNumber(&SimEncoderNP);
+        defineProperty(&SimEncoderNP);
     }
     else
     {

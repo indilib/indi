@@ -144,11 +144,11 @@ bool Pyxis::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&RotationRateNP)  ;
-        defineSwitch(&SteppingSP);
-        defineSwitch(&PowerSP);
-        defineText(&FirmwareTP) ;
-        defineText(&ModelTP) ;
+        defineProperty(&RotationRateNP)  ;
+        defineProperty(&SteppingSP);
+        defineProperty(&PowerSP);
+        defineProperty(&FirmwareTP) ;
+        defineProperty(&ModelTP) ;
 
         queryParams();
     }
@@ -561,7 +561,7 @@ void Pyxis::TimerHit()
 {
     if (!isConnected() || PowerS[POWER_SLEEP].s == ISS_ON)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -577,7 +577,7 @@ void Pyxis::TimerHit()
         else
         {
             // Fast timer
-            SetTimer(POLLMS);
+            SetTimer(getCurrentPollingPeriod());
             return;
         }
     }
@@ -599,7 +599,7 @@ void Pyxis::TimerHit()
         IDSetNumber(&GotoRotatorNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool Pyxis::isMotionComplete()

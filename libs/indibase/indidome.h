@@ -116,6 +116,13 @@ class Dome : public DefaultDevice
             SHUTTER_CLOSE /*!< Close Shutter */
         } ShutterOperation;
 
+        /*! Mount Locking Policy */
+        enum MountLockingPolicy
+        {
+            MOUNT_IGNORED,      /*!< Mount is ignored. Dome can park or unpark irrespective of mount parking status */
+            MOUNT_LOCKS,        /*!< Mount Locks. Dome can park if mount is completely parked first. */
+        };
+
         /** \typedef DomeState
                 \brief Dome status
             */
@@ -169,13 +176,13 @@ class Dome : public DefaultDevice
         Dome();
         virtual ~Dome();
 
-        virtual bool initProperties();
-        virtual void ISGetProperties(const char * dev);
-        virtual bool updateProperties();
-        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISSnoopDevice(XMLEle * root);
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char * dev) override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n) override;
+        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle * root) override;
 
         static void buttonHelper(const char * button_n, ISState state, void * context);
         static void updateMountCoordsHelper(void *context);
@@ -278,17 +285,16 @@ class Dome : public DefaultDevice
 
         DomeState getDomeState() const
         {
-            return domeState;
+            return m_DomeState;
         }
         void setDomeState(const DomeState &value);
 
         ShutterState getShutterState() const
         {
-            return shutterState;
+            return m_ShutterState;
         }
         void setShutterState(const ShutterState &value);
 
-        IPState getWeatherState() const;
         IPState getMountState() const;
 
     protected:
@@ -552,18 +558,27 @@ class Dome : public DefaultDevice
         ISwitch ParkOptionS[3];
         ISwitchVectorProperty ParkOptionSP;
 
-        ISwitch AutoParkS[2];
-        ISwitchVectorProperty AutoParkSP;
+        //        ISwitch AutoParkS[2];
+        //        ISwitchVectorProperty AutoParkSP;
 
         uint32_t capability;
         DomeParkData parkDataType;
 
         ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[2] {};
+        IText ActiveDeviceT[1] {};
 
         // Switch to lock id mount is unparked
-        ISwitchVectorProperty TelescopeClosedLockTP;
-        ISwitch TelescopeClosedLockT[2];
+        ISwitchVectorProperty MountPolicySP;
+        ISwitch MountPolicyS[2];
+
+        // Shutter control on Park/Unpark
+        ISwitchVectorProperty ShutterParkPolicySP;
+        ISwitch ShutterParkPolicyS[2];
+        enum
+        {
+            SHUTTER_CLOSE_ON_PARK,
+            SHUTTER_OPEN_ON_UNPARK,
+        };
 
         INumber PresetN[3];
         INumberVectorProperty PresetNP;
@@ -572,7 +587,8 @@ class Dome : public DefaultDevice
         INumber DomeMeasurementsN[6];
         INumberVectorProperty DomeMeasurementsNP;
         ISwitchVectorProperty OTASideSP;
-        ISwitch OTASideS[2];
+        ISwitch OTASideS[5]; // 0 is East, 1 is West, 2 is as reported by mout, 3 as deducted by Hour Angle, 4 ignore pier side and perform as in a fork mount
+        int mountOTASide = 0; // Side of the telescope with respect of the mount, 1: west, -1: east, 0 not reported
         ISwitchVectorProperty DomeAutoSyncSP;
         ISwitch DomeAutoSyncS[2];
 
@@ -593,10 +609,9 @@ class Dome : public DefaultDevice
         Connection::TCP * tcpConnection       = nullptr;
 
         // States
-        DomeState domeState;
-        ShutterState shutterState;
-        IPState mountState;
-        IPState weatherState;
+        DomeState m_DomeState;
+        ShutterState m_ShutterState;
+        IPState m_MountState;
 
         // Observer geographic coords. Snooped from mount driver.
         struct ln_lnlat_posn observer;

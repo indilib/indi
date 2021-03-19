@@ -97,7 +97,9 @@ bool SmartFocus::initProperties()
     INDI::Focuser::initProperties();
 
     // No speed for SmartFocus
-    FocusSpeedN[0].min = FocusSpeedN[0].max = FocusSpeedN[0].value = 1;
+    FocusSpeedN[0].min = 1;
+    FocusSpeedN[0].max = 1;
+    FocusSpeedN[0].value = 1;
     IUUpdateMinMax(&FocusSpeedNP);
 
     IUFillLight(&FlagsL[STATUS_SERIAL_FRAMING_ERROR], "SERIAL_FRAMING_ERROR", "Serial framing error", IPS_OK);
@@ -108,21 +110,21 @@ bool SmartFocus::initProperties()
     IUFillLightVector(&FlagsLP, FlagsL, STATUS_NUM_FLAGS, getDeviceName(), "FLAGS", "Status Flags", MAIN_CONTROL_TAB,
                       IPS_IDLE);
 
-    IUFillNumber(&MaxPositionN[0], "MAXPOSITION", "Maximum position", "%6.0f", 1., 100000., 0., 1833);
-    IUFillNumberVector(&MaxPositionNP, MaxPositionN, 1, getDeviceName(), "FOCUS_MAXPOSITION", "Max. position",
+    IUFillNumber(&MotionErrorN[0], "MOTION_ERROR", "Motion error", "%6.0f", -100., 100., 1., 0.);
+    IUFillNumberVector(&MotionErrorNP, MotionErrorN, 1, getDeviceName(), "MOTION_ERROR", "Motion error",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = MaxPositionN[0].value;
+    FocusRelPosN[0].max   = FocusMaxPosN[0].value; //MaxPositionN[0].value;
     FocusRelPosN[0].value = 10;
     FocusRelPosN[0].step  = 1;
 
     FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = MaxPositionN[0].value;
+    FocusAbsPosN[0].max   = FocusMaxPosN[0].value; //MaxPositionN[0].value;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1;
 
-    POLLMS = TimerInterval;
+    setCurrentPollingPeriod(TimerInterval);
 
     return true;
 }
@@ -133,15 +135,15 @@ bool SmartFocus::updateProperties()
 
     if (isConnected())
     {
-        defineLight(&FlagsLP);
-        defineNumber(&MaxPositionNP);
+        defineProperty(&FlagsLP);
+        defineProperty(&MotionErrorNP);
         SFgetState();
         IDMessage(getDeviceName(), "SmartFocus focuser ready for use.");
     }
     else
     {
         deleteProperty(FlagsLP.name);
-        deleteProperty(MaxPositionNP.name);
+        deleteProperty(MotionErrorNP.name);
     }
     return true;
 }
@@ -170,20 +172,12 @@ bool SmartFocus::ISNewNumber(const char *dev, const char *name, double values[],
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, MaxPositionNP.name) == 0)
+        if (strcmp(name, MotionErrorNP.name) == 0)
         {
-            if (values[0] > 0)
-            {
-                IUUpdateNumber(&MaxPositionNP, values, names, n);
-                FocusAbsPosN[0].min = 0;
-                FocusAbsPosN[0].max = MaxPositionN[0].value;
-                IUUpdateMinMax(&FocusAbsPosNP);
-                MaxPositionNP.s = IPS_OK;
-                IDSetNumber(&MaxPositionNP, nullptr);
-                return true;
-            }
-            else
-                return false;
+            IUUpdateNumber(&MotionErrorNP, values, names, n);
+            MotionErrorNP.s = IPS_OK;
+            IDSetNumber(&MotionErrorNP, nullptr);
+            return true;
         }
     }
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -207,8 +201,8 @@ bool SmartFocus::AbortFocuser()
 
 IPState SmartFocus::MoveAbsFocuser(uint32_t targetPosition)
 {
-    const Position destination = static_cast<Position>(targetPosition);
-    IPState result             = IPS_ALERT;
+    Position destination = static_cast<Position>(targetPosition);
+    IPState result       = IPS_ALERT;
     if (isSimulation())
     {
         position = destination;
@@ -217,28 +211,40 @@ IPState SmartFocus::MoveAbsFocuser(uint32_t targetPosition)
     }
     else
     {
-        char command[3];
-        command[0] = goto_position;
-        command[1] = ((destination >> 8) & 0xFF);
-        command[2] = (destination & 0xFF);
-        LOGF_DEBUG("MoveAbsFocuser: destination= %d", destination);
-        tcflush(PortFD, TCIOFLUSH);
-        if (send(command, sizeof(command), "MoveAbsFocuser"))
+        constexpr bool Correct_Positions = true;
+        if (Correct_Positions)
         {
-            char respons;
-            if (recv(&respons, sizeof(respons), "MoveAbsFocuser"))
+            const int error = MotionErrorN[0].value; // The NGF-S overshoots motions by 3 steps.
+            if (destination > position) destination -= error, destination = std::max(position,destination);
+            if (destination < position) destination += error, destination = std::min(position,destination);
+        }
+        if (destination != position)
+        {
+            char command[3];
+            command[0] = goto_position;
+            command[1] = ((destination >> 8) & 0xFF);
+            command[2] = (destination & 0xFF);
+            LOGF_DEBUG("MoveAbsFocuser: destination= %d", destination);
+            tcflush(PortFD, TCIOFLUSH);
+            if (send(command, sizeof(command), "MoveAbsFocuser"))
             {
-                LOGF_DEBUG("MoveAbsFocuser received echo: %c", respons);
-                if (respons != goto_position)
-                    LOGF_ERROR("MoveAbsFocuser received unexpected respons: %c (0x02x)", respons,
-                           respons);
-                else
+                char respons;
+                if (recv(&respons, sizeof(respons), "MoveAbsFocuser"))
                 {
-                    state  = MovingTo;
-                    result = IPS_BUSY;
+                    LOGF_DEBUG("MoveAbsFocuser received echo: %c", respons);
+                    if (respons != goto_position)
+                        LOGF_ERROR("MoveAbsFocuser received unexpected respons: %c (0x02x)", respons,
+                               respons);
+                    else
+                    {
+                        state  = MovingTo;
+                        result = IPS_BUSY;
+                    }
                 }
             }
-        }
+         }
+         else
+            result = IPS_OK;
     }
     return result;
 }
@@ -304,7 +310,8 @@ void SmartFocus::TimerHit()
 
 bool SmartFocus::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigNumber(fp, &MaxPositionNP);
+    Focuser::saveConfigItems(fp);
+    IUSaveConfigNumber(fp, &MotionErrorNP);
     return true;
 }
 

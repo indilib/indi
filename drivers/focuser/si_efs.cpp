@@ -99,7 +99,7 @@ bool SIEFS::Connect()
 {
     if (isSimulation())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
 
@@ -118,16 +118,20 @@ bool SIEFS::Connect()
         {
             FocusMaxPosN[0].value = maximumPosition;
 
-            FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].value;
-            FocusAbsPosN[0].step = FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
-            FocusAbsPosN[0].min = FocusSyncN[0].min = 0;
+            FocusAbsPosN[0].min = 0;
+            FocusAbsPosN[0].max = FocusMaxPosN[0].value;
+            FocusAbsPosN[0].step = FocusMaxPosN[0].value / 50.0;
+
+            FocusSyncN[0].min = 0;
+            FocusSyncN[0].max = FocusMaxPosN[0].value;
+            FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
 
             FocusRelPosN[0].max  = FocusMaxPosN[0].value / 2;
             FocusRelPosN[0].step = FocusMaxPosN[0].value / 100.0;
             FocusRelPosN[0].min  = 0;
         }
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 
     return (handle != nullptr);
@@ -206,7 +210,7 @@ void SIEFS::TimerHit()
 
     IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 IPState SIEFS::MoveAbsFocuser(uint32_t targetTicks)

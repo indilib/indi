@@ -35,7 +35,7 @@ TEST(CORE_BASE64, Test_to64frombits)
     p_outbuf = (unsigned char *)calloc(1, size);
     ASSERT_TRUE(p_outbuf);
 
-    len = to64frombits(p_outbuf, convert, sizeof(convert) - 1);
+    len = to64frombits_s(p_outbuf, convert, sizeof(convert) - 1, (size_t) size);
     ASSERT_EQ(sizeof("Rk9PQkFSQkFa") - 1, len);
     ASSERT_STREQ("Rk9PQkFSQkFa", (const char *)p_outbuf);
 

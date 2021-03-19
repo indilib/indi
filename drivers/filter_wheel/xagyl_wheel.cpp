@@ -153,10 +153,10 @@ bool XAGYLWheel::updateProperties()
     {
         getStartupData();
 
-        defineSwitch(&ResetSP);
-        defineNumber(&OffsetNP);
-        defineText(&FirmwareInfoTP);
-        defineNumber(&SettingsNP);
+        defineProperty(&ResetSP);
+        defineProperty(&OffsetNP);
+        defineProperty(&FirmwareInfoTP);
+        defineProperty(&SettingsNP);
     }
     else
     {

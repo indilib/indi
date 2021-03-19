@@ -194,18 +194,18 @@ bool USBFocusV3::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineNumber(&MaxPositionNP);
-        defineSwitch(&StepModeSP);
-        defineSwitch(&RotDirSP);
-        defineNumber(&MaxPositionNP);
-        defineNumber(&TemperatureSettingNP);
-        defineSwitch(&TempCompSignSP);
-        defineSwitch(&TemperatureCompensateSP);
-        //        defineSwitch(&BacklashDirectionSP);
-        //        defineNumber(&BacklashSettingNP);
-        defineSwitch(&ResetSP);
-        defineNumber(&FWversionNP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&MaxPositionNP);
+        defineProperty(&StepModeSP);
+        defineProperty(&RotDirSP);
+        defineProperty(&MaxPositionNP);
+        defineProperty(&TemperatureSettingNP);
+        defineProperty(&TempCompSignSP);
+        defineProperty(&TemperatureCompensateSP);
+        //        defineProperty(&BacklashDirectionSP);
+        //        defineProperty(&BacklashSettingNP);
+        defineProperty(&ResetSP);
+        defineProperty(&FWversionNP);
 
         GetFocusParams();
 
@@ -1219,7 +1219,7 @@ void USBFocusV3::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool USBFocusV3::AbortFocuser()

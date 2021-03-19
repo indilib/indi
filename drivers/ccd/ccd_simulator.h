@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <deque>
+
 #include "indiccd.h"
 #include "indifilterinterface.h"
 
@@ -48,7 +50,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             SIM_XSIZE,
             SIM_YSIZE,
             SIM_MAXVAL,
-            SIM_BIAS,
             SIM_SATURATION,
             SIM_LIMITINGMAG,
             SIM_NOISE,
@@ -58,10 +59,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
             SIM_POLARDRIFT,
             SIM_PE_PERIOD,
             SIM_PE_MAX,
-            SIM_ROTATION,
-            SIM_KING_GAMMA,
-            SIM_KING_THETA,
             SIM_TIME_FACTOR,
+            SIM_ROTATION,
             SIM_N
         };
 
@@ -113,6 +112,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
         virtual bool UpdateCCDBin(int hor, int ver) override;
 
+        virtual bool UpdateGuiderBin(int hor, int ver) override;
+
         virtual bool StartStreaming() override;
         virtual bool StopStreaming() override;
 
@@ -123,10 +124,13 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     protected:
 
         float CalcTimeLeft(timeval, float);
+        bool loadNextImage();
         bool setupParameters();
 
         // Turns on/off Bayer RGB simulation.
-        void setRGB(bool onOff);
+        void setBayerEnabled(bool onOff);
+
+        double flux(double magnitude) const;
 
         float TemperatureRequest { 0 };
 
@@ -160,11 +164,11 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float m_RotationCW { 0 };
         float m_TimeFactor { 1 };
 
-        bool m_SimulateRGB { false };
+        bool m_SimulateBayer { false };
 
         //  our zero point calcs used for drawing stars
-        float k { 0 };
-        float z { 0 };
+        //float k { 0 };
+        //float z { 0 };
 
         bool AbortGuideFrame { false };
         bool AbortPrimaryFrame { false };
@@ -187,23 +191,32 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         float m_PolarError { 0 };
         float m_PolarDrift { 0 };
-        float m_KingGamma = { 0 };
-        float m_KingTheta = { 0 };
 
         int streamPredicate {0};
         pthread_t primary_thread;
         bool terminateThread;
 
+        std::deque<std::string> m_AllFiles, m_RemainingFiles;
+
         //  And this lives in our simulator settings page
         INumberVectorProperty SimulatorSettingsNP;
         INumber SimulatorSettingsN[SIM_N];
 
-        ISwitchVectorProperty SimulateRgbSP;
-        ISwitch SimulateRgbS[2];
+        ISwitchVectorProperty SimulateBayerSP;
+        ISwitch SimulateBayerS[2];
 
         //  We are going to snoop these from focuser
         INumberVectorProperty FWHMNP;
         INumber FWHMN[1];
+
+        // Focuser positions for focusing simulation
+        // FocuserPosition[0] is the position where the scope is in focus
+        // FocuserPosition[1] is the maximal position the focuser may move to (@see FOCUS_MAX in #indifocuserinterface.cpp)
+        // FocuserPosition[2] is the seeing (in arcsec)
+        // We need to have these values here, since we cannot snoop it from the focuser (the focuser does not
+        // publish these values)
+        INumberVectorProperty FocusSimulationNP;
+        INumber FocusSimulationN[3];
 
         INumberVectorProperty EqPENP;
         INumber EqPEN[2];
@@ -213,6 +226,15 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         INumber GainN[1];
         INumberVectorProperty GainNP;
+
+        INumber OffsetN[1];
+        INumberVectorProperty OffsetNP;
+
+        IText DirectoryT[1] {};
+        ITextVectorProperty DirectoryTP;
+
+        ISwitch DirectoryS[2];
+        ISwitchVectorProperty DirectorySP;
 
         ISwitchVectorProperty CrashSP;
         ISwitch CrashS[1];

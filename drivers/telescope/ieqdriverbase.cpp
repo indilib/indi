@@ -528,8 +528,8 @@ bool Base::getCoords(double *ra, double *dec)
 
     if (sendCommand(":GEC#", res))
     {
-        *ra = DecodeString(res + 9, 8, ieqHours);
-        *dec = DecodeString(res, 9, ieqDegrees);
+        *ra = Ra = DecodeString(res + 9, 8, ieqHours);
+        *dec = Dec = DecodeString(res, 9, ieqDegrees);
         return true;
     }
 
@@ -589,19 +589,37 @@ bool Base::getStatus(Info *info)
         strncpy(latitude, res + 7, 6);
         strncpy(status, res + 13, 6);
 
-        info->longitude = DecodeString(res, 7, 3600.0);
-        info->latitude = DecodeString(res + 7, 6, 3600.0) - 90;
-        info->gpsStatus    = static_cast<GPSStatus>(status[0] - '0');
-        info->systemStatus = static_cast<SystemStatus>(status[1] - '0');
-        info->trackRate    = static_cast<TrackRate>(status[2] - '0');
-        info->slewRate     = static_cast<SlewRate>(status[3] - '0' - 1);
-        info->timeSource   = static_cast<TimeSource>(status[4] - '0');
-        info->hemisphere   = static_cast<Hemisphere>(status[5] - '0');
+        info->longitude     = DecodeString(res, 7, 3600.0);
+        info->latitude      = DecodeString(res + 7, 6, 3600.0) - 90;
+        info->gpsStatus     = static_cast<GPSStatus>(status[0] - '0');
+        info->systemStatus  = static_cast<SystemStatus>(status[1] - '0');
+        info->trackRate     = static_cast<TrackRate>(status[2] - '0');
+        info->slewRate      = static_cast<SlewRate>(status[3] - '0' - 1);
+        info->timeSource    = static_cast<TimeSource>(status[4] - '0');
+        info->hemisphere    = static_cast<Hemisphere>(status[5] - '0');
+
+        this->info = *info;     // keep a local copy
 
         return true;
     }
 
     return false;
+}
+
+const char * pierSideStr(IEQ_PIER_SIDE ps)
+{
+    switch (ps)
+    {
+        case IEQ_PIER_EAST:
+            return "EAST";
+        case IEQ_PIER_WEST:
+            return "WEST";
+        case IEQ_PIER_UNKNOWN:
+            return "UNKNOWN";
+        case IEQ_PIER_UNCERTAIN:
+            return "UNCERTAIN";
+    }
+    return "Impossible";
 }
 
 bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
@@ -621,21 +639,58 @@ bool Base::getPierSide(IEQ_PIER_SIDE * pierSide)
         // this is the pole angle in degrees
         decAxis = DecodeString(res, 9, ieqDegrees);
 
-        double hA = 0;
+        double axisHa = 0;
 
         if (decAxis >= 0)
         {
             *pierSide = IEQ_PIER_WEST;
-            hA = 18 - haAxis;        // OK for the West PS
+            axisHa  = 18 - haAxis;        // OK for the West PS
         }
         else
         {
             *pierSide = IEQ_PIER_EAST;
-            hA = haAxis - 6;        // OK for the West PS
+            axisHa  = haAxis - 6;        // OK for the West PS
         }
 
-        LOGF_DEBUG("getPierSide pole Axis %f, haAxis %f, Ha %f, pierSide %s", decAxis, haAxis, hA,
-                   *pierSide == IEQ_PIER_EAST ? "EAST" : "WEST");
+        // The pole angle is not exactly at 0 when the dec is 90 and this gives problems with incorrect pier side close to the pole.
+        //
+        // Attempt to handle this by using the hour angle where the HA can be relied on - away from the meridian
+        // Use pole angle when within 2 hours of a meridian.
+        // If the pole angle is less than the difference between the pole angle and the dec report the pier side as unknown
+        //
+        // I know, horrible, but the data the mount reports is so difficult to interpret that this seems to be the least
+        // worst solution, anyway, let's see if it works CR
+
+        double lst = get_local_sidereal_time(info.longitude);
+        double ha = rangeHA(get_local_hour_angle(lst, Ra));
+
+        const char* reason;
+        double decPA = info.latitude >= 0 ? 90 - Dec : 90 + Dec;     // the distance from the pole determined using the declination, ok for both hemispheres
+
+        if ((ha > 2 && ha < 10) || (ha < -2 && ha > -10))
+        {
+            // use Ha to determine pier side
+            *pierSide = ha > 0 ? IEQ_PIER_EAST : IEQ_PIER_WEST;
+            reason = "Hour Angle";
+        }
+        else
+        {
+            double decDiff = std::fabs(decPA - std::fabs(decAxis)); // not sure about this in the Southern hemisphere
+            if (decPA > decDiff)
+            {
+                // use the pole angle
+                *pierSide = decAxis > 0 ? IEQ_PIER_WEST : IEQ_PIER_EAST;
+                reason = "pole angle";
+            }
+            else
+            {
+                *pierSide = IEQ_PIER_UNCERTAIN;
+                reason= "uncertain";
+            }
+        }
+
+        LOGF_DEBUG("getPierSide pole Axis %f, haAxis %f, axisHa %f, ha %f, decPa %f, %s pierSide %s", decAxis, haAxis, axisHa , ha, decPA, reason,
+                   pierSideStr(*pierSide));
 
         return true;
     }

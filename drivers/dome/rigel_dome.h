@@ -28,7 +28,8 @@ class RigelDome : public INDI::Dome
     public:
         typedef enum { S_Open, S_Closed, S_Opening, S_Closing, S_Error, S_UnKnown, S_NotFitted } RigelShutterState;
         typedef enum { M_Idle, M_MovingToTarget, M_MovingToVelocity, M_MovingAtSideral,
-                       M_MovingCCW, M_MovingCW,  M_Calibrating, M_Homing} RigelMotorState;
+                       M_MovingCCW, M_MovingCW,  M_Calibrating, M_Homing
+                     } RigelMotorState;
 
         RigelDome();
         virtual ~RigelDome() override = default;
@@ -109,7 +110,7 @@ class RigelDome : public INDI::Dome
 
         // Info
         ITextVectorProperty InfoTP;
-        IText InfoT[4];
+        IText InfoT[4] {};
         enum
         {
             INFO_FIRMWARE,

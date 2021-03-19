@@ -144,11 +144,11 @@ void TemmaMount::ISGetProperties(const char *dev)
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
-    //defineNumber(&GuideNSNP);
-    //defineNumber(&GuideWENP);
+    //defineProperty(&GuideNSNP);
+    //defineProperty(&GuideWENP);
 
     // JM 2016-11-10: This is not used anywhere in the code now. Enable it again when you use it
-    //defineNumber(&GuideRateNP);
+    //defineProperty(&GuideRateNP);
 }
 #endif
 
@@ -227,8 +227,8 @@ bool TemmaMount::updateProperties()
             SetAxis2ParkDefault(Latitude >= 0 ? 90 : -90);
         }
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
 
         // Load location so that it could trigger mount initiailization
         loadConfig(true, "GEOGRAPHIC_COORD");

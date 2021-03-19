@@ -28,55 +28,6 @@
 
 static std::unique_ptr<SimpleScope> simpleScope(new SimpleScope());
 
-/**************************************************************************************
-** Return properties of device.
-***************************************************************************************/
-void ISGetProperties(const char *dev)
-{
-    simpleScope->ISGetProperties(dev);
-}
-
-/**************************************************************************************
-** Process new switch from client
-***************************************************************************************/
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    simpleScope->ISNewSwitch(dev, name, states, names, n);
-}
-
-/**************************************************************************************
-** Process new text from client
-***************************************************************************************/
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    simpleScope->ISNewText(dev, name, texts, names, n);
-}
-
-/**************************************************************************************
-** Process new number from client
-***************************************************************************************/
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    simpleScope->ISNewNumber(dev, name, values, names, n);
-}
-
-/**************************************************************************************
-** Process new blob from client
-***************************************************************************************/
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    simpleScope->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-/**************************************************************************************
-** Process snooped property from another driver
-***************************************************************************************/
-void ISSnoopDevice(XMLEle *root)
-{
-    simpleScope->ISSnoopDevice(root);
-}
-
 SimpleScope::SimpleScope()
 {
     // We add an additional debug level so we can log verbose scope status

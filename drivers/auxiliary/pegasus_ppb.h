@@ -25,7 +25,6 @@
 #pragma once
 
 #include "defaultdevice.h"
-#include "indifocuserinterface.h"
 #include "indiweatherinterface.h"
 
 #include <vector>

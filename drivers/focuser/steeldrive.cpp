@@ -169,16 +169,16 @@ bool SteelDrive::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineNumber(&TemperatureSettingNP);
-        defineSwitch(&TemperatureCompensateSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&TemperatureSettingNP);
+        defineProperty(&TemperatureCompensateSP);
 
-        defineSwitch(&ModelSP);
-        defineNumber(&CustomSettingNP);
-        defineNumber(&AccelerationNP);
-        defineNumber(&SyncNP);
+        defineProperty(&ModelSP);
+        defineProperty(&CustomSettingNP);
+        defineProperty(&AccelerationNP);
+        defineProperty(&SyncNP);
 
-        defineText(&VersionTP);
+        defineProperty(&VersionTP);
 
         GetFocusParams();
 
@@ -216,7 +216,7 @@ bool SteelDrive::Handshake()
     }
 
     LOG_INFO("Error retrieving data from SteelDrive, please ensure SteelDrive controller is "
-                                     "powered and the port is correct.");
+             "powered and the port is correct.");
     return false;
 }
 
@@ -248,7 +248,7 @@ bool SteelDrive::Ack()
 
     if (sim)
     {
-        strncpy(resp, ":FV2.00812#", STEELDRIVE_CMD_LONG);
+        strncpy(resp, ":FV2.00812#", STEELDRIVE_CMD_LONG + 1);
         nbytes_read = STEELDRIVE_CMD_LONG;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -301,7 +301,7 @@ bool SteelDrive::updateVersion()
 
     if (sim)
     {
-        strncpy(resp, ":FV2.00812#", STEELDRIVE_CMD_LONG);
+        strncpy(resp, ":FV2.00812#", STEELDRIVE_CMD_LONG + 1);
         nbytes_read = STEELDRIVE_CMD_LONG;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -348,7 +348,7 @@ bool SteelDrive::updateVersion()
 
     if (sim)
     {
-        strncpy(resp, ":FN2.21012#", STEELDRIVE_CMD_LONG);
+        strncpy(resp, ":FN2.21012#", STEELDRIVE_CMD_LONG + 1);
         nbytes_read = STEELDRIVE_CMD_LONG;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -408,7 +408,7 @@ bool SteelDrive::updateTemperature()
 
     if (sim)
     {
-        strncpy(resp, ":F5+1810#", STEELDRIVE_CMD);
+        strncpy(resp, ":F5+1810#", STEELDRIVE_CMD + 1);
         nbytes_read = STEELDRIVE_CMD;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -483,7 +483,7 @@ bool SteelDrive::updatePosition()
             tty_error_msg(rc, errstr, MAXRBUF);
             resp[nbytes_read] = '\0';
             LOGF_DEBUG(":F8ASKS0# updatePosition read error: %s. Retry: %d. Bytes: %d. Buffer (%s)", errstr, retries,
-                   nbytes_read, resp);
+                       nbytes_read, resp);
         }
         else
             break;
@@ -537,7 +537,7 @@ bool SteelDrive::updateSpeed()
 
     if (sim)
     {
-        strncpy(resp, ":FG00350#", STEELDRIVE_CMD);
+        strncpy(resp, ":FG00350#", STEELDRIVE_CMD + 1);
         nbytes_read = STEELDRIVE_CMD;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -589,7 +589,7 @@ bool SteelDrive::updateAcceleration()
 
     if (sim)
     {
-        strncpy(resp, ":FH01800#", STEELDRIVE_CMD);
+        strncpy(resp, ":FH01800#", STEELDRIVE_CMD + 1);
         nbytes_read = STEELDRIVE_CMD;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -641,7 +641,7 @@ bool SteelDrive::updateTemperatureSettings()
 
     if (sim)
     {
-        strncpy(resp, ":F710004#", STEELDRIVE_CMD);
+        strncpy(resp, ":F710004#", STEELDRIVE_CMD + 1);
         nbytes_read = STEELDRIVE_CMD;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -707,7 +707,7 @@ bool SteelDrive::updateCustomSettings()
 
     if (sim)
     {
-        strncpy(resp, ":FE25040#", STEELDRIVE_CMD);
+        strncpy(resp, ":FE25040#", STEELDRIVE_CMD + 1);
         nbytes_read = STEELDRIVE_CMD;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -747,7 +747,7 @@ bool SteelDrive::updateCustomSettings()
 
     if (sim)
     {
-        strncpy(resp, ":F40011577#", STEELDRIVE_CMD_LONG);
+        strncpy(resp, ":F40011577#", STEELDRIVE_CMD_LONG + 1);
         nbytes_read = STEELDRIVE_CMD_LONG;
     }
     else if ((rc = tty_read_section(PortFD, resp, '#', STEELDRIVE_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -780,7 +780,7 @@ bool SteelDrive::updateCustomSettings()
         CustomSettingN[FOCUS_GEAR_RATIO].value = fSettings[sFocuser].gearRatio;
 
         LOGF_DEBUG("Updated max trip: %g gear ratio: %g", fSettings[sFocuser].maxTrip,
-               fSettings[sFocuser].gearRatio);
+                   fSettings[sFocuser].gearRatio);
     }
     else
     {
@@ -1299,9 +1299,9 @@ IPState SteelDrive::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
 
     startMotion(dir);
 
-    if (duration <= POLLMS)
+    if (duration <= getCurrentPollingPeriod())
     {
-        usleep(POLLMS * 1000);
+        usleep(getCurrentPollingPeriod() * 1000);
         AbortFocuser();
         return IPS_OK;
     }
@@ -1450,7 +1450,7 @@ void SteelDrive::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************
@@ -1478,7 +1478,8 @@ bool SteelDrive::AbortFocuser()
         IDSetNumber(&FocusRelPosNP, nullptr);
     }
 
-    FocusTimerNP.s = FocusAbsPosNP.s = IPS_IDLE;
+    FocusTimerNP.s = IPS_IDLE;
+    FocusAbsPosNP.s = IPS_IDLE;
     IDSetNumber(&FocusTimerNP, nullptr);
     IDSetNumber(&FocusAbsPosNP, nullptr);
 
@@ -1492,7 +1493,10 @@ float SteelDrive::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
     gettimeofday(&now, nullptr);
 
     timesince =

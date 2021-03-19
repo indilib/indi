@@ -22,7 +22,7 @@
 #include "mjpegencoder.h"
 #include "stream/streammanager.h"
 #include "indiccd.h"
-
+#include <cmath>
 #include <zlib.h>
 #include <jpeglib.h>
 #include <jerror.h>
@@ -51,7 +51,7 @@ namespace INDI
 
 MJPEGEncoder::MJPEGEncoder()
 {
-    name = "MJPEG";    
+    name = "MJPEG";
 }
 
 MJPEGEncoder::~MJPEGEncoder()
@@ -82,10 +82,13 @@ bool MJPEGEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, boo
         jpegBufferSize = bufsize;
     }
 
+    // Scale image DOWN by this factor
+    // 640 is now selected arbitrary to test mpeg streaming performance
+    int scale = std::max(1, static_cast<int>(std::floor(rawWidth / SCALE_WIDTH)));
     if (pixelFormat == INDI_RGB)
-        jpeg_compress_8u_rgb(buffer, rawWidth, rawHeight, rawWidth*3, jpegBuffer, &bufsize, 70);
+        jpeg_compress_8u_rgb(buffer, rawWidth, rawHeight, rawWidth * 3, scale, jpegBuffer, &bufsize, 85);
     else
-        jpeg_compress_8u_gray(buffer, rawWidth, rawHeight, rawWidth, jpegBuffer, &bufsize, 70);
+        jpeg_compress_8u_gray(buffer, rawWidth, rawHeight, rawWidth, scale, jpegBuffer, &bufsize, 85);
 
     bp->blob    = jpegBuffer;
     bp->bloblen = bufsize;
@@ -116,7 +119,9 @@ Requirements:
   library that is ABI compatible with libjpeg62.
 */
 
-int MJPEGEncoder::jpeg_compress_8u_gray (const uint8_t * src, uint16_t width, uint16_t height, int stride, uint8_t * dest, int * destsize, int quality)
+int MJPEGEncoder::jpeg_compress_8u_gray (const uint8_t * src, uint16_t width, uint16_t height, int stride, int scale,
+        uint8_t * dest,
+        int * destsize, int quality)
 {
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
@@ -134,6 +139,11 @@ int MJPEGEncoder::jpeg_compress_8u_gray (const uint8_t * src, uint16_t width, ui
 
     cinfo.image_width = width;
     cinfo.image_height = height;
+#if JPEG_LIB_VERSION >= 70
+    cinfo.scale_denom = scale;
+#else
+    INDI_UNUSED(scale);
+#endif
     cinfo.input_components = 1;
     cinfo.in_color_space = JCS_GRAYSCALE;
     jpeg_set_defaults (&cinfo);
@@ -152,7 +162,8 @@ int MJPEGEncoder::jpeg_compress_8u_gray (const uint8_t * src, uint16_t width, ui
     return 0;
 }
 
-int MJPEGEncoder::jpeg_compress_8u_rgb (const uint8_t * src, uint16_t width, uint16_t height, int stride, uint8_t * dest, int * destsize, int quality)
+int MJPEGEncoder::jpeg_compress_8u_rgb (const uint8_t * src, uint16_t width, uint16_t height, int stride, int scale,
+                                        uint8_t * dest, int * destsize, int quality)
 {
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
@@ -170,6 +181,11 @@ int MJPEGEncoder::jpeg_compress_8u_rgb (const uint8_t * src, uint16_t width, uin
 
     cinfo.image_width = width;
     cinfo.image_height = height;
+#if JPEG_LIB_VERSION >= 70
+    cinfo.scale_denom = scale;
+#else
+    INDI_UNUSED(scale);
+#endif
     cinfo.input_components = 3;
     cinfo.in_color_space = JCS_RGB;
     jpeg_set_defaults (&cinfo);

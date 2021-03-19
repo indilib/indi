@@ -1,6 +1,6 @@
 /*
     LX200 Classic
-    Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2003-2020 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -24,40 +24,58 @@
 
 class LX200Classic : public LX200Generic
 {
-  public:
-    LX200Classic();
-    ~LX200Classic() {}
+    public:
+        LX200Classic();
+        ~LX200Classic() {}
 
-    const char *getDefaultName();
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    ITextVectorProperty ObjectInfoTP;
-    IText ObjectInfoT[1] {};
+    protected:
 
-    ISwitchVectorProperty StarCatalogSP;
-    ISwitch StarCatalogS[3];
+        const char *getDefaultName() override;
+        bool initProperties() override;
+        bool updateProperties() override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    ISwitchVectorProperty DeepSkyCatalogSP;
-    ISwitch DeepSkyCatalogS[7];
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool ReadScopeStatus() override;
 
-    ISwitchVectorProperty SolarSP;
-    ISwitch SolarS[10];
+    private:
 
-    INumberVectorProperty ObjectNoNP;
-    INumber ObjectNoN[1];
+        ITextVectorProperty ObjectInfoTP;
+        IText ObjectInfoT[1] {};
 
-    INumberVectorProperty MaxSlewRateNP;
-    INumber MaxSlewRateN[1];
+        ISwitchVectorProperty StarCatalogSP;
+        ISwitch StarCatalogS[3];
 
-    INumberVectorProperty ElevationLimitNP;
-    INumber ElevationLimitN[2];
+        ISwitchVectorProperty DeepSkyCatalogSP;
+        ISwitch DeepSkyCatalogS[7];
 
-  private:
-    int currentCatalog;
-    int currentSubCatalog;
+        ISwitchVectorProperty SolarSP;
+        ISwitch SolarS[10];
+
+        INumberVectorProperty ObjectNoNP;
+        INumber ObjectNoN[1];
+
+        INumberVectorProperty MaxSlewRateNP;
+        INumber MaxSlewRateN[1];
+
+        INumberVectorProperty ElevationLimitNP;
+        INumber ElevationLimitN[2];
+        
+        ISwitchVectorProperty UnparkAlignmentSP;
+        ISwitch UnparkAlignmentS[3];
+
+    private:
+        int currentCatalog {0};
+        int currentSubCatalog {0};
+        
+        void azAltToRaDecNow(double az, double alt, double &ra, double &dec);
+        void raDecToAzAltNow(double ra, double dec, double &az, double &alt);
+        
 };

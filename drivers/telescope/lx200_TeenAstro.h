@@ -99,7 +99,6 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         
         void handleStatusChange(void);
         void SendPulseCmd(int8_t direction, uint32_t duration_msec);
-        void enableRefractionTracking(bool enable);
         void sendCommand(const char *cmd);
         void updateMountStatus(char);
    
@@ -121,28 +120,14 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         ITextVectorProperty VersionTP;
         IText VersionT[5] {};
 
-        ISwitch SlewRateS[10];
+        ISwitch SlewRateS[5];
         ISwitchVectorProperty SlewRateSP;
 
-        ISwitch GuideRateS[10];
+        ISwitch GuideRateS[3];
         ISwitchVectorProperty GuideRateSP;
 
         ISwitch TATrackModeS[3];
         ISwitchVectorProperty TATrackModeSP;
-
-       // Backlash
-        INumberVectorProperty BacklashRANP;
-        INumber BacklashRAN[1]; 
-        INumberVectorProperty BacklashDecNP;
-        INumber BacklashDecN[1]; 
-
-        // Use pulse-guide commands
-        ISwitchVectorProperty UsePulseCmdSP;
-        ISwitch UsePulseCmdS[2];
-        bool usePulseCommand { true };
-
-        ISwitchVectorProperty RefractionSP;
-        ISwitch RefractionS[2];
 
         // Site Management 
         ISwitchVectorProperty SiteSP;
@@ -162,5 +147,7 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         uint32_t DBG_SCOPE = 0;
         char OSStat[RB_MAX_LEN];
         char OldOSStat[RB_MAX_LEN];
+        const char *statusCommand;           // :GU# for version 1.1, :GXI# for 1.2 and later
+        const char *guideSpeedCommand;       // :SX90# or SXR0
 
 };
