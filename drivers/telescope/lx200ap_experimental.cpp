@@ -172,7 +172,7 @@ bool LX200AstroPhysicsExperimental::initProperties()
                        IPS_IDLE);
 
     IUFillText(&VersionT[0], "Version", "Version", "");
-    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", SITE_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&VersionTP, VersionT, 1, getDeviceName(), "Firmware", "Firmware", SITE_TAB, IP_RO, 0, IPS_IDLE);
 
     // UTC offset
     IUFillNumber(&APUTCOffsetN[0], "APUTC_OFFSET", "AP UTC offset", "%8.5f", 0.0, 24.0, 0.0, 0.);
@@ -207,7 +207,7 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
     {
         defineProperty(&UnparkFromSP);
         defineProperty(&ParkToSP);
-        defineProperty(&VersionInfo);
+        defineProperty(&VersionTP);
         defineProperty(&APSlewSpeedSP);
         defineProperty(&SwapSP);
         defineProperty(&SyncCMRSP);
@@ -229,7 +229,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
             deleteProperty(UsePulseCmdSP.name);
             deleteProperty(TrackRateNP.name);
         }
-        defineProperty(&VersionInfo);
+        defineProperty(&VersionTP);
         defineProperty(&UnparkFromSP);
         /* Motion group */
         defineProperty(&APSlewSpeedSP);
@@ -308,7 +308,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
     else
     {
         deleteProperty(UnparkFromSP.name);
-        deleteProperty(VersionInfo.name);
+        deleteProperty(VersionTP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
@@ -335,9 +335,9 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
     else
         getAPVersionNumber(PortFD, versionString);
 
-    VersionInfo.s = IPS_OK;
+    VersionTP.s = IPS_OK;
     IUSaveText(&VersionT[0], versionString);
-    IDSetText(&VersionInfo, nullptr);
+    IDSetText(&VersionTP, nullptr);
 
     // Check controller version
     // example "VCP4-P01-01" for CP4 or newer
@@ -608,8 +608,8 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
             IDSetSwitch(&APSlewSpeedSP, nullptr);
 
             IUSaveText(&VersionT[0], "1.0");
-            VersionInfo.s = IPS_OK;
-            IDSetText(&VersionInfo, nullptr);
+            VersionTP.s = IPS_OK;
+            IDSetText(&VersionTP, nullptr);
 
             StartUpSP.s = IPS_OK;
             IDSetSwitch(&StartUpSP, "Mount initialized.");
@@ -664,9 +664,9 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
 
         char versionString[64];
         getAPVersionNumber(PortFD, versionString);
-        VersionInfo.s = IPS_OK;
+        VersionTP.s = IPS_OK;
         IUSaveText(&VersionT[0], versionString);
-        IDSetText(&VersionInfo, nullptr);
+        IDSetText(&VersionTP, nullptr);
 
         StartUpSP.s = IPS_OK;
         IDSetSwitch(&StartUpSP, "Mount initialized.");
@@ -1181,8 +1181,9 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -2066,8 +2067,9 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
     if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
     {
-        MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-        EqNP.s                          = IPS_IDLE;
+        MovementNSSP.s = IPS_IDLE;
+        MovementWESP.s = IPS_IDLE;
+        EqNP.s = IPS_IDLE;
         IUResetSwitch(&MovementNSSP);
         IUResetSwitch(&MovementWESP);
         IDSetSwitch(&MovementNSSP, nullptr);

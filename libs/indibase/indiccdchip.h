@@ -52,7 +52,7 @@ class CCDChip
          * @brief getXRes Get the horizontal resolution in pixels of the CCD Chip.
          * @return the horizontal resolution of the CCD Chip.
          */
-        inline int getXRes()
+        inline int getXRes() const
         {
             return XRes;
         }
@@ -61,7 +61,7 @@ class CCDChip
          * @brief Get the vertical resolution in pixels of the CCD Chip.
          * @return the horizontal resolution of the CCD Chip.
          */
-        inline int getYRes()
+        inline int getYRes() const
         {
             return YRes;
         }
@@ -70,7 +70,7 @@ class CCDChip
          * @brief getSubX Get the starting left coordinates (X) of the frame.
          * @return the starting left coordinates (X) of the image.
          */
-        inline int getSubX()
+        inline int getSubX() const
         {
             return SubX;
         }
@@ -79,7 +79,7 @@ class CCDChip
          * @brief getSubY Get the starting top coordinates (Y) of the frame.
          * @return the starting top coordinates (Y) of the image.
          */
-        inline int getSubY()
+        inline int getSubY() const
         {
             return SubY;
         }
@@ -88,7 +88,7 @@ class CCDChip
          * @brief getSubW Get the width of the frame
          * @return unbinned width of the frame
          */
-        inline int getSubW()
+        inline int getSubW() const
         {
             return SubW;
         }
@@ -97,7 +97,7 @@ class CCDChip
          * @brief getSubH Get the height of the frame
          * @return unbinned height of the frame
          */
-        inline int getSubH()
+        inline int getSubH() const
         {
             return SubH;
         }
@@ -106,7 +106,7 @@ class CCDChip
          * @brief getBinX Get horizontal binning of the CCD chip.
          * @return horizontal binning of the CCD chip.
          */
-        inline int getBinX()
+        inline int getBinX() const
         {
             return BinX;
         }
@@ -115,7 +115,7 @@ class CCDChip
          * @brief getBinY Get vertical binning of the CCD chip.
          * @return vertical binning of the CCD chip.
          */
-        inline int getBinY()
+        inline int getBinY() const
         {
             return BinY;
         }
@@ -124,7 +124,7 @@ class CCDChip
          * @brief getPixelSizeX Get horizontal pixel size in microns.
          * @return horizontal pixel size in microns.
          */
-        inline float getPixelSizeX()
+        inline float getPixelSizeX() const
         {
             return PixelSizeX;
         }
@@ -133,7 +133,7 @@ class CCDChip
          * @brief getPixelSizeY Get vertical pixel size in microns.
          * @return vertical pixel size in microns.
          */
-        inline float getPixelSizeY()
+        inline float getPixelSizeY() const
         {
             return PixelSizeY;
         }
@@ -142,7 +142,7 @@ class CCDChip
          * @brief getBPP Get CCD Chip depth (bits per pixel).
          * @return bits per pixel.
          */
-        inline int getBPP()
+        inline int getBPP() const
         {
             return BitsPerPixel;
         }
@@ -151,7 +151,7 @@ class CCDChip
          * @brief getFrameBufferSize Get allocated frame buffer size to hold the CCD image frame.
          * @return allocated frame buffer size to hold the CCD image frame.
          */
-        inline int getFrameBufferSize()
+        inline int getFrameBufferSize() const
         {
             return RawFrameSize;
         }
@@ -160,7 +160,7 @@ class CCDChip
          * @brief getExposureLeft Get exposure time left in seconds.
          * @return exposure time left in seconds.
          */
-        inline double getExposureLeft()
+        inline double getExposureLeft() const
         {
             return ImageExposureN[0].value;
         }
@@ -169,7 +169,7 @@ class CCDChip
          * @brief getExposureDuration Get requested exposure duration for the CCD chip in seconds.
          * @return requested exposure duration for the CCD chip in seconds.
          */
-        inline double getExposureDuration()
+        inline double getExposureDuration() const
         {
             return ExposureDuration;
         }
@@ -206,7 +206,7 @@ class CCDChip
          * @brief isCompressed
          * @return True if frame is compressed, false otherwise.
          */
-        inline bool isCompressed()
+        inline bool isCompressed() const
         {
             return SendCompressed;
         }
@@ -224,7 +224,7 @@ class CCDChip
          * @brief getFrameType
          * @return CCD Frame type
          */
-        inline CCD_FRAME getFrameType()
+        inline CCD_FRAME getFrameType() const
         {
             return FrameType;
         }
@@ -369,7 +369,7 @@ class CCDChip
         /**
          * @return True if CCD is currently exposing, false otherwise.
          */
-        bool isExposing()
+        bool isExposing() const
         {
             return (ImageExposureNP.s == IPS_BUSY);
         }

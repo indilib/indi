@@ -683,8 +683,8 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                         cStage = GoMaximum;
 
                         ISState fs[1] = { ISS_ON };
-                        char *fn[1] =  { FastMoveS[FASTMOVE_OUT].name };
-                        ISNewSwitch(getDeviceName(), FastMoveSP.name, fs, fn, 1);
+                        const char *fn[1] =  { FastMoveS[FASTMOVE_OUT].name };
+                        ISNewSwitch(getDeviceName(), FastMoveSP.name, fs, const_cast<char **>(fn), 1);
                     }
                 }
                 else if (cStage == GoMinimum)
@@ -1066,8 +1066,8 @@ void SestoSenso2::checkMotionProgressCallback()
         else if (CalibrationSP.s == IPS_BUSY)
         {
             ISState states[2] = { ISS_OFF, ISS_ON };
-            char * names[2] = { CalibrationS[CALIBRATION_START].name, CalibrationS[CALIBRATION_NEXT].name };
-            ISNewSwitch(getDeviceName(), CalibrationSP.name, states, names, CalibrationSP.nsp);
+            const char * names[2] = { CalibrationS[CALIBRATION_START].name, CalibrationS[CALIBRATION_NEXT].name };
+            ISNewSwitch(getDeviceName(), CalibrationSP.name, states, const_cast<char **>(names), CalibrationSP.nsp);
         }
         else
             LOG_INFO("Focuser reached requested position.");
@@ -1098,8 +1098,8 @@ void SestoSenso2::checkHallSensorCallback()
             if (detected == 1)
             {
                 ISState states[2] = { ISS_OFF, ISS_ON };
-                char * names[2] = { CalibrationS[CALIBRATION_START].name, CalibrationS[CALIBRATION_NEXT].name };
-                ISNewSwitch(getDeviceName(), CalibrationSP.name, states, names, CalibrationSP.nsp);
+                const char * names[2] = { CalibrationS[CALIBRATION_START].name, CalibrationS[CALIBRATION_NEXT].name };
+                ISNewSwitch(getDeviceName(), CalibrationSP.name, states, const_cast<char **>(names), CalibrationSP.nsp);
                 return;
             }
         }
@@ -1245,6 +1245,15 @@ bool SestoSenso2::initCommandSet()
         LOG_ERROR("setTTYFlags: failed setting attributes on serial port.");
         return false;
     }
+    return true;
+}
+
+bool SestoSenso2::saveConfigItems(FILE *fp)
+{
+    Focuser::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &MotorRateNP);
+    IUSaveConfigNumber(fp, &MotorCurrentNP);
     return true;
 }
 
@@ -1458,7 +1467,7 @@ bool CommandSet::applyMotorPreset(const char *name)
 bool CommandSet::applyMotorUserPreset(uint32_t index)
 {
     // WORKAROUND: Due to a bug in the Sesto Senso 2 FW, the RUNPRESET
-    // command fails when applied to user presets. Therefore here we 
+    // command fails when applied to user presets. Therefore here we
     // fetch the motor preset and then apply it ourselves.
     char request[SESTO_LEN] = {0};
     snprintf(request, sizeof(request), "{\"req\":{\"get\":{\"RUNPRESET_%u\":\"\"}}}}", index);

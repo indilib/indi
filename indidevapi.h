@@ -325,9 +325,7 @@ extern int IEAddCallback(int readfiledes, IE_CBF *fp, void *userpointer);
 */
 extern void IERmCallback(int callbackid);
 
-/** \brief Register a new timer function, \e fp, to be called with \e ud as argument after \e ms.
-
- Add to list in order of decreasing time from epoch, ie, last entry runs soonest. The timer will only invoke the callback function \b once. You need to call addTimer again if you want to repeat the process.
+/** \brief Register a new single-shot timer function, \e fp, to be called with \e ud as argument after \e ms.
 *
 * \param millisecs timer period in milliseconds.
 * \param fp a pointer to the callback function.
@@ -336,9 +334,32 @@ extern void IERmCallback(int callbackid);
 */
 extern int IEAddTimer(int millisecs, IE_TCF *fp, void *userpointer);
 
-/** \brief Remove the timer with the given \e timerid, as returned from IEAddTimer.
+/** \brief Register a new periodic timer function, \e fp, to be called with \e ud as argument after \e ms.
 *
-* \param timerid the timer callback ID returned from IEAddTimer().
+* \param millisecs timer period in milliseconds.
+* \param fp a pointer to the callback function.
+* \param userpointer a pointer to be passed to the callback function when called.
+* \return a unique id for use with IERmTimer().
+*/
+extern int IEAddPeriodicTimer(int millisecs, IE_TCF *fp, void *userpointer);
+
+/** \brief Returns the timer's remaining value in milliseconds left until the timeout.
+ *
+ * \param timerid the timer callback ID returned from IEAddTimer() or IEAddPeriodicTimer()
+ * \return  If the timer not exists, the returned value will be -1.
+ */
+extern int IERemainingTimer(int timerid);
+
+/** Returns the timer's remaining value in nanoseconds left until the timeout.
+ *
+ * \param tid the timer callback ID returned from addTimer() or addPeriodicTimer()
+ * \return  If the timer not exists, the returned value will be -1.
+ */
+extern int IENSecRemainingTimer(int tid);
+
+/** \brief Remove the timer with the given \e timerid, as returned from IEAddTimer() or IEAddPeriodicTimer().
+*
+* \param timerid the timer callback ID returned from IEAddTimer() or IEAddPeriodicTimer().
 */
 extern void IERmTimer(int timerid);
 

@@ -27,7 +27,7 @@ class DomeScript : public INDI::Dome
     virtual ~DomeScript() = default;
 
     virtual const char *getDefaultName();
-    virtual bool initProperties();
+    virtual bool initProperties() override;
     virtual bool saveConfigItems(FILE *fp);
 
     void ISGetProperties(const char *dev);

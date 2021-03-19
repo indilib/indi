@@ -290,7 +290,7 @@ IPState WeatherSafetyProxy::updateWeather()
 
 IPState WeatherSafetyProxy::executeScript()
 {
-    char *cmd = ScriptsT[WSP_SCRIPT].text;
+    const char *cmd = ScriptsT[WSP_SCRIPT].text;
 
     if (access(cmd, F_OK|X_OK) == -1)
     {
