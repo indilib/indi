@@ -24,6 +24,12 @@
 namespace INDI
 {
 
+using WidgetText   = INDI::WidgetView<IText>;
+using WidgetNumber = INDI::WidgetView<INumber>;
+using WidgetSwitch = INDI::WidgetView<ISwitch>;
+using WidgetLight  = INDI::WidgetView<ILight>;
+using WidgetBlob   = INDI::WidgetView<IBLOB>;
+
 template <typename>
 class PropertyBasicPrivateTemplate;
 
