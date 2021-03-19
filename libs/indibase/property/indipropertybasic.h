@@ -19,9 +19,16 @@
 #pragma once
 
 #include "indiproperty.h"
+#include <algorithm>
 
 namespace INDI
 {
+
+using WidgetText   = INDI::WidgetView<IText>;
+using WidgetNumber = INDI::WidgetView<INumber>;
+using WidgetSwitch = INDI::WidgetView<ISwitch>;
+using WidgetLight  = INDI::WidgetView<ILight>;
+using WidgetBlob   = INDI::WidgetView<IBLOB>;
 
 template <typename>
 class PropertyBasicPrivateTemplate;
@@ -93,15 +100,33 @@ public:
     size_t size() const;
 
 public:
+    void reserve(size_t size);
     void resize(size_t size);
+
+    void shrink_to_fit();
+
     void push(WidgetView<T> &&item);
     void push(const WidgetView<T> &item);
 
     WidgetView<T> &operator[](size_t index) const;
-    // #PS: TODO begin, end, cbegin, cend, etc
+
+public: // STL-style iterators
+    WidgetView<T> *begin();
+    WidgetView<T> *end();
+    const WidgetView<T> *begin() const;
+    const WidgetView<T> *end() const;
+
+    template <typename Predicate>
+    WidgetView<T> *find_if(Predicate pred)
+    { return std::find_if(begin(), end(), pred); }
+
+    template <typename Predicate>
+    const WidgetView<T> *find_if(Predicate pred) const
+    { return std::find_if(begin(), end(), pred); }
 
 public:
     WidgetView<T> *findWidgetByName(const char *name) const;
+    int findWidgetIndexByName(const char *name) const;
 
 protected:
     PropertyBasic(PropertyBasicPrivate &dd);

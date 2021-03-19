@@ -281,6 +281,13 @@ WidgetView<T> *PropertyBasic<T>::findWidgetByName(const char *name) const
 }
 
 template <typename T>
+int PropertyBasic<T>::findWidgetIndexByName(const char *name) const
+{
+    auto it = findWidgetByName(name);
+    return it == nullptr ? -1 : it - begin();
+}
+
+template <typename T>
 size_t PropertyBasic<T>::size() const
 {
     D_PTR(const PropertyBasic);
@@ -294,6 +301,22 @@ void PropertyBasic<T>::resize(size_t size)
     d->widgets.resize(size);
     d->property.setWidgets(d->widgets.data(), d->widgets.size());
 
+}
+
+template <typename T>
+void PropertyBasic<T>::reserve(size_t size)
+{
+    D_PTR(PropertyBasic);
+    d->widgets.reserve(size);
+    d->property.setWidgets(d->widgets.data(), d->widgets.size());
+}
+
+template <typename T>
+void PropertyBasic<T>::shrink_to_fit()
+{
+    D_PTR(PropertyBasic);
+    d->widgets.shrink_to_fit();
+    d->property.setWidgets(d->widgets.data(), d->widgets.size());    
 }
 
 template <typename T>
@@ -315,6 +338,34 @@ WidgetView<T> &PropertyBasic<T>::operator[](size_t index) const
 {
     D_PTR(const PropertyBasic);
     return *d->property.at(index);
+}
+
+template <typename T>
+WidgetView<T> *PropertyBasic<T>::begin()
+{
+    D_PTR(PropertyBasic);
+    return d->property.begin();
+}
+
+template <typename T>
+WidgetView<T> *PropertyBasic<T>::end()
+{
+    D_PTR(PropertyBasic);
+    return d->property.end();
+}
+
+template <typename T>
+const WidgetView<T> *PropertyBasic<T>::begin() const
+{
+    D_PTR(const PropertyBasic);
+    return d->property.begin();
+}
+
+template <typename T>
+const WidgetView<T> *PropertyBasic<T>::end() const
+{
+    D_PTR(const PropertyBasic);
+    return d->property.end();
 }
 
 template <typename T>
