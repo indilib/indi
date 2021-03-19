@@ -348,6 +348,20 @@ WidgetView<T> *PropertyBasic<T>::end()
 }
 
 template <typename T>
+const WidgetView<T> *PropertyBasic<T>::begin() const
+{
+    D_PTR(const PropertyBasic);
+    return d->property.begin();
+}
+
+template <typename T>
+const WidgetView<T> *PropertyBasic<T>::end() const
+{
+    D_PTR(const PropertyBasic);
+    return d->property.end();
+}
+
+template <typename T>
 PropertyView<T> * PropertyBasic<T>::operator &()
 {
     D_PTR(PropertyBasic);

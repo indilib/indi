@@ -19,6 +19,7 @@
 #pragma once
 
 #include "indiproperty.h"
+#include <algorithm>
 
 namespace INDI
 {
@@ -103,11 +104,19 @@ public:
 
     WidgetView<T> &operator[](size_t index) const;
 
-public:
+public: // STL-style iterators
     WidgetView<T> *begin();
     WidgetView<T> *end();
-    
-    // #PS: TODO begin, end, cbegin, cend, etc
+    const WidgetView<T> *begin() const;
+    const WidgetView<T> *end() const;
+
+    template <typename Predicate>
+    WidgetView<T> *find_if(Predicate pred)
+    { return std::find_if(begin(), end(), pred); }
+
+    template <typename Predicate>
+    const WidgetView<T> *find_if(Predicate pred) const
+    { return std::find_if(begin(), end(), pred); }
 
 public:
     WidgetView<T> *findWidgetByName(const char *name) const;
