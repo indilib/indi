@@ -44,7 +44,7 @@ StreamManagerPrivate::StreamManagerPrivate(DefaultDevice *defaultDevice)
     : currentDevice(defaultDevice)
 {
     FPSAverage.setTimeWindow(1000);
-    FPSFast.setTimeWindow(50);
+    FPSFast.setTimeWindow(100);
 
     recorder = recorderManager.getDefaultRecorder();
 
