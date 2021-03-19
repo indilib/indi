@@ -28,6 +28,7 @@
 #include "indisensorinterface.h"
 #include "indilogger.h"
 #include "indiutility.h"
+#include "indisinglethreadpool.h"
 
 #include <cerrno>
 #include <sys/stat.h>
@@ -407,6 +408,8 @@ void StreamManagerPrivate::asyncStreamThread()
     std::vector<uint8_t> subframeBuffer;  // Subframe buffer for recording/streaming
     std::vector<uint8_t> downscaleBuffer; // Downscale buffer for streaming
 
+    INDI::SingleThreadPool previewThreadPool;
+
     while(!framesThreadTerminate)
     {
         if (framesIncoming.pop(sourceTimeFrame) == false)
@@ -467,7 +470,12 @@ void StreamManagerPrivate::asyncStreamThread()
 
                 sourceBuffer = &downscaleBuffer;
             }
-            uploadStream(sourceBuffer->data(), sourceBuffer->size());
+
+            //uploadStream(sourceBuffer->data(), sourceBuffer->size());
+            previewThreadPool.tryStart(std::bind([this](const std::atomic_bool &isAboutToQuit, std::vector<uint8_t> frame){
+                INDI_UNUSED(isAboutToQuit);
+                uploadStream(frame.data(), frame.size());
+            }, std::placeholders::_1, std::move(*sourceBuffer)));
         }
     }
 }
