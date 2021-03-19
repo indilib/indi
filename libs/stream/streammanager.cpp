@@ -1118,6 +1118,7 @@ bool StreamManager::saveConfigItems(FILE * fp)
     d->RecordFileTP.save(fp);
     d->RecordOptionsNP.save(fp);
     d->RecorderSP.save(fp);
+    d->LimitsNP.save(fp);
     return true;
 }
 
