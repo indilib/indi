@@ -414,10 +414,9 @@ void StreamManagerPrivate::asyncStreamThread()
 
         FrameInfo srcFrameInfo = updateSourceFrameInfo();
 
-        const uint8_t *sourceBufferData = sourceTimeFrame.frame.data();
-        uint32_t nbytes                 = sourceTimeFrame.frame.size();
+        std::vector<uint8_t> *sourceBuffer = &sourceTimeFrame.frame;
 
-        if (nbytes != srcFrameInfo.totalSize())
+        if (sourceBuffer->size() != srcFrameInfo.totalSize())
         {
             LOG_ERROR("Invalid source buffer size, skipping frame...");
             continue;
@@ -431,10 +430,9 @@ void StreamManagerPrivate::asyncStreamThread()
         )
         {
             subframeBuffer.resize(dstFrameInfo.totalSize());
-            subframe(sourceBufferData, srcFrameInfo, subframeBuffer.data(), dstFrameInfo);
+            subframe(sourceBuffer->data(), srcFrameInfo, subframeBuffer.data(), dstFrameInfo);
 
-            sourceBufferData = subframeBuffer.data();
-            nbytes = dstFrameInfo.totalSize();
+            sourceBuffer = &subframeBuffer;
         }
 
         // For recording, save immediately.
@@ -442,7 +440,7 @@ void StreamManagerPrivate::asyncStreamThread()
             std::lock_guard<std::mutex> lock(recordMutex);
             if (
                 isRecording && !isRecordingAboutToClose &&
-                recordStream(sourceBufferData, nbytes, sourceTimeFrame.time) == false
+                recordStream(sourceBuffer->data(), sourceBuffer->size(), sourceTimeFrame.time) == false
             )
             {
                 LOG_ERROR("Recording failed.");
@@ -457,20 +455,19 @@ void StreamManagerPrivate::asyncStreamThread()
             // Downscale to 8bit always for streaming to reduce bandwidth
             if (PixelFormat != INDI_JPG && PixelDepth > 8)
             {
-                size_t downScaleBufferSize = dstFrameInfo.pixels();
                 // Allocale new buffer if size changes
-                downscaleBuffer.resize(downScaleBufferSize);
-
-                const uint16_t * srcBuffer = reinterpret_cast<const uint16_t *>(sourceBufferData);
-                uint8_t *        dstBuffer = downscaleBuffer.data();
+                downscaleBuffer.resize(dstFrameInfo.pixels());
 
                 // Apply gamma
-                gammaLut16.apply(srcBuffer, downScaleBufferSize, dstBuffer);
+                gammaLut16.apply(
+                    reinterpret_cast<const uint16_t*>(sourceBuffer->data()),
+                    downscaleBuffer.size(),
+                    downscaleBuffer.data()
+                );
 
-                sourceBufferData = dstBuffer;
-                nbytes /= 2;
+                sourceBuffer = &downscaleBuffer;
             }
-            uploadStream(sourceBufferData, nbytes);
+            uploadStream(sourceBuffer->data(), sourceBuffer->size());
         }
     }
 }
