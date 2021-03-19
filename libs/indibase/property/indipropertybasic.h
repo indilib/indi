@@ -120,6 +120,7 @@ public: // STL-style iterators
 
 public:
     WidgetView<T> *findWidgetByName(const char *name) const;
+    int findWidgetIndexByName(const char *name) const;
 
 protected:
     PropertyBasic(PropertyBasicPrivate &dd);

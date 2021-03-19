@@ -281,6 +281,13 @@ WidgetView<T> *PropertyBasic<T>::findWidgetByName(const char *name) const
 }
 
 template <typename T>
+int PropertyBasic<T>::findWidgetIndexByName(const char *name) const
+{
+    auto it = findWidgetByName(name);
+    return it == nullptr ? -1 : it - begin();
+}
+
+template <typename T>
 size_t PropertyBasic<T>::size() const
 {
     D_PTR(const PropertyBasic);
