@@ -29,6 +29,7 @@
 #include "indilogger.h"
 #include "indiutility.h"
 #include "indisinglethreadpool.h"
+#include "indielapsedtimer.h"
 
 #include <cerrno>
 #include <sys/stat.h>
@@ -98,6 +99,9 @@ bool StreamManagerPrivate::initProperties()
     else
         StreamSP.fill(getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    StreamTimeNP[0].fill("STREAM_DELAY_TIME", "Delay (s)", "%.3f", 0, 60, 0.001, 0);
+    StreamTimeNP.fill(getDeviceName(), "STREAM_DELAY", "Video Stream Delay", STREAM_TAB, IP_RO, 0, IPS_IDLE);
 
     StreamExposureNP[STREAM_EXPOSURE].fill("STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.6f", 0.000001, 60, 0.1, 0.1);
     StreamExposureNP[STREAM_DIVISOR ].fill("STREAMING_DIVISOR_VALUE",  "Divisor",      "%.f",  1,        15, 1.0, 1.0);
@@ -215,6 +219,7 @@ bool StreamManagerPrivate::updateProperties()
         }
 
         currentDevice->defineProperty(StreamSP);
+        currentDevice->defineProperty(StreamTimeNP);
         if (hasStreamingExposure)
             currentDevice->defineProperty(StreamExposureNP);
         currentDevice->defineProperty(FpsNP);
@@ -229,6 +234,7 @@ bool StreamManagerPrivate::updateProperties()
     else
     {
         currentDevice->deleteProperty(StreamSP.getName());
+        currentDevice->deleteProperty(StreamTimeNP.getName());
         if (hasStreamingExposure)
             currentDevice->deleteProperty(StreamExposureNP.getName());
         currentDevice->deleteProperty(FpsNP.getName());
@@ -409,6 +415,7 @@ void StreamManagerPrivate::asyncStreamThread()
     std::vector<uint8_t> downscaleBuffer; // Downscale buffer for streaming
 
     INDI::SingleThreadPool previewThreadPool;
+    INDI::ElapsedTimer previewElapsed;
 
     while(!framesThreadTerminate)
     {
@@ -472,9 +479,13 @@ void StreamManagerPrivate::asyncStreamThread()
             }
 
             //uploadStream(sourceBuffer->data(), sourceBuffer->size());
-            previewThreadPool.tryStart(std::bind([this](const std::atomic_bool &isAboutToQuit, std::vector<uint8_t> frame){
+            previewThreadPool.tryStart(std::bind([this, &previewElapsed](const std::atomic_bool &isAboutToQuit, std::vector<uint8_t> frame){
                 INDI_UNUSED(isAboutToQuit);
+                previewElapsed.start();
                 uploadStream(frame.data(), frame.size());
+                StreamTimeNP[0].setValue(previewElapsed.nsecsElapsed() / 1000000000.0);
+                StreamTimeNP.apply();
+
             }, std::placeholders::_1, std::move(*sourceBuffer)));
         }
     }
