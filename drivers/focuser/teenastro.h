@@ -63,6 +63,8 @@ protected:
 
     bool ReverseFocuser(bool enable);
 
+    bool saveConfigItems(FILE *fp);
+
 
     // Sends a command to the focuser. Returns true on success and false on failure.
     bool send(const char *const msg);
@@ -83,8 +85,8 @@ protected:
     // Returns true if focuser is moving, else false.   
     bool isMoving();
 
-    // Updates movement configuration from device. Returns true on success and false on failure.
-    bool updateConfig();
+    // Updates motion configuration from device. Returns true on success and false on failure.
+    bool updateMotionConfig();
 
     // Sets given configuration item on to device to provided value in device native units. Returns true on success and false on failure. 
     bool setConfigItem(char item, uint32_t deviceValue);

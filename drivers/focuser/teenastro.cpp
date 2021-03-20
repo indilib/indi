@@ -20,14 +20,9 @@
 
 #include "teenastro.h"
 #include "indicom.h"
+#include "indicontroller.h"
 
-#include <stdio.h>
-#include <termios.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <math.h>
-#include <memory>
+#include <unistd.h> // for sleep()
 
 // Default, minimal and maximal values for focuser configuration properties
 // In absolute units (not device units, where e.g. current is /10 and microsteps are log_2)
@@ -153,7 +148,7 @@ bool TeenAstroFocuser::initProperties()
 
 	strcpy(FocusSpeedNP.label, "Go-to speed");
 	strcpy(FocusSpeedNP.group, FOCUS_TAB);
-	strcpy(FocusSpeedN[0].label,"1/s");
+	strcpy(FocusSpeedN[0].label,"Steps/s");
 	FocusSpeedN[0].min=TAF_speed_min;	
 	FocusSpeedN[0].max=TAF_speed_max;
 	FocusSpeedN[0].step=TAF_STEP(TAF_speed_min, TAF_speed_max);
@@ -167,29 +162,17 @@ bool TeenAstroFocuser::initProperties()
     IUFillSwitch(&GoToParkS[0], "VAL", "Park", ISS_OFF);
     IUFillSwitchVector(&GoToParkSP, GoToParkS, 1, getDeviceName(), "GOTO_PARK", "Go-to park", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE );
 
-    IUFillNumber(&CurSpeedN[0], "VAL", "1/s", "%.f", TAF_speed_min, TAF_speed_max, TAF_STEP(TAF_speed_min, TAF_speed_max), TAF_speed_default);
+    IUFillNumber(&CurSpeedN[0], "VAL", "Steps/s", "%.f", TAF_speed_min, TAF_speed_max, TAF_STEP(TAF_speed_min, TAF_speed_max), TAF_speed_default);
     IUFillNumberVector(&CurSpeedNP, CurSpeedN, 1, getDeviceName(), "CUR_SPEED", "Current Speed", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
 
     IUFillNumber(&TempN[0], "VAL", "Celsius", "%+.1f°", -50., 50., 0, 0);
     IUFillNumberVector(&TempNP, TempN, 1, getDeviceName(), "TEMP", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
 
-    // Focuser tab: Motion configuration
+    // Focuser tab
     //
 
     IUFillText(&DeviceVersionT[0], "VAL", "Version", "unknown");
     IUFillTextVector(&DeviceVersionTP, DeviceVersionT, 1, getDeviceName(), "DEVICE_VERSION", "Device version", FOCUS_TAB, IP_RO, 60, IPS_IDLE);
-
-    IUFillNumber(&CfgGoToAccN[0], "VAL", "1/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max), TAF_acc_default);
-    IUFillNumberVector(&CfgGoToAccNP, CfgGoToAccN, 1, getDeviceName(), "GOTO_ACCEL", "Go-to accel.", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
-
-    IUFillNumber(&CfgManualSpeedN[0], "VAL", "1/s", "%.f", TAF_speed_min, TAF_speed_max, TAF_STEP(TAF_speed_min, TAF_speed_max), TAF_speed_default);
-    IUFillNumberVector(&CfgManualSpeedNP, CfgManualSpeedN, 1, getDeviceName(), "MAN_SPEED", "Manual speed", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
-
-    IUFillNumber(&CfgManualAccN[0], "VAL", "1/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max), TAF_acc_default);
-    IUFillNumberVector(&CfgManualAccNP, CfgManualAccN, 1, getDeviceName(), "MAN_ACCEL", "Manual accel.", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
-
-    IUFillNumber(&CfgManualDecN[0], "VAL", "1/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max), TAF_acc_default);
-    IUFillNumberVector(&CfgManualDecNP, CfgManualDecN, 1, getDeviceName(), "MAN_DECEL", "Manual decel.", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
     // Focuser tab: Motor configuration
     //
@@ -205,11 +188,29 @@ bool TeenAstroFocuser::initProperties()
     IUFillSwitch(&CfgMotorMicrostepsS[TAF_MICROS_128], "128", "128", ISS_OFF);
     IUFillSwitchVector(&CfgMotorMicrostepsSP, CfgMotorMicrostepsS, TAF_MICROS_N, getDeviceName(), "MOT_USTEPS", "Microsteps", FOCUS_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE );
 
-    IUFillNumber(&CfgMotorResolutionN[0], "VAL", "Usteps/tick", "%.f", TAF_res_min, TAF_res_max, TAF_STEP(TAF_res_min, TAF_res_max), TAF_res_default);
+    IUFillNumber(&CfgMotorResolutionN[0], "VAL", "Microsteps/tick", "%.f", TAF_res_min, TAF_res_max, TAF_STEP(TAF_res_min, TAF_res_max), TAF_res_default);
     IUFillNumberVector(&CfgMotorResolutionNP, CfgMotorResolutionN, 1, getDeviceName(), "MOT_RES", "Resolution", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
 
     IUFillNumber(&CfgMotorCurrentN[0], "VAL", "mA", "%.f", TAF_curr_min, TAF_curr_max, TAF_STEP(TAF_curr_min, TAF_curr_max), TAF_curr_default);
     IUFillNumberVector(&CfgMotorCurrentNP, CfgMotorCurrentN, 1, getDeviceName(), "MOT_CUR", "Motor current", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
+
+    // Focuser tab: Motion configuration
+    //
+
+    IUFillNumber(&CfgGoToAccN[0], "VAL", "Steps/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max), TAF_acc_default);
+    IUFillNumberVector(&CfgGoToAccNP, CfgGoToAccN, 1, getDeviceName(), "GOTO_ACCEL", "Go-to accel.", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
+
+    IUFillNumber(&CfgManualSpeedN[0], "VAL", "Steps/s", "%.f", TAF_speed_min, TAF_speed_max, TAF_STEP(TAF_speed_min, TAF_speed_max), TAF_speed_default);
+    IUFillNumberVector(&CfgManualSpeedNP, CfgManualSpeedN, 1, getDeviceName(), "MAN_SPEED", "Manual speed", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
+
+    IUFillNumber(&CfgManualAccN[0], "VAL", "Steps/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max), TAF_acc_default);
+    IUFillNumberVector(&CfgManualAccNP, CfgManualAccN, 1, getDeviceName(), "MAN_ACCEL", "Manual accel.", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
+
+    IUFillNumber(&CfgManualDecN[0], "VAL", "Steps/s^2", "%.f", TAF_acc_min, TAF_acc_max, TAF_STEP(TAF_acc_min, TAF_acc_max), TAF_acc_default);
+    IUFillNumberVector(&CfgManualDecNP, CfgManualDecN, 1, getDeviceName(), "MAN_DECEL", "Manual decel.", FOCUS_TAB, IP_RW, 60, IPS_IDLE );
+
+    // Focuser tab: Device actions
+    //
 
     IUFillSwitch(&RebootDeviceS[0], "VAL", "Reboot", ISS_OFF);
     IUFillSwitchVector(&RebootDeviceSP, RebootDeviceS, 1, getDeviceName(), "REBOOT_DEVICE", "Reboot device", FOCUS_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE );
@@ -230,13 +231,16 @@ void TeenAstroFocuser::initPositionPropertiesRanges(uint32_t maxPos)
 
 bool TeenAstroFocuser::updateProperties()
 {
-    INDI::Focuser::updateProperties();
+    if(!INDI::Focuser::updateProperties())
+        return false;
+
     if (isConnected())
     {
-        updateDeviceVersion(); // Update values from device before defining UI controls. 
-        updateConfig();        // This minimizes flicker as changes to FocuserMaxPosNP
-        updateMotorConfig();   // must redraw all positional controls to update their range.
-        updateState();
+        // Update values from device before defining UI controls. 
+        // This minimizes flicker as changes to FocuserMaxPosNP
+        // must redraw all positional controls to update their range.
+        if(!(updateDeviceVersion() && updateMotorConfig() && updateMotionConfig() && updateState()))
+            return false;
 
     	defineMainControlProperties();
     	defineOtherProperties();
@@ -285,16 +289,19 @@ void TeenAstroFocuser::defineOtherProperties()
     deleteProperty(FocusSpeedNP.name);
 
     defineProperty(&DeviceVersionTP);
+
+    defineProperty(&FocusReverseSP);
+    defineProperty(&CfgMotorStepsPerRevolutionNP);
+    defineProperty(&CfgMotorMicrostepsSP);
+    defineProperty(&CfgMotorResolutionNP);
+    defineProperty(&CfgMotorCurrentNP);
+
     defineProperty(&FocusSpeedNP);
     defineProperty(&CfgGoToAccNP);
     defineProperty(&CfgManualSpeedNP);
     defineProperty(&CfgManualAccNP);
     defineProperty(&CfgManualDecNP);
-	defineProperty(&FocusReverseSP);
-    defineProperty(&CfgMotorStepsPerRevolutionNP);
-    defineProperty(&CfgMotorMicrostepsSP);
-    defineProperty(&CfgMotorResolutionNP);
-    defineProperty(&CfgMotorCurrentNP);
+
     defineProperty(&RebootDeviceSP);
     defineProperty(&EraseEEPROMSP);
 }
@@ -302,14 +309,17 @@ void TeenAstroFocuser::defineOtherProperties()
 void TeenAstroFocuser::deleteOtherProperties() 
 {
     deleteProperty(DeviceVersionTP.name);
-    deleteProperty(CfgGoToAccNP.name);
-    deleteProperty(CfgManualSpeedNP.name);
-    deleteProperty(CfgManualAccNP.name);
-    deleteProperty(CfgManualDecNP.name);
+
     deleteProperty(CfgMotorStepsPerRevolutionNP.name);
     deleteProperty(CfgMotorMicrostepsSP.name);
     deleteProperty(CfgMotorResolutionNP.name);
     deleteProperty(CfgMotorCurrentNP.name);
+
+    deleteProperty(CfgGoToAccNP.name);
+    deleteProperty(CfgManualSpeedNP.name);
+    deleteProperty(CfgManualAccNP.name);
+    deleteProperty(CfgManualDecNP.name);
+
     deleteProperty(EraseEEPROMSP.name);
     deleteProperty(EraseEEPROMSP.name);
 }
@@ -616,7 +626,7 @@ bool TeenAstroFocuser::isMoving()
 }
 
 
-bool TeenAstroFocuser::updateConfig() 
+bool TeenAstroFocuser::updateMotionConfig() 
 {
     char resp[TAF_FOCUSER_BUFSIZE];
     int parkPos=-1, maxPos=-1, manualSpeed=-1, goToSpeed=-1, gotoAcc=-1, manAcc=-1, manDec=-1;
@@ -804,7 +814,7 @@ bool TeenAstroFocuser::rebootDevice()
     if(!send(":F!#"))
     	return false;
     sleep(3);
-    return updateDeviceVersion() && updateConfig() && updateMotorConfig() && updateState();
+    return updateDeviceVersion() && updateMotorConfig() && updateMotionConfig() && updateState();
 }
 
 bool TeenAstroFocuser::eraseDeviceEEPROM()
@@ -812,5 +822,21 @@ bool TeenAstroFocuser::eraseDeviceEEPROM()
     if(!send(":F$#"))
     	return false;
     sleep(1);
-    return updateDeviceVersion() && updateConfig() && updateMotorConfig() && updateState();
+    return updateDeviceVersion() && updateMotorConfig() && updateMotionConfig() && updateState();
+}
+
+bool TeenAstroFocuser::saveConfigItems(FILE *fp)
+{
+    // This is a verbatim copy of Focuser::saveConfigItems except one override
+    //
+
+    DefaultDevice::saveConfigItems(fp);
+
+    // Do not save focuser configuration items on INDI host, as they are stored on the focuser device.
+    // FI::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &PresetNP);
+    this->controller->saveConfigItems(fp);
+
+    return true;
 }
