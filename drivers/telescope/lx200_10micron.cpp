@@ -147,7 +147,7 @@ bool LX200_10MICRON::initProperties()
         IUFillSwitch(&AlignmentStateS[ALIGN_START], "Start", "Start new model", ISS_OFF);
         IUFillSwitch(&AlignmentStateS[ALIGN_END], "End", "End new model", ISS_OFF);
         IUFillSwitch(&AlignmentStateS[ALIGN_DELETE_CURRENT], "Del", "Delete current model", ISS_OFF);
-        IUFillSwitchVector(&AlignmentSP, AlignmentStateS, ALIGN_COUNT, getDeviceName(),
+        IUFillSwitchVector(&AlignmentStateSP, AlignmentStateS, ALIGN_COUNT, getDeviceName(),
                            ALIGNMENT_STATE, "Alignment", ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
         IUFillNumber(&MiniNewAlpRON[MALPRO_MRA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
@@ -206,7 +206,7 @@ bool LX200_10MICRON::updateProperties()
         defineProperty(&RefractionModelPressureNP);
         defineProperty(&ModelCountNP);
         defineProperty(&AlignmentPointsNP);
-        defineProperty(&AlignmentSP);
+        defineProperty(&AlignmentStateSP);
         defineProperty(&MiniNewAlpRONP);
         defineProperty(&MiniNewAlpNP);
         defineProperty(&NewAlpNP);
@@ -248,7 +248,7 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(RefractionModelPressureNP.name);
         deleteProperty(ModelCountNP.name);
         deleteProperty(AlignmentPointsNP.name);
-        deleteProperty(AlignmentSP.name);
+        deleteProperty(AlignmentStateSP.name);
         deleteProperty(MiniNewAlpRONP.name);
         deleteProperty(MiniNewAlpNP.name);
         deleteProperty(NewAlpNP.name);
@@ -281,7 +281,7 @@ void LX200_10MICRON::getBasicData()
         else
         {
             LOGF_INFO("Tracking frequency is %.1f Hz", TrackFreqN[0].value);
-            IDSetNumber(&TrackingFreqNP, nullptr);
+            IDSetNumber(&TrackFreqNP, nullptr);
         }
 
         char RefractionModelTemperature[80];
@@ -1095,10 +1095,10 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(AlignmentSP.name, name) == 0)
+        if (strcmp(AlignmentStateSP.name, name) == 0)
         {
-            IUUpdateSwitch(&AlignmentSP, states, names, n);
-            int index    = IUFindOnSwitchIndex(&AlignmentSP);
+            IUUpdateSwitch(&AlignmentStateSP, states, names, n);
+            int index    = IUFindOnSwitchIndex(&AlignmentStateSP);
 
             switch (index)
             {
@@ -1116,8 +1116,8 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     if (0 != setStandardProcedureAndExpect(fd, "#:newalig#", "V"))
                     {
                         LOG_ERROR("New alignment start error");
-                        AlignmentSP.s = IPS_ALERT;
-                        IDSetSwitch(&AlignmentSP, nullptr);
+                        AlignmentStateSP.s = IPS_ALERT;
+                        IDSetSwitch(&AlignmentStateSP, nullptr);
                         return false;
                     }
                     LOG_INFO("New Alignment started");
@@ -1136,8 +1136,8 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     if (0 != setStandardProcedureAndExpect(fd, "#:endalig#", "V"))
                     {
                         LOG_ERROR("New alignment end error");
-                        AlignmentSP.s = IPS_ALERT;
-                        IDSetSwitch(&AlignmentSP, nullptr);
+                        AlignmentStateSP.s = IPS_ALERT;
+                        IDSetSwitch(&AlignmentStateSP, nullptr);
                         return false;
                     }
                     LOG_INFO("New Alignment ended");
@@ -1152,8 +1152,8 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     if (0 != setStandardProcedureAndExpect(fd, "#:delalig#", "#"))
                     {
                         LOG_ERROR("Delete current alignment error");
-                        AlignmentSP.s = IPS_ALERT;
-                        IDSetSwitch(&AlignmentSP, nullptr);
+                        AlignmentStateSP.s = IPS_ALERT;
+                        IDSetSwitch(&AlignmentStateSP, nullptr);
                         return false;
                     }
                     LOG_INFO("Current Alignment deleted");
@@ -1161,14 +1161,14 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                     break;
 
                 default:
-                    AlignmentSP.s = IPS_ALERT;
-                    IDSetSwitch(&AlignmentSP, "Unknown alignment index %d", index);
+                    AlignmentStateSP.s = IPS_ALERT;
+                    IDSetSwitch(&AlignmentStateSP, "Unknown alignment index %d", index);
                     AlignmentState = ALIGN_IDLE;
                     return false;
             }
 
-            AlignmentSP.s = IPS_OK;
-            IDSetSwitch(&AlignmentSP, nullptr);
+            AlignmentStateSP.s = IPS_OK;
+            IDSetSwitch(&AlignmentStateSP, nullptr);
             return true;
         }
         if (strcmp(TrackSatSP.name, name) == 0)

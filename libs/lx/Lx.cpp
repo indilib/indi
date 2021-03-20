@@ -364,7 +364,7 @@ void Lx::closeserial(int fd)
         perror("closeserial()");
 }
 
-int Lx::openserial(char *devicename)
+int Lx::openserial(const char *devicename)
 {
     int fd;
     struct termios attr;

@@ -7,7 +7,6 @@ ADD_EXECUTABLE(test_ccd_simulator
 )
 
 TARGET_LINK_LIBRARIES(test_ccd_simulator
-    indiclient
     indidriver
     ${GTEST_BOTH_LIBRARIES}
     ${GMOCK_LIBRARIES}

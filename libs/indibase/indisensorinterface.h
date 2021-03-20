@@ -110,7 +110,7 @@ class SensorInterface : public DefaultDevice
          * @brief getContinuumBufferSize Get allocated continuum buffer size to hold the Sensor integrationd stream.
          * @return allocated continuum buffer size to hold the Sensor integration stream.
          */
-        inline int getBufferSize()
+        inline int getBufferSize() const
         {
             return BufferSize;
         }
@@ -119,7 +119,7 @@ class SensorInterface : public DefaultDevice
          * @brief getIntegrationLeft Get Integration time left in seconds.
          * @return Integration time left in seconds.
          */
-        inline double getIntegrationLeft()
+        inline double getIntegrationLeft() const
         {
             return FramedIntegrationN[0].value;
         }
@@ -128,7 +128,7 @@ class SensorInterface : public DefaultDevice
          * @brief getIntegrationTime Get requested Integration duration for the Sensor device in seconds.
          * @return requested Integration duration for the Sensor device in seconds.
          */
-        inline double getIntegrationTime()
+        inline double getIntegrationTime() const
         {
             return integrationTime;
         }
@@ -165,7 +165,7 @@ class SensorInterface : public DefaultDevice
          * @brief getBPS Get Sensor depth (bits per sample).
          * @return bits per sample.
          */
-        inline int getBPS()
+        inline int getBPS() const
         {
             return BPS;
         }
@@ -247,7 +247,7 @@ class SensorInterface : public DefaultDevice
         /**
          * @return True if Sensor is currently exposing, false otherwise.
          */
-        inline bool isCapturing()
+        inline bool isCapturing() const
         {
             return (FramedIntegrationNP.s == IPS_BUSY);
         }
@@ -340,7 +340,7 @@ protected:
         /**
          * @return True if Sensor has mechanical or electronic shutter. False otherwise.
          */
-        bool HasShutter()
+        bool HasShutter() const
         {
             return capability & SENSOR_HAS_SHUTTER;
         }
@@ -348,7 +348,7 @@ protected:
         /**
          * @return True if Sensor has cooler and temperature can be controlled. False otherwise.
          */
-        bool HasCooler()
+        bool HasCooler() const
         {
             return capability & SENSOR_HAS_COOLER;
         }
@@ -356,7 +356,7 @@ protected:
         /**
          * @return True if Sensor can abort Integration. False otherwise.
          */
-        bool CanAbort()
+        bool CanAbort() const
         {
             return capability & SENSOR_CAN_ABORT;
         }

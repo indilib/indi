@@ -507,6 +507,10 @@ public: //getters
     const char *getLabel()  const                          { return this->label; }
     const char *getFormat() const                          { return this->format; }
 
+    const void *getBlob()   const                          { return this->blob; }
+    int getBlobLen() const                                 { return this->bloblen; }
+    int getSize() const                                    { return this->size; }
+
     void *getAux() const                                   { return this->aux0; }
 
 public: //tests

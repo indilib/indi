@@ -156,7 +156,7 @@ class LX200_10MICRON : public LX200Generic
         INumberVectorProperty AlignmentPointsNP;
 
         ISwitch AlignmentStateS[ALIGN_COUNT];
-        ISwitchVectorProperty AlignmentSP;
+        ISwitchVectorProperty AlignmentStateSP;
 
         INumber MiniNewAlpRON[MALPRO_COUNT];
         INumberVectorProperty MiniNewAlpRONP;

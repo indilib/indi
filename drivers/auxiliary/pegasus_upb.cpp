@@ -380,7 +380,7 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
     IUFillText(&FirmwareT[FIRMWARE_VERSION], "VERSION", "Version", "NA");
     IUFillText(&FirmwareT[FIRMWARE_UPTIME], "UPTIME", "Uptime (h)", "NA");
-    IUFillTextVector(&FirmwateTP, FirmwareT, 2, getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
+    IUFillTextVector(&FirmwareTP, FirmwareT, 2, getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
                      IPS_IDLE);
     ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
@@ -465,7 +465,7 @@ bool PegasusUPB::updateProperties()
         WI::updateProperties();
 
         // Firmware
-        defineProperty(&FirmwateTP);
+        defineProperty(&FirmwareTP);
 
         setupComplete = true;
     }
@@ -516,7 +516,7 @@ bool PegasusUPB::updateProperties()
 
         WI::updateProperties();
 
-        deleteProperty(FirmwateTP.name);
+        deleteProperty(FirmwareTP.name);
 
         setupComplete = false;
     }
@@ -1375,7 +1375,7 @@ bool PegasusUPB::sendFirmware()
     {
         LOGF_INFO("Detected firmware %s", res);
         IUSaveText(&FirmwareT[FIRMWARE_VERSION], res);
-        IDSetText(&FirmwateTP, nullptr);
+        IDSetText(&FirmwareTP, nullptr);
         return true;
     }
 
@@ -1640,7 +1640,7 @@ bool PegasusUPB::getPowerData()
             std::stringstream ss;
             ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
             IUSaveText(&FirmwareT[FIRMWARE_UPTIME], ss.str().c_str());
-            IDSetText(&FirmwateTP, nullptr);
+            IDSetText(&FirmwareTP, nullptr);
         }
 
         lastPowerData = result;
@@ -1673,7 +1673,8 @@ bool PegasusUPB::getStepperData()
 
         if (FocusAbsPosNP.s == IPS_BUSY && focusMotorRunning == false)
         {
-            FocusAbsPosNP.s = FocusRelPosNP.s = IPS_OK;
+            FocusAbsPosNP.s = IPS_OK;
+            FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
         }
