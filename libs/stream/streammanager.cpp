@@ -28,6 +28,8 @@
 #include "indisensorinterface.h"
 #include "indilogger.h"
 #include "indiutility.h"
+#include "indisinglethreadpool.h"
+#include "indielapsedtimer.h"
 
 #include <cerrno>
 #include <sys/stat.h>
@@ -43,7 +45,7 @@ StreamManagerPrivate::StreamManagerPrivate(DefaultDevice *defaultDevice)
     : currentDevice(defaultDevice)
 {
     FPSAverage.setTimeWindow(1000);
-    FPSFast.setTimeWindow(50);
+    FPSFast.setTimeWindow(100);
 
     recorder = recorderManager.getDefaultRecorder();
 
@@ -97,6 +99,9 @@ bool StreamManagerPrivate::initProperties()
     else
         StreamSP.fill(getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    StreamTimeNP[0].fill("STREAM_DELAY_TIME", "Delay (s)", "%.3f", 0, 60, 0.001, 0);
+    StreamTimeNP.fill(getDeviceName(), "STREAM_DELAY", "Video Stream Delay", STREAM_TAB, IP_RO, 0, IPS_IDLE);
 
     StreamExposureNP[STREAM_EXPOSURE].fill("STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.6f", 0.000001, 60, 0.1, 0.1);
     StreamExposureNP[STREAM_DIVISOR ].fill("STREAMING_DIVISOR_VALUE",  "Divisor",      "%.f",  1,        15, 1.0, 1.0);
@@ -214,6 +219,7 @@ bool StreamManagerPrivate::updateProperties()
         }
 
         currentDevice->defineProperty(StreamSP);
+        currentDevice->defineProperty(StreamTimeNP);
         if (hasStreamingExposure)
             currentDevice->defineProperty(StreamExposureNP);
         currentDevice->defineProperty(FpsNP);
@@ -228,6 +234,7 @@ bool StreamManagerPrivate::updateProperties()
     else
     {
         currentDevice->deleteProperty(StreamSP.getName());
+        currentDevice->deleteProperty(StreamTimeNP.getName());
         if (hasStreamingExposure)
             currentDevice->deleteProperty(StreamExposureNP.getName());
         currentDevice->deleteProperty(FpsNP.getName());
@@ -407,6 +414,9 @@ void StreamManagerPrivate::asyncStreamThread()
     std::vector<uint8_t> subframeBuffer;  // Subframe buffer for recording/streaming
     std::vector<uint8_t> downscaleBuffer; // Downscale buffer for streaming
 
+    INDI::SingleThreadPool previewThreadPool;
+    INDI::ElapsedTimer previewElapsed;
+
     while(!framesThreadTerminate)
     {
         if (framesIncoming.pop(sourceTimeFrame) == false)
@@ -414,10 +424,9 @@ void StreamManagerPrivate::asyncStreamThread()
 
         FrameInfo srcFrameInfo = updateSourceFrameInfo();
 
-        const uint8_t *sourceBufferData = sourceTimeFrame.frame.data();
-        uint32_t nbytes                 = sourceTimeFrame.frame.size();
+        std::vector<uint8_t> *sourceBuffer = &sourceTimeFrame.frame;
 
-        if (nbytes != srcFrameInfo.totalSize())
+        if (sourceBuffer->size() != srcFrameInfo.totalSize())
         {
             LOG_ERROR("Invalid source buffer size, skipping frame...");
             continue;
@@ -431,10 +440,9 @@ void StreamManagerPrivate::asyncStreamThread()
         )
         {
             subframeBuffer.resize(dstFrameInfo.totalSize());
-            subframe(sourceBufferData, srcFrameInfo, subframeBuffer.data(), dstFrameInfo);
+            subframe(sourceBuffer->data(), srcFrameInfo, subframeBuffer.data(), dstFrameInfo);
 
-            sourceBufferData = subframeBuffer.data();
-            nbytes = dstFrameInfo.totalSize();
+            sourceBuffer = &subframeBuffer;
         }
 
         // For recording, save immediately.
@@ -442,7 +450,7 @@ void StreamManagerPrivate::asyncStreamThread()
             std::lock_guard<std::mutex> lock(recordMutex);
             if (
                 isRecording && !isRecordingAboutToClose &&
-                recordStream(sourceBufferData, nbytes, sourceTimeFrame.time) == false
+                recordStream(sourceBuffer->data(), sourceBuffer->size(), sourceTimeFrame.time) == false
             )
             {
                 LOG_ERROR("Recording failed.");
@@ -457,20 +465,28 @@ void StreamManagerPrivate::asyncStreamThread()
             // Downscale to 8bit always for streaming to reduce bandwidth
             if (PixelFormat != INDI_JPG && PixelDepth > 8)
             {
-                size_t downScaleBufferSize = dstFrameInfo.pixels();
                 // Allocale new buffer if size changes
-                downscaleBuffer.resize(downScaleBufferSize);
-
-                const uint16_t * srcBuffer = reinterpret_cast<const uint16_t *>(sourceBufferData);
-                uint8_t *        dstBuffer = downscaleBuffer.data();
+                downscaleBuffer.resize(dstFrameInfo.pixels());
 
                 // Apply gamma
-                gammaLut16.apply(srcBuffer, downScaleBufferSize, dstBuffer);
+                gammaLut16.apply(
+                    reinterpret_cast<const uint16_t*>(sourceBuffer->data()),
+                    downscaleBuffer.size(),
+                    downscaleBuffer.data()
+                );
 
-                sourceBufferData = dstBuffer;
-                nbytes /= 2;
+                sourceBuffer = &downscaleBuffer;
             }
-            uploadStream(sourceBufferData, nbytes);
+
+            //uploadStream(sourceBuffer->data(), sourceBuffer->size());
+            previewThreadPool.tryStart(std::bind([this, &previewElapsed](const std::atomic_bool &isAboutToQuit, std::vector<uint8_t> frame){
+                INDI_UNUSED(isAboutToQuit);
+                previewElapsed.start();
+                uploadStream(frame.data(), frame.size());
+                StreamTimeNP[0].setValue(previewElapsed.nsecsElapsed() / 1000000000.0);
+                StreamTimeNP.apply();
+
+            }, std::placeholders::_1, std::move(*sourceBuffer)));
         }
     }
 }
@@ -1113,6 +1129,7 @@ bool StreamManager::saveConfigItems(FILE * fp)
     d->RecordFileTP.save(fp);
     d->RecordOptionsNP.save(fp);
     d->RecorderSP.save(fp);
+    d->LimitsNP.save(fp);
     return true;
 }
 
