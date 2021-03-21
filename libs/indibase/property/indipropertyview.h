@@ -124,10 +124,10 @@ public: // only for ISwitch
     void reset()                                           { IUResetSwitch(this); }
 
     template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
-    WidgetType *findOnSwitch()                             { return static_cast<WidgetType *>(IUFindOnSwitch(this)); }
+    WidgetType *findOnSwitch() const                       { return static_cast<WidgetType *>(IUFindOnSwitch(this)); }
 
     template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
-    int findOnSwitchIndex()                                { return IUFindOnSwitchIndex(this); }
+    int findOnSwitchIndex() const                          { return IUFindOnSwitchIndex(this); }
 
 public: // only for INumber
     template <typename X = T, enable_if_is_same_t<X, INumber> = true>
@@ -155,10 +155,10 @@ public: //getters
     int count() const;                                     /* outside implementation */
     WidgetType *widget() const;                            /* outside implementation */
 
-    WidgetType *findWidgetByName(const char *name);        /* outside implementation */
+    WidgetType *findWidgetByName(const char *name) const;  /* outside implementation */
 
 public: //tests
-    bool isEmpty() const                                   { return widget() == nullptr; }
+    bool isEmpty() const                                   { return widget() == nullptr || count() == 0; }
 
     bool isNameMatch(const char *otherName) const          { return !strcmp(getName(), otherName); }
     bool isNameMatch(const std::string &otherName) const   { return getName() == otherName; }
@@ -167,16 +167,16 @@ public: //tests
     bool isLabelMatch(const std::string &otherLabel) const { return getLabel() == otherLabel; }
 
 public: // only driver side
-    void save(FILE *f);                                    /* outside implementation */
+    void save(FILE *f) const;                              /* outside implementation */
 
-    void vapply(const char *format, va_list args);         /* outside implementation - only driver side, see indipropertyview_driver.cpp */
-    void vdefine(const char *format, va_list args);        /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+    void vapply(const char *format, va_list args) const;   /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+    void vdefine(const char *format, va_list args) const;  /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
-    void apply(const char *format, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);  /* outside implementation - only driver side, see indipropertyview_driver.cpp */
-    void define(const char *format, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+    void apply(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);  /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+    void define(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
-    void apply()                                           { apply(nullptr);  }
-    void define()                                          { define(nullptr); }
+    void apply() const                                     { apply(nullptr);  }
+    void define() const                                    { define(nullptr); }
 
 public:
     template <typename X = T, enable_if_is_same_t<X, IText> = true>
@@ -211,26 +211,26 @@ public:
 
 public:
     template <typename X = T, enable_if_is_same_t<X, IText> = true>
-    bool update(const char **texts, const char **names, int n);
+    bool update(const char * const texts[], const char * const names[], int n);
     /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     template <typename X = T, enable_if_is_same_t<X, INumber> = true>
-    bool update(const double *values, const char **names, int n);
+    bool update(const double values[], const char * const names[], int n);
     /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
-    bool update(const ISState *states, const char **names, int n);
+    bool update(const ISState states[], const char * const names[], int n);
     /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     /*
     template <typename X = T, enable_if_is_same_t<X, ILight> = true>
-    bool update(..., const char **names, int n);
+    bool update(..., const char * const names[], int n);
     */
 
     template <typename X = T, enable_if_is_same_t<X, IBLOB> = true>
     bool update(
-        const int sizes[], const int blobsizes[], const char *blobs[], const char *formats[],
-        const char *names[], int n
+        const int sizes[], const int blobsizes[], const char * const blobs[], const char * const formats[],
+        const char * const names[], int n
     ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
 
@@ -297,8 +297,8 @@ public:
     void fill(const char *name, const char *label, const char *initialText)
     ; /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
-    //void fill(const std::string &name, const std::string &label, const std::string &initialText)
-    //{ fill(name.c_str(), label.c_str(), initialText.c_str()); }
+    void fill(const std::string &name, const std::string &label, const std::string &initialText)
+    { fill(name.c_str(), label.c_str(), initialText.c_str()); }
 };
 
 template <>
@@ -507,6 +507,10 @@ public: //getters
     const char *getLabel()  const                          { return this->label; }
     const char *getFormat() const                          { return this->format; }
 
+    const void *getBlob()   const                          { return this->blob; }
+    int getBlobLen() const                                 { return this->bloblen; }
+    int getSize() const                                    { return this->size; }
+
     void *getAux() const                                   { return this->aux0; }
 
 public: //tests
@@ -586,23 +590,23 @@ inline void PropertyView<T>::setAux(void *user)
 { this->aux = user; }
 
 template <>
-inline void PropertyView<IText>::save(FILE *f)
+inline void PropertyView<IText>::save(FILE *f) const
 { IUSaveConfigText(f, this); }
 
 template <>
-inline void PropertyView<INumber>::save(FILE *f)
+inline void PropertyView<INumber>::save(FILE *f) const
 { IUSaveConfigNumber(f, this); }
 
 template <>
-inline void PropertyView<ISwitch>::save(FILE *f)
+inline void PropertyView<ISwitch>::save(FILE *f) const
 { IUSaveConfigSwitch(f, this); }
 
 template <>
-inline void PropertyView<ILight>::save(FILE *f)
+inline void PropertyView<ILight>::save(FILE *f) const
 { (void)f; /* IUSaveConfigLight(f, this); */ }
 
 template <>
-inline void PropertyView<IBLOB>::save(FILE *f)
+inline void PropertyView<IBLOB>::save(FILE *f) const
 { IUSaveConfigBLOB(f, this); }
 
 template <typename T>
@@ -638,27 +642,27 @@ inline bool PropertyView<ISwitch>::setRule(const std::string &rule)
 { return crackISRule(rule.data(), &this->r) == 0; }
 
 template <typename T>
-inline WidgetView<T> *PropertyView<T>::findWidgetByName(const char *name)
+inline WidgetView<T> *PropertyView<T>::findWidgetByName(const char *name) const
 { return nullptr; }
 
 template <>
-inline WidgetView<IText> *PropertyView<IText>::findWidgetByName(const char *name)
+inline WidgetView<IText> *PropertyView<IText>::findWidgetByName(const char *name) const
 { return static_cast<WidgetView<IText> *>(IUFindText(this, name)); }
 
 template <>
-inline WidgetView<INumber> *PropertyView<INumber>::findWidgetByName(const char *name)
+inline WidgetView<INumber> *PropertyView<INumber>::findWidgetByName(const char *name) const
 { return static_cast<WidgetView<INumber> *>(IUFindNumber(this, name)); }
 
 template <>
-inline WidgetView<ISwitch> *PropertyView<ISwitch>::findWidgetByName(const char *name)
+inline WidgetView<ISwitch> *PropertyView<ISwitch>::findWidgetByName(const char *name) const
 { return static_cast<WidgetView<ISwitch> *>(IUFindSwitch(this, name)); }
 
 template <>
-inline WidgetView<ILight> *PropertyView<ILight>::findWidgetByName(const char *name)
+inline WidgetView<ILight> *PropertyView<ILight>::findWidgetByName(const char *name) const
 { return static_cast<WidgetView<ILight> *>(IUFindLight(this, name)); }
 
 template <>
-inline WidgetView<IBLOB> *PropertyView<IBLOB>::findWidgetByName(const char *name)
+inline WidgetView<IBLOB> *PropertyView<IBLOB>::findWidgetByName(const char *name) const
 { return static_cast<WidgetView<IBLOB> *>(IUFindBLOB(this, name)); }
 
 template <typename T>

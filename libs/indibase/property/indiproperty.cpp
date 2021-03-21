@@ -278,6 +278,41 @@ IPerm Property::getPermission() const
     return IP_RO;
 }
 
+bool Property::isEmpty() const
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->isEmpty(); )
+    return true;
+}
+
+bool Property::isNameMatch(const char *otherName) const
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->isNameMatch(otherName); )
+    return false;
+}
+
+bool Property::isNameMatch(const std::string &otherName) const
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->isNameMatch(otherName); )
+    return false;
+}
+
+bool Property::isLabelMatch(const char *otherLabel) const
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->isLabelMatch(otherLabel); )
+    return false;
+}
+
+bool Property::isLabelMatch(const std::string &otherLabel) const
+{
+    D_PTR(const Property);
+    PROPERTY_CASE( return property->isLabelMatch(otherLabel); )
+    return false;
+}
+
 PropertyView<INumber> *Property::getNumber() const
 {
     D_PTR(const Property);
@@ -323,24 +358,24 @@ PropertyView<IBLOB> *Property::getBLOB() const
     return nullptr;
 }
 
-void Property::save(FILE *fp)
+void Property::save(FILE *fp) const
 {
-    D_PTR(Property);
+    D_PTR(const Property);
     PROPERTY_CASE( property->save(fp); )
 }
 
-void Property::apply(const char *format, ...)
+void Property::apply(const char *format, ...) const
 {
-    D_PTR(Property);
+    D_PTR(const Property);
     va_list ap;
     va_start(ap, format);
     PROPERTY_CASE( property->vapply(format, ap); )
     va_end(ap);
 }
 
-void Property::define(const char *format, ...)
+void Property::define(const char *format, ...) const
 {
-    D_PTR(Property);
+    D_PTR(const Property);
     va_list ap;
     va_start(ap, format);
     PROPERTY_CASE( property->vdefine(format, ap); )

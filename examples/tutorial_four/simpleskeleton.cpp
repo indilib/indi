@@ -48,54 +48,6 @@ std::unique_ptr<SimpleSkeleton> simpleSkeleton(new SimpleSkeleton());
 //const int POLLMS = 1000; // Period of update, 1 second.
 
 /**************************************************************************************
-**
-***************************************************************************************/
-void ISGetProperties(const char *dev)
-{
-    simpleSkeleton->ISGetProperties(dev);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    simpleSkeleton->ISNewSwitch(dev, name, states, names, n);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    simpleSkeleton->ISNewText(dev, name, texts, names, n);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    simpleSkeleton->ISNewNumber(dev, name, values, names, n);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    simpleSkeleton->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISSnoopDevice(XMLEle *root)
-{
-    INDI_UNUSED(root);
-}
-
-/**************************************************************************************
 ** Initialize all properties & set default values.
 **************************************************************************************/
 bool SimpleSkeleton::initProperties()

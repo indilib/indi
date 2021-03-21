@@ -25,51 +25,51 @@ static void errorUnavailable(const char *function)
 { fprintf(stderr, "%s method available only on driver side\n", function); }
 
 template <>
-void PropertyView<IText>::vapply(const char *, va_list)
+void PropertyView<IText>::vapply(const char *, va_list) const
 { errorUnavailable(__FUNCTION__); }
 
 template <>
-void PropertyView<IText>::vdefine(const char *, va_list)
+void PropertyView<IText>::vdefine(const char *, va_list) const
 { errorUnavailable(__FUNCTION__); }
 
 template <>
-void PropertyView<INumber>::vapply(const char *, va_list)
+void PropertyView<INumber>::vapply(const char *, va_list) const
 { errorUnavailable(__FUNCTION__); }
 
 template <>
-void PropertyView<INumber>::vdefine(const char *, va_list)
+void PropertyView<INumber>::vdefine(const char *, va_list) const
 { errorUnavailable(__FUNCTION__); }
 
 template <>
-void PropertyView<ISwitch>::vapply(const char *, va_list)
+void PropertyView<ISwitch>::vapply(const char *, va_list) const
 { errorUnavailable(__FUNCTION__); }
 
 template <>
-void PropertyView<ISwitch>::vdefine(const char *, va_list)
+void PropertyView<ISwitch>::vdefine(const char *, va_list) const
 { errorUnavailable(__FUNCTION__); }
 
 template <>
-void PropertyView<ILight>::vapply(const char *, va_list)
+void PropertyView<ILight>::vapply(const char *, va_list) const
 { errorUnavailable(__FUNCTION__); }
 
 template <>
-void PropertyView<ILight>::vdefine(const char *, va_list)
+void PropertyView<ILight>::vdefine(const char *, va_list) const
 { errorUnavailable(__FUNCTION__); }
 
 template <>
-void PropertyView<IBLOB>::vapply(const char *, va_list)
+void PropertyView<IBLOB>::vapply(const char *, va_list) const
 { errorUnavailable(__FUNCTION__); }
 
 template <>
-void PropertyView<IBLOB>::vdefine(const char *, va_list)
+void PropertyView<IBLOB>::vdefine(const char *, va_list) const
 { errorUnavailable(__FUNCTION__); }
 
 template <typename T>
-void PropertyView<T>::apply(const char *, ...)
+void PropertyView<T>::apply(const char *, ...) const
 { errorUnavailable(__FUNCTION__); }
 
 template <typename T>
-void PropertyView<T>::define(const char *, ...)
+void PropertyView<T>::define(const char *, ...) const
 { errorUnavailable(__FUNCTION__); }
 
 template <> template <>
@@ -108,21 +108,21 @@ void PropertyView<IBLOB>::fill(
 { errorUnavailable(__FUNCTION__); }
 
 template <> template<>
-bool PropertyView<IText>::update(const char *[], const char *[], int)
+bool PropertyView<IText>::update(const char * const [], const char * const [], int)
 { errorUnavailable(__FUNCTION__); return false; }
 
 template <> template<>
-bool PropertyView<INumber>::update(const double [], const char *[], int)
+bool PropertyView<INumber>::update(const double [], const char * const [], int)
 { errorUnavailable(__FUNCTION__); return false; }
 
 template <> template<>
-bool PropertyView<ISwitch>::update(const ISState [], const char *[], int)
+bool PropertyView<ISwitch>::update(const ISState [], const char * const [], int)
 { errorUnavailable(__FUNCTION__); return false; }
 
 template <> template<>
 bool PropertyView<IBLOB>::update(
-    const int [], const int [], const char *[], const char *[],
-    const char *[], int
+    const int [], const int [], const char * const [], const char * const [],
+    const char * const [], int
 )
 { errorUnavailable(__FUNCTION__); return false; }
 

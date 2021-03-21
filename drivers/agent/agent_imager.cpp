@@ -162,7 +162,8 @@ void Imager::initiateNextCapture()
                 IDSetNumber(&ProgressNP, "CCD is not connected");
                 return;
             }
-            CCDImageBinN[0].value = CCDImageBinN[1].value = currentGroup()->binning();
+            CCDImageBinN[0].value = currentGroup()->binning();
+            CCDImageBinN[1].value = currentGroup()->binning();
             sendNewNumber(&CCDImageBinNP);
             CCDImageExposureN[0].value = currentGroup()->exposure();
             sendNewNumber(&CCDImageExposureNP);

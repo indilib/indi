@@ -183,7 +183,7 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
         ISwitch AlignmentS[3];
 
         /* Tracking Frequency */
-        INumberVectorProperty TrackingFreqNP;
+        INumberVectorProperty TrackFreqNP;
         INumber TrackFreqN[1];
 
         /* Use pulse-guide commands */

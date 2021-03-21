@@ -36,7 +36,7 @@ class DomeSim : public INDI::Dome
         DomeSim();
         virtual ~DomeSim() = default;
 
-        virtual bool initProperties();
+        virtual bool initProperties() override;
         const char *getDefaultName();
         bool updateProperties();
 
