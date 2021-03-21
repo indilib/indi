@@ -1,6 +1,6 @@
 /*
     Gemini Telescope Design Integra85 Focusing Rotator.
-    Copyright (C) 2017 Hans Lambermont
+    Copyright (C) 2017-2021 Hans Lambermont
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -118,20 +118,21 @@ void ISSnoopDevice (XMLEle *root)
 
 Integra::Integra() : RotatorInterface(this)
 {
-    // Rotator
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
 
-    // Focuser
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     setSupportedConnections(CONNECTION_SERIAL);
+    setVersion(1, 1);
 }
 
 bool Integra::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IUFillNumber(&MaxPositionN[0], "Steps", "Focuser", "%.f", 0, 188600., 0., 188600.);
-    IUFillNumber(&MaxPositionN[1], "Steps", "Rotator", "%.f", 0, 61802.0, 0., 61802.);
+    IUFillNumber(&MaxPositionN[0], "FOCUSER", "Focuser", "%.f",
+                 0, wellKnownIntegra85FocusMax, 0., wellKnownIntegra85FocusMax);
+    IUFillNumber(&MaxPositionN[1], "ROTATOR", "Rotator", "%.f",
+                 0, wellKnownIntegra85RotateMax, 0., wellKnownIntegra85RotateMax);
     IUFillNumberVector(&MaxPositionNP, MaxPositionN, 2, getDeviceName(), "MAX_POSITION", "Max position",
                        SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -156,8 +157,8 @@ bool Integra::initProperties()
     FocusAbsPosN[0].step  = MaxPositionN[0].value / 50.0;
     FocusAbsPosN[0].value = 0;
 
-    FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
     FocusRelPosN[0].min   = 0;
+    FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
     FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
     FocusRelPosN[0].value = 100;
 
@@ -167,6 +168,7 @@ bool Integra::initProperties()
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 61802., 1., 0.);
     IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW,
                        0, IPS_IDLE );
+    RotatorAbsPosN[0].min = 0;
 
     addDebugControl();
 
@@ -187,19 +189,19 @@ bool Integra::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&MaxPositionNP);
+        defineProperty(&MaxPositionNP);
         // Focus
-        defineNumber(&SensorNP);
-        defineSwitch(&FindHomeSP);
+        defineProperty(&SensorNP);
+        defineProperty(&FindHomeSP);
 
         // Rotator
         RI::updateProperties();
-        defineNumber(&RotatorAbsPosNP);
-
+        defineProperty(&RotatorAbsPosNP);
     }
     else
     {
         deleteProperty(MaxPositionNP.name);
+
         // Focus
         deleteProperty(SensorNP.name);
         deleteProperty(FindHomeSP.name);
@@ -212,12 +214,19 @@ bool Integra::updateProperties()
     return true;
 }
 
+// This is called from Serial::processHandshake
 bool Integra::Handshake()
 {
-    if (Ack())
+    bool rcFirmware = getFirmware();
+    bool rcMaxPositionMotorFocus = getMaxPosition(MOTOR_FOCUS);
+    bool rcMaxPositionMotorRotator = getMaxPosition(MOTOR_ROTATOR);
+    bool rcType = getFocuserType(); // keep this after the getMaxPositions
+    if (rcFirmware && rcMaxPositionMotorFocus && rcMaxPositionMotorRotator && rcType)
+    {
         return true;
+    }
 
-    LOG_INFO("Error retrieving data from Integra, please ensure Integra controller is powered and the port is correct.");
+    LOG_ERROR("Error retrieving data from Integra, please ensure Integra controller is powered, port choice is correct and baud rate is 115200.");
     return false;
 }
 
@@ -249,58 +258,61 @@ void Integra::cleanPrint(const char *cmd, char *cleancmd)
     }
 }
 
-bool Integra::Ack()
-{
-
-    bool rcFirmware = getFirmware();
-    bool rcType = getFocuserType();
-    bool rcMaxPositionMotorFocus = getMaxPosition(MOTOR_FOCUS);
-    bool rcMaxPositionMotorRotator = getMaxPosition(MOTOR_ROTATOR);
-    return (rcFirmware && rcType && rcMaxPositionMotorFocus && rcMaxPositionMotorRotator);
-}
-
+// Called from our ::Handshake
 bool Integra::getFirmware()
 {
-    char resp[64] = "not available";
-
-    // two firmware versions :  25.01.2017 & 20.12.2017
+    // two firmware versions (in ISO date format) :  2017-01-25 and 2017-12-20
     // still no direct command to retrieve the version but the protocol
     // has changed. the later version is returning the full command prefix as response prefix
-    // version 25.01.2017 : cmd RR1,0 => R188600#
-    // version 20.12.2017 : cmd RR1.0 => RR188600#
+    // version 2017-01-25 : cmd RR1,0 => R188600#
+    // version 2017-12-20 : cmd RR1.0 => RR188600#
 
-    // to identify the version we try both protocol.
+    // to identify the version we try both protocols, newest first.
     if ( genericIntegraCommand(__FUNCTION__, "@RR1,0\r\n", "RR", nullptr))
     {
-        strcpy(resp, "20.12.2017");
-        this->firmwareVersion = VERSION_20122017;
+        LOGF_INFO("Firmware version is %s", "2017-12-20");
+        this->firmwareVersion = VERSION_20171220;
     }
     else if ( genericIntegraCommand(__FUNCTION__, "@RR1,0\r\n", "R", nullptr))
     {
-        strcpy(resp, "25.01.2017");
-        this->firmwareVersion = VERSION_25012017;
+        LOGF_INFO("Firmware version is %s, note: there is a firmware upgrade available.", "2017-01-25");
+        this->firmwareVersion = VERSION_20170125;
     }
     else
     {
+        LOG_ERROR("Cannot determine firmware version, there may be a firmware upgrade available.");
         return false;   // cannot retrieve firmware session.
     }
 
-    LOGF_INFO("Firmware version %s", resp);
     return true;
 }
 
+// Called from our ::Handshake
 bool Integra::getFocuserType()
 {
+    int focus_max = int(FocusAbsPosN[0].max);
+    int rotator_max = int(RotatorAbsPosN[0].max);
+    if (focus_max != wellKnownIntegra85FocusMax)
+    {
+        LOGF_ERROR("This is no Integra85 because focus max position %d != %d, trying to continue still", focus_max,
+                   wellKnownIntegra85FocusMax);
+        // return false;
+    }
+    if (rotator_max != wellKnownIntegra85RotateMax)
+    {
+        LOGF_ERROR("This is no Integra85 because rotator max position %d != %d, trying to continue still", rotator_max,
+                   wellKnownIntegra85RotateMax);
+        // return false;
+    }
+
     char resp[64] = "Integra85"; // TODO this is an assumption until the device can report its type
     LOGF_INFO("Focuser Type %s", resp);
-
     if (strcmp(resp, "Integra85") == 0)
     {
-        RotatorAbsPosN[0].min = 0;
-        RotatorAbsPosN[0].max = 61802;
+        // RotatorAbsPosN[0].max is already set by getMaxPosition
+        rotatorTicksPerDegree = RotatorAbsPosN[0].max / 360.0;
+        rotatorDegreesPerTick = 360.0 / RotatorAbsPosN[0].max;
     }
-    rotatorTicksPerDegree = RotatorAbsPosN[0].max / 360.0;
-    rotatorDegreesPerTick = 360.0 / RotatorAbsPosN[0].max;
 
     return true;
 }
@@ -566,12 +578,20 @@ void Integra::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
     bool rc = false;
     bool savePositionsToEEPROM = false;
+
+    // sanity check warning ...
+    if (int(FocusAbsPosN[0].max) != wellKnownIntegra85FocusMax || int(RotatorAbsPosN[0].max) != wellKnownIntegra85RotateMax)
+    {
+        LOGF_WARN("Warning: Focus motor max position %d should be %d and Rotator motor max position %d should be %d",
+                  int(FocusAbsPosN[0].max), wellKnownIntegra85FocusMax,
+                  int(RotatorAbsPosN[0].max), wellKnownIntegra85RotateMax);
+    }
 
     // #1 If we're homing, we check if homing is complete as we cannot check for anything else
     if (FindHomeSP.s == IPS_BUSY)
@@ -592,7 +612,7 @@ void Integra::TimerHit()
             LOG_DEBUG("Homing");
         }
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -618,6 +638,9 @@ void Integra::TimerHit()
     {
         timeToReadTemperature--;
     }
+
+    // #3 is not used on Integra85
+    // #4 is not used on Integra85
 
     // #5 Focus Position & Status
     if (!haveReadFocusPositionAtLeastOnce || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
@@ -691,12 +714,13 @@ void Integra::TimerHit()
         }
     }
 
+    // #7 is not used on Integra85
 
     if (savePositionsToEEPROM)
     {
         saveToEEPROM();
     }
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool Integra::AbortFocuser()
@@ -760,6 +784,7 @@ bool Integra::isMotorMoving(MotorType type)
     }
 }
 
+// Called from our ::Handshake
 bool Integra::getMaxPosition(MotorType type)
 {
     char res[16] = {0};
@@ -768,8 +793,28 @@ bool Integra::getMaxPosition(MotorType type)
         return false;
     }
     int position = atoi(res);
-    MaxPositionN[type].value = position;
-    LOGF_INFO("Motor %d max position is %d", type, position);
+    if (MaxPositionN[type].value == position)
+    {
+        LOGF_INFO("%s motor max position is %d", (type == MOTOR_FOCUS) ? "Focuser" : "Rotator", position);
+    }
+    else
+    {
+        LOGF_WARN("Updated %s motor max position from %d to %d",
+                  (type == MOTOR_FOCUS) ? "Focuser" : "Rotator", MaxPositionN[type].value, position);
+        MaxPositionN[type].value = position;
+        if (type == MOTOR_FOCUS)
+        {
+            FocusAbsPosN[0].max = MaxPositionN[type].value;
+        }
+        else if (type == MOTOR_ROTATOR)
+        {
+            RotatorAbsPosN[0].max = MaxPositionN[type].value;
+        }
+        else
+        {
+            LOG_ERROR("Unknown Motor type");
+        }
+    }
     return position > 0; // cannot consider a max position == 0 as a valid max.
 }
 

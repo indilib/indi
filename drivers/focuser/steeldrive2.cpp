@@ -148,14 +148,14 @@ bool SteelDriveII::updateProperties()
     {
         getStartupValues();
 
-        defineText(&InfoTP);
-        defineSwitch(&OperationSP);
+        defineProperty(&InfoTP);
+        defineProperty(&OperationSP);
 
-        defineSwitch(&TemperatureCompensationSP);
-        defineSwitch(&TemperatureStateSP);
-        defineNumber(&TemperatureSettingsNP);
-        defineNumber(&TemperatureSensorNP);
-        defineNumber(&StepperDriveNP);
+        defineProperty(&TemperatureCompensationSP);
+        defineProperty(&TemperatureStateSP);
+        defineProperty(&TemperatureSettingsNP);
+        defineProperty(&TemperatureSensorNP);
+        defineProperty(&StepperDriveNP);
     }
     else
     {
@@ -437,7 +437,8 @@ void SteelDriveII::TimerHit()
         FocusMotionS[FOCUS_INWARD].s = (m_State == GOING_DOWN) ? ISS_ON : ISS_OFF;
         FocusMotionS[FOCUS_OUTWARD].s = (m_State == GOING_DOWN) ? ISS_OFF : ISS_ON;
         FocusMotionSP.s = IPS_BUSY;
-        FocusAbsPosNP.s = FocusRelPosNP.s = IPS_BUSY;
+        FocusAbsPosNP.s = IPS_BUSY;
+        FocusRelPosNP.s = IPS_BUSY;
         FocusAbsPosN[0].value = summaryPosition;
 
         IDSetSwitch(&FocusMotionSP, nullptr);
@@ -496,7 +497,7 @@ void SteelDriveII::TimerHit()
         IDSetNumber(&TemperatureSensorNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /////////////////////////////////////////////////////////////////////////////

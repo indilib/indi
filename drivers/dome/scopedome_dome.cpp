@@ -325,19 +325,19 @@ bool ScopeDome::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&FindHomeSP);
-        defineSwitch(&DerotateSP);
-        defineSwitch(&AutoCloseSP);
-        defineSwitch(&PowerRelaysSP);
-        defineSwitch(&RelaysSP);
-        defineNumber(&DomeHomePositionNP);
-        defineNumber(&EnvironmentSensorsNP);
-        defineSwitch(&SensorsSP);
-        defineSwitch(&ParkShutterSP);
-        defineNumber(&StepsPerRevolutionNP);
-        defineSwitch(&CalibrationNeededSP);
-        defineSwitch(&StartCalibrationSP);
-        defineNumber(&FirmwareVersionsNP);
+        defineProperty(&FindHomeSP);
+        defineProperty(&DerotateSP);
+        defineProperty(&AutoCloseSP);
+        defineProperty(&PowerRelaysSP);
+        defineProperty(&RelaysSP);
+        defineProperty(&DomeHomePositionNP);
+        defineProperty(&EnvironmentSensorsNP);
+        defineProperty(&SensorsSP);
+        defineProperty(&ParkShutterSP);
+        defineProperty(&StepsPerRevolutionNP);
+        defineProperty(&CalibrationNeededSP);
+        defineProperty(&StartCalibrationSP);
+        defineProperty(&FirmwareVersionsNP);
         SetupParms();
     }
     else
@@ -794,7 +794,7 @@ void ScopeDome::TimerHit()
         tmpCounter = 10;
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************

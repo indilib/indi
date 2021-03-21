@@ -217,27 +217,27 @@ bool LX200_TeenAstro::updateProperties()
         deleteProperty("DOME_POLICY");
         deleteProperty("TELESCOPE_HAS_TRACK_RATE");
         // Main Control
-        defineNumber(&SlewAccuracyNP);
-        defineText(&ErrorStatusTP);
+        defineProperty(&SlewAccuracyNP);
+        defineProperty(&ErrorStatusTP);
         // Connection
         // Options
         // Motion Control
-        defineSwitch(&SlewRateSP);
-        defineSwitch(&GuideRateSP);
+        defineProperty(&SlewRateSP);
+        defineProperty(&GuideRateSP);
 
         // Site Management
-        defineSwitch(&ParkOptionSP);
-        defineSwitch(&SetHomeSP);
+        defineProperty(&ParkOptionSP);
+        defineProperty(&SetHomeSP);
 
-        defineSwitch(&SiteSP);
-        defineText(&SiteNameTP);
+        defineProperty(&SiteSP);
+        defineProperty(&SiteNameTP);
 
         // Guide
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
 
         // Firmware Data
-        defineText(&VersionTP);
+        defineProperty(&VersionTP);
         getBasicData();
     }
     else
@@ -592,8 +592,9 @@ bool LX200_TeenAstro::Park()
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
 
@@ -636,7 +637,7 @@ void LX200_TeenAstro::getBasicData()
 
     if (!isSimulation())
     {
-        checkLX200Format(PortFD);
+        checkLX200EquatorialFormat(PortFD);
         char buffer[128];
         getVersionDate(PortFD, buffer);
         IUSaveText(&VersionT[0], buffer);
@@ -659,7 +660,8 @@ void LX200_TeenAstro::getBasicData()
             currentSiteNum = currentSiteIndex + 1;
             LOGF_INFO("Site number %d", currentSiteNum);
             getSiteName(PortFD, SiteNameTP.tp[0].text, currentSiteNum);
-            SiteNameTP.s = SiteSP.s = IPS_OK;
+            SiteNameTP.s = IPS_OK;
+            SiteSP.s = IPS_OK;
             IDSetText(&SiteNameTP, nullptr);
             IDSetSwitch(&SiteSP, nullptr);
             getLocation();                  // read site from TeenAstro
@@ -806,7 +808,8 @@ bool LX200_TeenAstro::ISNewSwitch(const char *dev, const char *name, ISState *st
 
             LOGF_INFO("Setting site number %d", currentSiteNum);
             SiteS[currentSiteNum-1].s = ISS_ON;
-            SiteNameTP.s = SiteSP.s = IPS_OK;
+            SiteNameTP.s = IPS_OK;
+            SiteSP.s = IPS_OK;
 
             IDSetText(&SiteNameTP, nullptr);
             IDSetSwitch(&SiteSP, nullptr);
@@ -977,6 +980,7 @@ bool LX200_TeenAstro::sendScopeTime()
 bool LX200_TeenAstro::sendScopeLocation()
 {
     int dd = 0, mm = 0, elev = 0;
+    double ssf = 0.0;
 
     LOG_INFO("Send location");
     return true;
@@ -991,7 +995,7 @@ bool LX200_TeenAstro::sendScopeLocation()
         return true;
     }
 
-    if (getSiteLatitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLatitude(PortFD, &dd, &mm, &ssf) < 0)
     {
         LOG_WARN("Failed to get site latitude from device.");
         return false;
@@ -1003,7 +1007,7 @@ bool LX200_TeenAstro::sendScopeLocation()
         else
             LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0;
     }
-    if (getSiteLongitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
     {
         LOG_WARN("Failed to get site longitude from device.");
         return false;
@@ -1094,8 +1098,9 @@ bool LX200_TeenAstro::setSiteElevation(double elevation)
 bool LX200_TeenAstro::getLocation()
 {
     int dd = 0, mm = 0, elev = 0;
+    double ssf = 0.0;
 
-    if (getSiteLatitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLatitude(PortFD, &dd, &mm, &ssf) < 0)
     {
         LOG_WARN("Failed to get site latitude from device.");
         return false;
@@ -1108,7 +1113,7 @@ bool LX200_TeenAstro::getLocation()
             LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0;
     }
 
-    if (getSiteLongitude(PortFD, &dd, &mm) < 0)
+    if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
     {
         LOG_WARN("Failed to get site longitude from device.");
         return false;

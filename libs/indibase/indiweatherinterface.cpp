@@ -50,12 +50,12 @@ void WeatherInterface::initProperties(const char *statusGroup, const char *param
     m_ParametersGroup = paramsGroup;
 
     // Parameters
-    IUFillNumberVector(&ParametersNP, nullptr, 0, m_defaultDevice->getDeviceName(), "WEATHER_PARAMETERS", "Parameters", paramsGroup,
-                       IP_RO, 60, IPS_OK);
+    IUFillNumberVector(&ParametersNP, nullptr, 0, m_defaultDevice->getDeviceName(), "WEATHER_PARAMETERS", "Parameters",
+                       paramsGroup, IP_RO, 60, IPS_OK);
 
     // Weather Status
-    IUFillLightVector(&critialParametersLP, nullptr, 0, m_defaultDevice->getDeviceName(), "WEATHER_STATUS", "Status", statusGroup,
-                      IPS_IDLE);
+    IUFillLightVector(&critialParametersLP, nullptr, 0, m_defaultDevice->getDeviceName(), "WEATHER_STATUS", "Status",
+                      statusGroup, IPS_IDLE);
 }
 
 bool WeatherInterface::updateProperties()
@@ -63,15 +63,15 @@ bool WeatherInterface::updateProperties()
     if (m_defaultDevice->isConnected())
     {
         if (critialParametersL)
-            m_defaultDevice->defineLight(&critialParametersLP);
+            m_defaultDevice->defineProperty(&critialParametersLP);
 
         if (ParametersN)
-            m_defaultDevice->defineNumber(&ParametersNP);
+            m_defaultDevice->defineProperty(&ParametersNP);
 
         if (ParametersRangeNP)
         {
             for (int i = 0; i < nRanges; i++)
-                m_defaultDevice->defineNumber(&ParametersRangeNP[i]);
+                m_defaultDevice->defineProperty(&ParametersRangeNP[i]);
         }
     }
     else
@@ -128,9 +128,11 @@ IPState WeatherInterface::updateWeather()
     return IPS_ALERT;
 }
 
-void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
+void WeatherInterface::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk,
+                                    double percWarning)
 {
-    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g,%g) ", name.c_str(), numMinOk,
+    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g,%g) ", name.c_str(),
+                 numMinOk,
                  numMaxOk, percWarning);
 
     ParametersN = (ParametersN == nullptr) ? static_cast<INumber *>(malloc(sizeof(INumber))) :
@@ -183,7 +185,8 @@ bool WeatherInterface::setCriticalParameter(std::string param)
         }
     }
 
-    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING, "Unable to find parameter %s in list of existing parameters!", param.c_str());
+    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                 "Unable to find parameter %s in list of existing parameters!", param.c_str());
     return false;
 }
 
@@ -244,21 +247,23 @@ bool WeatherInterface::syncCriticalParameters()
                 IPState state = checkParameterState(ParametersN[j]);
                 switch (state)
                 {
-                case IPS_BUSY:
-                    critialParametersL[i].s = IPS_BUSY;
-                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING, "Warning: Parameter %s value (%g) is in the warning zone!",
-                                 ParametersN[j].label, ParametersN[j].value);
-                    break;
+                    case IPS_BUSY:
+                        critialParametersL[i].s = IPS_BUSY;
+                        DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                                     "Warning: Parameter %s value (%g) is in the warning zone!",
+                                     ParametersN[j].label, ParametersN[j].value);
+                        break;
 
-                case IPS_ALERT:
-                    critialParametersL[i].s = IPS_ALERT;
-                    DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!",
-                                 ParametersN[j].label, ParametersN[j].value);
-                    break;
+                    case IPS_ALERT:
+                        critialParametersL[i].s = IPS_ALERT;
+                        DEBUGFDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_WARNING,
+                                     "Caution: Parameter %s value (%g) is in the danger zone!",
+                                     ParametersN[j].label, ParametersN[j].value);
+                        break;
 
-                case IPS_IDLE:
-                case IPS_OK:
-                    critialParametersL[i].s = IPS_OK;
+                    case IPS_IDLE:
+                    case IPS_OK:
+                        critialParametersL[i].s = IPS_OK;
                 }
             }
         }
@@ -289,17 +294,26 @@ void WeatherInterface::createParameterRange(std::string name, std::string label)
 
     IUFillNumber(&rangesN[0], "MIN_OK", "OK range min", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].min);
     IUFillNumber(&rangesN[1], "MAX_OK", "OK range max", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].max);
-    IUFillNumber(&rangesN[2], "PERC_WARN", "% for Warning", "%g", 0, 100, 1, *(static_cast<double *>(ParametersN[nRanges].aux0)));
+    IUFillNumber(&rangesN[2], "PERC_WARN", "% for Warning", "%g", 0, 100, 1,
+                 *(static_cast<double *>(ParametersN[nRanges].aux0)));
 
     char propName[MAXINDINAME];
     char propLabel[MAXINDILABEL];
     snprintf(propName, MAXINDINAME, "%s", name.c_str());
     snprintf(propLabel, MAXINDILABEL, "%s", label.c_str());
 
-    IUFillNumberVector(&ParametersRangeNP[nRanges], rangesN, 3, m_defaultDevice->getDeviceName(), propName, propLabel, m_ParametersGroup.c_str(),
+    IUFillNumberVector(&ParametersRangeNP[nRanges], rangesN, 3, m_defaultDevice->getDeviceName(), propName, propLabel,
+                       m_ParametersGroup.c_str(),
                        IP_RW, 60, IPS_IDLE);
 
     nRanges++;
+}
+
+bool WeatherInterface::saveConfigItems(FILE *fp)
+{
+    for (int i = 0; i < nRanges; i++)
+        IUSaveConfigNumber(fp, &ParametersRangeNP[i]);
+    return true;
 }
 
 

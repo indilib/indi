@@ -19,6 +19,7 @@
 *******************************************************************************/
 
 #include "indilogger.h"
+#include "indiutility.h"
 
 #include <dirent.h>
 #include <cerrno>
@@ -65,31 +66,6 @@ std::string Logger::logFile_;
 unsigned int Logger::nDevices    = 0;
 unsigned int Logger::customLevel = 4;
 
-// Create dir recursively
-static int _mkdir(const char *dir, mode_t mode)
-{
-    char tmp[PATH_MAX];
-    char *p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
-
 int Logger::addDebugLevel(const char *debugLevelName, const char *loggingLevelName)
 {
     // Cannot create any more levels
@@ -135,12 +111,12 @@ bool Logger::updateProperties(bool enable)
 {
     if (enable)
     {
-        parentDevice->defineSwitch(&DebugLevelSP);
-        parentDevice->defineSwitch(&LoggingLevelSP);
+        parentDevice->defineProperty(&DebugLevelSP);
+        parentDevice->defineProperty(&LoggingLevelSP);
 
         screenVerbosityLevel_ = rememberscreenlevel_;
 
-        parentDevice->defineSwitch(&ConfigurationSP);
+        parentDevice->defineProperty(&ConfigurationSP);
     }
     else
     {
@@ -337,7 +313,7 @@ void Logger::configure(const std::string &outputFile, const loggerConf configura
     // Open a new stream, if needed
     if (configuration & file_on)
     {
-        _mkdir(logDir_.c_str(), 0775);
+        INDI::mkpath(logDir_.c_str(), 0775);
         out_.open(logFile_.c_str(), std::ios::app);
     }
 

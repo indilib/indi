@@ -102,7 +102,7 @@ class LX200AstroPhysics : public LX200Generic
     ISwitchVectorProperty APGuideSpeedSP;
 
     IText VersionT[1] {};
-    ITextVectorProperty VersionInfo;
+    ITextVectorProperty VersionTP;
 
     IText DeclinationAxisT[1] {};
     ITextVectorProperty DeclinationAxisTP;

@@ -22,17 +22,17 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     ===========================================
-    
-    Version not yet updated: 
-    - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
-    
+
+    Version not yet updated:
+    - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values.
+
     Version 1.9:
     - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
     - Bugfix: Slew speed
-    
-    Version 1.8: 
+
+    Version 1.8:
     - Bugfixes for FORK mounted scopes
-    
+
     Version 1.7:
     - Added support for Reporting Guide rate (to PHD2 among others)
     - Updated Error codes to match up with Android/SHC (Unknown reserved for unknown, so Unspecified = Unknown on other platforms)
@@ -42,7 +42,7 @@
     - Added support for polar adjustments, without having to redo the entire model. (:MP# command)
     - Support for Full Compensation/Refraction only, and 1/2 Axis tracking
     - Cleanups
-    
+
     Version 1.6: Additional Functions
     - James Lan fixed Meredian Flip and Home Pause buttons
     - Cleaned Comments from previon versions
@@ -114,251 +114,253 @@ enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BO
 
 enum MountType {MOUNTTYPE_GEM, MOUNTTYPE_FORK, MOUNTTYPE_FORK_ALT, MOUNTTYPE_ALTAZ};
 
-class LX200_OnStep : public LX200Generic , public INDI::WeatherInterface
+class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
 {
-  public:
-    LX200_OnStep();
-    ~LX200_OnStep() {}
+    public:
+        LX200_OnStep();
+        ~LX200_OnStep() {}
 
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    virtual void getBasicData() override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
-    virtual bool SetTrackEnabled(bool enabled) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
-    virtual bool ReadScopeStatus() override;
-    virtual int setSiteLongitude(int fd, double Long);
-    virtual bool SetTrackRate(double raRate, double deRate) override;
-    virtual void slewError(int slewCode) override; 
-    virtual bool Sync(double ra, double dec) override;
-    
-    //Mount information 
-    int OSMountType = 0;
-    /*  0 = EQ mount  (Presumed default for most things.) 
-     *  1 = Fork 
-     *  2 = Fork Alt 
-     *  3 = Alt Azm
-     */
-   
-    
-    //FocuserInterface
-    
-    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
-    IPState MoveAbsFocuser (uint32_t targetTicks) override;
-    IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
-    bool AbortFocuser () override;
+    protected:
+        virtual void getBasicData() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
+        virtual bool ReadScopeStatus() override;
+        virtual int setSiteLongitude(int fd, double Long);
+        virtual bool SetTrackRate(double raRate, double deRate) override;
+        virtual void slewError(int slewCode) override;
+        virtual bool Sync(double ra, double dec) override;
 
-    
-    //End FocuserInterface
-    
-    //PECInterface 
-    //axis 0=RA, 1=DEC, others? 
-    IPState StopPECPlayback (int axis);
-    IPState StartPECPlayback (int axis);
-    IPState ClearPECBuffer (int axis);
-    IPState StartPECRecord (int axis);
-    IPState SavePECBuffer (int axis);
-    IPState PECStatus (int axis);
-    IPState ReadPECBuffer (int axis);
-    IPState WritePECBuffer (int axis);
-    bool ISPECRecorded (int axis);
-    bool OSPECEnabled = false;
-    //End PECInterface
-    
-    
-    //NewGeometricAlignment    
-    IPState AlignStartGeometric(int stars);
-    IPState AlignAddStar();
-    IPState AlignDone();
-    IPState AlignWrite();
-    virtual bool UpdateAlignStatus();
-    virtual bool UpdateAlignErr();
-    //End NewGeometricAlignment 
-    bool OSAlignCompleted=false;
-    
-    //Outputs
-    IPState OSEnableOutput(int output);
-    IPState OSDisableOutput(int output);
-    bool OSGetOutputState(int output);
-    
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    bool sendOnStepCommand(const char *cmd);
-    bool sendOnStepCommandBlind(const char *cmd);
-    int  setMaxElevationLimit(int fd, int max);
-    void OSUpdateFocuser();
-
-    ITextVectorProperty ObjectInfoTP;
-    IText ObjectInfoT[1] {};
-
-    ISwitchVectorProperty StarCatalogSP;
-    ISwitch StarCatalogS[3];
-
-    ISwitchVectorProperty DeepSkyCatalogSP;
-    ISwitch DeepSkyCatalogS[7];
-
-    ISwitchVectorProperty SolarSP;
-    ISwitch SolarS[10];
-
-    INumberVectorProperty ObjectNoNP;
-    INumber ObjectNoN[1];
-
-    INumberVectorProperty MaxSlewRateNP;
-    INumber MaxSlewRateN[2];
-
-    INumberVectorProperty BacklashNP;    //test
-    INumber BacklashN[2];    //Test
-
-    INumberVectorProperty ElevationLimitNP;
-    INumber ElevationLimitN[2];
-
-    ITextVectorProperty VersionTP;
-    IText VersionT[5] {};
-
-    // OnStep Status controls
-    ITextVectorProperty OnstepStatTP;
-    IText OnstepStat[10] {};
-
-    // Focuser controls
-    // Focuser 1
-    bool OSFocuser1 = false;
-    ISwitchVectorProperty OSFocus1InitializeSP;
-    ISwitch OSFocus1InitializeS[4];
-
-    // Focuser 2
-    //ISwitchVectorProperty OSFocus2SelSP;
-    //ISwitch OSFocus2SelS[2];
-    bool OSFocuser2 = false;
-    ISwitchVectorProperty OSFocus2RateSP;
-    ISwitch OSFocus2RateS[4];
-
-    ISwitchVectorProperty OSFocus2MotionSP;
-    ISwitch OSFocus2MotionS[3];
-
-    INumberVectorProperty OSFocus2TargNP;
-    INumber OSFocus2TargN[1];
+        //Mount information
+        int OSMountType = 0;
+        /*  0 = EQ mount  (Presumed default for most things.)
+         *  1 = Fork
+         *  2 = Fork Alt
+         *  3 = Alt Azm
+         */
 
 
-    int IsTracking = 0;
+        //FocuserInterface
 
-    // Reticle +/- Buttons
-    ISwitchVectorProperty ReticSP;
-    ISwitch ReticS[2];
-
-    // Align Buttons
-    ISwitchVectorProperty TrackCompSP;
-    ISwitch TrackCompS[3];
-    
-    ISwitchVectorProperty TrackAxisSP;
-    ISwitch TrackAxisS[3];
-    
-    ISwitchVectorProperty FrequencyAdjustSP;
-    ISwitch FrequencyAdjustS[3];
-
-    ISwitchVectorProperty AutoFlipSP;
-    ISwitch AutoFlipS[2];
-    
-    ISwitchVectorProperty HomePauseSP;
-    ISwitch HomePauseS[3];    
-    
-    ISwitchVectorProperty SetHomeSP;
-    ISwitch SetHomeS[2];
-
-    ISwitchVectorProperty PreferredPierSideSP;
-    ISwitch PreferredPierSideS[3];    
-    
-    INumberVectorProperty minutesPastMeridianNP;    
-    INumber minutesPastMeridianN[2];    
-    
-    ISwitchVectorProperty OSPECStatusSP;
-    ISwitch OSPECStatusS[5];
-    ISwitchVectorProperty OSPECIndexSP;
-    ISwitch OSPECIndexS[2];
-    ISwitchVectorProperty OSPECRecordSP;
-    ISwitch OSPECRecordS[3];
-    ISwitchVectorProperty OSPECReadSP;
-    ISwitch OSPECReadS[2];
-    INumberVectorProperty OSPECCurrentIndexNP;
-    INumber OSPECCurrentIndexN[2];
-    INumberVectorProperty OSPECUserIndexNP;
-    INumber OSPECUserIndexN[2];
-    INumberVectorProperty OSPECRWValuesNP;
-    INumber OSPECRWValuesN[2]; //Current Index  and User Index
-    
-    ISwitchVectorProperty OSNAlignStarsSP;
-    ISwitch OSNAlignStarsS[9];
-    ISwitchVectorProperty OSNAlignSP;
-    ISwitch OSNAlignS[4];
-    ISwitchVectorProperty OSNAlignWriteSP;
-    ISwitch OSNAlignWriteS[1];
-    ISwitchVectorProperty OSNAlignPolarRealignSP;   
-    ISwitch OSNAlignPolarRealignS[2];
-    IText OSNAlignT[8] {};
-    ITextVectorProperty OSNAlignTP;
-    IText OSNAlignErrT[4] {};
-    ITextVectorProperty OSNAlignErrTP;    
-    char OSNAlignStat[RB_MAX_LEN]; 
-    
-    ISwitchVectorProperty OSOutput1SP;
-    ISwitch OSOutput1S[2];
-    ISwitchVectorProperty OSOutput2SP;
-    ISwitch OSOutput2S[2];
-    
-
-    INumber OutputPorts[PORTS_COUNT];
-    INumberVectorProperty OutputPorts_NP;
-
-    INumber GuideRateN[2];
-    INumberVectorProperty GuideRateNP;
-
-    char OSStat[RB_MAX_LEN];
-    char OldOSStat[RB_MAX_LEN];
+        IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+        IPState MoveAbsFocuser (uint32_t targetTicks) override;
+        IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
+        bool AbortFocuser () override;
 
 
-    char OSPier[RB_MAX_LEN];
-    char OldOSPier[RB_MAX_LEN];
-    
-    bool OSSeparate_Pulse_Guide_Rate = false; 
-    bool OSSupports_bitfield_Gu = false;
-    uint8_t PECStatusGU = 0;
-    uint8_t ParkStatusGU = 0;
-    
-    // Weather support
-    // NOTE: Much is handled by WeatherInterface, these controls are mainly for setting values which are not detected
-    // As of right now, if there is a sensor the values will be overwritten on the next update
-    
+        //End FocuserInterface
 
-    INumberVectorProperty OSSetTemperatureNP;
-    INumber OSSetTemperatureN[1];
-    INumberVectorProperty OSSetHumidityNP;
-    INumber OSSetHumidityN[1];
-    INumberVectorProperty OSSetPressureNP;
-    INumber OSSetPressureN[1];
-    //Not sure why this would be used, but will feed to it from site settings
-    INumberVectorProperty OSSetAltitudeNP;
-    INumber OSSetAltitudeN[1];
-    
-    
-    //This is updated via other commands, as such I'm going to ignore it like some others do. 
-    virtual IPState updateWeather() override
-    {
-        return IPS_OK;
-    }
-    
-    
-    
-  private:
-    int currentCatalog;
-    int currentSubCatalog;
-    bool FirstRead=true;
+        //PECInterface
+        //axis 0=RA, 1=DEC, others?
+        IPState StopPECPlayback (int axis);
+        IPState StartPECPlayback (int axis);
+        IPState ClearPECBuffer (int axis);
+        IPState StartPECRecord (int axis);
+        IPState SavePECBuffer (int axis);
+        IPState PECStatus (int axis);
+        IPState ReadPECBuffer (int axis);
+        IPState WritePECBuffer (int axis);
+        bool ISPECRecorded (int axis);
+        bool OSPECEnabled = false;
+        //End PECInterface
+
+
+        //NewGeometricAlignment
+        IPState AlignStartGeometric(int stars);
+        IPState AlignAddStar();
+        IPState AlignDone();
+        IPState AlignWrite();
+        virtual bool UpdateAlignStatus();
+        virtual bool UpdateAlignErr();
+        //End NewGeometricAlignment
+        bool OSAlignCompleted = false;
+
+        //Outputs
+        IPState OSEnableOutput(int output);
+        IPState OSDisableOutput(int output);
+        bool OSGetOutputState(int output);
+
+
+        bool sendOnStepCommand(const char *cmd);
+        bool sendOnStepCommandBlind(const char *cmd);
+        int  setMaxElevationLimit(int fd, int max);
+        void OSUpdateFocuser();
+
+        ITextVectorProperty ObjectInfoTP;
+        IText ObjectInfoT[1] {};
+
+        ISwitchVectorProperty StarCatalogSP;
+        ISwitch StarCatalogS[3];
+
+        ISwitchVectorProperty DeepSkyCatalogSP;
+        ISwitch DeepSkyCatalogS[7];
+
+        ISwitchVectorProperty SolarSP;
+        ISwitch SolarS[10];
+
+        INumberVectorProperty ObjectNoNP;
+        INumber ObjectNoN[1];
+
+        INumberVectorProperty MaxSlewRateNP;
+        INumber MaxSlewRateN[2];
+
+        INumberVectorProperty BacklashNP;    //test
+        INumber BacklashN[2];    //Test
+
+        INumberVectorProperty ElevationLimitNP;
+        INumber ElevationLimitN[2];
+
+        ITextVectorProperty VersionTP;
+        IText VersionT[5] {};
+
+        // OnStep Status controls
+        ITextVectorProperty OnstepStatTP;
+        IText OnstepStat[10] {};
+
+        // Focuser controls
+        // Focuser 1
+        bool OSFocuser1 = false;
+        ISwitchVectorProperty OSFocus1InitializeSP;
+        ISwitch OSFocus1InitializeS[4];
+
+        // Focuser 2
+        //ISwitchVectorProperty OSFocus2SelSP;
+        //ISwitch OSFocus2SelS[2];
+        bool OSFocuser2 = false;
+        ISwitchVectorProperty OSFocus2RateSP;
+        ISwitch OSFocus2RateS[4];
+
+        ISwitchVectorProperty OSFocus2MotionSP;
+        ISwitch OSFocus2MotionS[3];
+
+        INumberVectorProperty OSFocus2TargNP;
+        INumber OSFocus2TargN[1];
+
+
+        int IsTracking = 0;
+
+        // Reticle +/- Buttons
+        ISwitchVectorProperty ReticSP;
+        ISwitch ReticS[2];
+
+        // Align Buttons
+        ISwitchVectorProperty TrackCompSP;
+        ISwitch TrackCompS[3];
+
+        ISwitchVectorProperty TrackAxisSP;
+        ISwitch TrackAxisS[3];
+
+        ISwitchVectorProperty FrequencyAdjustSP;
+        ISwitch FrequencyAdjustS[3];
+
+        ISwitchVectorProperty AutoFlipSP;
+        ISwitch AutoFlipS[2];
+
+        ISwitchVectorProperty HomePauseSP;
+        ISwitch HomePauseS[3];
+
+        ISwitchVectorProperty SetHomeSP;
+        ISwitch SetHomeS[2];
+
+        ISwitchVectorProperty PreferredPierSideSP;
+        ISwitch PreferredPierSideS[3];
+
+        INumberVectorProperty minutesPastMeridianNP;
+        INumber minutesPastMeridianN[2];
+
+        ISwitchVectorProperty OSPECStatusSP;
+        ISwitch OSPECStatusS[5];
+        ISwitchVectorProperty OSPECIndexSP;
+        ISwitch OSPECIndexS[2];
+        ISwitchVectorProperty OSPECRecordSP;
+        ISwitch OSPECRecordS[3];
+        ISwitchVectorProperty OSPECReadSP;
+        ISwitch OSPECReadS[2];
+        INumberVectorProperty OSPECCurrentIndexNP;
+        INumber OSPECCurrentIndexN[2];
+        INumberVectorProperty OSPECUserIndexNP;
+        INumber OSPECUserIndexN[2];
+        INumberVectorProperty OSPECRWValuesNP;
+        INumber OSPECRWValuesN[2]; //Current Index  and User Index
+
+        ISwitchVectorProperty OSNAlignStarsSP;
+        ISwitch OSNAlignStarsS[9];
+        ISwitchVectorProperty OSNAlignSP;
+        ISwitch OSNAlignS[4];
+        ISwitchVectorProperty OSNAlignWriteSP;
+        ISwitch OSNAlignWriteS[1];
+        ISwitchVectorProperty OSNAlignPolarRealignSP;
+        ISwitch OSNAlignPolarRealignS[2];
+        IText OSNAlignT[8] {};
+        ITextVectorProperty OSNAlignTP;
+        IText OSNAlignErrT[4] {};
+        ITextVectorProperty OSNAlignErrTP;
+        char OSNAlignStat[RB_MAX_LEN];
+
+        ISwitchVectorProperty OSOutput1SP;
+        ISwitch OSOutput1S[2];
+        ISwitchVectorProperty OSOutput2SP;
+        ISwitch OSOutput2S[2];
+
+
+        INumber OutputPorts[PORTS_COUNT];
+        INumberVectorProperty OutputPorts_NP;
+
+        INumber GuideRateN[2];
+        INumberVectorProperty GuideRateNP;
+
+        char OSStat[RB_MAX_LEN];
+        char OldOSStat[RB_MAX_LEN];
+
+
+        char OSPier[RB_MAX_LEN];
+        char OldOSPier[RB_MAX_LEN];
+
+        bool OSSeparate_Pulse_Guide_Rate = false;
+        bool OSSupports_bitfield_Gu = false;
+        uint8_t PECStatusGU = 0;
+        uint8_t ParkStatusGU = 0;
+
+        // Weather support
+        // NOTE: Much is handled by WeatherInterface, these controls are mainly for setting values which are not detected
+        // As of right now, if there is a sensor the values will be overwritten on the next update
+
+
+        INumberVectorProperty OSSetTemperatureNP;
+        INumber OSSetTemperatureN[1];
+        INumberVectorProperty OSSetHumidityNP;
+        INumber OSSetHumidityN[1];
+        INumberVectorProperty OSSetPressureNP;
+        INumber OSSetPressureN[1];
+        //Not sure why this would be used, but will feed to it from site settings
+        INumberVectorProperty OSSetAltitudeNP;
+        INumber OSSetAltitudeN[1];
+
+
+        //This is updated via other commands, as such I'm going to ignore it like some others do.
+        virtual IPState updateWeather() override
+        {
+            return IPS_OK;
+        }
+
+
+
+    private:
+        int currentCatalog;
+        int currentSubCatalog;
+        bool FirstRead = true;
 
 };

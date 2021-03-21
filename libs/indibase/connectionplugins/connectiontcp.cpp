@@ -192,8 +192,8 @@ bool TCP::Disconnect()
 
 void TCP::Activated()
 {
-    m_Device->defineText(&AddressTP);
-    m_Device->defineSwitch(&TcpUdpSP);
+    m_Device->defineProperty(&AddressTP);
+    m_Device->defineProperty(&TcpUdpSP);
     m_Device->loadConfig(true, "DEVICE_ADDRESS");
     m_Device->loadConfig(true, "CONNECTION_TYPE");
 }

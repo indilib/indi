@@ -266,12 +266,10 @@ static void crackDPE(char *spec)
 /* grow srchs[] with the new search */
 static void addSearchDef(char *dev, char *prop, char *ele)
 {
-    if (!srchs)
-        srchs = (SearchDef *)malloc(1); /* realloc seed */
     srchs            = (SearchDef *)realloc(srchs, (nsrchs + 1) * sizeof(SearchDef));
-    srchs[nsrchs].d  = strcpy(malloc(strlen(dev) + 1), dev);
-    srchs[nsrchs].p  = strcpy(malloc(strlen(prop) + 1), prop);
-    srchs[nsrchs].e  = strcpy(malloc(strlen(ele) + 1), ele);
+    srchs[nsrchs].d  = strdup(dev);
+    srchs[nsrchs].p  = strdup(prop);
+    srchs[nsrchs].e  = strdup(ele);
     srchs[nsrchs].wc = *dev == WILDCARD || *prop == WILDCARD || *ele == WILDCARD;
     srchs[nsrchs].ok = 0;
     nsrchs++;
@@ -565,7 +563,7 @@ static void oneBLOB(XMLEle *root, char *dev, char *nam, char *enam, char *p, int
     isz    = !strncmp(&format[strlen(format) - 2], ".z", 2);
 
     /* decode blob from base64 in p */
-    blob    = malloc(3 * plen / 4);
+    blob    = (unsigned char *)malloc(3 * plen / 4);
     bloblen = from64tobits_fast((char *)blob, p, plen);
     if (bloblen < 0)
     {
@@ -577,7 +575,7 @@ static void oneBLOB(XMLEle *root, char *dev, char *nam, char *enam, char *p, int
     if (isz)
     {
         uLong nuncomp         = ucs;
-        unsigned char *uncomp = malloc(ucs);
+        unsigned char *uncomp = (unsigned char *)malloc(ucs);
         int ok                = uncompress(uncomp, &nuncomp, blob, bloblen);
         if (ok != Z_OK)
         {

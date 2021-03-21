@@ -105,7 +105,7 @@ bool SkySafari::Connect()
         skySafariClient->setMount(ActiveDeviceT[ACTIVE_TELESCOPE].text);
         skySafariClient->setServer(SettingsT[INDISERVER_HOST].text, std::stoi(SettingsT[INDISERVER_PORT].text));
         skySafariClient->connectServer();
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 
     return rc;
@@ -148,8 +148,8 @@ void SkySafari::ISGetProperties(const char *dev)
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
-    defineText(&SettingsTP);
-    defineText(&ActiveDeviceTP);
+    defineProperty(&SettingsTP);
+    defineProperty(&ActiveDeviceTP);
 
     loadConfig(true);
 }
@@ -250,13 +250,13 @@ void SkySafari::TimerHit()
         if (cli_fd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
         {
             // Try again later
-            SetTimer(POLLMS);
+            SetTimer(getCurrentPollingPeriod());
             return;
         }
         else if (cli_fd < 0)
         {
             LOGF_ERROR("Failed to connect to SkySafari. %s", strerror(errno));
-            SetTimer(POLLMS);
+            SetTimer(getCurrentPollingPeriod());
             return;
         }
 
@@ -308,7 +308,7 @@ void SkySafari::TimerHit()
         // Otherwise EAGAIN so we just try shortly
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool SkySafari::startServer()

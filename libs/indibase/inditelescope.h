@@ -167,17 +167,18 @@ class Telescope : public DefaultDevice
             TELESCOPE_HAS_TRACK_MODE              = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
             TELESCOPE_CAN_CONTROL_TRACK           = 1 << 9,  /** Can the telescope engage and disengage tracking? */
             TELESCOPE_HAS_TRACK_RATE              = 1 << 10, /** Does the telescope have custom track rates? */
-            TELESCOPE_HAS_PIER_SIDE_SIMULATION     = 1 << 11, /** Does the telescope simulate the pier side property? */
+            TELESCOPE_HAS_PIER_SIDE_SIMULATION    = 1 << 11, /** Does the telescope simulate the pier side property? */
+            TELESCOPE_CAN_TRACK_SATELLITE         = 1 << 12, /** Can the telescope track satellites? */
         } TelescopeCapability;
 
         Telescope();
         virtual ~Telescope();
 
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual void ISGetProperties(const char *dev);
-        virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
         /**
          * @brief GetTelescopeCapability returns the capability of the Telescope
@@ -269,6 +270,13 @@ class Telescope : public DefaultDevice
             return capability & TELESCOPE_HAS_PIER_SIDE_SIMULATION;
         }
         /**
+         * @return True if telescope can track satellites
+         */
+        bool CanTrackSatellite()
+        {
+            return capability & TELESCOPE_CAN_TRACK_SATELLITE;
+        }
+        /**
          * @return True if telescope supports PEC playback property
          */
         bool HasPECState()
@@ -293,9 +301,9 @@ class Telescope : public DefaultDevice
         }
 
         /** \brief Called to initialize basic properties required all the time */
-        virtual bool initProperties();
+        virtual bool initProperties() override;
         /** \brief Called when connected state changes, to add/remove properties */
-        virtual bool updateProperties();
+        virtual bool updateProperties() override;
 
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();
@@ -781,6 +789,46 @@ class Telescope : public DefaultDevice
 
         const char * getPierSideStr(TelescopePierSide ps);
 
+        // Satellite tracking
+        /**
+         * \brief Text Vector property defining the orbital elements of an artificial satellite (TLE).
+         * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
+         */
+        ITextVectorProperty TLEtoTrackTP;
+        IText TLEtoTrackT[1] {};
+        /**
+         * \struct SatelliteWindow
+         * \brief Satellite pass: window start and end.
+         */
+        enum
+        {
+            SAT_PASS_WINDOW_START, ///< Index for start of the window
+            SAT_PASS_WINDOW_END, ///< Index for end of the window
+            SAT_PASS_WINDOW_COUNT ///< Number of indices
+        } SatelliteWindow;
+        /**
+         * \brief Text Vector property defining the start and end of a satellite pass (window contains pass).
+         * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
+         */
+        ITextVectorProperty SatPassWindowTP;
+        IText SatPassWindowT[SAT_PASS_WINDOW_COUNT] {};
+        /**
+         * \struct SatelliteTracking
+         * \brief Possible states for the satellite tracking.
+         */
+        enum
+        {
+            SAT_TRACK, ///< Track signal
+            SAT_HALT, ///< Halt signal (abort)
+            SAT_TRACK_COUNT ///< State counter
+        } SatelliteTracking;
+        /**
+         * \brief Switch Vector property defining the state of the satellite tracking of the mount.
+         * \ref drivers/telescope/lx200_10micron.cpp "Example implementation"
+         */
+        ISwitchVectorProperty TrackSatSP;
+        ISwitch TrackSatS[SAT_TRACK_COUNT];
+        
         // PEC State
         ISwitch PECStateS[2];
         ISwitchVectorProperty PECStateSP;

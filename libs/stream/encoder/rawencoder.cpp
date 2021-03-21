@@ -31,12 +31,10 @@ namespace INDI
 RawEncoder::RawEncoder()
 {
     name = "RAW";
-    compressedFrame = static_cast<uint8_t *>(malloc(1));
 }
 
 RawEncoder::~RawEncoder()
 {
-    free(compressedFrame);
 }
 
 const char *RawEncoder::getDeviceName()
@@ -50,18 +48,10 @@ bool RawEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool 
     if (isCompressed)
     {
         // Compress frame
-        uint8_t *buf = static_cast<uint8_t *>(realloc(compressedFrame, sizeof(uint8_t) * nbytes + nbytes / 64 + 16 + 3));
-        if (buf == nullptr)
-        {
-            free(compressedFrame);
-            return false;
-        }
-        else
-            compressedFrame = buf;
+        compressedFrame.resize(nbytes + nbytes / 64 + 16 + 3);
+        uLongf compressedBytes = compressedFrame.size();
 
-        uLongf compressedBytes = sizeof(uint8_t) * nbytes + nbytes / 64 + 16 + 3;
-
-        int ret = compress2(compressedFrame, &compressedBytes, buffer, nbytes, 4);
+        int ret = compress2(compressedFrame.data(), &compressedBytes, buffer, nbytes, 4);
         if (ret != Z_OK)
         {
             // this should NEVER happen
@@ -70,7 +60,7 @@ bool RawEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool 
         }
 
         // Send it compressed
-        bp->blob    = compressedFrame;
+        bp->blob    = compressedFrame.data();
         bp->bloblen = compressedBytes;
         bp->size    = nbytes;
         strcpy(bp->format, ".stream.z");

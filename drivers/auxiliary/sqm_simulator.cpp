@@ -182,8 +182,8 @@ bool SQMSimulator::updateProperties()
     INDI::DefaultDevice::updateProperties();
 
     if (isConnected()) {
-        defineNumber(&readingProperties);
-        defineNumber(&unitProperties);
+        defineProperty(&readingProperties);
+        defineProperty(&unitProperties);
     } else {
         deleteProperty(readingProperties.name);
         deleteProperty(unitProperties.name);

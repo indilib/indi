@@ -102,18 +102,20 @@ void ISSnoopDevice(XMLEle *root)
 
 Paramount::Paramount()
 {
+    setVersion(1, 1);
+
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE |
-                           TELESCOPE_CAN_CONTROL_TRACK,
+                           TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PIER_SIDE,
                            9);
     setTelescopeConnection(CONNECTION_TCP);
 }
 
 const char *Paramount::getDefaultName()
 {
-    return (const char *)"Paramount";
+    return "Paramount";
 }
 
 bool Paramount::initProperties()
@@ -213,14 +215,14 @@ bool Paramount::updateProperties()
             TrackState = SCOPE_IDLE;
         }
 
-        //defineSwitch(&TrackModeSP);
-        //defineNumber(&TrackRateNP);
+        //defineProperty(&TrackModeSP);
+        //defineProperty(&TrackRateNP);
 
-        defineNumber(&JogRateNP);
+        defineProperty(&JogRateNP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
         // Initial HA to 0 and currentDEC (+90 or -90)
         if (InitPark())
@@ -240,7 +242,7 @@ bool Paramount::updateProperties()
 
         SetParked(isTheSkyParked());
 
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
     }
     else
     {
@@ -361,6 +363,45 @@ bool Paramount::getMountRADE()
     return false;
 }
 
+INDI::Telescope::TelescopePierSide Paramount::getPierSide()
+{
+    int rc = 0, nbytes_written = 0, nbytes_read = 0;
+    char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
+
+    //"if (sky6RASCOMTele.IsConnected==0) sky6RASCOMTele.Connect();"
+    strncpy(pCMD,
+            "/* Java Script */"
+            "var Out;"
+            "sky6RASCOMTele.DoCommand(11, \"Pier Side\");"
+            "Out = sky6RASCOMTele.DoCommandOutput",
+            MAXRBUF);
+
+    LOGF_DEBUG("CMD: %s", pCMD);
+
+    if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    {
+        LOG_ERROR("Error writing to TheSky6 TCP server.");
+        return PIER_UNKNOWN;
+    }
+
+    // Should we read until we encounter string terminator? or what?
+    if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        LOG_ERROR("Error reading from TheSky6 TCP server.");
+        return PIER_UNKNOWN;
+    }
+
+    LOGF_DEBUG("RES: %s", pRES);
+
+    std::regex rgx(R"((\d+)\|(.+)\. Error = (\d+)\.)");
+    std::smatch match;
+    std::string input(pRES);
+    if (std::regex_search(input, match, rgx))
+        return std::stoi(match.str(1)) == 0 ? PIER_WEST : PIER_EAST;
+
+    return PIER_UNKNOWN;
+}
+
 bool Paramount::ReadScopeStatus()
 {
     if (isSimulation())
@@ -408,6 +449,8 @@ bool Paramount::ReadScopeStatus()
 
     DEBUGF(DBG_SCOPE, "Current RA: %s Current DEC: %s", RAStr, DecStr);
 
+    setPierSide(getPierSide());
+
     NewRaDec(currentRA, currentDEC);
     return true;
 }
@@ -426,7 +469,7 @@ bool Paramount::Goto(double r, double d)
     lnradec.ra  = (currentRA * 360) / 24.0;
     lnradec.dec = currentDEC;
 
-    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+    //get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
     /* libnova measures azimuth from south towards west */
     //    double current_az = range360(lnaltaz.az + 180);
     //double current_alt =lnaltaz.alt;
@@ -665,17 +708,19 @@ bool Paramount::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     {
         if (!strcmp(HomeSP.name, name))
         {
+            LOG_INFO("Moving to home position. Please stand by...");
             if (findHome())
             {
-                HomeS[0].s = ISS_ON;
-                TrackState = SCOPE_SLEWING;
-                HomeSP.s = IPS_BUSY;
-                LOG_INFO("Finding Home position...");
+                HomeS[0].s = ISS_OFF;
+                TrackState = SCOPE_IDLE;
+                HomeSP.s = IPS_OK;
+                LOG_INFO("Mount arrived at home position.");
             }
             else
             {
                 HomeS[0].s = ISS_OFF;
                 HomeSP.s = IPS_ALERT;
+                LOG_ERROR("Failed to go to home position");
             }
 
             IDSetSwitch(&HomeSP, nullptr);
@@ -698,8 +743,11 @@ bool Paramount::findHome()
 {
     char pCMD[MAXRBUF] = {0};
 
-    strncpy(pCMD, "sky6RASCOMTele.FindHome();", MAXRBUF);
-    return sendTheSkyOKCommand(pCMD, "Find home");
+    strncpy(pCMD, "sky6RASCOMTele.FindHome();"
+            "while(!sky6RASCOMTele.IsSlewComplete) {"
+            "sky6Web.Sleep(1000);}",
+            MAXRBUF);
+    return sendTheSkyOKCommand(pCMD, "Find home", 60);
 }
 
 
@@ -993,7 +1041,7 @@ void Paramount::mountSim()
     NewRaDec(currentRA, currentDEC);
 }
 
-bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessage)
+bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessage, uint8_t timeout)
 {
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
@@ -1015,7 +1063,7 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
         return false;
     }
 
-    if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', timeout, &nbytes_read)) != TTY_OK)
     {
         LOG_ERROR("Error reading from TheSky6 TCP server.");
         return false;
@@ -1115,7 +1163,7 @@ bool Paramount::SetTrackRate(double raRate, double deRate)
 bool Paramount::SetTrackMode(uint8_t mode)
 {
     bool isSidereal = (mode == TRACK_SIDEREAL);
-    double dRA = TRACKRATE_SIDEREAL, dDE = 0;
+    double dRA = 0, dDE = 0;
 
     if (mode == TRACK_SOLAR)
         dRA = TRACKRATE_SOLAR;

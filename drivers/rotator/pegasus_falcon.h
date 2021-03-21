@@ -100,7 +100,7 @@ class PegasusFalcon : public INDI::Rotator
         INumberVectorProperty DerotateNP;
         INumber DerotateN[1];
         /// Firmware
-        ITextVectorProperty FirmwateTP;
+        ITextVectorProperty FirmwareTP;
         IText FirmwareT[1] {};
 
         std::vector<std::string> lastStatusData;

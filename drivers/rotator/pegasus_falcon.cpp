@@ -108,7 +108,7 @@ bool PegasusFalcon::initProperties()
 
     // Firmware
     IUFillText(&FirmwareT[0], "VERSION", "Version", "NA");
-    IUFillTextVector(&FirmwateTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
+    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
                      IPS_IDLE);
 
     return true;
@@ -121,16 +121,16 @@ bool PegasusFalcon::updateProperties()
     if (isConnected())
     {
         // Main Control
-        defineNumber(&DerotateNP);
-        defineText(&FirmwateTP);
-        defineSwitch(&ReloadFirmwareSP);
+        defineProperty(&DerotateNP);
+        defineProperty(&FirmwareTP);
+        defineProperty(&ReloadFirmwareSP);
 
     }
     else
     {
         // Main Control
         deleteProperty(DerotateNP.name);
-        deleteProperty(FirmwateTP.name);
+        deleteProperty(FirmwareTP.name);
         deleteProperty(ReloadFirmwareSP.name);
     }
 
@@ -289,7 +289,7 @@ void PegasusFalcon::TimerHit()
     if (!isConnected())
         return;
     getStatusData();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 //////////////////////////////////////////////////////////////////////

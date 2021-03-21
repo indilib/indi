@@ -166,7 +166,7 @@ class GuideSim : public INDI::CCD
 
         //  And this lives in our simulator settings page
 
-        INumberVectorProperty *SimulatorSettingsNV;
+        INumberVectorProperty SimulatorSettingsNP;
         INumber SimulatorSettingsN[17];
 
         ISwitchVectorProperty SimulateRgbSP;

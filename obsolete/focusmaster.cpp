@@ -25,7 +25,7 @@
 #include <memory>
 #include <unistd.h>
 
-#define POLLMS              1000 /* 1000 ms */
+#define POLLMS_OVERRIDE     1000 /* 1000 ms */
 #define FOCUSMASTER_TIMEOUT 1000 /* 1000 ms */
 #define MAX_FM_BUF          16
 
@@ -96,7 +96,7 @@ bool FocusMaster::Connect()
         // if digital readout
         //FI::SetCapability(GetFocuserCapability() | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
 
-        SetTimer(POLLMS);
+        SetTimer(POLLMS_OVERRIDE);
 
     }
 
@@ -148,8 +148,8 @@ bool FocusMaster::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&FullMotionSP);
-        //defineNumber(&SyncNP);
+        defineProperty(&FullMotionSP);
+        //defineProperty(&SyncNP);
     }
     else
     {
@@ -207,7 +207,7 @@ void FocusMaster::TimerHit()
     IDSetNumber(&FocusAbsPosNP, nullptr);
 #endif
 
-    SetTimer(POLLMS);
+    SetTimer(POLLMS_OVERRIDE);
 }
 
 bool FocusMaster::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -271,7 +271,7 @@ IPState FocusMaster::MoveFocuser(FocusDirection dir, int speed, uint16_t duratio
     gettimeofday(&focusMoveStart, nullptr);
     focusMoveRequest = duration / 1000.0;
 
-    if (duration > 0 && duration <= POLLMS)
+    if (duration > 0 && duration <= POLLMS_OVERRIDE)
     {
         usleep(duration * 1000);
         AbortFocuser();

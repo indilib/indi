@@ -198,16 +198,16 @@ bool JoyStick::updateProperties()
         snprintf(buf, 8, "%d", driver->getNumrOfButtons());
         IUSaveText(&JoystickInfoT[4], buf);
 
-        defineText(&JoystickInfoTP);
+        defineProperty(&JoystickInfoTP);
 
         for (int i = 0; i < driver->getNumOfJoysticks(); i++)
-            defineNumber(&JoyStickNP[i]);
+            defineProperty(&JoyStickNP[i]);
 
-        defineNumber(&AxisNP);
-        defineSwitch(&ButtonSP);
+        defineProperty(&AxisNP);
+        defineProperty(&ButtonSP);
 
         // Dead zones
-        defineNumber(&DeadZoneNP);
+        defineProperty(&DeadZoneNP);
 
         // N.B. Only set callbacks AFTER we define our properties above
         // because these calls backs otherwise can be called asynchronously
@@ -241,17 +241,17 @@ void JoyStick::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
-    defineText(&PortTP);
+    defineProperty(&PortTP);
     loadConfig(true, INDI::SP::DEVICE_PORT);
 
     /*
     if (isConnected())
     {
         for (int i = 0; i < driver->getNumOfJoysticks(); i++)
-            defineNumber(&JoyStickNP[i]);
+            defineProperty(&JoyStickNP[i]);
 
-        defineNumber(&AxisNP);
-        defineSwitch(&ButtonSP);
+        defineProperty(&AxisNP);
+        defineProperty(&ButtonSP);
     }
     */
 }

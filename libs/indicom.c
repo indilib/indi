@@ -29,6 +29,7 @@
 
 #include "indidevapi.h"
 #include "locale_compat.h"
+#include "base64.h"
 
 #include "config.h"
 
@@ -87,11 +88,11 @@
 
 #define MAXRBUF 2048
 
-int tty_debug = 0;
-int tty_gemini_udp_format = 0;
-int tty_generic_udp_format = 0;
-int tty_sequence_number = 1;
-int tty_clear_trailing_lf = 0;
+static int tty_debug = 0;
+static int tty_gemini_udp_format = 0;
+static int tty_generic_udp_format = 0;
+static int tty_sequence_number = 1;
+static int tty_clear_trailing_lf = 0;
 
 #if defined(HAVE_LIBNOVA)
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
@@ -281,21 +282,11 @@ int numberFormat(char *buf, const char *format, double value)
         /* INDI sexi format */
         switch (f)
         {
-        case 9:
-            s = 360000;
-            break;
-        case 8:
-            s = 36000;
-            break;
-        case 6:
-            s = 3600;
-            break;
-        case 5:
-            s = 600;
-            break;
-        default:
-            s = 60;
-            break;
+        case 9:  s = 360000;  break;
+        case 8:  s = 36000;   break;
+        case 6:  s = 3600;    break;
+        case 5:  s = 600;     break;
+        default: s = 60;      break;
         }
         return (fs_sexa(buf, value, w - f, s));
     }
@@ -750,73 +741,29 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     // The baud rate, word length, and handshake options can be set as follows:
     switch (bit_rate)
     {
-    case 0:
-        bps = B0;
-        break;
-    case 50:
-        bps = B50;
-        break;
-    case 75:
-        bps = B75;
-        break;
-    case 110:
-        bps = B110;
-        break;
-    case 134:
-        bps = B134;
-        break;
-    case 150:
-        bps = B150;
-        break;
-    case 200:
-        bps = B200;
-        break;
-    case 300:
-        bps = B300;
-        break;
-    case 600:
-        bps = B600;
-        break;
-    case 1200:
-        bps = B1200;
-        break;
-    case 1800:
-        bps = B1800;
-        break;
-    case 2400:
-        bps = B2400;
-        break;
-    case 4800:
-        bps = B4800;
-        break;
-    case 9600:
-        bps = B9600;
-        break;
-    case 19200:
-        bps = B19200;
-        break;
-    case 38400:
-        bps = B38400;
-        break;
-    case 57600:
-        bps = B57600;
-        break;
-    case 115200:
-        bps = B115200;
-        break;
-    case 230400:
-        bps = B230400;
-        break;
+    case 0:      bps = B0;      break;
+    case 50:     bps = B50;     break;
+    case 75:     bps = B75;     break;
+    case 110:    bps = B110;    break;
+    case 134:    bps = B134;    break;
+    case 150:    bps = B150;    break;
+    case 200:    bps = B200;    break;
+    case 300:    bps = B300;    break;
+    case 600:    bps = B600;    break;
+    case 1200:   bps = B1200;   break;
+    case 1800:   bps = B1800;   break;
+    case 2400:   bps = B2400;   break;
+    case 4800:   bps = B4800;   break;
+    case 9600:   bps = B9600;   break;
+    case 19200:  bps = B19200;  break;
+    case 38400:  bps = B38400;  break;
+    case 57600:  bps = B57600;  break;
+    case 115200: bps = B115200; break;
+    case 230400: bps = B230400; break;
 #ifndef __APPLE__
-    case 460800:
-        bps = B460800;
-        break;
-    case 576000:
-        bps = B576000;
-        break;
-    case 921600:
-        bps = B921600;
-        break;
+    case 460800: bps = B460800; break;
+    case 576000: bps = B576000; break;
+    case 921600: bps = B921600; break;
 #endif
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
@@ -830,18 +777,10 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     /* word size */
     switch (word_size)
     {
-    case 5:
-        tty_setting.c_cflag |= CS5;
-        break;
-    case 6:
-        tty_setting.c_cflag |= CS6;
-        break;
-    case 7:
-        tty_setting.c_cflag |= CS7;
-        break;
-    case 8:
-        tty_setting.c_cflag |= CS8;
-        break;
+    case 5: tty_setting.c_cflag |= CS5; break;
+    case 6: tty_setting.c_cflag |= CS6; break;
+    case 7: tty_setting.c_cflag |= CS7; break;
+    case 8: tty_setting.c_cflag |= CS8; break;
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
             perror(NULL);
@@ -1029,72 +968,28 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     Set bps rate */
     switch (bit_rate)
     {
-    case 0:
-        bps = B0;
-        break;
-    case 50:
-        bps = B50;
-        break;
-    case 75:
-        bps = B75;
-        break;
-    case 110:
-        bps = B110;
-        break;
-    case 134:
-        bps = B134;
-        break;
-    case 150:
-        bps = B150;
-        break;
-    case 200:
-        bps = B200;
-        break;
-    case 300:
-        bps = B300;
-        break;
-    case 600:
-        bps = B600;
-        break;
-    case 1200:
-        bps = B1200;
-        break;
-    case 1800:
-        bps = B1800;
-        break;
-    case 2400:
-        bps = B2400;
-        break;
-    case 4800:
-        bps = B4800;
-        break;
-    case 9600:
-        bps = B9600;
-        break;
-    case 19200:
-        bps = B19200;
-        break;
-    case 38400:
-        bps = B38400;
-        break;
-    case 57600:
-        bps = B57600;
-        break;
-    case 115200:
-        bps = B115200;
-        break;
-    case 230400:
-        bps = B230400;
-        break;
-    case 460800:
-        bps = B460800;
-        break;
-    case 576000:
-        bps = B576000;
-        break;
-    case 921600:
-        bps = B921600;
-        break;
+    case 0:      bps = B0;      break;
+    case 50:     bps = B50;     break;
+    case 75:     bps = B75;     break;
+    case 110:    bps = B110;    break;
+    case 134:    bps = B134;    break;
+    case 150:    bps = B150;    break;
+    case 200:    bps = B200;    break;
+    case 300:    bps = B300;    break;
+    case 600:    bps = B600;    break;
+    case 1200:   bps = B1200;   break;
+    case 1800:   bps = B1800;   break;
+    case 2400:   bps = B2400;   break;
+    case 4800:   bps = B4800;   break;
+    case 9600:   bps = B9600;   break;
+    case 19200:  bps = B19200;  break;
+    case 38400:  bps = B38400;  break;
+    case 57600:  bps = B57600;  break;
+    case 115200: bps = B115200; break;
+    case 230400: bps = B230400; break;
+    case 460800: bps = B460800; break;
+    case 576000: bps = B576000; break;
+    case 921600: bps = B921600; break;
     default:
         if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
             perror(NULL);
@@ -1120,18 +1015,10 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     /* word size */
     switch (word_size)
     {
-    case 5:
-        tty_setting.c_cflag |= CS5;
-        break;
-    case 6:
-        tty_setting.c_cflag |= CS6;
-        break;
-    case 7:
-        tty_setting.c_cflag |= CS7;
-        break;
-    case 8:
-        tty_setting.c_cflag |= CS8;
-        break;
+    case 5: tty_setting.c_cflag |= CS5; break;
+    case 6: tty_setting.c_cflag |= CS6; break;
+    case 7: tty_setting.c_cflag |= CS7; break;
+    case 8: tty_setting.c_cflag |= CS8; break;
     default:
 
         fprintf(stderr, "Default\n");
@@ -1243,65 +1130,58 @@ int tty_disconnect(int fd)
 
 void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
 {
-    char error_string[512];
-
     switch (err_code)
     {
     case TTY_OK:
-        strncpy(err_msg, "No Error", err_msg_len);
+        snprintf(err_msg, err_msg_len, "No Error");
         break;
 
     case TTY_READ_ERROR:
-        snprintf(error_string, 512, "Read Error: %s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
+        snprintf(err_msg, err_msg_len, "Read Error: %s", strerror(errno));
         break;
 
     case TTY_WRITE_ERROR:
-        snprintf(error_string, 512, "Write Error: %s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
+        snprintf(err_msg, err_msg_len, "Write Error: %s", strerror(errno));
         break;
 
     case TTY_SELECT_ERROR:
-        snprintf(error_string, 512, "Select Error: %s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
+        snprintf(err_msg, err_msg_len, "Select Error: %s", strerror(errno));
         break;
 
     case TTY_TIME_OUT:
-        strncpy(err_msg, "Timeout error", err_msg_len);
+        snprintf(err_msg, err_msg_len, "Timeout error");
         break;
 
     case TTY_PORT_FAILURE:
         if (errno == EACCES)
-            snprintf(error_string, 512,
+            snprintf(err_msg, err_msg_len,
                      "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser "
                      "$USER dialout)",
                      strerror(errno));
         else
-            snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.",
+            snprintf(err_msg, err_msg_len, "Port failure Error: %s. Check if device is connected to this port.",
                      strerror(errno));
 
-        strncpy(err_msg, error_string, err_msg_len);
         break;
 
     case TTY_PARAM_ERROR:
-        strncpy(err_msg, "Parameter error", err_msg_len);
+        snprintf(err_msg, err_msg_len, "Parameter error");
         break;
 
     case TTY_ERRNO:
-        snprintf(error_string, 512, "%s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
+        snprintf(err_msg, err_msg_len, "%s", strerror(errno));
         break;
 
     case TTY_OVERFLOW:
-        strncpy(err_msg, "Read overflow", err_msg_len);
+        snprintf(err_msg, err_msg_len, "Read overflow");
         break;
 
     case TTY_PORT_BUSY:
-        strncpy(err_msg, "Port is busy", err_msg_len);
+        snprintf(err_msg, err_msg_len, "Port is busy");
         break;
 
     default:
-        strncpy(err_msg, "Error: unrecognized error code", err_msg_len);
+        snprintf(err_msg, err_msg_len, "Error: unrecognized error code");
         break;
     }
 }
@@ -1311,14 +1191,10 @@ const char *pstateStr(IPState s)
 {
     switch (s)
     {
-    case IPS_IDLE:
-        return ("Idle");
-    case IPS_OK:
-        return ("Ok");
-    case IPS_BUSY:
-        return ("Busy");
-    case IPS_ALERT:
-        return ("Alert");
+    case IPS_IDLE:  return "Idle";
+    case IPS_OK:    return "Ok";
+    case IPS_BUSY:  return "Busy";
+    case IPS_ALERT: return "Alert";
     default:
         fprintf(stderr, "Impossible IPState %d\n", s);
         return NULL;
@@ -1388,10 +1264,8 @@ const char *sstateStr(ISState s)
 {
     switch (s)
     {
-    case ISS_ON:
-        return ("On");
-    case ISS_OFF:
-        return ("Off");
+    case ISS_ON:  return "On";
+    case ISS_OFF: return "Off";
     default:
         fprintf(stderr, "Impossible ISState %d\n", s);
         return NULL;
@@ -1403,12 +1277,9 @@ const char *ruleStr(ISRule r)
 {
     switch (r)
     {
-    case ISR_1OFMANY:
-        return ("OneOfMany");
-    case ISR_ATMOST1:
-        return ("AtMostOne");
-    case ISR_NOFMANY:
-        return ("AnyOfMany");
+    case ISR_1OFMANY: return "OneOfMany";
+    case ISR_ATMOST1: return "AtMostOne";
+    case ISR_NOFMANY: return "AnyOfMany";
     default:
         fprintf(stderr, "Impossible ISRule %d\n", r);
         return NULL;
@@ -1420,12 +1291,9 @@ const char *permStr(IPerm p)
 {
     switch (p)
     {
-    case IP_RO:
-        return ("ro");
-    case IP_WO:
-        return ("wo");
-    case IP_RW:
-        return ("rw");
+    case IP_RO: return "ro";
+    case IP_WO: return "wo";
+    case IP_RW: return "rw";
     default:
         fprintf(stderr, "Impossible IPerm %d\n", p);
         return NULL;
@@ -1467,9 +1335,7 @@ int crackDN(XMLEle *root, char **dev, char **name, char msg[])
 /* find a member of an IText vector, else NULL */
 IText *IUFindText(const ITextVectorProperty *tvp, const char *name)
 {
-    int i;
-
-    for (i = 0; i < tvp->ntp; i++)
+    for (int i = 0; i < tvp->ntp; i++)
         if (strcmp(tvp->tp[i].name, name) == 0)
             return (&tvp->tp[i]);
     fprintf(stderr, "No IText '%s' in %s.%s\n", name, tvp->device, tvp->name);
@@ -1479,9 +1345,7 @@ IText *IUFindText(const ITextVectorProperty *tvp, const char *name)
 /* find a member of an INumber vector, else NULL */
 INumber *IUFindNumber(const INumberVectorProperty *nvp, const char *name)
 {
-    int i;
-
-    for (i = 0; i < nvp->nnp; i++)
+    for (int i = 0; i < nvp->nnp; i++)
         if (strcmp(nvp->np[i].name, name) == 0)
             return (&nvp->np[i]);
     fprintf(stderr, "No INumber '%s' in %s.%s\n", name, nvp->device, nvp->name);
@@ -1491,9 +1355,7 @@ INumber *IUFindNumber(const INumberVectorProperty *nvp, const char *name)
 /* find a member of an ISwitch vector, else NULL */
 ISwitch *IUFindSwitch(const ISwitchVectorProperty *svp, const char *name)
 {
-    int i;
-
-    for (i = 0; i < svp->nsp; i++)
+    for (int i = 0; i < svp->nsp; i++)
         if (strcmp(svp->sp[i].name, name) == 0)
             return (&svp->sp[i]);
     fprintf(stderr, "No ISwitch '%s' in %s.%s\n", name, svp->device, svp->name);
@@ -1503,9 +1365,7 @@ ISwitch *IUFindSwitch(const ISwitchVectorProperty *svp, const char *name)
 /* find a member of an ILight vector, else NULL */
 ILight *IUFindLight(const ILightVectorProperty *lvp, const char *name)
 {
-    int i;
-
-    for (i = 0; i < lvp->nlp; i++)
+    for (int i = 0; i < lvp->nlp; i++)
         if (strcmp(lvp->lp[i].name, name) == 0)
             return (&lvp->lp[i]);
     fprintf(stderr, "No ILight '%s' in %s.%s\n", name, lvp->device, lvp->name);
@@ -1515,9 +1375,7 @@ ILight *IUFindLight(const ILightVectorProperty *lvp, const char *name)
 /* find a member of an IBLOB vector, else NULL */
 IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name)
 {
-    int i;
-
-    for (i = 0; i < bvp->nbp; i++)
+    for (int i = 0; i < bvp->nbp; i++)
         if (strcmp(bvp->bp[i].name, name) == 0)
             return (&bvp->bp[i]);
     fprintf(stderr, "No IBLOB '%s' in %s.%s\n", name, bvp->device, bvp->name);
@@ -1529,9 +1387,7 @@ IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name)
  */
 ISwitch *IUFindOnSwitch(const ISwitchVectorProperty *svp)
 {
-    int i;
-
-    for (i = 0; i < svp->nsp; i++)
+    for (int i = 0; i < svp->nsp; i++)
         if (svp->sp[i].s == ISS_ON)
             return (&svp->sp[i]);
     /*fprintf(stderr, "No ISwitch On in %s.%s\n", svp->device, svp->name);*/
@@ -1541,9 +1397,7 @@ ISwitch *IUFindOnSwitch(const ISwitchVectorProperty *svp)
 /* Find index of the ON member of an ISwitchVectorProperty */
 int IUFindOnSwitchIndex(const ISwitchVectorProperty *svp)
 {
-    int i;
-
-    for (i = 0; i < svp->nsp; i++)
+    for (int i = 0; i < svp->nsp; i++)
         if (svp->sp[i].s == ISS_ON)
             return i;
     return -1;
@@ -1552,9 +1406,7 @@ int IUFindOnSwitchIndex(const ISwitchVectorProperty *svp)
 /* Find name the ON member in the given states and names */
 const char *IUFindOnSwitchName(ISState *states, char *names[], int n)
 {
-    int i;
-
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
         if (states[i] == ISS_ON)
             return names[i];
     return NULL;
@@ -1563,21 +1415,102 @@ const char *IUFindOnSwitchName(ISState *states, char *names[], int n)
 /* Set all switches to off */
 void IUResetSwitch(ISwitchVectorProperty *svp)
 {
-    int i;
-
-    for (i = 0; i < svp->nsp; i++)
+    for (int i = 0; i < svp->nsp; i++)
         svp->sp[i].s = ISS_OFF;
 }
 
 /* save malloced copy of newtext in tp->text, reusing if not first time */
 void IUSaveText(IText *tp, const char *newtext)
 {
-    /* seed for realloc */
-    if (tp->text == NULL)
-        tp->text = malloc(1);
-
     /* copy in fresh string */
     tp->text = strcpy(realloc(tp->text, strlen(newtext) + 1), newtext);
+}
+
+void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp)
+{
+    locale_char_t *orig = indi_locale_C_numeric_push();
+    fprintf(fp, "<newNumberVector device='%s' name='%s'>\n", nvp->device, nvp->name);
+
+    for (int i = 0; i < nvp->nnp; i++)
+    {
+        INumber *np = &nvp->np[i];
+        fprintf(fp, "  <oneNumber name='%s'>\n", np->name);
+        fprintf(fp, "      %.20g\n", np->value);
+        fprintf(fp, "  </oneNumber>\n");
+    }
+
+    fprintf(fp, "</newNumberVector>\n");
+    indi_locale_C_numeric_pop(orig);
+}
+
+void IUSaveConfigText(FILE *fp, const ITextVectorProperty *tvp)
+{
+    fprintf(fp, "<newTextVector device='%s' name='%s'>\n", tvp->device, tvp->name);
+
+    for (int i = 0; i < tvp->ntp; i++)
+    {
+        IText *tp = &tvp->tp[i];
+        fprintf(fp, "  <oneText name='%s'>\n", tp->name);
+        fprintf(fp, "      %s\n", tp->text ? tp->text : "");
+        fprintf(fp, "  </oneText>\n");
+    }
+
+    fprintf(fp, "</newTextVector>\n");
+}
+
+void IUSaveConfigSwitch(FILE *fp, const ISwitchVectorProperty *svp)
+{
+    fprintf(fp, "<newSwitchVector device='%s' name='%s'>\n", svp->device, svp->name);
+
+    for (int i = 0; i < svp->nsp; i++)
+    {
+        ISwitch *sp = &svp->sp[i];
+        fprintf(fp, "  <oneSwitch name='%s'>\n", sp->name);
+        fprintf(fp, "      %s\n", sstateStr(sp->s));
+        fprintf(fp, "  </oneSwitch>\n");
+    }
+
+    fprintf(fp, "</newSwitchVector>\n");
+}
+
+void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
+{
+    fprintf(fp, "<newBLOBVector device='%s' name='%s'>\n", bvp->device, bvp->name);
+
+    for (int i = 0; i < bvp->nbp; i++)
+    {
+        IBLOB *bp = &bvp->bp[i];
+        unsigned char *encblob = NULL;
+        int l = 0;
+
+        fprintf(fp, "  <oneBLOB\n");
+        fprintf(fp, "    name='%s'\n", bp->name);
+        fprintf(fp, "    size='%d'\n", bp->size);
+        fprintf(fp, "    format='%s'>\n", bp->format);
+
+        assert_mem(encblob = (unsigned char*)malloc(4 * bp->bloblen / 3 + 4));
+        l = to64frombits_s(encblob, bp->blob, bp->bloblen, bp->bloblen);
+        if (l == 0) {
+            fprintf(stderr, "%s: Not enough memory for decoding.\n", __func__);
+            exit(1);
+        }
+        size_t written = 0;
+
+        while ((int)written < l)
+        {
+            size_t towrite = ((l - written) > 72) ? 72 : l - written;
+            size_t wr      = fwrite(encblob + written, 1, towrite, fp);
+
+            fputc('\n', fp);
+            if (wr > 0)
+                written += wr;
+        }
+        free(encblob);
+
+        fprintf(fp, "  </oneBLOB>\n");
+    }
+
+    fprintf(fp, "</newBLOBVector>\n");
 }
 
 double rangeHA(double r)
@@ -1712,9 +1645,7 @@ double rad2as(double rad)
 
 double estimate_distance(double parsecs, double parallax_radius)
 {
-    double cat1 = parallax_radius * cos(as2rad(parsecs));
-    double cat2 = parallax_radius * sin(as2rad(parsecs));
-    return sqrt(pow(cat1, 2)+pow(cat2, 2));
+    return parallax_radius / sin(as2rad(parsecs));
 }
 
 double m2au(double m)
@@ -1747,31 +1678,21 @@ double estimate_absolute_magnitude(double delta_dist, double delta_mag)
     return sqrt(delta_dist) * delta_mag;
 }
 
-double* interferometry_uv_coords_vector(double baseline_m, double wavelength, double *target_vector)
+void baseline_2d_projection(double alt, double az, double baseline[3], double wavelength, double uvresult[2])
 {
-    double* uv = (double*)malloc(sizeof(double) * 2);
-    double* vector = (double*)malloc(sizeof(double) * 3);
-    double hypo = sqrt(pow(target_vector[0], 2) * pow(target_vector[1], 2) * pow(target_vector[2], 2));
-    vector[0] = target_vector[0] / hypo;
-    vector[1] = target_vector[1] / hypo;
-    vector[2] = target_vector[2] / hypo;
-    uv[0] = baseline_m * target_vector[0] * target_vector[2];
-    uv[1] = baseline_m * target_vector[1] * target_vector[2];
-    uv[0] *= AIRY / wavelength;
-    uv[1] *= AIRY / wavelength;
-    return uv;
+    az *= M_PI / 180.0;
+    alt *= M_PI / 180.0;
+    uvresult[0] = (baseline[0] * sin(az) + baseline[1] * cos(az));
+    uvresult[1] = (baseline[1] * sin(alt) * sin(az) - baseline[0] * sin(alt) * cos(az) + baseline[2] * cos(alt));
+    uvresult[0] *= AIRY / wavelength;
+    uvresult[1] *= AIRY / wavelength;
 }
 
-double* interferometry_uv_coords_hadec(double ha, double dec, double *baseline, double wavelength)
+double baseline_delay(double alt, double az, double baseline[3])
 {
-    double* uv = (double*)malloc(sizeof(double) * 2);
-    ha *= M_PI / 12.0;
-    dec *= M_PI / 180.0;
-    uv[0] = (baseline[0] * sin(ha) + baseline[1] * cos(ha));
-    uv[1] = (-baseline[0] * sin(dec) * cos(ha) + baseline[1] * sin(dec) * sin(ha) + baseline[2] * cos(dec));
-    uv[0] *= AIRY / wavelength;
-    uv[1] *= AIRY / wavelength;
-    return uv;
+    az *= M_PI / 180.0;
+    alt *= M_PI / 180.0;
+    return cos(az) * baseline[1] * cos(alt) - baseline[0] * sin(az) * cos(alt) + sin(alt) * baseline[2];
 }
 
 #if defined(_MSC_VER)

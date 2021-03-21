@@ -19,6 +19,7 @@
 */
 
 #include "rainbow.h"
+#include "lx200driver.h"
 
 #include <connectionplugins/connectionserial.h>
 #include <indicom.h>
@@ -69,14 +70,14 @@ void ISSnoopDevice(XMLEle *root)
 
 Rainbow::Rainbow() : INDI::Telescope ()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     SetTelescopeCapability(TELESCOPE_CAN_GOTO |
                            TELESCOPE_CAN_SYNC |
                            TELESCOPE_CAN_PARK |
                            TELESCOPE_CAN_ABORT |
                            TELESCOPE_CAN_CONTROL_TRACK |
-                           /*TELESCOPE_HAS_TIME |*/
+                           TELESCOPE_HAS_TIME |
                            TELESCOPE_HAS_LOCATION |
                            TELESCOPE_HAS_TRACK_MODE |
                            TELESCOPE_HAS_PIER_SIDE_SIMULATION, 4);
@@ -103,7 +104,8 @@ bool Rainbow::initProperties()
 
     // Homing
     IUFillSwitch(&HomeS[0], "HOME", "Go Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Homing", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Homing", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_IDLE);
 
     // Horizontal Coords
     IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
@@ -140,12 +142,12 @@ bool Rainbow::updateProperties()
     {
         getStartupStatus();
 
-        defineNumber(&HorizontalCoordsNP);
-        defineSwitch(&HomeSP);
+        defineProperty(&HorizontalCoordsNP);
+        defineProperty(&HomeSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
 
     }
     else
@@ -302,6 +304,9 @@ void Rainbow::getStartupStatus()
         SetAxis1ParkDefault(latitude >= 0 ? 0 : 180);
         SetAxis2ParkDefault(latitude);
     }
+
+    sendScopeLocation();
+    sendScopeTime();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -658,8 +663,9 @@ bool Rainbow::Goto(double ra, double dec)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -1124,17 +1130,6 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
         *guideTID = 0;
     }
 
-
-    moveS.s = ISS_ON;
-    snprintf(cmd, DRIVER_LEN, ":M%c#", std::tolower(dc));
-
-    // start movement at HC button rate 1
-    if (!sendCommand(cmd))
-    {
-        LOGF_ERROR("Start motion %c failed", dc);
-        return IPS_ALERT;
-    }
-
     // Make sure TRACKING is set to Guide
     if (IUFindOnSwitchIndex(&TrackModeSP) != TRACK_CUSTOM)
     {
@@ -1153,6 +1148,16 @@ IPState Rainbow::guide(Direction direction, uint32_t ms)
         IUResetSwitch(&SlewRateSP);
         SlewRateS[SLEW_GUIDE].s = ISS_ON;
         IDSetSwitch(&SlewRateSP, nullptr);
+    }
+
+    moveS.s = ISS_ON;
+    snprintf(cmd, DRIVER_LEN, ":M%c#", std::tolower(dc));
+
+    // start movement at HC button rate 1
+    if (!sendCommand(cmd))
+    {
+        LOGF_ERROR("Start motion %c failed", dc);
+        return IPS_ALERT;
     }
 
     // start the guide timeout timer
@@ -1197,6 +1202,7 @@ void Rainbow::guideTimeoutHelperE(void *p)
 /////////////////////////////////////////////////////////////////////////////
 void Rainbow::guideTimeout(Direction direction)
 {
+    char cmd[DRIVER_LEN] = {0};
     switch(direction)
     {
         case North:
@@ -1208,6 +1214,7 @@ void Rainbow::guideTimeout(Direction direction)
             GuideNSNP.s           = IPS_IDLE;
             m_GuideNSTID            = 0;
             IDSetNumber(&GuideNSNP, nullptr);
+            snprintf(cmd, DRIVER_LEN, ":Q%c#", direction == North ? 'n' : 's');
             break;
         case East:
         case West:
@@ -1218,8 +1225,10 @@ void Rainbow::guideTimeout(Direction direction)
             GuideWENP.s           = IPS_IDLE;
             m_GuideWETID            = 0;
             IDSetNumber(&GuideWENP, nullptr);
+            snprintf(cmd, DRIVER_LEN, ":Q%c#", direction == East ? 'e' : 'w');
             break;
     }
+    sendCommand(cmd);
     LOGF_DEBUG("Guide %c finished", "NSWE"[direction]);
 }
 
@@ -1245,6 +1254,188 @@ void Rainbow::addGuideTimer(Direction direction, uint32_t ms)
     }
 }
 
+/////////////////////////////////////////////////////////////////////////////
+/// Send Time
+/////////////////////////////////////////////////////////////////////////////
+bool Rainbow::getLocalTime(char *timeString)
+{
+    if (isSimulation())
+    {
+        time_t now = time (nullptr);
+        strftime(timeString, MAXINDINAME, "%T", localtime(&now));
+    }
+    else
+    {
+        double ctime = 0;
+        int h, m, s;
+        getLocalTime24(PortFD, &ctime);
+        getSexComponents(ctime, &h, &m, &s);
+        snprintf(timeString, MAXINDINAME, "%02d:%02d:%02d", h, m, s);
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Send Time
+/////////////////////////////////////////////////////////////////////////////
+bool Rainbow::getLocalDate(char *dateString)
+{
+    if (isSimulation())
+    {
+        time_t now = time (nullptr);
+        strftime(dateString, MAXINDINAME, "%F", localtime(&now));
+    }
+    else
+    {
+        getCalendarDate(PortFD, dateString);
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Send Time
+/////////////////////////////////////////////////////////////////////////////
+bool Rainbow::getUTFOffset(double *offset)
+{
+    if (isSimulation())
+    {
+        *offset = 3;
+        return true;
+    }
+
+    int lx200_utc_offset = 0;
+    getUTCOffset(PortFD, &lx200_utc_offset);
+    // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
+    *offset = lx200_utc_offset * -1;
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Send Time
+/////////////////////////////////////////////////////////////////////////////
+bool Rainbow::sendScopeTime()
+{
+    char cdate[MAXINDINAME] = {0};
+    char ctime[MAXINDINAME] = {0};
+    struct tm ltm;
+    struct tm utm;
+    time_t time_epoch;
+
+    double offset = 0;
+    if (getUTFOffset(&offset))
+    {
+        char utcStr[8] = {0};
+        snprintf(utcStr, 8, "%.2f", offset);
+        IUSaveText(&TimeT[1], utcStr);
+    }
+    else
+    {
+        LOG_WARN("Could not obtain UTC offset from mount!");
+        return false;
+    }
+
+    if (getLocalTime(ctime) == false)
+    {
+        LOG_WARN("Could not obtain local time from mount!");
+        return false;
+    }
+
+    if (getLocalDate(cdate) == false)
+    {
+        LOG_WARN("Could not obtain local date from mount!");
+        return false;
+    }
+
+    // To ISO 8601 format in LOCAL TIME!
+    char datetime[MAXINDINAME] = {0};
+    snprintf(datetime, MAXINDINAME, "%sT%s", cdate, ctime);
+
+    // Now that date+time are combined, let's get tm representation of it.
+    if (strptime(datetime, "%FT%T", &ltm) == nullptr)
+    {
+        LOGF_WARN("Could not process mount date and time: %s", datetime);
+        return false;
+    }
+
+    // Get local time epoch in UNIX seconds
+    time_epoch = mktime(&ltm);
+
+    // LOCAL to UTC by subtracting offset.
+    time_epoch -= static_cast<int>(offset * 3600.0);
+
+    // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time)
+    localtime_r(&time_epoch, &utm);
+
+    // Format it into the final UTC ISO 8601
+    strftime(cdate, MAXINDINAME, "%Y-%m-%dT%H:%M:%S", &utm);
+    IUSaveText(&TimeT[0], cdate);
+
+    LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
+    LOGF_DEBUG("Mount controller UTC Offset: %s", TimeT[1].text);
+
+    // Let's send everything to the client
+    TimeTP.s = IPS_OK;
+    IDSetText(&TimeTP, nullptr);
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Send Location
+/////////////////////////////////////////////////////////////////////////////
+bool Rainbow::sendScopeLocation()
+{
+    int dd = 0, mm = 0;
+    double ssf = 0.0;
+
+    if (isSimulation())
+    {
+        LocationNP.np[LOCATION_LATITUDE].value = 29.5;
+        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
+        LocationNP.np[LOCATION_ELEVATION].value = 10;
+        LocationNP.s           = IPS_OK;
+        IDSetNumber(&LocationNP, nullptr);
+        return true;
+    }
+
+    if (getSiteLatitude(PortFD, &dd, &mm, &ssf) < 0)
+    {
+        LOG_WARN("Failed to get site latitude from device.");
+        return false;
+    }
+    else
+    {
+        if (dd > 0)
+            LocationNP.np[0].value = dd + mm / 60.0;
+        else
+            LocationNP.np[0].value = dd - mm / 60.0;
+    }
+
+    if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
+    {
+        LOG_WARN("Failed to get site longitude from device.");
+        return false;
+    }
+    else
+    {
+        if (dd > 0)
+            LocationNP.np[1].value = 360.0 - (dd + mm / 60.0);
+        else
+            LocationNP.np[1].value = (dd - mm / 60.0) * -1.0;
+
+    }
+
+    LOGF_DEBUG("Mount Controller Latitude: %.3f Longitude: %.3f", LocationN[LOCATION_LATITUDE].value,
+               LocationN[LOCATION_LONGITUDE].value);
+
+    IDSetNumber(&LocationNP, nullptr);
+
+    //saveConfig(true, "GEOGRAPHIC_COORD");
+
+    return true;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command

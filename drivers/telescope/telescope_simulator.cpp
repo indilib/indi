@@ -181,25 +181,25 @@ void ScopeSim::ISGetProperties(const char *dev)
     INDI::Telescope::ISGetProperties(dev);
 
 #ifdef USE_SIM_TAB
-    defineSwitch(&mountTypeSP);
+    defineProperty(&mountTypeSP);
     loadConfig(true, mountTypeSP.name);
-    defineSwitch(&simPierSideSP);
+    defineProperty(&simPierSideSP);
     loadConfig(true, simPierSideSP.name);
-    defineNumber(&mountModelNP);
+    defineProperty(&mountModelNP);
     loadConfig(true, mountModelNP.name);
-    defineNumber(&mountAxisNP);
-    defineNumber(&flipHourAngleNP);
+    defineProperty(&mountAxisNP);
+    defineProperty(&flipHourAngleNP);
     loadConfig(true, flipHourAngleNP.name);
 #endif
     /*
     if (isConnected())
     {
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
-        defineNumber(&EqPENV);
-        defineSwitch(&PEErrNSSP);
-        defineSwitch(&PEErrWESP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
+        defineProperty(&EqPENV);
+        defineProperty(&PEErrNSSP);
+        defineProperty(&PEErrWESP);
     }
     */
 }
@@ -212,9 +212,9 @@ bool ScopeSim::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
+        defineProperty(&GuideRateNP);
         loadConfig(true, GuideRateNP.name);
 
         if (InitPark())
@@ -262,7 +262,7 @@ bool ScopeSim::updateProperties()
 bool ScopeSim::Connect()
 {
     LOG_INFO("Telescope simulator is online.");
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 
     return true;
 }

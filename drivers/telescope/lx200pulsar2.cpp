@@ -1535,16 +1535,16 @@ bool LX200Pulsar2::updateProperties()
 		if (!this->local_properties_updated)
 		{
 			// note that there are several other "defines" embedded within getBasicData()
-			defineSwitch(&MountTypeSP);
-	        defineSwitch(&RotationRASP);
+			defineProperty(&MountTypeSP);
+	        defineProperty(&RotationRASP);
 
-			defineSwitch(&PierSideSP);
-			defineSwitch(&PierSideToggleSP);
-	        defineSwitch(&RotationDecSP);
+			defineProperty(&PierSideSP);
+			defineProperty(&PierSideToggleSP);
+	        defineProperty(&RotationDecSP);
 
-	        defineSwitch(&PeriodicErrorCorrectionSP);
-	        defineSwitch(&PoleCrossingSP);
-	        defineSwitch(&RefractionCorrectionSP);
+	        defineProperty(&PeriodicErrorCorrectionSP);
+	        defineProperty(&PoleCrossingSP);
+	        defineProperty(&RefractionCorrectionSP);
 
 	        this->local_properties_updated = true;
 		}
@@ -2105,7 +2105,8 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
             if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
                 storeScopeLocation();
 
-            SiteNameTP.s = SiteSP.s = IPS_OK;
+            SiteNameTP.s = IPS_OK;
+            SiteSP.s = IPS_OK;
 
             IDSetText(&SiteNameTP, nullptr);
             IDSetSwitch(&SiteSP, nullptr);
@@ -2123,8 +2124,7 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
 			if (!isSimulation())
 			{
 				bool success = false; // start out pessimistic
-				int idx = 0;
-				for (; idx < MountTypeSP.nsp; idx++)
+				for (int idx = 0; idx < MountTypeSP.nsp; idx++)
 				{
 					if (MountTypeS[idx].s == ISS_ON)
 					{
@@ -2728,8 +2728,9 @@ bool LX200Pulsar2::Goto(double r, double d)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -2799,8 +2800,9 @@ bool LX200Pulsar2::Park()
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
 
@@ -3059,7 +3061,7 @@ void LX200Pulsar2::getBasicData()
 			TrackingRateIndSP.s = IPS_ALERT;
 			IDSetSwitch(&TrackingRateIndSP, "Can't get the tracking rate indicator.");
 		}
-		defineSwitch(&TrackingRateIndSP); // defined here for consistency
+		defineProperty(&TrackingRateIndSP); // defined here for consistency
 
 		// guide speed indicator
 		int guide_speed_ind = Pulsar2Commands::getGuideSpeedInd(PortFD);
@@ -3069,7 +3071,7 @@ void LX200Pulsar2::getBasicData()
 			GuideSpeedIndN[0].value = guide_speed_ind_d;
 			IDSetNumber(&GuideSpeedIndNP, nullptr);
 		}
-        defineNumber(&GuideSpeedIndNP); // defined here, in order to match input value with controller value
+        defineProperty(&GuideSpeedIndNP); // defined here, in order to match input value with controller value
 
 		// center speed indicator
 		int center_speed_ind = Pulsar2Commands::getCenterSpeedInd(PortFD);
@@ -3082,7 +3084,7 @@ void LX200Pulsar2::getBasicData()
 			strcpy(CenterSpeedIndN[0].label, nonGuideSpeedLabel);
 			IDSetNumber(&CenterSpeedIndNP, nullptr);
 		}
-        defineNumber(&CenterSpeedIndNP); // defined here, in order to match input value with controller value
+        defineProperty(&CenterSpeedIndNP); // defined here, in order to match input value with controller value
 
 		// find speed indicator
 		int find_speed_ind = Pulsar2Commands::getFindSpeedInd(PortFD);
@@ -3095,7 +3097,7 @@ void LX200Pulsar2::getBasicData()
 			strcpy(FindSpeedIndN[0].label, nonGuideSpeedLabel);
 			IDSetNumber(&FindSpeedIndNP, nullptr);
 		}
-        defineNumber(&FindSpeedIndNP); // defined here, in order to match input value with controller value
+        defineProperty(&FindSpeedIndNP); // defined here, in order to match input value with controller value
 
 		// slew speed indicator
 		int slew_speed_ind = Pulsar2Commands::getSlewSpeedInd(PortFD);
@@ -3108,7 +3110,7 @@ void LX200Pulsar2::getBasicData()
 			strcpy(SlewSpeedIndN[0].label, nonGuideSpeedLabel);
 			IDSetNumber(&SlewSpeedIndNP, nullptr);
 		}
-        defineNumber(&SlewSpeedIndNP); // defined here, in order to match input value with controller value
+        defineProperty(&SlewSpeedIndNP); // defined here, in order to match input value with controller value
 
 		// goto speed indicator
 		int goto_speed_ind = Pulsar2Commands::getGoToSpeedInd(PortFD);
@@ -3121,7 +3123,7 @@ void LX200Pulsar2::getBasicData()
 			strcpy(GoToSpeedIndN[0].label, nonGuideSpeedLabel);
 			IDSetNumber(&GoToSpeedIndNP, nullptr);
 		}
-        defineNumber(&GoToSpeedIndNP); // defined here, in order to match input value with controller value
+        defineProperty(&GoToSpeedIndNP); // defined here, in order to match input value with controller value
 
 
 		// - - - - - - - - - - - - - - - - - -
@@ -3141,7 +3143,7 @@ void LX200Pulsar2::getBasicData()
 			HomePositionNP.s = IPS_ALERT;
 			IDSetNumber(&HomePositionNP, "Unable to get home position values from controller.");
 		}
-        defineNumber(&HomePositionNP); // defined here, in order to match input value with controller value
+        defineProperty(&HomePositionNP); // defined here, in order to match input value with controller value
 
 
 		// - - - - - - - - - - - - - - - - - -
@@ -3161,7 +3163,7 @@ void LX200Pulsar2::getBasicData()
             TrackingCurrentNP.s = IPS_ALERT;
             IDSetNumber(&TrackingCurrentNP, "Can't get tracking current value");
 		}
-        defineNumber(&TrackingCurrentNP); // defined here, in order to match input value with controller value
+        defineProperty(&TrackingCurrentNP); // defined here, in order to match input value with controller value
 
 		// stop current
 		int stop_current = Pulsar2Commands::getStopCurrent(PortFD);
@@ -3176,7 +3178,7 @@ void LX200Pulsar2::getBasicData()
             StopCurrentNP.s = IPS_ALERT;
             IDSetNumber(&StopCurrentNP, "Can't get stop current value");
 		}
-		defineNumber(&StopCurrentNP); // defined here, in order to match input value with controller value
+		defineProperty(&StopCurrentNP); // defined here, in order to match input value with controller value
 
 		// goto current
 		int goto_current = Pulsar2Commands::getGoToCurrent(PortFD);
@@ -3191,7 +3193,7 @@ void LX200Pulsar2::getBasicData()
             GoToCurrentNP.s = IPS_ALERT;
             IDSetNumber(&GoToCurrentNP, "Can't get goto current value");
 		}
-		defineNumber(&GoToCurrentNP); // defined here, in order to match input value with controller value
+		defineProperty(&GoToCurrentNP); // defined here, in order to match input value with controller value
 
 		// ramp
 		int ra_ramp, dec_ramp;
@@ -3208,7 +3210,7 @@ void LX200Pulsar2::getBasicData()
 			RampNP.s = IPS_ALERT;
 			IDSetNumber(&RampNP, "Unable to get ramp values from controller.");
 		}
-        defineNumber(&RampNP); // defined here, in order to match input value with controller value
+        defineProperty(&RampNP); // defined here, in order to match input value with controller value
 
 		// reduction
 		int red_ra, red_dec;
@@ -3225,7 +3227,7 @@ void LX200Pulsar2::getBasicData()
 			ReductionNP.s = IPS_ALERT;
 			IDSetNumber(&ReductionNP, "Unable to get reduction values from controller.");
 		}
-        defineNumber(&ReductionNP); // defined here, in order to match input value with controller value
+        defineProperty(&ReductionNP); // defined here, in order to match input value with controller value
 
 		// maingear
 		int mg_ra, mg_dec;
@@ -3242,7 +3244,7 @@ void LX200Pulsar2::getBasicData()
 			MaingearNP.s = IPS_ALERT;
 			IDSetNumber(&MaingearNP, "Unable to get maingear values from controller.");
 		}
-        defineNumber(&MaingearNP); // defined here, in order to match input value with controller value
+        defineProperty(&MaingearNP); // defined here, in order to match input value with controller value
 
 		// backlash
 		int bl_min, bl_sec;
@@ -3259,7 +3261,7 @@ void LX200Pulsar2::getBasicData()
 			BacklashNP.s = IPS_ALERT;
 			IDSetNumber(&BacklashNP, "Unable to get backlash values from controller.");
 		}
-        defineNumber(&BacklashNP); // defined here, in order to match input value with controller value
+        defineProperty(&BacklashNP); // defined here, in order to match input value with controller value
 
 
 		// user rate 1
@@ -3279,7 +3281,7 @@ void LX200Pulsar2::getBasicData()
 				UserRate1NP.s = IPS_ALERT;
 				IDSetNumber(&UserRate1NP, "Unable to get user rate 1 values from controller.");
 			}
-	        //defineNumber(&UserRate1NP); // user rates are not working correctly in the controller
+	        //defineProperty(&UserRate1NP); // user rates are not working correctly in the controller
 		}
 
     } // not a simulation

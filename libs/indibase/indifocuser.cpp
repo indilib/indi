@@ -109,8 +109,8 @@ bool Focuser::updateProperties()
     {
         if (CanAbsMove())
         {
-            defineNumber(&PresetNP);
-            defineSwitch(&PresetGotoSP);
+            defineProperty(&PresetNP);
+            defineProperty(&PresetGotoSP);
         }
     }
     else

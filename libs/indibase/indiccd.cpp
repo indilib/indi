@@ -32,6 +32,7 @@
 #include "fpack/fpack.h"
 #include "indicom.h"
 #include "locale_compat.h"
+#include "indiutility.h"
 
 #include <fitsio.h>
 
@@ -59,31 +60,6 @@ const char * GUIDE_HEAD_TAB     = "Guider Head";
 #ifdef HAVE_WEBSOCKET
 uint16_t INDIWSServer::m_global_port = 11623;
 #endif
-
-// Create dir recursively
-static int _ccd_mkdir(const char * dir, mode_t mode)
-{
-    char tmp[PATH_MAX];
-    char * p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
 
 namespace INDI
 {
@@ -469,7 +445,7 @@ void CCD::ISGetProperties(const char * dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
-    defineText(&ActiveDeviceTP);
+    defineProperty(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 
     if (HasStreaming())
@@ -484,96 +460,96 @@ bool CCD::updateProperties()
     //IDLog("CCD UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
-        defineNumber(&PrimaryCCD.ImageExposureNP);
+        defineProperty(&PrimaryCCD.ImageExposureNP);
 
         if (CanAbort())
-            defineSwitch(&PrimaryCCD.AbortExposureSP);
+            defineProperty(&PrimaryCCD.AbortExposureSP);
         if (CanSubFrame() == false)
             PrimaryCCD.ImageFrameNP.p = IP_RO;
 
-        defineNumber(&PrimaryCCD.ImageFrameNP);
+        defineProperty(&PrimaryCCD.ImageFrameNP);
         if (CanBin())
-            defineNumber(&PrimaryCCD.ImageBinNP);
+            defineProperty(&PrimaryCCD.ImageBinNP);
 
-        defineText(&FITSHeaderTP);
+        defineProperty(&FITSHeaderTP);
 
         if (HasGuideHead())
         {
-            defineNumber(&GuideCCD.ImageExposureNP);
+            defineProperty(&GuideCCD.ImageExposureNP);
             if (CanAbort())
-                defineSwitch(&GuideCCD.AbortExposureSP);
+                defineProperty(&GuideCCD.AbortExposureSP);
             if (CanSubFrame() == false)
                 GuideCCD.ImageFrameNP.p = IP_RO;
-            defineNumber(&GuideCCD.ImageFrameNP);
+            defineProperty(&GuideCCD.ImageFrameNP);
         }
 
         if (HasCooler())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
 
-        defineNumber(&PrimaryCCD.ImagePixelSizeNP);
+        defineProperty(&PrimaryCCD.ImagePixelSizeNP);
         if (HasGuideHead())
         {
-            defineNumber(&GuideCCD.ImagePixelSizeNP);
+            defineProperty(&GuideCCD.ImagePixelSizeNP);
             if (CanBin())
-                defineNumber(&GuideCCD.ImageBinNP);
+                defineProperty(&GuideCCD.ImageBinNP);
         }
-        defineSwitch(&PrimaryCCD.CompressSP);
-        defineBLOB(&PrimaryCCD.FitsBP);
+        defineProperty(&PrimaryCCD.CompressSP);
+        defineProperty(&PrimaryCCD.FitsBP);
         if (HasGuideHead())
         {
-            defineSwitch(&GuideCCD.CompressSP);
-            defineBLOB(&GuideCCD.FitsBP);
+            defineProperty(&GuideCCD.CompressSP);
+            defineProperty(&GuideCCD.FitsBP);
         }
         if (HasST4Port())
         {
-            defineNumber(&GuideNSNP);
-            defineNumber(&GuideWENP);
+            defineProperty(&GuideNSNP);
+            defineProperty(&GuideWENP);
         }
-        defineSwitch(&PrimaryCCD.FrameTypeSP);
+        defineProperty(&PrimaryCCD.FrameTypeSP);
 
         if (CanBin() || CanSubFrame())
-            defineSwitch(&PrimaryCCD.ResetSP);
+            defineProperty(&PrimaryCCD.ResetSP);
 
         if (HasGuideHead())
-            defineSwitch(&GuideCCD.FrameTypeSP);
+            defineProperty(&GuideCCD.FrameTypeSP);
 
         if (HasBayer())
-            defineText(&BayerTP);
+            defineProperty(&BayerTP);
 
 #if 0
-        defineSwitch(&PrimaryCCD.RapidGuideSP);
+        defineProperty(&PrimaryCCD.RapidGuideSP);
 
         if (HasGuideHead())
-            defineSwitch(&GuideCCD.RapidGuideSP);
+            defineProperty(&GuideCCD.RapidGuideSP);
 
         if (RapidGuideEnabled)
         {
-            defineSwitch(&PrimaryCCD.RapidGuideSetupSP);
-            defineNumber(&PrimaryCCD.RapidGuideDataNP);
+            defineProperty(&PrimaryCCD.RapidGuideSetupSP);
+            defineProperty(&PrimaryCCD.RapidGuideDataNP);
         }
         if (GuiderRapidGuideEnabled)
         {
-            defineSwitch(&GuideCCD.RapidGuideSetupSP);
-            defineNumber(&GuideCCD.RapidGuideDataNP);
+            defineProperty(&GuideCCD.RapidGuideSetupSP);
+            defineProperty(&GuideCCD.RapidGuideDataNP);
         }
 #endif
-        defineSwitch(&TelescopeTypeSP);
+        defineProperty(&TelescopeTypeSP);
 
-        defineSwitch(&WorldCoordSP);
-        defineSwitch(&UploadSP);
+        defineProperty(&WorldCoordSP);
+        defineProperty(&UploadSP);
 
         if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
-        defineText(&UploadSettingsTP);
+        defineProperty(&UploadSettingsTP);
 
 #ifdef HAVE_WEBSOCKET
         if (HasWebSocket())
-            defineSwitch(&WebSocketSP);
+            defineProperty(&WebSocketSP);
 #endif
 
 #ifdef WITH_EXPOSURE_LOOPING
-        defineSwitch(&ExposureLoopSP);
-        defineNumber(&ExposureLoopCountNP);
+        defineProperty(&ExposureLoopSP);
+        defineProperty(&ExposureLoopCountNP);
 #endif
     }
     else
@@ -977,14 +953,14 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                         observer.lat = Latitude;
                         observer.lng = Longitude;
 
-                        ln_get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+                        get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
                         Airmass = ln_get_airmass(horizontalPos.alt, 750);
                     }
                 }
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
-                if (ExposureTime * 1000 < POLLMS)
-                    POLLMS = ExposureTime * 950;
+                if (ExposureTime * 1000 < getCurrentPollingPeriod())
+                    setCurrentPollingPeriod(ExposureTime * 950);
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -1286,12 +1262,12 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 else if (UploadS[UPLOAD_LOCAL].s == ISS_ON)
                 {
                     DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
-                    defineText(&FileNameTP);
+                    defineProperty(&FileNameTP);
                 }
                 else
                 {
                     DEBUG(Logger::DBG_SESSION, "Upload settings set to client and local.");
-                    defineText(&FileNameTP);
+                    defineProperty(&FileNameTP);
                 }
 
                 UploadSP.s = IPS_OK;
@@ -1339,7 +1315,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 wsThread = std::thread(&wsThreadHelper, this);
                 WebSocketSettingsN[WS_SETTINGS_PORT].value = wsServer.generatePort();
                 WebSocketSettingsNP.s = IPS_OK;
-                defineNumber(&WebSocketSettingsNP);
+                defineProperty(&WebSocketSettingsNP);
             }
             else if (wsServer.is_running())
             {
@@ -1362,7 +1338,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             if (WorldCoordS[0].s == ISS_ON)
             {
                 LOG_INFO("World Coordinate System is enabled.");
-                defineNumber(&CCDRotationNP);
+                defineProperty(&CCDRotationNP);
             }
             else
             {
@@ -1405,7 +1381,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
-            POLLMS = getPollingPeriod();
+            setCurrentPollingPeriod(getPollingPeriod());
 
 #ifdef WITH_EXPOSURE_LOOPING
             if (ExposureLoopCountNP.s == IPS_BUSY)
@@ -1556,8 +1532,8 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 
             if (RapidGuideEnabled)
             {
-                defineSwitch(&PrimaryCCD.RapidGuideSetupSP);
-                defineNumber(&PrimaryCCD.RapidGuideDataNP);
+                defineProperty(&PrimaryCCD.RapidGuideSetupSP);
+                defineProperty(&PrimaryCCD.RapidGuideDataNP);
             }
             else
             {
@@ -1578,8 +1554,8 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 
             if (GuiderRapidGuideEnabled)
             {
-                defineSwitch(&GuideCCD.RapidGuideSetupSP);
-                defineNumber(&GuideCCD.RapidGuideDataNP);
+                defineProperty(&GuideCCD.RapidGuideSetupSP);
+                defineProperty(&GuideCCD.RapidGuideDataNP);
             }
             else
             {
@@ -1992,7 +1968,7 @@ void CCD::fits_update_key_s(fitsfile * fptr, int type, std::string name, void * 
 bool CCD::ExposureComplete(CCDChip * targetChip)
 {
     // Reset POLLMS to default value
-    POLLMS = getPollingPeriod();
+    setCurrentPollingPeriod(getPollingPeriod());
 
     // Run async
     std::thread(&CCD::ExposureCompletePrivate, this, targetChip).detach();
@@ -2041,8 +2017,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 StartExposure(duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-                if (duration * 1000 < POLLMS)
-                    POLLMS = duration * 950;
+                if (duration * 1000 < getCurrentPollingPeriod())
+                    setCurrentPollingPeriod(duration * 950);
             }
             else
             {
@@ -3100,7 +3076,7 @@ int CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
         if (errno == ENOENT)
         {
             DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
-            if (_ccd_mkdir(dir, 0755) == -1)
+            if (INDI::mkpath(dir, 0755) == -1)
                 LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
         }
         else

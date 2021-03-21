@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include "basedevice.h"
+#include "basedevice_p.h"
 
 #include "base64.h"
 #include "config.h"
@@ -25,6 +26,7 @@
 #include "locale_compat.h"
 
 #include <cerrno>
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <zlib.h>
@@ -40,24 +42,19 @@
 namespace INDI
 {
 
-BaseDevice::BaseDevice()
+BaseDevicePrivate::BaseDevicePrivate()
 {
-    mediator = nullptr;
-    lp       = newLilXML();
-    deviceID = new char[MAXINDIDEVICE];
-    memset(deviceID, 0, MAXINDIDEVICE);
-
-    char indidev[MAXINDIDEVICE];
-    strncpy(indidev, "INDIDEV=", MAXINDIDEVICE);
+    static char indidev[] = "INDIDEV=";
+    lp = newLilXML();
 
     if (getenv("INDIDEV") != nullptr)
     {
-        strncpy(deviceID, getenv("INDIDEV"), MAXINDIDEVICE);
+        deviceName = getenv("INDIDEV");
         putenv(indidev);
     }
 }
 
-BaseDevice::~BaseDevice()
+BaseDevicePrivate::~BaseDevicePrivate()
 {
     delLilXML(lp);
     while (!pAll.empty())
@@ -65,278 +62,83 @@ BaseDevice::~BaseDevice()
         delete pAll.back();
         pAll.pop_back();
     }
-    messageLog.clear();
-
-    delete[] deviceID;
 }
 
-INumberVectorProperty *BaseDevice::getNumber(const char *name)
+BaseDevice::BaseDevice()
+    : d_ptr(new BaseDevicePrivate)
+{ }
+
+BaseDevice::~BaseDevice()
+{ }
+
+BaseDevice::BaseDevice(BaseDevicePrivate &dd)
+    : d_ptr(&dd)
+{ }
+
+INDI::PropertyView<INumber> *BaseDevice::getNumber(const char *name) const
 {
-    return static_cast<INumberVectorProperty *>(getRawProperty(name, INDI_NUMBER));
+    return static_cast<PropertyView<INumber> *>(getRawProperty(name, INDI_NUMBER));
 }
 
-ITextVectorProperty *BaseDevice::getText(const char *name)
+INDI::PropertyView<IText> *BaseDevice::getText(const char *name) const
 {
-    return static_cast<ITextVectorProperty *>(getRawProperty(name, INDI_TEXT));
+    return static_cast<PropertyView<IText> *>(getRawProperty(name, INDI_TEXT));
 }
 
-ISwitchVectorProperty *BaseDevice::getSwitch(const char *name)
+INDI::PropertyView<ISwitch> *BaseDevice::getSwitch(const char *name) const
 {
-    return static_cast<ISwitchVectorProperty *>(getRawProperty(name, INDI_SWITCH));
+    return static_cast<PropertyView<ISwitch> *>(getRawProperty(name, INDI_SWITCH));
 }
 
-ILightVectorProperty *BaseDevice::getLight(const char *name)
+INDI::PropertyView<ILight> *BaseDevice::getLight(const char *name) const
 {
-    return static_cast<ILightVectorProperty *>(getRawProperty(name, INDI_LIGHT));
+    return static_cast<PropertyView<ILight> *>(getRawProperty(name, INDI_LIGHT));
 }
 
-IBLOBVectorProperty *BaseDevice::getBLOB(const char *name)
+INDI::PropertyView<IBLOB> *BaseDevice::getBLOB(const char *name) const
 {
-    return static_cast<IBLOBVectorProperty *>(getRawProperty(name, INDI_BLOB));
+    return static_cast<PropertyView<IBLOB> *>(getRawProperty(name, INDI_BLOB));
 }
 
-IPState BaseDevice::getPropertyState(const char *name)
+IPState BaseDevice::getPropertyState(const char *name) const
 {
-    IPState state = IPS_IDLE;
-    INumberVectorProperty *nvp = nullptr;
-    ITextVectorProperty *tvp = nullptr;
-    ISwitchVectorProperty *svp = nullptr;
-    ILightVectorProperty *lvp = nullptr;
-    IBLOBVectorProperty *bvp = nullptr;
+    for (const auto &oneProp : *getProperties())
+        if (!strcmp(name, oneProp->getName()))
+            return oneProp->getState();
 
-    for (const auto &oneProp : pAll)
+    return IPS_IDLE;
+}
+
+IPerm BaseDevice::getPropertyPermission(const char *name) const
+{
+    for (const auto &oneProp : *getProperties())
+        if (!strcmp(name, oneProp->getName()))
+            return oneProp->getPermission();
+
+    return IP_RO;
+}
+
+void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type) const
+{
+    INDI::Property *prop = getProperty(name, type);
+    return prop != nullptr ? prop->getProperty() : nullptr;
+}
+
+INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type) const
+{
+    D_PTR(const BaseDevice);
+    std::lock_guard<std::mutex> lock(d->m_Lock);
+
+    for (const auto &oneProp : *getProperties())
     {
-        INDI_PROPERTY_TYPE pType = oneProp->getType();
-        void *pPtr  = oneProp->getProperty();
-
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                if (nvp == nullptr)
-                    continue;
-                if (!strcmp(name, nvp->name))
-                    return nvp->s;
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                if (svp == nullptr)
-                    continue;
-                if (!strcmp(name, svp->name))
-                    return svp->s;
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                if (tvp == nullptr)
-                    continue;
-                if (!strcmp(name, tvp->name))
-                    return tvp->s;
-                break;
-            case INDI_LIGHT:
-                lvp = static_cast<ILightVectorProperty *>(pPtr);
-                if (lvp == nullptr)
-                    continue;
-                if (!strcmp(name, lvp->name))
-                    return lvp->s;
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                if (bvp == nullptr)
-                    continue;
-                if (!strcmp(name, bvp->name))
-                    return bvp->s;
-                break;
-            default:
-                break;
-        }
-    }
-
-    return state;
-}
-
-IPerm BaseDevice::getPropertyPermission(const char *name)
-{
-    IPerm perm = IP_RO;
-    INumberVectorProperty *nvp = nullptr;
-    ITextVectorProperty *tvp = nullptr;
-    ISwitchVectorProperty *svp = nullptr;
-    IBLOBVectorProperty *bvp = nullptr;
-
-    for (const auto &oneProp : pAll)
-    {
-        INDI_PROPERTY_TYPE pType = oneProp->getType();
-        void *pPtr  = oneProp->getProperty();
-
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                if (nvp == nullptr)
-                    continue;
-                if (!strcmp(name, nvp->name))
-                    return nvp->p;
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                if (svp == nullptr)
-                    continue;
-                if (!strcmp(name, svp->name))
-                    return svp->p;
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                if (tvp == nullptr)
-                    continue;
-                if (!strcmp(name, tvp->name))
-                    return tvp->p;
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                if (bvp == nullptr)
-                    continue;
-                if (!strcmp(name, bvp->name))
-                    return bvp->p;
-                break;
-            default:
-                break;
-        }
-    }
-
-    return perm;
-}
-
-void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
-{
-    INumberVectorProperty *nvp = nullptr;
-    ITextVectorProperty *tvp = nullptr;
-    ISwitchVectorProperty *svp = nullptr;
-    ILightVectorProperty *lvp = nullptr;
-    IBLOBVectorProperty *bvp = nullptr;
-
-    for (const auto &oneProp : pAll)
-    {
-        INDI_PROPERTY_TYPE pType = oneProp->getType();
-        void *pPtr = oneProp->getProperty();
-        bool pRegistered = oneProp->getRegistered();
-
-        if (type != INDI_UNKNOWN && pType != type)
+        if (type != oneProp->getType() && type != INDI_UNKNOWN)
             continue;
 
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                if (nvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, nvp->name) && pRegistered)
-                    return pPtr;
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                if (tvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, tvp->name) && pRegistered)
-                    return pPtr;
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                if (svp == nullptr)
-                    continue;
-
-                //IDLog("Switch %s and aux value is now %d\n", svp->name, regStatus );
-                if (!strcmp(name, svp->name) && pRegistered)
-                    return pPtr;
-                break;
-            case INDI_LIGHT:
-                lvp = static_cast<ILightVectorProperty *>(pPtr);
-                if (lvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, lvp->name) && pRegistered)
-                    return pPtr;
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                if (bvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, bvp->name) && pRegistered)
-                    return pPtr;
-                break;
-
-            case INDI_UNKNOWN:
-                return nullptr;
-        }
-    }
-
-    return nullptr;
-}
-
-INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type)
-{
-    INumberVectorProperty *nvp = nullptr;
-    ITextVectorProperty *tvp = nullptr;
-    ISwitchVectorProperty *svp = nullptr;
-    ILightVectorProperty *lvp = nullptr;
-    IBLOBVectorProperty *bvp = nullptr;
-
-    for (const auto &oneProp : pAll)
-    {
-        INDI_PROPERTY_TYPE pType = oneProp->getType();
-        void *pPtr = oneProp->getProperty();
-        bool pRegistered = oneProp->getRegistered();
-
-        if (type != INDI_UNKNOWN && pType != type)
+        if (!oneProp->getRegistered())
             continue;
 
-        switch (pType)
-        {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                if (nvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, nvp->name) && pRegistered)
-                    return oneProp;
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                if (tvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, tvp->name) && pRegistered)
-                    return oneProp;
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                if (svp == nullptr)
-                    continue;
-
-                //IDLog("Switch %s and aux value is now %d\n", svp->name, regStatus );
-                if (!strcmp(name, svp->name) && pRegistered)
-                    return oneProp;
-                break;
-            case INDI_LIGHT:
-                lvp = static_cast<ILightVectorProperty *>(pPtr);
-                if (lvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, lvp->name) && pRegistered)
-                    return oneProp;
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                if (bvp == nullptr)
-                    continue;
-
-                if (!strcmp(name, bvp->name) && pRegistered)
-                    return oneProp;
-                break;
-            case INDI_UNKNOWN:
-                break;
-        }
+        if (!strcmp(name, oneProp->getName()))
+            return oneProp;
     }
 
     return nullptr;
@@ -344,88 +146,30 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
 
 int BaseDevice::removeProperty(const char *name, char *errmsg)
 {
-    std::vector<INDI::Property *>::iterator orderi;
+    D_PTR(BaseDevice);
+    std::lock_guard<std::mutex> lock(d->m_Lock);
 
-    INumberVectorProperty *nvp;
-    ITextVectorProperty *tvp;
-    ISwitchVectorProperty *svp;
-    ILightVectorProperty *lvp;
-    IBLOBVectorProperty *bvp;
-
-    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
+    for (auto orderi = d->pAll.begin(); orderi != d->pAll.end(); ++orderi)
     {
-        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
-        void *pPtr  = (*orderi)->getProperty();
-
-        switch (pType)
+        const auto &oneProp = *orderi;
+        if (!strcmp(name, oneProp->getName()))
         {
-            case INDI_NUMBER:
-                nvp = static_cast<INumberVectorProperty *>(pPtr);
-                if (!strcmp(name, nvp->name))
-                {
-                    if (mediator)
-                        mediator->removeProperty(*orderi);
-                    delete *orderi;
-                    orderi = pAll.erase(orderi);
-                    return 0;
-                }
-                break;
-            case INDI_TEXT:
-                tvp = static_cast<ITextVectorProperty *>(pPtr);
-                if (!strcmp(name, tvp->name))
-                {
-                    if (mediator)
-                        mediator->removeProperty(*orderi);
-                    delete *orderi;
-                    orderi = pAll.erase(orderi);
-                    return 0;
-                }
-                break;
-            case INDI_SWITCH:
-                svp = static_cast<ISwitchVectorProperty *>(pPtr);
-                if (!strcmp(name, svp->name))
-                {
-                    if (mediator)
-                        mediator->removeProperty(*orderi);
-                    delete *orderi;
-                    orderi = pAll.erase(orderi);
-                    return 0;
-                }
-                break;
-            case INDI_LIGHT:
-                lvp = static_cast<ILightVectorProperty *>(pPtr);
-                if (!strcmp(name, lvp->name))
-                {
-                    if (mediator)
-                        mediator->removeProperty(*orderi);
-                    delete *orderi;
-                    orderi = pAll.erase(orderi);
-                    return 0;
-                }
-                break;
-            case INDI_BLOB:
-                bvp = static_cast<IBLOBVectorProperty *>(pPtr);
-                if (!strcmp(name, bvp->name))
-                {
-                    if (mediator)
-                        mediator->removeProperty(*orderi);
-                    (*orderi)->setRegistered(false);
-                    delete *orderi;
-                    orderi = pAll.erase(orderi);
-                    return 0;
-                }
-                break;
-            case INDI_UNKNOWN:
-                break;
+            //            if (mediator)
+            //                mediator->removeProperty(oneProp);
+
+            delete oneProp;
+            orderi = d->pAll.erase(orderi);
+            return 0;
         }
     }
 
-    snprintf(errmsg, MAXRBUF, "Error: Property %s not found in device %s.", name, deviceID);
+    snprintf(errmsg, MAXRBUF, "Error: Property %s not found in device %s.", name, getDeviceName());
     return INDI_PROPERTY_INVALID;
 }
 
 bool BaseDevice::buildSkeleton(const char *filename)
 {
+    D_PTR(BaseDevice);
     char errmsg[MAXRBUF];
     FILE *fp     = nullptr;
     XMLEle *root = nullptr, *fproot = nullptr;
@@ -480,7 +224,7 @@ bool BaseDevice::buildSkeleton(const char *filename)
         return false;
     }
 
-    fproot = readXMLFile(fp, lp, errmsg);
+    fproot = readXMLFile(fp, d->lp, errmsg);
     fclose(fp);
 
     if (fproot == nullptr)
@@ -501,11 +245,14 @@ bool BaseDevice::buildSkeleton(const char *filename)
 
 int BaseDevice::buildProp(XMLEle *root, char *errmsg)
 {
+    D_PTR(BaseDevice);
     IPerm perm    = IP_RO;
     IPState state = IPS_IDLE;
     XMLEle *ep    = nullptr;
     char *rtag, *rname, *rdev;
-    double timeout = 0;
+
+    INDI::Property *indiProp = nullptr;
+    int n = 0;
 
     rtag = tagXMLEle(root);
 
@@ -513,8 +260,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     if (crackDN(root, &rdev, &rname, errmsg) < 0)
         return -1;
 
-    if (!deviceID[0])
-        strncpy(deviceID, rdev, MAXINDINAME);
+    if (d->deviceName.empty())
+        d->deviceName = rdev;
 
     //if (getProperty(rname, type) != nullptr)
     if (getProperty(rname) != nullptr)
@@ -526,8 +273,6 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         return -1;
     }
 
-    timeout = atoi(findXMLAttValu(root, "timeout"));
-
     if (crackIPState(findXMLAttValu(root, "state"), &state) < 0)
     {
         IDLog("Error extracting %s state (%s)\n", rname, findXMLAttValu(root, "state"));
@@ -538,61 +283,38 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     {
         AutoCNumeric locale;
 
-        INDI::Property *indiProp   = new INDI::Property();
         INumberVectorProperty *nvp = new INumberVectorProperty;
 
         INumber *np = nullptr;
-        int n       = 0;
-
-        strncpy(nvp->device, deviceID, MAXINDIDEVICE);
-        strncpy(nvp->name, rname, MAXINDINAME);
-        strncpy(nvp->label, findXMLAttValu(root, "label"), MAXINDILABEL);
-        strncpy(nvp->group, findXMLAttValu(root, "group"), MAXINDIGROUP);
-
-        nvp->p       = perm;
-        nvp->s       = state;
-        nvp->timeout = timeout;
 
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defNumber"))
+            if (strcmp(tagXMLEle(ep), "defNumber"))
+                continue;
+
+            np = static_cast<INumber *>(realloc(np, (n + 1) * sizeof(INumber)));
+            INumber *it = &np[n];
+            memset(it, 0, sizeof(*it));
+            it->nvp = nvp;
+
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
+
+            if (f_scansexa(pcdataXMLEle(ep), &(it->value)) < 0)
             {
-                np = static_cast<INumber *>(realloc(np, (n + 1) * sizeof(INumber)));
-
-                np[n].nvp = nvp;
-
-                XMLAtt *na = findXMLAtt(ep, "name");
-
-                if (na)
-                {
-                    if (f_scansexa(pcdataXMLEle(ep), &(np[n].value)) < 0)
-                        IDLog("%s: Bad format %s\n", rname, pcdataXMLEle(ep));
-                    else
-                    {
-                        strncpy(np[n].name, valuXMLAtt(na), MAXINDINAME);
-                        np[n].aux0 = nullptr;
-                        np[n].aux1 = nullptr;
-
-                        na = findXMLAtt(ep, "label");
-                        if (na)
-                            strncpy(np[n].label, valuXMLAtt(na), MAXINDILABEL);
-                        na = findXMLAtt(ep, "format");
-                        if (na)
-                            strncpy(np[n].format, valuXMLAtt(na), MAXINDIFORMAT);
-
-                        na = findXMLAtt(ep, "min");
-                        if (na)
-                            np[n].min = atof(valuXMLAtt(na));
-                        na = findXMLAtt(ep, "max");
-                        if (na)
-                            np[n].max = atof(valuXMLAtt(na));
-                        na = findXMLAtt(ep, "step");
-                        if (na)
-                            np[n].step = atof(valuXMLAtt(na));
-                    }
-                }
+                IDLog("%s: Bad format %s\n", rname, pcdataXMLEle(ep));
+                continue;
             }
+
+            strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
+            strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIFORMAT);
+
+            it->min  = atof(findXMLAttValu(ep, "min"));
+            it->max  = atof(findXMLAttValu(ep, "max"));
+            it->step = atof(findXMLAttValu(ep, "step"));
+            ++n;
         }
 
         if (n > 0)
@@ -600,132 +322,83 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             nvp->nnp = n;
             nvp->np  = np;
 
-            indiProp->setBaseDevice(this);
-            indiProp->setProperty(nvp);
-            indiProp->setDynamic(true);
-            indiProp->setType(INDI_NUMBER);
-
-            pAll.push_back(indiProp);
-
-            //IDLog("Adding number property %s to list.\n", nvp->name);
-            if (mediator)
-                mediator->newProperty(indiProp);
+            indiProp = new INDI::Property(nvp);
         }
         else
         {
             IDLog("%s: newNumberVector with no valid members\n", rname);
             delete (nvp);
-            delete (indiProp);
+            free (np);
         }
     }
     else if (!strcmp(rtag, "defSwitchVector"))
     {
-        INDI::Property *indiProp   = new INDI::Property();
         ISwitchVectorProperty *svp = new ISwitchVectorProperty;
 
         ISwitch *sp = nullptr;
-        int n       = 0;
-
-        strncpy(svp->device, deviceID, MAXINDIDEVICE);
-        strncpy(svp->name, rname, MAXINDINAME);
-        strncpy(svp->label, findXMLAttValu(root, "label"), MAXINDILABEL);
-        strncpy(svp->group, findXMLAttValu(root, "group"), MAXINDIGROUP);
 
         if (crackISRule(findXMLAttValu(root, "rule"), (&svp->r)) < 0)
             svp->r = ISR_1OFMANY;
 
-        svp->p       = perm;
-        svp->s       = state;
-        svp->timeout = timeout;
-
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defSwitch"))
-            {
-                sp = static_cast<ISwitch *>(realloc(sp, (n + 1) * sizeof(ISwitch)));
+            if (strcmp(tagXMLEle(ep), "defSwitch"))
+                continue;
 
-                sp[n].svp = svp;
+            sp = static_cast<ISwitch *>(realloc(sp, (n + 1) * sizeof(ISwitch)));
+            ISwitch *it = &sp[n];
+            memset(it, 0, sizeof(*it));
+            it->svp = svp;
 
-                XMLAtt *na = findXMLAtt(ep, "name");
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-                if (na)
-                {
-                    crackISState(pcdataXMLEle(ep), &(sp[n].s));
-                    strncpy(sp[n].name, valuXMLAtt(na), MAXINDINAME);
-                    sp[n].aux = nullptr;
+            crackISState(pcdataXMLEle(ep), &(it->s));
 
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(sp[n].label, valuXMLAtt(na), MAXINDILABEL);
-                }
-            }
+            strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
+            ++n;
         }
 
         if (n > 0)
         {
             svp->nsp = n;
             svp->sp  = sp;
-
-            indiProp->setBaseDevice(this);
-            indiProp->setProperty(svp);
-            indiProp->setDynamic(true);
-            indiProp->setType(INDI_SWITCH);
-
-            pAll.push_back(indiProp);
-            //IDLog("Adding Switch property %s to list.\n", svp->name);
-            if (mediator)
-                mediator->newProperty(indiProp);
+            indiProp = new INDI::Property(svp);
         }
         else
         {
             IDLog("%s: newSwitchVector with no valid members\n", rname);
             delete (svp);
-            delete (indiProp);
+            free (sp);
         }
     }
 
     else if (!strcmp(rtag, "defTextVector"))
     {
-        INDI::Property *indiProp = new INDI::Property();
         ITextVectorProperty *tvp = new ITextVectorProperty;
         IText *tp                = nullptr;
-        int n                    = 0;
-
-        strncpy(tvp->device, deviceID, MAXINDIDEVICE);
-        strncpy(tvp->name, rname, MAXINDINAME);
-        strncpy(tvp->label, findXMLAttValu(root, "label"), MAXINDILABEL);
-        strncpy(tvp->group, findXMLAttValu(root, "group"), MAXINDIGROUP);
-
-        tvp->p       = perm;
-        tvp->s       = state;
-        tvp->timeout = timeout;
 
         // pull out each name/value pair
-        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defText"))
-            {
-                tp = static_cast<IText *>(realloc(tp, (n + 1) * sizeof(IText)));
+            if (strcmp(tagXMLEle(ep), "defText"))
+                continue;
 
-                tp[n].tvp = tvp;
+            tp = static_cast<IText *>(realloc(tp, (n + 1) * sizeof(IText)));
+            IText *it = &tp[n];
+            memset(it, 0, sizeof(*it));
+            it->tvp = tvp;
 
-                XMLAtt *na = findXMLAtt(ep, "name");
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-                if (na)
-                {
-                    tp[n].text = static_cast<char *>(malloc((pcdatalenXMLEle(ep) * sizeof(char)) + 1));
-                    strncpy(tp[n].text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
-                    tp[n].text[pcdatalenXMLEle(ep)] = '\0';
-                    tp[n].aux0 = nullptr;
-                    tp[n].aux1 = nullptr;
-                    strncpy(tp[n].name, valuXMLAtt(na), MAXINDINAME);
+            it->text = strndup(pcdataXMLEle(ep), pcdatalenXMLEle(ep));
 
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(tp[n].label, valuXMLAtt(na), MAXINDILABEL);
-                }
-            }
+            strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
+            ++n;
         }
 
         if (n > 0)
@@ -733,60 +406,39 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             tvp->ntp = n;
             tvp->tp  = tp;
 
-            indiProp->setBaseDevice(this);
-            indiProp->setProperty(tvp);
-            indiProp->setDynamic(true);
-            indiProp->setType(INDI_TEXT);
-
-            pAll.push_back(indiProp);
-
-            //IDLog("Adding Text property %s to list with initial value of %s.\n", tvp->name, tvp->tp[0].text);
-            if (mediator)
-                mediator->newProperty(indiProp);
+            indiProp = new INDI::Property(tvp);
         }
         else
         {
             IDLog("%s: newTextVector with no valid members\n", rname);
             delete (tvp);
-            delete (indiProp);
+            free (tp);
         }
     }
     else if (!strcmp(rtag, "defLightVector"))
     {
-        INDI::Property *indiProp  = new INDI::Property();
         ILightVectorProperty *lvp = new ILightVectorProperty;
         ILight *lp                = nullptr;
-        int n                     = 0;
-
-        strncpy(lvp->device, deviceID, MAXINDIDEVICE);
-        strncpy(lvp->name, rname, MAXINDINAME);
-        strncpy(lvp->label, findXMLAttValu(root, "label"), MAXINDILABEL);
-        strncpy(lvp->group, findXMLAttValu(root, "group"), MAXINDIGROUP);
-
-        lvp->s = state;
 
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defLight"))
-            {
-                lp = static_cast<ILight *>(realloc(lp, (n + 1) * sizeof(ILight)));
+            if (strcmp(tagXMLEle(ep), "defLight"))
+                continue;
 
-                lp[n].lvp = lvp;
+            lp = static_cast<ILight *>(realloc(lp, (n + 1) * sizeof(ILight)));
+            ILight *it = &lp[n];
+            memset(it, 0, sizeof(*it));
+            it->lvp = lvp;
 
-                XMLAtt *na = findXMLAtt(ep, "name");
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-                if (na)
-                {
-                    crackIPState(pcdataXMLEle(ep), &(lp[n].s));
-                    strncpy(lp[n].name, valuXMLAtt(na), MAXINDINAME);
-                    lp[n].aux = nullptr;
+            crackIPState(pcdataXMLEle(ep), &(it->s));
 
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(lp[n].label, valuXMLAtt(na), MAXINDILABEL);
-                }
-            }
+            strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
+            ++n;
         }
 
         if (n > 0)
@@ -794,74 +446,38 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             lvp->nlp = n;
             lvp->lp  = lp;
 
-            indiProp->setBaseDevice(this);
-            indiProp->setProperty(lvp);
-            indiProp->setDynamic(true);
-            indiProp->setType(INDI_LIGHT);
-
-            pAll.push_back(indiProp);
-
-            //IDLog("Adding Light property %s to list.\n", lvp->name);
-            if (mediator)
-                mediator->newProperty(indiProp);
+            indiProp  = new INDI::Property(lvp);
         }
         else
         {
             IDLog("%s: newLightVector with no valid members\n", rname);
             delete (lvp);
-            delete (indiProp);
+            free (lp);
         }
     }
     else if (!strcmp(rtag, "defBLOBVector"))
     {
-        INDI::Property *indiProp = new INDI::Property();
         IBLOBVectorProperty *bvp = new IBLOBVectorProperty;
         IBLOB *bp                = nullptr;
-        int n                    = 0;
-
-        strncpy(bvp->device, deviceID, MAXINDIDEVICE);
-        strncpy(bvp->name, rname, MAXINDINAME);
-        strncpy(bvp->label, findXMLAttValu(root, "label"), MAXINDILABEL);
-        strncpy(bvp->group, findXMLAttValu(root, "group"), MAXINDIGROUP);
-
-        bvp->s = state;
-        bvp->p = perm;
-        bvp->timeout = timeout;
 
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)
+        for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            if (!strcmp(tagXMLEle(ep), "defBLOB"))
-            {
-                bp = static_cast<IBLOB *>(realloc(bp, (n + 1) * sizeof(IBLOB)));
+            if (strcmp(tagXMLEle(ep), "defBLOB"))
+                continue;
 
-                bp[n].bvp = bvp;
+            bp = static_cast<IBLOB *>(realloc(bp, (n + 1) * sizeof(IBLOB)));
+            IBLOB *it = &bp[n];
+            memset(it, 0, sizeof(*it));
+            it->bvp = bvp;
 
-                XMLAtt *na = findXMLAtt(ep, "name");
+            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
+            if (*it->name == '\0')
+                continue;
 
-                if (na)
-                {
-                    strncpy(bp[n].name, valuXMLAtt(na), MAXINDINAME);
-
-                    na = findXMLAtt(ep, "label");
-                    if (na)
-                        strncpy(bp[n].label, valuXMLAtt(na), MAXINDILABEL);
-
-                    na = findXMLAtt(ep, "format");
-                    if (na)
-                        strncpy(bp[n].label, valuXMLAtt(na), MAXINDIBLOBFMT);
-
-                    // Initialize everything to zero
-
-                    // Seed for realloc
-                    bp[n].blob    = nullptr;
-                    bp[n].size    = 0;
-                    bp[n].bloblen = 0;
-                    bp[n].aux0    = nullptr;
-                    bp[n].aux1    = nullptr;
-                    bp[n].aux2    = nullptr;
-                }
-            }
+            strncpy(it->label,  findXMLAttValu(ep, "label" ), MAXINDILABEL );
+            strncpy(it->format, findXMLAttValu(ep, "format"), MAXINDIBLOBFMT);
+            ++n;
         }
 
         if (n > 0)
@@ -869,28 +485,41 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             bvp->nbp = n;
             bvp->bp  = bp;
 
-            indiProp->setBaseDevice(this);
-            indiProp->setProperty(bvp);
-            indiProp->setDynamic(true);
-            indiProp->setType(INDI_BLOB);
-
-            pAll.push_back(indiProp);
-            //IDLog("Adding BLOB property %s to list.\n", bvp->name);
-            if (mediator)
-                mediator->newProperty(indiProp);
+            indiProp  = new INDI::Property(bvp);
         }
         else
         {
             IDLog("%s: newBLOBVector with no valid members\n", rname);
             delete (bvp);
-            delete (indiProp);
+            free (bp);
         }
+    }
+
+    if (indiProp)
+    {
+        indiProp->setBaseDevice(this);
+        indiProp->setDynamic(true);
+        indiProp->setDeviceName(getDeviceName());
+        indiProp->setName(rname);
+        indiProp->setLabel(findXMLAttValu(root, "label"));
+        indiProp->setGroupName(findXMLAttValu(root, "group"));
+        indiProp->setPermission(perm);
+        indiProp->setState(state);
+        indiProp->setTimeout(atoi(findXMLAttValu(root, "timeout")));
+
+        std::unique_lock<std::mutex> lock(d->m_Lock);
+        d->pAll.push_back(indiProp);
+        lock.unlock();
+
+        //IDLog("Adding number property %s to list.\n", indiProp->getName());
+        if (d->mediator)
+            d->mediator->newProperty(indiProp);
     }
 
     return (0);
 }
 
-bool BaseDevice::isConnected()
+bool BaseDevice::isConnected() const
 {
     ISwitchVectorProperty *svp = getSwitch(INDI::SP::CONNECTION);
     if (!svp)
@@ -898,13 +527,7 @@ bool BaseDevice::isConnected()
 
     ISwitch *sp = IUFindSwitch(svp, "CONNECT");
 
-    if (!sp)
-        return false;
-
-    if (sp->s == ISS_ON && svp->s == IPS_OK)
-        return true;
-    else
-        return false;
+    return sp && sp->s == ISS_ON && svp->s == IPS_OK;
 }
 
 /*
@@ -912,6 +535,7 @@ bool BaseDevice::isConnected()
  */
 int BaseDevice::setValue(XMLEle *root, char *errmsg)
 {
+    D_PTR(BaseDevice);
     XMLEle *ep = nullptr;
     char *name = nullptr;
     double timeout = 0;
@@ -958,7 +582,7 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
         INumberVectorProperty *nvp = getNumber(name);
         if (nvp == nullptr)
         {
-            snprintf(errmsg, MAXRBUF, "INDI: Could not find property %s in %s", name, deviceID);
+            snprintf(errmsg, MAXRBUF, "INDI: Could not find property %s in %s", name, getDeviceName());
             return -1;
         }
 
@@ -987,8 +611,8 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
 
         locale.Restore();
 
-        if (mediator)
-            mediator->newNumber(nvp);
+        if (d->mediator)
+            d->mediator->newNumber(nvp);
 
         return 0;
     }
@@ -1013,8 +637,8 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
             IUSaveText(tp, pcdataXMLEle(ep));
         }
 
-        if (mediator)
-            mediator->newText(tvp);
+        if (d->mediator)
+            d->mediator->newText(tvp);
 
         return 0;
     }
@@ -1041,8 +665,8 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
                 sp->s = swState;
         }
 
-        if (mediator)
-            mediator->newSwitch(svp);
+        if (d->mediator)
+            d->mediator->newSwitch(svp);
 
         return 0;
     }
@@ -1067,8 +691,8 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
                 lp->s = lState;
         }
 
-        if (mediator)
-            mediator->newLight(lvp);
+        if (d->mediator)
+            d->mediator->newLight(lvp);
 
         return 0;
     }
@@ -1097,6 +721,7 @@ int BaseDevice::setValue(XMLEle *root, char *errmsg)
 */
 int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
 {
+    D_PTR(BaseDevice);
     /* pull out each name/BLOB pair, decode */
     for (XMLEle *ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
     {
@@ -1115,17 +740,16 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                 /* Blob size = 0 when only state changes */
                 if (blobSize == 0)
                 {
-                    if (mediator)
-                        mediator->newBLOB(blobEL);
+                    if (d->mediator)
+                        d->mediator->newBLOB(blobEL);
                     continue;
                 }
 
                 blobEL->size    = blobSize;
-                int bloblen     = pcdatalenXMLEle(ep);
-                int blobBufferSize = 3 * bloblen / 4;
-                if (blobBufferSize != blobEL->bloblen)
-                    blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, blobBufferSize));
-                blobEL->bloblen = from64tobits_fast(static_cast<char *>(blobEL->blob), pcdataXMLEle(ep), bloblen);
+                uint32_t base64_encoded_size = pcdatalenXMLEle(ep);
+                uint32_t base64_decoded_size = 3 * base64_encoded_size / 4;
+                blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, base64_decoded_size));
+                blobEL->bloblen = from64tobits_fast(static_cast<char *>(blobEL->blob), pcdataXMLEle(ep), base64_encoded_size);
 
                 strncpy(blobEL->format, valuXMLAtt(fa), MAXINDIFORMAT);
 
@@ -1155,8 +779,8 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                     blobEL->blob = dataBuffer;
                 }
 
-                if (mediator)
-                    mediator->newBLOB(blobEL);
+                if (d->mediator)
+                    d->mediator->newBLOB(blobEL);
             }
             else
             {
@@ -1172,12 +796,14 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
 
 void BaseDevice::setDeviceName(const char *dev)
 {
-    strncpy(deviceID, dev, MAXINDINAME);
+    D_PTR(BaseDevice);
+    d->deviceName = dev;
 }
 
-const char *BaseDevice::getDeviceName()
+const char *BaseDevice::getDeviceName() const
 {
-    return deviceID;
+    D_PTR(const BaseDevice);
+    return d->deviceName.data();
 }
 
 /* add message to queue
@@ -1221,111 +847,69 @@ void BaseDevice::doMessage(XMLEle *msg)
 
 void BaseDevice::addMessage(const std::string &msg)
 {
-    messageLog.push_back(msg);
+    D_PTR(BaseDevice);
+    std::unique_lock<std::mutex> guard(d->m_Lock);
+    d->messageLog.push_back(msg);
+    guard.unlock();
 
-    if (mediator)
-        mediator->newMessage(this, messageLog.size() - 1);
+    if (d->mediator)
+        d->mediator->newMessage(this, d->messageLog.size() - 1);
 }
 
-std::string BaseDevice::messageQueue(int index) const
+const std::string &BaseDevice::messageQueue(size_t index) const
 {
-    if (index >= static_cast<int>(messageLog.size()))
-        return nullptr;
-
-    return messageLog.at(index);
+    D_PTR(const BaseDevice);
+    std::lock_guard<std::mutex> lock(d->m_Lock);
+    assert(index < d->messageLog.size());
+    return d->messageLog.at(index);
 }
 
-std::string BaseDevice::lastMessage()
+const std::string &BaseDevice::lastMessage() const
 {
-    return messageLog.back();
+    D_PTR(const BaseDevice);
+    std::lock_guard<std::mutex> lock(d->m_Lock);
+    assert(d->messageLog.size() != 0);
+    return d->messageLog.back();
 }
 
 void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
 {
-    INDI::Property *pContainer;
+    D_PTR(BaseDevice);
+    if (p == nullptr || type == INDI_UNKNOWN)
+        return;
 
-    if (type == INDI_NUMBER)
+    const char *name = INDI::Property(p, type).getName();
+
+    INDI::Property *pContainer = getProperty(name, type);
+
+    if (pContainer != nullptr)
+        pContainer->setRegistered(true);
+    else
     {
-        INumberVectorProperty *nvp = static_cast<INumberVectorProperty *>(p);
-        if ((pContainer = getProperty(nvp->name, INDI_NUMBER)) != nullptr)
-        {
-            pContainer->setRegistered(true);
-            return;
-        }
-
-        pContainer = new INDI::Property();
-        pContainer->setProperty(p);
-        pContainer->setType(type);
-
-        pAll.push_back(pContainer);
-    }
-    else if (type == INDI_TEXT)
-    {
-        ITextVectorProperty *tvp = static_cast<ITextVectorProperty *>(p);
-
-        if ((pContainer = getProperty(tvp->name, INDI_TEXT)) != nullptr)
-        {
-            pContainer->setRegistered(true);
-            return;
-        }
-
-        pContainer = new INDI::Property();
-        pContainer->setProperty(p);
-        pContainer->setType(type);
-
-        pAll.push_back(pContainer);
-    }
-    else if (type == INDI_SWITCH)
-    {
-        ISwitchVectorProperty *svp = static_cast<ISwitchVectorProperty *>(p);
-
-        if ((pContainer = getProperty(svp->name, INDI_SWITCH)) != nullptr)
-        {
-            pContainer->setRegistered(true);
-            return;
-        }
-
-        pContainer = new INDI::Property();
-        pContainer->setProperty(p);
-        pContainer->setType(type);
-
-        pAll.push_back(pContainer);
-    }
-    else if (type == INDI_LIGHT)
-    {
-        ILightVectorProperty *lvp = static_cast<ILightVectorProperty *>(p);
-
-        if ((pContainer = getProperty(lvp->name, INDI_LIGHT)) != nullptr)
-        {
-            pContainer->setRegistered(true);
-            return;
-        }
-
-        pContainer = new INDI::Property();
-        pContainer->setProperty(p);
-        pContainer->setType(type);
-
-        pAll.push_back(pContainer);
-    }
-    else if (type == INDI_BLOB)
-    {
-        IBLOBVectorProperty *bvp = static_cast<IBLOBVectorProperty *>(p);
-
-        if ((pContainer = getProperty(bvp->name, INDI_BLOB)) != nullptr)
-        {
-            pContainer->setRegistered(true);
-            return;
-        }
-
-        pContainer = new INDI::Property();
-        pContainer->setProperty(p);
-        pContainer->setType(type);
-
-        pAll.push_back(pContainer);
+        std::lock_guard<std::mutex> lock(d->m_Lock);
+        d->pAll.push_back(new INDI::Property(p, type));
     }
 }
 
-const char *BaseDevice::getDriverName()
+void BaseDevice::registerProperty(INDI::Property &property)
+{
+    D_PTR(BaseDevice);
+
+    if (property.getType() == INDI_UNKNOWN)
+        return;
+
+    INDI::Property *pContainer = getProperty(property.getName(), property.getType());
+
+    if (pContainer != nullptr)
+        pContainer->setRegistered(true);
+    else
+    {
+        std::lock_guard<std::mutex> lock(d->m_Lock);
+        d->pAll.push_back(new INDI::Property(property));
+    }
+}
+
+const char *BaseDevice::getDriverName() const
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
 
@@ -1339,7 +923,58 @@ const char *BaseDevice::getDriverName()
     return nullptr;
 }
 
-const char *BaseDevice::getDriverExec()
+
+void BaseDevice::registerProperty(ITextVectorProperty *property)
+{
+    registerProperty(property, INDI_TEXT);
+}
+
+void BaseDevice::registerProperty(INumberVectorProperty *property)
+{
+    registerProperty(property, INDI_NUMBER);
+}
+
+void BaseDevice::registerProperty(ISwitchVectorProperty *property)
+{
+    registerProperty(property, INDI_SWITCH);
+}
+
+void BaseDevice::registerProperty(ILightVectorProperty *property)
+{
+    registerProperty(property, INDI_LIGHT);
+}
+
+void BaseDevice::registerProperty(IBLOBVectorProperty *property)
+{
+    registerProperty(property, INDI_BLOB);
+}
+
+void BaseDevice::registerProperty(PropertyView<IText> *property)
+{
+    registerProperty(static_cast<ITextVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<INumber> *property)
+{
+    registerProperty(static_cast<INumberVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<ISwitch> *property)
+{
+    registerProperty(static_cast<ISwitchVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<ILight> *property)
+{
+    BaseDevice::registerProperty(static_cast<ILightVectorProperty*>(property));
+}
+
+void BaseDevice::registerProperty(PropertyView<IBLOB> *property)
+{
+    BaseDevice::registerProperty(static_cast<IBLOBVectorProperty*>(property));
+}
+
+const char *BaseDevice::getDriverExec() const
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
 
@@ -1353,7 +988,7 @@ const char *BaseDevice::getDriverExec()
     return nullptr;
 }
 
-const char *BaseDevice::getDriverVersion()
+const char *BaseDevice::getDriverVersion() const
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
 
@@ -1379,6 +1014,30 @@ uint16_t BaseDevice::getDriverInterface()
         return atoi(driverInterface->text);
 
     return 0;
+}
+
+const BaseDevice::Properties *BaseDevice::getProperties() const
+{
+    D_PTR(const BaseDevice);
+    return &d->pAll;
+}
+
+BaseDevice::Properties *BaseDevice::getProperties()
+{
+    D_PTR(BaseDevice);
+    return &d->pAll;
+}
+
+void BaseDevice::setMediator(INDI::BaseMediator *mediator)
+{
+    D_PTR(BaseDevice);
+    d->mediator = mediator;
+}
+
+INDI::BaseMediator *BaseDevice::getMediator() const
+{
+    D_PTR(const BaseDevice);
+    return d->mediator;
 }
 
 }

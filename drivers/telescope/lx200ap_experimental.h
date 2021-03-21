@@ -133,7 +133,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
         INumber APUTCOffsetN[1];
 
         IText VersionT[1] {};
-        ITextVectorProperty VersionInfo;
+        ITextVectorProperty VersionTP;
 
     private:
 #ifdef no

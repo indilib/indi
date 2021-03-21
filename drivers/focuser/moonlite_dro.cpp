@@ -165,13 +165,13 @@ bool MoonLiteDRO::updateProperties()
         // Only display such properties for the first focuser only
         if (m_ID == 1)
         {
-            defineNumber(&TemperatureNP);
-            defineNumber(&TemperatureSettingNP);
-            defineSwitch(&TemperatureCompensateSP);
+            defineProperty(&TemperatureNP);
+            defineProperty(&TemperatureSettingNP);
+            defineProperty(&TemperatureCompensateSP);
         }
 
-        defineNumber(&StepDelayNP);
-        defineSwitch(&StepModeSP);
+        defineProperty(&StepDelayNP);
+        defineProperty(&StepModeSP);
 
         GetFocusParams();
 
@@ -205,7 +205,7 @@ bool MoonLiteDRO::Connect()
     }
 
     PortFD = dro1->getPortFD();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 
@@ -945,7 +945,7 @@ void MoonLiteDRO::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -986,7 +986,7 @@ void MoonLiteDRO::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool MoonLiteDRO::AbortFocuser()

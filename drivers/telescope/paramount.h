@@ -74,12 +74,13 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         bool getMountRADE();
         bool isSlewComplete();
 
-        bool sendTheSkyOKCommand(const char *command, const char *errorMessage);
+        bool sendTheSkyOKCommand(const char *command, const char *errorMessage, uint8_t timeout = 3);
         bool isTheSkyParked();
         bool isTheSkyTracking();
         bool startOpenLoopMotion(uint8_t motion, uint16_t rate);
         bool stopOpenLoopMotion();
         bool setTheSkyTracking(bool enable, bool isSidereal, double raRate, double deRate);
+        INDI::Telescope::TelescopePierSide getPierSide();
 
         // Homing
         bool findHome();
@@ -90,7 +91,7 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         double targetDEC { 0 };
 
         ln_lnlat_posn lnobserver { 0, 0 };
-        ln_hrz_posn lnaltaz { 0, 0 };
+        //ln_hrz_posn lnaltaz { 0, 0 };
         unsigned int DBG_SCOPE { 0 };
 
         // Jog Rate

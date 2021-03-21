@@ -112,7 +112,7 @@ void FocusSim::ISGetProperties(const char *dev)
 
     INDI::Focuser::ISGetProperties(dev);
 
-    defineSwitch(&ModeSP);
+    defineProperty(&ModeSP);
     loadConfig(true, "Mode");
 }
 
@@ -164,9 +164,9 @@ bool FocusSim::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SeeingNP);
-        defineNumber(&FWHMNP);
-        defineNumber(&TemperatureNP);
+        defineProperty(&SeeingNP);
+        defineProperty(&FWHMNP);
+        defineProperty(&TemperatureNP);
     }
     else
     {

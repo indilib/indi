@@ -100,7 +100,7 @@ bool TruTech::updateProperties()
     INDI::FilterWheel::updateProperties();
 
     if (isConnected())
-        defineSwitch(&HomeSP);
+        defineProperty(&HomeSP);
     else
         deleteProperty(HomeSP.name);
 
@@ -248,5 +248,5 @@ void TruTech::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }

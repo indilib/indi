@@ -147,13 +147,13 @@ bool DeepSkyDadAF1::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&FocusMaxMoveNP);
-        defineSwitch(&StepModeSP);
-        defineNumber(&SettleBufferNP);
-        defineSwitch(&CoilsModeSP);
-        defineNumber(&IdleCoilsTimeoutNP);
-        defineSwitch(&CurrentMoveSP);
-        defineSwitch(&CurrentHoldSP);
+        defineProperty(&FocusMaxMoveNP);
+        defineProperty(&StepModeSP);
+        defineProperty(&SettleBufferNP);
+        defineProperty(&CoilsModeSP);
+        defineProperty(&IdleCoilsTimeoutNP);
+        defineProperty(&CurrentMoveSP);
+        defineProperty(&CurrentHoldSP);
 
         GetFocusParams();
 
@@ -881,7 +881,7 @@ void DeepSkyDadAF1::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -908,7 +908,7 @@ void DeepSkyDadAF1::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool DeepSkyDadAF1::AbortFocuser()

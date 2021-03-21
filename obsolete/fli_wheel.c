@@ -69,11 +69,11 @@ extern int errno;
 
 #define currentFilter FilterN[0].value
 
-#define POLLMS     1000
-#define LIBVERSIZ  1024
-#define PREFIXSIZ  64
-#define PIPEBUFSIZ 8192
-#define FRAME_ILEN 64
+#define POLLMS_OVERRIDE 1000
+#define LIBVERSIZ       1024
+#define PREFIXSIZ       64
+#define PIPEBUFSIZ      8192
+#define FRAME_ILEN      64
 
 typedef struct
 {
@@ -137,7 +137,7 @@ void ISInit()
     /*simulation = 1;
         IDLog("WARNING: Simulation is on\n");*/
 
-    IEAddTimer(POLLMS, ISPoll, NULL);
+    IEAddTimer(POLLMS_OVERRIDE, ISPoll, NULL);
 
     isInit = 1;
 }
@@ -396,7 +396,7 @@ void ISPoll(void *p)
 
     if (!isFilterConnected())
     {
-        IEAddTimer(POLLMS, ISPoll, NULL);
+        IEAddTimer(POLLMS_OVERRIDE, ISPoll, NULL);
         return;
     }
 
@@ -446,7 +446,7 @@ void ISPoll(void *p)
             break;
     }
 
-    IEAddTimer(POLLMS, ISPoll, NULL);
+    IEAddTimer(POLLMS_OVERRIDE, ISPoll, NULL);
 }
 
 int getOnSwitch(ISwitchVectorProperty *sp)

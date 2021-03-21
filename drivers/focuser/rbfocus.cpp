@@ -97,9 +97,9 @@ bool RBFOCUS::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
-        defineSwitch(&focuserHoldSP);
-        defineSwitch(&dirSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&focuserHoldSP);
+        defineProperty(&dirSP);
         LOG_INFO("Focuser ready.");
     }
     else
@@ -335,17 +335,13 @@ bool RBFOCUS::SyncFocuser(uint32_t ticks)
 
 IPState RBFOCUS::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[DRIVER_RES] = {0}, res[DRIVER_RES] = {0}, expected[DRIVER_RES] = {0};
+    char cmd[DRIVER_RES] = {0};
     snprintf(cmd, DRIVER_RES, "T%d#", targetTicks);
-    snprintf(expected, DRIVER_RES, "%d#", targetTicks);
-    if (sendCommand(cmd, res) == false)
+
+    if (sendCommand(cmd) == false)
         return IPS_BUSY;
 
     targetPos = targetTicks;
-
-    if (!strcmp(res, expected))
-        return IPS_BUSY;
-    else
         return IPS_BUSY;
 }
 
@@ -355,7 +351,7 @@ void RBFOCUS::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -390,12 +386,12 @@ void RBFOCUS::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool RBFOCUS::AbortFocuser()
 {
-    return sendCommand("H#");
+    return sendCommand("L#");
 }
 bool RBFOCUS::setHold()
 {

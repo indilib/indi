@@ -101,10 +101,10 @@ void lacerta_mfoc::ISGetProperties(const char *dev)
 
     INDI::Focuser::ISGetProperties(dev);
 
-    defineSwitch(&TempTrackDirSP);
+    defineProperty(&TempTrackDirSP);
     loadConfig(true, TempTrackDirSP.name);
 
-    defineSwitch(&StartSavedPositionSP);
+    defineProperty(&StartSavedPositionSP);
     loadConfig(true, StartSavedPositionSP.name);
 }
 
@@ -163,10 +163,10 @@ bool lacerta_mfoc::updateProperties()
 
     if (isConnected())
     {
-        //defineNumber(&BacklashNP);
-        defineNumber(&TempCompNP);
-        defineSwitch(&TempTrackDirSP);
-        defineSwitch(&StartSavedPositionSP);
+        //defineProperty(&BacklashNP);
+        defineProperty(&TempCompNP);
+        defineProperty(&TempTrackDirSP);
+        defineProperty(&StartSavedPositionSP);
 
     }
     else

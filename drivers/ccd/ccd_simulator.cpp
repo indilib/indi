@@ -107,6 +107,7 @@ bool CCDSim::setupParameters()
     m_PEPeriod = SimulatorSettingsN[SIM_PE_PERIOD].value;
     m_PEMax = SimulatorSettingsN[SIM_PE_MAX].value;
     m_TimeFactor = SimulatorSettingsN[SIM_TIME_FACTOR].value;
+    RotatorAngle = SimulatorSettingsN[SIM_ROTATION].value;
 
     uint32_t nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
@@ -122,7 +123,7 @@ bool CCDSim::Connect()
     streamPredicate = 0;
     terminateThread = false;
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 
@@ -161,14 +162,15 @@ bool CCDSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[SIM_PE_PERIOD], "SIM_PEPERIOD", "PE Period (minutes)", "%4.1f", 0, 60, 5, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_PE_MAX], "SIM_PEMAX", "PE Max (arcsec)", "%4.1f", 0, 6000, 500, 0);
     IUFillNumber(&SimulatorSettingsN[SIM_TIME_FACTOR], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 10, 1);
+    IUFillNumber(&SimulatorSettingsN[SIM_ROTATION], "SIM_ROTATION", "CCD Rotation", "%.2f", 0, 360, 10, 0);
 
     IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, SIM_N, getDeviceName(), "SIMULATOR_SETTINGS",
                        "Settings", SIMULATOR_TAB, IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
     IUFillSwitch(&SimulateBayerS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&SimulateBayerS[INDI_DISABLED], "INDI_DISABLED", "Dsiabled", ISS_ON);
-    IUFillSwitchVector(&SimulateRgbSP, SimulateBayerS, 2, getDeviceName(), "SIMULATE_BAYER", "Bayer", SIMULATOR_TAB, IP_RW,
+    IUFillSwitch(&SimulateBayerS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&SimulateBayerSP, SimulateBayerS, 2, getDeviceName(), "SIMULATE_BAYER", "Bayer", SIMULATOR_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Simulate focusing
@@ -285,11 +287,11 @@ void CCDSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineNumber(&SimulatorSettingsNP);
-    defineNumber(&EqPENP);
-    defineNumber(&FocusSimulationNP);
-    defineSwitch(&SimulateRgbSP);
-    defineSwitch(&CrashSP);
+    defineProperty(&SimulatorSettingsNP);
+    defineProperty(&EqPENP);
+    defineProperty(&FocusSimulationNP);
+    defineProperty(&SimulateBayerSP);
+    defineProperty(&CrashSP);
 }
 
 bool CCDSim::updateProperties()
@@ -299,13 +301,13 @@ bool CCDSim::updateProperties()
     if (isConnected())
     {
         if (HasCooler())
-            defineSwitch(&CoolerSP);
+            defineProperty(&CoolerSP);
 
-        defineNumber(&GainNP);
-        defineNumber(&OffsetNP);
+        defineProperty(&GainNP);
+        defineProperty(&OffsetNP);
 
-        defineText(&DirectoryTP);
-        defineSwitch(&DirectorySP);
+        defineProperty(&DirectoryTP);
+        defineProperty(&DirectorySP);
 
         setupParameters();
 
@@ -430,7 +432,7 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
 
 void CCDSim::TimerHit()
 {
-    uint32_t nextTimer = POLLMS;
+    uint32_t nextTimer = getCurrentPollingPeriod();
 
     //  No need to reset timer if we are not connected anymore
     if (!isConnected())
@@ -543,6 +545,15 @@ void CCDSim::TimerHit()
 
 
     SetTimer(nextTimer);
+}
+
+double CCDSim::flux(double mag) const
+{
+    // The limiting magnitude provides zero ADU whatever the exposure
+    // The saturation magnitude provides max ADU in one second
+    double const z = m_LimitingMag;
+    double const k = 2.5*log10(m_MaxVal)/(m_LimitingMag - m_SaturationMag);
+    return pow(10, (z - mag)*k/2.5);
 }
 
 int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
@@ -716,8 +727,8 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
         //  and a limitingmag produces a one adu level in one second
         //  solve for zero point and system gain
 
-        k = (m_SaturationMag - m_LimitingMag) / ((-2.5 * log(m_MaxVal)) - (-2.5 * log(1.0 / 2.0)));
-        z = m_SaturationMag - k * (-2.5 * log(m_MaxVal));
+        //k = (m_SaturationMag - m_LimitingMag) / ((-2.5 * log(m_MaxVal)) - (-2.5 * log(1.0 / 2.0)));
+        //z = m_SaturationMag - k * (-2.5 * log(m_MaxVal));
 
         //  Should probably do some math here to figure out the dimmest
         //  star we can see on this exposure
@@ -836,7 +847,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
         if (ftype == INDI::CCDChip::LIGHT_FRAME || ftype == INDI::CCDChip::FLAT_FRAME)
         {
-            float skyflux;
             //  calculate flux from our zero point and gain values
             float glow = m_SkyGlow;
 
@@ -850,10 +860,8 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
             //fprintf(stderr,"Using glow %4.2f\n",glow);
 
-            skyflux = pow(10, ((glow - z) * k / -2.5));
-            //  ok, flux represents one second now
-            //  scale up linearly for exposure time
-            skyflux = skyflux * exposure_time;
+            // Flux represents one second, scale up linearly for exposure time
+            float const skyflux = flux(glow) * exposure_time;
 
             uint16_t * pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
@@ -862,43 +870,31 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 
             for (int y = 0; y < nheight; y++)
             {
+                float const sy = nheight / 2 - y;
+
                 for (int x = 0; x < nwidth; x++)
                 {
-                    float dc; //  distance from center
-                    float fp; //  flux this pixel;
-                    float sx, sy;
-                    float vig;
+                    float const sx = nwidth / 2 - x;
 
-                    sx = nwidth / 2 - x;
-                    sy = nheight / 2 - y;
+                    // Vignetting parameter in arcsec
+                    float const vig = std::min(nwidth, nheight) * ImageScalex;
 
-                    vig = nwidth;
-                    vig = vig * ImageScalex;
-                    //  need to make this account for actual pixel size
-                    dc = std::sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
-                    //  now we have the distance from center, in arcseconds
-                    //  now lets plot a gaussian falloff to the edges
-                    //
-                    float fa;
-                    fa = exp(-2.0 * 0.7 * (dc * dc) / vig / vig);
+                    // Squared distance to center in arcsec (need to make this account for actual pixel size)
+                    float const dc2 = sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley;
 
-                    //  get the current value
-                    fp = pt[0];
+                    // Gaussian falloff to the edges of the frame
+                    float const fa = exp(-2.0 * 0.7 * dc2 / (vig * vig));
 
-                    //  Add the sky glow
-                    fp += skyflux;
+                    // Get the current value of the pixel, add the sky glow and scale for vignetting
+                    float fp = (pt[0] + skyflux) * fa;
 
-                    //  now scale it for the vignetting
-                    fp = fa * fp;
+                    // Clamp to limits, store minmax
+                    if (fp > m_MaxVal) fp = m_MaxVal;
+                    if (fp < pt[0]) fp = pt[0];
+                    if (fp > maxpix) maxpix = fp;
+                    if (fp < minpix) minpix = fp;
 
-                    //  clamp to limits
-                    if (fp > m_MaxVal)
-                        fp = m_MaxVal;
-                    if (fp > maxpix)
-                        maxpix = fp;
-                    if (fp < minpix)
-                        minpix = fp;
-                    //  and put it back
+                    // And put it back
                     pt[0] = fp;
                     pt++;
                 }
@@ -965,7 +961,7 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
     }
 
     //  calculate flux from our zero point and gain values
-    flux = pow(10, ((mag - z) * k / -2.5));
+    flux = this->flux(mag);
 
     //  ok, flux represents one second now
     //  scale up linearly for exposure time
@@ -989,17 +985,18 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
         for (sx = -boxsizey; sx <= boxsizey; sx++)
         {
             int rc;
-            float dc; //  distance from center
-            float fp; //  flux this pixel;
 
-            //  need to make this account for actual pixel size
-            dc = std::sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
-            //  now we have the distance from center, in arcseconds
-            //  This should be gaussian, but, for now we'll just go with
-            //  a simple linear function
-            float fa = exp(-2.0 * 0.7 * (dc * dc) / seeing / seeing);
+            // Squared distance to center in arcsec (need to make this account for actual pixel size)
+            float const dc2 = sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley;
 
-            fp = fa * flux;
+            // Use a gaussian of unitary integral, scale it with the source flux
+            // f(x) = 1/(sqrt(2*pi)*sigma) * exp( -x² / (2*sigma²) )
+            // FWHM = 2*sqrt(2*log(2))*sigma => sigma = seeing/(2*sqrt(2*log(2)))
+            float const sigma = seeing / ( 2 * sqrt(2*log(2)));
+            float const fa = 1 / (sigma * sqrt(2*3.1416)) * exp( -dc2 / (2*sigma*sigma));
+
+            // The source contribution is the gaussian value, stretched by seeing/FWHM
+            float fp = fa * flux;
 
             if (fp < 0)
                 fp = 0;
@@ -1186,15 +1183,15 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Simulate RGB
-        if (!strcmp(name, SimulateRgbSP.name))
+        if (!strcmp(name, SimulateBayerSP.name))
         {
-            IUUpdateSwitch(&SimulateRgbSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&SimulateRgbSP);
+            IUUpdateSwitch(&SimulateBayerSP, states, names, n);
+            int index = IUFindOnSwitchIndex(&SimulateBayerSP);
             if (index == -1)
             {
-                SimulateRgbSP.s = IPS_ALERT;
+                SimulateBayerSP.s = IPS_ALERT;
                 LOG_INFO("Cannot determine whether RGB simulation should be switched on or off.");
-                IDSetSwitch(&SimulateRgbSP, nullptr);
+                IDSetSwitch(&SimulateBayerSP, nullptr);
                 return false;
             }
 
@@ -1203,8 +1200,8 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
 
             SimulateBayerS[INDI_ENABLED].s = m_SimulateBayer ? ISS_ON : ISS_OFF;
             SimulateBayerS[INDI_DISABLED].s = m_SimulateBayer ? ISS_OFF : ISS_ON;
-            SimulateRgbSP.s   = IPS_OK;
-            IDSetSwitch(&SimulateRgbSP, nullptr);
+            SimulateBayerSP.s   = IPS_OK;
+            IDSetSwitch(&SimulateBayerSP, nullptr);
 
             return true;
         }
@@ -1390,8 +1387,8 @@ bool CCDSim::saveConfigItems(FILE * fp)
     // Directory
     IUSaveConfigText(fp, &DirectoryTP);
 
-    // RGB
-    IUSaveConfigSwitch(fp, &SimulateRgbSP);
+    // Bayer
+    IUSaveConfigSwitch(fp, &SimulateBayerSP);
 
     // Focus simulation
     IUSaveConfigNumber(fp, &FocusSimulationNP);

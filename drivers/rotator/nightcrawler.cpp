@@ -215,26 +215,26 @@ bool NightCrawler::updateProperties()
     if (isConnected())
     {
         // Focus
-        defineNumber(&SyncFocusNP);
-        defineNumber(&SensorNP);
-        defineNumber(&TemperatureOffsetNP);
-        defineNumber(&FocusStepDelayNP);
-        defineLight(&LimitSwitchLP);
-        defineSwitch(&EncoderSP);
-        defineNumber(&BrightnessNP);
-        defineSwitch(&HomeSelectionSP);
-        defineSwitch(&FindHomeSP);
+        defineProperty(&SyncFocusNP);
+        defineProperty(&SensorNP);
+        defineProperty(&TemperatureOffsetNP);
+        defineProperty(&FocusStepDelayNP);
+        defineProperty(&LimitSwitchLP);
+        defineProperty(&EncoderSP);
+        defineProperty(&BrightnessNP);
+        defineProperty(&HomeSelectionSP);
+        defineProperty(&FindHomeSP);
 
         // Rotator
         INDI::RotatorInterface::updateProperties();
-        defineNumber(&RotatorAbsPosNP);
-        defineNumber(&RotatorStepDelayNP);
+        defineProperty(&RotatorAbsPosNP);
+        defineProperty(&RotatorStepDelayNP);
 
         // Aux
-        defineNumber(&GotoAuxNP);
-        defineSwitch(&AbortAuxSP);
-        defineNumber(&SyncAuxNP);
-        defineNumber(&AuxStepDelayNP);
+        defineProperty(&GotoAuxNP);
+        defineProperty(&AbortAuxSP);
+        defineProperty(&SyncAuxNP);
+        defineProperty(&AuxStepDelayNP);
     }
     else
     {
@@ -704,7 +704,7 @@ void NightCrawler::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -727,7 +727,7 @@ void NightCrawler::TimerHit()
             LOG_INFO("Homing is complete.");
         }
 
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -836,7 +836,7 @@ void NightCrawler::TimerHit()
     if (absAuxUpdated)
         IDSetNumber(&GotoAuxNP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool NightCrawler::AbortFocuser()

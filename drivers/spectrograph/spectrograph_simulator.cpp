@@ -84,13 +84,13 @@ bool RadioSim::Connect()
     LOG_INFO("Simulator Spectrograph connected successfully!");
     // Let's set a timer that checks teleSpectrographs status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
-    //SetTimer(POLLMS);
+    //SetTimer(getCurrentPollingPeriod());
 
     streamPredicate = 0;
     terminateThread = false;
     // Run threads
     std::thread(&RadioSim::streamCaptureHelper, this).detach();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 
     return true;
 }
@@ -158,7 +158,7 @@ bool RadioSim::updateProperties()
         setupParams(1000000, 1420000000, 10000, 10);
 
         // Start the timer
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 
     return INDI::Spectrograph::updateProperties();
@@ -276,7 +276,7 @@ void RadioSim::TimerHit()
         setIntegrationLeft(timeleft);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return;
 }
 

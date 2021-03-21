@@ -98,24 +98,24 @@ bool TCFS::initProperties()
     {
         isTCFS3 = true;
 
-        FocusMaxPosN[0].max = 9999;
-
-        FocusAbsPosN[0].max  = 9999;
-        FocusRelPosN[0].max  = 2000;
-        FocusRelPosN[0].step = FocusAbsPosN[0].step = 100;
-        FocusRelPosN[0].value                       = 0;
+        FocusMaxPosN[0].max   = 9999;
+        FocusAbsPosN[0].max   = 9999;
+        FocusRelPosN[0].max   = 2000;
+        FocusRelPosN[0].step  = 100;
+        FocusAbsPosN[0].step  = 100;
+        FocusRelPosN[0].value = 0;
         LOG_DEBUG("TCF-S3 detected. Updating maximum position value to 9999.");
     }
     else
     {
         isTCFS3 = false;
 
-        FocusMaxPosN[0].max = 7000;
-
-        FocusAbsPosN[0].max  = 7000;
-        FocusRelPosN[0].max  = 2000;
-        FocusRelPosN[0].step = FocusAbsPosN[0].step = 100;
-        FocusRelPosN[0].value                       = 0;
+        FocusMaxPosN[0].max   = 7000;
+        FocusAbsPosN[0].max   = 7000;
+        FocusRelPosN[0].max   = 2000;
+        FocusRelPosN[0].step  = 100;
+        FocusAbsPosN[0].step  = 100;
+        FocusRelPosN[0].value = 0;
         LOG_DEBUG("TCF-S detected. Updating maximum position value to 7000.");
     }
 
@@ -181,14 +181,14 @@ bool TCFS::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&FocusGotoSP);
-        defineNumber(&FocusTemperatureNP);
-        defineSwitch(&FocusPowerSP);
-        defineSwitch(&FocusModeSP);
-        defineSwitch(&FocusTelemetrySP);
-        defineSwitch(&FocusStartModeSP);
-        defineNumber(&FocusModeANP);
-        defineNumber(&FocusModeBNP);;
+        defineProperty(&FocusGotoSP);
+        defineProperty(&FocusTemperatureNP);
+        defineProperty(&FocusPowerSP);
+        defineProperty(&FocusModeSP);
+        defineProperty(&FocusTelemetrySP);
+        defineProperty(&FocusStartModeSP);
+        defineProperty(&FocusModeANP);
+        defineProperty(&FocusModeBNP);;
         GetFocusParams();
     }
     else
@@ -679,7 +679,8 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             else if (!strcmp(sp->name, "FOCUS_CENTER"))
             {
                 dispatch_command(FCENTR);
-                FocusAbsPosNP.s = FocusRelPosNP.s = IPS_BUSY;
+                FocusAbsPosNP.s = IPS_BUSY;
+                FocusRelPosNP.s = IPS_BUSY;
                 IDSetNumber(&FocusAbsPosNP, nullptr);
                 IDSetNumber(&FocusRelPosNP, nullptr);
                 IDSetSwitch(&FocusGotoSP, "Moving focuser to center position %d...", isTCFS3 ? 5000 : 3500);
@@ -962,7 +963,7 @@ void TCFS::TimerHit()
 
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -974,7 +975,7 @@ void TCFS::TimerHit()
         LOGF_DEBUG("%s Motion in Progress...", __FUNCTION__);
         if (read_tcfs(response, true) == false)
         {
-            SetTimer(POLLMS);
+            SetTimer(getCurrentPollingPeriod());
             return;
         }
         LOGF_DEBUG("%s READY %s", __FUNCTION__, response );
@@ -999,7 +1000,7 @@ void TCFS::TimerHit()
                     IUResetSwitch(&FocusModeSP);
                     FocusModeSP.s = IPS_ALERT;
                     IDSetSwitch(&FocusModeSP, "Error switching to Auto Mode %s. No reply from TCF-S. Try again.", mode);
-                    SetTimer(POLLMS);
+                    SetTimer(getCurrentPollingPeriod());
                     return;
                 }
                 FocusModeSP.s = IPS_OK;
@@ -1007,7 +1008,7 @@ void TCFS::TimerHit()
                 currentMode = (FocusModeSP.sp[1].s == ISS_ON) ? MODE_A : MODE_B;
                 IDSetSwitch(&FocusModeSP, nullptr);
             }
-            SetTimer(POLLMS);
+            SetTimer(getCurrentPollingPeriod());
             return;
         }
     }
@@ -1020,14 +1021,14 @@ void TCFS::TimerHit()
         if (FocusTelemetrySP.sp[1].s == ISS_ON)
         {
             LOGF_DEBUG("%s %s", __FUNCTION__, "Telemetry is off");
-            SetTimer(POLLMS);
+            SetTimer(getCurrentPollingPeriod());
             return;
         }
         for(int i = 0; i < 2; i++)
         {
             if (read_tcfs(response, true) == false)
             {
-                SetTimer(POLLMS);
+                SetTimer(getCurrentPollingPeriod());
                 return;
             }
             LOGF_DEBUG("%s Received %s", __FUNCTION__, response);
@@ -1051,7 +1052,7 @@ void TCFS::TimerHit()
                 }
             }
         }
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -1065,7 +1066,7 @@ void TCFS::TimerHit()
 
             if (!rc)
             {
-                SetTimer(POLLMS);
+                SetTimer(getCurrentPollingPeriod());
                 return;
             }
 
@@ -1094,7 +1095,7 @@ void TCFS::TimerHit()
 
             if (read_tcfs(response) == false)
             {
-                SetTimer(POLLMS);
+                SetTimer(getCurrentPollingPeriod());
                 return;
             }
 
@@ -1114,7 +1115,7 @@ void TCFS::TimerHit()
         case IPS_BUSY:
             if (read_tcfs(response, true) == false)
             {
-                SetTimer(POLLMS);
+                SetTimer(getCurrentPollingPeriod());
                 return;
             }
 
@@ -1122,7 +1123,7 @@ void TCFS::TimerHit()
             if (strstr(response, "ER") != nullptr)
             {
                 LOGF_DEBUG("Received error: %s", response);
-                SetTimer(POLLMS);
+                SetTimer(getCurrentPollingPeriod());
                 return;
             }
 
@@ -1164,7 +1165,7 @@ void TCFS::TimerHit()
             IDSetNumber(&FocusTemperatureNP, nullptr);
             LOG_ERROR("Failed to read temperature. Is sensor connected?");
 
-            SetTimer(POLLMS);
+            SetTimer(getCurrentPollingPeriod());
             return;
         }
 
@@ -1191,7 +1192,7 @@ void TCFS::TimerHit()
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool TCFS::read_tcfs(char *response, bool silent)

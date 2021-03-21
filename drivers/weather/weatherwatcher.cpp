@@ -250,13 +250,13 @@ void WeatherWatcher::ISGetProperties(const char *dev)
 {
     INDI::Weather::ISGetProperties(dev);
 
-    defineText(&watchFileTP);
+    defineProperty(&watchFileTP);
     loadConfig(true, "WATCH_SOURCE");
 
-    defineText(&keywordTP);
+    defineProperty(&keywordTP);
     loadConfig(true, "KEYWORD");
 
-    defineText(&separatorTP);
+    defineProperty(&separatorTP);
     loadConfig(true, "SEPARATOR_KEYWORD");
 
 }

@@ -110,7 +110,7 @@ void QHYCFW1::ISGetProperties(const char *dev)
             IUFillTextVector(FilterNameTP, FilterNameT, maxCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
         }
     }
-    defineNumber(&MaxFilterNP);
+    defineProperty(&MaxFilterNP);
 }
 
 bool QHYCFW1::initProperties()

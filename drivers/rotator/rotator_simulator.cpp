@@ -78,7 +78,7 @@ const char * RotatorSimulator::getDefaultName()
 
 bool RotatorSimulator::Connect()
 {
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
     return true;
 }
 
@@ -108,7 +108,7 @@ void RotatorSimulator::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -132,5 +132,5 @@ void RotatorSimulator::TimerHit()
 
         IDSetNumber(&GotoRotatorNP, nullptr);
     }
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }

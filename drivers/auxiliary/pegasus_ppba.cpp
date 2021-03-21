@@ -74,7 +74,7 @@ void ISSnoopDevice(XMLEle * root)
 
 PegasusPPBA::PegasusPPBA() : WI(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
     lastSensorData.reserve(PA_N);
     lastConsumptionData.reserve(PS_N);
     lastMetricsData.reserve(PC_N);
@@ -100,18 +100,19 @@ bool PegasusPPBA::initProperties()
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Adjustable Power
-    IUFillSwitch(&AdjOutS[INDI_ENABLED], "ADJOUT_ON", "Enable", ISS_OFF);
-    IUFillSwitch(&AdjOutS[INDI_DISABLED], "ADJOUT_OFF", "Disable", ISS_OFF);
-    IUFillSwitchVector(&AdjOutSP, AdjOutS, 2, getDeviceName(), "ADJOUT_POWER", "Adj Output", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
+    //    IUFillSwitch(&AdjOutS[INDI_ENABLED], "ADJOUT_ON", "Enable", ISS_OFF);
+    //    IUFillSwitch(&AdjOutS[INDI_DISABLED], "ADJOUT_OFF", "Disable", ISS_OFF);
+    //    IUFillSwitchVector(&AdjOutSP, AdjOutS, 2, getDeviceName(), "ADJOUT_POWER", "Adj Output", MAIN_CONTROL_TAB, IP_RW,
+    //                       ISR_1OFMANY, 60, IPS_IDLE);
 
     // Adjustable Voltage
+    IUFillSwitch(&AdjOutVoltS[ADJOUT_OFF], "ADJOUT_OFF", "Off", ISS_ON);
     IUFillSwitch(&AdjOutVoltS[ADJOUT_3V], "ADJOUT_3V", "3V", ISS_OFF);
     IUFillSwitch(&AdjOutVoltS[ADJOUT_5V], "ADJOUT_5V", "5V", ISS_OFF);
     IUFillSwitch(&AdjOutVoltS[ADJOUT_8V], "ADJOUT_8V", "8V", ISS_OFF);
     IUFillSwitch(&AdjOutVoltS[ADJOUT_9V], "ADJOUT_9V", "9V", ISS_OFF);
     IUFillSwitch(&AdjOutVoltS[ADJOUT_12V], "ADJOUT_12V", "12V", ISS_OFF);
-    IUFillSwitchVector(&AdjOutVoltSP, AdjOutVoltS, 5, getDeviceName(), "ADJOUT_VOLTAGE", "Adj voltage", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&AdjOutVoltSP, AdjOutVoltS, 6, getDeviceName(), "ADJOUT_VOLTAGE", "Adj voltage", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Reboot
@@ -138,7 +139,8 @@ bool PegasusPPBA::initProperties()
     // LED Indicator
     IUFillSwitch(&LedIndicatorS[INDI_ENABLED], "LED_ON", "Enable", ISS_ON);
     IUFillSwitch(&LedIndicatorS[INDI_DISABLED], "LED_OFF", "Disable", ISS_OFF);
-    IUFillSwitchVector(&LedIndicatorSP, LedIndicatorS, 2, getDeviceName(), "LED_INDICATOR", "LED Indicator", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&LedIndicatorSP, LedIndicatorS, 2, getDeviceName(), "LED_INDICATOR", "LED Indicator", MAIN_CONTROL_TAB,
+                       IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
@@ -204,23 +206,23 @@ bool PegasusPPBA::updateProperties()
     if (isConnected())
     {
         // Main Control
-        defineSwitch(&QuadOutSP);
-        defineSwitch(&AdjOutSP);
-        defineSwitch(&AdjOutVoltSP);
-        defineNumber(&PowerSensorsNP);
-        defineSwitch(&PowerOnBootSP);
-        defineSwitch(&RebootSP);
-	      defineLight(&PowerWarnLP);
-	      defineSwitch(&LedIndicatorSP);
+        defineProperty(&QuadOutSP);
+        //defineProperty(&AdjOutSP);
+        defineProperty(&AdjOutVoltSP);
+        defineProperty(&PowerSensorsNP);
+        defineProperty(&PowerOnBootSP);
+        defineProperty(&RebootSP);
+        defineProperty(&PowerWarnLP);
+        defineProperty(&LedIndicatorSP);
 
         // Dew
-        defineSwitch(&AutoDewSP);
-        defineNumber(&DewPWMNP);
+        defineProperty(&AutoDewSP);
+        defineProperty(&DewPWMNP);
 
         WI::updateProperties();
 
-         // Firmware
-        defineText(&FirmwareTP);
+        // Firmware
+        defineProperty(&FirmwareTP);
 
         setupComplete = true;
     }
@@ -228,13 +230,13 @@ bool PegasusPPBA::updateProperties()
     {
         // Main Control
         deleteProperty(QuadOutSP.name);
-        deleteProperty(AdjOutSP.name);
+        //deleteProperty(AdjOutSP.name);
         deleteProperty(AdjOutVoltSP.name);
         deleteProperty(PowerSensorsNP.name);
         deleteProperty(PowerOnBootSP.name);
         deleteProperty(RebootSP.name);
-	      deleteProperty(PowerWarnLP.name);
-	      deleteProperty(LedIndicatorSP.name);
+        deleteProperty(PowerWarnLP.name);
+        deleteProperty(LedIndicatorSP.name);
 
         // Dew
         deleteProperty(AutoDewSP.name);
@@ -301,7 +303,7 @@ bool PegasusPPBA::Handshake()
 
     setupComplete = false;
 
-    return !strcmp(response, "PPBA_OK");
+    return (!strcmp(response, "PPBA_OK") || !strcmp(response, "PPBM_OK"));
 }
 
 bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
@@ -326,31 +328,36 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
             return true;
         }
 
-        // Adjustable Power
-        if (!strcmp(name, AdjOutSP.name))
-        {
-            IUUpdateSwitch(&AdjOutSP, states, names, n);
+        //        // Adjustable Power
+        //        if (!strcmp(name, AdjOutSP.name))
+        //        {
+        //            IUUpdateSwitch(&AdjOutSP, states, names, n);
 
-            AdjOutSP.s = IPS_ALERT;
-            char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
-            snprintf(cmd, PEGASUS_LEN, "P2:%d", AdjOutS[INDI_ENABLED].s == ISS_ON);
-            if (sendCommand(cmd, res))
-            {
-                AdjOutSP.s = !strcmp(cmd, res) ? IPS_OK : IPS_ALERT;
-            }
+        //            AdjOutSP.s = IPS_ALERT;
+        //            char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+        //            snprintf(cmd, PEGASUS_LEN, "P2:%d", AdjOutS[INDI_ENABLED].s == ISS_ON);
+        //            if (sendCommand(cmd, res))
+        //            {
+        //                AdjOutSP.s = !strcmp(cmd, res) ? IPS_OK : IPS_ALERT;
+        //            }
 
-            IUResetSwitch(&AdjOutSP);
-            IDSetSwitch(&AdjOutSP, nullptr);
-            return true;
-        }
+        //            IUResetSwitch(&AdjOutSP);
+        //            IDSetSwitch(&AdjOutSP, nullptr);
+        //            return true;
+        //        }
 
         // Adjustable Voltage
         if (!strcmp(name, AdjOutVoltSP.name))
         {
-            int adjv = IUFindOnSwitchIndex(&AdjOutVoltSP);
+            int previous_index = IUFindOnSwitchIndex(&AdjOutVoltSP);
             IUUpdateSwitch(&AdjOutVoltSP, states, names, n);
-            int index = IUFindOnSwitchIndex(&AdjOutVoltSP);
-            switch(index) {
+            int target_index = IUFindOnSwitchIndex(&AdjOutVoltSP);
+            int adjv = 0;
+            switch(target_index)
+            {
+                case ADJOUT_OFF:
+                    adjv = 0;
+                    break;
                 case ADJOUT_3V:
                     adjv = 3;
                     break;
@@ -372,11 +379,14 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
             char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
             snprintf(cmd, PEGASUS_LEN, "P2:%d", adjv);
             if (sendCommand(cmd, res))
+                AdjOutVoltSP.s = IPS_OK;
+            else
             {
-                AdjOutVoltSP.s = !strcmp(cmd, res) ? IPS_OK : IPS_ALERT;
+                IUResetSwitch(&AdjOutVoltSP);
+                AdjOutVoltS[previous_index].s = ISS_ON;
+                AdjOutVoltSP.s = IPS_ALERT;
             }
 
-            IUResetSwitch(&AdjOutVoltSP);
             IDSetSwitch(&AdjOutVoltSP, nullptr);
             return true;
         }
@@ -549,10 +559,9 @@ bool PegasusPPBA::setDewPWM(uint8_t id, uint8_t value)
 
 bool PegasusPPBA::saveConfigItems(FILE * fp)
 {
-    // Save CCD Config
     INDI::DefaultDevice::saveConfigItems(fp);
+    WI::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &AutoDewSP);
-
     return true;
 }
 
@@ -560,14 +569,14 @@ void PegasusPPBA::TimerHit()
 {
     if (!isConnected() || setupComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
     getSensorData();
     getConsumptionData();
     getMetricsData();
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool PegasusPPBA::sendFirmware()
@@ -628,19 +637,25 @@ bool PegasusPPBA::getSensorData()
             IDSetSwitch(&QuadOutSP, nullptr);
 
         // Adjustable Power Status
-        AdjOutS[INDI_ENABLED].s = (std::stoi(result[PA_ADJ_STATUS]) == 1) ? ISS_ON : ISS_OFF;
-        AdjOutS[INDI_DISABLED].s = (std::stoi(result[PA_ADJ_STATUS]) == 1) ? ISS_OFF : ISS_ON;
-        AdjOutSP.s = (std::stoi(result[PA_ADJ_STATUS]) == 1) ? IPS_OK : IPS_IDLE;
-        if (lastSensorData[PA_ADJ_STATUS] != result[PA_ADJ_STATUS])
-            IDSetSwitch(&AdjOutSP, nullptr);
+        //        AdjOutS[INDI_ENABLED].s = (std::stoi(result[PA_ADJ_STATUS]) == 1) ? ISS_ON : ISS_OFF;
+        //        AdjOutS[INDI_DISABLED].s = (std::stoi(result[PA_ADJ_STATUS]) == 1) ? ISS_OFF : ISS_ON;
+        //        AdjOutSP.s = (std::stoi(result[PA_ADJ_STATUS]) == 1) ? IPS_OK : IPS_IDLE;
+        //        if (lastSensorData[PA_ADJ_STATUS] != result[PA_ADJ_STATUS])
+        //            IDSetSwitch(&AdjOutSP, nullptr);
 
         // Adjustable Power Status
-        AdjOutVoltS[ADJOUT_3V].s = (std::stoi(result[PA_PWRADJ]) == 3) ? ISS_ON : ISS_OFF;
-        AdjOutVoltS[ADJOUT_5V].s = (std::stoi(result[PA_PWRADJ]) == 5) ? ISS_ON : ISS_OFF;
-        AdjOutVoltS[ADJOUT_8V].s = (std::stoi(result[PA_PWRADJ]) == 8) ? ISS_ON : ISS_OFF;
-        AdjOutVoltS[ADJOUT_9V].s = (std::stoi(result[PA_PWRADJ]) == 9) ? ISS_ON : ISS_OFF;
-        AdjOutVoltS[ADJOUT_12V].s = (std::stoi(result[PA_PWRADJ]) == 12) ? ISS_ON : ISS_OFF;
-        if (lastSensorData[PA_PWRADJ] != result[PA_PWRADJ])
+        IUResetSwitch(&AdjOutVoltSP);
+        if (std::stoi(result[PA_ADJ_STATUS]) == 0)
+            AdjOutVoltS[ADJOUT_OFF].s = ISS_ON;
+        else
+        {
+            AdjOutVoltS[ADJOUT_3V].s = (std::stoi(result[PA_PWRADJ]) == 3) ? ISS_ON : ISS_OFF;
+            AdjOutVoltS[ADJOUT_5V].s = (std::stoi(result[PA_PWRADJ]) == 5) ? ISS_ON : ISS_OFF;
+            AdjOutVoltS[ADJOUT_8V].s = (std::stoi(result[PA_PWRADJ]) == 8) ? ISS_ON : ISS_OFF;
+            AdjOutVoltS[ADJOUT_9V].s = (std::stoi(result[PA_PWRADJ]) == 9) ? ISS_ON : ISS_OFF;
+            AdjOutVoltS[ADJOUT_12V].s = (std::stoi(result[PA_PWRADJ]) == 12) ? ISS_ON : ISS_OFF;
+        }
+        if (lastSensorData[PA_PWRADJ] != result[PA_PWRADJ] || lastSensorData[PA_ADJ_STATUS] != result[PA_ADJ_STATUS])
             IDSetSwitch(&AdjOutVoltSP, nullptr);
 
         // Power Warn
@@ -690,7 +705,8 @@ bool PegasusPPBA::getConsumptionData()
         PowerSensorsN[SENSOR_AMP_HOURS].value = std::stod(result[PS_AMP_HOURS]);
         PowerSensorsN[SENSOR_WATT_HOURS].value = std::stod(result[PS_WATT_HOURS]);
         PowerSensorsNP.s = IPS_OK;
-        if (lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] || lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS] || lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
+        if (lastConsumptionData[PS_AVG_AMPS] != result[PS_AVG_AMPS] || lastConsumptionData[PS_AMP_HOURS] != result[PS_AMP_HOURS]
+                || lastConsumptionData[PS_WATT_HOURS] != result[PS_WATT_HOURS])
             IDSetNumber(&PowerSensorsNP, nullptr);
 
         lastConsumptionData = result;
@@ -723,9 +739,9 @@ bool PegasusPPBA::getMetricsData()
         PowerSensorsN[SENSOR_DEWB_CURRENT].value = std::stod(result[PC_DEWB_CURRENT]);
         PowerSensorsNP.s = IPS_OK;
         if (lastMetricsData[PC_TOTAL_CURRENT] != result[PC_TOTAL_CURRENT] ||
-            lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT] ||
-            lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
-            lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
+                lastMetricsData[PC_12V_CURRENT] != result[PC_12V_CURRENT] ||
+                lastMetricsData[PC_DEWA_CURRENT] != result[PC_DEWA_CURRENT] ||
+                lastMetricsData[PC_DEWB_CURRENT] != result[PC_DEWB_CURRENT])
             IDSetNumber(&PowerSensorsNP, nullptr);
 
         std::chrono::milliseconds uptime(std::stol(result[PC_UPTIME]));

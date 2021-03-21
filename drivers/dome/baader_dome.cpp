@@ -174,8 +174,8 @@ bool BaaderDome::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&DomeFlapSP);
-        defineSwitch(&CalibrateSP);
+        defineProperty(&DomeFlapSP);
+        defineProperty(&CalibrateSP);
 
         SetupParms();
     }
@@ -658,7 +658,7 @@ void BaaderDome::TimerHit()
     else
         IDSetSwitch(&DomeFlapSP, nullptr);
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************

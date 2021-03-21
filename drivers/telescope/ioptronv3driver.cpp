@@ -37,7 +37,10 @@ const std::map<std::string, std::string> Driver::models =
     {"0010", "Cube II EQ"},
     {"0011", "SmartEQ Pro+"},
     {"0025", "CEM25"},
-    {"0026", "CEM25-EC"},
+    {"0026", "CEM26"},
+    {"0027", "CEM26-EC"},
+    {"0028", "GEM28"},
+    {"0029", "GEM28-EC"},
     {"0030", "iEQ30 Pro"},
     {"0040", "CEM40"},
     {"0041", "CEM40-EC"},
@@ -377,6 +380,40 @@ bool Driver::setCurrentHome()
     return sendCommand(":SZP#");
 }
 
+/* v3.0 Added in control for PEC , Train and Data Integrity */
+bool Driver::setPECEnabled(bool enabled)  
+{ 
+    return sendCommand(enabled ? ":SPP1#" : ":SPP0#");
+}
+
+bool Driver::setPETEnabled(bool enabled)
+{
+    return sendCommand(enabled ? ":SPR1#" : ":SPR0#");
+}
+
+bool Driver::getPETEnabled(bool enabled)
+{
+    char res[IOP_BUFFER] = {0};
+    //  If enabled true then check data quality -> :GPE#
+    //  If enabled false then check if training -> :GPR#
+    if(enabled)
+    {
+        if (sendCommand(":GPE#",1,res))
+         {
+            if (res[0] == '1'){return true;}
+         }
+    }
+    else
+    {
+         if (sendCommand(":GPR#",1,res))
+         {
+            if (res[0] == '1'){return true;}
+         } 
+    }      
+    return false;
+}
+// End Mod */
+
 bool Driver::setSlewRate(IOP_SLEW_RATE rate)
 {
     char cmd[IOP_BUFFER] = {0};
@@ -495,6 +532,30 @@ bool Driver::unpark()
     //AA and iEQ30 Pro.
     setSimSytemStatus(ST_STOPPED);
     return sendCommand(":MP0#");
+}
+
+bool Driver::setParkAz(double az)
+{
+    char cmd[IOP_BUFFER] = {0};
+
+    // Send as 0.01 arcsec resolution
+    int ieqValue = static_cast<int>(az * 60 * 60 * 100);
+
+    snprintf(cmd, IOP_BUFFER, ":SPA%09d#", ieqValue);
+
+    return sendCommand(cmd);
+}
+
+bool Driver::setParkAlt(double alt)
+{
+    char cmd[IOP_BUFFER] = {0};
+
+    alt = std::max(0.0, alt);
+
+    // Send as 0.01 arcsec resolution
+    int ieqValue = static_cast<int>(alt * 60 * 60 * 100);
+    snprintf(cmd, IOP_BUFFER, ":SPH%08d#", ieqValue);
+    return sendCommand(cmd);
 }
 
 bool Driver::abort()

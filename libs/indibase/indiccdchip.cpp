@@ -58,7 +58,7 @@ void CCDChip::setResolution(uint32_t x, uint32_t y)
 
     ImageFrameN[FRAME_W].min = 1;
     ImageFrameN[FRAME_W].max = x;
-    ImageFrameN[FRAME_H].max = 1;
+    ImageFrameN[FRAME_H].min = 1;
     ImageFrameN[FRAME_H].max = y;
     IUUpdateMinMax(&ImageFrameNP);
 }
