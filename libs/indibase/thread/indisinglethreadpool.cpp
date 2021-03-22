@@ -25,16 +25,16 @@ namespace INDI
 SingleThreadPoolPrivate::SingleThreadPoolPrivate()
 {
     thread = std::thread([this]{
-        std::unique_lock<std::mutex> lock(runLock);
-        while (!isThreadAboutToQuit)
+        std::unique_lock<std::recursive_mutex> lock(runLock);
+        for(;;)
         {
-            wakeUp.wait(lock);
+            acquire.wait(lock, [&](){ return functionToRun != nullptr || isThreadAboutToQuit; });
             if (isThreadAboutToQuit)
                 break;
-            
-            if (functionToRun != nullptr)
-                functionToRun(isFunctionAboutToQuit);
-            functionToRun = nullptr;
+
+            std::function<void(const std::atomic_bool &isAboutToClose)> runningFunction = std::move(functionToRun);
+            relased.notify_all();
+            runningFunction(isFunctionAboutToQuit);
         }
     });
 }
@@ -44,8 +44,8 @@ SingleThreadPoolPrivate::~SingleThreadPoolPrivate()
     {
         isFunctionAboutToQuit = true;
         isThreadAboutToQuit = true;
-        std::unique_lock<std::mutex> lock(runLock);
-        wakeUp.notify_one();
+        std::unique_lock<std::recursive_mutex> lock(runLock);
+        acquire.notify_one();
     }
     if (thread.joinable())
         thread.join();
@@ -62,23 +62,24 @@ void SingleThreadPool::start(const std::function<void(const std::atomic_bool &is
 {
     D_PTR(SingleThreadPool);
     d->isFunctionAboutToQuit = true;
-    std::lock_guard<std::mutex> lock(d->runLock);
+    std::unique_lock<std::recursive_mutex> lock(d->runLock);
+    d->relased.wait(lock, [&d]{ return d->functionToRun == nullptr; });
     d->functionToRun = functionToRun;
     d->isFunctionAboutToQuit = false;
-    d->wakeUp.notify_one();
+    d->acquire.notify_one();
 }
 
 bool SingleThreadPool::tryStart(const std::function<void(const std::atomic_bool &)> &functionToRun)
 {
     D_PTR(SingleThreadPool);
-    std::unique_lock<std::mutex> lock(d->runLock, std::defer_lock);
+    std::unique_lock<std::recursive_mutex> lock(d->runLock, std::defer_lock);
 
     if (!lock.try_lock())
         return false;
 
     d->functionToRun = functionToRun;
     d->isFunctionAboutToQuit = false;
-    d->wakeUp.notify_one();
+    d->acquire.notify_one();
     return true;
 }
 
