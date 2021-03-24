@@ -82,9 +82,9 @@ dsp_t* dsp_fourier_idft(dsp_stream_p stream)
     dsp_buffer_reverse(sizes, stream->dims);
     fftw_plan plan = fftw_plan_dft_c2r(stream->dims, sizes, (fftw_complex*)dft, out, FFTW_ESTIMATE);
     fftw_execute(plan);
+    dsp_buffer_copy(out, stream->buf, stream->len);
     fftw_free(plan);
     free(dft);
-    dsp_buffer_copy(out, stream->buf, stream->len);
     free(out);
     return stream->buf;
 }
