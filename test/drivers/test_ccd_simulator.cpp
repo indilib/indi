@@ -85,7 +85,7 @@ class MockCCDSimDriver: public CCDSim
         {
             int const xres = 65;
             int const yres = 65;
-            int const maxval = pow(2, 8);
+            int const maxval = pow(2, 8)-1;
 
             // Setup a 65x65, 16-bit depth, 4.6u square pixel sensor
             INumberVectorProperty * const p = getNumber("SIMULATOR_SETTINGS");
@@ -96,6 +96,10 @@ class MockCCDSimDriver: public CCDSim
             IUFindNumber(p, "SIM_MAXVAL")->value = (double) maxval;
             IUFindNumber(p, "SIM_XSIZE")->value = 4.6;
             IUFindNumber(p, "SIM_YSIZE")->value = 4.6;
+
+            // Setup a saturation magnitude (max ADUs in one second) and limit magnitude (zero ADU whatever the exposure)
+            IUFindNumber(p, "SIM_SATURATION")->value = 0.0;
+            IUFindNumber(p, "SIM_LIMITINGMAG")->value = 30.0;
 
             // Setup some parameters to simplify verifications
             IUFindNumber(p, "SIM_SKYGLOW")->value = 0.0;
@@ -120,13 +124,17 @@ class MockCCDSimDriver: public CCDSim
             EXPECT_EQ(this->m_SkyGlow, 0.0f);
             EXPECT_EQ(this->m_MaxNoise, 0.0f);
 
+            // Validate our expectations about flux
+            EXPECT_EQ(this->m_MaxVal, maxval);
+            EXPECT_NEAR(this->flux(this->m_SaturationMag), maxval, 0.001);
+            EXPECT_NEAR(this->flux(this->m_LimitingMag), 1.0, 0.001);
+
             // The CCD frame is NOT initialized after this call, so manually clear the buffer
             memset(this->PrimaryCCD.getFrameBuffer(), 0, this->PrimaryCCD.getFrameBufferSize());
 
             // Draw a star at the center row/column of the sensor
-            // If we expose a magnitude of 1 for 1 second, we get 1 ADU at center, and zero elsewhere
-            // Thus in order to verify the star profile provided by the simulator up to the third decimal, we expose 1000 seconds
-            DrawImageStar(&PrimaryCCD, 0.0f, xres / 2 + 1, xres / 2 + 1, 1000.0f);
+            // If we expose a magnitude of 0 for 1 second, we get max ADUs at center, gaussian decrement away by 4 pixels and zero elsewhere
+            DrawImageStar(&PrimaryCCD, 0.0f, xres / 2 + 1, xres / 2 + 1, 1.0f);
 
             // Get a pointer to the 16-bit frame buffer
             uint16_t const * const fb = reinterpret_cast<uint16_t*>(PrimaryCCD.getFrameBuffer());
@@ -134,25 +142,30 @@ class MockCCDSimDriver: public CCDSim
             // Look at center, and up to 3 pixels away, and find activated photosites there - there is no skyglow nor noise in our parameters
             int const center = xres / 2 + 1 + (yres / 2 + 1) * xres;
 
+            // The choice of the gaussian of unitary integral makes the center less than maximum
+            double const sigma = 1.0 / (2 * sqrt(2*log(2)));
+            double const fa0 = 1.0 / (sigma * sqrt(2*3.1416));
+
             // Center photosite
-            EXPECT_EQ(fb[center], std::min(maxval, 1000)) << "Recorded flux of magnitude 0.0 for 1000 seconds at center is 1000 ADU";
+            uint16_t const ADU_at_center = static_cast<uint16_t>(fa0 * maxval);
+            EXPECT_EQ(fb[center], ADU_at_center) << "Recorded flux of magnitude 0.0 for 1 second at center is " << ADU_at_center << " ADUs";
 
             // Up, left, right and bottom photosites at one pixel
-            uint16_t const ADU_at_1pix = static_cast<uint16_t>(std::min((double)maxval, 1000.0 * exp(-1.4)));
+            uint16_t const ADU_at_1pix = static_cast<uint16_t>(fa0 * maxval * exp(-(1*1+0*0)/(2*sigma*sigma)));
             EXPECT_EQ(fb[center - xres], ADU_at_1pix);
             EXPECT_EQ(fb[center - 1], ADU_at_1pix);
             EXPECT_EQ(fb[center + 1], ADU_at_1pix);
             EXPECT_EQ(fb[center + xres], ADU_at_1pix);
 
             // Up, left, right and bottom photosites at two pixels
-            double const ADU_at_2pix = static_cast<uint16_t>(std::min((double)maxval, 1000.0 * exp(-1.4 * 2 * 2)));
+            uint16_t const ADU_at_2pix = static_cast<uint16_t>(fa0 * maxval * exp(-(2*2+0*0)/(2*sigma*sigma)));
             EXPECT_EQ(fb[center - xres * 2], ADU_at_2pix);
             EXPECT_EQ(fb[center - 1 * 2], ADU_at_2pix);
             EXPECT_EQ(fb[center + 1 * 2], ADU_at_2pix);
             EXPECT_EQ(fb[center + xres * 2], ADU_at_2pix);
 
             // Up, left, right and bottom photosite neighbors at three pixels
-            double const ADU_at_3pix = static_cast<uint16_t>(std::min((double)maxval, 1000.0 * exp(-1.4 * 3 * 3)));
+            uint16_t const ADU_at_3pix = static_cast<uint16_t>(fa0 * maxval * exp(-(3*3+0*0)/(2*sigma*sigma)));
             EXPECT_EQ(fb[center - xres * 3], ADU_at_3pix);
             EXPECT_EQ(fb[center - 1 * 3], ADU_at_3pix);
             EXPECT_EQ(fb[center + 1 * 3], ADU_at_3pix);

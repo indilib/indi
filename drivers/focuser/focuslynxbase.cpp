@@ -791,13 +791,17 @@ bool FocusLynxBase::getFocusConfig()
     rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
-        FocusAbsPosN[0].max = FocusSyncN[0].max = maxPos;
-        FocusAbsPosN[0].step = FocusSyncN[0].step = maxPos / 50.0;
-        FocusAbsPosN[0].min = FocusSyncN[0].min = 0;
+        FocusAbsPosN[0].min = 0;
+        FocusAbsPosN[0].max = maxPos;
+        FocusAbsPosN[0].step = maxPos / 50.0;
 
+        FocusSyncN[0].min = 0;
+        FocusSyncN[0].max = maxPos;
+        FocusSyncN[0].step = maxPos / 50.0;
+
+        FocusRelPosN[0].min  = 0;
         FocusRelPosN[0].max  = maxPos / 2;
         FocusRelPosN[0].step = maxPos / 100.0;
-        FocusRelPosN[0].min  = 0;
 
         IUUpdateMinMax(&FocusAbsPosNP);
         IUUpdateMinMax(&FocusRelPosNP);
@@ -3343,7 +3347,9 @@ bool FocusLynxBase::AbortFocuser()
             IDSetNumber(&FocusRelPosNP, nullptr);
         }
 
-        FocusTimerNP.s = FocusAbsPosNP.s = GotoSP.s = IPS_IDLE;
+        FocusTimerNP.s = IPS_IDLE;
+        FocusAbsPosNP.s = IPS_IDLE;
+        GotoSP.s = IPS_IDLE;
         IUResetSwitch(&GotoSP);
         IDSetNumber(&FocusTimerNP, nullptr);
         IDSetNumber(&FocusAbsPosNP, nullptr);

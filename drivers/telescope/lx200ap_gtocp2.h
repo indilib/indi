@@ -95,7 +95,7 @@ class LX200AstroPhysicsGTOCP2 : public LX200Generic
     ISwitchVectorProperty APGuideSpeedSP;
 
     IText VersionT[1] {};
-    ITextVectorProperty VersionInfo;
+    ITextVectorProperty VersionTP;
 
   private:
     bool initMount();

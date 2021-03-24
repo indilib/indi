@@ -164,6 +164,8 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property)
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer)
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread)
 include_directories( ${ZLIB_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 # 3. Build
@@ -424,6 +426,9 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertylight.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyblob.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview_driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/inditimer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/indielapsedtimer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread/indisinglethreadpool.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
@@ -1006,6 +1011,14 @@ add_executable(indi_onfocus_focus ${onfocus_SRC})
 target_link_libraries(indi_onfocus_focus indidriver)
 install(TARGETS indi_onfocus_focus RUNTIME DESTINATION bin)
 
+################ TeenAstro Focuser ################
+
+SET(teenastro_focus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/teenastro.cpp)
+
+add_executable(indi_teenastro_focus ${teenastro_focus_SRC})
+target_link_libraries(indi_teenastro_focus indidriver)
+install(TARGETS indi_teenastro_focus RUNTIME DESTINATION bin)
 
 ################ Sesto Senso Focuser ################
 SET(sesto_SRC
@@ -1959,6 +1972,9 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertyview.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgetview.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiwidgettraits.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/inditimer.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/timer/indielapsedtimer.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/thread/indisinglethreadpool.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiutility.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indimacros.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h

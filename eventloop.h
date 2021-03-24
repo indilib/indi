@@ -84,7 +84,7 @@ extern int addWorkProc(WPF *fp, void *ud);
 */
 extern void rmWorkProc(int wid);
 
-/** Register a new timer function, \e fp, to be called with \e ud as argument after \e ms. Add to list in order of decreasing time from epoch, ie, last entry runs soonest. The timer will only invoke the callback function \b once. You need to call addTimer again if you want to repeat the process.
+/** Register a new single-shot timer function, \e fp, to be called with \e ud as argument after \e ms.
 *
 * \param ms timer period in milliseconds.
 * \param fp a pointer to the callback function.
@@ -93,9 +93,32 @@ extern void rmWorkProc(int wid);
 */
 extern int addTimer(int ms, TCF *fp, void *ud);
 
-/** Remove the timer with the given \e id, as returned from addTimer().
+/** Register a new periodic timer function, \e fp, to be called with \e ud as argument after \e ms.
 *
-* \param tid the timer callback ID returned from addTimer().
+* \param ms timer period in milliseconds.
+* \param fp a pointer to the callback function.
+* \param ud a pointer to be passed to the callback function when called.
+* \return a unique id for use with rmTimer().
+*/
+extern int addPeriodicTimer(int ms, TCF *fp, void *ud);
+
+/** Returns the timer's remaining value in milliseconds left until the timeout.
+ *
+ * \param tid the timer callback ID returned from addTimer() or addPeriodicTimer()
+ * \return  If the timer not exists, the returned value will be -1.
+ */
+extern int remainingTimer(int tid);
+
+/** Returns the timer's remaining value in nanoseconds left until the timeout.
+ *
+ * \param tid the timer callback ID returned from addTimer() or addPeriodicTimer()
+ * \return  If the timer not exists, the returned value will be -1.
+ */
+extern int nsecRemainingTimer(int tid);
+
+/** Remove the timer with the given \e id, as returned from addTimer() or addPeriodicTimer().
+*
+* \param tid the timer callback ID returned from addTimer() or addPeriodicTimer().
 */
 extern void rmTimer(int tid);
 

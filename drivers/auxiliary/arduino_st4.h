@@ -45,7 +45,7 @@ class ArduinoST4 : public INDI::DefaultDevice, public INDI::GuiderInterface
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)override ;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override ;
 
     void guideTimeout(ARDUINO_DIRECTION direction);
 

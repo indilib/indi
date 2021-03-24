@@ -106,7 +106,7 @@ bool LX200AstroPhysicsGTOCP2::initProperties()
                        0, IPS_IDLE);
 
     IUFillText(&VersionT[0], "Version", "Version", "");
-    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&VersionTP, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     SetParkDataType(PARK_AZ_ALT);
 
@@ -119,7 +119,7 @@ void LX200AstroPhysicsGTOCP2::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
-        defineProperty(&VersionInfo);
+        defineProperty(&VersionTP);
 
         /* Motion group */
         defineProperty(&APSlewSpeedSP);
@@ -135,7 +135,7 @@ bool LX200AstroPhysicsGTOCP2::updateProperties()
 
     if (isConnected())
     {
-        defineProperty(&VersionInfo);
+        defineProperty(&VersionTP);
 
         /* Motion group */
         defineProperty(&APSlewSpeedSP);
@@ -168,7 +168,7 @@ bool LX200AstroPhysicsGTOCP2::updateProperties()
     }
     else
     {
-        deleteProperty(VersionInfo.name);
+        deleteProperty(VersionTP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
@@ -254,9 +254,9 @@ bool LX200AstroPhysicsGTOCP2::initMount()
     else
         getAPVersionNumber(PortFD, versionString);
 
-    VersionInfo.s = IPS_OK;
+    VersionTP.s = IPS_OK;
     IUSaveText(&VersionT[0], versionString);
-    IDSetText(&VersionInfo, nullptr);
+    IDSetText(&VersionTP, nullptr);
 
     if (strlen(versionString) != 1)
     {
@@ -493,8 +493,9 @@ bool LX200AstroPhysicsGTOCP2::Goto(double r, double d)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);

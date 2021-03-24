@@ -592,8 +592,9 @@ bool LX200_TeenAstro::Park()
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
 
@@ -659,7 +660,8 @@ void LX200_TeenAstro::getBasicData()
             currentSiteNum = currentSiteIndex + 1;
             LOGF_INFO("Site number %d", currentSiteNum);
             getSiteName(PortFD, SiteNameTP.tp[0].text, currentSiteNum);
-            SiteNameTP.s = SiteSP.s = IPS_OK;
+            SiteNameTP.s = IPS_OK;
+            SiteSP.s = IPS_OK;
             IDSetText(&SiteNameTP, nullptr);
             IDSetSwitch(&SiteSP, nullptr);
             getLocation();                  // read site from TeenAstro
@@ -806,7 +808,8 @@ bool LX200_TeenAstro::ISNewSwitch(const char *dev, const char *name, ISState *st
 
             LOGF_INFO("Setting site number %d", currentSiteNum);
             SiteS[currentSiteNum-1].s = ISS_ON;
-            SiteNameTP.s = SiteSP.s = IPS_OK;
+            SiteNameTP.s = IPS_OK;
+            SiteSP.s = IPS_OK;
 
             IDSetText(&SiteNameTP, nullptr);
             IDSetSwitch(&SiteSP, nullptr);

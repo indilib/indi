@@ -108,7 +108,7 @@ bool PegasusFalcon::initProperties()
 
     // Firmware
     IUFillText(&FirmwareT[0], "VERSION", "Version", "NA");
-    IUFillTextVector(&FirmwateTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
+    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_INFO", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60,
                      IPS_IDLE);
 
     return true;
@@ -122,7 +122,7 @@ bool PegasusFalcon::updateProperties()
     {
         // Main Control
         defineProperty(&DerotateNP);
-        defineProperty(&FirmwateTP);
+        defineProperty(&FirmwareTP);
         defineProperty(&ReloadFirmwareSP);
 
     }
@@ -130,7 +130,7 @@ bool PegasusFalcon::updateProperties()
     {
         // Main Control
         deleteProperty(DerotateNP.name);
-        deleteProperty(FirmwateTP.name);
+        deleteProperty(FirmwareTP.name);
         deleteProperty(ReloadFirmwareSP.name);
     }
 

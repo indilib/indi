@@ -79,9 +79,6 @@ GuideSim::GuideSim()
     guiderFocalLength  = 300;
 
     time(&RunStart);
-
-    SimulatorSettingsNV = new INumberVectorProperty;
-
 }
 
 bool GuideSim::SetupParms()
@@ -172,7 +169,7 @@ bool GuideSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[15], "SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
     IUFillNumber(&SimulatorSettingsN[16], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
 
-    IUFillNumberVector(SimulatorSettingsNV, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
+    IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
                        "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
@@ -256,7 +253,7 @@ void GuideSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineProperty(SimulatorSettingsNV);
+    defineProperty(&SimulatorSettingsNP);
     defineProperty(&EqPENP);
     defineProperty(&SimulateRgbSP);
 }
@@ -1149,12 +1146,12 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
 
         if (strcmp(name, "SIMULATOR_SETTINGS") == 0)
         {
-            IUUpdateNumber(SimulatorSettingsNV, values, names, n);
-            SimulatorSettingsNV->s = IPS_OK;
+            IUUpdateNumber(&SimulatorSettingsNP, values, names, n);
+            SimulatorSettingsNP.s = IPS_OK;
 
             //  Reset our parameters now
             SetupParms();
-            IDSetNumber(SimulatorSettingsNV, nullptr);
+            IDSetNumber(&SimulatorSettingsNP, nullptr);
 
             maxnoise      = SimulatorSettingsN[8].value;
             skyglow       = SimulatorSettingsN[9].value;
@@ -1324,7 +1321,7 @@ bool GuideSim::saveConfigItems(FILE * fp)
 
 
     // Save CCD Simulator Config
-    IUSaveConfigNumber(fp, SimulatorSettingsNV);
+    IUSaveConfigNumber(fp, &SimulatorSettingsNP);
 
     // Gain
     IUSaveConfigNumber(fp, &GainNP);

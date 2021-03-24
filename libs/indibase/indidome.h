@@ -176,13 +176,13 @@ class Dome : public DefaultDevice
         Dome();
         virtual ~Dome();
 
-        virtual bool initProperties();
-        virtual void ISGetProperties(const char * dev);
-        virtual bool updateProperties();
-        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISSnoopDevice(XMLEle * root);
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char * dev) override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n) override;
+        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle * root) override;
 
         static void buttonHelper(const char * button_n, ISState state, void * context);
         static void updateMountCoordsHelper(void *context);
@@ -587,7 +587,8 @@ class Dome : public DefaultDevice
         INumber DomeMeasurementsN[6];
         INumberVectorProperty DomeMeasurementsNP;
         ISwitchVectorProperty OTASideSP;
-        ISwitch OTASideS[2];
+        ISwitch OTASideS[5]; // 0 is East, 1 is West, 2 is as reported by mout, 3 as deducted by Hour Angle, 4 ignore pier side and perform as in a fork mount
+        int mountOTASide = 0; // Side of the telescope with respect of the mount, 1: west, -1: east, 0 not reported
         ISwitchVectorProperty DomeAutoSyncSP;
         ISwitch DomeAutoSyncS[2];
 

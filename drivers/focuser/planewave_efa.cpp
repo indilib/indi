@@ -134,14 +134,18 @@ bool EFA::initProperties()
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Setup limits
-    FocusMaxPosN[0].max = FocusMaxPosN[0].value = 1e7;
-    FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
+    FocusMaxPosN[0].value = 1e7;
+    FocusMaxPosN[0].max   = 1e7;
+    FocusMaxPosN[0].step  = FocusMaxPosN[0].max / 50;
 
-    FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].max;
-    FocusAbsPosN[0].step = FocusSyncN[0].step = FocusAbsPosN[0].max / 50;
+    FocusAbsPosN[0].max   = 1e7;
+    FocusAbsPosN[0].step  = FocusAbsPosN[0].max / 50;
 
-    FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
-    FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
+    FocusSyncN[0].max     = 1e7;
+    FocusSyncN[0].step    = FocusSyncN[0].max / 50;
+
+    FocusRelPosN[0].max   = FocusAbsPosN[0].max / 2;
+    FocusRelPosN[0].step  = FocusRelPosN[0].max / 50;
 
     addAuxControls();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);

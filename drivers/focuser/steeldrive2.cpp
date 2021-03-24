@@ -437,7 +437,8 @@ void SteelDriveII::TimerHit()
         FocusMotionS[FOCUS_INWARD].s = (m_State == GOING_DOWN) ? ISS_ON : ISS_OFF;
         FocusMotionS[FOCUS_OUTWARD].s = (m_State == GOING_DOWN) ? ISS_OFF : ISS_ON;
         FocusMotionSP.s = IPS_BUSY;
-        FocusAbsPosNP.s = FocusRelPosNP.s = IPS_BUSY;
+        FocusAbsPosNP.s = IPS_BUSY;
+        FocusRelPosNP.s = IPS_BUSY;
         FocusAbsPosN[0].value = summaryPosition;
 
         IDSetSwitch(&FocusMotionSP, nullptr);

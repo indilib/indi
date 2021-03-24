@@ -933,7 +933,7 @@ bool getSiteLatitudeLongitude(const int fd, double *lat, double *lon)
 {
     *lat = 0.0;
     *lon = 0.0;
-    char response[16]; response[15] = LX200Pulsar2::Null;
+    char response[32]; response[31] = LX200Pulsar2::Null;
 
     bool success = PulsarTX::sendReceive(fd, "#:YGl#", response);
     if (success)
@@ -2105,7 +2105,8 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
             if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
                 storeScopeLocation();
 
-            SiteNameTP.s = SiteSP.s = IPS_OK;
+            SiteNameTP.s = IPS_OK;
+            SiteSP.s = IPS_OK;
 
             IDSetText(&SiteNameTP, nullptr);
             IDSetSwitch(&SiteSP, nullptr);
@@ -2123,8 +2124,7 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
 			if (!isSimulation())
 			{
 				bool success = false; // start out pessimistic
-				int idx = 0;
-				for (; idx < MountTypeSP.nsp; idx++)
+				for (int idx = 0; idx < MountTypeSP.nsp; idx++)
 				{
 					if (MountTypeS[idx].s == ISS_ON)
 					{
@@ -2728,8 +2728,9 @@ bool LX200Pulsar2::Goto(double r, double d)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -2799,8 +2800,9 @@ bool LX200Pulsar2::Park()
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
 
