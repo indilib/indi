@@ -18,6 +18,7 @@
 
 #include "inditimer.h"
 #include "inditimer_p.h"
+#include <algorithm>
 
 #include "eventloop.h"
 
