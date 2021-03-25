@@ -359,7 +359,11 @@
             <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
             <version>1.0</version>
         </device>
-        <device label="Pegasus OAG" manufacturer="Pegasus Astro">
+         <device label="Pegasus FocusCube" manufacturer="Pegasus Astro">
+            <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Pegasus ScopsOAG" manufacturer="Pegasus Astro">
             <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
             <version>1.0</version>
         </device>
