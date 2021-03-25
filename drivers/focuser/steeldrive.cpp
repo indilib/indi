@@ -987,7 +987,7 @@ bool SteelDrive::startMotion(FocusDirection dir)
 
     // inward  --> decreasing value --> DOWN
     // outward --> increasing value --> UP
-    strncpy(cmd, (dir == FOCUS_INWARD) ? ":F2MDOW0#" : ":F1MUP00#", STEELDRIVE_CMD);
+    strncpy(cmd, (dir == FOCUS_INWARD) ? ":F2MDOW0#" : ":F1MUP00#", STEELDRIVE_CMD + 1);
 
     tcflush(PortFD, TCIOFLUSH);
 
