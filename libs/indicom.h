@@ -432,6 +432,36 @@ double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wa
 double estimate_absolute_magnitude(double dist, double delta_mag);
 
 /**
+ * @brief estimate the star mass in ref_size units e.g. sun masses or kgs
+ * @param delta_mag The absolute magnitude ratio between the reference object used as unit in ref_size.
+ * @param ref_mass The mass of the reference object used to calculate the magnitude difference.
+ */
+double estimate_star_mass(double delta_mag, double ref_mass);
+
+/**
+ * @brief estimate the orbit radius of an object with known mass orbiting around a star.
+ * @param obs_lambda The observed wavelength of a spectral line observed on the star affected by redshift or blueshift.
+ * @param ref_lambda The reference wavelength of the spectral line observed on earth or the nullshift spectral line position.
+ * @param period The orbital period.
+ */
+double estimate_orbit_radius(double obs_lambda, double ref_lambda, double period);
+
+/**
+ * @brief estimate the mass of an object with known mass orbiting around a star.
+ * @param star_mass The mass of the star hosting an orbiting object.
+ * @param star_drift The star lagrange point L1 (observed drift of the star).
+ * @param orbit_radius The estimated orbit radius of the companion object (star, planet, cloud).
+ */
+double estimate_secondary_mass(double star_mass, double star_drift, double orbit_radius);
+
+/**
+ * @brief estimate the size of an object occulting a star in star_size units.
+ * @param star_size The size of the occulted star.
+ * @param dropoff_ratio The light curve dropoff during the transit. Linear scale. 0.0=no dropoff 1.0=totally occulted.
+ */
+double estimate_secondary_size(double star_size, double dropoff_ratio);
+
+/**
  * @brief baseline_2d_projection Returns the coordinates of the projection of a single baseline targeting the object by coordinates
  * @param alt current altitude of the target.
  * @param az azimuth position of the target.
