@@ -871,12 +871,7 @@ IPState PegasusPPBA::MoveAbsFocuser(uint32_t targetTicks)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "XS:3#%u", targetTicks);
-    if (sendCommand(cmd, res))
-    {
-        return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
-    }
-
-    return IPS_ALERT;
+    return (sendCommand(cmd, res) ? IPS_BUSY : IPS_ALERT);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -892,13 +887,7 @@ IPState PegasusPPBA::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 //////////////////////////////////////////////////////////////////////
 bool PegasusPPBA::AbortFocuser()
 {
-    char res[PEGASUS_LEN] = {0};
-    if (sendCommand("XS:6", res))
-    {
-        return (!strcmp(res, "XS:6#1"));
-    }
-
-    return false;
+    return sendCommand("XS:6", nullptr);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -906,14 +895,9 @@ bool PegasusPPBA::AbortFocuser()
 //////////////////////////////////////////////////////////////////////
 bool PegasusPPBA::ReverseFocuser(bool enabled)
 {
-    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN] = {0};
     snprintf(cmd, PEGASUS_LEN, "XS:8#%d", enabled ? 1 : 0);
-    if (sendCommand(cmd, res))
-    {
-        return (!strcmp(res, cmd));
-    }
-
-    return false;
+    return sendCommand(cmd, nullptr);
 }
 
 //////////////////////////////////////////////////////////////////////
