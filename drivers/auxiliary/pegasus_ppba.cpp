@@ -72,9 +72,9 @@ void ISSnoopDevice(XMLEle * root)
     ppba->ISSnoopDevice(root);
 }
 
-PegasusPPBA::PegasusPPBA() : WI(this)
+PegasusPPBA::PegasusPPBA() : FI(this), WI(this)
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     lastSensorData.reserve(PA_N);
     lastConsumptionData.reserve(PS_N);
     lastMetricsData.reserve(PC_N);
@@ -86,6 +86,14 @@ bool PegasusPPBA::initProperties()
 
     setDriverInterface(AUX_INTERFACE | WEATHER_INTERFACE);
 
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
+                      FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_CAN_REVERSE  |
+                      FOCUSER_CAN_SYNC     |
+                      FOCUSER_CAN_ABORT    |
+                      FOCUSER_HAS_BACKLASH);
+
+    FI::initProperties(FOCUS_TAB);
     WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
 
     addAuxControls();
@@ -187,6 +195,23 @@ bool PegasusPPBA::initProperties()
     setCriticalParameter("WEATHER_TEMPERATURE");
 
     ////////////////////////////////////////////////////////////////////////////
+    /// Focuser Group
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Max Speed
+    IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
+    IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 1, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
+                       IP_RW, 60, IPS_IDLE);
+
+    // Stepping
+    IUFillSwitch(&FocuserDriveS[STEP_FULL], "STEP_FULL", "Full", ISS_OFF);
+    IUFillSwitch(&FocuserDriveS[STEP_HALF], "STEP_HALF", "Half", ISS_ON);
+    IUFillSwitch(&FocuserDriveS[STEP_FORTH], "STEP_FORTH", "1/4", ISS_OFF);
+    IUFillSwitch(&FocuserDriveS[STEP_EIGHTH], "STEP_EIGHTH", "1/8", ISS_OFF);
+    IUFillSwitchVector(&FocuserDriveSP, FocuserDriveS, 4, getDeviceName(), "FOCUSER_DRIVE", "Microstepping", FOCUS_TAB,
+                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    ////////////////////////////////////////////////////////////////////////////
     /// Serial Connection
     ////////////////////////////////////////////////////////////////////////////
     serialConnection = new Connection::Serial(this);
@@ -205,6 +230,15 @@ bool PegasusPPBA::updateProperties()
 
     if (isConnected())
     {
+        m_HasExternalMotor = findExternalMotorController();
+
+        if (m_HasExternalMotor)
+        {
+            getXMCStartupData();
+            setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
+            syncDriverInfo();
+        }
+
         // Main Control
         defineProperty(&QuadOutSP);
         //defineProperty(&AdjOutSP);
@@ -218,6 +252,14 @@ bool PegasusPPBA::updateProperties()
         // Dew
         defineProperty(&AutoDewSP);
         defineProperty(&DewPWMNP);
+
+        // Focuser
+        if (m_HasExternalMotor)
+        {
+            FI::updateProperties();
+            defineProperty(&FocuserSettingsNP);
+            defineProperty(&FocuserDriveSP);
+        }
 
         WI::updateProperties();
 
@@ -241,6 +283,13 @@ bool PegasusPPBA::updateProperties()
         // Dew
         deleteProperty(AutoDewSP.name);
         deleteProperty(DewPWMNP.name);
+
+        if (m_HasExternalMotor)
+        {
+            FI::updateProperties();
+            deleteProperty(FocuserSettingsNP.name);
+            deleteProperty(FocuserDriveSP.name);
+        }
 
         WI::updateProperties();
 
@@ -444,6 +493,29 @@ bool PegasusPPBA::ISNewSwitch(const char * dev, const char * name, ISState * sta
             IDSetSwitch(&AutoDewSP, nullptr);
             return true;
         }
+
+        // Microstepping
+        if (!strcmp(name, FocuserDriveSP.name))
+        {
+            int prevIndex = IUFindOnSwitchIndex(&FocuserDriveSP);
+            IUUpdateSwitch(&FocuserDriveSP, states, names, n);
+            if (setFocuserMicrosteps(IUFindOnSwitchIndex(&FocuserDriveSP) + 1))
+            {
+                FocuserDriveSP.s = IPS_OK;
+            }
+            else
+            {
+                IUResetSwitch(&FocuserDriveSP);
+                FocuserDriveS[prevIndex].s = ISS_ON;
+                FocuserDriveSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&FocuserDriveSP, nullptr);
+            return true;
+        }
+
+        if (strstr(name, "FOCUS"))
+            return FI::processSwitch(dev, name, states, names, n);
     }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -471,6 +543,26 @@ bool PegasusPPBA::ISNewNumber(const char * dev, const char * name, double values
             IDSetNumber(&DewPWMNP, nullptr);
             return true;
         }
+
+        // Focuser Settings
+        if (!strcmp(name, FocuserSettingsNP.name))
+        {
+            if (setFocuserMaxSpeed(values[0]))
+            {
+                FocuserSettingsN[0].value = values[0];
+                FocuserSettingsNP.s = IPS_OK;
+            }
+            else
+            {
+                FocuserSettingsNP.s = IPS_ALERT;
+            }
+
+            IDSetNumber(&FocuserSettingsNP, nullptr);
+            return true;
+        }
+
+        if (strstr(name, "FOCUS_"))
+            return FI::processNumber(dev, name, values, names, n);
 
         if (strstr(name, "WEATHER_"))
             return WI::processNumber(dev, name, values, names, n);
@@ -517,6 +609,16 @@ bool PegasusPPBA::sendCommand(const char * cmd, char * res)
     return false;
 }
 
+bool PegasusPPBA::findExternalMotorController()
+{
+    char res[PEGASUS_LEN] = {0};
+    if (!sendCommand("XS", res))
+        return false;
+
+    // 200 XMC present
+    return strstr(res, "200");
+}
+
 bool PegasusPPBA::setAutoDewEnabled(bool enabled)
 {
     char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
@@ -560,6 +662,12 @@ bool PegasusPPBA::setDewPWM(uint8_t id, uint8_t value)
 bool PegasusPPBA::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
+    if (m_HasExternalMotor)
+    {
+        FI::saveConfigItems(fp);
+        IUSaveConfigNumber(fp, &FocuserSettingsNP);
+        IUSaveConfigSwitch(fp, &FocuserDriveSP);
+    }
     WI::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &AutoDewSP);
     return true;
@@ -576,6 +684,10 @@ void PegasusPPBA::TimerHit()
     getSensorData();
     getConsumptionData();
     getMetricsData();
+
+    if (m_HasExternalMotor)
+        queryXMC();
+
     SetTimer(getCurrentPollingPeriod());
 }
 
@@ -764,6 +876,148 @@ bool PegasusPPBA::reboot()
     return sendCommand("PF", nullptr);
 }
 
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+IPState PegasusPPBA::MoveAbsFocuser(uint32_t targetTicks)
+{
+    char cmd[PEGASUS_LEN] = {0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "XS:3#%u", targetTicks);
+    return (sendCommand(cmd, res) ? IPS_BUSY : IPS_ALERT);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+IPState PegasusPPBA::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+{
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusPPBA::AbortFocuser()
+{
+    return sendCommand("XS:6", nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusPPBA::ReverseFocuser(bool enabled)
+{
+    char cmd[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "XS:8#%d", enabled ? 1 : 0);
+    return sendCommand(cmd, nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusPPBA::SyncFocuser(uint32_t ticks)
+{
+    char cmd[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "XS:5#%u", ticks);
+    return sendCommand(cmd, nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusPPBA::SetFocuserBacklash(int32_t steps)
+{
+    char cmd[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "XS:10#%d", steps);
+    return sendCommand(cmd, nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusPPBA::setFocuserMaxSpeed(uint16_t maxSpeed)
+{
+    char cmd[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "XS:7#%d", maxSpeed);
+    return sendCommand(cmd, nullptr);
+}
+
+bool PegasusPPBA::setFocuserMicrosteps(int value)
+{
+    char cmd[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "XS:9#%d", value);
+    return sendCommand(cmd, nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusPPBA::SetFocuserBacklashEnabled(bool enabled)
+{
+    char cmd[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "XS:8#%d", enabled ? 1 : 0);
+    return sendCommand(cmd, nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+bool PegasusPPBA::getXMCStartupData()
+{
+    char res[PEGASUS_LEN] = {0};
+
+    // Position
+    if (sendCommand("XS:2", res))
+    {
+        uint32_t position = 0;
+        sscanf(res, "%*[^#]#%d", &position);
+        FocusAbsPosN[0].value = position;
+    }
+
+    // Max speed
+    if (sendCommand("XS:7", res))
+    {
+        uint32_t speed = 0;
+        sscanf(res, "%*[^#]#%d", &speed);
+        FocuserSettingsN[0].value = speed;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+void PegasusPPBA::queryXMC()
+{
+    char res[PEGASUS_LEN] = {0};
+    uint32_t position = 0;
+    uint32_t motorRunning = 0;
+
+    // Get Motor Status
+    if (sendCommand("XS:1", res))
+        sscanf(res, "%*[^#]#%d", &motorRunning);
+    // Get Position
+    if (sendCommand("XS:2", res))
+        sscanf(res, "%*[^#]#%d", &position);
+
+    uint32_t lastPosition = FocusAbsPosN[0].value;
+    FocusAbsPosN[0].value = position;
+
+    if (FocusAbsPosNP.s == IPS_BUSY && motorRunning == 0)
+    {
+        FocusAbsPosNP.s = IPS_OK;
+        FocusRelPosNP.s = IPS_OK;
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+        IDSetNumber(&FocusRelPosNP, nullptr);
+    }
+    else if (lastPosition != position)
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+
+}
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
 std::vector<std::string> PegasusPPBA::split(const std::string &input, const std::string &regex)
 {
     // passing -1 as the submatch index parameter performs splitting
