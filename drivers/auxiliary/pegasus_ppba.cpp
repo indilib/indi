@@ -249,6 +249,7 @@ bool PegasusPPBA::updateProperties()
         {
             FI::updateProperties();
             defineProperty(&FocuserSettingsNP);
+            defineProperty(&FocuserDriveSP);
         }
 
         WI::updateProperties();
@@ -278,6 +279,7 @@ bool PegasusPPBA::updateProperties()
         {
             FI::updateProperties();
             deleteProperty(FocuserSettingsNP.name);
+            deleteProperty(FocuserDriveSP.name);
         }
 
         WI::updateProperties();
@@ -655,6 +657,7 @@ bool PegasusPPBA::saveConfigItems(FILE * fp)
     {
         FI::saveConfigItems(fp);
         IUSaveConfigNumber(fp, &FocuserSettingsNP);
+        IUSaveConfigSwitch(fp, &FocuserDriveSP);
     }
     WI::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &AutoDewSP);
