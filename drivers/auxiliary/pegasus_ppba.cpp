@@ -86,6 +86,13 @@ bool PegasusPPBA::initProperties()
 
     setDriverInterface(AUX_INTERFACE | WEATHER_INTERFACE);
 
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
+                      FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_CAN_REVERSE  |
+                      FOCUSER_CAN_SYNC     |
+                      FOCUSER_CAN_ABORT    |
+                      FOCUSER_HAS_BACKLASH);
+
     FI::initProperties(FOCUS_TAB);
     WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
 
