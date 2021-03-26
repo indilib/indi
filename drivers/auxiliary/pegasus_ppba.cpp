@@ -198,9 +198,18 @@ bool PegasusPPBA::initProperties()
     /// Focuser Group
     ////////////////////////////////////////////////////////////////////////////
 
+    // Max Speed
     IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
     IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 1, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
                        IP_RW, 60, IPS_IDLE);
+
+    // Stepping
+    IUFillSwitch(&FocuserDriveS[STEP_FULL], "STEP_FULL", "Full", ISS_OFF);
+    IUFillSwitch(&FocuserDriveS[STEP_HALF], "STEP_HALF", "Half", ISS_ON);
+    IUFillSwitch(&FocuserDriveS[STEP_FORTH], "STEP_FORTH", "1/4", ISS_OFF);
+    IUFillSwitch(&FocuserDriveS[STEP_EIGHTH], "STEP_EIGHTH", "1/8", ISS_OFF);
+    IUFillSwitchVector(&FocuserDriveSP, FocuserDriveS, 4, getDeviceName(), "FOCUSER_DRIVE", "Microstepping", FOCUS_TAB,
+                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////
     /// Serial Connection
