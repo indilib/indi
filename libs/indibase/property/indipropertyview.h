@@ -80,7 +80,7 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
     friend class BaseDevice;
     friend class DefaultDevice;
     template <typename>
-    friend WidgetView;
+    friend struct WidgetView;
 
     template <typename X, typename Needed>
     using enable_if_is_same_t = typename std::enable_if<std::is_same<X, Needed>::value, bool>::type;
@@ -255,7 +255,7 @@ template <>
 struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
 {
     using Type = IText;
-    template <typename> friend PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
@@ -305,7 +305,7 @@ template <>
 struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
 {
     using Type = INumber;
-    template <typename> friend PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
@@ -368,7 +368,7 @@ template <>
 struct WidgetView<ISwitch>: PROPERTYVIEW_BASE_ACCESS ISwitch
 {
     using Type = ISwitch;
-    template <typename> friend PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
@@ -421,7 +421,7 @@ template <>
 struct WidgetView<ILight>: PROPERTYVIEW_BASE_ACCESS ILight
 {
     using Type = ILight;
-    template <typename> friend PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
@@ -474,7 +474,7 @@ template <>
 struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 {
     using Type = IBLOB;
-    template <typename> friend PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
