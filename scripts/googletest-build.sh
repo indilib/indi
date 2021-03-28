@@ -8,6 +8,7 @@ mkdir -p build/googletest
 pushd build/googletest
 cmake \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DBUILD_SHARED_LIBS=ON \
     . ../../googletest
 
 make -j3
