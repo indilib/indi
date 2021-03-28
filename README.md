@@ -1,5 +1,6 @@
 # INDI Core Library
 [![CircleCI](https://circleci.com/gh/indilib/indi.svg?style=svg)](https://circleci.com/gh/indilib/indi)
+[![INDI](https://github.com/indilib/indi/actions/workflows/default.yml/badge.svg)](https://github.com/indilib/indi/actions)
 
 INDI is a standard for astronomical instrumentation control. INDI Library is an Open Source POSIX implementation of the
 [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf).
