@@ -642,7 +642,7 @@ inline bool PropertyView<ISwitch>::setRule(const std::string &rule)
 { return crackISRule(rule.data(), &this->r) == 0; }
 
 template <typename T>
-inline WidgetView<T> *PropertyView<T>::findWidgetByName(const char *name) const
+inline WidgetView<T> *PropertyView<T>::findWidgetByName(const char *) const
 { return nullptr; }
 
 template <>
