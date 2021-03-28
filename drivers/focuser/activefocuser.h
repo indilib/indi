@@ -50,7 +50,7 @@ protected:
 
     bool Disconnect() override;
 
-    bool AbortFocuser();
+    bool AbortFocuser() override;
 
     IPState MoveAbsFocuser(uint32_t targetTicks) override;
 

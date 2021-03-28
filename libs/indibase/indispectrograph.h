@@ -79,8 +79,8 @@ class Spectrograph : public SensorInterface
         virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
         virtual bool ISSnoopDevice(XMLEle *root) override;
 
-        virtual bool StartIntegration(double duration);
-        virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len);
+        virtual bool StartIntegration(double duration) override;
+        virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len) override;
 
         /**
          * @brief setSampleRate Set depth of Spectrograph device.
