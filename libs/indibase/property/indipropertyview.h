@@ -34,8 +34,8 @@
 namespace INDI
 {
 
-template <typename> class WidgetView;
-template <typename> class PropertyView;
+template <typename> struct WidgetView;
+template <typename> struct PropertyView;
 
 #define PROPERTYVIEW_BASE_ACCESS public
 // don't use direct access to low-level property
@@ -80,7 +80,7 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
     friend class BaseDevice;
     friend class DefaultDevice;
     template <typename>
-    friend class WidgetView;
+    friend WidgetView;
 
     template <typename X, typename Needed>
     using enable_if_is_same_t = typename std::enable_if<std::is_same<X, Needed>::value, bool>::type;
@@ -255,7 +255,7 @@ template <>
 struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
 {
     using Type = IText;
-    template <typename> friend class PropertyView;
+    template <typename> friend PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
@@ -305,7 +305,7 @@ template <>
 struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
 {
     using Type = INumber;
-    template <typename> friend class PropertyView;
+    template <typename> friend PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
@@ -368,7 +368,7 @@ template <>
 struct WidgetView<ISwitch>: PROPERTYVIEW_BASE_ACCESS ISwitch
 {
     using Type = ISwitch;
-    template <typename> friend class PropertyView;
+    template <typename> friend PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
@@ -421,7 +421,7 @@ template <>
 struct WidgetView<ILight>: PROPERTYVIEW_BASE_ACCESS ILight
 {
     using Type = ILight;
-    template <typename> friend class PropertyView;
+    template <typename> friend PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
@@ -474,7 +474,7 @@ template <>
 struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 {
     using Type = IBLOB;
-    template <typename> friend class PropertyView;
+    template <typename> friend PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
