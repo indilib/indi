@@ -1663,14 +1663,34 @@ double calc_delta_magnitude(double mag_ratio, double *spectrum, double *ref_spec
     return delta_mag;
 }
 
+double calc_star_mass(double delta_mag, double ref_size)
+{
+    return delta_mag * ref_size;
+}
+
+double estimate_orbit_radius(double obs_lambda, double ref_lambda, double period)
+{
+    return M_PI*2*DOPPLER(REDSHIFT(obs_lambda, ref_lambda), LIGHTSPEED)/period;
+}
+
+double estimate_secondary_mass(double star_mass, double star_drift, double orbit_radius)
+{
+    return orbit_radius*pow(star_drift*orbit_radius, 3)*3*star_mass;
+}
+
+double estimate_secondary_size(double star_size, double dropoff_ratio)
+{
+    return pow(dropoff_ratio*pow(star_size, 2), 0.5);
+}
+
 double calc_photon_flux(double rel_magnitude, double filter_bandwidth, double wavelength, double steradian)
 {
-    return pow(10, rel_magnitude*-0.4)*(LUMEN(wavelength)*(steradian/(M_PI*4))*filter_bandwidth);
+    return pow(10, rel_magnitude*-0.4)*(LUMEN(wavelength)*steradian*filter_bandwidth);
 }
 
 double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wavelength, double steradian)
 {
-    return log10(photon_flux/(LUMEN(wavelength)*(steradian/(M_PI*4))*filter_bandwidth))/-0.4;
+    return pow(10, 1.0/(photon_flux/(LUMEN(wavelength)*steradian*filter_bandwidth)))/-0.4;
 }
 
 double estimate_absolute_magnitude(double delta_dist, double delta_mag)
