@@ -23,6 +23,7 @@
 #include "indicontroller.h"
 
 #include <unistd.h> // for sleep()
+#include <termios.h> // for tcflush
 
 // Default, minimal and maximal values for focuser configuration properties
 // In absolute units (not device units, where e.g. current is /10 and microsteps are log_2)
@@ -54,7 +55,7 @@
 #define TAF_STEP(min,max)  (((max)-(min))/(TAF_UI_STEPS))
 
 
-#define TAF_FOCUSER_TIMEOUT 4
+#define TAF_FOCUSER_TIMEOUT 2 
 #define TAF_FOCUSER_BUFSIZE 128
 
 // Focuser singleton
@@ -123,11 +124,29 @@ const char * TeenAstroFocuser::getDefaultName()
 bool TeenAstroFocuser::Handshake()
 {
     char resp[TAF_FOCUSER_BUFSIZE];
+
+    // Issue handshake challenge for TeenAstro focuser
     if(!sendAndReceive(":FV#", resp, TAF_FOCUSER_BUFSIZE))
         return false;
     if (strncmp(resp, "$ TeenAstro Focuser ",20))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Handshake response: %s", resp);
+        return false;
+    }
+
+    // TeenAstro mounts internally forward focuser commands via a 
+    // serial connection. When mount & focuser are both on USB,
+    // and scanning for devices, a race condition can occur. The
+    // focuser device driver may probe the USB connection of the 
+    // mount first, and receive a correct response to the focuser
+    // handshake challenge. Then the focuser driver would block 
+    // the USB port of the mount. And the scan performed by 
+    // mount driver would fail. To avoid this race condition,
+    // we issue the handshake challenge for a LX200 mount and 
+    // abort if it is answered. 
+    if(!sendAndExpectTimeout(":GR#", resp, TAF_FOCUSER_BUFSIZE))
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Device responded to focuser and mount handshake (%s), skipping.", resp);
         return false;
     }
 
@@ -519,6 +538,8 @@ bool TeenAstroFocuser::AbortFocuser()
 bool TeenAstroFocuser::send(const char *const msg) {
     DEBUGF(INDI::Logger::DBG_DEBUG, "send(\"%s\")", msg);
 
+    tcflush(PortFD, TCIOFLUSH);
+
     int nbytes_written=0, rc=-1;
     if ( (rc = tty_write(PortFD, msg, strlen(msg), &nbytes_written)) != TTY_OK)
     {
@@ -538,7 +559,7 @@ bool TeenAstroFocuser::sendAndReceive(const char *const msg, char *resp, int buf
     int nbytes_read=0;
     int rc = tty_nread_section(PortFD, resp, bufsize, '#', TAF_FOCUSER_TIMEOUT, &nbytes_read);
     resp[nbytes_read]='\0';
-	if(rc!=TTY_OK || nbytes_read==0 || resp[nbytes_read-1]!='#')
+    if(rc!=TTY_OK || nbytes_read==0 || resp[nbytes_read-1]!='#')
     {
         char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
@@ -566,6 +587,25 @@ bool TeenAstroFocuser::sendAndReceiveBool(const char *const msg) {
     }
     DEBUGF(INDI::Logger::DBG_DEBUG, "sendAndReceiveBool(\"%s\") received \"%s\".", msg, resp);
     return resp[0]=='1';
+}
+
+
+bool TeenAstroFocuser::sendAndExpectTimeout(const char *const msg, char *resp, int bufsize) {
+    if(!send(msg))
+        return false;
+
+    int nbytes_read=0;
+    int rc = tty_nread_section(PortFD, resp, bufsize, '#', TAF_FOCUSER_TIMEOUT, &nbytes_read);
+    resp[nbytes_read]='\0';
+    if(rc!=TTY_TIME_OUT || nbytes_read!=0)
+    {
+        char errstr[MAXRBUF];
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "sendAndExpectTimeout(\"%s\") received \"%s\".", msg, resp);
+        return false;
+    }
+    DEBUGF(INDI::Logger::DBG_DEBUG, "sendAndExpectTimeout(\"%s\") got timeout.", msg, resp);
+    return true;
 }
 
 
@@ -636,7 +676,7 @@ bool TeenAstroFocuser::updateMotionConfig()
 
     if(sscanf(resp, "~%d %d %d %d %d %d %d#", &parkPos, &maxPos, &manualSpeed, &goToSpeed, &gotoAcc, &manAcc, &manDec)<=0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid format: focuser state: %s", resp);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid format: focuser motion config (%s)", resp);
         return false;
     }
 
@@ -721,7 +761,7 @@ bool TeenAstroFocuser::updateMotorConfig()
 
     if(sscanf(resp, "M%d %d %d %d %d#", &reverse, &log2_micro, &resolution, &curr_10ma, &steprot)<=0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid format: focuser state (%s)", resp);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid format: focuser motor config (%s)", resp);
         return false;
     }
 
