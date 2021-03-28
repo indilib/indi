@@ -61,7 +61,7 @@ private:
     hid_device *hid_handle;
 
     double internalTicks{0};
-    double initTicks{0};
+    // double initTicks{0}; // #PS: unused
 
     // Hardware version display
     ITextVectorProperty HardwareVersionNP;
