@@ -2,6 +2,10 @@
 
 set -e
 
+command -v realpath >/dev/null 2>&1 || realpath() {
+    [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
+}
+
 SRCS=$(dirname $(realpath $0))/..
 
 mkdir -p build/indi-core
