@@ -309,7 +309,7 @@ class Telescope : public DefaultDevice
         virtual bool Handshake();
 
         /** \brief Called when setTimer() time is up */
-        virtual void TimerHit();
+        virtual void TimerHit() override;
 
         /**
          * \brief setParkDataType Sets the type of parking data stored in the park data file and
@@ -428,7 +428,7 @@ class Telescope : public DefaultDevice
         }
 
     protected:
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
         /** \brief The child class calls this function when it has updates */
         void NewRaDec(double ra, double dec);

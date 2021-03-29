@@ -48,8 +48,8 @@ class SQM : public INDI::DefaultDevice
         } SqmConnection;
 
     protected:
-        const char *getDefaultName();
-        void TimerHit();
+        const char *getDefaultName() override;
+        void TimerHit() override;
 
     private:
         bool getReadings();

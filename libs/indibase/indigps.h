@@ -72,14 +72,14 @@ class GPS : public DefaultDevice
     /**
          * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
          */
-    virtual void TimerHit();
+    virtual void TimerHit() override;
 
     /**
      * @brief saveConfigItems Save refresh period
      * @param fp pointer to config file
      * @return True if all is OK
      */
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
     //  A number vector that stores lattitude and longitude
     INumberVectorProperty LocationNP;

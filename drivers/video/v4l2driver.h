@@ -66,19 +66,19 @@ class V4L2_Driver : public INDI::CCD
     void newFrame();
 
   protected:
-    virtual bool Connect();
-    virtual bool Disconnect();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
 
-    virtual const char *getDefaultName();
-    virtual bool StartExposure(float duration);
-    virtual bool AbortExposure();
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-    virtual bool UpdateCCDBin(int hor, int ver);
+    virtual const char *getDefaultName() override;
+    virtual bool StartExposure(float duration) override;
+    virtual bool AbortExposure() override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int hor, int ver) override;
 
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool StartStreaming();
-    virtual bool StopStreaming();
+    virtual bool StartStreaming() override;
+    virtual bool StopStreaming() override;
 
     /* Structs */
     typedef struct
