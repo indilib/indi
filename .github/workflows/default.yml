@@ -1,4 +1,4 @@
-name: Indi
+name: Linux
 on:
   push:
     branches: [ master ]
