@@ -225,25 +225,25 @@ TEST(CelestronDriverTest, trimDecAngle) {
 }
 
 TEST(CelestronDriverTest, dd2nex) {
-    ASSERT_EQ(0x0000, dd2nex(0.0));
-    ASSERT_EQ(0x2000, dd2nex(45.0));
-    ASSERT_EQ(0xc000, dd2nex(270.0));
-    ASSERT_EQ(0x0000, dd2nex(360.0));
-    ASSERT_EQ(0x12ce, dd2nex(26.4441));
+    ASSERT_EQ(0x0000U, dd2nex(0.0));
+    ASSERT_EQ(0x2000U, dd2nex(45.0));
+    ASSERT_EQ(0xc000U, dd2nex(270.0));
+    ASSERT_EQ(0x0000U, dd2nex(360.0));
+    ASSERT_EQ(0x12ceU, dd2nex(26.4441));
 
-    ASSERT_EQ(0x12ce, dd2nex(360 + 26.4441));
-    ASSERT_EQ(0xc000, dd2nex(-90.0));
+    ASSERT_EQ(0x12ceU, dd2nex(360 + 26.4441));
+    ASSERT_EQ(0xc000U, dd2nex(-90.0));
 }
 
 TEST(CelestronDriverTest, dd2pnex) {
-    ASSERT_EQ(0x00000000, dd2pnex(0.0));
-    ASSERT_EQ(0x20000000, dd2pnex(45.0));
-    ASSERT_EQ(0xc0000000, dd2pnex(270.0));
-    ASSERT_EQ(0x00000000, dd2pnex(360.0));
-    ASSERT_EQ(0x12ab0500, dd2pnex(26.25193834305));
+    ASSERT_EQ(0x00000000U, dd2pnex(0.0));
+    ASSERT_EQ(0x20000000U, dd2pnex(45.0));
+    ASSERT_EQ(0xc0000000U, dd2pnex(270.0));
+    ASSERT_EQ(0x00000000U, dd2pnex(360.0));
+    ASSERT_EQ(0x12ab0500U, dd2pnex(26.25193834305));
 
-    ASSERT_EQ(0x12ab0500, dd2pnex(360 + 26.25193834305));
-    ASSERT_EQ(0xc0000000, dd2pnex(-90.0));
+    ASSERT_EQ(0x12ab0500U, dd2pnex(360 + 26.25193834305));
+    ASSERT_EQ(0xc0000000U, dd2pnex(-90.0));
 }
 
 TEST(CelestronDriverTest, nex2dd) {

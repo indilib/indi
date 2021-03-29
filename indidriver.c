@@ -44,7 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 int verbose;      /* chatty */
-char *me = NULL;  /* a.out name */
+char *me = "";  /* a.out name */
 
 #define MAXRBUF 2048
 

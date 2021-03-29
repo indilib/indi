@@ -28,48 +28,53 @@
 
 TEST(CORE_BASE64, Test_to64frombits)
 {
-    int len = 0, size = sizeof("FOOBARBAZ") - 1 * 4 / 3 + 4 + 1;
-    const unsigned char convert[] = "FOOBARBAZ";
-    unsigned char *p_outbuf       = nullptr;
+    const char   inp_msg[] = "FOOBARBAZ";
+    const size_t inp_len   = sizeof(inp_msg) - 1;
 
-    p_outbuf = (unsigned char *)calloc(1, size);
-    ASSERT_TRUE(p_outbuf);
+    const char   out_msg[] = "Rk9PQkFSQkFa";
+    const size_t out_len   = sizeof(out_msg) - 1;
 
-    len = to64frombits_s(p_outbuf, convert, sizeof(convert) - 1, (size_t) size);
-    ASSERT_EQ(sizeof("Rk9PQkFSQkFa") - 1, len);
-    ASSERT_STREQ("Rk9PQkFSQkFa", (const char *)p_outbuf);
+    char   res_msg[out_len + 1] = {0,};
+    size_t res_len = 0;
 
-    free(p_outbuf);
+    res_len = to64frombits_s(
+        reinterpret_cast<unsigned char *>(res_msg),
+        reinterpret_cast<const unsigned char *>(inp_msg),
+        inp_len,
+        out_len
+    );
+    ASSERT_EQ(out_len, res_len);
+    ASSERT_STREQ(out_msg, res_msg);
 }
 
 TEST(CORE_BASE64, Test_from64tobits)
 {
-    int len = 0, size = sizeof("Rk9PQkFSQkFa") - 1 * 3 / 4 + 1;
-    const char convert[] = "Rk9PQkFSQkFa";
-    char *p_outbuf       = nullptr;
+    const char   inp_msg[] = "Rk9PQkFSQkFa";
+    // const size_t inp_len   = sizeof(inp_msg) - 1;
 
-    p_outbuf = (char *)calloc(1, size);
-    ASSERT_TRUE(p_outbuf);
+    const char   out_msg[] = "FOOBARBAZ";
+    const size_t out_len   = sizeof(out_msg) - 1;
 
-    len = from64tobits(p_outbuf, convert);
-    ASSERT_EQ(sizeof("FOOBARBAZ") - 1, len);
-    ASSERT_STREQ("FOOBARBAZ", (char *)p_outbuf);
+    char   res_msg[out_len + 1] = {0,};
+    size_t res_len = 0;
 
-    free(p_outbuf);
+    res_len = from64tobits(res_msg, inp_msg);
+    ASSERT_EQ(out_len, res_len);
+    ASSERT_STREQ(out_msg, res_msg);
 }
 
 TEST(CORE_BASE64, Test_from64tobits_fast)
 {
-    int len = 0, size = sizeof("Rk9PQkFSQkFa") - 1 * 3 / 4 + 1;
-    const char convert[] = "Rk9PQkFSQkFa";
-    char *p_outbuf       = nullptr;
+    const char   inp_msg[] = "Rk9PQkFSQkFa";
+    const size_t inp_len   = sizeof(inp_msg) - 1;
 
-    p_outbuf = (char *)calloc(1, size);
-    ASSERT_TRUE(p_outbuf);
+    const char   out_msg[] = "FOOBARBAZ";
+    const size_t out_len   = sizeof(out_msg) - 1;
 
-    len = from64tobits_fast(p_outbuf, convert, strlen(convert));
-    ASSERT_EQ(sizeof("FOOBARBAZ") - 1, len);
-    ASSERT_STREQ("FOOBARBAZ", (char *)p_outbuf);
+    char   res_msg[out_len + 1] = {0,};
+    size_t res_len = 0;
 
-    free(p_outbuf);
+    res_len = from64tobits_fast(res_msg, inp_msg, inp_len);
+    ASSERT_EQ(out_len, res_len);
+    ASSERT_STREQ(out_msg, res_msg);
 }
