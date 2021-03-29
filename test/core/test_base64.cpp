@@ -50,7 +50,7 @@ TEST(CORE_BASE64, Test_to64frombits)
 TEST(CORE_BASE64, Test_from64tobits)
 {
     const char   inp_msg[] = "Rk9PQkFSQkFa";
-    const size_t inp_len   = sizeof(inp_msg) - 1;
+    // const size_t inp_len   = sizeof(inp_msg) - 1;
 
     const char   out_msg[] = "FOOBARBAZ";
     const size_t out_len   = sizeof(out_msg) - 1;
