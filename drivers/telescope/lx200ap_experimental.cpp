@@ -1914,14 +1914,23 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
     unpark_from_last_config = (PARK_LAST == IUFindOnSwitchIndex(&UnparkFromSP));
     double unparkAlt, unparkAz;
-    if (parkDataValid_and_parked && unpark_from_last_config)
+    if (unpark_from_last_config)
     {
-
-        LOG_INFO("UnPark: mount is parked, has valid park data and driver config is set to Last Parked");
-        unparkAz = GetAxis1Park(); //Az
-        unparkAlt = GetAxis2Park(); //Alt
+        if (parkDataValid_and_parked)
+        {
+            LOG_INFO("UnPark: mount is parked, has valid park data and driver config is set to Last Parked");
+            unparkAz = GetAxis1Park(); //Az
+            unparkAlt = GetAxis2Park(); //Alt
+        }
+        else
+        {
+            LOG_ERROR("UnPark: Missing unpark position!");
+            UnparkFromSP.s = IPS_ALERT;
+            IDSetSwitch(&UnparkFromSP, nullptr);
+            return false;
+        }
     }
-    else if(!unpark_from_last_config)
+    else
     {
         ParkPosition unparkfromPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&UnparkFromSP));
         LOGF_DEBUG("UnPark: park position = %d from current driver", unparkfromPos);
