@@ -36,7 +36,7 @@ typedef SSIZE_T ssize_t;
 #endif
 #endif
 
-#define MAXRBUF 2048
+// #define MAXRBUF 2048 // #PS: defined in indibase.h
 
 /**
  * \class INDI::BaseClient
