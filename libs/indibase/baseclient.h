@@ -262,12 +262,12 @@ class INDI::BaseClient : public INDI::BaseMediator
         virtual void newUniversalMessage(std::string message);
 
     private:
-        typedef struct
+        struct BLOBMode
         {
             std::string device;
             std::string property;
             BLOBHandling blobMode;
-        } BLOBMode;
+        };
 
         BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
 
