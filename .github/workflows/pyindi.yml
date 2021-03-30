@@ -41,7 +41,7 @@ jobs:
       - name: Build PyIndi
         run: |
           pushd pyindi-client
-          python3 ./setup.py
+          python3 ./setup.py install
           popd
       
       - name: Test PyIndi
