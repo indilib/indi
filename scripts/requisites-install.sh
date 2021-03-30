@@ -25,14 +25,17 @@ case "$OS" in
         case $ID in
             debian|ubuntu)
                 export DEBIAN_FRONTEND=noninteractive
-                $(command -v sudo) apt-get update && apt-get -y upgrade && apt-get install -y \
+                $(command -v sudo) apt-get update
+                $(command -v sudo) apt-get upgrade -y
+                $(command -v sudo) apt-get install -y \
                     git \
                     cmake build-essential zlib1g-dev \
                     libcfitsio-dev libnova-dev libusb-1.0-0-dev libcurl4-gnutls-dev \
                     libgsl-dev libjpeg-dev libfftw3-dev
                 ;;
             fedora)
-                $(command -v sudo) dnf -y upgrade && dnf -y install \
+                $(command -v sudo) dnf upgrade -y
+                $(command -v sudo) dnf install -y \
                     git \
                     cmake gcc-c++ zlib-devel \
                     cfitsio-devel libnova-devel libusb-devel libcurl-devel \
@@ -40,7 +43,9 @@ case "$OS" in
                 ;;
             centos)
                 # CentOS 8 dont have libnova-devel package
-                $(command -v sudo) yum -y install epel-release && yum -y upgrade && yum -y install \
+                $(command -v sudo) yum install -y epel-release
+                $(command -v sudo) yum upgrade -y
+                $(command -v sudo) yum install -y \
                     git \
                     cmake gcc-c++ zlib-devel \
                     cfitsio-devel libnova-devel libusb-devel libcurl-devel \
@@ -48,7 +53,9 @@ case "$OS" in
                 ;;
             opensuse-tumbleweed)
                 # broken git/openssh package
-                $(command -v sudo) zypper refresh && zypper --non-interactive update && zypper --non-interactive install -y \
+                $(command -v sudo) zypper refresh
+                $(command -v sudo) zypper --non-interactive update
+                $(command -v sudo) zypper --non-interactive install -y \
                     openssh git \
                     cmake gcc-c++ zlib-devel \
                     cfitsio-devel libnova-devel libusb-devel libcurl-devel \
