@@ -46,13 +46,13 @@ class SkySafari : public INDI::DefaultDevice
     protected:
         virtual bool initProperties() override;
 
-        virtual void TimerHit();
+        virtual void TimerHit() override;
 
-        virtual bool Connect();
-        virtual bool Disconnect();
-        virtual const char *getDefaultName();
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
+        virtual const char *getDefaultName() override;
 
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
     private:
         void processCommand(std::string cmd);

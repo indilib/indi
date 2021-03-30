@@ -1011,6 +1011,14 @@ add_executable(indi_onfocus_focus ${onfocus_SRC})
 target_link_libraries(indi_onfocus_focus indidriver)
 install(TARGETS indi_onfocus_focus RUNTIME DESTINATION bin)
 
+################ TeenAstro Focuser ################
+
+SET(teenastro_focus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/teenastro.cpp)
+
+add_executable(indi_teenastro_focus ${teenastro_focus_SRC})
+target_link_libraries(indi_teenastro_focus indidriver)
+install(TARGETS indi_teenastro_focus RUNTIME DESTINATION bin)
 
 ################ Sesto Senso Focuser ################
 SET(sesto_SRC

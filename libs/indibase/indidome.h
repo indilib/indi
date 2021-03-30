@@ -506,7 +506,7 @@ class Dome : public DefaultDevice
              * @param fp pointer to configuration file
              * @return true if successful, false otherwise.
              */
-        virtual bool saveConfigItems(FILE * fp);
+        virtual bool saveConfigItems(FILE * fp) override;
 
         /**
              * @brief updateCoords updates the horizontal coordinates (Az & Alt) of the mount from the snooped RA, DEC and observer's location.

@@ -36,8 +36,9 @@ public:
     std::atomic_bool isThreadAboutToQuit {false};
     std::atomic_bool isFunctionAboutToQuit {true};
 
-    std::condition_variable wakeUp;
-    std::mutex runLock;
+    std::condition_variable_any acquire;
+    std::condition_variable_any relased;
+    std::recursive_mutex runLock;
     std::thread thread;
 };
 
