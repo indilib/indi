@@ -334,6 +334,13 @@ void PropertyBasic<T>::push(const WidgetView<T> &item)
 }
 
 template <typename T>
+const WidgetView<T> *PropertyBasic<T>::at(size_t index) const
+{
+    D_PTR(const PropertyBasic);
+    return d->property.at(index);
+}
+
+template <typename T>
 WidgetView<T> &PropertyBasic<T>::operator[](size_t index) const
 {
     D_PTR(const PropertyBasic);

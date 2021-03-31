@@ -108,6 +108,8 @@ public:
     void push(WidgetView<T> &&item);
     void push(const WidgetView<T> &item);
 
+    const WidgetView<T> *at(size_t index) const;
+
     WidgetView<T> &operator[](size_t index) const;
 
 public: // STL-style iterators
