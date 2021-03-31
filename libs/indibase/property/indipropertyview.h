@@ -131,7 +131,7 @@ public: // only for ISwitch
 
 public: // only for INumber
     template <typename X = T, enable_if_is_same_t<X, INumber> = true>
-    void updateMinMax()                                    { IUUpdateMinMax(this); }
+    void updateMinMax();                                   /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
 public: //getters
     const char *getDeviceName() const                      { return this->device; }
@@ -261,7 +261,7 @@ public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
     ~WidgetView()                                          { free(this->text); }
     void clear()                                           { free(this->text); memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ITextVectorProperty *parent)            { this->tvp = parent; }
@@ -311,7 +311,7 @@ public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(INumberVectorProperty *parent)          { this->nvp = parent; }
@@ -374,7 +374,7 @@ public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ISwitchVectorProperty *parent)          { this->svp = parent; }
@@ -427,7 +427,7 @@ public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ILightVectorProperty *parent)           { this->lvp = parent; }
@@ -480,7 +480,7 @@ public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
     ~WidgetView()                                          { free(this->blob); }
     void clear()                                           { free(this->blob); memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(IBLOBVectorProperty *parent)            { this->bvp = parent; }

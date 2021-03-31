@@ -316,6 +316,12 @@ bool INDI::BaseClient::disconnectServer()
     return true;
 }
 
+// #PS: avoid calling pure virtual method
+void INDI::BaseClient::serverDisconnected(int exit_code)
+{
+    INDI_UNUSED(exit_code);
+}
+
 bool INDI::BaseClient::isServerConnected() const
 {
     return sConnected;
