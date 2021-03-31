@@ -131,7 +131,7 @@ public: // only for ISwitch
 
 public: // only for INumber
     template <typename X = T, enable_if_is_same_t<X, INumber> = true>
-    void updateMinMax()                                    { IUUpdateMinMax(this); }
+    void updateMinMax();                                   /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
 public: //getters
     const char *getDeviceName() const                      { return this->device; }
