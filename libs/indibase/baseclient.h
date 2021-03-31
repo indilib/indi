@@ -234,6 +234,8 @@ class INDI::BaseClient : public INDI::BaseMediator
             timeout_us  = microseconds;
         }
 
+        void serverDisconnected(int exit_code) override;
+
     protected:
         /** \brief Dispatch command received from INDI server to respective devices handled by the client */
         int dispatchCommand(XMLEle *root, char *errmsg);
