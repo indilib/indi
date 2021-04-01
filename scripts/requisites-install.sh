@@ -23,7 +23,7 @@ case "$OS" in
     Linux)
         . /etc/os-release
         case $ID in
-            debian|ubuntu)
+            debian|ubuntu|raspbian)
                 export DEBIAN_FRONTEND=noninteractive
                 $(command -v sudo) apt-get update
                 $(command -v sudo) apt-get upgrade -y
