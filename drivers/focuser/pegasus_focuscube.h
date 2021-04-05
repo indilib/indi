@@ -35,10 +35,6 @@ class PegasusFocusCube : public INDI::Focuser
         bool setEncodersEnabled(bool enable);        
         bool ack();
         void ignoreResponse();
-        bool isDMFCN();
-        bool isFC();
-        bool isSCOPS();
-        bool isUNKOWN();
 
         uint32_t currentPosition { 0 };
         uint32_t targetPosition { 0 };
