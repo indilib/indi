@@ -26,7 +26,7 @@
 #include <vector>
 #include <cstdint>
 
-#define MAXRBUF 2048
+// #define MAXRBUF 2048 // #PS: defined in indibase.h
 
 /**
  * \class INDI::BaseDevice

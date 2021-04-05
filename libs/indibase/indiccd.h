@@ -428,7 +428,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return True if successful, false otherwise.
          */
-        virtual IPState GuideNorth(uint32_t ms);
+        virtual IPState GuideNorth(uint32_t ms) override;
 
         /**
          * \brief Guide southward for ms milliseconds
@@ -436,7 +436,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return 0 if successful, -1 otherwise.
          */
-        virtual IPState GuideSouth(uint32_t ms);
+        virtual IPState GuideSouth(uint32_t ms) override;
 
         /**
          * \brief Guide easward for ms milliseconds
@@ -444,7 +444,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return 0 if successful, -1 otherwise.
          */
-        virtual IPState GuideEast(uint32_t ms);
+        virtual IPState GuideEast(uint32_t ms) override;
 
         /**
          * \brief Guide westward for ms milliseconds
@@ -452,7 +452,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return 0 if successful, -1 otherwise.
          */
-        virtual IPState GuideWest(uint32_t ms);
+        virtual IPState GuideWest(uint32_t ms) override;
 
         /**
          * @brief StartStreaming Start live video streaming
@@ -504,9 +504,9 @@ class CCD : public DefaultDevice, GuiderInterface
          * @param fp pointer to file to write to
          * @return True if successful, false otherwise
          */
-        virtual bool saveConfigItems(FILE * fp);
+        virtual bool saveConfigItems(FILE * fp) override;
 
-        void GuideComplete(INDI_EQ_AXIS axis);
+        void GuideComplete(INDI_EQ_AXIS axis) override;
 
         // Epoch Position
         double RA, Dec;

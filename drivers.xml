@@ -529,11 +529,11 @@
         </device>
         <device label="Pegasus PPBA" manufacturer="Pegasus Astro">
             <driver name="Pegasus PPBA">indi_pegasus_ppba</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="Pegasus PPBM" manufacturer="Pegasus Astro">
             <driver name="Pegasus PPBM">indi_pegasus_ppba</driver>
-            <version>1.1</version>
+            <version>1.2</version>
         </device>
         <device label="Pegasus UPB" manufacturer="Pegasus Astro">
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>

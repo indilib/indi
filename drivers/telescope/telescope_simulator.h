@@ -92,7 +92,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
         /// used by GoTo and Park
         void StartSlew(double ra, double dec, TelescopeStatus status);
 
-        bool forceMeridianFlip { false };
+        // bool forceMeridianFlip { false }; // #PS: unused
         unsigned int DBG_SCOPE { 0 };
 
         int mcRate = 0;

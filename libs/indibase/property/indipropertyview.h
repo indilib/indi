@@ -34,8 +34,8 @@
 namespace INDI
 {
 
-template <typename> class WidgetView;
-template <typename> class PropertyView;
+template <typename> struct WidgetView;
+template <typename> struct PropertyView;
 
 #define PROPERTYVIEW_BASE_ACCESS public
 // don't use direct access to low-level property
@@ -80,7 +80,7 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
     friend class BaseDevice;
     friend class DefaultDevice;
     template <typename>
-    friend class WidgetView;
+    friend struct WidgetView;
 
     template <typename X, typename Needed>
     using enable_if_is_same_t = typename std::enable_if<std::is_same<X, Needed>::value, bool>::type;
@@ -131,7 +131,7 @@ public: // only for ISwitch
 
 public: // only for INumber
     template <typename X = T, enable_if_is_same_t<X, INumber> = true>
-    void updateMinMax()                                    { IUUpdateMinMax(this); }
+    void updateMinMax();                                   /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
 public: //getters
     const char *getDeviceName() const                      { return this->device; }
@@ -255,13 +255,13 @@ template <>
 struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
 {
     using Type = IText;
-    template <typename> friend class PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
     ~WidgetView()                                          { free(this->text); }
     void clear()                                           { free(this->text); memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return this == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ITextVectorProperty *parent)            { this->tvp = parent; }
@@ -305,13 +305,13 @@ template <>
 struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
 {
     using Type = INumber;
-    template <typename> friend class PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return this == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(INumberVectorProperty *parent)          { this->nvp = parent; }
@@ -368,13 +368,13 @@ template <>
 struct WidgetView<ISwitch>: PROPERTYVIEW_BASE_ACCESS ISwitch
 {
     using Type = ISwitch;
-    template <typename> friend class PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return this == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ISwitchVectorProperty *parent)          { this->svp = parent; }
@@ -421,13 +421,13 @@ template <>
 struct WidgetView<ILight>: PROPERTYVIEW_BASE_ACCESS ILight
 {
     using Type = ILight;
-    template <typename> friend class PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return this == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ILightVectorProperty *parent)           { this->lvp = parent; }
@@ -474,13 +474,13 @@ template <>
 struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 {
     using Type = IBLOB;
-    template <typename> friend class PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
     ~WidgetView()                                          { free(this->blob); }
     void clear()                                           { free(this->blob); memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return this == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(IBLOBVectorProperty *parent)            { this->bvp = parent; }
@@ -642,7 +642,7 @@ inline bool PropertyView<ISwitch>::setRule(const std::string &rule)
 { return crackISRule(rule.data(), &this->r) == 0; }
 
 template <typename T>
-inline WidgetView<T> *PropertyView<T>::findWidgetByName(const char *name) const
+inline WidgetView<T> *PropertyView<T>::findWidgetByName(const char *) const
 { return nullptr; }
 
 template <>

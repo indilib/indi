@@ -33,8 +33,8 @@ class SteelDriveII : public INDI::Focuser
         typedef enum { GOING_UP, GOING_DOWN, STOPPED, ZEROED } State;
         typedef enum { NAME, POSITION, STATE, LIMIT, FOCUS, TEMP0, TEMP1, TEMPAVG, TCOMP, PWM } Summary;
 
-        virtual bool Handshake();
-        const char *getDefaultName();
+        virtual bool Handshake() override;
+        const char *getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
@@ -42,15 +42,15 @@ class SteelDriveII : public INDI::Focuser
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
-        virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-        virtual bool SyncFocuser(uint32_t ticks);
-        virtual bool ReverseFocuser(bool enabled);
-        virtual bool SetFocuserMaxPosition(uint32_t ticks);
-        virtual bool AbortFocuser();
-        virtual void TimerHit();
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks) override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
+        virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
 
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
     private:
         ///////////////////////////////////////////////////////////////////////////////////

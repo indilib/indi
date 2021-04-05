@@ -34,9 +34,9 @@ class WeatherMeta : public INDI::DefaultDevice
     virtual ~WeatherMeta() = default;
 
     //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+    bool Connect() override;
+    bool Disconnect() override;
+    const char *getDefaultName() override;
 
     virtual bool ISSnoopDevice(XMLEle *root) override;
 
@@ -46,7 +46,7 @@ class WeatherMeta : public INDI::DefaultDevice
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
   protected:
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
   private:
     void updateOverallState();
