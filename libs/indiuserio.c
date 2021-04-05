@@ -683,7 +683,7 @@ void IUUserIOSetSwitchVA(
     s_userio_xml_message_vprintf(io, user, fmt, ap);
     userio_prints    (io, user, ">\n");
 
-    IUUserIOSwitchContext(io, user, svp);
+    IUUserIOSwitchContextFull(io, user, svp);
 
     userio_prints    (io, user, "</setSwitchVector>\n");
     indi_locale_C_numeric_pop(orig);
