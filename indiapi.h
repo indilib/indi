@@ -221,7 +221,7 @@ IP_RW  /*!< Read & Write */
  * @struct IText
  * @brief One text descriptor.
  */
-typedef struct
+typedef struct _IText
 {
 /** Index name */
 char name[MAXINDINAME];
@@ -271,7 +271,7 @@ typedef struct _ITextVectorProperty
  * @struct INumber
  * @brief One number descriptor.
  */
-typedef struct
+typedef struct _INumber
 {
     /** Index name */
     char name[MAXINDINAME];
@@ -344,7 +344,7 @@ typedef struct _INumberVectorProperty
  * @struct ISwitch
  * @brief One switch descriptor.
  */
-typedef struct
+typedef struct _ISwitch
 {
     /** Index name */
     char name[MAXINDINAME];
@@ -394,7 +394,7 @@ typedef struct _ISwitchVectorProperty
  * @struct ILight
  * @brief One light descriptor.
  */
-typedef struct
+typedef struct _ILight
 {
     /** Index name */
     char name[MAXINDINAME];
