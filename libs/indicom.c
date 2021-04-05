@@ -97,34 +97,6 @@ static int tty_generic_udp_format = 0;
 static int tty_sequence_number = 1;
 static int tty_clear_trailing_lf = 0;
 
-/* output a string expanding special characters into xml/html escape sequences */
-void escapeXML_fputs(const char *src, FILE *stream)
-{
-    const char *ptr = src;
-    const char *replacement;
-
-    for(; *ptr; ++ptr)
-    {
-        switch(*ptr)
-        {
-        case  '&': replacement = "&amp;";  break;
-        case '\'': replacement = "&apos;"; break;
-        case  '"': replacement = "&quot;"; break;
-        case  '<': replacement = "&lt;";   break;
-        case  '>': replacement = "&gt;";   break;
-        default:   replacement = NULL;
-        }
-
-        if (replacement != NULL)
-        {
-            fwrite(src, 1, (size_t)(ptr - src), stream);
-            src = ptr + 1;
-            fputs(replacement, stream);
-        }
-    }
-    fwrite(src, 1, (size_t)(ptr - src), stream);
-}
-
 #if defined(HAVE_LIBNOVA)
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
 {
