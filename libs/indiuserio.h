@@ -31,9 +31,11 @@ struct _IBLOBVectorProperty;
 struct _ILightVectorProperty;
 
 struct _IBLOB;
+struct _ISwitch;
 
 void IUUserIOTextContext(const userio *io, void *user, const struct _ITextVectorProperty *tvp);
 void IUUserIONumberContext(const userio *io, void *user, const struct _INumberVectorProperty *nvp);
+void IUUserIOSwitchContextOne(const userio *io, void *user, const struct _ISwitch *sp);
 void IUUserIOSwitchContextFull(const userio *io, void *user, const ISwitchVectorProperty *svp);
 void IUUserIOSwitchContext(const userio *io, void *user, const struct _ISwitchVectorProperty *svp);
 void IUUserIOBLOBContext(const userio *io, void *user, const struct _IBLOBVectorProperty *bvp);

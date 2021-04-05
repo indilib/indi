@@ -58,25 +58,32 @@ void IUUserIOTextContext(const userio *io, void *user, const ITextVectorProperty
         IText *tp = &tvp->tp[i];
         userio_prints    (io, user, "  <oneText name='");
         userio_xml_escape(io, user, tp->name);
-        userio_prints    (io, user, "'>\n");
-        userio_prints    (io, user, "      ");
-        userio_xml_escape(io, user, tp->text ? tp->text : "");
-        userio_prints    (io, user, "\n");
-        userio_prints    (io, user, "  </oneText>\n");
+        userio_prints    (io, user, "'>\n"
+                                    "      ");
+        if (tp->text)
+            userio_xml_escape(io, user, tp->text);
+        userio_prints    (io, user, "\n"
+                                    "  </oneText>\n");
     }
 }
 
+void IUUserIOSwitchContextOne(const userio *io, void *user, const ISwitch *sp)
+{
+    userio_prints    (io, user, "  <oneSwitch name='");
+    userio_xml_escape(io, user, sp->name);
+    userio_prints    (io, user, "'>\n"
+                                "      ");
+    userio_prints    (io, user, sstateStr(sp->s));
+    userio_prints    (io, user, "\n"
+                                "  </oneSwitch>\n");
+}
 
 void IUUserIOSwitchContextFull(const userio *io, void *user, const ISwitchVectorProperty *svp)
 {
     for (int i = 0; i < svp->nsp; i++)
     {
         ISwitch *sp = &svp->sp[i];
-        userio_prints    (io, user, "  <oneSwitch name='");
-        userio_xml_escape(io, user, sp->name);
-        userio_prints    (io, user, "'>\n");
-        userio_printf    (io, user, "      %s\n", sstateStr(sp->s)); // safe
-        userio_prints    (io, user, "  </oneSwitch>\n");
+        IUUserIOSwitchContextOne(io, user, sp);
     }
 }
 
@@ -85,18 +92,9 @@ void IUUserIOSwitchContext(const userio *io, void *user, const ISwitchVectorProp
     ISwitch *onSwitch = IUFindOnSwitch(svp);
 
     if (svp->r == ISR_1OFMANY && onSwitch)
-    {
-        userio_prints    (io, user, "  <oneSwitch\n");
-        userio_prints    (io, user, "    name='");
-        userio_xml_escape(io, user, onSwitch->name);
-        userio_prints    (io, user, "'>\n");
-        userio_printf    (io, user, "      %s\n", sstateStr(onSwitch->s)); // safe
-        userio_prints    (io, user, "  </oneSwitch>\n");
-    }
+        IUUserIOSwitchContextOne(io, user, onSwitch);
     else
-    {
         IUUserIOSwitchContextFull(io, user, svp);
-    }
 }
 
 void IUUserIOBLOBContextOne(
@@ -107,8 +105,8 @@ void IUUserIOBLOBContextOne(
     unsigned char *encblob;
     int l;
 
-    userio_prints    (io, user, "  <oneBLOB\n");
-    userio_prints    (io, user, "    name='");
+    userio_prints    (io, user, "  <oneBLOB\n"
+                                "    name='");
     userio_xml_escape(io, user, name);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "    size='%d'\n", size); // safe
@@ -116,8 +114,8 @@ void IUUserIOBLOBContextOne(
     // If size is zero, we are only sending a state-change
     if (size == 0)
     {
-        userio_prints    (io, user, "    enclen='0'\n");
-        userio_prints    (io, user, "    format='");
+        userio_prints    (io, user, "    enclen='0'\n"
+                                    "    format='");
         userio_xml_escape(io, user, format);
         userio_prints    (io, user, "'>\n");
     }
@@ -154,60 +152,7 @@ void IUUserIOBLOBContextOne(
 
     userio_prints    (io, user, "  </oneBLOB>\n");
 }
-#if 0
-void IUUserIOBLOBContextOne(const userio *io, void *user, const IBLOB *bp)
-{
-    unsigned char *encblob;
-    int l;
 
-    userio_prints    (io, user, "  <oneBLOB\n");
-    userio_prints    (io, user, "    name='");
-    userio_xml_escape(io, user, bp->name);
-    userio_prints    (io, user, "'\n");
-    userio_printf    (io, user, "    size='%d'\n", bp->size); // safe
-
-    // If size is zero, we are only sending a state-change
-    if (bp->size == 0)
-    {
-        userio_prints    (io, user, "    enclen='0'\n");
-        userio_prints    (io, user, "    format='");
-        userio_xml_escape(io, user, bp->format);
-        userio_prints    (io, user, "'>\n");
-    }
-    else
-    {
-        size_t sz = 4 * bp->bloblen / 3 + 4;
-        assert_mem(encblob = (unsigned char *)malloc(sz)); // #PS: TODO
-        l = to64frombits_s(encblob, bp->blob, bp->bloblen, sz);
-        if (l == 0) {
-            fprintf(stderr, "%s: Not enough memory for decoding.\n", __func__);
-            exit(1);
-        }
-        userio_printf    (io, user, "    enclen='%d'\n", l); // safe
-        userio_prints    (io, user, "    format='");
-        userio_xml_escape(io, user, bp->format);
-        userio_prints    (io, user, "'>\n");
-        size_t written = 0;
-
-        while ((int)written < l)
-        {
-            size_t towrite = ((l - written) > 72) ? 72 : l - written;
-            size_t wr      = userio_write(io, user, encblob + written, towrite);
-
-            written += wr;
-            if ((written % 72) == 0)
-                userio_putc(io, user, '\n');
-        }
-
-        if ((written % 72) != 0)
-            userio_putc(io, user, '\n');
-
-        free(encblob);
-    }
-
-    userio_prints    (io, user, "  </oneBLOB>\n");
-}
-#endif
 void IUUserIOBLOBContext(const userio *io, void *user, const IBLOBVectorProperty *bvp)
 {
     for (int i = 0; i < bvp->nbp; i++)
@@ -227,9 +172,11 @@ void IUUserIOLightContext(const userio *io, void *user, const ILightVectorProper
         ILight *lp = &lvp->lp[i];
         userio_prints    (io, user, "  <oneLight name='");
         userio_xml_escape(io, user, lp->name);
-        userio_prints    (io, user, "'>\n");
-        userio_printf    (io, user, "      %s\n", pstateStr(lp->s)); // safe
-        userio_prints    (io, user, "  </oneLight>\n");
+        userio_prints    (io, user, "'>\n"
+                                    "      ");
+        userio_prints    (io, user, pstateStr(lp->s));
+        userio_prints    (io, user, "\n"
+                                    "  </oneLight>\n");
     }
 }
 
@@ -299,11 +246,11 @@ void IUUserIONewBLOBStart(
     const char *dev, const char *name, const char *timestamp
 )
 {
-    userio_prints    (io, user, "<newBLOBVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<newBLOBVector\n"
+                                "  device='");
     userio_xml_escape(io, user, dev);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, name);
     userio_prints    (io, user, "'\n");
     if (timestamp != NULL)
@@ -446,17 +393,17 @@ void IUUserIODefTextVA(
 )
 {
     locale_char_t *orig = indi_locale_C_numeric_push();
-    userio_prints    (io, user, "<defTextVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<defTextVector\n"
+                                "  device='");
     userio_xml_escape(io, user, tvp->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, tvp->name);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  label='");
+    userio_prints    (io, user, "'\n"
+                                "  label='");
     userio_xml_escape(io, user, tvp->label);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  group='");
+    userio_prints    (io, user, "'\n"
+                                "  group='");
     userio_xml_escape(io, user, tvp->group);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(tvp->s)); // safe
@@ -469,17 +416,18 @@ void IUUserIODefTextVA(
     for (int i = 0; i < tvp->ntp; i++)
     {
         IText *tp = &tvp->tp[i];
-        userio_prints    (io, user, "  <defText\n");
-        userio_prints    (io, user, "    name='");
+        userio_prints    (io, user, "  <defText\n"
+                                    "    name='");
         userio_xml_escape(io, user, tp->name);
-        userio_prints    (io, user, "'\n");
-        userio_prints    (io, user, "    label='");
+        userio_prints    (io, user, "'\n"
+                                    "    label='");
         userio_xml_escape(io, user, tp->label);
-        userio_prints    (io, user, "'>\n");
-        userio_prints    (io, user, "      ");
-        userio_xml_escape(io, user, tp->text ? tp->text : "");
-        userio_prints    (io, user, "\n");
-        userio_prints    (io, user, "  </defText>\n");
+        userio_prints    (io, user, "'>\n"
+                                    "      ");
+        if (tp->text)
+            userio_xml_escape(io, user, tp->text);
+        userio_prints    (io, user, "\n"
+                                    "  </defText>\n");
     }
 
     userio_prints    (io, user, "</defTextVector>\n");
@@ -492,17 +440,17 @@ void IUUserIODefNumberVA(
 )
 {
     locale_char_t *orig = indi_locale_C_numeric_push();
-    userio_prints    (io, user, "<defNumberVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<defNumberVector\n"
+                                "  device='");
     userio_xml_escape(io, user, n->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, n->name);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  label='");
+    userio_prints    (io, user, "'\n"
+                                "  label='");
     userio_xml_escape(io, user, n->label);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  group='");
+    userio_prints    (io, user, "'\n"
+                                "  group='");
     userio_xml_escape(io, user, n->group);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(n->s)); // safe
@@ -516,14 +464,14 @@ void IUUserIODefNumberVA(
     {
         INumber *np = &n->np[i];
 
-        userio_prints    (io, user, "  <defNumber\n");
-        userio_prints    (io, user, "    name='");
+        userio_prints    (io, user, "  <defNumber\n"
+                                    "    name='");
         userio_xml_escape(io, user, np->name);
-        userio_prints    (io, user, "'\n");
-        userio_prints    (io, user, "    label='");
+        userio_prints    (io, user, "'\n"
+                                    "    label='");
         userio_xml_escape(io, user, np->label);
-        userio_prints    (io, user, "'\n");
-        userio_prints    (io, user, "    format='");
+        userio_prints    (io, user, "'\n"
+                                    "    format='");
         userio_xml_escape(io, user, np->format);
         userio_prints    (io, user, "'\n");
         userio_printf    (io, user, "    min='%.20g'\n", np->min); // safe
@@ -544,17 +492,17 @@ void IUUserIODefSwitchVA(
 )
 {
     locale_char_t *orig = indi_locale_C_numeric_push();
-    userio_prints    (io, user, "<defSwitchVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<defSwitchVector\n"
+                                "  device='");
     userio_xml_escape(io, user, s->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, s->name);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  label='");
+    userio_prints    (io, user, "'\n"
+                                "  label='");
     userio_xml_escape(io, user, s->label);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  group='");
+    userio_prints    (io, user, "'\n"
+                                "  group='");
     userio_xml_escape(io, user, s->group);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(s->s)); // safe
@@ -568,11 +516,11 @@ void IUUserIODefSwitchVA(
     for (int i = 0; i < s->nsp; i++)
     {
         ISwitch *sp = &s->sp[i];
-        userio_prints    (io, user, "  <defSwitch\n");
-        userio_prints    (io, user, "    name='");
+        userio_prints    (io, user, "  <defSwitch\n"
+                                    "    name='");
         userio_xml_escape(io, user, sp->name);
-        userio_prints    (io, user, "'\n");
-        userio_prints    (io, user, "    label='");
+        userio_prints    (io, user, "'\n"
+                                    "    label='");
         userio_xml_escape(io, user, sp->label);
         userio_prints    (io, user, "'>\n");
         userio_printf    (io, user, "      %s\n", sstateStr(sp->s)); // safe
@@ -588,17 +536,17 @@ void IUUserIODefLightVA(
     const ILightVectorProperty *lvp, const char *fmt, va_list ap
 )
 {
-    userio_prints    (io, user, "<defLightVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<defLightVector\n"
+                                "  device='");
     userio_xml_escape(io, user, lvp->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, lvp->name);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  label='");
+    userio_prints    (io, user, "'\n"
+                                "  label='");
     userio_xml_escape(io, user, lvp->label);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  group='");
+    userio_prints    (io, user, "'\n"
+                                "  group='");
     userio_xml_escape(io, user, lvp->group);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(lvp->s)); // safe
@@ -609,11 +557,11 @@ void IUUserIODefLightVA(
     for (int i = 0; i < lvp->nlp; i++)
     {
         ILight *lp = &lvp->lp[i];
-        userio_prints    (io, user, "  <defLight\n");
-        userio_prints    (io, user, "    name='");
+        userio_prints    (io, user, "  <defLight\n"
+                                    "    name='");
         userio_xml_escape(io, user, lp->name);
-        userio_prints    (io, user, "'\n");
-        userio_prints    (io, user, "    label='");
+        userio_prints    (io, user, "'\n"
+                                    "    label='");
         userio_xml_escape(io, user, lp->label);
         userio_prints    (io, user, "'>\n");
         userio_printf    (io, user, "      %s\n", pstateStr(lp->s)); // safe
@@ -629,17 +577,17 @@ void IUUserIODefBLOBVA(
 )
 {
     locale_char_t *orig = indi_locale_C_numeric_push();
-    userio_prints    (io, user, "<defBLOBVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<defBLOBVector\n"
+                                "  device='");
     userio_xml_escape(io, user, b->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, b->name);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  label='");
+    userio_prints    (io, user, "'\n"
+                                "  label='");
     userio_xml_escape(io, user, b->label);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  group='");
+    userio_prints    (io, user, "'\n"
+                                "  group='");
     userio_xml_escape(io, user, b->group);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(b->s)); // safe
@@ -652,14 +600,14 @@ void IUUserIODefBLOBVA(
     for (int i = 0; i < b->nbp; i++)
     {
         IBLOB *bp = &b->bp[i];
-        userio_prints    (io, user, "  <defBLOB\n");
-        userio_prints    (io, user, "    name='");
+        userio_prints    (io, user, "  <defBLOB\n"
+                                    "    name='");
         userio_xml_escape(io, user, bp->name);
-        userio_prints    (io, user, "'\n");
-        userio_prints    (io, user, "    label='");
+        userio_prints    (io, user, "'\n"
+                                    "    label='");
         userio_xml_escape(io, user, bp->label);
-        userio_prints    (io, user, "'\n");
-        userio_prints    (io, user, "  />\n");
+        userio_prints    (io, user, "'\n"
+                                    "  />\n");
     }
 
     userio_prints    (io, user, "</defBLOBVector>\n");
@@ -672,11 +620,11 @@ void IUUserIOSetTextVA(
 )
 {
     locale_char_t *orig = indi_locale_C_numeric_push();
-    userio_prints    (io, user, "<setTextVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<setTextVector\n"
+                                "  device='");
     userio_xml_escape(io, user, tvp->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, tvp->name);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(tvp->s)); // safe
@@ -697,11 +645,11 @@ void IUUserIOSetNumberVA(
 )
 {
     locale_char_t *orig = indi_locale_C_numeric_push();
-    userio_prints    (io, user, "<setNumberVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<setNumberVector\n"
+                                "  device='");
     userio_xml_escape(io, user, nvp->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, nvp->name);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(nvp->s)); // safe
@@ -722,11 +670,11 @@ void IUUserIOSetSwitchVA(
 )
 {
     locale_char_t *orig = indi_locale_C_numeric_push();
-    userio_prints    (io, user, "<setSwitchVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<setSwitchVector\n"
+                                "  device='");
     userio_xml_escape(io, user, svp->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, svp->name);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(svp->s)); // safe
@@ -746,11 +694,11 @@ void IUUserIOSetLightVA(
     const ILightVectorProperty *lvp, const char *fmt, va_list ap
 )
 {
-    userio_prints    (io, user, "<setLightVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<setLightVector\n"
+                                "  device='");
     userio_xml_escape(io, user, lvp->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, lvp->name);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(lvp->s)); // safe
@@ -769,11 +717,11 @@ void IUUserIOSetBLOBVA(
 )
 {
     locale_char_t *orig = indi_locale_C_numeric_push();
-    userio_prints    (io, user, "<setBLOBVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<setBLOBVector\n"
+                                "  device='");
     userio_xml_escape(io, user, bvp->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, bvp->name);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(bvp->s)); // safe
@@ -794,11 +742,11 @@ void IUUserIOUpdateMinMax(
 )
 {
     locale_char_t *orig = indi_locale_C_numeric_push();
-    userio_prints    (io, user, "<setNumberVector\n");
-    userio_prints    (io, user, "  device='");
+    userio_prints    (io, user, "<setNumberVector\n"
+                                "  device='");
     userio_xml_escape(io, user, nvp->device);
-    userio_prints    (io, user, "'\n");
-    userio_prints    (io, user, "  name='");
+    userio_prints    (io, user, "'\n"
+                                "  name='");
     userio_xml_escape(io, user, nvp->name);
     userio_prints    (io, user, "'\n");
     userio_printf    (io, user, "  state='%s'\n", pstateStr(nvp->s)); // safe
