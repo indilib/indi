@@ -438,7 +438,7 @@ typedef struct _ILightVectorProperty
  * @struct IBLOB
  * @brief One Blob (Binary Large Object) descriptor.
  */
-typedef struct /* one BLOB descriptor */
+typedef struct _IBLOB/* one BLOB descriptor */
 {
     /** Index name */
     char name[MAXINDINAME];
