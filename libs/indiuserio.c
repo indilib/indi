@@ -658,7 +658,7 @@ void IUUserIODefBLOBVA(
         userio_prints    (io, user, "'\n");
         userio_prints    (io, user, "    label='");
         userio_xml_escape(io, user, bp->label);
-        userio_prints    (io, user, "'>\n");
+        userio_prints    (io, user, "'\n");
         userio_prints    (io, user, "  />\n");
     }
 
