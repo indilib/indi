@@ -514,6 +514,11 @@ int INDI::BaseClientQt::messageCmd(XMLEle *root, char *errmsg)
     return (0);
 }
 
+void INDI::BaseClientQt::newUniversalMessage(std::string message)
+{
+    IDLog("%s\n", message.c_str());
+}
+
 void INDI::BaseClientQt::sendNewText(ITextVectorProperty *tvp)
 {
     AutoCNumeric locale;
