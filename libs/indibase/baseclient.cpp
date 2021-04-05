@@ -64,10 +64,10 @@ static userio io;
 
 INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 {
-    #if 0
+    /* #PS: TODO - leftover - sending the blob.
         if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
                 continue;
-    #endif
+    */
     io.write = [](void *user, const void * ptr, size_t count) -> size_t
     {
         BaseClient *self = static_cast<BaseClient *>(user);
@@ -893,7 +893,7 @@ void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propert
 
 void INDI::BaseClient::sendNewSwitch(ISwitchVectorProperty *svp)
 {
-    svp->s            = IPS_BUSY;
+    svp->s = IPS_BUSY;
     IUUserIONewSwitch(&io, this, svp);
 }
 
