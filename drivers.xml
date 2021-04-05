@@ -360,11 +360,11 @@
             <version>1.0</version>
         </device>
          <device label="Pegasus FocusCube" manufacturer="Pegasus Astro">
-            <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
+            <driver name="Pegasus FocusCube">indi_pegasus_focuscube</driver>
             <version>1.0</version>
         </device>
         <device label="Pegasus ScopsOAG" manufacturer="Pegasus Astro">
-            <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
+            <driver name="Pegasus DMFC">indi_pegasus_scopsoag</driver>
             <version>1.0</version>
         </device>
         <device label="Pyxis" manufacturer="Optec">
