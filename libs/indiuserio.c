@@ -345,14 +345,21 @@ void IUUserIOGetProperties(
     const char *dev, const char *name
 )
 {
-    userio_printf    (io, user, "<getProperties version='%g' device='", INDIV); // safe
-    userio_xml_escape(io, user, dev);
+    userio_printf    (io, user, "<getProperties version='%g'", INDIV); // safe
+    // special case for INDI::BaseClient::listenINDI INDI::BaseClientQt::connectServer
+    if (dev && dev[0])
+    {
+        userio_prints    (io, user, " device='");
+        userio_xml_escape(io, user, dev);
+        userio_prints    (io, user, "'");
+    }
     if (name && name[0])
     {
-        userio_prints    (io, user, "' name='");
+        userio_prints    (io, user, " name='");
         userio_xml_escape(io, user, name);
+        userio_prints    (io, user, "'");
     }
-    userio_prints    (io, user, "'/>\n");
+    userio_prints    (io, user, "/>\n");
 }
 
 // temporary
