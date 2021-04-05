@@ -435,45 +435,34 @@ void INDI::BaseClient::listenINDI()
     XMLEle *root = nullptr;
     int inode = 0;
 
-    AutoCNumeric locale;
-
     if (cDeviceNames.empty())
     {
-        char cmd[MAXRBUF] = {0};
-        snprintf(cmd, MAXRBUF, "<getProperties version='%g'/>\n", INDIV);
-        sendString(cmd);
+        IUUserIOGetProperties(&io, this, nullptr, nullptr);
         if (verbose)
-            IDLog("%s\n", cmd);
+            IUUserIOGetProperties(userio_file(), stderr, nullptr, nullptr);
     }
     else
     {
-        for (auto oneDevice : cDeviceNames)
+        for (const auto &oneDevice : cDeviceNames)
         {
             // If there are no specific properties to watch, we watch the complete device
             if (cWatchProperties.find(oneDevice) == cWatchProperties.end())
             {
-                char cmd[MAXRBUF] = {0};
-                snprintf(cmd, MAXRBUF, "<getProperties version='%g' device='%s'/>\n", INDIV, oneDevice.c_str());
-                sendString(cmd);
+                IUUserIOGetProperties(&io, this, oneDevice.c_str(), nullptr);
                 if (verbose)
-                    IDLog("%s\n", cmd);
+                    IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), nullptr);
             }
             else
             {
-                for (auto oneProperty : cWatchProperties[oneDevice])
+                for (const auto &oneProperty : cWatchProperties[oneDevice])
                 {
-                    char cmd[MAXRBUF] = {0};
-                    snprintf(cmd, MAXRBUF, "<getProperties version='%g' device='%s' name='%s'/>\n",
-                             INDIV, oneDevice.c_str(), oneProperty.c_str());
-                    sendString(cmd);
+                    IUUserIOGetProperties(&io, this, oneDevice.c_str(), oneProperty.c_str());
                     if (verbose)
-                        IDLog("%s\n", cmd);
+                        IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), oneProperty.c_str());
                 }
             }
         }
     }
-
-    locale.Restore();
 
     FD_ZERO(&rs);
 
