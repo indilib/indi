@@ -1,32 +1,12 @@
-/*
-    Pegasus DMFC Focuser
-    Copyright (C) 2017 Jasem Mutlaq (mutlaqja@ikarustech.com)
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-*/
-
 #pragma once
 
 #include "indifocuser.h"
 
-class DMFC : public INDI::Focuser
+class PegasusFocusCube : public INDI::Focuser
 {
     public:
-        DMFC();
-        virtual ~DMFC() override = default;
+        PegasusFocusCube();
+        virtual ~PegasusFocusCube() override = default;
 
         virtual bool Handshake() override;
         const char *getDefaultName() override;
@@ -52,8 +32,7 @@ class DMFC : public INDI::Focuser
         bool move(uint32_t newPosition);
         bool setMaxSpeed(uint16_t speed);
         bool setLedEnabled(bool enable);
-        bool setEncodersEnabled(bool enable);
-        bool setMotorType(uint8_t type);
+        bool setEncodersEnabled(bool enable);        
         bool ack();
         void ignoreResponse();
 
@@ -65,10 +44,6 @@ class DMFC : public INDI::Focuser
         INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
 
-        // Motor Mode
-        ISwitch MotorTypeS[2];
-        ISwitchVectorProperty MotorTypeSP;
-        enum { MOTOR_DC, MOTOR_STEPPER };
 
         // Rotator Encoders
         ISwitch EncoderS[2];

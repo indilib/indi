@@ -1069,6 +1069,20 @@ SET(pegasus_SRC
 add_executable(indi_dmfc_focus ${pegasus_SRC})
 target_link_libraries(indi_dmfc_focus indidriver)
 install(TARGETS indi_dmfc_focus RUNTIME DESTINATION bin)
+################ Pegasus FocusCube Focuser ################
+SET(pegasusfocuscube_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/pegasus_focuscube.cpp)
+
+add_executable(indi_pegasus_focuscube ${pegasusfocuscube_SRC})
+target_link_libraries(indi_pegasus_focuscube indidriver)
+install(TARGETS indi_pegasus_focuscube RUNTIME DESTINATION bin)
+################ Pegasus ScopsOAG Focuser ################
+SET(pegasusScopsoag_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/pegasus_scopsoag.cpp)
+
+add_executable(indi_pegasus_scopsoag ${pegasusScopsoag_SRC})
+target_link_libraries(indi_pegasus_scopsoag indidriver)
+install(TARGETS indi_pegasus_scopsoag RUNTIME DESTINATION bin)
 ################## USB Focus V3 ##################
 
 SET(usbfocusv3_SRC

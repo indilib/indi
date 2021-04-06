@@ -1,24 +1,4 @@
-/*
-    Pegasus DMFC Focuser
-    Copyright (C) 2017 Jasem Mutlaq (mutlaqja@ikarustech.com)
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-*/
-
-#include "dmfc.h"
+#include "pegasus_scopsoag.h"
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
@@ -34,26 +14,26 @@
 #define FOCUS_SETTINGS_TAB "Settings"
 #define TEMPERATURE_THRESHOLD 0.1
 
-static std::unique_ptr<DMFC> dmfc(new DMFC());
+static std::unique_ptr<PegasusScopsOAG> scopsOAG(new PegasusScopsOAG());
 
 void ISGetProperties(const char *dev)
 {
-    dmfc->ISGetProperties(dev);
+    scopsOAG->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    dmfc->ISNewSwitch(dev, name, states, names, n);
+    scopsOAG->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    dmfc->ISNewText(dev, name, texts, names, n);
+    scopsOAG->ISNewText(dev, name, texts, names, n);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    dmfc->ISNewNumber(dev, name, values, names, n);
+    scopsOAG->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -71,10 +51,10 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    dmfc->ISSnoopDevice(root);
+    scopsOAG->ISSnoopDevice(root);
 }
 
-DMFC::DMFC()
+PegasusScopsOAG::PegasusScopsOAG()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
@@ -85,30 +65,9 @@ DMFC::DMFC()
                       FOCUSER_HAS_BACKLASH);
 }
 
-bool DMFC::initProperties()
+bool PegasusScopsOAG::initProperties()
 {
     INDI::Focuser::initProperties();
-
-    // Focuser temperature
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
-                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-
-    // Max Speed
-    IUFillNumber(&MaxSpeedN[0], "Value", "", "%6.2f", 100, 1000., 100., 400.);
-    IUFillNumberVector(&MaxSpeedNP, MaxSpeedN, 1, getDeviceName(), "MaxSpeed", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
-
-    // Encoders
-    IUFillSwitch(&EncoderS[ENCODERS_ON], "On", "", ISS_ON);
-    IUFillSwitch(&EncoderS[ENCODERS_OFF], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&EncoderSP, EncoderS, 2, getDeviceName(), "Encoders", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
-
-    // Motor Modes
-    IUFillSwitch(&MotorTypeS[MOTOR_DC], "DC", "", ISS_OFF);
-    IUFillSwitch(&MotorTypeS[MOTOR_STEPPER], "Stepper", "", ISS_ON);
-    IUFillSwitchVector(&MotorTypeSP, MotorTypeS, 2, getDeviceName(), "Motor Type", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY,
-                       0, IPS_IDLE);
 
     // LED
     IUFillSwitch(&LEDS[LED_OFF], "Off", "", ISS_ON);
@@ -148,17 +107,13 @@ bool DMFC::initProperties()
     return true;
 }
 
-bool DMFC::updateProperties()
+bool PegasusScopsOAG::updateProperties()
 {
     INDI::Focuser::updateProperties();
 
     if (isConnected())
     {
 
-        defineProperty(&MotorTypeSP);
-        defineProperty(&MaxSpeedNP);
-        defineProperty(&TemperatureNP);
-        defineProperty(&EncoderSP);
         deleteProperty(FocusReverseSP.name);
         deleteProperty(FocusBacklashSP.name);
         deleteProperty(FocusBacklashNP.name);
@@ -167,10 +122,6 @@ bool DMFC::updateProperties()
     }
     else
     {
-        deleteProperty(TemperatureNP.name);
-        deleteProperty(EncoderSP.name);
-        deleteProperty(MotorTypeSP.name);
-        deleteProperty(MaxSpeedNP.name);
         deleteProperty(LEDSP.name);
         deleteProperty(FirmwareVersionTP.name);
     }
@@ -178,7 +129,7 @@ bool DMFC::updateProperties()
     return true;
 }
 
-bool DMFC::Handshake()
+bool PegasusScopsOAG::Handshake()
 {
     if (ack())
     {
@@ -192,12 +143,12 @@ bool DMFC::Handshake()
 }
 
 
-const char *DMFC::getDefaultName()
+const char *PegasusScopsOAG::getDefaultName()
 {
-    return "Pegasus DMFC";
+    return "Pegasus ScopsOAG";
 }
 
-bool DMFC::ack()
+bool PegasusScopsOAG::ack()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
@@ -236,14 +187,15 @@ bool DMFC::ack()
     tcflush(PortFD, TCIOFLUSH);
 
 
-    if((strstr(res, "OK_DMFCN") != nullptr))
+
+    if((strstr(res, "OK_SCOPS") != nullptr))
         return true;
 
     return false;
 }
 
 
-bool DMFC::SyncFocuser(uint32_t ticks)
+bool PegasusScopsOAG::SyncFocuser(uint32_t ticks)
 {
     int nbytes_written = 0, rc = -1;
     char cmd[16] = {0};
@@ -267,7 +219,7 @@ bool DMFC::SyncFocuser(uint32_t ticks)
     return true;
 }
 
-bool DMFC::move(uint32_t newPosition)
+bool PegasusScopsOAG::move(uint32_t newPosition)
 {
     int nbytes_written = 0, rc = -1;
     char cmd[16] = {0};
@@ -291,31 +243,10 @@ bool DMFC::move(uint32_t newPosition)
     return true;
 }
 
-bool DMFC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool PegasusScopsOAG::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-
-        // Motor Type
-        if (!strcmp(name, MotorTypeSP.name))
-        {
-            IUUpdateSwitch(&MotorTypeSP, states, names, n);
-            bool rc = setMotorType(MotorTypeS[MOTOR_DC].s == ISS_ON ? 0 : 1);
-            MotorTypeSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&MotorTypeSP, nullptr);
-            return true;
-        }
-
-        // Encoders
-        if (!strcmp(name, EncoderSP.name))
-        {
-            IUUpdateSwitch(&EncoderSP, states, names, n);
-            bool rc = setEncodersEnabled(EncoderS[ENCODERS_ON].s == ISS_ON);
-            EncoderSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&EncoderSP, nullptr);
-            return true;
-        }
-
         // LED
         if (!strcmp(name, LEDSP.name))
         {
@@ -329,32 +260,14 @@ bool DMFC::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool DMFC::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // MaxSpeed
-        if (strcmp(name, MaxSpeedNP.name) == 0)
-        {
-            IUUpdateNumber(&MaxSpeedNP, values, names, n);
-            bool rc = setMaxSpeed(MaxSpeedN[0].value);
-            MaxSpeedNP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&MaxSpeedNP, nullptr);
-            return true;
-        }
-    }
-
-    return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
-}
-
-void DMFC::ignoreResponse()
+void PegasusScopsOAG::ignoreResponse()
 {
     int nbytes_read = 0;
     char res[64];
     tty_read_section(PortFD, res, 0xA, DMFC_TIMEOUT, &nbytes_read);
 }
 
-bool DMFC::updateFocusParams()
+bool PegasusScopsOAG::updateFocusParams()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
@@ -395,7 +308,7 @@ bool DMFC::updateFocusParams()
 
 
     // #1 Status
-    if (token == nullptr || (strstr(token, "OK_DMFCN") == nullptr))
+    if (token == nullptr || ((strstr(token, "OK_SCOPS") == nullptr)))
     {
         LOGF_ERROR("Invalid status response. %s", res);
         return false;
@@ -420,50 +333,8 @@ bool DMFC::updateFocusParams()
     // #3 Motor Type
     token = std::strtok(nullptr, ":");
 
-    if (token == nullptr)
-    {
-        LOG_ERROR("Invalid motor mode response.");
-        return false;
-    }
-
-    int motorType = atoi(token);
-
-
-    if (motorType >= 0 && motorType <= 1)
-    {
-        //1 stepper
-        //0 dc
-        IUResetSwitch(&MotorTypeSP);
-        MotorTypeS[MOTOR_DC].s = (motorType == 0) ? ISS_ON : ISS_OFF;
-        MotorTypeS[MOTOR_STEPPER].s = (motorType == 1) ? ISS_ON : ISS_OFF;
-        MotorTypeSP.s = IPS_OK;
-        IDSetSwitch(&MotorTypeSP, nullptr);
-    }
-
     // #4 Temperature
     token = std::strtok(nullptr, ":");
-
-    if (token == nullptr)
-    {
-        LOG_ERROR("Invalid temperature response.");
-        return false;
-    }
-
-    double temperature = atof(token);
-    if (temperature == -127)
-    {
-        TemperatureNP.s = IPS_ALERT;
-        IDSetNumber(&TemperatureNP, nullptr);
-    }
-    else
-    {
-        if (fabs(temperature - TemperatureN[0].value) > TEMPERATURE_THRESHOLD)
-        {
-            TemperatureN[0].value = temperature;
-            TemperatureNP.s = IPS_OK;
-            IDSetNumber(&TemperatureNP, nullptr);
-        }
-    }
 
     // #5 Position
     token = std::strtok(nullptr, ":");
@@ -513,39 +384,8 @@ bool DMFC::updateFocusParams()
     // #8 Reverse Status
     token = std::strtok(nullptr, ":");
 
-    if (token == nullptr)
-    {
-        LOG_ERROR("Invalid reverse response.");
-        return false;
-    }
-
-    int reverseStatus = atoi(token);
-    if (reverseStatus >= 0 && reverseStatus <= 1)
-    {
-        IUResetSwitch(&FocusReverseSP);
-        FocusReverseS[INDI_ENABLED].s = (reverseStatus == 1) ? ISS_ON : ISS_OFF;
-        FocusReverseS[INDI_DISABLED].s = (reverseStatus == 0) ? ISS_ON : ISS_OFF;
-        FocusReverseSP.s = IPS_OK;
-        IDSetSwitch(&FocusReverseSP, nullptr);
-    }
-
     // #9 Encoder status
     token = std::strtok(nullptr, ":");
-
-    if (token == nullptr)
-    {
-        LOG_ERROR("Invalid encoder response.");
-        return false;
-    }
-
-    int encoderStatus = atoi(token);
-    if (encoderStatus >= 0 && encoderStatus <= 1)
-    {
-        IUResetSwitch(&EncoderSP);
-        EncoderS[encoderStatus].s = ISS_ON;
-        EncoderSP.s = IPS_OK;
-        IDSetSwitch(&EncoderSP, nullptr);
-    }
 
     // #10 Backlash
     token = std::strtok(nullptr, ":");
@@ -588,58 +428,8 @@ bool DMFC::updateFocusParams()
     return true;
 }
 
-bool DMFC::setMaxSpeed(uint16_t speed)
-{
-    int nbytes_written = 0, rc = -1;
-    char cmd[16] = {0};
 
-    snprintf(cmd, 16, "S:%d", speed);
-    cmd[strlen(cmd)] = 0xA;
-
-    LOGF_DEBUG("CMD <%s>", cmd);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    // Set Speed
-    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        char errstr[MAXRBUF];
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setMaxSpeed error: %s.", errstr);
-        return false;
-    }
-
-    this->ignoreResponse();
-    return true;
-}
-
-bool DMFC::ReverseFocuser(bool enabled)
-{
-    int nbytes_written = 0, rc = -1;
-    char cmd[16] = {0};
-
-    snprintf(cmd, 16, "N:%d", enabled ? 1 : 0);
-    cmd[strlen(cmd)] = 0xA;
-
-    LOGF_DEBUG("CMD <%s>", cmd);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    // Reverse
-    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        char errstr[MAXRBUF];
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Reverse error: %s.", errstr);
-        return false;
-    }
-
-    this->ignoreResponse();
-
-    return true;
-}
-
-bool DMFC::setLedEnabled(bool enable)
+bool PegasusScopsOAG::setLedEnabled(bool enable)
 {
     int nbytes_written = 0, rc = -1;
     char cmd[16] = {0};
@@ -664,95 +454,7 @@ bool DMFC::setLedEnabled(bool enable)
     return true;
 }
 
-bool DMFC::setEncodersEnabled(bool enable)
-{
-    int nbytes_written = 0, rc = -1;
-    char cmd[16] = {0};
-
-    snprintf(cmd, 16, "E:%d", enable ? 0 : 1);
-    cmd[strlen(cmd)] = 0xA;
-
-    LOGF_DEBUG("CMD <%s>", cmd);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    // Encoders
-    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        char errstr[MAXRBUF];
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Encoder error: %s.", errstr);
-        return false;
-    }
-
-    this->ignoreResponse();
-    return true;
-}
-
-bool DMFC::SetFocuserBacklash(int32_t steps)
-{
-    int nbytes_written = 0, rc = -1;
-    char cmd[16] = {0};
-
-    snprintf(cmd, 16, "C:%d", steps);
-    cmd[strlen(cmd)] = 0xA;
-
-    LOGF_DEBUG("CMD <%s>", cmd);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    // Backlash
-    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        char errstr[MAXRBUF];
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Backlash error: %s.", errstr);
-        return false;
-    }
-
-    this->ignoreResponse();
-    return true;
-}
-
-bool DMFC::SetFocuserBacklashEnabled(bool enabled)
-{
-    if (!enabled)
-        return SetFocuserBacklash(0);
-
-    return SetFocuserBacklash(FocusBacklashN[0].value > 0 ? FocusBacklashN[0].value : 1);
-}
-
-bool DMFC::setMotorType(uint8_t type)
-{
-
-    int nbytes_written = 0, rc = -1;
-    char cmd[16] = {0};
-
-    //commands:
-    //2 dc
-    //1 stepper
-    snprintf(cmd, 16, "R:%d", (type == MOTOR_STEPPER) ? 1 : 2);
-    cmd[strlen(cmd)] = 0xA;
-
-    LOGF_DEBUG("CMD <%s>", cmd);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    // Motor Type
-    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        char errstr[MAXRBUF];
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Motor type error: %s.", errstr);
-        return false;
-    }
-
-    this->ignoreResponse();
-
-    return true;
-}
-
-IPState DMFC::MoveAbsFocuser(uint32_t targetTicks)
+IPState PegasusScopsOAG::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPosition = targetTicks;
 
@@ -766,7 +468,7 @@ IPState DMFC::MoveAbsFocuser(uint32_t targetTicks)
     return IPS_BUSY;
 }
 
-IPState DMFC::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+IPState PegasusScopsOAG::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     double newPosition = 0;
     bool rc = false;
@@ -787,7 +489,7 @@ IPState DMFC::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return IPS_BUSY;
 }
 
-void DMFC::TimerHit()
+void PegasusScopsOAG::TimerHit()
 {
     if (!isConnected())
     {
@@ -815,7 +517,7 @@ void DMFC::TimerHit()
     SetTimer(getCurrentPollingPeriod());
 }
 
-bool DMFC::AbortFocuser()
+bool PegasusScopsOAG::AbortFocuser()
 {
     int nbytes_written;
     char cmd[2] = { 'H', 0xA };
@@ -833,12 +535,9 @@ bool DMFC::AbortFocuser()
         return false;
 }
 
-bool DMFC::saveConfigItems(FILE *fp)
+bool PegasusScopsOAG::saveConfigItems(FILE *fp)
 {
     INDI::Focuser::saveConfigItems(fp);
-    IUSaveConfigSwitch(fp, &MotorTypeSP);
-    IUSaveConfigSwitch(fp, &EncoderSP);
-    IUSaveConfigNumber(fp, &MaxSpeedNP);
     IUSaveConfigSwitch(fp, &LEDSP);
 
     return true;
