@@ -31,6 +31,8 @@
 #include <algorithm>
 #include <assert.h>
 
+#include "indiuserio.h"
+
 #ifdef _WINDOWS
 #include <WinSock2.h>
 #include <windows.h>
@@ -58,8 +60,28 @@
 #define MAXINDIBUF 49152
 #define DISCONNECTION_DELAY_US 500000
 
+static userio io;
+
 INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 {
+    /* #PS: TODO - leftover - sending the blob.
+        if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+                continue;
+    */
+    io.write = [](void *user, const void * ptr, size_t count) -> size_t
+    {
+        BaseClient *self = static_cast<BaseClient *>(user);
+        return net_write(self->sockfd, ptr, count);
+    };
+
+    io.vprintf = [](void *user, const char * format, va_list ap) -> int
+    {
+        BaseClient *self = static_cast<BaseClient *>(user);
+        char message[MAXRBUF];
+        vsnprintf(message, MAXRBUF, format, ap);
+        return net_write(self->sockfd, message, strlen(message));
+    };
+
     sConnected = false;
     verbose    = false;
 
@@ -413,45 +435,34 @@ void INDI::BaseClient::listenINDI()
     XMLEle *root = nullptr;
     int inode = 0;
 
-    AutoCNumeric locale;
-
     if (cDeviceNames.empty())
     {
-        char cmd[MAXRBUF] = {0};
-        snprintf(cmd, MAXRBUF, "<getProperties version='%g'/>\n", INDIV);
-        sendString(cmd);
+        IUUserIOGetProperties(&io, this, nullptr, nullptr);
         if (verbose)
-            IDLog("%s\n", cmd);
+            IUUserIOGetProperties(userio_file(), stderr, nullptr, nullptr);
     }
     else
     {
-        for (auto oneDevice : cDeviceNames)
+        for (const auto &oneDevice : cDeviceNames)
         {
             // If there are no specific properties to watch, we watch the complete device
             if (cWatchProperties.find(oneDevice) == cWatchProperties.end())
             {
-                char cmd[MAXRBUF] = {0};
-                snprintf(cmd, MAXRBUF, "<getProperties version='%g' device='%s'/>\n", INDIV, oneDevice.c_str());
-                sendString(cmd);
+                IUUserIOGetProperties(&io, this, oneDevice.c_str(), nullptr);
                 if (verbose)
-                    IDLog("%s\n", cmd);
+                    IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), nullptr);
             }
             else
             {
-                for (auto oneProperty : cWatchProperties[oneDevice])
+                for (const auto &oneProperty : cWatchProperties[oneDevice])
                 {
-                    char cmd[MAXRBUF] = {0};
-                    snprintf(cmd, MAXRBUF, "<getProperties version='%g' device='%s' name='%s'/>\n",
-                             INDIV, oneDevice.c_str(), oneProperty.c_str());
-                    sendString(cmd);
+                    IUUserIOGetProperties(&io, this, oneDevice.c_str(), oneProperty.c_str());
                     if (verbose)
-                        IDLog("%s\n", cmd);
+                        IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), oneProperty.c_str());
                 }
             }
         }
     }
-
-    locale.Restore();
 
     FD_ZERO(&rs);
 
@@ -810,23 +821,11 @@ void INDI::BaseClient::newUniversalMessage(std::string message)
     IDLog("%s\n", message.c_str());
 }
 
+
 void INDI::BaseClient::sendNewText(ITextVectorProperty *tvp)
 {
     tvp->s = IPS_BUSY;
-
-    sendString("<newTextVector\n");
-    sendString("  device='%s'\n", tvp->device);
-    sendString("  name='%s'\n>", tvp->name);
-
-    for (int i = 0; i < tvp->ntp; i++)
-    {
-        sendString("  <oneText\n");
-        sendString("    name='%s'>\n", tvp->tp[i].name);
-        sendString("      %s\n", tvp->tp[i].text);
-        sendString("  </oneText>\n");
-    }
-    sendString("</newTextVector>\n");
-
+    IUUserIONewText(&io, this, tvp);
 }
 
 void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
@@ -854,22 +853,8 @@ void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyN
 
 void INDI::BaseClient::sendNewNumber(INumberVectorProperty *nvp)
 {
-    AutoCNumeric locale;
-
     nvp->s = IPS_BUSY;
-
-    sendString("<newNumberVector\n");
-    sendString("  device='%s'\n", nvp->device);
-    sendString("  name='%s'\n>", nvp->name);
-
-    for (int i = 0; i < nvp->nnp; i++)
-    {
-        sendString("  <oneNumber\n");
-        sendString("    name='%s'>\n", nvp->np[i].name);
-        sendString("      %g\n", nvp->np[i].value);
-        sendString("  </oneNumber>\n");
-    }
-    sendString("</newNumberVector>\n");
+    IUUserIONewNumber(&io, this, nvp);
 }
 
 void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
@@ -897,33 +882,8 @@ void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propert
 
 void INDI::BaseClient::sendNewSwitch(ISwitchVectorProperty *svp)
 {
-    svp->s            = IPS_BUSY;
-    ISwitch *onSwitch = IUFindOnSwitch(svp);
-
-    sendString("<newSwitchVector\n");
-
-    sendString("  device='%s'\n", svp->device);
-    sendString("  name='%s'>\n", svp->name);
-
-    if (svp->r == ISR_1OFMANY && onSwitch)
-    {
-        sendString("  <oneSwitch\n");
-        sendString("    name='%s'>\n", onSwitch->name);
-        sendString("      %s\n", (onSwitch->s == ISS_ON) ? "On" : "Off");
-        sendString("  </oneSwitch>\n");
-    }
-    else
-    {
-        for (int i = 0; i < svp->nsp; i++)
-        {
-            sendString("  <oneSwitch\n");
-            sendString("    name='%s'>\n", svp->sp[i].name);
-            sendString("      %s\n", (svp->sp[i].s == ISS_ON) ? "On" : "Off");
-            sendString("  </oneSwitch>\n");
-        }
-    }
-
-    sendString("</newSwitchVector>\n");
+    svp->s = IPS_BUSY;
+    IUUserIONewSwitch(&io, this, svp);
 }
 
 void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
@@ -950,128 +910,33 @@ void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propert
 
 void INDI::BaseClient::startBlob(const char *devName, const char *propName, const char *timestamp)
 {
-    sendString("<newBLOBVector\n");
-    sendString("  device='%s'\n", devName);
-    sendString("  name='%s'\n", propName);
-    sendString("  timestamp='%s'>\n", timestamp);
+    IUUserIONewBLOBStart(&io, this, devName, propName, timestamp);
 }
 
 void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
-    char nl = '\n';
-    int rc = 0;
-    size_t sz = 4 * bp->size / 3 + 4;
-    uint8_t *encblob = static_cast<uint8_t*>(malloc(sz));
-    assert_mem(encblob);
-    uint32_t base64Len = to64frombits_s(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size, sz);
-    if (base64Len == 0)
-    {
-        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
-        exit(1);
-    }
-
-    sendString("  <oneBLOB\n");
-    sendString("    name='%s'\n", bp->name);
-    sendString("    size='%ud'\n", bp->size);
-    sendString("    enclen='%d'\n", base64Len);
-    sendString("    format='%s'>\n", bp->format);
-
-    uint32_t written = 0;
-    while (written < base64Len)
-    {
-        // Write 72 chars followed by new line
-        uint8_t towrite = ((base64Len - written) > 72) ? 72 : base64Len - written;
-        ssize_t wr = net_write(sockfd, encblob + written, towrite);
-        if (wr > 0)
-            written += wr;
-        else if (wr < 0)
-        {
-            // If temporary error, continue
-            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
-                continue;
-            else
-            {
-                // Otherwise exist
-                fprintf(stderr, "sendOneBlob: %s\n", strerror(errno));
-                free(encblob);
-                return;
-            }
-        }
-        if ((written % 72) == 0)
-            rc = net_write(sockfd, &nl, 1);
-    }
-
-    if ((written % 72) != 0)
-        rc = net_write(sockfd, &nl, 1);
-
-    free(encblob);
-
-    sendString("   </oneBLOB>\n");
+    IUUserIOBLOBContextOne(
+        &io, this,
+        bp->name, bp->size, bp->bloblen, bp->blob, bp->format
+    );
 }
 
 void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
                                    void *blobBuffer)
 {
-    char nl = '\n';
-    int rc = 0;
-    size_t sz = 4 * blobSize / 3 + 4;
-    uint8_t *encblob = static_cast<uint8_t*>(malloc(sz));
-    assert_mem(encblob);
-    uint32_t base64Len = to64frombits_s(encblob, reinterpret_cast<const uint8_t *>(blobBuffer), blobSize, sz);
-    if (base64Len == 0)
-    {
-        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
-        exit(1);
-    }
-
-    sendString("  <oneBLOB\n");
-    sendString("    name='%s'\n", blobName);
-    sendString("    size='%ud'\n", blobSize);
-    sendString("    enclen='%d'\n", base64Len);
-    sendString("    format='%s'>\n", blobFormat);
-
-    uint32_t written = 0;
-    while (written < base64Len)
-    {
-        // Write 72 chars followed by new line
-        uint8_t towrite = ((base64Len - written) > 72) ? 72 : base64Len - written;
-        ssize_t wr = net_write(sockfd, encblob + written, towrite);
-        if (wr > 0)
-            written += wr;
-        else if (wr < 0)
-        {
-            // If temporary error, continue
-            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
-                continue;
-            else
-            {
-                // Otherwise exist
-                fprintf(stderr, "sendOneBlob: %s\n", strerror(errno));
-                free(encblob);
-                return;
-            }
-        }
-        if ((written % 72) == 0)
-            rc = net_write(sockfd, &nl, 1);
-    }
-
-    if ((written % 72) != 0)
-        rc = net_write(sockfd, &nl, 1);
-
-    free(encblob);
-
-    sendString("   </oneBLOB>\n");
+    IUUserIOBLOBContextOne(
+        &io, this,
+        blobName, blobSize, blobSize, blobBuffer, blobFormat
+    );
 }
 
 void INDI::BaseClient::finishBlob()
 {
-    sendString("</newBLOBVector>\n");
+    IUUserIONewBLOBFinish(&io, this);
 }
 
 void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
 {
-    char blobOpenTag[MAXRBUF];
-
     if (!dev[0])
         return;
 
@@ -1094,23 +959,7 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
         bMode->blobMode = blobH;
     }
 
-    if (prop != nullptr)
-        snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s' name='%s'>", dev, prop);
-    else
-        snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s'>", dev);
-
-    switch (blobH)
-    {
-        case B_NEVER:
-            sendString("%sNever</enableBLOB>\n", blobOpenTag);
-            break;
-        case B_ALSO:
-            sendString("%sAlso</enableBLOB>\n", blobOpenTag);
-            break;
-        case B_ONLY:
-            sendString("%sOnly</enableBLOB>\n", blobOpenTag);
-            break;
-    }
+    IUUserIOEnableBLOB(&io, this, dev, prop, blobH);
 }
 
 BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)

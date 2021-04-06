@@ -252,6 +252,13 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
         /**  Process messages */
         int messageCmd(XMLEle *root, char *errmsg);
 
+        /**
+         * @brief newUniversalMessage Universal messages are sent from INDI server without a specific device. It is addressed to the client overall.
+         * @param message content of message.
+         * @note The default implementation simply logs the message to stderr. Override to handle the message.
+         */
+        virtual void newUniversalMessage(std::string message);
+
     private:
         typedef struct
         {

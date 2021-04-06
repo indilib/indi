@@ -172,6 +172,8 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 
 SET(indiclient_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
 
 SET(indiclient_CXX_SRC
@@ -243,6 +245,8 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 message(STATUS "Building INDI Client with Qt5 support")
 SET(indiclientqt_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
 SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
@@ -412,6 +416,8 @@ SET(indidriver_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
     )
 
@@ -1780,7 +1786,9 @@ SET(indi_get_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/getINDIproperty.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c)
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indi_get indi_get_SRC 10 c)
@@ -1803,7 +1811,9 @@ SET(indi_set_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/setINDIproperty.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c)
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indi_set indi_set_SRC 10 c)
@@ -1827,7 +1837,9 @@ SET(indi_eval_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/compiler.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/evalINDI.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/userio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c)
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indi_eval indi_eval_SRC 10 c)
