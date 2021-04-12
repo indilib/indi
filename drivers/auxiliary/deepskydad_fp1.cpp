@@ -36,8 +36,8 @@
 // We declare an auto pointer to DeepSkyDadFP1.
 static std::unique_ptr<DeepSkyDadFP1> dsdFp1(new DeepSkyDadFP1());
 
-#define FLAT_CMD 32
-#define FLAT_RES 32
+#define FLAT_CMD 40
+#define FLAT_RES 40
 #define FLAT_TIMEOUT 3
 
 void ISGetProperties(const char *dev)
@@ -112,8 +112,6 @@ bool DeepSkyDadFP1::initProperties()
     serialConnection->registerHandshake([&]() { return Handshake(); });
     registerConnection(serialConnection);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
-    return true;
-
     return true;
 }
 
@@ -286,7 +284,7 @@ bool DeepSkyDadFP1::EnableLightBox(bool enable)
     if (!sendCommand(command, response))
         return false;
 
-    if (strcmp(response, expectedResponse) == 0)
+    if (strcmp(response, "(OK)") == 0)
         return true;
 
     return false;
@@ -358,22 +356,16 @@ bool DeepSkyDadFP1::getStatus()
         {
             case 0:
                 IUSaveText(&StatusT[1], "Off");
-                if (LightS[0].s == ISS_ON)
-                {
-                    LightS[0].s = ISS_OFF;
-                    LightS[1].s = ISS_ON;
-                    IDSetSwitch(&LightSP, nullptr);
-                }
+                LightS[0].s = ISS_OFF;
+                LightS[1].s = ISS_ON;
+                IDSetSwitch(&LightSP, nullptr);
                 break;
 
             case 1:
-                IUSaveText(&StatusT[1], "On");
-                if (LightS[1].s == ISS_ON)
-                {
-                    LightS[0].s = ISS_ON;
-                    LightS[1].s = ISS_OFF;
-                    IDSetSwitch(&LightSP, nullptr);
-                }
+            IUSaveText(&StatusT[1], "On");
+                LightS[0].s = ISS_ON;
+                LightS[1].s = ISS_OFF;
+                IDSetSwitch(&LightSP, nullptr);
                 break;
         }
     }
@@ -409,7 +401,7 @@ bool DeepSkyDadFP1::getFirmwareVersion()
         return false;
 
     char versionString[6] = { 0 };
-    snprintf(versionString, 6, "%s", myword + 31);
+    snprintf(versionString, 6, "%s", response + 31);
     IUSaveText(&FirmwareT[0], response);
     IDSetText(&FirmwareTP, nullptr);
 
@@ -422,8 +414,8 @@ bool DeepSkyDadFP1::getBrightness()
     if (!sendCommand("[GLBR]", response))
         return false;
 
-	int32_t brightness;
-    int rc = sscanf(response, "(%d)", &brightness);
+    int32_t brightnessValue;
+    int rc = sscanf(response, "(%d)", &brightnessValue);
 
     if (rc <= 0)
     {
@@ -456,17 +448,10 @@ bool DeepSkyDadFP1::SetLightBoxBrightness(uint16_t value)
         return false;
     }
 
-    if (brightnessValue != prevBrightness)
-    {
-        prevBrightness           = brightnessValue;
-        LightIntensityN[0].value = brightnessValue;
-        IDSetNumber(&LightIntensityNP, nullptr);
-    }
-
     return true;
 }
 
-bool DeepSkyDadFP1::sendCommand(const char *command, char *response)
+bool DeepSkyDadFP1::sendCommand(const char *cmd, char *res)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
