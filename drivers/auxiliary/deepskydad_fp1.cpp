@@ -236,6 +236,7 @@ void DeepSkyDadFP1::TimerHit()
 {
     if (!isConnected())
         return;
+        
 
     getStatus();
 
