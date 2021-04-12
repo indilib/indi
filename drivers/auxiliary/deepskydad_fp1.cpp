@@ -20,7 +20,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include "flip_flat.h"
+#include "deepskydad_fp1.h"
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
@@ -34,7 +34,7 @@
 #include <sys/ioctl.h>
 
 // We declare an auto pointer to DeepSkyDadFP1.
-static std::unique_ptr<DeepSkyDadFP1> flipflat(new DeepSkyDadFP1());
+static std::unique_ptr<DeepSkyDadFP1> dsdFp1(new DeepSkyDadFP1());
 
 #define FLAT_CMD 32
 #define FLAT_RES 32
@@ -42,22 +42,22 @@ static std::unique_ptr<DeepSkyDadFP1> flipflat(new DeepSkyDadFP1());
 
 void ISGetProperties(const char *dev)
 {
-    flipflat->ISGetProperties(dev);
+    dsdFp1->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    flipflat->ISNewSwitch(dev, name, states, names, n);
+    dsdFp1->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    flipflat->ISNewText(dev, name, texts, names, n);
+    dsdFp1->ISNewText(dev, name, texts, names, n);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    flipflat->ISNewNumber(dev, name, values, names, n);
+    dsdFp1->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -75,7 +75,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    flipflat->ISSnoopDevice(root);
+    dsdFp1->ISSnoopDevice(root);
 }
 
 DeepSkyDadFP1::DeepSkyDadFP1() : LightBoxInterface(this, true)
