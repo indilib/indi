@@ -367,23 +367,18 @@ void IDUserIOMessage(
 }
 
 void IUUserIOConfigTag(
-    const userio *io, void *user,
-    int ctag, const char *dev, int silent
+    const userio *io, void *user, int ctag
 )
 {
     /* Opening tag */
     if (ctag == 0)
     {
-        userio_prints    (io, user, "<INDIDriver>\n");
-        if (silent != 1)
-            IDUserIOMessage(io, user, dev, "[INFO] Saving device configuration...");
+        userio_prints(io, user, "<INDIDriver>\n");
     }
     /* Closing tag */
     else
     {
-        userio_prints    (io, user, "</INDIDriver>\n");
-        if (silent != 1)
-            IDUserIOMessage(io, user, dev, "[INFO] Device configuration saved.");
+        userio_prints(io, user, "</INDIDriver>\n");
     }
 }
 

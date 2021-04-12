@@ -84,7 +84,7 @@ void IUUserIOGetProperties(const userio *io, void *user, const char *dev, const 
 void IDUserIOMessage(const userio *io, void *user, const char *dev, const char *fmt, ...);
 void IDUserIOMessageVA(const userio *io, void *user, const char *dev, const char *fmt, va_list ap);
 
-void IUUserIOConfigTag(const userio *io, void *user, int ctag, const char *dev, int silent);
+void IUUserIOConfigTag(const userio *io, void *user, int ctag);
 
 #ifdef __cplusplus
 }

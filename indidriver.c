@@ -1542,7 +1542,21 @@ void IUSaveConfigTag(FILE *fp, int ctag, const char *dev, int silent)
     if (!fp)
         return;
 
-    IUUserIOConfigTag(userio_file(), fp, ctag, dev, silent);
+    IUUserIOConfigTag(userio_file(), fp, ctag);
+
+    if (silent != 1)
+    {
+        /* Opening tag */
+        if (ctag == 0)
+        {
+            IDMessage(dev, "[INFO] Saving device configuration...");
+        }
+        /* Closing tag */
+        else
+        {
+            IDMessage(dev, "[INFO] Device configuration saved.");
+        }
+    }
 }
 
 /* tell client to create a text vector property */
