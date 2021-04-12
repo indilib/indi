@@ -1076,7 +1076,7 @@ IPState IOptronV3::GuideWest(uint32_t ms)
 
 bool IOptronV3::SetSlewRate(int index)
 {
-    IOP_SLEW_RATE rate = (IOP_SLEW_RATE) (index + 1);
+    IOP_SLEW_RATE rate = static_cast<IOP_SLEW_RATE>(index);
     return driver->setSlewRate(rate);
 }
 
