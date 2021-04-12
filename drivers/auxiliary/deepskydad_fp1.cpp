@@ -325,17 +325,18 @@ bool DeepSkyDadFP1::getStatus()
 
     bool statusUpdated = false;
 
-    if (coverStatus != prevCoverStatus)
+    if (motorStatus == 0 && coverStatus != prevCoverStatus)
     {
         prevCoverStatus = coverStatus;
 
         statusUpdated = true;
 
-		if(coverStatus == 0) {
-			 IUSaveText(&StatusT[0], "Open");
+        if(coverStatus == 0) {
+            IUSaveText(&StatusT[0], "Open");
 			if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
 			{
 				IUResetSwitch(&ParkCapSP);
+                ParkCapS[0].s = ISS_OFF;
 				ParkCapS[1].s = ISS_ON;
 				ParkCapSP.s   = IPS_OK;
 				LOG_INFO("Cover open.");
@@ -347,13 +348,16 @@ bool DeepSkyDadFP1::getStatus()
                 {
                     IUResetSwitch(&ParkCapSP);
                     ParkCapS[0].s = ISS_ON;
+                    ParkCapS[1].s = ISS_OFF;
                     ParkCapSP.s   = IPS_OK;
                     LOG_INFO("Cover closed.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
-		} else {
-			IUSaveText(&StatusT[0], "Not Open/Closed");
-		}
+        }
+    }
+
+    if(motorStatus == 1) {
+        IUSaveText(&StatusT[0], "Moving");
     }
 
     if (lightStatus != prevLightStatus)
