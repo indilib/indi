@@ -232,6 +232,16 @@ bool DeepSkyDadFP1::ping()
     return true;
 }
 
+void DeepSkyDadFP1::TimerHit()
+{
+    if (!isConnected())
+        return;
+
+    getStatus();
+
+    SetTimer(getCurrentPollingPeriod());
+}
+
 bool DeepSkyDadFP1::getStartupData()
 {
     bool rc1 = getFirmwareVersion();

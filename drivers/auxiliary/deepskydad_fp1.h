@@ -52,6 +52,7 @@ class DeepSkyDadFP1 : public INDI::DefaultDevice, public INDI::LightBoxInterface
         const char *getDefaultName() override;
 
         virtual bool saveConfigItems(FILE *fp) override;
+        void TimerHit() override;
 
         // From Dust Cap
         virtual IPState ParkCap() override;
