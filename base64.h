@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #pragma once
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,6 +41,11 @@ extern "C" {
     \param inlen number of bytes to convert
     \return 0 on success, -1 on failure.
  */
+extern int to64frombits_s(unsigned char *out, const unsigned char *in, int inlen, size_t outlen);
+
+#if defined(__GNUC__)
+__attribute__((deprecated("unsafe function, use to64frombits_s instead")))
+#endif
 extern int to64frombits(unsigned char *out, const unsigned char *in, int inlen);
 
 /** \brief Convert base64 to bytes array.

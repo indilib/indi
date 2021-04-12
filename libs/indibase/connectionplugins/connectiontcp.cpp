@@ -111,7 +111,6 @@ bool TCP::Connect()
     {
         struct sockaddr_in serv_addr;
         struct hostent *hp = nullptr;
-        int ret            = 0;
 
         struct timeval ts;
         ts.tv_sec  = SOCKET_TIMEOUT;
@@ -149,18 +148,18 @@ bool TCP::Connect()
             return false;
         }
 
-        // Connect to the mount
-        if ((ret = ::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
+        // Set the socket receiving and sending timeouts
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts, sizeof(struct timeval));
+        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts, sizeof(struct timeval));
+
+        // Connect to the device
+        if (::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
         {
-            LOGF_ERROR("Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
+            LOGF_ERROR("Failed to connect to %s@%s: %s.", hostname, port, strerror(errno));
             close(sockfd);
             sockfd = -1;
             return false;
         }
-
-        // Set the socket receiving and sending timeouts
-        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts, sizeof(struct timeval));
-        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts, sizeof(struct timeval));
     }
 
     PortFD = sockfd;
@@ -193,8 +192,8 @@ bool TCP::Disconnect()
 
 void TCP::Activated()
 {
-    m_Device->defineText(&AddressTP);
-    m_Device->defineSwitch(&TcpUdpSP);
+    m_Device->defineProperty(&AddressTP);
+    m_Device->defineProperty(&TcpUdpSP);
     m_Device->loadConfig(true, "DEVICE_ADDRESS");
     m_Device->loadConfig(true, "CONNECTION_TYPE");
 }

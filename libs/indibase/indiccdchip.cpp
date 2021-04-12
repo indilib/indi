@@ -27,7 +27,7 @@ namespace INDI
 
 CCDChip::CCDChip()
 {
-    strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
+    strncpy(ImageExtention, "fits", MAXINDIBLOBFMT);
 }
 
 CCDChip::~CCDChip()
@@ -58,7 +58,7 @@ void CCDChip::setResolution(uint32_t x, uint32_t y)
 
     ImageFrameN[FRAME_W].min = 1;
     ImageFrameN[FRAME_W].max = x;
-    ImageFrameN[FRAME_H].max = 1;
+    ImageFrameN[FRAME_H].min = 1;
     ImageFrameN[FRAME_H].max = y;
     IUUpdateMinMax(&ImageFrameNP);
 }
@@ -121,8 +121,8 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
 
 void CCDChip::setPixelSize(double x, double y)
 {
-    PixelSizex = x;
-    PixelSizey = y;
+    PixelSizeX = x;
+    PixelSizeY = y;
 
     ImagePixelSizeN[2].value = x;
     ImagePixelSizeN[3].value = x;
@@ -133,9 +133,9 @@ void CCDChip::setPixelSize(double x, double y)
 
 void CCDChip::setBPP(uint8_t bbp)
 {
-    BPP = bbp;
+    BitsPerPixel = bbp;
 
-    ImagePixelSizeN[5].value = BPP;
+    ImagePixelSizeN[5].value = BitsPerPixel;
 
     IDSetNumber(&ImagePixelSizeNP, nullptr);
 }
@@ -170,8 +170,8 @@ void CCDChip::setExposureLeft(double duration)
 
 void CCDChip::setExposureDuration(double duration)
 {
-    exposureDuration = duration;
-    gettimeofday(&startExposureTime, nullptr);
+    ExposureDuration = duration;
+    gettimeofday(&StartExposureTime, nullptr);
 }
 
 const char *CCDChip::getFrameTypeName(CCD_FRAME fType)
@@ -187,7 +187,7 @@ const char *CCDChip::getExposureStartTime()
     struct tm *tp = nullptr;
 
     // Get exposure startup timestamp
-    time_t t = static_cast<time_t>(startExposureTime.tv_sec);
+    time_t t = static_cast<time_t>(StartExposureTime.tv_sec);
 
     // Get UTC timestamp
     tp = gmtime(&t);
@@ -196,7 +196,7 @@ const char *CCDChip::getExposureStartTime()
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
 
     // Add millisecond
-    snprintf(ts, 32, "%s.%03d", iso8601, static_cast<int>(startExposureTime.tv_usec / 1000.0));
+    snprintf(ts, 32, "%s.%03d", iso8601, static_cast<int>(StartExposureTime.tv_usec / 1000.0));
 
     return (ts);
 }
@@ -224,7 +224,7 @@ void CCDChip::setNAxis(int value)
 
 void CCDChip::setImageExtension(const char *ext)
 {
-    strncpy(imageExtention, ext, MAXINDIBLOBFMT);
+    strncpy(ImageExtention, ext, MAXINDIBLOBFMT);
 }
 
 void CCDChip::binFrame()

@@ -37,7 +37,10 @@ const std::map<std::string, std::string> Driver::models =
     {"0010", "Cube II EQ"},
     {"0011", "SmartEQ Pro+"},
     {"0025", "CEM25"},
-    {"0026", "CEM25-EC"},
+    {"0026", "CEM26"},
+    {"0027", "CEM26-EC"},
+    {"0028", "GEM28"},
+    {"0029", "GEM28-EC"},
     {"0030", "iEQ30 Pro"},
     {"0040", "CEM40"},
     {"0041", "CEM40-EC"},
@@ -46,6 +49,7 @@ const std::map<std::string, std::string> Driver::models =
     {"0046", "iEQ45 Pro AA"},
     {"0060", "CEM60"},
     {"0061", "CEM60-EC"},
+    {"0070", "CEM70"},
     {"0120", "CEM120"},
     {"0121", "CEM120-EC"},
     {"0122", "CEM120-EC2"},
@@ -328,11 +332,15 @@ bool Driver::startMotion(IOP_DIRECTION dir)
         case IOP_S:
             return sendCommand(":ms#", 0);
             break;
+        // JM 2020-10-12
+        // We are reversing this since CEM120 moves CW when commanded WEST
+        // leading to INCREASING RA, when it is expected to move CCW leading
+        // to DECREASING RA
         case IOP_W:
-            return sendCommand(":mw#", 0);
+            return sendCommand(":me#", 0);
             break;
         case IOP_E:
-            return sendCommand(":me#", 0);
+            return sendCommand(":mw#", 0);
             break;
     }
 
@@ -371,6 +379,40 @@ bool Driver::setCurrentHome()
 {
     return sendCommand(":SZP#");
 }
+
+/* v3.0 Added in control for PEC , Train and Data Integrity */
+bool Driver::setPECEnabled(bool enabled)  
+{ 
+    return sendCommand(enabled ? ":SPP1#" : ":SPP0#");
+}
+
+bool Driver::setPETEnabled(bool enabled)
+{
+    return sendCommand(enabled ? ":SPR1#" : ":SPR0#");
+}
+
+bool Driver::getPETEnabled(bool enabled)
+{
+    char res[IOP_BUFFER] = {0};
+    //  If enabled true then check data quality -> :GPE#
+    //  If enabled false then check if training -> :GPR#
+    if(enabled)
+    {
+        if (sendCommand(":GPE#",1,res))
+         {
+            if (res[0] == '1'){return true;}
+         }
+    }
+    else
+    {
+         if (sendCommand(":GPR#",1,res))
+         {
+            if (res[0] == '1'){return true;}
+         } 
+    }      
+    return false;
+}
+// End Mod */
 
 bool Driver::setSlewRate(IOP_SLEW_RATE rate)
 {
@@ -435,7 +477,8 @@ bool Driver::getGuideRate(double *RARate, double *DERate)
     char res[IOP_BUFFER] = {0};
 
     if (m_Simulation)
-        snprintf(res, IOP_BUFFER, "%02d%02d", static_cast<uint32_t>(simData.ra_guide_rate * 100), static_cast<uint32_t>(simData.de_guide_rate * 100));
+        snprintf(res, IOP_BUFFER, "%02d%02d", static_cast<uint32_t>(simData.ra_guide_rate * 100),
+                 static_cast<uint32_t>(simData.de_guide_rate * 100));
     else if (sendCommand(":AG#", -1, res) == false)
         return false;
 
@@ -489,6 +532,30 @@ bool Driver::unpark()
     //AA and iEQ30 Pro.
     setSimSytemStatus(ST_STOPPED);
     return sendCommand(":MP0#");
+}
+
+bool Driver::setParkAz(double az)
+{
+    char cmd[IOP_BUFFER] = {0};
+
+    // Send as 0.01 arcsec resolution
+    int ieqValue = static_cast<int>(az * 60 * 60 * 100);
+
+    snprintf(cmd, IOP_BUFFER, ":SPA%09d#", ieqValue);
+
+    return sendCommand(cmd);
+}
+
+bool Driver::setParkAlt(double alt)
+{
+    char cmd[IOP_BUFFER] = {0};
+
+    alt = std::max(0.0, alt);
+
+    // Send as 0.01 arcsec resolution
+    int ieqValue = static_cast<int>(alt * 60 * 60 * 100);
+    snprintf(cmd, IOP_BUFFER, ":SPH%08d#", ieqValue);
+    return sendCommand(cmd);
 }
 
 bool Driver::abort()
@@ -618,7 +685,8 @@ bool Driver::getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW
     char res[IOP_BUFFER] = {0};
     if (m_Simulation)
     {
-        snprintf(res, IOP_BUFFER, "%c%08d%09d%d%d", (simData.de >= 0 ? '+' : '-'), static_cast<uint32_t>(fabs(simData.de) * 60 * 60 * 100),
+        snprintf(res, IOP_BUFFER, "%c%08d%09d%d%d", (simData.de >= 0 ? '+' : '-'),
+                 static_cast<uint32_t>(fabs(simData.de) * 60 * 60 * 100),
                  static_cast<uint32_t>(simData.ra * 15 * 60 * 60 * 100), simData.pier_state, simData.cw_state);
     }
     else if (sendCommand(":GEP#", -1, res, IOP_TIMEOUT, INDI::Logger::DBG_EXTRA_1) == false)
@@ -643,7 +711,8 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
     char res[IOP_BUFFER] = {0};
     if (m_Simulation)
     {
-        snprintf(res, IOP_BUFFER, "%c%03d%c%013" PRIu64, (simData.utc_offset_minutes >= 0 ? '+' : '-'), abs(simData.utc_offset_minutes),
+        snprintf(res, IOP_BUFFER, "%c%03d%c%013" PRIu64, (simData.utc_offset_minutes >= 0 ? '+' : '-'),
+                 abs(simData.utc_offset_minutes),
                  (simData.day_light_saving ? '1' : '0'), static_cast<uint64_t>((simData.JD - J2000) * 8.64e+7));
     }
     else if (sendCommand(":GUT#", -1, res) == false)

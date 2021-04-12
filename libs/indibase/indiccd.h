@@ -132,14 +132,14 @@ class CCD : public DefaultDevice, GuiderInterface
 
         typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual void ISGetProperties(const char * dev);
-        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-        virtual bool ISSnoopDevice(XMLEle * root);
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual void ISGetProperties(const char * dev) override;
+        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n) override;
+        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n) override;
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle * root) override;
 
         static void wsThreadHelper(void * context);
 
@@ -428,7 +428,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return True if successful, false otherwise.
          */
-        virtual IPState GuideNorth(uint32_t ms);
+        virtual IPState GuideNorth(uint32_t ms) override;
 
         /**
          * \brief Guide southward for ms milliseconds
@@ -436,7 +436,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return 0 if successful, -1 otherwise.
          */
-        virtual IPState GuideSouth(uint32_t ms);
+        virtual IPState GuideSouth(uint32_t ms) override;
 
         /**
          * \brief Guide easward for ms milliseconds
@@ -444,7 +444,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return 0 if successful, -1 otherwise.
          */
-        virtual IPState GuideEast(uint32_t ms);
+        virtual IPState GuideEast(uint32_t ms) override;
 
         /**
          * \brief Guide westward for ms milliseconds
@@ -452,7 +452,7 @@ class CCD : public DefaultDevice, GuiderInterface
          * \note This function is not implemented in CCD, it must be implemented in the child class
          * \return 0 if successful, -1 otherwise.
          */
-        virtual IPState GuideWest(uint32_t ms);
+        virtual IPState GuideWest(uint32_t ms) override;
 
         /**
          * @brief StartStreaming Start live video streaming
@@ -504,9 +504,9 @@ class CCD : public DefaultDevice, GuiderInterface
          * @param fp pointer to file to write to
          * @return True if successful, false otherwise
          */
-        virtual bool saveConfigItems(FILE * fp);
+        virtual bool saveConfigItems(FILE * fp) override;
 
-        void GuideComplete(INDI_EQ_AXIS axis);
+        void GuideComplete(INDI_EQ_AXIS axis) override;
 
         // Epoch Position
         double RA, Dec;
@@ -540,10 +540,11 @@ class CCD : public DefaultDevice, GuiderInterface
         // Rotator Angle
         double RotatorAngle;
 
-        // JJ ed 2019-12-10
-        long FocusPos;
+        // JJ ed 2019-12-10 current focuser position
+        long FocuserPos;
+        double FocuserTemp;
 
-        // Airmas
+        // Airmass
         double Airmass;
         double Latitude;
         double Longitude;
@@ -710,5 +711,6 @@ class CCD : public DefaultDevice, GuiderInterface
         /// Misc.
         /////////////////////////////////////////////////////////////////////////////
         friend class StreamManager;
+        friend class StreamManagerPrivate;
 };
 }

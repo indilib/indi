@@ -177,11 +177,11 @@ bool SestoSenso::updateProperties()
     {
         // Only define temperature if there is a probe
         if (updateTemperature())
-            defineNumber(&TemperatureNP);
-        defineText(&FirmwareTP);
+            defineProperty(&TemperatureNP);
+        defineProperty(&FirmwareTP);
         IUSaveText(&CalibrationMessageT[0], "Press START to begin the Calibration");
-        defineText(&CalibrationMessageTP);
-        defineSwitch(&CalibrationSP);
+        defineProperty(&CalibrationMessageTP);
+        defineProperty(&CalibrationSP);
 
         if (getStartupValues())
             LOG_INFO("SestoSenso parameters updated, focuser ready for use.");
@@ -439,7 +439,7 @@ bool SestoSenso::ISNewSwitch(const char *dev, const char *name, ISState *states,
             {
                 if (cStage == GoToMiddle)
                 {
-                    defineSwitch(&FastMoveSP);
+                    defineProperty(&FastMoveSP);
                     IUSaveText(&CalibrationMessageT[0], "Move In/Move Out/Stop to MIN position then press NEXT");
                     IDSetText(&CalibrationMessageTP, nullptr);
                     cStage = GoMinimum;
@@ -625,7 +625,7 @@ void SestoSenso::TimerHit()
 {
     if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY || CalibrationSP.s == IPS_BUSY)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -653,7 +653,7 @@ void SestoSenso::TimerHit()
         m_TemperatureCounter = 0;   // Reset the counter
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool SestoSenso::getStartupValues()

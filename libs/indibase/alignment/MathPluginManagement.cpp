@@ -65,9 +65,9 @@ void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
 }
 
 void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const char *name, char *texts[], char *names[],
-                                                 int n)
+        int n)
 {
-    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessTextProperties - name(%s)", name);
+    //DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessTextProperties - name(%s)", name);
     if (strcmp(name, AlignmentSubsystemCurrentMathPluginV.name) == 0)
     {
         AlignmentSubsystemCurrentMathPluginV.s = IPS_OK;
@@ -90,13 +90,15 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
                     }
                     else
                     {
-                        IDLog("MathPluginManagement - dlclose failed on loaded plugin - %s\n", dlerror());
+                        DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
+                                     "MathPluginManagement - dlclose failed on loaded plugin - %s", dlerror());
                         AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
                     }
                 }
                 else
                 {
-                    IDLog("MathPluginManagement - cannot get Destroy function - %s\n", dlerror());
+                    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
+                                 "MathPluginManagement - cannot get Destroy function - %s", dlerror());
                     AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
                 }
             }
@@ -126,18 +128,20 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
                     }
                     else
                     {
-                        IDLog("MathPluginManagement - cannot find %s in list of plugins\n", MathPluginFiles[i].c_str());
+                        DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_WARNING,
+                                     "MathPluginManagement - cannot find %s in list of plugins", MathPluginFiles[i].c_str());
                     }
                 }
                 else
                 {
-                    IDLog("MathPluginManagement - cannot get Create function - %s\n", dlerror());
+                    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR, "MathPluginManagement - cannot get Create function - %s",
+                                 dlerror());
                 }
             }
             else
             {
-                IDLog("MathPluginManagement - cannot load plugin %s error %s\n",
-                      AlignmentSubsystemCurrentMathPlugin.text, dlerror());
+                DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR, "MathPluginManagement - cannot load plugin %s error %s",
+                             AlignmentSubsystemCurrentMathPlugin.text, dlerror());
             }
         }
         else
@@ -158,13 +162,15 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
                     }
                     else
                     {
-                        IDLog("MathPluginManagement - dlclose failed on loaded plugin - %s\n", dlerror());
+                        DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
+                                     "MathPluginManagement - dlclose failed on loaded plugin - %s", dlerror());
                         AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
                     }
                 }
                 else
                 {
-                    IDLog("MathPluginManagement - cannot get Destroy function - %s\n", dlerror());
+                    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
+                                 "MathPluginManagement - cannot get Destroy function - %s", dlerror());
                     AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
                 }
             }
@@ -178,7 +184,7 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
 }
 
 void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const char *name, ISState *states,
-                                                   char *names[], int n)
+        char *names[], int n)
 {
     //DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessSwitchProperties - name(%s)", name);
     INDI_UNUSED(pTelescope);
@@ -206,13 +212,15 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const 
                     }
                     else
                     {
-                        IDLog("MathPluginManagement - dlclose failed on loaded plugin - %s\n", dlerror());
+                        DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
+                                     "MathPluginManagement - dlclose failed on loaded plugin - %s", dlerror());
                         AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
                     }
                 }
                 else
                 {
-                    IDLog("MathPluginManagement - cannot get Destroy function - %s\n", dlerror());
+                    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR,
+                                 "MathPluginManagement - cannot get Destroy function - %s", dlerror());
                     AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
                 }
             }
@@ -231,13 +239,15 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const 
                     }
                     else
                     {
-                        IDLog("MathPluginManagement - cannot get Create function - %s\n", dlerror());
+                        DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR, "MathPluginManagement - cannot get Create function - %s",
+                                     dlerror());
                         AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
                     }
                 }
                 else
                 {
-                    IDLog("MathPluginManagement - cannot load plugin %s error %s\n", PluginPath.c_str(), dlerror());
+                    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_ERROR, "MathPluginManagement - cannot load plugin %s error %s",
+                                 PluginPath.c_str(), dlerror());
                     AlignmentSubsystemMathPluginsV.s = IPS_ALERT;
                 }
             }
@@ -320,12 +330,12 @@ void MathPluginManagement::SetApproximateMountAlignment(MountAlignment_t Approxi
 }
 
 bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscension, const double Declination,
-                                                         double JulianOffset,
-                                                         TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+        double JulianOffset,
+        TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
     if (AlignmentSubsystemActive.s == ISS_ON)
         return (pLoadedMathPlugin->*pTransformCelestialToTelescope)(RightAscension, Declination, JulianOffset,
-                                                                    ApparentTelescopeDirectionVector);
+                ApparentTelescopeDirectionVector);
     else
         return false;
 }
@@ -335,7 +345,7 @@ bool MathPluginManagement::TransformTelescopeToCelestial(
 {
     if (AlignmentSubsystemActive.s == ISS_ON)
         return (pLoadedMathPlugin->*pTransformTelescopeToCelestial)(ApparentTelescopeDirectionVector, RightAscension,
-                                                                    Declination);
+                Declination);
     else
         return false;
 }
@@ -350,18 +360,18 @@ void MathPluginManagement::EnumeratePlugins()
 
     errno = 0;
     char MATH_PLUGINS_DIRECTORY[2048];
-    #if defined(__APPLE__)
-        const char *indiprefix = getenv("INDIPREFIX");
-        if (indiprefix)
-            snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, "%s/Contents/Resources/MathPlugins", indiprefix);
-        else
-            snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, INDI_MATH_PLUGINS_DIRECTORY);
-    #else
+#if defined(__APPLE__)
+    const char *indiprefix = getenv("INDIPREFIX");
+    if (indiprefix)
+        snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, "%s/Contents/Resources/MathPlugins", indiprefix);
+    else
         snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, INDI_MATH_PLUGINS_DIRECTORY);
-    #endif
+#else
+    snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, INDI_MATH_PLUGINS_DIRECTORY);
+#endif
 
     dp    = opendir(MATH_PLUGINS_DIRECTORY);
-    strncat(MATH_PLUGINS_DIRECTORY, "/", 1);
+    strncat(MATH_PLUGINS_DIRECTORY, "/", 2);
     if (dp)
     {
         while (true)

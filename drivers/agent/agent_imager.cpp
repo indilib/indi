@@ -162,7 +162,8 @@ void Imager::initiateNextCapture()
                 IDSetNumber(&ProgressNP, "CCD is not connected");
                 return;
             }
-            CCDImageBinN[0].value = CCDImageBinN[1].value = currentGroup()->binning();
+            CCDImageBinN[0].value = currentGroup()->binning();
+            CCDImageBinN[1].value = currentGroup()->binning();
             sendNewNumber(&CCDImageBinNP);
             CCDImageExposureN[0].value = currentGroup()->exposure();
             sendNewNumber(&CCDImageExposureNP);
@@ -294,9 +295,9 @@ bool Imager::initProperties()
     IUFillBLOB(&FitsB[0], "IMAGE", "Image", "");
     IUFillBLOBVector(&FitsBP, FitsB, 1, getDefaultName(), "IMAGE", "Image Data", DOWNLOAD_TAB, IP_RO, 60, IPS_IDLE);
 
-    defineNumber(&GroupCountNP);
-    defineText(&ControlledDeviceTP);
-    defineText(&ImageNameTP);
+    defineProperty(&GroupCountNP);
+    defineProperty(&ControlledDeviceTP);
+    defineProperty(&ImageNameTP);
 
     for (int i = 0; i < GroupCountN[0].value; i++)
     {
@@ -334,19 +335,19 @@ bool Imager::updateProperties()
 {
     if (isConnected())
     {
-        defineLight(&StatusLP);
+        defineProperty(&StatusLP);
         ProgressN[0].value = group = 0;
         ProgressN[1].value = image = 0;
         ProgressNP.s               = IPS_IDLE;
-        defineNumber(&ProgressNP);
+        defineProperty(&ProgressNP);
         BatchSP.s = IPS_IDLE;
-        defineSwitch(&BatchSP);
+        defineProperty(&BatchSP);
         DownloadN[0].value = 0;
         DownloadN[1].value = 0;
         DownloadNP.s       = IPS_IDLE;
-        defineNumber(&DownloadNP);
+        defineProperty(&DownloadNP);
         FitsBP.s = IPS_IDLE;
-        defineBLOB(&FitsBP);
+        defineProperty(&FitsBP);
     }
     else
     {
@@ -512,8 +513,7 @@ void Imager::newProperty(INDI::Property *property)
 
     if (strcmp(property->getName(), INDI::SP::CONNECTION) == 0)
     {
-        bool state = ((ISwitchVectorProperty *)property->getProperty())->sp[0].s != ISS_OFF;
-
+        bool state = property->getSwitch()->sp[0].s != ISS_OFF;
         if (deviceName == controlledCCD)
         {
             if (state)

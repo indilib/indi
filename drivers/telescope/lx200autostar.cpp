@@ -72,8 +72,8 @@ bool LX200Autostar::initProperties()
 //    /*
 //    if (isConnected())
 //    {
-//        defineText(&VersionTP);
-//        defineNumber(&FocusSpeedNP);
+//        defineProperty(&VersionTP);
+//        defineProperty(&FocusSpeedNP);
 
 //        // For Autostar, we have a different focus speed method
 //        // Therefore, we don't need the classical one
@@ -88,8 +88,8 @@ bool LX200Autostar::updateProperties()
 
     if (isConnected())
     {
-        defineText(&VersionTP);
-        //defineNumber(&FocusSpeedNP);
+        defineProperty(&VersionTP);
+        //defineProperty(&FocusSpeedNP);
 
         // For Autostar, we have a different focus speed method
         // Therefore, we don't need the classical one

@@ -37,67 +37,75 @@ class Serial;
 
 class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
 {
-  public:
-    FlipFlat();
-    virtual ~FlipFlat() = default;
+    public:
+        FlipFlat();
+        virtual ~FlipFlat() = default;
 
-    virtual bool initProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool updateProperties();
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
 
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
-    static void parkTimeoutHelper(void *context);
-    static void unparkTimeoutHelper(void *context);
+        static void parkTimeoutHelper(void *context);
+        static void unparkTimeoutHelper(void *context);
 
-  protected:
-    const char *getDefaultName();
+        typedef enum
+        {
+            FLIP_FLAT,
+            FLIP_MAN,
+            ALNITAK_DUST_COVER
+        } DeviceType;
 
-    virtual bool saveConfigItems(FILE *fp);
-    void TimerHit();
+    protected:
+        const char *getDefaultName() override;
 
-    // From Dust Cap
-    virtual IPState ParkCap();
-    virtual IPState UnParkCap();
+        virtual bool saveConfigItems(FILE *fp) override;
+        void TimerHit() override;
 
-    // From Light Box
-    virtual bool SetLightBoxBrightness(uint16_t value);
-    virtual bool EnableLightBox(bool enable);
+        // From Dust Cap
+        virtual IPState ParkCap() override;
+        virtual IPState UnParkCap() override;
 
-  private:
-    bool sendCommand(const char *command, char *response);
-    bool getStartupData();
-    bool ping();
-    bool getStatus();
-    bool getFirmwareVersion();
-    bool getBrightness();
+        // From Light Box
+        virtual bool SetLightBoxBrightness(uint16_t value) override;
+        virtual bool EnableLightBox(bool enable) override;
 
-    void parkTimeout();
-    int parkTimeoutID { -1 };
-    void unparkTimeout();
-    int unparkTimeoutID { -1 };
+    private:
+        bool sendCommand(const char *command, char *response);
+        bool getStartupData();
+        bool ping();
+        bool getStatus();
+        bool getFirmwareVersion();
+        bool getBrightness();
 
-    bool Handshake();
+        void parkTimeout();
+        int parkTimeoutID { -1 };
+        void unparkTimeout();
+        int unparkTimeoutID { -1 };
 
-    // Status
-    ITextVectorProperty StatusTP;
-    IText StatusT[3]{};
+        bool Handshake();
 
-    // Firmware version
-    ITextVectorProperty FirmwareTP;
-    IText FirmwareT[1]{};
+        // Status
+        ITextVectorProperty StatusTP;
+        IText StatusT[3] {};
 
-    int PortFD{ -1 };
-    int productID{ 0 };
-    bool isFlipFlat{ false };
-    uint8_t simulationWorkCounter{ 0 };
-    uint8_t prevCoverStatus{ 0xFF };
-    uint8_t prevLightStatus{ 0xFF };
-    uint8_t prevMotorStatus{ 0xFF };
-    uint8_t prevBrightness{ 0xFF };
+        // Firmware version
+        ITextVectorProperty FirmwareTP;
+        IText FirmwareT[1] {};
 
-    Connection::Serial *serialConnection{ nullptr };
+        int PortFD{ -1 };
+        uint16_t productID{ 0 };
+        DeviceType m_Type { FLIP_FLAT };;
+
+        uint8_t simulationWorkCounter{ 0 };
+        uint8_t prevCoverStatus{ 0xFF };
+        uint8_t prevLightStatus{ 0xFF };
+        uint8_t prevMotorStatus{ 0xFF };
+        uint8_t prevBrightness{ 0xFF };
+
+        Connection::Serial *serialConnection{ nullptr };
 };

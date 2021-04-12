@@ -47,17 +47,17 @@ class Serial : public Interface
     Serial(INDI::DefaultDevice *dev);
     virtual ~Serial();
 
-    virtual bool Connect();
+    virtual bool Connect() override;
 
-    virtual bool Disconnect();
+    virtual bool Disconnect() override;
 
-    virtual void Activated();
+    virtual void Activated() override;
 
-    virtual void Deactivated();
+    virtual void Deactivated() override;
 
-    virtual std::string name() { return "CONNECTION_SERIAL"; }
+    virtual std::string name() override { return "CONNECTION_SERIAL"; }
 
-    virtual std::string label() { return "Serial"; }
+    virtual std::string label() override { return "Serial"; }
 
     /**
      * @return Currently active device port
@@ -89,9 +89,9 @@ class Serial : public Interface
      */
     int getPortFD() const { return PortFD; }
 
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
     /**
      * Refresh the list of system ports

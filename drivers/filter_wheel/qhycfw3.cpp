@@ -99,6 +99,19 @@ bool QHYCFW3::Handshake()
     if (isSimulation())
         return true;
 
+    LOG_DEBUG("HANDSHAKE");
+
+    if ( (rc = tty_read(PortFD, res, 1, 25, &nbytes_read)) != TTY_OK)
+    {
+        char error_message[ERRMSG_SIZE];
+        tty_error_msg(rc, error_message, ERRMSG_SIZE);
+
+        LOGF_ERROR("Handshake failed: %s. Firmware must be higher than 201409", error_message);
+        return false;
+    }
+
+    LOGF_DEBUG("RES <%s>", res);
+
     LOG_DEBUG("CMD <VRS>");
 
     if ( (rc = tty_write_string(PortFD, "VRS", &nbytes_written)) != TTY_OK)

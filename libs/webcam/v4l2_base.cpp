@@ -1077,7 +1077,7 @@ int V4L2_Base::check_device(char * errmsg)
     if (-1 == ioctl(fd, VIDIOC_G_INPUT, &input.index))
     {
         perror("VIDIOC_G_INPUT");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Enumerating available Inputs:");
@@ -1769,7 +1769,8 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char * errmsg)
         // Ask the hardware to crop - don't fail, fallback to software cropping if not possible
         if (-1 == XIOCTL(fd, VIDIOC_S_CROP, &hardware_crop))
         {
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_WARNING, "Failed V4L2 hardware crop request 0x%08X (%dx%d at (%d, %d)), falling back to software crop",
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_WARNING,
+                         "Failed V4L2 hardware crop request 0x%08X (%dx%d at (%d, %d)), falling back to software crop",
                          (unsigned int)VIDIOC_S_CROP, hardware_crop.c.width, hardware_crop.c.height,
                          hardware_crop.c.left, hardware_crop.c.top);
             //return errno_exit("VIDIOC_S_CROP", errmsg);

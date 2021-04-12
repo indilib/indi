@@ -1,5 +1,7 @@
 # INDI Core Library
-[![CircleCI](https://circleci.com/gh/indilib/indi.svg?style=svg)](https://circleci.com/gh/indilib/indi)
+[![Linux](https://github.com/indilib/indi/actions/workflows/default.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![MacOS](https://github.com/indilib/indi/actions/workflows/macos.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![PyIndi](https://github.com/indilib/indi/actions/workflows/pyindi.yml/badge.svg)](https://github.com/indilib/indi/actions)
 
 INDI is a standard for astronomical instrumentation control. INDI Library is an Open Source POSIX implementation of the
 [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf).
@@ -56,6 +58,7 @@ On the other hand, if you plan to submit a PR or engage in INDI driver developme
 ```
 git clone https://github.com/indilib/indi.git
 ```
+It is worth making your own fork of indi in your own personal repository and cloning from that rather than cloning directly from the root indi 
 
 ## Build indi-core
 
@@ -66,6 +69,14 @@ cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ~/Projects/indi
 make -j4
 sudo make install
 ```
+If your are planning to develop using Qt Creator then still follow this process and do a manual build first.  Then in QT Creator:
++ Open the project using File - Open File or Project.
++ Navigate to Projects/indi and selec the CMakeLists.txt file.
++ Qt Creator will open your project but will probably configure it incorrectly, select the Projects tab and change to the Projects/build/indi-core directory that you used to do the initial build.  The project display may be blank but click on the build button (the geological hammer) anyway.  The project should build.
+
+It is very easy to get this process wrong and all sorts of subtle things can happen, such as everything appearing to build but your new functionality not being present.
+
+
 
 # Architecture
 

@@ -78,7 +78,7 @@ void ISSnoopDevice(XMLEle *root)
 /////////////////////////////////////////////////////////////////////////////
 EFA::EFA()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     // Focuser Capabilities
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
@@ -99,29 +99,53 @@ bool EFA::initProperties()
     // Focuser temperature
     IUFillNumber(&TemperatureN[TEMPERATURE_PRIMARY], "TEMPERATURE_PRIMARY", "Primary (c)", "%.2f", -50, 70., 0., 0.);
     IUFillNumber(&TemperatureN[TEMPERATURE_AMBIENT], "TEMPERATURE_AMBIENT", "Ambient (c)", "%.2f", -50, 70., 0., 0.);
-    IUFillNumber(&TemperatureN[TEMPERATURE_SECONDARY], "TEMPERATURE_SECONDARY", "Secondary (c)", "%.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 3, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 2, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Fan Control
     IUFillSwitch(&FanStateS[FAN_ON], "FAN_ON", "On", ISS_OFF);
     IUFillSwitch(&FanStateS[FAN_OFF], "FAN_OFF", "Off", ISS_ON);
-    IUFillSwitchVector(&FanStateSP, FanStateS, 2, getDeviceName(), "FOCUS_FAN", "Fans", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&FanStateSP, FanStateS, 2, getDeviceName(), "FOCUS_FAN", "Fans", FAN_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
+
+    // Fan Control Mode
+    IUFillSwitch(&FanControlS[FAN_MANUAL], "FAN_MANUAL", "Manual", ISS_ON);
+    IUFillSwitch(&FanControlS[FAN_AUTOMATIC_ABSOLUTE], "FAN_AUTOMATIC_ABSOLUTE", "Auto. Absolute", ISS_OFF);
+    IUFillSwitch(&FanControlS[FAN_AUTOMATIC_RELATIVE], "FAN_AUTOMATIC_RELATIVE", "Auto. Relative", ISS_OFF);
+    IUFillSwitchVector(&FanControlSP, FanControlS, 3, getDeviceName(), "FOCUS_FAN_CONTROL", "Control Mode", FAN_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Fan Control Parameters
+    IUFillNumber(&FanControlN[FAN_MAX_ABSOLUTE], "FAN_MAX_ABSOLUTE", "Max Primary (c)", "%.2f", 0, 50., 5., 25.);
+    IUFillNumber(&FanControlN[FAN_MAX_RELATIVE], "FAN_MAX_RELATIVE", "Max Relative (c)", "%.2f", 0., 30., 1., 2.5);
+    IUFillNumber(&FanControlN[FAN_DEADZONE], "FAN_DEADZONE", "Deadzone (c)", "%.2f", 0.1, 10, 0.5, 0.5);
+    IUFillNumberVector(&FanControlNP, FanControlN, 3, getDeviceName(), "FOCUS_FAN_PARAMS", "Control Params",
+                       FAN_TAB, IP_RW, 0, IPS_IDLE);
+
+    // Fan Off on Disconnect
+    IUFillSwitch(&FanDisconnectS[FAN_OFF_ON_DISCONNECT], "FAN_OFF_ON_DISCONNECT", "Switch Off", ISS_ON);
+    IUFillSwitchVector(&FanDisconnectSP, FanDisconnectS, 1, getDeviceName(), "FOCUS_FAN_DISCONNECT", "On Disconnect", FAN_TAB,
+                       IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     // Calibration Control
     IUFillSwitch(&CalibrationStateS[CALIBRATION_ON], "CALIBRATION_ON", "Calibrated", ISS_OFF);
     IUFillSwitch(&CalibrationStateS[CALIBRATION_OFF], "CALIBRATION_OFF", "Not Calibrated", ISS_ON);
-    IUFillSwitchVector(&CalibrationStateSP, CalibrationStateS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CalibrationStateSP, CalibrationStateS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Setup limits
-    FocusMaxPosN[0].max = FocusMaxPosN[0].value = 3799422;
-    FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
+    FocusMaxPosN[0].value = 1e7;
+    FocusMaxPosN[0].max   = 1e7;
+    FocusMaxPosN[0].step  = FocusMaxPosN[0].max / 50;
 
-    FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].max;
-    FocusAbsPosN[0].step = FocusSyncN[0].step = FocusAbsPosN[0].max / 50;
+    FocusAbsPosN[0].max   = 1e7;
+    FocusAbsPosN[0].step  = FocusAbsPosN[0].max / 50;
 
-    FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
-    FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
+    FocusSyncN[0].max     = 1e7;
+    FocusSyncN[0].step    = FocusSyncN[0].max / 50;
+
+    FocusRelPosN[0].max   = FocusAbsPosN[0].max / 2;
+    FocusRelPosN[0].step  = FocusRelPosN[0].max / 50;
 
     addAuxControls();
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -141,16 +165,27 @@ bool EFA::updateProperties()
     {
         getStartupValues();
 
-        defineText(&InfoTP);
-        defineSwitch(&CalibrationStateSP);
-        defineSwitch(&FanStateSP);
-        defineNumber(&TemperatureNP);
+        defineProperty(&InfoTP);
+        defineProperty(&CalibrationStateSP);
+
+        // Fan
+        defineProperty(&FanStateSP);
+        defineProperty(&FanControlSP);
+        loadConfig(true, FanControlSP.name);
+        defineProperty(&FanDisconnectSP);
+
+        defineProperty(&TemperatureNP);
     }
     else
     {
         deleteProperty(InfoTP.name);
         deleteProperty(CalibrationStateSP.name);
+
         deleteProperty(FanStateSP.name);
+        deleteProperty(FanControlSP.name);
+        deleteProperty(FanControlNP.name);
+        deleteProperty(FanDisconnectSP.name);
+
         deleteProperty(TemperatureNP.name);
     }
 
@@ -160,11 +195,22 @@ bool EFA::updateProperties()
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
+bool EFA::Disconnect()
+{
+    if (FanDisconnectS[FAN_OFF_ON_DISCONNECT].s == ISS_ON)
+        setFanEnabled(false);
+
+    return INDI::Focuser::Disconnect();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
 bool EFA::Handshake()
 {
     std::string version;
 
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
@@ -177,6 +223,7 @@ bool EFA::Handshake()
         return false;
 
     version = std::to_string(res[5]) + "." + std::to_string(res[6]);
+    IUSaveText(&InfoT[INFO_VERSION], version.c_str());
 
     LOGF_INFO("Detected version %s", version.c_str());
 
@@ -218,11 +265,19 @@ bool EFA::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
         // Fan State
         else if (!strcmp(FanStateSP.name, name))
         {
+            if (FanControlS[FAN_MANUAL].s == ISS_OFF)
+            {
+                FanStateSP.s = IPS_IDLE;
+                LOG_WARN("Cannot control fan while manual control is turned off.");
+                IDSetSwitch(&FanControlSP, nullptr);
+                return true;
+            }
+
             bool enabled = strcmp(FanStateS[FAN_ON].name, IUFindOnSwitchName(states, names, n)) == 0;
             if (setFanEnabled(enabled))
             {
                 IUUpdateSwitch(&FanStateSP, states, names, n);
-                FanStateSP.s = IPS_OK;
+                FanStateSP.s = enabled ? IPS_OK : IPS_IDLE;
             }
             else
             {
@@ -232,7 +287,39 @@ bool EFA::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             IDSetSwitch(&FanStateSP, nullptr);
             return true;
         }
+        // Fan Control
+        else if (!strcmp(FanControlSP.name, name))
+        {
+            IUUpdateSwitch(&FanControlSP, states, names, n);
+            if (FanControlS[FAN_MANUAL].s == ISS_ON)
+            {
+                deleteProperty(FanControlNP.name);
+                LOG_INFO("Fan is now controlled manually.");
+            }
+            else
+            {
+                LOG_INFO("Fan is now controlled automatically per the control parameters.");
+                defineProperty(&FanControlNP);
+            }
 
+            FanControlSP.s = IPS_OK;
+            IDSetSwitch(&FanControlSP, nullptr);
+            return true;
+        }
+        // Fan Disconnect
+        else if (!strcmp(FanDisconnectSP.name, name))
+        {
+            IUUpdateSwitch(&FanDisconnectSP, states, names, n);
+
+            if (FanDisconnectS[FAN_OFF_ON_DISCONNECT].s == ISS_ON)
+                LOG_INFO("Fan shall be turned off upon device disconnection.");
+            else
+                LOG_INFO("Fan shall left as-is upon device disconnection.");
+
+            FanDisconnectSP.s = IPS_OK;
+            IDSetSwitch(&FanDisconnectSP, nullptr);
+            return true;
+        }
     }
 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
@@ -245,7 +332,14 @@ bool EFA::ISNewNumber(const char *dev, const char *name, double values[], char *
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-
+        // Fan Params
+        if (!strcmp(FanControlNP.name, name))
+        {
+            IUUpdateNumber(&FanControlNP, values, names, n);
+            FanControlNP.s = IPS_OK;
+            IDSetNumber(&FanControlNP, nullptr);
+            return true;
+        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -256,7 +350,7 @@ bool EFA::ISNewNumber(const char *dev, const char *name, double values[], char *
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SyncFocuser(uint32_t ticks)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -279,7 +373,7 @@ bool EFA::SyncFocuser(uint32_t ticks)
 /////////////////////////////////////////////////////////////////////////////
 IPState EFA::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -325,10 +419,65 @@ void EFA::TimerHit()
 
     if (readTemperature())
     {
-        if (std::fabs(TemperatureN[0].value - m_LastTemperature) > TEMPERATURE_THRESHOLD)
+        // Send temperature is above threshold
+        bool aboveThreshold = false;
+        for (int i = 0; i < TemperatureNP.nnp; i++)
         {
-            m_LastTemperature = TemperatureN[0].value;
+            if (std::fabs(TemperatureN[i].value - m_LastTemperature[i]) > TEMPERATURE_THRESHOLD)
+            {
+                aboveThreshold = true;
+                m_LastTemperature[i] = TemperatureN[i].value;
+            }
+        }
+
+        if (aboveThreshold)
             IDSetNumber(&TemperatureNP, nullptr);
+
+
+        if (FanControlS[FAN_MANUAL].s == ISS_OFF)
+        {
+            bool turnOn = false, turnOff = false;
+            const bool isFanOn = FanStateS[FAN_ON].s == ISS_ON;
+
+            // Check if we need to do automatic regulation of fan
+            if (FanControlS[FAN_AUTOMATIC_ABSOLUTE].s == ISS_ON)
+            {
+                // Adjust delta for deadzone
+                double min_delta = FanControlN[FAN_MAX_ABSOLUTE].value - FanControlN[FAN_DEADZONE].value;
+                double max_delta = FanControlN[FAN_MAX_ABSOLUTE].value + FanControlN[FAN_DEADZONE].value;
+
+                turnOn = TemperatureN[TEMPERATURE_PRIMARY].value > max_delta;
+                turnOff = TemperatureN[TEMPERATURE_PRIMARY].value < min_delta;
+            }
+            else if (FanControlS[FAN_AUTOMATIC_RELATIVE].s == ISS_ON)
+            {
+                // Temperature delta
+                double tDiff = TemperatureN[TEMPERATURE_PRIMARY].value - TemperatureN[TEMPERATURE_AMBIENT].value;
+                // Adjust delta for deadzone
+                double min_delta = FanControlN[FAN_MAX_RELATIVE].value - FanControlN[FAN_DEADZONE].value;
+                double max_delta = FanControlN[FAN_MAX_RELATIVE].value + FanControlN[FAN_DEADZONE].value;
+
+                // Check if we need to turn off/on fan
+                turnOn = tDiff > max_delta;
+                turnOff = tDiff < min_delta;
+            }
+
+            if (isFanOn && turnOff)
+            {
+                setFanEnabled(false);
+                FanStateS[FAN_ON].s = ISS_OFF;
+                FanStateS[FAN_OFF].s = ISS_ON;
+                FanStateSP.s = IPS_IDLE;
+                IDSetSwitch(&FanStateSP, nullptr);
+            }
+            else if (!isFanOn && turnOn)
+            {
+                setFanEnabled(true);
+                FanStateS[FAN_ON].s = ISS_ON;
+                FanStateS[FAN_OFF].s = ISS_OFF;
+                FanStateSP.s = IPS_OK;
+                IDSetSwitch(&FanStateSP, nullptr);
+            }
         }
     }
 
@@ -351,8 +500,9 @@ void EFA::TimerHit()
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
+
 
 /////////////////////////////////////////////////////////////////////////////
 ///
@@ -367,7 +517,7 @@ bool EFA::AbortFocuser()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::SetFocuserMaxPosition(uint32_t ticks)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x06;
@@ -397,9 +547,14 @@ bool EFA::ReverseFocuser(bool enabled)
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-bool EFA::saveConfigItems(FILE *fp)
+bool EFA::saveConfigItems(FILE * fp)
 {
     INDI::Focuser::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &FanControlSP);
+    if (FanControlNP.s == IPS_OK)
+        IUSaveConfigNumber(fp, &FanControlNP);
+    IUSaveConfigSwitch(fp, &FanDisconnectSP);
     return true;
 }
 
@@ -422,6 +577,7 @@ void EFA::getStartupValues()
         FocusRelPosN[0].max = FocusAbsPosN[0].max / 2;
         FocusRelPosN[0].step = FocusRelPosN[0].max / 50;
 
+        FocusMaxPosN[0].value = FocusMaxPosN[0].max;
         FocusMaxPosN[0].step = FocusMaxPosN[0].max / 50;
 
         IUUpdateMinMax(&FocusRelPosNP);
@@ -433,7 +589,7 @@ void EFA::getStartupValues()
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
-bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t res_len)
+bool EFA::sendCommand(const uint8_t * cmd, uint8_t *res, uint32_t cmd_len, uint32_t res_len)
 {
     int nbytes_written = 0, nbytes_read = 0, bits = 0, rc = 0;
     char echo[DRIVER_LEN] = {0};
@@ -461,7 +617,7 @@ bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t r
         char hex_cmd[DRIVER_LEN * 3] = {0};
         hexDump(hex_cmd, cmd, cmd_len);
         LOGF_DEBUG("CMD <%s>", hex_cmd);
-        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
+        rc = tty_write(PortFD, reinterpret_cast<const char *>(cmd), cmd_len, &nbytes_written);
 
         if (rc != TTY_OK)
         {
@@ -478,7 +634,7 @@ bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t r
         ioctl(PortFD, TIOCMBIC, &bits);
 
         // Next read the actual response from EFA
-        rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
+        rc = tty_read(PortFD, reinterpret_cast<char *>(res), res_len, DRIVER_TIMEOUT, &nbytes_read);
 
         if (rc == TTY_OK)
             break;
@@ -514,7 +670,7 @@ bool EFA::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_t r
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readPosition()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
@@ -535,7 +691,7 @@ bool EFA::readPosition()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readMaxSlewLimit()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
@@ -563,7 +719,7 @@ bool EFA::readMaxSlewLimit()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::isGOTOComplete()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
@@ -583,7 +739,7 @@ bool EFA::isGOTOComplete()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::setFanEnabled(bool enabled)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x04;
@@ -604,7 +760,7 @@ bool EFA::setFanEnabled(bool enabled)
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readFanState()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x03;
@@ -629,7 +785,7 @@ bool EFA::readFanState()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::setCalibrationEnabled(bool enabled)
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x05;
@@ -651,7 +807,7 @@ bool EFA::setCalibrationEnabled(bool enabled)
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readCalibrationState()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
     cmd[0] = DRIVER_SOM;
     cmd[1] = 0x04;
@@ -676,9 +832,9 @@ bool EFA::readCalibrationState()
 /////////////////////////////////////////////////////////////////////////////
 bool EFA::readTemperature()
 {
-    char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+    uint8_t cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
 
-    for (uint8_t i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < 2; i++)
     {
         cmd[0] = DRIVER_SOM;
         cmd[1] = 0x04;
@@ -715,10 +871,10 @@ double EFA::calculateTemperature(uint8_t byte2, uint8_t byte3)
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-void EFA::hexDump(char * buf, const char * data, uint32_t size)
+void EFA::hexDump(char * buf, const uint8_t * data, uint32_t size)
 {
     for (uint32_t i = 0; i < size; i++)
-        sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
+        sprintf(buf + 3 * i, "%02X ", data[i]);
 
     if (size > 0)
         buf[3 * size - 1] = '\0';
@@ -752,10 +908,10 @@ std::string EFA::to_string(const T a_value, const int n)
 /////////////////////////////////////////////////////////////////////////////
 /// Calculate Checksum
 /////////////////////////////////////////////////////////////////////////////
-uint8_t EFA::calculateCheckSum(const char *cmd, uint32_t len)
+uint8_t EFA::calculateCheckSum(const uint8_t *cmd, uint32_t len)
 {
     int32_t sum = 0;
     for (uint32_t i = 1; i < len - 1; i++)
         sum += cmd[i];
-    return (-sum & 0xFF);
+    return (sum & 0xFF);
 }

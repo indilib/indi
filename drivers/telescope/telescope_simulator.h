@@ -41,92 +41,95 @@
  */
 class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 {
-  public:
-    ScopeSim();
-    virtual ~ScopeSim() = default;
+    public:
+        ScopeSim();
+        virtual ~ScopeSim() = default;
 
-    virtual const char *getDefaultName() override;
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
-    virtual bool ReadScopeStatus() override;
-    virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool updateProperties() override;
+        virtual const char *getDefaultName() override;
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
+        virtual bool ReadScopeStatus() override;
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    // Slew Rate
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
-    virtual bool Abort() override;
+    protected:
+        // Slew Rate
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+        virtual bool Abort() override;
 
-    virtual IPState GuideNorth(uint32_t ms) override;
-    virtual IPState GuideSouth(uint32_t ms) override;
-    virtual IPState GuideEast(uint32_t ms) override;
-    virtual IPState GuideWest(uint32_t ms) override;
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool SetTrackEnabled(bool enabled) override;
-    virtual bool SetTrackRate(double raRate, double deRate) override;
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool SetTrackRate(double raRate, double deRate) override;
 
-    virtual bool Goto(double, double) override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-    virtual bool Sync(double ra, double dec) override;
+        virtual bool Goto(double, double) override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool Sync(double ra, double dec) override;
 
-    // Parking
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-private:
-    double currentRA { 0 };
-    double currentDEC { 90 };
-    double targetRA { 0 };
-    double targetDEC { 0 };
+    private:
+        double currentRA { 0 };
+        double currentDEC { 90 };
+        double targetRA { 0 };
+        double targetDEC { 0 };
 
-    /// used by GoTo and Park
-    void StartSlew(double ra, double dec, TelescopeStatus status);
+        /// used by GoTo and Park
+        void StartSlew(double ra, double dec, TelescopeStatus status);
 
-    bool forceMeridianFlip { false };
-    unsigned int DBG_SCOPE { 0 };
+        // bool forceMeridianFlip { false }; // #PS: unused
+        unsigned int DBG_SCOPE { 0 };
 
-    int mcRate = 0;
+        int mcRate = 0;
 
-//    double guiderEWTarget[2];
-//    double guiderNSTarget[2];
+        //    double guiderEWTarget[2];
+        //    double guiderNSTarget[2];
 
-    bool guidingNS = false;
-    bool guidingEW = false;
+        bool guidingNS = false;
+        bool guidingEW = false;
 
-    INumber GuideRateN[2];
-    INumberVectorProperty GuideRateNP;
+        INumber GuideRateN[2];
+        INumberVectorProperty GuideRateNP;
 
-    Axis axisPrimary { "HaAxis" };         // hour angle mount axis
-    Axis axisSecondary { "DecAxis" };       // declination mount axis
+        Axis axisPrimary { "HaAxis" };         // hour angle mount axis
+        Axis axisSecondary { "DecAxis" };       // declination mount axis
 
-    Alignment alignment;
-    bool updateMountAndPierSide();
+        int m_PierSide {-1};
+        int m_MountType {-1};
+
+        Alignment alignment;
+        bool updateMountAndPierSide();
 
 #ifdef USE_SIM_TAB
-    // Simulator Tab properties
-    // Scope type and alignment
-    ISwitch mountTypeS[3];
-    ISwitchVectorProperty mountTypeSP;
-    ISwitch simPierSideS[2];
-    ISwitchVectorProperty simPierSideSP;
+        // Simulator Tab properties
+        // Scope type and alignment
+        ISwitch mountTypeS[3];
+        ISwitchVectorProperty mountTypeSP;
+        ISwitch simPierSideS[2];
+        ISwitchVectorProperty simPierSideSP;
 
-    INumber mountModelN[6];
-    INumberVectorProperty mountModelNP;
-    INumber mountAxisN[2];
-    INumberVectorProperty mountAxisNP;
+        INumber mountModelN[6];
+        INumberVectorProperty mountModelNP;
+        INumber mountAxisN[2];
+        INumberVectorProperty mountAxisNP;
 
-    INumber flipHourAngleN[1];
-    INumberVectorProperty flipHourAngleNP;
+        INumber flipHourAngleN[1];
+        INumberVectorProperty flipHourAngleNP;
 #endif
 
 };

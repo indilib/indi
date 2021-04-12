@@ -97,7 +97,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    INDI_UNUSED(root);
+    SkywatcherAltAzSimplePtr->ISSnoopDevice(root);
 }
 
 SkywatcherAltAzSimple::SkywatcherAltAzSimple() : TrackLogFileName(GetHomeDirectory() + "/.indi/sw_mount_track_log.txt")
@@ -139,7 +139,13 @@ bool SkywatcherAltAzSimple::Handshake()
     DEBUG(DBG_SCOPE, "SkywatcherAltAzSimple::Handshake");
     SetSerialPort(PortFD);
 
-    bool Result = InitMount(RecoverAfterReconnection);
+    Connection::Interface *activeConnection = getActiveConnection();
+    if (!activeConnection->name().compare("CONNECTION_TCP"))
+    {
+        tty_set_generic_udp_format(1);
+    }
+
+    bool Result = InitMount();
 
     if (getActiveConnection() == serialConnection)
     {
@@ -263,94 +269,94 @@ bool SkywatcherAltAzSimple::initProperties()
     addConfigurationControl();
 
     // Set up property variables
-    IUFillText(&BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION], "MOTOR_CONTROL_FIRMWARE_VERSION",
+    IUFillText(&BasicMountInfoT[MOTOR_CONTROL_FIRMWARE_VERSION], "MOTOR_CONTROL_FIRMWARE_VERSION",
                "Motor control firmware version", "-");
-    IUFillText(&BasicMountInfo[MOUNT_CODE], "MOUNT_CODE", "Mount code", "-");
-    IUFillText(&BasicMountInfo[MOUNT_NAME], "MOUNT_NAME", "Mount name", "-");
-    IUFillText(&BasicMountInfo[IS_DC_MOTOR], "IS_DC_MOTOR", "Is DC motor", "-");
-    IUFillTextVector(&BasicMountInfoV, BasicMountInfo, 4, getDeviceName(), "BASIC_MOUNT_INFO",
+    IUFillText(&BasicMountInfoT[MOUNT_CODE], "MOUNT_CODE", "Mount code", "-");
+    IUFillText(&BasicMountInfoT[MOUNT_NAME], "MOUNT_NAME", "Mount name", "-");
+    IUFillText(&BasicMountInfoT[IS_DC_MOTOR], "IS_DC_MOTOR", "Is DC motor", "-");
+    IUFillTextVector(&BasicMountInfoTP, BasicMountInfoT, 4, getDeviceName(), "BASIC_MOUNT_INFO",
                      "Basic mount information", DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
 
-    IUFillNumber(&AxisOneInfo[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
+    IUFillNumber(&AxisOneInfoN[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
                  "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneInfo[STEPPER_CLOCK_FREQUENCY], "STEPPER_CLOCK_FREQUENCY", "Stepper clock frequency", "%.0f", 0,
+    IUFillNumber(&AxisOneInfoN[STEPPER_CLOCK_FREQUENCY], "STEPPER_CLOCK_FREQUENCY", "Stepper clock frequency", "%.0f", 0,
                  0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneInfo[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO", "High speed ratio", "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneInfo[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
+    IUFillNumber(&AxisOneInfoN[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO", "High speed ratio", "%.0f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisOneInfoN[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
                  "Microsteps per worm revolution", "%.0f", 0, 0xFFFFFF, 1, 0);
 
-    IUFillNumberVector(&AxisOneInfoV, AxisOneInfo, 4, getDeviceName(), "AXIS_ONE_INFO", "Axis one information",
+    IUFillNumberVector(&AxisOneInfoNP, AxisOneInfoN, 4, getDeviceName(), "AXIS_ONE_INFO", "Axis one information",
                        DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
 
-    IUFillSwitch(&AxisOneState[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
-    IUFillSwitch(&AxisOneState[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
-    IUFillSwitch(&AxisOneState[SLEWING_TO], "SLEWING_TO", "SLEWING_TO", ISS_OFF);
-    IUFillSwitch(&AxisOneState[SLEWING_FORWARD], "SLEWING_FORWARD", "SLEWING_FORWARD", ISS_OFF);
-    IUFillSwitch(&AxisOneState[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
-    IUFillSwitch(&AxisOneState[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
-    IUFillSwitchVector(&AxisOneStateV, AxisOneState, 6, getDeviceName(), "AXIS_ONE_STATE", "Axis one state",
+    IUFillSwitch(&AxisOneStateS[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
+    IUFillSwitch(&AxisOneStateS[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
+    IUFillSwitch(&AxisOneStateS[SLEWING_TO], "SLEWING_TO", "SLEWING_TO", ISS_OFF);
+    IUFillSwitch(&AxisOneStateS[SLEWING_FORWARD], "SLEWING_FORWARD", "SLEWING_FORWARD", ISS_OFF);
+    IUFillSwitch(&AxisOneStateS[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
+    IUFillSwitch(&AxisOneStateS[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
+    IUFillSwitchVector(&AxisOneStateSP, AxisOneStateS, 6, getDeviceName(), "AXIS_ONE_STATE", "Axis one state",
                        DetailedMountInfoPage, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
 
-    IUFillNumber(&AxisTwoInfo[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
+    IUFillNumber(&AxisTwoInfoN[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
                  "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoInfo[STEPPER_CLOCK_FREQUENCY], "STEPPER_CLOCK_FREQUENCY", "Step timer frequency", "%.0f", 0,
+    IUFillNumber(&AxisTwoInfoN[STEPPER_CLOCK_FREQUENCY], "STEPPER_CLOCK_FREQUENCY", "Step timer frequency", "%.0f", 0,
                  0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoInfo[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO", "High speed ratio", "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoInfo[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
+    IUFillNumber(&AxisTwoInfoN[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO", "High speed ratio", "%.0f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisTwoInfoN[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
                  "Mictosteps per worm revolution", "%.0f", 0, 0xFFFFFF, 1, 0);
 
-    IUFillNumberVector(&AxisTwoInfoV, AxisTwoInfo, 4, getDeviceName(), "AXIS_TWO_INFO", "Axis two information",
+    IUFillNumberVector(&AxisTwoInfoNP, AxisTwoInfoN, 4, getDeviceName(), "AXIS_TWO_INFO", "Axis two information",
                        DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
 
-    IUFillSwitch(&AxisTwoState[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
-    IUFillSwitch(&AxisTwoState[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
-    IUFillSwitch(&AxisTwoState[SLEWING_TO], "SLEWING_TO", "SLEWING_TO", ISS_OFF);
-    IUFillSwitch(&AxisTwoState[SLEWING_FORWARD], "SLEWING_FORWARD", "SLEWING_FORWARD", ISS_OFF);
-    IUFillSwitch(&AxisTwoState[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
-    IUFillSwitch(&AxisTwoState[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
-    IUFillSwitchVector(&AxisTwoStateV, AxisTwoState, 6, getDeviceName(), "AXIS_TWO_STATE", "Axis two state",
+    IUFillSwitch(&AxisTwoStateS[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
+    IUFillSwitch(&AxisTwoStateS[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
+    IUFillSwitch(&AxisTwoStateS[SLEWING_TO], "SLEWING_TO", "SLEWING_TO", ISS_OFF);
+    IUFillSwitch(&AxisTwoStateS[SLEWING_FORWARD], "SLEWING_FORWARD", "SLEWING_FORWARD", ISS_OFF);
+    IUFillSwitch(&AxisTwoStateS[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
+    IUFillSwitch(&AxisTwoStateS[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
+    IUFillSwitchVector(&AxisTwoStateSP, AxisTwoStateS, 6, getDeviceName(), "AXIS_TWO_STATE", "Axis two state",
                        DetailedMountInfoPage, IP_RO, ISR_NOFMANY, 60, IPS_IDLE);
 
-    IUFillNumber(&AxisOneEncoderValues[RAW_MICROSTEPS], "RAW_MICROSTEPS", "Raw Microsteps", "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneEncoderValues[MICROSTEPS_PER_ARCSEC], "MICROSTEPS_PER_ARCSEC", "Microsteps/arcsecond",
+    IUFillNumber(&AxisOneEncoderValuesN[RAW_MICROSTEPS], "RAW_MICROSTEPS", "Raw Microsteps", "%.0f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisOneEncoderValuesN[MICROSTEPS_PER_ARCSEC], "MICROSTEPS_PER_ARCSEC", "Microsteps/arcsecond",
                  "%.4f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneEncoderValues[OFFSET_FROM_INITIAL], "OFFSET_FROM_INITIAL", "Offset from initial", "%.0f", 0,
+    IUFillNumber(&AxisOneEncoderValuesN[OFFSET_FROM_INITIAL], "OFFSET_FROM_INITIAL", "Offset from initial", "%.0f", 0,
                  0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisOneEncoderValues[DEGREES_FROM_INITIAL], "DEGREES_FROM_INITIAL", "Degrees from initial", "%.2f",
+    IUFillNumber(&AxisOneEncoderValuesN[DEGREES_FROM_INITIAL], "DEGREES_FROM_INITIAL", "Degrees from initial", "%.2f",
                  -1000.0, 1000.0, 1, 0);
 
-    IUFillNumberVector(&AxisOneEncoderValuesV, AxisOneEncoderValues, 4, getDeviceName(), "AXIS1_ENCODER_VALUES",
+    IUFillNumberVector(&AxisOneEncoderValuesNP, AxisOneEncoderValuesN, 4, getDeviceName(), "AXIS1_ENCODER_VALUES",
                        "Axis 1 Encoder values", DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
 
-    IUFillNumber(&AxisTwoEncoderValues[RAW_MICROSTEPS], "RAW_MICROSTEPS", "Raw Microsteps", "%.0f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoEncoderValues[MICROSTEPS_PER_ARCSEC], "MICROSTEPS_PER_ARCSEC", "Microsteps/arcsecond",
+    IUFillNumber(&AxisTwoEncoderValuesN[RAW_MICROSTEPS], "RAW_MICROSTEPS", "Raw Microsteps", "%.0f", 0, 0xFFFFFF, 1, 0);
+    IUFillNumber(&AxisTwoEncoderValuesN[MICROSTEPS_PER_ARCSEC], "MICROSTEPS_PER_ARCSEC", "Microsteps/arcsecond",
                  "%.4f", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoEncoderValues[OFFSET_FROM_INITIAL], "OFFSET_FROM_INITIAL", "Offset from initial", "%.0f", 0,
+    IUFillNumber(&AxisTwoEncoderValuesN[OFFSET_FROM_INITIAL], "OFFSET_FROM_INITIAL", "Offset from initial", "%.0f", 0,
                  0xFFFFFF, 1, 0);
-    IUFillNumber(&AxisTwoEncoderValues[DEGREES_FROM_INITIAL], "DEGREES_FROM_INITIAL", "Degrees from initial", "%.2f",
+    IUFillNumber(&AxisTwoEncoderValuesN[DEGREES_FROM_INITIAL], "DEGREES_FROM_INITIAL", "Degrees from initial", "%.2f",
                  -1000.0, 1000.0, 1, 0);
 
-    IUFillNumberVector(&AxisTwoEncoderValuesV, AxisTwoEncoderValues, 4, getDeviceName(), "AXIS2_ENCODER_VALUES",
+    IUFillNumberVector(&AxisTwoEncoderValuesNP, AxisTwoEncoderValuesN, 4, getDeviceName(), "AXIS2_ENCODER_VALUES",
                        "Axis 2 Encoder values", DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
     // Register any visible before connection properties
 
     // Slew modes
-    IUFillSwitch(&SlewModes[SLEW_SILENT], "SLEW_SILENT", "Silent", ISS_OFF);
-    IUFillSwitch(&SlewModes[SLEW_NORMAL], "SLEW_NORMAL", "Normal", ISS_OFF);
-    IUFillSwitchVector(&SlewModesSP, SlewModes, 2, getDeviceName(), "TELESCOPE_MOTION_SLEWMODE", "Slew Mode",
+    IUFillSwitch(&SlewModesS[SLEW_SILENT], "SLEW_SILENT", "Silent", ISS_OFF);
+    IUFillSwitch(&SlewModesS[SLEW_NORMAL], "SLEW_NORMAL", "Normal", ISS_OFF);
+    IUFillSwitchVector(&SlewModesSP, SlewModesS, 2, getDeviceName(), "TELESCOPE_MOTION_SLEWMODE", "Slew Mode",
                        MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Wedge mode
-    IUFillSwitch(&WedgeMode[WEDGE_SIMPLE], "WEDGE_SIMPLE", "Simple wedge", ISS_OFF);
-    IUFillSwitch(&WedgeMode[WEDGE_EQ], "WEDGE_EQ", "EQ wedge", ISS_OFF);
-    IUFillSwitch(&WedgeMode[WEDGE_DISABLED], "WEDGE_DISABLED", "Disabled", ISS_OFF);
-    IUFillSwitchVector(&WedgeModeSP, WedgeMode, 3, getDeviceName(), "TELESCOPE_MOTION_WEDGEMODE",
+    IUFillSwitch(&WedgeModeS[WEDGE_SIMPLE], "WEDGE_SIMPLE", "Simple wedge", ISS_OFF);
+    IUFillSwitch(&WedgeModeS[WEDGE_EQ], "WEDGE_EQ", "EQ wedge", ISS_OFF);
+    IUFillSwitch(&WedgeModeS[WEDGE_DISABLED], "WEDGE_DISABLED", "Disabled", ISS_OFF);
+    IUFillSwitchVector(&WedgeModeSP, WedgeModeS, 3, getDeviceName(), "TELESCOPE_MOTION_WEDGEMODE",
                        "Wedge Mode", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Track logging mode
-    IUFillSwitch(&TrackLogMode[TRACKLOG_ENABLED], "TRACKLOG_ENABLED", "Enable logging", ISS_OFF);
-    IUFillSwitch(&TrackLogMode[TRACKLOG_DISABLED], "TRACKLOG_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&TrackLogModeSP, TrackLogMode, 2, getDeviceName(), "TELESCOPE_MOTION_TRACKLOGMODE",
+    IUFillSwitch(&TrackLogModeS[TRACKLOG_ENABLED], "TRACKLOG_ENABLED", "Enable logging", ISS_OFF);
+    IUFillSwitch(&TrackLogModeS[TRACKLOG_DISABLED], "TRACKLOG_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&TrackLogModeSP, TrackLogModeS, 2, getDeviceName(), "TELESCOPE_MOTION_TRACKLOGMODE",
                        "Track Logging Mode", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Guiding rates for RA/DEC axes
@@ -371,25 +377,25 @@ bool SkywatcherAltAzSimple::initProperties()
                        IP_RW, 60, IPS_IDLE);
 
     // Park movement directions
-    IUFillSwitch(&ParkMovementDirection[PARK_COUNTERCLOCKWISE], "PMD_COUNTERCLOCKWISE", "Counterclockwise", ISS_ON);
-    IUFillSwitch(&ParkMovementDirection[PARK_CLOCKWISE], "PMD_CLOCKWISE", "Clockwise", ISS_OFF);
-    IUFillSwitchVector(&ParkMovementDirectionSP, ParkMovementDirection, 2, getDeviceName(), "PARK_DIRECTION",
+    IUFillSwitch(&ParkMovementDirectionS[PARK_COUNTERCLOCKWISE], "PMD_COUNTERCLOCKWISE", "Counterclockwise", ISS_ON);
+    IUFillSwitch(&ParkMovementDirectionS[PARK_CLOCKWISE], "PMD_CLOCKWISE", "Clockwise", ISS_OFF);
+    IUFillSwitchVector(&ParkMovementDirectionSP, ParkMovementDirectionS, 2, getDeviceName(), "PARK_DIRECTION",
                        "Park Direction", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Park positions
-    IUFillSwitch(&ParkPosition[PARK_NORTH], "PARK_NORTH", "North", ISS_ON);
-    IUFillSwitch(&ParkPosition[PARK_EAST], "PARK_EAST", "East", ISS_OFF);
-    IUFillSwitch(&ParkPosition[PARK_SOUTH], "PARK_SOUTH", "South", ISS_OFF);
-    IUFillSwitch(&ParkPosition[PARK_WEST], "PARK_WEST", "West", ISS_OFF);
-    IUFillSwitchVector(&ParkPositionSP, ParkPosition, 4, getDeviceName(), "PARK_POSITION", "Park Position", MOTION_TAB,
+    IUFillSwitch(&ParkPositionS[PARK_NORTH], "PARK_NORTH", "North", ISS_ON);
+    IUFillSwitch(&ParkPositionS[PARK_EAST], "PARK_EAST", "East", ISS_OFF);
+    IUFillSwitch(&ParkPositionS[PARK_SOUTH], "PARK_SOUTH", "South", ISS_OFF);
+    IUFillSwitch(&ParkPositionS[PARK_WEST], "PARK_WEST", "West", ISS_OFF);
+    IUFillSwitchVector(&ParkPositionSP, ParkPositionS, 4, getDeviceName(), "PARK_POSITION", "Park Position", MOTION_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Unpark positions
-    IUFillSwitch(&UnparkPosition[PARK_NORTH], "UNPARK_NORTH", "North", ISS_OFF);
-    IUFillSwitch(&UnparkPosition[PARK_EAST], "UNPARK_EAST", "East", ISS_OFF);
-    IUFillSwitch(&UnparkPosition[PARK_SOUTH], "UNPARK_SOUTH", "South", ISS_OFF);
-    IUFillSwitch(&UnparkPosition[PARK_WEST], "UNPARK_WEST", "West", ISS_OFF);
-    IUFillSwitchVector(&UnparkPositionSP, UnparkPosition, 4, getDeviceName(), "UNPARK_POSITION", "Unpark Position",
+    IUFillSwitch(&UnparkPositionS[PARK_NORTH], "UNPARK_NORTH", "North", ISS_OFF);
+    IUFillSwitch(&UnparkPositionS[PARK_EAST], "UNPARK_EAST", "East", ISS_OFF);
+    IUFillSwitch(&UnparkPositionS[PARK_SOUTH], "UNPARK_SOUTH", "South", ISS_OFF);
+    IUFillSwitch(&UnparkPositionS[PARK_WEST], "UNPARK_WEST", "West", ISS_OFF);
+    IUFillSwitchVector(&UnparkPositionSP, UnparkPositionS, 4, getDeviceName(), "UNPARK_POSITION", "Unpark Position",
                        MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Guiding support
@@ -410,25 +416,25 @@ void SkywatcherAltAzSimple::ISGetProperties(const char *dev)
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX mewssage to any connected clients
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&WedgeModeSP);
-        defineSwitch(&TrackLogModeSP);
-        defineNumber(&GuidingRatesNP);
-        defineNumber(&TrackingValuesNP);
-        defineSwitch(&ParkMovementDirectionSP);
-        defineSwitch(&ParkPositionSP);
-        defineSwitch(&UnparkPositionSP);
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&BasicMountInfoTP);
+        defineProperty(&AxisOneInfoNP);
+        defineProperty(&AxisOneStateSP);
+        defineProperty(&AxisTwoInfoNP);
+        defineProperty(&AxisTwoStateSP);
+        defineProperty(&AxisOneEncoderValuesNP);
+        defineProperty(&AxisTwoEncoderValuesNP);
+        defineProperty(&SlewModesSP);
+        defineProperty(&WedgeModeSP);
+        defineProperty(&TrackLogModeSP);
+        defineProperty(&GuidingRatesNP);
+        defineProperty(&TrackingValuesNP);
+        defineProperty(&ParkMovementDirectionSP);
+        defineProperty(&ParkPositionSP);
+        defineProperty(&UnparkPositionSP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
     }
 }
 
@@ -501,7 +507,17 @@ bool SkywatcherAltAzSimple::ISNewNumber(const char *dev, const char *name, doubl
 
 bool SkywatcherAltAzSimple::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    IUUpdateSwitch(getSwitch(name), states, names, n);
+    ISwitchVectorProperty *svp;
+    svp = getSwitch(name);
+    if (svp == nullptr)
+    {
+        LOGF_WARN("getSwitch failed for %s", name);
+    }
+    else
+    {
+        LOGF_DEBUG("getSwitch OK %s", name);
+        IUUpdateSwitch(svp, states, names, n);
+    }
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
@@ -630,7 +646,7 @@ void SkywatcherAltAzSimple::UpdateScopeConfigSwitch()
     deleteProperty("USEJOYSTICK");
     // Recreate the switch control
     deleteProperty(ScopeConfigsSP.name);
-    defineSwitch(&ScopeConfigsSP);
+    defineProperty(&ScopeConfigsSP);
 }
 
 double SkywatcherAltAzSimple::GetSlewRate()
@@ -660,11 +676,13 @@ bool SkywatcherAltAzSimple::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand comma
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS2, speed, true);
+            moving = true;
             break;
 
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS2);
+            moving = false;
             break;
     }
 
@@ -687,11 +705,13 @@ bool SkywatcherAltAzSimple::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand comma
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS1, speed, true);
+            moving = true;
             break;
 
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS1);
+            moving = false;
             break;
     }
 
@@ -1106,124 +1126,135 @@ void SkywatcherAltAzSimple::TimerHit()
                 ResetGuidePulses();
             }
 
-            // Restart the drift compensation after syncing
-            if (ResetTrackingSeconds)
+            if (moving)
             {
-                ResetTrackingSeconds = false;
-                TrackingMsecs        = 0;
-                GuideDeltaAlt        = 0;
-                GuideDeltaAz         = 0;
-                ResetGuidePulses();
-            }
-            TrackingMsecs += TimeoutDuration;
-            if (TrackingMsecs % 60000 == 0)
-            {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
-            }
-            Tracking = true;
-            Slewing  = false;
-            // Continue or start tracking
-            //            ln_hrz_posn AltAz { 0, 0 };
-            ln_hrz_posn FutureAltAz { 0, 0 };
-
-            //            AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
-            //            AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
-            FutureAltAz = GetAltAzPosition(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
-                                           (double)TimeoutDuration / 1000);
-            //            DEBUGF(DBG_SCOPE,
-            //                   "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
-            //                   "%ld",
-            //                   CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
-            //            DEBUGF(DBG_SCOPE,
-            //                   "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-            //                   AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
-
-            // Calculate the auto-guiding delta degrees
-            for (auto pulse : GuidingPulses)
-            {
-                GuideDeltaAlt += pulse.DeltaAlt;
-                GuideDeltaAz += pulse.DeltaAz;
-            }
-            GuidingPulses.clear();
-
-            long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, FutureAltAz.alt - CurrentAltAz.alt + GuideDeltaAlt);
-            long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, FutureAltAz.az - CurrentAltAz.az + GuideDeltaAz);
-
-            // When the Alt/Az mount is on the top of an EQ mount, the EQ mount already tracks in
-            // sidereal speed. Only autoguiding is enabled in tracking mode.
-            if (IUFindSwitch(&WedgeModeSP, "WEDGE_EQ")->s == ISS_ON)
-            {
-                AltitudeOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDEDEC_RATE")->value * GuideDeltaAlt);
-                AzimuthOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDERA_RATE")->value * GuideDeltaAz);
-                GuideDeltaAlt = 0;
-                GuideDeltaAz = 0;
-                // Correct the movements of the EQ mount
-                double DeltaAz = CurrentAltAz.az - FutureAltAz.az;
-                double DeltaAlt = CurrentAltAz.alt - FutureAltAz.alt;
-
-                PolarisPositionEncoders[AXIS1] += DegreesToMicrosteps(AXIS1, DeltaAz);
-                PolarisPositionEncoders[AXIS2] += DegreesToMicrosteps(AXIS2, DeltaAlt);
-                ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
-                ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
-            }
-
-            if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
-            {
-                // Going the long way round - send it the other way
-                AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
-            }
-            if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
-            {
-                // Going the long way round - send it the other way
-                AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
-            }
-            if (AltitudeOffsetMicrosteps < -MicrostepsPerRevolution[AXIS2] / 2)
-            {
-                // Going the long way round - send it the other way
-                AltitudeOffsetMicrosteps += MicrostepsPerRevolution[AXIS2];
-            }
-            if (AzimuthOffsetMicrosteps < -MicrostepsPerRevolution[AXIS1] / 2)
-            {
-                // Going the long way round - send it the other way
-                AzimuthOffsetMicrosteps += MicrostepsPerRevolution[AXIS1];
-            }
-
-            AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP, "TRACKING_RATE_ALT")->value);
-            AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP, "TRACKING_RATE_AZ")->value);
-
-            LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
-                       CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,
-                       AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
-
-            //            DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
-            //                   AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
-
-            if (0 != AzimuthOffsetMicrosteps)
-            {
-                SlewTo(AXIS1, AzimuthOffsetMicrosteps, false);
+                //                TrackedAltAz  = CurrentAltAz;
+                CurrentTrackingTarget.ra = EqN[AXIS_RA].value;
+                CurrentTrackingTarget.dec = EqN[AXIS_DE].value;
             }
             else
             {
-                // Nothing to do - stop the axis
-                SlowStop(AXIS1);
-            }
+                // Restart the drift compensation after syncing
+                if (ResetTrackingSeconds)
+                {
+                    ResetTrackingSeconds = false;
+                    TrackingMsecs        = 0;
+                    GuideDeltaAlt        = 0;
+                    GuideDeltaAz         = 0;
+                    ResetGuidePulses();
+                }
+                TrackingMsecs += TimeoutDuration;
+                if (TrackingMsecs % 60000 == 0)
+                {
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
+                }
+                Tracking = true;
+                Slewing  = false;
+                // Continue or start tracking
+                //            ln_hrz_posn AltAz { 0, 0 };
+                ln_hrz_posn FutureAltAz { 0, 0 };
 
-            if (0 != AltitudeOffsetMicrosteps)
-            {
-                SlewTo(AXIS2, AltitudeOffsetMicrosteps, false);
-            }
-            else
-            {
-                // Nothing to do - stop the axis
-                SlowStop(AXIS2);
-            }
+                //            AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+                //            AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+                FutureAltAz = GetAltAzPosition(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
+                                               (double)TimeoutDuration / 1000);
+                //            DEBUGF(DBG_SCOPE,
+                //                   "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
+                //                   "%ld",
+                //                   CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
+                //            DEBUGF(DBG_SCOPE,
+                //                   "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
+                //                   AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
 
-            DEBUGF(DBG_SCOPE, "Tracking - AXIS1 error %d (offset: %ld) AXIS2 error %d (offset: %ld)",
-                   OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1], AzimuthOffsetMicrosteps,
-                   OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2], AltitudeOffsetMicrosteps);
+                // Calculate the auto-guiding delta degrees
+                for (auto pulse : GuidingPulses)
+                {
+                    GuideDeltaAlt += pulse.DeltaAlt;
+                    GuideDeltaAz += pulse.DeltaAz;
+                }
+                GuidingPulses.clear();
 
-            OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
-            OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
+                long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, FutureAltAz.alt - CurrentAltAz.alt + GuideDeltaAlt);
+                long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, FutureAltAz.az - CurrentAltAz.az + GuideDeltaAz);
+
+                // When the Alt/Az mount is on the top of an EQ mount, the EQ mount already tracks in
+                // sidereal speed. Only autoguiding is enabled in tracking mode.
+                if (IUFindSwitch(&WedgeModeSP, "WEDGE_EQ")->s == ISS_ON)
+                {
+                    AltitudeOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDEDEC_RATE")->value * GuideDeltaAlt);
+                    AzimuthOffsetMicrosteps = (long)((float)IUFindNumber(&GuidingRatesNP, "GUIDERA_RATE")->value * GuideDeltaAz);
+                    GuideDeltaAlt = 0;
+                    GuideDeltaAz = 0;
+                    // Correct the movements of the EQ mount
+                    double DeltaAz = CurrentAltAz.az - FutureAltAz.az;
+                    double DeltaAlt = CurrentAltAz.alt - FutureAltAz.alt;
+
+                    PolarisPositionEncoders[AXIS1] += DegreesToMicrosteps(AXIS1, DeltaAz);
+                    PolarisPositionEncoders[AXIS2] += DegreesToMicrosteps(AXIS2, DeltaAlt);
+                    ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
+                    ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
+                }
+
+                if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
+                }
+                if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
+                }
+                if (AltitudeOffsetMicrosteps < -MicrostepsPerRevolution[AXIS2] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AltitudeOffsetMicrosteps += MicrostepsPerRevolution[AXIS2];
+                }
+                if (AzimuthOffsetMicrosteps < -MicrostepsPerRevolution[AXIS1] / 2)
+                {
+                    // Going the long way round - send it the other way
+                    AzimuthOffsetMicrosteps += MicrostepsPerRevolution[AXIS1];
+                }
+
+                AltitudeOffsetMicrosteps = (long)((double)AltitudeOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
+                                                  "TRACKING_RATE_ALT")->value);
+                AzimuthOffsetMicrosteps = (long)((double)AzimuthOffsetMicrosteps * IUFindNumber(&TrackingValuesNP,
+                                                 "TRACKING_RATE_AZ")->value);
+
+                LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
+                           CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,
+                           AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+
+                //            DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
+                //                   AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+
+                if (0 != AzimuthOffsetMicrosteps)
+                {
+                    SlewTo(AXIS1, AzimuthOffsetMicrosteps, false);
+                }
+                else
+                {
+                    // Nothing to do - stop the axis
+                    SlowStop(AXIS1);
+                }
+
+                if (0 != AltitudeOffsetMicrosteps)
+                {
+                    SlewTo(AXIS2, AltitudeOffsetMicrosteps, false);
+                }
+                else
+                {
+                    // Nothing to do - stop the axis
+                    SlowStop(AXIS2);
+                }
+
+                DEBUGF(DBG_SCOPE, "Tracking - AXIS1 error %d (offset: %ld) AXIS2 error %d (offset: %ld)",
+                       OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1], AzimuthOffsetMicrosteps,
+                       OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2], AltitudeOffsetMicrosteps);
+
+                OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
+                OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
+            }
             break;
         }
         break;
@@ -1259,41 +1290,41 @@ bool SkywatcherAltAzSimple::updateProperties()
         UpdateDetailedMountInformation(false);
 
         // Define our connected only properties to the base driver
-        // e.g. defineNumber(MyNumberVectorPointer);
+        // e.g. defineProperty(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX message to any connected clients
         // I have now idea why I have to do this here as well as in ISGetProperties. It makes me
         // concerned there is a design or implementation flaw somewhere.
-        defineText(&BasicMountInfoV);
-        defineNumber(&AxisOneInfoV);
-        defineSwitch(&AxisOneStateV);
-        defineNumber(&AxisTwoInfoV);
-        defineSwitch(&AxisTwoStateV);
-        defineNumber(&AxisOneEncoderValuesV);
-        defineNumber(&AxisTwoEncoderValuesV);
-        defineSwitch(&SlewModesSP);
-        defineSwitch(&WedgeModeSP);
-        defineSwitch(&TrackLogModeSP);
-        defineNumber(&GuidingRatesNP);
-        defineNumber(&TrackingValuesNP);
-        defineSwitch(&ParkMovementDirectionSP);
-        defineSwitch(&ParkPositionSP);
-        defineSwitch(&UnparkPositionSP);
+        defineProperty(&BasicMountInfoTP);
+        defineProperty(&AxisOneInfoNP);
+        defineProperty(&AxisOneStateSP);
+        defineProperty(&AxisTwoInfoNP);
+        defineProperty(&AxisTwoStateSP);
+        defineProperty(&AxisOneEncoderValuesNP);
+        defineProperty(&AxisTwoEncoderValuesNP);
+        defineProperty(&SlewModesSP);
+        defineProperty(&WedgeModeSP);
+        defineProperty(&TrackLogModeSP);
+        defineProperty(&GuidingRatesNP);
+        defineProperty(&TrackingValuesNP);
+        defineProperty(&ParkMovementDirectionSP);
+        defineProperty(&ParkPositionSP);
+        defineProperty(&UnparkPositionSP);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
         return true;
     }
     else
     {
         // Delete any connected only properties from the base driver's list
         // e.g. deleteProperty(MyNumberVector.name);
-        deleteProperty(BasicMountInfoV.name);
-        deleteProperty(AxisOneInfoV.name);
-        deleteProperty(AxisOneStateV.name);
-        deleteProperty(AxisTwoInfoV.name);
-        deleteProperty(AxisTwoStateV.name);
-        deleteProperty(AxisOneEncoderValuesV.name);
-        deleteProperty(AxisTwoEncoderValuesV.name);
+        deleteProperty(BasicMountInfoTP.name);
+        deleteProperty(AxisOneInfoNP.name);
+        deleteProperty(AxisOneStateSP.name);
+        deleteProperty(AxisTwoInfoNP.name);
+        deleteProperty(AxisTwoStateSP.name);
+        deleteProperty(AxisOneEncoderValuesNP.name);
+        deleteProperty(AxisTwoEncoderValuesNP.name);
         deleteProperty(SlewModesSP.name);
         deleteProperty(WedgeModeSP.name);
         deleteProperty(TrackLogModeSP.name);
@@ -1360,7 +1391,7 @@ void SkywatcherAltAzSimple::ResetGuidePulses()
     GuidingPulses.clear();
 }
 
-int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+int SkywatcherAltAzSimple::recover_tty_reconnect()
 {
     if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
     {
@@ -1381,31 +1412,37 @@ int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, in
         SetSerialPort(serialConnection->getPortFD());
         SerialPortName           = serialConnection->port();
         RecoverAfterReconnection = false;
+        return 1;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+{
+    if (!recover_tty_reconnect())
+    {
+        return 0;
     }
     return tty_read(fd, buf, nbytes, timeout, nbytes_read);
 }
 
+int SkywatcherAltAzSimple::skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
+{
+    if (!recover_tty_reconnect())
+    {
+        return 0;
+    }
+    return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+}
+
 int SkywatcherAltAzSimple::skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written)
 {
-    if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
+    if (!recover_tty_reconnect())
     {
-        RecoverAfterReconnection = true;
-        serialConnection->Disconnect();
-        serialConnection->Refresh();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        if (!serialConnection->Connect())
-        {
-            RecoverAfterReconnection = true;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            if (!serialConnection->Connect())
-            {
-                RecoverAfterReconnection = false;
-                return 0;
-            }
-        }
-        SetSerialPort(serialConnection->getPortFD());
-        SerialPortName           = serialConnection->port();
-        RecoverAfterReconnection = false;
+        return 0;
     }
     return tty_write(fd, buffer, nbytes, nbytes_written);
 }
@@ -1414,179 +1451,179 @@ void SkywatcherAltAzSimple::UpdateDetailedMountInformation(bool InformClient)
 {
     bool BasicMountInfoHasChanged = false;
 
-    if (std::string(BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION].text) != std::to_string(MCVersion))
+    if (std::string(BasicMountInfoT[MOTOR_CONTROL_FIRMWARE_VERSION].text) != std::to_string(MCVersion))
     {
-        IUSaveText(&BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION], std::to_string(MCVersion).c_str());
+        IUSaveText(&BasicMountInfoT[MOTOR_CONTROL_FIRMWARE_VERSION], std::to_string(MCVersion).c_str());
         BasicMountInfoHasChanged = true;
     }
-    if (std::string(BasicMountInfo[MOUNT_CODE].text) != std::to_string(MountCode))
+    if (std::string(BasicMountInfoT[MOUNT_CODE].text) != std::to_string(MountCode))
     {
-        IUSaveText(&BasicMountInfo[MOUNT_CODE], std::to_string(MountCode).c_str());
+        IUSaveText(&BasicMountInfoT[MOUNT_CODE], std::to_string(MountCode).c_str());
         BasicMountInfoHasChanged = true;
     }
-    if (std::string(BasicMountInfo[IS_DC_MOTOR].text) != std::to_string(IsDCMotor))
+    if (std::string(BasicMountInfoT[IS_DC_MOTOR].text) != std::to_string(IsDCMotor))
     {
-        IUSaveText(&BasicMountInfo[IS_DC_MOTOR], std::to_string(IsDCMotor).c_str());
+        IUSaveText(&BasicMountInfoT[IS_DC_MOTOR], std::to_string(IsDCMotor).c_str());
         BasicMountInfoHasChanged = true;
     }
     if (BasicMountInfoHasChanged && InformClient)
-        IDSetText(&BasicMountInfoV, nullptr);
+        IDSetText(&BasicMountInfoTP, nullptr);
 
     if (MountCode == 128)
-        IUSaveText(&BasicMountInfo[MOUNT_NAME], "Merlin");
+        IUSaveText(&BasicMountInfoT[MOUNT_NAME], "Merlin");
     else if (MountCode >= 129 && MountCode <= 143)
-        IUSaveText(&BasicMountInfo[MOUNT_NAME], "Az Goto");
+        IUSaveText(&BasicMountInfoT[MOUNT_NAME], "Az Goto");
     else if (MountCode >= 144 && MountCode <= 159)
-        IUSaveText(&BasicMountInfo[MOUNT_NAME], "Dob Goto");
+        IUSaveText(&BasicMountInfoT[MOUNT_NAME], "Dob Goto");
     else if (MountCode == 161)
-        IUSaveText(&BasicMountInfo[MOUNT_NAME], "Virtuoso");
+        IUSaveText(&BasicMountInfoT[MOUNT_NAME], "Virtuoso");
     else if (MountCode >= 160)
-        IUSaveText(&BasicMountInfo[MOUNT_NAME], "AllView Goto");
+        IUSaveText(&BasicMountInfoT[MOUNT_NAME], "AllView Goto");
 
     bool AxisOneInfoHasChanged = false;
 
-    if (AxisOneInfo[MICROSTEPS_PER_REVOLUTION].value != MicrostepsPerRevolution[0])
+    if (AxisOneInfoN[MICROSTEPS_PER_REVOLUTION].value != MicrostepsPerRevolution[0])
     {
-        AxisOneInfo[MICROSTEPS_PER_REVOLUTION].value = MicrostepsPerRevolution[0];
+        AxisOneInfoN[MICROSTEPS_PER_REVOLUTION].value = MicrostepsPerRevolution[0];
         AxisOneInfoHasChanged                        = true;
     }
-    if (AxisOneInfo[STEPPER_CLOCK_FREQUENCY].value != StepperClockFrequency[0])
+    if (AxisOneInfoN[STEPPER_CLOCK_FREQUENCY].value != StepperClockFrequency[0])
     {
-        AxisOneInfo[STEPPER_CLOCK_FREQUENCY].value = StepperClockFrequency[0];
+        AxisOneInfoN[STEPPER_CLOCK_FREQUENCY].value = StepperClockFrequency[0];
         AxisOneInfoHasChanged                      = true;
     }
-    if (AxisOneInfo[HIGH_SPEED_RATIO].value != HighSpeedRatio[0])
+    if (AxisOneInfoN[HIGH_SPEED_RATIO].value != HighSpeedRatio[0])
     {
-        AxisOneInfo[HIGH_SPEED_RATIO].value = HighSpeedRatio[0];
+        AxisOneInfoN[HIGH_SPEED_RATIO].value = HighSpeedRatio[0];
         AxisOneInfoHasChanged               = true;
     }
-    if (AxisOneInfo[MICROSTEPS_PER_WORM_REVOLUTION].value != MicrostepsPerWormRevolution[0])
+    if (AxisOneInfoN[MICROSTEPS_PER_WORM_REVOLUTION].value != MicrostepsPerWormRevolution[0])
     {
-        AxisOneInfo[MICROSTEPS_PER_WORM_REVOLUTION].value = MicrostepsPerWormRevolution[0];
+        AxisOneInfoN[MICROSTEPS_PER_WORM_REVOLUTION].value = MicrostepsPerWormRevolution[0];
         AxisOneInfoHasChanged                             = true;
     }
     if (AxisOneInfoHasChanged && InformClient)
-        IDSetNumber(&AxisOneInfoV, nullptr);
+        IDSetNumber(&AxisOneInfoNP, nullptr);
 
     bool AxisOneStateHasChanged = false;
-    if (AxisOneState[FULL_STOP].s != (AxesStatus[0].FullStop ? ISS_ON : ISS_OFF))
+    if (AxisOneStateS[FULL_STOP].s != (AxesStatus[0].FullStop ? ISS_ON : ISS_OFF))
     {
-        AxisOneState[FULL_STOP].s = AxesStatus[0].FullStop ? ISS_ON : ISS_OFF;
+        AxisOneStateS[FULL_STOP].s = AxesStatus[0].FullStop ? ISS_ON : ISS_OFF;
         AxisOneStateHasChanged    = true;
     }
-    if (AxisOneState[SLEWING].s != (AxesStatus[0].Slewing ? ISS_ON : ISS_OFF))
+    if (AxisOneStateS[SLEWING].s != (AxesStatus[0].Slewing ? ISS_ON : ISS_OFF))
     {
-        AxisOneState[SLEWING].s = AxesStatus[0].Slewing ? ISS_ON : ISS_OFF;
+        AxisOneStateS[SLEWING].s = AxesStatus[0].Slewing ? ISS_ON : ISS_OFF;
         AxisOneStateHasChanged  = true;
     }
-    if (AxisOneState[SLEWING_TO].s != (AxesStatus[0].SlewingTo ? ISS_ON : ISS_OFF))
+    if (AxisOneStateS[SLEWING_TO].s != (AxesStatus[0].SlewingTo ? ISS_ON : ISS_OFF))
     {
-        AxisOneState[SLEWING_TO].s = AxesStatus[0].SlewingTo ? ISS_ON : ISS_OFF;
+        AxisOneStateS[SLEWING_TO].s = AxesStatus[0].SlewingTo ? ISS_ON : ISS_OFF;
         AxisOneStateHasChanged     = true;
     }
-    if (AxisOneState[SLEWING_FORWARD].s != (AxesStatus[0].SlewingForward ? ISS_ON : ISS_OFF))
+    if (AxisOneStateS[SLEWING_FORWARD].s != (AxesStatus[0].SlewingForward ? ISS_ON : ISS_OFF))
     {
-        AxisOneState[SLEWING_FORWARD].s = AxesStatus[0].SlewingForward ? ISS_ON : ISS_OFF;
+        AxisOneStateS[SLEWING_FORWARD].s = AxesStatus[0].SlewingForward ? ISS_ON : ISS_OFF;
         AxisOneStateHasChanged          = true;
     }
-    if (AxisOneState[HIGH_SPEED].s != (AxesStatus[0].HighSpeed ? ISS_ON : ISS_OFF))
+    if (AxisOneStateS[HIGH_SPEED].s != (AxesStatus[0].HighSpeed ? ISS_ON : ISS_OFF))
     {
-        AxisOneState[HIGH_SPEED].s = AxesStatus[0].HighSpeed ? ISS_ON : ISS_OFF;
+        AxisOneStateS[HIGH_SPEED].s = AxesStatus[0].HighSpeed ? ISS_ON : ISS_OFF;
         AxisOneStateHasChanged     = true;
     }
-    if (AxisOneState[NOT_INITIALISED].s != (AxesStatus[0].NotInitialized ? ISS_ON : ISS_OFF))
+    if (AxisOneStateS[NOT_INITIALISED].s != (AxesStatus[0].NotInitialized ? ISS_ON : ISS_OFF))
     {
-        AxisOneState[NOT_INITIALISED].s = AxesStatus[0].NotInitialized ? ISS_ON : ISS_OFF;
+        AxisOneStateS[NOT_INITIALISED].s = AxesStatus[0].NotInitialized ? ISS_ON : ISS_OFF;
         AxisOneStateHasChanged          = true;
     }
     if (AxisOneStateHasChanged && InformClient)
-        IDSetSwitch(&AxisOneStateV, nullptr);
+        IDSetSwitch(&AxisOneStateSP, nullptr);
 
     bool AxisTwoInfoHasChanged = false;
-    if (AxisTwoInfo[MICROSTEPS_PER_REVOLUTION].value != MicrostepsPerRevolution[1])
+    if (AxisTwoInfoN[MICROSTEPS_PER_REVOLUTION].value != MicrostepsPerRevolution[1])
     {
-        AxisTwoInfo[MICROSTEPS_PER_REVOLUTION].value = MicrostepsPerRevolution[1];
+        AxisTwoInfoN[MICROSTEPS_PER_REVOLUTION].value = MicrostepsPerRevolution[1];
         AxisTwoInfoHasChanged                        = true;
     }
-    if (AxisTwoInfo[STEPPER_CLOCK_FREQUENCY].value != StepperClockFrequency[1])
+    if (AxisTwoInfoN[STEPPER_CLOCK_FREQUENCY].value != StepperClockFrequency[1])
     {
-        AxisTwoInfo[STEPPER_CLOCK_FREQUENCY].value = StepperClockFrequency[1];
+        AxisTwoInfoN[STEPPER_CLOCK_FREQUENCY].value = StepperClockFrequency[1];
         AxisTwoInfoHasChanged                      = true;
     }
-    if (AxisTwoInfo[HIGH_SPEED_RATIO].value != HighSpeedRatio[1])
+    if (AxisTwoInfoN[HIGH_SPEED_RATIO].value != HighSpeedRatio[1])
     {
-        AxisTwoInfo[HIGH_SPEED_RATIO].value = HighSpeedRatio[1];
+        AxisTwoInfoN[HIGH_SPEED_RATIO].value = HighSpeedRatio[1];
         AxisTwoInfoHasChanged               = true;
     }
-    if (AxisTwoInfo[MICROSTEPS_PER_WORM_REVOLUTION].value != MicrostepsPerWormRevolution[1])
+    if (AxisTwoInfoN[MICROSTEPS_PER_WORM_REVOLUTION].value != MicrostepsPerWormRevolution[1])
     {
-        AxisTwoInfo[MICROSTEPS_PER_WORM_REVOLUTION].value = MicrostepsPerWormRevolution[1];
+        AxisTwoInfoN[MICROSTEPS_PER_WORM_REVOLUTION].value = MicrostepsPerWormRevolution[1];
         AxisTwoInfoHasChanged                             = true;
     }
     if (AxisTwoInfoHasChanged && InformClient)
-        IDSetNumber(&AxisTwoInfoV, nullptr);
+        IDSetNumber(&AxisTwoInfoNP, nullptr);
 
     bool AxisTwoStateHasChanged = false;
-    if (AxisTwoState[FULL_STOP].s != (AxesStatus[1].FullStop ? ISS_ON : ISS_OFF))
+    if (AxisTwoStateS[FULL_STOP].s != (AxesStatus[1].FullStop ? ISS_ON : ISS_OFF))
     {
-        AxisTwoState[FULL_STOP].s = AxesStatus[1].FullStop ? ISS_ON : ISS_OFF;
+        AxisTwoStateS[FULL_STOP].s = AxesStatus[1].FullStop ? ISS_ON : ISS_OFF;
         AxisTwoStateHasChanged    = true;
     }
-    if (AxisTwoState[SLEWING].s != (AxesStatus[1].Slewing ? ISS_ON : ISS_OFF))
+    if (AxisTwoStateS[SLEWING].s != (AxesStatus[1].Slewing ? ISS_ON : ISS_OFF))
     {
-        AxisTwoState[SLEWING].s = AxesStatus[1].Slewing ? ISS_ON : ISS_OFF;
+        AxisTwoStateS[SLEWING].s = AxesStatus[1].Slewing ? ISS_ON : ISS_OFF;
         AxisTwoStateHasChanged  = true;
     }
-    if (AxisTwoState[SLEWING_TO].s != (AxesStatus[1].SlewingTo ? ISS_ON : ISS_OFF))
+    if (AxisTwoStateS[SLEWING_TO].s != (AxesStatus[1].SlewingTo ? ISS_ON : ISS_OFF))
     {
-        AxisTwoState[SLEWING_TO].s = AxesStatus[1].SlewingTo ? ISS_ON : ISS_OFF;
+        AxisTwoStateS[SLEWING_TO].s = AxesStatus[1].SlewingTo ? ISS_ON : ISS_OFF;
         AxisTwoStateHasChanged     = true;
     }
-    if (AxisTwoState[SLEWING_FORWARD].s != (AxesStatus[1].SlewingForward ? ISS_ON : ISS_OFF))
+    if (AxisTwoStateS[SLEWING_FORWARD].s != (AxesStatus[1].SlewingForward ? ISS_ON : ISS_OFF))
     {
-        AxisTwoState[SLEWING_FORWARD].s = AxesStatus[1].SlewingForward ? ISS_ON : ISS_OFF;
+        AxisTwoStateS[SLEWING_FORWARD].s = AxesStatus[1].SlewingForward ? ISS_ON : ISS_OFF;
         AxisTwoStateHasChanged          = true;
     }
-    if (AxisTwoState[HIGH_SPEED].s != (AxesStatus[1].HighSpeed ? ISS_ON : ISS_OFF))
+    if (AxisTwoStateS[HIGH_SPEED].s != (AxesStatus[1].HighSpeed ? ISS_ON : ISS_OFF))
     {
-        AxisTwoState[HIGH_SPEED].s = AxesStatus[1].HighSpeed ? ISS_ON : ISS_OFF;
+        AxisTwoStateS[HIGH_SPEED].s = AxesStatus[1].HighSpeed ? ISS_ON : ISS_OFF;
         AxisTwoStateHasChanged     = true;
     }
-    if (AxisTwoState[NOT_INITIALISED].s != (AxesStatus[1].NotInitialized ? ISS_ON : ISS_OFF))
+    if (AxisTwoStateS[NOT_INITIALISED].s != (AxesStatus[1].NotInitialized ? ISS_ON : ISS_OFF))
     {
-        AxisTwoState[NOT_INITIALISED].s = AxesStatus[1].NotInitialized ? ISS_ON : ISS_OFF;
+        AxisTwoStateS[NOT_INITIALISED].s = AxesStatus[1].NotInitialized ? ISS_ON : ISS_OFF;
         AxisTwoStateHasChanged          = true;
     }
     if (AxisTwoStateHasChanged && InformClient)
-        IDSetSwitch(&AxisTwoStateV, nullptr);
+        IDSetSwitch(&AxisTwoStateSP, nullptr);
 
     bool AxisOneEncoderValuesHasChanged = false;
-    if ((AxisOneEncoderValues[RAW_MICROSTEPS].value != CurrentEncoders[AXIS1]) ||
-            (AxisOneEncoderValues[OFFSET_FROM_INITIAL].value != CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]))
+    if ((AxisOneEncoderValuesN[RAW_MICROSTEPS].value != CurrentEncoders[AXIS1]) ||
+            (AxisOneEncoderValuesN[OFFSET_FROM_INITIAL].value != CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]))
     {
-        AxisOneEncoderValues[RAW_MICROSTEPS].value = CurrentEncoders[AXIS1];
-        AxisOneEncoderValues[MICROSTEPS_PER_ARCSEC].value = MicrostepsPerDegree[AXIS1] / 3600.0;
-        AxisOneEncoderValues[OFFSET_FROM_INITIAL].value = CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1];
-        AxisOneEncoderValues[DEGREES_FROM_INITIAL].value =
+        AxisOneEncoderValuesN[RAW_MICROSTEPS].value = CurrentEncoders[AXIS1];
+        AxisOneEncoderValuesN[MICROSTEPS_PER_ARCSEC].value = MicrostepsPerDegree[AXIS1] / 3600.0;
+        AxisOneEncoderValuesN[OFFSET_FROM_INITIAL].value = CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1];
+        AxisOneEncoderValuesN[DEGREES_FROM_INITIAL].value =
             MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
         AxisOneEncoderValuesHasChanged = true;
     }
     if (AxisOneEncoderValuesHasChanged && InformClient)
-        IDSetNumber(&AxisOneEncoderValuesV, nullptr);
+        IDSetNumber(&AxisOneEncoderValuesNP, nullptr);
 
     bool AxisTwoEncoderValuesHasChanged = false;
-    if ((AxisTwoEncoderValues[RAW_MICROSTEPS].value != CurrentEncoders[AXIS2]) ||
-            (AxisTwoEncoderValues[OFFSET_FROM_INITIAL].value != CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]))
+    if ((AxisTwoEncoderValuesN[RAW_MICROSTEPS].value != CurrentEncoders[AXIS2]) ||
+            (AxisTwoEncoderValuesN[OFFSET_FROM_INITIAL].value != CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]))
     {
-        AxisTwoEncoderValues[RAW_MICROSTEPS].value      = CurrentEncoders[AXIS2];
-        AxisTwoEncoderValues[MICROSTEPS_PER_ARCSEC].value = MicrostepsPerDegree[AXIS2] / 3600.0;
-        AxisTwoEncoderValues[OFFSET_FROM_INITIAL].value = CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2];
-        AxisTwoEncoderValues[DEGREES_FROM_INITIAL].value =
+        AxisTwoEncoderValuesN[RAW_MICROSTEPS].value      = CurrentEncoders[AXIS2];
+        AxisTwoEncoderValuesN[MICROSTEPS_PER_ARCSEC].value = MicrostepsPerDegree[AXIS2] / 3600.0;
+        AxisTwoEncoderValuesN[OFFSET_FROM_INITIAL].value = CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2];
+        AxisTwoEncoderValuesN[DEGREES_FROM_INITIAL].value =
             MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
         AxisTwoEncoderValuesHasChanged = true;
     }
     if (AxisTwoEncoderValuesHasChanged && InformClient)
-        IDSetNumber(&AxisTwoEncoderValuesV, nullptr);
+        IDSetNumber(&AxisTwoEncoderValuesNP, nullptr);
 }
 
 

@@ -57,10 +57,10 @@ class GPS : public DefaultDevice
     GPS() = default;
     virtual ~GPS() = default;
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
   protected:
     /**
@@ -72,14 +72,14 @@ class GPS : public DefaultDevice
     /**
          * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
          */
-    virtual void TimerHit();
+    virtual void TimerHit() override;
 
     /**
      * @brief saveConfigItems Save refresh period
      * @param fp pointer to config file
      * @return True if all is OK
      */
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
     //  A number vector that stores lattitude and longitude
     INumberVectorProperty LocationNP;

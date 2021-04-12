@@ -88,7 +88,7 @@ bool STAR2000::Connect()
     rc = Connect(PortT[0].text);
 
     if (rc)
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
 
     return rc;
 }
@@ -146,8 +146,8 @@ bool STAR2000::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
     }
     else
     {
@@ -161,7 +161,7 @@ bool STAR2000::updateProperties()
 void STAR2000::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
-    defineText(&PortTP);
+    defineProperty(&PortTP);
     loadConfig(true, INDI::SP::DEVICE_PORT);
 }
 
@@ -342,7 +342,7 @@ IPState STAR2000::GuideNorth(uint32_t ms)
 
     LOG_DEBUG("Starting NORTH guide");
 
-    if (ms <= POLLMS)
+    if (ms <= getCurrentPollingPeriod())
     {
         usleep(ms * 1000);
 
@@ -370,7 +370,7 @@ IPState STAR2000::GuideSouth(uint32_t ms)
 
     NSDir = SOUTH;
 
-    if (ms <= POLLMS)
+    if (ms <= getCurrentPollingPeriod())
     {
         usleep(ms * 1000);
 
@@ -398,7 +398,7 @@ IPState STAR2000::GuideEast(uint32_t ms)
 
     WEDir = EAST;
 
-    if (ms <= POLLMS)
+    if (ms <= getCurrentPollingPeriod())
     {
         usleep(ms * 1000);
 
@@ -426,7 +426,7 @@ IPState STAR2000::GuideWest(uint32_t ms)
 
     WEDir = WEST;
 
-    if (ms <= POLLMS)
+    if (ms <= getCurrentPollingPeriod())
     {
         usleep(ms * 1000);
 

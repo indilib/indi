@@ -212,11 +212,11 @@ IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
             LOG_WARN("Roof is already fully opened.");
             return IPS_ALERT;
         }
-        else if (dir == DOME_CW && getWeatherState() == IPS_ALERT)
-        {
-            LOG_WARN("Weather conditions are in the danger zone. Cannot open roof.");
-            return IPS_ALERT;
-        }
+        //        else if (dir == DOME_CW && getWeatherState() == IPS_ALERT)
+        //        {
+        //            LOG_WARN("Weather conditions are in the danger zone. Cannot open roof.");
+        //            return IPS_ALERT;
+        //        }
         else if (dir == DOME_CCW && fullClosedLimitSwitch == ISS_ON)
         {
             LOG_WARN("Roof is already fully closed.");
@@ -283,7 +283,10 @@ float RollOff::CalcTimeLeft(timeval start)
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
     gettimeofday(&now, nullptr);
 
     timesince =

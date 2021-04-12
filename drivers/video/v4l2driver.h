@@ -52,13 +52,13 @@ class V4L2_Driver : public INDI::CCD
     virtual ~V4L2_Driver();
 
     /* INDI Functions that must be called from indidrivermain */
-    virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
     virtual void initCamBase();
 
     static void newFrame(void *p);
@@ -66,19 +66,19 @@ class V4L2_Driver : public INDI::CCD
     void newFrame();
 
   protected:
-    virtual bool Connect();
-    virtual bool Disconnect();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
 
-    virtual const char *getDefaultName();
-    virtual bool StartExposure(float duration);
-    virtual bool AbortExposure();
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-    virtual bool UpdateCCDBin(int hor, int ver);
+    virtual const char *getDefaultName() override;
+    virtual bool StartExposure(float duration) override;
+    virtual bool AbortExposure() override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int hor, int ver) override;
 
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool StartStreaming();
-    virtual bool StopStreaming();
+    virtual bool StartStreaming() override;
+    virtual bool StopStreaming() override;
 
     /* Structs */
     typedef struct
@@ -184,7 +184,7 @@ class V4L2_Driver : public INDI::CCD
 
     /* Variables */
     INDI::V4L2_Base *v4l_base;
-
+    
     char device_name[MAXINDIDEVICE];
 
     int subframeCount; /* For stacking */
@@ -193,14 +193,22 @@ class V4L2_Driver : public INDI::CCD
     img_t *V4LFrame; /* Video frame */
 
     struct timeval capture_start; /* To calculate how long a frame take */
+    
     //struct timeval capture_end;
+    
+    struct timeval frame_duration;
+    struct timeval frame_received;
+
     struct timeval exposure_duration;
+    struct timeval elapsed_exposure;
+
     struct timeval getElapsedExposure() const;
     float getRemainingExposure() const;
 
     unsigned int stackMode;
     ulong frameBytes;
-
+    unsigned int non_capture_frames;
+    bool v4l_capture_started;
     bool is_capturing;
     bool is_exposing;
 

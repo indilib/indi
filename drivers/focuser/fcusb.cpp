@@ -78,7 +78,7 @@ bool FCUSB::Connect()
 {
     if (isSimulation())
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return true;
     }
 
@@ -96,7 +96,7 @@ bool FCUSB::Connect()
     }
     else
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
     }
 
     return (handle != nullptr);
@@ -142,7 +142,7 @@ bool FCUSB::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&PWMScalerSP);
+        defineProperty(&PWMScalerSP);
     }
     else
     {
@@ -172,13 +172,13 @@ void FCUSB::TimerHit()
 
         if (timeleft == 0)
             stop();
-        else if (static_cast<uint32_t>(timeleft) < POLLMS)
+        else if (static_cast<uint32_t>(timeleft) < getCurrentPollingPeriod())
         {
             IEAddTimer(timeleft, &FCUSB::timedMoveHelper, this);
         }
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool FCUSB::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
@@ -373,7 +373,7 @@ IPState FCUSB::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
         duration_secs.tv_usec = duration % 1000;
         timeradd(&current_time, &duration_secs, &timedMoveEnd);
 
-        if (duration < POLLMS)
+        if (duration < getCurrentPollingPeriod())
         {
             IEAddTimer(duration, &FCUSB::timedMoveHelper, this);
         }

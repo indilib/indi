@@ -30,119 +30,114 @@
 
 class LX200Gemini : public LX200Generic
 {
-  public:
-    LX200Gemini();
-    ~LX200Gemini() override = default;
+    public:
+        LX200Gemini();
+        ~LX200Gemini() override = default;
 
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-  protected:
-    virtual const char *getDefaultName() override;
+    protected:
+        virtual const char *getDefaultName() override;
 
-    virtual bool Connect() override;
+        virtual bool Connect() override;
 
-    virtual bool initProperties() override ;
-    virtual bool updateProperties() override;
+        virtual bool initProperties() override ;
+        virtual bool updateProperties() override;
 
-    virtual bool isSlewComplete() override;
-    virtual bool ReadScopeStatus() override;
+        virtual bool isSlewComplete() override;
+        virtual bool ReadScopeStatus() override;
 
-    virtual bool Park()override ;
-    virtual bool UnPark() override;
+        virtual bool Park()override ;
+        virtual bool UnPark() override;
 
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool SetTrackEnabled(bool enabled) override;
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool SetTrackEnabled(bool enabled) override;
 
-    virtual bool checkConnection() override;
+        virtual bool checkConnection() override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-  private:
-    void syncSideOfPier();
-    bool sleepMount();
-    bool wakeupMount();
+    private:
+        void syncSideOfPier();
+        bool sleepMount();
+        bool wakeupMount();
 
-    bool getGeminiProperty(uint8_t propertyNumber, char* value);
-    bool setGeminiProperty(uint8_t propertyNumber, char* value);
+        bool getGeminiProperty(uint8_t propertyNumber, char* value);
+        bool setGeminiProperty(uint8_t propertyNumber, char* value);
 
-    // Checksum for private commands
-    uint8_t calculateChecksum(char *cmd);
+        // Checksum for private commands
+        uint8_t calculateChecksum(char *cmd);
 
-    INumber ManualSlewingSpeedN[1];
-    INumberVectorProperty ManualSlewingSpeedNP;
+        INumber ManualSlewingSpeedN[1];
+        INumberVectorProperty ManualSlewingSpeedNP;
 
-    INumber GotoSlewingSpeedN[1];
-    INumberVectorProperty GotoSlewingSpeedNP;
+        INumber GotoSlewingSpeedN[1];
+        INumberVectorProperty GotoSlewingSpeedNP;
 
-    INumber MoveSpeedN[1];
-    INumberVectorProperty MoveSpeedNP;
+        INumber MoveSpeedN[1];
+        INumberVectorProperty MoveSpeedNP;
 
-    INumber GuidingSpeedN[1];
-    INumberVectorProperty GuidingSpeedNP;
+        INumber GuidingSpeedN[1];
+        INumberVectorProperty GuidingSpeedNP;
 
-    INumber CenteringSpeedN[1];
-    INumberVectorProperty CenteringSpeedNP;
+        INumber CenteringSpeedN[1];
+        INumberVectorProperty CenteringSpeedNP;
 
-    ISwitch ParkSettingsS[3];
-    ISwitchVectorProperty ParkSettingsSP;
-    enum
-    {
-        PARK_HOME,
-        PARK_STARTUP,
-        PARK_ZENITH
-    };
+        ISwitch ParkSettingsS[3];
+        ISwitchVectorProperty ParkSettingsSP;
+        enum
+        {
+            PARK_HOME,
+            PARK_STARTUP,
+            PARK_ZENITH
+        };
 
-    ISwitch StartupModeS[3];
-    ISwitchVectorProperty StartupModeSP;
-    enum
-    {
-        COLD_START,
-        WARM_START,
-        WARM_RESTART
-    };
+        ISwitch StartupModeS[3];
+        ISwitchVectorProperty StartupModeSP;
+        enum
+        {
+            COLD_START,
+            WARM_START,
+            WARM_RESTART
+        };
 
-    enum
-    {
-        GEMINI_TRACK_SIDEREAL,
-        GEMINI_TRACK_KING,
-        GEMINI_TRACK_LUNAR,
-        GEMINI_TRACK_SOLAR
+        enum
+        {
+            GEMINI_TRACK_SIDEREAL,
+            GEMINI_TRACK_KING,
+            GEMINI_TRACK_LUNAR,
+            GEMINI_TRACK_SOLAR
 
-    };
+        };
 
-    enum MovementState
-    {
-        NO_MOVEMENT,
-        TRACKING,
-        GUIDING,
-        CENTERING,
-        SLEWING,
-        STALLED
-    };
+        enum MovementState
+        {
+            NO_MOVEMENT,
+            TRACKING,
+            GUIDING,
+            CENTERING,
+            SLEWING,
+            STALLED
+        };
 
-    enum ParkingState
-    {
-        NOT_PARKED,
-        PARKED,
-        PARK_IN_PROGRESS
-    };
+        enum ParkingState
+        {
+            NOT_PARKED,
+            PARKED,
+            PARK_IN_PROGRESS
+        };
 
-    const uint8_t GEMINI_TIMEOUT = 3;
+        const uint8_t GEMINI_TIMEOUT = 3;
 
-    void setTrackState(INDI::Telescope::TelescopeStatus state);
-    void updateMountState();
-    void updateParkingState();
-    void updateMovementState();
-    MovementState getMovementState();
-    ParkingState getParkingState();
+        void setTrackState(INDI::Telescope::TelescopeStatus state);
+        void updateParkingState();
+        void updateMovementState();
+        MovementState getMovementState();
+        ParkingState getParkingState();
 
-    ParkingState priorParkingState = PARK_IN_PROGRESS;
-
-    bool m_isSleeping { false };
-
-    const uint8_t MOUNT_STATE_UPDATE_FREQ = 5;
-    uint8_t mountStateCounter = 0;
+        ParkingState priorParkingState = PARK_IN_PROGRESS;
+        bool m_isSleeping { false };
 
 };

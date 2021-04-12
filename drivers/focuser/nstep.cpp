@@ -167,18 +167,18 @@ bool NStep::updateProperties()
     if (isConnected())
     {
         if (readTemperature())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
 
         bool rc = getStartupValues();
 
         // Settings
-        defineNumber(&MaxSpeedNP);
-        defineSwitch(&CompensationModeSP);
-        defineSwitch(&PrimeManualSP);
-        defineNumber(&CompensationSettingsNP);
-        defineSwitch(&SteppingModeSP);
-        defineNumber(&SteppingPhaseNP);
-        defineSwitch(&CoilStatusSP);
+        defineProperty(&MaxSpeedNP);
+        defineProperty(&CompensationModeSP);
+        defineProperty(&PrimeManualSP);
+        defineProperty(&CompensationSettingsNP);
+        defineProperty(&SteppingModeSP);
+        defineProperty(&SteppingPhaseNP);
+        defineProperty(&CoilStatusSP);
 
         if (rc)
             LOG_INFO("NStep is ready.");
@@ -553,7 +553,7 @@ void NStep::TimerHit()
             IDSetNumber(&TemperatureNP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 bool NStep::isMoving()

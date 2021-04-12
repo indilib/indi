@@ -50,24 +50,24 @@
 
 LX200Gemini::LX200Gemini()
 {
-    setVersion(1, 5);
+    setVersion(1, 6);
 
     setLX200Capability(LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_MODE |
+                           TELESCOPE_CAN_CONTROL_TRACK,
                            4);
 }
 
 const char *LX200Gemini::getDefaultName()
 {
-    return static_cast<const char *>("Losmandy Gemini");
+    return "Losmandy Gemini";
 }
 
 bool LX200Gemini::Connect()
 {
     Connection::Interface *activeConnection = getActiveConnection();
-
 
     if (!activeConnection->name().compare("CONNECTION_TCP"))
     {
@@ -81,8 +81,14 @@ void LX200Gemini::ISGetProperties(const char *dev)
 {
     LX200Generic::ISGetProperties(dev);
 
-    defineSwitch(&StartupModeSP);
-    loadConfig(true, StartupModeSP.name);
+    // Read config from file
+    int index = 0;
+    if (IUGetConfigOnSwitch(&StartupModeSP, &index) == 0)
+    {
+        IUResetSwitch(&StartupModeSP);
+        StartupModeSP.sp[index].s = ISS_ON;
+        defineProperty(&StartupModeSP);
+    }
 }
 
 bool LX200Gemini::initProperties()
@@ -103,24 +109,24 @@ bool LX200Gemini::initProperties()
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&ManualSlewingSpeedN[0], "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", "%g", 20, 2000., 10., 800);
-    IUFillNumberVector(&ManualSlewingSpeedNP, ManualSlewingSpeedN, 1, getDeviceName(), "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", MOTION_TAB, IP_RW,
-                       0, IPS_IDLE);
+    IUFillNumberVector(&ManualSlewingSpeedNP, ManualSlewingSpeedN, 1, getDeviceName(), "MANUAL_SLEWING_SPEED",
+                       "Manual Slewing Speed", MOTION_TAB, IP_RW,  0, IPS_IDLE);
 
     IUFillNumber(&GotoSlewingSpeedN[0], "GOTO_SLEWING_SPEED", "Goto Slewing Speed", "%g", 20, 2000., 10., 800);
-    IUFillNumberVector(&GotoSlewingSpeedNP, GotoSlewingSpeedN, 1, getDeviceName(), "GOTO_SLEWING_SPEED", "Goto Slewing Speed", MOTION_TAB, IP_RW,
-                       0, IPS_IDLE);
+    IUFillNumberVector(&GotoSlewingSpeedNP, GotoSlewingSpeedN, 1, getDeviceName(), "GOTO_SLEWING_SPEED", "Goto Slewing Speed",
+                       MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&MoveSpeedN[0], "MOVE_SPEED", "Move Speed", "%g", 20, 2000., 10., 10);
-    IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", MOTION_TAB, IP_RW,
-                       0, IPS_IDLE);
+    IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", MOTION_TAB,
+                       IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&GuidingSpeedN[0], "GUIDING_SPEED", "Guiding Speed", "%g", 0.2, 0.8, 0.1, 0.5);
-    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED", "Guiding Slewing Speed", GUIDE_TAB, IP_RW,
-                       0, IPS_IDLE);
+    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED", "Guiding Slewing Speed",
+                       GUIDE_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&CenteringSpeedN[0], "CENTERING_SPEED", "Centering Speed", "%g", 20, 2000., 10., 10);
-    IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED", "Centering Slewing Speed", MOTION_TAB, IP_RW,
-                       0, IPS_IDLE);
+    IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED",
+                       "Centering Slewing Speed", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_KING], "TRACK_CUSTOM", "King", ISS_OFF);
@@ -133,46 +139,48 @@ bool LX200Gemini::initProperties()
 bool LX200Gemini::updateProperties()
 {
     const int MAX_VALUE_LENGTH = 32;
-    char value[MAX_VALUE_LENGTH];
-    unsigned int speed = 0;
-    float guidingSpeed = 0.0;
-
     LX200Generic::updateProperties();
 
     if (isConnected())
     {
-        defineSwitch(&ParkSettingsSP);
+        uint32_t speed = 0;
+        char value[MAX_VALUE_LENGTH] = {0};
+        defineProperty(&ParkSettingsSP);
 
         if (getGeminiProperty(MANUAL_SLEWING_SPEED_ID, value))
         {
-            sscanf(value, "%d", &speed);
+            sscanf(value, "%u", &speed);
             ManualSlewingSpeedN[0].value = speed;
-            defineNumber(&ManualSlewingSpeedNP);
+            defineProperty(&ManualSlewingSpeedNP);
         }
         if (getGeminiProperty(GOTO_SLEWING_SPEED_ID, value))
         {
-            sscanf(value, "%d", &speed);
+            sscanf(value, "%u", &speed);
             GotoSlewingSpeedN[0].value = speed;
-            defineNumber(&GotoSlewingSpeedNP);
+            defineProperty(&GotoSlewingSpeedNP);
         }
         if (getGeminiProperty(MOVE_SPEED_ID, value))
         {
-            sscanf(value, "%d", &speed);
+            sscanf(value, "%u", &speed);
             MoveSpeedN[0].value = speed;
-            defineNumber(&MoveSpeedNP);
+            defineProperty(&MoveSpeedNP);
         }
         if (getGeminiProperty(GUIDING_SPEED_ID, value))
         {
+            float guidingSpeed = 0.0;
             sscanf(value, "%f", &guidingSpeed);
-            GuidingSpeedN[0].value = static_cast<double>(guidingSpeed);
-            defineNumber(&GuidingSpeedNP);
+            GuidingSpeedN[0].value = guidingSpeed;
+            defineProperty(&GuidingSpeedNP);
         }
         if (getGeminiProperty(CENTERING_SPEED_ID, value))
         {
-            sscanf(value, "%d", &speed);
+            sscanf(value, "%u", &speed);
             CenteringSpeedN[0].value = speed;
-            defineNumber(&CenteringSpeedNP);
+            defineProperty(&CenteringSpeedNP);
         }
+
+        updateParkingState();
+        updateMovementState();
     }
     else
     {
@@ -195,8 +203,8 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
         {
             IUUpdateSwitch(&StartupModeSP, states, names, n);
             StartupModeSP.s = IPS_OK;
-
-            LOG_INFO("Startup mode will take effect on future connections.");
+            if (isConnected())
+                LOG_INFO("Startup mode will take effect on future connections.");
             IDSetSwitch(&StartupModeSP, nullptr);
             return true;
         }
@@ -215,10 +223,9 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
 
 bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    char valueString[16] = {0};
-
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        char valueString[16] = {0};
         snprintf(valueString, 16, "%2.0f", values[0]);
 
         if (!strcmp(name, ManualSlewingSpeedNP.name))
@@ -389,7 +396,8 @@ bool LX200Gemini::checkConnection()
     }
     else if (response[0] == 'G')
     {
-        updateMountState();
+        updateParkingState();
+        updateMovementState();
         LOG_DEBUG("Startup complete with equatorial mount selected.");
     }
     else if (response[0] == 'A')
@@ -412,24 +420,26 @@ bool LX200Gemini::isSlewComplete()
 
 bool LX200Gemini::ReadScopeStatus()
 {
+    LOGF_DEBUG("ReadScopeStatus: TrackState is <%d>", TrackState);
+
     if (!isConnected())
         return false;
 
     if (isSimulation())
         return LX200Generic::ReadScopeStatus();
 
-    if (m_isSleeping)
-        return true;
-
-    // JM 2018-10-23: After after MOUNT_STATE_UPDATE_FREQ to reduce unnecessary traffic
-    if (mountStateCounter++ == MOUNT_STATE_UPDATE_FREQ)
+    if(m_isSleeping)
     {
-        updateMountState();
-        mountStateCounter=0;
+        return true;
     }
 
     if (TrackState == SCOPE_SLEWING)
     {
+        updateMovementState();
+
+        EqNP.s = IPS_BUSY;
+        IDSetNumber(&EqNP, NULL);
+
         // Check if LX200 is done slewing
         if (isSlewComplete())
         {
@@ -438,16 +448,25 @@ bool LX200Gemini::ReadScopeStatus()
             SlewRateS[SLEW_CENTERING].s = ISS_ON;
             IDSetSwitch(&SlewRateSP, nullptr);
 
-            TrackState = SCOPE_TRACKING;
+            EqNP.s = IPS_OK;
+            IDSetNumber(&EqNP, NULL);
+
             LOG_INFO("Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
     {
+        updateParkingState();
+
         if (isSlewComplete())
         {
+            LOG_DEBUG("Park is complete ...");
             SetParked(true);
             sleepMount();
+
+            EqNP.s = IPS_IDLE;
+            IDSetNumber(&EqNP, NULL);
+
             return true;
         }
     }
@@ -528,6 +547,7 @@ void LX200Gemini::syncSideOfPier()
     setPierSide(pointingState);
 }
 
+
 bool LX200Gemini::Park()
 {
     char cmd[6] = ":hP#";
@@ -558,6 +578,8 @@ bool LX200Gemini::Park()
 
     ParkSP.s   = IPS_BUSY;
     TrackState = SCOPE_PARKING;
+
+    updateParkingState();
     return true;
 }
 
@@ -567,6 +589,8 @@ bool LX200Gemini::UnPark()
 
     SetParked(false);
     TrackState = SCOPE_TRACKING;
+
+    updateParkingState();
     return true;
 }
 
@@ -626,12 +650,6 @@ void LX200Gemini::setTrackState(INDI::Telescope::TelescopeStatus state)
 {
     if (TrackState != state)
         TrackState = state;
-}
-
-void LX200Gemini::updateMountState()
-{
-    updateParkingState();
-    updateMovementState();
 }
 
 void LX200Gemini::updateMovementState()
@@ -834,7 +852,7 @@ bool LX200Gemini::getGeminiProperty(uint8_t propertyNumber, char* value)
 bool LX200Gemini::setGeminiProperty(uint8_t propertyNumber, char* value)
 {
     int rc = TTY_OK;
-    int nbytes_written=0;
+    int nbytes_written = 0;
     char prefix[16] = {0};
     char cmd[16] = {0};
 
@@ -861,7 +879,7 @@ bool LX200Gemini::setGeminiProperty(uint8_t propertyNumber, char* value)
 
 bool LX200Gemini::SetTrackMode(uint8_t mode)
 {
-    int rc = TTY_OK, nbytes_written=0;
+    int rc = TTY_OK, nbytes_written = 0;
     char prefix[16] = {0};
     char cmd[16] = {0};
 
@@ -871,7 +889,6 @@ bool LX200Gemini::SetTrackMode(uint8_t mode)
 
     snprintf(cmd, 16, "%s%c#", prefix, checksum);
 
-    LOG_ERROR("Setting track mode");
     LOGF_DEBUG("CMD: <%s>", cmd);
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
@@ -903,7 +920,7 @@ uint8_t LX200Gemini::calculateChecksum(char *cmd)
 {
     uint8_t result = cmd[0];
 
-    for (size_t i=1; i < strlen(cmd); i++)
+    for (size_t i = 1; i < strlen(cmd); i++)
         result = result ^ cmd[i];
 
     result = result % 128;

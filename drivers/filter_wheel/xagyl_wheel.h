@@ -98,7 +98,7 @@ class XAGYLWheel : public INDI::FilterWheel
 
         // Firmware info
         ITextVectorProperty FirmwareInfoTP;
-        IText FirmwareInfoT[3];
+        IText FirmwareInfoT[3] {};
         enum
         {
             FIRMWARE_PRODUCT,

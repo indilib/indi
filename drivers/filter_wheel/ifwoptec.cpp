@@ -183,14 +183,14 @@ bool FilterIFW::updateProperties()
    INDI::FilterWheel::updateProperties();
 	 if (isConnected())
     {
-        defineSwitch(&HomeSP);
-        defineText(&FirmwareTP);
-        defineText(&WheelIDTP); // ID of the wheel first in Filter tab page
+        defineProperty(&HomeSP);
+        defineProperty(&FirmwareTP);
+        defineProperty(&WheelIDTP); // ID of the wheel first in Filter tab page
+        // Then the button only for Simulation to select the number of filter of the Wheel (5 or 8)
         if (isSimulation())
-            defineSwitch(
-                &FilterNbrSP); // Then the button only for Simulation to select the number of filter of the Wheel (5 or 8)
-        defineSwitch(&CharSetSP);
-        defineNumber(&FilterSlotNP);
+            defineProperty(&FilterNbrSP);
+        defineProperty(&CharSetSP);
+        defineProperty(&FilterSlotNP);
         controller->updateProperties();
 
         GetFirmware(); // Try to get Firmware version of the IFW. NOt all Firmware support this function
@@ -500,7 +500,7 @@ void FilterIFW::simulationTriggered(bool enable)
     {
         if (isConnected())
         {
-            defineSwitch(&FilterNbrSP);
+            defineProperty(&FilterNbrSP);
         }
     }
     else
@@ -666,7 +666,7 @@ bool FilterIFW::GetFilterNames()
                 p                                   = p + OPTEC_LEN_FLTNAME;
                 LOGF_DEBUG("filterNameIFW[%d] : %s", i, filterNameIFW[i]);
                 strncat(filterList, filterNameIFW[i], OPTEC_LEN_FLTNAME);
-                strncat(filterList, "/", 1);
+                strcat(filterList, "/");
             }
             filterList[strlen(filterList) - 1] = '\0'; //Remove last "/"
 
@@ -674,7 +674,7 @@ bool FilterIFW::GetFilterNames()
             // Set new max value on the filter_slot property
             FilterSlotN[0].max = maxFilter;
             if (isSimulation())
-                actualSimFilter = FilterSlotN[0].value = 1;
+                FilterSlotN[0].value = actualSimFilter = 1;
             IUUpdateMinMax(&FilterSlotNP);
             IDSetNumber(&FilterSlotNP, nullptr);
 
@@ -699,7 +699,7 @@ bool FilterIFW::GetFilterNames()
 
             IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filters", FilterSlotNP.group,
                              IP_RW, 0, IPS_OK);
-            defineText(FilterNameTP);
+            defineProperty(FilterNameTP);
 
             // filterList only use for purpose information
             // Remove space from filterList
@@ -742,7 +742,9 @@ bool FilterIFW::SetFilterNames()
     int tempolen;
     memset(response, 0, sizeof(response));
 
-    FilterNameTP->s = FilterSlotNP.s = WheelIDTP.s = IPS_BUSY;
+    FilterNameTP->s = IPS_BUSY;
+    FilterSlotNP.s = IPS_BUSY;
+    WheelIDTP.s = IPS_BUSY;
     IDSetText(FilterNameTP, "*** Saving filters name to IFW... ***");
     IDSetNumber(&FilterSlotNP, nullptr);
     IDSetText(&WheelIDTP, nullptr);
@@ -931,7 +933,9 @@ bool FilterIFW::moveHome()
 
     memset(response, 0, sizeof(response));
 
-    HomeSP.s = WheelIDTP.s = FilterSlotNP.s = IPS_BUSY;
+    HomeSP.s = IPS_BUSY;
+    WheelIDTP.s = IPS_BUSY;
+    FilterSlotNP.s = IPS_BUSY;
     IDSetSwitch(&HomeSP, "*** Initialisation of the IFW. Please wait... ***");
     IDSetText(&WheelIDTP, nullptr);
     IDSetNumber(&FilterSlotNP, nullptr);
@@ -964,12 +968,14 @@ bool FilterIFW::moveHome()
 
     if (!result || !GetWheelID() || !GetFilterNames() || (GetFilterPos() <= 0))
     {
-        HomeSP.s = WheelIDTP.s = IPS_ALERT;
+        HomeSP.s = IPS_ALERT;
+        WheelIDTP.s = IPS_ALERT;
         IDSetSwitch(&HomeSP, "*** INITIALISATION FAILED ***");
         return false;
     }
 
-    HomeSP.s = WheelIDTP.s = IPS_OK;
+    HomeSP.s = IPS_OK;
+    WheelIDTP.s = IPS_OK;
     IDSetSwitch(&HomeSP, "IFW ready");
     return true;
 }

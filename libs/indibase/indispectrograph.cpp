@@ -75,10 +75,10 @@ bool Spectrograph::updateProperties()
 {
     if (isConnected())
     {
-        defineNumber(&SpectrographSettingsNP);
+        defineProperty(&SpectrographSettingsNP);
 
         if (HasCooler())
-            defineNumber(&TemperatureNP);
+            defineProperty(&TemperatureNP);
     }
     else
     {

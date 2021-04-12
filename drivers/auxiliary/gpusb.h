@@ -35,23 +35,23 @@ class GPUSB : public INDI::GuiderInterface, public INDI::DefaultDevice
         GPUSB();
         virtual ~GPUSB();
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
         static void NSTimerHelper(void *context);
         static void WETimerHelper(void *context);
 
     protected:
-        bool Connect();
-        bool Disconnect();
-        const char *getDefaultName();
-        void debugTriggered(bool enable);
+        bool Connect() override;
+        bool Disconnect() override;
+        const char *getDefaultName() override;
+        void debugTriggered(bool enable) override;
 
-        virtual IPState GuideNorth(uint32_t ms);
-        virtual IPState GuideSouth(uint32_t ms);
-        virtual IPState GuideEast(uint32_t ms);
-        virtual IPState GuideWest(uint32_t ms);
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
     private:
         std::chrono::system_clock::time_point NSGuideTS, WEGuideTS;

@@ -37,6 +37,16 @@ protected:
     uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
 };
 
+class InverseFourierTransform : public Interface
+{
+public:
+    InverseFourierTransform(INDI::DefaultDevice *dev);
+
+protected:
+    ~InverseFourierTransform();
+    uint8_t *Callback(uint8_t *out, uint32_t dims, int *sizes, int bits_per_sample) override;
+};
+
 class Spectrum : public Interface
 {
 public:

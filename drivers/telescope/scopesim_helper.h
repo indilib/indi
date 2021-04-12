@@ -35,8 +35,9 @@
 
 #include <stdint.h>
 #include <sys/time.h>
+#include <cmath>
 
-#include "indicom.h"
+#include <indicom.h>
 
 static char device_str[64] = "Telescope Simulator";
 
@@ -54,12 +55,12 @@ private:
     ///
     /// \brief range
     /// \param deg
-    /// \return returns an angle in degrees folded to the range -180 to 0 to 180
+    /// \return returns an angle in degrees folded to the range -179.999... to 0 to 180
     ///
     static double range(double deg)
     {
-        while (deg >= 180.0) deg -= 360.0;
-        while (deg < -180.0) deg += 360.0;
+        while (deg > 180.0) deg -= 360.0;
+        while (deg <= -180.0) deg += 360.0;
         return deg;
     }
 
@@ -367,6 +368,11 @@ public:
 
     enum MOUNT_TYPE { ALTAZ, EQ_FORK, EQ_GEM };
 
+    Angle latitude = 0;
+    Angle longitude = 0;
+
+    MOUNT_TYPE mountType = EQ_FORK;
+
     ///
     /// \brief mountToApparentRaDec: convert mount position to apparent Ra, Dec
     /// \param primary
@@ -379,10 +385,6 @@ public:
 
     void apparentRaDecToMount(Angle apparentRa, Angle apparentDec, Angle *primary, Angle *secondary);
 
-    Angle latitude = 0;
-    Angle longitude = 0;
-
-    MOUNT_TYPE mountType = EQ_FORK;
 
     ///
     /// \brief setCorrections set the values of the six corrections
@@ -400,7 +402,18 @@ public:
     // needed for debug MACROS
     const char *getDeviceName() { return device_str;}
 
-private:
+    double ih() {return IH;}
+    double id() {return ID;}
+    double np() {return NP;}
+    double ch() {return CH;}
+    double ma() {return MA;}
+    double me() {return ME;}
+
+    void instrumentToObserved(Angle instrumentHa, Angle instrumentDec, Angle *observedHa, Angle *observedDec);
+
+    void observedToInstrument(Angle observedHa, Angle observedDec, Angle * instrumentHa, Angle * instrumentDec);
+
+
     ///
     /// \brief mountToApparentHaDec: convert mount position to apparent Ha, Dec
     /// \param primary
@@ -420,13 +433,15 @@ private:
     void apparentHaDecToMount(Angle apparentHa, Angle apparentDec, Angle *primary, Angle *secondary);
 
     Angle lst();            // returns the current LST as an angle
-    void instrumentToObserved(Angle instrumentHa, Angle instrumentDec, Angle *observedHa, Angle *observedDec);
-    void observedToInstrument(Angle observedHa, Angle observedDec, Angle * instrumentHa, Angle * instrumentDec);
+private:
+
+
+
 
     Angle flipHourAngle = 0;
 
     ///
-    /// \brief correction: determins the correction to the instrument position to get the observed
+    /// \brief correction: determines the correction to the instrument position to get the observed
     /// Based on Patrick Wallace's paper, see Table 1.
     ///
     /// correction parameters are:
@@ -447,12 +462,110 @@ private:
     // mount model, these angles are in degrees
     // the angles are small so use double to avoid
     // loads of conversions
+    ///
+    /// \brief IH hour angle/azimuth offset
+    ///
     double IH = 0;
+    ///
+    /// \brief ID declination/elevation offset
+    ///
     double ID = 0;
+    ///
+    /// \brief CH OTA - dec axis non orthogonality
+    ///
     double CH = 0;
+    ///
+    /// \brief NP hour angle - dec axis non orthogonality
+    ///
     double NP = 0;
+    ///
+    /// \brief MA polar align error in Azimuth
+    ///
     double MA = 0;
+    ///
+    /// \brief ME polar align error in Elevation
+    ///
     double ME = 0;
+
+
+    // corrections done using direction cosines and rotations after Taki
+    //apparentHaDecToMount(Vector HaDec, Vector * mount);
 };
 
+///
+/// \brief The Vector class
+///  This implements the Directional Cosine used by Taki in his Matrix method.
+///  using Vector because it's a 3D vector, hope this doesn't clash too badly
+///  with std::vector
+///
+///  The parameter names are selected to match what Taki uses.
+///
+class Vector
+{
+public:
+    ///
+    /// \brief Vector
+    /// creates an empty vector
+    ///
+    Vector() { L = M = N = 0; }
 
+    ///
+    /// \brief Vector creates vector from the three vector values
+    /// \param l
+    /// \param m
+    /// \param n
+    ///
+    Vector(double l, double m, double n);
+
+    ///
+    /// \brief Vector creats a vector from two angles (Ra, Dec), (Ha, Dec), (Azimuth, Altitude)
+    /// \param primary
+    /// \param secondary
+    ///
+    Vector(Angle primary, Angle secondary);
+
+    double lengthSquared() { return L * L + M * M + N * N; }
+
+    double length() { return std::sqrt(lengthSquared()); }
+
+    void normalise();
+
+    ///
+    /// \brief primary returns the primary angle (Ra, Ha, Azimuth) from this vector
+    /// \return
+    ///
+    Angle primary();
+
+    ///
+    /// \brief secondary returns the secondary angle (dec, altitude) from this vector
+    /// \return
+    ///
+    Angle secondary();
+
+    ///
+    /// \brief rotateX rotates this vector through angle about the X axis
+    /// \param angle
+    ///
+    Vector rotateX(Angle angle);
+
+    ///
+    /// \brief rotateY rotates this vector through angle about the Y axis
+    /// \param angle
+    ///
+    Vector rotateY(Angle angle);
+
+    ///
+    /// \brief rotateZ rotates this vector through angle about the Z axis
+    /// \param rotX
+    ///
+    Vector rotateZ(Angle angle);
+
+    double l() { return L; }
+    double m() { return M; }
+    double n() { return N; }
+
+protected:
+    double L;   // in the Ha 0 direction, pointing at Ha 0, Dec 0, X direction
+    double M;   // in the Ha 6 direction, pointing at Ha 6h, Dec 0, Y direction
+    double N;   // toward the pole, Dec 0, Z direction
+};

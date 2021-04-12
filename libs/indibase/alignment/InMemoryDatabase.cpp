@@ -102,7 +102,7 @@ bool InMemoryDatabase::LoadDatabase(const char *DeviceName)
         sscanf(valuXMLAtt(Attribute), "%lf", &DatabaseReferencePosition.lat);
         if (nullptr == (Attribute = findXMLAtt(Element, "longitude")))
         {
-            snprintf(Errmsg, MAXRBUF, "Cannot find latitude attribute");
+            snprintf(Errmsg, MAXRBUF, "Cannot find longitude attribute");
             return false;
         }
         sscanf(valuXMLAtt(Attribute), "%lf", &DatabaseReferencePosition.lng);

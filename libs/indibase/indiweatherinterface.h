@@ -88,6 +88,13 @@ class WeatherInterface
         virtual IPState updateWeather();
 
         /**
+         * @brief saveConfigItems Save parameters ranges in the config file.
+         * @param fp pointer to open config file
+         * @return true of success, false otherwise.
+         */
+        virtual bool saveConfigItems(FILE *fp);
+
+        /**
          * @brief addParameter Add a physical weather measurable parameter to the weather driver.
          * The weather value has three zones:
          * <ol>

@@ -69,10 +69,11 @@ class Interface
          * \brief Holds the process type
          */
         typedef enum  {
-            DSP_NONE = 0,
-            DSP_TRANSFORMATIONS,
-            DSP_CONVOLUTION,
-            DSP_SPECTRUM,
+        DSP_NONE = 0,
+        DSP_DFT,
+        DSP_IDFT,
+        DSP_CONVOLUTION,
+        DSP_SPECTRUM,
         } Type;
 
         virtual void ISGetProperties(const char *dev);

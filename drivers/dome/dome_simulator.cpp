@@ -250,13 +250,6 @@ IPState DomeSim::MoveRel(double azDiff)
 
 IPState DomeSim::Park()
 {
-    if (INDI::Dome::isLocked())
-    {
-        LOG_INFO(
-            "Cannot Park Dome when mount is locking. See: Telescope parking policy, in options tab");
-        return IPS_ALERT;
-    }
-
     targetAz = DomeParamN[0].value;
     Dome::ControlShutter(SHUTTER_CLOSE);
     Dome::MoveAbs(GetAxis1Park());

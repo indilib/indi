@@ -46,25 +46,25 @@ class TCP : public Interface
     TCP(INDI::DefaultDevice *dev);
     virtual ~TCP() = default;
 
-    virtual bool Connect();
+    virtual bool Connect() override;
 
-    virtual bool Disconnect();
+    virtual bool Disconnect() override;
 
-    virtual void Activated();
+    virtual void Activated() override;
 
-    virtual void Deactivated();
+    virtual void Deactivated() override;
 
-    virtual std::string name() { return "CONNECTION_TCP"; }
+    virtual std::string name() override { return "CONNECTION_TCP"; }
 
-    virtual std::string label() { return "Ethernet"; }
+    virtual std::string label() override { return "Ethernet"; }
 
     virtual const char *host() const { return AddressT[0].text; }
     virtual uint32_t port() const { return atoi(AddressT[1].text); }
     ConnectionType connectionType() const { return static_cast<ConnectionType>(IUFindOnSwitchIndex(&TcpUdpSP)); }
 
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
     int getPortFD() const { return PortFD; }
     void setDefaultHost(const char *addressHost);

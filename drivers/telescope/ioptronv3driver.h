@@ -93,7 +93,8 @@ class Driver
         /**************************************************************************
          Communication
         **************************************************************************/
-        bool sendCommand(const char *command, int count = 1, char *response = nullptr, uint8_t timeout = IOP_TIMEOUT, uint8_t debugLog = INDI::Logger::DBG_DEBUG);
+        bool sendCommand(const char *command, int count = 1, char *response = nullptr, uint8_t timeout = IOP_TIMEOUT,
+                         uint8_t debugLog = INDI::Logger::DBG_DEBUG);
         bool checkConnection(int fd);
 
         /**************************************************************************
@@ -117,6 +118,11 @@ class Driver
         bool setCustomRATrackRate(double rate);
         bool setTrackMode(IOP_TRACK_RATE rate);
         bool setTrackEnabled(bool enabled);
+        /* v3.0 Add in PEC Control */
+        bool setPECEnabled(bool enabled); // start / stop PEC
+        bool setPETEnabled(bool enabled); // record / cancel PEC
+        bool getPETEnabled(bool enabled); // check data / recording status
+        // End Mod */
         bool abort();
         bool slewNormal();
         bool slewCWUp();
@@ -136,6 +142,8 @@ class Driver
         **************************************************************************/
         bool park();
         bool unpark();
+        bool setParkAz(double az);
+        bool setParkAlt(double alt);
 
         /**************************************************************************
          Guide

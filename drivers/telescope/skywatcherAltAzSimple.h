@@ -67,8 +67,10 @@ class SkywatcherAltAzSimple : public SkywatcherAPI,
 private:
     void ResetGuidePulses();
     void UpdateScopeConfigSwitch();
+    int recover_tty_reconnect();
     // Overrides for the pure virtual functions in SkyWatcherAPI
     virtual int skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) override;
+    virtual int skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read) override;
     virtual int skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written) override;
     void UpdateDetailedMountInformation(bool InformClient);
     ln_hrz_posn GetAltAzPosition(double ra, double dec, double offset_in_sec = 0);
@@ -85,8 +87,8 @@ private:
         MOUNT_NAME,
         IS_DC_MOTOR
     };
-    IText BasicMountInfo[4] {};
-    ITextVectorProperty BasicMountInfoV;
+    IText BasicMountInfoT[4] {};
+    ITextVectorProperty BasicMountInfoTP;
 
     enum
     {
@@ -95,10 +97,10 @@ private:
         HIGH_SPEED_RATIO,
         MICROSTEPS_PER_WORM_REVOLUTION
     };
-    INumber AxisOneInfo[4];
-    INumberVectorProperty AxisOneInfoV;
-    INumber AxisTwoInfo[4];
-    INumberVectorProperty AxisTwoInfoV;
+    INumber AxisOneInfoN[4];
+    INumberVectorProperty AxisOneInfoNP;
+    INumber AxisTwoInfoN[4];
+    INumberVectorProperty AxisTwoInfoNP;
     enum
     {
         FULL_STOP,
@@ -108,10 +110,10 @@ private:
         HIGH_SPEED,
         NOT_INITIALISED
     };
-    ISwitch AxisOneState[6];
-    ISwitchVectorProperty AxisOneStateV;
-    ISwitch AxisTwoState[6];
-    ISwitchVectorProperty AxisTwoStateV;
+    ISwitch AxisOneStateS[6];
+    ISwitchVectorProperty AxisOneStateSP;
+    ISwitch AxisTwoStateS[6];
+    ISwitchVectorProperty AxisTwoStateSP;
     enum
     {
         RAW_MICROSTEPS,
@@ -119,10 +121,10 @@ private:
         OFFSET_FROM_INITIAL,
         DEGREES_FROM_INITIAL
     };
-    INumber AxisOneEncoderValues[4];
-    INumberVectorProperty AxisOneEncoderValuesV;
-    INumber AxisTwoEncoderValues[4];
-    INumberVectorProperty AxisTwoEncoderValuesV;
+    INumber AxisOneEncoderValuesN[4];
+    INumberVectorProperty AxisOneEncoderValuesNP;
+    INumber AxisTwoEncoderValuesN[4];
+    INumberVectorProperty AxisTwoEncoderValuesNP;
 
     // A switch for silent/highspeed slewing modes
     enum
@@ -130,7 +132,7 @@ private:
         SLEW_SILENT,
         SLEW_NORMAL
     };
-    ISwitch SlewModes[2];
+    ISwitch SlewModesS[2];
     ISwitchVectorProperty SlewModesSP;
 
     // A switch for wedge mode
@@ -140,7 +142,7 @@ private:
         WEDGE_EQ,
         WEDGE_DISABLED
     };
-    ISwitch WedgeMode[3];
+    ISwitch WedgeModeS[3];
     ISwitchVectorProperty WedgeModeSP;
 
     // A switch for tracking logging
@@ -149,7 +151,7 @@ private:
         TRACKLOG_ENABLED,
         TRACKLOG_DISABLED
     };
-    ISwitch TrackLogMode[2];
+    ISwitch TrackLogModeS[2];
     ISwitchVectorProperty TrackLogModeSP;
 
     // Guiding rates (RA/Dec)
@@ -161,15 +163,15 @@ private:
     INumberVectorProperty TrackingValuesNP;
 
     // A switch for park movement directions (clockwise/counterclockwise)
-    ISwitch ParkMovementDirection[2];
+    ISwitch ParkMovementDirectionS[2];
     ISwitchVectorProperty ParkMovementDirectionSP;
 
     // A switch for park positions
-    ISwitch ParkPosition[4];
+    ISwitch ParkPositionS[4];
     ISwitchVectorProperty ParkPositionSP;
 
     // A switch for unpark positions
-    ISwitch UnparkPosition[4];
+    ISwitch UnparkPositionS[4];
     ISwitchVectorProperty UnparkPositionSP;
 
     // Tracking
@@ -192,4 +194,6 @@ private:
     bool VerboseScopeStatus { false };
 
     std::vector<GuidingPulse> GuidingPulses;
+
+    bool moving { false };
 };

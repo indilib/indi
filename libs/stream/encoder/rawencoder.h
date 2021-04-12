@@ -22,7 +22,7 @@
 #pragma once
 
 #include "encoderinterface.h"
-
+#include <vector>
 namespace INDI
 {
 
@@ -41,7 +41,7 @@ public:
 
 private:
     const char *getDeviceName();
-    uint8_t *compressedFrame = nullptr;
+    std::vector<uint8_t> compressedFrame;
 
 };
 

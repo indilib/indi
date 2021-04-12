@@ -207,7 +207,7 @@ void FocusLynxBase::ISGetProperties(const char *dev)
 
     INDI::Focuser::ISGetProperties(dev);
 
-    defineSwitch(&ModelSP);
+    defineProperty(&ModelSP);
     if (isSimulation())
         loadConfig(true, "Model");
 }
@@ -227,24 +227,24 @@ bool FocusLynxBase::updateProperties()
 
     if (isConnected())
     {
-        defineText(&HFocusNameTP);
+        defineProperty(&HFocusNameTP);
 
-        defineNumber(&TemperatureNP);
-        defineSwitch(&TemperatureCompensateModeSP);
-        defineNumber(&TemperatureParamNP);
-        defineSwitch(&TemperatureCompensateSP);
-        defineSwitch(&TemperatureCompensateOnStartSP);
+        defineProperty(&TemperatureNP);
+        defineProperty(&TemperatureCompensateModeSP);
+        defineProperty(&TemperatureParamNP);
+        defineProperty(&TemperatureCompensateSP);
+        defineProperty(&TemperatureCompensateOnStartSP);
 
-        //        defineSwitch(&FocusBacklashSP);
-        //        defineNumber(&FocusBacklashNP);
+        //        defineProperty(&FocusBacklashSP);
+        //        defineProperty(&FocusBacklashNP);
 
-        //defineNumber(&MaxTravelNP);
+        //defineProperty(&MaxTravelNP);
 
-        defineNumber(&StepSizeNP);
+        defineProperty(&StepSizeNP);
 
-        defineSwitch(&ResetSP);
-        //defineSwitch(&ReverseSP);
-        defineLight(&StatusLP);
+        defineProperty(&ResetSP);
+        //defineProperty(&ReverseSP);
+        defineProperty(&StatusLP);
 
         if (getFocusConfig() && getFocusTemp())
             LOG_INFO("FocusLynx parameters updated, focuser ready for use.");
@@ -791,13 +791,17 @@ bool FocusLynxBase::getFocusConfig()
     rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
-        FocusAbsPosN[0].max = FocusSyncN[0].max = maxPos;
-        FocusAbsPosN[0].step = FocusSyncN[0].step = maxPos / 50.0;
-        FocusAbsPosN[0].min = FocusSyncN[0].min = 0;
+        FocusAbsPosN[0].min = 0;
+        FocusAbsPosN[0].max = maxPos;
+        FocusAbsPosN[0].step = maxPos / 50.0;
 
+        FocusSyncN[0].min = 0;
+        FocusSyncN[0].max = maxPos;
+        FocusSyncN[0].step = maxPos / 50.0;
+
+        FocusRelPosN[0].min  = 0;
         FocusRelPosN[0].max  = maxPos / 2;
         FocusRelPosN[0].step = maxPos / 100.0;
-        FocusRelPosN[0].min  = 0;
 
         IUUpdateMinMax(&FocusAbsPosNP);
         IUUpdateMinMax(&FocusRelPosNP);
@@ -1108,7 +1112,8 @@ bool FocusLynxBase::getFocusStatus()
         memset(response, 0, sizeof(response));
         if (isSimulation())
         {
-            strncpy(response, "Temp(C) = +21.7\n", 16);
+            //strncpy(response, "Temp(C) = +21.7\n", 16); // #PS: for string literal, use strcpy
+            strcpy(response, "Temp(C) = +21.7\n");
             nbytes_read = strlen(response);
         }
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1117,7 +1122,10 @@ bool FocusLynxBase::getFocusStatus()
             LOGF_ERROR("%s", errmsg);
             return false;
         }
-        response[nbytes_read - 1] = '\0';
+
+        if (nbytes_read > 0)
+            response[nbytes_read - 1] = '\0'; // remove last character (new line)
+
         LOGF_DEBUG("RES (%s)", response);
 
         float temperature = 0;
@@ -3069,9 +3077,9 @@ IPState FocusLynxBase::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
         response[nbytes_read - 1] = '\0';
         LOGF_DEBUG("RES (%s)", response);
 
-        if (duration <= POLLMS)
+        if (duration <= getCurrentPollingPeriod())
         {
-            usleep(POLLMS * 1000);
+            usleep(getCurrentPollingPeriod() * 1000);
             AbortFocuser();
             return IPS_OK;
         }
@@ -3186,7 +3194,7 @@ void FocusLynxBase::TimerHit()
 
     if (configurationComplete == false)
     {
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3201,7 +3209,7 @@ void FocusLynxBase::TimerHit()
     if (statusrc == false)
     {
         LOG_WARN("Unable to read focuser status....");
-        SetTimer(POLLMS);
+        SetTimer(getCurrentPollingPeriod());
         return;
     }
 
@@ -3266,7 +3274,7 @@ void FocusLynxBase::TimerHit()
         {
             float remaining = calcTimeLeft(focusMoveStart, focusMoveRequest);
 
-            if (remaining < POLLMS)
+            if (remaining < getCurrentPollingPeriod())
             {
                 sleep(remaining);
                 AbortFocuser();
@@ -3280,7 +3288,7 @@ void FocusLynxBase::TimerHit()
         IDSetSwitch(&GotoSP, nullptr);
     }
 
-    SetTimer(POLLMS);
+    SetTimer(getCurrentPollingPeriod());
 }
 
 /************************************************************************************
@@ -3339,7 +3347,9 @@ bool FocusLynxBase::AbortFocuser()
             IDSetNumber(&FocusRelPosNP, nullptr);
         }
 
-        FocusTimerNP.s = FocusAbsPosNP.s = GotoSP.s = IPS_IDLE;
+        FocusTimerNP.s = IPS_IDLE;
+        FocusAbsPosNP.s = IPS_IDLE;
+        GotoSP.s = IPS_IDLE;
         IUResetSwitch(&GotoSP);
         IDSetNumber(&FocusTimerNP, nullptr);
         IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -3509,7 +3519,7 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
 
         SyncMandatoryS[0].s = ISS_OFF;
         SyncMandatoryS[1].s = ISS_ON;
-        defineSwitch(&SyncMandatorySP);
+        defineProperty(&SyncMandatorySP);
 
         ISState syncEnabled = ISS_OFF;
         if (IUGetConfigSwitch(getDeviceName(), "SYNC MANDATORY", "Enable", &syncEnabled) == 0)
@@ -3526,7 +3536,7 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
         isAbsolute = false;
     }
 
-    defineSwitch(&GotoSP);
+    defineProperty(&GotoSP);
     return isAbsolute;
 }
 

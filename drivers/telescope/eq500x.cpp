@@ -538,7 +538,7 @@ bool EQ500X::ReadScopeStatus()
                 goto slew_failure;
             }
             // Else adjust poll timeout to adjustment speed and continue
-            else POLLMS = static_cast <uint32_t> (adjustment->polling_interval);
+            else setCurrentPollingPeriod(static_cast <uint32_t> (adjustment->polling_interval));
         }
         // If we attained target position at one arcsecond precision, finish procedure and track target
         else
@@ -547,7 +547,7 @@ bool EQ500X::ReadScopeStatus()
             sendCmd(":Q#");
             updateSlewRate(savedSlewRateIndex);
             adjustment = nullptr;
-            POLLMS = 1000;
+            setCurrentPollingPeriod(1000);
             TrackState = SCOPE_TRACKING;
             EqNP.s = IPS_OK;
             IDSetNumber(&EqNP, "Mount is tracking");
@@ -574,7 +574,7 @@ slew_failure:
     sendCmd(":Q#");
     updateSlewRate(savedSlewRateIndex);
     adjustment = nullptr;
-    POLLMS = 1000;
+    setCurrentPollingPeriod(1000);
     TrackState = SCOPE_TRACKING;
     currentRA = currentMechPosition.RAsky();
     currentDEC = currentMechPosition.DECsky();
@@ -613,8 +613,9 @@ bool EQ500X::Goto(double ra, double dec)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -714,7 +715,7 @@ sync_error:
 
 bool EQ500X::Abort()
 {
-    POLLMS = 1000;
+    setCurrentPollingPeriod(1000);
     TrackState = SCOPE_TRACKING;
     return LX200Telescope::Abort() && updateSlewRate(savedSlewRateIndex);
 }

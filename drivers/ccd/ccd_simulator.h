@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <deque>
+
 #include "indiccd.h"
 #include "indifilterinterface.h"
 
@@ -40,6 +42,27 @@
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
     public:
+
+        enum
+        {
+            SIM_XRES,
+            SIM_YRES,
+            SIM_XSIZE,
+            SIM_YSIZE,
+            SIM_MAXVAL,
+            SIM_SATURATION,
+            SIM_LIMITINGMAG,
+            SIM_NOISE,
+            SIM_SKYGLOW,
+            SIM_OAGOFFSET,
+            SIM_POLAR,
+            SIM_POLARDRIFT,
+            SIM_PE_PERIOD,
+            SIM_PE_MAX,
+            SIM_TIME_FACTOR,
+            SIM_ROTATION,
+            SIM_N
+        };
 
         CCDSim();
         virtual ~CCDSim() override = default;
@@ -89,6 +112,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
         virtual bool UpdateCCDBin(int hor, int ver) override;
 
+        virtual bool UpdateGuiderBin(int hor, int ver) override;
+
         virtual bool StartStreaming() override;
         virtual bool StopStreaming() override;
 
@@ -99,10 +124,13 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     protected:
 
         float CalcTimeLeft(timeval, float);
-        bool SetupParms();
+        bool loadNextImage();
+        bool setupParameters();
 
         // Turns on/off Bayer RGB simulation.
-        void setRGB(bool onOff);
+        void setBayerEnabled(bool onOff);
+
+        double flux(double magnitude) const;
 
         float TemperatureRequest { 0 };
 
@@ -120,27 +148,27 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         int testvalue { 0 };
         bool ShowStarField { true };
-        int bias { 1500 };
-        int maxnoise { 20 };
-        int maxval { 65000 };
+        int m_Bias { 1500 };
+        int m_MaxNoise { 20 };
+        int m_MaxVal { 65000 };
         int maxpix { 0 };
         int minpix { 65000 };
-        float skyglow { 40 };
-        float limitingmag { 11.5 };
-        float saturationmag { 2 };
+        float m_SkyGlow { 40 };
+        float m_LimitingMag { 11.5 };
+        float m_SaturationMag { 2 };
         float seeing { 3.5 };
         float ImageScalex { 1.0 };
         float ImageScaley { 1.0 };
         //  An oag is offset this much from center of scope position (arcminutes)
-        float OAGoffset { 0 };
-        float rotationCW { 0 };
-        float TimeFactor { 1 };
+        float m_OAGOffset { 0 };
+        float m_RotationCW { 0 };
+        float m_TimeFactor { 1 };
 
-        bool simulateRGB { false };
+        bool m_SimulateBayer { false };
 
         //  our zero point calcs used for drawing stars
-        float k { 0 };
-        float z { 0 };
+        //float k { 0 };
+        //float z { 0 };
 
         bool AbortGuideFrame { false };
         bool AbortPrimaryFrame { false };
@@ -148,9 +176,10 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         /// Guide rate is 7 arcseconds per second
         float GuideRate { 7 };
 
-        /// Our PEPeriod is 8 minutes and we have a 22 arcsecond swing
-        float PEPeriod { 8 * 60 };
-        float PEMax { 11 };
+        /// PEPeriod in minutes
+        float m_PEPeriod { 0 };
+        // PE max in arcsecs
+        float m_PEMax { 0 };
 
         double currentRA { 0 };
         double currentDE { 0 };
@@ -160,25 +189,34 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float guideNSOffset {0};
         float guideWEOffset {0};
 
-        float polarError { 0 };
-        float polarDrift { 0 };
-        float king_gamma = { 0 };
-        float king_theta = { 0 };
+        float m_PolarError { 0 };
+        float m_PolarDrift { 0 };
 
-        int streamPredicate;
+        int streamPredicate {0};
         pthread_t primary_thread;
         bool terminateThread;
 
-        //  And this lives in our simulator settings page
-        INumberVectorProperty *SimulatorSettingsNV;
-        INumber SimulatorSettingsN[17];
+        std::deque<std::string> m_AllFiles, m_RemainingFiles;
 
-        ISwitchVectorProperty SimulateRgbSP;
-        ISwitch SimulateRgbS[2];
+        //  And this lives in our simulator settings page
+        INumberVectorProperty SimulatorSettingsNP;
+        INumber SimulatorSettingsN[SIM_N];
+
+        ISwitchVectorProperty SimulateBayerSP;
+        ISwitch SimulateBayerS[2];
 
         //  We are going to snoop these from focuser
         INumberVectorProperty FWHMNP;
         INumber FWHMN[1];
+
+        // Focuser positions for focusing simulation
+        // FocuserPosition[0] is the position where the scope is in focus
+        // FocuserPosition[1] is the maximal position the focuser may move to (@see FOCUS_MAX in #indifocuserinterface.cpp)
+        // FocuserPosition[2] is the seeing (in arcsec)
+        // We need to have these values here, since we cannot snoop it from the focuser (the focuser does not
+        // publish these values)
+        INumberVectorProperty FocusSimulationNP;
+        INumber FocusSimulationN[3];
 
         INumberVectorProperty EqPENP;
         INumber EqPEN[2];
@@ -188,6 +226,15 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         INumber GainN[1];
         INumberVectorProperty GainNP;
+
+        INumber OffsetN[1];
+        INumberVectorProperty OffsetNP;
+
+        IText DirectoryT[1] {};
+        ITextVectorProperty DirectoryTP;
+
+        ISwitch DirectoryS[2];
+        ISwitchVectorProperty DirectorySP;
 
         ISwitchVectorProperty CrashSP;
         ISwitch CrashS[1];

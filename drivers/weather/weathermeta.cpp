@@ -124,7 +124,7 @@ void WeatherMeta::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
-    defineText(&ActiveDeviceTP);
+    defineProperty(&ActiveDeviceTP);
 
     loadConfig(true, "ACTIVE_DEVICES");
 }
@@ -142,8 +142,8 @@ bool WeatherMeta::updateProperties()
                 strncpy(StationL[i].label, ActiveDeviceT[i].text, MAXINDILABEL);
         }
 
-        defineLight(&StationLP);
-        defineNumber(&UpdatePeriodNP);
+        defineProperty(&StationLP);
+        defineProperty(&UpdatePeriodNP);
     }
     else
     {

@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #pragma once
 
+#include <stdio.h>
+
 /** \mainpage Instrument Neutral Distributed Interface INDI
  *
 \section Introduction
@@ -132,8 +134,8 @@ For a full list of contributors, please check <a href="https://github.com/indili
 
 /* INDI Library version */
 #define INDI_VERSION_MAJOR   1
-#define INDI_VERSION_MINOR   8
-#define INDI_VERSION_RELEASE 6
+#define INDI_VERSION_MINOR   9
+#define INDI_VERSION_RELEASE 0
 
 /*******************************************************************************
  * Manifest constants
@@ -219,7 +221,7 @@ IP_RW  /*!< Read & Write */
  * @struct IText
  * @brief One text descriptor.
  */
-typedef struct
+typedef struct _IText
 {
 /** Index name */
 char name[MAXINDINAME];
@@ -269,7 +271,7 @@ typedef struct _ITextVectorProperty
  * @struct INumber
  * @brief One number descriptor.
  */
-typedef struct
+typedef struct _INumber
 {
     /** Index name */
     char name[MAXINDINAME];
@@ -342,7 +344,7 @@ typedef struct _INumberVectorProperty
  * @struct ISwitch
  * @brief One switch descriptor.
  */
-typedef struct
+typedef struct _ISwitch
 {
     /** Index name */
     char name[MAXINDINAME];
@@ -392,7 +394,7 @@ typedef struct _ISwitchVectorProperty
  * @struct ILight
  * @brief One light descriptor.
  */
-typedef struct
+typedef struct _ILight
 {
     /** Index name */
     char name[MAXINDINAME];
@@ -436,7 +438,7 @@ typedef struct _ILightVectorProperty
  * @struct IBLOB
  * @brief One Blob (Binary Large Object) descriptor.
  */
-typedef struct /* one BLOB descriptor */
+typedef struct _IBLOB/* one BLOB descriptor */
 {
     /** Index name */
     char name[MAXINDINAME];
@@ -495,3 +497,9 @@ typedef struct _IBLOBVectorProperty /* BLOB vector property descriptor */
  * with actual array, not pointer.
  */
 #define NARRAY(a) (sizeof(a) / sizeof(a[0]))
+
+/**
+ * @brief Bails out if memory pointer is 0. Prints file and function.
+ */
+#define assert_mem(p) if((p) == 0) { fprintf(stderr, "%s(%s): Failed to allocate memory\n", __FILE__, __func__); exit(1); }
+

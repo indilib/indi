@@ -46,7 +46,7 @@ class WeatherWatcher : public INDI::Weather
     virtual IPState updateWeather() override;
     virtual bool saveConfigItems(FILE *fp) override;
 
-    IText keywordT[5] {};
+    IText keywordT[8] {};
     ITextVectorProperty keywordTP;
 
     IText separatorT[1] {};
