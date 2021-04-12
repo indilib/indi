@@ -83,11 +83,10 @@ class DeepSkyDadFP1 : public INDI::DefaultDevice, public INDI::LightBoxInterface
 
         int PortFD{ -1 };
 
-        uint8_t simulationWorkCounter{ 0 };
-        uint8_t prevCoverStatus{ 0xFF };
-        uint8_t prevLightStatus{ 0xFF };
-        uint8_t prevMotorStatus{ 0xFF };
-        int32_t prevBrightness{ 0xFF };
+        uint8_t prevCoverStatus{ 255 };
+        uint8_t prevLightStatus{ 255 };
+        uint8_t prevMotorStatus{ 255 };
+        int32_t prevBrightness{ 9999 };
 
         Connection::Serial *serialConnection{ nullptr };
 };
