@@ -39,6 +39,8 @@ class DeepSkyDadFP1 : public INDI::DefaultDevice, public INDI::LightBoxInterface
         DeepSkyDadFP1();
         virtual ~DeepSkyDadFP1() = default;
 
+        typedef enum { Off, On, OnIfFlapOpenOrLedActive } HeaterMode;
+
         virtual bool initProperties() override;
         virtual void ISGetProperties(const char *dev) override;
         virtual bool updateProperties() override;
@@ -74,7 +76,7 @@ class DeepSkyDadFP1 : public INDI::DefaultDevice, public INDI::LightBoxInterface
 
         // Status
         ITextVectorProperty StatusTP;
-        IText StatusT[3] {};
+        IText StatusT[4] {};
 
         // Firmware version
         ITextVectorProperty FirmwareTP;
@@ -86,6 +88,11 @@ class DeepSkyDadFP1 : public INDI::DefaultDevice, public INDI::LightBoxInterface
         uint8_t prevLightStatus{ 255 };
         uint8_t prevMotorStatus{ 255 };
         int32_t prevBrightness{ 9999 };
+        uint8_t prevHeaterConnected { 255 };
 
         Connection::Serial *serialConnection{ nullptr };
+
+        // Heater mode
+        ISwitch HeaterModeS[3];
+        ISwitchVectorProperty HeaterModeSP;
 };
