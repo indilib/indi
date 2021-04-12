@@ -87,6 +87,12 @@ bool DeepSkyDadFP1::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
+    // Heater mode
+    IUFillSwitch(&HeaterModeS[Off], "OFF", "Off", ISS_OFF);
+    IUFillSwitch(&HeaterModeS[On], "ON", "On", ISS_OFF);
+    IUFillSwitch(&HeaterModeS[OnIfFlapOpenOrLedActive], "ON2", "On if flap open/LED active", ISS_OFF);
+    IUFillSwitchVector(&HeaterModeSP, HeaterModeS, 3, getDeviceName(), "Heater mode", "Heater mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     // Status
     IUFillText(&StatusT[0], "Cover", "Cover", nullptr);
     IUFillText(&StatusT[1], "Light", "Light", nullptr);
@@ -108,12 +114,6 @@ bool DeepSkyDadFP1::initProperties()
     setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
 
     addAuxControls();
-
-    // Heater mode
-    IUFillSwitch(&HeaterModeS[VERY_SLOW], "OFF", "Off", ISS_OFF);
-    IUFillSwitch(&HeaterModeS[SLOW], "ON", "On", ISS_OFF);
-    IUFillSwitch(&HeaterModeS[MEDIUM], "ON2", "On if flap open/LED active", ISS_OFF);
-    IUFillSwitchVector(&HeaterModeSP, HeaterModeS, 3, getDeviceName(), "Heater mode", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     serialConnection = new Connection::Serial(this);
     serialConnection->registerHandshake([&]() { return Handshake(); });
@@ -139,9 +139,9 @@ bool DeepSkyDadFP1::updateProperties()
 		defineProperty(&ParkCapSP);
         defineProperty(&LightSP);
         defineProperty(&LightIntensityNP);
+        defineProperty(&HeaterModeSP);
         defineProperty(&StatusTP);
         defineProperty(&FirmwareTP);
-        defineProperty(&HeaterModeSP);
 
         updateLightBoxProperties();
 
@@ -152,9 +152,9 @@ bool DeepSkyDadFP1::updateProperties()
 		deleteProperty(ParkCapSP.name);
         deleteProperty(LightSP.name);
         deleteProperty(LightIntensityNP.name);
+        deleteProperty(HeaterModeSP.name);
         deleteProperty(StatusTP.name);
         deleteProperty(FirmwareTP.name);
-        deleteProperty(HeaterModeSP.name);
 
         updateLightBoxProperties();
     }
@@ -226,10 +226,11 @@ bool DeepSkyDadFP1::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 return true;
             }
 
-            char cmd[DSD_RES] = {0};
+            char cmd[FLAT_RES] = {0};
+            char response[FLAT_RES] = {0};
 
-            snprintf(cmd, DSD_RES, "[SHTM%d]", target_mode);
-            bool rc = sendCommandSet(cmd);
+            snprintf(cmd, FLAT_RES, "[SHTM%d]", target_mode);
+            bool rc = sendCommand(cmd, response);
             if (!rc)
             {
                 IUResetSwitch(&HeaterModeSP);
@@ -259,7 +260,7 @@ bool DeepSkyDadFP1::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigSwitch(fp, &HeaterMode);
+    IUSaveConfigSwitch(fp, &HeaterModeSP);
 
     return saveLightBoxConfigItems(fp);
 }
@@ -352,6 +353,7 @@ bool DeepSkyDadFP1::getStatus()
     int lightStatus;
     int coverStatus;
     int heaterTemperature;
+    int heaterMode;
 	
 	if (!sendCommand("[GMOV]", response))
 		return false;
@@ -369,9 +371,15 @@ bool DeepSkyDadFP1::getStatus()
 		sscanf(response, "(%d)", &coverStatus);
 
     if (!sendCommand("[GHTT]", response))
-		return false;
-	else
-		sscanf(response, "(%d)", &heaterTemperature);
+        return false;
+    else
+        sscanf(response, "(%d)", &heaterTemperature);
+
+    if (!sendCommand("[GHTM]", response))
+        return false;
+    else
+        sscanf(response, "(%d)", &heaterMode);
+
 
     bool statusUpdated = false;
 
@@ -467,14 +475,29 @@ bool DeepSkyDadFP1::getStatus()
     if (statusUpdated)
         IDSetText(&StatusTP, nullptr);
 
-    if(heaterTemperature < -40 && prevHeaterConnected == 1) {
-        prevHeaterConnected = 0;
-        HeaterModeSP.s   = IPS_IDLE;
-        IUSaveText(&StatusT[3], "Disconnected");
-    } else if(prevHeaterConnected == 0) {
-        prevHeaterConnected = 1;
-        HeaterModeSP.s   = IPS_OK;
-        IUSaveText(&StatusT[3], "Connected");
+    int heaterConnected = heaterTemperature > -40;
+    if(heaterConnected != prevHeaterConnected) {
+        prevHeaterConnected = heaterConnected;
+        if(heaterConnected == 1) {
+            IUSaveText(&StatusT[3], "Connected");
+            HeaterModeSP.s   = IPS_OK;
+        } else {
+            HeaterModeSP.s   = IPS_IDLE;
+            IUSaveText(&StatusT[3], "Disconnected");
+        }
+    }
+
+    if(heaterMode != prevHeaterMode) {
+        prevHeaterMode = heaterMode;
+        IUResetSwitch(&HeaterModeSP);
+        if(heaterMode == 0) {
+           HeaterModeS[0].s = ISS_ON;
+        } else if(heaterMode == 1) {
+            HeaterModeS[1].s = ISS_ON;
+        } else if(heaterMode == 2) {
+            HeaterModeS[2].s = ISS_ON;
+        }
+        IDSetSwitch(&HeaterModeSP, nullptr);
     }
 
     return true;

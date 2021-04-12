@@ -89,6 +89,7 @@ class DeepSkyDadFP1 : public INDI::DefaultDevice, public INDI::LightBoxInterface
         uint8_t prevMotorStatus{ 255 };
         int32_t prevBrightness{ 9999 };
         uint8_t prevHeaterConnected { 255 };
+        uint8_t prevHeaterMode { 255 };
 
         Connection::Serial *serialConnection{ nullptr };
 
