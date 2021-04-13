@@ -1777,6 +1777,15 @@ add_executable(indi_openweathermap_weather ${OpenWeatherMap_SRC})
 target_link_libraries(indi_openweathermap_weather indidriver ${CURL_LIBRARIES})
 install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
 
+########### Deep Sky Dad FP1 ###############
+
+SET(snapcap_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/deepskydad_fp1.cpp)
+
+add_executable(indi_deepskydad_fp1 ${snapcap_SRC})
+target_link_libraries(indi_deepskydad_fp1 indidriver)
+install(TARGETS indi_deepskydad_fp1 RUNTIME DESTINATION bin)
+
 #####################################
 ############ INDI TOOLS #############
 #####################################

@@ -587,6 +587,10 @@
             <driver name="USB_Dewpoint">indi_usbdewpoint</driver>
             <version>1.0</version>
         </device>
+		<device label="DeepSkyDad FP1" manufacturer="DeepSkyDad">
+            <driver name="DeepSkyDad FP1">indi_deepskydad_fp1</driver>
+            <version>1.0</version>
+        </device>
     </devGroup>
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">
