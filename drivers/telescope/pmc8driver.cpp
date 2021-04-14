@@ -372,7 +372,7 @@ bool get_pmc8_model(int fd, FirmwareInfo *info)
             if (nbytes_read >= 31)
             {
                 //locate P9 code in response
-                char num_str[2] = {0};
+                char num_str[3] = {0};
                 strncat(num_str, response+20, 2);
                 int p9 = (int)strtol(num_str, nullptr, 10);
                 
