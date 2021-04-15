@@ -257,8 +257,9 @@ void IUUserIONewBLOBStart(
     {
         userio_prints    (io, user, "  timestamp='");
         userio_xml_escape(io, user, timestamp);
+        userio_prints    (io, user, "'\n");
     }
-    userio_prints    (io, user, "'>\n");
+    userio_prints    (io, user, ">\n");
 }
 
 void IUUserIONewBLOBFinish(const userio *io, void *user)
