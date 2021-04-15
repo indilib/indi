@@ -136,15 +136,19 @@ void IDDelete(const char *dev, const char *name, const char *fmt, ...)
  */
 void IDSnoopDevice(const char *snooped_device, const char *snooped_property)
 {
-    const userio *io = userio_file();
+    // Ignore empty snooped device
+    if (snooped_device[0])
+    {
+        const userio *io = userio_file();
 
-    pthread_mutex_lock(&stdout_mutex);
+        pthread_mutex_lock(&stdout_mutex);
 
-    userio_xmlv1(io, stdout);
-    IUUserIOGetProperties(io, stdout, snooped_device, snooped_property);
-    fflush(stdout);
+        userio_xmlv1(io, stdout);
+        IUUserIOGetProperties(io, stdout, snooped_device, snooped_property);
+        fflush(stdout);
 
-    pthread_mutex_unlock(&stdout_mutex);
+        pthread_mutex_unlock(&stdout_mutex);
+    }
 }
 
 /* tell indiserver whether we want BLOBs from the given snooped device.
