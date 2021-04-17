@@ -557,11 +557,18 @@ void INDI::BaseClient::listenINDI()
 
     delLilXML(lillp);
 
+    if (sConnected)
+    {
+#ifdef _WINDOWS
+        net_close(sockfd);
+        WSACleanup();
+#else
+        shutdown(sockfd, SHUT_RDWR);
+#endif
+    }
+
     serverDisconnected((sConnected == false) ? 0 : -1);
     sConnected = false;
-
-
-    //pthread_exit(0);
 }
 
 int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
