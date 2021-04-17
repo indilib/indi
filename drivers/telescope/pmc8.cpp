@@ -131,9 +131,10 @@ bool PMC8::initProperties()
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Tracking Mode */
+    // order is important, since base drivers are hard-coded with assumption that lunar=1, solar=2, etc.
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
-    AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_LUNAR", "Lunar");
+    AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
