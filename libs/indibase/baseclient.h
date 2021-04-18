@@ -298,6 +298,7 @@ class INDI::BaseClient : public INDI::BaseMediator
         // Listen to INDI server and process incoming messages
         void listenINDI();
 
+        size_t sendData(const void *data, size_t size);
         void sendString(const char *fmt, ...);
 
         std::vector<INDI::BaseDevice *> cDevices;

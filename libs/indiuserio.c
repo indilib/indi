@@ -139,6 +139,12 @@ void IUUserIOBLOBContextOne(
             size_t towrite = ((l - written) > 72) ? 72 : l - written;
             size_t wr      = userio_write(io, user, encblob + written, towrite);
 
+            if (wr == 0)
+            {
+                free(encblob);
+                return;
+            }
+
             written += wr;
             if ((written % 72) == 0)
                 userio_putc(io, user, '\n');

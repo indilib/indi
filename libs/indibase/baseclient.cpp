@@ -64,14 +64,10 @@ static userio io;
 
 INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 {
-    /* #PS: TODO - leftover - sending the blob.
-        if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
-                continue;
-    */
     io.write = [](void *user, const void * ptr, size_t count) -> size_t
     {
         BaseClient *self = static_cast<BaseClient *>(user);
-        return net_write(self->sockfd, ptr, count);
+        return self->sendData(ptr, count);
     };
 
     io.vprintf = [](void *user, const char * format, va_list ap) -> int
@@ -79,7 +75,7 @@ INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
         BaseClient *self = static_cast<BaseClient *>(user);
         char message[MAXRBUF];
         vsnprintf(message, MAXRBUF, format, ap);
-        return net_write(self->sockfd, message, strlen(message));
+        return self->sendData(message, strlen(message));
     };
 
     sConnected = false;
@@ -1003,14 +999,28 @@ bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, u
     return (deviceList.size() > 0);
 }
 
+size_t INDI::BaseClient::sendData(const void *data, size_t size)
+{
+    int ret;
+
+    do
+    {
+        if (sConnected == false)
+            return 0;
+        ret = net_write(sockfd, data, size);
+    }
+    while(ret == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK));
+
+    return std::max(ret, 0);
+}
+
 void INDI::BaseClient::sendString(const char *fmt, ...)
 {
-    int ret = 0;
     char message[MAXRBUF];
     va_list ap;
 
     va_start(ap, fmt);
     vsnprintf(message, MAXRBUF, fmt, ap);
     va_end(ap);
-    ret = net_write(sockfd, message, strlen(message));
+    sendData(message, strlen(message));
 }
