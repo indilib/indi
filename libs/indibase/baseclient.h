@@ -102,7 +102,7 @@ class INDI::BaseClient : public INDI::BaseMediator
             Disconnects from INDI servers. Any devices previously created will be deleted and memory cleared.
             \return True if disconnection is successful, false otherwise.
         */
-        bool disconnectServer();
+        bool disconnectServer(int exit_code = 0);
 
         bool isServerConnected() const;
 

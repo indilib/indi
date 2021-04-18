@@ -88,7 +88,6 @@ INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 
 INDI::BaseClient::~BaseClient()
 {
-    clear();
     disconnectServer();
 }
 
@@ -290,7 +289,7 @@ bool INDI::BaseClient::connectServer()
     return true;
 }
 
-bool INDI::BaseClient::disconnectServer()
+bool INDI::BaseClient::disconnectServer(int exit_code)
 {
     //IDLog("Server disconnected called\n");
     if (sConnected.exchange(false) == false)
@@ -322,7 +321,6 @@ bool INDI::BaseClient::disconnectServer()
             listen_thread.detach();
     }
 
-    int exit_code = 0;
     serverDisconnected(exit_code);
 
     return true;
@@ -543,22 +541,12 @@ void INDI::BaseClient::listenINDI()
 
     delLilXML(lillp);
 
+    disconnectServer(-1);
+
 #ifndef _WINDOWS
     close(m_receiveFd);
     close(m_sendFd);
 #endif
-
-    if (sConnected.exchange(false) == true)
-    {
-#ifdef _WINDOWS
-        net_close(sockfd);
-        WSACleanup();
-#else
-        shutdown(sockfd, SHUT_RDWR);
-#endif
-        int exit_code = -1;
-        serverDisconnected(exit_code);
-    }
 }
 
 int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
