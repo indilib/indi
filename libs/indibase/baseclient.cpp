@@ -89,13 +89,7 @@ INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 INDI::BaseClient::~BaseClient()
 {
     clear();
-
-    if (listen_thread.joinable())
-    {
-        disconnectServer();
-
-        listen_thread.join();
-    }
+    disconnectServer();
 }
 
 void INDI::BaseClient::clear()
@@ -320,10 +314,13 @@ bool INDI::BaseClient::disconnectServer()
 
     cDeviceNames.clear();
 
-    //    listen_thread->join();
-    //    delete(listen_thread);
-    //    listen_thread = nullptr;
-    //pthread_join(listen_thread, nullptr);
+    if (listen_thread.joinable())
+    {
+        if (listen_thread.get_id() != std::this_thread::get_id())
+            listen_thread.join();
+        else
+            listen_thread.detach();
+    }
 
     int exit_code = 0;
     serverDisconnected(exit_code);
