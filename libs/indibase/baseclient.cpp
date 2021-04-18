@@ -995,6 +995,11 @@ size_t INDI::BaseClient::sendData(const void *data, size_t size)
     }
     while(ret == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK));
 
+    if (ret < 0)
+    {
+        disconnectServer(-1);
+    }
+
     return std::max(ret, 0);
 }
 
