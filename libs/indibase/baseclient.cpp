@@ -90,13 +90,11 @@ INDI::BaseClient::~BaseClient()
 {
     clear();
 
-    if (listen_thread)
+    if (listen_thread.joinable())
     {
         disconnectServer();
 
-        listen_thread->join();
-        delete(listen_thread);
-        listen_thread = nullptr;
+        listen_thread.join();
     }
 }
 
@@ -291,7 +289,7 @@ bool INDI::BaseClient::connectServer()
         return false;
     }*/
 
-    listen_thread = new std::thread(std::bind(&BaseClient::listenINDI, this));
+    listen_thread = std::thread(std::bind(&BaseClient::listenINDI, this));
 
     serverConnected();
 

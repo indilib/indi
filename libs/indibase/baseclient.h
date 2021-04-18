@@ -283,7 +283,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         void clear();
 
-        std::thread *listen_thread = nullptr;
+        std::thread listen_thread;
 
 #ifdef _WINDOWS
         SOCKET sockfd;
