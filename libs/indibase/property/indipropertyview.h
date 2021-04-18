@@ -29,6 +29,7 @@
 #include <string>
 #include <cstring>
 #include <cstdarg>
+#include <cstdlib>
 #include <type_traits>
 
 namespace INDI
@@ -273,8 +274,10 @@ public: // setters
     void setLabel(const char *label)                       { strncpy(this->label, label, MAXINDILABEL); }
     void setLabel(const std::string &label)                { setLabel(label.data()); }
 
-    void setText(const char *text)                         { free(this->text); this->text = strndup(text, strlen(text)); }
-    void setText(const std::string &text)                  { setText(text.data()); }
+    //void setText(const char *text)                         { free(this->text); this->text = strndup(text, strlen(text)); }
+    void setText(const char *text, size_t size)            { this->text = strncpy(static_cast<char*>(realloc(this->text, size + 1)), text, size); this->text[size] = '\0'; }
+    void setText(const char *text)                         { setText(text, strlen(text)); }
+    void setText(const std::string &text)                  { setText(text.data(), text.size()); }
 
     void setAux(void *user)                                { this->aux0 = user; }
     // don't use any other aux!
