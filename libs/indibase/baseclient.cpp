@@ -553,6 +553,11 @@ void INDI::BaseClient::listenINDI()
 
     delLilXML(lillp);
 
+#ifndef _WINDOWS
+    close(m_receiveFd);
+    close(m_sendFd);
+#endif
+
     if (sConnected.exchange(false) == true)
     {
 #ifdef _WINDOWS
