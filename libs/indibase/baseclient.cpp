@@ -478,10 +478,18 @@ void INDI::BaseClient::listenINDI()
     {
         int n = select(maxfd + 1, &rs, nullptr, nullptr, nullptr);
 
+        // Woken up by function disconnectServer().
+        // The sConnected value is set to false.
+        // There is no need to check 'FD_ISSET(m_receiveFd, &rs)' for non-windows systems
+        if (sConnected == false)
+        {
+            // There is no need to invoke serverDisconnected
+            break;
+        }
+
         if (n < 0)
         {
             IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-            net_close(sockfd);
             break;
         }
 
@@ -489,15 +497,6 @@ void INDI::BaseClient::listenINDI()
         {
             continue;
         }
-
-#ifndef _WINDOWS
-        // Received termination string from main thread
-        if (FD_ISSET(m_receiveFd, &rs))
-        {
-            sConnected = false;
-            break;
-        }
-#endif
 
         if (FD_ISSET(sockfd, &rs))
         {
@@ -514,7 +513,6 @@ void INDI::BaseClient::listenINDI()
             if (n == 0)
             {
                 IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-                net_close(sockfd);
                 break;
             }
 
@@ -525,9 +523,8 @@ void INDI::BaseClient::listenINDI()
                 if (msg[0])
                 {
                     IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
-                    return;
                 }
-                return;
+                break;
             }
             root = nodes[inode];
             while (root)
@@ -556,9 +553,7 @@ void INDI::BaseClient::listenINDI()
 
     delLilXML(lillp);
 
-    bool wasConnected = sConnected.exchange(false);
-
-    if (wasConnected)
+    if (sConnected.exchange(false) == true)
     {
 #ifdef _WINDOWS
         net_close(sockfd);
@@ -566,9 +561,9 @@ void INDI::BaseClient::listenINDI()
 #else
         shutdown(sockfd, SHUT_RDWR);
 #endif
+        int exit_code = -1;
+        serverDisconnected(exit_code);
     }
-
-    serverDisconnected((wasConnected == false) ? 0 : -1);
 }
 
 int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
