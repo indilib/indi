@@ -16,6 +16,8 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#define NOMINMAX
+
 #include "baseclient.h"
 
 #include "indistandardproperty.h"
