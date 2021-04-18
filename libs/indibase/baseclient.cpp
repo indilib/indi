@@ -300,10 +300,8 @@ bool INDI::BaseClient::connectServer()
 bool INDI::BaseClient::disconnectServer()
 {
     //IDLog("Server disconnected called\n");
-    if (sConnected == false)
+    if (sConnected.exchange(false) == false)
         return true;
-
-    sConnected = false;
 
     // Insert a disconnection delay for running threads to finish and
     // new threads to spot the disconnection state. This mitigates most deadlocks
@@ -553,7 +551,9 @@ void INDI::BaseClient::listenINDI()
 
     delLilXML(lillp);
 
-    if (sConnected)
+    bool wasConnected = sConnected.exchange(false);
+
+    if (wasConnected)
     {
 #ifdef _WINDOWS
         net_close(sockfd);
@@ -563,8 +563,7 @@ void INDI::BaseClient::listenINDI()
 #endif
     }
 
-    serverDisconnected((sConnected == false) ? 0 : -1);
-    sConnected = false;
+    serverDisconnected((wasConnected == false) ? 0 : -1);
 }
 
 int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)

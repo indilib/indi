@@ -26,6 +26,7 @@
 #include <map>
 #include <set>
 
+#include <atomic>
 #include <thread>
 
 #ifdef _WINDOWS
@@ -308,7 +309,7 @@ class INDI::BaseClient : public INDI::BaseMediator
 
         std::string cServer;
         uint32_t cPort;
-        bool sConnected;
+        std::atomic_bool sConnected;
         bool verbose;
 
         // Parse & FILE buffers for IO
