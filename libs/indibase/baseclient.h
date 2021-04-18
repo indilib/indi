@@ -171,9 +171,6 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
 
-        // Update
-        static void *listenHelper(void *context);
-
         const char *getHost()
         {
             return cServer.c_str();

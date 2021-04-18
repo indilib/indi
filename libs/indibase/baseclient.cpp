@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <cstring>
 #include <algorithm>
+#include <functional>
 #include <assert.h>
 
 #include "indiuserio.h"
@@ -290,7 +291,7 @@ bool INDI::BaseClient::connectServer()
         return false;
     }*/
 
-    listen_thread = new std::thread(listenHelper, this);
+    listen_thread = new std::thread(std::bind(&BaseClient::listenINDI, this));
 
     serverConnected();
 
@@ -405,12 +406,6 @@ INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
         if (!strcmp(deviceName, device->getDeviceName()))
             return device;
     }
-    return nullptr;
-}
-
-void *INDI::BaseClient::listenHelper(void *context)
-{
-    (static_cast<INDI::BaseClient *>(context))->listenINDI();
     return nullptr;
 }
 
