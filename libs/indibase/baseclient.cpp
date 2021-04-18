@@ -485,32 +485,37 @@ void INDI::BaseClient::listenINDI()
             break;
         }
 
+        if (n == 0)
+        {
+            continue;
+        }
+
 #ifndef _WINDOWS
         // Received termination string from main thread
-        if (n > 0 && FD_ISSET(m_receiveFd, &rs))
+        if (FD_ISSET(m_receiveFd, &rs))
         {
             sConnected = false;
             break;
         }
 #endif
 
-        if (n > 0 && FD_ISSET(sockfd, &rs))
+        if (FD_ISSET(sockfd, &rs))
         {
 #ifdef _WINDOWS
             n = recv(sockfd, buffer, MAXINDIBUF, 0);
 #else
             n = recv(sockfd, buffer, MAXINDIBUF, MSG_DONTWAIT);
 #endif
-            if (n <= 0)
+            if (n < 0)
             {
-                if (n == 0)
-                {
-                    IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-                    net_close(sockfd);
-                    break;
-                }
-                else
-                    continue;
+                continue;
+            }
+
+            if (n == 0)
+            {
+                IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
+                net_close(sockfd);
+                break;
             }
 
             nodes = parseXMLChunk(lillp, buffer, n, msg);
