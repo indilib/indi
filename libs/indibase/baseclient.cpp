@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <cstring>
 #include <algorithm>
+#include <functional>
 #include <assert.h>
 
 #include "indiuserio.h"
@@ -64,14 +65,10 @@ static userio io;
 
 INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 {
-    /* #PS: TODO - leftover - sending the blob.
-        if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
-                continue;
-    */
     io.write = [](void *user, const void * ptr, size_t count) -> size_t
     {
         BaseClient *self = static_cast<BaseClient *>(user);
-        return net_write(self->sockfd, ptr, count);
+        return self->sendData(ptr, count);
     };
 
     io.vprintf = [](void *user, const char * format, va_list ap) -> int
@@ -79,7 +76,7 @@ INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
         BaseClient *self = static_cast<BaseClient *>(user);
         char message[MAXRBUF];
         vsnprintf(message, MAXRBUF, format, ap);
-        return net_write(self->sockfd, message, strlen(message));
+        return self->sendData(message, strlen(message));
     };
 
     sConnected = false;
@@ -91,16 +88,7 @@ INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 
 INDI::BaseClient::~BaseClient()
 {
-    clear();
-
-    if (listen_thread)
-    {
-        disconnectServer();
-
-        listen_thread->join();
-        delete(listen_thread);
-        listen_thread = nullptr;
-    }
+    disconnectServer();
 }
 
 void INDI::BaseClient::clear()
@@ -294,20 +282,18 @@ bool INDI::BaseClient::connectServer()
         return false;
     }*/
 
-    listen_thread = new std::thread(listenHelper, this);
+    listen_thread = std::thread(std::bind(&BaseClient::listenINDI, this));
 
     serverConnected();
 
     return true;
 }
 
-bool INDI::BaseClient::disconnectServer()
+bool INDI::BaseClient::disconnectServer(int exit_code)
 {
     //IDLog("Server disconnected called\n");
-    if (sConnected == false)
+    if (sConnected.exchange(false) == false)
         return true;
-
-    sConnected = false;
 
     // Insert a disconnection delay for running threads to finish and
     // new threads to spot the disconnection state. This mitigates most deadlocks
@@ -327,12 +313,14 @@ bool INDI::BaseClient::disconnectServer()
 
     cDeviceNames.clear();
 
-    //    listen_thread->join();
-    //    delete(listen_thread);
-    //    listen_thread = nullptr;
-    //pthread_join(listen_thread, nullptr);
+    if (listen_thread.joinable())
+    {
+        if (listen_thread.get_id() != std::this_thread::get_id())
+            listen_thread.join();
+        else
+            listen_thread.detach();
+    }
 
-    int exit_code = 0;
     serverDisconnected(exit_code);
 
     return true;
@@ -414,12 +402,6 @@ INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
     return nullptr;
 }
 
-void *INDI::BaseClient::listenHelper(void *context)
-{
-    (static_cast<INDI::BaseClient *>(context))->listenINDI();
-    return nullptr;
-}
-
 void INDI::BaseClient::listenINDI()
 {
     char buffer[MAXINDIBUF];
@@ -484,39 +466,42 @@ void INDI::BaseClient::listenINDI()
     {
         int n = select(maxfd + 1, &rs, nullptr, nullptr, nullptr);
 
+        // Woken up by function disconnectServer().
+        // The sConnected value is set to false.
+        // There is no need to check 'FD_ISSET(m_receiveFd, &rs)' for non-windows systems
+        if (sConnected == false)
+        {
+            // There is no need to invoke serverDisconnected
+            break;
+        }
+
         if (n < 0)
         {
             IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-            net_close(sockfd);
             break;
         }
 
-#ifndef _WINDOWS
-        // Received termination string from main thread
-        if (n > 0 && FD_ISSET(m_receiveFd, &rs))
+        if (n == 0)
         {
-            sConnected = false;
-            break;
+            continue;
         }
-#endif
 
-        if (n > 0 && FD_ISSET(sockfd, &rs))
+        if (FD_ISSET(sockfd, &rs))
         {
 #ifdef _WINDOWS
             n = recv(sockfd, buffer, MAXINDIBUF, 0);
 #else
             n = recv(sockfd, buffer, MAXINDIBUF, MSG_DONTWAIT);
 #endif
-            if (n <= 0)
+            if (n < 0)
             {
-                if (n == 0)
-                {
-                    IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-                    net_close(sockfd);
-                    break;
-                }
-                else
-                    continue;
+                continue;
+            }
+
+            if (n == 0)
+            {
+                IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
+                break;
             }
 
             nodes = parseXMLChunk(lillp, buffer, n, msg);
@@ -526,9 +511,8 @@ void INDI::BaseClient::listenINDI()
                 if (msg[0])
                 {
                     IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
-                    return;
                 }
-                return;
+                break;
             }
             root = nodes[inode];
             while (root)
@@ -557,18 +541,12 @@ void INDI::BaseClient::listenINDI()
 
     delLilXML(lillp);
 
-    if (sConnected)
-    {
-#ifdef _WINDOWS
-        net_close(sockfd);
-        WSACleanup();
-#else
-        shutdown(sockfd, SHUT_RDWR);
-#endif
-    }
+    disconnectServer(-1);
 
-    serverDisconnected((sConnected == false) ? 0 : -1);
-    sConnected = false;
+#ifndef _WINDOWS
+    close(m_receiveFd);
+    close(m_sendFd);
+#endif
 }
 
 int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
@@ -1003,14 +981,28 @@ bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, u
     return (deviceList.size() > 0);
 }
 
+size_t INDI::BaseClient::sendData(const void *data, size_t size)
+{
+    int ret;
+
+    do
+    {
+        if (sConnected == false)
+            return 0;
+        ret = net_write(sockfd, data, size);
+    }
+    while(ret == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK));
+
+    return std::max(ret, 0);
+}
+
 void INDI::BaseClient::sendString(const char *fmt, ...)
 {
-    int ret = 0;
     char message[MAXRBUF];
     va_list ap;
 
     va_start(ap, fmt);
     vsnprintf(message, MAXRBUF, fmt, ap);
     va_end(ap);
-    ret = net_write(sockfd, message, strlen(message));
+    sendData(message, strlen(message));
 }

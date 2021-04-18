@@ -26,6 +26,7 @@
 #include <map>
 #include <set>
 
+#include <atomic>
 #include <thread>
 
 #ifdef _WINDOWS
@@ -101,7 +102,7 @@ class INDI::BaseClient : public INDI::BaseMediator
             Disconnects from INDI servers. Any devices previously created will be deleted and memory cleared.
             \return True if disconnection is successful, false otherwise.
         */
-        bool disconnectServer();
+        bool disconnectServer(int exit_code = 0);
 
         bool isServerConnected() const;
 
@@ -169,9 +170,6 @@ class INDI::BaseClient : public INDI::BaseMediator
          * @return BLOB Policy, if not found, it always returns B_ALSO
          */
         BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
-
-        // Update
-        static void *listenHelper(void *context);
 
         const char *getHost()
         {
@@ -285,7 +283,7 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         void clear();
 
-        std::thread *listen_thread = nullptr;
+        std::thread listen_thread;
 
 #ifdef _WINDOWS
         SOCKET sockfd;
@@ -298,6 +296,7 @@ class INDI::BaseClient : public INDI::BaseMediator
         // Listen to INDI server and process incoming messages
         void listenINDI();
 
+        size_t sendData(const void *data, size_t size);
         void sendString(const char *fmt, ...);
 
         std::vector<INDI::BaseDevice *> cDevices;
@@ -307,7 +306,7 @@ class INDI::BaseClient : public INDI::BaseMediator
 
         std::string cServer;
         uint32_t cPort;
-        bool sConnected;
+        std::atomic_bool sConnected;
         bool verbose;
 
         // Parse & FILE buffers for IO
