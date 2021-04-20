@@ -328,7 +328,12 @@ bool INDI::BaseClient::disconnectServer(int exit_code)
 #else
     shutdown(sockfd, SHUT_RDWR); // no needed
     size_t c = 1;
-    (void)write(m_sendFd, &c, sizeof(c)); // wakeup 'select' function
+    // wakeup 'select' function
+    ssize_t ret = write(m_sendFd, &c, sizeof(c));
+    if (ret != sizeof(c))
+    {
+        IDLog("INDI::BaseClient::disconnectServer: Error. The socket cannot be woken up.\n")
+    }
 #endif
     sExitCode = exit_code;
     return true;
