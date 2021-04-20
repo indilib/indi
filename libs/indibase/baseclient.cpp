@@ -31,6 +31,7 @@
 #include <stdarg.h>
 #include <cstring>
 #include <algorithm>
+#include <chrono>
 #include <functional>
 #include <assert.h>
 
@@ -90,7 +91,26 @@ INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 
 INDI::BaseClient::~BaseClient()
 {
-    disconnectServer();
+    if (isServerConnected())
+        disconnectServer();
+
+    std::unique_lock<std::mutex> locker(sSocketBusy);
+    if (!sSocketChanged.wait_for(locker, std::chrono::milliseconds(500), [this]{ return sConnected == false; }))
+    {
+        IDLog("BaseClient::~BaseClient: Probability of detecting a deadlock.\n");
+        /* #PS:
+         * KStars bug - suspicion
+         *   The function thread 'BaseClient::listenINDI' could not be terminated
+         *   because the 'dispatchCommand' function is in progress.
+         *
+         *   The function 'dispatchCommand' cannot be completed
+         *   because it is related to the function call 'ClientManager::newProperty'.
+         *
+         *   There is a call that uses BlockingQueuedConnection to the thread that is currently busy
+         *   destroying the BaseClient object.
+         *
+         */
+    }
 }
 
 void INDI::BaseClient::clear()
@@ -133,6 +153,15 @@ void INDI::BaseClient::watchProperty(const char *deviceName, const char *propert
 
 bool INDI::BaseClient::connectServer()
 {
+    std::unique_lock<std::mutex> locker(sSocketBusy);
+    if (sConnected == true)
+    {
+        IDLog("INDI::BaseClient::connectServer: Already connected.\n");
+        return false;
+    }
+
+    IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
+
 #ifdef _WINDOWS
     WSADATA wsaData;
     int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -274,19 +303,9 @@ bool INDI::BaseClient::connectServer()
 #endif
 
     sConnected = true;
-
-    /*int result = pthread_create(&listen_thread, nullptr, &INDI::BaseClient::listenHelper, this);
-
-    if (result != 0)
-    {
-        sConnected = false;
-        perror("thread");
-        return false;
-    }*/
-
-    listen_thread = std::thread(std::bind(&BaseClient::listenINDI, this));
-
-    serverConnected();
+    sAboutToClose = false;
+    sSocketChanged.notify_all();
+    std::thread(std::bind(&BaseClient::listenINDI, this)).detach();
 
     return true;
 }
@@ -294,37 +313,24 @@ bool INDI::BaseClient::connectServer()
 bool INDI::BaseClient::disconnectServer(int exit_code)
 {
     //IDLog("Server disconnected called\n");
-    if (sConnected.exchange(false) == false)
-        return true;
-
-    // Insert a disconnection delay for running threads to finish and
-    // new threads to spot the disconnection state. This mitigates most deadlocks
-    // without causing loss of functionality, but will suffer from real-time
-    // performance of the clients as the timeout is arbitrary.
-    //usleep(DISCONNECTION_DELAY_US);
-
-#ifdef _WINDOWS
-    net_close(sockfd);
-    WSACleanup();
-#else
-    shutdown(sockfd, SHUT_RDWR);
-    while (write(m_sendFd, "1", 1) <= 0)
-#endif
-
-    clear();
-
-    cDeviceNames.clear();
-
-    if (listen_thread.joinable())
+    std::lock_guard<std::mutex> locker(sSocketBusy);
+    if (sConnected == false)
     {
-        if (listen_thread.get_id() != std::this_thread::get_id())
-            listen_thread.join();
-        else
-            listen_thread.detach();
+        IDLog("INDI::BaseClient::disconnectServer: Already disconnected.\n");
+        return false;
     }
-
-    serverDisconnected(exit_code);
-
+    sAboutToClose = true;
+    sSocketChanged.notify_all();
+#ifdef _WINDOWS
+    net_close(sockfd); // close and wakeup 'select' function
+    WSACleanup();
+    sockfd = INVALID_SOCKET;
+#else
+    shutdown(sockfd, SHUT_RDWR); // no needed
+    size_t c = 1;
+    (void)write(m_sendFd, &c, sizeof(c)); // wakeup 'select' function
+#endif
+    sExitCode = exit_code;
     return true;
 }
 
@@ -408,7 +414,6 @@ void INDI::BaseClient::listenINDI()
 {
     char buffer[MAXINDIBUF];
     char msg[MAXRBUF];
-    int err_code = 0;
 #ifdef _WINDOWS
     SOCKET maxfd = 0;
 #else
@@ -418,6 +423,8 @@ void INDI::BaseClient::listenINDI()
     XMLEle **nodes = nullptr;
     XMLEle *root = nullptr;
     int inode = 0;
+
+    serverConnected();
 
     if (cDeviceNames.empty())
     {
@@ -451,29 +458,24 @@ void INDI::BaseClient::listenINDI()
     FD_ZERO(&rs);
 
     FD_SET(sockfd, &rs);
-    if (sockfd > maxfd)
-        maxfd = sockfd;
+    maxfd = std::max(maxfd, sockfd);
 
 #ifndef _WINDOWS
     FD_SET(m_receiveFd, &rs);
-    if (m_receiveFd > maxfd)
-        maxfd = m_receiveFd;
+    maxfd = std::max(maxfd, m_receiveFd);
 #endif
 
     clear();
-    lillp = newLilXML();
+    LilXML *lillp = newLilXML();
 
     /* read from server, exit if find all requested properties */
-    while (sConnected)
+    while (!sAboutToClose)
     {
         int n = select(maxfd + 1, &rs, nullptr, nullptr, nullptr);
 
-        // Woken up by function disconnectServer().
-        // The sConnected value is set to false.
-        // There is no need to check 'FD_ISSET(m_receiveFd, &rs)' for non-windows systems
-        if (sConnected == false)
+        // Woken up by disconnectServer function.
+        if (sAboutToClose == true)
         {
-            // There is no need to invoke serverDisconnected
             break;
         }
 
@@ -522,7 +524,9 @@ void INDI::BaseClient::listenINDI()
                 if (verbose)
                     prXMLEle(stderr, root, 0);
 
-                if ((err_code = dispatchCommand(root, msg)) < 0)
+                int err_code = dispatchCommand(root, msg);
+
+                if (err_code < 0)
                 {
                     // Silenty ignore property duplication errors
                     if (err_code != INDI_PROPERTY_DUPLICATED)
@@ -543,12 +547,31 @@ void INDI::BaseClient::listenINDI()
 
     delLilXML(lillp);
 
-    disconnectServer(-1);
+    int exit_code;
 
-#ifndef _WINDOWS
-    close(m_receiveFd);
-    close(m_sendFd);
+    {
+        std::lock_guard<std::mutex> locker(sSocketBusy);
+#ifdef _WINDOWS
+        if (sockfd != INVALID_SOCKET)
+        {
+            net_close(sockfd);
+            WSACleanup();
+            sockfd = INVALID_SOCKET;
+        }
+#else
+        close(sockfd);
+        close(m_receiveFd);
+        close(m_sendFd);
 #endif
+        clear();
+        cDeviceNames.clear();
+        sConnected = false;
+        sSocketChanged.notify_all();
+
+        exit_code = sAboutToClose ? sExitCode : -1;
+    }
+
+    serverDisconnected(exit_code);
 }
 
 int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
@@ -989,6 +1012,7 @@ size_t INDI::BaseClient::sendData(const void *data, size_t size)
 
     do
     {
+        std::lock_guard<std::mutex> locker(sSocketBusy);
         if (sConnected == false)
             return 0;
         ret = net_write(sockfd, data, size);
