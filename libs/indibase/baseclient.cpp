@@ -332,7 +332,7 @@ bool INDI::BaseClient::disconnectServer(int exit_code)
     ssize_t ret = write(m_sendFd, &c, sizeof(c));
     if (ret != sizeof(c))
     {
-        IDLog("INDI::BaseClient::disconnectServer: Error. The socket cannot be woken up.\n")
+        IDLog("INDI::BaseClient::disconnectServer: Error. The socket cannot be woken up.\n");
     }
 #endif
     sExitCode = exit_code;
