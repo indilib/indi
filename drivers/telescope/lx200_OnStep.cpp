@@ -874,7 +874,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     if (!strcmp(name, OSSetHumidityNP.name))
     {
         char cmd[32];
-        
+
         if ((values[0] >= 0) && (values[0] <= 100))
         {
             snprintf(cmd, 15, ":SX9C,%d#", (int)values[0]);
@@ -889,7 +889,6 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         return true;
     }
-
 
     if (!strcmp(name, OSSetPressureNP.name))
     {
@@ -2271,13 +2270,13 @@ bool LX200_OnStep::ReadScopeStatus()
     setParameterValue("WEATHER_HUMIDITY", std::stod(TempValue));
     getCommandString(PortFD, TempValue, ":GX9B#");
     setParameterValue("WEATHER_BAROMETER", std::stod(TempValue));
-    getCommandString(PortFD,TempValue, ":GX9E#"); 
+    getCommandString(PortFD, TempValue, ":GX9E#"); 
     setParameterValue("WEATHER_DEWPOINT", std::stod(TempValue));
-    getCommandString(PortFD,TempValue, ":GX9F#"); 
+    getCommandString(PortFD, TempValue, ":GX9F#"); 
     setParameterValue("WEATHER_CPU_TEMPERATURE", std::stod(TempValue));
     
     //Disabled, because this is supplied via Kstars or other location, no sensor to read this
-    //getCommandString(PortFD,TempValue, ":GX9D#"); 
+    //getCommandString(PortFD,TempValue, ":GX9D#");
     //setParameterValue("WEATHER_ALTITUDE", std::stod(TempValue));
     WI::updateProperties();
 
