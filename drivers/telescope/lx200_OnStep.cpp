@@ -1263,7 +1263,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 OSFocusSwapS[0].s = ISS_ON;
                 OSFocusSwapS[1].s = ISS_OFF;
                 OSFocusSwapSP.s = IPS_OK;
-                IDSetSwitch(&OSFocus1InitializeSP, nullptr);
+                IDSetSwitch(&OSFocusSwapSP, nullptr);
             }
             if (index == 1)
             {
@@ -1274,7 +1274,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 OSFocusSwapS[0].s = ISS_OFF;
                 OSFocusSwapS[1].s = ISS_ON;
                 OSFocusSwapSP.s = IPS_OK;
-                IDSetSwitch(&OSFocus1InitializeSP, nullptr);
+                IDSetSwitch(&OSFocusSwapSP, nullptr);
             }
         }
         
