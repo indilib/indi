@@ -200,6 +200,12 @@ bool LX200_OnStep::initProperties()
     //     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
     IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    IUFillSwitch(&OSFocusSwapS[0], "FocuserSwap_OFF", "No", ISS_ON);
+    IUFillSwitch(&OSFocusSwapS[1], "FocuserSwap_ON", "Yes", ISS_OFF);
+    //     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
+    IUFillSwitchVector(&OSFocusSwapSP, OSFocusSwapS, 2, getDeviceName(), "OSFocusSWAP", "Swap Focusers", FOCUS_TAB,
+                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
 
     // Focuser 2
@@ -432,6 +438,7 @@ bool LX200_OnStep::updateProperties()
             defineProperty(&OSFocus2MotionSP);
             defineProperty(&OSFocus2RateSP);
             defineProperty(&OSFocus2TargNP);
+            defineProperty(&OSFocusSwapSP); //Swap focusers (only matters if two focusers)
         }
 
         // Firmware Data
@@ -530,6 +537,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSFocus2MotionSP.name);
         deleteProperty(OSFocus2RateSP.name);
         deleteProperty(OSFocus2TargNP.name);
+        deleteProperty(OSFocusSwapSP.name);
 
         // Firmware Data
         deleteProperty(VersionTP.name);
@@ -1239,6 +1247,38 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 IDSetSwitch(&OSFocus1InitializeSP, nullptr);
             }
         }
+        
+        
+        //Focuser Swap
+        if (!strcmp(name, OSFocusSwapSP.name))
+        {
+            char cmd[32];
+            if (IUUpdateSwitch(&OSFocusSwapSP, states, names, n) < 0)
+                return false;
+            index = IUFindOnSwitchIndex(&OSFocusSwapSP);
+            if (index == 0)
+            {
+                LOG_INFO("Focusers NORMAL: Focuser 1 in INDI = OnStep Focuser 1, Focuser 2 in INDI = OnStep Focuser 2");
+                snprintf(cmd, 5, ":FA0#");
+                sendOnStepCommandBlind(cmd);
+                OSFocusSwapS[0].s = ISS_ON;
+                OSFocusSwapS[1].s = ISS_OFF;
+                OSFocusSwapSP.s = IPS_OK;
+                IDSetSwitch(&OSFocus1InitializeSP, nullptr);
+            }
+            if (index == 1)
+            {
+                LOG_INFO("Focusers SWAPPED!");
+                LOG_INFO("Focusers SWAPPED: Focuser 1 in INDI = OnStep Focuser 2, Focuser 2 in INDI = OnStep Focuser 1");
+                snprintf(cmd, 5, ":FA1#");
+                sendOnStepCommandBlind(cmd);
+                OSFocusSwapS[0].s = ISS_OFF;
+                OSFocusSwapS[1].s = ISS_ON;
+                OSFocusSwapSP.s = IPS_OK;
+                IDSetSwitch(&OSFocus1InitializeSP, nullptr);
+            }
+        }
+        
 
         // Focuser 2 Rates
         if (!strcmp(name, OSFocus2RateSP.name))
