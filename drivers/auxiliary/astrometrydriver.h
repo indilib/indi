@@ -84,11 +84,11 @@ class AstrometryDriver : public INDI::DefaultDevice
 
   protected:
     //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+    bool Connect() override;
+    bool Disconnect() override;
+    const char *getDefaultName() override;
 
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
     // Astrometry
 

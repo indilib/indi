@@ -933,7 +933,7 @@ bool getSiteLatitudeLongitude(const int fd, double *lat, double *lon)
 {
     *lat = 0.0;
     *lon = 0.0;
-    char response[16]; response[15] = LX200Pulsar2::Null;
+    char response[32]; response[31] = LX200Pulsar2::Null;
 
     bool success = PulsarTX::sendReceive(fd, "#:YGl#", response);
     if (success)

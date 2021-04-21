@@ -18,6 +18,7 @@
 
 #pragma once
 
+
 #include "indiapi.h"
 #include "indibase.h"
 
@@ -26,6 +27,9 @@
 #include <map>
 #include <set>
 
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
 #include <thread>
 
 #ifdef _WINDOWS
@@ -36,7 +40,7 @@ typedef SSIZE_T ssize_t;
 #endif
 #endif
 
-#define MAXRBUF 2048
+// #define MAXRBUF 2048 // #PS: defined in indibase.h
 
 /**
  * \class INDI::BaseClient
@@ -101,7 +105,7 @@ class INDI::BaseClient : public INDI::BaseMediator
             Disconnects from INDI servers. Any devices previously created will be deleted and memory cleared.
             \return True if disconnection is successful, false otherwise.
         */
-        bool disconnectServer();
+        bool disconnectServer(int exit_code = 0);
 
         bool isServerConnected() const;
 
@@ -170,9 +174,6 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
 
-        // Update
-        static void *listenHelper(void *context);
-
         const char *getHost()
         {
             return cServer.c_str();
@@ -234,6 +235,8 @@ class INDI::BaseClient : public INDI::BaseMediator
             timeout_us  = microseconds;
         }
 
+        void serverDisconnected(int exit_code) override;
+
     protected:
         /** \brief Dispatch command received from INDI server to respective devices handled by the client */
         int dispatchCommand(XMLEle *root, char *errmsg);
@@ -262,12 +265,12 @@ class INDI::BaseClient : public INDI::BaseMediator
         virtual void newUniversalMessage(std::string message);
 
     private:
-        typedef struct
+        struct BLOBMode
         {
             std::string device;
             std::string property;
             BLOBHandling blobMode;
-        } BLOBMode;
+        };
 
         BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
 
@@ -283,8 +286,6 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         void clear();
 
-        std::thread *listen_thread = nullptr;
-
 #ifdef _WINDOWS
         SOCKET sockfd;
 #else
@@ -296,6 +297,7 @@ class INDI::BaseClient : public INDI::BaseMediator
         // Listen to INDI server and process incoming messages
         void listenINDI();
 
+        size_t sendData(const void *data, size_t size);
         void sendString(const char *fmt, ...);
 
         std::vector<INDI::BaseDevice *> cDevices;
@@ -305,12 +307,14 @@ class INDI::BaseClient : public INDI::BaseMediator
 
         std::string cServer;
         uint32_t cPort;
-        bool sConnected;
+        std::atomic_bool sConnected;
+        std::atomic_bool sAboutToClose;
+        std::mutex sSocketBusy;
+        std::condition_variable sSocketChanged;
+        int sExitCode;
         bool verbose;
 
         // Parse & FILE buffers for IO
 
-        /* XML parser context */
-        LilXML *lillp {nullptr};
         uint32_t timeout_sec, timeout_us;
 };

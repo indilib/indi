@@ -34,7 +34,7 @@ class DeltaT : public INDI::DefaultDevice
         DeltaT();
 
         virtual bool Handshake();
-        const char *getDefaultName();
+        const char *getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
@@ -78,8 +78,8 @@ class DeltaT : public INDI::DefaultDevice
 
 
     protected:
-        virtual void TimerHit();
-        virtual bool saveConfigItems(FILE *fp);
+        virtual void TimerHit() override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
     private:
         ///////////////////////////////////////////////////////////////////////////////////

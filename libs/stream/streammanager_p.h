@@ -160,6 +160,8 @@ public:
     /* Stream switch */
     INDI::PropertySwitch StreamSP {2};
 
+    INDI::PropertyNumber StreamTimeNP {1};
+
     /* Record switch */
     INDI::PropertySwitch RecordStreamSP {4};
     enum

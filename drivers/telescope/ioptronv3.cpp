@@ -743,15 +743,11 @@ bool IOptronV3::ReadScopeStatus()
                 if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
                     TrackState = SCOPE_SLEWING;
                 break;
-            /* v3.0 PEC update status */
             case ST_TRACKING_PEC_OFF:
-                setPECState(PEC_OFF);
-                break;
             case ST_TRACKING_PEC_ON:
-                setPECState(PEC_ON);
-                break;
-            // End Mod */
             case ST_GUIDING:
+                if (newInfo.systemStatus == ST_TRACKING_PEC_OFF || newInfo.systemStatus == ST_TRACKING_PEC_ON)
+                    setPECState(newInfo.systemStatus == ST_TRACKING_PEC_ON ? PEC_ON : PEC_OFF);
                 TrackModeSP.s = IPS_BUSY;
                 TrackState    = SCOPE_TRACKING;
                 if (scopeInfo.systemStatus == ST_SLEWING)
@@ -1080,7 +1076,7 @@ IPState IOptronV3::GuideWest(uint32_t ms)
 
 bool IOptronV3::SetSlewRate(int index)
 {
-    IOP_SLEW_RATE rate = (IOP_SLEW_RATE) (index + 1);
+    IOP_SLEW_RATE rate = static_cast<IOP_SLEW_RATE>(index);
     return driver->setSlewRate(rate);
 }
 

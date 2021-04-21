@@ -387,17 +387,18 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
                 continue;
 
             tp = static_cast<IText *>(realloc(tp, (n + 1) * sizeof(IText)));
-            IText *it = &tp[n];
-            memset(it, 0, sizeof(*it));
-            it->tvp = tvp;
+            memset(&tp[n], 0, sizeof(tp[n]));
 
-            strncpy(it->name, findXMLAttValu(ep, "name"), MAXINDINAME);
-            if (*it->name == '\0')
+            WidgetView<IText> *it = static_cast<WidgetView<IText>*>(&tp[n]);
+
+            it->setParent(tvp);
+            it->setName(findXMLAttValu(ep, "name"));
+
+            if (it->getName()[0] == '\0')
                 continue;
 
-            it->text = strndup(pcdataXMLEle(ep), pcdatalenXMLEle(ep));
-
-            strncpy(it->label, findXMLAttValu(ep, "label"), MAXINDILABEL);
+            it->setText(pcdataXMLEle(ep), pcdatalenXMLEle(ep));
+            it->setLabel(findXMLAttValu(ep, "label"));
             ++n;
         }
 

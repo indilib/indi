@@ -4,7 +4,7 @@
     Copyright (C) 2017 Michael Fulbright
     Additional contributors: 
         Thomas Olson, Copyright (C) 2019
-        Karl Rees, Copyright (C) 2019
+        Karl Rees, Copyright (C) 2019-2021
         
     Based on IEQPro driver.
 
@@ -78,6 +78,7 @@ void set_pmc8_simulation(bool enable);
 void set_pmc8_device(const char *name);
 void set_pmc8_mountParameters(int index);
 bool get_pmc8_response(int fd, char* buf, int* nbytes_read, const char* expected);
+bool send_pmc8_command(int fd, const char *buf, int nbytes, int *nbytes_written);
 
 /**************************************************************************
  Simulation
@@ -93,7 +94,10 @@ void set_pmc8_sim_dec(double dec);
 /**************************************************************************
  Diagnostics
 **************************************************************************/
-bool check_pmc8_connection(int fd);
+bool check_pmc8_connection(int fd, bool isSerial);
+bool detect_pmc8(int fd);
+void set_pmc8_reconnect_flag();
+bool get_pmc8_reconnect_flag();
 
 /**************************************************************************
  Get Info
@@ -104,6 +108,7 @@ bool get_pmc8_status(int fd, PMC8Info *info);
 bool get_pmc8_firmware(int fd, FirmwareInfo *info);
 /** Get RA/DEC */
 bool get_pmc8_coords(int fd, double &ra, double &dec);
+bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate);
 
 /**************************************************************************
  Motion
@@ -125,6 +130,9 @@ bool slew_pmc8(int fd, double ra, double dec);
 bool sync_pmc8(int fd, double ra, double dec);
 bool set_pmc8_radec(int fd, double ra, double dec);
 INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec);
+void set_pmc8_istracking(bool enabled);
+bool get_pmc8_istracking();
+
 
 /**************************************************************************
  Home

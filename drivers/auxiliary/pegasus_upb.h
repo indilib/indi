@@ -284,6 +284,10 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             SETTING_MAX_SPEED,
         };
 
+        // Temperature
+        INumber FocuserTemperatureN[1];
+        INumberVectorProperty FocuserTemperatureNP;
+
         ////////////////////////////////////////////////////////////////////////////////////
         /// USB
         ////////////////////////////////////////////////////////////////////////////////////
@@ -295,10 +299,6 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             FIRMWARE_UPTIME
         };
 
-
-        // Temperature
-        INumber FocuserTemperatureN[1];
-        INumberVectorProperty FocuserTemperatureNP;
 
         std::vector<std::string> lastSensorData, lastPowerData, lastStepperData, lastDewAggData;
         bool focusMotorRunning { false };

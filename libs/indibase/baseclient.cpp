@@ -16,6 +16,8 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#define NOMINMAX
+
 #include "baseclient.h"
 
 #include "indistandardproperty.h"
@@ -29,7 +31,11 @@
 #include <stdarg.h>
 #include <cstring>
 #include <algorithm>
+#include <chrono>
+#include <functional>
 #include <assert.h>
+
+#include "indiuserio.h"
 
 #ifdef _WINDOWS
 #include <WinSock2.h>
@@ -58,8 +64,24 @@
 #define MAXINDIBUF 49152
 #define DISCONNECTION_DELAY_US 500000
 
+static userio io;
+
 INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 {
+    io.write = [](void *user, const void * ptr, size_t count) -> size_t
+    {
+        BaseClient *self = static_cast<BaseClient *>(user);
+        return self->sendData(ptr, count);
+    };
+
+    io.vprintf = [](void *user, const char * format, va_list ap) -> int
+    {
+        BaseClient *self = static_cast<BaseClient *>(user);
+        char message[MAXRBUF];
+        vsnprintf(message, MAXRBUF, format, ap);
+        return self->sendData(message, strlen(message));
+    };
+
     sConnected = false;
     verbose    = false;
 
@@ -69,15 +91,25 @@ INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
 
 INDI::BaseClient::~BaseClient()
 {
-    clear();
-
-    if (listen_thread)
-    {
+    if (isServerConnected())
         disconnectServer();
 
-        listen_thread->join();
-        delete(listen_thread);
-        listen_thread = nullptr;
+    std::unique_lock<std::mutex> locker(sSocketBusy);
+    if (!sSocketChanged.wait_for(locker, std::chrono::milliseconds(500), [this]{ return sConnected == false; }))
+    {
+        IDLog("BaseClient::~BaseClient: Probability of detecting a deadlock.\n");
+        /* #PS:
+         * KStars bug - suspicion
+         *   The function thread 'BaseClient::listenINDI' could not be terminated
+         *   because the 'dispatchCommand' function is in progress.
+         *
+         *   The function 'dispatchCommand' cannot be completed
+         *   because it is related to the function call 'ClientManager::newProperty'.
+         *
+         *   There is a call that uses BlockingQueuedConnection to the thread that is currently busy
+         *   destroying the BaseClient object.
+         *
+         */
     }
 }
 
@@ -121,6 +153,15 @@ void INDI::BaseClient::watchProperty(const char *deviceName, const char *propert
 
 bool INDI::BaseClient::connectServer()
 {
+    std::unique_lock<std::mutex> locker(sSocketBusy);
+    if (sConnected == true)
+    {
+        IDLog("INDI::BaseClient::connectServer: Already connected.\n");
+        return false;
+    }
+
+    IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
+
 #ifdef _WINDOWS
     WSADATA wsaData;
     int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -262,58 +303,46 @@ bool INDI::BaseClient::connectServer()
 #endif
 
     sConnected = true;
-
-    /*int result = pthread_create(&listen_thread, nullptr, &INDI::BaseClient::listenHelper, this);
-
-    if (result != 0)
-    {
-        sConnected = false;
-        perror("thread");
-        return false;
-    }*/
-
-    listen_thread = new std::thread(listenHelper, this);
-
-    serverConnected();
+    sAboutToClose = false;
+    sSocketChanged.notify_all();
+    std::thread(std::bind(&BaseClient::listenINDI, this)).detach();
 
     return true;
 }
 
-bool INDI::BaseClient::disconnectServer()
+bool INDI::BaseClient::disconnectServer(int exit_code)
 {
     //IDLog("Server disconnected called\n");
+    std::lock_guard<std::mutex> locker(sSocketBusy);
     if (sConnected == false)
-        return true;
-
-    sConnected = false;
-
-    // Insert a disconnection delay for running threads to finish and
-    // new threads to spot the disconnection state. This mitigates most deadlocks
-    // without causing loss of functionality, but will suffer from real-time
-    // performance of the clients as the timeout is arbitrary.
-    //usleep(DISCONNECTION_DELAY_US);
-
+    {
+        IDLog("INDI::BaseClient::disconnectServer: Already disconnected.\n");
+        return false;
+    }
+    sAboutToClose = true;
+    sSocketChanged.notify_all();
 #ifdef _WINDOWS
-    net_close(sockfd);
+    net_close(sockfd); // close and wakeup 'select' function
     WSACleanup();
+    sockfd = INVALID_SOCKET;
 #else
-    shutdown(sockfd, SHUT_RDWR);
-    while (write(m_sendFd, "1", 1) <= 0)
+    shutdown(sockfd, SHUT_RDWR); // no needed
+    size_t c = 1;
+    // wakeup 'select' function
+    ssize_t ret = write(m_sendFd, &c, sizeof(c));
+    if (ret != sizeof(c))
+    {
+        IDLog("INDI::BaseClient::disconnectServer: Error. The socket cannot be woken up.\n");
+    }
 #endif
-
-    clear();
-
-    cDeviceNames.clear();
-
-    //    listen_thread->join();
-    //    delete(listen_thread);
-    //    listen_thread = nullptr;
-    //pthread_join(listen_thread, nullptr);
-
-    int exit_code = 0;
-    serverDisconnected(exit_code);
-
+    sExitCode = exit_code;
     return true;
+}
+
+// #PS: avoid calling pure virtual method
+void INDI::BaseClient::serverDisconnected(int exit_code)
+{
+    INDI_UNUSED(exit_code);
 }
 
 bool INDI::BaseClient::isServerConnected() const
@@ -386,17 +415,10 @@ INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
     return nullptr;
 }
 
-void *INDI::BaseClient::listenHelper(void *context)
-{
-    (static_cast<INDI::BaseClient *>(context))->listenINDI();
-    return nullptr;
-}
-
 void INDI::BaseClient::listenINDI()
 {
     char buffer[MAXINDIBUF];
     char msg[MAXRBUF];
-    int err_code = 0;
 #ifdef _WINDOWS
     SOCKET maxfd = 0;
 #else
@@ -407,99 +429,88 @@ void INDI::BaseClient::listenINDI()
     XMLEle *root = nullptr;
     int inode = 0;
 
-    AutoCNumeric locale;
+    serverConnected();
 
     if (cDeviceNames.empty())
     {
-        char cmd[MAXRBUF] = {0};
-        snprintf(cmd, MAXRBUF, "<getProperties version='%g'/>\n", INDIV);
-        sendString(cmd);
+        IUUserIOGetProperties(&io, this, nullptr, nullptr);
         if (verbose)
-            IDLog("%s\n", cmd);
+            IUUserIOGetProperties(userio_file(), stderr, nullptr, nullptr);
     }
     else
     {
-        for (auto oneDevice : cDeviceNames)
+        for (const auto &oneDevice : cDeviceNames)
         {
             // If there are no specific properties to watch, we watch the complete device
             if (cWatchProperties.find(oneDevice) == cWatchProperties.end())
             {
-                char cmd[MAXRBUF] = {0};
-                snprintf(cmd, MAXRBUF, "<getProperties version='%g' device='%s'/>\n", INDIV, oneDevice.c_str());
-                sendString(cmd);
+                IUUserIOGetProperties(&io, this, oneDevice.c_str(), nullptr);
                 if (verbose)
-                    IDLog("%s\n", cmd);
+                    IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), nullptr);
             }
             else
             {
-                for (auto oneProperty : cWatchProperties[oneDevice])
+                for (const auto &oneProperty : cWatchProperties[oneDevice])
                 {
-                    char cmd[MAXRBUF] = {0};
-                    snprintf(cmd, MAXRBUF, "<getProperties version='%g' device='%s' name='%s'/>\n",
-                             INDIV, oneDevice.c_str(), oneProperty.c_str());
-                    sendString(cmd);
+                    IUUserIOGetProperties(&io, this, oneDevice.c_str(), oneProperty.c_str());
                     if (verbose)
-                        IDLog("%s\n", cmd);
+                        IUUserIOGetProperties(userio_file(), stderr, oneDevice.c_str(), oneProperty.c_str());
                 }
             }
         }
     }
 
-    locale.Restore();
-
     FD_ZERO(&rs);
 
     FD_SET(sockfd, &rs);
-    if (sockfd > maxfd)
-        maxfd = sockfd;
+    maxfd = std::max(maxfd, sockfd);
 
 #ifndef _WINDOWS
     FD_SET(m_receiveFd, &rs);
-    if (m_receiveFd > maxfd)
-        maxfd = m_receiveFd;
+    maxfd = std::max(maxfd, m_receiveFd);
 #endif
 
     clear();
-    lillp = newLilXML();
+    LilXML *lillp = newLilXML();
 
     /* read from server, exit if find all requested properties */
-    while (sConnected)
+    while (!sAboutToClose)
     {
         int n = select(maxfd + 1, &rs, nullptr, nullptr, nullptr);
+
+        // Woken up by disconnectServer function.
+        if (sAboutToClose == true)
+        {
+            break;
+        }
 
         if (n < 0)
         {
             IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-            net_close(sockfd);
             break;
         }
 
-#ifndef _WINDOWS
-        // Received termination string from main thread
-        if (n > 0 && FD_ISSET(m_receiveFd, &rs))
+        if (n == 0)
         {
-            sConnected = false;
-            break;
+            continue;
         }
-#endif
 
-        if (n > 0 && FD_ISSET(sockfd, &rs))
+        if (FD_ISSET(sockfd, &rs))
         {
 #ifdef _WINDOWS
             n = recv(sockfd, buffer, MAXINDIBUF, 0);
 #else
             n = recv(sockfd, buffer, MAXINDIBUF, MSG_DONTWAIT);
 #endif
-            if (n <= 0)
+            if (n < 0)
             {
-                if (n == 0)
-                {
-                    IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-                    net_close(sockfd);
-                    break;
-                }
-                else
-                    continue;
+                continue;
+            }
+
+            if (n == 0)
+            {
+                IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
+                break;
             }
 
             nodes = parseXMLChunk(lillp, buffer, n, msg);
@@ -509,9 +520,8 @@ void INDI::BaseClient::listenINDI()
                 if (msg[0])
                 {
                     IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
-                    return;
                 }
-                return;
+                break;
             }
             root = nodes[inode];
             while (root)
@@ -519,7 +529,9 @@ void INDI::BaseClient::listenINDI()
                 if (verbose)
                     prXMLEle(stderr, root, 0);
 
-                if ((err_code = dispatchCommand(root, msg)) < 0)
+                int err_code = dispatchCommand(root, msg);
+
+                if (err_code < 0)
                 {
                     // Silenty ignore property duplication errors
                     if (err_code != INDI_PROPERTY_DUPLICATED)
@@ -540,11 +552,31 @@ void INDI::BaseClient::listenINDI()
 
     delLilXML(lillp);
 
-    serverDisconnected((sConnected == false) ? 0 : -1);
-    sConnected = false;
+    int exit_code;
 
+    {
+        std::lock_guard<std::mutex> locker(sSocketBusy);
+#ifdef _WINDOWS
+        if (sockfd != INVALID_SOCKET)
+        {
+            net_close(sockfd);
+            WSACleanup();
+            sockfd = INVALID_SOCKET;
+        }
+#else
+        close(sockfd);
+        close(m_receiveFd);
+        close(m_sendFd);
+#endif
+        clear();
+        cDeviceNames.clear();
+        sConnected = false;
+        sSocketChanged.notify_all();
 
-    //pthread_exit(0);
+        exit_code = sAboutToClose ? sExitCode : -1;
+    }
+
+    serverDisconnected(exit_code);
 }
 
 int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
@@ -804,23 +836,11 @@ void INDI::BaseClient::newUniversalMessage(std::string message)
     IDLog("%s\n", message.c_str());
 }
 
+
 void INDI::BaseClient::sendNewText(ITextVectorProperty *tvp)
 {
     tvp->s = IPS_BUSY;
-
-    sendString("<newTextVector\n");
-    sendString("  device='%s'\n", tvp->device);
-    sendString("  name='%s'\n>", tvp->name);
-
-    for (int i = 0; i < tvp->ntp; i++)
-    {
-        sendString("  <oneText\n");
-        sendString("    name='%s'>\n", tvp->tp[i].name);
-        sendString("      %s\n", tvp->tp[i].text);
-        sendString("  </oneText>\n");
-    }
-    sendString("</newTextVector>\n");
-
+    IUUserIONewText(&io, this, tvp);
 }
 
 void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
@@ -848,22 +868,8 @@ void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyN
 
 void INDI::BaseClient::sendNewNumber(INumberVectorProperty *nvp)
 {
-    AutoCNumeric locale;
-
     nvp->s = IPS_BUSY;
-
-    sendString("<newNumberVector\n");
-    sendString("  device='%s'\n", nvp->device);
-    sendString("  name='%s'\n>", nvp->name);
-
-    for (int i = 0; i < nvp->nnp; i++)
-    {
-        sendString("  <oneNumber\n");
-        sendString("    name='%s'>\n", nvp->np[i].name);
-        sendString("      %g\n", nvp->np[i].value);
-        sendString("  </oneNumber>\n");
-    }
-    sendString("</newNumberVector>\n");
+    IUUserIONewNumber(&io, this, nvp);
 }
 
 void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
@@ -891,33 +897,8 @@ void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propert
 
 void INDI::BaseClient::sendNewSwitch(ISwitchVectorProperty *svp)
 {
-    svp->s            = IPS_BUSY;
-    ISwitch *onSwitch = IUFindOnSwitch(svp);
-
-    sendString("<newSwitchVector\n");
-
-    sendString("  device='%s'\n", svp->device);
-    sendString("  name='%s'>\n", svp->name);
-
-    if (svp->r == ISR_1OFMANY && onSwitch)
-    {
-        sendString("  <oneSwitch\n");
-        sendString("    name='%s'>\n", onSwitch->name);
-        sendString("      %s\n", (onSwitch->s == ISS_ON) ? "On" : "Off");
-        sendString("  </oneSwitch>\n");
-    }
-    else
-    {
-        for (int i = 0; i < svp->nsp; i++)
-        {
-            sendString("  <oneSwitch\n");
-            sendString("    name='%s'>\n", svp->sp[i].name);
-            sendString("      %s\n", (svp->sp[i].s == ISS_ON) ? "On" : "Off");
-            sendString("  </oneSwitch>\n");
-        }
-    }
-
-    sendString("</newSwitchVector>\n");
+    svp->s = IPS_BUSY;
+    IUUserIONewSwitch(&io, this, svp);
 }
 
 void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
@@ -944,128 +925,33 @@ void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propert
 
 void INDI::BaseClient::startBlob(const char *devName, const char *propName, const char *timestamp)
 {
-    sendString("<newBLOBVector\n");
-    sendString("  device='%s'\n", devName);
-    sendString("  name='%s'\n", propName);
-    sendString("  timestamp='%s'>\n", timestamp);
+    IUUserIONewBLOBStart(&io, this, devName, propName, timestamp);
 }
 
 void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
-    char nl = '\n';
-    int rc = 0;
-    size_t sz = 4 * bp->size / 3 + 4;
-    uint8_t *encblob = static_cast<uint8_t*>(malloc(sz));
-    assert_mem(encblob);
-    uint32_t base64Len = to64frombits_s(encblob, reinterpret_cast<const uint8_t *>(bp->blob), bp->size, sz);
-    if (base64Len == 0)
-    {
-        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
-        exit(1);
-    }
-
-    sendString("  <oneBLOB\n");
-    sendString("    name='%s'\n", bp->name);
-    sendString("    size='%ud'\n", bp->size);
-    sendString("    enclen='%d'\n", base64Len);
-    sendString("    format='%s'>\n", bp->format);
-
-    uint32_t written = 0;
-    while (written < base64Len)
-    {
-        // Write 72 chars followed by new line
-        uint8_t towrite = ((base64Len - written) > 72) ? 72 : base64Len - written;
-        ssize_t wr = net_write(sockfd, encblob + written, towrite);
-        if (wr > 0)
-            written += wr;
-        else if (wr < 0)
-        {
-            // If temporary error, continue
-            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
-                continue;
-            else
-            {
-                // Otherwise exist
-                fprintf(stderr, "sendOneBlob: %s\n", strerror(errno));
-                free(encblob);
-                return;
-            }
-        }
-        if ((written % 72) == 0)
-            rc = net_write(sockfd, &nl, 1);
-    }
-
-    if ((written % 72) != 0)
-        rc = net_write(sockfd, &nl, 1);
-
-    free(encblob);
-
-    sendString("   </oneBLOB>\n");
+    IUUserIOBLOBContextOne(
+        &io, this,
+        bp->name, bp->size, bp->bloblen, bp->blob, bp->format
+    );
 }
 
 void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
                                    void *blobBuffer)
 {
-    char nl = '\n';
-    int rc = 0;
-    size_t sz = 4 * blobSize / 3 + 4;
-    uint8_t *encblob = static_cast<uint8_t*>(malloc(sz));
-    assert_mem(encblob);
-    uint32_t base64Len = to64frombits_s(encblob, reinterpret_cast<const uint8_t *>(blobBuffer), blobSize, sz);
-    if (base64Len == 0)
-    {
-        fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", __FILE__, __func__);
-        exit(1);
-    }
-
-    sendString("  <oneBLOB\n");
-    sendString("    name='%s'\n", blobName);
-    sendString("    size='%ud'\n", blobSize);
-    sendString("    enclen='%d'\n", base64Len);
-    sendString("    format='%s'>\n", blobFormat);
-
-    uint32_t written = 0;
-    while (written < base64Len)
-    {
-        // Write 72 chars followed by new line
-        uint8_t towrite = ((base64Len - written) > 72) ? 72 : base64Len - written;
-        ssize_t wr = net_write(sockfd, encblob + written, towrite);
-        if (wr > 0)
-            written += wr;
-        else if (wr < 0)
-        {
-            // If temporary error, continue
-            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
-                continue;
-            else
-            {
-                // Otherwise exist
-                fprintf(stderr, "sendOneBlob: %s\n", strerror(errno));
-                free(encblob);
-                return;
-            }
-        }
-        if ((written % 72) == 0)
-            rc = net_write(sockfd, &nl, 1);
-    }
-
-    if ((written % 72) != 0)
-        rc = net_write(sockfd, &nl, 1);
-
-    free(encblob);
-
-    sendString("   </oneBLOB>\n");
+    IUUserIOBLOBContextOne(
+        &io, this,
+        blobName, blobSize, blobSize, blobBuffer, blobFormat
+    );
 }
 
 void INDI::BaseClient::finishBlob()
 {
-    sendString("</newBLOBVector>\n");
+    IUUserIONewBLOBFinish(&io, this);
 }
 
 void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
 {
-    char blobOpenTag[MAXRBUF];
-
     if (!dev[0])
         return;
 
@@ -1088,23 +974,7 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
         bMode->blobMode = blobH;
     }
 
-    if (prop != nullptr)
-        snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s' name='%s'>", dev, prop);
-    else
-        snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s'>", dev);
-
-    switch (blobH)
-    {
-        case B_NEVER:
-            sendString("%sNever</enableBLOB>\n", blobOpenTag);
-            break;
-        case B_ALSO:
-            sendString("%sAlso</enableBLOB>\n", blobOpenTag);
-            break;
-        case B_ONLY:
-            sendString("%sOnly</enableBLOB>\n", blobOpenTag);
-            break;
-    }
+    IUUserIOEnableBLOB(&io, this, dev, prop, blobH);
 }
 
 BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
@@ -1141,14 +1011,34 @@ bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, u
     return (deviceList.size() > 0);
 }
 
+size_t INDI::BaseClient::sendData(const void *data, size_t size)
+{
+    int ret;
+
+    do
+    {
+        std::lock_guard<std::mutex> locker(sSocketBusy);
+        if (sConnected == false)
+            return 0;
+        ret = net_write(sockfd, data, size);
+    }
+    while(ret == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK));
+
+    if (ret < 0)
+    {
+        disconnectServer(-1);
+    }
+
+    return std::max(ret, 0);
+}
+
 void INDI::BaseClient::sendString(const char *fmt, ...)
 {
-    int ret = 0;
     char message[MAXRBUF];
     va_list ap;
 
     va_start(ap, fmt);
     vsnprintf(message, MAXRBUF, fmt, ap);
     va_end(ap);
-    ret = net_write(sockfd, message, strlen(message));
+    sendData(message, strlen(message));
 }

@@ -126,9 +126,13 @@ bool PropertyView<IBLOB>::update(
 )
 { errorUnavailable(__FUNCTION__); return false; }
 
-void INDI::WidgetView<IText>::fill(const char *, const char *, const char *)
+template <> template<>
+void PropertyView<INumber>::updateMinMax()
 { errorUnavailable(__FUNCTION__); }
 
+
+void WidgetView<IText>::fill(const char *, const char *, const char *)
+{ errorUnavailable(__FUNCTION__); }
 
 void WidgetView<ISwitch>::fill(const char *, const char *, ISState)
 { errorUnavailable(__FUNCTION__); }

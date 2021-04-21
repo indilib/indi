@@ -34,12 +34,12 @@ class LX200Pulsar2 : public LX200Generic
 	static constexpr char Null = '\0';
 
 
-    virtual const char *getDefaultName();
+    virtual const char *getDefaultName() override;
 
-    virtual bool Connect();
-    virtual bool Disconnect();
-    virtual bool Handshake();
-    virtual bool ReadScopeStatus();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual bool Handshake() override;
+    virtual bool ReadScopeStatus() override;
     virtual void ISGetProperties(const char *dev) override;
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
@@ -50,28 +50,28 @@ class LX200Pulsar2 : public LX200Generic
     static const unsigned int numPulsarTrackingRates = 7;
 
   protected:
-    virtual bool SetSlewRate(int index);
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-    virtual bool Abort();
+    virtual bool SetSlewRate(int index) override;
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+    virtual bool Abort() override;
 
-    virtual IPState GuideNorth(uint32_t ms);
-    virtual IPState GuideSouth(uint32_t ms);
-    virtual IPState GuideEast(uint32_t ms);
-    virtual IPState GuideWest(uint32_t ms);
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
-    virtual bool updateTime(ln_date *utc, double utc_offset);
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
+    virtual bool updateTime(ln_date *utc, double utc_offset) override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-    virtual bool Goto(double, double);
-    virtual bool Park();
-    virtual bool Sync(double ra, double dec);
-    virtual bool UnPark();
+    virtual bool Goto(double, double) override;
+    virtual bool Park() override;
+    virtual bool Sync(double ra, double dec) override;
+    virtual bool UnPark() override;
 
-    virtual bool isSlewComplete();
-    virtual bool checkConnection();
+    virtual bool isSlewComplete() override;
+    virtual bool checkConnection() override;
 
-    virtual void getBasicData();
+    virtual void getBasicData() override;
 
 
     // Pier Side
