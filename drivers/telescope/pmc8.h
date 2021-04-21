@@ -113,6 +113,9 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
             */
         void getStartupData();
 
+        uint8_t convertToPMC8TrackMode(uint8_t mode); 
+        uint8_t convertFromPMC8TrackMode(uint8_t mode); 
+
         /* Firmware */
         IText FirmwareT[1] {};
         ITextVectorProperty FirmwareTP;
@@ -132,13 +135,20 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         //INumber CustomTrackRateN[1];
         //INumberVectorProperty CustomTrackRateNP;
 
-        /* Guide Rate */
-        INumber GuideRateN[1];
-        INumberVectorProperty GuideRateNP;
+        /* SRF Guide Rates */
+        INumber RaGuideRateN[1];
+        INumberVectorProperty RaGuideRateNP;
+        INumber DeGuideRateN[1];
+        INumberVectorProperty DeGuideRateNP;
+
 
         unsigned int DBG_SCOPE;
         double currentRA, currentDEC;
         double targetRA, targetDEC;
+
+        int trackingPollCounter = 0;
+        bool isPulsingNS = false;
+        bool isPulsingWE = false;
 
         //PMC8Info scopeInfo;
         FirmwareInfo firmwareInfo;

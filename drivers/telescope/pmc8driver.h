@@ -29,6 +29,9 @@
 
 #include "inditelescope.h"
 
+// if tracking speed above this then mount is slewing (arcsec / sec) - this is 4x sidereal
+#define PMC8_MAX_TRACK_RATE 59
+
 typedef enum {
     ST_STOPPED,
     ST_TRACKING,
@@ -39,16 +42,13 @@ typedef enum {
     ST_HOME
 } PMC8_SYSTEM_STATUS;
 
-
 //#endif
 
-typedef enum { PMC8_TRACK_SIDEREAL, PMC8_TRACK_LUNAR, PMC8_TRACK_SOLAR, PMC8_TRACK_CUSTOM } PMC8_TRACK_RATE;
+typedef enum { PMC8_TRACK_SIDEREAL, PMC8_TRACK_LUNAR, PMC8_TRACK_SOLAR, PMC8_TRACK_CUSTOM, PMC8_TRACK_KING, PMC8_TRACK_UNDEFINED } PMC8_TRACK_RATE;
 
 typedef enum { PMC8_MOVE_4X, PMC8_MOVE_16X, PMC8_MOVE_64X, PMC8_MOVE_256X } PMC8_MOVE_RATE;
 
 //typedef enum { HEMI_SOUTH, HEMI_NORTH } PMC8_HEMISPHERE;
-
-//typedef enum { FW_MODEL, FW_BOARD, FW_CONTROLLER, FW_RA, FW_DEC } IEQ_FIRMWARE;
 
 typedef enum { PMC8_AXIS_RA=0, PMC8_AXIS_DEC=1 } PMC8_AXIS;
 typedef enum { PMC8_N, PMC8_S, PMC8_W, PMC8_E } PMC8_DIRECTION;
@@ -108,7 +108,9 @@ bool get_pmc8_status(int fd, PMC8Info *info);
 bool get_pmc8_firmware(int fd, FirmwareInfo *info);
 /** Get RA/DEC */
 bool get_pmc8_coords(int fd, double &ra, double &dec);
-bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate);
+bool get_pmc8_move_rate_axis(int fd, PMC8_AXIS axis, double &rate);
+bool get_pmc8_track_rate(int fd, double &rate);
+bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode);
 
 /**************************************************************************
  Motion
@@ -116,12 +118,12 @@ bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate);
 bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int speedindex);
 bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir);
 bool stop_pmc8_tracking_motion(int fd);
+bool set_pmc8_ra_tracking(int fd, double rate);
 bool set_pmc8_custom_ra_track_rate(int fd, double rate);
 bool set_pmc8_custom_dec_track_rate(int fd, double rate);
 bool set_pmc8_custom_ra_move_rate(int fd, double rate);
 bool set_pmc8_custom_dec_move_rate(int fd, double rate);
-bool set_pmc8_track_mode(int fd, uint32_t rate);
-//bool set_pmc8_track_enabled(int fd, bool enabled);
+bool set_pmc8_track_mode(int fd, uint8_t mode);
 bool get_pmc8_is_scope_slewing(int fd, bool &isslew);
 bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir);
 bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir, bool fast);
@@ -130,8 +132,6 @@ bool slew_pmc8(int fd, double ra, double dec);
 bool sync_pmc8(int fd, double ra, double dec);
 bool set_pmc8_radec(int fd, double ra, double dec);
 INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec);
-void set_pmc8_istracking(bool enabled);
-bool get_pmc8_istracking();
 
 
 /**************************************************************************
@@ -150,24 +150,16 @@ bool unpark_pmc8(int fd);
 /**************************************************************************
  Guide
 **************************************************************************/
-bool set_pmc8_guide_rate(int fd, double rate);
-//bool get_pmc8_guide_rate(int fd, double *rate);
-bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us);
+bool set_pmc8_guide_rate(int fd, PMC8_AXIS axis, double rate);
+bool get_pmc8_guide_rate(int fd, PMC8_AXIS axis, double &rate);
+bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, double ratehint);
 bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir);
 
 /**************************************************************************
  Time & Location
 **************************************************************************/
 void set_pmc8_location(double latitude, double longitude);
-
-//bool set_ieqpro_longitude(int fd, double longitude);
-//bool set_ieqpro_latitude(int fd, double latitude);
-//bool get_ieqpro_longitude(int fd, double *longitude);
-//bool get_ieqpro_latitude(int fd, double *latitude);
-//bool set_ieqpro_local_date(int fd, int yy, int mm, int dd);
-//bool set_ieqpro_local_time(int fd, int hh, int mm, int ss);
-//bool set_ieqpro_utc_offset(int fd, double offset_hours);
-//bool set_ieqpro_daylight_saving(int fd, bool enabled);
+int get_pmc8_east_dir();
 
 
 
