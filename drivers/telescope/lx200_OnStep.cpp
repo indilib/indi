@@ -402,7 +402,7 @@ bool LX200_OnStep::updateProperties()
 
         // OnStep Status
         defineProperty(&OnstepStatTP);
-        defineProperty(&OnstepStatTP);
+        
         // Motion Control
         defineProperty(&MaxSlewRateNP);
         defineProperty(&TrackCompSP);
