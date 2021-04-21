@@ -18,6 +18,7 @@
 
 #pragma once
 
+
 #include "indiapi.h"
 #include "indibase.h"
 
@@ -27,6 +28,8 @@
 #include <set>
 
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
 #include <thread>
 
 #ifdef _WINDOWS
@@ -283,8 +286,6 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         void clear();
 
-        std::thread listen_thread;
-
 #ifdef _WINDOWS
         SOCKET sockfd;
 #else
@@ -307,11 +308,13 @@ class INDI::BaseClient : public INDI::BaseMediator
         std::string cServer;
         uint32_t cPort;
         std::atomic_bool sConnected;
+        std::atomic_bool sAboutToClose;
+        std::mutex sSocketBusy;
+        std::condition_variable sSocketChanged;
+        int sExitCode;
         bool verbose;
 
         // Parse & FILE buffers for IO
 
-        /* XML parser context */
-        LilXML *lillp {nullptr};
         uint32_t timeout_sec, timeout_us;
 };
