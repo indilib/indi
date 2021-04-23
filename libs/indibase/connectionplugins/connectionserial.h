@@ -23,6 +23,7 @@
 #include "connectioninterface.h"
 
 #include <string>
+#include <vector>
 
 namespace Connection
 {
@@ -184,5 +185,6 @@ class Serial : public Interface
         uint8_t stopBits = 1;
 
         char m_ConfigPort[MAXINDINAME];
+        std::vector<std::string> m_SystemPorts;
 };
 }

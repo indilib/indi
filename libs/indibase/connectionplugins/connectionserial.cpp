@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <thread>
 #include <chrono>
+#include <regex>
 
 namespace Connection
 {
@@ -150,10 +151,10 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         {
             IUUpdateSwitch(&SystemPortSP, states, names, n);
 
-            ISwitch *sp = IUFindOnSwitch(&SystemPortSP);
-            if (sp)
+            int index = IUFindOnSwitchIndex(&SystemPortSP);
+            if (index >= 0)
             {
-                IUSaveText(&PortT[0], sp->name);
+                IUSaveText(&PortT[0], m_SystemPorts[index].c_str());
                 IDSetText(&PortTP, nullptr);
             }
 
@@ -172,21 +173,6 @@ bool Serial::Connect()
     uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
     if (Connect(PortT[0].text, baud) && processHandshake())
         return true;
-
-    // If if the user port is one of the detected system ports.
-    bool isSystemPort = false;
-
-    if (SystemPortS != nullptr)
-    {
-        for (int i = 0; i < SystemPortSP.nsp; i++)
-        {
-            if (!strcmp(PortT[0].text, SystemPortS[i].name))
-            {
-                isSystemPort = true;
-                break;
-            }
-        }
-    }
 
     // Important, disconnect from port immediately
     // to release the lock, otherwise another driver will find it busy.
@@ -247,11 +233,11 @@ bool Serial::Connect()
 
                 if (saveConfig)
                     m_Device->saveConfig(true);
-#else
+
                 // Do not overwrite custom ports because it can be actually cause
                 // temporary failure. For users who use mapped named ports (e.g. /dev/mount), it's not good to override their choice.
                 // So only write to config if the port was a system port.
-                if (isSystemPort)
+                if (std::find(m_SystemPorts.begin(), m_SystemPorts.end(), PortT[0].text) != m_SystemPorts.end())
                     m_Device->saveConfig(true, PortTP.name);
 #endif
                 return true;
@@ -395,13 +381,6 @@ int dev_file_select(const dirent *entry)
 
 bool Serial::Refresh(bool silent)
 {
-    std::vector<std::string> m_CurrentPorts;
-    if (SystemPortS && SystemPortSP.nsp > 0)
-    {
-        for (uint8_t i = 0; i < SystemPortSP.nsp; i++)
-            m_CurrentPorts.push_back(SystemPortS[i].name);
-    }
-
     std::vector<std::string> m_Ports;
 
     auto searchPath = [&](std::string prefix)
@@ -454,8 +433,10 @@ bool Serial::Refresh(bool silent)
     }
 
     // Check if anything changed. If not we return.
-    if (m_Ports == m_CurrentPorts)
+    if (m_Ports == m_SystemPorts)
         return true;
+
+    m_SystemPorts = m_Ports;
 
     if (SystemPortS)
         m_Device->deleteProperty(SystemPortSP.name);
@@ -468,8 +449,22 @@ bool Serial::Refresh(bool silent)
     for (int i = pCount - 1; i >= 0; i--)
     {
         // Simplify label by removing directory prefix
-        std::string label = m_Ports[i].substr(m_Ports[i].find_last_of("/\\") + 1);
-        IUFillSwitch(sp++, m_Ports[i].c_str(), label.c_str(), ISS_OFF);
+        std::string name = m_Ports[i].substr(m_Ports[i].find_last_of("/\\") + 1);
+        std::string label = name;
+
+        // Remove Linux extra stuff to simplify string
+#ifdef __linux__
+        std::regex re("usb-(.[^-]+)");
+        std::smatch match;
+        if (std::regex_search(m_Ports[i], match, re))
+        {
+            name = label = match.str(1);
+            // Simplify further by removing non-unique strings
+            std::regex target("FTDI_|UART_|USB_");
+            label = std::regex_replace(label, target, "");
+        }
+#endif
+        IUFillSwitch(sp++, name.c_str(), label.c_str(), ISS_OFF);
     }
 
     IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, m_Device->getDeviceName(), "SYSTEM_PORTS", "System Ports",
