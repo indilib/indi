@@ -218,7 +218,7 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSFocusSelectS[7], "Focuser_Primary_8", "8", ISS_OFF);
     IUFillSwitch(&OSFocusSelectS[8], "Focuser_Primary_9", "9", ISS_OFF);
     
-    IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, OnStepMAXFocusers, getDeviceName(), "OSFocusSWAP", "Primary Focuser", FOCUS_TAB,
+    IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, 1, getDeviceName(), "OSFocusSWAP", "Primary Focuser", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
 
@@ -456,6 +456,8 @@ bool LX200_OnStep::updateProperties()
             defineProperty(&OSFocus2MotionSP);
             defineProperty(&OSFocus2RateSP);
             defineProperty(&OSFocus2TargNP);
+            IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, OSNumFocusers, getDeviceName(), "OSFocusSWAP", "Primary Focuser", FOCUS_TAB,
+                               IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
             defineProperty(&OSFocusSelectSP); //Swap focusers (only matters if two focusers)
         } else { //For OnStepX, up to 9 focusers 
             for (i = 0; i < 9; i++) {
@@ -465,9 +467,13 @@ bool LX200_OnStep::updateProperties()
                     OSNumFocusers = i+1;
                 }
             }
-            
+            if (OSNumFocusers > 1) {
+                IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, OSNumFocusers, getDeviceName(), "OSFocusSWAP", "Primary Focuser", FOCUS_TAB,
+                                IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+                defineProperty(&OSFocusSelectSP);
+            }
         }
-        //For when OnStepX comes out:
+
         
 
         // Firmware Data
@@ -1293,7 +1299,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 LOG_INFO("If using OnStep: Focuser 2 in INDI = OnStep Focuser 1");
             }
             if (OSNumFocusers > 2) {
-                LOGF_INFO("If using OnStepX, There is no swap, and current define as max number: %d, change in lx200_Onstep.h", OnStepMAXFocusers);
+                LOGF_INFO("If using OnStepX, There is no swap, and current max number: %d", OSNumFocusers);
             }
             snprintf(cmd, 7, ":FA%d#", index + 1 );
             for (i = 0; i < 9; i++) {

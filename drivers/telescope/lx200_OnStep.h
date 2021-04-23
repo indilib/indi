@@ -104,7 +104,6 @@
 #define OnStepalignOK(fd)   write(fd, "#:A+#", 5)
 #define OnStep
 #define RB_MAX_LEN 64
-#define OnStepMAXFocusers 2
 
 #define PORTS_COUNT 10
 #define STARTING_PORT 0
