@@ -379,7 +379,7 @@ int dev_file_select(const dirent *entry)
     static const char *filter_names[] = { "cu.", nullptr };
 #else
     //static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", nullptr };
-    static const char *filter_names[] = { "usb-", nullptr };
+    static const char *filter_names[] = { "usb-", "rfcomm", nullptr };
 #endif
     const char **filter;
 
@@ -404,40 +404,40 @@ bool Serial::Refresh(bool silent)
 
     std::vector<std::string> m_Ports;
 
-    struct dirent **namelist;
-#ifdef __linux__
-    int devCount = scandir("/dev/serial/by-id", &namelist, dev_file_select, alphasort);
-#else
-    int devCount = scandir("/dev", &namelist, dev_file_select, alphasort);
-#endif
-    if (devCount < 0)
+    auto searchPath = [&](std::string prefix)
     {
-        if (!silent)
-            LOGF_ERROR("Failed to scan directory /dev. Error: %s", strerror(errno));
-    }
-    else
-    {
-        while (devCount--)
+        struct dirent **namelist;
+        int devCount = scandir(prefix.c_str(), &namelist, dev_file_select, alphasort);
+        if (devCount < 0)
         {
-            if (m_Ports.size() < 10)
-            {
-                std::string s(namelist[devCount]->d_name);
-                s.erase(s.find_last_not_of(" \n\r\t") + 1);
-#ifdef __linux__
-                m_Ports.push_back("/dev/serial/by-id/" + s);
-#else
-                m_Ports.push_back("/dev/" + s);
-#endif
-            }
-            else
-            {
-                LOGF_DEBUG("Ignoring devices over %d : %s", m_Ports.size(),
-                           namelist[devCount]->d_name);
-            }
-            free(namelist[devCount]);
+            if (!silent)
+                LOGF_ERROR("Failed to scan directory %s. Error: %s", prefix.c_str(), strerror(errno));
         }
-        free(namelist);
-    }
+        else
+        {
+            while (devCount--)
+            {
+                if (m_Ports.size() < 10)
+                {
+                    std::string s(namelist[devCount]->d_name);
+                    s.erase(s.find_last_not_of(" \n\r\t") + 1);
+                    m_Ports.push_back(prefix + s);
+                }
+                else
+                {
+                    LOGF_DEBUG("Ignoring devices over %d : %s", m_Ports.size(),
+                               namelist[devCount]->d_name);
+                }
+                free(namelist[devCount]);
+            }
+            free(namelist);
+        }
+    };
+
+    searchPath("/dev/");
+#ifdef __linux__
+    searchPath("/dev/serial/by-id/");
+#endif
 
     int pCount = m_Ports.size();
 
@@ -467,12 +467,8 @@ bool Serial::Refresh(bool silent)
 
     for (int i = pCount - 1; i >= 0; i--)
     {
-        std::string label = m_Ports[i];
-#ifdef __linux__
-        label.erase(0, 18);
-#else
-        label.erase(0, 5);
-#endif
+        // Simplify label by removing directory prefix
+        std::string label = m_Ports[i].substr(m_Ports[i].find_last_of("/\\") + 1);
         IUFillSwitch(sp++, m_Ports[i].c_str(), label.c_str(), ISS_OFF);
     }
 
