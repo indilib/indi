@@ -35,6 +35,7 @@
 #define ALIGN_TAB "Align"
 #define OUTPUT_TAB "Outputs"
 #define ENVIRONMENT_TAB "Weather"
+#define ROTATOR_TAB "Rotator"
 
 #define ONSTEP_TIMEOUT  3
 #define RA_AXIS     0
@@ -43,7 +44,7 @@
 extern std::mutex lx200CommsLock;
 
 
-LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this)
+LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
 {
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
@@ -67,6 +68,14 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this)
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     // Unused option: FOCUSER_HAS_VARIABLE_SPEED
 
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_HAS_BACKLASH);
+//     /*{
+//         ROTATOR_CAN_ABORT          = 1 << 0, /*!< Can the Rotator abort motion once started? */
+//         ROTATOR_CAN_HOME           = 1 << 1, /*!< Can the Rotator go to home position? */
+//         ROTATOR_CAN_SYNC           = 1 << 2, /*!< Can the Rotator sync to specific tick? */ //Not supported by OnStep
+//         ROTATOR_CAN_REVERSE        = 1 << 3, /*!< Can the Rotator reverse direction? */
+//         ROTATOR_HAS_BACKLASH       = 1 << 4  /*!< Can the Rotatorer compensate for backlash? */
+//     //}*/
 
 }
 
@@ -81,6 +90,7 @@ bool LX200_OnStep::initProperties()
     LX200Generic::initProperties();
     FI::initProperties(FOCUS_TAB);
     WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
+    RI::initProperties(ROTATOR_TAB);
     SetParkDataType(PARK_RA_DEC);
 
     //FocuserInterface
@@ -405,6 +415,7 @@ bool LX200_OnStep::updateProperties()
     LX200Generic::updateProperties();
     FI::updateProperties();
     WI::updateProperties();
+    RI::updateProperties();
     if (isConnected())
     {
         // Firstinitialize some variables
@@ -620,6 +631,8 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     {
         if (strstr(name, "FOCUS_"))
             return FI::processNumber(dev, name, values, names, n);
+        if (strstr(name, "ROTATOR_"))
+            return RI::processNumber(dev, name, values, names, n);
         if (!strcmp(name, ObjectNoNP.name))
         {
             char object_name[256];
@@ -1568,7 +1581,11 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         {
             return FI::processSwitch(dev, name, states, names, n);
         }
-
+        // Focuser
+        if (strstr(name, "ROTATOR"))
+        {
+            return FI::processSwitch(dev, name, states, names, n);
+        }
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
@@ -2481,8 +2498,8 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
     }
 
     char l[32] = {0}, L[32] = {0};
-    fs_sexa(l, latitude, 3, 3600);
-    fs_sexa(L, longitude, 4, 3600);
+    fs_sexa(l, latitude, 3, 360000);
+    fs_sexa(L, longitude, 4, 360000);
 
     LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
@@ -2672,6 +2689,126 @@ void LX200_OnStep::OSUpdateFocuser()
         IDSetSwitch(&OSFocusSelectSP, nullptr);
     }
 }
+
+//Rotator stuff
+// IPState MoveRotator(double angle) override;
+// bool SyncRotator(double angle) override;
+//         IPState HomeRotator() override;
+// bool ReverseRotator(bool enabled) override;
+// bool AbortRotator() override;
+//         bool SetRotatorBacklash (int32_t steps) override;
+//         bool SetRotatorBacklashEnabled(bool enabled) override;
+
+//OnStep Rotator Commands (For reference, and from 5 1 v 4)
+// :r+#       Enable derotator
+//            Returns: Nothing
+// :r-#       Disable derotator
+//            Returns: Nothing
+// :rP#       Move rotator to the parallactic angle
+//            Returns: Nothing
+// :rR#       Reverse derotator direction
+//            Returns: Nothing
+// :rT#       Get status
+//            Returns: M# (for moving) or S# (for stopped)
+// :rI#       Get mIn position (in degrees)
+//            Returns: n#
+// :rM#       Get Max position (in degrees)
+//            Returns: n#
+// :rD#       Get rotator degrees per step
+//            Returns: n.n#
+// :rb#       Get rotator backlash amount in steps
+//            Return: n#
+// :rb[n]#
+//            Set rotator backlash amount in steps
+//            Returns: 0 on failure
+//                     1 on success
+// :rF#       Reset rotator at the home position
+//            Returns: Nothing
+// :rC#       Moves rotator to the home position
+//            Returns: Nothing
+// :rG#       Get rotator current position in degrees
+//            Returns: sDDD*MM#
+// :rc#       Set continuous move mode (for next move command)
+//            Returns: Nothing
+// :r>#       Move clockwise as set by :rn# command, default = 1 deg (or 0.1 deg/s in continuous mode)
+//            Returns: Nothing
+// :r<#       Move counter clockwise as set by :rn# command
+//            Returns: Nothing
+// :rQ#       Stops movement (except derotator)
+//            Returns: Nothing
+// :r[n]#     Move increment where n = 1 for 1 degrees, 2 for 2 degrees, 3 for 5 degrees, 4 for 10 degrees
+//            Move rate where n = 1 for .01 deg/s, 2 for 0.1 deg/s, 3 for 1.0 deg/s, 4 for 5.0 deg/s
+//            Returns: Nothing
+// :rS[sDDD*MM'SS]#
+//            Set position in degrees
+//            Returns: 0 on failure
+//                     1 on success
+
+IPState LX200_OnStep::MoveRotator(double angle) {
+    char cmd[32];
+    int d, m, s;
+    getSexComponents(angle, &d, &m, &s);
+    
+    snprintf(cmd, sizeof(cmd), ":rS%.03d:%02d:%02d#", d, m, s);
+    LOGF_INFO("Move Rotator: %s", cmd);
+    
+
+    if(setStandardProcedure(PortFD, cmd)) {
+        return IPS_BUSY;
+    } else {
+        return IPS_ALERT;
+    }
+
+    
+    return IPS_BUSY;
+}
+/*
+bool LX200_OnStep::SyncRotator(double angle) {
+    
+}*/
+IPState LX200_OnStep::HomeRotator() {
+    //Not entirely sure if this means attempt to use limit switches and home, or goto home
+    //Assuming MOVE to Home
+    sendOnStepCommandBlind(":rC#");
+    return IPS_BUSY;
+}
+// bool LX200_OnStep::ReverseRotator(bool enabled) {
+//     sendOnStepCommandBlind(":rR#");
+//     return true;
+// } //No way to check which way it's going as Indi expects
+
+bool LX200_OnStep::AbortRotator() {
+    sendOnStepCommandBlind(":rQ#");
+    return true;
+}
+
+bool LX200_OnStep::SetRotatorBacklash(int32_t steps) {
+    char cmd[32];
+    char response[3];
+    snprintf(cmd, sizeof(cmd), ":rb%d#", steps);
+    if(getCommandSingleCharResponse(PortFD, response, cmd) == 1) {
+        return true;
+    }
+    return false;
+}
+
+bool LX200_OnStep::SetRotatorBacklashEnabled(bool enabled) {
+    
+}
+
+// bool SyncRotator(double angle) override;
+//         IPState HomeRotator(double angle) override;
+// bool ReverseRotator(bool enabled) override;
+// bool AbortRotator() override;
+//         bool SetRotatorBacklash (int32_t steps) override;
+//         bool SetRotatorBacklashEnabled(bool enabled) override;
+
+
+
+//End Rotator stuff
+
+
+
 
 //PEC Support
 //Should probably be added to inditelescope or another interface, because the PEC that's there... is very limited.
