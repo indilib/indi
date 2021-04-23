@@ -39,7 +39,7 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
     if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", m_ConfigPort, MAXINDINAME) < 0)
     {
 #ifdef __APPLE__
-        strncpy(m_DefaultPort, "/dev/cu.usbserial", MAXINDINAME);
+        strncpy(m_ConfigPort, "/dev/cu.usbserial", MAXINDINAME);
 #else
         strncpy(m_ConfigPort, "/dev/ttyUSB0", MAXINDINAME);
 #endif
@@ -65,6 +65,15 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
     IUFillSwitch(&BaudRateS[5], "230400", "", ISS_OFF);
     IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, dev->getDeviceName(), INDI::SP::DEVICE_BAUD_RATE, "Baud Rate", CONNECTION_TAB,
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // Try to load the port from the config file. If that fails, use default port.
+    IUGetConfigOnSwitchIndex(dev->getDeviceName(), INDI::SP::DEVICE_BAUD_RATE, &m_ConfigBaudRate);
+    // If we have a valid config entry, se it.
+    if (m_ConfigBaudRate >= 0)
+    {
+        IUResetSwitch(&BaudRateSP);
+        BaudRateS[m_ConfigBaudRate].s = ISS_ON;
+    }
 }
 
 Serial::~Serial()
@@ -192,10 +201,10 @@ bool Serial::Connect()
         for (int i = 0; i < SystemPortSP.nsp; i++)
         {
             // Only try the same port last again.
-            if (!strcmp(SystemPortS[i].name, PortT[0].text))
+            if (!strcmp(m_SystemPorts[i].c_str(), PortT[0].text))
                 continue;
 
-            systemPorts.push_back(SystemPortS[i].name);
+            systemPorts.push_back(m_SystemPorts[i].c_str());
         }
         std::random_shuffle (systemPorts.begin(), systemPorts.end());
 
@@ -233,7 +242,7 @@ bool Serial::Connect()
 
                 if (saveConfig)
                     m_Device->saveConfig(true);
-
+#else
                 // Do not overwrite custom ports because it can be actually cause
                 // temporary failure. For users who use mapped named ports (e.g. /dev/mount), it's not good to override their choice.
                 // So only write to config if the port was a system port.
@@ -260,8 +269,11 @@ bool Serial::processHandshake()
     if (rc)
     {
         LOGF_INFO("%s is online.", getDeviceName());
-        m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
-        m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
+        if (strcmp(PortT[0].text, m_ConfigPort) || IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate)
+        {
+            m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
+            m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
+        }
     }
     else
         LOG_DEBUG("Handshake failed.");
@@ -309,17 +321,11 @@ bool Serial::Disconnect()
 
 void Serial::Activated()
 {
-    m_Device->defineProperty(&PortTP);
-    m_Device->loadConfig(true, INDI::SP::DEVICE_PORT);
-
-    m_Device->defineProperty(&BaudRateSP);
-    m_Device->loadConfig(true, INDI::SP::DEVICE_BAUD_RATE);
-
-    m_Device->defineProperty(&AutoSearchSP);
-    m_Device->loadConfig(true, INDI::SP::DEVICE_AUTO_SEARCH);
-
-    m_Device->defineProperty(&RefreshSP);
     Refresh(true);
+    m_Device->defineProperty(&PortTP);
+    m_Device->defineProperty(&BaudRateSP);
+    m_Device->defineProperty(&AutoSearchSP);
+    m_Device->defineProperty(&RefreshSP);
 }
 
 void Serial::Deactivated()
@@ -327,7 +333,6 @@ void Serial::Deactivated()
     m_Device->deleteProperty(PortTP.name);
     m_Device->deleteProperty(BaudRateSP.name);
     m_Device->deleteProperty(AutoSearchSP.name);
-
     m_Device->deleteProperty(RefreshSP.name);
     m_Device->deleteProperty(SystemPortSP.name);
     delete[] SystemPortS;
@@ -418,7 +423,7 @@ bool Serial::Refresh(bool silent)
     searchPath("/dev/serial/by-id/");
 #endif
 
-    int pCount = m_Ports.size();
+    const int pCount = m_Ports.size();
 
     if (pCount == 0)
     {
@@ -446,17 +451,17 @@ bool Serial::Refresh(bool silent)
     SystemPortS = new ISwitch[pCount];
     ISwitch *sp = SystemPortS;
 
-    for (int i = pCount - 1; i >= 0; i--)
+    for (const auto &onePort : m_Ports)
     {
         // Simplify label by removing directory prefix
-        std::string name = m_Ports[i].substr(m_Ports[i].find_last_of("/\\") + 1);
+        std::string name = onePort.substr(onePort.find_last_of("/\\") + 1);
         std::string label = name;
 
         // Remove Linux extra stuff to simplify string
 #ifdef __linux__
         std::regex re("usb-(.[^-]+)");
         std::smatch match;
-        if (std::regex_search(m_Ports[i], match, re))
+        if (std::regex_search(onePort, match, re))
         {
             name = label = match.str(1);
             // Simplify further by removing non-unique strings
@@ -472,24 +477,10 @@ bool Serial::Refresh(bool silent)
 
     m_Device->defineProperty(&SystemPortSP);
 
-    // JM 2020-08-30: If we only have ONE serial port on the system
-    // We check if the current port is default port. If it is, then we
-    // set the port to the discovered port. This is useful because sometimes
-    // the discovered port is something like /dev/ttyUSB1, but default is /dev/ttyUSB0 would
-    // fail to connect, so we set it to the discovered port only if it matches this criteria.
-    if (pCount == 1)
-    {
-        bool match = false;
-#ifdef __APPLE__
-        match = !strcmp(PortT[0].text, "/dev/cu.usbserial");
-#else
-        match = !strcmp(PortT[0].text, "/dev/ttyUSB0");
-#endif
-        if (match)
-        {
-            IUSaveText(&PortT[0], m_Ports[0].c_str());
-        }
-    }
+    // If we have one physical port only, set it to the device port if the current port
+    // is the default port.
+    if (pCount == 1 && !strcmp(PortT[0].text, m_ConfigPort))
+        IUSaveText(&PortT[0], m_Ports[0].c_str());
     return true;
 }
 }

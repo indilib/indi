@@ -185,6 +185,7 @@ class Serial : public Interface
         uint8_t stopBits = 1;
 
         char m_ConfigPort[MAXINDINAME];
+        int m_ConfigBaudRate {-1};
         std::vector<std::string> m_SystemPorts;
 };
 }
