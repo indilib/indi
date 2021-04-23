@@ -25,6 +25,9 @@
 
 #include "lx200_OnStep.h"
 
+
+#include <mutex>
+
 #define LIBRARY_TAB  "Library"
 #define FIRMWARE_TAB "Firmware data"
 #define STATUS_TAB "ONStep Status"
@@ -36,6 +39,9 @@
 #define ONSTEP_TIMEOUT  3
 #define RA_AXIS     0
 #define DEC_AXIS    1
+
+extern std::mutex lx200CommsLock;
+
 
 LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this)
 {
@@ -201,10 +207,18 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
-    IUFillSwitch(&OSFocusSwapS[0], "FocuserSwap_OFF", "No", ISS_ON);
-    IUFillSwitch(&OSFocusSwapS[1], "FocuserSwap_ON", "Yes", ISS_OFF);
-    //     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
-    IUFillSwitchVector(&OSFocusSwapSP, OSFocusSwapS, 2, getDeviceName(), "OSFocusSWAP", "Swap Focusers", FOCUS_TAB,
+    IUFillSwitch(&OSFocusSelectS[0], "Focuser_Primary_1", "Focuser 1", ISS_ON);
+    IUFillSwitch(&OSFocusSelectS[1], "Focuser_Primary_2", "Focuser 2/Swap", ISS_OFF);
+    // For when OnStepX comes out
+    IUFillSwitch(&OSFocusSelectS[2], "Focuser_Primary_3", "3", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[3], "Focuser_Primary_4", "4", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[4], "Focuser_Primary_5", "5", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[5], "Focuser_Primary_6", "6", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[6], "Focuser_Primary_7", "7", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[7], "Focuser_Primary_8", "8", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[8], "Focuser_Primary_9", "9", ISS_OFF);
+    
+    IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, OnStepMAXFocusers, getDeviceName(), "OSFocusSWAP", "Primary Focuser", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
 
@@ -385,6 +399,8 @@ void LX200_OnStep::ISGetProperties(const char *dev)
 
 bool LX200_OnStep::updateProperties()
 {
+    int i;
+    char cmd[32];
     LX200Generic::updateProperties();
     FI::updateProperties();
     WI::updateProperties();
@@ -429,17 +445,30 @@ bool LX200_OnStep::updateProperties()
         {
             OSFocuser1 = true;
             defineProperty(&OSFocus1InitializeSP);
+            OSNumFocusers = 1;
         }
         // Focuser 2
-        if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2
+        if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2 (:fA# will only work for OnStep, not OnStepX)
         {
             OSFocuser2 = true;
+            OSNumFocusers = 2;
             //defineProperty(&OSFocus2SelSP);
             defineProperty(&OSFocus2MotionSP);
             defineProperty(&OSFocus2RateSP);
             defineProperty(&OSFocus2TargNP);
-            defineProperty(&OSFocusSwapSP); //Swap focusers (only matters if two focusers)
+            defineProperty(&OSFocusSelectSP); //Swap focusers (only matters if two focusers)
+        } else { //For OnStepX, up to 9 focusers 
+            for (i = 0; i < 9; i++) {
+                snprintf(cmd, 7, ":F%dA#", i + 1);
+                if (!sendOnStepCommand(cmd))  // Do we have a Focuser X
+                { 
+                    OSNumFocusers = i+1;
+                }
+            }
+            
         }
+        //For when OnStepX comes out:
+        
 
         // Firmware Data
         defineProperty(&VersionTP);
@@ -537,7 +566,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSFocus2MotionSP.name);
         deleteProperty(OSFocus2RateSP.name);
         deleteProperty(OSFocus2TargNP.name);
-        deleteProperty(OSFocusSwapSP.name);
+        deleteProperty(OSFocusSelectSP.name);
 
         // Firmware Data
         deleteProperty(VersionTP.name);
@@ -1248,34 +1277,35 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         }
         
         
-        //Focuser Swap
-        if (!strcmp(name, OSFocusSwapSP.name))
+        //Focuser Swap/Select
+        if (!strcmp(name, OSFocusSelectSP.name))
         {
             char cmd[32];
-            if (IUUpdateSwitch(&OSFocusSwapSP, states, names, n) < 0)
+            int i;
+            if (IUUpdateSwitch(&OSFocusSelectSP, states, names, n) < 0)
                 return false;
-            index = IUFindOnSwitchIndex(&OSFocusSwapSP);
-            if (index == 0)
-            {
-                LOG_INFO("Focusers NORMAL: Focuser 1 in INDI = OnStep Focuser 1, Focuser 2 in INDI = OnStep Focuser 2");
-                snprintf(cmd, 5, ":FA0#");
-                sendOnStepCommandBlind(cmd);
-                OSFocusSwapS[0].s = ISS_ON;
-                OSFocusSwapS[1].s = ISS_OFF;
-                OSFocusSwapSP.s = IPS_OK;
-                IDSetSwitch(&OSFocusSwapSP, nullptr);
+            index = IUFindOnSwitchIndex(&OSFocusSelectSP);
+            LOGF_INFO("Primary focuser set: Focuser 1 in INDI/Controllable Focuser = OnStep Focuser %d", index + 1);
+            if (index == 0 && OSNumFocusers <= 2) {
+                LOG_INFO("If using OnStep: Focuser 2 in INDI = OnStep Focuser 2");
             }
-            if (index == 1)
-            {
-                LOG_INFO("Focusers SWAPPED!");
-                LOG_INFO("Focusers SWAPPED: Focuser 1 in INDI = OnStep Focuser 2, Focuser 2 in INDI = OnStep Focuser 1");
-                snprintf(cmd, 5, ":FA1#");
-                sendOnStepCommandBlind(cmd);
-                OSFocusSwapS[0].s = ISS_OFF;
-                OSFocusSwapS[1].s = ISS_ON;
-                OSFocusSwapSP.s = IPS_OK;
-                IDSetSwitch(&OSFocusSwapSP, nullptr);
+            if (index == 1 && OSNumFocusers <= 2) {
+                LOG_INFO("If using OnStep: Focuser 2 in INDI = OnStep Focuser 1");
             }
+            if (OSNumFocusers > 2) {
+                LOGF_INFO("If using OnStepX, There is no swap, and current define as max number: %d, change in lx200_Onstep.h", OnStepMAXFocusers);
+            }
+            snprintf(cmd, 7, ":FA%d#", index + 1 );
+            for (i = 0; i < 9; i++) {
+                OSFocusSelectS[i].s = ISS_OFF;
+            }
+            OSFocusSelectS[index].s = ISS_ON;
+            if (!sendOnStepCommand(cmd)) {
+                OSFocusSelectSP.s = IPS_BUSY;
+            } else {
+                OSFocusSelectSP.s = IPS_ALERT;
+            }
+            IDSetSwitch(&OSFocusSelectSP, nullptr);
         }
         
 
@@ -2272,9 +2302,14 @@ bool LX200_OnStep::ReadScopeStatus()
     setParameterValue("WEATHER_BAROMETER", std::stod(TempValue));
     getCommandString(PortFD, TempValue, ":GX9E#"); 
     setParameterValue("WEATHER_DEWPOINT", std::stod(TempValue));
-    getCommandString(PortFD, TempValue, ":GX9F#"); 
-    setParameterValue("WEATHER_CPU_TEMPERATURE", std::stod(TempValue));
-    
+    if (OSCpuTemp_good) {
+        if (!getCommandString(PortFD, TempValue, ":GX9F#")) {
+            setParameterValue("WEATHER_CPU_TEMPERATURE", std::stod(TempValue));
+        } else {
+            OSCpuTemp_good = false;
+        }
+    }
+//     
     //Disabled, because this is supplied via Kstars or other location, no sensor to read this
     //getCommandString(PortFD,TempValue, ":GX9D#");
     //setParameterValue("WEATHER_ALTITUDE", std::stod(TempValue));
@@ -2381,6 +2416,37 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)
 
     return (response[0] == '0');
 }
+
+int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+    int timeout = 1;
+    
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+    
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+    
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+    
+    error_type = tty_read(fd, data, 1, timeout, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+    
+    if (error_type != TTY_OK)
+        return error_type;
+    
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+    
+    DEBUGF(DBG_SCOPE, "RES <%s>", data);
+    
+    return 0;
+}
+
 
 bool LX200_OnStep::updateLocation(double latitude, double longitude, double elevation)
 {
@@ -2522,6 +2588,8 @@ void LX200_OnStep::OSUpdateFocuser()
 {
     char value[RB_MAX_LEN];
     double current = 0;
+    int temp_value;
+    int i;
     if (OSFocuser1)
     {
         // Alternate option:
@@ -2530,7 +2598,7 @@ void LX200_OnStep::OSUpdateFocuser()
         FocusAbsPosN[0].value =  atoi(value);
         current = FocusAbsPosN[0].value;
         IDSetNumber(&FocusAbsPosNP, nullptr);
-        LOGF_DEBUG("Current focuser: %d, %d", atoi(value), FocusAbsPosN[0].value);
+        LOGF_DEBUG("Current focuser: %d, %f", atoi(value), FocusAbsPosN[0].value);
         //  :FT#  get status
         //         Returns: M# (for moving) or S# (for stopped)
         getCommandString(PortFD, value, ":FT#");
@@ -2578,6 +2646,23 @@ void LX200_OnStep::OSUpdateFocuser()
         getCommandString(PortFD, value, ":fG#");
         OSFocus2TargNP.np[0].value = atoi(value);
         IDSetNumber(&OSFocus2TargNP, nullptr);
+    }
+    
+    if(OSNumFocusers > 1) 
+    {
+        getCommandSingleCharResponse(PortFD, value, ":Fa#");
+        temp_value = atoi(value);
+        LOGF_INFO(":Fa# return: %d", temp_value);
+        for (i = 0; i < 9; i++) {
+            OSFocusSelectS[i].s = ISS_OFF;
+        }
+        if (temp_value == 0) {
+            OSFocusSelectS[1].s = ISS_ON;
+        } else {
+            OSFocusSelectS[temp_value - 1].s = ISS_ON;
+        }
+        OSFocusSelectSP.s = IPS_OK;
+        IDSetSwitch(&OSFocusSelectSP, nullptr);
     }
 }
 

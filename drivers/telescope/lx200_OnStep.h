@@ -104,6 +104,7 @@
 #define OnStepalignOK(fd)   write(fd, "#:A+#", 5)
 #define OnStep
 #define RB_MAX_LEN 64
+#define OnStepMAXFocusers 2
 
 #define PORTS_COUNT 10
 #define STARTING_PORT 0
@@ -197,6 +198,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
 
         bool sendOnStepCommand(const char *cmd);
         bool sendOnStepCommandBlind(const char *cmd);
+        int getCommandSingleCharResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
         int  setMaxElevationLimit(int fd, int max);
         void OSUpdateFocuser();
 
@@ -237,8 +239,9 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         ISwitchVectorProperty OSFocus1InitializeSP;
         ISwitch OSFocus1InitializeS[4];
         
-        ISwitchVectorProperty OSFocusSwapSP;
-        ISwitch OSFocusSwapS[2];
+        int OSNumFocusers;
+        ISwitchVectorProperty OSFocusSelectSP;
+        ISwitch OSFocusSelectS[9];
 
         // Focuser 2
         //ISwitchVectorProperty OSFocus2SelSP;
@@ -341,6 +344,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         // Weather support
         // NOTE: Much is handled by WeatherInterface, these controls are mainly for setting values which are not detected
         // As of right now, if there is a sensor the values will be overwritten on the next update
+        bool OSCpuTemp_good = true; //This can fail on some processors and take the timeout before an update, so if it fails, don't check again.
 
 
         INumberVectorProperty OSSetTemperatureNP;
