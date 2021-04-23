@@ -2652,7 +2652,7 @@ void LX200_OnStep::OSUpdateFocuser()
     {
         getCommandSingleCharResponse(PortFD, value, ":Fa#");
         temp_value = atoi(value);
-        LOGF_INFO(":Fa# return: %d", temp_value);
+        LOGF_DEBUG(":Fa# return: %d", temp_value);
         for (i = 0; i < 9; i++) {
             OSFocusSelectS[i].s = ISS_OFF;
         }
