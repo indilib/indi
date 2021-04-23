@@ -26,6 +26,7 @@
     Version 1.10: 
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
     - Ability to swap primary focuser.
+    - High precision on location, and not overridding GPS even when marked for Mount > KStars. 
     
     Version 1.9:
     - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
