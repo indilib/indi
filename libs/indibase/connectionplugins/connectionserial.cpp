@@ -34,17 +34,16 @@ extern const char *CONNECTION_TAB;
 
 Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
 {
-    char defaultPort[MAXINDINAME] = {0};
     // Try to load the port from the config file. If that fails, use default port.
-    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", defaultPort, MAXINDINAME) < 0)
+    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", m_ConfigPort, MAXINDINAME) < 0)
     {
 #ifdef __APPLE__
-        strncpy(defaultPort, "/dev/cu.usbserial", MAXINDINAME);
+        strncpy(m_DefaultPort, "/dev/cu.usbserial", MAXINDINAME);
 #else
-        strncpy(defaultPort, "/dev/ttyUSB0", MAXINDINAME);
+        strncpy(m_ConfigPort, "/dev/ttyUSB0", MAXINDINAME);
 #endif
     }
-    IUFillText(&PortT[0], "PORT", "Port", defaultPort);
+    IUFillText(&PortT[0], "PORT", "Port", m_ConfigPort);
     IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, IP_RW, 60,
                      IPS_IDLE);
 
@@ -230,11 +229,31 @@ bool Serial::Connect()
                 IUSaveText(&PortT[0], port.c_str());
                 IDSetText(&PortTP, nullptr);
 
-                // Do not overwrite custom ports because it can be actually some
+#ifdef __linux__
+                bool saveConfig = false;
+                // Disable auto-search on Linux if not disabled already
+                if (AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s == ISS_ON)
+                {
+                    saveConfig = true;
+                    AutoSearchS[INDI::DefaultDevice::INDI_ENABLED].s = ISS_OFF;
+                    AutoSearchS[INDI::DefaultDevice::INDI_DISABLED].s = ISS_ON;
+                    IDSetSwitch(&AutoSearchSP, nullptr);
+                }
+                // Only save config if different from default port
+                if (strcmp(m_ConfigPort, PortT[0].text))
+                {
+                    saveConfig = true;
+                }
+
+                if (saveConfig)
+                    m_Device->saveConfig(true);
+#else
+                // Do not overwrite custom ports because it can be actually cause
                 // temporary failure. For users who use mapped named ports (e.g. /dev/mount), it's not good to override their choice.
                 // So only write to config if the port was a system port.
                 if (isSystemPort)
                     m_Device->saveConfig(true, PortTP.name);
+#endif
                 return true;
             }
 
@@ -338,9 +357,9 @@ bool Serial::saveConfigItems(FILE *fp)
     return true;
 }
 
-void Serial::setDefaultPort(const char *defaultPort)
+void Serial::setDefaultPort(const char *port)
 {
-    IUSaveText(&PortT[0], defaultPort);
+    IUSaveText(&PortT[0], port);
 }
 
 void Serial::setDefaultBaudRate(BaudRate newRate)
@@ -359,7 +378,8 @@ int dev_file_select(const dirent *entry)
 #if defined(__APPLE__)
     static const char *filter_names[] = { "cu.", nullptr };
 #else
-    static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", nullptr };
+    //static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", nullptr };
+    static const char *filter_names[] = { "usb-", nullptr };
 #endif
     const char **filter;
 
@@ -385,7 +405,11 @@ bool Serial::Refresh(bool silent)
     std::vector<std::string> m_Ports;
 
     struct dirent **namelist;
+#ifdef __linux__
+    int devCount = scandir("/dev/serial/by-id", &namelist, dev_file_select, alphasort);
+#else
     int devCount = scandir("/dev", &namelist, dev_file_select, alphasort);
+#endif
     if (devCount < 0)
     {
         if (!silent)
@@ -399,7 +423,11 @@ bool Serial::Refresh(bool silent)
             {
                 std::string s(namelist[devCount]->d_name);
                 s.erase(s.find_last_not_of(" \n\r\t") + 1);
+#ifdef __linux__
+                m_Ports.push_back("/dev/serial/by-id/" + s);
+#else
                 m_Ports.push_back("/dev/" + s);
+#endif
             }
             else
             {
@@ -439,7 +467,13 @@ bool Serial::Refresh(bool silent)
 
     for (int i = pCount - 1; i >= 0; i--)
     {
-        IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);
+        std::string label = m_Ports[i];
+#ifdef __linux__
+        label.erase(0, 18);
+#else
+        label.erase(0, 5);
+#endif
+        IUFillSwitch(sp++, m_Ports[i].c_str(), label.c_str(), ISS_OFF);
     }
 
     IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, m_Device->getDeviceName(), "SYSTEM_PORTS", "System Ports",
