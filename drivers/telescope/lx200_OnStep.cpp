@@ -1,4 +1,4 @@
-﻿/*
+/*
     LX200 LX200_OnStep
     Based on LX200 classic, (alain@zwingelstein.org)
     Contributors:
@@ -51,7 +51,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this)
     setVersion(1, 10);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
-                       LX200_HAS_PRECISE_TRACKING_FREQ);
+    LX200_HAS_PRECISE_TRACKING_FREQ | LX200_HAS_ALTERNATE_LOCATION_CMD);
 
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE
                            | TELESCOPE_HAS_TRACK_RATE, 10 );
@@ -532,10 +532,10 @@ bool LX200_OnStep::updateProperties()
         // Get value from config file if it exists.
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-        if (longitude != -1000 && latitude != -1000)
-        {
-            updateLocation(latitude, longitude, 0);
-        }
+//         if (longitude != -1000 && latitude != -1000)
+//         {
+//             updateLocation(latitude, longitude, 0);
+//         }
     }
     else
     {
@@ -2481,8 +2481,8 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
     }
 
     char l[32] = {0}, L[32] = {0};
-    fs_sexa(l, latitude, 3, 3600);
-    fs_sexa(L, longitude, 4, 3600);
+    fs_sexa(l, latitude, 3, 360000);
+    fs_sexa(L, longitude, 4, 360000);
 
     LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
@@ -2503,15 +2503,33 @@ int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standa
 int LX200_OnStep::setSiteLongitude(int fd, double Long)
 {
     //DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    int d, m, s;
+    int d, m;
+    double s;
     char read_buffer[32];
 
-    getSexComponents(Long, &d, &m, &s);
+    getSexComponentsIID(Long, &d, &m, &s);
 
-    snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d#", d, m);
+    snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d:%.02f#", d, m,s);
 
     return (setStandardProcedure(fd, read_buffer));
 }
+int LX200_OnStep::setSiteLatitude(int fd, double Long)
+{
+    //DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    int d, m;
+    double s;
+    char read_buffer[32];
+    
+    getSexComponentsIID(Long, &d, &m, &s);
+    
+    snprintf(read_buffer, sizeof(read_buffer), ":St%+.02d:%02d:%.02f#", d, m,s);
+    
+    return (setStandardProcedure(fd, read_buffer));
+}
+
+
+
+
 /***** FOCUSER INTERFACE ******
 
 NOT USED:
@@ -3339,3 +3357,7 @@ bool LX200_OnStep::saveConfigItems(FILE *fp)
     WI::saveConfigItems(fp);
     return true;
 }
+
+
+
+

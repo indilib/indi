@@ -139,6 +139,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
         virtual bool ReadScopeStatus() override;
         virtual int setSiteLongitude(int fd, double Long);
+        virtual int setSiteLatitude(int fd, double Long);
         virtual bool SetTrackRate(double raRate, double deRate) override;
         virtual void slewError(int slewCode) override;
         virtual bool Sync(double ra, double dec) override;
