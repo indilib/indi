@@ -92,27 +92,19 @@ bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *n
             PortTP.s = IPS_OK;
             IDSetText(&PortTP, nullptr);
 
-            if (SystemPortS)
+            auto pos = std::find_if(m_SystemPorts.begin(), m_SystemPorts.end(), [&](const std::string onePort)
             {
-                bool isSystemPort = false;
-                for (int i = 0; i < SystemPortSP.nsp; i++)
-                {
-                    if (!strcmp(PortT[0].text, SystemPortS[i].label))
-                    {
-                        isSystemPort = true;
-                        break;
-                    }
-                }
-                if (isSystemPort == false)
-                {
-                    LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortT[0].text);
-                    AutoSearchS[0].s = ISS_OFF;
-                    AutoSearchS[1].s = ISS_ON;
-                    IDSetSwitch(&AutoSearchSP, nullptr);
-                }
+                return !strcmp(PortT[0].text, onePort.c_str());
+            });
+            if (pos != m_SystemPorts.end())
+            {
+                LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortT[0].text);
+                AutoSearchS[0].s = ISS_OFF;
+                AutoSearchS[1].s = ISS_ON;
+                IDSetSwitch(&AutoSearchSP, nullptr);
             }
-            return true;
         }
+        return true;
     }
 
     return false;
@@ -122,6 +114,7 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 {
     if (!strcmp(dev, m_Device->getDeviceName()))
     {
+        // Change Baud Rate
         if (!strcmp(name, BaudRateSP.name))
         {
             IUUpdateSwitch(&BaudRateSP, states, names, n);
@@ -130,6 +123,7 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             return true;
         }
 
+        // Auto Search Devices on connection failure
         if (!strcmp(name, AutoSearchSP.name))
         {
             bool wasEnabled = (AutoSearchS[0].s == ISS_ON);
@@ -149,6 +143,7 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             return true;
         }
 
+        // Refresh Serial Devices
         if (!strcmp(name, RefreshSP.name))
         {
             RefreshSP.s = Refresh() ? IPS_OK : IPS_ALERT;
@@ -156,6 +151,7 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             return true;
         }
 
+        // Check if a system port is selected.
         if (!strcmp(name, SystemPortSP.name))
         {
             IUUpdateSwitch(&SystemPortSP, states, names, n);
@@ -169,7 +165,6 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             SystemPortSP.s = IPS_OK;
             IDSetSwitch(&SystemPortSP, nullptr);
-
             return true;
         }
     }
