@@ -25,8 +25,9 @@
     
     Version 1.10: 
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
-    - Ability to swap primary focuser.
-    
+    - Ability to swap primary focuser
+    - Added Rotator Support
+        
     Version 1.9:
     - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
     - Bugfix: Slew speed
@@ -212,7 +213,8 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         int getCommandSingleCharResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
         int  setMaxElevationLimit(int fd, int max);
         void OSUpdateFocuser();
-
+        void OSUpdateRotator();
+        
         ITextVectorProperty ObjectInfoTP;
         IText ObjectInfoT[1] {};
 
@@ -267,6 +269,15 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         INumberVectorProperty OSFocus2TargNP;
         INumber OSFocus2TargN[1];
 
+        //Rotator - Some handled by RotatorInterface, but that's mostly for rotation only, absolute, and... very limited.
+        bool OSRotator1 = true; //Change to false after detection code
+        ISwitchVectorProperty OSRotatorRateSP;
+        ISwitch OSRotatorRateS[4]; //Set rate
+        
+        ISwitchVectorProperty OSRotatorDerotateSP;
+        ISwitch OSRotatorDerotateS[2]; //On or Off
+        
+        
 
         int IsTracking = 0;
 
