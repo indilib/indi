@@ -26,8 +26,9 @@
     Version 1.10: 
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
     - Ability to swap primary focuser.
-    - High precision on location, and not overridding GPS even when marked for Mount > KStars. 
-    
+    - High precision on location, and not overridding GPS even when marked for Mount > KStars.
+    - Added Rotator & De-Rotator Support  
+
     Version 1.9:
     - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
     - Bugfix: Slew speed
@@ -88,6 +89,7 @@
 #include "indicom.h"
 #include "indifocuserinterface.h"
 #include "indiweatherinterface.h"
+#include "indirotatorinterface.h"
 
 #include <cstring>
 #include <unistd.h>
@@ -116,7 +118,7 @@ enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BO
 
 enum MountType {MOUNTTYPE_GEM, MOUNTTYPE_FORK, MOUNTTYPE_FORK_ALT, MOUNTTYPE_ALTAZ};
 
-class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
+class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public INDI::RotatorInterface
 {
     public:
         LX200_OnStep();
@@ -163,9 +165,20 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
         bool AbortFocuser () override;
 
-
         //End FocuserInterface
 
+        //RotatorInterface
+        
+        IPState MoveRotator(double angle) override;
+//         bool SyncRotator(double angle) override;
+        IPState HomeRotator() override;
+//         bool ReverseRotator(bool enabled) override;
+        bool AbortRotator() override;
+        bool SetRotatorBacklash (int32_t steps) override;
+        bool SetRotatorBacklashEnabled(bool enabled) override;
+        
+        //End RotatorInterface        
+        
         //PECInterface
         //axis 0=RA, 1=DEC, others?
         IPState StopPECPlayback (int axis);
@@ -202,7 +215,8 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         int getCommandSingleCharResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
         int  setMaxElevationLimit(int fd, int max);
         void OSUpdateFocuser();
-
+        void OSUpdateRotator();
+        
         ITextVectorProperty ObjectInfoTP;
         IText ObjectInfoT[1] {};
 
@@ -257,6 +271,15 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         INumberVectorProperty OSFocus2TargNP;
         INumber OSFocus2TargN[1];
 
+        //Rotator - Some handled by RotatorInterface, but that's mostly for rotation only, absolute, and... very limited.
+        bool OSRotator1 = true; //Change to false after detection code
+        ISwitchVectorProperty OSRotatorRateSP;
+        ISwitch OSRotatorRateS[4]; //Set rate
+        
+        ISwitchVectorProperty OSRotatorDerotateSP;
+        ISwitch OSRotatorDerotateS[2]; //On or Off
+        
+        
 
         int IsTracking = 0;
 

@@ -35,6 +35,7 @@
 #define ALIGN_TAB "Align"
 #define OUTPUT_TAB "Outputs"
 #define ENVIRONMENT_TAB "Weather"
+#define ROTATOR_TAB "Rotator"
 
 #define ONSTEP_TIMEOUT  3
 #define RA_AXIS     0
@@ -43,7 +44,7 @@
 extern std::mutex lx200CommsLock;
 
 
-LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this)
+LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
 {
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
@@ -67,6 +68,14 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this)
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     // Unused option: FOCUSER_HAS_VARIABLE_SPEED
 
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_HAS_BACKLASH);
+//     /*{
+//         ROTATOR_CAN_ABORT          = 1 << 0, /*!< Can the Rotator abort motion once started? */
+//         ROTATOR_CAN_HOME           = 1 << 1, /*!< Can the Rotator go to home position? */
+//         ROTATOR_CAN_SYNC           = 1 << 2, /*!< Can the Rotator sync to specific tick? */ /*Not supported */
+//         ROTATOR_CAN_REVERSE        = 1 << 3, /*!< Can the Rotator reverse direction? */ //It CAN reverse, but there's no way to query the direction
+//         ROTATOR_HAS_BACKLASH       = 1 << 4  /*!< Can the Rotatorer compensate for backlash? */
+//     //}*/
 
 }
 
@@ -81,6 +90,7 @@ bool LX200_OnStep::initProperties()
     LX200Generic::initProperties();
     FI::initProperties(FOCUS_TAB);
     WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
+    RI::initProperties(ROTATOR_TAB);
     SetParkDataType(PARK_RA_DEC);
 
     //FocuserInterface
@@ -244,6 +254,13 @@ bool LX200_OnStep::initProperties()
     IUFillNumber(&OSFocus2TargN[0], "FocusTarget2", "Abs Pos", "%g", -25000, 25000, 1, 0);
     IUFillNumberVector(&OSFocus2TargNP, OSFocus2TargN, 1, getDeviceName(), "Foc2Targ", "Foc 2 Target", FOCUS_TAB, IP_RW, 0,
                        IPS_IDLE);
+    
+    // =========== ROTATOR TAB 
+    
+    IUFillSwitch(&OSRotatorDerotateS[0], "Derotate_OFF", "OFF", ISS_ON);
+    IUFillSwitch(&OSRotatorDerotateS[1], "Derotate_ON", "ON", ISS_OFF);
+    IUFillSwitchVector(&OSRotatorDerotateSP, OSRotatorDerotateS, 2, getDeviceName(), "Derotate_Status", "Derotate_Status", ROTATOR_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_OK);
 
     // ============== FIRMWARE_TAB
     IUFillText(&VersionT[0], "Date", "", "");
@@ -405,6 +422,7 @@ bool LX200_OnStep::updateProperties()
     LX200Generic::updateProperties();
     FI::updateProperties();
     WI::updateProperties();
+    RI::updateProperties();
     if (isConnected())
     {
         // Firstinitialize some variables
@@ -475,7 +493,8 @@ bool LX200_OnStep::updateProperties()
             }
         }
 
-        
+        //Rotation Information
+        defineProperty(&OSRotatorDerotateSP);
 
         // Firmware Data
         defineProperty(&VersionTP);
@@ -575,6 +594,9 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSFocus2TargNP.name);
         deleteProperty(OSFocusSelectSP.name);
 
+        // Rotator 
+        deleteProperty(OSRotatorDerotateSP.name);
+        
         // Firmware Data
         deleteProperty(VersionTP.name);
 
@@ -620,6 +642,8 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     {
         if (strstr(name, "FOCUS_"))
             return FI::processNumber(dev, name, values, names, n);
+        if (strstr(name, "ROTATOR_"))
+            return RI::processNumber(dev, name, values, names, n);
         if (!strcmp(name, ObjectNoNP.name))
         {
             char object_name[256];
@@ -1363,6 +1387,30 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             OSFocus2MotionSP.s = IPS_OK;
             IDSetSwitch(&OSFocus2MotionSP, nullptr);
         }
+        
+        //Rotator De-rotation
+//         OSRotatorDerotateS
+        if (!strcmp(name, OSRotatorDerotateSP.name))
+        {
+            char cmd[32];
+            
+            if (IUUpdateSwitch(&OSRotatorDerotateSP, states, names, n) < 0)
+                return false;
+            
+            index = IUFindOnSwitchIndex(&OSRotatorDerotateSP);
+            if (index == 0) //Derotate_OFF
+            {
+                strcpy(cmd, ":r-#");
+            }
+            if (index == 1) //Derotate_ON
+            {
+                strcpy(cmd, ":r+#");
+            }
+            sendOnStepCommandBlind(cmd);
+            OSRotatorDerotateS[index].s = ISS_OFF;
+            OSRotatorDerotateSP.s = IPS_BUSY;
+            IDSetSwitch(&OSRotatorDerotateSP, nullptr);
+        }
 
         // PEC
         if (!strcmp(name, OSPECRecordSP.name))
@@ -1568,7 +1616,11 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         {
             return FI::processSwitch(dev, name, states, names, n);
         }
-
+        // Focuser
+        if (strstr(name, "ROTATOR"))
+        {
+            return RI::processSwitch(dev, name, states, names, n);
+        }
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
@@ -2298,7 +2350,7 @@ bool LX200_OnStep::ReadScopeStatus()
     }
 
     //TODO: Rotator support
-
+    OSUpdateRotator();
 
     //Weather update
     getCommandString(PortFD, TempValue, ":GX9A#");
@@ -2690,6 +2742,183 @@ void LX200_OnStep::OSUpdateFocuser()
         IDSetSwitch(&OSFocusSelectSP, nullptr);
     }
 }
+
+//Rotator stuff
+// IPState MoveRotator(double angle) override;
+// bool SyncRotator(double angle) override;
+//         IPState HomeRotator() override;
+// bool ReverseRotator(bool enabled) override;
+// bool AbortRotator() override;
+//         bool SetRotatorBacklash (int32_t steps) override;
+//         bool SetRotatorBacklashEnabled(bool enabled) override;
+
+//OnStep Rotator Commands (For reference, and from 5 1 v 4)
+// :r+#       Enable derotator
+//            Returns: Nothing
+// :r-#       Disable derotator
+//            Returns: Nothing
+// :rP#       Move rotator to the parallactic angle
+//            Returns: Nothing
+// :rR#       Reverse derotator direction
+//            Returns: Nothing
+// :rT#       Get status
+//            Returns: M# (for moving) or S# (for stopped)
+// :rI#       Get mIn position (in degrees)
+//            Returns: n#
+// :rM#       Get Max position (in degrees)
+//            Returns: n#
+// :rD#       Get rotator degrees per step
+//            Returns: n.n#
+// :rb#       Get rotator backlash amount in steps
+//            Return: n#
+// :rb[n]#
+//            Set rotator backlash amount in steps
+//            Returns: 0 on failure
+//                     1 on success
+// :rF#       Reset rotator at the home position
+//            Returns: Nothing
+// :rC#       Moves rotator to the home position
+//            Returns: Nothing
+// :rG#       Get rotator current position in degrees
+//            Returns: sDDD*MM#
+// :rc#       Set continuous move mode (for next move command)
+//            Returns: Nothing
+// :r>#       Move clockwise as set by :rn# command, default = 1 deg (or 0.1 deg/s in continuous mode)
+//            Returns: Nothing
+// :r<#       Move counter clockwise as set by :rn# command
+//            Returns: Nothing
+// :rQ#       Stops movement (except derotator)
+//            Returns: Nothing
+// :r[n]#     Move increment where n = 1 for 1 degrees, 2 for 2 degrees, 3 for 5 degrees, 4 for 10 degrees
+//            Move rate where n = 1 for .01 deg/s, 2 for 0.1 deg/s, 3 for 1.0 deg/s, 4 for 5.0 deg/s
+//            Returns: Nothing
+// :rS[sDDD*MM'SS]#
+//            Set position in degrees
+//            Returns: 0 on failure
+//                     1 on success
+
+void LX200_OnStep::OSUpdateRotator() {
+    char value[RB_MAX_LEN];
+    double double_value;
+    if(OSRotator1)
+    {
+        getCommandString(PortFD, value, ":rG#");
+        if (f_scansexa(value, &double_value)) {
+            // 0 = good, thus this is the bad 
+            GotoRotatorNP.s = IPS_ALERT;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+            return;
+        }
+        GotoRotatorN[0].value =  double_value;
+        
+        getCommandString(PortFD, value, ":rI#");
+        GotoRotatorN[0].min =  atof(value);
+        getCommandString(PortFD, value, ":rM#");
+        GotoRotatorN[0].max =  atof(value);
+        IUUpdateMinMax(&GotoRotatorNP);
+        IDSetNumber(&GotoRotatorNP, nullptr);
+        //GotoRotatorN
+        getCommandString(PortFD, value, ":rT#");
+        if (value[0] == 'S') /*Stopped normal on EQ mounts */ 
+        {
+            GotoRotatorNP.s = IPS_OK;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+ 
+        }
+        else if (value[0] == 'M') /* Moving, including de-rotation */
+        {
+            GotoRotatorNP.s = IPS_BUSY;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+        }
+        else
+        {
+            //INVALID REPLY
+            GotoRotatorNP.s = IPS_ALERT;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+        }
+        getCommandString(PortFD, value, ":rb#");
+        RotatorBacklashN[0].value =  atoi(value);
+        RotatorBacklashNP.s = IPS_OK;
+        IDSetNumber(&RotatorBacklashNP, nullptr);
+    }
+    
+    
+
+    
+}
+
+IPState LX200_OnStep::MoveRotator(double angle) {
+    char cmd[32];
+    int d, m, s;
+    getSexComponents(angle, &d, &m, &s);
+    
+    snprintf(cmd, sizeof(cmd), ":rS%.03d:%02d:%02d#", d, m, s);
+    LOGF_INFO("Move Rotator: %s", cmd);
+    
+
+    if(setStandardProcedure(PortFD, cmd)) {
+        return IPS_BUSY;
+    } else {
+        return IPS_ALERT;
+    }
+
+    
+    return IPS_BUSY;
+}
+/*
+bool LX200_OnStep::SyncRotator(double angle) {
+    
+}*/
+IPState LX200_OnStep::HomeRotator() {
+    //Not entirely sure if this means attempt to use limit switches and home, or goto home
+    //Assuming MOVE to Home
+    LOG_INFO("Moving Rotator to Home");
+    sendOnStepCommandBlind(":rC#");
+    return IPS_BUSY;
+}
+// bool LX200_OnStep::ReverseRotator(bool enabled) {
+//     sendOnStepCommandBlind(":rR#");
+//     return true;
+// } //No way to check which way it's going as Indi expects
+
+bool LX200_OnStep::AbortRotator() {
+    LOG_INFO("Aborting Rotation, de-rotation in same state");
+    sendOnStepCommandBlind(":rQ#"); //Does NOT abort de-rotator
+    return true;
+}
+
+bool LX200_OnStep::SetRotatorBacklash(int32_t steps) {
+    char cmd[32];
+//     char response[RB_MAX_LEN];
+    snprintf(cmd, sizeof(cmd), ":rb%d#", steps);
+    if(sendOnStepCommand(cmd)) {
+        return true;
+    }
+    return false;
+}
+
+bool LX200_OnStep::SetRotatorBacklashEnabled(bool enabled) {
+    //Nothing required here.
+    INDI_UNUSED(enabled);
+    return true; 
+//     As it's always enabled, which would mean setting it like SetRotatorBacklash to 0, and losing any saved values. So for now, leave it as is (always enabled)
+}
+
+// bool SyncRotator(double angle) override;
+//         IPState HomeRotator(double angle) override;
+// bool ReverseRotator(bool enabled) override;
+// bool AbortRotator() override;
+//         bool SetRotatorBacklash (int32_t steps) override;
+//         bool SetRotatorBacklashEnabled(bool enabled) override;
+
+// Now, derotation is NOT explicitly handled. 
+
+
+
+//End Rotator stuff
+
+
+
 
 //PEC Support
 //Should probably be added to inditelescope or another interface, because the PEC that's there... is very limited.
