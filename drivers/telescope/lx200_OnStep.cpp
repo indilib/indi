@@ -1,4 +1,4 @@
-/*
+﻿/*
     LX200 LX200_OnStep
     Based on LX200 classic, (alain@zwingelstein.org)
     Contributors:
@@ -257,10 +257,10 @@ bool LX200_OnStep::initProperties()
     
     // =========== ROTATOR TAB 
     
-    IUFillSwitch(&OSRotatorDerotateS[0], "Derotate_OFF", "OFF", ISS_ON);
+    IUFillSwitch(&OSRotatorDerotateS[0], "Derotate_OFF", "OFF", ISS_OFF);
     IUFillSwitch(&OSRotatorDerotateS[1], "Derotate_ON", "ON", ISS_OFF);
-    IUFillSwitchVector(&OSRotatorDerotateSP, OSRotatorDerotateS, 2, getDeviceName(), "Derotate_Status", "Derotate_Status", ROTATOR_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_OK);
+    IUFillSwitchVector(&OSRotatorDerotateSP, OSRotatorDerotateS, 2, getDeviceName(), "Derotate_Status", "DEROTATE", ROTATOR_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     // ============== FIRMWARE_TAB
     IUFillText(&VersionT[0], "Date", "", "");
@@ -1408,7 +1408,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             }
             sendOnStepCommandBlind(cmd);
             OSRotatorDerotateS[index].s = ISS_OFF;
-            OSRotatorDerotateSP.s = IPS_BUSY;
+            OSRotatorDerotateSP.s = IPS_IDLE;
             IDSetSwitch(&OSRotatorDerotateSP, nullptr);
         }
 
