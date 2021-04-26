@@ -37,7 +37,7 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
 {
     char configPort[256] = {0};
     // Try to load the port from the config file. If that fails, use default port.
-    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", configPort, MAXINDINAME) < 0)
+    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", configPort, 256) < 0)
     {
 #ifdef __APPLE__
         strncpy(configPort, "/dev/cu.usbserial", MAXINDINAME);
