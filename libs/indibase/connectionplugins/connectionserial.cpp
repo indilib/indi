@@ -468,7 +468,7 @@ bool Serial::Refresh(bool silent)
         {
             name = label = match.str(1);
             // Simplify further by removing non-unique strings
-            std::regex target("FTDI_|UART_|USB_");
+            std::regex target("FTDI_|UART_|USB_|to_Bridge_Controller_");
             label = std::regex_replace(label, target, "");
         }
 #endif
