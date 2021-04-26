@@ -35,21 +35,29 @@ extern const char *CONNECTION_TAB;
 
 Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
 {
+    char configPort[256] = {0};
     // Try to load the port from the config file. If that fails, use default port.
-    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", m_ConfigPort, MAXINDINAME) < 0)
+    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", configPort, MAXINDINAME) < 0)
     {
 #ifdef __APPLE__
-        strncpy(m_ConfigPort, "/dev/cu.usbserial", MAXINDINAME);
+        strncpy(configPort, "/dev/cu.usbserial", MAXINDINAME);
 #else
-        strncpy(m_ConfigPort, "/dev/ttyUSB0", MAXINDINAME);
+        strncpy(configPort, "/dev/ttyUSB0", MAXINDINAME);
 #endif
     }
-    IUFillText(&PortT[0], "PORT", "Port", m_ConfigPort);
+    IUFillText(&PortT[0], "PORT", "Port", configPort);
     IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, IP_RW, 60,
                      IPS_IDLE);
 
-    IUFillSwitch(&AutoSearchS[INDI::DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_ON);
-    IUFillSwitch(&AutoSearchS[INDI::DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_OFF);
+    m_ConfigPort = configPort;
+
+    int autoSearchIndex = 0;
+    // Try to load the port from the config file. If that fails, use default port.
+    IUGetConfigOnSwitchIndex(dev->getDeviceName(), INDI::SP::DEVICE_AUTO_SEARCH, &autoSearchIndex);
+    IUFillSwitch(&AutoSearchS[INDI::DefaultDevice::INDI_ENABLED], "INDI_ENABLED", "Enabled",
+                 autoSearchIndex == 0 ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&AutoSearchS[INDI::DefaultDevice::INDI_DISABLED], "INDI_DISABLED", "Disabled",
+                 autoSearchIndex == 0 ? ISS_OFF : ISS_ON);
     IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(), INDI::SP::DEVICE_AUTO_SEARCH, "Auto Search",
                        CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -230,7 +238,7 @@ bool Serial::Connect()
                     IDSetSwitch(&AutoSearchSP, nullptr);
                 }
                 // Only save config if different from default port
-                if (strcmp(m_ConfigPort, PortT[0].text))
+                if (m_ConfigPort != std::string(PortT[0].text))
                 {
                     saveConfig = true;
                 }
@@ -264,7 +272,7 @@ bool Serial::processHandshake()
     if (rc)
     {
         LOGF_INFO("%s is online.", getDeviceName());
-        if (strcmp(PortT[0].text, m_ConfigPort) || IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate)
+        if (std::string(PortT[0].text) != m_ConfigPort || IUFindOnSwitchIndex(&BaudRateSP) != m_ConfigBaudRate)
         {
             m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
             m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
@@ -474,7 +482,7 @@ bool Serial::Refresh(bool silent)
 
     // If we have one physical port only, set it to the device port if the current port
     // is the default port.
-    if (pCount == 1 && !strcmp(PortT[0].text, m_ConfigPort))
+    if (pCount == 1 && std::string(PortT[0].text) == m_ConfigPort)
         IUSaveText(&PortT[0], m_Ports[0].c_str());
     return true;
 }
