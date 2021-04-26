@@ -27,7 +27,8 @@
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
     - Ability to swap primary focuser.
     - High precision on location, and not overridding GPS even when marked for Mount > KStars.
-    - Added Rotator & De-Rotator Support  
+    - Added Rotator & De-Rotator Support
+    - TMC_SPI status reported (RAW) on the Status Tab. (ST = Standstill, Ox = open load A/B, Gx = grounded A/B, OT = Overtemp Shutdown, PW = Overtemp Prewarning) 
 
     Version 1.9:
     - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
@@ -213,6 +214,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         bool sendOnStepCommand(const char *cmd);
         bool sendOnStepCommandBlind(const char *cmd);
         int getCommandSingleCharResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
+        int getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
         int  setMaxElevationLimit(int fd, int max);
         void OSUpdateFocuser();
         void OSUpdateRotator();
@@ -246,7 +248,9 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
 
         // OnStep Status controls
         ITextVectorProperty OnstepStatTP;
-        IText OnstepStat[10] {};
+        IText OnstepStat[11] {};
+        
+        bool TMCDrivers = true; //Set to false if it doesn't detect TMC_SPI reporting. (Small delay on connection/first update)
 
         // Focuser controls
         // Focuser 1

@@ -162,8 +162,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&TrackAxisSP, TrackAxisS, 2, getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
-    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
+    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 3600, 1, 15);
+    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 3600, 1, 15);
     IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.25, 0.5);
@@ -377,7 +377,9 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[6], "Mount Type", "", "");
     IUFillText(&OnstepStat[7], "Error", "", "");
     IUFillText(&OnstepStat[8], "Multi-Axis Tracking", "", "");
-    IUFillTextVector(&OnstepStatTP, OnstepStat, 9, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
+    IUFillText(&OnstepStat[9], "TMC Axis1", "", "");
+    IUFillText(&OnstepStat[10], "TMC Axis2", "", "");
+    IUFillTextVector(&OnstepStatTP, OnstepStat, 11, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
     // ============== WEATHER TAB
     // Uses OnStep's defaults for this
@@ -1747,6 +1749,7 @@ bool LX200_OnStep::ReadScopeStatus()
     char GuideValue[RB_MAX_LEN];
     char TempValue[RB_MAX_LEN];
     char TempValue2[RB_MAX_LEN];
+    int i;
     Errors Lasterror = ERR_NONE;
 
     if (isSimulation()) //if Simulation is selected
@@ -2349,7 +2352,7 @@ bool LX200_OnStep::ReadScopeStatus()
 
     }
 
-    //TODO: Rotator support
+    //TODO: Improve Rotator support
     OSUpdateRotator();
 
     //Weather update
@@ -2379,7 +2382,41 @@ bool LX200_OnStep::ReadScopeStatus()
     ParametersNP.s = IPS_OK;
     IDSetNumber(&ParametersNP, nullptr);
 
-
+    if (TMCDrivers) {
+        i = getCommandSingleCharErrorOrLongResponse(PortFD, TempValue, ":GXU1#"); // Axis1
+        if (i == -4  && TempValue[0] == '0' ) {
+            IUSaveText(&OnstepStat[9], "TMC Reporting not detected, Axis 1");
+            TMCDrivers = false;
+        } else {
+            if (i > 0 ) { 
+                if (TempValue[0] == 0) 
+                { 
+                    IUSaveText(&OnstepStat[9], "No Condition");
+                } else {
+                    IUSaveText(&OnstepStat[9], TempValue);
+                }
+            } else {
+                IUSaveText(&OnstepStat[9], "Unknown read error");
+            }
+        }
+        
+        i = getCommandSingleCharErrorOrLongResponse(PortFD, TempValue, ":GXU2#"); // Axis1
+        if (i == -4  && TempValue[0] == '0'  ) {
+            IUSaveText(&OnstepStat[10], "TMC Reporting not detected, Axis 2");
+            TMCDrivers = false;
+        } else {
+            if (i > 0 ) { 
+                if (TempValue[0] == 0) 
+                { 
+                    IUSaveText(&OnstepStat[10], "No Condition");
+                } else {
+                    IUSaveText(&OnstepStat[10], TempValue);
+                }
+            } else {
+                IUSaveText(&OnstepStat[9], "Unknown read error");
+            }
+        }
+    }
 
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, nullptr);
@@ -2505,6 +2542,42 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
     
     return 0;
 }
+
+int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+    int timeout = 1;
+    
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+    
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+    
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+    
+    error_type = tty_read_section(fd, data, '#', timeout, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+    
+
+    
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+    
+    DEBUGF(DBG_SCOPE, "RES <%s>", data);
+
+    if (error_type != TTY_OK) {
+        LOGF_DEBUG("Error %d", error_type);
+        return error_type;
+    }
+    return nbytes_read;
+    
+    //return 0;
+}
+
 
 
 bool LX200_OnStep::updateLocation(double latitude, double longitude, double elevation)
