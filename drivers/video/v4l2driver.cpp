@@ -977,7 +977,7 @@ bool V4L2_Driver::setManualExposure(double duration)
             stackMode = STACK_ADDITIVE;
             StackModeSP.sp[ STACK_NONE ].s = ISS_OFF;
             StackModeSP.sp[ STACK_ADDITIVE ].s = ISS_ON;
-            IDSetSwitch(ManualExposureSP, nullptr);
+            if(ManualExposureSP) IDSetSwitch(ManualExposureSP, nullptr);
         }
 
         /* We can't expose as long as requested but we can stack gray frames until the exposure elapses */
