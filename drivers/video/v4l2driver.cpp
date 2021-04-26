@@ -1787,7 +1787,7 @@ void V4L2_Driver::updateV4L2Controls()
     {
         defineProperty(&Options[i]);
 
-        if (strcmp(Options[i].label, "Exposure, Auto") == 0 || strcmp(Options[i].label, "Auto Exposure") == 0)
+        if (strcmp(Options[i].label, "Exposure, Auto") == 0 || strcmp(Options[i].label, "Auto Exposure") == 0 || strcmp(Options[i].label, "Gain, Automatic")==0)
         {
             ManualExposureSP = Options + i;
             LOGF_DEBUG("- %s (used for manual/auto exposure control)", Options[i].label);
