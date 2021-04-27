@@ -85,9 +85,9 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 #define PMC8_RATE_KING 15.0369
 
 uint8_t pmc8_connection         = INDI::Telescope::CONNECTION_SERIAL;
-bool pmc8_isRev2Compliant       = false;
 bool pmc8_debug                 = false;
 bool pmc8_simulation            = false;
+bool pmc8_isRev2Compliant       = false;
 bool pmc8_reconnect_flag        = false;
 int pmc8_io_error_ctr           = 0;
 char pmc8_device[MAXINDIDEVICE] = "PMC8";
@@ -510,7 +510,7 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
         info->MainBoardFirmware.assign(board, nbytes_read-7);
 
         // Assuming version strings longer than 24 must be version 2.0 and up
-        if (nbytes_read > 24) pmc8_isRev2Compliant = true;
+        if (nbytes_read > 24) info->IsRev2Compliant = pmc8_isRev2Compliant = true;
 
         tcflush(fd, TCIFLUSH);
 
@@ -1219,40 +1219,42 @@ bool set_pmc8_guide_rate(int fd, PMC8_AXIS axis, double rate)
         pmc8_sidereal_rate_fraction_ra = rate;
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_guide_rate: ra guide rate set to %f", rate);
     }
-    else {
+    if ((axis == PMC8_AXIS_DEC) || !pmc8_isRev2Compliant) {
         pmc8_sidereal_rate_fraction_de = rate;
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_guide_rate: dec guide rate set to %f", rate);
     }       
     
-    // now write to mount to sync ST4 rates
-    char cmd[32], expresp[32];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[16];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
+    if (pmc8_isRev2Compliant) {
+        // now write to mount to sync ST4 rates
+        char cmd[32], expresp[32];
+        int errcode = 0;
+        char errmsg[MAXRBUF];
+        char response[16];
+        int nbytes_read    = 0;
+        int nbytes_written = 0;
 
-    snprintf(cmd, sizeof(cmd), "ESSf%d%02X!", axis, int(rate*100));
+        snprintf(cmd, sizeof(cmd), "ESSf%d%02X!", axis, int(rate*100));
 
-    if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
+        if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
 
-	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGf")))   
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting SRF rate");
-        return false;
-    }
+        if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGf")))   
+        {
+            DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting guiding SRF");
+            return false;
+        }
 
-    snprintf(expresp, sizeof(expresp), "ESGf%d%02X!", axis, int(rate*100));
+        snprintf(expresp, sizeof(expresp), "ESGf%d%02X!", axis, int(rate*100));
 
-    if (nbytes_read != 8 || strcmp(response, expresp))
-    {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "SRF set cmd response incorrect: expected=%s", expresp);
-        return false;
+        if (nbytes_read != 8 || strcmp(response, expresp))
+        {
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "SRF set cmd response incorrect: expected=%s", expresp);
+            return false;
+        }
     }
 
     return true;

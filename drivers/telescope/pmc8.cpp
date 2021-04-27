@@ -152,13 +152,15 @@ bool PMC8::initProperties()
     strcpy(SlewRateSP.sp[3].label, "256x");
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&RaGuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.4);
-    IUFillNumberVector(&RaGuideRateNP, RaGuideRateN, 1, getDeviceName(), "GUIDE_RATE", "RA Guiding Rate", MOTION_TAB, IP_RW, 0,
+    IUFillNumber(&RaGuideRateN[0], "GUIDE_RATE_RA", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.4);
+    IUFillNumberVector(&RaGuideRateNP, RaGuideRateN, 1, getDeviceName(), "GUIDE_RATE_RA", "RA Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
     IUFillNumber(&DeGuideRateN[0], "GUIDE_RATE_DE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.4);
     IUFillNumberVector(&DeGuideRateNP, DeGuideRateN, 1, getDeviceName(), "GUIDE_RATE_DE", "DEC Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
-
+    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.4);
+    IUFillNumberVector(&GuideRateNP, DeGuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -184,26 +186,38 @@ bool PMC8::updateProperties()
     INDI::Telescope::updateProperties();
 
     if (isConnected())
-    {
+    {        
+        getStartupData();
+        
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
-        defineProperty(&RaGuideRateNP);
-        defineProperty(&DeGuideRateNP);
-
+        
+        if (firmwareInfo.IsRev2Compliant) {
+            defineProperty(&RaGuideRateNP);
+            defineProperty(&DeGuideRateNP);
+        }
+        else {
+            defineProperty(&GuideRateNP);
+        }
+        
         defineProperty(&FirmwareTP);
 
         // do not support park position
         deleteProperty(ParkPositionNP.name);
         deleteProperty(ParkOptionSP.name);
-
-        getStartupData();
     }
     else
     {
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
-        deleteProperty(RaGuideRateNP.name);
-        deleteProperty(DeGuideRateNP.name);
+
+        if (firmwareInfo.IsRev2Compliant) {
+            deleteProperty(RaGuideRateNP.name);
+            deleteProperty(DeGuideRateNP.name);
+        }
+        else {
+            deleteProperty(GuideRateNP.name);
+        }
 
         deleteProperty(FirmwareTP.name);
     }
@@ -260,16 +274,18 @@ void PMC8::getStartupData()
     }
         
     // get SRF values
-    double rate = 0.4;
-    if (get_pmc8_guide_rate(PortFD,PMC8_AXIS_RA,rate)) {
-        RaGuideRateN[0].value = rate;
-        RaGuideRateNP.s = IPS_OK;
-        IDSetNumber(&RaGuideRateNP, nullptr);
-    }
-    if (get_pmc8_guide_rate(PortFD,PMC8_AXIS_DEC,rate)) {
-        DeGuideRateN[0].value = rate;
-        DeGuideRateNP.s = IPS_OK;
-        IDSetNumber(&DeGuideRateNP, nullptr);
+    if (firmwareInfo.IsRev2Compliant) {
+        double rate = 0.4;
+        if (get_pmc8_guide_rate(PortFD,PMC8_AXIS_RA,rate)) {
+            RaGuideRateN[0].value = rate;
+            RaGuideRateNP.s = IPS_OK;
+            IDSetNumber(&RaGuideRateNP, nullptr);
+        }
+        if (get_pmc8_guide_rate(PortFD,PMC8_AXIS_DEC,rate)) {
+            DeGuideRateN[0].value = rate;
+            DeGuideRateNP.s = IPS_OK;
+            IDSetNumber(&DeGuideRateNP, nullptr);
+        }
     }
             
     // PMC8 doesn't store location permanently so read from config and set
@@ -323,6 +339,19 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
     if (!strcmp(dev, getDeviceName()))
     {
         // Guiding Rate
+        if (!strcmp(name, GuideRateNP.name))
+        {
+            IUUpdateNumber(&GuideRateNP, values, names, n);
+
+            if (set_pmc8_guide_rate(PortFD, PMC8_AXIS_RA, GuideRateN[0].value))
+                GuideRateNP.s = IPS_OK;
+            else
+                GuideRateNP.s = IPS_ALERT;
+
+            IDSetNumber(&GuideRateNP, nullptr);
+
+            return true;
+        }
         if (!strcmp(name, RaGuideRateNP.name))
         {
             IUUpdateNumber(&RaGuideRateNP, values, names, n);
@@ -483,9 +512,12 @@ bool PMC8::ReadScopeStatus()
                     TrackModeS[convertFromPMC8TrackMode(track_mode)].s = ISS_ON;   
                     IDSetSwitch(&TrackModeSP, nullptr);             
                     TrackState = SCOPE_TRACKING;
-                    TrackRateNP.s           = IPS_IDLE;
-                    TrackRateN[AXIS_RA].value = track_rate;
-                    IDSetNumber(&TrackRateNP, nullptr);
+                    if (track_mode == PMC8_TRACK_CUSTOM) {
+                        TrackRateNP.s           = IPS_IDLE;
+                        TrackRateN[AXIS_RA].value = track_rate;
+                        IDSetNumber(&TrackRateNP, nullptr);
+                    }
+                    currentTrackRate = track_rate;
                     DEBUGF(INDI::Logger::DBG_DEBUG, "Mount tracking at %f arcsec / sec", track_rate);
                 }
             }
@@ -512,11 +544,15 @@ bool PMC8::ReadScopeStatus()
                         TrackModeS[convertFromPMC8TrackMode(track_mode)].s = ISS_ON;
                         IDSetSwitch(&TrackModeSP, nullptr);             
                     }
-                    if (TrackRateN[AXIS_RA].value != track_rate) {                     
+                    //if (TrackRateN[AXIS_RA].value != track_rate) {
+                    if (currentTrackRate != track_rate) {                     
                         TrackState = SCOPE_TRACKING;
-                        TrackRateNP.s           = IPS_IDLE;
-                        TrackRateN[AXIS_RA].value = track_rate;
-                        IDSetNumber(&TrackRateNP, nullptr);
+                        if (track_mode == PMC8_TRACK_CUSTOM) {
+                            TrackRateNP.s           = IPS_IDLE;
+                            TrackRateN[AXIS_RA].value = track_rate;
+                            IDSetNumber(&TrackRateNP, nullptr);
+                        }
+                        currentTrackRate = track_rate;
                     }
                     DEBUGF(INDI::Logger::DBG_DEBUG, "Mount tracking at %f arcsec / sec", track_rate);
                 }
@@ -925,7 +961,8 @@ IPState PMC8::GuideEast(uint32_t ms)
         }
 
         isPulsingWE = true;
-        start_pmc8_guide(PortFD, PMC8_E, (int)ms, timetaken_us, TrackRateN[AXIS_RA].value);
+        //start_pmc8_guide(PortFD, PMC8_E, (int)ms, timetaken_us, TrackRateN[AXIS_RA].value);
+        start_pmc8_guide(PortFD, PMC8_E, (int)ms, timetaken_us, currentTrackRate);
 
         timeremain_ms = (int)(ms - ((float)timetaken_us) / 1000.0);
 
@@ -964,7 +1001,8 @@ IPState PMC8::GuideWest(uint32_t ms)
         }
 
         isPulsingWE = true;
-        start_pmc8_guide(PortFD, PMC8_W, (int)ms, timetaken_us, TrackRateN[AXIS_RA].value);
+        //start_pmc8_guide(PortFD, PMC8_W, (int)ms, timetaken_us, TrackRateN[AXIS_RA].value);
+        start_pmc8_guide(PortFD, PMC8_W, (int)ms, timetaken_us, currentTrackRate);
 
         timeremain_ms = (int)(ms - ((float)timetaken_us) / 1000.0);
 
@@ -1231,8 +1269,9 @@ bool PMC8::SetTrackMode(uint8_t mode)
 
     if (pmc8_mode == PMC8_TRACK_CUSTOM)
     {
-        if (set_pmc8_ra_tracking(PortFD, TrackRateN[AXIS_RA].value))
+        if (set_pmc8_ra_tracking(PortFD, TrackRateN[AXIS_RA].value)) {
             return true;
+        }
     }
     else
     {

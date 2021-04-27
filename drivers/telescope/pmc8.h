@@ -140,11 +140,14 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         INumberVectorProperty RaGuideRateNP;
         INumber DeGuideRateN[1];
         INumberVectorProperty DeGuideRateNP;
+        INumber GuideRateN[1];
+        INumberVectorProperty GuideRateNP;
 
 
         unsigned int DBG_SCOPE;
         double currentRA, currentDEC;
         double targetRA, targetDEC;
+        double currentTrackRate = 0;
 
         int trackingPollCounter = 0;
         bool isPulsingNS = false;

@@ -67,6 +67,7 @@ typedef struct
     std::string Model;
     std::string MainBoardFirmware;
     PMC8_MOUNT_TYPES MountType;
+    bool IsRev2Compliant;
 } FirmwareInfo;
 
 /**************************************************************************
