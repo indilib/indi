@@ -34,37 +34,6 @@ static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 std::unique_ptr<RadioSim> receiver(new RadioSim());
 
-void ISGetProperties(const char *dev)
-{
-    receiver->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
-{
-    receiver->ISNewSwitch(dev, name, states, names, num);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
-{
-    receiver->ISNewText(dev, name, texts, names, num);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
-{
-    receiver->ISNewNumber(dev, name, values, names, num);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int num)
-{
-    receiver->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, num);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    receiver->ISSnoopDevice(root);
-}
-
 RadioSim::RadioSim()
 {
     streamPredicate = 0;

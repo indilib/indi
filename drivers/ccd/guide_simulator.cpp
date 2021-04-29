@@ -34,39 +34,6 @@ static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 // We declare an auto pointer to GuideSim.
 static std::unique_ptr<GuideSim> ccd(new GuideSim());
 
-void ISPoll(void * p);
-
-void ISGetProperties(const char * dev)
-{
-    ccd->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-{
-    ccd->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    ccd->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    ccd->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-               char * names[], int n)
-{
-    ccd->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-void ISSnoopDevice(XMLEle * root)
-{
-    ccd->ISSnoopDevice(root);
-}
-
 GuideSim::GuideSim()
 {
     currentRA  = RA;

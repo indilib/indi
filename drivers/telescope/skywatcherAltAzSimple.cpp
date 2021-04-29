@@ -69,37 +69,6 @@ std::string GetLogTimestamp()
 }
 } // namespace
 
-void ISGetProperties(const char *dev)
-{
-    SkywatcherAltAzSimplePtr->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    SkywatcherAltAzSimplePtr->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    SkywatcherAltAzSimplePtr->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    SkywatcherAltAzSimplePtr->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    SkywatcherAltAzSimplePtr->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    SkywatcherAltAzSimplePtr->ISSnoopDevice(root);
-}
-
 SkywatcherAltAzSimple::SkywatcherAltAzSimple() : TrackLogFileName(GetHomeDirectory() + "/.indi/sw_mount_track_log.txt")
 {
     // Set up the logging pointer in SkyWatcherAPI
