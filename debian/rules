@@ -1,8 +1,8 @@
 #!/usr/bin/make -f
 
+# #PS 2021-04-29: After removing all ISXX functions from the drivers,
+# the following ruler can be removed.
+DEB_LDFLAGS_MAINT_STRIP=-Wl,-Bsymbolic-functions
+
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/cmake.mk
-
-export CFLAGS := $(shell dpkg-buildflags --get CFLAGS)
-export CXXFLAGS := $(shell dpkg-buildflags --get CXXFLAGS)
-export LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS)
