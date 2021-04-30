@@ -50,53 +50,53 @@ std::recursive_mutex                   INDI::DefaultDevicePrivate::devicesLock;
 extern "C"
 {
 
-void ISGetProperties(const char *dev)
-{
-    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
-    for(auto &it: INDI::DefaultDevicePrivate::devices)
-        it->defaultDevice->ISGetProperties(dev);
-}
+    void ISGetProperties(const char *dev)
+    {
+        const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+        for(auto &it : INDI::DefaultDevicePrivate::devices)
+            it->defaultDevice->ISGetProperties(dev);
+    }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
-    for(auto &it: INDI::DefaultDevicePrivate::devices)
-        if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
-            it->defaultDevice->ISNewSwitch(dev, name, states, names, n);
-}
+    void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+    {
+        const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+        for(auto &it : INDI::DefaultDevicePrivate::devices)
+            if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
+                it->defaultDevice->ISNewSwitch(dev, name, states, names, n);
+    }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
-    for(auto &it: INDI::DefaultDevicePrivate::devices)
-        if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
-            it->defaultDevice->ISNewNumber(dev, name, values, names, n);
-}
+    void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+    {
+        const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+        for(auto &it : INDI::DefaultDevicePrivate::devices)
+            if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
+                it->defaultDevice->ISNewNumber(dev, name, values, names, n);
+    }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
-    for(auto &it: INDI::DefaultDevicePrivate::devices)
-        if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
-            it->defaultDevice->ISNewText(dev, name, texts, names, n);
-}
+    void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+    {
+        const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+        for(auto &it : INDI::DefaultDevicePrivate::devices)
+            if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
+                it->defaultDevice->ISNewText(dev, name, texts, names, n);
+    }
 
-void ISNewBLOB(const char *dev, const char *name,
-    int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n
-)
-{
-    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
-    for(auto &it: INDI::DefaultDevicePrivate::devices)
-        if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
-            it->defaultDevice->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
+    void ISNewBLOB(const char *dev, const char *name,
+                   int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n
+                  )
+    {
+        const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+        for(auto &it : INDI::DefaultDevicePrivate::devices)
+            if (dev == nullptr || strcmp(dev, it->defaultDevice->getDeviceName()) == 0)
+                it->defaultDevice->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+    }
 
-void ISSnoopDevice(XMLEle *root)
-{
-    const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
-    for(auto &it: INDI::DefaultDevicePrivate::devices)
-        it->defaultDevice->ISSnoopDevice(root);
-}
+    void ISSnoopDevice(XMLEle *root)
+    {
+        const std::unique_lock<std::recursive_mutex> lock(INDI::DefaultDevicePrivate::devicesLock);
+        for(auto &it : INDI::DefaultDevicePrivate::devices)
+            it->defaultDevice->ISSnoopDevice(root);
+    }
 
 } // extern "C"
 
@@ -473,11 +473,11 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
     {
         d->ConnectionModeSP.update(states, names, n);
 
-        int activeConnectionIndex = d->ConnectionModeSP.findOnSwitchIndex();
+        int activeConnectionMode = d->ConnectionModeSP.findOnSwitchIndex();
 
-        if (activeConnectionIndex >= 0 && activeConnectionIndex < static_cast<int>(d->connections.size()))
+        if (activeConnectionMode >= 0 && activeConnectionMode < static_cast<int>(d->connections.size()))
         {
-            d->activeConnection = d->connections[activeConnectionIndex];
+            d->activeConnection = d->connections[activeConnectionMode];
             d->activeConnection->Activated();
 
             for (Connection::Interface *oneConnection : d->connections)
@@ -795,14 +795,14 @@ void DefaultDevice::ISGetProperties(const char *dev)
             {
                 (sp++)->fill(oneConnection->name(), oneConnection->label(), ISS_OFF);
             }
-            d->ConnectionModeSP.fill(getDeviceName(), "CONNECTION_MODE", "Connection Mode", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+            d->ConnectionModeSP.fill(getDeviceName(), "CONNECTION_MODE", "Connection Mode", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60,
+                                     IPS_IDLE);
 
             // Try to read config first
-            int activeConnectionIndex = -1;
-            if (IUGetConfigOnSwitchIndex(getDeviceName(), d->ConnectionModeSP.getName(), &activeConnectionIndex) == 0)
+            if (IUGetConfigOnSwitchIndex(getDeviceName(), d->ConnectionModeSP.getName(), &d->m_ConfigConnectionMode) == 0)
             {
-                d->ConnectionModeSP[activeConnectionIndex].setState(ISS_ON);
-                d->activeConnection = d->connections[activeConnectionIndex];
+                d->ConnectionModeSP[d->m_ConfigConnectionMode].setState(ISS_ON);
+                d->activeConnection = d->connections[d->m_ConfigConnectionMode];
             }
             // Check if we already have an active connection set.
             else if (d->activeConnection != nullptr)
@@ -1061,7 +1061,8 @@ bool DefaultDevice::Connect()
 
     if (rc)
     {
-        saveConfig(true, "CONNECTION_MODE");
+        if (d->ConnectionModeSP.findOnSwitchIndex() != d->m_ConfigConnectionMode)
+            saveConfig(true, d->ConnectionModeSP.getName());
         if (d->pollingPeriod > 0)
             SetTimer(d->pollingPeriod);
     }

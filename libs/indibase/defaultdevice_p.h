@@ -33,44 +33,45 @@ namespace INDI
 {
 class DefaultDevicePrivate: public BaseDevicePrivate
 {
-public:
-    DefaultDevicePrivate(DefaultDevice *defaultDevice);
-    virtual ~DefaultDevicePrivate();
+    public:
+        DefaultDevicePrivate(DefaultDevice *defaultDevice);
+        virtual ~DefaultDevicePrivate();
 
-    DefaultDevice *defaultDevice;
+        DefaultDevice *defaultDevice;
 
-    bool isInit { false };
-    bool isDebug { false };
-    bool isSimulation { false };
-    bool isDefaultConfigLoaded {false};
-    bool isConfigLoading { false };
+        bool isInit { false };
+        bool isDebug { false };
+        bool isSimulation { false };
+        bool isDefaultConfigLoaded {false};
+        bool isConfigLoading { false };
 
-    uint16_t majorVersion { 1 };
-    uint16_t minorVersion { 0 };
-    uint16_t interfaceDescriptor { 0 };
+        uint16_t majorVersion { 1 };
+        uint16_t minorVersion { 0 };
+        uint16_t interfaceDescriptor { 0 };
+        int m_ConfigConnectionMode {-1};
 
-    PropertySwitch SimulationSP     { 2 };
-    PropertySwitch DebugSP          { 2 };
-    PropertySwitch ConfigProcessSP  { 4 };
-    PropertySwitch ConnectionSP     { 2 };
-    PropertyNumber PollPeriodNP     { 1 };
-    PropertyText   DriverInfoTP     { 4 };
-    PropertySwitch ConnectionModeSP { 0 }; // dynamic count of switches
+        PropertySwitch SimulationSP     { 2 };
+        PropertySwitch DebugSP          { 2 };
+        PropertySwitch ConfigProcessSP  { 4 };
+        PropertySwitch ConnectionSP     { 2 };
+        PropertyNumber PollPeriodNP     { 1 };
+        PropertyText   DriverInfoTP     { 4 };
+        PropertySwitch ConnectionModeSP { 0 }; // dynamic count of switches
 
-    std::vector<Connection::Interface *> connections;
-    Connection::Interface *activeConnection = nullptr;
+        std::vector<Connection::Interface *> connections;
+        Connection::Interface *activeConnection = nullptr;
 
-    /**
-     * @brief pollingPeriod Period in milliseconds to call TimerHit(). Default 1000 ms
-     */
-    uint32_t pollingPeriod = 1000;
+        /**
+         * @brief pollingPeriod Period in milliseconds to call TimerHit(). Default 1000 ms
+         */
+        uint32_t pollingPeriod = 1000;
 
-    bool defineDynamicProperties {true};
-    bool deleteDynamicProperties {true};
+        bool defineDynamicProperties {true};
+        bool deleteDynamicProperties {true};
 
-public:
-    static std::list<DefaultDevicePrivate*> devices;
-    static std::recursive_mutex             devicesLock;
+    public:
+        static std::list<DefaultDevicePrivate*> devices;
+        static std::recursive_mutex             devicesLock;
 };
 
 }
