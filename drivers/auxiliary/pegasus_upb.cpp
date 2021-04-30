@@ -110,15 +110,15 @@ bool PegasusUPB::initProperties()
     // Turn on/off power and power boot up
     memset(dewLabel, 0, MAXINDILABEL);
     int dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.name, DewControlsLabelsT[0].name, dewLabel,
-                                 MAXINDILABEL);
+                                MAXINDILABEL);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_A], "DEW_A", dewRC == -1 ? "Dew A" : dewLabel, ISS_OFF);
     memset(dewLabel, 0, MAXINDILABEL);
     dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.name, DewControlsLabelsT[1].name, dewLabel,
-                                     MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_B], "DEW_B", dewRC == -1 ? "Dew B" : dewLabel, ISS_OFF);
     memset(dewLabel, 0, MAXINDILABEL);
     dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.name, DewControlsLabelsT[2].name, dewLabel,
-                                     MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_C], "DEW_C", dewRC == -1 ? "Dew C" : dewLabel, ISS_OFF);
     IUFillSwitchVector(&AutoDewV2SP, AutoDewV2S, 3, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
                        IPS_IDLE);
@@ -193,15 +193,15 @@ bool PegasusUPB::initProperties()
     IUFillLight(&OverCurrentL[2], "POWER_PORT_3", PowerControlS[2].label, IPS_OK);
     IUFillLight(&OverCurrentL[3], "POWER_PORT_4", PowerControlS[3].label, IPS_OK);
 
-    char tempLabel[MAXINDILABEL+5];
-    memset(tempLabel, 0, MAXINDILABEL+5);
-    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2S[0].label);
+    char tempLabel[MAXINDILABEL + 5];
+    memset(tempLabel, 0, MAXINDILABEL + 5);
+    sprintf(tempLabel, "%s %s", "Dew:", AutoDewV2S[0].label);
     IUFillLight(&OverCurrentL[4], "DEW_A", tempLabel, IPS_OK);
     memset(tempLabel, 0, MAXINDILABEL);
-    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2S[1].label);
+    sprintf(tempLabel, "%s %s", "Dew:", AutoDewV2S[1].label);
     IUFillLight(&OverCurrentL[5], "DEW_B", tempLabel, IPS_OK);
     memset(tempLabel, 0, MAXINDILABEL);
-    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2S[2].label);
+    sprintf(tempLabel, "%s %s", "Dew:", AutoDewV2S[2].label);
     IUFillLight(&OverCurrentL[6], "DEW_C", tempLabel, IPS_OK);
     IUFillLightVector(&OverCurrentLP, OverCurrentL, 7, getDeviceName(), "POWER_OVER_CURRENT", "Over Current", POWER_TAB,
                       IPS_IDLE);
@@ -229,7 +229,8 @@ bool PegasusUPB::initProperties()
 
     // Automatic Dew Aggressiveness v2
     IUFillNumber(&AutoDewAggN[AUTO_DEW_AGG], "AUTO_DEW_AGG_VALUE", "Auto Dew Agg (50-250)", "%.2f", 50, 250, 20, 0);
-    IUFillNumberVector(&AutoDewAggNP, AutoDewAggN, 1, getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&AutoDewAggNP, AutoDewAggN, 1, getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60,
+                       IPS_IDLE);
 
     // Dew PWM
     IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", AutoDewV2S[0].label, "%.2f %%", 0, 100, 10, 0);
@@ -272,27 +273,27 @@ bool PegasusUPB::initProperties()
     // Turn on/off power and power boot up
     memset(USBLabel, 0, MAXINDILABEL);
     int USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[0].name, USBLabel,
-                                 MAXINDILABEL);
+                                MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[0], "PORT_1", USBRC == -1 ? "USB3 Port1" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
     USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[1].name, USBLabel,
-                                 MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[1], "PORT_2", USBRC == -1 ? "USB3 Port2" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
     USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[2].name, USBLabel,
-                                 MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[2], "PORT_3", USBRC == -1 ? "USB3 Port3" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
     USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[3].name, USBLabel,
-                                 MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[3], "PORT_4", USBRC == -1 ? "USB3 Port4" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
     USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[4].name, USBLabel,
-                                 MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[4], "PORT_5", USBRC == -1 ? "USB2 Port5" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
     USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[5].name, USBLabel,
-                                 MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[5], "PORT_6", USBRC == -1 ? "USB2 Port6" : USBLabel, ISS_ON);
 
     IUFillSwitchVector(&USBControlV2SP, USBControlV2S, 6, getDeviceName(), "USB_PORT_CONTROL", "Ports", USB_TAB, IP_RW,
@@ -822,7 +823,7 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
         }
 
         // Auto Dew Aggressiveness
-        if (!strcmp(name,AutoDewAggNP.name))
+        if (!strcmp(name, AutoDewAggNP.name))
         {
             if (setAutoDewAgg(values[0]))
             {
@@ -1298,7 +1299,8 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
 
     IUSaveConfigSwitch(fp, &PowerLEDSP);
     IUSaveConfigSwitch(fp, &AutoDewSP);
-    IUSaveConfigNumber(fp, &AutoDewAggNP);
+    if (version == UPB_V2)
+        IUSaveConfigNumber(fp, &AutoDewAggNP);
     IUSaveConfigNumber(fp, &FocuserSettingsNP);
     IUSaveConfigText(fp, &PowerControlsLabelsTP);
     IUSaveConfigText(fp, &DewControlsLabelsTP);
@@ -1321,7 +1323,9 @@ void PegasusUPB::TimerHit()
     {
         getPowerData();
         getStepperData();
-        getDewAggData();
+
+        if (version == UPB_V2)
+            getDewAggData();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -1582,7 +1586,7 @@ bool PegasusUPB::getPowerData()
         if ( (version == UPB_V1 && result.size() != 3) ||
                 (version == UPB_V2 && result.size() != 4))
         {
-            LOGF_WARN("Received wrong number (%i) of power sensor data (%s). Retrying...",result.size(),res);
+            LOGF_WARN("Received wrong number (%i) of power sensor data (%s). Retrying...", result.size(), res);
             return false;
         }
 
