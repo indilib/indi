@@ -44,44 +44,6 @@
 // 2018-12-12 JM: Updated this driver today. Tommy passed away a couple of months ago. May he rest in peace. I miss you.
 static std::unique_ptr<NightCrawler> tommyGoodBoy(new NightCrawler());
 
-void ISGetProperties(const char *dev)
-{
-    tommyGoodBoy->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    tommyGoodBoy->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    tommyGoodBoy->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    tommyGoodBoy->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                char *formats[], char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice (XMLEle *root)
-{
-    tommyGoodBoy->ISSnoopDevice(root);
-}
-
 NightCrawler::NightCrawler() : RotatorInterface(this)
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
