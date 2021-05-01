@@ -426,7 +426,7 @@ bool get_pmc8_model(int fd, FirmwareInfo *info)
                 return false;
             }
 
-            if ((errcode = get_pmc8_response(fd, response, &nbytes_read,"ESG")))
+            if ((errcode = get_pmc8_response(fd, response, &nbytes_read,"ESGi")))
             {
                 DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_main_firmware(): Error reading response.");
                 return false;
@@ -493,7 +493,7 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
             return false;
         }
 
-		if ((errcode = get_pmc8_response(fd, response, &nbytes_read,"ESG")))
+		if ((errcode = get_pmc8_response(fd, response, &nbytes_read,"ESGv")))
         {
             DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_main_firmware(): Error reading response.");
             return false;
@@ -566,7 +566,9 @@ bool get_pmc8_move_rate_axis(int fd, PMC8_AXIS axis, double &rate)
         return false;
     }
 
-	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGr")))
+    cmd[5] = '\0';
+    
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, cmd)))
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error getting Move Rate");
         return false;
@@ -620,7 +622,9 @@ bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
         return false;
     }
 
-	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGd")))    
+    cmd[5] = '\0';
+    
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, cmd)))    
 	{
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error getting direction axis");
         return false;
@@ -679,15 +683,9 @@ bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir, bool fast)
         return true;
     }
 
-	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGd")))   
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting direction axis");
-        return false;
-    }
-
     snprintf(expresp, sizeof(expresp), "ESGd%d%d!", axis, dir);
 
-    if (nbytes_read != 7 || strcmp(response, expresp))
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))   
     {
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis get dir cmd response incorrect: expected=%s", expresp);
         return false;
@@ -961,8 +959,10 @@ bool set_pmc8_axis_motor_rate(int fd, PMC8_AXIS axis, int mrate, bool fast)
     if (fast) {
         return true;
     }
+    
+    snprintf(cmd, sizeof(cmd), "ESGr%d", axis);
 
-	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGr")))     
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, cmd)))     
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting axis motor rate");
         return false;
@@ -1242,15 +1242,9 @@ bool set_pmc8_guide_rate(int fd, PMC8_AXIS axis, double rate)
             return false;
         }
 
-        if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGf")))   
-        {
-            DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting guiding SRF");
-            return false;
-        }
-
         snprintf(expresp, sizeof(expresp), "ESGf%d%02X!", axis, int(rate*100));
 
-        if (nbytes_read != 8 || strcmp(response, expresp))
+        if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))   
         {
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "SRF set cmd response incorrect: expected=%s", expresp);
             return false;
@@ -1286,7 +1280,9 @@ bool get_pmc8_guide_rate(int fd, PMC8_AXIS axis, double &rate)
         return false;
     }
 
-	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGf")))   
+    cmd[5] = '\0';
+    
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, cmd)))   
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error getting SRF rate");
         return false;
@@ -1899,16 +1895,9 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
         return false;
     }
 
-	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGt")))   
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting target position axis");
-        return false;
-    }
-
-    // compare to expected response
     snprintf(expresp, sizeof(expresp), "ESGt%d%s!", naxis, hexpt);
 
-    if (strncmp(response, expresp, strlen(response)))
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))   
     {
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response, expresp);
         return false;
@@ -1960,17 +1949,10 @@ bool set_pmc8_position_axis(int fd, PMC8_AXIS axis, int point)
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
         return false;
     }
-
-	if ((errcode = get_pmc8_response(fd, response, &nbytes_read,"ESGp")))   
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting position axis");
-        return false;
-    }
-
-    // compare to expected response
+    
     snprintf(expresp, sizeof(expresp), "ESGp%d%s!", axis, hexpt);
 
-    if (strncmp(response, expresp, strlen(response)))
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))   
     {
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response, expresp);
         return false;
@@ -2019,8 +2001,10 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
         return false;
     }
+    
+    cmd[5] = '\0';
 
-	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGp")))   
+	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, cmd)))   
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error getting position axis");
         return false;
@@ -2037,7 +2021,6 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
     strcpy(num_str, "0X");
     strncat(num_str, response+5, 6);
 
-    //point = atoi(num_str);
     point = (int)strtol(num_str, nullptr, 0);
 
     return true;
@@ -2365,6 +2348,11 @@ bool get_pmc8_response(int fd, char* buf, int *nbytes_read, const char* expected
                 if (buf[0]=='*') {
                     strcpy(buf,buf+7);
                     *nbytes_read = *nbytes_read-7;
+                }
+                //Another problem is we sometimes get the string AT when we reconnect, so discard that
+                if (strncmp(buf, "AT", 2)==0) {
+                    strcpy(buf,buf+2);
+                    *nbytes_read = *nbytes_read-2;
                 }
                 //Another problem is random extraneous ESGp! reponses during slew, so when we see those, drop them and try again
                 if (strncmp(buf, "ESGp!",5)==0) {
