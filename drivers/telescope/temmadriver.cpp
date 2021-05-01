@@ -709,12 +709,12 @@ bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         if (dir != DIRECTION_WEST)
         {
             LOG_DEBUG("Start slew East");
-            Slewbits |= 2;
+            Slewbits |= 4;
         }
         else
         {
             LOG_DEBUG("Start Slew West");
-            Slewbits |= 4;
+            Slewbits |= 2;
         }
         SlewActive = true;
     }
