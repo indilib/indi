@@ -231,6 +231,11 @@ class ScopeDome : public INDI::Dome
         double simShutterTimer{ 0 };
         ShutterState simShutterStatus{ SHUTTER_OPENED };
 
+        enum CardType
+        {
+            SCOPEDOME_USB21 = 0,
+            SCOPEDOME_ARDUINO = 1
+        };
         INDI::PropertySwitch CardTypeSP{2};
 
         INDI::PropertyNumber DomeHomePositionNP{1};

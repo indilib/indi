@@ -143,30 +143,39 @@ bool ScopeDome::initProperties()
     StartCalibrationSP.fill(getDeviceName(), "RUN_CALIBRATION", "Run calibration",
                             SITE_TAB, IP_RW, ISR_ATMOST1, 0, IPS_OK);
 
-    CredentialsTP[0].fill("USERNAME", "User name", "scopedome");
-    CredentialsTP[1].fill("PASSWORD", "Password", "default");
+    char defaultUsername[MAXINDINAME] = "scopedome";
+    char defaultPassword[MAXINDINAME] = "default";
+    IUGetConfigText(getDeviceName(), "CREDENTIALS", "USERNAME", defaultUsername, MAXINDINAME);
+    IUGetConfigText(getDeviceName(), "CREDENTIALS", "PASSWORD", defaultPassword, MAXINDINAME);
+    CredentialsTP[0].fill("USERNAME", "User name", defaultUsername);
+    CredentialsTP[1].fill("PASSWORD", "Password", defaultPassword);
     CredentialsTP.fill(getDeviceName(), "CREDENTIALS", "Credentials", CONNECTION_TAB, IP_RW, 0, IPS_OK);
 
-    SetParkDataType(PARK_AZ);
-
-    addAuxControls();
-
-    CardTypeSP[0].fill("USB_CARD_21", "USB Card 2.1", ISS_ON);
-    CardTypeSP[1].fill("ARDUINO", "Arduino Card", ISS_OFF);
+    ISState usbcard21 = ISS_ON;
+    ISState arduino = ISS_OFF;
+    IUGetConfigSwitch(getDeviceName(), "CARD_TYPE", "USB_CARD_21", &usbcard21);
+    IUGetConfigSwitch(getDeviceName(), "CARD_TYPE", "ARDUINO", &arduino);
+    CardTypeSP[SCOPEDOME_USB21].fill("USB_CARD_21", "USB Card 2.1", usbcard21);
+    CardTypeSP[SCOPEDOME_ARDUINO].fill("ARDUINO", "Arduino Card", arduino);
     CardTypeSP.fill(getDeviceName(), "CARD_TYPE", "Card type",
                     CONNECTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
-    defineProperty(&CardTypeSP);
-    if(!loadConfig(true, CardTypeSP.getName()))
+    switch(CardTypeSP.findOnSwitchIndex())
     {
-        // Set serial parameters
-        // This is tricky as Arduino card communicates at 9600 bauds, but
-        // USB Card 2.1 uses 115200 bauds
-        serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+        case SCOPEDOME_USB21:
+        default:
+            serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+            break;
+        case SCOPEDOME_ARDUINO:
+            serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
+            break;
     }
 
+    SetParkDataType(PARK_AZ);
+    addAuxControls();
+
+    defineProperty(&CardTypeSP);
     defineProperty(CredentialsTP);
-    loadConfig(true, CredentialsTP.getName());
 
     setPollingPeriodRange(1000, 3000); // Device doesn't like too long interval
     setDefaultPollingPeriod(1000);
@@ -245,13 +254,15 @@ bool ScopeDome::Handshake()
     }
     else
     {
-        if(CardTypeSP[0].getState() == ISS_ON)
+        switch(CardTypeSP.findOnSwitchIndex())
         {
-            interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeUSB21(this, PortFD)));
-        }
-        else
-        {
+            case SCOPEDOME_USB21:
+            default:
+                interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeUSB21(this, PortFD)));
+                break;
+            case SCOPEDOME_ARDUINO:
             interface.reset(static_cast<ScopeDomeCard *>(new ScopeDomeArduino(this, getActiveConnection())));
+                break;
         }
     }
     if (interface->detect())
