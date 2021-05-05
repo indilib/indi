@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <thread>
 #include <chrono>
+#include <algorithm>
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
@@ -151,23 +152,22 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
     D_PTR(BaseDevice);
     std::lock_guard<std::mutex> lock(d->m_Lock);
 
-    for (auto orderi = d->pAll.begin(); orderi != d->pAll.end(); ++orderi)
+    for (auto oneProp : d->pAll)
     {
-        const auto &oneProp = *orderi;
         if (!strcmp(name, oneProp->getName()))
         {
-            // JM 2021-04-28: delete later. We perform the actual delete after 1000ms to give clients a chance to remove the object.
+            d->pAll.erase(std::remove(d->pAll.begin(), d->pAll.end(), oneProp), d->pAll.end());
+            // JM 2021-04-28: delete later. We perform the actual delete after 100ms to give clients a chance to remove the object.
             // This is necessary when rapid define-delete-define sequences are made.
             // This HACK is not ideal. We need to start using std::shared_ptr for this purpose soon, but this will be a major change to the
             // interface. Perhaps for INDI 2.0
             std::thread t([oneProp]()
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 delete oneProp;
             });
             t.detach();
-
-            orderi = d->pAll.erase(orderi);
             return 0;
         }
     }
