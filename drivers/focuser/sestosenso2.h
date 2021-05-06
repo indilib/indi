@@ -21,6 +21,7 @@
 #pragma once
 
 #include "indifocuser.h"
+#include "inditimer.h"
 
 class CommandSet
 {
@@ -97,8 +98,8 @@ class SestoSenso2 : public INDI::Focuser
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-        static void checkMotionProgressHelper(void *context);
-        static void checkHallSensorHelper(void *context);
+        //        static void checkMotionProgressHelper(void *context);
+        //        static void checkHallSensorHelper(void *context);
 
     protected:
         virtual bool Handshake() override;
@@ -248,8 +249,10 @@ class SestoSenso2 : public INDI::Focuser
         typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
 
-        int m_MotionProgressTimerID {-1};
-        int m_HallSensorTimerID {-1};
+        //        int m_MotionProgressTimerID {-1};
+        //        int m_HallSensorTimerID {-1};
+        std::unique_ptr<INDI::Timer> m_MotionProgressTimer;
+        std::unique_ptr<INDI::Timer> m_HallSensorTimer;
         bool m_IsSestoSenso2 { true };
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
