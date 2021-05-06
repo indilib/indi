@@ -595,7 +595,7 @@
     <devGroup group="Domes">
         <device label="ScopeDome Dome" manufacturer="ScopeDome">
             <driver name="ScopeDome Dome">indi_scopedome_dome</driver>
-            <version>1.2</version>
+            <version>2.0</version>
         </device>
         <device label="DDW Dome" manufacturer="Technical Innovations">
             <driver name="DDW Dome">indi_ddw_dome</driver>
