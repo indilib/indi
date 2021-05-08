@@ -126,10 +126,7 @@ class INDI::BaseClient : public INDI::BaseMediator
 
         /** \returns Returns a vector of all devices created in the client.
         */
-        const std::vector<INDI::BaseDevice *> &getDevices() const
-        {
-            return cDevices;
-        }
+        const std::vector<INDI::BaseDevice *> &getDevices() const;
 
         /**
          * @brief getDevices Returns list of devices that belong to a particular @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE" class.
@@ -174,14 +171,9 @@ class INDI::BaseClient : public INDI::BaseMediator
          */
         BLOBHandling getBLOBMode(const char *dev, const char *prop = nullptr);
 
-        const char *getHost()
-        {
-            return cServer.c_str();
-        }
-        int getPort()
-        {
-            return cPort;
-        }
+        const char *getHost() const;
+
+        int getPort() const;
 
         /** \brief Send new Text command to server */
         void sendNewText(ITextVectorProperty *pp);
@@ -210,30 +202,20 @@ class INDI::BaseClient : public INDI::BaseMediator
          * @param enable If true, enable <b>FULL</b> verbose output. Any XML message received, including BLOBs, are printed on
          * standard output. Only use this for debugging purposes.
          */
-        void setVerbose(bool enable)
-        {
-            verbose = enable;
-        }
+        void setVerbose(bool enable);
 
         /**
          * @brief isVerbose Is client in verbose mode?
          * @return Is client in verbose mode?
          */
-        bool isVerbose() const
-        {
-            return verbose;
-        }
+        bool isVerbose() const;
 
         /**
          * @brief setConnectionTimeout Set connection timeout. By default it is 3 seconds.
          * @param seconds seconds
          * @param microseconds microseconds
          */
-        void setConnectionTimeout(uint32_t seconds, uint32_t microseconds)
-        {
-            timeout_sec = seconds;
-            timeout_us  = microseconds;
-        }
+        void setConnectionTimeout(uint32_t seconds, uint32_t microseconds);
 
         void serverDisconnected(int exit_code) override;
 

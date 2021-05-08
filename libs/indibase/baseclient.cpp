@@ -129,6 +129,22 @@ void INDI::BaseClient::clear()
     blobModes.clear();
 }
 
+void INDI::BaseClient::setVerbose(bool enable)
+{
+    verbose = enable;
+}
+
+bool INDI::BaseClient::isVerbose() const
+{
+    return verbose;
+}
+
+void INDI::BaseClient::setConnectionTimeout(uint32_t seconds, uint32_t microseconds)
+{
+    timeout_sec = seconds;
+    timeout_us  = microseconds;
+}
+
 void INDI::BaseClient::setServer(const char *hostname, unsigned int port)
 {
     cServer = hostname;
@@ -413,6 +429,21 @@ INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
             return device;
     }
     return nullptr;
+}
+
+const std::vector<INDI::BaseDevice *> &INDI::BaseClient::getDevices() const
+{
+    return cDevices;
+}
+
+const char *INDI::BaseClient::getHost() const
+{
+    return cServer.c_str();
+}
+
+int INDI::BaseClient::getPort() const
+{
+    return cPort;
 }
 
 void INDI::BaseClient::listenINDI()
