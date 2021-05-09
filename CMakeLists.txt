@@ -1228,11 +1228,6 @@ add_executable(indi_lacerta_mfoc_focus ${lacerta_mfoc_SRC})
 target_link_libraries(indi_lacerta_mfoc_focus indidriver)
 install(TARGETS indi_lacerta_mfoc_focus RUNTIME DESTINATION bin)
 
-#### UDEV Rules File for Focusers ####
-#### One rule for for all INDI standard focusers ####
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-focusers.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 #################################################################################
 
 #####################################
