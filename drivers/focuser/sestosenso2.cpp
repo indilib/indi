@@ -62,13 +62,12 @@ SestoSenso2::SestoSenso2()
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
-    m_MotionProgressTimer.reset(new INDI::Timer);
-    m_MotionProgressTimer->callOnTimeout(std::bind(&SestoSenso2::checkMotionProgressCallback, this));
-    m_MotionProgressTimer->setSingleShot(true);
+    m_MotionProgressTimer.callOnTimeout(std::bind(&SestoSenso2::checkMotionProgressCallback, this));
+    m_MotionProgressTimer.setSingleShot(true);
 
-    m_HallSensorTimer.reset(new INDI::Timer);
-    m_HallSensorTimer->callOnTimeout(std::bind(&SestoSenso2::checkHallSensorCallback, this));
-    m_HallSensorTimer->setSingleShot(true);
+    m_HallSensorTimer.callOnTimeout(std::bind(&SestoSenso2::checkHallSensorCallback, this));
+    m_HallSensorTimer.setSingleShot(true);
+    m_HallSensorTimer.setInterval(1000);
 }
 
 bool SestoSenso2::initProperties()
@@ -763,7 +762,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                             //                            if (m_MotionProgressTimerID > 0)
                             //                                IERmTimer(m_MotionProgressTimerID);
                             //                            m_MotionProgressTimerID = IEAddTimer(500, &SestoSenso2::checkMotionProgressHelper, this);
-                            m_MotionProgressTimer->start(500);
+                            m_MotionProgressTimer.start(500);
                         }
                     }
                     IDSetText(&CalibrationMessageTP, nullptr);
@@ -796,7 +795,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 //                if (m_MotionProgressTimerID > 0)
                 //                    IERmTimer(m_MotionProgressTimerID);
                 //                m_MotionProgressTimerID = IEAddTimer(100, &SestoSenso2::checkMotionProgressHelper, this);
-                m_MotionProgressTimer->start(100);
+                m_MotionProgressTimer.start(100);
             }
             else
             {
@@ -959,7 +958,7 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
     //    if (m_MotionProgressTimerID > 0)
     //        IERmTimer(m_MotionProgressTimerID);
     //    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso2::checkMotionProgressHelper, this);
-    m_MotionProgressTimer->start(10);
+    m_MotionProgressTimer.start(10);
     return IPS_BUSY;
 }
 
@@ -982,7 +981,7 @@ bool SestoSenso2::AbortFocuser()
     //        m_MotionProgressTimerID = -1;
     //    }
 
-    m_MotionProgressTimer->stop();
+    m_MotionProgressTimer.stop();
 
     if (isSimulation())
         return true;
@@ -1059,11 +1058,13 @@ void SestoSenso2::checkMotionProgressCallback()
 
     //    IERmTimer(m_MotionProgressTimerID);
     //    m_MotionProgressTimerID = IEAddTimer(500, &SestoSenso2::checkMotionProgressHelper, this);
-    m_MotionProgressTimer->start(500);
+    m_MotionProgressTimer.start(500);
 }
 
 void SestoSenso2::checkHallSensorCallback()
 {
+    // FIXME
+    // Function not getting call from anywhere?
     char res[SESTO_LEN] = {0};
     if (command->getHallSensor(res))
     {
@@ -1081,7 +1082,7 @@ void SestoSenso2::checkHallSensorCallback()
     }
 
     //m_HallSensorTimerID = IEAddTimer(1000, &SestoSenso2::checkHallSensorHelper, this);
-    m_HallSensorTimer->start(1000);
+    m_HallSensorTimer.start();
 }
 
 void SestoSenso2::TimerHit()

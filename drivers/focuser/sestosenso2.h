@@ -251,8 +251,8 @@ class SestoSenso2 : public INDI::Focuser
 
         //        int m_MotionProgressTimerID {-1};
         //        int m_HallSensorTimerID {-1};
-        std::unique_ptr<INDI::Timer> m_MotionProgressTimer;
-        std::unique_ptr<INDI::Timer> m_HallSensorTimer;
+        INDI::Timer m_MotionProgressTimer;
+        INDI::Timer m_HallSensorTimer;
         bool m_IsSestoSenso2 { true };
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
