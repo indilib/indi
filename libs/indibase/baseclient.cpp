@@ -956,8 +956,9 @@ void INDI::BaseClient::newUniversalMessage(std::string message)
 
 void INDI::BaseClient::sendNewText(ITextVectorProperty *tvp)
 {
+    D_PTR(BaseClient);
     tvp->s = IPS_BUSY;
-    IUUserIONewText(&io, this, tvp);
+    IUUserIONewText(&io, d, tvp);
 }
 
 void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
@@ -985,8 +986,9 @@ void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyN
 
 void INDI::BaseClient::sendNewNumber(INumberVectorProperty *nvp)
 {
+    D_PTR(BaseClient);
     nvp->s = IPS_BUSY;
-    IUUserIONewNumber(&io, this, nvp);
+    IUUserIONewNumber(&io, d, nvp);
 }
 
 void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
@@ -1014,8 +1016,9 @@ void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propert
 
 void INDI::BaseClient::sendNewSwitch(ISwitchVectorProperty *svp)
 {
+    D_PTR(BaseClient);
     svp->s = IPS_BUSY;
-    IUUserIONewSwitch(&io, this, svp);
+    IUUserIONewSwitch(&io, d, svp);
 }
 
 void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
@@ -1042,13 +1045,15 @@ void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propert
 
 void INDI::BaseClient::startBlob(const char *devName, const char *propName, const char *timestamp)
 {
-    IUUserIONewBLOBStart(&io, this, devName, propName, timestamp);
+    D_PTR(BaseClient);
+    IUUserIONewBLOBStart(&io, d, devName, propName, timestamp);
 }
 
 void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
+    D_PTR(BaseClient);
     IUUserIOBLOBContextOne(
-        &io, this,
+        &io, d,
         bp->name, bp->size, bp->bloblen, bp->blob, bp->format
     );
 }
@@ -1056,15 +1061,17 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
                                    void *blobBuffer)
 {
+    D_PTR(BaseClient);
     IUUserIOBLOBContextOne(
-        &io, this,
+        &io, d,
         blobName, blobSize, blobSize, blobBuffer, blobFormat
     );
 }
 
 void INDI::BaseClient::finishBlob()
 {
-    IUUserIONewBLOBFinish(&io, this);
+    D_PTR(BaseClient);
+    IUUserIONewBLOBFinish(&io, d);
 }
 
 void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
@@ -1092,7 +1099,7 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
         bMode->blobMode = blobH;
     }
 
-    IUUserIOEnableBLOB(&io, this, dev, prop, blobH);
+    IUUserIOEnableBLOB(&io, d, dev, prop, blobH);
 }
 
 BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
