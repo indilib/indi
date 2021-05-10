@@ -816,6 +816,18 @@ const char *BaseDevice::getDeviceName() const
     return d->deviceName.data();
 }
 
+bool BaseDevice::isDeviceNameMatch(const char *otherName) const
+{
+    D_PTR(const BaseDevice);
+    return d->deviceName == otherName;
+}
+
+bool BaseDevice::isDeviceNameMatch(const std::string &otherName) const
+{
+    D_PTR(const BaseDevice);
+    return d->deviceName == otherName;
+}
+
 /* add message to queue
  * N.B. don't put carriage control in msg, we take care of that.
  */

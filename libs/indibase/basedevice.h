@@ -192,6 +192,12 @@ public:
     /** \return Returns the device name */
     const char *getDeviceName() const;
 
+    /** @brief Check that the device name matches the argument. **/
+    bool isDeviceNameMatch(const char *otherName) const;
+
+    /** @brief Check that the device name matches the argument. **/
+    bool isDeviceNameMatch(const std::string &otherName) const;
+
     /** \return driver name
      *  \note This can only be valid if DRIVER_INFO is defined by the driver.
      */
