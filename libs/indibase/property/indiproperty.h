@@ -89,6 +89,8 @@ public: // Convenience Functions
 
 public:
     bool isEmpty() const;
+    bool isValid() const;
+    operator bool() const;
 
     bool isNameMatch(const char *otherName) const;
     bool isNameMatch(const std::string &otherName) const;

@@ -285,6 +285,17 @@ bool Property::isEmpty() const
     return true;
 }
 
+bool Property::isValid() const
+{
+    D_PTR(const Property);
+    return d->type != INDI_UNKNOWN;
+}
+
+Property::operator bool() const
+{
+    return isValid();
+}
+
 bool Property::isNameMatch(const char *otherName) const
 {
     D_PTR(const Property);
