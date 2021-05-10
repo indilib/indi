@@ -133,6 +133,7 @@ void BaseClientPrivate::clear()
         blobModes.pop_back();
     }
     blobModes.clear();
+    // cDeviceNames.clear(); // #PS: missing?
 }
 
 bool BaseClientPrivate::connect()
@@ -865,12 +866,7 @@ void INDI::BaseClient::setServer(const char *hostname, unsigned int port)
 void INDI::BaseClient::watchDevice(const char *deviceName)
 {
     D_PTR(BaseClient);
-    // Watch for duplicates. Should have used std::set from the beginning but let's
-    // avoid changing API now.
-    if (std::find(d->cDeviceNames.begin(), d->cDeviceNames.end(), deviceName) != d->cDeviceNames.end())
-        return;
-
-    d->cDeviceNames.emplace_back(deviceName);
+    d->cDeviceNames.insert(deviceName);
 }
 
 void INDI::BaseClient::watchProperty(const char *deviceName, const char *propertyName)

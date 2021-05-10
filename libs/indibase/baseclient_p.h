@@ -92,7 +92,7 @@ public:
 #endif
 
     std::vector<INDI::BaseDevice *> cDevices;
-    std::vector<std::string> cDeviceNames;
+    std::set<std::string> cDeviceNames;
     std::vector<BLOBMode *> blobModes;
     std::map<std::string, std::set<std::string>> cWatchProperties;
 
