@@ -18,27 +18,14 @@
 
 #pragma once
 
-
 #include "indiapi.h"
 #include "indibase.h"
 
 #include <string>
 #include <vector>
-#include <map>
-#include <set>
 
-#include <atomic>
-#include <mutex>
-#include <condition_variable>
-#include <thread>
-
-#ifdef _WINDOWS
-#include <WinSock2.h>
-#if defined(_MSC_VER)
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
-#endif
-#endif
+#include <indimacros.h>
+#include <memory>
 
 // #define MAXRBUF 2048 // #PS: defined in indibase.h
 
@@ -59,8 +46,15 @@ typedef SSIZE_T ssize_t;
  *  @see <a href="http://indilib.org/develop/tutorials/107-client-development-tutorial.html">INDI Client Tutorial</a> for more details.
  *  @author Jasem Mutlaq
  */
+
+namespace INDI
+{
+    class BaseClientPrivate;
+}
 class INDI::BaseClient : public INDI::BaseMediator
 {
+        DECLARE_PRIVATE(BaseClient)
+
     public:
         BaseClient();
         virtual ~BaseClient();
@@ -217,80 +211,12 @@ class INDI::BaseClient : public INDI::BaseMediator
         void finishBlob();
 
     protected:
-        /** @brief Dispatch command received from INDI server to respective devices handled by the client */
-        int dispatchCommand(XMLEle *root, char *errmsg);
-
-        /** @brief Remove device */
-        int deleteDevice(const char *devName, char *errmsg);
-
-        /** @brief Delete property command */
-        int delPropertyCmd(XMLEle *root, char *errmsg);
-
-        /** @brief Find and return a particular device */
-        INDI::BaseDevice *findDev(const char *devName, char *errmsg);
-        /** @brief Add a new device */
-        INDI::BaseDevice *addDevice(XMLEle *dep, char *errmsg);
-        /** @brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-        INDI::BaseDevice *findDev(XMLEle *root, int create, char *errmsg);
-
-        /**  Process messages */
-        int messageCmd(XMLEle *root, char *errmsg);
-
         /** @brief newUniversalMessage Universal messages are sent from INDI server without a specific device. It is addressed to the client overall.
          *  @param message content of message.
          *  @note The default implementation simply logs the message to stderr. Override to handle the message.
          */
         virtual void newUniversalMessage(std::string message);
 
-    private:
-        struct BLOBMode
-        {
-            std::string device;
-            std::string property;
-            BLOBHandling blobMode;
-        };
-
-        BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
-
-        /** @brief Connect/Disconnect to INDI driver
-         *  @param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
-         *                Otherwise, CONNECTION will be turned off.
-         *  @param deviceName Name of the device to connect to.
-         */
-        void setDriverConnection(bool status, const char *deviceName);
-
-        /** @brief clear Clear devices and blob modes */
-        void clear();
-
-#ifdef _WINDOWS
-        SOCKET sockfd;
-#else
-        int sockfd {-1};
-        int m_receiveFd {-1};
-        int m_sendFd {-1};
-#endif
-
-        // Listen to INDI server and process incoming messages
-        void listenINDI();
-
-        size_t sendData(const void *data, size_t size);
-        void sendString(const char *fmt, ...);
-
-        std::vector<INDI::BaseDevice *> cDevices;
-        std::vector<std::string> cDeviceNames;
-        std::vector<BLOBMode *> blobModes;
-        std::map<std::string, std::set<std::string>> cWatchProperties;
-
-        std::string cServer;
-        uint32_t cPort;
-        std::atomic_bool sConnected;
-        std::atomic_bool sAboutToClose;
-        std::mutex sSocketBusy;
-        std::condition_variable sSocketChanged;
-        int sExitCode;
-        bool verbose;
-
-        // Parse & FILE buffers for IO
-
-        uint32_t timeout_sec, timeout_us;
+    protected:
+        std::unique_ptr<INDI::BaseClientPrivate> d_ptr;
 };
