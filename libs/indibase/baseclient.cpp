@@ -584,11 +584,9 @@ int BaseClientPrivate::dispatchCommand(XMLEle *root, char *errmsg)
 
 int BaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
 {
-    std::vector<INDI::BaseDevice *>::iterator devicei;
-
-    for (devicei = cDevices.begin(); devicei != cDevices.end();)
+    for (auto devicei = cDevices.begin(); devicei != cDevices.end();)
     {
-        if (!strcmp(devName, (*devicei)->getDeviceName()))
+        if ((*devicei)->isDeviceNameMatch(devName))
         {
             parent->removeDevice(*devicei);
             delete *devicei;
@@ -652,7 +650,7 @@ INDI::BaseDevice *BaseClientPrivate::findDev(const char *devName, char *errmsg)
 {
     auto pos = std::find_if(cDevices.begin(), cDevices.end(), [devName](INDI::BaseDevice * oneDevice)
     {
-        return !strcmp(oneDevice->getDeviceName(), devName);
+        return oneDevice->isDeviceNameMatch(devName);
     });
 
     if (pos != cDevices.end())
@@ -665,8 +663,6 @@ INDI::BaseDevice *BaseClientPrivate::findDev(const char *devName, char *errmsg)
 /* add new device */
 INDI::BaseDevice *BaseClientPrivate::addDevice(XMLEle *dep, char *errmsg)
 {
-    //devicePtr dp(new INDI::BaseDriver());
-    INDI::BaseDevice *dp = new INDI::BaseDevice();
     char *device_name;
 
     /* allocate new INDI::BaseDriver */
@@ -674,9 +670,10 @@ INDI::BaseDevice *BaseClientPrivate::addDevice(XMLEle *dep, char *errmsg)
     if (!ap)
     {
         strncpy(errmsg, "Unable to find device attribute in XML element. Cannot add device.", MAXRBUF);
-        delete (dp);
         return nullptr;
     }
+
+    INDI::BaseDevice *dp = new INDI::BaseDevice();
 
     device_name = valuXMLAtt(ap);
 
@@ -786,44 +783,43 @@ BLOBMode *INDI::BaseClientPrivate::findBLOBMode(const std::string &device, const
 
 void BaseClientPrivate::setDriverConnection(bool status, const char *deviceName)
 {
-    INDI::BaseDevice *drv                 = parent->getDevice(deviceName);
-    ISwitchVectorProperty *drv_connection = nullptr;
+    INDI::BaseDevice *drv = parent->getDevice(deviceName);
 
-    if (drv == nullptr)
+    if (!drv)
     {
         IDLog("INDI::BaseClient: Error. Unable to find driver %s\n", deviceName);
         return;
     }
 
-    drv_connection = drv->getSwitch(INDI::SP::CONNECTION);
+    auto drv_connection = drv->getSwitch(INDI::SP::CONNECTION);
 
-    if (drv_connection == nullptr)
+    if (!drv_connection)
         return;
 
     // If we need to connect
     if (status)
     {
         // If there is no need to do anything, i.e. already connected.
-        if (drv_connection->sp[0].s == ISS_ON)
+        if (drv_connection->at(0)->getState() == ISS_ON)
             return;
 
-        IUResetSwitch(drv_connection);
-        drv_connection->s       = IPS_BUSY;
-        drv_connection->sp[0].s = ISS_ON;
-        drv_connection->sp[1].s = ISS_OFF;
+        drv_connection->reset();
+        drv_connection->setState(IPS_BUSY);
+        drv_connection->at(0)->setState(ISS_ON);
+        drv_connection->at(1)->setState(ISS_OFF);
 
         parent->sendNewSwitch(drv_connection);
     }
     else
     {
         // If there is no need to do anything, i.e. already disconnected.
-        if (drv_connection->sp[1].s == ISS_ON)
+        if (drv_connection->at(1)->getState() == ISS_ON)
             return;
 
-        IUResetSwitch(drv_connection);
-        drv_connection->s       = IPS_BUSY;
-        drv_connection->sp[0].s = ISS_OFF;
-        drv_connection->sp[1].s = ISS_ON;
+        drv_connection->reset();
+        drv_connection->setState(IPS_BUSY);
+        drv_connection->at(0)->setState(ISS_OFF);
+        drv_connection->at(1)->setState(ISS_ON);
 
         parent->sendNewSwitch(drv_connection);
     }
@@ -925,7 +921,7 @@ INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
     D_PTR(BaseClient);
     for (auto &device : d->cDevices)
     {
-        if (!strcmp(deviceName, device->getDeviceName()))
+        if (device->isDeviceNameMatch(deviceName))
             return device;
     }
     return nullptr;
@@ -966,20 +962,20 @@ void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyN
 {
     INDI::BaseDevice *drv = getDevice(deviceName);
 
-    if (drv == nullptr)
+    if (!drv)
         return;
 
-    ITextVectorProperty *tvp = drv->getText(propertyName);
+    auto tvp = drv->getText(propertyName);
 
-    if (tvp == nullptr)
+    if (!tvp)
         return;
 
-    IText *tp = IUFindText(tvp, elementName);
+    auto tp = tvp->findWidgetByName(elementName);
 
-    if (tp == nullptr)
+    if (!tp)
         return;
 
-    IUSaveText(tp, text);
+    tp->setText(text);
 
     sendNewText(tvp);
 }
@@ -996,20 +992,20 @@ void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propert
 {
     INDI::BaseDevice *drv = getDevice(deviceName);
 
-    if (drv == nullptr)
+    if (!drv)
         return;
 
-    INumberVectorProperty *nvp = drv->getNumber(propertyName);
+    auto nvp = drv->getNumber(propertyName);
 
-    if (nvp == nullptr)
+    if (!nvp)
         return;
 
-    INumber *np = IUFindNumber(nvp, elementName);
+    auto np = nvp->findWidgetByName(elementName);
 
-    if (np == nullptr)
+    if (!np)
         return;
 
-    np->value = value;
+    np->setValue(value);
 
     sendNewNumber(nvp);
 }
@@ -1025,20 +1021,20 @@ void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propert
 {
     INDI::BaseDevice *drv = getDevice(deviceName);
 
-    if (drv == nullptr)
+    if (!drv)
         return;
 
-    ISwitchVectorProperty *svp = drv->getSwitch(propertyName);
+    auto svp = drv->getSwitch(propertyName);
 
-    if (svp == nullptr)
+    if (!svp)
         return;
 
-    ISwitch *sp = IUFindSwitch(svp, elementName);
+    auto sp = svp->findWidgetByName(elementName);
 
-    if (sp == nullptr)
+    if (!sp)
         return;
 
-    sp->s = ISS_ON;
+    sp->setState(ISS_ON);
 
     sendNewSwitch(svp);
 }
