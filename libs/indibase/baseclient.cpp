@@ -766,7 +766,7 @@ int BaseClientPrivate::messageCmd(XMLEle *root, char *errmsg)
             snprintf(msgBuffer, MAXRBUF, "%s: %s", ts, valuXMLAtt(message));
         }
 
-        IDLog("%s\n", msgBuffer);
+        parent->newUniversalMessage(msgBuffer);
     }
 
     return (0);
