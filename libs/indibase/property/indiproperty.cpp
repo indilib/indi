@@ -271,6 +271,11 @@ IPState Property::getState() const
     return IPS_ALERT;
 }
 
+const char *Property::getStateAsString() const
+{
+    return pstateStr(getState());
+}
+
 IPerm Property::getPermission() const
 {
     D_PTR(const Property);

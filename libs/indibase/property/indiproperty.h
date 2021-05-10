@@ -85,6 +85,7 @@ public: // Convenience Functions
     const char *getDeviceName() const;
     const char *getTimestamp() const;
     IPState getState() const;
+    const char *getStateAsString() const;
     IPerm getPermission() const;
 
 public:
