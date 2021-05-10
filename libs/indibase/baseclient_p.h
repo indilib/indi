@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <map>
+#include <list>
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
@@ -93,7 +94,7 @@ public:
 
     std::vector<INDI::BaseDevice *> cDevices;
     std::set<std::string> cDeviceNames;
-    std::vector<BLOBMode *> blobModes;
+    std::list<BLOBMode> blobModes;
     std::map<std::string, std::set<std::string>> cWatchProperties;
 
     std::string cServer;

@@ -127,11 +127,6 @@ void BaseClientPrivate::clear()
         cDevices.pop_back();
     }
     cDevices.clear();
-    while (!blobModes.empty())
-    {
-        delete blobModes.back();
-        blobModes.pop_back();
-    }
     blobModes.clear();
     // cDeviceNames.clear(); // #PS: missing?
 }
@@ -629,7 +624,7 @@ int BaseClientPrivate::delPropertyCmd(XMLEle *root, char *errmsg)
         if (rProp == nullptr)
         {
             // Silently ignore B_ONLY clients.
-            if (blobModes.empty() || blobModes[0]->blobMode == B_ONLY)
+            if (blobModes.empty() || blobModes.front().blobMode == B_ONLY)
                 return 0;
 
             snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", valuXMLAtt(ap));
@@ -775,8 +770,8 @@ BLOBMode *INDI::BaseClientPrivate::findBLOBMode(const std::string &device, const
 {
     for (auto &blob : blobModes)
     {
-        if (blob->device == device && (property.empty() || blob->property == property))
-            return blob;
+        if (blob.device == device && (property.empty() || blob.property == property))
+            return &blob;
     }
 
     return nullptr;
@@ -1076,11 +1071,11 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
 
     if (bMode == nullptr)
     {
-        BLOBMode *newMode = new BLOBMode();
-        newMode->device   = std::string(dev);
-        newMode->property = (prop ? std::string(prop) : std::string());
-        newMode->blobMode = blobH;
-        d->blobModes.push_back(newMode);
+        BLOBMode newMode;
+        newMode.device   = std::string(dev);
+        newMode.property = (prop ? std::string(prop) : std::string());
+        newMode.blobMode = blobH;
+        d->blobModes.push_back(std::move(newMode));
     }
     else
     {
