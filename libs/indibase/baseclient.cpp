@@ -66,33 +66,39 @@
 
 static userio io;
 
-INDI::BaseClient::BaseClient() : cServer("localhost"), cPort(7624)
+#include "baseclient_p.h"
+
+namespace INDI
+{
+
+BaseClientPrivate::BaseClientPrivate(BaseClient *parent)
+    : parent(parent)
+    , cServer("localhost")
+    , cPort(7624)
+    , sConnected(false)
+    , verbose(false)
+    , timeout_sec(3)
+    , timeout_us(0)
 {
     io.write = [](void *user, const void * ptr, size_t count) -> size_t
     {
-        BaseClient *self = static_cast<BaseClient *>(user);
+        auto self = static_cast<BaseClientPrivate *>(user);
         return self->sendData(ptr, count);
     };
 
     io.vprintf = [](void *user, const char * format, va_list ap) -> int
     {
-        BaseClient *self = static_cast<BaseClient *>(user);
+        auto self = static_cast<BaseClientPrivate *>(user);
         char message[MAXRBUF];
         vsnprintf(message, MAXRBUF, format, ap);
         return self->sendData(message, strlen(message));
     };
-
-    sConnected = false;
-    verbose    = false;
-
-    timeout_sec = 3;
-    timeout_us  = 0;
 }
 
-INDI::BaseClient::~BaseClient()
+BaseClientPrivate::~BaseClientPrivate()
 {
-    if (isServerConnected())
-        disconnectServer();
+    if (sConnected)
+        disconnect(0);
 
     std::unique_lock<std::mutex> locker(sSocketBusy);
     if (!sSocketChanged.wait_for(locker, std::chrono::milliseconds(500), [this]{ return sConnected == false; }))
@@ -113,7 +119,7 @@ INDI::BaseClient::~BaseClient()
     }
 }
 
-void INDI::BaseClient::clear()
+void BaseClientPrivate::clear()
 {
     while (!cDevices.empty())
     {
@@ -129,45 +135,7 @@ void INDI::BaseClient::clear()
     blobModes.clear();
 }
 
-void INDI::BaseClient::setVerbose(bool enable)
-{
-    verbose = enable;
-}
-
-bool INDI::BaseClient::isVerbose() const
-{
-    return verbose;
-}
-
-void INDI::BaseClient::setConnectionTimeout(uint32_t seconds, uint32_t microseconds)
-{
-    timeout_sec = seconds;
-    timeout_us  = microseconds;
-}
-
-void INDI::BaseClient::setServer(const char *hostname, unsigned int port)
-{
-    cServer = hostname;
-    cPort   = port;
-}
-
-void INDI::BaseClient::watchDevice(const char *deviceName)
-{
-    // Watch for duplicates. Should have used std::set from the beginning but let's
-    // avoid changing API now.
-    if (std::find(cDeviceNames.begin(), cDeviceNames.end(), deviceName) != cDeviceNames.end())
-        return;
-
-    cDeviceNames.emplace_back(deviceName);
-}
-
-void INDI::BaseClient::watchProperty(const char *deviceName, const char *propertyName)
-{
-    watchDevice(deviceName);
-    cWatchProperties[deviceName].insert(propertyName);
-}
-
-bool INDI::BaseClient::connectServer()
+bool BaseClientPrivate::connect()
 {
     std::unique_lock<std::mutex> locker(sSocketBusy);
     if (sConnected == true)
@@ -314,19 +282,19 @@ bool INDI::BaseClient::connectServer()
         return false;
     }
 
-    m_receiveFd = pipefd[0];
-    m_sendFd    = pipefd[1];
+    receiveFd = pipefd[0];
+    sendFd    = pipefd[1];
 #endif
 
     sConnected = true;
     sAboutToClose = false;
     sSocketChanged.notify_all();
-    std::thread(std::bind(&BaseClient::listenINDI, this)).detach();
+    std::thread(std::bind(&BaseClientPrivate::listenINDI, this)).detach();
 
     return true;
 }
 
-bool INDI::BaseClient::disconnectServer(int exit_code)
+bool BaseClientPrivate::disconnect(int exit_code)
 {
     //IDLog("Server disconnected called\n");
     std::lock_guard<std::mutex> locker(sSocketBusy);
@@ -345,7 +313,7 @@ bool INDI::BaseClient::disconnectServer(int exit_code)
     shutdown(sockfd, SHUT_RDWR); // no needed
     size_t c = 1;
     // wakeup 'select' function
-    ssize_t ret = write(m_sendFd, &c, sizeof(c));
+    ssize_t ret = write(sendFd, &c, sizeof(c));
     if (ret != sizeof(c))
     {
         IDLog("INDI::BaseClient::disconnectServer: Error. The socket cannot be woken up.\n");
@@ -355,98 +323,7 @@ bool INDI::BaseClient::disconnectServer(int exit_code)
     return true;
 }
 
-// #PS: avoid calling pure virtual method
-void INDI::BaseClient::serverDisconnected(int exit_code)
-{
-    INDI_UNUSED(exit_code);
-}
-
-bool INDI::BaseClient::isServerConnected() const
-{
-    return sConnected;
-}
-
-void INDI::BaseClient::connectDevice(const char *deviceName)
-{
-    setDriverConnection(true, deviceName);
-}
-
-void INDI::BaseClient::disconnectDevice(const char *deviceName)
-{
-    setDriverConnection(false, deviceName);
-}
-
-void INDI::BaseClient::setDriverConnection(bool status, const char *deviceName)
-{
-    INDI::BaseDevice *drv                 = getDevice(deviceName);
-    ISwitchVectorProperty *drv_connection = nullptr;
-
-    if (drv == nullptr)
-    {
-        IDLog("INDI::BaseClient: Error. Unable to find driver %s\n", deviceName);
-        return;
-    }
-
-    drv_connection = drv->getSwitch(INDI::SP::CONNECTION);
-
-    if (drv_connection == nullptr)
-        return;
-
-    // If we need to connect
-    if (status)
-    {
-        // If there is no need to do anything, i.e. already connected.
-        if (drv_connection->sp[0].s == ISS_ON)
-            return;
-
-        IUResetSwitch(drv_connection);
-        drv_connection->s       = IPS_BUSY;
-        drv_connection->sp[0].s = ISS_ON;
-        drv_connection->sp[1].s = ISS_OFF;
-
-        sendNewSwitch(drv_connection);
-    }
-    else
-    {
-        // If there is no need to do anything, i.e. already disconnected.
-        if (drv_connection->sp[1].s == ISS_ON)
-            return;
-
-        IUResetSwitch(drv_connection);
-        drv_connection->s       = IPS_BUSY;
-        drv_connection->sp[0].s = ISS_OFF;
-        drv_connection->sp[1].s = ISS_ON;
-
-        sendNewSwitch(drv_connection);
-    }
-}
-
-INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
-{
-    for (auto &device : cDevices)
-    {
-        if (!strcmp(deviceName, device->getDeviceName()))
-            return device;
-    }
-    return nullptr;
-}
-
-const std::vector<INDI::BaseDevice *> &INDI::BaseClient::getDevices() const
-{
-    return cDevices;
-}
-
-const char *INDI::BaseClient::getHost() const
-{
-    return cServer.c_str();
-}
-
-int INDI::BaseClient::getPort() const
-{
-    return cPort;
-}
-
-void INDI::BaseClient::listenINDI()
+void BaseClientPrivate::listenINDI()
 {
     char buffer[MAXINDIBUF];
     char msg[MAXRBUF];
@@ -460,7 +337,7 @@ void INDI::BaseClient::listenINDI()
     XMLEle *root = nullptr;
     int inode = 0;
 
-    serverConnected();
+    connect();
 
     if (cDeviceNames.empty())
     {
@@ -497,8 +374,8 @@ void INDI::BaseClient::listenINDI()
     maxfd = std::max(maxfd, sockfd);
 
 #ifndef _WINDOWS
-    FD_SET(m_receiveFd, &rs);
-    maxfd = std::max(maxfd, m_receiveFd);
+    FD_SET(receiveFd, &rs);
+    maxfd = std::max(maxfd, receiveFd);
 #endif
 
     clear();
@@ -596,8 +473,8 @@ void INDI::BaseClient::listenINDI()
         }
 #else
         close(sockfd);
-        close(m_receiveFd);
-        close(m_sendFd);
+        close(receiveFd);
+        close(sendFd);
 #endif
         clear();
         cDeviceNames.clear();
@@ -607,10 +484,42 @@ void INDI::BaseClient::listenINDI()
         exit_code = sAboutToClose ? sExitCode : -1;
     }
 
-    serverDisconnected(exit_code);
+    disconnect(exit_code);
 }
 
-int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
+size_t BaseClientPrivate::sendData(const void *data, size_t size)
+{
+    int ret;
+
+    do
+    {
+        std::lock_guard<std::mutex> locker(sSocketBusy);
+        if (sConnected == false)
+            return 0;
+        ret = net_write(sockfd, data, size);
+    }
+    while(ret == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK));
+
+    if (ret < 0)
+    {
+        disconnect(-1);
+    }
+
+    return std::max(ret, 0);
+}
+
+void BaseClientPrivate::sendString(const char *fmt, ...)
+{
+    char message[MAXRBUF];
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(message, MAXRBUF, fmt, ap);
+    va_end(ap);
+    sendData(message, strlen(message));
+}
+
+int BaseClientPrivate::dispatchCommand(XMLEle *root, char *errmsg)
 {
     const char *tag = tagXMLEle(root);
 
@@ -636,7 +545,7 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
 
     // If device is set to BLOB_ONLY, we ignore everything else
     // not related to blobs
-    if (getBLOBMode(dp->getDeviceName()) == B_ONLY)
+    if (parent->getBLOBMode(dp->getDeviceName()) == B_ONLY)
     {
         if (!strcmp(tag, "defBLOBVector"))
             return dp->buildProp(root, errmsg);
@@ -672,12 +581,35 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
     return INDI_DISPATCH_ERROR;
 }
 
+
+int BaseClientPrivate::deleteDevice(const char *devName, char *errmsg)
+{
+    std::vector<INDI::BaseDevice *>::iterator devicei;
+
+    for (devicei = cDevices.begin(); devicei != cDevices.end();)
+    {
+        if (!strcmp(devName, (*devicei)->getDeviceName()))
+        {
+            parent->removeDevice(*devicei);
+            delete *devicei;
+            devicei = cDevices.erase(devicei);
+            return 0;
+        }
+        else
+            ++devicei;
+    }
+
+    snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
+    return INDI_DEVICE_NOT_FOUND;
+}
+
+
 /* delete the property in the given device, including widgets and data structs.
  * when last property is deleted, delete the device too.
  * if no property name attribute at all, delete the whole device regardless.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
-int INDI::BaseClient::delPropertyCmd(XMLEle *root, char *errmsg)
+int BaseClientPrivate::delPropertyCmd(XMLEle *root, char *errmsg)
 {
     XMLAtt *ap;
     INDI::BaseDevice *dp;
@@ -705,7 +637,7 @@ int INDI::BaseClient::delPropertyCmd(XMLEle *root, char *errmsg)
             return -1;
         }
         if (sConnected)
-            removeProperty(rProp);
+            parent->removeProperty(rProp);
         int errCode = dp->removeProperty(valuXMLAtt(ap), errmsg);
 
         return errCode;
@@ -715,28 +647,8 @@ int INDI::BaseClient::delPropertyCmd(XMLEle *root, char *errmsg)
         return deleteDevice(dp->getDeviceName(), errmsg);
 }
 
-int INDI::BaseClient::deleteDevice(const char *devName, char *errmsg)
-{
-    std::vector<INDI::BaseDevice *>::iterator devicei;
 
-    for (devicei = cDevices.begin(); devicei != cDevices.end();)
-    {
-        if (!strcmp(devName, (*devicei)->getDeviceName()))
-        {
-            removeDevice(*devicei);
-            delete *devicei;
-            devicei = cDevices.erase(devicei);
-            return 0;
-        }
-        else
-            ++devicei;
-    }
-
-    snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
-    return INDI_DEVICE_NOT_FOUND;
-}
-
-INDI::BaseDevice *INDI::BaseClient::findDev(const char *devName, char *errmsg)
+INDI::BaseDevice *BaseClientPrivate::findDev(const char *devName, char *errmsg)
 {
     auto pos = std::find_if(cDevices.begin(), cDevices.end(), [devName](INDI::BaseDevice * oneDevice)
     {
@@ -751,7 +663,7 @@ INDI::BaseDevice *INDI::BaseClient::findDev(const char *devName, char *errmsg)
 }
 
 /* add new device */
-INDI::BaseDevice *INDI::BaseClient::addDevice(XMLEle *dep, char *errmsg)
+INDI::BaseDevice *BaseClientPrivate::addDevice(XMLEle *dep, char *errmsg)
 {
     //devicePtr dp(new INDI::BaseDriver());
     INDI::BaseDevice *dp = new INDI::BaseDevice();
@@ -768,18 +680,18 @@ INDI::BaseDevice *INDI::BaseClient::addDevice(XMLEle *dep, char *errmsg)
 
     device_name = valuXMLAtt(ap);
 
-    dp->setMediator(this);
+    dp->setMediator(parent);
     dp->setDeviceName(device_name);
 
     cDevices.push_back(dp);
 
-    newDevice(dp);
+    parent->newDevice(dp);
 
     /* ok */
     return dp;
 }
 
-INDI::BaseDevice *INDI::BaseClient::findDev(XMLEle *root, int create, char *errmsg)
+INDI::BaseDevice *BaseClientPrivate::findDev(XMLEle *root, int create, char *errmsg)
 {
     XMLAtt *ap;
     INDI::BaseDevice *dp;
@@ -817,7 +729,7 @@ INDI::BaseDevice *INDI::BaseClient::findDev(XMLEle *root, int create, char *errm
 /* a general message command received from the device.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
-int INDI::BaseClient::messageCmd(XMLEle *root, char *errmsg)
+int BaseClientPrivate::messageCmd(XMLEle *root, char *errmsg)
 {
     INDI::BaseDevice *dp = findDev(root, 0, errmsg);
 
@@ -854,19 +766,193 @@ int INDI::BaseClient::messageCmd(XMLEle *root, char *errmsg)
             snprintf(msgBuffer, MAXRBUF, "%s: %s", ts, valuXMLAtt(message));
         }
 
-        std::string finalMsg = msgBuffer;
-
-        newUniversalMessage(finalMsg);
+        IDLog("%s\n", msgBuffer);
     }
 
     return (0);
+}
+
+
+BLOBMode *INDI::BaseClientPrivate::findBLOBMode(const std::string &device, const std::string &property)
+{
+    for (auto &blob : blobModes)
+    {
+        if (blob->device == device && (property.empty() || blob->property == property))
+            return blob;
+    }
+
+    return nullptr;
+}
+
+void BaseClientPrivate::setDriverConnection(bool status, const char *deviceName)
+{
+    INDI::BaseDevice *drv                 = parent->getDevice(deviceName);
+    ISwitchVectorProperty *drv_connection = nullptr;
+
+    if (drv == nullptr)
+    {
+        IDLog("INDI::BaseClient: Error. Unable to find driver %s\n", deviceName);
+        return;
+    }
+
+    drv_connection = drv->getSwitch(INDI::SP::CONNECTION);
+
+    if (drv_connection == nullptr)
+        return;
+
+    // If we need to connect
+    if (status)
+    {
+        // If there is no need to do anything, i.e. already connected.
+        if (drv_connection->sp[0].s == ISS_ON)
+            return;
+
+        IUResetSwitch(drv_connection);
+        drv_connection->s       = IPS_BUSY;
+        drv_connection->sp[0].s = ISS_ON;
+        drv_connection->sp[1].s = ISS_OFF;
+
+        parent->sendNewSwitch(drv_connection);
+    }
+    else
+    {
+        // If there is no need to do anything, i.e. already disconnected.
+        if (drv_connection->sp[1].s == ISS_ON)
+            return;
+
+        IUResetSwitch(drv_connection);
+        drv_connection->s       = IPS_BUSY;
+        drv_connection->sp[0].s = ISS_OFF;
+        drv_connection->sp[1].s = ISS_ON;
+
+        parent->sendNewSwitch(drv_connection);
+    }
+}
+
+}
+
+INDI::BaseClient::BaseClient()
+    : d_ptr(new BaseClientPrivate(this))
+{ }
+
+INDI::BaseClient::~BaseClient()
+{
+
+}
+
+void INDI::BaseClient::setVerbose(bool enable)
+{
+    D_PTR(BaseClient);
+    d->verbose = enable;
+}
+
+bool INDI::BaseClient::isVerbose() const
+{
+    D_PTR(const BaseClient);
+    return d->verbose;
+}
+
+void INDI::BaseClient::setConnectionTimeout(uint32_t seconds, uint32_t microseconds)
+{
+    D_PTR(BaseClient);
+    d->timeout_sec = seconds;
+    d->timeout_us  = microseconds;
+}
+
+void INDI::BaseClient::setServer(const char *hostname, unsigned int port)
+{
+    D_PTR(BaseClient);
+    d->cServer = hostname;
+    d->cPort   = port;
+}
+
+void INDI::BaseClient::watchDevice(const char *deviceName)
+{
+    D_PTR(BaseClient);
+    // Watch for duplicates. Should have used std::set from the beginning but let's
+    // avoid changing API now.
+    if (std::find(d->cDeviceNames.begin(), d->cDeviceNames.end(), deviceName) != d->cDeviceNames.end())
+        return;
+
+    d->cDeviceNames.emplace_back(deviceName);
+}
+
+void INDI::BaseClient::watchProperty(const char *deviceName, const char *propertyName)
+{
+    D_PTR(BaseClient);
+    watchDevice(deviceName);
+    d->cWatchProperties[deviceName].insert(propertyName);
+}
+
+bool INDI::BaseClient::connectServer()
+{
+    D_PTR(BaseClient);
+    return d->connect();
+}
+
+bool INDI::BaseClient::disconnectServer(int exit_code)
+{
+    D_PTR(BaseClient);
+    return d->disconnect(exit_code);
+}
+
+// #PS: avoid calling pure virtual method
+void INDI::BaseClient::serverDisconnected(int exit_code)
+{
+    INDI_UNUSED(exit_code);
+}
+
+bool INDI::BaseClient::isServerConnected() const
+{
+    D_PTR(const BaseClient);
+    return d->sConnected;
+}
+
+void INDI::BaseClient::connectDevice(const char *deviceName)
+{
+    D_PTR(BaseClient);
+    d->setDriverConnection(true, deviceName);
+}
+
+void INDI::BaseClient::disconnectDevice(const char *deviceName)
+{
+    D_PTR(BaseClient);
+    d->setDriverConnection(false, deviceName);
+}
+
+INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
+{
+    D_PTR(BaseClient);
+    for (auto &device : d->cDevices)
+    {
+        if (!strcmp(deviceName, device->getDeviceName()))
+            return device;
+    }
+    return nullptr;
+}
+
+const std::vector<INDI::BaseDevice *> &INDI::BaseClient::getDevices() const
+{
+    D_PTR(const BaseClient);
+    return d->cDevices;
+}
+
+const char *INDI::BaseClient::getHost() const
+{
+    D_PTR(const BaseClient);
+    return d->cServer.c_str();
+}
+
+int INDI::BaseClient::getPort() const
+{
+    D_PTR(const BaseClient);
+    return d->cPort;
 }
 
 void INDI::BaseClient::newUniversalMessage(std::string message)
 {
     IDLog("%s\n", message.c_str());
 }
-
 
 void INDI::BaseClient::sendNewText(ITextVectorProperty *tvp)
 {
@@ -983,10 +1069,11 @@ void INDI::BaseClient::finishBlob()
 
 void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
 {
+    D_PTR(BaseClient);
     if (!dev[0])
         return;
 
-    BLOBMode *bMode = findBLOBMode(std::string(dev), (prop ? std::string(prop) : std::string()));
+    BLOBMode *bMode = d->findBLOBMode(std::string(dev), (prop ? std::string(prop) : std::string()));
 
     if (bMode == nullptr)
     {
@@ -994,7 +1081,7 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
         newMode->device   = std::string(dev);
         newMode->property = (prop ? std::string(prop) : std::string());
         newMode->blobMode = blobH;
-        blobModes.push_back(newMode);
+        d->blobModes.push_back(newMode);
     }
     else
     {
@@ -1010,9 +1097,10 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
 
 BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
 {
+    D_PTR(BaseClient);
     BLOBHandling bHandle = B_ALSO;
 
-    BLOBMode *bMode = findBLOBMode(dev, (prop ? std::string(prop) : std::string()));
+    BLOBMode *bMode = d->findBLOBMode(dev, (prop ? std::string(prop) : std::string()));
 
     if (bMode)
         bHandle = bMode->blobMode;
@@ -1020,56 +1108,14 @@ BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
     return bHandle;
 }
 
-INDI::BaseClient::BLOBMode *INDI::BaseClient::findBLOBMode(const std::string &device, const std::string &property)
-{
-    for (auto &blob : blobModes)
-    {
-        if (blob->device == device && (property.empty() || blob->property == property))
-            return blob;
-    }
-
-    return nullptr;
-}
-
 bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface )
 {
-    for (INDI::BaseDevice *device : cDevices)
+    D_PTR(BaseClient);
+    for (INDI::BaseDevice *device : d->cDevices)
     {
         if (device->getDriverInterface() & driverInterface)
             deviceList.push_back(device);
     }
 
     return (deviceList.size() > 0);
-}
-
-size_t INDI::BaseClient::sendData(const void *data, size_t size)
-{
-    int ret;
-
-    do
-    {
-        std::lock_guard<std::mutex> locker(sSocketBusy);
-        if (sConnected == false)
-            return 0;
-        ret = net_write(sockfd, data, size);
-    }
-    while(ret == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK));
-
-    if (ret < 0)
-    {
-        disconnectServer(-1);
-    }
-
-    return std::max(ret, 0);
-}
-
-void INDI::BaseClient::sendString(const char *fmt, ...)
-{
-    char message[MAXRBUF];
-    va_list ap;
-
-    va_start(ap, fmt);
-    vsnprintf(message, MAXRBUF, fmt, ap);
-    va_end(ap);
-    sendData(message, strlen(message));
 }
