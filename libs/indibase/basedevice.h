@@ -151,7 +151,7 @@ public:
      *  @return If property is found, it is returned. To be used you must use static_cast with given the type of property
      *  returned.
      */
-    Property *getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
+    Property getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
     /** @brief Return a list of all properties in the device. */
     Properties *getProperties();

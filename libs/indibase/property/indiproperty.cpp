@@ -61,6 +61,18 @@ PropertyPrivate::PropertyPrivate(IBLOBVectorProperty *property)
     , registered(property != nullptr)
 { }
 
+#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+Property::operator INDI::Property *()
+{
+    D_PTR(Property);
+    return isValid() ? &d->self : nullptr;
+}
+
+INDI::Property* Property::operator->()
+{
+    return this;
+}
+#endif
 
 #define PROPERTY_CASE(CODE) \
     switch (d->property != nullptr ? d->type : INDI_UNKNOWN) \
@@ -117,6 +129,10 @@ Property::~Property()
 
 Property::Property(PropertyPrivate &dd)
     : d_ptr(&dd)
+{ }
+
+Property::Property(std::shared_ptr<PropertyPrivate> dd)
+    : d_ptr(dd)
 { }
 
 void Property::setProperty(void *p)
@@ -294,11 +310,6 @@ bool Property::isValid() const
 {
     D_PTR(const Property);
     return d->type != INDI_UNKNOWN;
-}
-
-Property::operator bool() const
-{
-    return isValid();
 }
 
 bool Property::isNameMatch(const char *otherName) const

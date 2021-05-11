@@ -127,7 +127,7 @@ void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type) cons
     return prop != nullptr ? prop->getProperty() : nullptr;
 }
 
-INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type) const
+INDI::Property BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type) const
 {
     D_PTR(const BaseDevice);
     std::lock_guard<std::mutex> lock(d->m_Lock);
@@ -141,10 +141,10 @@ INDI::Property *BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE typ
             continue;
 
         if (!strcmp(name, oneProp->getName()))
-            return oneProp;
+            return *oneProp;
     }
 
-    return nullptr;
+    return INDI::Property();
 }
 
 int BaseDevice::removeProperty(const char *name, char *errmsg)

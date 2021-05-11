@@ -28,7 +28,7 @@
 #include <memory>
 #include <cstdarg>
 
-
+#define INDI_PROPERTY_BACKWARD_COMPATIBILE
 namespace INDI
 {
 class BaseDevice;
@@ -91,7 +91,6 @@ public: // Convenience Functions
 public:
     bool isEmpty() const;
     bool isValid() const;
-    operator bool() const;
 
     bool isNameMatch(const char *otherName) const;
     bool isNameMatch(const std::string &otherName) const;
@@ -116,8 +115,15 @@ public:
     INDI::PropertyView<ILight>  *getLight() const;
     INDI::PropertyView<IBLOB>   *getBLOB() const;
 
+public:
+#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+    operator INDI::Property *();
+    INDI::Property* operator->();
+#endif
+
 protected:
     std::shared_ptr<PropertyPrivate> d_ptr;
+    Property(std::shared_ptr<PropertyPrivate> dd);
     Property(PropertyPrivate &dd);
 };
 
