@@ -195,10 +195,9 @@ bool DMFC::ack()
 
     LOGF_DEBUG("RES <%s>", res);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIOFLUSH);    
 
-
-    if((strstr(res, "OK_DMFCN") != nullptr))
+    if((strstr(res, "OK_DMFCN") != nullptr) || (strstr(res, "OK_SMFC") != nullptr))
         return true;
 
     return false;
