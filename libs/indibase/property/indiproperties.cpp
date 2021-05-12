@@ -134,6 +134,30 @@ Properties::const_iterator Properties::end() const
     return d->properties.end();
 }
 
+Properties::iterator Properties::erase(iterator pos)
+{
+    D_PTR(Properties);
+    return d->properties.erase(pos);
+}
+
+Properties::iterator Properties::erase(const_iterator pos)
+{
+    D_PTR(Properties);
+    return d->properties.erase(pos);
+}
+
+Properties::iterator Properties::erase(iterator first, iterator last)
+{
+    D_PTR(Properties);
+    return d->properties.erase(first, last);
+}
+
+Properties::iterator Properties::erase(const_iterator first, const_iterator last)
+{
+    D_PTR(Properties);
+    return d->properties.erase(first, last);
+}
+
 #ifdef INDI_PROPERTIES_BACKWARD_COMPATIBILE
 INDI::Properties Properties::operator *()
 {

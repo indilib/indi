@@ -21,6 +21,7 @@
 #include "indimacros.h"
 #include <vector>
 #include <deque>
+#include <algorithm>
 
 #define INDI_PROPERTIES_BACKWARD_COMPATIBILE
 namespace INDI
@@ -74,6 +75,15 @@ public:
     const_iterator end() const;
 
 public:
+    iterator erase(iterator pos);
+    iterator erase(const_iterator pos);
+    iterator erase(iterator first, iterator last);
+    iterator erase(const_iterator first, const_iterator last);
+
+    template<typename Predicate>
+    iterator erase_if(Predicate predicate);
+
+public:
 #ifdef INDI_PROPERTIES_BACKWARD_COMPATIBILE
     INDI::Properties operator *();
     const INDI::Properties operator *() const;
@@ -92,5 +102,11 @@ protected:
     std::shared_ptr<PropertiesPrivate> d_ptr;
     Properties(std::shared_ptr<PropertiesPrivate> dd);
 };
+
+template<typename Predicate>
+inline Properties::iterator Properties::erase_if(Predicate predicate)
+{
+    return erase(std::remove_if(begin(), end(), predicate), end());
+}
 
 }
