@@ -117,8 +117,11 @@ public:
 
 public:
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
-    operator INDI::Property *();
     INDI::Property* operator->();
+    const INDI::Property* operator->() const;
+
+    operator INDI::Property *();
+    operator const INDI::Property *() const;
 #endif
 
 protected:

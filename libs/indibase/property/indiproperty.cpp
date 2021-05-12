@@ -62,15 +62,26 @@ PropertyPrivate::PropertyPrivate(IBLOBVectorProperty *property)
 { }
 
 #ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+INDI::Property* Property::operator->()
+{
+    return this;
+}
+
+const INDI::Property* Property::operator->() const
+{
+    return this;
+}
+
 Property::operator INDI::Property *()
 {
     D_PTR(Property);
     return isValid() ? &d->self : nullptr;
 }
 
-INDI::Property* Property::operator->()
+Property::operator const INDI::Property *() const
 {
-    return this;
+    D_PTR(const Property);
+    return isValid() ? &d->self : nullptr;
 }
 #endif
 
