@@ -143,6 +143,18 @@ INDI::Property BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type
     return INDI::Property();
 }
 
+BaseDevice::Properties BaseDevice::getProperties()
+{
+    D_PTR(BaseDevice);
+    return d->pAll;
+}
+
+const BaseDevice::Properties BaseDevice::getProperties() const
+{
+    D_PTR(const BaseDevice);
+    return d->pAll;
+}
+
 int BaseDevice::removeProperty(const char *name, char *errmsg)
 {
     D_PTR(BaseDevice);
@@ -1032,18 +1044,6 @@ uint16_t BaseDevice::getDriverInterface()
         return atoi(driverInterface->text);
 
     return 0;
-}
-
-const BaseDevice::Properties BaseDevice::getProperties() const
-{
-    D_PTR(const BaseDevice);
-    return d->pAll;
-}
-
-BaseDevice::Properties BaseDevice::getProperties()
-{
-    D_PTR(BaseDevice);
-    return d->pAll;
 }
 
 void BaseDevice::setMediator(INDI::BaseMediator *mediator)
