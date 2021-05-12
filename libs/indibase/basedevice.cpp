@@ -102,7 +102,7 @@ INDI::PropertyView<IBLOB> *BaseDevice::getBLOB(const char *name) const
 IPState BaseDevice::getPropertyState(const char *name) const
 {
     for (const auto &oneProp : *getProperties())
-        if (!strcmp(name, oneProp->getName()))
+        if (oneProp->isNameMatch(name))
             return oneProp->getState();
 
     return IPS_IDLE;
@@ -111,7 +111,7 @@ IPState BaseDevice::getPropertyState(const char *name) const
 IPerm BaseDevice::getPropertyPermission(const char *name) const
 {
     for (const auto &oneProp : *getProperties())
-        if (!strcmp(name, oneProp->getName()))
+        if (oneProp->isNameMatch(name))
             return oneProp->getPermission();
 
     return IP_RO;
@@ -136,7 +136,7 @@ INDI::Property BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type
         if (!oneProp->getRegistered())
             continue;
 
-        if (!strcmp(name, oneProp->getName()))
+        if (oneProp->isNameMatch(name))
             return oneProp;
     }
 
