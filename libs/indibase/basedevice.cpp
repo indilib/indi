@@ -60,11 +60,7 @@ BaseDevicePrivate::BaseDevicePrivate()
 BaseDevicePrivate::~BaseDevicePrivate()
 {
     delLilXML(lp);
-    while (!pAll.empty())
-    {
-        delete pAll.back();
-        pAll.pop_back();
-    }
+    pAll.clear();
 }
 
 BaseDevice::BaseDevice()
@@ -141,7 +137,7 @@ INDI::Property BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type
             continue;
 
         if (!strcmp(name, oneProp->getName()))
-            return *oneProp;
+            return oneProp;
     }
 
     return INDI::Property();
@@ -151,7 +147,7 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
 {
     D_PTR(BaseDevice);
     std::lock_guard<std::mutex> lock(d->m_Lock);
-
+#if 0
     for (auto oneProp : d->pAll)
     {
         if (!strcmp(name, oneProp->getName()))
@@ -171,7 +167,7 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
             return 0;
         }
     }
-
+#endif
     snprintf(errmsg, MAXRBUF, "Error: Property %s not found in device %s.", name, getDeviceName());
     return INDI_PROPERTY_INVALID;
 }
@@ -518,7 +514,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
         indiProp->setTimeout(atoi(findXMLAttValu(root, "timeout")));
 
         std::unique_lock<std::mutex> lock(d->m_Lock);
-        d->pAll.push_back(indiProp);
+        d->pAll.push_back(*indiProp);
         lock.unlock();
 
         //IDLog("Adding number property %s to list.\n", indiProp->getName());
@@ -902,14 +898,14 @@ void BaseDevice::registerProperty(void *p, INDI_PROPERTY_TYPE type)
 
     const char *name = INDI::Property(p, type).getName();
 
-    INDI::Property *pContainer = getProperty(name, type);
+    auto pContainer = getProperty(name, type);
 
-    if (pContainer != nullptr)
-        pContainer->setRegistered(true);
+    if (pContainer.isValid())
+        pContainer.setRegistered(true);
     else
     {
         std::lock_guard<std::mutex> lock(d->m_Lock);
-        d->pAll.push_back(new INDI::Property(p, type));
+        d->pAll.push_back(INDI::Property(p, type));
     }
 }
 
@@ -920,14 +916,14 @@ void BaseDevice::registerProperty(INDI::Property &property)
     if (property.getType() == INDI_UNKNOWN)
         return;
 
-    INDI::Property *pContainer = getProperty(property.getName(), property.getType());
+    auto pContainer = getProperty(property.getName(), property.getType());
 
-    if (pContainer != nullptr)
-        pContainer->setRegistered(true);
+    if (pContainer.isValid())
+        pContainer.setRegistered(true);
     else
     {
         std::lock_guard<std::mutex> lock(d->m_Lock);
-        d->pAll.push_back(new INDI::Property(property));
+        d->pAll.push_back(property);
     }
 }
 
@@ -1038,16 +1034,16 @@ uint16_t BaseDevice::getDriverInterface()
     return 0;
 }
 
-const BaseDevice::Properties *BaseDevice::getProperties() const
+const BaseDevice::Properties BaseDevice::getProperties() const
 {
     D_PTR(const BaseDevice);
-    return &d->pAll;
+    return d->pAll;
 }
 
-BaseDevice::Properties *BaseDevice::getProperties()
+BaseDevice::Properties BaseDevice::getProperties()
 {
     D_PTR(BaseDevice);
-    return &d->pAll;
+    return d->pAll;
 }
 
 void BaseDevice::setMediator(INDI::BaseMediator *mediator)
