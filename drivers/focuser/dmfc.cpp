@@ -356,7 +356,7 @@ bool DMFC::updateFocusParams()
 
 
     // #1 Status
-    if (token == nullptr || (strstr(token, "OK_DMFCN") == nullptr))
+    if (token == nullptr || (strstr(token, "OK_DMFCN") == nullptr) || (strstr(token, "OK_SMFC") == nullptr))
     {
         LOGF_ERROR("Invalid status response. %s", res);
         return false;
