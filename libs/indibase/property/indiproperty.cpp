@@ -190,6 +190,20 @@ INDI_PROPERTY_TYPE Property::getType() const
     return d->property != nullptr ? d->type : INDI_UNKNOWN;
 }
 
+const char *Property::getTypeAsString() const
+{
+    switch (getType())
+    {
+    case INDI_NUMBER: return "INDI_NUMBER";
+    case INDI_SWITCH: return "INDI_SWITCH";
+    case INDI_TEXT: return "INDI_TEXT";
+    case INDI_LIGHT: return "INDI_LIGHT";
+    case INDI_BLOB: return "INDI_BLOB";
+    case INDI_UNKNOWN: return "INDI_UNKNOWN";
+    }
+    return "INDI_UNKNOWN";
+}
+
 bool Property::getRegistered() const
 {
     D_PTR(const Property);

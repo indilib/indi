@@ -64,6 +64,7 @@ public:
 public:
     void *getProperty() const;
     INDI_PROPERTY_TYPE getType() const;
+    const char *getTypeAsString() const;
     bool getRegistered() const;
     bool isDynamic() const;
     BaseDevice *getBaseDevice() const;
