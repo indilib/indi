@@ -19,9 +19,18 @@
 #pragma once
 
 #include "indibase.h"
-
+#include "indiproperty.h"
+#include <memory>
 namespace INDI
 {
+
+#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+template <typename T>
+static inline std::shared_ptr<T> make_shared_weak(T *object)
+{
+    return std::shared_ptr<T>(object, [](T*){});
+}
+#endif
 
 class BaseDevice;
 class PropertyPrivate
@@ -41,6 +50,10 @@ public:
     PropertyPrivate(IBLOBVectorProperty *property);
 
     virtual ~PropertyPrivate();
+
+#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+    Property self {make_shared_weak(this)};
+#endif
 };
 
 }

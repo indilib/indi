@@ -20,6 +20,7 @@
 
 #include "indibase.h"
 #include "indiproperty.h"
+#include "indiproperties.h"
 #include "indiutility.h"
 
 #include <string>
@@ -45,8 +46,8 @@ class BaseDevice
 {
     DECLARE_PRIVATE(BaseDevice)
 public:
-    //typedef std::deque<INDI::Property> Properties; // future
-    typedef std::vector<INDI::Property*> Properties;
+    typedef INDI::Properties Properties;
+    // typedef std::vector<INDI::Property*> Properties;
 
     /*! INDI error codes. */
     enum INDI_ERROR
@@ -151,11 +152,11 @@ public:
      *  @return If property is found, it is returned. To be used you must use static_cast with given the type of property
      *  returned.
      */
-    Property *getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
+    Property getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
     /** @brief Return a list of all properties in the device. */
-    Properties *getProperties();
-    const Properties *getProperties() const;
+    Properties getProperties();
+    const Properties getProperties() const;
 
 public:
     /** @brief Add message to the driver's message queue.
