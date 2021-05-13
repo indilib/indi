@@ -44,7 +44,7 @@ static std::unique_ptr<IOptronV3> scope(new IOptronV3());
 /* Constructor */
 IOptronV3::IOptronV3()
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 
     driver.reset(new Driver(getDeviceName()));
 
@@ -303,6 +303,10 @@ void IOptronV3::getStartupData()
 
         // UTC Offset
         char offset[8] = {0};
+        // 2021-05-12 JM: Account for daylight savings
+        if (dayLightSavings)
+            utcOffsetMinutes += 60;
+
         snprintf(offset, 8, "%.2f", utcOffsetMinutes / 60.0);
         IUSaveText(&TimeT[1], offset);
         LOGF_INFO("Mount UTC Offset: %s", offset);

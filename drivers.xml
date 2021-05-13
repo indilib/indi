@@ -155,19 +155,19 @@
         </device>
         <device label="iOptron CEM26" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="iOptron GEM28" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="iOptron CEM40" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="iOptron GEM45" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="iOptron iEQ45 Pro" manufacturer="iOptron">
             <driver name="iEQ">indi_ieq_telescope</driver>
