@@ -207,15 +207,15 @@
         </device>
         <device label="iOptron v3" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="iOptron CEM120" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="iOptron CEM70" manufacturer="iOptron">
             <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
-            <version>1.3</version>
+            <version>1.4</version>
         </device>
         <device label="Pulsar2">
             <driver name="Pulsar2">indi_lx200pulsar2</driver>
