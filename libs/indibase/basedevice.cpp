@@ -168,8 +168,9 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
 
     std::lock_guard<std::mutex> lock(d->m_Lock);
 
-    d->pAll.erase_if([&name, &result](INDI::Property &prop) -> bool
+    d->pAll.erase_if([&name, &result](INDI::Property & prop) -> bool
     {
+#if 0
         if (prop.isNameMatch(name))
         {
             // JM 2021-04-28: delete later. We perform the actual delete after 100ms to give clients a chance to remove the object.
@@ -187,6 +188,14 @@ int BaseDevice::removeProperty(const char *name, char *errmsg)
         {
             return false;
         }
+#endif
+        if (prop.isNameMatch(name))
+        {
+            result = 0;
+            return true;
+        }
+        else
+            return false;
     });
 
     if (result != 0)
