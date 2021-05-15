@@ -97,6 +97,10 @@
             <driver name="Paramount">indi_paramount_telescope</driver>
             <version>1.1</version>
         </device>
+        <device label="AstroTrac" manufacturer="AstroTrac">
+            <driver name="AstroTrac">indi_astrotrac_telescope</driver>
+            <version>1.0</version>
+        </device>
         <device label="Rainbow RST-135" manufacturer="Rainbow Astro">
             <driver name="Rainbow">indi_rainbow_telescope</driver>
             <version>1.1</version>
