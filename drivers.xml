@@ -345,7 +345,7 @@
         </device>
         <device label="NightCrawler" manufacturer="MoonLite">
             <driver name="NightCrawler">indi_nightcrawler_focus</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
         <device label="Gemini Focusing Rotator" manufacturer="Optec">
             <driver name="Gemini Focusing Rotator">indi_gemini_focus</driver>
