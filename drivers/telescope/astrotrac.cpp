@@ -362,39 +362,40 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &raEncoder, dou
 {
     double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
     double ha = rangeHA(lst - ra);
+    double haEncoder = 0;
     // Northern Hemisphere
     if (LocationN[LOCATION_LATITUDE].value >= 0)
     {
         // "Normal" Pointing State (East, looking West)
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || deEncoder >= 0)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || ha <= 0)
         {
-            de = std::min(90 - deEncoder, 90.0);
-            ha = -6.0 + (raEncoder / 360.0) * 24.0 ;
+            deEncoder = - (de - 90);
+            haEncoder = (ha + 6) * 360.0 / 24.0;
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
-            de = 90 + deEncoder;
-            ha = 6.0 + (raEncoder / 360.0) * 24.0 ;
+            deEncoder = deEncoder - 90;
+            haEncoder = (ha - 6.0) * 360.0 / 24.0 ;
         }
     }
     else
     {
-        // East
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || deEncoder >= 0)
+        // "Normal" Pointing State (East, looking West)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || ha <= 0)
         {
-            de = std::max(-90 - deEncoder, -90.0);
-            ha = -6.0 - (raEncoder / 360.0) * 24.0 ;
+            deEncoder = - (de + 90);
+            haEncoder = -(ha + 6) * 360.0 / 24.0;
         }
-        // West
+        // "Reversed" Pointing State (West, looking East)
         else
         {
-            de = -90 + deEncoder;
-            ha = 6.0 - (raEncoder / 360.0) * 24.0 ;
+            deEncoder = (de + 90);
+            haEncoder = -(ha - 6) * 360 / 24.0;
         }
     }
 
-
+    raEncoder = range24(lst - haEncoder);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -424,9 +425,11 @@ bool AstroTrac::Goto(double r, double d)
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::ReadScopeStatus()
 {
-    double ra = 0, de = 0;
+    double ha = 0, ra = 0, de = 0;
 
-    getEncoderPositions(AXIS_RA, ra);
+    getEncoderPositions(AXIS_RA, ha);
+    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    ra = range24(lst - ha);
     getEncoderPositions(AXIS_DE, de);
 
     if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
@@ -445,7 +448,9 @@ bool AstroTrac::ReadScopeStatus()
             }
         }
     }
-    return false;
+
+    NewRaDec(ra, de);
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
