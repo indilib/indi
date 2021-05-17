@@ -728,8 +728,6 @@ bool AstroTrac::sendCommand(const char * cmd, char * res, int cmd_len, int res_l
     }
     else
     {
-        // Remove extra \r
-        res[nbytes_read - 1] = 0;
         LOGF_DEBUG("RES <%s>", res);
     }
 
