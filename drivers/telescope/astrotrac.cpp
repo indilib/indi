@@ -152,7 +152,7 @@ bool AstroTrac::getVersion()
     char response[DRIVER_LEN] = {0};
     if (sendCommand("<1zv?>", response))
     {
-        FirmwareTP[0].setText(response + 3, 3);
+        FirmwareTP[0].setText(response + 4, 4);
         return true;
     }
 
