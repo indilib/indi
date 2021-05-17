@@ -57,7 +57,7 @@ class AstroTrac :
         virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
         // GOTO & SYNC
-        virtual bool Goto(double, double) override;        
+        virtual bool Goto(double ra, double dec) override;
         virtual bool Sync(double ra, double dec) override;
 
         // Tracking
