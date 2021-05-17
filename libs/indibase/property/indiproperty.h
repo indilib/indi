@@ -132,3 +132,9 @@ protected:
 };
 
 } // namespace INDI
+
+#ifdef QT_CORE_LIB
+#include <QMetaType>
+Q_DECLARE_METATYPE(INDI::Property)
+static int indi_property_metatype_id = QMetaTypeId< INDI::Property >::qt_metatype_id();
+#endif
