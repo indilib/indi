@@ -23,7 +23,10 @@
 #include "inditelescope.h"
 #include "indiguiderinterface.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
+
 #include "indipropertynumber.h"
+#include "indipropertytext.h"
+#include "indipropertyswitch.h"
 
 class AstroTrac :
         public INDI::Telescope,
@@ -78,8 +81,41 @@ class AstroTrac :
     private:
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Utility
+        ///////////////////////////////////////////////////////////////////////////////////////////////        
+        bool getVersion();
+        void getRADEFromEncoders(double raEncoder, double deEncoder, double &ra, double &de);
+        void getEncodersFromRADE(double ra, double de, double &raEncoder, double &deEncoder);
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        /// Acceleration
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        bool getAcceleration(INDI_EQ_AXIS axis);
+        bool setAcceleration(INDI_EQ_AXIS axis, uint32_t a);
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        /// Velocity
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        bool getVelocity(INDI_EQ_AXIS axis);
+
+        /**
+         * @brief setVelocity set motor velocity
+         * @param axis Motor axis
+         * @param v velocity in arcsec/sec
+         * @return bool if successful, false otherwise.
+         */
+        bool setVelocity(INDI_EQ_AXIS axis, double value);
+
+        bool getMaximumSlewVelocity();
+
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        /// GOTO & SYNC
         ///////////////////////////////////////////////////////////////////////////////////////////////
         bool isSlewComplete();
+        bool syncEncoder(INDI_EQ_AXIS axis, double value);
+        bool slewEncoder(INDI_EQ_AXIS axis, double value);
+        bool getEncoderPositions(INDI_EQ_AXIS axis, double &value);
+        bool stopMotion(INDI_EQ_AXIS axis);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Communication
@@ -102,8 +138,20 @@ class AstroTrac :
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// INDI Properties
         ///////////////////////////////////////////////////////////////////////////////////////////////
+        // Mount Type
+        INDI::PropertySwitch MountTypeSP {2};
+        enum
+        {
+            MOUNT_ASYMMETRICAL,
+            MOUNT_SYMMETRICAL
+        };
+
         // Guide Rate
         INDI::PropertyNumber GuideRateNP {2};
+        // Firmware Version
+        INDI::PropertyText FirmwareTP {1};
+        // Acceleration
+        INDI::PropertyNumber AccelerationNP {2};
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Static Constants

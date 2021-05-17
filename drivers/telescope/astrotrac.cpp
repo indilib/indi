@@ -23,7 +23,7 @@
 #include "astrotrac.h"
 
 #include "indicom.h"
-
+#include "connectionplugins/connectiontcp.h"
 #include <libnova/sidereal_time.h>
 #include <libnova/transform.h>
 
@@ -59,11 +59,14 @@ bool AstroTrac::initProperties()
     AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
-    // Custom Tracking Rate
-    IUFillNumber(&TrackRateN[0], "TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 15.041067);
-    IUFillNumber(&TrackRateN[1], "TRACK_RATE_DE", "DE (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 0);
-    IUFillNumberVector(&TrackRateNP, TrackRateN, 2, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates",
-                       MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    // Mount Type
+    int configMountType = MOUNT_ASYMMETRICAL;
+    IUGetConfigOnSwitchIndex(getDeviceName(), "MOUNT_TYPE", &configMountType);
+    MountTypeSP[MOUNT_ASYMMETRICAL].fill("MOUNT_ASYMMETRICAL", "Asymmetrical",
+                                         configMountType == MOUNT_ASYMMETRICAL ? ISS_ON : ISS_OFF);
+    MountTypeSP[MOUNT_SYMMETRICAL].fill("MOUNT_SYMMETRICAL", "Symmetrical",
+                                        configMountType == MOUNT_ASYMMETRICAL ? ISS_OFF : ISS_ON);
+    MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
 
@@ -71,16 +74,19 @@ bool AstroTrac::initProperties()
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
+    tcpConnection->setDefaultHost("192.168.1.1");
+    tcpConnection->setDefaultPort(23);
+
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     addAuxControls();
 
-    //    double longitude = 0, latitude = 90;
-    //    // Get value from config file if it exists.
-    //    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    //    currentRA  = get_local_sidereal_time(longitude);
-    //    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-    //    currentDEC = latitude > 0 ? 90 : -90;
+    double longitude = 0, latitude = 0;
+    // Get value from config file if it exists.
+    if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude) == 0)
+        LocationN[LOCATION_LONGITUDE].value = longitude;
+    if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude) == 0)
+        LocationN[LOCATION_LATITUDE].value = latitude;
 
     return true;
 }
@@ -94,17 +100,9 @@ bool AstroTrac::updateProperties()
 
     if (isConnected())
     {
-        //        if (isTheSkyTracking())
-        //        {
-        //            IUResetSwitch(&TrackModeSP);
-        //            TrackModeS[TRACK_SIDEREAL].s = ISS_ON;
-        //            TrackState = SCOPE_TRACKING;
-        //        }
-        //        else
-        //        {
-        //            IUResetSwitch(&TrackModeSP);
-        //            TrackState = SCOPE_IDLE;
-        //        }
+
+        defineProperty(&FirmwareTP);
+        defineProperty(&AccelerationNP);
 
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
@@ -115,20 +113,21 @@ bool AstroTrac::updateProperties()
         {
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(0);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
             SetAxis1Park(0);
-            SetAxis2Park(0);
+            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(0);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
     }
     else
     {
-
+        deleteProperty(FirmwareTP.getName());
+        deleteProperty(AccelerationNP.getName());
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP->getName());
@@ -142,23 +141,109 @@ bool AstroTrac::updateProperties()
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::Handshake()
 {
-    return true;
+    return getVersion();
 }
 
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-bool AstroTrac::ReadScopeStatus()
+bool AstroTrac::getVersion()
 {
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand("<1zv?>", response))
+    {
+        FirmwareTP[0].setText(response + 3, 3);
+        return true;
+    }
+
     return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
-bool AstroTrac::Goto(double r, double d)
+bool AstroTrac::getAcceleration(INDI_EQ_AXIS axis)
 {
+    char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
+    snprintf(command, DRIVER_LEN, "<%da?>", axis + 1);
+    if (sendCommand(command, response))
+    {
+        std::string acceleration = std::regex_replace(
+                                       response,
+                                       std::regex("<.a(\\d+)>"),
+                                       std::string("$1"));
+
+        AccelerationNP[axis].setValue(std::stoi(acceleration));
+        return true;
+    }
+    else
+        return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::setAcceleration(INDI_EQ_AXIS axis, uint32_t a)
+{
+    char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
+
+    snprintf(command, DRIVER_LEN, "<%da%u>", axis + 1, a);
+    if (sendCommand(command, response))
+        return response[3] == '#';
+
     return false;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::getVelocity(INDI_EQ_AXIS axis)
+{
+    char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
+    snprintf(command, DRIVER_LEN, "<%dv?>", axis + 1);
+    if (sendCommand(command, response))
+    {
+        std::string velocity = std::regex_replace(
+                                   response,
+                                   std::regex("<.v([0-9]+\\.[0-9]+?)>"),
+                                   std::string("$1"));
+
+        TrackRateN[axis].value = std::stod(velocity);
+        return true;
+    }
+    else
+        return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::setVelocity(INDI_EQ_AXIS axis, double value)
+{
+    char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
+
+    snprintf(command, DRIVER_LEN, "<%dve%f>", axis + 1, value);
+    if (sendCommand(command, response))
+        return response[3] == '#';
+
+    return false;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::stopMotion(INDI_EQ_AXIS axis)
+{
+    char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
+
+    snprintf(command, DRIVER_LEN, "<%dx>", axis + 1);
+    if (sendCommand(command, response))
+        return response[3] == '#';
+
+    return false;
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -166,7 +251,150 @@ bool AstroTrac::Goto(double r, double d)
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::isSlewComplete()
 {
+    char response[DRIVER_LEN] = {0};
+    if (sendCommand("<1t?>", response))
+    {
+        return (response[3] == '0');
+    }
+
     return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::syncEncoder(INDI_EQ_AXIS axis, double value)
+{
+    char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
+
+    snprintf(command, DRIVER_LEN, "<%dy%f>", axis + 1, value);
+    if (sendCommand(command, response))
+        return response[3] == '#';
+
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::slewEncoder(INDI_EQ_AXIS axis, double value)
+{
+    char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
+
+    snprintf(command, DRIVER_LEN, "<%dp%f>", axis + 1, value);
+    if (sendCommand(command, response))
+        return response[3] == '#';
+
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// DE encoder range: 0 to +180 degrees CW, 0 to -180 CCW
+/// RA encoder range: +90 to -90 degrees CW, +90 to +270 CCW
+/// The range begins from mount home position looking at celestial pole
+/// with counter weight down.
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::getEncoderPositions(INDI_EQ_AXIS axis, double &value)
+{
+    char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
+    snprintf(command, DRIVER_LEN, "<%dp?>", axis + 1);
+    if (sendCommand(command, response))
+    {
+        std::string position = std::regex_replace(
+                                   response,
+                                   std::regex("<.p([0-9]+\\.[0-9]+?)>"),
+                                   std::string("$1"));
+
+        value = std::stod(position);
+        return true;
+    }
+    else
+        return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Based on X2 plugin
+/// https://github.com/mcgillca/AstroTrac/blob/3dc9d0d6f41750297696390bdcd6c10c87525b53/AstroTrac.cpp#L454
+/////////////////////////////////////////////////////////////////////////////
+void AstroTrac::getRADEFromEncoders(double raEncoder, double deEncoder, double &ra, double &de)
+{
+    double ha = 0;
+    // Northern Hemisphere
+    if (LocationN[LOCATION_LATITUDE].value >= 0)
+    {
+        // "Normal" Pointing State (East, looking West)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || deEncoder >= 0)
+        {
+            de = std::min(90 - deEncoder, 90.0);
+            ha = -6.0 + (raEncoder / 360.0) * 24.0 ;
+        }
+        // "Reversed" Pointing State (West, looking East)
+        else
+        {
+            de = 90 + deEncoder;
+            ha = 6.0 + (raEncoder / 360.0) * 24.0 ;
+        }
+    }
+    else
+    {
+        // East
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || deEncoder >= 0)
+        {
+            de = std::max(-90 - deEncoder, -90.0);
+            ha = -6.0 - (raEncoder / 360.0) * 24.0 ;
+        }
+        // West
+        else
+        {
+            de = -90 + deEncoder;
+            ha = 6.0 - (raEncoder / 360.0) * 24.0 ;
+        }
+    }
+
+    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    ra = range24(lst - ha);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Based on X2 plugin
+/////////////////////////////////////////////////////////////////////////////
+void AstroTrac::getEncodersFromRADE(double ra, double de, double &raEncoder, double &deEncoder)
+{
+    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    double ha = rangeHA(lst - ra);
+    // Northern Hemisphere
+    if (LocationN[LOCATION_LATITUDE].value >= 0)
+    {
+        // "Normal" Pointing State (East, looking West)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || deEncoder >= 0)
+        {
+            de = std::min(90 - deEncoder, 90.0);
+            ha = -6.0 + (raEncoder / 360.0) * 24.0 ;
+        }
+        // "Reversed" Pointing State (West, looking East)
+        else
+        {
+            de = 90 + deEncoder;
+            ha = 6.0 + (raEncoder / 360.0) * 24.0 ;
+        }
+    }
+    else
+    {
+        // East
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || deEncoder >= 0)
+        {
+            de = std::max(-90 - deEncoder, -90.0);
+            ha = -6.0 - (raEncoder / 360.0) * 24.0 ;
+        }
+        // West
+        else
+        {
+            de = -90 + deEncoder;
+            ha = 6.0 - (raEncoder / 360.0) * 24.0 ;
+        }
+    }
+
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -174,7 +402,50 @@ bool AstroTrac::isSlewComplete()
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::Sync(double ra, double dec)
 {
-    return true;
+    bool rc1 = syncEncoder(AXIS_RA, ra);
+    bool rc2 = syncEncoder(AXIS_DE, dec);
+
+    return rc1 && rc2;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::Goto(double r, double d)
+{
+    bool rc1 = slewEncoder(AXIS_RA, r * 15.0);
+    bool rc2 = slewEncoder(AXIS_DE, d);
+
+    return rc1 && rc2;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::ReadScopeStatus()
+{
+    double ra = 0, de = 0;
+
+    getEncoderPositions(AXIS_RA, ra);
+    getEncoderPositions(AXIS_DE, de);
+
+    if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
+    {
+        if (isSlewComplete())
+        {
+            if (TrackState == SCOPE_SLEWING)
+            {
+                LOG_INFO("Slew complete, tracking...");
+                TrackState = SCOPE_TRACKING;
+            }
+            // Parking
+            else
+            {
+                SetParked(true);
+            }
+        }
+    }
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -228,7 +499,10 @@ bool AstroTrac::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::Abort()
 {
-    return false;
+    bool rc1 = stopMotion(AXIS_RA);
+    bool rc2 = stopMotion(AXIS_DE);
+
+    return rc1 && rc2;
 }
 
 /////////////////////////////////////////////////////////////////////////////
