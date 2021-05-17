@@ -316,7 +316,7 @@ bool AstroTrac::getEncoderPositions(INDI_EQ_AXIS axis, double &value)
 /// Based on X2 plugin
 /// https://github.com/mcgillca/AstroTrac/blob/3dc9d0d6f41750297696390bdcd6c10c87525b53/AstroTrac.cpp#L454
 /////////////////////////////////////////////////////////////////////////////
-void AstroTrac::getRADEFromEncoders(double raEncoder, double deEncoder, double &ra, double &de)
+void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &ra, double &de)
 {
     double ha = 0;
     // Northern Hemisphere
@@ -326,13 +326,13 @@ void AstroTrac::getRADEFromEncoders(double raEncoder, double deEncoder, double &
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || deEncoder >= 0)
         {
             de = std::min(90 - deEncoder, 90.0);
-            ha = -6.0 + (raEncoder / 360.0) * 24.0 ;
+            ha = -6.0 + (haEncoder / 360.0) * 24.0 ;
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
             de = 90 + deEncoder;
-            ha = 6.0 + (raEncoder / 360.0) * 24.0 ;
+            ha = 6.0 + (haEncoder / 360.0) * 24.0 ;
         }
     }
     else
@@ -341,13 +341,13 @@ void AstroTrac::getRADEFromEncoders(double raEncoder, double deEncoder, double &
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || deEncoder >= 0)
         {
             de = std::max(-90 - deEncoder, -90.0);
-            ha = -6.0 - (raEncoder / 360.0) * 24.0 ;
+            ha = -6.0 - (haEncoder / 360.0) * 24.0 ;
         }
         // West
         else
         {
             de = -90 + deEncoder;
-            ha = 6.0 - (raEncoder / 360.0) * 24.0 ;
+            ha = 6.0 - (haEncoder / 360.0) * 24.0 ;
         }
     }
 
@@ -358,11 +358,10 @@ void AstroTrac::getRADEFromEncoders(double raEncoder, double deEncoder, double &
 /////////////////////////////////////////////////////////////////////////////
 /// Based on X2 plugin
 /////////////////////////////////////////////////////////////////////////////
-void AstroTrac::getEncodersFromRADE(double ra, double de, double &raEncoder, double &deEncoder)
+void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, double &deEncoder)
 {
     double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
     double ha = rangeHA(lst - ra);
-    double haEncoder = 0;
     // Northern Hemisphere
     if (LocationN[LOCATION_LATITUDE].value >= 0)
     {
@@ -370,13 +369,13 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &raEncoder, dou
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || ha <= 0)
         {
             deEncoder = - (de - 90);
-            haEncoder = (ha + 6) * 360.0 / 24.0;
+            haEncoder = rangeHA((ha + 6) * 360.0 / 24.0);
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
             deEncoder = deEncoder - 90;
-            haEncoder = (ha - 6.0) * 360.0 / 24.0 ;
+            haEncoder = rangeHA((ha - 6.0) * 360.0 / 24.0);
         }
     }
     else
@@ -385,17 +384,15 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &raEncoder, dou
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || ha <= 0)
         {
             deEncoder = - (de + 90);
-            haEncoder = -(ha + 6) * 360.0 / 24.0;
+            haEncoder = rangeHA(-(ha + 6) * 360.0 / 24.0);
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
             deEncoder = (de + 90);
-            haEncoder = -(ha - 6) * 360 / 24.0;
+            haEncoder = rangeHA(-(ha - 6) * 360 / 24.0);
         }
     }
-
-    raEncoder = range24(lst - haEncoder);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -425,12 +422,12 @@ bool AstroTrac::Goto(double r, double d)
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::ReadScopeStatus()
 {
-    double ha = 0, ra = 0, de = 0;
+    double haEncoder = 0, deEncoder = 0, ra = 0, de = 0;
 
-    getEncoderPositions(AXIS_RA, ha);
-    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-    ra = range24(lst - ha);
-    getEncoderPositions(AXIS_DE, de);
+    if (getEncoderPositions(AXIS_RA, haEncoder) && getEncoderPositions(AXIS_DE, deEncoder))
+        getRADEFromEncoders(haEncoder, deEncoder, ra, de);
+    else
+        return false;
 
     if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
     {
