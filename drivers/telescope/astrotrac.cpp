@@ -302,7 +302,7 @@ bool AstroTrac::getEncoderPositions(INDI_EQ_AXIS axis, double &value)
     {
         std::string position = std::regex_replace(
                                    response,
-                                   std::regex("<.p([0-9]+\\.[0-9]+?)>"),
+                                   std::regex("<.p([+-]?[0-9]+\\.[0-9]+?)>"),
                                    std::string("$1"));
 
         value = std::stod(position);
@@ -660,7 +660,8 @@ bool AstroTrac::SetTrackMode(uint8_t mode)
         dRA = TrackRateN[AXIS_RA].value;
         dDE = TrackRateN[AXIS_DE].value;
     }
-    //return setTheSkyTracking(true, isSidereal, dRA, dDE);
+
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
