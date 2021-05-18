@@ -227,6 +227,10 @@ int f_scansexa(const char *str0, /* input string */
     {
         isNegative = 1;
         str[0] = ' ';
+    } else if (str[0] == '+') 
+    {
+        // Some mounts have a plus sign for longitude (e.g. RST-135)
+        str[0] = ' ';
     }
 
     r = sscanf(str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
