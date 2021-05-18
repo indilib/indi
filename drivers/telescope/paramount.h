@@ -68,6 +68,9 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         virtual IPState GuideSouth(uint32_t ms) override;
         virtual IPState GuideEast(uint32_t ms) override;
         virtual IPState GuideWest(uint32_t ms) override;
+        // these all call these two functions
+        IPState GuideNS(int32_t ms);
+        IPState GuideWE(int32_t ms);
 
     private:
         void mountSim();
