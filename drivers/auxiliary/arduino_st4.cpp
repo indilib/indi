@@ -175,7 +175,7 @@ IPState ArduinoST4::GuideEast(uint32_t ms)
 
 IPState ArduinoST4::GuideWest(uint32_t ms)
 {
-    LOGF_DEBUG("Guiding: E %.0f ms", ms);
+    LOGF_DEBUG("Guiding: W %.0f ms", ms);
 
     if (GuideWETID)
     {
@@ -186,7 +186,7 @@ IPState ArduinoST4::GuideWest(uint32_t ms)
     if (sendCommand("RA-#") == false)
         return IPS_ALERT;
 
-    guideDirection = ARD_E;
+    guideDirection = ARD_W;
     GuideWETID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperE, this);
     return IPS_BUSY;
 }
