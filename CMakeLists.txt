@@ -183,6 +183,7 @@ SET(indiclient_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertybasic.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertytext.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertynumber.cpp
@@ -255,6 +256,7 @@ SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertybasic.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertytext.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertynumber.cpp
@@ -428,6 +430,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertybasic.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertytext.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertynumber.cpp
@@ -1228,11 +1231,6 @@ add_executable(indi_lacerta_mfoc_focus ${lacerta_mfoc_SRC})
 target_link_libraries(indi_lacerta_mfoc_focus indidriver)
 install(TARGETS indi_lacerta_mfoc_focus RUNTIME DESTINATION bin)
 
-#### UDEV Rules File for Focusers ####
-#### One rule for for all INDI standard focusers ####
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-focusers.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 #################################################################################
 
 #####################################
@@ -1444,11 +1442,12 @@ install(TARGETS indi_rigel_dome RUNTIME DESTINATION bin)
 set(scopedome_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_dome.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_usb21.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_arduino.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_sim.cpp
    )
 
 add_executable(indi_scopedome_dome ${scopedome_SRCS})
-target_link_libraries(indi_scopedome_dome indidriver)
+target_link_libraries(indi_scopedome_dome indidriver ${CURL_LIBRARIES})
 install(TARGETS indi_scopedome_dome RUNTIME DESTINATION bin )
 
 ################ Technical Innovations DDW Dome ################
@@ -1557,7 +1556,14 @@ SET(pegasus_upb_SRC
 add_executable(indi_pegasus_upb ${pegasus_upb_SRC})
 target_link_libraries(indi_pegasus_upb indidriver)
 install(TARGETS indi_pegasus_upb RUNTIME DESTINATION bin)
+########### Pegasus FlatMaster ###############
 
+SET(pegasus_fm_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/pegasus_flatmaster.cpp)
+
+add_executable(indi_pegasus_flatmaster ${pegasus_fm_SRC})
+target_link_libraries(indi_pegasus_flatmaster indidriver)
+install(TARGETS indi_pegasus_flatmaster RUNTIME DESTINATION bin)
 ########### Pegasus Pocket Power Box Driver ###############
 
 SET(pegasus_ppb_SRC
@@ -2001,6 +2007,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperties.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertybasic.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertytext.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indipropertynumber.h

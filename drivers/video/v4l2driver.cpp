@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #endif
 
 #include <cmath>
+#include <algorithm>
 #include "v4l2driver.h"
 #include "indistandardproperty.h"
 #include "lx/Lx.h"
@@ -52,7 +53,7 @@ static const PixelSizeInfo pixelSizeInfo[] =
     { "Skyris 236C", nullptr, 2.8f, -1, false },
     { "Skyris 236M", nullptr, 2.8f, -1, false },
     { "iOptron iPolar: iOptron iPolar", nullptr, 3.75f, -1, true },
-    { "iOptron iGuider: iOptron iGuider", nullptr, 3.75f, -1, true },
+    { "iOptron iGuider: iOptron iGuide", nullptr, 3.75f, -1, true },
     { "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
     { "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
     { "0c45:6366 Microdia", "Spinel 2MP Full HD Low Light WDR H264 USB Camera Module IMX290", 2.9f, -1, true },
@@ -285,9 +286,16 @@ bool V4L2_Driver::updateProperties()
 
         // Check if we have pixel size info
         const PixelSizeInfo * info = pixelSizeInfo;
+        std::string deviceName = std::string(v4l_base->getDeviceName());
+        // to lower case.
+        std::transform(deviceName.begin(), deviceName.end(), deviceName.begin(), ::tolower);
         while (info->deviceName)
         {
-            if (!strcmp(v4l_base->getDeviceName(), info->deviceName))
+            std::string infoDeviceName = std::string(info->deviceName);
+            std::transform(infoDeviceName.begin(), infoDeviceName.end(), infoDeviceName.begin(), ::tolower);
+
+            // Case insensitive comparision
+            if (infoDeviceName == deviceName)
                 break;
             ++info;
         }
@@ -865,13 +873,13 @@ bool V4L2_Driver::StartExposure(float duration)
         }
 
         if (is_capturing)
-        {            
+        {
             LOGF_ERROR(
                 "Cannot start new exposure until the current one completes (%.3f seconds left).",
                 getRemainingExposure());
             return !(GetCCDCapability() & CCD_CAN_ABORT);
-            
-           return true;
+
+            return true;
         }
     }
 
@@ -972,7 +980,8 @@ bool V4L2_Driver::setManualExposure(double duration)
     /* Then if we have an exposure control, check the requested exposure duration */
     else if (AbsExposureN->max < ticks)
     {
-        if( ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode == STACK_NONE ) {
+        if( ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode == STACK_NONE )
+        {
             LOG_WARN("Requested manual exposure is out of device bounds auto set stackMode to ADDITIVE" );
             stackMode = STACK_ADDITIVE;
             StackModeSP.sp[ STACK_NONE ].s = ISS_OFF;
@@ -983,10 +992,11 @@ bool V4L2_Driver::setManualExposure(double duration)
         /* We can't expose as long as requested but we can stack gray frames until the exposure elapses */
         if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
         {
-            if( AbsExposureN->value != AbsExposureN->max ) {
+            if( AbsExposureN->value != AbsExposureN->max )
+            {
                 LOGF_WARN("Requested manual exposure is out of device bounds [%.3f,%.3f], stacking up to %.3f seconds using %.16s.",
-                      (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f,
-                      duration, StackModeS[stackMode].name);
+                          (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f,
+                          duration, StackModeS[stackMode].name);
             }
             ticks = AbsExposureN->max;
         }
@@ -1005,11 +1015,14 @@ bool V4L2_Driver::setManualExposure(double duration)
     frame_duration.tv_sec  = ticks / 10000;
     frame_duration.tv_usec = (ticks % 10000) * 100;
 
-    if( v4l_capture_started ) {
-        if( AbsExposureN->value != ticks ) {
+    if( v4l_capture_started )
+    {
+        if( AbsExposureN->value != ticks )
+        {
             stop_capturing();
         }
-        else {
+        else
+        {
             return true;
         }
     }
@@ -1123,14 +1136,16 @@ bool V4L2_Driver::start_capturing(bool do_stream)
         return false;
     }
 
-    if( !v4l_capture_started ) {
+    if( !v4l_capture_started )
+    {
         char errmsg[ERRMSGSIZ];
         if (v4l_base->start_capturing(errmsg))
         {
             LOGF_WARN("V4L2 base failed starting capture (%s)", errmsg);
             return false;
         }
-        else {
+        else
+        {
             gettimeofday(&frame_received, nullptr);
             v4l_capture_started = true;
         }
@@ -1165,7 +1180,7 @@ bool V4L2_Driver::stop_capturing()
     {
         LOGF_WARN("V4L2 base failed stopping capture (%s)", errmsg);
     }
-    
+
     is_capturing = false;
     v4l_capture_started = false;
     return true;
@@ -1317,9 +1332,9 @@ void V4L2_Driver::newFrame()
 {
     struct timeval current_frame_duration = frame_received;
     gettimeofday(&frame_received, nullptr);
-    timersub(&frame_received,&current_frame_duration,&current_frame_duration);
-  
-    
+    timersub(&frame_received, &current_frame_duration, &current_frame_duration);
+
+
     if (Streamer->isBusy())
     {
         non_capture_frames = 0;
@@ -1398,7 +1413,8 @@ void V4L2_Driver::newFrame()
     if ( PrimaryCCD.isExposing() )
     {
         non_capture_frames = 0;
-        if( !is_capturing ) {
+        if( !is_capturing )
+        {
             LOG_DEBUG("Skip frame, setup not complete yet" );
             return; //skip this frame
         }
@@ -1409,21 +1425,22 @@ void V4L2_Driver::newFrame()
         float cfd = (float) capture_frame_dif.tv_sec + (float) capture_frame_dif.tv_usec / 1000000.0f;
         float fd = (float) frame_duration.tv_sec + (float) frame_duration.tv_usec / 1000000.0f;
 
-        if( cfd < fd * 0.9 ) {
+        if( cfd < fd * 0.9 )
+        {
             LOGF_DEBUG("Skip early frame cfd = %ld.%06ld seconds.", capture_frame_dif.tv_sec, capture_frame_dif.tv_usec);
             return;
         }
-        
-        timeradd(&elapsed_exposure,&frame_duration,&elapsed_exposure);
-        
-        LOGF_DEBUG("Frame took %ld.%06ld s, e = %ld.%06ld s, t = %ld.%06ld s., cfd = %ld.%06ld s.", 
-            current_frame_duration.tv_sec, current_frame_duration.tv_usec,
-            elapsed_exposure.tv_sec, elapsed_exposure.tv_usec,
-            exposure_duration.tv_sec, exposure_duration.tv_usec,
-            capture_frame_dif.tv_sec, capture_frame_dif.tv_usec
-            );
 
-        
+        timeradd(&elapsed_exposure, &frame_duration, &elapsed_exposure);
+
+        LOGF_DEBUG("Frame took %ld.%06ld s, e = %ld.%06ld s, t = %ld.%06ld s., cfd = %ld.%06ld s.",
+                   current_frame_duration.tv_sec, current_frame_duration.tv_usec,
+                   elapsed_exposure.tv_sec, elapsed_exposure.tv_usec,
+                   exposure_duration.tv_sec, exposure_duration.tv_usec,
+                   capture_frame_dif.tv_sec, capture_frame_dif.tv_usec
+                  );
+
+
         float remaining = getRemainingExposure();
         PrimaryCCD.setExposureLeft(remaining);
 
@@ -1437,7 +1454,7 @@ void V4L2_Driver::newFrame()
         if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON) &&
                 (timercmp(&elapsed_exposure, &exposure_duration, < )))
             return; // go on stacking
-        
+
         struct timeval const current_exposure = getElapsedExposure();
 
         //IDLog("Copying frame.\n");
@@ -1600,7 +1617,8 @@ void V4L2_Driver::newFrame()
         else
         {
             //if (!is_streaming && !is_recording) stop_capturing();
-            if (Streamer->isBusy() == false) {
+            if (Streamer->isBusy() == false)
+            {
                 //just mark stop
                 is_capturing = false;
             }
@@ -1616,7 +1634,8 @@ void V4L2_Driver::newFrame()
     {
         non_capture_frames++;
 
-        if( non_capture_frames > 10 ) {
+        if( non_capture_frames > 10 )
+        {
             /* If we arrive here, PrimaryCCD is not exposing anymore, we can't forward the frame and we can't be aborted neither, thus abort the exposure right now.
             * That issue can be reproduced when clicking the "Set" button on the "Main Control" tab while an exposure is running.
             * Note that the patch in StartExposure returning busy instead of error prevents the flow from coming here, so now it's only a safeguard. */
@@ -1795,7 +1814,8 @@ void V4L2_Driver::updateV4L2Controls()
         else LOGF_DEBUG("- %s", Options[i].label);
     }
 
-    if(!AbsExposureN) {
+    if(!AbsExposureN)
+    {
         DEBUGF(INDI::Logger::DBG_WARNING, "Absolute exposure duration control is not possible on the device!", "");
     }
 
