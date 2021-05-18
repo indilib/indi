@@ -574,7 +574,7 @@ int getSiteLatitude(int fd, int *dd, int *mm, double *ssf)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
 
     *ssf = 0.0;
-    if (sscanf(read_buffer, "%d%*c%d:%lf", dd, mm, ssf) < 2)
+    if (sscanf(read_buffer, "%*[^-+0-9]%d%*c%d%*c%lf", dd, mm, ssf) < 2)
     {
         DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse :Gt# response");
         return -1;
@@ -647,7 +647,7 @@ int getSiteLongitude(int fd, int *ddd, int *mm, double *ssf)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
 
     *ssf = 0.0;
-    if (sscanf(read_buffer, "%d%*c%d:%lf", ddd, mm, ssf) < 2)
+    if (sscanf(read_buffer, "%*[^-+0-9]%d%*c%d%*c%lf", ddd, mm, ssf) < 2)
     {
         DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse :Gg# response");
         return -1;
