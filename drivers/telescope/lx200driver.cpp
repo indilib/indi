@@ -304,13 +304,13 @@ int getCommandInt(int fd, int *value, const char *cmd)
     /* Float */
     if (strchr(read_buffer, '.'))
     {
-        if (sscanf(read_buffer, "%f", &temp_number) != 1)
+        if (sscanf(read_buffer, "%*[^-+0-9.eE]%f", &temp_number) != 1)
             return -1;
 
         *value = static_cast<int>(temp_number);
     }
     /* Int */
-    else if (sscanf(read_buffer, "%d", value) != 1)
+    else if (sscanf(read_buffer, "%*[^0-9]%d", value) != 1)
         return -1;
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d]", *value);
@@ -413,7 +413,7 @@ int getCalendarDate(int fd, char *date)
     if (len == 10)
     {
         /* 10Micron Ultra Precision mode calendar date format is YYYY-MM-DD */
-        nbytes_read = sscanf(date, "%4d-%2d-%2d", &YYYY, &mm, &dd);
+        nbytes_read = sscanf(date, "%*[^0-9]%4d-%2d-%2d", &YYYY, &mm, &dd);
         if (nbytes_read < 3)
             return -1;
         /* We're done, date is already in ISO format */
@@ -421,7 +421,7 @@ int getCalendarDate(int fd, char *date)
     else
     {
         /* Meade format is MM/DD/YY */
-        nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
+        nbytes_read = sscanf(date, "%*[^0-9]%d%*c%d%*c%d", &mm, &dd, &yy);
         if (nbytes_read < 3)
             return -1;
         /* We consider years 50 or more to be in the last century, anything less in the 21st century.*/
@@ -467,7 +467,7 @@ int getTimeFormat(int fd, int *format)
     if (strstr(read_buffer, "("))
         nbytes_read = sscanf(read_buffer, "(%d)", &tMode);
     else
-        nbytes_read = sscanf(read_buffer, "%d", &tMode);
+        nbytes_read = sscanf(read_buffer, "%*[^0-9:]%d", &tMode);
 
     if (nbytes_read < 1)
         return -1;
@@ -705,7 +705,7 @@ int getTrackFreq(int fd, double *value)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
 
-    if (sscanf(read_buffer, "%f#", &Freq) < 1)
+    if (sscanf(read_buffer, "%*[^0-9]%f#", &Freq) < 1)
     {
         DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
         return -1;
@@ -780,7 +780,7 @@ int getOTATemp(int fd, double *value)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
 
-    if (sscanf(read_buffer, "%f", &temp) < 1)
+    if (sscanf(read_buffer, "%*[^0-9]%f", &temp) < 1)
     {
         DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
         return -1;
