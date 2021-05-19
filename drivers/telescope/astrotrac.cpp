@@ -1014,6 +1014,7 @@ bool AstroTrac::SetTrackEnabled(bool enabled)
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::saveConfigItems(FILE *fp)
 {
+    INDI::Telescope::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &MountTypeSP);
     SaveAlignmentConfigProperties(fp);
     return true;
