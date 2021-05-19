@@ -472,7 +472,7 @@ bool AstroTrac::Sync(double ra, double dec)
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
     NewEntry.RightAscension        = ra;
     NewEntry.Declination           = dec;
-    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
+    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
     NewEntry.PrivateDataSize = 0;
 
     LOGF_DEBUG("Sync - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
@@ -602,7 +602,7 @@ bool AstroTrac::ReadScopeStatus()
 
     RaDec.ra   = ra;
     RaDec.dec  = de;
-    TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
+    TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
 
     if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
     {
@@ -620,17 +620,12 @@ bool AstroTrac::ReadScopeStatus()
 bool AstroTrac::getTelescopeFromSkyCoordinates(double ra, double de, ln_equ_posn &telescopeCoordinates)
 {
     TelescopeDirectionVector TDV;
-    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-
     if (TransformCelestialToTelescope(ra, de, 0.0, TDV))
     {
-        LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, telescopeCoordinates);
+        EquatorialCoordinatesFromTelescopeDirectionVector(TDV, telescopeCoordinates);
         LOGF_DEBUG("TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf",
                    ra, de, TDV.x, TDV.y, TDV.z, telescopeCoordinates.ra, telescopeCoordinates.dec);
-        telescopeCoordinates.ra = (telescopeCoordinates.ra * 24.0) / 360.0;
-        telescopeCoordinates.ra = range24(lst - telescopeCoordinates.ra);
         return true;
-
     }
 
     return false;
