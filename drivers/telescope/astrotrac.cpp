@@ -120,6 +120,9 @@ bool AstroTrac::initProperties()
     // Init Math plugin
     Initialise(this);
 
+    // Force the alignment system to always be on
+    getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
+
     return true;
 }
 
