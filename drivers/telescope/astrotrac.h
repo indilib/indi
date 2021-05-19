@@ -40,11 +40,15 @@ class AstroTrac :
         virtual const char *getDefaultName() override;
         virtual bool Handshake() override;
         virtual bool ReadScopeStatus() override;
+        virtual void ISGetProperties(const char *dev) override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
 
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                                     char *formats[], char *names[], int n) override;
 
     protected:
         // Motion
@@ -68,7 +72,6 @@ class AstroTrac :
         // Parking
         virtual bool SetCurrentPark() override;
         virtual bool SetDefaultPark() override;
-        virtual bool SetParkPosition(double Axis1Value, double Axis2Value) override;
         virtual bool Park() override;
         virtual bool UnPark() override;
 
@@ -78,6 +81,9 @@ class AstroTrac :
         virtual IPState GuideEast(uint32_t ms) override;
         virtual IPState GuideWest(uint32_t ms) override;
 
+        // Config items
+        virtual bool saveConfigItems(FILE *fp) override;
+
     private:
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Utility
@@ -85,6 +91,7 @@ class AstroTrac :
         bool getVersion();
         void getRADEFromEncoders(double haEncoder, double deEncoder, double &ra, double &de);
         void getEncodersFromRADE(double ra, double de, double &raEncoder, double &deEncoder);
+        double calculateSlewTime(double distance);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Acceleration
@@ -114,7 +121,7 @@ class AstroTrac :
         bool isSlewComplete();
         bool syncEncoder(INDI_EQ_AXIS axis, double value);
         bool slewEncoder(INDI_EQ_AXIS axis, double value);
-        bool getEncoderPositions(INDI_EQ_AXIS axis, double &value);
+        bool getEncoderPosition(INDI_EQ_AXIS axis);
         bool stopMotion(INDI_EQ_AXIS axis);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -152,6 +159,8 @@ class AstroTrac :
         INDI::PropertyText FirmwareTP {1};
         // Acceleration
         INDI::PropertyNumber AccelerationNP {2};
+        // Encoders
+        INDI::PropertyNumber EncoderNP {2};
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Static Constants
@@ -162,4 +171,11 @@ class AstroTrac :
         static constexpr const uint8_t DRIVER_TIMEOUT {3};
         // Maximum buffer for sending/receving.
         static constexpr const uint8_t DRIVER_LEN {64};
+        // Slew Modes
+        static constexpr const uint8_t SLEW_MODES {10};
+        // Slew Speeds
+        static constexpr std::array<uint32_t, SLEW_MODES> SLEW_SPEEDS {{1,2,4,8,32,64,128,600,700,800}};
+        // Maximum Slew Velocity. This cannot be set now so it's considered contant until until it can be altered.
+        // arcsec/sec
+        static constexpr double MAX_SLEW_VELOCITY {10800.0};
 };
