@@ -117,6 +117,8 @@ bool AstroTrac::initProperties()
     InitAlignmentProperties(this);
     // set mount type to alignment subsystem
     SetApproximateMountAlignmentFromMountType(EQUATORIAL);
+    // Init Math plugin
+    Initialise(this);
 
     return true;
 }
@@ -338,16 +340,23 @@ bool AstroTrac::getEncoderPosition(INDI_EQ_AXIS axis)
     snprintf(command, DRIVER_LEN, "<%dp?>", axis + 1);
     if (sendCommand(command, response))
     {
-        std::string position = std::regex_replace(
-                                   response,
-                                   std::regex("<.p([+-]?[0-9]+\\.[0-9]+?)>"),
-                                   std::string("$1"));
+        try
+        {
+            std::string position = std::regex_replace(
+                                       response,
+                                       std::regex("<.p([+-]?[0-9]+\\.[0-9]+?)>"),
+                                       std::string("$1"));
 
-        EncoderNP[axis].setValue(std::stod(position));
-        return true;
+            EncoderNP[axis].setValue(std::stod(position));
+            return true;
+        }
+        catch(...)
+        {
+            LOGF_DEBUG("Failed to parse position (%s)", response);
+        }
     }
-    else
-        return false;
+
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -594,12 +603,11 @@ bool AstroTrac::ReadScopeStatus()
 
     if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
     {
-        NewRaDec(ra, de);
+        NewRaDec(skyRA, skyDE);
         return true;
     }
 
-    LOG_ERROR("ReadScopeStatus - TransformTelescopeToCelestial failed");
-    LOG_ERROR("Activate the Alignment Subsystem");
+    LOG_ERROR("TransformTelescopeToCelestial failed in ReadScopeStatus");
     return false;
 }
 
