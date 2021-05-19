@@ -619,17 +619,16 @@ bool AstroTrac::ReadScopeStatus()
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::getTelescopeFromSkyCoordinates(double ra, double de, ln_equ_posn &telescopeCoordinates)
 {
-    struct ln_equ_posn RaDec;
     TelescopeDirectionVector TDV;
     double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
 
     if (TransformCelestialToTelescope(ra, de, 0.0, TDV))
     {
-        LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
+        LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, telescopeCoordinates);
         LOGF_DEBUG("TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf",
-                   ra, de, TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
-        telescopeCoordinates.ra = (RaDec.ra * 24.0) / 360.0;
-        telescopeCoordinates.dec = range24(lst - RaDec.ra);
+                   ra, de, TDV.x, TDV.y, TDV.z, telescopeCoordinates.ra, telescopeCoordinates.dec);
+        telescopeCoordinates.ra = (telescopeCoordinates.ra * 24.0) / 360.0;
+        telescopeCoordinates.ra = range24(lst - telescopeCoordinates.ra);
         return true;
 
     }
