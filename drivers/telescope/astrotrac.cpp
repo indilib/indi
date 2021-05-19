@@ -827,6 +827,10 @@ bool AstroTrac::updateLocation(double latitude, double longitude, double elevati
     lnobserver.lat = latitude;
 
     LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
+
+    INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers::UpdateLocation(latitude, longitude, elevation);
+    // Set this according to mount type
+    SetApproximateMountAlignmentFromMountType(EQUATORIAL);
     return true;
 }
 
