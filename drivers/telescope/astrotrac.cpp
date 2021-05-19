@@ -36,6 +36,8 @@
 std::unique_ptr<AstroTrac> AstroTrac_mount(new AstroTrac());
 constexpr std::array<uint32_t, AstroTrac::SLEW_MODES> AstroTrac::SLEW_SPEEDS;
 
+using namespace INDI::AlignmentSubsystem;
+
 AstroTrac::AstroTrac()
 {
     setVersion(1, 0);
@@ -436,12 +438,54 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::Sync(double ra, double dec)
 {
-    double haEncoder = 0, deEncoder = 0;
-    getEncodersFromRADE(ra, dec, haEncoder, deEncoder);
-    bool rc1 = syncEncoder(AXIS_RA, haEncoder);
-    bool rc2 = syncEncoder(AXIS_DE, deEncoder);
+    //    double haEncoder = 0, deEncoder = 0;
+    //    ln_equ_posn telescopeCoordinates;
+    //    if (getTelescopeFromSkyCoordinates(ra, dec, telescopeCoordinates))
+    //    {
+    //        getEncodersFromRADE(telescopeCoordinates.ra, telescopeCoordinates.dec, haEncoder, deEncoder);
+    //        bool rc1 = syncEncoder(AXIS_RA, haEncoder);
+    //        bool rc2 = syncEncoder(AXIS_DE, deEncoder);
+    //        return rc1 && rc2;
+    //    }
 
-    return rc1 && rc2;
+    //    return false;
+
+    AlignmentDatabaseEntry NewEntry;
+    struct ln_equ_posn RaDec
+    {
+        ra, dec
+    };
+
+
+    NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
+    NewEntry.RightAscension        = ra;
+    NewEntry.Declination           = dec;
+    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
+    NewEntry.PrivateDataSize = 0;
+
+    LOGF_DEBUG("Sync - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
+
+    if (!CheckForDuplicateSyncPoint(NewEntry))
+    {
+        GetAlignmentDatabase().push_back(NewEntry);
+
+        // Tell the client about size change
+        UpdateSize();
+
+        // equatorial/telescope conversions needs more than 1 sync point
+        if (GetAlignmentDatabase().size() < 2)
+            LOG_WARN("Equatorial mounts need two SYNC points at least.");
+
+        // Tell the math plugin to reinitialise
+        Initialise(this);
+        LOGF_DEBUG("Sync - new entry added RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
+
+        // update tracking target
+        ReadScopeStatus();
+        return true;
+    }
+    LOGF_DEBUG("Sync - duplicate entry RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -450,18 +494,23 @@ bool AstroTrac::Sync(double ra, double dec)
 bool AstroTrac::Goto(double ra, double dec)
 {
     double haEncoder = 0, deEncoder = 0;
-    getEncodersFromRADE(ra, dec, haEncoder, deEncoder);
-    bool rc1 = slewEncoder(AXIS_RA, haEncoder);
-    bool rc2 = slewEncoder(AXIS_DE, deEncoder);
-
-    if (rc1 && rc2)
+    ln_equ_posn telescopeCoordinates;
+    if (getTelescopeFromSkyCoordinates(ra, dec, telescopeCoordinates))
     {
-        TrackState = SCOPE_SLEWING;
+        getEncodersFromRADE(telescopeCoordinates.ra, telescopeCoordinates.dec, haEncoder, deEncoder);
+        bool rc1 = slewEncoder(AXIS_RA, haEncoder);
+        bool rc2 = slewEncoder(AXIS_DE, deEncoder);
 
-        char RAStr[32], DecStr[32];
-        fs_sexa(RAStr, ra, 2, 3600);
-        fs_sexa(DecStr, dec, 2, 3600);
-        LOGF_INFO("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
+        if (rc1 && rc2)
+        {
+            TrackState = SCOPE_SLEWING;
+
+            char RAStr[32], DecStr[32];
+            fs_sexa(RAStr, telescopeCoordinates.ra, 2, 3600);
+            fs_sexa(DecStr, telescopeCoordinates.dec, 2, 3600);
+            LOGF_INFO("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
+            return true;
+        }
     }
 
     return false;
@@ -503,7 +552,9 @@ double AstroTrac::calculateSlewTime(double distance)
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::ReadScopeStatus()
 {
-    double ra = 0, de = 0;
+    TelescopeDirectionVector TDV;
+    struct ln_equ_posn RaDec;
+    double ra = 0, de = 0, skyRA = 0, skyDE = 0;
 
     double lastHAEncoder = EncoderNP[AXIS_RA].getValue();
     double lastDEEncoder = EncoderNP[AXIS_DE].getValue();
@@ -537,8 +588,42 @@ bool AstroTrac::ReadScopeStatus()
         }
     }
 
-    NewRaDec(ra, de);
-    return true;
+    RaDec.ra   = ra;
+    RaDec.dec  = de;
+    TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
+
+    if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
+    {
+        NewRaDec(ra, de);
+        return true;
+    }
+
+    LOG_ERROR("ReadScopeStatus - TransformTelescopeToCelestial failed");
+    LOG_ERROR("Activate the Alignment Subsystem");
+    return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::getTelescopeFromSkyCoordinates(double ra, double de, ln_equ_posn &telescopeCoordinates)
+{
+    struct ln_equ_posn RaDec;
+    TelescopeDirectionVector TDV;
+    double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+
+    if (TransformCelestialToTelescope(ra, de, 0.0, TDV))
+    {
+        LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
+        LOGF_DEBUG("TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf",
+                   ra, de, TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
+        telescopeCoordinates.ra = (RaDec.ra * 24.0) / 360.0;
+        telescopeCoordinates.dec = range24(lst - RaDec.ra);
+        return true;
+
+    }
+
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////

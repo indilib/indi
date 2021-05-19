@@ -92,6 +92,7 @@ class AstroTrac :
         void getRADEFromEncoders(double haEncoder, double deEncoder, double &ra, double &de);
         void getEncodersFromRADE(double ra, double de, double &raEncoder, double &deEncoder);
         double calculateSlewTime(double distance);
+        bool getTelescopeFromSkyCoordinates(double ra, double de, ln_equ_posn &telescopeCoordinates);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Acceleration
