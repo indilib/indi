@@ -29,8 +29,10 @@
 
 #include "inditelescope.h"
 
-// if tracking speed above this then mount is slewing (arcsec / sec) - this is 4x sidereal
-#define PMC8_MAX_TRACK_RATE 59
+// if tracking speed is above this (arcsec / sec) then assume mount is slewing 
+// this is just less than 3x sidereal
+// which is what we would see if we were moving east at 4x sidereal
+#define PMC8_MAX_TRACK_RATE 44
 
 typedef enum {
     ST_STOPPED,
@@ -45,8 +47,7 @@ typedef enum {
 //#endif
 
 typedef enum { PMC8_TRACK_SIDEREAL, PMC8_TRACK_LUNAR, PMC8_TRACK_SOLAR, PMC8_TRACK_CUSTOM, PMC8_TRACK_KING, PMC8_TRACK_UNDEFINED } PMC8_TRACK_RATE;
-
-typedef enum { PMC8_MOVE_4X, PMC8_MOVE_16X, PMC8_MOVE_64X, PMC8_MOVE_256X } PMC8_MOVE_RATE;
+typedef enum { PMC8_MOVE_5X, PMC8_MOVE_25X, PMC8_MOVE_125X, PMC8_MOVE_833X } PMC8_MOVE_RATE;
 
 //typedef enum { HEMI_SOUTH, HEMI_NORTH } PMC8_HEMISPHERE;
 
@@ -54,6 +55,8 @@ typedef enum { PMC8_AXIS_RA=0, PMC8_AXIS_DEC=1 } PMC8_AXIS;
 typedef enum { PMC8_N, PMC8_S, PMC8_W, PMC8_E } PMC8_DIRECTION;
 
 typedef enum { MOUNT_G11 = 0, MOUNT_EXOS2 = 1, MOUNT_iEXOS100 = 2 } PMC8_MOUNT_TYPES;
+
+typedef enum { PMC8_SERIAL_AUTO, PMC8_SERIAL_INVERTED, PMC8_SERIAL_STANDARD, PMC8_ETHERNET } PMC8_CONNECTION_TYPE;
 
 typedef struct
 {
@@ -95,7 +98,7 @@ void set_pmc8_sim_dec(double dec);
 /**************************************************************************
  Diagnostics
 **************************************************************************/
-bool check_pmc8_connection(int fd, bool isSerial);
+bool check_pmc8_connection(int fd, PMC8_CONNECTION_TYPE isSerial);
 bool detect_pmc8(int fd);
 void set_pmc8_reconnect_flag();
 bool get_pmc8_reconnect_flag();
@@ -116,7 +119,8 @@ bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode);
 /**************************************************************************
  Motion
 **************************************************************************/
-bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int speedindex);
+//bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int speedindex);
+bool set_pmc8_move_rate_axis(int fd, PMC8_DIRECTION dir, int reqrate);
 bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir);
 bool stop_pmc8_tracking_motion(int fd);
 bool set_pmc8_ra_tracking(int fd, double rate);

@@ -29,6 +29,19 @@
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 
+typedef enum { PMC8_MOVE_INACTIVE, PMC8_MOVE_RAMPING, PMC8_MOVE_ACTIVE } PMC8_MOVE_STATE;
+typedef enum { PMC8_RAMP_UP, PMC8_RAMP_DOWN } PMC8_RAMP_DIRECTION;
+
+typedef struct
+{
+    PMC8_MOVE_STATE state = PMC8_MOVE_INACTIVE;      
+    int targetRate = 0;
+    int rampIteration = 0;
+    int rampLastStep = 0;
+    PMC8_RAMP_DIRECTION rampDir = PMC8_RAMP_UP;
+} PMC8MoveInfo;
+
+
 class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
@@ -106,6 +119,15 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         //GUIDE variables.
         int GuideNSTID;
         int GuideWETID;
+        
+        // Move
+        static void rampTimeoutHelperN(void *p);
+        static void rampTimeoutHelperS(void *p);
+        static void rampTimeoutHelperE(void *p);
+        static void rampTimeoutHelperW(void *p);
+        bool ramp_movement(PMC8_DIRECTION calldir);
+        
+        int getSlewRate();
 
     private:
         /**
@@ -124,9 +146,6 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         ISwitch MountTypeS[3];
         ISwitchVectorProperty MountTypeSP;
 
-        //Moved to driver
-        //enum { MOUNT_G11, MOUNT_EXOS2, MOUNT_iEXOS100 };
-
         /* Tracking Mode */
         //ISwitchVectorProperty TrackModeSP;
         //ISwitch TrackModeS[4];
@@ -136,13 +155,17 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         //INumberVectorProperty CustomTrackRateNP;
 
         /* SRF Guide Rates */
-        INumber RaGuideRateN[1];
-        INumberVectorProperty RaGuideRateNP;
-        INumber DeGuideRateN[1];
-        INumberVectorProperty DeGuideRateNP;
-        INumber GuideRateN[1];
+        INumber GuideRateN[2];
         INumberVectorProperty GuideRateNP;
+        INumber LegacyGuideRateN[1];
+        INumberVectorProperty LegacyGuideRateNP;
 
+        /* Move Ramp Settings */       
+        INumber RampN[3];
+        INumberVectorProperty RampNP;
+
+        ISwitch SerialCableTypeS[3];
+        ISwitchVectorProperty SerialCableTypeSP;
 
         unsigned int DBG_SCOPE;
         double currentRA, currentDEC;
@@ -150,8 +173,13 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         double currentTrackRate = 0;
 
         int trackingPollCounter = 0;
+        
         bool isPulsingNS = false;
         bool isPulsingWE = false;
+        
+        PMC8MoveInfo moveInfoRA, moveInfoDEC;
+
+        bool isInGoto = false;
 
         //PMC8Info scopeInfo;
         FirmwareInfo firmwareInfo;

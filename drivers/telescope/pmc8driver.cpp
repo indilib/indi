@@ -66,8 +66,9 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 // However, on Exos2 62500 (F424) is reported when slewing
 #define PMC8_MAX_PRECISE_MOTOR_RATE 62500
 
-// set max settable slew rate as move rate as 256x sidereal
-#define PMC8_MAX_MOVE_MOTOR_RATE (256*15)
+// set max settable slew rate as move rate as 830x sidereal
+//could be as high as 833.33x, but 830x simplifies certain assumptions
+#define PMC8_MAX_MOVE_MOTOR_RATE (830*15)
 
 // any guide pulses less than this are ignored as it will not result in any actual motor motion
 #define PMC8_PULSE_GUIDE_MIN_MS 20
@@ -77,14 +78,14 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 
 #define PMC8_MAX_RETRIES 3 /*number of times to retry reading a response */
 #define PMC8_RETRY_DELAY 30000 /* how long to wait before retrying i/o */
-#define PMC8_MAX_IO_ERROR_THRESHOLD 4 /* how many consecutive read timeouts before trying to reset the connection */
+#define PMC8_MAX_IO_ERROR_THRESHOLD 2 /* how many consecutive read timeouts before trying to reset the connection */
 
 #define PMC8_RATE_SIDEREAL 15.0
 #define PMC8_RATE_LUNAR 14.685
 #define PMC8_RATE_SOLAR 15.041
 #define PMC8_RATE_KING 15.0369
 
-uint8_t pmc8_connection         = INDI::Telescope::CONNECTION_SERIAL;
+PMC8_CONNECTION_TYPE pmc8_connection         = PMC8_SERIAL_AUTO;
 bool pmc8_debug                 = false;
 bool pmc8_simulation            = false;
 bool pmc8_isRev2Compliant       = false;
@@ -299,30 +300,34 @@ void set_pmc8_sim_dec(double dec)
     simPMC8Data.dec = dec;
 }
 
-bool check_pmc8_connection(int fd, bool isSerial)
+bool check_pmc8_connection(int fd, PMC8_CONNECTION_TYPE connection)
 {       
-    if (isSerial) {
-        pmc8_connection = INDI::Telescope::CONNECTION_SERIAL;
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via Serial.  This may take up to 30 seconds, depending on the cable.");
-    }
-    else {
-        pmc8_connection = INDI::Telescope::CONNECTION_TCP;
+    pmc8_connection = connection;
+
+    if (connection == PMC8_ETHERNET) {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via Ethernet.");
     }
+    else {
+        if (connection == PMC8_SERIAL_STANDARD) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via standard Serial cable.  Please wait 15 seconds for mount to reset.");
+        else if (connection == PMC8_SERIAL_AUTO) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via Serial.  Autodecting cable type.  This could take up to 30 seconds.");
+        else DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via inverted Serial.");
+    }
     
-    for (int i = 0; i < 2; i++)
-    {
-        if (i) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Retrying...");
-        
-        if (detect_pmc8(fd)) return true;
-        usleep(PMC8_RETRY_DELAY);
+    if (connection != PMC8_SERIAL_STANDARD) {
+        for (int i = 0; i < 2; i++)
+        {
+            if (i) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Retrying...");
+            
+            if (detect_pmc8(fd)) return true;
+            usleep(PMC8_RETRY_DELAY);
+        }
     }
 
-    if (isSerial)
+    if ((connection == PMC8_SERIAL_STANDARD) || (connection == PMC8_SERIAL_AUTO))
     {
         // If they're not using a custom-configured cable, we need to clear DTR for serial to start working
         // But this resets the PMC8, so only do it after we've already checked for connection
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Could not connect.  Attempting to clear DTR...");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Attempting to clear DTR for standard cable.");
         int serial = TIOCM_DTR;
         ioctl(fd,TIOCMBIC,&serial);
         
@@ -365,14 +370,14 @@ bool detect_pmc8(int fd)
         if ((errcode = send_pmc8_command(fd, initCMD, strlen(initCMD), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error connecting: %s", errmsg);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error connecting on write: %s", errmsg);
             return false;
         }
 
         if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGv")))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Error connecting: %s", errmsg);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Error connecting on read: %s", errmsg);
             return false;
         }
     }
@@ -717,16 +722,17 @@ bool get_pmc8_is_scope_slewing(int fd, bool &isslew)
     if (pmc8_simulation)
     {
         isslew = (simPMC8Info.systemStatus == ST_SLEWING);
-        return true;
     }
     else
     {
         isslew = ((rarate > PMC8_MAX_TRACK_RATE) || (decrate >= PMC8_MAX_TRACK_RATE));
     }
-
+    
     return true;
 }
 
+
+/*
 int convert_movespeedindex_to_rate(int mode)
 {
     int r=0;
@@ -751,12 +757,14 @@ int convert_movespeedindex_to_rate(int mode)
     }
 
     return r;
-}
+}*/
 
+
+/*
 bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int mode)
 {
     bool isslew;
-
+    
     // check speed
     if (get_pmc8_is_scope_slewing(fd, isslew) == false)
     {
@@ -804,6 +812,36 @@ bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int mode)
 
     return true;
 }
+*/
+
+
+// set move speed in terms of how many times sidereal
+bool set_pmc8_move_rate_axis(int fd, PMC8_DIRECTION dir, int reqrate)
+{
+    int rate = reqrate;
+
+    if (rate > PMC8_MAX_MOVE_MOTOR_RATE)
+        rate = PMC8_MAX_MOVE_MOTOR_RATE;
+    else if (rate < -PMC8_MAX_MOVE_MOTOR_RATE)
+        rate = -PMC8_MAX_MOVE_MOTOR_RATE;
+
+    switch (dir)
+    {
+        case PMC8_S:
+            rate = -rate;
+            [[fallthrough]];
+        case PMC8_N:
+            return set_pmc8_custom_dec_move_rate(fd, rate);
+        case PMC8_E:
+            rate = -rate;
+            [[fallthrough]];
+        case PMC8_W:
+            return set_pmc8_custom_ra_move_rate(fd, rate);
+    }
+    
+    return false;
+}
+
 
 bool stop_pmc8_tracking_motion(int fd)
 {
@@ -820,6 +858,8 @@ bool stop_pmc8_tracking_motion(int fd)
     return true;
 }
 
+
+/*
 bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir)
 {
     bool rc = false;
@@ -842,7 +882,7 @@ bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir)
     }
 
     return rc;
-}
+}*/
 
 // get current (precise) tracking rate in arcsec/sec
 bool get_pmc8_track_rate(int fd, double &rate)
@@ -1885,27 +1925,26 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
     if (pmc8_isRev2Compliant && !axis && !track_after) naxis = 2;
     snprintf(cmd, sizeof(cmd), "ESPt%d%s!", naxis, hexpt);
 
-    if (pmc8_simulation)
-        return true;
+    if (!pmc8_simulation) {
 
-    if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
+        if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
 
-    snprintf(expresp, sizeof(expresp), "ESGt%d%s!", naxis, hexpt);
+        snprintf(expresp, sizeof(expresp), "ESGt%d%s!", naxis, hexpt);
 
-	if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))   
-    {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response, expresp);
-        return false;
+        if ((errcode = get_pmc8_response(fd, response, &nbytes_read, expresp)))   
+        {
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response, expresp);
+            return false;
+        }
     }
 
     return true;
 }
-
 
 bool set_pmc8_target_position(int fd, int rapoint, int decpoint)
 {
@@ -2332,7 +2371,7 @@ bool get_pmc8_response(int fd, char* buf, int *nbytes_read, const char* expected
             
             // if we see connection timed out, exit out of here and try to reconnect
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG,"Read error: %s",errmsg);
-            if (strstr(errmsg,"Connection timed out")) {
+            if (strstr(errmsg,"Connection timed out") || strstr(errmsg,"Bad")) {
                 set_pmc8_reconnect_flag();
                 return err_code;
             }            
@@ -2343,7 +2382,7 @@ bool get_pmc8_response(int fd, char* buf, int *nbytes_read, const char* expected
             
             //PMC8 connection is not entirely reliable when using Ethernet instead of Serial connection.
             //So, try to compensate for common problems
-            if (pmc8_connection == INDI::Telescope::CONNECTION_TCP) {
+            if (pmc8_connection == PMC8_ETHERNET) {
                 //One problem is we get the string *HELLO* when we connect or disconnect, so discard that
                 if (buf[0]=='*') {
                     strcpy(buf,buf+7);
