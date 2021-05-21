@@ -34,11 +34,13 @@ typedef enum { PMC8_RAMP_UP, PMC8_RAMP_DOWN } PMC8_RAMP_DIRECTION;
 
 typedef struct
 {
-    PMC8_MOVE_STATE state = PMC8_MOVE_INACTIVE;      
+    PMC8_MOVE_STATE state = PMC8_MOVE_INACTIVE;
+    uint8_t moveDir = 0;      
     int targetRate = 0;
     int rampIteration = 0;
     int rampLastStep = 0;
     PMC8_RAMP_DIRECTION rampDir = PMC8_RAMP_UP;
+    int timer;
 } PMC8MoveInfo;
 
 
@@ -164,8 +166,13 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         INumber RampN[3];
         INumberVectorProperty RampNP;
 
+        // Serial Cable Type
         ISwitch SerialCableTypeS[3];
         ISwitchVectorProperty SerialCableTypeSP;
+
+        // Post-Goto Behavior
+        ISwitch PostGotoS[3];
+        ISwitchVectorProperty PostGotoSP;
 
         unsigned int DBG_SCOPE;
         double currentRA, currentDEC;

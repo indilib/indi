@@ -31,8 +31,12 @@
 
 // if tracking speed is above this (arcsec / sec) then assume mount is slewing 
 // this is just less than 3x sidereal
-// which is what we would see if we were moving east at 4x sidereal
+// which is what we would normally see if we are tracking
+// and start moving east at the min move rate (4x sidereal)
 #define PMC8_MAX_TRACK_RATE 44
+
+// set max settable slew rate as 833x sidereal
+#define PMC8_MAX_MOVE_RATE (833*15)
 
 typedef enum {
     ST_STOPPED,
@@ -47,7 +51,6 @@ typedef enum {
 //#endif
 
 typedef enum { PMC8_TRACK_SIDEREAL, PMC8_TRACK_LUNAR, PMC8_TRACK_SOLAR, PMC8_TRACK_CUSTOM, PMC8_TRACK_KING, PMC8_TRACK_UNDEFINED } PMC8_TRACK_RATE;
-typedef enum { PMC8_MOVE_5X, PMC8_MOVE_25X, PMC8_MOVE_125X, PMC8_MOVE_833X } PMC8_MOVE_RATE;
 
 //typedef enum { HEMI_SOUTH, HEMI_NORTH } PMC8_HEMISPHERE;
 
@@ -89,7 +92,7 @@ bool send_pmc8_command(int fd, const char *buf, int nbytes, int *nbytes_written)
 **************************************************************************/
 void set_pmc8_sim_system_status(PMC8_SYSTEM_STATUS value);
 void set_pmc8_sim_track_rate(PMC8_TRACK_RATE value);
-void set_pmc8_sim_move_rate(PMC8_MOVE_RATE value);
+void set_pmc8_sim_move_rate(int value);
 //void set_sim_hemisphere(IEQ_HEMISPHERE value);
 void set_pmc8_sim_ra(double ra);
 void set_pmc8_sim_dec(double dec);
@@ -136,6 +139,7 @@ bool abort_pmc8(int fd);
 bool slew_pmc8(int fd, double ra, double dec);
 bool sync_pmc8(int fd, double ra, double dec);
 bool set_pmc8_radec(int fd, double ra, double dec);
+void set_pmc8_goto_resume(bool resume);
 INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec);
 
 

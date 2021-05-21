@@ -66,10 +66,6 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 // However, on Exos2 62500 (F424) is reported when slewing
 #define PMC8_MAX_PRECISE_MOTOR_RATE 62500
 
-// set max settable slew rate as move rate as 830x sidereal
-//could be as high as 833.33x, but 830x simplifies certain assumptions
-#define PMC8_MAX_MOVE_MOTOR_RATE (830*15)
-
 // any guide pulses less than this are ignored as it will not result in any actual motor motion
 #define PMC8_PULSE_GUIDE_MIN_MS 20
 
@@ -90,6 +86,7 @@ bool pmc8_debug                 = false;
 bool pmc8_simulation            = false;
 bool pmc8_isRev2Compliant       = false;
 bool pmc8_reconnect_flag        = false;
+bool pmc8_goto_resume           = true;
 int pmc8_io_error_ctr           = 0;
 char pmc8_device[MAXINDIDEVICE] = "PMC8";
 double pmc8_latitude            = 0;  // must be kept updated by pmc8.cpp when it is changed!
@@ -194,10 +191,10 @@ bool convert_move_rate_to_motor(float rate, int *mrate)
 
     *mrate = (int)(rate*(PMC8_AXIS0_SCALE/ARCSEC_IN_CIRCLE));
 
-    if (*mrate > PMC8_MAX_MOVE_MOTOR_RATE)
-        *mrate = PMC8_MAX_MOVE_MOTOR_RATE;
-    else if (*mrate < -PMC8_MAX_MOVE_MOTOR_RATE)
-        *mrate = -PMC8_MAX_MOVE_MOTOR_RATE;
+    if (*mrate > PMC8_MAX_MOVE_RATE)
+        *mrate = PMC8_MAX_MOVE_RATE;
+    else if (*mrate < -PMC8_MAX_MOVE_RATE)
+        *mrate = -PMC8_MAX_MOVE_RATE;
 
     return true;
 }
@@ -285,7 +282,7 @@ void set_pmc8_sim_track_rate(PMC8_TRACK_RATE value)
     simPMC8Data.trackRate = value;
 }
 
-void set_pmc8_sim_move_rate(PMC8_MOVE_RATE value)
+void set_pmc8_sim_move_rate(int value)
 {
     simPMC8Data.moveRate = value;
 }
@@ -784,10 +781,10 @@ bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int mode)
 
     reqrate = convert_movespeedindex_to_rate(mode);
 
-    if (reqrate > PMC8_MAX_MOVE_MOTOR_RATE)
-        reqrate = PMC8_MAX_MOVE_MOTOR_RATE;
-    else if (reqrate < -PMC8_MAX_MOVE_MOTOR_RATE)
-        reqrate = -PMC8_MAX_MOVE_MOTOR_RATE;
+    if (reqrate > PMC8_MAX_MOVE_RATE)
+        reqrate = PMC8_MAX_MOVE_RATE;
+    else if (reqrate < -PMC8_MAX_MOVE_RATE)
+        reqrate = -PMC8_MAX_MOVE_RATE;
 
     switch (dir)
     {
@@ -820,10 +817,10 @@ bool set_pmc8_move_rate_axis(int fd, PMC8_DIRECTION dir, int reqrate)
 {
     int rate = reqrate;
 
-    if (rate > PMC8_MAX_MOVE_MOTOR_RATE)
-        rate = PMC8_MAX_MOVE_MOTOR_RATE;
-    else if (rate < -PMC8_MAX_MOVE_MOTOR_RATE)
-        rate = -PMC8_MAX_MOVE_MOTOR_RATE;
+    if (rate > PMC8_MAX_MOVE_RATE)
+        rate = PMC8_MAX_MOVE_RATE;
+    else if (rate < -PMC8_MAX_MOVE_RATE)
+        rate = -PMC8_MAX_MOVE_RATE;
 
     switch (dir)
     {
@@ -1215,7 +1212,7 @@ bool set_pmc8_custom_ra_move_rate(int fd, double rate)
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_ra move_rate() called rate=%f ", rate);
 
     // safe guard for now - only all use to STOP slewing or MOVE commands with this
-    if (fabs(rate) > PMC8_MAX_MOVE_MOTOR_RATE)
+    if (fabs(rate) > PMC8_MAX_MOVE_RATE)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_ra_move rate only supports low rates currently");
 
@@ -1234,7 +1231,7 @@ bool set_pmc8_custom_dec_move_rate(int fd, double rate)
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_dec_move_rate() called rate=%f ", rate);
 
     // safe guard for now - only all use to STOP slewing with this
-    if (fabs(rate) > PMC8_MAX_MOVE_MOTOR_RATE)
+    if (fabs(rate) > PMC8_MAX_MOVE_RATE)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_dec_move_rate only supports low rates currently");
         return false;
@@ -1918,11 +1915,8 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
     convert_motor_counts_to_hex(point, hexpt);
     
     // for v2+ firmware, use axis 2 if we don't want to track after the slew
-    // I'm not sure if the interface actually allows a reqest to slew without resuming tracking
-    // I'll leave this code in for now just in case I find the right hooks
-    bool track_after = true; // this would obviously become a parameter to the function
     int naxis = axis;
-    if (pmc8_isRev2Compliant && !axis && !track_after) naxis = 2;
+    if (pmc8_isRev2Compliant && !axis && !pmc8_goto_resume) naxis = 2;
     snprintf(cmd, sizeof(cmd), "ESPt%d%s!", naxis, hexpt);
 
     if (!pmc8_simulation) {
@@ -2458,4 +2452,8 @@ bool get_pmc8_reconnect_flag() {
         return true;
     }
     return false;
+}
+
+void set_pmc8_goto_resume(bool resume) {
+    pmc8_goto_resume = resume;
 }
