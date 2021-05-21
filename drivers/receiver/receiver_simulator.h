@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "indispectrograph.h"
+#include "indireceiver.h"
 #include "stream/streammanager.h"
 #include "dsp/convolution.h"
 #include "dsp/transforms.h"
@@ -31,7 +31,7 @@ enum Settings
     BANDWIDTH_N,
     NUM_SETTINGS
 };
-class RadioSim : public INDI::Spectrograph
+class RadioSim : public INDI::Receiver
 {
     public:
         RadioSim();

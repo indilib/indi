@@ -40,17 +40,17 @@
 
 
 /**
- * \class INDI::Spectrograph
- * \brief Class to provide general functionality of Monodimensional Spectrograph.
+ * \class INDI::Receiver
+ * \brief Class to provide general functionality of Monodimensional Receiver.
  *
- * The Spectrograph capabilities must be set to select which features are exposed to the clients.
- * SetSpectrographCapability() is typically set in the constructor or initProperties(), but can also be
- * called after connection is established with the Spectrograph, but must be called /em before returning
+ * The Receiver capabilities must be set to select which features are exposed to the clients.
+ * SetReceiverCapability() is typically set in the constructor or initProperties(), but can also be
+ * called after connection is established with the Receiver, but must be called /em before returning
  * true in Connect().
  *
- * Developers need to subclass INDI::Spectrograph to implement any driver for Spectrographs within INDI.
+ * Developers need to subclass INDI::Receiver to implement any driver for Receivers within INDI.
  *
- * \example Spectrograph Simulator
+ * \example Receiver Simulator
  * \author Jasem Mutlaq, Ilia Platone
  *
  */
@@ -59,16 +59,16 @@ namespace INDI
 {
 class StreamManager;
 
-class Spectrograph : public virtual SensorInterface
+class Receiver : public virtual SensorInterface
 {
     public:
         enum
         {
             SPECTROGRAPH_MAX_CAPABILITY                  = SENSOR_MAX_CAPABILITY<<0,  /*!< Can the Sensor Integration be aborted?  */
-        } SpectrographCapability;
+        } ReceiverCapability;
 
-        Spectrograph();
-        virtual ~Spectrograph();
+        Receiver();
+        virtual ~Receiver();
 
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
@@ -83,45 +83,36 @@ class Spectrograph : public virtual SensorInterface
         virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len) override;
 
         /**
-         * @brief setSampleRate Set depth of Spectrograph device.
+         * @brief setSampleRate Set depth of Receiver device.
          * @param bpp bits per pixel
          */
         void setSampleRate(double sr);
 
         /**
-         * @brief setLowCutFrequency Set low cut frequency of Spectrograph device.
-         * @param freq The low frequency cutoff
+         * @brief setBandwidth Set bandwidth of Receiver device.
+         * @param bandwidth The detector bandwidth
          */
-        void setLowCutFrequency(double freq);
+        void setBandwidth(double bandwidth);
 
         /**
-         * @brief setHighCutFrequency Set high cut frequency of Spectrograph device.
-         * @param freq The high frequency cutoff
-         */
-        void setHighCutFrequency(double freq);
-
-        /**
-         * @brief setGain Set gain of Spectrograph device.
+         * @brief setGain Set gain of Receiver device.
          * @param gain The requested gain
          */
         void setGain(double gain);
 
         /**
-         * @brief getLowCutFrequency Get requested low cut frequency in Hz.
-         * @return requested low cut frequency in Hz.
+         * @brief setFrequency Set the frequency observed.
+         * @param freq capture frequency
          */
-        inline double getLowCutFrequency()
-        {
-            return LowCutFrequency;
-        }
+        void setFrequency(double freq);
 
         /**
-         * @brief getHighCutFrequency Get requested high cut frequency in Hz.
-         * @return requested high cut frequency in Hz.
+         * @brief getBandwidth Get requested integration bandwidth for the sensor in Hz.
+         * @return requested integration bandwidth for the sensor in Hz.
          */
-        inline double getHighCutFrequency()
+        inline double getBandwidth()
         {
-            return HighCutFrequency;
+            return Bandwidth;
         }
 
         /**
@@ -154,24 +145,24 @@ class Spectrograph : public virtual SensorInterface
         /**
          * @brief Return Vector Info Property
          */
-        inline INumberVectorProperty *getSpectrographSettings()
+        inline INumberVectorProperty *getReceiverSettings()
         {
-            return &SpectrographSettingsNP;
+            return &ReceiverSettingsNP;
         }
 
         /**
-         * @brief GetSpectrographCapability returns the Sensor capabilities.
+         * @brief GetReceiverCapability returns the Sensor capabilities.
          */
-        uint32_t GetSpectrographCapability() const
+        uint32_t GetReceiverCapability() const
         {
             return capability;
         }
 
         /**
-         * @brief SetSpectrographCapability Set the Spectrograph capabilities. Al fields must be initilized.
-         * @param cap pointer to SpectrographCapability struct.
+         * @brief SetReceiverCapability Set the Receiver capabilities. Al fields must be initilized.
+         * @param cap pointer to ReceiverCapability struct.
          */
-        void SetSpectrographCapability(uint32_t cap);
+        void SetReceiverCapability(uint32_t cap);
 
         /**
          * @brief setMinMaxStep for a number property element
@@ -188,21 +179,21 @@ class Spectrograph : public virtual SensorInterface
 
         typedef enum
         {
-            SPECTROGRAPH_GAIN = 0,
-            SPECTROGRAPH_LOWFREQ,
-            SPECTROGRAPH_HIGHFREQ,
-            SPECTROGRAPH_BITSPERSAMPLE,
-            SPECTROGRAPH_SAMPLERATE,
-            SPECTROGRAPH_ANTENNA,
-        } SPECTROGRAPH_INFO_INDEX;
-        INumberVectorProperty SpectrographSettingsNP;
-        INumber SpectrographSettingsN[8];
+            RECEIVER_GAIN = 0,
+            RECEIVER_FREQUENCY,
+            RECEIVER_BANDWIDTH,
+            RECEIVER_BITSPERSAMPLE,
+            RECEIVER_SAMPLERATE,
+            RECEIVER_ANTENNA,
+        } RECEIVER_INFO_INDEX;
+        INumberVectorProperty ReceiverSettingsNP;
+        INumber ReceiverSettingsN[7];
 
 private:
         double Samplerate;
         double Frequency;
-        double LowCutFrequency;
-        double HighCutFrequency;
+        double SampleRate;
+        double Bandwidth;
         double Gain;
 
 };

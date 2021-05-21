@@ -445,6 +445,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indireceiver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp
@@ -873,12 +874,12 @@ install(TARGETS indi_script_telescope RUNTIME DESTINATION bin)
 
 ################ Detector Simulator ################
 
-SET(spectrographsimulator_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/spectrograph/spectrograph_simulator.cpp)
+SET(receiversimulator_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/receiver/receiver_simulator.cpp)
 
-add_executable(indi_simulator_spectrograph ${spectrographsimulator_SRC})
-target_link_libraries(indi_simulator_spectrograph indidriver)
-install(TARGETS indi_simulator_spectrograph RUNTIME DESTINATION bin)
+add_executable(indi_simulator_receiver ${receiversimulator_SRC})
+target_link_libraries(indi_simulator_receiver indidriver)
+install(TARGETS indi_simulator_receiver RUNTIME DESTINATION bin)
 
 ########### CCD Simulator ##############
 SET(ccdsimulator_SRC
@@ -1991,6 +1992,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indireceiver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweatherinterface.h

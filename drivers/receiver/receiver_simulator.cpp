@@ -50,8 +50,8 @@ RadioSim::~RadioSim()
 ***************************************************************************************/
 bool RadioSim::Connect()
 {
-    LOG_INFO("Simulator Spectrograph connected successfully!");
-    // Let's set a timer that checks teleSpectrographs status every POLLMS milliseconds.
+    LOG_INFO("Simulator Receiver connected successfully!");
+    // Let's set a timer that checks teleReceivers status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
     //SetTimer(getCurrentPollingPeriod());
 
@@ -76,7 +76,7 @@ bool RadioSim::Disconnect()
     terminateThread = true;
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&condMutex);
-    LOG_INFO("Simulator Spectrograph disconnected successfully!");
+    LOG_INFO("Simulator Receiver disconnected successfully!");
     return true;
 }
 
@@ -85,7 +85,7 @@ bool RadioSim::Disconnect()
 ***************************************************************************************/
 const char *RadioSim::getDefaultName()
 {
-    return "Spectrograph Simulator";
+    return "Receiver Simulator";
 }
 
 /**************************************************************************************
@@ -93,19 +93,19 @@ const char *RadioSim::getDefaultName()
 ***************************************************************************************/
 bool RadioSim::initProperties()
 {
-    // We set the Spectrograph capabilities
+    // We set the Receiver capabilities
     uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_STREAMING | SENSOR_HAS_DSP;
     SetCapability(cap);
 
     // Must init parent properties first!
-    INDI::Spectrograph::initProperties();
+    INDI::Receiver::initProperties();
 
     setMinMaxStep("SENSOR_INTEGRATION", "SENSOR_INTEGRATION_VALUE", 0.001, 86164.092, 0.001, false);
-    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
-    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_SAMPLERATE", 1.0e+6, 2.0e+6, 1, false);
-    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_GAIN", 0.0, 25.0, 0.1, false);
-    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_BANDWIDTH", 0, 0, 0, false);
-    setMinMaxStep("SPECTROGRAPH_SETTINGS", "SPECTROGRAPH_BITSPERSAMPLE", 16, 16, 0, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_SAMPLERATE", 1.0e+6, 2.0e+6, 1, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_GAIN", 0.0, 25.0, 0.1, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BANDWIDTH", 0, 0, 0, false);
+    setMinMaxStep("RECEIVER_SETTINGS", "RECEIVER_BITSPERSAMPLE", 16, 16, 0, false);
     setIntegrationFileExtension("fits");
 
     // Add Debug, Simulator, and Configuration controls
@@ -130,15 +130,15 @@ bool RadioSim::updateProperties()
         SetTimer(getCurrentPollingPeriod());
     }
 
-    return INDI::Spectrograph::updateProperties();
+    return INDI::Receiver::updateProperties();
 }
 
 /**************************************************************************************
-** Setting up Spectrograph parameters
+** Setting up Receiver parameters
 ***************************************************************************************/
 void RadioSim::setupParams(float sr, float freq, float bw, float gain)
 {
-    // Our Spectrograph is an 8 bit Spectrograph, 100MHz frequency 1MHz bandwidth.
+    // Our Receiver is an 8 bit Receiver, 100MHz frequency 1MHz bandwidth.
     setFrequency(freq);
     setSampleRate(sr);
     setBPS(16);
@@ -149,19 +149,19 @@ void RadioSim::setupParams(float sr, float freq, float bw, float gain)
 bool RadioSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     bool r = false;
-    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, SpectrographSettingsNP.name)) {
+    if (dev && !strcmp(dev, getDeviceName()) && !strcmp(name, ReceiverSettingsNP.name)) {
         for(int i = 0; i < n; i++) {
-            if (!strcmp(names[i], "SPECTROGRAPH_GAIN")) {
+            if (!strcmp(names[i], "RECEIVER_GAIN")) {
                 setupParams(getSampleRate(), getFrequency(), getBandwidth(), values[i]);
-            } else if (!strcmp(names[i], "SPECTROGRAPH_BANDWIDTH")) {
+            } else if (!strcmp(names[i], "RECEIVER_BANDWIDTH")) {
                 setupParams(getSampleRate(), getFrequency(), values[i], getGain());
-            } else if (!strcmp(names[i], "SPECTROGRAPH_FREQUENCY")) {
+            } else if (!strcmp(names[i], "RECEIVER_FREQUENCY")) {
                 setupParams(getSampleRate(), values[i], getBandwidth(), getGain());
-            } else if (!strcmp(names[i], "SPECTROGRAPH_SAMPLERATE")) {
+            } else if (!strcmp(names[i], "RECEIVER_SAMPLERATE")) {
                 setupParams(values[i], getFrequency(), getBandwidth(), getGain());
             }
         }
-        IDSetNumber(&SpectrographSettingsNP, nullptr);
+        IDSetNumber(&ReceiverSettingsNP, nullptr);
     }
     return processNumber(dev, name, values, names, n) & !r;
 }
@@ -174,7 +174,7 @@ bool RadioSim::StartIntegration(double duration)
     IntegrationRequest = duration;
     AbortIntegration();
 
-    // Since we have only have one Spectrograph with one chip, we set the exposure duration of the primary Spectrograph
+    // Since we have only have one Receiver with one chip, we set the exposure duration of the primary Receiver
     setIntegrationTime(duration);
     int to_read = getSampleRate() * getIntegrationTime() * abs(getBPS()) / 8;
 
@@ -241,7 +241,7 @@ void RadioSim::TimerHit()
             grabData();
         }
 
-        // This is an over simplified timing method, check SpectrographSimulator and RadioSimSpectrograph for better timing checks
+        // This is an over simplified timing method, check ReceiverSimulator and RadioSimReceiver for better timing checks
         setIntegrationLeft(timeleft);
     }
 
