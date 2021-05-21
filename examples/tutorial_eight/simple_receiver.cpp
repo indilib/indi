@@ -20,7 +20,7 @@
     refer to the INDI Generic Receiver driver template in INDI SVN (under 3rdparty).
 */
 
-#include "simple_spectrograph.h"
+#include "simple_receiver.h"
 
 #include <memory>
 
