@@ -23,7 +23,7 @@
 #pragma once
 
 #include "defaultdevice.h"
-
+#include "inditimer.h"
 #include <libnova/ln_types.h>
 
 #include <string>
@@ -185,7 +185,6 @@ class Dome : public DefaultDevice
         virtual bool ISSnoopDevice(XMLEle * root) override;
 
         static void buttonHelper(const char * button_n, ISState state, void * context);
-        static void updateMountCoordsHelper(void *context);
 
         /**
              * @brief setDomeConnection Set Dome connection mode. Child class should call this in the constructor before Dome registers
@@ -586,8 +585,20 @@ class Dome : public DefaultDevice
         ISwitchVectorProperty PresetGotoSP;
         INumber DomeMeasurementsN[6];
         INumberVectorProperty DomeMeasurementsNP;
+
         ISwitchVectorProperty OTASideSP;
-        ISwitch OTASideS[5]; // 0 is East, 1 is West, 2 is as reported by mout, 3 as deducted by Hour Angle, 4 ignore pier side and perform as in a fork mount
+        ISwitch OTASideS[5];
+        // 0 is East, 1 is West, 2 is as reported by mout, 3 as deducted by Hour Angle
+        // 4 ignore pier side and perform as in a fork mount
+        enum
+        {
+            DM_OTA_SIDE_EAST,
+            DM_OTA_SIDE_WEST,
+            DM_OTA_SIDE_MOUNT,
+            DM_OTA_SIDE_HA,
+            DM_OTA_SIDE_IGNORE
+        };
+
         int mountOTASide = 0; // Side of the telescope with respect of the mount, 1: west, -1: east, 0 not reported
         ISwitchVectorProperty DomeAutoSyncSP;
         ISwitch DomeAutoSyncS[2];
@@ -654,7 +665,8 @@ class Dome : public DefaultDevice
 
         const char * ParkDeviceName;
         const std::string ParkDataFileName;
-        int m_HorizontalUpdateTimerID { -1 };
+        INDI::Timer m_MountUpdateTimer;
+        //int m_HorizontalUpdateTimerID { -1 };
         XMLEle * ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;
 
         double Axis1ParkPosition;
