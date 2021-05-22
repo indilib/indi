@@ -832,7 +832,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
 
 void DefaultDevice::resetProperties()
 {
-    for (const auto &oneProperty : *getProperties())
+    for (auto &oneProperty : *getProperties())
     {
         oneProperty->setState(IPS_IDLE);
         oneProperty->apply();

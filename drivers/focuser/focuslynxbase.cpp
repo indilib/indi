@@ -104,7 +104,8 @@ bool FocusLynxBase::initProperties()
     // Enable/Disable temperature compensation
     IUFillSwitch(&TemperatureCompensateS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. COMPENSATION", "T. Compensation",
+    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. COMPENSATION",
+                       "T. Compensation",
                        FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Enable/Disable temperature compensation on start
@@ -135,7 +136,8 @@ bool FocusLynxBase::initProperties()
 
     // Focuser Step Size
     IUFillNumber(&StepSizeN[0], "10000*microns/step", "", "%.f", 0, 65535, 0., 0);
-    IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEP SIZE", "Step Size", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEP SIZE", "Step Size", FOCUS_SETTINGS_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     // Reset to Factory setting
     IUFillSwitch(&ResetS[0], "Factory", "Factory", ISS_OFF);
@@ -1017,18 +1019,42 @@ bool FocusLynxBase::getFocusConfig()
         return false;
     }
 
-    // END is reached
-    memset(response, 0, sizeof(response));
-    if (isSimulation())
-    {
-        strncpy(response, "END\n", 16);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    // Home on start?
+    // JM 2021.05.09: This appears to be a new addition in firmware v1.2.0 (2019).
+    // We should ignore if END is received instead.
+    if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         LOGF_ERROR("%s", errmsg);
         return false;
+    }
+    // If END, then ignore
+    else if (strcmp(response, "END"))
+    {
+        int homeOnStart;
+        rc = sscanf(response, "%16[^=]=%d", key, &homeOnStart);
+        if (rc != 2)
+            return false;
+
+        m_HomeOnStart = homeOnStart == 1;
+    }
+
+    // If last response was END, then ignore
+    if (strcmp(response, "END"))
+    {
+        // END is reached
+        memset(response, 0, sizeof(response));
+        if (isSimulation())
+        {
+            strncpy(response, "END\n", 16);
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
     }
 
     if (nbytes_read > 0)
@@ -1102,7 +1128,8 @@ bool FocusLynxBase::getFocusStatus()
         response[nbytes_read - 1] = '\0';
         LOGF_DEBUG("RES (%s)", response);
 
-        if (!((!strcmp(response, "STATUS1")) && (!strcmp(getFocusTarget(), "F1"))) && !((!strcmp(response, "STATUS2")) && (!strcmp(getFocusTarget(), "F2"))))
+        if (!((!strcmp(response, "STATUS1")) && (!strcmp(getFocusTarget(), "F1"))) && !((!strcmp(response, "STATUS2"))
+                && (!strcmp(getFocusTarget(), "F2"))))
         {
             tcflush(PortFD, TCIFLUSH);
             return false;
@@ -2427,7 +2454,8 @@ bool FocusLynxBase::setTemperatureInceptions(char mode, int32_t inter)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, LYNX_MAX, "<%sSETINT%c%c%06d>", getFocusTarget(), mode, inter >= 0 ? '+' : '-', static_cast<int>(std::abs(inter)));
+    snprintf(cmd, LYNX_MAX, "<%sSETINT%c%c%06d>", getFocusTarget(), mode, inter >= 0 ? '+' : '-',
+             static_cast<int>(std::abs(inter)));
 
     LOGF_DEBUG("CMD (%s)", cmd);
 
@@ -3377,7 +3405,8 @@ float FocusLynxBase::calcTimeLeft(timeval start, float req)
     gettimeofday(&now, nullptr);
 
     timesince =
-        static_cast<int>((now.tv_sec * 1000.0 + now.tv_usec / 1000)) - static_cast<int>((start.tv_sec * 1000.0 + start.tv_usec / 1000));
+        static_cast<int>((now.tv_sec * 1000.0 + now.tv_usec / 1000)) - static_cast<int>((start.tv_sec * 1000.0 + start.tv_usec /
+                1000));
     timesince = timesince / 1000;
     timeleft  = req - timesince;
     return timeleft;
@@ -3506,7 +3535,8 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
     if (strstr(focusName, "TCF") ||
             strstr(focusName, "Leo") ||
             !strcmp(focusName, "FastFocus") ||
-            !strcmp(focusName, "FeatherTouch Motor Hi-Speed"))
+            !strcmp(focusName, "FeatherTouch Motor Hi-Speed") ||
+            !strcmp(focusName, "FeatureTouch HSM Hi-Speed"))
     {
         LOG_DEBUG("Absolute focuser detected.");
         GotoSP.nsp = 2;

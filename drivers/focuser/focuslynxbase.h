@@ -233,6 +233,8 @@ class FocusLynxBase : public INDI::Focuser
         bool isAbsolute;
         bool isSynced;
         bool isHoming;
+        // TODO add property for this.
+        bool m_HomeOnStart {false};
 
         static const uint8_t LYNX_MAX { 64 };
 };

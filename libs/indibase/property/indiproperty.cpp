@@ -61,6 +61,29 @@ PropertyPrivate::PropertyPrivate(IBLOBVectorProperty *property)
     , registered(property != nullptr)
 { }
 
+#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+INDI::Property* Property::operator->()
+{
+    return this;
+}
+
+const INDI::Property* Property::operator->() const
+{
+    return this;
+}
+
+Property::operator INDI::Property *()
+{
+    D_PTR(Property);
+    return isValid() ? &d->self : nullptr;
+}
+
+Property::operator const INDI::Property *() const
+{
+    D_PTR(const Property);
+    return isValid() ? &d->self : nullptr;
+}
+#endif
 
 #define PROPERTY_CASE(CODE) \
     switch (d->property != nullptr ? d->type : INDI_UNKNOWN) \
@@ -119,6 +142,10 @@ Property::Property(PropertyPrivate &dd)
     : d_ptr(&dd)
 { }
 
+Property::Property(std::shared_ptr<PropertyPrivate> dd)
+    : d_ptr(dd)
+{ }
+
 void Property::setProperty(void *p)
 {
     D_PTR(Property);
@@ -161,6 +188,20 @@ INDI_PROPERTY_TYPE Property::getType() const
 {
     D_PTR(const Property);
     return d->property != nullptr ? d->type : INDI_UNKNOWN;
+}
+
+const char *Property::getTypeAsString() const
+{
+    switch (getType())
+    {
+    case INDI_NUMBER: return "INDI_NUMBER";
+    case INDI_SWITCH: return "INDI_SWITCH";
+    case INDI_TEXT: return "INDI_TEXT";
+    case INDI_LIGHT: return "INDI_LIGHT";
+    case INDI_BLOB: return "INDI_BLOB";
+    case INDI_UNKNOWN: return "INDI_UNKNOWN";
+    }
+    return "INDI_UNKNOWN";
 }
 
 bool Property::getRegistered() const
@@ -271,6 +312,11 @@ IPState Property::getState() const
     return IPS_ALERT;
 }
 
+const char *Property::getStateAsString() const
+{
+    return pstateStr(getState());
+}
+
 IPerm Property::getPermission() const
 {
     D_PTR(const Property);
@@ -283,6 +329,12 @@ bool Property::isEmpty() const
     D_PTR(const Property);
     PROPERTY_CASE( return property->isEmpty(); )
     return true;
+}
+
+bool Property::isValid() const
+{
+    D_PTR(const Property);
+    return d->type != INDI_UNKNOWN;
 }
 
 bool Property::isNameMatch(const char *otherName) const

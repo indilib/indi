@@ -703,6 +703,10 @@ bool DeltaT::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_
         return false;
     }
 
+    char hex_res[DRIVER_LEN * 3] = {0};
+    hexDump(hex_res, res, res_len);
+    LOGF_DEBUG("RES <%s>", hex_res);
+
     uint8_t chk = calculateCheckSum(res, res_len);
 
     if (res_len > 0 && chk != res[res_len - 1])
@@ -710,10 +714,6 @@ bool DeltaT::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_
         LOG_ERROR("Invalid checksum!");
         return false;
     }
-
-    char hex_res[DRIVER_LEN * 3] = {0};
-    hexDump(hex_res, res, res_len);
-    LOGF_DEBUG("RES <%s>", hex_res);
 
     return true;
 }

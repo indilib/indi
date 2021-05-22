@@ -17,30 +17,31 @@
 */
 #pragma once
 
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <atomic>
-#include <functional>
+#include "indiproperties.h"
 
 namespace INDI
 {
 
-class SingleThreadPoolPrivate
+#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+template <typename T>
+static inline std::shared_ptr<T> make_shared_weak(T *object)
+{
+    return std::shared_ptr<T>(object, [](T*){});
+}
+#endif
+
+class PropertiesPrivate
 {
 public:
-    SingleThreadPoolPrivate();
-    virtual ~SingleThreadPoolPrivate();
+    PropertiesPrivate();
+    virtual ~PropertiesPrivate();
 
-    std::function<void(const std::atomic_bool &isAboutToClose)> pendingFunction;
-    std::function<void(const std::atomic_bool &isAboutToClose)> runningFunction;
-    std::atomic_bool isThreadAboutToQuit {false};
-    std::atomic_bool isFunctionAboutToQuit {true};
-
-    std::condition_variable_any acquire;
-    std::condition_variable_any relased;
-    std::mutex runLock;
-    std::thread thread;
+public:
+    std::deque<INDI::Property> properties;
+#ifdef INDI_PROPERTIES_BACKWARD_COMPATIBILE
+    mutable std::vector<INDI::Property *> propertiesBC;
+    Properties self {make_shared_weak(this)};
+#endif    
 };
 
 }
