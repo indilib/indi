@@ -283,11 +283,20 @@ bool Telescope::initProperties()
     double longitude = 0, latitude = 0, elevation = 0;
     // Get value from config file if it exists.
     if (IUGetConfigNumber(getDeviceName(), LocationNP.name, LocationN[LOCATION_LONGITUDE].name, &longitude) == 0)
+    {
         LocationN[LOCATION_LONGITUDE].value = longitude;
+        m_Location.longitude = longitude;
+    }
     if (IUGetConfigNumber(getDeviceName(), LocationNP.name, LocationN[LOCATION_LATITUDE].name, &latitude) == 0)
+    {
         LocationN[LOCATION_LATITUDE].value = latitude;
+        m_Location.latitude = latitude;
+    }
     if (IUGetConfigNumber(getDeviceName(), LocationNP.name, LocationN[LOCATION_ELEVATION].name, &elevation) == 0)
+    {
         LocationN[LOCATION_ELEVATION].value = elevation;
+        m_Location.elevation = elevation;
+    }
 
     return true;
 }
