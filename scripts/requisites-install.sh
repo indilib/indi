@@ -39,7 +39,7 @@ case "$OS" in
                     git \
                     cmake gcc-c++ zlib-devel \
                     cfitsio-devel libnova-devel libusb-devel libcurl-devel \
-                    gsl-devel libjpeg-devel fftw-devel rtlsdr-devel
+                    gsl-devel libjpeg-devel fftw-devel rtl-sdr-devel
                 ;;
             centos)
                 # CentOS 8 dont have libnova-devel package
