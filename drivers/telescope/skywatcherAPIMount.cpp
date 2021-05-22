@@ -53,32 +53,6 @@ SkywatcherAPIMount::SkywatcherAPIMount()
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////////////////////////////////
-bool SkywatcherAPIMount::Abort()
-{
-    DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Abort");
-    SlowStop(AXIS1);
-    SlowStop(AXIS2);
-    TrackState = SCOPE_IDLE;
-
-    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
-    {
-        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
-        GuideNSN[0].value = GuideNSN[1].value = 0.0;
-        GuideWEN[0].value = GuideWEN[1].value = 0.0;
-
-        IDMessage(getDeviceName(), "Guide aborted.");
-        IDSetNumber(&GuideNSNP, nullptr);
-        IDSetNumber(&GuideWENP, nullptr);
-
-        return true;
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-///
-//////////////////////////////////////////////////////////////////////////////////////////////////
 bool SkywatcherAPIMount::Handshake()
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Handshake");
@@ -99,6 +73,119 @@ bool SkywatcherAPIMount::Handshake()
 const char *SkywatcherAPIMount::getDefaultName()
 {
     return "Skywatcher Alt-Az";
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                                   char *formats[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        // It is for us
+        ProcessAlignmentBLOBProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
+    }
+    // Pass it up the chain
+    return INDI::Telescope::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        ProcessAlignmentNumberProperties(this, name, values, names, n);
+
+        if (strcmp(name, "SOFTPEC") == 0)
+        {
+            SoftPecNP.s = IPS_OK;
+            IUUpdateNumber(&SoftPecNP, values, names, n);
+            IDSetNumber(&SoftPecNP, nullptr);
+            return true;
+        }
+
+        if (strcmp(name, "GUIDE_RATES") == 0)
+        {
+            ResetGuidePulses();
+            GuidingRatesNP.s = IPS_OK;
+            IUUpdateNumber(&GuidingRatesNP, values, names, n);
+            IDSetNumber(&GuidingRatesNP, nullptr);
+            return true;
+        }
+
+        // Let our driver do sync operation in park position
+        if (strcmp(name, "EQUATORIAL_EOD_COORD") == 0)
+        {
+            double ra  = -1;
+            double dec = -100;
+
+            for (int x = 0; x < n; x++)
+            {
+                INumber *eqp = IUFindNumber(&EqNP, names[x]);
+                if (eqp == &EqN[AXIS_RA])
+                {
+                    ra = values[x];
+                }
+                else if (eqp == &EqN[AXIS_DE])
+                {
+                    dec = values[x];
+                }
+            }
+            if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
+            {
+                ISwitch *sw = IUFindSwitch(&CoordSP, "SYNC");
+
+                if (sw != nullptr && sw->s == ISS_ON && isParked())
+                {
+                    return Sync(ra, dec);
+                }
+            }
+        }
+
+        processGuiderProperties(name, values, names, n);
+    }
+    // Pass it up the chain
+    return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+
+        ProcessAlignmentSwitchProperties(this, name, states, names, n);
+    }
+    // Pass it up the chain
+    return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        ProcessAlignmentTextProperties(this, name, texts, names, n);
+    }
+    // Pass it up the chain
+    bool Ret =  INDI::Telescope::ISNewText(dev, name, texts, names, n);
+
+    // The scope config switch must be updated after the config is saved to disk
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (name && std::string(name) == "SCOPE_CONFIG_NAME")
+        {
+            UpdateScopeConfigSwitch();
+        }
+    }
+    return Ret;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -370,119 +457,6 @@ void SkywatcherAPIMount::ISGetProperties(const char *dev)
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
     }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-///
-//////////////////////////////////////////////////////////////////////////////////////////////////
-bool SkywatcherAPIMount::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                                   char *formats[], char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // It is for us
-        ProcessAlignmentBLOBProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
-    }
-    // Pass it up the chain
-    return INDI::Telescope::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-///
-//////////////////////////////////////////////////////////////////////////////////////////////////
-bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        ProcessAlignmentNumberProperties(this, name, values, names, n);
-
-        if (strcmp(name, "SOFTPEC") == 0)
-        {
-            SoftPecNP.s = IPS_OK;
-            IUUpdateNumber(&SoftPecNP, values, names, n);
-            IDSetNumber(&SoftPecNP, nullptr);
-            return true;
-        }
-
-        if (strcmp(name, "GUIDE_RATES") == 0)
-        {
-            ResetGuidePulses();
-            GuidingRatesNP.s = IPS_OK;
-            IUUpdateNumber(&GuidingRatesNP, values, names, n);
-            IDSetNumber(&GuidingRatesNP, nullptr);
-            return true;
-        }
-
-        // Let our driver do sync operation in park position
-        if (strcmp(name, "EQUATORIAL_EOD_COORD") == 0)
-        {
-            double ra  = -1;
-            double dec = -100;
-
-            for (int x = 0; x < n; x++)
-            {
-                INumber *eqp = IUFindNumber(&EqNP, names[x]);
-                if (eqp == &EqN[AXIS_RA])
-                {
-                    ra = values[x];
-                }
-                else if (eqp == &EqN[AXIS_DE])
-                {
-                    dec = values[x];
-                }
-            }
-            if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
-            {
-                ISwitch *sw = IUFindSwitch(&CoordSP, "SYNC");
-
-                if (sw != nullptr && sw->s == ISS_ON && isParked())
-                {
-                    return Sync(ra, dec);
-                }
-            }
-        }
-
-        processGuiderProperties(name, values, names, n);
-    }
-    // Pass it up the chain
-    return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-///
-//////////////////////////////////////////////////////////////////////////////////////////////////
-bool SkywatcherAPIMount::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-
-        ProcessAlignmentSwitchProperties(this, name, states, names, n);
-    }
-    // Pass it up the chain
-    return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-///
-//////////////////////////////////////////////////////////////////////////////////////////////////
-bool SkywatcherAPIMount::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        ProcessAlignmentTextProperties(this, name, texts, names, n);
-    }
-    // Pass it up the chain
-    bool Ret =  INDI::Telescope::ISNewText(dev, name, texts, names, n);
-
-    // The scope config switch must be updated after the config is saved to disk
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        if (name && std::string(name) == "SCOPE_CONFIG_NAME")
-        {
-            UpdateScopeConfigSwitch();
-        }
-    }
-    return Ret;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -895,6 +869,32 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::Abort()
+{
+    DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Abort");
+    SlowStop(AXIS1);
+    SlowStop(AXIS2);
+    TrackState = SCOPE_IDLE;
+
+    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+    {
+        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
+        GuideNSN[0].value = GuideNSN[1].value = 0.0;
+        GuideWEN[0].value = GuideWEN[1].value = 0.0;
+
+        IDMessage(getDeviceName(), "Guide aborted.");
+        IDSetNumber(&GuideNSNP, nullptr);
+        IDSetNumber(&GuideWENP, nullptr);
+
+        return true;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
 void SkywatcherAPIMount::TimerHit()
 {
     // Call the base class handler
@@ -1140,6 +1140,10 @@ bool SkywatcherAPIMount::updateProperties()
 
     if (isConnected())
     {
+        // Update location if loaded already from config
+        if (m_Location.longitude > 0)
+            UpdateLocation(m_Location.longitude, m_Location.latitude, m_Location.elevation);
+
         // Fill in any real values now available MCInit should have been called already
         UpdateDetailedMountInformation(false);
 
