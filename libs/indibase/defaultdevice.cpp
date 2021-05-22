@@ -133,7 +133,12 @@ DefaultDevicePrivate::~DefaultDevicePrivate()
 
 DefaultDevice::DefaultDevice()
     : BaseDevice(*new DefaultDevicePrivate(this))
-{ }
+{
+    D_PTR(DefaultDevice);
+    d->m_MainLoopTimer.setSingleShot(true);
+    d->m_MainLoopTimer.setInterval(getPollingPeriod());
+    d->m_MainLoopTimer.callOnTimeout(std::bind(&DefaultDevice::TimerHit, this));
+}
 
 DefaultDevice::DefaultDevice(DefaultDevicePrivate &dd)
     : BaseDevice(dd)
@@ -855,17 +860,22 @@ void DefaultDevice::setConnected(bool status, IPState state, const char *msg)
         svp->apply("%s", msg);
 }
 
-//  This is a helper function
-//  that just encapsulates the Indi way into our clean c++ way of doing things
+// Set the timeout for the TimerHit function.
+// This is a single shot timer.
 int DefaultDevice::SetTimer(uint32_t ms)
 {
-    return IEAddTimer(ms, timerfunc, this);
+    D_PTR(DefaultDevice);
+    d->m_MainLoopTimer.start(ms);
+    return 1;
 }
 
-//  Just another helper to help encapsulate indi into a clean class
+// Remove main timer. ID is not used.
+// Kept for backward compatiblity
 void DefaultDevice::RemoveTimer(int id)
 {
-    IERmTimer(id);
+    INDI_UNUSED(id);
+    D_PTR(DefaultDevice);
+    d->m_MainLoopTimer.stop();
     return;
 }
 

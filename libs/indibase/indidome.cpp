@@ -24,6 +24,7 @@
 
 #include "indicom.h"
 #include "indicontroller.h"
+#include "inditimer.h"
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 
@@ -63,6 +64,8 @@ Dome::Dome() : ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
 
     parkDataType = PARK_NONE;
     ParkdataXmlRoot = nullptr;
+
+    m_MountUpdateTimer.callOnTimeout(std::bind(&Dome::UpdateMountCoords, this));
 }
 
 Dome::~Dome()
@@ -141,11 +144,11 @@ bool Dome::initProperties()
     IUFillNumberVector(&DomeMeasurementsNP, DomeMeasurementsN, 6, getDeviceName(), "DOME_MEASUREMENTS", "Measurements",
                        DOME_SLAVING_TAB, IP_RW, 60, IPS_OK);
 
-    IUFillSwitch(&OTASideS[0], "DM_OTA_SIDE_EAST", "East", ISS_OFF);
-    IUFillSwitch(&OTASideS[1], "DM_OTA_SIDE_WEST", "West", ISS_OFF);
-    IUFillSwitch(&OTASideS[2], "DM_OTA_SIDE_MOUNT", "Mount", ISS_OFF);
-    IUFillSwitch(&OTASideS[3], "DM_OTA_SIDE_HA", "Hour Angle", ISS_OFF);
-    IUFillSwitch(&OTASideS[4], "DM_OTA_SIDE_IGNORE", "Ignore", ISS_OFF);
+    IUFillSwitch(&OTASideS[DM_OTA_SIDE_EAST], "DM_OTA_SIDE_EAST", "East", ISS_OFF);
+    IUFillSwitch(&OTASideS[DM_OTA_SIDE_WEST], "DM_OTA_SIDE_WEST", "West", ISS_OFF);
+    IUFillSwitch(&OTASideS[DM_OTA_SIDE_MOUNT], "DM_OTA_SIDE_MOUNT", "Mount", ISS_ON);
+    IUFillSwitch(&OTASideS[DM_OTA_SIDE_HA], "DM_OTA_SIDE_HA", "Hour Angle", ISS_OFF);
+    IUFillSwitch(&OTASideS[DM_OTA_SIDE_IGNORE], "DM_OTA_SIDE_IGNORE", "Ignore", ISS_OFF);
     IUFillSwitchVector(&OTASideSP, OTASideS, 5, getDeviceName(), "DM_OTA_SIDE", "Meridian side", DOME_SLAVING_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
@@ -289,7 +292,6 @@ bool Dome::updateProperties()
         if (HasVariableSpeed())
         {
             defineProperty(&DomeSpeedNP);
-            //defineProperty(&DomeTimerNP);
         }
         if (CanRelMove())
             defineProperty(&DomeRelPosNP);
@@ -341,7 +343,6 @@ bool Dome::updateProperties()
         if (HasVariableSpeed())
         {
             deleteProperty(DomeSpeedNP.name);
-            //deleteProperty(DomeTimerNP.name);
         }
         if (CanRelMove())
             deleteProperty(DomeRelPosNP.name);
@@ -533,18 +534,15 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome will now be synced to mount azimuth position.");
                 LOG_WARN("Dome will now be synced to mount azimuth position.");
-                //UpdateAutoSync();
-                m_HorizontalUpdateTimerID = IEAddTimer(10, &Dome::updateMountCoordsHelper, this);
+
+                UpdateMountCoords();
+                m_MountUpdateTimer.start(HORZ_UPDATE_TIMER);
             }
             else
             {
                 IDSetSwitch(&DomeAutoSyncSP, "Dome is no longer synced to mount azimuth position.");
                 LOG_WARN("Dome is no longer synced to mount azimuth position.");
-                if (m_HorizontalUpdateTimerID > 0)
-                {
-                    IERmTimer(m_HorizontalUpdateTimerID);
-                    m_HorizontalUpdateTimerID = -1;
-                }
+                m_MountUpdateTimer.stop();
 
                 if (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY /* || DomeTimerNP.s == IPS_BUSY*/)
                     Dome::Abort();
@@ -560,37 +558,30 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             IUUpdateSwitch(&OTASideSP, states, names, n);
             OTASideSP.s = IPS_OK;
 
-            if (OTASideS[0].s == ISS_ON)
+            if (OTASideS[DM_OTA_SIDE_EAST].s == ISS_ON)
             {
-                IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at east of meridian");
-                LOG_WARN("Dome will be synced for telescope tube been at east of pier");
+                LOG_WARN("Dome shall be synced assuming OTA situated east of the pier");
+            }
+            else if (OTASideS[DM_OTA_SIDE_WEST].s == ISS_ON)
+            {
+                LOG_WARN("Dome shall be synced assuming OTA situated west of the pier");
+            }
+            else if (OTASideS[DM_OTA_SIDE_MOUNT].s == ISS_ON)
+            {
+                LOG_WARN("Dome shall be synced from pier side as reported by the mount.");
+            }
+            else if (OTASideS[DM_OTA_SIDE_HA].s == ISS_ON)
+            {
+                LOG_WARN("Dome shall be synced for OTA pier side derived from Hour Angle.");
                 UpdateAutoSync();
             }
-            else if (OTASideS[1].s == ISS_ON)
+            else if (OTASideS[DM_OTA_SIDE_IGNORE].s == ISS_ON)
             {
-                IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at west of meridian");
-                LOG_WARN("Dome will be synced for telescope tube been at west of pier");
-                UpdateAutoSync();
-            }
-            else if (OTASideS[2].s == ISS_ON)
-            {
-                IDSetSwitch(&OTASideSP, "Dome will be synced for telescope tube been at the side of the pier reported by mount");
-                LOG_WARN("Dome will be synced for telescope tube been at the side of the pier reported by mount");
-                UpdateAutoSync();
-            }
-            else if (OTASideS[3].s == ISS_ON)
-            {
-                IDSetSwitch(&OTASideSP, "Dome will be synced for telescope been at the side of the pier as of Hour Angle");
-                LOG_WARN("Dome will be synced for telescope tube been at the side of the pier derived from Hour Angle");
-                UpdateAutoSync();
-            }
-            else if (OTASideS[4].s == ISS_ON)
-            {
-                IDSetSwitch(&OTASideSP, "Dome will be synced for telescope ignoring the side of the pier as in a fork mount");
-                LOG_WARN("Dome will be synced for telescope ignoring the side of the pier as in a fork mount");
-                UpdateAutoSync();
+                LOG_WARN("Dome shall be synced by ignoring pier side as in a fork mount.");
             }
 
+            UpdateAutoSync();
+            IDSetSwitch(&OTASideSP, nullptr);
             return true;
         }
         ////////////////////////////////////////////
@@ -1058,7 +1049,6 @@ bool Dome::saveConfigItems(FILE * fp)
     IUSaveConfigNumber(fp, &PresetNP);
     IUSaveConfigNumber(fp, &DomeParamNP);
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
-    //IUSaveConfigSwitch(fp, &AutoParkSP);
     IUSaveConfigSwitch(fp, &DomeAutoSyncSP);
     IUSaveConfigSwitch(fp, &OTASideSP);
 
@@ -1313,21 +1303,21 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     if (OTASideSP.s == IPS_OK)
     {
-        int OTASideS_Idx = -1;
-
-        if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = -1;
-        else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = 1;
-        else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = mountOTASide;
-        else if(OTASideS[++OTASideS_Idx].s == ISS_ON)
+        if(OTASideS[DM_OTA_SIDE_EAST].s == ISS_ON)
+            OTASide = -1;
+        else if(OTASideS[DM_OTA_SIDE_WEST].s == ISS_ON)
+            OTASide = 1;
+        else if(OTASideS[DM_OTA_SIDE_MOUNT].s == ISS_ON)
+            OTASide = mountOTASide;
+        else if(OTASideS[DM_OTA_SIDE_HA].s == ISS_ON)
         {
             // Note if the telescope points West, OTA is at east of the pier, and viceversa.
-            if(hourAngle > 0) OTASide = -1;
-            else OTASide = 1;
+            if(hourAngle > 0)
+                OTASide = -1;
+            else
+                OTASide = 1;
         }
-        else
-            ++OTASideS_Idx;
-
-        LOGF_DEBUG("OTA_SIDE selection: %d", OTASideS_Idx);
+        LOGF_DEBUG("OTA_SIDE selection: %d", IUFindOnSwitchIndex(&OTASideSP));
     }
 
     OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.latitude, hourAngle, OptCenter);
@@ -1496,12 +1486,6 @@ bool Dome::CheckHorizon(double HA, double dec, double lat)
 
 void Dome::UpdateMountCoords()
 {
-    if (m_HorizontalUpdateTimerID > 0)
-    {
-        IERmTimer(m_HorizontalUpdateTimerID);
-        m_HorizontalUpdateTimerID = IEAddTimer(HORZ_UPDATE_TIMER, &Dome::updateMountCoordsHelper, this);
-    }
-
     // If not initialized yet, return.
     if (mountEquatorialCoords.rightascension == -1)
         return;
@@ -2320,11 +2304,6 @@ void Dome::setDomeConnection(const uint8_t &value)
     }
 
     domeConnection = value;
-}
-
-void Dome::updateMountCoordsHelper(void *context)
-{
-    static_cast<Dome*>(context)->UpdateMountCoords();
 }
 
 }
