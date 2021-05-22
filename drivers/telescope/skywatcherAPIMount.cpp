@@ -1142,7 +1142,7 @@ bool SkywatcherAPIMount::updateProperties()
     {
         // Update location if loaded already from config
         if (m_Location.longitude > 0)
-            UpdateLocation(m_Location.longitude, m_Location.latitude, m_Location.elevation);
+            UpdateLocation(m_Location.latitude, m_Location.longitude, m_Location.elevation);
 
         // Fill in any real values now available MCInit should have been called already
         UpdateDetailedMountInformation(false);
