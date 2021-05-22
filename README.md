@@ -113,7 +113,7 @@ INDI server only provides convenient port, fork and data steering services. If d
 # Development
 
 + [INDI API](http://www.indilib.org/api/index.html)
-+ [INDI Developer Manual](http://indilib.org/develop/developer-manual.html)
++ [INDI Developer Manual](https://docs.indilib.org/)
 + [Tutorials](http://indilib.org/develop/tutorials.html)
 + [Developers Forum](http://indilib.org/forum/development.html)
 + [Developers Chat](https://riot.im/app/#/room/#kstars:matrix.org)

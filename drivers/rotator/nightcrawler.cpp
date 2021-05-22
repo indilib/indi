@@ -46,6 +46,8 @@ static std::unique_ptr<NightCrawler> tommyGoodBoy(new NightCrawler());
 
 NightCrawler::NightCrawler() : RotatorInterface(this)
 {
+    setVersion(1, 1);
+
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC);
@@ -64,10 +66,14 @@ bool NightCrawler::initProperties()
     IUFillNumberVector(&SyncFocusNP, SyncFocusN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0,
                        IPS_IDLE );
 
-    // Temperature + Voltage Sensors
-    IUFillNumber(&SensorN[SENSOR_TEMPERATURE], "TEMPERATURE", "Temperature (C)", "%.2f", -100, 100., 1., 0.);
-    IUFillNumber(&SensorN[SENSOR_VOLTAGE], "VOLTAGE", "Voltage (V)", "%.2f", 0, 20., 1., 0.);
-    IUFillNumberVector(&SensorNP, SensorN, 2, getDeviceName(), "SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
+    // Voltage
+    IUFillNumber(&VoltageN[0], "VALUE", "Value (v)", "%.2f", 0, 30., 1., 0.);
+    IUFillNumberVector(&VoltageNP, VoltageN, 1, getDeviceName(), "Voltage", "Voltage", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
+
+    // Temperature
+    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Value (C)", "%.2f", -100, 100., 1., 0.);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+                       IP_RO, 0, IPS_IDLE );
 
     // Temperature offset
     IUFillNumber(&TemperatureOffsetN[0], "OFFSET", "Offset", "%.2f", -15, 15., 1., 0.);
@@ -178,7 +184,8 @@ bool NightCrawler::updateProperties()
     {
         // Focus
         defineProperty(&SyncFocusNP);
-        defineProperty(&SensorNP);
+        defineProperty(&VoltageNP);
+        defineProperty(&TemperatureNP);
         defineProperty(&TemperatureOffsetNP);
         defineProperty(&FocusStepDelayNP);
         defineProperty(&LimitSwitchLP);
@@ -202,7 +209,8 @@ bool NightCrawler::updateProperties()
     {
         // Focus
         deleteProperty(SyncFocusNP.name);
-        deleteProperty(SensorNP.name);
+        deleteProperty(VoltageNP.name);
+        deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureOffsetNP.name);
         deleteProperty(FocusStepDelayNP.name);
         deleteProperty(LimitSwitchLP.name);
@@ -671,7 +679,6 @@ void NightCrawler::TimerHit()
     }
 
     bool rc = false;
-    bool sensorsUpdated = false;
 
     // #1 If we're homing, we check if homing is complete as we cannot check for anything else
     if (FindHomeSP.s == IPS_BUSY || HomeRotatorSP.s == IPS_BUSY)
@@ -695,22 +702,19 @@ void NightCrawler::TimerHit()
 
     // #2 Get Temperature
     rc = getTemperature();
-    if (rc && fabs(SensorN[SENSOR_TEMPERATURE].value - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && fabs(TemperatureN[0].value - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
     {
-        lastTemperature = SensorN[SENSOR_TEMPERATURE].value;
-        sensorsUpdated = true;
+        lastTemperature = TemperatureN[0].value;
+        IDSetNumber(&TemperatureNP, nullptr);
     }
 
     // #3 Get Voltage
     rc = getVoltage();
-    if (rc && fabs(SensorN[SENSOR_VOLTAGE].value - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && fabs(VoltageN[0].value - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
     {
-        lastVoltage = SensorN[SENSOR_VOLTAGE].value;
-        sensorsUpdated = true;
+        lastVoltage = VoltageN[0].value;
+        IDSetNumber(&VoltageNP, nullptr);
     }
-
-    if (sensorsUpdated)
-        IDSetNumber(&SensorNP, nullptr);
 
     // #4 Get Limit Switch Status
     rc = getLimitSwitchStatus();
@@ -976,7 +980,7 @@ bool NightCrawler::getTemperature()
 
     LOGF_DEBUG("RES <%s>", res);
 
-    SensorN[SENSOR_TEMPERATURE].value = atoi(res) / 10.0;
+    TemperatureN[0].value = atoi(res) / 10.0;
 
     return true;
 }
@@ -1011,7 +1015,7 @@ bool NightCrawler::getVoltage()
 
     LOGF_DEBUG("RES <%s>", res);
 
-    SensorN[SENSOR_VOLTAGE].value = atoi(res) / 10.0;
+    VoltageN[0].value = atoi(res) / 10.0;
 
     return true;
 }

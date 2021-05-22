@@ -13,6 +13,7 @@
 
 #include <string>
 #include <vector>
+#include <pthread.h>
 
 namespace INDI
 {

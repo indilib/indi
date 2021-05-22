@@ -40,7 +40,7 @@ static std::unique_ptr<PegasusUPB> upb(new PegasusUPB());
 
 PegasusUPB::PegasusUPB() : FI(this), WI(this)
 {
-    setVersion(1, 5);
+    setVersion(1, 6);
 
     lastSensorData.reserve(21);
     lastPowerData.reserve(4);
@@ -327,17 +327,6 @@ bool PegasusUPB::initProperties()
     IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
     IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 1, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
                        IP_RW, 60, IPS_IDLE);
-
-    // Backlash
-    //    IUFillSwitch(&FocusBacklashS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    //    IUFillSwitch(&FocusBacklashS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    //    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, getDeviceName(), "FOCUSER_BACKLASH", "Backlash", FOCUS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-    // Temperature
-    IUFillNumber(&FocuserTemperatureN[0], "FOCUSER_TEMPERATURE_VALUE", "Value (C)", "%4.2f", -50, 85, 1, 0);
-    IUFillNumberVector(&FocuserTemperatureNP, FocuserTemperatureN, 1, getDeviceName(), "FOCUSER_TEMPERATURE", "Temperature",
-                       FOCUS_TAB, IP_RO, 60, IPS_IDLE);
-
     ////////////////////////////////////////////////////////////////////////////
     /// Firmware Group
     ////////////////////////////////////////////////////////////////////////////
@@ -422,8 +411,6 @@ bool PegasusUPB::updateProperties()
         // Focuser
         FI::updateProperties();
         defineProperty(&FocuserSettingsNP);
-        //defineProperty(&FocusBacklashSP);
-        defineProperty(&FocuserTemperatureNP);
 
         WI::updateProperties();
 
@@ -475,7 +462,6 @@ bool PegasusUPB::updateProperties()
         // Focuser
         FI::updateProperties();
         deleteProperty(FocuserSettingsNP.name);
-        deleteProperty(FocuserTemperatureNP.name);
 
         WI::updateProperties();
 
