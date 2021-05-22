@@ -1384,33 +1384,6 @@ int SkywatcherAltAzSimple::recover_tty_reconnect()
     }
 }
 
-int SkywatcherAltAzSimple::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
-{
-    if (!recover_tty_reconnect())
-    {
-        return 0;
-    }
-    return tty_read(fd, buf, nbytes, timeout, nbytes_read);
-}
-
-int SkywatcherAltAzSimple::skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
-{
-    if (!recover_tty_reconnect())
-    {
-        return 0;
-    }
-    return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
-}
-
-int SkywatcherAltAzSimple::skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written)
-{
-    if (!recover_tty_reconnect())
-    {
-        return 0;
-    }
-    return tty_write(fd, buffer, nbytes, nbytes_written);
-}
-
 void SkywatcherAltAzSimple::UpdateDetailedMountInformation(bool InformClient)
 {
     bool BasicMountInfoHasChanged = false;

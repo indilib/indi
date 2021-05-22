@@ -7,12 +7,6 @@ if(ALIGNMENT_CONVEX_HULL_DEBUGGING)
    set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS CONVEX_HULL_DEBUGGING)
 endif(ALIGNMENT_CONVEX_HULL_DEBUGGING)
 
-option(SKYWATCHER_API_USE_INITIAL_JULIAN_DATE "Skywatcher API - use initial Julian date only" OFF)
-
-if(SKYWATCHER_API_USE_INITIAL_JULIAN_DATE)
-   set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS USE_INITIAL_JULIAN_DATE)
-endif(SKYWATCHER_API_USE_INITIAL_JULIAN_DATE)
-
 ##################################################
 ####### INDI AlignmentDriver shared library ######
 ##################################################

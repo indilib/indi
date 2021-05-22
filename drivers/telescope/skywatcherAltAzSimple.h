@@ -68,10 +68,6 @@ class SkywatcherAltAzSimple : public SkywatcherAPI,
         void ResetGuidePulses();
         void UpdateScopeConfigSwitch();
         int recover_tty_reconnect();
-        // Overrides for the pure virtual functions in SkyWatcherAPI
-        virtual int skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) override;
-        virtual int skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read) override;
-        virtual int skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written) override;
         void UpdateDetailedMountInformation(bool InformClient);
         INDI::IHorizontalCoordinates GetAltAzPosition(double ra, double dec, double offset_in_sec = 0);
         INDI::IEquatorialCoordinates GetRaDecPosition(double alt, double az);
