@@ -600,6 +600,11 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS2);
             moving = false;
+            m_TrackingElapsedTimer.restart();
+            GuideDeltaAlt = 0;
+            GuideDeltaAz  = 0;
+            ResetGuidePulses();
+            TrackedAltAz  = CurrentAltAz;
             break;
     }
 
@@ -630,6 +635,11 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS1);
             moving = false;
+            m_TrackingElapsedTimer.restart();
+            GuideDeltaAlt = 0;
+            GuideDeltaAz  = 0;
+            ResetGuidePulses();
+            TrackedAltAz  = CurrentAltAz;
             break;
     }
 
