@@ -139,7 +139,7 @@ class Receiver : public virtual SensorInterface
          */
         inline double getSampleRate()
         {
-            return Samplerate;
+            return SampleRate;
         }
 
         /**
@@ -190,7 +190,6 @@ class Receiver : public virtual SensorInterface
         INumber ReceiverSettingsN[7];
 
 private:
-        double Samplerate;
         double Frequency;
         double SampleRate;
         double Bandwidth;

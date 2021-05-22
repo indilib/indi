@@ -133,7 +133,7 @@ void Receiver::setBandwidth(double bandwidth)
 
 void Receiver::setSampleRate(double sr)
 {
-    Samplerate = sr;
+    SampleRate = sr;
 
     ReceiverSettingsN[Receiver::RECEIVER_SAMPLERATE].value = sr;
 
