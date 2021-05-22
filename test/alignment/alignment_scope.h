@@ -124,11 +124,11 @@ public:
                 // We were unable to transform the coordinates, just convert the mountAlt/mountAz
                 // directly to ra/dec
 
-                ln_hrz_posn altAz;
+                INDI::IHorizontalCoordinates altAz;
                 altAz.alt = mountAlt;
                 altAz.az = mountAz;
 
-                ln_equ_posn raDec;
+                INDI::IEquatorialCoordinates raDec;
 
                 get_equ_from_hrz(&altAz, &lnobserver, ln_get_julian_from_sys(), &raDec);
 
@@ -160,13 +160,13 @@ public:
             // For the test class, we are assuming a "perfect" sync.
 
             // BEGIN perfect sync code
-            ln_lnlat_posn location;
+            IGeographicCoordinates location;
             GetDatabaseReferencePosition(location);
 
-            ln_equ_posn raDec;
+            INDI::IEquatorialCoordinates raDec;
             raDec.dec = dec;
             raDec.ra = ra * 360.0 / 24.0; // get_hrz_from_equ expects this in decimal degrees
-            ln_hrz_posn altAz;
+            INDI::IHorizontalCoordinates altAz;
             get_hrz_from_equ(&raDec, &location, ln_get_julian_from_sys(), &altAz);
             // END perfect sync code
 

@@ -157,12 +157,12 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
         char RAStr[32], DecStr[32];
         fs_sexa(RAStr, ra, 2, 3600);
         fs_sexa(DecStr, dec, 2, 3600);
-        CurrentTrackingTarget.ra  = ra;
-        CurrentTrackingTarget.dec = dec;
+        CurrentTrackingTarget.rightascension  = ra;
+        CurrentTrackingTarget.declination = dec;
         LOGF_INFO("New Tracking target RA %s DEC %s", RAStr, DecStr);
     }
 
-    ln_hrz_posn AltAz { 0, 0 };
+    INDI::IHorizontalCoordinates AltAz { 0, 0 };
     TelescopeDirectionVector TDV;
 
     if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
@@ -174,79 +174,59 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
     else
     {
         // Try a conversion with the stored observatory position if any
-        bool HavePosition = false;
-        ln_lnlat_posn Position { 0, 0 };
-
-        if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-                (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
-        {
-            // I assume that being on the equator and exactly on the prime meridian is unlikely
-            Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
-            Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
-            HavePosition = true;
-        }
-        ln_equ_posn EquatorialCoordinates { 0, 0 };
+        INDI::IEquatorialCoordinates EquatorialCoordinates { 0, 0 };
 
         // libnova works in decimal degrees
-        EquatorialCoordinates.ra  = ra * 360.0 / 24.0;
-        EquatorialCoordinates.dec = dec;
-        if (HavePosition)
-        {
+        EquatorialCoordinates.rightascension  = ra;
+        EquatorialCoordinates.declination = dec;
 #ifdef USE_INITIAL_JULIAN_DATE
-            ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, InitialJulianDate, &AltAz);
+        ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, InitialJulianDate, &AltAz);
 #else
-            ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, ln_get_julian_from_sys(), &AltAz);
+        INDI::EquatorialToHorizontal(&EquatorialCoordinates, &m_Location, ln_get_julian_from_sys(), &AltAz);
 #endif
-            TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
-            switch (GetApproximateMountAlignment())
-            {
-                case ZENITH:
-                    break;
-
-                case NORTH_CELESTIAL_POLE:
-                    // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 minus
-                    // the (positive)observatory latitude. The vector itself is rotated anticlockwise
-                    TDV.RotateAroundY(Position.lat - 90.0);
-                    break;
-
-                case SOUTH_CELESTIAL_POLE:
-                    // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 plus
-                    // the (negative)observatory latitude. The vector itself is rotated clockwise
-                    TDV.RotateAroundY(Position.lat + 90.0);
-                    break;
-            }
-            AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
-        }
-        else
+        TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
+        switch (GetApproximateMountAlignment())
         {
-            // The best I can do is just do a direct conversion to Alt/Az
-            TDV = TelescopeDirectionVectorFromEquatorialCoordinates(EquatorialCoordinates);
-            AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+            case ZENITH:
+                break;
+
+            case NORTH_CELESTIAL_POLE:
+                // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 minus
+                // the (positive)observatory latitude. The vector itself is rotated anticlockwise
+                TDV.RotateAroundY(m_Location.latitude - 90.0);
+                break;
+
+            case SOUTH_CELESTIAL_POLE:
+                // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 plus
+                // the (negative)observatory latitude. The vector itself is rotated clockwise
+                TDV.RotateAroundY(m_Location.latitude + 90.0);
+                break;
         }
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion Failed - HavePosition %d", HavePosition);
+        AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
     }
+
     //    if (IsVirtuosoMount())
     //    {
     //        // The initial position of the Virtuoso mount is polar aligned when switched on.
     //        // The altitude is corrected by the latitude.
     //        if (IUFindNumber(&LocationNP, "LAT") != nullptr)
-    //            AltAz.alt = AltAz.alt - IUFindNumber(&LocationNP, "LAT")->value;
+    //            AltAz.altitude = AltAz.altitude - IUFindNumber(&LocationNP, "LAT")->value;
 
-    //        AltAz.az = 180 + AltAz.az;
+    //        AltAz.azimuth = 180 + AltAz.azimuth;
     //    }
 
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-           "New Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps", AltAz.alt,
-           DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+           "New Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps", AltAz.altitude,
+           DegreesToMicrosteps(AXIS2, AltAz.altitude), AltAz.azimuth, DegreesToMicrosteps(AXIS1, AltAz.azimuth));
 
     // Update the current encoder positions
     GetEncoder(AXIS1);
     GetEncoder(AXIS2);
 
     long AltitudeOffsetMicrosteps =
-        DegreesToMicrosteps(AXIS2, AltAz.alt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
+        DegreesToMicrosteps(AXIS2, AltAz.altitude) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
     long AzimuthOffsetMicrosteps =
-        DegreesToMicrosteps(AXIS1, AltAz.az) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
+        DegreesToMicrosteps(AXIS1, AltAz.azimuth) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
 
     // Do I need to take out any complete revolutions before I do this test?
     if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
@@ -757,11 +737,11 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 //    {
 //        if (target_direction == PARK_COUNTERCLOCKWISE)
 //        {
-//            Result = -CurrentAltAz.az;
+//            Result = -CurrentAltAz.azimuth;
 //        }
 //        else
 //        {
-//            Result = 360 - CurrentAltAz.az;
+//            Result = 360 - CurrentAltAz.azimuth;
 //        }
 //    }
 //    // Calculate delta degrees (target: EAST)
@@ -769,17 +749,17 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 //    {
 //        if (target_direction == PARK_COUNTERCLOCKWISE)
 //        {
-//            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 90)
-//                Result = -270 - CurrentAltAz.az;
+//            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 90)
+//                Result = -270 - CurrentAltAz.azimuth;
 //            else
-//                Result = -CurrentAltAz.az + 90;
+//                Result = -CurrentAltAz.azimuth + 90;
 //        }
 //        else
 //        {
-//            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 90)
-//                Result = 90 - CurrentAltAz.az;
+//            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 90)
+//                Result = 90 - CurrentAltAz.azimuth;
 //            else
-//                Result = 360 - CurrentAltAz.az + 90;
+//                Result = 360 - CurrentAltAz.azimuth + 90;
 //        }
 //    }
 //    // Calculate delta degrees (target: SOUTH)
@@ -787,17 +767,17 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 //    {
 //        if (target_direction == PARK_COUNTERCLOCKWISE)
 //        {
-//            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 180)
-//                Result = -180 - CurrentAltAz.az;
+//            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 180)
+//                Result = -180 - CurrentAltAz.azimuth;
 //            else
-//                Result = -CurrentAltAz.az + 180;
+//                Result = -CurrentAltAz.azimuth + 180;
 //        }
 //        else
 //        {
-//            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 180)
-//                Result = 180 - CurrentAltAz.az;
+//            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 180)
+//                Result = 180 - CurrentAltAz.azimuth;
 //            else
-//                Result = 360 - CurrentAltAz.az + 180;
+//                Result = 360 - CurrentAltAz.azimuth + 180;
 //        }
 //    }
 //    // Calculate delta degrees (target: WEST)
@@ -805,17 +785,17 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 //    {
 //        if (target_direction == PARK_COUNTERCLOCKWISE)
 //        {
-//            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 270)
-//                Result = -90 - CurrentAltAz.az;
+//            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 270)
+//                Result = -90 - CurrentAltAz.azimuth;
 //            else
-//                Result = -CurrentAltAz.az + 270;
+//                Result = -CurrentAltAz.azimuth + 270;
 //        }
 //        else
 //        {
-//            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 270)
-//                Result = 270 - CurrentAltAz.az;
+//            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 270)
+//                Result = 270 - CurrentAltAz.azimuth;
 //            else
-//                Result = 360 - CurrentAltAz.az + 270;
+//                Result = 360 - CurrentAltAz.azimuth + 270;
 //        }
 //    }
 //    if (Result >= 360)
@@ -879,8 +859,8 @@ bool SkywatcherAPIMount::UnPark()
 
         DeltaAz = GetParkDeltaAz(TargetDirection, TargetPosition);
         // Altitude 3360 points the telescope upwards
-        //DeltaAlt = CurrentAltAz.alt - 3360;
-        DeltaAlt = -CurrentAltAz.alt;
+        //DeltaAlt = CurrentAltAz.altitude - 3360;
+        DeltaAlt = -CurrentAltAz.altitude;
 
         // Move the telescope to the desired position
         long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, DeltaAlt);
@@ -946,12 +926,12 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     }
 
     // Calculate new RA DEC
-    ln_hrz_posn AltAz { 0, 0 };
+    INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
-    AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+    AltAz.altitude = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
     //    if (IsVirtuosoMount())
     //    {
-    //        double MountDegree = AltAz.alt;
+    //        double MountDegree = AltAz.altitude;
 
     //        // The initial position of the Virtuoso mount is polar aligned when switched on.
     //        // The altitude is corrected by the latitude.
@@ -959,26 +939,26 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     //            MountDegree += IUFindNumber(&LocationNP, "LAT")->value;
 
     //        // The altitude degrees in the Virtuoso Alt-Az mount are inverted.
-    //        AltAz.alt = 3420 - MountDegree;
+    //        AltAz.altitude = 3420 - MountDegree;
     //        // Drift compensation for tracking mode (SoftPEC)
     //        if (IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") != nullptr &&
     //                IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s == ISS_ON &&
     //                IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE") != nullptr)
     //        {
-    //            AltAz.alt += (IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60) * TrackingMsecs / 1000;
+    //            AltAz.altitude += (IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60) * TrackingMsecs / 1000;
     //        }
     //    }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf",
-           CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
-    AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+           CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.altitude);
+    AltAz.azimuth = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
     //    if (IsVirtuosoMount())
     //    {
-    //        if (AltAz.az < 0)
-    //            AltAz.az += 360;
+    //        if (AltAz.azimuth < 0)
+    //            AltAz.azimuth += 360;
     //    }
     CurrentAltAz = AltAz;
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf",
-           CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
+           CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.azimuth);
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
 
@@ -987,56 +967,41 @@ bool SkywatcherAPIMount::ReadScopeStatus()
         DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion OK");
     else
     {
-        bool HavePosition = false;
-        ln_lnlat_posn Position { 0, 0 };
 
-        if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-                (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
+
+        TelescopeDirectionVector RotatedTDV(TDV);
+        switch (GetApproximateMountAlignment())
         {
-            // I assume that being on the equator and exactly on the prime meridian is unlikely
-            Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
-            Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
-            HavePosition = true;
+            case ZENITH:
+                break;
+
+            case NORTH_CELESTIAL_POLE:
+                // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
+                // the (positive)observatory latitude. The vector itself is rotated clockwise
+                RotatedTDV.RotateAroundY(90.0 - m_Location.latitude);
+                AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
+                break;
+
+            case SOUTH_CELESTIAL_POLE:
+                // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
+                // the (negative)observatory latitude. The vector itself is rotated anticlockwise
+                RotatedTDV.RotateAroundY(-90.0 - m_Location.latitude);
+                AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
+                break;
         }
-        ln_equ_posn EquatorialCoordinates { 0, 0 };
 
-        if (HavePosition)
-        {
-            TelescopeDirectionVector RotatedTDV(TDV);
-            switch (GetApproximateMountAlignment())
-            {
-                case ZENITH:
-                    break;
-
-                case NORTH_CELESTIAL_POLE:
-                    // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
-                    // the (positive)observatory latitude. The vector itself is rotated clockwise
-                    RotatedTDV.RotateAroundY(90.0 - Position.lat);
-                    AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
-                    break;
-
-                case SOUTH_CELESTIAL_POLE:
-                    // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
-                    // the (negative)observatory latitude. The vector itself is rotated anticlockwise
-                    RotatedTDV.RotateAroundY(-90.0 - Position.lat);
-                    AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
-                    break;
-            }
+        INDI::IEquatorialCoordinates EquatorialCoordinates;
 #ifdef USE_INITIAL_JULIAN_DATE
-            ln_get_equ_from_hrz(&AltAz, &Position, InitialJulianDate, &EquatorialCoordinates);
+        ln_get_equ_from_hrz(&AltAz, &Position, InitialJulianDate, &EquatorialCoordinates);
 #else
-            ln_get_equ_from_hrz(&AltAz, &Position, ln_get_julian_from_sys(), &EquatorialCoordinates);
+        INDI::HorizontalToEquatorial(&AltAz, &m_Location, ln_get_julian_from_sys(), &EquatorialCoordinates);
 #endif
-        }
-        else
-            // The best I can do is just do a direct conversion to RA/DEC
-            EquatorialCoordinatesFromTelescopeDirectionVector(TDV, EquatorialCoordinates);
-        // libnova works in decimal degrees
-        RightAscension = EquatorialCoordinates.ra * 24.0 / 360.0;
-        Declination    = EquatorialCoordinates.dec;
+
+        RightAscension = EquatorialCoordinates.rightascension;
+        Declination    = EquatorialCoordinates.declination;
         DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "Conversion Failed - HavePosition %d RA (degrees) %lf DEC (degrees) %lf", HavePosition,
-               EquatorialCoordinates.ra, EquatorialCoordinates.dec);
+               "Conversion Failed - RA (degrees) %lf DEC (degrees) %lf", EquatorialCoordinates.rightascension,
+               EquatorialCoordinates.declination);
     }
 
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New RA %lf (hours) DEC %lf (degrees)", RightAscension,
@@ -1067,26 +1032,17 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
     // "a huge-jump point" in the alignment model.
     if (isParked())
     {
-        ln_hrz_posn AltAz { 0, 0 };
+        INDI::IHorizontalCoordinates AltAz { 0, 0 };
         TelescopeDirectionVector TDV;
         double OrigAlt = 0;
 
         if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
         {
             AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
-            OrigAlt = AltAz.alt;
-            //            if (IsVirtuosoMount())
-            //            {
-            //                // The initial position of the Virtuoso mount is polar aligned when switched on.
-            //                // The altitude is corrected by the latitude.
-            //                if (IUFindNumber(&LocationNP, "LAT") != nullptr)
-            //                    AltAz.alt = AltAz.alt - IUFindNumber(&LocationNP, "LAT")->value;
-
-            //                AltAz.az = 180 + AltAz.az;
-            //            }
-            ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1] - DegreesToMicrosteps(AXIS1, AltAz.az);
-            ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2] - DegreesToMicrosteps(AXIS2, AltAz.alt);
-            LOGF_INFO("Sync (Alt: %lf Az: %lf) in park position", OrigAlt, AltAz.az);
+            OrigAlt = AltAz.altitude;
+            ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1] - DegreesToMicrosteps(AXIS1, AltAz.azimuth);
+            ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2] - DegreesToMicrosteps(AXIS2, AltAz.altitude);
+            LOGF_INFO("Sync (Alt: %lf Az: %lf) in park position", OrigAlt, AltAz.azimuth);
             GetAlignmentDatabase().clear();
             return true;
         }
@@ -1097,12 +1053,12 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
     // Might as well do this
     UpdateDetailedMountInformation(true);
 
-    ln_hrz_posn AltAz { 0, 0 };
+    INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
-    AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+    AltAz.altitude = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
     //    if (IsVirtuosoMount())
     //    {
-    //        double MountDegree = AltAz.alt;
+    //        double MountDegree = AltAz.altitude;
 
     //        // The initial position of the Virtuoso mount is polar aligned when switched on.
     //        // The altitude is corrected by the latitude.
@@ -1110,13 +1066,13 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
     //            MountDegree += IUFindNumber(&LocationNP, "LAT")->value;
 
     //        // The altitude degrees in the Virtuoso Alt-Az mount are inverted.
-    //        AltAz.alt = 3420 - MountDegree;
+    //        AltAz.altitude = 3420 - MountDegree;
     //    }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf",
-           CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
-    AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+           CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.altitude);
+    AltAz.azimuth = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf",
-           CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
+           CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.azimuth);
 
     AlignmentDatabaseEntry NewEntry;
 #ifdef USE_INITIAL_JULIAN_DATE
@@ -1204,8 +1160,8 @@ void SkywatcherAPIMount::TimerHit()
             if (moving)
             {
                 TrackedAltAz  = CurrentAltAz;
-                CurrentTrackingTarget.ra = EqN[AXIS_RA].value;
-                CurrentTrackingTarget.dec = EqN[AXIS_DE].value;
+                CurrentTrackingTarget.rightascension = EqN[AXIS_RA].value;
+                CurrentTrackingTarget.declination = EqN[AXIS_DE].value;
             }
             else
             {
@@ -1219,8 +1175,8 @@ void SkywatcherAPIMount::TimerHit()
                     ResetGuidePulses();
                     TrackedAltAz         = CurrentAltAz;
                 }
-                double trackingDeltaAlt = std::abs(CurrentAltAz.alt - TrackedAltAz.alt);
-                double trackingDeltaAz = std::abs(CurrentAltAz.az - TrackedAltAz.az);
+                double trackingDeltaAlt = std::abs(CurrentAltAz.altitude - TrackedAltAz.altitude);
+                double trackingDeltaAz = std::abs(CurrentAltAz.azimuth - TrackedAltAz.azimuth);
 
                 if (trackingDeltaAlt + trackingDeltaAz > 50.0)
                 {
@@ -1241,9 +1197,9 @@ void SkywatcherAPIMount::TimerHit()
                 double JulianOffset =
                     1.0 / (24.0 * 60 * 60); // TODO may need to make this longer to get a meaningful result
                 TelescopeDirectionVector TDV;
-                ln_hrz_posn AltAz { 0, 0 };
+                INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
-                if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
+                if (TransformCelestialToTelescope(CurrentTrackingTarget.rightascension, CurrentTrackingTarget.declination,
 #ifdef USE_INITIAL_JULIAN_DATE
                                                   0, TDV))
 #else
@@ -1255,61 +1211,19 @@ void SkywatcherAPIMount::TimerHit()
                 }
                 else
                 {
-                    // Try a conversion with the stored observatory position if any
-                    bool HavePosition = false;
-                    ln_lnlat_posn Position { 0, 0 };
+                    INDI::IEquatorialCoordinates EquatorialCoordinates { 0, 0 };
+                    EquatorialCoordinates.rightascension  = CurrentTrackingTarget.rightascension;
+                    EquatorialCoordinates.declination = CurrentTrackingTarget.declination;
+                    INDI::EquatorialToHorizontal(&EquatorialCoordinates, &m_Location, ln_get_julian_from_sys(), &AltAz);
 
-                    if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-                            (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
-                    {
-                        // I assume that being on the equator and exactly on the prime meridian is unlikely
-                        Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
-                        Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
-                        HavePosition = true;
-                    }
-                    ln_equ_posn EquatorialCoordinates { 0, 0 };
-
-                    // libnova works in decimal degrees
-                    EquatorialCoordinates.ra  = CurrentTrackingTarget.ra * 360.0 / 24.0;
-                    EquatorialCoordinates.dec = CurrentTrackingTarget.dec;
-                    if (HavePosition)
-                        ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
-#ifdef USE_INITIAL_JULIAN_DATE
-                                            InitialJulianDate, &AltAz);
-#else
-                                            ln_get_julian_from_sys() + JulianOffset, &AltAz);
-#endif
-                    else
-                    {
-                        // No sense in tracking in this case
-                        TrackState = SCOPE_IDLE;
-                        break;
-                    }
                 }
-                //                if (IsVirtuosoMount())
-                //                {
-                //                    // The initial position of the Virtuoso mount is polar aligned when switched on.
-                //                    // The altitude is corrected by the latitude.
-                //                    if (IUFindNumber(&LocationNP, "LAT") != nullptr)
-                //                    {
-                //                        AltAz.alt = AltAz.alt - IUFindNumber(&LocationNP, "LAT")->value;
-                //                    }
-                //                    // Drift compensation for tracking mode (SoftPEC)
-                //                    if (IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") != nullptr &&
-                //                            IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s == ISS_ON &&
-                //                            IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE") != nullptr)
-                //                    {
-                //                        AltAz.alt += (IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60) * TrackingMsecs / 1000;
-                //                    }
-                //                    AltAz.az = 180 + AltAz.az;
-                //                }
                 DEBUGF(DBG_SCOPE,
                        "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
                        "%ld",
                        CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
                 DEBUGF(DBG_SCOPE,
                        "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-                       AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+                       AltAz.altitude, DegreesToMicrosteps(AXIS2, AltAz.altitude), AltAz.azimuth, DegreesToMicrosteps(AXIS1, AltAz.azimuth));
 
                 // Calculate the auto-guiding delta degrees
                 double DeltaAlt = 0;
@@ -1345,9 +1259,9 @@ void SkywatcherAPIMount::TimerHit()
                 GuideDeltaAz += DeltaAz;
 
                 long AltitudeOffsetMicrosteps =
-                    DegreesToMicrosteps(AXIS2, AltAz.alt + GuideDeltaAlt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
+                    DegreesToMicrosteps(AXIS2, AltAz.altitude + GuideDeltaAlt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
                 long AzimuthOffsetMicrosteps =
-                    DegreesToMicrosteps(AXIS1, AltAz.az + GuideDeltaAz) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
+                    DegreesToMicrosteps(AXIS1, AltAz.azimuth + GuideDeltaAz) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
 
                 DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
                        AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
@@ -1507,10 +1421,6 @@ bool SkywatcherAPIMount::updateProperties()
         defineProperty(&GuideNSNP);
         defineProperty(&GuideWENP);
 
-        // Try to read latitude from config file if exists.
-        double latitude = 0;
-        if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude) == 0)
-            LocationN[LOCATION_LATITUDE].value = latitude;
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
@@ -1650,17 +1560,18 @@ void SkywatcherAPIMount::ResetGuidePulses()
 
 void SkywatcherAPIMount::ConvertGuideCorrection(double delta_ra, double delta_dec, double &delta_alt, double &delta_az)
 {
-    ln_hrz_posn OldAltAz { 0, 0 };
-    ln_hrz_posn NewAltAz { 0, 0 };
+    INDI::IHorizontalCoordinates OldAltAz { 0, 0 };
+    INDI::IHorizontalCoordinates NewAltAz { 0, 0 };
     TelescopeDirectionVector OldTDV;
     TelescopeDirectionVector NewTDV;
 
-    TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec, 0.0, OldTDV);
+    TransformCelestialToTelescope(CurrentTrackingTarget.rightascension, CurrentTrackingTarget.declination, 0.0, OldTDV);
     AltitudeAzimuthFromTelescopeDirectionVector(OldTDV, OldAltAz);
-    TransformCelestialToTelescope(CurrentTrackingTarget.ra + delta_ra, CurrentTrackingTarget.dec + delta_dec, 0.0, NewTDV);
+    TransformCelestialToTelescope(CurrentTrackingTarget.rightascension + delta_ra,
+                                  CurrentTrackingTarget.declination + delta_dec, 0.0, NewTDV);
     AltitudeAzimuthFromTelescopeDirectionVector(NewTDV, NewAltAz);
-    delta_alt = NewAltAz.alt - OldAltAz.alt;
-    delta_az = NewAltAz.az - OldAltAz.az;
+    delta_alt = NewAltAz.altitude - OldAltAz.altitude;
+    delta_az = NewAltAz.azimuth - OldAltAz.azimuth;
 }
 
 //int SkywatcherAPIMount::recover_tty_reconnect()

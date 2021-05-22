@@ -180,6 +180,7 @@ SET(indiclient_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
 
 SET(indiclient_CXX_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
@@ -198,8 +199,7 @@ IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclient_cxx indiclient_CXX_SRC 10 cpp)
 ENDIF ()
 
-SET(indiclient_C_SRC ${indiclient_C_SRC}
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
+SET(indiclient_C_SRC ${indiclient_C_SRC}    
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 add_library(indiclient STATIC ${indiclient_C_SRC} ${indiclient_CXX_SRC})
@@ -253,6 +253,7 @@ SET(indiclientqt_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indiuserio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
 SET(indiclientqt_CXX_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
@@ -270,8 +271,7 @@ IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclientqt_cxx indiclientqt_CXX_SRC 10 cpp)
 ENDIF ()
 
-SET(indiclientqt_C_SRC ${indiclientqt_C_SRC}
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
+SET(indiclientqt_C_SRC ${indiclientqt_C_SRC}    
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 add_library(indiclientqt STATIC ${indiclientqt_C_SRC} ${indiclientqt_CXX_SRC})
@@ -427,6 +427,7 @@ SET(indidriver_C_SRC
     )
 
 SET(indidriver_CXX_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/property/indiproperty.cpp
@@ -474,7 +475,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/dspinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/transforms.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/dsp/convolution.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/pid/pid.cpp    
     )
 
 IF (UNITY_BUILD)
@@ -485,8 +486,7 @@ ENDIF ()
 SET(indidriver_C_SRC
     ${indidriver_C_SRC}
     ${libdsp_C_SRC}
-    ${fpack_C_SRC}
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/libastro.cpp
+    ${fpack_C_SRC}    
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 ##################################################

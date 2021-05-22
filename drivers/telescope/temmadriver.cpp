@@ -416,7 +416,7 @@ bool TemmaMount::ReadScopeStatus()
         const char *maligns[3] = {"ZENITH", "NORTH", "SOUTH"};
         double juliandate, lst;
         //double alignedRA, alignedDEC;
-        struct ln_equ_posn RaDec;
+        struct INDI::IEquatorialCoordinates RaDec;
         bool aligned;
         juliandate = ln_get_julian_from_sys();
         lst = ln_get_apparent_sidereal_time(juliandate) + (LocationN[1].value * 24.0 / 360.0);
@@ -907,10 +907,10 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
 }
 
 #if 0
-ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
+INDI::IEquatorialCoordinates TemmaMount::TelescopeToSky(double ra, double dec)
 {
     double RightAscension, Declination;
-    ln_equ_posn eq { 0, 0 };
+    INDI::IEquatorialCoordinates eq { 0, 0 };
 
     if (GetAlignmentDatabase().size() > 1)
     {
@@ -925,8 +925,8 @@ ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
 
         /* This code does a conversion from ra/dec to alt/az
         // before calling the alignment stuff
-            ln_lnlat_posn here;
-            ln_hrz_posn altaz;
+            IGeographicCoordinates here;
+            INDI::IHorizontalCoordinates altaz;
 
             here.lat=LocationN[LOCATION_LATITUDE].value;
             here.lng=LocationN[LOCATION_LONGITUDE].value;
@@ -971,9 +971,9 @@ ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
     return eq;
 }
 
-ln_equ_posn TemmaMount::SkyToTelescope(double ra, double dec)
+INDI::IEquatorialCoordinates TemmaMount::SkyToTelescope(double ra, double dec)
 {
-    ln_equ_posn eq { 0, 0 };
+    INDI::IEquatorialCoordinates eq { 0, 0 };
     TelescopeDirectionVector TDV;
     double RightAscension, Declination;
 

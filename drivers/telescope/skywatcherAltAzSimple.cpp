@@ -150,27 +150,28 @@ bool SkywatcherAltAzSimple::Goto(double ra, double dec)
         char RAStr[32], DecStr[32];
         fs_sexa(RAStr, ra, 2, 3600);
         fs_sexa(DecStr, dec, 2, 3600);
-        CurrentTrackingTarget.ra  = ra;
-        CurrentTrackingTarget.dec = dec;
+        CurrentTrackingTarget.rightascension  = ra;
+        CurrentTrackingTarget.declination = dec;
         DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking target RA %s DEC %s", RAStr, DecStr);
     }
 
-    ln_hrz_posn AltAz { 0, 0 };
+    INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
     AltAz = GetAltAzPosition(ra, dec);
-    DEBUGF(DBG_SCOPE, "New Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps", AltAz.alt,
-           DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
-    LogMessage("NEW GOTO TARGET: Ra %lf Dec %lf - Alt %lf Az %lf - microsteps %ld %ld", ra, dec, AltAz.alt, AltAz.az,
-               DegreesToMicrosteps(AXIS2, AltAz.alt), DegreesToMicrosteps(AXIS1, AltAz.az));
+    DEBUGF(DBG_SCOPE, "New Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps", AltAz.altitude,
+           DegreesToMicrosteps(AXIS2, AltAz.altitude), AltAz.azimuth, DegreesToMicrosteps(AXIS1, AltAz.azimuth));
+    LogMessage("NEW GOTO TARGET: Ra %lf Dec %lf - Alt %lf Az %lf - microsteps %ld %ld", ra, dec, AltAz.altitude,
+               AltAz.azimuth,
+               DegreesToMicrosteps(AXIS2, AltAz.altitude), DegreesToMicrosteps(AXIS1, AltAz.azimuth));
 
     // Update the current encoder positions
     GetEncoder(AXIS1);
     GetEncoder(AXIS2);
 
     long AltitudeOffsetMicrosteps =
-        DegreesToMicrosteps(AXIS2, AltAz.alt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
+        DegreesToMicrosteps(AXIS2, AltAz.altitude) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
     long AzimuthOffsetMicrosteps =
-        DegreesToMicrosteps(AXIS1, AltAz.az) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
+        DegreesToMicrosteps(AXIS1, AltAz.azimuth) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
 
     DEBUGF(DBG_SCOPE, "Initial deltas Altitude %ld microsteps Azimuth %ld microsteps", AltitudeOffsetMicrosteps,
            AzimuthOffsetMicrosteps);
@@ -213,8 +214,6 @@ bool SkywatcherAltAzSimple::Goto(double ra, double dec)
     SlewTo(AXIS2, AltitudeOffsetMicrosteps);
 
     TrackState = SCOPE_SLEWING;
-
-    //EqNP.s = IPS_BUSY;
 
     return true;
 }
@@ -697,11 +696,11 @@ double SkywatcherAltAzSimple::GetParkDeltaAz(ParkDirection_t target_direction, P
     {
         if (target_direction == PARK_COUNTERCLOCKWISE)
         {
-            Result = -CurrentAltAz.az;
+            Result = -CurrentAltAz.azimuth;
         }
         else
         {
-            Result = 360 - CurrentAltAz.az;
+            Result = 360 - CurrentAltAz.azimuth;
         }
     }
     // Calculate delta degrees (target: EAST)
@@ -709,17 +708,17 @@ double SkywatcherAltAzSimple::GetParkDeltaAz(ParkDirection_t target_direction, P
     {
         if (target_direction == PARK_COUNTERCLOCKWISE)
         {
-            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 90)
-                Result = -270 - CurrentAltAz.az;
+            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 90)
+                Result = -270 - CurrentAltAz.azimuth;
             else
-                Result = -CurrentAltAz.az + 90;
+                Result = -CurrentAltAz.azimuth + 90;
         }
         else
         {
-            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 90)
-                Result = 90 - CurrentAltAz.az;
+            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 90)
+                Result = 90 - CurrentAltAz.azimuth;
             else
-                Result = 360 - CurrentAltAz.az + 90;
+                Result = 360 - CurrentAltAz.azimuth + 90;
         }
     }
     // Calculate delta degrees (target: SOUTH)
@@ -727,17 +726,17 @@ double SkywatcherAltAzSimple::GetParkDeltaAz(ParkDirection_t target_direction, P
     {
         if (target_direction == PARK_COUNTERCLOCKWISE)
         {
-            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 180)
-                Result = -180 - CurrentAltAz.az;
+            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 180)
+                Result = -180 - CurrentAltAz.azimuth;
             else
-                Result = -CurrentAltAz.az + 180;
+                Result = -CurrentAltAz.azimuth + 180;
         }
         else
         {
-            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 180)
-                Result = 180 - CurrentAltAz.az;
+            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 180)
+                Result = 180 - CurrentAltAz.azimuth;
             else
-                Result = 360 - CurrentAltAz.az + 180;
+                Result = 360 - CurrentAltAz.azimuth + 180;
         }
     }
     // Calculate delta degrees (target: WEST)
@@ -745,17 +744,17 @@ double SkywatcherAltAzSimple::GetParkDeltaAz(ParkDirection_t target_direction, P
     {
         if (target_direction == PARK_COUNTERCLOCKWISE)
         {
-            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 270)
-                Result = -90 - CurrentAltAz.az;
+            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 270)
+                Result = -90 - CurrentAltAz.azimuth;
             else
-                Result = -CurrentAltAz.az + 270;
+                Result = -CurrentAltAz.azimuth + 270;
         }
         else
         {
-            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 270)
-                Result = 270 - CurrentAltAz.az;
+            if (CurrentAltAz.azimuth > 0 && CurrentAltAz.azimuth < 270)
+                Result = 270 - CurrentAltAz.azimuth;
             else
-                Result = 360 - CurrentAltAz.az + 270;
+                Result = 360 - CurrentAltAz.azimuth + 270;
         }
     }
     if (Result >= 360)
@@ -878,7 +877,7 @@ bool SkywatcherAltAzSimple::UnPark()
     }
     DeltaAz = GetParkDeltaAz(TargetDirection, TargetPosition);
     // Altitude 3360 points the telescope upwards
-    DeltaAlt = CurrentAltAz.alt - 3360;
+    DeltaAlt = CurrentAltAz.altitude - 3360;
 
     // Move the telescope to the desired position
     long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, DeltaAlt);
@@ -906,10 +905,7 @@ bool SkywatcherAltAzSimple::UnPark()
 
 bool SkywatcherAltAzSimple::ReadScopeStatus()
 {
-    //    DEBUG(DBG_SCOPE, "SkywatcherAltAzSimple::ReadScopeStatus");
-
     // leave the following stuff in for the time being it is mostly harmless
-
     // Quick check of the mount
     if (UpdateCount == 0 && !GetMotorBoardVersion(AXIS1))
         return false;
@@ -939,33 +935,33 @@ bool SkywatcherAltAzSimple::ReadScopeStatus()
     }
 
     // Calculate new RA DEC
-    ln_hrz_posn AltAz { 0, 0 };
+    INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
-    AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+    AltAz.altitude = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
     if (VerboseScopeStatus)
     {
         DEBUGF(DBG_SCOPE, "Axis2 encoder %ld initial %ld alt(degrees) %lf",
-               CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
+               CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.altitude);
     }
-    AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+    AltAz.azimuth = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
     CurrentAltAz = AltAz;
     if (VerboseScopeStatus)
     {
         DEBUGF(DBG_SCOPE, "Axis1 encoder %ld initial %ld az(degrees) %lf",
-               CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
+               CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.azimuth);
     }
 
-    ln_equ_posn RaDec { 0, 0 };
+    INDI::IEquatorialCoordinates RaDec { 0, 0 };
 
-    RaDec = GetRaDecPosition(AltAz.alt, AltAz.az);
+    RaDec = GetRaDecPosition(AltAz.altitude, AltAz.azimuth);
     if (VerboseScopeStatus)
     {
-        DEBUGF(DBG_SCOPE, "New RA %lf (hours) DEC %lf (degrees)", RaDec.ra, RaDec.dec);
+        DEBUGF(DBG_SCOPE, "New RA %lf (hours) DEC %lf (degrees)", RaDec.rightascension, RaDec.declination);
     }
-    LogMessage("STATUS: Ra %lf Dec %lf - Alt %lf Az %lf - microsteps %ld %ld", RaDec.ra, RaDec.dec,
-               AltAz.alt, AltAz.az, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2],
+    LogMessage("STATUS: Ra %lf Dec %lf - Alt %lf Az %lf - microsteps %ld %ld", RaDec.rightascension, RaDec.declination,
+               AltAz.altitude, AltAz.azimuth, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2],
                CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
-    NewRaDec(RaDec.ra, RaDec.dec);
+    NewRaDec(RaDec.rightascension, RaDec.declination);
     VerboseScopeStatus = false;
     return true;
 }
@@ -996,15 +992,15 @@ bool SkywatcherAltAzSimple::Sync(double ra, double dec)
     if (!GetEncoder(AXIS2))
         return false;
 
-    ln_hrz_posn AltAz { 0, 0 };
+    INDI::IHorizontalCoordinates AltAz { 0, 0 };
 
     AltAz = GetAltAzPosition(ra, dec);
-    double DeltaAz = CurrentAltAz.az - AltAz.az;
-    double DeltaAlt = CurrentAltAz.alt - AltAz.alt;
+    double DeltaAz = CurrentAltAz.azimuth - AltAz.azimuth;
+    double DeltaAlt = CurrentAltAz.altitude - AltAz.altitude;
 
     LogMessage("SYNC: Ra %lf Dec %lf", ra, dec);
     MYDEBUGF(INDI::Logger::DBG_SESSION, "Sync ra: %lf dec: %lf => CurAz: %lf -> NewAz: %lf",
-             ra, dec, CurrentAltAz.az, AltAz.az);
+             ra, dec, CurrentAltAz.azimuth, AltAz.azimuth);
     PolarisPositionEncoders[AXIS1] += DegreesToMicrosteps(AXIS1, DeltaAz);
     PolarisPositionEncoders[AXIS2] += DegreesToMicrosteps(AXIS2, DeltaAlt);
     ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
@@ -1097,9 +1093,8 @@ void SkywatcherAltAzSimple::TimerHit()
 
             if (moving)
             {
-                //                TrackedAltAz  = CurrentAltAz;
-                CurrentTrackingTarget.ra = EqN[AXIS_RA].value;
-                CurrentTrackingTarget.dec = EqN[AXIS_DE].value;
+                CurrentTrackingTarget.rightascension = EqN[AXIS_RA].value;
+                CurrentTrackingTarget.declination = EqN[AXIS_DE].value;
             }
             else
             {
@@ -1120,12 +1115,12 @@ void SkywatcherAltAzSimple::TimerHit()
                 Tracking = true;
                 Slewing  = false;
                 // Continue or start tracking
-                //            ln_hrz_posn AltAz { 0, 0 };
-                ln_hrz_posn FutureAltAz { 0, 0 };
+                //            INDI::IHorizontalCoordinates AltAz { 0, 0 };
+                INDI::IHorizontalCoordinates FutureAltAz { 0, 0 };
 
-                //            AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
-                //            AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
-                FutureAltAz = GetAltAzPosition(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
+                //            AltAz.altitude = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+                //            AltAz.azimuth = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+                FutureAltAz = GetAltAzPosition(CurrentTrackingTarget.rightascension, CurrentTrackingTarget.declination,
                                                (double)TimeoutDuration / 1000);
                 //            DEBUGF(DBG_SCOPE,
                 //                   "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget "
@@ -1133,7 +1128,7 @@ void SkywatcherAltAzSimple::TimerHit()
                 //                   CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
                 //            DEBUGF(DBG_SCOPE,
                 //                   "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-                //                   AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+                //                   AltAz.altitude, DegreesToMicrosteps(AXIS2, AltAz.altitude), AltAz.azimuth, DegreesToMicrosteps(AXIS1, AltAz.azimuth));
 
                 // Calculate the auto-guiding delta degrees
                 for (auto pulse : GuidingPulses)
@@ -1143,8 +1138,8 @@ void SkywatcherAltAzSimple::TimerHit()
                 }
                 GuidingPulses.clear();
 
-                long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, FutureAltAz.alt - CurrentAltAz.alt + GuideDeltaAlt);
-                long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, FutureAltAz.az - CurrentAltAz.az + GuideDeltaAz);
+                long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, FutureAltAz.altitude - CurrentAltAz.altitude + GuideDeltaAlt);
+                long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, FutureAltAz.azimuth - CurrentAltAz.azimuth + GuideDeltaAz);
 
                 // When the Alt/Az mount is on the top of an EQ mount, the EQ mount already tracks in
                 // sidereal speed. Only autoguiding is enabled in tracking mode.
@@ -1155,8 +1150,8 @@ void SkywatcherAltAzSimple::TimerHit()
                     GuideDeltaAlt = 0;
                     GuideDeltaAz = 0;
                     // Correct the movements of the EQ mount
-                    double DeltaAz = CurrentAltAz.az - FutureAltAz.az;
-                    double DeltaAlt = CurrentAltAz.alt - FutureAltAz.alt;
+                    double DeltaAz = CurrentAltAz.azimuth - FutureAltAz.azimuth;
+                    double DeltaAlt = CurrentAltAz.altitude - FutureAltAz.altitude;
 
                     PolarisPositionEncoders[AXIS1] += DegreesToMicrosteps(AXIS1, DeltaAz);
                     PolarisPositionEncoders[AXIS2] += DegreesToMicrosteps(AXIS2, DeltaAlt);
@@ -1191,7 +1186,7 @@ void SkywatcherAltAzSimple::TimerHit()
                                                  "TRACKING_RATE_AZ")->value);
 
                 LogMessage("TRACKING: now Alt %lf Az %lf - future Alt %lf Az %lf - microsteps_diff Alt %ld Az %ld",
-                           CurrentAltAz.alt, CurrentAltAz.az, FutureAltAz.alt, FutureAltAz.az,
+                           CurrentAltAz.altitude, CurrentAltAz.azimuth, FutureAltAz.altitude, FutureAltAz.azimuth,
                            AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
 
                 //            DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
@@ -1596,76 +1591,57 @@ void SkywatcherAltAzSimple::UpdateDetailedMountInformation(bool InformClient)
 }
 
 
-ln_hrz_posn SkywatcherAltAzSimple::GetAltAzPosition(double ra, double dec, double offset_in_sec)
+INDI::IHorizontalCoordinates SkywatcherAltAzSimple::GetAltAzPosition(double ra, double dec, double offset_in_sec)
 {
-    ln_lnlat_posn Location { 0, 0 };
-    ln_equ_posn Eq { 0, 0 };
-    ln_hrz_posn AltAz { 0, 0 };
+    INDI::IEquatorialCoordinates Eq { ra, dec };
+    INDI::IHorizontalCoordinates AltAz { 0, 0 };
+    INDI::IGeographicCoordinates Location {LocationN[LOCATION_LONGITUDE].value, LocationN[LOCATION_LATITUDE].value, 0};
     double JulianOffset = offset_in_sec / (24.0 * 60 * 60);
 
     // Set the current location
-    if (IUFindSwitch(&WedgeModeSP, "WEDGE_SIMPLE")->s == ISS_OFF &&
-            IUFindSwitch(&WedgeModeSP, "WEDGE_EQ")->s == ISS_OFF)
-    {
-        Location.lat = LocationN[LOCATION_LATITUDE].value;
-        Location.lng = LocationN[LOCATION_LONGITUDE].value;
-    }
-    else
+    if (IUFindSwitch(&WedgeModeSP, "WEDGE_SIMPLE")->s != ISS_OFF ||
+            IUFindSwitch(&WedgeModeSP, "WEDGE_EQ")->s != ISS_OFF)
     {
         if (LocationN[LOCATION_LATITUDE].value > 0)
         {
-            Location.lat = 90;
-            Location.lng = 0;
+            Location.latitude = 90;
+            Location.longitude = 0;
         }
         else
         {
-            Location.lat = -90;
-            Location.lng = 0;
+            Location.latitude = -90;
+            Location.longitude = 0;
         }
     }
-    Eq.ra  = ra * 360.0 / 24.0;
-    Eq.dec = dec;
-    ln_get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys() + JulianOffset, &AltAz);
-    AltAz.az -= 180;
-    if (AltAz.az < 0)
-        AltAz.az += 360;
 
+    INDI::EquatorialToHorizontal(&Eq, &m_Location, ln_get_julian_from_sys() + JulianOffset, &AltAz);
     return AltAz;
 }
 
 
-ln_equ_posn SkywatcherAltAzSimple::GetRaDecPosition(double alt, double az)
+INDI::IEquatorialCoordinates SkywatcherAltAzSimple::GetRaDecPosition(double alt, double az)
 {
-    ln_lnlat_posn Location { 0, 0 };
-    ln_equ_posn Eq { 0, 0 };
-    ln_hrz_posn AltAz { az, alt };
+    INDI::IGeographicCoordinates Location { LocationN[LOCATION_LONGITUDE].value, LocationN[LOCATION_LATITUDE].value, 0 };
+    INDI::IEquatorialCoordinates Eq { 0, 0 };
+    INDI::IHorizontalCoordinates AltAz { az, alt };
 
     // Set the current location
-    if (IUFindSwitch(&WedgeModeSP, "WEDGE_SIMPLE")->s == ISS_OFF &&
-            IUFindSwitch(&WedgeModeSP, "WEDGE_EQ")->s == ISS_OFF)
-    {
-        Location.lat = LocationN[LOCATION_LATITUDE].value;
-        Location.lng = LocationN[LOCATION_LONGITUDE].value;
-    }
-    else
+    if (IUFindSwitch(&WedgeModeSP, "WEDGE_SIMPLE")->s != ISS_OFF ||
+            IUFindSwitch(&WedgeModeSP, "WEDGE_EQ")->s != ISS_OFF)
     {
         if (LocationN[LOCATION_LATITUDE].value > 0)
         {
-            Location.lat = 90;
-            Location.lng = 0;
+            Location.latitude = 90;
+            Location.longitude = 0;
         }
         else
         {
-            Location.lat = -90;
-            Location.lng = 0;
+            Location.latitude = -90;
+            Location.longitude = 0;
         }
     }
-    AltAz.az -= 180;
-    if (AltAz.az < 0)
-        AltAz.az += 360;
 
-    ln_get_equ_from_hrz(&AltAz, &Location, ln_get_julian_from_sys(), &Eq);
-    Eq.ra = Eq.ra / 360.0 * 24.0;
+    INDI::HorizontalToEquatorial(&AltAz, &m_Location, ln_get_julian_from_sys(), &Eq);
     return Eq;
 }
 

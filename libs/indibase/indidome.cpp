@@ -53,7 +53,7 @@ Dome::Dome() : ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
     controller->setButtonCallback(buttonHelper);
 
     prev_az = prev_alt = prev_ra = prev_dec = 0;
-    mountEquatorialCoords.dec = mountEquatorialCoords.ra = -1;
+    mountEquatorialCoords.declination = mountEquatorialCoords.rightascension = -1;
     m_MountState = IPS_ALERT;
 
     capability = 0;
@@ -860,10 +860,10 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 //  for the target slew instead of using mount pier side info
                 //  and see if we can get there at the same time as the mount
                 // TODO: see what happens in a meridian flip with OTASide
-                mountEquatorialCoords.ra  = ra * 15.0;
-                mountEquatorialCoords.dec = de;
+                mountEquatorialCoords.rightascension  = ra * 15.0;
+                mountEquatorialCoords.declination = de;
                 LOGF_DEBUG("Calling Update mount to anticipate goto target: %g - DEC: %g",
-                           mountEquatorialCoords.ra, mountEquatorialCoords.dec);
+                           mountEquatorialCoords.rightascension, mountEquatorialCoords.declination);
                 UpdateMountCoords();
             }
         }
@@ -891,7 +891,8 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             ra *= 15.0;
 
             // Do not spam log
-            if (std::fabs(mountEquatorialCoords.ra - ra) > 0.01 || std::fabs(mountEquatorialCoords.dec - de) > 0.01)
+            if (std::fabs(mountEquatorialCoords.rightascension - ra) > 0.01
+                    || std::fabs(mountEquatorialCoords.declination - de) > 0.01)
             {
                 char RAStr[64] = {0}, DEStr[64] = {0};
                 fs_sexa(RAStr, ra / 15.0, 2, 3600);
@@ -900,23 +901,23 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 LOGF_DEBUG("Snooped RA %s DEC %s", RAStr, DEStr);
             }
 
-            mountEquatorialCoords.ra  = ra;
-            mountEquatorialCoords.dec = de;
+            mountEquatorialCoords.rightascension  = ra;
+            mountEquatorialCoords.declination = de;
         }
 
         m_MountState = IPS_ALERT;
         crackIPState(findXMLAttValu(root, "state"), &m_MountState);
 
         // If the diff > 0.1 then the mount is in motion, so let's wait until it settles before moving the doom
-        if (fabs(mountEquatorialCoords.ra - prev_ra) > DOME_COORD_THRESHOLD ||
-                fabs(mountEquatorialCoords.dec - prev_dec) > DOME_COORD_THRESHOLD)
+        if (fabs(mountEquatorialCoords.rightascension - prev_ra) > DOME_COORD_THRESHOLD ||
+                fabs(mountEquatorialCoords.declination - prev_dec) > DOME_COORD_THRESHOLD)
         {
-            prev_ra  = mountEquatorialCoords.ra;
-            prev_dec = mountEquatorialCoords.dec;
-            //LOGF_DEBUG("Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra, mountEquatorialCoords.dec);
+            prev_ra  = mountEquatorialCoords.rightascension;
+            prev_dec = mountEquatorialCoords.declination;
+            //LOGF_DEBUG("Snooped RA: %g - DEC: %g", mountEquatorialCoords.rightascension, mountEquatorialCoords.declination);
             //  a mount still initializing will emit 0 and 0 on the first go
             //  we dont want to process 0/0
-            if ((mountEquatorialCoords.ra != 0) || (mountEquatorialCoords.dec != 0))
+            if ((mountEquatorialCoords.rightascension != 0) || (mountEquatorialCoords.declination != 0))
                 HaveRaDec = true;
         }
         // else mount stable, i.e. tracking, so let's update mount coords and check if we need to move
@@ -938,14 +939,14 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 f_scansexa(pcdataXMLEle(ep), &indiLong);
                 if (indiLong > 180)
                     indiLong -= 360;
-                observer.lng = indiLong;
+                observer.longitude = indiLong;
                 HaveLatLong  = true;
             }
             else if (!strcmp(elemName, "LAT"))
-                f_scansexa(pcdataXMLEle(ep), &(observer.lat));
+                f_scansexa(pcdataXMLEle(ep), &(observer.latitude));
         }
 
-        LOGF_DEBUG("Snooped LONG: %g - LAT: %g", observer.lng, observer.lat);
+        LOGF_DEBUG("Snooped LONG: %g - LAT: %g", observer.longitude, observer.latitude);
 
         UpdateMountCoords();
 
@@ -1023,7 +1024,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             else if (!strcmp(elemName, "PIER_WEST") && !strcmp(pcdataXMLEle(ep), "On"))
                 mountOTASide = 1;
         }
-        
+
         return true;
     }
 
@@ -1304,16 +1305,16 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     LOGF_DEBUG("MC.x: %g - MC.y: %g MC.z: %g", MountCenter.x, MountCenter.y, MountCenter.z);
 
     // Get hour angle in hours
-    hourAngle = rangeHA( MSD + observer.lng / 15.0 - mountEquatorialCoords.ra / 15.0);
+    hourAngle = rangeHA( MSD + observer.longitude / 15.0 - mountEquatorialCoords.rightascension / 15.0);
 
-    LOGF_DEBUG("HA: %g  Lng: %g RA: %g", hourAngle, observer.lng, mountEquatorialCoords.ra);
+    LOGF_DEBUG("HA: %g  Lng: %g RA: %g", hourAngle, observer.longitude, mountEquatorialCoords.rightascension);
 
     int OTASide = 0; // Side of the telescope with respect of the mount, 1: west, -1: east, 0: use the mid point
-    
+
     if (OTASideSP.s == IPS_OK)
     {
         int OTASideS_Idx = -1;
-        
+
         if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = -1;
         else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = 1;
         else if(OTASideS[++OTASideS_Idx].s == ISS_ON) OTASide = mountOTASide;
@@ -1325,29 +1326,23 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
         }
         else
             ++OTASideS_Idx;
-        
+
         LOGF_DEBUG("OTA_SIDE selection: %d", OTASideS_Idx);
     }
 
-    OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat, hourAngle, OptCenter);
+    OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.latitude, hourAngle, OptCenter);
 
     LOGF_DEBUG("OTA_SIDE: %d", OTASide);
     LOGF_DEBUG("Mount OTA_SIDE: %d", mountOTASide);
-    LOGF_DEBUG("OTA_OFFSET: %g  Lat: %g", DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat);
+    LOGF_DEBUG("OTA_OFFSET: %g  Lat: %g", DomeMeasurementsN[DM_OTA_OFFSET].value, observer.latitude);
     LOGF_DEBUG("OC.x: %g - OC.y: %g OC.z: %g", OptCenter.x, OptCenter.y, OptCenter.z);
 
     // To be sure mountHoriztonalCoords is up to date.
-    get_hrz_from_equ(&mountEquatorialCoords, &observer, JD, &mountHoriztonalCoords);
-
-    //    mountHoriztonalCoords.az += 180;
-    //    if (mountHoriztonalCoords.az >= 360)
-    //        mountHoriztonalCoords.az -= 360;
-    //    if (mountHoriztonalCoords.az < 0)
-    //        mountHoriztonalCoords.az += 360;
+    EquatorialToHorizontal(&mountEquatorialCoords, &observer, JD, &mountHoriztonalCoords);
 
     // Get optical axis point. This and the previous form the optical axis line
-    OpticalVector(mountHoriztonalCoords.az, mountHoriztonalCoords.alt, OptVector);
-    LOGF_DEBUG("Mount Az: %g  Alt: %g", mountHoriztonalCoords.az, mountHoriztonalCoords.alt);
+    OpticalVector(mountHoriztonalCoords.azimuth, mountHoriztonalCoords.altitude, OptVector);
+    LOGF_DEBUG("Mount Az: %g  Alt: %g", mountHoriztonalCoords.azimuth, mountHoriztonalCoords.altitude);
     LOGF_DEBUG("OV.x: %g - OV.y: %g OV.z: %g", OptVector.x, OptVector.y, OptVector.z);
 
     if (Intersection(OptCenter, OptVector, DomeMeasurementsN[DM_DOME_RADIUS].value, mu1, mu2))
@@ -1508,7 +1503,7 @@ void Dome::UpdateMountCoords()
     }
 
     // If not initialized yet, return.
-    if (mountEquatorialCoords.ra == -1)
+    if (mountEquatorialCoords.rightascension == -1)
         return;
 
     //  Dont do this if we haven't had co-ordinates from the mount yet
@@ -1517,20 +1512,14 @@ void Dome::UpdateMountCoords()
     if (!HaveRaDec)
         return;
 
-    get_hrz_from_equ(&mountEquatorialCoords, &observer, ln_get_julian_from_sys(), &mountHoriztonalCoords);
-
-    //    mountHoriztonalCoords.az += 180;
-    //    if (mountHoriztonalCoords.az > 360)
-    //        mountHoriztonalCoords.az -= 360;
-    //    if (mountHoriztonalCoords.az < 0)
-    //        mountHoriztonalCoords.az += 360;
+    EquatorialToHorizontal(&mountEquatorialCoords, &observer, ln_get_julian_from_sys(), &mountHoriztonalCoords);
 
     // Control debug flooding
-    if (fabs(mountHoriztonalCoords.az - prev_az) > DOME_COORD_THRESHOLD ||
-            fabs(mountHoriztonalCoords.alt - prev_alt) > DOME_COORD_THRESHOLD)
+    if (fabs(mountHoriztonalCoords.azimuth - prev_az) > DOME_COORD_THRESHOLD ||
+            fabs(mountHoriztonalCoords.altitude - prev_alt) > DOME_COORD_THRESHOLD)
     {
-        prev_az  = mountHoriztonalCoords.az;
-        prev_alt = mountHoriztonalCoords.alt;
+        prev_az  = mountHoriztonalCoords.azimuth;
+        prev_alt = mountHoriztonalCoords.altitude;
         LOGF_DEBUG("Updated telescope Az: %g - Alt: %g", prev_az, prev_alt);
     }
 

@@ -582,18 +582,11 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             currentRA  = RA;
             currentDE = Dec;
 
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-
-            epochPos.ra  = currentRA * 15.0;
-            epochPos.dec = currentDE;
-
+            INDI::IEquatorialCoordinates epochPos { currentRA, currentDE }, J2000Pos { 0, 0 };
             // Convert from JNow to J2000
-            LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
-            //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-
-            currentRA  = J2000Pos.ra / 15.0;
-            currentDE = J2000Pos.dec;
-
+            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            currentRA  = J2000Pos.rightascension;
+            currentDE = J2000Pos.declination;
             currentDE += guideNSOffset;
             currentRA += guideWEOffset;
 #ifdef USE_EQUATORIAL_PE
@@ -669,7 +662,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             // tra, tdec are at the center of the projection center for the simulated
             // images
             //double J2ra = J2000Pos.ra;  // J2000Pos: 0,360, RA: 0,24
-            double J2dec = J2000Pos.dec;
+            double J2dec = J2000Pos.declination;
 
             //double J2rar = J2ra * 0.0174532925;
             double J2decr = J2dec * 0.0174532925;
@@ -1145,23 +1138,14 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             IUUpdateNumber(&EqPENP, values, names, n);
             EqPENP.s = IPS_OK;
 
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.ra  = EqPEN[AXIS_RA].value * 15.0;
-            epochPos.dec = EqPEN[AXIS_DE].value;
-
-            RA = EqPEN[AXIS_RA].value;
-            Dec = EqPEN[AXIS_DE].value;
-
-            LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
-            //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-            currentRA  = J2000Pos.ra / 15.0;
-            currentDE = J2000Pos.dec;
+            INDI::IEquatorialCoordinates epochPos { EqPEN[AXIS_RA].value, EqPEN[AXIS_DE].value }, J2000Pos { 0, 0 };
+            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            currentRA  = J2000Pos.rightascension;
+            currentDE = J2000Pos.declination;
             usePE = true;
-
             IDSetNumber(&EqPENP, nullptr);
             return true;
         }
-
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
@@ -1259,7 +1243,7 @@ bool GuideSim::ISSnoopDevice(XMLEle * root)
 
         if (rc_ra == 0 && rc_de == 0 && ((newra != raPE) || (newdec != decPE)))
         {
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
             epochPos.ra  = newra * 15.0;
             epochPos.dec = newdec;
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);

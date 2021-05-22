@@ -73,8 +73,8 @@ class SkywatcherAPIMount : public SkywatcherAPI,
         virtual IPState GuideWest(uint32_t ms) override;
 
         // Parking
-                virtual bool SetCurrentPark() override;
-                virtual bool SetDefaultPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
     private:
         void CalculateGuidePulses();
@@ -170,29 +170,12 @@ class SkywatcherAPIMount : public SkywatcherAPI,
         INumber GuidingRatesN[2];
         INumberVectorProperty GuidingRatesNP;
 
-        // A switch for park movement directions (clockwise/counterclockwise)
-//        ISwitch ParkMovementDirectionS[2];
-//        ISwitchVectorProperty ParkMovementDirectionSP;
-
-//        // A switch for park positions
-//        ISwitch ParkPositionS[4];
-//        ISwitchVectorProperty ParkPositionSP;
-
-//        // A switch for unpark positions
-//        ISwitch UnparkPositionS[4];
-//        ISwitchVectorProperty UnparkPositionSP;
-
         // Tracking
-        ln_equ_posn CurrentTrackingTarget { 0, 0 };
+        INDI::IEquatorialCoordinates CurrentTrackingTarget { 0, 0 };
+        INDI::IHorizontalCoordinates CurrentAltAz {0, 0};
+        INDI::IHorizontalCoordinates TrackedAltAz {0, 0};
+
         long OldTrackingTarget[2] { 0, 0 };
-        struct ln_hrz_posn CurrentAltAz
-        {
-            0, 0
-        };
-        struct ln_hrz_posn TrackedAltAz
-        {
-            0, 0
-        };
         bool ResetTrackingSeconds { false };
         int TrackingMsecs { 0 };
         double GuideDeltaAlt { 0 };
