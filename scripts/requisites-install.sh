@@ -18,7 +18,7 @@ case "$OS" in
         brew install \
             git \
             cfitsio libnova libusb curl \
-            gsl jpeg fftw rtl-sdr
+            gsl jpeg fftw librtlsdr
         ;;
     Linux)
         . /etc/os-release
