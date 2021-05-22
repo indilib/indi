@@ -83,12 +83,6 @@ class Spectrograph : public virtual SensorInterface
         virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len) override;
 
         /**
-         * @brief setSampleRate Set depth of Spectrograph device.
-         * @param bpp bits per pixel
-         */
-        void setSampleRate(double sr);
-
-        /**
          * @brief setLowCutFrequency Set low cut frequency of Spectrograph device.
          * @param freq The low frequency cutoff
          */
@@ -143,15 +137,6 @@ class Spectrograph : public virtual SensorInterface
         }
 
         /**
-         * @brief getSampleRate Get requested sample rate for the sensor in Hz.
-         * @return requested sample rate for the sensor in Hz.
-         */
-        inline double getSampleRate()
-        {
-            return Samplerate;
-        }
-
-        /**
          * @brief Return Vector Info Property
          */
         inline INumberVectorProperty *getSpectrographSettings()
@@ -192,14 +177,12 @@ class Spectrograph : public virtual SensorInterface
             SPECTROGRAPH_LOWFREQ,
             SPECTROGRAPH_HIGHFREQ,
             SPECTROGRAPH_BITSPERSAMPLE,
-            SPECTROGRAPH_SAMPLERATE,
             SPECTROGRAPH_ANTENNA,
         } SPECTROGRAPH_INFO_INDEX;
         INumberVectorProperty SpectrographSettingsNP;
         INumber SpectrographSettingsN[8];
 
 private:
-        double Samplerate;
         double Frequency;
         double LowCutFrequency;
         double HighCutFrequency;

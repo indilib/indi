@@ -53,7 +53,6 @@ Spectrograph::~Spectrograph()
 bool Spectrograph::initProperties()
 {
     // PrimarySpectrograph Info
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_SAMPLERATE], "SPECTROGRAPH_SAMPLERATE", "Sample rate (SPS)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+6);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BITSPERSAMPLE], "SPECTROGRAPH_BITSPERSAMPLE", "Bits per sample", "%3.0f", -64, 64, 8, 8);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_LOWFREQ], "SPECTROGRAPH_LOW_CUT_FREQUENCY", "Low cut frequency (Hz)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_HIGHFREQ], "SPECTROGRAPH_HIGH_CUT_FREQUENCY", "High cut frequency (Hz)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
@@ -117,15 +116,6 @@ bool Spectrograph::ISNewBLOB(const char *dev, const char *name, int sizes[], int
            char *formats[], char *names[], int n)
 {
     return processBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-void Spectrograph::setSampleRate(double sr)
-{
-    Samplerate = sr;
-
-    SpectrographSettingsN[Spectrograph::SPECTROGRAPH_SAMPLERATE].value = sr;
-
-    IDSetNumber(&SpectrographSettingsNP, nullptr);
 }
 
 void Spectrograph::setLowCutFrequency(double freq)
@@ -204,9 +194,6 @@ void Spectrograph::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
 
     sprintf(fitsString, "%lf", getLowCutFrequency()+(getHighCutFrequency()-getLowCutFrequency())/2.0);
     fits_update_key_s(fptr, TSTRING, "FREQ", fitsString, "Center Frequency", &status);
-
-    sprintf(fitsString, "%lf", getSampleRate());
-    fits_update_key_s(fptr, TSTRING, "SRATE", fitsString, "Sampling Rate", &status);
 
     sprintf(fitsString, "%lf", getGain());
     fits_update_key_s(fptr, TSTRING, "GAIN", fitsString, "Gain", &status);
