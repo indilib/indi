@@ -28,6 +28,7 @@
 #include "indipropertyswitch.h"
 #include "indipropertynumber.h"
 #include "indipropertytext.h"
+#include "inditimer.h"
 
 namespace INDI
 {
@@ -68,6 +69,9 @@ class DefaultDevicePrivate: public BaseDevicePrivate
 
         bool defineDynamicProperties {true};
         bool deleteDynamicProperties {true};
+
+        // TimerHit timer
+        INDI::Timer m_MainLoopTimer;
 
     public:
         static std::list<DefaultDevicePrivate*> devices;
