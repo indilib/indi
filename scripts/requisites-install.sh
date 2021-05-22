@@ -18,7 +18,7 @@ case "$OS" in
         brew install \
             git \
             cfitsio libnova libusb curl \
-            gsl jpeg fftw
+            gsl jpeg fftw rtlsdr
         ;;
     Linux)
         . /etc/os-release
@@ -31,7 +31,7 @@ case "$OS" in
                     git \
                     cmake build-essential zlib1g-dev \
                     libcfitsio-dev libnova-dev libusb-1.0-0-dev libcurl4-gnutls-dev \
-                    libgsl-dev libjpeg-dev libfftw3-dev
+                    libgsl-dev libjpeg-dev libfftw3-dev librtlsdr-dev
                 ;;
             fedora)
                 $(command -v sudo) dnf upgrade -y
@@ -39,7 +39,7 @@ case "$OS" in
                     git \
                     cmake gcc-c++ zlib-devel \
                     cfitsio-devel libnova-devel libusb-devel libcurl-devel \
-                    gsl-devel libjpeg-devel fftw-devel
+                    gsl-devel libjpeg-devel fftw-devel rtlsdr-devel
                 ;;
             centos)
                 # CentOS 8 dont have libnova-devel package
@@ -49,7 +49,7 @@ case "$OS" in
                     git \
                     cmake gcc-c++ zlib-devel \
                     cfitsio-devel libnova-devel libusb-devel libcurl-devel \
-                    gsl-devel libjpeg-devel fftw-devel
+                    gsl-devel libjpeg-devel fftw-devel rtlsdr-devel
                 ;;
             opensuse-tumbleweed)
                 # broken git/openssh package
@@ -59,7 +59,7 @@ case "$OS" in
                     openssh git \
                     cmake gcc-c++ zlib-devel \
                     cfitsio-devel libnova-devel libusb-devel libcurl-devel \
-                    gsl-devel libjpeg-devel fftw-devel libtheora-devel
+                    gsl-devel libjpeg-devel fftw-devel rtlsdr-devel libtheora-devel
                 ;;
             *)
                 echo "Unknown Linux Distribution: $ID"
