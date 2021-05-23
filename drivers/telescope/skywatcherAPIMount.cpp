@@ -712,12 +712,7 @@ bool SkywatcherAPIMount::ReadScopeStatus()
                 TrackState = SCOPE_TRACKING;
 
                 LOG_INFO("Tracking started.");
-                m_TrackingElapsedTimer.restart();
-                GuideDeltaAlt = 0;
-                GuideDeltaAz  = 0;
-                ResetGuidePulses();
-                TrackedAltAz  = CurrentAltAz;
-                // Fall through to tracking case
+                ResetTrackingSeconds = true;
             }
             else
             {
@@ -729,6 +724,8 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     {
         if (!IsInMotion(AXIS1) && !IsInMotion(AXIS2))
         {
+            SlowStop(AXIS1);
+            SlowStop(AXIS2);
             SetParked(true);
         }
     }
@@ -742,7 +739,37 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     CurrentAltAz = AltAz;
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf",
            CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.azimuth);
-    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
+
+    INDI::IEquatorialCoordinates rade;
+    getCurrentRADE(AltAz, rade);
+    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New RA %lf (hours) DEC %lf (degrees)", rade.rightascension,
+           rade.declination);
+    NewRaDec(rade.rightascension, rade.declination);
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::getCurrentAltAz(INDI::IHorizontalCoordinates &altaz)
+{
+    // Update Axis Position
+    if (GetEncoder(AXIS1) && GetEncoder(AXIS2))
+    {
+        altaz.altitude = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+        altaz.azimuth = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+        return true;
+    }
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////////////////////////////////
+bool SkywatcherAPIMount::getCurrentRADE(INDI::IHorizontalCoordinates altaz, INDI::IEquatorialCoordinates &rade)
+{
+    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(altaz);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
 
     double RightAscension, Declination;
@@ -758,33 +785,27 @@ bool SkywatcherAPIMount::ReadScopeStatus()
                 // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
                 // the (positive)observatory latitude. The vector itself is rotated clockwise
                 RotatedTDV.RotateAroundY(90.0 - m_Location.latitude);
-                AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
+                AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, altaz);
                 break;
 
             case SOUTH_CELESTIAL_POLE:
                 // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
                 // the (negative)observatory latitude. The vector itself is rotated anticlockwise
                 RotatedTDV.RotateAroundY(-90.0 - m_Location.latitude);
-                AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, AltAz);
+                AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, altaz);
                 break;
         }
 
         INDI::IEquatorialCoordinates EquatorialCoordinates;
-        INDI::HorizontalToEquatorial(&AltAz, &m_Location, ln_get_julian_from_sys(), &EquatorialCoordinates);
+        INDI::HorizontalToEquatorial(&altaz, &m_Location, ln_get_julian_from_sys(), &EquatorialCoordinates);
         RightAscension = EquatorialCoordinates.rightascension;
-        Declination    = EquatorialCoordinates.declination;
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "Conversion Failed - RA (degrees) %lf DEC (degrees) %lf", EquatorialCoordinates.rightascension,
-               EquatorialCoordinates.declination);
+        Declination = EquatorialCoordinates.declination;
     }
 
-    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New RA %lf (hours) DEC %lf (degrees)", RightAscension,
-           Declination);
-    NewRaDec(RightAscension, Declination);
-
+    rade.rightascension = RightAscension;
+    rade.declination = Declination;
     return true;
 }
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -917,9 +938,7 @@ void SkywatcherAPIMount::TimerHit()
             // If we're manually moving by WESN controls, update the tracking coordinates.
             if (m_ManualMotionActive)
             {
-                TrackedAltAz  = CurrentAltAz;
-                CurrentTrackingTarget.rightascension = EqN[AXIS_RA].value;
-                CurrentTrackingTarget.declination = EqN[AXIS_DE].value;
+                break;
             }
             else
             {
@@ -931,7 +950,9 @@ void SkywatcherAPIMount::TimerHit()
                     GuideDeltaAlt = 0;
                     GuideDeltaAz = 0;
                     ResetGuidePulses();
-                    TrackedAltAz = CurrentAltAz;
+                    TrackedAltAz  = CurrentAltAz;
+                    CurrentTrackingTarget.rightascension = EqN[AXIS_RA].value;
+                    CurrentTrackingTarget.declination = EqN[AXIS_DE].value;
                 }
 
                 double trackingDeltaAlt = std::abs(CurrentAltAz.altitude - TrackedAltAz.altitude);

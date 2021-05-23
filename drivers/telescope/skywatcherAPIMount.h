@@ -116,6 +116,8 @@ class SkywatcherAPIMount :
         /////////////////////////////////////////////////////////////////////////////////////
         void UpdateScopeConfigSwitch();
         void UpdateDetailedMountInformation(bool InformClient);
+        bool getCurrentAltAz(INDI::IHorizontalCoordinates &altaz);
+        bool getCurrentRADE(INDI::IHorizontalCoordinates altaz, INDI::IEquatorialCoordinates &rade);
 
         /////////////////////////////////////////////////////////////////////////////////////
         /// Properties
