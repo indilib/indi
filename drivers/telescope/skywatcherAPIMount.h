@@ -215,5 +215,5 @@ class SkywatcherAPIMount :
         GuidingPulse WestPulse;
         std::vector<GuidingPulse> GuidingPulses;
 
-        bool moving { false };
+        bool m_ManualMotionActive { false };
 };

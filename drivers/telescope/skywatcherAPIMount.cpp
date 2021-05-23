@@ -593,18 +593,14 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS2, speed, true);
-            moving = true;
+            m_ManualMotionActive = true;
             break;
 
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS2);
-            moving = false;
-            m_TrackingElapsedTimer.restart();
-            GuideDeltaAlt = 0;
-            GuideDeltaAz  = 0;
-            ResetGuidePulses();
-            TrackedAltAz  = CurrentAltAz;
+            m_ManualMotionActive = false;
+            ResetTrackingSeconds = true;
             break;
     }
 
@@ -628,18 +624,14 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
             // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
             Slew(AXIS1, speed, true);
-            moving = true;
+            m_ManualMotionActive = true;
             break;
 
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS1);
-            moving = false;
-            m_TrackingElapsedTimer.restart();
-            GuideDeltaAlt = 0;
-            GuideDeltaAz  = 0;
-            ResetGuidePulses();
-            TrackedAltAz  = CurrentAltAz;
+            m_ManualMotionActive = false;
+            ResetTrackingSeconds = true;
             break;
     }
 
@@ -922,7 +914,8 @@ void SkywatcherAPIMount::TimerHit()
 
         case SCOPE_TRACKING:
         {
-            if (moving)
+            // If we're manually moving by WESN controls, update the tracking coordinates.
+            if (m_ManualMotionActive)
             {
                 TrackedAltAz  = CurrentAltAz;
                 CurrentTrackingTarget.rightascension = EqN[AXIS_RA].value;
@@ -930,15 +923,15 @@ void SkywatcherAPIMount::TimerHit()
             }
             else
             {
-                // Restart the drift compensation after syncing
+                // Restart the drift compensation after syncing or after stopping manual motion
                 if (ResetTrackingSeconds)
                 {
                     m_TrackingElapsedTimer.restart();
                     ResetTrackingSeconds = false;
-                    GuideDeltaAlt        = 0;
-                    GuideDeltaAz         = 0;
+                    GuideDeltaAlt = 0;
+                    GuideDeltaAz = 0;
                     ResetGuidePulses();
-                    TrackedAltAz         = CurrentAltAz;
+                    TrackedAltAz = CurrentAltAz;
                 }
 
                 double trackingDeltaAlt = std::abs(CurrentAltAz.altitude - TrackedAltAz.altitude);
@@ -1015,6 +1008,7 @@ void SkywatcherAPIMount::TimerHit()
                     }
                     ++Iter;
                 }
+
                 GuideDeltaAlt += DeltaAlt;
                 GuideDeltaAz += DeltaAz;
 
