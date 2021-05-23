@@ -53,11 +53,11 @@ Receiver::~Receiver()
 bool Receiver::initProperties()
 {
     // Receiver Info
-    IUFillNumber(&ReceiverSettingsN[RECEIVER_GAIN], "RECEIVER_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
-    IUFillNumber(&ReceiverSettingsN[RECEIVER_FREQUENCY], "RECEIVER_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
-    IUFillNumber(&ReceiverSettingsN[RECEIVER_BANDWIDTH], "RECEIVER_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
-    IUFillNumber(&ReceiverSettingsN[RECEIVER_BITSPERSAMPLE], "RECEIVER_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
-    IUFillNumber(&ReceiverSettingsN[RECEIVER_SAMPLERATE], "RECEIVER_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
+    IUFillNumber(&ReceiverSettingsN[RECEIVER_GAIN], "RECEIVER_GAIN", "Gain", "%16.2f", 1, 4, 1, 1);
+    IUFillNumber(&ReceiverSettingsN[RECEIVER_FREQUENCY], "RECEIVER_FREQUENCY", "Frequency", "%16.2f", 1, 4, 1, 1);
+    IUFillNumber(&ReceiverSettingsN[RECEIVER_BANDWIDTH], "RECEIVER_BANDWIDTH", "Bandwidth", "%16.2f", 1, 4, 1, 1);
+    IUFillNumber(&ReceiverSettingsN[RECEIVER_BITSPERSAMPLE], "RECEIVER_BITSPERSAMPLE", "Bits per sample", "%16.2f", 1, 4, 1, 1);
+    IUFillNumber(&ReceiverSettingsN[RECEIVER_SAMPLERATE], "RECEIVER_SAMPLERATE", "Sampling rate", "%16.2f", 1, 4, 1, 1);
     IUFillNumber(&ReceiverSettingsN[RECEIVER_ANTENNA], "RECEIVER_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
     IUFillNumberVector(&ReceiverSettingsNP, ReceiverSettingsN, 6, getDeviceName(), "RECEIVER_SETTINGS", "Receiver Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
