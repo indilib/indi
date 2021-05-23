@@ -120,12 +120,14 @@ bool PegasusFlatMaster::EnableLightBox(bool enable)
     char cmd[16] = {0};
 
 
-    snprintf(cmd, 16, "E:%d", enable ? 0 : 1);
+    snprintf(cmd, 16, "E:%d", enable ? 1 : 0);
 
     if(sendCommand(cmd, response))
     {
-        if(strstr("E", response) != nullptr)
+        if(strstr(cmd, response) != nullptr)
+        {
             return  true;
+        }
     }
     else
     {
@@ -153,8 +155,10 @@ bool PegasusFlatMaster::SetLightBoxBrightness(uint16_t value)
 
     if(sendCommand(cmd, response))
     {
-        if(strstr("L", response) != nullptr)
+        if(strstr(cmd, response) != nullptr)
+        {
             return  true;
+        }
     }
     else
     {
@@ -198,13 +202,9 @@ bool PegasusFlatMaster::ISNewSwitch(const char *dev, const char *name, ISState *
     {
         if(strcmp(name, LightSP.name) == 0)
         {
-
             int prevIndex = IUFindOnSwitchIndex(&LightSP);
             IUUpdateSwitch(&LightSP, states, names, n);
-
-            IUUpdateSwitch(&LightSP, states, names, n);
             bool rc = EnableLightBox(LightS[FLAT_LIGHT_ON].s == ISS_ON ? true : false);
-
             LightSP.s = rc ? IPS_OK : IPS_ALERT;
 
             if (!rc)
@@ -233,7 +233,7 @@ bool PegasusFlatMaster::sendCommand(const char *command, char *res)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if ((rc = tty_write(PortFD, cmd, 2, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("command: %s error: %s.", cmd, errstr);
