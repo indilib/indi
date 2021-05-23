@@ -1065,7 +1065,7 @@ void SkywatcherAPIMount::TimerHit()
                     else
                     {
                         char Direction = AzimuthRate > 0 ? '0' : '1';
-                        AzimuthRate    = std::abs(AzimuthRate);
+                        AzimuthRate    = std::abs(AzimuthRate) * m_AzimuthRateScale;
                         SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
                         if (AxesStatus[AXIS1].FullStop)
                         {
@@ -1108,7 +1108,7 @@ void SkywatcherAPIMount::TimerHit()
                     else
                     {
                         char Direction = AltitudeRate > 0 ? '0' : '1';
-                        AltitudeRate   = std::abs(AltitudeRate);
+                        AltitudeRate   = std::abs(AltitudeRate) * m_AltitudeRateScale;
                         SetClockTicksPerMicrostep(AXIS2, AltitudeRate < 1 ? 1 : AltitudeRate);
                         if (AxesStatus[AXIS2].FullStop)
                         {

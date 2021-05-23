@@ -212,6 +212,8 @@ class SkywatcherAPIMount :
         INDI::ElapsedTimer m_TrackingElapsedTimer;
         double GuideDeltaAlt { 0 };
         double GuideDeltaAz { 0 };
+        double m_AzimuthRateScale {1.0};
+        double m_AltitudeRateScale {2.0};
 
         GuidingPulse NorthPulse;
         GuidingPulse WestPulse;
