@@ -599,8 +599,6 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS2);
-            m_ManualMotionActive = false;
-            ResetTrackingSeconds = true;
             break;
     }
 
@@ -630,8 +628,6 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         case MOTION_STOP:
             DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
             SlowStop(AXIS1);
-            m_ManualMotionActive = false;
-            ResetTrackingSeconds = true;
             break;
     }
 
@@ -935,6 +931,12 @@ void SkywatcherAPIMount::TimerHit()
 
         case SCOPE_TRACKING:
         {
+            // Check if manual motion in progress but we stopped
+            if (m_ManualMotionActive && !IsInMotion(AXIS1) && !IsInMotion(AXIS2))
+            {
+                m_ManualMotionActive = false;
+                ResetTrackingSeconds = true;
+            }
             // If we're manually moving by WESN controls, update the tracking coordinates.
             if (m_ManualMotionActive)
             {
