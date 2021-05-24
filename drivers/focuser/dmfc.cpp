@@ -36,44 +36,6 @@
 
 static std::unique_ptr<DMFC> dmfc(new DMFC());
 
-void ISGetProperties(const char *dev)
-{
-    dmfc->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    dmfc->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    dmfc->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    dmfc->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    dmfc->ISSnoopDevice(root);
-}
-
 DMFC::DMFC()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
@@ -235,8 +197,7 @@ bool DMFC::ack()
 
     tcflush(PortFD, TCIOFLUSH);
 
-
-    if((strstr(res, "OK_DMFCN") != nullptr))
+    if((strstr(res, "OK_DMFCN") != nullptr) || (strstr(res, "OK_SMFC") != nullptr))
         return true;
 
     return false;
@@ -395,7 +356,7 @@ bool DMFC::updateFocusParams()
 
 
     // #1 Status
-    if (token == nullptr || (strstr(token, "OK_DMFCN") == nullptr))
+    if (token == nullptr || ((strstr(token, "OK_DMFCN") == nullptr) && (strstr(token, "OK_SMFC") == nullptr)))
     {
         LOGF_ERROR("Invalid status response. %s", res);
         return false;

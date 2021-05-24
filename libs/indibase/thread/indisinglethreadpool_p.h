@@ -32,13 +32,14 @@ public:
     SingleThreadPoolPrivate();
     virtual ~SingleThreadPoolPrivate();
 
-    std::function<void(const std::atomic_bool &isAboutToClose)> functionToRun;
+    std::function<void(const std::atomic_bool &isAboutToClose)> pendingFunction;
+    std::function<void(const std::atomic_bool &isAboutToClose)> runningFunction;
     std::atomic_bool isThreadAboutToQuit {false};
     std::atomic_bool isFunctionAboutToQuit {true};
 
     std::condition_variable_any acquire;
     std::condition_variable_any relased;
-    std::recursive_mutex runLock;
+    std::mutex runLock;
     std::thread thread;
 };
 

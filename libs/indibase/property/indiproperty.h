@@ -28,7 +28,7 @@
 #include <memory>
 #include <cstdarg>
 
-
+#define INDI_PROPERTY_BACKWARD_COMPATIBILE
 namespace INDI
 {
 class BaseDevice;
@@ -64,6 +64,7 @@ public:
 public:
     void *getProperty() const;
     INDI_PROPERTY_TYPE getType() const;
+    const char *getTypeAsString() const;
     bool getRegistered() const;
     bool isDynamic() const;
     BaseDevice *getBaseDevice() const;
@@ -85,10 +86,12 @@ public: // Convenience Functions
     const char *getDeviceName() const;
     const char *getTimestamp() const;
     IPState getState() const;
+    const char *getStateAsString() const;
     IPerm getPermission() const;
 
 public:
     bool isEmpty() const;
+    bool isValid() const;
 
     bool isNameMatch(const char *otherName) const;
     bool isNameMatch(const std::string &otherName) const;
@@ -113,9 +116,25 @@ public:
     INDI::PropertyView<ILight>  *getLight() const;
     INDI::PropertyView<IBLOB>   *getBLOB() const;
 
+public:
+#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+    INDI::Property* operator->();
+    const INDI::Property* operator->() const;
+
+    operator INDI::Property *();
+    operator const INDI::Property *() const;
+#endif
+
 protected:
     std::shared_ptr<PropertyPrivate> d_ptr;
+    Property(std::shared_ptr<PropertyPrivate> dd);
     Property(PropertyPrivate &dd);
 };
 
 } // namespace INDI
+
+#ifdef QT_CORE_LIB
+#include <QMetaType>
+Q_DECLARE_METATYPE(INDI::Property)
+static int indi_property_metatype_id = QMetaTypeId< INDI::Property >::qt_metatype_id();
+#endif

@@ -58,43 +58,6 @@ Modifications
 
 static std::unique_ptr<Lakeside> lakeside(new Lakeside());
 
-void ISGetProperties(const char * dev)
-{
-    lakeside->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
-{
-    lakeside->ISNewSwitch(dev, name, states, names, num);
-}
-
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
-{
-    lakeside->ISNewText(dev, name, texts, names, num);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
-{
-    lakeside->ISNewNumber(dev, name, values, names, num);
-}
-
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice (XMLEle * root)
-{
-    lakeside->ISSnoopDevice(root);
-}
-
 Lakeside::Lakeside()
 {
     setVersion(LAKESIDE_VERSION_MAJOR, LAKESIDE_VERSION_MINOR);
