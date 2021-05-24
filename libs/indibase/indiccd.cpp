@@ -1221,14 +1221,21 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         // Camera Temperature Ramp
         if (!strcmp(name, TemperatureRampNP.getName()))
         {
+            double previousSlope     = TemperatureRampNP[RAMP_SLOPE].getValue();
+            double previousThreshold = TemperatureRampNP[RAMP_THRESHOLD].getValue();
             TemperatureRampNP.update(values, names, n);
             TemperatureRampNP.setState(IPS_OK);
             TemperatureRampNP.apply();
             if (TemperatureRampNP[0].getValue() == 0)
                 LOG_INFO("Temperature ramp is disabled.");
             else
-                LOGF_INFO("Temperature ramp is enabled. Gradual cooling and warming is regulated at %.f Celcius per minute.",
+                LOGF_INFO("Temperature ramp is enabled. Gradual cooling and warming is regulated at %.f Celsius per minute.",
                           TemperatureRampNP[0].getValue());
+
+            // Save config if there is a change
+            if (std::abs(previousSlope - TemperatureRampNP[RAMP_SLOPE].getValue()) > 0 ||
+                    std::abs(previousThreshold - TemperatureRampNP[RAMP_THRESHOLD].getValue()) > 0.01)
+                saveConfig(true, TemperatureRampNP.getName());
             return true;
         }
 
