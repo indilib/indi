@@ -53,10 +53,9 @@ Spectrograph::~Spectrograph()
 bool Spectrograph::initProperties()
 {
     // PrimarySpectrograph Info
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_SAMPLERATE], "SPECTROGRAPH_SAMPLERATE", "Sample rate (SPS)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+6);
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_FREQUENCY], "SPECTROGRAPH_FREQUENCY", "Center frequency (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BITSPERSAMPLE], "SPECTROGRAPH_BITSPERSAMPLE", "Bits per sample", "%3.0f", -64, 64, 8, 8);
-    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_BANDWIDTH], "SPECTROGRAPH_BANDWIDTH", "Bandwidth (Hz)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
+    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_LOWFREQ], "SPECTROGRAPH_LOW_CUT_FREQUENCY", "Low cut frequency (Hz)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
+    IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_HIGHFREQ], "SPECTROGRAPH_HIGH_CUT_FREQUENCY", "High cut frequency (Hz)", "%16.2f", 0.01, 1.0e+8, 0.01, 1.0e+3);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_GAIN], "SPECTROGRAPH_GAIN", "Gain", "%3.2f", 0.01, 255.0, 0.01, 1.0);
     IUFillNumber(&SpectrographSettingsN[SPECTROGRAPH_ANTENNA], "SPECTROGRAPH_ANTENNA", "Antenna", "%16.2f", 1, 4, 1, 1);
     IUFillNumberVector(&SpectrographSettingsNP, SpectrographSettingsN, 6, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
@@ -119,20 +118,20 @@ bool Spectrograph::ISNewBLOB(const char *dev, const char *name, int sizes[], int
     return processBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
-void Spectrograph::setSampleRate(double sr)
+void Spectrograph::setLowCutFrequency(double freq)
 {
-    Samplerate = sr;
+    LowCutFrequency = freq;
 
-    SpectrographSettingsN[Spectrograph::SPECTROGRAPH_SAMPLERATE].value = sr;
+    SpectrographSettingsN[Spectrograph::SPECTROGRAPH_LOWFREQ].value = freq;
 
     IDSetNumber(&SpectrographSettingsNP, nullptr);
 }
 
-void Spectrograph::setBandwidth(double bw)
+void Spectrograph::setHighCutFrequency(double freq)
 {
-    Bandwidth = bw;
+    HighCutFrequency = freq;
 
-    SpectrographSettingsN[Spectrograph::SPECTROGRAPH_BANDWIDTH].value = bw;
+    SpectrographSettingsN[Spectrograph::SPECTROGRAPH_HIGHFREQ].value = freq;
 
     IDSetNumber(&SpectrographSettingsNP, nullptr);
 }
@@ -142,15 +141,6 @@ void Spectrograph::setGain(double gain)
     Gain = gain;
 
     SpectrographSettingsN[Spectrograph::SPECTROGRAPH_GAIN].value = gain;
-
-    IDSetNumber(&SpectrographSettingsNP, nullptr);
-}
-
-void Spectrograph::setFrequency(double freq)
-{
-    Frequency = freq;
-
-    SpectrographSettingsN[Spectrograph::SPECTROGRAPH_FREQUENCY].value = freq;
 
     IDSetNumber(&SpectrographSettingsNP, nullptr);
 }
@@ -199,14 +189,11 @@ void Spectrograph::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     sprintf(fitsString, "%d", getBPS());
     fits_update_key_s(fptr, TSTRING, "BPS", fitsString, "Bits per sample", &status);
 
-    sprintf(fitsString, "%lf", getBandwidth());
+    sprintf(fitsString, "%lf", getHighCutFrequency()-getLowCutFrequency());
     fits_update_key_s(fptr, TSTRING, "BANDWIDT", fitsString, "Bandwidth", &status);
 
-    sprintf(fitsString, "%lf", getFrequency());
+    sprintf(fitsString, "%lf", getLowCutFrequency()+(getHighCutFrequency()-getLowCutFrequency())/2.0);
     fits_update_key_s(fptr, TSTRING, "FREQ", fitsString, "Center Frequency", &status);
-
-    sprintf(fitsString, "%lf", getSampleRate());
-    fits_update_key_s(fptr, TSTRING, "SRATE", fitsString, "Sampling Rate", &status);
 
     sprintf(fitsString, "%lf", getGain());
     fits_update_key_s(fptr, TSTRING, "GAIN", fitsString, "Gain", &status);

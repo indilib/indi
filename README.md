@@ -1,7 +1,7 @@
 # INDI Core Library
-[![CircleCI](https://circleci.com/gh/indilib/indi.svg?style=svg)](https://circleci.com/gh/indilib/indi)
 [![Linux](https://github.com/indilib/indi/actions/workflows/default.yml/badge.svg)](https://github.com/indilib/indi/actions)
 [![MacOS](https://github.com/indilib/indi/actions/workflows/macos.yml/badge.svg)](https://github.com/indilib/indi/actions)
+[![PyIndi](https://github.com/indilib/indi/actions/workflows/pyindi.yml/badge.svg)](https://github.com/indilib/indi/actions)
 
 INDI is a standard for astronomical instrumentation control. INDI Library is an Open Source POSIX implementation of the
 [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf).
@@ -39,7 +39,7 @@ Learn more about INDI:
 On Debian/Ubuntu:
 
 ```
-sudo apt-get install -y libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtiff-dev libfftw3-dev
+sudo apt-get install -y libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtiff-dev libfftw3-dev librtlsdr-dev
 ```
 
 ## Create Project Directory
@@ -113,7 +113,7 @@ INDI server only provides convenient port, fork and data steering services. If d
 # Development
 
 + [INDI API](http://www.indilib.org/api/index.html)
-+ [INDI Developer Manual](http://indilib.org/develop/developer-manual.html)
++ [INDI Developer Manual](https://docs.indilib.org/)
 + [Tutorials](http://indilib.org/develop/tutorials.html)
 + [Developers Forum](http://indilib.org/forum/development.html)
 + [Developers Chat](https://riot.im/app/#/room/#kstars:matrix.org)

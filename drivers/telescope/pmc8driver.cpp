@@ -4,7 +4,7 @@
     Copyright (C) 2017 Michael Fulbright
     Additional contributors: 
         Thomas Olson, Copyright (C) 2019
-        Karl Rees, Copyright (C) 2019
+        Karl Rees, Copyright (C) 2019-2021
 	
     Based on IEQPro driver.
 
@@ -36,6 +36,8 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+
+#include <sys/ioctl.h>
 
 // only used for test timing of pulse guiding
 #include <sys/time.h>
@@ -85,10 +87,16 @@ double PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
 // dont send pulses if already moving faster than this
 #define PMC8_PULSE_GUIDE_MAX_CURRATE 120
 
-#define PMC8_MAX_RETRIES 3 /*number of times to retry getting a response */
+#define PMC8_MAX_RETRIES 3 /*number of times to retry reading a response */
+#define PMC8_RETRY_DELAY 30000 /* how long to wait before retrying i/o */
+#define PMC8_MAX_IO_ERROR_THRESHOLD 4 /* how many consecutive read timeouts before trying to reset the connection */
 
+uint8_t pmc8_connection         = INDI::Telescope::CONNECTION_SERIAL;
+bool pmc8_isRev2Compliant       = false;
 bool pmc8_debug                 = false;
 bool pmc8_simulation            = false;
+bool pmc8_reconnect_flag        = false;
+int pmc8_io_error_ctr           = 0;
 char pmc8_device[MAXINDIDEVICE] = "PMC8";
 double pmc8_latitude            = 0;  // must be kept updated by pmc8.cpp when it is changed!
 double pmc8_longitude           = 0;  // must be kept updated by pmc8.cpp when it is changed!
@@ -174,7 +182,6 @@ void set_pmc8_location(double latitude, double longitude)
     pmc8_longitude = longitude;
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Set PMC8 'lowlevel' lat:%f long:%f",pmc8_latitude, pmc8_longitude);
-
 }
 
 void set_pmc8_sim_system_status(PMC8_SYSTEM_STATUS value)
@@ -194,7 +201,6 @@ void set_pmc8_sim_system_status(PMC8_SYSTEM_STATUS value)
 
         set_pmc8_sim_ra(ra);
         set_pmc8_sim_dec(90.0);
-
     }
 }
 
@@ -223,18 +229,123 @@ void set_pmc8_sim_dec(double dec)
 //    simPMC8Data.guide_rate = rate;
 //}
 
-bool check_pmc8_connection(int fd)
+bool check_pmc8_connection(int fd, bool isSerial)
+{       
+    if (isSerial) {
+        pmc8_connection = INDI::Telescope::CONNECTION_SERIAL;
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via Serial.  This may take up to 30 seconds, depending on the cable.");
+    }
+    else {
+        pmc8_connection = INDI::Telescope::CONNECTION_TCP;
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via Ethernet.");
+    }
+    
+    for (int i = 0; i < 2; i++)
+    {
+        if (i) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Retrying...");
+        
+        if (detect_pmc8(fd)) return true;
+        usleep(PMC8_RETRY_DELAY);
+    }
+
+    if (isSerial)
+    {
+        // If they're not using a custom-configured cable, we need to clear DTR for serial to start working
+        // But this resets the PMC8, so only do it after we've already checked for connection
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Could not connect.  Attempting to clear DTR...");
+        int serial = TIOCM_DTR;
+        ioctl(fd,TIOCMBIC,&serial);
+        
+        // when we clear DTR, the PMC8 will respond with initialization screen, so may need read several times
+        for (int i = 0; i < 2; i++)
+        {
+            if (i) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Retrying...");
+            
+            if (detect_pmc8(fd)) {
+                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "Connected to PMC8 using a standard-configured FTDI cable."
+                                                   "Your mount will reset and lose its position anytime you disconnect and reconnect."
+                                                   "See http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ ");                
+                return true;
+            }
+            usleep(PMC8_RETRY_DELAY);
+        }
+    }
+
+    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "check_pmc8_connection(): Error connecting. Check power and connection settings.");
+
+    return false;
+}
+
+bool detect_pmc8(int fd)
 {
     char initCMD[] = "ESGv!";
     int errcode    = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[64];
     int nbytes_read    = 0;
     int nbytes_written = 0;
-
-    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Initializing PMC8 using ESGv! CMD...");
-    for (int i = 0; i < 2; i++)
+    
+    if (pmc8_simulation)
     {
+        strcpy(response, PMC8_SIMUL_VERSION_RESP);
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        tcflush(fd, TCIFLUSH);
+
+        if ((errcode = send_pmc8_command(fd, initCMD, strlen(initCMD), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error connecting: %s", errmsg);
+            return false;
+        }
+
+        if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGv")))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Error connecting: %s", errmsg);
+            return false;
+        }
+    }
+
+    // return true if valid firmware response
+    return (!strncmp(response, "ESGvES", 6));
+}
+
+bool get_pmc8_model(int fd, FirmwareInfo *info)
+{
+    // Only one model for now
+    info->Model.assign("PMC-Eight");
+
+    // Set the mount type from firmware if we can (instead of relying on interface)
+    // older firmware has type in firmware string
+    if (!pmc8_isRev2Compliant)
+    {
+        INDI_UNUSED(fd);
+                
+        if (strstr(info->MainBoardFirmware.c_str(),"G11")) {
+            info->MountType = MOUNT_G11;
+        }
+        else if (strstr(info->MainBoardFirmware.c_str(),"EXOS2")) {
+            info->MountType = MOUNT_EXOS2;
+        }
+        else if (strstr(info->MainBoardFirmware.c_str(),"ES1A")) {
+            info->MountType = MOUNT_iEXOS100;
+        }
+    }
+    else 
+    {
+        //for newer firmware, need to use ESGi to get mount type
+        char cmd[]  = "ESGi!";
+        int errcode = 0;
+        char errmsg[MAXRBUF];
+        char response[64];
+        int nbytes_read    = 0;
+        int nbytes_written = 0;
+
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
         if (pmc8_simulation)
         {
             strcpy(response, PMC8_SIMUL_VERSION_RESP);
@@ -244,54 +355,63 @@ bool check_pmc8_connection(int fd)
         {
             tcflush(fd, TCIFLUSH);
 
-            if ((errcode = tty_write(fd, initCMD, strlen(initCMD), &nbytes_written)) != TTY_OK)
+            if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
             {
                 tty_error_msg(errcode, errmsg, MAXRBUF);
-                DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "1 %s", errmsg);
-                usleep(50000);
-                continue;
+                DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "3 %s", errmsg);
+                return false;
             }
 
-			if ((errcode = get_pmc8_response(fd, response, &nbytes_read, "ESGv")))
+            if ((errcode = get_pmc8_response(fd, response, &nbytes_read,"ESG")))
             {
-                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "check_pmc8_connection(): Error connecting. "
-                                                                   "Please read the instructions at: "
-                                                                   "http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ "
-                                                                   "before using this driver!"
-                                                                   "For serial connections, a special USB SERIAL cable setup is REQUIRED.");
-
-                usleep(50000);
-                continue;
+                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_main_firmware(): Error reading response.");
+                return false;
             }
+            
+            //ESGi response should be 31 characters
+            if (nbytes_read >= 31)
+            {
+                //locate P9 code in response
+                char num_str[3] = {0};
+                strncat(num_str, response+20, 2);
+                int p9 = (int)strtol(num_str, nullptr, 10);
+                
+                // Set mount type based on P9 code
+                if (p9 <= 1) info->MountType = MOUNT_iEXOS100;
+                // these codes are reserved.  I'm assuming for something like iExos100, so let's go with that
+                else if (p9 <= 3) {
+                    info->MountType = MOUNT_iEXOS100;
+                    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Unrecognized device code #%d. Treating as iEXOS100.", p9);
+                }
+                else if (p9 <= 7) info->MountType = MOUNT_G11;
+                else if (p9 <= 11) info->MountType = MOUNT_EXOS2;
+                // unrecognized code.  Just going to guess and treat as iExos100.
+                else {
+                    info->MountType = MOUNT_iEXOS100;
+                    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Unrecognized device code #%d. Treating as iEXOS100.", p9);
+                }
+                
+            }
+            else {
+                DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Could not detect device type. Only received #%d bytes, expected at least 31.", nbytes_read);
+                return false;
+            }
+            
+            tcflush(fd, TCIFLUSH);
         }
-
-        // FIXME - need to put in better check for a valid firmware version response
-        if (!strncmp(response, "ESGvES", 6)) {
-            return true;
-        }
-
-        usleep(50000);
     }
-
-    return false;
-}
-
-bool get_pmc8_model(int fd, FirmwareInfo *info)
-{
-    INDI_UNUSED(fd);
-
-    // FIXME - only one model for now
-    info->Model.assign("PMC-Eight");
+    // update mount parameters
+    set_pmc8_mountParameters(info->MountType);        
     return true;
 }
 
 bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
 {
     char cmd[]  = "ESGv!";
-    char board[16];
+    char board[64];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[24];
+    char response[64];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -306,7 +426,7 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
     {
         tcflush(fd, TCIFLUSH);
 
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "3 %s", errmsg);
@@ -320,34 +440,24 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
         }
     }
 
-    //minimum size firmware string is 12 (for iExos100), 14 for others, but can be up to 20 thus far
+    // prior to v2, minimum size firmware string is 12 (for iExos100), 14 for others, but can be up to 20
+    // post v2, can be 50+
     if (nbytes_read >= 12)
     {
 
-        //strip ESGvES from string when getting firmware version
+        // strip ESGvES from string when getting firmware version
         strncpy(board, response+6, nbytes_read-7);
         info->MainBoardFirmware.assign(board, nbytes_read-7);
 
-        // Set the mount type from firmware if we can (instead of relying on interface)
-        if (strstr(board,"G11")) {
-            info->MountType = MOUNT_G11;
-        }
-        else if (strstr(board,"EXOS2")) {
-            info->MountType = MOUNT_EXOS2;
-        }
-        //not sure if this is a reliable way to detect iexos 100 going forward?
-        else if (strstr(board,"ES1A")) {
-            info->MountType = MOUNT_iEXOS100;
-        }
-        // update mount parameters
-        set_pmc8_mountParameters(info->MountType);
+        // Assuming version strings longer than 24 must be version 2.0 and up
+        if (nbytes_read > 24) pmc8_isRev2Compliant = true;
 
         tcflush(fd, TCIFLUSH);
 
         return true;
     }
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected at least 12.", nbytes_read);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Could not read firmware. Only received #%d bytes, expected at least 12.", nbytes_read);
     return false;
 }
 
@@ -355,20 +465,18 @@ bool get_pmc8_firmware(int fd, FirmwareInfo *info)
 {
     bool rc = false;
 
-    rc = get_pmc8_model(fd, info);
-
+    rc = get_pmc8_main_firmware(fd, info);
+    
     if (rc == false)
         return rc;
 
-    rc = get_pmc8_main_firmware(fd, info);
+    rc = get_pmc8_model(fd, info);
 
     return rc;
-
 }
 
 bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate)
 {
-
     char cmd[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
@@ -394,7 +502,7 @@ bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate)
 
     tcflush(fd, TCIFLUSH);
 
-    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -450,7 +558,7 @@ bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
 
     tcflush(fd, TCIFLUSH);
 
-    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -509,7 +617,7 @@ bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir, bool fast)
 
     tcflush(fd, TCIFLUSH);
 
-    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -771,7 +879,7 @@ bool set_pmc8_axis_motor_rate(int fd, PMC8_AXIS axis, int mrate, bool fast)
 
     tcflush(fd, TCIFLUSH);
 
-    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -918,7 +1026,7 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate)
     {
         tcflush(fd, TCIFLUSH);
 
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -950,7 +1058,6 @@ bool set_pmc8_custom_dec_track_rate(int fd, double rate)
     bool rc;
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_dec_track_rate() called rate=%f ", rate);
-
 
     if (pmc8_simulation)
     {
@@ -1484,7 +1591,14 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
     int nbytes_written = 0;
 
     convert_motor_counts_to_hex(point, hexpt);
-    snprintf(cmd, sizeof(cmd), "ESPt%d%s!", axis, hexpt);
+    
+    // for v2+ firmware, use axis 2 if we don't want to track after the slew
+    // I'm not sure if the interface actually allows a reqest to slew without resuming tracking
+    // I'll leave this code in for now just in case I find the right hooks
+    bool track_after = true; // this would obviously become a parameter to the function
+    int naxis = axis;
+    if (pmc8_isRev2Compliant && !axis && !track_after) naxis = 2;
+    snprintf(cmd, sizeof(cmd), "ESPt%d%s!", naxis, hexpt);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1493,7 +1607,7 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
 
     tcflush(fd, TCIFLUSH);
 
-    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1507,7 +1621,7 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
     }
 
     // compare to expected response
-    snprintf(expresp, sizeof(expresp), "ESGt%d%s!", axis, hexpt);
+    snprintf(expresp, sizeof(expresp), "ESGt%d%s!", naxis, hexpt);
 
     if (strncmp(response, expresp, strlen(response)))
     {
@@ -1560,7 +1674,7 @@ bool set_pmc8_position_axis(int fd, PMC8_AXIS axis, int point)
 
     tcflush(fd, TCIFLUSH);
 
-    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1625,7 +1739,7 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
 
     tcflush(fd, TCIFLUSH);
 
-    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1640,7 +1754,7 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
 
     if (nbytes_read != 12)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Get Point cmd response incorrect");
         return false;
     }
 
@@ -1946,46 +2060,56 @@ bool get_pmc8_coords(int fd, double &ra, double &dec)
     return rc;
 }
 
-//PMC8 connection is not entirely reliable when using Ethernet instead of Serial connection.
-//So, wrap tty_read statements in a get_pmc8_response call to handle common problems
+// wrap read commands to PMC8
 bool get_pmc8_response(int fd, char* buf, int *nbytes_read, const char* expected = NULL )
-{
-	
+{	
 	int err_code = 1;
 	int cnt = 0;
 	
-	//repeat a few times, after that, let's assume we're in an irrecoverable state
+	//repeat a few times, after that, let's assume we're not getting a response
     while ((err_code) && (cnt++ < PMC8_MAX_RETRIES))
 	{ 
 		//Read until exclamation point to get response
         if ((err_code = tty_read_section(fd, buf, '!', PMC8_TIMEOUT, nbytes_read))) {
+            
             char errmsg[MAXRBUF];
             tty_error_msg(err_code, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR,"Read error: %s",errmsg);
+            
+            // if we see connection timed out, exit out of here and try to reconnect
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG,"Read error: %s",errmsg);
+            if (strstr(errmsg,"Connection timed out")) {
+                set_pmc8_reconnect_flag();
+                return err_code;
+            }            
         }
-        if (*nbytes_read > 0) {
+        if (*nbytes_read > 0) {           
             buf[*nbytes_read] = '\0';
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", buf);
-
-            //One problem is we get the string *HELLO* when we connect or disconnect, so discard that
-            if (buf[0]=='*') {
-                buf=buf+7;
-                *nbytes_read = *nbytes_read-7;
-            }
-
-            //Another problem is random extraneous ESGp! reponses during slew, so when we see those, drop them and try again
-            if (strncmp(buf, "ESGp!",5)==0) {
-                err_code = 1;
-                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Invalid response ESGp!");
-            }
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES %d bytes (%s)", *nbytes_read, buf);
+            
+            //PMC8 connection is not entirely reliable when using Ethernet instead of Serial connection.
+            //So, try to compensate for common problems
+            if (pmc8_connection == INDI::Telescope::CONNECTION_TCP) {
+                //One problem is we get the string *HELLO* when we connect or disconnect, so discard that
+                if (buf[0]=='*') {
+                    strcpy(buf,buf+7);
+                    *nbytes_read = *nbytes_read-7;
+                }
+                //Another problem is random extraneous ESGp! reponses during slew, so when we see those, drop them and try again
+                if (strncmp(buf, "ESGp!",5)==0) {
+                    err_code = 1;
+                    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Invalid response ESGp!");
+                }
+            }                        
             //If a particular response was expected, make sure we got it
-            else if (expected) {
+            if (expected) {
                 if (strncmp(buf, expected,strlen(expected))!=0) {
                     err_code = 1;
                     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "No Match for %s", expected);
                 }
                 else {
                     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "Matches %s", expected);
+                    // On rare occasions, there may have been a read error even though it's the response we want, so set err_code explicitly
+                    err_code = 0;
                 }
             }
         }
@@ -1994,5 +2118,40 @@ bool get_pmc8_response(int fd, char* buf, int *nbytes_read, const char* expected
             err_code = 1;
         }
 	}
+    // if this is our nth consecutive read error, try to reconnect
+    if (err_code) {
+        if (++pmc8_io_error_ctr>PMC8_MAX_IO_ERROR_THRESHOLD) set_pmc8_reconnect_flag();
+    }
+    else {
+        pmc8_io_error_ctr = 0;
+    }
 	return err_code;
+}
+
+//wrap write commands to pmc8
+bool send_pmc8_command(int fd, const char *buf, int nbytes, int *nbytes_written) {
+    int err_code = 1;
+    //try to reconnect if we see broken pipe error
+    if ((err_code = tty_write(fd, buf, nbytes, nbytes_written))) {
+        char errmsg[MAXRBUF];
+        tty_error_msg(err_code, errmsg, MAXRBUF);
+        if (strstr(errmsg,"Broken pipe") || strstr(errmsg,"Bad")) {
+            set_pmc8_reconnect_flag();
+            return err_code;
+        }
+    }
+    return err_code;
+}
+
+void set_pmc8_reconnect_flag() {
+    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Bad connection. Trying to reconnect.");
+    pmc8_reconnect_flag = true;
+}
+
+bool get_pmc8_reconnect_flag() {
+    if (pmc8_reconnect_flag) {
+        pmc8_reconnect_flag = false;
+        return true;
+    }
+    return false;
 }

@@ -5,7 +5,7 @@
 
     Additional contributors: 
         Thomas Olson, Copyright (C) 2019
-        Karl Rees, Copyright (C) 2019
+        Karl Rees, Copyright (C) 2019-2021
 
     Based on IEQPro driver.
 
@@ -50,44 +50,6 @@
 
 static std::unique_ptr<PMC8> scope(new PMC8());
 
-void ISGetProperties(const char *dev)
-{
-    scope->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
-{
-    scope->ISNewSwitch(dev, name, states, names, num);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
-{
-    scope->ISNewText(dev, name, texts, names, num);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
-{
-    scope->ISNewNumber(dev, name, values, names, num);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    scope->ISSnoopDevice(root);
-}
-
 /* Constructor */
 PMC8::PMC8()
 {
@@ -117,11 +79,9 @@ bool PMC8::initProperties()
 {
     INDI::Telescope::initProperties();
 
-    // My understanding is that all mounts communicate at 115200, so set this early and make it easier for newbies?
+    // My understanding is that all mounts communicate at 115200
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
-
-    //TO DO: Figure out how to set default Ethernet address and port (without overriding user config)
     tcpConnection->setDefaultHost(PMC8_DEFAULT_IP_ADDRESS);
     tcpConnection->setDefaultPort(PMC8_DEFAULT_PORT);
 
@@ -131,15 +91,6 @@ bool PMC8::initProperties()
     IUFillSwitch(&MountTypeS[MOUNT_iEXOS100], "MOUNT_iEXOS100", "iEXOS100", ISS_OFF);
     IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    // No need to guess mount type from device name here, can wait until after we get firmware
-    /*if (strstr(getDeviceName(), "EXOS2"))
-        MountTypeS[MOUNT_EXOS2].s = ISS_ON;
-    else if (strstr(getDeviceName(), "iEXOS100"))
-        MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
-    else
-        MountTypeS[MOUNT_G11].s = ISS_ON;*/
-
 
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
@@ -260,6 +211,14 @@ void PMC8::getStartupData()
         IUSaveText(&FirmwareT[0], c);
         IDSetText(&FirmwareTP, nullptr);
     }
+    
+    int cur_ra_rate;
+    int rc = get_pmc8_tracking_rate_axis(PortFD, PMC8_AXIS_RA, cur_ra_rate);
+    if (rc && cur_ra_rate)
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Mount is already tracking");
+        TrackState = SCOPE_TRACKING;
+    }
 
     // PMC8 doesn't store location permanently so read from config and set
     // Convert to INDI standard longitude (0 to 360 Eastward)
@@ -353,12 +312,6 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             int currentMountIndex = IUFindOnSwitchIndex(&MountTypeSP);
             LOGF_INFO("Selected mount is %s", MountTypeS[currentMountIndex].label);
 
-            // Set iEXOS100 baud rate to 115200
-            // Not sure why we were only doing this for iEXOS100?  It's the same for everybody, right?
-            // So I moved this to initProperties()
-            //if (!isConnected()) && currentMountIndex == MOUNT_iEXOS100)
-            //    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
-
             //right now, this lets the user override the parameters for the detected mount.  Perhaps we should prevent the user from doing so?
             set_pmc8_mountParameters(currentMountIndex);
             MountTypeSP.s = IPS_OK;
@@ -366,8 +319,6 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             //		defineProperty(&MountTypeSP);
             return true;
         }
-
-
     }
 
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
@@ -376,6 +327,15 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 bool PMC8::ReadScopeStatus()
 {
     bool rc = false;
+
+    // try to disconnect and reconnect if reconnect flag is set
+    if (get_pmc8_reconnect_flag()) {
+        int rc = Disconnect();
+        if (rc) setConnected(false);
+        rc = Connect();
+        if (rc) setConnected(true, IPS_OK);        
+        return false;
+    }
 
     if (isSimulation())
         mountSim();
@@ -398,18 +358,19 @@ bool PMC8::ReadScopeStatus()
                 {
                     LOG_INFO("Slew complete, tracking...");
                     TrackState = SCOPE_TRACKING;
-
+                    // Technically, we don't need to restart tracking with v2 firmware, but it doesn't hurt
                     if (!SetTrackEnabled(true))
                     {
                         LOG_ERROR("slew complete - unable to enable tracking");
                         return false;
                     }
 
-                    if (!SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP)))
-                    {
-                        LOG_ERROR("slew complete - unable to set track mode");
-                        return false;
-                    }
+                    // Already set track mode in SetTrackEnabled 
+                    //if (!SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP)))
+                    //{
+                    //    LOG_ERROR("slew complete - unable to set track mode");
+                    //    return false;
+                    //}
                 }
             }
 
@@ -417,8 +378,6 @@ bool PMC8::ReadScopeStatus()
 
         case SCOPE_PARKING:
             // are we done?
-            // are we done?
-
             // check slew state
             rc = get_pmc8_is_scope_slewing(PortFD, slewing);
             if (!rc)
@@ -583,7 +542,7 @@ bool PMC8::Handshake()
         //        set_pmc8_sim_hemisphere(HEMI_NORTH);
     }
 
-    if (check_pmc8_connection(PortFD) == false)
+    if (check_pmc8_connection(PortFD,(getActiveConnection() == serialConnection)) == false)
         return false;
 
     return true;
@@ -1129,9 +1088,10 @@ bool PMC8::SetTrackEnabled(bool enabled)
     // need to determine current tracking mode and start tracking
     if (enabled)
     {
+
         if (!SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP)))
         {
-            LOG_ERROR("PMC8::SetTrackREnabled - unable to enable tracking");
+            LOG_ERROR("PMC8::SetTrackEnabled - unable to enable tracking");
             return false;
         }
     }
@@ -1142,7 +1102,7 @@ bool PMC8::SetTrackEnabled(bool enabled)
         rc = set_pmc8_custom_ra_track_rate(PortFD, 0);
         if (!rc)
         {
-            LOG_ERROR("PMC8::SetTrackREnabled - unable to set RA track rate to 0");
+            LOG_ERROR("PMC8::SetTrackEnabled - unable to set RA track rate to 0");
             return false;
         }
 

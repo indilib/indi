@@ -148,6 +148,7 @@ void Timer::singleShot(int msec, const std::function<void()> &callback)
         callback();
         delete timer;
     });
+    timer->start();
 }
 
 }

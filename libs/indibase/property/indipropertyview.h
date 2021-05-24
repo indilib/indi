@@ -29,6 +29,7 @@
 #include <string>
 #include <cstring>
 #include <cstdarg>
+#include <cstdlib>
 #include <type_traits>
 
 namespace INDI
@@ -131,7 +132,7 @@ public: // only for ISwitch
 
 public: // only for INumber
     template <typename X = T, enable_if_is_same_t<X, INumber> = true>
-    void updateMinMax()                                    { IUUpdateMinMax(this); }
+    void updateMinMax();                                   /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
 public: //getters
     const char *getDeviceName() const                      { return this->device; }
@@ -259,9 +260,13 @@ struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
+    WidgetView(const WidgetView &other): Type(other)       { this->text = nullptr; setText(other.text); }
+    WidgetView(WidgetView &&other): Type(other)            { memset(static_cast<Type*>(&other), 0, sizeof(other)); }
+    WidgetView &operator=(const WidgetView &other)         { return *this = WidgetView(other); }
+    WidgetView &operator=(WidgetView &&other)              { std::swap(static_cast<Type&>(other), static_cast<Type&>(*this)); return *this; }
     ~WidgetView()                                          { free(this->text); }
     void clear()                                           { free(this->text); memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ITextVectorProperty *parent)            { this->tvp = parent; }
@@ -273,8 +278,10 @@ public: // setters
     void setLabel(const char *label)                       { strncpy(this->label, label, MAXINDILABEL); }
     void setLabel(const std::string &label)                { setLabel(label.data()); }
 
-    void setText(const char *text)                         { free(this->text); this->text = strndup(text, strlen(text)); }
-    void setText(const std::string &text)                  { setText(text.data()); }
+    //void setText(const char *text)                         { free(this->text); this->text = strndup(text, strlen(text)); }
+    void setText(const char *text, size_t size)            { this->text = strncpy(static_cast<char*>(realloc(this->text, size + 1)), text, size); this->text[size] = '\0'; }
+    void setText(const char *text)                         { setText(text, strlen(text)); }
+    void setText(const std::string &text)                  { setText(text.data(), text.size()); }
 
     void setAux(void *user)                                { this->aux0 = user; }
     // don't use any other aux!
@@ -309,9 +316,13 @@ struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
+    WidgetView(const WidgetView &other): Type(other)       { }
+    WidgetView(WidgetView &&other): Type(other)            { memset(static_cast<Type*>(&other), 0, sizeof(other)); }
+    WidgetView &operator=(const WidgetView &other)         { return *this = WidgetView(other); }
+    WidgetView &operator=(WidgetView &&other)              { std::swap(static_cast<Type&>(other), static_cast<Type&>(*this)); return *this; }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(INumberVectorProperty *parent)          { this->nvp = parent; }
@@ -372,9 +383,13 @@ struct WidgetView<ISwitch>: PROPERTYVIEW_BASE_ACCESS ISwitch
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
+    WidgetView(const WidgetView &other): Type(other)       { }
+    WidgetView(WidgetView &&other): Type(other)            { memset(static_cast<Type*>(&other), 0, sizeof(other)); }
+    WidgetView &operator=(const WidgetView &other)         { return *this = WidgetView(other); }
+    WidgetView &operator=(WidgetView &&other)              { std::swap(static_cast<Type&>(other), static_cast<Type&>(*this)); return *this; }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ISwitchVectorProperty *parent)          { this->svp = parent; }
@@ -425,9 +440,13 @@ struct WidgetView<ILight>: PROPERTYVIEW_BASE_ACCESS ILight
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
+    WidgetView(const WidgetView &other): Type(other)       { }
+    WidgetView(WidgetView &&other): Type(other)            { memset(static_cast<Type*>(&other), 0, sizeof(other)); }
+    WidgetView &operator=(const WidgetView &other)         { return *this = WidgetView(other); }
+    WidgetView &operator=(WidgetView &&other)              { std::swap(static_cast<Type&>(other), static_cast<Type&>(*this)); return *this; }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ILightVectorProperty *parent)           { this->lvp = parent; }
@@ -478,9 +497,13 @@ struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
-    ~WidgetView()                                          { free(this->blob); }
-    void clear()                                           { free(this->blob); memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
+    WidgetView(const WidgetView &other): Type(other)       { }
+    WidgetView(WidgetView &&other): Type(other)            { memset(static_cast<Type*>(&other), 0, sizeof(other)); }
+    WidgetView &operator=(const WidgetView &other)         { return *this = WidgetView(other); }
+    WidgetView &operator=(WidgetView &&other)              { std::swap(static_cast<Type&>(other), static_cast<Type&>(*this)); return *this; }
+    ~WidgetView()                                          { /* free(this->blob); */ }
+    void clear()                                           { /* free(this->blob); */ memset(this, 0, sizeof(*this)); }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(IBLOBVectorProperty *parent)            { this->bvp = parent; }

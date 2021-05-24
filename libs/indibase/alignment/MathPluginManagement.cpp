@@ -297,10 +297,10 @@ void MathPluginManagement::SetApproximateMountAlignmentFromMountType(MountType_t
 {
     if (EQUATORIAL == Type)
     {
-        ln_lnlat_posn Position { 0, 0 };
+        IGeographicCoordinates Position { 0, 0, 0 };
         if (CurrentInMemoryDatabase->GetDatabaseReferencePosition(Position))
         {
-            if (Position.lat >= 0)
+            if (Position.latitude >= 0)
                 SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
             else
                 SetApproximateMountAlignment(SOUTH_CELESTIAL_POLE);

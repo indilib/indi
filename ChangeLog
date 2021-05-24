@@ -1,3 +1,115 @@
++ From 1.8.9 to 1.9.0
+
+    effa7cc9 2021-04-18 Paweł Soja           INDI::BaseClient - Disconnect if sending has failed. (#1430)
+    18e13b15 2021-04-18 Jasem Mutlaq         Define NOMINMAX to prevent windows.h from defining these macros that are defined in standard library
+    11cca322 2021-04-18 Jasem Mutlaq         Disable mkpath on Windows
+    bc1950de 2021-04-18 Paweł Soja           Fix - Windows doesn't have strndup. (#1429)
+    1a302cb0 2021-04-18 Paweł Soja           Fix sockets in INDI::BaseClient (#1428)
+    95a492dc 2021-04-18 Jasem Mutlaq         Force shutdown of socket on abnormal disconnect
+    fb111f51 2021-04-15 Pawel Soja           Add missing timer->start().
+    32025368 2021-04-15 Pawel Soja           Bugfix, double apos for timestamp == NULL.
+    2461a4aa 2021-04-15 Jasem Mutlaq         If filter is removed, remove presets
+    bcfb637d 2021-04-15 Jasem Mutlaq         Ignore empty snooped device
+    443824a9 2021-04-15 Jasem Mutlaq         Make it build Position Independent Code fPIC by default
+    a6ffc654 2021-04-15 Karl Rees            PMC8 V2 Firmware update (#1426)
+    b61b24c3 2021-04-13 Pavle Gartner        Deep Sky Dad Flap Panel 1 INDI driver (#1425)
+    3086c7a2 2021-04-12 Paweł Soja           Fix, use IDMessage to send info message. (#1423)
+    339ec271 2021-04-12 Jasem Mutlaq         Fix slew rate index. Fixes #1420
+    d1607a9c 2021-04-12 Jasem Mutlaq         PEC state should also include resumption of tracking. Fixes #1421
+    605180db 2021-04-10 Jasem Mutlaq         Fix major bug with INDI longitude correction that was removed in a previous commit
+    e36839a1 2021-04-06 Paweł Soja           Fix XML Escape (#1414)
+    106c546d 2021-04-06 Efstathios Chrysikos separate focuscube and scopsoag behavior to new drivers (#1415)
+    bd9110b4 2021-04-01 Pawel Soja           Add rasbian as debian/ubuntu to requisites-install.sh.
+    b2f34193 2021-04-01 Pawel Soja           Remove CircleCI badge status.
+    198d9472 2021-03-31 Pawel Soja           Add PyIndi badge status.
+    44f8c962 2021-03-31 Pawel Soja           Add swig package.
+    51902470 2021-03-31 Paweł Soja           Feature GitHub actions - PyIndi (#1411)
+    aaf60de4 2021-03-31 Paweł Soja           Merge pull request #1410
+    e4b2886a 2021-03-31 Pawel Soja           Add PropertyBasic<T>::at(size_t index).
+    32654a8b 2021-03-31 Pawel Soja           Add rule support.
+    21983dd0 2021-03-31 Pawel Soja           Fix, updateMinMax only driver side.
+    58babc59 2021-03-31 Pawel Soja           Remove unused 'isNull' functions.
+    be0736af 2021-03-31 Pawel Soja           Fix, avoid calling pure virtual method.
+    09471760 2021-03-31 Pawel Soja           Fix struct in C++.
+    a1de8659 2021-03-31 Pawel Soja           Remove duplicate MAXRBUF.
+    90233c0e 2021-03-30 Pawel Soja           Use sh commands.
+    7aea1e12 2021-03-30 Paweł Soja           Merge pull request #1409 from indilib/feature-github-actions-nproc
+    f5047a9e 2021-03-30 Pawel Soja           Add workflow_dispatch, types completed.
+    c716dda6 2021-03-30 Pawel Soja           Add missing install argument.
+    b2436466 2021-03-30 Pawel Soja           Add workflow.
+    53921e8e 2021-03-30 Pawel Soja           Fix sudo syntax.
+    5eba5761 2021-03-30 Pawel Soja           Autodetect jobs for 'make'.
+    2b1bb261 2021-03-29 Jim                  Usb memory fix (#1407)
+    37402562 2021-03-30 Jasem Mutlaq         Suggested fix by Robert Brown. Fixes #1406
+    b1e1413a 2021-03-30 Pawel Soja           Update workflows status, add MacOS.
+    9b975a95 2021-03-30 Pawel Soja           Always run workflow for Linux.
+    a34c468a 2021-03-30 Pawel Soja           Rename Indi to Linux workflow.
+    3946dfbb 2021-03-30 Paweł Soja           Merge pull request #1405 from indilib/feature-github-macos
+    bc360d18 2021-03-30 Pawel Soja           Add GitHub Actions for MacOS.
+    c125d89c 2021-03-30 Paweł Soja           Merge pull request #1404 from indilib/fix-warnings-macos
+    b21d8bf3 2021-03-29 Pawel Soja           Fix conversion from nullptr to std::string.
+    856faeff 2021-03-29 Pawel Soja           Fix sign-compare.
+    4a8c029f 2021-03-29 Pawel Soja           Remove unused variable.
+    856a8325 2021-03-29 Pawel Soja           Fix warnings, reimplement.
+    32fecf7d 2021-03-29 Pawel Soja           bsdtar support
+    a2ebd7db 2021-03-29 Pawel Soja           Use the official image repository.
+    e9af9ddc 2021-03-29 Paweł Soja           Fix macOS/clang build warnings. (#1402)
+    c148c55f 2021-03-28 Pawel Soja           Add GitHub Actions status.
+    7be74543 2021-03-28 Markus Noga          Fixed TeenAstro mount/focuser race condition during automated port scanning (#1401)
+    8d5025ab 2021-03-28 Pawel Soja           GoogleTest, shared libs.
+    f6bcc855 2021-03-28 Pawel Soja           GoogleTest, shared libs.
+    109d986b 2021-03-28 Pawel Soja           Add pre-requisites (indi 3rd-party).
+    fcf22aa8 2021-03-28 Pawel Soja           Add default github actions workflow.
+    64dde3c9 2021-03-28 Pawel Soja           Add Dockerfile + workflow.
+    8d9f21cc 2021-03-28 Pawel Soja           Add general purpose build/install scripts.
+    c744e452 2021-03-28 Jasem Mutlaq         Add virtualcom to ignore exclusive lock
+    3efe37f0 2021-03-28 Ilia Platone         Add functions to indicom (#1400)
+    68a9c5bd 2021-03-26 Jasem Mutlaq         Opps forgot to fill in the property
+    48a14ea6 2021-03-26 Jasem Mutlaq         Add missing FocuserDrive property
+    414565f1 2021-03-26 Jasem Mutlaq         Simplify focuser
+    8768ce79 2021-03-26 Jasem Mutlaq         Set focuser capabilities
+    faf333fb 2021-03-25 Jasem Mutlaq         Add External Motor Control support to PPBA
+    dc3ed6a3 2021-03-25 Jasem Mutlaq         Init string buffers to zero
+    0ecb1f1f 2021-03-25 Efstathios Chrysikos Added PegasusAstro new devices (#1398)
+    a9d3182e 2021-03-25 Jasem Mutlaq         Fix warning
+    8273084f 2021-03-24 rlancasteAstro       Need to fix build error on OS X (#1396)
+    b6d40949 2021-03-22 Markus Noga          Added support for TeenAstro focuser (#1392)
+    5c1b4fb7 2021-03-22 Jasem Mutlaq         Add general rule for all cameras as proposed by @openastroproject
+    de478d75 2021-03-22 Paweł Soja           Bugfix - INDI::SingleThreadPool - self quit/start deadlock. (#1394)
+    d3897d7e 2021-03-21 camielseverijns      Update lx200pulsar2.cpp (#1393)
+    8734b723 2021-03-20 Paweł Soja           StreamManager - thread pool for uploadStream (#1391)
+    492019bc 2021-03-19 Paweł Soja           Add STL-style iterators to INDI::PropertyBasic (#1389)
+    f6d8ecd9 2021-03-18 Paweł Soja           Implement real periodic timer. (#1387)
+    6550c8b0 2021-03-18 fcasarramona         Improving Dome slave to telescope regarding telescope pier side (#1373)
+    175f38cd 2021-03-16 Paweł Soja           EventLoop - List implementation for timers (#1385)
+    34c99fa9 2021-03-16 Paweł Soja           Implementation of high-level timers (#1386)
+    db9772d4 2021-03-15 Paweł Soja           StreamManager - Bugfix - D-Pointer implementation (#1383)
+    743006fe 2021-03-13 Paweł Soja           Bugfix - Use const qualifier for const string (#1380)
+    217a2d4c 2021-03-13 Paweł Soja           Cleaning up the examples - Remove global 'IS' functions. (#1381)
+    5d040ddc 2021-03-13 Jasem Mutlaq         Add Pegasus OAG alias
+    a2d939bf 2021-03-12 Jasem Mutlaq         Set 115000 as default rate for everything other than iOptron 120
+    3fdd324e 2021-03-12 Paweł Soja           Bugfix - test_ccd_simulator with incorrect library, missing override (#1379)
+    01cc8da1 2021-03-12 TallFurryMan         Updated flux calculation for CCD Simulator (#1356)
+    d9a5e309 2021-03-11 Paweł Soja           Add global ISGetProperties/ISNewXXX/ISSnoopDevice propagation functions for drivers (#1375)
+    e681724b 2021-03-11 Jasem Mutlaq         Update Celestron version to 3.6 post the guide fixes
+    9cb023ee 2021-03-11 Paweł Soja           INDI::PropertyXXX - push widgets, get size - implementation (#1374)
+    f12c8952 2021-03-11 Paweł Soja           add missing override specifier (#1377)
+    7e934e47 2021-03-10 interplanetarychris  Fix typo in CCD simulator GUI (#1378)
+    7ce91b24 2021-03-10 nrackwit             CelestronGPS reporting wrong rates to telescope during pulse guiding #1368 (#1369)
+    856dfc78 2021-03-10 Jasem Mutlaq         Fix style to astyle
+    23bfc208 2021-03-10 Paweł Soja           Code quality improvement - Preparation for future refactoring. (#1372)
+    3913ba39 2021-03-10 Jasem Mutlaq         Revert "Delete gps_simulator.cpp"
+    ec9811a3 2021-03-10 Jasem Mutlaq         Merge pull request #1371 from seventi71/master
+    5471b264 2021-03-10 Jasem Mutlaq         Delete gps_simulator.cpp
+    de5b1cfc 2021-03-08 seventi71            Merge branch 'master' of https://github.com/seventi71/indi
+    f85735c7 2021-03-08 Christopher          Merge pull request #2 from indilib/master
+    774f8854 2021-03-06 Paweł Soja           Refactoring - Typed property (#1366)
+    71b49c82 2021-03-06 Paweł Soja           Fix warnings, use strcpy/strcat for string literal (#1367)
+    b3048a5b 2021-03-04 Jasem Mutlaq         Starting INDI 1.9.0 develpment cycle
+    95aa471e 2021-03-04 seventi71            GPS Update
+    155ca727 2021-03-02 Paweł Soja           PropertyView - client/server side + refactor (#1361)
+    4c3f1c60 2021-02-28 Paweł Soja           PropertyView - implementation of subsequent methods (#1360)
+
 + From 1.8.8 to 1.8.9
 
     + 91bcd531 2021-02-24 Jasem Mutlaq         Add missing exec                                                                                                                                      

@@ -24,17 +24,6 @@
 
 class DMFC : public INDI::Focuser
 {
-        enum DMFC_TYPE
-        {
-            //Unknown device
-            UNKNOWN,
-            //DMFC
-            DMFCN,
-            //FocusCube
-            FC,
-            //ScopsOAG
-            SCOPS
-        };
     public:
         DMFC();
         virtual ~DMFC() override = default;
@@ -67,12 +56,6 @@ class DMFC : public INDI::Focuser
         bool setMotorType(uint8_t type);
         bool ack();
         void ignoreResponse();
-        DMFC_TYPE dmfcType;
-        DMFC_TYPE parseDMFCType(const char *ackStatus);
-        bool isDMFCN();
-        bool isFC();
-        bool isSCOPS();
-        bool isUNKOWN();
 
         uint32_t currentPosition { 0 };
         uint32_t targetPosition { 0 };

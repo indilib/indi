@@ -109,9 +109,11 @@ class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
         ISwitch AbortAuxS[1];
         ISwitchVectorProperty AbortAuxSP;
 
-        INumber SensorN[2];
-        INumberVectorProperty SensorNP;
-        enum { SENSOR_TEMPERATURE, SENSOR_VOLTAGE };
+        INumber VoltageN[1];
+        INumberVectorProperty VoltageNP;
+
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
         INumber TemperatureOffsetN[1];
         INumberVectorProperty TemperatureOffsetNP;

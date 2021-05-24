@@ -59,7 +59,7 @@ namespace INDI
 {
 class StreamManager;
 
-class Spectrograph : public SensorInterface
+class Spectrograph : public virtual SensorInterface
 {
     public:
         enum
@@ -83,16 +83,16 @@ class Spectrograph : public SensorInterface
         virtual void addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len) override;
 
         /**
-         * @brief setSampleRate Set depth of Spectrograph device.
-         * @param bpp bits per pixel
+         * @brief setLowCutFrequency Set low cut frequency of Spectrograph device.
+         * @param freq The low frequency cutoff
          */
-        void setSampleRate(double sr);
+        void setLowCutFrequency(double freq);
 
         /**
-         * @brief setBandwidth Set bandwidth of Spectrograph device.
-         * @param bandwidth The detector bandwidth
+         * @brief setHighCutFrequency Set high cut frequency of Spectrograph device.
+         * @param freq The high frequency cutoff
          */
-        void setBandwidth(double bandwidth);
+        void setHighCutFrequency(double freq);
 
         /**
          * @brief setGain Set gain of Spectrograph device.
@@ -101,18 +101,21 @@ class Spectrograph : public SensorInterface
         void setGain(double gain);
 
         /**
-         * @brief setFrequency Set the frequency observed.
-         * @param freq capture frequency
+         * @brief getLowCutFrequency Get requested low cut frequency in Hz.
+         * @return requested low cut frequency in Hz.
          */
-        void setFrequency(double freq);
+        inline double getLowCutFrequency()
+        {
+            return LowCutFrequency;
+        }
 
         /**
-         * @brief getBandwidth Get requested integration bandwidth for the sensor in Hz.
-         * @return requested integration bandwidth for the sensor in Hz.
+         * @brief getHighCutFrequency Get requested high cut frequency in Hz.
+         * @return requested high cut frequency in Hz.
          */
-        inline double getBandwidth()
+        inline double getHighCutFrequency()
         {
-            return Bandwidth;
+            return HighCutFrequency;
         }
 
         /**
@@ -131,15 +134,6 @@ class Spectrograph : public SensorInterface
         inline double getFrequency()
         {
             return Frequency;
-        }
-
-        /**
-         * @brief getSampleRate Get requested sample rate for the sensor in Hz.
-         * @return requested sample rate for the sensor in Hz.
-         */
-        inline double getSampleRate()
-        {
-            return Samplerate;
         }
 
         /**
@@ -180,19 +174,18 @@ class Spectrograph : public SensorInterface
         typedef enum
         {
             SPECTROGRAPH_GAIN = 0,
-            SPECTROGRAPH_FREQUENCY,
-            SPECTROGRAPH_BANDWIDTH,
+            SPECTROGRAPH_LOWFREQ,
+            SPECTROGRAPH_HIGHFREQ,
             SPECTROGRAPH_BITSPERSAMPLE,
-            SPECTROGRAPH_SAMPLERATE,
             SPECTROGRAPH_ANTENNA,
         } SPECTROGRAPH_INFO_INDEX;
         INumberVectorProperty SpectrographSettingsNP;
-        INumber SpectrographSettingsN[7];
+        INumber SpectrographSettingsN[8];
 
 private:
-        double Samplerate;
         double Frequency;
-        double Bandwidth;
+        double LowCutFrequency;
+        double HighCutFrequency;
         double Gain;
 
 };

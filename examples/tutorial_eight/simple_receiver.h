@@ -2,32 +2,32 @@
    INDI Developers Manual
    Tutorial #3
 
-   "Simple Spectrograph Driver"
+   "Simple Receiver Driver"
 
-   We develop a simple Spectrograph driver.
+   We develop a simple Receiver driver.
 
    Refer to README, which contains instruction on how to build this driver, and use it
    with an INDI-compatible client.
 
 */
 
-/** \file simpleSpectrograph.h
-    \brief Construct a basic INDI Spectrograph device that simulates capture & temperature settings. It also generates a random pattern and uploads it as a FITS file.
+/** \file simpleReceiver.h
+    \brief Construct a basic INDI Receiver device that simulates capture & temperature settings. It also generates a random pattern and uploads it as a FITS file.
     \author Ilia Platone
 
-    \example simpleSpectrograph.h
-    A simple detector device that can capture stream frames and controls temperature. It returns a FITS image to the client. To build drivers for complex Spectrographs, please
-    refer to the INDI Generic Spectrograph driver template in INDI github (under 3rdparty).
+    \example simpleReceiver.h
+    A simple detector device that can capture stream frames and controls temperature. It returns a FITS image to the client. To build drivers for complex Receivers, please
+    refer to the INDI Generic Receiver driver template in INDI github (under 3rdparty).
 */
 
 #pragma once
 
-#include "indispectrograph.h"
+#include "indireceiver.h"
 
-class SimpleSpectrograph : public INDI::Spectrograph
+class SimpleReceiver : public INDI::Receiver
 {
 public:
-    SimpleSpectrograph() = default;
+    SimpleReceiver() = default;
 
 protected:
     // General device functions
@@ -37,7 +37,7 @@ protected:
     bool initProperties() override;
     bool updateProperties() override;
 
-    // Spectrograph specific functions
+    // Receiver specific functions
     bool StartIntegration(double duration) override;
     bool AbortIntegration() override;
     int SetTemperature(double temperature) override;
