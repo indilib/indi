@@ -486,19 +486,10 @@ void CCDSim::TimerHit()
 
     if (TemperatureNP.s == IPS_BUSY)
     {
-        if (fabs(TemperatureRequest - TemperatureN[0].value) <= 0.5)
-        {
-            LOGF_INFO("Temperature reached requested value %.2f degrees C", TemperatureRequest);
-            TemperatureN[0].value = TemperatureRequest;
-            TemperatureNP.s       = IPS_OK;
-        }
+        if (TemperatureRequest < TemperatureN[0].value)
+            TemperatureN[0].value = std::max(TemperatureRequest, TemperatureN[0].value - 0.5);
         else
-        {
-            if (TemperatureRequest < TemperatureN[0].value)
-                TemperatureN[0].value -= 0.5;
-            else
-                TemperatureN[0].value += 0.5;
-        }
+            TemperatureN[0].value = std::min(TemperatureRequest, TemperatureN[0].value + 0.5);
 
         IDSetNumber(&TemperatureNP, nullptr);
 
@@ -1182,9 +1173,11 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
                 CoolerSP.s = IPS_BUSY;
             else
             {
-                CoolerSP.s         = IPS_IDLE;
-                TemperatureRequest = 20;
-                TemperatureNP.s    = IPS_BUSY;
+                CoolerSP.s          = IPS_IDLE;
+                m_TargetTemperature = 20;
+                TemperatureNP.s     = IPS_BUSY;
+                m_TemperatureCheckTimer.start();
+                m_TemperatureElapsedTimer.start();
             }
 
             IDSetSwitch(&CoolerSP, nullptr);

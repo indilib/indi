@@ -435,19 +435,11 @@ void GuideSim::TimerHit()
 
     if (TemperatureNP.s == IPS_BUSY)
     {
-        if (fabs(TemperatureRequest - TemperatureN[0].value) <= 0.5)
-        {
-            LOGF_INFO("Temperature reached requested value %.2f degrees C", TemperatureRequest);
-            TemperatureN[0].value = TemperatureRequest;
-            TemperatureNP.s       = IPS_OK;
-        }
+        if (TemperatureRequest < TemperatureN[0].value)
+            TemperatureN[0].value = std::max(TemperatureRequest, TemperatureN[0].value - 0.5);
         else
-        {
-            if (TemperatureRequest < TemperatureN[0].value)
-                TemperatureN[0].value -= 0.5;
-            else
-                TemperatureN[0].value += 0.5;
-        }
+            TemperatureN[0].value = std::min(TemperatureRequest, TemperatureN[0].value + 0.5);
+
 
         IDSetNumber(&TemperatureNP, nullptr);
 

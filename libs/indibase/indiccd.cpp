@@ -104,6 +104,10 @@ CCD::CCD()
     primaryFocalLength = std::numeric_limits<double>::quiet_NaN();
     guiderAperture = std::numeric_limits<double>::quiet_NaN();
     guiderFocalLength = std::numeric_limits<double>::quiet_NaN();
+
+    // Check temperature every 5 seconds.
+    m_TemperatureCheckTimer.setInterval(5000);
+    m_TemperatureCheckTimer.callOnTimeout(std::bind(&CCD::checkTemperatureTarget, this));
 }
 
 CCD::~CCD()
@@ -132,6 +136,11 @@ bool CCD::initProperties()
     IUFillNumber(&TemperatureN[0], "CCD_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "CCD_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Camera temperature ramp
+    TemperatureRampNP[RAMP_SLOPE].fill("RAMP_SLOPE", "Max. dT (C/min)", "%.f", 0, 30, 1, 5);
+    TemperatureRampNP[RAMP_THRESHOLD].fill("RAMP_THRESHOLD", "Threshold (C)", "%.1f", 0.1, 2, 0.1, 0.2);
+    TemperatureRampNP.fill(getDeviceName(), "CCD_TEMP_RAMP", "Temp. Ramp", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     /**********************************************/
     /**************** Primary Chip ****************/
@@ -484,7 +493,10 @@ bool CCD::updateProperties()
         }
 
         if (HasCooler())
+        {
             defineProperty(&TemperatureNP);
+            defineProperty(&TemperatureRampNP);
+        }
 
         defineProperty(&PrimaryCCD.ImagePixelSizeNP);
         if (HasGuideHead())
@@ -601,7 +613,10 @@ bool CCD::updateProperties()
 #endif
         }
         if (HasCooler())
+        {
             deleteProperty(TemperatureNP.name);
+            deleteProperty(TemperatureRampNP.getName());
+        }
         if (HasST4Port())
         {
             deleteProperty(GuideNSNP.name);
@@ -1157,7 +1172,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
         }
 #endif
 
-        // CCD TEMPERATURE:
+        // CCD TEMPERATURE
         if (!strcmp(name, TemperatureNP.name))
         {
             if (values[0] < TemperatureN[0].min || values[0] > TemperatureN[0].max)
@@ -1169,16 +1184,52 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                 return false;
             }
 
-            int rc = SetTemperature(values[0]);
+            double nextTemperature = values[0];
+            // If temperature ramp is enabled, find
+            if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
+            {
+                if (values[0] < TemperatureN[0].value)
+                {
+                    nextTemperature = std::max(values[0], TemperatureN[0].value - TemperatureRampNP[RAMP_SLOPE].getValue());
+                }
+                // Going up
+                else
+                {
+                    nextTemperature = std::min(values[0], TemperatureN[0].value + TemperatureRampNP[RAMP_SLOPE].getValue());
+                }
+            }
+
+            int rc = SetTemperature(nextTemperature);
 
             if (rc == 0)
+            {
+                if (TemperatureRampNP[RAMP_SLOPE].getValue() != 0)
+                    m_TemperatureElapsedTimer.start();
+
+                m_TargetTemperature = values[0];
+                m_TemperatureCheckTimer.start();
                 TemperatureNP.s = IPS_BUSY;
+            }
             else if (rc == 1)
                 TemperatureNP.s = IPS_OK;
             else
                 TemperatureNP.s = IPS_ALERT;
 
             IDSetNumber(&TemperatureNP, nullptr);
+            return true;
+        }
+
+        // Camera Temperature Ramp
+        if (!strcmp(name, TemperatureRampNP.getName()))
+        {
+            TemperatureRampNP.update(values, names, n);
+            TemperatureRampNP.setState(IPS_OK);
+            TemperatureRampNP.apply();
+            if (TemperatureRampNP[0].getValue() == 0)
+                LOG_INFO("Temperature ramp is disabled.");
+            else
+                LOGF_INFO("Temperature ramp is enabled. Gradual cooling and warming is regulated at %.f Celcius per minute.",
+                          TemperatureRampNP[0].getValue());
             return true;
         }
 
@@ -2933,6 +2984,9 @@ bool CCD::saveConfigItems(FILE * fp)
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
+    if (HasCooler())
+        IUSaveConfigNumber(fp, &TemperatureRampNP);
+
     if (HasGuideHead())
     {
         IUSaveConfigSwitch(fp, &GuideCCD.CompressSP);
@@ -3150,4 +3204,37 @@ void CCD::wsThreadEntry()
 }
 #endif
 
+/////////////////////////////////////////////////////////////////////////////////////////
+///
+/////////////////////////////////////////////////////////////////////////////////////////
+void CCD::checkTemperatureTarget()
+{
+    if (TemperatureNP.s == IPS_BUSY)
+    {
+        if (std::abs(m_TargetTemperature - TemperatureN[0].value) <= TemperatureRampNP[RAMP_THRESHOLD].value)
+        {
+            TemperatureNP.s = IPS_OK;
+            m_TemperatureCheckTimer.stop();
+            IDSetNumber(&TemperatureNP, nullptr);
+        }
+        // If we are beyond a minute, check for next step
+        else if (m_TemperatureElapsedTimer.elapsed() >= 60000)
+        {
+            double nextTemperature = 0;
+            // Going down
+            if (m_TargetTemperature < TemperatureN[0].value)
+            {
+                nextTemperature = std::max(m_TargetTemperature, TemperatureN[0].value - TemperatureRampNP[RAMP_SLOPE].value);
+            }
+            // Going up
+            else
+            {
+                nextTemperature = std::min(m_TargetTemperature, TemperatureN[0].value + TemperatureRampNP[RAMP_SLOPE].value);
+            }
+
+            m_TemperatureElapsedTimer.restart();
+            SetTemperature(nextTemperature);
+        }
+    }
+}
 }
