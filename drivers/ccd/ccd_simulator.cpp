@@ -37,37 +37,6 @@ static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static std::unique_ptr<CCDSim> ccdsim(new CCDSim());
 
-void ISGetProperties(const char * dev)
-{
-    ccdsim->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-{
-    ccdsim->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    ccdsim->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    ccdsim->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-               char * names[], int n)
-{
-    ccdsim->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-void ISSnoopDevice(XMLEle * root)
-{
-    ccdsim->ISSnoopDevice(root);
-}
-
 CCDSim::CCDSim() : INDI::FilterInterface(this)
 {
     currentRA  = RA;
@@ -552,8 +521,8 @@ double CCDSim::flux(double mag) const
     // The limiting magnitude provides zero ADU whatever the exposure
     // The saturation magnitude provides max ADU in one second
     double const z = m_LimitingMag;
-    double const k = 2.5*log10(m_MaxVal)/(m_LimitingMag - m_SaturationMag);
-    return pow(10, (z - mag)*k/2.5);
+    double const k = 2.5 * log10(m_MaxVal) / (m_LimitingMag - m_SaturationMag);
+    return pow(10, (z - mag) * k / 2.5);
 }
 
 int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
@@ -992,8 +961,8 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
             // Use a gaussian of unitary integral, scale it with the source flux
             // f(x) = 1/(sqrt(2*pi)*sigma) * exp( -x² / (2*sigma²) )
             // FWHM = 2*sqrt(2*log(2))*sigma => sigma = seeing/(2*sqrt(2*log(2)))
-            float const sigma = seeing / ( 2 * sqrt(2*log(2)));
-            float const fa = 1 / (sigma * sqrt(2*3.1416)) * exp( -dc2 / (2*sigma*sigma));
+            float const sigma = seeing / ( 2 * sqrt(2 * log(2)));
+            float const fa = 1 / (sigma * sqrt(2 * 3.1416)) * exp( -dc2 / (2 * sigma * sigma));
 
             // The source contribution is the gaussian value, stretched by seeing/FWHM
             float fp = fa * flux;
@@ -1548,6 +1517,8 @@ bool CCDSim::loadNextImage()
 
     if (ndim < 3)
         naxes[2] = 1;
+    else
+        PrimaryCCD.setNAxis(3);
     int samples_per_channel = naxes[0] * naxes[1];
     int channels = naxes[2];
     int elements = samples_per_channel * channels;

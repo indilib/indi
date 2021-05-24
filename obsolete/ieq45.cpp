@@ -37,9 +37,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include <memory>
 
-/* Our telescope auto pointer */
-std::unique_ptr<IEQ45Basic> telescope(new IEQ45Basic());
-
 const int POLLMS_OVERRIDE  = 100;     // Period of update, 1 second.
 const char *mydev = "IEQ45"; // Name of our device.
 
@@ -53,59 +50,16 @@ const char *OPTIONS_GROUP = "Options";      // Options Group
 static void ISPoll(void *);
 static void retry_connection(void *);
 
-/**************************************************************************************
-** Send client definitions of all properties.
-***************************************************************************************/
-void ISInit()
+static class Loader
 {
-    static int isInit = 0;
-
-    if (isInit)
-        return;
-
-    if (telescope.get() == 0)
+    std::unique_ptr<IEQ45Basic> telescope;
+public:
+    Loader()
+    {
         telescope.reset(new IEQ45Basic());
-
-    isInit = 1;
-
-    IEAddTimer(POLLMS_OVERRIDE, ISPoll, nullptr);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISGetProperties(const char *dev)
-{
-    ISInit();
-    telescope->ISGetProperties(dev);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    ISInit();
-    telescope->ISNewSwitch(dev, name, states, names, n);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    ISInit();
-    telescope->ISNewText(dev, name, texts, names, n);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    ISInit();
-    telescope->ISNewNumber(dev, name, values, names, n);
-}
+        IEAddTimer(POLLMS_OVERRIDE, ISPoll, nullptr);
+    }
+} loader;
 
 /**************************************************************************************
 **
@@ -116,30 +70,6 @@ void ISPoll(void *p)
 
     telescope->ISPoll();
     IEAddTimer(POLLMS_OVERRIDE, ISPoll, nullptr);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void ISSnoopDevice(XMLEle *root)
-{
-    INDI_UNUSED(root);
 }
 
 /**************************************************************************************

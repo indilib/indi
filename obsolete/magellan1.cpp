@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include "magellandriver.h"
 
-Magellan1 *telescope = nullptr;
+#include <memory>
 
 extern char *me;
 
@@ -83,72 +83,19 @@ INumberVectorProperty EquatorialCoordsRNP = {
 /**************************************** END PROPERTIES *********************************************/
 /*****************************************************************************************************/
 
-/* send client definitions of all properties */
-void ISInit()
+static class Loader
 {
-    static int isInit = 0;
-
-    if (isInit)
-        return;
-    if (telescope == nullptr)
+    Magellan1 *telescope = nullptr;
+    std::unique_ptr<Magellan1> telescope;
+public:
+    Loader()
     {
         IUSaveText(&PortT[0], "/dev/ttyS0");
-        telescope = new Magellan1();
+        telescope.reset(new Magellan1());
         telescope->setCurrentDeviceName(mydev);
+        IEAddTimer(POLLMS, ISPoll, nullptr);
     }
-
-    isInit = 1;
-    IEAddTimer(POLLMS, ISPoll, nullptr);
-}
-
-void ISGetProperties(const char *dev)
-{
-    ISInit();
-    telescope->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    ISInit();
-    telescope->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    ISInit();
-    telescope->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    ISInit();
-    telescope->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISPoll(void *p)
-{
-    telescope->ISPoll();
-    IEAddTimer(POLLMS, ISPoll, nullptr);
-    p = p;
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    telescope->ISSnoopDevice(root);
-}
+} loader;
 
 /**************************************************
 *** MAGELLAN1 Implementation

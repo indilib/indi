@@ -34,64 +34,6 @@
 
 static std::unique_ptr<TitanTCS> titanTCS(new TitanTCS());
 
-/**************************************************************************************
-** Return properties of device.
-***************************************************************************************/
-void ISGetProperties(const char *dev)
-{
-    titanTCS->ISGetProperties(dev);
-}
-
-/**************************************************************************************
-** Process new switch from client
-***************************************************************************************/
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    titanTCS->ISNewSwitch(dev, name, states, names, n);
-}
-
-/**************************************************************************************
-** Process new text from client
-***************************************************************************************/
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    titanTCS->ISNewText(dev, name, texts, names, n);
-}
-
-/**************************************************************************************
-** Process new number from client
-***************************************************************************************/
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    titanTCS->ISNewNumber(dev, name, values, names, n);
-}
-
-/**************************************************************************************
-** Process new blob from client
-***************************************************************************************/
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    //titanTCS->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-/**************************************************************************************
-** Process snooped property from another driver
-***************************************************************************************/
-void ISSnoopDevice(XMLEle *root)
-{
-    titanTCS->ISSnoopDevice(root);
-}
-
 TitanTCS::TitanTCS()
 {
     setVersion(1, 0);

@@ -1,7 +1,7 @@
 /*******************************************************************************
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2021 Jarno Paananen. All rights reserved.
 
  based on:
 
@@ -22,25 +22,25 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include "scopedome_dome.h"
+#include "scopedome_usb21.h"
 #include "indicom.h"
 
 #include <termios.h>
+#include <unistd.h>
 
 #define SCOPEDOME_TIMEOUT 2
-#define SCOPEDOME_MAX_READS 10
 
 static const uint8_t header = 0xaa;
 
 bool ScopeDomeUSB21::detect()
 {
     int rc = -1;
-    ScopeDomeCommand cmd;
-    LOGF_INFO("Detect! %d", rc);
+    Command cmd;
+    LOGF_DEBUG("Detect! %d", rc);
     rc = write(ConnectionTest);
-    LOGF_INFO("write rc: %d", rc);
+    LOGF_DEBUG("write rc: %d", rc);
     rc = read(cmd);
-    LOGF_INFO("read rc: %d, cmd %d", rc, (int)cmd);
+    LOGF_DEBUG("read rc: %d, cmd %d", rc, (int)cmd);
 
     if (cmd != ConnectionTest)
     {
@@ -66,7 +66,7 @@ uint8_t ScopeDomeUSB21::CRC(uint8_t crc, uint8_t data)
     return crc;
 }
 
-int ScopeDomeUSB21::writeBuf(ScopeDomeCommand cmd, uint8_t len, uint8_t *buff)
+int ScopeDomeUSB21::writeBuf(Command cmd, uint8_t len, uint8_t *buff)
 {
     int BytesToWrite   = len + 4;
     int BytesWritten   = 0;
@@ -101,7 +101,7 @@ int ScopeDomeUSB21::writeBuf(ScopeDomeCommand cmd, uint8_t len, uint8_t *buff)
     return rc;
 }
 
-int ScopeDomeUSB21::write(ScopeDomeCommand cmd)
+int ScopeDomeUSB21::write(Command cmd)
 {
     int nbytes_written = 0, rc = -1;
     uint8_t cbuf[4];
@@ -119,7 +119,7 @@ int ScopeDomeUSB21::write(ScopeDomeCommand cmd)
     prevcmd = cmd;
 
     // Write buffer
-    //LOGF_ERROR("write cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
+    LOGF_DEBUG("write cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
     if ((rc = tty_write(PortFD, (const char *)cbuf, sizeof(cbuf), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
@@ -128,10 +128,10 @@ int ScopeDomeUSB21::write(ScopeDomeCommand cmd)
     return rc;
 }
 
-int ScopeDomeUSB21::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
+int ScopeDomeUSB21::readBuf(Command &cmd, uint8_t len, uint8_t *buff)
 {
     int nbytes_read = 0, rc = -1;
-    int BytesToRead           = len + 4;
+    int BytesToRead = len + 4;
     uint8_t cbuf[BytesToRead];
     char errstr[MAXRBUF];
 
@@ -143,10 +143,10 @@ int ScopeDomeUSB21::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
         return rc;
     }
 
-    //LOGF_ERROR("readbuf cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
+    LOGF_DEBUG("readbuf cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
     uint8_t Checksum = CRC(0, cbuf[0]);
     Checksum         = CRC(Checksum, cbuf[1]);
-    cmd              = (ScopeDomeCommand)cbuf[2];
+    cmd              = (Command)cbuf[2];
     Checksum         = CRC(Checksum, cbuf[2]);
 
     for (int i = 0; i < len; i++)
@@ -174,7 +174,7 @@ int ScopeDomeUSB21::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
     return rc;
 }
 
-int ScopeDomeUSB21::read(ScopeDomeCommand &cmd)
+int ScopeDomeUSB21::read(Command &cmd)
 {
     int nbytes_read = 0, rc = -1;
     int err         = 0;
@@ -189,10 +189,10 @@ int ScopeDomeUSB21::read(ScopeDomeCommand &cmd)
         return rc;
     }
 
-    //LOGF_ERROR("read cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
+    LOGF_DEBUG("read cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
     uint8_t Checksum = CRC(0, cbuf[0]);
     Checksum         = CRC(Checksum, cbuf[1]);
-    cmd              = (ScopeDomeCommand)cbuf[2];
+    cmd              = (Command)cbuf[2];
     Checksum         = CRC(Checksum, cbuf[2]);
 
     if (cbuf[3] != Checksum || cbuf[1] != 0)
@@ -220,4 +220,816 @@ int ScopeDomeUSB21::read(ScopeDomeCommand &cmd)
             break;
     }
     return err;
+}
+
+/************************************************************************************
+ *
+ * ***********************************************************************************/
+bool ScopeDomeUSB21::readFloat(Command cmd, float &dst)
+{
+    float value;
+    Command c;
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = write(cmd);
+        if (rc == 0)
+            rc = readBuf(c, 4, (uint8_t *)&value);
+        else
+            reconnect();
+    }
+    while (rc != 0 && --retryCount);
+    LOGF_DEBUG("readFloat: %d %f", cmd, value);
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
+}
+
+bool ScopeDomeUSB21::readU8(Command cmd, uint8_t &dst)
+{
+    uint8_t value;
+    Command c;
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = write(cmd);
+        if (rc == 0)
+            rc = readBuf(c, 1, &value);
+        else
+            reconnect();
+    }
+    while (rc != 0 && --retryCount);
+    LOGF_DEBUG("readU8: %d %x", cmd, value);
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
+}
+
+bool ScopeDomeUSB21::readS8(Command cmd, int8_t &dst)
+{
+    int8_t value;
+    Command c;
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = write(cmd);
+        if (rc == 0)
+            rc = readBuf(c, 1, (uint8_t *)&value);
+        else
+            reconnect();
+    }
+    while (rc != 0 && --retryCount);
+    LOGF_DEBUG("readS8: %d %x", cmd, value);
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
+}
+
+bool ScopeDomeUSB21::readU16(Command cmd, uint16_t &dst)
+{
+    uint16_t value;
+    Command c;
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = write(cmd);
+        if (rc == 0)
+            rc = readBuf(c, 2, (uint8_t *)&value);
+        else
+            reconnect();
+    }
+    while (rc != 0 && --retryCount);
+    LOGF_DEBUG("readU16: %d %x", cmd, value);
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
+}
+
+bool ScopeDomeUSB21::readS16(Command cmd, int16_t &dst)
+{
+    int16_t value;
+    Command c;
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = write(cmd);
+        if (rc == 0)
+            rc = readBuf(c, 2, (uint8_t *)&value);
+        else
+            reconnect();
+    }
+    while (rc != 0 && --retryCount);
+    LOGF_DEBUG("readS16: %d %x", cmd, value);
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
+}
+
+bool ScopeDomeUSB21::readU32(Command cmd, uint32_t &dst)
+{
+    uint32_t value;
+    Command c;
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = write(cmd);
+        if (rc == 0)
+            rc = readBuf(c, 4, (uint8_t *)&value);
+        else
+            reconnect();
+    }
+    while (rc != 0 && --retryCount);
+    LOGF_DEBUG("readU32: %d %x", cmd, value);
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
+}
+
+bool ScopeDomeUSB21::readS32(Command cmd, int32_t &dst)
+{
+    int32_t value;
+    Command c;
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = write(cmd);
+        if (rc == 0)
+            rc = readBuf(c, 4, (uint8_t *)&value);
+        else
+            reconnect();
+    }
+    while (rc != 0 && --retryCount);
+    LOGF_DEBUG("readU32: %d %x", cmd, value);
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
+}
+
+int ScopeDomeUSB21::readBuffer(Command cmd, int len, uint8_t *cbuf)
+{
+    int rc;
+    int retryCount = 2;
+    Command c;
+    do
+    {
+        rc = write(cmd);
+        if (rc == 0)
+            rc = readBuf(c, len, cbuf);
+        else
+            reconnect();
+    }
+    while (rc != 0 && --retryCount);
+    return rc;
+}
+
+int ScopeDomeUSB21::writeCmd(Command cmd)
+{
+    int rc = write(cmd);
+    if (rc != 0)
+    {
+        reconnect();
+        return rc;
+    }
+    return read(cmd);
+}
+
+int ScopeDomeUSB21::writeU8(Command cmd, uint8_t value)
+{
+    int rc = writeBuf(cmd, 1, &value);
+    if (rc != 0)
+    {
+        reconnect();
+        return rc;
+    }
+    return read(cmd);
+}
+
+int ScopeDomeUSB21::writeU16(Command cmd, uint16_t value)
+{
+    int rc = writeBuf(cmd, 2, (uint8_t *)&value);
+    if (rc != 0)
+    {
+        reconnect();
+        return rc;
+    }
+    return read(cmd);
+}
+
+int ScopeDomeUSB21::writeU32(Command cmd, uint32_t value)
+{
+    int rc = writeBuf(cmd, 4, (uint8_t *)&value);
+    if (rc != 0)
+    {
+        reconnect();
+        return rc;
+    }
+    return read(cmd);
+}
+
+int ScopeDomeUSB21::writeBuffer(Command cmd, int len, uint8_t *cbuf)
+{
+    int rc = writeBuf(cmd, len, cbuf);
+    if (rc != 0)
+    {
+        reconnect();
+        return rc;
+    }
+    return read(cmd);
+}
+
+void ScopeDomeUSB21::reconnect()
+{
+    parent->reconnect();
+}
+
+int ScopeDomeUSB21::updateState()
+{
+    int rc = readU16(GetStatus, status);
+    rc |= readS16(GetCounter, counter);
+    rc |= readBuffer(GetAllDigitalExt, 5, digitalSensorState);
+    return rc;
+}
+
+uint32_t ScopeDomeUSB21::getStatus()
+{
+    return status;
+}
+
+void ScopeDomeUSB21::getFirmwareVersions(double &main, double &rotary)
+{
+    uint16_t fwVersion = 0;
+    readU16(GetVersionFirmware, fwVersion);
+    main = fwVersion / 100.0;
+
+    uint8_t fwVersionRotary = 0;
+    readU8(GetVersionFirmwareRotary, fwVersionRotary);
+    rotary = (fwVersionRotary + 9) / 10.0;
+}
+
+uint32_t ScopeDomeUSB21::getStepsPerRevolution()
+{
+    uint32_t stepsPerRevolution = 0;
+    readU32(GetImpPerTurn, stepsPerRevolution);
+    return stepsPerRevolution;
+}
+
+// Abstract versions
+ISState ScopeDomeUSB21::getInputState(AbstractInput input)
+{
+    DigitalIO channel;
+    switch(input)
+    {
+        case HOME:
+            channel = IN_HOME;
+            break;
+        case OPEN1:
+            channel = IN_OPEN1;
+            break;
+        case CLOSED1:
+            channel = IN_CLOSED1;
+            break;
+        case OPEN2:
+            channel = IN_OPEN2;
+            break;
+        case CLOSED2:
+            channel = IN_CLOSED1;
+            break;
+        case ROTARY_LINK:
+            channel = IN_ROT_LINK;
+            break;
+        default:
+            LOG_ERROR("invalid input");
+            return ISS_OFF;
+    }
+    return getInputState(channel);
+}
+
+int ScopeDomeUSB21::setOutputState(AbstractOutput output, ISState onOff)
+{
+    DigitalIO channel;
+    switch(output)
+    {
+        case RESET:
+            channel = OUT_RELAY1;
+            break;
+        case CW:
+            channel = OUT_CW;
+            break;
+        case CCW:
+            channel = OUT_CCW;
+            break;
+        default:
+            LOG_ERROR("invalid output");
+            return ISS_OFF;
+    }
+    return setOutputState(channel, onOff);
+}
+
+// Internal versions
+ISState ScopeDomeUSB21::getInputState(DigitalIO channel)
+{
+    int ch      = (int)channel;
+    int byte    = ch >> 3;
+    uint8_t bit = 1 << (ch & 7);
+    return (digitalSensorState[byte] & bit) ? ISS_ON : ISS_OFF;
+}
+
+int ScopeDomeUSB21::setOutputState(DigitalIO channel, ISState onOff)
+{
+    return writeU8(onOff == ISS_ON ? SetDigitalChannel : ClearDigitalChannel, (uint8_t)channel);
+}
+
+int ScopeDomeUSB21::getRotationCounter()
+{
+    return counter;
+}
+
+int ScopeDomeUSB21::getRotationCounterExt()
+{
+    readS32(GetCounterExt, counterExt);
+    return counterExt;
+}
+
+bool ScopeDomeUSB21::isCalibrationNeeded()
+{
+    uint8_t calibrationNeeded = false;
+    readU8(IsFullSystemCalReq, calibrationNeeded);
+    return calibrationNeeded != 0;
+}
+
+void ScopeDomeUSB21::abort()
+{
+    writeCmd(Stop);
+}
+
+void ScopeDomeUSB21::calibrate()
+{
+    writeCmd(FullSystemCal);
+}
+
+void ScopeDomeUSB21::findHome()
+{
+    writeCmd(FindHome);
+}
+
+void ScopeDomeUSB21::controlShutter(ShutterOperation operation)
+{
+    switch(operation)
+    {
+        case OPEN_SHUTTER:
+            setOutputState(OUT_CLOSE1, ISS_OFF);
+            setOutputState(OUT_OPEN1, ISS_ON);
+            break;
+        case CLOSE_SHUTTER:
+            setOutputState(OUT_CLOSE1, ISS_ON);
+            setOutputState(OUT_OPEN1, ISS_OFF);
+            break;
+        case STOP_SHUTTER:
+            setOutputState(OUT_CLOSE1, ISS_OFF);
+            setOutputState(OUT_OPEN1, ISS_OFF);
+            break;
+    }
+}
+
+void ScopeDomeUSB21::resetCounter()
+{
+    writeCmd(ResetCounter);
+    writeCmd(ResetCounterExt);
+}
+
+void ScopeDomeUSB21::move(int steps)
+{
+    if(steps < 0)
+    {
+        writeU16(CCWRotation, -steps);
+    }
+    else
+    {
+        writeU16(CWRotation, steps);
+    }
+}
+
+size_t ScopeDomeUSB21::getNumberOfSensors()
+{
+    return 11;
+}
+
+ScopeDomeCard::SensorInfo ScopeDomeUSB21::getSensorInfo(size_t index)
+{
+    ScopeDomeCard::SensorInfo info;
+    switch(index)
+    {
+        case 0:
+            info.propName = "LINK_STRENGTH";
+            info.label = "Shutter link strength";
+            info.format = "%3.0f";
+            info.minValue = 0;
+            info.maxValue = 100;
+            break;
+        case 1:
+            info.propName = "SHUTTER_POWER";
+            info.label = "Shutter internal power";
+            info.format = "%2.2f";
+            info.minValue = 0;
+            info.maxValue = 100;
+            break;
+        case 2:
+            info.propName = "SHUTTER_BATTERY";
+            info.label = "Shutter battery power";
+            info.format = "%2.2f";
+            info.minValue = 0;
+            info.maxValue = 100;
+            break;
+        case 3:
+            info.propName = "CARD_POWER";
+            info.label = "Card internal power";
+            info.format = "%2.2f";
+            info.minValue = 0;
+            info.maxValue = 100;
+            break;
+        case 4:
+            info.propName = "CARD_BATTERY";
+            info.label = "Card battery power";
+            info.format = "%2.2f";
+            info.minValue = 0;
+            info.maxValue = 100;
+            break;
+        case 5:
+            info.propName = "TEMP_DOME_IN";
+            info.label = "Temperature in dome";
+            info.format = "%2.2f";
+            info.minValue = -100;
+            info.maxValue = 100;
+            break;
+        case 6:
+            info.propName = "TEMP_DOME_OUT";
+            info.label = "Temperature outside dome";
+            info.format = "%2.2f";
+            info.minValue = -100;
+            info.maxValue = 100;
+            break;
+        case 7:
+            info.propName = "TEMP_DOME_HUMIDITY";
+            info.label = "Temperature humidity sensor";
+            info.format = "%2.2f";
+            info.minValue = -100;
+            info.maxValue = 100;
+            break;
+        case 8:
+            info.propName = "HUMIDITY";
+            info.label = "Humidity";
+            info.format = "%3.2f";
+            info.minValue = 0;
+            info.maxValue = 100;
+            break;
+        case 9:
+            info.propName = "PRESSURE";
+            info.label = "Pressure";
+            info.format = "%4.1f";
+            info.minValue = 0;
+            info.maxValue = 2000;
+            break;
+        case 10:
+            info.propName = "DEW_POINT";
+            info.label = "Dew point";
+            info.format = "%2.2f";
+            info.minValue = -100;
+            info.maxValue = 100;
+            break;
+        default:
+            LOG_ERROR("invalid sensor index");
+            break;
+    }
+    return info;
+}
+
+double ScopeDomeUSB21::getSensorValue(size_t index)
+{
+    double value = 0;
+
+    switch(index)
+    {
+        case 0:
+        {
+            readU8(GetLinkStrength, linkStrength);
+            value = linkStrength;
+
+            // My shutter unit occasionally disconnects so implement a simple watchdog
+            // to check for link strength and reset the controller if link is lost for
+            // more than 5 polling cycles
+            static int count = 0;
+            if (linkStrength == 0)
+            {
+                if (++count > 5)
+                {
+                    // Issue reset
+                    setOutputState(ScopeDomeCard::RESET, ISS_ON);
+                    count = 0;
+                }
+            }
+            else
+            {
+                count = 0;
+            }
+            break;
+        }
+        case 1:
+            readFloat(GetAnalog1, sensors[0]);
+            value = sensors[0];
+            break;
+        case 2:
+            readFloat(GetAnalog2, sensors[1]);
+            value = sensors[1];
+            break;
+        case 3:
+            readFloat(GetMainAnalog1, sensors[2]);
+            value = sensors[2];
+            break;
+        case 4:
+            readFloat(GetMainAnalog2, sensors[3]);
+            value = sensors[3];
+            break;
+        case 5:
+            readFloat(GetTempIn, sensors[4]);
+            value = sensors[4];
+            break;
+        case 6:
+            readFloat(GetTempOut, sensors[5]);
+            value = sensors[5];
+            break;
+        case 7:
+            readFloat(GetTempHum, sensors[6]);
+            value = sensors[6];
+            break;
+        case 8:
+            readFloat(GetHum, sensors[7]);
+            value = sensors[7];
+            break;
+        case 9:
+            readFloat(GetPressure, sensors[8]);
+            value = sensors[8];
+            break;
+        case 10:
+            value = parent->getDewPoint(sensors[7], sensors[6]);
+            break;
+        default:
+            LOG_ERROR("invalid sensor index");
+            break;
+    }
+    return value;
+}
+
+size_t ScopeDomeUSB21::getNumberOfRelays()
+{
+    return 8;
+}
+
+ScopeDomeCard::RelayInfo ScopeDomeUSB21::getRelayInfo(size_t index)
+{
+    ScopeDomeCard::RelayInfo info;
+    switch(index)
+    {
+        case 0:
+            info.propName = "CCD";
+            info.label = "CCD";
+            break;
+        case 1:
+            info.propName = "SCOPE";
+            info.label = "Telescope";
+            break;
+        case 2:
+            info.propName = "LIGHT";
+            info.label = "Light";
+            break;
+        case 3:
+            info.propName = "FAN";
+            info.label = "Fan";
+            break;
+        case 4:
+            info.propName = "RELAY_1";
+            info.label = "Relay 1 (reset)";
+            break;
+        case 5:
+            info.propName = "RELAY_2";
+            info.label = "Relay 2 (heater)";
+            break;
+        case 6:
+            info.propName = "RELAY_3";
+            info.label = "Relay 3";
+            break;
+        case 7:
+            info.propName = "RELAY_4";
+            info.label = "Relay 4";
+            break;
+        default:
+            LOG_ERROR("invalid relay index");
+            break;
+    }
+    return info;
+}
+
+ISState ScopeDomeUSB21::getRelayState(size_t index)
+{
+    switch(index)
+    {
+        case 0:
+            return getInputState(OUT_CCD);
+        case 1:
+            return getInputState(OUT_SCOPE);
+        case 2:
+            return getInputState(OUT_LIGHT);
+        case 3:
+            return getInputState(OUT_FAN);
+        case 4:
+            return getInputState(OUT_RELAY1);
+        case 5:
+            return getInputState(OUT_RELAY2);
+        case 6:
+            return getInputState(OUT_RELAY3);
+        case 7:
+            return getInputState(OUT_RELAY4);
+        default:
+            LOG_ERROR("invalid relay index");
+            break;
+    }
+    return ISS_OFF;
+}
+
+void ScopeDomeUSB21::setRelayState(size_t index, ISState state)
+{
+    switch(index)
+    {
+        case 0:
+            setOutputState(OUT_CCD, state);
+            break;
+        case 1:
+            setOutputState(OUT_SCOPE, state);
+            break;
+        case 2:
+            setOutputState(OUT_LIGHT, state);
+            break;
+        case 3:
+            setOutputState(OUT_FAN, state);
+            break;
+        case 4:
+            setOutputState(OUT_RELAY1, state);
+            break;
+        case 5:
+            setOutputState(OUT_RELAY2, state);
+            break;
+        case 6:
+            setOutputState(OUT_RELAY3, state);
+            break;
+        case 7:
+            setOutputState(OUT_RELAY4, state);
+            break;
+        default:
+            LOG_ERROR("invalid relay index");
+            break;
+    }
+}
+
+size_t ScopeDomeUSB21::getNumberOfInputs()
+{
+    return 12;
+}
+
+ScopeDomeCard::InputInfo ScopeDomeUSB21::getInputInfo(size_t index)
+{
+    ScopeDomeCard::InputInfo info;
+
+    switch(index)
+    {
+        case 0:
+            info.propName = "AZ_COUNTER";
+            info.label = "Az counter";
+            break;
+        case 1:
+            info.propName = "HOME";
+            info.label = "Dome at home";
+            break;
+        case 2:
+            info.propName = "OPEN_1";
+            info.label = "Shutter 1 open";
+            break;
+        case 3:
+            info.propName = "CLOSE_1";
+            info.label = "Shutter 1 closed";
+            break;
+        case 4:
+            info.propName = "OPEN_2";
+            info.label = "Shutter 2 open";
+            break;
+        case 5:
+            info.propName = "CLOSE_2";
+            info.label = "Shutter 2 closed";
+            break;
+        case 6:
+            info.propName = "SCOPE_HOME";
+            info.label = "Scope at home";
+            break;
+        case 7:
+            info.propName = "RAIN";
+            info.label = "Rain sensor";
+            break;
+        case 8:
+            info.propName = "CLOUD";
+            info.label = "Cloud sensor";
+            break;
+        case 9:
+            info.propName = "SAFE";
+            info.label = "Observatory safe";
+            break;
+        case 10:
+            info.propName = "LINK";
+            info.label = "Rotary link";
+            break;
+        case 11:
+            info.propName = "FREE";
+            info.label = "Free input";
+            break;
+        default:
+            LOG_ERROR("invalid input index");
+            break;
+    }
+    return info;
+}
+
+ISState ScopeDomeUSB21::getInputValue(size_t index)
+{
+    switch(index)
+    {
+        case 0:
+            return getInputState(IN_ENCODER);
+        case 1:
+            return getInputState(IN_HOME);
+        case 2:
+            return getInputState(IN_OPEN1);
+        case 3:
+            return getInputState(IN_CLOSED1);
+        case 4:
+            return getInputState(IN_OPEN2);
+        case 5:
+            return getInputState(IN_CLOSED2);
+        case 6:
+            return getInputState(IN_S_HOME);
+        case 7:
+            return getInputState(IN_CLOUDS);
+        case 8:
+            return getInputState(IN_CLOUD);
+        case 9:
+            return getInputState(IN_SAFE);
+        case 10:
+            return getInputState(IN_ROT_LINK);
+        case 11:
+            return getInputState(IN_FREE);
+        default:
+            LOG_ERROR("invalid input index");
+            break;
+    }
+    return ISS_OFF;
+}
+
+void ScopeDomeUSB21::setHomeSensorPolarity(HomeSensorPolarity polarity)
+{
+    uint8_t negate = 0;
+    switch(polarity)
+    {
+        case ACTIVE_HIGH:
+            negate = 0;
+            break;
+        case ACTIVE_LOW:
+            negate = 1;
+            break;
+    }
+
+    writeU8(NegHomeSensorActiveState, negate);
 }

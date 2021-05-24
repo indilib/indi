@@ -284,10 +284,6 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             SETTING_MAX_SPEED,
         };
 
-        // Temperature
-        INumber FocuserTemperatureN[1];
-        INumberVectorProperty FocuserTemperatureNP;
-
         ////////////////////////////////////////////////////////////////////////////////////
         /// USB
         ////////////////////////////////////////////////////////////////////////////////////
