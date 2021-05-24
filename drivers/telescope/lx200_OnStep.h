@@ -157,8 +157,10 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         *  2 = Fork Alt
         *  3 = Alt Azm
         */
-
-
+        
+        virtual bool sendScopeTime() override;
+        virtual bool sendScopeLocation() override;
+        
         //FocuserInterface
 
         IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;

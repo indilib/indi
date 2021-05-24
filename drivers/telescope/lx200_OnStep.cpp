@@ -52,7 +52,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     setVersion(1, 10);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
-    LX200_HAS_PRECISE_TRACKING_FREQ | LX200_HAS_ALTERNATE_LOCATION_CMD);
+    LX200_HAS_PRECISE_TRACKING_FREQ);
 
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE
                            | TELESCOPE_HAS_TRACK_RATE, 10 );
@@ -3661,5 +3661,144 @@ bool LX200_OnStep::saveConfigItems(FILE *fp)
 }
 
 
+
+bool LX200_OnStep::sendScopeTime()
+{
+    char cdate[MAXINDINAME] = {0};
+    char ctime[MAXINDINAME] = {0};
+    struct tm ltm;
+    struct tm utm;
+    time_t time_epoch;
+    
+    double offset = 0;
+    if (getUTFOffset(&offset))
+    {
+        char utcStr[8] = {0};
+        snprintf(utcStr, 8, "%.2f", offset);
+        IUSaveText(&TimeT[1], utcStr);
+    }
+    else
+    {
+        LOG_WARN("Could not obtain UTC offset from mount!");
+        return false;
+    }
+    
+    if (getLocalTime(ctime) == false)
+    {
+        LOG_WARN("Could not obtain local time from mount!");
+        return false;
+    }
+    
+    if (getLocalDate(cdate) == false)
+    {
+        LOG_WARN("Could not obtain local date from mount!");
+        return false;
+    }
+    
+    // To ISO 8601 format in LOCAL TIME!
+    char datetime[MAXINDINAME] = {0};
+    snprintf(datetime, MAXINDINAME, "%sT%s", cdate, ctime);
+    
+    // Now that date+time are combined, let's get tm representation of it.
+    if (strptime(datetime, "%FT%T", &ltm) == nullptr)
+    {
+        LOGF_WARN("Could not process mount date and time: %s", datetime);
+        return false;
+    }
+    
+    // Get local time epoch in UNIX seconds
+    time_epoch = mktime(&ltm);
+    
+    // LOCAL to UTC by subtracting offset.
+    time_epoch -= static_cast<int>(offset * 3600.0);
+    
+    // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time)
+    localtime_r(&time_epoch, &utm);
+    
+    // Format it into the final UTC ISO 8601
+    strftime(cdate, MAXINDINAME, "%Y-%m-%dT%H:%M:%S", &utm);
+    IUSaveText(&TimeT[0], cdate);
+    
+    LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
+    LOGF_DEBUG("Mount controller UTC Offset: %s", TimeT[1].text);
+    
+    // Let's send everything to the client
+    TimeTP.s = IPS_OK;
+    IDSetText(&TimeTP, nullptr);
+    
+    return true;
+}
+
+bool LX200_OnStep::sendScopeLocation()
+{
+    int lat_dd = 0, lat_mm = 0, long_dd = 0, long_mm = 0;
+    double lat_ssf = 0.0, long_ssf = 0.0;
+    char lat_sexagesimal[MAXINDIFORMAT];
+    char lng_sexagesimal[MAXINDIFORMAT];
+    
+    if (isSimulation())
+    {
+        LocationNP.np[LOCATION_LATITUDE].value = 29.5;
+        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
+        LocationNP.np[LOCATION_ELEVATION].value = 10;
+        LocationNP.s           = IPS_OK;
+        IDSetNumber(&LocationNP, nullptr);
+        return true;
+    }
+    
+    if (getSiteLatitudeAlt(PortFD, &lat_dd, &lat_mm, &lat_ssf, ":GtH#") < 0)
+    {
+        //NOTE: All OnStep pre-31 Aug 2020 will fail the above: 
+        //      So Try the normal command, if it fails
+        if (getSiteLatitude(PortFD, &lat_dd, &lat_mm, &lat_ssf) < 0)
+        {
+            snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+        }
+        else 
+        {
+            LOG_WARN("Failed to get site latitude from device.");
+            return false;
+        }
+    }
+    else
+    {
+        snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+        f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+    }
+    
+    if (getSiteLongitudeAlt(PortFD, &long_dd, &long_mm, &long_ssf, ":GgH#") < 0)
+    {
+        //NOTE: All OnStep pre-31 Aug 2020 will fail the above: 
+        //      So Try the normal command, if it fails
+        if (getSiteLongitude(PortFD, &long_dd, &long_mm, &long_ssf) < 0)
+        {
+            LOG_WARN("Failed to get site longitude from device.");
+            return false;
+        }
+        else
+        {
+            snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+        }
+    }
+    else
+    {
+        snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+        f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+    }
+    
+    LOGF_INFO("Mount has Latitude %s (%g) Longitude %s (%g) (Longitude sign in carthography format)",
+              lat_sexagesimal,
+              LocationN[LOCATION_LATITUDE].value,
+              lng_sexagesimal,
+              LocationN[LOCATION_LONGITUDE].value);
+    
+    IDSetNumber(&LocationNP, nullptr);
+    
+    saveConfig(true, "GEOGRAPHIC_COORD");
+    
+    return true;
+}
 
 

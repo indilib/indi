@@ -56,7 +56,7 @@ class ioptronHC8406 : public LX200Generic
 
     virtual bool Park() override;
     virtual bool UnPark() override;
-    void sendScopeTime() ;
+    virtual bool sendScopeTime() override;
   private:
     int setioptronHC8406StandardProcedure(int fd, const char *data);
     int ioptronHC8406SyncCMR(char *matchedObject);

@@ -47,7 +47,6 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
             LX200_HAS_SITES                  = 1 << 3, /** Define Sites */
             LX200_HAS_PULSE_GUIDING          = 1 << 4, /** Define Pulse Guiding */
             LX200_HAS_PRECISE_TRACKING_FREQ  = 1 << 5, /** Use more precise tracking frequency, if supported by hardware. */
-            LX200_HAS_ALTERNATE_LOCATION_CMD = 1 << 6, /** Use :GtH# :GgH# instead of :Gt# and :Gg# for Lat/Long */
         } LX200Capability;
 
         uint32_t getLX200Capability() const
@@ -141,8 +140,8 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
         void getAlignment();
 
         // Send Mount time and location settings to client
-        bool sendScopeTime();
-        bool sendScopeLocation();
+        virtual bool sendScopeTime();
+        virtual bool sendScopeLocation();
 
         // Update slew rate if different than current
         bool updateSlewRate(int index);

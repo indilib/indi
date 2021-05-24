@@ -1380,54 +1380,28 @@ bool LX200Telescope::sendScopeLocation()
         IDSetNumber(&LocationNP, nullptr);
         return true;
     }
-    
-    
-    if (genericCapability & LX200_HAS_ALTERNATE_LOCATION_CMD) {
-        if (getSiteLatitudeAlt(PortFD, &lat_dd, &lat_mm, &lat_ssf, ":GtH#") < 0)
-        {
-            LOG_WARN("Failed to get site latitude from device.");
-            return false;
-        }
-        else
-        {
-            snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
-            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
-        }
-        if (getSiteLongitudeAlt(PortFD, &long_dd, &long_mm, &long_ssf, ":GgH#") < 0)
-        {
-            LOG_WARN("Failed to get site longitude from device.");
-            return false;
-        }
-        else
-        {
-            snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
-            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
-        }
-        
-    } else { 
-        if (getSiteLatitude(PortFD, &lat_dd, &lat_mm, &lat_ssf) < 0)
-        {
-            LOG_WARN("Failed to get site latitude from device.");
-            return false;
-        }
-        else
-        {
-            snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
-            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
-        }
-        if (getSiteLongitude(PortFD, &long_dd, &long_mm, &long_ssf) < 0)
-        {
-            LOG_WARN("Failed to get site longitude from device.");
-            return false;
-        }
-        else
-        {
-            snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
-            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
-        }
+
+    if (getSiteLatitude(PortFD, &lat_dd, &lat_mm, &lat_ssf) < 0)
+    {
+        LOG_WARN("Failed to get site latitude from device.");
+        return false;
+    }
+    else
+    {
+        snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+        f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
     }
 
-
+    if (getSiteLongitude(PortFD, &long_dd, &long_mm, &long_ssf) < 0)
+    {
+        LOG_WARN("Failed to get site longitude from device.");
+        return false;
+    }
+    else
+    {
+        snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+        f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+    }
 
     LOGF_INFO("Mount has Latitude %s (%g) Longitude %s (%g) (Longitude sign in carthography format)",
               lat_sexagesimal,
