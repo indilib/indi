@@ -318,7 +318,6 @@ else(WIN32 OR ANDROID)
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(CFITSIO REQUIRED)
-find_package(RTLSDR REQUIRED)
 find_package(Nova REQUIRED)
 find_package(USB1 REQUIRED)
 find_package(CURL REQUIRED)
@@ -334,7 +333,6 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream)
 include_directories( ${CFITSIO_INCLUDE_DIR})
-include_directories( ${RTLSDR_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${USB1_INCLUDE_DIRS})
 include_directories( ${GSL_INCLUDE_DIRS})
@@ -1396,14 +1394,16 @@ target_link_libraries(indi_simulator_receiver indidriver)
 install(TARGETS indi_simulator_receiver RUNTIME DESTINATION bin)
 
 ################# RTL-SDR Receiver #################
-
+find_package(RTLSDR)
+if (RTLSDR_FOUND)
+include_directories( ${RTLSDR_INCLUDE_DIR})
 SET(rtlsdr_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/receiver/indi_rtlsdr.cpp)
 
 add_executable(indi_rtlsdr ${rtlsdr_SRC})
 target_link_libraries(indi_rtlsdr indidriver ${RTLSDR_LIBRARIES})
 install(TARGETS indi_rtlsdr RUNTIME DESTINATION bin)
-
+endif()
 #################################################################################
 
 #####################################
