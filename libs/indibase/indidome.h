@@ -23,8 +23,8 @@
 #pragma once
 
 #include "defaultdevice.h"
+#include "libastro.h"
 #include "inditimer.h"
-#include <libnova/ln_types.h>
 
 #include <string>
 
@@ -625,13 +625,13 @@ class Dome : public DefaultDevice
         IPState m_MountState;
 
         // Observer geographic coords. Snooped from mount driver.
-        struct ln_lnlat_posn observer;
+        IGeographicCoordinates observer;
         // Do we have valid geographic coords from mount driver?
         bool HaveLatLong = false;
 
         // Mount horizontal and equatorial coords. Snoops from mount driver.
-        struct ln_hrz_posn mountHoriztonalCoords;
-        struct ln_equ_posn mountEquatorialCoords;
+        INDI::IHorizontalCoordinates mountHoriztonalCoords;
+        INDI::IEquatorialCoordinates mountEquatorialCoords;
         // Do we have valid coords from mount driver?
         bool HaveRaDec = false;
 

@@ -45,20 +45,16 @@ TEST(ALIGNMENT_TEST, Test_TDVRoundTripEquatorial)
     // Vega
     double ra = 18.6156, dec = 38.78361;
 
-    struct ln_equ_posn RaDec;
-    RaDec.ra = range360((ra * 360.0) / 24.0); // Convert decimal hours to decimal degrees
-    RaDec.dec = rangeDec(dec);
-
+    INDI::IEquatorialCoordinates RaDec {ra, rangeDec(dec)};
     TelescopeDirectionVector TDV = s.TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
-
-    struct ln_equ_posn RaDecResult;
+    INDI::IEquatorialCoordinates RaDecResult;
     s.EquatorialCoordinatesFromTelescopeDirectionVector(TDV, RaDecResult);
 
-    RaDecResult.ra = range360(RaDecResult.ra);
-    RaDecResult.dec = rangeDec(RaDecResult.dec);
+    RaDecResult.rightascension = range24(RaDecResult.rightascension);
+    RaDecResult.declination = rangeDec(RaDecResult.declination);
 
-    ASSERT_DOUBLE_EQ(RaDec.ra, RaDecResult.ra);
-    ASSERT_DOUBLE_EQ(RaDec.dec, RaDecResult.dec);
+    ASSERT_DOUBLE_EQ(RaDec.rightascension, RaDecResult.rightascension);
+    ASSERT_DOUBLE_EQ(RaDec.declination, RaDecResult.declination);
 }
 
 TEST(ALIGNMENT_TEST, Test_TDVRoundTripAltAz)
@@ -69,19 +65,18 @@ TEST(ALIGNMENT_TEST, Test_TDVRoundTripAltAz)
     s.SetAlignmentSubsystemActive(true);
 
     double alt = 35.7, az = 80.0;
-    struct ln_hrz_posn AltAz;
-    AltAz.alt = range360(alt);
-    AltAz.az = range360(az);
-
+    INDI::IHorizontalCoordinates AltAz;
+    AltAz.altitude = range360(alt);
+    AltAz.azimuth = range360(az);
     TelescopeDirectionVector TDV = s.TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
-    struct ln_hrz_posn AltAzResult;
+    INDI::IHorizontalCoordinates AltAzResult;
     s.AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAzResult);
 
-    AltAzResult.alt = range360(AltAzResult.alt);
-    AltAzResult.az = range360(AltAzResult.az);
+    AltAzResult.altitude = range360(AltAzResult.altitude);
+    AltAzResult.azimuth = range360(AltAzResult.azimuth);
 
-    ASSERT_DOUBLE_EQ(AltAz.alt, AltAzResult.alt);
-    ASSERT_DOUBLE_EQ(AltAz.az, AltAzResult.az);
+    ASSERT_DOUBLE_EQ(AltAz.altitude, AltAzResult.altitude);
+    ASSERT_DOUBLE_EQ(AltAz.azimuth, AltAzResult.azimuth);
 }
 
 TEST(ALIGNMENT_TEST, Test_ThreeSyncPointsEquatorial)
@@ -89,7 +84,7 @@ TEST(ALIGNMENT_TEST, Test_ThreeSyncPointsEquatorial)
     Scope s(INDI::AlignmentSubsystem::MathPluginManagement::EQUATORIAL);
 
     s.Handshake();
-    s.updateLocation(34.70, -80.54, 161);
+    ASSERT_TRUE(s.updateLocation(34.70, 279.46, 161));
     s.SetAlignmentSubsystemActive(true);
 
     double VegaJ2000RA = 18.6156972;
@@ -124,7 +119,7 @@ TEST(ALIGNMENT_TEST, Test_ThreeSyncPointsAltAz)
     Scope s(INDI::AlignmentSubsystem::MathPluginManagement::ALTAZ);
 
     s.Handshake();
-    ASSERT_TRUE(s.updateLocation(34.70, -80.54, 161));
+    ASSERT_TRUE(s.updateLocation(34.70, 279.46, 161));
     s.SetAlignmentSubsystemActive(true);
 
     double VegaJ2000RA = 18.6156972;
@@ -146,17 +141,14 @@ TEST(ALIGNMENT_TEST, Test_ThreeSyncPointsAltAz)
     ASSERT_TRUE(s.TelescopeAltAzToSky(testPointAlt, testPointAz, skyRA, skyDec));
 
     // convert the ra/dec we received to alt/az to compare
-    ln_lnlat_posn location;
+    INDI::IGeographicCoordinates location;
     s.GetDatabaseReferencePosition(location);
-    ln_equ_posn raDec;
-    raDec.dec = skyDec;
-    raDec.ra = skyRA * 360.0 / 24.0; // get_hrz_from_equ expects this in decimal degrees
-    ln_hrz_posn altAz;
-    get_hrz_from_equ(&raDec, &location, ln_get_julian_from_sys(), &altAz);
-
+    INDI::IEquatorialCoordinates raDec {skyRA, skyDec};
+    INDI::IHorizontalCoordinates altAz;
+    INDI::EquatorialToHorizontal(&raDec, &location, ln_get_julian_from_sys(), &altAz);
     // I would expect these to be closer than 1 decimal apart, but it seems to work
-    ASSERT_DOUBLE_EQ(round(testPointAlt, 1), round(altAz.alt, 1));
-    ASSERT_DOUBLE_EQ(round(testPointAz, 1), round(altAz.az, 1));
+    ASSERT_DOUBLE_EQ(round(testPointAlt, 1), round(altAz.altitude, 1));
+    ASSERT_DOUBLE_EQ(round(testPointAz, 1), round(altAz.azimuth, 1));
 
     double roundTripAlt, roundTripAz;
     s.SkyToTelescopeAltAz(skyRA, skyDec, roundTripAlt, roundTripAz);

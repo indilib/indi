@@ -19,7 +19,7 @@
 #pragma once
 
 #include "defaultdevice.h"
-
+#include "libastro.h"
 #include <libnova/julian_day.h>
 
 #include <string>
@@ -637,10 +637,8 @@ class Telescope : public DefaultDevice
          */
         TelescopePierSide expectedPierSide(double ra);
 
-        // helper functions
-        double getAzimuth(double r, double d);
-
-        ln_lnlat_posn lnobserver { 0, 0 };
+        // Geographic Location
+        IGeographicCoordinates m_Location { 0, 0, 0 };
 
         /**
          * @brief Load scope settings from XML files.
@@ -828,7 +826,7 @@ class Telescope : public DefaultDevice
          */
         ISwitchVectorProperty TrackSatSP;
         ISwitch TrackSatS[SAT_TRACK_COUNT];
-        
+
         // PEC State
         ISwitch PECStateS[2];
         ISwitchVectorProperty PECStateSP;

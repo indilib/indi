@@ -182,14 +182,11 @@ bool ScopeSim::updateProperties()
 
             if (isParked())
             {
-	        // at this point there is a valid ParkData.xml available
-	        double longitude, latitude;
-	        IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-	        IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-	        alignment.latitude = Angle(latitude);
-		alignment.longitude = Angle(longitude);
+                // at this point there is a valid ParkData.xml available
 
-	        currentRA = (alignment.lst() - Angle(ParkPositionN[AXIS_RA].value, Angle::ANGLE_UNITS::HOURS)).Hours();
+                alignment.latitude = Angle(LocationN[LOCATION_LATITUDE].value);
+                alignment.longitude = Angle(LocationN[LOCATION_LONGITUDE].value);
+                currentRA = (alignment.lst() - Angle(ParkPositionN[AXIS_RA].value, Angle::ANGLE_UNITS::HOURS)).Hours();
                 currentDEC = ParkPositionN[AXIS_DE].value;
                 Sync(currentRA, currentDEC);
 
@@ -357,7 +354,7 @@ bool ScopeSim::Sync(double ra, double dec)
 
 bool ScopeSim::Park()
 {
-    double ra = (alignment.lst() - Angle(GetAxis1Park() * 15.)).Degrees()/15.;
+    double ra = (alignment.lst() - Angle(GetAxis1Park() * 15.)).Degrees() / 15.;
     StartSlew(ra, GetAxis2Park(), SCOPE_PARKING);
     return true;
 }

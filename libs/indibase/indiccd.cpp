@@ -949,27 +949,26 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             {
                 if (PrimaryCCD.getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
                 {
-                    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-                    epochPos.ra  = RA * 15.0;
-                    epochPos.dec = Dec;
+                    INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+                    epochPos.rightascension  = RA;
+                    epochPos.declination = Dec;
 
                     // Convert from JNow to J2000
-                    //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-                    LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+                    INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
-                    J2000RA = J2000Pos.ra / 15.0;
-                    J2000DE = J2000Pos.dec;
+                    J2000RA = J2000Pos.rightascension;
+                    J2000DE = J2000Pos.declination;
 
                     if (!std::isnan(Latitude) && !std::isnan(Longitude))
                     {
                         // Horizontal Coords
-                        ln_hrz_posn horizontalPos;
-                        ln_lnlat_posn observer;
-                        observer.lat = Latitude;
-                        observer.lng = Longitude;
+                        INDI::IHorizontalCoordinates horizontalPos;
+                        IGeographicCoordinates observer;
+                        observer.latitude = Latitude;
+                        observer.longitude = Longitude;
 
-                        get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-                        Airmass = ln_get_airmass(horizontalPos.alt, 750);
+                        EquatorialToHorizontal(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+                        Airmass = ln_get_airmass(horizontalPos.altitude, 750);
                     }
                 }
 
@@ -2683,7 +2682,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 // Record information required later in creation of FITS header
                 if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
                 {
-                    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+                    INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
                     epochPos.ra  = RA * 15.0;
                     epochPos.dec = Dec;
 
@@ -2696,8 +2695,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                     if (!std::isnan(Latitude) && !std::isnan(Longitude))
                     {
                         // Horizontal Coords
-                        ln_hrz_posn horizontalPos;
-                        ln_lnlat_posn observer;
+                        INDI::IHorizontalCoordinates horizontalPos;
+                        IGeographicCoordinates observer;
                         observer.lat = Latitude;
                         observer.lng = Longitude;
 

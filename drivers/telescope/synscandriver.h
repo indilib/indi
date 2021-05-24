@@ -20,6 +20,7 @@
 
 #include "inditelescope.h"
 #include "indiguiderinterface.h"
+#include "libastro.h"
 
 class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -84,7 +85,7 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
          *        if specified, only res_len bytes are ready.
          * @return True if successful, false otherwise.
          */
-        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len=-1, int res_len=-1);
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
         // Check if mount is responding
         virtual bool echo();
 
@@ -130,7 +131,6 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
         int m_GuideNSTID { 0 }, m_GuideWETID { 0 };
 
         // Utility
-        ln_hrz_posn getAltAzPosition(double ra, double dec);
         int hexStrToInteger(const std::string &str);
         void hexDump(char *buf, const char *data, int size);
 

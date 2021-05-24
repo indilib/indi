@@ -156,13 +156,8 @@ bool IEQPro::initProperties()
     if (strstr(getDeviceName(), "CEM40") || strstr(getDeviceName(), "GEM45"))
         serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
-    double longitude = 0, latitude = 90;
-    // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sidereal_time(longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-    currentDEC = latitude > 0 ? 90 : -90;
-
+    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
     return true;
 }
 
@@ -685,22 +680,14 @@ bool IEQPro::Park()
     }
 
     // Otherwise fallback to Alt/Az --> RA/DE parking
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
+    INDI::IHorizontalCoordinates horizontalPos;
+    horizontalPos.azimuth = parkAz;
+    horizontalPos.altitude = parkAlt;
+    INDI::IEquatorialCoordinates equatorialPos;
 
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
+    INDI::HorizontalToEquatorial(&horizontalPos, &m_Location, ln_get_julian_from_sys(), &equatorialPos);
 
-    horizontalPos.az = parkAz;
-    horizontalPos.alt = parkAlt;
-    ln_equ_posn equatorialPos;
-
-    get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-    if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
+    if (Goto(equatorialPos.rightascension, equatorialPos.declination))
     {
         TrackState = SCOPE_PARKING;
         LOG_INFO("Parking is in progress...");
@@ -1016,29 +1003,15 @@ bool IEQPro::saveConfigItems(FILE *fp)
 
 bool IEQPro::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = currentRA * 15;
-    equatorialPos.dec = currentDEC;
-    get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-    double parkAZ = horizontalPos.az;
-    double parkAlt = horizontalPos.alt;
-
+    INDI::IEquatorialCoordinates equatorialCoords {currentRA, currentDEC};
+    INDI::IHorizontalCoordinates horizontalCoords {0, 0};
+    INDI::EquatorialToHorizontal(&equatorialCoords, &m_Location, ln_get_julian_from_sys(), &horizontalCoords);
+    double parkAZ = horizontalCoords.azimuth;
+    double parkAlt = horizontalCoords.altitude;
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
-
-    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
-               AltStr);
-
+    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
 

@@ -693,17 +693,16 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
     }
     if (RA != -1000 && Dec != -1000)
     {
-        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-        epochPos.ra  = RA * 15.0;
-        epochPos.dec = Dec;
+        INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+        epochPos.rightascension  = RA;
+        epochPos.declination = Dec;
 
         // Convert from JNow to J2000
         //TODO use exp_start instead of julian from system
-        //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-        LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+        INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
-        double raJ2000  = J2000Pos.ra / 15.0;
-        double decJ2000 = J2000Pos.dec;
+        double raJ2000  = J2000Pos.rightascension;
+        double decJ2000 = J2000Pos.declination;
         char ra_str[32], de_str[32];
 
         fs_sexa(ra_str, raJ2000, 2, 360000);
