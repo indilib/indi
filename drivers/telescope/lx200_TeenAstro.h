@@ -103,8 +103,8 @@ class LX200_TeenAstro : public INDI::Telescope, public INDI::GuiderInterface
         void updateMountStatus(char);
    
         // Send Mount time and location settings to client
-        bool sendScopeTime();
-        bool sendScopeLocation();
+        virtual bool sendScopeTime() override;
+        virtual bool sendScopeLocation() override;
 
         // User interface
 

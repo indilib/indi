@@ -123,8 +123,8 @@ class Rainbow : public INDI::Telescope, public INDI::GuiderInterface
         ///////////////////////////////////////////////////////////////////////////////
         /// Location & Time
         ///////////////////////////////////////////////////////////////////////////////
-        bool sendScopeTime();
-        bool sendScopeLocation();
+        virtual bool sendScopeTime() override;
+        virtual bool sendScopeLocation() override;
         bool getUTFOffset(double *offset);
         bool getLocalDate(char *dateString);
         bool getLocalTime(char *timeString);

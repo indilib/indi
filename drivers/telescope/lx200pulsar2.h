@@ -165,7 +165,7 @@ class LX200Pulsar2 : public LX200Generic
   private:
 
     bool storeScopeLocation();
-    bool sendScopeTime();
+    virtual bool sendScopeTime() override;
 
     bool isSlewing();
     bool just_started_slewing;
