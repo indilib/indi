@@ -318,6 +318,7 @@ else(WIN32 OR ANDROID)
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(CFITSIO REQUIRED)
+find_package(RTLSDR REQUIRED)
 find_package(Nova REQUIRED)
 find_package(USB1 REQUIRED)
 find_package(CURL REQUIRED)
@@ -333,10 +334,11 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream)
 include_directories( ${CFITSIO_INCLUDE_DIR})
+include_directories( ${RTLSDR_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${USB1_INCLUDE_DIRS})
 include_directories( ${GSL_INCLUDE_DIRS})
-include_directories( ${JPEG_INCLUDE_DIR} )
+include_directories( ${JPEG_INCLUDE_DIR})
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
     include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam)
 ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
@@ -448,6 +450,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indireceiver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp
@@ -873,15 +876,6 @@ SET(telescopescript_SRC
 add_executable(indi_script_telescope ${telescopescript_SRC})
 target_link_libraries(indi_script_telescope indidriver)
 install(TARGETS indi_script_telescope RUNTIME DESTINATION bin)
-
-################ Detector Simulator ################
-
-SET(spectrographsimulator_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/spectrograph/spectrograph_simulator.cpp)
-
-add_executable(indi_simulator_spectrograph ${spectrographsimulator_SRC})
-target_link_libraries(indi_simulator_spectrograph indidriver)
-install(TARGETS indi_simulator_spectrograph RUNTIME DESTINATION bin)
 
 ########### CCD Simulator ##############
 SET(ccdsimulator_SRC
@@ -1385,6 +1379,30 @@ SET(qhycfw3_SRC
 add_executable(indi_qhycfw3_wheel ${qhycfw3_SRC})
 target_link_libraries(indi_qhycfw3_wheel indidriver)
 install(TARGETS indi_qhycfw3_wheel RUNTIME DESTINATION bin)
+
+#################################################################################
+
+#####################################
+########## SENSORS GROUP ############
+#####################################
+
+################ Receiver Simulator ################
+
+SET(receiversimulator_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/receiver/receiver_simulator.cpp)
+
+add_executable(indi_simulator_receiver ${receiversimulator_SRC})
+target_link_libraries(indi_simulator_receiver indidriver)
+install(TARGETS indi_simulator_receiver RUNTIME DESTINATION bin)
+
+################# RTL-SDR Receiver #################
+
+SET(rtlsdr_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/receiver/indi_rtlsdr.cpp)
+
+add_executable(indi_rtlsdr ${rtlsdr_SRC})
+target_link_libraries(indi_rtlsdr indidriver ${RTLSDR_LIBRARIES})
+install(TARGETS indi_rtlsdr RUNTIME DESTINATION bin)
 
 #################################################################################
 
@@ -1997,6 +2015,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicorrelator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indispectrograph.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indireceiver.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweatherinterface.h
