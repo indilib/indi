@@ -418,13 +418,13 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || ha <= 0)
         {
             deEncoder = - (de - 90);
-            haEncoder = (ha + 6) * 360.0 / 24.0;
+            haEncoder = ha * 360.0 / 24.0;
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
             deEncoder = deEncoder - 90;
-            haEncoder = (ha - 6.0) * 360.0 / 24.0;
+            haEncoder = (12 - ha) * 360.0 / 24.0;
         }
     }
     else
@@ -433,13 +433,14 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || ha <= 0)
         {
             deEncoder = - (de + 90);
-            haEncoder = -(ha + 6) * 360.0 / 24.0;
+            //haEncoder = -(ha + 6) * 360.0 / 24.0;
+            haEncoder = -ha * 360.0 / 24.0;
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
             deEncoder = (de + 90);
-            haEncoder = -(ha - 6) * 360 / 24.0;
+            haEncoder = (-12 - ha) * 360 / 24.0;
         }
     }
 }
