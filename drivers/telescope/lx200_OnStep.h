@@ -143,6 +143,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         virtual bool Sync(double ra, double dec) override;
 
         virtual bool saveConfigItems(FILE *fp) override;
+        virtual void Init_Outputs();
 
         //Mount information
         int OSMountType = 0;
