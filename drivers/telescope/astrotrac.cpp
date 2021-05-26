@@ -107,13 +107,6 @@ bool AstroTrac::initProperties()
 
     addAuxControls();
 
-    double longitude = 0, latitude = 0;
-    // Get value from config file if it exists.
-    if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude) == 0)
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-    if (IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude) == 0)
-        LocationN[LOCATION_LATITUDE].value = latitude;
-
     InitAlignmentProperties(this);
     // set mount type to alignment subsystem
     SetApproximateMountAlignmentFromMountType(EQUATORIAL);
