@@ -174,7 +174,6 @@ class Spectrograph : public virtual SensorInterface
         INumber SpectrographSettingsN[8];
 
 private:
-        double Frequency;
         double LowCutFrequency;
         double HighCutFrequency;
         double Gain;
