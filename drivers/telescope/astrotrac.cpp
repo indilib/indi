@@ -85,13 +85,13 @@ bool AstroTrac::initProperties()
     MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Acceleration
-    AccelerationNP[AXIS_RA].fill("AXIS_RA", "RA arcsec/sec^2", ".2f%", 0, 3600, 100, 0);
-    AccelerationNP[AXIS_DE].fill("AXIS_DE", "DE arcsec/sec^2", ".2f%", 0, 3600, 100, 0);
+    AccelerationNP[AXIS_RA].fill("AXIS_RA", "RA arcsec/sec^2", "%.2f", 0, 3600, 100, 0);
+    AccelerationNP[AXIS_DE].fill("AXIS_DE", "DE arcsec/sec^2", "%.2f", 0, 3600, 100, 0);
     AccelerationNP.fill(getDeviceName(), "MOUNT_ACCELERATION", "Acceleration", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
     // Encoders
-    EncoderNP[AXIS_RA].fill("AXIS_RA", "Hour Angle", ".2f%", -3600, 3600, 100, 0);
-    EncoderNP[AXIS_DE].fill("AXIS_DE", "Declination", ".2f%", -3600, 3600, 100, 0);
+    EncoderNP[AXIS_RA].fill("AXIS_RA", "Hour Angle", "%.2f", -3600, 3600, 100, 0);
+    EncoderNP[AXIS_DE].fill("AXIS_DE", "Declination", "%.2f", -3600, 3600, 100, 0);
     EncoderNP.fill(getDeviceName(), "MOUNT_ENCODERS", "Encoders", MOTION_TAB, IP_RO, 60, IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
