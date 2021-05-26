@@ -128,15 +128,6 @@ class Spectrograph : public virtual SensorInterface
         }
 
         /**
-         * @brief getFrequency Get requested integration frequency for the sensor in Hz.
-         * @return requested Integration frequency for the sensor in Hz.
-         */
-        inline double getFrequency()
-        {
-            return Frequency;
-        }
-
-        /**
          * @brief Return Vector Info Property
          */
         inline INumberVectorProperty *getSpectrographSettings()
