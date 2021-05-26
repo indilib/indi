@@ -462,8 +462,7 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&OSOutput1SP);
         defineProperty(&OSOutput2SP);
 #endif
-
-        defineProperty(&OutputPorts_NP);
+        Init_Outputs();
 
         //Weather
         defineProperty(&OSSetTemperatureNP);
@@ -841,7 +840,6 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 }
 
                 OutputPorts_NP.s           = IPS_OK;
-
                 OutputPorts_NP.np[i].value = value;
                 IDSetNumber(&OutputPorts_NP, "Set port %d to value =%d", port, value);
             }
@@ -3214,4 +3212,42 @@ bool LX200_OnStep::saveConfigItems(FILE *fp)
     LX200Generic::saveConfigItems(fp);
     WI::saveConfigItems(fp);
     return true;
+}
+
+void LX200_OnStep::Init_Outputs()
+{
+    // Features names and type are accessed via :GXYn (where n 1 to 8)
+    // we take these names to display in Output tab
+    // return value is ssssss,n where ssssss is the name and n is the type
+    char port_name[60];
+    char getoutp[20];
+    char configured[10];
+    char p_name[20];
+    size_t  k;
+    
+    getCommandString(PortFD, configured, ":GXY0#"); // retrurns a string with 1 where Feature is configured
+    // ex: 10010010 means Feature 1,4 and 7 are configured
+    
+    IUFillNumber(&OutputPorts[0], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
+    for(int i = 1; i < PORTS_COUNT; i++)
+    {
+        k=0;
+        if(configured[i-1]=='1') // is Feature is configured
+        {
+        sprintf(getoutp, ":GXY%d#", i);
+            getCommandString(PortFD, port_name, getoutp);
+            for(k=0;k<strlen(port_name);k++)    // remove feature type
+            {
+                if(port_name[k]==',') port_name[k]='_';
+                p_name[k]=port_name[k];
+                p_name[k+1]=0;
+            }
+            IUFillNumber(&OutputPorts[i], p_name, p_name, "%g", 0, 255, 1, 0);
+        }
+        else
+        {
+            IUFillNumber(&OutputPorts[i], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
+        }
+    }
+    defineProperty(&OutputPorts_NP);
 }

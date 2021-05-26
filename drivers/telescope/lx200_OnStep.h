@@ -22,10 +22,11 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     ===========================================
-
+    
     Version not yet updated:
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values.
-
+    - Manage OnStep Auxiliary Feature Names in Output Tab
+    
     Version 1.9:
     - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
     - Bugfix: Slew speed
@@ -143,6 +144,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         virtual bool Sync(double ra, double dec) override;
 
         virtual bool saveConfigItems(FILE *fp) override;
+        virtual void Init_Outputs();
 
         //Mount information
         int OSMountType = 0;
