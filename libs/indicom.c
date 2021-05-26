@@ -1495,9 +1495,7 @@ double rangeDec(double decdegrees)
 #if defined(HAVE_LIBNOVA)
 double get_local_sidereal_time(double longitude)
 {
-    double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude) / 15.0;
-
-    return range24(SD);
+    return range24(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) + longitude / 15.0);
 }
 
 void get_hrz_from_equ(struct ln_equ_posn *object, struct ln_lnlat_posn *observer, double JD, struct ln_hrz_posn *position)
