@@ -23,6 +23,9 @@
 
     ===========================================
     
+    Version not yet updated:
+    - Manage OnStep Auxiliary Feature Names in Output Tab
+    
     Version 1.10: 
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
     - Ability to swap primary focuser.
@@ -149,6 +152,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         virtual bool Sync(double ra, double dec) override;
 
         virtual bool saveConfigItems(FILE *fp) override;
+        virtual void Init_Outputs();
 
         //Mount information
         int OSMountType = 0;
