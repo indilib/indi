@@ -2537,6 +2537,8 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
     term = strchr(data, '#');
     if (term)
         *term = '\0';
+    if (nbytes_read < RB_MAX_LEN) 
+        data[nbytes_read] = '\0';
     
     DEBUGF(DBG_SCOPE, "RES <%s>", data);
     
@@ -2801,6 +2803,8 @@ void LX200_OnStep::OSUpdateFocuser()
     if(OSNumFocusers > 1) 
     {
         getCommandSingleCharResponse(PortFD, value, ":Fa#");
+//         strcpy(value, "1500");
+//         value[1]=0;
         temp_value = atoi(value);
         LOGF_DEBUG(":Fa# return: %d", temp_value);
         for (i = 0; i < 9; i++) {
@@ -2808,7 +2812,17 @@ void LX200_OnStep::OSUpdateFocuser()
         }
         if (temp_value == 0) {
             OSFocusSelectS[1].s = ISS_ON;
-        } else {
+        } 
+        else if (temp_value > 9 || temp_value < 0) 
+        {
+            //To solve issue mentioned https://www.indilib.org/forum/development/1406-driver-onstep-lx200-like-for-indi.html?start=624#71572
+            OSFocusSelectSP.s = IPS_ALERT;
+            LOGF_WARN("Active focuser returned out of range: %s, should be 0-9", temp_value);
+            IDSetSwitch(&OSFocusSelectSP, nullptr);
+            return;
+        } 
+        else
+        {
             OSFocusSelectS[temp_value - 1].s = ISS_ON;
         }
         OSFocusSelectSP.s = IPS_OK;
