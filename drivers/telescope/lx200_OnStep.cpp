@@ -2537,7 +2537,7 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
     term = strchr(data, '#');
     if (term)
         *term = '\0';
-    if (nbytes_read < RB_MAX_LEN) 
+    if (nbytes_read < RB_MAX_LEN) //given this function that should always be true, as should nbytes_read always be 1
         data[nbytes_read] = '\0';
     
     DEBUGF(DBG_SCOPE, "RES <%s>", data);
@@ -2803,8 +2803,6 @@ void LX200_OnStep::OSUpdateFocuser()
     if(OSNumFocusers > 1) 
     {
         getCommandSingleCharResponse(PortFD, value, ":Fa#");
-//         strcpy(value, "1500");
-//         value[1]=0;
         temp_value = atoi(value);
         LOGF_DEBUG(":Fa# return: %d", temp_value);
         for (i = 0; i < 9; i++) {
@@ -2934,6 +2932,114 @@ void LX200_OnStep::OSUpdateRotator() {
     
 }
 
+=======
+}
+
+//Rotator stuff
+// IPState MoveRotator(double angle) override;
+// bool SyncRotator(double angle) override;
+//         IPState HomeRotator() override;
+// bool ReverseRotator(bool enabled) override;
+// bool AbortRotator() override;
+//         bool SetRotatorBacklash (int32_t steps) override;
+//         bool SetRotatorBacklashEnabled(bool enabled) override;
+
+//OnStep Rotator Commands (For reference, and from 5 1 v 4)
+// :r+#       Enable derotator
+//            Returns: Nothing
+// :r-#       Disable derotator
+//            Returns: Nothing
+// :rP#       Move rotator to the parallactic angle
+//            Returns: Nothing
+// :rR#       Reverse derotator direction
+//            Returns: Nothing
+// :rT#       Get status
+//            Returns: M# (for moving) or S# (for stopped)
+// :rI#       Get mIn position (in degrees)
+//            Returns: n#
+// :rM#       Get Max position (in degrees)
+//            Returns: n#
+// :rD#       Get rotator degrees per step
+//            Returns: n.n#
+// :rb#       Get rotator backlash amount in steps
+//            Return: n#
+// :rb[n]#
+//            Set rotator backlash amount in steps
+//            Returns: 0 on failure
+//                     1 on success
+// :rF#       Reset rotator at the home position
+//            Returns: Nothing
+// :rC#       Moves rotator to the home position
+//            Returns: Nothing
+// :rG#       Get rotator current position in degrees
+//            Returns: sDDD*MM#
+// :rc#       Set continuous move mode (for next move command)
+//            Returns: Nothing
+// :r>#       Move clockwise as set by :rn# command, default = 1 deg (or 0.1 deg/s in continuous mode)
+//            Returns: Nothing
+// :r<#       Move counter clockwise as set by :rn# command
+//            Returns: Nothing
+// :rQ#       Stops movement (except derotator)
+//            Returns: Nothing
+// :r[n]#     Move increment where n = 1 for 1 degrees, 2 for 2 degrees, 3 for 5 degrees, 4 for 10 degrees
+//            Move rate where n = 1 for .01 deg/s, 2 for 0.1 deg/s, 3 for 1.0 deg/s, 4 for 5.0 deg/s
+//            Returns: Nothing
+// :rS[sDDD*MM'SS]#
+//            Set position in degrees
+//            Returns: 0 on failure
+//                     1 on success
+
+void LX200_OnStep::OSUpdateRotator() {
+    char value[RB_MAX_LEN];
+    double double_value;
+    if(OSRotator1)
+    {
+        getCommandString(PortFD, value, ":rG#");
+        if (f_scansexa(value, &double_value)) {
+            // 0 = good, thus this is the bad 
+            GotoRotatorNP.s = IPS_ALERT;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+            return;
+        }
+        GotoRotatorN[0].value =  double_value;
+        
+        getCommandString(PortFD, value, ":rI#");
+        GotoRotatorN[0].min =  atof(value);
+        getCommandString(PortFD, value, ":rM#");
+        GotoRotatorN[0].max =  atof(value);
+        IUUpdateMinMax(&GotoRotatorNP);
+        IDSetNumber(&GotoRotatorNP, nullptr);
+        //GotoRotatorN
+        getCommandString(PortFD, value, ":rT#");
+        if (value[0] == 'S') /*Stopped normal on EQ mounts */ 
+        {
+            GotoRotatorNP.s = IPS_OK;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+ 
+        }
+        else if (value[0] == 'M') /* Moving, including de-rotation */
+        {
+            GotoRotatorNP.s = IPS_BUSY;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+        }
+        else
+        {
+            //INVALID REPLY
+            GotoRotatorNP.s = IPS_ALERT;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+        }
+        getCommandString(PortFD, value, ":rb#");
+        RotatorBacklashN[0].value =  atoi(value);
+        RotatorBacklashNP.s = IPS_OK;
+        IDSetNumber(&RotatorBacklashNP, nullptr);
+    }
+    
+    
+
+    
+}
+
+>>>>>>> 8f220b69e5a4cdaac41aadf681dbaca260a0b069
 IPState LX200_OnStep::MoveRotator(double angle) {
     char cmd[32];
     int d, m, s;

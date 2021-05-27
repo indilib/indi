@@ -312,25 +312,6 @@ class SkywatcherAPI
         unsigned int DBG_SCOPE { 0 };
 
     private:
-        enum TTY_ERROR
-        {
-            TTY_OK           = 0,
-            TTY_READ_ERROR   = -1,
-            TTY_WRITE_ERROR  = -2,
-            TTY_SELECT_ERROR = -3,
-            TTY_TIME_OUT     = -4,
-            TTY_PORT_FAILURE = -5,
-            TTY_PARAM_ERROR  = -6,
-            TTY_ERRNO        = -7
-        };
-        virtual int skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) = 0;
-        virtual int skywatcher_tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read) = 0;
-        virtual int skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written) = 0;
-        //    virtual int skywatcher_tty_write_string(int fd, const char * buffer, int *nbytes_written) = 0;
-        //    virtual int skywatcher_tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd) = 0;
-        //    virtual int skywatcher_tty_disconnect(int fd) = 0;
-        //    virtual void skywatcher_tty_error_msg(int err_code, char *err_msg, int err_msg_len) = 0;
-        //    virtual int skywatcher_tty_timeout(int fd, int timeout) = 0;*/
         int MyPortFD { 0 };
 
 #ifdef INDI_DEBUG_LOGGING

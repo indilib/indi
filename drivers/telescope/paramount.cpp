@@ -1,12 +1,12 @@
 /*******************************************************************************
  Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
- 2021 Chris Lewicki. Refactor of TCP connections and error handling  
+ 2021 Chris Lewicki. Refactor of TCP connections and error handling
 
  Driver for using TheSkyX Pro Scripted operations for mounts via the TCP server.
  While this technically can operate any mount connected to the TheSkyX Pro, it is
  intended for Paramount mounts control.
 
- Ref TheSky Functions: 
+ Ref TheSky Functions:
  https://www.bisque.com/wp-content/scripttheskyx/classsky6_r_a_s_c_o_m_tele.html
 
  This library is free software; you can redistribute it and/or
@@ -26,7 +26,7 @@
 
 /*******************************************************************************
  * TODO for improving / completing the driver
- * 
+ *
  * 1. SlewToAZAlt()
  * 2. GetAzAlt()
  * 3. (3) Presets for SlewToAZAlt positions
@@ -137,13 +137,8 @@ bool Paramount::initProperties()
 
     addAuxControls();
 
-    double longitude = 0, latitude = 90;
-    // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sidereal_time(longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-    currentDEC = latitude > 0 ? 90 : -90;
-
+    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
     return true;
 }
 
@@ -211,9 +206,9 @@ bool Paramount::updateProperties()
 }
 
 /*******************************************************************************
-* Note that for all successful TheSky TCP requests, the following string is 
+* Note that for all successful TheSky TCP requests, the following string is
 * prepended to the result:
-*    
+*
 *    |No error. Error = 0.
 *
 * This is true everwhere except for the Handshake(), which just returns "1" on success.
@@ -241,13 +236,13 @@ bool Paramount::Handshake()
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        LOGF_ERROR("Error writing Handshake to TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error writing Handshake to TheSkyX TCP server. Result: %d", rc);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, pRES, '#', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        LOGF_ERROR("Error reading Handshake from TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error reading Handshake from TheSkyX TCP server. Result: %d", rc);
         return false;
     }
 
@@ -264,7 +259,7 @@ bool Paramount::getMountRADE()
 {
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
-    double SkyXRA=0., SkyXDEC=0.; 
+    double SkyXRA = 0., SkyXDEC = 0.;
 
     strncpy(pCMD,
             "/* Java Script */"
@@ -277,24 +272,24 @@ bool Paramount::getMountRADE()
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        LOGF_ERROR("Error writing GetRaDec to TheSkyX TCP server. Response: %d",rc);
+        LOGF_ERROR("Error writing GetRaDec to TheSkyX TCP server. Response: %d", rc);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, pRES, '#', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        LOGF_ERROR("Error reading GetRaDec from TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error reading GetRaDec from TheSkyX TCP server. Result: %d", rc);
         return false;
     }
 
     LOGF_DEBUG("RES: %s", pRES);
 
-    // Read results successfully into temporary values before committing 
-    if (sscanf(pRES, "|No error. Error = 0.%lf,%lf#", &SkyXRA, &SkyXDEC) == 2) 
+    // Read results successfully into temporary values before committing
+    if (sscanf(pRES, "|No error. Error = 0.%lf,%lf#", &SkyXRA, &SkyXDEC) == 2)
     {
         currentRA  = SkyXRA;
         currentDEC = SkyXDEC;
-        return true; 
+        return true;
     }
 
     LOGF_ERROR("Error reading coordinates. Result: %s", pRES);
@@ -318,21 +313,21 @@ INDI::Telescope::TelescopePierSide Paramount::getPierSide()
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        LOGF_ERROR("Error writing DoCommand(Pier Side) to TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error writing DoCommand(Pier Side) to TheSkyX TCP server. Result: %d", rc);
         return PIER_UNKNOWN;
     }
 
     if ((rc = tty_read_section(PortFD, pRES, '#', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        LOGF_ERROR("Error reading Pier Side from TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error reading Pier Side from TheSkyX TCP server. Result: %d", rc);
         return PIER_UNKNOWN;
     }
 
     LOGF_DEBUG("RES: %s", pRES);
 
-    if (sscanf(pRES, "|No error. Error = 0.%d#", &SkyXPierSide) == 1) 
+    if (sscanf(pRES, "|No error. Error = 0.%d#", &SkyXPierSide) == 1)
     {
-        return SkyXPierSide == 0 ? PIER_WEST : PIER_EAST;        
+        return SkyXPierSide == 0 ? PIER_WEST : PIER_EAST;
     }
 
     LOGF_ERROR("Error reading Pier Side. Result: %s", pRES);
@@ -397,11 +392,6 @@ bool Paramount::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    ln_equ_posn lnradec { 0, 0 };
-
-    lnradec.ra  = (currentRA * 360) / 24.0;
-    lnradec.dec = currentDEC;
-
     char pCMD[MAXRBUF] = {0};
     snprintf(pCMD, MAXRBUF,
              "sky6RASCOMTele.Asynchronous = true;"
@@ -432,22 +422,22 @@ bool Paramount::isSlewComplete()
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        LOGF_ERROR("Error writing IsSlewComplete to TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error writing IsSlewComplete to TheSkyX TCP server. Result: %d", rc);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, pRES, '#', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        LOGF_ERROR("Error reading IsSlewComplete from TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error reading IsSlewComplete from TheSkyX TCP server. Result: %d", rc);
         return false;
     }
 
     LOGF_DEBUG("RES: %s", pRES);
 
     int isComplete = 0;
-    if (sscanf(pRES, "|No error. Error = 0.%d#", &isComplete) == 1) 
+    if (sscanf(pRES, "|No error. Error = 0.%d#", &isComplete) == 1)
     {
-        return  isComplete == 1 ? 1 : 0;        
+        return  isComplete == 1 ? 1 : 0;
     }
 
     LOGF_ERROR("Error reading isSlewComplete. Result: %s", pRES);
@@ -469,13 +459,13 @@ bool Paramount::isTheSkyParked()
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        LOGF_ERROR("Error writing sky6RASCOMTele.IsParked() to TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error writing sky6RASCOMTele.IsParked() to TheSkyX TCP server. Result: %d", rc);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, pRES, '#', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        LOGF_ERROR("Error reading sky6RASCOMTele.IsParked() from TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error reading sky6RASCOMTele.IsParked() from TheSkyX TCP server. Result: %d", rc);
         return false;
     }
 
@@ -505,13 +495,13 @@ bool Paramount::isTheSkyTracking()
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        LOGF_ERROR("Error writing sky6RASCOMTele.IsTracking to TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error writing sky6RASCOMTele.IsTracking to TheSkyX TCP server. Result: %d", rc);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, pRES, '#', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        LOGF_ERROR("Error reading sky6RASCOMTele.IsTracking from TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error reading sky6RASCOMTele.IsTracking from TheSkyX TCP server. Result: %d", rc);
         return false;
     }
 
@@ -557,9 +547,9 @@ bool Paramount::Park()
     targetDEC = GetAxis2Park();
 
     char pCMD[MAXRBUF] = {0};
-    strncpy(pCMD, 
+    strncpy(pCMD,
             "sky6RASCOMTele.Asynchronous = true;"
-            "sky6RASCOMTele.ParkAndDoNotDisconnect();", 
+            "sky6RASCOMTele.ParkAndDoNotDisconnect();",
             MAXRBUF);
 
     if (!sendTheSkyOKCommand(pCMD, "Parking mount"))
@@ -759,20 +749,6 @@ bool Paramount::stopOpenLoopMotion()
 
     strncpy(pCMD, "sky6RASCOMTele.DoCommand(10,'');", MAXRBUF);
     return sendTheSkyOKCommand(pCMD, "Stopping open loop motion");
-}
-
-bool Paramount::updateLocation(double latitude, double longitude, double elevation)
-{
-    INDI_UNUSED(elevation);
-    // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
-    lnobserver.lng = longitude;
-
-    if (lnobserver.lng > 180)
-        lnobserver.lng -= 360;
-    lnobserver.lat = latitude;
-
-    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
-    return true;
 }
 
 bool Paramount::updateTime(ln_date *utc, double utc_offset)
@@ -976,19 +952,19 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        LOGF_ERROR("Error writing sendTheSkyOKCommand to TheSkyX TCP server. Result: $%d",rc);
+        LOGF_ERROR("Error writing sendTheSkyOKCommand to TheSkyX TCP server. Result: $%d", rc);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, pRES, '#', timeout, &nbytes_read)) != TTY_OK)
     {
-        LOGF_ERROR("Error reading sendTheSkyOKCommand from TheSkyX TCP server. Result: %d",rc);
+        LOGF_ERROR("Error reading sendTheSkyOKCommand from TheSkyX TCP server. Result: %d", rc);
         return false;
     }
 
     LOGF_DEBUG("RES: %s", pRES);
 
-    if (strcmp("|No error. Error = 0.OK#",pRES) == 0 )
+    if (strcmp("|No error. Error = 0.OK#", pRES) == 0 )
         return true;
     else
     {
@@ -1017,7 +993,7 @@ IPState Paramount::GuideWest(uint32_t ms)
     return GuideWE(-static_cast<int>(ms));
 }
 
-/* Note: Handling Guide requests synchronously resources in serial implementation of 
+/* Note: Handling Guide requests synchronously resources in serial implementation of
    moves for each axis, when they could be handled concurrently with timers */
 IPState Paramount::GuideNS(int32_t ms)
 {
@@ -1035,7 +1011,7 @@ IPState Paramount::GuideNS(int32_t ms)
 
     // Set Guide axis busy for the duration of the synchronous command
     GuideNSNP.s = IPS_BUSY;
-    if (!sendTheSkyOKCommand(pCMD, "DirectGuiding North-South",PARAMOUNT_TIMEOUT))
+    if (!sendTheSkyOKCommand(pCMD, "DirectGuiding North-South", PARAMOUNT_TIMEOUT))
         return IPS_ALERT;
 
     GuideNSNP.np[0].value = 0;
@@ -1059,7 +1035,7 @@ IPState Paramount::GuideWE(int32_t ms)
 
     // Set Guide axis busy for the duration of the synchronous command
     GuideWENP.s = IPS_BUSY;
-    if (!sendTheSkyOKCommand(pCMD, "DirectGuiding West-East",PARAMOUNT_TIMEOUT))
+    if (!sendTheSkyOKCommand(pCMD, "DirectGuiding West-East", PARAMOUNT_TIMEOUT))
         return IPS_ALERT;
 
     GuideWENP.np[0].value = 0;

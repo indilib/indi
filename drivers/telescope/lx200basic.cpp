@@ -50,13 +50,6 @@ LX200Basic::LX200Basic()
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    double longitude = 0, latitude = 90;
-    // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sidereal_time(longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-    currentDEC = latitude > 0 ? 90 : -90;
-
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT);
 
     LOG_DEBUG("Initializing from LX200 Basic device...");
@@ -94,6 +87,9 @@ bool LX200Basic::initProperties()
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     addAuxControls();
+
+    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
 
     return true;
 }

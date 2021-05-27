@@ -588,28 +588,27 @@ bool SynscanLegacyDriver::ReadScopeStatus()
     ra  = static_cast<double>(n1) / 0x100000000 * 24.0;
     dec = static_cast<double>(n2) / 0x100000000 * 360.0;
 
-    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-    J2000Pos.ra  = range24(ra) * 15.0;
-    J2000Pos.dec = rangeDec(dec);
+    INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+    J2000Pos.rightascension  = range24(ra);
+    J2000Pos.declination = rangeDec(dec);
 
     // Synscan reports J2000 coordinates so we need to convert from J2000 to JNow
-    //ln_get_equ_prec2(&J2000Pos, JD2000, ln_get_julian_from_sys(), &epochPos);
-    LibAstro::J2000toObserved(&J2000Pos, ln_get_julian_from_sys(), &epochPos);
+    INDI::J2000toObserved(&J2000Pos, ln_get_julian_from_sys(), &epochPos);
 
-    CurrentRA  = epochPos.ra / 15.0;
-    CurrentDEC = epochPos.dec;
+    CurrentRA  = epochPos.rightascension;
+    CurrentDEC = epochPos.declination;
 
     //  Now feed the rest of the system with corrected data
     NewRaDec(CurrentRA, CurrentDEC);
 
     if (TrackState == SCOPE_SLEWING && MountCode >= 128 && (SlewTargetAz != -1 || SlewTargetAlt != -1))
     {
-        ln_hrz_posn CurrentAltAz { 0, 0 };
+        INDI::IHorizontalCoordinates CurrentAltAz { 0, 0 };
         double DiffAlt { 0 };
         double DiffAz { 0 };
 
-        CurrentAltAz = GetAltAzPosition(ra, dec);
-        DiffAlt = CurrentAltAz.alt - SlewTargetAlt;
+        INDI::EquatorialToHorizontal(&epochPos, &m_Location, ln_get_julian_from_sys(), &CurrentAltAz);
+        DiffAlt = CurrentAltAz.altitude - SlewTargetAlt;
         if (SlewTargetAlt != -1 && std::abs(DiffAlt) > 0.01)
         {
             int NewRate = 2;
@@ -635,7 +634,7 @@ bool SynscanLegacyDriver::ReadScopeStatus()
                 NewRate = 3;
             }
             LOGF_DEBUG("Slewing Alt axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
-                       CurrentAltAz.alt, SlewTargetAlt, CurrentAltAz.alt - SlewTargetAlt, CustomNSSlewRate);
+                       CurrentAltAz.altitude, SlewTargetAlt, CurrentAltAz.altitude - SlewTargetAlt, CustomNSSlewRate);
             if (NewRate != CustomNSSlewRate)
             {
                 if (DiffAlt < 0)
@@ -656,7 +655,7 @@ bool SynscanLegacyDriver::ReadScopeStatus()
             SlewTargetAlt = -1;
             LOG_DEBUG("Slewing on Alt axis finished");
         }
-        DiffAz = CurrentAltAz.az - SlewTargetAz;
+        DiffAz = CurrentAltAz.azimuth - SlewTargetAz;
         if (DiffAz < -180)
             DiffAz = (DiffAz + 360) * 2;
         else if (DiffAz > 180)
@@ -686,7 +685,7 @@ bool SynscanLegacyDriver::ReadScopeStatus()
                 NewRate = 3;
             }
             LOGF_DEBUG("Slewing Az axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
-                       CurrentAltAz.az, SlewTargetAz, CurrentAltAz.az - SlewTargetAz, CustomWESlewRate);
+                       CurrentAltAz.azimuth, SlewTargetAz, CurrentAltAz.azimuth - SlewTargetAz, CustomWESlewRate);
             if (NewRate != CustomWESlewRate)
             {
                 if (DiffAz > 0)
@@ -753,7 +752,7 @@ bool SynscanLegacyDriver::Goto(double ra, double dec)
 {
     char res[MAX_SYN_BUF] = {0};
     int bytesWritten, bytesRead;
-    ln_hrz_posn TargetAltAz { 0, 0 };
+    INDI::IHorizontalCoordinates TargetAltAz { 0, 0 };
 
     if (isSimulation() == false)
     {
@@ -774,21 +773,20 @@ bool SynscanLegacyDriver::Goto(double ra, double dec)
     // EQ mount has a different Goto mode
     if (MountCode < 128 && isSimulation() == false)
     {
-        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-
-        epochPos.ra  = ra * 15.0;
-        epochPos.dec = dec;
+        INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+        epochPos.rightascension  = ra;
+        epochPos.declination = dec;
 
         // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
-        //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-        LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+        INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
         // Mount deals in J2000 coords.
-        int n1 = J2000Pos.ra / 15.0 * 0x1000000 / 24;
-        int n2 = J2000Pos.dec * 0x1000000 / 360;
+        int n1 = J2000Pos.rightascension * 0x1000000 / 24;
+        int n2 = J2000Pos.declination * 0x1000000 / 360;
         int numread;
 
-        LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra / 15.0, J2000Pos.dec);
+        LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.rightascension,
+                   J2000Pos.declination);
 
         n1 = n1 << 8;
         n2 = n2 << 8;
@@ -807,18 +805,19 @@ bool SynscanLegacyDriver::Goto(double ra, double dec)
         return true;
     }
 
-    TargetAltAz = GetAltAzPosition(ra, dec);
-    LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g (az: %g alt: %g)", ra, dec, TargetAltAz.az, TargetAltAz.alt);
+    INDI::IEquatorialCoordinates epochPos { ra, dec };
+    INDI::EquatorialToHorizontal(&epochPos, &m_Location, ln_get_julian_from_sys(), &TargetAltAz);
+    LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g (az: %g alt: %g)", ra, dec, TargetAltAz.azimuth, TargetAltAz.altitude);
     char RAStr[MAX_SYN_BUF] = {0}, DEStr[MAX_SYN_BUF] = {0}, AZStr[MAX_SYN_BUF] = {0}, ATStr[MAX_SYN_BUF] = {0};
     fs_sexa(RAStr, ra, 2, 3600);
     fs_sexa(DEStr, dec, 2, 3600);
-    fs_sexa(AZStr, TargetAltAz.az, 2, 3600);
-    fs_sexa(ATStr, TargetAltAz.alt, 2, 3600);
+    fs_sexa(AZStr, TargetAltAz.azimuth, 2, 3600);
+    fs_sexa(ATStr, TargetAltAz.altitude, 2, 3600);
 
     LOGF_INFO("Goto RA: %s DE: %s AZ: %s ALT: %s", RAStr, DEStr, AZStr, ATStr);
 
-    SlewTargetAz = TargetAltAz.az;
-    SlewTargetAlt = TargetAltAz.alt;
+    SlewTargetAz = TargetAltAz.azimuth;
+    SlewTargetAlt = TargetAltAz.altitude;
 
     TargetRA = ra;
     TargetDEC = dec;
@@ -1285,10 +1284,6 @@ bool SynscanLegacyDriver::updateLocation(double latitude, double longitude, doub
     ln_lnlat_posn p1 { 0, 0 };
     lnh_lnlat_posn p2;
 
-    LocationN[LOCATION_LATITUDE].value  = latitude;
-    LocationN[LOCATION_LONGITUDE].value = longitude;
-    IDSetNumber(&LocationNP, nullptr);
-
     if (isSimulation())
     {
         if (CurrentDEC == 0)
@@ -1403,12 +1398,12 @@ bool SynscanLegacyDriver::Sync(double ra, double dec)
     // Alt/Az sync mode
     if (MountCode >= 128)
     {
-        ln_hrz_posn TargetAltAz { 0, 0 };
-
-        TargetAltAz = GetAltAzPosition(ra, dec);
-        LOGF_DEBUG("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec, TargetAltAz.az, TargetAltAz.alt);
+        INDI::IHorizontalCoordinates TargetAltAz { 0, 0 };
+        INDI::IEquatorialCoordinates epochPos {ra, dec};
+        INDI::EquatorialToHorizontal(&epochPos, &m_Location, ln_get_julian_from_sys(), &TargetAltAz);
+        LOGF_DEBUG("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec, TargetAltAz.azimuth, TargetAltAz.altitude);
         // Assemble the Reset Position command for Az axis
-        int Az = (int)(TargetAltAz.az * 16777216 / 360);
+        int Az = (int)(TargetAltAz.azimuth * 16777216 / 360);
 
         res[0] = 'P';
         res[1] = 4;
@@ -1423,7 +1418,7 @@ bool SynscanLegacyDriver::Sync(double ra, double dec)
         tty_write(PortFD, res, 8, &bytesWritten);
         numread = tty_read(PortFD, res, 1, 3, &bytesRead);
         // Assemble the Reset Position command for Alt axis
-        int Alt = (int)(TargetAltAz.alt * 16777216 / 360);
+        int Alt = (int)(TargetAltAz.altitude * 16777216 / 360);
 
         res[0] = 'P';
         res[1] = 4;
@@ -1442,18 +1437,18 @@ bool SynscanLegacyDriver::Sync(double ra, double dec)
         LOGF_DEBUG("CMD <%c>", res[0]);
     }
 
-    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+    INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
-    epochPos.ra  = ra * 15.0;
-    epochPos.dec = dec;
+    epochPos.rightascension  = ra;
+    epochPos.declination = dec;
 
     // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
     //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-    LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+    INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
 
     // Pass the sync command to the handset
-    int n1 = J2000Pos.ra / 15.0 * 0x1000000 / 24;
-    int n2 = J2000Pos.dec * 0x1000000 / 360;
+    int n1 = J2000Pos.rightascension * 0x1000000 / 24;
+    int n2 = J2000Pos.declination * 0x1000000 / 360;
 
     n1 = n1 << 8;
     n2 = n2 << 8;
@@ -1477,22 +1472,6 @@ bool SynscanLegacyDriver::Sync(double ra, double dec)
         StartTrackMode();
 
     return true;
-}
-
-ln_hrz_posn SynscanLegacyDriver::GetAltAzPosition(double ra, double dec)
-{
-    ln_lnlat_posn Location { 0, 0 };
-    ln_equ_posn Eq { 0, 0 };
-    ln_hrz_posn AltAz { 0, 0 };
-
-    // Set the current location
-    Location.lat = LocationN[LOCATION_LATITUDE].value;
-    Location.lng = LocationN[LOCATION_LONGITUDE].value;
-
-    Eq.ra  = ra * 360.0 / 24.0;
-    Eq.dec = dec;
-    get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys(), &AltAz);
-    return AltAz;
 }
 
 void SynscanLegacyDriver::UpdateMountInformation(bool inform_client)

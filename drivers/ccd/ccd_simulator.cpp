@@ -486,19 +486,10 @@ void CCDSim::TimerHit()
 
     if (TemperatureNP.s == IPS_BUSY)
     {
-        if (fabs(TemperatureRequest - TemperatureN[0].value) <= 0.5)
-        {
-            LOGF_INFO("Temperature reached requested value %.2f degrees C", TemperatureRequest);
-            TemperatureN[0].value = TemperatureRequest;
-            TemperatureNP.s       = IPS_OK;
-        }
+        if (TemperatureRequest < TemperatureN[0].value)
+            TemperatureN[0].value = std::max(TemperatureRequest, TemperatureN[0].value - 0.5);
         else
-        {
-            if (TemperatureRequest < TemperatureN[0].value)
-                TemperatureN[0].value -= 0.5;
-            else
-                TemperatureN[0].value += 0.5;
-        }
+            TemperatureN[0].value = std::min(TemperatureRequest, TemperatureN[0].value + 0.5);
 
         IDSetNumber(&TemperatureNP, nullptr);
 
@@ -645,22 +636,22 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             currentRA  = RA;
             currentDE = Dec;
 
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
             double jd = ln_get_julian_from_sys();
 
-            epochPos.ra  = currentRA * 15.0;
-            epochPos.dec = currentDE;
+            epochPos.rightascension  = currentRA;
+            epochPos.declination = currentDE;
 
             // Convert from JNow to J2000
-            LibAstro::ObservedToJ2000(&epochPos, jd, &J2000Pos);
+            INDI::ObservedToJ2000(&epochPos, jd, &J2000Pos);
 
-            currentRA  = J2000Pos.ra / 15.0;
-            currentDE = J2000Pos.dec;
+            currentRA  = J2000Pos.rightascension;
+            currentDE = J2000Pos.declination;
 
             //LOGF_DEBUG("DrawCcdFrame JNow %f, %f J2000 %f, %f", epochPos.ra, epochPos.dec, J2000Pos.ra, J2000Pos.dec);
-            //ln_equ_posn jnpos;
-            //LibAstro::J2000toObserved(&J2000Pos, jd, &jnpos);
+            //INDI::IEquatorialCoordinates jnpos;
+            //INDI::J2000toObserved(&J2000Pos, jd, &jnpos);
             //LOGF_DEBUG("J2000toObserved JNow %f, %f J2000 %f, %f", jnpos.ra, jnpos.dec, J2000Pos.ra, J2000Pos.dec);
 
             currentDE += guideNSOffset;
@@ -1114,17 +1105,16 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             IUUpdateNumber(&EqPENP, values, names, n);
             EqPENP.s = IPS_OK;
 
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.ra  = EqPEN[AXIS_RA].value * 15.0;
-            epochPos.dec = EqPEN[AXIS_DE].value;
+            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            epochPos.rightascension  = EqPEN[AXIS_RA].value;
+            epochPos.declination = EqPEN[AXIS_DE].value;
 
             RA = EqPEN[AXIS_RA].value;
             Dec = EqPEN[AXIS_DE].value;
 
-            LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
-            //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-            currentRA  = J2000Pos.ra / 15.0;
-            currentDE = J2000Pos.dec;
+            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            currentRA  = J2000Pos.rightascension;
+            currentDE = J2000Pos.declination;
             usePE = true;
 
             IDSetNumber(&EqPENP, nullptr);
@@ -1182,9 +1172,11 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
                 CoolerSP.s = IPS_BUSY;
             else
             {
-                CoolerSP.s         = IPS_IDLE;
-                TemperatureRequest = 20;
-                TemperatureNP.s    = IPS_BUSY;
+                CoolerSP.s          = IPS_IDLE;
+                m_TargetTemperature = 20;
+                TemperatureNP.s     = IPS_BUSY;
+                m_TemperatureCheckTimer.start();
+                m_TemperatureElapsedTimer.start();
             }
 
             IDSetSwitch(&CoolerSP, nullptr);
@@ -1316,7 +1308,7 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
 
         if (rc_ra == 0 && rc_de == 0 && ((newra != raPE) || (newdec != decPE)))
         {
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
             epochPos.ra  = newra * 15.0;
             epochPos.dec = newdec;
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);

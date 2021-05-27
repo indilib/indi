@@ -595,14 +595,14 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
 {
     if (isSimulation())
     {
-        ln_hrz_posn horizontalPos;
+        INDI::IHorizontalCoordinates horizontalPos;
         // Libnova south = 0, west = 90, north = 180, east = 270
         horizontalPos.az = az + 180;
         if (horizontalPos.az >= 360)
              horizontalPos.az -= 360;
         horizontalPos.alt = alt;
 
-        ln_lnlat_posn observer;
+        IGeographicCoordinates observer;
 
         observer.lat = LocationN[LOCATION_LATITUDE].value;
         observer.lng = LocationN[LOCATION_LONGITUDE].value;
@@ -610,10 +610,10 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
         if (observer.lng > 180)
             observer.lng -= 360;
 
-        ln_equ_posn equatorialPos;
+        INDI::IEquatorialCoordinates equatorialPos;
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
-        targetRA  = equatorialPos.ra/15.0;
+        targetRA  = equatorialPos.rightascension/15.0;
         targetDEC = equatorialPos.dec;
     }
 

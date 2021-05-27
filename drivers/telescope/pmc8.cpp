@@ -3,7 +3,7 @@
 
     Copyright (C) 2017 Michael Fulbright
 
-    Additional contributors: 
+    Additional contributors:
         Thomas Olson, Copyright (C) 2019
         Karl Rees, Copyright (C) 2019-2021
 
@@ -178,40 +178,47 @@ void PMC8::getStartupData()
 
         // not sure if there's really a point to the mount switch anymore if we know the mount from the firmware - perhaps remove as newer firmware becomes standard?
         // populate mount type switch in interface from firmware if possible
-        if (firmwareInfo.MountType == MOUNT_EXOS2) {
+        if (firmwareInfo.MountType == MOUNT_EXOS2)
+        {
             MountTypeS[MOUNT_EXOS2].s = ISS_ON;
             LOG_INFO("Detected mount type as Exos2.");
         }
-        else if (firmwareInfo.MountType == MOUNT_G11) {
+        else if (firmwareInfo.MountType == MOUNT_G11)
+        {
             MountTypeS[MOUNT_G11].s = ISS_ON;
             LOG_INFO("Detected mount type as G11.");
         }
-        else if (firmwareInfo.MountType == MOUNT_iEXOS100) {
+        else if (firmwareInfo.MountType == MOUNT_iEXOS100)
+        {
             MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
             LOG_INFO("Detected mount type as iExos100.");
         }
-        else {
+        else
+        {
             LOG_INFO("Cannot detect mount type--perhaps this is older firmware?");
-            if (strstr(getDeviceName(), "EXOS2")) {
+            if (strstr(getDeviceName(), "EXOS2"))
+            {
                 MountTypeS[MOUNT_EXOS2].s = ISS_ON;
                 LOG_INFO("Guessing mount is EXOS2 from device name.");
             }
-            else if (strstr(getDeviceName(), "iEXOS100")) {
+            else if (strstr(getDeviceName(), "iEXOS100"))
+            {
                 MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
                 LOG_INFO("Guessing mount is iEXOS100 from device name.");
             }
-            else {
+            else
+            {
                 MountTypeS[MOUNT_G11].s = ISS_ON;
                 LOG_INFO("Guessing mount is G11.");
             }
         }
         MountTypeSP.s = IPS_OK;
-        IDSetSwitch(&MountTypeSP,nullptr);
+        IDSetSwitch(&MountTypeSP, nullptr);
 
         IUSaveText(&FirmwareT[0], c);
         IDSetText(&FirmwareTP, nullptr);
     }
-    
+
     int cur_ra_rate;
     int rc = get_pmc8_tracking_rate_axis(PortFD, PMC8_AXIS_RA, cur_ra_rate);
     if (rc && cur_ra_rate)
@@ -329,11 +336,12 @@ bool PMC8::ReadScopeStatus()
     bool rc = false;
 
     // try to disconnect and reconnect if reconnect flag is set
-    if (get_pmc8_reconnect_flag()) {
+    if (get_pmc8_reconnect_flag())
+    {
         int rc = Disconnect();
         if (rc) setConnected(false);
         rc = Connect();
-        if (rc) setConnected(true, IPS_OK);        
+        if (rc) setConnected(true, IPS_OK);
         return false;
     }
 
@@ -365,7 +373,7 @@ bool PMC8::ReadScopeStatus()
                         return false;
                     }
 
-                    // Already set track mode in SetTrackEnabled 
+                    // Already set track mode in SetTrackEnabled
                     //if (!SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP)))
                     //{
                     //    LOG_ERROR("slew complete - unable to set track mode");
@@ -542,7 +550,7 @@ bool PMC8::Handshake()
         //        set_pmc8_sim_hemisphere(HEMI_NORTH);
     }
 
-    if (check_pmc8_connection(PortFD,(getActiveConnection() == serialConnection)) == false)
+    if (check_pmc8_connection(PortFD, (getActiveConnection() == serialConnection)) == false)
         return false;
 
     return true;
@@ -562,9 +570,6 @@ bool PMC8::updateTime(ln_date *utc, double utc_offset)
 bool PMC8::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
-
-    if (longitude > 180)
-        longitude -= 360;
 
     // do not support Southern Hemisphere yet!
     if (latitude < 0)

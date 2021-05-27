@@ -1780,30 +1780,20 @@ bool LX200AstroPhysicsExperimental::Park()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     LOGF_INFO("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-    horizontalPos.az = parkAz;
-    horizontalPos.alt = parkAlt;
-
-    ln_equ_posn equatorialPos;
-    get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-    double lst = get_local_sidereal_time(observer.lng);
-    double ha = get_local_hour_angle(lst, equatorialPos.ra / 15.);
+    INDI::IEquatorialCoordinates equatorialCoords {0, 0};
+    INDI::IHorizontalCoordinates horizontalCoords {parkAz, parkAlt};
+    INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
+    double lst = get_local_sidereal_time(m_Location.longitude);
+    double ha = get_local_hour_angle(lst, equatorialCoords.rightascension);
 
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
-    HourangleCoordsN[1].value = equatorialPos.dec;
+    HourangleCoordsN[1].value = equatorialCoords.declination;
     IDSetNumber(&HourangleCoordsNP, nullptr);
 
     if (isSimulation())
     {
-        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
+        Goto(equatorialCoords.rightascension, equatorialCoords.declination);
     }
     else
     {
@@ -2012,28 +2002,20 @@ bool LX200AstroPhysicsExperimental::UnPark()
         TrackState = SCOPE_IDLE;
     }
 
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
 
-    ln_hrz_posn horizontalPos;
-    horizontalPos.az = unparkAz;
-    horizontalPos.alt = unparkAlt;
-
-    ln_equ_posn equatorialPos;
-    get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    INDI::IEquatorialCoordinates equatorialCoords {0, 0};
+    INDI::IHorizontalCoordinates horizontalCoords {unparkAz, unparkAlt};
+    INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, unparkAz, 2, 3600);
     fs_sexa(AltStr, unparkAlt, 2, 3600);
     char RaStr[16], DecStr[16];
-    fs_sexa(RaStr, equatorialPos.ra / 15., 2, 3600);
-    fs_sexa(DecStr, equatorialPos.dec, 2, 3600);
+    fs_sexa(RaStr, equatorialCoords.rightascension, 2, 3600);
+    fs_sexa(DecStr, equatorialCoords.declination, 2, 3600);
 
-    double lst = get_local_sidereal_time(observer.lng);
-    double ha = get_local_hour_angle(lst, equatorialPos.ra / 15.);
+    double lst = get_local_sidereal_time(m_Location.longitude);
+    double ha = get_local_hour_angle(lst, equatorialCoords.rightascension);
     char HaStr[16];
     fs_sexa(HaStr, ha, 2, 3600);
     LOGF_INFO("UnPark: Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr,
@@ -2041,10 +2023,10 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
-    HourangleCoordsN[1].value = equatorialPos.dec;
+    HourangleCoordsN[1].value = equatorialCoords.declination;
     IDSetNumber(&HourangleCoordsNP, nullptr);
 
-    bool success = Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
+    bool success = Sync(equatorialCoords.rightascension, equatorialCoords.declination);
     if(!success)
     {
         LOG_WARN("Could not sync mount");
@@ -2054,7 +2036,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
     if (isSimulation())
     {
         // does not sync being in simulation
-        Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
+        Sync(equatorialPos.rightascension / 15.0, equatorialPos.dec);
     }
     else
     {
@@ -2123,21 +2105,12 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
 bool LX200AstroPhysicsExperimental::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
+    INDI::IEquatorialCoordinates equatorialCoords {currentRA, currentDEC};
+    INDI::IHorizontalCoordinates horizontalCoords {0, 0};
+    INDI::EquatorialToHorizontal(&equatorialCoords, &m_Location, ln_get_julian_from_sys(), &horizontalCoords);
 
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = currentRA * 15;
-    equatorialPos.dec = currentDEC;
-    get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-    double parkAZ = horizontalPos.az;
-    double parkAlt = horizontalPos.alt;
+    double parkAZ = horizontalCoords.azimuth;
+    double parkAlt = horizontalCoords.altitude;
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);

@@ -1587,11 +1587,20 @@ bool PegasusUPB::getPowerData()
 
         if (version == UPB_V2)
         {
-            std::chrono::milliseconds uptime(std::stol(result[3]));
-            using dhours = std::chrono::duration<double, std::ratio<3600>>;
-            std::stringstream ss;
-            ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
-            IUSaveText(&FirmwareT[FIRMWARE_UPTIME], ss.str().c_str());
+            try
+            {
+                std::chrono::milliseconds uptime(std::stol(result[3]));
+                using dhours = std::chrono::duration<double, std::ratio<3600>>;
+                std::stringstream ss;
+                ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
+                IUSaveText(&FirmwareT[FIRMWARE_UPTIME], ss.str().c_str());
+            }
+            catch(...)
+            {
+                IUSaveText(&FirmwareT[FIRMWARE_UPTIME], "NA");
+                LOGF_WARN("Failed to process uptime: %s", result[3].c_str());
+                return false;
+            }
             IDSetText(&FirmwareTP, nullptr);
         }
 
@@ -1728,17 +1737,25 @@ bool PegasusUPB::setupParams()
     char res[PEGASUS_LEN] = {0};
     if (sendCommand("SS", res))
     {
-        uint32_t value = std::stol(res);
-        if (value == UINT16_MAX)
+        try
         {
-            LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropiate for your motor focus type (0-900)",
-                      value);
-            FocuserSettingsNP.s = IPS_ALERT;
+            uint32_t value = std::stol(res);
+            if (value == UINT16_MAX)
+            {
+                LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropiate for your motor focus type (0-900)",
+                          value);
+                FocuserSettingsNP.s = IPS_ALERT;
+            }
+            else
+            {
+                FocuserSettingsN[SETTING_MAX_SPEED].value = value;
+                FocuserSettingsNP.s = IPS_OK;
+            }
         }
-        else
+        catch(...)
         {
-            FocuserSettingsN[SETTING_MAX_SPEED].value = value;
-            FocuserSettingsNP.s = IPS_OK;
+            LOGF_WARN("Failed to process focuser max speed: %s", res);
+            FocuserSettingsNP.s = IPS_ALERT;
         }
     }
 

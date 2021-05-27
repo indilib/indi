@@ -23,6 +23,7 @@ BuildRequires: libogg-devel
 BuildRequires: libtheora-devel
 BuildRequires: fftw-devel
 BuildRequires: gmock-devel
+BuildRequires: rtl-sdr-devel
 
 BuildRequires: pkgconfig(fftw3)
 BuildRequires: pkgconfig(cfitsio)
@@ -31,6 +32,7 @@ BuildRequires: pkgconfig(gsl)
 BuildRequires: pkgconfig(libjpeg)
 BuildRequires: pkgconfig(libusb-1.0)
 BuildRequires: pkgconfig(zlib)
+BuildRequires: pkgconfig(rtl-sdr))
 
 Requires: %{name}-libs%{?_isa} = %{version}-%{release}
 
