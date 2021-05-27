@@ -25,6 +25,9 @@
 
 #include "lx200_OnStep.h"
 
+
+#include <mutex>
+
 #define LIBRARY_TAB  "Library"
 #define FIRMWARE_TAB "Firmware data"
 #define STATUS_TAB "ONStep Status"
@@ -32,20 +35,24 @@
 #define ALIGN_TAB "Align"
 #define OUTPUT_TAB "Outputs"
 #define ENVIRONMENT_TAB "Weather"
+#define ROTATOR_TAB "Rotator"
 
 #define ONSTEP_TIMEOUT  3
 #define RA_AXIS     0
 #define DEC_AXIS    1
 
-LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this)
+extern std::mutex lx200CommsLock;
+
+
+LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
 {
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 9);   // don't forget to update libindi/drivers.xml
+    setVersion(1, 10);   // don't forget to update libindi/drivers.xml
 
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
-                       LX200_HAS_PRECISE_TRACKING_FREQ);
+    LX200_HAS_PRECISE_TRACKING_FREQ);
 
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE
                            | TELESCOPE_HAS_TRACK_RATE, 10 );
@@ -61,6 +68,14 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this)
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     // Unused option: FOCUSER_HAS_VARIABLE_SPEED
 
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_HAS_BACKLASH);
+//     /*{
+//         ROTATOR_CAN_ABORT          = 1 << 0, /*!< Can the Rotator abort motion once started? */
+//         ROTATOR_CAN_HOME           = 1 << 1, /*!< Can the Rotator go to home position? */
+//         ROTATOR_CAN_SYNC           = 1 << 2, /*!< Can the Rotator sync to specific tick? */ /*Not supported */
+//         ROTATOR_CAN_REVERSE        = 1 << 3, /*!< Can the Rotator reverse direction? */ //It CAN reverse, but there's no way to query the direction
+//         ROTATOR_HAS_BACKLASH       = 1 << 4  /*!< Can the Rotatorer compensate for backlash? */
+//     //}*/
 
 }
 
@@ -75,6 +90,7 @@ bool LX200_OnStep::initProperties()
     LX200Generic::initProperties();
     FI::initProperties(FOCUS_TAB);
     WI::initProperties(ENVIRONMENT_TAB, ENVIRONMENT_TAB);
+    RI::initProperties(ROTATOR_TAB);
     SetParkDataType(PARK_RA_DEC);
 
     //FocuserInterface
@@ -146,8 +162,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&TrackAxisSP, TrackAxisS, 2, getDeviceName(), "Multi-Axis", "Multi-Axis Tracking", MOTION_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
-    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
+    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 3600, 1, 15);
+    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 3600, 1, 15);
     IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.25, 0.5);
@@ -200,6 +216,21 @@ bool LX200_OnStep::initProperties()
     //     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
     IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    IUFillSwitch(&OSFocusSelectS[0], "Focuser_Primary_1", "Focuser 1", ISS_ON);
+    IUFillSwitch(&OSFocusSelectS[1], "Focuser_Primary_2", "Focuser 2/Swap", ISS_OFF);
+    // For when OnStepX comes out
+    IUFillSwitch(&OSFocusSelectS[2], "Focuser_Primary_3", "3", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[3], "Focuser_Primary_4", "4", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[4], "Focuser_Primary_5", "5", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[5], "Focuser_Primary_6", "6", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[6], "Focuser_Primary_7", "7", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[7], "Focuser_Primary_8", "8", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[8], "Focuser_Primary_9", "9", ISS_OFF);
+    IUFillSwitch(&OSFocusSelectS[9], "Focuser_Primary_10", "10", ISS_OFF);
+    
+    IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, 1, getDeviceName(), "OSFocusSWAP", "Primary Focuser", FOCUS_TAB,
+                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
 
     // Focuser 2
@@ -223,6 +254,13 @@ bool LX200_OnStep::initProperties()
     IUFillNumber(&OSFocus2TargN[0], "FocusTarget2", "Abs Pos", "%g", -25000, 25000, 1, 0);
     IUFillNumberVector(&OSFocus2TargNP, OSFocus2TargN, 1, getDeviceName(), "Foc2Targ", "Foc 2 Target", FOCUS_TAB, IP_RW, 0,
                        IPS_IDLE);
+    
+    // =========== ROTATOR TAB 
+    
+    IUFillSwitch(&OSRotatorDerotateS[0], "Derotate_OFF", "OFF", ISS_OFF);
+    IUFillSwitch(&OSRotatorDerotateS[1], "Derotate_ON", "ON", ISS_OFF);
+    IUFillSwitchVector(&OSRotatorDerotateSP, OSRotatorDerotateS, 2, getDeviceName(), "Derotate_Status", "DEROTATE", ROTATOR_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     // ============== FIRMWARE_TAB
     IUFillText(&VersionT[0], "Date", "", "");
@@ -339,32 +377,30 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[6], "Mount Type", "", "");
     IUFillText(&OnstepStat[7], "Error", "", "");
     IUFillText(&OnstepStat[8], "Multi-Axis Tracking", "", "");
-    IUFillTextVector(&OnstepStatTP, OnstepStat, 9, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
+    IUFillText(&OnstepStat[9], "TMC Axis1", "", "");
+    IUFillText(&OnstepStat[10], "TMC Axis2", "", "");
+    IUFillTextVector(&OnstepStatTP, OnstepStat, 11, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
     // ============== WEATHER TAB
     // Uses OnStep's defaults for this
     IUFillNumber(&OSSetTemperatureN[0], "Set Temperature (C)", "C", "%4.2f", -100, 100, 1, 10);//-274, 999, 1, 10);
-    IUFillNumberVector(&OSSetTemperatureNP, OSSetTemperatureN, 1, getDeviceName(), "Set Temperature (C)", "", ENVIRONMENT_TAB,
-                       IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&OSSetTemperatureNP, OSSetTemperatureN, 1, getDeviceName(), "Set Temperature (C)", "", ENVIRONMENT_TAB, IP_RW, 0, IPS_IDLE);
     IUFillNumber(&OSSetHumidityN[0], "Set Relative Humidity (%)", "%", "%5.2f", 0, 100, 1, 70);
-    IUFillNumberVector(&OSSetHumidityNP, OSSetHumidityN, 1, getDeviceName(), "Set Relative Humidity (%)", "", ENVIRONMENT_TAB,
-                       IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&OSSetHumidityNP, OSSetHumidityN, 1, getDeviceName(), "Set Relative Humidity (%)", "", ENVIRONMENT_TAB, IP_RW, 0, IPS_IDLE); 
     IUFillNumber(&OSSetPressureN[0], "Set Pressure (hPa)", "hPa", "%4f", 500, 1500, 1, 1010);
-    IUFillNumberVector(&OSSetPressureNP, OSSetPressureN, 1, getDeviceName(), "Set Pressure (hPa)", "", ENVIRONMENT_TAB, IP_RW,
-                       0, IPS_IDLE);
-
+    IUFillNumberVector(&OSSetPressureNP, OSSetPressureN, 1, getDeviceName(), "Set Pressure (hPa)", "", ENVIRONMENT_TAB, IP_RW, 0, IPS_IDLE); 
+    
     //Will eventually pull from the elevation in site settings
     //TODO: Pull from elevation in site settings
     IUFillNumber(&OSSetAltitudeN[0], "Set Altitude (m)", "m", "%4f", 0, 20000, 1, 110);
-    IUFillNumberVector(&OSSetAltitudeNP, OSSetAltitudeN, 1, getDeviceName(), "Set Altitude (m)", "", ENVIRONMENT_TAB, IP_RW, 0,
-                       IPS_IDLE);
-
+    IUFillNumberVector(&OSSetAltitudeNP, OSSetAltitudeN, 1, getDeviceName(), "Set Altitude (m)", "", ENVIRONMENT_TAB, IP_RW, 0, IPS_IDLE); 
 
 
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -40, 85, 15);
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
     addParameter("WEATHER_BAROMETER", "Pressure (hPa)", 0, 1500, 15);
     addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15); // From OnStep
+    addParameter("WEATHER_CPU_TEMPERATURE", "OnStep CPU Temperature", -274, 200, -274); // From OnStep, -274 = unread
     setCriticalParameter("WEATHER_TEMPERATURE");
 
     addAuxControls();
@@ -383,9 +419,12 @@ void LX200_OnStep::ISGetProperties(const char *dev)
 
 bool LX200_OnStep::updateProperties()
 {
+    int i;
+    char cmd[32];
     LX200Generic::updateProperties();
     FI::updateProperties();
     WI::updateProperties();
+    RI::updateProperties();
     if (isConnected())
     {
         // Firstinitialize some variables
@@ -400,7 +439,7 @@ bool LX200_OnStep::updateProperties()
 
         // OnStep Status
         defineProperty(&OnstepStatTP);
-
+        
         // Motion Control
         defineProperty(&MaxSlewRateNP);
         defineProperty(&TrackCompSP);
@@ -427,16 +466,37 @@ bool LX200_OnStep::updateProperties()
         {
             OSFocuser1 = true;
             defineProperty(&OSFocus1InitializeSP);
+            OSNumFocusers = 1;
         }
         // Focuser 2
-        if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2
+        if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2 (:fA# will only work for OnStep, not OnStepX)
         {
             OSFocuser2 = true;
+            OSNumFocusers = 2;
             //defineProperty(&OSFocus2SelSP);
             defineProperty(&OSFocus2MotionSP);
             defineProperty(&OSFocus2RateSP);
             defineProperty(&OSFocus2TargNP);
+            IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, OSNumFocusers, getDeviceName(), "OSFocusSWAP", "Primary Focuser", FOCUS_TAB,
+                               IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+            defineProperty(&OSFocusSelectSP); //Swap focusers (only matters if two focusers)
+        } else { //For OnStepX, up to 9 focusers 
+            for (i = 0; i < 9; i++) {
+                snprintf(cmd, 7, ":F%dA#", i + 1);
+                if (!sendOnStepCommand(cmd))  // Do we have a Focuser X
+                { 
+                    OSNumFocusers = i+1;
+                }
+            }
+            if (OSNumFocusers > 1) {
+                IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, OSNumFocusers, getDeviceName(), "OSFocusSWAP", "Primary Focuser", FOCUS_TAB,
+                                IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+                defineProperty(&OSFocusSelectSP);
+            }
         }
+
+        //Rotation Information
+        defineProperty(&OSRotatorDerotateSP);
 
         // Firmware Data
         defineProperty(&VersionTP);
@@ -471,6 +531,7 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&OSSetAltitudeNP);
 
 
+
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
@@ -491,10 +552,10 @@ bool LX200_OnStep::updateProperties()
         // Get value from config file if it exists.
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-        if (longitude != -1000 && latitude != -1000)
-        {
-            updateLocation(latitude, longitude, 0);
-        }
+//         if (longitude != -1000 && latitude != -1000)
+//         {
+//             updateLocation(latitude, longitude, 0);
+//         }
     }
     else
     {
@@ -532,7 +593,11 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSFocus2MotionSP.name);
         deleteProperty(OSFocus2RateSP.name);
         deleteProperty(OSFocus2TargNP.name);
+        deleteProperty(OSFocusSelectSP.name);
 
+        // Rotator 
+        deleteProperty(OSRotatorDerotateSP.name);
+        
         // Firmware Data
         deleteProperty(VersionTP.name);
 
@@ -563,14 +628,11 @@ bool LX200_OnStep::updateProperties()
 
         // OnStep Status
         deleteProperty(OnstepStatTP.name);
-
-
         //Weather
         deleteProperty(OSSetTemperatureNP.name);
         deleteProperty(OSSetPressureNP.name);
         deleteProperty(OSSetHumidityNP.name);
         deleteProperty(OSSetAltitudeNP.name);
-
     }
     return true;
 }
@@ -581,6 +643,8 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     {
         if (strstr(name, "FOCUS_"))
             return FI::processNumber(dev, name, values, names, n);
+        if (strstr(name, "ROTATOR_"))
+            return RI::processNumber(dev, name, values, names, n);
         if (!strcmp(name, ObjectNoNP.name))
         {
             char object_name[256];
@@ -904,10 +968,6 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
         return true;
     }
-
-
-
-
 
     if (strstr(name, "WEATHER_"))
     {
@@ -1246,6 +1306,39 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 IDSetSwitch(&OSFocus1InitializeSP, nullptr);
             }
         }
+        
+        
+        //Focuser Swap/Select
+        if (!strcmp(name, OSFocusSelectSP.name))
+        {
+            char cmd[32];
+            int i;
+            if (IUUpdateSwitch(&OSFocusSelectSP, states, names, n) < 0)
+                return false;
+            index = IUFindOnSwitchIndex(&OSFocusSelectSP);
+            LOGF_INFO("Primary focuser set: Focuser 1 in INDI/Controllable Focuser = OnStep Focuser %d", index + 1);
+            if (index == 0 && OSNumFocusers <= 2) {
+                LOG_INFO("If using OnStep: Focuser 2 in INDI = OnStep Focuser 2");
+            }
+            if (index == 1 && OSNumFocusers <= 2) {
+                LOG_INFO("If using OnStep: Focuser 2 in INDI = OnStep Focuser 1");
+            }
+            if (OSNumFocusers > 2) {
+                LOGF_INFO("If using OnStepX, There is no swap, and current max number: %d", OSNumFocusers);
+            }
+            snprintf(cmd, 7, ":FA%d#", index + 1 );
+            for (i = 0; i < 9; i++) {
+                OSFocusSelectS[i].s = ISS_OFF;
+            }
+            OSFocusSelectS[index].s = ISS_ON;
+            if (!sendOnStepCommand(cmd)) {
+                OSFocusSelectSP.s = IPS_BUSY;
+            } else {
+                OSFocusSelectSP.s = IPS_ALERT;
+            }
+            IDSetSwitch(&OSFocusSelectSP, nullptr);
+        }
+        
 
         // Focuser 2 Rates
         if (!strcmp(name, OSFocus2RateSP.name))
@@ -1293,6 +1386,30 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             OSFocus2MotionS[index].s = ISS_OFF;
             OSFocus2MotionSP.s = IPS_OK;
             IDSetSwitch(&OSFocus2MotionSP, nullptr);
+        }
+        
+        //Rotator De-rotation
+//         OSRotatorDerotateS
+        if (!strcmp(name, OSRotatorDerotateSP.name))
+        {
+            char cmd[32];
+            
+            if (IUUpdateSwitch(&OSRotatorDerotateSP, states, names, n) < 0)
+                return false;
+            
+            index = IUFindOnSwitchIndex(&OSRotatorDerotateSP);
+            if (index == 0) //Derotate_OFF
+            {
+                strcpy(cmd, ":r-#");
+            }
+            if (index == 1) //Derotate_ON
+            {
+                strcpy(cmd, ":r+#");
+            }
+            sendOnStepCommandBlind(cmd);
+            OSRotatorDerotateS[index].s = ISS_OFF;
+            OSRotatorDerotateSP.s = IPS_IDLE;
+            IDSetSwitch(&OSRotatorDerotateSP, nullptr);
         }
 
         // PEC
@@ -1499,7 +1616,11 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         {
             return FI::processSwitch(dev, name, states, names, n);
         }
-
+        // Focuser
+        if (strstr(name, "ROTATOR"))
+        {
+            return RI::processSwitch(dev, name, states, names, n);
+        }
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
@@ -1626,6 +1747,7 @@ bool LX200_OnStep::ReadScopeStatus()
     char GuideValue[RB_MAX_LEN];
     char TempValue[RB_MAX_LEN];
     char TempValue2[RB_MAX_LEN];
+    int i;
     Errors Lasterror = ERR_NONE;
 
     if (isSimulation()) //if Simulation is selected
@@ -2228,8 +2350,8 @@ bool LX200_OnStep::ReadScopeStatus()
 
     }
 
-    //TODO: Rotator support
-
+    //TODO: Improve Rotator support
+    OSUpdateRotator();
 
     //Weather update
     getCommandString(PortFD, TempValue, ":GX9A#");
@@ -2238,9 +2360,16 @@ bool LX200_OnStep::ReadScopeStatus()
     setParameterValue("WEATHER_HUMIDITY", std::stod(TempValue));
     getCommandString(PortFD, TempValue, ":GX9B#");
     setParameterValue("WEATHER_BAROMETER", std::stod(TempValue));
-    getCommandString(PortFD, TempValue, ":GX9E#");
+    getCommandString(PortFD, TempValue, ":GX9E#"); 
     setParameterValue("WEATHER_DEWPOINT", std::stod(TempValue));
-
+    if (OSCpuTemp_good) {
+        if (!getCommandString(PortFD, TempValue, ":GX9F#")) {
+            setParameterValue("WEATHER_CPU_TEMPERATURE", std::stod(TempValue));
+        } else {
+            OSCpuTemp_good = false;
+        }
+    }
+//     
     //Disabled, because this is supplied via Kstars or other location, no sensor to read this
     //getCommandString(PortFD,TempValue, ":GX9D#");
     //setParameterValue("WEATHER_ALTITUDE", std::stod(TempValue));
@@ -2251,7 +2380,41 @@ bool LX200_OnStep::ReadScopeStatus()
     ParametersNP.s = IPS_OK;
     IDSetNumber(&ParametersNP, nullptr);
 
-
+    if (TMCDrivers) {
+        i = getCommandSingleCharErrorOrLongResponse(PortFD, TempValue, ":GXU1#"); // Axis1
+        if (i == -4  && TempValue[0] == '0' ) {
+            IUSaveText(&OnstepStat[9], "TMC Reporting not detected, Axis 1");
+            TMCDrivers = false;
+        } else {
+            if (i > 0 ) { 
+                if (TempValue[0] == 0) 
+                { 
+                    IUSaveText(&OnstepStat[9], "No Condition");
+                } else {
+                    IUSaveText(&OnstepStat[9], TempValue);
+                }
+            } else {
+                IUSaveText(&OnstepStat[9], "Unknown read error");
+            }
+        }
+        
+        i = getCommandSingleCharErrorOrLongResponse(PortFD, TempValue, ":GXU2#"); // Axis1
+        if (i == -4  && TempValue[0] == '0'  ) {
+            IUSaveText(&OnstepStat[10], "TMC Reporting not detected, Axis 2");
+            TMCDrivers = false;
+        } else {
+            if (i > 0 ) { 
+                if (TempValue[0] == 0) 
+                { 
+                    IUSaveText(&OnstepStat[10], "No Condition");
+                } else {
+                    IUSaveText(&OnstepStat[10], TempValue);
+                }
+            } else {
+                IUSaveText(&OnstepStat[9], "Unknown read error");
+            }
+        }
+    }
 
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, nullptr);
@@ -2348,6 +2511,73 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)
     return (response[0] == '0');
 }
 
+int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+    int timeout = 1;
+    
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+    
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+    
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+    
+    error_type = tty_read(fd, data, 1, timeout, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+    
+    if (error_type != TTY_OK)
+        return error_type;
+    
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+    
+    DEBUGF(DBG_SCOPE, "RES <%s>", data);
+    
+    return 0;
+}
+
+int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+    int timeout = 1;
+    
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+    
+    /* Add mutex */
+    std::unique_lock<std::mutex> guard(lx200CommsLock);
+    
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+    
+    error_type = tty_read_section(fd, data, '#', timeout, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+    
+
+    
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+    
+    DEBUGF(DBG_SCOPE, "RES <%s>", data);
+
+    if (error_type != TTY_OK) {
+        LOGF_DEBUG("Error %d", error_type);
+        return error_type;
+    }
+    return nbytes_read;
+    
+    //return 0;
+}
+
+
+
 bool LX200_OnStep::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
@@ -2374,8 +2604,8 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
     }
 
     char l[32] = {0}, L[32] = {0};
-    fs_sexa(l, latitude, 3, 3600);
-    fs_sexa(L, longitude, 4, 3600);
+    fs_sexa(l, latitude, 3, 360000);
+    fs_sexa(L, longitude, 4, 360000);
 
     LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
@@ -2396,15 +2626,33 @@ int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standa
 int LX200_OnStep::setSiteLongitude(int fd, double Long)
 {
     //DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    int d, m, s;
+    int d, m;
+    double s;
     char read_buffer[32];
 
-    getSexComponents(Long, &d, &m, &s);
+    getSexComponentsIID(Long, &d, &m, &s);
 
-    snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d#", d, m);
+    snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d:%.02f#", d, m,s);
 
     return (setStandardProcedure(fd, read_buffer));
 }
+int LX200_OnStep::setSiteLatitude(int fd, double Long)
+{
+    //DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    int d, m;
+    double s;
+    char read_buffer[32];
+    
+    getSexComponentsIID(Long, &d, &m, &s);
+    
+    snprintf(read_buffer, sizeof(read_buffer), ":St%+.02d:%02d:%.02f#", d, m,s);
+    
+    return (setStandardProcedure(fd, read_buffer));
+}
+
+
+
+
 /***** FOCUSER INTERFACE ******
 
 NOT USED:
@@ -2488,6 +2736,8 @@ void LX200_OnStep::OSUpdateFocuser()
 {
     char value[RB_MAX_LEN];
     double current = 0;
+    int temp_value;
+    int i;
     if (OSFocuser1)
     {
         // Alternate option:
@@ -2496,7 +2746,7 @@ void LX200_OnStep::OSUpdateFocuser()
         FocusAbsPosN[0].value =  atoi(value);
         current = FocusAbsPosN[0].value;
         IDSetNumber(&FocusAbsPosNP, nullptr);
-        LOGF_DEBUG("Current focuser: %d, %d", atoi(value), FocusAbsPosN[0].value);
+        LOGF_DEBUG("Current focuser: %d, %f", atoi(value), FocusAbsPosN[0].value);
         //  :FT#  get status
         //         Returns: M# (for moving) or S# (for stopped)
         getCommandString(PortFD, value, ":FT#");
@@ -2545,7 +2795,201 @@ void LX200_OnStep::OSUpdateFocuser()
         OSFocus2TargNP.np[0].value = atoi(value);
         IDSetNumber(&OSFocus2TargNP, nullptr);
     }
+    
+    if(OSNumFocusers > 1) 
+    {
+        getCommandSingleCharResponse(PortFD, value, ":Fa#");
+        temp_value = atoi(value);
+        LOGF_DEBUG(":Fa# return: %d", temp_value);
+        for (i = 0; i < 9; i++) {
+            OSFocusSelectS[i].s = ISS_OFF;
+        }
+        if (temp_value == 0) {
+            OSFocusSelectS[1].s = ISS_ON;
+        } else {
+            OSFocusSelectS[temp_value - 1].s = ISS_ON;
+        }
+        OSFocusSelectSP.s = IPS_OK;
+        IDSetSwitch(&OSFocusSelectSP, nullptr);
+    }
 }
+
+//Rotator stuff
+// IPState MoveRotator(double angle) override;
+// bool SyncRotator(double angle) override;
+//         IPState HomeRotator() override;
+// bool ReverseRotator(bool enabled) override;
+// bool AbortRotator() override;
+//         bool SetRotatorBacklash (int32_t steps) override;
+//         bool SetRotatorBacklashEnabled(bool enabled) override;
+
+//OnStep Rotator Commands (For reference, and from 5 1 v 4)
+// :r+#       Enable derotator
+//            Returns: Nothing
+// :r-#       Disable derotator
+//            Returns: Nothing
+// :rP#       Move rotator to the parallactic angle
+//            Returns: Nothing
+// :rR#       Reverse derotator direction
+//            Returns: Nothing
+// :rT#       Get status
+//            Returns: M# (for moving) or S# (for stopped)
+// :rI#       Get mIn position (in degrees)
+//            Returns: n#
+// :rM#       Get Max position (in degrees)
+//            Returns: n#
+// :rD#       Get rotator degrees per step
+//            Returns: n.n#
+// :rb#       Get rotator backlash amount in steps
+//            Return: n#
+// :rb[n]#
+//            Set rotator backlash amount in steps
+//            Returns: 0 on failure
+//                     1 on success
+// :rF#       Reset rotator at the home position
+//            Returns: Nothing
+// :rC#       Moves rotator to the home position
+//            Returns: Nothing
+// :rG#       Get rotator current position in degrees
+//            Returns: sDDD*MM#
+// :rc#       Set continuous move mode (for next move command)
+//            Returns: Nothing
+// :r>#       Move clockwise as set by :rn# command, default = 1 deg (or 0.1 deg/s in continuous mode)
+//            Returns: Nothing
+// :r<#       Move counter clockwise as set by :rn# command
+//            Returns: Nothing
+// :rQ#       Stops movement (except derotator)
+//            Returns: Nothing
+// :r[n]#     Move increment where n = 1 for 1 degrees, 2 for 2 degrees, 3 for 5 degrees, 4 for 10 degrees
+//            Move rate where n = 1 for .01 deg/s, 2 for 0.1 deg/s, 3 for 1.0 deg/s, 4 for 5.0 deg/s
+//            Returns: Nothing
+// :rS[sDDD*MM'SS]#
+//            Set position in degrees
+//            Returns: 0 on failure
+//                     1 on success
+
+void LX200_OnStep::OSUpdateRotator() {
+    char value[RB_MAX_LEN];
+    double double_value;
+    if(OSRotator1)
+    {
+        getCommandString(PortFD, value, ":rG#");
+        if (f_scansexa(value, &double_value)) {
+            // 0 = good, thus this is the bad 
+            GotoRotatorNP.s = IPS_ALERT;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+            return;
+        }
+        GotoRotatorN[0].value =  double_value;
+        
+        getCommandString(PortFD, value, ":rI#");
+        GotoRotatorN[0].min =  atof(value);
+        getCommandString(PortFD, value, ":rM#");
+        GotoRotatorN[0].max =  atof(value);
+        IUUpdateMinMax(&GotoRotatorNP);
+        IDSetNumber(&GotoRotatorNP, nullptr);
+        //GotoRotatorN
+        getCommandString(PortFD, value, ":rT#");
+        if (value[0] == 'S') /*Stopped normal on EQ mounts */ 
+        {
+            GotoRotatorNP.s = IPS_OK;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+ 
+        }
+        else if (value[0] == 'M') /* Moving, including de-rotation */
+        {
+            GotoRotatorNP.s = IPS_BUSY;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+        }
+        else
+        {
+            //INVALID REPLY
+            GotoRotatorNP.s = IPS_ALERT;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+        }
+        getCommandString(PortFD, value, ":rb#");
+        RotatorBacklashN[0].value =  atoi(value);
+        RotatorBacklashNP.s = IPS_OK;
+        IDSetNumber(&RotatorBacklashNP, nullptr);
+    }
+    
+    
+
+    
+}
+
+IPState LX200_OnStep::MoveRotator(double angle) {
+    char cmd[32];
+    int d, m, s;
+    getSexComponents(angle, &d, &m, &s);
+    
+    snprintf(cmd, sizeof(cmd), ":rS%.03d:%02d:%02d#", d, m, s);
+    LOGF_INFO("Move Rotator: %s", cmd);
+    
+
+    if(setStandardProcedure(PortFD, cmd)) {
+        return IPS_BUSY;
+    } else {
+        return IPS_ALERT;
+    }
+
+    
+    return IPS_BUSY;
+}
+/*
+bool LX200_OnStep::SyncRotator(double angle) {
+    
+}*/
+IPState LX200_OnStep::HomeRotator() {
+    //Not entirely sure if this means attempt to use limit switches and home, or goto home
+    //Assuming MOVE to Home
+    LOG_INFO("Moving Rotator to Home");
+    sendOnStepCommandBlind(":rC#");
+    return IPS_BUSY;
+}
+// bool LX200_OnStep::ReverseRotator(bool enabled) {
+//     sendOnStepCommandBlind(":rR#");
+//     return true;
+// } //No way to check which way it's going as Indi expects
+
+bool LX200_OnStep::AbortRotator() {
+    LOG_INFO("Aborting Rotation, de-rotation in same state");
+    sendOnStepCommandBlind(":rQ#"); //Does NOT abort de-rotator
+    return true;
+}
+
+bool LX200_OnStep::SetRotatorBacklash(int32_t steps) {
+    char cmd[32];
+//     char response[RB_MAX_LEN];
+    snprintf(cmd, sizeof(cmd), ":rb%d#", steps);
+    if(sendOnStepCommand(cmd)) {
+        return true;
+    }
+    return false;
+}
+
+bool LX200_OnStep::SetRotatorBacklashEnabled(bool enabled) {
+    //Nothing required here.
+    INDI_UNUSED(enabled);
+    return true; 
+//     As it's always enabled, which would mean setting it like SetRotatorBacklash to 0, and losing any saved values. So for now, leave it as is (always enabled)
+}
+
+// bool SyncRotator(double angle) override;
+//         IPState HomeRotator(double angle) override;
+// bool ReverseRotator(bool enabled) override;
+// bool AbortRotator() override;
+//         bool SetRotatorBacklash (int32_t steps) override;
+//         bool SetRotatorBacklashEnabled(bool enabled) override;
+
+// Now, derotation is NOT explicitly handled. 
+
+
+
+//End Rotator stuff
+
+
+
 
 //PEC Support
 //Should probably be added to inditelescope or another interface, because the PEC that's there... is very limited.
@@ -3250,4 +3694,144 @@ void LX200_OnStep::Init_Outputs()
         }
     }
     defineProperty(&OutputPorts_NP);
+}
+
+
+bool LX200_OnStep::sendScopeTime()
+{
+    char cdate[MAXINDINAME] = {0};
+    char ctime[MAXINDINAME] = {0};
+    struct tm ltm;
+    struct tm utm;
+    time_t time_epoch;
+    
+    double offset = 0;
+    if (getUTFOffset(&offset))
+    {
+        char utcStr[8] = {0};
+        snprintf(utcStr, 8, "%.2f", offset);
+        IUSaveText(&TimeT[1], utcStr);
+    }
+    else
+    {
+        LOG_WARN("Could not obtain UTC offset from mount!");
+        return false;
+    }
+    
+    if (getLocalTime(ctime) == false)
+    {
+        LOG_WARN("Could not obtain local time from mount!");
+        return false;
+    }
+    
+    if (getLocalDate(cdate) == false)
+    {
+        LOG_WARN("Could not obtain local date from mount!");
+        return false;
+    }
+    
+    // To ISO 8601 format in LOCAL TIME!
+    char datetime[MAXINDINAME] = {0};
+    snprintf(datetime, MAXINDINAME, "%sT%s", cdate, ctime);
+    
+    // Now that date+time are combined, let's get tm representation of it.
+    if (strptime(datetime, "%FT%T", &ltm) == nullptr)
+    {
+        LOGF_WARN("Could not process mount date and time: %s", datetime);
+        return false;
+    }
+    
+    // Get local time epoch in UNIX seconds
+    time_epoch = mktime(&ltm);
+    
+    // LOCAL to UTC by subtracting offset.
+    time_epoch -= static_cast<int>(offset * 3600.0);
+    
+    // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time)
+    localtime_r(&time_epoch, &utm);
+    
+    // Format it into the final UTC ISO 8601
+    strftime(cdate, MAXINDINAME, "%Y-%m-%dT%H:%M:%S", &utm);
+    IUSaveText(&TimeT[0], cdate);
+    
+    LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
+    LOGF_DEBUG("Mount controller UTC Offset: %s", TimeT[1].text);
+    
+    // Let's send everything to the client
+    TimeTP.s = IPS_OK;
+    IDSetText(&TimeTP, nullptr);
+    
+    return true;
+}
+
+bool LX200_OnStep::sendScopeLocation()
+{
+    int lat_dd = 0, lat_mm = 0, long_dd = 0, long_mm = 0;
+    double lat_ssf = 0.0, long_ssf = 0.0;
+    char lat_sexagesimal[MAXINDIFORMAT];
+    char lng_sexagesimal[MAXINDIFORMAT];
+    
+    if (isSimulation())
+    {
+        LocationNP.np[LOCATION_LATITUDE].value = 29.5;
+        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
+        LocationNP.np[LOCATION_ELEVATION].value = 10;
+        LocationNP.s           = IPS_OK;
+        IDSetNumber(&LocationNP, nullptr);
+        return true;
+    }
+    
+    if (getSiteLatitudeAlt(PortFD, &lat_dd, &lat_mm, &lat_ssf, ":GtH#") < 0)
+    {
+        //NOTE: All OnStep pre-31 Aug 2020 will fail the above: 
+        //      So Try the normal command, if it fails
+        if (getSiteLatitude(PortFD, &lat_dd, &lat_mm, &lat_ssf) < 0)
+        {
+            snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+        }
+        else 
+        {
+            LOG_WARN("Failed to get site latitude from device.");
+            return false;
+        }
+    }
+    else
+    {
+        snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+        f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+    }
+    
+    if (getSiteLongitudeAlt(PortFD, &long_dd, &long_mm, &long_ssf, ":GgH#") < 0)
+    {
+        //NOTE: All OnStep pre-31 Aug 2020 will fail the above: 
+        //      So Try the normal command, if it fails
+        if (getSiteLongitude(PortFD, &long_dd, &long_mm, &long_ssf) < 0)
+        {
+            LOG_WARN("Failed to get site longitude from device.");
+            return false;
+        }
+        else
+        {
+            snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+        }
+    }
+    else
+    {
+        snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+        f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+    }
+    
+    LOGF_INFO("Mount has Latitude %s (%g) Longitude %s (%g) (Longitude sign in carthography format)",
+              lat_sexagesimal,
+              LocationN[LOCATION_LATITUDE].value,
+              lng_sexagesimal,
+              LocationN[LOCATION_LONGITUDE].value);
+    
+    IDSetNumber(&LocationNP, nullptr);
+    
+    saveConfig(true, "GEOGRAPHIC_COORD");
+    
+    return true;
 }
