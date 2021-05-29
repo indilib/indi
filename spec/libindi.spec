@@ -32,7 +32,6 @@ BuildRequires: pkgconfig(gsl)
 BuildRequires: pkgconfig(libjpeg)
 BuildRequires: pkgconfig(libusb-1.0)
 BuildRequires: pkgconfig(zlib)
-BuildRequires: pkgconfig(rtl-sdr)
 
 Requires: %{name}-libs%{?_isa} = %{version}-%{release}
 
