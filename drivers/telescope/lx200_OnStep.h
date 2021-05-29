@@ -22,9 +22,16 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     ===========================================
-
+    
     Version not yet updated:
-    - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values.
+    - Manage OnStep Auxiliary Feature Names in Output Tab
+    
+    Version 1.10: 
+    - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
+    - Ability to swap primary focuser.
+    - High precision on location, and not overridding GPS even when marked for Mount > KStars.
+    - Added Rotator & De-Rotator Support
+    - TMC_SPI status reported (RAW) on the Status Tab. (ST = Standstill, Ox = open load A/B, Gx = grounded A/B, OT = Overtemp Shutdown, PW = Overtemp Prewarning) 
 
     Version 1.9:
     - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
@@ -86,6 +93,7 @@
 #include "indicom.h"
 #include "indifocuserinterface.h"
 #include "indiweatherinterface.h"
+#include "indirotatorinterface.h"
 
 #include <cstring>
 #include <unistd.h>
@@ -114,7 +122,7 @@ enum RateCompensation {RC_NONE, RC_REFR_RA, RC_REFR_BOTH, RC_FULL_RA, RC_FULL_BO
 
 enum MountType {MOUNTTYPE_GEM, MOUNTTYPE_FORK, MOUNTTYPE_FORK_ALT, MOUNTTYPE_ALTAZ};
 
-class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
+class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public INDI::RotatorInterface
 {
     public:
         LX200_OnStep();
@@ -138,21 +146,25 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
         virtual bool ReadScopeStatus() override;
         virtual int setSiteLongitude(int fd, double Long);
+        virtual int setSiteLatitude(int fd, double Long);
         virtual bool SetTrackRate(double raRate, double deRate) override;
         virtual void slewError(int slewCode) override;
         virtual bool Sync(double ra, double dec) override;
 
         virtual bool saveConfigItems(FILE *fp) override;
+        virtual void Init_Outputs();
 
         //Mount information
         int OSMountType = 0;
         /*  0 = EQ mount  (Presumed default for most things.)
-         *  1 = Fork
-         *  2 = Fork Alt
-         *  3 = Alt Azm
-         */
-
-
+        *  1 = Fork
+        *  2 = Fork Alt
+        *  3 = Alt Azm
+        */
+        
+        virtual bool sendScopeTime() override;
+        virtual bool sendScopeLocation() override;
+        
         //FocuserInterface
 
         IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
@@ -160,9 +172,20 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
         bool AbortFocuser () override;
 
-
         //End FocuserInterface
 
+        //RotatorInterface
+        
+        IPState MoveRotator(double angle) override;
+//         bool SyncRotator(double angle) override;
+        IPState HomeRotator() override;
+//         bool ReverseRotator(bool enabled) override;
+        bool AbortRotator() override;
+        bool SetRotatorBacklash (int32_t steps) override;
+        bool SetRotatorBacklashEnabled(bool enabled) override;
+        
+        //End RotatorInterface        
+        
         //PECInterface
         //axis 0=RA, 1=DEC, others?
         IPState StopPECPlayback (int axis);
@@ -196,9 +219,12 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
 
         bool sendOnStepCommand(const char *cmd);
         bool sendOnStepCommandBlind(const char *cmd);
+        int getCommandSingleCharResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
+        int getCommandSingleCharErrorOrLongResponse(int fd, char *data, const char *cmd); //Reimplemented from getCommandString
         int  setMaxElevationLimit(int fd, int max);
         void OSUpdateFocuser();
-
+        void OSUpdateRotator();
+        
         ITextVectorProperty ObjectInfoTP;
         IText ObjectInfoT[1] {};
 
@@ -228,13 +254,19 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
 
         // OnStep Status controls
         ITextVectorProperty OnstepStatTP;
-        IText OnstepStat[10] {};
+        IText OnstepStat[11] {};
+        
+        bool TMCDrivers = true; //Set to false if it doesn't detect TMC_SPI reporting. (Small delay on connection/first update)
 
         // Focuser controls
         // Focuser 1
         bool OSFocuser1 = false;
         ISwitchVectorProperty OSFocus1InitializeSP;
         ISwitch OSFocus1InitializeS[4];
+        
+        int OSNumFocusers;
+        ISwitchVectorProperty OSFocusSelectSP;
+        ISwitch OSFocusSelectS[9];
 
         // Focuser 2
         //ISwitchVectorProperty OSFocus2SelSP;
@@ -249,6 +281,15 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         INumberVectorProperty OSFocus2TargNP;
         INumber OSFocus2TargN[1];
 
+        //Rotator - Some handled by RotatorInterface, but that's mostly for rotation only, absolute, and... very limited.
+        bool OSRotator1 = true; //Change to false after detection code
+        ISwitchVectorProperty OSRotatorRateSP;
+        ISwitch OSRotatorRateS[4]; //Set rate
+        
+        ISwitchVectorProperty OSRotatorDerotateSP;
+        ISwitch OSRotatorDerotateS[2]; //On or Off
+        
+        
 
         int IsTracking = 0;
 
@@ -337,6 +378,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         // Weather support
         // NOTE: Much is handled by WeatherInterface, these controls are mainly for setting values which are not detected
         // As of right now, if there is a sensor the values will be overwritten on the next update
+        bool OSCpuTemp_good = true; //This can fail on some processors and take the timeout before an update, so if it fails, don't check again.
 
 
         INumberVectorProperty OSSetTemperatureNP;
@@ -362,5 +404,6 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface
         int currentCatalog;
         int currentSubCatalog;
         bool FirstRead = true;
+
 
 };

@@ -19,7 +19,7 @@
         </device>
         <device label="LX200 OnStep">
             <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-            <version>1.9</version>
+            <version>1.10</version>
         </device>
         <device label="LX200 TeenAstro">
             <driver name="LX200 TeenAstro">indi_lx200_TeenAstro</driver>
