@@ -464,6 +464,7 @@ bool LX200_OnStep::updateProperties()
 
         if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
         {
+            LOG_INFO("Focuser 1 found");
             OSFocuser1 = true;
             defineProperty(&OSFocus1InitializeSP);
             OSNumFocusers = 1;
@@ -471,6 +472,7 @@ bool LX200_OnStep::updateProperties()
         // Focuser 2
         if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2 (:fA# will only work for OnStep, not OnStepX)
         {
+            LOG_INFO("Focuser 2 found");
             OSFocuser2 = true;
             OSNumFocusers = 2;
             //defineProperty(&OSFocus2SelSP);
@@ -485,6 +487,7 @@ bool LX200_OnStep::updateProperties()
                 snprintf(cmd, 7, ":F%dA#", i + 1);
                 if (!sendOnStepCommand(cmd))  // Do we have a Focuser X
                 { 
+                    LOGF_INFO("Focuser %i Found", i);
                     OSNumFocusers = i+1;
                 }
             }
@@ -2510,7 +2513,8 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)
     error_type = tty_read(PortFD, response, 1, ONSTEP_TIMEOUT, &nbytes_read);
 
     tcflush(PortFD, TCIFLUSH);
-
+    DEBUGF(DBG_SCOPE, "RES <%c>", response[0]);
+    
     if (nbytes_read < 1)
     {
         LOG_ERROR("Unable to parse response.");
@@ -2575,6 +2579,8 @@ int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, co
     term = strchr(data, '#');
     if (term)
         *term = '\0';
+    if (nbytes_read < RB_MAX_LEN) //If within buffer, terminate string with \0 (in case it didn't find the #)
+        data[nbytes_read] = '\0';
     
     DEBUGF(DBG_SCOPE, "RES <%s>", data);
 
