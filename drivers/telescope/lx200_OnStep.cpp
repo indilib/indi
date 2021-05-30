@@ -468,6 +468,9 @@ bool LX200_OnStep::updateProperties()
             OSFocuser1 = true;
             defineProperty(&OSFocus1InitializeSP);
             OSNumFocusers = 1;
+        } else {
+            OSFocuser1 = false;
+            LOG_INFO("Focuser 1 NOT found");
         }
         // Focuser 2
         if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2 (:fA# will only work for OnStep, not OnStepX)
@@ -483,6 +486,8 @@ bool LX200_OnStep::updateProperties()
                                IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
             defineProperty(&OSFocusSelectSP); //Swap focusers (only matters if two focusers)
         } else { //For OnStepX, up to 9 focusers 
+            LOG_INFO("Focuser 2 NOT found (Checking for OnStepX Focusers)");
+            OSFocuser2 = false;
             for (i = 0; i < 9; i++) {
                 snprintf(cmd, 7, ":F%dA#", i + 1);
                 if (!sendOnStepCommand(cmd))  // Do we have a Focuser X
@@ -497,6 +502,13 @@ bool LX200_OnStep::updateProperties()
                 defineProperty(&OSFocusSelectSP);
             }
         }
+        if (OSNumFocusers == 0) {
+            LOG_INFO("No Focusers found");
+        }
+        
+        LOG_DEBUG("Focusers checked Variables:");
+        LOGF_DEBUG("OSFocuser1: %d, OSFocuser2: %d, OSNumFocusers: %i", OSFocuser1, OSFocuser2, OSNumFocusers);
+        
         
         //Rotation Information
         if (!sendOnStepCommand(":rG#"))  // do we have a Rotator 1
@@ -507,6 +519,7 @@ bool LX200_OnStep::updateProperties()
             defineProperty(&OSRotatorDerotateSP);
         } else {
             LOG_INFO("No Rotator found.");
+            OSRotator1 = false;
         }
 
         // Firmware Data
@@ -1839,11 +1852,13 @@ bool LX200_OnStep::ReadScopeStatus()
                 if (strstr(OSStat, "P"))
                 {
                     SetParked(true); //defaults to TrackState=SCOPE_PARKED
+                    TrackState = SCOPE_PARKED;
                     IUSaveText(&OnstepStat[3], "Parked");
                 }
                 if (strstr(OSStat, "F"))
                 {
                     SetParked(false); // defaults to TrackState=SCOPE_IDLE
+                    TrackState=SCOPE_IDLE;
                     IUSaveText(&OnstepStat[3], "Parking Failed");
                 }
                 if (strstr(OSStat, "I"))
@@ -1874,6 +1889,7 @@ bool LX200_OnStep::ReadScopeStatus()
                         SetParked(true);
                         IUSaveText(&OnstepStat[3], "Parked");
                         //LOG_INFO("OnStep Parking Succeeded");
+                        TrackState = SCOPE_PARKED;
                     }
                     if (strstr(OSStat, "I"))
                     {
@@ -2375,9 +2391,11 @@ bool LX200_OnStep::ReadScopeStatus()
     getCommandString(PortFD, TempValue, ":GX9E#"); 
     setParameterValue("WEATHER_DEWPOINT", std::stod(TempValue));
     if (OSCpuTemp_good) {
-        if (!getCommandString(PortFD, TempValue, ":GX9F#")) {
+        int error_return = getCommandSingleCharErrorOrLongResponse(PortFD, TempValue, ":GX9F#");
+        if ( error_return >= 0 && !strcmp(TempValue,"0") ) {
             setParameterValue("WEATHER_CPU_TEMPERATURE", std::stod(TempValue));
         } else {
+            LOGF_DEBUG("CPU Temp not responded to, disabling further checks, return values: error_return: %i, TempValue: %s", error_return, TempValue);
             OSCpuTemp_good = false;
         }
     }
@@ -2808,9 +2826,23 @@ void LX200_OnStep::OSUpdateFocuser()
 
     if(OSFocuser2)
     {
-        getCommandString(PortFD, value, ":fG#");
-        OSFocus2TargNP.np[0].value = atoi(value);
-        IDSetNumber(&OSFocus2TargNP, nullptr);
+        int error_return;
+        error_return = getCommandSingleCharErrorOrLongResponse(PortFD, value, ":fG#");
+        if (error_return >= 0) {
+            //         getCommandString(PortFD, value, ":fG#");
+            if ( strcmp(value,"0") ) {
+                LOG_INFO("Focuser 2 called, but not present, disabling polling");
+                LOGF_DEBUG("OSFocuser2: %d, OSNumFocusers: %i", OSFocuser2, OSNumFocusers);
+                OSFocuser2 = false;
+            } else {
+                OSFocus2TargNP.np[0].value = atoi(value);
+                IDSetNumber(&OSFocus2TargNP, nullptr);
+        }
+        } else {
+            LOGF_INFO("Focuser 2 called, but returned error %i on read, disabling further polling", error_return);
+            LOGF_DEBUG("OSFocuser2: %d, OSNumFocusers: %i", OSFocuser2, OSNumFocusers);
+            OSFocuser2 = false;
+        }
     }
     
     if(OSNumFocusers > 1) 
