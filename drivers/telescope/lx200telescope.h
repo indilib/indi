@@ -175,7 +175,7 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
 
         double JD {0};
         double targetRA {0}, targetDEC {0};
-        double currentRA {0}, currentDEC {0};
+        double currentRA {0.0000001}, currentDEC {0.0000001};
         int MaxReticleFlashRate {0};
 
         /* Telescope Alignment Mode */
