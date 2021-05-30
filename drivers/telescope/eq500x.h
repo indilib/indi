@@ -1,5 +1,5 @@
 #if 0
-LX200 - based Omegon EQ500X Equatorial Mount
+LX200-based Omegon EQ500X Equatorial Mount
 
 Copyright (C) 2019 Eric Dejouhanet (eric.dejouhanet@gmail.com)
 
@@ -76,6 +76,7 @@ class EQ500X : public LX200Generic
             bool gotoTargetPosition(MechanicalPoint const &);
         protected:
             bool isParked();
+            virtual double getLST();
             void resetSimulation();
         protected:
             int sendCmd(char const *);
