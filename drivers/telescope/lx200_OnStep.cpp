@@ -37,7 +37,7 @@
 #define ENVIRONMENT_TAB "Weather"
 #define ROTATOR_TAB "Rotator"
 
-#define ONSTEP_TIMEOUT  3
+#define ONSTEP_TIMEOUT  1
 #define RA_AXIS     0
 #define DEC_AXIS    1
 
