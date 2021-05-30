@@ -424,7 +424,7 @@ bool LX200_OnStep::updateProperties()
     LX200Generic::updateProperties();
     FI::updateProperties();
     WI::updateProperties();
-    RI::updateProperties();
+
     if (isConnected())
     {
         // Firstinitialize some variables
@@ -494,9 +494,17 @@ bool LX200_OnStep::updateProperties()
                 defineProperty(&OSFocusSelectSP);
             }
         }
-
+        
         //Rotation Information
-        defineProperty(&OSRotatorDerotateSP);
+        if (!sendOnStepCommand(":rG#"))  // do we have a Rotator 1
+        {
+            LOG_INFO("Rotator found.");
+            OSRotator1 = true;
+            RI::updateProperties();
+            defineProperty(&OSRotatorDerotateSP);
+        } else {
+            LOG_INFO("No Rotator found.");
+        }
 
         // Firmware Data
         defineProperty(&VersionTP);
@@ -633,6 +641,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSSetPressureNP.name);
         deleteProperty(OSSetHumidityNP.name);
         deleteProperty(OSSetAltitudeNP.name);
+        RI::updateProperties();
     }
     return true;
 }
@@ -3594,7 +3603,7 @@ void LX200_OnStep::slewError(int slewCode)
             LOG_ERROR("OnStep slew/syncError: Above Overhead limit");
             break;
         case 3:
-            LOG_ERROR("OnStep slew/syncError: Controller in standby");
+            LOG_ERROR("OnStep slew/syncError: Controller in standby, Usual issue fix: Turn tracking on");
             break;
         case 4:
             LOG_ERROR("OnStep slew/syncError: Mount is Parked");
