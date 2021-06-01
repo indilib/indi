@@ -37,7 +37,7 @@
 #define ENVIRONMENT_TAB "Weather"
 #define ROTATOR_TAB "Rotator"
 
-#define ONSTEP_TIMEOUT  3
+#define ONSTEP_TIMEOUT  1
 #define RA_AXIS     0
 #define DEC_AXIS    1
 
@@ -424,7 +424,7 @@ bool LX200_OnStep::updateProperties()
     LX200Generic::updateProperties();
     FI::updateProperties();
     WI::updateProperties();
-    RI::updateProperties();
+
     if (isConnected())
     {
         // Firstinitialize some variables
@@ -494,9 +494,17 @@ bool LX200_OnStep::updateProperties()
                 defineProperty(&OSFocusSelectSP);
             }
         }
-
+        
         //Rotation Information
-        defineProperty(&OSRotatorDerotateSP);
+        if (!sendOnStepCommand(":rG#"))  // do we have a Rotator 1
+        {
+            LOG_INFO("Rotator found.");
+            OSRotator1 = true;
+            RI::updateProperties();
+            defineProperty(&OSRotatorDerotateSP);
+        } else {
+            LOG_INFO("No Rotator found.");
+        }
 
         // Firmware Data
         defineProperty(&VersionTP);
@@ -522,8 +530,7 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&OSOutput1SP);
         defineProperty(&OSOutput2SP);
 #endif
-
-        defineProperty(&OutputPorts_NP);
+        Init_Outputs();
 
         //Weather
         defineProperty(&OSSetTemperatureNP);
@@ -634,6 +641,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSSetPressureNP.name);
         deleteProperty(OSSetHumidityNP.name);
         deleteProperty(OSSetAltitudeNP.name);
+        RI::updateProperties();
     }
     return true;
 }
@@ -905,7 +913,6 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 }
 
                 OutputPorts_NP.s           = IPS_OK;
-
                 OutputPorts_NP.np[i].value = value;
                 IDSetNumber(&OutputPorts_NP, "Set port %d to value =%d", port, value);
             }
@@ -3704,7 +3711,7 @@ void LX200_OnStep::slewError(int slewCode)
             LOG_ERROR("OnStep slew/syncError: Above Overhead limit");
             break;
         case 3:
-            LOG_ERROR("OnStep slew/syncError: Controller in standby");
+            LOG_ERROR("OnStep slew/syncError: Controller in standby, Usual issue fix: Turn tracking on");
             break;
         case 4:
             LOG_ERROR("OnStep slew/syncError: Mount is Parked");
@@ -3780,6 +3787,43 @@ bool LX200_OnStep::saveConfigItems(FILE *fp)
     return true;
 }
 
+void LX200_OnStep::Init_Outputs()
+{
+    // Features names and type are accessed via :GXYn (where n 1 to 8)
+    // we take these names to display in Output tab
+    // return value is ssssss,n where ssssss is the name and n is the type
+    char port_name[60];
+    char getoutp[20];
+    char configured[10];
+    char p_name[20];
+    size_t  k;
+    
+    getCommandString(PortFD, configured, ":GXY0#"); // retrurns a string with 1 where Feature is configured
+    // ex: 10010010 means Feature 1,4 and 7 are configured
+    
+    IUFillNumber(&OutputPorts[0], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
+    for(int i = 1; i < PORTS_COUNT; i++)
+    {
+        k=0;
+        if(configured[i-1]=='1') // is Feature is configured
+        {
+        sprintf(getoutp, ":GXY%d#", i);
+            getCommandString(PortFD, port_name, getoutp);
+            for(k=0;k<strlen(port_name);k++)    // remove feature type
+            {
+                if(port_name[k]==',') port_name[k]='_';
+                p_name[k]=port_name[k];
+                p_name[k+1]=0;
+            }
+            IUFillNumber(&OutputPorts[i], p_name, p_name, "%g", 0, 255, 1, 0);
+        }
+        else
+        {
+            IUFillNumber(&OutputPorts[i], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
+        }
+    }
+    defineProperty(&OutputPorts_NP);
+}
 
 
 bool LX200_OnStep::sendScopeTime()
@@ -3920,5 +3964,3 @@ bool LX200_OnStep::sendScopeLocation()
     
     return true;
 }
-
-
