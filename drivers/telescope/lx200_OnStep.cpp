@@ -461,7 +461,7 @@ bool LX200_OnStep::updateProperties()
         // Focuser
 
         // Focuser 1
-
+        OSNumFocusers = 0; //Reset before detection
         if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
         {
             LOG_INFO("Focuser 1 found");
