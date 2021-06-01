@@ -129,6 +129,11 @@ const char *EQ500X::getDefautName()
     return "EQ500X";
 }
 
+double EQ500X::getLST()
+{
+    return get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+}
+
 void EQ500X::resetSimulation()
 {
     simEQ500X = simEQ500X_zero;
@@ -222,13 +227,20 @@ bool EQ500X::checkConnection()
 bool EQ500X::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
-    INDI_UNUSED(latitude);
+    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", longitude, latitude);
 
     // Only update LST if the mount is connected and "parked" looking at the pole
     if (isConnected() && !getCurrentMechanicalPosition(currentMechPosition) && currentMechPosition.atParkingPosition())
     {
-        Sync(get_local_sidereal_time(longitude), currentMechPosition.DECsky());
-        LOG_INFO("Location updated: mount considered parked.");
+        // HACK: Longitude used by getLST is updated after this function returns, so hack a new longitude first
+        double const prevLongitude = LocationN[LOCATION_LONGITUDE].value;
+        LocationN[LOCATION_LONGITUDE].value = longitude;
+
+        double const LST = getLST();
+        Sync(LST - 6, currentMechPosition.DECsky());
+        LOGF_INFO("Location updated: mount considered parked, synced to LST %gh.", LST);
+
+        LocationN[LOCATION_LONGITUDE].value = prevLongitude;
     }
 
     return true;
@@ -305,8 +317,10 @@ bool EQ500X::ReadScopeStatus()
     {
         currentRA = currentMechPosition.RAsky();
 
-        // Update the side of pier
-        double HA = rangeHA(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value) - currentRA);
+        // Update the side of pier - rangeHA is NOT suitable here
+        double HA = rangeHA(getLST() - currentRA);
+        while (+12 <= HA) HA -= 24;
+        while (HA <= -12) HA += 24;
         switch (currentMechPosition.getPointingState())
         {
             case MechanicalPoint::POINTING_NORMAL:
@@ -588,8 +602,10 @@ slew_failure:
 
 bool EQ500X::Goto(double ra, double dec)
 {
-    // Check whether a meridian flip is required
-    double HA = rangeHA(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value - ra));
+    // Check whether a meridian flip is required - rangeHA is NOT suitable here
+    double HA = getLST() - ra;
+    while (+12 <= HA) HA -= 24;
+    while (HA <= -12) HA += 24;
 
     // Deduce required orientation of mount in HA quadrants - set orientation BEFORE coordinates!
     targetMechPosition.setPointingState((0 <= HA
