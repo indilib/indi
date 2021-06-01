@@ -509,7 +509,6 @@ bool LX200_OnStep::updateProperties()
         LOG_DEBUG("Focusers checked Variables:");
         LOGF_DEBUG("OSFocuser1: %d, OSFocuser2: %d, OSNumFocusers: %i", OSFocuser1, OSFocuser2, OSNumFocusers);
         
-        
         //Rotation Information
         if (!sendOnStepCommand(":rG#"))  // do we have a Rotator 1
         {
@@ -2972,13 +2971,9 @@ void LX200_OnStep::OSUpdateRotator() {
         IDSetNumber(&RotatorBacklashNP, nullptr);
     }
     
-    
-
-    
 }
 
-=======
-}
+
 
 //Rotator stuff
 // IPState MoveRotator(double angle) override;
@@ -3084,7 +3079,6 @@ void LX200_OnStep::OSUpdateRotator() {
     
 }
 
->>>>>>> 8f220b69e5a4cdaac41aadf681dbaca260a0b069
 IPState LX200_OnStep::MoveRotator(double angle) {
     char cmd[32];
     int d, m, s;
