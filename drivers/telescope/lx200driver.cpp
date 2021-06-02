@@ -375,19 +375,19 @@ int isSlewComplete(int fd)
         return error_type;
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", data);
-/* update for slewComplete 
-   
+/* update for slewComplete
+
    The below should handle classic lx200, autostar and autostar 2
    classic returns string of 33 bytes, and non space (0x20) before terminator is not done yet
    autostar and autostar 2 return a few bytes, with '#' terminator
-      first char 
+      first char
 */
     for(i=0;i<33;i++) {
 	if(data[i] == '#') return 1;
 	if(data[i] != 0x20) return 0;
     }
     return 1;
-/* out for slewComplete update 
+/* out for slewComplete update
     if (data[0] == '#')
         return 1;
     else
@@ -420,8 +420,17 @@ int getCalendarDate(int fd, char *date)
     }
     else
     {
-        /* Meade format is MM/DD/YY */
-        nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
+        if (len == 12)
+        {
+            /* Rainbowastro format includes ":GC" so has to skip 3 characters */
+            /* format is :GCMM/DD/YY */
+            nbytes_read = sscanf(date + 3, "%d%*c%d%*c%d", &mm, &dd, &yy);
+        }
+        else
+        {
+            /* Meade format is MM/DD/YY */
+            nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
+        }
         if (nbytes_read < 3)
             return -1;
         /* We consider years 50 or more to be in the last century, anything less in the 21st century.*/
@@ -567,37 +576,37 @@ int getSiteLatitudeAlt(int fd, int *dd, int *mm, double *ssf, const char *cmd)
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
-    
+
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
-    
+
     /* Add mutex */
     std::unique_lock<std::mutex> guard(lx200CommsLock);
-    
+
     tcflush(fd, TCIFLUSH);
-    
+
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
-    
+
     error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
-    
+
     tcflush(fd, TCIFLUSH);
-    
+
     if (nbytes_read < 1)
         return error_type;
-    
+
     read_buffer[nbytes_read - 1] = '\0';
-    
+
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
-    
+
     *ssf = 0.0;
     if (sscanf(read_buffer, "%d%*c%d:%lf", dd, mm, ssf) < 2)
     {
         DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unable to parse %s response", cmd);
         return -1;
     }
-    
+
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d,%d,%.1lf]", *dd, *mm, *ssf);
-    
+
     int new_geo_format;
     switch (nbytes_read) {
         case 9:
@@ -617,7 +626,7 @@ int getSiteLatitudeAlt(int fd, int *dd, int *mm, double *ssf, const char *cmd)
         DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Updated geographic precision from setting %d to %d", geo_format, new_geo_format);
         geo_format = new_geo_format;
     }
-    
+
     return 0;
 }
 
@@ -637,31 +646,31 @@ int getSiteLongitudeAlt(int fd, int *ddd, int *mm, double *ssf, const char *cmd)
     //  emulation, high precision
     // Extended emulation, high precision    sDDD*MM:SS# (sign, degrees, arcminutes, arcseconds)
     // Any emulation, ultra precision        sDDD:MM:SS.S# (sign, degrees, arcminutes, arcseconds, tenths of arcsecond)
-    
+
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
-    
+
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
-    
+
     /* Add mutex */
     std::unique_lock<std::mutex> guard(lx200CommsLock);
-    
+
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
-    
+
     error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
-    
+
     tcflush(fd, TCIFLUSH);
-    
+
     if (nbytes_read < 1)
         return error_type;
-    
+
     read_buffer[nbytes_read - 1] = '\0';
-    
+
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
-    
+
     *ssf = 0.0;
     if (sscanf(read_buffer, "%d%*c%d:%lf", ddd, mm, ssf) < 2)
     {
@@ -669,9 +678,9 @@ int getSiteLongitudeAlt(int fd, int *ddd, int *mm, double *ssf, const char *cmd)
         return -1;
     }
     *ddd *= -1.0; // Convert LX200Longitude to CartographicLongitude
-    
+
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL in CartographicLongitude format [%d,%d,%.1lf]", *ddd, *mm, *ssf);
-    
+
     int new_geo_format;
     switch (nbytes_read) {
         case 10:
@@ -691,7 +700,7 @@ int getSiteLongitudeAlt(int fd, int *ddd, int *mm, double *ssf, const char *cmd)
         DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Updated geographic precision from setting %d to %d", geo_format, new_geo_format);
         geo_format = new_geo_format;
     }
-    
+
     return 0;
 }
 
@@ -950,7 +959,7 @@ int setObjectRA(int fd, double ra)
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", eq_format);
-            return -1;            
+            return -1;
     }
 
     return (setStandardProcedure(fd, read_buffer));
@@ -995,7 +1004,7 @@ int setObjectDEC(int fd, double dec)
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", eq_format);
-            return -1;            
+            return -1;
     }
 
     return (setStandardProcedure(fd, read_buffer));
@@ -1380,12 +1389,12 @@ int setPreciseTrackFreq(int fd, double trackF)
 {
 	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 	char read_buffer[RB_MAX_LEN]={0};
-	
+
 	snprintf(read_buffer, sizeof(read_buffer), ":ST %08.5f#", trackF);
 
 /* Add mutex */
 /*    std::unique_lock<std::mutex> guard(lx200CommsLock); */
-	
+
 	return (setStandardProcedure(fd, read_buffer));
 }
 
@@ -1421,7 +1430,7 @@ int Slew(int fd)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", slewNum[0]);
 
-    error_type = slewNum[0] - '0'; 
+    error_type = slewNum[0] - '0';
     if ((error_type >= 0) && (error_type <= 9)) {
         return error_type;
     } else {
@@ -1534,7 +1543,7 @@ int HaltMovement(int fd, int direction)
                 return error_type;
             break;
         default:
-            return -1;            
+            return -1;
     }
 
     tcflush(fd, TCIFLUSH);
@@ -1622,7 +1631,7 @@ int selectSite(int fd, int siteNum)
                 return error_type;
             break;
         default:
-            return -1;            
+            return -1;
     }
 
     tcflush(fd, TCIFLUSH);
