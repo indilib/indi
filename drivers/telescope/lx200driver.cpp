@@ -420,7 +420,7 @@ int getCalendarDate(int fd, char *date)
     }
     else
     {
-        LOG_INFO("Date response length: %d", len);
+        LOGF_INFO("Date response length: %d", len);
         if (len == 12)
         {
             /* Rainbowastro format includes ":GC" so has to skip 3 characters */
