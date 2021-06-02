@@ -1287,7 +1287,7 @@ bool Rainbow::getUTFOffset(double *offset)
     }
 
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
-    *offset = lx200_utc_offset * -1;
+    *offset = rst135_utc_offset * -1;
     return true;
 }
 
