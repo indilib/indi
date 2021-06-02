@@ -1235,20 +1235,12 @@ bool Rainbow::getLocalTime(char *timeString)
         //getLocalTime24(PortFD, &ctime);
         if (!sendCommand(":GL#", response))
             return false;
-        LOGF_WARN("Time received: %s", response);
 
         if (sscanf(response + 3, "%d:%d:%d", &h, &m, &s) != 3)
         {
             LOG_WARN("Failed to get time from device.");
             return false;
         }
-        LOGF_WARN("Hours scanned: %d", h);
-        LOGF_WARN("Minutes scanned: %d", m);
-        LOGF_WARN("Seconds scanned: %d", s);
-        getSexComponents(ctime, &h, &m, &s);
-        LOGF_WARN("Hours after getSexComponents: %d", h);
-        LOGF_WARN("Minutes after getSexComponents: %d", m);
-        LOGF_WARN("Seconds after getSexComponents: %d", s);
         snprintf(timeString, MAXINDINAME, "%02d:%02d:%02d", h, m, s);
     }
 
