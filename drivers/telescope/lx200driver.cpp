@@ -420,18 +420,18 @@ int getCalendarDate(int fd, char *date)
     }
     else
     {
-        LOGF_INFO("Date response length: %d", len);
+        LOGF_WARN("Date response length: %d", len);
         if (len == 12)
         {
             /* Rainbowastro format includes ":GC" so has to skip 3 characters */
             /* format is :GCMM/DD/YY# = 12 characters*/
-            LOG_INFO("Rainbowastro detected");
+            LOG_WARN("Rainbowastro detected");
             nbytes_read = sscanf(date + 3, "%d%*c%d%*c%d", &mm, &dd, &yy);
         }
         else
         {
             /* Meade format is MM/DD/YY */
-            LOG_INFO("Meade detected");
+            LOG_WARN("Meade detected");
             nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
         }
         if (nbytes_read < 3)
