@@ -1231,6 +1231,7 @@ bool Rainbow::getLocalTime(char *timeString)
     {
         double ctime = 0;
         int h, m, s;
+        char response[DRIVER_LEN] = {0};
         //getLocalTime24(PortFD, &ctime);
         if (!sendCommand(":GL#", response))
             return false;
