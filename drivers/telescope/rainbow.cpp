@@ -1236,7 +1236,7 @@ bool Rainbow::getLocalTime(char *timeString)
         if (!sendCommand(":GL#", response))
             return false;
 
-        if (sscanf(response + 3, "%d%:%d%:%d", &h, &m, &s) != 3)
+        if (sscanf(response + 3, "%d:%d:%d", &h, &m, &s) != 3)
         {
             LOG_WARN("Failed to get time from device.");
             return false;
