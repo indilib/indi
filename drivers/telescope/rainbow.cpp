@@ -1218,7 +1218,7 @@ void Rainbow::addGuideTimer(Direction direction, uint32_t ms)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// Get Time from RST-135
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getLocalTime(char *timeString)
 {
@@ -1231,7 +1231,15 @@ bool Rainbow::getLocalTime(char *timeString)
     {
         double ctime = 0;
         int h, m, s;
-        getLocalTime24(PortFD, &ctime);
+        //getLocalTime24(PortFD, &ctime);
+        if (!sendCommand(":GL#", response))
+            return false;
+
+        if (sscanf(response + 3, "%d%:%d%:%d", &h, &m, &s) != 3)
+        {
+            LOG_WARN("Failed to get time from device.");
+            return false;
+        }
         getSexComponents(ctime, &h, &m, &s);
         snprintf(timeString, MAXINDINAME, "%02d:%02d:%02d", h, m, s);
     }
@@ -1240,7 +1248,7 @@ bool Rainbow::getLocalTime(char *timeString)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// Get Date from RST-135
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getLocalDate(char *dateString)
 {
@@ -1251,14 +1259,14 @@ bool Rainbow::getLocalDate(char *dateString)
     }
     else
     {
-        getCalendarDate(PortFD, dateString);
+        getCalendarDate(PortFD, dateString); // skipping of serial command in answer is handled in lx200driver.cpp
     }
 
     return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// GET UTC offset from RST-135
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getUTFOffset(double *offset)
 {
@@ -1276,7 +1284,7 @@ bool Rainbow::getUTFOffset(double *offset)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// Get Time and Date from RST-135
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::sendScopeTime()
 {
@@ -1346,7 +1354,7 @@ bool Rainbow::sendScopeTime()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Location
+/// Get Location from RST-135
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::sendScopeLocation()
 {
