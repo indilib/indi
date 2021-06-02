@@ -1350,8 +1350,8 @@ bool Rainbow::sendScopeTime()
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::sendScopeLocation()
 {
-    int dd = 0, mm = 0;
-    double ssf = 0.0;
+    double dd = 0, mm = 0, ssf = 0;
+    char response[DRIVER_LEN] = {0};
 
     if (isSimulation())
     {
@@ -1363,7 +1363,11 @@ bool Rainbow::sendScopeLocation()
         return true;
     }
 
-    if (getSiteLatitude(PortFD, &dd, &mm, &ssf) < 0)
+    // Latitude
+    if (!sendCommand(":Gt#", response))
+        return false;
+
+    if (sscanf(response + 3, "%lf%*[^0-9]%lf%*[^0-9]%lf", &dd, &mm, &ssf) != 3)
     {
         LOG_WARN("Failed to get site latitude from device.");
         return false;
@@ -1371,12 +1375,16 @@ bool Rainbow::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[0].value = dd + mm / 60.0;
+            LocationNP.np[LOCATION_LATITUDE].value = dd + mm / 60.0;
         else
-            LocationNP.np[0].value = dd - mm / 60.0;
+            LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0;
     }
 
-    if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
+    // Longitude
+    if (!sendCommand(":Gg#", response))
+        return false;
+
+    if (sscanf(response + 3, "%lf%*[^0-9]%lf%*[^0-9]%lf", &dd, &mm, &ssf) != 3)
     {
         LOG_WARN("Failed to get site longitude from device.");
         return false;
@@ -1384,9 +1392,9 @@ bool Rainbow::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[1].value = 360.0 - (dd + mm / 60.0);
+            LocationNP.np[LOCATION_LONGITUDE].value = 360.0 - (dd + mm / 60.0);
         else
-            LocationNP.np[1].value = (dd - mm / 60.0) * -1.0;
+            LocationNP.np[LOCATION_LONGITUDE].value = (dd - mm / 60.0) * -1.0;
 
     }
 
@@ -1394,8 +1402,6 @@ bool Rainbow::sendScopeLocation()
                LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
-
-    //saveConfig(true, "GEOGRAPHIC_COORD");
 
     return true;
 }
