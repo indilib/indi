@@ -1229,10 +1229,8 @@ bool Rainbow::getLocalTime(char *timeString)
     }
     else
     {
-        double ctime = 0;
         int h, m, s;
         char response[DRIVER_LEN] = {0};
-        //getLocalTime24(PortFD, &ctime);
         if (!sendCommand(":GL#", response))
             return false;
 
@@ -1276,8 +1274,18 @@ bool Rainbow::getUTFOffset(double *offset)
         return true;
     }
 
-    int lx200_utc_offset = 0;
-    getUTCOffset(PortFD, &lx200_utc_offset);
+    int rst135_utc_offset = 0;
+
+    char response[DRIVER_LEN] = {0};
+    if (!sendCommand(":GG#", response))
+        return false;
+
+    if (sscanf(response + 3, "%d", &rst135_utc_offset) != 1)
+    {
+        LOG_WARN("Failed to get UTC offset from device.");
+        return false;
+    }
+
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
     *offset = lx200_utc_offset * -1;
     return true;
