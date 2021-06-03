@@ -1257,8 +1257,6 @@ bool Rainbow::getLocalDate(char *dateString)
     }
     else
     {
-        getCalendarDate(PortFD, dateString); // skipping of serial command in answer is handled in lx200driver.cpp
-
         int dd, mm, yy;
         char response[DRIVER_LEN] = {0};
         char mell_prefix[3]={0};
