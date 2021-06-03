@@ -420,17 +420,8 @@ int getCalendarDate(int fd, char *date)
     }
     else
     {
-        if (len > 10)
-        {
-            /* Rainbowastro format includes ":GC" so has to skip 3 characters */
-            /* format is :GCMM/DD/YY# = 12 characters*/
-            nbytes_read = sscanf(date + 3, "%d%*c%d%*c%d", &mm, &dd, &yy);
-        }
-        else
-        {
-            /* Meade format is MM/DD/YY */
-            nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
-        }
+        /* Meade format is MM/DD/YY */
+        nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
         if (nbytes_read < 3)
             return -1;
         /* We consider years 50 or more to be in the last century, anything less in the 21st century.*/
