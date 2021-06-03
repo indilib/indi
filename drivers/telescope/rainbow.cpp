@@ -1218,7 +1218,7 @@ void Rainbow::addGuideTimer(Direction direction, uint32_t ms)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Get Time from RST-135
+/// Get Time from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getLocalTime(char *timeString)
 {
@@ -1246,7 +1246,7 @@ bool Rainbow::getLocalTime(char *timeString)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Get Date from RST-135
+/// Get Date from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getLocalDate(char *dateString)
 {
@@ -1275,7 +1275,7 @@ bool Rainbow::getLocalDate(char *dateString)
             else
                 strncpy(mell_prefix, "20", 3);
             /* We need to have it in YYYY-MM-DD ISO format */
-            snprintf(response + 3, 32, "%s%02d-%02d-%02d", mell_prefix, yy, mm, dd);
+            snprintf(dateString, 32, "%s%02d-%02d-%02d", mell_prefix, yy, mm, dd);
         }
     }
 
@@ -1283,7 +1283,7 @@ bool Rainbow::getLocalDate(char *dateString)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// GET UTC offset from RST-135
+/// GET UTC offset from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getUTFOffset(double *offset)
 {
@@ -1311,7 +1311,7 @@ bool Rainbow::getUTFOffset(double *offset)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Get Time and Date from RST-135
+/// Get Time and Date from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::sendScopeTime()
 {
@@ -1381,7 +1381,7 @@ bool Rainbow::sendScopeTime()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Get Location from RST-135
+/// Get Location from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::sendScopeLocation()
 {
