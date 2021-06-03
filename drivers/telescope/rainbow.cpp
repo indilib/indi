@@ -1258,6 +1258,27 @@ bool Rainbow::getLocalDate(char *dateString)
     else
     {
         getCalendarDate(PortFD, dateString); // skipping of serial command in answer is handled in lx200driver.cpp
+
+        int dd, mm, yy;
+        char response[DRIVER_LEN] = {0};
+        char mell_prefix[3]={0};
+        if (!sendCommand(":GC#", response))
+            return false;
+
+        if (sscanf(response + 3, "%d%*c%d%*c%d", &mm, &dd, &yy) != 3)
+        {
+            LOG_WARN("Failed to get date from device.");
+            return false;
+        }
+        else
+        {
+            if (yy > 50)
+                strncpy(mell_prefix, "19", 3);
+            else
+                strncpy(mell_prefix, "20", 3);
+            /* We need to have it in YYYY-MM-DD ISO format */
+            snprintf(response + 3, 32, "%s%02d-%02d-%02d", mell_prefix, yy, mm, dd);
+        }
     }
 
     return true;
