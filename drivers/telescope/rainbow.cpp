@@ -1412,7 +1412,7 @@ bool Rainbow::sendScopeLocation()
         if (dd > 0)
             LocationNP.np[LOCATION_LATITUDE].value = dd + mm / 60.0 + ssf / 3600.0;
         else
-            LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0 + ssf / 3600.0;
+            LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0 - ssf / 3600.0;
     }
 
     // Longitude
