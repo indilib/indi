@@ -1218,7 +1218,7 @@ void Rainbow::addGuideTimer(Direction direction, uint32_t ms)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// Get Time from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getLocalTime(char *timeString)
 {
@@ -1229,10 +1229,16 @@ bool Rainbow::getLocalTime(char *timeString)
     }
     else
     {
-        double ctime = 0;
         int h, m, s;
-        getLocalTime24(PortFD, &ctime);
-        getSexComponents(ctime, &h, &m, &s);
+        char response[DRIVER_LEN] = {0};
+        if (!sendCommand(":GL#", response))
+            return false;
+
+        if (sscanf(response + 3, "%d:%d:%d", &h, &m, &s) != 3)
+        {
+            LOG_WARN("Failed to get time from device.");
+            return false;
+        }
         snprintf(timeString, MAXINDINAME, "%02d:%02d:%02d", h, m, s);
     }
 
@@ -1240,7 +1246,7 @@ bool Rainbow::getLocalTime(char *timeString)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// Get Date from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getLocalDate(char *dateString)
 {
@@ -1251,14 +1257,33 @@ bool Rainbow::getLocalDate(char *dateString)
     }
     else
     {
-        getCalendarDate(PortFD, dateString);
+        int dd, mm, yy;
+        char response[DRIVER_LEN] = {0};
+        char mell_prefix[3]={0};
+        if (!sendCommand(":GC#", response))
+            return false;
+
+        if (sscanf(response + 3, "%d%*c%d%*c%d", &mm, &dd, &yy) != 3)
+        {
+            LOG_WARN("Failed to get date from device.");
+            return false;
+        }
+        else
+        {
+            if (yy > 50)
+                strncpy(mell_prefix, "19", 3);
+            else
+                strncpy(mell_prefix, "20", 3);
+            /* We need to have it in YYYY-MM-DD ISO format */
+            snprintf(dateString, 32, "%s%02d-%02d-%02d", mell_prefix, yy, mm, dd);
+        }
     }
 
     return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// GET UTC offset from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getUTFOffset(double *offset)
 {
@@ -1268,15 +1293,25 @@ bool Rainbow::getUTFOffset(double *offset)
         return true;
     }
 
-    int lx200_utc_offset = 0;
-    getUTCOffset(PortFD, &lx200_utc_offset);
+    int rst135_utc_offset = 0;
+
+    char response[DRIVER_LEN] = {0};
+    if (!sendCommand(":GG#", response))
+        return false;
+
+    if (sscanf(response + 3, "%d", &rst135_utc_offset) != 1)
+    {
+        LOG_WARN("Failed to get UTC offset from device.");
+        return false;
+    }
+
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
-    *offset = lx200_utc_offset * -1;
+    *offset = rst135_utc_offset * -1;
     return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// Get Time and Date from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::sendScopeTime()
 {
@@ -1346,7 +1381,7 @@ bool Rainbow::sendScopeTime()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Location
+/// Get Location from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::sendScopeLocation()
 {
@@ -1375,9 +1410,9 @@ bool Rainbow::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[LOCATION_LATITUDE].value = dd + mm / 60.0;
+            LocationNP.np[LOCATION_LATITUDE].value = dd + mm / 60.0 + ssf / 3600.0;
         else
-            LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0;
+            LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0 - ssf / 3600.0;
     }
 
     // Longitude
@@ -1392,9 +1427,9 @@ bool Rainbow::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[LOCATION_LONGITUDE].value = 360.0 - (dd + mm / 60.0);
+            LocationNP.np[LOCATION_LONGITUDE].value = 360.0 - (dd + mm / 60.0 + ssf / 3600.0);
         else
-            LocationNP.np[LOCATION_LONGITUDE].value = (dd - mm / 60.0) * -1.0;
+            LocationNP.np[LOCATION_LONGITUDE].value = (dd - mm / 60.0 - ssf / 3600.0) * -1.0;
 
     }
 
