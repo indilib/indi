@@ -92,7 +92,7 @@ bool AstroTrac::initProperties()
     // Encoders
     EncoderNP[AXIS_RA].fill("AXIS_RA", "Hour Angle", "%.2f", -3600, 3600, 100, 0);
     EncoderNP[AXIS_DE].fill("AXIS_DE", "Declination", "%.2f", -3600, 3600, 100, 0);
-    EncoderNP.fill(getDeviceName(), "MOUNT_ENCODERS", "Encoders", MOTION_TAB, IP_RO, 60, IPS_IDLE);
+    EncoderNP.fill(getDeviceName(), "MOUNT_ENCODERS", "Encoders", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
 
@@ -706,6 +706,21 @@ bool AstroTrac::ISNewNumber(const char *dev, const char *name, double values[], 
                 AccelerationNP.setState(IPS_ALERT);
 
             AccelerationNP.apply();
+            return true;
+        }
+
+        // Encoders
+        if (EncoderNP.isNameMatch(name))
+        {
+            if (slewEncoder(AXIS_RA, values[0]) && slewEncoder(AXIS_DE, values[1]))
+            {
+                TrackState = SCOPE_SLEWING;
+                EncoderNP.setState(IPS_OK);
+            }
+            else
+                EncoderNP.setState(IPS_ALERT);
+
+            EncoderNP.apply();
             return true;
         }
 
