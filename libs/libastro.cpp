@@ -141,7 +141,7 @@ void EquatorialToHorizontal(IEquatorialCoordinates *object, IGeographicCoordinat
                             IHorizontalCoordinates *position)
 {
     // Convert from INDI standard location to libnova standard location
-    struct ln_lnlat_posn libnova_location = {observer->longitude > 180 ? observer->longitude - 180 : observer->longitude, observer->latitude};
+    struct ln_lnlat_posn libnova_location = {observer->longitude > 180 ? observer->longitude - 360 : observer->longitude, observer->latitude};
     // RA Hours --> Degrees
     struct ln_equ_posn libnova_object = {object->rightascension * 15.0, object->declination};
     struct ln_hrz_posn horizontalPos;
@@ -157,7 +157,7 @@ void HorizontalToEquatorial(IHorizontalCoordinates *object, IGeographicCoordinat
                             IEquatorialCoordinates *position)
 {
     // Convert from INDI standard location to libnova standard location
-    struct ln_lnlat_posn libnova_location = {observer->longitude > 180 ? observer->longitude - 180 : observer->longitude, observer->latitude};
+    struct ln_lnlat_posn libnova_location = {observer->longitude > 180 ? observer->longitude - 360 : observer->longitude, observer->latitude};
     // Convert from INDI standard location to libnova standard location
     struct ln_hrz_posn libnova_object = {range360(object->azimuth + 180), object->altitude};
     struct ln_equ_posn equatorialPos;
