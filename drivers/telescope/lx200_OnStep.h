@@ -264,7 +264,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         ISwitchVectorProperty OSFocus1InitializeSP;
         ISwitch OSFocus1InitializeS[4];
         
-        int OSNumFocusers;
+        int OSNumFocusers = 0;
         ISwitchVectorProperty OSFocusSelectSP;
         ISwitch OSFocusSelectS[9];
 
