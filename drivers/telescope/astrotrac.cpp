@@ -138,6 +138,11 @@ bool AstroTrac::updateProperties()
 
     if (isConnected())
     {
+        getAcceleration(AXIS_RA);
+        getAcceleration(AXIS_DE);
+        getVelocity(AXIS_RA);
+        getVelocity(AXIS_DE);
+
         defineProperty(&FirmwareTP);
         defineProperty(&AccelerationNP);
         defineProperty(&EncoderNP);
