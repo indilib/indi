@@ -44,7 +44,7 @@ AstroTrac::AstroTrac()
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE |
-                           TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PIER_SIDE,
+                           TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_HAS_PIER_SIDE,
                            SLEW_MODES);
     setTelescopeConnection(CONNECTION_TCP);
 }
@@ -806,8 +806,14 @@ bool AstroTrac::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         return false;
     }
 
-    INDI_UNUSED(dir);
-    INDI_UNUSED(command);
+    if (command == MOTION_START)
+    {
+        double velocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
+                          * (dir == DIRECTION_NORTH ? 1 : -1);
+        setVelocity(AXIS_DE,  velocity);
+    }
+    else
+        stopMotion(AXIS_DE);
 
     return true;
 }
@@ -823,8 +829,14 @@ bool AstroTrac::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         return false;
     }
 
-    INDI_UNUSED(dir);
-    INDI_UNUSED(command);
+    if (command == MOTION_START)
+    {
+        double velocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
+                          * (dir == DIRECTION_WEST ? 1 : -1);
+        setVelocity(AXIS_RA,  velocity);
+    }
+    else
+        stopMotion(AXIS_RA);
 
     return true;
 }
