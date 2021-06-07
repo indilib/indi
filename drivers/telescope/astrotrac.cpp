@@ -32,6 +32,7 @@
 #include <cstring>
 #include <memory>
 #include <regex>
+#include <array>
 
 std::unique_ptr<AstroTrac> AstroTrac_mount(new AstroTrac());
 const std::array<uint32_t, AstroTrac::SLEW_MODES> AstroTrac::SLEW_SPEEDS = {{1, 2, 4, 8, 32, 64, 128, 600, 700, 800}};
