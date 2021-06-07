@@ -96,7 +96,7 @@ bool AstroTrac::initProperties()
 
     TrackState = SCOPE_IDLE;
 
-    SetParkDataType(PARK_AZ_ALT);
+    SetParkDataType(PARK_RA_DEC_ENCODER);
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -155,15 +155,15 @@ bool AstroTrac::updateProperties()
         {
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(0);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
             SetAxis1Park(0);
-            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2Park(0);
             SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(0);
         }
     }
     else
@@ -643,20 +643,7 @@ bool AstroTrac::getTelescopeFromSkyCoordinates(double ra, double de, INDI::IEqua
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::Park()
 {
-    double parkAz  = GetAxis1Park();
-    double parkAlt = GetAxis2Park();
-
-    char AzStr[16] = {0}, AltStr[16] = {0};
-    fs_sexa(AzStr, parkAz, 2, 3600);
-    fs_sexa(AltStr, parkAlt, 2, 3600);
-
-    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
-
-    INDI::IHorizontalCoordinates horizontalPos {parkAz, parkAlt};
-    INDI::IEquatorialCoordinates equatorialPos;
-
-    INDI::HorizontalToEquatorial(&horizontalPos, &m_Location, ln_get_julian_from_sys(), &equatorialPos);
-    if (Goto(equatorialPos.rightascension, equatorialPos.declination))
+    if (slewEncoder(AXIS_RA, GetAxis1Park()) && slewEncoder(AXIS_DE, GetAxis2Park()))
     {
         TrackState = SCOPE_PARKING;
         LOG_INFO("Parking is in progress...");
@@ -873,20 +860,8 @@ bool AstroTrac::updateTime(ln_date * utc, double utc_offset)
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::SetCurrentPark()
 {
-    INDI::IHorizontalCoordinates horizontalPos;
-    INDI::IEquatorialCoordinates equatorialPos {EqN[AXIS_RA].value, EqN[AXIS_DE].value};
-    INDI::EquatorialToHorizontal(&equatorialPos, &m_Location, ln_get_julian_from_sys(), &horizontalPos);
-    double parkAZ = horizontalPos.azimuth;
-    double parkAlt = horizontalPos.altitude;
-
-    char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, parkAZ, 2, 3600);
-    fs_sexa(AltStr, parkAlt, 2, 3600);
-
-    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
-
-    SetAxis1Park(parkAZ);
-    SetAxis2Park(parkAlt);
+    SetAxis1Park(EncoderNP[AXIS_RA].getValue());
+    SetAxis2Park(EncoderNP[AXIS_DE].getValue());
 
     return true;
 }
@@ -896,11 +871,8 @@ bool AstroTrac::SetCurrentPark()
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::SetDefaultPark()
 {
-    // By default set AZ to 0
     SetAxis1Park(0);
-
-    // Set ALT to LATITUDE
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(0);
 
     return true;
 }
