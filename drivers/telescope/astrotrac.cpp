@@ -813,7 +813,10 @@ bool AstroTrac::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         setVelocity(AXIS_DE,  velocity);
     }
     else
+    {
+        setVelocity(AXIS_DE, TrackRateN[AXIS_DE].value);
         stopMotion(AXIS_DE);
+    }
 
     return true;
 }
@@ -836,7 +839,10 @@ bool AstroTrac::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         setVelocity(AXIS_RA,  velocity);
     }
     else
+    {
+        setVelocity(AXIS_RA, TrackRateN[AXIS_RA].value);
         stopMotion(AXIS_RA);
+    }
 
     return true;
 }
