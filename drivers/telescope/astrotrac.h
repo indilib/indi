@@ -150,8 +150,8 @@ class AstroTrac :
         INDI::PropertySwitch MountTypeSP {2};
         enum
         {
-            MOUNT_ASYMMETRICAL,
-            MOUNT_SYMMETRICAL
+            MOUNT_GEM,
+            MOUNT_SINGLE_ARM
         };
 
         // Guide Rate

@@ -76,12 +76,12 @@ bool AstroTrac::initProperties()
     SlewRateS[5].s = ISS_ON;
 
     // Mount Type
-    int configMountType = MOUNT_ASYMMETRICAL;
+    int configMountType = MOUNT_GEM;
     IUGetConfigOnSwitchIndex(getDeviceName(), "MOUNT_TYPE", &configMountType);
-    MountTypeSP[MOUNT_ASYMMETRICAL].fill("MOUNT_ASYMMETRICAL", "Asymmetrical",
-                                         configMountType == MOUNT_ASYMMETRICAL ? ISS_ON : ISS_OFF);
-    MountTypeSP[MOUNT_SYMMETRICAL].fill("MOUNT_SYMMETRICAL", "Symmetrical",
-                                        configMountType == MOUNT_ASYMMETRICAL ? ISS_OFF : ISS_ON);
+    MountTypeSP[MOUNT_GEM].fill("MOUNT_GEM", "GEM",
+                                configMountType == MOUNT_GEM ? ISS_ON : ISS_OFF);
+    MountTypeSP[MOUNT_SINGLE_ARM].fill("MOUNT_SINGLE_ARM", "Single ARM",
+                                       configMountType == MOUNT_GEM ? ISS_OFF : ISS_ON);
     MountTypeSP.fill(getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Acceleration
@@ -373,7 +373,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     if (LocationN[LOCATION_LATITUDE].value >= 0)
     {
         // "Normal" Pointing State (East, looking West)
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || deEncoder >= 0)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
         {
             de = std::min(90 - deEncoder, 90.0);
             //ha = -6.0 + (haEncoder / 360.0) * 24.0 ;
@@ -390,7 +390,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     else
     {
         // East
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || deEncoder >= 0)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
         {
             de = std::max(-90 - deEncoder, -90.0);
             //ha = -6.0 - (haEncoder / 360.0) * 24.0 ;
@@ -415,37 +415,40 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
 void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, double &deEncoder)
 {
     double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
-    double ha = rangeHA(lst - ra);
+    double dHA = rangeHA(lst - ra);
     // Northern Hemisphere
     if (LocationN[LOCATION_LATITUDE].value >= 0)
     {
         // "Normal" Pointing State (East, looking West)
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || ha <= 0)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || dHA <= 0)
         {
             deEncoder = - (de - 90);
-            haEncoder = ha * 360.0 / 24.0;
+            //haEncoder = ha * 360.0 / 24.0;
+            haEncoder = (dHA + 6.0) * 360.0 / 24.0;
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
             deEncoder = deEncoder - 90;
-            haEncoder = (12 - ha) * 360.0 / 24.0;
+            //haEncoder = (12 - ha) * 360.0 / 24.0;
+            haEncoder = (dHA - 6.0) * 360.0 / 24.0;
         }
     }
     else
     {
         // "Normal" Pointing State (East, looking West)
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SYMMETRICAL || ha <= 0)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || dHA <= 0)
         {
             deEncoder = - (de + 90);
-            //haEncoder = -(ha + 6) * 360.0 / 24.0;
-            haEncoder = -ha * 360.0 / 24.0;
+            haEncoder = -(dHA + 6.0) * 360.0 / 24.0;
+            //haEncoder = -ha * 360.0 / 24.0;
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
             deEncoder = (de + 90);
-            haEncoder = (-12 - ha) * 360 / 24.0;
+            //haEncoder = (-12 - ha) * 360 / 24.0;
+            haEncoder = (dHA - 6.0) * 360 / 24.0;
         }
     }
 }
@@ -607,6 +610,9 @@ bool AstroTrac::ReadScopeStatus()
 
     if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
     {
+        double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+        double dHA = rangeHA(lst - skyRA);
+        setPierSide(dHA < 0 ? PIER_EAST : PIER_WEST);
         NewRaDec(skyRA, skyDE);
         return true;
     }
