@@ -29,9 +29,9 @@
 #include "indipropertyswitch.h"
 
 class AstroTrac :
-        public INDI::Telescope,
-        public INDI::GuiderInterface,
-        public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
+    public INDI::Telescope,
+    public INDI::GuiderInterface,
+    public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
     public:
         AstroTrac();
@@ -48,7 +48,7 @@ class AstroTrac :
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
         virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                                     char *formats[], char *names[], int n) override;
+                               char *formats[], char *names[], int n) override;
 
     protected:
         // Motion
@@ -87,7 +87,7 @@ class AstroTrac :
     private:
         ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Utility
-        ///////////////////////////////////////////////////////////////////////////////////////////////        
+        ///////////////////////////////////////////////////////////////////////////////////////////////
         bool getVersion();
         void getRADEFromEncoders(double haEncoder, double deEncoder, double &ra, double &de);
         void getEncodersFromRADE(double ra, double de, double &raEncoder, double &deEncoder);
@@ -175,7 +175,7 @@ class AstroTrac :
         // Slew Modes
         static constexpr const uint8_t SLEW_MODES {10};
         // Slew Speeds
-        static constexpr std::array<uint32_t, SLEW_MODES> SLEW_SPEEDS {{1,2,4,8,32,64,128,600,700,800}};
+        static const std::array<uint32_t, SLEW_MODES> SLEW_SPEEDS;
         // Maximum Slew Velocity. This cannot be set now so it's considered contant until until it can be altered.
         // arcsec/sec
         static constexpr double MAX_SLEW_VELOCITY {10800.0};
