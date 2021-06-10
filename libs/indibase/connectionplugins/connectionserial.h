@@ -161,6 +161,13 @@ class Serial : public Interface
 
         virtual bool processHandshake();
 
+        enum
+        {
+            SERIAL_DEV,
+            USB_ID_DEV,
+            BLUETOOTH_DEV
+        };
+
         // Device physical port
         ITextVectorProperty PortTP;
         IText PortT[1] {};
