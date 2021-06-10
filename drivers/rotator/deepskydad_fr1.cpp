@@ -24,6 +24,7 @@
 
 #include "deepskydad_fr1.h"
 #include "indicom.h"
+#include "connectionplugins/connectionserial.h"
 
 #include <cerrno>
 #include <cstring>
@@ -106,12 +107,6 @@ const char * DeepSkyDadFR1::getDefaultName()
 bool DeepSkyDadFR1::Handshake()
 {
     PortFD = serialConnection->getPortFD();
-    if (!ping())
-    {
-        LOG_ERROR("Device ping failed.");
-        return false;
-    }
-	
 	return getFirmware();
 }
 
@@ -134,10 +129,10 @@ bool DeepSkyDadFR1::ISNewSwitch(const char * dev, const char * name, ISState * s
                 return true;
             }
 
-            char cmd[FLAT_RES] = {0};
-            char response[FLAT_RES] = {0};
+            char cmd[DSD_RES] = {0};
+            char response[DSD_RES] = {0};
 
-            snprintf(cmd, FLAT_RES, "[SSPD%d]", target_mode);
+            snprintf(cmd, DSD_RES, "[SSPD%d]", target_mode);
             bool rc = sendCommand(cmd, response);
             if (!rc)
             {
@@ -166,10 +161,10 @@ bool DeepSkyDadFR1::ISNewSwitch(const char * dev, const char * name, ISState * s
                 return true;
             }
 
-            char cmd[FLAT_RES] = {0};
-            char response[FLAT_RES] = {0};
+            char cmd[DSD_RES] = {0};
+            char response[DSD_RES] = {0};
 
-            snprintf(cmd, FLAT_RES, "[SSTP%d]", target_mode);
+            snprintf(cmd, DSD_RES, "[SSTP%d]", target_mode);
             bool rc = sendCommand(cmd, response);
             if (!rc)
             {
@@ -191,16 +186,15 @@ bool DeepSkyDadFR1::ISNewSwitch(const char * dev, const char * name, ISState * s
 
 IPState DeepSkyDadFR1::MoveRotator(double angle)
 {
-	char response[FLAT_RES];
+    char response[DSD_RES];
 	char cmd[DSD_CMD];
-    snprintf(cmd, DSD_CMD, "[STRG%d00]", angle);
+    int angleInt = (int)(angle*100);
+    snprintf(cmd, DSD_CMD, "[STRG%d]", angleInt);
     if (!sendCommand(cmd, response) || !sendCommand("[SMOV]", response))
         return IPS_ALERT;
 
     if (strcmp(response, "(OK)") == 0)
     {
-        // Set cover status to random value outside of range to force it to refresh
-        prevCoverStatus = 10;
         return IPS_BUSY;
     }
     else
@@ -209,7 +203,7 @@ IPState DeepSkyDadFR1::MoveRotator(double angle)
 
 bool DeepSkyDadFR1::AbortRotator()
 {
-    char response[FLAT_RES];
+    char response[DSD_RES];
     if (!sendCommand("[STOP]", response))
         return IPS_ALERT;
 
@@ -223,7 +217,7 @@ bool DeepSkyDadFR1::AbortRotator()
 
 bool DeepSkyDadFR1::ReverseRotator(bool enabled)
 {
-    char response[FLAT_RES];
+    char response[DSD_RES];
 	char cmd[DSD_CMD];
     snprintf(cmd, DSD_CMD, "[SREV%d]", enabled ? 1 : 0);
     if (!sendCommand(cmd, response))
@@ -239,16 +233,15 @@ bool DeepSkyDadFR1::ReverseRotator(bool enabled)
 
 bool DeepSkyDadFR1::SyncRotator(double angle)
 {
-    char response[FLAT_RES];
+    char response[DSD_RES];
 	char cmd[DSD_CMD];
-    snprintf(cmd, DSD_CMD, "[SPOS%d00]", angle);
+    int angleInt = (int)(angle*100);
+    snprintf(cmd, DSD_CMD, "[SPOS%d]", angleInt);
     if (!sendCommand(cmd, response))
         return IPS_ALERT;
 
     if (strcmp(response, "(OK)") == 0)
     {
-        // Set cover status to random value outside of range to force it to refresh
-        prevCoverStatus = 10;
         return IPS_BUSY;
     }
     else
@@ -265,7 +258,7 @@ void DeepSkyDadFR1::TimerHit()
 
 bool DeepSkyDadFR1::getStatusData()
 {
-    char response[FLAT_RES];
+    char response[DSD_RES];
 
 	int motorStatus;
     int motorPosition;
@@ -286,7 +279,7 @@ bool DeepSkyDadFR1::getStatusData()
 	else
 		sscanf(response, "(%d)", &motorReversed);
 
-	const IPState motionState = std::stoi(result[3]) == 1 ? IPS_BUSY : IPS_OK;
+    const IPState motionState = motorStatus == 1 ? IPS_BUSY : IPS_OK;
 
 	if (std::abs(motorPosition - GotoRotatorN[0].value) > 0.01 || GotoRotatorNP.s != motionState)
 	{
@@ -306,9 +299,9 @@ bool DeepSkyDadFR1::getStatusData()
     return true;
 }
 
-bool DeepSkyDadFP1::getFirmware()
+bool DeepSkyDadFR1::getFirmware()
 {
-    char response[FLAT_RES] = {0};
+    char response[DSD_RES] = {0};
     if (!sendCommand("[GFRM]", response))
         return false;
 
@@ -323,7 +316,7 @@ bool DeepSkyDadFP1::getFirmware()
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
-bool DeepSkyDadFP1::sendCommand(const char *cmd, char *res)
+bool DeepSkyDadFR1::sendCommand(const char *cmd, char *res)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
