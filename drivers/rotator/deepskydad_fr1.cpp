@@ -72,9 +72,8 @@ bool DeepSkyDadFR1::initProperties()
     IUFillText(&FirmwareT[0], "Version", "Version", nullptr);
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    serialConnection = new Connection::Serial(this);
+    serialConnection->setDefaultPort("/dev/ttyACM0");
     serialConnection->registerHandshake([&]() { return Handshake(); });
-    registerConnection(serialConnection);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     return true;
 }
@@ -107,7 +106,7 @@ const char * DeepSkyDadFR1::getDefaultName()
 bool DeepSkyDadFR1::Handshake()
 {
     PortFD = serialConnection->getPortFD();
-	return getFirmware();
+    return getInitialStatusData();
 }
 
 bool DeepSkyDadFR1::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
@@ -262,7 +261,6 @@ bool DeepSkyDadFR1::getStatusData()
 
 	int motorStatus;
     int motorPosition;
-	int motorReversed;
 	
 	if (!sendCommand("[GMOV]", response))
 		return false;
@@ -274,32 +272,22 @@ bool DeepSkyDadFR1::getStatusData()
 	else
 		sscanf(response, "(%d)", &motorPosition);
 	
-	if (!sendCommand("[GREV]", response))
-		return false;
-	else
-		sscanf(response, "(%d)", &motorReversed);
+
 
     const IPState motionState = motorStatus == 1 ? IPS_BUSY : IPS_OK;
 
-	if (std::abs(motorPosition - GotoRotatorN[0].value) > 0.01 || GotoRotatorNP.s != motionState)
+    double motorPositionDouble = (double)motorPosition/(double)100;
+    if (std::abs(motorPositionDouble - GotoRotatorN[0].value) > 0.01 || GotoRotatorNP.s != motionState)
 	{
-		GotoRotatorN[0].value = motorPosition;
+        GotoRotatorN[0].value = motorPositionDouble;
 		GotoRotatorNP.s = motionState;
 		IDSetNumber(&GotoRotatorNP, nullptr);
-	}
-
-	const bool wasReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
-	if (motorReversed != wasReversed)
-	{
-		ReverseRotatorS[INDI_ENABLED].s = motorReversed ? ISS_ON : ISS_OFF;
-		ReverseRotatorS[INDI_DISABLED].s = motorReversed ? ISS_OFF : ISS_ON;
-		IDSetSwitch(&ReverseRotatorSP, nullptr);
-	}
+    }
 
     return true;
 }
 
-bool DeepSkyDadFR1::getFirmware()
+bool DeepSkyDadFR1::getInitialStatusData()
 {
     char response[DSD_RES] = {0};
     if (!sendCommand("[GFRM]", response))
@@ -309,6 +297,41 @@ bool DeepSkyDadFR1::getFirmware()
     snprintf(versionString, 6, "%s", response + 31);
     IUSaveText(&FirmwareT[0], response);
     IDSetText(&FirmwareTP, nullptr);
+
+    int motorReversed;
+
+    if (!sendCommand("[GREV]", response))
+        return false;
+    else
+        sscanf(response, "(%d)", &motorReversed);
+
+    const bool wasReversed = ReverseRotatorS[INDI_ENABLED].s == ISS_ON;
+    if (motorReversed != wasReversed)
+    {
+        ReverseRotatorS[INDI_ENABLED].s = motorReversed ? ISS_ON : ISS_OFF;
+        ReverseRotatorS[INDI_DISABLED].s = motorReversed ? ISS_OFF : ISS_ON;
+        IDSetSwitch(&ReverseRotatorSP, nullptr);
+    }
+
+    if (!sendCommand("[GSPD]", response))
+        return false;
+
+    if(strcmp(response, "(2)") == 0)
+        SpeedModeS[Slow].s = ISS_ON;
+    else if(strcmp(response, "(3)") == 0)
+        SpeedModeS[Fast].s = ISS_ON;
+
+    if (!sendCommand("[GSTP]", response))
+        return false;
+
+    if(strcmp(response, "(1)") == 0)
+        StepSizeS[One].s = ISS_ON;
+    else if(strcmp(response, "(2)") == 0)
+        StepSizeS[Two].s = ISS_ON;
+    else if(strcmp(response, "(4)") == 0)
+        StepSizeS[Four].s = ISS_ON;
+    else if(strcmp(response, "(8)") == 0)
+        StepSizeS[Eight].s = ISS_ON;
 
     return true;
 }
