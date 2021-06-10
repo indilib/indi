@@ -204,14 +204,14 @@ bool DeepSkyDadFR1::AbortRotator()
 {
     char response[DSD_RES];
     if (!sendCommand("[STOP]", response))
-        return IPS_ALERT;
+        return false;
 
     if (strcmp(response, "(OK)") == 0)
     {
-        return IPS_BUSY;
+        return true;
     }
     else
-        return IPS_ALERT;
+        return false;
 }
 
 bool DeepSkyDadFR1::ReverseRotator(bool enabled)
@@ -220,14 +220,14 @@ bool DeepSkyDadFR1::ReverseRotator(bool enabled)
 	char cmd[DSD_CMD];
     snprintf(cmd, DSD_CMD, "[SREV%d]", enabled ? 1 : 0);
     if (!sendCommand(cmd, response))
-        return IPS_ALERT;
+        return false;
 
     if (strcmp(response, "(OK)") == 0)
     {
-        return IPS_BUSY;
+        return true;
     }
     else
-        return IPS_ALERT;
+        return false;
 }
 
 bool DeepSkyDadFR1::SyncRotator(double angle)
@@ -237,14 +237,14 @@ bool DeepSkyDadFR1::SyncRotator(double angle)
     int angleInt = (int)(angle*100);
     snprintf(cmd, DSD_CMD, "[SPOS%d]", angleInt);
     if (!sendCommand(cmd, response))
-        return IPS_ALERT;
+        return false;
 
     if (strcmp(response, "(OK)") == 0)
     {
-        return IPS_BUSY;
+        return true;
     }
     else
-        return IPS_ALERT;
+        return false;
 }
 
 void DeepSkyDadFR1::TimerHit()
