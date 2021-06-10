@@ -1823,6 +1823,15 @@ add_executable(indi_deepskydad_fp1 ${snapcap_SRC})
 target_link_libraries(indi_deepskydad_fp1 indidriver)
 install(TARGETS indi_deepskydad_fp1 RUNTIME DESTINATION bin)
 
+########### Deep Sky Dad FR1 ###############
+
+SET(snapcap_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/deepskydad_fr1.cpp)
+
+add_executable(indi_deepskydad_fr1 ${snapcap_SRC})
+target_link_libraries(indi_deepskydad_fr1 indidriver)
+install(TARGETS indi_deepskydad_fr1 RUNTIME DESTINATION bin)
+
 #####################################
 ############ INDI TOOLS #############
 #####################################
