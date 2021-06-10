@@ -88,28 +88,34 @@ bool SestoSenso::initProperties()
 
     // Firmware Information
     IUFillText(&FirmwareT[0], "VERSION", "Version", "");
-    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FOCUS_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FOCUS_FIRMWARE", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0,
+                     IPS_IDLE);
 
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
-    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+                       IP_RO, 0, IPS_IDLE);
 
     // Focuser calibration
     IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "");
-    IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration",
+                     MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillSwitch(&CalibrationS[CALIBRATION_START], "CALIBRATION_START", "Start", ISS_OFF);
     IUFillSwitch(&CalibrationS[CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
-    IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&FastMoveS[FASTMOVE_IN], "FASTMOVE_IN", "Move In", ISS_OFF);
     IUFillSwitch(&FastMoveS[FASTMOVE_OUT], "FASTMOVE_OUT", "Move out", ISS_OFF);
     IUFillSwitch(&FastMoveS[FASTMOVE_STOP], "FASTMOVE_STOP", "Stop", ISS_OFF);
-    IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&FastMoveSP, FastMoveS, 3, getDeviceName(), "FAST_MOVE", "Calibration Move", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     //
     // Override the default Max. Position to make it Read-Only
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, getDeviceName(), "FOCUS_MAX", "Max. Position", MAIN_CONTROL_TAB, IP_RO,
+                       0, IPS_IDLE);
 
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
@@ -127,6 +133,9 @@ bool SestoSenso::initProperties()
     addAuxControls();
 
     setDefaultPollingPeriod(500);
+
+    m_MotionProgressTimer.callOnTimeout(std::bind(&SestoSenso::checkMotionProgressCallback, this));
+    m_MotionProgressTimer.setSingleShot(true);
 
     return true;
 }
@@ -522,9 +531,7 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
             return IPS_ALERT;
     }
 
-    if (m_MotionProgressTimerID > 0)
-        IERmTimer(m_MotionProgressTimerID);
-    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso::checkMotionProgressHelper, this);
+    m_MotionProgressTimer.start(10);
     return IPS_BUSY;
 }
 
@@ -541,11 +548,7 @@ IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 bool SestoSenso::AbortFocuser()
 {
-    if (m_MotionProgressTimerID > 0)
-    {
-        IERmTimer(m_MotionProgressTimerID);
-        m_MotionProgressTimerID = -1;
-    }
+    m_MotionProgressTimer.stop();
 
     if (isSimulation())
         return true;
@@ -553,10 +556,6 @@ bool SestoSenso::AbortFocuser()
     return sendCommand("#MA!");
 }
 
-void SestoSenso::checkMotionProgressHelper(void *context)
-{
-    static_cast<SestoSenso*>(context)->checkMotionProgressCallback();
-}
 //
 // This timer function is initiated when a GT command has been issued
 // A timer will call this function on a regular interval during the motion
@@ -579,8 +578,7 @@ void SestoSenso::checkMotionProgressCallback()
 
     lastPos = FocusAbsPosN[0].value;
 
-    IERmTimer(m_MotionProgressTimerID);
-    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso::checkMotionProgressHelper, this);
+    m_MotionProgressTimer.start(250);
 }
 
 void SestoSenso::TimerHit()
