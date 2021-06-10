@@ -552,7 +552,7 @@ bool PMC8::ReadScopeStatus()
                 trackingPollCounter = PMC8_TRACKING_AUTODETECT_INTERVAL;
                 
                 // make sure we aren't moving manually to avoid false positives
-                if (moveInfoDEC.state == PMC8_MOVE_INACTIVE || moveInfoRA.state == PMC8_MOVE_INACTIVE) {
+                if (moveInfoDEC.state == PMC8_MOVE_INACTIVE && moveInfoRA.state == PMC8_MOVE_INACTIVE) {
                     
                     double track_rate;
                     uint8_t track_mode;
