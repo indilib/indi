@@ -761,6 +761,16 @@ target_link_libraries(indi_paramount_telescope indidriver)
 
 install(TARGETS indi_paramount_telescope RUNTIME DESTINATION bin)
 
+########### Astrotrac ##########
+SET(astrotrac_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/astrotrac.cpp)
+
+add_executable(indi_astrotrac_telescope ${astrotrac_SRC})
+
+target_link_libraries(indi_astrotrac_telescope indidriver AlignmentDriver)
+
+install(TARGETS indi_astrotrac_telescope RUNTIME DESTINATION bin)
+
 #################################################################################
 
 ########### Syncscan ###############

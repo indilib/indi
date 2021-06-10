@@ -296,34 +296,10 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 ************************************************************************************/
 IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-    int mode   = IUFindOnSwitchIndex(&ModeSP);
-
-    if (mode == MODE_ALL || mode == MODE_ABSOLUTE)
-    {
-        uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
-
-        FocusAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-
-        return MoveAbsFocuser(targetTicks);
-    }
-
-    internalTicks += (dir == FOCUS_INWARD ? -1 : 1) * static_cast<int32_t>(ticks);
-
-    ticks = initTicks + (internalTicks - mid) / 5000.0;
-
-    LOGF_DEBUG("REL Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
-               FWHMN[0].value);
-
-    FWHMN[0].value = 0.5625 * ticks * ticks + SeeingN[0].value;
-
-    if (FWHMN[0].value < SeeingN[0].value)
-        FWHMN[0].value = SeeingN[0].value;
-
-    IDSetNumber(&FWHMNP, nullptr);
-
-    return IPS_OK;
+    uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
+    FocusAbsPosNP.s = IPS_BUSY;
+    IDSetNumber(&FocusAbsPosNP, nullptr);
+    return MoveAbsFocuser(targetTicks);
 }
 
 /************************************************************************************
