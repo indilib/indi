@@ -744,6 +744,11 @@ bool PMC8::Park()
     }
 #endif
 
+    //if we're already parking, no need to do anything
+    if (TrackState == SCOPE_PARKING) {
+        return true;
+    }    
+    
     if (park_pmc8(PortFD))
     {
         TrackState = SCOPE_PARKING;
