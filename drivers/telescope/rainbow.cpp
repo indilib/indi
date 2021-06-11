@@ -1259,7 +1259,7 @@ bool Rainbow::getLocalDate(char *dateString)
     {
         int dd, mm, yy;
         char response[DRIVER_LEN] = {0};
-        char mell_prefix[3]={0};
+        char mell_prefix[3] = {0};
         if (!sendCommand(":GC#", response))
             return false;
 
@@ -1385,6 +1385,7 @@ bool Rainbow::sendScopeTime()
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::sendScopeLocation()
 {
+    double longitude {0}, latitude {0};
     double dd = 0, mm = 0, ssf = 0;
     char response[DRIVER_LEN] = {0};
 
@@ -1410,9 +1411,9 @@ bool Rainbow::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[LOCATION_LATITUDE].value = dd + mm / 60.0 + ssf / 3600.0;
+            latitude = dd + mm / 60.0 + ssf / 3600.0;
         else
-            LocationNP.np[LOCATION_LATITUDE].value = dd - mm / 60.0 - ssf / 3600.0;
+            latitude = dd - mm / 60.0 - ssf / 3600.0;
     }
 
     // Longitude
@@ -1427,16 +1428,24 @@ bool Rainbow::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[LOCATION_LONGITUDE].value = 360.0 - (dd + mm / 60.0 + ssf / 3600.0);
+            longitude = 360.0 - (dd + mm / 60.0 + ssf / 3600.0);
         else
-            LocationNP.np[LOCATION_LONGITUDE].value = (dd - mm / 60.0 - ssf / 3600.0) * -1.0;
+            longitude = (dd - mm / 60.0 - ssf / 3600.0) * -1.0;
 
     }
 
-    LOGF_DEBUG("Mount Controller Latitude: %.3f Longitude: %.3f", LocationN[LOCATION_LATITUDE].value,
-               LocationN[LOCATION_LONGITUDE].value);
-
-    IDSetNumber(&LocationNP, nullptr);
+    // Only update if different from current values
+    // and then immediately save to config.
+    if (std::abs(LocationN[LOCATION_LONGITUDE].value - longitude) > 0.001 ||
+            std::abs(LocationN[LOCATION_LATITUDE].value - latitude) > 0.001)
+    {
+        LocationN[LOCATION_LATITUDE].value = latitude;
+        LocationN[LOCATION_LONGITUDE].value = longitude;
+        LOGF_DEBUG("Mount Controller Latitude: %.3f Longitude: %.3f", LocationN[LOCATION_LATITUDE].value,
+                   LocationN[LOCATION_LONGITUDE].value);
+        IDSetNumber(&LocationNP, nullptr);
+        saveConfig(true, LocationNP.name);
+    }
 
     return true;
 }

@@ -367,14 +367,43 @@ uint32_t Serial::baud()
     return atoi(IUFindOnSwitch(&BaudRateSP)->name);
 }
 
-int dev_file_select(const dirent *entry)
+int serial_dev_file_select(const dirent *entry)
 {
 #if defined(__APPLE__)
     static const char *filter_names[] = { "cu.", nullptr };
 #else
-    //static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", nullptr };
-    static const char *filter_names[] = { "usb-", "rfcomm", nullptr };
+    static const char *filter_names[] = { "ttyUSB", "ttyACM", nullptr };
 #endif
+    const char **filter;
+
+    for (filter = filter_names; *filter; ++filter)
+    {
+        if (strstr(entry->d_name, *filter) != nullptr)
+        {
+            return (true);
+        }
+    }
+    return (false);
+}
+
+int usb_dev_file_select(const dirent *entry)
+{
+    static const char *filter_names[] = { "usb-", nullptr };
+    const char **filter;
+
+    for (filter = filter_names; *filter; ++filter)
+    {
+        if (strstr(entry->d_name, *filter) != nullptr)
+        {
+            return (true);
+        }
+    }
+    return (false);
+}
+
+int bluetooth_dev_file_select(const dirent *entry)
+{
+    static const char *filter_names[] = {"rfcomm", nullptr };
     const char **filter;
 
     for (filter = filter_names; *filter; ++filter)
@@ -391,39 +420,58 @@ bool Serial::Refresh(bool silent)
 {
     std::vector<std::string> m_Ports;
 
-    auto searchPath = [&](std::string prefix)
+    // 0 Serial Only, 1 By USB-ID, 2 Bluetooth
+    auto searchPath = [&](std::string prefix, uint8_t searchType)
     {
         struct dirent **namelist;
-        int devCount = scandir(prefix.c_str(), &namelist, dev_file_select, alphasort);
-        if (devCount < 0)
-        {
-            if (!silent)
-                LOGF_ERROR("Failed to scan directory %s. Error: %s", prefix.c_str(), strerror(errno));
-        }
+        std::vector<std::string> detectedDevices;
+        int devCount = 0;
+        if (searchType == SERIAL_DEV)
+            devCount = scandir(prefix.c_str(), &namelist, serial_dev_file_select, alphasort);
+        else if (searchType == USB_ID_DEV)
+            devCount = scandir(prefix.c_str(), &namelist, usb_dev_file_select, alphasort);
         else
+            devCount = scandir(prefix.c_str(), &namelist, bluetooth_dev_file_select, alphasort);
+        if (devCount > 0)
         {
             while (devCount--)
             {
-                if (m_Ports.size() < 10)
+                if (detectedDevices.size() < 10)
                 {
                     std::string s(namelist[devCount]->d_name);
                     s.erase(s.find_last_not_of(" \n\r\t") + 1);
-                    m_Ports.push_back(prefix + s);
+                    detectedDevices.push_back(prefix + s);
                 }
                 else
                 {
-                    LOGF_DEBUG("Ignoring devices over %d : %s", m_Ports.size(),
+                    LOGF_DEBUG("Ignoring devices over %d : %s", detectedDevices.size(),
                                namelist[devCount]->d_name);
                 }
                 free(namelist[devCount]);
             }
             free(namelist);
         }
+
+        return detectedDevices;
     };
 
-    searchPath("/dev/");
 #ifdef __linux__
-    searchPath("/dev/serial/by-id/");
+    // Search for serial, usb, and bluetooth devices.
+    const std::vector<std::string> serialDevices = searchPath("/dev/", SERIAL_DEV);
+    const std::vector<std::string> usbIDDevices = searchPath("/dev/serial/by-id/", USB_ID_DEV);
+    const std::vector<std::string> btDevices = searchPath("/dev/", BLUETOOTH_DEV);
+    m_Ports.insert(m_Ports.end(), btDevices.begin(), btDevices.end());
+    // Linux Kernel does not add identical VID:PID adapter to serial/by-id
+    // Therefore, we check if there is a 1:1 correspondence between serial/by-id and /dev/ttyUSBX nodes
+    // In case we have more by-id devices then /dev/ttyUSBX, we use them since these symlinks are more reusable in subsequence
+    // sessions
+    if (usbIDDevices.size() >= serialDevices.size())
+        m_Ports.insert(m_Ports.end(), usbIDDevices.begin(), usbIDDevices.end());
+    else
+        m_Ports.insert(m_Ports.end(), serialDevices.begin(), serialDevices.end());
+#else
+    const std::vector<std::string> serialDevices = searchPath("/dev/", SERIAL_DEV);
+    m_Ports.insert(m_Ports.end(), serialDevices.begin(), serialDevices.end());
 #endif
 
     const int pCount = m_Ports.size();

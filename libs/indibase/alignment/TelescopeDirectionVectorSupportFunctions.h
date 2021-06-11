@@ -10,6 +10,7 @@
 
 #include "Common.h"
 #include "libastro.h"
+#include "indicom.h"
 
 namespace INDI
 {
@@ -71,7 +72,7 @@ class TelescopeDirectionVectorSupportFunctions
             double AltitudeAngle;
             SphericalCoordinateFromTelescopeDirectionVector(TelescopeDirectionVector, AzimuthAngle, CLOCKWISE,
                     AltitudeAngle, FROM_AZIMUTHAL_PLANE);
-            HorizontalCoordinates.azimuth  = RAD_TO_DEG(AzimuthAngle);
+            HorizontalCoordinates.azimuth  = range360(RAD_TO_DEG(AzimuthAngle));
             HorizontalCoordinates.altitude = RAD_TO_DEG(AltitudeAngle);
         };
 
@@ -88,8 +89,8 @@ class TelescopeDirectionVectorSupportFunctions
             double PolarAngle;
             SphericalCoordinateFromTelescopeDirectionVector(TelescopeDirectionVector, AzimuthAngle, ANTI_CLOCKWISE,
                     PolarAngle, FROM_AZIMUTHAL_PLANE);
-            EquatorialCoordinates.rightascension  = RAD_TO_DEG(AzimuthAngle) / 15.0;
-            EquatorialCoordinates.declination = RAD_TO_DEG(PolarAngle);
+            EquatorialCoordinates.rightascension  = range24(RAD_TO_DEG(AzimuthAngle) / 15.0);
+            EquatorialCoordinates.declination = rangeDec(RAD_TO_DEG(PolarAngle));
         };
 
         /*! \brief Calculates a local hour angle and declination from the supplied telescope direction vector
@@ -105,8 +106,8 @@ class TelescopeDirectionVectorSupportFunctions
             double PolarAngle;
             SphericalCoordinateFromTelescopeDirectionVector(TelescopeDirectionVector, AzimuthAngle, CLOCKWISE, PolarAngle,
                     FROM_AZIMUTHAL_PLANE);
-            EquatorialCoordinates.rightascension  = RAD_TO_DEG(AzimuthAngle) / 15.0;
-            EquatorialCoordinates.declination = RAD_TO_DEG(PolarAngle);
+            EquatorialCoordinates.rightascension  = range24(RAD_TO_DEG(AzimuthAngle) / 15.0);
+            EquatorialCoordinates.declination = rangeDec(RAD_TO_DEG(PolarAngle));
         };
 
         /*! \brief Calculates a spherical coordinate from the supplied telescope direction vector

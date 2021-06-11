@@ -1715,6 +1715,8 @@ bool Telescope::processTimeInfo(const char *utc, const char *offset)
 bool Telescope::processLocationInfo(double latitude, double longitude, double elevation)
 {
     // Do not update if not necessary
+    // JM 2021-05-26: This can sometimes be problematic. Let child driver deals with duplicate requests.
+#if 0
     if (latitude == LocationN[LOCATION_LATITUDE].value && longitude == LocationN[LOCATION_LONGITUDE].value &&
             elevation == LocationN[LOCATION_ELEVATION].value)
     {
@@ -1722,13 +1724,15 @@ bool Telescope::processLocationInfo(double latitude, double longitude, double el
         IDSetNumber(&LocationNP, nullptr);
         return true;
     }
-    else if (latitude == 0 && longitude == 0)
-    {
-        LOG_DEBUG("Silently ignoring invalid latitude and longitude.");
-        LocationNP.s = IPS_IDLE;
-        IDSetNumber(&LocationNP, nullptr);
-        return false;
-    }
+    else
+#endif
+        if (latitude == 0 && longitude == 0)
+        {
+            LOG_DEBUG("Silently ignoring invalid latitude and longitude.");
+            LocationNP.s = IPS_IDLE;
+            IDSetNumber(&LocationNP, nullptr);
+            return false;
+        }
 
     if (updateLocation(latitude, longitude, elevation))
     {
