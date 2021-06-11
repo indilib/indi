@@ -1816,12 +1816,21 @@ install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
 
 ########### Deep Sky Dad FP1 ###############
 
-SET(snapcap_SRC
+SET(deepskydad_fp1_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/deepskydad_fp1.cpp)
 
-add_executable(indi_deepskydad_fp1 ${snapcap_SRC})
+add_executable(indi_deepskydad_fp1 ${deepskydad_fp1_SRC})
 target_link_libraries(indi_deepskydad_fp1 indidriver)
 install(TARGETS indi_deepskydad_fp1 RUNTIME DESTINATION bin)
+
+########### Deep Sky Dad FR1 ###############
+
+SET(deepskydad_fr1_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/deepskydad_fr1.cpp)
+
+add_executable(indi_deepskydad_fr1 ${deepskydad_fr1_SRC})
+target_link_libraries(indi_deepskydad_fr1 indidriver)
+install(TARGETS indi_deepskydad_fr1 RUNTIME DESTINATION bin)
 
 #####################################
 ############ INDI TOOLS #############
