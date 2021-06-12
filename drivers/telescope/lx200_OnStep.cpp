@@ -1668,23 +1668,23 @@ void LX200_OnStep::getBasicData()
         IUSaveText(&VersionT[3], buffer);
 
         IDSetText(&VersionTP, nullptr);
-        if ((VersionT[2].text[0]=='1' || VersionT[2].text[0]=='2'  )&& strcmp(VersionT[3].text, "OnStep"))
+        if ((VersionT[2].text[0]=='1' || VersionT[2].text[0]=='2'  )&&  (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
         {
             LOG_INFO("Old OnStep (V1/V2 depreciated) detected, setting some defaults");
             LOG_INFO("Note: Everything should work, but it may have timeouts in places, as it's not tested against.");
             OSHighPrecision = false;
         }
-        if (VersionT[2].text[0]=='3' && strcmp(VersionT[3].text, "OnStep"))
+        if (VersionT[2].text[0]=='3' && (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
         {
             LOG_INFO("V3 OnStep detected, setting some defaults");
             OSHighPrecision = false;
         } 
-        else if (VersionT[2].text[0]=='4' && strcmp(VersionT[3].text, "OnStep"))
+        else if (VersionT[2].text[0]=='4' &&  (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
         {
             LOG_INFO("V4 OnStep detected, setting some defaults");
             OSHighPrecision = true;
         }
-        else if (VersionT[2].text[0]=='5' && strcmp(VersionT[3].text, "OnStep"))
+        else if (VersionT[2].text[0]=='5' &&  (strcmp(VersionT[3].text, "OnStep") || strcmp(VersionT[3].text, "On-Step")))
         {
             LOG_INFO("V5 OnStep detected, setting some defaults");
             OSHighPrecision = true;
