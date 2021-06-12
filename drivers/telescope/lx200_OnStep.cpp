@@ -2497,7 +2497,8 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
 
     if (enabled)
     {
-        if(!getCommandString(PortFD, response, ":Te#"))
+        int res = getCommandSingleCharResponse(PortFD, response, ":Te#");
+        if(res != 0 || response[0] == '0')
         {
             LOGF_ERROR("===CMD==> Track On %s", response);
             return false;
@@ -2505,7 +2506,8 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
     }
     else
     {
-        if(!getCommandString(PortFD, response, ":Td#"))
+        int res = getCommandSingleCharResponse(PortFD, response, ":Td#");
+        if(res != 0 || response[0] == '0')
         {
             LOGF_ERROR("===CMD==> Track Off %s", response);
             return false;
