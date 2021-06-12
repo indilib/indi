@@ -485,15 +485,24 @@ bool LX200_OnStep::updateProperties()
             IUFillSwitchVector(&OSFocusSelectSP, OSFocusSelectS, OSNumFocusers, getDeviceName(), "OSFocusSWAP", "Primary Focuser", FOCUS_TAB,
                                IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
             defineProperty(&OSFocusSelectSP); //Swap focusers (only matters if two focusers)
-        } else { //For OnStepX, up to 9 focusers 
+        } else { //For OnStepX, up to 9 focusers
             LOG_INFO("Focuser 2 NOT found (Checking for OnStepX Focusers)");
             OSFocuser2 = false;
             for (i = 0; i < 9; i++) {
+                char read_buffer[RB_MAX_LEN] = {0};
                 snprintf(cmd, 7, ":F%dA#", i + 1);
-                if (!sendOnStepCommand(cmd))  // Do we have a Focuser X
-                { 
+                int fail_or_error = getCommandSingleCharResponse(PortFD, read_buffer ,cmd);
+                if (!fail_or_error && read_buffer[0] == '1')  // Do we have a Focuser X
+                {
                     LOGF_INFO("Focuser %i Found", i);
                     OSNumFocusers = i+1;
+                } else {
+                    if(fail_or_error < 0)
+                    {
+                        //Non detection = 0, Read errors < 0, stop
+                        LOGF_INFO("Function call failed, stopping Focurser probe, return: %i", fail_or_error);
+                        break;
+                    }
                 }
             }
             if (OSNumFocusers > 1) {
@@ -1740,7 +1749,9 @@ bool LX200_OnStep::UnPark()
 
     if (!isSimulation())
     {
-        if(!getCommandString(PortFD, response, ":hR#"))
+        //if(!getCommandString(PortFD, response, ":hR#"))
+        int failure_or_error = getCommandSingleCharResponse(PortFD, response, ":hR#");
+        if (failure_or_error < 0 || response[0] != '1')
         {
             return false;
         }
@@ -2452,7 +2463,6 @@ bool LX200_OnStep::ReadScopeStatus()
                 IUSaveText(&OnstepStat[9], "Unknown read error");
             }
         }
-        
         i = getCommandSingleCharErrorOrLongResponse(PortFD, TempValue, ":GXU2#"); // Axis1
         if (i == -4  && TempValue[0] == '0'  ) {
             IUSaveText(&OnstepStat[10], "TMC Reporting not detected, Axis 2");
@@ -2693,11 +2703,21 @@ int LX200_OnStep::setSiteLongitude(int fd, double Long)
     char read_buffer[32];
 
     getSexComponentsIID(Long, &d, &m, &s);
-
-    snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d:%.02f#", d, m,s);
-
+    if (OSHighPrecision) {
+        snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d:%.02f#", d, m,s);
+        int result1 = setStandardProcedure(fd, read_buffer);
+        if (result1 == 0)
+        {
+            return 0;
+        } else {
+            snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d#", d, m);
+            return (setStandardProcedure(fd, read_buffer));
+        }
+    }
+    snprintf(read_buffer, sizeof(read_buffer), ":Sg%03d:%02d#", d, m);
     return (setStandardProcedure(fd, read_buffer));
 }
+
 int LX200_OnStep::setSiteLatitude(int fd, double Long)
 {
     //DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
@@ -2707,8 +2727,19 @@ int LX200_OnStep::setSiteLatitude(int fd, double Long)
     
     getSexComponentsIID(Long, &d, &m, &s);
     
-    snprintf(read_buffer, sizeof(read_buffer), ":St%+.02d:%02d:%.02f#", d, m,s);
-    
+    if(OSHighPrecision) 
+    {
+        snprintf(read_buffer, sizeof(read_buffer), ":St%+.02d:%02d:%.02f#", d, m,s);
+        int result1 = setStandardProcedure(fd, read_buffer);
+        if (result1 == 0)
+        {
+            return 0;
+        } else {
+            snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d#", d, m);
+            return (setStandardProcedure(fd, read_buffer));
+        }
+    }
+    snprintf(read_buffer, sizeof(read_buffer), ":St%+03d:%02d#", d, m);
     return (setStandardProcedure(fd, read_buffer));
 }
 
@@ -3756,7 +3787,7 @@ void LX200_OnStep::Init_Outputs()
     char p_name[20];
     size_t  k;
     
-    getCommandString(PortFD, configured, ":GXY0#"); // retrurns a string with 1 where Feature is configured
+    getCommandSingleCharErrorOrLongResponse(PortFD, configured, ":GXY0#"); // returns a string with 1 where Feature is configured
     // ex: 10010010 means Feature 1,4 and 7 are configured
     
     IUFillNumber(&OutputPorts[0], "Unconfigured", "Unconfigured", "%g", 0, 255, 1, 0);
