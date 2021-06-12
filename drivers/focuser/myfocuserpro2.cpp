@@ -1246,7 +1246,10 @@ bool MyFocuserPro2::sendCommand(const char * cmd, char * res)
     }
 
     if (res == nullptr)
+    {
+        tcdrain(PortFD);
         return true;
+    }
 
     if ((rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, ML_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
