@@ -1672,27 +1672,27 @@ void LX200_OnStep::getBasicData()
         {
             LOG_INFO("Old OnStep (V1/V2 depreciated) detected, setting some defaults");
             LOG_INFO("Note: Everything should work, but it may have timeouts in places, as it's not tested against.");
-            OSHighPrecision = false; //Unfortunately this will may already be set.
+            OSHighPrecision = false;
         }
         if (VersionT[2].text[0]=='3' && strcmp(VersionT[3].text, "OnStep"))
         {
             LOG_INFO("V3 OnStep detected, setting some defaults");
-            OSHighPrecision = false; //Unfortunately this will may already be set.
+            OSHighPrecision = false;
         } 
         else if (VersionT[2].text[0]=='4' && strcmp(VersionT[3].text, "OnStep"))
         {
             LOG_INFO("V4 OnStep detected, setting some defaults");
-            OSHighPrecision = true; //Unfortunately this will may already be set.
+            OSHighPrecision = true;
         }
         else if (VersionT[2].text[0]=='5' && strcmp(VersionT[3].text, "OnStep"))
         {
             LOG_INFO("V5 OnStep detected, setting some defaults");
-            OSHighPrecision = true; //Unfortunately this will may already be set.
+            OSHighPrecision = true;
         }
         else if (/*VersionT[2].text[0]=='5' &&*/ strcmp(VersionT[3].text, "OnStepX"))
         {
             LOG_INFO("OnStepX detected, setting some defaults");
-            OSHighPrecision = true; //Unfortunately this will may already be set.
+            OSHighPrecision = true;
         }
         
         if (InitPark())
