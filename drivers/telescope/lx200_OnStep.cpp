@@ -1657,7 +1657,7 @@ void LX200_OnStep::getBasicData()
 
     if (!isSimulation())
     {
-        char buffer[128];
+        char buffer[128] = {0};
         getVersionDate(PortFD, buffer);
         IUSaveText(&VersionT[0], buffer);
         getVersionTime(PortFD, buffer);
@@ -1668,7 +1668,33 @@ void LX200_OnStep::getBasicData()
         IUSaveText(&VersionT[3], buffer);
 
         IDSetText(&VersionTP, nullptr);
-
+        if ((VersionT[2].text[0]=='1' || VersionT[2].text[0]=='2'  )&& strcmp(VersionT[3].text, "OnStep"))
+        {
+            LOG_INFO("Old OnStep (V1/V2 depreciated) detected, setting some defaults");
+            LOG_INFO("Note: Everything should work, but it may have timeouts in places, as it's not tested against.");
+            OSHighPrecision = false; //Unfortunately this will may already be set.
+        }
+        if (VersionT[2].text[0]=='3' && strcmp(VersionT[3].text, "OnStep"))
+        {
+            LOG_INFO("V3 OnStep detected, setting some defaults");
+            OSHighPrecision = false; //Unfortunately this will may already be set.
+        } 
+        else if (VersionT[2].text[0]=='4' && strcmp(VersionT[3].text, "OnStep"))
+        {
+            LOG_INFO("V4 OnStep detected, setting some defaults");
+            OSHighPrecision = true; //Unfortunately this will may already be set.
+        }
+        else if (VersionT[2].text[0]=='5' && strcmp(VersionT[3].text, "OnStep"))
+        {
+            LOG_INFO("V5 OnStep detected, setting some defaults");
+            OSHighPrecision = true; //Unfortunately this will may already be set.
+        }
+        else if (/*VersionT[2].text[0]=='5' &&*/ strcmp(VersionT[3].text, "OnStepX"))
+        {
+            LOG_INFO("OnStepX detected, setting some defaults");
+            OSHighPrecision = true; //Unfortunately this will may already be set.
+        }
+        
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
@@ -3839,32 +3865,70 @@ bool LX200_OnStep::sendScopeLocation()
         IDSetNumber(&LocationNP, nullptr);
         return true;
     }
-    
-    if (getSiteLatitudeAlt(PortFD, &lat_dd, &lat_mm, &lat_ssf, ":GtH#") < 0)
-    {
-        //NOTE: All OnStep pre-31 Aug 2020 will fail the above: 
-        //      So Try the normal command, if it fails
-        if (getSiteLatitude(PortFD, &lat_dd, &lat_mm, &lat_ssf) < 0)
+    if (OSHighPrecision) {
+        if (getSiteLatitudeAlt(PortFD, &lat_dd, &lat_mm, &lat_ssf, ":GtH#") < 0)
         {
+            //NOTE: All OnStep pre-31 Aug 2020 will fail the above: 
+            //      So Try the normal command, if it fails
+            if (getSiteLatitude(PortFD, &lat_dd, &lat_mm, &lat_ssf) < 0)
+            {
+                LOG_WARN("Failed to get site latitude from device.");
+                return false;
+            }
+            else 
+            {
+                OSHighPrecision = false; //Don't check using :GtH again
+                snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+                f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+            }
+        }
+        else
+        {
+            //Got High precision coordinates
             snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
             f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
         }
-        else 
+    }
+    if (!OSHighPrecision) //Bypass check
+    {
+        if (getSiteLatitude(PortFD, &lat_dd, &lat_mm, &lat_ssf) < 0)
         {
             LOG_WARN("Failed to get site latitude from device.");
             return false;
         }
+        else
+        {
+            snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+            f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+        }
     }
-    else
-    {
-        snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
-        f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
+
+    if (OSHighPrecision) {
+        if (getSiteLongitudeAlt(PortFD, &long_dd, &long_mm, &long_ssf, ":GgH#") < 0)
+        {
+            //NOTE: All OnStep pre-31 Aug 2020 will fail the above: 
+            //      So Try the normal command, if it fails
+            if (getSiteLongitude(PortFD, &long_dd, &long_mm, &long_ssf) < 0)
+            {
+                LOG_WARN("Failed to get site longitude from device.");
+                return false;
+            }
+            else
+            {
+                OSHighPrecision = false;
+                snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+                f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+            }
+        }
+        else
+        {
+            //Got High precision coordinates
+            snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+            f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
+        }
     }
-    
-    if (getSiteLongitudeAlt(PortFD, &long_dd, &long_mm, &long_ssf, ":GgH#") < 0)
+    if(!OSHighPrecision) //Not using high precision
     {
-        //NOTE: All OnStep pre-31 Aug 2020 will fail the above: 
-        //      So Try the normal command, if it fails
         if (getSiteLongitude(PortFD, &long_dd, &long_mm, &long_ssf) < 0)
         {
             LOG_WARN("Failed to get site longitude from device.");
@@ -3876,12 +3940,7 @@ bool LX200_OnStep::sendScopeLocation()
             f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
         }
     }
-    else
-    {
-        snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
-        f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
-    }
-    
+
     LOGF_INFO("Mount has Latitude %s (%g) Longitude %s (%g) (Longitude sign in carthography format)",
               lat_sexagesimal,
               LocationN[LOCATION_LATITUDE].value,
