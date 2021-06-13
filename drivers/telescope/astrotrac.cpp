@@ -213,16 +213,23 @@ bool AstroTrac::getAcceleration(INDI_EQ_AXIS axis)
     snprintf(command, DRIVER_LEN, "<%da?>", axis + 1);
     if (sendCommand(command, response))
     {
-        std::string acceleration = std::regex_replace(
-                                       response,
-                                       std::regex("<.a(\\d+)>"),
-                                       std::string("$1"));
+        try
+        {
+            std::string acceleration = std::regex_replace(
+                                           response,
+                                           std::regex("<.a(\\d+)>"),
+                                           std::string("$1"));
 
-        AccelerationNP[axis].setValue(std::stoi(acceleration));
-        return true;
+            AccelerationNP[axis].setValue(std::stoi(acceleration));
+            return true;
+        }
+        catch(...)
+        {
+            LOGF_DEBUG("Failed to parse acceleration (%s)", response);
+        }
     }
-    else
-        return false;
+
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -249,16 +256,23 @@ bool AstroTrac::getVelocity(INDI_EQ_AXIS axis)
     snprintf(command, DRIVER_LEN, "<%dv?>", axis + 1);
     if (sendCommand(command, response))
     {
-        std::string velocity = std::regex_replace(
-                                   response,
-                                   std::regex("<.v([0-9]+\\.[0-9]+?)>"),
-                                   std::string("$1"));
+        try
+        {
+            std::string velocity = std::regex_replace(
+                                       response,
+                                       std::regex("<.v([0-9]+\\.[0-9]+?)>"),
+                                       std::string("$1"));
 
-        TrackRateN[axis].value = std::stod(velocity);
-        return true;
+            TrackRateN[axis].value = std::stod(velocity);
+            return true;
+        }
+        catch(...)
+        {
+            LOGF_DEBUG("Failed to parse velocity (%s)", response);
+        }
     }
-    else
-        return false;
+
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
