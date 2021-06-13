@@ -404,7 +404,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
     private:
         int currentCatalog;
         int currentSubCatalog;
-        bool FirstRead = true;
+
 
 
 };
