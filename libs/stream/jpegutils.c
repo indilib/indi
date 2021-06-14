@@ -461,7 +461,8 @@ static void guarantee_huff_tables(j_decompress_ptr dinfo)
 int decode_jpeg_raw(unsigned char *jpeg_data, int len, int itype, int ctype, unsigned int width, unsigned int height,
                     unsigned char *raw0, unsigned char *raw1, unsigned char *raw2)
 {
-    int numfields, hsf[3], field, yl, yc;
+    int numfields, hsf[3], field;
+    unsigned int  yl, yc;
     int i, xsl, xsc, xs, hdown;
     unsigned int x, y = 0, vsf[3], xd;
 
@@ -646,7 +647,7 @@ int decode_jpeg_raw(unsigned char *jpeg_data, int len, int itype, int ctype, uns
             /* read raw data */
             jpeg_read_raw_data(&dinfo, scanarray, 8 * vsf[0]);
 
-            for (y = 0; y < 8 * vsf[0]; yl += numfields, y++)
+            for (y = 0; y < 8 * vsf[0] && yl < height; yl += numfields, y++)
             {
                 xd = yl * width;
                 xs = xsl;
@@ -721,7 +722,7 @@ int decode_jpeg_raw(unsigned char *jpeg_data, int len, int itype, int ctype, uns
                     if (vsf[0] == 1)
                     {
                         /* Just copy */
-                        for (y = 0; y < 8 /*&& yc < height */; y++, yc += numfields)
+                        for (y = 0; y < 8 && yc < height; y++, yc += numfields)
                         {
                             xd = yc * width / 2;
 
@@ -735,7 +736,7 @@ int decode_jpeg_raw(unsigned char *jpeg_data, int len, int itype, int ctype, uns
                     else
                     {
                         /* upsample */
-                        for (y = 0; y < 8 /*&& yc < height */; y++)
+                        for (y = 0; y < 8 && yc < height; y++)
                         {
                             xd = yc * width / 2;
 
@@ -767,7 +768,7 @@ int decode_jpeg_raw(unsigned char *jpeg_data, int len, int itype, int ctype, uns
                     if (vsf[0] == 1)
                     {
                         /* Really downsample */
-                        for (y = 0; y < 8 /*&& yc < height/2*/; y += 2, yc += numfields)
+                        for (y = 0; y < 8 && yc < height/2; y += 2, yc += numfields)
                         {
                             xd = yc * width / 2;
 
@@ -782,7 +783,7 @@ int decode_jpeg_raw(unsigned char *jpeg_data, int len, int itype, int ctype, uns
                     else
                     {
                         /* Just copy */
-                        for (y = 0; y < 8 /*&& yc < height/2 */; y++, yc += numfields)
+                        for (y = 0; y < 8 && yc < height/2; y++, yc += numfields)
                         {
                             xd = yc * width / 2;
 
