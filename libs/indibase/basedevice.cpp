@@ -346,6 +346,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             np.setMax(atof(findXMLAttValu(ep, "max")));
             np.setStep(atof(findXMLAttValu(ep, "step")));
 
+            np.setParent(nvp->getNumber());
+
             nvp.push(std::move(np));
         }
 
@@ -378,6 +380,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             sp.setState(state);
             sp.setLabel(findXMLAttValu(ep, "label"));
 
+            sp.setParent(svp->getSwitch());
+
             svp.push(std::move(sp));
         }
 
@@ -401,6 +405,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
             tp.setText(pcdataXMLEle(ep), pcdatalenXMLEle(ep));
             tp.setLabel(findXMLAttValu(ep, "label"));
+
+            tp.setParent(tvp->getText());
 
             tvp.push(std::move(tp));
         }
@@ -427,6 +433,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
             lp.setState(state);
             lp.setLabel(findXMLAttValu(ep, "label"));
 
+            lp.setParent(lvp.getLight());
+
             lvp.push(std::move(lp));
         }
 
@@ -449,6 +457,8 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
             bp.setLabel(findXMLAttValu(ep, "label"));
             bp.setFormat(findXMLAttValu(ep, "format"));
+
+            bp.setParent(bvp.getBLOB());
 
             bvp.push(std::move(bp));
         }

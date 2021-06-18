@@ -257,6 +257,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         IText OnstepStat[11] {};
         
         bool TMCDrivers = true; //Set to false if it doesn't detect TMC_SPI reporting. (Small delay on connection/first update)
+        bool OSHighPrecision = false;
 
         // Focuser controls
         // Focuser 1
@@ -403,7 +404,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
     private:
         int currentCatalog;
         int currentSubCatalog;
-        bool FirstRead = true;
+
 
 
 };
