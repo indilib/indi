@@ -851,7 +851,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 //  for the target slew instead of using mount pier side info
                 //  and see if we can get there at the same time as the mount
                 // TODO: see what happens in a meridian flip with OTASide
-                mountEquatorialCoords.rightascension  = ra * 15.0;
+                mountEquatorialCoords.rightascension  = ra;
                 mountEquatorialCoords.declination = de;
                 LOGF_DEBUG("Calling Update mount to anticipate goto target: %g - DEC: %g",
                            mountEquatorialCoords.rightascension, mountEquatorialCoords.declination);
@@ -879,14 +879,12 @@ bool Dome::ISSnoopDevice(XMLEle * root)
 
         if (rc_ra == 0 && rc_de == 0)
         {
-            ra *= 15.0;
-
             // Do not spam log
             if (std::fabs(mountEquatorialCoords.rightascension - ra) > 0.01
                     || std::fabs(mountEquatorialCoords.declination - de) > 0.01)
             {
                 char RAStr[64] = {0}, DEStr[64] = {0};
-                fs_sexa(RAStr, ra / 15.0, 2, 3600);
+                fs_sexa(RAStr, ra, 2, 3600);
                 fs_sexa(DEStr, de, 2, 3600);
 
                 LOGF_DEBUG("Snooped RA %s DEC %s", RAStr, DEStr);
@@ -1295,7 +1293,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     LOGF_DEBUG("MC.x: %g - MC.y: %g MC.z: %g", MountCenter.x, MountCenter.y, MountCenter.z);
 
     // Get hour angle in hours
-    hourAngle = rangeHA( MSD + observer.longitude / 15.0 - mountEquatorialCoords.rightascension / 15.0);
+    hourAngle = rangeHA( MSD + observer.longitude / 15.0 - mountEquatorialCoords.rightascension);
 
     LOGF_DEBUG("HA: %g  Lng: %g RA: %g", hourAngle, observer.longitude, mountEquatorialCoords.rightascension);
 
