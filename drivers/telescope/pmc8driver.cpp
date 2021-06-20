@@ -189,12 +189,13 @@ bool convert_precise_motor_to_rate(int mrate, double *rate)
 bool convert_move_rate_to_motor(float rate, int *mrate)
 {
 
-    *mrate = (int)(rate*(PMC8_AXIS0_SCALE/ARCSEC_IN_CIRCLE));
-
-    if (*mrate > PMC8_MAX_MOVE_RATE)
-        *mrate = PMC8_MAX_MOVE_RATE;
-    else if (*mrate < -PMC8_MAX_MOVE_RATE)
-        *mrate = -PMC8_MAX_MOVE_RATE;
+    float capped_move_rate = rate;
+    if (rate > PMC8_MAX_MOVE_RATE)
+        capped_move_rate = PMC8_MAX_MOVE_RATE;
+    else if (rate < -PMC8_MAX_MOVE_RATE)
+        capped_move_rate = -PMC8_MAX_MOVE_RATE; 
+    
+    *mrate = (int)(capped_move_rate*(PMC8_AXIS0_SCALE/ARCSEC_IN_CIRCLE));
 
     return true;
 }

@@ -727,8 +727,29 @@ bool PMC8::Abort()
 
         return true;
     }
+    
+    //MOVE Abort move operations.
+    if ((moveInfoDEC.state == PMC8_MOVE_ACTIVE) || (moveInfoRA.state == PMC8_MOVE_ACTIVE)) 
+    {
+        if (moveInfoDEC.state == PMC8_MOVE_ACTIVE)
+        {
+            MoveNS((INDI_DIR_NS)moveInfoDEC.moveDir,MOTION_STOP);
+        }
+        if (moveInfoRA.state == PMC8_MOVE_ACTIVE)
+        {
+            MoveWE((INDI_DIR_WE)moveInfoRA.moveDir,MOTION_STOP);
+        }
+        return true;
+        LOG_INFO("Move aborted.");
+    }
 
-    return abort_pmc8(PortFD);
+    LOG_INFO("Abort called--stopping all motion.");
+    if (abort_pmc8(PortFD)) 
+    {
+        TrackState = SCOPE_IDLE;
+        return true;
+    }
+    else return false;
 }
 
 bool PMC8::Park()
@@ -950,7 +971,7 @@ bool PMC8::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         return false;
     }
     if ((moveInfoDEC.state == PMC8_MOVE_ACTIVE) && (moveInfoDEC.moveDir != dir)) {
-        LOG_ERROR("Mount received command ro move in opposite direction before stopping.  This shouldn't happen.");
+        LOG_ERROR("Mount received command to move in opposite direction before stopping.  This shouldn't happen.");
         return false;
     }
 
