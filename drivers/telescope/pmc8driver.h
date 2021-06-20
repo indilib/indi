@@ -122,7 +122,6 @@ bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode);
 /**************************************************************************
  Motion
 **************************************************************************/
-//bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int speedindex);
 bool set_pmc8_move_rate_axis(int fd, PMC8_DIRECTION dir, int reqrate);
 bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir);
 bool stop_pmc8_tracking_motion(int fd);
@@ -142,13 +141,6 @@ bool set_pmc8_radec(int fd, double ra, double dec);
 void set_pmc8_goto_resume(bool resume);
 INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec);
 
-
-/**************************************************************************
- Home
-**************************************************************************/
-//bool find_ieqpro_home(int fd);
-//bool goto_pmc8_home(int fd);
-//bool set_ieqpro_current_home(int fd);
 
 /**************************************************************************
  Park

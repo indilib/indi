@@ -91,7 +91,6 @@ int pmc8_io_error_ctr           = 0;
 char pmc8_device[MAXINDIDEVICE] = "PMC8";
 double pmc8_latitude            = 0;  // must be kept updated by pmc8.cpp when it is changed!
 double pmc8_longitude           = 0;  // must be kept updated by pmc8.cpp when it is changed!
-//double pmc8_guide_rate          = 0.5*15.0;    // default to 0.5 sidereal
 double pmc8_sidereal_rate_fraction_ra = 0.4;
 double pmc8_sidereal_rate_fraction_de = 0.4;
 int pmc8_east_dir               = 1; // 1 is for northern hemisphere, switch to 0 for southern
@@ -104,14 +103,6 @@ typedef struct
     bool fakepulse = false;
     int ms;
     long long pulse_start_us;
-    /*int cur_ra_rate;
-    int cur_dec_rate;
-    int cur_ra_dir;
-    int cur_dec_dir;
-    int new_ra_rate;
-    int new_dec_rate;
-    int new_ra_dir;
-    int new_dec_dir;*/
     double cur_rate;
     int cur_dir;
     double new_rate;
@@ -131,8 +122,6 @@ struct
     double moveRate;
     double guide_rate;
 } simPMC8Data;
-
-
 
 // convert mount count to 6 character two complement hex string
 void convert_motor_counts_to_hex(int val, char *hex)
@@ -164,11 +153,13 @@ bool convert_precise_rate_to_motor(double rate, int *mrate)
 
     *mrate = round(25*rate*(PMC8_AXIS0_SCALE/ARCSEC_IN_CIRCLE));
 
-    if (*mrate > PMC8_MAX_PRECISE_MOTOR_RATE) {
+    if (*mrate > PMC8_MAX_PRECISE_MOTOR_RATE) 
+    {
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "requested tracking motor rate %d exceeds maximum, using %d", *mrate,PMC8_MAX_PRECISE_MOTOR_RATE);
         *mrate = PMC8_MAX_PRECISE_MOTOR_RATE;
     }
-    else if (*mrate < -PMC8_MAX_PRECISE_MOTOR_RATE) {
+    else if (*mrate < -PMC8_MAX_PRECISE_MOTOR_RATE) 
+    {
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "requested tracking motor rate %d exceeds maximum, using %d", *mrate,-PMC8_MAX_PRECISE_MOTOR_RATE);
         *mrate = -PMC8_MAX_PRECISE_MOTOR_RATE;
     }
@@ -183,7 +174,6 @@ bool convert_precise_motor_to_rate(int mrate, double *rate)
     
     return true;
 }
-
 
 // convert rate in arcsec/sidereal_second to internal PMC8 motor rate for move action (not slewing)
 bool convert_move_rate_to_motor(float rate, int *mrate)
@@ -207,7 +197,6 @@ bool convert_motor_rate_to_move_rate(int mrate, double *rate)
 
     return true;
 }
-
 
 void set_pmc8_mountParameters(int index)
 {
@@ -302,16 +291,19 @@ bool check_pmc8_connection(int fd, PMC8_CONNECTION_TYPE connection)
 {       
     pmc8_connection = connection;
 
-    if (connection == PMC8_ETHERNET) {
+    if (connection == PMC8_ETHERNET) 
+    {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via Ethernet.");
     }
-    else {
+    else 
+    {
         if (connection == PMC8_SERIAL_STANDARD) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via standard Serial cable.  Please wait 15 seconds for mount to reset.");
         else if (connection == PMC8_SERIAL_AUTO) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via Serial.  Autodecting cable type.  This could take up to 30 seconds.");
         else DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Connecting to PMC8 via inverted Serial.");
     }
     
-    if (connection != PMC8_SERIAL_STANDARD) {
+    if (connection != PMC8_SERIAL_STANDARD) 
+    {
         for (int i = 0; i < 2; i++)
         {
             if (i) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Retrying...");
@@ -334,7 +326,8 @@ bool check_pmc8_connection(int fd, PMC8_CONNECTION_TYPE connection)
         {
             if (i) DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_SESSION, "Retrying...");
             
-            if (detect_pmc8(fd)) {
+            if (detect_pmc8(fd)) 
+            {
                 DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "Connected to PMC8 using a standard-configured FTDI cable."
                                                    "Your mount will reset and lose its position anytime you disconnect and reconnect."
                                                    "See http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ ");                
@@ -395,13 +388,16 @@ bool get_pmc8_model(int fd, FirmwareInfo *info)
     {
         INDI_UNUSED(fd);
                 
-        if (strstr(info->MainBoardFirmware.c_str(),"G11")) {
+        if (strstr(info->MainBoardFirmware.c_str(),"G11")) 
+        {
             info->MountType = MOUNT_G11;
         }
-        else if (strstr(info->MainBoardFirmware.c_str(),"EXOS2")) {
+        else if (strstr(info->MainBoardFirmware.c_str(),"EXOS2")) 
+        {
             info->MountType = MOUNT_EXOS2;
         }
-        else if (strstr(info->MainBoardFirmware.c_str(),"ES1A")) {
+        else if (strstr(info->MainBoardFirmware.c_str(),"ES1A")) 
+        {
             info->MountType = MOUNT_iEXOS100;
         }
     }
@@ -446,20 +442,23 @@ bool get_pmc8_model(int fd, FirmwareInfo *info)
                 // Set mount type based on P9 code
                 if (p9 <= 1) info->MountType = MOUNT_iEXOS100;
                 // these codes are reserved.  I'm assuming for something like iExos100, so let's go with that
-                else if (p9 <= 3) {
+                else if (p9 <= 3) 
+                {
                     info->MountType = MOUNT_iEXOS100;
                     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Unrecognized device code #%d. Treating as iEXOS100.", p9);
                 }
                 else if (p9 <= 7) info->MountType = MOUNT_G11;
                 else if (p9 <= 11) info->MountType = MOUNT_EXOS2;
                 // unrecognized code.  Just going to guess and treat as iExos100.
-                else {
+                else 
+                {
                     info->MountType = MOUNT_iEXOS100;
                     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Unrecognized device code #%d. Treating as iEXOS100.", p9);
                 }
                 
             }
-            else {
+            else 
+            {
                 DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Could not detect device type. Only received #%d bytes, expected at least 31.", nbytes_read);
                 return false;
             }
@@ -682,7 +681,8 @@ bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir, bool fast)
         return false;
     }
 
-    if (fast) {
+    if (fast) 
+    {
         return true;
     }
 
@@ -729,90 +729,6 @@ bool get_pmc8_is_scope_slewing(int fd, bool &isslew)
     return true;
 }
 
-
-/*
-int convert_movespeedindex_to_rate(int mode)
-{
-    int r=0;
-
-    switch (mode)
-    {
-        case 0:
-            r = 4*15;
-            break;
-        case 1:
-            r = 16*15;
-            break;
-        case 2:
-            r = 64*15;
-            break;
-        case 3:
-            r = 256*15;
-            break;
-        default:
-            r = 0;
-            break;
-    }
-
-    return r;
-}*/
-
-
-/*
-bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int mode)
-{
-    bool isslew;
-    
-    // check speed
-    if (get_pmc8_is_scope_slewing(fd, isslew) == false)
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "start_pmc8_motion(): Error reading slew state");
-        return false;
-    }
-
-    if (isslew)
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "start_pmc8_motion(): cannot start motion during slew!");
-        return false;
-    }
-
-    int rarate = 0;
-    int decrate = 0;
-    int reqrate = 0;
-
-    reqrate = convert_movespeedindex_to_rate(mode);
-
-    if (reqrate > PMC8_MAX_MOVE_RATE)
-        reqrate = PMC8_MAX_MOVE_RATE;
-    else if (reqrate < -PMC8_MAX_MOVE_RATE)
-        reqrate = -PMC8_MAX_MOVE_RATE;
-
-    switch (dir)
-    {
-        case PMC8_N:
-            decrate = reqrate;
-            break;
-        case PMC8_S:
-            decrate = -reqrate;
-            break;
-        case PMC8_W:
-            rarate = reqrate;  // doesn't accord for sidereal motion
-            break;
-        case PMC8_E:
-            rarate = -reqrate;  // doesn't accord for sidereal motion
-            break;
-    }
-
-    if (rarate != 0)
-        set_pmc8_custom_ra_move_rate(fd, rarate);
-    if (decrate != 0)
-        set_pmc8_custom_dec_move_rate(fd, decrate);
-
-    return true;
-}
-*/
-
-
 // set move speed in terms of how many times sidereal
 bool set_pmc8_move_rate_axis(int fd, PMC8_DIRECTION dir, int reqrate)
 {
@@ -840,7 +756,6 @@ bool set_pmc8_move_rate_axis(int fd, PMC8_DIRECTION dir, int reqrate)
     return false;
 }
 
-
 bool stop_pmc8_tracking_motion(int fd)
 {
     bool rc;
@@ -855,32 +770,6 @@ bool stop_pmc8_tracking_motion(int fd)
 
     return true;
 }
-
-
-/*
-bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir)
-{
-    bool rc = false;
-
-    switch (dir)
-    {
-        case PMC8_N:
-        case PMC8_S:
-            rc = set_pmc8_custom_dec_move_rate(fd, 0);
-            break;
-
-        case PMC8_W:
-        case PMC8_E:
-            rc = set_pmc8_custom_ra_move_rate(fd, 0);
-            break;
-
-        default:
-            return false;
-            break;
-    }
-
-    return rc;
-}*/
 
 // get current (precise) tracking rate in arcsec/sec
 bool get_pmc8_track_rate(int fd, double &rate)
@@ -930,7 +819,8 @@ bool get_pmc8_track_rate(int fd, double &rate)
     return true;
 }
 
-bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode) {
+bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode) 
+{
     
         if (!get_pmc8_track_rate(fd,rate)) return false;
         
@@ -942,17 +832,20 @@ bool get_pmc8_tracking_data(int fd, double &rate, uint8_t &mode) {
         //now check what sidereal would be
         rc = convert_precise_rate_to_motor(PMC8_RATE_SIDEREAL,&refmotor);        
         if (tmotor == refmotor) mode = PMC8_TRACK_SIDEREAL;        
-        else {
+        else 
+        {
             
             //now check lunar
             rc = convert_precise_rate_to_motor(PMC8_RATE_LUNAR,&refmotor);        
             if (tmotor == refmotor) mode = PMC8_TRACK_LUNAR;
-            else {
+            else 
+            {
                 
                 //now check solar
                 rc = convert_precise_rate_to_motor(PMC8_RATE_SOLAR,&refmotor);        
                 if (tmotor == refmotor) mode = PMC8_TRACK_SOLAR;
-                else {
+                else 
+                {
                 
                     //now check king
                     rc = convert_precise_rate_to_motor(PMC8_RATE_KING,&refmotor);        
@@ -994,7 +887,8 @@ bool set_pmc8_axis_motor_rate(int fd, PMC8_AXIS axis, int mrate, bool fast)
         return false;
     }
 
-    if (fast) {
+    if (fast) 
+    {
         return true;
     }
     
@@ -1110,7 +1004,8 @@ bool set_pmc8_track_mode(int fd, uint8_t mode)
 }
 
 // start tracking at a precision track rate
-bool set_pmc8_ra_tracking(int fd, double rate) {
+bool set_pmc8_ra_tracking(int fd, double rate) 
+{
     //set right direction
     int direction = pmc8_east_dir;
     if (rate<0) direction = !direction;
@@ -1253,16 +1148,19 @@ bool set_pmc8_guide_rate(int fd, PMC8_AXIS axis, double rate)
     }
     
     // set driver values
-    if (axis == PMC8_AXIS_RA) {
+    if (axis == PMC8_AXIS_RA) 
+    {
         pmc8_sidereal_rate_fraction_ra = rate;
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_guide_rate: ra guide rate set to %f", rate);
     }
-    if ((axis == PMC8_AXIS_DEC) || !pmc8_isRev2Compliant) {
+    if ((axis == PMC8_AXIS_DEC) || !pmc8_isRev2Compliant) 
+    {
         pmc8_sidereal_rate_fraction_de = rate;
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_guide_rate: dec guide rate set to %f", rate);
     }       
     
-    if (pmc8_isRev2Compliant) {
+    if (pmc8_isRev2Compliant) 
+    {
         // now write to mount to sync ST4 rates
         char cmd[32], expresp[32];
         int errcode = 0;
@@ -1341,11 +1239,13 @@ bool get_pmc8_guide_rate(int fd, PMC8_AXIS axis, double &rate)
     rate = ((double)tint)/100;
 
     // set driver values
-    if (axis == PMC8_AXIS_RA) {
+    if (axis == PMC8_AXIS_RA) 
+    {
         pmc8_sidereal_rate_fraction_ra = rate;
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get_pmc8_guide_rate: ra guide rate set to %f", rate);
     }
-    else {
+    else 
+    {
         pmc8_sidereal_rate_fraction_de = rate;
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get_pmc8_guide_rate: dec guide rate set to %f", rate);
     }   
@@ -1353,7 +1253,8 @@ bool get_pmc8_guide_rate(int fd, PMC8_AXIS axis, double &rate)
     return true;
 }
 
-bool get_pmc8_guide_state(PMC8_DIRECTION gdir, PulseGuideState **pstate) {
+bool get_pmc8_guide_state(PMC8_DIRECTION gdir, PulseGuideState **pstate) 
+{
     
     switch (gdir)
     {
@@ -1378,11 +1279,6 @@ bool get_pmc8_guide_state(PMC8_DIRECTION gdir, PulseGuideState **pstate) {
 bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, double ratehint)
 {
     bool rc;
-    /*// we don't need to always get all of these for both directions, or even at all for RA
-    int cur_ra_rate;
-    int cur_dec_rate;
-    int cur_ra_dir;
-    int cur_dec_dir;*/
     double cur_rate = 0;
     int cur_dir = -1;
 
@@ -1393,7 +1289,8 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, d
 
     PulseGuideState *pstate;
     
-    if (!get_pmc8_guide_state(gdir, &pstate)) {
+    if (!get_pmc8_guide_state(gdir, &pstate)) 
+    {
         return false;
     }
 
@@ -1415,21 +1312,13 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, d
         return true;
     }
 
-    // experimental implementation:
-    //  1) Get current rates (Tr if RA, slew+dir for DEC)
-    //  2) Set new rates/direction if needed
-    //  3) Wait guide duration
-    //  4) Sets back to stored rates
-    //
-    // NOTE FIXME HACK: This blocks for duration of guide correction!!
-    // not sure what this comment is refering to
-
     // get precise tracking rate if in RA
-    if ((gdir == PMC8_E) || (gdir == PMC8_W)) {
-        //rc = get_pmc8_move_rate_axis(fd, PMC8_AXIS_RA, cur_ra_rate);
+    if ((gdir == PMC8_E) || (gdir == PMC8_W)) 
+    {
 
         // use rate provided by interface if valid rather than querying for it
-        if (ratehint <= 0) {
+        if (ratehint <= 0) 
+        {
             rc = get_pmc8_track_rate(fd, cur_rate);
             if (!rc)
             {
@@ -1441,22 +1330,14 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, d
             cur_rate = ratehint;
     }
     // we could get slew rate if in DEC, but driver doesn't currently support DEC tracking
-    // and we shouldn't get here if we're slewing, so for now we can assume interface is always correct and avoid delay from unnecessary calls to mount
-    else {
-        /*rc = get_pmc8_move_rate_axis(fd, PMC8_AXIS_DEC, cur_dec_rate);
-
-        if (!rc)
-        {
-            DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): error reading current DEC rate!");
-            return rc;
-        }*/
+    // and we shouldn't get here if we're slewing, so for now we assume interface is always correct and avoid delay from unnecessary calls to mount
+    else 
+    {
         cur_rate = ratehint;
     }
 
     // if slewing abort
     // shouldn't get here if slewing, but doesn't hurt to check
-    // if ((cur_ra_rate > PMC8_PULSE_GUIDE_MAX_CURRATE) || (cur_dec_rate > PMC8_PULSE_GUIDE_MAX_CURRATE))
-
     if (cur_rate > PMC8_MAX_TRACK_RATE)
     {
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): Cannot send guide correction while slewing! rate=%d dir=%d",
@@ -1464,84 +1345,19 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, d
         return rc;
     }
 
-    // don't need to know this - tracking rate for RA has it built in already, and we assume DEC is not tracking
-    /*
-    rc = get_pmc8_direction_axis(fd, PMC8_AXIS_RA, cur_ra_dir);
-
-    if (!rc)
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): error reading current RA DIR!");
-        return rc;
-    }
-
-    rc = get_pmc8_direction_axis(fd, PMC8_AXIS_DEC, cur_dec_dir);
-    
-    if (!rc)
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): error reading current DEC DIR!");
-        return rc;
-    }*/
-
-    // compute new rates
-    /*int new_ra_rate;
-    int new_dec_rate;
-    int new_ra_dir;
-    int new_dec_dir;
-
-    new_ra_rate = cur_ra_rate;
-    new_dec_rate = cur_dec_rate;
-    new_ra_dir = cur_ra_dir;
-    new_dec_dir = cur_dec_dir;*/
-
     double new_rate = cur_rate;
     int new_dir = 0;
-        
-    /*//int guide_mrate;
-
-    // convert to motor rate
-    convert_move_rate_to_motor(pmc8_guide_rate, &guide_mrate);
-
-    switch (gdir)
-    {
-        case PMC8_N:
-            new_dec_rate = cur_dec_rate + guide_mrate;
-            break;
-
-        case PMC8_S:
-            new_dec_rate = cur_dec_rate - guide_mrate;
-            break;
-
-        case PMC8_W:
-            new_ra_rate = cur_ra_rate + guide_mrate;_mrate;
-            break;
-
-        case PMC8_E:
-            new_ra_rate = cur_ra_rate - guide_mrate;
-            break;
-
-        default:
-            return false;
-            break;
-    }
-
-    // see if we need to switch direction
-    if (new_ra_rate < 0)
-    {
-        new_ra_rate = abs(new_ra_rate);
-        if (cur_ra_dir == 0)
-            new_ra_dir = 1;
-        else
-            new_ra_dir = 0;
-    }*/
 
     // RA guiding routine just changes the precision tracking call
-    if ((gdir == PMC8_E) || (gdir == PMC8_W)) {
+    if ((gdir == PMC8_E) || (gdir == PMC8_W)) 
+    {
         double guide_rate = pmc8_sidereal_rate_fraction_ra * PMC8_RATE_SIDEREAL;
         
         if (gdir == PMC8_E) new_rate -= guide_rate;
         else new_rate += guide_rate;
         
-        if (new_rate < 0) {            
+        if (new_rate < 0) 
+        {            
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): with current tracking rate of %f, requested guide rate of %f would flip RA motor in opposite direction, so pausing motor instead.", cur_rate, new_rate);                
             new_rate = 0;
         }
@@ -1550,23 +1366,16 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, d
         gettimeofday(&tp, nullptr);
         pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
         
-        if (!set_pmc8_custom_ra_track_rate(fd, new_rate)) {
+        if (!set_pmc8_custom_ra_track_rate(fd, new_rate)) 
+        {
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): error settings new_rate to %f",new_rate);
             return false;
         }
         
     }
     // DEC guiding routine needs to set a DEC move rate and possibly a new direction
-    else if ((gdir == PMC8_N) || (gdir == PMC8_S)) {
-        // FIXME - not sure about handling direction for guide corrections in relation to N/S and EpW vs WpE??
-        // not sure what is needed here
-        /*if (new_dec_rate < 0)
-            new_dec_dir = 1;
-        else
-            new_dec_dir = 0;
-
-        new_dec_rate = abs(new_dec_rate);*/
-        
+    else if ((gdir == PMC8_N) || (gdir == PMC8_S)) 
+    {        
         double guide_rate = pmc8_sidereal_rate_fraction_de * PMC8_RATE_SIDEREAL;
         
         if (gdir == PMC8_S) new_rate -= guide_rate;
@@ -1600,70 +1409,16 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us, d
 
     }
     // if for some reason the gdir is non-sensical ...
-    else {
+    else 
+    {
         return false;
     }
-
-//    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): gdir=%d dur=%d cur_ra_rate=%d cur_ra_dir=%d cur_dec_rate=%d cur_dec_dir=%d",
-//                                                       gdir, ms, cur_ra_rate, cur_ra_dir, cur_dec_rate, cur_dec_dir);
-
-//    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): new_ra_rate=%d new_ra_dir=%d new_dec_rate=%d new_dec_dir=%d",
-//                                                       new_ra_rate, new_ra_dir, new_dec_rate, new_dec_dir);
-
-    // we will either send an RA pulse or DEC pulse but not both
-    // code above ensures we either are moving E/W or N/S but not a combination
-    /*if ((new_ra_rate != cur_ra_rate) || (new_ra_dir != cur_ra_dir))
-    {
-        // measure time when we start pulse
-//        gettimeofday(&tp, nullptr);
-//        pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
-
-        // the commands to set rate and direction take 10-20 msec to return due to they wait for the response from the mount
-        // we need to incorporate that time in our total pulse delay later!
-
-        // not sure if best to flip dir or rate first!
-        // (better to select dir, so we aren't going wrong way)
-        if (new_ra_rate != cur_ra_rate)
-            if (!set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, new_ra_rate, false))
-                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_ra_rate");
-
-        if (new_ra_dir != cur_ra_dir)
-            if (!set_pmc8_direction_axis(fd, PMC8_AXIS_RA, new_ra_dir, false))
-                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_ra_dir");
-    }
-    else if ((new_dec_rate != cur_dec_rate) || (new_dec_dir != cur_dec_dir))
-    {
-
-        // measure time when we start pulse
-//        gettimeofday(&tp, nullptr);
-//        pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
-
-        // the commands to set rate and direction take 10-20 msec to return due to they wait for the response from the mount
-        // we need to incorporate that time in our total pulse delay later!
-
-        // not sure if best to flip dir or rate first!
-        if (new_dec_rate != cur_dec_rate)
-            if (!set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, new_dec_rate, false))
-                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_dec_rate");
-
-        if (new_dec_dir != cur_dec_dir)
-            if (!set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, new_dec_dir, false))
-                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_dec_dir");
-    }*/
 
     // store state
     pstate->pulseguideactive = true;
     pstate->fakepulse = false;
     pstate->ms = ms;
     pstate->pulse_start_us = pulse_start_us;
-    /*pstate->cur_ra_rate  = cur_ra_rate;
-    pstate->cur_ra_dir   = cur_ra_dir;
-    pstate->cur_dec_rate = cur_dec_rate;
-    pstate->cur_dec_dir  = cur_dec_dir;
-    pstate->new_ra_rate  = new_ra_rate;
-    pstate->new_ra_dir   = new_ra_dir;
-    pstate->new_dec_rate = new_dec_rate;
-    pstate->new_dec_dir  = new_dec_dir;*/
     pstate->cur_rate  = cur_rate;
     pstate->cur_dir   = cur_dir;
     pstate->new_rate  = new_rate;
@@ -1687,7 +1442,8 @@ bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
 
     PulseGuideState *pstate;
 
-    if (!get_pmc8_guide_state(gdir, &pstate)) {
+    if (!get_pmc8_guide_state(gdir, &pstate)) 
+    {
         return false;
     }
 
@@ -1711,42 +1467,19 @@ bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
         return true;
     }
 
-    /*// restore previous tracking - only change ones we need to!
-    if ((pstate->new_ra_rate != pstate->cur_ra_rate) ||
-        (pstate->new_ra_dir  != pstate->cur_ra_dir))
-    {
-        // not sure if best to flip dir or rate first!
-//        if (new_ra_rate != cur_ra_rate)
-//            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, cur_ra_rate, true);
-        // FIXME - for now restore sidereal tracking*/
     gettimeofday(&tp, nullptr);
     pulse_end_us = tp.tv_sec*1000000+tp.tv_usec;
-          
-    /*
-        if (pstate->new_ra_rate != pstate->cur_ra_rate)
-            set_pmc8_track_mode(fd, PMC8_TRACK_SIDEREAL);
-        if (pstate->new_ra_dir != pstate->cur_ra_dir)
-            set_pmc8_direction_axis(fd, PMC8_AXIS_RA, pstate->cur_ra_dir, false);
 
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_stop_guide(): requested = %d ms, actual = %f ms",
-                     pstate->ms, (pulse_end_us-pstate->pulse_start_us)/1000.0);
-    }
-
-    if ((pstate->new_dec_rate != pstate->cur_dec_rate) ||
-        (pstate->new_dec_dir  != pstate->cur_dec_dir))
-    {
-        // not sure if best to flip dir or rate first!
-        gettimeofday(&tp, nullptr);
-        pulse_end_us = tp.tv_sec*1000000+tp.tv_usec;
-*/
-    if ((gdir == PMC8_E) || (gdir == PMC8_W)) {        
-        if (!set_pmc8_custom_ra_track_rate(fd, pstate->cur_rate)) {
+    if ((gdir == PMC8_E) || (gdir == PMC8_W)) 
+    {        
+        if (!set_pmc8_custom_ra_track_rate(fd, pstate->cur_rate)) 
+        {
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_stop_guide(): error restoring tracking_rate to %f",pstate->cur_rate);
             return false;
         }
     }
-    else if ((gdir == PMC8_N) || (gdir == PMC8_S)) {
-        
+    else if ((gdir == PMC8_N) || (gdir == PMC8_S)) 
+    {
         int mrate;
         
         if (!convert_move_rate_to_motor(fabs(pstate->cur_rate), &mrate))
@@ -1763,24 +1496,15 @@ bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
         if ((pstate->cur_rate != 0) && (pstate->cur_dir != pstate->new_dir))
             if (!set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, pstate->cur_dir, false))
                 DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_stop_guide(): error returning to old direction");        
-        
-        /*if (pstate->new_dec_rate != pstate->cur_dec_rate)
-            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, pstate->cur_dec_rate, false);
-        if (pstate->new_dec_dir != pstate->cur_dec_dir)
-            set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, pstate->cur_dec_dir, false);*/
     }
-    else {
+    else 
+    {
         return false;
     }
     
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_stop_guide(): requested = %d ms, actual = %f ms",
                      pstate->ms, (pulse_end_us-pstate->pulse_start_us)/1000.0);
-    //}
-
-
-    // sleep to let any responses occurs and clean up!
-//    usleep(15000);
-
+    
     // flush any responses to commands we ignored above!
     tcflush(fd, TCIFLUSH);
 
@@ -1842,7 +1566,6 @@ bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, doubl
 {
     double motor_angle;
     double hour_angle;
-    //double sid_time;
 
     double lst;
 
@@ -1920,7 +1643,8 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
     if (pmc8_isRev2Compliant && !axis && !pmc8_goto_resume) naxis = 2;
     snprintf(cmd, sizeof(cmd), "ESPt%d%s!", naxis, hexpt);
 
-    if (!pmc8_simulation) {
+    if (!pmc8_simulation) 
+    {
 
         if ((errcode = send_pmc8_command(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
@@ -2359,71 +2083,85 @@ bool get_pmc8_response(int fd, char* buf, int *nbytes_read, const char* expected
     while ((err_code) && (cnt++ < PMC8_MAX_RETRIES))
 	{ 
 		//Read until exclamation point to get response
-        if ((err_code = tty_read_section(fd, buf, '!', PMC8_TIMEOUT, nbytes_read))) {
+        if ((err_code = tty_read_section(fd, buf, '!', PMC8_TIMEOUT, nbytes_read))) 
+        {
             
             char errmsg[MAXRBUF];
             tty_error_msg(err_code, errmsg, MAXRBUF);
             
             // if we see connection timed out, exit out of here and try to reconnect
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG,"Read error: %s",errmsg);
-            if (strstr(errmsg,"Connection timed out") || strstr(errmsg,"Bad")) {
+            if (strstr(errmsg,"Connection timed out") || strstr(errmsg,"Bad")) 
+            {
                 set_pmc8_reconnect_flag();
                 return err_code;
             }            
         }
-        if (*nbytes_read > 0) {           
+        if (*nbytes_read > 0) 
+        {           
             buf[*nbytes_read] = '\0';
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES %d bytes (%s)", *nbytes_read, buf);
             
             //PMC8 connection is not entirely reliable when using Ethernet instead of Serial connection.
             //So, try to compensate for common problems
-            if (pmc8_connection == PMC8_ETHERNET) {
+            if (pmc8_connection == PMC8_ETHERNET) 
+            {
                 //One problem is we get the string *HELLO* when we connect or disconnect, so discard that
-                if (buf[0]=='*') {
+                if (buf[0]=='*') 
+                {
                     strcpy(buf,buf+7);
                     *nbytes_read = *nbytes_read-7;
                 }
                 //Another problem is we sometimes get the string AT when we reconnect, so discard that
-                if (strncmp(buf, "AT", 2)==0) {
+                if (strncmp(buf, "AT", 2)==0) 
+                {
                     strcpy(buf,buf+2);
                     *nbytes_read = *nbytes_read-2;
                 }
                 //Another problem is random extraneous ESGp! reponses during slew, so when we see those, drop them and try again
-                if (strncmp(buf, "ESGp!",5)==0) {
+                if (strncmp(buf, "ESGp!",5)==0) 
+                {
                     err_code = 1;
                     DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Invalid response ESGp!");
                 }
             }                        
             //If a particular response was expected, make sure we got it
-            if (expected) {
-                if (strncmp(buf, expected,strlen(expected))!=0) {
+            if (expected) 
+            {
+                if (strncmp(buf, expected,strlen(expected))!=0) 
+                {
                     err_code = 1;
                     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "No Match for %s", expected);
                 }
-                else {
+                else 
+                {
                     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "Matches %s", expected);
                     // On rare occasions, there may have been a read error even though it's the response we want, so set err_code explicitly
                     err_code = 0;
                 }
             }
         }
-        else {
+        else 
+        {
             DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "No Response");
             err_code = 1;
         }
 	}
     // if this is our nth consecutive read error, try to reconnect
-    if (err_code) {
+    if (err_code) 
+    {
         if (++pmc8_io_error_ctr>PMC8_MAX_IO_ERROR_THRESHOLD) set_pmc8_reconnect_flag();
     }
-    else {
+    else 
+    {
         pmc8_io_error_ctr = 0;
     }
 	return err_code;
 }
 
 //wrap write commands to pmc8
-bool send_pmc8_command(int fd, const char *buf, int nbytes, int *nbytes_written) {
+bool send_pmc8_command(int fd, const char *buf, int nbytes, int *nbytes_written) 
+{
     
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", buf);
     
@@ -2431,10 +2169,12 @@ bool send_pmc8_command(int fd, const char *buf, int nbytes, int *nbytes_written)
     
     int err_code = 1;
     //try to reconnect if we see broken pipe error
-    if ((err_code = tty_write(fd, buf, nbytes, nbytes_written))) {
+    if ((err_code = tty_write(fd, buf, nbytes, nbytes_written))) 
+    {
         char errmsg[MAXRBUF];
         tty_error_msg(err_code, errmsg, MAXRBUF);
-        if (strstr(errmsg,"Broken pipe") || strstr(errmsg,"Bad")) {
+        if (strstr(errmsg,"Broken pipe") || strstr(errmsg,"Bad")) 
+        {
             set_pmc8_reconnect_flag();
             return err_code;
         }
@@ -2442,19 +2182,23 @@ bool send_pmc8_command(int fd, const char *buf, int nbytes, int *nbytes_written)
     return err_code;
 }
 
-void set_pmc8_reconnect_flag() {
+void set_pmc8_reconnect_flag() 
+{
     DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Bad connection. Trying to reconnect.");
     pmc8_reconnect_flag = true;
 }
 
-bool get_pmc8_reconnect_flag() {
-    if (pmc8_reconnect_flag) {
+bool get_pmc8_reconnect_flag() 
+{
+    if (pmc8_reconnect_flag) 
+    {
         pmc8_reconnect_flag = false;
         return true;
     }
     return false;
 }
 
-void set_pmc8_goto_resume(bool resume) {
+void set_pmc8_goto_resume(bool resume) 
+{
     pmc8_goto_resume = resume;
 }

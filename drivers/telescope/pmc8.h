@@ -148,14 +148,6 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         ISwitch MountTypeS[3];
         ISwitchVectorProperty MountTypeSP;
 
-        /* Tracking Mode */
-        //ISwitchVectorProperty TrackModeSP;
-        //ISwitch TrackModeS[4];
-
-        /* Custom Tracking Rate */
-        //INumber CustomTrackRateN[1];
-        //INumberVectorProperty CustomTrackRateNP;
-
         /* SRF Guide Rates */
         INumber GuideRateN[2];
         INumberVectorProperty GuideRateNP;
