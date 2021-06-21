@@ -980,6 +980,7 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
     // No response is requested.
     if (errorMessage == nullptr)
     {
+        tcdrain(PortFD);
         return true;
     }
 
@@ -1035,7 +1036,9 @@ IPState Paramount::GuideNS(int32_t ms)
     // Movement in arcseconds
     double dDec = GuideRateN[DEC_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
     char pCMD[MAXRBUF] = {0};
-    snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
+    snprintf(pCMD, MAXRBUF,
+             "sky6RASCOMTele.Asynchronous = true;"
+             "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
 
     // Send async and don't wait
     if (!sendTheSkyOKCommand(pCMD, nullptr))
@@ -1057,7 +1060,9 @@ IPState Paramount::GuideWE(int32_t ms)
     // Movement in arcseconds
     double dRA  = GuideRateN[RA_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
     char pCMD[MAXRBUF] = {0};
-    snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);
+    snprintf(pCMD, MAXRBUF,
+             "sky6RASCOMTele.Asynchronous = true;"
+             "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);
 
     // Send async and do not wait
     if (!sendTheSkyOKCommand(pCMD, nullptr))
