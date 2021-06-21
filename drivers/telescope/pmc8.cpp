@@ -97,12 +97,8 @@ bool PMC8::initProperties()
     IUFillSwitch(&MountTypeS[MOUNT_G11], "MOUNT_G11", "G11", ISS_OFF);
     IUFillSwitch(&MountTypeS[MOUNT_EXOS2], "MOUNT_EXOS2", "EXOS2", ISS_OFF);
     IUFillSwitch(&MountTypeS[MOUNT_iEXOS100], "MOUNT_iEXOS100", "iEXOS100", ISS_OFF);
-<<<<<<< HEAD
     IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-=======
-    IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
+
 
     /* Tracking Mode */
     // order is important, since driver assumes solar = 1, lunar = 2
@@ -236,62 +232,35 @@ void PMC8::getStartupData()
 
         // not sure if there's really a point to the mount switch anymore if we know the mount from the firmware - perhaps remove as newer firmware becomes standard?
         // populate mount type switch in interface from firmware if possible
-<<<<<<< HEAD
-        if (firmwareInfo.MountType == MOUNT_EXOS2) 
-=======
         if (firmwareInfo.MountType == MOUNT_EXOS2)
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
         {
             MountTypeS[MOUNT_EXOS2].s = ISS_ON;
             LOG_INFO("Detected mount type as Exos2.");
         }
-<<<<<<< HEAD
-        else if (firmwareInfo.MountType == MOUNT_G11) 
-=======
         else if (firmwareInfo.MountType == MOUNT_G11)
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
         {
             MountTypeS[MOUNT_G11].s = ISS_ON;
             LOG_INFO("Detected mount type as G11.");
         }
-<<<<<<< HEAD
-        else if (firmwareInfo.MountType == MOUNT_iEXOS100) 
-=======
         else if (firmwareInfo.MountType == MOUNT_iEXOS100)
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
         {
             MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
             LOG_INFO("Detected mount type as iExos100.");
         }
-<<<<<<< HEAD
-        else 
-        {
-            LOG_INFO("Cannot detect mount type--perhaps this is older firmware?");
-            if (strstr(getDeviceName(), "EXOS2")) 
-=======
         else
         {
             LOG_INFO("Cannot detect mount type--perhaps this is older firmware?");
             if (strstr(getDeviceName(), "EXOS2"))
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
             {
                 MountTypeS[MOUNT_EXOS2].s = ISS_ON;
                 LOG_INFO("Guessing mount is EXOS2 from device name.");
             }
-<<<<<<< HEAD
-            else if (strstr(getDeviceName(), "iEXOS100")) 
-=======
             else if (strstr(getDeviceName(), "iEXOS100"))
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
             {
                 MountTypeS[MOUNT_iEXOS100].s = ISS_ON;
                 LOG_INFO("Guessing mount is iEXOS100 from device name.");
             }
-<<<<<<< HEAD
-            else 
-=======
             else
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
             {
                 MountTypeS[MOUNT_G11].s = ISS_ON;
                 LOG_INFO("Guessing mount is G11.");
@@ -303,19 +272,18 @@ void PMC8::getStartupData()
         IUSaveText(&FirmwareT[0], c);
         IDSetText(&FirmwareTP, nullptr);
     }
-<<<<<<< HEAD
         
     // get SRF values
-    if (firmwareInfo.IsRev2Compliant) 
+    if (firmwareInfo.IsRev2Compliant)
     {
         double rate = 0.4;
-        if (get_pmc8_guide_rate(PortFD,PMC8_AXIS_RA,rate)) 
+        if (get_pmc8_guide_rate(PortFD,PMC8_AXIS_RA,rate))
         {
             GuideRateN[0].value = rate;
             GuideRateNP.s = IPS_OK;
             IDSetNumber(&GuideRateNP, nullptr);
         }
-        if (get_pmc8_guide_rate(PortFD,PMC8_AXIS_DEC,rate)) 
+        if (get_pmc8_guide_rate(PortFD,PMC8_AXIS_DEC,rate))
         {
             GuideRateN[1].value = rate;
             GuideRateNP.s = IPS_OK;
@@ -323,17 +291,6 @@ void PMC8::getStartupData()
         }
     }
             
-=======
-
-    int cur_ra_rate;
-    int rc = get_pmc8_tracking_rate_axis(PortFD, PMC8_AXIS_RA, cur_ra_rate);
-    if (rc && cur_ra_rate)
-    {
-        DEBUG(INDI::Logger::DBG_SESSION, "Mount is already tracking");
-        TrackState = SCOPE_TRACKING;
-    }
-
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
     // PMC8 doesn't store location permanently so read from config and set
     // Convert to INDI standard longitude (0 to 360 Eastward)
     double longitude = LocationN[LOCATION_LONGITUDE].value;
@@ -454,7 +411,6 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             IDSetSwitch(&MountTypeSP, nullptr);
             return true;
         }
-<<<<<<< HEAD
         if (strcmp(name, SerialCableTypeSP.name) == 0)
         {
             IUUpdateSwitch(&SerialCableTypeSP, states, names, n);
@@ -471,8 +427,6 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             IDSetSwitch(&PostGotoSP, nullptr);
             return true;
         }
-=======
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
     }
 
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
@@ -483,20 +437,13 @@ bool PMC8::ReadScopeStatus()
     bool rc = false;
 
     // try to disconnect and reconnect if reconnect flag is set
-<<<<<<< HEAD
-    if (get_pmc8_reconnect_flag()) 
-=======
+
     if (get_pmc8_reconnect_flag())
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
     {
         int rc = Disconnect();
         if (rc) setConnected(false);
         rc = Connect();
-<<<<<<< HEAD
-        if (rc) setConnected(true, IPS_OK);        
-=======
         if (rc) setConnected(true, IPS_OK);
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
         return false;
     }
 
@@ -522,15 +469,8 @@ bool PMC8::ReadScopeStatus()
             {
                 if (slewing == false)
                 {
-<<<<<<< HEAD
                     if ((IUFindOnSwitchIndex(&PostGotoSP) == 0) ||
-                        ((IUFindOnSwitchIndex(&PostGotoSP) == 1) && (RememberTrackState == SCOPE_TRACKING))) 
-=======
-                    LOG_INFO("Slew complete, tracking...");
-                    TrackState = SCOPE_TRACKING;
-                    // Technically, we don't need to restart tracking with v2 firmware, but it doesn't hurt
-                    if (!SetTrackEnabled(true))
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
+                        ((IUFindOnSwitchIndex(&PostGotoSP) == 1) && (RememberTrackState == SCOPE_TRACKING)))
                     {
                         LOG_INFO("Slew complete, tracking...");
                         TrackState = SCOPE_TRACKING;
@@ -547,22 +487,11 @@ bool PMC8::ReadScopeStatus()
                             }
                         }
                     }
-<<<<<<< HEAD
-                    else 
+                    else
                     {
                         LOG_INFO("Slew complete.");
                         TrackState = RememberTrackState;
                     }
-                    
-=======
-
-                    // Already set track mode in SetTrackEnabled
-                    //if (!SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP)))
-                    //{
-                    //    LOG_ERROR("slew complete - unable to set track mode");
-                    //    return false;
-                    //}
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
                 }
             }
 
@@ -862,25 +791,18 @@ bool PMC8::Handshake()
         //        set_pmc8_sim_hemisphere(HEMI_NORTH);
     }
 
-<<<<<<< HEAD
     PMC8_CONNECTION_TYPE conn = PMC8_SERIAL_AUTO;
-    if (getActiveConnection() == serialConnection) 
+    if (getActiveConnection() == serialConnection)
     {
         if (IUFindOnSwitchIndex(&SerialCableTypeSP) == 1) conn = PMC8_SERIAL_INVERTED;
         if (IUFindOnSwitchIndex(&SerialCableTypeSP) == 2) conn = PMC8_SERIAL_STANDARD;
     }
-    else 
+    else
     {
         conn = PMC8_ETHERNET;
     }
     
     return check_pmc8_connection(PortFD,conn);
-=======
-    if (check_pmc8_connection(PortFD, (getActiveConnection() == serialConnection)) == false)
-        return false;
-
-    return true;
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
 }
 
 bool PMC8::updateTime(ln_date *utc, double utc_offset)
@@ -898,14 +820,10 @@ bool PMC8::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
 
-<<<<<<< HEAD
     if (longitude > 180)
         longitude -= 360;
 
     // experimental support for Southern Hemisphere!
-=======
-    // do not support Southern Hemisphere yet!
->>>>>>> c754c63fa6aa20eb0cc1b760616e8f97fe1a3738
     if (latitude < 0)
     {
         LOG_WARN("Southern Hemisphere support still experimental!");
