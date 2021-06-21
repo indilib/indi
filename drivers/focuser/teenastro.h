@@ -75,6 +75,8 @@ protected:
     // Sends a command to the focuser, and waits for a single character response. Returns true if successful and response is '1', otherwise false.
     bool sendAndReceiveBool(const char *const msg);
 
+    // Sends a command to the focuser, and expects a timeout. Returns true if timeout happens, else false
+    bool sendAndExpectTimeout(const char *const msg, char *resp, int bufsize);
 
     // Updates device version string from device
     bool updateDeviceVersion();

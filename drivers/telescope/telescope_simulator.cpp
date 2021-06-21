@@ -35,46 +35,6 @@ static std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 #define GUIDE_WEST  0
 #define GUIDE_EAST  1
 
-void ISPoll(void *p);
-
-void ISGetProperties(const char *dev)
-{
-    telescope_sim->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    telescope_sim->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    telescope_sim->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    telescope_sim->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    telescope_sim->ISSnoopDevice(root);
-}
-
 ScopeSim::ScopeSim()
 {
     DBG_SCOPE = static_cast<uint32_t>(INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE"));
@@ -222,14 +182,11 @@ bool ScopeSim::updateProperties()
 
             if (isParked())
             {
-	        // at this point there is a valid ParkData.xml available
-	        double longitude, latitude;
-	        IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-	        IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-	        alignment.latitude = Angle(latitude);
-		alignment.longitude = Angle(longitude);
+                // at this point there is a valid ParkData.xml available
 
-	        currentRA = (alignment.lst() - Angle(ParkPositionN[AXIS_RA].value, Angle::ANGLE_UNITS::HOURS)).Hours();
+                alignment.latitude = Angle(LocationN[LOCATION_LATITUDE].value);
+                alignment.longitude = Angle(LocationN[LOCATION_LONGITUDE].value);
+                currentRA = (alignment.lst() - Angle(ParkPositionN[AXIS_RA].value, Angle::ANGLE_UNITS::HOURS)).Hours();
                 currentDEC = ParkPositionN[AXIS_DE].value;
                 Sync(currentRA, currentDEC);
 
@@ -397,7 +354,7 @@ bool ScopeSim::Sync(double ra, double dec)
 
 bool ScopeSim::Park()
 {
-    double ra = (alignment.lst() - Angle(GetAxis1Park() * 15.)).Degrees()/15.;
+    double ra = (alignment.lst() - Angle(GetAxis1Park() * 15.)).Degrees() / 15.;
     StartSlew(ra, GetAxis2Park(), SCOPE_PARKING);
     return true;
 }

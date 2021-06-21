@@ -36,19 +36,19 @@ class OpenWeatherMap : public INDI::Weather
     virtual ~OpenWeatherMap();
 
     //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+    bool Connect() override;
+    bool Disconnect() override;
+    const char *getDefaultName() override;
 
     virtual bool initProperties() override;
     virtual void ISGetProperties(const char *dev) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
   protected:
-    virtual IPState updateWeather();
+    virtual IPState updateWeather() override;
 
-    virtual bool saveConfigItems(FILE *fp);
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
   private:
     IText owmAPIKeyT[1]{};

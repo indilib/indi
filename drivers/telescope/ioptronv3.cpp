@@ -41,47 +41,10 @@ using namespace IOPv3;
 // We declare an auto pointer to IOptronV3.
 static std::unique_ptr<IOptronV3> scope(new IOptronV3());
 
-void ISGetProperties(const char *dev)
-{
-    scope->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    scope->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    scope->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    scope->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-void ISSnoopDevice(XMLEle *root)
-{
-    scope->ISSnoopDevice(root);
-}
-
 /* Constructor */
 IOptronV3::IOptronV3()
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 
     driver.reset(new Driver(getDeviceName()));
 
@@ -140,8 +103,8 @@ bool IOptronV3::initProperties()
 
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
-    AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_LUNAR", "Lunar");
+    AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_KING", "King");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
@@ -235,13 +198,10 @@ bool IOptronV3::initProperties()
 
     addAuxControls();
 
-    double longitude = 0, latitude = 90;
-    // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sidereal_time(longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-    currentDEC = latitude > 0 ? 90 : -90;
-    driver->setSimLongLat(longitude > 180 ? longitude - 360 : longitude, latitude);
+    currentRA  = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+    currentDEC = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+    driver->setSimLongLat(LocationN[LOCATION_LONGITUDE].value > 180 ? LocationN[LOCATION_LONGITUDE].value - 360 :
+                          LocationN[LOCATION_LONGITUDE].value, LocationN[LOCATION_LATITUDE].value);
 
     return true;
 }
@@ -340,6 +300,10 @@ void IOptronV3::getStartupData()
 
         // UTC Offset
         char offset[8] = {0};
+        // 2021-05-12 JM: Account for daylight savings
+        if (dayLightSavings)
+            utcOffsetMinutes += 60;
+
         snprintf(offset, 8, "%.2f", utcOffsetMinutes / 60.0);
         IUSaveText(&TimeT[1], offset);
         LOGF_INFO("Mount UTC Offset: %s", offset);
@@ -743,15 +707,11 @@ bool IOptronV3::ReadScopeStatus()
                 if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
                     TrackState = SCOPE_SLEWING;
                 break;
-            /* v3.0 PEC update status */
             case ST_TRACKING_PEC_OFF:
-                setPECState(PEC_OFF);
-                break;
             case ST_TRACKING_PEC_ON:
-                setPECState(PEC_ON);
-                break;
-            // End Mod */
             case ST_GUIDING:
+                if (newInfo.systemStatus == ST_TRACKING_PEC_OFF || newInfo.systemStatus == ST_TRACKING_PEC_ON)
+                    setPECState(newInfo.systemStatus == ST_TRACKING_PEC_ON ? PEC_ON : PEC_OFF);
                 TrackModeSP.s = IPS_BUSY;
                 TrackState    = SCOPE_TRACKING;
                 if (scopeInfo.systemStatus == ST_SLEWING)
@@ -1080,7 +1040,7 @@ IPState IOptronV3::GuideWest(uint32_t ms)
 
 bool IOptronV3::SetSlewRate(int index)
 {
-    IOP_SLEW_RATE rate = (IOP_SLEW_RATE) (index + 1);
+    IOP_SLEW_RATE rate = static_cast<IOP_SLEW_RATE>(index);
     return driver->setSlewRate(rate);
 }
 
@@ -1185,33 +1145,19 @@ void IOptronV3::mountSim()
 
 bool IOptronV3::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = currentRA * 15;
-    equatorialPos.dec = currentDEC;
-    get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-
+    INDI::IEquatorialCoordinates equatorialCoords {currentRA, currentDEC};
+    INDI::IHorizontalCoordinates horizontalCoords {0, 0};
+    INDI::EquatorialToHorizontal(&equatorialCoords, &m_Location, ln_get_julian_from_sys(), &horizontalCoords);
+    double parkAZ = horizontalCoords.azimuth;
+    double parkAlt = horizontalCoords.altitude;
     char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, horizontalPos.az, 2, 3600);
-    fs_sexa(AltStr, horizontalPos.alt, 2, 3600);
-
-    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
-               AltStr);
-
-    SetAxis1Park(horizontalPos.az);
-    SetAxis2Park(horizontalPos.alt);
-
-    driver->setParkAz(horizontalPos.az);
-    driver->setParkAlt(horizontalPos.alt);
-
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+    SetAxis1Park(parkAZ);
+    SetAxis2Park(parkAlt);
+    driver->setParkAz(parkAZ);
+    driver->setParkAlt(parkAlt);
     return true;
 }
 

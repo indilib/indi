@@ -58,7 +58,10 @@
 #define EARTHRADIUSEQUATORIAL 6378137.0
 #define EARTHRADIUSPOLAR 6356752.0
 #define EARTHRADIUSMEAN 6372797.0
-#define h_20190520 6.62607015E-34
+#define SUNMASS 1.98847E+30
+#define PLANK_H 6.62607015E-34
+#define DIRAC_H (PLANK_H/(2*M_PI))
+#define EINSTEIN_G 6.67408E-11
 #define EULER 2.71828182845904523536028747135266249775724709369995
 #define ROOT2 1.41421356237309504880168872420969807856967187537694
 #define AIRY 1.21966
@@ -67,10 +70,15 @@
 #define CIRCLE_AS (CIRCLE_AM * 60)
 #define RAD_AS (CIRCLE_AS/(M_PI*2))
 #define ASTRONOMICALUNIT 1.495978707E+11
-#define PARSEC (ASTRONOMICALUNIT*2.06264806247096E+5)
+#define PARSEC (ASTRONOMICALUNIT*RAD_AS)
 #define LIGHTSPEED 299792458.0
-#define LY (LIGHTSPEED * SOLAR_DAY * 365)
-#define LUMEN(wavelength) ((1.46412884E-3*wavelength)/(h_20190520*LIGHTSPEED))
+#define JULIAN_LY (LIGHTSPEED * SOLAR_DAY * 365)
+#define STELLAR_LY (LIGHTSPEED * STELLAR_DAY * 365)
+#define FLUX(wavelength) (wavelength/(PLANK_H*LIGHTSPEED))
+#define CANDLE ((1.0/683.0)*FLUX(555))
+#define LUMEN(wavelength) (CANDLE/(4*M_PI)*pow((FLUX(wavelength)/FLUX(555)), 0.25))
+#define REDSHIFT(wavelength, reference) (1.0-(reference/wavelength))
+#define DOPPLER(shift, speed) (speed*shift)
 
 extern const char *Direction[];
 extern const char *SolarSystem[];
@@ -422,6 +430,36 @@ double calc_rel_magnitude(double photon_flux, double filter_bandwidth, double wa
  * @return Aproximation of the absolute magnitude in Δmag
  */
 double estimate_absolute_magnitude(double dist, double delta_mag);
+
+/**
+ * @brief estimate the star mass in ref_size units e.g. sun masses or kgs
+ * @param delta_mag The absolute magnitude ratio between the reference object used as unit in ref_size.
+ * @param ref_mass The mass of the reference object used to calculate the magnitude difference.
+ */
+double estimate_star_mass(double delta_mag, double ref_mass);
+
+/**
+ * @brief estimate the orbit radius of an object with known mass orbiting around a star.
+ * @param obs_lambda The observed wavelength of a spectral line observed on the star affected by redshift or blueshift.
+ * @param ref_lambda The reference wavelength of the spectral line observed on earth or the nullshift spectral line position.
+ * @param period The orbital period.
+ */
+double estimate_orbit_radius(double obs_lambda, double ref_lambda, double period);
+
+/**
+ * @brief estimate the mass of an object with known mass orbiting around a star.
+ * @param star_mass The mass of the star hosting an orbiting object.
+ * @param star_drift The star lagrange point L1 (observed drift of the star).
+ * @param orbit_radius The estimated orbit radius of the companion object (star, planet, cloud).
+ */
+double estimate_secondary_mass(double star_mass, double star_drift, double orbit_radius);
+
+/**
+ * @brief estimate the size of an object occulting a star in star_size units.
+ * @param star_size The size of the occulted star.
+ * @param dropoff_ratio The light curve dropoff during the transit. Linear scale. 0.0=no dropoff 1.0=totally occulted.
+ */
+double estimate_secondary_size(double star_size, double dropoff_ratio);
 
 /**
  * @brief baseline_2d_projection Returns the coordinates of the projection of a single baseline targeting the object by coordinates

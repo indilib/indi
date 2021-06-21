@@ -57,7 +57,7 @@ class DomePro2 : public INDI::Dome
 
     private:
 
-        ShutterOperation m_TargetShutter { SHUTTER_OPEN };
+        // ShutterOperation m_TargetShutter { SHUTTER_OPEN }; // #PS: unused
         double targetAz {0};
 
         ///////////////////////////////////////////////////////////////////////////////

@@ -37,37 +37,6 @@ static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static std::unique_ptr<CCDSim> ccdsim(new CCDSim());
 
-void ISGetProperties(const char * dev)
-{
-    ccdsim->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-{
-    ccdsim->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    ccdsim->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    ccdsim->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-               char * names[], int n)
-{
-    ccdsim->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-void ISSnoopDevice(XMLEle * root)
-{
-    ccdsim->ISSnoopDevice(root);
-}
-
 CCDSim::CCDSim() : INDI::FilterInterface(this)
 {
     currentRA  = RA;
@@ -517,19 +486,10 @@ void CCDSim::TimerHit()
 
     if (TemperatureNP.s == IPS_BUSY)
     {
-        if (fabs(TemperatureRequest - TemperatureN[0].value) <= 0.5)
-        {
-            LOGF_INFO("Temperature reached requested value %.2f degrees C", TemperatureRequest);
-            TemperatureN[0].value = TemperatureRequest;
-            TemperatureNP.s       = IPS_OK;
-        }
+        if (TemperatureRequest < TemperatureN[0].value)
+            TemperatureN[0].value = std::max(TemperatureRequest, TemperatureN[0].value - 0.5);
         else
-        {
-            if (TemperatureRequest < TemperatureN[0].value)
-                TemperatureN[0].value -= 0.5;
-            else
-                TemperatureN[0].value += 0.5;
-        }
+            TemperatureN[0].value = std::min(TemperatureRequest, TemperatureN[0].value + 0.5);
 
         IDSetNumber(&TemperatureNP, nullptr);
 
@@ -552,8 +512,8 @@ double CCDSim::flux(double mag) const
     // The limiting magnitude provides zero ADU whatever the exposure
     // The saturation magnitude provides max ADU in one second
     double const z = m_LimitingMag;
-    double const k = 2.5*log10(m_MaxVal)/(m_LimitingMag - m_SaturationMag);
-    return pow(10, (z - mag)*k/2.5);
+    double const k = 2.5 * log10(m_MaxVal) / (m_LimitingMag - m_SaturationMag);
+    return pow(10, (z - mag) * k / 2.5);
 }
 
 int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
@@ -676,22 +636,22 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             currentRA  = RA;
             currentDE = Dec;
 
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
             double jd = ln_get_julian_from_sys();
 
-            epochPos.ra  = currentRA * 15.0;
-            epochPos.dec = currentDE;
+            epochPos.rightascension  = currentRA;
+            epochPos.declination = currentDE;
 
             // Convert from JNow to J2000
-            LibAstro::ObservedToJ2000(&epochPos, jd, &J2000Pos);
+            INDI::ObservedToJ2000(&epochPos, jd, &J2000Pos);
 
-            currentRA  = J2000Pos.ra / 15.0;
-            currentDE = J2000Pos.dec;
+            currentRA  = J2000Pos.rightascension;
+            currentDE = J2000Pos.declination;
 
             //LOGF_DEBUG("DrawCcdFrame JNow %f, %f J2000 %f, %f", epochPos.ra, epochPos.dec, J2000Pos.ra, J2000Pos.dec);
-            //ln_equ_posn jnpos;
-            //LibAstro::J2000toObserved(&J2000Pos, jd, &jnpos);
+            //INDI::IEquatorialCoordinates jnpos;
+            //INDI::J2000toObserved(&J2000Pos, jd, &jnpos);
             //LOGF_DEBUG("J2000toObserved JNow %f, %f J2000 %f, %f", jnpos.ra, jnpos.dec, J2000Pos.ra, J2000Pos.dec);
 
             currentDE += guideNSOffset;
@@ -992,8 +952,8 @@ int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float 
             // Use a gaussian of unitary integral, scale it with the source flux
             // f(x) = 1/(sqrt(2*pi)*sigma) * exp( -x² / (2*sigma²) )
             // FWHM = 2*sqrt(2*log(2))*sigma => sigma = seeing/(2*sqrt(2*log(2)))
-            float const sigma = seeing / ( 2 * sqrt(2*log(2)));
-            float const fa = 1 / (sigma * sqrt(2*3.1416)) * exp( -dc2 / (2*sigma*sigma));
+            float const sigma = seeing / ( 2 * sqrt(2 * log(2)));
+            float const fa = 1 / (sigma * sqrt(2 * 3.1416)) * exp( -dc2 / (2 * sigma * sigma));
 
             // The source contribution is the gaussian value, stretched by seeing/FWHM
             float fp = fa * flux;
@@ -1145,17 +1105,16 @@ bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], c
             IUUpdateNumber(&EqPENP, values, names, n);
             EqPENP.s = IPS_OK;
 
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.ra  = EqPEN[AXIS_RA].value * 15.0;
-            epochPos.dec = EqPEN[AXIS_DE].value;
+            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            epochPos.rightascension  = EqPEN[AXIS_RA].value;
+            epochPos.declination = EqPEN[AXIS_DE].value;
 
             RA = EqPEN[AXIS_RA].value;
             Dec = EqPEN[AXIS_DE].value;
 
-            LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
-            //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-            currentRA  = J2000Pos.ra / 15.0;
-            currentDE = J2000Pos.dec;
+            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            currentRA  = J2000Pos.rightascension;
+            currentDE = J2000Pos.declination;
             usePE = true;
 
             IDSetNumber(&EqPENP, nullptr);
@@ -1213,9 +1172,11 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
                 CoolerSP.s = IPS_BUSY;
             else
             {
-                CoolerSP.s         = IPS_IDLE;
-                TemperatureRequest = 20;
-                TemperatureNP.s    = IPS_BUSY;
+                CoolerSP.s          = IPS_IDLE;
+                m_TargetTemperature = 20;
+                TemperatureNP.s     = IPS_BUSY;
+                m_TemperatureCheckTimer.start();
+                m_TemperatureElapsedTimer.start();
             }
 
             IDSetSwitch(&CoolerSP, nullptr);
@@ -1347,7 +1308,7 @@ bool CCDSim::ISSnoopDevice(XMLEle * root)
 
         if (rc_ra == 0 && rc_de == 0 && ((newra != raPE) || (newdec != decPE)))
         {
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
             epochPos.ra  = newra * 15.0;
             epochPos.dec = newdec;
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
@@ -1548,6 +1509,8 @@ bool CCDSim::loadNextImage()
 
     if (ndim < 3)
         naxes[2] = 1;
+    else
+        PrimaryCCD.setNAxis(3);
     int samples_per_channel = naxes[0] * naxes[1];
     int channels = naxes[2];
     int elements = samples_per_channel * channels;

@@ -296,10 +296,6 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         };
 
 
-        // Temperature
-        INumber FocuserTemperatureN[1];
-        INumberVectorProperty FocuserTemperatureNP;
-
         std::vector<std::string> lastSensorData, lastPowerData, lastStepperData, lastDewAggData;
         bool focusMotorRunning { false };
         char stopChar { 0xD };

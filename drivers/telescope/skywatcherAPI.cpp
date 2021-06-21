@@ -17,6 +17,7 @@
  */
 
 #include "skywatcherAPI.h"
+#include "indicom.h"
 
 #include <cmath>
 #include <iomanip>
@@ -118,17 +119,17 @@ bool SkywatcherAPI::CheckIfDCMotor()
 
     while (true)
     {
-        rc = skywatcher_tty_read(MyPortFD, input, 20, 1, &nbytes);
+        rc = tty_read(MyPortFD, input, 20, 1, &nbytes);
         if (TTY_TIME_OUT == rc)
             break;
         if (TTY_OK != rc)
             return false;
     }
 
-    if (TTY_OK != skywatcher_tty_write(MyPortFD, ":", 1, &nbytes))
+    if (TTY_OK != tty_write(MyPortFD, ":", 1, &nbytes))
         return false;
 
-    rc = skywatcher_tty_read(MyPortFD, input, 1, 1, &nbytes);
+    rc = tty_read(MyPortFD, input, 1, 1, &nbytes);
 
     if ((TTY_OK == rc) && (1 == nbytes) && (':' == input[0]))
     {
@@ -143,16 +144,6 @@ bool SkywatcherAPI::CheckIfDCMotor()
 
     return false;
 }
-
-//bool SkywatcherAPI::IsVirtuosoMount() const
-//{
-//    return MountCode >= 0x90 && (IsAZGTiMount() == false);
-//}
-
-//bool SkywatcherAPI::IsAZGTiMount() const
-//{
-//    return MountCode == 0xA5;
-//}
 
 bool SkywatcherAPI::IsMerlinMount() const
 {
@@ -775,7 +766,7 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
     SendBuffer.push_back(Axis == AXIS1 ? '1' : '2');
     SendBuffer.append(cmdDataStr);
     SendBuffer.push_back('\r');
-    skywatcher_tty_write(MyPortFD, SendBuffer.c_str(), SendBuffer.size(), &bytesWritten);
+    tty_write(MyPortFD, SendBuffer.c_str(), SendBuffer.size(), &bytesWritten);
 
 
     while (!EndReading)
@@ -786,7 +777,7 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
         response[0] = '\0';
-        rc = skywatcher_tty_read_section(MyPortFD, response, 0x0D, 10, &bytesRead);
+        rc = tty_read_section(MyPortFD, response, 0x0D, 10, &bytesRead);
         if (rc != TTY_OK)
             return false;
         for (int i = 0; i < bytesRead && !EndReading; i++)

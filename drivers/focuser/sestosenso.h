@@ -21,6 +21,7 @@
 #pragma once
 
 #include "indifocuser.h"
+#include "inditimer.h"
 
 class SestoSenso : public INDI::Focuser
 {
@@ -32,8 +33,6 @@ class SestoSenso : public INDI::Focuser
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-
-        static void checkMotionProgressHelper(void *context);
 
     protected:
         virtual bool Handshake() override;
@@ -68,6 +67,8 @@ class SestoSenso : public INDI::Focuser
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
 
+        INDI::Timer m_MotionProgressTimer;
+
         INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
 
@@ -96,8 +97,6 @@ class SestoSenso : public INDI::Focuser
 
         typedef enum { Idle, GoToMiddle, GoMinimum, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
-
-        int m_MotionProgressTimerID = -1;
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////

@@ -132,7 +132,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
         double flux(double magnitude) const;
 
-        float TemperatureRequest { 0 };
+        double TemperatureRequest { 0 };
 
         float ExposureRequest { 0 };
         struct timeval ExpStart
