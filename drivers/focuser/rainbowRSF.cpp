@@ -19,18 +19,17 @@
 */
 
 /*
-RSF Focuser protocol is documented here:
-https://github.com/indilib/indi/files/5457979/RSF_focuser_Protocol_200313_EN.pdf
-Currently the following commands are implemented.
+This is the Rainbow API. A pdf is in the driver docs folder.
 
 Command              Send      Receive     Comment
 
-Get Position         :Fp#      :FpsDDDD#   s is + or -, DDDD from -8000 to 8000
-                               :FS0#       not moving
-                               :FS1#       moving
+Get Position         :Fp#      :FPsDD.DDD# s is + or -, 
+                                           sDD.DDD is a float number
+                                           range: -08.000 to +08.000
+                                           unit millimeters
 
-  NOTE: I found GetPosition returns a float instead of the documented DDDD !!!!!!
-  See the comment in updatePosition() and the parsePosition() function.
+Is Focus Moving      :Fs#      :FS0#       not moving
+                               :FS1#       moving
 
 Temperature          :Ft1#      :FT1sDD.D# s is + or -, DD.D temp in celcius
 
@@ -169,36 +168,22 @@ bool RainbowRSF::Handshake()
 /////////////////////////////////////////////////////////////////////////////
 
 namespace {
-// This accepts 4-digit positions as well a float ones.
-// The doc says it outputs 4-digits, but I've seen floats in the messages.
 bool parsePosition(char *result, int *pos)
 {
   const int length = strlen(result);
   if (length < 6) return false;
   // Check for a decimal/period
   char *period = strchr(result+3, '.');
-  if (period == nullptr)
+  if (period == nullptr) return false;
+
+  float position;
+  if (sscanf(result, ":FP%f#", &position) == 1)
   {
-    // no float
-    int position;
-    if (sscanf(result, ":FP%d#", &position) == 1)
-    {
-        *pos = position;
-        return true;
-    }
-    return false;
+      // position is a float number between -8 and +8 that needs to be multiplied by 1000.
+      *pos = position * 1000;
+      return true;
   }
-  else
-  {
-    float position;
-    if (sscanf(result, ":FP%f#", &position) == 1)
-    {
-        // position is a float number between -8 and +8 that needs to be multiplied by 1000.
-        *pos = position * 1000;
-        return true;
-    }
-    return false;
-  }
+  return false;
 }
 }  // namespace
 
@@ -260,13 +245,7 @@ bool RainbowRSF::updatePosition()
         return false;
 
     int newPosition { 0 };
-
-    // I found that values can be retured as -06.500 as opposed to the documented NNNN
-    // The below function takes either.
-    // This (original code) would just parse the documented NNNN.
-    // if (sscanf(res, ":FP%s#", &newPosition) == 1)
     bool ok = parsePosition(res, &newPosition);
-
     if (ok) {
         FocusAbsPosN[0].value = newPosition + 8000;
 
