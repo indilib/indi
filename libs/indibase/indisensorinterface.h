@@ -478,7 +478,7 @@ protected:
 
         INumberVectorProperty LocationNP;
         INumber LocationN[3];
-        double Lat, Lon, El;
+        double Latitude, Longitude, Elevation;
 
         INumberVectorProperty ScopeParametersNP;
         INumber ScopeParametersN[4];

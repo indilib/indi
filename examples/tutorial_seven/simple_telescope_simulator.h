@@ -62,7 +62,7 @@ private:
     long GotoTargetMicrostepsRA { 0 };
 
     // Tracking
-    ln_equ_posn CurrentTrackingTarget { 0, 0 };
+    INDI::IEquatorialCoordinates CurrentTrackingTarget { 0, 0 };
 
     // Tracing in timer tick
     int TraceThisTickCount { 0 };

@@ -211,6 +211,10 @@ int getTrackFreq(int fd, double *value);
 int getSiteLatitude(int fd, int *dd, int *mm, double *ssf);
 /* Get site Longitude */
 int getSiteLongitude(int fd, int *ddd, int *mm, double *ssf);
+/* Get site Latitude */
+int getSiteLatitudeAlt(int fd, int *dd, int *mm, double *ssf, const char *cmd);
+/* Get site Longitude */
+int getSiteLongitudeAlt(int fd, int *ddd, int *mm, double *ssf, const char *cmd);
 /* Get Calender data */
 int getCalendarDate(int fd, char *date);
 /* Get site Name */

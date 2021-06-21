@@ -54,40 +54,6 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 static std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
-void ISGetProperties(const char *dev)
-{
-    telescope->ISGetProperties(dev);
-}
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    telescope->ISNewSwitch(dev, name, states, names, n);
-}
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    telescope->ISNewText(dev, name, texts, names, n);
-}
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    telescope->ISNewNumber(dev, name, values, names, n);
-}
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    telescope->ISSnoopDevice(root);
-}
-
 CelestronGPS::CelestronGPS() : FI(this)
 {
     setVersion(3, 6); // update libindi/drivers.xml as well
@@ -629,14 +595,14 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
 {
     if (isSimulation())
     {
-        ln_hrz_posn horizontalPos;
+        INDI::IHorizontalCoordinates horizontalPos;
         // Libnova south = 0, west = 90, north = 180, east = 270
         horizontalPos.az = az + 180;
         if (horizontalPos.az >= 360)
              horizontalPos.az -= 360;
         horizontalPos.alt = alt;
 
-        ln_lnlat_posn observer;
+        IGeographicCoordinates observer;
 
         observer.lat = LocationN[LOCATION_LATITUDE].value;
         observer.lng = LocationN[LOCATION_LONGITUDE].value;
@@ -644,10 +610,10 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
         if (observer.lng > 180)
             observer.lng -= 360;
 
-        ln_equ_posn equatorialPos;
+        INDI::IEquatorialCoordinates equatorialPos;
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
-        targetRA  = equatorialPos.ra/15.0;
+        targetRA  = equatorialPos.rightascension/15.0;
         targetDEC = equatorialPos.dec;
     }
 

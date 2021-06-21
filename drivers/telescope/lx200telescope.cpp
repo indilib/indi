@@ -145,13 +145,10 @@ bool LX200Telescope::initProperties()
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
-    double longitude = 0, latitude = 90;
-    // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sidereal_time(longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-    currentDEC = latitude > 0 ? 90 : -90;
-
+    if (m_Location.longitude > 0)
+        currentRA  = get_local_sidereal_time(m_Location.longitude);
+    if (m_Location.latitude != 0)
+        currentDEC = m_Location.latitude > 0 ? 90 : -90;
     return true;
 }
 
@@ -639,19 +636,24 @@ bool LX200Telescope::updateLocation(double latitude, double longitude, double el
 {
     INDI_UNUSED(elevation);
 
-    if (isSimulation())
-        return true;
+    // JM 2021-04-10: MUST convert from INDI longitude to standard longitude.
+    // DO NOT REMOVE
+    if (longitude > 180)
+        longitude = longitude - 360;
 
-    if (!isSimulation() && setSiteLongitude(PortFD, longitude) < 0)
+    if (!isSimulation())
     {
-        LOG_ERROR("Error setting site longitude coordinates");
-        return false;
-    }
+        if (setSiteLongitude(PortFD, longitude) < 0)
+        {
+            LOG_ERROR("Error setting site longitude coordinates");
+            return false;
+        }
 
-    if (!isSimulation() && setSiteLatitude(PortFD, latitude) < 0)
-    {
-        LOG_ERROR("Error setting site latitude coordinates");
-        return false;
+        if (setSiteLatitude(PortFD, latitude) < 0)
+        {
+            LOG_ERROR("Error setting site latitude coordinates");
+            return false;
+        }
     }
 
     char l[MAXINDINAME] = {0}, L[MAXINDINAME] = {0};
@@ -659,7 +661,8 @@ bool LX200Telescope::updateLocation(double latitude, double longitude, double el
     fs_sexa(L, longitude, 2, 36000);
 
     // Choose WGS 84, also known as EPSG:4326 for latitude/longitude ordering
-    LOGF_INFO("Site location in the mount updated to Latitude %.12s (%g) Longitude %.12s (%g) (Longitude sign in carthography format)", l, latitude, L, longitude);
+    LOGF_INFO("Site location in the mount updated to Latitude %.12s (%g) Longitude %.12s (%g) (Longitude sign in carthography format)",
+              l, latitude, L, longitude);
 
     return true;
 }
@@ -1382,7 +1385,7 @@ bool LX200Telescope::sendScopeLocation()
     }
     else
     {
-        snprintf(lat_sexagesimal, MAXINDIFORMAT,"%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+        snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
         f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
     }
 
@@ -1393,7 +1396,7 @@ bool LX200Telescope::sendScopeLocation()
     }
     else
     {
-        snprintf(lng_sexagesimal, MAXINDIFORMAT,"%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+        snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
         f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
     }
 

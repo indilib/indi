@@ -37,26 +37,26 @@ class DomeSim : public INDI::Dome
         virtual ~DomeSim() = default;
 
         virtual bool initProperties() override;
-        const char *getDefaultName();
-        bool updateProperties();
+        const char *getDefaultName() override;
+        bool updateProperties() override;
 
     protected:
-        bool Connect();
-        bool Disconnect();
+        bool Connect() override;
+        bool Disconnect() override;
 
-        void TimerHit();
+        void TimerHit() override;
 
-        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
-        virtual IPState MoveRel(double azDiff);
-        virtual IPState MoveAbs(double az);
-        virtual IPState Park();
-        virtual IPState UnPark();
-        virtual IPState ControlShutter(ShutterOperation operation);
-        virtual bool Abort();
+        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
+        virtual IPState MoveRel(double azDiff) override;
+        virtual IPState MoveAbs(double az) override;
+        virtual IPState Park() override;
+        virtual IPState UnPark() override;
+        virtual IPState ControlShutter(ShutterOperation operation) override;
+        virtual bool Abort() override;
 
         // Parking
-        virtual bool SetCurrentPark();
-        virtual bool SetDefaultPark();
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
     private:
         double targetAz;

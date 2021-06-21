@@ -75,9 +75,9 @@ class FilterWheel : public DefaultDevice, public FilterInterface
     uint8_t getFilterConnection() const;
 
   protected:
-    virtual bool saveConfigItems(FILE *fp);
-    virtual int QueryFilter();
-    virtual bool SelectFilter(int);
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual int QueryFilter() override;
+    virtual bool SelectFilter(int) override;
 
     /** \brief perform handshake with device to check communication */
     virtual bool Handshake();

@@ -91,8 +91,8 @@ class TemmaMount : public INDI::Telescope, public INDI::GuiderInterface
         bool setLatitude(double lat);
         bool getLatitude(double &lat);
 
-        //ln_equ_posn TelescopeToSky(double ra, double dec);
-        //ln_equ_posn SkyToTelescope(double ra, double dec);
+        //INDI::IEquatorialCoordinates TelescopeToSky(double ra, double dec);
+        //INDI::IEquatorialCoordinates SkyToTelescope(double ra, double dec);
 
         //bool TemmaConnect(const char *port);
 

@@ -228,7 +228,7 @@ class MyFocuserPro2 : public INDI::Focuser
         static const char ML_DEL { '#' };
 
         // MyFocuserPro2 Timeout
-        static const uint8_t ML_TIMEOUT { 3 };
+        static const uint8_t ML_TIMEOUT { 5 };
 
         // MyFocuserPro2 minimum supported firmware
         static const int32_t MINIMUM_FIRMWARE_VERSION { 291 };

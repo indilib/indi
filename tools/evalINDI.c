@@ -278,33 +278,40 @@ static void compileINDI(char *expr)
  */
 static FILE *openINDIServer()
 {
-    struct sockaddr_in serv_addr;
-    struct hostent *hp;
-    int sockfd;
+    struct addrinfo *result, *ptr;
+    struct addrinfo hints = {};
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
     /* lookup host address */
-    hp = gethostbyname(host);
-    if (!hp)
-    {
-        perror("gethostbyname");
+    int len = snprintf(NULL, 0, "%d", port);
+    char *indi_port_str = malloc(len + 1 );
+    snprintf(indi_port_str, len + 1, "%d", port);
+    int ret = getaddrinfo(host, indi_port_str, &hints, &result);
+    if (ret != 0) {
+        fprintf(stderr, "getaddrinfo(%s): %s\n", host, gai_strerror(ret));
         exit(2);
+    }
+    free(indi_port_str);
+
+    for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
+        if (ptr->ai_family == AF_INET || ptr->ai_family == AF_INET6) {
+            break;
+        }
     }
 
     /* create a socket to the INDI server */
-    (void)memset((char *)&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family      = AF_INET;
-    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-    serv_addr.sin_port        = htons(port);
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    int sockfd;
+    if ((sockfd = socket(ptr->ai_family, SOCK_STREAM, 0)) < 0)
     {
-        perror("socket");
+        fprintf(stderr, "socket(%s,%d): %s\n", host, port, strerror(errno));
         exit(2);
     }
 
     /* connect */
-    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    if (connect(sockfd, ptr->ai_addr, ptr->ai_addrlen) < 0)
     {
-        perror("connect");
+        fprintf(stderr, "connect(%s,%d): %s\n", host, port, strerror(errno));
         exit(2);
     }
 

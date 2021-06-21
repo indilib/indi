@@ -34,44 +34,6 @@
 
 static std::unique_ptr<MyFocuserPro2> myFocuserPro2(new MyFocuserPro2());
 
-void ISGetProperties(const char * dev)
-{
-    myFocuserPro2->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-{
-    myFocuserPro2->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    myFocuserPro2->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    myFocuserPro2->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-               char * names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle * root)
-{
-    myFocuserPro2->ISSnoopDevice(root);
-}
-
 MyFocuserPro2::MyFocuserPro2()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
@@ -796,7 +758,7 @@ bool MyFocuserPro2::setBacklashOutEnabled(bool enabled)
 bool MyFocuserPro2::setCoilPowerState(CoilPower enable)
 {
     char cmd[ML_RES] = {0};
-    snprintf(cmd, ML_RES, ":12%01d#", static_cast<int>(enable));
+    snprintf(cmd, ML_RES, ":12%d#", static_cast<int>(enable));
     return sendCommand(cmd);
 }
 
@@ -1284,7 +1246,10 @@ bool MyFocuserPro2::sendCommand(const char * cmd, char * res)
     }
 
     if (res == nullptr)
+    {
+        tcdrain(PortFD);
         return true;
+    }
 
     if ((rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, ML_TIMEOUT, &nbytes_read)) != TTY_OK)
     {

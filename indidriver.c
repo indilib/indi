@@ -42,9 +42,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <sys/stat.h>
 #include <assert.h>
 
+#include "userio.h"
+#include "indiuserio.h"
+
 static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 int verbose;      /* chatty */
-char *me = NULL;  /* a.out name */
+char *me = "";  /* a.out name */
 
 #define MAXRBUF 2048
 
@@ -104,127 +107,17 @@ static void rosc_add_unique(const char *propName, const char *devName, IPerm per
         rosc_add(propName, devName, perm, ptr, type);
 }
 
-
-/* output a string expanding special characters into xml/html escape sequences */
-static void escapeXML_fputs(const char *src, FILE *stream)
-{
-    const char *ptr = src;
-    const char *replacement;
-
-    for(; *ptr; ++ptr)
-    {
-        switch(*ptr)
-        {
-        case  '&': replacement = "&amp;";  break;
-        case '\'': replacement = "&apos;"; break;
-        case  '"': replacement = "&quot;"; break;
-        case  '<': replacement = "&lt;";   break;
-        case  '>': replacement = "&gt;";   break;
-        default:   replacement = NULL;
-        }
-
-        if (replacement != NULL)
-        {
-            fwrite(src, 1, (size_t)(ptr - src), stream);
-            src = ptr + 1;
-            fputs(replacement, stream);
-        }
-    }
-    fwrite(src, 1, (size_t)(ptr - src), stream);
-}
-
-static void escapeXML_vprintf(const char *fmt, va_list ap)
-{
-    char message[MAXINDIMESSAGE];
-    vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-    escapeXML_fputs(message, stdout);
-}
-
-/* output a string expanding special characters into xml/html escape sequences */
-static size_t escapeXML2(char *dst, const char *src, size_t size)
-{
-    char *ptr = dst; // copy pointer
-
-    // size > 1 - place for null-terminator
-    for(; size > 1 && *src; ++src)
-    {
-        switch (*src)
-        {
-        case '&':
-            if (size < 6) goto finish;
-            strncpy(ptr, "&amp;", 6);
-            ptr += 5;
-            size -= 5;
-            break;
-        case '\'':
-            if (size < 7) goto finish;
-            strncpy(ptr, "&apos;", 7);
-            ptr += 6;
-            size -= 6;
-            break;
-        case '"':
-            if (size < 7) goto finish;
-            strncpy(ptr, "&quot;", 7);
-            ptr += 6;
-            size -= 6;
-            break;
-        case '<':
-            if (size < 5) goto finish;
-            strncpy(ptr, "&lt;", 5);
-            ptr += 4;
-            size -= 4;
-            break;
-        case '>':
-            if (size < 5) goto finish;
-            strncpy(ptr, "&gt;", 5);
-            ptr += 4;
-            size -= 4;
-            break;
-        default:
-            *ptr++ = *src;
-            size -= 1;
-            break;
-        }
-    }
-
-finish:
-    if (size > 0)
-        *ptr = 0;
-    return (size_t)(ptr - dst);
-}
-
-// unused
-#if 0
-/* output a string expanding special characters into xml/html escape sequences */
-/* N.B. You must free the returned buffer after use! */
-static char *escapeXML(const char *src, size_t size)
-{
-    char *dst = malloc(sizeof(char) * size);
-    assert_mem(dst);
-    escapeXML2(dst, src, size);
-    return dst;
-}
-#endif
-
 /* tell Client to delete the property with given name on given device, or
  * entire device if !name
  */
 void IDDeleteVA(const char *dev, const char *name, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
+
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    printf("<delProperty\n  device='%s'\n", dev);
-    if (name)
-        printf(" name='%s'\n", name);
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf("/>\n");
+    userio_xmlv1(io, stdout);
+    IUUserIODeleteVA(io, stdout, dev, name, fmt, ap);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -243,14 +136,19 @@ void IDDelete(const char *dev, const char *name, const char *fmt, ...)
  */
 void IDSnoopDevice(const char *snooped_device, const char *snooped_property)
 {
-    pthread_mutex_lock(&stdout_mutex);
-    xmlv1();
-    if (snooped_property && snooped_property[0])
-        printf("<getProperties version='%g' device='%s' name='%s'/>\n", INDIV, snooped_device, snooped_property);
-    else
-        printf("<getProperties version='%g' device='%s'/>\n", INDIV, snooped_device);
-    fflush(stdout);
-    pthread_mutex_unlock(&stdout_mutex);
+    // Ignore empty snooped device
+    if (snooped_device[0])
+    {
+        const userio *io = userio_file();
+
+        pthread_mutex_lock(&stdout_mutex);
+
+        userio_xmlv1(io, stdout);
+        IUUserIOGetProperties(io, stdout, snooped_device, snooped_property);
+        fflush(stdout);
+
+        pthread_mutex_unlock(&stdout_mutex);
+    }
 }
 
 /* tell indiserver whether we want BLOBs from the given snooped device.
@@ -258,30 +156,14 @@ void IDSnoopDevice(const char *snooped_device, const char *snooped_property)
  */
 void IDSnoopBLOBs(const char *snooped_device, const char *snooped_property, BLOBHandling bh)
 {
-    const char *how;
-
-    switch (bh)
-    {
-        case B_NEVER:
-            how = "Never";
-            break;
-        case B_ALSO:
-            how = "Also";
-            break;
-        case B_ONLY:
-            how = "Only";
-            break;
-        default:
-            return;
-    }
+    const userio *io = userio_file();
 
     pthread_mutex_lock(&stdout_mutex);
-    xmlv1();
-    if (snooped_property && snooped_property[0])
-        printf("<enableBLOB device='%s' name='%s'>%s</enableBLOB>\n", snooped_device, snooped_property, how);
-    else
-        printf("<enableBLOB device='%s'>%s</enableBLOB>\n", snooped_device, how);
+
+    userio_xmlv1(io, stdout);
+    IUUserIOEnableBLOB(io, stdout, snooped_device, snooped_property, bh);
     fflush(stdout);
+
     pthread_mutex_unlock(&stdout_mutex);
 }
 
@@ -437,12 +319,12 @@ int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format)
 
 void IUFillSwitch(ISwitch *sp, const char *name, const char *label, ISState s)
 {
-    escapeXML2(sp->name, name, sizeof(sp->name));
+    strncpy(sp->name, name, sizeof(sp->name));
 
     if (label[0])
-        escapeXML2(sp->label, label, sizeof(sp->label));
+        strncpy(sp->label, label, sizeof(sp->label));
     else
-        strncpy(sp->label, sp->name, sizeof(sp->label));
+        strncpy(sp->label, name, sizeof(sp->label));
 
     sp->s   = s;
     sp->svp = NULL;
@@ -451,12 +333,12 @@ void IUFillSwitch(ISwitch *sp, const char *name, const char *label, ISState s)
 
 void IUFillLight(ILight *lp, const char *name, const char *label, IPState s)
 {
-    escapeXML2(lp->name, name, sizeof(lp->name));
+    strncpy(lp->name, name, sizeof(lp->name));
 
     if (label[0])
-        escapeXML2(lp->label, label, sizeof(lp->label));
+        strncpy(lp->label, label, sizeof(lp->label));
     else
-        strncpy(lp->label, lp->name, sizeof(lp->label));
+        strncpy(lp->label, name, sizeof(lp->label));
 
     lp->s   = s;
     lp->lvp = NULL;
@@ -466,14 +348,14 @@ void IUFillLight(ILight *lp, const char *name, const char *label, IPState s)
 void IUFillNumber(INumber *np, const char *name, const char *label, const char *format, double min, double max,
                   double step, double value)
 {
-    escapeXML2(np->name, name, sizeof(np->name));
+    strncpy(np->name, name, sizeof(np->name));
 
     if (label[0])
-        escapeXML2(np->label, label, sizeof(np->label));
+        strncpy(np->label, label, sizeof(np->label));
     else
-        strncpy(np->label, np->name, sizeof(np->label));
+        strncpy(np->label, name, sizeof(np->label));
 
-    strncpy(np->format, format, sizeof(np->format)); // escape unnecessary?
+    strncpy(np->format, format, sizeof(np->format));
 
     np->min   = min;
     np->max   = max;
@@ -486,12 +368,12 @@ void IUFillNumber(INumber *np, const char *name, const char *label, const char *
 
 void IUFillText(IText *tp, const char *name, const char *label, const char *initialText)
 {
-    escapeXML2(tp->name, name, sizeof(tp->name));
+    strncpy(tp->name, name, sizeof(tp->name));
 
     if (label[0])
-        escapeXML2(tp->label, label, sizeof(tp->label));
+        strncpy(tp->label, label, sizeof(tp->label));
     else
-        strncpy(tp->label, tp->name, sizeof(tp->label));
+        strncpy(tp->label, name, sizeof(tp->label));
 
     if (tp->text && tp->text[0])
         free(tp->text);
@@ -509,14 +391,14 @@ void IUFillBLOB(IBLOB *bp, const char *name, const char *label, const char *form
 {
     memset(bp, 0, sizeof(IBLOB));
 
-    escapeXML2(bp->name, name, sizeof(bp->name));
+    strncpy(bp->name, name, sizeof(bp->name));
 
     if (label[0])
-        escapeXML2(bp->label, label, sizeof(bp->label));
+        strncpy(bp->label, label, sizeof(bp->label));
     else
-        strncpy(bp->label, bp->name, sizeof(bp->label));
+        strncpy(bp->label, name, sizeof(bp->label));
 
-    strncpy(bp->format, format, sizeof(bp->format)); // escape unnecessary?
+    strncpy(bp->format, format, sizeof(bp->format));
 
     bp->blob    = 0;
     bp->bloblen = 0;
@@ -530,16 +412,16 @@ void IUFillBLOB(IBLOB *bp, const char *name, const char *label, const char *form
 void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char *dev, const char *name,
                         const char *label, const char *group, IPerm p, ISRule r, double timeout, IPState s)
 {
-    strncpy(svp->device, dev, sizeof(svp->device)); // escape unnecessary?
+    strncpy(svp->device, dev, sizeof(svp->device));
 
-    escapeXML2(svp->name, name, sizeof(svp->name));
+    strncpy(svp->name, name, sizeof(svp->name));
 
     if (label[0])
-        escapeXML2(svp->label, label, sizeof(svp->label));
+        strncpy(svp->label, label, sizeof(svp->label));
     else
-        strncpy(svp->label, svp->name, sizeof(svp->label));
+        strncpy(svp->label, name, sizeof(svp->label));
 
-    strncpy(svp->group, group, sizeof(svp->group)); // escape unnecessary?
+    strncpy(svp->group, group, sizeof(svp->group));
     svp->timestamp[0] = '\0';
 
     svp->p       = p;
@@ -553,16 +435,16 @@ void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const 
 void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const char *dev, const char *name,
                        const char *label, const char *group, IPState s)
 {
-    strncpy(lvp->device, dev, sizeof(lvp->device)); // escape unnecessary?
+    strncpy(lvp->device, dev, sizeof(lvp->device));
 
-    escapeXML2(lvp->name, name, sizeof(lvp->name));
+    strncpy(lvp->name, name, sizeof(lvp->name));
 
     if (label[0])
-        escapeXML2(lvp->label, label, sizeof(lvp->label));
+        strncpy(lvp->label, label, sizeof(lvp->label));
     else
-        strncpy(lvp->label, lvp->name, sizeof(lvp->label));
+        strncpy(lvp->label, name, sizeof(lvp->label));
 
-    strncpy(lvp->group, group, sizeof(lvp->group)); // escape unnecessary?
+    strncpy(lvp->group, group, sizeof(lvp->group));
     lvp->timestamp[0] = '\0';
 
     lvp->s   = s;
@@ -573,16 +455,16 @@ void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const cha
 void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const char *dev, const char *name,
                         const char *label, const char *group, IPerm p, double timeout, IPState s)
 {
-    strncpy(nvp->device, dev, sizeof(nvp->device)); // escape unnecessary?
+    strncpy(nvp->device, dev, sizeof(nvp->device));
 
-    escapeXML2(nvp->name, name, sizeof(nvp->name));
+    strncpy(nvp->name, name, sizeof(nvp->name));
 
     if (label[0])
-        escapeXML2(nvp->label, label, sizeof(nvp->label));
+        strncpy(nvp->label, label, sizeof(nvp->label));
     else
-        strncpy(nvp->label, nvp->name, sizeof(nvp->label));
+        strncpy(nvp->label, name, sizeof(nvp->label));
 
-    strncpy(nvp->group, group, sizeof(nvp->group)); // escape unnecessary?
+    strncpy(nvp->group, group, sizeof(nvp->group));
     nvp->timestamp[0] = '\0';
 
     nvp->p       = p;
@@ -595,16 +477,16 @@ void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const 
 void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char *dev, const char *name,
                       const char *label, const char *group, IPerm p, double timeout, IPState s)
 {
-    strncpy(tvp->device, dev, sizeof(tvp->device)); // escape unnecessary?
+    strncpy(tvp->device, dev, sizeof(tvp->device));
 
-    escapeXML2(tvp->name, name, sizeof(tvp->name));
+    strncpy(tvp->name, name, sizeof(tvp->name));
 
     if (label[0])
-        escapeXML2(tvp->label, label, sizeof(tvp->label));
+        strncpy(tvp->label, label, sizeof(tvp->label));
     else
-        strncpy(tvp->label, tvp->name, sizeof(tvp->label));
+        strncpy(tvp->label, name, sizeof(tvp->label));
 
-    strncpy(tvp->group, group, sizeof(tvp->group)); // escape unnecessary?
+    strncpy(tvp->group, group, sizeof(tvp->group));
     tvp->timestamp[0] = '\0';
 
     tvp->p       = p;
@@ -618,16 +500,16 @@ void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char *
                       const char *label, const char *group, IPerm p, double timeout, IPState s)
 {
     memset(bvp, 0, sizeof(IBLOBVectorProperty));
-    strncpy(bvp->device, dev, sizeof(bvp->device)); // escape unnecessary?
+    strncpy(bvp->device, dev, sizeof(bvp->device));
 
-    escapeXML2(bvp->name, name, sizeof(bvp->name));
+    strncpy(bvp->name, name, sizeof(bvp->name));
 
     if (label[0])
-        escapeXML2(bvp->label, label, sizeof(bvp->label));
+        strncpy(bvp->label, label, sizeof(bvp->label));
     else
-        strncpy(bvp->label, bvp->name, sizeof(bvp->label));
+        strncpy(bvp->label, name, sizeof(bvp->label));
 
-    strncpy(bvp->group, group, sizeof(bvp->group)); // escape unnecessary?
+    strncpy(bvp->group, group, sizeof(bvp->group));
     bvp->timestamp[0] = '\0';
 
     bvp->p       = p;
@@ -1563,20 +1445,14 @@ int IUGetConfigText(const char *dev, const char *property, const char *member, c
 /* send client a message for a specific device or at large if !dev */
 void IDMessageVA(const char *dev, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
+
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    printf("<message\n");
-    if (dev)
-        printf(" device='%s'\n", dev);
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf("/>\n");
+    userio_xmlv1(io, stdout);
+
+    IDUserIOMessageVA(io, stdout, dev, fmt, ap);
+
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -1670,63 +1546,35 @@ void IUSaveConfigTag(FILE *fp, int ctag, const char *dev, int silent)
     if (!fp)
         return;
 
-    /* Opening tag */
-    if (ctag == 0)
+    IUUserIOConfigTag(userio_file(), fp, ctag);
+
+    if (silent != 1)
     {
-        fprintf(fp, "<INDIDriver>\n");
-        if (silent != 1)
+        /* Opening tag */
+        if (ctag == 0)
+        {
             IDMessage(dev, "[INFO] Saving device configuration...");
-    }
-    /* Closing tag */
-    else
-    {
-        fprintf(fp, "</INDIDriver>\n");
-        if (silent != 1)
+        }
+        /* Closing tag */
+        else
+        {
             IDMessage(dev, "[INFO] Device configuration saved.");
+        }
     }
 }
 
 /* tell client to create a text vector property */
 void IDDefTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    printf("<defTextVector\n");
-    printf("  device='%s'\n", tvp->device);
-    printf("  name='%s'\n", tvp->name);
-    printf("  label='%s'\n", tvp->label);
-    printf("  group='%s'\n", tvp->group);
-    printf("  state='%s'\n", pstateStr(tvp->s));
-    printf("  perm='%s'\n", permStr(tvp->p));
-    printf("  timeout='%g'\n", tvp->timeout);
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf(">\n");
-
-    for (int i = 0; i < tvp->ntp; i++)
-    {
-        IText *tp = &tvp->tp[i];
-        printf("  <defText\n");
-        printf("    name='%s'\n", tp->name);
-        printf("    label='%s'>\n", tp->label);
-        printf("      %s\n", tp->text ? tp->text : "");
-        printf("  </defText>\n");
-    }
-
-    printf("</defTextVector>\n");
+    userio_xmlv1(io, stdout);
+    IUUserIODefTextVA(io, stdout, tvp, fmt, ap);
+    fflush(stdout);
 
     /* Add this property to insure proper sanity check */
     rosc_add_unique(tvp->name, tvp->device, tvp->p, tvp, INDI_TEXT);
-
-    indi_locale_C_numeric_pop(orig);
-    fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
 }
@@ -1740,150 +1588,61 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
 }
 
 /* tell client to create a new numeric vector property */
-void IDDefNumberVA(const INumberVectorProperty *n, const char *fmt, va_list ap)
+void IDDefNumberVA(const INumberVectorProperty *nvp, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    printf("<defNumberVector\n");
-    printf("  device='%s'\n", n->device);
-    printf("  name='%s'\n", n->name);
-    printf("  label='%s'\n", n->label);
-    printf("  group='%s'\n", n->group);
-    printf("  state='%s'\n", pstateStr(n->s));
-    printf("  perm='%s'\n", permStr(n->p));
-    printf("  timeout='%g'\n", n->timeout);
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf(">\n");
-
-    for (int i = 0; i < n->nnp; i++)
-    {
-        INumber *np = &n->np[i];
-
-        printf("  <defNumber\n");
-        printf("    name='%s'\n", np->name);
-        printf("    label='%s'\n", np->label);
-        printf("    format='%s'\n", np->format);
-        printf("    min='%.20g'\n", np->min);
-        printf("    max='%.20g'\n", np->max);
-        printf("    step='%.20g'>\n", np->step);
-        printf("      %.20g\n", np->value);
-
-        printf("  </defNumber>\n");
-    }
-
-    printf("</defNumberVector>\n");
+    userio_xmlv1(io, stdout);
+    IUUserIODefNumberVA(io, stdout, nvp, fmt, ap);
+    fflush(stdout);
 
     /* Add this property to insure proper sanity check */
-    rosc_add_unique(n->name, n->device, n->p, n, INDI_NUMBER);
-
-    indi_locale_C_numeric_pop(orig);
-    fflush(stdout);
+    rosc_add_unique(nvp->name, nvp->device, nvp->p, nvp, INDI_NUMBER);
 
     pthread_mutex_unlock(&stdout_mutex);
 }
 
-void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
+void IDDefNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    IDDefNumberVA(n, fmt, ap);
+    IDDefNumberVA(nvp, fmt, ap);
     va_end(ap);
 }
 
 /* tell client to create a new switch vector property */
-void IDDefSwitchVA(const ISwitchVectorProperty *s, const char *fmt, va_list ap)
+void IDDefSwitchVA(const ISwitchVectorProperty *svp, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    printf("<defSwitchVector\n");
-    printf("  device='%s'\n", s->device);
-    printf("  name='%s'\n", s->name);
-    printf("  label='%s'\n", s->label);
-    printf("  group='%s'\n", s->group);
-    printf("  state='%s'\n", pstateStr(s->s));
-    printf("  perm='%s'\n", permStr(s->p));
-    printf("  rule='%s'\n", ruleStr(s->r));
-    printf("  timeout='%g'\n", s->timeout);
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf(">\n");
-
-    for (int i = 0; i < s->nsp; i++)
-    {
-        ISwitch *sp = &s->sp[i];
-        printf("  <defSwitch\n");
-        printf("    name='%s'\n", sp->name);
-        printf("    label='%s'>\n", sp->label);
-        printf("      %s\n", sstateStr(sp->s));
-        printf("  </defSwitch>\n");
-    }
-
-    printf("</defSwitchVector>\n");
+    userio_xmlv1(io, stdout);
+    IUUserIODefSwitchVA(io, stdout, svp, fmt, ap);
+    fflush(stdout);
 
     /* Add this property to insure proper sanity check */
-    rosc_add_unique(s->name, s->device, s->p, s, INDI_SWITCH);
-
-    indi_locale_C_numeric_pop(orig);
-    fflush(stdout);
+    rosc_add_unique(svp->name, svp->device, svp->p, svp, INDI_SWITCH);
 
     pthread_mutex_unlock(&stdout_mutex);
 }
 
-void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
+void IDDefSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    IDDefSwitchVA(s, fmt, ap);
+    IDDefSwitchVA(svp, fmt, ap);
     va_end(ap);
 }
 
 /* tell client to create a new lights vector property */
 void IDDefLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    printf("<defLightVector\n");
-    printf("  device='%s'\n", lvp->device);
-    printf("  name='%s'\n", lvp->name);
-    printf("  label='%s'\n", lvp->label);
-    printf("  group='%s'\n", lvp->group);
-    printf("  state='%s'\n", pstateStr(lvp->s));
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf(">\n");
-
-    for (int i = 0; i < lvp->nlp; i++)
-    {
-        ILight *lp = &lvp->lp[i];
-        printf("  <defLight\n");
-        printf("    name='%s'\n", lp->name);
-        printf("    label='%s'>\n", lp->label);
-        printf("      %s\n", pstateStr(lp->s));
-        printf("  </defLight>\n");
-    }
-
-    printf("</defLightVector>\n");
+    userio_xmlv1(io, stdout);
+    IUUserIODefLightVA(io, stdout, lvp, fmt, ap);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -1898,91 +1657,42 @@ void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
 }
 
 /* tell client to create a new BLOB vector property */
-void IDDefBLOBVA(const IBLOBVectorProperty *b, const char *fmt, va_list ap)
+void IDDefBLOBVA(const IBLOBVectorProperty *bvp, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    printf("<defBLOBVector\n");
-    printf("  device='%s'\n", b->device);
-    printf("  name='%s'\n", b->name);
-    printf("  label='%s'\n", b->label);
-    printf("  group='%s'\n", b->group);
-    printf("  state='%s'\n", pstateStr(b->s));
-    printf("  perm='%s'\n", permStr(b->p));
-    printf("  timeout='%g'\n", b->timeout);
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf(">\n");
-
-    for (int i = 0; i < b->nbp; i++)
-    {
-        IBLOB *bp = &b->bp[i];
-        printf("  <defBLOB\n");
-        printf("    name='%s'\n", bp->name);
-        printf("    label='%s'\n", bp->label);
-        printf("  />\n");
-    }
-
-    printf("</defBLOBVector>\n");
+    userio_xmlv1(io, stdout);
+    IUUserIODefBLOBVA(io, stdout, bvp, fmt, ap);
+    fflush(stdout);
 
     /* Add this property to insure proper sanity check */
-    rosc_add_unique(b->name, b->device, b->p, b, INDI_BLOB);
-
-    indi_locale_C_numeric_pop(orig);
-    fflush(stdout);
+    rosc_add_unique(bvp->name, bvp->device, bvp->p, bvp, INDI_BLOB);
 
     pthread_mutex_unlock(&stdout_mutex);
 }
-void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
+
+void IDDefBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    IDDefBLOBVA(b, fmt, ap);
+    IDDefBLOBVA(bvp, fmt, ap);
     va_end(ap);
 }
 
 /* tell client to update an existing text vector property */
 void IDSetTextVA(const ITextVectorProperty *tvp, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    printf("<setTextVector\n");
-    printf("  device='%s'\n", tvp->device);
-    printf("  name='%s'\n", tvp->name);
-    printf("  state='%s'\n", pstateStr(tvp->s));
-    printf("  timeout='%g'\n", tvp->timeout);
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf(">\n");
-
-    for (int i = 0; i < tvp->ntp; i++)
-    {
-        IText *tp = &tvp->tp[i];
-        printf("  <oneText name='%s'>\n", tp->name);
-        printf("      %s\n", tp->text ? entityXML(tp->text) : "");
-        printf("  </oneText>\n");
-    }
-
-    printf("</setTextVector>\n");
-    indi_locale_C_numeric_pop(orig);
+    userio_xmlv1(io, stdout);
+    IUUserIOSetTextVA(io, stdout, tvp, fmt, ap);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+
 void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
 {
     va_list ap;
@@ -1994,38 +1704,16 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
 /* tell client to update an existing numeric vector property */
 void IDSetNumberVA(const INumberVectorProperty *nvp, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    printf("<setNumberVector\n");
-    printf("  device='%s'\n", nvp->device);
-    printf("  name='%s'\n", nvp->name);
-    printf("  state='%s'\n", pstateStr(nvp->s));
-    printf("  timeout='%g'\n", nvp->timeout);
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf(">\n");
-
-    for (int i = 0; i < nvp->nnp; i++)
-    {
-        INumber *np = &nvp->np[i];
-        printf("  <oneNumber name='%s'>\n", np->name);
-        printf("      %.20g\n", np->value);
-        printf("  </oneNumber>\n");
-    }
-
-    printf("</setNumberVector>\n");
-    indi_locale_C_numeric_pop(orig);
+    userio_xmlv1(io, stdout);
+    IUUserIOSetNumberVA(io, stdout, nvp, fmt, ap);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+
 void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
 {
     va_list ap;
@@ -2037,38 +1725,16 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
 /* tell client to update an existing switch vector property */
 void IDSetSwitchVA(const ISwitchVectorProperty *svp, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    printf("<setSwitchVector\n");
-    printf("  device='%s'\n", svp->device);
-    printf("  name='%s'\n", svp->name);
-    printf("  state='%s'\n", pstateStr(svp->s));
-    printf("  timeout='%g'\n", svp->timeout);
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf(">\n");
-
-    for (int i = 0; i < svp->nsp; i++)
-    {
-        ISwitch *sp = &svp->sp[i];
-        printf("  <oneSwitch name='%s'>\n", sp->name);
-        printf("      %s\n", sstateStr(sp->s));
-        printf("  </oneSwitch>\n");
-    }
-
-    printf("</setSwitchVector>\n");
-    indi_locale_C_numeric_pop(orig);
+    userio_xmlv1(io, stdout);
+    IUUserIOSetSwitchVA(io, stdout, svp, fmt, ap);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+
 void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
 {
     va_list ap;
@@ -2080,35 +1746,16 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
 /* tell client to update an existing lights vector property */
 void IDSetLightVA(const ILightVectorProperty *lvp, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    printf("<setLightVector\n");
-    printf("  device='%s'\n", lvp->device);
-    printf("  name='%s'\n", lvp->name);
-    printf("  state='%s'\n", pstateStr(lvp->s));
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        escapeXML_vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf(">\n");
-
-    for (int i = 0; i < lvp->nlp; i++)
-    {
-        ILight *lp = &lvp->lp[i];
-        printf("  <oneLight name='%s'>\n", lp->name);
-        printf("      %s\n", pstateStr(lp->s));
-        printf("  </oneLight>\n");
-    }
-
-    printf("</setLightVector>\n");
+    userio_xmlv1(io, stdout);
+    IUUserIOSetLightVA(io, stdout, lvp, fmt, ap);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+
 void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
 {
     va_list ap;
@@ -2120,80 +1767,16 @@ void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
 /* tell client to update an existing BLOB vector property */
 void IDSetBLOBVA(const IBLOBVectorProperty *bvp, const char *fmt, va_list ap)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
 
-    xmlv1();
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    printf("<setBLOBVector\n");
-    printf("  device='%s'\n", bvp->device);
-    printf("  name='%s'\n", bvp->name);
-    printf("  state='%s'\n", pstateStr(bvp->s));
-    printf("  timeout='%g'\n", bvp->timeout);
-    printf("  timestamp='%s'\n", timestamp());
-    if (fmt)
-    {
-        printf("  message='");
-        // #PS: missing escapeXML_fputs ?
-        vprintf(fmt, ap);
-        printf("'\n");
-    }
-    printf(">\n");
-
-    for (int i = 0; i < bvp->nbp; i++)
-    {
-        IBLOB *bp = &bvp->bp[i];
-        unsigned char *encblob;
-        int l;
-
-        printf("  <oneBLOB\n");
-        printf("    name='%s'\n", bp->name);
-        printf("    size='%d'\n", bp->size);
-
-        // If size is zero, we are only sending a state-change
-        if (bp->size == 0)
-        {
-            printf("    enclen='0'\n");
-            printf("    format='%s'>\n", bp->format);
-        }
-        else
-        {
-            size_t sz = 4 * bp->bloblen / 3 + 4;
-            assert_mem(encblob = (unsigned char *)malloc(sz));
-            l = to64frombits_s(encblob, bp->blob, bp->bloblen, sz);
-            if (l == 0) {
-                fprintf(stderr, "%s(%s): Not enough memory for decoding.\n", me, __func__);
-                exit(1);
-            }
-            printf("    enclen='%d'\n", l);
-            printf("    format='%s'>\n", bp->format);
-            size_t written = 0;
-
-            while ((int)written < l)
-            {
-                size_t towrite = ((l - written) > 72) ? 72 : l - written;
-                size_t wr      = fwrite(encblob + written, 1, towrite, stdout);
-
-                if (wr > 0)
-                    written += wr;
-                if ((written % 72) == 0)
-                    fputc('\n', stdout);
-            }
-
-            if ((written % 72) != 0)
-                fputc('\n', stdout);
-
-            free(encblob);
-        }
-
-        printf("  </oneBLOB>\n");
-    }
-
-    printf("</setBLOBVector>\n");
-    indi_locale_C_numeric_pop(orig);
+    userio_xmlv1(io, stdout);
+    IUUserIOSetBLOBVA(io, stdout, bvp, fmt, ap);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
 }
+
 void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
 {
     va_list ap;
@@ -2205,31 +1788,11 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
 /* tell client to update min/max elements of an existing number vector property */
 void IUUpdateMinMax(const INumberVectorProperty *nvp)
 {
+    const userio *io = userio_file();
     pthread_mutex_lock(&stdout_mutex);
-    xmlv1();
-    locale_char_t *orig = indi_locale_C_numeric_push();
-    printf("<setNumberVector\n");
-    printf("  device='%s'\n", nvp->device);
-    printf("  name='%s'\n", nvp->name);
-    printf("  state='%s'\n", pstateStr(nvp->s));
-    printf("  timeout='%g'\n", nvp->timeout);
-    printf("  timestamp='%s'\n", timestamp());
-    printf(">\n");
 
-    for (int i = 0; i < nvp->nnp; i++)
-    {
-        INumber *np = &nvp->np[i];
-        printf("  <oneNumber name='%s'\n", np->name);
-        printf("    min='%g'\n", np->min);
-        printf("    max='%g'\n", np->max);
-        printf("    step='%g'\n", np->step);
-        printf(">\n");
-        printf("      %g\n", np->value);
-        printf("  </oneNumber>\n");
-    }
-
-    printf("</setNumberVector>\n");
-    indi_locale_C_numeric_pop(orig);
+    userio_xmlv1(io, stdout);
+    IUUserIOUpdateMinMax(io, stdout, nvp);
     fflush(stdout);
     pthread_mutex_unlock(&stdout_mutex);
 }

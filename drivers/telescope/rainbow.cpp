@@ -31,43 +31,6 @@
 
 static std::unique_ptr<Rainbow> scope(new Rainbow());
 
-void ISGetProperties(const char *dev)
-{
-    scope->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    scope->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    scope->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    scope->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-void ISSnoopDevice(XMLEle *root)
-{
-    scope->ISSnoopDevice(root);
-}
-
 Rainbow::Rainbow() : INDI::Telescope ()
 {
     setVersion(1, 1);
@@ -1255,7 +1218,7 @@ void Rainbow::addGuideTimer(Direction direction, uint32_t ms)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// Get Time from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getLocalTime(char *timeString)
 {
@@ -1266,10 +1229,16 @@ bool Rainbow::getLocalTime(char *timeString)
     }
     else
     {
-        double ctime = 0;
         int h, m, s;
-        getLocalTime24(PortFD, &ctime);
-        getSexComponents(ctime, &h, &m, &s);
+        char response[DRIVER_LEN] = {0};
+        if (!sendCommand(":GL#", response))
+            return false;
+
+        if (sscanf(response + 3, "%d:%d:%d", &h, &m, &s) != 3)
+        {
+            LOG_WARN("Failed to get time from device.");
+            return false;
+        }
         snprintf(timeString, MAXINDINAME, "%02d:%02d:%02d", h, m, s);
     }
 
@@ -1277,7 +1246,7 @@ bool Rainbow::getLocalTime(char *timeString)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// Get Date from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getLocalDate(char *dateString)
 {
@@ -1288,14 +1257,33 @@ bool Rainbow::getLocalDate(char *dateString)
     }
     else
     {
-        getCalendarDate(PortFD, dateString);
+        int dd, mm, yy;
+        char response[DRIVER_LEN] = {0};
+        char mell_prefix[3] = {0};
+        if (!sendCommand(":GC#", response))
+            return false;
+
+        if (sscanf(response + 3, "%d%*c%d%*c%d", &mm, &dd, &yy) != 3)
+        {
+            LOG_WARN("Failed to get date from device.");
+            return false;
+        }
+        else
+        {
+            if (yy > 50)
+                strncpy(mell_prefix, "19", 3);
+            else
+                strncpy(mell_prefix, "20", 3);
+            /* We need to have it in YYYY-MM-DD ISO format */
+            snprintf(dateString, 32, "%s%02d-%02d-%02d", mell_prefix, yy, mm, dd);
+        }
     }
 
     return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// GET UTC offset from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::getUTFOffset(double *offset)
 {
@@ -1305,15 +1293,25 @@ bool Rainbow::getUTFOffset(double *offset)
         return true;
     }
 
-    int lx200_utc_offset = 0;
-    getUTCOffset(PortFD, &lx200_utc_offset);
+    int rst135_utc_offset = 0;
+
+    char response[DRIVER_LEN] = {0};
+    if (!sendCommand(":GG#", response))
+        return false;
+
+    if (sscanf(response + 3, "%d", &rst135_utc_offset) != 1)
+    {
+        LOG_WARN("Failed to get UTC offset from device.");
+        return false;
+    }
+
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
-    *offset = lx200_utc_offset * -1;
+    *offset = rst135_utc_offset * -1;
     return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Time
+/// Get Time and Date from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::sendScopeTime()
 {
@@ -1383,12 +1381,13 @@ bool Rainbow::sendScopeTime()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-/// Send Location
+/// Get Location from mount
 /////////////////////////////////////////////////////////////////////////////
 bool Rainbow::sendScopeLocation()
 {
-    int dd = 0, mm = 0;
-    double ssf = 0.0;
+    double longitude {0}, latitude {0};
+    double dd = 0, mm = 0, ssf = 0;
+    char response[DRIVER_LEN] = {0};
 
     if (isSimulation())
     {
@@ -1400,7 +1399,11 @@ bool Rainbow::sendScopeLocation()
         return true;
     }
 
-    if (getSiteLatitude(PortFD, &dd, &mm, &ssf) < 0)
+    // Latitude
+    if (!sendCommand(":Gt#", response))
+        return false;
+
+    if (sscanf(response + 3, "%lf%*[^0-9]%lf%*[^0-9]%lf", &dd, &mm, &ssf) != 3)
     {
         LOG_WARN("Failed to get site latitude from device.");
         return false;
@@ -1408,12 +1411,16 @@ bool Rainbow::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[0].value = dd + mm / 60.0;
+            latitude = dd + mm / 60.0 + ssf / 3600.0;
         else
-            LocationNP.np[0].value = dd - mm / 60.0;
+            latitude = dd - mm / 60.0 - ssf / 3600.0;
     }
 
-    if (getSiteLongitude(PortFD, &dd, &mm, &ssf) < 0)
+    // Longitude
+    if (!sendCommand(":Gg#", response))
+        return false;
+
+    if (sscanf(response + 3, "%lf%*[^0-9]%lf%*[^0-9]%lf", &dd, &mm, &ssf) != 3)
     {
         LOG_WARN("Failed to get site longitude from device.");
         return false;
@@ -1421,18 +1428,24 @@ bool Rainbow::sendScopeLocation()
     else
     {
         if (dd > 0)
-            LocationNP.np[1].value = 360.0 - (dd + mm / 60.0);
+            longitude = 360.0 - (dd + mm / 60.0 + ssf / 3600.0);
         else
-            LocationNP.np[1].value = (dd - mm / 60.0) * -1.0;
+            longitude = (dd - mm / 60.0 - ssf / 3600.0) * -1.0;
 
     }
 
-    LOGF_DEBUG("Mount Controller Latitude: %.3f Longitude: %.3f", LocationN[LOCATION_LATITUDE].value,
-               LocationN[LOCATION_LONGITUDE].value);
-
-    IDSetNumber(&LocationNP, nullptr);
-
-    //saveConfig(true, "GEOGRAPHIC_COORD");
+    // Only update if different from current values
+    // and then immediately save to config.
+    if (std::abs(LocationN[LOCATION_LONGITUDE].value - longitude) > 0.001 ||
+            std::abs(LocationN[LOCATION_LATITUDE].value - latitude) > 0.001)
+    {
+        LocationN[LOCATION_LATITUDE].value = latitude;
+        LocationN[LOCATION_LONGITUDE].value = longitude;
+        LOGF_DEBUG("Mount Controller Latitude: %.3f Longitude: %.3f", LocationN[LOCATION_LATITUDE].value,
+                   LocationN[LOCATION_LONGITUDE].value);
+        IDSetNumber(&LocationNP, nullptr);
+        saveConfig(true, LocationNP.name);
+    }
 
     return true;
 }

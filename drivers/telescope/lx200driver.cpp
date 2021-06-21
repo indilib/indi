@@ -538,6 +538,22 @@ int getSiteName(int fd, char *siteName, int siteNum)
 
 int getSiteLatitude(int fd, int *dd, int *mm, double *ssf)
 {
+    return getSiteLatitudeAlt( fd, dd, mm, ssf, ":Gt#");
+}
+
+// Meade classic handset defines longitude as 0 to 360 WESTWARD. However,
+// Meade API expresses East Longitudes as negative, West Longitudes as positive.
+// Source: https://www.meade.com/support/LX200CommandSet.pdf from 2002 at :Gg#
+// (And also 10Micron has East Longitudes expressed as negative.)
+// Also note that this is the opposite of cartography where East is positive.
+int getSiteLongitude(int fd, int *ddd, int *mm, double *ssf)
+{
+    return getSiteLongitudeAlt(fd, ddd, mm, ssf, ":Gg#");
+}
+
+
+int getSiteLatitudeAlt(int fd, int *dd, int *mm, double *ssf, const char *cmd)
+{
     // :Gt# from 10Micron docs explaining the extensions to the standard LX200 protocol.
     // Get current site latitude.
     // Returns the latitude of the current site formatted as follows:
@@ -551,57 +567,57 @@ int getSiteLatitude(int fd, int *dd, int *mm, double *ssf)
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
-
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Gt#");
-
-/* Add mutex */
+    
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
+    
+    /* Add mutex */
     std::unique_lock<std::mutex> guard(lx200CommsLock);
-
+    
     tcflush(fd, TCIFLUSH);
-
-    if ((error_type = tty_write_string(fd, ":Gt#", &nbytes_write)) != TTY_OK)
+    
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
-
+    
     error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
-
+    
     tcflush(fd, TCIFLUSH);
-
+    
     if (nbytes_read < 1)
         return error_type;
-
+    
     read_buffer[nbytes_read - 1] = '\0';
-
+    
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
-
+    
     *ssf = 0.0;
     if (sscanf(read_buffer, "%d%*c%d:%lf", dd, mm, ssf) < 2)
     {
-        DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse :Gt# response");
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unable to parse %s response", cmd);
         return -1;
     }
-
+    
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d,%d,%.1lf]", *dd, *mm, *ssf);
-
+    
     int new_geo_format;
     switch (nbytes_read) {
-    case 9:
-    case 10:
-        new_geo_format = LX200_GEO_LONG_FORMAT;
-        break;
-    case 11:
-    case 12:
-        new_geo_format = LX200_GEO_LONGER_FORMAT;
-        break;
-    default:
-        new_geo_format = LX200_GEO_SHORT_FORMAT;
-        break;
+        case 9:
+        case 10:
+            new_geo_format = LX200_GEO_LONG_FORMAT;
+            break;
+        case 11:
+        case 12:
+            new_geo_format = LX200_GEO_LONGER_FORMAT;
+            break;
+        default:
+            new_geo_format = LX200_GEO_SHORT_FORMAT;
+            break;
     }
     if (new_geo_format != geo_format)
     {
         DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Updated geographic precision from setting %d to %d", geo_format, new_geo_format);
         geo_format = new_geo_format;
     }
-
+    
     return 0;
 }
 
@@ -610,7 +626,7 @@ int getSiteLatitude(int fd, int *dd, int *mm, double *ssf)
 // Source: https://www.meade.com/support/LX200CommandSet.pdf from 2002 at :Gg#
 // (And also 10Micron has East Longitudes expressed as negative.)
 // Also note that this is the opposite of cartography where East is positive.
-int getSiteLongitude(int fd, int *ddd, int *mm, double *ssf)
+int getSiteLongitudeAlt(int fd, int *ddd, int *mm, double *ssf, const char *cmd)
 {
     // :Gg# from 10Micron docs explaining the extensions to the standard LX200 protocol.
     // Get current site longitude.
@@ -621,63 +637,68 @@ int getSiteLongitude(int fd, int *ddd, int *mm, double *ssf)
     //  emulation, high precision
     // Extended emulation, high precision    sDDD*MM:SS# (sign, degrees, arcminutes, arcseconds)
     // Any emulation, ultra precision        sDDD:MM:SS.S# (sign, degrees, arcminutes, arcseconds, tenths of arcsecond)
-
+    
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
-
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Gg#");
-
-/* Add mutex */
+    
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
+    
+    /* Add mutex */
     std::unique_lock<std::mutex> guard(lx200CommsLock);
-
-    if ((error_type = tty_write_string(fd, ":Gg#", &nbytes_write)) != TTY_OK)
+    
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
-
+    
     error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
-
+    
     tcflush(fd, TCIFLUSH);
-
+    
     if (nbytes_read < 1)
         return error_type;
-
+    
     read_buffer[nbytes_read - 1] = '\0';
-
+    
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
-
+    
     *ssf = 0.0;
     if (sscanf(read_buffer, "%d%*c%d:%lf", ddd, mm, ssf) < 2)
     {
-        DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse :Gg# response");
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unable to parse %s response", cmd);
         return -1;
     }
     *ddd *= -1.0; // Convert LX200Longitude to CartographicLongitude
-
+    
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL in CartographicLongitude format [%d,%d,%.1lf]", *ddd, *mm, *ssf);
-
+    
     int new_geo_format;
     switch (nbytes_read) {
-    case 10:
-    case 11:
-        new_geo_format = LX200_GEO_LONG_FORMAT;
-        break;
-    case 12:
-    case 13:
-        new_geo_format = LX200_GEO_LONGER_FORMAT;
-        break;
-    default:
-        new_geo_format = LX200_GEO_SHORT_FORMAT;
-        break;
+        case 10:
+        case 11:
+            new_geo_format = LX200_GEO_LONG_FORMAT;
+            break;
+        case 12:
+        case 13:
+            new_geo_format = LX200_GEO_LONGER_FORMAT;
+            break;
+        default:
+            new_geo_format = LX200_GEO_SHORT_FORMAT;
+            break;
     }
     if (new_geo_format != geo_format)
     {
         DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Updated geographic precision from setting %d to %d", geo_format, new_geo_format);
         geo_format = new_geo_format;
     }
-
+    
     return 0;
 }
+
+
+
+
+
 
 int getTrackFreq(int fd, double *value)
 {
