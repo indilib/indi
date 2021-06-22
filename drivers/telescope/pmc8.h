@@ -178,8 +178,6 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         
         PMC8MoveInfo moveInfoRA, moveInfoDEC;
 
-        bool isInGoto = false;
-
         //PMC8Info scopeInfo;
         FirmwareInfo firmwareInfo;
 };
