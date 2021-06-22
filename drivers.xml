@@ -543,6 +543,10 @@
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>
             <version>1.6</version>
         </device>
+        <device label="Pegasus UCH" manufacturer="Pegasus Astro">
+            <driver name="Pegasus UCH">indi_pegasus_uch</driver>
+            <version>1.6</version>
+        </device>
          <device label="Pegasus FlatMaster" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster">indi_pegasus_flatmaster</driver>
             <version>1.0</version>
