@@ -116,14 +116,13 @@ bool DMFC::updateProperties()
 
     if (isConnected())
     {
-
-        defineProperty(&MotorTypeSP);
-        defineProperty(&MaxSpeedNP);
         defineProperty(&TemperatureNP);
         defineProperty(&EncoderSP);
-        deleteProperty(FocusReverseSP.name);
-        deleteProperty(FocusBacklashSP.name);
-        deleteProperty(FocusBacklashNP.name);
+        defineProperty(&FocusReverseSP);
+        defineProperty(&FocusBacklashSP);
+        defineProperty(&FocusBacklashNP);
+        defineProperty(&MotorTypeSP);
+        defineProperty(&MaxSpeedNP);
         defineProperty(&LEDSP);
         defineProperty(&FirmwareVersionTP);
     }
@@ -131,6 +130,9 @@ bool DMFC::updateProperties()
     {
         deleteProperty(TemperatureNP.name);
         deleteProperty(EncoderSP.name);
+        deleteProperty(FocusReverseSP.name);
+        deleteProperty(FocusBacklashSP.name);
+        deleteProperty(FocusBacklashNP.name);
         deleteProperty(MotorTypeSP.name);
         deleteProperty(MaxSpeedNP.name);
         deleteProperty(LEDSP.name);
