@@ -393,7 +393,7 @@ void PegasusUCH::setFirmwareVersion()
 
     if(sendCommand("PV", response))
     {
-        IUSaveText(&InfoT[2], response);
+        IUSaveText(&InfoT[INFO_VERSION], response);
         IDSetText(&InfoTP, nullptr);
     }
     else
