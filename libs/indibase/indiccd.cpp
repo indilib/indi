@@ -100,6 +100,8 @@ CCD::CCD()
     Airmass         = std::numeric_limits<double>::quiet_NaN();
     Latitude        = std::numeric_limits<double>::quiet_NaN();
     Longitude       = std::numeric_limits<double>::quiet_NaN();
+    Azimuth         = std::numeric_limits<double>::quiet_NaN();
+    Altitude        = std::numeric_limits<double>::quiet_NaN();
     primaryAperture = std::numeric_limits<double>::quiet_NaN();
     primaryFocalLength = std::numeric_limits<double>::quiet_NaN();
     guiderAperture = std::numeric_limits<double>::quiet_NaN();
@@ -838,6 +840,8 @@ bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * 
                 Latitude = std::numeric_limits<double>::quiet_NaN();
                 Longitude = std::numeric_limits<double>::quiet_NaN();
                 Airmass = std::numeric_limits<double>::quiet_NaN();
+                Azimuth = std::numeric_limits<double>::quiet_NaN();
+                Altitude = std::numeric_limits<double>::quiet_NaN();
             }
 
             if (strlen(ActiveDeviceT[ACTIVE_ROTATOR].text) > 0)
@@ -968,7 +972,9 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                         observer.longitude = Longitude;
 
                         EquatorialToHorizontal(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-                        Airmass = ln_get_airmass(horizontalPos.altitude, 750);
+                        Azimuth = horizontalPos.azimuth;
+                        Altitude = horizontalPos.altitude;
+                        Airmass = ln_get_airmass(Altitude, 750);
                     }
                 }
 
@@ -1817,7 +1823,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 
     // If the camera has a cooler OR if the temperature permission was explicitly set to Read-Only, then record the temperature
     if (HasCooler() || TemperatureNP.p == IP_RO)
-        fits_update_key_dbl(fptr, "CCD-TEMP", TemperatureN[0].value, 2, "CCD Temperature (Celsius)", &status);
+        fits_update_key_dbl(fptr, "CCD-TEMP", TemperatureN[0].value, 3, "CCD Temperature (Celsius)", &status);
 
     fits_update_key_dbl(fptr, "PIXSIZE1", subPixSize1, 6, "Pixel Size 1 (microns)", &status);
     fits_update_key_dbl(fptr, "PIXSIZE2", subPixSize2, 6, "Pixel Size 2 (microns)", &status);
@@ -1873,10 +1879,10 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     }
 
     if (!std::isnan(effectiveFocalLength))
-        fits_update_key_dbl(fptr, "FOCALLEN", effectiveFocalLength, 2, "Focal Length (mm)", &status);
+        fits_update_key_dbl(fptr, "FOCALLEN", effectiveFocalLength, 3, "Focal Length (mm)", &status);
 
     if (!std::isnan(effectiveAperture))
-        fits_update_key_dbl(fptr, "APTDIA", effectiveAperture, 2, "Telescope diameter (mm)", &status);
+        fits_update_key_dbl(fptr, "APTDIA", effectiveAperture, 3, "Telescope diameter (mm)", &status);
 
     if (!std::isnan(MPSAS))
     {
@@ -1934,9 +1940,12 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
             fits_update_key_dbl(fptr, "SITELONG", Longitude, 6, "Longitude of the imaging site in degrees", &status);
         }
         if (!std::isnan(Airmass))
+        {
             //fits_update_key_s(fptr, TDOUBLE, "AIRMASS", &Airmass, "Airmass", &status);
             fits_update_key_dbl(fptr, "AIRMASS", Airmass, 6, "Airmass", &status);
-
+            fits_update_key_dbl(fptr, "OBJCTAZ", Azimuth, 6, "Azimuth of center of image in Degrees", &status);
+            fits_update_key_dbl(fptr, "OBJCTALT", Altitude, 6, "Altitude of center of image in Degrees", &status);
+        }
         fits_update_key_str(fptr, "OBJCTRA", ra_str, "Object J2000 RA in Hours", &status);
         fits_update_key_str(fptr, "OBJCTDEC", de_str, "Object J2000 DEC in Degrees", &status);
 
