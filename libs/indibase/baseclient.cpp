@@ -38,7 +38,6 @@
 #include "indiuserio.h"
 
 #ifdef _WINDOWS
-#include <WinSock2.h>
 #include <windows.h>
 
 #define net_read(x,y,z) recv(x,y,z,0)
