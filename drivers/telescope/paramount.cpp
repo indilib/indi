@@ -980,7 +980,6 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
     // No response is requested.
     if (errorMessage == nullptr)
     {
-        tcdrain(PortFD);
         return true;
     }
 
