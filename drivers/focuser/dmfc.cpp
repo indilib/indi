@@ -38,6 +38,8 @@ static std::unique_ptr<DMFC> dmfc(new DMFC());
 
 DMFC::DMFC()
 {
+    setVersion(1, 1);
+
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
