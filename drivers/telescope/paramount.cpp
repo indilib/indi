@@ -70,7 +70,7 @@ const double slewspeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 25
 
 Paramount::Paramount()
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -346,7 +346,7 @@ INDI::Telescope::TelescopePierSide Paramount::getPierSide()
 
     if (sscanf(pRES, "|No error. Error = 0.%d#", &SkyXPierSide) == 1)
     {
-        return SkyXPierSide == 0 ? PIER_WEST : PIER_EAST;
+        return SkyXPierSide == 1 ? PIER_WEST : PIER_EAST;
     }
 
     LOGF_ERROR("Error reading Pier Side. Result: %s", pRES);
@@ -977,12 +977,6 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
         return false;
     }
 
-    // No response is requested.
-    if (errorMessage == nullptr)
-    {
-        return true;
-    }
-
     if ((rc = tty_read_section(PortFD, pRES, '#', timeout, &nbytes_read)) != TTY_OK)
     {
         LOGF_ERROR("Error reading sendTheSkyOKCommand from TheSkyX TCP server. Result: %d", rc);
@@ -1022,8 +1016,6 @@ IPState Paramount::GuideWest(uint32_t ms)
     return GuideWE(-static_cast<int>(ms));
 }
 
-/* Note: Handling Guide requests synchronously resources in serial implementation of
-   moves for each axis, when they could be handled concurrently with timers */
 IPState Paramount::GuideNS(int32_t ms)
 {
     if (TrackState == SCOPE_PARKED)
@@ -1033,14 +1025,14 @@ IPState Paramount::GuideNS(int32_t ms)
     }
 
     // Movement in arcseconds
+    // Send async
     double dDec = GuideRateN[DEC_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
     char pCMD[MAXRBUF] = {0};
     snprintf(pCMD, MAXRBUF,
              "sky6RASCOMTele.Asynchronous = true;"
              "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
 
-    // Send async and don't wait
-    if (!sendTheSkyOKCommand(pCMD, nullptr))
+    if (!sendTheSkyOKCommand(pCMD, "Guide North-South"))
         return IPS_ALERT;
 
     m_NSTimer.start(ms);
@@ -1057,14 +1049,14 @@ IPState Paramount::GuideWE(int32_t ms)
     }
 
     // Movement in arcseconds
+    // Send async
     double dRA  = GuideRateN[RA_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
     char pCMD[MAXRBUF] = {0};
     snprintf(pCMD, MAXRBUF,
              "sky6RASCOMTele.Asynchronous = true;"
              "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);
 
-    // Send async and do not wait
-    if (!sendTheSkyOKCommand(pCMD, nullptr))
+    if (!sendTheSkyOKCommand(pCMD, "Guide West-East"))
         return IPS_ALERT;
 
     m_WETimer.start(ms);
