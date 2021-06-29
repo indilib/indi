@@ -151,27 +151,31 @@ bool BaseClientPrivate::connect()
     }
 #endif
 
-    struct timeval ts;
+    struct timeval ts = {};
     ts.tv_sec  = timeout_sec;
     ts.tv_usec = timeout_us;
 
-    struct sockaddr_in serv_addr;
-    struct hostent *hp;
-    int ret = 0;
+    struct addrinfo *result = {};
+    struct addrinfo *rp = {};
+    struct addrinfo hints = {};
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
     /* lookup host address */
-    hp = gethostbyname(cServer.c_str());
-    if (!hp)
+    int gai_ret = getaddrinfo(cServer.c_str(), std::to_string(cPort).c_str(), &hints, &result);
+    if (gai_ret != 0)
     {
         perror("gethostbyname");
         return false;
     }
 
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        if (rp->ai_family == AF_INET || rp->ai_family == AF_INET6) {
+            break;
+        }
+    }
+
     /* create a socket to the INDI server */
-    (void)memset((char *)&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family      = AF_INET;
-    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-    serv_addr.sin_port        = htons(cPort);
 #ifdef _WINDOWS
     if ((sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
     {
@@ -180,7 +184,7 @@ bool BaseClientPrivate::connect()
         return false;
     }
 #else
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    if ((sockfd = socket(rp->ai_family, SOCK_STREAM, 0)) < 0)
     {
         perror("socket");
         return false;
@@ -214,7 +218,8 @@ bool BaseClientPrivate::connect()
     wset = rset; //structure assignment okok
 
     /* connect */
-    if ((ret = ::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
+    int ret = 0;
+    if ((ret = ::connect(sockfd, rp->ai_addr, rp->ai_addrlen)) < 0)
     {
         if (errno != EINPROGRESS)
         {
