@@ -20,11 +20,11 @@
 
 #include "indiapi.h"
 #include "indibase.h"
+#include "indimacros.h"
 
 #include <string>
 #include <vector>
 
-#include <indimacros.h>
 #include <memory>
 
 // #define MAXRBUF 2048 // #PS: defined in indibase.h
