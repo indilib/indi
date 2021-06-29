@@ -325,7 +325,7 @@ bool PegasusUCH::Handshake()
     char response[PEGASUS_LEN] = {0};
     if(sendCommand("P#", response))
     {
-        if(strstr("OK_UCH", response) != nullptr)
+        if(strstr("UCH_OK", response) != nullptr)
         {
             setFirmwareVersion();
             this->initialized = true;
