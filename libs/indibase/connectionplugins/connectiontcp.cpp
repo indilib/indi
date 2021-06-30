@@ -109,32 +109,28 @@ bool TCP::Connect()
 
     if (m_Device->isSimulation() == false)
     {
-        struct timeval ts = {};
+        struct sockaddr_in serv_addr;
+        struct hostent *hp = nullptr;
+
+        struct timeval ts;
         ts.tv_sec  = SOCKET_TIMEOUT;
         ts.tv_usec = 0;
 
         if (sockfd != -1)
             close(sockfd);
 
-        struct addrinfo *result = {};
-        struct addrinfo *rp = {};
-        struct addrinfo hints = {};
-        hints.ai_family = AF_UNSPEC;
-        hints.ai_socktype = SOCK_STREAM;
-
         // Lookup host name or IPv4 address
-        int gai_ret = getaddrinfo(hostname, port, &hints, &result);
-        if (gai_ret != 0)
+        hp = gethostbyname(hostname);
+        if (!hp)
         {
             LOG_ERROR("Failed to lookup IP Address or hostname.");
             return false;
         }
 
-        for (rp = result; rp != NULL; rp = rp->ai_next) {
-            if (rp->ai_family == AF_INET || rp->ai_family == AF_INET6) {
-                break;
-            }
-        }
+        memset(&serv_addr, 0, sizeof(serv_addr));
+        serv_addr.sin_family      = AF_INET;
+        serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+        serv_addr.sin_port        = htons(atoi(port));
 
         int socketType = 0;
         if (TcpUdpS[0].s == ISS_ON)
@@ -146,7 +142,7 @@ bool TCP::Connect()
             socketType = SOCK_DGRAM;
         }
 
-        if ((sockfd = socket(rp->ai_family, socketType, 0)) < 0)
+        if ((sockfd = socket(AF_INET, socketType, 0)) < 0)
         {
             LOG_ERROR("Failed to create socket.");
             return false;
@@ -157,7 +153,7 @@ bool TCP::Connect()
         setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts, sizeof(struct timeval));
 
         // Connect to the device
-        if (::connect(sockfd, rp->ai_addr, rp->ai_addrlen) < 0)
+        if (::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
         {
             LOGF_ERROR("Failed to connect to %s@%s: %s.", hostname, port, strerror(errno));
             close(sockfd);
