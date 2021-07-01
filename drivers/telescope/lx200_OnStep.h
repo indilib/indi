@@ -24,10 +24,9 @@
     ===========================================
     
     Version not yet updated:
-    
-    Version 1.11:
-    
-    
+    Version 1.11: 
+
+    Past Versions: 
     Version 1.10: (finalized: INDI 1.9.1)
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
     - Ability to swap primary focuser.
