@@ -43,6 +43,7 @@
 #include <cmath>
 #include <cstring>
 #include <memory>
+#include <termios.h>
 
 // We declare an auto pointer to Paramount.
 std::unique_ptr<Paramount> paramount_mount(new Paramount());
@@ -69,7 +70,7 @@ const double slewspeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 25
 
 Paramount::Paramount()
 {
-    setVersion(1, 2);
+    setVersion(1, 4);
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -78,6 +79,24 @@ Paramount::Paramount()
                            TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PIER_SIDE,
                            9);
     setTelescopeConnection(CONNECTION_TCP);
+
+    m_NSTimer.setSingleShot(true);
+    m_WETimer.setSingleShot(true);
+
+    // Called when timer is up
+    m_NSTimer.callOnTimeout([this]()
+    {
+        GuideNSNP.s = IPS_IDLE;
+        GuideNSN[0].value = GuideNSN[1].value = 0;
+        IDSetNumber(&GuideNSNP, nullptr);
+    });
+
+    m_WETimer.callOnTimeout([this]()
+    {
+        GuideWENP.s = IPS_IDLE;
+        GuideWEN[0].value = GuideWEN[1].value = 0;
+        IDSetNumber(&GuideWENP, nullptr);
+    });
 }
 
 const char *Paramount::getDefaultName()
@@ -327,7 +346,7 @@ INDI::Telescope::TelescopePierSide Paramount::getPierSide()
 
     if (sscanf(pRES, "|No error. Error = 0.%d#", &SkyXPierSide) == 1)
     {
-        return SkyXPierSide == 0 ? PIER_WEST : PIER_EAST;
+        return SkyXPierSide == 1 ? PIER_WEST : PIER_EAST;
     }
 
     LOGF_ERROR("Error reading Pier Side. Result: %s", pRES);
@@ -950,6 +969,8 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
 
     LOGF_DEBUG("CMD: %s", pCMD);
 
+    tcflush(PortFD, TCIOFLUSH);
+
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
         LOGF_ERROR("Error writing sendTheSkyOKCommand to TheSkyX TCP server. Result: $%d", rc);
@@ -963,6 +984,8 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
     }
 
     LOGF_DEBUG("RES: %s", pRES);
+
+    tcflush(PortFD, TCIOFLUSH);
 
     if (strcmp("|No error. Error = 0.OK#", pRES) == 0 )
         return true;
@@ -993,8 +1016,6 @@ IPState Paramount::GuideWest(uint32_t ms)
     return GuideWE(-static_cast<int>(ms));
 }
 
-/* Note: Handling Guide requests synchronously resources in serial implementation of
-   moves for each axis, when they could be handled concurrently with timers */
 IPState Paramount::GuideNS(int32_t ms)
 {
     if (TrackState == SCOPE_PARKED)
@@ -1004,19 +1025,19 @@ IPState Paramount::GuideNS(int32_t ms)
     }
 
     // Movement in arcseconds
+    // Send async
     double dDec = GuideRateN[DEC_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
-
     char pCMD[MAXRBUF] = {0};
-    snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
+    snprintf(pCMD, MAXRBUF,
+             "sky6RASCOMTele.Asynchronous = true;"
+             "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
 
-    // Set Guide axis busy for the duration of the synchronous command
-    GuideNSNP.s = IPS_BUSY;
-    if (!sendTheSkyOKCommand(pCMD, "DirectGuiding North-South", PARAMOUNT_TIMEOUT))
+    if (!sendTheSkyOKCommand(pCMD, "Guide North-South"))
         return IPS_ALERT;
 
-    GuideNSNP.np[0].value = 0;
-    GuideNSNP.np[1].value = 0;
-    return IPS_IDLE;
+    m_NSTimer.start(ms);
+
+    return IPS_BUSY;
 }
 
 IPState Paramount::GuideWE(int32_t ms)
@@ -1028,19 +1049,19 @@ IPState Paramount::GuideWE(int32_t ms)
     }
 
     // Movement in arcseconds
+    // Send async
     double dRA  = GuideRateN[RA_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
-
     char pCMD[MAXRBUF] = {0};
-    snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);
+    snprintf(pCMD, MAXRBUF,
+             "sky6RASCOMTele.Asynchronous = true;"
+             "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);
 
-    // Set Guide axis busy for the duration of the synchronous command
-    GuideWENP.s = IPS_BUSY;
-    if (!sendTheSkyOKCommand(pCMD, "DirectGuiding West-East", PARAMOUNT_TIMEOUT))
+    if (!sendTheSkyOKCommand(pCMD, "Guide West-East"))
         return IPS_ALERT;
 
-    GuideWENP.np[0].value = 0;
-    GuideWENP.np[1].value = 0;
-    return IPS_IDLE;
+    m_WETimer.start(ms);
+
+    return IPS_BUSY;
 }
 
 bool Paramount::setTheSkyTracking(bool enable, bool isSidereal, double raRate, double deRate)

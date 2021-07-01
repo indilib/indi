@@ -18,6 +18,29 @@
 
 */
 
+/*
+This is the Rainbow API. A pdf is in the driver docs folder.
+
+Command              Send      Receive     Comment
+
+Get Position         :Fp#      :FPsDD.DDD# s is + or -, 
+                                           sDD.DDD is a float number
+                                           range: -08.000 to +08.000
+                                           unit millimeters
+
+Is Focus Moving      :Fs#      :FS0#       not moving
+                               :FS1#       moving
+
+Temperature          :Ft1#      :FT1sDD.D# s is + or -, DD.D temp in celcius
+
+Move Absolute        :FmsDDDD#  :FM#       s is + or -, DDDD from -8000 to 8000
+
+Move Relative        :FnsDDDD#  :FM#       s is + or -, DDDD from -8000 to 8000
+                                           neg numbers move away from main mirror
+
+Move Home            :Fh#       :FH#
+*/
+
 #include "rainbowRSF.h"
 #include "indicom.h"
 
@@ -75,6 +98,7 @@ bool RainbowRSF::initProperties()
     FocusRelPosN[0].step = 1000;
 
     addSimulationControl();
+    addDebugControl();
 
     return true;
 }
@@ -142,6 +166,28 @@ bool RainbowRSF::Handshake()
 /////////////////////////////////////////////////////////////////////////////
 ///
 /////////////////////////////////////////////////////////////////////////////
+
+namespace {
+bool parsePosition(char *result, int *pos)
+{
+  const int length = strlen(result);
+  if (length < 6) return false;
+  // Check for a decimal/period
+  char *period = strchr(result+3, '.');
+  if (period == nullptr) return false;
+
+  float position;
+  if (sscanf(result, ":FP%f#", &position) == 1)
+  {
+      // position is a float number between -8 and +8 that needs to be multiplied by 1000.
+      *pos = position * 1000;
+      return true;
+  }
+  return false;
+}
+}  // namespace
+
+
 bool RainbowRSF::updatePosition()
 {
     char res[DRIVER_LEN] = {0};
@@ -195,15 +241,17 @@ bool RainbowRSF::updatePosition()
     /////////////////////////////////////////////////////////////////////////////
     /// Real Driver
     /////////////////////////////////////////////////////////////////////////////
-    else if (sendCommand(":Fp#", res) == false)
+    else if (sendCommand(":Fp#", res, DRIVER_LEN) == false)
         return false;
 
     int newPosition { 0 };
-    if (sscanf(res, ":FP%d#", &newPosition) == 1)
-    {
+    bool ok = parsePosition(res, &newPosition);
+    if (ok) {
         FocusAbsPosN[0].value = newPosition + 8000;
 
-        if (FocusAbsPosN[0].value == m_TargetPosition)
+        const int offset = FocusAbsPosN[0].value - m_TargetPosition;
+        constexpr int TOLERANCE = 1;  // Off-by-one position is ok given the resolution of the response.
+        if (std::abs(offset) <= TOLERANCE)
         {
             if (GoHomeSP.s == IPS_BUSY)
             {
@@ -252,7 +300,7 @@ bool RainbowRSF::updateTemperature()
     if (isSimulation())
         strncpy(res, ":FT1+23.5#", DRIVER_LEN);
 
-    else if (sendCommand(":Ft1#", res) == false)
+    else if (sendCommand(":Ft1#", res, DRIVER_LEN) == false)
         return false;
 
     if (sscanf(res, ":FT1%g", &temperature) == 1)
@@ -276,14 +324,15 @@ IPState RainbowRSF::MoveAbsFocuser(uint32_t targetTicks)
     m_TargetPosition = targetTicks;
 
     char cmd[DRIVER_LEN] = {0};
+    char res[DRIVER_LEN] = {0};
     int steps = targetTicks - 8000;
 
     snprintf(cmd, 16, ":Fm%c%04d#", steps >= 0 ? '+' : '-', std::abs(steps));
 
     if (isSimulation() == false)
     {
-        if (sendCommand(cmd) == false)
-            return IPS_ALERT;
+      if (sendCommand(cmd, res, DRIVER_LEN) == false)
+          return IPS_ALERT;
     }
     return IPS_BUSY;
 }
@@ -314,7 +363,8 @@ bool RainbowRSF::findHome()
     {
         m_TargetPosition = homePosition;
         FocusAbsPosNP.s = IPS_BUSY;
-        return sendCommand(":Fh#");
+        char res[DRIVER_LEN] = {0};
+        return sendCommand(":Fh#", res, DRIVER_LEN);
     }
 }
 
@@ -363,28 +413,20 @@ void RainbowRSF::TimerHit()
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
-bool RainbowRSF::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
+bool RainbowRSF::sendCommand(const char * cmd, char * res, int res_len)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    if (cmd == nullptr || res == nullptr || res_len <= 0)
+      return false;
+    const int cmd_len = strlen(cmd);
+    if (cmd_len <= 0)
+      return false;
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if (cmd_len > 0)
-    {
-        char hex_cmd[DRIVER_LEN * 3] = {0};
-        hexDump(hex_cmd, cmd, cmd_len);
-        LOGF_DEBUG("CMD <%s>", hex_cmd);
-        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
-    }
-    else
-    {
-        LOGF_DEBUG("CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
-        char formatted_command[DRIVER_LEN] = {0};
-        snprintf(formatted_command, DRIVER_LEN, "%s\r", cmd);
-        rc = tty_write_string(PortFD, formatted_command, &nbytes_written);
-    }
-
+    int nbytes_written = 0;
+    int rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
     if (rc != TTY_OK)
     {
         char errstr[MAXRBUF] = {0};
@@ -393,14 +435,12 @@ bool RainbowRSF::sendCommand(const char * cmd, char * res, int cmd_len, int res_
         return false;
     }
 
-    if (res == nullptr)
-        return true;
-
-    if (res_len > 0)
-        rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
-    else
-        rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
-
+    int nbytes_read = 0;
+    rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR,
+                           DRIVER_TIMEOUT, &nbytes_read);
+    if (nbytes_read == DRIVER_LEN)
+        return false;
+    res[nbytes_read] = 0;
     if (rc != TTY_OK)
     {
         char errstr[MAXRBUF] = {0};
@@ -409,32 +449,9 @@ bool RainbowRSF::sendCommand(const char * cmd, char * res, int cmd_len, int res_
         return false;
     }
 
-    if (res_len > 0)
-    {
-        char hex_res[DRIVER_LEN * 3] = {0};
-        hexDump(hex_res, res, res_len);
-        LOGF_DEBUG("RES <%s>", hex_res);
-    }
-    else
-    {
-        // Remove extra \r
-        res[nbytes_read - 1] = 0;
-        LOGF_DEBUG("RES <%s>", res);
-    }
+    LOGF_DEBUG("RES <%s>", res);
 
     tcflush(PortFD, TCIOFLUSH);
 
     return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-///
-/////////////////////////////////////////////////////////////////////////////////////
-void RainbowRSF::hexDump(char * buf, const char * data, int size)
-{
-    for (int i = 0; i < size; i++)
-        sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
-
-    if (size > 0)
-        buf[3 * size - 1] = '\0';
 }

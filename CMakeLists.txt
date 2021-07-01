@@ -5,9 +5,6 @@ PROJECT(libindi C CXX)
 # to always look for includes there:
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-# Build Position Independent Code
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake_modules/")
 include(GNUInstallDirs)
@@ -1584,6 +1581,14 @@ SET(pegasus_upb_SRC
 add_executable(indi_pegasus_upb ${pegasus_upb_SRC})
 target_link_libraries(indi_pegasus_upb indidriver)
 install(TARGETS indi_pegasus_upb RUNTIME DESTINATION bin)
+########### Pegasus USB Control Hub  ###############
+
+SET(pegasus_uch_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/pegasus_uch.cpp)
+
+add_executable(indi_pegasus_uch ${pegasus_uch_SRC})
+target_link_libraries(indi_pegasus_uch indidriver)
+install(TARGETS indi_pegasus_uch RUNTIME DESTINATION bin)
 ########### Pegasus FlatMaster ###############
 
 SET(pegasus_fm_SRC
@@ -1816,12 +1821,21 @@ install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
 
 ########### Deep Sky Dad FP1 ###############
 
-SET(snapcap_SRC
+SET(deepskydad_fp1_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/deepskydad_fp1.cpp)
 
-add_executable(indi_deepskydad_fp1 ${snapcap_SRC})
+add_executable(indi_deepskydad_fp1 ${deepskydad_fp1_SRC})
 target_link_libraries(indi_deepskydad_fp1 indidriver)
 install(TARGETS indi_deepskydad_fp1 RUNTIME DESTINATION bin)
+
+########### Deep Sky Dad FR1 ###############
+
+SET(deepskydad_fr1_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/deepskydad_fr1.cpp)
+
+add_executable(indi_deepskydad_fr1 ${deepskydad_fr1_SRC})
+target_link_libraries(indi_deepskydad_fr1 indidriver)
+install(TARGETS indi_deepskydad_fr1 RUNTIME DESTINATION bin)
 
 #####################################
 ############ INDI TOOLS #############

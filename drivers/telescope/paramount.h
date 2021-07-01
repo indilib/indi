@@ -24,6 +24,7 @@
 
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
+#include "inditimer.h"
 
 class Paramount : public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -92,7 +93,6 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         double targetRA { 0 };
         double targetDEC { 0 };
 
-        //INDI::IHorizontalCoordinates lnaltaz { 0, 0 };
         unsigned int DBG_SCOPE { 0 };
 
         // Jog Rate
@@ -111,6 +111,9 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
         ISwitchVectorProperty HomeSP;
         ISwitch HomeS[1];
 
+        // Timers
+        INDI::Timer m_NSTimer;
+        INDI::Timer m_WETimer;
         // Tracking Rate
         //    INumber TrackRateN[2];
         //    INumberVectorProperty TrackRateNP;

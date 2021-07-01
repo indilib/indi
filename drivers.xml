@@ -263,15 +263,15 @@
         </device>
         <device label="ES G-11 PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.3</version>
+            <version>0.4</version>
         </device>
         <device label="ES EXOS2-GT PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.3</version>
+            <version>0.4</version>
         </device>
         <device label="ES iEXOS100 PMC-Eight" manufacturer="Explore Scientific">
             <driver name="PMC8">indi_pmc8_telescope</driver>
-            <version>0.3</version>
+            <version>0.4</version>
         </device>
     </devGroup>
     <devGroup group="Focusers">
@@ -361,7 +361,7 @@
         </device>
         <device label="Pegasus DMFC" manufacturer="Pegasus Astro">
             <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
-            <version>1.0</version>
+            <version>1.1</version>
         </device>
          <device label="Pegasus FocusCube" manufacturer="Pegasus Astro">
             <driver name="Pegasus FocusCube">indi_pegasus_focuscube</driver>
@@ -543,6 +543,10 @@
             <driver name="Pegasus UPB">indi_pegasus_upb</driver>
             <version>1.6</version>
         </device>
+        <device label="Pegasus UCH" manufacturer="Pegasus Astro">
+            <driver name="Pegasus UCH">indi_pegasus_uch</driver>
+            <version>1.6</version>
+        </device>
          <device label="Pegasus FlatMaster" manufacturer="Pegasus Astro">
             <driver name="Pegasus FlatMaster">indi_pegasus_flatmaster</driver>
             <version>1.0</version>
@@ -597,6 +601,10 @@
         </device>
 		<device label="DeepSkyDad FP1" manufacturer="DeepSkyDad">
             <driver name="DeepSkyDad FP1">indi_deepskydad_fp1</driver>
+            <version>1.0</version>
+        </device>
+		<device label="DeepSkyDad FR1" manufacturer="DeepSkyDad">
+            <driver name="DeepSkyDad FR1">indi_deepskydad_fr1</driver>
             <version>1.0</version>
         </device>
     </devGroup>

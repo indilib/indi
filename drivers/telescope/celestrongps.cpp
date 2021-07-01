@@ -470,7 +470,7 @@ bool CelestronGPS::updateProperties()
         // last align is only available for mounts with switches that define the start index position
         // At present that is only the CGX and CGX-L mounts so the control is only made available for them
         // comment out this line and rebuild if you want to run with other mounts - at your own risk!
-        if (strcmp(fwInfo.Model.c_str(), "CGX") == 0)
+        if (fwInfo.hasHomeIndex)
         {
             defineProperty(&LastAlignSP);
         }
@@ -782,7 +782,7 @@ bool CelestronGPS::ReadScopeStatus()
             // reached the index position.
 
             // do an alignment
-            if (strcmp(fwInfo.Model.c_str(), "CGX") != 0)
+            if (!fwInfo.hasHomeIndex)
             {
                 // put another dire warning here
                 LOG_WARN("This mount does not have index switches, the alignment assumes it is at the index position.");
@@ -1085,7 +1085,7 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
 
         if (name && std::string(name) == LastAlignSP.name)
         {
-            if (strcmp(fwInfo.Model.c_str(), "CGX") != 0)
+            if (!fwInfo.hasHomeIndex)
             {
                 // put the dire warning here
                 LOG_WARN("This mount does not have index switches, make sure that it is at the index position.");

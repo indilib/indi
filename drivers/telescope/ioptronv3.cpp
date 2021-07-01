@@ -103,8 +103,8 @@ bool IOptronV3::initProperties()
 
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
-    AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_LUNAR", "Lunar");
+    AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_KING", "King");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
