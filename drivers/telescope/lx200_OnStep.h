@@ -24,14 +24,17 @@
     ===========================================
     
     Version not yet updated:
-    - Manage OnStep Auxiliary Feature Names in Output Tab
     
-    Version 1.10: 
+    Version 1.11:
+    
+    
+    Version 1.10: (finalized: INDI 1.9.1)
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
     - Ability to swap primary focuser.
     - High precision on location, and not overridding GPS even when marked for Mount > KStars.
     - Added Rotator & De-Rotator Support
-    - TMC_SPI status reported (RAW) on the Status Tab. (ST = Standstill, Ox = open load A/B, Gx = grounded A/B, OT = Overtemp Shutdown, PW = Overtemp Prewarning) 
+    - TMC_SPI status reported (RAW) on the Status Tab. (ST = Standstill, Ox = open load A/B, Gx = grounded A/B, OT = Overtemp Shutdown, PW = Overtemp Prewarning)
+    - Manage OnStep Auxiliary Feature Names in Output Tab
 
     Version 1.9:
     - Weather support for Reading temperature/humidity/pressure (Values are Read-Only)
