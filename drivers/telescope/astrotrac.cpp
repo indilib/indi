@@ -33,6 +33,7 @@
 #include <memory>
 #include <regex>
 #include <array>
+#include <termios.h>
 
 std::unique_ptr<AstroTrac> AstroTrac_mount(new AstroTrac());
 const std::array<uint32_t, AstroTrac::SLEW_MODES> AstroTrac::SLEW_SPEEDS = {{1, 2, 4, 8, 32, 64, 128, 600, 700, 800}};
@@ -212,16 +213,23 @@ bool AstroTrac::getAcceleration(INDI_EQ_AXIS axis)
     snprintf(command, DRIVER_LEN, "<%da?>", axis + 1);
     if (sendCommand(command, response))
     {
-        std::string acceleration = std::regex_replace(
-                                       response,
-                                       std::regex("<.a(\\d+)>"),
-                                       std::string("$1"));
+        try
+        {
+            std::string acceleration = std::regex_replace(
+                                           response,
+                                           std::regex("<.a(\\d+)>"),
+                                           std::string("$1"));
 
-        AccelerationNP[axis].setValue(std::stoi(acceleration));
-        return true;
+            AccelerationNP[axis].setValue(std::stoi(acceleration));
+            return true;
+        }
+        catch(...)
+        {
+            LOGF_DEBUG("Failed to parse acceleration (%s)", response);
+        }
     }
-    else
-        return false;
+
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -248,16 +256,23 @@ bool AstroTrac::getVelocity(INDI_EQ_AXIS axis)
     snprintf(command, DRIVER_LEN, "<%dv?>", axis + 1);
     if (sendCommand(command, response))
     {
-        std::string velocity = std::regex_replace(
-                                   response,
-                                   std::regex("<.v([0-9]+\\.[0-9]+?)>"),
-                                   std::string("$1"));
+        try
+        {
+            std::string velocity = std::regex_replace(
+                                       response,
+                                       std::regex("<.v([0-9]+\\.[0-9]+?)>"),
+                                       std::string("$1"));
 
-        TrackRateN[axis].value = std::stod(velocity);
-        return true;
+            TrackRateN[axis].value = std::stod(velocity);
+            return true;
+        }
+        catch(...)
+        {
+            LOGF_DEBUG("Failed to parse velocity (%s)", response);
+        }
     }
-    else
-        return false;
+
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -342,21 +357,26 @@ bool AstroTrac::getEncoderPosition(INDI_EQ_AXIS axis)
 {
     char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
     snprintf(command, DRIVER_LEN, "<%dp?>", axis + 1);
-    if (sendCommand(command, response))
+    for (int i = 0; i < 3; i++)
     {
-        try
+        if (sendCommand(command, response))
         {
-            std::string position = std::regex_replace(
-                                       response,
-                                       std::regex("<.p([+-]?[0-9]+\\.[0-9]+?)>"),
-                                       std::string("$1"));
+            try
+            {
+                char regex_str[64] = {0};
+                snprintf(regex_str, 64, "<%dp([+-]?[0-9]+\\.[0-9]+?)>", axis + 1);
+                std::string position = std::regex_replace(
+                                           response,
+                                           std::regex(regex_str),
+                                           std::string("$1"));
 
-            EncoderNP[axis].setValue(std::stod(position));
-            return true;
-        }
-        catch(...)
-        {
-            LOGF_DEBUG("Failed to parse position (%s)", response);
+                EncoderNP[axis].setValue(std::stod(position));
+                return true;
+            }
+            catch(...)
+            {
+                LOGF_DEBUG("Failed to parse position (%s)", response);
+            }
         }
     }
 
@@ -1021,6 +1041,8 @@ bool AstroTrac::sendCommand(const char * cmd, char * res, int cmd_len, int res_l
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
+    tcflush(PortFD, TCIOFLUSH);
+
     if (cmd_len > 0)
     {
         char hex_cmd[DRIVER_LEN * 3] = {0};
@@ -1043,7 +1065,10 @@ bool AstroTrac::sendCommand(const char * cmd, char * res, int cmd_len, int res_l
     }
 
     if (res == nullptr)
+    {
+        tcdrain(PortFD);
         return true;
+    }
 
     if (res_len > 0)
         rc = tty_read(PortFD, res, res_len, DRIVER_TIMEOUT, &nbytes_read);
@@ -1068,6 +1093,8 @@ bool AstroTrac::sendCommand(const char * cmd, char * res, int cmd_len, int res_l
     {
         LOGF_DEBUG("RES <%s>", res);
     }
+
+    tcflush(PortFD, TCIOFLUSH);
 
     return true;
 }

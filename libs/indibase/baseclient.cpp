@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 
 #include "baseclient.h"
 
@@ -38,7 +39,7 @@
 #include "indiuserio.h"
 
 #ifdef _WINDOWS
-#include <WinSock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 
 #define net_read(x,y,z) recv(x,y,z,0)
@@ -101,7 +102,7 @@ BaseClientPrivate::~BaseClientPrivate()
         disconnect(0);
 
     std::unique_lock<std::mutex> locker(sSocketBusy);
-    if (!sSocketChanged.wait_for(locker, std::chrono::milliseconds(500), [this]{ return sConnected == false; }))
+    if (!sSocketChanged.wait_for(locker, std::chrono::milliseconds(500), [this] { return sConnected == false; }))
     {
         IDLog("BaseClient::~BaseClient: Probability of detecting a deadlock.\n");
         /* #PS:
@@ -472,15 +473,15 @@ void BaseClientPrivate::listenINDI()
         close(receiveFd);
         close(sendFd);
 #endif
-        clear();
-        cDeviceNames.clear();
-        sConnected = false;
-        sSocketChanged.notify_all();
 
         exit_code = sAboutToClose ? sExitCode : -1;
-    }
+        sConnected = false;
+        parent->serverDisconnected(exit_code);
 
-    disconnect(exit_code);
+        clear();
+        cDeviceNames.clear();
+        sSocketChanged.notify_all();
+    }
 }
 
 size_t BaseClientPrivate::sendData(const void *data, size_t size)

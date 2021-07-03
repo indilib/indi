@@ -564,6 +564,8 @@ class CCD : public DefaultDevice, GuiderInterface
         double Airmass;
         double Latitude;
         double Longitude;
+        double Azimuth;
+        double Altitude;
 
         // Temperature Control
         double m_TargetTemperature {0};
