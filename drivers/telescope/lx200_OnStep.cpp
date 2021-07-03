@@ -667,6 +667,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OSSetAltitudeNP.name);
         RI::updateProperties();
     }
+    LOG_INFO("Initialization Complete");
     return true;
 }
 
