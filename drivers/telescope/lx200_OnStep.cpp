@@ -39,7 +39,7 @@
 
 #define ONSTEP_TIMEOUT  1
 #define ONSTEP_TIMEOUT_SECONDS 0
-#define ONSTEP_TIMEOUT_MICROSECONDS 0
+#define ONSTEP_TIMEOUT_MICROSECONDS 250000
 #define RA_AXIS     0
 #define DEC_AXIS    1
 
@@ -421,7 +421,7 @@ void LX200_OnStep::ISGetProperties(const char *dev)
 
 bool LX200_OnStep::updateProperties()
 {
-    int i;
+//     int i;
     char cmd[32];
     LX200Generic::updateProperties();
     FI::updateProperties();
@@ -490,6 +490,7 @@ bool LX200_OnStep::updateProperties()
         } else { //For OnStepX, up to 9 focusers
             LOG_INFO("Focuser 2 NOT found (Checking for OnStepX Focusers)");
             OSFocuser2 = false;
+            int i;
             for (i = 0; i < 9; i++) {
                 char read_buffer[RB_MAX_LEN] = {0};
                 snprintf(cmd, 7, ":F%dA#", i + 1);
