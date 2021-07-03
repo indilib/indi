@@ -167,6 +167,9 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         virtual bool sendScopeTime() override;
         virtual bool sendScopeLocation() override;
         
+        // Goto
+        virtual bool Goto(double ra, double dec) override;
+        
         //FocuserInterface
 
         IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;

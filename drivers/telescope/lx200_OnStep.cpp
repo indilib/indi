@@ -3940,3 +3940,87 @@ bool LX200_OnStep::sendScopeLocation()
     
     return true;
 }
+
+
+bool LX200_OnStep::Goto(double ra, double dec)
+{
+    const struct timespec timeout = {0, 100000000L};
+    
+    targetRA  = ra;
+    targetDEC = dec;
+    char RAStr[64] = {0}, DecStr[64] = {0};
+    int fracbase = 0;
+    
+    switch (getLX200EquatorialFormat())
+    {
+        case LX200_EQ_LONGER_FORMAT:
+            fracbase = 360000;
+            break;
+        case LX200_EQ_LONG_FORMAT:
+        case LX200_EQ_SHORT_FORMAT:
+        default:
+            fracbase = 3600;
+            break;
+    }
+    
+    fs_sexa(RAStr, targetRA, 2, fracbase);
+    fs_sexa(DecStr, targetDEC, 2, fracbase);
+    
+    // If moving, let's stop it first.
+    if (EqNP.s == IPS_BUSY)
+    {
+        if (!isSimulation() && abortSlew(PortFD) < 0)
+        {
+            AbortSP.s = IPS_ALERT;
+            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            return false;
+        }
+        
+        AbortSP.s = IPS_OK;
+        EqNP.s    = IPS_IDLE;
+        IDSetSwitch(&AbortSP, "Slew aborted.");
+        IDSetNumber(&EqNP, nullptr);
+        
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        {
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
+            IUResetSwitch(&MovementNSSP);
+            IUResetSwitch(&MovementWESP);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            IDSetSwitch(&MovementWESP, nullptr);
+        }
+        
+        // sleep for 100 mseconds
+        nanosleep(&timeout, nullptr);
+    }
+    
+    if (!isSimulation())
+    {
+        if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC.");
+            return false;
+        }
+        
+        int err = 0;
+        
+        /* Slew reads the '0', that is not the end of the slew */
+        if ((err = Slew(PortFD)))
+        {
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+            slewError(err);
+            return false;
+        }
+    }
+    
+    //OnStep: DON'T set TrackState, this may resolve issues with the autoalign, this is updated by the status updates.
+//     TrackState = SCOPE_SLEWING;
+    //EqNP.s     = IPS_BUSY;
+    
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    
+    return true;
+}
