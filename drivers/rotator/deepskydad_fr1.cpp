@@ -277,7 +277,7 @@ bool DeepSkyDadFR1::getStatusData()
     const IPState motionState = motorStatus == 1 ? IPS_BUSY : IPS_OK;
 
     double motorPositionDouble = (double)motorPosition/(double)100;
-    if (std::abs(motorPositionDouble - GotoRotatorN[0].value) > 0.01 || GotoRotatorNP.s != motionState)
+    if (fabs(motorPositionDouble - GotoRotatorN[0].value) > 0.01 || GotoRotatorNP.s != motionState)
 	{
         GotoRotatorN[0].value = motorPositionDouble;
 		GotoRotatorNP.s = motionState;
