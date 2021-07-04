@@ -310,10 +310,10 @@ bool AstroTrac::stopMotion(INDI_EQ_AXIS axis)
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::isSlewComplete()
 {
-    char response[DRIVER_LEN] = {0};
-    if (sendCommand("<1t?>", response))
+    char HAResponse[DRIVER_LEN] = {0}, DEResponse[DRIVER_LEN] = {0};
+    if (sendCommand("<1t?>", HAResponse) && sendCommand("<2t?>", DEResponse))
     {
-        return (response[3] == '0');
+        return (HAResponse[3] == '0' && DEResponse[3] == '0');
     }
 
     return false;
@@ -386,6 +386,9 @@ bool AstroTrac::getEncoderPosition(INDI_EQ_AXIS axis)
 /////////////////////////////////////////////////////////////////////////////
 /// Based on X2 plugin
 /// https://github.com/mcgillca/AstroTrac/blob/3dc9d0d6f41750297696390bdcd6c10c87525b53/AstroTrac.cpp#L454
+/// Mechanical DE Range: -180 to +180 degrees. Home Position Mechanical DE: 0
+/// Mechanical HA Range: -90 to +90 degrees. Home Position Mechanical HA: 0
+/// For north hemisphere, home position HA = -6 hours, DE = 90 degrees.
 /////////////////////////////////////////////////////////////////////////////
 void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &ra, double &de)
 {
@@ -398,14 +401,12 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
         {
             de = std::min(90 - deEncoder, 90.0);
             ha = -6.0 + (haEncoder / 360.0) * 24.0 ;
-            //ha = (haEncoder / 360.0) * 24.0;
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
             de = 90 + deEncoder;
             ha = 6.0 + (haEncoder / 360.0) * 24.0 ;
-            //ha = 12.0 + (haEncoder / 360.0) * 24.0;
         }
     }
     else
@@ -415,14 +416,12 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
         {
             de = std::max(-90 - deEncoder, -90.0);
             ha = -6.0 - (haEncoder / 360.0) * 24.0 ;
-            //ha = -(haEncoder / 360.0) * 24.0;
         }
         // West
         else
         {
             de = -90 + deEncoder;
             ha = 6.0 - (haEncoder / 360.0) * 24.0 ;
-            //ha = -12.0 + (haEncoder / 360.0) * 24.0;
         }
     }
 
@@ -432,6 +431,9 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
 
 /////////////////////////////////////////////////////////////////////////////
 /// Based on X2 plugin
+/// Mechanical DE Range: -180 to +180 degrees. Home Position Mechanical DE: 0
+/// Mechanical HA Range: -90 to +90 degrees. Home Position Mechanical HA: 0
+///
 /////////////////////////////////////////////////////////////////////////////
 void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, double &deEncoder)
 {
@@ -444,14 +446,12 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
         if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || dHA <= 0)
         {
             deEncoder = -(de - 90.0);
-            //haEncoder = ha * 360.0 / 24.0;
             haEncoder = (dHA + 6.0) * 360.0 / 24.0;
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
             deEncoder = de - 90.0;
-            //haEncoder = (12 - ha) * 360.0 / 24.0;
             haEncoder = (dHA - 6.0) * 360.0 / 24.0;
         }
     }
@@ -462,13 +462,11 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
         {
             deEncoder = -(de + 90.0);
             haEncoder = -(dHA + 6.0) * 360.0 / 24.0;
-            //haEncoder = -ha * 360.0 / 24.0;
         }
         // "Reversed" Pointing State (West, looking East)
         else
         {
             deEncoder = (de + 90.0);
-            //haEncoder = (-12 - ha) * 360 / 24.0;
             haEncoder = -(dHA - 6.0) * 360 / 24.0;
         }
     }
@@ -479,18 +477,6 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::Sync(double ra, double dec)
 {
-    //    double haEncoder = 0, deEncoder = 0;
-    //    ln_equ_posn telescopeCoordinates;
-    //    if (getTelescopeFromSkyCoordinates(ra, dec, telescopeCoordinates))
-    //    {
-    //        getEncodersFromRADE(telescopeCoordinates.ra, telescopeCoordinates.dec, haEncoder, deEncoder);
-    //        bool rc1 = syncEncoder(AXIS_RA, haEncoder);
-    //        bool rc2 = syncEncoder(AXIS_DE, deEncoder);
-    //        return rc1 && rc2;
-    //    }
-
-    //    return false;
-
     AlignmentDatabaseEntry NewEntry;
     INDI::IEquatorialCoordinates RaDec {ra, dec};
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
@@ -509,8 +495,8 @@ bool AstroTrac::Sync(double ra, double dec)
         UpdateSize();
 
         // equatorial/telescope conversions needs more than 1 sync point
-        if (GetAlignmentDatabase().size() < 2)
-            LOG_WARN("Equatorial mounts need two SYNC points at least.");
+        //        if (GetAlignmentDatabase().size() < 2)
+        //            LOG_WARN("Equatorial mounts need two SYNC points at least.");
 
         // Tell the math plugin to reinitialise
         Initialise(this);
@@ -593,6 +579,9 @@ bool AstroTrac::ReadScopeStatus()
 {
     TelescopeDirectionVector TDV;
     double ra = 0, de = 0, skyRA = 0, skyDE = 0;
+
+    if (isSimulation())
+        simulateMount();
 
     double lastHAEncoder = EncoderNP[AXIS_RA].getValue();
     double lastDEEncoder = EncoderNP[AXIS_DE].getValue();
@@ -1034,12 +1023,160 @@ bool AstroTrac::saveConfigItems(FILE *fp)
     SaveAlignmentConfigProperties(fp);
     return true;
 }
+
+/////////////////////////////////////////////////////////////////////////////
+/// Simple Mount Simulation
+/////////////////////////////////////////////////////////////////////////////
+void AstroTrac::simulateMount()
+{
+    // milliseconds elapsed
+    uint32_t elapsed = m_SimulationTimer.elapsed();
+
+    // If too much time elapsed, restart the timer.
+    if (elapsed > 5000)
+    {
+        m_SimulationTimer.restart();
+        return;
+    }
+
+    switch (TrackState)
+    {
+        case SCOPE_IDLE:
+        case SCOPE_PARKED:
+            break;
+
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
+        {
+            // In degrees
+            double elapsedDistance = (elapsed / 1000.0 * MAX_SLEW_VELOCITY) / 3600.0;
+
+            // Hour Angle
+            double dHA = SimData.targetMechanicalHA - SimData.currentMechanicalHA;
+            if (std::abs(dHA) <= elapsedDistance)
+                SimData.currentMechanicalHA = SimData.targetMechanicalHA;
+            else if (dHA > 0)
+                SimData.currentMechanicalHA += elapsedDistance;
+            else
+                SimData.currentMechanicalHA -= elapsedDistance;
+
+            // Declination
+            double dDE = SimData.targetMechanicalDE - SimData.currentMechanicalDE;
+            if (std::abs(dDE) <= elapsedDistance)
+                SimData.currentMechanicalDE = SimData.targetMechanicalDE;
+            else if (dDE > 0)
+                SimData.currentMechanicalDE += elapsedDistance;
+            else
+                SimData.currentMechanicalDE -= elapsedDistance;
+        }
+        break;
+
+        case SCOPE_TRACKING:
+        {
+            // Increase HA axis at selected tracking rate (arcsec/s).
+            SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateN[AXIS_RA].value) / 3600.0;
+            if (SimData.currentMechanicalHA > 180)
+                SimData.currentMechanicalHA = 180;
+            else if (SimData.currentMechanicalHA < -180)
+                SimData.currentMechanicalHA = -180;
+        }
+        break;
+    }
+
+    m_SimulationTimer.restart();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Handle Simulation Trigger
+/////////////////////////////////////////////////////////////////////////////
+void AstroTrac::simulationTriggered(bool enable)
+{
+    if (enable)
+        m_SimulationTimer.start();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+/// Handle Simulation Command
+/////////////////////////////////////////////////////////////////////////////
+bool AstroTrac::handleSimulationCommand(const char * cmd, char * res, int cmd_len, int res_len)
+{
+    INDI_UNUSED(cmd_len);
+
+    // Get version
+    if (strstr(cmd, "zv?"))
+    {
+        snprintf(res, res_len, "<%czvSIMU>", cmd[1]);
+    }
+    // Get Encoder Position
+    else if (strstr (cmd, "p?"))
+    {
+        snprintf(res, res_len, "<%cp%.6f>", cmd[1], cmd[1] == '1' ? SimData.currentMechanicalHA : SimData.currentMechanicalDE);
+    }
+    // Set Encoder Position
+    else if (strstr (cmd, "p"))
+    {
+        double value = 0;
+        sscanf(cmd, "<%*cp%lf", &value);
+        if (cmd[1] == '1')
+            SimData.targetMechanicalHA = value;
+        else
+            SimData.targetMechanicalDE = value;
+        snprintf(res, res_len, "<%cp#>", cmd[1]);
+    }
+    // Get Acceleration
+    else if (strstr (cmd, "a?"))
+    {
+        snprintf(res, res_len, "<%ca%u>", cmd[1], SimData.acceleration[cmd[1] - '1']);
+    }
+    // Set Acceleration
+    else if (strstr (cmd, "a"))
+    {
+        uint32_t value = 0;
+        sscanf(cmd, "<%*ca%u", &value);
+        SimData.acceleration[cmd[1] - '1'] = value;
+        snprintf(res, res_len, "<%ca#>", cmd[1]);
+    }
+    // Get Velocity
+    else if (strstr (cmd, "v?"))
+    {
+        snprintf(res, res_len, "<%cv%.6f>", cmd[1], SimData.velocity[cmd[1] - '1']);
+    }
+    // Set Velocity using encoders
+    else if (strstr (cmd, "ve"))
+    {
+        double value = 0;
+        sscanf(cmd, "<%*cve%lf", &value);
+        SimData.velocity[cmd[1] - '1'] = value;
+        snprintf(res, res_len, "<%cve#>", cmd[1]);
+    }
+    // Get Slew status
+    else if (strstr (cmd, "t"))
+    {
+        char result = '0';
+        if (cmd[1] == '1')
+            result = std::abs(SimData.currentMechanicalHA - SimData.targetMechanicalHA) <= DIFF_THRESHOLD ? '0' : '1';
+        else
+            result = std::abs(SimData.currentMechanicalDE - SimData.targetMechanicalDE) <= DIFF_THRESHOLD ? '0' : '1';
+        snprintf(res, res_len, "<%ct%c#>", cmd[1], result);
+    }
+    // Abort
+    else if (strstr (cmd, "x"))
+    {
+        snprintf(res, res_len, "<%cx#>", cmd[1]);
+    }
+
+    return true;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 /// Send Command
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
+
+    if (isSimulation())
+        return handleSimulationCommand(cmd, res, cmd_len, res_len);
 
     tcflush(PortFD, TCIOFLUSH);
 
