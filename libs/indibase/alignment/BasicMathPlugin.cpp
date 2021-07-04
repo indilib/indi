@@ -365,15 +365,14 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
                     break;
 
                 case NORTH_CELESTIAL_POLE:
-                    // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 minus
-                    // the (positive)observatory latitude. The vector itself is rotated anticlockwise
-                    ApparentTelescopeDirectionVector.RotateAroundY(Position.latitude - 90.0);
-                    break;
-
+                // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 minus
+                // the (positive)observatory latitude. The vector itself is rotated anticlockwise
+                //ApparentTelescopeDirectionVector.RotateAroundY(Position.latitude - 90.0);
                 case SOUTH_CELESTIAL_POLE:
                     // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 plus
                     // the (negative)observatory latitude. The vector itself is rotated clockwise
-                    ApparentTelescopeDirectionVector.RotateAroundY(Position.latitude + 90.0);
+                    //ApparentTelescopeDirectionVector.RotateAroundY(Position.latitude + 90.0);
+                    ApparentTelescopeDirectionVector = TelescopeDirectionVectorFromEquatorialCoordinates(ActualRaDec);
                     break;
             }
             break;
@@ -517,9 +516,9 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
         }
     }
 
-    INDI::IHorizontalCoordinates ApparentAltAz;
-    AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ApparentAltAz);
-    ASSDEBUGF("Celestial to telescope - Apparent Az %lf Alt %lf", ApparentAltAz.azimuth, ApparentAltAz.altitude);
+    //    INDI::IHorizontalCoordinates ApparentAltAz;
+    //    AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ApparentAltAz);
+    //    ASSDEBUGF("Celestial to telescope - Apparent Az %lf Alt %lf", ApparentAltAz.azimuth, ApparentAltAz.altitude);
 
     return true;
 }
