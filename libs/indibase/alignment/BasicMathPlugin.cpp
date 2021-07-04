@@ -529,12 +529,12 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
 {
     IGeographicCoordinates Position;
 
-    INDI::IHorizontalCoordinates ApparentAltAz;
+    //INDI::IHorizontalCoordinates ApparentAltAz;
     INDI::IHorizontalCoordinates ActualAltAz;
     INDI::IEquatorialCoordinates ActualRaDec;
 
-    AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ApparentAltAz);
-    ASSDEBUGF("Telescope to celestial - Apparent  Az %lf Alt %lf", ApparentAltAz.azimuth, ApparentAltAz.altitude);
+    //    AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ApparentAltAz);
+    //    ASSDEBUGF("Telescope to celestial - Apparent  Az %lf Alt %lf", ApparentAltAz.azimuth, ApparentAltAz.altitude);
 
     if ((nullptr == pInMemoryDatabase) || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
     {
@@ -548,30 +548,29 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
         case 0:
         {
             // 0 sync points
-            TelescopeDirectionVector RotatedTDV(ApparentTelescopeDirectionVector);
+
             switch (ApproximateMountAlignment)
             {
+                // For Alt-Az mounts, get Alt-Az from the telescope direction vector first
+                // Then transform to actual RA/DE
                 case ZENITH:
-                    break;
+                {
+                    ASSDEBUGF("ApparentVector x %lf y %lf z %lf", ApparentTelescopeDirectionVector.x,
+                              ApparentTelescopeDirectionVector.y, ApparentTelescopeDirectionVector.z);
+                    //ASSDEBUGF("ActualVector x %lf y %lf z %lf", RotatedTDV.x, RotatedTDV.y, RotatedTDV.z);
+                    AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ActualAltAz);
+                    HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
+                }
+                break;
 
+                // For equatorial mount with zero sync points, just convert back from telescope
+                // direction vector to equatorial coordinates.
                 case NORTH_CELESTIAL_POLE:
-                    // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
-                    // the (positive)observatory latitude. The vector itself is rotated clockwise
-                    RotatedTDV.RotateAroundY(90.0 - Position.latitude);
-                    break;
-
                 case SOUTH_CELESTIAL_POLE:
-                    // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
-                    // the (negative)observatory latitude. The vector itself is rotated anticlockwise
-                    RotatedTDV.RotateAroundY(-90.0 - Position.latitude);
+                    EquatorialCoordinatesFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ActualRaDec);
                     break;
             }
-            ASSDEBUGF("ApparentVector x %lf y %lf z %lf", ApparentTelescopeDirectionVector.x,
-                      ApparentTelescopeDirectionVector.y, ApparentTelescopeDirectionVector.z);
-            ASSDEBUGF("ActualVector x %lf y %lf z %lf", RotatedTDV.x, RotatedTDV.y, RotatedTDV.z);
-            AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, ActualAltAz);
-            HorizontalToEquatorial(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
-            // libnova works in decimal degrees so conversion is needed here
+
             RightAscension = ActualRaDec.rightascension;
             Declination    = ActualRaDec.declination;
             break;
