@@ -478,10 +478,12 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
 bool AstroTrac::Sync(double ra, double dec)
 {
     AlignmentDatabaseEntry NewEntry;
-    INDI::IEquatorialCoordinates RaDec {ra, dec};
+    INDI::IEquatorialCoordinates RaDec {EqN[AXIS_RA].value, EqN[AXIS_DE].value};
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
+    // Actual Celestial Coordinates
     NewEntry.RightAscension        = ra;
     NewEntry.Declination           = dec;
+    // Apparent Telescope Coordinates
     NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
     NewEntry.PrivateDataSize = 0;
 
