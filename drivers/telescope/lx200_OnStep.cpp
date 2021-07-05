@@ -1845,13 +1845,23 @@ bool LX200_OnStep::ReadScopeStatus()
             }
             if (strstr(OSStat, "n") && !strstr(OSStat, "N"))
             {
-                IUSaveText(&OnstepStat[1], "Slewing");
-                TrackState = SCOPE_SLEWING;
+                if (strstr(OSStat, "I")) {
+                    IUSaveText(&OnstepStat[1], "Parking/Slewing");
+                    TrackState = SCOPE_PARKING;
+                } else {
+                    IUSaveText(&OnstepStat[1], "Slewing");
+                    TrackState = SCOPE_SLEWING;
+                }
             }
             if (strstr(OSStat, "N") && !strstr(OSStat, "n"))
             {
                 IUSaveText(&OnstepStat[1], "Tracking");
                 TrackState = SCOPE_TRACKING;
+            }
+            if (!strstr(OSStat, "N") && !strstr(OSStat, "n"))
+            {
+                IUSaveText(&OnstepStat[1], "Slewing");
+                TrackState = SCOPE_SLEWING;
             }
 
             // ============= Refractoring
@@ -1903,13 +1913,14 @@ bool LX200_OnStep::ReadScopeStatus()
             }
             if (strstr(OSStat, "p"))
             {
-                SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                if (strstr(OSStat, "nN"))   // azwing need to detect if unparked idle or tracking
-                {
-                    IUSaveText(&OnstepStat[1], "Idle");
-                    TrackState = SCOPE_IDLE;
-                }
-                else TrackState = SCOPE_TRACKING;
+                SetParked(false); //defaults to TrackState=SCOPE_IDLE 
+                //Tracking or not is handled above. 
+//                 if (strstr(OSStat, "nN"))   // azwing need to detect if unparked idle or tracking
+//                 {
+//                     IUSaveText(&OnstepStat[1], "Idle");
+//                     TrackState = SCOPE_IDLE;
+//                 }
+//                 else TrackState = SCOPE_TRACKING;
                 IUSaveText(&OnstepStat[3], "UnParked");
             }
             // ============= End Parkstatus
@@ -1943,7 +1954,7 @@ bool LX200_OnStep::ReadScopeStatus()
             }
 
             // ============= Pec Status
-            if (!strstr(OSStat, "R") && !strstr(OSStat, "W"))
+            if ((!strstr(OSStat, "R") && !strstr(OSStat, "W")))
             {
                 IUSaveText(&OnstepStat[4], "N/A");
             }
@@ -1955,6 +1966,33 @@ bool LX200_OnStep::ReadScopeStatus()
             {
                 IUSaveText(&OnstepStat[4], "Autorecord");
             }
+            if (strstr(OSStat, "/"))
+            {
+//TODO: Make sure PEC tab corresponds
+                IUSaveText(&OnstepStat[4], "Ignored");
+                OSPECviaGU = true;
+            }
+            if (strstr(OSStat, ";"))
+            {
+                IUSaveText(&OnstepStat[4], "AutoRecord (waiting on index)");
+                OSPECviaGU = true;
+            }
+            if (strstr(OSStat, ","))
+            {
+                IUSaveText(&OnstepStat[4], "AutoPlaying  (waiting on index)");
+                OSPECviaGU = true;
+            }
+            if (strstr(OSStat, "~"))
+            {
+                IUSaveText(&OnstepStat[4], "Playing");
+                OSPECviaGU = true;
+            }
+            if (strstr(OSStat, "^"))
+            {
+                IUSaveText(&OnstepStat[4], "Recording");
+                OSPECviaGU = true;
+            }
+            
 
             // ============= Time Sync Status
             if (!strstr(OSStat, "S"))
@@ -2445,7 +2483,9 @@ bool LX200_OnStep::ReadScopeStatus()
 
     OSUpdateFocuser();  // Update Focuser Position
 #ifndef OnStep_Alpha
-    PECStatus(0);
+    if (!OSPECviaGU) {
+        PECStatus(0);
+    }
     //#Gu# has this built in
 #endif
 
@@ -3180,6 +3220,8 @@ IPState LX200_OnStep::SavePECBuffer (int axis)
 
 IPState LX200_OnStep::PECStatus (int axis)
 {
+    //TODO: PEC Status now reported via :GU#, and :QZ# appears gone
+    if (!OSPECviaGU) {
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
@@ -3198,7 +3240,7 @@ IPState LX200_OnStep::PECStatus (int axis)
         // IUFillSwitch(&OSPECStatusS[2], "Recording", "Recording", ISS_OFF);
         // IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
         // IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
-        char value[RB_MAX_LEN] = "  ";
+        char value[RB_MAX_LEN] = {0};
         OSPECStatusSP.s = IPS_BUSY;
         getCommandString(PortFD, value, ":$QZ?#");
         // LOGF_INFO("Response %s", value);
@@ -3268,6 +3310,8 @@ IPState LX200_OnStep::PECStatus (int axis)
         // LOG_DEBUG("PEC status called when Controller does not support PEC");
     }
     return IPS_ALERT;
+    }
+    return IPS_OK;
 }
 
 

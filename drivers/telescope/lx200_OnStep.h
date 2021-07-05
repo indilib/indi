@@ -203,6 +203,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
         IPState WritePECBuffer (int axis);
         bool ISPECRecorded (int axis);
         bool OSPECEnabled = false;
+        bool OSPECviaGU = false; //Older versions use :QZ# for PEC status, new can use the standard :GU#/:Gu#
         //End PECInterface
 
 
