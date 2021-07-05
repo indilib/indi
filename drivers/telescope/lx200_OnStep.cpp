@@ -1902,13 +1902,13 @@ bool LX200_OnStep::ReadScopeStatus()
             if (strstr(OSStat, "F"))
             {
                 SetParked(false); // defaults to TrackState=SCOPE_IDLE
-                TrackState=SCOPE_IDLE;
+                //TrackState=SCOPE_IDLE; //This is handled by n/N
                 IUSaveText(&OnstepStat[3], "Parking Failed");
             }
             if (strstr(OSStat, "I"))
             {
                 SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                TrackState = SCOPE_PARKING;
+                //TrackState = SCOPE_PARKING; //This is handled by n/N
                 IUSaveText(&OnstepStat[3], "Park in Progress");
             }
             if (strstr(OSStat, "p"))
@@ -1966,34 +1966,55 @@ bool LX200_OnStep::ReadScopeStatus()
             {
                 IUSaveText(&OnstepStat[4], "Autorecord");
             }
+
+            //Handles pec with :GU, also disables the (old) :QZ# command
             if (strstr(OSStat, "/"))
             {
-//TODO: Make sure PEC tab corresponds
                 IUSaveText(&OnstepStat[4], "Ignored");
                 OSPECviaGU = true;
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[0].s = ISS_ON;
+                OSPECRecordSP.s = IPS_IDLE;
             }
             if (strstr(OSStat, ";"))
             {
                 IUSaveText(&OnstepStat[4], "AutoRecord (waiting on index)");
                 OSPECviaGU = true;
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[4].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_BUSY;
             }
             if (strstr(OSStat, ","))
             {
                 IUSaveText(&OnstepStat[4], "AutoPlaying  (waiting on index)");
                 OSPECviaGU = true;
+                OSPECStatusSP.s = IPS_BUSY;
+                OSPECStatusS[3].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_IDLE;
             }
             if (strstr(OSStat, "~"))
             {
                 IUSaveText(&OnstepStat[4], "Playing");
                 OSPECviaGU = true;
+                OSPECStatusSP.s = IPS_BUSY;
+                OSPECStatusS[1].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_IDLE;
             }
             if (strstr(OSStat, "^"))
             {
                 IUSaveText(&OnstepStat[4], "Recording");
                 OSPECviaGU = true;
+                OSPECStatusSP.s = IPS_OK;
+                OSPECStatusS[2].s = ISS_ON ;
+                OSPECRecordSP.s = IPS_BUSY;
+            }
+            if (OSPECviaGU) 
+            {
+                IDSetSwitch(&OSPECStatusSP, nullptr);
+                IDSetSwitch(&OSPECRecordSP, nullptr);
+                IDSetSwitch(&OSPECIndexSP, nullptr);
             }
             
-
             // ============= Time Sync Status
             if (!strstr(OSStat, "S"))
             {
@@ -3222,95 +3243,95 @@ IPState LX200_OnStep::PECStatus (int axis)
 {
     //TODO: PEC Status now reported via :GU#, and :QZ# appears gone
     if (!OSPECviaGU) {
-    INDI_UNUSED(axis); //We only have RA on OnStep
-    if (OSPECEnabled == true)
-    {
-        if (OSMountType == MOUNTTYPE_ALTAZ)
-        {
-            OSPECEnabled = false;
-            LOG_INFO("Command to give PEC called when Controller does not support PEC due to being Alt-Az Disabled");
-            return IPS_ALERT;
-        }
-        //LOG_INFO("Getting PEC Status");
-        //  :$QZ?  Get PEC status
-        //         Returns: S#
-        // Returns status (pecSense) In the form: Status is one of "IpPrR" (I)gnore, get ready to (p)lay, (P)laying, get ready to (r)ecord, (R)ecording.  Or an optional (.) to indicate an index detect.
-        // IUFillSwitch(&OSPECStatusS[0], "OFF", "OFF", ISS_ON);
-        // IUFillSwitch(&OSPECStatusS[1], "Playing", "Playing", ISS_OFF);
-        // IUFillSwitch(&OSPECStatusS[2], "Recording", "Recording", ISS_OFF);
-        // IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
-        // IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
-        char value[RB_MAX_LEN] = {0};
-        OSPECStatusSP.s = IPS_BUSY;
-        getCommandString(PortFD, value, ":$QZ?#");
-        // LOGF_INFO("Response %s", value);
-        // LOGF_INFO("Response %d", value[0]);
-        // LOGF_INFO("Response %d", value[1]);
-        OSPECStatusS[0].s = ISS_OFF ;
-        OSPECStatusS[1].s = ISS_OFF ;
-        OSPECStatusS[2].s = ISS_OFF ;
-        OSPECStatusS[3].s = ISS_OFF ;
-        OSPECStatusS[4].s = ISS_OFF ;
-        if (value[0] == 'I') //Ignore
-        {
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[0].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
-            OSPECEnabled = false;
-            LOG_INFO("Controller reports PEC Ignored and not supported");
-            LOG_INFO("No Further PEC Commands will be processed, unless status changed");
-        }
-        else if (value[0] == 'R') //Active Recording
-        {
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[2].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_BUSY;
-        }
-        else if (value[0] == 'r')  //Waiting for index before recording
-        {
-            OSPECStatusSP.s = IPS_OK;
-            OSPECStatusS[4].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_BUSY;
-        }
-        else if (value[0] == 'P') //Active Playing
-        {
-            OSPECStatusSP.s = IPS_BUSY;
-            OSPECStatusS[1].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
-        }
-        else if (value[0] == 'p') //Waiting for index before playing
-        {
-            OSPECStatusSP.s = IPS_BUSY;
-            OSPECStatusS[3].s = ISS_ON ;
-            OSPECRecordSP.s = IPS_IDLE;
-        }
-        else //INVALID REPLY
-        {
-            OSPECStatusSP.s = IPS_ALERT;
-            OSPECRecordSP.s = IPS_ALERT;
-        }
-        if (value[1] == '.')
-        {
-            OSPECIndexSP.s = IPS_OK;
-            OSPECIndexS[0].s = ISS_OFF;
-            OSPECIndexS[1].s = ISS_ON;
-        }
-        else
-        {
-            OSPECIndexS[1].s = ISS_OFF;
-            OSPECIndexS[0].s = ISS_ON;
-        }
-        IDSetSwitch(&OSPECStatusSP, nullptr);
-        IDSetSwitch(&OSPECRecordSP, nullptr);
-        IDSetSwitch(&OSPECIndexSP, nullptr);
-        return IPS_OK;
-    }
-    else
-    {
-        // LOG_DEBUG("PEC status called when Controller does not support PEC");
-    }
-    return IPS_ALERT;
-    }
+	INDI_UNUSED(axis); //We only have RA on OnStep
+	if (OSPECEnabled == true)
+	{
+		if (OSMountType == MOUNTTYPE_ALTAZ)
+		{
+		OSPECEnabled = false;
+		LOG_INFO("Command to give PEC called when Controller does not support PEC due to being Alt-Az Disabled");
+		return IPS_ALERT;
+		}
+		//LOG_INFO("Getting PEC Status");
+		//  :$QZ?  Get PEC status
+		//         Returns: S#
+		// Returns status (pecSense) In the form: Status is one of "IpPrR" (I)gnore, get ready to (p)lay, (P)laying, get ready to (r)ecord, (R)ecording.  Or an optional (.) to indicate an index detect.
+		// IUFillSwitch(&OSPECStatusS[0], "OFF", "OFF", ISS_ON);
+		// IUFillSwitch(&OSPECStatusS[1], "Playing", "Playing", ISS_OFF);
+		// IUFillSwitch(&OSPECStatusS[2], "Recording", "Recording", ISS_OFF);
+		// IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
+		// IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
+		char value[RB_MAX_LEN] = {0};
+		OSPECStatusSP.s = IPS_BUSY;
+		getCommandString(PortFD, value, ":$QZ?#");
+		// LOGF_INFO("Response %s", value);
+		// LOGF_INFO("Response %d", value[0]);
+		// LOGF_INFO("Response %d", value[1]);
+		OSPECStatusS[0].s = ISS_OFF ;
+		OSPECStatusS[1].s = ISS_OFF ;
+		OSPECStatusS[2].s = ISS_OFF ;
+		OSPECStatusS[3].s = ISS_OFF ;
+		OSPECStatusS[4].s = ISS_OFF ;
+		if (value[0] == 'I') //Ignore
+		{
+		OSPECStatusSP.s = IPS_OK;
+		OSPECStatusS[0].s = ISS_ON ;
+		OSPECRecordSP.s = IPS_IDLE;
+		OSPECEnabled = false;
+		LOG_INFO("Controller reports PEC Ignored and not supported");
+		LOG_INFO("No Further PEC Commands will be processed, unless status changed");
+		}
+		else if (value[0] == 'R') //Active Recording
+		{
+		OSPECStatusSP.s = IPS_OK;
+		OSPECStatusS[2].s = ISS_ON ;
+		OSPECRecordSP.s = IPS_BUSY;
+		}
+		else if (value[0] == 'r')  //Waiting for index before recording
+		{
+		OSPECStatusSP.s = IPS_OK;
+		OSPECStatusS[4].s = ISS_ON ;
+		OSPECRecordSP.s = IPS_BUSY;
+		}
+		else if (value[0] == 'P') //Active Playing
+		{
+		OSPECStatusSP.s = IPS_BUSY;
+		OSPECStatusS[1].s = ISS_ON ;
+		OSPECRecordSP.s = IPS_IDLE;
+		}
+		else if (value[0] == 'p') //Waiting for index before playing
+		{
+		OSPECStatusSP.s = IPS_BUSY;
+		OSPECStatusS[3].s = ISS_ON ;
+		OSPECRecordSP.s = IPS_IDLE;
+		}
+		else //INVALID REPLY
+		{
+		OSPECStatusSP.s = IPS_ALERT;
+		OSPECRecordSP.s = IPS_ALERT;
+		}
+		if (value[1] == '.')
+		{
+		OSPECIndexSP.s = IPS_OK;
+		OSPECIndexS[0].s = ISS_OFF;
+		OSPECIndexS[1].s = ISS_ON;
+		}
+		else
+		{
+		OSPECIndexS[1].s = ISS_OFF;
+		OSPECIndexS[0].s = ISS_ON;
+		}
+		IDSetSwitch(&OSPECStatusSP, nullptr);
+		IDSetSwitch(&OSPECRecordSP, nullptr);
+		IDSetSwitch(&OSPECIndexSP, nullptr);
+		return IPS_OK;
+	}
+	else
+	{
+		// LOG_DEBUG("PEC status called when Controller does not support PEC");
+	}
+	return IPS_ALERT;
+	}
     return IPS_OK;
 }
 
