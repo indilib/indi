@@ -1838,30 +1838,37 @@ bool LX200_OnStep::ReadScopeStatus()
             strcpy(OldOSStat, OSStat);
 
             IUSaveText(&OnstepStat[0], OSStat);
-            if (strstr(OSStat, "n") && strstr(OSStat, "N"))
+            if (strstr(OSStat, "P"))
             {
-                IUSaveText(&OnstepStat[1], "Idle");
-                TrackState = SCOPE_IDLE;
-            }
-            if (strstr(OSStat, "n") && !strstr(OSStat, "N"))
-            {
-                if (strstr(OSStat, "I")) {
-                    IUSaveText(&OnstepStat[1], "Parking/Slewing");
-                    TrackState = SCOPE_PARKING;
-                } else {
+                SetParked(true); //defaults to TrackState=SCOPE_PARKED
+                TrackState = SCOPE_PARKED;
+                IUSaveText(&OnstepStat[3], "Parked");
+            } else {
+                if (strstr(OSStat, "n") && strstr(OSStat, "N"))
+                {
+                    IUSaveText(&OnstepStat[1], "Idle");
+                    TrackState = SCOPE_IDLE;
+                }
+                if (strstr(OSStat, "n") && !strstr(OSStat, "N"))
+                {
+                    if (strstr(OSStat, "I")) {
+                        IUSaveText(&OnstepStat[1], "Parking/Slewing");
+                        TrackState = SCOPE_PARKING;
+                    } else {
+                        IUSaveText(&OnstepStat[1], "Slewing");
+                        TrackState = SCOPE_SLEWING;
+                    }
+                }
+                if (strstr(OSStat, "N") && !strstr(OSStat, "n"))
+                {
+                    IUSaveText(&OnstepStat[1], "Tracking");
+                    TrackState = SCOPE_TRACKING;
+                }
+                if (!strstr(OSStat, "N") && !strstr(OSStat, "n"))
+                {
                     IUSaveText(&OnstepStat[1], "Slewing");
                     TrackState = SCOPE_SLEWING;
                 }
-            }
-            if (strstr(OSStat, "N") && !strstr(OSStat, "n"))
-            {
-                IUSaveText(&OnstepStat[1], "Tracking");
-                TrackState = SCOPE_TRACKING;
-            }
-            if (!strstr(OSStat, "N") && !strstr(OSStat, "n"))
-            {
-                IUSaveText(&OnstepStat[1], "Slewing");
-                TrackState = SCOPE_SLEWING;
             }
 
             // ============= Refractoring
@@ -1893,12 +1900,7 @@ bool LX200_OnStep::ReadScopeStatus()
 
 
             // ============= Parkstatus
-            if (strstr(OSStat, "P"))
-            {
-                SetParked(true); //defaults to TrackState=SCOPE_PARKED
-                TrackState = SCOPE_PARKED;
-                IUSaveText(&OnstepStat[3], "Parked");
-            }
+            // "P" (Parked moved up, since it would override any other Trackstatus
             if (strstr(OSStat, "F"))
             {
                 SetParked(false); // defaults to TrackState=SCOPE_IDLE
@@ -3241,7 +3243,7 @@ IPState LX200_OnStep::SavePECBuffer (int axis)
 
 IPState LX200_OnStep::PECStatus (int axis)
 {
-    //TODO: PEC Status now reported via :GU#, and :QZ# appears gone
+    //NOTE: PEC Status now reported via :GU#, and :QZ# appears gone
     if (!OSPECviaGU) {
 	INDI_UNUSED(axis); //We only have RA on OnStep
 	if (OSPECEnabled == true)
