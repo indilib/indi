@@ -1840,7 +1840,7 @@ bool LX200_OnStep::ReadScopeStatus()
             IUSaveText(&OnstepStat[0], OSStat);
             if (strstr(OSStat, "P"))
             {
-                SetParked(true); //defaults to TrackState=SCOPE_PARKED
+                SetParked(true);
                 TrackState = SCOPE_PARKED;
                 IUSaveText(&OnstepStat[3], "Parked");
             } else {
@@ -1903,26 +1903,17 @@ bool LX200_OnStep::ReadScopeStatus()
             // "P" (Parked moved up, since it would override any other Trackstatus
             if (strstr(OSStat, "F"))
             {
-                SetParked(false); // defaults to TrackState=SCOPE_IDLE
-                //TrackState=SCOPE_IDLE; //This is handled by n/N
+                SetParked(false);
                 IUSaveText(&OnstepStat[3], "Parking Failed");
             }
             if (strstr(OSStat, "I"))
             {
-                SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
-                //TrackState = SCOPE_PARKING; //This is handled by n/N
+                SetParked(false);
                 IUSaveText(&OnstepStat[3], "Park in Progress");
             }
             if (strstr(OSStat, "p"))
             {
-                SetParked(false); //defaults to TrackState=SCOPE_IDLE 
-                //Tracking or not is handled above. 
-//                 if (strstr(OSStat, "nN"))   // azwing need to detect if unparked idle or tracking
-//                 {
-//                     IUSaveText(&OnstepStat[1], "Idle");
-//                     TrackState = SCOPE_IDLE;
-//                 }
-//                 else TrackState = SCOPE_TRACKING;
+                SetParked(false);
                 IUSaveText(&OnstepStat[3], "UnParked");
             }
             // ============= End Parkstatus
