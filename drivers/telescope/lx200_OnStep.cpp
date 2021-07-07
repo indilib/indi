@@ -359,7 +359,7 @@ bool LX200_OnStep::initProperties()
     for(int i = 0; i < PORTS_COUNT; i++)
     {
         char port_name[30];
-        sprintf(port_name, "Output %d", i);
+        snprintf(port_name, sizeof(port_name), "Output %d", i);
         IUFillNumber(&OutputPorts[i], port_name, port_name, "%g", 0, 255, 1, 0);
     }
 
@@ -419,8 +419,6 @@ void LX200_OnStep::ISGetProperties(const char *dev)
 
 bool LX200_OnStep::updateProperties()
 {
-    int i;
-    char cmd[32];
     LX200Generic::updateProperties();
     FI::updateProperties();
     WI::updateProperties();
@@ -488,9 +486,10 @@ bool LX200_OnStep::updateProperties()
         } else { //For OnStepX, up to 9 focusers
             LOG_INFO("Focuser 2 NOT found (Checking for OnStepX Focusers)");
             OSFocuser2 = false;
-            for (i = 0; i < 9; i++) {
+            for (int i = 0; i < 9; i++) {
+                char cmd[CMD_MAX_LEN] = {0};
                 char read_buffer[RB_MAX_LEN] = {0};
-                snprintf(cmd, 7, ":F%dA#", i + 1);
+                snprintf(cmd, sizeof(cmd), ":F%dA#", i + 1);
                 int fail_or_error = getCommandSingleCharResponse(PortFD, read_buffer ,cmd);
                 if (!fail_or_error && read_buffer[0] == '1')  // Do we have a Focuser X
                 {
@@ -709,7 +708,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         if (!strcmp(name, MaxSlewRateNP.name))
         {
             int ret;
-            char cmd[5];
+            char cmd[CMD_MAX_LEN] = {0};
             snprintf(cmd, 5, ":R%d#", (int)values[0]);
             ret = sendOnStepCommandBlind(cmd);
 
@@ -735,7 +734,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
         if (!strcmp(name, BacklashNP.name))
         {
-            char cmd[9];
+            char cmd[CMD_MAX_LEN] = {0};
             int i, nset;
             double bklshdec = 0, bklshra = 0;
 
@@ -837,7 +836,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
     if (!strcmp(name, minutesPastMeridianNP.name))
     {
-        char cmd[20];
+        char cmd[CMD_MAX_LEN] ={0};
         int i, nset;
         double minPMEast = 0, minPMWest = 0;
 
@@ -893,7 +892,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     // Focuser 2 Target
     if (!strcmp(name, OSFocus2TargNP.name))
     {
-        char cmd[32];
+        char cmd[CMD_MAX_LEN] = {0};
 
         if ((values[0] >= -25000) && (values[0] <= 25000))
         {
@@ -920,7 +919,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             if(OutputPorts_NP.np[i].value != value)
             {
                 int ret;
-                char cmd[20];
+                char cmd[CMD_MAX_LEN] = {0};
                 int port = STARTING_PORT + i;
 
                 //This is for newer version of OnStep:
@@ -947,7 +946,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
     if (!strcmp(name, OSSetTemperatureNP.name))
     {
-        char cmd[32];
+        char cmd[CMD_MAX_LEN] = {0};
 
         if ((values[0] >= -100) && (values[0] <= 100))
         {
@@ -966,7 +965,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
     if (!strcmp(name, OSSetHumidityNP.name))
     {
-        char cmd[32];
+        char cmd[CMD_MAX_LEN] = {0};
 
         if ((values[0] >= 0) && (values[0] <= 100))
         {
@@ -985,7 +984,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
     if (!strcmp(name, OSSetPressureNP.name))
     {
-        char cmd[32];
+        char cmd[CMD_MAX_LEN] = {0};
 
         if ((values[0] >= 0) && (values[0] <= 100))
         {
@@ -1046,7 +1045,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         {
             IUUpdateSwitch(&SlewRateSP, states, names, n);
             int ret;
-            char cmd[5];
+            char cmd[CMD_MAX_LEN] = {0};
             int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
             snprintf(cmd, 5, ":R%d#", index);
             ret = sendOnStepCommandBlind(cmd);
@@ -1318,7 +1317,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Focuser 1 Rates
         if (!strcmp(name, OSFocus1InitializeSP.name))
         {
-            char cmd[32];
+            char cmd[CMD_MAX_LEN] = {0};
             if (IUUpdateSwitch(&OSFocus1InitializeSP, states, names, n) < 0)
                 return false;
             index = IUFindOnSwitchIndex(&OSFocus1InitializeSP);
@@ -1344,7 +1343,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         //Focuser Swap/Select
         if (!strcmp(name, OSFocusSelectSP.name))
         {
-            char cmd[32];
+            char cmd[CMD_MAX_LEN] = {0};
             int i;
             if (IUUpdateSwitch(&OSFocusSelectSP, states, names, n) < 0)
                 return false;
@@ -1376,7 +1375,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Focuser 2 Rates
         if (!strcmp(name, OSFocus2RateSP.name))
         {
-            char cmd[32];
+            char cmd[CMD_MAX_LEN] = {0};
 
             if (IUUpdateSwitch(&OSFocus2RateSP, states, names, n) < 0)
                 return false;
@@ -1391,7 +1390,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Focuser 2 Motion
         if (!strcmp(name, OSFocus2MotionSP.name))
         {
-            char cmd[32];
+            char cmd[CMD_MAX_LEN] = {0};
 
             if (IUUpdateSwitch(&OSFocus2MotionSP, states, names, n) < 0)
                 return false;
@@ -1399,15 +1398,15 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             index = IUFindOnSwitchIndex(&OSFocus2MotionSP);
             if (index == 0)
             {
-                strcpy(cmd, ":f+#");
+                strncpy(cmd, ":f+#", sizeof(cmd));
             }
             if (index == 1)
             {
-                strcpy(cmd, ":f-#");
+                strncpy(cmd, ":f-#", sizeof(cmd));
             }
             if (index == 2)
             {
-                strcpy(cmd, ":fQ#");
+                strncpy(cmd, ":fQ#", sizeof(cmd));
             }
             sendOnStepCommandBlind(cmd);
             const struct timespec timeout = {0, 100000000L};
@@ -1425,7 +1424,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 //         OSRotatorDerotateS
         if (!strcmp(name, OSRotatorDerotateSP.name))
         {
-            char cmd[32];
+            char cmd[CMD_MAX_LEN]= {0};
             
             if (IUUpdateSwitch(&OSRotatorDerotateSP, states, names, n) < 0)
                 return false;
@@ -1433,11 +1432,11 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             index = IUFindOnSwitchIndex(&OSRotatorDerotateSP);
             if (index == 0) //Derotate_OFF
             {
-                strcpy(cmd, ":r-#");
+                strncpy(cmd, ":r-#", sizeof(cmd));
             }
             if (index == 1) //Derotate_ON
             {
-                strcpy(cmd, ":r+#");
+                strncpy(cmd, ":r+#", sizeof(cmd));
             }
             sendOnStepCommandBlind(cmd);
             OSRotatorDerotateS[index].s = ISS_OFF;
@@ -1572,7 +1571,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
         if (!strcmp(name, OSNAlignPolarRealignSP.name))
         {
-            char cmd[10];
+            char cmd[CMD_MAX_LEN] = {0};
             if (IUUpdateSwitch(&OSNAlignPolarRealignSP, states, names, n) < 0)
                 return false;
 
@@ -1749,7 +1748,6 @@ bool LX200_OnStep::UnPark()
 
     if (!isSimulation())
     {
-        //if(!getCommandString(PortFD, response, ":hR#"))
         int failure_or_error = getCommandSingleCharResponse(PortFD, response, ":hR#");
         if (failure_or_error < 0 || response[0] != '1')
         {
@@ -1835,14 +1833,17 @@ bool LX200_OnStep::ReadScopeStatus()
         if (strcmp(OSStat, OldOSStat) != 0) //if status changed
         {
             // ============= Telescope Status
-            strcpy(OldOSStat, OSStat);
+            strncpy(OldOSStat, OSStat, sizeof(OldOSStat));
 
             IUSaveText(&OnstepStat[0], OSStat);
             if (strstr(OSStat, "P"))
             {
-                SetParked(true);
+                if (!isParked()) { //Don't call this every time OSStat changes
+                    SetParked(true);
+                } 
                 TrackState = SCOPE_PARKED;
                 IUSaveText(&OnstepStat[3], "Parked");
+                IUSaveText(&OnstepStat[1], "Parked");
             } else {
                 if (strstr(OSStat, "n") && strstr(OSStat, "N"))
                 {
@@ -1893,7 +1894,6 @@ bool LX200_OnStep::ReadScopeStatus()
             }
             else
             {
-
                 IUSaveText(&OnstepStat[2], "Refractoring Off");
                 IUSaveText(&OnstepStat[8], "N/A");
             }
@@ -1903,17 +1903,23 @@ bool LX200_OnStep::ReadScopeStatus()
             // "P" (Parked moved up, since it would override any other Trackstatus
             if (strstr(OSStat, "F"))
             {
-                SetParked(false);
+                if (isParked()) {
+                    SetParked(false);
+                }
                 IUSaveText(&OnstepStat[3], "Parking Failed");
             }
             if (strstr(OSStat, "I"))
             {
-                SetParked(false);
+                if (isParked()) {
+                    SetParked(false);
+                }
                 IUSaveText(&OnstepStat[3], "Park in Progress");
             }
             if (strstr(OSStat, "p"))
             {
-                SetParked(false);
+                if (isParked()) {
+                    SetParked(false);
+                }
                 IUSaveText(&OnstepStat[3], "UnParked");
             }
             // ============= End Parkstatus
@@ -2007,6 +2013,8 @@ bool LX200_OnStep::ReadScopeStatus()
                 IDSetSwitch(&OSPECRecordSP, nullptr);
                 IDSetSwitch(&OSPECIndexSP, nullptr);
             }
+
+            
             
             // ============= Time Sync Status
             if (!strstr(OSStat, "S"))
@@ -2324,7 +2332,7 @@ bool LX200_OnStep::ReadScopeStatus()
     getCommandString(PortFD, OSPier, ":Gm#");
     if (strcmp(OSPier, OldOSPier) != 0) // any change ?
     {
-        strcpy(OldOSPier, OSPier);
+        strncpy(OldOSPier, OSPier, sizeof(OldOSPier));
         switch(OSPier[0])
         {
             case 'E':
@@ -2537,7 +2545,7 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
 bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 {
     years = years % 100;
-    char cmd[32];
+    char cmd[CMD_MAX_LEN] = {0};
 
     snprintf(cmd, 32, ":SC%02d/%02d/%02d#", months, days, years);
 
@@ -2612,7 +2620,12 @@ int LX200_OnStep::getCommandSingleCharResponse(int fd, char *data, const char *c
     if (term)
         *term = '\0';
     if (nbytes_read < RB_MAX_LEN) //given this function that should always be true, as should nbytes_read always be 1
+    {
         data[nbytes_read] = '\0';
+    } else { 
+        LOG_DEBUG("got RB_MAX_LEN bytes back (which should never happen), last byte set to null and possible overflow");
+        data[RB_MAX_LEN - 1] = '\0';
+    }
     
     DEBUGF(DBG_SCOPE, "RES <%s>", data);
     
@@ -2634,7 +2647,7 @@ int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, co
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
     
-    error_type = tty_read_section(fd, data, '#', timeout, &nbytes_read);
+    error_type = tty_nread_section(fd, data, RB_MAX_LEN, '#', timeout, &nbytes_read);
     tcflush(fd, TCIFLUSH);
     
 
@@ -2643,7 +2656,12 @@ int LX200_OnStep::getCommandSingleCharErrorOrLongResponse(int fd, char *data, co
     if (term)
         *term = '\0';
     if (nbytes_read < RB_MAX_LEN) //If within buffer, terminate string with \0 (in case it didn't find the #)
+    {
         data[nbytes_read] = '\0';
+    } else { 
+        LOG_DEBUG("got RB_MAX_LEN bytes back, last byte set to null and possible overflow");
+        data[RB_MAX_LEN - 1] = '\0';
+    }
     
     DEBUGF(DBG_SCOPE, "RES <%s>", data);
 
@@ -2828,14 +2846,14 @@ bool LX200_OnStep::AbortFocuser ()
 {
     //  :FQ#   Stop the focuser
     //         Returns: Nothing
-    char cmd[8];
-    strcpy(cmd, ":FQ#");
+    char cmd[CMD_MAX_LEN] = {0};
+    strncpy(cmd, ":FQ#", sizeof(cmd));
     return sendOnStepCommandBlind(cmd);
 }
 
 void LX200_OnStep::OSUpdateFocuser()
 {
-    char value[RB_MAX_LEN];
+    char value[RB_MAX_LEN] = {0};
     double current = 0;
     int temp_value;
     int i;
@@ -3045,7 +3063,7 @@ void LX200_OnStep::OSUpdateRotator() {
 }
 
 IPState LX200_OnStep::MoveRotator(double angle) {
-    char cmd[32];
+    char cmd[CMD_MAX_LEN] = {0};
     int d, m, s;
     getSexComponents(angle, &d, &m, &s);
     
@@ -3085,7 +3103,7 @@ bool LX200_OnStep::AbortRotator() {
 }
 
 bool LX200_OnStep::SetRotatorBacklash(int32_t steps) {
-    char cmd[32];
+    char cmd[CMD_MAX_LEN] = {0};
 //     char response[RB_MAX_LEN];
     snprintf(cmd, sizeof(cmd), ":rb%d#", steps);
     if(sendOnStepCommand(cmd)) {
@@ -3129,9 +3147,9 @@ IPState LX200_OnStep::StartPECPlayback (int axis)
     {
         if (OSPECEnabled == true)
         {
-            char cmd[8];
+            char cmd[CMD_MAX_LEN] = {0};
             LOG_INFO("Sending Command to Start PEC Playback");
-            strcpy(cmd, ":$QZ+#");
+            strncpy(cmd, ":$QZ+#", sizeof(cmd));
             sendOnStepCommandBlind(cmd);
             return IPS_BUSY;
         }
@@ -3157,9 +3175,9 @@ IPState LX200_OnStep::StopPECPlayback (int axis)
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
-        char cmd[8];
+        char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Stop PEC Playback");
-        strcpy(cmd, ":$QZ-#");
+        strncpy(cmd, ":$QZ-#", sizeof(cmd));
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
@@ -3177,9 +3195,9 @@ IPState LX200_OnStep::StartPECRecord (int axis)
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
-        char cmd[8];
+        char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Start PEC record");
-        strcpy(cmd, ":$QZ/#");
+        strncpy(cmd, ":$QZ/#", RB_MAX_LEN);
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
@@ -3197,9 +3215,9 @@ IPState LX200_OnStep::ClearPECBuffer (int axis)
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
-        char cmd[8];
+        char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Clear PEC record");
-        strcpy(cmd, ":$QZZ#");
+        strncpy(cmd, ":$QZZ#", RB_MAX_LEN-1);
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
@@ -3218,9 +3236,9 @@ IPState LX200_OnStep::SavePECBuffer (int axis)
     INDI_UNUSED(axis); //We only have RA on OnStep
     if (OSPECEnabled == true)
     {
-        char cmd[8];
+        char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Save PEC to EEPROM");
-        strcpy(cmd, ":$QZ!#");
+        strncpy(cmd, ":$QZ!#", RB_MAX_LEN-1);
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
@@ -3234,8 +3252,7 @@ IPState LX200_OnStep::SavePECBuffer (int axis)
 
 IPState LX200_OnStep::PECStatus (int axis)
 {
-    //NOTE: PEC Status now reported via :GU#, and :QZ# appears gone
-    if (!OSPECviaGU) {
+//     if (!OSPECviaGU) {
 	INDI_UNUSED(axis); //We only have RA on OnStep
 	if (OSPECEnabled == true)
 	{
@@ -3270,7 +3287,7 @@ IPState LX200_OnStep::PECStatus (int axis)
 		OSPECStatusSP.s = IPS_OK;
 		OSPECStatusS[0].s = ISS_ON ;
 		OSPECRecordSP.s = IPS_IDLE;
-		OSPECEnabled = false;
+// 		OSPECEnabled = false;
 		LOG_INFO("Controller reports PEC Ignored and not supported");
 		LOG_INFO("No Further PEC Commands will be processed, unless status changed");
 		}
@@ -3324,8 +3341,8 @@ IPState LX200_OnStep::PECStatus (int axis)
 		// LOG_DEBUG("PEC status called when Controller does not support PEC");
 	}
 	return IPS_ALERT;
-	}
-    return IPS_OK;
+// 	}
+//     return IPS_OK;
 }
 
 
@@ -3365,7 +3382,7 @@ IPState LX200_OnStep::WritePECBuffer (int axis)
 IPState LX200_OnStep::AlignStartGeometric (int stars)
 {
     //See here https://groups.io/g/onstep/message/3624
-    char cmd[8];
+    char cmd[CMD_MAX_LEN] = {0};
 
     LOG_INFO("Sending Command to Start Alignment");
     IUSaveText(&OSNAlignT[0], "Align STARTED");
@@ -3374,7 +3391,7 @@ IPState LX200_OnStep::AlignStartGeometric (int stars)
     IUSaveText(&OSNAlignT[3], "Press 'Issue Align' if not solving");
     IDSetText(&OSNAlignTP, "==>Align Started");
     // Check for max number of stars and gracefully fall back to max, if more are requested.
-    char read_buffer[RB_MAX_LEN];
+    char read_buffer[RB_MAX_LEN] = {0};
     if(getCommandString(PortFD, read_buffer, ":A?#"))
     {
         LOGF_INFO("Getting Max Star: response Error, response = %s>", read_buffer);
@@ -3401,10 +3418,11 @@ IPState LX200_OnStep::AlignStartGeometric (int stars)
 
 IPState LX200_OnStep::AlignAddStar ()
 {
+    //Used if centering a star manually, most will use plate-solving
     //See here https://groups.io/g/onstep/message/3624
-    char cmd[8];
+    char cmd[CMD_MAX_LEN] = {0};
     LOG_INFO("Sending Command to Record Star");
-    strcpy(cmd, ":A+#");
+    strncpy(cmd, ":A+#", sizeof(cmd));
     if(sendOnStepCommand(cmd))
     {
         LOG_INFO("Adding Align failed");
@@ -3421,9 +3439,9 @@ bool LX200_OnStep::UpdateAlignStatus ()
     //               n is the current alignment star (0 otherwise)
     //               o is the last required alignment star when an alignment is in progress (0 otherwise)
 
-    char read_buffer[RB_MAX_LEN];
-    char msg[40];
-    char stars[5];
+    char read_buffer[RB_MAX_LEN] = {0};
+    char msg[40] = {0};
+    char stars[5] = {0};
 
     int max_stars, current_star, align_stars;
     // LOG_INFO("Getting Align Status");
@@ -3489,8 +3507,9 @@ bool LX200_OnStep::UpdateAlignErr()
 
 
 
-    char read_buffer[RB_MAX_LEN];
-    char polar_error[40], sexabuf[20];
+    char read_buffer[RB_MAX_LEN] = {0};
+    char polar_error[RB_MAX_LEN] = {0};
+    char sexabuf[RB_MAX_LEN] = {0};
     //  IUFillText(&OSNAlignT[4], "4", "Current Status", "Not Updated");
     //  IUFillText(&OSNAlignT[5], "5", "Max Stars", "Not Updated");
     //  IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
@@ -3545,9 +3564,9 @@ IPState LX200_OnStep::AlignDone()
 IPState LX200_OnStep::AlignWrite()
 {
     //See here https://groups.io/g/onstep/message/3624
-    char cmd[8];
+    char cmd[CMD_MAX_LEN] = {0};
     LOG_INFO("Sending Command to Finish Alignment and write");
-    strcpy(cmd, ":AW#");
+    strncpy(cmd, ":AW#", sizeof(cmd));
     IUSaveText(&OSNAlignT[0], "Align FINISHED");
     IUSaveText(&OSNAlignT[1], "------");
     IUSaveText(&OSNAlignT[2], "And Written to EEPROM");
@@ -3808,7 +3827,7 @@ void LX200_OnStep::Init_Outputs()
         k=0;
         if(configured[i-1]=='1') // is Feature is configured
         {
-        sprintf(getoutp, ":GXY%d#", i);
+            snprintf(getoutp, sizeof(getoutp), ":GXY%d#", i);
             getCommandString(PortFD, port_name, getoutp);
             for(k=0;k<strlen(port_name);k++)    // remove feature type
             {

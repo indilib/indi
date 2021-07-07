@@ -103,6 +103,7 @@
 #include <stdlib.h>
 
 #define RB_MAX_LEN 64
+#define CMD_MAX_LEN 32
 
 #define setParkOnStep(fd)  write(fd, "#:hQ#", 5)
 #define ReticPlus(fd)      write(fd, "#:B+#", 5)
@@ -209,6 +210,14 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
 
         //NewGeometricAlignment
         IPState AlignStartGeometric(int stars);
+
+        /**
+         * @brief AlignStartGeometric starts the OnStep Multistar align process.
+         * @brief Max of 9 stars,
+         * @param stars Number of stars to be included. If stars is more than the controller supports, it will be reduced.
+         * @return IPS_BUSY if no issues, IPS_ALERT if commands don't get the expected response.
+         */
+        
         IPState AlignAddStar();
         IPState AlignDone();
         IPState AlignWrite();
