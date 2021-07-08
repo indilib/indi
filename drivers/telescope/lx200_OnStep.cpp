@@ -1832,10 +1832,37 @@ bool LX200_OnStep::ReadScopeStatus()
         getCommandString(PortFD, OSStat, ":GU#"); // :GU# returns a string containg controller status
         if (strcmp(OSStat, OldOSStat) != 0) //if status changed
         {
-            // ============= Telescope Status
+            
             strncpy(OldOSStat, OSStat, sizeof(OldOSStat));
 
             IUSaveText(&OnstepStat[0], OSStat);
+            
+            // ============= Parkstatus 
+            // "P" (Parked moved to Telescope Status, since it would override any other Trackstatus
+            if (strstr(OSStat, "F"))
+            {
+                if (isParked()) {
+                    SetParked(false);
+                }
+                IUSaveText(&OnstepStat[3], "Parking Failed");
+            }
+            if (strstr(OSStat, "I"))
+            {
+                if (isParked()) {
+                    SetParked(false);
+                }
+                IUSaveText(&OnstepStat[3], "Park in Progress");
+            }
+            if (strstr(OSStat, "p"))
+            {
+                if (isParked()) {
+                    SetParked(false);
+                }
+                IUSaveText(&OnstepStat[3], "UnParked");
+            }
+            // ============= End Parkstatus 
+            
+            // ============= Telescope Status
             if (strstr(OSStat, "P"))
             {
                 if (!isParked()) { //Don't call this every time OSStat changes
@@ -1871,7 +1898,8 @@ bool LX200_OnStep::ReadScopeStatus()
                     TrackState = SCOPE_SLEWING;
                 }
             }
-
+            // ============= End Telescope Status
+            
             // ============= Refractoring
             if ((strstr(OSStat, "r") || strstr(OSStat, "t"))) //On, either refractory only (r) or full (t)
             {
@@ -1898,31 +1926,6 @@ bool LX200_OnStep::ReadScopeStatus()
                 IUSaveText(&OnstepStat[8], "N/A");
             }
 
-
-            // ============= Parkstatus
-            // "P" (Parked moved up, since it would override any other Trackstatus
-            if (strstr(OSStat, "F"))
-            {
-                if (isParked()) {
-                    SetParked(false);
-                }
-                IUSaveText(&OnstepStat[3], "Parking Failed");
-            }
-            if (strstr(OSStat, "I"))
-            {
-                if (isParked()) {
-                    SetParked(false);
-                }
-                IUSaveText(&OnstepStat[3], "Park in Progress");
-            }
-            if (strstr(OSStat, "p"))
-            {
-                if (isParked()) {
-                    SetParked(false);
-                }
-                IUSaveText(&OnstepStat[3], "UnParked");
-            }
-            // ============= End Parkstatus
 
             //if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
             if (strstr(OSStat, "H") && strstr(OSStat, "P"))
@@ -3197,7 +3200,7 @@ IPState LX200_OnStep::StartPECRecord (int axis)
     {
         char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Start PEC record");
-        strncpy(cmd, ":$QZ/#", RB_MAX_LEN);
+        strncpy(cmd, ":$QZ/#", CMD_MAX_LEN);
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
@@ -3217,7 +3220,7 @@ IPState LX200_OnStep::ClearPECBuffer (int axis)
     {
         char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Clear PEC record");
-        strncpy(cmd, ":$QZZ#", RB_MAX_LEN-1);
+        strncpy(cmd, ":$QZZ#", CMD_MAX_LEN);
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
@@ -3238,7 +3241,7 @@ IPState LX200_OnStep::SavePECBuffer (int axis)
     {
         char cmd[CMD_MAX_LEN] = {0};
         LOG_INFO("Sending Command to Save PEC to EEPROM");
-        strncpy(cmd, ":$QZ!#", RB_MAX_LEN-1);
+        strncpy(cmd, ":$QZ!#", CMD_MAX_LEN);
         sendOnStepCommandBlind(cmd);
         return IPS_BUSY;
     }
