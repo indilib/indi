@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 
 #include "baseclient.h"
 
@@ -38,7 +39,7 @@
 #include "indiuserio.h"
 
 #ifdef _WINDOWS
-#include <WinSock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 
 #define net_read(x,y,z) recv(x,y,z,0)
@@ -285,6 +286,7 @@ bool BaseClientPrivate::connect()
     sConnected = true;
     sAboutToClose = false;
     sSocketChanged.notify_all();
+    parent->serverConnected();
     std::thread(std::bind(&BaseClientPrivate::listenINDI, this)).detach();
 
     return true;
