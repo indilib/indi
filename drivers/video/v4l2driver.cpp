@@ -965,9 +965,24 @@ bool V4L2_Driver::setManualExposure(double duration)
         /* We don't have an absolute exposure control but we can stack gray frames until the exposure elapses */
         if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
         {
-            LOGF_WARN("Absolute exposure duration control is undefined, stacking up to %.3f seconds using %.16s.",
-                      duration, StackModeS[stackMode].name);
-            return true;
+            //use frame interval as frame duration instead of max exposure time.
+            if(FrameRatesSP.sp != nullptr){
+                LOGF_WARN("Absolute exposure duration control is undefined, stacking up to %.3f seconds using %.16s.",
+                          duration, StackModeS[stackMode].name);
+                int index = IUFindOnSwitchIndex(&FrameRatesSP);
+                int fn, fd;
+                sscanf(FrameRatesSP.sp[index].name, "%d/%d", &fn, &fd);
+                IDLog("Interval = %d %d\n", fn, fd);
+                ticks = (long)(10000.0*(float)fn/(float)fd + 0.5);
+                frame_duration.tv_sec  = ticks / 10000;
+                frame_duration.tv_usec = (ticks % 10000) * 100;
+                return true;
+            }
+            else{
+                //ToDo: Same thing should be done for FrameRateNP
+                LOG_ERROR("Absolute exposure duration control is undefined and tacking is not supported");
+                return false;
+            }
         }
         /* We don't have an absolute exposure control and stacking is not configured, bail out */
         else

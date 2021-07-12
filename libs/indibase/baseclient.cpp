@@ -286,6 +286,7 @@ bool BaseClientPrivate::connect()
     sConnected = true;
     sAboutToClose = false;
     sSocketChanged.notify_all();
+    parent->serverConnected();
     std::thread(std::bind(&BaseClientPrivate::listenINDI, this)).detach();
 
     return true;
