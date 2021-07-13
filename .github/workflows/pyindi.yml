@@ -37,7 +37,7 @@ jobs:
       - name: Get PyIndi Sources
         uses: actions/checkout@v2
         with:
-          repository: geehalel/pyindi-client
+          repository: indilib/pyindi-client
           path: ./pyindi-client
 
       - name: Build PyIndi
