@@ -27,11 +27,20 @@
 
 #include "defaultdevice.h"
 #include <stdint.h>
+#include <map>
 
 namespace Connection
 {
 class Serial;
 }
+
+struct SwitchMap
+{
+    ISwitch * S;
+    ISwitchVectorProperty * SP;
+};
+
+
 
 class PegasusUCH : public INDI::DefaultDevice
 {
@@ -60,6 +69,7 @@ class PegasusUCH : public INDI::DefaultDevice
         bool setUSBPort(uint8_t port, ISwitch usbPortS[2], ISwitchVectorProperty sp, ISState * states, char * names[], int n);
         bool setUSBPortEnabled(uint8_t port, bool enabled);
         void setFirmwareVersion();
+        void setBootstrapUSB();
         void updateUSBPower();
         void updateUpTime();
 
@@ -94,6 +104,20 @@ class PegasusUCH : public INDI::DefaultDevice
 
         // USB
         enum { USB_OFF, USB_ON };
+
+
+        std::map<int, SwitchMap> usbPort  =
+        {
+            { 0, { .S = USBPort1S, .SP = &USBPort1SP } },
+            { 1, { .S = USBPort2S, .SP = &USBPort2SP } },
+            { 2, { .S = USBPort3S, .SP = &USBPort3SP } },
+            { 3, { .S = USBPort4S, .SP = &USBPort4SP } },
+            { 4, { .S = USBPort5S, .SP = &USBPort5SP } },
+            { 5, { .S = USBPort6S, .SP = &USBPort6SP } }
+        };
+
+
+
         ISwitch USBPort1S[2];
         ISwitchVectorProperty USBPort1SP;
 
