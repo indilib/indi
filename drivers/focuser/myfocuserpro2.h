@@ -41,6 +41,10 @@
 #define STEPMODE_ONEHUNDREDTWENTYEIGHT  128
 #define STEPMODE_TWOHUNDREDFIFTYSIX     256
 
+#define CDRIVER_VERSION_MAJOR           0
+#define CDRIVER_VERSION_MINOR           10
+
+
 class MyFocuserPro2 : public INDI::Focuser
 {
     public:
