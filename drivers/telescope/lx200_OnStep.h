@@ -414,8 +414,13 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
             return IPS_OK;
         }
 
-
-
+        
+        /**
+         * @brief SyncParkStatus Update the state and switches for parking
+         * @param isparked True if parked, false otherwise.
+         */
+        virtual void SyncParkStatus(bool isparked) override;
+        
     private:
         int currentCatalog;
         int currentSubCatalog;

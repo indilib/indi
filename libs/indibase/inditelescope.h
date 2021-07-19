@@ -340,7 +340,7 @@ class Telescope : public DefaultDevice
          * ~/.indi/ParkData.xml) is updated in the process.
          * @param isparked set to true if parked, false otherwise.
          */
-        void SetParked(bool isparked);
+        virtual void SetParked(bool isparked);
 
         /**
          * @return Get current RA/AZ parking position.
@@ -605,6 +605,13 @@ class Telescope : public DefaultDevice
          * warning message.
          */
         virtual bool SetDefaultPark();
+
+
+        /**
+         * @brief SyncParkStatus Update the state and switches for parking
+         * @param isparked True if parked, false otherwise.
+         */
+        virtual void SyncParkStatus(bool isparked);
 
         /**
          * @brief SetSlewRate Set desired slew rate index.
@@ -888,15 +895,12 @@ class Telescope : public DefaultDevice
         /// The telescope/guide scope configuration file name
         const std::string ScopeConfigFileName;
 
+        bool IsParked {false};
+
     private:
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
         void triggerSnoop(const char *driverName, const char *propertyName);
-        /**
-         * @brief SyncParkStatus Update the state and switches for parking
-         * @param isparked True if parked, false otherwise.
-         */
-        void SyncParkStatus(bool isparked);
 
         /**
          * @brief LoadParkXML Read and process park XML data.
@@ -906,7 +910,6 @@ class Telescope : public DefaultDevice
 
         TelescopeParkData parkDataType {PARK_NONE};
         bool IsLocked {true};
-        bool IsParked {false};
         const char *ParkDeviceName {nullptr};
         const std::string ParkDataFileName;
         XMLEle *ParkdataXmlRoot {nullptr}, *ParkdeviceXml {nullptr}, *ParkstatusXml {nullptr}, *ParkpositionXml {nullptr},

@@ -1878,7 +1878,9 @@ bool LX200_OnStep::ReadScopeStatus()
 
             IUSaveText(&OnstepStat[0], OSStat);
             
-            // ============= Parkstatus 
+            // ============= Parkstatus
+            
+            
             // "P" (Parked moved to Telescope Status, since it would override any other Trackstatus
             if (strstr(OSStat, "F"))
             {
@@ -1896,22 +1898,22 @@ bool LX200_OnStep::ReadScopeStatus()
             }
             if (strstr(OSStat, "p"))
             {
-                if (isParked()) {
-                    SetParked(false);
-                }
                 IUSaveText(&OnstepStat[3], "UnParked");
             }
             // ============= End Parkstatus 
             
+            
+            
+            
             // ============= Telescope Status
             if (strstr(OSStat, "P"))
-            {
-                if (!isParked()) { //Don't call this every time OSStat changes
-                    SetParked(true);
-                } 
+            {                
                 TrackState = SCOPE_PARKED;
                 IUSaveText(&OnstepStat[3], "Parked");
                 IUSaveText(&OnstepStat[1], "Parked");
+                if (!isParked()) { //Don't call this every time OSStat changes
+                    SetParked(true);
+                }
             } else {
                 if (strstr(OSStat, "n") && strstr(OSStat, "N"))
                 {
@@ -1937,6 +1939,9 @@ bool LX200_OnStep::ReadScopeStatus()
                 {
                     IUSaveText(&OnstepStat[1], "Slewing");
                     TrackState = SCOPE_SLEWING;
+                }
+                if (isParked()) { //IMPORTANT: SET AFTER setting TrackState!
+                    SetParked(false);
                 }
             }
             // Set TrackStateSP based on above:
@@ -4157,4 +4162,27 @@ bool LX200_OnStep::Goto(double ra, double dec)
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     
     return true;
+}
+
+void LX200_OnStep::SyncParkStatus(bool isparked)
+{
+    //NOTE: THIS SHOULD ONLY BE CALLED _AFTER_ TrackState is set by the update function.
+    //Otherwise it will not be consistent.
+    LOG_DEBUG("OnStep SyncParkStatus called");
+    IsParked = isparked;
+    IUResetSwitch(&ParkSP);
+    ParkSP.s = IPS_OK;
+    
+    if (TrackState == SCOPE_PARKED)
+    {
+        ParkS[0].s = ISS_ON;
+        LOG_INFO("Mount is parked.");
+    }
+    else
+    {
+        ParkS[1].s = ISS_ON;
+        LOG_INFO("Mount is unparked.");
+    }
+    
+    IDSetSwitch(&ParkSP, nullptr);
 }
