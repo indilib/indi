@@ -1015,6 +1015,47 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        //Intercept Before inditelescope base can set TrackState
+        //Next one modification of inditelescope.cpp function
+        if (!strcmp(name, TrackStateSP.name))
+        {
+            int previousState = IUFindOnSwitchIndex(&TrackStateSP);
+            IUUpdateSwitch(&TrackStateSP, states, names, n);
+            int targetState = IUFindOnSwitchIndex(&TrackStateSP);
+            LOG_DEBUG("OnStep driver TrackStateSP override called");
+            if (previousState == targetState)
+            {
+                IDSetSwitch(&TrackStateSP, nullptr);
+                return true;
+            }
+            
+            if (TrackState == SCOPE_PARKED)
+            {
+                LOG_WARN("Telescope is Parked, Unpark before tracking.");
+                return false;
+            }
+            
+            bool rc = SetTrackEnabled((targetState == TRACK_ON) ? true : false);
+            
+            if (rc)
+            {
+                return true;
+                //TrackStateSP moved to Update 
+            }
+            else
+            {
+                //This is the case for an error on sending the command, so change TrackStateSP
+                TrackStateSP.s = IPS_ALERT;
+                IUResetSwitch(&TrackStateSP);
+                return false;
+            }
+            
+            LOG_DEBUG("TrackStateSP intercept, OnStep driver, should never get here");
+            return false;
+        }
+        
+        
+        
         // Reticlue +/- Buttons
         if (!strcmp(name, ReticSP.name))
         {
@@ -1898,6 +1939,19 @@ bool LX200_OnStep::ReadScopeStatus()
                     TrackState = SCOPE_SLEWING;
                 }
             }
+            // Set TrackStateSP based on above:
+            if (!strstr(OSStat, "n")) { //Can be tracking while slewing
+                TrackStateSP.s = IPS_BUSY;
+                TrackStateS[TRACK_ON].s = ISS_ON;
+                TrackStateS[TRACK_OFF].s = ISS_OFF;
+            } else {
+                TrackStateSP.s = IPS_IDLE;
+                TrackStateS[TRACK_ON].s =  ISS_OFF;
+                TrackStateS[TRACK_OFF].s = ISS_ON;
+            }
+            IDSetSwitch(&TrackStateSP, nullptr);
+
+                             
             // ============= End Telescope Status
             
             // ============= Refractoring
