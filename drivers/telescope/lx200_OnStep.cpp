@@ -1019,15 +1019,15 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         //Next one modification of inditelescope.cpp function
         if (!strcmp(name, TrackStateSP.name))
         {
-            int previousState = IUFindOnSwitchIndex(&TrackStateSP);
+//             int previousState = IUFindOnSwitchIndex(&TrackStateSP);
             IUUpdateSwitch(&TrackStateSP, states, names, n);
             int targetState = IUFindOnSwitchIndex(&TrackStateSP);
-            LOG_DEBUG("OnStep driver TrackStateSP override called");
-            if (previousState == targetState)
-            {
-                IDSetSwitch(&TrackStateSP, nullptr);
-                return true;
-            }
+//             LOG_DEBUG("OnStep driver TrackStateSP override called");
+//             if (previousState == targetState)
+//             {
+//                 IDSetSwitch(&TrackStateSP, nullptr);
+//                 return true;
+//             }
             
             if (TrackState == SCOPE_PARKED)
             {
@@ -1871,7 +1871,7 @@ bool LX200_OnStep::ReadScopeStatus()
         //Fall back to :GU parsing
 #endif
         getCommandString(PortFD, OSStat, ":GU#"); // :GU# returns a string containg controller status
-        if (strcmp(OSStat, OldOSStat) != 0) //if status changed
+        if (1) //(strcmp(OSStat, OldOSStat) != 0) //if status changed
         {
             
             strncpy(OldOSStat, OSStat, sizeof(OldOSStat));
@@ -1880,20 +1880,15 @@ bool LX200_OnStep::ReadScopeStatus()
             
             // ============= Parkstatus
             
-            
+            PrintTrackState();
+            LOG_DEBUG("^ Prior");
             // "P" (Parked moved to Telescope Status, since it would override any other Trackstatus
             if (strstr(OSStat, "F"))
             {
-                if (isParked()) {
-                    SetParked(false);
-                }
                 IUSaveText(&OnstepStat[3], "Parking Failed");
             }
             if (strstr(OSStat, "I"))
             {
-                if (isParked()) {
-                    SetParked(false);
-                }
                 IUSaveText(&OnstepStat[3], "Park in Progress");
             }
             if (strstr(OSStat, "p"))
@@ -1914,6 +1909,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 if (!isParked()) { //Don't call this every time OSStat changes
                     SetParked(true);
                 }
+                PrintTrackState();
             } else {
                 if (strstr(OSStat, "n") && strstr(OSStat, "N"))
                 {
@@ -1940,12 +1936,15 @@ bool LX200_OnStep::ReadScopeStatus()
                     IUSaveText(&OnstepStat[1], "Slewing");
                     TrackState = SCOPE_SLEWING;
                 }
+                PrintTrackState();
                 if (isParked()) { //IMPORTANT: SET AFTER setting TrackState!
                     SetParked(false);
                 }
+                PrintTrackState();
             }
             // Set TrackStateSP based on above:
-            if (!strstr(OSStat, "n")) { //Can be tracking while slewing
+//             if (!strstr(OSStat, "n")) { //Can be tracking while slewing, but that causes flipping
+            if (TrackState == SCOPE_TRACKING){
                 TrackStateSP.s = IPS_BUSY;
                 TrackStateS[TRACK_ON].s = ISS_ON;
                 TrackStateS[TRACK_OFF].s = ISS_OFF;
@@ -1955,7 +1954,24 @@ bool LX200_OnStep::ReadScopeStatus()
                 TrackStateS[TRACK_OFF].s = ISS_ON;
             }
             IDSetSwitch(&TrackStateSP, nullptr);
-
+            switch (TrackState)
+            {
+                case SCOPE_PARKED:
+                case SCOPE_IDLE:
+                    EqNP.s = IPS_IDLE;
+                    break;
+                    
+                case SCOPE_SLEWING:
+                case SCOPE_PARKING:
+                    EqNP.s = IPS_BUSY;
+                    break;
+                    
+                case SCOPE_TRACKING:
+                    EqNP.s = IPS_OK;
+                    break;
+            }
+            IDSetNumber(&EqNP, nullptr);
+            PrintTrackState();
                              
             // ============= End Telescope Status
             
@@ -4169,6 +4185,7 @@ void LX200_OnStep::SyncParkStatus(bool isparked)
     //NOTE: THIS SHOULD ONLY BE CALLED _AFTER_ TrackState is set by the update function.
     //Otherwise it will not be consistent.
     LOG_DEBUG("OnStep SyncParkStatus called");
+    PrintTrackState();
     IsParked = isparked;
     IUResetSwitch(&ParkSP);
     ParkSP.s = IPS_OK;
@@ -4185,4 +4202,37 @@ void LX200_OnStep::SyncParkStatus(bool isparked)
     }
     
     IDSetSwitch(&ParkSP, nullptr);
+}
+
+
+void LX200_OnStep::SetParked(bool isparked)
+{
+    PrintTrackState();
+    SyncParkStatus(isparked);
+    PrintTrackState();
+    if (parkDataType != PARK_NONE)
+        WriteParkData();
+    PrintTrackState();
+}
+
+void LX200_OnStep::PrintTrackState()
+{
+    switch(TrackState){
+        case(SCOPE_IDLE):
+            LOG_DEBUG("TrackState: SCOPE_IDLE");
+            return;
+        case(SCOPE_SLEWING):
+            LOG_DEBUG("TrackState: SCOPE_SLEWING");
+            return;
+        case(SCOPE_TRACKING):
+            LOG_DEBUG("TrackState: SCOPE_TRACKING");
+            return;
+        case(SCOPE_PARKING):
+            LOG_DEBUG("TrackState: SCOPE_PARKING");
+            return;
+        case(SCOPE_PARKED):
+            LOG_DEBUG("TrackState: SCOPE_PARKED");
+            return;
+    }
+    return;
 }

@@ -896,6 +896,7 @@ class Telescope : public DefaultDevice
         const std::string ScopeConfigFileName;
 
         bool IsParked {false};
+        TelescopeParkData parkDataType {PARK_NONE};
 
     private:
         bool processTimeInfo(const char *utc, const char *offset);
@@ -908,7 +909,6 @@ class Telescope : public DefaultDevice
          */
         const char *LoadParkXML();
 
-        TelescopeParkData parkDataType {PARK_NONE};
         bool IsLocked {true};
         const char *ParkDeviceName {nullptr};
         const std::string ParkDataFileName;

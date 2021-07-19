@@ -421,6 +421,16 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
          */
         virtual void SyncParkStatus(bool isparked) override;
         
+        /**
+         * @brief SetParked Change the mount parking status. The data park file (stored in
+         * ~/.indi/ParkData.xml) is updated in the process.
+         * @param isparked set to true if parked, false otherwise.
+         */
+        virtual void SetParked(bool isparked) override;
+        
+        
+        void PrintTrackState();
+        
     private:
         int currentCatalog;
         int currentSubCatalog;
