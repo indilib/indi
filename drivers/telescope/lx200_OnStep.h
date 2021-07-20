@@ -24,9 +24,12 @@
     ===========================================
     
     Version not yet updated:
-    Version 1.11: 
+    Version 1.11:
+    - Cleanup and completely control TrackState. (Should eliminate various issues.)
+    - Behind the scenes: More consistent command declarations (Should eliminate a type of error that's happened in the past when changing commands.)
+    
 
-    Past Versions: 
+    Past Versions:
     Version 1.10: (finalized: INDI 1.9.1)
     - Weather support for setting temperature/humidity/pressure, values will be overridden in OnStep by any sensor values. 
     - Ability to swap primary focuser.
@@ -428,7 +431,10 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
          */
         virtual void SetParked(bool isparked) override;
         
-        
+        /**
+         * @brief PrintTrackState will print to the debug log the status of TrackState if 
+         * DEBUG_TRACKSTATE is defined otherwise it will simply return.
+         */
         void PrintTrackState();
         
     private:

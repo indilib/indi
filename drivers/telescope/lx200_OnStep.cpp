@@ -22,6 +22,8 @@
 
 */
 
+//#define DEBUG_TRACKSTATE
+
 
 #include "lx200_OnStep.h"
 
@@ -4217,6 +4219,7 @@ void LX200_OnStep::SetParked(bool isparked)
 
 void LX200_OnStep::PrintTrackState()
 {
+    #ifdef DEBUG_TRACKSTATE
     switch(TrackState){
         case(SCOPE_IDLE):
             LOG_DEBUG("TrackState: SCOPE_IDLE");
@@ -4234,5 +4237,6 @@ void LX200_OnStep::PrintTrackState()
             LOG_DEBUG("TrackState: SCOPE_PARKED");
             return;
     }
+    #endif
     return;
 }
