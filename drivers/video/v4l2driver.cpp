@@ -56,6 +56,7 @@ static const PixelSizeInfo pixelSizeInfo[] =
     { "iOptron iGuider: iOptron iGuide", nullptr, 3.75f, -1, true },
     { "mmal service 16.1", "Raspberry Pi High Quality Camera", 1.55f, -1, true },
     { "UVC Camera (046d:0825)", "Logitech HD C270", 2.8f, -1, true },
+    { "USB 2.0 Camera: USB Camera", "USB 2.0 IMX290 Board", 2.9f, -1, true },
     { "0c45:6366 Microdia", "Spinel 2MP Full HD Low Light WDR H264 USB Camera Module IMX290", 2.9f, -1, true },
     { "Microsoft® LifeCam Cinema(TM):", "Microsoft® LifeCam Cinema(TM)", 3.0f, -1, false },
     { nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
@@ -966,19 +967,21 @@ bool V4L2_Driver::setManualExposure(double duration)
         if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
         {
             //use frame interval as frame duration instead of max exposure time.
-            if(FrameRatesSP.sp != nullptr){
+            if(FrameRatesSP.sp != nullptr)
+            {
                 LOGF_WARN("Absolute exposure duration control is undefined, stacking up to %.3f seconds using %.16s.",
                           duration, StackModeS[stackMode].name);
                 int index = IUFindOnSwitchIndex(&FrameRatesSP);
                 int fn, fd;
                 sscanf(FrameRatesSP.sp[index].name, "%d/%d", &fn, &fd);
                 IDLog("Interval = %d %d\n", fn, fd);
-                ticks = (long)(10000.0*(float)fn/(float)fd + 0.5);
+                ticks = (long)(10000.0 * (float)fn / (float)fd + 0.5);
                 frame_duration.tv_sec  = ticks / 10000;
                 frame_duration.tv_usec = (ticks % 10000) * 100;
                 return true;
             }
-            else{
+            else
+            {
                 //ToDo: Same thing should be done for FrameRateNP
                 LOG_ERROR("Absolute exposure duration control is undefined and tacking is not supported");
                 return false;
