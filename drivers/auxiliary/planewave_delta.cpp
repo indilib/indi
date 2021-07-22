@@ -707,7 +707,7 @@ bool DeltaT::sendCommand(const char * cmd, char * res, uint32_t cmd_len, uint32_
     hexDump(hex_res, res, res_len);
     LOGF_DEBUG("RES <%s>", hex_res);
 
-    char chk = calculateCheckSum(res, res_len);
+    int8_t chk = calculateCheckSum(res, res_len);
 
     if (res_len > 0 && chk != res[res_len - 1])
     {
