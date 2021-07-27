@@ -489,7 +489,7 @@ bool AstroTrac::Sync(double ra, double dec)
 
     LOGF_DEBUG("Sync - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
 
-    if (!CheckForDuplicateSyncPoint(NewEntry))
+    if (!CheckForDuplicateSyncPoint(NewEntry, 0.01))
     {
         GetAlignmentDatabase().push_back(NewEntry);
 
