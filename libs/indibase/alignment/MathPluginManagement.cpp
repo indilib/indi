@@ -270,6 +270,7 @@ void MathPluginManagement::HandlePluginLoading(Telescope *pTelescope, int Curren
                 if (nullptr != Create)
                 {
                     pLoadedMathPlugin = Create();
+                    Initialise(CurrentInMemoryDatabase);
                     IUSaveText(&AlignmentSubsystemCurrentMathPlugin, PluginPath.c_str());
                 }
                 else
