@@ -134,7 +134,7 @@ bool NearestMathPlugin::TransformCelestialToTelescope(const double RightAscensio
         double JulianOffset, TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
     IGeographicCoordinates Position;
-    if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
+    if (!pInMemoryDatabase || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
         return false;
 
     double JDD = ln_get_julian_from_sys() + JulianOffset;
@@ -206,7 +206,7 @@ bool NearestMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVe
         double &RightAscension, double &Declination)
 {
     IGeographicCoordinates Position;
-    if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
+    if (!pInMemoryDatabase || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
         return false;
 
     double JDD = ln_get_julian_from_sys();
