@@ -231,6 +231,7 @@ void MathPluginManagement::HandlePluginLoading(Telescope *pTelescope, int Curren
 {
     if (NewPlugin != CurrentPlugin)
     {
+        MountAlignment_t currentMountAlignment = GetApproximateMountAlignment();
         // New plugin requested
         // Unload old plugin if required
         if (0 != CurrentPlugin)
@@ -270,6 +271,7 @@ void MathPluginManagement::HandlePluginLoading(Telescope *pTelescope, int Curren
                 if (nullptr != Create)
                 {
                     pLoadedMathPlugin = Create();
+                    SetApproximateMountAlignment(currentMountAlignment);
                     Initialise(CurrentInMemoryDatabase);
                     IUSaveText(&AlignmentSubsystemCurrentMathPlugin, PluginPath.c_str());
                 }
