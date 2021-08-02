@@ -171,7 +171,7 @@ bool CCDSim::initProperties()
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // Gain
-    IUFillNumber(&GainN[0], "GAIN", "value", "%.f", 0, 100, 10, 50);
+    IUFillNumber(&GainN[0], "GAIN", "value", "%.f", 0, 100, 10, 90);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Offset
