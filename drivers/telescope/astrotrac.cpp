@@ -489,7 +489,7 @@ bool AstroTrac::Sync(double ra, double dec)
 
     LOGF_DEBUG("Sync - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
 
-    if (!CheckForDuplicateSyncPoint(NewEntry))
+    if (!CheckForDuplicateSyncPoint(NewEntry, 0.01))
     {
         GetAlignmentDatabase().push_back(NewEntry);
 
@@ -500,7 +500,7 @@ bool AstroTrac::Sync(double ra, double dec)
         //        if (GetAlignmentDatabase().size() < 2)
         //            LOG_WARN("Equatorial mounts need two SYNC points at least.");
 
-        // Tell the math plugin to reinitialise
+        // Tell the math plugin to reinitiali
         Initialise(this);
         LOGF_DEBUG("Sync - new entry added RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
 

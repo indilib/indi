@@ -273,14 +273,14 @@ bool BaseDevice::buildSkeleton(const char *filename)
     //prXMLEle(stderr, fproot, 0);
 
     for (root = nextXMLEle(fproot, 1); root != nullptr; root = nextXMLEle(fproot, 0))
-        buildProp(root, errmsg);
+        buildProp(root, errmsg, true);
 
     delXMLEle(fproot);
     return true;
     /**************************************************************************/
 }
 
-int BaseDevice::buildProp(XMLEle *root, char *errmsg)
+int BaseDevice::buildProp(XMLEle *root, char *errmsg, bool isDynamic)
 {
     D_PTR(BaseDevice);
     IPerm perm    = IP_RO;
@@ -479,7 +479,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     }
 
     indiProp.setBaseDevice(this);
-    //indiProp.setDynamic(true);
+    indiProp.setDynamic(isDynamic);
     indiProp.setDeviceName(getDeviceName());
     indiProp.setName(rname);
     indiProp.setLabel(findXMLAttValu(root, "label"));
