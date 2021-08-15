@@ -1462,11 +1462,9 @@ libindi/examples/tutorial_three/simpleccd.h -text
 libindi/examples/tutorial_two/CMakeLists.txt -text
 libindi/examples/tutorial_two/simplescope.cpp -text
 libindi/examples/tutorial_two/simplescope.h -text
-libindi/fq.c -text
-libindi/fq.h -text
 libindi/indiapi.h -text
 libindi/indidevapi.h -text
-libindi/indidriver.c -text
+libindi/indidriver.cpp -text
 libindi/indidriver.h -text
 libindi/indidrivermain.c -text
 libindi/indiserver.c -text
