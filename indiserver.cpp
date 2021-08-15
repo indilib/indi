@@ -94,7 +94,7 @@ class Msg {
 public:
     int count;         /* number of consumers left */
     unsigned long cl;  /* content length */
-    char *cp;          /* content: buf or malloced */
+    char *cp;          /* content: malloced */
 
     Msg();
     ~Msg();
@@ -149,10 +149,10 @@ static Fifo * fifo = nullptr;
 class ClInfo: public MsgQueue {
 public:
     std::list<Property*> props; /* props we want */
-    int allprops;       /* saw getProperties w/o device */
-    BLOBHandling blob;  /* when to send setBLOBs */
-    int s;              /* socket for this client */
-    LilXML *lp;         /* XML parsing context */
+    int allprops = 0;       /* saw getProperties w/o device */
+    BLOBHandling blob = B_NEVER;  /* when to send setBLOBs */
+    int s = -1;              /* socket for this client */
+    LilXML *lp = nullptr;         /* XML parsing context */
 
     ClInfo();
     ~ClInfo();
@@ -170,9 +170,7 @@ public:
     char envPrefix[MAXSBUF];
     char host[MAXSBUF];
     int port;
-    //char dev[MAXINDIDEVICE];		/* device served by this driver */
-    char **dev;         /* device served by this driver */
-    int ndev;           /* number of devices served by this driver */
+    std::set<std::string> dev;    /* device served by this driver */
     std::list<Property*>sprops;   /* props we snoop */
     int pid;            /* process id or REMOTEDVR if remote */
     int rfd;            /* read pipe fd */
@@ -183,6 +181,8 @@ public:
 
     DvrInfo();
     ~DvrInfo();
+
+    bool isHandlingDevice(const std::string & dev) const;
 };
 static std::set<DvrInfo*> drivers;
 
@@ -214,7 +214,6 @@ static void startLocalDvr(DvrInfo *dp);
 static void startRemoteDvr(DvrInfo *dp);
 static int openINDIServer(char host[], int indi_port);
 static void shutdownDvr(DvrInfo *dp, int restart);
-static int isDeviceInDriver(const char *dev, DvrInfo *dp);
 static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root);
 static void q2SDrivers(DvrInfo *me, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
 static int q2Clients(ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
@@ -438,6 +437,7 @@ static void reapZombies()
 static void noSIGPIPE()
 {
     struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
     sa.sa_handler = SIG_IGN;
     sigemptyset(&sa.sa_mask);
     (void)sigaction(SIGPIPE, &sa, NULL);
@@ -571,8 +571,6 @@ static void startLocalDvr(DvrInfo *dp)
     dp->efd     = ep[0];
     dp->lp      = newLilXML();
     dp->nsent   = 0;
-    dp->ndev    = 0;
-    dp->dev     = (char **)malloc(sizeof(char *));
 
     /* first message primes driver to report its properties -- dev known
      * if restarting
@@ -621,15 +619,12 @@ static void startRemoteDvr(DvrInfo *dp)
     dp->wfd     = sockfd;
     dp->lp      = newLilXML();
     dp->nsent   = 0;
-    dp->ndev    = 1;
-    dp->dev     = (char **)malloc(sizeof(char *));
 
     /* N.B. storing name now is key to limiting outbound traffic to this
      * dev.
      */
-    dp->dev[0] = (char *)malloc(MAXINDIDEVICE * sizeof(char));
-    strncpy(dp->dev[0], dev, MAXINDIDEVICE - 1);
-    dp->dev[0][MAXINDIDEVICE - 1] = '\0';
+    if (dev[0])
+        dp->dev.insert(dev);
 
     /* Sending getProperties with device lets remote server limit its
      * outbound (and our inbound) traffic on this socket to this device.
@@ -637,7 +632,7 @@ static void startRemoteDvr(DvrInfo *dp)
     Msg *mp = new Msg();
     dp->msgq.push_back(mp);
     if (dev[0])
-        sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dp->dev[0], INDIV);
+        sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dev, INDIV);
     else
         // This informs downstream server that it is connecting to an upstream server
         // and not a regular client. The difference is in how it treats snooping properties
@@ -878,18 +873,6 @@ static void indiRun(void)
     }
 }
 
-int isDeviceInDriver(const char *dev, DvrInfo *dp)
-{
-    int i = 0;
-    for (i = 0; i < dp->ndev; i++)
-    {
-        if (!strcmp(dev, dp->dev[i]))
-            return 1;
-    }
-
-    return 0;
-}
-
 /* Read commands from FIFO and process them. Start/stop drivers accordingly */
 static void newFIFO(void)
 {
@@ -1029,11 +1012,11 @@ static void newFIFO(void)
                 fprintf(stderr, "dp->name: %s - tDriver: %s\n", dp->name.c_str(), tDriver);
                 if (dp->name == tDriver)
                 {
-                    fprintf(stderr, "name: %s - dp->dev[0]: %s\n", tName, dp->dev[0]);
+                    fprintf(stderr, "name: %s - dp->dev[0]: %s\n", tName, dp->dev.empty() ? "" : dp->dev.begin()->c_str());
 
                     /* If device name is given, check against it before shutting down */
                     //if (tName[0] && strcmp(dp->dev[0], tName))
-                    if (tName[0] && isDeviceInDriver(tName, dp) == 0)
+                    if (tName[0] && !dp->isHandlingDevice(tName))
                         continue;
                     if (verbose)
                         fprintf(stderr, "FIFO: Shutting down driver: %s\n", tDriver);
@@ -1295,21 +1278,15 @@ static int readFromDriver(DvrInfo *dp)
         }
 
         /* Found a new device? Let's add it to driver info */
-        if (dev[0] && isDeviceInDriver(dev, dp) == 0)
+        if (dev[0] && !dp->isHandlingDevice(dev))
         {
-            dp->dev           = (char **)realloc(dp->dev, (dp->ndev + 1) * sizeof(char *));
-            dp->dev[dp->ndev] = (char *)malloc(MAXINDIDEVICE * sizeof(char));
-
-            strncpy(dp->dev[dp->ndev], dev, MAXINDIDEVICE - 1);
-            dp->dev[dp->ndev][MAXINDIDEVICE - 1] = '\0';
+            dp->dev.insert(dev);
 
 #ifdef OSX_EMBEDED_MODE
             if (!dp->ndev)
                 fprintf(stderr, "STARTED \"%s\"\n", dp->name.c_str());
             fflush(stderr);
 #endif
-
-            dp->ndev++;
         }
 
         /* log messages if any and wanted */
@@ -1403,19 +1380,17 @@ static void shutdownClient(ClInfo *cp)
 /* close down the given driver and restart */
 static void shutdownDvr(DvrInfo *dp, int restart)
 {
-    int i = 0;
-
     // Tell client driver is dead.
-    for (i = 0; i < dp->ndev; i++)
+    for (auto dev : dp->dev)
     {
         /* Inform clients that this driver is dead */
         XMLEle *root = addXMLEle(NULL, "delProperty");
-        addXMLAtt(root, "device", dp->dev[i]);
+        addXMLAtt(root, "device", dev.c_str());
 
         prXMLEle(stderr, root, 0);
         Msg *mp = new Msg();
 
-        q2Clients(NULL, 0, dp->dev[i], NULL, mp, root);
+        q2Clients(NULL, 0, dev.c_str(), NULL, mp, root);
         if (mp->count > 0)
             mp->setFromXMLEle(root);
         else
@@ -1445,11 +1420,10 @@ static void shutdownDvr(DvrInfo *dp, int restart)
 #endif
 
     /* free memory */
-    free(dp->dev);
     delLilXML(dp->lp);
 
     /* ok now to recycle */
-    dp->ndev   = 0;
+    dp->dev.clear();
 
     /* decrement and possibly free any unsent messages for this client */
     dp->clearMsgQueue();
@@ -1494,7 +1468,7 @@ static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root)
         int isRemote = (dp->pid == REMOTEDVR);
 
         /* driver known to not support this dev */
-        if (dev[0] && dev[0] != '*' && isDeviceInDriver(dev, dp) == 0)
+        if (dev[0] && dev[0] != '*' && !dp->isHandlingDevice(dev))
             continue;
 
         /* Only send message to each *unique* remote driver at a particular host:port
@@ -1707,15 +1681,7 @@ static int q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
             case 0:
                 for (auto pp : cp->props)
                 {
-                    int j        = 0;
-                    for (j = 0; j < me->ndev; j++)
-                    {
-                        if (!strcmp(pp->dev, me->dev[j]))
-                            break;
-                    }
-
-                    if (j != me->ndev)
-                    {
+                    if (me->dev.find(pp->dev) != me->dev.end()) {
                         devFound = 1;
                         break;
                     }
@@ -2068,6 +2034,10 @@ DvrInfo::~DvrInfo() {
     }
 }
 
+bool DvrInfo::isHandlingDevice(const std::string & dev) const {
+    return this->dev.find(dev) != this->dev.end();
+}
+
 ClInfo::ClInfo() {
     clients.insert(this);
 }
@@ -2113,7 +2083,7 @@ void Msg::setFromStr(const char * str) {
 void Msg::setFromXMLEle(XMLEle *root)
 {
     /* want cl to only count content, but need room for final \0 */
-    alloc(sprlXMLEle(root, 0));
+    alloc(sprlXMLEle(root, 0) + 1);
     sprXMLEle(cp, root, 0);
 
     /* Drop the last zero */
