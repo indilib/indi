@@ -132,8 +132,7 @@ find_package(Threads REQUIRED)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 # 3. Build
 SET(indiserver_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/indiserver.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/fq.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/indiserver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c)
 
 IF (UNITY_BUILD)
