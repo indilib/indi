@@ -51,7 +51,6 @@
 #include <string>
 #include <list>
 
-#include "fq.h"
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "libs/lilxml.h"
@@ -96,6 +95,37 @@ public:
     int count;         /* number of consumers left */
     unsigned long cl;  /* content length */
     char *cp;          /* content: buf or malloced */
+
+    Msg();
+    ~Msg();
+    void alloc(unsigned long cl);
+
+    /* save str as content in mp. */
+    void setFromStr(const char * str);
+
+    /* print root as content in mp.*/
+    void setFromXMLEle(XMLEle *root);
+};
+
+class MsgQueue {
+    void unrefMsg(Msg * msg);
+public:
+    std::list<Msg*> msgq;           /* Msg queue */
+    unsigned int nsent; /* bytes of current Msg sent so far */
+
+    MsgQueue();
+    ~MsgQueue();
+
+    void pushMsg(Msg * msg);
+
+    /* return storage size of all Msqs on the given q */
+    unsigned long msgQSize() const;
+
+    Msg * headMsg() const;
+    void consumeHeadMsg();
+
+    /* Remove all messages from queue */
+    void clearMsgQueue();
 };
 
 /* device + property name */
@@ -110,23 +140,19 @@ class Fifo {
 public:
     std::string name; /* Path to FIFO for dynamic startups & shutdowns of drivers */
     int fd = -1;
-
-    Fifo();
 };
 
 static Fifo * fifo = nullptr;
 
 
 /* info for each connected client */
-class ClInfo {
+class ClInfo: public MsgQueue {
 public:
     std::list<Property*> props; /* props we want */
     int allprops;       /* saw getProperties w/o device */
     BLOBHandling blob;  /* when to send setBLOBs */
     int s;              /* socket for this client */
     LilXML *lp;         /* XML parsing context */
-    FQ *msgq;           /* Msg queue */
-    unsigned int nsent; /* bytes of current Msg sent so far */
 
     ClInfo();
     ~ClInfo();
@@ -134,7 +160,7 @@ public:
 static std::set<ClInfo*> clients;
 
 /* info for each connected driver */
-class DvrInfo
+class DvrInfo: public MsgQueue
 {
 public:
     std::string name; /* persistent name */
@@ -154,8 +180,6 @@ public:
     int efd;            /* stderr from driver, if local */
     int restarts;       /* times process has been restarted */
     LilXML *lp;         /* XML parsing context */
-    FQ *msgq;           /* Msg queue */
-    unsigned int nsent; /* bytes of current Msg sent so far */
 
     DvrInfo();
     ~DvrInfo();
@@ -168,8 +192,8 @@ static int port = INDIPORT;                            /* public INDI port */
 static int verbose;                                    /* chattiness */
 static int lsocket;                                    /* listen socket */
 static char *ldir;                                     /* where to log driver messages */
-static int maxqsiz       = (DEFMAXQSIZ * 1024 * 1024); /* kill if these bytes behind */
-static int maxstreamsiz  = (DEFMAXSSIZ * 1024 * 1024); /* drop blobs if these bytes behind while streaming*/
+static unsigned int maxqsiz  = (DEFMAXQSIZ * 1024 * 1024); /* kill if these bytes behind */
+static unsigned int maxstreamsiz  = (DEFMAXSSIZ * 1024 * 1024); /* drop blobs if these bytes behind while streaming*/
 static int maxrestarts   = DEFMAXRESTART;
 
 static void logStartup(int ac, char *av[]);
@@ -201,11 +225,6 @@ static void addClDevice(ClInfo *cp, const char *dev, const char *name, int isblo
 static int findClDevice(ClInfo *cp, const char *dev, const char *name);
 static int readFromDriver(DvrInfo *dp);
 static int stderrFromDriver(DvrInfo *dp);
-static int msgQSize(FQ *q);
-static void setMsgXMLEle(Msg *mp, XMLEle *root);
-static void setMsgStr(Msg *mp, char *str);
-static void freeMsg(Msg *mp);
-static Msg *newMsg(void);
 static int sendClientMsg(ClInfo *cp);
 static int sendDriverMsg(DvrInfo *cp);
 static void crackBLOB(const char *enableBLOB, BLOBHandling *bp);
@@ -446,7 +465,7 @@ static void startLocalDvr(DvrInfo *dp)
     int pid;
 
 #ifdef OSX_EMBEDED_MODE
-    fprintf(stderr, "STARTING \"%s\"\n", dp->name);
+    fprintf(stderr, "STARTING \"%s\"\n", dp->name.c_str());
     fflush(stderr);
 #endif
 
@@ -531,7 +550,7 @@ static void startLocalDvr(DvrInfo *dp)
         }
 
 #ifdef OSX_EMBEDED_MODE
-        fprintf(stderr, "FAILED \"%s\"\n", dp->name);
+        fprintf(stderr, "FAILED \"%s\"\n", dp->name.c_str());
         fflush(stderr);
 #endif
         fprintf(stderr, "%s: Driver %s: execlp: %s\n", indi_tstamp(NULL), dp->name.c_str(), strerror(errno));
@@ -551,7 +570,6 @@ static void startLocalDvr(DvrInfo *dp)
     dp->wfd     = wp[1];
     dp->efd     = ep[0];
     dp->lp      = newLilXML();
-    dp->msgq    = newFQ(1);
     dp->nsent   = 0;
     dp->ndev    = 0;
     dp->dev     = (char **)malloc(sizeof(char *));
@@ -559,10 +577,10 @@ static void startLocalDvr(DvrInfo *dp)
     /* first message primes driver to report its properties -- dev known
      * if restarting
      */
-    mp = newMsg();
-    pushFQ(dp->msgq, mp);
+    mp = new Msg();
+    dp->msgq.push_back(mp);
     snprintf(buf, sizeof(buf), "<getProperties version='%g'/>\n", INDIV);
-    setMsgStr(mp, buf);
+    mp->setFromStr(buf);
     mp->count++;
 
     if (verbose > 0)
@@ -575,7 +593,6 @@ static void startLocalDvr(DvrInfo *dp)
  */
 static void startRemoteDvr(DvrInfo *dp)
 {
-    Msg *mp;
     char dev[MAXINDIDEVICE] = {0};
     char host[MAXSBUF] = {0};
     char buf[MAXSBUF] = {0};
@@ -603,7 +620,6 @@ static void startRemoteDvr(DvrInfo *dp)
     dp->rfd     = sockfd;
     dp->wfd     = sockfd;
     dp->lp      = newLilXML();
-    dp->msgq    = newFQ(1);
     dp->nsent   = 0;
     dp->ndev    = 1;
     dp->dev     = (char **)malloc(sizeof(char *));
@@ -618,8 +634,8 @@ static void startRemoteDvr(DvrInfo *dp)
     /* Sending getProperties with device lets remote server limit its
      * outbound (and our inbound) traffic on this socket to this device.
      */
-    mp = newMsg();
-    pushFQ(dp->msgq, mp);
+    Msg *mp = new Msg();
+    dp->msgq.push_back(mp);
     if (dev[0])
         sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dp->dev[0], INDIV);
     else
@@ -627,7 +643,7 @@ static void startRemoteDvr(DvrInfo *dp)
         // and not a regular client. The difference is in how it treats snooping properties
         // among properties.
         sprintf(buf, "<getProperties device='*' version='%g'/>\n", INDIV);
-    setMsgStr(mp, buf);
+    mp->setFromStr(buf);
     mp->count++;
 
     if (verbose > 0)
@@ -771,7 +787,7 @@ static void indiRun(void)
     for (auto cp : clients) 
     {
         FD_SET(cp->s, &rs);
-        if (nFQ(cp->msgq) > 0)
+        if (!cp->msgq.empty())
             FD_SET(cp->s, &ws);
         if (cp->s > maxfd)
             maxfd = cp->s;
@@ -789,7 +805,7 @@ static void indiRun(void)
             if (dp->efd > maxfd)
                 maxfd = dp->efd;
         }
-        if (nFQ(dp->msgq) > 0)
+        if (!dp->msgq.empty())
         {
             FD_SET(dp->wfd, &ws);
             if (dp->wfd > maxfd)
@@ -853,7 +869,7 @@ static void indiRun(void)
                 return; /* fds effected */
             s--;
         }
-        if (s > 0 && FD_ISSET(dp->wfd, &ws) && nFQ(dp->msgq) > 0)
+        if (s > 0 && FD_ISSET(dp->wfd, &ws) && !dp->msgq.empty())
         {
             if (sendDriverMsg(dp) < 0)
                 return; /* fds effected */
@@ -1061,7 +1077,6 @@ static void newClient()
     /* rig up new clinfo entry */
     cp->s      = s;
     cp->lp     = newLilXML();
-    cp->msgq   = newFQ(1);
     cp->nsent  = 0;
 
     if (verbose > 0)
@@ -1111,7 +1126,6 @@ static int readFromClient(ClInfo *cp)
             const char *dev  = findXMLAttValu(root, "device");
             const char *name = findXMLAttValu(root, "name");
             int isblob       = !strcmp(tagXMLEle(root), "setBLOBVector");
-            Msg *mp;
 
             if (verbose > 2)
             {
@@ -1145,7 +1159,7 @@ static int readFromClient(ClInfo *cp)
                 crackBLOBHandling(dev, name, pcdataXMLEle(root), cp);
 
             /* build a new message -- set content iff anyone cares */
-            mp = newMsg();
+            Msg* mp = new Msg();
 
             /* send message to driver(s) responsible for dev */
             q2RDrivers(dev, mp, root);
@@ -1166,9 +1180,9 @@ static int readFromClient(ClInfo *cp)
 
             /* set message content if anyone cares else forget it */
             if (mp->count > 0)
-                setMsgXMLEle(mp, root);
+                mp->setFromXMLEle(root);
             else
-                freeMsg(mp);
+                delete mp;
             delXMLEle(root);
         }
         else if (err[0])
@@ -1234,7 +1248,6 @@ static int readFromDriver(DvrInfo *dp)
         const char *dev  = findXMLAttValu(root, "device");
         const char *name = findXMLAttValu(root, "name");
         int isblob       = !strcmp(tagXMLEle(root), "setBLOBVector");
-        Msg *mp;
 
         if (verbose > 2)
         {
@@ -1252,7 +1265,7 @@ static int readFromDriver(DvrInfo *dp)
         if (!strcmp(roottag, "getProperties"))
         {
             addSDevice(dp, dev, name);
-            mp = newMsg();
+            Msg *mp = new Msg();
             /* send to interested chained servers upstream */
             if (q2Servers(dp, mp, root) < 0)
                 shutany++;
@@ -1260,9 +1273,9 @@ static int readFromDriver(DvrInfo *dp)
             q2RDrivers(dev, mp, root);
 
             if (mp->count > 0)
-                setMsgXMLEle(mp, root);
+                mp->setFromXMLEle(root);
             else
-                freeMsg(mp);
+                delete(mp);
             delXMLEle(root);
             inode++;
             root = nodes[inode];
@@ -1292,7 +1305,7 @@ static int readFromDriver(DvrInfo *dp)
 
 #ifdef OSX_EMBEDED_MODE
             if (!dp->ndev)
-                fprintf(stderr, "STARTED \"%s\"\n", dp->name);
+                fprintf(stderr, "STARTED \"%s\"\n", dp->name.c_str());
             fflush(stderr);
 #endif
 
@@ -1304,7 +1317,7 @@ static int readFromDriver(DvrInfo *dp)
             logDMsg(root, dev);
 
         /* build a new message -- set content iff anyone cares */
-        mp = newMsg();
+        Msg * mp = new Msg();
 
         /* send to interested clients */
         if (q2Clients(NULL, isblob, dev, name, mp, root) < 0)
@@ -1315,9 +1328,9 @@ static int readFromDriver(DvrInfo *dp)
 
         /* set message content if anyone cares else forget it */
         if (mp->count > 0)
-            setMsgXMLEle(mp, root);
+            mp->setFromXMLEle(root);
         else
-            freeMsg(mp);
+            delete mp;
         delXMLEle(root);
         inode++;
         root = nodes[inode];
@@ -1369,20 +1382,12 @@ static int stderrFromDriver(DvrInfo *dp)
 /* close down the given client */
 static void shutdownClient(ClInfo *cp)
 {
-    Msg *mp;
-
     /* close connection */
     shutdown(cp->s, SHUT_RDWR);
     close(cp->s);
 
     /* free memory */
     delLilXML(cp->lp);
-
-    /* decrement and possibly free any unsent messages for this client */
-    while ((mp = (Msg *)popFQ(cp->msgq)) != NULL)
-        if (--mp->count == 0)
-            freeMsg(mp);
-    delFQ(cp->msgq);
 
     if (verbose > 0)
         fprintf(stderr, "%s: Client %d: shut down complete - bye!\n", indi_tstamp(NULL), cp->s);
@@ -1398,7 +1403,6 @@ static void shutdownClient(ClInfo *cp)
 /* close down the given driver and restart */
 static void shutdownDvr(DvrInfo *dp, int restart)
 {
-    Msg *mp;
     int i = 0;
 
     // Tell client driver is dead.
@@ -1409,13 +1413,13 @@ static void shutdownDvr(DvrInfo *dp, int restart)
         addXMLAtt(root, "device", dp->dev[i]);
 
         prXMLEle(stderr, root, 0);
-        Msg *mp = newMsg();
+        Msg *mp = new Msg();
 
         q2Clients(NULL, 0, dp->dev[i], NULL, mp, root);
         if (mp->count > 0)
-            setMsgXMLEle(mp, root);
+            mp->setFromXMLEle(root);
         else
-            freeMsg(mp);
+            delete mp;
         delXMLEle(root);
     }
 
@@ -1448,10 +1452,7 @@ static void shutdownDvr(DvrInfo *dp, int restart)
     dp->ndev   = 0;
 
     /* decrement and possibly free any unsent messages for this client */
-    while ((mp = (Msg *)popFQ(dp->msgq)) != NULL)
-        if (--mp->count == 0)
-            freeMsg(mp);
-    delFQ(dp->msgq);
+    dp->clearMsgQueue();
 
     if (restart)
     {
@@ -1514,8 +1515,7 @@ static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root)
         }
 
         /* ok: queue message to this driver */
-        mp->count++;
-        pushFQ(dp->msgq, mp);
+        dp->pushMsg(mp);
         if (verbose > 1)
         {
             fprintf(stderr, "%s: Driver %s: queuing responsible for <%s device='%s' name='%s'>\n", indi_tstamp(NULL),
@@ -1547,8 +1547,7 @@ static void q2SDrivers(DvrInfo *me, int isblob, const char *dev, const char *nam
         }
 
         /* ok: queue message to this device */
-        mp->count++;
-        pushFQ(dp->msgq, mp);
+        dp->pushMsg(mp);
         if (verbose > 1)
         {
             fprintf(stderr, "%s: Driver %s: queuing snooped <%s device='%s' name='%s'>\n", indi_tstamp(NULL), dp->name.c_str(),
@@ -1608,7 +1607,6 @@ static Property *findSDevice(DvrInfo *dp, const char *dev, const char *name)
 static int q2Clients(ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root)
 {
     int shutany = 0;
-    int ql;
 
     /* queue message to each interested client */
     for (auto cp : clients)
@@ -1645,7 +1643,7 @@ static int q2Clients(ClInfo *notme, int isblob, const char *dev, const char *nam
         }
 
         /* shut down this client if its q is already too large */
-        ql = msgQSize(cp->msgq);
+        unsigned long ql = cp->msgQSize();
         if (isblob && maxstreamsiz > 0 && ql > maxstreamsiz)
         {
             // Drop frames for streaming blobs
@@ -1668,7 +1666,7 @@ static int q2Clients(ClInfo *notme, int isblob, const char *dev, const char *nam
             if (streamFound)
             {
                 if (verbose > 1)
-                    fprintf(stderr, "%s: Client %d: %d bytes behind. Dropping stream BLOB...\n", indi_tstamp(NULL),
+                    fprintf(stderr, "%s: Client %d: %ld bytes behind. Dropping stream BLOB...\n", indi_tstamp(NULL),
                             cp->s, ql);
                 continue;
             }
@@ -1676,15 +1674,14 @@ static int q2Clients(ClInfo *notme, int isblob, const char *dev, const char *nam
         if (ql > maxqsiz)
         {
             if (verbose)
-                fprintf(stderr, "%s: Client %d: %d bytes behind, shutting down\n", indi_tstamp(NULL), cp->s, ql);
+                fprintf(stderr, "%s: Client %d: %ld bytes behind, shutting down\n", indi_tstamp(NULL), cp->s, ql);
             shutdownClient(cp);
             shutany++;
             continue;
         }
 
         /* ok: queue message to this client */
-        mp->count++;
-        pushFQ(cp->msgq, mp);
+        cp->pushMsg(mp);
         if (verbose > 1)
             fprintf(stderr, "%s: Client %d: queuing <%s device='%s' name='%s'>\n", indi_tstamp(NULL), cp->s,
                     tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name"));
@@ -1699,7 +1696,6 @@ static int q2Clients(ClInfo *notme, int isblob, const char *dev, const char *nam
 static int q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
 {
     int shutany = 0, devFound = 0;
-    int ql = 0;
 
     /* queue message to each interested client */
     for (auto cp : clients)
@@ -1740,82 +1736,24 @@ static int q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
             continue;
 
         /* shut down this client if its q is already too large */
-        ql = msgQSize(cp->msgq);
+        unsigned long ql = cp->msgQSize();
         if (ql > maxqsiz)
         {
             if (verbose)
-                fprintf(stderr, "%s: Client %d: %d bytes behind, shutting down\n", indi_tstamp(NULL), cp->s, ql);
+                fprintf(stderr, "%s: Client %d: %ld bytes behind, shutting down\n", indi_tstamp(NULL), cp->s, ql);
             shutdownClient(cp);
             shutany++;
             continue;
         }
 
         /* ok: queue message to this client */
-        mp->count++;
-        pushFQ(cp->msgq, mp);
+        cp->pushMsg(mp);
         if (verbose > 1)
             fprintf(stderr, "%s: Client %d: queuing <%s device='%s' name='%s'>\n", indi_tstamp(NULL), cp->s,
                     tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name"));
     }
 
     return (shutany ? -1 : 0);
-}
-
-/* return size of all Msqs on the given q */
-static int msgQSize(FQ *q)
-{
-    int i, l = 0;
-
-    for (i = 0; i < nFQ(q); i++)
-    {
-        Msg *mp = (Msg *)peekiFQ(q, i);
-        l += sizeof(Msg);
-        if (mp->cp != mp->buf)
-            l += mp->cl;
-    }
-
-    return (l);
-}
-
-/* print root as content in Msg mp.
- */
-static void setMsgXMLEle(Msg *mp, XMLEle *root)
-{
-    /* want cl to only count content, but need room for final \0 */
-    mp->cl = sprlXMLEle(root, 0);
-    if (mp->cl < sizeof(mp->buf))
-        mp->cp = mp->buf;
-    else
-        mp->cp = malloc(mp->cl + 1);
-    sprXMLEle(mp->cp, root, 0);
-}
-
-/* save str as content in Msg mp.
- */
-static void setMsgStr(Msg *mp, char *str)
-{
-    /* want cl to only count content, but need room for final \0 */
-    mp->cl = strlen(str);
-    if (mp->cl < sizeof(mp->buf))
-        mp->cp = mp->buf;
-    else
-        mp->cp = malloc(mp->cl + 1);
-    strcpy(mp->cp, str);
-}
-
-/* return pointer to one new nulled Msg
- */
-static Msg *newMsg(void)
-{
-    return ((Msg *)calloc(1, sizeof(Msg)));
-}
-
-/* free Msg mp and everything it contains */
-static void freeMsg(Msg *mp)
-{
-    if (mp->cp && mp->cp != mp->buf)
-        free(mp->cp);
-    free(mp);
 }
 
 /* write the next chunk of the current message in the queue to the given
@@ -1830,7 +1768,7 @@ static int sendClientMsg(ClInfo *cp)
     Msg *mp;
 
     /* get current message */
-    mp = (Msg *)peekFQ(cp->msgq);
+    mp = cp->headMsg();
 
     /* send next chunk, never more than MAXWSIZ to reduce blocking */
     nsend = mp->cl - cp->nsent;
@@ -1852,8 +1790,8 @@ static int sendClientMsg(ClInfo *cp)
     /* trace */
     if (verbose > 2)
     {
-        fprintf(stderr, "%s: Client %d: sending msg copy %d nq %d:\n%.*s\n", indi_tstamp(NULL), cp->s, mp->count,
-                nFQ(cp->msgq), (int)nw, &mp->cp[cp->nsent]);
+        fprintf(stderr, "%s: Client %d: sending msg copy %d nq %ld:\n%.*s\n", indi_tstamp(NULL), cp->s, mp->count,
+                cp->msgq.size(), (int)nw, &mp->cp[cp->nsent]);
     }
     else if (verbose > 1)
     {
@@ -1865,12 +1803,7 @@ static int sendClientMsg(ClInfo *cp)
      */
     cp->nsent += nw;
     if (cp->nsent == mp->cl)
-    {
-        if (--mp->count == 0)
-            freeMsg(mp);
-        popFQ(cp->msgq);
-        cp->nsent = 0;
-    }
+        cp->consumeHeadMsg();
 
     return (0);
 }
@@ -1887,7 +1820,7 @@ static int sendDriverMsg(DvrInfo *dp)
     Msg *mp;
 
     /* get current message */
-    mp = (Msg *)peekFQ(dp->msgq);
+    mp = dp->headMsg();
 
     /* send next chunk, never more than MAXWSIZ to reduce blocking */
     nsend = mp->cl - dp->nsent;
@@ -1909,8 +1842,8 @@ static int sendDriverMsg(DvrInfo *dp)
     /* trace */
     if (verbose > 2)
     {
-        fprintf(stderr, "%s: Driver %s: sending msg copy %d nq %d:\n%.*s\n", indi_tstamp(NULL), dp->name.c_str(), mp->count,
-                nFQ(dp->msgq), (int)nw, &mp->cp[dp->nsent]);
+        fprintf(stderr, "%s: Driver %s: sending msg copy %d nq %ld:\n%.*s\n", indi_tstamp(NULL), dp->name.c_str(), mp->count,
+                dp->msgq.size(), (int)nw, &mp->cp[dp->nsent]);
     }
     else if (verbose > 1)
     {
@@ -1922,12 +1855,7 @@ static int sendDriverMsg(DvrInfo *dp)
      */
     dp->nsent += nw;
     if (dp->nsent == mp->cl)
-    {
-        if (--mp->count == 0)
-            freeMsg(mp);
-        popFQ(dp->msgq);
-        dp->nsent = 0;
-    }
+        dp->consumeHeadMsg();
 
     return (0);
 }
@@ -2148,5 +2076,92 @@ ClInfo::~ClInfo() {
     for(auto prop : props) {
         delete prop;
     }
+    
+    /* decrement and possibly free any unsent messages for this client */
+    for(auto mp : msgq)
+        if (--mp->count == 0)
+            delete(mp);
+    
     clients.erase(this);
+}
+
+
+Msg::Msg(void): count(0), cl(0), cp(nullptr)
+{
+}
+
+Msg::~Msg() {
+    if (cp) {
+        free(cp);
+    }
+}
+
+void Msg::alloc(unsigned long cl) {
+    if (cp) {
+        free(cp);
+        cp = nullptr;
+    }
+    cp = (char*)malloc(cl);
+    this->cl = cl; 
+}
+
+void Msg::setFromStr(const char * str) {
+    alloc(strlen(str));
+    memcpy(cp, str, cl);
+}
+
+void Msg::setFromXMLEle(XMLEle *root)
+{
+    /* want cl to only count content, but need room for final \0 */
+    alloc(sprlXMLEle(root, 0));
+    sprXMLEle(cp, root, 0);
+
+    /* Drop the last zero */
+    cl--;
+}
+
+MsgQueue::MsgQueue(): nsent(0) {}
+
+MsgQueue::~MsgQueue() {
+    clearMsgQueue();
+}
+
+void MsgQueue::unrefMsg(Msg * mp) {
+    if (--mp->count == 0)
+        delete(mp);
+}
+
+Msg * MsgQueue::headMsg() const {
+    if (msgq.empty()) return nullptr;
+    return *(msgq.begin());
+}
+
+void MsgQueue::consumeHeadMsg() {
+    unrefMsg(headMsg());
+    msgq.pop_front();
+    nsent = 0;
+}
+
+void MsgQueue::pushMsg(Msg * mp) {
+    mp->count++;
+    msgq.push_back(mp);
+}
+
+void MsgQueue::clearMsgQueue() {
+    for(auto mp: msgq) {
+        unrefMsg(mp);
+    }
+    nsent = 0;
+}
+
+unsigned long MsgQueue::msgQSize() const {
+    unsigned long l = 0;
+
+    for (auto mp : msgq)
+    {
+        l += sizeof(Msg);
+        l += mp->cl;
+    }
+
+    return (l);
 }
