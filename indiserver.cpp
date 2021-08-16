@@ -113,12 +113,28 @@ public:
 
 class MsgQueue {
     void unrefMsg(Msg * msg);
-public:
+    int rFd, wFd;
+    LilXML * lp;         /* XML parsing context */
+    ev::io   rio, wio;   /* Event loop io events */
+    void ioCb(ev::io &watcher, int revents);
+
     std::list<Msg*> msgq;           /* Msg queue */
     unsigned int nsent; /* bytes of current Msg sent so far */
 
+    void readFromFd();
+    void writeToFd();
+
+protected:
+    int getRFd() const { return rFd; }
+    int getWFd() const { return wFd; }
+
+    virtual void close() = 0;
+    /* Handle a message. will be freed by caller */
+    virtual void onMessage(XMLEle *root) = 0;
+public:
+
     MsgQueue();
-    ~MsgQueue();
+    virtual ~MsgQueue();
 
     void pushMsg(Msg * msg);
 
@@ -130,6 +146,11 @@ public:
 
     /* Remove all messages from queue */
     void clearMsgQueue();
+
+    void setFds(int rFd, int wFd);
+
+    // FIXME: move to protected
+    virtual void log(const std::string & log) const = 0;
 };
 
 /* device + property name */
@@ -151,21 +172,30 @@ static Fifo * fifo = nullptr;
 
 /* info for each connected client */
 class ClInfo: public MsgQueue {
+
+protected:
+    virtual void onMessage(XMLEle *root);
+
 public:
     std::list<Property*> props; /* props we want */
     int allprops = 0;       /* saw getProperties w/o device */
     BLOBHandling blob = B_NEVER;  /* when to send setBLOBs */
-    int s = -1;              /* socket for this client */
-    LilXML *lp = nullptr;         /* XML parsing context */
 
     ClInfo();
-    ~ClInfo();
+    virtual ~ClInfo();
+
+    // FIXME: no need for public
+    virtual void close();
+    virtual void log(const std::string & log) const;
 };
 static std::set<ClInfo*> clients;
 
 /* info for each connected driver */
 class DvrInfo: public MsgQueue
 {
+protected:
+    virtual void onMessage(XMLEle *root);
+
 public:
     std::string name; /* persistent name */
     char envDev[MAXSBUF];
@@ -177,19 +207,24 @@ public:
     std::set<std::string> dev;    /* device served by this driver */
     std::list<Property*>sprops;   /* props we snoop */
     int pid;            /* process id or REMOTEDVR if remote */
-    int rfd;            /* read pipe fd */
-    int wfd;            /* write pipe fd */
     int efd;            /* stderr from driver, if local */
     int restarts;       /* times process has been restarted */
-    LilXML *lp;         /* XML parsing context */
-
+    bool restart = true;/* Restart on shutdown */
     DvrInfo();
-    ~DvrInfo();
+    virtual ~DvrInfo();
 
     bool isHandlingDevice(const std::string & dev) const;
+
+    virtual void close();
+    virtual void log(const std::string & log) const;
 };
 static std::set<DvrInfo*> drivers;
 
+static void log(const std::string & log);
+/** Turn a printf format into std::string */
+static std::string fmt(const char * fmt, ...) __attribute__ ((format (printf, 1, 0)));
+
+static char *indi_tstamp(char *s);
 
 static const char *me;                                 /* our name */
 static int port = INDIPORT;                            /* public INDI port */
@@ -211,25 +246,19 @@ static void indiListen(void);
 static void newFIFO(void);
 static void newClient(void);
 static int newClSocket(void);
-static void shutdownClient(ClInfo *cp);
-static int readFromClient(ClInfo *cp);
 static void startDvr(DvrInfo *dp);
 static void startLocalDvr(DvrInfo *dp);
 static void startRemoteDvr(DvrInfo *dp);
 static int openINDIServer(char host[], int indi_port);
-static void shutdownDvr(DvrInfo *dp, int restart);
 static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root);
 static void q2SDrivers(DvrInfo *me, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
-static int q2Clients(ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
-static int q2Servers(DvrInfo *me, Msg *mp, XMLEle *root);
+static void q2Clients(ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
+static void q2Servers(DvrInfo *me, Msg *mp, XMLEle *root);
 static void addSDevice(DvrInfo *dp, const char *dev, const char *name);
 static Property *findSDevice(DvrInfo *dp, const char *dev, const char *name);
 static void addClDevice(ClInfo *cp, const char *dev, const char *name, int isblob);
 static int findClDevice(ClInfo *cp, const char *dev, const char *name);
-static int readFromDriver(DvrInfo *dp);
 static int stderrFromDriver(DvrInfo *dp);
-static int sendClientMsg(ClInfo *cp);
-static int sendDriverMsg(DvrInfo *cp);
 static void crackBLOB(const char *enableBLOB, BLOBHandling *bp);
 static void crackBLOBHandling(const char *dev, const char *name, const char *enableBLOB, ClInfo *cp);
 static void traceMsg(XMLEle *root);
@@ -359,7 +388,7 @@ int main(int ac, char *av[])
         indiRun();
 
     /* whoa! */
-    fprintf(stderr, "unexpected return from main\n");
+    log("unexpected return from main\n");
     return (1);
 }
 
@@ -368,10 +397,12 @@ static void logStartup(int ac, char *av[])
 {
     int i;
 
-    fprintf(stderr, "%s: startup: ", indi_tstamp(NULL));
-    for (i = 0; i < ac; i++)
-        fprintf(stderr, "%s ", av[i]);
-    fprintf(stderr, "\n");
+    std::string startupMsg = "startup:";
+    for (i = 0; i < ac; i++) {
+        startupMsg += " ";
+        startupMsg += av[i];
+    }
+    log(startupMsg);
 }
 
 /* print usage message and exit (2) */
@@ -418,12 +449,12 @@ static void zombieRaised(int signum, siginfo_t *sig, void *data)
     switch (signum)
     {
         case SIGCHLD:
-            fprintf(stderr, "Child process %d died\n", sig->si_pid);
+            log(fmt("Child process %d died\n", sig->si_pid));
             waitpid(sig->si_pid, NULL, WNOHANG);
             break;
 
         default:
-            fprintf(stderr, "Received unexpected signal %d\n", signum);
+            log(fmt("Received unexpected signal %d\n", signum));
     }
 }
 
@@ -476,17 +507,17 @@ static void startLocalDvr(DvrInfo *dp)
     /* build three pipes: r, w and error*/
     if (pipe(rp) < 0)
     {
-        fprintf(stderr, "%s: read pipe: %s\n", indi_tstamp(NULL), strerror(errno));
+        log(fmt("read pipe: %s\n", strerror(errno)));
         Bye();
     }
     if (pipe(wp) < 0)
     {
-        fprintf(stderr, "%s: write pipe: %s\n", indi_tstamp(NULL), strerror(errno));
+        log(fmt("write pipe: %s\n", strerror(errno)));
         Bye();
     }
     if (pipe(ep) < 0)
     {
-        fprintf(stderr, "%s: stderr pipe: %s\n", indi_tstamp(NULL), strerror(errno));
+        log(fmt("stderr pipe: %s\n", strerror(errno)));
         Bye();
     }
 
@@ -494,7 +525,7 @@ static void startLocalDvr(DvrInfo *dp)
     pid = fork();
     if (pid < 0)
     {
-        fprintf(stderr, "%s: fork: %s\n", indi_tstamp(NULL), strerror(errno));
+        log(fmt("fork: %s\n", strerror(errno)));
         Bye();
     }
     if (pid == 0)
@@ -557,7 +588,7 @@ static void startLocalDvr(DvrInfo *dp)
         fprintf(stderr, "FAILED \"%s\"\n", dp->name.c_str());
         fflush(stderr);
 #endif
-        fprintf(stderr, "%s: Driver %s: execlp: %s\n", indi_tstamp(NULL), dp->name.c_str(), strerror(errno));
+        dp->log(fmt("execlp: %s\n", strerror(errno)));
         _exit(1); /* parent will notice EOF shortly */
     }
 
@@ -570,24 +601,19 @@ static void startLocalDvr(DvrInfo *dp)
     dp->pid = pid;
     strncpy(dp->host, "localhost", MAXSBUF);
     dp->port    = -1;
-    dp->rfd     = rp[0];
-    dp->wfd     = wp[1];
+    dp->setFds(rp[0], wp[1]);
     dp->efd     = ep[0];
-    dp->lp      = newLilXML();
-    dp->nsent   = 0;
 
     /* first message primes driver to report its properties -- dev known
      * if restarting
      */
     mp = new Msg();
-    dp->msgq.push_back(mp);
     snprintf(buf, sizeof(buf), "<getProperties version='%g'/>\n", INDIV);
     mp->setFromStr(buf);
-    mp->count++;
-
+    dp->pushMsg(mp);
+    
     if (verbose > 0)
-        fprintf(stderr, "%s: Driver %s: pid=%d rfd=%d wfd=%d efd=%d\n", indi_tstamp(NULL), dp->name.c_str(), dp->pid, dp->rfd,
-                dp->wfd, dp->efd);
+        dp->log(fmt("pid=%d rfd=%d wfd=%d efd=%d\n", dp->pid, rp[0], wp[1], dp->efd));
 }
 
 /* start the given remote INDI driver connection.
@@ -607,7 +633,7 @@ static void startRemoteDvr(DvrInfo *dp)
         // Device missing? Try a different syntax for all devices
         if (sscanf(dp->name.c_str(), "@%[^:]:%d", host, &indi_port) < 1)
         {
-            fprintf(stderr, "Bad remote device syntax: %s\n", dp->name.c_str());
+            log(fmt("Bad remote device syntax: %s\n", dp->name.c_str()));
             Bye();
         }
     }
@@ -619,10 +645,7 @@ static void startRemoteDvr(DvrInfo *dp)
     dp->pid = REMOTEDVR;
     strncpy(dp->host, host, MAXSBUF);
     dp->port    = indi_port;
-    dp->rfd     = sockfd;
-    dp->wfd     = sockfd;
-    dp->lp      = newLilXML();
-    dp->nsent   = 0;
+    dp->setFds(sockfd, sockfd);
 
     /* N.B. storing name now is key to limiting outbound traffic to this
      * dev.
@@ -634,7 +657,6 @@ static void startRemoteDvr(DvrInfo *dp)
      * outbound (and our inbound) traffic on this socket to this device.
      */
     Msg *mp = new Msg();
-    dp->msgq.push_back(mp);
     if (dev[0])
         sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dev, INDIV);
     else
@@ -643,10 +665,10 @@ static void startRemoteDvr(DvrInfo *dp)
         // among properties.
         sprintf(buf, "<getProperties device='*' version='%g'/>\n", INDIV);
     mp->setFromStr(buf);
-    mp->count++;
+    dp->pushMsg(mp);
 
     if (verbose > 0)
-        fprintf(stderr, "%s: Driver %s: socket=%d\n", indi_tstamp(NULL), dp->name.c_str(), sockfd);
+        dp->log(fmt("socket=%d\n", sockfd));
 }
 
 /* open a connection to the given host and port or die.
@@ -662,7 +684,7 @@ static int openINDIServer(char host[], int indi_port)
     hp = gethostbyname(host);
     if (!hp)
     {
-        fprintf(stderr, "gethostbyname(%s): %s\n", host, strerror(errno));
+        log(fmt("gethostbyname(%s): %s\n", host, strerror(errno)));
         Bye();
     }
 
@@ -673,14 +695,14 @@ static int openINDIServer(char host[], int indi_port)
     serv_addr.sin_port        = htons(indi_port);
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        fprintf(stderr, "socket(%s,%d): %s\n", host, indi_port, strerror(errno));
+        log(fmt("socket(%s,%d): %s\n", host, indi_port, strerror(errno)));
         Bye();
     }
 
     /* connect */
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        fprintf(stderr, "connect(%s,%d): %s\n", host, indi_port, strerror(errno));
+        log(fmt("connect(%s,%d): %s\n", host, indi_port, strerror(errno)));
         Bye();
     }
 
@@ -700,7 +722,7 @@ static void indiListen()
     /* make socket endpoint */
     if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        fprintf(stderr, "%s: socket: %s\n", indi_tstamp(NULL), strerror(errno));
+        log(fmt("socket: %s\n", strerror(errno)));
         Bye();
     }
 
@@ -715,26 +737,26 @@ static void indiListen()
     serv_socket.sin_port = htons((unsigned short)port);
     if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
     {
-        fprintf(stderr, "%s: setsockopt: %s\n", indi_tstamp(NULL), strerror(errno));
+        log(fmt("setsockopt: %s\n", strerror(errno)));
         Bye();
     }
     if (bind(sfd, (struct sockaddr *)&serv_socket, sizeof(serv_socket)) < 0)
     {
-        fprintf(stderr, "%s: bind: %s\n", indi_tstamp(NULL), strerror(errno));
+        log(fmt("bind: %s\n", strerror(errno)));
         Bye();
     }
 
     /* willing to accept connections with a backlog of 5 pending */
     if (listen(sfd, 5) < 0)
     {
-        fprintf(stderr, "%s: listen: %s\n", indi_tstamp(NULL), strerror(errno));
+        log(fmt("listen: %s\n", strerror(errno)));
         Bye();
     }
 
     /* ok */
     lsocket = sfd;
     if (verbose > 0)
-        fprintf(stderr, "%s: listening to port %d on fd %d\n", indi_tstamp(NULL), port, sfd);
+        log(fmt("listening to port %d on fd %d\n", port, sfd));
 }
 
 /* Attempt to open up FIFO */
@@ -755,7 +777,7 @@ static void indiFIFO(void)
 
     if (fifo->fd < 0)
     {
-        fprintf(stderr, "%s: open(%s): %s.\n", indi_tstamp(NULL), fifo->name.c_str(), strerror(errno));
+        log(fmt("open(%s): %s.\n", fifo->name.c_str(), strerror(errno)));
         Bye();
     }
 }
@@ -783,33 +805,15 @@ static void indiRun(void)
     if (lsocket > maxfd)
         maxfd = lsocket;
 
-    /* add all client readers and client writers with work to send */
-    for (auto cp : clients) 
-    {
-        FD_SET(cp->s, &rs);
-        if (!cp->msgq.empty())
-            FD_SET(cp->s, &ws);
-        if (cp->s > maxfd)
-            maxfd = cp->s;
-    }
 
     /* add all driver readers and driver writers with work to send */
     for (auto dp : drivers)
     {
-        FD_SET(dp->rfd, &rs);
-        if (dp->rfd > maxfd)
-            maxfd = dp->rfd;
         if (dp->pid != REMOTEDVR)
         {
             FD_SET(dp->efd, &rs);
             if (dp->efd > maxfd)
                 maxfd = dp->efd;
-        }
-        if (!dp->msgq.empty())
-        {
-            FD_SET(dp->wfd, &ws);
-            if (dp->wfd > maxfd)
-                maxfd = dp->wfd;
         }
     }
 
@@ -819,7 +823,7 @@ static void indiRun(void)
     {
         if(errno == EINTR)
             return;
-        fprintf(stderr, "%s: select(%d): %s\n", indi_tstamp(NULL), maxfd + 1, strerror(errno));
+        log(fmt("select(%d): %s\n", maxfd + 1, strerror(errno)));
         Bye();
     }
 
@@ -837,41 +841,12 @@ static void indiRun(void)
         s--;
     }
 
-    /* message to/from client? */
-    for (auto cp : clients)
-    {
-        if (FD_ISSET(cp->s, &rs))
-        {
-            if (readFromClient(cp) < 0)
-                return; /* fds effected */
-            s--;
-        }
-        if (s > 0 && FD_ISSET(cp->s, &ws))
-        {
-            if (sendClientMsg(cp) < 0)
-                return; /* fds effected */
-            s--;
-        }
-    }
-
     /* message to/from driver? */
     for (auto dp : drivers)
     {
         if (dp->pid != REMOTEDVR && FD_ISSET(dp->efd, &rs))
         {
             if (stderrFromDriver(dp) < 0)
-                return; /* fds effected */
-            s--;
-        }
-        if (s > 0 && FD_ISSET(dp->rfd, &rs))
-        {
-            if (readFromDriver(dp) < 0)
-                return; /* fds effected */
-            s--;
-        }
-        if (s > 0 && FD_ISSET(dp->wfd, &ws) && !dp->msgq.empty())
-        {
-            if (sendDriverMsg(dp) < 0)
                 return; /* fds effected */
             s--;
         }
@@ -906,7 +881,7 @@ static void newFIFO(void)
         }
 
         if (verbose)
-            fprintf(stderr, "FIFO: %s\n", line);
+            log(fmt("FIFO: %s\n", line));
 
         char cmd[MAXSBUF], arg[4][1], var[4][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envConfig[MAXSBUF],
              envSkel[MAXSBUF], envPrefix[MAXSBUF];
@@ -958,7 +933,7 @@ static void newFIFO(void)
                 tName[MAXSBUF - 1] = '\0';
 
                 if (verbose)
-                    fprintf(stderr, "With name: %s\n", tName);
+                    log(fmt("With name: %s\n", tName));
             }
             else if (arg[j][0] == 'c')
             {
@@ -966,7 +941,7 @@ static void newFIFO(void)
                 envConfig[MAXSBUF - 1] = '\0';
 
                 if (verbose)
-                    fprintf(stderr, "With config: %s\n", envConfig);
+                    log(fmt("With config: %s\n", envConfig));
             }
             else if (arg[j][0] == 's')
             {
@@ -974,7 +949,7 @@ static void newFIFO(void)
                 envSkel[MAXSBUF - 1] = '\0';
 
                 if (verbose)
-                    fprintf(stderr, "With skeketon: %s\n", envSkel);
+                    log(fmt("With skeketon: %s\n", envSkel));
             }
             else if (arg[j][0] == 'p')
             {
@@ -982,7 +957,7 @@ static void newFIFO(void)
                 envPrefix[MAXSBUF - 1] = '\0';
 
                 if (verbose)
-                    fprintf(stderr, "With prefix: %s\n", envPrefix);
+                    log(fmt("With prefix: %s\n", envPrefix));
             }
         }
 
@@ -994,7 +969,7 @@ static void newFIFO(void)
         if (startCmd)
         {
             if (verbose)
-                fprintf(stderr, "FIFO: Starting driver %s\n", tDriver);
+                log(fmt("FIFO: Starting driver %s\n", tDriver));
             DvrInfo *dp = new DvrInfo();
             dp->name = tDriver;
 
@@ -1014,17 +989,17 @@ static void newFIFO(void)
         {
             for (auto dp : drivers)
             {
-                fprintf(stderr, "dp->name: %s - tDriver: %s\n", dp->name.c_str(), tDriver);
+                log(fmt("dp->name: %s - tDriver: %s\n", dp->name.c_str(), tDriver));
                 if (dp->name == tDriver)
                 {
-                    fprintf(stderr, "name: %s - dp->dev[0]: %s\n", tName, dp->dev.empty() ? "" : dp->dev.begin()->c_str());
+                    log(fmt("name: %s - dp->dev[0]: %s\n", tName, dp->dev.empty() ? "" : dp->dev.begin()->c_str()));
 
                     /* If device name is given, check against it before shutting down */
                     //if (tName[0] && strcmp(dp->dev[0], tName))
                     if (tName[0] && !dp->isHandlingDevice(tName))
                         continue;
                     if (verbose)
-                        fprintf(stderr, "FIFO: Shutting down driver: %s\n", tDriver);
+                        log(fmt("FIFO: Shutting down driver: %s\n", tDriver));
 
                     //                    for (i = 0; i < dp->ndev; i++)
                     //                    {
@@ -1042,8 +1017,8 @@ static void newFIFO(void)
                     //                            freeMsg(mp);
                     //                        delXMLEle(root);
                     //                    }
-
-                    shutdownDvr(dp, 0);
+                    dp->restart = false;
+                    dp->close();
                     break;
                 }
             }
@@ -1059,21 +1034,20 @@ static void newClient()
     ClInfo * cp = new ClInfo();
     int s;
 
+
     /* assign new socket */
     s = newClSocket();
 
     /* rig up new clinfo entry */
-    cp->s      = s;
-    cp->lp     = newLilXML();
-    cp->nsent  = 0;
+    cp->setFds(s, s);
 
     if (verbose > 0)
     {
         struct sockaddr_in addr;
         socklen_t len = sizeof(addr);
         getpeername(s, (struct sockaddr *)&addr, &len);
-        fprintf(stderr, "%s: Client %d: new arrival from %s:%d - welcome!\n", indi_tstamp(NULL), cp->s,
-                inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+        cp->log(fmt("new arrival from %s:%d - welcome!\n",
+                inet_ntoa(addr.sin_addr), ntohs(addr.sin_port)));
     }
 #ifdef OSX_EMBEDED_MODE
     fprintf(stderr, "CLIENTS %d\n", clients.size());
@@ -1085,242 +1059,139 @@ static void newClient()
  * xml closure. also send all newXXX() to all other interested clients.
  * return -1 if had to shut down anything, else 0.
  */
-static int readFromClient(ClInfo *cp)
+void ClInfo::onMessage(XMLEle * root)
 {
-    char buf[MAXRBUF];
-    int shutany = 0;
-    ssize_t i, nr;
+    char *roottag    = tagXMLEle(root);
 
-    /* read client */
-    nr = read(cp->s, buf, sizeof(buf));
-    if (nr <= 0)
+    const char *dev  = findXMLAttValu(root, "device");
+    const char *name = findXMLAttValu(root, "name");
+    int isblob       = !strcmp(tagXMLEle(root), "setBLOBVector");
+
+    /* snag interested properties.
+    * N.B. don't open to alldevs if seen specific dev already, else
+    *   remote client connections start returning too much.
+    */
+    if (dev[0])
     {
-        if (nr < 0)
-            fprintf(stderr, "%s: Client %d: read: %s\n", indi_tstamp(NULL), cp->s, strerror(errno));
-        else if (verbose > 0)
-            fprintf(stderr, "%s: Client %d: read EOF\n", indi_tstamp(NULL), cp->s);
-        shutdownClient(cp);
-        return (-1);
+        // Signature for CHAINED SERVER
+        // Not a regular client.
+        if (dev[0] == '*' && !this->props.size())
+            this->allprops = 2;
+        else
+            addClDevice(this, dev, name, isblob);
+    }
+    else if (!strcmp(roottag, "getProperties") && !this->props.size() && this->allprops != 2)
+        this->allprops = 1;
+
+    /* snag enableBLOB -- send to remote drivers too */
+    if (!strcmp(roottag, "enableBLOB"))
+        crackBLOBHandling(dev, name, pcdataXMLEle(root), this);
+
+    /* build a new message -- set content iff anyone cares */
+    Msg* mp = new Msg();
+
+    /* send message to driver(s) responsible for dev */
+    q2RDrivers(dev, mp, root);
+
+    /* JM 2016-05-18: Upstream client can be a chained INDI server. If any driver locally is snooping
+    * on any remote drivers, we should catch it and forward it to the responsible snooping driver. */
+    /* send to snooping drivers. */
+    // JM 2016-05-26: Only forward setXXX messages
+    if (!strncmp(roottag, "set", 3))
+        q2SDrivers(NULL, isblob, dev, name, mp, root);
+
+    /* echo new* commands back to other clients */
+    if (!strncmp(roottag, "new", 3))
+    {
+        q2Clients(this, isblob, dev, name, mp, root);
     }
 
-    /* process XML, sending when find closure */
-    for (i = 0; i < nr; i++)
-    {
-        char err[1024];
-        XMLEle *root = readXMLEle(cp->lp, buf[i], err);
-        if (root)
-        {
-            char *roottag    = tagXMLEle(root);
-            const char *dev  = findXMLAttValu(root, "device");
-            const char *name = findXMLAttValu(root, "name");
-            int isblob       = !strcmp(tagXMLEle(root), "setBLOBVector");
-
-            if (verbose > 2)
-            {
-                fprintf(stderr, "%s: Client %d: read ", indi_tstamp(NULL), cp->s);
-                traceMsg(root);
-            }
-            else if (verbose > 1)
-            {
-                fprintf(stderr, "%s: Client %d: read <%s device='%s' name='%s'>\n", indi_tstamp(NULL), cp->s,
-                        tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name"));
-            }
-
-            /* snag interested properties.
-            * N.B. don't open to alldevs if seen specific dev already, else
-            *   remote client connections start returning too much.
-            */
-            if (dev[0])
-            {
-                // Signature for CHAINED SERVER
-                // Not a regular client.
-                if (dev[0] == '*' && !cp->props.size())
-                    cp->allprops = 2;
-                else
-                    addClDevice(cp, dev, name, isblob);
-            }
-            else if (!strcmp(roottag, "getProperties") && !cp->props.size() && cp->allprops != 2)
-                cp->allprops = 1;
-
-            /* snag enableBLOB -- send to remote drivers too */
-            if (!strcmp(roottag, "enableBLOB"))
-                crackBLOBHandling(dev, name, pcdataXMLEle(root), cp);
-
-            /* build a new message -- set content iff anyone cares */
-            Msg* mp = new Msg();
-
-            /* send message to driver(s) responsible for dev */
-            q2RDrivers(dev, mp, root);
-
-            /* JM 2016-05-18: Upstream client can be a chained INDI server. If any driver locally is snooping
-            * on any remote drivers, we should catch it and forward it to the responsible snooping driver. */
-            /* send to snooping drivers. */
-            // JM 2016-05-26: Only forward setXXX messages
-            if (!strncmp(roottag, "set", 3))
-                q2SDrivers(NULL, isblob, dev, name, mp, root);
-
-            /* echo new* commands back to other clients */
-            if (!strncmp(roottag, "new", 3))
-            {
-                if (q2Clients(cp, isblob, dev, name, mp, root) < 0)
-                    shutany++;
-            }
-
-            /* set message content if anyone cares else forget it */
-            if (mp->count > 0)
-                mp->setFromXMLEle(root);
-            else
-                delete mp;
-            delXMLEle(root);
-        }
-        else if (err[0])
-        {
-            char *ts = indi_tstamp(NULL);
-            fprintf(stderr, "%s: Client %d: XML error: %s\n", ts, cp->s, err);
-            fprintf(stderr, "%s: Client %d: XML read: %.*s\n", ts, cp->s, (int)nr, buf);
-            shutdownClient(cp);
-            return (-1);
-        }
-    }
-
-    return (shutany ? -1 : 0);
+    /* set message content if anyone cares else forget it */
+    if (mp->count > 0)
+        mp->setFromXMLEle(root);
+    else
+        delete mp;
+    delXMLEle(root);
 }
 
 /* read more from the given driver, send to each interested client when see
  * xml closure. if driver dies, try restarting.
  * return 0 if ok else -1 if had to shut down anything.
  */
-static int readFromDriver(DvrInfo *dp)
+void DvrInfo::onMessage(XMLEle * root)
 {
-    char buf[MAXRBUF];
-    int shutany = 0;
-    ssize_t nr;
-    char err[1024];
-    XMLEle **nodes;
-    XMLEle *root;
-    int inode = 0;
+    char *roottag    = tagXMLEle(root);
+    const char *dev  = findXMLAttValu(root, "device");
+    const char *name = findXMLAttValu(root, "name");
+    int isblob       = !strcmp(tagXMLEle(root), "setBLOBVector");
 
-    /* read driver */
-    nr = read(dp->rfd, buf, sizeof(buf));
-    if (nr <= 0)
+    if (verbose > 2)
     {
-        if (nr < 0)
-            fprintf(stderr, "%s: Driver %s: stdin %s\n", indi_tstamp(NULL), dp->name.c_str(), strerror(errno));
-        else
-            fprintf(stderr, "%s: Driver %s: stdin EOF\n", indi_tstamp(NULL), dp->name.c_str());
-
-        shutdownDvr(dp, 1);
-        return (-1);
+        log("read ");
+        traceMsg(root);
+    }
+    else if (verbose > 1)
+    {
+        log(fmt("read <%s device='%s' name='%s'>\n",
+                tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
     }
 
-    /* process XML chunk */
-    nodes = parseXMLChunk(dp->lp, buf, nr, err);
-
-    if (!nodes)
+    /* that's all if driver is just registering a snoop */
+    /* JM 2016-05-18: Send getProperties to upstream chained servers as well.*/
+    if (!strcmp(roottag, "getProperties"))
     {
-        if (err[0])
-        {
-            char *ts = indi_tstamp(NULL);
-            fprintf(stderr, "%s: Driver %s: XML error: %s\n", ts, dp->name.c_str(), err);
-            fprintf(stderr, "%s: Driver %s: XML read: %.*s\n", ts, dp->name.c_str(), (int)nr, buf);
-            shutdownDvr(dp, 1);
-            return (-1);
-        }
-        return -1;
-    }
+        addSDevice(this, dev, name);
+        Msg *mp = new Msg();
+        /* send to interested chained servers upstream */
+        q2Servers(this, mp, root);
+        /* Send to snooped drivers if they exist so that they can echo back the snooped propertly immediately */
+        q2RDrivers(dev, mp, root);
 
-    root = nodes[inode];
-    while (root)
-    {
-        char *roottag    = tagXMLEle(root);
-        const char *dev  = findXMLAttValu(root, "device");
-        const char *name = findXMLAttValu(root, "name");
-        int isblob       = !strcmp(tagXMLEle(root), "setBLOBVector");
-
-        if (verbose > 2)
-        {
-            fprintf(stderr, "%s: Driver %s: read ", indi_tstamp(0), dp->name.c_str());
-            traceMsg(root);
-        }
-        else if (verbose > 1)
-        {
-            fprintf(stderr, "%s: Driver %s: read <%s device='%s' name='%s'>\n", indi_tstamp(NULL), dp->name.c_str(),
-                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name"));
-        }
-
-        /* that's all if driver is just registering a snoop */
-        /* JM 2016-05-18: Send getProperties to upstream chained servers as well.*/
-        if (!strcmp(roottag, "getProperties"))
-        {
-            addSDevice(dp, dev, name);
-            Msg *mp = new Msg();
-            /* send to interested chained servers upstream */
-            if (q2Servers(dp, mp, root) < 0)
-                shutany++;
-            /* Send to snooped drivers if they exist so that they can echo back the snooped propertly immediately */
-            q2RDrivers(dev, mp, root);
-
-            if (mp->count > 0)
-                mp->setFromXMLEle(root);
-            else
-                delete(mp);
-            delXMLEle(root);
-            inode++;
-            root = nodes[inode];
-            continue;
-        }
-
-        /* that's all if driver desires to snoop BLOBs from other drivers */
-        if (!strcmp(roottag, "enableBLOB"))
-        {
-            Property *sp = findSDevice(dp, dev, name);
-            if (sp)
-                crackBLOB(pcdataXMLEle(root), &sp->blob);
-            delXMLEle(root);
-            inode++;
-            root = nodes[inode];
-            continue;
-        }
-
-        /* Found a new device? Let's add it to driver info */
-        if (dev[0] && !dp->isHandlingDevice(dev))
-        {
-            dp->dev.insert(dev);
-
-#ifdef OSX_EMBEDED_MODE
-            if (!dp->ndev)
-                fprintf(stderr, "STARTED \"%s\"\n", dp->name.c_str());
-            fflush(stderr);
-#endif
-        }
-
-        /* log messages if any and wanted */
-        if (ldir)
-            logDMsg(root, dev);
-
-        /* build a new message -- set content iff anyone cares */
-        Msg * mp = new Msg();
-
-        /* send to interested clients */
-        if (q2Clients(NULL, isblob, dev, name, mp, root) < 0)
-            shutany++;
-
-        /* send to snooping drivers */
-        q2SDrivers(dp, isblob, dev, name, mp, root);
-
-        /* set message content if anyone cares else forget it */
         if (mp->count > 0)
             mp->setFromXMLEle(root);
         else
-            delete mp;
-        delXMLEle(root);
-        inode++;
-        root = nodes[inode];
+            delete(mp);
+        return;
     }
 
-    free(nodes);
+    /* that's all if driver desires to snoop BLOBs from other drivers */
+    if (!strcmp(roottag, "enableBLOB"))
+    {
+        Property *sp = findSDevice(this, dev, name);
+        if (sp)
+            crackBLOB(pcdataXMLEle(root), &sp->blob);
+        return;
+    }
 
-    return (shutany ? -1 : 0);
+    /* Found a new device? Let's add it to driver info */
+    if (dev[0] && !this->isHandlingDevice(dev))
+    {
+#ifdef OSX_EMBEDED_MODE
+        if (this->dev.empty())
+            fprintf(stderr, "STARTED \"%s\"\n", dp->name.c_str());
+        fflush(stderr);
+#endif
+        this->dev.insert(dev);
+    }
+
+    /* log messages if any and wanted */
+    if (ldir)
+        logDMsg(root, dev);
+
+    /* build a new message -- set content iff anyone cares */
+    Msg * mp = new Msg();
+
+    /* send to interested clients */
+    q2Clients(NULL, isblob, dev, name, mp, root);
+
+    /* send to snooping drivers */
+    q2SDrivers(this, isblob, dev, name, mp, root);
+
+    /* set message content if anyone cares else forget it */
+    if (mp->count > 0)
+        mp->setFromXMLEle(root);
+    else
+        delete mp;
 }
 
 /* read more from the given driver stderr, add prefix and send to our stderr.
@@ -1337,10 +1208,10 @@ static int stderrFromDriver(DvrInfo *dp)
     if (nr <= 0)
     {
         if (nr < 0)
-            fprintf(stderr, "%s: Driver %s: stderr %s\n", indi_tstamp(NULL), dp->name.c_str(), strerror(errno));
+            dp->log(fmt("stderr %s\n", strerror(errno)));
         else
-            fprintf(stderr, "%s: Driver %s: stderr EOF\n", indi_tstamp(NULL), dp->name.c_str());
-        shutdownDvr(dp, 1);
+            dp->log(fmt("stderr EOF\n"));
+        dp->close();
         return (-1);
     }
     nexbuf += nr;
@@ -1350,7 +1221,7 @@ static int stderrFromDriver(DvrInfo *dp)
     {
         if (exbuf[i] == '\n')
         {
-            fprintf(stderr, "%s: Driver %s: %.*s\n", indi_tstamp(NULL), dp->name.c_str(), (int)i, exbuf);
+            log(fmt("%.*s\n", (int)i, exbuf));
             i++;                               /* count including nl */
             nexbuf -= i;                       /* remove from nexbuf */
             memmove(exbuf, exbuf + i, nexbuf); /* slide remaining to front */
@@ -1362,19 +1233,12 @@ static int stderrFromDriver(DvrInfo *dp)
 }
 
 /* close down the given client */
-static void shutdownClient(ClInfo *cp)
+void ClInfo::close()
 {
-    /* close connection */
-    shutdown(cp->s, SHUT_RDWR);
-    close(cp->s);
-
-    /* free memory */
-    delLilXML(cp->lp);
-
     if (verbose > 0)
-        fprintf(stderr, "%s: Client %d: shut down complete - bye!\n", indi_tstamp(NULL), cp->s);
+        log("shut down complete - bye!\n");
 
-    delete(cp);
+    delete(this);
 
 #ifdef OSX_EMBEDED_MODE
     fprintf(stderr, "CLIENTS %d\n", clients.size());
@@ -1382,11 +1246,11 @@ static void shutdownClient(ClInfo *cp)
 #endif
 }
 
-/* close down the given driver and restart */
-static void shutdownDvr(DvrInfo *dp, int restart)
+/* close down the given driver and restart if set*/
+void DvrInfo::close()
 {
     // Tell client driver is dead.
-    for (auto dev : dp->dev)
+    for (auto dev : dev)
     {
         /* Inform clients that this driver is dead */
         XMLEle *root = addXMLEle(NULL, "delProperty");
@@ -1403,55 +1267,53 @@ static void shutdownDvr(DvrInfo *dp, int restart)
         delXMLEle(root);
     }
 
-    /* make sure it's dead, reclaim resources */
-    if (dp->pid == REMOTEDVR)
-    {
-        /* socket connection */
-        shutdown(dp->wfd, SHUT_RDWR);
-        close(dp->wfd); /* same as rfd */
-    }
-    else
-    {
-        /* local pipe connection */
-        kill(dp->pid, SIGKILL); /* we've insured there are no zombies */
-        close(dp->wfd);
-        close(dp->rfd);
-        close(dp->efd);
-    }
+    bool terminate;
+    if (!restart) {
+        terminate = true;
+    } else {
+        if (restarts >= maxrestarts) {
+            log(fmt("Terminated after #%d restarts.\n", restarts));
 
-#ifdef OSX_EMBEDED_MODE
-    fprintf(stderr, "STOPPED \"%s\"\n", dp->name.c_str());
-    fflush(stderr);
-#endif
-
-    /* free memory */
-    delLilXML(dp->lp);
-
-    /* ok now to recycle */
-    dp->dev.clear();
-
-    /* decrement and possibly free any unsent messages for this client */
-    dp->clearMsgQueue();
-
-    if (restart)
-    {
-        if (dp->restarts >= maxrestarts)
-        {
-            fprintf(stderr, "%s: Driver %s: Terminated after #%d restarts.\n", indi_tstamp(NULL), dp->name.c_str(),
-                    dp->restarts);
-            // If we're not in FIFO mode and we do not have any more drivers, shutdown the server
-            if ((!fifo) && (drivers.size() == 0))
-                Bye();
-            delete(dp);
+            terminate = true;
         }
         else
         {
-            fprintf(stderr, "%s: Driver %s: restart #%d\n", indi_tstamp(NULL), dp->name.c_str(), ++dp->restarts);
-            startDvr(dp);
+            log(fmt("restart #%d\n", ++restarts));
         }
-    } else {
-        delete(dp);
     }
+
+#ifdef OSX_EMBEDED_MODE
+    fprintf(stderr, "STOPPED \"%s\"\n", name.c_str());
+    fflush(stderr);
+#endif
+
+    if (terminate) {
+        delete(this);
+        if ((!fifo) && (drivers.size() == 0))
+            Bye();
+        return;
+    }
+
+    /* make sure it's dead, reclaim resources */
+    setFds(-1, -1);
+    
+    if (pid != REMOTEDVR)
+    {
+        /* local pipe connection */
+        kill(pid, SIGKILL); /* we've insured there are no zombies */
+        ::close(efd);
+        efd = -1;
+    } else {
+        pid = 0;
+    }
+
+    /* ok now to recycle */
+    dev.clear();
+
+    /* decrement and possibly free any unsent messages for this client */
+    clearMsgQueue();
+
+    startDvr(this);
 }
 
 /* put Msg mp on queue of each driver responsible for dev, or all drivers
@@ -1497,8 +1359,8 @@ static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root)
         dp->pushMsg(mp);
         if (verbose > 1)
         {
-            fprintf(stderr, "%s: Driver %s: queuing responsible for <%s device='%s' name='%s'>\n", indi_tstamp(NULL),
-                    dp->name.c_str(), tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name"));
+            dp->log(fmt("queuing responsible for <%s device='%s' name='%s'>\n",
+                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
         }
     }
 }
@@ -1529,8 +1391,8 @@ static void q2SDrivers(DvrInfo *me, int isblob, const char *dev, const char *nam
         dp->pushMsg(mp);
         if (verbose > 1)
         {
-            fprintf(stderr, "%s: Driver %s: queuing snooped <%s device='%s' name='%s'>\n", indi_tstamp(NULL), dp->name.c_str(),
-                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name"));
+            dp->log(fmt("queuing snooped <%s device='%s' name='%s'>\n",
+                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
         }
     }
 }
@@ -1563,7 +1425,7 @@ static void addSDevice(DvrInfo *dp, const char *dev, const char *name)
     sp->blob = B_NEVER;
 
     if (verbose)
-        fprintf(stderr, "%s: Driver %s: snooping on %s.%s\n", indi_tstamp(NULL), dp->name.c_str(), dev, name);
+        dp->log(fmt("snooping on %s.%s\n", dev, name));
 }
 
 /* return Property if dp is snooping dev/name, else NULL.
@@ -1583,10 +1445,8 @@ static Property *findSDevice(DvrInfo *dp, const char *dev, const char *name)
  * if BLOB always honor current mode.
  * return -1 if had to shut down any clients, else 0.
  */
-static int q2Clients(ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root)
+static void q2Clients(ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root)
 {
-    int shutany = 0;
-
     /* queue message to each interested client */
     for (auto cp : clients)
     {
@@ -1645,38 +1505,37 @@ static int q2Clients(ClInfo *notme, int isblob, const char *dev, const char *nam
             if (streamFound)
             {
                 if (verbose > 1)
-                    fprintf(stderr, "%s: Client %d: %ld bytes behind. Dropping stream BLOB...\n", indi_tstamp(NULL),
-                            cp->s, ql);
+                    cp->log(fmt("%ld bytes behind. Dropping stream BLOB...\n", ql));
                 continue;
             }
         }
         if (ql > maxqsiz)
         {
             if (verbose)
-                fprintf(stderr, "%s: Client %d: %ld bytes behind, shutting down\n", indi_tstamp(NULL), cp->s, ql);
-            shutdownClient(cp);
-            shutany++;
+                cp->log(fmt("%ld bytes behind, shutting down\n", ql));
+            cp->close();
             continue;
         }
 
         /* ok: queue message to this client */
         cp->pushMsg(mp);
         if (verbose > 1)
-            fprintf(stderr, "%s: Client %d: queuing <%s device='%s' name='%s'>\n", indi_tstamp(NULL), cp->s,
-                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name"));
+            cp->log(fmt("queuing <%s device='%s' name='%s'>\n",
+                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
     }
 
-    return (shutany ? -1 : 0);
+    return;
 }
 
 /* put Msg mp on queue of each chained server client, except notme.
   * return -1 if had to shut down any clients, else 0.
  */
-static int q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
+static void q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
 {
-    int shutany = 0, devFound = 0;
+    int devFound = 0;
 
     /* queue message to each interested client */
+    //FIXME: this will break if clients is modified during iteration.
     for (auto cp : clients)
     {
         // Only send the message to the upstream server that is connected specfically to the device in driver dp
@@ -1711,21 +1570,19 @@ static int q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
         if (ql > maxqsiz)
         {
             if (verbose)
-                fprintf(stderr, "%s: Client %d: %ld bytes behind, shutting down\n", indi_tstamp(NULL), cp->s, ql);
-            shutdownClient(cp);
-            shutany++;
+                cp->log(fmt("%ld bytes behind, shutting down\n", ql));
+            cp->close();
             continue;
         }
 
         /* ok: queue message to this client */
         cp->pushMsg(mp);
         if (verbose > 1)
-            fprintf(stderr, "%s: Client %d: queuing <%s device='%s' name='%s'>\n", indi_tstamp(NULL), cp->s,
-                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name"));
+            cp->log(fmt("queuing <%s device='%s' name='%s'>\n",
+                    tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
     }
-
-    return (shutany ? -1 : 0);
 }
+
 
 /* write the next chunk of the current message in the queue to the given
  * client. pop message from queue when complete and free the message if we are
@@ -1733,102 +1590,51 @@ static int q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
  * N.B. we assume we will never be called with cp->msgq empty.
  * return 0 if ok else -1 if had to shut down.
  */
-static int sendClientMsg(ClInfo *cp)
-{
+void MsgQueue::writeToFd() {
     ssize_t nsend, nw;
     Msg *mp;
 
     /* get current message */
-    mp = cp->headMsg();
+    mp = headMsg();
+    if (mp == nullptr) {
+        log("Unexpected write notification");
+        return;
+    }
 
     /* send next chunk, never more than MAXWSIZ to reduce blocking */
-    nsend = mp->cl - cp->nsent;
+    nsend = mp->cl - nsent;
     if (nsend > MAXWSIZ)
         nsend = MAXWSIZ;
-    nw = write(cp->s, &mp->cp[cp->nsent], nsend);
+    nw = write(wFd, &mp->cp[nsent], nsend);
 
     /* shut down if trouble */
     if (nw <= 0)
     {
         if (nw == 0)
-            fprintf(stderr, "%s: Client %d: write returned 0\n", indi_tstamp(NULL), cp->s);
+            log("write returned 0\n");
         else
-            fprintf(stderr, "%s: Client %d: write: %s\n", indi_tstamp(NULL), cp->s, strerror(errno));
-        shutdownClient(cp);
-        return (-1);
+            log(fmt("write: %s\n", strerror(errno)));
+        close();
+        return;
     }
 
     /* trace */
     if (verbose > 2)
     {
-        fprintf(stderr, "%s: Client %d: sending msg copy %d nq %ld:\n%.*s\n", indi_tstamp(NULL), cp->s, mp->count,
-                cp->msgq.size(), (int)nw, &mp->cp[cp->nsent]);
+        log(fmt("sending msg copy %d nq %ld:\n%.*s\n", mp->count,
+                msgq.size(), (int)nw, &mp->cp[nsent]));
     }
     else if (verbose > 1)
     {
-        fprintf(stderr, "%s: Client %d: sending %.50s\n", indi_tstamp(NULL), cp->s, &mp->cp[cp->nsent]);
+        log(fmt("sending %.50s\n", &mp->cp[nsent]));
     }
 
     /* update amount sent. when complete: free message if we are the last
      * to use it and pop from our queue.
      */
-    cp->nsent += nw;
-    if (cp->nsent == mp->cl)
-        cp->consumeHeadMsg();
-
-    return (0);
-}
-
-/* write the next chunk of the current message in the queue to the given
- * driver. pop message from queue when complete and free the message if we are
- * the last one to use it. restart this driver if touble.
- * N.B. we assume we will never be called with dp->msgq empty.
- * return 0 if ok else -1 if had to shut down.
- */
-static int sendDriverMsg(DvrInfo *dp)
-{
-    ssize_t nsend, nw;
-    Msg *mp;
-
-    /* get current message */
-    mp = dp->headMsg();
-
-    /* send next chunk, never more than MAXWSIZ to reduce blocking */
-    nsend = mp->cl - dp->nsent;
-    if (nsend > MAXWSIZ)
-        nsend = MAXWSIZ;
-    nw = write(dp->wfd, &mp->cp[dp->nsent], nsend);
-
-    /* restart if trouble */
-    if (nw <= 0)
-    {
-        if (nw == 0)
-            fprintf(stderr, "%s: Driver %s: write returned 0\n", indi_tstamp(NULL), dp->name.c_str());
-        else
-            fprintf(stderr, "%s: Driver %s: write: %s\n", indi_tstamp(NULL), dp->name.c_str(), strerror(errno));
-        shutdownDvr(dp, 1);
-        return (-1);
-    }
-
-    /* trace */
-    if (verbose > 2)
-    {
-        fprintf(stderr, "%s: Driver %s: sending msg copy %d nq %ld:\n%.*s\n", indi_tstamp(NULL), dp->name.c_str(), mp->count,
-                dp->msgq.size(), (int)nw, &mp->cp[dp->nsent]);
-    }
-    else if (verbose > 1)
-    {
-        fprintf(stderr, "%s: Driver %s: sending %.50s\n", indi_tstamp(NULL), dp->name.c_str(), &mp->cp[dp->nsent]);
-    }
-
-    /* update amount sent. when complete: free message if we are the last
-     * to use it and pop from our queue.
-     */
-    dp->nsent += nw;
-    if (dp->nsent == mp->cl)
-        dp->consumeHeadMsg();
-
-    return (0);
+    nsent += nw;
+    if (nsent == mp->cl)
+        consumeHeadMsg();
 }
 
 /* return 0 if cp may be interested in dev/name else -1
@@ -1892,7 +1698,7 @@ static int newClSocket()
     cli_fd  = accept(lsocket, (struct sockaddr *)&cli_socket, &cli_len);
     if (cli_fd < 0)
     {
-        fprintf(stderr, "accept: %s\n", strerror(errno));
+        log(fmt("accept: %s\n", strerror(errno)));
         Bye();
     }
 
@@ -2043,6 +1849,14 @@ bool DvrInfo::isHandlingDevice(const std::string & dev) const {
     return this->dev.find(dev) != this->dev.end();
 }
 
+void DvrInfo::log(const std::string & str) const {
+    std::string logLine = "Driver ";
+    logLine += name;
+    logLine += ": ";
+    logLine += str;
+    ::log(logLine);
+}
+
 ClInfo::ClInfo() {
     clients.insert(this);
 }
@@ -2052,14 +1866,14 @@ ClInfo::~ClInfo() {
         delete prop;
     }
     
-    /* decrement and possibly free any unsent messages for this client */
-    for(auto mp : msgq)
-        if (--mp->count == 0)
-            delete(mp);
-    
     clients.erase(this);
 }
 
+void ClInfo::log(const std::string & str) const {
+    std::string logLine = fmt("Client %d: ", this->getRFd());
+    logLine += str;
+    ::log(logLine);
+}
 
 Msg::Msg(void): count(0), cl(0), cp(nullptr)
 {
@@ -2080,7 +1894,8 @@ void Msg::alloc(unsigned long cl) {
     this->cl = cl; 
 }
 
-void Msg::setFromStr(const char * str) {
+void Msg::setFromStr(const char * str)
+{
     alloc(strlen(str));
     memcpy(cp, str, cl);
 }
@@ -2095,10 +1910,51 @@ void Msg::setFromXMLEle(XMLEle *root)
     cl--;
 }
 
-MsgQueue::MsgQueue(): nsent(0) {}
+MsgQueue::MsgQueue(): nsent(0) {
+    lp = newLilXML();
+    rio.set<MsgQueue, &MsgQueue::ioCb>(this);
+    wio.set<MsgQueue, &MsgQueue::ioCb>(this);
+    rFd = -1;
+    wFd = -1;
+}
 
 MsgQueue::~MsgQueue() {
     clearMsgQueue();
+    delLilXML(lp);
+    lp = nullptr;
+
+    setFds(-1, -1);
+
+    /* decrement and possibly free any unsent messages for this client */
+    for(auto mp : msgq)
+        unrefMsg(mp);
+}
+
+void MsgQueue::setFds(int rFd, int wFd)
+{
+    if (this->rFd != -1) {
+        rio.stop();
+        wio.stop();
+        ::close(rFd);
+        if (rFd != wFd) {
+            ::close(wFd);
+        }
+    }
+
+    this->rFd = rFd;
+    this->wFd = wFd;
+    this->nsent = 0;
+    
+    if (rFd != -1) {
+        fcntl(rFd, F_SETFL, fcntl(rFd, F_GETFL, 0) | O_NONBLOCK); 
+        if (wFd != rFd) {
+            fcntl(wFd, F_SETFL, fcntl(wFd, F_GETFL, 0) | O_NONBLOCK); 
+        }
+        
+        rio.set(rFd, ev::READ);
+        wio.set(wFd, ev::WRITE);
+        rio.start();
+    }
 }
 
 void MsgQueue::unrefMsg(Msg * mp) {
@@ -2120,6 +1976,8 @@ void MsgQueue::consumeHeadMsg() {
 void MsgQueue::pushMsg(Msg * mp) {
     mp->count++;
     msgq.push_back(mp);
+    // Register for client write
+    if (wFd != -1) wio.start();
 }
 
 void MsgQueue::clearMsgQueue() {
@@ -2127,6 +1985,8 @@ void MsgQueue::clearMsgQueue() {
         unrefMsg(mp);
     }
     nsent = 0;
+    // Cancel io write events
+    wio.stop();
 }
 
 unsigned long MsgQueue::msgQSize() const {
@@ -2139,4 +1999,111 @@ unsigned long MsgQueue::msgQSize() const {
     }
 
     return (l);
+}
+
+void MsgQueue::readFromFd()
+{
+    char buf[MAXRBUF];
+    ssize_t nr;
+
+    /* read client */
+    nr = read(rFd, buf, sizeof(buf));
+    if (nr <= 0)
+    {
+        if (errno == EAGAIN) {
+            return;
+        }
+        if (nr < 0)
+            log(fmt("read: %s\n", strerror(errno)));
+        else if (verbose > 0)
+            log(fmt("read EOF\n", indi_tstamp(NULL)));
+        close();
+        return;
+    }
+
+    /* process XML chunk */
+    char err[1024];
+    XMLEle **nodes = parseXMLChunk(lp, buf, nr, err);
+    if (!nodes)
+    {
+        log(fmt("XML error: %s\n", err));
+        log(fmt("XML read: %.*s\n", (int)nr, buf));
+        close();
+        return;
+    }
+
+    int inode = 0;
+
+    XMLEle *root = nodes[inode];
+    // FIXME: looping accros modified set is problematic auto ref = this->reference();
+
+    while (root)
+    {
+        //if (ref.valid()) {
+            if (verbose > 2)
+            {
+                log("read ");
+                traceMsg(root);
+            }
+            else if (verbose > 1)
+            {
+                log(fmt("read <%s device='%s' name='%s'>\n",
+                        tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
+            }
+
+            onMessage(root);
+        //}
+        delXMLEle(root);
+        inode++;
+        root = nodes[inode];
+    }
+
+    free(nodes);
+}
+
+
+
+static void log(const std::string & log) {
+    fprintf(stderr, "%s: ", indi_tstamp(NULL));
+    fprintf(stderr, "%s", log.c_str());
+}
+
+static std::string fmt(const char *fmt, ...)
+{
+    char buffer[128];
+    int size = sizeof(buffer);
+    char *p = buffer;
+    va_list ap;
+
+    /* Determine required size */
+    va_start(ap, fmt);
+    size = vsnprintf(p, size, fmt, ap);
+    va_end(ap);
+
+    if (size < 0) {
+        perror("vnsprintf");
+    }
+
+    if ((unsigned)size < sizeof(buffer)) {
+        return std::string(buffer);
+    }
+
+    size++;             /* For '\0' */
+    p = (char*)malloc(size);
+    if (p == NULL) {
+        perror("malloc");
+        Bye();
+    }
+
+    va_start(ap, fmt);
+    size = vsnprintf(p, size, fmt, ap);
+    va_end(ap);
+
+    if (size < 0) {
+        free(p);
+        perror("vnsprintf");
+    }
+    std::string ret(p);
+    free(p);
+    return ret;
 }
