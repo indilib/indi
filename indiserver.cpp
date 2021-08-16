@@ -43,8 +43,9 @@
  * sent to optimize write system calls and avoid blocking to slow clients.
  * Clients that get more than maxqsiz bytes behind are shut down.
  */
-
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE // needed for siginfo_t and sigaction
+#endif
 
 #include "config.h"
 #include <set>
@@ -523,9 +524,9 @@ static void startLocalDvr(DvrInfo *dp)
         {
             setenv("INDIPREFIX", dp->envPrefix, 1);
 #if defined(OSX_EMBEDED_MODE)
-            snprintf(executable, MAXSBUF, "%s/Contents/MacOS/%s", dp->envPrefix, dp->name);
+            snprintf(executable, MAXSBUF, "%s/Contents/MacOS/%s", dp->envPrefix, dp->name.c_str());
 #elif defined(__APPLE__)
-            snprintf(executable, MAXSBUF, "%s/%s", dp->envPrefix, dp->name);
+            snprintf(executable, MAXSBUF, "%s/%s", dp->envPrefix, dp->name.c_str());
 #else
             snprintf(executable, MAXSBUF, "%s/bin/%s", dp->envPrefix, dp->name.c_str());
 #endif
