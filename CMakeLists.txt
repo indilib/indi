@@ -128,6 +128,7 @@ else()
 
 # 1. Dependencies
 find_package(Threads REQUIRED)
+find_package(Libev REQUIRED)
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 # 3. Build
@@ -141,6 +142,7 @@ ENDIF ()
 
 add_executable(indiserver ${indiserver_SRC})
 target_link_libraries(indiserver ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indiserver ${LIBEV_LIBRARIES})
 install(TARGETS indiserver RUNTIME DESTINATION bin)
 endif (WIN32 OR ANDROID)
 endif (INDI_BUILD_SERVER)

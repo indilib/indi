@@ -75,6 +75,7 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 
+#include <ev++.h>
 
 #define INDIPORT      7624    /* default TCP/IP port to listen */
 #define REMOTEDVR     (-1234) /* invalid PID to flag remote drivers */
@@ -90,6 +91,8 @@
 #define LOGNAME  "/Users/%s/Library/Logs/indiserver.log"
 #define FIFONAME "/tmp/indiserverFIFO"
 #endif
+
+static ev::default_loop loop;
 
 class Msg {
 public:
@@ -763,7 +766,8 @@ static void indiRun(void)
     fd_set rs, ws;
     int maxfd = 0;
     int s;
-
+    
+    loop.run(0);
     /* init with no writers or readers */
     FD_ZERO(&ws);
     FD_ZERO(&rs);
