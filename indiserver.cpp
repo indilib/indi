@@ -51,6 +51,8 @@
 #include <set>
 #include <string>
 #include <list>
+#include <map>
+#include <vector>
 
 #include "indiapi.h"
 #include "indidevapi.h"
@@ -97,54 +99,120 @@ extern "C" {
 
 static ev::default_loop loop;
 
-class Peer;
-class RawPeerRef {
-    friend class Peer;
-    Peer * value;
-    RawPeerRef * prev, * next;
-    
-    void clear();
-
-protected:
-    RawPeerRef(Peer * p);
-    ~RawPeerRef();
-
-    Peer * getRaw() const { return value; }
+template<class M>
+class ConcurrentSet {
+    unsigned long identifier = 1;
+    std::map<unsigned long, M*> items;
 
 public:
-
-    bool alive() const { return value != nullptr; }
-};
-
-template<class P> class PeerRef: public RawPeerRef
-{
-public:
-    PeerRef(P* value): RawPeerRef((P*)value) {}
-    P * get() const { return (PeerRef*)getRaw(); }
-};
-
-/** Object that can vanish */
-class Peer {
-    friend class RawPeerRef;
-private:
-    RawPeerRef * first, * last;
-
-protected:
-    Peer() {
-        first = nullptr;
-        last = nullptr;
+    void insert(M* item) {
+        item->id = identifier++;
+        items[item->id] = item;
+        item->current = (ConcurrentSet<void>*)this;
     }
 
-    virtual ~Peer() {
-        clearRefs();
+    void erase(M* item) {
+        items.erase(item->id);
+        item->id = 0;
+        item->current = nullptr;
     }
 
-    void clearRefs() {
-        while(first) {
-            first->clear();
+    std::vector<unsigned long> ids() const {
+        std::vector<unsigned long> result;
+        for(auto item : items) {
+            result.push_back(item.first);
         }
+        return result;
+    }
+
+    M* operator[](unsigned long id) const {
+        auto e = items.find(id);
+        if (e == items.end()) {
+            return nullptr;
+        }
+        return e->second;
+    }
+
+    class iterator {
+        friend class ConcurrentSet<M>;
+        const ConcurrentSet<M> * parent;
+        std::vector<unsigned long> ids;
+        // Will be -1 when done
+        long int pos = 0;
+
+        void skip() {
+            if (pos == -1) return;
+            while(pos < (long int)ids.size() && !(*parent)[pos]) {
+                pos++;
+            }
+            if (pos == (long int)ids.size()) {
+                pos = -1;
+            }
+        }
+    public:
+        iterator(const ConcurrentSet<M> * parent) : parent(parent) {}
+        
+        bool operator!=(const iterator & o) { return pos != o.pos; }
+        
+        iterator & operator++() {
+            if (pos != -1)
+            {
+                pos++;
+                skip();
+            }
+            return *this;
+        }
+
+        M * operator*() const {
+            return (*parent)[pos];
+        }
+    };
+
+    iterator begin() const {
+        iterator result(this);
+        for(auto item : items) {
+            result.ids.push_back(item.first);
+        }
+        result.skip();
+        return result;
+    }
+
+    iterator end() const {
+        iterator result(nullptr);
+        result.pos = -1;
+        return result;
     }
 };
+
+/* An object that can be put in a ConcurrentSet, and provide a heartbeat 
+ * to detect removal from ConcurrentSet
+ */
+class Collectable {
+    template<class P> friend class ConcurrentSet;
+    unsigned long id = 0;
+    const ConcurrentSet<void> * current;
+
+    /* Keep the id */
+    class HeartBeat {
+        friend class Collectable;
+        unsigned long id;
+        const ConcurrentSet<void> * current;
+        HeartBeat(unsigned long id, const ConcurrentSet<void> * current) 
+            :id(id), current(current) {}
+    public:
+        bool alive() const {
+            return id != 0 && (*current)[id] != nullptr;
+        }
+    };
+
+protected:
+    /* heartbeat.alive will return true as long as this item has not changed collection.
+     * Also detect deletion of the Collectable */
+    HeartBeat heartBeat() const {
+        return HeartBeat(id, current);
+    }
+};
+
 
 class Msg {
 public:
@@ -163,7 +231,7 @@ public:
     void setFromXMLEle(XMLEle *root);
 };
 
-class MsgQueue: public Peer{
+class MsgQueue: public Collectable {
     void unrefMsg(Msg * msg);
     int rFd, wFd;
     LilXML * lp;         /* XML parsing context */
@@ -174,15 +242,21 @@ class MsgQueue: public Peer{
     unsigned int nsent; /* bytes of current Msg sent so far */
 
     void readFromFd();
+
+    /* write the next chunk of the current message in the queue to the given
+     * client. pop message from queue when complete and free the message if we are
+     * the last one to use it. shut down this client if trouble.
+     */
     void writeToFd();
 
 protected:
     int getRFd() const { return rFd; }
     int getWFd() const { return wFd; }
 
+    /* print key attributes and values of the given xml to stderr. */
     void traceMsg(const std::string & log, XMLEle *root);
 
-    /* Close the client. (May be restarted later depending on logic) */
+    /* Close the connection. (May be restarted later depending on driver logic) */
     virtual void close() = 0;
     /* Handle a message. will be freed by caller */
     virtual void onMessage(XMLEle *root) = 0;
@@ -210,7 +284,6 @@ public:
 
     void setFds(int rFd, int wFd);
 
-    // FIXME: move to protected
     virtual void log(const std::string & log) const = 0;
 };
 
@@ -236,6 +309,8 @@ class Fifo {
     void close();
     void open();
     void processLine(const char * line);
+
+    /* Read commands from FIFO and process them. Start/stop drivers accordingly */
     void read();
     void ioCb(ev::io &watcher, int revents);
 public:
@@ -250,16 +325,22 @@ class DvrInfo;
 
 /* info for each connected client */
 class ClInfo: public MsgQueue {
-
 protected:
+    /* send message to each appropriate driver.
+     * also send all newXXX() to all other interested clients.
+     */
     virtual void onMessage(XMLEle *root);
 
+    /* Update the client property BLOB handling policy */
     void crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB);
 
+    /* close down the given client */
+    virtual void close();
+
 public:
-    std::list<Property*> props; /* props we want */
-    int allprops = 0;       /* saw getProperties w/o device */
-    BLOBHandling blob = B_NEVER;  /* when to send setBLOBs */
+    std::list<Property*> props;     /* props we want */
+    int allprops = 0;               /* saw getProperties w/o device */
+    BLOBHandling blob = B_NEVER;    /* when to send setBLOBs */
 
     ClInfo();
     virtual ~ClInfo();
@@ -269,24 +350,23 @@ public:
     int findDevice(const std::string & dev, const std::string & name) const;
 
     /* add the given device and property to the props[] list of client if new.
-    */
+     */
     void addDevice(const std::string & dev, const std::string & name, int isblob);
 
-    // FIXME: no need for public once fully converted to object
-    virtual void close();
     virtual void log(const std::string & log) const;
 
-
     /* put Msg mp on queue of each chained server client, except notme.
-    */
+     */
     static void q2Servers(DvrInfo *me, Msg *mp, XMLEle *root);
 
     /* put Msg mp on queue of each client interested in dev/name, except notme.
-    * if BLOB always honor current mode.
-    */
+     * if BLOB always honor current mode.
+     */
     static void q2Clients(ClInfo *notme, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root);
+
+    /* Reference to all active clients */
+    static ConcurrentSet<ClInfo> clients;
 };
-static std::set<ClInfo*> clients;
 
 /* info for each connected driver */
 class DvrInfo: public MsgQueue
@@ -298,49 +378,58 @@ class DvrInfo: public MsgQueue
 
 public:
     /* return Property if dp is this driver is snooping dev/name, else NULL.
-    */
+     */
     Property *findSDevice(const std::string & dev, const std::string & name) const;
 
 protected:
+    /* send message to each interested client
+     */
     virtual void onMessage(XMLEle *root);
 
     /* Construct an instance that will start the same driver */
     DvrInfo(const DvrInfo & model);
 
 public:
-    std::string name; /* persistent name */
+    std::string name;               /* persistent name */
     
     std::set<std::string> dev;      /* device served by this driver */
     std::list<Property*>sprops;     /* props we snoop */
     int restarts;                   /* times process has been restarted */
     bool restart = true;            /* Restart on shutdown */
+
     DvrInfo();
     virtual ~DvrInfo();
 
     bool isHandlingDevice(const std::string & dev) const;
 
     /* start the INDI driver process or connection.
-    * exit if trouble.
-    */
+     * exit if trouble.
+     */
     virtual void start() = 0;
+
+    /* close down the given driver and restart if set*/
     virtual void close();
+    
     /* Allocate an instance that will start the same driver */
     virtual DvrInfo * clone() const = 0;
+
     virtual void log(const std::string & log) const;
 
     virtual const std::string remoteServerUid() const = 0;
 
     /* put Msg mp on queue of each driver responsible for dev, or all drivers
-    * if dev empty.
-    */
+     * if dev empty.
+     */
     static void q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root);
 
     /* put Msg mp on queue of each driver snooping dev/name.
-    * if BLOB always honor current mode.
-    */
+     * if BLOB always honor current mode.
+     */
     static void q2SDrivers(DvrInfo *me, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root);
+
+    /* Reference to all active drivers */
+    static ConcurrentSet<DvrInfo> drivers;
 };
-static std::set<DvrInfo*> drivers;
 
 class LocalDvrInfo: public DvrInfo {
     char errbuff[1024];     /* buffer for stderr pipe. line too long will be clipped */
@@ -364,10 +453,10 @@ public:
     std::string envSkel;
     std::string envPrefix;
 
-    virtual void start();
-
     LocalDvrInfo();
     virtual ~LocalDvrInfo();
+
+    virtual void start();
 
     virtual LocalDvrInfo * clone() const;
 
@@ -375,6 +464,9 @@ public:
 };
 
 class RemoteDvrInfo: public DvrInfo {
+    /* open a connection to the given host and port or die.
+     * return socket fd.
+     */
     int openINDIServer();
 
     void extractRemoteId(const std::string & name, std::string & o_host, int & o_port, std::string & o_dev) const;
@@ -386,10 +478,10 @@ public:
     std::string host;
     int port;
 
-    virtual void start();
-
     RemoteDvrInfo();
     virtual ~RemoteDvrInfo();
+
+    virtual void start();
 
     virtual RemoteDvrInfo * clone() const;
 
@@ -405,19 +497,22 @@ class TcpServer {
     ev::io sfdev;
 
     /* prepare for new client arriving on socket.
-    * exit if trouble.
-    */
+     * exit if trouble.
+     */
     void accept();
     void ioCb(ev::io &watcher, int revents);
 public:
     TcpServer(int port);
 
+    /* create the public INDI Driver endpoint lsocket on port.
+     * return server socket else exit.
+     */
     void listen();
 };
 
 
 static void log(const std::string & log);
-/** Turn a printf format into std::string */
+/* Turn a printf format into std::string */
 static std::string fmt(const char * fmt, ...) __attribute__ ((format (printf, 1, 0)));
 
 static char *indi_tstamp(char *s);
@@ -808,9 +903,6 @@ void RemoteDvrInfo::start()
         log(fmt("socket=%d\n", sockfd));
 }
 
-/* open a connection to the given host and port or die.
- * return socket fd.
- */
 int RemoteDvrInfo::openINDIServer()
 {
     struct sockaddr_in serv_addr;
@@ -863,9 +955,6 @@ void TcpServer::ioCb(ev::io &, int revents)
     }
 }
 
-/* create the public INDI Driver endpoint lsocket on port.
- * return server socket else exit.
- */
 void TcpServer::listen()
 {
     struct sockaddr_in serv_socket;
@@ -978,7 +1067,7 @@ void Fifo::open()
 }
 
 
-/** Handle one fifo command. Start/stop drivers accordingly */
+/* Handle one fifo command. Start/stop drivers accordingly */
 void Fifo::processLine(const char * line)
 {
 
@@ -1094,8 +1183,10 @@ void Fifo::processLine(const char * line)
     }
     else
     {
-        for (auto dp : drivers)
+        for (auto dp : DvrInfo::drivers)
         {
+            if (dp == nullptr) continue;
+
             log(fmt("dp->name: %s - tDriver: %s\n", dp->name.c_str(), tDriver));
             if (dp->name == tDriver)
             {
@@ -1130,10 +1221,8 @@ void Fifo::processLine(const char * line)
             }
         }
     }
-
 }
 
-/* Read commands from FIFO and process them. Start/stop drivers accordingly */
 void Fifo::read(void)
 {
     int rd = ::read(fd, buffer + bufferPos, sizeof(buffer) - 1 - bufferPos);
@@ -1189,10 +1278,6 @@ void Fifo::ioCb(ev::io &, int revents)
     }
 }
 
-/* read more from the given client, send to each appropriate driver when see
- * xml closure. also send all newXXX() to all other interested clients.
- * return -1 if had to shut down anything, else 0.
- */
 void ClInfo::onMessage(XMLEle * root)
 {
     char *roottag    = tagXMLEle(root);
@@ -1202,9 +1287,9 @@ void ClInfo::onMessage(XMLEle * root)
     int isblob       = !strcmp(tagXMLEle(root), "setBLOBVector");
 
     /* snag interested properties.
-    * N.B. don't open to alldevs if seen specific dev already, else
-    *   remote client connections start returning too much.
-    */
+     * N.B. don't open to alldevs if seen specific dev already, else
+     *   remote client connections start returning too much.
+     */
     if (dev[0])
     {
         // Signature for CHAINED SERVER
@@ -1247,10 +1332,6 @@ void ClInfo::onMessage(XMLEle * root)
         delete mp;
 }
 
-/* read more from the given driver, send to each interested client when see
- * xml closure. if driver dies, try restarting.
- * return 0 if ok else -1 if had to shut down anything.
- */
 void DvrInfo::onMessage(XMLEle * root)
 {
     char *roottag    = tagXMLEle(root);
@@ -1324,7 +1405,6 @@ void DvrInfo::onMessage(XMLEle * root)
         delete mp;
 }
 
-/* close down the given client */
 void ClInfo::close()
 {
     if (verbose > 0)
@@ -1338,7 +1418,6 @@ void ClInfo::close()
 #endif
 }
 
-/* close down the given driver and restart if set*/
 void DvrInfo::close()
 {
     // Tell client driver is dead.
@@ -1382,7 +1461,7 @@ void DvrInfo::close()
     // FIXME: we loose stderr from dying driver
     if (terminate) {
         delete(this);
-        if ((!fifo) && (drivers.size() == 0))
+        if ((!fifo) && (drivers.ids().empty()))
             Bye();
         return;
     } else {
@@ -1392,9 +1471,6 @@ void DvrInfo::close()
     }
 }
 
-/* put Msg mp on queue of each driver responsible for dev, or all drivers
- * if dev not specified.
- */
 void DvrInfo::q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root)
 {
     char *roottag = tagXMLEle(root);
@@ -1404,8 +1480,11 @@ void DvrInfo::q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root)
      *   otherwise they all fan out and we get multiple responses back.
      */
     std::set<std::string> remoteAdvertised;
-    for (auto dp : drivers)
+    for (auto dpId : drivers.ids())
     {
+        auto dp = drivers[dpId];
+        if (dp == nullptr) continue;
+
         std::string remoteUid = dp->remoteServerUid();
         bool isRemote = !remoteUid.empty();
 
@@ -1442,8 +1521,11 @@ void DvrInfo::q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root)
 void DvrInfo::q2SDrivers(DvrInfo *me, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root)
 {
     std::string meRemoteServerUid = me ? me->remoteServerUid() : "";
-    for (auto dp : drivers)
+    for (auto dpId : drivers.ids())
     {
+        auto dp = drivers[dpId];
+        if (dp == nullptr) continue;
+
         Property *sp = dp->findSDevice(dev, name);
 
         /* nothing for dp if not snooping for dev/name or wrong BLOB mode */
@@ -1496,15 +1578,14 @@ Property * DvrInfo::findSDevice(const std::string & dev, const std::string & nam
     return nullptr;
 }
 
-/* put Msg mp on queue of each client interested in dev/name, except notme.
- * if BLOB always honor current mode.
- * return -1 if had to shut down any clients, else 0.
- */
 void ClInfo::q2Clients(ClInfo *notme, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root)
 {
     /* queue message to each interested client */
-    for (auto cp : clients)
+    for (auto cpId : clients.ids())
     {
+        auto cp = clients[cpId];
+        if (cp == nullptr) continue;
+
         /* cp in use? notme? want this dev/name? blob? */
         if (cp == notme)
             continue;
@@ -1587,9 +1668,11 @@ void ClInfo::q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
     int devFound = 0;
 
     /* queue message to each interested client */
-    //FIXME: this will break if clients is modified during iteration.
-    for (auto cp : clients)
+    for (auto cpId : clients.ids())
     {
+        auto cp = clients[cpId];
+        if (cp == nullptr) continue;
+
         // Only send the message to the upstream server that is connected specfically to the device in driver dp
         switch (cp->allprops)
         {
@@ -1635,13 +1718,6 @@ void ClInfo::q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
     }
 }
 
-
-/* write the next chunk of the current message in the queue to the given
- * client. pop message from queue when complete and free the message if we are
- * the last one to use it. shut down this client if trouble.
- * N.B. we assume we will never be called with cp->msgq empty.
- * return 0 if ok else -1 if had to shut down.
- */
 void MsgQueue::writeToFd() {
     ssize_t nsend, nw;
     Msg *mp;
@@ -1720,10 +1796,6 @@ void ClInfo::addDevice(const std::string & dev, const std::string & name, int is
     props.push_back(pp);
 }
 
-
-/* convert the string value of enableBLOB to our B_ state value.
- * no change if unrecognized
- */
 void MsgQueue::crackBLOB(const char *enableBLOB, BLOBHandling *bp)
 {
     if (!strcmp(enableBLOB, "Also"))
@@ -1734,7 +1806,6 @@ void MsgQueue::crackBLOB(const char *enableBLOB, BLOBHandling *bp)
         *bp = B_NEVER;
 }
 
-/* Update the client property BLOB handling policy */
 void ClInfo::crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB)
 {
     /* If we have EnableBLOB with property name, we add it to Client device list */
@@ -1758,8 +1829,6 @@ void ClInfo::crackBLOBHandling(const std::string & dev, const std::string & name
     }
 }
 
-/* print key attributes and values of the given xml to stderr.
- */
 void MsgQueue::traceMsg(const std::string & logMsg, XMLEle *root)
 {
     log(logMsg);
@@ -1879,6 +1948,8 @@ void DvrInfo::log(const std::string & str) const {
     ::log(logLine);
 }
 
+ConcurrentSet<DvrInfo> DvrInfo::drivers;
+
 LocalDvrInfo::LocalDvrInfo() {
     eio.set<LocalDvrInfo, &LocalDvrInfo::onEfdEvent>(this);
     pidwatcher.set<LocalDvrInfo, &LocalDvrInfo::onPidEvent>(this);
@@ -1892,12 +1963,11 @@ LocalDvrInfo::LocalDvrInfo(const LocalDvrInfo & model):
     envPrefix(model.envPrefix)
 {}
 
-
 LocalDvrInfo::~LocalDvrInfo() {
     closeEfd();
     if (pid != 0)
     {
-        kill(pid, SIGKILL); /* we've insured there are no zombies */
+        kill(pid, SIGKILL); /* libev insures there will be no zombies */
         pid = 0;
     }
     closePid();
@@ -2009,6 +2079,8 @@ void ClInfo::log(const std::string & str) const {
     logLine += str;
     ::log(logLine);
 }
+
+ConcurrentSet<ClInfo> ClInfo::clients;
 
 Msg::Msg(void): count(0), cl(0), cp(nullptr)
 {
@@ -2192,11 +2264,11 @@ void MsgQueue::readFromFd()
     int inode = 0;
 
     XMLEle *root = nodes[inode];
-    PeerRef<MsgQueue> ref(this);
-
+    // Stop processing message in case of deletion...
+    auto hb = heartBeat();
     while (root)
     {
-        if (ref.alive()) {
+        if (hb.alive()) {
             if (verbose > 2)
                 traceMsg("read ", root);
             else if (verbose > 1)
@@ -2258,39 +2330,4 @@ static std::string fmt(const char *fmt, ...)
     std::string ret(p);
     free(p);
     return ret;
-}
-
-void RawPeerRef::clear() {
-    if (value == nullptr) {
-        return;
-    }
-    if (prev) {
-        prev->next = next;
-    } else {
-        value->first = next;
-    }
-    if (next) {
-        next->prev = prev;
-    } else {
-        value->last = prev;
-    }
-    prev = nullptr;
-    next = nullptr;
-    value = nullptr;
-}
-
-RawPeerRef::RawPeerRef(Peer * p) {
-    value = p;
-    next = nullptr;
-    prev = p->last;
-    if (p->last) {
-        p->last->next = this;
-    } else {
-        p->first = this;
-    }
-    p->last = this;
-}
-
-RawPeerRef::~RawPeerRef() {
-    clear();
 }
