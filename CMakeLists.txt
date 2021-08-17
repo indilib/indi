@@ -142,6 +142,7 @@ ENDIF ()
 
 add_executable(indiserver ${indiserver_SRC})
 target_link_libraries(indiserver ${CMAKE_THREAD_LIBS_INIT})
+target_include_directories(indiserver SYSTEM ${LIBEV_INCLUDE_DIR})
 target_link_libraries(indiserver ${LIBEV_LIBRARIES})
 install(TARGETS indiserver RUNTIME DESTINATION bin)
 endif (WIN32 OR ANDROID)
