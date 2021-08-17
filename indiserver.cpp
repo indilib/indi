@@ -78,7 +78,6 @@
 #include <ev++.h>
 
 #define INDIPORT      7624    /* default TCP/IP port to listen */
-#define REMOTEDVR     (-1234) /* invalid PID to flag remote drivers */
 #define MAXSBUF       512
 #define MAXRBUF       49152 /* max read buffering here */
 #define MAXWSIZ       49152 /* max bytes/write */
@@ -177,6 +176,9 @@ protected:
     int getRFd() const { return rFd; }
     int getWFd() const { return wFd; }
 
+    void traceMsg(const std::string & log, XMLEle *root);
+
+    /* Close the client. (May be restarted later depending on logic) */
     virtual void close() = 0;
     /* Handle a message. will be freed by caller */
     virtual void onMessage(XMLEle *root) = 0;
@@ -246,6 +248,14 @@ public:
     ClInfo();
     virtual ~ClInfo();
 
+    /* return 0 if cp may be interested in dev/name else -1
+     */
+    int findDevice(const char *dev, const char *name) const;
+
+    /* add the given device and property to the props[] list of client if new.
+    */
+    void addDevice(const char *dev, const char *name, int isblob);
+
     // FIXME: no need for public once fully converted to object
     virtual void close();
     virtual void log(const std::string & log) const;
@@ -294,8 +304,8 @@ class LocalDvrInfo: public DvrInfo {
     void onEfdEvent(ev::io &watcher, int revents); /* callback for data on efd */
     void onPidEvent(ev::child & watcher, int revents);
 
-    int pid = 0;            /* process id or REMOTEDVR if remote */
-    int efd = -1;           /* stderr from driver, if local */
+    int pid = 0;            /* process id or 0 for N/A (not started/terminated) */
+    int efd = -1;           /* stderr from driver, or -1 when N/A */
 
     void closeEfd();
     void closePid();
@@ -319,6 +329,10 @@ public:
 };
 
 class RemoteDvrInfo: public DvrInfo {
+    int openINDIServer();
+
+    void extractRemoteId(const std::string & name, std::string & o_host, int & o_port, std::string & o_dev) const;
+
 protected:
     RemoteDvrInfo(const RemoteDvrInfo & model);
 
@@ -373,18 +387,14 @@ static int maxrestarts   = DEFMAXRESTART;
 static void logStartup(int ac, char *av[]);
 static void usage(void);
 static void noSIGPIPE(void);
-static int openINDIServer(char host[], int indi_port);
 static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root);
 static void q2SDrivers(DvrInfo *me, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
 static void q2Clients(ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
 static void q2Servers(DvrInfo *me, Msg *mp, XMLEle *root);
 static void addSDevice(DvrInfo *dp, const char *dev, const char *name);
 static Property *findSDevice(DvrInfo *dp, const char *dev, const char *name);
-static void addClDevice(ClInfo *cp, const char *dev, const char *name, int isblob);
-static int findClDevice(ClInfo *cp, const char *dev, const char *name);
 static void crackBLOB(const char *enableBLOB, BLOBHandling *bp);
 static void crackBLOBHandling(const char *dev, const char *name, const char *enableBLOB, ClInfo *cp);
-static void traceMsg(XMLEle *root);
 static char *indi_tstamp(char *s);
 static void logDMsg(XMLEle *root, const char *dev);
 static void Bye(void);
@@ -697,18 +707,13 @@ void LocalDvrInfo::start()
         log(fmt("pid=%d rfd=%d wfd=%d efd=%d\n", pid, rp[0], wp[1], ep[0]));
 }
 
-/* start the given remote INDI driver connection.
- * exit if trouble.
- */
-void RemoteDvrInfo::start()
+void RemoteDvrInfo::extractRemoteId(const std::string & name, std::string & o_host, int & o_port, std::string & o_dev) const
 {
     char dev[MAXINDIDEVICE] = {0};
     char host[MAXSBUF] = {0};
-    char buf[MAXSBUF] = {0};
-    int indi_port, sockfd;
 
-    /* extract host and port */
-    indi_port = INDIPORT;
+    /* extract host and port from name*/
+    int indi_port = INDIPORT;
     if (sscanf(name.c_str(), "%[^@]@%[^:]:%d", dev, host, &indi_port) < 2)
     {
         // Device missing? Try a different syntax for all devices
@@ -719,18 +724,32 @@ void RemoteDvrInfo::start()
         }
     }
 
+    o_host = host;
+    o_port = indi_port;
+    o_dev = dev;
+}
+
+/* start the given remote INDI driver connection.
+ * exit if trouble.
+ */
+void RemoteDvrInfo::start()
+{
+    char buf[MAXSBUF] = {0};
+    int sockfd;
+    std::string dev;
+    extractRemoteId(name, host, port, dev);
+    
     /* connect */
-    sockfd = openINDIServer(host, indi_port);
+    sockfd = openINDIServer();
 
     /* record flag pid, io channels, init lp and snoop list */
-    this->host = host;
-    this->port = indi_port;
+
     this->setFds(sockfd, sockfd);
 
     /* N.B. storing name now is key to limiting outbound traffic to this
      * dev.
      */
-    if (dev[0])
+    if (!dev.empty())
         this->dev.insert(dev);
 
     /* Sending getProperties with device lets remote server limit its
@@ -738,7 +757,7 @@ void RemoteDvrInfo::start()
      */
     Msg *mp = new Msg();
     if (dev[0])
-        sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dev, INDIV);
+        sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dev.c_str(), INDIV);
     else
         // This informs downstream server that it is connecting to an upstream server
         // and not a regular client. The difference is in how it treats snooping properties
@@ -754,17 +773,17 @@ void RemoteDvrInfo::start()
 /* open a connection to the given host and port or die.
  * return socket fd.
  */
-static int openINDIServer(char host[], int indi_port)
+int RemoteDvrInfo::openINDIServer()
 {
     struct sockaddr_in serv_addr;
     struct hostent *hp;
     int sockfd;
 
     /* lookup host address */
-    hp = gethostbyname(host);
+    hp = gethostbyname(host.c_str());
     if (!hp)
     {
-        log(fmt("gethostbyname(%s): %s\n", host, strerror(errno)));
+        log(fmt("gethostbyname(%s): %s\n", host.c_str(), strerror(errno)));
         Bye();
     }
 
@@ -772,17 +791,17 @@ static int openINDIServer(char host[], int indi_port)
     (void)memset((char *)&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family      = AF_INET;
     serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-    serv_addr.sin_port        = htons(indi_port);
+    serv_addr.sin_port        = htons(port);
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        log(fmt("socket(%s,%d): %s\n", host, indi_port, strerror(errno)));
+        log(fmt("socket(%s,%d): %s\n", host, port, strerror(errno)));
         Bye();
     }
 
     /* connect */
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        log(fmt("connect(%s,%d): %s\n", host, indi_port, strerror(errno)));
+        log(fmt("connect(%s,%d): %s\n", host, port, strerror(errno)));
         Bye();
     }
 
@@ -1155,7 +1174,7 @@ void ClInfo::onMessage(XMLEle * root)
         if (dev[0] == '*' && !this->props.size())
             this->allprops = 2;
         else
-            addClDevice(this, dev, name, isblob);
+            addDevice(dev, name, isblob);
     }
     else if (!strcmp(roottag, "getProperties") && !this->props.size() && this->allprops != 2)
         this->allprops = 1;
@@ -1202,10 +1221,7 @@ void DvrInfo::onMessage(XMLEle * root)
     int isblob       = !strcmp(tagXMLEle(root), "setBLOBVector");
 
     if (verbose > 2)
-    {
-        log("read ");
-        traceMsg(root);
-    }
+        traceMsg("read ", root);
     else if (verbose > 1)
     {
         log(fmt("read <%s device='%s' name='%s'>\n",
@@ -1472,7 +1488,7 @@ static void q2Clients(ClInfo *notme, int isblob, const char *dev, const char *na
         /* cp in use? notme? want this dev/name? blob? */
         if (cp == notme)
             continue;
-        if (findClDevice(cp, dev, name) < 0)
+        if (cp->findDevice(dev, name) < 0)
             continue;
 
         //if ((isblob && cp->blob==B_NEVER) || (!isblob && cp->blob==B_ONLY))
@@ -1656,13 +1672,11 @@ void MsgQueue::writeToFd() {
         consumeHeadMsg();
 }
 
-/* return 0 if cp may be interested in dev/name else -1
- */
-static int findClDevice(ClInfo *cp, const char *dev, const char *name)
+int ClInfo::findDevice(const char *dev, const char *name) const
 {
-    if (cp->allprops >= 1 || !dev[0])
+    if (allprops >= 1 || !dev[0])
         return (0);
-    for (auto pp : cp->props)
+    for (auto pp : props)
     {
         if (!strcmp(pp->dev, dev) && (!pp->name[0] || !strcmp(pp->name, name)))
             return (0);
@@ -1670,25 +1684,23 @@ static int findClDevice(ClInfo *cp, const char *dev, const char *name)
     return (-1);
 }
 
-/* add the given device and property to the devs[] list of client if new.
- */
-static void addClDevice(ClInfo *cp, const char *dev, const char *name, int isblob)
+void ClInfo::addDevice(const char *dev, const char *name, int isblob)
 {
     if (isblob)
     {
-        for (auto pp : cp->props)
+        for (auto pp : props)
         {
             if (!strcmp(pp->dev, dev) && (name == NULL || !strcmp(pp->name, name)))
                 return;
         }
     }
     /* no dups */
-    else if (!findClDevice(cp, dev, name))
+    else if (!findDevice(dev, name))
         return;
 
     /* add */
     Property *pp = new Property();
-    cp->props.push_back(pp);
+    props.push_back(pp);
 
     /*ip = pp->dev;
     strncpy (ip, dev, MAXINDIDEVICE-1);
@@ -1722,7 +1734,7 @@ static void crackBLOBHandling(const char *dev, const char *name, const char *ena
 {
     /* If we have EnableBLOB with property name, we add it to Client device list */
     if (name[0])
-        addClDevice(cp, dev, name, 1);
+        cp->addDevice(dev, name, 1);
     else
         /* Otherwise, we set the whole client blob handling to what's passed (enableBLOB) */
         crackBLOB(enableBLOB, &cp->blob);
@@ -1743,8 +1755,10 @@ static void crackBLOBHandling(const char *dev, const char *name, const char *ena
 
 /* print key attributes and values of the given xml to stderr.
  */
-static void traceMsg(XMLEle *root)
+void MsgQueue::traceMsg(const std::string & logMsg, XMLEle *root)
 {
+    log(logMsg);
+
     static const char *prtags[] =
     {
         "defNumber", "oneNumber", "defText", "oneText", "defSwitch", "oneSwitch", "defLight", "oneLight",
@@ -2179,10 +2193,7 @@ void MsgQueue::readFromFd()
     {
         if (ref.alive()) {
             if (verbose > 2)
-            {
-                log("read ");
-                traceMsg(root);
-            }
+                traceMsg("read ", root);
             else if (verbose > 1)
             {
                 log(fmt("read <%s device='%s' name='%s'>\n",
