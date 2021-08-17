@@ -182,6 +182,12 @@ protected:
     virtual void close() = 0;
     /* Handle a message. will be freed by caller */
     virtual void onMessage(XMLEle *root) = 0;
+
+    /* convert the string value of enableBLOB to our B_ state value.
+     * no change if unrecognized
+     */
+    static void crackBLOB(const char *enableBLOB, BLOBHandling *bp);
+
 public:
 
     MsgQueue();
@@ -236,11 +242,15 @@ public:
 static Fifo * fifo = nullptr;
 
 
+class DvrInfo;
+
 /* info for each connected client */
 class ClInfo: public MsgQueue {
 
 protected:
     virtual void onMessage(XMLEle *root);
+
+    void crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB);
 
 public:
     std::list<Property*> props; /* props we want */
@@ -261,6 +271,16 @@ public:
     // FIXME: no need for public once fully converted to object
     virtual void close();
     virtual void log(const std::string & log) const;
+
+
+    /* put Msg mp on queue of each chained server client, except notme.
+    */
+    static void q2Servers(DvrInfo *me, Msg *mp, XMLEle *root);
+
+    /* put Msg mp on queue of each client interested in dev/name, except notme.
+    * if BLOB always honor current mode.
+    */
+    static void q2Clients(ClInfo *notme, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root);
 };
 static std::set<ClInfo*> clients;
 
@@ -409,10 +429,6 @@ static int maxrestarts   = DEFMAXRESTART;
 static void logStartup(int ac, char *av[]);
 static void usage(void);
 static void noSIGPIPE(void);
-static void q2Clients(ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
-static void q2Servers(DvrInfo *me, Msg *mp, XMLEle *root);
-static void crackBLOB(const char *enableBLOB, BLOBHandling *bp);
-static void crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB, ClInfo *cp);
 static char *indi_tstamp(char *s);
 static void logDMsg(XMLEle *root, const char *dev);
 static void Bye(void);
@@ -1199,7 +1215,7 @@ void ClInfo::onMessage(XMLEle * root)
 
     /* snag enableBLOB -- send to remote drivers too */
     if (!strcmp(roottag, "enableBLOB"))
-        crackBLOBHandling(dev, name, pcdataXMLEle(root), this);
+        crackBLOBHandling(dev, name, pcdataXMLEle(root));
 
     /* build a new message -- set content iff anyone cares */
     Msg* mp = new Msg();
@@ -1253,7 +1269,7 @@ void DvrInfo::onMessage(XMLEle * root)
         this->addSDevice(dev, name);
         Msg *mp = new Msg();
         /* send to interested chained servers upstream */
-        q2Servers(this, mp, root);
+        ClInfo::q2Servers(this, mp, root);
         /* Send to snooped drivers if they exist so that they can echo back the snooped propertly immediately */
         q2RDrivers(dev, mp, root);
 
@@ -1292,7 +1308,7 @@ void DvrInfo::onMessage(XMLEle * root)
     Msg * mp = new Msg();
 
     /* send to interested clients */
-    q2Clients(NULL, isblob, dev, name, mp, root);
+    ClInfo::q2Clients(NULL, isblob, dev, name, mp, root);
 
     /* send to snooping drivers */
     DvrInfo::q2SDrivers(this, isblob, dev, name, mp, root);
@@ -1331,7 +1347,7 @@ void DvrInfo::close()
         prXMLEle(stderr, root, 0);
         Msg *mp = new Msg();
 
-        q2Clients(NULL, 0, dev.c_str(), NULL, mp, root);
+        ClInfo::q2Clients(NULL, 0, dev.c_str(), NULL, mp, root);
         if (mp->count > 0)
             mp->setFromXMLEle(root);
         else
@@ -1480,7 +1496,7 @@ Property * DvrInfo::findSDevice(const std::string & dev, const std::string & nam
  * if BLOB always honor current mode.
  * return -1 if had to shut down any clients, else 0.
  */
-static void q2Clients(ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root)
+void ClInfo::q2Clients(ClInfo *notme, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root)
 {
     /* queue message to each interested client */
     for (auto cp : clients)
@@ -1562,10 +1578,7 @@ static void q2Clients(ClInfo *notme, int isblob, const char *dev, const char *na
     return;
 }
 
-/* put Msg mp on queue of each chained server client, except notme.
-  * return -1 if had to shut down any clients, else 0.
- */
-static void q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
+void ClInfo::q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
 {
     int devFound = 0;
 
@@ -1707,7 +1720,7 @@ void ClInfo::addDevice(const std::string & dev, const std::string & name, int is
 /* convert the string value of enableBLOB to our B_ state value.
  * no change if unrecognized
  */
-static void crackBLOB(const char *enableBLOB, BLOBHandling *bp)
+void MsgQueue::crackBLOB(const char *enableBLOB, BLOBHandling *bp)
 {
     if (!strcmp(enableBLOB, "Also"))
         *bp = B_ALSO;
@@ -1718,18 +1731,18 @@ static void crackBLOB(const char *enableBLOB, BLOBHandling *bp)
 }
 
 /* Update the client property BLOB handling policy */
-static void crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB, ClInfo *cp)
+void ClInfo::crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB)
 {
     /* If we have EnableBLOB with property name, we add it to Client device list */
     if (!name.empty())
-        cp->addDevice(dev, name, 1);
+        addDevice(dev, name, 1);
     else
         /* Otherwise, we set the whole client blob handling to what's passed (enableBLOB) */
-        crackBLOB(enableBLOB, &cp->blob);
+        crackBLOB(enableBLOB, &blob);
 
     /* If whole client blob handling policy was updated, we need to pass that also to all children
        and if the request was for a specific property, then we apply the policy to it */
-    for (auto pp : cp->props)
+    for (auto pp : props)
     {
         if (name.empty())
             crackBLOB(enableBLOB, &pp->blob);
