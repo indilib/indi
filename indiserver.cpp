@@ -207,9 +207,11 @@ public:
 /* device + property name */
 class Property {
 public:
-    char dev[MAXINDIDEVICE];
-    char name[MAXINDINAME];
-    BLOBHandling blob; /* when to snoop BLOBs */
+    std::string dev;
+    std::string name;
+    BLOBHandling blob = B_NEVER; /* when to snoop BLOBs */
+
+    Property(const std::string & dev, const std::string & name): dev(dev), name(name) {}
 };
 
 
@@ -250,11 +252,11 @@ public:
 
     /* return 0 if cp may be interested in dev/name else -1
      */
-    int findDevice(const char *dev, const char *name) const;
+    int findDevice(const std::string & dev, const std::string & name) const;
 
     /* add the given device and property to the props[] list of client if new.
     */
-    void addDevice(const char *dev, const char *name, int isblob);
+    void addDevice(const std::string & dev, const std::string & name, int isblob);
 
     // FIXME: no need for public once fully converted to object
     virtual void close();
@@ -265,6 +267,16 @@ static std::set<ClInfo*> clients;
 /* info for each connected driver */
 class DvrInfo: public MsgQueue
 {
+    /* add dev/name to this device's snooping list.
+     * init with blob mode set to B_NEVER.
+     */
+    void addSDevice(const std::string & dev, const std::string & name);
+
+public:
+    /* return Property if dp is this driver is snooping dev/name, else NULL.
+    */
+    Property *findSDevice(const std::string & dev, const std::string & name) const;
+
 protected:
     virtual void onMessage(XMLEle *root);
 
@@ -293,6 +305,16 @@ public:
     virtual void log(const std::string & log) const;
 
     virtual const std::string remoteServerUid() const = 0;
+
+    /* put Msg mp on queue of each driver responsible for dev, or all drivers
+    * if dev empty.
+    */
+    static void q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root);
+
+    /* put Msg mp on queue of each driver snooping dev/name.
+    * if BLOB always honor current mode.
+    */
+    static void q2SDrivers(DvrInfo *me, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root);
 };
 static std::set<DvrInfo*> drivers;
 
@@ -387,14 +409,10 @@ static int maxrestarts   = DEFMAXRESTART;
 static void logStartup(int ac, char *av[]);
 static void usage(void);
 static void noSIGPIPE(void);
-static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root);
-static void q2SDrivers(DvrInfo *me, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
 static void q2Clients(ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
 static void q2Servers(DvrInfo *me, Msg *mp, XMLEle *root);
-static void addSDevice(DvrInfo *dp, const char *dev, const char *name);
-static Property *findSDevice(DvrInfo *dp, const char *dev, const char *name);
 static void crackBLOB(const char *enableBLOB, BLOBHandling *bp);
-static void crackBLOBHandling(const char *dev, const char *name, const char *enableBLOB, ClInfo *cp);
+static void crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB, ClInfo *cp);
 static char *indi_tstamp(char *s);
 static void logDMsg(XMLEle *root, const char *dev);
 static void Bye(void);
@@ -756,7 +774,7 @@ void RemoteDvrInfo::start()
      * outbound (and our inbound) traffic on this socket to this device.
      */
     Msg *mp = new Msg();
-    if (dev[0])
+    if (!dev.empty())
         sprintf(buf, "<getProperties device='%s' version='%g'/>\n", dev.c_str(), INDIV);
     else
         // This informs downstream server that it is connecting to an upstream server
@@ -794,14 +812,14 @@ int RemoteDvrInfo::openINDIServer()
     serv_addr.sin_port        = htons(port);
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        log(fmt("socket(%s,%d): %s\n", host, port, strerror(errno)));
+        log(fmt("socket(%s,%d): %s\n", host.c_str(), port, strerror(errno)));
         Bye();
     }
 
     /* connect */
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        log(fmt("connect(%s,%d): %s\n", host, port, strerror(errno)));
+        log(fmt("connect(%s,%d): %s\n", host.c_str(), port, strerror(errno)));
         Bye();
     }
 
@@ -932,7 +950,7 @@ void Fifo::open()
 
     if (fd < 0)
     {
-        log(fmt("open(%s): %s.\n", fifo->name.c_str(), strerror(errno)));
+        log(fmt("open(%s): %s.\n", name.c_str(), strerror(errno)));
         Bye();
     }
 
@@ -1187,14 +1205,14 @@ void ClInfo::onMessage(XMLEle * root)
     Msg* mp = new Msg();
 
     /* send message to driver(s) responsible for dev */
-    q2RDrivers(dev, mp, root);
+    DvrInfo::q2RDrivers(dev, mp, root);
 
     /* JM 2016-05-18: Upstream client can be a chained INDI server. If any driver locally is snooping
     * on any remote drivers, we should catch it and forward it to the responsible snooping driver. */
     /* send to snooping drivers. */
     // JM 2016-05-26: Only forward setXXX messages
     if (!strncmp(roottag, "set", 3))
-        q2SDrivers(NULL, isblob, dev, name, mp, root);
+        DvrInfo::q2SDrivers(NULL, isblob, dev, name, mp, root);
 
     /* echo new* commands back to other clients */
     if (!strncmp(roottag, "new", 3))
@@ -1232,7 +1250,7 @@ void DvrInfo::onMessage(XMLEle * root)
     /* JM 2016-05-18: Send getProperties to upstream chained servers as well.*/
     if (!strcmp(roottag, "getProperties"))
     {
-        addSDevice(this, dev, name);
+        this->addSDevice(dev, name);
         Msg *mp = new Msg();
         /* send to interested chained servers upstream */
         q2Servers(this, mp, root);
@@ -1249,7 +1267,7 @@ void DvrInfo::onMessage(XMLEle * root)
     /* that's all if driver desires to snoop BLOBs from other drivers */
     if (!strcmp(roottag, "enableBLOB"))
     {
-        Property *sp = findSDevice(this, dev, name);
+        Property *sp = findSDevice(dev, name);
         if (sp)
             crackBLOB(pcdataXMLEle(root), &sp->blob);
         return;
@@ -1277,7 +1295,7 @@ void DvrInfo::onMessage(XMLEle * root)
     q2Clients(NULL, isblob, dev, name, mp, root);
 
     /* send to snooping drivers */
-    q2SDrivers(this, isblob, dev, name, mp, root);
+    DvrInfo::q2SDrivers(this, isblob, dev, name, mp, root);
 
     /* set message content if anyone cares else forget it */
     if (mp->count > 0)
@@ -1357,7 +1375,7 @@ void DvrInfo::close()
 /* put Msg mp on queue of each driver responsible for dev, or all drivers
  * if dev not specified.
  */
-static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root)
+void DvrInfo::q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root)
 {
     char *roottag = tagXMLEle(root);
 
@@ -1372,12 +1390,12 @@ static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root)
         bool isRemote = !remoteUid.empty();
 
         /* driver known to not support this dev */
-        if (dev[0] && dev[0] != '*' && !dp->isHandlingDevice(dev))
+        if ((!dev.empty()) && dev[0] != '*' && !dp->isHandlingDevice(dev))
             continue;
 
         /* Only send message to each *unique* remote driver at a particular host:port
          * Since it will be propogated to all other devices there */
-        if (!dev[0] && isRemote)
+        if (dev.empty() && isRemote)
         {
             if (remoteAdvertised.find(remoteUid) != remoteAdvertised.end())
                 continue;
@@ -1401,15 +1419,12 @@ static void q2RDrivers(const char *dev, Msg *mp, XMLEle *root)
     }
 }
 
-/* put Msg mp on queue of each driver snooping dev/name.
- * if BLOB always honor current mode.
- */
-static void q2SDrivers(DvrInfo *me, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root)
+void DvrInfo::q2SDrivers(DvrInfo *me, int isblob, const std::string & dev, const std::string & name, Msg *mp, XMLEle *root)
 {
     std::string meRemoteServerUid = me ? me->remoteServerUid() : "";
     for (auto dp : drivers)
     {
-        Property *sp = findSDevice(dp, dev, name);
+        Property *sp = dp->findSDevice(dev, name);
 
         /* nothing for dp if not snooping for dev/name or wrong BLOB mode */
         if (!sp)
@@ -1432,48 +1447,33 @@ static void q2SDrivers(DvrInfo *me, int isblob, const char *dev, const char *nam
     }
 }
 
-/* add dev/name to dp's snooping list.
- * init with blob mode set to B_NEVER.
- */
-static void addSDevice(DvrInfo *dp, const char *dev, const char *name)
+void DvrInfo::addSDevice(const std::string & dev, const std::string & name)
 {
     Property *sp;
-    char *ip;
 
     /* no dups */
-    sp = findSDevice(dp, dev, name);
+    sp = findSDevice(dev, name);
     if (sp)
         return;
 
     /* add dev to sdevs list */
-    sp         = new Property();
-    dp->sprops.push_back(sp);
-
-    ip = sp->dev;
-    strncpy(ip, dev, MAXINDIDEVICE - 1);
-    ip[MAXINDIDEVICE - 1] = '\0';
-
-    ip = sp->name;
-    strncpy(ip, name, MAXINDINAME - 1);
-    ip[MAXINDINAME - 1] = '\0';
-
+    sp = new Property(dev, name);
     sp->blob = B_NEVER;
+    sprops.push_back(sp);
 
     if (verbose)
-        dp->log(fmt("snooping on %s.%s\n", dev, name));
+        log(fmt("snooping on %s.%s\n", dev.c_str(), name.c_str()));
 }
 
-/* return Property if dp is snooping dev/name, else NULL.
- */
-static Property *findSDevice(DvrInfo *dp, const char *dev, const char *name)
+Property * DvrInfo::findSDevice(const std::string & dev, const std::string & name) const
 {
-    for(auto sp : dp->sprops) 
+    for(auto sp : sprops) 
     {
-        if (!strcmp(sp->dev, dev) && (!sp->name[0] || !strcmp(sp->name, name)))
+        if ((sp->dev == dev) && (sp->name.empty() || sp->name == name))
             return (sp);
     }
 
-    return (NULL);
+    return nullptr;
 }
 
 /* put Msg mp on queue of each client interested in dev/name, except notme.
@@ -1502,7 +1502,7 @@ static void q2Clients(ClInfo *notme, int isblob, const char *dev, const char *na
                 Property *blobp = nullptr;
                 for (auto pp : cp->props)
                 {
-                    if (!strcmp(pp->dev, dev) && (!strcmp(pp->name, name)))
+                    if (pp->dev == dev && pp->name == name)
                     {
                         blobp = pp;
                         break;
@@ -1672,25 +1672,25 @@ void MsgQueue::writeToFd() {
         consumeHeadMsg();
 }
 
-int ClInfo::findDevice(const char *dev, const char *name) const
+int ClInfo::findDevice(const std::string & dev, const std::string & name) const
 {
-    if (allprops >= 1 || !dev[0])
+    if (allprops >= 1 || dev.empty())
         return (0);
     for (auto pp : props)
     {
-        if (!strcmp(pp->dev, dev) && (!pp->name[0] || !strcmp(pp->name, name)))
+        if ((pp->dev == dev) && (pp->name.empty() || (pp->name == name)))
             return (0);
     }
     return (-1);
 }
 
-void ClInfo::addDevice(const char *dev, const char *name, int isblob)
+void ClInfo::addDevice(const std::string & dev, const std::string & name, int isblob)
 {
     if (isblob)
     {
         for (auto pp : props)
         {
-            if (!strcmp(pp->dev, dev) && (name == NULL || !strcmp(pp->name, name)))
+            if (pp->dev == dev && pp->name == name)
                 return;
         }
     }
@@ -1699,20 +1699,8 @@ void ClInfo::addDevice(const char *dev, const char *name, int isblob)
         return;
 
     /* add */
-    Property *pp = new Property();
+    Property *pp = new Property(dev, name);
     props.push_back(pp);
-
-    /*ip = pp->dev;
-    strncpy (ip, dev, MAXINDIDEVICE-1);
-    ip[MAXINDIDEVICE-1] = '\0';
-
-    ip = pp->name;
-    strncpy (ip, name, MAXINDINAME-1);
-        ip[MAXINDINAME-1] = '\0';*/
-
-    strncpy(pp->dev, dev, MAXINDIDEVICE);
-    strncpy(pp->name, name, MAXINDINAME);
-    pp->blob = B_NEVER;
 }
 
 
@@ -1730,10 +1718,10 @@ static void crackBLOB(const char *enableBLOB, BLOBHandling *bp)
 }
 
 /* Update the client property BLOB handling policy */
-static void crackBLOBHandling(const char *dev, const char *name, const char *enableBLOB, ClInfo *cp)
+static void crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB, ClInfo *cp)
 {
     /* If we have EnableBLOB with property name, we add it to Client device list */
-    if (name[0])
+    if (!name.empty())
         cp->addDevice(dev, name, 1);
     else
         /* Otherwise, we set the whole client blob handling to what's passed (enableBLOB) */
@@ -1743,9 +1731,9 @@ static void crackBLOBHandling(const char *dev, const char *name, const char *ena
        and if the request was for a specific property, then we apply the policy to it */
     for (auto pp : cp->props)
     {
-        if (!name[0])
+        if (name.empty())
             crackBLOB(enableBLOB, &pp->blob);
-        else if (!strcmp(pp->dev, dev) && (!strcmp(pp->name, name)))
+        else if (pp->dev == dev && pp->name == name)
         {
             crackBLOB(enableBLOB, &pp->blob);
             return;
@@ -2168,7 +2156,7 @@ void MsgQueue::readFromFd()
         if (nr < 0)
             log(fmt("read: %s\n", strerror(errno)));
         else if (verbose > 0)
-            log(fmt("read EOF\n", indi_tstamp(NULL)));
+            log(fmt("read EOF\n"));
         close();
         return;
     }
