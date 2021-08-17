@@ -1444,12 +1444,12 @@ void DvrInfo::close()
     } else {
         if (restarts >= maxrestarts) {
             log(fmt("Terminated after #%d restarts.\n", restarts));
-
             terminate = true;
         }
         else
         {
             log(fmt("restart #%d\n", ++restarts));
+            terminate = false;
         }
     }
 
