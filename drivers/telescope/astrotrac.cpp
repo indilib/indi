@@ -282,7 +282,8 @@ bool AstroTrac::setVelocity(INDI_EQ_AXIS axis, double value)
 {
     char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
 
-    snprintf(command, DRIVER_LEN, "<%dve%f>", axis + 1, value);
+    // Reverse value depending on hemisphere
+    snprintf(command, DRIVER_LEN, "<%dve%f>", axis + 1, value  * (m_Location.latitude >= 0 ? 1 : -1));
     if (sendCommand(command, response))
         return response[4] == '#';
 
@@ -808,7 +809,7 @@ bool AstroTrac::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     if (command == MOTION_START)
     {
         double velocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
-                          * (dir == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+                          * (dir == DIRECTION_NORTH ? 1 : -1);
         setVelocity(AXIS_DE,  velocity);
     }
     else
@@ -834,7 +835,7 @@ bool AstroTrac::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     if (command == MOTION_START)
     {
         double velocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
-                          * (dir == DIRECTION_WEST ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+                          * (dir == DIRECTION_WEST ? 1 : -1);
         setVelocity(AXIS_RA,  velocity);
     }
     else
