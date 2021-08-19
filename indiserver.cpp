@@ -77,10 +77,6 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 
-extern "C" { 
-#include <ev.h>
-}
-
 #include <ev++.h>
 
 #define INDIPORT      7624    /* default TCP/IP port to listen */
