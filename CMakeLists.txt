@@ -425,6 +425,7 @@ set(fpack_C_SRC
 
 SET(indidriver_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/indidriverio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
