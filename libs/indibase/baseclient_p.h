@@ -87,6 +87,7 @@ class BaseClientPrivate
         SOCKET sockfd;
 #else
         int sockfd {-1};
+        bool unixSocket {false};
         int receiveFd {-1};
         int sendFd {-1};
 #endif

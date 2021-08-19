@@ -52,6 +52,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netinet/in.h>
 #include <signal.h>
 #define net_read read
@@ -120,6 +121,11 @@ void BaseClientPrivate::clear()
     blobModes.clear();
 }
 
+// Using this prefix for name allow specifying the unix socket path
+static const char * unixDomainPrefix = "localhost:";
+
+static const char * unixDefaultPath = "/tmp/indiserver";
+
 bool BaseClientPrivate::connect()
 {
     {
@@ -142,41 +148,88 @@ bool BaseClientPrivate::connect()
         }
 #endif
 
+        struct sockaddr_un serv_addr_un;
+        struct sockaddr_in serv_addr_in;
+        const struct sockaddr *sockaddr;
+        socklen_t addrlen;
+
         struct timeval ts;
         ts.tv_sec  = timeout_sec;
         ts.tv_usec = timeout_us;
 
-        struct sockaddr_in serv_addr;
-        struct hostent *hp;
-        int ret = 0;
+        int ret;
 
-        /* lookup host address */
-        hp = gethostbyname(cServer.c_str());
-        if (!hp)
-        {
-            perror("gethostbyname");
-            return false;
+        // Special handling for localhost: addresses
+        // pos=0 limits the search to the prefix
+        unixSocket = cServer.rfind(unixDomainPrefix, 0) == 0;
+        std::string unixAddr;
+        if (unixSocket) {
+            unixAddr = cServer.substr(strlen(unixDomainPrefix));
         }
 
-        /* create a socket to the INDI server */
-        (void)memset((char *)&serv_addr, 0, sizeof(serv_addr));
-        serv_addr.sin_family      = AF_INET;
-        serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-        serv_addr.sin_port        = htons(cPort);
-#ifdef _WINDOWS
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
-        {
-            IDLog("Socket error: %d\n", WSAGetLastError());
-            WSACleanup();
-            return false;
-        }
-#else
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        {
-            perror("socket");
-            return false;
+#ifndef _WINDOWS
+        // System with unix support automatically connect over unix domain
+        if ((!unixSocket) && (cServer == "localhost")) {
+            unixSocket = true;
         }
 #endif
+
+        if (unixSocket) {
+#ifndef _WINDOWS
+            if (unixAddr.empty()) {
+                unixAddr = unixDefaultPath;
+            }
+
+            memset(&serv_addr_un, 0, sizeof(serv_addr_un));
+            serv_addr_un.sun_family = AF_UNIX;
+            strncpy(serv_addr_un.sun_path, unixAddr.c_str(), sizeof(serv_addr_un.sun_path));
+            sockaddr = (struct sockaddr *)&serv_addr_un;
+            addrlen = sizeof(serv_addr_un);
+
+            if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
+            {
+                perror("socket");
+                return false;
+            }
+
+#else
+            IDLog("local domain not supported on windows");
+            return false;
+#endif
+        } else {
+            struct hostent *hp;
+
+            /* lookup host address */
+            hp = gethostbyname(cServer.c_str());
+            if (!hp)
+            {
+                perror("gethostbyname");
+                return false;
+            }
+
+            /* create a socket to the INDI server */
+            (void)memset((char *)&serv_addr_in, 0, sizeof(serv_addr_in));
+            serv_addr_in.sin_family      = AF_INET;
+            serv_addr_in.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+            serv_addr_in.sin_port        = htons(cPort);
+
+            sockaddr = (struct sockaddr *)&serv_addr_in;
+            addrlen = sizeof(serv_addr_in);
+#ifdef _WINDOWS
+            if ((sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
+            {
+                IDLog("Socket error: %d\n", WSAGetLastError());
+                WSACleanup();
+                return false;
+            }
+#else
+            if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+            {
+                perror("socket");
+                return false;
+            }
+#endif
+        }
 
         /* set the socket in non-blocking */
         //set socket nonblocking flag
@@ -208,7 +261,7 @@ bool BaseClientPrivate::connect()
         wset = rset; //structure assignment okok
 
         /* connect */
-        if ((ret = ::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
+        if ((ret = ::connect(sockfd, sockaddr, addrlen)) < 0)
         {
             if (errno != EINPROGRESS)
             {

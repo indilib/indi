@@ -666,7 +666,7 @@ int main(int ac, char *av[])
     (new TcpServer(port))->listen();
 
     /* create a new unix server */
-    (new UnixServer("/tmp/indi-server"))->listen();
+    (new UnixServer("/tmp/indiserver"))->listen();
 
     /* Load up FIFO, if available */
     if (fifo) fifo->listen();
