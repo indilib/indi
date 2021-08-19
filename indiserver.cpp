@@ -76,6 +76,7 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 
 #include <ev++.h>
 
@@ -506,6 +507,24 @@ public:
     void listen();
 };
 
+class UnixServer {
+    std::string path;
+    int sfd = -1;
+    ev::io sfdev;
+
+    void accept();
+    void ioCb(ev::io & watcher, int revents);
+
+    virtual void log(const std::string & log) const;
+public:
+    UnixServer(const std::string & path);
+
+    /* create the public INDI Driver endpoint over UNIX (local) domain.
+     * exit on failure
+     */
+    void listen();
+};
+
 
 static void log(const std::string & log);
 /* Turn a printf format into std::string */
@@ -645,6 +664,9 @@ int main(int ac, char *av[])
 
     /* announce we are online */
     (new TcpServer(port))->listen();
+
+    /* create a new unix server */
+    (new UnixServer("/tmp/indi-server"))->listen();
 
     /* Load up FIFO, if available */
     if (fifo) fifo->listen();
@@ -933,6 +955,110 @@ int RemoteDvrInfo::openINDIServer()
 
     /* ok */
     return (sockfd);
+}
+
+UnixServer::UnixServer(const std::string & path): path(path)
+{
+    sfdev.set<UnixServer, &UnixServer::ioCb>(this);
+}
+
+void UnixServer::log(const std::string & str) const {
+    std::string logLine = "Local server: ";
+    logLine += str;
+    ::log(logLine);
+}
+
+void UnixServer::ioCb(ev::io &, int revents)
+{
+    if (revents & EV_ERROR) {
+        log("Error on unix socket\n");
+        Bye();
+    }
+    if (revents & EV_READ) {
+        accept();
+    }
+}
+
+void UnixServer::listen()
+{
+    struct sockaddr_un serv_socket;
+
+    /* make socket endpoint */
+    if ((sfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
+    {
+        log(fmt("socket: %s\n", strerror(errno)));
+        Bye();
+    }
+
+    /* bind to given port for any IP address */
+    memset(&serv_socket, 0, sizeof(serv_socket));
+    serv_socket.sun_family = AF_UNIX;
+    strncpy(serv_socket.sun_path, path.c_str(), sizeof(serv_socket.sun_path));
+
+    int reuse = 1;
+    if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+    {
+        log(fmt("setsockopt: %s\n", strerror(errno)));
+        Bye();
+    }
+    if (bind(sfd, (struct sockaddr *)&serv_socket, sizeof(serv_socket)) < 0)
+    {
+        log(fmt("bind: %s\n", strerror(errno)));
+        Bye();
+    }
+
+    /* willing to accept connections with a backlog of 5 pending */
+    if (::listen(sfd, 5) < 0)
+    {
+        log(fmt("listen: %s\n", strerror(errno)));
+        Bye();
+    }
+
+    fcntl(sfd, F_SETFL, fcntl(sfd, F_GETFL, 0) | O_NONBLOCK);
+    sfdev.start(sfd, EV_READ);
+
+    /* ok */
+    if (verbose > 0)
+        log(fmt("listening as localhost:%s\n", path.c_str()));
+}
+
+void UnixServer::accept()
+{
+    int cli_fd;
+
+    /* get a private connection to new client */
+    cli_fd  = ::accept(sfd, 0, 0);
+    if (cli_fd < 0)
+    {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) return;
+
+        log(fmt("accept: %s\n", strerror(errno)));
+        Bye();
+    }
+
+    struct ucred ucred;
+
+    socklen_t len = sizeof(struct ucred);
+
+    if (getsockopt(cli_fd, SOL_SOCKET, SO_PEERCRED, &ucred, &len) == -1) {
+        log(fmt("getsockopt failed: %s\n", strerror(errno)));
+        Bye();
+    }
+
+    ClInfo * cp = new ClInfo();
+
+    /* rig up new clinfo entry */
+    cp->setFds(cli_fd, cli_fd);
+
+    if (verbose > 0)
+    {
+        cp->log(fmt("new arrival from local pid %ld (user: %ld:%ld) - welcome!\n", (long)ucred.pid, (long)ucred.uid, (long)ucred.gid));
+    }
+
+#ifdef OSX_EMBEDED_MODE
+    fprintf(stderr, "CLIENTS %d\n", clients.size());
+    fflush(stderr);
+#endif
 }
 
 TcpServer::TcpServer(int port): port(port)
