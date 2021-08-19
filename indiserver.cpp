@@ -77,6 +77,9 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#ifdef MSG_ERRQUEUE
+#include <linux/errqueue.h>
+#endif
 
 #include <ev++.h>
 
@@ -549,6 +552,8 @@ static char *indi_tstamp(char *s);
 static void logDMsg(XMLEle *root, const char *dev);
 static void Bye(void);
 
+static int readFdError(int fd);                       /* Read a pending error condition on the given fd. Return errno value or 0 if none */
+
 int main(int ac, char *av[])
 {
     /* log startup */
@@ -983,8 +988,11 @@ void UnixServer::log(const std::string & str) const {
 void UnixServer::ioCb(ev::io &, int revents)
 {
     if (revents & EV_ERROR) {
-        log("Error on unix socket\n");
-        Bye();
+        int sockErrno = readFdError(this->sfd);
+        if (sockErrno) {
+            log(fmt("Error on unix socket: %s\n", strerror(sockErrno)));
+            Bye();
+        }
     }
     if (revents & EV_READ) {
         accept();
@@ -1081,8 +1089,11 @@ TcpServer::TcpServer(int port): port(port)
 void TcpServer::ioCb(ev::io &, int revents)
 {
     if (revents & EV_ERROR) {
-        log("Error on socket\n");
-        Bye();        
+        int sockErrno = readFdError(this->sfd);
+        if (sockErrno) {
+            log(fmt("Error on tcp server socket: %s\n", strerror(sockErrno)));
+            Bye();
+        }
     }
     if (revents & EV_READ) {
         accept();
@@ -1403,9 +1414,12 @@ void Fifo::read(void)
 void Fifo::ioCb(ev::io &, int revents)
 {
     if (EV_ERROR & revents) {
-        log("got invalid event on fifo");
-        close();
-        open();
+        int sockErrno = readFdError(this->fd);
+        if (sockErrno) {
+            log(fmt("Error on fifo: %s\n", strerror(sockErrno)));
+            close();
+            open();
+        }
     }
     else if (revents & EV_READ) {
         read();
@@ -2127,8 +2141,11 @@ void LocalDvrInfo::closePid()
 void LocalDvrInfo::onEfdEvent(ev::io &, int revents)
 {
     if (EV_ERROR & revents) {
-        log("got invalid event on stderr");
-        closeEfd();
+        int sockErrno = readFdError(this->efd);
+        if (sockErrno) {
+            log(fmt("Error on stderr: %s\n", strerror(sockErrno)));
+            closeEfd();
+        }
         return;
     }
 
@@ -2353,15 +2370,22 @@ unsigned long MsgQueue::msgQSize() const {
 void MsgQueue::ioCb(ev::io &, int revents)
 {
     if (EV_ERROR & revents) {
-        log("got invalid event");
-        close();
-        return;
+        int sockErrno = readFdError(this->rFd);
+        if ((!sockErrno) && this->wFd != this->rFd) {
+            sockErrno = readFdError(this->wFd);
+        }
+
+        if (sockErrno) {
+            log(fmt("Communication error: %s\n", strerror(sockErrno)));
+            close();
+            return;
+        }
     }
 
-    if (revents & EV_READ) 
+    if (revents & EV_READ)
         readFromFd();
 
-    if (revents & EV_WRITE) 
+    if (revents & EV_WRITE)
         writeToFd();
 }
 
@@ -2424,6 +2448,44 @@ void MsgQueue::readFromFd()
 static void log(const std::string & log) {
     fprintf(stderr, "%s: ", indi_tstamp(NULL));
     fprintf(stderr, "%s", log.c_str());
+}
+
+static int readFdError(int fd) {
+#ifdef MSG_ERRQUEUE
+	char rcvbuf[128];  /* Buffer for normal data (not expected here...) */
+    char cbuf[512];    /* Buffer for ancillary data (errors) */
+    struct iovec  iov;
+	struct msghdr msg;
+
+    iov.iov_base = &rcvbuf;
+	iov.iov_len = sizeof(rcvbuf);
+
+	msg.msg_name = nullptr;
+	msg.msg_namelen = 0;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+	msg.msg_flags = 0;
+	msg.msg_control = cbuf;
+	msg.msg_controllen = sizeof(cbuf);
+
+    int recv_bytes = recvmsg(fd, &msg, MSG_ERRQUEUE|MSG_DONTWAIT);
+    if (recv_bytes == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) return 0;
+        return errno;
+    }
+
+    /* Receive auxiliary data in msgh */
+    for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+        fprintf(stderr, "cmsg_len=%lu, cmsg_level=%u, cmsg_type=%u\n", cmsg->cmsg_len, cmsg->cmsg_level, cmsg->cmsg_type);
+        // FIXME : enough for unix sockets ?
+        if (cmsg->cmsg_level == SOL_IP && cmsg->cmsg_type == IP_RECVERR) {
+            return ((struct sock_extended_err *)CMSG_DATA(cmsg))->ee_errno;
+        }
+    }
+#endif
+
+    // Default to EIO as a generic error path
+    return EIO;
 }
 
 static std::string fmt(const char *fmt, ...)
