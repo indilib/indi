@@ -81,6 +81,7 @@
 #include <ev++.h>
 
 #define INDIPORT      7624    /* default TCP/IP port to listen */
+#define INDIUNIXSOCK "/tmp/indiserver" /* default unix socket path (local connections) */
 #define MAXSBUF       512
 #define MAXRBUF       49152 /* max read buffering here */
 #define MAXWSIZ       49152 /* max bytes/write */
@@ -534,6 +535,7 @@ static char *indi_tstamp(char *s);
 
 static const char *me;                                 /* our name */
 static int port = INDIPORT;                            /* public INDI port */
+static std::string unixSocketPath = INDIUNIXSOCK;
 static int verbose;                                    /* chattiness */
 static char *ldir;                                     /* where to log driver messages */
 static unsigned int maxqsiz  = (DEFMAXQSIZ * 1024 * 1024); /* kill if these bytes behind */
@@ -612,6 +614,15 @@ int main(int ac, char *av[])
                     maxstreamsiz = 1024 * 1024 * atoi(*++av);
                     ac--;
                     break;
+                case 'u':
+                    if (ac < 2)
+                    {
+                        fprintf(stderr, "-f requires local socket path\n");
+                        usage();
+                    }
+                    unixSocketPath = *++av;
+                    ac--;
+                    break;
                 case 'f':
                     if (ac < 2)
                     {
@@ -666,7 +677,7 @@ int main(int ac, char *av[])
     (new TcpServer(port))->listen();
 
     /* create a new unix server */
-    (new UnixServer("/tmp/indiserver"))->listen();
+    (new UnixServer(unixSocketPath))->listen();
 
     /* Load up FIFO, if available */
     if (fifo) fifo->listen();
@@ -704,6 +715,7 @@ static void usage(void)
     fprintf(stderr,
             " -d m     : drop streaming blobs if client gets more than this many MB behind, default %d. 0 to disable\n",
             DEFMAXSSIZ);
+    fprintf(stderr, " -u path  : Path for the local connection socket, default %s\n", INDIUNIXSOCK);
     fprintf(stderr, " -p p     : alternate IP port, default %d\n", INDIPORT);
     fprintf(stderr, " -r r     : maximum driver restarts on error, default %d\n", DEFMAXRESTART);
     fprintf(stderr, " -f path  : Path to fifo for dynamic startup and shutdown of drivers.\n");
