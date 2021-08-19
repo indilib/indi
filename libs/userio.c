@@ -33,6 +33,7 @@ static int s_file_printf(void *user, const char * format, va_list arg)
 static const struct userio s_userio_file = {
     .write = s_file_write,
     .vprintf = s_file_printf,
+    .joinbuff = NULL,
 };
 
 const struct userio *userio_file()

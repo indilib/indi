@@ -1,12 +1,14 @@
 
+/* A driverio struct is valid only for sending one xml message */
 typedef struct driverio{
     struct userio userio;
     void * user;
-    int * fds;
-    int fdCount;
+    void ** joins;
+    size_t * joinSizes;
+    int joinCount;
     char * outBuff;
     unsigned int outPos;
 } driverio;
 
-void driverio_init(struct driverio * dio);
-void driverio_finish();
+void driverio_init(driverio * dio);
+void driverio_finish(driverio * dio);

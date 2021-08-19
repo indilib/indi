@@ -848,6 +848,33 @@ extern const char *permStr(IPerm p);
 
 extern void xmlv1();
 
+
+/** \brief Allocate a buffer suitable for fast exchange over local links. Warning : the buffer will be sealed (readonly) once exchanged.
+    \param size_t size of the memory area to allocate
+ */
+extern void * IDSharedBlobAlloc(size_t size);
+
+/** \brief Adjust the size of a buffer obtained using IDSharedBlobAlloc.
+    \param size_t size of the memory area to allocate
+ */
+extern void * IDSharedBlobRealloc(void * ptr, size_t size);
+
+/** \brief Free a buffer allocated using IDSharedBlobAlloc.
+    \param size_t size of the memory area to allocate
+ */
+extern void IDSharedBlobFree(void * ptr);
+
+/** \brief Return the filedescriptor backing up the given shared buffer.
+    \return the filedescriptor or -1 if not a shared buffer pointer
+ */
+extern int IDSharedBlobGetFd(void * ptr);
+
+/** \brief Seal (make readonly) a buffer allocated using IDSharedBlobAlloc. This is automatic when IDNewBlob
+    \param size_t size of the memory area to allocate
+ */
+extern void IDSharedBlobSeal(void * ptr);
+
+
 #ifdef __cplusplus
 }
 #endif

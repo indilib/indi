@@ -3,6 +3,9 @@
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <errno.h>
 
 #include "indidriver.h"
 #include "userio.h"
@@ -11,6 +14,8 @@
 
 /* Buffer size. Must be ^ 2 */
 #define OUTPUTBUFF_ALLOC 4096
+
+#define MAXFD_PER_MESSAGE 16
 
 /* Return the buffer size required for storage (rounded to next OUTPUTBUFF_ALLOC) */
 static unsigned int outBuffRequired(unsigned int storage) {
@@ -69,32 +74,137 @@ static int driverio_vprintf(void *user, const char * fmt, va_list arg)
     return size;
 }
 
+static void driverio_join(void * user, const char * xml, void * blob, size_t bloblen)
+{
+    driverio_write(user, xml, strlen(xml));
+    struct driverio * dio = (struct driverio*) user;
+    dio->joinCount++;
+    dio->joins = (void **)realloc((void*)dio->joins, sizeof(void*) * dio->joinCount);
+    dio->joinSizes = (size_t *)realloc((void*)dio->joinSizes, sizeof(size_t) * dio->joinCount);
+
+    dio->joins[dio->joinCount - 1] = blob;
+    dio->joinSizes[dio->joinCount - 1] = bloblen;
+}
+
+static int driverio_is_unix = -1;
+
+static int is_unix_io() {
+    if (driverio_is_unix != -1) {
+        return driverio_is_unix;
+    }
+    int domain;
+    socklen_t result = sizeof(domain);
+    if (getsockopt(1, SOL_SOCKET, SO_DOMAIN, (void*)&domain, &result) == -1) {
+        driverio_is_unix = 0;
+        return driverio_is_unix;
+    }
+
+    if (result != sizeof(domain) || domain != AF_UNIX) {
+        driverio_is_unix = 0;
+        return driverio_is_unix;
+    }
+    driverio_is_unix = 1;
+    return driverio_is_unix;
+}
+
 void driverio_init(driverio * dio)
 {
     dio->userio.vprintf = &driverio_vprintf;
     dio->userio.write = &driverio_write;
-    dio->userio.joinbuff = NULL;
+    // Support join only on local socket
+    dio->userio.joinbuff = is_unix_io() ? &driverio_join : NULL;
     dio->user = (void*)dio;
-    dio->fds = NULL;
-    dio->fdCount = 0;
+    dio->joins = NULL;
+    dio->joinSizes = NULL;
+    dio->joinCount = 0;
     dio->outBuff = NULL;
     dio->outPos = 0;
 }
 
 void driverio_finish(driverio * dio)
 {
-    if (dio->outPos) {
-        write(1, dio->outBuff, dio->outPos);
-    }
+    struct msghdr msgh;
+    struct iovec iov;
+    int cmsghdrlength;
+    struct cmsghdr * cmsgh;
 
-    for(int i = 0; i < dio->fdCount; ++i) {
-        close(dio->fds[i]);
+    if (dio->outPos) {
+        int ret = -1;
+        void ** temporaryBuffers;
+        if (dio->joinCount > 0) {
+            if (dio->joinCount > MAXFD_PER_MESSAGE) {
+                errno = EMSGSIZE;
+                perror("sendmsg");
+                exit(1);
+            }
+
+            cmsghdrlength = CMSG_SPACE((dio->joinCount * sizeof(int)));
+            cmsgh = (struct cmsghdr*)malloc(cmsghdrlength);
+            // FIXME: abort on alloc error here
+            temporaryBuffers = (void**)malloc(sizeof(void*)*dio->joinCount);
+
+            /* Write the fd as ancillary data */
+            cmsgh->cmsg_len = CMSG_LEN(sizeof(int));
+            cmsgh->cmsg_level = SOL_SOCKET;
+            cmsgh->cmsg_type = SCM_RIGHTS;
+            msgh.msg_control = cmsgh;
+            msgh.msg_controllen = cmsghdrlength;
+            for(int i = 0; i < dio->joinCount; ++i) {
+                void * blob = dio->joins[i];
+
+                int fd = IDSharedBlobGetFd(blob);
+                if (fd == -1) {
+                    // Can't avoid a copy here. Update the driver to change that
+                    temporaryBuffers[i] = IDSharedBlobAlloc(dio->joinSizes[i]);
+                    memcpy(temporaryBuffers[i], blob, dio->joinSizes[i]);
+                    fd = IDSharedBlobGetFd(temporaryBuffers[i]);
+                } else {
+                    temporaryBuffers[i] = NULL;
+                }
+
+                ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = fd;
+            }
+        } else {
+            cmsgh = NULL;
+            cmsghdrlength = 0;
+            msgh.msg_control = cmsgh;
+            msgh.msg_controllen = cmsghdrlength;
+        }
+
+        iov.iov_base = dio->outBuff;
+        iov.iov_len = dio->outPos;
+        msgh.msg_flags = 0;
+        msgh.msg_name = NULL;
+        msgh.msg_namelen = 0;
+        msgh.msg_iov = &iov;
+        msgh.msg_iovlen = 1;
+
+        ret = sendmsg(1, &msgh, 0);
+        if (ret == -1) {
+            perror("sendmsg");
+        }
+        if ((unsigned)ret != dio->outPos) {
+            fprintf(stderr, "short write");
+        }
+
+        if (dio->joinCount > 0) {
+            for(int i = 0; i < dio->joinCount; ++i) {
+                if (temporaryBuffers[i] != NULL) {
+                    IDSharedBlobFree(temporaryBuffers[i]);
+                }
+            }
+            free(cmsgh);
+            free(temporaryBuffers);
+        }
     }
 
     if (dio->outBuff != NULL) {
         free(dio->outBuff);
     }
-    if (dio->fds != NULL) {
-        free(dio->fds);
+    if (dio->joins != NULL) {
+        free(dio->joins);
+    }
+    if (dio->joinSizes != NULL) {
+        free(dio->joinSizes);
     }
 }
