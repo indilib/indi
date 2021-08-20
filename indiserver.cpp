@@ -1596,7 +1596,8 @@ void DvrInfo::close()
         }
         else
         {
-            log(fmt("restart #%d\n", ++restarts));
+            log(fmt("restart #%d\n", restarts));
+            ++restarts;
             terminate = false;
         }
     }
@@ -2068,7 +2069,9 @@ static void Bye()
     exit(1);
 }
 
-DvrInfo::DvrInfo() {
+DvrInfo::DvrInfo() :
+    restarts(0)
+{
     drivers.insert(this);
 }
 
