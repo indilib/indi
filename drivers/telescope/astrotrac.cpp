@@ -613,6 +613,7 @@ bool AstroTrac::ReadScopeStatus()
             // Parking
             else
             {
+                SetTrackEnabled(false);
                 SetParked(true);
             }
         }
