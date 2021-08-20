@@ -2078,7 +2078,9 @@ DvrInfo::DvrInfo() :
 DvrInfo::DvrInfo(const DvrInfo & model):
     name(model.name),
     restarts(model.restarts)
-{}
+{
+    drivers.insert(this);
+}
 
 DvrInfo::~DvrInfo() {
     drivers.erase(this);
@@ -2112,7 +2114,10 @@ LocalDvrInfo::LocalDvrInfo(const LocalDvrInfo & model):
     envConfig(model.envConfig),
     envSkel(model.envSkel),
     envPrefix(model.envPrefix)
-{}
+{
+    eio.set<LocalDvrInfo, &LocalDvrInfo::onEfdEvent>(this);
+    pidwatcher.set<LocalDvrInfo, &LocalDvrInfo::onPidEvent>(this);
+}
 
 LocalDvrInfo::~LocalDvrInfo() {
     closeEfd();
