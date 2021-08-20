@@ -6,16 +6,21 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include "indidriver.h"
 #include "userio.h"
 #include "indiuserio.h"
 #include "indidriverio.h"
 
+
+
 /* Buffer size. Must be ^ 2 */
 #define OUTPUTBUFF_ALLOC 4096
 
 #define MAXFD_PER_MESSAGE 16
+
+static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* Return the buffer size required for storage (rounded to next OUTPUTBUFF_ALLOC) */
 static unsigned int outBuffRequired(unsigned int storage) {
@@ -107,12 +112,11 @@ static int is_unix_io() {
     return driverio_is_unix;
 }
 
-void driverio_init(driverio * dio)
-{
+/* Unix io allow attaching buffer in ancillary data. */
+static void driverio_init_unix(driverio * dio) {
     dio->userio.vprintf = &driverio_vprintf;
     dio->userio.write = &driverio_write;
-    // Support join only on local socket
-    dio->userio.joinbuff = is_unix_io() ? &driverio_join : NULL;
+    dio->userio.joinbuff = &driverio_join;
     dio->user = (void*)dio;
     dio->joins = NULL;
     dio->joinSizes = NULL;
@@ -121,8 +125,7 @@ void driverio_init(driverio * dio)
     dio->outPos = 0;
 }
 
-void driverio_finish(driverio * dio)
-{
+static void driverio_finish_unix(driverio * dio) {
     struct msghdr msgh;
     struct iovec iov;
     int cmsghdrlength;
@@ -182,9 +185,8 @@ void driverio_finish(driverio * dio)
         ret = sendmsg(1, &msgh, 0);
         if (ret == -1) {
             perror("sendmsg");
-        }
-        if ((unsigned)ret != dio->outPos) {
-            fprintf(stderr, "short write");
+        } else if ((unsigned)ret != dio->outPos) {
+            fprintf(stderr, "short write\n");
         }
 
         if (dio->joinCount > 0) {
@@ -206,5 +208,34 @@ void driverio_finish(driverio * dio)
     }
     if (dio->joinSizes != NULL) {
         free(dio->joinSizes);
+    }
+}
+
+static void driverio_init_stdout(driverio * dio) {
+    dio->userio = *userio_file();
+    dio->user = stdout;
+    pthread_mutex_lock(&stdout_mutex);
+}
+
+static void driverio_finish_stdout(driverio * dio) {
+    fflush(stdout);
+    pthread_mutex_unlock(&stdout_mutex);
+}
+
+void driverio_init(driverio * dio)
+{
+    if (is_unix_io()) {
+        driverio_init_unix(dio);
+    } else {
+        driverio_init_stdout(dio);
+    }
+}
+
+void driverio_finish(driverio * dio)
+{
+    if (is_unix_io()) {
+        driverio_finish_unix(dio);
+    } else {
+        driverio_finish_stdout(dio);
     }
 }
