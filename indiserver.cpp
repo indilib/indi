@@ -1902,7 +1902,7 @@ void MsgQueue::writeToFd() {
     }
     else if (verbose > 1)
     {
-        log(fmt("sending %.50s\n", &mp->cp[nsent]));
+        log(fmt("sending %.*s\n", (int)nw, &mp->cp[nsent]));
     }
 
     /* update amount sent. when complete: free message if we are the last
