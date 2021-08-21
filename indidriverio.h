@@ -6,6 +6,7 @@ typedef struct driverio{
     void ** joins;
     size_t * joinSizes;
     int joinCount;
+    int locked;
     char * outBuff;
     unsigned int outPos;
 } driverio;

@@ -142,7 +142,7 @@ void IUUserIOBLOBContextOne(
             userio_xml_escape(io, user, format);
             userio_prints    (io, user, "'>\n");
             size_t written = 0;
-
+            // FIXME: this is not efficient. The CR/LF imply one more copy... Do we need them ?
             while ((int)written < l)
             {
                 size_t towrite = ((l - written) > 72) ? 72 : l - written;

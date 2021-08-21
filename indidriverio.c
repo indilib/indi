@@ -16,9 +16,14 @@
 
 
 /* Buffer size. Must be ^ 2 */
-#define OUTPUTBUFF_ALLOC 4096
+#define OUTPUTBUFF_ALLOC 32768
+
+/* Dump whole buffer when growing over this */
+#define OUTPUTBUFF_FLUSH_THRESOLD 65536
 
 #define MAXFD_PER_MESSAGE 16
+
+static void driverio_flush(driverio * dio, const void * additional, size_t add_size);
 
 static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -42,15 +47,19 @@ static void outBuffGrow(struct driverio * dio, int required) {
 static size_t driverio_write(void *user, const void * ptr, size_t count)
 {
     struct driverio * dio = (struct driverio*) user;
-    unsigned int allocated = outBuffAllocated(dio);
-    unsigned int required = outBuffRequired(dio->outPos + count);
-    if (required != allocated) {
-        outBuffGrow(dio, required);
+
+    if (dio->outPos + count > OUTPUTBUFF_FLUSH_THRESOLD) {
+        driverio_flush(dio, ptr, count);
+    } else {
+        unsigned int allocated = outBuffAllocated(dio);
+        unsigned int required = outBuffRequired(dio->outPos + count);
+        if (required != allocated) {
+            outBuffGrow(dio, required);
+        }
+        memcpy(dio->outBuff + dio->outPos, ptr, count);
+
+        dio->outPos += count;
     }
-    memcpy(dio->outBuff + dio->outPos, ptr, count);
-
-    dio->outPos += count;
-
     return count;
 }
 
@@ -81,7 +90,6 @@ static int driverio_vprintf(void *user, const char * fmt, va_list arg)
 
 static void driverio_join(void * user, const char * xml, void * blob, size_t bloblen)
 {
-    driverio_write(user, xml, strlen(xml));
     struct driverio * dio = (struct driverio*) user;
     dio->joinCount++;
     dio->joins = (void **)realloc((void*)dio->joins, sizeof(void*) * dio->joinCount);
@@ -89,7 +97,120 @@ static void driverio_join(void * user, const char * xml, void * blob, size_t blo
 
     dio->joins[dio->joinCount - 1] = blob;
     dio->joinSizes[dio->joinCount - 1] = bloblen;
+
+    driverio_write(user, xml, strlen(xml));
 }
+
+
+static void driverio_flush(driverio * dio, const void * additional, size_t add_size) {
+    struct msghdr msgh;
+    struct iovec iov[2];
+    int cmsghdrlength;
+    struct cmsghdr * cmsgh;
+
+    if (dio->outPos + add_size) {
+        int ret = -1;
+        void ** temporaryBuffers = NULL;
+        int fdCount = dio->joinCount;
+        if (fdCount > 0) {
+
+            if (dio->joinCount > MAXFD_PER_MESSAGE) {
+                errno = EMSGSIZE;
+                perror("sendmsg");
+                exit(1);
+            }
+
+            cmsghdrlength = CMSG_SPACE((fdCount * sizeof(int)));
+            cmsgh = (struct cmsghdr*)malloc(cmsghdrlength);
+            // FIXME: abort on alloc error here
+            temporaryBuffers = (void**)malloc(sizeof(void*)*fdCount);
+
+            /* Write the fd as ancillary data */
+            cmsgh->cmsg_len = CMSG_LEN(sizeof(int));
+            cmsgh->cmsg_level = SOL_SOCKET;
+            cmsgh->cmsg_type = SCM_RIGHTS;
+            msgh.msg_control = cmsgh;
+            msgh.msg_controllen = cmsghdrlength;
+            for(int i = 0; i < fdCount; ++i) {
+                void * blob = dio->joins[i];
+                size_t size = dio->joinSizes[i];
+
+                int fd = IDSharedBlobGetFd(blob);
+                if (fd == -1) {
+                    // Can't avoid a copy here. Update the driver to change that
+                    temporaryBuffers[i] = IDSharedBlobAlloc(size);
+                    memcpy(temporaryBuffers[i], blob, size);
+                    fd = IDSharedBlobGetFd(temporaryBuffers[i]);
+                } else {
+                    temporaryBuffers[i] = NULL;
+                }
+
+                ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = fd;
+            }
+        } else {
+            cmsgh = NULL;
+            cmsghdrlength = 0;
+            msgh.msg_control = cmsgh;
+            msgh.msg_controllen = cmsghdrlength;
+        }
+
+        iov[0].iov_base = dio->outBuff;
+        iov[0].iov_len = dio->outPos;
+        if (add_size) {
+            iov[1].iov_base = (void*)additional;
+            iov[1].iov_len = add_size;
+        }
+
+        msgh.msg_flags = 0;
+        msgh.msg_name = NULL;
+        msgh.msg_namelen = 0;
+        msgh.msg_iov = iov;
+        msgh.msg_iovlen = add_size ? 2 : 1;
+
+        if (!dio->locked) {
+            pthread_mutex_lock(&stdout_mutex);
+            dio->locked = 1;
+        }
+
+        ret = sendmsg(1, &msgh, 0);
+        if (ret == -1) {
+            perror("sendmsg");
+            // FIXME: exiting the driver seems abrupt. Is this the right thing to do ? what about cleanup ?
+            exit(1);
+        } else if ((unsigned)ret != dio->outPos + add_size) {
+            // This is not expected on blocking socket
+            fprintf(stderr, "short write\n");
+            exit(1);
+        }
+
+        if (fdCount > 0) {
+            for(int i = 0; i < fdCount; ++i) {
+                if (temporaryBuffers[i] != NULL) {
+                    IDSharedBlobFree(temporaryBuffers[i]);
+                }
+            }
+            free(cmsgh);
+            free(temporaryBuffers);
+        }
+    }
+
+    if (dio->joins != NULL) {
+        free(dio->joins);
+    }
+    dio->joins = NULL;
+
+    if (dio->joinSizes != NULL) {
+        free(dio->joinSizes);
+    }
+    dio->joinSizes = NULL;
+
+    if (dio->outBuff != NULL) {
+        free(dio->outBuff);
+    }
+    dio->outPos = 0;
+
+}
+
 
 static int driverio_is_unix = -1;
 
@@ -117,94 +238,17 @@ static void driverio_init_unix(driverio * dio) {
     dio->user = (void*)dio;
     dio->joins = NULL;
     dio->joinSizes = NULL;
+    dio->locked = 0;
     dio->joinCount = 0;
     dio->outBuff = NULL;
     dio->outPos = 0;
 }
 
 static void driverio_finish_unix(driverio * dio) {
-    struct msghdr msgh;
-    struct iovec iov;
-    int cmsghdrlength;
-    struct cmsghdr * cmsgh;
-
-    if (dio->outPos) {
-        int ret = -1;
-        void ** temporaryBuffers;
-        if (dio->joinCount > 0) {
-            if (dio->joinCount > MAXFD_PER_MESSAGE) {
-                errno = EMSGSIZE;
-                perror("sendmsg");
-                exit(1);
-            }
-
-            cmsghdrlength = CMSG_SPACE((dio->joinCount * sizeof(int)));
-            cmsgh = (struct cmsghdr*)malloc(cmsghdrlength);
-            // FIXME: abort on alloc error here
-            temporaryBuffers = (void**)malloc(sizeof(void*)*dio->joinCount);
-
-            /* Write the fd as ancillary data */
-            cmsgh->cmsg_len = CMSG_LEN(sizeof(int));
-            cmsgh->cmsg_level = SOL_SOCKET;
-            cmsgh->cmsg_type = SCM_RIGHTS;
-            msgh.msg_control = cmsgh;
-            msgh.msg_controllen = cmsghdrlength;
-            for(int i = 0; i < dio->joinCount; ++i) {
-                void * blob = dio->joins[i];
-
-                int fd = IDSharedBlobGetFd(blob);
-                if (fd == -1) {
-                    // Can't avoid a copy here. Update the driver to change that
-                    temporaryBuffers[i] = IDSharedBlobAlloc(dio->joinSizes[i]);
-                    memcpy(temporaryBuffers[i], blob, dio->joinSizes[i]);
-                    fd = IDSharedBlobGetFd(temporaryBuffers[i]);
-                } else {
-                    temporaryBuffers[i] = NULL;
-                }
-
-                ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = fd;
-            }
-        } else {
-            cmsgh = NULL;
-            cmsghdrlength = 0;
-            msgh.msg_control = cmsgh;
-            msgh.msg_controllen = cmsghdrlength;
-        }
-
-        iov.iov_base = dio->outBuff;
-        iov.iov_len = dio->outPos;
-        msgh.msg_flags = 0;
-        msgh.msg_name = NULL;
-        msgh.msg_namelen = 0;
-        msgh.msg_iov = &iov;
-        msgh.msg_iovlen = 1;
-
-        ret = sendmsg(1, &msgh, 0);
-        if (ret == -1) {
-            perror("sendmsg");
-        } else if ((unsigned)ret != dio->outPos) {
-            fprintf(stderr, "short write\n");
-        }
-
-        if (dio->joinCount > 0) {
-            for(int i = 0; i < dio->joinCount; ++i) {
-                if (temporaryBuffers[i] != NULL) {
-                    IDSharedBlobFree(temporaryBuffers[i]);
-                }
-            }
-            free(cmsgh);
-            free(temporaryBuffers);
-        }
-    }
-
-    if (dio->outBuff != NULL) {
-        free(dio->outBuff);
-    }
-    if (dio->joins != NULL) {
-        free(dio->joins);
-    }
-    if (dio->joinSizes != NULL) {
-        free(dio->joinSizes);
+    driverio_flush(dio, NULL, 0);
+    if (dio->locked) {
+        pthread_mutex_unlock(&stdout_mutex);
+        dio->locked = 0;
     }
 }
 
@@ -215,6 +259,7 @@ static void driverio_init_stdout(driverio * dio) {
 }
 
 static void driverio_finish_stdout(driverio * dio) {
+    (void)dio;
     fflush(stdout);
     pthread_mutex_unlock(&stdout_mutex);
 }
