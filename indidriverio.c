@@ -101,14 +101,11 @@ static int is_unix_io() {
     socklen_t result = sizeof(domain);
     if (getsockopt(1, SOL_SOCKET, SO_DOMAIN, (void*)&domain, &result) == -1) {
         driverio_is_unix = 0;
-        return driverio_is_unix;
-    }
-
-    if (result != sizeof(domain) || domain != AF_UNIX) {
+    } else if (result != sizeof(domain) || domain != AF_UNIX) {
         driverio_is_unix = 0;
-        return driverio_is_unix;
+    } else {
+        driverio_is_unix = 1;
     }
-    driverio_is_unix = 1;
     return driverio_is_unix;
 }
 

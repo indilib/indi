@@ -57,6 +57,7 @@
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "libs/lilxml.h"
+#include "base64.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -66,16 +67,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <poll.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/mman.h>
+#include <unistd.h>
 #include <sys/un.h>
 #ifdef MSG_ERRQUEUE
 #include <linux/errqueue.h>
@@ -92,7 +98,7 @@
 #define DEFMAXQSIZ    128   /* default max q behind, MB */
 #define DEFMAXSSIZ    5     /* default max stream behind, MB */
 #define DEFMAXRESTART 10    /* default max restarts */
-
+#define MAXFD_PER_MESSAGE 16 /* No more than 16 buffer attached to a message */
 #ifdef OSX_EMBEDED_MODE
 #define LOGNAME  "/Users/%s/Library/Logs/indiserver.log"
 #define FIFONAME "/tmp/indiserverFIFO"
@@ -220,16 +226,21 @@ public:
     int count;         /* number of consumers left */
     unsigned long cl;  /* content length */
     char *cp;          /* content: malloced */
+    std::vector<int> sharedBuffers; /* fds of shared buffer */
 
     Msg();
     ~Msg();
     void alloc(unsigned long cl);
+    bool initFrom(XMLEle * root, std::list<int> & incomingSharedBuffers);
 
     /* save str as content in mp. */
     void setFromStr(const char * str);
 
     /* print root as content in mp.*/
     void setFromXMLEle(XMLEle *root);
+
+    /* Create a new instance converted to base64 */
+    Msg * toBase64Encoding();
 };
 
 class MsgQueue: public Collectable {
@@ -240,8 +251,11 @@ class MsgQueue: public Collectable {
     void ioCb(ev::io &watcher, int revents);
 
     std::list<Msg*> msgq;           /* Msg queue */
+    std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
     unsigned int nsent; /* bytes of current Msg sent so far */
 
+    // Handle fifo or socket case
+    size_t doRead(char * buff, size_t len);
     void readFromFd();
 
     /* write the next chunk of the current message in the queue to the given
@@ -251,6 +265,7 @@ class MsgQueue: public Collectable {
     void writeToFd();
 
 protected:
+    bool useSharedBuffer;
     int getRFd() const { return rFd; }
     int getWFd() const { return wFd; }
 
@@ -259,17 +274,16 @@ protected:
 
     /* Close the connection. (May be restarted later depending on driver logic) */
     virtual void close() = 0;
-    /* Handle a message. will be freed by caller */
-    virtual void onMessage(XMLEle *root) = 0;
+    /* Handle a message. root will be freed by caller. fds of buffers will be closed, unless set to -1 */
+    virtual void onMessage(XMLEle *root, std::list<int> & sharedBuffers) = 0;
 
     /* convert the string value of enableBLOB to our B_ state value.
      * no change if unrecognized
      */
     static void crackBLOB(const char *enableBLOB, BLOBHandling *bp);
 
+    MsgQueue(bool useSharedBuffer);
 public:
-
-    MsgQueue();
     virtual ~MsgQueue();
 
     void pushMsg(Msg * msg);
@@ -330,7 +344,7 @@ protected:
     /* send message to each appropriate driver.
      * also send all newXXX() to all other interested clients.
      */
-    virtual void onMessage(XMLEle *root);
+    virtual void onMessage(XMLEle *root, std::list<int> & sharedBuffers);
 
     /* Update the client property BLOB handling policy */
     void crackBLOBHandling(const std::string & dev, const std::string & name, const char *enableBLOB);
@@ -343,7 +357,7 @@ public:
     int allprops = 0;               /* saw getProperties w/o device */
     BLOBHandling blob = B_NEVER;    /* when to send setBLOBs */
 
-    ClInfo();
+    ClInfo(bool useSharedBuffer);
     virtual ~ClInfo();
 
     /* return 0 if cp may be interested in dev/name else -1
@@ -385,7 +399,7 @@ public:
 protected:
     /* send message to each interested client
      */
-    virtual void onMessage(XMLEle *root);
+    virtual void onMessage(XMLEle *root, std::list<int> & sharedBuffers);
 
     /* Construct an instance that will start the same driver */
     DvrInfo(const DvrInfo & model);
@@ -398,7 +412,7 @@ public:
     int restarts;                   /* times process has been restarted */
     bool restart = true;            /* Restart on shutdown */
 
-    DvrInfo();
+    DvrInfo(bool useSharedBuffer);
     virtual ~DvrInfo();
 
     bool isHandlingDevice(const std::string & dev) const;
@@ -545,6 +559,8 @@ static unsigned int maxqsiz  = (DEFMAXQSIZ * 1024 * 1024); /* kill if these byte
 static unsigned int maxstreamsiz  = (DEFMAXSSIZ * 1024 * 1024); /* drop blobs if these bytes behind while streaming*/
 static int maxrestarts   = DEFMAXRESTART;
 
+static std::vector<XMLEle *> findBlobElements(XMLEle * root);
+
 static void logStartup(int ac, char *av[]);
 static void usage(void);
 static void noSIGPIPE(void);
@@ -553,6 +569,9 @@ static void logDMsg(XMLEle *root, const char *dev);
 static void Bye(void);
 
 static int readFdError(int fd);                       /* Read a pending error condition on the given fd. Return errno value or 0 if none */
+
+static void * attachSharedBuffer(int fd, size_t & size);
+static void dettachSharedBuffer(int fd, void * ptr, size_t size);
 
 int main(int ac, char *av[])
 {
@@ -750,6 +769,7 @@ void LocalDvrInfo::start()
     Msg *mp;
     char buf[32];
     int rp[2], wp[2], ep[2];
+    int ux[2];
     int pid;
 
 #ifdef OSX_EMBEDED_MODE
@@ -758,15 +778,23 @@ void LocalDvrInfo::start()
 #endif
 
     /* build three pipes: r, w and error*/
-    if (pipe(rp) < 0)
-    {
-        log(fmt("read pipe: %s\n", strerror(errno)));
-        Bye();
-    }
-    if (pipe(wp) < 0)
-    {
-        log(fmt("write pipe: %s\n", strerror(errno)));
-        Bye();
+    if (useSharedBuffer) {
+        // FIXME: lots of FD are opened by indiserver. FD_CLOEXEC is a must + check other fds
+        if (socketpair(AF_UNIX, SOCK_STREAM, 0, ux) == -1) {
+            log(fmt("socketpair: %s\n", strerror(errno)));
+            Bye();
+        }
+    } else {
+        if (pipe(rp) < 0)
+        {
+            log(fmt("read pipe: %s\n", strerror(errno)));
+            Bye();
+        }
+        if (pipe(wp) < 0)
+        {
+            log(fmt("write pipe: %s\n", strerror(errno)));
+            Bye();
+        }
     }
     if (pipe(ep) < 0)
     {
@@ -787,8 +815,16 @@ void LocalDvrInfo::start()
         int fd;
 
         /* rig up pipes */
-        dup2(wp[0], 0); /* driver stdin reads from wp[0] */
-        dup2(rp[1], 1); /* driver stdout writes to rp[1] */
+        if (useSharedBuffer) {
+            // For unix socket, the same socket end can be used for both read & write
+            dup2(ux[0], 0); /* driver stdin reads from ux[0] */
+            dup2(ux[0], 1); /* driver stdout writes to ux[0] */
+            ::close(ux[0]);
+            ::close(ux[1]);
+        } else {
+            dup2(wp[0], 0); /* driver stdin reads from wp[0] */
+            dup2(rp[1], 1); /* driver stdout writes to rp[1] */
+        }
         dup2(ep[1], 2); /* driver stderr writes to e[]1] */
         for (fd = 3; fd < 100; fd++)
             (void)::close(fd);
@@ -845,13 +881,22 @@ void LocalDvrInfo::start()
         _exit(1); /* parent will notice EOF shortly */
     }
 
-    /* don't need child's side of pipes */
-    ::close(wp[0]);
-    ::close(rp[1]);
-    ::close(ep[1]);
+    if (useSharedBuffer) {
+        /* don't need child's other socket end */
+        ::close(ux[0]);
 
-    /* record pid, io channels, init lp and snoop list */
-    setFds(rp[0], wp[1]);
+        /* record pid, io channels, init lp and snoop list */
+        setFds(ux[1], ux[1]);
+    } else {
+        /* don't need child's side of pipes */
+        ::close(wp[0]);
+        ::close(rp[1]);
+
+        /* record pid, io channels, init lp and snoop list */
+        setFds(rp[0], wp[1]);
+    }
+
+    ::close(ep[1]);
 
     // Watch pid
     this->pid = pid;
@@ -866,13 +911,15 @@ void LocalDvrInfo::start()
     /* first message primes driver to report its properties -- dev known
      * if restarting
      */
+    if (verbose > 0)
+        log(fmt("pid=%d rfd=%d wfd=%d efd=%d\n", pid, rp[0], wp[1], ep[0]));
+
     mp = new Msg();
     snprintf(buf, sizeof(buf), "<getProperties version='%g'/>\n", INDIV);
     mp->setFromStr(buf);
+
+    // pushmsg can kill mp. do at end
     pushMsg(mp);
-    
-    if (verbose > 0)
-        log(fmt("pid=%d rfd=%d wfd=%d efd=%d\n", pid, rp[0], wp[1], ep[0]));
 }
 
 void RemoteDvrInfo::extractRemoteId(const std::string & name, std::string & o_host, int & o_port, std::string & o_dev) const
@@ -914,6 +961,9 @@ void RemoteDvrInfo::start()
 
     this->setFds(sockfd, sockfd);
 
+    if (verbose > 0)
+        log(fmt("socket=%d\n", sockfd));
+
     /* N.B. storing name now is key to limiting outbound traffic to this
      * dev.
      */
@@ -932,10 +982,9 @@ void RemoteDvrInfo::start()
         // among properties.
         sprintf(buf, "<getProperties device='*' version='%g'/>\n", INDIV);
     mp->setFromStr(buf);
-    pushMsg(mp);
 
-    if (verbose > 0)
-        log(fmt("socket=%d\n", sockfd));
+    // pushmsg can kill this. do at end
+    pushMsg(mp);
 }
 
 int RemoteDvrInfo::openINDIServer()
@@ -1065,7 +1114,7 @@ void UnixServer::accept()
         Bye();
     }
 
-    ClInfo * cp = new ClInfo();
+    ClInfo * cp = new ClInfo(true);
 
     /* rig up new clinfo entry */
     cp->setFds(cli_fd, cli_fd);
@@ -1164,7 +1213,7 @@ void TcpServer::accept()
         Bye();
     }
 
-    ClInfo * cp = new ClInfo();
+    ClInfo * cp = new ClInfo(false);
 
     /* rig up new clinfo entry */
     cp->setFds(cli_fd, cli_fd);
@@ -1426,7 +1475,7 @@ void Fifo::ioCb(ev::io &, int revents)
     }
 }
 
-void ClInfo::onMessage(XMLEle * root)
+void ClInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
 {
     char *roottag    = tagXMLEle(root);
 
@@ -1456,6 +1505,14 @@ void ClInfo::onMessage(XMLEle * root)
 
     /* build a new message -- set content iff anyone cares */
     Msg* mp = new Msg();
+    // FIXME: this should be made only if message is of interest
+    // FIXME: base64 convertion must occur async in separate thread(s)
+    mp->setFromXMLEle(root);
+    if (!mp->initFrom(root, sharedBuffers)) {
+        delete(mp);
+        close();
+        return;
+    }
 
     /* send message to driver(s) responsible for dev */
     DvrInfo::q2RDrivers(dev, mp, root);
@@ -1474,13 +1531,11 @@ void ClInfo::onMessage(XMLEle * root)
     }
 
     /* set message content if anyone cares else forget it */
-    if (mp->count > 0)
-        mp->setFromXMLEle(root);
-    else
+    if (mp->count == 0)
         delete mp;
 }
 
-void DvrInfo::onMessage(XMLEle * root)
+void DvrInfo::onMessage(XMLEle * root, std::list<int> & sharedBuffers)
 {
     char *roottag    = tagXMLEle(root);
     const char *dev  = findXMLAttValu(root, "device");
@@ -1539,6 +1594,14 @@ void DvrInfo::onMessage(XMLEle * root)
 
     /* build a new message -- set content iff anyone cares */
     Msg * mp = new Msg();
+    // FIXME: this should be made only if message is of interest
+    // FIXME: base64 convertion must occur async in separate thread(s)
+    mp->setFromXMLEle(root);
+    if (!mp->initFrom(root, sharedBuffers)) {
+        delete(mp);
+        close();
+        return;
+    }
 
     /* send to interested clients */
     ClInfo::q2Clients(NULL, isblob, dev, name, mp, root);
@@ -1547,9 +1610,7 @@ void DvrInfo::onMessage(XMLEle * root)
     DvrInfo::q2SDrivers(this, isblob, dev, name, mp, root);
 
     /* set message content if anyone cares else forget it */
-    if (mp->count > 0)
-        mp->setFromXMLEle(root);
-    else
+    if (mp->count == 0)
         delete mp;
 }
 
@@ -1578,7 +1639,7 @@ void DvrInfo::close()
         prXMLEle(stderr, root, 0);
         Msg *mp = new Msg();
 
-        ClInfo::q2Clients(NULL, 0, dev.c_str(), NULL, mp, root);
+        ClInfo::q2Clients(NULL, 0, dev.c_str(), "", mp, root);
         if (mp->count > 0)
             mp->setFromXMLEle(root);
         else
@@ -1658,12 +1719,14 @@ void DvrInfo::q2RDrivers(const std::string & dev, Msg *mp, XMLEle *root)
             continue;
 
         /* ok: queue message to this driver */
-        dp->pushMsg(mp);
         if (verbose > 1)
         {
             dp->log(fmt("queuing responsible for <%s device='%s' name='%s'>\n",
                     tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
         }
+
+        // pushmsg can kill dp. do at end
+        dp->pushMsg(mp);
     }
 }
 
@@ -1689,12 +1752,14 @@ void DvrInfo::q2SDrivers(DvrInfo *me, int isblob, const std::string & dev, const
             continue;
 
         /* ok: queue message to this device */
-        dp->pushMsg(mp);
         if (verbose > 1)
         {
             dp->log(fmt("queuing snooped <%s device='%s' name='%s'>\n",
                     tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
         }
+
+        // pushmsg can kill dp. do at end
+        dp->pushMsg(mp);
     }
 }
 
@@ -1802,11 +1867,12 @@ void ClInfo::q2Clients(ClInfo *notme, int isblob, const std::string & dev, const
             continue;
         }
 
-        /* ok: queue message to this client */
-        cp->pushMsg(mp);
         if (verbose > 1)
             cp->log(fmt("queuing <%s device='%s' name='%s'>\n",
                     tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
+
+        // pushmsg can kill cp. do at end
+        cp->pushMsg(mp);
     }
 
     return;
@@ -1860,10 +1926,12 @@ void ClInfo::q2Servers(DvrInfo *me, Msg *mp, XMLEle *root)
         }
 
         /* ok: queue message to this client */
-        cp->pushMsg(mp);
         if (verbose > 1)
             cp->log(fmt("queuing <%s device='%s' name='%s'>\n",
                     tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
+        
+        // pushmsg can kill cp. do at end
+        cp->pushMsg(mp);
     }
 }
 
@@ -2069,13 +2137,15 @@ static void Bye()
     exit(1);
 }
 
-DvrInfo::DvrInfo() :
+DvrInfo::DvrInfo(bool useSharedBuffer) :
+    MsgQueue(useSharedBuffer),
     restarts(0)
 {
     drivers.insert(this);
 }
 
 DvrInfo::DvrInfo(const DvrInfo & model):
+    MsgQueue(model.useSharedBuffer),
     name(model.name),
     restarts(model.restarts)
 {
@@ -2103,7 +2173,7 @@ void DvrInfo::log(const std::string & str) const {
 
 ConcurrentSet<DvrInfo> DvrInfo::drivers;
 
-LocalDvrInfo::LocalDvrInfo() {
+LocalDvrInfo::LocalDvrInfo(): DvrInfo(true) {
     eio.set<LocalDvrInfo, &LocalDvrInfo::onEfdEvent>(this);
     pidwatcher.set<LocalDvrInfo, &LocalDvrInfo::onPidEvent>(this);
 }
@@ -2205,7 +2275,7 @@ void LocalDvrInfo::onPidEvent(ev::child &, int revents)
     }
 }
 
-RemoteDvrInfo::RemoteDvrInfo()
+RemoteDvrInfo::RemoteDvrInfo():DvrInfo(false)
 {}
 
 RemoteDvrInfo::RemoteDvrInfo(const RemoteDvrInfo & model):
@@ -2221,7 +2291,7 @@ RemoteDvrInfo * RemoteDvrInfo::clone() const {
     return new RemoteDvrInfo(*this);
 }
 
-ClInfo::ClInfo() {
+ClInfo::ClInfo(bool useSharedBuffer) : MsgQueue(useSharedBuffer) {
     clients.insert(this);
 }
 
@@ -2241,7 +2311,7 @@ void ClInfo::log(const std::string & str) const {
 
 ConcurrentSet<ClInfo> ClInfo::clients;
 
-Msg::Msg(void): count(0), cl(0), cp(nullptr)
+Msg::Msg(void): count(0), cl(0), cp(nullptr), sharedBuffers()
 {
 }
 
@@ -2249,6 +2319,31 @@ Msg::~Msg() {
     if (cp) {
         free(cp);
     }
+    for(auto fd : sharedBuffers) {
+        if (fd != -1) {
+            close(fd);
+        }
+    }
+}
+
+/** Init a message from xml content & additional incoming buffers */
+bool Msg::initFrom(XMLEle * root, std::list<int> & incomingSharedBuffers) {
+    /* Consume every buffers */
+    for(auto blobContent : findBlobElements(root)) {
+        std::string attached = findXMLAttValu(blobContent, "attached");
+        if (attached == "true") {
+            if (incomingSharedBuffers.empty()) {
+                log("Missing shared buffer...\n");
+                return false;
+            }
+            log("Found one fd !\n");
+            int fd = *incomingSharedBuffers.begin();
+            incomingSharedBuffers.pop_front();
+
+            sharedBuffers.push_back(fd);
+        }
+    }
+    return true;
 }
 
 void Msg::alloc(unsigned long cl) {
@@ -2257,7 +2352,7 @@ void Msg::alloc(unsigned long cl) {
         cp = nullptr;
     }
     cp = (char*)malloc(cl);
-    this->cl = cl; 
+    this->cl = cl;
 }
 
 void Msg::setFromStr(const char * str)
@@ -2276,7 +2371,78 @@ void Msg::setFromXMLEle(XMLEle *root)
     cl--;
 }
 
-MsgQueue::MsgQueue(): nsent(0) {
+Msg * Msg::toBase64Encoding()
+{
+    LilXML * lp = newLilXML();
+    char err[1024];
+    XMLEle ** nodes = parseXMLChunk(lp, this->cp, this->cl, err);
+
+    if (!nodes)
+    {
+        log(fmt("XML error: %s\n", err));
+        log(fmt("XML read: %.*s\n", (int)this->cl, this->cp));
+        return nullptr;
+    }
+
+    Msg * ret = new Msg();
+    /* Consume every buffers */
+    int inode = 0;
+
+    int sharedBufferId = 0;
+    XMLEle *root = nodes[inode];
+    if (!root) {
+       log(fmt("Found 0 xml node in message ??? \n%.s\n", cl, cp));
+       Bye();
+    }
+    while (root)
+    {
+        for(auto blobContent : findBlobElements(root)) {
+            std::string attached = findXMLAttValu(blobContent, "attached");
+
+            if (attached == "true") {
+                rmXMLAtt(blobContent, "attached");
+                rmXMLAtt(blobContent, "enclen");
+
+                // FIXME: Oh the ugly copy here and below ... We should instead insert marker and encode directly there...
+                int fd = sharedBuffers[sharedBufferId++];
+
+                size_t dataSize;
+                void * data = attachSharedBuffer(fd, dataSize);
+
+                int strSize = (4 * dataSize / 3 + 4);
+
+                unsigned char * str = (unsigned char*)malloc(strSize + 1);
+
+                to64frombits_s(str, (const unsigned char*)data, dataSize, strSize + 1);
+
+                dettachSharedBuffer(fd, data, dataSize);
+
+                editXMLEle(blobContent, (const char*)str);
+
+                free(str);
+            }
+        }
+
+        ret->alloc(sprlXMLEle(root, 0) + 1);
+        ret->count = sprXMLEle(ret->cp, root, 0);
+
+        delXMLEle(root);
+        inode++;
+        root = nodes[inode];
+        if (root) {
+            log(fmt("Buffer contains multiple message ???"));
+            Bye();
+        }
+    }
+
+    free(nodes);
+    delLilXML(lp);
+
+    log(fmt("Size of base64 converted message: %d\n", ret->count));
+    return ret;
+}
+
+MsgQueue::MsgQueue(bool useSharedBuffer): nsent(0), useSharedBuffer(useSharedBuffer) {
     lp = newLilXML();
     rio.set<MsgQueue, &MsgQueue::ioCb>(this);
     wio.set<MsgQueue, &MsgQueue::ioCb>(this);
@@ -2346,6 +2512,16 @@ void MsgQueue::consumeHeadMsg() {
 }
 
 void MsgQueue::pushMsg(Msg * mp) {
+    if (mp->sharedBuffers.size()) {
+        log("Converting buffers to base 64 for queuing\n");
+        mp=mp->toBase64Encoding();
+        if (mp == nullptr) {
+            // Internal error or outofmemory
+            log("base64 convertion failed.\n");
+            Bye();
+        }
+    }
+
     mp->count++;
     msgq.push_back(mp);
     // Register for client write
@@ -2397,13 +2573,64 @@ void MsgQueue::ioCb(ev::io &, int revents)
         writeToFd();
 }
 
+size_t MsgQueue::doRead(char * buf, size_t nr)
+{
+    if (!useSharedBuffer) {
+        /* read client - works for all kinds of fds incl pipe*/
+        return read(rFd, buf, sizeof(buf));
+    } else {
+        // Use recvmsg for ancillary data
+        struct msghdr msgh;
+        struct iovec iov;
+
+        union {
+            struct cmsghdr cmsgh;
+            /* Space large enough to hold an 'int' */
+            char control[CMSG_SPACE(MAXFD_PER_MESSAGE * sizeof(int))];
+        } control_un;
+
+        iov.iov_base = buf;
+        iov.iov_len = nr;
+
+        msgh.msg_name = NULL;
+        msgh.msg_namelen = 0;
+        msgh.msg_iov = &iov;
+        msgh.msg_iovlen = 1;
+        msgh.msg_flags = 0;
+        msgh.msg_control = control_un.control;
+        msgh.msg_controllen = sizeof(control_un.control);
+
+        int size = recvmsg(rFd, &msgh, MSG_CMSG_CLOEXEC);
+        if (size == -1) {
+            return -1;
+        }
+
+        for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg)) {
+            if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
+                int fdCount = 0;
+                while(cmsg->cmsg_len >= CMSG_LEN((fdCount+1) * sizeof(int))) {
+                    fdCount++;
+                }
+                log(fmt("Received %d fds\n", fdCount));
+                int * fds = (int*)CMSG_DATA(cmsg);
+                for(int i = 0; i < fdCount; ++i) {
+                    incomingSharedBuffers.push_back(fds[i]);
+                }
+            } else {
+                log(fmt("Ignoring ancillary data level %d, type %d\n", cmsg->cmsg_level, cmsg->cmsg_type));
+            }
+        }
+        return size;
+    }
+}
+
 void MsgQueue::readFromFd()
 {
     char buf[MAXRBUF];
     ssize_t nr;
 
     /* read client */
-    nr = read(rFd, buf, sizeof(buf));
+    nr = doRead(buf, sizeof(buf));
     if (nr <= 0)
     {
         if (errno == EAGAIN || errno == EWOULDBLOCK) return;
@@ -2443,7 +2670,7 @@ void MsgQueue::readFromFd()
                         tagXMLEle(root), findXMLAttValu(root, "device"), findXMLAttValu(root, "name")));
             }
 
-            onMessage(root);
+            onMessage(root, incomingSharedBuffers);
         }
         delXMLEle(root);
         inode++;
@@ -2451,6 +2678,18 @@ void MsgQueue::readFromFd()
     }
 
     free(nodes);
+}
+
+static std::vector<XMLEle *> findBlobElements(XMLEle * root) {
+    std::vector<XMLEle *> result;
+    for (auto ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
+    {
+        if (strcmp(tagXMLEle(ep), "oneBLOB") == 0)
+        {
+            result.push_back(ep);
+        }
+    }
+    return result;
 }
 
 static void log(const std::string & log) {
@@ -2494,6 +2733,33 @@ static int readFdError(int fd) {
 
     // Default to EIO as a generic error path
     return EIO;
+}
+
+static void * attachSharedBuffer(int fd, size_t & size)
+{
+    struct stat sb;
+    if (fstat(fd, &sb) == -1) {
+        perror("invalid shared buffer fd");
+        Bye();
+    }
+    size = sb.st_size;
+    void * ret = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+
+    if (ret == MAP_FAILED) {
+        perror("mmap");
+        Bye();
+    }
+
+    return ret;
+}
+
+static void dettachSharedBuffer(int fd, void * ptr, size_t size)
+{
+    (void)fd;
+    if (munmap(ptr, size) == -1) {
+        perror("shared buffer munmap");
+        Bye();
+    }
 }
 
 static std::string fmt(const char *fmt, ...)
