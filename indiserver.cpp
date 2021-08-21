@@ -2394,8 +2394,11 @@ Msg * Msg::toBase64Encoding()
        log(fmt("Found 0 xml node in message ??? \n%.s\n", cl, cp));
        Bye();
     }
+
     while (root)
     {
+        std::vector<XMLEle*> cdata;
+
         for(auto blobContent : findBlobElements(root)) {
             std::string attached = findXMLAttValu(blobContent, "attached");
 
@@ -2403,30 +2406,73 @@ Msg * Msg::toBase64Encoding()
                 rmXMLAtt(blobContent, "attached");
                 rmXMLAtt(blobContent, "enclen");
 
-                // FIXME: Oh the ugly copy here and below ... We should instead insert marker and encode directly there...
-                int fd = sharedBuffers[sharedBufferId++];
 
-                size_t dataSize;
-                void * data = attachSharedBuffer(fd, dataSize);
-
-                int strSize = (4 * dataSize / 3 + 4);
-
-                unsigned char * str = (unsigned char*)malloc(strSize + 1);
-
-                to64frombits_s(str, (const unsigned char*)data, dataSize, strSize + 1);
-
-                dettachSharedBuffer(fd, data, dataSize);
-
-                editXMLEle(blobContent, (const char*)str);
-
-                free(str);
+                // Put something here for later replacement
+                editXMLEle(blobContent, "_");
+                cdata.push_back(blobContent);
             }
         }
 
-        ret->alloc(sprlXMLEle(root, 0) + 1);
-        ret->count = sprXMLEle(ret->cp, root, 0);
+        std::vector<size_t> modelCdataOffset(cdata.size());
 
+        char * model = (char*)malloc(sprlXMLEle(root, 0) + 1);
+        int modelSize = sprXMLEle(model, root, 0);
+
+        // Get the element offset
+        for(int i = 0; i < cdata.size(); ++i) {
+            modelCdataOffset[i] = sprXMLCDataOffset(root, cdata[i], 0);
+        }
         delXMLEle(root);
+
+        std::vector<int> fds(cdata.size());
+        std::vector<void*> blobs(cdata.size());
+        std::vector<size_t> sizes(cdata.size());
+
+        size_t totalBlobSize = 0;
+        // Attach all blobs
+        for(int i = 0; i < cdata.size(); ++i) {
+            fds[i] = sharedBuffers[i];
+
+            size_t dataSize;
+            blobs[i] = attachSharedBuffer(fds[i], dataSize);
+            sizes[i] = dataSize;
+
+            // FIXME: include newlines for readability ?
+            totalBlobSize += (4 * dataSize / 3 + 4);
+        }
+
+        ret->alloc(modelSize + totalBlobSize + 1);
+
+        // Copy from model or blob (streaming base64 encode)
+        int modelOffset = 0;
+        int targetOffset = 0;
+        for(int i = 0; i < cdata.size(); ++i) {
+            int cdataOffset = modelCdataOffset[i];
+            if (cdataOffset > modelOffset) {
+                memcpy(ret->cp + targetOffset, model + modelOffset, cdataOffset - modelOffset);
+                targetOffset += (cdataOffset - modelOffset);
+            }
+            // Skip the dummy cdata completly
+            modelOffset = cdataOffset + 1;
+
+            // Perform inplace base64
+            int base64Count = to64frombits_s((unsigned char*)ret->cp + targetOffset, (const unsigned char*)blobs[i], sizes[i], (4 * sizes[i] / 3 + 4));
+            targetOffset += base64Count;
+
+            // Dettach blobs ASAP
+            dettachSharedBuffer(fds[i], blobs[i], sizes[i]);
+        }
+
+        if (modelOffset < modelSize) {
+            memcpy(ret->cp + targetOffset, model + modelOffset, modelSize - modelOffset);
+            targetOffset += (modelSize - modelOffset);
+            modelOffset = modelSize;
+        }
+
+        ret->count = targetOffset;
+
+
+        free(model);
         inode++;
         root = nodes[inode];
         if (root) {

@@ -231,6 +231,7 @@ extern void editXMLAtt(XMLAtt *ap, const char *str);
 
 /** \brief return a string with all xml-sensitive characters within the passed string replaced with their entity sequence equivalents.
 *   N.B. caller must use the returned string before calling us again.
+*   Warning: This will sometime fail in impredictible way when used from multiple thread contexts
 */
 extern char *entityXML(char *str);
 
@@ -268,6 +269,11 @@ extern int sprXMLEle(char *s, XMLEle *ep, int level);
 *   N.B. set level = 0 on first call.
 */
 extern int sprlXMLEle(XMLEle *ep, int level);
+
+/** \brief return exact position of cdata of child in printed representation of root
+*   N.B. set level = 0 on first call.
+*/
+extern size_t sprXMLCDataOffset(XMLEle * root, XMLEle * child, int level);
 
 /* install alternatives to malloc/realloc/free */
 extern void indi_xmlMalloc(void *(*newmalloc)(size_t size), void *(*newrealloc)(void *ptr, size_t size),

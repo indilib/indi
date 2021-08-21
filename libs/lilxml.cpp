@@ -692,40 +692,105 @@ void editXMLAtt(XMLAtt *ap, const char *str)
     appendString(&ap->valu, str);
 }
 
-/* sample print ep to fp
- * N.B. set level = 0 on first call
- */
 #define PRINDENT 4 /* sample print indent each level */
-void prXMLEle(FILE *fp, XMLEle *ep, int level)
-{
-    int indent = level * PRINDENT;
-    int i;
+#define PRINDENTSTR "    " /* sample print indent each level */
 
-    fprintf(fp, "%*s<%s", indent, "", ep->tag.s);
-    for (i = 0; i < ep->nat; i++)
-        fprintf(fp, " %s=\"%s\"", ep->at[i]->name.s, entityXML(ep->at[i]->valu.s));
+/* Abstract class for XML to string convertion */
+class XMLOutput {
+protected:
+    XMLOutput() {}
+    virtual ~XMLOutput() {};
+
+protected:
+    virtual void cdataCb(XMLEle * ele) {(void)ele;};
+public:
+    virtual void put(const char * str, size_t len) = 0;
+    void put(const char * str) { put(str, strlen(str)); };
+    void indent(int indent) {
+        for(int i = 0 ; i < indent; ++i) put(PRINDENTSTR, PRINDENT);
+    }
+    void putEntityXML(const char * str);
+
+    /* output a XML node */
+    void putXML(XMLEle * el, int level);
+};
+
+void XMLOutput::putXML(XMLEle *ep, int level)
+{
+    int i;
+    indent(level);
+    put("<");
+    put(ep->tag.s);
+
+    for (i = 0; i < ep->nat; i++) {
+        put(" ");
+        put(ep->at[i]->name.s);
+        put("=\"");
+        putEntityXML(ep->at[i]->valu.s);
+        put("\"");
+    }
+
     if (ep->nel > 0)
     {
-        fprintf(fp, ">\n");
+        put(">\n");
         for (i = 0; i < ep->nel; i++)
-            prXMLEle(fp, ep->el[i], level + 1);
+            putXML( ep->el[i], level + 1);
     }
     if (ep->pcdata.sl > 0)
     {
         if (ep->nel == 0)
-            fprintf(fp, ">\n");
+            put(">\n");
+        // Declare the cdata offset
+        cdataCb(ep);
         if (ep->pcdata_hasent)
-            fprintf(fp, "%s", entityXML(ep->pcdata.s));
+            putEntityXML(ep->pcdata.s);
         else
-            fprintf(fp, "%s", ep->pcdata.s);
+            put(ep->pcdata.s);
         if (ep->pcdata.s[ep->pcdata.sl - 1] != '\n')
-            fprintf(fp, "\n");
+            put("\n");
     }
-    if (ep->nel > 0 || ep->pcdata.sl > 0)
-        fprintf(fp, "%*s</%s>\n", indent, "", ep->tag.s);
-    else
-        fprintf(fp, "/>\n");
+    if (ep->nel > 0 || ep->pcdata.sl > 0) {
+        indent(level);
+        put("</");
+        put(ep->tag.s);
+        put(">\n");
+    }else
+        put("/>\n");
 }
+
+
+class FileXMLOutput: public XMLOutput {
+    FILE * file;
+public:
+    FileXMLOutput(FILE * f) : XMLOutput(), file(f) {};
+    virtual ~FileXMLOutput() {};
+    virtual void put(const char * str, size_t len) {
+        fwrite(str, len, 1, file);
+    }
+};
+
+/* sample print ep to fp
+ * N.B. set level = 0 on first call
+ */
+void prXMLEle(FILE *fp, XMLEle *ep, int level)
+{
+    FileXMLOutput fpo(fp);
+    fpo.putXML(ep, level);
+}
+
+/* XML Output to a memory buffer */
+class BufferXMLOutput: public XMLOutput {
+    char * buffer;
+    size_t offset;
+public:
+    BufferXMLOutput(char * buffer) : XMLOutput(), buffer(buffer), offset(0) {};
+    virtual ~BufferXMLOutput() {};
+    virtual void put(const char * str, size_t len) {
+        memcpy(buffer + offset, str, len);
+        offset += len;
+    }
+    size_t size() { return offset; }
+};
 
 /* sample print ep to string s.
  * N.B. s must be at least as large as that reported by sprlXMLEle()+1.
@@ -734,40 +799,34 @@ void prXMLEle(FILE *fp, XMLEle *ep, int level)
  */
 int sprXMLEle(char *s, XMLEle *ep, int level)
 {
-    int indent = level * PRINDENT;
-    int sl     = 0;
-    int i;
-
-    sl += sprintf(s + sl, "%*s<%s", indent, "", ep->tag.s);
-    for (i = 0; i < ep->nat; i++)
-        sl += sprintf(s + sl, " %s=\"%s\"", ep->at[i]->name.s, entityXML(ep->at[i]->valu.s));
-    if (ep->nel > 0)
-    {
-        sl += sprintf(s + sl, ">\n");
-        for (i = 0; i < ep->nel; i++)
-            sl += sprXMLEle(s + sl, ep->el[i], level + 1);
-    }
-    if (ep->pcdata.sl > 0)
-    {
-        if (ep->nel == 0)
-            sl += sprintf(s + sl, ">\n");
-        if (ep->pcdata_hasent)
-            sl += sprintf(s + sl, "%s", entityXML(ep->pcdata.s));
-        else
-        {
-            strcpy(s + sl, ep->pcdata.s);
-            sl += ep->pcdata.sl;
-        }
-        if (ep->pcdata.s[ep->pcdata.sl - 1] != '\n')
-            sl += sprintf(s + sl, "\n");
-    }
-    if (ep->nel > 0 || ep->pcdata.sl > 0)
-        sl += sprintf(s + sl, "%*s</%s>\n", indent, "", ep->tag.s);
-    else
-        sl += sprintf(s + sl, "/>\n");
-
-    return (sl);
+    BufferXMLOutput bxo(s);
+    bxo.putXML(ep, level);
+    return bxo.size();
 }
+
+/* An output that just count chars (for sizing/locating elements) */
+class NullXMLOutput: public XMLOutput {
+    size_t offset;
+    XMLEle * cdataWatch;
+    size_t cdataOffset;
+protected:
+    virtual void cdataCb(XMLEle * ele) {
+        if (ele == cdataWatch && cdataWatch) {
+            cdataOffset = offset;
+        }
+    }
+public:
+    NullXMLOutput() : XMLOutput(), offset(0), cdataWatch(nullptr), cdataOffset((size_t)-1) {};
+    virtual ~NullXMLOutput() {};
+    virtual void put(const char * str, size_t len) {
+        (void)str;
+        offset += len;
+    }
+    size_t size() { return offset; }
+
+    void setCdataWatch(XMLEle * ele) { cdataWatch = ele; }
+    size_t cdataFound() { return cdataOffset; }
+};
 
 /* return number of bytes in a string guaranteed able to hold result of
  * sprXLMEle(ep) (sans trailing \0).
@@ -775,37 +834,52 @@ int sprXMLEle(char *s, XMLEle *ep, int level)
  */
 int sprlXMLEle(XMLEle *ep, int level)
 {
-    int indent = level * PRINDENT;
-    int l      = 0;
-    int i;
+    NullXMLOutput bxo;
+    bxo.putXML(ep, level);
+    return bxo.size();
+}
 
-    l += indent + 1 + ep->tag.sl;
-    for (i = 0; i < ep->nat; i++)
-        l += ep->at[i]->name.sl + 4 + strlen(entityXML(ep->at[i]->valu.s));
+/* Return the exact starting offset of the CDATA of ep in the printed representation */
+size_t sprXMLCDataOffset(XMLEle * root, XMLEle * ep, int level)
+{
+    NullXMLOutput bxo;
+    bxo.setCdataWatch(ep);
+    bxo.putXML(root, level);
+    return bxo.cdataFound();
+}
 
-    if (ep->nel > 0)
+void XMLOutput::putEntityXML(const char * s)
+{
+    const char *sret = NULL;
+    const char *ep = NULL;
+    for (sret = s; (ep = strpbrk(s, entities)) != NULL; s = ep + 1)
     {
-        l += 2;
-        for (i = 0; i < ep->nel; i++)
-            l += sprlXMLEle(ep->el[i], level + 1);
-    }
-    if (ep->pcdata.sl > 0)
-    {
-        if (ep->nel == 0)
-            l += 2;
-        if (ep->pcdata_hasent)
-            l += strlen(entityXML(ep->pcdata.s));
-        else
-            l += ep->pcdata.sl;
-        if (ep->pcdata.s[ep->pcdata.sl - 1] != '\n')
-            l += 1;
-    }
-    if (ep->nel > 0 || ep->pcdata.sl > 0)
-        l += indent + 4 + ep->tag.sl;
-    else
-        l += 3;
+        /* found another entity, copy preceding to malloced buffer */
+        int nnew = ep - s; /* all but entity itself */
+        put(s, nnew);
 
-    return (l);
+        /* replace with entity encoding */
+        switch (*ep)
+        {
+            case '&':
+                put("&amp;");
+                break;
+            case '<':
+                put("&lt;");
+                break;
+            case '>':
+                put("&gt;");
+                break;
+            case '\'':
+                put("&apos;");
+                break;
+            case '"':
+                put("&quot;");
+                break;
+        }
+    }
+
+    put(s);
 }
 
 /* return a string with all xml-sensitive characters within the passed string s
@@ -814,7 +888,7 @@ int sprlXMLEle(XMLEle *ep, int level)
  */
 char *entityXML(char *s)
 {
-    // WOW... this is not thread safe at
+    // FIXME: this is not thread safe. Signature must be changed (deprecate ?)
     static char *malbuf;
     int nmalbuf = 0;
     char *sret = NULL;
