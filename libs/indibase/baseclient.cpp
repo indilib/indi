@@ -182,9 +182,15 @@ bool BaseClientPrivate::connect()
 
             memset(&serv_addr_un, 0, sizeof(serv_addr_un));
             serv_addr_un.sun_family = AF_UNIX;
-            strncpy(serv_addr_un.sun_path, unixAddr.c_str(), sizeof(serv_addr_un.sun_path));
+
+            // Using abstract socket path to avoid filesystem boilerplate
+            // FIXME: is this supported on MACOS ?
+            strncpy(serv_addr_un.sun_path + 1, unixAddr.c_str(), sizeof(serv_addr_un.sun_path) - 1);
+            int len = offsetof(struct sockaddr_un, sun_path) + unixAddr.size() + 1;
+            serv_addr_un.sun_path[0] = 0;
+
             sockaddr = (struct sockaddr *)&serv_addr_un;
-            addrlen = sizeof(serv_addr_un);
+            addrlen = len;
 
             if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
             {

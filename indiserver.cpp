@@ -739,7 +739,7 @@ static void usage(void)
     fprintf(stderr,
             " -d m     : drop streaming blobs if client gets more than this many MB behind, default %d. 0 to disable\n",
             DEFMAXSSIZ);
-    fprintf(stderr, " -u path  : Path for the local connection socket, default %s\n", INDIUNIXSOCK);
+    fprintf(stderr, " -u path  : Path for the local connection socket (abstract), default %s\n", INDIUNIXSOCK);
     fprintf(stderr, " -p p     : alternate IP port, default %d\n", INDIPORT);
     fprintf(stderr, " -r r     : maximum driver restarts on error, default %d\n", DEFMAXRESTART);
     fprintf(stderr, " -f path  : Path to fifo for dynamic startup and shutdown of drivers.\n");
@@ -1059,18 +1059,23 @@ void UnixServer::listen()
         Bye();
     }
 
-    /* bind to given port for any IP address */
-    memset(&serv_socket, 0, sizeof(serv_socket));
-    serv_socket.sun_family = AF_UNIX;
-    strncpy(serv_socket.sun_path, path.c_str(), sizeof(serv_socket.sun_path));
-
     int reuse = 1;
     if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
     {
         log(fmt("setsockopt: %s\n", strerror(errno)));
         Bye();
     }
-    if (bind(sfd, (struct sockaddr *)&serv_socket, sizeof(serv_socket)) < 0)
+
+    /* bind to given port for any IP address */
+    memset(&serv_socket, 0, sizeof(serv_socket));
+    serv_socket.sun_family = AF_UNIX;
+    // use abstract socket name to avoid filesystem boilerplate
+    // FIXME: is abstract socket name supported on MACOS ?
+    strncpy(serv_socket.sun_path+1, path.c_str(), sizeof(serv_socket.sun_path) - 1);
+    int len = offsetof(struct sockaddr_un, sun_path) + path.size() + 1;
+    serv_socket.sun_path[0] = 0;
+
+    if (bind(sfd, (struct sockaddr *)&serv_socket, len) < 0)
     {
         log(fmt("bind: %s\n", strerror(errno)));
         Bye();
@@ -1088,7 +1093,7 @@ void UnixServer::listen()
 
     /* ok */
     if (verbose > 0)
-        log(fmt("listening as localhost:%s\n", path.c_str()));
+        log(fmt("listening on local domain at: @%s\n", path.c_str()));
 }
 
 void UnixServer::accept()
