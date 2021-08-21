@@ -479,7 +479,7 @@ XMLEle *cloneXMLEle(XMLEle *ep)
     char ynot[1024];
     XMLEle *newep;
 
-    buf = (*mymalloc)(sprlXMLEle(ep, 0) + 1);
+    buf = (char*)(*mymalloc)(sprlXMLEle(ep, 0) + 1);
     sprXMLEle(buf, ep, 0);
     newep = parseXML(buf, ynot);
     (*myfree)(buf);
@@ -814,6 +814,7 @@ int sprlXMLEle(XMLEle *ep, int level)
  */
 char *entityXML(char *s)
 {
+    // WOW... this is not thread safe at
     static char *malbuf;
     int nmalbuf = 0;
     char *sret = NULL;
@@ -824,7 +825,7 @@ char *entityXML(char *s)
     {
         /* found another entity, copy preceding to malloced buffer */
         int nnew = ep - s; /* all but entity itself */
-        sret = malbuf = moremem(malbuf, nmalbuf + nnew + 10);
+        sret = malbuf = (char*)moremem(malbuf, nmalbuf + nnew + 10);
         memcpy(malbuf + nmalbuf, s, nnew);
         nmalbuf += nnew;
 
@@ -864,7 +865,7 @@ char *entityXML(char *s)
     {
         /* put remaining part of s into malbuf */
         int nleft = strlen(s) + 1; /* include \0 */
-        sret = malbuf = moremem(malbuf, nmalbuf + nleft);
+        sret = malbuf = (char*)moremem(malbuf, nmalbuf + nleft);
         memcpy(malbuf + nmalbuf, s, nleft);
     }
 
@@ -878,7 +879,7 @@ static int decodeEntity(char *ent, int *cp)
 {
     static struct
     {
-        char *ent;
+        const char *ent;
         char c;
     } enttable[] = {
         { "&amp;", '&' }, { "&apos;", '\'' }, { "&lt;", '<' }, { "&gt;", '>' }, { "&quot;", '"' },
