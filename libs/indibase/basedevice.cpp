@@ -726,10 +726,27 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                 }
 
                 blobEL->size    = blobSize;
-                uint32_t base64_encoded_size = pcdatalenXMLEle(ep);
-                uint32_t base64_decoded_size = 3 * base64_encoded_size / 4;
-                blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, base64_decoded_size));
-                blobEL->bloblen = from64tobits_fast(static_cast<char *>(blobEL->blob), pcdataXMLEle(ep), base64_encoded_size);
+
+                XMLAtt * attachementId = findXMLAtt(ep, "attached-data-id");
+                fprintf(stderr, "modifying attached data of blob");
+                if (attachementId != nullptr) {
+                    // TODO: support copy into malloc/free for compatibility with existing client not using IDSharedBlobFree)
+                    // FIXME: Where is the blob data buffer freed at the end ?
+                    if (blobEL->blob) {
+                        IDSharedBlobFree(blobEL->blob);
+                        blobEL->blob = nullptr;
+                        blobEL->bloblen = 0;
+                    }
+                    // FIXME: blobSize is not buffer size here. Must pass it all the way through
+                    // (while compressing shared buffer is useless)
+                    blobEL->blob = BaseDevicePrivate::accessAttachedBlob(valuXMLAtt(attachementId), blobSize);
+                    blobEL->bloblen = blobSize;
+                } else {
+                    uint32_t base64_encoded_size = pcdatalenXMLEle(ep);
+                    uint32_t base64_decoded_size = 3 * base64_encoded_size / 4;
+                    blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, base64_decoded_size));
+                    blobEL->bloblen = from64tobits_fast(static_cast<char *>(blobEL->blob), pcdataXMLEle(ep), base64_encoded_size);
+                }
 
                 strncpy(blobEL->format, valuXMLAtt(fa), MAXINDIFORMAT);
 
@@ -755,7 +772,7 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                         return -1;
                     }
                     blobEL->size = dataSize;
-                    free(blobEL->blob);
+                    IDSharedBlobFree(blobEL->blob);
                     blobEL->blob = dataBuffer;
                 }
 

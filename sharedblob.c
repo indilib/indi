@@ -112,6 +112,30 @@ ERROR:
     return NULL;
 }
 
+void * IDSharedBlobAttach(int fd, size_t size) {
+    shared_buffer * sb = (shared_buffer*)malloc(sizeof(shared_buffer));
+    if (sb == NULL) goto ERROR;
+    sb->fd = fd;
+    sb->size = size;
+    sb->allocated = size;
+    sb->sealed = 1;
+
+    sb->mapstart = mmap(0, sb->allocated, PROT_READ|PROT_WRITE, MAP_PRIVATE, sb->fd, 0);
+    if (sb->mapstart == MAP_FAILED) goto ERROR;
+
+    sharedBufferAdd(sb);
+
+    return sb->mapstart;
+ERROR:
+    if (sb) {
+        int e = errno;
+        free(sb);
+        errno = e;
+    }
+    return NULL;
+}
+
+
 void IDSharedBlobFree(void * ptr) {
     shared_buffer * sb = sharedBufferRemove(ptr);
     if (sb == NULL) {

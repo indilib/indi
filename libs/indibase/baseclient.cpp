@@ -66,6 +66,7 @@
 
 #define MAXINDIBUF 49152
 #define DISCONNECTION_DELAY_US 500000
+#define MAXFD_PER_MESSAGE 16 /* No more than 16 buffer attached to a message */
 
 static userio io;
 
@@ -346,6 +347,11 @@ bool BaseClientPrivate::connect()
 
 bool BaseClientPrivate::disconnect(int exit_code)
 {
+    for(int fd : this->incomingSharedBuffers) {
+        close(fd);
+    }
+    this->incomingSharedBuffers.clear();
+
     //IDLog("Server disconnected called\n");
     std::lock_guard<std::mutex> locker(sSocketBusy);
     if (sConnected == false)
@@ -430,9 +436,10 @@ void BaseClientPrivate::listenINDI()
 
     clear();
     LilXML *lillp = newLilXML();
+    bool clientFatalError = false;
 
     /* read from server, exit if find all requested properties */
-    while (!sAboutToClose)
+    while ((!sAboutToClose) && (!clientFatalError))
     {
         int n = select(maxfd + 1, &rs, nullptr, nullptr, nullptr);
 
@@ -458,7 +465,48 @@ void BaseClientPrivate::listenINDI()
 #ifdef _WINDOWS
             n = recv(sockfd, buffer, MAXINDIBUF, 0);
 #else
-            n = recv(sockfd, buffer, MAXINDIBUF, MSG_DONTWAIT);
+            // Use recvmsg for ancillary data
+            struct msghdr msgh;
+            struct iovec iov;
+
+            union {
+                struct cmsghdr cmsgh;
+                /* Space large enough to hold an 'int' */
+                char control[CMSG_SPACE(MAXFD_PER_MESSAGE * sizeof(int))];
+            } control_un;
+
+            iov.iov_base = buffer;
+            iov.iov_len = MAXINDIBUF;
+
+            msgh.msg_name = NULL;
+            msgh.msg_namelen = 0;
+            msgh.msg_iov = &iov;
+            msgh.msg_iovlen = 1;
+            msgh.msg_flags = 0;
+            msgh.msg_control = control_un.control;
+            msgh.msg_controllen = sizeof(control_un.control);
+
+            n = recvmsg(sockfd, &msgh, MSG_CMSG_CLOEXEC | MSG_DONTWAIT);
+
+            if (n >= 0) {
+                for (struct cmsghdr * cmsg = CMSG_FIRSTHDR(&msgh); cmsg != NULL; cmsg = CMSG_NXTHDR(&msgh, cmsg)) {
+                    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
+                        int fdCount = 0;
+                        while(cmsg->cmsg_len >= CMSG_LEN((fdCount+1) * sizeof(int))) {
+                            fdCount++;
+                        }
+                        IDLog("Received %d fds\n", fdCount);
+                        int * fds = (int*)CMSG_DATA(cmsg);
+                        for(int i = 0; i < fdCount; ++i) {
+                            int fd = fds[i];
+                            IDLog("Received fd %d\n", fd);
+                            incomingSharedBuffers.push_back(fd);
+                        }
+                    } else {
+                        IDLog("Ignoring ancillary data level %d, type %d\n", cmsg->cmsg_level, cmsg->cmsg_type);
+                    }
+                }
+            }
 #endif
             if (n < 0)
             {
@@ -487,7 +535,21 @@ void BaseClientPrivate::listenINDI()
                 if (verbose)
                     prXMLEle(stderr, root, 0);
 
-                int err_code = dispatchCommand(root, msg);
+                std::vector<std::string> blobs;
+
+                if (!parseAttachedBlobs(root, blobs)) {
+                    IDLog("Missing attachment from %s/%d\n", cServer.c_str(), cPort);
+                    clientFatalError = true;
+                    break;
+                }
+                int err_code;
+                try {
+                    err_code = dispatchCommand(root, msg);
+                } catch(...) {
+                    flushBlobs(blobs);
+                    throw;
+                }
+                flushBlobs(blobs);
 
                 if (err_code < 0)
                 {
@@ -505,6 +567,10 @@ void BaseClientPrivate::listenINDI()
             }
             free(nodes);
             inode = 0;
+
+            if (clientFatalError) {
+                break;
+            }
         }
     }
 

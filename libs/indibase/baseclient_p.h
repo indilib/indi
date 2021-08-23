@@ -80,6 +80,15 @@ class BaseClientPrivate
         /**  Process messages */
         int messageCmd(XMLEle *root, char *errmsg);
 
+    private:
+        std::list<int> incomingSharedBuffers; /* During reception, fds accumulate here */
+        bool unixSocket {false};
+
+        // Add an attribute for access to shared blobs
+        bool parseAttachedBlobs(XMLEle * root, std::vector<std::string> & blobs);
+        // Flush (release) all blobs with given ID that have not been consumed
+        static void flushBlobs(const std::vector<std::string> & ids);
+
     public:
         BaseClient *parent;
 
@@ -87,7 +96,6 @@ class BaseClientPrivate
         SOCKET sockfd;
 #else
         int sockfd {-1};
-        bool unixSocket {false};
         int receiveFd {-1};
         int sendFd {-1};
 #endif

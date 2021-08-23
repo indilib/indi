@@ -503,3 +503,28 @@ typedef struct _IBLOBVectorProperty /* BLOB vector property descriptor */
  */
 #define assert_mem(p) if((p) == 0) { fprintf(stderr, "%s(%s): Failed to allocate memory\n", __FILE__, __func__); exit(1); }
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// FIXME: duplicated from indidevapi.h. Can we share ?
+
+/** \brief Allocate a buffer suitable for fast exchange over local links. Warning : the buffer will be sealed (readonly) once exchanged.
+    \param size_t size of the memory area to allocate
+ */
+extern void * IDSharedBlobAlloc(size_t size);
+
+/** \brief Adjust the size of a buffer obtained using IDSharedBlobAlloc.
+    \param size_t size of the memory area to allocate
+ */
+extern void * IDSharedBlobRealloc(void * ptr, size_t size);
+
+/** \brief Free a buffer allocated using IDSharedBlobAlloc.
+    \param size_t size of the memory area to allocate
+ */
+extern void IDSharedBlobFree(void * ptr);
+
+#ifdef __cplusplus
+}
+#endif

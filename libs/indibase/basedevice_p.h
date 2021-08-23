@@ -42,6 +42,9 @@ public:
     INDI::BaseMediator *mediator {nullptr};
     std::deque<std::string> messageLog;
     mutable std::mutex m_Lock;
+
+    /* Access to a shared blob during parsing. */
+    static void * accessAttachedBlob(const std::string & identifier, size_t size);
 };
 
 }

@@ -874,6 +874,13 @@ extern int IDSharedBlobGetFd(void * ptr);
  */
 extern void IDSharedBlobSeal(void * ptr);
 
+/**
+ * Attach to a received shared buffer by ID
+ * The returned buffer cannot be realloced or sealed.
+ * \return null on error + errno (invalid fd / system resources)
+ */
+extern void * IDSharedBlobAttach(int fd, size_t size);
+
 
 #ifdef __cplusplus
 }

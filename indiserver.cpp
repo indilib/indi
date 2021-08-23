@@ -1955,7 +1955,54 @@ void MsgQueue::writeToFd() {
     nsend = mp->cl - nsent;
     if (nsend > MAXWSIZ)
         nsend = MAXWSIZ;
-    nw = write(wFd, &mp->cp[nsent], nsend);
+
+    if (!useSharedBuffer) {
+        nw = write(wFd, &mp->cp[nsent], nsend);
+    } else {
+        struct msghdr msgh;
+        struct iovec iov[1];
+        int cmsghdrlength;
+        struct cmsghdr * cmsgh;
+
+        int fdCount = nsent == 0 ? mp->sharedBuffers.size() : 0;
+        if (fdCount > 0) {
+            if (fdCount > MAXFD_PER_MESSAGE) {
+                log(fmt("attempt to send too many FD\n"));
+                close();
+                return;
+            }
+
+            cmsghdrlength = CMSG_SPACE((fdCount * sizeof(int)));
+            // FIXME: abort on alloc error here
+            cmsgh = (struct cmsghdr*)malloc(cmsghdrlength);
+
+            /* Write the fd as ancillary data */
+            cmsgh->cmsg_len = CMSG_LEN(sizeof(int));
+            cmsgh->cmsg_level = SOL_SOCKET;
+            cmsgh->cmsg_type = SCM_RIGHTS;
+            msgh.msg_control = cmsgh;
+            msgh.msg_controllen = cmsghdrlength;
+            for(int i = 0; i < fdCount; ++i) {
+                ((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh)))[i] = mp->sharedBuffers[i];
+            }
+        } else {
+            cmsgh = NULL;
+            cmsghdrlength = 0;
+            msgh.msg_control = cmsgh;
+            msgh.msg_controllen = cmsghdrlength;
+        }
+
+        iov[0].iov_base = &mp->cp[nsent];
+        iov[0].iov_len = nsend;
+
+        msgh.msg_flags = 0;
+        msgh.msg_name = NULL;
+        msgh.msg_namelen = 0;
+        msgh.msg_iov = iov;
+        msgh.msg_iovlen = 1;
+
+        nw = sendmsg(wFd, &msgh,  MSG_NOSIGNAL);
+    }
 
     /* shut down if trouble */
     if (nw <= 0)
@@ -2563,7 +2610,7 @@ void MsgQueue::consumeHeadMsg() {
 }
 
 void MsgQueue::pushMsg(Msg * mp) {
-    if (mp->sharedBuffers.size()) {
+    if (mp->sharedBuffers.size() && !useSharedBuffer) {
         log("Converting buffers to base 64 for queuing\n");
         mp=mp->toBase64Encoding();
         if (mp == nullptr) {
