@@ -135,6 +135,7 @@ class SestoSenso2 : public INDI::Focuser
         void hexDump(char * buf, const char * data, int size);
         bool isMotionComplete();
 
+        uint32_t backlashTicks { 0 };
         uint32_t targetPos { 0 };
         uint32_t lastPos { 0 };
         double lastVoltageIn { 0 };
@@ -162,6 +163,14 @@ class SestoSenso2 : public INDI::Focuser
 
         INumber VoltageInN[1] {};
         INumberVectorProperty VoltageInNP;
+
+        ISwitch BacklashS[2];
+        ISwitchVectorProperty BacklashSP;
+        enum
+        {
+            BACKLASH_START,
+            BACKLASH_NEXT
+        };
 
         ISwitch CalibrationS[2];
         ISwitchVectorProperty CalibrationSP;
@@ -248,6 +257,12 @@ class SestoSenso2 : public INDI::Focuser
 
         typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
+
+        IText BacklashMessageT[1] {};
+        ITextVectorProperty BacklashMessageTP;
+
+        typedef enum { BacklashIdle, BacklashMinimum, BacklashMaximum, BacklashComplete } BacklashStage;
+        BacklashStage bStage { BacklashIdle };
 
         //        int m_MotionProgressTimerID {-1};
         //        int m_HallSensorTimerID {-1};
