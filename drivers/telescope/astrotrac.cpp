@@ -282,9 +282,10 @@ bool AstroTrac::setVelocity(INDI_EQ_AXIS axis, double value)
 {
     char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
 
-    snprintf(command, DRIVER_LEN, "<%dve%f>", axis + 1, value);
+    // Reverse value depending on hemisphere
+    snprintf(command, DRIVER_LEN, "<%dve%f>", axis + 1, value  * (m_Location.latitude >= 0 ? 1 : -1));
     if (sendCommand(command, response))
-        return response[3] == '#';
+        return response[4] == '#';
 
     return false;
 
@@ -397,7 +398,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     if (LocationN[LOCATION_LATITUDE].value >= 0)
     {
         // "Normal" Pointing State (East, looking West)
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder > 0)
         {
             de = std::min(90 - deEncoder, 90.0);
             ha = -6.0 + (haEncoder / 360.0) * 24.0 ;
@@ -412,7 +413,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     else
     {
         // East
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder < 0)
         {
             de = std::max(-90 - deEncoder, -90.0);
             ha = -6.0 - (haEncoder / 360.0) * 24.0 ;
@@ -612,6 +613,7 @@ bool AstroTrac::ReadScopeStatus()
             // Parking
             else
             {
+                SetTrackEnabled(false);
                 SetParked(true);
             }
         }
@@ -788,8 +790,8 @@ bool AstroTrac::ISNewBLOB(const char *dev, const char *name, int sizes[], int bl
 /////////////////////////////////////////////////////////////////////////////
 bool AstroTrac::Abort()
 {
-    bool rc1 = stopMotion(AXIS_RA);
-    bool rc2 = stopMotion(AXIS_DE);
+    bool rc1 = setVelocity(AXIS_RA, 0) && stopMotion(AXIS_RA);
+    bool rc2 = setVelocity(AXIS_DE, 0) && stopMotion(AXIS_DE);
 
     return rc1 && rc2;
 }

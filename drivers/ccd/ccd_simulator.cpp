@@ -1191,6 +1191,15 @@ bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, 
             if (DirectoryS[INDI_ENABLED].s == ISS_ON)
             {
                 DIR* dirp = opendir(DirectoryT[0].text);
+                if (dirp == nullptr)
+                {
+                    DirectoryS[INDI_ENABLED].s = ISS_OFF;
+                    DirectoryS[INDI_DISABLED].s = ISS_ON;
+                    DirectorySP.s = IPS_ALERT;
+                    LOGF_ERROR("Cannot monitor invalid directory %s", DirectoryT[0].text);
+                    IDSetSwitch(&DirectorySP, nullptr);
+                    return true;
+                }
                 struct dirent * dp;
                 std::string d_dir = std::string(DirectoryT[0].text);
                 if (DirectoryT[0].text[strlen(DirectoryT[0].text) - 1] != '/')
