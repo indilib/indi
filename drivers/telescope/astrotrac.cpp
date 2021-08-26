@@ -398,7 +398,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     if (LocationN[LOCATION_LATITUDE].value >= 0)
     {
         // "Normal" Pointing State (East, looking West)
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder > 0)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder >= 0)
         {
             de = std::min(90 - deEncoder, 90.0);
             ha = -6.0 + (haEncoder / 360.0) * 24.0 ;
@@ -413,7 +413,7 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     else
     {
         // East
-        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder < 0)
+        if (MountTypeSP.findOnSwitchIndex() == MOUNT_SINGLE_ARM || deEncoder <= 0)
         {
             de = std::max(-90 - deEncoder, -90.0);
             ha = -6.0 - (haEncoder / 360.0) * 24.0 ;
