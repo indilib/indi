@@ -146,8 +146,8 @@ class SestoSenso2 : public INDI::Focuser
         INumber TemperatureN[2];
         enum
         {
-            TEMPERATURE_MOTOR,
             TEMPERATURE_EXTERNAL,
+            TEMPERATURE_MOTOR,
         };
 
         INumber SpeedN[1];
