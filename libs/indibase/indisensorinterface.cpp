@@ -687,9 +687,9 @@ void SensorInterface::addFITSKeywords(fitsfile *fptr, uint8_t* buf, int len)
         fs_sexa(lat_str, Latitude, 2, 360000);
         fs_sexa(lat_str, Longitude, 2, 360000);
         snprintf(el_str, MAXINDIFORMAT, "%lf", Elevation);
-        fits_update_key_s(fptr, TSTRING, "SITELAT", lat_str, "Location Latitude", &status);
-        fits_update_key_s(fptr, TSTRING, "SITELONG", lon_str, "Location Longitude", &status);
-        fits_update_key_s(fptr, TSTRING, "SITEELEV", el_str, "Location Elevation", &status);
+        fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
+        fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
+        fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
     }
     if (RA != -1000 && Dec != -1000)
     {
