@@ -787,7 +787,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             {
                 if (bStage == BacklashMinimum)
                 {
-                    backlashTicks = static_cast<uint32_t>(fabs(FocusAbsPosN[0].value));
+                    backlashTicks = static_cast<int32_t>(FocusAbsPosN[0].value);
 
                     IUSaveText(&BacklashMessageT[0], "Drive the focuser in the opposite direction, then press NEXT to finish.");
                     IDSetText(&BacklashMessageTP, nullptr);
@@ -795,7 +795,8 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 }
                 else if (bStage == BacklashMaximum)
                 {
-                    backlashTicks -= static_cast<uint32_t>(fabs(FocusAbsPosN[0].value));
+                    backlashTicks -= static_cast<int32_t>(FocusAbsPosN[0].value);
+                    backlashTicks = fabs(backlashTicks);
                     LOGF_INFO("Backlash is %d ticks", backlashTicks);
 
                     IUSaveText(&BacklashMessageT[0], "Backlash Measure Completed.");
@@ -1044,13 +1045,14 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
     {
         char res[SESTO_LEN] = {0};
         uint32_t currentTicks = static_cast<uint32_t>(FocusAbsPosN[0].value);
+        uint32_t backlash = static_cast<uint32_t>(backlashTicks);
         if(targetTicks < currentTicks) {
-            if (command->go(currentTicks+backlashTicks, res) == false)
+            if (command->go(currentTicks+backlash, res) == false)
                 return IPS_ALERT;
-            targetTicks -= backlashTicks;
+            targetTicks -= backlash;
         } else {
-            if (command->go(currentTicks-backlashTicks, res) == false)
-            targetTicks += backlashTicks;
+            if (command->go(currentTicks-backlash, res) == false)
+            targetTicks += backlash;
         }
         if (command->go(targetTicks, res) == false)
             return IPS_ALERT;
