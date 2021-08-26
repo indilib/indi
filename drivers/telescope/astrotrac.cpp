@@ -1043,48 +1043,78 @@ void AstroTrac::simulateMount()
         return;
     }
 
-    switch (TrackState)
+    if (MovementWESP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY)
     {
-        case SCOPE_IDLE:
-        case SCOPE_PARKED:
+        double haVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
+                            * (IUFindOnSwitchIndex(&MovementWESP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+        double deVelocity = SLEW_SPEEDS[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL
+                            * (IUFindOnSwitchIndex(&MovementNSSP) == DIRECTION_NORTH ? 1 : -1) * (m_Location.latitude >= 0 ? 1 : -1);
+
+        haVelocity *= MovementWESP.s == IPS_BUSY ? 1 : 0;
+        deVelocity *= MovementNSSP.s == IPS_BUSY ? 1 : 0;
+
+        // In degrees
+        double elapsedDistanceHA = (elapsed / 1000.0 * haVelocity) / 3600.0;
+        double elapsedDistanceDE = (elapsed / 1000.0 * deVelocity) / 3600.0;
+
+        // Hour Angle
+        SimData.currentMechanicalHA += elapsedDistanceHA;
+        if (SimData.currentMechanicalHA > 180)
+            SimData.currentMechanicalHA -= 360;
+        else if (SimData.currentMechanicalHA < -180)
+            SimData.currentMechanicalHA += 360;
+
+        SimData.currentMechanicalDE += elapsedDistanceDE;
+        if (SimData.currentMechanicalDE > 180)
+            SimData.currentMechanicalDE -= 360;
+        else if (SimData.currentMechanicalDE < -180)
+            SimData.currentMechanicalDE += 360;
+    }
+    else
+    {
+        switch (TrackState)
+        {
+            case SCOPE_IDLE:
+            case SCOPE_PARKED:
+                break;
+
+            case SCOPE_SLEWING:
+            case SCOPE_PARKING:
+            {
+                // In degrees
+                double elapsedDistance = (elapsed / 1000.0 * MAX_SLEW_VELOCITY) / 3600.0;
+
+                // Hour Angle
+                double dHA = SimData.targetMechanicalHA - SimData.currentMechanicalHA;
+                if (std::abs(dHA) <= elapsedDistance)
+                    SimData.currentMechanicalHA = SimData.targetMechanicalHA;
+                else if (dHA > 0)
+                    SimData.currentMechanicalHA += elapsedDistance;
+                else
+                    SimData.currentMechanicalHA -= elapsedDistance;
+
+                // Declination
+                double dDE = SimData.targetMechanicalDE - SimData.currentMechanicalDE;
+                if (std::abs(dDE) <= elapsedDistance)
+                    SimData.currentMechanicalDE = SimData.targetMechanicalDE;
+                else if (dDE > 0)
+                    SimData.currentMechanicalDE += elapsedDistance;
+                else
+                    SimData.currentMechanicalDE -= elapsedDistance;
+            }
             break;
 
-        case SCOPE_SLEWING:
-        case SCOPE_PARKING:
-        {
-            // In degrees
-            double elapsedDistance = (elapsed / 1000.0 * MAX_SLEW_VELOCITY) / 3600.0;
-
-            // Hour Angle
-            double dHA = SimData.targetMechanicalHA - SimData.currentMechanicalHA;
-            if (std::abs(dHA) <= elapsedDistance)
-                SimData.currentMechanicalHA = SimData.targetMechanicalHA;
-            else if (dHA > 0)
-                SimData.currentMechanicalHA += elapsedDistance;
-            else
-                SimData.currentMechanicalHA -= elapsedDistance;
-
-            // Declination
-            double dDE = SimData.targetMechanicalDE - SimData.currentMechanicalDE;
-            if (std::abs(dDE) <= elapsedDistance)
-                SimData.currentMechanicalDE = SimData.targetMechanicalDE;
-            else if (dDE > 0)
-                SimData.currentMechanicalDE += elapsedDistance;
-            else
-                SimData.currentMechanicalDE -= elapsedDistance;
+            case SCOPE_TRACKING:
+            {
+                // Increase HA axis at selected tracking rate (arcsec/s).
+                SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateN[AXIS_RA].value) / 3600.0;
+                if (SimData.currentMechanicalHA > 180)
+                    SimData.currentMechanicalHA = 180;
+                else if (SimData.currentMechanicalHA < -180)
+                    SimData.currentMechanicalHA = -180;
+            }
+            break;
         }
-        break;
-
-        case SCOPE_TRACKING:
-        {
-            // Increase HA axis at selected tracking rate (arcsec/s).
-            SimData.currentMechanicalHA += (elapsed / 1000.0 * TrackRateN[AXIS_RA].value) / 3600.0;
-            if (SimData.currentMechanicalHA > 180)
-                SimData.currentMechanicalHA = 180;
-            else if (SimData.currentMechanicalHA < -180)
-                SimData.currentMechanicalHA = -180;
-        }
-        break;
     }
 
     m_SimulationTimer.restart();
