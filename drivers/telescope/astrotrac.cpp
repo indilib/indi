@@ -428,6 +428,9 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
 
     double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
     ra = range24(lst - ha);
+
+    LOGF_DEBUG("Encoders HA: %.2f DE: %.2f Processed: HA: %.2f DE: %.2f LST: %.2f RA: %.2f",
+               haEncoder, deEncoder, ha, de, lst, ra);
 }
 
 /////////////////////////////////////////////////////////////////////////////
