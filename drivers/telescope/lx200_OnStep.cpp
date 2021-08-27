@@ -1901,7 +1901,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 TrackState = SCOPE_PARKING;
                 IUSaveText(&OnstepStat[3], "Park in Progress");
             }
-            if (strstr(OSStat, "p"))
+            if (strstr(OSStat, "p")) //jamie - this means unparked so why only idle and tracking when above we could be slewing
             {
                 SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
                 if (strstr(OSStat, "nN"))   // azwing need to detect if unparked idle or tracking
@@ -1909,8 +1909,18 @@ bool LX200_OnStep::ReadScopeStatus()
                     IUSaveText(&OnstepStat[1], "Idle");
                     TrackState = SCOPE_IDLE;
                 }
-                else TrackState = SCOPE_TRACKING;
-                IUSaveText(&OnstepStat[3], "UnParked");
+                else if (strstr(OSStat, "n") && !strstr(OSStat, "N")) 
+                {
+                    //set from state above 
+                    TrackState = SCOPE_SLEWING; 
+                    IUSaveText(&OnstepStat[1], "Slewing");
+                }
+                else
+                {
+                
+                    TrackState = SCOPE_TRACKING; 
+                    IUSaveText(&OnstepStat[3], "UnParked");
+                }
             }
             // ============= End Parkstatus
 
