@@ -358,20 +358,34 @@ bool AstroTrac::getEncoderPosition(INDI_EQ_AXIS axis)
 {
     char command[DRIVER_LEN] = {0}, response[DRIVER_LEN] = {0};
     snprintf(command, DRIVER_LEN, "<%dp?>", axis + 1);
-    for (int i = 0; i < 3; i++)
+    if (sendCommand(command, response))
     {
-        if (sendCommand(command, response))
+        try
+        {
+            char regex_str[64] = {0};
+            snprintf(regex_str, 64, "<%dp([+-]?[0-9]+\\.[0-9]+?)>", axis + 1);
+            std::string position = std::regex_replace(
+                                       response,
+                                       std::regex(regex_str),
+                                       std::string("$1"));
+
+            EncoderNP[axis].setValue(std::stod(position));
+            return true;
+        }
+        catch(...)
         {
             try
             {
+                // Check if the response for the other axis
+                INDI_EQ_AXIS other = (axis == AXIS_RA) ? AXIS_DE : AXIS_RA;
                 char regex_str[64] = {0};
-                snprintf(regex_str, 64, "<%dp([+-]?[0-9]+\\.[0-9]+?)>", axis + 1);
+                snprintf(regex_str, 64, "<%dp([+-]?[0-9]+\\.[0-9]+?)>", other + 1);
                 std::string position = std::regex_replace(
                                            response,
                                            std::regex(regex_str),
                                            std::string("$1"));
 
-                EncoderNP[axis].setValue(std::stod(position));
+                EncoderNP[other].setValue(std::stod(position));
                 return true;
             }
             catch(...)
@@ -393,7 +407,15 @@ bool AstroTrac::getEncoderPosition(INDI_EQ_AXIS axis)
 /////////////////////////////////////////////////////////////////////////////
 void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &ra, double &de)
 {
+    static const double jitter = 0.0005;
     double ha = 0;
+
+    // Take care of jitter
+    if (haEncoder > jitter * -1 && haEncoder < jitter)
+        haEncoder = 0;
+    if (deEncoder > jitter * -1 && deEncoder < jitter)
+        deEncoder = 0;
+
     // Northern Hemisphere
     if (LocationN[LOCATION_LATITUDE].value >= 0)
     {
