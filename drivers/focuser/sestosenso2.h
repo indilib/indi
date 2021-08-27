@@ -135,7 +135,10 @@ class SestoSenso2 : public INDI::Focuser
         void hexDump(char * buf, const char * data, int size);
         bool isMotionComplete();
 
+        int32_t startPos { 0 };
         int32_t backlashTicks { 0 };
+        int32_t backlashDeadzone { 0 };
+        bool backlashDirection;
         uint32_t targetPos { 0 };
         uint32_t lastPos { 0 };
         double lastVoltageIn { 0 };

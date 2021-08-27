@@ -389,7 +389,11 @@ bool SestoSenso2::updatePosition()
 
     try
     {
-        FocusAbsPosN[0].value = std::stoi(res);
+        int currentPos = std::stoi(res);
+        if(abs(currentPos - startPos) < abs(backlashDeadzone))
+            FocusAbsPosN[0].value = startPos;
+        else
+            FocusAbsPosN[0].value = currentPos+backlashDeadzone;
         FocusAbsPosNP.s = IPS_OK;
         return true;
     }
@@ -796,6 +800,8 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 else if (bStage == BacklashMaximum)
                 {
                     backlashTicks -= static_cast<int32_t>(FocusAbsPosN[0].value);
+                    backlashDirection = (backlashTicks < 0);
+                    backlashDeadzone = -backlashTicks;
                     backlashTicks = fabs(backlashTicks);
                     LOGF_INFO("Backlash is %d ticks", backlashTicks);
 
@@ -1046,13 +1052,16 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
         char res[SESTO_LEN] = {0};
         uint32_t currentTicks = static_cast<uint32_t>(FocusAbsPosN[0].value);
         uint32_t backlash = static_cast<uint32_t>(backlashTicks);
-        if(targetTicks < currentTicks) {
-            if (command->go(currentTicks+backlash, res) == false)
-                return IPS_ALERT;
-            targetTicks -= backlash;
-        } else {
-            if (command->go(currentTicks-backlash, res) == false)
-            targetTicks += backlash;
+        startPos = static_cast<int32_t>(currentTicks);
+        if(backlashDirection != (targetTicks < currentTicks)) {
+            backlashDirection = (targetTicks < currentTicks);
+            if(backlashDirection) {
+                targetTicks -= backlash;
+                backlashDeadzone = static_cast<int32_t>(backlash);
+            } else {
+                targetTicks += backlash;
+                backlashDeadzone = -static_cast<int32_t>(backlash);
+            }
         }
         if (command->go(targetTicks, res) == false)
             return IPS_ALERT;
