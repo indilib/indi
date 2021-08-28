@@ -167,14 +167,6 @@ class SestoSenso2 : public INDI::Focuser
         INumber VoltageInN[1] {};
         INumberVectorProperty VoltageInNP;
 
-        ISwitch BacklashS[2];
-        ISwitchVectorProperty BacklashSP;
-        enum
-        {
-            BACKLASH_START,
-            BACKLASH_NEXT
-        };
-
         ISwitch CalibrationS[2];
         ISwitchVectorProperty CalibrationSP;
         enum
@@ -261,6 +253,15 @@ class SestoSenso2 : public INDI::Focuser
         typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
 
+        INumber BacklashN[1] {};
+        INumberVectorProperty BacklashNP;
+        ISwitch BacklashS[2];
+        ISwitchVectorProperty BacklashSP;
+        enum
+        {
+            BACKLASH_START,
+            BACKLASH_NEXT
+        };
         IText BacklashMessageT[1] {};
         ITextVectorProperty BacklashMessageTP;
 

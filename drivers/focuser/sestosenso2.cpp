@@ -99,6 +99,22 @@ bool SestoSenso2::initProperties()
     IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "FOCUS_SPEED", "Motor Speed", MAIN_CONTROL_TAB, IP_RO, 0,
                        IPS_IDLE);
 
+    // Focuser backlash
+    IUFillNumber(&BacklashN[0], "BACKLASH", "Backlash", "Enter backlash ticks value.", -50000, 50000, 1000, 0);
+    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH", "Backlash",
+                     MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
+    IUFillText(&BacklashMessageT[0], "BACKLASH", "Backlash stage", "Press START to measure backlash.");
+    IUFillTextVector(&BacklashMessageTP, BacklashMessageT, 1, getDeviceName(), "BACKLASH_MESSAGE", "Backlash",
+                     MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+    // Backlash
+    IUFillSwitch(&BacklashS[BACKLASH_START], "BACKLASH_START", "Start", ISS_OFF);
+    IUFillSwitch(&BacklashS[BACKLASH_NEXT], "BACKLASH_NEXT", "Next", ISS_OFF);
+    IUFillSwitchVector(&BacklashSP, BacklashS, 2, getDeviceName(), "FOCUS_BACKLASH", "Backlash", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+
     // Focuser calibration
     IUFillText(&CalibrationMessageT[0], "CALIBRATION", "Calibration stage", "Press START to begin the Calibration.");
     IUFillTextVector(&CalibrationMessageTP, CalibrationMessageT, 1, getDeviceName(), "CALIBRATION_MESSAGE", "Calibration",
@@ -108,17 +124,6 @@ bool SestoSenso2::initProperties()
     IUFillSwitch(&CalibrationS[CALIBRATION_START], "CALIBRATION_START", "Start", ISS_OFF);
     IUFillSwitch(&CalibrationS[CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
     IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
-    // Focuser backlash
-    IUFillText(&BacklashMessageT[0], "BACKLASH", "Backlash stage", "Press START to measure backlash.");
-    IUFillTextVector(&BacklashMessageTP, BacklashMessageT, 1, getDeviceName(), "BACKLASH_MESSAGE", "Backlash",
-                     MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-
-    // Backlash
-    IUFillSwitch(&BacklashS[BACKLASH_START], "BACKLASH_START", "Start", ISS_OFF);
-    IUFillSwitch(&BacklashS[BACKLASH_NEXT], "BACKLASH_NEXT", "Next", ISS_OFF);
-    IUFillSwitchVector(&BacklashSP, BacklashS, 2, getDeviceName(), "FOCUS_BACKLASH", "Backlash", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Speed Moves
@@ -214,6 +219,7 @@ bool SestoSenso2::updateProperties()
         defineProperty(&SpeedNP);
         defineProperty(&CalibrationMessageTP);
         defineProperty(&CalibrationSP);
+        defineProperty(&BacklashNP);
         defineProperty(&BacklashMessageTP);
         defineProperty(&BacklashSP);
         defineProperty(&HomeSP);
@@ -245,6 +251,7 @@ bool SestoSenso2::updateProperties()
         deleteProperty(VoltageInNP.name);
         deleteProperty(CalibrationMessageTP.name);
         deleteProperty(CalibrationSP.name);
+        deleteProperty(BacklashNP.name);
         deleteProperty(BacklashMessageTP.name);
         deleteProperty(BacklashSP.name);
         deleteProperty(SpeedNP.name);
@@ -362,6 +369,11 @@ bool SestoSenso2::updateMaxLimit()
         FocusRelPosN[0].value = 0;
         FocusRelPosN[0].step  = FocusAbsPosN[0].step;
 
+        BacklashN[0].min   = -FocusAbsPosN[0].step * 5;
+        BacklashN[0].max   = FocusAbsPosN[0].step * 5;
+        BacklashN[0].value = 0;
+        BacklashN[0].step  = FocusAbsPosN[0].step;
+
         PresetN[0].max = maxLimit;
         PresetN[0].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
         PresetN[1].max = maxLimit;
@@ -390,10 +402,7 @@ bool SestoSenso2::updatePosition()
     try
     {
         int currentPos = std::stoi(res);
-        if(abs(currentPos - startPos) < abs(backlashDeadzone))
-            FocusAbsPosN[0].value = startPos;
-        else
-            FocusAbsPosN[0].value = currentPos+backlashDeadzone;
+        FocusAbsPosN[0].value = currentPos;
         FocusAbsPosNP.s = IPS_OK;
         return true;
     }
@@ -707,6 +716,11 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                     FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
                     FocusRelPosN[0].value = 0;
                     FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+
+                    BacklashN[0].min   = -FocusAbsPosN[0].step * 5;
+                    BacklashN[0].max   = FocusAbsPosN[0].step * 5;
+                    BacklashN[0].value = 0;
+                    BacklashN[0].step  = FocusAbsPosN[0].step;
 
                     PresetN[0].max = maxLimit;
                     PresetN[0].step = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
@@ -1023,6 +1037,15 @@ bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[]
     if (dev == nullptr || strcmp(dev, getDeviceName()) != 0)
         return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 
+    if (!strcmp(name, BacklashNP.name)) {
+        IUUpdateNumber(&BacklashNP, values, names, n);
+        backlashTicks = static_cast<int32_t>(BacklashN[0].value);
+        backlashDirection = (backlashTicks < 0);
+        backlashDeadzone = -backlashTicks;
+        backlashTicks = fabs(backlashTicks);
+        IDSetNumber(&BacklashNP, nullptr);
+        return true;
+    }
     if (!strcmp(name, MotorRateNP.name))
     {
         IUUpdateNumber(&MotorRateNP, values, names, n);
