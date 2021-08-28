@@ -1843,14 +1843,14 @@ bool LX200_OnStep::ReadScopeStatus()
                 IUSaveText(&OnstepStat[1], "Idle");
                 TrackState = SCOPE_IDLE;
             }
-            if (strstr(OSStat, "n") && !strstr(OSStat, "N"))
+            if (strstr(OSStat, "n") && !strstr(OSStat, "N")) // These conditions are for OnStep 3.x
             {
-                IUSaveText(&OnstepStat[1], "Slewing"); //Onstep 3.x
+                IUSaveText(&OnstepStat[1], "Slewing");
                 TrackState = SCOPE_SLEWING;
             }
-            if (!strstr(OSStat, "n") && !strstr(OSStat, "N"))
+            if (!strstr(OSStat, "n") && !strstr(OSStat, "N")) // These conditions are for OnStep 4.x
             {
-                IUSaveText(&OnstepStat[1], "Slewing"); //OnStep 4.x
+                IUSaveText(&OnstepStat[1], "Slewing");
                 TrackState = SCOPE_SLEWING;
             }
             if (strstr(OSStat, "N") && !strstr(OSStat, "n"))
@@ -1906,7 +1906,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 TrackState = SCOPE_PARKING;
                 IUSaveText(&OnstepStat[3], "Park in Progress");
             }
-            if (strstr(OSStat, "p")) //jamie - this means unparked so why only idle and tracking when above we could be slewing
+            if (strstr(OSStat, "p")) // Jamie Flinn - this means unparked
             {
                 SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
                 if (strstr(OSStat, "nN"))   // azwing need to detect if unparked idle or tracking
@@ -1914,22 +1914,19 @@ bool LX200_OnStep::ReadScopeStatus()
                     IUSaveText(&OnstepStat[1], "Idle");
                     TrackState = SCOPE_IDLE;
                 }
-                else if (strstr(OSStat, "n") && !strstr(OSStat, "N")) 
+                else if (strstr(OSStat, "n") && !strstr(OSStat, "N")) // These conditions are for OnStep 3.x
                 {
-                    //set from state above  - OnStep 3.x
-                    TrackState = SCOPE_SLEWING; 
+                    TrackState = SCOPE_SLEWING;
                     IUSaveText(&OnstepStat[1], "Slewing");
                 }
-                else if (!strstr(OSStat, "n") && !strstr(OSStat, "N")) 
+                else if (!strstr(OSStat, "n") && !strstr(OSStat, "N")) // These conditions are for OnStep 4.x
                 {
-                    //set from state above  - OnStep 4.x
-                    TrackState = SCOPE_SLEWING; 
+                    TrackState = SCOPE_SLEWING;
                     IUSaveText(&OnstepStat[1], "Slewing");
                 }
                 else
                 {
-                
-                    TrackState = SCOPE_TRACKING; 
+                    TrackState = SCOPE_TRACKING;
                     IUSaveText(&OnstepStat[3], "UnParked");
                 }
             }
