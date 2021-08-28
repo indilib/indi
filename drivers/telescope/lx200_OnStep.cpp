@@ -1845,7 +1845,12 @@ bool LX200_OnStep::ReadScopeStatus()
             }
             if (strstr(OSStat, "n") && !strstr(OSStat, "N"))
             {
-                IUSaveText(&OnstepStat[1], "Slewing");
+                IUSaveText(&OnstepStat[1], "Slewing"); //Onstep 3.x
+                TrackState = SCOPE_SLEWING;
+            }
+            if (!strstr(OSStat, "n") && !strstr(OSStat, "N"))
+            {
+                IUSaveText(&OnstepStat[1], "Slewing"); //OnStep 4.x
                 TrackState = SCOPE_SLEWING;
             }
             if (strstr(OSStat, "N") && !strstr(OSStat, "n"))
@@ -1911,7 +1916,13 @@ bool LX200_OnStep::ReadScopeStatus()
                 }
                 else if (strstr(OSStat, "n") && !strstr(OSStat, "N")) 
                 {
-                    //set from state above 
+                    //set from state above  - OnStep 3.x
+                    TrackState = SCOPE_SLEWING; 
+                    IUSaveText(&OnstepStat[1], "Slewing");
+                }
+                else if (!strstr(OSStat, "n") && !strstr(OSStat, "N")) 
+                {
+                    //set from state above  - OnStep 4.x
                     TrackState = SCOPE_SLEWING; 
                     IUSaveText(&OnstepStat[1], "Slewing");
                 }
