@@ -123,7 +123,7 @@ void V4L2_Builtin_Decoder::init()
 void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 {
     //LOG_INFO("Calling builtin decoder decode");
-//IDLog("Decoding buffer at %lx, len %d, bytesused %d, bytesperline %d, sequence %d, flag %x, field %x, use soft crop %c, do crop %c\n", frame, buf->length, buf->bytesused, fmt.fmt.pix.bytesperline, buf->sequence, buf->flags, buf->field, (useSoftCrop?'y':'n'), (doCrop?'y':'n'));
+    //IDLog("Decoding buffer at %lx, len %d, bytesused %d, bytesperline %d, sequence %d, flag %x, field %x, use soft crop %c, do crop %c\n", frame, buf->length, buf->bytesused, fmt.fmt.pix.bytesperline, buf->sequence, buf->flags, buf->field, (useSoftCrop?'y':'n'), (doCrop?'y':'n'));
 
     switch (fmt.fmt.pix.pixelformat)
     {
@@ -182,7 +182,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 
                 dest = UBuf;
                 src  = frame + (fmt.fmt.pix.width * fmt.fmt.pix.height) +
-                      ((crop.c.left + (crop.c.top * fmt.fmt.pix.width) / 2) / 2);
+                       ((crop.c.left + (crop.c.top * fmt.fmt.pix.width) / 2) / 2);
                 if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YVU420)
                 {
                     dest = VBuf;
@@ -196,8 +196,8 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 
                 dest = VBuf;
                 src  = frame + (fmt.fmt.pix.width * fmt.fmt.pix.height) +
-                      ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 4) +
-                      ((crop.c.left + (crop.c.top * fmt.fmt.pix.width) / 2) / 2);
+                       ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 4) +
+                       ((crop.c.left + (crop.c.top * fmt.fmt.pix.width) / 2) / 2);
                 if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YVU420)
                 {
                     dest = UBuf;
@@ -248,7 +248,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
                 dest  = UBuf;
                 destv = VBuf;
                 src   = frame + (fmt.fmt.pix.bytesperline * fmt.fmt.pix.height) +
-                      ((crop.c.left + (crop.c.top * fmt.fmt.pix.bytesperline) / 2) / 2);
+                        ((crop.c.left + (crop.c.top * fmt.fmt.pix.bytesperline) / 2) / 2);
                 if (fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_NV21)
                 {
                     dest  = VBuf;
@@ -416,7 +416,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
                 for (unsigned int j = 0; j < bufwidth; j++)
                 {
                     *(dest++) = lut5[((*(s + 1) & 0x7C) >> 2)];                        // R
-                    *(dest++) = lut5[(((*(s + 1) & 0x03) << 3) | ((*(s)&0xE0) >> 5))]; // G
+                    *(dest++) = lut5[(((*(s + 1) & 0x03) << 3) | ((*(s) & 0xE0) >> 5))]; // G
                     *(dest++) = lut5[((*s) & 0x1F)];                                   // B
                     s += 2;
                 }
@@ -443,7 +443,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
                 for (unsigned int j = 0; j < bufwidth; j++)
                 {
                     *(dest++) = lut5[((*(s + 1) & 0xF8) >> 3)];                        // R
-                    *(dest++) = lut6[(((*(s + 1) & 0x07) << 3) | ((*(s)&0xE0) >> 5))]; // G
+                    *(dest++) = lut6[(((*(s + 1) & 0x07) << 3) | ((*(s) & 0xE0) >> 5))]; // G
                     *(dest++) = lut5[((*s) & 0x1F)];                                   // B
                     s += 2;
                 }
@@ -459,9 +459,9 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
         case V4L2_PIX_FMT_SRGGB8:
             bayer_rggb_2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
             break;
-	case V4L2_PIX_FMT_SGRBG8:
-		bayer_grbg_to_rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
-		break;
+        case V4L2_PIX_FMT_SGRBG8:
+            bayer_grbg_to_rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
+            break;
         case V4L2_PIX_FMT_SBGGR16:
             bayer16_2_rgb24((unsigned short *)rgb24_buffer, (unsigned short *)frame, fmt.fmt.pix.width,
                             fmt.fmt.pix.height);
@@ -488,7 +488,7 @@ bool V4L2_Builtin_Decoder::setcrop(struct v4l2_crop c)
 {
     crop = c;
     IDLog("Decoder  set crop: %dx%d at (%d, %d)\n", crop.c.width, crop.c.height, crop.c.left, crop.c.top);
-    if (supported_formats[fmt.fmt.pix.pixelformat]->softcrop)
+    if (supported_formats.count(fmt.fmt.pix.pixelformat) > 0 && supported_formats[fmt.fmt.pix.pixelformat]->softcrop)
     {
         doCrop = true;
         allocBuffers();
@@ -609,7 +609,7 @@ void V4L2_Builtin_Decoder::allocBuffers()
         case V4L2_PIX_FMT_RGB565:
         case V4L2_PIX_FMT_SBGGR8:
         case V4L2_PIX_FMT_SRGGB8:
-	case V4L2_PIX_FMT_SGRBG8:
+        case V4L2_PIX_FMT_SGRBG8:
         case V4L2_PIX_FMT_SBGGR16:
             rgb24_buffer = new unsigned char[(bufwidth * bufheight) * (bpp / 8) * 3];
             break;
@@ -653,7 +653,7 @@ void V4L2_Builtin_Decoder::makeY()
         case V4L2_PIX_FMT_RGB565:
         case V4L2_PIX_FMT_SBGGR8:
         case V4L2_PIX_FMT_SRGGB8:
-	case V4L2_PIX_FMT_SGRBG8:
+        case V4L2_PIX_FMT_SGRBG8:
             RGB2YUV(bufwidth, bufheight, rgb24_buffer, YBuf, UBuf, VBuf, 0);
             break;
         case V4L2_PIX_FMT_YUYV:
@@ -823,7 +823,7 @@ unsigned char *V4L2_Builtin_Decoder::getRGBBuffer()
         case V4L2_PIX_FMT_RGB565:
         case V4L2_PIX_FMT_SBGGR8:
         case V4L2_PIX_FMT_SRGGB8:
-	case V4L2_PIX_FMT_SGRBG8:
+        case V4L2_PIX_FMT_SGRBG8:
         case V4L2_PIX_FMT_SBGGR16:
             break;
         default:
@@ -955,7 +955,7 @@ void V4L2_Builtin_Decoder::init_supported_formats()
     // V4L2_PIX_FMT_SGBRG8  , // v4l2_fourcc('G', 'B', 'R', 'G') /*  8  GBGB.. RGRG.. */
     // V4L2_PIX_FMT_SGRBG8  , // v4l2_fourcc('G', 'R', 'B', 'G') /*  8  GRGR.. BGBG.. */
     supported_formats.insert(
-	    std::make_pair(V4L2_PIX_FMT_SGRBG8, new V4L2_Builtin_Decoder::format(V4L2_PIX_FMT_SGRBG8, 8, false)));
+        std::make_pair(V4L2_PIX_FMT_SGRBG8, new V4L2_Builtin_Decoder::format(V4L2_PIX_FMT_SGRBG8, 8, false)));
     //  V4L2_PIX_FMT_SRGGB8  , // v4l2_fourcc('R', 'G', 'G', 'B') /*  8  RGRG.. GBGB.. */
     supported_formats.insert(
         std::make_pair(V4L2_PIX_FMT_SRGGB8, new V4L2_Builtin_Decoder::format(V4L2_PIX_FMT_SRGGB8, 8, false)));
@@ -1035,6 +1035,6 @@ void V4L2_Builtin_Decoder::init_supported_formats()
     // V4L2_PIX_FMT_S5C_UYVY_JPG  // v4l2_fourcc('S', '5', 'C', 'I') /* S5C73M3 interleaved UYVY/JPEG */
 
     for (std::map<unsigned int, struct format *>::iterator it = supported_formats.begin();
-         it != supported_formats.end(); ++it)
+            it != supported_formats.end(); ++it)
         vsuppformats.push_back(it->first);
 }

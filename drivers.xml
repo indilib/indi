@@ -242,6 +242,10 @@
             <version>1.3</version>
         </device>
         <device label="Skywatcher Star Adventurer" manufacturer="SkyWatcher">
+            <driver name="Telescope Simulator">indi_simulator_telescope</driver>
+            <version>1.0</version>
+        </device>
+        <device label="Skywatcher Star Adventurer WiFi" manufacturer="SkyWatcher">
             <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
             <version>1.3</version>
         </device>
