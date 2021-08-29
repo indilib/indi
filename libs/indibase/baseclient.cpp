@@ -24,6 +24,7 @@
 #include "indistandardproperty.h"
 #include "base64.h"
 #include "basedevice.h"
+#include "sharedblob_parse.h"
 #include "locale_compat.h"
 
 #include <cerrno>
@@ -120,6 +121,7 @@ void BaseClientPrivate::clear()
     }
     cDevices.clear();
     blobModes.clear();
+    directBlobAccess.clear();
 }
 
 // Using this prefix for name allow specifying the unix socket path
@@ -546,10 +548,10 @@ void BaseClientPrivate::listenINDI()
                 try {
                     err_code = dispatchCommand(root, msg);
                 } catch(...) {
-                    flushBlobs(blobs);
+                    releaseBlobUids(blobs);
                     throw;
                 }
-                flushBlobs(blobs);
+                releaseBlobUids(blobs);
 
                 if (err_code < 0)
                 {
@@ -602,6 +604,59 @@ void BaseClientPrivate::listenINDI()
         cDeviceNames.clear();
         sSocketChanged.notify_all();
     }
+}
+
+static std::vector<XMLEle *> findBlobElements(XMLEle * root) {
+    std::vector<XMLEle *> result;
+    for (auto ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
+    {
+        if (strcmp(tagXMLEle(ep), "oneBLOB") == 0)
+        {
+            result.push_back(ep);
+        }
+    }
+    return result;
+}
+
+bool BaseClientPrivate::parseAttachedBlobs(XMLEle *root, std::vector<std::string> & blobs)
+{
+    fprintf(stderr, "parseAttachedBlobs\n");
+    // parse all elements in root that are attached.
+    // Create for each a new GUID and associate it in a global map
+    // modify the xml to add an attribute with the guid
+    for(auto blobContent : findBlobElements(root)) {
+        std::string attached = findXMLAttValu(blobContent, "attached");
+
+        if (attached == "true") {
+            std::string device = findXMLAttValu(root, "dev");
+            std::string name = findXMLAttValu(root, "name");
+
+            fprintf(stderr, "found AttachedBlobs\n");
+            rmXMLAtt(blobContent, "attached");
+            rmXMLAtt(blobContent, "enclen");
+
+            if (incomingSharedBuffers.empty()) {
+                return false;
+            }
+            int fd = *incomingSharedBuffers.begin();
+            incomingSharedBuffers.pop_front();
+            fprintf(stderr, "AttachedBlobs id is %d\n", fd);
+
+            auto id = allocateBlobUid(fd);
+            blobs.push_back(id);
+
+            // Put something here for later replacement
+            rmXMLAtt(blobContent, "attached-data-id");
+            rmXMLAtt(blobContent, "attachment-direct");
+
+            addXMLAtt(blobContent, "attached-data-id", id.c_str());
+            if (isDirectBlobAccess(device, name)) {
+                // If client support read-only shared blob, mark it here
+                addXMLAtt(blobContent, "attachment-direct",  "true");
+            }
+        }
+    }
+    return true;
 }
 
 size_t BaseClientPrivate::sendData(const void *data, size_t size)
@@ -886,6 +941,34 @@ int BaseClientPrivate::messageCmd(XMLEle *root, char *errmsg)
     return (0);
 }
 
+void BaseClientPrivate::enableDirectBlobAccess(const char * dev, const char * prop)
+{
+    if (dev == nullptr || !dev[0]) {
+        directBlobAccess[""].insert("");
+        return;
+    }
+    if (prop == nullptr || !prop[0]) {
+        directBlobAccess[dev].insert("");
+    } else {
+        directBlobAccess[dev].insert(prop);
+    }
+}
+
+static bool hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> & directBlobAccess, const std::string & dev, const std::string & prop) const
+{
+    auto devAccess = directBlobAccess.find(dev) ;
+    if (devAccess == directBlobAccess.end()) {
+        return false;
+    }
+    return devAccess->second.find(prop) != devAccess->second.end();
+}
+
+bool BaseClientPrivate::isDirectBlobAccess(const std::string & dev, const std::string & prop) const
+{
+    return hasDirectBlobAccessEntry(directBlobAccess, "", "")
+            || hasDirectBlobAccessEntry(directBlobAccess, dev, "")
+            || hasDirectBlobAccessEntry(directBlobAccess, dev, prop);
+}
 
 BLOBMode *INDI::BaseClientPrivate::findBLOBMode(const std::string &device, const std::string &property)
 {
@@ -1208,6 +1291,12 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
     }
 
     IUUserIOEnableBLOB(&io, d, dev, prop, blobH);
+}
+
+void INDI::BaseClient::enableDirectBlobAccess(const char * dev, const char * prop)
+{
+    D_PTR(BaseClient);
+    d->enableDirectBlobAccess(dev, prop);
 }
 
 BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)

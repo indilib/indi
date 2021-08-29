@@ -30,6 +30,7 @@
 #include "indipropertyswitch.h"
 #include "indipropertylight.h"
 #include "indipropertyblob.h"
+#include "sharedblob_parse.h"
 
 #include <cerrno>
 #include <cassert>
@@ -730,16 +731,26 @@ int BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle *root, char *errmsg)
                 XMLAtt * attachementId = findXMLAtt(ep, "attached-data-id");
                 fprintf(stderr, "modifying attached data of blob");
                 if (attachementId != nullptr) {
-                    // TODO: support copy into malloc/free for compatibility with existing client not using IDSharedBlobFree)
+                    // Client mark blob that can be attached directly
+                    XMLAtt * directAttachment = findXMLAtt(ep, "attachment-direct");
+                    bool directBlobAccess = directAttachment != nullptr;
                     // FIXME: Where is the blob data buffer freed at the end ?
-                    if (blobEL->blob) {
-                        IDSharedBlobFree(blobEL->blob);
-                        blobEL->blob = nullptr;
-                        blobEL->bloblen = 0;
-                    }
                     // FIXME: blobSize is not buffer size here. Must pass it all the way through
                     // (while compressing shared buffer is useless)
-                    blobEL->blob = BaseDevicePrivate::accessAttachedBlob(valuXMLAtt(attachementId), blobSize);
+                    if (directBlobAccess) {
+                        if (blobEL->blob) {
+                            IDSharedBlobFree(blobEL->blob);
+                            blobEL->blob = nullptr;
+                            blobEL->bloblen = 0;
+                        }
+                        blobEL->blob = attachBlobByUid(valuXMLAtt(attachementId), blobSize);
+                    } else {
+                        // For compatibility, copy to a modifiable memory area
+                        blobEL->blob    = static_cast<unsigned char *>(realloc(blobEL->blob, blobSize));
+                        void * tmp = attachBlobByUid(valuXMLAtt(attachementId), blobSize);
+                        memcpy(blobEL->blob, tmp, blobSize);
+                        IDSharedBlobFree(tmp);
+                    }
                     blobEL->bloblen = blobSize;
                 } else {
                     uint32_t base64_encoded_size = pcdatalenXMLEle(ep);

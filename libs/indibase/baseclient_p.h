@@ -59,6 +59,9 @@ class BaseClientPrivate
 
     public:
         BLOBMode *findBLOBMode(const std::string &device, const std::string &property);
+        void enableDirectBlobAccess(const char * dev = nullptr, const char * prop = nullptr);
+    private:
+        bool isDirectBlobAccess(const std::string & dev, const std::string & prop) const;
 
     public:
         /** @brief Dispatch command received from INDI server to respective devices handled by the client */
@@ -86,8 +89,6 @@ class BaseClientPrivate
 
         // Add an attribute for access to shared blobs
         bool parseAttachedBlobs(XMLEle * root, std::vector<std::string> & blobs);
-        // Flush (release) all blobs with given ID that have not been consumed
-        static void flushBlobs(const std::vector<std::string> & ids);
 
     public:
         BaseClient *parent;
@@ -104,6 +105,7 @@ class BaseClientPrivate
         std::set<std::string> cDeviceNames;
         std::list<BLOBMode> blobModes;
         std::map<std::string, std::set<std::string>> cWatchProperties;
+        std::map<std::string, std::set<std::string>> directBlobAccess;
 
         std::string cServer;
         uint32_t cPort;

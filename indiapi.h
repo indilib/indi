@@ -446,7 +446,7 @@ typedef struct _IBLOB/* one BLOB descriptor */
     char label[MAXINDILABEL];
     /** Format attr */
     char format[MAXINDIBLOBFMT];
-    /** Allocated binary large object bytes */
+    /** Allocated binary large object bytes - maybe a shared buffer: use IDSharedBlobFree to free*/
     void *blob;
     /** Blob size in bytes */
     int bloblen;
@@ -523,8 +523,8 @@ extern void * IDSharedBlobAlloc(size_t size);
  */
 extern void * IDSharedBlobRealloc(void * ptr, size_t size);
 
-/** \brief Free a buffer allocated using IDSharedBlobAlloc.
-    \param size_t size of the memory area to allocate
+/** \brief Free a buffer allocated using IDSharedBlobAlloc. Fall back to free for buffer that are not shared blob
+ * Must be used for IBLOB.data
  */
 extern void IDSharedBlobFree(void * ptr);
 
