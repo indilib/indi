@@ -520,7 +520,7 @@ bool SynscanDriver::ReadScopeStatus()
     double de  = static_cast<double>(n2) / 0x100000000 * 360.0;
 
     INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
-    J2000Pos.rightascension  = range360(ra);
+    J2000Pos.rightascension  = range24(ra / 15.0);
     J2000Pos.declination = rangeDec(de);
 
     // Synscan reports J2000 coordinates so we need to convert from J2000 to JNow
