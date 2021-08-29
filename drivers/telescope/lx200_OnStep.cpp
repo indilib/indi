@@ -1850,6 +1850,7 @@ bool LX200_OnStep::ReadScopeStatus()
     char TempValue[RB_MAX_LEN];
     char TempValue2[RB_MAX_LEN];
     int i;
+    bool pier_not_set = true; // Avoid a call to :Gm if :GU it
     Errors Lasterror = ERR_NONE;
 
     if (isSimulation()) //if Simulation is selected
@@ -1862,7 +1863,7 @@ bool LX200_OnStep::ReadScopeStatus()
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error reading RA/DEC.");
-        return false;
+    //    return false;
     }
 
 #ifdef OnStep_Alpha
@@ -2126,6 +2127,24 @@ bool LX200_OnStep::ReadScopeStatus()
             {
                 IUSaveText(&OnstepStat[6], "AltAZ Mount");
                 OSMountType = 3;
+            }
+            
+
+            //Pier side: 
+            // o - nOne
+            // T - easT
+            // W - West
+            if (strstr(OSStat, "o")) {
+                setPierSide(PIER_UNKNOWN);
+                pier_not_set = false;
+            }
+            if (strstr(OSStat, "T")) {
+                setPierSide(PIER_EAST);
+                pier_not_set = false;
+            }
+            if (strstr(OSStat, "W")) {
+                setPierSide(PIER_WEST);
+                pier_not_set = false;
             }
 
             // ============= Error Code
@@ -2409,27 +2428,31 @@ bool LX200_OnStep::ReadScopeStatus()
 
 #ifndef OnStep_Alpha
     // Get actual Pier Side
-    getCommandString(PortFD, OSPier, ":Gm#");
-    if (strcmp(OSPier, OldOSPier) != 0) // any change ?
-    {
-        strncpy(OldOSPier, OSPier, sizeof(OldOSPier));
-        switch(OSPier[0])
+    if (pier_not_set) {
+        if (OSMountType == MOUNTTYPE_ALTAZ || OSMountType == MOUNTTYPE_FORK_ALT) 
         {
-            case 'E':
-                setPierSide(PIER_EAST);
-                break;
-
-            case 'W':
-                setPierSide(PIER_WEST);
-                break;
-
-            case 'N':
-                setPierSide(PIER_UNKNOWN);
-                break;
-
-            case '?':
-                setPierSide(PIER_UNKNOWN);
-                break;
+            setPierSide(PIER_UNKNOWN);
+        } else {
+            getCommandString(PortFD, OSPier, ":Gm#");
+            if (strcmp(OSPier, OldOSPier) != 0) // any change ?
+            {
+                strncpy(OldOSPier, OSPier, sizeof(OldOSPier));
+                switch(OSPier[0])
+                {
+                    case 'E':
+                        setPierSide(PIER_EAST);
+                        break;
+                    case 'W':
+                        setPierSide(PIER_WEST);
+                        break;
+                    case 'N':
+                        setPierSide(PIER_UNKNOWN);
+                        break;
+                    case '?':
+                        setPierSide(PIER_UNKNOWN);
+                        break;
+                }
+            }
         }
     }
 #endif
