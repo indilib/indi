@@ -149,7 +149,7 @@ public:
 
         void skip() {
             if (pos == -1) return;
-            while(pos < (long int)ids.size() && !(*parent)[pos]) {
+            while(pos < (long int)ids.size() && !(*parent)[ids[pos]]) {
                 pos++;
             }
             if (pos == (long int)ids.size()) {
@@ -171,7 +171,7 @@ public:
         }
 
         M * operator*() const {
-            return (*parent)[pos];
+            return (*parent)[ids[pos]];
         }
     };
 
