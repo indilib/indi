@@ -279,6 +279,11 @@ bool SestoSenso2::Disconnect()
     return INDI::Focuser::Disconnect();
 }
 
+bool SestoSenso2::SetFocuserBacklash(int32_t steps)
+{
+    backlashTicks = steps;
+}
+
 const char *SestoSenso2::getDefaultName()
 {
     return "Sesto Senso 2";
@@ -786,7 +791,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
             {
                 if (bStage == BacklashMinimum)
                 {
-                    backlashTicks = static_cast<int32_t>(FocusAbsPosN[0].value);
+                    FocusBacklashN[0].value = static_cast<int32_t>(FocusAbsPosN[0].value);
 
                     IUSaveText(&BacklashMessageT[0], "Drive the focuser in the opposite direction, then press NEXT to finish.");
                     IDSetText(&BacklashMessageTP, nullptr);
@@ -794,9 +799,9 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 }
                 else if (bStage == BacklashMaximum)
                 {
-                    backlashTicks -= static_cast<int32_t>(FocusAbsPosN[0].value);
-                    SetFocuserBacklash(backlashTicks);
-                    SetFocuserBacklashEnabled((backlashTicks != 0));
+                    FocusBacklashN[0].value -= FocusAbsPosN[0].value;
+                    IDSetNumber(&FocusBacklashNP, nullptr);
+                    SetFocuserBacklashEnabled((static_cast<int32_t>(FocusBacklashN[0].value) != 0));
 
                     IUSaveText(&BacklashMessageT[0], "Backlash Measure Completed.");
                     IDSetText(&BacklashMessageTP, nullptr);
