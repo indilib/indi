@@ -109,7 +109,7 @@ class SestoSenso2 : public INDI::Focuser
         virtual bool ReverseFocuser(bool enabled) override;
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
-        virtual bool SetFocuserBacklash(int32_t steps);
+        virtual bool SetFocuserBacklash(int32_t steps) override;
 
         virtual bool saveConfigItems(FILE *fp) override;
 
