@@ -137,8 +137,6 @@ class SestoSenso2 : public INDI::Focuser
 
         int32_t startPos { 0 };
         int32_t backlashTicks { 0 };
-        int32_t backlashDeadzone { 0 };
-        bool backlashDirection;
         uint32_t targetPos { 0 };
         uint32_t lastPos { 0 };
         double lastVoltageIn { 0 };
@@ -253,8 +251,6 @@ class SestoSenso2 : public INDI::Focuser
         typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
 
-        INumber BacklashN[1] {};
-        INumberVectorProperty BacklashNP;
         ISwitch BacklashS[2];
         ISwitchVectorProperty BacklashSP;
         enum
