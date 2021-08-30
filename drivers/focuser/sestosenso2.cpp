@@ -281,7 +281,10 @@ bool SestoSenso2::Disconnect()
 
 bool SestoSenso2::SetFocuserBacklash(int32_t steps)
 {
-    backlashTicks = steps;
+    backlashTicks = fabs(steps);
+    backlashDirection = FocusAbsPosN[0].value < lastPos;
+    oldbacklashDirection = backlashDirection;
+    return true;
 }
 
 const char *SestoSenso2::getDefaultName()
@@ -393,7 +396,20 @@ bool SestoSenso2::updatePosition()
 
     try
     {
-        FocusAbsPosN[0].value = std::stoi(res);
+        int32_t currentPos = std::stoi(res);
+
+        if(backlashTicks != 0) {
+            char res[SESTO_LEN] = {0};
+            backlashDirection = currentPos < lastPos;
+            if (oldbacklashDirection != backlashDirection) {
+                oldbacklashDirection = backlashDirection;
+                backlashDeadZone = (backlashDirection ? -backlashTicks : backlashTicks);
+                if(command->go(static_cast<uint32_t>(currentPos + backlashDeadZone), res) == false)
+                    return false;
+            }
+        }
+
+        FocusAbsPosN[0].value = currentPos - backlashDeadZone;
         FocusAbsPosNP.s = IPS_OK;
         return true;
     }
