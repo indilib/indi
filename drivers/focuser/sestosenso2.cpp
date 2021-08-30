@@ -400,7 +400,7 @@ bool SestoSenso2::updatePosition()
 
         if(backlashTicks != 0) {
             char res[SESTO_LEN] = {0};
-            backlashDirection = currentPos < lastPos;
+            backlashDirection = currentPos < static_cast<int32_t>(lastPos);
             if (oldbacklashDirection != backlashDirection) {
                 oldbacklashDirection = backlashDirection;
                 backlashDeadZone = (backlashDirection ? -backlashTicks : backlashTicks);
@@ -817,7 +817,7 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 {
                     FocusBacklashN[0].value -= FocusAbsPosN[0].value;
                     IDSetNumber(&FocusBacklashNP, nullptr);
-                    SetFocuserBacklashEnabled((static_cast<int32_t>(FocusBacklashN[0].value) != 0));
+                    SetFocuserBacklashEnabled(true);
 
                     IUSaveText(&BacklashMessageT[0], "Backlash Measure Completed.");
                     IDSetText(&BacklashMessageTP, nullptr);
