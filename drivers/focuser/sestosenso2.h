@@ -143,6 +143,7 @@ class SestoSenso2 : public INDI::Focuser
         int32_t backlashDeadZone { 0 };
         uint32_t targetPos { 0 };
         uint32_t lastPos { 0 };
+        int32_t previousPos { 0 };
         double lastVoltageIn { 0 };
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };

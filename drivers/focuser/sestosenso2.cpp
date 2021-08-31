@@ -282,8 +282,9 @@ bool SestoSenso2::Disconnect()
 bool SestoSenso2::SetFocuserBacklash(int32_t steps)
 {
     backlashTicks = fabs(steps);
-    backlashDirection = FocusAbsPosN[0].value < lastPos;
+    backlashDirection = steps < 0;
     oldbacklashDirection = backlashDirection;
+    backlashDeadZone = 0;
     return true;
 }
 
@@ -400,7 +401,7 @@ bool SestoSenso2::updatePosition()
 
         if(backlashTicks != 0) {
             char res[SESTO_LEN] = {0};
-            backlashDirection = currentPos < static_cast<int32_t>(lastPos);
+            backlashDirection = currentPos < previousPos;
             if (oldbacklashDirection != backlashDirection) {
                 oldbacklashDirection = backlashDirection;
                 backlashDeadZone = (backlashDirection ? -backlashTicks : backlashTicks);
@@ -408,6 +409,7 @@ bool SestoSenso2::updatePosition()
                     return false;
             }
         }
+        previousPos = currentPos;
 
         FocusAbsPosN[0].value = currentPos - backlashDeadZone;
         FocusAbsPosNP.s = IPS_OK;
