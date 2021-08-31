@@ -281,10 +281,7 @@ bool SestoSenso2::Disconnect()
 
 bool SestoSenso2::SetFocuserBacklash(int32_t steps)
 {
-    backlashTicks = fabs(steps);
-    backlashDirection = steps < 0;
-    oldbacklashDirection = backlashDirection;
-    backlashDeadZone = 0;
+    INDI_UNUSED(steps);
     return true;
 }
 
@@ -397,21 +394,7 @@ bool SestoSenso2::updatePosition()
 
     try
     {
-        int32_t currentPos = std::stoi(res);
-
-        if(backlashTicks != 0) {
-            char res[SESTO_LEN] = {0};
-            backlashDirection = currentPos < previousPos;
-            if (oldbacklashDirection != backlashDirection) {
-                oldbacklashDirection = backlashDirection;
-                backlashDeadZone = (backlashDirection ? -backlashTicks : backlashTicks);
-                if(command->go(static_cast<uint32_t>(currentPos + backlashDeadZone), res) == false)
-                    return false;
-            }
-        }
-        previousPos = currentPos;
-
-        FocusAbsPosN[0].value = currentPos - backlashDeadZone;
+        FocusAbsPosN[0].value = std::stoi(res);
         FocusAbsPosNP.s = IPS_OK;
         return true;
     }
@@ -1065,8 +1048,20 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 
     if (isSimulation() == false)
     {
+        uint32_t position = targetTicks;
+
+        // implement backlash
+        int delta = targetTicks - FocusAbsPosN[0].value;
+        if ((FocusBacklashN[0].value < 0 && delta > 0) ||
+                (FocusBacklashN[0].value > 0 && delta < 0))
+        {
+            backlashMove = true;
+            finalPosition = position;
+            position -= FocusBacklashN[0].value;
+        }
+
         char res[SESTO_LEN] = {0};
-        if (command->go(static_cast<uint32_t>(FocusAbsPosN[0].value), res) == false)
+        if (command->go(position, res) == false)
             return IPS_ALERT;
     }
 
@@ -1132,11 +1127,23 @@ void SestoSenso2::checkMotionProgressCallback()
 {
     if (isMotionComplete())
     {
-        FocusAbsPosNP.s = IPS_OK;
-        FocusRelPosNP.s = IPS_OK;
-        SpeedNP.s = IPS_OK;
-        SpeedN[0].value = 0;
-        IDSetNumber(&SpeedNP, nullptr);
+        if (backlashMove)
+        {
+            backlashMove = false;
+            char res[SESTO_LEN] = {0};
+            if (command->go(finalPosition, res))
+                LOGF_INFO("Backlash move to %i", finalPosition);
+            else
+                LOG_INFO("Backlash move failed");
+        }
+        else
+        {
+            FocusAbsPosNP.s = IPS_OK;
+            FocusRelPosNP.s = IPS_OK;
+            SpeedNP.s = IPS_OK;
+            SpeedN[0].value = 0;
+            IDSetNumber(&SpeedNP, nullptr);
+        }
 
         IDSetNumber(&FocusRelPosNP, nullptr);
         IDSetNumber(&FocusAbsPosNP, nullptr);
