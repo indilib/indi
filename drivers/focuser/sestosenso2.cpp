@@ -1051,7 +1051,6 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 
     if (isSimulation() == false)
     {
-        int32_t targetPos = static_cast<int32_t>(targetTicks);
         backlashDirection = targetTicks < lastPos ? FOCUS_INWARD : FOCUS_OUTWARD;
         if (oldbacklashDirection != backlashDirection) {
             oldbacklashDirection = backlashDirection;
