@@ -286,7 +286,7 @@ bool SestoSenso2::Disconnect()
 
 bool SestoSenso2::SetFocuserBacklash(int32_t steps)
 {
-    backlashTicks = steps;
+    backlashTicks = static_cast<uint32_t>(abs(steps));
     backlashDirection = steps < 0 ? FOCUS_INWARD : FOCUS_OUTWARD;
     oldbacklashDirection = backlashDirection;
     return true;
@@ -1060,14 +1060,6 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
             targetPos +=  backlashTicks;
         } else {
             targetPos -=  backlashTicks;
-        }
-        if (oldbacklashDirection != backlashDirection) {
-            oldbacklashDirection = backlashDirection;
-            if(backlashDirection == FOCUS_INWARD) {
-                targetPos +=  backlashTicks;
-            } else {
-                targetPos -=  backlashTicks;
-            }
         }
         char res[SESTO_LEN] = {0};
         if (command->go(static_cast<uint32_t>(targetPos), res) == false)
