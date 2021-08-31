@@ -139,8 +139,7 @@ class SestoSenso2 : public INDI::Focuser
         FocusDirection backlashDirection { FOCUS_INWARD };
         FocusDirection oldbacklashDirection { FOCUS_INWARD };
         int32_t startPos { 0 };
-        int32_t backlashTicks { 0 };
-        int32_t virtualTicks { 0 };
+        uint32_t backlashTicks { 0 };
         uint32_t targetPos { 0 };
         uint32_t lastPos { 0 };
         int32_t previousPos { 0 };
