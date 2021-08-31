@@ -75,8 +75,8 @@ bool SestoSenso2::initProperties()
 
     INDI::Focuser::initProperties();
 
-    FocusBacklashN[0].min = -500;
-    FocusBacklashN[0].max = 500;
+    FocusBacklashN[0].min = 0;
+    FocusBacklashN[0].max = 1000;
     FocusBacklashN[0].step = 1;
     FocusBacklashN[0].value = 0;
 
