@@ -75,6 +75,11 @@ bool SestoSenso2::initProperties()
 
     INDI::Focuser::initProperties();
 
+    FocusBacklashN[0].min = -500;
+    FocusBacklashN[0].max = 500;
+    FocusBacklashN[0].step = 1;
+    FocusBacklashN[0].value = 0;
+
     setConnectionParams();
 
     // Firmware information
@@ -282,6 +287,7 @@ bool SestoSenso2::Disconnect()
 bool SestoSenso2::SetFocuserBacklash(int32_t steps)
 {
     backlashTicks = steps;
+    virtualTicks = 0;
     backlashDirection = steps < 0 ? FOCUS_INWARD : FOCUS_OUTWARD;
     oldbacklashDirection = backlashDirection;
     return true;
@@ -397,7 +403,7 @@ bool SestoSenso2::updatePosition()
     try
     {
         int32_t currentPos = std::stoi(res);
-        FocusAbsPosN[0].value = currentPos;
+        FocusAbsPosN[0].value = currentPos-(backlashDirection == FOCUS_INWARD ? backlashTicks : -backlashTicks);
         FocusAbsPosNP.s = IPS_OK;
         return true;
     }
@@ -592,7 +598,7 @@ bool SestoSenso2::isMotionComplete()
                 try
                 {
                     uint32_t newPos = std::stoi(res);
-                    FocusAbsPosN[0].value = newPos;
+                    FocusAbsPosN[0].value = newPos-(backlashDirection == FOCUS_INWARD ? backlashTicks : -backlashTicks);
                 }
                 catch (...)
                 {
@@ -1048,13 +1054,14 @@ bool SestoSenso2::ISNewNumber(const char *dev, const char *name, double values[]
 IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
+    virtualTicks = targetTicks;
 
     if (isSimulation() == false)
     {
         backlashDirection = targetTicks < lastPos ? FOCUS_INWARD : FOCUS_OUTWARD;
         if (oldbacklashDirection != backlashDirection) {
             oldbacklashDirection = backlashDirection;
-            targetPos += backlashTicks;
+            targetPos += backlashDirection == FOCUS_INWARD ? backlashTicks : -backlashTicks;
         }
         char res[SESTO_LEN] = {0};
         if (command->go(static_cast<uint32_t>(targetPos), res) == false)
