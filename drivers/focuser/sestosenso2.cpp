@@ -402,11 +402,6 @@ bool SestoSenso2::updatePosition()
     try
     {
         int32_t currentPos = std::stoi(res);
-        if(backlashDirection == FOCUS_INWARD) {
-            currentPos -= backlashTicks;
-        } else {
-            currentPos += backlashTicks;
-        }
         FocusAbsPosNP.s = IPS_OK;
         return true;
     }
@@ -601,11 +596,6 @@ bool SestoSenso2::isMotionComplete()
                 try
                 {
                     uint32_t newPos = std::stoi(res);
-                    if(backlashDirection == FOCUS_INWARD) {
-                        newPos -= backlashTicks;
-                    } else {
-                        newPos += backlashTicks;
-                    }
                     FocusAbsPosN[0].value = newPos;
                 }
                 catch (...)
@@ -1146,6 +1136,11 @@ void SestoSenso2::checkMotionProgressCallback()
 {
     if (isMotionComplete())
     {
+        if(backlashDirection == FOCUS_INWARD) {
+            SyncFocuser(FocusAbsPosN[0].value - backlashTicks);
+        } else {
+            SyncFocuser(FocusAbsPosN[0].value + backlashTicks);
+        }
         FocusAbsPosNP.s = IPS_OK;
         FocusRelPosNP.s = IPS_OK;
         SpeedNP.s = IPS_OK;
