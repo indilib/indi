@@ -75,14 +75,6 @@ bool SestoSenso2::initProperties()
 
     INDI::Focuser::initProperties();
 
-    // Focuser backlash
-    // CR this is a value, positive or negative to define the direction.  It will need to be implemented
-    // in the driver.
-    FocusBacklashN[0].min = -500;
-    FocusBacklashN[0].max = 500;
-    FocusBacklashN[0].step = 1;
-    FocusBacklashN[0].value = 0;
-
     setConnectionParams();
 
     // Firmware information
@@ -289,7 +281,9 @@ bool SestoSenso2::Disconnect()
 
 bool SestoSenso2::SetFocuserBacklash(int32_t steps)
 {
-    INDI_UNUSED(steps);
+    backlashTicks = steps;
+    backlashDirection = steps < 0 ? FOCUS_INWARD : FOCUS_OUTWARD;
+    oldbacklashDirection = backlashDirection;
     return true;
 }
 
@@ -402,7 +396,8 @@ bool SestoSenso2::updatePosition()
 
     try
     {
-        FocusAbsPosN[0].value = std::stoi(res);
+        int32_t currentPos = std::stoi(res);
+        FocusAbsPosN[0].value = currentPos;
         FocusAbsPosNP.s = IPS_OK;
         return true;
     }
@@ -1056,20 +1051,14 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 
     if (isSimulation() == false)
     {
-        uint32_t position = targetTicks;
-
-        // implement backlash
-        int delta = targetTicks - FocusAbsPosN[0].value;
-        if ((FocusBacklashN[0].value < 0 && delta > 0) ||
-                (FocusBacklashN[0].value > 0 && delta < 0))
-        {
-            backlashMove = true;
-            finalPosition = position;
-            position -= FocusBacklashN[0].value;
+        int32_t targetPos = static_cast<int32_t>(targetTicks);
+        backlashDirection = targetTicks < lastPos ? FOCUS_INWARD : FOCUS_OUTWARD;
+        if (oldbacklashDirection != backlashDirection) {
+            oldbacklashDirection = backlashDirection;
+            targetPos += backlashTicks;
         }
-
         char res[SESTO_LEN] = {0};
-        if (command->go(position, res) == false)
+        if (command->go(static_cast<uint32_t>(targetPos), res) == false)
             return IPS_ALERT;
     }
 
@@ -1135,23 +1124,11 @@ void SestoSenso2::checkMotionProgressCallback()
 {
     if (isMotionComplete())
     {
-        if (backlashMove)
-        {
-            backlashMove = false;
-            char res[SESTO_LEN] = {0};
-            if (command->go(finalPosition, res))
-                LOGF_INFO("Backlash move to %i", finalPosition);
-            else
-                LOG_INFO("Backlash move failed");
-        }
-        else
-        {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            SpeedNP.s = IPS_OK;
-            SpeedN[0].value = 0;
-            IDSetNumber(&SpeedNP, nullptr);
-        }
+        FocusAbsPosNP.s = IPS_OK;
+        FocusRelPosNP.s = IPS_OK;
+        SpeedNP.s = IPS_OK;
+        SpeedN[0].value = 0;
+        IDSetNumber(&SpeedNP, nullptr);
 
         IDSetNumber(&FocusRelPosNP, nullptr);
         IDSetNumber(&FocusAbsPosNP, nullptr);

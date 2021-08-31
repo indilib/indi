@@ -136,11 +136,13 @@ class SestoSenso2 : public INDI::Focuser
         void hexDump(char * buf, const char * data, int size);
         bool isMotionComplete();
 
-        bool backlashMove { false };
+        FocusDirection backlashDirection { FOCUS_INWARD };
+        FocusDirection oldbacklashDirection { FOCUS_INWARD };
         int32_t startPos { 0 };
+        int32_t backlashTicks { 0 };
         uint32_t targetPos { 0 };
         uint32_t lastPos { 0 };
-        uint32_t finalPosition { 0 };
+        int32_t previousPos { 0 };
         double lastVoltageIn { 0 };
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
