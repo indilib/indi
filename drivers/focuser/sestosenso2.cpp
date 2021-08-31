@@ -75,6 +75,14 @@ bool SestoSenso2::initProperties()
 
     INDI::Focuser::initProperties();
 
+    // Focuser backlash
+    // CR this is a value, positive or negative to define the direction.  It will need to be implemented
+    // in the driver.
+    FocusBacklashN[0].min = -500;
+    FocusBacklashN[0].max = 500;
+    FocusBacklashN[0].step = 1;
+    FocusBacklashN[0].value = 0;
+
     setConnectionParams();
 
     // Firmware information
