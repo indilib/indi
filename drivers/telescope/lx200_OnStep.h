@@ -27,6 +27,8 @@
     Version 1.11:
     - Cleanup and completely control TrackState. (Should eliminate various issues.)
     - Behind the scenes: More consistent command declarations (Should eliminate a type of error that's happened in the past when changing commands.)
+    - Don't report capability for PierSide and PEC unless supported (This will cause a call to updateProperties so a bunch of messages will be repeated.)
+    - From the last, move where the SlewRate values are defined to updateProperties, vs initProperties so that the extra calls to updateProperties don't mangle it. 
     
 
     Past Versions:
@@ -435,6 +437,7 @@ class LX200_OnStep : public LX200Generic, public INDI::WeatherInterface, public 
          * @brief PrintTrackState will print to the debug log the status of TrackState if 
          * DEBUG_TRACKSTATE is defined otherwise it will simply return.
          */
+// #define DEBUG_TRACKSTATE
         void PrintTrackState();
         
     private:

@@ -56,8 +56,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), WI(this), RotatorInterface(this)
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING |
     LX200_HAS_PRECISE_TRACKING_FREQ);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE
-                           | TELESCOPE_HAS_TRACK_RATE, 10 );
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK                         | TELESCOPE_HAS_TRACK_RATE, 10 );
 
     //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODE Already inherited from lx200generic,
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
@@ -501,7 +500,7 @@ bool LX200_OnStep::updateProperties()
                     if(fail_or_error < 0)
                     {
                         //Non detection = 0, Read errors < 0, stop
-                        LOGF_INFO("Function call failed, stopping Focurser probe, return: %i", fail_or_error);
+                        LOGF_INFO("Function call failed, stopping Focuser probe, return: %i", fail_or_error);
                         break;
                     }
                 }
@@ -535,6 +534,7 @@ bool LX200_OnStep::updateProperties()
         defineProperty(&VersionTP);
 
         //PEC
+        //TODO: Define later when it might be supported
         defineProperty(&OSPECStatusSP);
         defineProperty(&OSPECIndexSP);
         defineProperty(&OSPECRecordSP);
@@ -589,6 +589,17 @@ bool LX200_OnStep::updateProperties()
 //         {
 //             updateLocation(latitude, longitude, 0);
 //         }
+        //NOTE: if updateProperties is called it clobbers this, so added here
+        IUFillSwitch(&SlewRateS[0], "0", "0.25x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[1], "1", "0.5x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[2], "2", "1x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[3], "3", "2x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[4], "4", "4x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[5], "5", "8x", ISS_ON);
+        IUFillSwitch(&SlewRateS[6], "6", "24x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[7], "7", "48x", ISS_OFF);
+        IUFillSwitch(&SlewRateS[8], "8", "Half-Max", ISS_OFF);
+        IUFillSwitch(&SlewRateS[9], "9", "Max", ISS_OFF);
     }
     else
     {
@@ -1090,7 +1101,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             int ret;
             char cmd[CMD_MAX_LEN] = {0};
             int index = IUFindOnSwitchIndex(&SlewRateSP) ;//-1; //-1 because index is 1-10, OS Values are 0-9
-            snprintf(cmd, 5, ":R%d#", index);
+            snprintf(cmd, sizeof(cmd), ":R%d#", index);
             ret = sendOnStepCommandBlind(cmd);
 
             //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
@@ -1102,7 +1113,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 IDSetSwitch(&SlewRateSP, "Setting Max Slew Rate Failed");
                 return false;
             }
-            LOGF_INFO("Setting Max Slew Rate to %u\n", index);
+            LOGF_INFO("Setting Max Slew Rate to %u (%s) \n", index, SlewRateS[index].label);
             LOGF_DEBUG("OK Return value =%d", ret);
             MaxSlewRateNP.s           = IPS_OK;
             MaxSlewRateNP.np[0].value = index;
@@ -1883,8 +1894,10 @@ bool LX200_OnStep::ReadScopeStatus()
             
             // ============= Parkstatus
             
-            PrintTrackState();
-            LOG_DEBUG("^ Prior");
+            #ifdef DEBUG_TRACKSTATE
+                PrintTrackState();
+                LOG_DEBUG("^ Prior");
+            #endif
             // "P" (Parked moved to Telescope Status, since it would override any other Trackstatus
             if (strstr(OSStat, "F"))
             {
@@ -2047,7 +2060,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 IUSaveText(&OnstepStat[4], "Autorecord");
             }
 
-            //Handles pec with :GU, also disables the (old) :QZ# command
+            //Handles pec with :GU, also disables the (old) :$QZ?# command
             if (strstr(OSStat, "/"))
             {
                 IUSaveText(&OnstepStat[4], "Ignored");
@@ -2058,6 +2071,7 @@ bool LX200_OnStep::ReadScopeStatus()
             }
             if (strstr(OSStat, ";"))
             {
+                
                 IUSaveText(&OnstepStat[4], "AutoRecord (waiting on index)");
                 OSPECviaGU = true;
                 OSPECStatusSP.s = IPS_OK;
@@ -2090,6 +2104,19 @@ bool LX200_OnStep::ReadScopeStatus()
             }
             if (OSPECviaGU) 
             {
+                if (OSMountType != MOUNTTYPE_ALTAZ && OSMountType != MOUNTTYPE_FORK_ALT ) 
+                { //We have PEC reported via :GU already, enable if any are detected, as they are not reported with ALTAZ/FORK_ALT)
+                    //NOTE: Might want to drop the && !strstr(OSStat, "/") as it will startup that way.
+                    uint32_t capabilities = GetTelescopeCapability();
+                    if ((capabilities | TELESCOPE_HAS_PEC) != capabilities)
+                    {
+                        LOG_INFO("Telescope detected having PEC, setting that capability");
+                        LOGF_DEBUG("capabilites = %x", capabilities);
+                        capabilities |= TELESCOPE_HAS_PEC; 
+                        SetTelescopeCapability(capabilities, 10 );
+                        LX200_OnStep::updateProperties();
+                    }
+                }
                 IDSetSwitch(&OSPECStatusSP, nullptr);
                 IDSetSwitch(&OSPECRecordSP, nullptr);
                 IDSetSwitch(&OSPECIndexSP, nullptr);
@@ -2119,7 +2146,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 OSMountType = 1;
             }
             if (strstr(OSStat, "k"))
-            {
+            { //NOTE: This seems to have been removed from OnStep, so the chances of encountering it are small, I can't even find, but I think it was Alt-Az mounting of a FORK, now folded into ALTAZ
                 IUSaveText(&OnstepStat[6], "Fork Alt Mount");
                 OSMountType = 2;
             }
@@ -2134,17 +2161,27 @@ bool LX200_OnStep::ReadScopeStatus()
             // o - nOne
             // T - easT
             // W - West
-            if (strstr(OSStat, "o")) {
-                setPierSide(PIER_UNKNOWN);
-                pier_not_set = false;
-            }
-            if (strstr(OSStat, "T")) {
-                setPierSide(PIER_EAST);
-                pier_not_set = false;
-            }
-            if (strstr(OSStat, "W")) {
-                setPierSide(PIER_WEST);
-                pier_not_set = false;
+            if (OSMountType != MOUNTTYPE_ALTAZ && OSMountType != MOUNTTYPE_FORK_ALT) {
+                uint32_t capabilities = GetTelescopeCapability();
+                if ((capabilities | TELESCOPE_HAS_PIER_SIDE) != capabilities) {
+                    LOG_INFO("Telescope detected having Pier Side, adding that capability");
+                    LOGF_DEBUG("capabilites = %x", capabilities);
+                    capabilities |= TELESCOPE_HAS_PIER_SIDE;
+                    SetTelescopeCapability(capabilities, 10 );
+                    LX200_OnStep::updateProperties();
+                }
+                if (strstr(OSStat, "o")) {
+                    setPierSide(PIER_UNKNOWN);
+                    pier_not_set = false;
+                }
+                if (strstr(OSStat, "T")) {
+                    setPierSide(PIER_EAST);
+                    pier_not_set = false;
+                }
+                if (strstr(OSStat, "W")) {
+                    setPierSide(PIER_WEST);
+                    pier_not_set = false;
+                }
             }
 
             // ============= Error Code
@@ -3357,9 +3394,9 @@ IPState LX200_OnStep::PECStatus (int axis)
 {
 //     if (!OSPECviaGU) {
 	INDI_UNUSED(axis); //We only have RA on OnStep
-	if (OSPECEnabled == true)
+        if (OSPECEnabled == true && OSPECviaGU == false) //All current versions report via #GU
 	{
-		if (OSMountType == MOUNTTYPE_ALTAZ)
+		if (OSMountType == MOUNTTYPE_ALTAZ || OSMountType == MOUNTTYPE_FORK_ALT)
 		{
 		OSPECEnabled = false;
 		LOG_INFO("Command to give PEC called when Controller does not support PEC due to being Alt-Az Disabled");
