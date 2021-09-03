@@ -109,6 +109,7 @@ class SestoSenso2 : public INDI::Focuser
         virtual bool ReverseFocuser(bool enabled) override;
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
+        virtual bool SetFocuserBacklash(int32_t steps) override;
 
         virtual bool saveConfigItems(FILE *fp) override;
 
@@ -135,8 +136,13 @@ class SestoSenso2 : public INDI::Focuser
         void hexDump(char * buf, const char * data, int size);
         bool isMotionComplete();
 
+        FocusDirection backlashDirection { FOCUS_INWARD };
+        FocusDirection oldbacklashDirection { FOCUS_INWARD };
+        int32_t startPos { 0 };
+        uint32_t backlashTicks { 0 };
         uint32_t targetPos { 0 };
         uint32_t lastPos { 0 };
+        int32_t previousPos { 0 };
         double lastVoltageIn { 0 };
         double lastTemperature { 0 };
         uint16_t m_TemperatureCounter { 0 };
@@ -145,8 +151,8 @@ class SestoSenso2 : public INDI::Focuser
         INumber TemperatureN[2];
         enum
         {
-            TEMPERATURE_MOTOR,
             TEMPERATURE_EXTERNAL,
+            TEMPERATURE_MOTOR,
         };
 
         INumber SpeedN[1];
@@ -248,6 +254,19 @@ class SestoSenso2 : public INDI::Focuser
 
         typedef enum { Idle, GoToMiddle, GoMinimum, GoDupa, GoMaximum, Complete } CalibrationStage;
         CalibrationStage cStage { Idle };
+
+        ISwitch BacklashS[2];
+        ISwitchVectorProperty BacklashSP;
+        enum
+        {
+            BACKLASH_START,
+            BACKLASH_NEXT
+        };
+        IText BacklashMessageT[1] {};
+        ITextVectorProperty BacklashMessageTP;
+
+        typedef enum { BacklashIdle, BacklashMinimum, BacklashMaximum, BacklashComplete } BacklashStage;
+        BacklashStage bStage { BacklashIdle };
 
         //        int m_MotionProgressTimerID {-1};
         //        int m_HallSensorTimerID {-1};

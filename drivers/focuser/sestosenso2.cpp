@@ -60,7 +60,7 @@ SestoSenso2::SestoSenso2()
 {
     setVersion(0, 7);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_HAS_BACKLASH | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 
     m_MotionProgressTimer.callOnTimeout(std::bind(&SestoSenso2::checkMotionProgressCallback, this));
     m_MotionProgressTimer.setSingleShot(true);
@@ -74,6 +74,11 @@ bool SestoSenso2::initProperties()
 {
 
     INDI::Focuser::initProperties();
+
+    FocusBacklashN[0].min = 0;
+    FocusBacklashN[0].max = 1000;
+    FocusBacklashN[0].step = 1;
+    FocusBacklashN[0].value = 0;
 
     setConnectionParams();
 
@@ -108,6 +113,16 @@ bool SestoSenso2::initProperties()
     IUFillSwitch(&CalibrationS[CALIBRATION_START], "CALIBRATION_START", "Start", ISS_OFF);
     IUFillSwitch(&CalibrationS[CALIBRATION_NEXT], "CALIBRATION_NEXT", "Next", ISS_OFF);
     IUFillSwitchVector(&CalibrationSP, CalibrationS, 2, getDeviceName(), "FOCUS_CALIBRATION", "Calibration", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    IUFillText(&BacklashMessageT[0], "BACKLASH", "Backlash stage", "Press START to measure backlash.");
+    IUFillTextVector(&BacklashMessageTP, BacklashMessageT, 1, getDeviceName(), "BACKLASH_MESSAGE", "Backlash",
+                     MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+    // Backlash
+    IUFillSwitch(&BacklashS[BACKLASH_START], "BACKLASH_START", "Start", ISS_OFF);
+    IUFillSwitch(&BacklashS[BACKLASH_NEXT], "BACKLASH_NEXT", "Next", ISS_OFF);
+    IUFillSwitchVector(&BacklashSP, BacklashS, 2, getDeviceName(), "FOCUS_BACKLASH", "Backlash", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Speed Moves
@@ -203,6 +218,8 @@ bool SestoSenso2::updateProperties()
         defineProperty(&SpeedNP);
         defineProperty(&CalibrationMessageTP);
         defineProperty(&CalibrationSP);
+        defineProperty(&BacklashMessageTP);
+        defineProperty(&BacklashSP);
         defineProperty(&HomeSP);
         defineProperty(&MotorRateNP);
         defineProperty(&MotorCurrentNP);
@@ -232,6 +249,8 @@ bool SestoSenso2::updateProperties()
         deleteProperty(VoltageInNP.name);
         deleteProperty(CalibrationMessageTP.name);
         deleteProperty(CalibrationSP.name);
+        deleteProperty(BacklashMessageTP.name);
+        deleteProperty(BacklashSP.name);
         deleteProperty(SpeedNP.name);
         deleteProperty(HomeSP.name);
         deleteProperty(MotorRateNP.name);
@@ -263,6 +282,14 @@ bool SestoSenso2::Disconnect()
     //        command->goHome();
 
     return INDI::Focuser::Disconnect();
+}
+
+bool SestoSenso2::SetFocuserBacklash(int32_t steps)
+{
+    backlashTicks = static_cast<uint32_t>(abs(steps));
+    backlashDirection = steps < 0 ? FOCUS_INWARD : FOCUS_OUTWARD;
+    oldbacklashDirection = backlashDirection;
+    return true;
 }
 
 const char *SestoSenso2::getDefaultName()
@@ -374,7 +401,13 @@ bool SestoSenso2::updatePosition()
 
     try
     {
-        FocusAbsPosN[0].value = std::stoi(res);
+        int32_t currentPos = std::stoi(res);
+        if(backlashDirection == FOCUS_INWARD) {
+            currentPos += backlashTicks;
+        } else {
+            currentPos -= backlashTicks;
+        }
+        FocusAbsPosN[0].value = currentPos;
         FocusAbsPosNP.s = IPS_OK;
         return true;
     }
@@ -569,6 +602,11 @@ bool SestoSenso2::isMotionComplete()
                 try
                 {
                     uint32_t newPos = std::stoi(res);
+                    if(backlashDirection == FOCUS_INWARD) {
+                        newPos += backlashTicks;
+                    } else {
+                        newPos -= backlashTicks;
+                    }
                     FocusAbsPosN[0].value = newPos;
                 }
                 catch (...)
@@ -721,6 +759,84 @@ bool SestoSenso2::ISNewSwitch(const char *dev, const char *name, ISState *states
                 {
                     IUSaveText(&CalibrationMessageT[0], "Calibration not in progress.");
                     IDSetText(&CalibrationMessageTP, nullptr);
+                }
+
+            }
+            return true;
+        }
+        // Set backlash
+        else if (!strcmp(name, BacklashSP.name))
+        {
+            int current_switch = 0;
+
+            BacklashSP.s = IPS_BUSY;
+            //IDSetSwitch(&BacklashSP, nullptr);
+            IUUpdateSwitch(&BacklashSP, states, names, n);
+
+            current_switch = IUFindOnSwitchIndex(&BacklashSP);
+            BacklashS[current_switch].s = ISS_ON;
+            IDSetSwitch(&BacklashSP, nullptr);
+
+            if (current_switch == BACKLASH_START)
+            {
+                if (bStage == BacklashIdle || bStage == BacklashComplete )
+                {
+                    // Start the backlash measurement process
+                    LOG_INFO("Start Backlash Measure");
+                    BacklashSP.s = IPS_BUSY;
+                    IDSetSwitch(&BacklashSP, nullptr);
+
+                    //
+                    // Init
+                    //
+
+                    IUSaveText(&BacklashMessageT[0], "Drive the focuser in any direction until focus changes.");
+                    IDSetText(&BacklashMessageTP, nullptr);
+
+                    // Motor hold disabled during calibration init, so fetch new hold state
+                    fetchMotorSettings();
+
+                    // Set next step
+                    bStage = BacklashMinimum;
+                }
+                else
+                {
+                    LOG_INFO("Already started backlash measure. Proceed to next step.");
+                    IUSaveText(&BacklashMessageT[0], "Already started. Proceed to NEXT.");
+                    IDSetText(&BacklashMessageTP, nullptr);
+                }
+            }
+            else if (current_switch == BACKLASH_NEXT)
+            {
+                if (bStage == BacklashMinimum)
+                {
+                    FocusBacklashN[0].value = static_cast<int32_t>(FocusAbsPosN[0].value);
+
+                    IUSaveText(&BacklashMessageT[0], "Drive the focuser in the opposite direction, then press NEXT to finish.");
+                    IDSetText(&BacklashMessageTP, nullptr);
+                    bStage = BacklashMaximum;
+                }
+                else if (bStage == BacklashMaximum)
+                {
+                    FocusBacklashN[0].value -= FocusAbsPosN[0].value;
+                    IDSetNumber(&FocusBacklashNP, nullptr);
+                    SetFocuserBacklashEnabled(true);
+
+                    IUSaveText(&BacklashMessageT[0], "Backlash Measure Completed.");
+                    IDSetText(&BacklashMessageTP, nullptr);
+
+                    bStage = BacklashComplete;
+
+                    LOG_INFO("Backlash measurement completed");
+                    BacklashSP.s = IPS_OK;
+                    IDSetSwitch(&BacklashSP, nullptr);
+                    BacklashS[current_switch].s = ISS_OFF;
+                    IDSetSwitch(&BacklashSP, nullptr);
+                }
+                else
+                {
+                    IUSaveText(&BacklashMessageT[0], "Backlash not in progress.");
+                    IDSetText(&BacklashMessageTP, nullptr);
                 }
 
             }
@@ -950,8 +1066,14 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
 
     if (isSimulation() == false)
     {
+        backlashDirection = targetTicks < lastPos ? FOCUS_INWARD : FOCUS_OUTWARD;
+        if(backlashDirection == FOCUS_INWARD) {
+            targetPos -=  backlashTicks;
+        } else {
+            targetPos +=  backlashTicks;
+        }
         char res[SESTO_LEN] = {0};
-        if (command->go(targetTicks, res) == false)
+        if (command->go(static_cast<uint32_t>(targetPos), res) == false)
             return IPS_ALERT;
     }
 

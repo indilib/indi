@@ -1899,7 +1899,9 @@ bool LX200_OnStep::ReadScopeStatus()
                 PrintTrackState();
                 LOG_DEBUG("^ Prior");
             #endif
-            // "P" (Parked moved to Telescope Status, since it would override any other Trackstatus
+            // not [p]arked, parking [I]n-progress, [P]arked, Park [F]ailed
+            // "P" (Parked moved to Telescope Status, since it would override any other TrackState
+            // Other than parked, none of these affect TrackState
             if (strstr(OSStat, "F"))
             {
                 IUSaveText(&OnstepStat[3], "Parking Failed");
@@ -1918,6 +1920,7 @@ bool LX200_OnStep::ReadScopeStatus()
             
             
             // ============= Telescope Status
+            
             if (strstr(OSStat, "P"))
             {                
                 TrackState = SCOPE_PARKED;
@@ -1960,7 +1963,8 @@ bool LX200_OnStep::ReadScopeStatus()
                 PrintTrackState();
             }
             // Set TrackStateSP based on above:
-//             if (!strstr(OSStat, "n")) { //Can be tracking while slewing, but that causes flipping
+            // NOTE: Technically during a slew it can have tracking on, but elsewhere there is the assumption:
+            // Slewing = Not tracking
             if (TrackState == SCOPE_TRACKING){
                 TrackStateSP.s = IPS_BUSY;
                 TrackStateS[TRACK_ON].s = ISS_ON;
@@ -2017,7 +2021,6 @@ bool LX200_OnStep::ReadScopeStatus()
                 IUSaveText(&OnstepStat[2], "Refractoring Off");
                 IUSaveText(&OnstepStat[8], "N/A");
             }
-
 
             //if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
             if (strstr(OSStat, "H") && strstr(OSStat, "P"))
@@ -4301,3 +4304,4 @@ void LX200_OnStep::PrintTrackState()
     #endif
     return;
 }
+
