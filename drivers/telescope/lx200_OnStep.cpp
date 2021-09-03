@@ -1843,7 +1843,12 @@ bool LX200_OnStep::ReadScopeStatus()
                 IUSaveText(&OnstepStat[1], "Idle");
                 TrackState = SCOPE_IDLE;
             }
-            if (strstr(OSStat, "n") && !strstr(OSStat, "N"))
+            if (strstr(OSStat, "n") && !strstr(OSStat, "N")) // These conditions are for OnStep 3.x
+            {
+                IUSaveText(&OnstepStat[1], "Slewing");
+                TrackState = SCOPE_SLEWING;
+            }
+            if (!strstr(OSStat, "n") && !strstr(OSStat, "N")) // These conditions are for OnStep 4.x
             {
                 IUSaveText(&OnstepStat[1], "Slewing");
                 TrackState = SCOPE_SLEWING;
@@ -1901,7 +1906,7 @@ bool LX200_OnStep::ReadScopeStatus()
                 TrackState = SCOPE_PARKING;
                 IUSaveText(&OnstepStat[3], "Park in Progress");
             }
-            if (strstr(OSStat, "p"))
+            if (strstr(OSStat, "p")) // Jamie Flinn - this means unparked
             {
                 SetParked(false); //defaults to TrackState=SCOPE_IDLE but we want
                 if (strstr(OSStat, "nN"))   // azwing need to detect if unparked idle or tracking
@@ -1909,8 +1914,21 @@ bool LX200_OnStep::ReadScopeStatus()
                     IUSaveText(&OnstepStat[1], "Idle");
                     TrackState = SCOPE_IDLE;
                 }
-                else TrackState = SCOPE_TRACKING;
-                IUSaveText(&OnstepStat[3], "UnParked");
+                else if (strstr(OSStat, "n") && !strstr(OSStat, "N")) // These conditions are for OnStep 3.x
+                {
+                    TrackState = SCOPE_SLEWING;
+                    IUSaveText(&OnstepStat[1], "Slewing");
+                }
+                else if (!strstr(OSStat, "n") && !strstr(OSStat, "N")) // These conditions are for OnStep 4.x
+                {
+                    TrackState = SCOPE_SLEWING;
+                    IUSaveText(&OnstepStat[1], "Slewing");
+                }
+                else
+                {
+                    TrackState = SCOPE_TRACKING;
+                    IUSaveText(&OnstepStat[3], "UnParked");
+                }
             }
             // ============= End Parkstatus
 
