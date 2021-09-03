@@ -42,6 +42,8 @@ void linearize(float *buf, unsigned int len, struct v4l2_format *fmt)
     float *src = buf;
     switch (fmt->fmt.pix.colorspace)
     {
+        case V4L2_COLORSPACE_DEFAULT:
+            break;
         case V4L2_COLORSPACE_SMPTE240M:
             // Old obsolete HDTV standard. Replaced by REC 709.
             // This is the transfer function for SMPTE 240M

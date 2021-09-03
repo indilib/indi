@@ -1259,6 +1259,7 @@ bool CommandSet::send(const std::string &request, std::string &response) const
 
 bool CommandSet::sendCmd(const std::string &cmd, std::string property, char *res) const
 {
+    tcflush(PortFD, TCIOFLUSH);
     LOGF_DEBUG("Sending command: %s with property: %s", cmd.c_str(), property.c_str());
     std::string response;
     if (!send(cmd, response))

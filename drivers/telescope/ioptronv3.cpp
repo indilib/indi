@@ -54,7 +54,7 @@ IOptronV3::IOptronV3()
     /* v3.0 use default PEC Settings */
     scopeInfo.systemStatus = ST_TRACKING_PEC_OFF;
     // End Mod */
-    scopeInfo.slewRate     = SR_1;
+    scopeInfo.slewRate     = SR_MAX;
     scopeInfo.timeSource   = TS_RS232;
     scopeInfo.hemisphere   = HEMI_NORTH;
 
@@ -89,8 +89,8 @@ bool IOptronV3::initProperties()
     strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
     strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
     IUResetSwitch(&SlewRateSP);
-    // 64x is the default
-    SlewRateS[4].s = ISS_ON;
+    // Max is the default
+    SlewRateS[8].s = ISS_ON;
 
     /* Firmware */
     IUFillText(&FirmwareT[FW_MODEL], "Model", "", nullptr);
