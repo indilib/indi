@@ -491,7 +491,11 @@ void CCDSim::TimerHit()
         else
             TemperatureN[0].value = std::min(TemperatureRequest, TemperatureN[0].value + 0.5);
 
-        IDSetNumber(&TemperatureNP, nullptr);
+        if (std::abs(TemperatureN[0].value - m_LastTemperature) > 0.1)
+        {
+            m_LastTemperature = TemperatureN[0].value;
+            IDSetNumber(&TemperatureNP, nullptr);
+        }
 
         // Above 20, cooler is off
         if (TemperatureN[0].value >= 20)
