@@ -148,10 +148,10 @@ class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
         double lastTemperature { 0 };
         double lastVoltage { 0 };
         double ticksPerDegree { 0 };
-        uint32_t lastFocuserPosition { 0 };
-        uint32_t lastRotatorPosition { 0 };
-        uint32_t lastAuxPosition { 0 };
-        uint32_t targetPosition { 0 };
+        double lastFocuserPosition { 0 };
+        double lastRotatorPosition { 0 };
+        double lastAuxPosition { 0 };
+        double targetPosition { 0 };
         IPState rotationLimit { IPS_IDLE };
         IPState outSwitchLimit { IPS_IDLE };
         IPState inSwitchLimit { IPS_IDLE };
