@@ -29,44 +29,6 @@
 
 std::unique_ptr<SimpleCCD> simpleCCD(new SimpleCCD());
 
-void ISGetProperties(const char *dev)
-{
-    simpleCCD->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    simpleCCD->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    simpleCCD->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    simpleCCD->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    simpleCCD->ISSnoopDevice(root);
-}
-
 /**************************************************************************************
 ** Client is asking us to establish connection to the device
 ***************************************************************************************/
@@ -162,8 +124,7 @@ bool SimpleCCD::StartExposure(float duration)
     // Since we have only have one CCD with one chip, we set the exposure duration of the primary CCD
     PrimaryCCD.setExposureDuration(duration);
 
-    gettimeofday(&ExpStart, nullptr);
-
+    ExposureTimer.start();
     InExposure = true;
 
     // We're done
@@ -195,17 +156,7 @@ int SimpleCCD::SetTemperature(double temperature)
 ***************************************************************************************/
 float SimpleCCD::CalcTimeLeft()
 {
-    double timesince;
-    double timeleft;
-    struct timeval now { 0, 0 };
-    gettimeofday(&now, nullptr);
-
-    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
-                (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
-    timesince = timesince / 1000;
-
-    timeleft = ExposureRequest - timesince;
-    return timeleft;
+    return ExposureRequest - ExposureTimer.elapsed() / 1000.0;
 }
 
 /**************************************************************************************

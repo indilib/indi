@@ -29,20 +29,20 @@
 
 class Dome : public INDI::DefaultDevice
 {
-  public:
+public:
     Dome() = default;
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    bool ISSnoopDevice(XMLEle *root);
 
-  protected:
+protected:
     // General device functions
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
-    bool initProperties();
-    bool updateProperties();
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    bool ISSnoopDevice(XMLEle *root) override;
+    bool Connect() override;
+    bool Disconnect() override;
+    const char *getDefaultName() override;
+    bool initProperties() override;
+    bool updateProperties() override;
 
-  private:
+private:
     void closeShutter();
 
     ISwitch ShutterS[2];

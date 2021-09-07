@@ -99,7 +99,7 @@ class GuideSim : public INDI::CCD
         // Turns on/off Bayer RGB simulation.
         void setRGB(bool onOff);
 
-        float TemperatureRequest { 0 };
+        double TemperatureRequest { 0 };
 
         float ExposureRequest { 0 };
         struct timeval ExpStart
@@ -166,7 +166,7 @@ class GuideSim : public INDI::CCD
 
         //  And this lives in our simulator settings page
 
-        INumberVectorProperty *SimulatorSettingsNV;
+        INumberVectorProperty SimulatorSettingsNP;
         INumber SimulatorSettingsN[17];
 
         ISwitchVectorProperty SimulateRgbSP;

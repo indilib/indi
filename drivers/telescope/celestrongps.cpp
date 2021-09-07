@@ -54,43 +54,9 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 static std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
-void ISGetProperties(const char *dev)
-{
-    telescope->ISGetProperties(dev);
-}
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    telescope->ISNewSwitch(dev, name, states, names, n);
-}
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    telescope->ISNewText(dev, name, texts, names, n);
-}
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    telescope->ISNewNumber(dev, name, values, names, n);
-}
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    telescope->ISSnoopDevice(root);
-}
-
 CelestronGPS::CelestronGPS() : FI(this)
 {
-    setVersion(3, 5); // update libindi/drivers.xml as well
+    setVersion(3, 6); // update libindi/drivers.xml as well
 
 
     fwInfo.Version           = "Invalid";
@@ -199,7 +165,8 @@ bool CelestronGPS::initProperties()
     //////////////////////////////////////////////////////////////////////////////////////////////////
     IUFillNumber(&GuideRateN[AXIS_RA], "GUIDE_RATE_WE", "W/E Rate", "%0.2f", 0, 1, 0.1, GuideRateN[AXIS_RA].value);
     IUFillNumber(&GuideRateN[AXIS_DE], "GUIDE_RATE_NS", "N/S Rate", "%0.2f", 0, 1, 0.1, GuideRateN[AXIS_DE].value);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guide Rate x sidereal", GUIDE_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guide Rate x sidereal", GUIDE_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     ////////////////////////////////////////////////////////////////////////////////////////
     /// PEC
@@ -209,7 +176,8 @@ bool CelestronGPS::initProperties()
     IUFillSwitch(&PecControlS[PEC_Stop], "PEC_STOP", "Stop", ISS_OFF);
     IUFillSwitch(&PecControlS[PEC_Playback], "PEC_PLAYBACK", "Playback", ISS_OFF);
     IUFillSwitch(&PecControlS[PEC_Record], "PEC_RECORD", "Record", ISS_OFF);
-    IUFillSwitchVector(&PecControlSP, PecControlS, 4, getDeviceName(), "PEC_CONTROL", "PEC Control", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&PecControlSP, PecControlS, 4, getDeviceName(), "PEC_CONTROL", "PEC Control", MOTION_TAB, IP_RW,
+                       ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillText(&PecInfoT[0], "PEC_STATE", "Pec State", "undefined");
     IUFillText(&PecInfoT[1], "PEC_INDEX", "Pec Index", " ");
@@ -224,8 +192,9 @@ bool CelestronGPS::initProperties()
     /////////////////////////////
 
     IUFillSwitch(&DSTSettingS[0], "DST_ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitchVector(&DSTSettingSP, DSTSettingS, 1, getDeviceName(), "DST_STATE", "DST", SITE_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
-    
+    IUFillSwitchVector(&DSTSettingSP, DSTSettingS, 1, getDeviceName(), "DST_STATE", "DST", SITE_TAB, IP_RW, ISR_NOFMANY, 60,
+                       IPS_IDLE);
+
     addAuxControls();
 
     //GUIDE Set guider interface.
@@ -431,13 +400,11 @@ bool CelestronGPS::updateProperties()
             uint8_t rate;
             if (driver.get_guide_rate(CELESTRON_AXIS::RA_AXIS, &rate))
             {
-                GuideRateN[AXIS_RA].value = static_cast<double>(rate) / 255.0;
-                LOGF_DEBUG("Get Guide Rate: Ra %f", GuideRateN[AXIS_RA].value);
-
+                GuideRateN[AXIS_RA].value = std::min(std::max(static_cast<double>(rate) / 255.0, 0.0), 1.0);
+                LOGF_DEBUG("Get Guide Rate: RA %f", GuideRateN[AXIS_RA].value);
                 if (driver.get_guide_rate(CELESTRON_AXIS::DEC_AXIS, &rate))
                 {
-                    GuideRateN[AXIS_DE].value = static_cast<double>(rate) / 255.0;
-
+                    GuideRateN[AXIS_DE].value = std::min(std::max(static_cast<double>(rate) / 255.0, 0.0), 1.0);
                     IDSetNumber(&GuideRateNP, nullptr);
                     LOGF_DEBUG("Get Guide Rate: Dec %f", GuideRateN[AXIS_DE].value);
                 }
@@ -503,7 +470,7 @@ bool CelestronGPS::updateProperties()
         // last align is only available for mounts with switches that define the start index position
         // At present that is only the CGX and CGX-L mounts so the control is only made available for them
         // comment out this line and rebuild if you want to run with other mounts - at your own risk!
-        if (strcmp(fwInfo.Model.c_str(), "CGX") == 0)
+        if (fwInfo.hasHomeIndex)
         {
             defineProperty(&LastAlignSP);
         }
@@ -628,14 +595,14 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
 {
     if (isSimulation())
     {
-        ln_hrz_posn horizontalPos;
+        INDI::IHorizontalCoordinates horizontalPos;
         // Libnova south = 0, west = 90, north = 180, east = 270
         horizontalPos.az = az + 180;
         if (horizontalPos.az >= 360)
              horizontalPos.az -= 360;
         horizontalPos.alt = alt;
 
-        ln_lnlat_posn observer;
+        IGeographicCoordinates observer;
 
         observer.lat = LocationN[LOCATION_LATITUDE].value;
         observer.lng = LocationN[LOCATION_LONGITUDE].value;
@@ -643,10 +610,10 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
         if (observer.lng > 180)
             observer.lng -= 360;
 
-        ln_equ_posn equatorialPos;
+        INDI::IEquatorialCoordinates equatorialPos;
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
-        targetRA  = equatorialPos.ra/15.0;
+        targetRA  = equatorialPos.rightascension/15.0;
         targetDEC = equatorialPos.dec;
     }
 
@@ -815,7 +782,7 @@ bool CelestronGPS::ReadScopeStatus()
             // reached the index position.
 
             // do an alignment
-            if (strcmp(fwInfo.Model.c_str(), "CGX") != 0)
+            if (!fwInfo.hasHomeIndex)
             {
                 // put another dire warning here
                 LOG_WARN("This mount does not have index switches, the alignment assumes it is at the index position.");
@@ -862,7 +829,7 @@ bool CelestronGPS::ReadScopeStatus()
                 {
                     // average last two values
                     SlewOffsetRa = SlewOffsetRa > 0 ? (SlewOffsetRa + raoffset) / 2 : raoffset;
-                    
+
                     LOGF_DEBUG("raoffset %4.1f, SlewOffsetRa %4.1f arcsec", raoffset * 3600 * 15, SlewOffsetRa * 3600 * 15);
                 }
             }
@@ -1118,7 +1085,7 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
 
         if (name && std::string(name) == LastAlignSP.name)
         {
-            if (strcmp(fwInfo.Model.c_str(), "CGX") != 0)
+            if (!fwInfo.hasHomeIndex)
             {
                 // put the dire warning here
                 LOG_WARN("This mount does not have index switches, make sure that it is at the index position.");
@@ -1262,8 +1229,9 @@ bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[
             IDSetNumber(&GuideRateNP, nullptr);
             uint8_t grRa  = static_cast<uint8_t>(std::min(GuideRateN[AXIS_RA].value * 256.0, 255.0));
             uint8_t grDec = static_cast<uint8_t>(std::min(GuideRateN[AXIS_DE].value * 256.0, 255.0));
-            LOGF_DEBUG("Set Guide Rates (0-1x sidereal): Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
-            LOGF_DEBUG("Set Guide Rates         (0-255): Ra %i, Dec %i", grRa, grDec);
+            //LOGF_DEBUG("Set Guide Rates (0-1x sidereal): Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
+            //LOGF_DEBUG("Set Guide Rates         (0-255): Ra %i, Dec %i", grRa, grDec);
+            LOGF_DEBUG("Set Guide Rates: Ra %f, Dec %f", GuideRateN[AXIS_RA].value, GuideRateN[AXIS_DE].value);
             driver.set_guide_rate(CELESTRON_AXIS::RA_AXIS, grRa);
             driver.set_guide_rate(CELESTRON_AXIS::DEC_AXIS, grDec);
             LOG_WARN("Changing guide rates may require recalibration of guiding.");
@@ -1547,7 +1515,8 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 
     bool dst = DSTSettingS[0].s == ISS_ON;
 
-    LOGF_DEBUG("Update time: offset %f %s UTC %i-%02i-%02iT%02i:%02i:%02.0f", utc_offset, dst ? "DST" : "", utc->years, utc->months, utc->days,
+    LOGF_DEBUG("Update time: offset %f %s UTC %i-%02i-%02iT%02i:%02i:%02.0f", utc_offset, dst ? "DST" : "", utc->years,
+               utc->months, utc->days,
                utc->hours, utc->minutes, utc->seconds);
 
     return (driver.set_datetime(utc, utc_offset, dst, precise));
@@ -1729,7 +1698,7 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
     ISwitch moveS = MovementNSS[0];
     int* guideTID = &GuideNSTID;
     int* ticks = &ticksNS;
-    unsigned char rate = 50;
+    uint8_t rate = 50;
 
     // set up pointers to the various things needed
     switch (dirn)
@@ -1740,7 +1709,8 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementNSS[0];
             guideTID = &GuideNSTID;
             ticks = &ticksNS;
-            rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value * 255);
+            /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
+            rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value * 100.0);
             break;
         case CELESTRON_S:
             dc = 'S';
@@ -1748,7 +1718,8 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementNSS[1];
             guideTID = &GuideNSTID;
             ticks = &ticksNS;
-            rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value * 255);
+            /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
+            rate = guideRateDec = static_cast<uint8_t>(GuideRateN[AXIS_DE].value * 100.0);
             break;
         case CELESTRON_E:
             dc = 'E';
@@ -1756,7 +1727,8 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementWES[1];
             guideTID = &GuideWETID;
             ticks = &ticksWE;
-            rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value * 255);
+            /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
+            rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value * 100.0);
             break;
         case CELESTRON_W:
             dc = 'W';
@@ -1764,7 +1736,8 @@ IPState CelestronGPS::Guide(CELESTRON_DIRECTION dirn, uint32_t ms)
             moveS = MovementWES[0];
             guideTID = &GuideWETID;
             ticks = &ticksWE;
-            rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value * 255);
+            /* Scale guide rates to uint8 in [0..100] for sending to telescopoe, see  CelestronDriver::send_pulse() */
+            rate = guideRateRa = static_cast<uint8_t>(GuideRateN[AXIS_RA].value * 100.0);
             break;
     }
 
@@ -1859,7 +1832,7 @@ void CelestronGPS::guideTimerHelperE(void *p)
 void CelestronGPS::guideTimer(CELESTRON_DIRECTION dirn)
 {
     int* ticks = &ticksNS;
-    uint8_t rate = 50;
+    uint8_t rate = 0;
 
     switch(dirn)
     {
@@ -1874,6 +1847,7 @@ void CelestronGPS::guideTimer(CELESTRON_DIRECTION dirn)
             rate = guideRateRa;
             break;
     }
+
     LOGF_DEBUG("guideTimer dir %c, ticks %i, rate %i", "NSWE"[dirn], *ticks, rate);
 
     if (canAuxGuide)
@@ -2119,6 +2093,3 @@ bool CelestronGPS::focusReadLimits()
     LOGF_INFO("Focus Limits: Maximum (%i) Minimum (%i) steps.", high, low);
     return valid;
 }
-
-
-

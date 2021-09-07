@@ -40,44 +40,6 @@
 
 std::unique_ptr<SteelDrive> steelDrive(new SteelDrive());
 
-void ISGetProperties(const char *dev)
-{
-    steelDrive->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    steelDrive->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    steelDrive->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    steelDrive->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    steelDrive->ISSnoopDevice(root);
-}
-
 SteelDrive::SteelDrive()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
@@ -231,8 +193,8 @@ const char *SteelDrive::getDefaultName()
 bool SteelDrive::Ack()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char resp[STEELDRIVE_MAXBUF] = {0};
     char hwVer[STEELDRIVE_MAXBUF];
 
     tcflush(PortFD, TCIOFLUSH);
@@ -273,8 +235,8 @@ bool SteelDrive::Ack()
 bool SteelDrive::updateVersion()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char resp[STEELDRIVE_MAXBUF] = {0};
     char hardware_string[MAXRBUF];
     char firmware_string[MAXRBUF];
 
@@ -391,8 +353,8 @@ bool SteelDrive::updateVersion()
 bool SteelDrive::updateTemperature()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char resp[STEELDRIVE_MAXBUF] = {0};
     int temperature;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -454,8 +416,8 @@ bool SteelDrive::updateTemperature()
 bool SteelDrive::updatePosition()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char resp[STEELDRIVE_MAXBUF] = {0};
     unsigned short pos = 0;
     int retries        = 0;
 
@@ -520,8 +482,8 @@ bool SteelDrive::updatePosition()
 bool SteelDrive::updateSpeed()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char resp[STEELDRIVE_MAXBUF] = {0};
     unsigned short speed;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -572,8 +534,8 @@ bool SteelDrive::updateSpeed()
 bool SteelDrive::updateAcceleration()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char resp[STEELDRIVE_MAXBUF] = {0};
     unsigned short accel;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -623,8 +585,8 @@ bool SteelDrive::updateAcceleration()
 bool SteelDrive::updateTemperatureSettings()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char resp[STEELDRIVE_MAXBUF] = {0};
 
     char selectedFocuser[1], coeff[3], enabled[1], tResp[STEELDRIVE_MAXBUF];
 
@@ -686,8 +648,8 @@ bool SteelDrive::updateTemperatureSettings()
 bool SteelDrive::updateCustomSettings()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char resp[STEELDRIVE_MAXBUF] = {0};
 
     char selectedFocuser[2], maxTrip[8], tResp[STEELDRIVE_MAXBUF];
     int gearR;
@@ -797,8 +759,8 @@ bool SteelDrive::updateCustomSettings()
 bool SteelDrive::setTemperatureSamples(unsigned int targetSamples, unsigned int *finalSample)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char cmd[STEELDRIVE_MAXBUF] = {0};
 
     int maxSample = TemperatureSettingN[FOCUS_T_SAMPLES].max;
     int sample    = 0;
@@ -849,8 +811,8 @@ bool SteelDrive::setTemperatureSamples(unsigned int targetSamples, unsigned int 
 bool SteelDrive::setTemperatureCompensation()
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char cmd[STEELDRIVE_MAXBUF] = {0};
 
     double coeff      = TemperatureSettingN[FOCUS_T_COEFF].value;
     bool enable       = TemperatureCompensateS[0].s == ISS_ON;
@@ -878,8 +840,8 @@ bool SteelDrive::setTemperatureCompensation()
 bool SteelDrive::setCustomSettings(double maxTrip, double gearRatio)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char cmd[STEELDRIVE_MAXBUF] = {0};
 
     unsigned short mmTrip = (unsigned short int)(maxTrip / gearRatio * 100.0);
 
@@ -918,8 +880,8 @@ bool SteelDrive::setCustomSettings(double maxTrip, double gearRatio)
 bool SteelDrive::Sync(unsigned int position)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char cmd[STEELDRIVE_MAXBUF] = {0};
 
     snprintf(cmd, STEELDRIVE_CMD_LONG + 1, ":FB%07d#", position);
 
@@ -945,8 +907,8 @@ bool SteelDrive::Sync(unsigned int position)
 bool SteelDrive::moveFocuser(unsigned int position)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char cmd[STEELDRIVE_MAXBUF] = {0};
 
     if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
     {
@@ -982,12 +944,12 @@ bool SteelDrive::moveFocuser(unsigned int position)
 bool SteelDrive::startMotion(FocusDirection dir)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char cmd[STEELDRIVE_MAXBUF] = {0};
 
     // inward  --> decreasing value --> DOWN
     // outward --> increasing value --> UP
-    strncpy(cmd, (dir == FOCUS_INWARD) ? ":F2MDOW0#" : ":F1MUP00#", STEELDRIVE_CMD);
+    strncpy(cmd, (dir == FOCUS_INWARD) ? ":F2MDOW0#" : ":F1MUP00#", STEELDRIVE_CMD + 1);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1009,8 +971,8 @@ bool SteelDrive::startMotion(FocusDirection dir)
 bool SteelDrive::setSpeed(unsigned short speed)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char cmd[STEELDRIVE_MAXBUF] = {0};
 
     snprintf(cmd, STEELDRIVE_CMD + 1, ":Fg%05d#", speed);
 
@@ -1036,8 +998,8 @@ bool SteelDrive::setSpeed(unsigned short speed)
 bool SteelDrive::setAcceleration(unsigned short accel)
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[STEELDRIVE_MAXBUF];
+    char errstr[MAXRBUF] = {0};
+    char cmd[STEELDRIVE_MAXBUF] = {0};
 
     snprintf(cmd, STEELDRIVE_CMD + 1, ":Fh%05d#", accel);
 
@@ -1459,7 +1421,7 @@ void SteelDrive::TimerHit()
 bool SteelDrive::AbortFocuser()
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
+    char errstr[MAXRBUF] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1478,7 +1440,8 @@ bool SteelDrive::AbortFocuser()
         IDSetNumber(&FocusRelPosNP, nullptr);
     }
 
-    FocusTimerNP.s = FocusAbsPosNP.s = IPS_IDLE;
+    FocusTimerNP.s = IPS_IDLE;
+    FocusAbsPosNP.s = IPS_IDLE;
     IDSetNumber(&FocusTimerNP, nullptr);
     IDSetNumber(&FocusAbsPosNP, nullptr);
 
@@ -1528,7 +1491,7 @@ bool SteelDrive::saveConfigItems(FILE *fp)
 bool SteelDrive::saveFocuserConfig()
 {
     int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
+    char errstr[MAXRBUF] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 

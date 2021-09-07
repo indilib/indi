@@ -2,9 +2,9 @@
    INDI Developers Manual
    Tutorial #3
 
-   "Simple Spectrograph Driver"
+   "Simple Receiver Driver"
 
-   We develop a simple Spectrograph driver.
+   We develop a simple Receiver driver.
 
    Refer to README, which contains instruction on how to build this driver, and use it
    with an INDI-compatible client.
@@ -12,69 +12,31 @@
 */
 
 /** \file simpledetector.cpp
-    \brief Construct a basic INDI Spectrograph device that simulates exposure & temperature settings. It also generates a random pattern and uploads it as a FITS file.
+    \brief Construct a basic INDI Receiver device that simulates exposure & temperature settings. It also generates a random pattern and uploads it as a FITS file.
     \author Ilia Platone, clearly taken from SimpleCCD by Jasem Mutlaq
 
     \example simpledetector.cpp
-    A simple Spectrograph device that can capture images and control temperature. It returns a FITS image to the client. To build drivers for complex Spectrographs, please
-    refer to the INDI Generic Spectrograph driver template in INDI SVN (under 3rdparty).
+    A simple Receiver device that can capture images and control temperature. It returns a FITS image to the client. To build drivers for complex Receivers, please
+    refer to the INDI Generic Receiver driver template in INDI SVN (under 3rdparty).
 */
 
-#include "simple_spectrograph.h"
+#include "simple_receiver.h"
 
 #include <memory>
 
-/* Macro shortcut to Spectrograph temperature value */
-#define currentSpectrographTemperature TemperatureN[0].value
+/* Macro shortcut to Receiver temperature value */
+#define currentReceiverTemperature TemperatureN[0].value
 
-std::unique_ptr<SimpleSpectrograph> simpleSpectrograph(new SimpleSpectrograph());
-
-void ISGetProperties(const char *dev)
-{
-    simpleSpectrograph->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    simpleSpectrograph->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    simpleSpectrograph->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    simpleSpectrograph->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    simpleSpectrograph->ISSnoopDevice(root);
-}
+std::unique_ptr<SimpleReceiver> simpleReceiver(new SimpleReceiver());
 
 /**************************************************************************************
 ** Client is asking us to establish connection to the device
 ***************************************************************************************/
-bool SimpleSpectrograph::Connect()
+bool SimpleReceiver::Connect()
 {
-    IDMessage(getDeviceName(), "Simple Spectrograph connected successfully!");
+    IDMessage(getDeviceName(), "Simple Receiver connected successfully!");
 
-    // Let's set a timer that checks teleSpectrographs status every POLLMS milliseconds.
+    // Let's set a timer that checks teleReceivers status every POLLMS milliseconds.
     SetTimer(getCurrentPollingPeriod());
 
     return true;
@@ -83,29 +45,29 @@ bool SimpleSpectrograph::Connect()
 /**************************************************************************************
 ** Client is asking us to terminate connection to the device
 ***************************************************************************************/
-bool SimpleSpectrograph::Disconnect()
+bool SimpleReceiver::Disconnect()
 {
-    IDMessage(getDeviceName(), "Simple Spectrograph disconnected successfully!");
+    IDMessage(getDeviceName(), "Simple Receiver disconnected successfully!");
     return true;
 }
 
 /**************************************************************************************
 ** INDI is asking us for our default device name
 ***************************************************************************************/
-const char *SimpleSpectrograph::getDefaultName()
+const char *SimpleReceiver::getDefaultName()
 {
-    return "Simple Spectrograph";
+    return "Simple Receiver";
 }
 
 /**************************************************************************************
 ** INDI is asking us to init our properties.
 ***************************************************************************************/
-bool SimpleSpectrograph::initProperties()
+bool SimpleReceiver::initProperties()
 {
     // Must init parent properties first!
-    INDI::Spectrograph::initProperties();
+    INDI::Receiver::initProperties();
 
-    // We set the Spectrograph capabilities
+    // We set the Receiver capabilities
     uint32_t cap = SENSOR_CAN_ABORT | SENSOR_HAS_COOLER | SENSOR_HAS_SHUTTER;
     SetCapability(cap);
 
@@ -121,14 +83,14 @@ bool SimpleSpectrograph::initProperties()
 ** INDI is asking us to update the properties because there is a change in CONNECTION status
 ** This fucntion is called whenever the device is connected or disconnected.
 *********************************************************************************************/
-bool SimpleSpectrograph::updateProperties()
+bool SimpleReceiver::updateProperties()
 {
     // Call parent update properties first
-    INDI::Spectrograph::updateProperties();
+    INDI::Receiver::updateProperties();
 
     if (isConnected())
     {
-        // Let's get parameters now from Spectrograph
+        // Let's get parameters now from Receiver
         setupParams();
 
         // Start the timer
@@ -141,7 +103,7 @@ bool SimpleSpectrograph::updateProperties()
 /**************************************************************************************
 ** Client is updating capture settings
 ***************************************************************************************/
-bool SimpleSpectrograph::paramsUpdated(float sr, float freq, float bps, float bw, float gain)
+bool SimpleReceiver::paramsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
     INDI_UNUSED(bps);
     INDI_UNUSED(freq);
@@ -152,11 +114,11 @@ bool SimpleSpectrograph::paramsUpdated(float sr, float freq, float bps, float bw
 }
 
 /**************************************************************************************
-** Setting up Spectrograph parameters
+** Setting up Receiver parameters
 ***************************************************************************************/
-void SimpleSpectrograph::setupParams()
+void SimpleReceiver::setupParams()
 {
-    // Our Spectrograph is an 8 bit Spectrograph, 100MHz frequency 1MHz samplerate.
+    // Our Receiver is an 8 bit Receiver, 100MHz frequency 1MHz samplerate.
     setFrequency(1000000.0);
     setSampleRate(100000000.0);
     setBPS(16);
@@ -167,11 +129,11 @@ void SimpleSpectrograph::setupParams()
 /**************************************************************************************
 ** Client is asking us to start an exposure
 ***************************************************************************************/
-bool SimpleSpectrograph::StartIntegration(double duration)
+bool SimpleReceiver::StartIntegration(double duration)
 {
     IntegrationRequest = duration;
 
-    // Since we have only have one Spectrograph with one chip, we set the exposure duration of the primary Spectrograph
+    // Since we have only have one Receiver with one chip, we set the exposure duration of the primary Receiver
     setIntegrationTime(duration);
 
     gettimeofday(&CapStart, nullptr);
@@ -185,7 +147,7 @@ bool SimpleSpectrograph::StartIntegration(double duration)
 /**************************************************************************************
 ** Client is asking us to abort an exposure
 ***************************************************************************************/
-bool SimpleSpectrograph::AbortIntegration()
+bool SimpleReceiver::AbortIntegration()
 {
     InIntegration = false;
     return true;
@@ -194,7 +156,7 @@ bool SimpleSpectrograph::AbortIntegration()
 /**************************************************************************************
 ** Client is asking us to set a new temperature
 ***************************************************************************************/
-int SimpleSpectrograph::SetTemperature(double temperature)
+int SimpleReceiver::SetTemperature(double temperature)
 {
     TemperatureRequest = temperature;
 
@@ -205,7 +167,7 @@ int SimpleSpectrograph::SetTemperature(double temperature)
 /**************************************************************************************
 ** How much longer until exposure is done?
 ***************************************************************************************/
-float SimpleSpectrograph::CalcTimeLeft()
+float SimpleReceiver::CalcTimeLeft()
 {
     double timesince;
     double timeleft;
@@ -224,7 +186,7 @@ float SimpleSpectrograph::CalcTimeLeft()
 /**************************************************************************************
 ** Main device loop. We check for exposure and temperature progress here
 ***************************************************************************************/
-void SimpleSpectrograph::TimerHit()
+void SimpleReceiver::TimerHit()
 {
     long timeleft;
 
@@ -236,7 +198,7 @@ void SimpleSpectrograph::TimerHit()
         timeleft = CalcTimeLeft();
 
         // Less than a 0.1 second away from exposure completion
-        // This is an over simplified timing method, check SpectrographSimulator and simpleSpectrograph for better timing checks
+        // This is an over simplified timing method, check ReceiverSimulator and simpleReceiver for better timing checks
         if (timeleft < 0.1)
         {
             /* We're done exposing */
@@ -256,7 +218,7 @@ void SimpleSpectrograph::TimerHit()
             setIntegrationLeft(timeleft);
     }
 
-    // TemperatureNP is defined in INDI::Spectrograph
+    // TemperatureNP is defined in INDI::Receiver
     switch (TemperatureNP.s)
     {
         case IPS_IDLE:
@@ -264,12 +226,12 @@ void SimpleSpectrograph::TimerHit()
             break;
 
         case IPS_BUSY:
-            /* If target temperature is higher, then increase current Spectrograph temperature */
-            if (currentSpectrographTemperature < TemperatureRequest)
-                currentSpectrographTemperature++;
-            /* If target temperature is lower, then decrese current Spectrograph temperature */
-            else if (currentSpectrographTemperature > TemperatureRequest)
-                currentSpectrographTemperature--;
+            /* If target temperature is higher, then increase current Receiver temperature */
+            if (currentReceiverTemperature < TemperatureRequest)
+                currentReceiverTemperature++;
+            /* If target temperature is lower, then decrese current Receiver temperature */
+            else if (currentReceiverTemperature > TemperatureRequest)
+                currentReceiverTemperature--;
             /* If they're equal, stop updating */
             else
             {
@@ -293,7 +255,7 @@ void SimpleSpectrograph::TimerHit()
 /**************************************************************************************
 ** Create a random image and return it to client
 ***************************************************************************************/
-void SimpleSpectrograph::grabFrame()
+void SimpleReceiver::grabFrame()
 {
     // Set length of continuum
     int len  = getSampleRate() * getIntegrationTime() * getBPS() / 8;
@@ -308,6 +270,6 @@ void SimpleSpectrograph::grabFrame()
 
     IDMessage(getDeviceName(), "Download complete.");
 
-    // Let INDI::Spectrograph know we're done filling the image buffer
+    // Let INDI::Receiver know we're done filling the image buffer
     IntegrationComplete();
 }

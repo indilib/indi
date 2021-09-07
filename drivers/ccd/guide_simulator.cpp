@@ -34,39 +34,6 @@ static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 // We declare an auto pointer to GuideSim.
 static std::unique_ptr<GuideSim> ccd(new GuideSim());
 
-void ISPoll(void * p);
-
-void ISGetProperties(const char * dev)
-{
-    ccd->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-{
-    ccd->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    ccd->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    ccd->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-               char * names[], int n)
-{
-    ccd->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-void ISSnoopDevice(XMLEle * root)
-{
-    ccd->ISSnoopDevice(root);
-}
-
 GuideSim::GuideSim()
 {
     currentRA  = RA;
@@ -79,9 +46,6 @@ GuideSim::GuideSim()
     guiderFocalLength  = 300;
 
     time(&RunStart);
-
-    SimulatorSettingsNV = new INumberVectorProperty;
-
 }
 
 bool GuideSim::SetupParms()
@@ -172,7 +136,7 @@ bool GuideSim::initProperties()
     IUFillNumber(&SimulatorSettingsN[15], "SIM_KING_THETA", "hour hangle, deg", "%4.1f", 0, 360, 0, 0);
     IUFillNumber(&SimulatorSettingsN[16], "SIM_TIME_FACTOR", "Time Factor (x)", "%.2f", 0.01, 100, 0, 1);
 
-    IUFillNumberVector(SimulatorSettingsNV, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
+    IUFillNumberVector(&SimulatorSettingsNP, SimulatorSettingsN, 17, getDeviceName(), "SIMULATOR_SETTINGS",
                        "Simulator Settings", "Simulator Config", IP_RW, 60, IPS_IDLE);
 
     // RGB Simulation
@@ -256,7 +220,7 @@ void GuideSim::ISGetProperties(const char * dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
-    defineProperty(SimulatorSettingsNV);
+    defineProperty(&SimulatorSettingsNP);
     defineProperty(&EqPENP);
     defineProperty(&SimulateRgbSP);
 }
@@ -471,19 +435,11 @@ void GuideSim::TimerHit()
 
     if (TemperatureNP.s == IPS_BUSY)
     {
-        if (fabs(TemperatureRequest - TemperatureN[0].value) <= 0.5)
-        {
-            LOGF_INFO("Temperature reached requested value %.2f degrees C", TemperatureRequest);
-            TemperatureN[0].value = TemperatureRequest;
-            TemperatureNP.s       = IPS_OK;
-        }
+        if (TemperatureRequest < TemperatureN[0].value)
+            TemperatureN[0].value = std::max(TemperatureRequest, TemperatureN[0].value - 0.5);
         else
-        {
-            if (TemperatureRequest < TemperatureN[0].value)
-                TemperatureN[0].value -= 0.5;
-            else
-                TemperatureN[0].value += 0.5;
-        }
+            TemperatureN[0].value = std::min(TemperatureRequest, TemperatureN[0].value + 0.5);
+
 
         IDSetNumber(&TemperatureNP, nullptr);
 
@@ -618,18 +574,11 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             currentRA  = RA;
             currentDE = Dec;
 
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-
-            epochPos.ra  = currentRA * 15.0;
-            epochPos.dec = currentDE;
-
+            INDI::IEquatorialCoordinates epochPos { currentRA, currentDE }, J2000Pos { 0, 0 };
             // Convert from JNow to J2000
-            LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
-            //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-
-            currentRA  = J2000Pos.ra / 15.0;
-            currentDE = J2000Pos.dec;
-
+            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            currentRA  = J2000Pos.rightascension;
+            currentDE = J2000Pos.declination;
             currentDE += guideNSOffset;
             currentRA += guideWEOffset;
 #ifdef USE_EQUATORIAL_PE
@@ -705,7 +654,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip * targetChip)
             // tra, tdec are at the center of the projection center for the simulated
             // images
             //double J2ra = J2000Pos.ra;  // J2000Pos: 0,360, RA: 0,24
-            double J2dec = J2000Pos.dec;
+            double J2dec = J2000Pos.declination;
 
             //double J2rar = J2ra * 0.0174532925;
             double J2decr = J2dec * 0.0174532925;
@@ -1149,12 +1098,12 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
 
         if (strcmp(name, "SIMULATOR_SETTINGS") == 0)
         {
-            IUUpdateNumber(SimulatorSettingsNV, values, names, n);
-            SimulatorSettingsNV->s = IPS_OK;
+            IUUpdateNumber(&SimulatorSettingsNP, values, names, n);
+            SimulatorSettingsNP.s = IPS_OK;
 
             //  Reset our parameters now
             SetupParms();
-            IDSetNumber(SimulatorSettingsNV, nullptr);
+            IDSetNumber(&SimulatorSettingsNP, nullptr);
 
             maxnoise      = SimulatorSettingsN[8].value;
             skyglow       = SimulatorSettingsN[9].value;
@@ -1181,23 +1130,14 @@ bool GuideSim::ISNewNumber(const char * dev, const char * name, double values[],
             IUUpdateNumber(&EqPENP, values, names, n);
             EqPENP.s = IPS_OK;
 
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.ra  = EqPEN[AXIS_RA].value * 15.0;
-            epochPos.dec = EqPEN[AXIS_DE].value;
-
-            RA = EqPEN[AXIS_RA].value;
-            Dec = EqPEN[AXIS_DE].value;
-
-            LibAstro::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
-            //ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-            currentRA  = J2000Pos.ra / 15.0;
-            currentDE = J2000Pos.dec;
+            INDI::IEquatorialCoordinates epochPos { EqPEN[AXIS_RA].value, EqPEN[AXIS_DE].value }, J2000Pos { 0, 0 };
+            INDI::ObservedToJ2000(&epochPos, ln_get_julian_from_sys(), &J2000Pos);
+            currentRA  = J2000Pos.rightascension;
+            currentDE = J2000Pos.declination;
             usePE = true;
-
             IDSetNumber(&EqPENP, nullptr);
             return true;
         }
-
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
@@ -1295,7 +1235,7 @@ bool GuideSim::ISSnoopDevice(XMLEle * root)
 
         if (rc_ra == 0 && rc_de == 0 && ((newra != raPE) || (newdec != decPE)))
         {
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            INDI::IEquatorialCoordinates epochPos { 0, 0 }, J2000Pos { 0, 0 };
             epochPos.ra  = newra * 15.0;
             epochPos.dec = newdec;
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
@@ -1324,7 +1264,7 @@ bool GuideSim::saveConfigItems(FILE * fp)
 
 
     // Save CCD Simulator Config
-    IUSaveConfigNumber(fp, SimulatorSettingsNV);
+    IUSaveConfigNumber(fp, &SimulatorSettingsNP);
 
     // Gain
     IUSaveConfigNumber(fp, &GainNP);

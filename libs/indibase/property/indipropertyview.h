@@ -29,13 +29,14 @@
 #include <string>
 #include <cstring>
 #include <cstdarg>
+#include <cstdlib>
 #include <type_traits>
 
 namespace INDI
 {
 
-template <typename> class WidgetView;
-template <typename> class PropertyView;
+template <typename> struct WidgetView;
+template <typename> struct PropertyView;
 
 #define PROPERTYVIEW_BASE_ACCESS public
 // don't use direct access to low-level property
@@ -80,7 +81,7 @@ struct PropertyView: PROPERTYVIEW_BASE_ACCESS WidgetTraits<T>::PropertyType
     friend class BaseDevice;
     friend class DefaultDevice;
     template <typename>
-    friend class WidgetView;
+    friend struct WidgetView;
 
     template <typename X, typename Needed>
     using enable_if_is_same_t = typename std::enable_if<std::is_same<X, Needed>::value, bool>::type;
@@ -124,14 +125,14 @@ public: // only for ISwitch
     void reset()                                           { IUResetSwitch(this); }
 
     template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
-    WidgetType *findOnSwitch()                             { return static_cast<WidgetType *>(IUFindOnSwitch(this)); }
+    WidgetType *findOnSwitch() const                       { return static_cast<WidgetType *>(IUFindOnSwitch(this)); }
 
     template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
-    int findOnSwitchIndex()                                { return IUFindOnSwitchIndex(this); }
+    int findOnSwitchIndex() const                          { return IUFindOnSwitchIndex(this); }
 
 public: // only for INumber
     template <typename X = T, enable_if_is_same_t<X, INumber> = true>
-    void updateMinMax()                                    { IUUpdateMinMax(this); }
+    void updateMinMax();                                   /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
 public: //getters
     const char *getDeviceName() const                      { return this->device; }
@@ -155,10 +156,10 @@ public: //getters
     int count() const;                                     /* outside implementation */
     WidgetType *widget() const;                            /* outside implementation */
 
-    WidgetType *findWidgetByName(const char *name);        /* outside implementation */
+    WidgetType *findWidgetByName(const char *name) const;  /* outside implementation */
 
 public: //tests
-    bool isEmpty() const                                   { return widget() == nullptr; }
+    bool isEmpty() const                                   { return widget() == nullptr || count() == 0; }
 
     bool isNameMatch(const char *otherName) const          { return !strcmp(getName(), otherName); }
     bool isNameMatch(const std::string &otherName) const   { return getName() == otherName; }
@@ -167,56 +168,72 @@ public: //tests
     bool isLabelMatch(const std::string &otherLabel) const { return getLabel() == otherLabel; }
 
 public: // only driver side
-    void save(FILE *f);                                    /* outside implementation */
-#ifdef PROPERTYVIEW_HAS_INDIDRIVER
-    void vapply(const char *format, va_list args);         /* outside implementation */
-    void vdefine(const char *format, va_list args);        /* outside implementation */
+    void save(FILE *f) const;                              /* outside implementation */
 
-    void apply(const char *format = nullptr, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);  /* outside implementation */
-    void define(const char *format = nullptr, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3); /* outside implementation */
-#endif
+    void vapply(const char *format, va_list args) const;   /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+    void vdefine(const char *format, va_list args) const;  /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+
+    void apply(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);  /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+    void define(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+
+    void apply() const                                     { apply(nullptr);  }
+    void define() const                                    { define(nullptr); }
 
 public:
-#ifdef PROPERTYVIEW_HAS_INDIDRIVER
     template <typename X = T, enable_if_is_same_t<X, IText> = true>
     void fill(
         const char *device, const char *name, const char *label, const char *group,
         IPerm permission, double timeout, IPState state
-    ); /* outside implementation */
+    ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     template <typename X = T, enable_if_is_same_t<X, INumber> = true>
     void fill(
         const char *device, const char *name, const char *label, const char *group,
         IPerm permission, double timeout, IPState state
-    ); /* outside implementation */
+    ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
     void fill(
         const char *device, const char *name, const char *label, const char *group,
         IPerm permission, ISRule rule, double timeout, IPState state
-    ); /* outside implementation */
+    ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     template <typename X = T, enable_if_is_same_t<X, ILight> = true>
     void fill(
         const char *device, const char *name, const char *label, const char *group,
         IPState state
-    ); /* outside implementation */
+    ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     template <typename X = T, enable_if_is_same_t<X, IBLOB> = true>
     void fill(
         const char *device, const char *name, const char *label, const char *group,
         IPerm permission, double timeout, IPState state
-    ); /* outside implementation */
-#endif
+    ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
 public:
-#ifdef PROPERTYVIEW_HAS_INDIDRIVER
-    template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
-    bool update(ISState *states, char **names, int n)      { return IUUpdateSwitch(this, states, names, n) == 0; }
+    template <typename X = T, enable_if_is_same_t<X, IText> = true>
+    bool update(const char * const texts[], const char * const names[], int n);
+    /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     template <typename X = T, enable_if_is_same_t<X, INumber> = true>
-    bool update(double *values, char **names, int n)       { return IUUpdateNumber(this, values, names, n) == 0; }
-#endif
+    bool update(const double values[], const char * const names[], int n);
+    /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+
+    template <typename X = T, enable_if_is_same_t<X, ISwitch> = true>
+    bool update(const ISState states[], const char * const names[], int n);
+    /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+
+    /*
+    template <typename X = T, enable_if_is_same_t<X, ILight> = true>
+    bool update(..., const char * const names[], int n);
+    */
+
+    template <typename X = T, enable_if_is_same_t<X, IBLOB> = true>
+    bool update(
+        const int sizes[], const int blobsizes[], const char * const blobs[], const char * const formats[],
+        const char * const names[], int n
+    ); /* outside implementation - only driver side, see indipropertyview_driver.cpp */
+
 
 public:
     WidgetType *begin() const                              { return widget();           }
@@ -239,13 +256,17 @@ template <>
 struct WidgetView<IText>: PROPERTYVIEW_BASE_ACCESS IText
 {
     using Type = IText;
-    template <typename> friend class PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
+    WidgetView(const WidgetView &other): Type(other)       { this->text = nullptr; setText(other.text); }
+    WidgetView(WidgetView &&other): Type(other)            { memset(static_cast<Type*>(&other), 0, sizeof(other)); }
+    WidgetView &operator=(const WidgetView &other)         { return *this = WidgetView(other); }
+    WidgetView &operator=(WidgetView &&other)              { std::swap(static_cast<Type&>(other), static_cast<Type&>(*this)); return *this; }
     ~WidgetView()                                          { free(this->text); }
     void clear()                                           { free(this->text); memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return this == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ITextVectorProperty *parent)            { this->tvp = parent; }
@@ -257,8 +278,10 @@ public: // setters
     void setLabel(const char *label)                       { strncpy(this->label, label, MAXINDILABEL); }
     void setLabel(const std::string &label)                { setLabel(label.data()); }
 
-    void setText(const char *text)                         { free(this->text); this->text = strndup(text, strlen(text)); }
-    void setText(const std::string &text)                  { setText(text.data()); }
+    //void setText(const char *text)                         { free(this->text); this->text = strndup(text, strlen(text)); }
+    void setText(const char *text, size_t size)            { this->text = strncpy(static_cast<char*>(realloc(this->text, size + 1)), text, size); this->text[size] = '\0'; }
+    void setText(const char *text)                         { setText(text, strlen(text)); }
+    void setText(const std::string &text)                  { setText(text.data(), text.size()); }
 
     void setAux(void *user)                                { this->aux0 = user; }
     // don't use any other aux!
@@ -278,26 +301,28 @@ public: //tests
     bool isLabelMatch(const std::string &otherLabel) const { return getLabel() == otherLabel; }
 
 public:
-#ifdef PROPERTYVIEW_HAS_INDIDRIVER
     void fill(const char *name, const char *label, const char *initialText)
-    { IUFillText(this, name, label, initialText); }
+    ; /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     void fill(const std::string &name, const std::string &label, const std::string &initialText)
     { fill(name.c_str(), label.c_str(), initialText.c_str()); }
-#endif
 };
 
 template <>
 struct WidgetView<INumber>: PROPERTYVIEW_BASE_ACCESS INumber
 {
     using Type = INumber;
-    template <typename> friend class PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
+    WidgetView(const WidgetView &other): Type(other)       { }
+    WidgetView(WidgetView &&other): Type(other)            { memset(static_cast<Type*>(&other), 0, sizeof(other)); }
+    WidgetView &operator=(const WidgetView &other)         { return *this = WidgetView(other); }
+    WidgetView &operator=(WidgetView &&other)              { std::swap(static_cast<Type&>(other), static_cast<Type&>(*this)); return *this; }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return this == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(INumberVectorProperty *parent)          { this->nvp = parent; }
@@ -341,28 +366,30 @@ public: //tests
     bool isLabelMatch(const std::string &otherLabel) const { return getLabel() == otherLabel; }
 
 public:
-#ifdef PROPERTYVIEW_HAS_INDIDRIVER
     void fill(const char *name, const char *label, const char *format,
               double min, double max, double step, double value)
-    { IUFillNumber(this, name, label, format, min, max, step, value); }
+    ; /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     void fill(const std::string &name, const std::string &label, const std::string &format,
               double min, double max, double step, double value)
     { fill(name.c_str(), label.c_str(), format.c_str(), min, max, step, value); }
-#endif
 };
 
 template <>
 struct WidgetView<ISwitch>: PROPERTYVIEW_BASE_ACCESS ISwitch
 {
     using Type = ISwitch;
-    template <typename> friend class PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
+    WidgetView(const WidgetView &other): Type(other)       { }
+    WidgetView(WidgetView &&other): Type(other)            { memset(static_cast<Type*>(&other), 0, sizeof(other)); }
+    WidgetView &operator=(const WidgetView &other)         { return *this = WidgetView(other); }
+    WidgetView &operator=(WidgetView &&other)              { std::swap(static_cast<Type&>(other), static_cast<Type&>(*this)); return *this; }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return this == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ISwitchVectorProperty *parent)          { this->svp = parent; }
@@ -398,26 +425,28 @@ public: //tests
     bool isLabelMatch(const std::string &otherLabel) const { return getLabel() == otherLabel; }
 
 public:
-#ifdef PROPERTYVIEW_HAS_INDIDRIVER
     void fill(const char *name, const char *label, ISState state = ISS_OFF)
-    { IUFillSwitch(this, name, label, state); }
+    ; /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     void fill(const std::string &name, const std::string &label, ISState state = ISS_OFF)
     { fill(name.c_str(), label.c_str(), state); }
-#endif
 };
 
 template <>
 struct WidgetView<ILight>: PROPERTYVIEW_BASE_ACCESS ILight
 {
     using Type = ILight;
-    template <typename> friend class PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
+    WidgetView(const WidgetView &other): Type(other)       { }
+    WidgetView(WidgetView &&other): Type(other)            { memset(static_cast<Type*>(&other), 0, sizeof(other)); }
+    WidgetView &operator=(const WidgetView &other)         { return *this = WidgetView(other); }
+    WidgetView &operator=(WidgetView &&other)              { std::swap(static_cast<Type&>(other), static_cast<Type&>(*this)); return *this; }
     ~WidgetView()                                          { }
     void clear()                                           { memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return this == nullptr; }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(ILightVectorProperty *parent)           { this->lvp = parent; }
@@ -453,26 +482,28 @@ public: //tests
     bool isLabelMatch(const std::string &otherLabel) const { return getLabel() == otherLabel; }
 
 public:
-#ifdef PROPERTYVIEW_HAS_INDIDRIVER
     void fill(const char *name, const char *label, IPState state = IPS_OK)
-    { IUFillLight(this, name, label, state); }
+    ; /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     void fill(const std::string &name, const std::string &&label, IPState state = IPS_OK)
     { fill(name.c_str(), label.c_str(), state); }
-#endif
 };
 
 template <>
 struct WidgetView<IBLOB>: PROPERTYVIEW_BASE_ACCESS IBLOB
 {
     using Type = IBLOB;
-    template <typename> friend class PropertyView;
+    template <typename> friend struct PropertyView;
 
 public:
     WidgetView()                                           { memset(this, 0, sizeof(*this)); }
-    ~WidgetView()                                          { free(this->blob); }
-    void clear()                                           { free(this->blob); memset(this, 0, sizeof(*this)); }
-    bool isNull() const                                    { return this == nullptr; }
+    WidgetView(const WidgetView &other): Type(other)       { }
+    WidgetView(WidgetView &&other): Type(other)            { memset(static_cast<Type*>(&other), 0, sizeof(other)); }
+    WidgetView &operator=(const WidgetView &other)         { return *this = WidgetView(other); }
+    WidgetView &operator=(WidgetView &&other)              { std::swap(static_cast<Type&>(other), static_cast<Type&>(*this)); return *this; }
+    ~WidgetView()                                          { /* free(this->blob); */ }
+    void clear()                                           { /* free(this->blob); */ memset(this, 0, sizeof(*this)); }
+    // bool isNull() const                                    { return reinterpret_cast<const void*>(this) == nullptr; }
 
 public: // setters
     void setParent(IBLOBVectorProperty *parent)            { this->bvp = parent; }
@@ -499,6 +530,10 @@ public: //getters
     const char *getLabel()  const                          { return this->label; }
     const char *getFormat() const                          { return this->format; }
 
+    const void *getBlob()   const                          { return this->blob; }
+    int getBlobLen() const                                 { return this->bloblen; }
+    int getSize() const                                    { return this->size; }
+
     void *getAux() const                                   { return this->aux0; }
 
 public: //tests
@@ -509,13 +544,11 @@ public: //tests
     bool isLabelMatch(const std::string &otherLabel) const { return getLabel() == otherLabel; }
 
 public:
-#ifdef PROPERTYVIEW_HAS_INDIDRIVER
     void fill(const char *name, const char *label, const char *format)
-    { IUFillBLOB(this, name, label, format); }
+    ; /* outside implementation - only driver side, see indipropertyview_driver.cpp */
 
     void fill(const std::string &name, const std::string &label, const std::string &format)
     { fill(name.c_str(), label.c_str(), format.c_str()); }
-#endif
 };
 
 
@@ -580,139 +613,24 @@ inline void PropertyView<T>::setAux(void *user)
 { this->aux = user; }
 
 template <>
-inline void PropertyView<IText>::save(FILE *f)
+inline void PropertyView<IText>::save(FILE *f) const
 { IUSaveConfigText(f, this); }
 
 template <>
-inline void PropertyView<INumber>::save(FILE *f)
+inline void PropertyView<INumber>::save(FILE *f) const
 { IUSaveConfigNumber(f, this); }
 
 template <>
-inline void PropertyView<ISwitch>::save(FILE *f)
+inline void PropertyView<ISwitch>::save(FILE *f) const
 { IUSaveConfigSwitch(f, this); }
 
 template <>
-inline void PropertyView<ILight>::save(FILE *f)
+inline void PropertyView<ILight>::save(FILE *f) const
 { (void)f; /* IUSaveConfigLight(f, this); */ }
 
 template <>
-inline void PropertyView<IBLOB>::save(FILE *f)
+inline void PropertyView<IBLOB>::save(FILE *f) const
 { IUSaveConfigBLOB(f, this); }
-
-#ifdef PROPERTYVIEW_HAS_INDIDRIVER
-template <>
-inline void PropertyView<IText>::vapply(const char *format, va_list arg)
-{ IDSetTextVA(this, format, arg); }
-
-template <>
-inline void PropertyView<IText>::vdefine(const char *format, va_list arg)
-{ IDDefTextVA(this, format, arg); }
-
-template <>
-inline void PropertyView<INumber>::vapply(const char *format, va_list arg)
-{ IDSetNumberVA(this, format, arg); }
-
-template <>
-inline void PropertyView<INumber>::vdefine(const char *format, va_list arg)
-{ IDDefNumberVA(this, format, arg); }
-
-template <>
-inline void PropertyView<ISwitch>::vapply(const char *format, va_list arg)
-{ IDSetSwitchVA(this, format, arg); }
-
-template <>
-inline void PropertyView<ISwitch>::vdefine(const char *format, va_list arg)
-{ IDDefSwitchVA(this, format, arg); }
-
-template <>
-inline void PropertyView<ILight>::vapply(const char *format, va_list arg)
-{ IDSetLightVA(this, format, arg); }
-
-template <>
-inline void PropertyView<ILight>::vdefine(const char *format, va_list arg)
-{ IDDefLightVA(this, format, arg); }
-
-template <>
-inline void PropertyView<IBLOB>::vapply(const char *format, va_list arg)
-{ IDSetBLOBVA(this, format, arg); }
-
-template <>
-inline void PropertyView<IBLOB>::vdefine(const char *format, va_list arg)
-{ IDDefBLOBVA(this, format, arg); }
-
-template <typename T>
-inline void PropertyView<T>::apply(const char *format, ...)
-{ va_list ap; va_start(ap, format); this->vapply(format, ap); va_end(ap); }
-
-template <typename T>
-inline void PropertyView<T>::define(const char *format, ...)
-{ va_list ap; va_start(ap, format); this->vdefine(format, ap); va_end(ap); }
-
-template <typename T>
-template <typename X, typename std::enable_if<std::is_same<X, IText>::value, bool>::type>
-inline void PropertyView<T>::fill(
-    const char *device, const char *name, const char *label, const char *group,
-    IPerm permission, double timeout, IPState state
-)
-{
-    IUFillTextVector(
-        this, begin(), count(), device, name, label, group,
-        permission, timeout, state
-    );
-}
-
-template <typename T>
-template <typename X, typename std::enable_if<std::is_same<X, INumber>::value, bool>::type>
-inline void PropertyView<T>::fill(
-    const char *device, const char *name, const char *label, const char *group,
-    IPerm permission, double timeout, IPState state
-)
-{
-    IUFillNumberVector(
-        this, begin(), count(), device, name, label, group,
-        permission, timeout, state
-    );
-}
-
-template <typename T>
-template <typename X, typename std::enable_if<std::is_same<X, ISwitch>::value, bool>::type>
-inline void PropertyView<T>::fill(
-    const char *device, const char *name, const char *label, const char *group,
-    IPerm permission, ISRule rule, double timeout, IPState state
-)
-{
-    IUFillSwitchVector(
-        this, begin(), count(), device, name, label, group,
-        permission, rule, timeout, state
-    );
-}
-
-template <typename T>
-template <typename X, typename std::enable_if<std::is_same<X, ILight>::value, bool>::type>
-inline void PropertyView<T>::fill(
-    const char *device, const char *name, const char *label, const char *group,
-    IPState state
-)
-{
-    IUFillLightVector(
-        this, begin(), count(), device, name, label, group,
-        state
-    );
-}
-
-template <typename T>
-template <typename X, typename std::enable_if<std::is_same<X, IBLOB>::value, bool>::type>
-inline void PropertyView<T>::fill(
-    const char *device, const char *name, const char *label, const char *group,
-    IPerm permission, double timeout, IPState state
-)
-{
-    IUBLOBSwitchVector(
-        this, begin(), count(), device, name, label, group,
-        permission, timeout, state
-    );
-}
-#endif
 
 template <typename T>
 inline void PropertyView<T>::setTimeout(double timeout)
@@ -747,27 +665,27 @@ inline bool PropertyView<ISwitch>::setRule(const std::string &rule)
 { return crackISRule(rule.data(), &this->r) == 0; }
 
 template <typename T>
-inline WidgetView<T> *PropertyView<T>::findWidgetByName(const char *name)
+inline WidgetView<T> *PropertyView<T>::findWidgetByName(const char *) const
 { return nullptr; }
 
 template <>
-inline WidgetView<IText> *PropertyView<IText>::findWidgetByName(const char *name)
+inline WidgetView<IText> *PropertyView<IText>::findWidgetByName(const char *name) const
 { return static_cast<WidgetView<IText> *>(IUFindText(this, name)); }
 
 template <>
-inline WidgetView<INumber> *PropertyView<INumber>::findWidgetByName(const char *name)
+inline WidgetView<INumber> *PropertyView<INumber>::findWidgetByName(const char *name) const
 { return static_cast<WidgetView<INumber> *>(IUFindNumber(this, name)); }
 
 template <>
-inline WidgetView<ISwitch> *PropertyView<ISwitch>::findWidgetByName(const char *name)
+inline WidgetView<ISwitch> *PropertyView<ISwitch>::findWidgetByName(const char *name) const
 { return static_cast<WidgetView<ISwitch> *>(IUFindSwitch(this, name)); }
 
 template <>
-inline WidgetView<ILight> *PropertyView<ILight>::findWidgetByName(const char *name)
+inline WidgetView<ILight> *PropertyView<ILight>::findWidgetByName(const char *name) const
 { return static_cast<WidgetView<ILight> *>(IUFindLight(this, name)); }
 
 template <>
-inline WidgetView<IBLOB> *PropertyView<IBLOB>::findWidgetByName(const char *name)
+inline WidgetView<IBLOB> *PropertyView<IBLOB>::findWidgetByName(const char *name) const
 { return static_cast<WidgetView<IBLOB> *>(IUFindBLOB(this, name)); }
 
 template <typename T>

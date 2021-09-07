@@ -51,26 +51,12 @@ Horizon check during slewing functions :ho# and :hq#
 // maximum guide pulse request to send to controller
 #define MAX_LX200AP_PULSE_LEN 999
 
-void LX200AstroPhysicsExperimental::disclaimerMessage()
-{
-    LOG_INFO("This is an _EXPERIMENTAL_ driver for Astro-Physics mounts - use at own risk!");
-    LOG_INFO("BEFORE USING PLEASE READ the documentation at:");
-    LOG_INFO("   http://indilib.org/devices/telescopes/astrophysics.html");
-}
-
 /* Constructor */
 LX200AstroPhysicsExperimental::LX200AstroPhysicsExperimental() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK
                            | TELESCOPE_HAS_TRACK_RATE, 5);
-
-    // defined in lx200telescope.h, unused in this driver
-    //sendLocationOnStartup = false;
-    //sendTimeOnStartup = false;
-
-    disclaimerMessage();
-
 }
 
 const char *LX200AstroPhysicsExperimental::getDefaultName()
@@ -172,7 +158,7 @@ bool LX200AstroPhysicsExperimental::initProperties()
                        IPS_IDLE);
 
     IUFillText(&VersionT[0], "Version", "Version", "");
-    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", SITE_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&VersionTP, VersionT, 1, getDeviceName(), "Firmware", "Firmware", SITE_TAB, IP_RO, 0, IPS_IDLE);
 
     // UTC offset
     IUFillNumber(&APUTCOffsetN[0], "APUTC_OFFSET", "AP UTC offset", "%8.5f", 0.0, 24.0, 0.0, 0.);
@@ -183,7 +169,7 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillNumberVector(&APSiderealTimeNP, APSiderealTimeN, 1, getDeviceName(), "AP_SIDEREAL_TIME", "ap sidereal time", SITE_TAB,
                        IP_RO, 60, IPS_OK);
 
-    SetParkDataType(PARK_AZ_ALT);
+    //SetParkDataType(PARK_AZ_ALT);
 
     return true;
 }
@@ -207,7 +193,7 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
     {
         defineProperty(&UnparkFromSP);
         defineProperty(&ParkToSP);
-        defineProperty(&VersionInfo);
+        defineProperty(&VersionTP);
         defineProperty(&APSlewSpeedSP);
         defineProperty(&SwapSP);
         defineProperty(&SyncCMRSP);
@@ -229,7 +215,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
             deleteProperty(UsePulseCmdSP.name);
             deleteProperty(TrackRateNP.name);
         }
-        defineProperty(&VersionInfo);
+        defineProperty(&VersionTP);
         defineProperty(&UnparkFromSP);
         /* Motion group */
         defineProperty(&APSlewSpeedSP);
@@ -308,7 +294,7 @@ bool LX200AstroPhysicsExperimental::updateProperties()
     else
     {
         deleteProperty(UnparkFromSP.name);
-        deleteProperty(VersionInfo.name);
+        deleteProperty(VersionTP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
@@ -335,9 +321,9 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
     else
         getAPVersionNumber(PortFD, versionString);
 
-    VersionInfo.s = IPS_OK;
+    VersionTP.s = IPS_OK;
     IUSaveText(&VersionT[0], versionString);
-    IDSetText(&VersionInfo, nullptr);
+    IDSetText(&VersionTP, nullptr);
 
     // Check controller version
     // example "VCP4-P01-01" for CP4 or newer
@@ -366,7 +352,7 @@ bool LX200AstroPhysicsExperimental::getFirmwareVersion()
             else
                 servoType = GTOCP3;
 
-            strcpy(rev, versionString);
+            strncpy(rev, versionString, 8);
 
             success = true;
         }
@@ -608,8 +594,8 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
             IDSetSwitch(&APSlewSpeedSP, nullptr);
 
             IUSaveText(&VersionT[0], "1.0");
-            VersionInfo.s = IPS_OK;
-            IDSetText(&VersionInfo, nullptr);
+            VersionTP.s = IPS_OK;
+            IDSetText(&VersionTP, nullptr);
 
             StartUpSP.s = IPS_OK;
             IDSetSwitch(&StartUpSP, "Mount initialized.");
@@ -664,9 +650,9 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
 
         char versionString[64];
         getAPVersionNumber(PortFD, versionString);
-        VersionInfo.s = IPS_OK;
+        VersionTP.s = IPS_OK;
         IUSaveText(&VersionT[0], versionString);
-        IDSetText(&VersionInfo, nullptr);
+        IDSetText(&VersionTP, nullptr);
 
         StartUpSP.s = IPS_OK;
         IDSetSwitch(&StartUpSP, "Mount initialized.");
@@ -825,14 +811,14 @@ bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *nam
         if (parkPos != PARK_CUSTOM)
         {
             double parkAz, parkAlt;
-            if (!(TimeTP.s == IPS_OK && LocationNP.s == IPS_OK))
-            {
-                LOG_WARN("ParkTo can not calculate park position, latitude, longitude not yet available");
-                IUResetSwitch(&ParkToSP);
-                ParkToSP.s = IPS_ALERT;
-                IDSetSwitch(&ParkToSP, nullptr);
-                return false;
-            }
+            //            if (!(TimeTP.s == IPS_OK && LocationNP.s == IPS_OK))
+            //            {
+            //                LOG_WARN("ParkTo can not calculate park position, latitude, longitude not yet available");
+            //                IUResetSwitch(&ParkToSP);
+            //                ParkToSP.s = IPS_ALERT;
+            //                IDSetSwitch(&ParkToSP, nullptr);
+            //                return false;
+            //            }
             if (calcParkPosition(parkPos, &parkAlt, &parkAz))
             {
                 SetAxis1Park(parkAz);
@@ -868,7 +854,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     double lst = get_local_sidereal_time(lng);
     // 2020-06-02, wildi, isParked is reserved for the state in ParkData.xml
     // see method isParked()
-    bool isAPParked ;
+    bool isAPParked = false;
     IsMountParked(&isAPParked);
     if (!isAPParked)
     {
@@ -885,7 +871,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
             IDSetNumber(&HourangleCoordsNP, nullptr );
         }
     }
-    double val;
+    double val = 0;
     if ((!isSimulation()) && (getSDTime(PortFD, &val) < 0))
     {
         LOG_ERROR("Reading sidereal time failed %d");
@@ -969,10 +955,8 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         // new way
         char parkStatus;
         char slewStatus;
-        bool slewcomplete;
+        bool slewcomplete = false;
         double PARKTHRES = 0.1; // max difference from parked position to consider mount PARKED
-
-        slewcomplete = false;
         // wildi, downgrade
         if ((firmwareVersion != MCV_UNKNOWN) && (firmwareVersion >= MCV_T))
         {
@@ -1016,7 +1000,6 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
                 return false;
             }
 
-            slewcomplete = true;
             // Turn off tracking.
             SetTrackEnabled(false);
             SetParked(true);
@@ -1181,8 +1164,9 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -1500,7 +1484,7 @@ bool LX200AstroPhysicsExperimental::Handshake()
         return false;
     }
 
-    if ((err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
+    if (setAPBackLashCompensation(PortFD, 0, 0, 0) < 0)
     {
         // It seems we need to send it twice before it works!
         if ((err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
@@ -1553,8 +1537,6 @@ bool LX200AstroPhysicsExperimental::Handshake()
     {
         LOG_INFO("Stopped tracking");
     }
-
-    disclaimerMessage();
 
     // Detect and set fomat. It should be LONG.
     return (checkLX200EquatorialFormat(PortFD) == 0);
@@ -1762,7 +1744,7 @@ bool LX200AstroPhysicsExperimental::Park()
     LOG_DEBUG("Park entry");
 
     ParkPosition parkPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&ParkToSP));
-    double parkAz, parkAlt;
+    double parkAz {90}, parkAlt {0};
     if (calcParkPosition(parkPos, &parkAlt, &parkAz))
     {
         SetAxis1Park(parkAz);
@@ -1774,35 +1756,25 @@ bool LX200AstroPhysicsExperimental::Park()
         LOGF_ERROR("Unable to set park position %d!!", parkPos);
     }
 
-    char AzStr[16], AltStr[16];
+    char AzStr[16] = {0}, AltStr[16] = {0};
     fs_sexa(AzStr, parkAz, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
     LOGF_INFO("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-    horizontalPos.az = parkAz;
-    horizontalPos.alt = parkAlt;
-
-    ln_equ_posn equatorialPos;
-    get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-    double lst = get_local_sidereal_time(observer.lng);
-    double ha = get_local_hour_angle(lst, equatorialPos.ra / 15.);
+    INDI::IEquatorialCoordinates equatorialCoords {0, 0};
+    INDI::IHorizontalCoordinates horizontalCoords {parkAz, parkAlt};
+    INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
+    double lst = get_local_sidereal_time(m_Location.longitude);
+    double ha = get_local_hour_angle(lst, equatorialCoords.rightascension);
 
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
-    HourangleCoordsN[1].value = equatorialPos.dec;
+    HourangleCoordsN[1].value = equatorialCoords.declination;
     IDSetNumber(&HourangleCoordsNP, nullptr);
 
     if (isSimulation())
     {
-        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
+        Goto(equatorialCoords.rightascension, equatorialCoords.declination);
     }
     else
     {
@@ -1897,30 +1869,29 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
 
 bool LX200AstroPhysicsExperimental::UnPark()
 {
-    // 2020-05-30, wildi, NO: if (!(locationUpdated && timeUpdated)) {
-    if (!(TimeTP.s == IPS_OK && LocationNP.s == IPS_OK))
-    {
-        LOG_WARN("UnPark: can not unpark, either missing location or time data");
-        //wildi IUResetSwitch(&UnparkFromSP);
-        UnparkFromSP.s = IPS_ALERT;
-        IDSetSwitch(&UnparkFromSP, nullptr);
-        return false;
-    }
-    bool parkDataValid = InitPark() ;
-
+    bool parkDataValid = InitPark();
     bool parkDataValid_and_parked = (parkDataValid && isParked());
     bool unpark_from_last_config = false;
 
     unpark_from_last_config = (PARK_LAST == IUFindOnSwitchIndex(&UnparkFromSP));
     double unparkAlt, unparkAz;
-    if (parkDataValid_and_parked && unpark_from_last_config)
+    if (unpark_from_last_config)
     {
-
-        LOG_INFO("UnPark: mount is parked, has valid park data and driver config is set to Last Parked");
-        unparkAz = GetAxis1Park(); //Az
-        unparkAlt = GetAxis2Park(); //Alt
+        if (parkDataValid_and_parked)
+        {
+            LOG_INFO("UnPark: mount is parked, has valid park data and driver config is set to Last Parked");
+            unparkAz = GetAxis1Park(); //Az
+            unparkAlt = GetAxis2Park(); //Alt
+        }
+        else
+        {
+            LOG_ERROR("UnPark: Missing unpark position!");
+            UnparkFromSP.s = IPS_ALERT;
+            IDSetSwitch(&UnparkFromSP, nullptr);
+            return false;
+        }
     }
-    else if(!unpark_from_last_config)
+    else
     {
         ParkPosition unparkfromPos = static_cast<ParkPosition>(IUFindOnSwitchIndex(&UnparkFromSP));
         LOGF_DEBUG("UnPark: park position = %d from current driver", unparkfromPos);
@@ -2002,28 +1973,20 @@ bool LX200AstroPhysicsExperimental::UnPark()
         TrackState = SCOPE_IDLE;
     }
 
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
 
-    ln_hrz_posn horizontalPos;
-    horizontalPos.az = unparkAz;
-    horizontalPos.alt = unparkAlt;
-
-    ln_equ_posn equatorialPos;
-    get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+    INDI::IEquatorialCoordinates equatorialCoords {0, 0};
+    INDI::IHorizontalCoordinates horizontalCoords {unparkAz, unparkAlt};
+    INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, unparkAz, 2, 3600);
     fs_sexa(AltStr, unparkAlt, 2, 3600);
     char RaStr[16], DecStr[16];
-    fs_sexa(RaStr, equatorialPos.ra / 15., 2, 3600);
-    fs_sexa(DecStr, equatorialPos.dec, 2, 3600);
+    fs_sexa(RaStr, equatorialCoords.rightascension, 2, 3600);
+    fs_sexa(DecStr, equatorialCoords.declination, 2, 3600);
 
-    double lst = get_local_sidereal_time(observer.lng);
-    double ha = get_local_hour_angle(lst, equatorialPos.ra / 15.);
+    double lst = get_local_sidereal_time(m_Location.longitude);
+    double ha = get_local_hour_angle(lst, equatorialCoords.rightascension);
     char HaStr[16];
     fs_sexa(HaStr, ha, 2, 3600);
     LOGF_INFO("UnPark: Current parking position Az (%s) Alt (%s), HA (%s) RA (%s) Dec (%s)", AzStr, AltStr, HaStr,
@@ -2031,10 +1994,10 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
     HourangleCoordsNP.s = IPS_OK;
     HourangleCoordsN[0].value = ha;
-    HourangleCoordsN[1].value = equatorialPos.dec;
+    HourangleCoordsN[1].value = equatorialCoords.declination;
     IDSetNumber(&HourangleCoordsNP, nullptr);
 
-    bool success = Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
+    bool success = Sync(equatorialCoords.rightascension, equatorialCoords.declination);
     if(!success)
     {
         LOG_WARN("Could not sync mount");
@@ -2044,7 +2007,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
     if (isSimulation())
     {
         // does not sync being in simulation
-        Sync(equatorialPos.ra / 15.0, equatorialPos.dec);
+        Sync(equatorialPos.rightascension / 15.0, equatorialPos.dec);
     }
     else
     {
@@ -2066,8 +2029,9 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
     if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
     {
-        MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-        EqNP.s                          = IPS_IDLE;
+        MovementNSSP.s = IPS_IDLE;
+        MovementWESP.s = IPS_IDLE;
+        EqNP.s = IPS_IDLE;
         IUResetSwitch(&MovementNSSP);
         IUResetSwitch(&MovementWESP);
         IDSetSwitch(&MovementNSSP, nullptr);
@@ -2112,21 +2076,12 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
 bool LX200AstroPhysicsExperimental::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
+    INDI::IEquatorialCoordinates equatorialCoords {currentRA, currentDEC};
+    INDI::IHorizontalCoordinates horizontalCoords {0, 0};
+    INDI::EquatorialToHorizontal(&equatorialCoords, &m_Location, ln_get_julian_from_sys(), &horizontalCoords);
 
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = currentRA * 15;
-    equatorialPos.dec = currentDEC;
-    get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-    double parkAZ = horizontalPos.az;
-    double parkAlt = horizontalPos.alt;
+    double parkAZ = horizontalCoords.azimuth;
+    double parkAlt = horizontalCoords.altitude;
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
@@ -2275,6 +2230,12 @@ bool LX200AstroPhysicsExperimental::SetTrackRate(double raRate, double deRate)
 
 bool LX200AstroPhysicsExperimental::getUTFOffset(double *offset)
 {
+    if (isSimulation())
+    {
+        *offset = 3;
+        return true;
+    }
+
     return (getAPUTCOffset(PortFD, offset) == 0);
 }
 

@@ -102,7 +102,7 @@ bool LX200Telescope::initProperties()
     {
         IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
     }
-    IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
+    IUFillNumberVector(&TrackFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_OFF);
@@ -145,13 +145,10 @@ bool LX200Telescope::initProperties()
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
-    double longitude = 0, latitude = 90;
-    // Get value from config file if it exists.
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sidereal_time(longitude);
-    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-    currentDEC = latitude > 0 ? 90 : -90;
-
+    if (m_Location.longitude > 0)
+        currentRA  = get_local_sidereal_time(m_Location.longitude);
+    if (m_Location.latitude != 0)
+        currentDEC = m_Location.latitude > 0 ? 90 : -90;
     return true;
 }
 
@@ -169,7 +166,7 @@ void LX200Telescope::ISGetProperties(const char *dev)
             defineProperty(&AlignmentSP);
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
-            defineProperty(&TrackingFreqNP);
+            defineProperty(&TrackFreqNP);
 
         if (genericCapability & LX200_HAS_PULSE_GUIDING)
             defineProperty(&UsePulseCmdSP);
@@ -203,7 +200,7 @@ bool LX200Telescope::updateProperties()
             defineProperty(&AlignmentSP);
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
-            defineProperty(&TrackingFreqNP);
+            defineProperty(&TrackFreqNP);
 
         if (genericCapability & LX200_HAS_PULSE_GUIDING)
             defineProperty(&UsePulseCmdSP);
@@ -231,7 +228,7 @@ bool LX200Telescope::updateProperties()
             deleteProperty(AlignmentSP.name);
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
-            deleteProperty(TrackingFreqNP.name);
+            deleteProperty(TrackFreqNP.name);
 
         if (genericCapability & LX200_HAS_PULSE_GUIDING)
             deleteProperty(UsePulseCmdSP.name);
@@ -362,8 +359,9 @@ bool LX200Telescope::Goto(double ra, double dec)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -454,8 +452,9 @@ bool LX200Telescope::Park()
 
             if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
             {
-                MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-                EqNP.s                          = IPS_IDLE;
+                MovementNSSP.s = IPS_IDLE;
+                MovementWESP.s = IPS_IDLE;
+                EqNP.s = IPS_IDLE;
                 IUResetSwitch(&MovementNSSP);
                 IUResetSwitch(&MovementWESP);
 
@@ -637,19 +636,24 @@ bool LX200Telescope::updateLocation(double latitude, double longitude, double el
 {
     INDI_UNUSED(elevation);
 
-    if (isSimulation())
-        return true;
+    // JM 2021-04-10: MUST convert from INDI longitude to standard longitude.
+    // DO NOT REMOVE
+    if (longitude > 180)
+        longitude = longitude - 360;
 
-    if (!isSimulation() && setSiteLongitude(PortFD, longitude) < 0)
+    if (!isSimulation())
     {
-        LOG_ERROR("Error setting site longitude coordinates");
-        return false;
-    }
+        if (setSiteLongitude(PortFD, longitude) < 0)
+        {
+            LOG_ERROR("Error setting site longitude coordinates");
+            return false;
+        }
 
-    if (!isSimulation() && setSiteLatitude(PortFD, latitude) < 0)
-    {
-        LOG_ERROR("Error setting site latitude coordinates");
-        return false;
+        if (setSiteLatitude(PortFD, latitude) < 0)
+        {
+            LOG_ERROR("Error setting site latitude coordinates");
+            return false;
+        }
     }
 
     char l[MAXINDINAME] = {0}, L[MAXINDINAME] = {0};
@@ -657,7 +661,8 @@ bool LX200Telescope::updateLocation(double latitude, double longitude, double el
     fs_sexa(L, longitude, 2, 36000);
 
     // Choose WGS 84, also known as EPSG:4326 for latitude/longitude ordering
-    LOGF_INFO("Site location in the mount updated to Latitude %.12s (%g) Longitude %.12s (%g) (Longitude sign in carthography format)", l, latitude, L, longitude);
+    LOGF_INFO("Site location in the mount updated to Latitude %.12s (%g) Longitude %.12s (%g) (Longitude sign in carthography format)",
+              l, latitude, L, longitude);
 
     return true;
 }
@@ -696,20 +701,20 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
         }
 
         // Update Frequency
-        if (!strcmp(name, TrackingFreqNP.name))
+        if (!strcmp(name, TrackFreqNP.name))
         {
             LOGF_DEBUG("Trying to set track freq of: %04.1f", values[0]);
             if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
             {
                 if (!isSimulation() && setPreciseTrackFreq(PortFD, values[0]) < 0)
                 {
-                    TrackingFreqNP.s = IPS_ALERT;
-                    IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
+                    TrackFreqNP.s = IPS_ALERT;
+                    IDSetNumber(&TrackFreqNP, "Error setting tracking frequency");
                     return false;
                 }
-                TrackingFreqNP.s           = IPS_OK;
-                TrackingFreqNP.np[0].value = values[0];
-                IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %8.5f", values[0]);
+                TrackFreqNP.s           = IPS_OK;
+                TrackFreqNP.np[0].value = values[0];
+                IDSetNumber(&TrackFreqNP, "Tracking frequency set to %8.5f", values[0]);
             }
             else
             {
@@ -722,18 +727,18 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
                     LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
                     if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
                     {
-                        TrackingFreqNP.s = IPS_ALERT;
-                        IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
+                        TrackFreqNP.s = IPS_ALERT;
+                        IDSetNumber(&TrackFreqNP, "Error setting tracking frequency");
                         return false;
                     }
-                    TrackingFreqNP.s           = IPS_OK;
-                    IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
+                    TrackFreqNP.s           = IPS_OK;
+                    IDSetNumber(&TrackFreqNP, "Error setting tracking frequency");
                     return false;
                 }
 
-                TrackingFreqNP.s           = IPS_OK;
-                TrackingFreqNP.np[0].value = values[0];
-                IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %04.1f", values[0]);
+                TrackFreqNP.s           = IPS_OK;
+                TrackFreqNP.np[0].value = values[0];
+                IDSetNumber(&TrackFreqNP, "Tracking frequency set to %04.1f", values[0]);
             }
 
             if (trackingMode != LX200_TRACK_MANUAL)
@@ -829,7 +834,8 @@ bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *sta
             if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
                 sendScopeLocation();
 
-            SiteNameTP.s = SiteSP.s = IPS_OK;
+            SiteNameTP.s = IPS_OK;
+            SiteSP.s = IPS_OK;
 
             IDSetText(&SiteNameTP, nullptr);
             IDSetSwitch(&SiteSP, nullptr);
@@ -940,7 +946,7 @@ bool LX200Telescope::SetTrackMode(uint8_t mode)
     if (rc &&  (genericCapability & LX200_HAS_TRACKING_FREQ))
     {
         getTrackFreq(PortFD, &TrackFreqN[0].value);
-        IDSetNumber(&TrackingFreqNP, nullptr);
+        IDSetNumber(&TrackFreqNP, nullptr);
     }
     return rc;
 }
@@ -1185,7 +1191,7 @@ void LX200Telescope::getBasicData()
             if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
                 LOG_ERROR("Failed to get tracking frequency from device.");
             else
-                IDSetNumber(&TrackingFreqNP, nullptr);
+                IDSetNumber(&TrackFreqNP, nullptr);
         }
 
     }
@@ -1379,7 +1385,7 @@ bool LX200Telescope::sendScopeLocation()
     }
     else
     {
-        snprintf(lat_sexagesimal, MAXINDIFORMAT,"%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
+        snprintf(lat_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", lat_dd, lat_mm, lat_ssf);
         f_scansexa(lat_sexagesimal, &(LocationNP.np[LOCATION_LATITUDE].value));
     }
 
@@ -1390,7 +1396,7 @@ bool LX200Telescope::sendScopeLocation()
     }
     else
     {
-        snprintf(lng_sexagesimal, MAXINDIFORMAT,"%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
+        snprintf(lng_sexagesimal, MAXINDIFORMAT, "%02d:%02d:%02.1lf", long_dd, long_mm, long_ssf);
         f_scansexa(lng_sexagesimal, &(LocationNP.np[LOCATION_LONGITUDE].value));
     }
 

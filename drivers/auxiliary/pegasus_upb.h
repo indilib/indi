@@ -287,7 +287,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         ////////////////////////////////////////////////////////////////////////////////////
         /// USB
         ////////////////////////////////////////////////////////////////////////////////////
-        ITextVectorProperty FirmwateTP;
+        ITextVectorProperty FirmwareTP;
         IText FirmwareT[2] {};
         enum
         {
@@ -295,10 +295,6 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
             FIRMWARE_UPTIME
         };
 
-
-        // Temperature
-        INumber FocuserTemperatureN[1];
-        INumberVectorProperty FocuserTemperatureNP;
 
         std::vector<std::string> lastSensorData, lastPowerData, lastStepperData, lastDewAggData;
         bool focusMotorRunning { false };

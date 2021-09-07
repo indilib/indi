@@ -56,8 +56,7 @@ class RainbowRSF : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
         ///////////////////////////////////////////////////////////////////////////////
-        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
-        void hexDump(char * buf, const char * data, int size);
+        bool sendCommand(const char * cmd, char * res, int res_len);
 
     private:
 

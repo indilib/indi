@@ -33,81 +33,6 @@ std::unique_ptr<FilterIFW> filter_ifw(new FilterIFW());
 /************************************************************************************
 *
 ************************************************************************************/
-void ISInit()
-{
-    static int isInit = 0;
-
-    if (isInit == 1)
-        return;
-
-    isInit = 1;
-    if (filter_ifw.get() == nullptr)
-        filter_ifw.reset(new FilterIFW());
-}
-
-/************************************************************************************
-*
-************************************************************************************/
-void ISGetProperties(const char *dev)
-{
-    ISInit();
-    filter_ifw->ISGetProperties(dev);
-}
-
-/************************************************************************************
-*
-************************************************************************************/
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    ISInit();
-    filter_ifw->ISNewSwitch(dev, name, states, names, n);
-}
-
-/************************************************************************************
-*
-************************************************************************************/
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    ISInit();
-    filter_ifw->ISNewText(dev, name, texts, names, n);
-}
-
-/************************************************************************************
-*
-************************************************************************************/
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    ISInit();
-    filter_ifw->ISNewNumber(dev, name, values, names, n);
-}
-
-/************************************************************************************
-*
-************************************************************************************/
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-/************************************************************************************
-*
-************************************************************************************/
-void ISSnoopDevice(XMLEle *root)
-{
-    filter_ifw->ISSnoopDevice(root);
-}
-
-/************************************************************************************
-*
-************************************************************************************/
 FilterIFW::FilterIFW()
 {
     //ctor
@@ -666,7 +591,7 @@ bool FilterIFW::GetFilterNames()
                 p                                   = p + OPTEC_LEN_FLTNAME;
                 LOGF_DEBUG("filterNameIFW[%d] : %s", i, filterNameIFW[i]);
                 strncat(filterList, filterNameIFW[i], OPTEC_LEN_FLTNAME);
-                strncat(filterList, "/", 1);
+                strcat(filterList, "/");
             }
             filterList[strlen(filterList) - 1] = '\0'; //Remove last "/"
 
@@ -674,7 +599,7 @@ bool FilterIFW::GetFilterNames()
             // Set new max value on the filter_slot property
             FilterSlotN[0].max = maxFilter;
             if (isSimulation())
-                actualSimFilter = FilterSlotN[0].value = 1;
+                FilterSlotN[0].value = actualSimFilter = 1;
             IUUpdateMinMax(&FilterSlotNP);
             IDSetNumber(&FilterSlotNP, nullptr);
 
@@ -742,7 +667,9 @@ bool FilterIFW::SetFilterNames()
     int tempolen;
     memset(response, 0, sizeof(response));
 
-    FilterNameTP->s = FilterSlotNP.s = WheelIDTP.s = IPS_BUSY;
+    FilterNameTP->s = IPS_BUSY;
+    FilterSlotNP.s = IPS_BUSY;
+    WheelIDTP.s = IPS_BUSY;
     IDSetText(FilterNameTP, "*** Saving filters name to IFW... ***");
     IDSetNumber(&FilterSlotNP, nullptr);
     IDSetText(&WheelIDTP, nullptr);
@@ -931,7 +858,9 @@ bool FilterIFW::moveHome()
 
     memset(response, 0, sizeof(response));
 
-    HomeSP.s = WheelIDTP.s = FilterSlotNP.s = IPS_BUSY;
+    HomeSP.s = IPS_BUSY;
+    WheelIDTP.s = IPS_BUSY;
+    FilterSlotNP.s = IPS_BUSY;
     IDSetSwitch(&HomeSP, "*** Initialisation of the IFW. Please wait... ***");
     IDSetText(&WheelIDTP, nullptr);
     IDSetNumber(&FilterSlotNP, nullptr);
@@ -964,12 +893,14 @@ bool FilterIFW::moveHome()
 
     if (!result || !GetWheelID() || !GetFilterNames() || (GetFilterPos() <= 0))
     {
-        HomeSP.s = WheelIDTP.s = IPS_ALERT;
+        HomeSP.s = IPS_ALERT;
+        WheelIDTP.s = IPS_ALERT;
         IDSetSwitch(&HomeSP, "*** INITIALISATION FAILED ***");
         return false;
     }
 
-    HomeSP.s = WheelIDTP.s = IPS_OK;
+    HomeSP.s = IPS_OK;
+    WheelIDTP.s = IPS_OK;
     IDSetSwitch(&HomeSP, "IFW ready");
     return true;
 }

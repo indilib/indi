@@ -1,0 +1,37 @@
+name: Linux
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        container: ["ubuntu", "debian", "fedora"]
+
+    container:
+      image: ghcr.io/indilib/${{ matrix.container }}
+
+    steps:
+      - name: Get INDI Sources
+        uses: actions/checkout@v2
+        with:
+          path: 'indi'
+
+      - name: Build INDI Core
+        run: |
+          indi/scripts/indi-core-build.sh
+          indi/scripts/indi-core-package-build.sh
+
+      - name: Install INDI Core
+        run: indi/scripts/indi-core-install.sh
+
+      - name: Run INDI Core Test
+        run: indi/scripts/indi-core-test.sh
+
+      - name: Archive INDI Core Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: indi-core-package-${{ matrix.container }}
+          path: packages/indi-core-package.tar

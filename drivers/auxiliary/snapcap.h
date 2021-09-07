@@ -45,28 +45,28 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
     SnapCap();
     virtual ~SnapCap() = default;
 
-    virtual bool initProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool updateProperties();
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
 
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISSnoopDevice(XMLEle *root);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISSnoopDevice(XMLEle *root) override;
 
   protected:
-    const char *getDefaultName();
+    const char *getDefaultName() override;
 
-    virtual bool saveConfigItems(FILE *fp);
-    void TimerHit();
+    virtual bool saveConfigItems(FILE *fp) override;
+    void TimerHit() override;
 
     // From Dust Cap
-    virtual IPState ParkCap();
-    virtual IPState UnParkCap();
+    virtual IPState ParkCap() override;
+    virtual IPState UnParkCap() override;
 
     // From Light Box
-    virtual bool SetLightBoxBrightness(uint16_t value);
-    virtual bool EnableLightBox(bool enable);
+    virtual bool SetLightBoxBrightness(uint16_t value) override;
+    virtual bool EnableLightBox(bool enable) override;
 
   private:
     bool getStartupData();

@@ -55,6 +55,7 @@ class DMFC : public INDI::Focuser
         bool setEncodersEnabled(bool enable);
         bool setMotorType(uint8_t type);
         bool ack();
+        void ignoreResponse();
 
         uint32_t currentPosition { 0 };
         uint32_t targetPosition { 0 };

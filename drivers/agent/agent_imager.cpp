@@ -38,41 +38,6 @@
 const std::string Imager::DEVICE_NAME = "Imager Agent";
 std::shared_ptr<Imager> imager(new Imager());
 
-
-
-// Driver entry points ----------------------------------------------------------------------------
-
-void ISGetProperties(const char *dev)
-{
-    imager->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    imager->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    imager->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    imager->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    imager->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    imager->ISSnoopDevice(root);
-}
-
 // Imager ----------------------------------------------------------------------------
 
 Imager::Imager()
@@ -162,7 +127,8 @@ void Imager::initiateNextCapture()
                 IDSetNumber(&ProgressNP, "CCD is not connected");
                 return;
             }
-            CCDImageBinN[0].value = CCDImageBinN[1].value = currentGroup()->binning();
+            CCDImageBinN[0].value = currentGroup()->binning();
+            CCDImageBinN[1].value = currentGroup()->binning();
             sendNewNumber(&CCDImageBinNP);
             CCDImageExposureN[0].value = currentGroup()->exposure();
             sendNewNumber(&CCDImageExposureNP);

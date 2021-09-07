@@ -67,7 +67,7 @@ typedef uint8_t u_int8_t;
 #define MC_PEC_RECORD_STOP      0x16    // n/a          n/a     Stop PEC recording
 
 #define MC_GOTO_SLOW            0x17    //  16/24 bits  Ack     Goto position with slow, variable rate. Either 16 or 24 bit accuracy.
-                                        //                      Position is a signed fraction of a full rotation
+//                      Position is a signed fraction of a full rotation
 #define MC_AT_INDEX             0x18    // n/a          8 bits  FFH at index, 00H not
 #define MC_SEEK_INDEX           0x19    // n/a          n/a     Seek PEC Index
 #define MC_MOVE_POS             0x24    // start move positive direction, rate 0-9, 0 is stop
@@ -78,10 +78,10 @@ typedef uint8_t u_int8_t;
 
 // command 0x30 and 0x31 are read/ write memory commands
 #define MC_PEC_READ_DATA        0x30    // 8            PEC data value  return 1 byte of data:
-                                        // 0x3f         number of PEC bins (88)
-                                        // 0x40+i       PEC data for bin i
+// 0x3f         number of PEC bins (88)
+// 0x40+i       PEC data for bin i
 #define MC_PEC_WRITE_DATA       0x31    // 16  PEC data address, PEC data value
-                                        // 0x40+i, value bin i
+// 0x40+i, value bin i
 
 #define MC_SET_AUTOGUIDE_RATE   0x46    // 0 to 99 as % sidereal
 #define MC_GET_AUTOGUIDE_RATE   0x47    // 0 to 99 as % sidereal
@@ -164,6 +164,7 @@ typedef struct
     char controllerVariant;
     bool isGem;
     bool canPec;
+    bool hasHomeIndex;
     bool hasFocuser;
     CELESTRON_TRACK_MODE celestronTrackMode;
 } FirmwareInfo;
@@ -271,11 +272,12 @@ class CelestronDriver
         bool get_version(char *version, size_t size);
         bool get_variant(char *variant);
         int model();        // returns model number, -1 if failed
-        bool get_model(char *model, size_t size, bool *isGem, bool *canPec);
+        bool get_model(char *model, size_t size, bool *isGem, bool *canPec, bool *hasHomeIndex);
         bool get_dev_firmware(int dev, char *version, size_t size);
         bool get_radec(double *ra, double *dec, bool precise);
         bool get_azalt(double *az, double *alt, bool precise);
-        bool get_utc_date_time(double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss, bool *dst, bool precise);
+        bool get_utc_date_time(double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss, bool *dst,
+                               bool precise);
 
         // Motion
         bool start_motion(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate);
@@ -358,7 +360,7 @@ class CelestronDriver
         int simRecordStart;
         bool simSeekIndex = false;
 
-protected:
+    protected:
         void set_sim_response(const char *fmt, ...);
         virtual int serial_write(const char *cmd, int nbytes, int *nbytes_written);
         virtual int serial_read(int nbytes, int *nbytes_read);
@@ -380,37 +382,40 @@ protected:
 
 class PecData
 {
-public:
-    PecData();
+    public:
+        PecData();
 
-    // save PEC data to a file
-    bool Save(const char * filename);
+        // save PEC data to a file
+        bool Save(const char * filename);
 
-    // saves PEC data to mount
-    bool Save(CelestronDriver * driver);
+        // saves PEC data to mount
+        bool Save(CelestronDriver * driver);
 
-    // Loads PEC data from mount
-    bool Load(CelestronDriver * driver);
+        // Loads PEC data from mount
+        bool Load(CelestronDriver * driver);
 
-    // Loads PEC data from file
-    bool Load(const char * fileName);
+        // Loads PEC data from file
+        bool Load(const char * fileName);
 
-    size_t NumBins() { return numBins; }
+        size_t NumBins()
+        {
+            return numBins;
+        }
 
-    void RemoveDrift();
+        void RemoveDrift();
 
-    const char *getDeviceName();
-//    void set_device(const char *name);
+        const char *getDeviceName();
+        //    void set_device(const char *name);
 
-private:
-    double wormArcSeconds = 7200;
-    double rateScale = 1024;
-    size_t numBins = 88;
-    const double SIDEREAL_ARCSEC_PER_SEC = 360.0 * 60.0 * 60.0 / (23.0 * 3600.0 + 56 * 60 + 4.09);
+    private:
+        double wormArcSeconds = 7200;
+        double rateScale = 1024;
+        size_t numBins = 88;
+        const double SIDEREAL_ARCSEC_PER_SEC = 360.0 * 60.0 * 60.0 / (23.0 * 3600.0 + 56 * 60 + 4.09);
 
-    double data[255];   // numbins + 1 values, accumulated PEC offset in arc secs. First one zero
+        double data[255];   // numbins + 1 values, accumulated PEC offset in arc secs. First one zero
 
-    void Kalman(PecData newData, int num);
+        void Kalman(PecData newData, int num);
 };
 
 

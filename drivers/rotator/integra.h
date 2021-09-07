@@ -45,28 +45,28 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
         Integra();
         virtual ~Integra() = default;
 
-        virtual bool Handshake();
-        const char * getDefaultName();
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool Handshake() override;
+        const char * getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n) override;
 
     protected:
         // Focuser
-        virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-        virtual bool AbortFocuser();
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
 
         // Rotator
-        virtual IPState MoveRotator(double angle);
-        virtual bool AbortRotator();
-        virtual bool SyncRotator(double angle);
-        virtual bool ReverseRotator(bool enabled);
+        virtual IPState MoveRotator(double angle) override;
+        virtual bool AbortRotator() override;
+        virtual bool SyncRotator(double angle) override;
+        virtual bool ReverseRotator(bool enabled) override;
 
         // Misc.
-        virtual bool saveConfigItems(FILE *fp);
-        virtual void TimerHit();
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual void TimerHit() override;
 
     private:
         bool genericIntegraCommand(const char *name, const char *cmd, const char *expectStart, char *returnValueString);

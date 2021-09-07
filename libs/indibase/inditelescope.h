@@ -19,7 +19,7 @@
 #pragma once
 
 #include "defaultdevice.h"
-
+#include "libastro.h"
 #include <libnova/julian_day.h>
 
 #include <string>
@@ -174,11 +174,11 @@ class Telescope : public DefaultDevice
         Telescope();
         virtual ~Telescope();
 
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual void ISGetProperties(const char *dev);
-        virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
 
         /**
          * @brief GetTelescopeCapability returns the capability of the Telescope
@@ -301,15 +301,15 @@ class Telescope : public DefaultDevice
         }
 
         /** \brief Called to initialize basic properties required all the time */
-        virtual bool initProperties();
+        virtual bool initProperties() override;
         /** \brief Called when connected state changes, to add/remove properties */
-        virtual bool updateProperties();
+        virtual bool updateProperties() override;
 
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();
 
         /** \brief Called when setTimer() time is up */
-        virtual void TimerHit();
+        virtual void TimerHit() override;
 
         /**
          * \brief setParkDataType Sets the type of parking data stored in the park data file and
@@ -428,7 +428,7 @@ class Telescope : public DefaultDevice
         }
 
     protected:
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp) override;
 
         /** \brief The child class calls this function when it has updates */
         void NewRaDec(double ra, double dec);
@@ -637,10 +637,8 @@ class Telescope : public DefaultDevice
          */
         TelescopePierSide expectedPierSide(double ra);
 
-        // helper functions
-        double getAzimuth(double r, double d);
-
-        ln_lnlat_posn lnobserver { 0, 0 };
+        // Geographic Location
+        IGeographicCoordinates m_Location { 0, 0, 0 };
 
         /**
          * @brief Load scope settings from XML files.
@@ -828,7 +826,7 @@ class Telescope : public DefaultDevice
          */
         ISwitchVectorProperty TrackSatSP;
         ISwitch TrackSatS[SAT_TRACK_COUNT];
-        
+
         // PEC State
         ISwitch PECStateS[2];
         ISwitchVectorProperty PECStateSP;

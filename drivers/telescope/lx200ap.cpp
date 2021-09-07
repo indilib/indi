@@ -113,7 +113,7 @@ bool LX200AstroPhysics::initProperties()
                        0, IPS_IDLE);
 
     IUFillText(&VersionT[0], "Number", "", nullptr);
-    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&VersionTP, VersionT, 1, getDeviceName(), "Firmware Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillText(&DeclinationAxisT[0], "RELHA", "rel. to HA", "undefined");
     IUFillTextVector(&DeclinationAxisTP, DeclinationAxisT, 1, getDeviceName(), "DECLINATIONAXIS", "Declination axis",
@@ -138,7 +138,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
     if (isConnected())
     {
         defineProperty(&StartUpSP);
-        defineProperty(&VersionInfo);
+        defineProperty(&VersionTP);
 
         //defineProperty(&DeclinationAxisTP);
 
@@ -161,7 +161,7 @@ bool LX200AstroPhysics::updateProperties()
     if (isConnected())
     {
         defineProperty(&StartUpSP);
-        defineProperty(&VersionInfo);
+        defineProperty(&VersionTP);
 
         //defineProperty(&DeclinationAxisTP);
 
@@ -177,7 +177,7 @@ bool LX200AstroPhysics::updateProperties()
     else
     {
         deleteProperty(StartUpSP.name);
-        deleteProperty(VersionInfo.name);
+        deleteProperty(VersionTP.name);
         //deleteProperty(DeclinationAxisTP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
@@ -237,8 +237,8 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
                 IDSetSwitch(&APSlewSpeedSP, nullptr);
 
                 IUSaveText(&VersionT[0], "1.0");
-                VersionInfo.s = IPS_OK;
-                IDSetText(&VersionInfo, nullptr);
+                VersionTP.s = IPS_OK;
+                IDSetText(&VersionTP, nullptr);
 
                 StartUpSP.s = IPS_OK;
                 IDSetSwitch(&StartUpSP, "Mount initialized.");
@@ -295,9 +295,9 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
 
                 char versionString[64];
                 getAPVersionNumber(PortFD, versionString);
-                VersionInfo.s = IPS_OK;
+                VersionTP.s = IPS_OK;
                 IUSaveText(&VersionT[0], versionString);
-                IDSetText(&VersionInfo, nullptr);
+                IDSetText(&VersionTP, nullptr);
 
                 // TODO check controller type here
                 INDI_UNUSED(controllerType);
@@ -620,8 +620,9 @@ bool LX200AstroPhysics::Goto(double r, double d)
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
+            MovementNSSP.s = IPS_IDLE;
+            MovementWESP.s = IPS_IDLE;
+            EqNP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -860,23 +861,10 @@ bool LX200AstroPhysics::Park()
 
     if (isSimulation())
     {
-        ln_lnlat_posn observer;
-        observer.lat = LocationN[LOCATION_LATITUDE].value;
-        observer.lng = LocationN[LOCATION_LONGITUDE].value;
-        if (observer.lng > 180)
-            observer.lng -= 360;
-
-        ln_hrz_posn horizontalPos;
-        // Libnova south = 0, west = 90, north = 180, east = 270
-
-        horizontalPos.az = parkAz;
-        horizontalPos.alt = parkAlt;
-
-        ln_equ_posn equatorialPos;
-
-        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
+        INDI::IEquatorialCoordinates equatorialCoords {0, 0};
+        INDI::IHorizontalCoordinates horizontalCoords {parkAz, parkAlt};
+        INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
+        Goto(equatorialCoords.rightascension, equatorialCoords.declination);
     }
     else
     {
@@ -927,24 +915,12 @@ bool LX200AstroPhysics::UnPark()
 
     if (isSimulation())
     {
-        ln_lnlat_posn observer;
-        observer.lat = LocationN[LOCATION_LATITUDE].value;
-        observer.lng = LocationN[LOCATION_LONGITUDE].value;
-        if (observer.lng > 180)
-            observer.lng -= 360;
+        INDI::IEquatorialCoordinates equatorialCoords {0, 0};
+        INDI::IHorizontalCoordinates horizontalCoords {parkAz, parkAlt};
+        INDI::HorizontalToEquatorial(&horizontalCoords, &m_Location, ln_get_julian_from_sys(), &equatorialCoords);
 
-        ln_hrz_posn horizontalPos;
-        // Libnova south = 0, west = 90, north = 180, east = 270
-
-        horizontalPos.az = parkAz;
-        horizontalPos.alt = parkAlt;
-
-        ln_equ_posn equatorialPos;
-
-        get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-
-        currentRA = equatorialPos.ra / 15.0;
-        currentDEC = equatorialPos.dec;
+        currentRA = equatorialCoords.rightascension;
+        currentDEC = equatorialCoords.declination;
     }
     else
     {
@@ -968,21 +944,11 @@ bool LX200AstroPhysics::UnPark()
 
 bool LX200AstroPhysics::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
-    // Libnova south = 0, west = 90, north = 180, east = 270
-
-    ln_lnlat_posn observer;
-    observer.lat = LocationN[LOCATION_LATITUDE].value;
-    observer.lng = LocationN[LOCATION_LONGITUDE].value;
-    if (observer.lng > 180)
-        observer.lng -= 360;
-
-    ln_equ_posn equatorialPos;
-    equatorialPos.ra  = currentRA * 15;
-    equatorialPos.dec = currentDEC;
-    get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
-    double parkAZ = horizontalPos.az;
-    double parkAlt = horizontalPos.alt;
+    INDI::IEquatorialCoordinates equatorialCoords {currentRA, currentDEC};
+    INDI::IHorizontalCoordinates horizontalCoords {0, 0};
+    INDI::EquatorialToHorizontal(&equatorialCoords, &m_Location, ln_get_julian_from_sys(), &horizontalCoords);
+    double parkAZ = horizontalCoords.azimuth;
+    double parkAlt = horizontalCoords.altitude;
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
@@ -1120,5 +1086,11 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
 
 bool LX200AstroPhysics::getUTFOffset(double *offset)
 {
+    if (isSimulation())
+    {
+        *offset = 3;
+        return true;
+    }
+
     return (getAPUTCOffset(PortFD, offset) == 0);
 }

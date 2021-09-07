@@ -44,46 +44,10 @@
 // 2018-12-12 JM: Updated this driver today. Tommy passed away a couple of months ago. May he rest in peace. I miss you.
 static std::unique_ptr<NightCrawler> tommyGoodBoy(new NightCrawler());
 
-void ISGetProperties(const char *dev)
-{
-    tommyGoodBoy->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    tommyGoodBoy->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    tommyGoodBoy->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    tommyGoodBoy->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                char *formats[], char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice (XMLEle *root)
-{
-    tommyGoodBoy->ISSnoopDevice(root);
-}
-
 NightCrawler::NightCrawler() : RotatorInterface(this)
 {
+    setVersion(1, 1);
+
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC);
@@ -102,10 +66,14 @@ bool NightCrawler::initProperties()
     IUFillNumberVector(&SyncFocusNP, SyncFocusN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0,
                        IPS_IDLE );
 
-    // Temperature + Voltage Sensors
-    IUFillNumber(&SensorN[SENSOR_TEMPERATURE], "TEMPERATURE", "Temperature (C)", "%.2f", -100, 100., 1., 0.);
-    IUFillNumber(&SensorN[SENSOR_VOLTAGE], "VOLTAGE", "Voltage (V)", "%.2f", 0, 20., 1., 0.);
-    IUFillNumberVector(&SensorNP, SensorN, 2, getDeviceName(), "SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
+    // Voltage
+    IUFillNumber(&VoltageN[0], "VALUE", "Value (v)", "%.2f", 0, 30., 1., 0.);
+    IUFillNumberVector(&VoltageNP, VoltageN, 1, getDeviceName(), "Voltage", "Voltage", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
+
+    // Temperature
+    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Value (C)", "%.2f", -100, 100., 1., 0.);
+    IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB,
+                       IP_RO, 0, IPS_IDLE );
 
     // Temperature offset
     IUFillNumber(&TemperatureOffsetN[0], "OFFSET", "Offset", "%.2f", -15, 15., 1., 0.);
@@ -216,7 +184,8 @@ bool NightCrawler::updateProperties()
     {
         // Focus
         defineProperty(&SyncFocusNP);
-        defineProperty(&SensorNP);
+        defineProperty(&VoltageNP);
+        defineProperty(&TemperatureNP);
         defineProperty(&TemperatureOffsetNP);
         defineProperty(&FocusStepDelayNP);
         defineProperty(&LimitSwitchLP);
@@ -240,7 +209,8 @@ bool NightCrawler::updateProperties()
     {
         // Focus
         deleteProperty(SyncFocusNP.name);
-        deleteProperty(SensorNP.name);
+        deleteProperty(VoltageNP.name);
+        deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureOffsetNP.name);
         deleteProperty(FocusStepDelayNP.name);
         deleteProperty(LimitSwitchLP.name);
@@ -709,7 +679,6 @@ void NightCrawler::TimerHit()
     }
 
     bool rc = false;
-    bool sensorsUpdated = false;
 
     // #1 If we're homing, we check if homing is complete as we cannot check for anything else
     if (FindHomeSP.s == IPS_BUSY || HomeRotatorSP.s == IPS_BUSY)
@@ -733,22 +702,19 @@ void NightCrawler::TimerHit()
 
     // #2 Get Temperature
     rc = getTemperature();
-    if (rc && fabs(SensorN[SENSOR_TEMPERATURE].value - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(TemperatureN[0].value - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
     {
-        lastTemperature = SensorN[SENSOR_TEMPERATURE].value;
-        sensorsUpdated = true;
+        lastTemperature = TemperatureN[0].value;
+        IDSetNumber(&TemperatureNP, nullptr);
     }
 
     // #3 Get Voltage
     rc = getVoltage();
-    if (rc && fabs(SensorN[SENSOR_VOLTAGE].value - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(VoltageN[0].value - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
     {
-        lastVoltage = SensorN[SENSOR_VOLTAGE].value;
-        sensorsUpdated = true;
+        lastVoltage = VoltageN[0].value;
+        IDSetNumber(&VoltageNP, nullptr);
     }
-
-    if (sensorsUpdated)
-        IDSetNumber(&SensorNP, nullptr);
 
     // #4 Get Limit Switch Status
     rc = getLimitSwitchStatus();
@@ -779,7 +745,7 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_FOCUS);
-    if (rc && FocusAbsPosN[0].value != lastFocuserPosition)
+    if (rc && std::abs(FocusAbsPosN[0].value - lastFocuserPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastFocuserPosition = FocusAbsPosN[0].value;
         absFocusUpdated = true;
@@ -802,7 +768,7 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_ROTATOR);
-    if (rc && RotatorAbsPosN[0].value != lastRotatorPosition)
+    if (rc && std::abs(RotatorAbsPosN[0].value - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastRotatorPosition = RotatorAbsPosN[0].value;
         GotoRotatorN[0].value = range360(RotatorAbsPosN[0].value / ticksPerDegree);
@@ -828,7 +794,7 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_AUX);
-    if (rc && GotoAuxN[0].value != lastAuxPosition)
+    if (rc && std::abs(GotoAuxN[0].value - lastAuxPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastAuxPosition = GotoAuxN[0].value;
         absAuxUpdated = true;
@@ -1014,7 +980,7 @@ bool NightCrawler::getTemperature()
 
     LOGF_DEBUG("RES <%s>", res);
 
-    SensorN[SENSOR_TEMPERATURE].value = atoi(res) / 10.0;
+    TemperatureN[0].value = atoi(res) / 10.0;
 
     return true;
 }
@@ -1049,7 +1015,7 @@ bool NightCrawler::getVoltage()
 
     LOGF_DEBUG("RES <%s>", res);
 
-    SensorN[SENSOR_VOLTAGE].value = atoi(res) / 10.0;
+    VoltageN[0].value = atoi(res) / 10.0;
 
     return true;
 }

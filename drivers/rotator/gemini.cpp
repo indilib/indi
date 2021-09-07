@@ -41,44 +41,6 @@
 
 static std::unique_ptr<Gemini> geminiFR(new Gemini());
 
-void ISGetProperties(const char *dev)
-{
-    geminiFR->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    geminiFR->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    geminiFR->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    geminiFR->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    geminiFR->ISSnoopDevice(root);
-}
-
 /************************************************************************************
  *
 * ***********************************************************************************/
@@ -1921,7 +1883,8 @@ bool Gemini::getFocusStatus()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        strncpy(response, "CurrTemp = +21.7\n", 16);
+        //strncpy(response, "CurrTemp = +21.7\n", 16); // #PS: incorrect, lost last character
+        strcpy(response, "CurrTemp = +21.7\n");
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1930,7 +1893,10 @@ bool Gemini::getFocusStatus()
         LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
+
+    if (nbytes_read > 0)
+        response[nbytes_read - 1] = '\0';
+
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     float temperature = 0;
@@ -3221,7 +3187,9 @@ bool Gemini::AbortFocuser()
         IDSetNumber(&FocusRelPosNP, nullptr);
     }
 
-    FocusTimerNP.s = FocusAbsPosNP.s = FocuserGotoSP.s = IPS_IDLE;
+    FocusTimerNP.s = IPS_IDLE;
+    FocusAbsPosNP.s = IPS_IDLE;
+    FocuserGotoSP.s = IPS_IDLE;
     IUResetSwitch(&FocuserGotoSP);
     IDSetNumber(&FocusAbsPosNP, nullptr);
     IDSetSwitch(&FocuserGotoSP, nullptr);

@@ -364,7 +364,7 @@ void Lx::closeserial(int fd)
         perror("closeserial()");
 }
 
-int Lx::openserial(char *devicename)
+int Lx::openserial(const char *devicename)
 {
     int fd;
     struct termios attr;
@@ -562,8 +562,8 @@ int Lx::stopLxSerial()
 
 INDI::Property *Lx::findbyLabel(INDI::DefaultDevice *dev, char *label)
 {
-    for(const auto &oneProperty: *dev->getProperties())
-        if (!strcmp(oneProperty->getLabel(), label))
+    for(auto &oneProperty: *dev->getProperties())
+        if (oneProperty->isLabelMatch(label))
             return oneProperty;
     return nullptr;
 }

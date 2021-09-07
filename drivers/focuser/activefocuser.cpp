@@ -34,40 +34,6 @@ static std::unique_ptr<ActiveFocuser> activeFocuser(new ActiveFocuser());
 
 int MAX_TICKS = 192307;
 
-void ISPoll(void *p);
-
-void ISGetProperties(const char *dev) {
-    activeFocuser->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) {
-    activeFocuser->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) {
-    activeFocuser->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
-    activeFocuser->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n) {
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root) {
-    activeFocuser->ISSnoopDevice(root);
-}
-
 ActiveFocuser::ActiveFocuser() {
 
     hid_handle = nullptr;
@@ -202,7 +168,7 @@ bool ActiveFocuser::initProperties() {
 
     FocusMaxPosN[0].value = MAX_TICKS;
     FocusMaxPosNP.p = IP_RO;
-    strncpy(FocusMaxPosN->label, "Steps", MAXINDILABEL);
+    strncpy(FocusMaxPosN[0].label, "Steps", MAXINDILABEL);
 
     // Disabling focuser speed
 
@@ -217,7 +183,7 @@ bool ActiveFocuser::initProperties() {
     FocusAbsPosN[0].max = MAX_TICKS;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step = 1000.;
-    strncpy(FocusAbsPosN->label, "Steps", MAXINDILABEL);
+    strncpy(FocusAbsPosN[0].label, "Steps", MAXINDILABEL);
 
 
     // Setting default relative position values
@@ -226,7 +192,7 @@ bool ActiveFocuser::initProperties() {
     FocusRelPosN[0].max = 5000;
     FocusRelPosN[0].value = 100;
     FocusRelPosN[0].step = 1;
-    strncpy(FocusRelPosN->label, "Steps", MAXINDILABEL);
+    strncpy(FocusRelPosN[0].label, "Steps", MAXINDILABEL);
 
     PresetN[0].max = MAX_TICKS;
     PresetN[1].max = MAX_TICKS;
@@ -278,7 +244,7 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
             IUUpdateSwitch(&FanSP, states, names, n);
 
-            if (FanS->s == ISS_ON && !ActiveFocuserUtils::SystemState::GetIsFanOn()) {
+            if (FanS[0].s == ISS_ON && !ActiveFocuserUtils::SystemState::GetIsFanOn()) {
 
                 if (hid_handle) {
 
@@ -292,7 +258,7 @@ bool ActiveFocuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
                 }
 
-            } else if (FanS->s == ISS_OFF && ActiveFocuserUtils::SystemState::GetIsFanOn()) {
+            } else if (FanS[0].s == ISS_OFF && ActiveFocuserUtils::SystemState::GetIsFanOn()) {
 
                 if (hid_handle) {
 

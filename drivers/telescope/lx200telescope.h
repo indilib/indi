@@ -41,12 +41,12 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
          */
         enum
         {
-            LX200_HAS_FOCUS                 = 1 << 0, /** Define focus properties */
-            LX200_HAS_TRACKING_FREQ         = 1 << 1, /** Define Tracking Frequency */
-            LX200_HAS_ALIGNMENT_TYPE        = 1 << 2, /** Define Alignment Type */
-            LX200_HAS_SITES                 = 1 << 3, /** Define Sites */
-            LX200_HAS_PULSE_GUIDING         = 1 << 4, /** Define Pulse Guiding */
-            LX200_HAS_PRECISE_TRACKING_FREQ = 1 << 5, /** Use more precise tracking frequency, if supported by hardware. */
+            LX200_HAS_FOCUS                  = 1 << 0, /** Define focus properties */
+            LX200_HAS_TRACKING_FREQ          = 1 << 1, /** Define Tracking Frequency */
+            LX200_HAS_ALIGNMENT_TYPE         = 1 << 2, /** Define Alignment Type */
+            LX200_HAS_SITES                  = 1 << 3, /** Define Sites */
+            LX200_HAS_PULSE_GUIDING          = 1 << 4, /** Define Pulse Guiding */
+            LX200_HAS_PRECISE_TRACKING_FREQ  = 1 << 5, /** Use more precise tracking frequency, if supported by hardware. */
         } LX200Capability;
 
         uint32_t getLX200Capability() const
@@ -140,8 +140,8 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
         void getAlignment();
 
         // Send Mount time and location settings to client
-        bool sendScopeTime();
-        bool sendScopeLocation();
+        virtual bool sendScopeTime();
+        virtual bool sendScopeLocation();
 
         // Update slew rate if different than current
         bool updateSlewRate(int index);
@@ -175,7 +175,7 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
 
         double JD {0};
         double targetRA {0}, targetDEC {0};
-        double currentRA {0}, currentDEC {0};
+        double currentRA {0.0000001}, currentDEC {0.0000001};
         int MaxReticleFlashRate {0};
 
         /* Telescope Alignment Mode */
@@ -183,7 +183,7 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface, pub
         ISwitch AlignmentS[3];
 
         /* Tracking Frequency */
-        INumberVectorProperty TrackingFreqNP;
+        INumberVectorProperty TrackFreqNP;
         INumber TrackFreqN[1];
 
         /* Use pulse-guide commands */

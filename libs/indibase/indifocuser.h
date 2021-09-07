@@ -56,13 +56,13 @@ class Focuser : public DefaultDevice, public FocuserInterface
         CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
     } FocuserConnection;
 
-    virtual bool initProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISSnoopDevice(XMLEle *root);
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISSnoopDevice(XMLEle *root) override;
 
     /**
          * @brief setConnection Set Focuser connection mode. Child class should call this in the constructor before Focuser registers
@@ -84,7 +84,7 @@ class Focuser : public DefaultDevice, public FocuserInterface
          * @param fp pointer to configuration file
          * @return true if successful, false otherwise.
          */
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
     /** \brief perform handshake with device to check communication */
     virtual bool Handshake();
@@ -94,7 +94,7 @@ class Focuser : public DefaultDevice, public FocuserInterface
      * @param ticks maximum ticks
      * @return True
      */
-    virtual bool SetFocuserMaxPosition(uint32_t ticks);
+    virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
 
     /**
      * @brief syncPresets Updates the min/max/step range of the preset as per the maximum name of Absolute Focus Travel

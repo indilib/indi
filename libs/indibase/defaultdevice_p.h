@@ -22,54 +22,60 @@
 #include "defaultdevice.h"
 
 #include <cstring>
+#include <list>
+#include <mutex>
+
+#include "indipropertyswitch.h"
+#include "indipropertynumber.h"
+#include "indipropertytext.h"
+#include "inditimer.h"
 
 namespace INDI
 {
 class DefaultDevicePrivate: public BaseDevicePrivate
 {
-public:
-    DefaultDevicePrivate();
-    virtual ~DefaultDevicePrivate();
+    public:
+        DefaultDevicePrivate(DefaultDevice *defaultDevice);
+        virtual ~DefaultDevicePrivate();
 
-    bool isInit { false };
-    bool isDebug { false };
-    bool isSimulation { false };
-    bool isDefaultConfigLoaded {false};
-    bool isConfigLoading { false };
+        DefaultDevice *defaultDevice;
 
-    uint16_t majorVersion { 1 };
-    uint16_t minorVersion { 0 };
-    uint16_t interfaceDescriptor { 0 };
+        bool isInit { false };
+        bool isDebug { false };
+        bool isSimulation { false };
+        bool isDefaultConfigLoaded {false};
+        bool isConfigLoading { false };
 
-    WidgetView<ISwitch> DebugS[2];
-    WidgetView<ISwitch> SimulationS[2];
-    WidgetView<ISwitch> ConfigProcessS[4];
-    WidgetView<ISwitch> ConnectionS[2];
-    WidgetView<INumber> PollPeriodN[1];
+        uint16_t majorVersion { 1 };
+        uint16_t minorVersion { 0 };
+        uint16_t interfaceDescriptor { 0 };
+        int m_ConfigConnectionMode {-1};
 
-    PropertyView<ISwitch> DebugSP;
-    PropertyView<ISwitch> SimulationSP;
-    PropertyView<ISwitch> ConfigProcessSP;
-    PropertyView<ISwitch> ConnectionSP;
-    PropertyView<INumber> PollPeriodNP;
+        PropertySwitch SimulationSP     { 2 };
+        PropertySwitch DebugSP          { 2 };
+        PropertySwitch ConfigProcessSP  { 4 };
+        PropertySwitch ConnectionSP     { 2 };
+        PropertyNumber PollPeriodNP     { 1 };
+        PropertyText   DriverInfoTP     { 4 };
+        PropertySwitch ConnectionModeSP { 0 }; // dynamic count of switches
 
-    WidgetView<IText> DriverInfoT[4] {};
-    PropertyView<IText> DriverInfoTP;
+        std::vector<Connection::Interface *> connections;
+        Connection::Interface *activeConnection = nullptr;
 
-    // Connection modes
-    WidgetView<ISwitch> *ConnectionModeS = nullptr;
-    PropertyView<ISwitch> ConnectionModeSP;
+        /**
+         * @brief pollingPeriod Period in milliseconds to call TimerHit(). Default 1000 ms
+         */
+        uint32_t pollingPeriod = 1000;
 
-    std::vector<Connection::Interface *> connections;
-    Connection::Interface *activeConnection = nullptr;
+        bool defineDynamicProperties {true};
+        bool deleteDynamicProperties {true};
 
-    /**
-     * @brief pollingPeriod Period in milliseconds to call TimerHit(). Default 1000 ms
-     */
-    uint32_t pollingPeriod = 1000;
+        // TimerHit timer
+        INDI::Timer m_MainLoopTimer;
 
-    bool defineDynamicProperties {true};
-    bool deleteDynamicProperties {true};
+    public:
+        static std::list<DefaultDevicePrivate*> devices;
+        static std::recursive_mutex             devicesLock;
 };
 
 }

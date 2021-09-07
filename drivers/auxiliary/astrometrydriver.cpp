@@ -34,37 +34,6 @@
 // We declare an auto pointer to AstrometryDriver.
 std::unique_ptr<AstrometryDriver> astrometry(new AstrometryDriver());
 
-void ISGetProperties(const char *dev)
-{
-    astrometry->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    astrometry->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    astrometry->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    astrometry->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    astrometry->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    astrometry->ISSnoopDevice(root);
-}
-
 AstrometryDriver::AstrometryDriver()
 {
     setVersion(1, 0);

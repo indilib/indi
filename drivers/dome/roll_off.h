@@ -26,23 +26,23 @@ class RollOff : public INDI::Dome
     RollOff();
     virtual ~RollOff() = default;
 
-    virtual bool initProperties();
-    const char *getDefaultName();
-    bool updateProperties();
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool saveConfigItems(FILE *fp);
-    virtual bool ISSnoopDevice(XMLEle *root);
+    virtual bool initProperties() override;
+    const char *getDefaultName() override;
+    bool updateProperties() override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool ISSnoopDevice(XMLEle *root) override;
 
   protected:
-    bool Connect();
-    bool Disconnect();
+    bool Connect() override;
+    bool Disconnect() override;
 
-    void TimerHit();
+    void TimerHit() override;
 
-    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
-    virtual IPState Park();
-    virtual IPState UnPark();
-    virtual bool Abort();
+    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
+    virtual IPState Park() override;
+    virtual IPState UnPark() override;
+    virtual bool Abort() override;
 
     virtual bool getFullOpenedLimitSwitch();
     virtual bool getFullClosedLimitSwitch();

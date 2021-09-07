@@ -28,7 +28,7 @@
 #include <memory>
 #include <cstdarg>
 
-
+#define INDI_PROPERTY_BACKWARD_COMPATIBILE
 namespace INDI
 {
 class BaseDevice;
@@ -64,6 +64,7 @@ public:
 public:
     void *getProperty() const;
     INDI_PROPERTY_TYPE getType() const;
+    const char *getTypeAsString() const;
     bool getRegistered() const;
     bool isDynamic() const;
     BaseDevice *getBaseDevice() const;
@@ -85,14 +86,28 @@ public: // Convenience Functions
     const char *getDeviceName() const;
     const char *getTimestamp() const;
     IPState getState() const;
+    const char *getStateAsString() const;
     IPerm getPermission() const;
 
 public:
-    void save(FILE *fp);
+    bool isEmpty() const;
+    bool isValid() const;
+
+    bool isNameMatch(const char *otherName) const;
+    bool isNameMatch(const std::string &otherName) const;
+
+    bool isLabelMatch(const char *otherLabel) const;
+    bool isLabelMatch(const std::string &otherLabel) const;
 
 public:
-    void apply(const char *format = nullptr, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
-    void define(const char *format = nullptr, ...) ATTRIBUTE_FORMAT_PRINTF(2, 3);
+    void save(FILE *fp) const;
+
+public:
+    void apply(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
+    void define(const char *format, ...) const ATTRIBUTE_FORMAT_PRINTF(2, 3);
+
+    void apply() const  { apply(nullptr);  }
+    void define() const { define(nullptr); }
 
 public:
     INDI::PropertyView<INumber> *getNumber() const;
@@ -101,55 +116,25 @@ public:
     INDI::PropertyView<ILight>  *getLight() const;
     INDI::PropertyView<IBLOB>   *getBLOB() const;
 
+public:
+#ifdef INDI_PROPERTY_BACKWARD_COMPATIBILE
+    INDI::Property* operator->();
+    const INDI::Property* operator->() const;
+
+    operator INDI::Property *();
+    operator const INDI::Property *() const;
+#endif
+
 protected:
     std::shared_ptr<PropertyPrivate> d_ptr;
+    Property(std::shared_ptr<PropertyPrivate> dd);
     Property(PropertyPrivate &dd);
 };
 
-inline void Property::save(FILE *fp)
-{
-    switch (getType())
-    {
-        case INDI_NUMBER: IUSaveConfigNumber (fp, getNumber()); break;
-        case INDI_TEXT:   IUSaveConfigText   (fp, getText());   break;
-        case INDI_SWITCH: IUSaveConfigSwitch (fp, getSwitch()); break;
-        //case INDI_LIGHT:  IUSaveConfigLight  (fp, getLight());  break;
-        case INDI_BLOB:   IUSaveConfigBLOB   (fp, getBLOB());   break;
-        default:;;
-    }
-}
-
-// TODO (move to server side)
-inline void Property::apply(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    switch (getType())
-    {
-        case INDI_NUMBER: IDSetNumberVA(getNumber(), format, ap); break;
-        case INDI_TEXT:   IDSetTextVA(getText(),     format, ap); break;
-        case INDI_SWITCH: IDSetSwitchVA(getSwitch(), format, ap); break;
-        case INDI_LIGHT:  IDSetLightVA(getLight(),   format, ap); break;
-        case INDI_BLOB:   IDSetBLOBVA(getBLOB(),     format, ap); break;
-        default:;;
-    }
-    va_end(ap);
-}
-
-inline void Property::define(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    switch (getType())
-    {
-        case INDI_NUMBER: IDDefNumberVA(getNumber(), format, ap); break;
-        case INDI_TEXT:   IDDefTextVA(getText(),     format, ap); break;
-        case INDI_SWITCH: IDDefSwitchVA(getSwitch(), format, ap); break;
-        case INDI_LIGHT:  IDDefLightVA(getLight(),   format, ap); break;
-        case INDI_BLOB:   IDDefBLOBVA(getBLOB(),     format, ap); break;
-        default:;;
-    }
-    va_end(ap);
-}
-
 } // namespace INDI
+
+#ifdef QT_CORE_LIB
+#include <QMetaType>
+Q_DECLARE_METATYPE(INDI::Property)
+static int indi_property_metatype_id = QMetaTypeId< INDI::Property >::qt_metatype_id();
+#endif

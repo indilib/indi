@@ -4,7 +4,7 @@
     Copyright (C) 2017 Michael Fulbright
     Additional contributors: 
         Thomas Olson, Copyright (C) 2019
-        Karl Rees, Copyright (C) 2019
+        Karl Rees, Copyright (C) 2019-2021
         
     Based on IEQPro driver.
 
@@ -28,6 +28,21 @@
 #include "pmc8driver.h"
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
+
+typedef enum { PMC8_MOVE_INACTIVE, PMC8_MOVE_RAMPING, PMC8_MOVE_ACTIVE } PMC8_MOVE_STATE;
+typedef enum { PMC8_RAMP_UP, PMC8_RAMP_DOWN } PMC8_RAMP_DIRECTION;
+
+typedef struct
+{
+    PMC8_MOVE_STATE state = PMC8_MOVE_INACTIVE;
+    uint8_t moveDir = 0;      
+    int targetRate = 0;
+    int rampIteration = 0;
+    int rampLastStep = 0;
+    PMC8_RAMP_DIRECTION rampDir = PMC8_RAMP_UP;
+    int timer;
+} PMC8MoveInfo;
+
 
 class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -106,12 +121,24 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         //GUIDE variables.
         int GuideNSTID;
         int GuideWETID;
+        
+        // Move
+        static void rampTimeoutHelperN(void *p);
+        static void rampTimeoutHelperS(void *p);
+        static void rampTimeoutHelperE(void *p);
+        static void rampTimeoutHelperW(void *p);
+        bool ramp_movement(PMC8_DIRECTION calldir);
+        
+        int getSlewRate();
 
     private:
         /**
             * @brief getStartupData Get initial mount info on startup.
             */
         void getStartupData();
+
+        uint8_t convertToPMC8TrackMode(uint8_t mode); 
+        uint8_t convertFromPMC8TrackMode(uint8_t mode); 
 
         /* Firmware */
         IText FirmwareT[1] {};
@@ -121,24 +148,35 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
         ISwitch MountTypeS[3];
         ISwitchVectorProperty MountTypeSP;
 
-        //Moved to driver
-        //enum { MOUNT_G11, MOUNT_EXOS2, MOUNT_iEXOS100 };
-
-        /* Tracking Mode */
-        //ISwitchVectorProperty TrackModeSP;
-        //ISwitch TrackModeS[4];
-
-        /* Custom Tracking Rate */
-        //INumber CustomTrackRateN[1];
-        //INumberVectorProperty CustomTrackRateNP;
-
-        /* Guide Rate */
-        INumber GuideRateN[1];
+        /* SRF Guide Rates */
+        INumber GuideRateN[2];
         INumberVectorProperty GuideRateNP;
+        INumber LegacyGuideRateN[1];
+        INumberVectorProperty LegacyGuideRateNP;
+
+        /* Move Ramp Settings */       
+        INumber RampN[3];
+        INumberVectorProperty RampNP;
+
+        // Serial Cable Type
+        ISwitch SerialCableTypeS[3];
+        ISwitchVectorProperty SerialCableTypeSP;
+
+        // Post-Goto Behavior
+        ISwitch PostGotoS[3];
+        ISwitchVectorProperty PostGotoSP;
 
         unsigned int DBG_SCOPE;
         double currentRA, currentDEC;
         double targetRA, targetDEC;
+        double currentTrackRate = 0;
+
+        int trackingPollCounter = 0;
+        
+        bool isPulsingNS = false;
+        bool isPulsingWE = false;
+        
+        PMC8MoveInfo moveInfoRA, moveInfoDEC;
 
         //PMC8Info scopeInfo;
         FirmwareInfo firmwareInfo;

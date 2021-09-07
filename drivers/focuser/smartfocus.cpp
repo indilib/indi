@@ -49,44 +49,6 @@ static constexpr const char motion_stopped { 's' };
 
 std::unique_ptr<SmartFocus> smartFocus(new SmartFocus());
 
-void ISGetProperties(const char *dev)
-{
-    smartFocus->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    smartFocus->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    smartFocus->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    smartFocus->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle *root)
-{
-    smartFocus->ISSnoopDevice(root);
-}
-
 SmartFocus::SmartFocus()
 {
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
@@ -97,7 +59,9 @@ bool SmartFocus::initProperties()
     INDI::Focuser::initProperties();
 
     // No speed for SmartFocus
-    FocusSpeedN[0].min = FocusSpeedN[0].max = FocusSpeedN[0].value = 1;
+    FocusSpeedN[0].min = 1;
+    FocusSpeedN[0].max = 1;
+    FocusSpeedN[0].value = 1;
     IUUpdateMinMax(&FocusSpeedNP);
 
     IUFillLight(&FlagsL[STATUS_SERIAL_FRAMING_ERROR], "SERIAL_FRAMING_ERROR", "Serial framing error", IPS_OK);

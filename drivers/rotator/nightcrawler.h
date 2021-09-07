@@ -32,31 +32,31 @@ class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
         NightCrawler();
         virtual ~NightCrawler() = default;
 
-        virtual bool Handshake();
-        const char * getDefaultName();
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool Handshake() override;
+        const char * getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n) override;
 
         static void abnormalDisconnectCallback(void *userpointer);
 
     protected:
         // Focuser
-        virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-        virtual bool AbortFocuser();
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
 
 
         // Rotator
-        virtual IPState HomeRotator();
-        virtual IPState MoveRotator(double angle);
-        virtual bool SyncRotator(double angle);
-        virtual bool AbortRotator();
+        virtual IPState HomeRotator() override;
+        virtual IPState MoveRotator(double angle) override;
+        virtual bool SyncRotator(double angle) override;
+        virtual bool AbortRotator() override;
 
         // Misc.
-        virtual bool saveConfigItems(FILE *fp);
-        virtual void TimerHit();
+        virtual bool saveConfigItems(FILE *fp) override;
+        virtual void TimerHit() override;
 
     private:
         // Get Firmware
@@ -109,9 +109,11 @@ class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
         ISwitch AbortAuxS[1];
         ISwitchVectorProperty AbortAuxSP;
 
-        INumber SensorN[2];
-        INumberVectorProperty SensorNP;
-        enum { SENSOR_TEMPERATURE, SENSOR_VOLTAGE };
+        INumber VoltageN[1];
+        INumberVectorProperty VoltageNP;
+
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
         INumber TemperatureOffsetN[1];
         INumberVectorProperty TemperatureOffsetNP;
@@ -146,10 +148,10 @@ class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
         double lastTemperature { 0 };
         double lastVoltage { 0 };
         double ticksPerDegree { 0 };
-        uint32_t lastFocuserPosition { 0 };
-        uint32_t lastRotatorPosition { 0 };
-        uint32_t lastAuxPosition { 0 };
-        uint32_t targetPosition { 0 };
+        double lastFocuserPosition { 0 };
+        double lastRotatorPosition { 0 };
+        double lastAuxPosition { 0 };
+        double targetPosition { 0 };
         IPState rotationLimit { IPS_IDLE };
         IPState outSwitchLimit { IPS_IDLE };
         IPState inSwitchLimit { IPS_IDLE };

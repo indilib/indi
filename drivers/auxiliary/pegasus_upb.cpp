@@ -38,47 +38,9 @@
 // We declare an auto pointer to PegasusUPB.
 static std::unique_ptr<PegasusUPB> upb(new PegasusUPB());
 
-void ISGetProperties(const char * dev)
-{
-    upb->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-{
-    upb->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    upb->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
-{
-    upb->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
-               char * names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-
-void ISSnoopDevice(XMLEle * root)
-{
-    upb->ISSnoopDevice(root);
-}
-
 PegasusUPB::PegasusUPB() : FI(this), WI(this)
 {
-    setVersion(1, 5);
+    setVersion(1, 6);
 
     lastSensorData.reserve(21);
     lastPowerData.reserve(4);
@@ -148,15 +110,15 @@ bool PegasusUPB::initProperties()
     // Turn on/off power and power boot up
     memset(dewLabel, 0, MAXINDILABEL);
     int dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.name, DewControlsLabelsT[0].name, dewLabel,
-                                 MAXINDILABEL);
+                                MAXINDILABEL);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_A], "DEW_A", dewRC == -1 ? "Dew A" : dewLabel, ISS_OFF);
     memset(dewLabel, 0, MAXINDILABEL);
     dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.name, DewControlsLabelsT[1].name, dewLabel,
-                                     MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_B], "DEW_B", dewRC == -1 ? "Dew B" : dewLabel, ISS_OFF);
     memset(dewLabel, 0, MAXINDILABEL);
     dewRC = IUGetConfigText(getDeviceName(), DewControlsLabelsTP.name, DewControlsLabelsT[2].name, dewLabel,
-                                     MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&AutoDewV2S[DEW_PWM_C], "DEW_C", dewRC == -1 ? "Dew C" : dewLabel, ISS_OFF);
     IUFillSwitchVector(&AutoDewV2SP, AutoDewV2S, 3, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_NOFMANY, 60,
                        IPS_IDLE);
@@ -231,15 +193,15 @@ bool PegasusUPB::initProperties()
     IUFillLight(&OverCurrentL[2], "POWER_PORT_3", PowerControlS[2].label, IPS_OK);
     IUFillLight(&OverCurrentL[3], "POWER_PORT_4", PowerControlS[3].label, IPS_OK);
 
-    char tempLabel[MAXINDILABEL+5];
-    memset(tempLabel, 0, MAXINDILABEL+5);
-    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2S[0].label);
+    char tempLabel[MAXINDILABEL + 5];
+    memset(tempLabel, 0, MAXINDILABEL + 5);
+    sprintf(tempLabel, "%s %s", "Dew:", AutoDewV2S[0].label);
     IUFillLight(&OverCurrentL[4], "DEW_A", tempLabel, IPS_OK);
     memset(tempLabel, 0, MAXINDILABEL);
-    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2S[1].label);
+    sprintf(tempLabel, "%s %s", "Dew:", AutoDewV2S[1].label);
     IUFillLight(&OverCurrentL[5], "DEW_B", tempLabel, IPS_OK);
     memset(tempLabel, 0, MAXINDILABEL);
-    sprintf(tempLabel,"%s %s","Dew:",AutoDewV2S[2].label);
+    sprintf(tempLabel, "%s %s", "Dew:", AutoDewV2S[2].label);
     IUFillLight(&OverCurrentL[6], "DEW_C", tempLabel, IPS_OK);
     IUFillLightVector(&OverCurrentLP, OverCurrentL, 7, getDeviceName(), "POWER_OVER_CURRENT", "Over Current", POWER_TAB,
                       IPS_IDLE);
@@ -267,7 +229,8 @@ bool PegasusUPB::initProperties()
 
     // Automatic Dew Aggressiveness v2
     IUFillNumber(&AutoDewAggN[AUTO_DEW_AGG], "AUTO_DEW_AGG_VALUE", "Auto Dew Agg (50-250)", "%.2f", 50, 250, 20, 0);
-    IUFillNumberVector(&AutoDewAggNP, AutoDewAggN, 1, getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&AutoDewAggNP, AutoDewAggN, 1, getDeviceName(), "AUTO_DEW_AGG", "Auto Dew Agg", DEW_TAB, IP_RW, 60,
+                       IPS_IDLE);
 
     // Dew PWM
     IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", AutoDewV2S[0].label, "%.2f %%", 0, 100, 10, 0);
@@ -310,27 +273,27 @@ bool PegasusUPB::initProperties()
     // Turn on/off power and power boot up
     memset(USBLabel, 0, MAXINDILABEL);
     int USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[0].name, USBLabel,
-                                 MAXINDILABEL);
+                                MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[0], "PORT_1", USBRC == -1 ? "USB3 Port1" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
     USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[1].name, USBLabel,
-                                 MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[1], "PORT_2", USBRC == -1 ? "USB3 Port2" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
     USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[2].name, USBLabel,
-                                 MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[2], "PORT_3", USBRC == -1 ? "USB3 Port3" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
     USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[3].name, USBLabel,
-                                 MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[3], "PORT_4", USBRC == -1 ? "USB3 Port4" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
     USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[4].name, USBLabel,
-                                 MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[4], "PORT_5", USBRC == -1 ? "USB2 Port5" : USBLabel, ISS_ON);
     memset(USBLabel, 0, MAXINDILABEL);
     USBRC = IUGetConfigText(getDeviceName(), USBControlsLabelsTP.name, USBControlsLabelsT[5].name, USBLabel,
-                                 MAXINDILABEL);
+                            MAXINDILABEL);
     IUFillSwitch(&USBControlV2S[5], "PORT_6", USBRC == -1 ? "USB2 Port6" : USBLabel, ISS_ON);
 
     IUFillSwitchVector(&USBControlV2SP, USBControlV2S, 6, getDeviceName(), "USB_PORT_CONTROL", "Ports", USB_TAB, IP_RW,
@@ -364,23 +327,12 @@ bool PegasusUPB::initProperties()
     IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.f", 0, 900, 100, 400);
     IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 1, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB,
                        IP_RW, 60, IPS_IDLE);
-
-    // Backlash
-    //    IUFillSwitch(&FocusBacklashS[INDI_ENABLED], "INDI_ENABLED", "Enabled", ISS_OFF);
-    //    IUFillSwitch(&FocusBacklashS[INDI_DISABLED], "INDI_DISABLED", "Disabled", ISS_ON);
-    //    IUFillSwitchVector(&FocusBacklashSP, FocusBacklashS, 2, getDeviceName(), "FOCUSER_BACKLASH", "Backlash", FOCUS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-    // Temperature
-    IUFillNumber(&FocuserTemperatureN[0], "FOCUSER_TEMPERATURE_VALUE", "Value (C)", "%4.2f", -50, 85, 1, 0);
-    IUFillNumberVector(&FocuserTemperatureNP, FocuserTemperatureN, 1, getDeviceName(), "FOCUSER_TEMPERATURE", "Temperature",
-                       FOCUS_TAB, IP_RO, 60, IPS_IDLE);
-
     ////////////////////////////////////////////////////////////////////////////
     /// Firmware Group
     ////////////////////////////////////////////////////////////////////////////
     IUFillText(&FirmwareT[FIRMWARE_VERSION], "VERSION", "Version", "NA");
     IUFillText(&FirmwareT[FIRMWARE_UPTIME], "UPTIME", "Uptime (h)", "NA");
-    IUFillTextVector(&FirmwateTP, FirmwareT, 2, getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
+    IUFillTextVector(&FirmwareTP, FirmwareT, 2, getDeviceName(), "FIRMWARE_INFO", "Firmware", FIRMWARE_TAB, IP_RO, 60,
                      IPS_IDLE);
     ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
@@ -459,13 +411,11 @@ bool PegasusUPB::updateProperties()
         // Focuser
         FI::updateProperties();
         defineProperty(&FocuserSettingsNP);
-        //defineProperty(&FocusBacklashSP);
-        defineProperty(&FocuserTemperatureNP);
 
         WI::updateProperties();
 
         // Firmware
-        defineProperty(&FirmwateTP);
+        defineProperty(&FirmwareTP);
 
         setupComplete = true;
     }
@@ -512,11 +462,10 @@ bool PegasusUPB::updateProperties()
         // Focuser
         FI::updateProperties();
         deleteProperty(FocuserSettingsNP.name);
-        deleteProperty(FocuserTemperatureNP.name);
 
         WI::updateProperties();
 
-        deleteProperty(FirmwateTP.name);
+        deleteProperty(FirmwareTP.name);
 
         setupComplete = false;
     }
@@ -860,7 +809,7 @@ bool PegasusUPB::ISNewNumber(const char * dev, const char * name, double values[
         }
 
         // Auto Dew Aggressiveness
-        if (!strcmp(name,AutoDewAggNP.name))
+        if (!strcmp(name, AutoDewAggNP.name))
         {
             if (setAutoDewAgg(values[0]))
             {
@@ -1336,7 +1285,8 @@ bool PegasusUPB::saveConfigItems(FILE * fp)
 
     IUSaveConfigSwitch(fp, &PowerLEDSP);
     IUSaveConfigSwitch(fp, &AutoDewSP);
-    IUSaveConfigNumber(fp, &AutoDewAggNP);
+    if (version == UPB_V2)
+        IUSaveConfigNumber(fp, &AutoDewAggNP);
     IUSaveConfigNumber(fp, &FocuserSettingsNP);
     IUSaveConfigText(fp, &PowerControlsLabelsTP);
     IUSaveConfigText(fp, &DewControlsLabelsTP);
@@ -1359,7 +1309,9 @@ void PegasusUPB::TimerHit()
     {
         getPowerData();
         getStepperData();
-        getDewAggData();
+
+        if (version == UPB_V2)
+            getDewAggData();
     }
 
     SetTimer(getCurrentPollingPeriod());
@@ -1375,7 +1327,7 @@ bool PegasusUPB::sendFirmware()
     {
         LOGF_INFO("Detected firmware %s", res);
         IUSaveText(&FirmwareT[FIRMWARE_VERSION], res);
-        IDSetText(&FirmwateTP, nullptr);
+        IDSetText(&FirmwareTP, nullptr);
         return true;
     }
 
@@ -1620,7 +1572,7 @@ bool PegasusUPB::getPowerData()
         if ( (version == UPB_V1 && result.size() != 3) ||
                 (version == UPB_V2 && result.size() != 4))
         {
-            LOGF_WARN("Received wrong number (%i) of power sensor data (%s). Retrying...",result.size(),res);
+            LOGF_WARN("Received wrong number (%i) of power sensor data (%s). Retrying...", result.size(), res);
             return false;
         }
 
@@ -1635,12 +1587,21 @@ bool PegasusUPB::getPowerData()
 
         if (version == UPB_V2)
         {
-            std::chrono::milliseconds uptime(std::stol(result[3]));
-            using dhours = std::chrono::duration<double, std::ratio<3600>>;
-            std::stringstream ss;
-            ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
-            IUSaveText(&FirmwareT[FIRMWARE_UPTIME], ss.str().c_str());
-            IDSetText(&FirmwateTP, nullptr);
+            try
+            {
+                std::chrono::milliseconds uptime(std::stol(result[3]));
+                using dhours = std::chrono::duration<double, std::ratio<3600>>;
+                std::stringstream ss;
+                ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
+                IUSaveText(&FirmwareT[FIRMWARE_UPTIME], ss.str().c_str());
+            }
+            catch(...)
+            {
+                IUSaveText(&FirmwareT[FIRMWARE_UPTIME], "NA");
+                LOGF_WARN("Failed to process uptime: %s", result[3].c_str());
+                return false;
+            }
+            IDSetText(&FirmwareTP, nullptr);
         }
 
         lastPowerData = result;
@@ -1673,7 +1634,8 @@ bool PegasusUPB::getStepperData()
 
         if (FocusAbsPosNP.s == IPS_BUSY && focusMotorRunning == false)
         {
-            FocusAbsPosNP.s = FocusRelPosNP.s = IPS_OK;
+            FocusAbsPosNP.s = IPS_OK;
+            FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
         }
@@ -1775,17 +1737,25 @@ bool PegasusUPB::setupParams()
     char res[PEGASUS_LEN] = {0};
     if (sendCommand("SS", res))
     {
-        uint32_t value = std::stol(res);
-        if (value == UINT16_MAX)
+        try
         {
-            LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropiate for your motor focus type (0-900)",
-                      value);
-            FocuserSettingsNP.s = IPS_ALERT;
+            uint32_t value = std::stol(res);
+            if (value == UINT16_MAX)
+            {
+                LOGF_WARN("Invalid maximum speed detected: %u. Please set maximum speed appropiate for your motor focus type (0-900)",
+                          value);
+                FocuserSettingsNP.s = IPS_ALERT;
+            }
+            else
+            {
+                FocuserSettingsN[SETTING_MAX_SPEED].value = value;
+                FocuserSettingsNP.s = IPS_OK;
+            }
         }
-        else
+        catch(...)
         {
-            FocuserSettingsN[SETTING_MAX_SPEED].value = value;
-            FocuserSettingsNP.s = IPS_OK;
+            LOGF_WARN("Failed to process focuser max speed: %s", res);
+            FocuserSettingsNP.s = IPS_ALERT;
         }
     }
 
