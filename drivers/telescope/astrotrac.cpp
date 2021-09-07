@@ -513,8 +513,6 @@ bool AstroTrac::Sync(double ra, double dec)
     NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
     NewEntry.PrivateDataSize = 0;
 
-    LOGF_DEBUG("Sync - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
-
     if (!CheckForDuplicateSyncPoint(NewEntry, 0.01))
     {
         GetAlignmentDatabase().push_back(NewEntry);
@@ -522,18 +520,26 @@ bool AstroTrac::Sync(double ra, double dec)
         // Tell the client about size change
         UpdateSize();
 
-        // equatorial/telescope conversions needs more than 1 sync point
-        //        if (GetAlignmentDatabase().size() < 2)
-        //            LOG_WARN("Equatorial mounts need two SYNC points at least.");
-
         // Tell the math plugin to reinitiali
         Initialise(this);
-        LOGF_DEBUG("Sync - new entry added RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
+
+        // Now sync the encoders
+        double haEncoder = 0, deEncoder = 0;
+        INDI::IEquatorialCoordinates syncCoordinates {ra, dec};
+        getEncodersFromRADE(syncCoordinates.rightascension, syncCoordinates.declination, haEncoder, deEncoder);
+        syncEncoder(AXIS_RA, haEncoder);
+        syncEncoder(AXIS_DE, deEncoder);
+
+        char RAStr[32] = {0}, DecStr[32] = {0};
+        fs_sexa(RAStr, syncCoordinates.rightascension, 2, 3600);
+        fs_sexa(DecStr, syncCoordinates.declination, 2, 3600);
+        LOGF_INFO("Syncing to JNOW RA: %s DEC: %s RA Encoder: %.f DE Encoder: %.f", RAStr, DecStr, haEncoder, deEncoder);
 
         // update tracking target
         ReadScopeStatus();
         return true;
     }
+
     LOGF_DEBUG("Sync - duplicate entry RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
     return false;
 }
