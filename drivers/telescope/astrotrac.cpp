@@ -451,8 +451,11 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
     ra = range24(lst - ha);
 
-    LOGF_DEBUG("Encoders HA: %.2f DE: %.2f Processed: HA: %.2f DE: %.2f LST: %.2f RA: %.2f",
-               haEncoder, deEncoder, ha, de, lst, ra);
+    char RAStr[32] = {0}, DecStr[32] = {0};
+    fs_sexa(RAStr, ra, 2, 3600);
+    fs_sexa(DecStr, de, 2, 3600);
+    LOGF_DEBUG("Encoders HA: %.4f DE: %.4f Processed: HA: %.4f DE: %.4f (%s) LST: %.4f RA: %.4f (%s)",
+               haEncoder, deEncoder, ha, de, DecStr, lst, ra, RAStr);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -523,20 +526,11 @@ bool AstroTrac::Sync(double ra, double dec)
         // Tell the math plugin to reinitiali
         Initialise(this);
 
-        // Now sync the encoders
-        double haEncoder = 0, deEncoder = 0;
-        INDI::IEquatorialCoordinates syncCoordinates {ra, dec};
-        getEncodersFromRADE(syncCoordinates.rightascension, syncCoordinates.declination, haEncoder, deEncoder);
-        syncEncoder(AXIS_RA, haEncoder);
-        syncEncoder(AXIS_DE, deEncoder);
+        char RAStr[32], DecStr[32];
+        fs_sexa(RAStr, ra, 2, 3600);
+        fs_sexa(DecStr, dec, 2, 3600);
+        LOGF_INFO("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
 
-        char RAStr[32] = {0}, DecStr[32] = {0};
-        fs_sexa(RAStr, syncCoordinates.rightascension, 2, 3600);
-        fs_sexa(DecStr, syncCoordinates.declination, 2, 3600);
-        LOGF_INFO("Syncing to JNOW RA: %s DEC: %s RA Encoder: %.f DE Encoder: %.f", RAStr, DecStr, haEncoder, deEncoder);
-
-        // update tracking target
-        ReadScopeStatus();
         return true;
     }
 
@@ -640,6 +634,8 @@ bool AstroTrac::ReadScopeStatus()
             {
                 LOG_INFO("Slew complete, tracking...");
                 TrackState = SCOPE_TRACKING;
+
+                SetTrackEnabled(true);
             }
             // Parking
             else
