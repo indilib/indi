@@ -529,7 +529,7 @@ bool AstroTrac::Sync(double ra, double dec)
         char RAStr[32], DecStr[32];
         fs_sexa(RAStr, ra, 2, 3600);
         fs_sexa(DecStr, dec, 2, 3600);
-        LOGF_INFO("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
+        LOGF_INFO("Syncing to JNOW RA %s - DEC %s", RAStr, DecStr);
 
         return true;
     }
@@ -547,6 +547,14 @@ bool AstroTrac::Goto(double ra, double dec)
     INDI::IEquatorialCoordinates telescopeCoordinates;
     if (getTelescopeFromSkyCoordinates(ra, dec, telescopeCoordinates))
     {
+        char mountRAString[32] = {0}, mountDEString[32] = {0}, skyRAString[32] = {0}, skyDEString[32] = {0};
+        fs_sexa(mountRAString, telescopeCoordinates.rightascension, 2, 3600);
+        fs_sexa(mountDEString, telescopeCoordinates.declination, 2, 3600);
+        fs_sexa(skyRAString, ra, 2, 3600);
+        fs_sexa(skyDEString, dec, 2, 3600);
+
+        LOGF_DEBUG("GOTO Sky RA: %s DE: %s ---> Mount RA: %s DE: %s", skyRAString, skyDEString, mountRAString, mountDEString);
+
         getEncodersFromRADE(telescopeCoordinates.rightascension, telescopeCoordinates.declination, haEncoder, deEncoder);
 
         // Account for acceletaion, max speed, and deceleration by the time we get there.
@@ -554,6 +562,8 @@ bool AstroTrac::Goto(double ra, double dec)
         double tHA = calculateSlewTime(haEncoder - EncoderNP[AXIS_RA].getValue());
         // Adjust for hemisphere. Convert time to delta degrees
         tHA = tHA * (m_Location.latitude >= 0 ? 1 : -1) * TRACKRATE_SIDEREAL / 3600;
+
+        LOGF_DEBUG("GOTO Encoders HA: %.4f (%.4f + %.4f) DE: %.4f", haEncoder + tHA, haEncoder, tHA, deEncoder);
 
         // Now go to each encoder
         bool rc1 = slewEncoder(AXIS_RA, haEncoder + tHA);
@@ -634,7 +644,6 @@ bool AstroTrac::ReadScopeStatus()
             {
                 LOG_INFO("Slew complete, tracking...");
                 TrackState = SCOPE_TRACKING;
-
                 SetTrackEnabled(true);
             }
             // Parking
@@ -654,6 +663,15 @@ bool AstroTrac::ReadScopeStatus()
         double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
         double dHA = rangeHA(lst - skyRA);
         setPierSide(dHA < 0 ? PIER_EAST : PIER_WEST);
+
+        char mountRAString[32] = {0}, mountDEString[32] = {0}, skyRAString[32] = {0}, skyDEString[32] = {0};
+        fs_sexa(mountRAString, ra, 2, 3600);
+        fs_sexa(mountDEString, de, 2, 3600);
+        fs_sexa(skyRAString, skyRA, 2, 3600);
+        fs_sexa(skyDEString, skyDE, 2, 3600);
+
+        LOGF_DEBUG("Mount RA: %s DE: %s ---> Sky RA: %s DE: %s", mountRAString, mountDEString, skyRAString, skyDEString);
+
         NewRaDec(skyRA, skyDE);
         return true;
     }
