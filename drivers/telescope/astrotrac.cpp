@@ -599,12 +599,12 @@ double AstroTrac::calculateSlewTime(double distance)
     // If distance less than this, then calulate using accleration forumlae:
     if (distance < accelerate_decelerate)
     {
-        return (2 * sqrt(accelerate_decelerate / AccelerationNP[AXIS_RA].getValue()));
+        return (2 * sqrt(distance / AccelerationNP[AXIS_RA].getValue()));
     }
     else
     {
         // Time is equal to twice the time required to accelerate or decelerate, plus the remaining distance at max slew speed
-        return (2.0 * MAX_SLEW_VELOCITY / AccelerationNP[AXIS_RA].getValue() + (accelerate_decelerate - accelerate_decelerate) /
+        return (2.0 * MAX_SLEW_VELOCITY / AccelerationNP[AXIS_RA].getValue() + (distance - accelerate_decelerate) /
                 MAX_SLEW_VELOCITY);
     }
 }
