@@ -521,6 +521,9 @@ bool Serial::Refresh(bool silent)
             // Simplify further by removing non-unique strings
             std::regex target("FTDI_|UART_|USB_|Bridge_Controller_|to_");
             label = std::regex_replace(label, target, "");
+            // Protect against too-short of a label
+            if (label.length() <= 2)
+                label = match.str(1);
         }
 #endif
         IUFillSwitch(sp++, name.c_str(), label.c_str(), ISS_OFF);
