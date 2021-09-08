@@ -136,6 +136,9 @@ INDI::Property BaseDevice::getProperty(const char *name, INDI_PROPERTY_TYPE type
 
     for (const auto &oneProp : getProperties())
     {
+        if (!oneProp)
+            return INDI::Property();
+
         if (type != oneProp.getType() && type != INDI_UNKNOWN)
             continue;
 
