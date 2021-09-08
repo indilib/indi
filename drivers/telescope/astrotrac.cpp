@@ -515,7 +515,7 @@ bool AstroTrac::Sync(double ra, double dec)
     NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(m_MountInternalCoordinates);
     NewEntry.PrivateDataSize = 0;
 
-    if (!CheckForDuplicateSyncPoint(NewEntry, 0.01))
+    if (!CheckForDuplicateSyncPoint(NewEntry, 0.001))
     {
         GetAlignmentDatabase().push_back(NewEntry);
 
