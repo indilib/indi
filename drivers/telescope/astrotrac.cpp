@@ -507,13 +507,12 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
 bool AstroTrac::Sync(double ra, double dec)
 {
     AlignmentDatabaseEntry NewEntry;
-    INDI::IEquatorialCoordinates RaDec {EqN[AXIS_RA].value, EqN[AXIS_DE].value};
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
     // Actual Celestial Coordinates
     NewEntry.RightAscension        = ra;
     NewEntry.Declination           = dec;
     // Apparent Telescope Coordinates
-    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
+    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(m_MountInternalCoordinates);
     NewEntry.PrivateDataSize = 0;
 
     if (!CheckForDuplicateSyncPoint(NewEntry, 0.01))
@@ -574,8 +573,8 @@ bool AstroTrac::Goto(double ra, double dec)
             TrackState = SCOPE_SLEWING;
 
             char RAStr[32], DecStr[32];
-            fs_sexa(RAStr, telescopeCoordinates.rightascension, 2, 3600);
-            fs_sexa(DecStr, telescopeCoordinates.declination, 2, 3600);
+            fs_sexa(RAStr, ra, 2, 3600);
+            fs_sexa(DecStr, dec, 2, 3600);
             LOGF_INFO("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
             return true;
         }
@@ -655,8 +654,9 @@ bool AstroTrac::ReadScopeStatus()
         }
     }
 
-    INDI::IEquatorialCoordinates RaDec {ra, de};
-    TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
+    m_MountInternalCoordinates.rightascension = ra;
+    m_MountInternalCoordinates.declination = de;
+    TDV = TelescopeDirectionVectorFromEquatorialCoordinates(m_MountInternalCoordinates);
 
     if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
     {
