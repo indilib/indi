@@ -479,12 +479,13 @@ void BaseClientPrivate::listenINDI()
 
         exit_code = sAboutToClose ? sExitCode : -1;
         sConnected = false;
+        // JM 2021.09.08: Call serverDisconnected *before* clearing devices.
+        parent->serverDisconnected(exit_code);
 
         clear();
         cDeviceNames.clear();
         sSocketChanged.notify_all();
     }
-    parent->serverDisconnected(exit_code);
 }
 
 size_t BaseClientPrivate::sendData(const void *data, size_t size)
