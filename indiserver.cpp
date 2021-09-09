@@ -2440,7 +2440,6 @@ Msg * Msg::toBase64Encoding()
     /* Consume every buffers */
     int inode = 0;
 
-    int sharedBufferId = 0;
     XMLEle *root = nodes[inode];
     if (!root) {
        log(fmt("Found 0 xml node in message ??? \n%.s\n", cl, cp));
@@ -2471,7 +2470,7 @@ Msg * Msg::toBase64Encoding()
         int modelSize = sprXMLEle(model, root, 0);
 
         // Get the element offset
-        for(int i = 0; i < cdata.size(); ++i) {
+        for(std::size_t i = 0; i < cdata.size(); ++i) {
             modelCdataOffset[i] = sprXMLCDataOffset(root, cdata[i], 0);
         }
         delXMLEle(root);
@@ -2482,7 +2481,7 @@ Msg * Msg::toBase64Encoding()
 
         size_t totalBlobSize = 0;
         // Attach all blobs
-        for(int i = 0; i < cdata.size(); ++i) {
+        for(std::size_t i = 0; i < cdata.size(); ++i) {
             fds[i] = sharedBuffers[i];
 
             size_t dataSize;
@@ -2498,7 +2497,7 @@ Msg * Msg::toBase64Encoding()
         // Copy from model or blob (streaming base64 encode)
         int modelOffset = 0;
         int targetOffset = 0;
-        for(int i = 0; i < cdata.size(); ++i) {
+        for(std::size_t i = 0; i < cdata.size(); ++i) {
             int cdataOffset = modelCdataOffset[i];
             if (cdataOffset > modelOffset) {
                 memcpy(ret->cp + targetOffset, model + modelOffset, cdataOffset - modelOffset);
