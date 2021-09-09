@@ -105,18 +105,6 @@ BaseClientPrivate::~BaseClientPrivate()
     if (!sSocketChanged.wait_for(locker, std::chrono::milliseconds(500), [this] { return sConnected == false; }))
     {
         IDLog("BaseClient::~BaseClient: Probability of detecting a deadlock.\n");
-        /* #PS:
-         * KStars bug - suspicion
-         *   The function thread 'BaseClient::listenINDI' could not be terminated
-         *   because the 'dispatchCommand' function is in progress.
-         *
-         *   The function 'dispatchCommand' cannot be completed
-         *   because it is related to the function call 'ClientManager::newProperty'.
-         *
-         *   There is a call that uses BlockingQueuedConnection to the thread that is currently busy
-         *   destroying the BaseClient object.
-         *
-         */
     }
 }
 
@@ -129,7 +117,6 @@ void BaseClientPrivate::clear()
     }
     cDevices.clear();
     blobModes.clear();
-    // cDeviceNames.clear(); // #PS: missing?
 }
 
 bool BaseClientPrivate::connect()
