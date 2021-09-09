@@ -954,7 +954,7 @@ void BaseClientPrivate::enableDirectBlobAccess(const char * dev, const char * pr
     }
 }
 
-static bool hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> & directBlobAccess, const std::string & dev, const std::string & prop) const
+static bool hasDirectBlobAccessEntry(const std::map<std::string, std::set<std::string>> & directBlobAccess, const std::string & dev, const std::string & prop)
 {
     auto devAccess = directBlobAccess.find(dev) ;
     if (devAccess == directBlobAccess.end()) {
