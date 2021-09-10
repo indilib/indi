@@ -105,18 +105,6 @@ BaseClientPrivate::~BaseClientPrivate()
     if (!sSocketChanged.wait_for(locker, std::chrono::milliseconds(500), [this] { return sConnected == false; }))
     {
         IDLog("BaseClient::~BaseClient: Probability of detecting a deadlock.\n");
-        /* #PS:
-         * KStars bug - suspicion
-         *   The function thread 'BaseClient::listenINDI' could not be terminated
-         *   because the 'dispatchCommand' function is in progress.
-         *
-         *   The function 'dispatchCommand' cannot be completed
-         *   because it is related to the function call 'ClientManager::newProperty'.
-         *
-         *   There is a call that uses BlockingQueuedConnection to the thread that is currently busy
-         *   destroying the BaseClient object.
-         *
-         */
     }
 }
 
@@ -129,164 +117,166 @@ void BaseClientPrivate::clear()
     }
     cDevices.clear();
     blobModes.clear();
-    // cDeviceNames.clear(); // #PS: missing?
 }
 
 bool BaseClientPrivate::connect()
 {
-    std::unique_lock<std::mutex> locker(sSocketBusy);
-    if (sConnected == true)
     {
-        IDLog("INDI::BaseClient::connectServer: Already connected.\n");
-        return false;
-    }
-
-    IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
-
-#ifdef _WINDOWS
-    WSADATA wsaData;
-    int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-    if (iResult != NO_ERROR)
-    {
-        IDLog("Error at WSAStartup()\n");
-        return false;
-    }
-#endif
-
-    struct timeval ts;
-    ts.tv_sec  = timeout_sec;
-    ts.tv_usec = timeout_us;
-
-    struct sockaddr_in serv_addr;
-    struct hostent *hp;
-    int ret = 0;
-
-    /* lookup host address */
-    hp = gethostbyname(cServer.c_str());
-    if (!hp)
-    {
-        perror("gethostbyname");
-        return false;
-    }
-
-    /* create a socket to the INDI server */
-    (void)memset((char *)&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family      = AF_INET;
-    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-    serv_addr.sin_port        = htons(cPort);
-#ifdef _WINDOWS
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
-    {
-        IDLog("Socket error: %d\n", WSAGetLastError());
-        WSACleanup();
-        return false;
-    }
-#else
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        perror("socket");
-        return false;
-    }
-#endif
-
-    /* set the socket in non-blocking */
-    //set socket nonblocking flag
-#ifdef _WINDOWS
-    u_long iMode = 0;
-    iResult = ioctlsocket(sockfd, FIONBIO, &iMode);
-    if (iResult != NO_ERROR)
-    {
-        IDLog("ioctlsocket failed with error: %ld\n", iResult);
-        return false;
-    }
-#else
-    int flags = 0;
-    if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0)
-        return false;
-
-    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
-        return false;
-#endif
-
-    //clear out descriptor sets for select
-    //add socket to the descriptor sets
-    fd_set rset, wset;
-    FD_ZERO(&rset);
-    FD_SET(sockfd, &rset);
-    wset = rset; //structure assignment okok
-
-    /* connect */
-    if ((ret = ::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
-    {
-        if (errno != EINPROGRESS)
+        std::unique_lock<std::mutex> locker(sSocketBusy);
+        if (sConnected == true)
         {
-            perror("connect");
-            net_close(sockfd);
+            IDLog("INDI::BaseClient::connectServer: Already connected.\n");
             return false;
         }
-    }
 
-    /* If it is connected, continue, otherwise wait */
-    if (ret != 0)
-    {
-        //we are waiting for connect to complete now
-        if ((ret = select(sockfd + 1, &rset, &wset, nullptr, &ts)) < 0)
-            return false;
-        //we had a timeout
-        if (ret == 0)
-        {
+        IDLog("INDI::BaseClient::connectServer: creating new connection...\n");
+
 #ifdef _WINDOWS
-            IDLog("select timeout\n");
-#else
-            errno = ETIMEDOUT;
-            perror("select timeout");
-#endif
+        WSADATA wsaData;
+        int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        if (iResult != NO_ERROR)
+        {
+            IDLog("Error at WSAStartup()\n");
             return false;
         }
-    }
+#endif
 
-    /* we had a positivite return so a descriptor is ready */
+        struct timeval ts;
+        ts.tv_sec  = timeout_sec;
+        ts.tv_usec = timeout_us;
+
+        struct sockaddr_in serv_addr;
+        struct hostent *hp;
+        int ret = 0;
+
+        /* lookup host address */
+        hp = gethostbyname(cServer.c_str());
+        if (!hp)
+        {
+            perror("gethostbyname");
+            return false;
+        }
+
+        /* create a socket to the INDI server */
+        (void)memset((char *)&serv_addr, 0, sizeof(serv_addr));
+        serv_addr.sin_family      = AF_INET;
+        serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+        serv_addr.sin_port        = htons(cPort);
+#ifdef _WINDOWS
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
+        {
+            IDLog("Socket error: %d\n", WSAGetLastError());
+            WSACleanup();
+            return false;
+        }
+#else
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        {
+            perror("socket");
+            return false;
+        }
+#endif
+
+        /* set the socket in non-blocking */
+        //set socket nonblocking flag
+#ifdef _WINDOWS
+        u_long iMode = 0;
+        iResult = ioctlsocket(sockfd, FIONBIO, &iMode);
+        if (iResult != NO_ERROR)
+        {
+            IDLog("ioctlsocket failed with error: %ld\n", iResult);
+            return false;
+        }
+#else
+        int flags = 0;
+        if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0)
+            return false;
+
+        if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
+            return false;
+#endif
+
+        //clear out descriptor sets for select
+        //add socket to the descriptor sets
+        fd_set rset, wset;
+        FD_ZERO(&rset);
+        FD_SET(sockfd, &rset);
+        wset = rset; //structure assignment okok
+
+        /* connect */
+        if ((ret = ::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
+        {
+            if (errno != EINPROGRESS)
+            {
+                perror("connect");
+                net_close(sockfd);
+                return false;
+            }
+        }
+
+        /* If it is connected, continue, otherwise wait */
+        if (ret != 0)
+        {
+            //we are waiting for connect to complete now
+            if ((ret = select(sockfd + 1, &rset, &wset, nullptr, &ts)) < 0)
+                return false;
+            //we had a timeout
+            if (ret == 0)
+            {
+#ifdef _WINDOWS
+                IDLog("select timeout\n");
+#else
+                errno = ETIMEDOUT;
+                perror("select timeout");
+#endif
+                return false;
+            }
+        }
+
+        /* we had a positivite return so a descriptor is ready */
 #ifndef _WINDOWS
-    int error     = 0;
-    socklen_t len = sizeof(error);
-    if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset))
-    {
-        if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+        int error     = 0;
+        socklen_t len = sizeof(error);
+        if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset))
         {
-            perror("getsockopt");
+            if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+            {
+                perror("getsockopt");
+                return false;
+            }
+        }
+        else
+            return false;
+
+        /* check if we had a socket error */
+        if (error)
+        {
+            errno = error;
+            perror("socket");
             return false;
         }
-    }
-    else
-        return false;
-
-    /* check if we had a socket error */
-    if (error)
-    {
-        errno = error;
-        perror("socket");
-        return false;
-    }
 #endif
 
 #ifndef _WINDOWS
-    int pipefd[2];
-    ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
+        int pipefd[2];
+        ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
 
-    if (ret < 0)
-    {
-        IDLog("notify pipe: %s\n", strerror(errno));
-        return false;
-    }
+        if (ret < 0)
+        {
+            IDLog("notify pipe: %s\n", strerror(errno));
+            return false;
+        }
 
-    receiveFd = pipefd[0];
-    sendFd    = pipefd[1];
+        receiveFd = pipefd[0];
+        sendFd    = pipefd[1];
 #endif
 
-    sConnected = true;
-    sAboutToClose = false;
-    sSocketChanged.notify_all();
-    std::thread(std::bind(&BaseClientPrivate::listenINDI, this)).detach();
+        sConnected = true;
+        sAboutToClose = false;
+        sSocketChanged.notify_all();
+        std::thread(std::bind(&BaseClientPrivate::listenINDI, this)).detach();
+    }
+    parent->serverConnected();
 
     return true;
 }
@@ -476,6 +466,7 @@ void BaseClientPrivate::listenINDI()
 
         exit_code = sAboutToClose ? sExitCode : -1;
         sConnected = false;
+        // JM 2021.09.08: Call serverDisconnected *before* clearing devices.
         parent->serverDisconnected(exit_code);
 
         clear();

@@ -22,11 +22,13 @@
 
 #include "inditelescope.h"
 #include "indiguiderinterface.h"
+
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
 #include "indipropertynumber.h"
 #include "indipropertytext.h"
 #include "indipropertyswitch.h"
+#include "indielapsedtimer.h"
 
 class AstroTrac :
     public INDI::Telescope,
@@ -80,6 +82,9 @@ class AstroTrac :
         virtual IPState GuideSouth(uint32_t ms) override;
         virtual IPState GuideEast(uint32_t ms) override;
         virtual IPState GuideWest(uint32_t ms) override;
+
+        // Simulation
+        virtual void simulationTriggered(bool enable) override;
 
         // Config items
         virtual bool saveConfigItems(FILE *fp) override;
@@ -164,6 +169,31 @@ class AstroTrac :
         INDI::PropertyNumber EncoderNP {2};
 
         ///////////////////////////////////////////////////////////////////////////////////////////////
+        /// Simulation
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        struct
+        {
+            // -90 to + 90 degrees.
+            double currentMechanicalHA {0}, targetMechanicalHA {0};
+            // -180 to +180 degrees.
+            double currentMechanicalDE {0}, targetMechanicalDE {0};
+            // arcsec/sec
+            double velocity[2] = {TRACKRATE_SIDEREAL, 0};
+            // arcsec/sec^2
+            uint32_t acceleration[2] = {3600, 3600};
+            // 1 Slewing, 0 Stopped
+            uint8_t status[2] = {0, 0};
+        } SimData;
+
+        INDI::ElapsedTimer m_SimulationTimer;
+        // Process very simply mount simulation. No meridian flips.
+        void simulateMount();
+        // Process basic commands.
+        bool handleSimulationCommand(const char * cmd, char * res, int cmd_len, int res_len);
+
+        /// Mount internal coordinates
+        INDI::IEquatorialCoordinates m_MountInternalCoordinates;
+        ///////////////////////////////////////////////////////////////////////////////////////////////
         /// Static Constants
         ///////////////////////////////////////////////////////////////////////////////////////////////
         // > is the stop char
@@ -179,4 +209,7 @@ class AstroTrac :
         // Maximum Slew Velocity. This cannot be set now so it's considered contant until until it can be altered.
         // arcsec/sec
         static constexpr double MAX_SLEW_VELOCITY {10800.0};
+        // Target threshold in degrees between mechanical target and current coordinates
+        // If they are within 0.1 degrees, then we consider motion complete
+        static constexpr double DIFF_THRESHOLD {0.1};
 };

@@ -36,14 +36,16 @@
 #include <iomanip>
 
 
+
+static std::unique_ptr<PegasusUCH> uch(new PegasusUCH());
+
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
 PegasusUCH::PegasusUCH()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
-
 
 //////////////////////////////////////////////////////////////////////
 ///
@@ -53,7 +55,6 @@ bool PegasusUCH::initProperties()
     INDI::DefaultDevice::initProperties();
 
     setDriverInterface(AUX_INTERFACE);
-
     addAuxControls();
 
     ////////////////////////////////////////////////////////////////////////////
@@ -107,11 +108,19 @@ bool PegasusUCH::initProperties()
     IUFillTextVector(&InfoTP, InfoT, 3, getDeviceName(), "INFO", "INFO", INFO_TAB, IP_RO, 60,
                      IPS_IDLE);
 
+
+
+
+
+
+
+
+
     ////////////////////////////////////////////////////////////////////////////
     /// Serial Connection
     ////////////////////////////////////////////////////////////////////////////
     serialConnection = new Connection::Serial(this);
-     serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
     serialConnection->registerHandshake([&]()
     {
         return Handshake();
@@ -217,23 +226,23 @@ bool PegasusUCH::ISNewSwitch(const char * dev, const char * name, ISState * stat
         }
         else if(!strcmp(name, USBPort2SP.name))
         {
-            return  this->setUSBPort(2, USBPort1S, USBPort1SP, states, names, n);
+            return  this->setUSBPort(2, USBPort2S, USBPort2SP, states, names, n);
         }
         else if(!strcmp(name, USBPort3SP.name))
         {
-            return  this->setUSBPort(3, USBPort1S, USBPort1SP, states, names, n);
+            return  this->setUSBPort(3, USBPort3S, USBPort3SP, states, names, n);
         }
         else if(!strcmp(name, USBPort4SP.name))
         {
-            return  this->setUSBPort(4, USBPort1S, USBPort1SP, states, names, n);
+            return  this->setUSBPort(4, USBPort4S, USBPort4SP, states, names, n);
         }
         else if(!strcmp(name, USBPort5SP.name))
         {
-            return  this->setUSBPort(5, USBPort1S, USBPort1SP, states, names, n);
+            return  this->setUSBPort(5, USBPort5S, USBPort5SP, states, names, n);
         }
         else if(!strcmp(name, USBPort6SP.name))
         {
-            return  this->setUSBPort(6, USBPort1S, USBPort1SP, states, names, n);
+            return  this->setUSBPort(6, USBPort6S, USBPort6SP, states, names, n);
         }
     }
 
@@ -244,6 +253,8 @@ bool PegasusUCH::ISNewSwitch(const char * dev, const char * name, ISState * stat
 bool PegasusUCH::setUSBPort(uint8_t port, ISwitch usbPortS[2], ISwitchVectorProperty sp, ISState * states, char * names[],
                             int n)
 {
+
+
     int prevIndex = IUFindOnSwitchIndex(&sp);
     IUUpdateSwitch(&sp, states, names, n);
     if (setUSBPortEnabled(port, usbPortS[1].s == ISS_ON))
@@ -328,6 +339,7 @@ bool PegasusUCH::Handshake()
         if(strstr("UCH_OK", response) != nullptr)
         {
             setFirmwareVersion();
+            setBootstrapUSB();
             this->initialized = true;
             return  true;
         }
@@ -404,6 +416,32 @@ void PegasusUCH::setFirmwareVersion()
 }
 
 
+
+//////////////////////////////////////////////////////////////////////
+///
+//////////////////////////////////////////////////////////////////////
+void PegasusUCH::setBootstrapUSB()
+{
+    char response[PEGASUS_LEN] = {0};
+    if(sendCommand("PA", response))
+    {
+        std::vector<std::string> result = split(response, ":");
+        auto usbPortStatus = result[2];
+
+
+        for(std::string::size_type i = 0; i < usbPortStatus.size(); ++i)
+        {
+            auto  x = usbPort[i];
+            bool s = usbPortStatus[i] == '1' ? true : false;
+            x.S[USB_ON].s = s ? ISS_ON : ISS_OFF;
+            x.S[USB_OFF].s = s ? ISS_OFF : ISS_ON;
+            x.SP->s = IPS_OK;
+            IDSetSwitch(x.SP, nullptr);
+        }
+    }
+}
+
+
 //////////////////////////////////////////////////////////////////////
 ///
 //////////////////////////////////////////////////////////////////////
@@ -426,7 +464,7 @@ void PegasusUCH::updateUSBPower()
 
 
         IUSaveText(&InfoT[INFO_USBVOLTAGE], usbBusVoltage.c_str());
-        IDSetText(&InfoTP,nullptr);
+        IDSetText(&InfoTP, nullptr);
     }
 }
 
@@ -454,7 +492,7 @@ void PegasusUCH::updateUpTime()
         std::stringstream ss;
         ss << std::fixed << std::setprecision(3) << dhours(uptime).count();
         IUSaveText(&InfoT[INFO_UPTIME], ss.str().c_str());
-        IDSetText(&InfoTP,nullptr);
+        IDSetText(&InfoTP, nullptr);
     }
 }
 
@@ -469,7 +507,7 @@ bool PegasusUCH::sendCommand(const char * command, char * res)
     char errstr[MAXRBUF];
 
     char cmd[PEGASUS_LEN] = {0};
-    snprintf(cmd, 7, "%s\n", command);
+    snprintf(cmd, 10, "%s\n", command);
 
     LOGF_DEBUG("CMD <%#02X>", cmd[0]);
 

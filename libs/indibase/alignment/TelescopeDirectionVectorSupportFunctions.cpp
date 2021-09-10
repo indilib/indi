@@ -49,7 +49,7 @@ TelescopeDirectionVectorSupportFunctions::TelescopeDirectionVectorFromSphericalC
     const double AzimuthAngle, AzimuthAngleDirection AzimuthAngleDirection, const double PolarAngle,
     PolarAngleDirection PolarAngleDirection)
 {
-    TelescopeDirectionVector Vector;
+    TelescopeDirectionVector Vector {0, 0, 0};
 
     if (ANTI_CLOCKWISE == AzimuthAngleDirection)
     {
