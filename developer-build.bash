@@ -35,30 +35,43 @@ BUILD_DIR=/dev/shm/indi-build
 
 
 
-# ONLY continue if there is at least 1GB of RAM available
-
-NEED_MEMORY=1000000
-FREE_MEMORY=$(free | awk '$1 == "Mem:" {print $NF}')
-
-if [ $FREE_MEMORY -lt $NEED_MEMORY ]; then
-    echo "*** Not enough memory available in RAM (current $FREE_MEMORY, need $NEED_MEMORY)"
-    exit 1
+if [ ! x"$1" = x"" ]; then
+    # Take the option given as the new build directory
+    BUILD_DIR="$1"
 fi
 
+echo ">>> Target build directory: $BUILD_DIR"
+
+case $BUILD_DIR/ in
+    /dev/shm/*)
+    # Build directory is in RAM
+    # ONLY continue if there is at least 1GB of RAM available
+    NEED_MEMORY=1000000
+    FREE_MEMORY=$(free | awk '$1 == "Mem:" {print $NF}')
+
+    if [ $FREE_MEMORY -lt $NEED_MEMORY ]; then
+        echo "*** Not enough memory available in RAM (current "\
+             "$FREE_MEMORY, need $NEED_MEMORY)"
+        exit 1
+    fi
+    ;;
+
+    *)
+    # Build directory is not in RAM
+    ;;
+esac
 
 
 
 
-# Create the build directory, and optionally a symbolic link for quick
-# and easy access.
 
+# Create the build directory and a symbolic link for quick access
 if [ ! -d $BUILD_DIR ]; then
-    echo ">>> Creating /dev/shm/indi-build"
-    mkdir /dev/shm/indi-build
+    mkdir -p $BUILD_DIR
 fi
 
 if [ ! -h $BUILD_LINK ]; then
-    echo ">>> Creating a symbolic link for easier access:"
+    echo ">>> Creating a symbolic link for quick access:"
     ln -s $BUILD_DIR $BUILD_LINK
     echo ">>> New link: $BUILD_LINK"
 elif [ $(file $BUILD_LINK | awk '{print $NF}') == $BUILD_DIR ]; then
@@ -70,7 +83,6 @@ fi
 
 
 # Begin the build process, with all cores available
-
 cd $BUILD_DIR
 cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug $TOP_DIR
 make -j
