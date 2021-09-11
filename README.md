@@ -22,7 +22,7 @@ INDI core library is composed of the following components:
 + Auxiliary Devices (switches, watchdog, relays, light sources, measurement devices..etc).
 3. Client Library: Cross-platform POSIX and Qt5-based client libraries. The client libraries can be embedded in 3rd party applications to communicate with INDI server and devices.
 
-INDI core device drivers are shipped with INDI library by default. 
+INDI core device drivers are shipped with INDI library by default.
 
 INDI 3rd party drivers are available in a [dedicated 3rdparty repository](https://github.com/indilib/indi-3rdparty) and maintained by their respective owners.
 
@@ -38,45 +38,95 @@ Learn more about INDI:
 
 On Debian/Ubuntu:
 
-```
-sudo apt-get install -y libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtiff-dev libfftw3-dev librtlsdr-dev
+```bash
+sudo apt-get install -y \
+  git \
+  cdbs \
+  dkms \
+  cmake \
+  fxload \
+  libgps-dev \
+  libgsl-dev \
+  libraw-dev \
+  libusb-dev \
+  zlib1g-dev \
+  libftdi-dev \
+  libgsl0-dev \
+  libjpeg-dev \
+  libkrb5-dev \
+  libnova-dev \
+  libtiff-dev \
+  libfftw3-dev \
+  librtlsdr-dev \
+  libcfitsio-dev \
+  libgphoto2-dev \
+  build-essential \
+  libusb-1.0-0-dev \
+  libdc1394-22-dev \
+  libboost-regex-dev \
+  libcurl4-gnutls-dev
 ```
 
 ## Create Project Directory
-```
+```bash
 mkdir -p ~/Projects
 cd ~/Projects
 ```
 
 ## Get the code
 To build INDI in order to run drivers, then it is recommended to perform a quick shallow clone that will save lots of bandwidth and space:
-```
+```bash
 git clone --depth 1 https://github.com/indilib/indi.git
 ```
 
 On the other hand, if you plan to submit a PR or engage in INDI driver development, then getting a full clone is recommended:
-```
+```bash
 git clone https://github.com/indilib/indi.git
 ```
-It is worth making your own fork of indi in your own personal repository and cloning from that rather than cloning directly from the root indi 
+It is worth making your own fork of indi in your own personal repository and cloning from that rather than cloning directly from the root indi.
 
-## Build indi-core
+## Build indi-core (cmake)
 
-```
+```bash
 mkdir -p ~/Projects/build/indi-core
 cd ~/Projects/build/indi-core
 cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ~/Projects/indi
 make -j4
 sudo make install
 ```
+
+## Build indi-core (script)
+
+You can use the `developer-build.bash` script for faster building.
+
+```bash
+cd ~/Projects/indi
+./developer-build.bash
+```
+
+By default, this script builds the `indi-core` inside machine's `RAM`, i.e. `/dev/shm`.
+To change the default build directory, just pass in the desired directory after calling the script, for instance:
+
+```bash
+cd ~/Projects/indi
+./developer-build.bash /path/to/new/build/dir
+```
+
+Also, this script checks if the target build directory is a subdirectory of `/dev/shm`.
+If so, the build process aborts if there is less than `1Gb` free space in `RAM`.
+One can reset this limitation with changing the `NEED_MEMORY` variable to his/her liking.
+
+In addition, this script creates a soft symbolic link file named `build` from the build directory to the source directory.
+This helps with accessing the build directory by simply following the link inside the source folder like any other directory, i.e. `cd ~/Projects/indi/build`.
+
+## Build indi-core (Qt Creator)
+
 If your are planning to develop using Qt Creator then still follow this process and do a manual build first.  Then in QT Creator:
 + Open the project using File - Open File or Project.
 + Navigate to Projects/indi and selec the CMakeLists.txt file.
 + Qt Creator will open your project but will probably configure it incorrectly, select the Projects tab and change to the Projects/build/indi-core directory that you used to do the initial build.  The project display may be blank but click on the build button (the geological hammer) anyway.  The project should build.
 
 It is very easy to get this process wrong and all sorts of subtle things can happen, such as everything appearing to build but your new functionality not being present.
-
-
 
 # Architecture
 
