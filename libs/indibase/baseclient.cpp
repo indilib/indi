@@ -53,6 +53,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <signal.h>
 #define net_read read
 #define net_write write
 #define net_close close
@@ -194,6 +195,9 @@ bool BaseClientPrivate::connect()
 
         if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
             return false;
+
+        // Handle SIGPIPE
+        signal(SIGPIPE, SIG_IGN);
 #endif
 
         //clear out descriptor sets for select
