@@ -39,7 +39,32 @@ Learn more about INDI:
 On Debian/Ubuntu:
 
 ```bash
-sudo apt-get install -y libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtiff-dev libfftw3-dev librtlsdr-dev
+sudo apt-get install -y \
+  git \
+  cdbs \
+  dkms \
+  cmake \
+  fxload \
+  libgps-dev \
+  libgsl-dev \
+  libraw-dev \
+  libusb-dev \
+  zlib1g-dev \
+  libftdi-dev \
+  libgsl0-dev \
+  libjpeg-dev \
+  libkrb5-dev \
+  libnova-dev \
+  libtiff-dev \
+  libfftw3-dev \
+  librtlsdr-dev \
+  libcfitsio-dev \
+  libgphoto2-dev \
+  build-essential \
+  libusb-1.0-0-dev \
+  libdc1394-22-dev \
+  libboost-regex-dev \
+  libcurl4-gnutls-dev
 ```
 
 ## Create Project Directory
