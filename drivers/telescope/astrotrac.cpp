@@ -260,7 +260,7 @@ bool AstroTrac::getVelocity(INDI_EQ_AXIS axis)
         {
             std::string velocity = std::regex_replace(
                                        response,
-                                       std::regex("<.v([0-9]+\\.[0-9]+?)>"),
+                                       std::regex("<.v([+-]?[0-9]+\\.[0-9]+?)>"),
                                        std::string("$1"));
 
             TrackRateN[axis].value = std::stod(velocity);
