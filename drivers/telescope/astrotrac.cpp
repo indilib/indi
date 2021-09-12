@@ -263,7 +263,7 @@ bool AstroTrac::getVelocity(INDI_EQ_AXIS axis)
                                        std::regex("<.v([+-]?[0-9]+\\.[0-9]+?)>"),
                                        std::string("$1"));
 
-            TrackRateN[axis].value = std::stod(velocity);
+            TrackRateN[axis].value = std::stod(velocity) * (m_Location.latitude >= 0 ? 1 : -1);
             return true;
         }
         catch(...)
