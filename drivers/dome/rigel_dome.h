@@ -35,6 +35,7 @@ class RigelDome : public INDI::Dome
         virtual ~RigelDome() override = default;
 
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
         virtual const char *getDefaultName() override;
 
     protected:
@@ -78,6 +79,7 @@ class RigelDome : public INDI::Dome
         bool readFirmware();
         bool readModel();
         bool readPosition();
+        bool readHomePosition();
         bool getStartupValues();
         bool readState();
         bool readBatteryLevels();
@@ -89,6 +91,7 @@ class RigelDome : public INDI::Dome
         bool setParkAz(double az);
         bool home();
         bool calibrate();
+        bool setHome(double az);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Communication Functions
@@ -118,6 +121,10 @@ class RigelDome : public INDI::Dome
             INFO_TICKS,
             INFO_BATTERY,
         };
+
+        // Home angle
+        INumber HomePositionN[1];
+        INumberVectorProperty HomePositionNP;
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
