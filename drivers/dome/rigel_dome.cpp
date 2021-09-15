@@ -70,7 +70,7 @@ bool RigelDome::initProperties()
 
     IUFillNumber(&HomePositionN[AXIS_AZ], "HOME_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
     IUFillNumberVector(&HomePositionNP, HomePositionN, 1, getDeviceName(), "DOME_HOME_POSITION", "Home Position",
-                               SITE_TAB, IP_RW, 60, IPS_IDLE);
+                       SITE_TAB, IP_RW, 60, IPS_IDLE);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
