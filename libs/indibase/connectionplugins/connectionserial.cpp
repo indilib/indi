@@ -37,19 +37,21 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
 {
     char configPort[256] = {0};
     // Try to load the port from the config file. If that fails, use default port.
-    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", configPort, 256) < 0)
+    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", configPort, 256) == 0)
+    {
+        m_ConfigPort = configPort;
+        IUFillText(&PortT[0], "PORT", "Port", configPort);
+    }
+    else
     {
 #ifdef __APPLE__
-        strncpy(configPort, "/dev/cu.usbserial", MAXINDINAME);
+        IUFillText(&PortT[0], "PORT", "Port", "/dev/cu.usbserial");
 #else
-        strncpy(configPort, "/dev/ttyUSB0", MAXINDINAME);
+        IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
 #endif
     }
-    IUFillText(&PortT[0], "PORT", "Port", configPort);
     IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, IP_RW, 60,
                      IPS_IDLE);
-
-    m_ConfigPort = configPort;
 
     int autoSearchIndex = 0;
     // Try to load the port from the config file. If that fails, use default port.
@@ -353,13 +355,19 @@ bool Serial::saveConfigItems(FILE *fp)
 
 void Serial::setDefaultPort(const char *port)
 {
-    IUSaveText(&PortT[0], port);
+    // JM 2021.09.19: Only set default port if configuration port was not loaded already.
+    if (m_ConfigPort.empty())
+        IUSaveText(&PortT[0], port);
 }
 
 void Serial::setDefaultBaudRate(BaudRate newRate)
 {
-    IUResetSwitch(&BaudRateSP);
-    BaudRateS[newRate].s = ISS_ON;
+    // JM 2021.09.19: Only set default baud rate if configuration baud rate was not loaded already.
+    if (m_ConfigBaudRate == -1)
+    {
+        IUResetSwitch(&BaudRateSP);
+        BaudRateS[newRate].s = ISS_ON;
+    }
 }
 
 uint32_t Serial::baud()
