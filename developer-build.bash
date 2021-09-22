@@ -35,10 +35,14 @@ BUILD_DIR=/dev/shm/indi-build
 
 
 
-if [ ! x"$1" = x"" ]; then
-    # Take the option given as the new build directory
-    BUILD_DIR="$1"
-fi
+while getopts ":o:" opt; do
+  case $opt in
+    o) BUILD_DIR="$OPTARG"
+    ;;
+    \?) echo "Invalid option -$OPTARG" >&2
+    ;;
+  esac
+done
 
 echo ">>> Target build directory: $BUILD_DIR"
 

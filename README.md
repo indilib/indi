@@ -105,11 +105,11 @@ cd ~/Projects/indi
 ```
 
 By default, this script builds the `indi-core` inside machine's `RAM`, i.e. `/dev/shm`.
-To change the default build directory, just pass in the desired directory after calling the script, for instance:
+However, you can change the target build directory using the `-o` option, for instance:
 
 ```bash
 cd ~/Projects/indi
-./developer-build.bash /path/to/new/build/dir
+./developer-build.bash -o /path/to/new/build/dir
 ```
 
 Also, this script checks if the target build directory is a subdirectory of `/dev/shm`.
