@@ -38,10 +38,13 @@ BUILD_DIR=/dev/shm/indi-build
 
 # A useful short tutorial on getopt:
 # https://wiki.bash-hackers.org/howto/getopts_tutorial
-while getopts ":o:f" opt; do
+while getopts ":o:j:f" opt; do
   case $opt in
     o)
         BUILD_DIR="$OPTARG"
+        ;;
+    j)
+        NUMBER_OF_JOBS=$OPTARG
         ;;
     f)
         NEED_MEMORY=""
@@ -64,6 +67,28 @@ while getopts ":o:f" opt; do
         ;;
   esac
 done
+
+
+
+
+
+# Use maximum cores available in GNU/Linux and macOS by default
+if [ -z $NUMBER_OF_JOBS ]; then
+    OS_TYPE=$(uname -s)
+    case $OS_TYPE in
+    Linux*)
+        NUMBER_OF_JOBS=$(nproc)
+        ;;
+    Darwin*)
+        NUMBER_OF_JOBS=$(sysctl -n hw.ncpu)
+        ;;
+    *)
+        NUMBER_OF_JOBS=1
+        ;;
+    esac
+fi
+echo ">>> Build using $NUMBER_OF_JOBS core(s), " \
+     "i.e. \$ make -j$NUMBER_OF_JOBS"
 
 
 
@@ -115,7 +140,7 @@ fi
 
 
 
-# Begin the build process, with all cores available
+# Begin the build process
 cd $BUILD_DIR
 cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug $TOP_DIR
-make -j
+make -j$NUMBER_OF_JOBS
