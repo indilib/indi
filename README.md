@@ -97,7 +97,7 @@ sudo make install
 
 ## Build indi-core (script)
 
-You can use the `developer-build.bash` script for faster building.
+**Alternatively**, you can use the `developer-build.bash` script for faster build and less stress on your SSD or HDD.
 
 ```bash
 cd ~/Projects/indi
@@ -108,16 +108,38 @@ By default, this script builds the `indi-core` inside machine's `RAM`, i.e. `/de
 However, you can change the target build directory using the `-o` option, for instance:
 
 ```bash
-cd ~/Projects/indi
 ./developer-build.bash -o /path/to/new/build/dir
 ```
 
-Also, this script checks if the target build directory is a subdirectory of `/dev/shm`.
-If so, the build process aborts if there is less than `1Gb` free space in `RAM`.
-One can reset this limitation with changing the `NEED_MEMORY` variable to his/her liking.
+Also, this script checks if the target build directory has at least `512MB` of memory available and aborts if this is not the case.
+You can force skip this test with the `-f` option:
 
-In addition, this script creates a soft symbolic link file named `build` from the build directory to the source directory.
-This helps with accessing the build directory by simply following the link inside the source folder like any other directory, i.e. `cd ~/Projects/indi/build`.
+```bash
+./developer-build.bash -f
+```
+
+Furthermore, this script executes `make` in *parallel* by default.
+If you are having problems or need to use fewer CPU cores, please adjust using the `-j` option.
+For example, to disable parallel execution:
+
+```bash
+./developer-build.bash -j1
+```
+
+This script creates a soft symbolic link file named `build` to the target build directory.
+This helps easier access by simply following the symbolic link:
+
+```bash
+cd ~/Projects/indi/build
+```
+
+Lastly, you could give all the options and arguments at once.
+For instance, if you want to build in `~/indi-build` directory, skip the memory check, and run make using `8` cores, call the script with the following options:
+
+```bash
+cd ~/Projects/indi
+./developer-build.bash -o ~/indi-build -f -j8
+```
 
 ## Build indi-core (Qt Creator)
 
