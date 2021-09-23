@@ -28,6 +28,7 @@
 # needs gracefully.
 
 TOP_DIR=$PWD
+NEED_MEMORY=524288
 BUILD_LINK=$TOP_DIR/build
 BUILD_DIR=/dev/shm/indi-build
 
@@ -35,41 +36,98 @@ BUILD_DIR=/dev/shm/indi-build
 
 
 
-if [ ! x"$1" = x"" ]; then
-    # Take the option given as the new build directory
-    BUILD_DIR="$1"
+# A useful short tutorial on getopt:
+# https://wiki.bash-hackers.org/howto/getopts_tutorial
+while getopts ":o:j:f" opt; do
+  case $opt in
+    o)
+        BUILD_DIR="$OPTARG"
+        ;;
+    j)
+        NUMBER_OF_JOBS=$OPTARG
+        ;;
+    f)
+        NEED_MEMORY=""
+        ;;
+    \?)
+        echo "Invalid option -$OPTARG" >&2
+        exit 1
+        ;;
+    :)
+        echo "Option -$OPTARG requires an argument." >&2
+        exit 1
+        ;;
+  esac
+
+  # Check if another option is mistakenly passed as an argument
+  case $OPTARG in
+  -*)
+        echo "Option '-$opt' requires an argument."
+        exit 1
+        ;;
+  esac
+done
+
+
+
+
+
+# Use maximum cores available in GNU/Linux and macOS by default
+if [ -z $NUMBER_OF_JOBS ]; then
+    OS_TYPE=$(uname -s)
+    case $OS_TYPE in
+    Linux*)
+        NUMBER_OF_JOBS=$(nproc)
+        ;;
+    Darwin*)
+        NUMBER_OF_JOBS=$(sysctl -n hw.ncpu)
+        ;;
+    *)
+        NUMBER_OF_JOBS=1
+        ;;
+    esac
+fi
+echo ">>> Build using $NUMBER_OF_JOBS core(s), " \
+     "i.e. \$ make -j$NUMBER_OF_JOBS"
+
+
+
+
+
+# Create the build directory if it is not available already
+if [ ! -d $BUILD_DIR ]; then
+    mkdir -p $BUILD_DIR >&2
+
+    # Exit in case of receiving errors from mkdir
+    if [ ! $? -eq 0 ]; then
+        echo "*** Please fix the issue with build directory '$BUILD_DIR' and try again."
+        echo "*** OR create the directory yourself and re-run the script."
+        exit 1
+    fi
 fi
 
 echo ">>> Target build directory: $BUILD_DIR"
 
-case $BUILD_DIR/ in
-    /dev/shm/*)
-    # Build directory is in RAM
-    # ONLY continue if there is at least 1GB of RAM available
-    NEED_MEMORY=1000000
-    FREE_MEMORY=$(free | awk '$1 == "Mem:" {print $NF}')
-
-    if [ $FREE_MEMORY -lt $NEED_MEMORY ]; then
-        echo "*** Not enough memory available in RAM (current "\
-             "$FREE_MEMORY, need $NEED_MEMORY)"
-        exit 1
-    fi
-    ;;
-
-    *)
-    # Build directory is not in RAM
-    ;;
-esac
 
 
 
 
+# Check for available free space in the build directory
+FREE_MEMORY=$(df $BUILD_DIR | awk 'END{print $4}')
 
-# Create the build directory and a symbolic link for quick access
-if [ ! -d $BUILD_DIR ]; then
-    mkdir -p $BUILD_DIR
+if [ -z $NEED_MEMORY ]; then
+    echo ">>> Skipping free memory check. Available: $FREE_MEMORY"
+elif [ $FREE_MEMORY -lt $NEED_MEMORY ]; then
+    echo "*** Not enough memory available in '$BUILD_DIR'"
+    echo "*** (current $FREE_MEMORY, need $NEED_MEMORY)"
+    exit 1
 fi
 
+
+
+
+
+# Create the symbolic link
 if [ ! -h $BUILD_LINK ]; then
     echo ">>> Creating a symbolic link for quick access:"
     ln -s $BUILD_DIR $BUILD_LINK
@@ -82,7 +140,7 @@ fi
 
 
 
-# Begin the build process, with all cores available
+# Begin the build process
 cd $BUILD_DIR
 cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug $TOP_DIR
-make -j
+make -j$NUMBER_OF_JOBS
