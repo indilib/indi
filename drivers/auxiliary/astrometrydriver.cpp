@@ -404,7 +404,7 @@ void AstrometryDriver::runSolver()
             IDSetSwitch(&SolverSP, nullptr);
             pthread_mutex_unlock(&lock);
 
-            fclose(handle);
+            pclose(handle);
             LOG_INFO("Solver complete.");
             return;
         }
@@ -415,14 +415,14 @@ void AstrometryDriver::runSolver()
             SolverSP.s = IPS_IDLE;
             IDSetSwitch(&SolverSP, nullptr);
             pthread_mutex_unlock(&lock);
-            fclose(handle);
+            pclose(handle);
             LOG_INFO("Solver canceled.");
             return;
         }
         pthread_mutex_unlock(&lock);
     }
 
-    fclose(handle);
+    pclose(handle);
 
     pthread_mutex_lock(&lock);
     SolverSP.s = IPS_ALERT;
