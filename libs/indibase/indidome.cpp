@@ -855,7 +855,9 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 mountEquatorialCoords.declination = de;
                 LOGF_DEBUG("Calling Update mount to anticipate goto target: %g - DEC: %g",
                            mountEquatorialCoords.rightascension, mountEquatorialCoords.declination);
+                UseHourAngle = true;
                 UpdateMountCoords();
+                UseHourAngle = false;
             }
         }
 
@@ -1301,13 +1303,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     if (OTASideSP.s == IPS_OK)
     {
-        if(OTASideS[DM_OTA_SIDE_EAST].s == ISS_ON)
-            OTASide = -1;
-        else if(OTASideS[DM_OTA_SIDE_WEST].s == ISS_ON)
-            OTASide = 1;
-        else if(OTASideS[DM_OTA_SIDE_MOUNT].s == ISS_ON)
-            OTASide = mountOTASide;
-        else if(OTASideS[DM_OTA_SIDE_HA].s == ISS_ON)
+        if(OTASideS[DM_OTA_SIDE_HA].s == ISS_ON || UseHourAngle)
         {
             // Note if the telescope points West, OTA is at east of the pier, and viceversa.
             if(hourAngle > 0)
@@ -1315,6 +1311,13 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
             else
                 OTASide = 1;
         }
+        else if(OTASideS[DM_OTA_SIDE_EAST].s == ISS_ON)
+            OTASide = -1;
+        else if(OTASideS[DM_OTA_SIDE_WEST].s == ISS_ON)
+            OTASide = 1;
+        else if(OTASideS[DM_OTA_SIDE_MOUNT].s == ISS_ON)
+            OTASide = mountOTASide;
+
         LOGF_DEBUG("OTA_SIDE selection: %d", IUFindOnSwitchIndex(&OTASideSP));
     }
 
