@@ -1303,7 +1303,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     if (OTASideSP.s == IPS_OK)
     {
-        if(OTASideS[DM_OTA_SIDE_HA].s == ISS_ON || UseHourAngle)
+        if(OTASideS[DM_OTA_SIDE_HA].s == ISS_ON || (UseHourAngle && OTASideS[DM_OTA_SIDE_MOUNT].s == ISS_ON))
         {
             // Note if the telescope points West, OTA is at east of the pier, and viceversa.
             if(hourAngle > 0)
