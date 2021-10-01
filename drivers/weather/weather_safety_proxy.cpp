@@ -271,7 +271,7 @@ IPState WeatherSafetyProxy::executeScript()
     }
     char buf[BUFSIZ];
     size_t byte_count = fread(buf, 1, BUFSIZ - 1, handle);
-    fclose(handle);
+    pclose(handle);
     buf[byte_count] = 0;
     if (byte_count == 0)
     {

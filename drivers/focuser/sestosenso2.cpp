@@ -76,7 +76,7 @@ bool SestoSenso2::initProperties()
     INDI::Focuser::initProperties();
 
     FocusBacklashN[0].min = 0;
-    FocusBacklashN[0].max = 1000;
+    FocusBacklashN[0].max = 10000;
     FocusBacklashN[0].step = 1;
     FocusBacklashN[0].value = 0;
 
@@ -402,9 +402,12 @@ bool SestoSenso2::updatePosition()
     try
     {
         int32_t currentPos = std::stoi(res);
-        if(backlashDirection == FOCUS_INWARD) {
+        if(backlashDirection == FOCUS_INWARD)
+        {
             currentPos += backlashTicks;
-        } else {
+        }
+        else
+        {
             currentPos -= backlashTicks;
         }
         FocusAbsPosN[0].value = currentPos;
@@ -602,9 +605,12 @@ bool SestoSenso2::isMotionComplete()
                 try
                 {
                     uint32_t newPos = std::stoi(res);
-                    if(backlashDirection == FOCUS_INWARD) {
+                    if(backlashDirection == FOCUS_INWARD)
+                    {
                         newPos += backlashTicks;
-                    } else {
+                    }
+                    else
+                    {
                         newPos -= backlashTicks;
                     }
                     FocusAbsPosN[0].value = newPos;
@@ -1067,9 +1073,12 @@ IPState SestoSenso2::MoveAbsFocuser(uint32_t targetTicks)
     if (isSimulation() == false)
     {
         backlashDirection = targetTicks < lastPos ? FOCUS_INWARD : FOCUS_OUTWARD;
-        if(backlashDirection == FOCUS_INWARD) {
+        if(backlashDirection == FOCUS_INWARD)
+        {
             targetPos -=  backlashTicks;
-        } else {
+        }
+        else
+        {
             targetPos +=  backlashTicks;
         }
         char res[SESTO_LEN] = {0};

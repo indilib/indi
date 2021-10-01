@@ -474,7 +474,8 @@ void SkySafari::processCommand(std::string cmd)
         int dd, mm, ss;
         char output[32] = { 0 };
         getSexComponents(eqCoordsNP->np[AXIS_DE].value, &dd, &mm, &ss);
-        snprintf(output, 32, "%+02d:%02d:%02d#", dd, mm, ss);
+        snprintf(output, 32, "%c%02d:%02d:%02d#", (eqCoordsNP->np[AXIS_DE].value >= 0) ? '+' : '-',
+                 std::abs(dd), mm, ss);
         sendSkySafari(output);
     }
     // Set RA
