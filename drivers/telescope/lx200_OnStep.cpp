@@ -1875,6 +1875,7 @@ bool LX200_OnStep::ReadScopeStatus()
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        LOG_INFO("RA/DEC could not be read, possible solution if using (wireless)ethernet: Use port 9998");
     //    return false;
     }
 
@@ -1896,6 +1897,7 @@ bool LX200_OnStep::ReadScopeStatus()
             // ============= Parkstatus
             
             #ifdef DEBUG_TRACKSTATE
+                LOG_DEBUG("Prior TrackState:")
                 PrintTrackState();
                 LOG_DEBUG("^ Prior");
             #endif
@@ -2168,14 +2170,14 @@ bool LX200_OnStep::ReadScopeStatus()
             if (OSMountType != MOUNTTYPE_ALTAZ && OSMountType != MOUNTTYPE_FORK_ALT) {
                 uint32_t capabilities = GetTelescopeCapability();
                 if ((capabilities | TELESCOPE_HAS_PIER_SIDE) != capabilities) {
-                    LOG_INFO("Telescope detected having Pier Side, adding that capability");
+                    LOG_INFO("Telescope detected having Pier Side, adding that capability (many messages duplicated)");
                     LOGF_DEBUG("capabilites = %x", capabilities);
                     capabilities |= TELESCOPE_HAS_PIER_SIDE;
                     SetTelescopeCapability(capabilities, 10 );
                     LX200_OnStep::updateProperties();
                 }
                 if (strstr(OSStat, "o")) {
-                    setPierSide(PIER_UNKNOWN);
+                    setPierSide(PIER_UNKNOWN); //Closest match to None, For forks may trigger an extra goto, during imaging if it would do a meridian flip
                     pier_not_set = false;
                 }
                 if (strstr(OSStat, "T")) {
