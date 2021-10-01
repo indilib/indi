@@ -1,3 +1,85 @@
++ From 1.9.1 to 1.9.2
+
+    043d4ef4 2021-09-12 Jasem Mutlaq         Adjust for hemisphere when reading velocity
+    51fa9e2d 2021-09-12 Jasem Mutlaq         Fix regex to include negative numbers
+    2f9d2416 2021-09-12 Pedram Ashofteh Ardakani Developer build script (#1533)
+    7925b2c3 2021-09-11 Jasem Mutlaq         Ignore SIGPIPE
+    38773e0e 2021-09-10 Jasem Mutlaq         fabs --> std::abs
+    1d626268 2021-09-10 Jasem Mutlaq         Use std::abs only
+    68afe58f 2021-09-09 Jasem Mutlaq         Remove obsolete comments
+    df904906 2021-09-09 Jasem Mutlaq         Protect against too short device labels after regex
+    ce3ee14a 2021-09-08 Jasem Mutlaq         Always alert parent of disconnection before clearing the devices
+    75e5c4f6 2021-09-08 Jasem Mutlaq         Perform one extra check if the property for some reason is null
+    cad08082 2021-09-08 Jasem Mutlaq         Enable tighter syncs
+    1460fc32 2021-09-08 Jasem Mutlaq         Find time estimation
+    05e0767d 2021-09-08 Jasem Mutlaq         When syncing, use mount internal coordinates
+    1db46625 2021-09-08 Jasem Mutlaq         More logging
+    53a4c4e8 2021-09-08 Jasem Mutlaq         Remove leading space from element names
+    efd733f6 2021-09-07 Jasem Mutlaq         Re-engage tracking after slew. Add more logging
+    a573ae2c 2021-09-07 Jasem Mutlaq         Sync axis encoders on Sync command
+    c04b35ab 2021-09-07 Pedram Ashofteh Ardakani Script: Developer build script for UNIX users (#1529)
+    cbb6eb1b 2021-09-07 Paweł T. Jochym      Remove old part of CircleCI config (#1530)
+    5153e0f4 2021-09-06 Jasem Mutlaq         Only update temperature value is above a threshold
+    7db164e8 2021-09-05 Jasem Mutlaq         Use double otherwise the threshold will never work
+    b357b4c3 2021-09-05 Jasem Mutlaq         Less spammy when no real changes happening
+    eda21296 2021-09-01 Ilia Platone         ESATTO Backlash measure and correction (#1526)
+    f8b0b3c5 2021-08-30 jamiecflinn          Update lx200_OnStep.cpp (#1527)
+    7b811ba6 2021-08-27 Jasem Mutlaq         Take care of jitter. If position parse fails, try to see if it is for the other axis
+    667f99d3 2021-08-26 Jasem Mutlaq         Include zero point explicitly
+    fbfd53d1 2021-08-26 Jasem Mutlaq         Add more logging
+    09065078 2021-08-26 Jasem Mutlaq         Simulate manual motion
+    b8f0f13f 2021-08-25 Ilia Platone         Change INDISensorInterface and INDIReceiver FITS Keywords (#1525)
+    f7d8838c 2021-08-24 Jasem Mutlaq         Protect against crash by checking if map has key
+    4b442123 2021-08-20 Jasem Mutlaq         Stop tracking after park is complete
+    f6fa161f 2021-08-18 Jasem Mutlaq         Need to reverse velocity in southern hemisphere
+    ecbef968 2021-08-18 Jasem Mutlaq         Reverse NS for southern hemisphere as well
+    cc5e4751 2021-08-18 Jasem Mutlaq         Fix southern hemisphere bugs
+    6b0aa60e 2021-08-13 andkem               indicom: fix FreeBSD compilation (#1524)
+    cecb909d 2021-08-11 Jasem Mutlaq         If directory is not found, return error
+    bde39f11 2021-08-10 Jasem Mutlaq         Make default slew speed to be max
+    08b4d1c1 2021-08-04 Jasem Mutlaq         Differentiate between regular star adventurer tracking which cannot be control and the WiFi version which can
+    e8307829 2021-08-02 Xiretza              Fix invalid substitution in udev rules file (#1521)
+    a8ff8c37 2021-08-02 Jasem Mutlaq         Change default gain to 90
+    897fe88b 2021-07-31 Jasem Mutlaq         Set current mount alignment when switching plugins
+    bf68ffd4 2021-07-31 Jasem Mutlaq         Init in memory database after plugin switch
+    3d441a54 2021-07-31 Jasem Mutlaq         Check that in memory database is available
+    97dba863 2021-07-31 Jasem Mutlaq         Add Nearest Math Plugin similar to how it is done in EQMod. Enable loading of saved plugin preferences in math plugin loader.
+    96fc2928 2021-07-27 Jasem Mutlaq         Convert RA from Degrees --> Hours. Fixes #1519
+    6d699923 2021-07-27 Jasem Mutlaq         Decrease tolerance when checking for duplicate points
+    27528a50 2021-07-26 Jasem Mutlaq         Merge branch 'master' of https://github.com/indilib/indi
+    e1fa9f7b 2021-07-26 Jasem Mutlaq         Differential between zenith and equatorial modes
+    6ae49d33 2021-07-26 Nekomeshi            Correct color space when stacking on indi_v4l2_ccd driver with a web cam  that doesn't have color space info. (#1520)
+    e38b973d 2021-07-26 Jasem Mutlaq         Fix bug where dynamic flag was not set when loading properties from XML file.
+    0f5a628a 2021-07-22 Jasem Mutlaq         Change Label to Network as it make more sense. The name stays the same
+    0e9873a3 2021-07-21 Nicholas Dahlke      The driver for the Planewave Delta-T was not working (#1515)
+    008942e5 2021-07-19 Jasem Mutlaq         Add IMX290 board
+    ce611e76 2021-07-19 Robert Brown         Improved handling of myFP2ESP controllers (#1514)
+    74bd090c 2021-07-15 Efstathios Chrysikos Pegasus UCH (#1513)
+    fca7a137 2021-07-13 Jarno Paananen       Move calling of (dis)connect callback out of lock scope (#1511)
+    62c546e0 2021-07-13 Jasem Mutlaq         Use INDI lib pyindi-client
+    c973b7fc 2021-07-11 Nekomeshi            Support stacking mode on a indi_v4l2_ccd driver with v4l2 device that doesn't have AbsExposure. (#1510)
+    1d10d1a5 2021-07-07 Jim                  update to 1.9.2 indi dev version in spec file (#1509)
+    3092e823 2021-07-06 Jasem Mutlaq         Call parent serverConnected. Why was this removed?
+    1015ccd3 2021-07-06 Jasem Mutlaq         Start 1.9.2 development cycle
+    abcb2d9f 2021-07-05 Jasem Mutlaq         Separate equatorial and horizontal transformations as they cannot be reliably used interchangably
+    e1ea992a 2021-07-05 Jasem Mutlaq         For sync use apparent telescope coordinates
+    03a78b5e 2021-07-04 Jasem Mutlaq         Add simulation mode
+    49e88a36 2021-07-04 Jasem Mutlaq         Do not use rotation for zero sync points
+    8e175cdd 2021-07-04 Jasem Mutlaq         When we have zero sync points for equatorial mounts, simply transform the telescope direction vector back to equatorial coordinates instead of using..
+    47d23904 2021-07-03 Jasem Mutlaq         Add TCIO flush before sending commands
+    9045b593 2021-06-30 Jasem Mutlaq         Revert "Replace gethostbyname with getaddrinfo (#1462)"
+    63346a7e 2021-06-30 Jasem Mutlaq         Revert getaddrinfo in baseclient as it caused a regression
+    8ba2c726 2021-06-30 Jasem Mutlaq         Fix INDI compile on Windows after latest update
+    7fb682d3 2021-06-30 Jasem Mutlaq         Move CMAKE_POSITION_INDEPENDENT_CODE to CMakeCommon and disable -pie. Fixes #1504
+    90a87d90 2021-06-29 Paolo Stivanin       Use getaddrinfo instead of gethostbyname (part 2) (#1505)
+    db6655d1 2021-06-29 interplanetarychris  TheSkyX/Paramount Pier-side + guide async cmd fixes (#1506)
+    f1e154ef 2021-06-29 Efstathios Chrysikos Change Pegasus UCH Handsake Message (#1507)
+    907b3d81 2021-06-29 Paolo Stivanin       Fix indimacros include path on baseclient.h (#1503)
+    6337561b 2021-06-28 Jasem Mutlaq         Set DMFC version
+    48dcd002 2021-06-26 Jasem Mutlaq         These properties are already defined by the interface, no need to redefine them here
+    9f59cd95 2021-06-26 Jasem Mutlaq         v1.9.1 change log
+    ead3f5c5 2021-06-26 Jasem Mutlaq         Remove tcdrain since it causes TheSkyX to produce errors
+
 + From 1.9.0 to 1.9.1
 
     0a28db96 2021-06-26 Jasem Mutlaq         Make it build on Windows

@@ -43,7 +43,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 9)
-set(CMAKE_INDI_VERSION_RELEASE 2)
+set(CMAKE_INDI_VERSION_RELEASE 3)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -1572,6 +1572,15 @@ SET(flipflat_SRC
 add_executable(indi_flipflat ${flipflat_SRC})
 target_link_libraries(indi_flipflat indidriver)
 install(TARGETS indi_flipflat RUNTIME DESTINATION bin)
+
+########### Light Panel Simulator ###############
+
+SET(lightpanelsimulator_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/light_panel_simulator.cpp)
+
+add_executable(indi_simulator_lightpanel ${lightpanelsimulator_SRC})
+target_link_libraries(indi_simulator_lightpanel indidriver)
+install(TARGETS indi_simulator_lightpanel RUNTIME DESTINATION bin)
 
 ########### Pegasus Ultimate Power Box Driver ###############
 

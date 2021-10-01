@@ -793,7 +793,7 @@ void DeepSkyDadAF3::TimerHit()
     bool rc = readPosition();
     if (rc)
     {
-        if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
+        if (std::abs(lastPos - FocusAbsPosN[0].value) > 5)
         {
             IDSetNumber(&FocusAbsPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
@@ -833,7 +833,8 @@ void DeepSkyDadAF3::TimerHit()
     rc = readTemperature();
     if (rc)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.1 ) //more accurate update
+        //more accurate update
+        if (std::abs(lastTemperature - TemperatureN[0].value) >= 0.1)
         {
             IDSetNumber(&TemperatureNP, nullptr);
             lastTemperature = TemperatureN[0].value;

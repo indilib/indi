@@ -260,10 +260,10 @@ bool AstroTrac::getVelocity(INDI_EQ_AXIS axis)
         {
             std::string velocity = std::regex_replace(
                                        response,
-                                       std::regex("<.v([0-9]+\\.[0-9]+?)>"),
+                                       std::regex("<.v([+-]?[0-9]+\\.[0-9]+?)>"),
                                        std::string("$1"));
 
-            TrackRateN[axis].value = std::stod(velocity);
+            TrackRateN[axis].value = std::stod(velocity) * (m_Location.latitude >= 0 ? 1 : -1);
             return true;
         }
         catch(...)
@@ -451,8 +451,11 @@ void AstroTrac::getRADEFromEncoders(double haEncoder, double deEncoder, double &
     double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
     ra = range24(lst - ha);
 
-    LOGF_DEBUG("Encoders HA: %.2f DE: %.2f Processed: HA: %.2f DE: %.2f LST: %.2f RA: %.2f",
-               haEncoder, deEncoder, ha, de, lst, ra);
+    char RAStr[32] = {0}, DecStr[32] = {0};
+    fs_sexa(RAStr, ra, 2, 3600);
+    fs_sexa(DecStr, de, 2, 3600);
+    LOGF_DEBUG("Encoders HA: %.4f DE: %.4f Processed: HA: %.4f DE: %.4f (%s) LST: %.4f RA: %.4f (%s)",
+               haEncoder, deEncoder, ha, de, DecStr, lst, ra, RAStr);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -504,36 +507,32 @@ void AstroTrac::getEncodersFromRADE(double ra, double de, double &haEncoder, dou
 bool AstroTrac::Sync(double ra, double dec)
 {
     AlignmentDatabaseEntry NewEntry;
-    INDI::IEquatorialCoordinates RaDec {EqN[AXIS_RA].value, EqN[AXIS_DE].value};
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
     // Actual Celestial Coordinates
     NewEntry.RightAscension        = ra;
     NewEntry.Declination           = dec;
     // Apparent Telescope Coordinates
-    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
+    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromEquatorialCoordinates(m_MountInternalCoordinates);
     NewEntry.PrivateDataSize = 0;
 
-    LOGF_DEBUG("Sync - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
-
-    if (!CheckForDuplicateSyncPoint(NewEntry, 0.01))
+    if (!CheckForDuplicateSyncPoint(NewEntry, 0.001))
     {
         GetAlignmentDatabase().push_back(NewEntry);
 
         // Tell the client about size change
         UpdateSize();
 
-        // equatorial/telescope conversions needs more than 1 sync point
-        //        if (GetAlignmentDatabase().size() < 2)
-        //            LOG_WARN("Equatorial mounts need two SYNC points at least.");
-
         // Tell the math plugin to reinitiali
         Initialise(this);
-        LOGF_DEBUG("Sync - new entry added RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
 
-        // update tracking target
-        ReadScopeStatus();
+        char RAStr[32], DecStr[32];
+        fs_sexa(RAStr, ra, 2, 3600);
+        fs_sexa(DecStr, dec, 2, 3600);
+        LOGF_INFO("Syncing to JNOW RA %s - DEC %s", RAStr, DecStr);
+
         return true;
     }
+
     LOGF_DEBUG("Sync - duplicate entry RA: %lf(%lf) DEC: %lf", ra * 360.0 / 24.0, ra, dec);
     return false;
 }
@@ -547,6 +546,14 @@ bool AstroTrac::Goto(double ra, double dec)
     INDI::IEquatorialCoordinates telescopeCoordinates;
     if (getTelescopeFromSkyCoordinates(ra, dec, telescopeCoordinates))
     {
+        char mountRAString[32] = {0}, mountDEString[32] = {0}, skyRAString[32] = {0}, skyDEString[32] = {0};
+        fs_sexa(mountRAString, telescopeCoordinates.rightascension, 2, 3600);
+        fs_sexa(mountDEString, telescopeCoordinates.declination, 2, 3600);
+        fs_sexa(skyRAString, ra, 2, 3600);
+        fs_sexa(skyDEString, dec, 2, 3600);
+
+        LOGF_DEBUG("GOTO Sky RA: %s DE: %s ---> Mount RA: %s DE: %s", skyRAString, skyDEString, mountRAString, mountDEString);
+
         getEncodersFromRADE(telescopeCoordinates.rightascension, telescopeCoordinates.declination, haEncoder, deEncoder);
 
         // Account for acceletaion, max speed, and deceleration by the time we get there.
@@ -554,6 +561,8 @@ bool AstroTrac::Goto(double ra, double dec)
         double tHA = calculateSlewTime(haEncoder - EncoderNP[AXIS_RA].getValue());
         // Adjust for hemisphere. Convert time to delta degrees
         tHA = tHA * (m_Location.latitude >= 0 ? 1 : -1) * TRACKRATE_SIDEREAL / 3600;
+
+        LOGF_DEBUG("GOTO Encoders HA: %.4f (%.4f + %.4f) DE: %.4f", haEncoder + tHA, haEncoder, tHA, deEncoder);
 
         // Now go to each encoder
         bool rc1 = slewEncoder(AXIS_RA, haEncoder + tHA);
@@ -564,8 +573,8 @@ bool AstroTrac::Goto(double ra, double dec)
             TrackState = SCOPE_SLEWING;
 
             char RAStr[32], DecStr[32];
-            fs_sexa(RAStr, telescopeCoordinates.rightascension, 2, 3600);
-            fs_sexa(DecStr, telescopeCoordinates.declination, 2, 3600);
+            fs_sexa(RAStr, ra, 2, 3600);
+            fs_sexa(DecStr, dec, 2, 3600);
             LOGF_INFO("Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
             return true;
         }
@@ -590,12 +599,12 @@ double AstroTrac::calculateSlewTime(double distance)
     // If distance less than this, then calulate using accleration forumlae:
     if (distance < accelerate_decelerate)
     {
-        return (2 * sqrt(accelerate_decelerate / AccelerationNP[AXIS_RA].getValue()));
+        return (2 * sqrt(distance / AccelerationNP[AXIS_RA].getValue()));
     }
     else
     {
         // Time is equal to twice the time required to accelerate or decelerate, plus the remaining distance at max slew speed
-        return (2.0 * MAX_SLEW_VELOCITY / AccelerationNP[AXIS_RA].getValue() + (accelerate_decelerate - accelerate_decelerate) /
+        return (2.0 * MAX_SLEW_VELOCITY / AccelerationNP[AXIS_RA].getValue() + (distance - accelerate_decelerate) /
                 MAX_SLEW_VELOCITY);
     }
 }
@@ -634,6 +643,7 @@ bool AstroTrac::ReadScopeStatus()
             {
                 LOG_INFO("Slew complete, tracking...");
                 TrackState = SCOPE_TRACKING;
+                SetTrackEnabled(true);
             }
             // Parking
             else
@@ -644,14 +654,24 @@ bool AstroTrac::ReadScopeStatus()
         }
     }
 
-    INDI::IEquatorialCoordinates RaDec {ra, de};
-    TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
+    m_MountInternalCoordinates.rightascension = ra;
+    m_MountInternalCoordinates.declination = de;
+    TDV = TelescopeDirectionVectorFromEquatorialCoordinates(m_MountInternalCoordinates);
 
     if (TransformTelescopeToCelestial(TDV, skyRA, skyDE))
     {
         double lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
         double dHA = rangeHA(lst - skyRA);
         setPierSide(dHA < 0 ? PIER_EAST : PIER_WEST);
+
+        char mountRAString[32] = {0}, mountDEString[32] = {0}, skyRAString[32] = {0}, skyDEString[32] = {0};
+        fs_sexa(mountRAString, ra, 2, 3600);
+        fs_sexa(mountDEString, de, 2, 3600);
+        fs_sexa(skyRAString, skyRA, 2, 3600);
+        fs_sexa(skyDEString, skyDE, 2, 3600);
+
+        LOGF_DEBUG("Mount RA: %s DE: %s ---> Sky RA: %s DE: %s", mountRAString, mountDEString, skyRAString, skyDEString);
+
         NewRaDec(skyRA, skyDE);
         return true;
     }

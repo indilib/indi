@@ -20,13 +20,13 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope *pTelescope)
                  "ALIGNMENT_POINT_ENTRY_OBSERVATION_JULIAN_DATE", "Observation Julian date", "%g", 0, 60000, 0, 0);
     IUFillNumber(&AlignmentPointSetEntry[ENTRY_RA], "ALIGNMENT_POINT_ENTRY_RA", "Right Ascension (hh:mm:ss)", "%010.6m",
                  0, 24, 0, 0);
-    IUFillNumber(&AlignmentPointSetEntry[ENTRY_DEC], " ALIGNMENT_POINT_ENTRY_DEC", "Declination (dd:mm:ss)", "%010.6m",
+    IUFillNumber(&AlignmentPointSetEntry[ENTRY_DEC], "ALIGNMENT_POINT_ENTRY_DEC", "Declination (dd:mm:ss)", "%010.6m",
                  -90, 90, 0, 0);
     IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_X], "ALIGNMENT_POINT_ENTRY_VECTOR_X",
                  "Telescope direction vector x", "%g", -FLT_MAX, FLT_MAX, 0, 0);
-    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Y], " ALIGNMENT_POINT_ENTRY_VECTOR_Y",
+    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Y], "ALIGNMENT_POINT_ENTRY_VECTOR_Y",
                  "Telescope direction vector y", "%g", -FLT_MAX, FLT_MAX, 0, 0);
-    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Z], " ALIGNMENT_POINT_ENTRY_VECTOR_Z",
+    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Z], "ALIGNMENT_POINT_ENTRY_VECTOR_Z",
                  "Telescope direction vector z", "%g", -FLT_MAX, FLT_MAX, 0, 0);
     IUFillNumberVector(&AlignmentPointSetEntryV, AlignmentPointSetEntry, 6, pTelescope->getDeviceName(),
                        "ALIGNMENT_POINT_MANDATORY_NUMBERS", "Mandatory sync point numeric fields", ALIGNMENT_TAB, IP_RW,

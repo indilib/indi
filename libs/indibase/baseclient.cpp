@@ -53,6 +53,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <signal.h>
 #define net_read read
 #define net_write write
 #define net_close close
@@ -105,18 +106,6 @@ BaseClientPrivate::~BaseClientPrivate()
     if (!sSocketChanged.wait_for(locker, std::chrono::milliseconds(500), [this] { return sConnected == false; }))
     {
         IDLog("BaseClient::~BaseClient: Probability of detecting a deadlock.\n");
-        /* #PS:
-         * KStars bug - suspicion
-         *   The function thread 'BaseClient::listenINDI' could not be terminated
-         *   because the 'dispatchCommand' function is in progress.
-         *
-         *   The function 'dispatchCommand' cannot be completed
-         *   because it is related to the function call 'ClientManager::newProperty'.
-         *
-         *   There is a call that uses BlockingQueuedConnection to the thread that is currently busy
-         *   destroying the BaseClient object.
-         *
-         */
     }
 }
 
@@ -129,7 +118,6 @@ void BaseClientPrivate::clear()
     }
     cDevices.clear();
     blobModes.clear();
-    // cDeviceNames.clear(); // #PS: missing?
 }
 
 bool BaseClientPrivate::connect()
@@ -207,6 +195,9 @@ bool BaseClientPrivate::connect()
 
         if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
             return false;
+
+        // Handle SIGPIPE
+        signal(SIGPIPE, SIG_IGN);
 #endif
 
         //clear out descriptor sets for select
@@ -479,12 +470,13 @@ void BaseClientPrivate::listenINDI()
 
         exit_code = sAboutToClose ? sExitCode : -1;
         sConnected = false;
+        // JM 2021.09.08: Call serverDisconnected *before* clearing devices.
+        parent->serverDisconnected(exit_code);
 
         clear();
         cDeviceNames.clear();
         sSocketChanged.notify_all();
     }
-    parent->serverDisconnected(exit_code);
 }
 
 size_t BaseClientPrivate::sendData(const void *data, size_t size)

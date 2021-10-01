@@ -125,7 +125,7 @@ bool QHYCFW3::Handshake()
     if (res[0] == 'F')
         FilterSlotN[0].max = 16;
     else
-        FilterSlotN[0].max = atoi(res) + 1;
+        FilterSlotN[0].max = atoi(res);
 
     // Now get current position
     LOG_DEBUG("CMD <NOW>");

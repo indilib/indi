@@ -702,7 +702,7 @@ void NightCrawler::TimerHit()
 
     // #2 Get Temperature
     rc = getTemperature();
-    if (rc && fabs(TemperatureN[0].value - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(TemperatureN[0].value - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
     {
         lastTemperature = TemperatureN[0].value;
         IDSetNumber(&TemperatureNP, nullptr);
@@ -710,7 +710,7 @@ void NightCrawler::TimerHit()
 
     // #3 Get Voltage
     rc = getVoltage();
-    if (rc && fabs(VoltageN[0].value - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
+    if (rc && std::abs(VoltageN[0].value - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
     {
         lastVoltage = VoltageN[0].value;
         IDSetNumber(&VoltageNP, nullptr);
@@ -745,7 +745,7 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_FOCUS);
-    if (rc && FocusAbsPosN[0].value != lastFocuserPosition)
+    if (rc && std::abs(FocusAbsPosN[0].value - lastFocuserPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastFocuserPosition = FocusAbsPosN[0].value;
         absFocusUpdated = true;
@@ -768,7 +768,7 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_ROTATOR);
-    if (rc && RotatorAbsPosN[0].value != lastRotatorPosition)
+    if (rc && std::abs(RotatorAbsPosN[0].value - lastRotatorPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastRotatorPosition = RotatorAbsPosN[0].value;
         GotoRotatorN[0].value = range360(RotatorAbsPosN[0].value / ticksPerDegree);
@@ -794,7 +794,7 @@ void NightCrawler::TimerHit()
         }
     }
     rc = getPosition(MOTOR_AUX);
-    if (rc && GotoAuxN[0].value != lastAuxPosition)
+    if (rc && std::abs(GotoAuxN[0].value - lastAuxPosition) > NIGHTCRAWLER_THRESHOLD)
     {
         lastAuxPosition = GotoAuxN[0].value;
         absAuxUpdated = true;

@@ -192,6 +192,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
         float m_PolarError { 0 };
         float m_PolarDrift { 0 };
 
+        double m_LastTemperature {0};
+
         int streamPredicate {0};
         pthread_t primary_thread;
         bool terminateThread;
