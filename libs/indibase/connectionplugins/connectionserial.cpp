@@ -333,13 +333,13 @@ void Serial::Activated()
 
 void Serial::Deactivated()
 {
+    m_Device->deleteProperty(SystemPortSP.name);
+    delete[] SystemPortS;
+    SystemPortS = nullptr;
     m_Device->deleteProperty(PortTP.name);
     m_Device->deleteProperty(BaudRateSP.name);
     m_Device->deleteProperty(AutoSearchSP.name);
     m_Device->deleteProperty(RefreshSP.name);
-    m_Device->deleteProperty(SystemPortSP.name);
-    delete[] SystemPortS;
-    SystemPortS = nullptr;
 }
 
 bool Serial::saveConfigItems(FILE *fp)
@@ -488,9 +488,12 @@ bool Serial::Refresh(bool silent)
             LOGF_INFO("Scan complete. Found %d port(s).", pCount);
     }
 
-    // Check if anything changed. If not we return.
-    if (m_Ports == m_SystemPorts)
+    // Check if anything changed and the property is already defined then we return.
+    if (m_Ports == m_SystemPorts && SystemPortS)
+    {
+        m_Device->defineProperty(&SystemPortSP);
         return true;
+    }
 
     m_SystemPorts = m_Ports;
 
